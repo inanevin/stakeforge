@@ -29,7 +29,7 @@ running 1.42 ms median cpu time calculating 1024 characters with total of 50K+ b
 <div align="center">
 
 ![Alt](docs/stk.png)
-screenshot for funsies
+screenshot from Saunastein 2, from Global Game Jam 2026, first game made with Stakeforge!
 
 </div>
 
