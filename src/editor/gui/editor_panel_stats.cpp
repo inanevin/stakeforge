@@ -54,10 +54,10 @@ namespace SFG
 		static f32 stat_fetch_time = 0.0f;
 		static f32 mem_fetch_time	 = 0.0f;
 
-		static f32  stat_main_thread	 = static_cast<f32>(frame_info::get_main_thread_time_milli());
-		static f32  stat_render_thread = static_cast<f32>(frame_info::get_render_thread_time_milli());
-		static u32 stat_fps			 = frame_info::get_fps();
-		static u32 stat_dc			 = static_cast<u32>(frame_info::get_draw_calls());
+		static f32  stat_main_thread	 = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
+		static f32  stat_render_thread = static_cast<f32>(g_frame_info.render_thread_time_milli.load());
+		static u32 stat_fps			 = g_frame_info.fps.load();
+		static u32 stat_dc			 = static_cast<u32>(g_frame_info.draw_calls_ui.load(std::memory_order_acquire));
 		static u32 stat_ram			 = 0;
 		static u32 stat_vram			 = 0;
 		static u32 stat_vram_txt		 = 0;
@@ -65,10 +65,10 @@ namespace SFG
 
 		if (stat_fetch_time > 1500.0f)
 		{
-			stat_main_thread   = static_cast<f32>(frame_info::get_main_thread_time_milli());
-			stat_render_thread = static_cast<f32>(frame_info::get_render_thread_time_milli());
-			stat_fps		   = frame_info::get_fps();
-			stat_dc			   = static_cast<u32>(frame_info::get_draw_calls());
+			stat_main_thread   = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
+			stat_render_thread = static_cast<f32>(g_frame_info.render_thread_time_milli.load());
+			stat_fps		   = g_frame_info.fps.load();
+			stat_dc			   = static_cast<u32>(g_frame_info.draw_calls_ui.load(std::memory_order_acquire));
 			stat_fetch_time	   = 0.0f;
 
 			const vector2ui16& game_size = editor::get().get_app().get_game_resolution();
@@ -141,7 +141,7 @@ namespace SFG
 			_builder->widget_append_text(_wv_vram_res, " mb");
 		}
 
-		const f32 ms = static_cast<f32>(frame_info::get_main_thread_time_milli());
+		const f32 ms = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
 		mem_fetch_time += ms;
 		stat_fetch_time += ms;
 	}

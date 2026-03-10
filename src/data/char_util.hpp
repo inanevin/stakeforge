@@ -32,18 +32,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class char_util
+	namespace char_util
 	{
-	public:
-		static bool append(char*& cur, char* end, const char* data, size_t len);
-		static bool append(char*& cur, char* end, const char* cstr);
-		static bool append_char(char*& cur, char* end, char c);
-		static bool append_i32(char*& cur, char* end, i32 v);
-		static bool append_u32(char*& cur, char* end, u32 v);
-		static bool append_i64(char*& cur, char* end, i64 v);
-		static bool append_u64(char*& cur, char* end, u64 v);
-		static bool append_double(char*& cur, char* end, double v, int precision);
-		static bool appendf_va(char*& cur, char* end, const char* fmt, va_list args);
-		static void replace_all(char* c, char to_replace, char replacement);
-	};
+		bool append(char*& cur, char* end, const char* data, size_t len);
+		bool append(char*& cur, char* end, const char* cstr);
+		bool append_char(char*& cur, char* end, char c);
+		bool append_i32(char*& cur, char* end, i32 v);
+		bool append_u32(char*& cur, char* end, u32 v);
+		bool append_i64(char*& cur, char* end, i64 v);
+		bool append_u64(char*& cur, char* end, u64 v);
+		bool append_double(char*& cur, char* end, double v, int precision);
+		bool appendf_va(char*& cur, char* end, const char* fmt, va_list args);
+		void replace_all(char* c, char to_replace, char replacement);
+	}
 }

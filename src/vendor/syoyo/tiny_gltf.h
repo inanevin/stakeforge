@@ -4,7 +4,7 @@
 //
 // The MIT License (MIT)
 //
-// Copyright (c) 2015 - Present Syoyo Fujita, Aurélien Chatelain and many
+// Copyright (c) 2015 - Present Syoyo Fujita, Aur??lien Chatelain and many
 // contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -2375,7 +2375,7 @@ namespace tinygltf
 	/*
 	   base64.cpp and base64.h
 
-	   Copyright (C) 2004-2008 René Nyffenegger
+	   Copyright (C) 2004-2008 Ren?? Nyffenegger
 
 	   This source code is provided 'as-is', without any express or implied
 	   warranty. In no event will the author be held liable for any damages
@@ -2395,7 +2395,7 @@ namespace tinygltf
 
 	   3. This notice may not be removed or altered from any source distribution.
 
-	   René Nyffenegger rene.nyffenegger@adp-gmbh.ch
+	   Ren?? Nyffenegger rene.nyffenegger@adp-gmbh.ch
 
 	*/
 

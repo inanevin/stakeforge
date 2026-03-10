@@ -68,7 +68,7 @@ namespace SFG
 			.buffers	  = buffers,
 			.texture	  = texture,
 			.intermediate = intermediate,
-			.added_frame  = frame_info::get_render_frame(),
+			.added_frame  = g_frame_info.render_frame.load(),
 			.use_free	  = use_free,
 			.persistent	  = persistent,
 			.to_state	  = state,

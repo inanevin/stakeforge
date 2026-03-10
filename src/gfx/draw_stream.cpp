@@ -95,7 +95,7 @@ namespace SFG
 		}
 
 #ifdef SFG_TOOLMODE
-		frame_info::add_draw_call(_commands_count);
+		g_frame_info.draw_calls += _commands_count;
 #endif
 	}
 
@@ -174,7 +174,7 @@ namespace SFG
 		}
 
 #ifdef SFG_TOOLMODE
-		frame_info::add_draw_call(_commands_count);
+		g_frame_info.draw_calls += _commands_count;
 #endif
 	}
 	void draw_stream_distance::add_command(const draw_command_distance& cmd)
@@ -234,7 +234,7 @@ namespace SFG
 		}
 
 #ifdef SFG_TOOLMODE
-		frame_info::add_draw_call(_commands_count);
+		g_frame_info.draw_calls += _commands_count;
 #endif
 	}
 
@@ -273,7 +273,7 @@ namespace SFG
 		}
 
 #ifdef SFG_TOOLMODE
-		frame_info::add_draw_call(_commands_count);
+		g_frame_info.draw_calls += _commands_count;
 #endif
 	}
 
@@ -327,7 +327,7 @@ namespace SFG
 		}
 
 #ifdef SFG_TOOLMODE
-		frame_info::add_draw_call(_commands_count);
+		g_frame_info.draw_calls += _commands_count;
 #endif
 	}
 	void draw_stream_particle::add_command(const draw_command_particle& cmd)
@@ -384,7 +384,7 @@ namespace SFG
 		}
 
 #ifdef SFG_TOOLMODE
-		frame_info::add_draw_call(_commands_count);
+		g_frame_info.draw_calls += _commands_count;
 #endif
 	}
 

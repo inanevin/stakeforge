@@ -248,7 +248,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		const u64 frame = frame_info::get_render_frame();
+		const u64 frame = g_frame_info.render_frame.load();
 		if (!force && frame < BACK_BUFFER_COUNT + 1)
 			return;
 
@@ -1465,6 +1465,6 @@ namespace SFG
 
 	void proxy_manager::add_to_destroy_list(gfx_id id, destroy_data_type type)
 	{
-		_destroy_list.push_back({.id = id, .type = type, .target_frame = frame_info::get_render_frame() + BACK_BUFFER_COUNT + 1});
+		_destroy_list.push_back({.id = id, .type = type, .target_frame = g_frame_info.render_frame.load() + BACK_BUFFER_COUNT + 1});
 	}
 }

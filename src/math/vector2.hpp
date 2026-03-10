@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "math_common.hpp"
+#include "common/size_definitions.hpp"
 
 #undef min
 #undef max
@@ -45,8 +46,8 @@ namespace SFG
 	class vector2
 	{
 	public:
-		vector2(){};
-		vector2(f32 _x, f32 _y) : x(_x), y(_y){};
+		vector2() {};
+		vector2(f32 _x, f32 _y) : x(_x), y(_y) {};
 		vector2(const vector2ui16& v);
 
 		f32 x = 0.0f;

@@ -1750,7 +1750,7 @@ interface ID3D12InfoQueue
 
     // AddMessage()
     // This is used by D3D12 components to log messages.  Nothing stops
-    // applications from calling this, but it isn’t particularly useful.
+    // applications from calling this, but it isn???t particularly useful.
     // If an application wishes to insert custom strings into the queue,
     // AddApplicationMessage() below is suggested.  See below.
     //

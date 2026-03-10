@@ -271,7 +271,7 @@ namespace SFG
 			const i64 _current_time = time::get_cpu_microseconds();
 			const i64 delta_micro	= _current_time - previous_time;
 			previous_time			= _current_time;
-			frame_info::s_main_thread_time_milli.store(static_cast<double>(delta_micro) * 0.001);
+			g_frame_info.main_thread_time_milli.store(static_cast<double>(delta_micro) * 0.001);
 
 			// OS & window.
 			process::pump_os_messages();
@@ -385,7 +385,7 @@ namespace SFG
 			_world->end_debug_tick();
 
 			// pipeline render events.
-			frame_info::s_frame.fetch_add(1);
+			g_frame_info.frame.fetch_add(1);
 		}
 	}
 
@@ -431,7 +431,7 @@ namespace SFG
 		if (_render_thread.joinable())
 			_render_thread.join();
 
-		frame_info::s_is_render_active = false;
+		g_frame_info.is_render_active = false;
 		_renderer->wait_backend();
 	}
 
@@ -461,7 +461,7 @@ namespace SFG
 			return;
 		_render_joined.store(0, std::memory_order_release);
 		_render_thread				   = std::thread(&app::render_loop, this);
-		frame_info::s_is_render_active = true;
+		g_frame_info.is_render_active = true;
 	}
 
 	void app::render_loop()
@@ -487,17 +487,17 @@ namespace SFG
 			const double delta_milli   = delta * 0.001;
 			const double delta_seconds = delta_milli * 0.001;
 
-			frame_info::s_render_thread_time_milli.store(delta_milli);
-			frame_info::s_render_thread_elapsed_seconds.store(frame_info::s_render_thread_elapsed_seconds.load() + delta_seconds);
-			frame_info::s_fps.store(1.0f / static_cast<f32>(delta_seconds));
+			g_frame_info.render_thread_time_milli.store(delta_milli);
+			g_frame_info.render_thread_elapsed_seconds.store(g_frame_info.render_thread_elapsed_seconds.load() + delta_seconds);
+			g_frame_info.fps.store(1.0f / static_cast<f32>(delta_seconds));
 
-			frame_info::s_draw_calls = 0;
+			g_frame_info.draw_calls = 0;
 			_renderer->render();
 
 #ifdef SFG_TOOLMODE
-			frame_info::s_draw_calls_ui.store(frame_info::s_draw_calls, std::memory_order_release);
+			g_frame_info.draw_calls_ui.store(g_frame_info.draw_calls, std::memory_order_release);
 #endif
-			frame_info::s_render_frame.fetch_add(1);
+			g_frame_info.render_frame.fetch_add(1);
 		}
 	}
 }

@@ -140,7 +140,7 @@ namespace SFG
 		// world-space center
 		const vector3 c_world = linear_model * c_local + position;
 
-		// r = |L^T * n| · e_local
+		// r = |L^T * n| ? e_local
 		const vector3 v = linear_model.transposed() * p.normal;
 		const f32	  r = vector3::dot(vector3::abs(v), e_local);
 		const f32	  s = vector3::dot(p.normal, c_world) + p.distance;

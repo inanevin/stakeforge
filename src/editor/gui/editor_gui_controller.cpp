@@ -591,7 +591,7 @@ namespace SFG
 
 	void editor_gui_controller::end_context_menu()
 	{
-		_ctx_frame = frame_info::get_frame();
+		_ctx_frame = g_frame_info.frame.load();
 		_builder->build_hierarchy();
 	}
 

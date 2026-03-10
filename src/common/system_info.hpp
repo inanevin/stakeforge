@@ -28,64 +28,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "size_definitions.hpp"
 #include "data/atomic.hpp"
 
-#ifdef SFG_DEBUG
 #include <thread>
+
+#ifdef SFG_DEBUG
 #include "io/assert.hpp"
 #endif
 
 namespace SFG
 {
-#ifdef SFG_DEBUG
-
-	class thread_info
+	struct thread_info_t
 	{
-	public:
-		static inline std::thread::id get_thread_id_main()
-		{
-			return s_thread_id_main;
-		}
-
-		static inline std::thread::id get_thread_id_render()
-		{
-			return s_thread_id_render;
-		}
-
-		static inline bool get_is_init()
-		{
-			return s_is_init;
-		}
-
-	private:
-		friend class app;
-
-		static inline void SFG_REGISTER_THREAD_MAIN(std::thread::id id)
-		{
-			s_thread_id_main = id;
-		}
-
-		static inline void SFG_REGISTER_THREAD_RENDER(std::thread::id id)
-		{
-			s_thread_id_render = id;
-		}
-
-		static inline void set_is_init(bool is_init)
-		{
-			s_is_init = is_init;
-		}
-
-	private:
-		static std::thread::id s_thread_id_render;
-		static std::thread::id s_thread_id_main;
-		static bool			   s_is_init;
+		std::thread::id thread_id_render;
+		std::thread::id thread_id_main;
+		bool			is_init = false;
 	};
 
-#define SFG_REGISTER_THREAD_MAIN()	 thread_info::SFG_REGISTER_THREAD_MAIN(std::this_thread::get_id())
-#define SFG_REGISTER_THREAD_RENDER() thread_info::SFG_REGISTER_THREAD_RENDER(std::this_thread::get_id())
-#define SFG_SET_INIT(IS_INIT)		 thread_info::set_is_init(IS_INIT)
-#define SFG_VERIFY_THREAD_MAIN()	 SFG_ASSERT(thread_info::get_thread_id_main() == std::this_thread::get_id())
-#define SFG_VERIFY_THREAD_RENDER()	 SFG_ASSERT(thread_info::get_thread_id_render() == std::this_thread::get_id())
-#define SFG_VERIFY_INIT()			 SFG_ASSERT(thread_info::get_is_init())
-#define IS_RENDER_THREAD()			 thread_info::get_thread_id_main() == std::this_thread::get_id()
+	extern thread_info_t g_thread_info;
+
+#ifdef SFG_DEBUG
+#define SFG_REGISTER_THREAD_MAIN()	 g_thread_info.thread_id_main = std::this_thread::get_id()
+#define SFG_REGISTER_THREAD_RENDER() g_thread_info.thread_id_render = std::this_thread::get_id()
+#define SFG_SET_INIT(IS_INIT)		 g_thread_info.is_init = (IS_INIT)
+#define SFG_VERIFY_THREAD_MAIN()	 SFG_ASSERT(g_thread_info.thread_id_main == std::this_thread::get_id())
+#define SFG_VERIFY_THREAD_RENDER()	 SFG_ASSERT(g_thread_info.thread_id_render == std::this_thread::get_id())
+#define SFG_VERIFY_INIT()			 SFG_ASSERT(g_thread_info.is_init)
+#define IS_RENDER_THREAD()			 g_thread_info.thread_id_main == std::this_thread::get_id()
 #else
 #define SFG_REGISTER_THREAD_MAIN()
 #define SFG_REGISTER_THREAD_RENDER()
@@ -95,76 +62,22 @@ namespace SFG
 #define SFG_VERIFY_INIT()
 #endif
 
-	class frame_info
+	struct frame_info_t
 	{
-	public:
-		static double get_main_thread_time_milli()
-		{
-			return s_main_thread_time_milli.load();
-		}
-
-		static double get_render_thread_time_milli()
-		{
-			return s_render_thread_time_milli.load();
-		}
-
-		static double get_render_thread_elapsed_seconds()
-		{
-			return s_render_thread_elapsed_seconds.load();
-		}
-
-		static u32 get_fps()
-		{
-			return s_fps.load();
-		}
-
-		static u64 get_frame()
-		{
-			return s_frame.load();
-		}
-
-		static u64 get_render_frame()
-		{
-			return s_render_frame.load();
-		}
-
-		static inline bool get_is_render_active()
-		{
-			return s_is_render_active;
-		}
-
-		static inline void add_draw_call(u32 ctx)
-		{
-			s_draw_calls += ctx;
-		}
-
-		static inline u64 get_draw_calls()
-		{
-			return s_draw_calls_ui.load(std::memory_order_acquire);
-		}
-
-	private:
-		friend class app;
-		friend class renderer;
-
-	private:
-		static inline void set_render_joined(bool b)
-		{
-			s_is_render_active = b;
-		}
-
-		static atomic<double> s_main_thread_time_milli;
-		static atomic<double> s_render_thread_time_milli;
-		static atomic<double> s_render_thread_elapsed_seconds;
-		static atomic<u32>	  s_fps;
-		static atomic<u64>	  s_frame;
-		static atomic<u64>	  s_render_frame;
-		static u32			  s_draw_calls;
-		static atomic<u32>	  s_draw_calls_ui;
-		static bool			  s_is_render_active;
+		atomic<double> main_thread_time_milli		 = 0;
+		atomic<double> render_thread_time_milli		 = 0;
+		atomic<double> render_thread_elapsed_seconds = 0;
+		atomic<u32>	   fps							 = 0;
+		atomic<u64>	   frame						 = 0;
+		atomic<u64>	   render_frame					 = 0;
+		u32			   draw_calls					 = 0;
+		atomic<u32>	   draw_calls_ui				 = 0;
+		bool		   is_render_active				 = false;
 	};
 
-#define SFG_VERIFY_RENDER_NOT_RUNNING()					 SFG_ASSERT(!frame_info::get_is_render_active())
-#define SFG_VERIFY_RENDER_THREAD()						 SFG_ASSERT(frame_info::get_is_render_active())
-#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(thread_info::get_thread_id_render() == std::this_thread::get_id() || !frame_info::get_is_render_active())
+	extern frame_info_t g_frame_info;
+
+#define SFG_VERIFY_RENDER_NOT_RUNNING()					 SFG_ASSERT(!g_frame_info.is_render_active)
+#define SFG_VERIFY_RENDER_THREAD()						 SFG_ASSERT(g_frame_info.is_render_active)
+#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(g_thread_info.thread_id_render == std::this_thread::get_id() || !g_frame_info.is_render_active)
 }

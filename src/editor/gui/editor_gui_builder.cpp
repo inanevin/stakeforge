@@ -366,7 +366,7 @@ namespace SFG
 				timer = 0.0f;
 		}
 
-		timer += frame_info::get_main_thread_time_milli();
+		timer += g_frame_info.main_thread_time_milli.load();
 
 		if (min == max)
 			return;
@@ -489,8 +489,8 @@ namespace SFG
 		}
 		else
 		{
-			const char	 c	  = process::get_character_from_key(static_cast<u32>(ev.key));
-			const u16 mask = process::get_character_mask_from_key(static_cast<u32>(ev.key), c);
+			const char c	= process::get_character_from_key(static_cast<u32>(ev.key));
+			const u16  mask = process::get_character_mask_from_key(static_cast<u32>(ev.key), c);
 			if (!(mask & character_mask::printable))
 				return vekt::input_event_result::not_handled;
 
@@ -519,7 +519,7 @@ namespace SFG
 				}
 				else
 				{
-					f32  val	 = 0.0f;
+					f32 val	  = 0.0f;
 					u32 out_d = 0;
 
 					char_util::replace_all((char*)tf.buffer, ',', '.');
@@ -690,9 +690,9 @@ namespace SFG
 				SFG_MEMCPY((u8*)ptr + sizeof(f32) * sub_index, data_ptr, sizeof(f32));
 			else if (ft == reflected_field_type::rf_vector2ui16)
 			{
-				const f32	 f	 = *reinterpret_cast<f32*>(data_ptr);
-				const u16 u16 = static_cast<u16>(f);
-				SFG_MEMCPY((u8*)ptr + sizeof(u16) * sub_index, &u16, sizeof(u16));
+				const f32 f = *reinterpret_cast<f32*>(data_ptr);
+				const u16 u = static_cast<u16>(f);
+				SFG_MEMCPY((u8*)ptr + sizeof(u) * sub_index, &u, sizeof(u16));
 			}
 			else if (ft == reflected_field_type::rf_string)
 			{
@@ -706,20 +706,20 @@ namespace SFG
 			}
 			else if (ft == reflected_field_type::rf_uint8 || ft == reflected_field_type::rf_enum)
 			{
-				const u8 u8 = *reinterpret_cast<u8*>(data_ptr);
-				SFG_MEMCPY(ptr, &u8, sizeof(u8));
+				const u8 u = *reinterpret_cast<u8*>(data_ptr);
+				SFG_MEMCPY(ptr, &u, sizeof(u8));
 			}
 			else if (ft == reflected_field_type::rf_uint)
 			{
-				const f32	 f	 = *reinterpret_cast<f32*>(data_ptr);
+				const f32 f	  = *reinterpret_cast<f32*>(data_ptr);
 				const u32 u32 = static_cast<f32>(f);
 				SFG_MEMCPY(ptr, &u32, sizeof(u32));
 			}
 			else if (ft == reflected_field_type::rf_int)
 			{
-				const f32 f	= *reinterpret_cast<f32*>(data_ptr);
-				const i32 i32 = static_cast<i32>(f);
-				SFG_MEMCPY(ptr, &i32, sizeof(i32));
+				const f32 f	  = *reinterpret_cast<f32*>(data_ptr);
+				const i32 i = static_cast<i32>(f);
+				SFG_MEMCPY(ptr, &i, sizeof(i32));
 			}
 			else if (ft == reflected_field_type::rf_resource && ref->field->_is_list)
 			{
@@ -1138,7 +1138,7 @@ namespace SFG
 		}
 		else if (type == reflected_field_type::rf_uint)
 		{
-			const u32  val = field->value(object_ptr).cast<u32>();
+			const u32	  val = field->value(object_ptr).cast<u32>();
 			const id_pair p	  = clamped ? add_property_row_slider(title, 16, min, max, val, true) : add_property_row_slider(title, 16, 0, UINT32_MAX, val, true);
 			_reflected.push_back({.obj = object_ptr, .type = type_id, .field = field, .widget = p.second});
 			return p.first;
@@ -1229,7 +1229,7 @@ namespace SFG
 			if (field->_is_list)
 			{
 				vector<resource_handle>& v	= field->value(object_ptr).cast_ref<vector<resource_handle>>();
-				const u32			 sz = static_cast<u32>(v.size());
+				const u32				 sz = static_cast<u32>(v.size());
 
 				for (u32 i = 0; i < sz; i++)
 				{

@@ -41,7 +41,7 @@ namespace SFG
 	class matrix4x3
 	{
 	public:
-		f32 m[12]; // Column-major: m[col * 3 + row], 4 cols × 3 rows
+		f32 m[12]; // Column-major: m[col * 3 + row], 4 cols ? 3 rows
 
 		matrix4x3() = default;
 		matrix4x3(f32 m00,
@@ -99,7 +99,7 @@ namespace SFG
 			return vector4(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2], 0.0f);
 		}
 
-		// Matrix × Matrix (composition)
+		// Matrix ? Matrix (composition)
 		inline matrix4x3 operator*(const matrix4x3& other) const
 		{
 			matrix4x3 result;

@@ -1041,7 +1041,7 @@ namespace SFG
 
 	void debug_controller::console_logic()
 	{
-		_gfx_data.frame_counter += frame_info::get_render_thread_time_milli();
+		_gfx_data.frame_counter += g_frame_info.render_thread_time_milli.load();
 
 		if (_gfx_data.frame_counter > 1500)
 		{
@@ -1051,13 +1051,13 @@ namespace SFG
 			vekt::text_props& update_props = _vekt_data.builder->widget_get_text(_vekt_data.widget_main_thread);
 			vekt::text_props& render_props = _vekt_data.builder->widget_get_text(_vekt_data.widget_render_thread);
 #ifdef VEKT_STRING_CSTR
-			string_util::append_float(static_cast<f32>(frame_info::get_fps()), (char*)fps_props.text + 5, 4, 1, true);
-			string_util::append_float(static_cast<f32>(frame_info::get_main_thread_time_milli()), (char*)update_props.text + 6, 7, 4, true);
-			string_util::append_float(static_cast<f32>(frame_info::get_render_thread_time_milli()), (char*)render_props.text + 8, 7, 4, true);
+			string_util::append_float(static_cast<f32>(g_frame_info.fps.load()), (char*)fps_props.text + 5, 4, 1, true);
+			string_util::append_float(static_cast<f32>(g_frame_info.main_thread_time_milli.load()), (char*)update_props.text + 6, 7, 4, true);
+			string_util::append_float(static_cast<f32>(g_frame_info.render_thread_time_milli.load()), (char*)render_props.text + 8, 7, 4, true);
 #else
-			fps_props.text	  = "FPS: " + std::to_string(frame_info::get_fps());
-			update_props.text = "main: " + std::to_string(frame_info::get_main_thread_time_milli());
-			render_props.text = "render: " + std::to_string(frame_info::get_render_thread_time_milli());
+			fps_props.text	  = "FPS: " + std::to_string(g_frame_info.fps.load());
+			update_props.text = "main: " + std::to_string(g_frame_info.main_thread_time_milli.load());
+			render_props.text = "render: " + std::to_string(g_frame_info.render_thread_time_milli.load());
 #endif
 
 			size_t general = 0;

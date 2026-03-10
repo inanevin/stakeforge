@@ -1,4 +1,4 @@
-﻿/*
+/*
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin
 
@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "render_pass_particles.hpp"
 #include "math/math.hpp"
 #include "math/random.hpp"
-#include "common/packed_size.hpp"
+#include "common/packing.hpp"
 #include "app/engine_resources.hpp"
 
 // gfx
@@ -344,7 +344,7 @@ namespace SFG
 		const u32 peak_particles = pm.get_peak_particle_emitters();
 
 		u32		  num_emitters	  = 0;
-		const f32 particles_delta = static_cast<f32>(frame_info::get_render_thread_time_milli()) * 0.001f;
+		const f32 particles_delta = static_cast<f32>(g_frame_info.render_thread_time_milli.load()) * 0.001f;
 
 		u32				   emit_count = 0;
 		bool			   emit_dead  = false;
@@ -589,7 +589,7 @@ namespace SFG
 			.cam_pos_and_delta		  = vector4(main_camera_view.position.x, main_camera_view.position.y, main_camera_view.position.z, particles_delta),
 			.cam_dir				  = vector4(cam_forward.x, cam_forward.y, cam_forward.z, 0.0f),
 			.max_particles_per_system = MAX_WORLD_PARTICLES_PER_EMITTER,
-			.frame_index			  = static_cast<u32>(frame_info::get_frame() % UINT32_MAX),
+			.frame_index			  = static_cast<u32>(g_frame_info.frame.load() % UINT32_MAX),
 			.max_systems			  = MAX_WORLD_COMP_PARTICLE_EMITTERS,
 			.num_systems			  = num_emitters,
 		};

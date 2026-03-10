@@ -200,7 +200,7 @@ namespace SFG
 
 	void renderer::wait_backend()
 	{
-		SFG_INFO("frame: {0}", frame_info::s_render_frame);
+		SFG_INFO("frame: {0}", g_frame_info.render_frame.load());
 
 		gfx_backend* backend   = gfx_backend::get();
 		const gfx_id queue_gfx = backend->get_queue_gfx();
@@ -314,8 +314,8 @@ namespace SFG
 		const u64 next_copy_value = pfd.sem_copy.value;
 
 		const buf_engine_global globals = {
-			.delta	 = static_cast<f32>(frame_info::get_render_thread_time_milli() * 0.001),
-			.elapsed = static_cast<f32>(frame_info::get_render_thread_elapsed_seconds()),
+			.delta	 = static_cast<f32>(g_frame_info.render_thread_time_milli.load() * 0.001),
+			.elapsed = static_cast<f32>(g_frame_info.render_thread_elapsed_seconds.load()),
 		};
 		pfd.buf_engine_global.buffer_data(0, (void*)&globals, sizeof(buf_engine_global));
 

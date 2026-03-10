@@ -109,8 +109,8 @@ namespace SFG
 	// enums
 	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, ostream&> operator<<(ostream& stream, T&& val)
 	{
-		const u8 u8 = static_cast<u8>(val);
-		stream << u8;
+		const u8 u = static_cast<u8>(val);
+		stream << u;
 		return stream;
 	}
 
