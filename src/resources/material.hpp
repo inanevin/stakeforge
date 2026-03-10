@@ -58,7 +58,7 @@ namespace SFG
 			resource_handle		   shader;
 			resource_handle		   sampler;
 			const resource_handle* textures;
-			uint8				   textures_count;
+			u8				   textures_count;
 			const void*			   data;
 			size_t				   data_size;
 		};
@@ -73,19 +73,19 @@ namespace SFG
 
 		void update_data(world& w, resource_handle material_own_handle, size_t padding, const void* data, size_t data_size);
 		void update_sampler(world& w, resource_handle material_own_handle, resource_handle sampler);
-		void update_textures(world& w, resource_handle material_own_handle, const resource_handle* textures, uint8 start, uint8 count);
+		void update_textures(world& w, resource_handle material_own_handle, const resource_handle* textures, u8 start, u8 count);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline const bitmask<uint32>& get_flags() const
+		inline const bitmask<u32>& get_flags() const
 		{
 			return _flags;
 		}
 
 	private:
-		bitmask<uint32> _flags = 0;
+		bitmask<u32> _flags = 0;
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;
 #endif

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -48,8 +48,8 @@ namespace SFG
 		static bool	  change_directory_name(const char* oldPath, const char* new_path);
 		static bool	  exists(const char* path);
 		static string get_last_modified_date(const char* path);
-		static uint64 get_last_modified_ticks(const char* path) noexcept;
-		static uint64 get_last_modified_ticks(const std::filesystem::path& path) noexcept;
+		static u64	  get_last_modified_ticks(const char* path) noexcept;
+		static u64	  get_last_modified_ticks(const std::filesystem::path& path) noexcept;
 		static string get_directory_of_file(const char* path);
 		static string remove_extensions_from_path(const string& filename);
 		static string get_filename_and_extension_from_path(const string& filename);
@@ -63,10 +63,10 @@ namespace SFG
 		static string duplicate(const char* path);
 		static string get_relative(const char* src, const char* target);
 		static string get_system_time_str();
-		static string get_time_str_from_microseconds(int64 microseconds);
+		static string get_time_str_from_microseconds(i64 microseconds);
 		static void	  read_file(const char* file_path, char*& out_data, size_t& out_size);
 		static void	  perform_move(const char* target_file, const char* target_dir);
-		static void	  get_sys_time_ints(int32& hours, int32& minutes, int32& seconds);
+		static void	  get_sys_time_ints(i32& hours, i32& minutes, i32& seconds);
 		static void	  copy_directory(const char* copyDir, const char* target_parent_folder);
 		static void	  copy_file_to_directory(const char* file, const char* target_parent_folder);
 	};

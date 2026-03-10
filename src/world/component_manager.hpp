@@ -38,7 +38,7 @@ namespace SFG
 	class world;
 	class meta;
 
-	enum class comp_view_result : uint8
+	enum class comp_view_result : u8
 	{
 		cont,
 		stop

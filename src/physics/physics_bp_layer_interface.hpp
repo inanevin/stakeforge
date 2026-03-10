@@ -37,7 +37,7 @@ namespace SFG
 	public:
 		virtual ~physics_bp_layer_interface() = default;
 
-		virtual uint32 GetNumBroadPhaseLayers() const override
+		virtual u32 GetNumBroadPhaseLayers() const override
 		{
 			return PHYSICS_NUM_BP_LAYERS;
 		}
@@ -47,9 +47,9 @@ namespace SFG
 			const physics_object_layers layer = static_cast<physics_object_layers>(inLayer);
 
 			if (layer == physics_object_layers::non_moving)
-				return PHYSICS_BP_LAYERS[(uint16)physics_broadphase_layers::non_moving];
+				return PHYSICS_BP_LAYERS[(u16)physics_broadphase_layers::non_moving];
 
-			return PHYSICS_BP_LAYERS[(uint16)physics_broadphase_layers::moving];
+			return PHYSICS_BP_LAYERS[(u16)physics_broadphase_layers::moving];
 		}
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)

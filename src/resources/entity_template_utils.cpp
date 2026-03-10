@@ -60,7 +60,7 @@ namespace SFG
 	}
 
 	void entity_template_utils::append_entity_components_as_json(
-		json& out_components_array, world_handle entity, uint32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<uint32, int32>& index_by_world, vector<string>& out_resource_paths)
+		json& out_components_array, world_handle entity, u32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<u32, i32>& index_by_world, vector<string>& out_resource_paths)
 	{
 		const entity_comp_register& reg = em.get_component_register(entity);
 		for (const entity_comp& c : reg.comps)
@@ -90,13 +90,13 @@ namespace SFG
 			{
 				const reflected_field_type ft = f->_type;
 				if (ft == reflected_field_type::rf_float)
-					comp_json[f->_title.c_str()] = f->value(ptr).cast<float>();
+					comp_json[f->_title.c_str()] = f->value(ptr).cast<f32>();
 				else if (ft == reflected_field_type::rf_int)
-					comp_json[f->_title.c_str()] = f->value(ptr).cast<int32>();
+					comp_json[f->_title.c_str()] = f->value(ptr).cast<i32>();
 				else if (ft == reflected_field_type::rf_uint)
-					comp_json[f->_title.c_str()] = f->value(ptr).cast<uint32>();
+					comp_json[f->_title.c_str()] = f->value(ptr).cast<u32>();
 				else if (ft == reflected_field_type::rf_bool || ft == reflected_field_type::rf_uint8 || ft == reflected_field_type::rf_enum)
-					comp_json[f->_title.c_str()] = f->value(ptr).cast<uint8>();
+					comp_json[f->_title.c_str()] = f->value(ptr).cast<u8>();
 				else if (ft == reflected_field_type::rf_vector2)
 					comp_json[f->_title.c_str()] = f->value(ptr).cast<vector2>();
 				else if (ft == reflected_field_type::rf_vector2ui16)
@@ -114,9 +114,9 @@ namespace SFG
 					if (f->_is_list)
 					{
 						const auto&	 v				 = f->value(ptr).cast_ref<vector<resource_handle>>();
-						const uint32 sz				 = static_cast<uint32>(v.size());
+						const u32 sz				 = static_cast<u32>(v.size());
 						comp_json[f->_title.c_str()] = sz;
-						for (uint32 i = 0; i < sz; ++i)
+						for (u32 i = 0; i < sz; ++i)
 						{
 							const string key = string(f->_title.c_str()) + std::to_string(i);
 							if (!v[i].is_null())
@@ -142,19 +142,19 @@ namespace SFG
 					if (f->_is_list)
 					{
 						const auto&	 v				 = f->value(ptr).cast_ref<vector<world_handle>>();
-						const uint32 sz				 = static_cast<uint32>(v.size());
+						const u32 sz				 = static_cast<u32>(v.size());
 						comp_json[f->_title.c_str()] = sz;
-						for (uint32 i = 0; i < sz; ++i)
+						for (u32 i = 0; i < sz; ++i)
 						{
 							const string key	   = string(f->_title.c_str()) + std::to_string(i);
-							const int32	 idx	   = v[i].is_null() ? -1 : index_by_world.at(v[i].index);
+							const i32	 idx	   = v[i].is_null() ? -1 : index_by_world.at(v[i].index);
 							comp_json[key.c_str()] = idx;
 						}
 					}
 					else
 					{
 						const world_handle h		 = f->value(ptr).cast<world_handle>();
-						const int32		   idx		 = h.is_null() ? -1 : index_by_world.at(h.index);
+						const i32		   idx		 = h.is_null() ? -1 : index_by_world.at(h.index);
 						comp_json[f->_title.c_str()] = idx;
 					}
 				}
@@ -167,10 +167,10 @@ namespace SFG
 	void entity_template_utils::component_json_to_component_buffer(const json& c, ostream& out)
 	{
 		const string_id comp_type	= c.value<string_id>("comp_type", 0);
-		const uint32	e_index		= c.value<uint32>("entity", 0);
+		const u32	e_index		= c.value<u32>("entity", 0);
 		auto&			comp_meta	= reflection::get().resolve(comp_type);
 		const auto&		fields		= comp_meta.get_fields();
-		const uint32	fields_size = static_cast<uint32>(fields.size());
+		const u32	fields_size = static_cast<u32>(fields.size());
 
 		out << comp_type;
 		out << e_index;
@@ -186,15 +186,15 @@ namespace SFG
 
 			if (ft == reflected_field_type::rf_float)
 			{
-				out << c.value<float>(key, 0.0f);
+				out << c.value<f32>(key, 0.0f);
 			}
 			else if (ft == reflected_field_type::rf_int)
 			{
-				out << c.value<int32>(key, 0);
+				out << c.value<i32>(key, 0);
 			}
 			else if (ft == reflected_field_type::rf_uint)
 			{
-				out << c.value<uint32>(key, 0);
+				out << c.value<u32>(key, 0);
 			}
 			else if (ft == reflected_field_type::rf_vector2)
 			{
@@ -218,7 +218,7 @@ namespace SFG
 			}
 			else if (ft == reflected_field_type::rf_bool || ft == reflected_field_type::rf_uint8 || ft == reflected_field_type::rf_enum)
 			{
-				out << c.value<uint8>(key, 0);
+				out << c.value<u8>(key, 0);
 			}
 			else if (ft == reflected_field_type::rf_string)
 			{
@@ -229,9 +229,9 @@ namespace SFG
 				out << f->_sub_type_id;
 				if (f->_is_list)
 				{
-					const uint32 count = c.value<uint32>(key, 0);
+					const u32 count = c.value<u32>(key, 0);
 					out << count;
-					for (uint32 i = 0; i < count; ++i)
+					for (u32 i = 0; i < count; ++i)
 					{
 						const string k = string(key) + std::to_string(i);
 						out << c.value<string>(k.c_str(), "");
@@ -239,7 +239,7 @@ namespace SFG
 				}
 				else
 				{
-					out << static_cast<uint32>(1);
+					out << static_cast<u32>(1);
 					out << c.value<string>(key, "");
 				}
 			}
@@ -247,24 +247,24 @@ namespace SFG
 			{
 				if (f->_is_list)
 				{
-					const uint32 count = c.value<uint32>(key, 0);
+					const u32 count = c.value<u32>(key, 0);
 					out << count;
-					for (uint32 i = 0; i < count; ++i)
+					for (u32 i = 0; i < count; ++i)
 					{
 						const string k = string(key) + std::to_string(i);
-						out << c.value<int32>(k.c_str(), -1);
+						out << c.value<i32>(k.c_str(), -1);
 					}
 				}
 				else
 				{
-					out << static_cast<uint32>(1);
-					out << c.value<int32>(key, -1);
+					out << static_cast<u32>(1);
+					out << c.value<i32>(key, -1);
 				}
 			}
 		}
 	}
 
-	void entity_template_utils::entity_components_to_component_buffer(world_handle entity, uint32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<uint32, int32>& index_by_world, ostream& out)
+	void entity_template_utils::entity_components_to_component_buffer(world_handle entity, u32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<u32, i32>& index_by_world, ostream& out)
 	{
 		const entity_comp_register& reg = em.get_component_register(entity);
 		for (const entity_comp& c : reg.comps)
@@ -275,7 +275,7 @@ namespace SFG
 			void*		 ptr		 = cm.get_component(c.comp_type, c.comp_handle);
 			meta&		 comp_meta	 = reflection::get().resolve(c.comp_type);
 			const auto&	 fields		 = comp_meta.get_fields();
-			const uint32 fields_size = static_cast<uint32>(fields.size());
+			const u32 fields_size = static_cast<u32>(fields.size());
 			out << fields_size;
 
 			for (field_base* f : fields)
@@ -285,11 +285,11 @@ namespace SFG
 				out << ft;
 
 				if (ft == reflected_field_type::rf_float)
-					out << f->value(ptr).cast<float>();
+					out << f->value(ptr).cast<f32>();
 				else if (ft == reflected_field_type::rf_int)
-					out << f->value(ptr).cast<int32>();
+					out << f->value(ptr).cast<i32>();
 				else if (ft == reflected_field_type::rf_uint)
-					out << f->value(ptr).cast<uint32>();
+					out << f->value(ptr).cast<u32>();
 				else if (ft == reflected_field_type::rf_vector2)
 					out << f->value(ptr).cast<vector2>();
 				else if (ft == reflected_field_type::rf_vector2ui16)
@@ -303,16 +303,16 @@ namespace SFG
 				else if (ft == reflected_field_type::rf_string)
 					out << f->value(ptr).cast<string>();
 				else if (ft == reflected_field_type::rf_uint8 || ft == reflected_field_type::rf_bool || ft == reflected_field_type::rf_enum)
-					out << f->value(ptr).cast<uint8>();
+					out << f->value(ptr).cast<u8>();
 				else if (ft == reflected_field_type::rf_resource)
 				{
 					out << f->_sub_type_id;
 					if (f->_is_list)
 					{
 						const auto&	 v	   = f->value(ptr).cast_ref<vector<resource_handle>>();
-						const uint32 count = static_cast<uint32>(v.size());
+						const u32 count = static_cast<u32>(v.size());
 						out << count;
-						for (uint32 i = 0; i < count; ++i)
+						for (u32 i = 0; i < count; ++i)
 						{
 							const string p = v[i].is_null() ? string("") : rm.get_loaded_path_by_handle(f->_sub_type_id, v[i]);
 							out << p;
@@ -321,7 +321,7 @@ namespace SFG
 					else
 					{
 						const resource_handle h = f->value(ptr).cast<resource_handle>();
-						out << static_cast<uint32>(1);
+						out << static_cast<u32>(1);
 						out << (h.is_null() ? string("") : rm.get_loaded_path_by_handle(f->_sub_type_id, h));
 					}
 				}
@@ -330,19 +330,19 @@ namespace SFG
 					if (f->_is_list)
 					{
 						const auto&	 v	   = f->value(ptr).cast_ref<vector<world_handle>>();
-						const uint32 count = static_cast<uint32>(v.size());
+						const u32 count = static_cast<u32>(v.size());
 						out << count;
-						for (uint32 i = 0; i < count; ++i)
+						for (u32 i = 0; i < count; ++i)
 						{
-							const int32 idx = v[i].is_null() ? -1 : index_by_world.at(v[i].index);
+							const i32 idx = v[i].is_null() ? -1 : index_by_world.at(v[i].index);
 							out << idx;
 						}
 					}
 					else
 					{
 						const world_handle h   = f->value(ptr).cast<world_handle>();
-						const int32		   idx = h.is_null() ? -1 : index_by_world.at(h.index);
-						out << static_cast<uint32>(1);
+						const i32		   idx = h.is_null() ? -1 : index_by_world.at(h.index);
+						out << static_cast<u32>(1);
 						out << idx;
 					}
 				}
@@ -350,7 +350,7 @@ namespace SFG
 		}
 	}
 
-	entity_template_entity_raw entity_template_utils::entity_to_entity_template_entity_raw(world_handle entity, entity_manager& em, resource_manager& rm, const hash_map<uint32, int32>& index_by_world)
+	entity_template_entity_raw entity_template_utils::entity_to_entity_template_entity_raw(world_handle entity, entity_manager& em, resource_manager& rm, const hash_map<u32, i32>& index_by_world)
 	{
 		entity_template_entity_raw er = {};
 		const entity_meta&		   m  = em.get_entity_meta(entity);
@@ -397,8 +397,8 @@ namespace SFG
 		while (!in.is_eof())
 		{
 			string_id comp_type = 0;
-			uint32	  e_index	= 0;
-			uint32	  fields_sz = 0;
+			u32	  e_index	= 0;
+			u32	  fields_sz = 0;
 			in >> comp_type;
 			if (in.is_eof())
 				break;
@@ -412,7 +412,7 @@ namespace SFG
 			meta&		comp_meta  = reflection::get().resolve(comp_type);
 			const auto& ref_fields = comp_meta.get_fields();
 
-			for (uint32 j = 0; j < fields_sz; ++j)
+			for (u32 j = 0; j < fields_sz; ++j)
 			{
 				string_id			 title_sid = 0;
 				reflected_field_type ft		   = reflected_field_type::rf_float;
@@ -426,24 +426,24 @@ namespace SFG
 
 				if (ft == reflected_field_type::rf_float)
 				{
-					float val = 0.0f;
+					f32 val = 0.0f;
 					in >> val;
 					if (target_field)
-						target_field->value(comp_ptr).cast_ref<float>() = val;
+						target_field->value(comp_ptr).cast_ref<f32>() = val;
 				}
 				else if (ft == reflected_field_type::rf_int)
 				{
-					int32 val = 0;
+					i32 val = 0;
 					in >> val;
 					if (target_field)
-						target_field->value(comp_ptr).cast_ref<int32>() = val;
+						target_field->value(comp_ptr).cast_ref<i32>() = val;
 				}
 				else if (ft == reflected_field_type::rf_uint)
 				{
-					uint32 val = 0;
+					u32 val = 0;
 					in >> val;
 					if (target_field)
-						target_field->value(comp_ptr).cast_ref<uint32>() = val;
+						target_field->value(comp_ptr).cast_ref<u32>() = val;
 				}
 				else if (ft == reflected_field_type::rf_vector2)
 				{
@@ -489,18 +489,18 @@ namespace SFG
 				}
 				else if (ft == reflected_field_type::rf_uint8 || ft == reflected_field_type::rf_bool || ft == reflected_field_type::rf_enum)
 				{
-					uint8 val = 0;
+					u8 val = 0;
 					in >> val;
 					if (target_field)
-						target_field->value(comp_ptr).cast_ref<uint8>() = val;
+						target_field->value(comp_ptr).cast_ref<u8>() = val;
 				}
 				else if (ft == reflected_field_type::rf_resource)
 				{
 					string_id sub_type = 0;
-					uint32	  count	   = 0;
+					u32	  count	   = 0;
 					in >> sub_type;
 					in >> count;
-					for (uint32 i = 0; i < count; ++i)
+					for (u32 i = 0; i < count; ++i)
 					{
 						string val = "";
 						in >> val;
@@ -520,11 +520,11 @@ namespace SFG
 				}
 				else if (ft == reflected_field_type::rf_entity)
 				{
-					uint32 count = 0;
+					u32 count = 0;
 					in >> count;
-					for (uint32 i = 0; i < count; ++i)
+					for (u32 i = 0; i < count; ++i)
 					{
-						int32 val = -1;
+						i32 val = -1;
 						in >> val;
 						if (!target_field)
 							continue;

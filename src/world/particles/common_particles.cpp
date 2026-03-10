@@ -311,12 +311,12 @@ namespace SFG
 		s.max_start				  = j.value<vector3>("max_start", vector3::one);
 		s.mid_color				  = j.value<vector3>("mid_color", vector3::one);
 		s.end_color				  = j.value<vector3>("end_color", vector3::one);
-		s.integrate_point_color	  = j.value<float>("integrate_point_color", 0.0f);
-		s.min_start_opacity		  = j.value<float>("min_start_opacity", 1.0f);
-		s.max_start_opacity		  = j.value<float>("max_start_opacity", 1.0f);
-		s.mid_opacity			  = j.value<float>("mid_opacity", 1.0f);
-		s.end_opacity			  = j.value<float>("end_opacity", 1.0f);
-		s.integrate_point_opacity = j.value<float>("integrate_point_opacity", 0.0f);
+		s.integrate_point_color	  = j.value<f32>("integrate_point_color", 0.0f);
+		s.min_start_opacity		  = j.value<f32>("min_start_opacity", 1.0f);
+		s.max_start_opacity		  = j.value<f32>("max_start_opacity", 1.0f);
+		s.mid_opacity			  = j.value<f32>("mid_opacity", 1.0f);
+		s.end_opacity			  = j.value<f32>("end_opacity", 1.0f);
+		s.integrate_point_opacity = j.value<f32>("integrate_point_opacity", 0.0f);
 	}
 
 	// --- particle_emit_properties ------------------------------------------------

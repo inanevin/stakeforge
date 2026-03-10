@@ -54,9 +54,9 @@ namespace SFG
 
 		void   init();
 		void   uninit();
-		void   fetch_render_events(render_event_stream& stream, uint8 frame_index);
+		void   fetch_render_events(render_event_stream& stream, u8 frame_index);
 		void   flush_destroys(bool force);
-		gfx_id get_shader_variant(resource_id shader_handle, uint32 flags);
+		gfx_id get_shader_variant(resource_id shader_handle, u32 flags);
 
 		inline render_proxy_texture& get_texture(resource_id idx)
 		{
@@ -222,88 +222,88 @@ namespace SFG
 			return _main_camera_trait;
 		}
 
-		inline uint32 get_peak_particle_emitters() const
+		inline u32 get_peak_particle_emitters() const
 		{
 			return _peak_particle_emitters + 1;
 		}
 
-		inline uint32 get_peak_mesh_instances() const
+		inline u32 get_peak_mesh_instances() const
 		{
 			return _peak_mesh_instances + 1;
 		}
 
-		inline uint32 get_peak_sprites() const
+		inline u32 get_peak_sprites() const
 		{
 			return _peak_sprites + 1;
 		}
 
-		inline uint32 get_ambient_exists() const
+		inline u32 get_ambient_exists() const
 		{
 			return _ambient_exists;
 		}
 
-		inline uint32 get_bloom_exists() const
+		inline u32 get_bloom_exists() const
 		{
 			return _bloom_exists;
 		}
 
-		inline uint32 get_ssao_exists() const
+		inline u32 get_ssao_exists() const
 		{
 			return _ssao_exists;
 		}
 
-		inline uint32 get_post_process_exists() const
+		inline u32 get_post_process_exists() const
 		{
 			return _post_process_exists;
 		}
 
-		inline uint32 get_skybox_exists() const
+		inline u32 get_skybox_exists() const
 		{
 			return _skybox_exists;
 		}
 
-		inline uint32 get_peak_dir_lights() const
+		inline u32 get_peak_dir_lights() const
 		{
 			return _peak_dir_lights + 1;
 		}
 
-		inline uint32 get_peak_spot_lights() const
+		inline u32 get_peak_spot_lights() const
 		{
 			return _peak_spot_lights + 1;
 		}
 
-		inline uint32 get_peak_point_lights() const
+		inline u32 get_peak_point_lights() const
 		{
 			return _peak_point_lights + 1;
 		}
 
-		inline uint32 get_count_dir_lights() const
+		inline u32 get_count_dir_lights() const
 		{
 			return _count_dir_lights;
 		}
 
-		inline uint32 get_count_spot_lights() const
+		inline u32 get_count_spot_lights() const
 		{
 			return _count_spot_lights;
 		}
 
-		inline uint32 get_count_point_lights() const
+		inline u32 get_count_point_lights() const
 		{
 			return _count_point_lights;
 		}
 
-		inline uint32 get_peak_entities() const
+		inline u32 get_peak_entities() const
 		{
 			return _peak_entities + 1;
 		}
 
-		inline uint32 get_peak_canvases() const
+		inline u32 get_peak_canvases() const
 		{
 			return _peak_canvases + 1;
 		}
 
 	private:
-		enum destroy_data_type : uint8
+		enum destroy_data_type : u8
 		{
 			texture,
 			sampler,
@@ -316,7 +316,7 @@ namespace SFG
 		{
 			gfx_id			  id		   = 0;
 			destroy_data_type type		   = {};
-			uint64			  target_frame = 0;
+			u64				  target_frame = 0;
 			bool			  destroyed	   = false;
 			bool			  aq		   = false;
 		};
@@ -327,7 +327,7 @@ namespace SFG
 		};
 
 	private:
-		void process_event(const render_event_header& header, istream& stream, uint8 frame_index);
+		void process_event(const render_event_header& header, istream& stream, u8 frame_index);
 		void destroy_texture(render_proxy_texture& proxy);
 		void destroy_sampler(render_proxy_sampler& proxy);
 		void destroy_shader(render_proxy_shader& proxy);
@@ -345,10 +345,10 @@ namespace SFG
 		struct material_update
 		{
 			chunk_handle32 data		   = {};
-			uint32		   padding	   = 0;
+			u32			   padding	   = 0;
 			world_id	   material_id = 0;
-			uint8		   is_texture  = 0;
-			uint8		   count	   = 0;
+			u8			   is_texture  = 0;
+			u8			   count	   = 0;
 		};
 
 		using textures_type			 = static_array<render_proxy_texture, MAX_WORLD_TEXTURES>;
@@ -403,21 +403,21 @@ namespace SFG
 		particle_res_type*		_particle_resources = nullptr;
 
 		world_id _main_camera_trait		 = NULL_WORLD_ID;
-		uint32	 _peak_particle_emitters = 0;
-		uint32	 _peak_mesh_instances	 = 0;
-		uint32	 _peak_point_lights		 = 0;
-		uint32	 _peak_spot_lights		 = 0;
-		uint32	 _peak_dir_lights		 = 0;
-		uint32	 _peak_sprites			 = 0;
-		uint32	 _count_dir_lights		 = 0;
-		uint32	 _count_spot_lights		 = 0;
-		uint32	 _count_point_lights	 = 0;
-		uint32	 _peak_entities			 = 0;
-		uint32	 _peak_canvases			 = 0;
-		uint8	 _ambient_exists		 = 0;
-		uint8	 _bloom_exists			 = 0;
-		uint8	 _ssao_exists			 = 0;
-		uint8	 _post_process_exists	 = 0;
-		uint8	 _skybox_exists			 = 0;
+		u32		 _peak_particle_emitters = 0;
+		u32		 _peak_mesh_instances	 = 0;
+		u32		 _peak_point_lights		 = 0;
+		u32		 _peak_spot_lights		 = 0;
+		u32		 _peak_dir_lights		 = 0;
+		u32		 _peak_sprites			 = 0;
+		u32		 _count_dir_lights		 = 0;
+		u32		 _count_spot_lights		 = 0;
+		u32		 _count_point_lights	 = 0;
+		u32		 _peak_entities			 = 0;
+		u32		 _peak_canvases			 = 0;
+		u8		 _ambient_exists		 = 0;
+		u8		 _bloom_exists			 = 0;
+		u8		 _ssao_exists			 = 0;
+		u8		 _post_process_exists	 = 0;
+		u8		 _skybox_exists			 = 0;
 	};
 }

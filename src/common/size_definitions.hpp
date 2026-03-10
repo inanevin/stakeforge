@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -30,14 +30,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stddef.h>
 #endif
 
-typedef signed char		   int8;
-typedef short			   int16;
-typedef int				   int32;
-typedef long long		   int64;
-typedef unsigned char	   uint8;
-typedef unsigned short	   uint16;
-typedef unsigned int	   uint32;
-typedef unsigned long long uint64;
+typedef signed char		   i8;
+typedef short			   i16;
+typedef int				   i32;
+typedef long long		   i64;
+typedef unsigned char	   u8;
+typedef unsigned short	   u16;
+typedef unsigned int	   u32;
+typedef unsigned long long u64;
+typedef float			   f32;
 
 namespace SFG
 {

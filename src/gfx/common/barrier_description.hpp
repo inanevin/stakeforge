@@ -39,7 +39,7 @@ namespace SFG
 		baf_is_uav		 = 1 << 3,
 	};
 
-	enum resource_state : uint32
+	enum resource_state : u32
 	{
 		resource_state_common		   = 1 << 0,
 		resource_state_vertex_cbv	   = 1 << 1,
@@ -61,10 +61,10 @@ namespace SFG
 
 	struct barrier
 	{
-		uint32		   from_states = 0;
-		uint32		   to_states   = 0;
-		gfx_id		   resource	   = 0;
-		bitmask<uint8> flags	   = 0;
+		u32			from_states = 0;
+		u32			to_states	= 0;
+		gfx_id		resource	= 0;
+		bitmask<u8> flags		= 0;
 	};
 
 }

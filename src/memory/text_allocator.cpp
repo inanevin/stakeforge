@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void text_allocator::init(uint32 capacity)
+	void text_allocator::init(u32 capacity)
 	{
 		_raw	  = new char[capacity];
 		_capacity = capacity;

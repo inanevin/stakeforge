@@ -45,7 +45,7 @@ namespace SFG
 		virtual void AddHit(const JPH::RayCastResult& inResult) override;
 
 	public:
-		bool cast(physics_world* world, const vector3& position, const vector3& normal, float max_distance);
+		bool cast(physics_world* world, const vector3& position, const vector3& normal, f32 max_distance);
 
 		const ray_result& get_result() const
 		{
@@ -62,7 +62,7 @@ namespace SFG
 		virtual void AddHit(const JPH::RayCastResult& inResult) override;
 
 	public:
-		bool cast(physics_world* world, const vector3& position, const vector3& normal, float max_distance);
+		bool cast(physics_world* world, const vector3& position, const vector3& normal, f32 max_distance);
 
 		inline const vector<ray_result>& get_results() const
 		{
@@ -80,7 +80,7 @@ namespace SFG
 		virtual void AddHit(const JPH::BroadPhaseCastResult& inResult) override;
 
 	public:
-		bool cast(physics_world* world, const vector3& position, const vector3& normal, float max_distance);
+		bool cast(physics_world* world, const vector3& position, const vector3& normal, f32 max_distance);
 
 	private:
 		vector<JPH::BroadPhaseCastResult> _jph_results;

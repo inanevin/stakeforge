@@ -39,66 +39,66 @@ namespace SFG
 	private:
 		struct block
 		{
-			uint32 start = 0;
-			uint32 count = 0;
+			u32 start = 0;
+			u32 count = 0;
 		};
 
 	public:
 		dx12_heap()	 = default;
 		~dx12_heap() = default;
 
-		void			  init(ID3D12Device* device, uint32 heap_type, uint32 num_descriptors, uint32 descriptor_size, bool shader_access);
+		void			  init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access);
 		void			  uninit();
 		void			  reset();
-		void			  reset(uint32 newStart);
+		void			  reset(u32 newStart);
 		void			  remove_handle(const descriptor_handle& handle);
-		descriptor_handle get_heap_handle_block(uint32 count);
-		descriptor_handle get_offsetted_handle(uint32 count);
+		descriptor_handle get_heap_handle_block(u32 count);
+		descriptor_handle get_offsetted_handle(u32 count);
 
 		inline ID3D12DescriptorHeap* get_heap()
 		{
 			return _heap;
 		}
 
-		inline uint32 get_type() const
+		inline u32 get_type() const
 		{
 			return _type;
 		}
 
-		inline uint64 get_cpu_start() const
+		inline u64 get_cpu_start() const
 		{
 			return _cpu_start;
 		}
 
-		inline uint64 get_gpu_start() const
+		inline u64 get_gpu_start() const
 		{
 			return _gpu_start;
 		}
 
-		inline uint32 get_max_descriptors() const
+		inline u32 get_max_descriptors() const
 		{
 			return _max_descriptors;
 		}
 
-		inline uint32 get_descriptor_size() const
+		inline u32 get_descriptor_size() const
 		{
 			return _descriptor_size;
 		}
 
-		inline uint32 get_current_index()
+		inline u32 get_current_index()
 		{
 			return _current_index;
 		};
 
 	private:
 		ID3D12DescriptorHeap* _heap		 = nullptr;
-		uint32				  _type		 = 0;
-		uint64				  _cpu_start = {};
-		uint64				  _gpu_start = {};
+		u32				  _type		 = 0;
+		u64				  _cpu_start = {};
+		u64				  _gpu_start = {};
 		vector<block>		  _available_blocks;
-		uint32				  _max_descriptors = 0;
-		uint32				  _descriptor_size = 0;
-		uint32				  _current_index   = 0;
+		u32				  _max_descriptors = 0;
+		u32				  _descriptor_size = 0;
+		u32				  _current_index   = 0;
 		bool				  _shader_access   = false;
 	};
 }

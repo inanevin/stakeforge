@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -68,12 +68,12 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, physical_material_settings& s)
 	{
-		s.restitution		 = j.value<float>("restitution", 0.0f);
-		s.friction			 = j.value<float>("friction", 0.2f);
-		s.angular_damp		 = j.value<float>("angular_damp", 0.05f);
-		s.linear_damp		 = j.value<float>("linear_damp", 0.05f);
-		s.mass				 = j.value<float>("mass", 1.0f);
-		s.gravity_multiplier = j.value<float>("gravity_multiplier", 1.0f);
+		s.restitution		 = j.value<f32>("restitution", 0.0f);
+		s.friction			 = j.value<f32>("friction", 0.2f);
+		s.angular_damp		 = j.value<f32>("angular_damp", 0.05f);
+		s.linear_damp		 = j.value<f32>("linear_damp", 0.05f);
+		s.mass				 = j.value<f32>("mass", 1.0f);
+		s.gravity_multiplier = j.value<f32>("gravity_multiplier", 1.0f);
 	}
 #endif
 

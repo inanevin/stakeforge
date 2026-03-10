@@ -90,7 +90,7 @@ namespace SFG
 		});
 	}
 
-	void comp_ssao::set_values(world& w, float radius_world, float bias, float intensity, float power, uint32 num_dirs, uint32 num_steps, float random_rot_strength)
+	void comp_ssao::set_values(world& w, f32 radius_world, f32 bias, f32 intensity, f32 power, u32 num_dirs, u32 num_steps, f32 random_rot_strength)
 	{
 		_radius_world		 = radius_world;
 		_bias				 = bias;

@@ -37,10 +37,10 @@ namespace SFG
 	atomic<double> frame_info::s_main_thread_time_milli		   = 0;
 	atomic<double> frame_info::s_render_thread_time_milli	   = 0;
 	atomic<double> frame_info::s_render_thread_elapsed_seconds = 0;
-	atomic<uint32> frame_info::s_fps						   = 0;
-	atomic<uint64> frame_info::s_frame						   = 0;
-	atomic<uint64> frame_info::s_render_frame				   = 0;
-	uint32		   frame_info::s_draw_calls					   = 0;
-	atomic<uint32> frame_info::s_draw_calls_ui				   = 0;
+	atomic<u32>	   frame_info::s_fps						   = 0;
+	atomic<u64>	   frame_info::s_frame						   = 0;
+	atomic<u64>	   frame_info::s_render_frame				   = 0;
+	u32			   frame_info::s_draw_calls					   = 0;
+	atomic<u32>	   frame_info::s_draw_calls_ui				   = 0;
 	bool		   frame_info::s_is_render_active			   = 0;
 }

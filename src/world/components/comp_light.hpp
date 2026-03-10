@@ -55,15 +55,15 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		void set_values(world& w, const color& c, float intensity);
-		void set_shadow_values(world& w, uint8 cast_shadows, uint8 max_cascades, const vector2ui16& resolution);
+		void set_values(world& w, const color& c, f32 intensity);
+		void set_shadow_values(world& w, u8 cast_shadows, u8 max_cascades, const vector2ui16& resolution);
 
 		inline const color& get_color() const
 		{
 			return _base_color;
 		}
 
-		inline float get_intensity() const
+		inline f32 get_intensity() const
 		{
 			return _intensity;
 		}
@@ -81,9 +81,9 @@ namespace SFG
 		component_header _header			= {};
 		color			 _base_color		= color::white;
 		vector2ui16		 _shadow_resolution = vector2ui16(256, 256);
-		float			 _intensity			= 0.0f;
+		f32				 _intensity			= 0.0f;
 		bool			 _cast_shadows		= false;
-		uint8			 _max_cascades		= 1;
+		u8				 _max_cascades		= 1;
 	};
 
 	class comp_spot_light
@@ -102,35 +102,35 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		void set_values(world& w, const color& c, float range, float intensity, float inner_cone, float outer_cone);
-		void set_shadow_values(world& w, uint8 cast_shadows, float near_plane, const vector2ui16& resolution);
+		void set_values(world& w, const color& c, f32 range, f32 intensity, f32 inner_cone, f32 outer_cone);
+		void set_shadow_values(world& w, u8 cast_shadows, f32 near_plane, const vector2ui16& resolution);
 
 		inline const color& get_color() const
 		{
 			return _base_color;
 		}
 
-		inline float get_range() const
+		inline f32 get_range() const
 		{
 			return _range;
 		}
 
-		inline float get_intensity() const
+		inline f32 get_intensity() const
 		{
 			return _intensity;
 		}
 
-		inline float get_inner_cone() const
+		inline f32 get_inner_cone() const
 		{
 			return _inner_cone;
 		}
 
-		inline float get_outer_cone() const
+		inline f32 get_outer_cone() const
 		{
 			return _outer_cone;
 		}
 
-		inline float get_near_plane() const
+		inline f32 get_near_plane() const
 		{
 			return _near_plane;
 		}
@@ -148,11 +148,11 @@ namespace SFG
 		component_header _header			= {};
 		color			 _base_color		= color::white;
 		vector2ui16		 _shadow_resolution = vector2ui16(256, 256);
-		float			 _range				= 0.0f;
-		float			 _intensity			= 0.0f;
-		float			 _inner_cone		= 0.0f;
-		float			 _outer_cone		= 0.0f;
-		float			 _near_plane		= 0.0f;
+		f32				 _range				= 0.0f;
+		f32				 _intensity			= 0.0f;
+		f32				 _inner_cone		= 0.0f;
+		f32				 _outer_cone		= 0.0f;
+		f32				 _near_plane		= 0.0f;
 		bool			 _cast_shadows		= false;
 	};
 
@@ -172,25 +172,25 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		void set_values(world& w, const color& c, float range, float intensity);
-		void set_shadow_values(world& w, uint8 cast_shadows, float near_plane, const vector2ui16& resolution);
+		void set_values(world& w, const color& c, f32 range, f32 intensity);
+		void set_shadow_values(world& w, u8 cast_shadows, f32 near_plane, const vector2ui16& resolution);
 
 		inline const color& get_color() const
 		{
 			return _base_color;
 		}
 
-		inline float get_range() const
+		inline f32 get_range() const
 		{
 			return _range;
 		}
 
-		inline float get_intensity() const
+		inline f32 get_intensity() const
 		{
 			return _intensity;
 		}
 
-		inline float get_near_plane() const
+		inline f32 get_near_plane() const
 		{
 			return _near_plane;
 		}
@@ -208,9 +208,9 @@ namespace SFG
 		component_header _header			= {};
 		color			 _base_color		= color::white;
 		vector2ui16		 _shadow_resolution = vector2ui16(256, 256);
-		float			 _range				= 0.0f;
-		float			 _intensity			= 0.0f;
-		float			 _near_plane		= 0.0f;
+		f32				 _range				= 0.0f;
+		f32				 _intensity			= 0.0f;
+		f32				 _near_plane		= 0.0f;
 		bool			 _cast_shadows		= false;
 	};
 

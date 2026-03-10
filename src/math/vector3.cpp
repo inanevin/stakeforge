@@ -67,22 +67,22 @@ namespace SFG
 		return vector3(math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z));
 	}
 
-	vector3 vector3::lerp(const vector3& a, const vector3& b, float t)
+	vector3 vector3::lerp(const vector3& a, const vector3& b, f32 t)
 	{
 		return vector3(easing::lerp(a.x, b.x, t), easing::lerp(a.y, b.y, t), easing::lerp(a.z, b.z, t));
 	}
 
-	float vector3::dot(const vector3& a, const vector3& b)
+	f32 vector3::dot(const vector3& a, const vector3& b)
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
-	float vector3::distance(const vector3& a, const vector3& b)
+	f32 vector3::distance(const vector3& a, const vector3& b)
 	{
 		return (a - b).magnitude();
 	}
 
-	float vector3::distance_sqr(const vector3& a, const vector3& b)
+	f32 vector3::distance_sqr(const vector3& a, const vector3& b)
 	{
 		return (a - b).magnitude_sqr();
 	}
@@ -92,7 +92,7 @@ namespace SFG
 		return on_normal * dot(*this, on_normal);
 	}
 
-	vector3 vector3::rotate(const vector3& axis, float angle_degrees) const
+	vector3 vector3::rotate(const vector3& axis, f32 angle_degrees) const
 	{
 		vector3 unit_axis = axis.normalized();
 		if (unit_axis.is_zero())
@@ -100,9 +100,9 @@ namespace SFG
 			return *this;
 		}
 
-		float angle_rad = math::degrees_to_radians(angle_degrees);
-		float cos_theta = math::cos(angle_rad);
-		float sin_theta = math::sin(angle_rad);
+		f32 angle_rad = math::degrees_to_radians(angle_degrees);
+		f32 cos_theta = math::cos(angle_rad);
+		f32 sin_theta = math::sin(angle_rad);
 
 		vector3 v_rot = (*this * cos_theta) + (vector3::cross(unit_axis, *this) * sin_theta) + (unit_axis * (vector3::dot(unit_axis, *this) * (1.0f - cos_theta)));
 		return v_rot;
@@ -118,22 +118,22 @@ namespace SFG
 		return *this - (unit_normal * (2.0f * vector3::dot(*this, unit_normal)));
 	}
 
-	bool vector3::equals(const vector3& other, float epsilon) const
+	bool vector3::equals(const vector3& other, f32 epsilon) const
 	{
 		return math::almost_equal(x, other.x, epsilon) && math::almost_equal(y, other.y, epsilon) && math::almost_equal(z, other.z, epsilon);
 	}
 
-	bool vector3::is_zero(float epsilon) const
+	bool vector3::is_zero(f32 epsilon) const
 	{
 		return math::almost_equal(x, 0.0f, epsilon) && math::almost_equal(y, 0.0f, epsilon) && math::almost_equal(z, 0.0f, epsilon);
 	}
 
-	float vector3::magnitude() const
+	f32 vector3::magnitude() const
 	{
 		return math::sqrt(x * x + y * y + z * z);
 	}
 
-	float vector3::magnitude_sqr() const
+	f32 vector3::magnitude_sqr() const
 	{
 		return x * x + y * y + z * z;
 	}
@@ -159,9 +159,9 @@ namespace SFG
 		if (!j.is_array() || j.size() < 3)
 			throw std::runtime_error("vector3 json err");
 
-		v.x = j.at(0).get<float>();
-		v.y = j.at(1).get<float>();
-		v.z = j.at(2).get<float>();
+		v.x = j.at(0).get<f32>();
+		v.y = j.at(1).get<f32>();
+		v.z = j.at(2).get<f32>();
 	}
 
 #endif

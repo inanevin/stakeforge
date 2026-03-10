@@ -162,28 +162,28 @@ namespace SFG
 		return char_util::append_char(_cur, _cur_end, c);
 	}
 
-	bool bump_text_allocator::append(int32 v)
+	bool bump_text_allocator::append(i32 v)
 	{
 		if (!_cur_start)
 			return false;
 
 		return char_util::append_i32(_cur, _cur_end, v);
 	}
-	bool bump_text_allocator::append(uint32 v)
+	bool bump_text_allocator::append(u32 v)
 	{
 		if (!_cur_start)
 			return false;
 
 		return char_util::append_u32(_cur, _cur_end, v);
 	}
-	bool bump_text_allocator::append(int64 v)
+	bool bump_text_allocator::append(i64 v)
 	{
 		if (!_cur_start)
 			return false;
 
 		return char_util::append_i64(_cur, _cur_end, v);
 	}
-	bool bump_text_allocator::append(uint64 v)
+	bool bump_text_allocator::append(u64 v)
 	{
 		if (!_cur_start)
 			return false;
@@ -191,7 +191,7 @@ namespace SFG
 		return char_util::append_u64(_cur, _cur_end, v);
 	}
 
-	bool bump_text_allocator::append_i64(int64 v)
+	bool bump_text_allocator::append_i64(i64 v)
 	{
 		if (!_cur_start)
 			return false;
@@ -199,7 +199,7 @@ namespace SFG
 		return char_util::append_i64(_cur, _cur_end, v);
 	}
 
-	bool bump_text_allocator::append_u64(uint64 v)
+	bool bump_text_allocator::append_u64(u64 v)
 	{
 		if (!_cur_start)
 			return false;

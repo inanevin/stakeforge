@@ -45,7 +45,7 @@ namespace SFG
 	{
 	}
 
-	void game::post_world_tick(float delta)
+	void game::post_world_tick(f32 delta)
 	{
 		_app.get_gameplay().on_world_tick(_app.get_world(), delta, vector2ui16());
 	}

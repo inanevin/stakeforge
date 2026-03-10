@@ -39,7 +39,7 @@ namespace SFG
 	{
 	}
 
-	bool physics_raycast_single::cast(physics_world* world, const vector3& position, const vector3& normal, float maxDistance)
+	bool physics_raycast_single::cast(physics_world* world, const vector3& position, const vector3& normal, f32 maxDistance)
 	{
 		_result						 = {};
 		const vector3	   direction = normal * maxDistance;
@@ -62,7 +62,7 @@ namespace SFG
 		_jph_results.push_back(res);
 	}
 
-	bool physics_raycast_multi::cast(physics_world* world, const vector3& position, const vector3& normal, float max_distance)
+	bool physics_raycast_multi::cast(physics_world* world, const vector3& position, const vector3& normal, f32 max_distance)
 	{
 		_jph_results.resize(0);
 		_results.resize(0);
@@ -93,7 +93,7 @@ namespace SFG
 		_jph_results.push_back(res);
 	}
 
-	bool physics_broadphase::cast(physics_world* world, const vector3& position, const vector3& normal, float max_distance)
+	bool physics_broadphase::cast(physics_world* world, const vector3& position, const vector3& normal, f32 max_distance)
 	{
 		_jph_results.resize(0);
 		_results.resize(0);

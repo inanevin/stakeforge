@@ -45,7 +45,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -55,7 +55,7 @@ namespace SFG
 
 		create_textures(size);
 
-		uint32 variant_flags = 0;
+		u32 variant_flags = 0;
 #ifdef SFG_TOOLMODE
 		variant_flags |= shader_variant_flags::variant_flag_selection_outline;
 #endif
@@ -65,9 +65,9 @@ namespace SFG
 		engine_resources::get().add_shader_reload_listener([&](engine_resource_ident type, shader_direct& sh) {
 			if (type == engine_resource_ident::shader_post_combiner)
 			{
-						uint32 vf = 0;
+				u32 vf = 0;
 #ifdef SFG_TOOLMODE
-		vf |= shader_variant_flags::variant_flag_selection_outline;
+				vf |= shader_variant_flags::variant_flag_selection_outline;
 #endif
 
 				_shader_post_combiner = sh.get_hw(vf);
@@ -81,7 +81,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -92,25 +92,25 @@ namespace SFG
 		destroy_textures();
 	}
 
-	void render_pass_post_combiner::prepare(proxy_manager& pm, uint8 frame_index, const vector2ui16& resolution)
+	void render_pass_post_combiner::prepare(proxy_manager& pm, u8 frame_index, const vector2ui16& resolution)
 	{
 		ZoneScoped;
 
-		const uint8						 post_exists		  = pm.get_post_process_exists();
-		const uint8						 bloom_exists		  = pm.get_bloom_exists();
+		const u8						 post_exists		  = pm.get_post_process_exists();
+		const u8						 bloom_exists		  = pm.get_bloom_exists();
 		const render_proxy_post_process& post				  = pm.get_post_process();
-		float							 bloom_strength		  = post_exists ? post.bloom_strength : 0.04f;
-		const float						 exposure			  = post_exists ? post.exposure : 1.0f;
+		f32								 bloom_strength		  = post_exists ? post.bloom_strength : 0.04f;
+		const f32						 exposure			  = post_exists ? post.exposure : 1.0f;
 		const int						 tonemap_mode		  = post_exists ? post.tonemap_mode : 1;
-		const float						 saturation			  = post_exists ? post.saturation : 1.0f;
-		const float						 wb_temp			  = post_exists ? post.wb_temp : 0.0f;
-		const float						 wb_tint			  = post_exists ? post.wb_tint : 0.0f;
-		const float						 reinhard_white_point = post_exists ? post.reinhard_white_point : 6.0f;
+		const f32						 saturation			  = post_exists ? post.saturation : 1.0f;
+		const f32						 wb_temp			  = post_exists ? post.wb_temp : 0.0f;
+		const f32						 wb_tint			  = post_exists ? post.wb_tint : 0.0f;
+		const f32						 reinhard_white_point = post_exists ? post.reinhard_white_point : 6.0f;
 
 		per_frame_data& pfd = _pfd[frame_index];
 
 		const ubo ubo_data = {
-			.screen_size		  = vector2(static_cast<float>(resolution.x), static_cast<float>(resolution.y)),
+			.screen_size		  = vector2(static_cast<f32>(resolution.x), static_cast<f32>(resolution.y)),
 			.bloom_strength		  = bloom_strength,
 			.exposure			  = exposure,
 			.tonemap_mode		  = tonemap_mode,
@@ -152,7 +152,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 		barriers.resize(0);
 
@@ -175,16 +175,16 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 constants[4] = {gpu_index_ubo, gpu_index_lighting, gpu_index_bloom, gpu_index_selection_outline};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 4, .param_index = rpi_constants});
+		const u32 constants[4] = {gpu_index_ubo, gpu_index_lighting, gpu_index_bloom, gpu_index_selection_outline};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 4, .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 		backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = sh});
@@ -211,7 +211,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_texture(pfd.render_target);
@@ -222,7 +222,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 

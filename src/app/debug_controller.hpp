@@ -75,8 +75,8 @@ namespace SFG
 		// render
 		// -----------------------------------------------------------------------------
 
-		void prepare(uint8 frame_index);
-		void render(gfx_id cmd_buffer, uint8 frame_index, bump_allocator& alloc);
+		void prepare(u8 frame_index);
+		void render(gfx_id cmd_buffer, u8 frame_index, bump_allocator& alloc);
 		void on_window_resize(const vector2ui16& size);
 		bool on_window_event(const window_event& ev);
 
@@ -84,9 +84,9 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		static float get_field_height();
+		static f32 get_field_height();
 
-		inline uint32 get_output_gpu_index(uint8 frame_index) const
+		inline u32 get_output_gpu_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].rt_fullscreen_index;
 		}
@@ -100,7 +100,7 @@ namespace SFG
 		void rebuild_ui();
 		void add_console_text(const char* text, log_level level);
 		void update_console_input_field();
-		void draw_vekt(uint8 frame_index, const vekt::draw_buffer& db);
+		void draw_vekt(u8 frame_index, const vekt::draw_buffer& db);
 		void set_console_visible(bool visible);
 		void init_fonts();
 		void init_builder();
@@ -112,7 +112,7 @@ namespace SFG
 		static void on_atlas_destroyed(vekt::atlas* atlas, void* user_data);
 
 	private:
-		enum class console_state : uint8
+		enum class console_state : u8
 		{
 			invisible = 0,
 			visible,
@@ -120,18 +120,18 @@ namespace SFG
 
 		struct input_event
 		{
-			uint16 button = 0;
-			int16  wheel  = 0;
+			u16 button = 0;
+			i16 wheel  = 0;
 		};
 
 		struct gui_draw_call
 		{
 			vector4ui16 scissors		= vector4ui16::zero;
-			uint16		start_vtx		= 0;
-			uint16		start_idx		= 0;
-			uint16		index_count		= 0;
+			u16			start_vtx		= 0;
+			u16			start_idx		= 0;
+			u16			index_count		= 0;
 			gfx_id		shader			= 0;
-			uint32		atlas_gpu_index = 0;
+			u32			atlas_gpu_index = 0;
 		};
 
 		struct per_frame_data
@@ -139,13 +139,13 @@ namespace SFG
 			buffer_cpu_gpu buf_gui_vtx		   = {};
 			buffer_cpu_gpu buf_gui_idx		   = {};
 			buffer_gpu	   buf_pass_data	   = {};
-			uint32		   rt_console_index	   = 0;
-			uint32		   rt_fullscreen_index = 0;
-			uint32		   counter_vtx		   = 0;
-			uint32		   counter_idx		   = 0;
+			u32			   rt_console_index	   = 0;
+			u32			   rt_fullscreen_index = 0;
+			u32			   counter_vtx		   = 0;
+			u32			   counter_idx		   = 0;
 			gfx_id		   rt_console		   = 0;
 			gfx_id		   rt_post			   = 0;
-			uint16		   draw_call_count	   = 0;
+			u16			   draw_call_count	   = 0;
 
 			inline void reset()
 			{
@@ -157,15 +157,15 @@ namespace SFG
 		struct gui_pass_view
 		{
 			matrix4x4 proj			= matrix4x4::identity;
-			float	  sdf_thickness = 0.5f;
-			float	  sdf_softness	= 0.02f;
+			f32		  sdf_thickness = 0.5f;
+			f32		  sdf_softness	= 0.02f;
 		};
 
 		struct atlas_ref
 		{
 			vekt::atlas*   atlas			   = nullptr;
 			gfx_id		   texture			   = 0;
-			uint32		   texture_gpu_index   = 0;
+			u32			   texture_gpu_index   = 0;
 			gfx_id		   intermediate_buffer = 0;
 			texture_buffer buffer			   = {};
 		};
@@ -184,36 +184,36 @@ namespace SFG
 			texture_queue*	  texture_queue = nullptr;
 			vector2ui16		  screen_size	= vector2ui16::zero;
 			vector2ui16		  rt_size		= vector2ui16::zero;
-			float			  frame_counter = 0;
+			f32				  frame_counter = 0;
 		};
 
 		struct vekt_data
 		{
-			vector<int32>		console_texts			  = {};
+			vector<i32>			console_texts			  = {};
 			vekt::builder*		builder					  = nullptr;
 			vekt::font*			font_debug				  = nullptr;
 			vekt::font*			font_icon				  = nullptr;
 			vekt::font_manager* font_manager			  = nullptr;
-			int32				widget_console_bg		  = -1;
-			int32				widget_input_field		  = -1;
-			int32				widget_input_text		  = {};
-			int32				widget_border			  = {};
-			int32				widget_fps				  = 0;
-			int32				widget_main_thread		  = 0;
-			int32				widget_render_thread	  = 0;
-			int32				widget_global_mem		  = 0;
-			int32				widget_gfx_mem			  = 0;
-			float				console_total_text_size_y = 0.0f;
+			i32					widget_console_bg		  = -1;
+			i32					widget_input_field		  = -1;
+			i32					widget_input_text		  = {};
+			i32					widget_border			  = {};
+			i32					widget_fps				  = 0;
+			i32					widget_main_thread		  = 0;
+			i32					widget_render_thread	  = 0;
+			i32					widget_global_mem		  = 0;
+			i32					widget_gfx_mem			  = 0;
+			f32					console_total_text_size_y = 0.0f;
 		};
 
 		struct input_field
 		{
 			vector<const char*> history			  = {};
 			const char*			text			  = nullptr;
-			int16				scroll_amt		  = 0;
-			int8				history_traversal = 0;
-			int8				caret_pos		  = 0;
-			int8				text_size		  = 0;
+			i16					scroll_amt		  = 0;
+			i8					history_traversal = 0;
+			i8					caret_pos		  = 0;
+			i8					text_size		  = 0;
 		};
 
 	private:

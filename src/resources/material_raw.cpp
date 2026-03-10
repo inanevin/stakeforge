@@ -43,7 +43,7 @@ namespace SFG
 {
 	void material_raw::serialize(ostream& stream) const
 	{
-		const uint32 sz = static_cast<uint32>(material_data.get_size());
+		const u32 sz = static_cast<u32>(material_data.get_size());
 		stream << sz;
 
 		if (sz != 0)
@@ -63,7 +63,7 @@ namespace SFG
 
 	void material_raw::deserialize(istream& stream)
 	{
-		uint32 sz = 0;
+		u32 sz = 0;
 		stream >> sz;
 		if (sz != 0)
 		{
@@ -128,10 +128,10 @@ namespace SFG
 			sid				   = TO_SID(relative_file);
 			shader_path		   = json_data.value<string>("shader", "");
 			textures_path	   = json_data.value<vector<string>>("textures", {});
-			double_sided	   = json_data.value<uint8>("double_sided", 0);
-			use_alpha_cutoff   = json_data.value<uint8>("use_alpha_cutoff", 0);
+			double_sided	   = json_data.value<u8>("double_sided", 0);
+			use_alpha_cutoff   = json_data.value<u8>("use_alpha_cutoff", 0);
 			sampler_definition = json_data.value<sampler_desc>("sampler_definition", {});
-			draw_priority	   = json_data.value<uint16>("priority", 0);
+			draw_priority	   = json_data.value<u16>("priority", 0);
 
 			vector<parameter_entry> parameters;
 			if (json_data.contains("parameters"))
@@ -166,12 +166,12 @@ namespace SFG
 
 				if (param.is_number_unsigned())
 				{
-					uint32 val = param.get<uint32>();
+					u32 val = param.get<u32>();
 					material_data << val;
 				}
 				else if (param.is_number_float())
 				{
-					float val = param.get<float>();
+					f32 val = param.get<f32>();
 					material_data << val;
 				}
 				else if (param.is_array() && param.size() == 4)
@@ -220,13 +220,13 @@ namespace SFG
 		istream stream = serialization::load_from_file(meta_cache_path.c_str());
 
 		string file_path				= "";
-		uint64 saved_file_last_modified = 0;
+		u64 saved_file_last_modified = 0;
 		stream >> file_path;
 		stream >> saved_file_last_modified;
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 
 		if (file_last_modified != saved_file_last_modified)
 			return false;
@@ -241,7 +241,7 @@ namespace SFG
 	{
 		const string sid_str			= std::to_string(TO_SID(name));
 		const string file_path			= resource_directory_path + name;
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 		const string relative			= file_system::get_filename_from_path(name);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;

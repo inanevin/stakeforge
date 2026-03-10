@@ -125,7 +125,7 @@ namespace SFG
 		if (_is_active == 0)
 			return false;
 
-		const uint16 button = ev.button;
+		const u16 button = ev.button;
 
 		switch (ev.type)
 		{
@@ -174,8 +174,8 @@ namespace SFG
 		case window_event_type::delta: {
 			if (_is_looking)
 			{
-				_mouse_delta.x += static_cast<float>(ev.value.x);
-				_mouse_delta.y += static_cast<float>(ev.value.y);
+				_mouse_delta.x += static_cast<f32>(ev.value.x);
+				_mouse_delta.y += static_cast<f32>(ev.value.y);
 				return true;
 			}
 			else
@@ -190,7 +190,7 @@ namespace SFG
 		return false;
 	}
 
-	void editor_camera::tick(float dt_seconds)
+	void editor_camera::tick(f32 dt_seconds)
 	{
 		if (_is_active == 0)
 			return;
@@ -213,7 +213,7 @@ namespace SFG
 		_mouse_delta = vector2::zero;
 	}
 
-	void editor_camera::apply_movement(float dt_seconds)
+	void editor_camera::apply_movement(f32 dt_seconds)
 	{
 		entity_manager& manager = _world->get_entity_manager();
 		const quat&		rot		= manager.get_entity_rotation(_entity);

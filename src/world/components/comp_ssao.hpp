@@ -44,7 +44,7 @@ namespace SFG
 
 		void on_add(world& w);
 		void on_remove(world& w);
-		void set_values(world& w, float radius_world, float bias, float intensity, float power, uint32 num_dirs, uint32 num_steps, float random_rot_strength);
+		void set_values(world& w, f32 radius_world, f32 bias, f32 intensity, f32 power, u32 num_dirs, u32 num_steps, f32 random_rot_strength);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -60,13 +60,13 @@ namespace SFG
 
 	private:
 		component_header _header			  = {};
-		float			 _radius_world		  = 0.75f;
-		float			 _bias				  = 0.04f;
-		float			 _intensity			  = 1.25f;
-		float			 _power				  = 1.25f;
-		uint32			 _num_dirs			  = 8;
-		uint32			 _num_steps			  = 6;
-		float			 _random_rot_strength = 1.5f;
+		f32				 _radius_world		  = 0.75f;
+		f32				 _bias				  = 0.04f;
+		f32				 _intensity			  = 1.25f;
+		f32				 _power				  = 1.25f;
+		u32				 _num_dirs			  = 8;
+		u32				 _num_steps			  = 6;
+		f32				 _random_rot_strength = 1.5f;
 	};
 
 	REFLECT_TYPE(comp_ssao);

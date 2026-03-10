@@ -57,8 +57,8 @@ namespace SFG
 	{
 		if (!j.is_array() || j.size() < 2)
 			throw std::runtime_error("vector2ui16 json err");
-		v.x = j.at(0).get<uint16>();
-		v.y = j.at(1).get<uint16>();
+		v.x = j.at(0).get<u16>();
+		v.y = j.at(1).get<u16>();
 	}
 #endif
 }

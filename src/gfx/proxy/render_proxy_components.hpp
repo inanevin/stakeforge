@@ -50,23 +50,23 @@ namespace SFG
 	struct render_proxy_mesh_instance
 	{
 		chunk_handle32 skin_entities		= {};
-		uint32		   _assigned_bone_index = 0;
+		u32			   _assigned_bone_index = 0;
 		world_id	   entity				= 0;
 		chunk_handle32 materials			= {};
 		resource_id	   mesh					= NULL_RESOURCE_ID;
 		resource_id	   skin					= NULL_RESOURCE_ID;
-		uint16		   skin_entities_count	= 0;
-		uint16		   materials_count		= 0;
+		u16			   skin_entities_count	= 0;
+		u16			   materials_count		= 0;
 	};
 
 	struct render_proxy_camera
 	{
 		chunk_handle32		cascades	  = {};
 		world_id			entity		  = 0;
-		float				near_plane	  = 0.0f;
-		float				far_plane	  = 0.0f;
-		float				fov_degrees	  = 0.0f;
-		uint8				cascade_count = 0;
+		f32					near_plane	  = 0.0f;
+		f32					far_plane	  = 0.0f;
+		f32					fov_degrees	  = 0.0f;
+		u8					cascade_count = 0;
 		render_proxy_status status		  = render_proxy_status::rps_inactive;
 	};
 
@@ -79,33 +79,33 @@ namespace SFG
 
 	struct render_proxy_bloom
 	{
-		float				filter_radius = 0.01f;
+		f32					filter_radius = 0.01f;
 		world_id			entity		  = 0;
 		render_proxy_status status		  = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_ssao
 	{
-		float				radius_world		= 0.75f;
-		float				bias				= 0.04f;
-		float				intensity			= 1.25f;
-		float				power				= 1.25f;
-		uint32				num_dirs			= 8;
-		uint32				num_steps			= 6;
-		float				random_rot_strength = 1.5f;
+		f32					radius_world		= 0.75f;
+		f32					bias				= 0.04f;
+		f32					intensity			= 1.25f;
+		f32					power				= 1.25f;
+		u32					num_dirs			= 8;
+		u32					num_steps			= 6;
+		f32					random_rot_strength = 1.5f;
 		world_id			entity				= 0;
 		render_proxy_status status				= render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_post_process
 	{
-		float				bloom_strength		 = 0.04f;
-		float				exposure			 = 1.0f;
-		int32				tonemap_mode		 = 1;
-		float				saturation			 = 1.0f;
-		float				wb_temp				 = 0.0f;
-		float				wb_tint				 = 0.0f;
-		float				reinhard_white_point = 6.0f;
+		f32					bloom_strength		 = 0.04f;
+		f32					exposure			 = 1.0f;
+		i32					tonemap_mode		 = 1;
+		f32					saturation			 = 1.0f;
+		f32					wb_temp				 = 0.0f;
+		f32					wb_tint				 = 0.0f;
+		f32					reinhard_white_point = 6.0f;
 		world_id			entity				 = 0;
 		render_proxy_status status				 = render_proxy_status::rps_inactive;
 	};
@@ -113,11 +113,11 @@ namespace SFG
 	struct render_proxy_skybox
 	{
 		vector4				start_color = vector4(0.2f, 0.1f, 0.2f, 1.0f);
-		vector4				mid_color   = vector4(0.1f, 0.1f, 0.2f, 1.0f);
-		vector4				end_color   = vector4(0.2f, 0.1f, 0.1f, 1.0f);
-		vector4				fog_color   = vector4(0.0f, 0.0f, 0.0f, 0.0f);
-		float				fog_start   = 0.0f;
-		float				fog_end		= 0.0f;
+		vector4				mid_color	= vector4(0.1f, 0.1f, 0.2f, 1.0f);
+		vector4				end_color	= vector4(0.2f, 0.1f, 0.1f, 1.0f);
+		vector4				fog_color	= vector4(0.0f, 0.0f, 0.0f, 0.0f);
+		f32					fog_start	= 0.0f;
+		f32					fog_end		= 0.0f;
 		world_id			entity		= 0;
 		render_proxy_status status		= render_proxy_status::rps_inactive;
 	};
@@ -128,10 +128,10 @@ namespace SFG
 		vector2ui16			shadow_res									= vector2ui16(256, 256);
 		gfx_id				shadow_texture_hw[BACK_BUFFER_COUNT]		= {NULL_GFX_ID};
 		gfx_id				shadow_texture_gpu_index[BACK_BUFFER_COUNT] = {NULL_GFX_ID};
-		float				intensity									= 0;
+		f32					intensity									= 0;
 		world_id			entity										= 0;
 		bool				cast_shadows								= false;
-		uint8				cascade_levels								= 0;
+		u8					cascade_levels								= 0;
 		render_proxy_status status										= render_proxy_status::rps_inactive;
 	};
 
@@ -141,9 +141,9 @@ namespace SFG
 		vector2ui16			shadow_res									= vector2ui16(256, 256);
 		gfx_id				shadow_texture_hw[BACK_BUFFER_COUNT]		= {NULL_GFX_ID};
 		gfx_id				shadow_texture_gpu_index[BACK_BUFFER_COUNT] = {NULL_GFX_ID};
-		float				range										= 0.0f;
-		float				intensity									= 0;
-		float				near_plane									= 0.1f;
+		f32					range										= 0.0f;
+		f32					intensity									= 0;
+		f32					near_plane									= 0.1f;
 		world_id			entity										= 0;
 		bool				cast_shadows								= false;
 		render_proxy_status status										= render_proxy_status::rps_inactive;
@@ -155,11 +155,11 @@ namespace SFG
 		vector2ui16			shadow_res									= vector2ui16(256, 256);
 		gfx_id				shadow_texture_hw[BACK_BUFFER_COUNT]		= {NULL_GFX_ID};
 		gfx_id				shadow_texture_gpu_index[BACK_BUFFER_COUNT] = {NULL_GFX_ID};
-		float				range										= 0.0f;
-		float				intensity									= 0;
-		float				inner_cone									= 0.0f;
-		float				outer_cone									= 0.0f;
-		float				near_plane									= 0.1f;
+		f32					range										= 0.0f;
+		f32					intensity									= 0;
+		f32					inner_cone									= 0.0f;
+		f32					outer_cone									= 0.0f;
+		f32					near_plane									= 0.1f;
 		world_id			entity										= 0;
 		bool				cast_shadows								= false;
 		render_proxy_status status										= render_proxy_status::rps_inactive;
@@ -168,12 +168,12 @@ namespace SFG
 	struct render_proxy_canvas_dc
 	{
 		vector4ui16 clip		 = vector4ui16::zero;
-		uint32		start_index	 = 0;
-		uint32		start_vertex = 0;
-		uint32		index_count	 = 0;
+		u32			start_index	 = 0;
+		u32			start_vertex = 0;
+		u32			index_count	 = 0;
 		resource_id mat_id		 = 0;
 		resource_id atlas_id	 = 0;
-		uint8		atlas_exists = 0;
+		u8			atlas_exists = 0;
 	};
 
 	struct render_proxy_canvas
@@ -181,10 +181,10 @@ namespace SFG
 		buffer_cpu_gpu				   vertex_buffers[BACK_BUFFER_COUNT] = {};
 		buffer_cpu_gpu				   index_buffers[BACK_BUFFER_COUNT]	 = {};
 		vector<render_proxy_canvas_dc> _draw_calls;
-		uint32						   _max_vertex_offset = 0;
-		uint32						   _max_index_offset  = 0;
+		u32							   _max_vertex_offset = 0;
+		u32							   _max_index_offset  = 0;
 		world_id					   entity			  = 0;
-		uint8						   is_3d			  = 0;
+		u8							   is_3d			  = 0;
 		render_proxy_status			   status			  = render_proxy_status::rps_inactive;
 	};
 
@@ -193,8 +193,8 @@ namespace SFG
 		world_id			entity			= {};
 		resource_id			particle_res_id = NULL_RESOURCE_ID;
 		resource_id			material		= NULL_RESOURCE_ID;
-		float				last_emitted	= 0.0f;
-		float				current_life	= 0.0f;
+		f32					last_emitted	= 0.0f;
+		f32					current_life	= 0.0f;
 		render_proxy_status status			= render_proxy_status::rps_inactive;
 	};
 

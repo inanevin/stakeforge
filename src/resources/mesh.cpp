@@ -76,44 +76,44 @@ namespace SFG
 		_sid		= raw.sid;
 
 		const size_t m_size = raw.materials.size();
-		_material_count		= static_cast<uint16>(m_size);
+		_material_count		= static_cast<u16>(m_size);
 		if (m_size != 0)
 		{
-			_material_indices = alloc.allocate<int16>(raw.materials.size());
-			uint16* idx		  = alloc.get<uint16>(_material_indices);
-			for (uint32 i = 0; i < m_size; i++)
+			_material_indices = alloc.allocate<i16>(raw.materials.size());
+			u16* idx		  = alloc.get<u16>(_material_indices);
+			for (u32 i = 0; i < m_size; i++)
 			{
-				const int16 mat = raw.materials[i];
-				idx[i]			= mat >= 0 ? static_cast<uint16>(raw.materials[i]) : 0;
+				const i16 mat = raw.materials[i];
+				idx[i]			= mat >= 0 ? static_cast<u16>(raw.materials[i]) : 0;
 			}
 		}
 
 		if (!raw.collider_vertices.empty() && !raw.collider_indices.empty())
 		{
-			_collider_vertex_count = static_cast<uint32>(raw.collider_vertices.size());
-			_collider_index_count  = static_cast<uint32>(raw.collider_indices.size());
+			_collider_vertex_count = static_cast<u32>(raw.collider_vertices.size());
+			_collider_index_count  = static_cast<u32>(raw.collider_indices.size());
 
 			_collider_vertices = alloc.allocate<vector3>(_collider_vertex_count);
 			vector3* vtx	   = alloc.get<vector3>(_collider_vertices);
-			for (uint32 i = 0; i < _collider_vertex_count; i++)
+			for (u32 i = 0; i < _collider_vertex_count; i++)
 				vtx[i] = raw.collider_vertices[i];
 
 			_collider_indices	 = alloc.allocate<primitive_index>(_collider_index_count);
 			primitive_index* idx = alloc.get<primitive_index>(_collider_indices);
-			for (uint32 i = 0; i < _collider_index_count; i++)
+			for (u32 i = 0; i < _collider_index_count; i++)
 				idx[i] = raw.collider_indices[i];
 
 			JPH::VertexList vertices;
 			vertices.reserve(_collider_vertex_count);
-			for (uint32 i = 0; i < _collider_vertex_count; i++)
+			for (u32 i = 0; i < _collider_vertex_count; i++)
 				vertices.push_back(JPH::Float3(vtx[i].x, vtx[i].y, vtx[i].z));
 
 			JPH::IndexedTriangleList triangles;
-			const uint32			 tri_count = _collider_index_count / 3;
+			const u32			 tri_count = _collider_index_count / 3;
 			triangles.reserve(tri_count);
-			for (uint32 i = 0; i < tri_count; i++)
+			for (u32 i = 0; i < tri_count; i++)
 			{
-				const uint32 base = i * 3;
+				const u32 base = i * 3;
 				triangles.push_back(JPH::IndexedTriangle(idx[base], idx[base + 1], idx[base + 2]));
 			}
 
@@ -143,7 +143,7 @@ namespace SFG
 
 		stream.add_event(
 			{
-				.index		= static_cast<uint32>(handle.index),
+				.index		= static_cast<u32>(handle.index),
 				.event_type = render_event_type::create_mesh,
 			},
 			ev);
@@ -191,7 +191,7 @@ namespace SFG
 		_collider_index_count  = 0;
 
 		stream.add_event({
-			.index		= static_cast<uint32>(handle.index),
+			.index		= static_cast<u32>(handle.index),
 			.event_type = render_event_type::destroy_mesh,
 		});
 

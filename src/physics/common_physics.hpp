@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	static constexpr uint16				  PHYSICS_NUM_BP_LAYERS(2);
-	static constexpr uint16				  PHYSICS_NUM_OBJ_LAYERS(2);
+	static constexpr u16				  PHYSICS_NUM_BP_LAYERS(2);
+	static constexpr u16				  PHYSICS_NUM_OBJ_LAYERS(2);
 	static constexpr JPH::BroadPhaseLayer PHYSICS_BP_LAYERS[PHYSICS_NUM_BP_LAYERS] = {};
 }

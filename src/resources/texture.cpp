@@ -63,7 +63,7 @@ namespace SFG
 #endif
 
 		gfx_backend* backend	= gfx_backend::get();
-		uint32		 total_size = 0;
+		u32		 total_size = 0;
 		for (const texture_buffer& buf : raw.buffers)
 			total_size += backend->get_texture_size(buf.size.x, buf.size.y, buf.bpp);
 
@@ -80,7 +80,7 @@ namespace SFG
 
 		stream.add_event(
 			{
-				.index		= static_cast<uint32>(handle.index),
+				.index		= static_cast<u32>(handle.index),
 				.event_type = render_event_type::create_texture,
 			},
 			stg);
@@ -104,7 +104,7 @@ namespace SFG
 #endif
 
 		stream.add_event({
-			.index		= static_cast<uint32>(handle.index),
+			.index		= static_cast<u32>(handle.index),
 			.event_type = render_event_type::destroy_texture,
 		});
 	}

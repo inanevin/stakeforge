@@ -35,7 +35,7 @@ namespace SFG
 {
 	bone_manager::bone_manager()
 	{
-		_bone_batches	   = new pool_allocator<uint16, uint16, MAX_WORLD_BONE_BATCHES>();
+		_bone_batches	   = new pool_allocator<u16, u16, MAX_WORLD_BONE_BATCHES>();
 		_local_matrices	   = new static_array<bone_batch, MAX_WORLD_BONE_BATCHES>();
 		_inv_bind_matrices = new static_array<bone_batch, MAX_WORLD_BONE_BATCHES>();
 		_abs_matrices	   = new static_array<bone_batch, MAX_WORLD_BONE_BATCHES>();
@@ -57,9 +57,9 @@ namespace SFG
 	{
 	}
 
-	uint16 bone_manager::allocate_batch(world& w, resource_handle skin_handle)
+	u16 bone_manager::allocate_batch(world& w, resource_handle skin_handle)
 	{
-		const uint16 batch = _bone_batches->add();
+		const u16 batch = _bone_batches->add();
 
 		bone_batch& locals = _local_matrices->get(batch);
 		bone_batch& abs	   = _abs_matrices->get(batch);
@@ -70,13 +70,13 @@ namespace SFG
 
 		skin&				 sk			   = rm.get_resource<skin>(skin_handle);
 		const chunk_handle32 joints_handle = sk.get_joints();
-		const uint16		 joints_count  = sk.get_joints_count();
+		const u16			 joints_count  = sk.get_joints_count();
 
 		SFG_ASSERT(joints_count < MAX_WORLD_BONE_BATCH_SIZE);
 
 		skin_joint* joints = resource_aux.get<skin_joint>(joints_handle);
 
-		for (uint16 i = 0; i < joints_count; i++)
+		for (u16 i = 0; i < joints_count; i++)
 		{
 			skin_joint& j  = joints[i];
 			locals.mats[i] = j.local_matrix;
@@ -93,7 +93,7 @@ namespace SFG
 		return batch;
 	}
 
-	void bone_manager::free_batch(uint16 b)
+	void bone_manager::free_batch(u16 b)
 	{
 		_bone_batches->remove(b);
 	}

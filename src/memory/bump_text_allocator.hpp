@@ -85,10 +85,10 @@ namespace SFG
 		bool append(string_view s);
 		bool append(const char* s);
 		bool append(char c);
-		bool append(int32 v);
-		bool append(uint32 v);
-		bool append(int64 v);
-		bool append(uint64 v);
+		bool append(i32 v);
+		bool append(u32 v);
+		bool append(i64 v);
+		bool append(u64 v);
 		bool append(double v, int precision = 3);
 		bool appendf(const char* fmt, ...);
 
@@ -110,8 +110,8 @@ namespace SFG
 		}
 
 	private:
-		bool append_i64(int64 v);
-		bool append_u64(uint64 v);
+		bool append_i64(i64 v);
+		bool append_u64(u64 v);
 		bool ensure_space(size_t bytes_needed_including_null) const;
 		void null_terminate_in_place();
 

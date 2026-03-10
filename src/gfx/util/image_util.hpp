@@ -46,13 +46,13 @@ namespace SFG
 			catmullrom,
 			mitchell,
 		};
-		static void* load_from_file_ch(const char* file, uint8 force_channels);
-		static void* load_from_file_ch(const char* file, vector2ui16& out_size, uint8 force_channels);
-		static void* load_from_file(const char* file, uint8& out_channels);
-		static void* load_from_file(const char* file, vector2ui16& out_size, uint8& out_channels);
+		static void* load_from_file_ch(const char* file, u8 force_channels);
+		static void* load_from_file_ch(const char* file, vector2ui16& out_size, u8 force_channels);
+		static void* load_from_file(const char* file, u8& out_channels);
+		static void* load_from_file(const char* file, vector2ui16& out_size, u8& out_channels);
 		static void	 compress_to_buffer(void* data, size_t sz, ostream& stream);
-		static void	 generate_mips(texture_buffer* out_buffers, uint8 target_levels, mip_gen_filter filter, uint8 channels, bool is_linear, bool premultiplied_alpha);
-		static uint8 calculate_mip_levels(uint16 width, uint16 height);
+		static void	 generate_mips(texture_buffer* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
+		static u8	 calculate_mip_levels(u16 width, u16 height);
 		static void	 free(void* data);
 	};
 }

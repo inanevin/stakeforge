@@ -1090,8 +1090,8 @@ typedef enum D3D11_SB_OPERAND_MIN_PRECISION
 {
 	D3D11_SB_OPERAND_MIN_PRECISION_DEFAULT = 0,	  // Default precision
 												  // for the shader model
-	D3D11_SB_OPERAND_MIN_PRECISION_FLOAT_16	 = 1, // Min 16 bit/component float
-	D3D11_SB_OPERAND_MIN_PRECISION_FLOAT_2_8 = 2, // Min 10(2.8)bit/comp. float
+	D3D11_SB_OPERAND_MIN_PRECISION_FLOAT_16	 = 1, // Min 16 bit/component f32
+	D3D11_SB_OPERAND_MIN_PRECISION_FLOAT_2_8 = 2, // Min 10(2.8)bit/comp. f32
 	D3D11_SB_OPERAND_MIN_PRECISION_SINT_16	 = 4, // Min 16 bit/comp. signed integer
 	D3D11_SB_OPERAND_MIN_PRECISION_UINT_16	 = 5, // Min 16 bit/comp. unsigned integer
 } D3D11_SB_OPERAND_MIN_PRECISION;
@@ -1160,7 +1160,7 @@ typedef enum D3D11_SB_OPERAND_MIN_PRECISION
 //
 // [10:00] D3D10_SB_OPCODE_DCL_GLOBAL_FLAGS
 // [11:11] Refactoring allowed if bit set.
-// [12:12] Enable double precision float ops.
+// [12:12] Enable double precision f32 ops.
 // [13:13] Force early depth-stencil test.
 // [14:14] Enable RAW and structured buffers in non-CS 4.x shaders.
 // [15:15] Skip optimizations of shader IL when translating to native code

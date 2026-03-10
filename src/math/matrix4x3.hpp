@@ -41,21 +41,21 @@ namespace SFG
 	class matrix4x3
 	{
 	public:
-		float m[12]; // Column-major: m[col * 3 + row], 4 cols × 3 rows
+		f32 m[12]; // Column-major: m[col * 3 + row], 4 cols × 3 rows
 
 		matrix4x3() = default;
-		matrix4x3(float m00,
-				  float m10,
-				  float m20, // Col 0
-				  float m01,
-				  float m11,
-				  float m21, // Col 1
-				  float m02,
-				  float m12,
-				  float m22, // Col 2
-				  float m03,
-				  float m13,
-				  float m23); // Col 3 (translation)
+		matrix4x3(f32 m00,
+				  f32 m10,
+				  f32 m20, // Col 0
+				  f32 m01,
+				  f32 m11,
+				  f32 m21, // Col 1
+				  f32 m02,
+				  f32 m12,
+				  f32 m22, // Col 2
+				  f32 m03,
+				  f32 m13,
+				  f32 m23); // Col 3 (translation)
 
 		static const matrix4x3 identity;
 
@@ -80,21 +80,21 @@ namespace SFG
 		matrix4x4 to_matrix4x4() const;
 		matrix3x3 to_linear3x3() const;
 
-		inline float operator[](int index) const
+		inline f32 operator[](int index) const
 		{
 			return m[index];
 		}
-		inline float& operator[](int index)
+		inline f32& operator[](int index)
 		{
 			return m[index];
 		}
 
-		inline vector3 get_column(uint8 idx) const
+		inline vector3 get_column(u8 idx) const
 		{
 			return vector3(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2]);
 		}
 
-		inline vector4 get_column_v4(uint8 idx) const
+		inline vector4 get_column_v4(u8 idx) const
 		{
 			return vector4(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2], 0.0f);
 		}
@@ -124,7 +124,7 @@ namespace SFG
 			return vector3(m[0] * v.x + m[3] * v.y + m[6] * v.z + m[9], m[1] * v.x + m[4] * v.y + m[7] * v.z + m[10], m[2] * v.x + m[5] * v.y + m[8] * v.z + m[11]);
 		}
 
-		inline matrix4x3 operator*(float scalar) const
+		inline matrix4x3 operator*(f32 scalar) const
 		{
 			matrix4x3 result;
 			for (int i = 0; i < 12; ++i)
@@ -132,7 +132,7 @@ namespace SFG
 			return result;
 		}
 
-		inline matrix4x3& operator*=(float scalar)
+		inline matrix4x3& operator*=(f32 scalar)
 		{
 			for (int i = 0; i < 12; ++i)
 				m[i] *= scalar;

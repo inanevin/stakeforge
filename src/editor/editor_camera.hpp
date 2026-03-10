@@ -50,7 +50,7 @@ namespace SFG
 		void init(world& world, window& wnd);
 		void uninit();
 		bool on_window_event(const window_event& ev);
-		void tick(float dt_seconds);
+		void tick(f32 dt_seconds);
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -82,7 +82,7 @@ namespace SFG
 	private:
 		void reset_runtime();
 		void update_rotation();
-		void apply_movement(float dt_seconds);
+		void apply_movement(f32 dt_seconds);
 
 	private:
 		window* _window = nullptr;
@@ -94,12 +94,12 @@ namespace SFG
 
 		vector3 _direction_input	= vector3::zero;
 		vector2 _mouse_delta		= vector2::zero;
-		float	_yaw_degrees		= 0.0f;
-		float	_pitch_degrees		= 0.0f;
-		float	_current_move_speed = 12.0f;
-		float	_base_move_speed	= 12.0f;
-		float	_boost_multiplier	= 8.0f;
-		float	_mouse_sensitivity	= 0.08f;
+		f32		_yaw_degrees		= 0.0f;
+		f32		_pitch_degrees		= 0.0f;
+		f32		_current_move_speed = 12.0f;
+		f32		_base_move_speed	= 12.0f;
+		f32		_boost_multiplier	= 8.0f;
+		f32		_mouse_sensitivity	= 0.08f;
 		bool	_is_looking			= false;
 		bool	_is_active			= false;
 	};

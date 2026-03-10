@@ -76,7 +76,7 @@ namespace SFG
 		_samples->reset();
 	}
 
-	void animation_graph::tick(world& w, float dt)
+	void animation_graph::tick(world& w, f32 dt)
 	{
 		ZoneScoped;
 
@@ -97,7 +97,7 @@ namespace SFG
 			return;
 
 		const comp_camera& cam		 = w.get_comp_manager().get_component<comp_camera>(camera_comp);
-		const float		   dot_limit = 0.8f - (cam.get_fov_degrees() / 90.0f); // 0.2 runway
+		const f32		   dot_limit = 0.8f - (cam.get_fov_degrees() / 90.0f); // 0.2 runway
 
 		const vector3 camera_position = em.get_entity_position_abs(camera_entity);
 		const quat	  camera_rotation = em.get_entity_rotation_abs(camera_entity);
@@ -111,8 +111,8 @@ namespace SFG
 				continue;
 
 			const vector3 machine_position = em.get_entity_position_abs(m.entity);
-			const float	  dot			   = vector3::dot((machine_position - camera_position).normalized(), camera_rotation.get_forward());
-			const float	  dist_from_cam	   = vector3::distance_sqr(machine_position, camera_position);
+			const f32	  dot			   = vector3::dot((machine_position - camera_position).normalized(), camera_rotation.get_forward());
+			const f32	  dist_from_cam	   = vector3::distance_sqr(machine_position, camera_position);
 			const bool	  dist_fails	   = dist_from_cam > _throttle_distance_sqr && m._throttle_count < _throttle_max_frames;
 			const bool	  skip_pose		   = dot < dot_limit || dist_fails;
 			m._throttle_count			   = dist_fails ? (m._throttle_count + 1) : 0;
@@ -175,7 +175,7 @@ namespace SFG
 			animation_transition& active	   = transitions.get(m._active_transition);
 			animation_state&	  target_state = states.get(active.to_state);
 
-			const float ratio = math::almost_equal(active.duration, 0.0f) ? 1.0f : progress_transition(active, dt);
+			const f32 ratio = math::almost_equal(active.duration, 0.0f) ? 1.0f : progress_transition(active, dt);
 			transition_blend_pose.reset();
 
 			if (!skip_pose)
@@ -230,7 +230,7 @@ namespace SFG
 			state.blend_weight_param_y = get_parameter_handle(sm, sr.name.c_str());
 			state.mask				   = get_mask_handle(sr.mask.c_str());
 
-			const uint8 zero_dur = math::almost_equal(state.duration, 0.0f);
+			const u8 zero_dur = math::almost_equal(state.duration, 0.0f);
 
 			for (const res_state_machine_sample_raw& sample : sr.samples)
 			{
@@ -240,7 +240,7 @@ namespace SFG
 				if (zero_dur)
 				{
 					const animation& a		  = rm.get_resource<animation>(ah);
-					const float		 anim_dur = a.get_duration();
+					const f32		 anim_dur = a.get_duration();
 					state.duration			  = math::max(state.duration, anim_dur);
 				}
 			}
@@ -302,7 +302,7 @@ namespace SFG
 		return add_state(state_machine_handle, name, {}, {}, {}, 1.0f, animation_state_flags_is_looping);
 	}
 
-	pool_handle16 animation_graph::add_state(pool_handle16 state_machine_handle, const char* name, pool_handle16 mask, pool_handle16 blend_param_x, pool_handle16 blend_param_y, float duration, uint8 flags)
+	pool_handle16 animation_graph::add_state(pool_handle16 state_machine_handle, const char* name, pool_handle16 mask, pool_handle16 blend_param_x, pool_handle16 blend_param_y, f32 duration, u8 flags)
 	{
 		const pool_handle16 new_state = _states->add();
 
@@ -380,7 +380,7 @@ namespace SFG
 		return add_state_sample(state_handle, {}, {});
 	}
 
-	pool_handle16 animation_graph::add_parameter(pool_handle16 state_machine_handle, const char* name, float val)
+	pool_handle16 animation_graph::add_parameter(pool_handle16 state_machine_handle, const char* name, f32 val)
 	{
 		const pool_handle16 new_param = _params->add();
 
@@ -444,7 +444,7 @@ namespace SFG
 		return add_transition(state_handle, to_state_handle, {}, 0.0f, 0.0f, animation_transition_compare::greater, 0);
 	}
 
-	pool_handle16 animation_graph::add_transition(pool_handle16 from_state_handle, pool_handle16 to_state_handle, pool_handle16 param_handle, float duration, float target_value, animation_transition_compare compare, uint8 priority)
+	pool_handle16 animation_graph::add_transition(pool_handle16 from_state_handle, pool_handle16 to_state_handle, pool_handle16 param_handle, f32 duration, f32 target_value, animation_transition_compare compare, u8 priority)
 	{
 		const pool_handle16 transition = _transitions->add();
 
@@ -631,10 +631,10 @@ namespace SFG
 
 		world_handle* entity_handles = aux.get<world_handle>(m.joint_entities);
 
-		const uint16	  count = pose.get_joint_count();
+		const u16		  count = pose.get_joint_count();
 		const joint_pose* p		= pose.get_joint_poses();
 
-		for (uint16 i = 0; i < count; i++)
+		for (u16 i = 0; i < count; i++)
 		{
 			const joint_pose& jp = p[i];
 			if (jp.flags == 0)
@@ -663,7 +663,7 @@ namespace SFG
 		chunk_allocator32& res_aux = rm.get_aux();
 
 		static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS> state_animations = {};
-		static_vector<float, MAX_WORLD_BLEND_STATE_ANIMS>			state_weights	 = {};
+		static_vector<f32, MAX_WORLD_BLEND_STATE_ANIMS>				state_weights	 = {};
 
 		if (state.flags.is_set(animation_state_flags_is_1d))
 		{
@@ -684,16 +684,16 @@ namespace SFG
 		if (!state.mask.is_null())
 			mask = &get_mask(state.mask);
 
-		bool  init	  = false;
-		float total_w = 0.0f;
+		bool init	 = false;
+		f32	 total_w = 0.0f;
 
-		const uint16 anims_size = static_cast<uint16>(state_animations.size());
+		const u16 anims_size = static_cast<u16>(state_animations.size());
 
 		animation_pose pose_i = {};
 
-		for (uint16 i = 0; i < anims_size; i++)
+		for (u16 i = 0; i < anims_size; i++)
 		{
-			const float wi = state_weights[i];
+			const f32 wi = state_weights[i];
 			if (math::almost_equal(wi, 0.0f))
 				continue;
 
@@ -710,14 +710,14 @@ namespace SFG
 			}
 			else
 			{
-				const float t = wi / (total_w + wi);
+				const f32 t = wi / (total_w + wi);
 				out_pose.blend_from(pose_i, t);
 				total_w += wi;
 			}
 		}
 	}
 
-	void animation_graph::progress_state(animation_state& state, float dt)
+	void animation_graph::progress_state(animation_state& state, f32 dt)
 	{
 		if (state.flags.is_set(animation_state_flags_is_looping) && state.duration > 0.0f)
 		{
@@ -732,26 +732,26 @@ namespace SFG
 		state._current_time = 0.0f;
 	}
 
-	void animation_graph::compute_state_weights_1d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<float, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights)
+	void animation_graph::compute_state_weights_1d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<f32, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights)
 	{
 		ZoneScoped;
 
-		const vector2	blend_point = vector2(get_parameter(state.blend_weight_param_x).value, get_parameter(state.blend_weight_param_y).value);
-		constexpr float epsilon		= 1e-10f;
-		constexpr float epsilon2	= epsilon * epsilon;
-		const float		power		= 2.0f;
-		uint16			exact_index = UINT16_MAX;
+		const vector2 blend_point = vector2(get_parameter(state.blend_weight_param_x).value, get_parameter(state.blend_weight_param_y).value);
+		constexpr f32 epsilon	  = 1e-10f;
+		constexpr f32 epsilon2	  = epsilon * epsilon;
+		const f32	  power		  = 2.0f;
+		u16			  exact_index = UINT16_MAX;
 
 		pool_handle16 sample_handle = state._first_sample;
 		SFG_ASSERT(!sample_handle.is_null());
 
-		float weights_sum = 0.0f;
+		f32 weights_sum = 0.0f;
 
 		while (!sample_handle.is_null() && !out_anims.full())
 		{
 			const animation_state_sample& smp	= _samples->get(sample_handle);
-			const float					  d		= blend_point.x - smp.blend_point.x;
-			const float					  dist2 = d * d;
+			const f32					  d		= blend_point.x - smp.blend_point.x;
+			const f32					  dist2 = d * d;
 
 			if (dist2 < epsilon2)
 			{
@@ -762,41 +762,41 @@ namespace SFG
 				return;
 			}
 
-			const float dist   = math::sqrt(dist2);
-			const float denom  = dist + epsilon;
-			const float weight = 1.0f / (denom * denom);
+			const f32 dist	 = math::sqrt(dist2);
+			const f32 denom	 = dist + epsilon;
+			const f32 weight = 1.0f / (denom * denom);
 			weights_sum += weight;
 			out_weights.push_back(weight);
 			out_anims.push_back(smp.animation);
 			sample_handle = smp._next_sample;
 		}
 
-		const uint16 sz		 = static_cast<uint16>(out_weights.size());
-		const float	 inv_sum = 1.0f / weights_sum;
-		for (uint16 i = 0; i < sz; ++i)
+		const u16 sz	  = static_cast<u16>(out_weights.size());
+		const f32 inv_sum = 1.0f / weights_sum;
+		for (u16 i = 0; i < sz; ++i)
 			out_weights[i] *= inv_sum;
 	}
 
-	void animation_graph::compute_state_weights_2d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<float, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights)
+	void animation_graph::compute_state_weights_2d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<f32, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights)
 	{
 		ZoneScoped;
 
-		const vector2	blend_point = vector2(get_parameter(state.blend_weight_param_x).value, get_parameter(state.blend_weight_param_y).value);
-		constexpr float epsilon		= 1e-10f;
-		constexpr float epsilon2	= epsilon * epsilon;
-		const float		power		= 2.0f;
-		uint16			exact_index = UINT16_MAX;
+		const vector2 blend_point = vector2(get_parameter(state.blend_weight_param_x).value, get_parameter(state.blend_weight_param_y).value);
+		constexpr f32 epsilon	  = 1e-10f;
+		constexpr f32 epsilon2	  = epsilon * epsilon;
+		const f32	  power		  = 2.0f;
+		u16			  exact_index = UINT16_MAX;
 
 		pool_handle16 sample_handle = state._first_sample;
 		SFG_ASSERT(!sample_handle.is_null());
 
-		float weights_sum = 0.0f;
+		f32 weights_sum = 0.0f;
 
 		while (!sample_handle.is_null() && !out_anims.full())
 		{
 			const animation_state_sample& smp	= _samples->get(sample_handle);
 			const vector2				  d		= blend_point - smp.blend_point;
-			const float					  dist2 = vector2::dot(d, d);
+			const f32					  dist2 = vector2::dot(d, d);
 
 			if (dist2 < epsilon2)
 			{
@@ -807,18 +807,18 @@ namespace SFG
 				return;
 			}
 
-			const float dist   = math::sqrt(dist2);
-			const float denom  = dist + epsilon;
-			const float weight = 1.0f / (denom * denom);
+			const f32 dist	 = math::sqrt(dist2);
+			const f32 denom	 = dist + epsilon;
+			const f32 weight = 1.0f / (denom * denom);
 			weights_sum += weight;
 			out_weights.push_back(weight);
 			out_anims.push_back(smp.animation);
 			sample_handle = smp._next_sample;
 		}
 
-		const uint16 sz		 = static_cast<uint16>(out_weights.size());
-		const float	 inv_sum = 1.0f / weights_sum;
-		for (uint16 i = 0; i < sz; ++i)
+		const u16 sz	  = static_cast<u16>(out_weights.size());
+		const f32 inv_sum = 1.0f / weights_sum;
+		for (u16 i = 0; i < sz; ++i)
 			out_weights[i] *= inv_sum;
 	}
 
@@ -828,7 +828,7 @@ namespace SFG
 
 	bool animation_graph::check_transition(const animation_transition& t)
 	{
-		const float value = get_parameter(t.parameter).value;
+		const f32 value = get_parameter(t.parameter).value;
 
 		switch (t.compare)
 		{
@@ -850,7 +850,7 @@ namespace SFG
 
 	bool animation_graph::is_transition_complete(const animation_transition& t)
 	{
-		const float ratio = t._current_time / t.duration;
+		const f32 ratio = t._current_time / t.duration;
 		return math::almost_equal(ratio, 1.0f);
 	}
 
@@ -859,7 +859,7 @@ namespace SFG
 		t._current_time = 0.0f;
 	}
 
-	float animation_graph::progress_transition(animation_transition& t, float dt)
+	f32 animation_graph::progress_transition(animation_transition& t, f32 dt)
 	{
 		t._current_time = math::clamp(t._current_time + dt, 0.0f, t.duration);
 		return t._current_time / t.duration;

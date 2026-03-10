@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,11 +36,11 @@ namespace SFG
 {
 	void shadow_util::get_world_space_ndc(const matrix4x4& inv_view_proj, static_vector<vector4, 8>& out_world_space, vector3& out_center)
 	{
-		for (uint8 x = 0; x < 2; x++)
+		for (u8 x = 0; x < 2; x++)
 		{
-			for (uint8 y = 0; y < 2; y++)
+			for (u8 y = 0; y < 2; y++)
 			{
-				for (uint8 z = 0; z < 2; z++)
+				for (u8 z = 0; z < 2; z++)
 				{
 					const vector4 v	 = inv_view_proj * vector4(2.0f * x - 1.0f, 2.0f * y - 1.0f, z, 1.0f);
 					const vector4 ws = v / v.w;
@@ -52,19 +52,19 @@ namespace SFG
 		out_center = vector3::zero;
 		for (const vector4& v : out_world_space)
 			out_center += vector3(v.x, v.y, v.z);
-		out_center /= static_cast<float>(out_world_space.size());
+		out_center /= static_cast<f32>(out_world_space.size());
 	}
 
 	void shadow_util::get_lightspace_projection(matrix4x4& out_proj, const matrix4x4& light_view, const static_vector<vector4, 8>& world_space_ndc, const vector2ui16& resolution, vector2& out_texel_size)
 	{
 		{
 
-			float min_x = std::numeric_limits<float>::max();
-			float max_x = std::numeric_limits<float>::lowest();
-			float min_y = std::numeric_limits<float>::max();
-			float max_y = std::numeric_limits<float>::lowest();
-			float min_z = std::numeric_limits<float>::max();
-			float max_z = std::numeric_limits<float>::lowest();
+			f32 min_x = std::numeric_limits<f32>::max();
+			f32 max_x = std::numeric_limits<f32>::lowest();
+			f32 min_y = std::numeric_limits<f32>::max();
+			f32 max_y = std::numeric_limits<f32>::lowest();
+			f32 min_z = std::numeric_limits<f32>::max();
+			f32 max_z = std::numeric_limits<f32>::lowest();
 			for (const auto& v : world_space_ndc)
 			{
 				const auto trf = light_view * v;
@@ -76,12 +76,12 @@ namespace SFG
 				max_z		   = math::max(max_z, trf.z);
 			}
 
-			// float orthoWidth  = max_x - min_x;
-			// float orthoHeight = max_y - min_y;
+			// f32 orthoWidth  = max_x - min_x;
+			// f32 orthoHeight = max_y - min_y;
 			//
 			// // Texel size in light space:
-			// float texelX = orthoWidth / static_cast<float>(resolution.x);
-			// float texelY = orthoHeight / static_cast<float>(resolution.y);
+			// f32 texelX = orthoWidth / static_cast<f32>(resolution.x);
+			// f32 texelY = orthoHeight / static_cast<f32>(resolution.y);
 			//
 			// // Center before snapping
 			// vector2 center = {0.5f * (min_x + max_x), 0.5f * (min_y + max_y)};
@@ -96,7 +96,7 @@ namespace SFG
 			// min_y = center.y - 0.5f * orthoHeight;
 			// max_y = center.y + 0.5f * orthoHeight;
 
-			constexpr float zMult = 10.0f;
+			constexpr f32 zMult = 10.0f;
 
 			if (min_z < 0)
 			{
@@ -115,11 +115,11 @@ namespace SFG
 				max_z *= zMult;
 			}
 
-			float near_dist = -max_z;
-			float far_dist	= -min_z;
+			f32 near_dist = -max_z;
+			f32 far_dist  = -min_z;
 
-			out_proj = matrix4x4::ortho(min_x, max_x, max_y, min_y, near_dist, far_dist);
-			out_texel_size = vector2(max_x - min_x / static_cast<float>(resolution.x), max_y - min_y / static_cast<float>(resolution.y));
+			out_proj	   = matrix4x4::ortho(min_x, max_x, max_y, min_y, near_dist, far_dist);
+			out_texel_size = vector2(max_x - min_x / static_cast<f32>(resolution.x), max_y - min_y / static_cast<f32>(resolution.y));
 		}
 
 		//

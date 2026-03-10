@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,17 +31,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void raw_stream::create(uint8* data, size_t size)
+	void raw_stream::create(u8* data, size_t size)
 	{
 		destroy();
-		_data = {new uint8[size], size};
+		_data = {new u8[size], size};
 		SFG_MEMCPY(_data.data, data, size);
 	}
 
 	void raw_stream::create(ostream& stream)
 	{
 		destroy();
-		_data = {new uint8[stream.get_size()], stream.get_size()};
+		_data = {new u8[stream.get_size()], stream.get_size()};
 		SFG_MEMCPY(_data.data, stream.get_raw(), stream.get_size());
 	}
 
@@ -55,7 +55,7 @@ namespace SFG
 
 	void raw_stream::serialize(ostream& stream) const
 	{
-		const uint32 sz = static_cast<uint32>(_data.size);
+		const u32 sz = static_cast<u32>(_data.size);
 		stream.write(sz);
 		if (sz != 0)
 			stream.write_raw(_data.data, _data.size);
@@ -63,13 +63,13 @@ namespace SFG
 
 	void raw_stream::deserialize(istream& stream)
 	{
-		uint32 size = 0;
+		u32 size = 0;
 		stream.read(size);
 		if (size != 0)
 		{
 			const size_t sz = static_cast<size_t>(size);
 			destroy();
-			_data = {new uint8[sz], sz};
+			_data = {new u8[sz], sz};
 			stream.read_to_raw(_data.data, _data.size);
 		}
 	}

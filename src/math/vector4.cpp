@@ -57,12 +57,12 @@ namespace SFG
 		return vector4(math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z), math::max(a.w, b.w));
 	}
 
-	float vector4::dot(const vector4& a, const vector4& b)
+	f32 vector4::dot(const vector4& a, const vector4& b)
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 	}
 
-	float vector4::distance(const vector4& a, const vector4& b)
+	f32 vector4::distance(const vector4& a, const vector4& b)
 	{
 		return (a - b).magnitude();
 	}
@@ -77,7 +77,7 @@ namespace SFG
 		return unit_normal * dot(*this, unit_normal);
 	}
 
-	vector4 vector4::rotate(const vector4& axis, float angle_degrees) const
+	vector4 vector4::rotate(const vector4& axis, f32 angle_degrees) const
 	{
 		vector4 unit_axis = axis.normalized();
 		if (unit_axis.is_zero())
@@ -85,39 +85,39 @@ namespace SFG
 			return *this;
 		}
 
-		float angle_rad = math::degrees_to_radians(angle_degrees);
-		float cos_theta = math::cos(angle_rad);
-		float sin_theta = math::sin(angle_rad);
+		f32 angle_rad = math::degrees_to_radians(angle_degrees);
+		f32 cos_theta = math::cos(angle_rad);
+		f32 sin_theta = math::sin(angle_rad);
 
 		vector4 v_xyz = vector4(x, y, z, 0.0f);
 		vector4 k_xyz = vector4(unit_axis.x, unit_axis.y, unit_axis.z, 0.0f);
 
 		vector4 cross_kv = vector4(k_xyz.y * v_xyz.z - k_xyz.z * v_xyz.y, k_xyz.z * v_xyz.x - k_xyz.x * v_xyz.z, k_xyz.x * v_xyz.y - k_xyz.y * v_xyz.x, 0.0f);
 
-		float dot_kv = dot(k_xyz, v_xyz);
+		f32 dot_kv = dot(k_xyz, v_xyz);
 
 		vector4 rotated_xyz = (v_xyz * cos_theta) + (cross_kv * sin_theta) + (k_xyz * (dot_kv * (1.0f - cos_theta)));
 
 		return vector4(rotated_xyz.x, rotated_xyz.y, rotated_xyz.z, w);
 	}
-	float vector4::magnitude() const
+	f32 vector4::magnitude() const
 	{
 		return math::sqrt(x * x + y * y + z * z + w * w);
 	}
 
-	float vector4::magnitude_sqr() const
+	f32 vector4::magnitude_sqr() const
 	{
 		return x * x + y * y + z * z + w * w;
 	}
 
-	vector4 vector4::operator/(float scalar) const
+	vector4 vector4::operator/(f32 scalar) const
 	{
 		if (math::abs(scalar) < MATH_EPS)
 			return vector4::zero;
 		return vector4(x / scalar, y / scalar, z / scalar, w / scalar);
 	}
 
-	vector4& vector4::operator/=(float scalar)
+	vector4& vector4::operator/=(f32 scalar)
 	{
 		if (math::abs(scalar) > MATH_EPS)
 		{
@@ -133,12 +133,12 @@ namespace SFG
 		return *this;
 	}
 
-	bool vector4::equals(const vector4& other, float epsilon) const
+	bool vector4::equals(const vector4& other, f32 epsilon) const
 	{
 		return math::almost_equal(x, other.x, epsilon) && math::almost_equal(y, other.y, epsilon) && math::almost_equal(z, other.z, epsilon) && math::almost_equal(w, other.w, epsilon);
 	}
 
-	bool vector4::is_zero(float epsilon) const
+	bool vector4::is_zero(f32 epsilon) const
 	{
 		return math::almost_equal(x, 0.0f, epsilon) && math::almost_equal(y, 0.0f, epsilon) && math::almost_equal(z, 0.0f, epsilon) && math::almost_equal(w, 0.0f, epsilon);
 	}
@@ -163,10 +163,10 @@ namespace SFG
 	{
 		if (!j.is_array() || j.size() < 4)
 			throw std::runtime_error("vector4 json err");
-		v.x = j.at(0).get<float>();
-		v.y = j.at(1).get<float>();
-		v.z = j.at(2).get<float>();
-		v.w = j.at(3).get<float>();
+		v.x = j.at(0).get<f32>();
+		v.y = j.at(1).get<f32>();
+		v.z = j.at(2).get<f32>();
+		v.w = j.at(3).get<f32>();
 	}
 
 #endif

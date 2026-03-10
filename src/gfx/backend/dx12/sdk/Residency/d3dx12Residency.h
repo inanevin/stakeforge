@@ -1498,13 +1498,13 @@ namespace D3DX12Residency
 
 			const bool cStartEvicted;
 
-			const float cMinEvictionGracePeriod;
+			const f32 cMinEvictionGracePeriod;
 			UINT64		MinEvictionGracePeriodTicks;
-			const float cMaxEvictionGracePeriod;
+			const f32 cMaxEvictionGracePeriod;
 			UINT64		MaxEvictionGracePeriodTicks;
 			// When the app is using more than this % of its budgeted local VidMem trimming will occur
 			// (valid between 0.0 - 1.0)
-			const float cTrimPercentageMemoryUsageThreshold;
+			const f32 cTrimPercentageMemoryUsageThreshold;
 
 			UINT32 MaxSoftwareQueueLatency;
 			LUID   ResidencyManagerUniqueID;

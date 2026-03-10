@@ -76,7 +76,7 @@ namespace SFG
 
 		bool		on_window_event(const window_event& ev);
 		void		on_window_resize(const vector2ui16& size);
-		void		on_swapchain_flags(uint8 flags);
+		void		on_swapchain_flags(u8 flags);
 		void		on_world_resolution(const vector2ui16& size);
 		static void create_bind_layout_global();
 		static void destroy_bind_layout_global();
@@ -100,7 +100,7 @@ namespace SFG
 			return _world_renderer;
 		}
 
-		inline uint8 get_frame_index() const
+		inline u8 get_frame_index() const
 		{
 			return _gfx_data.frame_index;
 		}
@@ -118,8 +118,8 @@ namespace SFG
 	private:
 		struct buf_engine_global
 		{
-			float delta	  = 0.0f;
-			float elapsed = 0.0;
+			f32 delta	= 0.0f;
+			f32 elapsed = 0.0;
 		};
 
 		struct per_frame_data
@@ -135,7 +135,7 @@ namespace SFG
 		struct gfx_data
 		{
 			gfx_id swapchain   = 0;
-			uint8  frame_index = 0;
+			u8	   frame_index = 0;
 		};
 
 		struct shader_data
@@ -167,7 +167,7 @@ namespace SFG
 		proxy_manager	_proxy_manager;
 		vector2ui16		_base_size		 = {};
 		vector2ui16		_world_size		 = {};
-		uint8			_swapchain_flags = 0;
+		u8				_swapchain_flags = 0;
 
 		static gfx_id s_bind_layout_global;
 		static gfx_id s_bind_layout_global_compute;

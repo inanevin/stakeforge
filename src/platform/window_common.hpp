@@ -37,8 +37,8 @@ namespace SFG
 		vector2i16	position   = vector2i16::zero;
 		vector2ui16 size	   = vector2ui16::zero;
 		vector2ui16 work_size  = vector2ui16::zero;
-		uint32		dpi		   = 0;
-		float		dpi_scale  = 0.0f;
+		u32			dpi		   = 0;
+		f32			dpi_scale  = 0.0f;
 		bool		is_primary = false;
 	};
 
@@ -61,7 +61,7 @@ namespace SFG
 		wef_high_freq = 1 << 0,
 	};
 
-	enum class cursor_state : uint8
+	enum class cursor_state : u8
 	{
 		arrow,
 		hand,
@@ -71,7 +71,7 @@ namespace SFG
 		resize_nesw,
 		caret,
 	};
-	enum class window_event_type : uint8
+	enum class window_event_type : u8
 	{
 		key = 0,
 		mouse,
@@ -81,14 +81,14 @@ namespace SFG
 		display_change,
 	};
 
-	enum class window_event_sub_type : uint8
+	enum class window_event_sub_type : u8
 	{
 		press,
 		release,
 		repeat,
 	};
 
-	enum class cursor_confinement : uint8
+	enum class cursor_confinement : u8
 	{
 		none,
 		window,
@@ -98,9 +98,9 @@ namespace SFG
 	struct window_event
 	{
 		vector2i16			  value = vector2i16::zero;
-		uint16				  button;
+		u16					  button;
 		window_event_type	  type	   = window_event_type::key;
 		window_event_sub_type sub_type = window_event_sub_type::press;
-		bitmask<uint8>		  flags	   = 0;
+		bitmask<u8>			  flags	   = 0;
 	};
 }

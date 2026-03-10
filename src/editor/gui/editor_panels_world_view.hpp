@@ -188,7 +188,7 @@ namespace SFG
 		bool		_audio_enabled			 = false;
 		bool		_physics_debug_enabled	 = false;
 		bool		_gizmo_dragging			 = false;
-		float		_gizmo_drag_amount		 = 0.0f;
+		f32		_gizmo_drag_amount		 = 0.0f;
 		vector2		_gizmo_last_mouse		 = vector2::zero;
 		vector3		_gizmo_start_pos		 = vector3::zero;
 		quat		_gizmo_start_rot		 = quat::identity;

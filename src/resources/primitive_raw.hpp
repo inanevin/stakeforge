@@ -39,7 +39,7 @@ namespace SFG
 
 	struct primitive_static_raw
 	{
-		uint16 material_index = 0;
+		u16 material_index = 0;
 
 		vector<vertex_static>	vertices;
 		vector<primitive_index> indices;
@@ -50,7 +50,7 @@ namespace SFG
 
 	struct primitive_skinned_raw
 	{
-		uint16					material_index = 0;
+		u16					material_index = 0;
 		vector<vertex_skinned>	vertices;
 		vector<primitive_index> indices;
 

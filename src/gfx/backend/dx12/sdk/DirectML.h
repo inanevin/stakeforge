@@ -1147,7 +1147,7 @@ struct DML_LSTM_OPERATOR_DESC
 	UINT							   ActivationDescCount;
 	_Field_size_(ActivationDescCount) const DML_OPERATOR_DESC* ActivationDescs;
 	DML_RECURRENT_NETWORK_DIRECTION Direction;
-	float							ClipThreshold;
+	f32							ClipThreshold;
 	BOOL							UseClipThreshold;
 	BOOL							CoupleInputForget;
 };

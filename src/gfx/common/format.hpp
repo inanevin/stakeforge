@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum class format : uint8
+	enum class format : u8
 	{
 		undefined = 0,
 
@@ -108,9 +108,9 @@ namespace SFG
 		format_max,
 	};
 
-	extern uint8 format_get_bpp(format fmt);
-	extern uint8 format_get_channels(format fmt);
-	extern bool	 format_is_linear(format fmt);
+	extern u8	format_get_bpp(format fmt);
+	extern u8	format_get_channels(format fmt);
+	extern bool format_is_linear(format fmt);
 
 #ifdef SFG_TOOLMODE
 	void to_json(nlohmann::json& j, const format& f);

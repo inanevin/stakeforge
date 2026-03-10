@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -45,30 +45,30 @@ namespace SFG
 	class vector2
 	{
 	public:
-		vector2() {};
-		vector2(float _x, float _y) : x(_x), y(_y) {};
+		vector2(){};
+		vector2(f32 _x, f32 _y) : x(_x), y(_y){};
 		vector2(const vector2ui16& v);
 
-		float x = 0.0f;
-		float y = 0.0f;
+		f32 x = 0.0f;
+		f32 y = 0.0f;
 
 		static vector2 zero;
 		static vector2 one;
 
 		static vector2 clamp(const vector2& vector, const vector2& min, const vector2& max);
-		static vector2 clamp_magnitude(const vector2& vector, float max_length);
+		static vector2 clamp_magnitude(const vector2& vector, f32 max_length);
 		static vector2 abs(const vector2& vector);
 		static vector2 min(const vector2& a, const vector2& b);
 		static vector2 max(const vector2& a, const vector2& b);
-		static float   dot(const vector2& a, const vector2& b);
-		static float   distance(const vector2& a, const vector2& b);
-		static float   angle(const vector2& a, const vector2& b);
+		static f32	   dot(const vector2& a, const vector2& b);
+		static f32	   distance(const vector2& a, const vector2& b);
+		static f32	   angle(const vector2& a, const vector2& b);
 
 		vector2 normalized() const;
-		bool	equals(const vector2& other, float epsilon = MATH_EPS) const;
-		bool	is_zero(float epsilon = MATH_EPS) const;
-		float	magnitude() const;
-		float	magnitude_sqr() const;
+		bool	equals(const vector2& other, f32 epsilon = MATH_EPS) const;
+		bool	is_zero(f32 epsilon = MATH_EPS) const;
+		f32		magnitude() const;
+		f32		magnitude_sqr() const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -81,16 +81,16 @@ namespace SFG
 		{
 			return vector2(x - other.x, y - other.y);
 		}
-		inline vector2 operator*(float scalar) const
+		inline vector2 operator*(f32 scalar) const
 		{
 			return vector2(x * scalar, y * scalar);
 		}
 
-		inline vector2 operator/(float scalar) const
+		inline vector2 operator/(f32 scalar) const
 		{
 			if (scalar == 0.0f)
 			{
-				return vector2(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
+				return vector2(std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity());
 			}
 			return vector2(x / scalar, y / scalar);
 		}
@@ -109,14 +109,14 @@ namespace SFG
 			return *this;
 		}
 
-		inline vector2& operator*=(float scalar)
+		inline vector2& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
 			return *this;
 		}
 
-		inline vector2& operator/=(float scalar)
+		inline vector2& operator/=(f32 scalar)
 		{
 			if (scalar == 0.0f)
 			{

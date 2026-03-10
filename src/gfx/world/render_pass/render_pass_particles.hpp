@@ -45,10 +45,10 @@ namespace SFG
 	private:
 		struct indirect_render
 		{
-			uint32 vertex_count;
-			uint32 vertex_start;
-			uint32 instance_count;
-			uint32 instance_start;
+			u32 vertex_count;
+			u32 vertex_start;
+			u32 instance_count;
+			u32 instance_start;
 		};
 
 		struct ubo
@@ -56,16 +56,16 @@ namespace SFG
 			matrix4x4 view_proj;
 			vector4	  cam_pos_and_delta;
 			vector4	  cam_dir;
-			uint32	  max_particles_per_system;
-			uint32	  frame_index;
-			uint32	  max_systems;
-			uint32	  num_systems;
+			u32		  max_particles_per_system;
+			u32		  frame_index;
+			u32		  max_systems;
+			u32		  num_systems;
 		};
 
 		struct particle_system_data
 		{
-			uint32 alive_count;
-			uint32 dead_count;
+			u32 alive_count;
+			u32 dead_count;
 		};
 
 		struct particle_emit_args
@@ -74,130 +74,130 @@ namespace SFG
 			vector4 opacity_points;	  // min_start, max_start, mid, end
 			vector4 size_points;	  // min_start, max_start, mid, end
 
-			float min_lifetime;
-			float max_lifetime;
+			f32 min_lifetime;
+			f32 max_lifetime;
 
-			float min_pos_x;
-			float min_pos_y;
-			float min_pos_z;
-			float max_pos_x;
-			float max_pos_y;
-			float max_pos_z;
-			float cone_radius;
+			f32 min_pos_x;
+			f32 min_pos_y;
+			f32 min_pos_z;
+			f32 max_pos_x;
+			f32 max_pos_y;
+			f32 max_pos_z;
+			f32 cone_radius;
 
-			float min_start_vel_x;
-			float min_start_vel_y;
-			float min_start_vel_z;
-			float max_start_vel_x;
-			float max_start_vel_y;
-			float max_start_vel_z;
+			f32 min_start_vel_x;
+			f32 min_start_vel_y;
+			f32 min_start_vel_z;
+			f32 max_start_vel_x;
+			f32 max_start_vel_y;
+			f32 max_start_vel_z;
 
-			float min_mid_vel_x;
-			float min_mid_vel_y;
-			float min_mid_vel_z;
-			float max_mid_vel_x;
-			float max_mid_vel_y;
-			float max_mid_vel_z;
+			f32 min_mid_vel_x;
+			f32 min_mid_vel_y;
+			f32 min_mid_vel_z;
+			f32 max_mid_vel_x;
+			f32 max_mid_vel_y;
+			f32 max_mid_vel_z;
 
-			float min_end_vel_x;
-			float min_end_vel_y;
-			float min_end_vel_z;
-			float max_end_vel_x;
-			float max_end_vel_y;
-			float max_end_vel_z;
+			f32 min_end_vel_x;
+			f32 min_end_vel_y;
+			f32 min_end_vel_z;
+			f32 max_end_vel_x;
+			f32 max_end_vel_y;
+			f32 max_end_vel_z;
 
-			float min_col_x;
-			float min_col_y;
-			float min_col_z;
-			float max_col_x;
-			float max_col_y;
-			float max_col_z;
+			f32 min_col_x;
+			f32 min_col_y;
+			f32 min_col_z;
+			f32 max_col_x;
+			f32 max_col_y;
+			f32 max_col_z;
 
-			float mid_col_x;
-			float mid_col_y;
-			float mid_col_z;
-			float end_col_x;
-			float end_col_y;
-			float end_col_z;
-			float col_integrate_point;
+			f32 mid_col_x;
+			f32 mid_col_y;
+			f32 mid_col_z;
+			f32 end_col_x;
+			f32 end_col_y;
+			f32 end_col_z;
+			f32 col_integrate_point;
 
-			float min_start_rotation;
-			float max_start_rotation;
-			float min_start_angular_velocity;
-			float max_start_angular_velocity;
-			float min_end_angular_velocity;
-			float max_end_angular_velocity;
+			f32 min_start_rotation;
+			f32 max_start_rotation;
+			f32 min_start_angular_velocity;
+			f32 max_start_angular_velocity;
+			f32 min_end_angular_velocity;
+			f32 max_end_angular_velocity;
 		};
 
 		struct particle_state
 		{
-			float pos_x;
-			float pos_y;
-			float pos_z;
+			f32 pos_x;
+			f32 pos_y;
+			f32 pos_z;
 
-			float age;
-			float lifetime;
+			f32 age;
+			f32 lifetime;
 
-			float start_vel_x;
-			float start_vel_y;
-			float start_vel_z;
-			float mid_vel_x;
-			float mid_vel_y;
-			float mid_vel_z;
-			float end_vel_x;
-			float end_vel_y;
-			float end_vel_z;
-			float vel_x;
-			float vel_y;
-			float vel_z;
+			f32 start_vel_x;
+			f32 start_vel_y;
+			f32 start_vel_z;
+			f32 mid_vel_x;
+			f32 mid_vel_y;
+			f32 mid_vel_z;
+			f32 end_vel_x;
+			f32 end_vel_y;
+			f32 end_vel_z;
+			f32 vel_x;
+			f32 vel_y;
+			f32 vel_z;
 
-			float rotation;
-			float start_ang_vel;
-			float end_ang_vel;
+			f32 rotation;
+			f32 start_ang_vel;
+			f32 end_ang_vel;
 
-			uint32 start_size_opacity;
-			uint32 mid_size_opacity;
-			uint32 end_size_opacity;
-			uint32 size_opacity_integrate_point;
-			uint32 vel_and_ang_vel_integrate_point;
+			u32 start_size_opacity;
+			u32 mid_size_opacity;
+			u32 end_size_opacity;
+			u32 size_opacity_integrate_point;
+			u32 vel_and_ang_vel_integrate_point;
 
-			uint32 color;
-			uint32 mid_color;
-			uint32 end_color;
-			float  integrate_point_color;
+			u32 color;
+			u32 mid_color;
+			u32 end_color;
+			f32 integrate_point_color;
 
-			uint32 system_id;
+			u32 system_id;
 		};
 
 		struct particle_instance_data
 		{
 			vector4 pos_rot_size;
 			vector4 velocity;
-			uint32	color;
+			u32		color;
 		};
 
 		struct particle_counters
 		{
-			uint32 alive_count_a;
-			uint32 alive_count_b;
+			u32 alive_count_a;
+			u32 alive_count_b;
 		};
 
 		struct particle_indirect_args
 		{
-			uint32 vertex_count;
-			uint32 instance_count;
-			uint32 start_vertex;
-			uint32 start_instance;
+			u32 vertex_count;
+			u32 instance_count;
+			u32 start_vertex;
+			u32 start_instance;
 		};
 
 		struct particle_sim_count_args
 		{
-			uint32 group_sim_x;
-			uint32 group_sim_y;
-			uint32 group_sim_z;
-			uint32 group_count_x;
-			uint32 group_count_y;
-			uint32 group_count_z;
+			u32 group_sim_x;
+			u32 group_sim_y;
+			u32 group_sim_z;
+			u32 group_count_x;
+			u32 group_count_y;
+			u32 group_count_z;
 		};
 
 		struct per_frame_data
@@ -220,21 +220,21 @@ namespace SFG
 			buffer alive_list_b					= {};
 			buffer dead_indices					= {};
 			buffer counters						= {};
-			uint8  frame_switch					= 0;
-			uint8  buffers_init					= 0;
+			u8	   frame_switch					= 0;
+			u8	   buffers_init					= 0;
 		};
 
 	public:
 		struct compute_params
 		{
-			uint8  frame_index;
+			u8	   frame_index;
 			gfx_id global_layout_compute;
 			gfx_id global_group;
 		};
 
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gfx_id			   global_layout;
 			gfx_id			   global_group;
@@ -253,7 +253,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(uint8 frame_index, proxy_manager& pm, const view& main_camera_view);
+		void prepare(u8 frame_index, proxy_manager& pm, const view& main_camera_view);
 		void compute(const compute_params& p);
 		void render(const render_params& params);
 
@@ -261,12 +261,12 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}
 
-		inline gfx_id get_cmd_buffer_compute(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer_compute(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer_compute;
 		}
@@ -276,7 +276,7 @@ namespace SFG
 		sim_state			 _sim_state = {};
 		draw_stream_particle _draw_stream;
 		bump_allocator		 _alloc					= {};
-		uint32				 _num_systems			= 0;
+		u32					 _num_systems			= 0;
 		gfx_id				 _shader_clear			= NULL_GFX_ID;
 		gfx_id				 _shader_simulate		= NULL_GFX_ID;
 		gfx_id				 _shader_emit			= NULL_GFX_ID;

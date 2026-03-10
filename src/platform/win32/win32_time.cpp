@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	int64 time::s_frequency = 0;
+	i64 time::s_frequency = 0;
 
 	void time::init()
 	{
@@ -58,7 +58,7 @@ namespace SFG
 		timeEndPeriod(1);
 	}
 
-	int64 time::get_cpu_microseconds()
+	i64 time::get_cpu_microseconds()
 	{
 		LARGE_INTEGER cycles;
 		QueryPerformanceCounter(&cycles);
@@ -75,31 +75,31 @@ namespace SFG
 		return static_cast<double>(cycles.QuadPart) * 1.0 / static_cast<double>(s_frequency);
 	}
 
-	int64 time::get_cpu_cycles()
+	i64 time::get_cpu_cycles()
 	{
 		LARGE_INTEGER Cycles;
 		QueryPerformanceCounter(&Cycles);
 		return Cycles.QuadPart;
 	}
 
-	double time::get_delta_seconds(int64 fromCycles, int64 toCycles)
+	double time::get_delta_seconds(i64 fromCycles, i64 toCycles)
 	{
 		return static_cast<double>(toCycles - fromCycles) * 1.0 / (static_cast<double>(s_frequency));
 	}
 
-	int64 time::get_delta_microseconds(int64 fromCycles, int64 toCycles)
+	i64 time::get_delta_microseconds(i64 fromCycles, i64 toCycles)
 	{
 		return ((toCycles - fromCycles) * 1000000ll) / s_frequency;
 	}
 
-	void time::throttle(int64 microseconds)
+	void time::throttle(i64 microseconds)
 	{
 		if (microseconds < 0)
 			return;
 
-		int64		now	   = get_cpu_microseconds();
-		const int64 target = now + microseconds;
-		int64		sleep  = microseconds;
+		i64		  now	 = get_cpu_microseconds();
+		const i64 target = now + microseconds;
+		i64		  sleep	 = microseconds;
 
 		for (;;)
 		{
@@ -110,11 +110,11 @@ namespace SFG
 				break;
 			}
 
-			int64 diff = target - now;
+			i64 diff = target - now;
 
 			if (diff > 2000)
 			{
-				uint32 ms = static_cast<uint32>((double)(diff - 2000) / 1000.0);
+				u32 ms = static_cast<u32>((double)(diff - 2000) / 1000.0);
 				go_to_sleep(ms);
 			}
 			else
@@ -124,7 +124,7 @@ namespace SFG
 		}
 	}
 
-	void time::go_to_sleep(uint32 milliseconds)
+	void time::go_to_sleep(u32 milliseconds)
 	{
 		if (milliseconds == 0)
 			YieldProcessor();

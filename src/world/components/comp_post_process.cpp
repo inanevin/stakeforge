@@ -64,7 +64,7 @@ namespace SFG
 		const render_event_post_process ev = {
 			.bloom_strength		  = _bloom_strength,
 			.exposure			  = _exposure,
-			.tonemap_mode		  = static_cast<int32>(_tonemap_mode),
+			.tonemap_mode		  = static_cast<i32>(_tonemap_mode),
 			.saturation			  = _saturation,
 			.wb_temp			  = _wb_temp,
 			.wb_tint			  = _wb_tint,
@@ -90,7 +90,7 @@ namespace SFG
 		});
 	}
 
-	void comp_post_process::set_values(world& w, float bloom_strength, float exposure, tonemap_mode tonemap, float saturation, float wb_temp, float wb_tint, float reinhard_white_point)
+	void comp_post_process::set_values(world& w, f32 bloom_strength, f32 exposure, tonemap_mode tonemap, f32 saturation, f32 wb_temp, f32 wb_tint, f32 reinhard_white_point)
 	{
 		_bloom_strength		  = bloom_strength;
 		_exposure			  = exposure;
@@ -103,7 +103,7 @@ namespace SFG
 		const render_event_post_process ev = {
 			.bloom_strength		  = _bloom_strength,
 			.exposure			  = _exposure,
-			.tonemap_mode		  = static_cast<int32>(_tonemap_mode),
+			.tonemap_mode		  = static_cast<i32>(_tonemap_mode),
 			.saturation			  = _saturation,
 			.wb_temp			  = _wb_temp,
 			.wb_tint			  = _wb_tint,

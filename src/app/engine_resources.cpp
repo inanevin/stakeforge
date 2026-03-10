@@ -47,7 +47,7 @@ namespace SFG
 	bool engine_resources::init(app* p)
 	{
 		SFG_INFO("initializing...");
-		const uint64 init_begin_time = time::get_cpu_microseconds();
+		const u64 init_begin_time = time::get_cpu_microseconds();
 
 		_app = p;
 
@@ -296,7 +296,7 @@ namespace SFG
 		{
 			def.sid = TO_SID(def.path);
 
-			const uint16 type_u16 = static_cast<uint16>(def.ident);
+			const u16 type_u16 = static_cast<u16>(def.ident);
 
 			if (def.res_type == engine_resource_type::shader)
 			{
@@ -378,7 +378,7 @@ namespace SFG
 			const engine_resource_type type = def.res_type;
 			def.sid							= TO_SID(def.path);
 
-			const uint16 type_u16 = static_cast<uint16>(type);
+			const u16 type_u16 = static_cast<u16>(type);
 
 			if (def.res_type == engine_resource_type::shader)
 			{
@@ -548,7 +548,7 @@ namespace SFG
 		_shader_reload_callbacks.push_back(std::move(cb));
 	}
 
-	void engine_resources::on_resource_reloaded(const char* p, uint64 last_modified, uint16 id, void* user_data)
+	void engine_resources::on_resource_reloaded(const char* p, u64 last_modified, u16 id, void* user_data)
 	{
 		engine_resources* self = static_cast<engine_resources*>(user_data);
 

@@ -55,8 +55,8 @@ namespace SFG
 		component_manager& cm		   = w.get_comp_manager();
 		comp_camera&	   camera_comp = cm.get_component<comp_camera>(mc_comp);
 
-		const float aspect = static_cast<float>(_world_resolution.x) / static_cast<float>(_world_resolution.y);
-		_cam_pos		   = em.get_entity_position_abs(mc);
+		const f32 aspect = static_cast<f32>(_world_resolution.x) / static_cast<f32>(_world_resolution.y);
+		_cam_pos		 = em.get_entity_position_abs(mc);
 
 		const matrix4x4 view = matrix4x4::view(em.get_entity_rotation_abs(mc), _cam_pos);
 		const matrix4x4 proj = matrix4x4::perspective_reverse_z(camera_comp.get_fov_degrees(), aspect, camera_comp.get_near(), camera_comp.get_far());
@@ -66,12 +66,12 @@ namespace SFG
 
 	void world_screen::set_camera_data(const matrix4x4& view_proj, const matrix4x4& inv_view_proj, const vector3& cam_pos)
 	{
-		const int8 in_use = _snapshot_in_use.load(std::memory_order_acquire);
-		uint8	   write  = _snapshot_write;
-		if (static_cast<int8>(write) == in_use)
+		const i8 in_use = _snapshot_in_use.load(std::memory_order_acquire);
+		u8		 write	= _snapshot_write;
+		if (static_cast<i8>(write) == in_use)
 		{
 			write = (write + 1) % 3;
-			if (static_cast<int8>(write) == in_use)
+			if (static_cast<i8>(write) == in_use)
 				write = (write + 1) % 3;
 		}
 
@@ -81,18 +81,18 @@ namespace SFG
 		snap.cam_pos		  = cam_pos;
 		snap.valid			  = 1;
 
-		_snapshot_latest.store(static_cast<int8>(write), std::memory_order_release);
+		_snapshot_latest.store(static_cast<i8>(write), std::memory_order_release);
 		_snapshot_write = (write + 1) % 3;
 	}
 
 	bool world_screen::get_camera_snapshot(camera_snapshot& out) const
 	{
-		const int8 idx = _snapshot_latest.load(std::memory_order_acquire);
+		const i8 idx = _snapshot_latest.load(std::memory_order_acquire);
 		if (idx < 0)
 			return false;
 
 		//_snapshot_in_use.store(idx, std::memory_order_release);
-		out = _snapshots[static_cast<uint8>(idx)];
+		out = _snapshots[static_cast<u8>(idx)];
 		//_snapshot_in_use.store(-1, std::memory_order_release);
 		return out.valid != 0;
 	}
@@ -109,16 +109,16 @@ namespace SFG
 		if (clip.w < 0.0f)
 			return false;
 
-		const float inv_w = 1.0f / clip.w;
-		const float ndc_x = clip.x * inv_w;
-		const float ndc_y = clip.y * inv_w;
+		const f32 inv_w = 1.0f / clip.w;
+		const f32 ndc_x = clip.x * inv_w;
+		const f32 ndc_y = clip.y * inv_w;
 
-		out.x = (ndc_x * 0.5f + 0.5f) * static_cast<float>(_world_resolution.x);
-		out.y = (1.0f - (ndc_y * 0.5f + 0.5f)) * static_cast<float>(_world_resolution.y);
+		out.x = (ndc_x * 0.5f + 0.5f) * static_cast<f32>(_world_resolution.x);
+		out.y = (1.0f - (ndc_y * 0.5f + 0.5f)) * static_cast<f32>(_world_resolution.y);
 		return true;
 	}
 
-	bool world_screen::world_to_screen(const vector3& world_pos, vector2& out, float& out_distance) const
+	bool world_screen::world_to_screen(const vector3& world_pos, vector2& out, f32& out_distance) const
 	{
 		if (!world_to_screen(world_pos, out))
 			return false;
@@ -144,16 +144,16 @@ namespace SFG
 		if (clip.w < 0.0f)
 			return false;
 
-		const float inv_w = 1.0f / clip.w;
-		const float ndc_x = clip.x * inv_w;
-		const float ndc_y = clip.y * inv_w;
+		const f32 inv_w = 1.0f / clip.w;
+		const f32 ndc_x = clip.x * inv_w;
+		const f32 ndc_y = clip.y * inv_w;
 
-		out.x = (ndc_x * 0.5f + 0.5f) * static_cast<float>(_world_resolution.x);
-		out.y = (1.0f - (ndc_y * 0.5f + 0.5f)) * static_cast<float>(_world_resolution.y);
+		out.x = (ndc_x * 0.5f + 0.5f) * static_cast<f32>(_world_resolution.x);
+		out.y = (1.0f - (ndc_y * 0.5f + 0.5f)) * static_cast<f32>(_world_resolution.y);
 		return true;
 	}
 
-	bool world_screen::world_to_screen_render_thread(const vector3& world_pos, vector2& out, float& out_distance) const
+	bool world_screen::world_to_screen_render_thread(const vector3& world_pos, vector2& out, f32& out_distance) const
 	{
 		camera_snapshot snap = {};
 		if (!get_camera_snapshot(snap))
@@ -171,11 +171,11 @@ namespace SFG
 		if (_world_resolution.x == 0 || _world_resolution.y == 0)
 			return false;
 
-		const float nx = math::clamp(screen_pos.x / static_cast<float>(_world_resolution.x), 0.0f, 1.0f);
-		const float ny = math::clamp(screen_pos.y / static_cast<float>(_world_resolution.y), 0.0f, 1.0f);
+		const f32 nx = math::clamp(screen_pos.x / static_cast<f32>(_world_resolution.x), 0.0f, 1.0f);
+		const f32 ny = math::clamp(screen_pos.y / static_cast<f32>(_world_resolution.y), 0.0f, 1.0f);
 
-		const float ndc_x = nx * 2.0f - 1.0f;
-		const float ndc_y = 1.0f - ny * 2.0f;
+		const f32 ndc_x = nx * 2.0f - 1.0f;
+		const f32 ndc_y = 1.0f - ny * 2.0f;
 
 		const vector4 near_v = _cam_inv_view_proj * vector4(ndc_x, ndc_y, 0.0f, 1.0f);
 		const vector4 far_v	 = _cam_inv_view_proj * vector4(ndc_x, ndc_y, 1.0f, 1.0f);
@@ -188,7 +188,7 @@ namespace SFG
 		return true;
 	}
 
-	bool world_screen::screen_to_world(const vector2& screen_pos, vector3& out_pos, float distance) const
+	bool world_screen::screen_to_world(const vector2& screen_pos, vector3& out_pos, f32 distance) const
 	{
 		vector3 out_cam = vector3::zero;
 		vector3 out_dir = vector3::zero;
@@ -209,14 +209,14 @@ namespace SFG
 		if (_world_resolution.x == 0 || _world_resolution.y == 0)
 			return false;
 
-		const float nx = math::clamp(screen_pos.x / static_cast<float>(_world_resolution.x), 0.0f, 1.0f);
-		const float ny = math::clamp(screen_pos.y / static_cast<float>(_world_resolution.y), 0.0f, 1.0f);
+		const f32 nx = math::clamp(screen_pos.x / static_cast<f32>(_world_resolution.x), 0.0f, 1.0f);
+		const f32 ny = math::clamp(screen_pos.y / static_cast<f32>(_world_resolution.y), 0.0f, 1.0f);
 
-		const float ndc_x = nx * 2.0f - 1.0f;
-		const float ndc_y = 1.0f - ny * 2.0f;
+		const f32 ndc_x = nx * 2.0f - 1.0f;
+		const f32 ndc_y = 1.0f - ny * 2.0f;
 
 		const vector4 near_v = snap.inv_view_proj * vector4(ndc_x, ndc_y, 0.0f, 1.0f);
-		const vector4 far_v  = snap.inv_view_proj * vector4(ndc_x, ndc_y, 1.0f, 1.0f);
+		const vector4 far_v	 = snap.inv_view_proj * vector4(ndc_x, ndc_y, 1.0f, 1.0f);
 
 		const vector3 near_ws = vector3(near_v.x, near_v.y, near_v.z) / near_v.w;
 		const vector3 far_ws  = vector3(far_v.x, far_v.y, far_v.z) / far_v.w;
@@ -226,7 +226,7 @@ namespace SFG
 		return true;
 	}
 
-	bool world_screen::screen_to_world_render_thread(const vector2& screen_pos, vector3& out_pos, float distance) const
+	bool world_screen::screen_to_world_render_thread(const vector2& screen_pos, vector3& out_pos, f32 distance) const
 	{
 		vector3 out_cam = vector3::zero;
 		vector3 out_dir = vector3::zero;

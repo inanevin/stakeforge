@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	matrix4x3::matrix4x3(float m00, float m10, float m20, float m01, float m11, float m21, float m02, float m12, float m22, float m03, float m13, float m23)
+	matrix4x3::matrix4x3(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22, f32 m03, f32 m13, f32 m23)
 	{
 		m[0]  = m00;
 		m[1]  = m10;
@@ -72,15 +72,15 @@ namespace SFG
 
 	matrix4x3 matrix4x3::rotation(const quat& q)
 	{
-		float x2 = q.x * q.x;
-		float y2 = q.y * q.y;
-		float z2 = q.z * q.z;
-		float xy = q.x * q.y;
-		float xz = q.x * q.z;
-		float yz = q.y * q.z;
-		float wx = q.w * q.x;
-		float wy = q.w * q.y;
-		float wz = q.w * q.z;
+		f32 x2 = q.x * q.x;
+		f32 y2 = q.y * q.y;
+		f32 z2 = q.z * q.z;
+		f32 xy = q.x * q.y;
+		f32 xz = q.x * q.z;
+		f32 yz = q.y * q.z;
+		f32 wx = q.w * q.x;
+		f32 wy = q.w * q.y;
+		f32 wz = q.w * q.z;
 
 		return matrix4x3(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2), 0.0f, 0.0f, 0.0f);
 	}
@@ -155,11 +155,11 @@ namespace SFG
 		vector3 ny = y_axis * inv_scale.y;
 		vector3 nz = z_axis * inv_scale.z;
 
-		float trace = nx.x + ny.y + nz.z;
+		f32 trace = nx.x + ny.y + nz.z;
 
 		if (trace > 0.0f)
 		{
-			float s		   = sqrtf(trace + 1.0f) * 2.0f;
+			f32 s		   = sqrtf(trace + 1.0f) * 2.0f;
 			out_rotation.w = 0.25f * s;
 			out_rotation.x = (ny.z - nz.y) / s;
 			out_rotation.y = (nz.x - nx.z) / s;
@@ -167,7 +167,7 @@ namespace SFG
 		}
 		else if (nx.x > ny.y && nx.x > nz.z)
 		{
-			float s		   = sqrtf(1.0f + nx.x - ny.y - nz.z) * 2.0f;
+			f32 s		   = sqrtf(1.0f + nx.x - ny.y - nz.z) * 2.0f;
 			out_rotation.w = (ny.z - nz.y) / s;
 			out_rotation.x = 0.25f * s;
 			out_rotation.y = (ny.x + nx.y) / s;
@@ -175,7 +175,7 @@ namespace SFG
 		}
 		else if (ny.y > nz.z)
 		{
-			float s		   = sqrtf(1.0f + ny.y - nx.x - nz.z) * 2.0f;
+			f32 s		   = sqrtf(1.0f + ny.y - nx.x - nz.z) * 2.0f;
 			out_rotation.w = (nz.x - nx.z) / s;
 			out_rotation.x = (ny.x + nx.y) / s;
 			out_rotation.y = 0.25f * s;
@@ -183,7 +183,7 @@ namespace SFG
 		}
 		else
 		{
-			float s		   = sqrtf(1.0f + nz.z - nx.x - ny.y) * 2.0f;
+			f32 s		   = sqrtf(1.0f + nz.z - nx.x - ny.y) * 2.0f;
 			out_rotation.w = (nx.y - ny.x) / s;
 			out_rotation.x = (nz.x + nx.z) / s;
 			out_rotation.y = (nz.y + ny.z) / s;

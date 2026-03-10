@@ -63,7 +63,7 @@ namespace SFG
 		{
 		}
 
-		_audio_data = aux.allocate<uint8>(raw.audio_data.size());
+		_audio_data = aux.allocate<u8>(raw.audio_data.size());
 		SFG_MEMCPY(aux.get(_audio_data.head), raw.audio_data.data(), raw.audio_data.size());
 
 		ma_result result;

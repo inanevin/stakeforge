@@ -63,7 +63,7 @@ namespace SFG
 		{
 			proxy_manager&	pm;
 			gfx_id			cmd_buffer;
-			uint8			frame_index;
+			u8				frame_index;
 			bump_allocator& alloc;
 			vector2ui16		size;
 			gfx_id			global_layout;
@@ -94,7 +94,7 @@ namespace SFG
 		void			   uninit();
 		void			   tick();
 		void			   render(const render_params& p);
-		void			   post_world_tick(float delta);
+		void			   post_world_tick(f32 delta);
 		bool			   on_window_event(const window_event& ev);
 		void			   resize(const vector2ui16& size);
 		void			   on_file_dropped(const char* path);
@@ -141,7 +141,7 @@ namespace SFG
 			return _gui_controller;
 		}
 
-		inline gpu_index get_render_output(uint8 frame) const
+		inline gpu_index get_render_output(u8 frame) const
 		{
 			return _renderer.get_output_gpu_index(frame);
 		}

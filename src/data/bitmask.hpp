@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -30,14 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	
+
 	template <typename T> class bitmask
 	{
 	public:
 		bitmask()  = default;
 		~bitmask() = default;
 
-		bitmask(T m) : _mask(m) {};
+		bitmask(T m) : _mask(m){};
 
 		inline bool is_set(T m) const
 		{
@@ -81,7 +81,7 @@ namespace SFG
 		T _mask = 0;
 	};
 
-	typedef bitmask<uint8>	bitmask8;
-	typedef bitmask<uint16> bitmask16;
-	typedef bitmask<uint32> bitmask32;
+	typedef bitmask<u8>	 bitmask8;
+	typedef bitmask<u16> bitmask16;
+	typedef bitmask<u32> bitmask32;
 }

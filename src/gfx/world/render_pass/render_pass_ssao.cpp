@@ -49,16 +49,16 @@ namespace SFG
 {
 	namespace
 	{
-		void make_ao_noise(uint8* data, int size = 8, uint32_t seed = 1337)
+		void make_ao_noise(u8* data, int size = 8, uint32_t seed = 1337)
 		{
-			std::mt19937						  rng(seed);
-			std::uniform_real_distribution<float> U(0.0f, 1.0f);
+			std::mt19937						rng(seed);
+			std::uniform_real_distribution<f32> U(0.0f, 1.0f);
 
 			for (int y = 0; y < size; ++y)
 			{
 				for (int x = 0; x < size; ++x)
 				{
-					float	theta = U(rng) * 6.28318530718f;
+					f32		theta = U(rng) * 6.28318530718f;
 					vector2 v	  = {std::cos(theta), std::sin(theta)};
 
 					// map from [-1,1] -> [0,255]
@@ -79,8 +79,8 @@ namespace SFG
 
 		// Noise texture.
 		const vector2ui16 noise_size = vector2ui16(8, 8);
-		const uint8		  noise_bpp	 = 2;
-		uint8*			  noise_data = new uint8[noise_size.x * noise_size.y * noise_bpp];
+		const u8		  noise_bpp	 = 2;
+		u8*				  noise_data = new u8[noise_size.x * noise_size.y * noise_bpp];
 
 		make_ao_noise(noise_data, noise_size.x);
 		_noise_tex				= backend->create_texture({
@@ -99,7 +99,7 @@ namespace SFG
 		tq.add_request(buffers, _noise_tex, _noise_tex_intermediate, false, resource_state::resource_state_non_ps_resource, false);
 
 		// ofd
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -133,7 +133,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -146,19 +146,19 @@ namespace SFG
 		destroy_textures();
 	}
 
-	void render_pass_ssao::prepare(proxy_manager& pm, const view& camera_view, const vector2ui16& resolution, uint8 frame_index)
+	void render_pass_ssao::prepare(proxy_manager& pm, const view& camera_view, const vector2ui16& resolution, u8 frame_index)
 	{
 		ZoneScoped;
 
-		const uint8				 ssao_exists		 = pm.get_ssao_exists();
+		const u8				 ssao_exists		 = pm.get_ssao_exists();
 		const render_proxy_ssao& ssao				 = pm.get_ssao();
-		const float				 radius_world		 = ssao_exists ? ssao.radius_world : 0.75f;
-		const float				 bias				 = ssao_exists ? ssao.bias : 0.04f;
-		const float				 intensity			 = ssao_exists ? ssao.intensity : 1.25f;
-		const float				 power				 = ssao_exists ? ssao.power : 1.25f;
-		const uint32			 num_dirs			 = ssao_exists ? ssao.num_dirs : 8;
-		const uint32			 num_steps			 = ssao_exists ? ssao.num_steps : 6;
-		const float				 random_rot_strength = ssao_exists ? ssao.random_rot_strength : 1.5f;
+		const f32				 radius_world		 = ssao_exists ? ssao.radius_world : 0.75f;
+		const f32				 bias				 = ssao_exists ? ssao.bias : 0.04f;
+		const f32				 intensity			 = ssao_exists ? ssao.intensity : 1.25f;
+		const f32				 power				 = ssao_exists ? ssao.power : 1.25f;
+		const u32				 num_dirs			 = ssao_exists ? ssao.num_dirs : 8;
+		const u32				 num_steps			 = ssao_exists ? ssao.num_steps : 6;
+		const f32				 random_rot_strength = ssao_exists ? ssao.random_rot_strength : 1.5f;
 
 		per_frame_data& pfd = _pfd[frame_index];
 
@@ -170,8 +170,8 @@ namespace SFG
 
 			.full_size = vector2ui(resolution.x, resolution.y),
 			.half_size = vector2ui(resolution.x / 2, resolution.y / 2),
-			.inv_full  = vector2(1.0f / static_cast<float>(resolution.x), 1.0f / static_cast<float>(resolution.y)),
-			.inv_half  = vector2(1.0f / (static_cast<float>(resolution.x) * 0.5f), 1.0f / (static_cast<float>(resolution.y) * 0.5f)),
+			.inv_full  = vector2(1.0f / static_cast<f32>(resolution.x), 1.0f / static_cast<f32>(resolution.y)),
+			.inv_half  = vector2(1.0f / (static_cast<f32>(resolution.x) * 0.5f), 1.0f / (static_cast<f32>(resolution.y) * 0.5f)),
 
 			.z_near = camera_view.near_plane,
 			.z_far	= camera_view.far_plane,
@@ -216,23 +216,23 @@ namespace SFG
 			.resource	 = ao_output,
 			.flags		 = barrier_flags::baf_is_texture,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		backend->cmd_bind_layout_compute(cmd_buffer, {.layout = p.global_layout_compute});
 		backend->cmd_bind_group_compute(cmd_buffer, {.group = p.global_group});
 
 		{
-			const uint32 rp_constants[5] = {gpu_index_ubo, p.gpu_index_depth, p.gpu_index_normals, gpu_index_noise, gpu_index_output};
+			const u32 rp_constants[5] = {gpu_index_ubo, p.gpu_index_depth, p.gpu_index_normals, gpu_index_noise, gpu_index_output};
 			backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = shader_hbao});
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 5, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 5, .param_index = rpi_constants});
 
 			BEGIN_DEBUG_EVENT(backend, cmd_buffer, "ssao_pass");
-			const uint32 group_size_x = 8;
-			const uint32 group_size_y = 8;
-			const uint32 half_w		  = res.x * 0.5f;
-			const uint32 half_h		  = res.y * 0.5f;
-			const uint32 gsx		  = (group_size_x + half_w - 1) / group_size_x;
-			const uint32 gsy		  = (group_size_y + half_h - 1) / group_size_y;
+			const u32 group_size_x = 8;
+			const u32 group_size_y = 8;
+			const u32 half_w	   = res.x * 0.5f;
+			const u32 half_h	   = res.y * 0.5f;
+			const u32 gsx		   = (group_size_x + half_w - 1) / group_size_x;
+			const u32 gsy		   = (group_size_y + half_h - 1) / group_size_y;
 			backend->cmd_dispatch(cmd_buffer, {.group_size_x = gsx, .group_size_y = gsy, .group_size_z = 1});
 			END_DEBUG_EVENT(backend, cmd_buffer);
 		}
@@ -242,21 +242,21 @@ namespace SFG
 			.resource = ao_output,
 			.flags	  = barrier_flags::baf_is_texture | barrier_flags::baf_is_uav,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		{
 
-			const uint32 rp_constants[2] = {gpu_index_output_srv, gpu_index_output_upsample_uav};
+			const u32 rp_constants[2] = {gpu_index_output_srv, gpu_index_output_upsample_uav};
 			backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = shader_hbao_upsample});
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant3, .count = 2, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant3, .count = 2, .param_index = rpi_constants});
 
 			BEGIN_DEBUG_EVENT(backend, cmd_buffer, "ssao_upsample_pass");
-			const uint32 group_size_x = 8;
-			const uint32 group_size_y = 8;
-			const uint32 half_w		  = res.x;
-			const uint32 half_h		  = res.y;
-			const uint32 gsx		  = (group_size_x + half_w - 1) / group_size_x;
-			const uint32 gsy		  = (group_size_y + half_h - 1) / group_size_y;
+			const u32 group_size_x = 8;
+			const u32 group_size_y = 8;
+			const u32 half_w	   = res.x;
+			const u32 half_h	   = res.y;
+			const u32 gsx		   = (group_size_x + half_w - 1) / group_size_x;
+			const u32 gsy		   = (group_size_y + half_h - 1) / group_size_y;
 			backend->cmd_dispatch(cmd_buffer, {.group_size_x = gsx, .group_size_y = gsy, .group_size_z = 1});
 			END_DEBUG_EVENT(backend, cmd_buffer);
 		}
@@ -268,7 +268,7 @@ namespace SFG
 			.resource	 = ao_output,
 			.flags		 = barrier_flags::baf_is_texture,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		backend->close_command_buffer(cmd_buffer);
 	}
@@ -283,7 +283,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -297,7 +297,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 

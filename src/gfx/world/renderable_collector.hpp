@@ -46,8 +46,8 @@ namespace SFG
 		renderable_collector() = delete;
 
 		static void collect_mesh_instances(proxy_manager& pm, const view& view, vector<renderable_object>& out_objects);
-		static void populate_draw_stream(proxy_manager& pm, const vector<renderable_object>& renderables, draw_stream& stream, uint32 required_material_flags, uint32 base_variant_flags, uint8 frame_index, gfx_id override_shader = NULL_GFX_ID);
-		static void populate_draw_stream(proxy_manager& pm, const vector<renderable_object>& renderables, draw_stream_distance& stream, uint32 required_material_flags, uint32 base_variant_flags, uint8 frame_index, gfx_id override_shader = NULL_GFX_ID);
-		static void populate_draw_stream_outline_filtered(proxy_manager& pm, const vector<renderable_object>& renderables, draw_stream& stream, uint32 base_variant_flags, uint8 frame_index, const shader_direct& direct, uint32 target_world_id);
+		static void populate_draw_stream(proxy_manager& pm, const vector<renderable_object>& renderables, draw_stream& stream, u32 required_material_flags, u32 base_variant_flags, u8 frame_index, gfx_id override_shader = NULL_GFX_ID);
+		static void populate_draw_stream(proxy_manager& pm, const vector<renderable_object>& renderables, draw_stream_distance& stream, u32 required_material_flags, u32 base_variant_flags, u8 frame_index, gfx_id override_shader = NULL_GFX_ID);
+		static void populate_draw_stream_outline_filtered(proxy_manager& pm, const vector<renderable_object>& renderables, draw_stream& stream, u32 base_variant_flags, u8 frame_index, const shader_direct& direct, u32 target_world_id);
 	};
 }

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -66,18 +66,18 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
 			pfd.cmd_buffer = backend->create_command_buffer({.type = command_type::graphics, .debug_name = "shadows_cmd"});
 		}
 
-		for (uint16 i = 0; i < MAX_PASS_COUNT; i++)
+		for (u16 i = 0; i < MAX_PASS_COUNT; i++)
 		{
 			pass& p = _passes[i];
 
-			for (uint8 j = 0; j < BACK_BUFFER_COUNT; j++)
+			for (u8 j = 0; j < BACK_BUFFER_COUNT; j++)
 			{
 				p.ubos[j].create({
 					.size		= sizeof(ubo),
@@ -93,11 +93,11 @@ namespace SFG
 	{
 		_alloc.uninit();
 
-		for (uint16 i = 0; i < MAX_PASS_COUNT; i++)
+		for (u16 i = 0; i < MAX_PASS_COUNT; i++)
 		{
 			pass& p = _passes[i];
 
-			for (uint8 j = 0; j < BACK_BUFFER_COUNT; j++)
+			for (u8 j = 0; j < BACK_BUFFER_COUNT; j++)
 			{
 				p.ubos[j].destroy();
 			}
@@ -107,14 +107,14 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_command_buffer(pfd.cmd_buffer);
 		}
 	}
 
-	void render_pass_shadows::prepare(proxy_manager& pm, const view& main_view, const vector2ui16& resolution, uint8 frame_index)
+	void render_pass_shadows::prepare(proxy_manager& pm, const view& main_view, const vector2ui16& resolution, u8 frame_index)
 	{
 		_alloc.reset();
 		_pass_count = 0;
@@ -168,22 +168,22 @@ namespace SFG
 		per_frame_data& pfd		   = _pfd[p.frame_index];
 		const gfx_id	cmd_buffer = pfd.cmd_buffer;
 
-		// const uint32 pass_count	 = static_cast<uint32>(_pass_count);
-		// const uint32 base_count	 = pass_count / (uint32)SHADOWS_MAX_CMD_BUFFERS;
-		// const uint32 extra_count = pass_count % (uint32)SHADOWS_MAX_CMD_BUFFERS;
+		// const u32 pass_count	 = static_cast<u32>(_pass_count);
+		// const u32 base_count	 = pass_count / (u32)SHADOWS_MAX_CMD_BUFFERS;
+		// const u32 extra_count = pass_count % (u32)SHADOWS_MAX_CMD_BUFFERS;
 		//
-		// const uint32 my_count = base_count + (p.cmd_index == 0 ? extra_count : 0);
-		// const uint32 base	  = p.cmd_index == 0 ? 0 : (base_count * p.cmd_index + extra_count);
+		// const u32 my_count = base_count + (p.cmd_index == 0 ? extra_count : 0);
+		// const u32 base	  = p.cmd_index == 0 ? 0 : (base_count * p.cmd_index + extra_count);
 
-		const uint32 my_count = _pass_count;
-		const uint32 base	  = 0;
+		const u32 my_count = _pass_count;
+		const u32 base	   = 0;
 
 		backend->reset_command_buffer(cmd_buffer);
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
 		// Start barriers for all passes.
-		for (uint32 i = 0; i < my_count; i++)
+		for (u32 i = 0; i < my_count; i++)
 		{
 			const pass& pass_data = _passes[base + i];
 
@@ -205,19 +205,19 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= _barriers.data(),
-									 .barrier_count = static_cast<uint16>(_barriers.size()),
+									 .barrier_count = static_cast<u16>(_barriers.size()),
 								 });
 		}
 		_barriers.resize(0);
 
 		// Passes
-		for (uint32 i = 0; i < my_count; i++)
+		for (u32 i = 0; i < my_count; i++)
 		{
 			pass&			  pass_data		   = _passes[base + i];
 			const gfx_id	  target_texture   = pass_data.texture;
 			const gpu_index	  gpu_index_rp_ubo = pass_data.ubos[p.frame_index].get_index();
 			const vector2ui16 resolution	   = pass_data.resolution;
-			const uint8		  view_index	   = pass_data.view_index;
+			const u8		  view_index	   = pass_data.view_index;
 
 			BEGIN_DEBUG_EVENT(backend, cmd_buffer, "shadow_pass");
 
@@ -235,25 +235,25 @@ namespace SFG
 													  });
 
 			// backend->cmd_bind_group(cmd_buffer, {.group = bind_group});
-			backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(resolution.x), .height = static_cast<uint16>(resolution.y)});
+			backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(resolution.x), .height = static_cast<u16>(resolution.y)});
 			backend->cmd_set_viewport(cmd_buffer,
 									  {
 										  .min_depth = 0.0f,
 										  .max_depth = 1.0f,
-										  .width	 = static_cast<uint16>(resolution.x),
-										  .height	 = static_cast<uint16>(resolution.y),
+										  .width	 = static_cast<u16>(resolution.x),
+										  .height	 = static_cast<u16>(resolution.y),
 
 									  });
 
-			const uint32 rp_constants[3] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones};
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
-			backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(resolution.x), .height = static_cast<uint16>(resolution.y)});
+			const u32 rp_constants[3] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones};
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
+			backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(resolution.x), .height = static_cast<u16>(resolution.y)});
 			backend->cmd_set_viewport(cmd_buffer,
 									  {
 										  .min_depth = 0.0f,
 										  .max_depth = 1.0f,
-										  .width	 = static_cast<uint16>(resolution.x),
-										  .height	 = static_cast<uint16>(resolution.y),
+										  .width	 = static_cast<u16>(resolution.x),
+										  .height	 = static_cast<u16>(resolution.y),
 
 									  });
 
@@ -266,7 +266,7 @@ namespace SFG
 		}
 
 		// End barriers for all passes
-		for (uint32 i = 0; i < my_count; i++)
+		for (u32 i = 0; i < my_count; i++)
 		{
 			const pass&	 pass_data		= _passes[base + i];
 			const gfx_id target_texture = pass_data.texture;
@@ -287,7 +287,7 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= _barriers.data(),
-									 .barrier_count = static_cast<uint16>(_barriers.size()),
+									 .barrier_count = static_cast<u16>(_barriers.size()),
 								 });
 		}
 		_barriers.resize(0);

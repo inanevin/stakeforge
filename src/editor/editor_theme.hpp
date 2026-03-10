@@ -43,27 +43,27 @@ namespace SFG
 		vekt::font* font_default = nullptr;
 		vekt::font* font_icons	 = nullptr;
 
-		static float UI_SCALING;
+		static f32 UI_SCALING;
 
-		float root_rounding					 = 0.0f;
-		float root_spacing					 = 0.0f;
-		float outer_margin					 = 0.0f;
-		float item_spacing					 = 0.0f;
-		float row_spacing					 = 0.0f;
-		float title_line_width				 = 0.0f;
-		float title_line_height				 = 0.0f;
-		float item_height					 = 0.0f;
-		float row_height					 = 0.0f;
-		float table_cell_height				 = 0.0f;
-		float property_cell_div				 = 0.0f;
-		float seperator_thickness			 = 0.0f;
-		float area_rounding					 = 0.0f;
-		float scroll_thickness				 = 0.0f;
-		float scroll_rounding				 = 0.0f;
-		float inner_margin					 = 0.0f;
-		float frame_thickness				 = 0.0f;
-		float frame_rounding				 = 0.0f;
-		float context_menu_outline_thickness = 0.0f;
+		f32 root_rounding				   = 0.0f;
+		f32 root_spacing				   = 0.0f;
+		f32 outer_margin				   = 0.0f;
+		f32 item_spacing				   = 0.0f;
+		f32 row_spacing					   = 0.0f;
+		f32 title_line_width			   = 0.0f;
+		f32 title_line_height			   = 0.0f;
+		f32 item_height					   = 0.0f;
+		f32 row_height					   = 0.0f;
+		f32 table_cell_height			   = 0.0f;
+		f32 property_cell_div			   = 0.0f;
+		f32 seperator_thickness			   = 0.0f;
+		f32 area_rounding				   = 0.0f;
+		f32 scroll_thickness			   = 0.0f;
+		f32 scroll_rounding				   = 0.0f;
+		f32 inner_margin				   = 0.0f;
+		f32 frame_thickness				   = 0.0f;
+		f32 frame_rounding				   = 0.0f;
+		f32 context_menu_outline_thickness = 0.0f;
 
 		vector4 col_title_line_start	  = vector4();
 		vector4 col_title_line_end		  = vector4();

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	matrix3x3::matrix3x3(float m00, float m10, float m20, float m01, float m11, float m21, float m02, float m12, float m22)
+	matrix3x3::matrix3x3(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22)
 	{
 		m[0] = m00;
 		m[1] = m10;
@@ -55,15 +55,15 @@ namespace SFG
 
 	matrix3x3 matrix3x3::rotation(const quat& q)
 	{
-		const float x2 = q.x * q.x;
-		const float y2 = q.y * q.y;
-		const float z2 = q.z * q.z;
-		const float xy = q.x * q.y;
-		const float xz = q.x * q.z;
-		const float yz = q.y * q.z;
-		const float wx = q.w * q.x;
-		const float wy = q.w * q.y;
-		const float wz = q.w * q.z;
+		const f32 x2 = q.x * q.x;
+		const f32 y2 = q.y * q.y;
+		const f32 z2 = q.z * q.z;
+		const f32 xy = q.x * q.y;
+		const f32 xz = q.x * q.z;
+		const f32 yz = q.y * q.z;
+		const f32 wx = q.w * q.x;
+		const f32 wy = q.w * q.y;
+		const f32 wz = q.w * q.z;
 
 		return matrix3x3(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2));
 	}
@@ -83,38 +83,38 @@ namespace SFG
 		return matrix3x3(m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]);
 	}
 
-	float matrix3x3::determinant() const
+	f32 matrix3x3::determinant() const
 	{
-		const float a = m[0], d = m[3], g = m[6];
-		const float b = m[1], e = m[4], h = m[7];
-		const float c = m[2], f = m[5], i = m[8];
+		const f32 a = m[0], d = m[3], g = m[6];
+		const f32 b = m[1], e = m[4], h = m[7];
+		const f32 c = m[2], f = m[5], i = m[8];
 
 		return a * (e * i - f * h) - d * (b * i - c * h) + g * (b * f - c * e);
 	}
 
 	matrix3x3 matrix3x3::inversed() const
 	{
-		const float a = m[0], d = m[3], g = m[6];
-		const float b = m[1], e = m[4], h = m[7];
-		const float c = m[2], f = m[5], i = m[8];
+		const f32 a = m[0], d = m[3], g = m[6];
+		const f32 b = m[1], e = m[4], h = m[7];
+		const f32 c = m[2], f = m[5], i = m[8];
 
-		const float A = (e * i - f * h);
-		const float B = -(d * i - f * g);
-		const float C = (d * h - e * g);
+		const f32 A = (e * i - f * h);
+		const f32 B = -(d * i - f * g);
+		const f32 C = (d * h - e * g);
 
-		const float D = -(b * i - c * h);
-		const float E = (a * i - c * g);
-		const float F = -(a * h - b * g);
+		const f32 D = -(b * i - c * h);
+		const f32 E = (a * i - c * g);
+		const f32 F = -(a * h - b * g);
 
-		const float G = (b * f - c * e);
-		const float H = -(a * f - c * d);
-		const float I = (a * e - b * d);
+		const f32 G = (b * f - c * e);
+		const f32 H = -(a * f - c * d);
+		const f32 I = (a * e - b * d);
 
-		const float det = a * A + d * D + g * G;
+		const f32 det = a * A + d * D + g * G;
 		if (fabsf(det) <= 1e-8f)
 			return identity;
 
-		const float invDet = 1.0f / det;
+		const f32 invDet = 1.0f / det;
 
 		return matrix3x3(A * invDet, D * invDet, G * invDet, B * invDet, E * invDet, H * invDet, C * invDet, F * invDet, I * invDet);
 	}

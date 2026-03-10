@@ -55,12 +55,12 @@ namespace SFG
 			vector4	  sky_end					  = vector4::zero;
 			vector4	  fog_color_and_density		  = vector4::zero;
 			vector2	  fog_start_end				  = vector2::zero;
-			uint32	  dir_lights_count			  = 0;
-			uint32	  cascade_levels_gpu_index	  = 0;
-			uint32	  cascade_count				  = 0;
-			float	  near_plane				  = 0.0f;
-			float	  far_plane					  = 0.0f;
-			float	  padding[5]				  = {};
+			u32		  dir_lights_count			  = 0;
+			u32		  cascade_levels_gpu_index	  = 0;
+			u32		  cascade_count				  = 0;
+			f32		  near_plane				  = 0.0f;
+			f32		  far_plane					  = 0.0f;
+			f32		  padding[5]				  = {};
 		};
 
 		struct per_frame_data
@@ -74,7 +74,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			const gpu_index*   gpu_index_gbuffer_textures;
 			gpu_index		   gpu_index_depth_texture;
@@ -101,7 +101,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, const view& main_camera_view, uint8 frame_index);
+		void prepare(proxy_manager& pm, const view& main_camera_view, u8 frame_index);
 		void render(const render_params& params);
 		void resize(const vector2ui16& size);
 
@@ -109,22 +109,22 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gpu_index get_output_gpu_index(uint8 frame_index) const
+		inline gpu_index get_output_gpu_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].gpu_index_render_target;
 		}
 
-		inline gfx_id get_output_hw(uint8 frame_index) const
+		inline gfx_id get_output_hw(u8 frame_index) const
 		{
 			return _pfd[frame_index].render_target;
 		}
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}
 
-		inline void set_light_counts_for_frame(uint32 points_count, uint32 spots_count, uint32 dirs_count)
+		inline void set_light_counts_for_frame(u32 points_count, u32 spots_count, u32 dirs_count)
 		{
 			_points_count_this_frame = points_count;
 			_spots_count_this_frame	 = spots_count;
@@ -138,8 +138,8 @@ namespace SFG
 	private:
 		per_frame_data _pfd[BACK_BUFFER_COUNT];
 		gfx_id		   _shader_lighting			= 0;
-		uint32		   _points_count_this_frame = 0;
-		uint32		   _spots_count_this_frame	= 0;
-		uint32		   _dirs_count_this_frame	= 0;
+		u32			   _points_count_this_frame = 0;
+		u32			   _spots_count_this_frame	= 0;
+		u32			   _dirs_count_this_frame	= 0;
 	};
 }

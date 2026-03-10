@@ -44,13 +44,13 @@ namespace SFG
 
 		void on_add(world& w);
 		void on_remove(world& w);
-		void set_values(world& w, float filter_radius);
+		void set_values(world& w, f32 filter_radius);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline float get_filter_radius() const
+		inline f32 get_filter_radius() const
 		{
 			return _filter_radius;
 		}
@@ -65,7 +65,7 @@ namespace SFG
 
 	private:
 		component_header _header		= {};
-		float			 _filter_radius = 0.01f;
+		f32				 _filter_radius = 0.01f;
 	};
 
 	REFLECT_TYPE(comp_bloom);

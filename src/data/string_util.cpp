@@ -119,13 +119,13 @@ namespace SFG
 		str = result;
 	}
 
-	bool string_util::to_float(const string& str, float& out_f, uint32& outDecimals, char seperator)
+	bool string_util::to_float(const string& str, f32& out_f, u32& outDecimals, char seperator)
 	{
 		try
 		{
 			std::size_t pos = str.find(seperator);
 			if (pos != std::string::npos)
-				outDecimals = static_cast<uint32>(str.length() - pos - 1);
+				outDecimals = static_cast<u32>(str.length() - pos - 1);
 
 			out_f = std::stof(str);
 			return true;
@@ -149,11 +149,11 @@ namespace SFG
 		}
 	}
 
-	bool string_util::to_big_uint(const string& str, uint64& out_i)
+	bool string_util::to_big_uint(const string& str, u64& out_i)
 	{
 		try
 		{
-			out_i = static_cast<uint64>(std::stoull(str));
+			out_i = static_cast<u64>(std::stoull(str));
 			return true;
 		}
 		catch (const std::exception& e)
@@ -182,7 +182,7 @@ namespace SFG
 		return result;
 	}
 
-	int string_util::append_float(float value, char* target_buffer, uint32 max_chars, uint32 decimals, bool null_term)
+	int string_util::append_float(f32 value, char* target_buffer, u32 max_chars, u32 decimals, bool null_term)
 	{
 		SFG_ASSERT(decimals < max_chars);
 		SFG_ASSERT(max_chars <= 16);

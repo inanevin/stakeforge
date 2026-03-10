@@ -42,11 +42,11 @@ namespace SFG
 	class render_event_stream
 	{
 	public:
-		static constexpr uint8 TRANSFORM_BUFFERS = 3;
+		static constexpr u8 TRANSFORM_BUFFERS = 3;
 
 		struct buffered_data
 		{
-			uint8* data = nullptr;
+			u8*	   data = nullptr;
 			size_t size = 0;
 		};
 
@@ -59,8 +59,8 @@ namespace SFG
 		{
 			proxy_entity_transform_data* entities	   = nullptr;
 			vector<world_id>			 dirty_indices = {};
-			uint8*						 dirty_flags   = nullptr;
-			uint32						 peak_size	   = 0;
+			u8*							 dirty_flags   = nullptr;
+			u32							 peak_size	   = 0;
 		};
 
 		// -----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ namespace SFG
 		void uninit();
 		void publish();
 		void add_entity_transform_event(world_id index, const matrix4x3& model, const quat& rot);
-		void read(render_proxy_entity* out_entities, uint32& out_size, istream& stream);
+		void read(render_proxy_entity* out_entities, u32& out_size, istream& stream);
 
 		// -----------------------------------------------------------------------------
 		// event api
@@ -101,13 +101,13 @@ namespace SFG
 	private:
 		buffered_data	  _stream_data[RENDER_STREAM_MAX_BATCHES];
 		proxy_entity_data _transform_data[TRANSFORM_BUFFERS];
-		atomic<int8>	  _events_latest	= {-1};
-		atomic<int8>	  _events_rendered	= {-1};
-		uint8			  _events_write		= 0;
+		atomic<i8>		  _events_latest	= {-1};
+		atomic<i8>		  _events_rendered	= {-1};
+		u8				  _events_write		= 0;
 		ostream			  _main_thread_data = {};
 
-		std::atomic<int8> _transform_latest = {-1}; // last published transform buffer
-		std::atomic<int8> _transform_in_use = {-1}; // render thread sets while reading
-		uint8			  _transform_write	= 0;	// game thread writes here
+		std::atomic<i8> _transform_latest = {-1}; // last published transform buffer
+		std::atomic<i8> _transform_in_use = {-1}; // render thread sets while reading
+		u8				_transform_write  = 0;	  // game thread writes here
 	};
 }

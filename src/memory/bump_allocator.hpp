@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -37,7 +37,7 @@ namespace SFG
 	{
 	public:
 		void init(size_t sz, size_t alignment);
-		void init(uint8* existing, size_t sz);
+		void init(u8* existing, size_t sz);
 		void uninit();
 
 		bump_allocator()									   = default;
@@ -62,16 +62,16 @@ namespace SFG
 
 			void* ptr	   = allocate(sizeof(T) * count, std::alignment_of<T>::value);
 			T*	  arrayPtr = reinterpret_cast<T*>(ptr);
-			//for (size_t i = 0; i < count; ++i)
+			// for (size_t i = 0; i < count; ++i)
 			//	new (&arrayPtr[i]) T(std::forward<Args>(args)...);
 			return arrayPtr;
 		}
 
 		template <typename T, typename... Args> T* emplace_aux(T firstValue, Args&&... remainingValues)
 		{
-			uint8* initial_head = (uint8*)_raw + _head;
+			u8* initial_head = (u8*)_raw + _head;
 
-			uint8* current_head = initial_head;
+			u8* current_head = initial_head;
 			SFG_MEMCPY(current_head, &firstValue, sizeof(T));
 			_head += sizeof(T);
 			SFG_ASSERT(_head < _size);
@@ -98,6 +98,6 @@ namespace SFG
 		size_t _size = 0;
 		size_t _head = 0;
 		void*  _raw	 = nullptr;
-		uint8  _owns = 0;
+		u8	   _owns = 0;
 	};
 }

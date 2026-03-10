@@ -50,7 +50,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -65,7 +65,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_command_buffer(pfd.cmd_buffer);
@@ -73,7 +73,7 @@ namespace SFG
 		}
 	}
 
-	void render_pass_canvas_2d::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index)
+	void render_pass_canvas_2d::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -86,10 +86,10 @@ namespace SFG
 		gfx_backend* backend = gfx_backend::get();
 		backend->reset_command_buffer(cmd_buffer);
 
-		auto*		 canvases	   = pm.get_canvases();
-		auto*		 materials	   = pm.get_material_runtimes();
-		auto*		 entities	   = pm.get_entities();
-		const uint32 peak_canvases = pm.get_peak_canvases();
+		auto*	  canvases		= pm.get_canvases();
+		auto*	  materials		= pm.get_material_runtimes();
+		auto*	  entities		= pm.get_entities();
+		const u32 peak_canvases = pm.get_peak_canvases();
 
 		// -----------------------------------------------------------------------------
 		// record barriers & draw calls
@@ -98,7 +98,7 @@ namespace SFG
 		static_vector<barrier, 24> barriers;
 		static_vector<barrier, 24> barriers_after;
 
-		for (uint32 i = 0; i < peak_canvases; i++)
+		for (u32 i = 0; i < peak_canvases; i++)
 		{
 			render_proxy_canvas& proxy = canvases->get(i);
 			if (proxy.status != render_proxy_status::rps_active)
@@ -184,11 +184,11 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 
 		// Copy regions
-		for (uint32 i = 0; i < peak_canvases; i++)
+		for (u32 i = 0; i < peak_canvases; i++)
 		{
 			render_proxy_canvas& proxy = canvases->get(i);
 			if (proxy.status != render_proxy_status::rps_active)
@@ -210,12 +210,12 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers_after.data(),
-								 .barrier_count = static_cast<uint16>(barriers_after.size()),
+								 .barrier_count = static_cast<u16>(barriers_after.size()),
 							 });
 
 		const ubo ubo_data = {
-			.proj		= matrix4x4::ortho_reverse_z(0, static_cast<float>(resolution.x), 0, static_cast<float>(resolution.y), 0.0f, 1.0f),
-			.resolution = vector2(static_cast<float>(resolution.x), static_cast<float>(resolution.y)),
+			.proj		= matrix4x4::ortho_reverse_z(0, static_cast<f32>(resolution.x), 0, static_cast<f32>(resolution.y), 0.0f, 1.0f),
+			.resolution = vector2(static_cast<f32>(resolution.x), static_cast<f32>(resolution.y)),
 		};
 		pfd.ubo.buffer_data(0, &ubo_data, sizeof(ubo));
 	}
@@ -250,16 +250,16 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 rp_constants[4] = {gpu_index_rp_ubo};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 4, .param_index = rpi_constants});
+		const u32 rp_constants[4] = {gpu_index_rp_ubo};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 4, .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -279,7 +279,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 
 		backend->close_command_buffer(cmd_buffer);

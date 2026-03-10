@@ -48,7 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	game_world_renderer::game_world_renderer(proxy_manager& pm, world& w) : _proxy_manager(pm), _world(w) {};
+	game_world_renderer::game_world_renderer(proxy_manager& pm, world& w) : _proxy_manager(pm), _world(w){};
 
 	void game_world_renderer::init(const vector2ui16& size, texture_queue* tq, buffer_queue* bq, gfx_id bind_layout, gfx_id bind_layout_compute)
 	{
@@ -61,7 +61,7 @@ namespace SFG
 		_base_size = size;
 
 		// pfd
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd			= _pfd[i];
 			pfd.cmd_upload				= backend->create_command_buffer({.type = command_type::graphics, .debug_name = "wr_upload"});
@@ -155,13 +155,13 @@ namespace SFG
 
 			pfd.float_buffer.create(
 				{
-					.size		= sizeof(float) * 128,
+					.size		= sizeof(f32) * 128,
 					.flags		= resource_flags::rf_cpu_visible,
 					.debug_name = "float_buffer",
 				},
 				{
-					.size			 = sizeof(float) * 128,
-					.structure_size	 = sizeof(float),
+					.size			 = sizeof(f32) * 128,
+					.structure_size	 = sizeof(f32),
 					.structure_count = 128,
 					.flags			 = resource_flags::rf_gpu_only | resource_flags::rf_storage_buffer,
 					.debug_name		 = "float_buffer_gpu",
@@ -209,7 +209,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_command_buffer(pfd.cmd_upload);
@@ -234,7 +234,7 @@ namespace SFG
 #endif
 	}
 
-	void game_world_renderer::prepare(uint8 frame_index)
+	void game_world_renderer::prepare(u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -253,7 +253,7 @@ namespace SFG
 			const vector3 pos = cam_entity.model.get_translation();
 
 			const matrix4x4 view	  = matrix4x4::view(cam_entity.rotation, pos);
-			const matrix4x4 proj	  = matrix4x4::perspective_reverse_z(cam_proxy.fov_degrees, static_cast<float>(_base_size.x) / static_cast<float>(_base_size.y), cam_proxy.near_plane, cam_proxy.far_plane);
+			const matrix4x4 proj	  = matrix4x4::perspective_reverse_z(cam_proxy.fov_degrees, static_cast<f32>(_base_size.x) / static_cast<f32>(_base_size.y), cam_proxy.near_plane, cam_proxy.far_plane);
 			const matrix4x4 view_proj = proj * view;
 			_main_camera_view		  = {
 						.view_frustum		  = frustum::extract(view_proj),
@@ -271,8 +271,8 @@ namespace SFG
 
 			if (cam_proxy.cascades.size != 0)
 			{
-				float* cascades_ptr = proxy_aux.get<float>(cam_proxy.cascades);
-				for (uint8 i = 0; i < cam_proxy.cascade_count; i++)
+				f32* cascades_ptr = proxy_aux.get<f32>(cam_proxy.cascades);
+				for (u8 i = 0; i < cam_proxy.cascade_count; i++)
 					_main_camera_view.cascades.push_back(cascades_ptr[i]);
 			}
 		}
@@ -510,7 +510,7 @@ namespace SFG
 		});
 	}
 
-	void game_world_renderer::render(uint8 frame_index, gfx_id layout_global, gfx_id layout_global_compute, gfx_id bind_group_global, uint64 prev_copy, uint64 next_copy, gfx_id sem_copy)
+	void game_world_renderer::render(u8 frame_index, gfx_id layout_global, gfx_id layout_global_compute, gfx_id bind_group_global, u64 prev_copy, u64 next_copy, gfx_id sem_copy)
 	{
 		ZoneScoped;
 
@@ -542,14 +542,14 @@ namespace SFG
 		const gfx_id sem_frame		   = pfd.semp_frame.semaphore;
 		const gfx_id sem_lighting	   = pfd.semp_lighting.semaphore;
 		const gfx_id sem_ssao		   = pfd.semp_ssao.semaphore;
-		const uint64 sem_lighting_val0 = ++pfd.semp_lighting.value;
-		const uint64 sem_lighting_val1 = ++pfd.semp_lighting.value;
-		const uint64 sem_ssao_val0	   = ++pfd.semp_ssao.value;
-		const uint64 sem_ssao_val1	   = ++pfd.semp_ssao.value;
-		const uint64 sem_frame_val	   = ++pfd.semp_frame.value;
-		const uint8	 ssao_enabled	   = _proxy_manager.get_ssao_exists();
-		const uint8	 bloom_enabled	   = _proxy_manager.get_bloom_exists();
-		const uint8	 post_enabled	   = _proxy_manager.get_post_process_exists();
+		const u64	 sem_lighting_val0 = ++pfd.semp_lighting.value;
+		const u64	 sem_lighting_val1 = ++pfd.semp_lighting.value;
+		const u64	 sem_ssao_val0	   = ++pfd.semp_ssao.value;
+		const u64	 sem_ssao_val1	   = ++pfd.semp_ssao.value;
+		const u64	 sem_frame_val	   = ++pfd.semp_frame.value;
+		const u8	 ssao_enabled	   = _proxy_manager.get_ssao_exists();
+		const u8	 bloom_enabled	   = _proxy_manager.get_bloom_exists();
+		const u8	 post_enabled	   = _proxy_manager.get_post_process_exists();
 
 #ifdef SFG_TOOLMODE
 		const gpu_index gpu_index_selection_outline = _pass_selection_outline.get_gpu_index_output(frame_index);
@@ -684,15 +684,15 @@ namespace SFG
 #endif
 	}
 
-	uint32 game_world_renderer::add_to_float_buffer(uint8 frame_index, float f)
+	u32 game_world_renderer::add_to_float_buffer(u8 frame_index, f32 f)
 	{
 		per_frame_data& pfd = _pfd[frame_index];
-		pfd.float_buffer.buffer_data(pfd._float_buffer_count * sizeof(float), &f, sizeof(float));
+		pfd.float_buffer.buffer_data(pfd._float_buffer_count * sizeof(f32), &f, sizeof(f32));
 		pfd._float_buffer_count++;
 		return pfd._float_buffer_count - 1;
 	}
 
-	void game_world_renderer::collect_and_upload(uint8 frame_index)
+	void game_world_renderer::collect_and_upload(u8 frame_index)
 	{
 		gfx_backend* backend   = gfx_backend::get();
 		const gfx_id queue_gfx = backend->get_queue_gfx();
@@ -753,18 +753,18 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
-		const uint8 cascades_count = static_cast<uint8>(_main_camera_view.cascades.size());
-		for (uint8 i = 0; i < cascades_count; i++)
+		const u8 cascades_count = static_cast<u8>(_main_camera_view.cascades.size());
+		for (u8 i = 0; i < cascades_count; i++)
 		{
-			const uint32 idx = add_to_float_buffer(frame_index, _main_camera_view.cascades[i] * _main_camera_view.far_plane);
+			const u32 idx = add_to_float_buffer(frame_index, _main_camera_view.cascades[i] * _main_camera_view.far_plane);
 			if (i == 0)
 				_main_camera_view.cascsades_gpu_index = idx;
 		}
 
 		if (pfd._float_buffer_count != 0)
-			pfd.float_buffer.copy_region(cmd, 0, sizeof(float) * pfd._float_buffer_count);
+			pfd.float_buffer.copy_region(cmd, 0, sizeof(f32) * pfd._float_buffer_count);
 
 		collect_and_upload_entities(cmd, frame_index);
 		collect_and_upload_bones(cmd, frame_index);
@@ -820,25 +820,25 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		backend->close_command_buffer(cmd);
 		backend->submit_commands(queue_gfx, &cmd, 1);
 	}
 
-	void game_world_renderer::collect_and_upload_entities(gfx_id cmd_buffer, uint8 frame_index)
+	void game_world_renderer::collect_and_upload_entities(gfx_id cmd_buffer, u8 frame_index)
 	{
 		ZoneScoped;
 
 		per_frame_data& pfd			  = _pfd[frame_index];
 		auto&			entities	  = *_proxy_manager.get_entities();
-		const uint32	entities_peak = _proxy_manager.get_peak_entities();
+		const u32		entities_peak = _proxy_manager.get_peak_entities();
 
 		size_t offset		  = 0;
-		uint32 assigned_index = 0;
+		u32	   assigned_index = 0;
 
 		gpu_entity* gpu_entities = reinterpret_cast<gpu_entity*>(pfd.entity_buffer.get_mapped());
 
-		for (uint32 i = 0; i < entities_peak; i++)
+		for (u32 i = 0; i < entities_peak; i++)
 		{
 			render_proxy_entity& e = entities.get(i);
 			if (e.status != render_proxy_status::rps_active)
@@ -869,23 +869,23 @@ namespace SFG
 			pfd.entity_buffer.copy_region(cmd_buffer, 0, assigned_index * sizeof(gpu_entity));
 	}
 
-	void game_world_renderer::collect_and_upload_bones(gfx_id cmd_buffer, uint8 frame_index)
+	void game_world_renderer::collect_and_upload_bones(gfx_id cmd_buffer, u8 frame_index)
 	{
 		ZoneScoped;
 
 		per_frame_data& pfd = _pfd[frame_index];
 
 		auto&			   meshes	   = *_proxy_manager.get_mesh_instances();
-		const uint32	   meshes_peak = _proxy_manager.get_peak_mesh_instances();
+		const u32		   meshes_peak = _proxy_manager.get_peak_mesh_instances();
 		auto&			   entities	   = *_proxy_manager.get_entities();
 		auto&			   skins	   = *_proxy_manager.get_skins();
 		chunk_allocator32& aux		   = _proxy_manager.get_aux();
 
-		uint32 assigned_index = 0;
+		u32 assigned_index = 0;
 
 		gpu_bone* bones = reinterpret_cast<gpu_bone*>(pfd.bones_buffer.get_mapped());
 
-		for (uint32 i = 0; i < meshes_peak; i++)
+		for (u32 i = 0; i < meshes_peak; i++)
 		{
 			render_proxy_mesh_instance& mi = meshes.get(i);
 			if (mi.mesh == NULL_RESOURCE_ID)
@@ -907,7 +907,7 @@ namespace SFG
 			const render_proxy_skin& skin = skins.get(mi.skin);
 			SFG_ASSERT(skin.status == render_proxy_status::rps_active);
 
-			const uint16*	 node_indices	   = aux.get<uint16>(skin.nodes);
+			const u16*		 node_indices	   = aux.get<u16>(skin.nodes);
 			const world_id*	 skin_entities_ptr = aux.get<world_id>(mi.skin_entities);
 			const matrix4x3* matrices_ptr	   = aux.get<matrix4x3>(skin.matrices);
 
@@ -921,9 +921,9 @@ namespace SFG
 			}
 			root_global = root_global.inverse();
 
-			for (uint16 j = 0; j < skin.node_count; j++)
+			for (u16 j = 0; j < skin.node_count; j++)
 			{
-				const uint16			   node_index	  = node_indices[j];
+				const u16				   node_index	  = node_indices[j];
 				const world_id			   skin_entity_id = skin_entities_ptr[node_index];
 				const render_proxy_entity& skin_entity	  = entities.get(skin_entity_id);
 				SFG_ASSERT(skin_entity.status == render_proxy_status::rps_active);
@@ -938,34 +938,34 @@ namespace SFG
 			pfd.bones_buffer.copy_region(cmd_buffer, 0, assigned_index * sizeof(gpu_bone));
 	}
 
-	void game_world_renderer::collect_and_upload_lights(gfx_id cmd_buffer, uint8 frame_index)
+	void game_world_renderer::collect_and_upload_lights(gfx_id cmd_buffer, u8 frame_index)
 	{
 		ZoneScoped;
 
 		per_frame_data& pfd = _pfd[frame_index];
 
-		const uint32 points_peak  = _proxy_manager.get_peak_point_lights();
-		const uint32 spots_peak	  = _proxy_manager.get_peak_spot_lights();
-		const uint32 dirs_peak	  = _proxy_manager.get_peak_dir_lights();
-		auto&		 spots		  = *_proxy_manager.get_spot_lights();
-		auto&		 points		  = *_proxy_manager.get_point_lights();
-		auto&		 dirs		  = *_proxy_manager.get_dir_lights();
-		auto&		 entities	  = *_proxy_manager.get_entities();
-		uint32		 points_count = 0, spots_count = 0, dirs_count = 0;
-		uint32		 shadow_data_count = 0;
+		const u32 points_peak  = _proxy_manager.get_peak_point_lights();
+		const u32 spots_peak   = _proxy_manager.get_peak_spot_lights();
+		const u32 dirs_peak	   = _proxy_manager.get_peak_dir_lights();
+		auto&	  spots		   = *_proxy_manager.get_spot_lights();
+		auto&	  points	   = *_proxy_manager.get_point_lights();
+		auto&	  dirs		   = *_proxy_manager.get_dir_lights();
+		auto&	  entities	   = *_proxy_manager.get_entities();
+		u32		  points_count = 0, spots_count = 0, dirs_count = 0;
+		u32		  shadow_data_count = 0;
 
 		const matrix4x4 main_view_matrix = _main_camera_view.view_matrix;
-		const float		main_cam_near	 = _main_camera_view.near_plane;
-		const float		main_cam_far	 = _main_camera_view.far_plane;
-		const float		main_cam_fov	 = _main_camera_view.fov_degrees;
-		const float		aspect_ratio	 = static_cast<float>(_base_size.x) / static_cast<float>(_base_size.y);
+		const f32		main_cam_near	 = _main_camera_view.near_plane;
+		const f32		main_cam_far	 = _main_camera_view.far_plane;
+		const f32		main_cam_fov	 = _main_camera_view.fov_degrees;
+		const f32		aspect_ratio	 = static_cast<f32>(_base_size.x) / static_cast<f32>(_base_size.y);
 
 		gpu_point_light* plights = reinterpret_cast<gpu_point_light*>(pfd.point_lights_buffer.get_mapped());
 		gpu_shadow_data* sdata	 = reinterpret_cast<gpu_shadow_data*>(pfd.shadow_data_buffer.get_mapped());
 
 		{
 			ZoneScopedN("plightbase");
-			for (uint32 i = 0; i < points_peak; i++)
+			for (u32 i = 0; i < points_peak; i++)
 			{
 				render_proxy_point_light& light = points.get(i);
 				if (light.status != render_proxy_status::rps_active)
@@ -979,21 +979,21 @@ namespace SFG
 
 				const vector3 pos = proxy_entity.model.get_translation();
 
-				constexpr float energy_thresh = LIGHT_CULLING_ENERGY_THRESHOLD;
-				const float		radius		  = math::sqrt(light.intensity / (4.0f * MATH_PI * energy_thresh));
+				constexpr f32 energy_thresh = LIGHT_CULLING_ENERGY_THRESHOLD;
+				const f32	  radius		= math::sqrt(light.intensity / (4.0f * MATH_PI * energy_thresh));
 
 				const frustum_result res = frustum::test(_main_camera_view.view_frustum, pos, radius);
 				if (res == frustum_result::outside)
 					continue;
 
-				int32		first_shadow_index = -1;
-				const float far_plane		   = math::almost_equal(light.range, 0.0f) ? main_cam_far : light.range;
-				const float near_plane		   = light.near_plane;
+				i32		  first_shadow_index = -1;
+				const f32 far_plane			 = math::almost_equal(light.range, 0.0f) ? main_cam_far : light.range;
+				const f32 near_plane		 = light.near_plane;
 
 				if (light.cast_shadows)
 				{
-					const float light_aspect = static_cast<float>(light.shadow_res.x) / static_cast<float>(light.shadow_res.y);
-					first_shadow_index		 = static_cast<int32>(shadow_data_count);
+					const f32 light_aspect = static_cast<f32>(light.shadow_res.x) / static_cast<f32>(light.shadow_res.y);
+					first_shadow_index	   = static_cast<i32>(shadow_data_count);
 
 					static_vector<vector3, 6> dirs;
 					static_vector<vector3, 6> fws;
@@ -1012,7 +1012,7 @@ namespace SFG
 					fws.push_back(vector3::up);
 					fws.push_back(vector3::up);
 
-					for (uint8 j = 0; j < 6; j++)
+					for (u8 j = 0; j < 6; j++)
 					{
 						const matrix4x4 light_view		 = matrix4x4::look_at(pos, pos + dirs[j], fws[j]);
 						const matrix4x4 light_projection = matrix4x4::perspective(90 + near_plane, light_aspect, near_plane, far_plane);
@@ -1044,7 +1044,7 @@ namespace SFG
 				plights[points_count] = {
 					.color_entity_index			   = vector4(light.base_color.x, light.base_color.y, light.base_color.z, proxy_entity._assigned_index),
 					.intensity_range			   = vector4(light.intensity, light.range, 0.0f, 0.0f),
-					.shadow_res_map_and_data_index = vector4(light.shadow_res.x, light.shadow_res.y, static_cast<float>(light.shadow_texture_gpu_index[frame_index]), static_cast<float>(first_shadow_index)),
+					.shadow_res_map_and_data_index = vector4(light.shadow_res.x, light.shadow_res.y, static_cast<f32>(light.shadow_texture_gpu_index[frame_index]), static_cast<f32>(first_shadow_index)),
 					.near_plane					   = near_plane,
 					.far_plane					   = far_plane,
 				};
@@ -1055,7 +1055,7 @@ namespace SFG
 
 		gpu_spot_light* slights = reinterpret_cast<gpu_spot_light*>(pfd.spot_lights_buffer.get_mapped());
 
-		for (uint32 i = 0; i < spots_peak; i++)
+		for (u32 i = 0; i < spots_peak; i++)
 		{
 			render_proxy_spot_light& light = spots.get(i);
 			if (light.status != render_proxy_status::rps_active)
@@ -1066,24 +1066,24 @@ namespace SFG
 			if (proxy_entity.flags.is_set(render_proxy_entity_flags::render_proxy_entity_invisible))
 				continue;
 
-			const vector3	pos			  = proxy_entity.model.get_translation();
-			constexpr float energy_thresh = LIGHT_CULLING_ENERGY_THRESHOLD;
-			const float		radius		  = math::sqrt(light.intensity / (4.0f * MATH_PI * energy_thresh));
+			const vector3 pos			= proxy_entity.model.get_translation();
+			constexpr f32 energy_thresh = LIGHT_CULLING_ENERGY_THRESHOLD;
+			const f32	  radius		= math::sqrt(light.intensity / (4.0f * MATH_PI * energy_thresh));
 
 			const frustum_result res = frustum::test(_main_camera_view.view_frustum, pos, radius);
 			if (res == frustum_result::outside)
 				continue;
 
-			const float cos_outer  = math::cos(light.outer_cone * DEG_2_RAD);
-			const float cos_inner  = math::cos(light.inner_cone * DEG_2_RAD);
-			const float near_plane = light.near_plane;
+			const f32 cos_outer	 = math::cos(light.outer_cone * DEG_2_RAD);
+			const f32 cos_inner	 = math::cos(light.inner_cone * DEG_2_RAD);
+			const f32 near_plane = light.near_plane;
 
-			int32 shadow_data_index = -1;
+			i32 shadow_data_index = -1;
 			if (light.cast_shadows)
 			{
-				const float far_plane	 = math::almost_equal(light.range, 0.0f) ? main_cam_far : light.range;
-				const float fov_deg		 = RAD_2_DEG * 2.0f * math::acos(cos_outer);
-				const float light_aspect = static_cast<float>(light.shadow_res.x) / static_cast<float>(light.shadow_res.y);
+				const f32 far_plane	   = math::almost_equal(light.range, 0.0f) ? main_cam_far : light.range;
+				const f32 fov_deg	   = RAD_2_DEG * 2.0f * math::acos(cos_outer);
+				const f32 light_aspect = static_cast<f32>(light.shadow_res.x) / static_cast<f32>(light.shadow_res.y);
 
 				const vector3	entity_fw		 = proxy_entity.rotation.get_forward();
 				const vector3	up				 = math::abs(vector3::dot(entity_fw, vector3::up)) > 0.98f ? vector3::forward : vector3::up;
@@ -1108,23 +1108,23 @@ namespace SFG
 					.fov			  = main_cam_fov,
 				});
 
-				shadow_data_index = static_cast<int32>(shadow_data_count);
+				shadow_data_index = static_cast<i32>(shadow_data_count);
 				shadow_data_count++;
 			}
 
 			slights[spots_count] = {
 				.color_entity_index			   = vector4(light.base_color.x, light.base_color.y, light.base_color.z, proxy_entity._assigned_index),
 				.intensity_range_inner_outer   = vector4(light.intensity, light.range, cos_inner, cos_outer),
-				.shadow_res_map_and_data_index = vector4(light.shadow_res.x, light.shadow_res.y, static_cast<float>(light.shadow_texture_gpu_index[frame_index]), static_cast<float>(shadow_data_index)),
+				.shadow_res_map_and_data_index = vector4(light.shadow_res.x, light.shadow_res.y, static_cast<f32>(light.shadow_texture_gpu_index[frame_index]), static_cast<f32>(shadow_data_index)),
 			};
 			spots_count++;
 		}
 
 		gpu_dir_light* dlights = reinterpret_cast<gpu_dir_light*>(pfd.dir_lights_buffer.get_mapped());
 
-		const static_vector<float, MAX_SHADOW_CASCADES>& cascade_levels = _main_camera_view.cascades;
+		const static_vector<f32, MAX_SHADOW_CASCADES>& cascade_levels = _main_camera_view.cascades;
 
-		for (uint32 i = 0; i < dirs_peak; i++)
+		for (u32 i = 0; i < dirs_peak; i++)
 		{
 			render_proxy_dir_light& light = dirs.get(i);
 			if (light.status != render_proxy_status::rps_active)
@@ -1136,18 +1136,18 @@ namespace SFG
 			if (proxy_entity.flags.is_set(render_proxy_entity_flags::render_proxy_entity_invisible))
 				continue;
 
-			int32 first_shadow_index = -1;
+			i32 first_shadow_index = -1;
 
 			if (light.cast_shadows)
 			{
-				first_shadow_index = static_cast<int32>(shadow_data_count);
+				first_shadow_index = static_cast<i32>(shadow_data_count);
 
-				const uint8 cascades = math::min(static_cast<uint8>(cascade_levels.size()), light.cascade_levels);
-				for (uint8 j = 0; j < cascades; j++)
+				const u8 cascades = math::min(static_cast<u8>(cascade_levels.size()), light.cascade_levels);
+				for (u8 j = 0; j < cascades; j++)
 				{
-					const float far_multiplier = cascade_levels[j];
-					const float cascade_far	   = main_cam_far * far_multiplier;
-					const float cascade_near   = j == 0 ? main_cam_near : cascade_levels[static_cast<int32>(j) - 1] * main_cam_far;
+					const f32 far_multiplier = cascade_levels[j];
+					const f32 cascade_far	 = main_cam_far * far_multiplier;
+					const f32 cascade_near	 = j == 0 ? main_cam_near : cascade_levels[static_cast<i32>(j) - 1] * main_cam_far;
 
 					const matrix4x4 proj	  = matrix4x4::perspective(main_cam_fov, aspect_ratio, cascade_near, cascade_far);
 					const matrix4x4 view_proj = proj * main_view_matrix;
@@ -1188,7 +1188,7 @@ namespace SFG
 			dlights[dirs_count] = {
 				.color_entity_index			   = vector4(light.base_color.x, light.base_color.y, light.base_color.z, proxy_entity._assigned_index),
 				.intensity					   = vector4(light.intensity, 0.0f, 0.0f, 0.0f),
-				.shadow_res_map_and_data_index = vector4(light.shadow_res.x, light.shadow_res.y, static_cast<float>(light.shadow_texture_gpu_index[frame_index]), static_cast<float>(first_shadow_index)),
+				.shadow_res_map_and_data_index = vector4(light.shadow_res.x, light.shadow_res.y, static_cast<f32>(light.shadow_texture_gpu_index[frame_index]), static_cast<f32>(first_shadow_index)),
 			};
 			dirs_count++;
 		}

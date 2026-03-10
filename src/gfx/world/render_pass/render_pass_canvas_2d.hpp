@@ -66,7 +66,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gfx_id			   input_texture;
 			gfx_id			   global_layout;
@@ -84,14 +84,14 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index);
+		void prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index);
 		void render(const render_params& params);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}

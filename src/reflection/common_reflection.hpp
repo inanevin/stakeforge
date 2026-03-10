@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/string_id.hpp"
 namespace SFG
 {
-	enum class reflected_field_type : uint8
+	enum class reflected_field_type : u8
 	{
 		rf_float = 0,
 		rf_int,
@@ -67,7 +67,7 @@ namespace SFG
 		void*	  object_ptr  = nullptr;
 		void*	  data_ptr	  = nullptr;
 		string_id field_title = 0;
-		uint32	  list_index  = 0;
+		u32	  list_index  = 0;
 	};
 
 	struct reflected_button_params

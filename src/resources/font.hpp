@@ -48,7 +48,7 @@ namespace SFG
 	{
 	public:
 		static void reflect();
-		enum flags : uint8
+		enum flags : u8
 		{
 			created = 1 << 0,
 		};
@@ -73,7 +73,7 @@ namespace SFG
 
 	private:
 		vekt::font*	   _font  = nullptr;
-		bitmask<uint8> _flags = 0;
+		bitmask<u8> _flags = 0;
 
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;

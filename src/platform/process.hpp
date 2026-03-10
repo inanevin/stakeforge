@@ -57,8 +57,8 @@ namespace SFG
 		static bool	  open_directory(const char* dir);
 		static void	  message_box(const char* msg);
 		static void	  get_all_monitors(vector<monitor_info>& out);
-		static char	  get_character_from_key(uint32 key);
-		static uint16 get_character_mask_from_key(uint32 key, char ch);
+		static char	  get_character_from_key(u32 key);
+		static u16	  get_character_mask_from_key(u32 key, char ch);
 		static string select_folder(const char* title);
 		static string select_file(const char* title, const char* extension);
 		static void	  select_files(const char* title, const char* extension, vector<string>& out_files);

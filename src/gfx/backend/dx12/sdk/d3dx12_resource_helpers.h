@@ -484,7 +484,7 @@ inline bool D3DX12GetCopyableFootprints(_In_ const D3D12_RESOURCE_DESC1&								
 		const UINT16 NumSlices		 = Depth;
 		const UINT64 SubresourceSize = (NumRows * NumSlices - 1) * Placement.RowPitch + MinPlaneRowPitch;
 
-		// uint64 addition with overflow checking
+		// u64 addition with overflow checking
 		TotalBytes = TotalBytes + SubresourceSize;
 		if (TotalBytes < SubresourceSize)
 		{

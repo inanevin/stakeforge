@@ -129,7 +129,7 @@ namespace SFG
 		component_manager& cm = w.get_comp_manager();
 		if (w.get_playmode() == play_mode::none)
 		{
-			const float thickness	  = 0.05f;
+			const f32 thickness	  = 0.05f;
 			const color col_phy		  = color::red;
 			const color col_light	  = color::yellow;
 			const color col_light_alt = color::red;
@@ -166,14 +166,14 @@ namespace SFG
 							if (rm.is_valid<mesh>(mh))
 							{
 								const mesh&	 res	   = rm.get_resource<mesh>(mh);
-								const uint32 vtx_count = res.get_collider_vertex_count();
-								const uint32 idx_count = res.get_collider_index_count();
+								const u32 vtx_count = res.get_collider_vertex_count();
+								const u32 idx_count = res.get_collider_index_count();
 								if (vtx_count != 0 && idx_count != 0)
 								{
 									const vector3*		   vtx	= rm.get_aux().get<vector3>(res.get_collider_vertices());
 									const primitive_index* idx	= rm.get_aux().get<primitive_index>(res.get_collider_indices());
 									const vector3		   base = selected_pos + c.get_offset();
-									for (uint32 i = 0; i + 2 < idx_count; i += 3)
+									for (u32 i = 0; i + 2 < idx_count; i += 3)
 									{
 										const vector3 p0 = selected_rot * (vtx[idx[i + 0]] * selected_scale) + base;
 										const vector3 p1 = selected_rot * (vtx[idx[i + 1]] * selected_scale) + base;
@@ -192,8 +192,8 @@ namespace SFG
 				else if (dd.type == debug_draw_type::character_controller)
 				{
 					const comp_character_controller& c			 = cm.get_component<comp_character_controller>(dd.component);
-					const float						 radius		 = c.get_radius() * vector2(selected_scale.x, selected_scale.z).magnitude();
-					const float						 half_height = c.get_half_height() * selected_scale.y;
+					const f32						 radius		 = c.get_radius() * vector2(selected_scale.x, selected_scale.z).magnitude();
+					const f32						 half_height = c.get_half_height() * selected_scale.y;
 					debug_rendering.draw_capsule(selected_pos + c.get_shape_offset(), radius, half_height, selected_rot.get_up(), col_phy, thickness);
 				}
 				else if (dd.type == debug_draw_type::audio)
@@ -241,9 +241,9 @@ namespace SFG
 			else
 			{
 				alloc.append("[");
-				alloc.append(static_cast<uint32>(selected.generation));
+				alloc.append(static_cast<u32>(selected.generation));
 				alloc.append(", ");
-				alloc.append(static_cast<uint32>(selected.index));
+				alloc.append(static_cast<u32>(selected.index));
 				alloc.append("]");
 			}
 
@@ -528,7 +528,7 @@ namespace SFG
 		ctr.end_popup();
 	}
 
-	void editor_panel_inspector::on_input_field_changed(void* callback_ud, vekt::builder* b, vekt::id widget, const char* txt, float value)
+	void editor_panel_inspector::on_input_field_changed(void* callback_ud, vekt::builder* b, vekt::id widget, const char* txt, f32 value)
 	{
 		editor_panel_inspector* self = static_cast<editor_panel_inspector*>(callback_ud);
 
@@ -626,7 +626,7 @@ namespace SFG
 	{
 		editor_panel_inspector* self = static_cast<editor_panel_inspector*>(b->widget_get_user_data(widget).ptr);
 
-		if (ev.type == vekt::input_event_type::released && ev.button == static_cast<uint16>(input_code::mouse_0))
+		if (ev.type == vekt::input_event_type::released && ev.button == static_cast<u16>(input_code::mouse_0))
 		{
 			if (self->_gui_builder.invoke_control_button(widget))
 				return vekt::input_event_result::handled;

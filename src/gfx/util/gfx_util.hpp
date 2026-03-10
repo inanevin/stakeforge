@@ -35,7 +35,7 @@ namespace SFG
 		gui_default,
 	};
 
-	enum root_param_index : uint8
+	enum root_param_index : u8
 	{
 		rpi_engine_cbv = 0,
 		rpi_constants,
@@ -46,7 +46,7 @@ namespace SFG
 		rpi_static_sampler_begin,
 	};
 
-	enum update_pointer_index : uint8
+	enum update_pointer_index : u8
 	{
 		upi_render_pass_ubo0				= 0,
 		upi_render_pass_ubo1				= 1,
@@ -81,7 +81,7 @@ namespace SFG
 		upi_dyn_sampler3 = 3,
 	};
 
-	enum constant_indices : uint8
+	enum constant_indices : u8
 	{
 		constant_index_rp_constant0 = 0,
 		constant_index_rp_constant1,
@@ -120,17 +120,17 @@ namespace SFG
 
 	struct root_constants
 	{
-		uint32 rp_ubo_index		  = 0;
-		uint32 material_ubo_index = 0;
-		uint32 object_constant0	  = 0;
-		uint32 object_constant1	  = 0;
-		uint32 object_constant2	  = 0;
-		uint32 object_constant3	  = 0;
-		uint32 object_constant4	  = 0;
-		uint32 object_constant5	  = 0;
-		uint32 object_constant6	  = 0;
-		uint32 object_constant7	  = 0;
-		uint32 object_constant8	  = 0;
+		u32 rp_ubo_index	   = 0;
+		u32 material_ubo_index = 0;
+		u32 object_constant0   = 0;
+		u32 object_constant1   = 0;
+		u32 object_constant2   = 0;
+		u32 object_constant3   = 0;
+		u32 object_constant4   = 0;
+		u32 object_constant5   = 0;
+		u32 object_constant6   = 0;
+		u32 object_constant7   = 0;
+		u32 object_constant8   = 0;
 	};
 
 	class gfx_util

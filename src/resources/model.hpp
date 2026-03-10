@@ -59,7 +59,7 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline bitmask<uint8>& get_flags()
+		inline bitmask<u8>& get_flags()
 		{
 			return _flags;
 		}
@@ -69,32 +69,32 @@ namespace SFG
 			return _total_aabb;
 		}
 
-		inline uint16 get_material_count() const
+		inline u16 get_material_count() const
 		{
 			return _materials_count;
 		}
 
-		inline uint16 get_texture_count() const
+		inline u16 get_texture_count() const
 		{
 			return _textures_count;
 		}
 
-		inline uint16 get_node_count() const
+		inline u16 get_node_count() const
 		{
 			return _nodes_count;
 		}
 
-		inline uint16 get_mesh_count() const
+		inline u16 get_mesh_count() const
 		{
 			return _meshes_count;
 		}
 
-		inline uint16 get_light_count() const
+		inline u16 get_light_count() const
 		{
 			return _lights_count;
 		}
 
-		inline uint16 get_skin_count() const
+		inline u16 get_skin_count() const
 		{
 			return _skins_count;
 		}
@@ -152,14 +152,14 @@ namespace SFG
 		chunk_handle32 _created_textures;
 		chunk_handle32 _created_lights;
 		aabb		   _total_aabb;
-		uint16		   _nodes_count		= 0;
-		uint16		   _meshes_count	= 0;
-		uint16		   _skins_count		= 0;
-		uint16		   _anims_count		= 0;
-		uint16		   _materials_count = 0;
-		uint16		   _textures_count	= 0;
-		uint16		   _lights_count	= 0;
-		bitmask<uint8> _flags;
+		u16		   _nodes_count		= 0;
+		u16		   _meshes_count	= 0;
+		u16		   _skins_count		= 0;
+		u16		   _anims_count		= 0;
+		u16		   _materials_count = 0;
+		u16		   _textures_count	= 0;
+		u16		   _lights_count	= 0;
+		bitmask<u8> _flags;
 	};
 
 	REFLECT_TYPE(model);

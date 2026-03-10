@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum entity_flags : uint8
+	enum entity_flags : u8
 	{
 		entity_flags_invisible					  = 1 << 0,
 		entity_flags_transient_abs_transform_mark = 1 << 1,
@@ -48,7 +48,7 @@ namespace SFG
 	{
 		const char* name			   = "";
 		const char* tag				   = "";
-		uint8		render_proxy_count = 0;
+		u8			render_proxy_count = 0;
 	};
 
 	struct entity_family

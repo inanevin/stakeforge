@@ -48,7 +48,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -63,7 +63,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_command_buffer(pfd.cmd_buffer);
@@ -71,7 +71,7 @@ namespace SFG
 		}
 	}
 
-	void render_pass_forward::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index)
+	void render_pass_forward::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -80,7 +80,7 @@ namespace SFG
 
 		renderable_collector::populate_draw_stream(pm, renderables, _draw_stream, material_flags::material_flags_is_forward, 0, frame_index);
 
-		const uint8					ambient_exists = pm.get_ambient_exists();
+		const u8					ambient_exists = pm.get_ambient_exists();
 		const render_proxy_ambient& ambient		   = pm.get_ambient();
 		const vector3				ambient_color  = ambient_exists ? ambient.base_color : vector3(0.1f, 0.1f, 0.1f);
 
@@ -89,7 +89,7 @@ namespace SFG
 				  .view_proj   = main_camera_view.view_proj_matrix,
 				  .ambient	   = vector4(ambient_color.x, ambient_color.y, ambient_color.z, 1.0f),
 				  .camera_pos  = vector4(main_camera_view.position.x, main_camera_view.position.y, main_camera_view.position.z, 1.0f),
-				  .resolution  = vector2(static_cast<float>(resolution.x), static_cast<float>(resolution.y)),
+				  .resolution  = vector2(static_cast<f32>(resolution.x), static_cast<f32>(resolution.y)),
 				  .proj_params = vector2(math::tan(0.5f * main_camera_view.fov_degrees * DEG_2_RAD), 0.0f),
 		  };
 		pfd.ubo.buffer_data(0, &ubo_data, sizeof(ubo));
@@ -131,16 +131,16 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 rp_constants[4] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones, p.gpu_index_dir_lights};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 4, .param_index = rpi_constants});
+		const u32 rp_constants[4] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones, p.gpu_index_dir_lights};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 4, .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -172,7 +172,7 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= barriers.data(),
-									 .barrier_count = static_cast<uint16>(barriers.size()),
+									 .barrier_count = static_cast<u16>(barriers.size()),
 								 });
 		}
 

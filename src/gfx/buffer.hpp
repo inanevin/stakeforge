@@ -52,11 +52,11 @@ namespace SFG
 		}
 
 	private:
-		uint8*	  _mapped = nullptr;
+		u8*		  _mapped = nullptr;
 		gpu_index _index  = NULL_GPU_INDEX;
 
 #ifdef SFG_DEBUG
-		uint32 _total_size = 0;
+		u32 _total_size = 0;
 #endif
 
 		gfx_id _hw = NULL_GFX_ID;
@@ -81,16 +81,16 @@ namespace SFG
 			return _hw_gpu;
 		}
 
-		inline uint8* get_mapped() const
+		inline u8* get_mapped() const
 		{
 			return _mapped;
 		}
 
 	private:
-		uint8* _mapped = nullptr;
+		u8* _mapped = nullptr;
 
 #ifdef SFG_DEBUG
-		uint32 _total_size = 0;
+		u32 _total_size = 0;
 #endif
 		gfx_id _hw_staging = NULL_GFX_ID;
 		gfx_id _hw_gpu	   = NULL_GFX_ID;
@@ -114,26 +114,26 @@ namespace SFG
 			return _hw_gpu;
 		}
 
-		inline uint32 get_index() const
+		inline u32 get_index() const
 		{
 			return _index;
 		}
 
-		inline uint32 get_index_secondary() const
+		inline u32 get_index_secondary() const
 		{
 			return _index_secondary;
 		}
 
-		inline uint8* get_mapped() const
+		inline u8* get_mapped() const
 		{
 			return _mapped;
 		}
 
 	private:
-		uint8* _mapped = nullptr;
+		u8* _mapped = nullptr;
 
 #ifdef SFG_DEBUG
-		uint32 _total_size = 0;
+		u32 _total_size = 0;
 #endif
 
 		gpu_index _index		   = NULL_GPU_INDEX;

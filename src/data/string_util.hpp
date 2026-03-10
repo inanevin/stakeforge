@@ -36,7 +36,7 @@ namespace SFG
 	{
 	public:
 		static string		  remove_all_except_first(const string& str, const string& delimiter);
-		static int			  append_float(float value, char* target_bufffer, uint32 max_chars, uint32 decimals, bool null_term);
+		static int			  append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
 		static void			  replace_all(string& str, const string& to_replace, const string& replacement);
 		static void			  to_upper(string& str);
 		static void			  to_lower(string& str);
@@ -45,9 +45,9 @@ namespace SFG
 		static void			  split(vector<string>& out, const string& str, const string& split);
 		static char*		  wchar_to_char(const wchar_t* wch);
 		static const wchar_t* char_to_wchar(const char* ch);
-		static bool			  to_float(const string& str, float& out_f, uint32& out_decimals, char seperator = '.');
+		static bool			  to_float(const string& str, f32& out_f, u32& out_decimals, char seperator = '.');
 		static bool			  to_int(const string& str, int& out_i);
-		static bool			  to_big_uint(const string& str, uint64& out_i);
+		static bool			  to_big_uint(const string& str, u64& out_i);
 	};
 
 }

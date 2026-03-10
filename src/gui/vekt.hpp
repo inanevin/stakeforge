@@ -455,31 +455,31 @@ namespace vekt
 		{
 			return a < b ? a : b;
 		}
-		static inline float equals(float a, float b, float eps = 0.0001f)
+		static inline f32 equals(f32 a, f32 b, f32 eps = 0.0001f)
 		{
 			return a > b - eps && a < b + eps;
 		}
-		static inline float cos(float x)
+		static inline f32 cos(f32 x)
 		{
 			return std::cos(x);
 		}
-		static inline float sin(float x)
+		static inline f32 sin(f32 x)
 		{
 			return std::sin(x);
 		}
-		static inline float lerp(float a, float b, float t)
+		static inline f32 lerp(f32 a, f32 b, f32 t)
 		{
 			return a + (b - a) * t;
 		}
-		static inline float ceilf(float f)
+		static inline f32 ceilf(f32 f)
 		{
 			return std::ceilf(f);
 		}
-		static inline float remap(float val, float from_low, float from_high, float to_low, float to_high)
+		static inline f32 remap(f32 val, f32 from_low, f32 from_high, f32 to_low, f32 to_high)
 		{
 			return to_low + (val - from_low) * (to_high - to_low) / (from_high - from_low);
 		}
-		static inline float clamp(float f, float min, float max)
+		static inline f32 clamp(f32 f, f32 min, f32 max)
 		{
 			if (f > max)
 				f = max;
@@ -495,8 +495,8 @@ namespace vekt
 
 	struct vec2
 	{
-		float x = 0.0f;
-		float y = 0.0f;
+		f32 x = 0.0f;
+		f32 y = 0.0f;
 
 		vec2 operator+(const vec2& other) const
 		{
@@ -506,7 +506,7 @@ namespace vekt
 			return v;
 		}
 
-		vec2 operator*(float f) const
+		vec2 operator*(f32 f) const
 		{
 			vec2 v = *this;
 			v.x *= f;
@@ -529,14 +529,14 @@ namespace vekt
 			return *this;
 		}
 
-		vec2 operator/=(float f)
+		vec2 operator/=(f32 f)
 		{
 			x /= f;
 			y /= f;
 			return *this;
 		}
 
-		vec2 operator*=(float f)
+		vec2 operator*=(f32 f)
 		{
 			x *= f;
 			y *= f;
@@ -557,7 +557,7 @@ namespace vekt
 
 		inline void normalize()
 		{
-			const float s = mag();
+			const f32 s = mag();
 			x /= s;
 			y /= s;
 		}
@@ -569,11 +569,11 @@ namespace vekt
 			return v;
 		}
 
-		inline float mag()
+		inline f32 mag()
 		{
 			return sqrt(x * x + y * y);
 		}
-		inline float mag2()
+		inline f32 mag2()
 		{
 			return x * x + y * y;
 		}
@@ -587,21 +587,21 @@ namespace vekt
 
 	struct vec4
 	{
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
-		float w = 0.0f;
+		f32 x = 0.0f;
+		f32 y = 0.0f;
+		f32 z = 0.0f;
+		f32 w = 0.0f;
 
-		bool equals(const vec4& other, float eps = 0.1f) const
+		bool equals(const vec4& other, f32 eps = 0.1f) const
 		{
 			return math::equals(x, other.x, eps) && math::equals(y, other.y, eps) && math::equals(z, other.z, eps) && math::equals(w, other.w, eps);
 		}
-		bool is_point_inside(float _x, float _y) const
+		bool is_point_inside(f32 _x, f32 _y) const
 		{
 			return _x >= x && _x <= x + z && _y >= y && _y <= y + w;
 		}
 
-		static inline vec4 lerp(const vec4& a, const vec4& b, float t)
+		static inline vec4 lerp(const vec4& a, const vec4& b, f32 t)
 		{
 			return vec4(math::lerp(a.x, b.x, t), math::lerp(a.y, b.y, t), math::lerp(a.z, b.z, t), math::lerp(a.w, b.w, t));
 		}
@@ -631,7 +631,7 @@ namespace vekt
 			return v;
 		}
 
-		vec4 operator*(float f) const
+		vec4 operator*(f32 f) const
 		{
 			vec4 v = *this;
 			v.x *= f;
@@ -712,10 +712,10 @@ namespace vekt
 
 	struct margins
 	{
-		float top	 = 0.0f;
-		float bottom = 0.0f;
-		float left	 = 0.0f;
-		float right	 = 0.0f;
+		f32 top	 = 0.0f;
+		f32 bottom = 0.0f;
+		f32 left	 = 0.0f;
+		f32 right	 = 0.0f;
 	};
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -750,7 +750,7 @@ namespace vekt
 
 	struct mouse_wheel_event
 	{
-		float amount = 0.0f;
+		f32 amount = 0.0f;
 	};
 
 	struct key_event
@@ -817,7 +817,7 @@ namespace vekt
 
 	struct rounding_props
 	{
-		float		 rounding = 0.0f;
+		f32		 rounding = 0.0f;
 		unsigned int segments = 0;
 	};
 	struct font;
@@ -835,7 +835,7 @@ namespace vekt
 		size_t		 text_capacity = 0;
 		unsigned int append_ctr	   = 0;
 #endif
-		float		  scale	  = 1.0f;
+		f32		  scale	  = 1.0f;
 		unsigned char spacing = 0;
 	};
 
@@ -955,13 +955,13 @@ namespace vekt
 		static VEKT_VEC4 color_divider;
 		static VEKT_VEC4 color_item_outline;
 		static VEKT_VEC4 color_item_fg;
-		static float	 item_height;
-		static float	 item_spacing;
-		static float	 indent_horizontal;
-		static float	 margin_horizontal;
-		static float	 margin_vertical;
-		static float	 border_thickness;
-		static float	 outline_thickness;
+		static f32	 item_height;
+		static f32	 item_spacing;
+		static f32	 indent_horizontal;
+		static f32	 margin_horizontal;
+		static f32	 margin_vertical;
+		static f32	 border_thickness;
+		static f32	 outline_thickness;
 	};
 
 	struct hover_callback
@@ -1003,7 +1003,7 @@ namespace vekt
 	{
 		margins		   child_margins = margins();
 		VEKT_VEC2	   size			 = VEKT_VEC2();
-		float		   spacing		 = 0.0f;
+		f32		   spacing		 = 0.0f;
 		unsigned short flags		 = 0;
 	};
 
@@ -1020,15 +1020,15 @@ namespace vekt
 	struct pos_props
 	{
 		VEKT_VEC2	   pos			 = VEKT_VEC2();
-		float		   scroll_offset = 0.0f;
+		f32		   scroll_offset = 0.0f;
 		unsigned short flags		 = 0;
 	};
 
 	struct scroll_props
 	{
 		id	  scroll_parent = NULL_WIDGET_ID;
-		float scroll_ratio	= 0.0f;
-		float _max_scroll	= 0.0f;
+		f32 scroll_ratio	= 0.0f;
+		f32 _max_scroll	= 0.0f;
 	};
 
 	struct custom_passes
@@ -1054,12 +1054,12 @@ namespace vekt
 		{
 			uint64_t h = std::hash<VEKT_STRING>{}(text.text);
 			h		   = hash_combine_64(h, std::hash<void*>{}(text.font));
-			h		   = hash_combine_64(h, std::hash<float>{}(text.scale));
+			h		   = hash_combine_64(h, std::hash<f32>{}(text.scale));
 			h		   = hash_combine_64(h, std::hash<unsigned char>{}(text.spacing));
-			h		   = hash_combine_64(h, std::hash<float>{}(color.x));
-			h		   = hash_combine_64(h, std::hash<float>{}(color.y));
-			h		   = hash_combine_64(h, std::hash<float>{}(color.z));
-			h		   = hash_combine_64(h, std::hash<float>{}(color.w));
+			h		   = hash_combine_64(h, std::hash<f32>{}(color.x));
+			h		   = hash_combine_64(h, std::hash<f32>{}(color.y));
+			h		   = hash_combine_64(h, std::hash<f32>{}(color.z));
+			h		   = hash_combine_64(h, std::hash<f32>{}(color.w));
 			return h;
 		}
 	};
@@ -1073,7 +1073,7 @@ namespace vekt
 			VEKT_VEC2	 p0			= VEKT_VEC2();
 			VEKT_VEC2	 p1			= VEKT_VEC2();
 			VEKT_VEC4	 color		= VEKT_VEC4(1, 1, 1, 1);
-			float		 thickness	= 1.0f;
+			f32		 thickness	= 1.0f;
 			unsigned int draw_order = 0;
 			void*		 user_data	= nullptr;
 		};
@@ -1083,7 +1083,7 @@ namespace vekt
 			VEKT_VEC2	 p0			  = VEKT_VEC2();
 			VEKT_VEC2	 p1			  = VEKT_VEC2();
 			VEKT_VEC4	 color		  = VEKT_VEC4(1, 1, 1, 1);
-			float		 thickness	  = 1.0f;
+			f32		 thickness	  = 1.0f;
 			unsigned int aa_thickness = 1;
 			unsigned int draw_order	  = 0;
 			void*		 user_data	  = nullptr;
@@ -1092,11 +1092,11 @@ namespace vekt
 		struct circle_props
 		{
 			VEKT_VEC2	 center		= VEKT_VEC2();
-			float		 radius		= 0.0f;
+			f32		 radius		= 0.0f;
 			VEKT_VEC4	 color		= VEKT_VEC4(1, 1, 1, 1);
 			unsigned int segments	= 32;
 			bool		 filled		= true;
-			float		 thickness	= 1.0f; // used when filled == false
+			f32		 thickness	= 1.0f; // used when filled == false
 			unsigned int draw_order = 0;
 			void*		 user_data	= nullptr;
 		};
@@ -1104,7 +1104,7 @@ namespace vekt
 		struct sphere_props
 		{
 			VEKT_VEC2	 center		= VEKT_VEC2();
-			float		 radius		= 0.0f;
+			f32		 radius		= 0.0f;
 			VEKT_VEC4	 color		= VEKT_VEC4(1, 1, 1, 1);
 			unsigned int segments	= 32;
 			unsigned int draw_order = 0;
@@ -1159,7 +1159,7 @@ namespace vekt
 		size_props&			widget_get_size_props(id widget_id);
 		scroll_props&		widget_get_scroll_props(id widget_id);
 		pos_props&			widget_get_pos_props(id widget_id);
-		void				widget_set_scroll_offset(id widget_id, float offset);
+		void				widget_set_scroll_offset(id widget_id, f32 offset);
 		VEKT_VEC4			widget_get_clip(id widget_id) const;
 		widget_gfx&			widget_get_gfx(id widget);
 		stroke_props&		widget_get_stroke(id widget);
@@ -1168,8 +1168,8 @@ namespace vekt
 		second_color_props& widget_get_second_color(id widget);
 		input_color_props&	widget_get_input_colors(id widget);
 		text_props&			widget_get_text(id widget);
-		unsigned int		widget_get_character_index(id widget, float x_diff);
-		float				widget_get_character_offset(id widget, unsigned int index);
+		unsigned int		widget_get_character_index(id widget, f32 x_diff);
+		f32				widget_get_character_offset(id widget, unsigned int index);
 		mouse_callback&		widget_get_mouse_callbacks(id widget);
 		key_callback&		widget_get_key_callbacks(id widget);
 		hover_callback&		widget_get_hover_callbacks(id widget);
@@ -1181,7 +1181,7 @@ namespace vekt
 		void				widget_remove_child(id widget_id, id child_id);
 		void				widget_set_text(id wg, const char* text, size_t default_text_capacity = 256);
 		void				widget_append_text_start(id widget);
-		void				widget_append_text(id widget, float f, int precision = 3, size_t default_text_capacity = 256);
+		void				widget_append_text(id widget, f32 f, int precision = 3, size_t default_text_capacity = 256);
 		void				widget_append_text(id widget, unsigned int, size_t default_text_capacity = 256);
 		void				widget_append_text(id widget, const char*, size_t default_text_capacity = 256);
 		void				widget_update_text(id widget);
@@ -1266,10 +1266,10 @@ namespace vekt
 		void		 calculate_sizes();
 		void		 calculate_positions();
 		void		 calculate_draw();
-		void		 generate_rounded_rect(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, float rounding, int segments);
+		void		 generate_rounded_rect(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, f32 rounding, int segments);
 		void		 generate_sharp_rect(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max);
-		void		 generate_offset_rect_4points(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, float amount);
-		void		 generate_offset_rect(vector<VEKT_VEC2>& out_path, const vector<VEKT_VEC2>& base_path, float amount);
+		void		 generate_offset_rect_4points(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, f32 amount);
+		void		 generate_offset_rect(vector<VEKT_VEC2>& out_path, const vector<VEKT_VEC2>& base_path, f32 amount);
 		void		 add_strip(draw_buffer* db, unsigned int outer_start, unsigned int inner_start, unsigned int size, bool add_ccw);
 		void		 add_filled_rect(draw_buffer* db, unsigned int start);
 		void		 add_filled_rect_central(draw_buffer* db, unsigned int start, unsigned int central_start, unsigned int size);
@@ -1277,11 +1277,11 @@ namespace vekt
 		void		 add_vertices_multicolor(draw_buffer* db, const vector<VEKT_VEC2>& path, const VEKT_VEC4& color_start, const VEKT_VEC4& color_end, direction direction, const VEKT_VEC2& min, const VEKT_VEC2& max);
 		void		 add_central_vertex(draw_buffer* db, const VEKT_VEC4& color, const VEKT_VEC2& min, const VEKT_VEC2& max);
 		void		 add_central_vertex_multicolor(draw_buffer* db, const VEKT_VEC4& color_start, const VEKT_VEC4& color_end, const VEKT_VEC2& min, const VEKT_VEC2& max);
-		void		 add_vertices_aa(draw_buffer* db, const vector<VEKT_VEC2>& path, unsigned int original_vertices_idx, float alpha, const VEKT_VEC2& min, const VEKT_VEC2& max);
+		void		 add_vertices_aa(draw_buffer* db, const vector<VEKT_VEC2>& path, unsigned int original_vertices_idx, f32 alpha, const VEKT_VEC2& min, const VEKT_VEC2& max);
 		void		 deallocate_impl(id widget);
 
 		// Immediate helpers
-		void generate_circle_path(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& center, float radius, unsigned int segments);
+		void generate_circle_path(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& center, f32 radius, unsigned int segments);
 
 	private:
 		struct clip_info
@@ -1386,14 +1386,14 @@ namespace vekt
 		int			   height			 = 0;
 		int			   advance_x		 = 0;
 		int			   left_bearing		 = 0;
-		float		   x_offset			 = 0.0f;
-		float		   y_offset			 = 0.0f;
+		f32		   x_offset			 = 0.0f;
+		f32		   y_offset			 = 0.0f;
 		int			   atlas_x			 = 0;
 		int			   atlas_y			 = 0;
-		float		   uv_x				 = 0.0f;
-		float		   uv_y				 = 0.0f;
-		float		   uv_w				 = 0.0f;
-		float		   uv_h				 = 0.0f;
+		f32		   uv_x				 = 0.0f;
+		f32		   uv_y				 = 0.0f;
+		f32		   uv_w				 = 0.0f;
+		f32		   uv_h				 = 0.0f;
 	};
 
 	struct font
@@ -1403,7 +1403,7 @@ namespace vekt
 		unsigned int _font_id				= NULL_WIDGET_ID;
 		unsigned int _atlas_required_height = 0;
 		unsigned int _atlas_pos				= 0;
-		float		 _scale					= 0.0f;
+		f32		 _scale					= 0.0f;
 		int			 ascent					= 0;
 		int			 descent				= 0;
 		int			 line_gap				= 0;
@@ -1489,8 +1489,8 @@ namespace vekt
 		void init();
 		void uninit();
 
-		font* load_font_from_file(const char* file, unsigned int size, unsigned int range_start = 32, unsigned int range_end = 128, font_type type = font_type::normal, int sdf_padding = 3, int sdf_edge = 128, float sdf_distance = 32.0f);
-		font* load_font(unsigned char* data, unsigned int data_size, unsigned int size, unsigned int range0, unsigned int range1, font_type type = font_type::normal, int sdf_padding = 3, int sdf_edge = 128, float sdf_distance = 32.0f);
+		font* load_font_from_file(const char* file, unsigned int size, unsigned int range_start = 32, unsigned int range_end = 128, font_type type = font_type::normal, int sdf_padding = 3, int sdf_edge = 128, f32 sdf_distance = 32.0f);
+		font* load_font(unsigned char* data, unsigned int data_size, unsigned int size, unsigned int range0, unsigned int range1, font_type type = font_type::normal, int sdf_padding = 3, int sdf_edge = 128, f32 sdf_distance = 32.0f);
 		void  unload_font(font* fnt);
 
 		inline void set_callback_user_data(void* callback_user_data)

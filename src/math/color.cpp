@@ -51,7 +51,7 @@ namespace SFG
 
 	color color::linear_to_srgb()
 	{
-		auto convert = [](float value) {
+		auto convert = [](f32 value) {
 			if (value <= 0.0031308f)
 			{
 				return value * 12.92f;
@@ -67,7 +67,7 @@ namespace SFG
 
 	color color::srgb_to_linear()
 	{
-		auto convert = [](float value) {
+		auto convert = [](f32 value) {
 			if (value <= 0.04045f)
 			{
 				return value / 12.92f;
@@ -81,7 +81,7 @@ namespace SFG
 		return color(convert(x), convert(y), convert(z), convert(w));
 	}
 
-	color color::from255(float r, float g, float b, float a)
+	color color::from255(f32 r, f32 g, f32 b, f32 a)
 	{
 		return color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 	}
@@ -120,10 +120,10 @@ namespace SFG
 	{
 		if (!j.is_array() || j.size() < 4)
 			throw std::runtime_error("color json err");
-		c.x = j.at(0).get<float>();
-		c.y = j.at(1).get<float>();
-		c.z = j.at(2).get<float>();
-		c.w = j.at(3).get<float>();
+		c.x = j.at(0).get<f32>();
+		c.y = j.at(1).get<f32>();
+		c.z = j.at(2).get<f32>();
+		c.w = j.at(3).get<f32>();
 	}
 #endif
 

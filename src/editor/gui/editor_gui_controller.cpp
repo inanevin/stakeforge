@@ -53,10 +53,10 @@ namespace SFG
 #define CONTEXT_DRAW_ORDER 1000
 #define POPUP_DRAW_ORDER   1000
 
-	static constexpr float SEPARATOR_WIDTH	   = 4.0f;
-	static constexpr float ENTITIES_MIN_WIDTH  = 160.0f;
-	static constexpr float WORLD_MIN_WIDTH	   = 240.0f;
-	static constexpr float INSPECTOR_MIN_WIDTH = 240.0f;
+	static constexpr f32 SEPARATOR_WIDTH	   = 4.0f;
+	static constexpr f32 ENTITIES_MIN_WIDTH  = 160.0f;
+	static constexpr f32 WORLD_MIN_WIDTH	   = 240.0f;
+	static constexpr f32 INSPECTOR_MIN_WIDTH = 240.0f;
 
 	namespace
 	{
@@ -313,20 +313,20 @@ namespace SFG
 		}
 
 		_builder->widget_set_pos_abs(_layout_root, vector2(0.0f, debug_controller::get_field_height()));
-		_builder->widget_set_size_abs(_layout_root, vector2(static_cast<float>(window_size.x), static_cast<float>(window_size.y) - debug_controller::get_field_height()));
+		_builder->widget_set_size_abs(_layout_root, vector2(static_cast<f32>(window_size.x), static_cast<f32>(window_size.y) - debug_controller::get_field_height()));
 		{
 			const vector2 layout_size = _builder->widget_get_size(_layout_root);
 			if (layout_size.x > 0.0f)
 			{
-				const float available	  = layout_size.x - (SEPARATOR_WIDTH * 2.0f);
-				const float min_remaining = WORLD_MIN_WIDTH + INSPECTOR_MIN_WIDTH;
-				const float max_width	  = math::max(available - min_remaining, ENTITIES_MIN_WIDTH);
+				const f32 available	  = layout_size.x - (SEPARATOR_WIDTH * 2.0f);
+				const f32 min_remaining = WORLD_MIN_WIDTH + INSPECTOR_MIN_WIDTH;
+				const f32 max_width	  = math::max(available - min_remaining, ENTITIES_MIN_WIDTH);
 				_split_px				  = math::clamp(layout_size.x * _split_ratio, ENTITIES_MIN_WIDTH, max_width);
 				vekt::size_props& ent_sz  = _builder->widget_get_size_props(_panel_entities->get_root());
 				ent_sz.size.x			  = _split_px;
 
-				const float remaining	   = layout_size.x - _split_px - (SEPARATOR_WIDTH * 2.0f);
-				const float max_world	   = math::max(remaining - INSPECTOR_MIN_WIDTH, WORLD_MIN_WIDTH);
+				const f32 remaining	   = layout_size.x - _split_px - (SEPARATOR_WIDTH * 2.0f);
+				const f32 max_world	   = math::max(remaining - INSPECTOR_MIN_WIDTH, WORLD_MIN_WIDTH);
 				_split_world_px			   = math::clamp(remaining * _split_ratio_right, WORLD_MIN_WIDTH, max_world);
 				vekt::size_props& world_sz = _builder->widget_get_size_props(_panel_world->get_root());
 				world_sz.size.x			   = _split_world_px;
@@ -357,7 +357,7 @@ namespace SFG
 			_panel_entities->set_selected(h);
 	}
 
-	vekt::id editor_gui_controller::begin_context_menu(float abs_x, float abs_y)
+	vekt::id editor_gui_controller::begin_context_menu(f32 abs_x, f32 abs_y)
 	{
 		kill_context();
 
@@ -877,9 +877,9 @@ namespace SFG
 		return vekt::input_event_result::not_handled;
 	}
 
-	void editor_gui_controller::on_separator_drag(vekt::builder* b, vekt::id widget, float mp_x, float mp_y, float delta_x, float delta_y, unsigned int button)
+	void editor_gui_controller::on_separator_drag(vekt::builder* b, vekt::id widget, f32 mp_x, f32 mp_y, f32 delta_x, f32 delta_y, unsigned int button)
 	{
-		if (button != static_cast<uint16>(input_code::mouse_0))
+		if (button != static_cast<u16>(input_code::mouse_0))
 			return;
 
 		editor_gui_controller* self = static_cast<editor_gui_controller*>(b->widget_get_user_data(widget).ptr);
@@ -889,9 +889,9 @@ namespace SFG
 		const vector2 layout_size = b->widget_get_size(self->_layout_root);
 		if (widget == self->_layout_separator_left)
 		{
-			const float available	  = layout_size.x - (SEPARATOR_WIDTH * 2.0f);
-			const float min_remaining = WORLD_MIN_WIDTH + INSPECTOR_MIN_WIDTH;
-			const float max_width	  = math::max(available - min_remaining, ENTITIES_MIN_WIDTH);
+			const f32 available	  = layout_size.x - (SEPARATOR_WIDTH * 2.0f);
+			const f32 min_remaining = WORLD_MIN_WIDTH + INSPECTOR_MIN_WIDTH;
+			const f32 max_width	  = math::max(available - min_remaining, ENTITIES_MIN_WIDTH);
 
 			self->_split_px = math::clamp(self->_split_px + delta_x, ENTITIES_MIN_WIDTH, max_width);
 			if (layout_size.x > 0.0f)
@@ -904,16 +904,16 @@ namespace SFG
 			vekt::size_props& ent_sz   = b->widget_get_size_props(ent_root);
 			ent_sz.size.x			   = self->_split_px;
 
-			const float remaining	   = layout_size.x - self->_split_px - (SEPARATOR_WIDTH * 2.0f);
-			const float max_world	   = math::max(remaining - INSPECTOR_MIN_WIDTH, WORLD_MIN_WIDTH);
+			const f32 remaining	   = layout_size.x - self->_split_px - (SEPARATOR_WIDTH * 2.0f);
+			const f32 max_world	   = math::max(remaining - INSPECTOR_MIN_WIDTH, WORLD_MIN_WIDTH);
 			self->_split_world_px	   = math::clamp(remaining * self->_split_ratio_right, WORLD_MIN_WIDTH, max_world);
 			vekt::size_props& world_sz = b->widget_get_size_props(self->_panel_world->get_root());
 			world_sz.size.x			   = self->_split_world_px;
 		}
 		else if (widget == self->_layout_separator_right)
 		{
-			const float remaining = layout_size.x - self->_split_px - (SEPARATOR_WIDTH * 2.0f);
-			const float max_world = math::max(remaining - INSPECTOR_MIN_WIDTH, WORLD_MIN_WIDTH);
+			const f32 remaining = layout_size.x - self->_split_px - (SEPARATOR_WIDTH * 2.0f);
+			const f32 max_world = math::max(remaining - INSPECTOR_MIN_WIDTH, WORLD_MIN_WIDTH);
 
 			self->_split_world_px = math::clamp(self->_split_world_px + delta_x, WORLD_MIN_WIDTH, max_world);
 			if (remaining > 0.0f)

@@ -42,7 +42,7 @@ namespace SFG
 
 		pool_allocator_gen()
 		{
-			for (uint32 i = 0; i < N; i++)
+			for (u32 i = 0; i < N; i++)
 			{
 				_generations[i] = 1;
 				_free_list[i]	= 0;
@@ -148,7 +148,7 @@ namespace SFG
 			using reference = TYPE&;
 			using pointer	= TYPE*;
 
-			iterator(pointer ptr, const uint8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _ptr(ptr), _actives(actives), _current(begin), _end(end)
+			iterator(pointer ptr, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _ptr(ptr), _actives(actives), _current(begin), _end(end)
 			{
 				while (_current != end && actives[_current] == 0)
 					++_current;
@@ -189,10 +189,10 @@ namespace SFG
 				return a._current != b._current;
 			}
 
-			pointer		 _ptr	  = nullptr;
-			const uint8* _actives = nullptr;
-			SIZE_TYPE	 _current = 0;
-			SIZE_TYPE	 _end	  = 0;
+			pointer	  _ptr	   = nullptr;
+			const u8* _actives = nullptr;
+			SIZE_TYPE _current = 0;
+			SIZE_TYPE _end	   = 0;
 		};
 
 		iterator<const T> begin() const
@@ -221,7 +221,7 @@ namespace SFG
 
 		struct handle_iterator
 		{
-			handle_iterator(const SIZE_TYPE* gens, const uint8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _gens(gens), _actives(actives), _current(begin), _end(end)
+			handle_iterator(const SIZE_TYPE* gens, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _gens(gens), _actives(actives), _current(begin), _end(end)
 			{
 				while (_current != end && actives[_current] == 0)
 					++_current;
@@ -261,7 +261,7 @@ namespace SFG
 				return a._current != b._current;
 			}
 
-			const uint8*	 _actives = nullptr;
+			const u8*		 _actives = nullptr;
 			const SIZE_TYPE* _gens	  = nullptr;
 			SIZE_TYPE		 _current = 0;
 			SIZE_TYPE		 _end	  = 0;
@@ -282,7 +282,7 @@ namespace SFG
 		SIZE_TYPE _free_count = 0;
 		SIZE_TYPE _free_list[N];
 		SIZE_TYPE _generations[N];
-		uint8	  _actives[N];
+		u8		  _actives[N];
 		SIZE_TYPE _head = 0;
 	};
 

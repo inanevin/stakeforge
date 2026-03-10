@@ -59,17 +59,17 @@ namespace SFG
 			vector2	  inv_half;
 
 			// Projection
-			float z_near;
-			float z_far;
+			f32 z_near;
+			f32 z_far;
 
 			// AO controls
-			float  radius_world;		// AO radius in *world/view* units (meters)
-			float  bias;				// small bias to reduce self-occlusion (e.g., 0.02)
-			float  intensity;			// AO strength (e.g., 1.2)
-			float  power;				// contrast shaping (e.g., 1.1)
-			uint32 num_dirs;			// e.g., 8
-			uint32 num_steps;			// e.g., 6
-			float  random_rot_strength; // e.g., 1.0
+			f32 radius_world;		 // AO radius in *world/view* units (meters)
+			f32 bias;				 // small bias to reduce self-occlusion (e.g., 0.02)
+			f32 intensity;			 // AO strength (e.g., 1.2)
+			f32 power;				 // contrast shaping (e.g., 1.1)
+			u32 num_dirs;			 // e.g., 8
+			u32 num_steps;			 // e.g., 6
+			f32 random_rot_strength; // e.g., 1.0
 		};
 
 		struct per_frame_data
@@ -87,7 +87,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gpu_index		   gpu_index_depth;
 			gpu_index		   gpu_index_normals;
@@ -106,7 +106,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index);
+		void prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index);
 		void render(const render_params& params);
 		void resize(const vector2ui16& size);
 
@@ -114,12 +114,12 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}
 
-		inline gpu_index get_output_gpu_index(uint8 frame_index) const
+		inline gpu_index get_output_gpu_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].gpu_index_ao_upsample_srv;
 		}

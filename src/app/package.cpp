@@ -67,7 +67,7 @@ namespace SFG
 	void package::write_resource(string_id id)
 	{
 		_header.resource_table[id] = {
-			.offset = static_cast<uint32>(_write_data.get_size()),
+			.offset = static_cast<u32>(_write_data.get_size()),
 		};
 	}
 
@@ -128,7 +128,7 @@ namespace SFG
 
 	void package_header::serialize(ostream& stream) const
 	{
-		const uint32 entry_count = static_cast<uint32>(resource_table.size());
+		const u32 entry_count = static_cast<u32>(resource_table.size());
 		stream << entry_count;
 
 		for (const auto& [sid, e] : resource_table)
@@ -142,10 +142,10 @@ namespace SFG
 	{
 		resource_table.clear();
 
-		uint32 entry_count = 0;
+		u32 entry_count = 0;
 		stream >> entry_count;
 
-		for (uint32 i = 0; i < entry_count; i++)
+		for (u32 i = 0; i < entry_count; i++)
 		{
 			package_entry e	  = {};
 			string_id	  sid = 0;

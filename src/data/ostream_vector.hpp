@@ -33,7 +33,7 @@ namespace SFG
 {
 	template <class T, class Alloc> ostream& operator<<(ostream& stream, const std::vector<T, Alloc>& v)
 	{
-		const uint32 sz = static_cast<uint32>(v.size());
+		const u32 sz = static_cast<u32>(v.size());
 		stream << sz;
 		for (auto& e : v)
 			stream << e;

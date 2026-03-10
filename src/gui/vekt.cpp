@@ -48,13 +48,13 @@ namespace vekt
 	VEKT_VEC4 theme::color_divider		= {12.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
 	VEKT_VEC4 theme::color_item_outline = {42.0f / 255.0f, 42.0f / 255.0f, 42.0f / 255.0f, 1.0f};
 	VEKT_VEC4 theme::color_item_fg		= {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1.0f};
-	float	  theme::item_height		= 24.0f;
-	float	  theme::item_spacing		= 8.0f;
-	float	  theme::indent_horizontal	= 8.0f;
-	float	  theme::margin_horizontal	= 4.0f;
-	float	  theme::margin_vertical	= 2.0f;
-	float	  theme::border_thickness	= 6.0f;
-	float	  theme::outline_thickness	= 2.0f;
+	f32	  theme::item_height		= 24.0f;
+	f32	  theme::item_spacing		= 8.0f;
+	f32	  theme::indent_horizontal	= 8.0f;
+	f32	  theme::margin_horizontal	= 4.0f;
+	f32	  theme::margin_vertical	= 2.0f;
+	f32	  theme::border_thickness	= 6.0f;
+	f32	  theme::outline_thickness	= 2.0f;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// :: BUILDER IMPL
@@ -184,7 +184,7 @@ namespace vekt
 			new (&_index_buffer[i]) index();
 
 		_total_sz = _layout_arena.capacity + _gfx_arena.capacity + _misc_arena.capacity + conf.vertex_buffer_sz + conf.index_buffer_sz + conf.text_cache_vertex_buffer_sz + conf.text_cache_index_buffer_sz;
-		V_LOG("Vekt builder initialized with %d widgets. Total memory reserved: %zu bytes - %0.2f mb", _widget_count, _total_sz, static_cast<float>(_total_sz) / 1000000.f);
+		V_LOG("Vekt builder initialized with %d widgets. Total memory reserved: %zu bytes - %0.2f mb", _widget_count, _total_sz, static_cast<f32>(_total_sz) / 1000000.f);
 		PUSH_ALLOCATION_SZ(_total_sz);
 
 		_depth_first_widgets.reserve(1024);
@@ -331,7 +331,7 @@ namespace vekt
 		MEMCPY((void*)tp.text, &c, 1);
 	}
 
-	void builder::widget_append_text(id widget, float f, int precision, size_t default_cap)
+	void builder::widget_append_text(id widget, f32 f, int precision, size_t default_cap)
 	{
 		text_props& tp = _texts[widget];
 
@@ -868,12 +868,12 @@ namespace vekt
 			const size_props&  parent_props		= _size_properties[widget];
 			const widget_meta& parent_meta		= _metas[widget];
 
-			const float available_size_default_x = parent_result.size.x - parent_props.child_margins.left - parent_props.child_margins.right;
-			const float available_size_default_y = parent_result.size.y - parent_props.child_margins.top - parent_props.child_margins.bottom;
+			const f32 available_size_default_x = parent_result.size.x - parent_props.child_margins.left - parent_props.child_margins.right;
+			const f32 available_size_default_y = parent_result.size.y - parent_props.child_margins.top - parent_props.child_margins.bottom;
 
 			if (parent_pos_props.flags & pos_flags::pf_child_pos_row)
 			{
-				float		 total		   = 0.0f;
+				f32		 total		   = 0.0f;
 				unsigned int total_count   = 0;
 				unsigned int waiting_count = 0;
 
@@ -898,8 +898,8 @@ namespace vekt
 					total_count++;
 				}
 
-				const float available_size = available_size_default_x - (total_count - 1) * parent_props.spacing - total;
-				const float size_per_child = available_size / static_cast<float>(waiting_count);
+				const f32 available_size = available_size_default_x - (total_count - 1) * parent_props.spacing - total;
+				const f32 size_per_child = available_size / static_cast<f32>(waiting_count);
 
 				for (id c : parent_meta.children)
 				{
@@ -915,7 +915,7 @@ namespace vekt
 			}
 			else if (parent_pos_props.flags & pos_flags::pf_child_pos_column)
 			{
-				float		 total		   = 0.0f;
+				f32		 total		   = 0.0f;
 				unsigned int total_count   = 0;
 				unsigned int waiting_count = 0;
 
@@ -939,8 +939,8 @@ namespace vekt
 					total_count++;
 				}
 
-				const float available_size = available_size_default_y - (total_count - 1) * parent_props.spacing - total;
-				const float size_per_child = available_size / static_cast<float>(waiting_count);
+				const f32 available_size = available_size_default_y - (total_count - 1) * parent_props.spacing - total;
+				const f32 size_per_child = available_size / static_cast<f32>(waiting_count);
 
 				for (id c : parent_meta.children)
 				{
@@ -980,9 +980,9 @@ namespace vekt
 			const widget_meta& parent_meta = _metas[sc.scroll_parent];
 			const size_props&  parent_size = _size_properties[sc.scroll_parent];
 
-			float		 total_y				  = 0.0f;
+			f32		 total_y				  = 0.0f;
 			unsigned int count					  = 0;
-			const float	 available_size_default_y = _size_results[sc.scroll_parent].size.y - parent_size.child_margins.top - parent_size.child_margins.bottom;
+			const f32	 available_size_default_y = _size_results[sc.scroll_parent].size.y - parent_size.child_margins.top - parent_size.child_margins.bottom;
 
 			for (id c : parent_meta.children)
 			{
@@ -1000,14 +1000,14 @@ namespace vekt
 			if (count == 0)
 				break;
 
-			const float total = total_y + parent_size.spacing * (count - 1);
-			const float ratio = total / available_size_default_y;
+			const f32 total = total_y + parent_size.spacing * (count - 1);
+			const f32 ratio = total / available_size_default_y;
 
 			const widget_meta& meta = _metas[widget];
 
 			_size_results[widget].size.y = ratio > 1.0f ? _size_results[meta.parent].size.y * (1.0f / ratio) : 0.0f;
 
-			const float diff = total - available_size_default_y;
+			const f32 diff = total - available_size_default_y;
 			pos_props&	pp	 = _pos_properties[sc.scroll_parent];
 
 			if (pp.scroll_offset < -diff)
@@ -1021,7 +1021,7 @@ namespace vekt
 
 	void builder::calculate_positions()
 	{
-		uint32 i = 0;
+		u32 i = 0;
 		for (id widget : _depth_first_widgets)
 		{
 			pos_props& pp = _pos_properties[widget];
@@ -1036,8 +1036,8 @@ namespace vekt
 
 			const size_props&  sz		 = _size_properties[widget];
 			const size_result& sr		 = _size_results[widget];
-			const float		   my_width	 = sr.size.x;
-			const float		   my_height = sr.size.y;
+			const f32		   my_width	 = sr.size.x;
+			const f32		   my_height = sr.size.y;
 
 			// set my pos if abs needed.
 			pos_result& pr = _pos_results[widget];
@@ -1046,15 +1046,15 @@ namespace vekt
 			if (pp.flags & pos_flags::pf_y_abs)
 				pr.pos.y = pp.pos.y;
 
-			const float my_pos_x = pr.pos.x;
-			const float my_pos_y = pr.pos.y;
+			const f32 my_pos_x = pr.pos.x;
+			const f32 my_pos_y = pr.pos.y;
 			const bool	is_row	 = pp.flags & pos_flags::pf_child_pos_row;
 			const bool	is_col	 = pp.flags & pos_flags::pf_child_pos_column;
 
 			widget_meta& meta = _metas[widget];
 
-			float row_position = my_pos_x + sz.child_margins.left;
-			float col_position = my_pos_y + sz.child_margins.top + pp.scroll_offset;
+			f32 row_position = my_pos_x + sz.child_margins.left;
+			f32 col_position = my_pos_y + sz.child_margins.top + pp.scroll_offset;
 
 			for (id child : meta.children)
 			{
@@ -1422,7 +1422,7 @@ namespace vekt
 		return _pos_properties[widget_id];
 	}
 
-	void builder::widget_set_scroll_offset(id widget_id, float offset)
+	void builder::widget_set_scroll_offset(id widget_id, f32 offset)
 	{
 		_pos_properties[widget_id].scroll_offset = offset;
 	}
@@ -1465,15 +1465,15 @@ namespace vekt
 				pos_result&	 track_pr = _pos_results[sc.scroll_parent];
 				size_result& track_sr = _size_results[sc.scroll_parent];
 
-				const float track_top	 = track_pr.pos.y;
-				const float track_height = track_sr.size.y;
-				const float thumb_h		 = thumb_sr.size.y;
-				const float travel		 = math::max(0.0f, track_height - thumb_h);
-				const float grab_y		 = _press_relative_pos.y;
-				float		thumb_top	 = mouse.y - grab_y;
+				const f32 track_top	 = track_pr.pos.y;
+				const f32 track_height = track_sr.size.y;
+				const f32 thumb_h		 = thumb_sr.size.y;
+				const f32 travel		 = math::max(0.0f, track_height - thumb_h);
+				const f32 grab_y		 = _press_relative_pos.y;
+				f32		thumb_top	 = mouse.y - grab_y;
 				thumb_top				 = math::clamp(thumb_top, track_top, track_top + travel);
 
-				const float ratio	  = (travel > 0.0f) ? ((thumb_top - track_top) / travel) : 0.0f;
+				const f32 ratio	  = (travel > 0.0f) ? ((thumb_top - track_top) / travel) : 0.0f;
 				pos_props&	parent_pp = _pos_properties[sc.scroll_parent];
 
 				parent_pp.scroll_offset = -ratio * sc._max_scroll;
@@ -1644,7 +1644,7 @@ namespace vekt
 		// Build a quad around the segment using thickness
 		const VEKT_VEC2 dir = (props.p1 - props.p0).normalized();
 		const VEKT_VEC2 nrm(-dir.y, dir.x);
-		const float		half_t = props.thickness * 0.5f;
+		const f32		half_t = props.thickness * 0.5f;
 		const VEKT_VEC2 off	   = nrm * half_t;
 
 		VEKT_VEC2 q0 = props.p0 - off;
@@ -1680,7 +1680,7 @@ namespace vekt
 	{
 		const VEKT_VEC2 dir = (props.p1 - props.p0).normalized();
 		const VEKT_VEC2 nrm(-dir.y, dir.x);
-		const float		half_t = props.thickness * 0.5f;
+		const f32		half_t = props.thickness * 0.5f;
 		const VEKT_VEC2 off	   = nrm * half_t;
 
 		VEKT_VEC2 q0 = props.p0 - off;
@@ -1707,7 +1707,7 @@ namespace vekt
 		}
 
 		// Expand outward for AA ring
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<float>(props.aa_thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<f32>(props.aa_thickness));
 
 		draw_buffer*	   db		 = get_draw_buffer(props.draw_order, props.user_data);
 		const unsigned int out_start = db->vertex_count;
@@ -1719,14 +1719,14 @@ namespace vekt
 		add_strip(db, out_aa_start, out_start, _reuse_aa_outer_path.size(), false);
 	}
 
-	void builder::generate_circle_path(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& center, float radius, unsigned int segments)
+	void builder::generate_circle_path(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& center, f32 radius, unsigned int segments)
 	{
 		if (segments < 3)
 			segments = 3;
 		out_path.resize_explicit(0);
 		for (unsigned int i = 0; i < segments; ++i)
 		{
-			const float		ang	  = DEG_2_RAD * (360.0f * (static_cast<float>(i) / static_cast<float>(segments)));
+			const f32		ang	  = DEG_2_RAD * (360.0f * (static_cast<f32>(i) / static_cast<f32>(segments)));
 			const VEKT_VEC2 point = center + VEKT_VEC2(math::sin(ang), -math::cos(ang)) * radius;
 			out_path.push_back(point);
 		}
@@ -1754,7 +1754,7 @@ namespace vekt
 		}
 		else
 		{
-			const float t = math::min(props.thickness, props.radius);
+			const f32 t = math::min(props.thickness, props.radius);
 			generate_offset_rect(_reuse_inner_path, _reuse_outer_path, t);
 			const unsigned int out_start = db->vertex_count;
 			add_vertices(db, _reuse_outer_path, props.color, bb_min, bb_max);
@@ -1801,7 +1801,7 @@ namespace vekt
 		aa_props& p = _aa_props[props.widget_id];
 
 		generate_sharp_rect(_reuse_outer_path, props.min, props.max);
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<float>(p.thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<f32>(p.thickness));
 
 		draw_buffer*	   db		 = get_draw_buffer(props.gfx.draw_order, props.gfx.user_data);
 		const unsigned int out_start = db->vertex_count;
@@ -1830,7 +1830,7 @@ namespace vekt
 
 		generate_sharp_rect(_reuse_outer_path, props.min, props.max);
 
-		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<float>(out_p.thickness));
+		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<f32>(out_p.thickness));
 
 		const unsigned int out_start = db->vertex_count;
 
@@ -1893,9 +1893,9 @@ namespace vekt
 		_reuse_aa_outer_path.resize_explicit(0);
 
 		generate_sharp_rect(_reuse_outer_path, props.min, props.max);
-		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<float>(out_p.thickness));
+		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<f32>(out_p.thickness));
 
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outline_path, -static_cast<float>(aa_p.thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outline_path, -static_cast<f32>(aa_p.thickness));
 
 		const unsigned int out_start = db->vertex_count;
 
@@ -1932,7 +1932,7 @@ namespace vekt
 
 		generate_rounded_rect(_reuse_outer_path, props.min, props.max, rp.rounding, rp.segments);
 
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<float>(aa_p.thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<f32>(aa_p.thickness));
 
 		const unsigned int out_start	 = db->vertex_count;
 		const unsigned int central_start = out_start + _reuse_outer_path.size();
@@ -1969,7 +1969,7 @@ namespace vekt
 		_reuse_aa_outer_path.resize_explicit(0);
 
 		generate_rounded_rect(_reuse_outer_path, props.min, props.max, rp.rounding, rp.segments);
-		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<float>(out_p.thickness));
+		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<f32>(out_p.thickness));
 
 		const unsigned int out_start	 = db->vertex_count;
 		const unsigned int central_start = out_start + _reuse_outer_path.size();
@@ -2010,9 +2010,9 @@ namespace vekt
 
 		generate_rounded_rect(_reuse_outer_path, props.min, props.max, rp.rounding, rp.segments);
 
-		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<float>(out_p.thickness));
+		generate_offset_rect(_reuse_outline_path, _reuse_outer_path, -static_cast<f32>(out_p.thickness));
 
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outline_path, -static_cast<float>(aa_p.thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outline_path, -static_cast<f32>(aa_p.thickness));
 
 		const unsigned int out_start	 = db->vertex_count;
 		const unsigned int central_start = out_start + _reuse_outer_path.size();
@@ -2055,7 +2055,7 @@ namespace vekt
 		_reuse_inner_path.resize_explicit(0);
 
 		generate_sharp_rect(_reuse_outer_path, props.min, props.max);
-		generate_offset_rect_4points(_reuse_inner_path, props.min, props.max, static_cast<float>(out_p.thickness));
+		generate_offset_rect_4points(_reuse_inner_path, props.min, props.max, static_cast<f32>(out_p.thickness));
 
 		// Original stroke
 		const unsigned int out_start = db->vertex_count;
@@ -2077,12 +2077,12 @@ namespace vekt
 		aa_props&	  aa_p	= _aa_props[props.widget_id];
 
 		generate_sharp_rect(_reuse_outer_path, props.min, props.max);
-		generate_offset_rect(_reuse_inner_path, _reuse_outer_path, static_cast<float>(out_p.thickness));
+		generate_offset_rect(_reuse_inner_path, _reuse_outer_path, static_cast<f32>(out_p.thickness));
 
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<float>(aa_p.thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<f32>(aa_p.thickness));
 		if (!_reuse_inner_path.empty())
 		{
-			generate_offset_rect(_reuse_aa_inner_path, _reuse_inner_path, static_cast<float>(aa_p.thickness));
+			generate_offset_rect(_reuse_aa_inner_path, _reuse_inner_path, static_cast<f32>(aa_p.thickness));
 		}
 
 		// Original stroke
@@ -2140,10 +2140,10 @@ namespace vekt
 		generate_rounded_rect(_reuse_outer_path, props.min, props.max, rp.rounding, rp.segments);
 		generate_rounded_rect(_reuse_inner_path, props.min + VEKT_VEC2(out_p.thickness, out_p.thickness), props.max - VEKT_VEC2(out_p.thickness, out_p.thickness), rp.rounding, rp.segments);
 
-		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<float>(aa_p.thickness));
+		generate_offset_rect(_reuse_aa_outer_path, _reuse_outer_path, -static_cast<f32>(aa_p.thickness));
 		if (!_reuse_inner_path.empty())
 		{
-			generate_offset_rect(_reuse_aa_inner_path, _reuse_inner_path, static_cast<float>(aa_p.thickness));
+			generate_offset_rect(_reuse_aa_inner_path, _reuse_inner_path, static_cast<f32>(aa_p.thickness));
 		}
 
 		// Original stroke
@@ -2185,8 +2185,8 @@ namespace vekt
 
 		draw_buffer* db = get_draw_buffer(draw_order, user_data, text.font);
 
-		const float pixel_scale = text.font->_scale;
-		const float subpixel	= text.font->type == font_type::lcd ? 3.0f : 1.0f;
+		const f32 pixel_scale = text.font->_scale;
+		const f32 subpixel	= text.font->type == font_type::lcd ? 3.0f : 1.0f;
 
 		const unsigned int start_vertices_idx = db->vertex_count;
 		const unsigned int start_indices_idx  = db->index_count;
@@ -2200,26 +2200,26 @@ namespace vekt
 
 		unsigned int current_char = 0;
 
-		const float scale	= text.scale * pixel_scale;
-		const float spacing = static_cast<float>(text.spacing) * scale;
+		const f32 scale	= text.scale * pixel_scale;
+		const f32 spacing = static_cast<f32>(text.spacing) * scale;
 
 		auto draw_char = [&](const glyph& g, unsigned long c, unsigned long previous_char) {
 			if (previous_char != 0)
 			{
-				pen.x += static_cast<float>(text.font->glyph_info[previous_char].kern_advance[c]) * scale;
+				pen.x += static_cast<f32>(text.font->glyph_info[previous_char].kern_advance[c]) * scale;
 			}
 
-			const float quad_left	= pen.x + g.x_offset / subpixel * text.scale;
-			const float quad_top	= pen.y + g.y_offset * text.scale;
-			const float quad_right	= quad_left + g.width * text.scale;
-			const float quad_bottom = quad_top + g.height * text.scale;
+			const f32 quad_left	= pen.x + g.x_offset / subpixel * text.scale;
+			const f32 quad_top	= pen.y + g.y_offset * text.scale;
+			const f32 quad_right	= quad_left + g.width * text.scale;
+			const f32 quad_bottom = quad_top + g.height * text.scale;
 
 			vertex& v0 = vertices[current_char * 4];
 			vertex& v1 = vertices[current_char * 4 + 1];
 			vertex& v2 = vertices[current_char * 4 + 2];
 			vertex& v3 = vertices[current_char * 4 + 3];
 
-			const float		uv_x = g.uv_x, uv_y = g.uv_y, uv_w = g.uv_w, uv_h = g.uv_h;
+			const f32		uv_x = g.uv_x, uv_y = g.uv_y, uv_w = g.uv_w, uv_h = g.uv_h;
 			const VEKT_VEC2 uv0(uv_x, uv_y);
 			const VEKT_VEC2 uv1(uv_x + uv_w, uv_y);
 			const VEKT_VEC2 uv2(uv_x + uv_w, uv_y + uv_h);
@@ -2260,7 +2260,7 @@ namespace vekt
 		const char* cstr = text.text.c_str();
 #endif
 		const uint8_t* c;
-		pen.y += static_cast<float>(text.font->ascent) * scale;
+		pen.y += static_cast<f32>(text.font->ascent) * scale;
 
 		unsigned long previous_char = 0;
 		for (c = (uint8_t*)cstr; *c; c++)
@@ -2307,8 +2307,8 @@ namespace vekt
 			return;
 		}
 
-		const float pixel_scale = text.font->_scale;
-		const float subpixel	= text.font->type == font_type::lcd ? 3.0f : 1.0f;
+		const f32 pixel_scale = text.font->_scale;
+		const f32 subpixel	= text.font->type == font_type::lcd ? 3.0f : 1.0f;
 
 		const unsigned int start_vertices_idx = db->vertex_count;
 		const unsigned int start_indices_idx  = db->index_count;
@@ -2327,26 +2327,26 @@ namespace vekt
 
 		unsigned int current_char = 0;
 
-		const float scale	= text.scale * pixel_scale;
-		const float spacing = static_cast<float>(text.spacing) * scale;
+		const f32 scale	= text.scale * pixel_scale;
+		const f32 spacing = static_cast<f32>(text.spacing) * scale;
 
 		auto draw_char = [&](const glyph& g, unsigned long c, unsigned long previous_char) {
 			if (previous_char != 0)
 			{
-				pen.x += static_cast<float>(text.font->glyph_info[previous_char].kern_advance[c]) * scale;
+				pen.x += static_cast<f32>(text.font->glyph_info[previous_char].kern_advance[c]) * scale;
 			}
 
-			const float quad_left	= pen.x + g.x_offset / subpixel * text.scale;
-			const float quad_top	= pen.y + g.y_offset * text.scale;
-			const float quad_right	= quad_left + g.width * text.scale;
-			const float quad_bottom = quad_top + g.height * text.scale;
+			const f32 quad_left	= pen.x + g.x_offset / subpixel * text.scale;
+			const f32 quad_top	= pen.y + g.y_offset * text.scale;
+			const f32 quad_right	= quad_left + g.width * text.scale;
+			const f32 quad_bottom = quad_top + g.height * text.scale;
 
 			vertex& v0 = vertices[current_char * 4];
 			vertex& v1 = vertices[current_char * 4 + 1];
 			vertex& v2 = vertices[current_char * 4 + 2];
 			vertex& v3 = vertices[current_char * 4 + 3];
 
-			const float		uv_x = g.uv_x, uv_y = g.uv_y, uv_w = g.uv_w, uv_h = g.uv_h;
+			const f32		uv_x = g.uv_x, uv_y = g.uv_y, uv_w = g.uv_w, uv_h = g.uv_h;
 			const VEKT_VEC2 uv0(uv_x, uv_y);
 			const VEKT_VEC2 uv1(uv_x + uv_w, uv_y);
 			const VEKT_VEC2 uv2(uv_x + uv_w, uv_y + uv_h);
@@ -2387,7 +2387,7 @@ namespace vekt
 		const char* cstr = text.text.c_str();
 #endif
 		const uint8_t* c;
-		pen.y += static_cast<float>(text.font->ascent) * scale;
+		pen.y += static_cast<f32>(text.font->ascent) * scale;
 
 		unsigned long previous_char = 0;
 		for (c = (uint8_t*)cstr; *c; c++)
@@ -2426,7 +2426,7 @@ namespace vekt
 		}
 	}
 
-	unsigned int builder::widget_get_character_index(id widget, float x_diff)
+	unsigned int builder::widget_get_character_index(id widget, f32 x_diff)
 	{
 		text_props& tp = widget_get_text(widget);
 		if (tp.font == nullptr)
@@ -2436,18 +2436,18 @@ namespace vekt
 			return 0;
 
 		const font* fnt			= tp.font;
-		const float pixel_scale = fnt->_scale;
+		const f32 pixel_scale = fnt->_scale;
 
-		float total_x = 0.0f;
+		f32 total_x = 0.0f;
 
-		const float used_scale = tp.scale;
+		const f32 used_scale = tp.scale;
 #ifdef VEKT_STRING_CSTR
 		const char* str = tp.text;
 #else
 		const char* str = tp.text.c_str();
 #endif
-		const float	 spacing = static_cast<float>(tp.spacing) * used_scale;
-		const float	 scale	 = pixel_scale * used_scale;
+		const f32	 spacing = static_cast<f32>(tp.spacing) * used_scale;
+		const f32	 scale	 = pixel_scale * used_scale;
 		unsigned int p		 = 0;
 
 		for (size_t i = 0; str[i]; ++i)
@@ -2473,7 +2473,7 @@ namespace vekt
 		return p;
 	}
 
-	float builder::widget_get_character_offset(id widget, unsigned int index)
+	f32 builder::widget_get_character_offset(id widget, unsigned int index)
 	{
 		text_props& tp = widget_get_text(widget);
 		if (tp.font == nullptr)
@@ -2483,19 +2483,19 @@ namespace vekt
 			return 0;
 
 		const font* fnt			= tp.font;
-		const float pixel_scale = fnt->_scale;
+		const f32 pixel_scale = fnt->_scale;
 
-		float total_x = 0.0f;
+		f32 total_x = 0.0f;
 
-		const float used_scale = tp.scale;
+		const f32 used_scale = tp.scale;
 #ifdef VEKT_STRING_CSTR
 		const char* str = tp.text;
 #else
 		const char* str = tp.text.c_str();
 #endif
-		const float spacing = static_cast<float>(tp.spacing) * used_scale;
-		const float scale	= pixel_scale * used_scale;
-		float		f		= 0.0f;
+		const f32 spacing = static_cast<f32>(tp.spacing) * used_scale;
+		const f32 scale	= pixel_scale * used_scale;
+		f32		f		= 0.0f;
 
 		for (size_t i = 0; str[i]; ++i)
 		{
@@ -2531,26 +2531,26 @@ namespace vekt
 			return VEKT_VEC2();
 
 		const font* fnt			= text.font;
-		const float pixel_scale = fnt->_scale;
+		const f32 pixel_scale = fnt->_scale;
 
-		float total_x = 0.0f;
-		float max_y	  = 0.0f;
+		f32 total_x = 0.0f;
+		f32 max_y	  = 0.0f;
 
 		// if (!math::equals(text._parent_relative_scale, 0.0f, 0.001f) && (!math::equals(parent_size.x, 0.0f, 0.001f) || !math::equals(parent_size.y, 0.0f, 0.001f)))
 		// {
-		// 	const float min	  = math::min(parent_size.x, parent_size.y) * text._parent_relative_scale;
-		// 	const float ratio = min / static_cast<float>(fnt->size);
+		// 	const f32 min	  = math::min(parent_size.x, parent_size.y) * text._parent_relative_scale;
+		// 	const f32 ratio = min / static_cast<f32>(fnt->size);
 		// 	text.scale		  = ratio;
 		// }
 
-		const float used_scale = text.scale;
+		const f32 used_scale = text.scale;
 #ifdef VEKT_STRING_CSTR
 		const char* str = text.text;
 #else
 		const char* str = text.text.c_str();
 #endif
-		const float spacing = static_cast<float>(text.spacing) * used_scale;
-		const float scale	= pixel_scale * used_scale;
+		const f32 spacing = static_cast<f32>(text.spacing) * used_scale;
+		const f32 scale	= pixel_scale * used_scale;
 
 		for (size_t i = 0; str[i]; ++i)
 		{
@@ -2568,7 +2568,7 @@ namespace vekt
 			total_x += spacing;
 		}
 
-		max_y = (static_cast<float>(fnt->ascent) - static_cast<float>(fnt->descent)) * scale;
+		max_y = (static_cast<f32>(fnt->ascent) - static_cast<f32>(fnt->descent)) * scale;
 		return VEKT_VEC2(total_x - spacing, max_y);
 	}
 
@@ -2631,7 +2631,7 @@ namespace vekt
 		}
 	}
 
-	void builder::add_vertices_aa(draw_buffer* db, const vector<VEKT_VEC2>& path, unsigned int original_vertices_idx, float alpha, const VEKT_VEC2& min, const VEKT_VEC2& max)
+	void builder::add_vertices_aa(draw_buffer* db, const vector<VEKT_VEC2>& path, unsigned int original_vertices_idx, f32 alpha, const VEKT_VEC2& min, const VEKT_VEC2& max)
 	{
 		const unsigned int start_vtx_idx = db->vertex_count;
 
@@ -2646,7 +2646,7 @@ namespace vekt
 		}
 	}
 
-	void builder::generate_offset_rect_4points(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, float amount)
+	void builder::generate_offset_rect_4points(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, f32 amount)
 	{
 		out_path.resize_explicit(4);
 		out_path[0] = {min.x + amount, min.y + amount}; // Top-Left
@@ -2655,7 +2655,7 @@ namespace vekt
 		out_path[3] = {min.x + amount, max.y - amount}; // Bottom-Left
 	}
 
-	void builder::generate_offset_rect(vector<VEKT_VEC2>& out_path, const vector<VEKT_VEC2>& base_path, float distance)
+	void builder::generate_offset_rect(vector<VEKT_VEC2>& out_path, const vector<VEKT_VEC2>& base_path, f32 distance)
 	{
 		if (base_path.size() < 2)
 			return;
@@ -2685,8 +2685,8 @@ namespace vekt
 	void builder::add_vertices(draw_buffer* db, const vector<VEKT_VEC2>& path, const VEKT_VEC4& color, const VEKT_VEC2& min, const VEKT_VEC2& max)
 	{
 		vertex*		vertices	= db->add_get_vertex(path.size());
-		const float inv_x_range = 1.0f / (max.x - min.x);
-		const float inv_y_range = 1.0f / (max.y - min.y);
+		const f32 inv_x_range = 1.0f / (max.x - min.x);
+		const f32 inv_y_range = 1.0f / (max.y - min.y);
 
 		for (unsigned int i = 0; i < path.size(); i++)
 		{
@@ -2704,11 +2704,11 @@ namespace vekt
 
 		vertex* vertices = db->add_get_vertex(path.size());
 
-		const float inv_x_range = 1.0f / (max.x - min.x);
-		const float inv_y_range = 1.0f / (max.y - min.y);
+		const f32 inv_x_range = 1.0f / (max.x - min.x);
+		const f32 inv_y_range = 1.0f / (max.y - min.y);
 
-		const float inv_color_remap_x_range = 1.0f / (max.x - min.x);
-		const float inv_color_remap_y_range = 1.0f / (max.y - min.y);
+		const f32 inv_color_remap_x_range = 1.0f / (max.x - min.x);
+		const f32 inv_color_remap_y_range = 1.0f / (max.y - min.y);
 
 		const VEKT_VEC4 color_diff = color_end - color_start;
 
@@ -2717,7 +2717,7 @@ namespace vekt
 			vertex& vtx = vertices[i];
 			vtx.pos		= path[i];
 
-			float ratio;
+			f32 ratio;
 			if (direction == direction::horizontal)
 				ratio = (vtx.pos.x - min.x) * inv_color_remap_x_range;
 			else
@@ -2728,7 +2728,7 @@ namespace vekt
 			vtx.color.z = color_start.z + color_diff.z * ratio;
 			vtx.color.w = color_start.w + color_diff.w * ratio;
 
-			// const float ratio = direction == direction::horizontal ? math::remap(vtx.pos.x, min.x, max.x, 0.0f, 1.0f) : math::remap(vtx.pos.y, min.y, max.y, 0.0f, 1.0f);
+			// const f32 ratio = direction == direction::horizontal ? math::remap(vtx.pos.x, min.x, max.x, 0.0f, 1.0f) : math::remap(vtx.pos.y, min.y, max.y, 0.0f, 1.0f);
 			// vtx.color.x		  = math::lerp(color_start.x, color_end.x, ratio);
 			// vtx.color.y		  = math::lerp(color_start.y, color_end.y, ratio);
 			// vtx.color.z		  = math::lerp(color_start.z, color_end.z, ratio);
@@ -2754,7 +2754,7 @@ namespace vekt
 		vtx.uv		= VEKT_VEC2(0.5f, 0.5f);
 	}
 
-	void builder::generate_rounded_rect(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, float r, int segments)
+	void builder::generate_rounded_rect(vector<VEKT_VEC2>& out_path, const VEKT_VEC2& min, const VEKT_VEC2& max, f32 r, int segments)
 	{
 		r = math::min(r, math::min((max.x - min.x) * 0.5f, (max.y - min.y) * 0.5f)); // Clamp radius
 
@@ -2769,7 +2769,7 @@ namespace vekt
 			for (int i = 0; i <= segments; ++i)
 			{
 
-				const float		target_angle  = DEG_2_RAD * (270.0f + (90.0f / segments) * i);
+				const f32		target_angle  = DEG_2_RAD * (270.0f + (90.0f / segments) * i);
 				const VEKT_VEC2 point_on_unit = VEKT_VEC2(math::sin(target_angle), -math::cos(target_angle)) * r;
 				const VEKT_VEC2 point		  = center + point_on_unit;
 				out_path.push_back(point);
@@ -2781,7 +2781,7 @@ namespace vekt
 			for (int i = 0; i <= segments; ++i)
 			{
 
-				const float		target_angle  = DEG_2_RAD * ((90.0f / segments) * i);
+				const f32		target_angle  = DEG_2_RAD * ((90.0f / segments) * i);
 				const VEKT_VEC2 point_on_unit = VEKT_VEC2(math::sin(target_angle), -math::cos(target_angle)) * r;
 				const VEKT_VEC2 point		  = center + point_on_unit;
 				out_path.push_back(point);
@@ -2794,7 +2794,7 @@ namespace vekt
 			for (int i = 0; i <= segments; ++i)
 			{
 
-				const float		target_angle  = DEG_2_RAD * (90.0f + (90.0f / segments) * i);
+				const f32		target_angle  = DEG_2_RAD * (90.0f + (90.0f / segments) * i);
 				const VEKT_VEC2 point_on_unit = VEKT_VEC2(math::sin(target_angle), -math::cos(target_angle)) * r;
 				const VEKT_VEC2 point		  = center + point_on_unit;
 				out_path.push_back(point);
@@ -2807,7 +2807,7 @@ namespace vekt
 			for (int i = 0; i <= segments; ++i)
 			{
 
-				const float		target_angle  = DEG_2_RAD * (180.0f + (90.0f / segments) * i);
+				const f32		target_angle  = DEG_2_RAD * (180.0f + (90.0f / segments) * i);
 				const VEKT_VEC2 point_on_unit = VEKT_VEC2(math::sin(target_angle), -math::cos(target_angle)) * r;
 				const VEKT_VEC2 point		  = center + point_on_unit;
 				out_path.push_back(point);
@@ -2859,10 +2859,10 @@ namespace vekt
 
 	VEKT_VEC4 builder::calculate_intersection(const VEKT_VEC4& r1, const VEKT_VEC4& r2) const
 	{
-		const float x	   = math::max(r1.x, r2.x);
-		const float y	   = math::max(r1.y, r2.y);
-		const float right  = math::min(r1.x + r1.z, r2.x + r2.z);
-		const float bottom = math::min(r1.y + r1.w, r2.y + r2.w);
+		const f32 x	   = math::max(r1.x, r2.x);
+		const f32 y	   = math::max(r1.y, r2.y);
+		const f32 right  = math::min(r1.x + r1.z, r2.x + r2.z);
+		const f32 bottom = math::min(r1.y + r1.w, r2.y + r2.w);
 
 		if (right < x || bottom < y)
 		{
@@ -2984,14 +2984,14 @@ namespace vekt
 		ASSERT(ok);
 	}
 
-	font* font_manager::load_font(unsigned char* data, unsigned int data_size, unsigned int size, unsigned int range0, unsigned int range1, font_type type, int sdf_padding, int sdf_edge, float sdf_distance)
+	font* font_manager::load_font(unsigned char* data, unsigned int data_size, unsigned int size, unsigned int range0, unsigned int range1, font_type type, int sdf_padding, int sdf_edge, f32 sdf_distance)
 	{
 
 		stbtt_fontinfo stb_font;
 		stbtt_InitFont(&stb_font, data, stbtt_GetFontOffsetForIndex(data, 0));
 
 		font* fnt	= new font();
-		fnt->_scale = stbtt_ScaleForMappingEmToPixels(&stb_font, static_cast<float>(size));
+		fnt->_scale = stbtt_ScaleForMappingEmToPixels(&stb_font, static_cast<f32>(size));
 		fnt->type	= type;
 
 		stbtt_GetFontVMetrics(&stb_font, &fnt->ascent, &fnt->descent, &fnt->line_gap);
@@ -3009,8 +3009,8 @@ namespace vekt
 			{
 				int x_off, y_off;
 				glyph_info.sdf_data = stbtt_GetCodepointSDF(&stb_font, fnt->_scale, i, sdf_padding, sdf_edge, sdf_distance, &glyph_info.width, &glyph_info.height, &x_off, &y_off);
-				glyph_info.x_offset = static_cast<float>(x_off);
-				glyph_info.y_offset = static_cast<float>(y_off);
+				glyph_info.x_offset = static_cast<f32>(x_off);
+				glyph_info.y_offset = static_cast<f32>(y_off);
 			}
 			else if (type == font_type::lcd)
 			{
@@ -3018,8 +3018,8 @@ namespace vekt
 				stbtt_GetCodepointBitmapBoxSubpixel(&stb_font, i, fnt->_scale * 3, fnt->_scale, 1.0f, 0.0f, &ix0, &iy0, &ix1, &iy1);
 				glyph_info.width	= ix1 - ix0;
 				glyph_info.height	= iy1 - iy0;
-				glyph_info.x_offset = static_cast<float>(ix0);
-				glyph_info.y_offset = static_cast<float>(iy0);
+				glyph_info.x_offset = static_cast<f32>(ix0);
+				glyph_info.y_offset = static_cast<f32>(iy0);
 			}
 			else
 			{
@@ -3027,8 +3027,8 @@ namespace vekt
 				stbtt_GetCodepointBitmapBox(&stb_font, i, fnt->_scale, fnt->_scale, &ix0, &iy0, &ix1, &iy1);
 				glyph_info.width	= ix1 - ix0;
 				glyph_info.height	= iy1 - iy0;
-				glyph_info.x_offset = static_cast<float>(ix0);
-				glyph_info.y_offset = static_cast<float>(iy0);
+				glyph_info.x_offset = static_cast<f32>(ix0);
+				glyph_info.y_offset = static_cast<f32>(iy0);
 			}
 
 			if (glyph_info.width >= 1)
@@ -3040,7 +3040,7 @@ namespace vekt
 				glyph_info.kern_advance[j] = stbtt_GetCodepointKernAdvance(&stb_font, i, j);
 		}
 
-		const int required_rows		= static_cast<int>(math::ceilf(static_cast<float>(total_width) / static_cast<float>(config.atlas_width)));
+		const int required_rows		= static_cast<int>(math::ceilf(static_cast<f32>(total_width) / static_cast<f32>(config.atlas_width)));
 		const int required_height	= max_height;
 		fnt->_atlas_required_height = required_rows * required_height;
 		find_atlas(fnt);
@@ -3084,10 +3084,10 @@ namespace vekt
 
 			glyph_info.atlas_x = current_atlas_pen_x;
 			glyph_info.atlas_y = fnt->_atlas_pos + current_atlas_pen_y;
-			glyph_info.uv_x	   = static_cast<float>(glyph_info.atlas_x) / static_cast<float>(fnt->_atlas->get_width());
-			glyph_info.uv_y	   = static_cast<float>(glyph_info.atlas_y) / static_cast<float>(fnt->_atlas->get_height());
-			glyph_info.uv_w	   = static_cast<float>(w) / static_cast<float>(fnt->_atlas->get_width());
-			glyph_info.uv_h	   = static_cast<float>(h) / static_cast<float>(fnt->_atlas->get_height());
+			glyph_info.uv_x	   = static_cast<f32>(glyph_info.atlas_x) / static_cast<f32>(fnt->_atlas->get_width());
+			glyph_info.uv_y	   = static_cast<f32>(glyph_info.atlas_y) / static_cast<f32>(fnt->_atlas->get_height());
+			glyph_info.uv_w	   = static_cast<f32>(w) / static_cast<f32>(fnt->_atlas->get_width());
+			glyph_info.uv_h	   = static_cast<f32>(h) / static_cast<f32>(fnt->_atlas->get_height());
 
 			const unsigned int pixel_size	  = fnt->type == font_type::lcd ? 3 : 1;
 			unsigned char*	   dest_pixel_ptr = fnt->_atlas->get_data() + (glyph_info.atlas_y * fnt->_atlas->get_width() * pixel_size) + glyph_info.atlas_x * pixel_size;
@@ -3124,7 +3124,7 @@ namespace vekt
 		return fnt;
 	}
 
-	font* font_manager::load_font_from_file(const char* filename, unsigned int size, unsigned int range_start, unsigned int range_end, font_type type, int sdf_padding, int sdf_edge, float sdf_distance)
+	font* font_manager::load_font_from_file(const char* filename, unsigned int size, unsigned int range_start, unsigned int range_end, font_type type, int sdf_padding, int sdf_edge, f32 sdf_distance)
 	{
 		if (range_start >= range_end)
 		{
@@ -3232,8 +3232,8 @@ namespace vekt
 
 	void snapshot::copy(const vector<vekt::draw_buffer>& copy_source)
 	{
-		uint32 vtx_offset = 0;
-		uint32 idx_offset = 0;
+		u32 vtx_offset = 0;
+		u32 idx_offset = 0;
 		draw_buffers.resize(0);
 
 		for (const draw_buffer& db : copy_source)

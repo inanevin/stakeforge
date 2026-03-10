@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum class editor_gui_user_data_type : uint8
+	enum class editor_gui_user_data_type : u8
 	{
 		none,
 		world_rt,

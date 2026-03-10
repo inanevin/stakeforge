@@ -24,7 +24,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			pfd.cmd_buffer		= backend->create_command_buffer({.type = command_type::graphics, .debug_name = "sprite_cmd"});
@@ -51,7 +51,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_command_buffer(pfd.cmd_buffer);
@@ -60,7 +60,7 @@ namespace SFG
 		}
 	}
 
-	void render_pass_sprite::prepare(uint8 frame_index, proxy_manager& pm, const view& main_camera_view)
+	void render_pass_sprite::prepare(u8 frame_index, proxy_manager& pm, const view& main_camera_view)
 	{
 		ZoneScoped;
 
@@ -73,15 +73,15 @@ namespace SFG
 		gfx_backend* backend = gfx_backend::get();
 		backend->reset_command_buffer(cmd_buffer);
 
-		auto*		 sprites	  = pm.get_sprites();
-		auto*		 materials	  = pm.get_material_runtimes();
-		auto*		 entities	  = pm.get_entities();
-		const uint32 peak_sprites = pm.get_peak_sprites();
+		auto*	  sprites	   = pm.get_sprites();
+		auto*	  materials	   = pm.get_material_runtimes();
+		auto*	  entities	   = pm.get_entities();
+		const u32 peak_sprites = pm.get_peak_sprites();
 
 		_reuse_groups.resize(0);
 		_reuse_instances.resize(0);
 
-		for (uint32 i = 0; i < peak_sprites; i++)
+		for (u32 i = 0; i < peak_sprites; i++)
 		{
 			render_proxy_sprite& sprite = sprites->get(i);
 			if (sprite.status != render_proxy_status::rps_active)
@@ -101,9 +101,9 @@ namespace SFG
 
 			const vector3 pos		= entity.model.get_translation();
 			const vector3 scale		= entity.model.get_scale();
-			float		  max_scale = math::max(scale.x, scale.y);
+			f32			  max_scale = math::max(scale.x, scale.y);
 			max_scale				= math::max(max_scale, scale.z);
-			const float radius		= max_scale * 0.70710678f;
+			const f32 radius		= max_scale * 0.70710678f;
 
 			if (frustum::test(main_camera_view.view_frustum, pos, radius) == frustum_result::outside)
 				continue;
@@ -118,13 +118,13 @@ namespace SFG
 			if (pipeline == NULL_GFX_ID)
 				continue;
 
-			int32 group_index = -1;
-			for (uint32 g = 0; g < _reuse_groups.size(); g++)
+			i32 group_index = -1;
+			for (u32 g = 0; g < _reuse_groups.size(); g++)
 			{
 				sprite_group& group = _reuse_groups[g];
 				if (group.pipeline == pipeline && group.material == sprite.material)
 				{
-					group_index = static_cast<int32>(g);
+					group_index = static_cast<i32>(g);
 					break;
 				}
 			}
@@ -138,15 +138,15 @@ namespace SFG
 					.count	  = 0,
 					.cursor	  = 0,
 				});
-				group_index = static_cast<int32>(_reuse_groups.size() - 1);
+				group_index = static_cast<i32>(_reuse_groups.size() - 1);
 			}
 
 			_reuse_groups[group_index].count++;
-			_reuse_instances.push_back({.group = static_cast<uint32>(group_index), .idx = i, .entity_index = e_index});
+			_reuse_instances.push_back({.group = static_cast<u32>(group_index), .idx = i, .entity_index = e_index});
 		}
 
-		uint32 offset = 0;
-		for (uint32 g = 0; g < _reuse_groups.size(); g++)
+		u32 offset = 0;
+		for (u32 g = 0; g < _reuse_groups.size(); g++)
 		{
 			_reuse_groups[g].start	= offset;
 			_reuse_groups[g].cursor = 0;
@@ -158,14 +158,14 @@ namespace SFG
 		for (const sprite_instance& i : _reuse_instances)
 		{
 			sprite_group& group			= _reuse_groups[i.group];
-			const uint32  target_index	= group.start + group.cursor;
+			const u32	  target_index	= group.start + group.cursor;
 			instance_data[target_index] = {
 				.entity_index = i.entity_index,
 			};
 			group.cursor++;
 		}
 
-		const uint32 inst_count = static_cast<uint32>(_reuse_instances.size());
+		const u32 inst_count = static_cast<u32>(_reuse_instances.size());
 
 		if (inst_count != 0)
 		{
@@ -177,7 +177,7 @@ namespace SFG
 				.resource	 = pfd.instance_data.get_gpu(),
 				.flags		 = barrier_flags::baf_is_resource,
 			});
-			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 			pfd.instance_data.copy_region(cmd_buffer, 0, sizeof(sprite_instance_data) * inst_count);
 
@@ -187,10 +187,10 @@ namespace SFG
 				.resource	 = pfd.instance_data.get_gpu(),
 				.flags		 = barrier_flags::baf_is_resource,
 			};
-			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		}
 
-		for (uint32 g = 0; g < _reuse_groups.size(); g++)
+		for (u32 g = 0; g < _reuse_groups.size(); g++)
 		{
 			sprite_group&				   group = _reuse_groups[g];
 			render_proxy_material_runtime& mat	 = materials->get(group.material);
@@ -246,20 +246,20 @@ namespace SFG
 														   .color_attachment_count = 1,
 													   });
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 								  });
 
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 rp_constants[3] = {pfd.ubo.get_index(), p.gpu_index_entities, pfd.instance_data.get_index()};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
+		const u32 rp_constants[3] = {pfd.ubo.get_index(), p.gpu_index_entities, pfd.instance_data.get_index()};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
 
 		_draw_stream.build();
 		_draw_stream.draw(cmd_buffer);

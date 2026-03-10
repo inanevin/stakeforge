@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,7 +43,7 @@ namespace SFG
 	class ostream;
 	class istream;
 
-	enum class blend_op : uint8
+	enum class blend_op : u8
 	{
 		add,
 		subtract,
@@ -52,7 +52,7 @@ namespace SFG
 		max
 	};
 
-	enum class blend_factor : uint16
+	enum class blend_factor : u16
 	{
 		zero,
 		one,
@@ -66,7 +66,7 @@ namespace SFG
 		one_minus_dst_alpha,
 	};
 
-	enum class logic_op : uint16
+	enum class logic_op : u16
 	{
 		clear,
 		and_,
@@ -80,7 +80,7 @@ namespace SFG
 		equivalent,
 	};
 
-	enum class topology : uint8
+	enum class topology : u8
 	{
 		point_list,
 		line_list,
@@ -90,33 +90,33 @@ namespace SFG
 		triangle_fan,
 	};
 
-	enum class fill_mode : uint8
+	enum class fill_mode : u8
 	{
 		solid,
 		wireframe
 	};
 
-	enum class polygon_mode : uint8
+	enum class polygon_mode : u8
 	{
 		fill,
 		line,
 		point
 	};
 
-	enum class cull_mode : uint8
+	enum class cull_mode : u8
 	{
 		none,
 		front,
 		back,
 	};
 
-	enum class front_face : uint8
+	enum class front_face : u8
 	{
 		ccw,
 		cw,
 	};
 
-	enum class stencil_op : uint8
+	enum class stencil_op : u8
 	{
 		keep,
 		zero,
@@ -128,7 +128,7 @@ namespace SFG
 		decrement_wrap,
 	};
 
-	enum class load_op : uint8
+	enum class load_op : u8
 	{
 		load,
 		clear,
@@ -136,7 +136,7 @@ namespace SFG
 		none,
 	};
 
-	enum class compare_op : uint8
+	enum class compare_op : u8
 	{
 		never,
 		less,
@@ -148,14 +148,14 @@ namespace SFG
 		always
 	};
 
-	enum class store_op : uint8
+	enum class store_op : u8
 	{
 		store,
 		dont_care,
 		none,
 	};
 
-	enum shader_stage : uint8
+	enum shader_stage : u8
 	{
 		vertex,
 		fragment,
@@ -174,8 +174,8 @@ namespace SFG
 	struct vertex_input
 	{
 		string name		= "TEXCOORD";
-		uint8  location = 0;
-		uint8  index	= 0;
+		u8	   location = 0;
+		u8	   index	= 0;
 		size_t offset	= 0;
 		size_t size		= 0;
 		format format	= format::undefined;
@@ -184,7 +184,7 @@ namespace SFG
 	struct shader_blob
 	{
 		shader_stage stage = {};
-		span<uint8>	 data  = {};
+		span<u8>	 data  = {};
 	};
 
 	enum color_comp_flags
@@ -199,14 +199,14 @@ namespace SFG
 
 	struct color_blend_attachment
 	{
-		bool		   blend_enabled		  = false;
-		blend_factor   src_color_blend_factor = blend_factor::src_alpha;
-		blend_factor   dst_color_blend_factor = blend_factor::one_minus_src_alpha;
-		blend_op	   color_blend_op		  = blend_op::add;
-		blend_factor   src_alpha_blend_factor = blend_factor::one;
-		blend_factor   dst_alpha_blend_factor = blend_factor::zero;
-		blend_op	   alpha_blend_op		  = blend_op::add;
-		bitmask<uint8> color_comp_flags		  = ccf_red | ccf_green | ccf_blue | ccf_alpha;
+		bool		 blend_enabled			= false;
+		blend_factor src_color_blend_factor = blend_factor::src_alpha;
+		blend_factor dst_color_blend_factor = blend_factor::one_minus_src_alpha;
+		blend_op	 color_blend_op			= blend_op::add;
+		blend_factor src_alpha_blend_factor = blend_factor::one;
+		blend_factor dst_alpha_blend_factor = blend_factor::zero;
+		blend_op	 alpha_blend_op			= blend_op::add;
+		bitmask<u8>	 color_comp_flags		= ccf_red | ccf_green | ccf_blue | ccf_alpha;
 	};
 
 	struct shader_color_attachment
@@ -232,13 +232,13 @@ namespace SFG
 
 	struct shader_depth_stencil_desc
 	{
-		format		   attachment_format	= format::d32_sfloat;
-		compare_op	   depth_compare		= compare_op::lequal;
-		stencil_state  back_stencil_state	= {};
-		stencil_state  front_stencil_state	= {};
-		uint32		   stencil_compare_mask = 0xFF;
-		uint32		   stencil_write_mask	= 0xFF;
-		bitmask<uint8> flags				= 0;
+		format		  attachment_format	   = format::d32_sfloat;
+		compare_op	  depth_compare		   = compare_op::lequal;
+		stencil_state back_stencil_state   = {};
+		stencil_state front_stencil_state  = {};
+		u32			  stencil_compare_mask = 0xFF;
+		u32			  stencil_write_mask   = 0xFF;
+		bitmask<u8>	  flags				   = 0;
 	};
 
 	struct shader_desc
@@ -246,7 +246,7 @@ namespace SFG
 		string							vertex_entry  = "VSMain";
 		string							pixel_entry	  = "PSMain";
 		string							compute_entry = "CSMain";
-		bitmask<uint16>					flags		  = 0;
+		bitmask<u16>					flags		  = 0;
 		vector<shader_color_attachment> attachments	  = {};
 		vector<vertex_input>			inputs		  = {};
 
@@ -258,10 +258,10 @@ namespace SFG
 		front_face				  front				 = front_face::cw;
 		polygon_mode			  poly_mode			 = polygon_mode::fill;
 
-		uint32 samples			   = 1;
-		float  depth_bias_constant = 0.0f;
-		float  depth_bias_clamp	   = 0.0f;
-		float  depth_bias_slope	   = 0.0f;
+		u32 samples				= 1;
+		f32 depth_bias_constant = 0.0f;
+		f32 depth_bias_clamp	= 0.0f;
+		f32 depth_bias_slope	= 0.0f;
 
 		string debug_name = "shader";
 
@@ -280,9 +280,9 @@ namespace SFG
 
 	struct pso_variant
 	{
-		shader_desc		desc;
-		uint32			compile_variant = 0;
-		bitmask<uint32> variant_flags	= 0;
+		shader_desc	 desc;
+		u32			 compile_variant = 0;
+		bitmask<u32> variant_flags	 = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

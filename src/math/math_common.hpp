@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,8 +43,8 @@ namespace SFG
 #define MATH_E									2.71828182845904523536f
 #define MATH_R_LN_2								1.44269504088896f
 #define MATH_EPS								0.00001f
-#define MATH_INF_F								std::numeric_limits<float>::infinity()
-#define MATH_NAN								std::numeric_limits<float>::quiet_NaN()
+#define MATH_INF_F								std::numeric_limits<f32>::infinity()
+#define MATH_NAN								std::numeric_limits<f32>::quiet_NaN()
 #define ALIGN_SIZE_POW(sizeToAlign, PowerOfTwo) (((sizeToAlign) + (PowerOfTwo)-1) & ~((PowerOfTwo)-1))
 #define ALIGN_UP(size, alignment)				(size + alignment - 1) & ~(alignment - 1)
 #define SET_BIT(value, bit)						value | (1 << bit)

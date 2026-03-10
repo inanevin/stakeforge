@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,17 +44,17 @@ namespace SFG
 		raw_stream& operator=(const raw_stream& other) = delete;
 
 		void create(ostream& stream);
-		void create(uint8* data, size_t size);
+		void create(u8* data, size_t size);
 		void destroy();
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		inline span<uint8> get_span()
+		inline span<u8> get_span()
 		{
 			return _data;
 		}
 
-		inline uint8* get_raw() const
+		inline u8* get_raw() const
 		{
 			return _data.data;
 		}
@@ -70,7 +70,7 @@ namespace SFG
 		}
 
 	private:
-		span<uint8> _data;
+		span<u8> _data;
 	};
 
 }

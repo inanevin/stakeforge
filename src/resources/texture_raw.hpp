@@ -44,7 +44,7 @@ namespace SFG
 	{
 		string											name		   = "";
 		string											source		   = "";
-		uint8											texture_format = 0;
+		u8											texture_format = 0;
 		static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;
 		string_id										sid				   = 0;
 		bool											buffers_persistent = 0;
@@ -52,7 +52,7 @@ namespace SFG
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		void load_from_data(uint8* base, const vector2ui16& size, uint8 format, bool generate_mips);
+		void load_from_data(u8* base, const vector2ui16& size, u8 format, bool generate_mips);
 
 #ifdef SFG_TOOLMODE
 		bool load_from_file(const char* relative_file, const char* base_path);

@@ -45,7 +45,7 @@ namespace SFG
 
 		void on_add(world& w);
 		void on_remove(world& w);
-		void set_values(world& w, const vector4& start_color, const vector4& mid_color, const vector4& end_color, const vector4& fog_color, float fog_start, float fog_end);
+		void set_values(world& w, const vector4& start_color, const vector4& mid_color, const vector4& end_color, const vector4& fog_color, f32 fog_start, f32 fog_end);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -65,8 +65,8 @@ namespace SFG
 		vector4			 _mid_color	  = vector4(0.1f, 0.1f, 0.2f, 1.0f);
 		vector4			 _end_color	  = vector4(0.2f, 0.1f, 0.1f, 1.0f);
 		vector4			 _fog_color	  = vector4(0.0f, 0.0f, 0.0f, 0.0f);
-		float			 _fog_start	  = 0.0f;
-		float			 _fog_end	  = 0.0f;
+		f32				 _fog_start	  = 0.0f;
+		f32				 _fog_end	  = 0.0f;
 	};
 
 	REFLECT_TYPE(comp_skybox);

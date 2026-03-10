@@ -38,7 +38,7 @@ namespace SFG
 	class world;
 	class vector3;
 
-	enum class sound_attenuation : uint8
+	enum class sound_attenuation : u8
 	{
 		none,
 		inverse,
@@ -66,10 +66,10 @@ namespace SFG
 		void toggle_play(world& w);
 		void stop(world& w);
 		void reset(world& w);
-		void set_volume(world& w, float volume);
-		void set_looping(world& w, uint8 looping);
+		void set_volume(world& w, f32 volume);
+		void set_looping(world& w, u8 looping);
 		void set_audio(world& w, resource_handle handle);
-		void set_attenuation_params(world& w, sound_attenuation att, float min_radius = 0.0f, float max_radius = 10.0f, float rolloff = 1.0f);
+		void set_attenuation_params(world& w, sound_attenuation att, f32 min_radius = 0.0f, f32 max_radius = 10.0f, f32 rolloff = 1.0f);
 		void set_audio_position(world& w, const vector3& p);
 
 		// -----------------------------------------------------------------------------
@@ -86,17 +86,17 @@ namespace SFG
 			return _play_on_start;
 		}
 
-		inline float get_radius_min() const
+		inline f32 get_radius_min() const
 		{
 			return _radius_min;
 		}
 
-		inline float get_radius_max() const
+		inline f32 get_radius_max() const
 		{
 			return _radius_max;
 		}
 
-		inline float get_rolloff() const
+		inline f32 get_rolloff() const
 		{
 			return _rolloff;
 		}
@@ -115,10 +115,10 @@ namespace SFG
 		component_header  _header		  = {};
 		resource_handle	  _audio_resource = {};
 		chunk_handle32	  _ma_sound		  = {};
-		float			  _rolloff		  = 0.0f;
-		float			  _radius_min	  = 0.0f;
-		float			  _radius_max	  = 10.0f;
-		float			  _volume		  = 1.0f;
+		f32				  _rolloff		  = 0.0f;
+		f32				  _radius_min	  = 0.0f;
+		f32				  _radius_max	  = 10.0f;
+		f32				  _volume		  = 1.0f;
 		sound_attenuation _attenuation	  = sound_attenuation::none;
 		bool			  _is_looping	  = true;
 		bool			  _play_on_start  = false;

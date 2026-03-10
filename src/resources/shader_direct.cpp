@@ -60,7 +60,7 @@ namespace SFG
 		_hws.clear();
 	}
 
-	uint16 shader_direct::get_hw(uint32 variant_flags) const
+	u16 shader_direct::get_hw(u32 variant_flags) const
 	{
 		for (const hw& h : _hws)
 		{

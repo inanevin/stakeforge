@@ -46,9 +46,9 @@ namespace SFG
 			static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;
 			gfx_id											texture		 = 0;
 			gfx_id											intermediate = 0;
-			uint64											added_frame	 = 0;
-			uint8											cleared		 = 0;
-			uint8											use_free	 = 0;
+			u64												added_frame	 = 0;
+			u8												cleared		 = 0;
+			u8												use_free	 = 0;
 			bool											persistent	 = false;
 			resource_state									to_state	 = resource_state::resource_state_ps_resource;
 		};
@@ -57,7 +57,7 @@ namespace SFG
 		void init();
 		void uninit();
 
-		void add_request(const static_vector<texture_buffer, MAX_TEXTURE_MIPS>& buffers, gfx_id texture, gfx_id intermediate, uint8 use_free, resource_state state, bool persistent);
+		void add_request(const static_vector<texture_buffer, MAX_TEXTURE_MIPS>& buffers, gfx_id texture, gfx_id intermediate, u8 use_free, resource_state state, bool persistent);
 		void flush_all(gfx_id cmd, vector<barrier>& out_barriers);
 		bool empty() const;
 

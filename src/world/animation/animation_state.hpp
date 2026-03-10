@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum animation_state_flags : uint8
+	enum animation_state_flags : u8
 	{
 		animation_state_flags_is_looping = 1 << 0,
 		animation_state_flags_is_1d		 = 1 << 1,
@@ -49,16 +49,16 @@ namespace SFG
 
 	struct animation_state
 	{
-		string_id	   sid					 = 0;
-		pool_handle16  _first_sample		 = {};
-		pool_handle16  _first_out_transition = {};
-		pool_handle16  _next_state			 = {};
-		pool_handle16  mask					 = {};
-		pool_handle16  blend_weight_param_x	 = {};
-		pool_handle16  blend_weight_param_y	 = {};
-		float		   duration				 = 0.0f;
-		float		   speed				 = 1.0f;
-		float		   _current_time		 = 0.0f;
-		bitmask<uint8> flags				 = 0;
+		string_id	  sid					= 0;
+		pool_handle16 _first_sample			= {};
+		pool_handle16 _first_out_transition = {};
+		pool_handle16 _next_state			= {};
+		pool_handle16 mask					= {};
+		pool_handle16 blend_weight_param_x	= {};
+		pool_handle16 blend_weight_param_y	= {};
+		f32			  duration				= 0.0f;
+		f32			  speed					= 1.0f;
+		f32			  _current_time			= 0.0f;
+		bitmask<u8>	  flags					= 0;
 	};
 }

@@ -94,7 +94,7 @@ namespace SFG
 
 		static vekt::input_event_result on_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase);
 		static vekt::input_event_result on_key(vekt::builder* b, vekt::id widget, const vekt::key_event& ev);
-		static void						on_tree_item_drag(vekt::builder* b, vekt::id widget, float mp_x, float mp_y, float delta_x, float delta_y, unsigned int button);
+		static void						on_tree_item_drag(vekt::builder* b, vekt::id widget, f32 mp_x, f32 mp_y, f32 delta_x, f32 delta_y, unsigned int button);
 		static void						on_tree_item_hover_end(vekt::builder* b, vekt::id widget);
 		static void						on_tree_item_hover_move(vekt::builder* b, vekt::id widget);
 		static void						on_focus_gained(vekt::builder* b, vekt::id widget, bool from_nav);
@@ -106,7 +106,7 @@ namespace SFG
 		void	 rebuild_tree(class world& w);
 		vekt::id build_entity_node(class world& w, world_handle e, unsigned int depth);
 		bool	 is_ancestor_of(world_handle ancestor, world_handle node);
-		void	 set_collapse(world_handle h, uint8 collapsed);
+		void	 set_collapse(world_handle h, u8 collapsed);
 		void	 toggle_collapse(world_handle h);
 
 	private:
@@ -142,7 +142,7 @@ namespace SFG
 
 		vekt::id _drag_src_widget = 0;
 		bool	 _is_payload_on	  = false;
-		float	 _drag_y		  = 0.0f;
+		f32	 _drag_y		  = 0.0f;
 
 		world_handle _drag_source	  = {};
 		world_handle _selected_entity = {};

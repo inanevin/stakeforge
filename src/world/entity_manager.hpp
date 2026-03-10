@@ -53,10 +53,10 @@ namespace SFG
 
 	struct entity_version_cache
 	{
-		uint32 local_version			 = 0;
-		uint32 abs_version				 = 0;
-		uint32 cached_parent_abs_version = 0;
-		uint32 cached_local_version		 = 0;
+		u32 local_version			  = 0;
+		u32 abs_version				  = 0;
+		u32 cached_parent_abs_version = 0;
+		u32 cached_local_version	  = 0;
 	};
 
 	class entity_manager
@@ -87,12 +87,12 @@ namespace SFG
 		void						add_child(world_handle parent, world_handle child);
 		void						remove_child(world_handle parent, world_handle child);
 		void						remove_from_parent(world_handle entity);
-		world_handle				get_child_by_index(world_handle parent, uint32 index);
+		world_handle				get_child_by_index(world_handle parent, u32 index);
 		const aabb&					get_entity_aabb(world_handle entity);
 		const entity_meta&			get_entity_meta(world_handle entity) const;
 		const resource_handle&		get_entity_template_ref(world_handle entity) const;
 		const entity_family&		get_entity_family(world_handle entity) const;
-		const bitmask<uint16>		get_entity_flags(world_handle entity) const;
+		const bitmask<u16>			get_entity_flags(world_handle entity) const;
 		void						set_entity_name(world_handle entity, const char* name);
 		void						set_entity_tag(world_handle entity, const char* tag);
 		world_handle				find_entity_by_tag(const char* tag);
@@ -237,12 +237,12 @@ namespace SFG
 
 #ifdef SFG_TOOLMODE
 
-		inline uint8 get_hierarchy_dirty() const
+		inline u8 get_hierarchy_dirty() const
 		{
 			return _hierarchy_dirty;
 		}
 
-		inline void set_hierarchy_dirty(uint8 d)
+		inline void set_hierarchy_dirty(u8 d)
 		{
 			_hierarchy_dirty = d;
 		}
@@ -277,7 +277,7 @@ namespace SFG
 		static_array<aabb, MAX_ENTITIES>*					  _aabbs			   = {};
 		static_array<entity_comp_register, MAX_ENTITIES>*	  _comp_registers	   = {};
 		static_array<entity_transform, MAX_ENTITIES>*		  _local_transforms	   = {};
-		static_array<bitmask<uint16>, MAX_ENTITIES>*		  _flags			   = {};
+		static_array<bitmask<u16>, MAX_ENTITIES>*			  _flags			   = {};
 		static_array<matrix4x3, MAX_ENTITIES>*				  _abs_matrices		   = {};
 		static_array<quat, MAX_ENTITIES>*					  _abs_rots			   = {};
 
@@ -294,7 +294,7 @@ namespace SFG
 		world_handle _camera_comp	= {};
 
 #ifdef SFG_TOOLMODE
-		uint8 _hierarchy_dirty = 0;
+		u8 _hierarchy_dirty = 0;
 #endif
 	};
 

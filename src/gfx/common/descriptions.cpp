@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -98,13 +98,13 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, sampler_desc& s)
 	{
-		s.anisotropy			= j.value<uint32>("anisotropy", 0);
-		s.min_lod				= j.value<float>("min_lod", .0f);
-		s.max_lod				= j.value<float>("max_lod", .0f);
-		s.lod_bias				= j.value<float>("lod_bias", .0f);
-		s.flags					= j.value<uint16>("flags", 0);
-		s.compare				= j.value<compare_op>("compare", compare_op::less);
-		const uint8 use_compare = j.value<uint8>("use_compare", 0);
+		s.anisotropy		 = j.value<u32>("anisotropy", 0);
+		s.min_lod			 = j.value<f32>("min_lod", .0f);
+		s.max_lod			 = j.value<f32>("max_lod", .0f);
+		s.lod_bias			 = j.value<f32>("lod_bias", .0f);
+		s.flags				 = j.value<u16>("flags", 0);
+		s.compare			 = j.value<compare_op>("compare", compare_op::less);
+		const u8 use_compare = j.value<u8>("use_compare", 0);
 		s.flags.set(sampler_flags::saf_compare, use_compare);
 
 		const string min	= j.value<string>("min", "anisotropic");
@@ -179,10 +179,10 @@ namespace SFG
 
 	void sampler_desc::deserialize(istream& stream)
 	{
-		uint16 val	  = 0;
-		uint8  addr_u = 0;
-		uint8  addr_v = 0;
-		uint8  addr_w = 0;
+		u16 val	   = 0;
+		u8	addr_u = 0;
+		u8	addr_v = 0;
+		u8	addr_w = 0;
 		stream >> anisotropy;
 		stream >> lod_bias;
 		stream >> min_lod;

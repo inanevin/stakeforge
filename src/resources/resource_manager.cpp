@@ -76,13 +76,13 @@ namespace SFG
 			_dummy_normal_raw.name = "dummy_normal";
 			_dummy_orm_raw.name	   = "dummy_orm";
 
-			_dummy_color_data  = reinterpret_cast<uint8*>(SFG_MALLOC(4));
-			_dummy_normal_data = reinterpret_cast<uint8*>(SFG_MALLOC(4));
-			_dummy_orm_data	   = reinterpret_cast<uint8*>(SFG_MALLOC(4));
+			_dummy_color_data  = reinterpret_cast<u8*>(SFG_MALLOC(4));
+			_dummy_normal_data = reinterpret_cast<u8*>(SFG_MALLOC(4));
+			_dummy_orm_data	   = reinterpret_cast<u8*>(SFG_MALLOC(4));
 
-			uint8 color_data[4]	 = {255, 255, 255, 255};
-			uint8 normal_data[4] = {128, 128, 255, 255};
-			uint8 orm_data[4]	 = {255, 255, 0, 255};
+			u8 color_data[4]	 = {255, 255, 255, 255};
+			u8 normal_data[4] = {128, 128, 255, 255};
+			u8 orm_data[4]	 = {255, 255, 0, 255};
 
 			if (_dummy_color_data)
 				SFG_MEMCPY(_dummy_color_data, color_data, 4);
@@ -93,9 +93,9 @@ namespace SFG
 			if (_dummy_orm_data)
 				SFG_MEMCPY(_dummy_orm_data, orm_data, 4);
 
-			_dummy_color_raw.load_from_data(_dummy_color_data, vector2ui16(1, 1), static_cast<uint8>(format::r8g8b8a8_srgb), false);
-			_dummy_normal_raw.load_from_data(_dummy_normal_data, vector2ui16(1, 1), static_cast<uint8>(format::r8g8b8a8_unorm), false);
-			_dummy_orm_raw.load_from_data(_dummy_orm_data, vector2ui16(1, 1), static_cast<uint8>(format::r8g8b8a8_unorm), false);
+			_dummy_color_raw.load_from_data(_dummy_color_data, vector2ui16(1, 1), static_cast<u8>(format::r8g8b8a8_srgb), false);
+			_dummy_normal_raw.load_from_data(_dummy_normal_data, vector2ui16(1, 1), static_cast<u8>(format::r8g8b8a8_unorm), false);
+			_dummy_orm_raw.load_from_data(_dummy_orm_data, vector2ui16(1, 1), static_cast<u8>(format::r8g8b8a8_unorm), false);
 			_dummy_color_raw.buffers_persistent	 = true;
 			_dummy_normal_raw.buffers_persistent = true;
 			_dummy_orm_raw.buffers_persistent	 = true;
@@ -270,7 +270,7 @@ namespace SFG
 				filtered_relative_paths.push_back(p);
 		}
 
-		const uint32 size = static_cast<uint32>(filtered_relative_paths.size());
+		const u32 size = static_cast<u32>(filtered_relative_paths.size());
 
 		vector<void*>	  resolved_loaders(filtered_relative_paths.size());
 		vector<string_id> resolved_types(filtered_relative_paths.size());
@@ -278,7 +278,7 @@ namespace SFG
 		vector<int> indices(filtered_relative_paths.size());
 		std::iota(indices.begin(), indices.end(), 0);
 
-		for (uint32 i = 0; i < filtered_relative_paths.size(); i++)
+		for (u32 i = 0; i < filtered_relative_paths.size(); i++)
 		{
 			const string&	path = filtered_relative_paths.at(i);
 			const string_id sid	 = TO_SID(path);
@@ -314,13 +314,13 @@ namespace SFG
 		}
 
 		// create actual resources.
-		const uint32   max_passes = _max_load_priority + 1;
+		const u32   max_passes = _max_load_priority + 1;
 		vector<string> dependencies;
 		vector<string> out_subs = {};
 
-		for (uint32 pass = 0; pass < max_passes; pass++)
+		for (u32 pass = 0; pass < max_passes; pass++)
 		{
-			for (uint32 i = 0; i < size; i++)
+			for (u32 i = 0; i < size; i++)
 			{
 				const string&	p	   = filtered_relative_paths[i];
 				const string_id type   = resolved_types[i];
@@ -375,7 +375,7 @@ namespace SFG
 				filtered_relative_paths.push_back(p);
 		}
 
-		const uint32 size		 = static_cast<uint32>(filtered_relative_paths.size());
+		const u32 size		 = static_cast<u32>(filtered_relative_paths.size());
 		const string working_dir = root_directory == nullptr ? editor_settings::get().working_dir : (root_directory);
 
 		vector<void*>	  resolved_loaders(filtered_relative_paths.size());
@@ -430,13 +430,13 @@ namespace SFG
 		});
 
 		// create actual resources.
-		const uint32   max_passes = _max_load_priority + 1;
+		const u32   max_passes = _max_load_priority + 1;
 		vector<string> dependencies;
 		vector<string> out_subs = {};
 
-		for (uint32 pass = 0; pass < max_passes; pass++)
+		for (u32 pass = 0; pass < max_passes; pass++)
 		{
-			for (uint32 i = 0; i < size; i++)
+			for (u32 i = 0; i < size; i++)
 			{
 				const string&	p	   = filtered_relative_paths[i];
 				const string_id type   = resolved_types[i];
@@ -486,7 +486,7 @@ namespace SFG
 		w.root_dir		  = root_dir;
 
 		const string full_path = w.root_dir + w.path;
-		const uint16 id		   = static_cast<uint16>(_watched_resources.size() - 1);
+		const u16 id		   = static_cast<u16>(_watched_resources.size() - 1);
 		_file_watch.add_path(full_path.c_str(), id);
 
 		for (const string& str : dependencies)
@@ -496,7 +496,7 @@ namespace SFG
 		}
 	}
 
-	void resource_manager::on_watched_resource_modified(const char* path, uint64 last_modified, uint16 id, void* user_data)
+	void resource_manager::on_watched_resource_modified(const char* path, u64 last_modified, u16 id, void* user_data)
 	{
 		resource_manager* rm = static_cast<resource_manager*>(user_data);
 		entity_manager&	  em = rm->_world.get_entity_manager();
@@ -505,7 +505,7 @@ namespace SFG
 		resource_watch& w = rm->_watched_resources[id];
 
 		// load new resource
-		const uint64 ticks = time::get_cpu_microseconds();
+		const u64 ticks = time::get_cpu_microseconds();
 
 		void* loader = rm->load_from_file(w.type_id, w.path.c_str(), w.root_dir.c_str());
 		if (loader == nullptr)
@@ -519,11 +519,11 @@ namespace SFG
 		{
 			model&				 m		= rm->get_resource<model>(w.base_handle);
 			const chunk_handle32 meshes = m.get_created_meshes();
-			const uint16		 count	= m.get_mesh_count();
+			const u16		 count	= m.get_mesh_count();
 			if (count > 0)
 			{
 				resource_handle* mesh_handles = rm->_aux_memory.get<resource_handle>(meshes);
-				for (uint16 i = 0; i < count; i++)
+				for (u16 i = 0; i < count; i++)
 				{
 					const resource_handle handle = mesh_handles[i];
 					prev_sub_handles.push_back(handle);
@@ -539,10 +539,10 @@ namespace SFG
 		const string& cache_dir = editor_settings::get().cache_dir;
 		rm->save_to_cache(w.type_id, loader, cache_dir.c_str(), w.root_dir.c_str(), ".stkcache");
 
-		const uint32 max_passes = rm->_max_load_priority + 1;
+		const u32 max_passes = rm->_max_load_priority + 1;
 
 		resource_handle new_handle = {};
-		for (uint32 pass = 0; pass < max_passes; pass++)
+		for (u32 pass = 0; pass < max_passes; pass++)
 		{
 			new_handle = rm->add_from_loader(w.type_id, loader, pass, TO_SID(w.path));
 			rm->store_relative_path(w.type_id, new_handle, w.path);
@@ -585,11 +585,11 @@ namespace SFG
 			model&				 m		= rm->get_resource<model>(w.base_handle);
 			const chunk_handle32 meshes = m.get_created_meshes();
 
-			const uint16 count = m.get_mesh_count();
+			const u16 count = m.get_mesh_count();
 			if (count > 0)
 			{
 				resource_handle* mesh_handles = rm->_aux_memory.get<resource_handle>(meshes);
-				for (uint16 i = 0; i < count; i++)
+				for (u16 i = 0; i < count; i++)
 				{
 					const resource_handle handle = mesh_handles[i];
 					const mesh&			  mm	 = rm->get_resource<mesh>(handle);
@@ -721,7 +721,7 @@ namespace SFG
 	}
 #endif
 
-	resource_handle resource_manager::add_from_loader(string_id type, void* loader, uint32 priority, string_id hash) const
+	resource_handle resource_manager::add_from_loader(string_id type, void* loader, u32 priority, string_id hash) const
 	{
 		const cache_storage& stg = get_storage(type);
 		if (priority != stg.load_priority)

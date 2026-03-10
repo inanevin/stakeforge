@@ -49,7 +49,7 @@ namespace SFG
 		gfx_backend* backend = gfx_backend::get();
 
 		// ofd
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -81,7 +81,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -92,13 +92,13 @@ namespace SFG
 		destroy_textures();
 	}
 
-	void render_pass_bloom::prepare(proxy_manager& pm, uint8 frame_index)
+	void render_pass_bloom::prepare(proxy_manager& pm, u8 frame_index)
 	{
 		ZoneScoped;
 
-		const uint8				  bloom_exists	= pm.get_bloom_exists();
+		const u8				  bloom_exists	= pm.get_bloom_exists();
 		const render_proxy_bloom& bloom			= pm.get_bloom();
-		const float				  filter_radius = bloom_exists ? bloom.filter_radius : 0.01f;
+		const f32				  filter_radius = bloom_exists ? bloom.filter_radius : 0.01f;
 		per_frame_data&			  pfd			= _pfd[frame_index];
 		const ubo				  ubo_data		= {
 								 .filter_radius = filter_radius,
@@ -130,7 +130,7 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_texture,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		barriers.resize(0);
 		barriers.push_back({
@@ -140,21 +140,21 @@ namespace SFG
 
 		backend->cmd_bind_layout_compute(cmd_buffer, {.layout = p.global_layout_compute});
 		backend->cmd_bind_group_compute(cmd_buffer, {.group = p.global_group});
-		backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&gpu_index_ubo, .offset = constant_index_rp_constant0, .count = 1, .param_index = rpi_constants});
+		backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&gpu_index_ubo, .offset = constant_index_rp_constant0, .count = 1, .param_index = rpi_constants});
 
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = shader_bloom_downsample});
 
 		gpu_index downsample_input	= p.gpu_index_lighting;
 		gpu_index downsample_output = pfd.gpu_index_downsample_uav[0];
 
-		for (uint32 i = 0; i < MIPS_DS; i++)
+		for (u32 i = 0; i < MIPS_DS; i++)
 		{
-			const uint32 group_size_x = 8;
-			const uint32 group_size_y = 8;
-			const uint32 half_w		  = res.x * math::pow(0.5f, static_cast<float>(i + 1));
-			const uint32 half_h		  = res.y * math::pow(0.5f, static_cast<float>(i + 1));
-			const uint32 gsx		  = (group_size_x + half_w - 1) / group_size_x;
-			const uint32 gsy		  = (group_size_y + half_h - 1) / group_size_y;
+			const u32 group_size_x = 8;
+			const u32 group_size_y = 8;
+			const u32 half_w	   = res.x * math::pow(0.5f, static_cast<f32>(i + 1));
+			const u32 half_h	   = res.y * math::pow(0.5f, static_cast<f32>(i + 1));
+			const u32 gsx		   = (group_size_x + half_w - 1) / group_size_x;
+			const u32 gsy		   = (group_size_y + half_h - 1) / group_size_y;
 
 			if (gsx == 0 || gsy == 0)
 				continue;
@@ -162,8 +162,8 @@ namespace SFG
 			BEGIN_DEBUG_EVENT(backend, cmd_buffer, "bloom_downsample");
 
 			{
-				const uint32 constants[5] = {half_w, half_h, downsample_input, downsample_output, i};
-				backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant1, .count = 5, .param_index = rpi_constants});
+				const u32 constants[5] = {half_w, half_h, downsample_input, downsample_output, i};
+				backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant1, .count = 5, .param_index = rpi_constants});
 			}
 
 			backend->cmd_dispatch(cmd_buffer, {.group_size_x = gsx, .group_size_y = gsy, .group_size_z = 1});
@@ -175,7 +175,7 @@ namespace SFG
 				downsample_output = pfd.gpu_index_downsample_uav[i + 1];
 			}
 
-			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		}
 
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = shader_bloom_upsample});
@@ -183,14 +183,14 @@ namespace SFG
 		gpu_index upsample_input  = pfd.gpu_index_downsample_srv[MIPS_DS - 1];
 		gpu_index upsample_output = pfd.gpu_index_upsample_uav[MIPS_DS - 1];
 
-		for (int32 i = MIPS_DS - 1; i >= 0; --i)
+		for (i32 i = MIPS_DS - 1; i >= 0; --i)
 		{
-			const uint32 group_size_x = 8;
-			const uint32 group_size_y = 8;
-			const uint32 half_w		  = res.x * math::pow(0.5f, static_cast<float>(i));
-			const uint32 half_h		  = res.y * math::pow(0.5f, static_cast<float>(i));
-			const uint32 gsx		  = (group_size_x + half_w - 1) / group_size_x;
-			const uint32 gsy		  = (group_size_y + half_h - 1) / group_size_y;
+			const u32 group_size_x = 8;
+			const u32 group_size_y = 8;
+			const u32 half_w	   = res.x * math::pow(0.5f, static_cast<f32>(i));
+			const u32 half_h	   = res.y * math::pow(0.5f, static_cast<f32>(i));
+			const u32 gsx		   = (group_size_x + half_w - 1) / group_size_x;
+			const u32 gsy		   = (group_size_y + half_h - 1) / group_size_y;
 
 			if (gsx == 0 || gsy == 0)
 				continue;
@@ -198,8 +198,8 @@ namespace SFG
 			BEGIN_DEBUG_EVENT(backend, cmd_buffer, "bloom_upsample");
 
 			{
-				const uint32 constants[4] = {half_w, half_h, upsample_input, upsample_output};
-				backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant1, .count = 4, .param_index = rpi_constants});
+				const u32 constants[4] = {half_w, half_h, upsample_input, upsample_output};
+				backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant1, .count = 4, .param_index = rpi_constants});
 			}
 
 			backend->cmd_dispatch(cmd_buffer, {.group_size_x = gsx, .group_size_y = gsy, .group_size_z = 1});
@@ -211,7 +211,7 @@ namespace SFG
 				upsample_output = pfd.gpu_index_upsample_uav[i - 1];
 			}
 
-			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		}
 
 		barriers.push_back({
@@ -220,7 +220,7 @@ namespace SFG
 			.resource	 = output,
 			.flags		 = barrier_flags::baf_is_texture,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		barriers.resize(0);
 
 		backend->close_command_buffer(cmd_buffer);
@@ -236,7 +236,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -252,25 +252,25 @@ namespace SFG
 
 		vector<view_desc> views;
 
-		for (uint32 i = 0; i < MIPS_DS; i++)
+		for (u32 i = 0; i < MIPS_DS; i++)
 		{
 			views.push_back({
 				.type			= view_type::gpu_write,
-				.base_mip_level = static_cast<uint8>(i),
+				.base_mip_level = static_cast<u8>(i),
 				.mip_count		= 1,
 			});
 		}
 
-		for (uint32 i = 0; i < MIPS_DS; i++)
+		for (u32 i = 0; i < MIPS_DS; i++)
 		{
 			views.push_back({
 				.type			= view_type::sampled,
-				.base_mip_level = static_cast<uint8>(i),
+				.base_mip_level = static_cast<u8>(i),
 				.mip_count		= 1,
 			});
 		}
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -294,7 +294,7 @@ namespace SFG
 				.debug_name		= "bloom_ao_upsample_out",
 			});
 
-			for (uint32 i = 0; i < MIPS_DS; i++)
+			for (u32 i = 0; i < MIPS_DS; i++)
 			{
 				pfd.gpu_index_downsample_uav[i] = backend->get_texture_gpu_index(pfd.downsample_out, i);
 				pfd.gpu_index_downsample_srv[i] = backend->get_texture_gpu_index(pfd.downsample_out, MIPS_DS + i);

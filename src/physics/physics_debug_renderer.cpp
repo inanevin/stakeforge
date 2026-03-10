@@ -46,9 +46,9 @@ namespace SFG
 
 	void physics_debug_renderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor)
 	{
-		const vector3	from	  = from_jph_vec3(inFrom);
-		const vector3	to		  = from_jph_vec3(inTo);
-		constexpr float thickness = 0.25f;
+		const vector3 from		= from_jph_vec3(inFrom);
+		const vector3 to		= from_jph_vec3(inTo);
+		constexpr f32 thickness = 0.25f;
 		_w->get_debug_rendering().draw_line(from, to, color::from255(inColor.r, inColor.g, inColor.b, inColor.a), thickness);
 	}
 
@@ -57,7 +57,7 @@ namespace SFG
 		_w->get_debug_rendering().draw_triangle(from_jph_vec3(inV1), from_jph_vec3(inV2), from_jph_vec3(inV3), color::from255(inColor.r, inColor.g, inColor.b, inColor.a));
 	}
 
-	void physics_debug_renderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, float inHeight)
+	void physics_debug_renderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, f32 inHeight)
 	{
 	}
 
@@ -71,7 +71,7 @@ namespace SFG
 		return batch;
 	}
 
-	JPH::DebugRenderer::Batch physics_debug_renderer::CreateTriangleBatch(const JPH::DebugRenderer::Vertex* inVertices, int inVertexCount, const uint32* inIndices, int inIndexCount)
+	JPH::DebugRenderer::Batch physics_debug_renderer::CreateTriangleBatch(const JPH::DebugRenderer::Vertex* inVertices, int inVertexCount, const u32* inIndices, int inIndexCount)
 	{
 		BatchImpl* batch = new BatchImpl;
 		if (inVertices == nullptr || inVertexCount == 0 || inIndices == nullptr || inIndexCount == 0)
@@ -92,7 +92,7 @@ namespace SFG
 
 	void physics_debug_renderer::DrawGeometry(JPH::RMat44Arg						 inModelMatrix,
 											  const JPH::AABox&						 inWorldSpaceBounds,
-											  float									 inLODScaleSq,
+											  f32									 inLODScaleSq,
 											  JPH::ColorArg							 inModelColor,
 											  const JPH::DebugRenderer::GeometryRef& inGeometry,
 											  JPH::DebugRenderer::ECullMode			 inCullMode,

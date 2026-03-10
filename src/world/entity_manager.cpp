@@ -72,7 +72,7 @@ namespace SFG
 		_aabbs				 = new static_array<aabb, MAX_ENTITIES>();
 		_comp_registers		 = new static_array<entity_comp_register, MAX_ENTITIES>();
 		_local_transforms	 = new static_array<entity_transform, MAX_ENTITIES>();
-		_flags				 = new static_array<bitmask<uint16>, MAX_ENTITIES>();
+		_flags				 = new static_array<bitmask<u16>, MAX_ENTITIES>();
 		_abs_matrices		 = new static_array<matrix4x3, MAX_ENTITIES>();
 		_abs_rots			 = new static_array<quat, MAX_ENTITIES>();
 		_proxy_entities		 = new static_vector<world_handle, MAX_ENTITIES>();
@@ -177,7 +177,7 @@ namespace SFG
 
 	void entity_manager::calculate_abs_transform(world_id e)
 	{
-		bitmask<uint16>& f = _flags->get(e);
+		bitmask<u16>& f = _flags->get(e);
 
 		if (!f.is_set(entity_flags::entity_flags_transient_abs_transform_mark))
 			return;
@@ -232,7 +232,7 @@ namespace SFG
 		{
 			const world_id index = p.index;
 
-			bitmask<uint16>& ff = flags.get(index);
+			bitmask<u16>& ff = flags.get(index);
 			if (ff.is_set(entity_flags::entity_flags_invisible))
 				continue;
 
@@ -261,7 +261,7 @@ namespace SFG
 		{
 			const world_id handle_index = p.index;
 
-			bitmask<uint16>& ff = flags.get(handle_index);
+			bitmask<u16>& ff = flags.get(handle_index);
 			if (ff.is_set(entity_flags::entity_flags_invisible))
 				continue;
 
@@ -277,7 +277,7 @@ namespace SFG
 
 		render_event_stream& stream = _world.get_render_stream();
 
-		const float interp = math::clamp((float)interpolation, 0.0f, 1.0f);
+		const f32 interp = math::clamp((f32)interpolation, 0.0f, 1.0f);
 
 		auto& flags = *_flags;
 
@@ -287,7 +287,7 @@ namespace SFG
 		{
 			const world_id handle_index = p.index;
 
-			bitmask<uint16>& ff = flags.get(handle_index);
+			bitmask<u16>& ff = flags.get(handle_index);
 			if (ff.is_set(entity_flags::entity_flags_invisible))
 				continue;
 
@@ -391,7 +391,7 @@ namespace SFG
 
 	void entity_manager::update_entity_flags_to_render(world_handle handle)
 	{
-		const bitmask<uint16>&			flags = get_entity_flags(handle);
+		const bitmask<u16>&				flags = get_entity_flags(handle);
 		const render_event_entity_flags ev	  = {
 			   .is_visible	= !flags.is_set(entity_flags::entity_flags_invisible),
 			   .is_template = flags.is_set(entity_flags::entity_flags_template),
@@ -453,8 +453,8 @@ namespace SFG
 	{
 		SFG_ASSERT(_entities->is_valid(source));
 
-		hash_map<uint32, world_handle> clone_by_source;
-		vector<world_handle>		   cloned_entities;
+		hash_map<u32, world_handle> clone_by_source;
+		vector<world_handle>		cloned_entities;
 
 		component_manager& cm = _world.get_comp_manager();
 
@@ -544,7 +544,7 @@ namespace SFG
 				}
 			}
 
-			const bitmask<uint16> fl = _flags->get(source_entity.index);
+			const bitmask<u16> fl = _flags->get(source_entity.index);
 			set_entity_visible(clone, !fl.is_set(entity_flags::entity_flags_invisible));
 			set_entity_template(clone, get_entity_template_ref(source_entity));
 
@@ -577,8 +577,8 @@ namespace SFG
 					if (f->_is_list)
 					{
 						vector<world_handle>& v	 = f->value(comp_ptr).cast_ref<vector<world_handle>>();
-						const uint32		  sz = static_cast<uint32>(v.size());
-						for (uint32 i = 0; i < sz; ++i)
+						const u32			  sz = static_cast<u32>(v.size());
+						for (u32 i = 0; i < sz; ++i)
 						{
 							if (v[i].is_null())
 								continue;
@@ -834,7 +834,7 @@ namespace SFG
 #endif
 	}
 
-	world_handle entity_manager::get_child_by_index(world_handle entity, uint32 index)
+	world_handle entity_manager::get_child_by_index(world_handle entity, u32 index)
 	{
 		SFG_ASSERT(_entities->is_valid(entity));
 		const entity_family& family = _families->get(entity.index);
@@ -844,7 +844,7 @@ namespace SFG
 
 		world_handle target = family.first_child;
 
-		for (uint32 i = 0; i < index; i++)
+		for (u32 i = 0; i < index; i++)
 		{
 			entity_family& fam	= _families->get(target.index);
 			world_handle   next = fam.next_sibling;
@@ -874,7 +874,7 @@ namespace SFG
 		return _families->get(entity.index);
 	}
 
-	const bitmask<uint16> entity_manager::get_entity_flags(world_handle entity) const
+	const bitmask<u16> entity_manager::get_entity_flags(world_handle entity) const
 	{
 		SFG_ASSERT(_entities->is_valid(entity));
 		return _flags->get(entity.index);
@@ -950,7 +950,7 @@ namespace SFG
 
 		component_manager& cm = _world.get_comp_manager();
 
-		uint32 i = 0;
+		u32 i = 0;
 		for (const entity_template_entity_raw& r : raw.entities)
 		{
 			const world_handle h = create_entity(r.name.c_str());
@@ -1014,8 +1014,8 @@ namespace SFG
 
 		const chunk_handle32 meshes		  = mdl.get_created_meshes();
 		const chunk_handle32 nodes		  = mdl.get_created_nodes();
-		const uint16		 meshes_count = mdl.get_mesh_count();
-		const uint16		 nodes_count  = mdl.get_node_count();
+		const u16			 meshes_count = mdl.get_mesh_count();
+		const u16			 nodes_count  = mdl.get_node_count();
 
 		if (nodes_count == 0 || meshes_count == 0)
 			return {};
@@ -1032,7 +1032,7 @@ namespace SFG
 
 		vector<world_handle> created_node_entities;
 		vector<world_handle> root_entities;
-		for (uint16 i = 0; i < nodes_count; i++)
+		for (u16 i = 0; i < nodes_count; i++)
 		{
 			model_node&		   node = ptr_nodes[i];
 			const char*		   name = reinterpret_cast<const char*>(res_aux.get(node.get_name().head));
@@ -1056,18 +1056,18 @@ namespace SFG
 		// -----------------------------------------------------------------------------
 
 		const chunk_handle32   skins	   = mdl.get_created_skins();
-		const uint16		   skins_count = mdl.get_skin_count();
+		const u16			   skins_count = mdl.get_skin_count();
 		const resource_handle* skins_ptr   = skins_count == 0 ? nullptr : res_aux.get<resource_handle>(skins);
 		vector<world_handle>   skin_entities;
-		for (uint16 i = 0; i < skins_count; i++)
+		for (u16 i = 0; i < skins_count; i++)
 		{
 			const skin&			 sk			  = rm.get_resource<skin>(skins_ptr[i]);
 			const chunk_handle32 joints		  = sk.get_joints();
-			const uint16		 joints_count = sk.get_joints_count();
+			const u16			 joints_count = sk.get_joints_count();
 			const skin_joint*	 joints_ptr	  = res_aux.get<skin_joint>(joints);
-			for (uint16 j = 0; j < joints_count; j++)
+			for (u16 j = 0; j < joints_count; j++)
 			{
-				const uint16 idx = joints_ptr[j].model_node_index;
+				const u16 idx = joints_ptr[j].model_node_index;
 				skin_entities.push_back(created_node_entities[idx]);
 				add_render_proxy(created_node_entities[idx]);
 			}
@@ -1077,7 +1077,7 @@ namespace SFG
 		// parent-child relationships
 		// -----------------------------------------------------------------------------
 
-		for (uint16 i = 0; i < nodes_count; i++)
+		for (u16 i = 0; i < nodes_count; i++)
 		{
 			model_node& node = ptr_nodes[i];
 			if (node.get_parent_index() != -1)
@@ -1088,27 +1088,27 @@ namespace SFG
 		// add components, e.g. lights, mesh instances etc.
 		// -----------------------------------------------------------------------------
 
-		const uint16 lights_count = mdl.get_light_count();
-		light_raw*	 lights_ptr	  = nullptr;
+		const u16  lights_count = mdl.get_light_count();
+		light_raw* lights_ptr	= nullptr;
 		if (lights_count != 0)
 			lights_ptr = res_aux.get<light_raw>(mdl.get_created_lights());
 
 		resource_handle* model_materials = nullptr;
-		const uint16	 model_mat_count = mdl.get_material_count();
+		const u16		 model_mat_count = mdl.get_material_count();
 		if (model_mat_count != 0)
 		{
 			model_materials = res_aux.get<resource_handle>(mdl.get_created_materials());
 		}
 		vector<resource_handle> mi_materials;
 
-		for (uint16 i = 0; i < nodes_count; i++)
+		for (u16 i = 0; i < nodes_count; i++)
 		{
 			model_node&		   node		   = ptr_nodes[i];
 			const world_handle entity	   = created_node_entities[i];
-			const int16		   light_index = node.get_light_index();
+			const i16		   light_index = node.get_light_index();
 			if (lights_ptr && light_index != -1)
 			{
-				SFG_ASSERT(light_index < static_cast<int16>(lights_count));
+				SFG_ASSERT(light_index < static_cast<i16>(lights_count));
 				light_raw& lr = lights_ptr[light_index];
 
 				if (lr.type == light_raw_type::point)
@@ -1135,7 +1135,7 @@ namespace SFG
 				continue;
 
 			resource_handle skin_handle = {};
-			const int16		skin_index	= node.get_skin_index();
+			const i16		skin_index	= node.get_skin_index();
 
 			if (skin_index != -1)
 			{
@@ -1149,14 +1149,14 @@ namespace SFG
 			const resource_handle& mesh_handle = ptr_meshes_handle[node.get_mesh_index()];
 			const mesh&			   m		   = rm.get_resource<mesh>(mesh_handle);
 
-			const uint16 mesh_mat_indices_count = m.get_material_count();
+			const u16 mesh_mat_indices_count = m.get_material_count();
 
 			if (mesh_mat_indices_count != 0)
 			{
-				uint16* mesh_mat_indices = res_aux.get<uint16>(m.get_material_indices());
-				for (uint16 i = 0; i < mesh_mat_indices_count; i++)
+				u16* mesh_mat_indices = res_aux.get<u16>(m.get_material_indices());
+				for (u16 i = 0; i < mesh_mat_indices_count; i++)
 				{
-					const uint16 mat_index = mesh_mat_indices[i];
+					const u16 mat_index = mesh_mat_indices[i];
 					SFG_ASSERT(mat_index < mdl.get_material_count());
 					mi_materials.push_back(model_materials[mat_index]);
 				}
@@ -1166,12 +1166,12 @@ namespace SFG
 			{
 				const world_handle		   comp_handle = cm.add_component<comp_animation_controller>(entity);
 				comp_animation_controller& ac		   = cm.get_component<comp_animation_controller>(comp_handle);
-				ac.set_skin_entities(_world, created_node_entities.data(), static_cast<uint16>(created_node_entities.size()));
+				ac.set_skin_entities(_world, created_node_entities.data(), static_cast<u16>(created_node_entities.size()));
 			}
 
 			const world_handle	comp_handle = cm.add_component<comp_mesh_instance>(entity);
 			comp_mesh_instance& mi			= cm.get_component<comp_mesh_instance>(comp_handle);
-			mi.set_mesh(_world, mesh_handle, skin_handle, mi_materials.data(), static_cast<uint32>(mi_materials.size()), skin_index != -1 ? created_node_entities.data() : nullptr, skin_index != -1 ? static_cast<uint32>(created_node_entities.size()) : 0);
+			mi.set_mesh(_world, mesh_handle, skin_handle, mi_materials.data(), static_cast<u32>(mi_materials.size()), skin_index != -1 ? created_node_entities.data() : nullptr, skin_index != -1 ? static_cast<u32>(created_node_entities.size()) : 0);
 		}
 
 		for (world_handle r : root_entities)
@@ -1192,9 +1192,9 @@ namespace SFG
 
 		static_vector<world_handle, 1024> created;
 
-		const uint32 sz = static_cast<uint32>(raw.entities.size());
+		const u32 sz = static_cast<u32>(raw.entities.size());
 		created.resize(raw.entities.size());
-		for (uint32 i = 0; i < sz; i++)
+		for (u32 i = 0; i < sz; i++)
 		{
 			const entity_template_entity_raw& r = raw.entities[i];
 
@@ -1220,7 +1220,7 @@ namespace SFG
 			created[i] = created_handle;
 		}
 
-		for (uint32 i = 0; i < sz; i++)
+		for (u32 i = 0; i < sz; i++)
 		{
 			const entity_template_entity_raw& r = raw.entities[i];
 			if (r.parent != -1)
@@ -1255,7 +1255,7 @@ namespace SFG
 			}
 
 			if (!bodies.empty())
-				_world.get_physics_world().add_bodies_to_world(bodies.data(), static_cast<uint32>(bodies.size()));
+				_world.get_physics_world().add_bodies_to_world(bodies.data(), static_cast<u32>(bodies.size()));
 		}
 
 		const world_handle root = created.empty() ? world_handle() : created[0];

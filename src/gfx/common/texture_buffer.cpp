@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -38,7 +38,7 @@ namespace SFG
 		SFG_ASSERT(pixels != nullptr);
 		if (write_addr)
 		{
-			const uint64 addr = reinterpret_cast<uint64>(pixels);
+			const u64 addr = reinterpret_cast<u64>(pixels);
 			stream << addr;
 		}
 		else
@@ -54,14 +54,14 @@ namespace SFG
 
 		if (read_addr)
 		{
-			uint64 addr = 0;
+			u64 addr = 0;
 			stream >> addr;
-			pixels = reinterpret_cast<uint8*>(addr);
+			pixels = reinterpret_cast<u8*>(addr);
 		}
 		else
 		{
 			const size_t sz = static_cast<size_t>(bpp * size.x * size.y);
-			pixels			= reinterpret_cast<uint8*>(SFG_MALLOC(sz));
+			pixels			= reinterpret_cast<u8*>(SFG_MALLOC(sz));
 			stream.read_to_raw(pixels, sz);
 		}
 	}

@@ -35,7 +35,7 @@ namespace SFG
 	class ostream;
 	class istream;
 
-	enum class light_raw_type : uint8
+	enum class light_raw_type : u8
 	{
 		point,
 		spot,
@@ -45,10 +45,10 @@ namespace SFG
 	struct light_raw
 	{
 		color		   base_color = color::white;
-		float		   intensity  = 0.0f;
-		float		   range	  = 0.0;
-		float		   inner_cone = 0.0f;
-		float		   outer_cone = 0.0f;
+		f32		   intensity  = 0.0f;
+		f32		   range	  = 0.0;
+		f32		   inner_cone = 0.0f;
+		f32		   outer_cone = 0.0f;
 		light_raw_type type		  = {};
 
 		void serialize(ostream& stream) const;

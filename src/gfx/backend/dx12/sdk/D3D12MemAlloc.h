@@ -1804,7 +1804,7 @@ Example for buffer created and filled in `UPLOAD` heap type:
 
 \code
 const UINT64 bufSize = 65536;
-const float* bufData = (...);
+const f32* bufData = (...);
 
 D3D12_RESOURCE_DESC resourceDesc = {};
 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;

@@ -151,7 +151,7 @@ namespace SFG
 
 		editor_theme::UI_SCALING = window::UI_SCALE;
 
-		const float base_text_height = 14 * window::UI_SCALE;
+		const f32 base_text_height = 14 * window::UI_SCALE;
 
 		const string default_font_str = SFG_ROOT_DIRECTORY + string("assets/engine/fonts/Quantico-Regular.ttf");
 		const string title_font_str	  = SFG_ROOT_DIRECTORY + string("assets/engine/fonts/VT323-Regular.ttf");
@@ -237,7 +237,7 @@ namespace SFG
 		_camera_controller.uninit();
 	}
 
-	void editor::post_world_tick(float delta)
+	void editor::post_world_tick(f32 delta)
 	{
 		_camera_controller.tick(delta);
 		world& w = _app.get_world();
@@ -347,7 +347,7 @@ namespace SFG
 		}
 		else if (ev.type == window_event_type::wheel)
 		{
-			_builder->on_mouse_wheel_event({.amount = 12 * static_cast<float>(-ev.value.y) / window::get_wheel_delta()});
+			_builder->on_mouse_wheel_event({.amount = 12 * static_cast<f32>(-ev.value.y) / window::get_wheel_delta()});
 		}
 		else if (ev.type == window_event_type::mouse)
 		{
@@ -395,7 +395,7 @@ namespace SFG
 		_font_manager->unload_font(_font_title);
 		_font_manager->unload_font(_font_icons);
 
-		const float	 base_text_height = 14 * window::UI_SCALE;
+		const f32	 base_text_height = 14 * window::UI_SCALE;
 		const string default_font_str = SFG_ROOT_DIRECTORY + string("assets/engine/fonts/Quantico-Regular.ttf");
 		const string title_font_str	  = SFG_ROOT_DIRECTORY + string("assets/engine/fonts/VT323-Regular.ttf");
 		const string icon_font_str	  = SFG_ROOT_DIRECTORY + string("assets/engine/fonts/icons.ttf");

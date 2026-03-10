@@ -39,9 +39,9 @@ namespace SFG
 		void init();
 		void uninit();
 
-		inline float tick(float dt)
+		inline f32 tick(f32 dt)
 		{
-			const float modified = dt * _time_speed;
+			const f32 modified = dt * _time_speed;
 			_elapsed_real_time += dt;
 			_elapsed_game_time += modified;
 			return modified;
@@ -51,7 +51,7 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline void set_time_speed(float s)
+		inline void set_time_speed(f32 s)
 		{
 			_time_speed = s;
 
@@ -59,29 +59,29 @@ namespace SFG
 				_time_speed = 0.0f;
 		}
 
-		inline float get_time_speed() const
+		inline f32 get_time_speed() const
 		{
 			return _time_speed;
 		}
 
-		inline float get_elapsed_game_time() const
+		inline f32 get_elapsed_game_time() const
 		{
 			return _elapsed_game_time;
 		}
 
-		inline float get_elapsed_real_time() const
+		inline f32 get_elapsed_real_time() const
 		{
 			return _elapsed_real_time;
 		}
 
-		inline float get_game_dt(float in_dt)
+		inline f32 get_game_dt(f32 in_dt)
 		{
 			return in_dt * _time_speed;
 		}
 
 	private:
-		float _elapsed_real_time = 0.0f;
-		float _elapsed_game_time = 0.0f;
-		float _time_speed		 = 1.0f;
+		f32 _elapsed_real_time = 0.0f;
+		f32 _elapsed_game_time = 0.0f;
+		f32 _time_speed		   = 1.0f;
 	};
 }

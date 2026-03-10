@@ -50,21 +50,21 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		void set_values(world& w, float near_plane, float far_plane, float fov_degrees, std::initializer_list<float> cascades = {0.01f, 0.075f, 0.12f, 0.25f});
-		void set_values(world& w, float near_plane, float far_plane, float fov_degrees, const static_vector<float, MAX_SHADOW_CASCADES>& cascades);
+		void set_values(world& w, f32 near_plane, f32 far_plane, f32 fov_degrees, std::initializer_list<f32> cascades = {0.01f, 0.075f, 0.12f, 0.25f});
+		void set_values(world& w, f32 near_plane, f32 far_plane, f32 fov_degrees, const static_vector<f32, MAX_SHADOW_CASCADES>& cascades);
 		void set_main(world& w);
 
-		inline float get_near() const
+		inline f32 get_near() const
 		{
 			return _near;
 		}
 
-		inline float get_far() const
+		inline f32 get_far() const
 		{
 			return _far;
 		}
 
-		inline float get_fov_degrees() const
+		inline f32 get_fov_degrees() const
 		{
 			return _fov_degrees;
 		}
@@ -77,11 +77,11 @@ namespace SFG
 		template <typename T, int> friend class comp_cache;
 
 	private:
-		static_vector<float, MAX_SHADOW_CASCADES> _cascades;
-		component_header						  _header	   = {};
-		float									  _near		   = 0.1f;
-		float									  _far		   = 0.1f;
-		float									  _fov_degrees = 45.0f;
+		static_vector<f32, MAX_SHADOW_CASCADES> _cascades;
+		component_header						_header		 = {};
+		f32										_near		 = 0.1f;
+		f32										_far		 = 0.1f;
+		f32										_fov_degrees = 45.0f;
 	};
 
 	REFLECT_TYPE(comp_camera);

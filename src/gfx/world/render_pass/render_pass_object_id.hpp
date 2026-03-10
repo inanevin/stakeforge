@@ -57,13 +57,13 @@ namespace SFG
 			gfx_id	   render_target   = NULL_GFX_ID;
 			gfx_id	   cmd_buffer	   = 0;
 			gfx_id	   readback_buffer = 0;
-			uint8*	   readback_mapped = nullptr;
+			u8*		   readback_mapped = nullptr;
 		};
 
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gpu_index		   gpu_index_entities;
 			gpu_index		   gpu_index_bones;
@@ -83,16 +83,16 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void   prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, uint8 frame_index);
-		void   render(const render_params& p);
-		void   resize(const vector2ui16& size);
-		uint32 read_location(uint16 x, uint16 y, uint8 frame_index);
+		void prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, u8 frame_index);
+		void render(const render_params& p);
+		void resize(const vector2ui16& size);
+		u32	 read_location(u16 x, u16 y, u8 frame_index);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}

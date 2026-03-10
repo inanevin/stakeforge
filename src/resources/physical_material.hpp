@@ -73,7 +73,7 @@ namespace SFG
 #endif
 
 		physical_material_settings _settings = {};
-		bitmask<uint8>			   _flags	 = 0;
+		bitmask<u8>			   _flags	 = 0;
 	};
 
 	REFLECT_TYPE(physical_material);

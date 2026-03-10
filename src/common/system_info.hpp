@@ -113,17 +113,17 @@ namespace SFG
 			return s_render_thread_elapsed_seconds.load();
 		}
 
-		static uint32 get_fps()
+		static u32 get_fps()
 		{
 			return s_fps.load();
 		}
 
-		static uint64 get_frame()
+		static u64 get_frame()
 		{
 			return s_frame.load();
 		}
 
-		static uint64 get_render_frame()
+		static u64 get_render_frame()
 		{
 			return s_render_frame.load();
 		}
@@ -133,12 +133,12 @@ namespace SFG
 			return s_is_render_active;
 		}
 
-		static inline void add_draw_call(uint32 ctx)
+		static inline void add_draw_call(u32 ctx)
 		{
 			s_draw_calls += ctx;
 		}
 
-		static inline uint64 get_draw_calls()
+		static inline u64 get_draw_calls()
 		{
 			return s_draw_calls_ui.load(std::memory_order_acquire);
 		}
@@ -156,11 +156,11 @@ namespace SFG
 		static atomic<double> s_main_thread_time_milli;
 		static atomic<double> s_render_thread_time_milli;
 		static atomic<double> s_render_thread_elapsed_seconds;
-		static atomic<uint32> s_fps;
-		static atomic<uint64> s_frame;
-		static atomic<uint64> s_render_frame;
-		static uint32		  s_draw_calls;
-		static atomic<uint32> s_draw_calls_ui;
+		static atomic<u32>	  s_fps;
+		static atomic<u64>	  s_frame;
+		static atomic<u64>	  s_render_frame;
+		static u32			  s_draw_calls;
+		static atomic<u32>	  s_draw_calls_ui;
 		static bool			  s_is_render_active;
 	};
 

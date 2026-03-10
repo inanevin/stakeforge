@@ -60,7 +60,7 @@ namespace SFG
 		_builder = nullptr;
 	}
 
-	void comp_canvas::update_counts_and_init(world& w, uint32 max_widget_count, uint16 max_buffer_count)
+	void comp_canvas::update_counts_and_init(world& w, u32 max_widget_count, u16 max_buffer_count)
 	{
 		_max_buffer_count = max_buffer_count;
 		_max_widget_count = max_widget_count;
@@ -92,7 +92,7 @@ namespace SFG
 			draw_vekt(db);
 	}
 
-	void comp_canvas::set_is_3d(world& w, uint8 is_3d)
+	void comp_canvas::set_is_3d(world& w, u8 is_3d)
 	{
 		_flags.set(comp_canvas::flags::is_3d, is_3d);
 
@@ -128,8 +128,8 @@ namespace SFG
 
 		const render_event_canvas ev = {
 			.entity_index = _header.entity.index,
-			.vertex_size  = static_cast<uint32>(cnf.vertex_buffer_sz),
-			.index_size	  = static_cast<uint32>(cnf.index_buffer_sz),
+			.vertex_size  = static_cast<u32>(cnf.vertex_buffer_sz),
+			.index_size	  = static_cast<u32>(cnf.index_buffer_sz),
 			.is_3d		  = _flags.is_set(comp_canvas::flags::is_3d),
 		};
 
@@ -161,30 +161,30 @@ namespace SFG
 		if (clip.y < 0.0f)
 		{
 			ev.clip.y = 0;
-			ev.clip.w = static_cast<uint16>(math::max(0.0f, clip.w + clip.y));
+			ev.clip.w = static_cast<u16>(math::max(0.0f, clip.w + clip.y));
 		}
 		else
 		{
-			ev.clip.y = static_cast<uint16>(clip.y);
-			ev.clip.w = static_cast<uint16>(clip.w);
+			ev.clip.y = static_cast<u16>(clip.y);
+			ev.clip.w = static_cast<u16>(clip.w);
 		}
 		if (clip.x < 0.0f)
 		{
 			ev.clip.x = 0;
-			ev.clip.z = math::min((uint16)0, static_cast<uint16>(clip.x + clip.z));
+			ev.clip.z = math::min((u16)0, static_cast<u16>(clip.x + clip.z));
 		}
 		else
 		{
-			ev.clip.x = static_cast<uint16>(clip.x);
-			ev.clip.z = static_cast<uint16>(clip.z);
+			ev.clip.x = static_cast<u16>(clip.x);
+			ev.clip.z = static_cast<u16>(clip.z);
 		}
 
 		ev.start_index		= _idx_counter;
 		ev.start_vertex		= _vtx_counter;
 		ev.index_count		= buffer.index_count;
-		ev.vertex_data		= reinterpret_cast<uint8*>(buffer.vertex_start);
+		ev.vertex_data		= reinterpret_cast<u8*>(buffer.vertex_start);
 		ev.vertex_data_size = buffer.vertex_count * sizeof(vekt::vertex);
-		ev.index_data		= reinterpret_cast<uint8*>(buffer.index_start);
+		ev.index_data		= reinterpret_cast<u8*>(buffer.index_start);
 		ev.index_data_size	= buffer.index_count * sizeof(vekt::index);
 
 		_idx_counter += buffer.index_count;

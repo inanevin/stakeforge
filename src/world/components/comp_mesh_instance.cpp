@@ -49,7 +49,7 @@ namespace SFG
 
 		m.add_function<void, void*, world&>("on_reflect_load"_hs, [](void* obj, world& w) {
 			comp_mesh_instance* c = static_cast<comp_mesh_instance*>(obj);
-			c->set_mesh(w, c->_target_mesh, c->_target_skin, c->_materials.data(), static_cast<uint16>(c->_materials.size()), c->_skin_entities.data(), static_cast<uint16>(c->_skin_entities.size()));
+			c->set_mesh(w, c->_target_mesh, c->_target_skin, c->_materials.data(), static_cast<u16>(c->_materials.size()), c->_skin_entities.data(), static_cast<u16>(c->_skin_entities.size()));
 
 			entity_manager& em = w.get_entity_manager();
 			for (world_handle skin_entity : c->_skin_entities)
@@ -97,7 +97,7 @@ namespace SFG
 		});
 	}
 
-	void comp_mesh_instance::set_mesh(world& w, resource_handle mesh, resource_handle skin, resource_handle* materials, uint16 materials_count, world_handle* skin_node_entities, uint16 skin_node_entity_count)
+	void comp_mesh_instance::set_mesh(world& w, resource_handle mesh, resource_handle skin, resource_handle* materials, u16 materials_count, world_handle* skin_node_entities, u16 skin_node_entity_count)
 	{
 		chunk_allocator32& aux = w.get_comp_manager().get_aux();
 
@@ -106,19 +106,19 @@ namespace SFG
 		_materials.resize(materials_count);
 		_skin_entities.resize(skin_node_entity_count);
 
-		for (uint32 i = 0; i < materials_count; i++)
+		for (u32 i = 0; i < materials_count; i++)
 			_materials[i] = materials[i];
-		for (uint16 i = 0; i < skin_node_entity_count; i++)
+		for (u16 i = 0; i < skin_node_entity_count; i++)
 			_skin_entities[i] = skin_node_entities[i];
 
 		render_event_mesh_instance ev = {};
 		ev.entity_index				  = _header.entity.index;
 		ev.mesh						  = _target_mesh.index;
 		ev.skin						  = skin.is_null() ? NULL_RESOURCE_ID : skin.index;
-		for (uint16 i = 0; i < materials_count; i++)
+		for (u16 i = 0; i < materials_count; i++)
 			ev.materials.push_back(materials[i].index);
 
-		for (uint16 i = 0; i < skin_node_entity_count; i++)
+		for (u16 i = 0; i < skin_node_entity_count; i++)
 			ev.skin_node_entities.push_back(skin_node_entities[i].index);
 
 		w.get_render_stream().add_event(
@@ -129,9 +129,9 @@ namespace SFG
 			ev);
 	}
 
-	void comp_mesh_instance::set_material(world& w, resource_handle material, uint32 index)
+	void comp_mesh_instance::set_material(world& w, resource_handle material, u32 index)
 	{
-		SFG_ASSERT(index < static_cast<uint32>(_materials.size()));
+		SFG_ASSERT(index < static_cast<u32>(_materials.size()));
 
 		const render_event_mesh_instance_material ev = {
 			.material = material.index,

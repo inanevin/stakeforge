@@ -69,7 +69,7 @@ namespace SFG
 #endif
 
 		sampler_desc   _desc  = {};
-		bitmask<uint8> _flags = 0;
+		bitmask<u8> _flags = 0;
 	};
 
 	REFLECT_TYPE(texture_sampler);

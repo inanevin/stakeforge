@@ -50,7 +50,7 @@ namespace SFG
 
 		create_textures(size);
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -65,7 +65,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -76,7 +76,7 @@ namespace SFG
 		destroy_textures();
 	}
 
-	void render_pass_object_id::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, uint8 frame_index)
+	void render_pass_object_id::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -122,7 +122,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 		barriers.resize(0);
 
@@ -144,16 +144,16 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 rp_constants[3] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
+		const u32 rp_constants[3] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -172,7 +172,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 		barriers.resize(0);
 
@@ -195,16 +195,16 @@ namespace SFG
 		create_textures(size);
 	}
 
-	uint32 render_pass_object_id::read_location(uint16 x, uint16 y, uint8 frame_index)
+	u32 render_pass_object_id::read_location(u16 x, u16 y, u8 frame_index)
 	{
 		per_frame_data& pfd		   = _pfd[frame_index];
 		gfx_backend*	backend	   = gfx_backend::get();
-		const uint32	aligned	   = backend->align_texture_size_pitch(_size.x * 4);
-		const uint32	data_index = aligned * y + x * 4;
+		const u32		aligned	   = backend->align_texture_size_pitch(_size.x * 4);
+		const u32		data_index = aligned * y + x * 4;
 
-		const uint32 pixel = _size.x * y + x;
-		uint8*		 data  = reinterpret_cast<uint8*>(pfd.readback_mapped);
-		uint32		 val   = *reinterpret_cast<uint32*>(&data[data_index]);
+		const u32 pixel = _size.x * y + x;
+		u8*		  data	= reinterpret_cast<u8*>(pfd.readback_mapped);
+		u32		  val	= *reinterpret_cast<u32*>(&data[data_index]);
 		return val;
 	}
 
@@ -212,7 +212,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -227,7 +227,7 @@ namespace SFG
 		gfx_backend* backend = gfx_backend::get();
 		_size				 = sz;
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			pfd.render_target	= backend->create_texture({
@@ -235,13 +235,13 @@ namespace SFG
 				  .size			  = sz,
 				  .flags		  = texture_flags::tf_render_target | texture_flags::tf_is_2d | texture_flags::tf_sampled,
 				  .views		  = {{.type = view_type::render_target}},
-				  .clear_values	  = {static_cast<float>(UINT32_MAX - 1), 0, 0, 0},
+				  .clear_values	  = {static_cast<f32>(UINT32_MAX - 1), 0, 0, 0},
 				  .debug_name	  = "object_id_rt",
 			  });
 
-			const uint32 aligned = backend->align_texture_size_pitch(sz.x * 4);
+			const u32 aligned = backend->align_texture_size_pitch(sz.x * 4);
 
-			pfd.readback_buffer = backend->create_resource({.size = static_cast<uint32>(aligned * sz.y), .flags = resource_flags::rf_readback, .debug_name = "object_id_readback"});
+			pfd.readback_buffer = backend->create_resource({.size = static_cast<u32>(aligned * sz.y), .flags = resource_flags::rf_readback, .debug_name = "object_id_readback"});
 			backend->map_resource(pfd.readback_buffer, pfd.readback_mapped);
 		}
 	}

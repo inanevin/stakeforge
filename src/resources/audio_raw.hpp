@@ -39,7 +39,7 @@ namespace SFG
 	{
 		string		 name	   = "";
 		string		 source	   = "";
-		uint8		 is_stream = 0;
+		u8		 is_stream = 0;
 		vector<char> audio_data;
 
 		void serialize(ostream& stream) const;

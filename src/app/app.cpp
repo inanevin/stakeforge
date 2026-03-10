@@ -258,8 +258,8 @@ namespace SFG
 #endif
 
 		constexpr double ema_fixed_ns	= 16'666'667.0;
-		int64			 previous_time	= time::get_cpu_microseconds();
-		int64			 accumulator_ns = static_cast<int64>(ema_fixed_ns);
+		i64				 previous_time	= time::get_cpu_microseconds();
+		i64				 accumulator_ns = static_cast<i64>(ema_fixed_ns);
 
 		while (_should_close.load(std::memory_order_acquire) == 0)
 		{
@@ -268,14 +268,14 @@ namespace SFG
 #endif
 
 			// timing.
-			const int64 _current_time = time::get_cpu_microseconds();
-			const int64 delta_micro	  = _current_time - previous_time;
-			previous_time			  = _current_time;
+			const i64 _current_time = time::get_cpu_microseconds();
+			const i64 delta_micro	= _current_time - previous_time;
+			previous_time			= _current_time;
 			frame_info::s_main_thread_time_milli.store(static_cast<double>(delta_micro) * 0.001);
 
 			// OS & window.
 			process::pump_os_messages();
-			const bitmask<uint16>& window_flags = _main_window->get_flags();
+			const bitmask<u16>& window_flags = _main_window->get_flags();
 
 			if (window_flags.is_set(window_flags::wf_close_requested))
 			{
@@ -315,8 +315,8 @@ namespace SFG
 			// fixed frame rate
 			// -----------------------------------------------------------------------------
 			{
-				const float dt_seconds = FIXED_FRAMERATE_S;
-				uint32		ticks	   = 0;
+				const f32 dt_seconds = FIXED_FRAMERATE_S;
+				u32		  ticks		 = 0;
 				accumulator_ns += delta_micro * 1000;
 				while (accumulator_ns >= FIXED_FRAMERATE_NS && ticks < FIXED_FRAMERATE_MAX_TICKS)
 				{
@@ -352,7 +352,7 @@ namespace SFG
 			// -----------------------------------------------------------------------------
 
 			{
-				const float dtt = static_cast<float>(static_cast<double>(delta_micro) * 1e-6);
+				const f32 dtt = static_cast<f32>(static_cast<double>(delta_micro) * 1e-6);
 
 				_world->tick(ws, dtt);
 
@@ -472,7 +472,7 @@ namespace SFG
 		tracy::SetThreadName("render_thread");
 #endif
 
-		int64 time_prev = time::get_cpu_microseconds();
+		i64 time_prev = time::get_cpu_microseconds();
 
 		while (_render_joined.load(std::memory_order_acquire) == 0)
 		{
@@ -480,16 +480,16 @@ namespace SFG
 			TracyCFrameMarkNamed("render_frame");
 #endif
 
-			const int64 time_now = time::get_cpu_microseconds();
-			const int64 delta	 = time_now - time_prev;
-			time_prev			 = time_now;
+			const i64 time_now = time::get_cpu_microseconds();
+			const i64 delta	   = time_now - time_prev;
+			time_prev		   = time_now;
 
 			const double delta_milli   = delta * 0.001;
 			const double delta_seconds = delta_milli * 0.001;
 
 			frame_info::s_render_thread_time_milli.store(delta_milli);
 			frame_info::s_render_thread_elapsed_seconds.store(frame_info::s_render_thread_elapsed_seconds.load() + delta_seconds);
-			frame_info::s_fps.store(1.0f / static_cast<float>(delta_seconds));
+			frame_info::s_fps.store(1.0f / static_cast<f32>(delta_seconds));
 
 			frame_info::s_draw_calls = 0;
 			_renderer->render();

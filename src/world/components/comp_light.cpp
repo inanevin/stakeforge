@@ -44,12 +44,12 @@ namespace SFG
 		m.add_field<&comp_dir_light::_intensity, comp_dir_light>("intensity", reflected_field_type::rf_float, "");
 		m.add_field<&comp_dir_light::_cast_shadows, comp_dir_light>("cast_shadows", reflected_field_type::rf_bool, "");
 		m.add_field<&comp_dir_light::_shadow_resolution, comp_dir_light>("shadow_res", reflected_field_type::rf_vector2ui16, "");
-		m.add_field<&comp_dir_light::_max_cascades, comp_dir_light>("max_cascades", reflected_field_type::rf_uint8, "", 1.0f, static_cast<float>(MAX_SHADOW_CASCADES));
+		m.add_field<&comp_dir_light::_max_cascades, comp_dir_light>("max_cascades", reflected_field_type::rf_uint8, "", 1.0f, static_cast<f32>(MAX_SHADOW_CASCADES));
 
 		m.add_function<void, const reflected_field_changed_params&>("on_reflected_changed"_hs, [](const reflected_field_changed_params& params) {
 			comp_dir_light* c = static_cast<comp_dir_light*>(params.object_ptr);
 
-			c->_max_cascades = math::clamp(c->_max_cascades, (uint8)0, (uint8)MAX_SHADOW_CASCADES);
+			c->_max_cascades = math::clamp(c->_max_cascades, (u8)0, (u8)MAX_SHADOW_CASCADES);
 			if (params.field_title == "color"_hs || params.field_title == "intensity"_hs)
 				c->set_values(params.w, c->_base_color, c->_intensity);
 			else
@@ -156,14 +156,14 @@ namespace SFG
 			ev);
 	}
 
-	void comp_dir_light::set_values(world& w, const color& c, float intensity)
+	void comp_dir_light::set_values(world& w, const color& c, f32 intensity)
 	{
 		_base_color = c;
 		_intensity	= intensity;
 		send_event(w);
 	}
 
-	void comp_dir_light::set_shadow_values(world& w, uint8 cast_shadows, uint8 max_cascades, const vector2ui16& resolution)
+	void comp_dir_light::set_shadow_values(world& w, u8 cast_shadows, u8 max_cascades, const vector2ui16& resolution)
 	{
 		_cast_shadows	   = cast_shadows;
 		_max_cascades	   = max_cascades;
@@ -185,7 +185,7 @@ namespace SFG
 		});
 	}
 
-	void comp_spot_light::set_values(world& w, const color& c, float range, float intensity, float inner_cone, float outer_cone)
+	void comp_spot_light::set_values(world& w, const color& c, f32 range, f32 intensity, f32 inner_cone, f32 outer_cone)
 	{
 		_base_color = c;
 		_range		= range;
@@ -195,7 +195,7 @@ namespace SFG
 		send_event(w);
 	}
 
-	void comp_spot_light::set_shadow_values(world& w, uint8 cast_shadows, float near_plane, const vector2ui16& resolution)
+	void comp_spot_light::set_shadow_values(world& w, u8 cast_shadows, f32 near_plane, const vector2ui16& resolution)
 	{
 		_cast_shadows	   = cast_shadows;
 		_shadow_resolution = resolution;
@@ -238,7 +238,7 @@ namespace SFG
 		});
 	}
 
-	void comp_point_light::set_values(world& w, const color& c, float range, float intensity)
+	void comp_point_light::set_values(world& w, const color& c, f32 range, f32 intensity)
 	{
 		_base_color = c;
 		_range		= range;
@@ -246,7 +246,7 @@ namespace SFG
 		send_event(w);
 	}
 
-	void comp_point_light::set_shadow_values(world& w, uint8 cast_shadows, float near_plane, const vector2ui16& resolution)
+	void comp_point_light::set_shadow_values(world& w, u8 cast_shadows, f32 near_plane, const vector2ui16& resolution)
 	{
 		_cast_shadows	   = cast_shadows;
 		_shadow_resolution = resolution;

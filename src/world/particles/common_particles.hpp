@@ -42,12 +42,12 @@ namespace SFG
 
 	struct particle_spawn_settings
 	{
-		float  emitter_lifetime	  = 0.0f;
-		float  wait_between_emits = 0.0f;
-		float  min_lifetime		  = 1.0f;
-		float  max_lifetime		  = 1.0f;
-		uint32 min_particle_count = 1;
-		uint32 max_particle_count = 1;
+		f32 emitter_lifetime   = 0.0f;
+		f32 wait_between_emits = 0.0f;
+		f32 min_lifetime	   = 1.0f;
+		f32 max_lifetime	   = 1.0f;
+		u32 min_particle_count = 1;
+		u32 max_particle_count = 1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -57,7 +57,7 @@ namespace SFG
 	{
 		vector3 min_start	= vector3::zero;
 		vector3 max_start	= vector3::zero;
-		float	cone_radius = 0.0f;
+		f32		cone_radius = 0.0f;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -71,8 +71,8 @@ namespace SFG
 		vector3 max_mid			= vector3::zero;
 		vector3 min_end			= vector3::zero;
 		vector3 max_end			= vector3::zero;
-		float	integrate_point = -1;
-		uint8	is_local		= 0;
+		f32		integrate_point = -1;
+		u8		is_local		= 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -84,13 +84,13 @@ namespace SFG
 		vector3 max_start			  = vector3::one;
 		vector3 mid_color			  = vector3::one;
 		vector3 end_color			  = vector3::one;
-		float	integrate_point_color = 0.0f;
+		f32		integrate_point_color = 0.0f;
 
-		float min_start_opacity		  = 1.0f;
-		float max_start_opacity		  = 1.0f;
-		float mid_opacity			  = 1.0f;
-		float end_opacity			  = 1.0f;
-		float integrate_point_opacity = -1;
+		f32 min_start_opacity		= 1.0f;
+		f32 max_start_opacity		= 1.0f;
+		f32 mid_opacity				= 1.0f;
+		f32 end_opacity				= 1.0f;
+		f32 integrate_point_opacity = -1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -98,13 +98,13 @@ namespace SFG
 
 	struct particle_rotation_settings
 	{
-		float min_start_rotation			   = 0.0f;
-		float max_start_rotation			   = 0.0f;
-		float min_start_angular_velocity	   = 0.0f;
-		float max_start_angular_velocity	   = 0.0f;
-		float min_end_angular_velocity		   = 0.0f;
-		float max_end_angular_velocity		   = 0.0f;
-		float integrate_point_angular_velocity = -1;
+		f32 min_start_rotation				 = 0.0f;
+		f32 max_start_rotation				 = 0.0f;
+		f32 min_start_angular_velocity		 = 0.0f;
+		f32 max_start_angular_velocity		 = 0.0f;
+		f32 min_end_angular_velocity		 = 0.0f;
+		f32 max_end_angular_velocity		 = 0.0f;
+		f32 integrate_point_angular_velocity = -1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -112,11 +112,11 @@ namespace SFG
 
 	struct particle_size_settings
 	{
-		float min_start		  = 1.0f;
-		float max_start		  = 1.0f;
-		float mid			  = 1.0f;
-		float end			  = 1.0f;
-		float integrate_point = -1.0f;
+		f32 min_start		= 1.0f;
+		f32 max_start		= 1.0f;
+		f32 mid				= 1.0f;
+		f32 end				= 1.0f;
+		f32 integrate_point = -1.0f;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

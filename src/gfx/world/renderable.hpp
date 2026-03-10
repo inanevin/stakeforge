@@ -36,14 +36,14 @@ namespace SFG
 	{
 		buffer_cpu_gpu* vertex_buffer	  = nullptr;
 		buffer_cpu_gpu* index_buffer	  = nullptr;
-		uint32			vertex_start	  = 0;
-		uint32			index_start		  = 0;
-		uint32			index_count		  = 0;
-		uint32			gpu_entity		  = 0;
-		uint32			bones_start_index = 0;
-		uint32			world_entity	  = 0;
-		float			distance		  = 0.0f;
+		u32				vertex_start	  = 0;
+		u32				index_start		  = 0;
+		u32				index_count		  = 0;
+		u32				gpu_entity		  = 0;
+		u32				bones_start_index = 0;
+		u32				world_entity	  = 0;
+		f32				distance		  = 0.0f;
 		resource_id		material		  = {};
-		uint8			is_skinned		  = 0;
+		u8				is_skinned		  = 0;
 	};
 }

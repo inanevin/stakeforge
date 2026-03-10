@@ -48,7 +48,7 @@ namespace SFG
 		void on_add(world& w);
 		void on_remove(world& w);
 
-		void update(world& w, float dt);
+		void update(world& w, f32 dt);
 		void rebuild(world& w);
 		void set_position(world& w, const vector3& pos);
 
@@ -62,12 +62,12 @@ namespace SFG
 			return _controller;
 		}
 
-		inline float get_radius() const
+		inline f32 get_radius() const
 		{
 			return _radius;
 		}
 
-		inline float get_half_height() const
+		inline f32 get_half_height() const
 		{
 			return _half_height;
 		}
@@ -94,19 +94,19 @@ namespace SFG
 		vector3				   _target_velocity = vector3::zero;
 
 		vector3				  _shape_offset						  = vector3::zero;
-		float				  _radius							  = 0.4f;
-		float				  _half_height						  = 0.9f;
-		float				  _max_slope_degrees				  = 50.0f;
-		float				  _step_up							  = 0.4f;
-		float				  _step_down						  = 0.5f;
-		float				  _step_forward						  = 0.02f;
-		float				  _step_forward_test				  = 0.15f;
-		float				  _step_forward_contact_angle_degrees = 75.0f;
-		float				  _mass								  = 70.0f;
-		float				  _max_strength						  = 100.0f;
-		float				  _character_padding				  = 0.02f;
-		float				  _predictive_contact_distance		  = 0.1f;
-		float				  _penetration_recovery_speed		  = 1.0f;
+		f32					  _radius							  = 0.4f;
+		f32					  _half_height						  = 0.9f;
+		f32					  _max_slope_degrees				  = 50.0f;
+		f32					  _step_up							  = 0.4f;
+		f32					  _step_down						  = 0.5f;
+		f32					  _step_forward						  = 0.02f;
+		f32					  _step_forward_test				  = 0.15f;
+		f32					  _step_forward_contact_angle_degrees = 75.0f;
+		f32					  _mass								  = 70.0f;
+		f32					  _max_strength						  = 100.0f;
+		f32					  _character_padding				  = 0.02f;
+		f32					  _predictive_contact_distance		  = 0.1f;
+		f32					  _penetration_recovery_speed		  = 1.0f;
 		bool				  _enhanced_internal_edge_removal	  = false;
 		physics_object_layers _object_layer						  = physics_object_layers::moving;
 	};

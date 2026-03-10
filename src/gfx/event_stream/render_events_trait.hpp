@@ -58,7 +58,7 @@ namespace SFG
 	struct render_event_mesh_instance_material
 	{
 		resource_id material = NULL_RESOURCE_ID;
-		uint32		index	 = 0;
+		u32			index	 = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -66,11 +66,11 @@ namespace SFG
 
 	struct render_event_camera
 	{
-		static_vector<float, MAX_SHADOW_CASCADES> cascades;
-		world_id								  entity_index = 0;
-		float									  near_plane   = 0.0f;
-		float									  far_plane	   = 0.0f;
-		float									  fov_degrees  = 0.0f;
+		static_vector<f32, MAX_SHADOW_CASCADES> cascades;
+		world_id								entity_index = 0;
+		f32										near_plane	 = 0.0f;
+		f32										far_plane	 = 0.0f;
+		f32										fov_degrees	 = 0.0f;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -87,7 +87,7 @@ namespace SFG
 
 	struct render_event_bloom
 	{
-		float	 filter_radius = 0.01f;
+		f32		 filter_radius = 0.01f;
 		world_id entity_index  = 0;
 
 		void serialize(ostream& stream) const;
@@ -96,13 +96,13 @@ namespace SFG
 
 	struct render_event_ssao
 	{
-		float	 radius_world		 = 0.75f;
-		float	 bias				 = 0.04f;
-		float	 intensity			 = 1.25f;
-		float	 power				 = 1.25f;
-		uint32	 num_dirs			 = 8;
-		uint32	 num_steps			 = 6;
-		float	 random_rot_strength = 1.5f;
+		f32		 radius_world		 = 0.75f;
+		f32		 bias				 = 0.04f;
+		f32		 intensity			 = 1.25f;
+		f32		 power				 = 1.25f;
+		u32		 num_dirs			 = 8;
+		u32		 num_steps			 = 6;
+		f32		 random_rot_strength = 1.5f;
 		world_id entity_index		 = 0;
 
 		void serialize(ostream& stream) const;
@@ -111,13 +111,13 @@ namespace SFG
 
 	struct render_event_post_process
 	{
-		float	 bloom_strength		  = 0.04f;
-		float	 exposure			  = 1.0f;
-		int32	 tonemap_mode		  = 1;
-		float	 saturation			  = 1.0f;
-		float	 wb_temp			  = 0.0f;
-		float	 wb_tint			  = 0.0f;
-		float	 reinhard_white_point = 6.0f;
+		f32		 bloom_strength		  = 0.04f;
+		f32		 exposure			  = 1.0f;
+		i32		 tonemap_mode		  = 1;
+		f32		 saturation			  = 1.0f;
+		f32		 wb_temp			  = 0.0f;
+		f32		 wb_tint			  = 0.0f;
+		f32		 reinhard_white_point = 6.0f;
 		world_id entity_index		  = 0;
 
 		void serialize(ostream& stream) const;
@@ -130,8 +130,8 @@ namespace SFG
 		vector4	 mid_color	  = vector4(0.1f, 0.1f, 0.2f, 1.0f);
 		vector4	 end_color	  = vector4(0.2f, 0.1f, 0.1f, 1.0f);
 		vector4	 fog_color	  = vector4(0.0f, 0.0f, 0.0f, 0.0f);
-		float	 fog_start	  = 0.0f;
-		float	 fog_end	  = 0.0f;
+		f32		 fog_start	  = 0.0f;
+		f32		 fog_end	  = 0.0f;
 		world_id entity_index = 0;
 
 		void serialize(ostream& stream) const;
@@ -143,9 +143,9 @@ namespace SFG
 		vector3		base_color		  = vector3::one;
 		vector2ui16 shadow_resolution = vector2ui16(256, 256);
 		world_id	entity_index	  = 0;
-		float		range			  = 0.0f;
-		float		intensity		  = 0.0f;
-		float		near_plane		  = 0.1f;
+		f32			range			  = 0.0f;
+		f32			intensity		  = 0.0f;
+		f32			near_plane		  = 0.1f;
 		bool		cast_shadows	  = false;
 
 		void serialize(ostream& stream) const;
@@ -157,9 +157,9 @@ namespace SFG
 		vector3		base_color		  = vector3::one;
 		vector2ui16 shadow_resolution = vector2ui16(256, 256);
 		world_id	entity_index	  = 0;
-		float		intensity		  = 0.0f;
-		uint8		cast_shadows	  = 0;
-		uint8		max_cascades	  = 1;
+		f32			intensity		  = 0.0f;
+		u8			cast_shadows	  = 0;
+		u8			max_cascades	  = 1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -170,12 +170,12 @@ namespace SFG
 		vector3		base_color		  = vector3::one;
 		vector2ui16 shadow_resolution = vector2ui16(256, 256);
 		world_id	entity_index	  = 0;
-		float		range			  = 0.0f;
-		float		intensity		  = 0.0f;
-		float		inner_cone		  = 0.0f;
-		float		outer_cone		  = 0.0f;
-		float		near_plane		  = 0.1f;
-		uint8		cast_shadows	  = 0;
+		f32			range			  = 0.0f;
+		f32			intensity		  = 0.0f;
+		f32			inner_cone		  = 0.0f;
+		f32			outer_cone		  = 0.0f;
+		f32			near_plane		  = 0.1f;
+		u8			cast_shadows	  = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -184,28 +184,28 @@ namespace SFG
 	struct render_event_canvas
 	{
 		world_id entity_index = 0;
-		uint32	 vertex_size  = 0;
-		uint32	 index_size	  = 0;
-		uint8	 is_3d		  = 0;
+		u32		 vertex_size  = 0;
+		u32		 index_size	  = 0;
+		u8		 is_3d		  = 0;
 		void	 serialize(ostream& stream) const;
 		void	 deserialize(istream& stream);
 	};
 
 	struct render_event_canvas_add_draw
 	{
-		uint8* vertex_data		= nullptr;
-		uint32 vertex_data_size = 0;
-		uint8* index_data		= nullptr;
-		uint32 index_data_size	= 0;
+		u8* vertex_data		 = nullptr;
+		u32 vertex_data_size = 0;
+		u8* index_data		 = nullptr;
+		u32 index_data_size	 = 0;
 
 		vector4ui16 clip;
 
-		uint32		start_index		= 0;
-		uint32		index_count		= 0;
-		uint32		start_vertex	= 0;
+		u32			start_index		= 0;
+		u32			index_count		= 0;
+		u32			start_vertex	= 0;
 		resource_id material_handle = 0;
 		resource_id atlas_handle	= 0;
-		uint8		atlas_exists	= 0;
+		u8			atlas_exists	= 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

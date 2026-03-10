@@ -51,24 +51,24 @@ namespace SFG
 		if (_stats_area == NULL_WIDGET_ID)
 			return;
 
-		static float stat_fetch_time = 0.0f;
-		static float mem_fetch_time	 = 0.0f;
+		static f32 stat_fetch_time = 0.0f;
+		static f32 mem_fetch_time	 = 0.0f;
 
-		static float  stat_main_thread	 = static_cast<float>(frame_info::get_main_thread_time_milli());
-		static float  stat_render_thread = static_cast<float>(frame_info::get_render_thread_time_milli());
-		static uint32 stat_fps			 = frame_info::get_fps();
-		static uint32 stat_dc			 = static_cast<uint32>(frame_info::get_draw_calls());
-		static uint32 stat_ram			 = 0;
-		static uint32 stat_vram			 = 0;
-		static uint32 stat_vram_txt		 = 0;
-		static uint32 stat_vram_res		 = 0;
+		static f32  stat_main_thread	 = static_cast<f32>(frame_info::get_main_thread_time_milli());
+		static f32  stat_render_thread = static_cast<f32>(frame_info::get_render_thread_time_milli());
+		static u32 stat_fps			 = frame_info::get_fps();
+		static u32 stat_dc			 = static_cast<u32>(frame_info::get_draw_calls());
+		static u32 stat_ram			 = 0;
+		static u32 stat_vram			 = 0;
+		static u32 stat_vram_txt		 = 0;
+		static u32 stat_vram_res		 = 0;
 
 		if (stat_fetch_time > 1500.0f)
 		{
-			stat_main_thread   = static_cast<float>(frame_info::get_main_thread_time_milli());
-			stat_render_thread = static_cast<float>(frame_info::get_render_thread_time_milli());
+			stat_main_thread   = static_cast<f32>(frame_info::get_main_thread_time_milli());
+			stat_render_thread = static_cast<f32>(frame_info::get_render_thread_time_milli());
 			stat_fps		   = frame_info::get_fps();
-			stat_dc			   = static_cast<uint32>(frame_info::get_draw_calls());
+			stat_dc			   = static_cast<u32>(frame_info::get_draw_calls());
 			stat_fetch_time	   = 0.0f;
 
 			const vector2ui16& game_size = editor::get().get_app().get_game_resolution();
@@ -113,13 +113,13 @@ namespace SFG
 			for (const memory_category& cat : tracer.get_categories())
 			{
 				if (TO_SID(cat.name) == TO_SID("General"))
-					stat_ram = static_cast<uint32>(static_cast<float>(cat.total_size) / (1024 * 1024));
+					stat_ram = static_cast<u32>(static_cast<f32>(cat.total_size) / (1024 * 1024));
 				else if (TO_SID(cat.name) == TO_SID("Gfx"))
-					stat_vram = static_cast<uint32>(static_cast<float>(cat.total_size) / (1024 * 1024));
+					stat_vram = static_cast<u32>(static_cast<f32>(cat.total_size) / (1024 * 1024));
 				else if (TO_SID(cat.name) == TO_SID("GfxTxt"))
-					stat_vram_txt = static_cast<uint32>(static_cast<float>(cat.total_size) / (1024 * 1024));
+					stat_vram_txt = static_cast<u32>(static_cast<f32>(cat.total_size) / (1024 * 1024));
 				else if (TO_SID(cat.name) == TO_SID("GfxRes"))
-					stat_vram_res = static_cast<uint32>(static_cast<float>(cat.total_size) / (1024 * 1024));
+					stat_vram_res = static_cast<u32>(static_cast<f32>(cat.total_size) / (1024 * 1024));
 			}
 #endif
 			mem_fetch_time = 0.0f;
@@ -141,7 +141,7 @@ namespace SFG
 			_builder->widget_append_text(_wv_vram_res, " mb");
 		}
 
-		const float ms = static_cast<float>(frame_info::get_main_thread_time_milli());
+		const f32 ms = static_cast<f32>(frame_info::get_main_thread_time_milli());
 		mem_fetch_time += ms;
 		stat_fetch_time += ms;
 	}

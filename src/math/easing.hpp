@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,19 +31,19 @@ namespace SFG
 	class easing
 	{
 	public:
-		static float smooth_damp(float current, float target, float* currentVelocity, float smoothTime, float maxSpeed, float deltaTime);
-		static float lerp(float val1, float val2, float amt);
-		static float cubic_lerp(float val1, float val2, float amt);
-		static float cubic_interp(float val0, float val1, float val2, float val3, float amt);
-		static float cubic_interp_tangents(float val1, float tan1, float val2, float tan2, float amt);
-		static float bilerp(float val00, float val10, float val01, float val11, float amtX, float amtY);
-		static float step(float edge, float x);
-		static float ease_in(float start, float end, float alpha);
-		static float ease_out(float start, float end, float alpha);
-		static float ease_in_out(float start, float end, float alpha);
-		static float cubic(float start, float end, float alpha);
-		static float exponential(float start, float end, float alpha);
-		static float bounce(float start, float end, float alpha);
-		static float sinusodial(float start, float end, float alpha);
+		static f32 smooth_damp(f32 current, f32 target, f32* currentVelocity, f32 smoothTime, f32 maxSpeed, f32 deltaTime);
+		static f32 lerp(f32 val1, f32 val2, f32 amt);
+		static f32 cubic_lerp(f32 val1, f32 val2, f32 amt);
+		static f32 cubic_interp(f32 val0, f32 val1, f32 val2, f32 val3, f32 amt);
+		static f32 cubic_interp_tangents(f32 val1, f32 tan1, f32 val2, f32 tan2, f32 amt);
+		static f32 bilerp(f32 val00, f32 val10, f32 val01, f32 val11, f32 amtX, f32 amtY);
+		static f32 step(f32 edge, f32 x);
+		static f32 ease_in(f32 start, f32 end, f32 alpha);
+		static f32 ease_out(f32 start, f32 end, f32 alpha);
+		static f32 ease_in_out(f32 start, f32 end, f32 alpha);
+		static f32 cubic(f32 start, f32 end, f32 alpha);
+		static f32 exponential(f32 start, f32 end, f32 alpha);
+		static f32 bounce(f32 start, f32 end, f32 alpha);
+		static f32 sinusodial(f32 start, f32 end, f32 alpha);
 	};
 } // namespace SFG

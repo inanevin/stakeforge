@@ -92,7 +92,7 @@ namespace SFG
 
 			// Receive & verify source.
 			source			= json_data.value<string>("source", "");
-			is_compute		= json_data.value<uint8>("is_compute", 0);
+			is_compute		= json_data.value<u8>("is_compute", 0);
 			const string wd = base_directory == nullptr ? editor_settings::get().working_dir : base_directory;
 			const string p	= file_path;
 			name			= p.substr(wd.size(), p.size() - wd.size());
@@ -163,8 +163,8 @@ namespace SFG
 
 		string file_path				  = "";
 		string source_path				  = "";
-		uint64 saved_file_last_modified	  = 0;
-		uint64 saved_source_last_modified = 0;
+		u64 saved_file_last_modified	  = 0;
+		u64 saved_source_last_modified = 0;
 		stream >> file_path;
 		stream >> source_path;
 		stream >> saved_file_last_modified;
@@ -172,8 +172,8 @@ namespace SFG
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const uint64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		if (file_last_modified != saved_file_last_modified || src_last_modified != saved_source_last_modified)
 			return false;
@@ -190,8 +190,8 @@ namespace SFG
 		const string relative			= file_system::get_filename_from_path(name);
 		const string file_path			= resource_directory_path + name;
 		const string source_path		= resource_directory_path + source;
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const uint64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + relative + "-" + sid_str + "_data" + extension;

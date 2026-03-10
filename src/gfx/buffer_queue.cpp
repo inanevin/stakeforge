@@ -36,7 +36,7 @@ namespace SFG
 	void buffer_queue::init()
 	{
 		_requests.reserve(256);
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 			_pfd[i].buffered_requests.reserve(256);
 	}
 
@@ -49,12 +49,12 @@ namespace SFG
 		_requests.push_back(req);
 	}
 
-	void buffer_queue::add_request(const update_request& req, uint8 frame_index)
+	void buffer_queue::add_request(const update_request& req, u8 frame_index)
 	{
 		_pfd[frame_index].buffered_requests.push_back(req);
 	}
 
-	void buffer_queue::flush_all(gfx_id cmd_list, uint8 frame_index, vector<barrier>& out_barriers)
+	void buffer_queue::flush_all(gfx_id cmd_list, u8 frame_index, vector<barrier>& out_barriers)
 	{
 		gfx_backend*	backend = gfx_backend::get();
 		per_frame_data& pfd		= _pfd[frame_index];
@@ -90,7 +90,7 @@ namespace SFG
 		pfd.buffered_requests.resize(0);
 	}
 
-	bool buffer_queue::empty(uint8 frame_index) const
+	bool buffer_queue::empty(u8 frame_index) const
 	{
 		return _requests.empty() && _pfd[frame_index].buffered_requests.empty();
 	}

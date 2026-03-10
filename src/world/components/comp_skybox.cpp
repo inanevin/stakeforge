@@ -88,7 +88,7 @@ namespace SFG
 		});
 	}
 
-	void comp_skybox::set_values(world& w, const vector4& start_color, const vector4& mid_color, const vector4& end_color, const vector4& fog_color, float fog_start, float fog_end)
+	void comp_skybox::set_values(world& w, const vector4& start_color, const vector4& mid_color, const vector4& end_color, const vector4& fog_color, f32 fog_start, f32 fog_end)
 	{
 		_start_color = start_color;
 		_mid_color	 = mid_color;

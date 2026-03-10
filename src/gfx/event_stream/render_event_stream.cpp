@@ -34,17 +34,17 @@ namespace SFG
 	{
 		_main_thread_data.create(RENDER_STREAM_BATCH_SIZE);
 
-		for (uint32 i = 0; i < RENDER_STREAM_MAX_BATCHES; i++)
+		for (u32 i = 0; i < RENDER_STREAM_MAX_BATCHES; i++)
 		{
-			_stream_data[i].data = new uint8[RENDER_STREAM_BATCH_SIZE];
+			_stream_data[i].data = new u8[RENDER_STREAM_BATCH_SIZE];
 		}
 
-		for (uint32 i = 0; i < TRANSFORM_BUFFERS; i++)
+		for (u32 i = 0; i < TRANSFORM_BUFFERS; i++)
 		{
 			_transform_data[i].entities = new proxy_entity_transform_data[MAX_ENTITIES];
 			_transform_data[i].dirty_indices.reserve(MAX_ENTITIES);
-			_transform_data[i].dirty_flags = new uint8[MAX_ENTITIES];
-			SFG_MEMSET(_transform_data[i].dirty_flags, 0, sizeof(uint8) * MAX_ENTITIES);
+			_transform_data[i].dirty_flags = new u8[MAX_ENTITIES];
+			SFG_MEMSET(_transform_data[i].dirty_flags, 0, sizeof(u8) * MAX_ENTITIES);
 			_transform_data[i].peak_size = 0;
 		}
 	}
@@ -53,14 +53,14 @@ namespace SFG
 	{
 		_main_thread_data.destroy();
 
-		for (uint32 i = 0; i < RENDER_STREAM_MAX_BATCHES; i++)
+		for (u32 i = 0; i < RENDER_STREAM_MAX_BATCHES; i++)
 		{
 			delete[] _stream_data[i].data;
 
 			_stream_data[i].data = nullptr;
 		}
 
-		for (uint32 i = 0; i < TRANSFORM_BUFFERS; i++)
+		for (u32 i = 0; i < TRANSFORM_BUFFERS; i++)
 		{
 			delete[] _transform_data[i].entities;
 			delete[] _transform_data[i].dirty_flags;
@@ -79,8 +79,8 @@ namespace SFG
 		{
 			SFG_ASSERT(sz < RENDER_STREAM_BATCH_SIZE);
 
-			const int8 last_rendered = _events_rendered.load(std::memory_order_acquire);
-			_events_write			 = (last_rendered + 1) % RENDER_STREAM_MAX_BATCHES;
+			const i8 last_rendered = _events_rendered.load(std::memory_order_acquire);
+			_events_write		   = (last_rendered + 1) % RENDER_STREAM_MAX_BATCHES;
 
 			buffered_data& buf	   = _stream_data[_events_write];
 			const size_t   data_sz = _main_thread_data.get_size();
@@ -98,14 +98,14 @@ namespace SFG
 			_events_latest.store(_events_write, std::memory_order_release);
 		}
 
-		const uint8 published = _transform_write;
-		_transform_latest.store((int8)published, std::memory_order_release);
+		const u8 published = _transform_write;
+		_transform_latest.store((i8)published, std::memory_order_release);
 
 		// pick next write buffer that is NOT currently in use by render
-		const int8 in_use = _transform_in_use.load(std::memory_order_acquire);
+		const i8 in_use = _transform_in_use.load(std::memory_order_acquire);
 
-		uint8 next = (published + 1) % TRANSFORM_BUFFERS;
-		if ((int8)next == in_use)
+		u8 next = (published + 1) % TRANSFORM_BUFFERS;
+		if ((i8)next == in_use)
 			next = (next + 1) % TRANSFORM_BUFFERS;
 
 		_transform_write = next;
@@ -124,7 +124,7 @@ namespace SFG
 		e.rot						   = rot;
 		e.model						   = model;
 
-		uint8& dirty = ped.dirty_flags[index];
+		u8& dirty = ped.dirty_flags[index];
 		if (dirty == 0)
 		{
 			ped.dirty_indices.push_back(index);
@@ -132,16 +132,16 @@ namespace SFG
 		}
 	}
 
-	void render_event_stream::read(render_proxy_entity* out_entities, uint32& out_size, istream& stream)
+	void render_event_stream::read(render_proxy_entity* out_entities, u32& out_size, istream& stream)
 	{
 		ZoneScoped;
 
-		const int8 transform_idx = _transform_latest.load(std::memory_order_acquire);
+		const i8 transform_idx = _transform_latest.load(std::memory_order_acquire);
 		if (transform_idx >= 0)
 		{
 			_transform_in_use.store(transform_idx, std::memory_order_release);
 
-			proxy_entity_data& ped = _transform_data[(uint8)transform_idx];
+			proxy_entity_data& ped = _transform_data[(u8)transform_idx];
 
 			for (world_id d : ped.dirty_indices)
 			{
@@ -158,7 +158,7 @@ namespace SFG
 			_transform_in_use.store(-1, std::memory_order_release);
 		}
 
-		const int8 idx = _events_latest.load(std::memory_order_acquire);
+		const i8 idx = _events_latest.load(std::memory_order_acquire);
 		if (idx < 0)
 			return;
 

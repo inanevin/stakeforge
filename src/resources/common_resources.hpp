@@ -66,7 +66,7 @@ namespace SFG
 #define DEFAULT_GUI_SDF_MAT_SID	 "assets/engine/materials/world/gui_sdf.stkmat"_hs
 
 	typedef pool_handle16 resource_handle;
-	typedef uint16		  resource_id;
+	typedef u16		  resource_id;
 
 	struct resource_handle_and_type
 	{
@@ -76,7 +76,7 @@ namespace SFG
 
 #define NULL_RESOURCE_ID std::numeric_limits<resource_id>::max()
 
-	enum material_flags : uint32
+	enum material_flags : u32
 	{
 		material_flags_is_gbuffer	   = 1 << 0,
 		material_flags_is_alpha_cutoff = 1 << 1,
@@ -88,7 +88,7 @@ namespace SFG
 		material_flags_created		   = 1 << 7,
 	};
 
-	enum shader_variant_flags : uint32
+	enum shader_variant_flags : u32
 	{
 		variant_flag_skinned			= 1 << 0,
 		variant_flag_alpha_cutoff		= 1 << 1,

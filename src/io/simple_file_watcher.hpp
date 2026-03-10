@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -42,7 +42,7 @@ namespace std
 namespace SFG
 {
 
-	typedef void (*simple_file_watcher_callback)(const char* p, uint64 last_modified, uint16 id, void* user_data);
+	typedef void (*simple_file_watcher_callback)(const char* p, u64 last_modified, u16 id, void* user_data);
 
 	class simple_file_watcher
 	{
@@ -51,8 +51,8 @@ namespace SFG
 		{
 			std::filesystem::path* path			 = nullptr;
 			string				   str			 = "";
-			uint64				   last_modified = 0;
-			uint16				   id			 = 0;
+			u64					   last_modified = 0;
+			u16					   id			 = 0;
 
 			~entry()
 			{
@@ -65,12 +65,12 @@ namespace SFG
 			clear();
 		}
 
-		void add_path(const char* path, uint16 optional_id = 0);
+		void add_path(const char* path, u16 optional_id = 0);
 		void remove_path(const char* path);
 		void clear();
 		void tick();
 
-		inline void set_tick_interval(uint16 interval)
+		inline void set_tick_interval(u16 interval)
 		{
 			_tick_interval = interval;
 		}
@@ -93,8 +93,8 @@ namespace SFG
 		simple_file_watcher_callback _callback	  = nullptr;
 		void*						 _callback_ud = nullptr;
 		vector<entry*>				 _paths;
-		uint16						 _tick_interval = 1;
-		uint16						 _ticks			= 0;
+		u16							 _tick_interval = 1;
+		u16							 _ticks			= 0;
 	};
 
 }

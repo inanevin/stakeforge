@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -35,17 +35,17 @@ namespace SFG
 {
 	struct view
 	{
-		frustum									  view_frustum		   = {};
-		matrix4x4								  view_matrix		   = matrix4x4::identity;
-		matrix4x4								  proj_matrix		   = matrix4x4::identity;
-		matrix4x4								  inv_proj_matrix	   = matrix4x4::identity;
-		matrix4x4								  view_proj_matrix	   = matrix4x4::identity;
-		matrix4x4								  inv_view_proj_matrix = matrix4x4::identity;
-		static_vector<float, MAX_SHADOW_CASCADES> cascades;
-		vector3									  position			  = vector3::zero;
-		float									  near_plane		  = 0.0f;
-		float									  far_plane			  = 0.0f;
-		float									  fov_degrees		  = 0.0f;
-		uint32									  cascsades_gpu_index = 0;
+		frustum									view_frustum		 = {};
+		matrix4x4								view_matrix			 = matrix4x4::identity;
+		matrix4x4								proj_matrix			 = matrix4x4::identity;
+		matrix4x4								inv_proj_matrix		 = matrix4x4::identity;
+		matrix4x4								view_proj_matrix	 = matrix4x4::identity;
+		matrix4x4								inv_view_proj_matrix = matrix4x4::identity;
+		static_vector<f32, MAX_SHADOW_CASCADES> cascades;
+		vector3									position			= vector3::zero;
+		f32										near_plane			= 0.0f;
+		f32										far_plane			= 0.0f;
+		f32										fov_degrees			= 0.0f;
+		u32										cascsades_gpu_index = 0;
 	};
 }

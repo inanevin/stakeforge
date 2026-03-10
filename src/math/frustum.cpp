@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +36,7 @@ namespace SFG
 		frustum_result test = frustum_result::inside;
 
 		auto performTest = [&](const plane& p) {
-			const float	  pos	 = -p.distance;
+			const f32	  pos	 = -p.distance;
 			const vector3 normal = p.normal;
 
 			if (vector3::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
@@ -71,15 +71,15 @@ namespace SFG
 		return test;
 	}
 
-	frustum_result frustum::test(const frustum& fr, const vector3& position, float sphere_radius)
+	frustum_result frustum::test(const frustum& fr, const vector3& position, f32 sphere_radius)
 	{
 		auto performTest = [&](const plane& p) {
-			const float distance = vector3::dot(p.normal, position) + p.distance;
+			const f32 distance = vector3::dot(p.normal, position) + p.distance;
 
 			if (distance < -sphere_radius)
 				return frustum_result::outside;
 
-			return frustum_result::inside; 
+			return frustum_result::inside;
 		};
 
 		if (performTest(fr.left) == frustum_result::outside)
@@ -142,8 +142,8 @@ namespace SFG
 
 		// r = |L^T * n| · e_local
 		const vector3 v = linear_model.transposed() * p.normal;
-		const float	  r = vector3::dot(vector3::abs(v), e_local);
-		const float	  s = vector3::dot(p.normal, c_world) + p.distance;
+		const f32	  r = vector3::dot(vector3::abs(v), e_local);
+		const f32	  s = vector3::dot(p.normal, c_world) + p.distance;
 
 		if (s < -r)
 			return frustum_result::outside;

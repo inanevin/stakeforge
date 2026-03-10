@@ -33,7 +33,7 @@ namespace SFG
 {
 	class world;
 
-	enum class tonemap_mode : uint8
+	enum class tonemap_mode : u8
 	{
 		aces = 0,
 		reinhard,
@@ -51,7 +51,7 @@ namespace SFG
 
 		void on_add(world& w);
 		void on_remove(world& w);
-		void set_values(world& w, float bloom_strength, float exposure, tonemap_mode tonemap, float saturation, float wb_temp, float wb_tint, float reinhard_white_point);
+		void set_values(world& w, f32 bloom_strength, f32 exposure, tonemap_mode tonemap, f32 saturation, f32 wb_temp, f32 wb_tint, f32 reinhard_white_point);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -67,13 +67,13 @@ namespace SFG
 
 	private:
 		component_header _header			   = {};
-		float			 _bloom_strength	   = 0.04f;
-		float			 _exposure			   = 1.0f;
+		f32				 _bloom_strength	   = 0.04f;
+		f32				 _exposure			   = 1.0f;
 		tonemap_mode	 _tonemap_mode		   = tonemap_mode::reinhard;
-		float			 _saturation		   = 1.0f;
-		float			 _wb_temp			   = 0.0f;
-		float			 _wb_tint			   = 0.0f;
-		float			 _reinhard_white_point = 6.0f;
+		f32				 _saturation		   = 1.0f;
+		f32				 _wb_temp			   = 0.0f;
+		f32				 _wb_tint			   = 0.0f;
+		f32				 _reinhard_white_point = 6.0f;
 	};
 
 	REFLECT_TYPE(comp_post_process);

@@ -83,107 +83,107 @@ namespace SFG
 		gfx_id	 texture	 = 0;
 		load_op	 load_op	 = load_op::clear;
 		store_op store_op	 = store_op::store;
-		uint8	 view_index	 = 0;
+		u8		 view_index	 = 0;
 	};
 
 	struct render_pass_depth_stencil_attachment
 	{
 		gfx_id	 texture		  = 0;
-		uint8	 clear_stencil	  = 0;
-		float	 clear_depth	  = 1.0f;
+		u8		 clear_stencil	  = 0;
+		f32		 clear_depth	  = 1.0f;
 		load_op	 depth_load_op	  = load_op::clear;
 		load_op	 stencil_load_op  = load_op::none;
 		store_op depth_store_op	  = store_op::dont_care;
 		store_op stencil_store_op = store_op::none;
-		uint8	 view_index		  = 0;
+		u8		 view_index		  = 0;
 	};
 
 	struct command_begin_render_pass
 	{
-		static constexpr uint8 TID = 0;
+		static constexpr u8 TID = 0;
 
 		const render_pass_color_attachment* color_attachments	   = {};
-		uint8								color_attachment_count = 0;
+		u8									color_attachment_count = 0;
 	};
 
 	struct command_end_render_pass
 	{
-		static constexpr uint8 TID = 1;
+		static constexpr u8 TID = 1;
 	};
 
 	struct command_set_viewport
 	{
-		static constexpr uint8 TID = 2;
+		static constexpr u8 TID = 2;
 
-		float  x		 = 0.0f;
-		float  y		 = 0.0f;
-		float  min_depth = 0.0f;
-		float  max_depth = 0.0f;
-		uint16 width	 = 0;
-		uint16 height	 = 0;
+		f32 x		  = 0.0f;
+		f32 y		  = 0.0f;
+		f32 min_depth = 0.0f;
+		f32 max_depth = 0.0f;
+		u16 width	  = 0;
+		u16 height	  = 0;
 	};
 
 	struct command_set_scissors
 	{
-		static constexpr uint8 TID = 3;
+		static constexpr u8 TID = 3;
 
-		uint16 x	  = 0;
-		uint16 y	  = 0;
-		uint16 width  = 0;
-		uint16 height = 0;
+		u16 x	   = 0;
+		u16 y	   = 0;
+		u16 width  = 0;
+		u16 height = 0;
 	};
 
 	struct command_bind_pipeline
 	{
-		static constexpr uint8 TID = 4;
+		static constexpr u8 TID = 4;
 
 		gfx_id pipeline = 0;
 	};
 
 	struct command_draw_instanced
 	{
-		static constexpr uint8 TID = 5;
+		static constexpr u8 TID = 5;
 
-		uint32 vertex_count_per_instance = 0;
-		uint32 instance_count			 = 0;
-		uint32 start_vertex_location	 = 0;
-		uint32 start_instance_location	 = 0;
+		u32 vertex_count_per_instance = 0;
+		u32 instance_count			  = 0;
+		u32 start_vertex_location	  = 0;
+		u32 start_instance_location	  = 0;
 	};
 
 	struct command_draw_indexed_instanced
 	{
-		static constexpr uint8 TID = 6;
+		static constexpr u8 TID = 6;
 
-		uint32 index_count_per_instance = 0;
-		uint32 instance_count			= 0;
-		uint32 start_index_location		= 0;
-		uint32 base_vertex_location		= 0;
-		uint32 start_instance_location	= 0;
+		u32 index_count_per_instance = 0;
+		u32 instance_count			 = 0;
+		u32 start_index_location	 = 0;
+		u32 base_vertex_location	 = 0;
+		u32 start_instance_location	 = 0;
 	};
 
 	struct command_draw_indexed_indirect
 	{
-		static constexpr uint8 TID = 7;
+		static constexpr u8 TID = 7;
 
 		gfx_id indirect_buffer		  = 0;
-		uint32 indirect_buffer_offset = 0;
-		uint16 count				  = 0;
+		u32	   indirect_buffer_offset = 0;
+		u16	   count				  = 0;
 		gfx_id indirect_signature	  = 0;
 	};
 
 	struct command_draw_indirect
 	{
-		static constexpr uint8 TID = 8;
+		static constexpr u8 TID = 8;
 
 		gfx_id indirect_buffer		  = 0;
-		uint32 indirect_buffer_offset = 0;
-		uint16 count				  = 0;
+		u32	   indirect_buffer_offset = 0;
+		u16	   count				  = 0;
 		gfx_id indirect_signature	  = 0;
 	};
 
 	struct command_copy_resource
 	{
-		static constexpr uint8 TID = 9;
+		static constexpr u8 TID = 9;
 
 		gfx_id source	   = 0;
 		gfx_id destination = 0;
@@ -191,144 +191,144 @@ namespace SFG
 
 	struct command_copy_texture_to_buffer
 	{
-		static constexpr uint8 TID = 10;
+		static constexpr u8 TID = 10;
 
 		gfx_id	  dest_buffer = 0;
 		gfx_id	  src_texture = 0;
-		uint32	  src_layer	  = 0;
-		uint32	  src_mip	  = 0;
+		u32		  src_layer	  = 0;
+		u32		  src_mip	  = 0;
 		vector2ui size		  = vector2ui::zero;
-		uint8	  bpp		  = 0;
+		u8		  bpp		  = 0;
 	};
 
 	struct command_copy_buffer_to_texture
 	{
-		static constexpr uint8 TID = 11;
+		static constexpr u8 TID = 11;
 
 		texture_buffer* textures			= nullptr;
 		gfx_id			destination_texture = 0;
 		gfx_id			intermediate_buffer = 0;
-		uint8			mip_levels			= 0;
-		uint8			destination_slice	= 0;
+		u8				mip_levels			= 0;
+		u8				destination_slice	= 0;
 	};
 
 	struct command_copy_texture_to_texture
 	{
-		static constexpr uint8 TID = 12;
+		static constexpr u8 TID = 12;
 
 		gfx_id source				  = 0;
 		gfx_id destination			  = 0;
-		uint8  source_layer			  = 0;
-		uint8  destination_layer	  = 0;
-		uint8  source_mip			  = 0;
-		uint8  source_total_mips	  = 0;
-		uint8  destination_mip		  = 0;
-		uint8  destination_total_mips = 0;
+		u8	   source_layer			  = 0;
+		u8	   destination_layer	  = 0;
+		u8	   source_mip			  = 0;
+		u8	   source_total_mips	  = 0;
+		u8	   destination_mip		  = 0;
+		u8	   destination_total_mips = 0;
 	};
 
 	struct command_bind_vertex_buffers
 	{
-		static constexpr uint8 TID = 13;
+		static constexpr u8 TID = 13;
 
 		gfx_id buffer	   = 0;
-		uint8  slot		   = 0;
-		uint16 vertex_size = 0;
-		uint64 offset	   = 0;
+		u8	   slot		   = 0;
+		u16	   vertex_size = 0;
+		u64	   offset	   = 0;
 	};
 
 	struct command_bind_index_buffers
 	{
-		static constexpr uint8 TID = 14;
+		static constexpr u8 TID = 14;
 
 		gfx_id buffer	  = 0;
-		uint64 offset	  = 0;
-		uint8  index_size = 0;
+		u64	   offset	  = 0;
+		u8	   index_size = 0;
 	};
 
 	struct command_bind_group
 	{
-		static constexpr uint8 TID = 15;
+		static constexpr u8 TID = 15;
 
-		gfx_id group			= 0;
+		gfx_id group = 0;
 	};
 
 	struct command_bind_constants
 	{
-		static constexpr uint8 TID = 16;
+		static constexpr u8 TID = 16;
 
-		void*  data		   = nullptr;
-		uint16 offset	   = 0;
-		uint8  count	   = 0;
-		uint8  param_index = 0;
+		void* data		  = nullptr;
+		u16	  offset	  = 0;
+		u8	  count		  = 0;
+		u8	  param_index = 0;
 	};
 
 	struct command_dispatch
 	{
-		static constexpr uint8 TID = 17;
+		static constexpr u8 TID = 17;
 
-		uint32 group_size_x = 0;
-		uint32 group_size_y = 0;
-		uint32 group_size_z = 0;
+		u32 group_size_x = 0;
+		u32 group_size_y = 0;
+		u32 group_size_z = 0;
 	};
 
 	struct command_barrier
 	{
-		static constexpr uint8 TID = 18;
+		static constexpr u8 TID = 18;
 
 		const barrier* barriers		 = nullptr;
-		uint16		   barrier_count = 0;
+		u16			   barrier_count = 0;
 	};
 
 	struct command_begin_render_pass_depth
 	{
-		static constexpr uint8 TID = 19;
+		static constexpr u8 TID = 19;
 
 		const render_pass_color_attachment*	 color_attachments		  = {};
 		render_pass_depth_stencil_attachment depth_stencil_attachment = {};
-		uint8								 color_attachment_count	  = 0;
+		u8									 color_attachment_count	  = 0;
 	};
 
 	struct command_begin_render_pass_swapchain
 	{
-		static constexpr uint8 TID = 20;
+		static constexpr u8 TID = 20;
 
 		render_pass_color_attachment* color_attachments		 = {};
-		uint8						  color_attachment_count = 0;
+		u8							  color_attachment_count = 0;
 	};
 
 	struct command_begin_render_pass_swapchain_depth
 	{
-		static constexpr uint8 TID = 21;
+		static constexpr u8 TID = 21;
 
 		render_pass_color_attachment*		 color_attachments		  = {};
 		render_pass_depth_stencil_attachment depth_stencil_attachment = {};
-		uint8								 color_attachment_count	  = 0;
+		u8									 color_attachment_count	  = 0;
 	};
 
 	struct command_bind_pipeline_compute
 	{
-		static constexpr uint8 TID = 22;
+		static constexpr u8 TID = 22;
 
 		gfx_id pipeline = 0;
 	};
 
 	struct command_bind_layout
 	{
-		static constexpr uint8 TID = 23;
+		static constexpr u8 TID = 23;
 
 		gfx_id layout = 0;
 	};
 
 	struct command_bind_layout_compute
 	{
-		static constexpr uint8 TID = 24;
+		static constexpr u8 TID = 24;
 
 		gfx_id layout = 0;
 	};
 
 	struct command_copy_resource_region
 	{
-		static constexpr uint8 TID = 25;
+		static constexpr u8 TID = 25;
 
 		gfx_id source	   = 0;
 		gfx_id destination = 0;
@@ -339,7 +339,7 @@ namespace SFG
 
 	struct command_begin_render_pass_depth_only
 	{
-		static constexpr uint8 TID = 26;
+		static constexpr u8 TID = 26;
 
 		render_pass_depth_stencil_attachment depth_stencil_attachment = {};
 	};

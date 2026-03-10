@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -49,8 +49,8 @@ namespace SFG
 	{
 		vector2		pos		 = vector2::zero;
 		vector2ui16 size	 = vector2ui16::zero;
-		float		minDepth = 0.0f;
-		float		maxDepth = 1.0f;
+		f32			minDepth = 0.0f;
+		f32			maxDepth = 1.0f;
 	};
 
 	struct scissors_rect
@@ -59,7 +59,7 @@ namespace SFG
 		vector2ui16 size = vector2ui16::zero;
 	};
 
-	enum class command_type : uint8
+	enum class command_type : u8
 	{
 		graphics,
 		transfer,
@@ -87,7 +87,7 @@ namespace SFG
 		sf_allow_tearing		= 1 << 3,
 	};
 
-	enum binding_type : uint8
+	enum binding_type : u8
 	{
 		constant,
 		ubo,
@@ -145,7 +145,7 @@ namespace SFG
 		saf_compare			   = 1 << 10,
 	};
 
-	enum class address_mode : uint8
+	enum class address_mode : u8
 	{
 		repeat,
 		border,
@@ -156,33 +156,33 @@ namespace SFG
 
 	struct swapchain_desc
 	{
-		void*		   window	 = nullptr;
-		void*		   os_handle = nullptr;
-		float		   scaling	 = 1.0f;
-		format		   format	 = format::undefined;
-		vector2ui16	   pos		 = vector2ui16::zero;
-		vector2ui16	   size		 = vector2ui16::zero;
-		bitmask<uint8> flags	 = 0;
+		void*		window	  = nullptr;
+		void*		os_handle = nullptr;
+		f32			scaling	  = 1.0f;
+		format		format	  = format::undefined;
+		vector2ui16 pos		  = vector2ui16::zero;
+		vector2ui16 size	  = vector2ui16::zero;
+		bitmask<u8> flags	  = 0;
 	};
 
 	struct swapchain_recreate_desc
 	{
-		vector2ui16	   size		 = vector2ui16::zero;
-		gfx_id		   swapchain = 0;
-		float		   scaling	 = 1.0f;
-		bitmask<uint8> flags	 = 0;
+		vector2ui16 size	  = vector2ui16::zero;
+		gfx_id		swapchain = 0;
+		f32			scaling	  = 1.0f;
+		bitmask<u8> flags	  = 0;
 	};
 
 	struct resource_desc
 	{
-		uint32		   size			   = 0;
-		uint32		   structure_size  = 0;
-		uint32		   structure_count = 0;
-		bitmask<uint16> flags		   = 0;
-		const char*	   debug_name	   = "resource";
+		u32			 size			 = 0;
+		u32			 structure_size	 = 0;
+		u32			 structure_count = 0;
+		bitmask<u16> flags			 = 0;
+		const char*	 debug_name		 = "resource";
 	};
 
-	enum class view_type : uint8
+	enum class view_type : u8
 	{
 		sampled,
 		render_target,
@@ -192,12 +192,12 @@ namespace SFG
 	struct view_desc
 	{
 		view_type type			 = view_type::sampled;
-		uint8	  base_arr_level = 0;
-		uint8	  level_count	 = 1;
-		uint8	  base_mip_level = 0;
-		uint8	  mip_count		 = 1;
-		uint8	  is_cubemap	 = 0;
-		uint8	  read_only		 = 0;
+		u8		  base_arr_level = 0;
+		u8		  level_count	 = 1;
+		u8		  base_mip_level = 0;
+		u8		  mip_count		 = 1;
+		u8		  is_cubemap	 = 0;
+		u8		  read_only		 = 0;
 	};
 
 	struct texture_desc
@@ -205,29 +205,29 @@ namespace SFG
 		format			  texture_format	   = format::r8g8b8a8_srgb;
 		format			  depth_stencil_format = format::d16_unorm;
 		vector2ui16		  size				   = vector2ui16::zero;
-		bitmask<uint16>	  flags				   = 0;
+		bitmask<u16>	  flags				   = 0;
 		vector<view_desc> views				   = {
 			   {},
 		   };
-		uint8		mip_levels		= 1;
-		uint8		array_length	= 1;
-		uint8		samples			= 1;
-		float		clear_values[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+		u8			mip_levels		= 1;
+		u8			array_length	= 1;
+		u8			samples			= 1;
+		f32			clear_values[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 		const char* debug_name		= "texture";
 	};
 
 	struct sampler_desc
 	{
-		string			debug_name = "sampler";
-		uint32			anisotropy = 0;
-		float			min_lod	   = 0.0f;
-		float			max_lod	   = 1.0f;
-		float			lod_bias   = 0.0f;
-		bitmask<uint16> flags	   = 0;
-		address_mode	address_u  = address_mode::clamp;
-		address_mode	address_v  = address_mode::clamp;
-		address_mode	address_w  = address_mode::clamp;
-		compare_op		compare	   = {};
+		string		 debug_name = "sampler";
+		u32			 anisotropy = 0;
+		f32			 min_lod	= 0.0f;
+		f32			 max_lod	= 1.0f;
+		f32			 lod_bias	= 0.0f;
+		bitmask<u16> flags		= 0;
+		address_mode address_u	= address_mode::clamp;
+		address_mode address_v	= address_mode::clamp;
+		address_mode address_w	= address_mode::clamp;
+		compare_op	 compare	= {};
 
 		bool operator==(const sampler_desc& other) const;
 
@@ -238,9 +238,9 @@ namespace SFG
 	struct layout_entry
 	{
 		binding_type type					= binding_type::constant;
-		uint8		 count					= 1;
-		uint8		 set					= 0;
-		uint8		 binding				= 0;
+		u8			 count					= 1;
+		u8			 set					= 0;
+		u8			 binding				= 0;
 		sampler_desc immutable_sampler_desc = {};
 	};
 
@@ -253,34 +253,34 @@ namespace SFG
 	struct bind_layout_pointer_param
 	{
 		binding_type type		 = binding_type::ubo;
-		uint8		 set		 = 0;
-		uint8		 binding	 = 0;
-		uint8		 count		 = 0;
-		uint8		 is_volatile = 0;
+		u8			 set		 = 0;
+		u8			 binding	 = 0;
+		u8			 count		 = 0;
+		u8			 is_volatile = 0;
 	};
 
 	struct bind_group_pointer
 	{
 		gfx_id		 resource	   = 0;
-		uint8		 view		   = 0;
-		uint8		 pointer_index = 0;
+		u8			 view		   = 0;
+		u8			 pointer_index = 0;
 		binding_type type		   = binding_type::ubo;
 	};
 
 	struct bind_group_binding
 	{
-		uint8*		 constants	= nullptr;
-		uint8		 root_index = 0;
-		uint8		 count		= 0;
+		u8*			 constants	= nullptr;
+		u8			 root_index = 0;
+		u8			 count		= 0;
 		binding_type type		= binding_type::constant;
 	};
 
 	struct binding_update
 	{
-		uint32				 binding_index	= 0;
+		u32					 binding_index	= 0;
 		vector<binding_type> resource_types = {};
 		vector<gfx_id>		 resources		= {};
-		vector<uint32>		 resource_views = {};
+		vector<u32>			 resource_views = {};
 	};
 
 	struct bind_group_update_desc

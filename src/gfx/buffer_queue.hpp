@@ -47,7 +47,7 @@ namespace SFG
 		struct update_request
 		{
 			buffer*		   buffer	 = nullptr;
-			uint8*		   data		 = nullptr;
+			u8*			   data		 = nullptr;
 			size_t		   data_size = 0;
 			resource_state to_state	 = resource_state::resource_state_ps_resource;
 		};
@@ -60,9 +60,9 @@ namespace SFG
 		void init();
 		void uninit();
 		void add_request(const buffer_request& req);
-		void add_request(const update_request& req, uint8 frame_index);
-		void flush_all(gfx_id cmd, uint8 frame_index, vector<barrier>& out_barriers);
-		bool empty(uint8 frame_index) const;
+		void add_request(const update_request& req, u8 frame_index);
+		void flush_all(gfx_id cmd, u8 frame_index, vector<barrier>& out_barriers);
+		bool empty(u8 frame_index) const;
 
 	private:
 		per_frame_data		   _pfd[BACK_BUFFER_COUNT];

@@ -40,9 +40,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	uint8		 window::s_key_down_map[512] = {};
+	u8			 window::s_key_down_map[512] = {};
 	cursor_state window::s_cursor_state		 = cursor_state::arrow;
-	float		 window::UI_SCALE			 = 1.0f;
+	f32			 window::UI_SCALE			 = 1.0f;
 
 	namespace
 	{
@@ -85,10 +85,10 @@ namespace SFG
 			return composition_enabled && success;
 		}
 
-		uint32 get_style(uint8 flags)
+		u32 get_style(u8 flags)
 		{
 			if (flags & window_flags::wf_style_windowed)
-				return static_cast<uint32>(WS_OVERLAPPEDWINDOW);
+				return static_cast<u32>(WS_OVERLAPPEDWINDOW);
 			else
 			{
 				return WS_POPUP | WS_VISIBLE;
@@ -116,12 +116,12 @@ namespace SFG
 
 				UINT	dpiX, dpiY;
 				HRESULT temp2	= GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-				info.size		= {static_cast<uint16>(mi.rcMonitor.right - mi.rcMonitor.left), static_cast<uint16>(mi.rcMonitor.bottom - mi.rcMonitor.top)};
-				info.work_size	= {static_cast<uint16>(mi.rcWork.right - mi.rcWork.left), static_cast<uint16>(mi.rcWork.bottom - mi.rcWork.top)};
-				info.position	= {static_cast<int16>(mi.rcWork.left), static_cast<int16>(mi.rcWork.top)};
+				info.size		= {static_cast<u16>(mi.rcMonitor.right - mi.rcMonitor.left), static_cast<u16>(mi.rcMonitor.bottom - mi.rcMonitor.top)};
+				info.work_size	= {static_cast<u16>(mi.rcWork.right - mi.rcWork.left), static_cast<u16>(mi.rcWork.bottom - mi.rcWork.top)};
+				info.position	= {static_cast<i16>(mi.rcWork.left), static_cast<i16>(mi.rcWork.top)};
 				info.is_primary = (mi.dwFlags & MONITORINFOF_PRIMARY) != 0;
 				info.dpi		= dpiX;
-				info.dpi_scale	= static_cast<float>(dpiX) / 96.0f;
+				info.dpi_scale	= static_cast<f32>(dpiX) / 96.0f;
 
 				out->push_back(info);
 			}
@@ -140,18 +140,18 @@ namespace SFG
 
 			UINT	dpiX, dpiY;
 			HRESULT temp2	= GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-			info.size		= {static_cast<uint16>(monitor_info.rcMonitor.right - monitor_info.rcMonitor.left), static_cast<uint16>(monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top)};
-			info.work_size	= {static_cast<uint16>(monitor_info.rcWork.right - monitor_info.rcWork.left), static_cast<uint16>(monitor_info.rcWork.bottom - monitor_info.rcWork.top)};
-			info.position	= {static_cast<int16>(monitor_info.rcWork.left), static_cast<int16>(monitor_info.rcWork.top)};
+			info.size		= {static_cast<u16>(monitor_info.rcMonitor.right - monitor_info.rcMonitor.left), static_cast<u16>(monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top)};
+			info.work_size	= {static_cast<u16>(monitor_info.rcWork.right - monitor_info.rcWork.left), static_cast<u16>(monitor_info.rcWork.bottom - monitor_info.rcWork.top)};
+			info.position	= {static_cast<i16>(monitor_info.rcWork.left), static_cast<i16>(monitor_info.rcWork.top)};
 			info.is_primary = (monitor_info.dwFlags & MONITORINFOF_PRIMARY) != 0;
 			info.dpi		= dpiX;
-			info.dpi_scale	= static_cast<float>(dpiX) / 96.0f;
+			info.dpi_scale	= static_cast<f32>(dpiX) / 96.0f;
 			return info;
 		}
 
-		float compute_ui_scale(const monitor_info& info)
+		f32 compute_ui_scale(const monitor_info& info)
 		{
-			float ui_scale = 1.0f;
+			f32 ui_scale = 1.0f;
 			if (info.size.y < 1400)
 				ui_scale = 0.75f;
 			else if (info.size.y < 2000)
@@ -256,8 +256,8 @@ namespace SFG
 			return 0;
 		}
 		case WM_MOVE: {
-			// const int32 x  = static_cast<int32>((short)LOWORD(lParam));
-			// const int32 y  = static_cast<int32>((short)HIWORD(lParam));
+			// const i32 x  = static_cast<i32>((short)LOWORD(lParam));
+			// const i32 y  = static_cast<i32>((short)HIWORD(lParam));
 			// wnd->_position = vector2i16(x, y);
 			// wnd->_flags.set(window_flags::wf_pos_dirty);
 
@@ -279,7 +279,7 @@ namespace SFG
 			if (wnd->_size.x == width && wnd->_size.y == height)
 				return 0;
 
-			wnd->_size = vector2ui16(static_cast<uint16>(width), static_cast<uint16>(height));
+			wnd->_size = vector2ui16(static_cast<u16>(width), static_cast<u16>(height));
 			wnd->_flags.set(wf_size_dirty);
 
 			if (wnd->_flags.is_set(window_flags::wf_style_windowed))
@@ -315,7 +315,7 @@ namespace SFG
 				const bool is_extended = raw->data.keyboard.Flags & RI_KEY_E0;
 				key					   = map_numpad_vs_extended(sc, is_extended, key);
 
-				uint8 is_repeat = 0;
+				u8 is_repeat = 0;
 				if (!is_release)
 				{
 					is_repeat			= s_key_down_map[key];
@@ -325,8 +325,8 @@ namespace SFG
 					s_key_down_map[key] = 0;
 
 				const window_event ev = {
-					.value	  = vector2i16(static_cast<int32>(sc), 0),
-					.button	  = static_cast<uint16>(key),
+					.value	  = vector2i16(static_cast<i32>(sc), 0),
+					.button	  = static_cast<u16>(key),
 					.type	  = window_event_type::key,
 					.sub_type = is_release ? window_event_sub_type::release : (is_repeat ? window_event_sub_type::repeat : window_event_sub_type::press),
 					.flags	  = wef_high_freq,
@@ -339,18 +339,18 @@ namespace SFG
 				// POINT  cursorPos;
 				// GetCursorPos(&cursorPos);
 				//
-				// wnd->_mouse_position_abs = vector2i16(static_cast<int32>(cursorPos.x), static_cast<int32>(cursorPos.y));
+				// wnd->_mouse_position_abs = vector2i16(static_cast<i32>(cursorPos.x), static_cast<i32>(cursorPos.y));
 				//
 				// const vector2i16 relative = wnd->_mouse_position_abs - wnd->_position;
-				// wnd->_mouse_position	  = vector2i16::clamp(relative, vector2i16(), vector2i16(static_cast<int16>(wnd->_size.x), static_cast<int16>(wnd->_size.y)));
+				// wnd->_mouse_position	  = vector2i16::clamp(relative, vector2i16(), vector2i16(static_cast<i16>(wnd->_size.x), static_cast<i16>(wnd->_size.y)));
 
 				POINT screenPt;
 				GetCursorPos(&screenPt);
-				wnd->_mouse_position_abs = vector2i16((int32)screenPt.x, (int32)screenPt.y);
+				wnd->_mouse_position_abs = vector2i16((i32)screenPt.x, (i32)screenPt.y);
 
 				POINT clientPt = screenPt;
 				ScreenToClient(hwnd, &clientPt);
-				wnd->_mouse_position = vector2i16((int16)clientPt.x, (int16)clientPt.y);
+				wnd->_mouse_position = vector2i16((i16)clientPt.x, (i16)clientPt.y);
 
 				window_event ev = {
 					.value = wnd->_mouse_position,
@@ -362,37 +362,37 @@ namespace SFG
 
 				if (mouse_flags & RI_MOUSE_LEFT_BUTTON_DOWN)
 				{
-					ev.button	= static_cast<uint16>(input_code::mouse_0);
+					ev.button	= static_cast<u16>(input_code::mouse_0);
 					ev.sub_type = window_event_sub_type::press;
 					ev_exists	= true;
 				}
 				if (mouse_flags & RI_MOUSE_LEFT_BUTTON_UP)
 				{
-					ev.button	= static_cast<uint16>(input_code::mouse_0);
+					ev.button	= static_cast<u16>(input_code::mouse_0);
 					ev.sub_type = window_event_sub_type::release;
 					ev_exists	= true;
 				}
 				if (mouse_flags & RI_MOUSE_RIGHT_BUTTON_DOWN)
 				{
-					ev.button	= static_cast<uint16>(input_code::mouse_1);
+					ev.button	= static_cast<u16>(input_code::mouse_1);
 					ev.sub_type = window_event_sub_type::press;
 					ev_exists	= true;
 				}
 				if (mouse_flags & RI_MOUSE_RIGHT_BUTTON_UP)
 				{
-					ev.button	= static_cast<uint16>(input_code::mouse_1);
+					ev.button	= static_cast<u16>(input_code::mouse_1);
 					ev.sub_type = window_event_sub_type::release;
 					ev_exists	= true;
 				}
 				if (mouse_flags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
 				{
-					ev.button	= static_cast<uint16>(input_code::mouse_2);
+					ev.button	= static_cast<u16>(input_code::mouse_2);
 					ev.sub_type = window_event_sub_type::press;
 					ev_exists	= true;
 				}
 				if (mouse_flags & RI_MOUSE_MIDDLE_BUTTON_UP)
 				{
-					ev.button	= static_cast<uint16>(input_code::mouse_2);
+					ev.button	= static_cast<u16>(input_code::mouse_2);
 					ev.sub_type = window_event_sub_type::release;
 					ev_exists	= true;
 				}
@@ -401,7 +401,7 @@ namespace SFG
 					wnd->add_event(ev);
 				else if (mouse_flags & RI_MOUSE_WHEEL)
 				{
-					const int16 wheelDelta = (int16)raw->data.mouse.usButtonData;
+					const i16	wheelDelta = (i16)raw->data.mouse.usButtonData;
 					const short wheel	   = (short)raw->data.mouse.usButtonData / (short)WHEEL_DELTA;
 
 					const window_event mwe = {
@@ -413,8 +413,8 @@ namespace SFG
 				}
 				else
 				{
-					const int32 xPosRelative = raw->data.mouse.lLastX;
-					const int32 yPosRelative = raw->data.mouse.lLastY;
+					const i32 xPosRelative = raw->data.mouse.lLastX;
+					const i32 yPosRelative = raw->data.mouse.lLastY;
 
 					const window_event mdEvent = {
 						.value = vector2i16(xPosRelative, yPosRelative),
@@ -436,7 +436,7 @@ namespace SFG
 			const WORD scanCode	 = LOBYTE(key_flags);
 			const int  extended	 = (lParam & 0x01000000) != 0;
 			const bool is_repeat = (lParam & 1 << 30);
-			uint32	   key		 = static_cast<uint32>(wParam);
+			u32		   key		 = static_cast<u32>(wParam);
 			s_key_down_map[key]	 = 1;
 
 			if (wParam == VK_SHIFT)
@@ -446,7 +446,7 @@ namespace SFG
 
 			const window_event ev = {
 				.value	  = vector2i16(scanCode, 0),
-				.button	  = static_cast<uint16>(key),
+				.button	  = static_cast<u16>(key),
 				.type	  = window_event_type::key,
 				.sub_type = is_repeat ? window_event_sub_type::repeat : window_event_sub_type::press,
 			};
@@ -463,7 +463,7 @@ namespace SFG
 			const WORD key_flags = HIWORD(lParam);
 			const WORD scanCode	 = LOBYTE(key_flags);
 			const int  extended	 = (lParam & 0x01000000) != 0;
-			uint32	   key		 = static_cast<uint32>(wParam);
+			u32		   key		 = static_cast<u32>(wParam);
 			s_key_down_map[key]	 = 0;
 
 			if (wParam == VK_SHIFT)
@@ -473,7 +473,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value = vector2i16(scanCode, 0), .button = static_cast<uint16>(key), .type = window_event_type::key, .sub_type = window_event_sub_type::release};
+				.value = vector2i16(scanCode, 0), .button = static_cast<u16>(key), .type = window_event_type::key, .sub_type = window_event_sub_type::release};
 
 			wnd->add_event(ev);
 
@@ -484,8 +484,8 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 xPos = GET_X_LPARAM(lParam);
-			const int32 yPos = GET_Y_LPARAM(lParam);
+			const i32 xPos = GET_X_LPARAM(lParam);
+			const i32 yPos = GET_Y_LPARAM(lParam);
 
 			static vector2i16 previousPosition = vector2i16::zero;
 			wnd->_mouse_position			   = vector2i16(xPos, yPos);
@@ -507,7 +507,7 @@ namespace SFG
 
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
-			const int16		   delta = GET_WHEEL_DELTA_WPARAM(wParam) / (int16)(WHEEL_DELTA);
+			const i16		   delta = GET_WHEEL_DELTA_WPARAM(wParam) / (i16)(WHEEL_DELTA);
 			const window_event mwe	 = {
 				  .value = vector2i16(0, delta),
 				  .type	 = window_event_type::wheel,
@@ -522,13 +522,13 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_0),
+				.button	  = static_cast<u16>(input_code::mouse_0),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::press,
 			};
@@ -539,13 +539,13 @@ namespace SFG
 		}
 		case WM_LBUTTONDBLCLK: {
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_0),
+				.button	  = static_cast<u16>(input_code::mouse_0),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::repeat,
 			};
@@ -558,13 +558,13 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_1),
+				.button	  = static_cast<u16>(input_code::mouse_1),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::press,
 			};
@@ -575,13 +575,13 @@ namespace SFG
 		}
 		case WM_RBUTTONDBLCLK: {
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_1),
+				.button	  = static_cast<u16>(input_code::mouse_1),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::repeat,
 			};
@@ -595,13 +595,13 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_2),
+				.button	  = static_cast<u16>(input_code::mouse_2),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::press,
 			};
@@ -614,13 +614,13 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_0),
+				.button	  = static_cast<u16>(input_code::mouse_0),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::release,
 			};
@@ -634,13 +634,13 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_1),
+				.button	  = static_cast<u16>(input_code::mouse_1),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::release,
 			};
@@ -654,13 +654,13 @@ namespace SFG
 			if (wnd->_flags.is_set(wf_high_freq))
 				return 0;
 
-			const int32 x = static_cast<int32>(GET_X_LPARAM(lParam));
-			const int32 y = static_cast<int32>(GET_Y_LPARAM(lParam));
+			const i32 x = static_cast<i32>(GET_X_LPARAM(lParam));
+			const i32 y = static_cast<i32>(GET_Y_LPARAM(lParam));
 
 			const window_event ev = {
 
 				.value	  = vector2i16(x, y),
-				.button	  = static_cast<uint16>(input_code::mouse_2),
+				.button	  = static_cast<u16>(input_code::mouse_2),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::release,
 			};
@@ -675,12 +675,12 @@ namespace SFG
 		return DefWindowProcA(hwnd, msg, wParam, lParam);
 	}
 
-	bool window::is_key_down(uint16 key)
+	bool window::is_key_down(u16 key)
 	{
 		return s_key_down_map[key];
 	}
 
-	bool window::create(const char* title, uint16 flags, const vector2i16& pos, const vector2ui16& size)
+	bool window::create(const char* title, u16 flags, const vector2i16& pos, const vector2ui16& size)
 	{
 		HINSTANCE  hinst = GetModuleHandle(0);
 		WNDCLASSEX wcx;
@@ -716,8 +716,8 @@ namespace SFG
 			AdjustWindowRect(&windowRect, stylew, FALSE);
 			const int adjustedWidth	 = windowRect.right - windowRect.left;
 			const int adjustedHeight = windowRect.bottom - windowRect.top;
-			_true_size.x			 = static_cast<uint32>(adjustedWidth);
-			_true_size.y			 = static_cast<uint32>(adjustedHeight);
+			_true_size.x			 = static_cast<u32>(adjustedWidth);
+			_true_size.y			 = static_cast<u32>(adjustedHeight);
 		}
 
 		HWND hwnd = CreateWindowExA(exStyle, title, title, stylew, _position.x, _position.y, _true_size.x, _true_size.y, NULL, NULL, hinst, NULL);
@@ -790,13 +790,13 @@ namespace SFG
 
 		RECT wr{};
 		GetWindowRect(hwnd, &wr);
-		_true_size.x = (uint32)(wr.right - wr.left);
-		_true_size.y = (uint32)(wr.bottom - wr.top);
+		_true_size.x = (u32)(wr.right - wr.left);
+		_true_size.y = (u32)(wr.bottom - wr.top);
 
 		RECT cr{};
 		GetClientRect(hwnd, &cr);
-		_size.x = (uint32)(cr.right - cr.left); // render resolution / framebuffer size
-		_size.y = (uint32)(cr.bottom - cr.top);
+		_size.x = (u32)(cr.right - cr.left); // render resolution / framebuffer size
+		_size.y = (u32)(cr.bottom - cr.top);
 	}
 
 	void window::set_style(window_flags flags)
@@ -869,7 +869,7 @@ namespace SFG
 
 	void window::set_cursor_visible(bool vis)
 	{
-		static uint32 cursor_ct = 1;
+		static u32 cursor_ct = 1;
 
 		if (vis && cursor_ct != 0)
 			return;
@@ -900,8 +900,8 @@ namespace SFG
 	{
 		EnumDisplayMonitors(nullptr, nullptr, EnumMonitorsProc, reinterpret_cast<LPARAM>(&out_info));
 	}
-	float window::get_wheel_delta()
+	f32 window::get_wheel_delta()
 	{
-		return (float)WHEEL_DELTA;
+		return (f32)WHEEL_DELTA;
 	}
 }

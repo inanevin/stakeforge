@@ -41,8 +41,8 @@ namespace SFG
 	class game
 	{
 	public:
-		game(app& application) : _app(application) {};
-		~game() {};
+		game(app& application) : _app(application){};
+		~game(){};
 
 		// -----------------------------------------------------------------------------
 		// game class api
@@ -51,7 +51,7 @@ namespace SFG
 		void init();
 		void uninit();
 		void tick();
-		void post_world_tick(float delta);
+		void post_world_tick(f32 delta);
 		bool on_window_event(const window_event& ev);
 		void resize(const vector2ui16& size);
 		void load_level(const char* level);

@@ -48,7 +48,7 @@ namespace SFG
 
 		m.add_function<void, void*, world&>("on_reflect_load"_hs, [](void* obj, world& w) {
 			comp_animation_controller* c = static_cast<comp_animation_controller*>(obj);
-			c->set_skin_entities(w, c->_skin_entities.data(), static_cast<uint16>(c->_skin_entities.size()));
+			c->set_skin_entities(w, c->_skin_entities.data(), static_cast<u16>(c->_skin_entities.size()));
 			c->set_machine_resource(w, c->_resource_machine);
 		});
 
@@ -79,7 +79,7 @@ namespace SFG
 		}
 	}
 
-	void comp_animation_controller::set_skin_entities(world& w, world_handle* skin_entities, uint16 skin_entities_count)
+	void comp_animation_controller::set_skin_entities(world& w, world_handle* skin_entities, u16 skin_entities_count)
 	{
 		chunk_allocator32& aux = w.get_comp_manager().get_aux();
 
@@ -94,7 +94,7 @@ namespace SFG
 		{
 			world_handle* out = nullptr;
 			_skin_entities_ch = aux.allocate<world_handle>(skin_entities_count, out);
-			for (uint16 i = 0; i < skin_entities_count; i++)
+			for (u16 i = 0; i < skin_entities_count; i++)
 			{
 				out[i]			  = skin_entities[i];
 				_skin_entities[i] = skin_entities[i];
@@ -106,7 +106,7 @@ namespace SFG
 			animation_graph&		 anim_graph = w.get_animation_graph();
 			animation_state_machine& runtime_sm = anim_graph.get_state_machine(_machine_runtime);
 			runtime_sm.joint_entities			= _skin_entities_ch;
-			runtime_sm.joint_entities_count		= static_cast<uint16>(_skin_entities.size());
+			runtime_sm.joint_entities_count		= static_cast<u16>(_skin_entities.size());
 		}
 	}
 
@@ -132,7 +132,7 @@ namespace SFG
 		animation_state_machine& runtime_sm = anim_graph.get_state_machine(_machine_runtime);
 		runtime_sm.entity					= _header.entity;
 		runtime_sm.joint_entities			= _skin_entities_ch;
-		runtime_sm.joint_entities_count		= static_cast<uint16>(_skin_entities.size());
+		runtime_sm.joint_entities_count		= static_cast<u16>(_skin_entities.size());
 	}
 
 }

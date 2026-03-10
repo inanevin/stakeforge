@@ -43,8 +43,8 @@ namespace SFG
 		vector4 color_entity_index			  = vector4::zero;
 		vector4 intensity_range				  = vector4::zero;
 		vector4 shadow_res_map_and_data_index = vector4::zero;
-		float	near_plane					  = 0.0f;
-		float	far_plane					  = 0.0f;
+		f32		near_plane					  = 0.0f;
+		f32		far_plane					  = 0.0f;
 	};
 
 	struct gpu_spot_light

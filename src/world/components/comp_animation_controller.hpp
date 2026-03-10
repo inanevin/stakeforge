@@ -53,7 +53,7 @@ namespace SFG
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void set_skin_entities(world& w, world_handle* skin_entities, uint16 skin_entities_count);
+		void set_skin_entities(world& w, world_handle* skin_entities, u16 skin_entities_count);
 		void set_machine_resource(world& w, resource_handle h);
 
 		// -----------------------------------------------------------------------------

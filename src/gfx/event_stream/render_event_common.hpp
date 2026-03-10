@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum class render_event_type : uint8
+	enum class render_event_type : u8
 	{
 		create_texture = 0,
 		create_sampler,

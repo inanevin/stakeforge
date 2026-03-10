@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -42,12 +42,12 @@ namespace SFG
 	class vector3
 	{
 	public:
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
+		f32 x = 0.0f;
+		f32 y = 0.0f;
+		f32 z = 0.0f;
 
 		vector3() = default;
-		vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z)
+		vector3(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
 		{
 		}
 
@@ -62,24 +62,24 @@ namespace SFG
 		static vector3 abs(const vector3& vector);
 		static vector3 min(const vector3& a, const vector3& b);
 		static vector3 max(const vector3& a, const vector3& b);
-		static vector3 lerp(const vector3& a, const vector3& b, float t);
-		static float   dot(const vector3& a, const vector3& b);
-		static float   distance(const vector3& a, const vector3& b);
-		static float   distance_sqr(const vector3& a, const vector3& b);
+		static vector3 lerp(const vector3& a, const vector3& b, f32 t);
+		static f32	   dot(const vector3& a, const vector3& b);
+		static f32	   distance(const vector3& a, const vector3& b);
+		static f32	   distance_sqr(const vector3& a, const vector3& b);
 		vector3		   project(const vector3& on_normal) const;
-		vector3		   rotate(const vector3& axis, float angle_degrees) const;
+		vector3		   rotate(const vector3& axis, f32 angle_degrees) const;
 		vector3		   reflect(const vector3& in_normal) const;
-		bool		   equals(const vector3& other, float epsilon = MATH_EPS) const;
-		bool		   is_zero(float epsilon = MATH_EPS) const;
-		float		   magnitude() const;
-		float		   magnitude_sqr() const;
+		bool		   equals(const vector3& other, f32 epsilon = MATH_EPS) const;
+		bool		   is_zero(f32 epsilon = MATH_EPS) const;
+		f32			   magnitude() const;
+		f32			   magnitude_sqr() const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
 		inline vector3 normalized() const
 		{
-			float mag = magnitude();
+			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
 				return vector3(x / mag, y / mag, z / mag);
@@ -89,7 +89,7 @@ namespace SFG
 
 		inline void normalize()
 		{
-			float mag = magnitude();
+			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
 				x /= mag;
@@ -108,11 +108,11 @@ namespace SFG
 		{
 			return vector3(x - other.x, y - other.y, z - other.z);
 		}
-		inline vector3 operator*(float scalar) const
+		inline vector3 operator*(f32 scalar) const
 		{
 			return vector3(x * scalar, y * scalar, z * scalar);
 		}
-		inline vector3 operator/(float scalar) const
+		inline vector3 operator/(f32 scalar) const
 		{
 			if (scalar == 0.0f)
 				return vector3::zero;
@@ -143,14 +143,14 @@ namespace SFG
 			z -= other.z;
 			return *this;
 		}
-		inline vector3& operator*=(float scalar)
+		inline vector3& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
 			z *= scalar;
 			return *this;
 		}
-		inline vector3& operator/=(float scalar)
+		inline vector3& operator/=(f32 scalar)
 		{
 			if (scalar != 0.0f)
 			{
@@ -177,7 +177,7 @@ namespace SFG
 		}
 	};
 
-	inline vector3 operator*(float scalar, const vector3& vector)
+	inline vector3 operator*(f32 scalar, const vector3& vector)
 	{
 		return vector * scalar;
 	}

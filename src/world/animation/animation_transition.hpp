@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	enum class animation_transition_compare : uint8
+	enum class animation_transition_compare : u8
 	{
 		equals,
 		not_equals,
@@ -47,10 +47,10 @@ namespace SFG
 		pool_handle16				 _next_transition = {};
 		pool_handle16				 to_state		  = {};
 		pool_handle16				 parameter		  = {};
-		float						 target_value	  = 0.0f;
-		float						 _current_time	  = 0.0f;
-		float						 duration		  = 1.0f;
-		uint8						 priority		  = 0;
+		f32							 target_value	  = 0.0f;
+		f32							 _current_time	  = 0.0f;
+		f32							 duration		  = 1.0f;
+		u8							 priority		  = 0;
 		animation_transition_compare compare		  = animation_transition_compare::greater;
 	};
 }

@@ -48,7 +48,7 @@ namespace SFG
 {
 	void texture_raw::serialize(ostream& stream) const
 	{
-		const uint16 count = static_cast<uint16>(buffers.size());
+		const u16 count = static_cast<u16>(buffers.size());
 		stream << name;
 		stream << source;
 		stream << texture_format;
@@ -65,7 +65,7 @@ namespace SFG
 
 	void texture_raw::deserialize(istream& stream)
 	{
-		uint16 count = 0;
+		u16 count = 0;
 		stream >> name;
 		stream >> source;
 		stream >> texture_format;
@@ -73,7 +73,7 @@ namespace SFG
 		stream >> count;
 		buffers.resize(count);
 
-		for (uint16 i = 0; i < count; i++)
+		for (u16 i = 0; i < count; i++)
 		{
 			texture_buffer& b = buffers[i];
 			stream >> b.size;
@@ -82,27 +82,27 @@ namespace SFG
 			const size_t pixels_size = b.size.x * b.size.y * b.bpp;
 
 			SFG_ASSERT(pixels_size != 0);
-			b.pixels = reinterpret_cast<uint8*>(SFG_MALLOC(pixels_size));
+			b.pixels = reinterpret_cast<u8*>(SFG_MALLOC(pixels_size));
 			PUSH_ALLOCATION_SZ(pixels_size);
 			stream.read_to_raw(b.pixels, pixels_size);
 		}
 	}
 
-	void texture_raw::load_from_data(uint8* base, const vector2ui16& size, uint8 txt_format, bool generate_mips)
+	void texture_raw::load_from_data(u8* base, const vector2ui16& size, u8 txt_format, bool generate_mips)
 	{
 		const format fmt	   = static_cast<format>(txt_format);
-		const uint8	 bpp	   = format_get_bpp(fmt);
+		const u8	 bpp	   = format_get_bpp(fmt);
 		const bool	 is_linear = format_is_linear(fmt);
-		const uint8	 channels  = format_get_channels(fmt);
+		const u8	 channels  = format_get_channels(fmt);
 		texture_format		   = txt_format;
 
 		const texture_buffer b = {
-			.pixels = reinterpret_cast<uint8*>(base),
+			.pixels = reinterpret_cast<u8*>(base),
 			.size	= size,
 			.bpp	= bpp,
 		};
 
-		const uint8 count = generate_mips ? math::min(image_util::calculate_mip_levels(size.x, size.y), (uint8)MAX_TEXTURE_MIPS) : 1;
+		const u8 count = generate_mips ? math::min(image_util::calculate_mip_levels(size.x, size.y), (u8)MAX_TEXTURE_MIPS) : 1;
 		buffers.resize(count);
 		buffers[0] = b;
 
@@ -126,15 +126,15 @@ namespace SFG
 			json		  json_data = json::parse(f);
 			f.close();
 
-			texture_format = static_cast<uint8>(json_data.value<format>("format", format::r8g8b8a8_srgb));
+			texture_format = static_cast<u8>(json_data.value<format>("format", format::r8g8b8a8_srgb));
 			source		   = json_data.value<string>("source", "");
 			sid			   = TO_SID(relative_file);
 			name		   = relative_file;
 
-			const bool	 mips		 = json_data.value<uint8>("gen_mips", 0);
+			const bool	 mips		 = json_data.value<u8>("gen_mips", 0);
 			const format fmt		 = static_cast<format>(static_cast<format>(texture_format));
-			const uint8	 channels	 = format_get_channels(fmt);
-			const uint8	 bpp		 = format_get_bpp(fmt);
+			const u8	 channels	 = format_get_channels(fmt);
+			const u8	 bpp		 = format_get_bpp(fmt);
 			const bool	 is_linear	 = format_is_linear(fmt);
 			const string full_source = base_path + source;
 			SFG_ASSERT(file_system::exists(full_source.c_str()));
@@ -152,12 +152,12 @@ namespace SFG
 			PUSH_ALLOCATION_SZ(size.x * size.y * bpp);
 
 			const texture_buffer b = {
-				.pixels = reinterpret_cast<uint8*>(data),
+				.pixels = reinterpret_cast<u8*>(data),
 				.size	= size,
 				.bpp	= bpp,
 			};
 
-			const uint8 count = mips ? math::min(image_util::calculate_mip_levels(size.x, size.y), (uint8)MAX_TEXTURE_MIPS) : 1;
+			const u8 count = mips ? math::min(image_util::calculate_mip_levels(size.x, size.y), (u8)MAX_TEXTURE_MIPS) : 1;
 
 			buffers.resize(count);
 			buffers[0] = b;
@@ -191,8 +191,8 @@ namespace SFG
 
 		string file_path				  = "";
 		string source_path				  = "";
-		uint64 saved_file_last_modified	  = 0;
-		uint64 saved_source_last_modified = 0;
+		u64 saved_file_last_modified	  = 0;
+		u64 saved_source_last_modified = 0;
 		stream >> file_path;
 		stream >> source_path;
 		stream >> saved_file_last_modified;
@@ -200,8 +200,8 @@ namespace SFG
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const uint64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		if (file_last_modified != saved_file_last_modified || src_last_modified != saved_source_last_modified)
 			return false;
@@ -218,8 +218,8 @@ namespace SFG
 		const string file_path			= resource_directory_path + name;
 		const string source_path		= resource_directory_path + source;
 		const string relative			= file_system::get_filename_from_path(name);
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const uint64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + relative + "-" + sid_str + "_data" + extension;

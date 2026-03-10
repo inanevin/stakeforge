@@ -58,13 +58,13 @@ namespace SFG
 		// impl
 		// -----------------------------------------------------------------------------
 
-		uint16 allocate_batch(world& w, resource_handle skin);
-		void   free_batch(uint16 b);
+		u16	 allocate_batch(world& w, resource_handle skin);
+		void free_batch(u16 b);
 
 	private:
-		pool_allocator<uint16, uint16, MAX_WORLD_BONE_BATCHES>* _bone_batches	   = nullptr;
-		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>*		_local_matrices	   = nullptr;
-		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>*		_inv_bind_matrices = nullptr;
-		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>*		_abs_matrices	   = nullptr;
+		pool_allocator<u16, u16, MAX_WORLD_BONE_BATCHES>* _bone_batches		 = nullptr;
+		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>* _local_matrices	 = nullptr;
+		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>* _inv_bind_matrices = nullptr;
+		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>* _abs_matrices		 = nullptr;
 	};
 }

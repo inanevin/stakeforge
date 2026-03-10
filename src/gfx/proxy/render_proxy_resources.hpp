@@ -40,9 +40,9 @@ namespace SFG
 	struct render_proxy_custom_buffer
 	{
 		buffer_cpu_gpu buffers[BACK_BUFFER_COUNT] = {};
-		uint32		   size						  = 0;
+		u32			   size						  = 0;
 		resource_id	   handle					  = {};
-		uint8		   status					  = render_proxy_status::rps_inactive;
+		u8			   status					  = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_texture
@@ -51,40 +51,40 @@ namespace SFG
 		gpu_index	heap_index	 = 0;
 		gfx_id		hw			 = 0;
 		gfx_id		intermediate = 0;
-		uint8		status		 = render_proxy_status::rps_inactive;
+		u8			status		 = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_material
 	{
 		buffer_gpu buffers[BACK_BUFFER_COUNT];
 		buffer_gpu texture_buffers[BACK_BUFFER_COUNT] = {};
-		uint32	   buffer_size						  = 0;
-		uint8	   texture_count					  = 0;
-		uint8	   status							  = render_proxy_status::rps_inactive;
+		u32		   buffer_size						  = 0;
+		u8		   texture_count					  = 0;
+		u8		   status							  = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_material_runtime
 	{
-		gpu_index		gpu_index_buffers[BACK_BUFFER_COUNT]		 = {NULL_GPU_INDEX};
-		gpu_index		gpu_index_texture_buffers[BACK_BUFFER_COUNT] = {NULL_GPU_INDEX};
-		gpu_index		gpu_index_sampler							 = NULL_GPU_INDEX;
-		bitmask<uint32> flags										 = 0;
-		resource_id		shader_handle								 = NULL_RESOURCE_ID;
-		uint16			draw_priority								 = 0;
+		gpu_index	 gpu_index_buffers[BACK_BUFFER_COUNT]		  = {NULL_GPU_INDEX};
+		gpu_index	 gpu_index_texture_buffers[BACK_BUFFER_COUNT] = {NULL_GPU_INDEX};
+		gpu_index	 gpu_index_sampler							  = NULL_GPU_INDEX;
+		bitmask<u32> flags										  = 0;
+		resource_id	 shader_handle								  = NULL_RESOURCE_ID;
+		u16			 draw_priority								  = 0;
 	};
 
 	struct render_proxy_shader_variant
 	{
-		gfx_id			hw = 0;
-		bitmask<uint32> variant_flags;
+		gfx_id		 hw = 0;
+		bitmask<u32> variant_flags;
 	};
 
 	struct render_proxy_shader
 	{
 		resource_id	   handle		 = {};
 		chunk_handle32 variants		 = {};
-		uint32		   variant_count = 0;
-		uint8		   status		 = render_proxy_status::rps_inactive;
+		u32			   variant_count = 0;
+		u8			   status		 = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_sampler
@@ -92,15 +92,15 @@ namespace SFG
 		resource_id handle	   = {};
 		gpu_index	heap_index = 0;
 		gfx_id		hw		   = 0;
-		uint8		status	   = render_proxy_status::rps_inactive;
+		u8			status	   = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_primitive
 	{
-		uint32 vertex_start	  = 0;
-		uint32 index_start	  = 0;
-		uint32 index_count	  = 0;
-		uint16 material_index = 0;
+		u32 vertex_start   = 0;
+		u32 index_start	   = 0;
+		u32 index_count	   = 0;
+		u16 material_index = 0;
 	};
 
 	struct render_proxy_mesh
@@ -109,25 +109,25 @@ namespace SFG
 		buffer_cpu_gpu index_buffer	 = {};
 		aabb		   local_aabb	 = {};
 		chunk_handle32 primitives;
-		uint32		   primitive_count = 0;
+		u32			   primitive_count = 0;
 		resource_id	   handle		   = {};
-		uint8		   status		   = render_proxy_status::rps_inactive;
-		uint8		   is_skinned	   = 0;
+		u8			   status		   = render_proxy_status::rps_inactive;
+		u8			   is_skinned	   = 0;
 	};
 
 	struct render_proxy_skin
 	{
 		chunk_handle32 nodes	  = {};
 		chunk_handle32 matrices	  = {};
-		uint16		   node_count = 0;
-		int16		   root_node  = -1;
-		uint8		   status	  = render_proxy_status::rps_inactive;
+		u16			   node_count = 0;
+		i16			   root_node  = -1;
+		u8			   status	  = render_proxy_status::rps_inactive;
 	};
 
 	struct render_proxy_particle_resource
 	{
 		particle_emit_properties emit_props = {};
-		uint8					 status		= render_proxy_status::rps_inactive;
+		u8						 status		= render_proxy_status::rps_inactive;
 	};
 
 }

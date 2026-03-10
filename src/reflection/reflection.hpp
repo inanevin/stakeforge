@@ -98,12 +98,12 @@ namespace SFG
 		malloc_string		 _tooltip	  = "";
 		string_id			 _sid		  = 0;
 		string_id			 _sub_type_id = 0;
-		float				 _min		  = 0.0f;
-		float				 _max		  = 0.0f;
+		f32				 _min		  = 0.0f;
+		f32				 _max		  = 0.0f;
 		reflected_field_type _type		  = reflected_field_type::rf_float;
-		uint8				 _is_list	  = 0;
-		uint8				 _no_ui		  = 0;
-		uint8				 _clamped	  = 0;
+		u8				 _is_list	  = 0;
+		u8				 _no_ui		  = 0;
+		u8				 _clamped	  = 0;
 	};
 
 	template <typename T, class C> class field : public field_base
@@ -173,7 +173,7 @@ namespace SFG
 		typedef vector<field_base*, malloc_allocator_stl<field_base*>>		 field_vec;
 		typedef vector<control_button, malloc_allocator_stl<control_button>> button_vec;
 
-		template <auto DATA, typename Class> field_base* add_field(const string& title, reflected_field_type type, const string& tooltip, float min, float max, string_id sub_type_id = 0, uint8 is_list = 0, uint8 no_ui = 0)
+		template <auto DATA, typename Class> field_base* add_field(const string& title, reflected_field_type type, const string& tooltip, f32 min, f32 max, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
 			using ft = field<decltype(DATA), Class>;
 
@@ -194,7 +194,7 @@ namespace SFG
 			return f;
 		}
 
-		template <auto DATA, typename Class> field_base* add_field(const string& title, reflected_field_type type, const string& tooltip, string_id sub_type_id = 0, uint8 is_list = 0, uint8 no_ui = 0)
+		template <auto DATA, typename Class> field_base* add_field(const string& title, reflected_field_type type, const string& tooltip, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
 			using ft = field<decltype(DATA), Class>;
 
@@ -274,7 +274,7 @@ namespace SFG
 			return _tag_str;
 		}
 
-		inline uint32 get_type_index() const
+		inline u32 get_type_index() const
 		{
 			return _type_index;
 		}
@@ -358,7 +358,7 @@ namespace SFG
 		malloc_string _tag_str		   = "";
 		string_id	  _type_id		   = 0;
 		string_id	  _tag			   = 0;
-		uint32		  _type_index	   = 0;
+		u32		  _type_index	   = 0;
 	};
 
 	class reflection
@@ -386,7 +386,7 @@ namespace SFG
 			}
 		}
 
-		meta& register_meta(string_id id, uint32 index, const string& tag)
+		meta& register_meta(string_id id, u32 index, const string& tag)
 		{
 			meta_entry* entry = find_meta_entry(id);
 			if (!entry)

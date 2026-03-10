@@ -51,16 +51,16 @@ namespace SFG
 #endif
 
 		_root		  = raw.root_joint;
-		_joints_count = static_cast<uint16>(raw.joints.size());
+		_joints_count = static_cast<u16>(raw.joints.size());
 		_joints		  = alloc.allocate<skin_joint>(raw.joints.size());
 
 		skin_joint*	 ptr   = reinterpret_cast<skin_joint*>(alloc.get(_joints.head));
-		const uint32 count = static_cast<uint32>(raw.joints.size());
+		const u32 count = static_cast<u32>(raw.joints.size());
 
 		render_event_skin ev = {};
 		ev.root_index		 = raw.root_joint;
 
-		for (uint32 i = 0; i < count; i++)
+		for (u32 i = 0; i < count; i++)
 		{
 			const skin_joint& joint		   = raw.joints[i];
 			const matrix4x3	  inverse_bind = joint.inverse_bind_matrix;

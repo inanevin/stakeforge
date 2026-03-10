@@ -44,7 +44,7 @@ namespace SFG
 	{
 	}
 
-	void texture_queue::add_request(const static_vector<texture_buffer, MAX_TEXTURE_MIPS>& buffers, gfx_id texture, gfx_id intermediate, uint8 use_free, resource_state state, bool persistent)
+	void texture_queue::add_request(const static_vector<texture_buffer, MAX_TEXTURE_MIPS>& buffers, gfx_id texture, gfx_id intermediate, u8 use_free, resource_state state, bool persistent)
 	{
 		for (texture_request& req : _requests)
 		{
@@ -88,7 +88,7 @@ namespace SFG
 													.textures			 = buf.buffers.data(),
 													.destination_texture = buf.texture,
 													.intermediate_buffer = buf.intermediate,
-													.mip_levels			 = static_cast<uint8>(buf.buffers.size()),
+													.mip_levels			 = static_cast<u8>(buf.buffers.size()),
 													.destination_slice	 = 0,
 
 												});

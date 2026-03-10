@@ -33,17 +33,17 @@ namespace SFG
 {
 	struct primitive_runtime
 	{
-		uint32 vertex_start = 0;
-		uint32 index_start	= 0;
+		u32 vertex_start = 0;
+		u32 index_start	= 0;
 	};
 
 	struct primitive
 	{
 		primitive_runtime runtime		 = {};
-		uint16			  material_index = 0;
+		u16			  material_index = 0;
 		chunk_handle32	  vertices;
 		chunk_handle32	  indices;
-		uint32			  indices_count = 0;
+		u32			  indices_count = 0;
 	};
 
 }

@@ -97,13 +97,13 @@ namespace SFG
 		istream stream = serialization::load_from_file(meta_cache_path.c_str());
 
 		string file_path				= "";
-		uint64 saved_file_last_modified = 0;
+		u64 saved_file_last_modified = 0;
 		stream >> file_path;
 		stream >> saved_file_last_modified;
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 
 		if (file_last_modified != saved_file_last_modified)
 			return false;
@@ -118,7 +118,7 @@ namespace SFG
 	{
 		const string sid_str			= std::to_string(TO_SID(name));
 		const string file_path			= resource_directory_path + name;
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 
 		const string meta_cache_path = cache_folder_path + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + sid_str + "_data" + extension;

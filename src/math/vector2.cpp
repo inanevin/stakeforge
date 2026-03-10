@@ -42,8 +42,8 @@ namespace SFG
 
 	vector2::vector2(const vector2ui16& v)
 	{
-		x = static_cast<float>(v.x);
-		y = static_cast<float>(v.y);
+		x = static_cast<f32>(v.x);
+		y = static_cast<f32>(v.y);
 	}
 
 	vector2 vector2::clamp(const vector2& vector, const vector2& min_vec, const vector2& max_vec)
@@ -51,9 +51,9 @@ namespace SFG
 		return vector2(math::max(min_vec.x, math::min(vector.x, max_vec.x)), math::max(min_vec.y, math::min(vector.y, max_vec.y)));
 	}
 
-	vector2 vector2::clamp_magnitude(const vector2& vector, float max_length)
+	vector2 vector2::clamp_magnitude(const vector2& vector, f32 max_length)
 	{
-		float mag = vector.magnitude();
+		f32 mag = vector.magnitude();
 		if (mag > max_length)
 		{
 			return vector.normalized() * max_length;
@@ -76,33 +76,33 @@ namespace SFG
 		return vector2(math::max(a.x, b.x), math::max(a.y, b.y));
 	}
 
-	float vector2::dot(const vector2& a, const vector2& b)
+	f32 vector2::dot(const vector2& a, const vector2& b)
 	{
 		return a.x * b.x + a.y * b.y;
 	}
 
-	float vector2::distance(const vector2& a, const vector2& b)
+	f32 vector2::distance(const vector2& a, const vector2& b)
 	{
 		return (a - b).magnitude();
 	}
 
-	float vector2::angle(const vector2& a, const vector2& b)
+	f32 vector2::angle(const vector2& a, const vector2& b)
 	{
-		float dot_product = dot(a, b);
-		float magnitudes  = a.magnitude() * b.magnitude();
+		f32 dot_product = dot(a, b);
+		f32 magnitudes	= a.magnitude() * b.magnitude();
 
 		if (magnitudes == 0.0f)
 			return 0.0f;
 
-		float cos_angle = dot_product / magnitudes;
-		cos_angle		= math::max(-1.0f, math::min(1.0f, cos_angle));
+		f32 cos_angle = dot_product / magnitudes;
+		cos_angle	  = math::max(-1.0f, math::min(1.0f, cos_angle));
 
 		return math::cos(cos_angle) * (180.0f / MATH_PI);
 	}
 
 	vector2 vector2::normalized() const
 	{
-		float mag = magnitude();
+		f32 mag = magnitude();
 		if (mag > MATH_EPS)
 		{
 			return vector2(x / mag, y / mag);
@@ -110,22 +110,22 @@ namespace SFG
 		return vector2::zero;
 	}
 
-	bool vector2::equals(const vector2& other, float epsilon) const
+	bool vector2::equals(const vector2& other, f32 epsilon) const
 	{
 		return math::abs(x - other.x) < epsilon && math::abs(y - other.y) < epsilon;
 	}
 
-	bool vector2::is_zero(float epsilon) const
+	bool vector2::is_zero(f32 epsilon) const
 	{
 		return math::abs(x) < epsilon && math::abs(y) < epsilon;
 	}
 
-	float vector2::magnitude() const
+	f32 vector2::magnitude() const
 	{
 		return math::sqrt(x * x + y * y);
 	}
 
-	float vector2::magnitude_sqr() const
+	f32 vector2::magnitude_sqr() const
 	{
 		return x * x + y * y;
 	}
@@ -150,8 +150,8 @@ namespace SFG
 	{
 		if (!j.is_array() || j.size() < 2)
 			throw std::runtime_error("vector2 json err");
-		v.x = j.at(0).get<float>();
-		v.y = j.at(1).get<float>();
+		v.x = j.at(0).get<f32>();
+		v.y = j.at(1).get<f32>();
 	}
 
 #endif

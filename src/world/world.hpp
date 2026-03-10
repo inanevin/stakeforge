@@ -83,7 +83,7 @@ namespace SFG
 		void init_preserve_resources();
 		void uninit_preserve_resources();
 		void create_from_loader(world_raw& raw, bool preserve_resources);
-		void tick(const vector2ui16& res, float dt);
+		void tick(const vector2ui16& res, f32 dt);
 		void begin_debug_tick(const vector2ui16& res);
 		void end_debug_tick();
 		void calculate_abs_transforms();
@@ -139,7 +139,7 @@ namespace SFG
 			return _comp_manager;
 		}
 
-		inline bitmask<uint8>& get_flags()
+		inline bitmask<u8>& get_flags()
 		{
 			return _flags;
 		}
@@ -233,8 +233,8 @@ namespace SFG
 		vector<atlas_data>	 _vekt_atlases = {};
 		render_event_stream& _render_stream;
 
-		bitmask<uint8> _flags	  = 0;
-		play_mode	   _play_mode = play_mode::none;
+		bitmask<u8> _flags	   = 0;
+		play_mode	_play_mode = play_mode::none;
 
 #ifdef SFG_TOOLMODE
 		vector3 _tool_camera_pos = vector3::zero;

@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	using string_id = uint64;
+	using string_id = u64;
 
 	constexpr string_id hash_bytes(const char* str, size_t len) noexcept
 	{

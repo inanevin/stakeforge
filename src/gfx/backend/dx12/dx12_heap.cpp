@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	void dx12_heap::init(ID3D12Device* device, uint32 heap_type, uint32 num_descriptors, uint32 descriptor_size, bool shader_access)
+	void dx12_heap::init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access)
 	{
 		_type			 = heap_type;
 		_max_descriptors = num_descriptors;
@@ -63,9 +63,9 @@ namespace SFG
 		TracyAllocN(_heap, num_descriptors * descriptor_size, "GPU: Total");
 
 		_heap->SetName(L"Descriptor Heap");
-		_cpu_start = static_cast<uint64>(_heap->GetCPUDescriptorHandleForHeapStart().ptr);
+		_cpu_start = static_cast<u64>(_heap->GetCPUDescriptorHandleForHeapStart().ptr);
 		if (_shader_access)
-			_gpu_start = static_cast<uint64>(_heap->GetGPUDescriptorHandleForHeapStart().ptr);
+			_gpu_start = static_cast<u64>(_heap->GetGPUDescriptorHandleForHeapStart().ptr);
 	}
 
 	void dx12_heap::uninit()
@@ -80,12 +80,12 @@ namespace SFG
 		_current_index = 0;
 	}
 
-	void dx12_heap::reset(uint32 newStart)
+	void dx12_heap::reset(u32 newStart)
 	{
 		_current_index = newStart;
 	}
 
-	descriptor_handle dx12_heap::get_heap_handle_block(uint32 count)
+	descriptor_handle dx12_heap::get_heap_handle_block(u32 count)
 	{
 		for (auto it = _available_blocks.begin(); it != _available_blocks.end(); ++it)
 		{
@@ -110,8 +110,8 @@ namespace SFG
 			}
 		}
 
-		uint32 new_id	 = 0;
-		uint32 block_end = _current_index + count;
+		u32 new_id	 = 0;
+		u32 block_end = _current_index + count;
 
 		if (block_end < _max_descriptors)
 		{
@@ -132,7 +132,7 @@ namespace SFG
 		};
 	}
 
-	descriptor_handle dx12_heap::get_offsetted_handle(uint32 count)
+	descriptor_handle dx12_heap::get_offsetted_handle(u32 count)
 	{
 		return {
 			.cpu = get_cpu_start() + count * get_descriptor_size(),

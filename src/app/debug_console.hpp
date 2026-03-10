@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -71,7 +71,7 @@ namespace SFG
 				return false;
 			}
 		}
-		template <> bool cvar_convert<float>(const string& str, float& out)
+		template <> bool cvar_convert<f32>(const string& str, f32& out)
 		{
 			try
 			{
@@ -137,7 +137,7 @@ namespace SFG
 	{
 	public:
 		typedef std::function<void(T)> callback_function;
-		console_variable(T data, callback_function cb) : _data(data), _callback(cb) {};
+		console_variable(T data, callback_function cb) : _data(data), _callback(cb){};
 		virtual ~console_variable() = default;
 
 		T get_value() const
@@ -181,7 +181,7 @@ namespace SFG
 	public:
 		typedef std::function<void(TArgs... args)> function_type;
 
-		console_function(function_type func) : _func(func) {};
+		console_function(function_type func) : _func(func){};
 		virtual ~console_function() = default;
 
 		template <typename func, typename tuple, size_t... Is> void call_func_from_tuple(func&& f, tuple& tup, std::index_sequence<Is...>)

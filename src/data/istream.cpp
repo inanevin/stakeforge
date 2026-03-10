@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void istream::open(uint8* data, size_t size)
+	void istream::open(u8* data, size_t size)
 	{
 		_data  = data;
 		_size  = size;
@@ -43,11 +43,11 @@ namespace SFG
 		_size  = 0;
 		_index = 0;
 	}
-	void istream::create(uint8* data, size_t size)
+	void istream::create(u8* data, size_t size)
 	{
 		destroy();
 		const size_t unaligned = size;
-		_data				   = new uint8[size];
+		_data				   = new u8[size];
 
 		if (data != nullptr)
 			SFG_MEMCPY(_data, data, unaligned);
@@ -76,11 +76,11 @@ namespace SFG
 	{
 		if (endianness::should_swap())
 		{
-			uint8*		  data = &_data[_index];
-			vector<uint8> v;
+			u8*		   data = &_data[_index];
+			vector<u8> v;
 			v.insert(v.end(), data, data + size);
 
-			vector<uint8> v2;
+			vector<u8> v2;
 			v2.resize(v.size());
 
 			const size_t sz = v.size();
@@ -100,7 +100,7 @@ namespace SFG
 		_index += size;
 	}
 
-	void istream::read_to_raw(uint8* ptr, size_t size)
+	void istream::read_to_raw(u8* ptr, size_t size)
 	{
 		SFG_MEMCPY(ptr, &_data[_index], size);
 		_index += size;

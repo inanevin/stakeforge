@@ -34,10 +34,10 @@ namespace SFG
 	class shared_cbv
 	{
 	public:
-		void init(uint32 total_size);
+		void init(u32 total_size);
 		void uninit();
 
-		inline const buffer_gpu& get_buffer(uint8 frame_index)
+		inline const buffer_gpu& get_buffer(u8 frame_index)
 		{
 			return _buffers[frame_index];
 		}

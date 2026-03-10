@@ -35,20 +35,20 @@ namespace SFG
 
 	struct window_layout
 	{
-		float pos_x	 = 0.0f;
-		float pos_y	 = 0.0f;
-		float size_x = 0.0f;
-		float size_y = 0.0f;
-		uint8 open	 = 1;
+		f32 pos_x  = 0.0f;
+		f32 pos_y  = 0.0f;
+		f32 size_x = 0.0f;
+		f32 size_y = 0.0f;
+		u8	open   = 1;
 	};
 
 	struct editor_layout
 	{
-		float entities_world_split		= 0.25f;
-		float entities_components_split = 0.5f;
-		float world_inspector_split	 = 0.7f;
-		uint8 world_aspect_ratio		= 0;
-		uint8 world_stats_view			= 0;
+		f32 entities_world_split	  = 0.25f;
+		f32 entities_components_split = 0.5f;
+		f32 world_inspector_split	  = 0.7f;
+		u8	world_aspect_ratio		  = 0;
+		u8	world_stats_view		  = 0;
 
 		static editor_layout& get()
 		{

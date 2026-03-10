@@ -45,7 +45,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -72,7 +72,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -83,14 +83,14 @@ namespace SFG
 		destroy_textures();
 	}
 
-	void render_pass_lighting::prepare(proxy_manager& pm, const view& camera_view, uint8 frame_index)
+	void render_pass_lighting::prepare(proxy_manager& pm, const view& camera_view, u8 frame_index)
 	{
 		ZoneScoped;
 
-		const uint8					ambient_exists = pm.get_ambient_exists();
+		const u8					ambient_exists = pm.get_ambient_exists();
 		const render_proxy_ambient& ambient		   = pm.get_ambient();
 		const vector3				ambient_color  = ambient_exists ? ambient.base_color : vector3(0.1f, 0.1f, 0.1f);
-		const uint8					skybox_exists  = pm.get_skybox_exists();
+		const u8					skybox_exists  = pm.get_skybox_exists();
 		const render_proxy_skybox&	skybox		   = pm.get_skybox();
 		const vector4				sky_start	   = skybox_exists ? skybox.start_color : vector4(0.2f, 0.1f, 0.2f, 1.0f);
 		const vector4				sky_mid		   = skybox_exists ? skybox.mid_color : vector4(0.1f, 0.1f, 0.2f, 1.0f);
@@ -102,8 +102,8 @@ namespace SFG
 
 		const ubo ubo_data = {
 			.inverse_view_proj			 = camera_view.view_proj_matrix.inverse(),
-			.ambient_color_plights_count = vector4(ambient_color.x, ambient_color.y, ambient_color.z, static_cast<float>(_points_count_this_frame)),
-			.view_position_slights_count = vector4(camera_view.position.x, camera_view.position.y, camera_view.position.z, static_cast<float>(_spots_count_this_frame)),
+			.ambient_color_plights_count = vector4(ambient_color.x, ambient_color.y, ambient_color.z, static_cast<f32>(_points_count_this_frame)),
+			.view_position_slights_count = vector4(camera_view.position.x, camera_view.position.y, camera_view.position.z, static_cast<f32>(_spots_count_this_frame)),
 			.sky_start					 = sky_start,
 			.sky_mid					 = sky_mid,
 			.sky_end					 = sky_end,
@@ -111,7 +111,7 @@ namespace SFG
 			.fog_start_end				 = fog_start_end,
 			.dir_lights_count			 = _dirs_count_this_frame,
 			.cascade_levels_gpu_index	 = camera_view.cascsades_gpu_index,
-			.cascade_count				 = static_cast<uint32>(camera_view.cascades.size()),
+			.cascade_count				 = static_cast<u32>(camera_view.cascades.size()),
 			.near_plane					 = camera_view.near_plane,
 			.far_plane					 = camera_view.far_plane,
 		};
@@ -140,7 +140,7 @@ namespace SFG
 		rp_constants.push_back(p.gpu_index_dir_lights);
 		rp_constants.push_back(p.gpu_index_shadow_data_buffer);
 		rp_constants.push_back(p.gpu_index_float_buffer);
-		for (uint32 i = 0; i < GBUFFER_COLOR_TEXTURES; i++)
+		for (u32 i = 0; i < GBUFFER_COLOR_TEXTURES; i++)
 			rp_constants.push_back(p.gpu_index_gbuffer_textures[i]);
 		rp_constants.push_back(p.gpu_index_depth_texture);
 		rp_constants.push_back(p.gpu_index_ao_out);
@@ -159,7 +159,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "lighting_pass");
@@ -181,15 +181,15 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants.data(), .offset = constant_index_rp_constant0, .count = static_cast<uint8>(rp_constants.size()), .param_index = rpi_constants});
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants.data(), .offset = constant_index_rp_constant0, .count = static_cast<u8>(rp_constants.size()), .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 		backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = sh});
@@ -215,7 +215,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -227,7 +227,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 

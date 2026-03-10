@@ -136,9 +136,9 @@ namespace SFG
 			if (clip.w < 0.0f)
 				return false;
 
-			const float inv_w = 1.0f / clip.w;
-			const float ndc_x = clip.x * inv_w;
-			const float ndc_y = clip.y * inv_w;
+			const f32 inv_w = 1.0f / clip.w;
+			const f32 ndc_x = clip.x * inv_w;
+			const f32 ndc_y = clip.y * inv_w;
 
 			out.x = panel_pos.x + (ndc_x * 0.5f + 0.5f) * panel_size.x;
 			out.y = panel_pos.y + (1.0f - (ndc_y * 0.5f + 0.5f)) * panel_size.y;
@@ -146,7 +146,7 @@ namespace SFG
 		}
 	}
 
-	void gameplay::on_world_tick(world& w, float dt, const vector2ui16& game_res)
+	void gameplay::on_world_tick(world& w, f32 dt, const vector2ui16& game_res)
 	{
 		if (_is_active == 0 || _player_entity.is_null() || _camera_entity.is_null() || _player_controller.is_null())
 			return;
@@ -183,7 +183,7 @@ namespace SFG
 			component_manager& cm		   = w.get_comp_manager();
 			comp_camera&	   camera_comp = cm.get_component<comp_camera>(main_cam_comp);
 
-			const float		aspect	  = (float)game_res.x / (float)game_res.y;
+			const f32		aspect	  = (f32)game_res.x / (f32)game_res.y;
 			const matrix4x4 view	  = matrix4x4::view(em.get_entity_rotation_abs(main_cam_entity), em.get_entity_position_abs(main_cam_entity));
 			const matrix4x4 proj	  = matrix4x4::perspective_reverse_z(camera_comp.get_fov_degrees(), aspect, camera_comp.get_near(), camera_comp.get_far());
 			matrix4x4		view_proj = proj * view;
@@ -198,7 +198,7 @@ namespace SFG
 		if (_is_active == 0)
 			return;
 
-		const uint16 button = ev.button;
+		const u16 button = ev.button;
 
 		switch (ev.type)
 		{
@@ -247,7 +247,7 @@ namespace SFG
 			break;
 		}
 		case window_event_type::mouse: {
-			if (button == static_cast<uint16>(input_code::mouse_0) && ev.sub_type == window_event_sub_type::press)
+			if (button == static_cast<u16>(input_code::mouse_0) && ev.sub_type == window_event_sub_type::press)
 			{
 				world&			  w	 = _app.get_world();
 				entity_manager&	  em = w.get_entity_manager();
@@ -270,8 +270,8 @@ namespace SFG
 		case window_event_type::delta: {
 			if (_is_looking)
 			{
-				_mouse_delta.x += static_cast<float>(ev.value.x);
-				_mouse_delta.y += static_cast<float>(ev.value.y);
+				_mouse_delta.x += static_cast<f32>(ev.value.x);
+				_mouse_delta.y += static_cast<f32>(ev.value.y);
 			}
 			else
 			{

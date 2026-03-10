@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -53,7 +53,7 @@ namespace SFG
 
 			const size_t item_alignment	  = alignof(T);
 			const size_t padded_item_size = ALIGN_UP(sizeof(T), item_alignment);
-			const uint32 requested_size	  = static_cast<uint32>(padded_item_size * count);
+			const u32	 requested_size	  = static_cast<u32>(padded_item_size * count);
 
 			// Try reuse from free list (always sorted)
 			if (!_free_chunks.empty())
@@ -62,8 +62,8 @@ namespace SFG
 				{
 					const chunk_handle32 chunk = *it;
 
-					const uint32 aligned_head	   = ALIGN_UP(chunk.head, item_alignment);
-					const uint32 aligned_size_need = (aligned_head - chunk.head) + requested_size;
+					const u32 aligned_head		= ALIGN_UP(chunk.head, item_alignment);
+					const u32 aligned_size_need = (aligned_head - chunk.head) + requested_size;
 
 					if (chunk.size >= aligned_size_need)
 					{
@@ -76,7 +76,7 @@ namespace SFG
 							insert_free_chunk_sorted({chunk.head, aligned_head - chunk.head});
 
 						// post-split
-						const uint32 remaining_size = chunk.size - aligned_size_need;
+						const u32 remaining_size = chunk.size - aligned_size_need;
 						if (remaining_size > 0)
 							insert_free_chunk_sorted({allocated_chunk.head + allocated_chunk.size, remaining_size});
 
@@ -91,8 +91,8 @@ namespace SFG
 			}
 
 			// Fallback: bump the head
-			const uint32 current_aligned_head = ALIGN_UP(_head, item_alignment);
-			const uint32 needed_size		  = (current_aligned_head - _head) + requested_size;
+			const u32 current_aligned_head = ALIGN_UP(_head, item_alignment);
+			const u32 needed_size		   = (current_aligned_head - _head) + requested_size;
 
 			SFG_ASSERT(_head <= _total_size && needed_size <= _total_size - _head);
 
@@ -132,11 +132,11 @@ namespace SFG
 			return reinterpret_cast<T*>(_raw + handle.head);
 		}
 
-		inline uint8* get(uint32 index)
+		inline u8* get(u32 index)
 		{
 			return _raw + index;
 		}
-		inline uint32 get_current() const
+		inline u32 get_current() const
 		{
 			return _head;
 		}
@@ -174,10 +174,10 @@ namespace SFG
 		}
 
 	private:
-		uint8*				   _raw = nullptr;
+		u8*					   _raw = nullptr;
 		vector<chunk_handle32> _free_chunks; // ALWAYS kept sorted by head
-		uint32				   _head	   = 0;
-		uint32				   _total_size = 0;
+		u32					   _head	   = 0;
+		u32					   _total_size = 0;
 	};
 
 }

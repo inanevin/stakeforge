@@ -42,7 +42,7 @@ namespace SFG
 	{
 		string_id	  sid		  = 0;
 		pool_handle16 _next_param = {};
-		float		  value		  = 0.0f;
+		f32			  value		  = 0.0f;
 	};
 
 	struct animation_pose;
@@ -53,12 +53,12 @@ namespace SFG
 	{
 
 	private:
-		using states_type		  = pool_allocator_gen<animation_state, uint16, MAX_WORLD_ANIM_GRAPH_STATES>;
-		using transitions_type	  = pool_allocator_gen<animation_transition, uint16, MAX_WORLD_ANIM_GRAPH_TRANSITION>;
-		using params_type		  = pool_allocator_gen<animation_parameter, uint16, MAX_WORLD_ANIM_GRAPH_PARAMETER>;
-		using masks_type		  = pool_allocator_gen<animation_mask, uint16, MAX_WORLD_ANIM_GRAPH_MASK>;
-		using state_machines_type = pool_allocator_gen<animation_state_machine, uint16, MAX_WORLD_COMP_ANIMS>;
-		using state_samples_type  = pool_allocator_gen<animation_state_sample, uint16, MAX_WORLD_ANIM_GRAPH_STATE_SAMPLES>;
+		using states_type		  = pool_allocator_gen<animation_state, u16, MAX_WORLD_ANIM_GRAPH_STATES>;
+		using transitions_type	  = pool_allocator_gen<animation_transition, u16, MAX_WORLD_ANIM_GRAPH_TRANSITION>;
+		using params_type		  = pool_allocator_gen<animation_parameter, u16, MAX_WORLD_ANIM_GRAPH_PARAMETER>;
+		using masks_type		  = pool_allocator_gen<animation_mask, u16, MAX_WORLD_ANIM_GRAPH_MASK>;
+		using state_machines_type = pool_allocator_gen<animation_state_machine, u16, MAX_WORLD_COMP_ANIMS>;
+		using state_samples_type  = pool_allocator_gen<animation_state_sample, u16, MAX_WORLD_ANIM_GRAPH_STATE_SAMPLES>;
 
 	public:
 		animation_graph();
@@ -70,7 +70,7 @@ namespace SFG
 
 		void init();
 		void uninit();
-		void tick(world& w, float dt);
+		void tick(world& w, f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// state/transition/parameter management
@@ -80,13 +80,13 @@ namespace SFG
 		pool_handle16			 add_state_machine();
 		pool_handle16			 add_state(pool_handle16 state_machine_handle, const char* name);
 		pool_handle16			 get_state_handle(pool_handle16 state_machine_handle, const char* name);
-		pool_handle16			 add_state(pool_handle16 state_machine_handle, const char* name, pool_handle16 mask, pool_handle16 blend_param_x, pool_handle16 blend_param_y, float duration, uint8 flags);
+		pool_handle16			 add_state(pool_handle16 state_machine_handle, const char* name, pool_handle16 mask, pool_handle16 blend_param_x, pool_handle16 blend_param_y, f32 duration, u8 flags);
 		pool_handle16			 add_state_sample(pool_handle16 state_handle, resource_handle animation, const vector2& blend_point);
 		pool_handle16			 add_state_sample(pool_handle16 state_handle);
-		pool_handle16			 add_parameter(pool_handle16 state_machine_handle, const char* name, float val = 0.0f);
+		pool_handle16			 add_parameter(pool_handle16 state_machine_handle, const char* name, f32 val = 0.0f);
 		pool_handle16			 get_parameter_handle(pool_handle16 state_machine_handle, const char* name);
 		pool_handle16			 add_transition(pool_handle16 from_state_handle, pool_handle16 to_state_handle);
-		pool_handle16			 add_transition(pool_handle16 from_state_handle, pool_handle16 to_state_handle, pool_handle16 param_handle, float duration, float target_value, animation_transition_compare compare, uint8 priority);
+		pool_handle16			 add_transition(pool_handle16 from_state_handle, pool_handle16 to_state_handle, pool_handle16 param_handle, f32 duration, f32 target_value, animation_transition_compare compare, u8 priority);
 		pool_handle16			 add_mask(const char* name);
 		pool_handle16			 get_mask_handle(const char* name);
 		void					 remove_state_machine(pool_handle16 handle);
@@ -103,7 +103,7 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline void set_throttle_values(float max_distance_sqr, uint8 max_frames)
+		inline void set_throttle_values(f32 max_distance_sqr, u8 max_frames)
 		{
 			_throttle_distance_sqr = max_distance_sqr;
 			_throttle_max_frames   = max_frames;
@@ -121,24 +121,24 @@ namespace SFG
 		// -----------------------------------------------------------------------------
 
 		void calculate_pose_for_state(world& w, const state_samples_type& samples, animation_pose& out_pose, const animation_state& state);
-		void progress_state(animation_state& state, float dt);
+		void progress_state(animation_state& state, f32 dt);
 		void reset_state(animation_state& state);
 
 		// -----------------------------------------------------------------------------
 		// weights
 		// -----------------------------------------------------------------------------
 
-		void compute_state_weights_1d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<float, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights);
-		void compute_state_weights_2d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<float, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights);
+		void compute_state_weights_1d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<f32, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights);
+		void compute_state_weights_2d(const animation_state& state, static_vector<resource_handle, MAX_WORLD_BLEND_STATE_ANIMS>& out_anims, static_vector<f32, MAX_WORLD_BLEND_STATE_ANIMS>& out_weights);
 
 		// -----------------------------------------------------------------------------
 		// transitions
 		// -----------------------------------------------------------------------------
 
-		bool  check_transition(const animation_transition& t);
-		bool  is_transition_complete(const animation_transition& t);
-		void  reset_transition(animation_transition& t);
-		float progress_transition(animation_transition& t, float dt);
+		bool check_transition(const animation_transition& t);
+		bool is_transition_complete(const animation_transition& t);
+		void reset_transition(animation_transition& t);
+		f32	 progress_transition(animation_transition& t, f32 dt);
 
 	private:
 		states_type*		 _states	  = nullptr;
@@ -148,7 +148,7 @@ namespace SFG
 		state_machines_type* _machines	  = nullptr;
 		state_samples_type*	 _samples	  = nullptr;
 
-		float _throttle_distance_sqr = 3000.0f;
-		uint8 _throttle_max_frames	 = 4;
+		f32 _throttle_distance_sqr = 3000.0f;
+		u8	_throttle_max_frames   = 4;
 	};
 }

@@ -34,7 +34,7 @@ using json = nlohmann::json;
 
 namespace SFG
 {
-	float editor_theme::UI_SCALING = 1.0f;
+	f32 editor_theme::UI_SCALING = 1.0f;
 
 	void to_json(nlohmann::json& j, const editor_theme& t)
 	{
@@ -92,25 +92,25 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, editor_theme& s)
 	{
-		s.root_rounding					 = j.value<float>("root_rounding", 0.0f);
-		s.root_spacing					 = j.value<float>("root_spacing", 0.0f);
-		s.outer_margin					 = j.value<float>("outer_margin", 0.0f);
-		s.item_spacing					 = j.value<float>("item_spacing", 0.0f);
-		s.row_spacing					 = j.value<float>("row_spacing", 0.0f);
-		s.title_line_width				 = j.value<float>("title_line_width", 0.0f);
-		s.title_line_height				 = j.value<float>("title_line_height", 0.0f);
-		s.item_height					 = j.value<float>("item_height", 0.0f);
-		s.row_height					 = j.value<float>("row_height", 0.0f);
-		s.table_cell_height				 = j.value<float>("table_cell_height", 0.0f);
-		s.property_cell_div				 = j.value<float>("property_cell_div", 0.0f);
-		s.seperator_thickness			 = j.value<float>("seperator_thickness", 0.0f);
-		s.area_rounding					 = j.value<float>("area_rounding", 0.0f);
-		s.scroll_thickness				 = j.value<float>("scroll_thickness", 0.0f);
-		s.scroll_rounding				 = j.value<float>("scroll_rounding", 0.0f);
-		s.inner_margin					 = j.value<float>("inner_margin", 0.0f);
-		s.frame_thickness				 = j.value<float>("frame_thickness", 0.0f);
-		s.frame_rounding				 = j.value<float>("frame_rounding", 0.0f);
-		s.context_menu_outline_thickness = j.value<float>("context_menu_outline_thickness", 0.0f);
+		s.root_rounding					 = j.value<f32>("root_rounding", 0.0f);
+		s.root_spacing					 = j.value<f32>("root_spacing", 0.0f);
+		s.outer_margin					 = j.value<f32>("outer_margin", 0.0f);
+		s.item_spacing					 = j.value<f32>("item_spacing", 0.0f);
+		s.row_spacing					 = j.value<f32>("row_spacing", 0.0f);
+		s.title_line_width				 = j.value<f32>("title_line_width", 0.0f);
+		s.title_line_height				 = j.value<f32>("title_line_height", 0.0f);
+		s.item_height					 = j.value<f32>("item_height", 0.0f);
+		s.row_height					 = j.value<f32>("row_height", 0.0f);
+		s.table_cell_height				 = j.value<f32>("table_cell_height", 0.0f);
+		s.property_cell_div				 = j.value<f32>("property_cell_div", 0.0f);
+		s.seperator_thickness			 = j.value<f32>("seperator_thickness", 0.0f);
+		s.area_rounding					 = j.value<f32>("area_rounding", 0.0f);
+		s.scroll_thickness				 = j.value<f32>("scroll_thickness", 0.0f);
+		s.scroll_rounding				 = j.value<f32>("scroll_rounding", 0.0f);
+		s.inner_margin					 = j.value<f32>("inner_margin", 0.0f);
+		s.frame_thickness				 = j.value<f32>("frame_thickness", 0.0f);
+		s.frame_rounding				 = j.value<f32>("frame_rounding", 0.0f);
+		s.context_menu_outline_thickness = j.value<f32>("context_menu_outline_thickness", 0.0f);
 
 		s.col_title_line_start		= j.value<vector4>("col_title_line_start", vector4::zero);
 		s.col_title_line_end		= j.value<vector4>("col_title_line_end", vector4::zero);
@@ -200,7 +200,7 @@ namespace SFG
 
 	void editor_theme::apply_scaling()
 	{
-		const float f = UI_SCALING;
+		const f32 f = UI_SCALING;
 		outer_margin *= f;
 		item_spacing *= f;
 		root_spacing *= f;

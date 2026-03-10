@@ -47,11 +47,11 @@ namespace SFG
 		// -----------------------------------------------------------------------------
 		inline void reset()
 		{
-			for (uint32 i = 0; i < N; i++)
+			for (u32 i = 0; i < N; i++)
 				_items[i] = T();
 		}
 
-		inline void reset(uint32 idx)
+		inline void reset(u32 idx)
 		{
 			SFG_ASSERT(idx < N);
 			_items[idx] = T();
@@ -61,13 +61,13 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		T& get(uint32 idx)
+		T& get(u32 idx)
 		{
 			SFG_ASSERT(idx < N);
 			return _items[idx];
 		}
 
-		const T& get(uint32 idx) const
+		const T& get(u32 idx) const
 		{
 			SFG_ASSERT(idx < N);
 			return _items[idx];
@@ -82,7 +82,7 @@ namespace SFG
 			using reference = TYPE&;
 			using pointer	= TYPE*;
 
-			iterator(pointer ptr, uint32 begin, uint32 end) : _ptr(ptr), _current(begin), _end(end)
+			iterator(pointer ptr, u32 begin, u32 end) : _ptr(ptr), _current(begin), _end(end)
 			{
 			}
 
@@ -119,8 +119,8 @@ namespace SFG
 			}
 
 			pointer _ptr	 = nullptr;
-			uint32	_current = 0;
-			uint32	_end	 = 0;
+			u32		_current = 0;
+			u32		_end	 = 0;
 		};
 
 		iterator<const T> begin() const

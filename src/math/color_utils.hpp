@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +36,7 @@ namespace SFG
 	{
 
 	public:
-		static color  lerp(const color& c1, const color& c2, float a);
+		static color  lerp(const color& c1, const color& c2, f32 a);
 		static color  from_hex(const string& hex);
 		static string to_hex(const color& color);
 		static color  hs_to_srgb(const color& color);
@@ -44,8 +44,8 @@ namespace SFG
 		static color  hsv_to_srgb(const color& color);
 		static color  srgb_to_linear(const color& color);
 		static color  linear_to_srgb(const color& color);
-		static color  brighten(const color& color, float amt);
-		static color  darken(const color& color, float amt);
+		static color  brighten(const color& color, f32 amt);
+		static color  darken(const color& color, f32 amt);
 	};
 
 } // namespace SFG

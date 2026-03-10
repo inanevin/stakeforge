@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -41,11 +41,11 @@ namespace SFG
 
 	void chunk_allocator32::init(size_t size)
 	{
-		const size_t alignment = alignof(uint32);
+		const size_t alignment = alignof(u32);
 		SFG_ASSERT(size % alignment == 0);
 
 		const size_t mem_size = ALIGN_UP(size, alignment);
-		_raw				  = reinterpret_cast<uint8*>(SFG_ALIGNED_MALLOC(alignment, mem_size));
+		_raw				  = reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, mem_size));
 		_total_size			  = mem_size;
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
@@ -73,8 +73,8 @@ namespace SFG
 	chunk_handle32 chunk_allocator32::allocate_text(const string& source)
 	{
 		const size_t		 len	= source.size();
-		const chunk_handle32 handle = allocate<uint8>(len + 1);
-		char*				 dst	= (char*)get<uint8>(handle);
+		const chunk_handle32 handle = allocate<u8>(len + 1);
+		char*				 dst	= (char*)get<u8>(handle);
 		SFG_MEMCPY(dst, source.data(), len);
 		dst[len] = '\0';
 		return handle;

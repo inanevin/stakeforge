@@ -195,11 +195,11 @@ namespace SFG
 		_aux_memory.uninit();
 	}
 
-	void proxy_manager::fetch_render_events(render_event_stream& stream, uint8 frame_index)
+	void proxy_manager::fetch_render_events(render_event_stream& stream, u8 frame_index)
 	{
 		ZoneScoped;
 
-		uint32	peak = 0;
+		u32		peak = 0;
 		istream in;
 		stream.read(&_entities->get(0), peak, in);
 		_peak_entities = math::max(_peak_entities, peak);
@@ -215,7 +215,7 @@ namespace SFG
 			process_event(header, in, frame_index);
 		}
 
-		uint8 all_clear = 1;
+		u8 all_clear = 1;
 		for (material_update& u : *_material_updates)
 		{
 			if (u.count >= BACK_BUFFER_COUNT)
@@ -227,7 +227,7 @@ namespace SFG
 
 			render_proxy_material& mat		 = get_material(u.material_id);
 			const size_t		   padding	 = static_cast<size_t>(u.padding);
-			const uint8*		   data		 = _aux_memory.get<uint8>(u.data);
+			const u8*			   data		 = _aux_memory.get<u8>(u.data);
 			const size_t		   data_size = static_cast<size_t>(u.data.size);
 
 			if (u.is_texture)
@@ -248,7 +248,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		const uint64 frame = frame_info::get_render_frame();
+		const u64 frame = frame_info::get_render_frame();
 		if (!force && frame < BACK_BUFFER_COUNT + 1)
 			return;
 
@@ -283,13 +283,13 @@ namespace SFG
 			_destroy_list.resize(0);
 	}
 
-	gfx_id proxy_manager::get_shader_variant(resource_id shader_handle, uint32 flags)
+	gfx_id proxy_manager::get_shader_variant(resource_id shader_handle, u32 flags)
 	{
 		const render_proxy_shader&		   proxy_shader	  = get_shader(shader_handle);
-		const uint32					   variants_count = proxy_shader.variant_count;
+		const u32						   variants_count = proxy_shader.variant_count;
 		const render_proxy_shader_variant* var			  = _aux_memory.get<const render_proxy_shader_variant>(proxy_shader.variants);
 
-		for (uint32 i = 0; i < variants_count; i++)
+		for (u32 i = 0; i < variants_count; i++)
 		{
 			const render_proxy_shader_variant& v = var[i];
 			if (v.variant_flags.is_all_set(flags))
@@ -301,7 +301,7 @@ namespace SFG
 		return NULL_GFX_ID;
 	}
 
-	void proxy_manager::process_event(const render_event_header& header, istream& stream, uint8 frame_index)
+	void proxy_manager::process_event(const render_event_header& header, istream& stream, u8 frame_index)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
@@ -318,7 +318,7 @@ namespace SFG
 			proxy.status			   = render_proxy_status::rps_active;
 			proxy.is_3d				   = ev.is_3d;
 
-			for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+			for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 			{
 				proxy.vertex_buffers[i].create(
 					{
@@ -528,7 +528,7 @@ namespace SFG
 					.level_count	= 1,
 				});
 
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					proxy.shadow_texture_hw[i] = backend->create_texture({
 						.texture_format		  = render_target_definitions::get_format_depth_default_read(),
@@ -546,7 +546,7 @@ namespace SFG
 			};
 
 			auto kill_shadow_texture = [&]() {
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					add_to_destroy_list(proxy.shadow_texture_hw[i], destroy_data_type::texture);
 					proxy.shadow_texture_hw[i] = NULL_GFX_ID;
@@ -599,7 +599,7 @@ namespace SFG
 				// create textures
 				vector<view_desc> views;
 
-				for (uint8 i = 0; i < 6; i++)
+				for (u8 i = 0; i < 6; i++)
 				{
 					views.push_back({
 						.type			= view_type::depth_stencil,
@@ -619,7 +619,7 @@ namespace SFG
 				if (proxy.shadow_res.y < 16)
 					proxy.shadow_res.y = 16;
 
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					proxy.shadow_texture_hw[i] = backend->create_texture({
 						.texture_format		  = render_target_definitions::get_format_depth_default_read(),
@@ -637,7 +637,7 @@ namespace SFG
 			};
 
 			auto kill_shadow_texture = [&]() {
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					add_to_destroy_list(proxy.shadow_texture_hw[i], destroy_data_type::texture);
 					proxy.shadow_texture_hw[i] = NULL_GFX_ID;
@@ -674,7 +674,7 @@ namespace SFG
 				_count_dir_lights++;
 
 			const vector2ui16 pre_res	  = proxy.shadow_res;
-			const uint8		  pre_cascade = proxy.cascade_levels;
+			const u8		  pre_cascade = proxy.cascade_levels;
 
 			proxy.status		 = render_proxy_status::rps_active;
 			proxy.entity		 = ev.entity_index;
@@ -693,9 +693,9 @@ namespace SFG
 				// create textures
 				vector<view_desc> views;
 
-				const uint8 cascade_size = ev.max_cascades;
+				const u8 cascade_size = ev.max_cascades;
 
-				for (uint8 i = 0; i < cascade_size; i++)
+				for (u8 i = 0; i < cascade_size; i++)
 				{
 					views.push_back({
 						.type			= view_type::depth_stencil,
@@ -710,7 +710,7 @@ namespace SFG
 					.level_count	= cascade_size,
 				});
 
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					proxy.shadow_texture_hw[i] = backend->create_texture({
 						.texture_format		  = render_target_definitions::get_format_depth_default_read(),
@@ -728,7 +728,7 @@ namespace SFG
 			};
 
 			auto kill_shadow_texture = [&]() {
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					add_to_destroy_list(proxy.shadow_texture_hw[i], destroy_data_type::texture);
 					proxy.shadow_texture_hw[i] = NULL_GFX_ID;
@@ -797,7 +797,7 @@ namespace SFG
 
 			if (proxy.shadow_texture_hw[0] != NULL_GFX_ID)
 			{
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					add_to_destroy_list(proxy.shadow_texture_hw[i], destroy_data_type::texture);
 					proxy.shadow_texture_hw[i] = NULL_GFX_ID;
@@ -816,7 +816,7 @@ namespace SFG
 
 			if (proxy.shadow_texture_hw[0] != NULL_GFX_ID)
 			{
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					add_to_destroy_list(proxy.shadow_texture_hw[i], destroy_data_type::texture);
 					proxy.shadow_texture_hw[i] = NULL_GFX_ID;
@@ -835,7 +835,7 @@ namespace SFG
 
 			if (proxy.shadow_texture_hw[0] != NULL_GFX_ID)
 			{
-				for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+				for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 				{
 					add_to_destroy_list(proxy.shadow_texture_hw[i], destroy_data_type::texture);
 					proxy.shadow_texture_hw[i] = NULL_GFX_ID;
@@ -868,14 +868,14 @@ namespace SFG
 			proxy.entity			  = ev.entity_index;
 			proxy.mesh				  = ev.mesh;
 			proxy.skin				  = ev.skin;
-			proxy.materials_count	  = static_cast<uint16>(ev.materials.size());
-			proxy.skin_entities_count = static_cast<uint16>(ev.skin_node_entities.size());
+			proxy.materials_count	  = static_cast<u16>(ev.materials.size());
+			proxy.skin_entities_count = static_cast<u16>(ev.skin_node_entities.size());
 
 			if (proxy.materials_count != 0)
 			{
 				resource_id* out = nullptr;
 				proxy.materials	 = _aux_memory.allocate<resource_id>(proxy.materials_count, out);
-				for (uint16 i = 0; i < proxy.materials_count; i++)
+				for (u16 i = 0; i < proxy.materials_count; i++)
 					out[i] = ev.materials[i];
 			}
 
@@ -883,7 +883,7 @@ namespace SFG
 			{
 				world_id* out		= nullptr;
 				proxy.skin_entities = _aux_memory.allocate<world_id>(proxy.skin_entities_count, out);
-				for (uint16 i = 0; i < proxy.skin_entities_count; i++)
+				for (u16 i = 0; i < proxy.skin_entities_count; i++)
 				{
 					out[i] = ev.skin_node_entities[i];
 				}
@@ -912,13 +912,13 @@ namespace SFG
 				.fov_degrees = ev.fov_degrees,
 			};
 
-			const uint8 cascade_levels = static_cast<uint8>(ev.cascades.size());
+			const u8 cascade_levels = static_cast<u8>(ev.cascades.size());
 
 			if (cascade_levels != 0)
 			{
-				chunk_handle32 cascades		= _aux_memory.allocate<float>(cascade_levels);
-				float*		   cascades_ptr = _aux_memory.get<float>(cascades);
-				for (uint8 i = 0; i < cascade_levels; i++)
+				chunk_handle32 cascades		= _aux_memory.allocate<f32>(cascade_levels);
+				f32*		   cascades_ptr = _aux_memory.get<f32>(cascades);
+				for (u8 i = 0; i < cascade_levels; i++)
 					cascades_ptr[i] = ev.cascades[i];
 				proxy.cascades		= cascades;
 				proxy.cascade_count = cascade_levels;
@@ -958,9 +958,9 @@ namespace SFG
 							 .base_arr_level = 0,
 							 .level_count	 = 1,
 							 .base_mip_level = 0,
-							 .mip_count		 = static_cast<uint8>(ev.buffers.size()),
+							 .mip_count		 = static_cast<u8>(ev.buffers.size()),
 				 }},
-				.mip_levels		= static_cast<uint8>(ev.buffers.size()),
+				.mip_levels		= static_cast<u8>(ev.buffers.size()),
 				.array_length	= 1,
 				.samples		= 1,
 #ifndef SFG_STRIP_DEBUG_NAMES
@@ -1006,13 +1006,13 @@ namespace SFG
 			proxy.status			   = render_proxy_status::rps_active;
 			proxy.handle			   = index;
 
-			const uint32 pso_count = static_cast<uint32>(ev.pso_variants.size());
-			proxy.variants		   = _aux_memory.allocate<render_proxy_shader_variant>(pso_count);
-			proxy.variant_count	   = pso_count;
+			const u32 pso_count = static_cast<u32>(ev.pso_variants.size());
+			proxy.variants		= _aux_memory.allocate<render_proxy_shader_variant>(pso_count);
+			proxy.variant_count = pso_count;
 
 			render_proxy_shader_variant* proxy_vars = _aux_memory.get<render_proxy_shader_variant>(proxy.variants);
 
-			for (uint32 i = 0; i < pso_count; i++)
+			for (u32 i = 0; i < pso_count; i++)
 			{
 				render_proxy_shader_variant& variant = proxy_vars[i];
 				pso_variant&				 pso	 = ev.pso_variants[i];
@@ -1039,7 +1039,7 @@ namespace SFG
 		{
 			render_event_resource_reloaded ev = {};
 			ev.deserialize(stream);
-			for (uint32 i = 0; i < MAX_WORLD_MATERIALS; i++)
+			for (u32 i = 0; i < MAX_WORLD_MATERIALS; i++)
 			{
 				render_proxy_material&		   mat = _materials->get(i);
 				render_proxy_material_runtime& rt  = get_material_runtime(i);
@@ -1067,14 +1067,14 @@ namespace SFG
 				SFG_ASSERT(false);
 			}
 
-			for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+			for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 			{
-				proxy.buffer_size = static_cast<uint32>(ev.data.size);
+				proxy.buffer_size = static_cast<u32>(ev.data.size);
 
 				if (ev.data.size != 0)
 				{
 					proxy.buffers[i].create({
-						.size  = static_cast<uint32>(ev.data.size),
+						.size  = static_cast<u32>(ev.data.size),
 						.flags = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible,
 #ifndef SFG_STRIP_DEBUG_NAMES
 						.debug_name = ev.name.c_str(),
@@ -1085,14 +1085,14 @@ namespace SFG
 					runtime.gpu_index_buffers[i] = backend->get_resource_gpu_index(proxy.buffers[i].get_gpu());
 				}
 
-				const uint32 texture_buffer_size = static_cast<uint32>(sizeof(gpu_index) * ev.textures.size());
+				const u32 texture_buffer_size = static_cast<u32>(sizeof(gpu_index) * ev.textures.size());
 
 				if (ev.sampler != NULL_RESOURCE_ID)
 				{
 					runtime.gpu_index_sampler = backend->get_sampler_gpu_index(get_sampler(ev.sampler).hw);
 				}
 
-				proxy.texture_count = static_cast<uint32>(ev.textures.size());
+				proxy.texture_count = static_cast<u32>(ev.textures.size());
 
 				if (texture_buffer_size != 0)
 				{
@@ -1140,17 +1140,17 @@ namespace SFG
 			render_proxy_material& proxy = get_material(index);
 
 			SFG_ASSERT(proxy.texture_buffers[0].get_gpu() != NULL_GFX_ID);
-			SFG_ASSERT(proxy.texture_count != 0 && proxy.texture_count >= ev.start + static_cast<uint8>(ev.textures.size()));
+			SFG_ASSERT(proxy.texture_count != 0 && proxy.texture_count >= ev.start + static_cast<u8>(ev.textures.size()));
 
 			const material_update update = {
-				.data		 = _aux_memory.allocate<uint8>(ev.textures.size() * sizeof(gpu_index)),
-				.padding	 = static_cast<uint32>(ev.start) * sizeof(gpu_index),
+				.data		 = _aux_memory.allocate<u8>(ev.textures.size() * sizeof(gpu_index)),
+				.padding	 = static_cast<u32>(ev.start) * sizeof(gpu_index),
 				.material_id = index,
 				.is_texture	 = 0,
 				.count		 = 0,
 			};
 
-			uint8* ptr	  = _aux_memory.get<uint8>(update.data);
+			u8*	   ptr	  = _aux_memory.get<u8>(update.data);
 			size_t offset = 0;
 			for (resource_id id : ev.textures)
 			{
@@ -1172,13 +1172,13 @@ namespace SFG
 			SFG_ASSERT(proxy.buffer_size != 0 && proxy.buffer_size >= ev.padding + ev.size);
 
 			const material_update update = {
-				.data		 = _aux_memory.allocate<uint8>(ev.size),
+				.data		 = _aux_memory.allocate<u8>(ev.size),
 				.padding	 = ev.padding,
 				.material_id = index,
 				.is_texture	 = 0,
 				.count		 = 0,
 			};
-			uint8* ptr = _aux_memory.get<uint8>(update.data);
+			u8* ptr = _aux_memory.get<u8>(update.data);
 			SFG_MEMCPY(ptr, ev.data, static_cast<size_t>(ev.size));
 
 			_material_updates->push_back(update);
@@ -1193,17 +1193,17 @@ namespace SFG
 			render_event_skin ev = {};
 			ev.deserialize(stream);
 
-			const uint32	   sz	 = static_cast<uint32>(ev.nodes.size());
+			const u32		   sz	 = static_cast<u32>(ev.nodes.size());
 			render_proxy_skin& proxy = get_skin(index);
 			proxy.status			 = render_proxy_status::rps_active;
-			proxy.nodes				 = _aux_memory.allocate<uint16>(sz);
+			proxy.nodes				 = _aux_memory.allocate<u16>(sz);
 			proxy.matrices			 = _aux_memory.allocate<matrix4x3>(sz);
 			proxy.node_count		 = sz;
 
-			uint16*	   nodes	= _aux_memory.get<uint16>(proxy.nodes);
+			u16*	   nodes	= _aux_memory.get<u16>(proxy.nodes);
 			matrix4x3* matrices = _aux_memory.get<matrix4x3>(proxy.matrices);
 
-			for (uint32 i = 0; i < sz; i++)
+			for (u32 i = 0; i < sz; i++)
 			{
 				nodes[i]	= ev.nodes[i];
 				matrices[i] = ev.matrices[i];
@@ -1214,7 +1214,7 @@ namespace SFG
 			render_proxy_skin& proxy = get_skin(index);
 			destroy_skin(proxy);
 
-			for (uint32 i = 0; i < get_peak_mesh_instances(); i++)
+			for (u32 i = 0; i < get_peak_mesh_instances(); i++)
 			{
 				render_proxy_mesh_instance& mi = get_mesh_instance(i);
 				if (mi.skin == index)
@@ -1244,14 +1244,14 @@ namespace SFG
 
 				proxy.vertex_buffer.create(
 					{
-						.size  = static_cast<uint32>(vertex_size),
+						.size  = static_cast<u32>(vertex_size),
 						.flags = resource_flags::rf_cpu_visible,
 #ifndef SFG_STRIP_DEBUG_NAMES
 						.debug_name = ev.name.c_str(),
 #endif
 					},
 					{
-						.size  = static_cast<uint32>(vertex_size),
+						.size  = static_cast<u32>(vertex_size),
 						.flags = resource_flags::rf_vertex_buffer | resource_flags::rf_gpu_only,
 #ifndef SFG_STRIP_DEBUG_NAMES
 						.debug_name = ev.name.c_str(),
@@ -1260,31 +1260,31 @@ namespace SFG
 
 				proxy.index_buffer.create(
 					{
-						.size  = static_cast<uint32>(index_size),
+						.size  = static_cast<u32>(index_size),
 						.flags = resource_flags::rf_cpu_visible,
 #ifndef SFG_STRIP_DEBUG_NAMES
 						.debug_name = ev.name.c_str(),
 #endif
 					},
 					{
-						.size  = static_cast<uint32>(index_size),
+						.size  = static_cast<u32>(index_size),
 						.flags = resource_flags::rf_index_buffer | resource_flags::rf_gpu_only,
 #ifndef SFG_STRIP_DEBUG_NAMES
 						.debug_name = ev.name.c_str(),
 #endif
 					});
 
-				uint32 vtx_counter	 = 0;
-				uint32 idx_counter	 = 0;
+				u32	   vtx_counter	 = 0;
+				u32	   idx_counter	 = 0;
 				size_t vertex_offset = 0;
 				size_t index_offset	 = 0;
 
-				const uint32 primitives_size	 = static_cast<uint32>(list.size());
+				const u32 primitives_size		 = static_cast<u32>(list.size());
 				proxy.primitives				 = _aux_memory.allocate<render_proxy_primitive>(primitives_size);
 				proxy.primitive_count			 = primitives_size;
 				render_proxy_primitive* prim_ptr = _aux_memory.get<render_proxy_primitive>(proxy.primitives);
 
-				for (uint32 i = 0; i < primitives_size; i++)
+				for (u32 i = 0; i < primitives_size; i++)
 				{
 					render_proxy_primitive& proxy_prim = prim_ptr[i];
 					const auto&				p		   = list[i];
@@ -1294,14 +1294,14 @@ namespace SFG
 					proxy_prim.material_index = p.material_index;
 					proxy_prim.vertex_start	  = vtx_counter;
 					proxy_prim.index_start	  = idx_counter;
-					proxy_prim.index_count	  = static_cast<uint32>(p.indices.size());
+					proxy_prim.index_count	  = static_cast<u32>(p.indices.size());
 
 					proxy.vertex_buffer.buffer_data(vertex_offset, p.vertices.data(), vtx_sz);
 					proxy.index_buffer.buffer_data(index_offset, p.indices.data(), idx_sz);
 
 					vertex_offset += vtx_sz;
 					index_offset += idx_sz;
-					vtx_counter += static_cast<uint32>(p.vertices.size());
+					vtx_counter += static_cast<u32>(p.vertices.size());
 					idx_counter += proxy_prim.index_count;
 				}
 
@@ -1335,7 +1335,7 @@ namespace SFG
 			render_proxy_mesh& proxy = get_mesh(index);
 			destroy_mesh(proxy);
 
-			for (uint32 i = 0; i < get_peak_mesh_instances(); i++)
+			for (u32 i = 0; i < get_peak_mesh_instances(); i++)
 			{
 				render_proxy_mesh_instance& mi = get_mesh_instance(i);
 				if (mi.mesh == index)
@@ -1413,7 +1413,7 @@ namespace SFG
 	void proxy_manager::destroy_shader(render_proxy_shader& proxy)
 	{
 		render_proxy_shader_variant* vars = _aux_memory.get<render_proxy_shader_variant>(proxy.variants);
-		for (uint32 i = 0; i < proxy.variant_count; i++)
+		for (u32 i = 0; i < proxy.variant_count; i++)
 			add_to_destroy_list(vars[i].hw, destroy_data_type::shader);
 		proxy = {};
 	}
@@ -1432,7 +1432,7 @@ namespace SFG
 
 	void proxy_manager::destroy_canvas(render_proxy_canvas& proxy)
 	{
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			add_to_destroy_list(proxy.vertex_buffers[i].get_staging(), destroy_data_type::resource);
 			add_to_destroy_list(proxy.vertex_buffers[i].get_gpu(), destroy_data_type::resource);
@@ -1452,7 +1452,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			if (proxy.texture_buffers[i].get_gpu() != NULL_GFX_ID)
 				add_to_destroy_list(proxy.texture_buffers[i].get_gpu(), destroy_data_type::resource);

@@ -49,13 +49,13 @@ namespace SFG
 
 		virtual void					  DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override;
 		virtual void					  DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, JPH::DebugRenderer::ECastShadow inCastShadow) override;
-		virtual void					  DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, float inHeight) override;
+		virtual void					  DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, f32 inHeight) override;
 		virtual JPH::DebugRenderer::Batch CreateTriangleBatch(const JPH::DebugRenderer::Triangle* inTriangles, int inTriangleCount) override;
-		virtual JPH::DebugRenderer::Batch CreateTriangleBatch(const JPH::DebugRenderer::Vertex* inVertices, int inVertexCount, const uint32* inIndices, int inIndexCount) override;
+		virtual JPH::DebugRenderer::Batch CreateTriangleBatch(const JPH::DebugRenderer::Vertex* inVertices, int inVertexCount, const u32* inIndices, int inIndexCount) override;
 
 		virtual void DrawGeometry(JPH::RMat44Arg						 inModelMatrix,
 								  const JPH::AABox&						 inWorldSpaceBounds,
-								  float									 inLODScaleSq,
+								  f32									 inLODScaleSq,
 								  JPH::ColorArg							 inModelColor,
 								  const JPH::DebugRenderer::GeometryRef& inGeometry,
 								  JPH::DebugRenderer::ECullMode			 inCullMode	  = JPH::DebugRenderer::ECullMode::CullBackFace,
@@ -87,7 +87,7 @@ namespace SFG
 			JPH::Array<JPH::DebugRenderer::Triangle> mTriangles;
 
 		private:
-			JPH::atomic<uint32> mRefCount = 0;
+			JPH::atomic<u32> mRefCount = 0;
 		};
 
 	private:

@@ -45,14 +45,14 @@ namespace SFG
 		struct ubo
 		{
 			vector2 screen_size			 = vector2::zero;
-			float	bloom_strength		 = 0.0f;
-			float	exposure			 = 0;
+			f32		bloom_strength		 = 0.0f;
+			f32		exposure			 = 0;
 			int		tonemap_mode		 = 0;
-			float	saturation			 = 1.0f;
-			float	wb_temp				 = 0.0f;
-			float	wb_tint				 = 0.0f;
-			float	reinhard_white_point = 3.0f;
-			float	pad;
+			f32		saturation			 = 1.0f;
+			f32		wb_temp				 = 0.0f;
+			f32		wb_tint				 = 0.0f;
+			f32		reinhard_white_point = 3.0f;
+			f32		pad;
 		};
 
 		struct per_frame_data
@@ -66,7 +66,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gpu_index		   gpu_index_lighting;
 			gpu_index		   gpu_index_bloom;
@@ -86,7 +86,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, uint8 frame_index, const vector2ui16& resolution);
+		void prepare(proxy_manager& pm, u8 frame_index, const vector2ui16& resolution);
 		void render(const render_params& params);
 		void resize(const vector2ui16& size);
 
@@ -94,17 +94,17 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gpu_index get_output_gpu_index(uint8 frame_index) const
+		inline gpu_index get_output_gpu_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].gpu_index_render_target;
 		}
 
-		inline gfx_id get_output_hw(uint8 frame_index) const
+		inline gfx_id get_output_hw(u8 frame_index) const
 		{
 			return _pfd[frame_index].render_target;
 		}
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -32,22 +32,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	matrix4x4::matrix4x4(float m00,
-						 float m10,
-						 float m20,
-						 float m30, // Col 0
-						 float m01,
-						 float m11,
-						 float m21,
-						 float m31, // Col 1
-						 float m02,
-						 float m12,
-						 float m22,
-						 float m32, // Col 2
-						 float m03,
-						 float m13,
-						 float m23,
-						 float m33) // Col 3
+	matrix4x4::matrix4x4(f32 m00,
+						 f32 m10,
+						 f32 m20,
+						 f32 m30, // Col 0
+						 f32 m01,
+						 f32 m11,
+						 f32 m21,
+						 f32 m31, // Col 1
+						 f32 m02,
+						 f32 m12,
+						 f32 m22,
+						 f32 m32, // Col 2
+						 f32 m03,
+						 f32 m13,
+						 f32 m23,
+						 f32 m33) // Col 3
 	{
 		m[0]  = m00;
 		m[1]  = m10;
@@ -90,20 +90,20 @@ namespace SFG
 		return result;
 	}
 
-	float matrix4x4::determinant() const
+	f32 matrix4x4::determinant() const
 	{
-		float det;
-		float a = m[0], b = m[4], c = m[8], d = m[12];
-		float e = m[1], f = m[5], g = m[9], h = m[13];
-		float i = m[2], j = m[6], k = m[10], l = m[14];
-		float m_ = m[3], n = m[7], o = m[11], p = m[15];
+		f32 det;
+		f32 a = m[0], b = m[4], c = m[8], d = m[12];
+		f32 e = m[1], f = m[5], g = m[9], h = m[13];
+		f32 i = m[2], j = m[6], k = m[10], l = m[14];
+		f32 m_ = m[3], n = m[7], o = m[11], p = m[15];
 
-		float kp_minus_lo = k * p - l * o;
-		float jp_minus_ln = j * p - l * n;
-		float jo_minus_kn = j * o - k * n;
-		float ip_minus_lm = i * p - l * m_;
-		float io_minus_km = i * o - k * m_;
-		float in_minus_jm = i * n - j * m_;
+		f32 kp_minus_lo = k * p - l * o;
+		f32 jp_minus_ln = j * p - l * n;
+		f32 jo_minus_kn = j * o - k * n;
+		f32 ip_minus_lm = i * p - l * m_;
+		f32 io_minus_km = i * o - k * m_;
+		f32 in_minus_jm = i * n - j * m_;
 
 		det = a * (f * kp_minus_lo - g * jp_minus_ln + h * jo_minus_kn) - b * (e * kp_minus_lo - g * ip_minus_lm + h * io_minus_km) + c * (e * jp_minus_ln - f * ip_minus_lm + h * in_minus_jm) - d * (e * jo_minus_kn - f * io_minus_km + g * in_minus_jm);
 
@@ -112,17 +112,17 @@ namespace SFG
 
 	matrix4x4 matrix4x4::inverse() const
 	{
-		float det = determinant();
+		f32 det = determinant();
 		if (math::abs(det) < MATH_EPS)
 			return identity;
 
-		float	  inv_det = 1.0f / det;
+		f32		  inv_det = 1.0f / det;
 		matrix4x4 inv;
 
-		float a = m[0], b = m[4], c = m[8], d = m[12];
-		float e = m[1], f = m[5], g = m[9], h = m[13];
-		float i = m[2], j = m[6], k = m[10], l = m[14];
-		float m_ = m[3], n = m[7], o = m[11], p = m[15];
+		f32 a = m[0], b = m[4], c = m[8], d = m[12];
+		f32 e = m[1], f = m[5], g = m[9], h = m[13];
+		f32 i = m[2], j = m[6], k = m[10], l = m[14];
+		f32 m_ = m[3], n = m[7], o = m[11], p = m[15];
 
 		inv.m[0]  = (f * (k * p - l * o) - g * (j * p - l * n) + h * (j * o - k * n)) * inv_det;
 		inv.m[4]  = (-b * (k * p - l * o) + c * (j * p - l * n) - d * (j * o - k * n)) * inv_det;
@@ -169,24 +169,24 @@ namespace SFG
 
 	matrix4x4 matrix4x4::rotation(const quat& q)
 	{
-		float x2 = q.x * q.x;
-		float y2 = q.y * q.y;
-		float z2 = q.z * q.z;
-		float xy = q.x * q.y;
-		float xz = q.x * q.z;
-		float yz = q.y * q.z;
-		float wx = q.w * q.x;
-		float wy = q.w * q.y;
-		float wz = q.w * q.z;
+		f32 x2 = q.x * q.x;
+		f32 y2 = q.y * q.y;
+		f32 z2 = q.z * q.z;
+		f32 xy = q.x * q.y;
+		f32 xz = q.x * q.z;
+		f32 yz = q.y * q.z;
+		f32 wx = q.w * q.x;
+		f32 wy = q.w * q.y;
+		f32 wz = q.w * q.z;
 
 		return matrix4x4(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 0.0f, 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 0.0f, 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
-	matrix4x4 matrix4x4::ortho_reverse_z(float left, float right, float top, float bottom, float near_plane, float far_plane)
+	matrix4x4 matrix4x4::ortho_reverse_z(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
 	{
-		const float inv_width  = 1.0f / (right - left);
-		const float inv_height = 1.0f / (top - bottom);
-		const float inv_depth  = 1.0f / (far_plane - near_plane);
+		const f32 inv_width	 = 1.0f / (right - left);
+		const f32 inv_height = 1.0f / (top - bottom);
+		const f32 inv_depth	 = 1.0f / (far_plane - near_plane);
 
 		// clang-format off
 		return matrix4x4(2.0f * inv_width, 0.0f, 0.0f, 0.0f, 
@@ -196,11 +196,11 @@ namespace SFG
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::ortho(float left, float right, float top, float bottom, float near_plane, float far_plane)
+	matrix4x4 matrix4x4::ortho(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
 	{
-		const float inv_width  = 1.0f / (right - left);
-		const float inv_height = 1.0f / (top - bottom);
-		const float inv_depth  = 1.0f / (near_plane - far_plane);
+		const f32 inv_width	 = 1.0f / (right - left);
+		const f32 inv_height = 1.0f / (top - bottom);
+		const f32 inv_depth	 = 1.0f / (near_plane - far_plane);
 
 		// clang-format off
 		return matrix4x4(
@@ -213,12 +213,12 @@ namespace SFG
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::perspective_reverse_z(float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane)
+	matrix4x4 matrix4x4::perspective_reverse_z(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
 	{
-		const float fov_rad		 = math::degrees_to_radians(fov_y_degrees);
-		const float tan_half_fov = math::tan(0.5f * fov_rad);
-		const float f			 = 1.0f / tan_half_fov;
-		const float inv_nf		 = 1.0f / (far_plane - near_plane);
+		const f32 fov_rad	   = math::degrees_to_radians(fov_y_degrees);
+		const f32 tan_half_fov = math::tan(0.5f * fov_rad);
+		const f32 f			   = 1.0f / tan_half_fov;
+		const f32 inv_nf	   = 1.0f / (far_plane - near_plane);
 
 		// clang-format off
 		return matrix4x4(
@@ -229,12 +229,12 @@ namespace SFG
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::perspective(float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane)
+	matrix4x4 matrix4x4::perspective(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
 	{
-		const float fov_rad		 = math::degrees_to_radians(fov_y_degrees);
-		const float tan_half_fov = math::tan(0.5f * fov_rad);
-		const float f			 = 1.0f / tan_half_fov;
-		const float inv_nf		 = 1.0f / (near_plane - far_plane);
+		const f32 fov_rad	   = math::degrees_to_radians(fov_y_degrees);
+		const f32 tan_half_fov = math::tan(0.5f * fov_rad);
+		const f32 f			   = 1.0f / tan_half_fov;
+		const f32 inv_nf	   = 1.0f / (near_plane - far_plane);
 
 		// clang-format off
 		return matrix4x4(
@@ -279,12 +279,12 @@ namespace SFG
 		return vector3(transformed_v4.x / transformed_v4.w, transformed_v4.y / transformed_v4.w, transformed_v4.z / transformed_v4.w);
 	}
 
-	matrix4x4 matrix4x4::operator/(float scalar) const
+	matrix4x4 matrix4x4::operator/(f32 scalar) const
 	{
 		matrix4x4 result;
 		if (math::abs(scalar) < MATH_EPS)
 			return identity;
-		float inv_scalar = 1.0f / scalar;
+		f32 inv_scalar = 1.0f / scalar;
 		for (int i = 0; i < 16; ++i)
 		{
 			result.m[i] = m[i] * inv_scalar;
@@ -292,16 +292,16 @@ namespace SFG
 		return result;
 	}
 
-	matrix4x4& matrix4x4::operator/=(float scalar)
+	matrix4x4& matrix4x4::operator/=(f32 scalar)
 	{
 		if (math::abs(scalar) < MATH_EPS)
 		{
 			for (int i = 0; i < 16; ++i)
-				m[i] = std::numeric_limits<float>::infinity();
+				m[i] = std::numeric_limits<f32>::infinity();
 		}
 		else
 		{
-			float inv_scalar = 1.0f / scalar;
+			f32 inv_scalar = 1.0f / scalar;
 			for (int i = 0; i < 16; ++i)
 			{
 				m[i] *= inv_scalar;
@@ -310,7 +310,7 @@ namespace SFG
 		return *this;
 	}
 
-	bool matrix4x4::equals(const matrix4x4& other, float epsilon) const
+	bool matrix4x4::equals(const matrix4x4& other, f32 epsilon) const
 	{
 		for (int i = 0; i < 16; ++i)
 		{

@@ -74,7 +74,7 @@ namespace SFG
 		// gui
 		// -----------------------------------------------------------------------------
 
-		vekt::id begin_context_menu(float abs_x, float abs_y);
+		vekt::id begin_context_menu(f32 abs_x, f32 abs_y);
 		vekt::id add_context_menu_title(const char* label);
 		vekt::id add_context_menu_item(const char* label);
 		vekt::id add_context_menu_item_toggle(const char* label, bool is_toggled);
@@ -111,7 +111,7 @@ namespace SFG
 		static vekt::input_event_result on_context_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase);
 		static vekt::input_event_result on_popup_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase);
 
-		static void on_separator_drag(vekt::builder* b, vekt::id widget, float mp_x, float mp_y, float delta_x, float delta_y, unsigned int button);
+		static void on_separator_drag(vekt::builder* b, vekt::id widget, f32 mp_x, f32 mp_y, f32 delta_x, f32 delta_y, unsigned int button);
 		static void on_separator_hover_begin(vekt::builder* b, vekt::id widget);
 		static void on_separator_hover_end(vekt::builder* b, vekt::id widget);
 
@@ -121,13 +121,13 @@ namespace SFG
 		editor_panel_entities*	_panel_entities	 = nullptr;
 		editor_panel_world*		_panel_world	 = nullptr;
 		editor_panel_inspector* _panel_inspector = nullptr;
-		uint64					_ctx_frame		 = 0;
+		u64					_ctx_frame		 = 0;
 
 		vekt::id _ctx_bg			= NULL_WIDGET_ID;
 		vekt::id _ctx_root			= NULL_WIDGET_ID;
 		vekt::id _payload			= NULL_WIDGET_ID;
 		vekt::id _payload_text		= NULL_WIDGET_ID;
-		uint8	 _payload_active	= 0;
+		u8	 _payload_active	= 0;
 		vekt::id _popup_root		= NULL_WIDGET_ID;
 		vekt::id _popup_window		= NULL_WIDGET_ID;
 		vekt::id _popup_prompt_text = NULL_WIDGET_ID;
@@ -137,9 +137,9 @@ namespace SFG
 		vekt::id _layout_root			 = NULL_WIDGET_ID;
 		vekt::id _layout_separator_left	 = NULL_WIDGET_ID;
 		vekt::id _layout_separator_right = NULL_WIDGET_ID;
-		float	 _split_px				 = 320.0f;
-		float	 _split_world_px		 = 0.0f;
-		float	 _split_ratio			 = 0.25f;
-		float	 _split_ratio_right		 = 0.7f;
+		f32	 _split_px				 = 320.0f;
+		f32	 _split_world_px		 = 0.0f;
+		f32	 _split_ratio			 = 0.25f;
+		f32	 _split_ratio_right		 = 0.7f;
 	};
 }

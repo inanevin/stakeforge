@@ -86,28 +86,28 @@ namespace SFG
 #define COLOR_CONSOLE_BG_OPAQUE color(12.0f / 255.0f, 16.0f / 255.0f, 12.0f / 255.0f, 1.0f).srgb_to_linear().to_vector()
 #define COLOR_BORDER			color(89.0f / 255.0f, 180.0f / 255.0f, 108.0f / 255.0f, 1.0f).srgb_to_linear().to_vector()
 #define DEBUG_FONT_SIZE			20
-#define INPUT_FIELD_HEIGHT		static_cast<float>(get_font_size()) * 1.5f
-#define CONSOLE_SPACING			static_cast<float>(get_font_size()) * 0.5f
+#define INPUT_FIELD_HEIGHT		static_cast<f32>(get_font_size()) * 1.5f
+#define CONSOLE_SPACING			static_cast<f32>(get_font_size()) * 0.5f
 #define MAX_HISTORY				8
 #define RT_FORMAT				format::r8g8b8a8_srgb
 #define HISTORY_PATH			"console_history.stk"
 
-	static constexpr float B_TO_MB = 1024.0f * 1024.0f;
+	static constexpr f32 B_TO_MB = 1024.0f * 1024.0f;
 
 	namespace
 	{
-		uint32 get_font_size()
+		u32 get_font_size()
 		{
 			return window::UI_SCALE * DEBUG_FONT_SIZE;
 		}
 
-		float get_spacing()
+		f32 get_spacing()
 		{
 			return CONSOLE_SPACING;
 		}
 	}
 
-	float debug_controller::get_field_height()
+	f32 debug_controller::get_field_height()
 	{
 		return INPUT_FIELD_HEIGHT;
 	}
@@ -134,7 +134,7 @@ namespace SFG
 			pos_props.flags			   = vekt::pos_flags::pf_x_relative | vekt::pos_flags::pf_y_relative | vekt::pos_flags::pf_child_pos_row;
 
 			vekt::size_props& props	 = _vekt_data.builder->widget_get_size_props(header);
-			props.child_margins.left = static_cast<float>(get_font_size()) * 0.5f;
+			props.child_margins.left = static_cast<f32>(get_font_size()) * 0.5f;
 			props.spacing			 = get_spacing();
 
 			vekt::widget_gfx& gfx = _vekt_data.builder->widget_get_gfx(header);
@@ -373,7 +373,7 @@ namespace SFG
 			gfx.color			  = COLOR_CONSOLE_BG;
 
 			vekt::size_props& props		  = _vekt_data.builder->widget_get_size_props(w);
-			props.child_margins.left	  = static_cast<float>(get_font_size()) * 0.5f;
+			props.child_margins.left	  = static_cast<f32>(get_font_size()) * 0.5f;
 			props.spacing				  = get_spacing();
 			_vekt_data.widget_input_field = w;
 		}
@@ -541,7 +541,7 @@ namespace SFG
 		});
 #endif
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -608,19 +608,19 @@ namespace SFG
 		if (file_system::exists(HISTORY_PATH))
 		{
 			istream in	 = serialization::load_from_file(HISTORY_PATH);
-			uint8	size = 0;
+			u8		size = 0;
 			in >> _console_state;
 			in >> size;
 
 			set_console_visible(_console_state == console_state::visible);
 
-			for (uint8 i = 0; i < size; i++)
+			for (u8 i = 0; i < size; i++)
 			{
-				uint8 len = 0;
+				u8 len = 0;
 				in >> len;
 
 				const char* history = _text_allocator.allocate(static_cast<size_t>(len));
-				in.read_to_raw((uint8*)history, static_cast<size_t>(len));
+				in.read_to_raw((u8*)history, static_cast<size_t>(len));
 				_input_field.history.push_back(history);
 			}
 
@@ -634,16 +634,16 @@ namespace SFG
 	{
 		// save history
 		{
-			const uint8 history_sz = static_cast<uint8>(_input_field.history.size());
-			ostream		out;
+			const u8 history_sz = static_cast<u8>(_input_field.history.size());
+			ostream	 out;
 			out << _console_state;
 			out << history_sz;
 
 			for (const char* el : _input_field.history)
 			{
-				const uint8 len = static_cast<uint8>(strlen(el));
+				const u8 len = static_cast<u8>(strlen(el));
 				out << len;
-				out.write_raw((uint8*)el, static_cast<size_t>(len));
+				out.write_raw((u8*)el, static_cast<size_t>(len));
 			}
 
 			serialization::save_to_file(HISTORY_PATH, out);
@@ -657,7 +657,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_texture(pfd.rt_console);
@@ -672,7 +672,7 @@ namespace SFG
 		_text_allocator.uninit();
 	}
 
-	void debug_controller::prepare(uint8 frame_index)
+	void debug_controller::prepare(u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -680,7 +680,7 @@ namespace SFG
 		pfd.reset();
 
 		const gui_pass_view view = {
-			.proj		   = matrix4x4::ortho_reverse_z(0, static_cast<float>(_gfx_data.rt_size.x), 0, static_cast<float>(_gfx_data.rt_size.y), 0.0f, 1.0f),
+			.proj		   = matrix4x4::ortho_reverse_z(0, static_cast<f32>(_gfx_data.rt_size.x), 0, static_cast<f32>(_gfx_data.rt_size.y), 0.0f, 1.0f),
 			.sdf_thickness = 0.5f,
 			.sdf_softness  = 0.02f,
 		};
@@ -711,7 +711,7 @@ namespace SFG
 		}
 	}
 
-	void debug_controller::render(gfx_id cmd_buffer, uint8 frame_index, bump_allocator& alloc)
+	void debug_controller::render(gfx_id cmd_buffer, u8 frame_index, bump_allocator& alloc)
 	{
 		ZoneScoped;
 
@@ -724,9 +724,9 @@ namespace SFG
 		const gfx_id	  gui_vertex		   = pfd.buf_gui_vtx.get_gpu();
 		const gfx_id	  gui_index			   = pfd.buf_gui_idx.get_gpu();
 		const gfx_id	  shader_fullscreen	   = _shaders.debug_controller_console_draw;
-		const uint16	  dc_count			   = pfd.draw_call_count;
-		const uint32	  rt_console_gpu_index = pfd.rt_console_index;
-		const uint32	  gui_pass_gpu_index   = pfd.buf_pass_data.get_index();
+		const u16		  dc_count			   = pfd.draw_call_count;
+		const u32		  rt_console_gpu_index = pfd.rt_console_index;
+		const u32		  gui_pass_gpu_index   = pfd.buf_pass_data.get_index();
 
 		// Copy vtx idx buffers. First transition barriers will be executed via collect_barriers
 		static_vector<barrier, 4> barriers;
@@ -759,7 +759,7 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		barriers.resize(0);
 
 		if (pfd.counter_vtx != 0)
@@ -781,7 +781,7 @@ namespace SFG
 			.resource	 = pfd.buf_gui_vtx.get_gpu(),
 			.flags		 = barrier_flags::baf_is_resource,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		barriers.resize(0);
 
 		render_pass_color_attachment* attachment_console_rt = alloc.allocate<render_pass_color_attachment>(1);
@@ -802,14 +802,14 @@ namespace SFG
 		{
 			backend->cmd_bind_constants(cmd_buffer,
 										{
-											.data		 = (uint8*)&gui_pass_gpu_index,
+											.data		 = (u8*)&gui_pass_gpu_index,
 											.offset		 = constant_index_rp_constant0,
 											.count		 = 1,
 											.param_index = rpi_constants,
 										});
 		}
 
-		backend->cmd_set_viewport(cmd_buffer, {.width = static_cast<uint16>(rt_size.x), .height = static_cast<uint16>(rt_size.y)});
+		backend->cmd_set_viewport(cmd_buffer, {.width = static_cast<u16>(rt_size.x), .height = static_cast<u16>(rt_size.y)});
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "debug_controller_draw");
 		backend->cmd_begin_render_pass(cmd_buffer, {.color_attachments = attachment_console_rt, .color_attachment_count = 1});
@@ -817,9 +817,9 @@ namespace SFG
 		backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = gui_index, .index_size = sizeof(vekt::index)});
 
 		gfx_id last_pipeline	   = NULL_GFX_ID;
-		uint32 last_atlas_constant = UINT32_MAX;
+		u32	   last_atlas_constant = UINT32_MAX;
 
-		for (uint16 i = 0; i < dc_count; i++)
+		for (u16 i = 0; i < dc_count; i++)
 		{
 			gui_draw_call& dc = _gui_draw_calls[i];
 
@@ -835,7 +835,7 @@ namespace SFG
 			{
 				backend->cmd_bind_constants(cmd_buffer,
 											{
-												.data		 = (uint8*)&dc.atlas_gpu_index,
+												.data		 = (u8*)&dc.atlas_gpu_index,
 												.offset		 = constant_index_mat_constant2,
 												.count		 = 1,
 												.param_index = rpi_constants,
@@ -856,20 +856,20 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_texture,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		barriers.resize(0);
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "debug_controller_post");
 		backend->cmd_begin_render_pass(cmd_buffer, {.color_attachments = attachment_fullscreen_rt, .color_attachment_count = 1});
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(rt_size.x), .height = static_cast<uint16>(rt_size.y)});
-		backend->cmd_set_viewport(cmd_buffer, {.width = static_cast<uint16>(rt_size.x), .height = static_cast<uint16>(rt_size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(rt_size.x), .height = static_cast<u16>(rt_size.y)});
+		backend->cmd_set_viewport(cmd_buffer, {.width = static_cast<u16>(rt_size.x), .height = static_cast<u16>(rt_size.y)});
 
 		// full-screen bind group
 		{
-			const uint32 constants[3] = {rt_console_gpu_index, static_cast<uint32>(_gfx_data.rt_size.x), static_cast<uint32>(_gfx_data.rt_size.y)};
+			const u32 constants[3] = {rt_console_gpu_index, static_cast<u32>(_gfx_data.rt_size.x), static_cast<u32>(_gfx_data.rt_size.y)};
 			backend->cmd_bind_constants(cmd_buffer,
 										{
-											.data		 = (uint8*)&constants,
+											.data		 = (u8*)&constants,
 											.offset		 = constant_index_object_constant0,
 											.count		 = 3,
 											.param_index = rpi_constants,
@@ -890,11 +890,11 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_texture,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		barriers.resize(0);
 	}
 
-	void debug_controller::draw_vekt(uint8 frame_index, const vekt::draw_buffer& buffer)
+	void debug_controller::draw_vekt(u8 frame_index, const vekt::draw_buffer& buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
@@ -904,16 +904,16 @@ namespace SFG
 		const vekt::vertex*	  buffer_vtx_start = buffer.vertex_start;
 		const vekt::index*	  buffer_idx_start = buffer.index_start;
 		const vector4		  clip			   = buffer.clip;
-		const uint32		  buffer_idx_count = buffer.index_count;
-		const uint32		  buffer_vtx_count = buffer.vertex_count;
+		const u32			  buffer_idx_count = buffer.index_count;
+		const u32			  buffer_vtx_count = buffer.vertex_count;
 		const gfx_id		  sdf_shader	   = _shaders.gui_sdf;
 		const gfx_id		  text_shader	   = _shaders.gui_text;
 		const gfx_id		  default_shader   = _shaders.gui_default;
 
 		per_frame_data& pfd			= _pfd[frame_index];
-		const uint32	vtx_counter = pfd.counter_vtx;
-		const uint32	idx_counter = pfd.counter_idx;
-		const uint32	dc_count	= pfd.draw_call_count;
+		const u32		vtx_counter = pfd.counter_vtx;
+		const u32		idx_counter = pfd.counter_idx;
+		const u32		dc_count	= pfd.draw_call_count;
 		pfd.draw_call_count++;
 		pfd.counter_vtx += buffer_vtx_count;
 		pfd.counter_idx += buffer_idx_count;
@@ -925,28 +925,28 @@ namespace SFG
 		dc				  = {};
 		dc.start_idx	  = idx_counter;
 		dc.start_vtx	  = vtx_counter;
-		dc.index_count	  = static_cast<uint32>(buffer_idx_count);
+		dc.index_count	  = static_cast<u32>(buffer_idx_count);
 
 		if (clip.y < 0.0f)
 		{
 			dc.scissors.y = 0;
-			dc.scissors.w = static_cast<uint16>(math::max(0.0f, clip.w + clip.y));
+			dc.scissors.w = static_cast<u16>(math::max(0.0f, clip.w + clip.y));
 		}
 		else
 		{
-			dc.scissors.y = static_cast<uint16>(clip.y);
-			dc.scissors.w = static_cast<uint16>(clip.w);
+			dc.scissors.y = static_cast<u16>(clip.y);
+			dc.scissors.w = static_cast<u16>(clip.w);
 		}
 
 		if (clip.x < 0.0f)
 		{
 			dc.scissors.x = 0;
-			dc.scissors.z = math::min((uint16)0, static_cast<uint16>(clip.x + clip.z));
+			dc.scissors.z = math::min((u16)0, static_cast<u16>(clip.x + clip.z));
 		}
 		else
 		{
-			dc.scissors.x = static_cast<uint16>(clip.x);
-			dc.scissors.z = static_cast<uint16>(clip.z);
+			dc.scissors.x = static_cast<u16>(clip.x);
+			dc.scissors.z = static_cast<u16>(clip.z);
 		}
 
 		if (font != NULL_WIDGET_ID)
@@ -973,18 +973,18 @@ namespace SFG
 		ref.atlas	   = atlas;
 		ref.texture	   = backend->create_texture({
 			   .texture_format = atlas->get_is_lcd() ? format::r8g8b8a8_srgb : format::r8_unorm,
-			   .size		   = vector2ui16(static_cast<uint16>(atlas->get_width()), static_cast<uint16>(atlas->get_height())),
+			   .size		   = vector2ui16(static_cast<u16>(atlas->get_width()), static_cast<u16>(atlas->get_height())),
 			   .flags		   = texture_flags::tf_is_2d | texture_flags::tf_sampled,
 			   .debug_name	   = "vekt_atlas",
 		   });
 
-		const uint32 txt_size	   = backend->get_texture_size(atlas->get_width(), atlas->get_height(), atlas->get_is_lcd() ? 3 : 1);
-		const uint32 adjusted_size = backend->align_texture_size(txt_size);
-		ref.intermediate_buffer	   = backend->create_resource({
-			   .size	   = adjusted_size,
-			   .flags	   = resource_flags::rf_cpu_visible,
-			   .debug_name = "inter_buffer",
-		   });
+		const u32 txt_size		= backend->get_texture_size(atlas->get_width(), atlas->get_height(), atlas->get_is_lcd() ? 3 : 1);
+		const u32 adjusted_size = backend->align_texture_size(txt_size);
+		ref.intermediate_buffer = backend->create_resource({
+			.size		= adjusted_size,
+			.flags		= resource_flags::rf_cpu_visible,
+			.debug_name = "inter_buffer",
+		});
 
 		ref.texture_gpu_index = backend->get_texture_gpu_index(ref.texture, 0);
 	}
@@ -1002,14 +1002,14 @@ namespace SFG
 		const unsigned char* data		  = atlas->get_data();
 		const unsigned int	 size		  = atlas->get_data_size();
 		const bool			 is_lcd		  = atlas->get_is_lcd();
-		const uint32		 atlas_width  = atlas->get_width();
-		const uint32		 atlas_height = atlas->get_height();
-		const uint8			 bpp		  = atlas->get_is_lcd() ? 3 : 1;
+		const u32			 atlas_width  = atlas->get_width();
+		const u32			 atlas_height = atlas->get_height();
+		const u8			 bpp		  = atlas->get_is_lcd() ? 3 : 1;
 
-		uint32 adjusted_size = 0;
-		ref.buffer.pixels	 = reinterpret_cast<uint8*>(backend->adjust_buffer_pitch((void*)data, atlas_width, atlas_height, bpp, adjusted_size));
-		ref.buffer.size		 = vector2ui16(static_cast<uint16>(atlas_width), static_cast<uint16>(atlas_height));
-		ref.buffer.bpp		 = bpp;
+		u32 adjusted_size = 0;
+		ref.buffer.pixels = reinterpret_cast<u8*>(backend->adjust_buffer_pitch((void*)data, atlas_width, atlas_height, bpp, adjusted_size));
+		ref.buffer.size	  = vector2ui16(static_cast<u16>(atlas_width), static_cast<u16>(atlas_height));
+		ref.buffer.bpp	  = bpp;
 
 		static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;
 		buffers.push_back(ref.buffer);
@@ -1051,9 +1051,9 @@ namespace SFG
 			vekt::text_props& update_props = _vekt_data.builder->widget_get_text(_vekt_data.widget_main_thread);
 			vekt::text_props& render_props = _vekt_data.builder->widget_get_text(_vekt_data.widget_render_thread);
 #ifdef VEKT_STRING_CSTR
-			string_util::append_float(static_cast<float>(frame_info::get_fps()), (char*)fps_props.text + 5, 4, 1, true);
-			string_util::append_float(static_cast<float>(frame_info::get_main_thread_time_milli()), (char*)update_props.text + 6, 7, 4, true);
-			string_util::append_float(static_cast<float>(frame_info::get_render_thread_time_milli()), (char*)render_props.text + 8, 7, 4, true);
+			string_util::append_float(static_cast<f32>(frame_info::get_fps()), (char*)fps_props.text + 5, 4, 1, true);
+			string_util::append_float(static_cast<f32>(frame_info::get_main_thread_time_milli()), (char*)update_props.text + 6, 7, 4, true);
+			string_util::append_float(static_cast<f32>(frame_info::get_render_thread_time_milli()), (char*)render_props.text + 8, 7, 4, true);
 #else
 			fps_props.text	  = "FPS: " + std::to_string(frame_info::get_fps());
 			update_props.text = "main: " + std::to_string(frame_info::get_main_thread_time_milli());
@@ -1072,11 +1072,11 @@ namespace SFG
 				{
 					if (TO_SID(cat.name) == TO_SID("General"))
 					{
-						general = static_cast<float>(cat.total_size) / B_TO_MB;
+						general = static_cast<f32>(cat.total_size) / B_TO_MB;
 					}
 					else if (TO_SID(cat.name) == TO_SID("Gfx"))
 					{
-						gfx = static_cast<float>(cat.total_size) / B_TO_MB;
+						gfx = static_cast<f32>(cat.total_size) / B_TO_MB;
 					}
 				}
 			}
@@ -1108,16 +1108,16 @@ namespace SFG
 		const vector2	  pos_text				= _vekt_data.builder->widget_get_pos(_vekt_data.widget_input_text);
 		const vector2	  size_text				= _vekt_data.builder->widget_get_size(_vekt_data.widget_input_text);
 		const vector2	  pos_field				= _vekt_data.builder->widget_get_pos(_vekt_data.widget_input_field);
-		const float		  total_element_size	= _vekt_data.console_total_text_size_y;
-		const float		  diff					= total_element_size - (console_bg_size.y - console_bg_size_props.child_margins.top - console_bg_size_props.child_margins.bottom);
-		_input_field.scroll_amt					= math::clamp(_input_field.scroll_amt, (int16)0, static_cast<int16>(diff));
+		const f32		  total_element_size	= _vekt_data.console_total_text_size_y;
+		const f32		  diff					= total_element_size - (console_bg_size.y - console_bg_size_props.child_margins.top - console_bg_size_props.child_margins.bottom);
+		_input_field.scroll_amt					= math::clamp(_input_field.scroll_amt, (i16)0, static_cast<i16>(diff));
 		console_bg_pos_props.scroll_offset		= -math::max(diff - _input_field.scroll_amt, 0.0f);
 
 		vekt::widget_gfx gfx = {};
 
-		const float size_per_char = _input_field.text_size == 0 ? 0 : (size_text.x / static_cast<float>(_input_field.text_size));
+		const f32 size_per_char = _input_field.text_size == 0 ? 0 : (size_text.x / static_cast<f32>(_input_field.text_size));
 
-		const vector2					pos	  = vector2(pos_text.x + (size_per_char * static_cast<float>(_input_field.caret_pos)), pos_field.y + get_field_height() * 0.25f);
+		const vector2					pos	  = vector2(pos_text.x + (size_per_char * static_cast<f32>(_input_field.caret_pos)), pos_field.y + get_field_height() * 0.25f);
 		const vekt::builder::rect_props props = {
 			.gfx			 = gfx,
 			.min			 = pos,
@@ -1149,7 +1149,7 @@ namespace SFG
 	{
 		if (level == log_level::trace)
 			return;
-	
+
 		_input_field.scroll_amt = 0.0f;
 
 		if (_vekt_data.console_texts.size() == MAX_CONSOLE_TEXT - 1)
@@ -1238,7 +1238,7 @@ namespace SFG
 				}
 			}
 
-			_input_field.text_size = static_cast<int8>(strlen(_input_field.text));
+			_input_field.text_size = static_cast<i8>(strlen(_input_field.text));
 			char* buffer		   = const_cast<char*>(_input_field.text);
 
 			if (button == input_code::key_backspace)
@@ -1269,7 +1269,7 @@ namespace SFG
 
 					const char* history_element = _text_allocator.allocate(buffer);
 					_input_field.history.push_back(history_element);
-					_input_field.history_traversal = static_cast<int8>(_input_field.history.size());
+					_input_field.history_traversal = static_cast<i8>(_input_field.history.size());
 
 					const size_t buffer_sz = strlen(buffer);
 					const char*	 cmd	   = (const char*)SFG_MALLOC(buffer_sz);
@@ -1303,7 +1303,7 @@ namespace SFG
 				if (_input_field.history.empty())
 					continue;
 
-				_input_field.history_traversal = math::min((int8)(_input_field.history_traversal + 1), static_cast<int8>(_input_field.history.size() - 1));
+				_input_field.history_traversal = math::min((i8)(_input_field.history_traversal + 1), static_cast<i8>(_input_field.history.size() - 1));
 
 				const char* history = _input_field.history[_input_field.history_traversal];
 				strcpy(buffer, history);
@@ -1321,15 +1321,15 @@ namespace SFG
 
 			if (button == input_code::key_right)
 			{
-				_input_field.caret_pos = math::min(static_cast<int8>(_input_field.text_size), static_cast<int8>(_input_field.caret_pos + 1));
+				_input_field.caret_pos = math::min(static_cast<i8>(_input_field.text_size), static_cast<i8>(_input_field.caret_pos + 1));
 				continue;
 			}
 
 			if (_input_field.text_size >= MAX_INPUT_FIELD)
 				continue;
 
-			const char	 c	  = process::get_character_from_key(static_cast<uint32>(ev.button));
-			const uint16 mask = process::get_character_mask_from_key(static_cast<uint32>(ev.button), c);
+			const char c	= process::get_character_from_key(static_cast<u32>(ev.button));
+			const u16  mask = process::get_character_mask_from_key(static_cast<u32>(ev.button), c);
 
 			if (!(mask & character_mask::printable))
 				continue;
@@ -1363,7 +1363,7 @@ namespace SFG
 			if (_console_state == console_state::invisible && static_cast<input_code>(ev.button) != input_code::key_angle_bracket)
 				return def_val;
 
-			const input_event ke = {.button = static_cast<uint16>(ev.button)};
+			const input_event ke = {.button = static_cast<u16>(ev.button)};
 			_input_events.try_enqueue(ke);
 			return true;
 		}
@@ -1387,7 +1387,7 @@ namespace SFG
 		_gfx_data.rt_size	  = vector2ui16(size.x, size.y / 2);
 		_gfx_data.screen_size = vector2ui16(size.x, size.y);
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_texture(pfd.rt_console);

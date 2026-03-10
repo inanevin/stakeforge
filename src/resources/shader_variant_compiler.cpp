@@ -57,12 +57,12 @@ namespace SFG
 
 		raw.compile_variants.push_back({});
 		compile_variant& def_compile = raw.compile_variants.back();
-		span<uint8>		 dummy_layout;
+		span<u8>		 dummy_layout;
 		if (!desc.vertex_entry.empty())
 		{
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			const bool res = compile({
-				.stage			= static_cast<uint8>(shader_stage::vertex),
+				.stage			= static_cast<u8>(shader_stage::vertex),
 				.data			= def_compile.blobs.back().data,
 				.defines		= {},
 				.text			= shader_text,
@@ -83,7 +83,7 @@ namespace SFG
 		{
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			const bool res = compile({
-				.stage			= static_cast<uint8>(shader_stage::fragment),
+				.stage			= static_cast<u8>(shader_stage::fragment),
 				.data			= def_compile.blobs.back().data,
 				.defines		= {},
 				.text			= shader_text,
@@ -105,7 +105,7 @@ namespace SFG
 			def_compile.blobs.push_back({.stage = shader_stage::compute});
 
 			const bool res = compile_compute({
-				.stage			= static_cast<uint8>(shader_stage::compute),
+				.stage			= static_cast<u8>(shader_stage::compute),
 				.data			= def_compile.blobs.back().data,
 				.defines		= {},
 				.text			= shader_text,
@@ -162,11 +162,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines, bool compile_ps) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -187,7 +187,7 @@ namespace SFG
 
 				def_compile.blobs.push_back({.stage = shader_stage::fragment});
 				res = compile({
-					.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+					.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 					.data			= def_compile.blobs.back().data,
 					.defines		= defines,
 					.text			= shader_text,
@@ -207,7 +207,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -227,7 +227,7 @@ namespace SFG
 				}};
 			}
 
-			bitmask<uint8> depth_flags = depth_stencil_flags::dsf_depth_test;
+			bitmask<u8> depth_flags = depth_stencil_flags::dsf_depth_test;
 			depth_flags.set(depth_stencil_flags::dsf_depth_write, variant_flags.is_set(shader_variant_flags::variant_flag_z_prepass));
 
 			const compare_op cmp = variant_flags.is_set(shader_variant_flags::variant_flag_shadow_rendering) ? compare_op::lequal : compare_op::gequal;
@@ -337,11 +337,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines, bool compile_ps) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -362,7 +362,7 @@ namespace SFG
 
 				def_compile.blobs.push_back({.stage = shader_stage::fragment});
 				res = compile({
-					.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+					.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 					.data			= def_compile.blobs.back().data,
 					.defines		= defines,
 					.text			= shader_text,
@@ -382,7 +382,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -402,7 +402,7 @@ namespace SFG
 				}};
 			}
 
-			bitmask<uint8> depth_flags = depth_stencil_flags::dsf_depth_test;
+			bitmask<u8> depth_flags = depth_stencil_flags::dsf_depth_test;
 
 			const compare_op cmp = compare_op::gequal;
 
@@ -457,11 +457,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -478,7 +478,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -495,7 +495,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -539,11 +539,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -560,7 +560,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -577,7 +577,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -621,11 +621,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -642,7 +642,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -659,7 +659,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -710,11 +710,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -731,7 +731,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -748,7 +748,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso			 = raw.pso_variants.back();
 			pso.compile_variant			 = compile_variant_index;
@@ -794,11 +794,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -815,7 +815,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -832,7 +832,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso			 = raw.pso_variants.back();
 			pso.compile_variant			 = compile_variant_index;
@@ -877,11 +877,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -898,7 +898,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -915,7 +915,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -968,11 +968,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -989,7 +989,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1006,7 +1006,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	= raw.pso_variants.back();
 			pso.compile_variant = compile_variant_index;
@@ -1049,11 +1049,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1070,7 +1070,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1087,7 +1087,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -1128,11 +1128,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1149,7 +1149,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1166,7 +1166,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;
@@ -1207,11 +1207,11 @@ namespace SFG
 		auto add_compile_var = [&](const vector<string>& defines) -> bool {
 			raw.compile_variants.push_back({});
 			compile_variant& def_compile = raw.compile_variants.back();
-			span<uint8>		 dummy_layout;
+			span<u8>		 dummy_layout;
 
 			def_compile.blobs.push_back({.stage = shader_stage::vertex});
 			bool res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1228,7 +1228,7 @@ namespace SFG
 
 			def_compile.blobs.push_back({.stage = shader_stage::fragment});
 			res = compile({
-				.stage			= static_cast<uint8>(def_compile.blobs.back().stage),
+				.stage			= static_cast<u8>(def_compile.blobs.back().stage),
 				.data			= def_compile.blobs.back().data,
 				.defines		= defines,
 				.text			= shader_text,
@@ -1245,7 +1245,7 @@ namespace SFG
 			return true;
 		};
 
-		auto add_pso = [&](uint32 compile_variant_index, const bitmask<uint32>& variant_flags) {
+		auto add_pso = [&](u32 compile_variant_index, const bitmask<u32>& variant_flags) {
 			raw.pso_variants.push_back({});
 			pso_variant& pso	 = raw.pso_variants.back();
 			pso.compile_variant	 = compile_variant_index;

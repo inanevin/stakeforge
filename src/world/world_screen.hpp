@@ -46,7 +46,7 @@ namespace SFG
 			matrix4x4 view_proj		= matrix4x4::identity;
 			matrix4x4 inv_view_proj = matrix4x4::identity;
 			vector3	  cam_pos		= vector3::zero;
-			uint8	  valid			= 0;
+			u8		  valid			= 0;
 		};
 
 	public:
@@ -58,13 +58,13 @@ namespace SFG
 		void set_camera_data(const matrix4x4& view_proj, const matrix4x4& inv_view_proj, const vector3& cam_pos);
 
 		bool world_to_screen(const vector3& world_pos, vector2& out) const;
-		bool world_to_screen(const vector3& world_pos, vector2& out, float& out_distance) const;
+		bool world_to_screen(const vector3& world_pos, vector2& out, f32& out_distance) const;
 		bool world_to_screen_render_thread(const vector3& world_pos, vector2& out) const;
-		bool world_to_screen_render_thread(const vector3& world_pos, vector2& out, float& out_distance) const;
+		bool world_to_screen_render_thread(const vector3& world_pos, vector2& out, f32& out_distance) const;
 		bool screen_to_world(const vector2& screen_pos, vector3& out_origin, vector3& out_dir) const;
-		bool screen_to_world(const vector2& screen_pos, vector3& out_pos, float distance) const;
+		bool screen_to_world(const vector2& screen_pos, vector3& out_pos, f32 distance) const;
 		bool screen_to_world_render_thread(const vector2& screen_pos, vector3& out_origin, vector3& out_dir) const;
-		bool screen_to_world_render_thread(const vector2& screen_pos, vector3& out_pos, float distance) const;
+		bool screen_to_world_render_thread(const vector2& screen_pos, vector3& out_pos, f32 distance) const;
 
 	private:
 		bool get_camera_snapshot(camera_snapshot& out) const;
@@ -76,8 +76,8 @@ namespace SFG
 		vector3		_cam_pos		   = vector3::zero;
 
 		camera_snapshot _snapshots[3]	 = {};
-		atomic<int8>	_snapshot_latest = -1;
-		atomic<int8>	_snapshot_in_use = -1;
-		uint8			_snapshot_write	 = 0;
+		atomic<i8>		_snapshot_latest = -1;
+		atomic<i8>		_snapshot_in_use = -1;
+		u8				_snapshot_write	 = 0;
 	};
 }

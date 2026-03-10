@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -33,15 +33,15 @@ namespace SFG
 	{
 	public:
 		vector4ui(){};
-		vector4ui(uint32 _x, uint32 _y, uint32 _z, uint32 _w) : x(_x), y(_y), z(_z), w(_w){};
+		vector4ui(u32 _x, u32 _y, u32 _z, u32 _w) : x(_x), y(_y), z(_z), w(_w){};
 
 		static vector4ui zero;
 		static vector4ui one;
 
-		uint32 x = 0;
-		uint32 y = 0;
-		uint32 z = 0;
-		uint32 w = 0;
+		u32 x = 0;
+		u32 y = 0;
+		u32 z = 0;
+		u32 w = 0;
 	};
 
 }

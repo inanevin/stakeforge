@@ -47,11 +47,11 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, editor_layout& s)
 	{
-		s.entities_world_split		= j.value<float>("entities_world_split", 0.25f);
-		s.entities_components_split = j.value<float>("entities_components_split", 0.5f);
-		s.world_inspector_split		= j.value<float>("world_inspector_split", 0.7f);
-		s.world_aspect_ratio		= j.value<uint8>("world_aspect", 0);
-		s.world_stats_view			= j.value<uint8>("world_stats_view", 0);
+		s.entities_world_split		= j.value<f32>("entities_world_split", 0.25f);
+		s.entities_components_split = j.value<f32>("entities_components_split", 0.5f);
+		s.world_inspector_split		= j.value<f32>("world_inspector_split", 0.7f);
+		s.world_aspect_ratio		= j.value<u8>("world_aspect", 0);
+		s.world_stats_view			= j.value<u8>("world_stats_view", 0);
 	}
 
 	void to_json(nlohmann::json& j, const window_layout& w)
@@ -65,11 +65,11 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, window_layout& w)
 	{
-		w.pos_x	 = j.value<float>("pos_x", 10.0f);
-		w.pos_y	 = j.value<float>("pos_y", 10.0f);
-		w.size_x = j.value<float>("size_x", 100.0f);
-		w.size_y = j.value<float>("size_y", 100.0f);
-		w.open	 = j.value<uint8>("open", 1);
+		w.pos_x	 = j.value<f32>("pos_x", 10.0f);
+		w.pos_y	 = j.value<f32>("pos_y", 10.0f);
+		w.size_x = j.value<f32>("size_x", 100.0f);
+		w.size_y = j.value<f32>("size_y", 100.0f);
+		w.open	 = j.value<u8>("open", 1);
 	}
 
 	void editor_layout::init(const char* base_directory)

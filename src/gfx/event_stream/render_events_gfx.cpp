@@ -36,7 +36,7 @@ namespace SFG
 		stream << intermediate_size;
 		stream << format;
 		stream << buffers_persistent;
-		stream << static_cast<uint32>(buffers.size());
+		stream << static_cast<u32>(buffers.size());
 
 		for (const texture_buffer& b : buffers)
 		{
@@ -50,14 +50,14 @@ namespace SFG
 
 	void render_event_texture::deserialize(istream& stream)
 	{
-		uint32 sz = 0;
+		u32 sz = 0;
 		stream >> size;
 		stream >> intermediate_size;
 		stream >> format;
 		stream >> buffers_persistent;
 		stream >> sz;
 		buffers.resize(sz);
-		for (uint32 i = 0; i < sz; i++)
+		for (u32 i = 0; i < sz; i++)
 		{
 			texture_buffer& b = buffers[i];
 			b.deserialize(stream, true);
@@ -84,7 +84,7 @@ namespace SFG
 		stream << layout;
 		stream << pso_variants;
 
-		const uint32 compile_variants_sz = static_cast<uint32>(compile_variants.size());
+		const u32 compile_variants_sz = static_cast<u32>(compile_variants.size());
 		stream << compile_variants_sz;
 
 		for (const compile_variant& v : compile_variants)
@@ -99,11 +99,11 @@ namespace SFG
 		stream >> layout;
 		stream >> pso_variants;
 
-		uint32 compile_variants_size = 0;
+		u32 compile_variants_size = 0;
 		stream >> compile_variants_size;
 
 		compile_variants.resize(compile_variants_size);
-		for (uint32 i = 0; i < compile_variants_size; i++)
+		for (u32 i = 0; i < compile_variants_size; i++)
 		{
 			compile_variant& v = compile_variants[i];
 			v.deserialize(stream, true);
@@ -112,7 +112,7 @@ namespace SFG
 
 	void render_event_material::serialize(ostream& stream) const
 	{
-		const uint32 txt_sz = static_cast<uint32>(textures.size());
+		const u32 txt_sz = static_cast<u32>(textures.size());
 		stream << txt_sz;
 		stream << flags;
 		stream << shader_index;
@@ -129,20 +129,20 @@ namespace SFG
 		stream << name;
 #endif
 
-		stream << static_cast<uint32>(data.size);
+		stream << static_cast<u32>(data.size);
 		stream.write_raw(data.data, data.size);
 	}
 
 	void render_event_material::deserialize(istream& stream)
 	{
-		uint32 txt_sz = 0;
+		u32 txt_sz = 0;
 		stream >> txt_sz;
 		stream >> flags;
 		stream >> shader_index;
 		stream >> priority;
 		textures.resize(txt_sz);
 
-		for (uint32 i = 0; i < txt_sz; i++)
+		for (u32 i = 0; i < txt_sz; i++)
 		{
 			stream >> textures[i];
 		}
@@ -153,8 +153,8 @@ namespace SFG
 		stream >> name;
 #endif
 
-		uint64 addr = 0;
-		uint32 sz	= 0;
+		u64 addr = 0;
+		u32 sz	 = 0;
 		stream >> sz;
 		data.data = stream.get_data_current();
 		data.size = sz;
@@ -260,7 +260,7 @@ namespace SFG
 	{
 		stream << padding;
 		stream << size;
-		stream.write_raw((uint8*)data, static_cast<size_t>(size));
+		stream.write_raw((u8*)data, static_cast<size_t>(size));
 	}
 
 	void render_event_update_material_data::deserialize(istream& stream)
@@ -274,7 +274,7 @@ namespace SFG
 	void render_event_update_material_textures::serialize(ostream& stream) const
 	{
 		stream << start;
-		stream << static_cast<uint32>(textures.size());
+		stream << static_cast<u32>(textures.size());
 		for (resource_id id : textures)
 			stream << id;
 	}
@@ -282,10 +282,10 @@ namespace SFG
 	void render_event_update_material_textures::deserialize(istream& stream)
 	{
 		stream >> start;
-		uint32 sz = 0;
+		u32 sz = 0;
 		stream >> sz;
 		textures.resize(sz);
-		for (uint32 i = 0; i < sz; i++)
+		for (u32 i = 0; i < sz; i++)
 			stream >> textures[i];
 	}
 

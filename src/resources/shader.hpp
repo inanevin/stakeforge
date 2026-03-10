@@ -61,7 +61,7 @@ namespace SFG
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;
 #endif
-		bitmask<uint8> _flags = 0;
+		bitmask<u8> _flags = 0;
 	};
 
 	REFLECT_TYPE(shader);

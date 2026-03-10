@@ -39,7 +39,7 @@ namespace SFG
 	class skin;
 	class animation_mask;
 
-	enum joint_pose_flags : uint8
+	enum joint_pose_flags : u8
 	{
 		has_position = 1 << 0,
 		has_rotation = 1 << 1,
@@ -48,22 +48,22 @@ namespace SFG
 
 	struct joint_pose
 	{
-		vector3		   pos	 = vector3::zero;
-		quat		   rot	 = quat::identity;
-		vector3		   scale = vector3::zero;
-		bitmask<uint8> flags = 0;
+		vector3		pos	  = vector3::zero;
+		quat		rot	  = quat::identity;
+		vector3		scale = vector3::zero;
+		bitmask<u8> flags = 0;
 	};
 
 	class animation_pose
 	{
 	public:
-		void sample_from_animation(world& w, resource_handle anim, float time, const animation_mask* mask);
-		void blend_from(animation_pose& other, float other_ratio);
+		void sample_from_animation(world& w, resource_handle anim, f32 time, const animation_mask* mask);
+		void blend_from(animation_pose& other, f32 other_ratio);
 
 		inline void reset()
 		{
 			_joint_count = 0;
-			for (uint16 i = 0; i < MAX_WORLD_SKELETON_JOINTS; i++)
+			for (u16 i = 0; i < MAX_WORLD_SKELETON_JOINTS; i++)
 				_joint_poses[i].flags = 0;
 		}
 
@@ -72,14 +72,14 @@ namespace SFG
 			return _joint_poses;
 		}
 
-		inline uint16 get_joint_count() const
+		inline u16 get_joint_count() const
 		{
 			return _joint_count;
 		}
 
 	private:
 		joint_pose _joint_poses[MAX_WORLD_SKELETON_JOINTS];
-		uint16	   _joint_count = 0;
+		u16		   _joint_count = 0;
 	};
 
 }

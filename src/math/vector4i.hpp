@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,8 +36,8 @@ namespace SFG
 	class vector4i
 	{
 	public:
-		vector4i() {};
-		vector4i(int32 _x, int32 _y, int32 _z, int32 _w) : x(_x), y(_y), z(_z), w(_w) {};
+		vector4i(){};
+		vector4i(i32 _x, i32 _y, i32 _z, i32 _w) : x(_x), y(_y), z(_z), w(_w){};
 
 		static vector4i zero;
 		static vector4i one;
@@ -55,10 +55,10 @@ namespace SFG
 			return vector4i(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
 
-		int32 x = 0;
-		int32 y = 0;
-		int32 z = 0;
-		int32 w = 0;
+		i32 x = 0;
+		i32 y = 0;
+		i32 z = 0;
+		i32 w = 0;
 	};
 
 }

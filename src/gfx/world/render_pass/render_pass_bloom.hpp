@@ -38,12 +38,12 @@ namespace SFG
 	class render_pass_bloom
 	{
 	private:
-		static constexpr uint32 MIPS_DS = 5;
+		static constexpr u32 MIPS_DS = 5;
 
 		struct ubo
 		{
-			float filter_radius = 0.2f;
-			float pad[3];
+			f32 filter_radius = 0.2f;
+			f32 pad[3];
 		};
 
 		struct per_frame_data
@@ -61,7 +61,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gfx_id			   lighting;
 			gpu_index		   gpu_index_lighting;
@@ -80,7 +80,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, uint8 frame_index);
+		void prepare(proxy_manager& pm, u8 frame_index);
 		void render(const render_params& params);
 		void resize(const vector2ui16& size);
 
@@ -88,12 +88,12 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}
 
-		inline gpu_index get_output_gpu_index(uint8 frame_index) const
+		inline gpu_index get_output_gpu_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].gpu_index_upsample_srv[0];
 		}

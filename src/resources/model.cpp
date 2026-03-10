@@ -65,20 +65,20 @@ namespace SFG
 
 		_total_aabb = raw.total_aabb;
 
-		const uint16 node_count		 = static_cast<uint16>(raw.loaded_nodes.size());
-		const uint16 mesh_count		 = static_cast<uint16>(raw.loaded_meshes.size());
-		const uint16 skins_count	 = static_cast<uint16>(raw.loaded_skins.size());
-		const uint16 anims_count	 = static_cast<uint16>(raw.loaded_animations.size());
-		const uint16 materials_count = static_cast<uint16>(raw.loaded_materials.size());
-		const uint16 textures_count	 = static_cast<uint16>(raw.loaded_textures.size());
-		const uint16 lights_count	 = static_cast<uint16>(raw.loaded_lights.size());
+		const u16 node_count		 = static_cast<u16>(raw.loaded_nodes.size());
+		const u16 mesh_count		 = static_cast<u16>(raw.loaded_meshes.size());
+		const u16 skins_count	 = static_cast<u16>(raw.loaded_skins.size());
+		const u16 anims_count	 = static_cast<u16>(raw.loaded_animations.size());
+		const u16 materials_count = static_cast<u16>(raw.loaded_materials.size());
+		const u16 textures_count	 = static_cast<u16>(raw.loaded_textures.size());
+		const u16 lights_count	 = static_cast<u16>(raw.loaded_lights.size());
 
 		if (node_count != 0)
 		{
 			_nodes				  = alloc.allocate<model_node>(node_count);
 			model_node* ptr_nodes = alloc.get<model_node>(_nodes);
 
-			for (uint16 i = 0; i < node_count; i++)
+			for (u16 i = 0; i < node_count; i++)
 			{
 				const model_node_raw& loaded_node = raw.loaded_nodes[i];
 				model_node&			  node		  = ptr_nodes[i];
@@ -91,7 +91,7 @@ namespace SFG
 			_created_meshes				= alloc.allocate<resource_handle>(mesh_count);
 			resource_handle* meshes_ptr = alloc.get<resource_handle>(_created_meshes);
 
-			for (uint16 i = 0; i < mesh_count; i++)
+			for (u16 i = 0; i < mesh_count; i++)
 			{
 				const mesh_raw&		  loaded_mesh = raw.loaded_meshes[i];
 				const resource_handle sub_handle  = rm.add_resource<mesh>(loaded_mesh.sid);
@@ -109,7 +109,7 @@ namespace SFG
 			_created_skins			   = alloc.allocate<resource_handle>(skins_count);
 			resource_handle* skins_ptr = alloc.get<resource_handle>(_created_skins);
 
-			for (uint16 i = 0; i < skins_count; i++)
+			for (u16 i = 0; i < skins_count; i++)
 			{
 				const skin_raw&		  loaded_skin = raw.loaded_skins[i];
 				const resource_handle sub_handle  = rm.add_resource<skin>(loaded_skin.sid);
@@ -125,7 +125,7 @@ namespace SFG
 			_created_anims			   = alloc.allocate<resource_handle>(anims_count);
 			resource_handle* anims_ptr = alloc.get<resource_handle>(_created_anims);
 
-			for (uint16 i = 0; i < anims_count; i++)
+			for (u16 i = 0; i < anims_count; i++)
 			{
 				const animation_raw&  loaded_anim = raw.loaded_animations[i];
 				const resource_handle sub_handle  = rm.add_resource<animation>(loaded_anim.sid);
@@ -141,7 +141,7 @@ namespace SFG
 			_created_textures	 = alloc.allocate<resource_handle>(textures_count);
 			resource_handle* ptr = alloc.get<resource_handle>(_created_textures);
 
-			for (uint16 i = 0; i < textures_count; i++)
+			for (u16 i = 0; i < textures_count; i++)
 			{
 				const texture_raw&	  loaded	 = raw.loaded_textures[i];
 				const resource_handle sub_handle = rm.add_resource<texture>(loaded.sid);
@@ -157,7 +157,7 @@ namespace SFG
 			_created_materials	 = alloc.allocate<resource_handle>(materials_count);
 			resource_handle* ptr = alloc.get<resource_handle>(_created_materials);
 
-			for (uint16 i = 0; i < materials_count; i++)
+			for (u16 i = 0; i < materials_count; i++)
 			{
 				material_raw&		  loaded	 = raw.loaded_materials[i];
 				const resource_handle sub_handle = rm.add_resource<material>(loaded.sid);
@@ -177,7 +177,7 @@ namespace SFG
 			_created_lights = alloc.allocate<light_raw>(lights_count);
 			light_raw* ptr	= alloc.get<light_raw>(_created_lights);
 
-			for (uint16 i = 0; i < lights_count; i++)
+			for (u16 i = 0; i < lights_count; i++)
 			{
 				const light_raw& loaded = raw.loaded_lights[i];
 				ptr[i]					= raw.loaded_lights[i];
@@ -211,7 +211,7 @@ namespace SFG
 		{
 			model_node* ptr_nodes = alloc.get<model_node>(_nodes);
 
-			for (uint16 i = 0; i < _nodes_count; i++)
+			for (u16 i = 0; i < _nodes_count; i++)
 			{
 				model_node& node = ptr_nodes[i];
 				node.destroy(w, {});
@@ -223,7 +223,7 @@ namespace SFG
 		if (_created_meshes.size != 0)
 		{
 			resource_handle* ptr = alloc.get<resource_handle>(_created_meshes);
-			for (uint16 i = 0; i < _meshes_count; i++)
+			for (u16 i = 0; i < _meshes_count; i++)
 			{
 				const resource_handle sub_handle = ptr[i];
 				if (!rm.is_valid<mesh>(sub_handle))
@@ -241,7 +241,7 @@ namespace SFG
 		{
 			resource_handle* skins_ptr = alloc.get<resource_handle>(_created_skins);
 
-			for (uint16 i = 0; i < _skins_count; i++)
+			for (u16 i = 0; i < _skins_count; i++)
 			{
 				const resource_handle sub_handle = skins_ptr[i];
 				if (!rm.is_valid<skin>(sub_handle))
@@ -258,7 +258,7 @@ namespace SFG
 		{
 			resource_handle* anims_ptr = alloc.get<resource_handle>(_created_anims);
 
-			for (uint16 i = 0; i < _anims_count; i++)
+			for (u16 i = 0; i < _anims_count; i++)
 			{
 				const resource_handle sub_handle = anims_ptr[i];
 				if (!rm.is_valid<animation>(sub_handle))
@@ -275,7 +275,7 @@ namespace SFG
 		{
 			resource_handle* ptr = alloc.get<resource_handle>(_created_textures);
 
-			for (uint16 i = 0; i < _textures_count; i++)
+			for (u16 i = 0; i < _textures_count; i++)
 			{
 				const resource_handle sub_handle = ptr[i];
 				if (!rm.is_valid<texture>(sub_handle))
@@ -292,7 +292,7 @@ namespace SFG
 		{
 			resource_handle* ptr = alloc.get<resource_handle>(_created_materials);
 
-			for (uint16 i = 0; i < _materials_count; i++)
+			for (u16 i = 0; i < _materials_count; i++)
 			{
 				const resource_handle sub_handle = ptr[i];
 				if (!rm.is_valid<material>(sub_handle))

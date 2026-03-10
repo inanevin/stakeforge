@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -124,11 +124,11 @@ namespace SFG
 			return out_min + normalized_value * (out_max - out_min);
 		}
 
-		inline float fmodf(float value, float mod)
+		inline f32 fmodf(f32 value, f32 mod)
 		{
 			return std::fmodf(value, mod);
 		}
-		inline float modf(float value, float* integral_part)
+		inline f32 modf(f32 value, f32* integral_part)
 		{
 			return std::modf(value, integral_part);
 		}
@@ -136,7 +136,7 @@ namespace SFG
 		{
 			return std::modf(value, integral_part);
 		}
-		inline float cos(float angle_rad)
+		inline f32 cos(f32 angle_rad)
 		{
 			return std::cos(angle_rad);
 		}
@@ -144,7 +144,7 @@ namespace SFG
 		{
 			return std::cos(angle_rad);
 		}
-		inline float sin(float angle_rad)
+		inline f32 sin(f32 angle_rad)
 		{
 			return std::sin(angle_rad);
 		}
@@ -152,7 +152,7 @@ namespace SFG
 		{
 			return std::sin(angle_rad);
 		}
-		inline float round(float value)
+		inline f32 round(f32 value)
 		{
 			return std::round(value);
 		}
@@ -160,11 +160,11 @@ namespace SFG
 		{
 			return std::round(value);
 		}
-		inline float sqrt(float value)
+		inline f32 sqrt(f32 value)
 		{
 			return std::sqrtf(value);
 		}
-		inline float tan(float value)
+		inline f32 tan(f32 value)
 		{
 			return std::tanf(value);
 		}

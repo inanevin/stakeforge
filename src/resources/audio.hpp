@@ -63,7 +63,7 @@ namespace SFG
 
 		ma_decoder* get_decoder(world& w) const;
 
-		inline const bitmask<uint8>& get_flags() const
+		inline const bitmask<u8>& get_flags() const
 		{
 			return _flags;
 		}
@@ -74,7 +74,7 @@ namespace SFG
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;
 #endif
-		bitmask<uint8> _flags = 0;
+		bitmask<u8> _flags = 0;
 	};
 
 	REFLECT_TYPE(audio);

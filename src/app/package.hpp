@@ -37,13 +37,13 @@ namespace SFG
 
 	struct package_entry
 	{
-		uint32 offset = 0;
-		uint32 size	  = 0;
+		u32 offset = 0;
+		u32 size   = 0;
 	};
 
 	struct package_header
 	{
-		uint32							   entry_count = 0;
+		u32								   entry_count = 0;
 		hash_map<string_id, package_entry> resource_table;
 
 		void serialize(ostream& stream) const;

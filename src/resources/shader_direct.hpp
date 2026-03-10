@@ -41,7 +41,7 @@ namespace SFG
 		struct hw
 		{
 			gfx_id id	 = 0;
-			bitmask<uint32> flags;
+			bitmask<u32> flags;
 		};
 
 	public:
@@ -50,9 +50,9 @@ namespace SFG
 		void create_from_loader(shader_raw& raw, gfx_id layout);
 		void destroy();
 
-		uint16 get_hw(uint32 variant_flags) const;
+		u16 get_hw(u32 variant_flags) const;
 
-		inline uint16 get_hw() const
+		inline u16 get_hw() const
 		{
 			return _hws[0].id;
 		}

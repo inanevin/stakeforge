@@ -91,7 +91,7 @@ namespace SFG
 				return false;
 			}
 
-			point_size = json_data.value<uint16>("point_size", 12);
+			point_size = json_data.value<u16>("point_size", 12);
 
 			if (point_size == 0 || point_size > 120)
 			{
@@ -116,15 +116,15 @@ namespace SFG
 			const string type = json_data.value<string>("type", "");
 
 			if (type.compare("normal") == 0)
-				font_type = static_cast<uint8>(vekt::font_type::normal);
+				font_type = static_cast<u8>(vekt::font_type::normal);
 			else if (type.compare("sdf") == 0)
-				font_type = static_cast<uint8>(vekt::font_type::sdf);
+				font_type = static_cast<u8>(vekt::font_type::sdf);
 			else if (type.compare("lcd") == 0)
-				font_type = static_cast<uint8>(vekt::font_type::lcd);
+				font_type = static_cast<u8>(vekt::font_type::lcd);
 
-			sdf_padding	 = json_data.value<int16>("sdf_padding", 3);
-			sdf_edge	 = json_data.value<int16>("sdf_edge", 128);
-			sdf_distance = json_data.value<float>("sdf_distance", 32);
+			sdf_padding	 = json_data.value<i16>("sdf_padding", 3);
+			sdf_edge	 = json_data.value<i16>("sdf_edge", 128);
+			sdf_distance = json_data.value<f32>("sdf_distance", 32);
 		}
 		catch (std::exception e)
 		{
@@ -153,8 +153,8 @@ namespace SFG
 
 		string file_path				  = "";
 		string source_path				  = "";
-		uint64 saved_file_last_modified	  = 0;
-		uint64 saved_source_last_modified = 0;
+		u64 saved_file_last_modified	  = 0;
+		u64 saved_source_last_modified = 0;
 		stream >> file_path;
 		stream >> source_path;
 		stream >> saved_file_last_modified;
@@ -162,8 +162,8 @@ namespace SFG
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const uint64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		if (file_last_modified != saved_file_last_modified || src_last_modified != saved_source_last_modified)
 			return false;
@@ -179,8 +179,8 @@ namespace SFG
 		const string sid_str			= std::to_string(TO_SID(name));
 		const string file_path			= resource_directory_path + name;
 		const string source_path		= resource_directory_path + source;
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const uint64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 		const string relative			= file_system::get_filename_from_path(name);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;

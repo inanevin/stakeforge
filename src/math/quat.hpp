@@ -40,13 +40,13 @@ namespace SFG
 	class quat
 	{
 	public:
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
-		float w = 1.0f;
+		f32 x = 0.0f;
+		f32 y = 0.0f;
+		f32 z = 0.0f;
+		f32 w = 1.0f;
 
 		quat() = default;
-		quat(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w)
+		quat(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
 		{
 		}
 
@@ -58,24 +58,24 @@ namespace SFG
 		quat	conjugate() const;
 		quat	inverse() const;
 		quat	normalized() const;
-		float	dot(const quat& other) const;
-		float	magnitude() const;
-		float	sqr_magnitude() const;
+		f32		dot(const quat& other) const;
+		f32		magnitude() const;
+		f32		sqr_magnitude() const;
 		void	normalize();
-		bool	equals(const quat& other, float epsilon = MATH_EPS) const;
+		bool	equals(const quat& other, f32 epsilon = MATH_EPS) const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		static quat	   from_euler(float pitch_degrees, float yaw_degrees, float roll_degrees);
+		static quat	   from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
 		static vector3 to_euler(const quat& q);
-		static quat	   angle_axis(float angle_degrees, const vector3& axis);
-		static quat	   lerp(const quat& a, const quat& b, float t);
-		static quat	   slerp(const quat& a, const quat& b, float t);
+		static quat	   angle_axis(f32 angle_degrees, const vector3& axis);
+		static quat	   lerp(const quat& a, const quat& b, f32 t);
+		static quat	   slerp(const quat& a, const quat& b, f32 t);
 		static quat	   look_at(const vector3& source_point, const vector3& target_point, const vector3& up_vector);
-		static quat	   from_rotation_matrix3x3(const float R_m[9]);
+		static quat	   from_rotation_matrix3x3(const f32 R_m[9]);
 
-		inline bool is_identity(float epsilon = MATH_EPS) const
+		inline bool is_identity(f32 epsilon = MATH_EPS) const
 		{
 			return equals(identity, epsilon);
 		}
@@ -103,12 +103,12 @@ namespace SFG
 			return vector3(rotated_p.x, rotated_p.y, rotated_p.z);
 		}
 
-		inline quat operator*(float scalar) const
+		inline quat operator*(f32 scalar) const
 		{
 			return quat(x * scalar, y * scalar, z * scalar, w * scalar);
 		}
 
-		quat operator/(float scalar) const;
+		quat operator/(f32 scalar) const;
 
 		inline quat operator-() const
 		{
@@ -121,7 +121,7 @@ namespace SFG
 			return *this;
 		}
 
-		inline quat& operator*=(float scalar)
+		inline quat& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
@@ -130,7 +130,7 @@ namespace SFG
 			return *this;
 		}
 
-		quat& operator/=(float scalar);
+		quat& operator/=(f32 scalar);
 
 		inline bool operator==(const quat& other) const
 		{
@@ -142,7 +142,7 @@ namespace SFG
 		}
 	};
 
-	inline quat operator*(float scalar, const quat& q)
+	inline quat operator*(f32 scalar, const quat& q)
 	{
 		return q * scalar;
 	}

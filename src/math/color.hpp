@@ -40,8 +40,8 @@ namespace SFG
 	{
 
 	public:
-		color(float rv = 1.0f, float gv = 1.0f, float bv = 1.0f, float av = 1.0f) : x(rv), y(gv), z(bv), w(av) {};
-		static color from255(float r, float g, float b, float a);
+		color(f32 rv = 1.0f, f32 gv = 1.0f, f32 bv = 1.0f, f32 av = 1.0f) : x(rv), y(gv), z(bv), w(av){};
+		static color from255(f32 r, f32 g, f32 b, f32 a);
 		color		 linear_to_srgb();
 		color		 srgb_to_linear();
 
@@ -60,7 +60,7 @@ namespace SFG
 			return (x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w);
 		}
 
-		color operator*(const float& rhs) const
+		color operator*(const f32& rhs) const
 		{
 			return color(x * rhs, y * rhs, z * rhs, w * rhs);
 		}
@@ -70,22 +70,22 @@ namespace SFG
 			return color(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
 		}
 
-		color operator/(float v) const
+		color operator/(f32 v) const
 		{
 			return color(x / v, y / v, z / v, w / v);
 		}
 
-		color operator/=(float v) const
+		color operator/=(f32 v) const
 		{
 			return color(x / v, y / v, z / v, w / v);
 		}
 
-		color operator*=(float v) const
+		color operator*=(f32 v) const
 		{
 			return color(x * v, y * v, z * v, w * v);
 		}
 
-		float& operator[](unsigned int i)
+		f32& operator[](unsigned int i)
 		{
 			return (&x)[i];
 		}
@@ -105,7 +105,7 @@ namespace SFG
 		static color brown;
 		static color gray;
 
-		float x, y, z, w = 1.0f;
+		f32 x, y, z, w = 1.0f;
 	};
 
 #ifdef SFG_TOOLMODE

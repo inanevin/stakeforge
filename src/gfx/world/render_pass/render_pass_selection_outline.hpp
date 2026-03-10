@@ -62,7 +62,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gpu_index		   gpu_index_entities;
 			gpu_index		   gpu_index_bones;
@@ -81,7 +81,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, uint8 frame_index);
+		void prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, u8 frame_index);
 		void render(const render_params& p);
 		void resize(const vector2ui16& size);
 
@@ -89,12 +89,12 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}
 
-		inline gpu_index get_gpu_index_output(uint8 frame_index) const
+		inline gpu_index get_gpu_index_output(u8 frame_index) const
 		{
 			return _pfd[frame_index].gpu_index_render_target;
 		}

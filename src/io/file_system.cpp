@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -116,7 +116,7 @@ namespace SFG
 		return str;
 	}
 
-	uint64 file_system::get_last_modified_ticks(const char* path) noexcept
+	u64 file_system::get_last_modified_ticks(const char* path) noexcept
 	{
 		std::error_code					ec;
 		std::filesystem::file_time_type ft = std::filesystem::last_write_time(path, ec);
@@ -127,7 +127,7 @@ namespace SFG
 		return static_cast<uint64_t>(std::chrono::duration_cast<dur>(ft.time_since_epoch()).count());
 	}
 
-	uint64 file_system::get_last_modified_ticks(const std::filesystem::path& path) noexcept
+	u64 file_system::get_last_modified_ticks(const std::filesystem::path& path) noexcept
 	{
 		std::error_code					ec;
 		std::filesystem::file_time_type ft = std::filesystem::last_write_time(path, ec);
@@ -400,7 +400,7 @@ namespace SFG
 		return oss.str();
 	}
 
-	void file_system::get_sys_time_ints(int32& hours, int32& minutes, int32& seconds)
+	void file_system::get_sys_time_ints(i32& hours, i32& minutes, i32& seconds)
 	{
 		std::time_t now		   = std::time(nullptr);
 		std::tm*	local_time = std::localtime(&now);
@@ -409,9 +409,9 @@ namespace SFG
 		seconds				   = local_time->tm_sec;
 	}
 
-	string file_system::get_time_str_from_microseconds(int64 microseconds)
+	string file_system::get_time_str_from_microseconds(i64 microseconds)
 	{
-		int64 total_seconds = microseconds / 1000000;
+		i64 total_seconds = microseconds / 1000000;
 
 		int hours	= (total_seconds / 3600) % 24; // Wrap-around using modulo 24
 		int minutes = (total_seconds / 60) % 60;

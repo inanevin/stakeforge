@@ -77,7 +77,7 @@ namespace SFG
 		quat		 entity_rot	   = quat::identity;
 		quat		 cam_rot	   = quat::identity;
 		vector3		 cam_pos	   = vector3::zero;
-		float		 fov		   = 0.0f;
+		f32		 fov		   = 0.0f;
 		world_handle selected	   = {};
 		world_screen* screen	   = nullptr;
 	};
@@ -148,6 +148,6 @@ namespace SFG
 		quat		   _drag_start_rot		  = quat::identity;
 		vector3		   _drag_start_scale	  = vector3::one;
 		vector3		   _drag_offset			  = vector3::zero;
-		float		   _drag_amount			  = 0.0f;
+		f32		   _drag_amount			  = 0.0f;
 	};
 }

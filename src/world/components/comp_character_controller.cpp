@@ -101,7 +101,7 @@ namespace SFG
 		_controller->SetPosition(JPH::RVec3(pos.x, pos.y, pos.z));
 	}
 
-	void comp_character_controller::update(world& w, float dt)
+	void comp_character_controller::update(world& w, f32 dt)
 	{
 		if (_controller == nullptr)
 			create_controller(w);
@@ -159,8 +159,8 @@ namespace SFG
 		const quat	  rot	= em.get_entity_rotation_abs(_header.entity);
 		const vector3 scale = em.get_entity_scale_abs(_header.entity);
 
-		float radius	  = _radius * vector2(scale.x, scale.z).magnitude();
-		float half_height = _half_height * scale.y;
+		f32 radius		= _radius * vector2(scale.x, scale.z).magnitude();
+		f32 half_height = _half_height * scale.y;
 
 		radius		= math::max(radius, 0.01f);
 		half_height = math::max(half_height, 0.01f);

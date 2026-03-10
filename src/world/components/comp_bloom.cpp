@@ -78,7 +78,7 @@ namespace SFG
 		});
 	}
 
-	void comp_bloom::set_values(world& w, float filter_radius)
+	void comp_bloom::set_values(world& w, f32 filter_radius)
 	{
 		_filter_radius = filter_radius;
 

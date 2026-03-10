@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -56,9 +56,9 @@ namespace SFG
 			return std::find_if(vec.begin(), vec.end(), pred);
 		}
 
-		template <typename T, class Predicate> inline uint32 erase_if(vector<T>& vec, Predicate pred)
+		template <typename T, class Predicate> inline u32 erase_if(vector<T>& vec, Predicate pred)
 		{
-			return static_cast<uint32>(std::erase_if(vec, pred));
+			return static_cast<u32>(std::erase_if(vec, pred));
 		}
 
 		template <typename T> inline vector<T>::iterator remove(vector<T>& vec, T& value)
@@ -66,11 +66,11 @@ namespace SFG
 			return vec.erase(std::remove(vec.begin(), vec.end(), value), vec.end());
 		}
 
-		template <typename T> inline int32 index_of(const vector<T>& vec, const T& value)
+		template <typename T> inline i32 index_of(const vector<T>& vec, const T& value)
 		{
-			const int32 sz = static_cast<int32>(vec.size());
+			const i32 sz = static_cast<i32>(vec.size());
 
-			for (int32 i = 0; i < sz; ++i)
+			for (i32 i = 0; i < sz; ++i)
 			{
 				if (vec[i] == value)
 					return i;
@@ -79,9 +79,9 @@ namespace SFG
 			return -1;
 		}
 
-		template <typename T> inline int32 find_next_index_if_removed(const vector<T>& vec, const T& value)
+		template <typename T> inline i32 find_next_index_if_removed(const vector<T>& vec, const T& value)
 		{
-			const int32 currentIndex = IndexOf(vec, value);
+			const i32 currentIndex = IndexOf(vec, value);
 
 			if (currentIndex == 0)
 			{

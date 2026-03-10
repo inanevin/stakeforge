@@ -87,19 +87,19 @@ namespace SFG
 #endif
 
 		gfx_backend* backend = gfx_backend::get();
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
 			pfd.buf_pass_data.create({.size = sizeof(gui_pass_view), .flags = resource_flags::rf_cpu_visible | resource_flags::rf_constant_buffer, .debug_name = "cbv_editor_gui_pass"});
-			pfd.buf_gui_vtx.create({.size = static_cast<uint32>(vtx_sz), .flags = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible, .debug_name = "editor_gui_vertex_stg"},
-								   {.size = static_cast<uint32>(vtx_sz), .flags = resource_flags::rf_vertex_buffer | resource_flags::rf_gpu_only, .debug_name = "editor_gui_vertex_gpu"});
-			pfd.buf_gui_idx.create({.size = static_cast<uint32>(idx_sz), .flags = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible, .debug_name = "editor_gui_index_stg"},
-								   {.size = static_cast<uint32>(idx_sz), .flags = resource_flags::rf_index_buffer | resource_flags::rf_gpu_only, .debug_name = "editor_gui_index_gpu"});
+			pfd.buf_gui_vtx.create({.size = static_cast<u32>(vtx_sz), .flags = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible, .debug_name = "editor_gui_vertex_stg"},
+								   {.size = static_cast<u32>(vtx_sz), .flags = resource_flags::rf_vertex_buffer | resource_flags::rf_gpu_only, .debug_name = "editor_gui_vertex_gpu"});
+			pfd.buf_gui_idx.create({.size = static_cast<u32>(idx_sz), .flags = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible, .debug_name = "editor_gui_index_stg"},
+								   {.size = static_cast<u32>(idx_sz), .flags = resource_flags::rf_index_buffer | resource_flags::rf_gpu_only, .debug_name = "editor_gui_index_gpu"});
 		}
 
 		_snapshots = new vekt::snapshot[SNAPSHOTS_SIZE];
-		for (uint32 i = 0; i < SNAPSHOTS_SIZE; i++)
+		for (u32 i = 0; i < SNAPSHOTS_SIZE; i++)
 			_snapshots[i].init(vtx_sz, idx_sz);
 	}
 
@@ -115,7 +115,7 @@ namespace SFG
 		}
 		_gfx_data.atlases.clear();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			pfd.buf_pass_data.destroy();
@@ -126,7 +126,7 @@ namespace SFG
 		destroy_textures();
 
 		// Release snapshots
-		for (uint32 i = 0; i < SNAPSHOTS_SIZE; i++)
+		for (u32 i = 0; i < SNAPSHOTS_SIZE; i++)
 			_snapshots[i].uninit();
 		delete[] _snapshots;
 		_snapshots = nullptr;
@@ -137,19 +137,19 @@ namespace SFG
 		
 		const vekt::vector<vekt::draw_buffer>& draw_buffers = builder->get_draw_buffers();
 
-		const uint8 published = _snapshot_write;
+		const u8 published = _snapshot_write;
 		_snapshots[published].copy(draw_buffers);
 
-		_snapshot_latest.store((int8)published, std::memory_order_release);
-		const int8 in_use = _snapshot_in_use.load(std::memory_order_acquire);
-		uint8	   next	  = (published + 1) % SNAPSHOTS_SIZE;
-		if ((int8)next == in_use)
+		_snapshot_latest.store((i8)published, std::memory_order_release);
+		const i8 in_use = _snapshot_in_use.load(std::memory_order_acquire);
+		u8	   next	  = (published + 1) % SNAPSHOTS_SIZE;
+		if ((i8)next == in_use)
 			next = (next + 1) % SNAPSHOTS_SIZE;
 
 		_snapshot_write = next;
 	}
 
-	void editor_renderer::prepare(proxy_manager& pm, gfx_id cmd_buffer, uint8 frame_index)
+	void editor_renderer::prepare(proxy_manager& pm, gfx_id cmd_buffer, u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -163,7 +163,7 @@ namespace SFG
 		// -----------------------------------------------------------------------------
 
 		const gui_pass_view view = {
-			.proj		   = matrix4x4::ortho_reverse_z(0, static_cast<float>(_gfx_data.screen_size.x), 0, static_cast<float>(_gfx_data.screen_size.y), 0.0f, 1.0f),
+			.proj		   = matrix4x4::ortho_reverse_z(0, static_cast<f32>(_gfx_data.screen_size.x), 0, static_cast<f32>(_gfx_data.screen_size.y), 0.0f, 1.0f),
 			.sdf_thickness = 0.5f,
 			.sdf_softness  = 0.05f,
 		};
@@ -173,7 +173,7 @@ namespace SFG
 		// flush commands and draw gui here.
 		// -----------------------------------------------------------------------------
 
-		const int8 idx = _snapshot_latest.load(std::memory_order_acquire);
+		const i8 idx = _snapshot_latest.load(std::memory_order_acquire);
 		if (idx >= 0)
 		{
 			_snapshot_in_use.store(idx, std::memory_order_release);
@@ -240,8 +240,8 @@ namespace SFG
 		const gfx_id render_target		 = pfd.hw_rt;
 		const gfx_id gui_vertex			 = pfd.buf_gui_vtx.get_gpu();
 		const gfx_id gui_index			 = pfd.buf_gui_idx.get_gpu();
-		const uint16 dc_count			 = pfd.draw_call_count;
-		const uint32 gpu_index_pass_data = pfd.buf_pass_data.get_index();
+		const u16 dc_count			 = pfd.draw_call_count;
+		const u32 gpu_index_pass_data = pfd.buf_pass_data.get_index();
 
 		static_vector<barrier, 1> barriers;
 
@@ -257,7 +257,7 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= barriers.data(),
-									 .barrier_count = static_cast<uint16>(barriers.size()),
+									 .barrier_count = static_cast<u16>(barriers.size()),
 								 });
 		}
 
@@ -280,19 +280,19 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		static_vector<uint32, 4> rp_constants;
+		static_vector<u32, 4> rp_constants;
 		rp_constants.push_back(gpu_index_pass_data);
 
 		// Bind GUI pass constants (CBV index)
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants.data(), .offset = constant_index_rp_constant0, .count = static_cast<uint8>(rp_constants.size()), .param_index = rpi_constants});
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants.data(), .offset = constant_index_rp_constant0, .count = static_cast<u8>(rp_constants.size()), .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -301,9 +301,9 @@ namespace SFG
 		backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = gui_index, .index_size = sizeof(vekt::index)});
 
 		gfx_id last_pipeline	   = NULL_GFX_ID;
-		uint32 last_atlas_constant = UINT32_MAX;
+		u32 last_atlas_constant = UINT32_MAX;
 
-		for (uint16 i = 0; i < dc_count; i++)
+		for (u16 i = 0; i < dc_count; i++)
 		{
 			gui_draw_call& dc = _gui_draw_calls[i];
 
@@ -317,7 +317,7 @@ namespace SFG
 
 			if (last_atlas_constant == UINT32_MAX || (dc.atlas_gpu_index != last_atlas_constant))
 			{
-				backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&dc.atlas_gpu_index, .offset = constant_index_mat_constant2, .count = 1, .param_index = rpi_constants});
+				backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&dc.atlas_gpu_index, .offset = constant_index_mat_constant2, .count = 1, .param_index = rpi_constants});
 				last_atlas_constant = dc.atlas_gpu_index;
 			}
 
@@ -343,7 +343,7 @@ namespace SFG
 				bd_texture = p.ssao_rt_index;
 
 			if (bd_texture != NULL_GPU_INDEX)
-				backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&bd_texture, .offset = constant_index_mat_constant1, .count = 1, .param_index = rpi_constants});
+				backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&bd_texture, .offset = constant_index_mat_constant1, .count = 1, .param_index = rpi_constants});
 
 			backend->cmd_draw_indexed_instanced(cmd_buffer,
 												{
@@ -371,7 +371,7 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= barriers.data(),
-									 .barrier_count = static_cast<uint16>(barriers.size()),
+									 .barrier_count = static_cast<u16>(barriers.size()),
 								 });
 		}
 	}
@@ -402,7 +402,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -423,7 +423,7 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -432,7 +432,7 @@ namespace SFG
 		}
 	}
 
-	void editor_renderer::draw_vekt(uint8 frame_index, const vekt::draw_buffer& buffer)
+	void editor_renderer::draw_vekt(u8 frame_index, const vekt::draw_buffer& buffer)
 	{
 		ZoneScoped;
 
@@ -443,8 +443,8 @@ namespace SFG
 		const vekt::vertex*	  buffer_vtx_start = buffer.vertex_start;
 		const vekt::index*	  buffer_idx_start = buffer.index_start;
 		const vector4		  clip			   = buffer.clip;
-		const uint32		  buffer_idx_count = buffer.index_count;
-		const uint32		  buffer_vtx_count = buffer.vertex_count;
+		const u32		  buffer_idx_count = buffer.index_count;
+		const u32		  buffer_vtx_count = buffer.vertex_count;
 
 		const gfx_id sdf_shader		= _shaders.gui_sdf;
 		const gfx_id text_shader	= _shaders.gui_text;
@@ -452,9 +452,9 @@ namespace SFG
 		const gfx_id texture_shader = _shaders.gui_texture;
 
 		per_frame_data& pfd			= _pfd[frame_index];
-		const uint32	vtx_counter = pfd.counter_vtx;
-		const uint32	idx_counter = pfd.counter_idx;
-		const uint16	dc_index	= pfd.draw_call_count++;
+		const u32	vtx_counter = pfd.counter_vtx;
+		const u32	idx_counter = pfd.counter_idx;
+		const u16	dc_index	= pfd.draw_call_count++;
 		pfd.counter_vtx += buffer_vtx_count;
 		pfd.counter_idx += buffer_idx_count;
 		pfd.buf_gui_vtx.buffer_data(sizeof(vekt::vertex) * static_cast<size_t>(vtx_counter), buffer_vtx_start, static_cast<size_t>(buffer_vtx_count) * sizeof(vekt::vertex));
@@ -462,30 +462,30 @@ namespace SFG
 
 		gui_draw_call& dc = _gui_draw_calls[dc_index];
 		dc				  = {};
-		dc.start_idx	  = static_cast<uint16>(idx_counter);
-		dc.start_vtx	  = static_cast<uint16>(vtx_counter);
-		dc.index_count	  = static_cast<uint16>(buffer_idx_count);
+		dc.start_idx	  = static_cast<u16>(idx_counter);
+		dc.start_vtx	  = static_cast<u16>(vtx_counter);
+		dc.index_count	  = static_cast<u16>(buffer_idx_count);
 
 		// Scissor
 		if (clip.y < 0.0f)
 		{
 			dc.scissors.y = 0;
-			dc.scissors.w = static_cast<uint16>(math::max(0.0f, clip.w + clip.y));
+			dc.scissors.w = static_cast<u16>(math::max(0.0f, clip.w + clip.y));
 		}
 		else
 		{
-			dc.scissors.y = static_cast<uint16>(clip.y);
-			dc.scissors.w = static_cast<uint16>(clip.w);
+			dc.scissors.y = static_cast<u16>(clip.y);
+			dc.scissors.w = static_cast<u16>(clip.w);
 		}
 		if (clip.x < 0.0f)
 		{
 			dc.scissors.x = 0;
-			dc.scissors.z = math::min((uint16)0, static_cast<uint16>(clip.x + clip.z));
+			dc.scissors.z = math::min((u16)0, static_cast<u16>(clip.x + clip.z));
 		}
 		else
 		{
-			dc.scissors.x = static_cast<uint16>(clip.x);
-			dc.scissors.z = static_cast<uint16>(clip.z);
+			dc.scissors.x = static_cast<u16>(clip.x);
+			dc.scissors.z = static_cast<u16>(clip.z);
 		}
 
 		if (font != NULL_WIDGET_ID)
@@ -532,14 +532,14 @@ namespace SFG
 		atlas_ref ref		  = {};
 		ref.atlas			  = atlas;
 		ref.texture			  = backend->create_texture({.texture_format = atlas->get_is_lcd() ? format::r8g8b8a8_srgb : format::r8_unorm,
-														 .size			 = vector2ui16(static_cast<uint16>(atlas->get_width()), static_cast<uint16>(atlas->get_height())),
+														 .size			 = vector2ui16(static_cast<u16>(atlas->get_width()), static_cast<u16>(atlas->get_height())),
 														 .flags			 = texture_flags::tf_sampled | texture_flags::tf_is_2d,
 														 .views			 = {{.type = view_type::sampled}},
 														 .debug_name	 = "editor_gui_atlas"});
 		ref.texture_gpu_index = backend->get_texture_gpu_index(ref.texture, 0);
 
-		const uint32 txt_size	   = backend->get_texture_size(atlas->get_width(), atlas->get_height(), atlas->get_is_lcd() ? 3 : 1);
-		const uint32 adjusted_size = backend->align_texture_size(txt_size);
+		const u32 txt_size	   = backend->get_texture_size(atlas->get_width(), atlas->get_height(), atlas->get_is_lcd() ? 3 : 1);
+		const u32 adjusted_size = backend->align_texture_size(txt_size);
 		ref.intermediate_buffer	   = backend->create_resource({
 			   .size	   = adjusted_size,
 			   .flags	   = resource_flags::rf_cpu_visible,
@@ -561,13 +561,13 @@ namespace SFG
 				const unsigned char* data		  = atlas->get_data();
 				const unsigned int	 size		  = atlas->get_data_size();
 				const bool			 is_lcd		  = atlas->get_is_lcd();
-				const uint32		 atlas_width  = atlas->get_width();
-				const uint32		 atlas_height = atlas->get_height();
-				const uint8			 bpp		  = atlas->get_is_lcd() ? 3 : 1;
+				const u32		 atlas_width  = atlas->get_width();
+				const u32		 atlas_height = atlas->get_height();
+				const u8			 bpp		  = atlas->get_is_lcd() ? 3 : 1;
 
-				uint32 adjusted_size = 0;
-				ref.buffer.pixels	 = reinterpret_cast<uint8*>(backend->adjust_buffer_pitch((void*)data, atlas_width, atlas_height, bpp, adjusted_size));
-				ref.buffer.size		 = vector2ui16(static_cast<uint16>(atlas_width), static_cast<uint16>(atlas_height));
+				u32 adjusted_size = 0;
+				ref.buffer.pixels	 = reinterpret_cast<u8*>(backend->adjust_buffer_pitch((void*)data, atlas_width, atlas_height, bpp, adjusted_size));
+				ref.buffer.size		 = vector2ui16(static_cast<u16>(atlas_width), static_cast<u16>(atlas_height));
 				ref.buffer.bpp		 = bpp;
 
 				static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;

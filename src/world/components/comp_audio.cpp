@@ -154,7 +154,7 @@ namespace SFG
 		ma_sound_seek_to_pcm_frame(snd, 0);
 	}
 
-	void comp_audio::set_volume(world& w, float volume)
+	void comp_audio::set_volume(world& w, f32 volume)
 	{
 		_volume = volume;
 
@@ -168,7 +168,7 @@ namespace SFG
 		ma_sound_set_volume(snd, volume);
 	}
 
-	void comp_audio::set_looping(world& w, uint8 looping)
+	void comp_audio::set_looping(world& w, u8 looping)
 	{
 		_is_looping = looping;
 
@@ -214,7 +214,7 @@ namespace SFG
 		set_sound_params(w, snd);
 	}
 
-	void comp_audio::set_attenuation_params(world& w, sound_attenuation att, float min_radius, float max_radius, float rolloff)
+	void comp_audio::set_attenuation_params(world& w, sound_attenuation att, f32 min_radius, f32 max_radius, f32 rolloff)
 	{
 		_rolloff	 = rolloff;
 		_radius_min	 = min_radius;

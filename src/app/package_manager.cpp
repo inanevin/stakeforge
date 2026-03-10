@@ -93,8 +93,8 @@ namespace SFG
 
 		void package_resources(const vector<string>& relative_paths, package& pkg, const char* base_dir, const char* cache_dir)
 		{
-			vector<string>			   pending = relative_paths;
-			hash_map<string_id, uint8> packed;
+			vector<string>			pending = relative_paths;
+			hash_map<string_id, u8> packed;
 
 			vector<string> sub_resources;
 			sub_resources.reserve(16);
@@ -253,7 +253,7 @@ namespace SFG
 		if (!file_system::exists(WORLD_PKG_PATH) || !file_system::exists(RES_PKG_PATH) || !file_system::exists(ENGINE_PKG_PATH))
 			return false;
 
-		// TODO: checksum
+			// TODO: checksum
 #endif
 
 		return true;

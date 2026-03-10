@@ -47,22 +47,22 @@ namespace SFG
 			return _name;
 		}
 
-		inline int16 get_parent_index() const
+		inline i16 get_parent_index() const
 		{
 			return _parent_index;
 		}
 
-		inline int16 get_mesh_index() const
+		inline i16 get_mesh_index() const
 		{
 			return _mesh_index;
 		}
 
-		inline int16 get_skin_index() const
+		inline i16 get_skin_index() const
 		{
 			return _skin_index;
 		}
 
-		inline int16 get_light_index() const
+		inline i16 get_light_index() const
 		{
 			return _light_index;
 		}
@@ -74,10 +74,10 @@ namespace SFG
 
 	private:
 		chunk_handle32 _name;
-		int16		   _parent_index = -1;
-		int16		   _light_index	 = -1;
-		int16		   _mesh_index	 = -1;
-		int16		   _skin_index	 = -1;
+		i16		   _parent_index = -1;
+		i16		   _light_index	 = -1;
+		i16		   _mesh_index	 = -1;
+		i16		   _skin_index	 = -1;
 		matrix4x3	   _local_matrix = {};
 	};
 }

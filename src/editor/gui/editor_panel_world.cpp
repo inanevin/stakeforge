@@ -56,7 +56,7 @@ namespace SFG
 
 	namespace
 	{
-		vector2 fit_aspect_inside(const vector2& container, float aspect_w_over_h)
+		vector2 fit_aspect_inside(const vector2& container, f32 aspect_w_over_h)
 		{
 			// Fit a rectangle of aspect (w/h) fully inside container, maximizing size.
 			vector2 out;
@@ -124,7 +124,7 @@ namespace SFG
 
 		_gizmo_controls.init(_builder);
 
-		set_aspect(static_cast<aspect_ratio>(math::clamp(editor_layout::get().world_aspect_ratio, (uint8)0, static_cast<uint8>(aspect_ratio::aspect_1_1))));
+		set_aspect(static_cast<aspect_ratio>(math::clamp(editor_layout::get().world_aspect_ratio, (u8)0, static_cast<u8>(aspect_ratio::aspect_1_1))));
 		set_gizmo_style(gizmo_style::move);
 		set_gizmo_space(gizmo_space::global);
 		set_audio_style(audio_style::on);
@@ -133,7 +133,7 @@ namespace SFG
 
 	void editor_panel_world::fetch_stats()
 	{
-		set_stats_view(static_cast<stats_view_style>(math::clamp(editor_layout::get().world_stats_view, (uint8)0, static_cast<uint8>(stats_view_style::full))));
+		set_stats_view(static_cast<stats_view_style>(math::clamp(editor_layout::get().world_stats_view, (u8)0, static_cast<u8>(stats_view_style::full))));
 	}
 
 	void editor_panel_world::build_toolbar()
@@ -192,8 +192,8 @@ namespace SFG
 	void editor_panel_world::draw(const vector2ui16& window_size)
 	{
 		const vector2	root_sz = _builder->widget_get_size(_gui_builder.get_root());
-		constexpr float ap_16_9 = 16.0f / 9.0f;
-		constexpr float ap_4_3	= 4.0f / 3.0f;
+		constexpr f32 ap_16_9 = 16.0f / 9.0f;
+		constexpr f32 ap_4_3	= 4.0f / 3.0f;
 
 		vekt::size_props& sz = _builder->widget_get_size_props(_world_viewer);
 
@@ -212,7 +212,7 @@ namespace SFG
 			break;
 
 		case aspect_ratio::aspect_1_1: {
-			const float m = math::min(root_sz.x, root_sz.y);
+			const f32 m = math::min(root_sz.x, root_sz.y);
 			sz.size		  = vector2(m, m);
 			break;
 		}
@@ -248,7 +248,7 @@ namespace SFG
 	void editor_panel_world::set_aspect(aspect_ratio aspect)
 	{
 		_aspect									= aspect;
-		editor_layout::get().world_aspect_ratio = static_cast<uint8>(aspect);
+		editor_layout::get().world_aspect_ratio = static_cast<u8>(aspect);
 		editor_layout::get().save_last();
 	}
 
@@ -270,7 +270,7 @@ namespace SFG
 	{
 		_stats_style = style;
 		_gui_builder.set_toggle_button_state(_btn_stats, style == stats_view_style::full);
-		editor_layout::get().world_stats_view = static_cast<uint8>(style);
+		editor_layout::get().world_stats_view = static_cast<u8>(style);
 		editor_layout::get().save_last();
 		editor::get().get_gui_controller().get_stats()->set_visible(style == stats_view_style::full);
 	}
@@ -462,7 +462,7 @@ namespace SFG
 		{
 			const window_event eev = {
 				.value	  = vector2i16(ev.position.x, ev.position.y),
-				.button	  = static_cast<uint16>(ev.button),
+				.button	  = static_cast<u16>(ev.button),
 				.type	  = window_event_type::mouse,
 				.sub_type = static_cast<window_event_sub_type>(ev.type),
 			};
@@ -476,12 +476,12 @@ namespace SFG
 			{
 				const vector2 local		 = ev.position - b->widget_get_pos(self->_world_viewer);
 				const vector2 panel_size = b->widget_get_size(self->_world_viewer);
-				const uint16  x			 = static_cast<uint16>(math::clamp(local.x, 0.0f, panel_size.x - 1.0f));
-				const uint16  y			 = static_cast<uint16>(math::clamp(local.y, 0.0f, panel_size.y - 1.0f));
+				const u16  x			 = static_cast<u16>(math::clamp(local.x, 0.0f, panel_size.x - 1.0f));
+				const u16  y			 = static_cast<u16>(math::clamp(local.y, 0.0f, panel_size.y - 1.0f));
 
 				const renderer& rend		= editor::get().get_app().get_renderer();
-				const uint8		frame_index = rend.get_frame_index();
-				const uint32	object_id	= rend.get_world_renderer()->get_render_pass_object_id().read_location(x, y, frame_index);
+				const u8		frame_index = rend.get_frame_index();
+				const u32	object_id	= rend.get_world_renderer()->get_render_pass_object_id().read_location(x, y, frame_index);
 
 				editor_gui_controller& controller = editor::get().get_gui_controller();
 
@@ -674,10 +674,10 @@ namespace SFG
 
 		const vector2 wv_pos = b->widget_get_pos(self->_world_viewer);
 
-		constexpr float box_size_multiplier = 0.03f;
-		constexpr float thickness			= 2.0f;
+		constexpr f32 box_size_multiplier = 0.03f;
+		constexpr f32 thickness			= 2.0f;
 		const vector2	size				= viewer_sz;
-		const vector2	box_size			= vector2(static_cast<float>(size.x) * box_size_multiplier, static_cast<float>(size.x) * box_size_multiplier);
+		const vector2	box_size			= vector2(static_cast<f32>(size.x) * box_size_multiplier, static_cast<f32>(size.x) * box_size_multiplier);
 		const vector2	min					= wv_pos + vector2(editor_theme::get().outer_margin + box_size.x * 0.5f, size.y - editor_theme::get().outer_margin - box_size.y);
 		const vector2	max					= min + box_size;
 		const vector2	center				= (min + max) * 0.5f;

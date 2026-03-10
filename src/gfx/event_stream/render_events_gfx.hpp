@@ -54,9 +54,9 @@ namespace SFG
 #ifndef SFG_STRIP_DEBUG_NAMES
 		string name = "";
 #endif
-		uint16 cpu_flags = 0;
-		uint16 gpu_flags = 0;
-		uint32 max_size	 = 0;
+		u16 cpu_flags = 0;
+		u16 gpu_flags = 0;
+		u32 max_size  = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -64,9 +64,9 @@ namespace SFG
 
 	struct render_event_update_vertex_index_buffer
 	{
-		uint8* data		  = nullptr;
-		uint32 size		  = 0;
-		uint32 item_count = 0;
+		u8* data	   = nullptr;
+		u32 size	   = 0;
+		u32 item_count = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -79,8 +79,8 @@ namespace SFG
 #endif
 		static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;
 		vector2ui16										size			   = {};
-		uint32											intermediate_size  = 0;
-		uint8											format			   = 0;
+		u32												intermediate_size  = 0;
+		u8												format			   = 0;
 		bool											buffers_persistent = false;
 
 		void serialize(ostream& stream) const;
@@ -114,9 +114,9 @@ namespace SFG
 		static_vector<resource_id, MAX_MATERIAL_TEXTURES> textures;
 		resource_id										  sampler	   = NULL_RESOURCE_ID;
 		resource_id										  shader_index = NULL_RESOURCE_ID;
-		span<uint8>										  data		   = {};
-		uint32											  flags;
-		uint16											  priority = 0;
+		span<u8>										  data		   = {};
+		u32												  flags;
+		u16												  priority = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -132,7 +132,7 @@ namespace SFG
 
 	struct render_event_update_material_textures
 	{
-		uint8											  start = 0;
+		u8												  start = 0;
 		static_vector<resource_id, MAX_MATERIAL_TEXTURES> textures;
 
 		void serialize(ostream& stream) const;
@@ -141,9 +141,9 @@ namespace SFG
 
 	struct render_event_update_material_data
 	{
-		uint32		padding = 0;
+		u32			padding = 0;
 		const void* data	= nullptr;
-		uint32		size	= 0;
+		u32			size	= 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -178,9 +178,9 @@ namespace SFG
 
 	struct render_event_skin
 	{
-		vector<uint16>	  nodes;
+		vector<u16>		  nodes;
 		vector<matrix4x3> matrices;
-		int16			  root_index = -1;
+		i16				  root_index = -1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

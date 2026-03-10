@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -43,13 +43,13 @@ namespace SFG
 	class vector4
 	{
 	public:
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
-		float w = 0.0f;
+		f32 x = 0.0f;
+		f32 y = 0.0f;
+		f32 z = 0.0f;
+		f32 w = 0.0f;
 
 		vector4() = default;
-		vector4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w)
+		vector4(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
 		{
 		}
 
@@ -60,26 +60,26 @@ namespace SFG
 		static vector4 abs(const vector4& vector);
 		static vector4 min(const vector4& a, const vector4& b);
 		static vector4 max(const vector4& a, const vector4& b);
-		static float   dot(const vector4& a, const vector4& b);
-		static float   distance(const vector4& a, const vector4& b);
+		static f32	   dot(const vector4& a, const vector4& b);
+		static f32	   distance(const vector4& a, const vector4& b);
 		vector4		   project(const vector4& on_normal) const;
-		vector4		   rotate(const vector4& axis, float angle_degrees) const;
-		bool		   equals(const vector4& other, float epsilon = MATH_EPS) const;
-		bool		   is_zero(float epsilon = MATH_EPS) const;
-		float		   magnitude() const;
-		float		   magnitude_sqr() const;
+		vector4		   rotate(const vector4& axis, f32 angle_degrees) const;
+		bool		   equals(const vector4& other, f32 epsilon = MATH_EPS) const;
+		bool		   is_zero(f32 epsilon = MATH_EPS) const;
+		f32			   magnitude() const;
+		f32			   magnitude_sqr() const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		inline bool is_point_inside(float _x, float _y) const
+		inline bool is_point_inside(f32 _x, f32 _y) const
 		{
 			return _x >= x && _x <= x + z && _y >= y && _y <= y + w;
 		}
 
 		inline vector4 normalized() const
 		{
-			float mag = magnitude();
+			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
 				return vector4(x / mag, y / mag, z / mag, w / mag);
@@ -89,7 +89,7 @@ namespace SFG
 
 		inline void normalize()
 		{
-			float mag = magnitude();
+			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
 				x /= mag;
@@ -111,11 +111,11 @@ namespace SFG
 		{
 			return vector4(x - other.x, y - other.y, z - other.z, w - other.w);
 		}
-		inline vector4 operator*(float scalar) const
+		inline vector4 operator*(f32 scalar) const
 		{
 			return vector4(x * scalar, y * scalar, z * scalar, w * scalar);
 		}
-		vector4 operator/(float scalar) const;
+		vector4 operator/(f32 scalar) const;
 
 		inline vector4 operator-() const
 		{
@@ -138,7 +138,7 @@ namespace SFG
 			w -= other.w;
 			return *this;
 		}
-		inline vector4& operator*=(float scalar)
+		inline vector4& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
@@ -146,7 +146,7 @@ namespace SFG
 			w *= scalar;
 			return *this;
 		}
-		vector4& operator/=(float scalar);
+		vector4& operator/=(f32 scalar);
 
 		inline bool operator==(const vector4& other) const
 		{
@@ -158,7 +158,7 @@ namespace SFG
 		}
 	};
 
-	inline vector4 operator*(float scalar, const vector4& vector)
+	inline vector4 operator*(f32 scalar, const vector4& vector)
 	{
 		return vector * scalar;
 	}

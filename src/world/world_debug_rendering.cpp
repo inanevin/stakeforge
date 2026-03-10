@@ -48,7 +48,7 @@ namespace SFG
 		void make_basis(const vector3& direction, vector3& axis0, vector3& axis1, vector3& normal)
 		{
 			normal				 = normalized_or_up(direction);
-			const float	  dot_up = math::abs(vector3::dot(normal, vector3::up));
+			const f32	  dot_up = math::abs(vector3::dot(normal, vector3::up));
 			const vector3 ref	 = dot_up > 0.99f ? vector3::right : vector3::up;
 			axis0				 = vector3::cross(ref, normal).normalized();
 			axis1				 = vector3::cross(normal, axis0).normalized();
@@ -57,7 +57,7 @@ namespace SFG
 
 	void world_debug_rendering::init()
 	{
-		for (uint32 i = 0; i < 3; ++i)
+		for (u32 i = 0; i < 3; ++i)
 		{
 			snapshot& sh	  = _snapshots[i];
 			sh.vertices_gui	  = new vertex_gui[MAX_VERTEX_COUNT_GUI];
@@ -89,7 +89,7 @@ namespace SFG
 
 	void world_debug_rendering::uninit()
 	{
-		for (uint32 i = 0; i < 3; ++i)
+		for (u32 i = 0; i < 3; ++i)
 		{
 			snapshot& sh = _snapshots[i];
 			delete[] sh.vertices_gui;
@@ -123,8 +123,8 @@ namespace SFG
 		_builder->build_end();
 
 		const auto& dbs		   = _builder->get_draw_buffers();
-		uint32		vertex_ctr = 0;
-		uint32		index_ctr  = 0;
+		u32			vertex_ctr = 0;
+		u32			index_ctr  = 0;
 
 		snapshot& s = _snapshots[_writer_slot];
 
@@ -150,7 +150,7 @@ namespace SFG
 							   .base_vertex	  = s.vtx_count_gui,
 							   .vertex_size	  = sizeof(vekt::vertex),
 							   .font_idx	  = fidx,
-							   .draw_data_idx = static_cast<uint32>(off),
+							   .draw_data_idx = static_cast<u32>(off),
 							   .is_icon		  = fidx == _gpu_index_font_icon,
 			   };
 
@@ -159,71 +159,71 @@ namespace SFG
 			s.dc_count_gui++;
 		}
 
-		const uint32 next = (_writer_slot + 1) % 3;
+		const u32 next = (_writer_slot + 1) % 3;
 		_published.store(_writer_slot, std::memory_order_release);
-		uint32 cur_reader = _snapshot_in_use.load(std::memory_order_acquire);
+		u32 cur_reader = _snapshot_in_use.load(std::memory_order_acquire);
 		if (cur_reader != UINT32_MAX)
 			_snapshot_in_use.store(UINT32_MAX, std::memory_order_release);
 		_writer_slot = next;
 	}
 
-	void world_debug_rendering::add_indices_line(const primitive_index* data, uint32 count)
+	void world_debug_rendering::add_indices_line(const primitive_index* data, u32 count)
 	{
-		snapshot&	 s		= _snapshots[_writer_slot];
-		const uint32 before = s.idx_count_line;
+		snapshot& s		 = _snapshots[_writer_slot];
+		const u32 before = s.idx_count_line;
 		SFG_ASSERT(s.idx_count_line + count < MAX_INDEX_COUNT_LINE);
 		SFG_MEMCPY(&s.indices_line[before], data, sizeof(primitive_index) * count);
 		s.idx_count_line += count;
 	}
 
-	void world_debug_rendering::add_indices_tri(const primitive_index* data, uint32 count)
+	void world_debug_rendering::add_indices_tri(const primitive_index* data, u32 count)
 	{
-		snapshot&	 s		= _snapshots[_writer_slot];
-		const uint32 before = s.idx_count_tri;
+		snapshot& s		 = _snapshots[_writer_slot];
+		const u32 before = s.idx_count_tri;
 		SFG_ASSERT(s.idx_count_tri + count < MAX_INDEX_COUNT_TRI);
 		SFG_MEMCPY(&s.indices_tri[before], data, sizeof(primitive_index) * count);
 		s.idx_count_tri += count;
 	}
 
-	void world_debug_rendering::add_indices_gui(const primitive_index* data, uint32 count)
+	void world_debug_rendering::add_indices_gui(const primitive_index* data, u32 count)
 	{
-		snapshot&	 s		= _snapshots[_writer_slot];
-		const uint32 before = s.idx_count_gui;
+		snapshot& s		 = _snapshots[_writer_slot];
+		const u32 before = s.idx_count_gui;
 		SFG_ASSERT(s.idx_count_gui + count < MAX_INDEX_COUNT_GUI);
 		SFG_MEMCPY(&s.indices_gui[before], data, sizeof(primitive_index) * count);
 		s.idx_count_gui += count;
 	}
 
-	uint32 world_debug_rendering::add_vertex_line(const vertex_3d_line* data, uint32 count)
+	u32 world_debug_rendering::add_vertex_line(const vertex_3d_line* data, u32 count)
 	{
-		snapshot&	 s		= _snapshots[_writer_slot];
-		const uint32 before = s.vtx_count_line;
+		snapshot& s		 = _snapshots[_writer_slot];
+		const u32 before = s.vtx_count_line;
 		SFG_ASSERT(s.vtx_count_line + count < MAX_VERTEX_COUNT_LINE);
 
 		SFG_MEMCPY(&s.vertices_line[before], data, sizeof(vertex_3d_line) * count);
 		s.vtx_count_line += count;
 		return before;
 	}
-	uint32 world_debug_rendering::add_vertex_tri(const vertex_simple* data, uint32 count)
+	u32 world_debug_rendering::add_vertex_tri(const vertex_simple* data, u32 count)
 	{
-		snapshot&	 s		= _snapshots[_writer_slot];
-		const uint32 before = s.vtx_count_tri;
+		snapshot& s		 = _snapshots[_writer_slot];
+		const u32 before = s.vtx_count_tri;
 		SFG_ASSERT(s.vtx_count_tri + count < MAX_VERTEX_COUNT_TRI);
 		SFG_MEMCPY(&s.vertices_tri[before], data, sizeof(vertex_simple) * count);
 		s.vtx_count_tri += count;
 		return before;
 	}
-	uint32 world_debug_rendering::add_vertex_gui(const vertex_gui* data, uint32 count)
+	u32 world_debug_rendering::add_vertex_gui(const vertex_gui* data, u32 count)
 	{
-		snapshot&	 s		= _snapshots[_writer_slot];
-		const uint32 before = s.vtx_count_gui;
+		snapshot& s		 = _snapshots[_writer_slot];
+		const u32 before = s.vtx_count_gui;
 		SFG_ASSERT(s.vtx_count_gui + count < MAX_VERTEX_COUNT_GUI);
 		SFG_MEMCPY(&s.vertices_gui[before], data, sizeof(vertex_gui) * count);
 		s.vtx_count_gui += count;
 		return before;
 	}
 
-	void world_debug_rendering::draw_line(const vector3& p0, const vector3& p1, const color& col, float thickness)
+	void world_debug_rendering::draw_line(const vector3& p0, const vector3& p1, const color& col, f32 thickness)
 	{
 		snapshot& s = _snapshots[_writer_slot];
 		if (s.vtx_count_line + 4 >= MAX_VERTEX_COUNT_LINE || s.idx_count_line + 6 >= MAX_INDEX_COUNT_LINE)
@@ -237,7 +237,7 @@ namespace SFG
 
 		};
 
-		const uint32		  base_vtx = add_vertex_line(v, 4);
+		const u32			  base_vtx = add_vertex_line(v, 4);
 		const primitive_index idxs[6]  = {
 			 (primitive_index)(base_vtx + 0),
 			 (primitive_index)(base_vtx + 1),
@@ -246,7 +246,7 @@ namespace SFG
 			 (primitive_index)(base_vtx + 3),
 			 (primitive_index)(base_vtx + 0),
 		 };
-		const uint32 start_idx = static_cast<uint32>(s.idx_count_line);
+		const u32 start_idx = static_cast<u32>(s.idx_count_line);
 		add_indices_line(idxs, 6);
 	}
 
@@ -261,16 +261,16 @@ namespace SFG
 			{.pos = p1, .color = col.to_vector()},
 			{.pos = p2, .color = col.to_vector()},
 		};
-		const uint32		  base_vtx	= add_vertex_tri(v, 3);
+		const u32			  base_vtx	= add_vertex_tri(v, 3);
 		const primitive_index idxs[3]	= {(primitive_index)(base_vtx + 0), (primitive_index)(base_vtx + 1), (primitive_index)(base_vtx + 2)};
-		const uint32		  start_idx = static_cast<uint32>(s.idx_count_tri);
+		const u32			  start_idx = static_cast<u32>(s.idx_count_tri);
 		add_indices_tri(idxs, 3);
 	}
 
-	void world_debug_rendering::draw_box(const vector3& center, const vector3& half_extents, const vector3& forward, const color& col, float thickness)
+	void world_debug_rendering::draw_box(const vector3& center, const vector3& half_extents, const vector3& forward, const color& col, f32 thickness)
 	{
 		const vector3 dir	 = normalized_or_up(forward);
-		const float	  dot_up = math::abs(vector3::dot(dir, vector3::up));
+		const f32	  dot_up = math::abs(vector3::dot(dir, vector3::up));
 		const vector3 ref	 = dot_up > 0.99f ? vector3::right : vector3::up;
 		const vector3 right	 = vector3::cross(ref, dir).normalized();
 		const vector3 up	 = vector3::cross(dir, right).normalized();
@@ -309,7 +309,7 @@ namespace SFG
 		draw_line(c[3], c[7], col, thickness);
 	}
 
-	void world_debug_rendering::draw_oriented_circle(const vector3& center, float radius, const vector3& direction, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_oriented_circle(const vector3& center, f32 radius, const vector3& direction, const color& col, f32 thickness, u32 segments)
 	{
 		if (segments < 3)
 			segments = 3;
@@ -317,20 +317,20 @@ namespace SFG
 		vector3 axis0, axis1, normal;
 		make_basis(direction, axis0, axis1, normal);
 
-		const float two_pi = 2.0f * MATH_PI;
+		const f32 two_pi = 2.0f * MATH_PI;
 
-		for (uint32 i = 0; i < segments; ++i)
+		for (u32 i = 0; i < segments; ++i)
 		{
-			const float t0 = (float)i / (float)segments;
-			const float t1 = (float)(i + 1) / (float)segments;
+			const f32 t0 = (f32)i / (f32)segments;
+			const f32 t1 = (f32)(i + 1) / (f32)segments;
 
-			const float a0 = two_pi * t0;
-			const float a1 = two_pi * t1;
+			const f32 a0 = two_pi * t0;
+			const f32 a1 = two_pi * t1;
 
-			const float c0 = math::cos(a0);
-			const float s0 = math::sin(a0);
-			const float c1 = math::cos(a1);
-			const float s1 = math::sin(a1);
+			const f32 c0 = math::cos(a0);
+			const f32 s0 = math::sin(a0);
+			const f32 c1 = math::cos(a1);
+			const f32 s1 = math::sin(a1);
 
 			const vector3 p0 = center + (axis0 * (c0 * radius)) + (axis1 * (s0 * radius));
 			const vector3 p1 = center + (axis0 * (c1 * radius)) + (axis1 * (s1 * radius));
@@ -339,14 +339,14 @@ namespace SFG
 		}
 	}
 
-	void world_debug_rendering::draw_sphere(const vector3& center, float radius, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_sphere(const vector3& center, f32 radius, const color& col, f32 thickness, u32 segments)
 	{
 		draw_oriented_circle(center, radius, vector3::up, col, thickness, segments);
 		draw_oriented_circle(center, radius, vector3::right, col, thickness, segments);
 		draw_oriented_circle(center, radius, vector3::forward, col, thickness, segments);
 	}
 
-	void world_debug_rendering::draw_oriented_hemisphere(const vector3& center, float radius, const vector3& direction, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_oriented_hemisphere(const vector3& center, f32 radius, const vector3& direction, const color& col, f32 thickness, u32 segments)
 	{
 		if (segments < 4)
 			segments = 4;
@@ -356,17 +356,17 @@ namespace SFG
 
 		draw_oriented_circle(center, radius, normal, col, thickness, segments);
 
-		const float two_pi = 2.0f * MATH_PI;
+		const f32 two_pi = 2.0f * MATH_PI;
 
 		auto draw_meridian = [&](const vector3& lateral_axis) {
 			vector3 prev = center + (lateral_axis * radius);
-			for (uint32 i = 1; i <= segments; ++i)
+			for (u32 i = 1; i <= segments; ++i)
 			{
-				const float t = (float)i / (float)segments;
-				const float a = MATH_PI * t;
+				const f32 t = (f32)i / (f32)segments;
+				const f32 a = MATH_PI * t;
 
-				const float ca = math::cos(a);
-				const float sa = math::sin(a);
+				const f32 ca = math::cos(a);
+				const f32 sa = math::sin(a);
 
 				const vector3 p = center + (lateral_axis * (ca * radius)) + (normal * (sa * radius));
 				draw_line(prev, p, col, thickness);
@@ -380,7 +380,7 @@ namespace SFG
 		draw_meridian((axis0 - axis1).normalized());
 	}
 
-	void world_debug_rendering::draw_capsule(const vector3& center, float radius, float half_height, const vector3& direction, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_capsule(const vector3& center, f32 radius, f32 half_height, const vector3& direction, const color& col, f32 thickness, u32 segments)
 	{
 		if (segments < 3)
 			segments = 3;
@@ -392,11 +392,11 @@ namespace SFG
 		vector3 axis0, axis1, normal;
 		make_basis(dir, axis0, axis1, normal);
 
-		const float two_pi = 2.0f * MATH_PI;
-		for (float t = 0.0f; t < two_pi; t += MATH_PI * 0.25f)
+		const f32 two_pi = 2.0f * MATH_PI;
+		for (f32 t = 0.0f; t < two_pi; t += MATH_PI * 0.25f)
 		{
-			const float ca = math::cos(t);
-			const float sa = math::sin(t);
+			const f32 ca = math::cos(t);
+			const f32 sa = math::sin(t);
 
 			const vector3 ring_offset = (axis0 * (ca * radius)) + (axis1 * (sa * radius));
 			const vector3 p_top		  = top_center + ring_offset;
@@ -409,7 +409,7 @@ namespace SFG
 		draw_oriented_hemisphere(bot_center, radius, -dir, col, thickness, segments);
 	}
 
-	void world_debug_rendering::draw_cylinder(const vector3& center, float radius, float half_height, const vector3& direction, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_cylinder(const vector3& center, f32 radius, f32 half_height, const vector3& direction, const color& col, f32 thickness, u32 segments)
 	{
 		if (segments < 3)
 			segments = 3;
@@ -424,11 +424,11 @@ namespace SFG
 		draw_oriented_circle(top_center, radius, dir, col, thickness, segments);
 		draw_oriented_circle(bot_center, radius, dir, col, thickness, segments);
 
-		const float two_pi = 2.0f * MATH_PI;
-		for (float t = 0.0f; t < two_pi; t += MATH_PI * 0.25f)
+		const f32 two_pi = 2.0f * MATH_PI;
+		for (f32 t = 0.0f; t < two_pi; t += MATH_PI * 0.25f)
 		{
-			const float ca = math::cos(t);
-			const float sa = math::sin(t);
+			const f32 ca = math::cos(t);
+			const f32 sa = math::sin(t);
 
 			const vector3 ring_offset = (axis0 * (ca * radius)) + (axis1 * (sa * radius));
 			const vector3 p_top		  = top_center + ring_offset;
@@ -438,7 +438,7 @@ namespace SFG
 		}
 	}
 
-	void world_debug_rendering::draw_oriented_cone(const vector3& apex, const vector3& direction, float length, float radius, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_oriented_cone(const vector3& apex, const vector3& direction, f32 length, f32 radius, const color& col, f32 thickness, u32 segments)
 	{
 		const vector3 dir		  = normalized_or_up(direction);
 		const vector3 base_center = apex + dir * length;
@@ -448,14 +448,14 @@ namespace SFG
 
 		draw_oriented_circle(base_center, radius, dir, col, thickness, segments);
 
-		const float two_pi = 2.0f * MATH_PI;
-		for (uint32 i = 0; i < segments; ++i)
+		const f32 two_pi = 2.0f * MATH_PI;
+		for (u32 i = 0; i < segments; ++i)
 		{
-			const float t = (float)i / (float)segments;
-			const float a = two_pi * t;
+			const f32 t = (f32)i / (f32)segments;
+			const f32 a = two_pi * t;
 
-			const float ca = math::cos(a);
-			const float sa = math::sin(a);
+			const f32 ca = math::cos(a);
+			const f32 sa = math::sin(a);
 
 			const vector3 p = base_center + (axis0 * (ca * radius)) + (axis1 * (sa * radius));
 			draw_line(apex, p, col, thickness);
@@ -465,7 +465,7 @@ namespace SFG
 		draw_line(base_center + axis1 * radius, base_center - axis1 * radius, col, thickness);
 	}
 
-	void world_debug_rendering::draw_oriented_plane(const vector3& center, float width, float height, const vector3& orientation, const color& col, float thickness, uint32 segments)
+	void world_debug_rendering::draw_oriented_plane(const vector3& center, f32 width, f32 height, const vector3& orientation, const color& col, f32 thickness, u32 segments)
 	{
 		if (segments < 2)
 			segments = 2;
@@ -473,29 +473,29 @@ namespace SFG
 		vector3 axis0, axis1, normal;
 		make_basis(orientation, axis0, axis1, normal);
 
-		const float half_w = width * 0.5f;
-		const float half_h = height * 0.5f;
+		const f32 half_w = width * 0.5f;
+		const f32 half_h = height * 0.5f;
 
-		for (uint32 i = 0; i < segments; ++i)
+		for (u32 i = 0; i < segments; ++i)
 		{
-			const float	  t	 = static_cast<float>(i) / static_cast<float>(segments - 1);
-			const float	  v	 = math::lerp(-half_h, half_h, t);
+			const f32	  t	 = static_cast<f32>(i) / static_cast<f32>(segments - 1);
+			const f32	  v	 = math::lerp(-half_h, half_h, t);
 			const vector3 p0 = center + (axis1 * v) - (axis0 * half_w);
 			const vector3 p1 = center + (axis1 * v) + (axis0 * half_w);
 			draw_line(p0, p1, col, thickness);
 		}
 
-		for (uint32 i = 0; i < segments; ++i)
+		for (u32 i = 0; i < segments; ++i)
 		{
-			const float	  t	 = static_cast<float>(i) / static_cast<float>(segments - 1);
-			const float	  v	 = math::lerp(-half_w, half_w, t);
+			const f32	  t	 = static_cast<f32>(i) / static_cast<f32>(segments - 1);
+			const f32	  v	 = math::lerp(-half_w, half_w, t);
 			const vector3 p0 = center + (axis0 * v) - (axis1 * half_h);
 			const vector3 p1 = center + (axis0 * v) + (axis1 * half_h);
 			draw_line(p0, p1, col, thickness);
 		}
 	}
 
-	void world_debug_rendering::draw_frustum(const vector3& origin, const vector3& direction, float fov_degrees, float aspect_ratio, float near_distance, float far_distance, const color& col, float thickness)
+	void world_debug_rendering::draw_frustum(const vector3& origin, const vector3& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color& col, f32 thickness)
 	{
 		if (far_distance <= near_distance)
 			return;
@@ -508,16 +508,16 @@ namespace SFG
 		vector3		  axis0, axis1, normal;
 		make_basis(dir, axis0, axis1, normal);
 
-		const float fov_rad		 = math::degrees_to_radians(fov_degrees);
-		const float tan_half_fov = math::tan(0.5f * fov_rad);
+		const f32 fov_rad	   = math::degrees_to_radians(fov_degrees);
+		const f32 tan_half_fov = math::tan(0.5f * fov_rad);
 
 		const vector3 near_center = origin + dir * near_distance;
 		const vector3 far_center  = origin + dir * far_distance;
 
-		const float near_half_h = near_distance * tan_half_fov;
-		const float near_half_w = near_half_h * aspect_ratio;
-		const float far_half_h	= far_distance * tan_half_fov;
-		const float far_half_w	= far_half_h * aspect_ratio;
+		const f32 near_half_h = near_distance * tan_half_fov;
+		const f32 near_half_w = near_half_h * aspect_ratio;
+		const f32 far_half_h  = far_distance * tan_half_fov;
+		const f32 far_half_w  = far_half_h * aspect_ratio;
 
 		const vector3 n0 = near_center + (axis0 * near_half_w) + (axis1 * near_half_h);
 		const vector3 n1 = near_center - (axis0 * near_half_w) + (axis1 * near_half_h);
@@ -567,7 +567,7 @@ namespace SFG
 
 		_builder->add_text(tp, col.to_vector(), vector2::zero, sz, 0, &dd, true);
 		dd.pos_and_scale = vector4(pos.x, pos.y, pos.z, 1.0f);
-		dd.size = sz;
+		dd.size			 = sz;
 		s.draw_data_count_gui++;
 	}
 
@@ -579,7 +579,7 @@ namespace SFG
 
 	const world_debug_rendering::snapshot* world_debug_rendering::get_read_snapshot() const
 	{
-		uint32 idx = _published.load(std::memory_order_acquire);
+		u32 idx = _published.load(std::memory_order_acquire);
 		if (idx != UINT32_MAX)
 			return &_snapshots[idx];
 		return nullptr;

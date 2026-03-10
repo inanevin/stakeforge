@@ -45,11 +45,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	uint8 memory_tracer::s_category_counter = 0;
+	u8 memory_tracer::s_category_counter = 0;
 
 	namespace
 	{
-		void print(uint32 n)
+		void print(u32 n)
 		{
 			const size_t bufferSize = 256;
 			char*		 buffer		= static_cast<char*>(malloc(bufferSize));
@@ -153,7 +153,7 @@ namespace SFG
 		{
 			// pop current active one.
 			_category_ids.pop_back();
-			const uint8 id = _category_ids.back();
+			const u8 id = _category_ids.back();
 			_category_ids.pop_back();
 			_current_active_category = id;
 		}

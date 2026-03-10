@@ -53,7 +53,7 @@ namespace SFG
 		});
 	}
 
-	void comp_camera::set_values(world& w, float near_plane, float far_plane, float fov_degrees, std::initializer_list<float> cascades)
+	void comp_camera::set_values(world& w, f32 near_plane, f32 far_plane, f32 fov_degrees, std::initializer_list<f32> cascades)
 	{
 		_near		 = near_plane;
 		_far		 = far_plane;
@@ -76,7 +76,7 @@ namespace SFG
 			ev);
 	}
 
-	void comp_camera::set_values(world& w, float near_plane, float far_plane, float fov_degrees, const static_vector<float, MAX_SHADOW_CASCADES>& cascades)
+	void comp_camera::set_values(world& w, f32 near_plane, f32 far_plane, f32 fov_degrees, const static_vector<f32, MAX_SHADOW_CASCADES>& cascades)
 	{
 		_near		 = near_plane;
 		_far		 = far_plane;

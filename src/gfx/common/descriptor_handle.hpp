@@ -33,9 +33,9 @@ namespace SFG
 	struct descriptor_handle
 	{
 		size_t cpu	 = 0;
-		uint64 gpu	 = 0;
-		uint32 index = 0;
-		uint32 count = 0;
+		u64	   gpu	 = 0;
+		u32	   index = 0;
+		u32	   count = 0;
 
 		bool operator==(const descriptor_handle& other) const
 		{

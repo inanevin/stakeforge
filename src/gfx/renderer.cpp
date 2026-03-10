@@ -113,7 +113,7 @@ namespace SFG
 		_world_renderer->init(_world_size, &_texture_queue, &_buffer_queue, s_bind_layout_global, s_bind_layout_global_compute);
 
 		// pfd
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd		= _pfd[i];
 			pfd.sem_frame.semaphore = backend->create_semaphore();
@@ -182,7 +182,7 @@ namespace SFG
 		_buffer_queue.uninit();
 
 		// pfd
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_semaphore(pfd.sem_frame.semaphore);
@@ -205,7 +205,7 @@ namespace SFG
 		gfx_backend* backend   = gfx_backend::get();
 		const gfx_id queue_gfx = backend->get_queue_gfx();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->wait_semaphore(pfd.sem_frame.semaphore, pfd.sem_frame.value);
@@ -242,8 +242,8 @@ namespace SFG
 			backend->wait_for_swapchain_latency(_gfx_data.swapchain);
 		}
 
-		_gfx_data.frame_index	= backend->get_back_buffer_index(_gfx_data.swapchain);
-		const uint8 frame_index = _gfx_data.frame_index;
+		_gfx_data.frame_index = backend->get_back_buffer_index(_gfx_data.swapchain);
+		const u8 frame_index  = _gfx_data.frame_index;
 
 		_proxy_manager.fetch_render_events(_event_stream, frame_index);
 		_proxy_manager.flush_destroys(false);
@@ -271,8 +271,8 @@ namespace SFG
 		const gfx_id shader_swp		  = _shaders.swapchain;
 		const gfx_id sem_frame		  = pfd.sem_frame.semaphore;
 		const gfx_id sem_copy		  = pfd.sem_copy.semaphore;
-		const uint64 prev_copy_value  = pfd.sem_copy.value;
-		const uint64 next_frame_value = ++pfd.sem_frame.value;
+		const u64	 prev_copy_value  = pfd.sem_copy.value;
+		const u64	 next_frame_value = ++pfd.sem_frame.value;
 
 		// Handle uploads
 		if (!_buffer_queue.empty(frame_index) || !_texture_queue.empty())
@@ -294,7 +294,7 @@ namespace SFG
 		root_constants rc = {};
 		backend->cmd_bind_constants(cmd_list,
 									{
-										.data		 = (uint8*)&rc,
+										.data		 = (u8*)&rc,
 										.offset		 = 0,
 										.count		 = constant_index_max,
 										.param_index = rpi_constants,
@@ -306,16 +306,16 @@ namespace SFG
 			backend->cmd_barrier(cmd_list,
 								 {
 									 .barriers		= _reuse_upload_barriers.data(),
-									 .barrier_count = static_cast<uint16>(_reuse_upload_barriers.size()),
+									 .barrier_count = static_cast<u16>(_reuse_upload_barriers.size()),
 								 });
 			_reuse_upload_barriers.resize(0);
 		}
 
-		const uint64 next_copy_value = pfd.sem_copy.value;
+		const u64 next_copy_value = pfd.sem_copy.value;
 
 		const buf_engine_global globals = {
-			.delta	 = static_cast<float>(frame_info::get_render_thread_time_milli() * 0.001),
-			.elapsed = static_cast<float>(frame_info::get_render_thread_elapsed_seconds()),
+			.delta	 = static_cast<f32>(frame_info::get_render_thread_time_milli() * 0.001),
+			.elapsed = static_cast<f32>(frame_info::get_render_thread_elapsed_seconds()),
 		};
 		pfd.buf_engine_global.buffer_data(0, (void*)&globals, sizeof(buf_engine_global));
 
@@ -331,7 +331,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_list,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 		barriers.resize(0);
 		const gpu_index rt_world_index = _world_renderer->get_output_gpu_index(frame_index);
@@ -380,8 +380,8 @@ namespace SFG
 
 			BEGIN_DEBUG_EVENT(backend, cmd_list, "swapchain_pass");
 			backend->cmd_begin_render_pass_swapchain(cmd_list, {.color_attachments = attachment, .color_attachment_count = 1});
-			backend->cmd_set_scissors(cmd_list, {.width = static_cast<uint16>(size.x), .height = static_cast<uint16>(size.y)});
-			backend->cmd_set_viewport(cmd_list, {.width = static_cast<uint16>(size.x), .height = static_cast<uint16>(size.y)});
+			backend->cmd_set_scissors(cmd_list, {.width = static_cast<u16>(size.x), .height = static_cast<u16>(size.y)});
+			backend->cmd_set_viewport(cmd_list, {.width = static_cast<u16>(size.x), .height = static_cast<u16>(size.y)});
 
 			// gui pass bind group
 			{
@@ -400,9 +400,9 @@ namespace SFG
 
 				backend->cmd_bind_constants(cmd_list,
 											{
-												.data		 = (uint8*)constants.data(),
+												.data		 = (u8*)constants.data(),
 												.offset		 = constant_index_rp_constant0,
-												.count		 = static_cast<uint8>(constants.size()),
+												.count		 = static_cast<u8>(constants.size()),
 												.param_index = rpi_constants,
 											});
 			}
@@ -424,7 +424,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_list,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 
 		/*
@@ -438,7 +438,7 @@ namespace SFG
 		backend->submit_commands(queue_gfx, &cmd_list, 1);
 
 #ifdef SFG_USE_DEBUG_CONTROLLER
-		const int64 time_before_wait = time::get_cpu_microseconds();
+		const i64 time_before_wait = time::get_cpu_microseconds();
 #endif
 
 		{
@@ -480,7 +480,7 @@ namespace SFG
 #endif
 	}
 
-	void renderer::on_swapchain_flags(uint8 flags)
+	void renderer::on_swapchain_flags(u8 flags)
 	{
 		SFG_VERIFY_THREAD_MAIN();
 		gfx_backend* backend = gfx_backend::get();

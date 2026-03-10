@@ -198,15 +198,15 @@ namespace SFG
 		{
 			const vector2 pos		= b->widget_get_pos(text_widget);
 			const vector2 text_size = b->widget_get_size(text_widget);
-			const float	  x_diff	= ev.position.x - pos.x;
+			const f32	  x_diff	= ev.position.x - pos.x;
 
-			it->caret_pos = math::clamp(b->widget_get_character_index(it->text_widget, x_diff), (uint32)0, it->buffer_size);
+			it->caret_pos = math::clamp(b->widget_get_character_index(it->text_widget, x_diff), (u32)0, it->buffer_size);
 		}
 		it->caret_end_pos = it->caret_pos;
 		return vekt::input_event_result::handled;
 	}
 
-	void gui_builder::on_text_field_drag(vekt::builder* b, vekt::id widget, float mp_x, float mp_y, float delta_x, float delta_y, unsigned int button)
+	void gui_builder::on_text_field_drag(vekt::builder* b, vekt::id widget, f32 mp_x, f32 mp_y, f32 delta_x, f32 delta_y, unsigned int button)
 	{
 		gui_builder* gb = static_cast<gui_builder*>(b->widget_get_user_data(widget).ptr);
 		auto		 it = vector_util::find_if(gb->_text_fields, [widget](const gui_text_field& tf) -> bool { return tf.widget == widget; });
@@ -218,12 +218,12 @@ namespace SFG
 			{
 				const vector2 pos	= b->widget_get_pos(it->widget);
 				const vector2 size	= b->widget_get_size(it->widget);
-				const float	  ratio = math::clamp(math::remap(mp_x, pos.x, pos.x + size.x, 0.0f, 1.0f), 0.0f, 1.0f);
+				const f32	  ratio = math::clamp(math::remap(mp_x, pos.x, pos.x + size.x, 0.0f, 1.0f), 0.0f, 1.0f);
 				it->value			= it->min + (it->max - it->min) * ratio;
 				it->value			= math::clamp(it->value, it->min, it->max);
 
 				if (it->is_slider == 2)
-					it->value = static_cast<uint32>(it->value);
+					it->value = static_cast<u32>(it->value);
 
 				size_props& sz = b->widget_get_size_props(it->sliding_widget);
 				sz.size.x	   = ratio;
@@ -258,14 +258,14 @@ namespace SFG
 
 		const vector2 pos		= b->widget_get_pos(text_widget);
 		const vector2 text_size = b->widget_get_size(text_widget);
-		const float	  x_diff	= mp_x - pos.x;
+		const f32	  x_diff	= mp_x - pos.x;
 
 		if (x_diff < 0)
 		{
 			it->caret_end_pos = 0;
 			return;
 		}
-		it->caret_end_pos = math::clamp(b->widget_get_character_index(it->text_widget, x_diff), (uint32)0, it->buffer_size);
+		it->caret_end_pos = math::clamp(b->widget_get_character_index(it->text_widget, x_diff), (u32)0, it->buffer_size);
 	}
 
 	void gui_builder::on_text_field_focus_lost(vekt::builder* b, vekt::id widget)
@@ -337,15 +337,15 @@ namespace SFG
 
 		const unsigned int min		  = math::min(tf.caret_pos, tf.caret_end_pos);
 		const unsigned int max		  = math::max(tf.caret_pos, tf.caret_end_pos);
-		const float		   min_offset = b->widget_get_character_offset(tf.text_widget, min);
-		const float		   max_offset = b->widget_get_character_offset(tf.text_widget, max);
+		const f32		   min_offset = b->widget_get_character_offset(tf.text_widget, min);
+		const f32		   max_offset = b->widget_get_character_offset(tf.text_widget, max);
 
 		const widget_gfx gfx = {
 			.draw_order = b->widget_get_gfx(tf.text_widget).draw_order,
 			.flags		= gfx_flags::gfx_is_rect,
 		};
 
-		static float timer = 0.0f;
+		static f32 timer = 0.0f;
 
 		if (timer > 500)
 		{
@@ -489,8 +489,8 @@ namespace SFG
 		}
 		else
 		{
-			const char	 c	  = process::get_character_from_key(static_cast<uint32>(ev.key));
-			const uint16 mask = process::get_character_mask_from_key(static_cast<uint32>(ev.key), c);
+			const char	 c	  = process::get_character_from_key(static_cast<u32>(ev.key));
+			const u16 mask = process::get_character_mask_from_key(static_cast<u32>(ev.key), c);
 			if (!(mask & character_mask::printable))
 				return vekt::input_event_result::not_handled;
 
@@ -519,8 +519,8 @@ namespace SFG
 				}
 				else
 				{
-					float  val	 = 0.0f;
-					uint32 out_d = 0;
+					f32  val	 = 0.0f;
+					u32 out_d = 0;
 
 					char_util::replace_all((char*)tf.buffer, ',', '.');
 					if (string_util::to_float(tf.buffer, val, out_d))
@@ -556,7 +556,7 @@ namespace SFG
 
 	vekt::input_event_result gui_builder::on_checkbox_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase)
 	{
-		if (ev.type != vekt::input_event_type::pressed || ev.button != static_cast<uint16>(input_code::mouse_0))
+		if (ev.type != vekt::input_event_type::pressed || ev.button != static_cast<u16>(input_code::mouse_0))
 			return vekt::input_event_result::not_handled;
 
 		gui_builder* gb = static_cast<gui_builder*>(b->widget_get_user_data(widget).ptr);
@@ -576,7 +576,7 @@ namespace SFG
 
 	vekt::input_event_result gui_builder::on_resource_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase)
 	{
-		if (ev.type != vekt::input_event_type::pressed || ev.button != static_cast<uint16>(input_code::mouse_0))
+		if (ev.type != vekt::input_event_type::pressed || ev.button != static_cast<u16>(input_code::mouse_0))
 			return vekt::input_event_result::not_handled;
 
 		gui_builder* gb = static_cast<gui_builder*>(b->widget_get_user_data(widget).ptr);
@@ -687,12 +687,12 @@ namespace SFG
 			void*					   ptr = ref->field->value(ref->obj).cast_ptr<void>();
 
 			if (ft == reflected_field_type::rf_vector2 || ft == reflected_field_type::rf_vector3 || ft == reflected_field_type::rf_vector4 || ft == reflected_field_type::rf_color)
-				SFG_MEMCPY((uint8*)ptr + sizeof(float) * sub_index, data_ptr, sizeof(float));
+				SFG_MEMCPY((u8*)ptr + sizeof(f32) * sub_index, data_ptr, sizeof(f32));
 			else if (ft == reflected_field_type::rf_vector2ui16)
 			{
-				const float	 f	 = *reinterpret_cast<float*>(data_ptr);
-				const uint16 u16 = static_cast<uint16>(f);
-				SFG_MEMCPY((uint8*)ptr + sizeof(uint16) * sub_index, &u16, sizeof(uint16));
+				const f32	 f	 = *reinterpret_cast<f32*>(data_ptr);
+				const u16 u16 = static_cast<u16>(f);
+				SFG_MEMCPY((u8*)ptr + sizeof(u16) * sub_index, &u16, sizeof(u16));
 			}
 			else if (ft == reflected_field_type::rf_string)
 			{
@@ -701,25 +701,25 @@ namespace SFG
 			}
 			else if (ft == reflected_field_type::rf_bool)
 			{
-				const bool b = *reinterpret_cast<uint8*>(data_ptr);
+				const bool b = *reinterpret_cast<u8*>(data_ptr);
 				SFG_MEMCPY(ptr, &b, sizeof(bool));
 			}
 			else if (ft == reflected_field_type::rf_uint8 || ft == reflected_field_type::rf_enum)
 			{
-				const uint8 u8 = *reinterpret_cast<uint8*>(data_ptr);
-				SFG_MEMCPY(ptr, &u8, sizeof(uint8));
+				const u8 u8 = *reinterpret_cast<u8*>(data_ptr);
+				SFG_MEMCPY(ptr, &u8, sizeof(u8));
 			}
 			else if (ft == reflected_field_type::rf_uint)
 			{
-				const float	 f	 = *reinterpret_cast<float*>(data_ptr);
-				const uint32 u32 = static_cast<float>(f);
-				SFG_MEMCPY(ptr, &u32, sizeof(uint32));
+				const f32	 f	 = *reinterpret_cast<f32*>(data_ptr);
+				const u32 u32 = static_cast<f32>(f);
+				SFG_MEMCPY(ptr, &u32, sizeof(u32));
 			}
 			else if (ft == reflected_field_type::rf_int)
 			{
-				const float f	= *reinterpret_cast<float*>(data_ptr);
-				const int32 i32 = static_cast<int32>(f);
-				SFG_MEMCPY(ptr, &i32, sizeof(int32));
+				const f32 f	= *reinterpret_cast<f32*>(data_ptr);
+				const i32 i32 = static_cast<i32>(f);
+				SFG_MEMCPY(ptr, &i32, sizeof(i32));
 			}
 			else if (ft == reflected_field_type::rf_resource && ref->field->_is_list)
 			{
@@ -1066,7 +1066,7 @@ namespace SFG
 		return {row, w};
 	}
 
-	gui_builder::id_pair gui_builder::add_property_row_slider(const char* label, size_t buffer_capacity, float min, float max, float val, bool is_int)
+	gui_builder::id_pair gui_builder::add_property_row_slider(const char* label, size_t buffer_capacity, f32 min, f32 max, f32 val, bool is_int)
 	{
 		const id row = add_property_row();
 
@@ -1093,11 +1093,11 @@ namespace SFG
 
 		const char*				   title		 = field->_title.c_str();
 		const char*				   tooltip		 = field->_tooltip.c_str();
-		const float				   min			 = field->_min;
-		const float				   max			 = field->_max;
+		const f32				   min			 = field->_min;
+		const f32				   max			 = field->_max;
 		const reflected_field_type type			 = field->_type;
 		const string_id			   field_type_id = field->_sub_type_id;
-		const uint8				   clamped		 = field->_clamped;
+		const u8				   clamped		 = field->_clamped;
 
 		if (type == reflected_field_type::rf_bool)
 		{
@@ -1109,14 +1109,14 @@ namespace SFG
 		}
 		else if (type == reflected_field_type::rf_uint8)
 		{
-			const uint8	  val = field->value(object_ptr).cast<uint8>();
+			const u8	  val = field->value(object_ptr).cast<u8>();
 			const id_pair ids = clamped ? add_property_row_slider(title, 16, min, max, val, true) : add_property_row_slider(title, 16, 0, 255, val, true);
 			_reflected.push_back({.obj = object_ptr, .type = type_id, .field = field, .widget = ids.second});
 			return ids.first;
 		}
 		else if (type == reflected_field_type::rf_float)
 		{
-			const float val = field->value(object_ptr).cast<float>();
+			const f32 val = field->value(object_ptr).cast<f32>();
 			if (clamped)
 			{
 				const id_pair p = add_property_row_slider(title, 16, min, max, val);
@@ -1131,14 +1131,14 @@ namespace SFG
 		}
 		else if (type == reflected_field_type::rf_int)
 		{
-			const int32	  val = field->value(object_ptr).cast<int32>();
+			const i32	  val = field->value(object_ptr).cast<i32>();
 			const id_pair p	  = clamped ? add_property_row_slider(title, 16, min, max, val, true) : add_property_row_slider(title, 16, 0, UINT32_MAX, val, true);
 			_reflected.push_back({.obj = object_ptr, .type = type_id, .field = field, .widget = p.second});
 			return p.first;
 		}
 		else if (type == reflected_field_type::rf_uint)
 		{
-			const uint32  val = field->value(object_ptr).cast<uint32>();
+			const u32  val = field->value(object_ptr).cast<u32>();
 			const id_pair p	  = clamped ? add_property_row_slider(title, 16, min, max, val, true) : add_property_row_slider(title, 16, 0, UINT32_MAX, val, true);
 			_reflected.push_back({.obj = object_ptr, .type = type_id, .field = field, .widget = p.second});
 			return p.first;
@@ -1206,12 +1206,12 @@ namespace SFG
 		}
 		else if (type == reflected_field_type::rf_enum)
 		{
-			const uint8 val = field->value(object_ptr).cast<uint8>();
+			const u8 val = field->value(object_ptr).cast<u8>();
 			SFG_ASSERT(field->_enum_list.size() > val);
 
 			const id_pair ids = add_property_row_dropdown(title, field->_enum_list[val].c_str(), 256);
 
-			uint8 i = 0;
+			u8 i = 0;
 			for (const malloc_string& str : field->_enum_list)
 			{
 				add_dropdown_item(ids.second, str.c_str(), val == i);
@@ -1229,9 +1229,9 @@ namespace SFG
 			if (field->_is_list)
 			{
 				vector<resource_handle>& v	= field->value(object_ptr).cast_ref<vector<resource_handle>>();
-				const uint32			 sz = static_cast<uint32>(v.size());
+				const u32			 sz = static_cast<u32>(v.size());
 
-				for (uint32 i = 0; i < sz; i++)
+				for (u32 i = 0; i < sz; i++)
 				{
 					const resource_handle h	 = v[i];
 					vekt::id			  pp = NULL_WIDGET_ID;
@@ -1311,7 +1311,7 @@ namespace SFG
 		return {id0, id1};
 	}
 
-	gui_builder::id_trip gui_builder::add_property_row_text_field(const char* label, const char* text, size_t buffer_capacity, gui_text_field_type type, unsigned int decimals, float increment)
+	gui_builder::id_trip gui_builder::add_property_row_text_field(const char* label, const char* text, size_t buffer_capacity, gui_text_field_type type, unsigned int decimals, f32 increment)
 	{
 		const id row = add_property_row();
 
@@ -1328,7 +1328,7 @@ namespace SFG
 		return {row, field.first, field.second};
 	}
 
-	gui_builder::id_trip gui_builder::add_property_row_vector2(const char* label, const char* text, size_t buffer_capacity, unsigned int decimals, float increment)
+	gui_builder::id_trip gui_builder::add_property_row_vector2(const char* label, const char* text, size_t buffer_capacity, unsigned int decimals, f32 increment)
 	{
 		const id row = add_property_row();
 
@@ -1350,7 +1350,7 @@ namespace SFG
 		return {row, x.first, y.first};
 	}
 
-	gui_builder::id_quat gui_builder::add_property_row_vector3(const char* label, const char* text, size_t buffer_capacity, unsigned int decimals, float increment)
+	gui_builder::id_quat gui_builder::add_property_row_vector3(const char* label, const char* text, size_t buffer_capacity, unsigned int decimals, f32 increment)
 	{
 		const id row = add_property_row();
 
@@ -1375,7 +1375,7 @@ namespace SFG
 		return {row, x.first, y.first, z.first};
 	}
 
-	gui_builder::id_penth gui_builder::add_property_row_vector4(const char* label, const char* text, size_t buffer_capacity, unsigned int decimals, float increment)
+	gui_builder::id_penth gui_builder::add_property_row_vector4(const char* label, const char* text, size_t buffer_capacity, unsigned int decimals, f32 increment)
 	{
 		const id row = add_property_row();
 
@@ -1477,7 +1477,7 @@ namespace SFG
 		return w;
 	}
 
-	id gui_builder::add_row_cell(float size)
+	id gui_builder::add_row_cell(f32 size)
 	{
 		const id w = new_widget(true);
 		{
@@ -1921,7 +1921,7 @@ namespace SFG
 		return {w, txt};
 	}
 
-	gui_builder::id_pair gui_builder::add_icon_button(const char* icon, size_t buffer_capacity, float size, bool is_row, vector4 color)
+	gui_builder::id_pair gui_builder::add_icon_button(const char* icon, size_t buffer_capacity, f32 size, bool is_row, vector4 color)
 	{
 		const id w = new_widget(true);
 		{
@@ -1982,7 +1982,7 @@ namespace SFG
 		return {w, txt};
 	}
 
-	gui_builder::id_pair gui_builder::add_toggle_button(const char* icon, bool toggled_on, size_t buffer_capacity, float size, bool is_row, vector4 color)
+	gui_builder::id_pair gui_builder::add_toggle_button(const char* icon, bool toggled_on, size_t buffer_capacity, f32 size, bool is_row, vector4 color)
 	{
 		const id w = new_widget(true);
 		{
@@ -2077,7 +2077,7 @@ namespace SFG
 		SFG_MEMCPY(c, (char*)text, sz);
 		tf.buffer_size	  = sz;
 		c[tf.buffer_size] = '\0';
-		tf.caret_pos	  = math::clamp(tf.caret_pos, (uint32)0, tf.buffer_size);
+		tf.caret_pos	  = math::clamp(tf.caret_pos, (u32)0, tf.buffer_size);
 		tf.caret_end_pos  = tf.caret_pos;
 		_builder->widget_update_text(tf.text_widget);
 	}
@@ -2093,7 +2093,7 @@ namespace SFG
 		set_text_field_text(*it, text);
 	}
 
-	void gui_builder::set_text_field_value(vekt::id id, float f, bool skip_if_focused, bool is_int)
+	void gui_builder::set_text_field_value(vekt::id id, f32 f, bool skip_if_focused, bool is_int)
 	{
 		auto it = vector_util::find_if(_text_fields, [id](const gui_text_field& tf) -> bool { return tf.widget == id; });
 		SFG_ASSERT(it != _text_fields.end());
@@ -2106,7 +2106,7 @@ namespace SFG
 		char* cur = (char*)it->buffer;
 		if (is_int)
 		{
-			const int32 i = static_cast<int32>(f);
+			const i32 i = static_cast<i32>(f);
 			char_util::append_i32(cur, cur + it->buffer_capacity, i);
 		}
 		else
@@ -2161,7 +2161,7 @@ namespace SFG
 		}
 	}
 
-	gui_builder::id_pair gui_builder::add_text_field(const char* text, size_t buffer_capacity, gui_text_field_type type, unsigned int decimals, float increment, float min, float max, float val, unsigned char is_slider, unsigned int sub_index)
+	gui_builder::id_pair gui_builder::add_text_field(const char* text, size_t buffer_capacity, gui_text_field_type type, unsigned int decimals, f32 increment, f32 min, f32 max, f32 val, unsigned char is_slider, unsigned int sub_index)
 	{
 		const id w = new_widget(true);
 		{
@@ -2237,7 +2237,7 @@ namespace SFG
 			.buffer			 = tp.text,
 			.widget			 = w,
 			.text_widget	 = txt,
-			.buffer_size	 = text == nullptr ? 0 : static_cast<uint32>(strlen(text)),
+			.buffer_size	 = text == nullptr ? 0 : static_cast<u32>(strlen(text)),
 			.buffer_capacity = static_cast<unsigned int>(tp.text_capacity),
 			.decimals		 = decimals,
 			.sub_index		 = sub_index,
@@ -2504,7 +2504,7 @@ namespace SFG
 
 		const char* stored = editor::get().get_text_allocator().allocate(label);
 		if (is_selected)
-			it->selected = static_cast<uint8>(it->items.size());
+			it->selected = static_cast<u8>(it->items.size());
 
 		it->items.push_back(stored);
 
@@ -2517,7 +2517,7 @@ namespace SFG
 
 	vekt::input_event_result gui_builder::on_dropdown_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase)
 	{
-		if (ev.type != vekt::input_event_type::pressed || ev.button != static_cast<uint16>(input_code::mouse_0))
+		if (ev.type != vekt::input_event_type::pressed || ev.button != static_cast<u16>(input_code::mouse_0))
 			return vekt::input_event_result::not_handled;
 
 		gui_builder* gb = static_cast<gui_builder*>(b->widget_get_user_data(widget).ptr);
@@ -2527,9 +2527,9 @@ namespace SFG
 		gb->_dropdown_ctx_bindings.resize(0);
 
 		editor::get().get_gui_controller().begin_context_menu(ev.position.x, ev.position.y);
-		const uint8 sz = static_cast<uint8>(it->items.size());
+		const u8 sz = static_cast<u8>(it->items.size());
 
-		for (uint8 i = 0; i < sz; ++i)
+		for (u8 i = 0; i < sz; ++i)
 		{
 			const char*	   item_label = it->items[i];
 			const vekt::id btn		  = editor::get().get_gui_controller().add_context_menu_item_toggle(item_label, i == it->selected);

@@ -56,8 +56,8 @@ namespace SFG
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;
 #endif
-		uint8		   _texture_format = 0;
-		bitmask<uint8> _flags		   = 0;
+		u8		   _texture_format = 0;
+		bitmask<u8> _flags		   = 0;
 	};
 
 	REFLECT_TYPE(texture);

@@ -35,9 +35,9 @@ namespace SFG
 	struct draw_command
 	{
 		// geometry
-		uint32 start_index = 0;
-		uint32 index_count = 0;
-		uint32 base_vertex = 0;
+		u32 start_index = 0;
+		u32 index_count = 0;
+		u32 base_vertex = 0;
 
 		// state bindings
 		gpu_index material_constant_index = NULL_GPU_INDEX;
@@ -55,16 +55,16 @@ namespace SFG
 		gfx_id ib_hw	   = NULL_GFX_ID;
 		gfx_id pipeline_hw = NULL_GFX_ID;
 
-		uint16 vertex_size = 0;
-		uint16 priority	   = 0;
+		u16 vertex_size = 0;
+		u16 priority	= 0;
 	};
 
 	struct draw_command_distance
 	{
 		// geometry
-		uint32 start_index = 0;
-		uint32 index_count = 0;
-		uint32 base_vertex = 0;
+		u32 start_index = 0;
+		u32 index_count = 0;
+		u32 base_vertex = 0;
 
 		// state bindings
 		gpu_index material_constant_index = NULL_GPU_INDEX;
@@ -82,19 +82,19 @@ namespace SFG
 		gfx_id ib_hw	   = NULL_GFX_ID;
 		gfx_id pipeline_hw = NULL_GFX_ID;
 
-		uint16 vertex_size = 0;
-		uint16 priority	   = 0;
+		u16 vertex_size = 0;
+		u16 priority	= 0;
 
-		float distance = 0.0f;
+		f32 distance = 0.0f;
 	};
 
 	struct draw_command_gui
 	{
 		vector4ui16 clip = vector4ui16::zero;
 
-		uint32 start_index = 0;
-		uint32 index_count = 0;
-		uint32 base_vertex = 0;
+		u32 start_index = 0;
+		u32 index_count = 0;
+		u32 base_vertex = 0;
 
 		gpu_index material_constant_index = NULL_GPU_INDEX;
 		gpu_index texture_constant_index  = NULL_GPU_INDEX;
@@ -104,13 +104,13 @@ namespace SFG
 		gfx_id ib_hw	   = NULL_GFX_ID;
 		gfx_id pipeline_hw = NULL_GFX_ID;
 
-		uint16 vertex_size = 0;
-		uint8  idx_size	   = 0;
+		u16 vertex_size = 0;
+		u8	idx_size	= 0;
 	};
 
 	struct draw_command_particle
 	{
-		uint32	  system_index		   = 0;
+		u32		  system_index		   = 0;
 		gpu_index material_index	   = NULL_GPU_INDEX;
 		gpu_index texture_buffer_index = NULL_GPU_INDEX;
 		gfx_id	  pipeline_hw		   = 0;
@@ -118,8 +118,8 @@ namespace SFG
 
 	struct draw_command_sprite
 	{
-		uint32	  start_instance		  = 0;
-		uint32	  instance_count		  = 0;
+		u32		  start_instance		  = 0;
+		u32		  instance_count		  = 0;
 		gpu_index material_constant_index = NULL_GPU_INDEX;
 		gpu_index texture_constant_index  = NULL_GPU_INDEX;
 		gpu_index sampler_constant_index  = NULL_GPU_INDEX;
@@ -138,7 +138,7 @@ namespace SFG
 	{
 		gfx_id pipeline = NULL_GFX_ID;
 
-		inline uint8 diff_mask(gfx_id cur_pipe)
+		inline u8 diff_mask(gfx_id cur_pipe)
 		{
 			if (cur_pipe == pipeline)
 				return 0;
@@ -147,7 +147,7 @@ namespace SFG
 			return 1;
 		}
 
-		inline static uint32 make_sort_key(gfx_id pipeline)
+		inline static u32 make_sort_key(gfx_id pipeline)
 		{
 			return pipeline;
 		}
@@ -159,9 +159,9 @@ namespace SFG
 		gfx_id ib		= NULL_GFX_ID;
 		gfx_id pipeline = NULL_GFX_ID;
 
-		inline uint8 diff_mask(gfx_id cur_pipe, gfx_id cur_ib, gfx_id cur_vb)
+		inline u8 diff_mask(gfx_id cur_pipe, gfx_id cur_ib, gfx_id cur_vb)
 		{
-			uint8 mask = 0;
+			u8 mask = 0;
 			if (cur_pipe != pipeline)
 				mask |= 1u;
 			if (cur_ib != ib)
@@ -179,12 +179,12 @@ namespace SFG
 			return mask;
 		}
 
-		inline static uint64 make_sort_key(gfx_id pipeline, gfx_id vb, gfx_id ib)
+		inline static u64 make_sort_key(gfx_id pipeline, gfx_id vb, gfx_id ib)
 		{
-			constexpr uint32 PIPE_BITS = 20;
-			constexpr uint32 IB_BITS   = 22;
-			constexpr uint32 VB_BITS   = 22;
-			return ((uint64)pipeline << (IB_BITS + VB_BITS)) | ((uint64)ib << VB_BITS) | ((uint64)vb);
+			constexpr u32 PIPE_BITS = 20;
+			constexpr u32 IB_BITS	= 22;
+			constexpr u32 VB_BITS	= 22;
+			return ((u64)pipeline << (IB_BITS + VB_BITS)) | ((u64)ib << VB_BITS) | ((u64)vb);
 		}
 	};
 
@@ -198,8 +198,8 @@ namespace SFG
 
 	private:
 		draw_command* _commands		  = nullptr;
-		uint32		  _max_commands	  = 0;
-		uint32		  _commands_count = 0;
+		u32			  _max_commands	  = 0;
+		u32			  _commands_count = 0;
 	};
 
 	class draw_stream_distance
@@ -212,8 +212,8 @@ namespace SFG
 
 	private:
 		draw_command_distance* _commands	   = nullptr;
-		uint32				   _max_commands   = 0;
-		uint32				   _commands_count = 0;
+		u32					   _max_commands   = 0;
+		u32					   _commands_count = 0;
 	};
 
 	class draw_stream_gui
@@ -227,8 +227,8 @@ namespace SFG
 
 	private:
 		draw_command_gui* _commands		  = nullptr;
-		uint32			  _max_commands	  = 0;
-		uint32			  _commands_count = 0;
+		u32				  _max_commands	  = 0;
+		u32				  _commands_count = 0;
 	};
 
 	class draw_stream_particle
@@ -236,13 +236,13 @@ namespace SFG
 	public:
 		void prepare(bump_allocator& alloc, size_t max_commands);
 		void build();
-		void draw(gfx_id command_buffer, gfx_id indirect_buffer, gfx_id indirect_signature, uint32 indirect_buffer_size, uint32 max_instances_per_system);
+		void draw(gfx_id command_buffer, gfx_id indirect_buffer, gfx_id indirect_signature, u32 indirect_buffer_size, u32 max_instances_per_system);
 		void add_command(const draw_command_particle& cmd);
 
 	private:
 		draw_command_particle* _commands	   = nullptr;
-		uint32				   _max_commands   = 0;
-		uint32				   _commands_count = 0;
+		u32					   _max_commands   = 0;
+		u32					   _commands_count = 0;
 	};
 
 	class draw_stream_sprite
@@ -254,8 +254,8 @@ namespace SFG
 		void add_command(const draw_command_sprite& cmd);
 
 	private:
-		draw_command_sprite* _commands	   = nullptr;
-		uint32				 _max_commands   = 0;
-		uint32				 _commands_count = 0;
+		draw_command_sprite* _commands		 = nullptr;
+		u32					 _max_commands	 = 0;
+		u32					 _commands_count = 0;
 	};
 }

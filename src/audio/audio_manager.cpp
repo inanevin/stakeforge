@@ -56,7 +56,7 @@ namespace SFG
 		_engine = nullptr;
 	}
 
-	void audio_manager::set_engine_volume(float f)
+	void audio_manager::set_engine_volume(f32 f)
 	{
 		ma_engine_set_volume(_engine, f);
 	}

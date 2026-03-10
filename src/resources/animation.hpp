@@ -43,24 +43,24 @@ namespace SFG
 	{
 		animation_interpolation interpolation = animation_interpolation::linear;
 		chunk_handle32			keyframes;
-		uint16					keyframes_count = 0;
-		int16					node_index		= -1;
+		u16					keyframes_count = 0;
+		i16					node_index		= -1;
 
 		void	create_from_loader(const animation_channel_v3_raw& raw, chunk_allocator32& alloc);
 		void	destroy(chunk_allocator32& alloc);
-		vector3 sample(float time, chunk_allocator32& alloc) const;
+		vector3 sample(f32 time, chunk_allocator32& alloc) const;
 	};
 
 	struct animation_channel_q
 	{
 		animation_interpolation interpolation = animation_interpolation::linear;
 		chunk_handle32			keyframes;
-		uint16					keyframes_count = 0;
-		int16					node_index		= -1;
+		u16					keyframes_count = 0;
+		i16					node_index		= -1;
 
 		void create_from_loader(const animation_channel_q_raw& raw, chunk_allocator32& alloc);
 		void destroy(chunk_allocator32& alloc);
-		quat sample(float time, chunk_allocator32& alloc) const;
+		quat sample(f32 time, chunk_allocator32& alloc) const;
 	};
 
 	class animation
@@ -93,37 +93,37 @@ namespace SFG
 			return _scale_channels;
 		}
 
-		inline uint16 get_position_channels_count() const
+		inline u16 get_position_channels_count() const
 		{
 			return _position_count;
 		}
 
-		inline uint16 get_rotation_channels_count() const
+		inline u16 get_rotation_channels_count() const
 		{
 			return _rotation_count;
 		}
 
-		inline uint16 get_scale_channels_count() const
+		inline u16 get_scale_channels_count() const
 		{
 			return _scale_count;
 		}
 
-		inline float get_duration() const
+		inline f32 get_duration() const
 		{
 			return _duration;
 		}
 
 	private:
-		float _duration = 0.0f;
+		f32 _duration = 0.0f;
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;
 #endif
 		chunk_handle32 _position_channels;
 		chunk_handle32 _scale_channels;
 		chunk_handle32 _rotation_channels;
-		uint16		   _position_count = 0;
-		uint16		   _rotation_count = 0;
-		uint16		   _scale_count	   = 0;
+		u16		   _position_count = 0;
+		u16		   _rotation_count = 0;
+		u16		   _scale_count	   = 0;
 	};
 
 	REFLECT_TYPE(animation);

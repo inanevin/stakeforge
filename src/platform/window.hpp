@@ -46,30 +46,30 @@ namespace SFG
 		// lifecycle
 		// -----------------------------------------------------------------------------
 
-		bool create(const char* title, uint16 flags, const vector2i16& pos, const vector2ui16& size);
+		bool create(const char* title, u16 flags, const vector2i16& pos, const vector2ui16& size);
 		void destroy();
 
 		// -----------------------------------------------------------------------------
 		// window api
 		// -----------------------------------------------------------------------------
 
-		void		 set_position(const vector2i16& pos);
-		void		 maximize();
-		void		 set_size(const vector2ui16& size);
-		void		 set_style(window_flags flags);
-		void		 bring_to_front();
-		void		 confine_cursor(cursor_confinement conf);
-		void		 set_cursor_visible(bool vis);
-		static void	 set_cursor_state(cursor_state cs);
-		bool		 is_maximized() const;
-		static void	 query_all_monitors(vector<monitor_info>& out_info);
-		static float get_wheel_delta();
+		void		set_position(const vector2i16& pos);
+		void		maximize();
+		void		set_size(const vector2ui16& size);
+		void		set_style(window_flags flags);
+		void		bring_to_front();
+		void		confine_cursor(cursor_confinement conf);
+		void		set_cursor_visible(bool vis);
+		static void set_cursor_state(cursor_state cs);
+		bool		is_maximized() const;
+		static void query_all_monitors(vector<monitor_info>& out_info);
+		static f32	get_wheel_delta();
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		static bool is_key_down(uint16 key);
+		static bool is_key_down(u16 key);
 
 		inline const vector2i16 get_position() const
 		{
@@ -94,7 +94,7 @@ namespace SFG
 			return _platform_handle;
 		}
 
-		inline const bitmask<uint16>& get_flags() const
+		inline const bitmask<u16>& get_flags() const
 		{
 			return _flags;
 		}
@@ -138,7 +138,7 @@ namespace SFG
 #ifdef SFG_PLATFORM_WINDOWS
 		static __int64 wnd_proc(HWND__* hwnd, unsigned int msg, unsigned __int64 wParam, __int64 lParam);
 #endif
-		static float UI_SCALE;
+		static f32 UI_SCALE;
 
 	private:
 		void add_event(const window_event& ev);
@@ -155,9 +155,9 @@ namespace SFG
 		vector2i16			_position			= vector2i16::zero;
 		vector2ui16			_true_size			= vector2ui16::zero;
 		vector2ui16			_size				= vector2ui16::zero;
-		bitmask<uint16>		_flags				= 0;
+		bitmask<u16>		_flags				= 0;
 		vector<string>		_dropped_files;
-		static uint8		s_key_down_map[512];
+		static u8			s_key_down_map[512];
 		static cursor_state s_cursor_state;
 	};
 

@@ -53,8 +53,8 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		void set_mesh(world& w, resource_handle mesh, resource_handle skin, resource_handle* materials, uint16 materials_count, world_handle* skin_node_entities, uint16 skin_node_entity_count);
-		void set_material(world& w, resource_handle material, uint32 index);
+		void set_mesh(world& w, resource_handle mesh, resource_handle skin, resource_handle* materials, u16 materials_count, world_handle* skin_node_entities, u16 skin_node_entity_count);
+		void set_material(world& w, resource_handle material, u32 index);
 
 		inline resource_handle get_mesh() const
 		{
@@ -71,9 +71,9 @@ namespace SFG
 			return _materials;
 		}
 
-		inline uint16 get_materials_count() const
+		inline u16 get_materials_count() const
 		{
-			return static_cast<uint16>(_materials.size());
+			return static_cast<u16>(_materials.size());
 		}
 
 		inline const vector<world_handle>& get_skin_entities() const
@@ -81,9 +81,9 @@ namespace SFG
 			return _skin_entities;
 		}
 
-		inline uint16 get_skin_entities_count() const
+		inline u16 get_skin_entities_count() const
 		{
-			return static_cast<uint16>(_skin_entities.size());
+			return static_cast<u16>(_skin_entities.size());
 		}
 
 	private:

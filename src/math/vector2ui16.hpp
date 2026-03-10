@@ -40,8 +40,8 @@ namespace SFG
 	struct vector2ui16
 	{
 	public:
-		vector2ui16() {};
-		vector2ui16(uint32 _x, uint32 _y) : x(_x), y(_y) {};
+		vector2ui16(){};
+		vector2ui16(u32 _x, u32 _y) : x(_x), y(_y){};
 
 		static vector2ui16 zero;
 		static vector2ui16 one;
@@ -54,12 +54,12 @@ namespace SFG
 			return x == other.x && y == other.y;
 		}
 
-		inline vector2ui16 operator/(uint16 val) const
+		inline vector2ui16 operator/(u16 val) const
 		{
 			return vector2ui16(x / val, y / val);
 		}
-		uint16 x = 0;
-		uint16 y = 0;
+		u16 x = 0;
+		u16 y = 0;
 	};
 
 #ifdef SFG_TOOLMODE

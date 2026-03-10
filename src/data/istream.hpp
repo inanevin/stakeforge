@@ -37,23 +37,23 @@ namespace SFG
 	class istream
 	{
 	public:
-		istream() {};
-		istream(uint8* data, size_t size)
+		istream(){};
+		istream(u8* data, size_t size)
 		{
 			_data = data;
 			_size = size;
 		}
-		void open(uint8* data, size_t size);
+		void open(u8* data, size_t size);
 		void close();
-		void create(uint8* data, size_t size);
+		void create(u8* data, size_t size);
 		void destroy();
 		void read_from_ifstream(std::ifstream& stream);
 		void read_to_raw_endian_safe(void* ptr, size_t size);
-		void read_to_raw(uint8* ptr, size_t size);
+		void read_to_raw(u8* ptr, size_t size);
 
 		template <typename T> void read(T& t)
 		{
-			SFG_MEMCPY(reinterpret_cast<uint8*>(&t), &_data[_index], sizeof(T));
+			SFG_MEMCPY(reinterpret_cast<u8*>(&t), &_data[_index], sizeof(T));
 			_index += sizeof(T);
 		}
 
@@ -77,12 +77,12 @@ namespace SFG
 			return _size == 0;
 		}
 
-		inline uint8* get_raw() const
+		inline u8* get_raw() const
 		{
 			return _data;
 		}
 
-		inline uint8* get_data_current()
+		inline u8* get_data_current()
 		{
 			return &_data[_index];
 		}
@@ -103,7 +103,7 @@ namespace SFG
 		}
 
 	private:
-		uint8* _data  = nullptr;
+		u8*	   _data  = nullptr;
 		size_t _index = 0;
 		size_t _size  = 0;
 	};
@@ -118,7 +118,7 @@ namespace SFG
 
 	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, istream&> operator>>(istream& stream, T& val)
 	{
-		uint8 u8 = 0;
+		u8 u8 = 0;
 		stream >> u8;
 		val = static_cast<std::remove_reference_t<T>>(u8);
 		return stream;
@@ -126,7 +126,7 @@ namespace SFG
 
 	inline istream& operator>>(istream& stream, string& val)
 	{
-		uint32 sz = 0;
+		u32 sz = 0;
 		stream >> sz;
 		val = string(reinterpret_cast<char*>(stream.get_data_current()), sz);
 		stream.skip_by(sz);

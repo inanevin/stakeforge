@@ -52,10 +52,10 @@ namespace SFG
 	{
 #ifdef SFG_TOOLMODE
 		static void append_entity_components_as_json(
-			nlohmann::json& out_components_array, world_handle entity, uint32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<uint32, int32>& index_by_world, vector<string>& out_resource_paths);
+			nlohmann::json& out_components_array, world_handle entity, u32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<u32, i32>& index_by_world, vector<string>& out_resource_paths);
 		static void						  component_json_to_component_buffer(const nlohmann::json& comp_json, ostream& out_buffer);
-		static void						  entity_components_to_component_buffer(world_handle entity, uint32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<uint32, int32>& index_by_world, ostream& out_buffer);
-		static entity_template_entity_raw entity_to_entity_template_entity_raw(world_handle entity, entity_manager& em, resource_manager& rm, const hash_map<uint32, int32>& index_by_world);
+		static void						  entity_components_to_component_buffer(world_handle entity, u32 entity_index, entity_manager& em, component_manager& cm, resource_manager& rm, const hash_map<u32, i32>& index_by_world, ostream& out_buffer);
+		static entity_template_entity_raw entity_to_entity_template_entity_raw(world_handle entity, entity_manager& em, resource_manager& rm, const hash_map<u32, i32>& index_by_world);
 #endif
 
 		static void fill_components_from_buffer(istream& in, const static_vector<world_handle, 1024>& created, component_manager& cm, resource_manager& rm, world& w);

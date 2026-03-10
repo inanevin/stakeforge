@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -34,7 +34,7 @@ namespace SFG
 {
 	bool aabb::is_inside_plane(const vector3& center, const plane& plane)
 	{
-		const float r = bounds_half_extent.x * math::abs(plane.normal.x) + bounds_half_extent.y * math::abs(plane.normal.y) + bounds_half_extent.z * math::abs(plane.normal.z);
+		const f32 r = bounds_half_extent.x * math::abs(plane.normal.x) + bounds_half_extent.y * math::abs(plane.normal.y) + bounds_half_extent.z * math::abs(plane.normal.z);
 		return -r <= plane.get_signed_distance(center);
 	}
 	vector3 aabb::get_positive(const vector3& normal) const

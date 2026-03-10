@@ -66,7 +66,7 @@ namespace SFG
 		struct render_params
 		{
 			gfx_id			cmd_buffer;
-			uint8			frame_index;
+			u8			frame_index;
 			bump_allocator& alloc;
 			vector2ui16		size;
 			gfx_id			global_layout;
@@ -94,7 +94,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void	  prepare(proxy_manager& pm, gfx_id cmd_buffer, uint8 frame_index);
+		void	  prepare(proxy_manager& pm, gfx_id cmd_buffer, u8 frame_index);
 		void	  render(const render_params& p);
 		void	  resize(const vector2ui16& size);
 		gpu_index get_atlas_gpu_index(vekt::atlas* atl);
@@ -103,7 +103,7 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gpu_index get_output_gpu_index(uint8 frame) const
+		inline gpu_index get_output_gpu_index(u8 frame) const
 		{
 			return _pfd[frame].gpu_index_rt;
 		}
@@ -112,11 +112,11 @@ namespace SFG
 		struct gui_draw_call
 		{
 			vector4ui16				  scissors		  = vector4ui16::zero;
-			uint32					  atlas_gpu_index = 0;
+			u32					  atlas_gpu_index = 0;
 			gfx_id					  shader		  = 0;
-			uint16					  start_vtx		  = 0;
-			uint16					  start_idx		  = 0;
-			uint16					  index_count	  = 0;
+			u16					  start_vtx		  = 0;
+			u16					  start_idx		  = 0;
+			u16					  index_count	  = 0;
 			editor_gui_user_data_type ud_type		  = editor_gui_user_data_type::none;
 		};
 
@@ -125,11 +125,11 @@ namespace SFG
 			buffer_cpu_gpu buf_gui_vtx	   = {};
 			buffer_cpu_gpu buf_gui_idx	   = {};
 			buffer_gpu	   buf_pass_data   = {};
-			uint32		   counter_vtx	   = 0;
-			uint32		   counter_idx	   = 0;
+			u32		   counter_vtx	   = 0;
+			u32		   counter_idx	   = 0;
 			gpu_index	   gpu_index_rt	   = NULL_GPU_INDEX;
 			gfx_id		   hw_rt		   = NULL_GFX_ID;
-			uint16		   draw_call_count = 0;
+			u16		   draw_call_count = 0;
 
 			inline void reset()
 			{
@@ -141,15 +141,15 @@ namespace SFG
 		struct gui_pass_view
 		{
 			matrix4x4 proj			= matrix4x4::identity;
-			float	  sdf_thickness = 0.5f;
-			float	  sdf_softness	= 0.02f;
+			f32	  sdf_thickness = 0.5f;
+			f32	  sdf_softness	= 0.02f;
 		};
 
 		struct atlas_ref
 		{
 			vekt::atlas*   atlas			   = nullptr;
 			gfx_id		   texture			   = 0;
-			uint32		   texture_gpu_index   = 0;
+			u32		   texture_gpu_index   = 0;
 			gfx_id		   intermediate_buffer = 0;
 			texture_buffer buffer			   = {};
 
@@ -172,7 +172,7 @@ namespace SFG
 			static_vector<atlas_ref, 4> atlases;
 			texture_queue*				texture_queue = nullptr;
 			vector2ui16					screen_size	  = vector2ui16::zero;
-			uint64						frame_counter = 0;
+			u64						frame_counter = 0;
 		};
 
 	private:
@@ -181,7 +181,7 @@ namespace SFG
 		void create_textures(const vector2ui16& size);
 		void destroy_textures();
 
-		void		draw_vekt(uint8 frame_index, const vekt::draw_buffer& buffer);
+		void		draw_vekt(u8 frame_index, const vekt::draw_buffer& buffer);
 		static void on_atlas_created(vekt::atlas* atlas, void* user_data);
 		static void on_atlas_updated(vekt::atlas* atlas, void* user_data);
 		static void on_atlas_destroyed(vekt::atlas* atlas, void* user_data);
@@ -192,12 +192,12 @@ namespace SFG
 		per_frame_data _pfd[BACK_BUFFER_COUNT] = {};
 		gui_draw_call  _gui_draw_calls[128]	   = {};
 
-		static constexpr uint8 SNAPSHOTS_SIZE = 3;
+		static constexpr u8 SNAPSHOTS_SIZE = 3;
 
 		// GUI snapshot mailbox (lock-free)
 		vekt::snapshot* _snapshots		 = nullptr;
-		atomic<int8>	_snapshot_latest = UINT32_MAX;
-		atomic<int8>	_snapshot_in_use = 0;
-		uint8			_snapshot_write	 = 0;
+		atomic<i8>		_snapshot_latest = UINT32_MAX;
+		atomic<i8>		_snapshot_in_use = 0;
+		u8			_snapshot_write	 = 0;
 	};
 }

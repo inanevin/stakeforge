@@ -70,12 +70,12 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline uint16 get_node_index() const
+		inline u16 get_node_index() const
 		{
 			return _node_index;
 		}
 
-		inline uint16 get_skin_index() const
+		inline u16 get_skin_index() const
 		{
 			return _skin_index;
 		}
@@ -90,7 +90,7 @@ namespace SFG
 			return _material_indices;
 		}
 
-		inline uint16 get_material_count() const
+		inline u16 get_material_count() const
 		{
 			return _material_count;
 		}
@@ -105,12 +105,12 @@ namespace SFG
 			return _collider_indices;
 		}
 
-		inline uint32 get_collider_vertex_count() const
+		inline u32 get_collider_vertex_count() const
 		{
 			return _collider_vertex_count;
 		}
 
-		inline uint32 get_collider_index_count() const
+		inline u32 get_collider_index_count() const
 		{
 			return _collider_index_count;
 		}
@@ -132,15 +132,15 @@ namespace SFG
 		chunk_handle32 _name;
 #endif
 		chunk_handle32 _material_indices	  = {};
-		uint16		   _material_count		  = 0;
-		uint16		   _node_index			  = 0;
-		int16		   _skin_index			  = 0;
+		u16		   _material_count		  = 0;
+		u16		   _node_index			  = 0;
+		i16		   _skin_index			  = 0;
 		chunk_handle32 _collider_vertices	  = {};
 		chunk_handle32 _collider_indices	  = {};
 		chunk_handle32 _mesh_shape			  = {};
-		uint32		   _collider_vertex_count = 0;
-		uint32		   _collider_index_count  = 0;
-		bitmask<uint8> _flags				  = 0;
+		u32		   _collider_vertex_count = 0;
+		u32		   _collider_index_count  = 0;
+		bitmask<u8> _flags				  = 0;
 	};
 
 	REFLECT_TYPE(mesh);

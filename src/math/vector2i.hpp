@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -35,7 +35,7 @@ namespace SFG
 	{
 	public:
 		vector2i(){};
-		vector2i(int32 _x, int32 _y) : x(_x), y(_y){};
+		vector2i(i32 _x, i32 _y) : x(_x), y(_y){};
 		vector2i(const vector2ui& v);
 
 		static vector2i zero;
@@ -53,8 +53,8 @@ namespace SFG
 			return vector2i(x + other.x, y + other.y);
 		}
 
-		int32 x = 0;
-		int32 y = 0;
+		i32 x = 0;
+		i32 y = 0;
 	};
 
 }

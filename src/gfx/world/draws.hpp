@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,12 +31,12 @@ namespace SFG
 
 	struct indexed_draw
 	{
-		uint32	  entity_idx		 = 0;
-		uint32	  base_vertex		 = 0;
-		uint32	  index_count		 = 0;
-		uint32	  instance_count	 = 0;
-		uint32	  start_index		 = 0;
-		uint32	  start_instance	 = 0;
+		u32		  entity_idx		 = 0;
+		u32		  base_vertex		 = 0;
+		u32		  index_count		 = 0;
+		u32		  instance_count	 = 0;
+		u32		  start_index		 = 0;
+		u32		  start_instance	 = 0;
 		gpu_index gpu_index_material = 0;
 		gpu_index gpu_index_textures = 0;
 		gfx_id	  pipeline			 = 0;

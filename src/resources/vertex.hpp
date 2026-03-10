@@ -70,7 +70,7 @@ namespace SFG
 		vector3 pos		  = vector3::zero;
 		vector3 next_pos  = vector3::zero;
 		vector4 color	  = vector4::zero;
-		float	direction = 0.0f;
+		f32	direction = 0.0f;
 	};
 
 	struct vertex_gui

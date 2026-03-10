@@ -90,7 +90,7 @@ namespace SFG
 			gfx_id				 lighting_texture;
 			gfx_id				 post_combiner_texture;
 			gfx_id				 canvas_input_texture;
-			uint8				 frame_index;
+			u8					 frame_index;
 		};
 
 	private:
@@ -115,8 +115,8 @@ namespace SFG
 
 		struct task
 		{
-			void (*fn)(const void*) = nullptr;
-			void* ctx				= nullptr;
+			void  (*fn)(const void*) = nullptr;
+			void* ctx				 = nullptr;
 			void  operator()() const
 			{
 				fn(ctx);
@@ -136,7 +136,7 @@ namespace SFG
 			semaphore_data semp_ssao		   = {};
 			semaphore_data semp_lighting	   = {};
 			gfx_id		   cmd_upload		   = NULL_GFX_ID;
-			uint32		   _float_buffer_count = 0;
+			u32			   _float_buffer_count = 0;
 
 			inline void reset()
 			{
@@ -160,61 +160,61 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void   prepare(uint8 frame_index);
-		void   render(uint8 frame_index, gfx_id layout_global, gfx_id layout_global_compute, gfx_id bind_group_global, uint64 prev_copy, uint64 next_copy, gfx_id sem_copy);
-		void   resize(const vector2ui16& size);
-		uint32 add_to_float_buffer(uint8 frame_index, float f);
+		void prepare(u8 frame_index);
+		void render(u8 frame_index, gfx_id layout_global, gfx_id layout_global_compute, gfx_id bind_group_global, u64 prev_copy, u64 next_copy, gfx_id sem_copy);
+		void resize(const vector2ui16& size);
+		u32	 add_to_float_buffer(u8 frame_index, f32 f);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gpu_index get_output_gpu_index(uint8 frame_index)
+		inline gpu_index get_output_gpu_index(u8 frame_index)
 		{
 			return _pass_post.get_output_gpu_index(frame_index);
 		}
 
-		inline gpu_index get_albedo_gpu_index(uint8 frame_index)
+		inline gpu_index get_albedo_gpu_index(u8 frame_index)
 		{
 			return _pass_opaque.get_output_gpu_index(frame_index, 0);
 		}
 
-		inline gpu_index get_normal_gpu_index(uint8 frame_index)
+		inline gpu_index get_normal_gpu_index(u8 frame_index)
 		{
 			return _pass_opaque.get_output_gpu_index(frame_index, 1);
 		}
 
-		inline gpu_index get_orm_gpu_index(uint8 frame_index)
+		inline gpu_index get_orm_gpu_index(u8 frame_index)
 		{
 			return _pass_opaque.get_output_gpu_index(frame_index, 2);
 		}
 
-		inline gpu_index get_emissive_gpu_index(uint8 frame_index)
+		inline gpu_index get_emissive_gpu_index(u8 frame_index)
 		{
 			return _pass_opaque.get_output_gpu_index(frame_index, 3);
 		}
 
-		inline gpu_index get_lighting_gpu_index(uint8 frame_index)
+		inline gpu_index get_lighting_gpu_index(u8 frame_index)
 		{
 			return _pass_lighting.get_output_gpu_index(frame_index);
 		}
 
-		inline gpu_index get_ssao_gpu_index(uint8 frame_index)
+		inline gpu_index get_ssao_gpu_index(u8 frame_index)
 		{
 			return _pass_ssao.get_output_gpu_index(frame_index);
 		}
 
-		inline gpu_index get_bloom_gpu_index(uint8 frame_index)
+		inline gpu_index get_bloom_gpu_index(u8 frame_index)
 		{
 			return _pass_bloom.get_output_gpu_index(frame_index);
 		}
 
-		inline gpu_index get_depth_gpu_index(uint8 frame_index)
+		inline gpu_index get_depth_gpu_index(u8 frame_index)
 		{
 			return _pass_pre_depth.get_output_gpu_index(frame_index);
 		}
 
-		inline const semaphore_data& get_final_semaphore(uint8 frame_index)
+		inline const semaphore_data& get_final_semaphore(u8 frame_index)
 		{
 			return _pfd[frame_index].semp_frame;
 		}
@@ -252,10 +252,10 @@ namespace SFG
 		// world collect
 		// -----------------------------------------------------------------------------
 
-		void collect_and_upload(uint8 frame_index);
-		void collect_and_upload_entities(gfx_id cmd_buffer, uint8 frame_index);
-		void collect_and_upload_bones(gfx_id cmd_buffer, uint8 frame_index);
-		void collect_and_upload_lights(gfx_id cmd_buffer, uint8 frame_index);
+		void collect_and_upload(u8 frame_index);
+		void collect_and_upload_entities(gfx_id cmd_buffer, u8 frame_index);
+		void collect_and_upload_bones(gfx_id cmd_buffer, u8 frame_index);
+		void collect_and_upload_lights(gfx_id cmd_buffer, u8 frame_index);
 
 	private:
 		proxy_manager&			  _proxy_manager;
@@ -280,7 +280,7 @@ namespace SFG
 		render_pass_debug			  _pass_debug_rendering	  = {};
 		render_pass_object_id		  _pass_object_id		  = {};
 		render_pass_selection_outline _pass_selection_outline = {};
-		uint32						  _target_world_id		  = 0;
+		u32							  _target_world_id		  = 0;
 #endif
 
 		vector2ui16 _base_size = vector2ui16::zero;

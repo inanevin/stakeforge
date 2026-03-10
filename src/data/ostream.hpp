@@ -40,15 +40,15 @@ namespace SFG
 		void create(size_t size);
 		void destroy();
 		void write_to_ofstream(std::ofstream& stream);
-		void write_raw_endian_safe(const uint8* ptr, size_t size);
-		void write_raw(const uint8* ptr, size_t size);
+		void write_raw_endian_safe(const u8* ptr, size_t size);
+		void write_raw(const u8* ptr, size_t size);
 
 		template <typename T> void write(T& t)
 		{
 			if (_data == nullptr)
 				create(sizeof(T));
 
-			uint8* ptr	= (uint8*)&t;
+			u8*	   ptr	= (u8*)&t;
 			size_t size = sizeof(T);
 
 			check_grow(size);
@@ -61,7 +61,7 @@ namespace SFG
 			return _current_size;
 		}
 
-		inline uint8* get_raw() const
+		inline u8* get_raw() const
 		{
 			return _data;
 		}
@@ -71,7 +71,7 @@ namespace SFG
 			_current_size = size;
 		}
 
-		inline void set(size_t pad, size_t sz, uint8 val)
+		inline void set(size_t pad, size_t sz, u8 val)
 		{
 			SFG_ASSERT(sz <= _total_size);
 			SFG_MEMSET(_data + pad, val, sz);
@@ -81,7 +81,7 @@ namespace SFG
 		void check_grow(size_t sz);
 
 	private:
-		uint8* _data		 = nullptr;
+		u8*	   _data		 = nullptr;
 		size_t _current_size = 0;
 		size_t _total_size	 = 0;
 	};
@@ -100,16 +100,16 @@ namespace SFG
 	// string
 	inline ostream& operator<<(ostream& stream, const string& val)
 	{
-		const uint32 sz = static_cast<uint32>(val.size());
+		const u32 sz = static_cast<u32>(val.size());
 		stream << sz;
-		stream.write_raw_endian_safe((uint8*)val.data(), val.size());
+		stream.write_raw_endian_safe((u8*)val.data(), val.size());
 		return stream;
 	}
 
 	// enums
 	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, ostream&> operator<<(ostream& stream, T&& val)
 	{
-		const uint8 u8 = static_cast<uint8>(val);
+		const u8 u8 = static_cast<u8>(val);
 		stream << u8;
 		return stream;
 	}

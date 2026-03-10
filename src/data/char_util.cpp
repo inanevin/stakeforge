@@ -79,17 +79,17 @@ namespace SFG
 		return true;
 	}
 
-	bool char_util::append_i32(char*& cur, char* end, int32 v)
+	bool char_util::append_i32(char*& cur, char* end, i32 v)
 	{
-		return append_i64(cur, end, static_cast<int64>(v));
+		return append_i64(cur, end, static_cast<i64>(v));
 	}
 
-	bool char_util::append_u32(char*& cur, char* end, uint32 v)
+	bool char_util::append_u32(char*& cur, char* end, u32 v)
 	{
-		return append_u64(cur, end, static_cast<uint64>(v));
+		return append_u64(cur, end, static_cast<u64>(v));
 	}
 
-	bool char_util::append_i64(char*& cur, char* end, int64 v)
+	bool char_util::append_i64(char*& cur, char* end, i64 v)
 	{
 		// Need at least one char + '\0'
 		if (remaining_bytes(cur, end) < 2)
@@ -107,7 +107,7 @@ namespace SFG
 		return true;
 	}
 
-	bool char_util::append_u64(char*& cur, char* end, uint64 v)
+	bool char_util::append_u64(char*& cur, char* end, u64 v)
 	{
 		if (remaining_bytes(cur, end) < 2)
 			return false;

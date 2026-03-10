@@ -48,7 +48,7 @@ namespace SFG
 	class meta;
 	class package;
 
-	enum class view_result : uint8
+	enum class view_result : u8
 	{
 		cont,
 		stop
@@ -354,7 +354,7 @@ namespace SFG
 		{
 			resource_cache_base* cache_ptr	   = nullptr;
 			string_id			 type		   = 0;
-			uint32				 load_priority = 0;
+			u32				 load_priority = 0;
 		};
 
 	public:
@@ -535,7 +535,7 @@ namespace SFG
 
 		void*			load_from_stream(string_id type, istream& stream) const;
 		void			save_to_stream(string_id type, const void* loader, ostream& stream) const;
-		resource_handle add_from_loader(string_id type, void* loader, uint32 priority, string_id hash) const;
+		resource_handle add_from_loader(string_id type, void* loader, u32 priority, string_id hash) const;
 		void			get_loader_sub_resources(string_id type, void* loader, vector<string>& out_subs) const;
 		void			delete_loader(string_id type, void* loader) const;
 		void			destroy(string_id type, resource_handle h);
@@ -584,7 +584,7 @@ namespace SFG
 			save_to_stream(type, loader, stream);
 		}
 
-		template <typename T> inline resource_handle add_from_loader(void* loader, uint32 priority, string_id hash) const
+		template <typename T> inline resource_handle add_from_loader(void* loader, u32 priority, string_id hash) const
 		{
 			const string_id type = type_id<T>::value;
 			return add_from_loader(type, loader, priority, hash);
@@ -610,7 +610,7 @@ namespace SFG
 			string			root_dir	 = "";
 		};
 		void		add_resource_watch(resource_handle base_handle, const char* relative_path, const vector<string>& dependencies, string_id type, const char* root_dir);
-		static void on_watched_resource_modified(const char* path, uint64 last_modified, uint16 id, void* user_data);
+		static void on_watched_resource_modified(const char* path, u64 last_modified, u16 id, void* user_data);
 #endif
 
 	private:
@@ -633,15 +633,15 @@ namespace SFG
 		resource_handle		  _default_gui_mat		   = {};
 		resource_handle		  _default_gui_text_mat	   = {};
 		resource_handle		  _default_gui_sdf_mat	   = {};
-		uint32				  _max_load_priority	   = 0;
-		uint32				  _dynamic_sampler_count   = 0;
+		u32				  _max_load_priority	   = 0;
+		u32				  _dynamic_sampler_count   = 0;
 
 		// raws for defaults
 		texture_raw _dummy_color_raw   = {};
 		texture_raw _dummy_orm_raw	   = {};
 		texture_raw _dummy_normal_raw  = {};
-		uint8*		_dummy_color_data  = nullptr;
-		uint8*		_dummy_normal_data = nullptr;
-		uint8*		_dummy_orm_data	   = nullptr;
+		u8*		_dummy_color_data  = nullptr;
+		u8*		_dummy_normal_data = nullptr;
+		u8*		_dummy_orm_data	   = nullptr;
 	};
 }

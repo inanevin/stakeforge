@@ -55,7 +55,7 @@ namespace SFG
 			return _joints;
 		}
 
-		inline uint16 get_joints_count() const
+		inline u16 get_joints_count() const
 		{
 			return _joints_count;
 		}
@@ -65,8 +65,8 @@ namespace SFG
 		chunk_handle32 _name;
 #endif
 		chunk_handle32 _joints;
-		uint16		   _joints_count = 0;
-		int16		   _root		 = -1;
+		u16		   _joints_count = 0;
+		i16		   _root		 = -1;
 	};
 
 	REFLECT_TYPE(skin);

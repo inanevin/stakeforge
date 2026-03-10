@@ -68,7 +68,7 @@ namespace SFG
 		_flags.set(material_flags::material_flags_is_particle, p.pass_mode == material_pass_mode::particle);
 		_flags.set(material_flags::material_flags_is_sprite, p.pass_mode == material_pass_mode::sprite);
 
-		for (uint8 i = 0; i < p.textures_count; i++)
+		for (u8 i = 0; i < p.textures_count; i++)
 		{
 			if (p.textures[i].index == NULL_RESOURCE_ID)
 				ev.textures.push_back(DUMMY_COLOR_TEXTURE_SID);
@@ -78,7 +78,7 @@ namespace SFG
 
 		if (p.data && p.data_size != 0)
 		{
-			ev.data.data = reinterpret_cast<uint8*>(SFG_MALLOC(p.data_size));
+			ev.data.data = reinterpret_cast<u8*>(SFG_MALLOC(p.data_size));
 			ev.data.size = p.data_size;
 			if (ev.data.data != nullptr)
 				SFG_MEMCPY(ev.data.data, p.data, p.data_size);
@@ -88,7 +88,7 @@ namespace SFG
 
 		stream.add_event(
 			{
-				.index		= static_cast<uint32>(p.handle.index),
+				.index		= static_cast<u32>(p.handle.index),
 				.event_type = render_event_type::create_material,
 			},
 			ev);
@@ -108,7 +108,7 @@ namespace SFG
 			_name = alloc.allocate_text(raw.name);
 #endif
 
-		const uint8 texture_count = static_cast<uint8>(raw.textures.size());
+		const u8 texture_count = static_cast<u8>(raw.textures.size());
 		_flags.set(material_flags::material_flags_is_gbuffer, raw.pass_mode == material_pass_mode::gbuffer);
 		_flags.set(material_flags::material_flags_is_forward, raw.pass_mode == material_pass_mode::forward);
 		_flags.set(material_flags::material_flags_is_alpha_cutoff, raw.use_alpha_cutoff);
@@ -149,7 +149,7 @@ namespace SFG
 #endif
 		stream.add_event(
 			{
-				.index		= static_cast<uint32>(handle.index),
+				.index		= static_cast<u32>(handle.index),
 				.event_type = render_event_type::create_material,
 			},
 			ev);
@@ -174,7 +174,7 @@ namespace SFG
 #endif
 
 		stream.add_event({
-			.index		= static_cast<uint32>(handle.index),
+			.index		= static_cast<u32>(handle.index),
 			.event_type = render_event_type::destroy_material,
 		});
 	}
@@ -182,14 +182,14 @@ namespace SFG
 	void material::update_data(world& w, resource_handle handle, size_t padding, const void* data, size_t size)
 	{
 		const render_event_update_material_data ev = {
-			.padding = static_cast<uint32>(padding),
+			.padding = static_cast<u32>(padding),
 			.data	 = data,
-			.size	 = static_cast<uint32>(size),
+			.size	 = static_cast<u32>(size),
 		};
 
 		w.get_render_stream().add_event(
 			{
-				.index		= static_cast<uint32>(handle.index),
+				.index		= static_cast<u32>(handle.index),
 				.event_type = render_event_type::update_material_data,
 			},
 			ev);
@@ -201,22 +201,22 @@ namespace SFG
 		};
 		w.get_render_stream().add_event(
 			{
-				.index		= static_cast<uint32>(material_own_handle.index),
+				.index		= static_cast<u32>(material_own_handle.index),
 				.event_type = render_event_type::update_material_sampler,
 			},
 			ev);
 	}
-	void material::update_textures(world& w, resource_handle material_own_handle, const resource_handle* textures, uint8 start, uint8 count)
+	void material::update_textures(world& w, resource_handle material_own_handle, const resource_handle* textures, u8 start, u8 count)
 	{
 		render_event_update_material_textures ev = {};
 		ev.textures.resize(count);
 		ev.start = start;
-		for (uint8 i = 0; i < count; i++)
+		for (u8 i = 0; i < count; i++)
 			ev.textures[i] = textures[i].index;
 
 		w.get_render_stream().add_event(
 			{
-				.index		= static_cast<uint32>(material_own_handle.index),
+				.index		= static_cast<u32>(material_own_handle.index),
 				.event_type = render_event_type::update_material_textures,
 			},
 			ev);

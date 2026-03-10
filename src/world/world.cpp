@@ -210,21 +210,21 @@ namespace SFG
 		_entity_manager.instantiate_template(tr);
 	}
 
-	void world::tick(const vector2ui16& res, float dt)
+	void world::tick(const vector2ui16& res, f32 dt)
 	{
 		ZoneScoped;
 
 		// modify dt
 		dt = _time_manager.tick(dt);
 
-		const float time_speed = _time_manager.get_time_speed();
+		const f32 time_speed = _time_manager.get_time_speed();
 
 		_anim_graph.tick(*this, dt);
 		_resource_manager.tick();
 
 		if (_play_mode != play_mode::none)
 			_phy_world.simulate(dt);
-			
+
 		auto& canvases = _comp_manager.underlying_pool<comp_cache<comp_canvas, MAX_WORLD_COMP_CANVAS>, comp_canvas>();
 		for (comp_canvas& c : canvases)
 			c.draw(*this, res);
@@ -315,7 +315,7 @@ namespace SFG
 			else if (ev.type == window_event_type::wheel)
 			{
 				const vekt::input_event_result res = builder->on_mouse_wheel_event({
-					.amount = static_cast<float>(ev.value.x),
+					.amount = static_cast<f32>(ev.value.x),
 				});
 
 				handled = res == vekt::input_event_result::handled;
@@ -421,12 +421,12 @@ namespace SFG
 
 		const size_t sz = atlas->get_width() * atlas->get_height();
 
-		uint8* data = reinterpret_cast<uint8*>(SFG_MALLOC(sz));
+		u8* data = reinterpret_cast<u8*>(SFG_MALLOC(sz));
 
 		if (data != 0)
 			SFG_MEMCPY(data, atlas->get_data(), sz);
 
-		raw.load_from_data(data, vector2ui16(atlas->get_width(), atlas->get_height()), static_cast<uint8>(fmt), false);
+		raw.load_from_data(data, vector2ui16(atlas->get_width(), atlas->get_height()), static_cast<u8>(fmt), false);
 		t.create_from_loader(raw, *w, handle);
 	}
 

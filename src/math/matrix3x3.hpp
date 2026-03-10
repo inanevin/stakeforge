@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -40,19 +40,19 @@ namespace SFG
 	class matrix3x3
 	{
 	public:
-		float m[9];
+		f32 m[9];
 
 		matrix3x3() = default;
 
-		matrix3x3(float m00,
-				  float m10,
-				  float m20, // Col 0
-				  float m01,
-				  float m11,
-				  float m21, // Col 1
-				  float m02,
-				  float m12,
-				  float m22); // Col 2
+		matrix3x3(f32 m00,
+				  f32 m10,
+				  f32 m20, // Col 0
+				  f32 m01,
+				  f32 m11,
+				  f32 m21, // Col 1
+				  f32 m02,
+				  f32 m12,
+				  f32 m22); // Col 2
 
 		static const matrix3x3 identity;
 
@@ -64,13 +64,13 @@ namespace SFG
 		matrix4x4 to_matrix4x4() const;
 		matrix3x3 transposed() const;
 		matrix3x3 inversed() const;
-		float	  determinant() const;
+		f32		  determinant() const;
 
-		inline float operator[](int index) const
+		inline f32 operator[](int index) const
 		{
 			return m[index];
 		}
-		inline float& operator[](int index)
+		inline f32& operator[](int index)
 		{
 			return m[index];
 		}
@@ -120,14 +120,14 @@ namespace SFG
 			return r;
 		}
 
-		inline matrix3x3 operator*(float s) const
+		inline matrix3x3 operator*(f32 s) const
 		{
 			matrix3x3 r;
 			for (int i = 0; i < 9; ++i)
 				r.m[i] = m[i] * s;
 			return r;
 		}
-		inline matrix3x3& operator*=(float s)
+		inline matrix3x3& operator*=(f32 s)
 		{
 			for (int i = 0; i < 9; ++i)
 				m[i] *= s;

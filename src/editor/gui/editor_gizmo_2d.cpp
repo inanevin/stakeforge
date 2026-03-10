@@ -170,7 +170,7 @@ namespace SFG
 		if (_last_root_size.x <= 0.0f || _last_root_size.y <= 0.0f)
 			return false;
 
-		const vector2 mp = vector2(static_cast<float>(ev.value.x), static_cast<float>(ev.value.y)) - _last_root_pos;
+		const vector2 mp = vector2(static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y)) - _last_root_pos;
 		if (mp.x < 0 || mp.y < 0 || mp.x > _last_root_size.x || mp.y > _last_root_size.y)
 			return false;
 
@@ -188,14 +188,14 @@ namespace SFG
 		for (const icon_entry& icon : _icons)
 		{
 			vector2 screen_pos = vector2::zero;
-			float	distance   = 0.0f;
+			f32	distance   = 0.0f;
 
 			if (!screen.world_to_screen(icon.pos, screen_pos, distance))
 				continue;
 
 			tp.text = icon.icon;
 
-			float		  multip	= 25.0f / distance;
+			f32		  multip	= 25.0f / distance;
 			const vector2 text_size = vekt::builder::get_text_size(tp) * multip;
 			const vector2 rect_min	= vector2(screen_pos.x - text_size.x * 0.5f, screen_pos.y - text_size.y * 0.5f);
 			const vector2 rect_max	= rect_min + text_size;

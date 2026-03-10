@@ -46,7 +46,7 @@ namespace SFG
 		}
 	};
 
-	typedef pool_handle<uint16> pool_handle16;
-	typedef pool_handle<uint32> pool_handle32;
+	typedef pool_handle<u16> pool_handle16;
+	typedef pool_handle<u32> pool_handle32;
 
 }

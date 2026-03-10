@@ -181,7 +181,7 @@ namespace SFG
 	void from_json(const json& j, res_state_machine_parameter_raw& p)
 	{
 		p.name	= j.value<string>("name", "");
-		p.value = j.value<float>("value", 0.0f);
+		p.value = j.value<f32>("value", 0.0f);
 	}
 
 	void to_json(json& j, const res_state_machine_sample_raw& s)
@@ -220,9 +220,9 @@ namespace SFG
 	void from_json(const json& j, res_state_machine_state_raw& s)
 	{
 		s.name			   = j.value<string>("name", "");
-		s.duration		   = j.value<float>("duration", 0.0f);
-		s.speed			   = j.value<float>("speed", 1.0f);
-		s.is_looping	   = j.value<uint8>("loop", 1);
+		s.duration		   = j.value<f32>("duration", 0.0f);
+		s.speed			   = j.value<f32>("speed", 1.0f);
+		s.is_looping	   = j.value<u8>("loop", 1);
 		s.mask			   = j.value<string>("mask", "");
 		const string blend = j.value<string>("blend", "1d");
 		if (blend == "2d")
@@ -252,9 +252,9 @@ namespace SFG
 		t.from_state = j.value<string>("from", "");
 		t.to_state	 = j.value<string>("to", "");
 		t.parameter	 = j.value<string>("parameter", "");
-		t.duration	 = j.value<float>("duration", 0.0f);
-		t.target	 = j.value<float>("target", 0.0f);
-		t.priority	 = j.value<uint8>("priority", 0);
+		t.duration	 = j.value<f32>("duration", 0.0f);
+		t.target	 = j.value<f32>("target", 0.0f);
+		t.priority	 = j.value<u8>("priority", 0);
 		t.compare	 = str_to_compare(j.value<string>("compare", "greater"));
 	}
 
@@ -314,13 +314,13 @@ namespace SFG
 		istream stream = serialization::load_from_file(meta_cache_path.c_str());
 
 		string file_path				= "";
-		uint64 saved_file_last_modified = 0;
+		u64 saved_file_last_modified = 0;
 		stream >> file_path;
 		stream >> saved_file_last_modified;
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 		if (file_last_modified != saved_file_last_modified)
 			return false;
 
@@ -335,7 +335,7 @@ namespace SFG
 		const string sid_str			= std::to_string(TO_SID(name));
 		const string relative			= file_system::get_filename_from_path(name);
 		const string file_path			= resource_directory_path + name;
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + relative + "-" + sid_str + "_data" + extension;

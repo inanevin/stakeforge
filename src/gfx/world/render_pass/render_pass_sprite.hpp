@@ -30,29 +30,29 @@ namespace SFG
 
 		struct sprite_instance_data
 		{
-			uint32 entity_index = 0;
+			u32 entity_index = 0;
 		};
 
 		struct sprite_group
 		{
 			gfx_id		pipeline = NULL_GFX_ID;
 			resource_id material = NULL_RESOURCE_ID;
-			uint32		start	 = 0;
-			uint32		count	 = 0;
-			uint32		cursor	 = 0;
+			u32			start	 = 0;
+			u32			count	 = 0;
+			u32			cursor	 = 0;
 		};
 
 		struct sprite_instance
 		{
-			uint32 group		= 0;
-			uint32 idx			= 0;
-			uint32 entity_index = 0;
+			u32 group		 = 0;
+			u32 idx			 = 0;
+			u32 entity_index = 0;
 		};
 
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gfx_id			   global_layout;
 			gfx_id			   global_group;
@@ -67,14 +67,14 @@ namespace SFG
 
 		void init(const vector2ui16& size);
 		void uninit();
-		void prepare(uint8 frame_index, proxy_manager& pm, const view& main_camera_view);
+		void prepare(u8 frame_index, proxy_manager& pm, const view& main_camera_view);
 		void render(const render_params& params);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -39,13 +39,13 @@ namespace SFG
 	public:
 		static void	  init();
 		static void	  uninit();
-		static int64  get_cpu_microseconds();
-		static int64  get_cpu_cycles();
+		static i64	  get_cpu_microseconds();
+		static i64	  get_cpu_cycles();
 		static double get_cpu_seconds();
-		static double get_delta_seconds(int64 fromCycles, int64 toCycles);
-		static int64  get_delta_microseconds(int64 fromCycles, int64 toCycles);
-		static void	  throttle(int64 microseconds);
-		static void	  go_to_sleep(uint32 milliseconds);
+		static double get_delta_seconds(i64 fromCycles, i64 toCycles);
+		static i64	  get_delta_microseconds(i64 fromCycles, i64 toCycles);
+		static void	  throttle(i64 microseconds);
+		static void	  go_to_sleep(u32 milliseconds);
 		static void	  yield_thread();
 
 	private:
@@ -54,7 +54,7 @@ namespace SFG
 #endif
 
 #ifdef SFG_PLATFORM_WINDOWS
-		static int64 s_frequency;
+		static i64 s_frequency;
 #endif
 	};
 

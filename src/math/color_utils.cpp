@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	color color_utils::lerp(const color& c1, const color& c2, float a)
+	color color_utils::lerp(const color& c1, const color& c2, f32 a)
 	{
 		return color(easing::lerp(c1.x, c2.x, a), easing::lerp(c1.y, c2.y, a), easing::lerp(c1.z, c2.z, a), easing::lerp(c1.w, c2.w, a));
 	}
@@ -47,21 +47,21 @@ namespace SFG
 		if (hex[0] != '#')
 			return color::black;
 
-		uint32 r, g, b;
+		u32 r, g, b;
 
 #ifdef SFG_PLATFORM_WINDOWS
 		sscanf_s(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
 #else
 		const int ret = std::sscanf(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
 #endif
-		return color{static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, 1.0f};
+		return color{static_cast<f32>(r) / 255.0f, static_cast<f32>(g) / 255.0f, static_cast<f32>(b) / 255.0f, 1.0f};
 	}
 
 	string color_utils::to_hex(const color& color)
 	{
-		const int32		  r = static_cast<int32>(color.x * 255);
-		const int32		  g = static_cast<int32>(color.y * 255);
-		const int32		  b = static_cast<int32>(color.z * 255);
+		const i32		  r = static_cast<i32>(color.x * 255);
+		const i32		  g = static_cast<i32>(color.y * 255);
+		const i32		  b = static_cast<i32>(color.z * 255);
 		std::stringstream ss;
 		ss << "#" << std::hex << std::setfill('0') << std::setw(2) << r << std::setw(2) << g << std::setw(2) << b;
 		return ss.str();
@@ -69,12 +69,12 @@ namespace SFG
 
 	color color_utils::hs_to_srgb(const color& col)
 	{
-		const float hue		   = col.x;
-		const float saturation = col.y;
-		const float angle	   = hue * 6.0f;
-		const float r		   = math::clamp(math::abs(angle - 3.0f) - 1.0f, 0.0f, 1.0f);
-		const float g		   = math::clamp(2.0f - math::abs(angle - 2.0f), 0.0f, 1.0f);
-		const float b		   = math::clamp(2.0f - math::abs(angle - 4.0f), 0.0f, 1.0f);
+		const f32 hue		 = col.x;
+		const f32 saturation = col.y;
+		const f32 angle		 = hue * 6.0f;
+		const f32 r			 = math::clamp(math::abs(angle - 3.0f) - 1.0f, 0.0f, 1.0f);
+		const f32 g			 = math::clamp(2.0f - math::abs(angle - 2.0f), 0.0f, 1.0f);
+		const f32 b			 = math::clamp(2.0f - math::abs(angle - 4.0f), 0.0f, 1.0f);
 		return lerp(color::white, color(r, g, b, 1.0f), saturation);
 	}
 
@@ -82,9 +82,9 @@ namespace SFG
 	{
 		color hsv;
 
-		float minVal = math::min(col.x, math::min(col.y, col.z));
-		float maxVal = math::max(col.x, math::max(col.y, col.z));
-		float delta	 = maxVal - minVal;
+		f32 minVal = math::min(col.x, math::min(col.y, col.z));
+		f32 maxVal = math::max(col.x, math::max(col.y, col.z));
+		f32 delta  = maxVal - minVal;
 
 		// Hue calculation
 		if (delta == 0)
@@ -93,8 +93,8 @@ namespace SFG
 		}
 		else if (maxVal == col.x)
 		{
-			float integ = 0.0f;
-			hsv.x		= 60 * math::modf(((col.y - col.z) / delta), &integ);
+			f32 integ = 0.0f;
+			hsv.x	  = 60 * math::modf(((col.y - col.z) / delta), &integ);
 		}
 		else if (maxVal == col.y)
 		{
@@ -123,11 +123,11 @@ namespace SFG
 	color color_utils::hsv_to_srgb(const color& col)
 	{
 		color rgb;
-		float C		= col.z * col.y;
-		float integ = 0.0f;
-		float X		= C * (1 - math::abs(math::modf(col.x / 60.0f, &integ) - 1.0f));
-		float m		= col.z - C;
-		float R1, G1, B1;
+		f32	  C		= col.z * col.y;
+		f32	  integ = 0.0f;
+		f32	  X		= C * (1 - math::abs(math::modf(col.x / 60.0f, &integ) - 1.0f));
+		f32	  m		= col.z - C;
+		f32	  R1, G1, B1;
 
 		if (col.x >= 0 && col.x < 60)
 		{
@@ -176,7 +176,7 @@ namespace SFG
 
 	color color_utils::srgb_to_linear(const color& col)
 	{
-		auto convert = [](float value) {
+		auto convert = [](f32 value) {
 			if (value <= 0.04045f)
 			{
 				return value / 12.92f;
@@ -192,7 +192,7 @@ namespace SFG
 
 	color color_utils::linear_to_srgb(const color& col)
 	{
-		auto convert = [](float value) {
+		auto convert = [](f32 value) {
 			if (value <= 0.0031308f)
 			{
 				return value * 12.92f;
@@ -206,12 +206,12 @@ namespace SFG
 		return color(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
 	}
 
-	color color_utils::brighten(const color& color, float amt)
+	color color_utils::brighten(const color& color, f32 amt)
 	{
 		return lerp(color, color::white, amt);
 	}
 
-	color color_utils::darken(const color& color, float amt)
+	color color_utils::darken(const color& color, f32 amt)
 	{
 		return lerp(color, color::white, amt);
 	}

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +36,7 @@ namespace SFG
 	{
 	public:
 		vector4i16(){};
-		vector4i16(int16 _x, int16 _y, int16 _z, int16 _w) : x(_x), y(_y), z(_z), w(_w){};
+		vector4i16(i16 _x, i16 _y, i16 _z, i16 _w) : x(_x), y(_y), z(_z), w(_w){};
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -54,10 +54,10 @@ namespace SFG
 			return vector4i16(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
 
-		int16 x = 0;
-		int16 y = 0;
-		int16 z = 0;
-		int16 w = 0;
+		i16 x = 0;
+		i16 y = 0;
+		i16 z = 0;
+		i16 w = 0;
 	};
 
 }

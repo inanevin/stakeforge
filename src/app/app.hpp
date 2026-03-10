@@ -76,7 +76,7 @@ namespace SFG
 
 		inline bool get_should_exit() const
 		{
-			return _flags.is_set(static_cast<uint8>(game_app_flags::should_exit));
+			return _flags.is_set(static_cast<u8>(game_app_flags::should_exit));
 		}
 
 		inline window& get_main_window()
@@ -133,8 +133,8 @@ namespace SFG
 
 		render_event_stream _render_stream;
 		std::thread			_render_thread;
-		atomic<uint8>		_should_close;
-		atomic<uint8>		_render_joined;
-		bitmask<uint8>		_flags			 = 0;
+		atomic<u8>			_should_close;
+		atomic<u8>			_render_joined;
+		bitmask<u8>			_flags = 0;
 	};
 }

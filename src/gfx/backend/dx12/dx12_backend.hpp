@@ -112,15 +112,15 @@ namespace SFG
 		struct resource
 		{
 			D3D12MA::Allocation* ptr						= nullptr;
-			int16				 descriptor_index			= -1;
-			int16				 descriptor_index_secondary = -1;
-			uint32				 size						= 0;
+			i16				 descriptor_index			= -1;
+			i16				 descriptor_index_secondary = -1;
+			u32				 size						= 0;
 		};
 
 		struct texture_view
 		{
 			gfx_id handle = 0;
-			uint8  type	  = 0;
+			u8  type	  = 0;
 		};
 
 		struct texture
@@ -128,8 +128,8 @@ namespace SFG
 			D3D12MA::Allocation* ptr = nullptr;
 			texture_view		 views[8];
 			gfx_id				 shared_handle = 0;
-			uint8				 format		   = 0;
-			uint8				 view_count	   = 0;
+			u8				 format		   = 0;
+			u8				 view_count	   = 0;
 		};
 
 		struct texture_shared_handle
@@ -147,13 +147,13 @@ namespace SFG
 			Microsoft::WRL::ComPtr<IDXGISwapChain3> ptr = NULL;
 			Microsoft::WRL::ComPtr<ID3D12Resource>	textures[BACK_BUFFER_COUNT];
 #ifdef SFG_ENABLE_MEMORY_TRACER
-			uint32 size = 0;
+			u32 size = 0;
 #endif
 			gfx_id rtv_indices[BACK_BUFFER_COUNT] = {};
-			uint8  format						  = 0;
-			uint8  image_index					  = 0;
-			uint8  vsync						  = 0;
-			uint8  tearing						  = 0;
+			u8  format						  = 0;
+			u8  image_index					  = 0;
+			u8  vsync						  = 0;
+			u8  tearing						  = 0;
 			HANDLE frame_latency_waitable		  = NULL;
 		};
 
@@ -166,9 +166,9 @@ namespace SFG
 		{
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> ptr				   = nullptr;
 			Microsoft::WRL::ComPtr<ID3D12RootSignature> root_signature	   = nullptr;
-			uint8										indirect_signature = 0;
-			uint8										topology		   = 0;
-			uint8										owns_root_sig	   = 0;
+			u8										indirect_signature = 0;
+			u8										topology		   = 0;
+			u8										owns_root_sig	   = 0;
 		};
 
 		struct indirect_signature
@@ -178,11 +178,11 @@ namespace SFG
 
 		struct group_binding
 		{
-			uint8* constants		= nullptr;
+			u8* constants		= nullptr;
 			gfx_id descriptor_index = 0;
-			uint32 root_param_index = 0;
-			uint8  binding_type		= 0;
-			uint8  count			= 0;
+			u32 root_param_index = 0;
+			u8  binding_type		= 0;
+			u8  count			= 0;
 		};
 
 		struct bind_group
@@ -194,7 +194,7 @@ namespace SFG
 		{
 			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> ptr;
 			gfx_id											   allocator   = 0;
-			uint8											   is_transfer = 0;
+			u8											   is_transfer = 0;
 		};
 
 		struct command_allocator
@@ -223,46 +223,46 @@ namespace SFG
 		void  reset_command_buffer(gfx_id cmd_buffer);
 		void  reset_command_buffer_transfer(gfx_id cmd_buffer);
 		void  close_command_buffer(gfx_id cmd_buffer);
-		void  submit_commands(gfx_id queue, const gfx_id* commands, uint8 commands_count);
-		void  queue_wait(gfx_id queue, const gfx_id* semaphores, const uint64* semaphore_values, uint8 semaphore_count);
-		void  queue_signal(gfx_id queue, const gfx_id* semaphores, const uint64* semaphore_values, uint8 semaphore_count);
-		void  present(const gfx_id* swapchains, uint8 swapchain_count);
-		uint8 get_back_buffer_index(gfx_id swapchain);
+		void  submit_commands(gfx_id queue, const gfx_id* commands, u8 commands_count);
+		void  queue_wait(gfx_id queue, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
+		void  queue_signal(gfx_id queue, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
+		void  present(const gfx_id* swapchains, u8 swapchain_count);
+		u8 get_back_buffer_index(gfx_id swapchain);
 		void  wait_for_swapchain_latency(gfx_id swapchain);
 
-		bool compile_shader_vertex_pixel(uint8 stage, const string& source, const vector<string>& defines, const vector<string>& source_paths, const char* entry, span<uint8>& out, bool compile_layout, span<uint8>& out_layout) const;
-		bool compile_shader_compute(const string& source, const vector<string>& source_paths, const char* entry, span<uint8>& out, bool compile_layout, span<uint8>& out_layout) const;
+		bool compile_shader_vertex_pixel(u8 stage, const string& source, const vector<string>& defines, const vector<string>& source_paths, const char* entry, span<u8>& out, bool compile_layout, span<u8>& out_layout) const;
+		bool compile_shader_compute(const string& source, const vector<string>& source_paths, const char* entry, span<u8>& out, bool compile_layout, span<u8>& out_layout) const;
 
-		uint32 get_resource_gpu_index(gfx_id resource, bool use_secondary = false);
-		uint32 get_texture_gpu_index(gfx_id texture, uint8 view_index);
-		uint32 get_sampler_gpu_index(gfx_id sampler);
+		u32 get_resource_gpu_index(gfx_id resource, bool use_secondary = false);
+		u32 get_texture_gpu_index(gfx_id texture, u8 view_index);
+		u32 get_sampler_gpu_index(gfx_id sampler);
 		gfx_id create_resource(const resource_desc& desc);
 		gfx_id create_texture(const texture_desc& desc);
 		gfx_id create_sampler(const sampler_desc& desc);
 		gfx_id create_swapchain(const swapchain_desc&);
 		gfx_id recreate_swapchain(const swapchain_recreate_desc& desc);
 		gfx_id create_semaphore();
-		gfx_id create_shader(const shader_desc& desc, const vector<shader_blob>& blobs, gfx_id existing_layout, span<uint8> layout_data = {});
+		gfx_id create_shader(const shader_desc& desc, const vector<shader_blob>& blobs, gfx_id existing_layout, span<u8> layout_data = {});
 		gfx_id create_empty_bind_group();
 		gfx_id create_command_buffer(const command_buffer_desc& desc);
-		gfx_id create_command_allocator(uint8 ctype);
+		gfx_id create_command_allocator(u8 ctype);
 		gfx_id create_queue(const queue_desc& desc);
 		gfx_id create_empty_bind_layout();
 		gfx_id create_draw_indirect_signature(gfx_id bind_layout, size_t sz);
 		gfx_id create_dispatch_indirect_signature(gfx_id bind_layout, size_t sz);
 		void   destroy_indirect_signature(gfx_id sig);
-		void   bind_group_add_descriptor(gfx_id group, uint8 root_param_index, uint8 binding_type);
-		void   bind_group_add_constant(gfx_id group, uint8 root_param_index, uint8* data, uint8 count);
-		void   bind_group_add_pointer(gfx_id group, uint8 root_param_index, uint8 count, bool is_sampler);
-		void   bind_layout_add_constant(gfx_id layout, uint32 count, uint32 set, uint32 binding, uint8 shader_stage_visibility);
-		void   bind_layout_add_descriptor(gfx_id layout, uint8 type, uint32 set, uint32 binding, uint8 shader_stage_visibility);
-		void   bind_layout_add_pointer(gfx_id layout, const vector<bind_layout_pointer_param>& pointer_params, uint8 shader_stage_visibility);
-		void   bind_layout_add_immutable_sampler(gfx_id layout, uint32 set, uint32 binding, const sampler_desc& desc, uint8 shader_stage_visibility);
+		void   bind_group_add_descriptor(gfx_id group, u8 root_param_index, u8 binding_type);
+		void   bind_group_add_constant(gfx_id group, u8 root_param_index, u8* data, u8 count);
+		void   bind_group_add_pointer(gfx_id group, u8 root_param_index, u8 count, bool is_sampler);
+		void   bind_layout_add_constant(gfx_id layout, u32 count, u32 set, u32 binding, u8 shader_stage_visibility);
+		void   bind_layout_add_descriptor(gfx_id layout, u8 type, u32 set, u32 binding, u8 shader_stage_visibility);
+		void   bind_layout_add_pointer(gfx_id layout, const vector<bind_layout_pointer_param>& pointer_params, u8 shader_stage_visibility);
+		void   bind_layout_add_immutable_sampler(gfx_id layout, u32 set, u32 binding, const sampler_desc& desc, u8 shader_stage_visibility);
 		void   finalize_bind_layout(gfx_id id, bool is_compute, bool is_dyn_index, const char* name);
-		void   bind_group_update_constants(gfx_id group, uint8 binding_index, uint8* constants, uint8 count);
-		void   bind_group_update_descriptor(gfx_id group, uint8 binding_index, gfx_id resource);
-		void   bind_group_update_pointer(gfx_id group, uint8 binding_index, const bind_group_pointer* updates, uint16 update_count);
-		void   bind_group_update_pointer(gfx_id group, uint8 binding_index, const vector<bind_group_pointer>& updates);
+		void   bind_group_update_constants(gfx_id group, u8 binding_index, u8* constants, u8 count);
+		void   bind_group_update_descriptor(gfx_id group, u8 binding_index, gfx_id resource);
+		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const bind_group_pointer* updates, u16 update_count);
+		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const vector<bind_group_pointer>& updates);
 
 		void destroy_resource(gfx_id id);
 		void destroy_texture(gfx_id id);
@@ -276,8 +276,8 @@ namespace SFG
 		void destroy_queue(gfx_id id);
 		void destroy_bind_layout(gfx_id id);
 
-		void wait_semaphore(gfx_id id, uint64 value) const;
-		void map_resource(gfx_id id, uint8*& ptr) const;
+		void wait_semaphore(gfx_id id, u64 value) const;
+		void map_resource(gfx_id id, u8*& ptr) const;
 		void unmap_resource(gfx_id id) const;
 
 		inline HANDLE get_swapchain_latency_handle(gfx_id id)
@@ -287,10 +287,10 @@ namespace SFG
 
 		HANDLE get_shared_handle_for_texture(gfx_id id);
 
-		uint32 get_texture_size(uint32 width, uint32 height, uint32 bpp) const;
-		uint32 align_texture_size(uint32 size) const;
-		uint32 align_texture_size_pitch(uint32 size) const;
-		void*  adjust_buffer_pitch(void* data, uint32 width, uint32 height, uint8 bpp, uint32& out_total_size) const;
+		u32 get_texture_size(u32 width, u32 height, u32 bpp) const;
+		u32 align_texture_size(u32 size) const;
+		u32 align_texture_size_pitch(u32 size) const;
+		void*  adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size) const;
 
 		void cmd_begin_event(gfx_id cmd_list, const char* label);
 		void cmd_end_event(gfx_id cmd_list);
@@ -327,7 +327,7 @@ namespace SFG
 		ID3D12DescriptorHeap* get_srv_heap();
 		void				  alloc_srv(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle);
 		void				  free_srv(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle);
-		uint64				  get_srv_gpu_handle_from_index(uint32 index);
+		u64				  get_srv_gpu_handle_from_index(u32 index);
 
 		inline gfx_id get_queue_gfx() const
 		{
@@ -349,7 +349,7 @@ namespace SFG
 			return _device.Get();
 		}
 
-		inline ID3D12GraphicsCommandList4* get_gfx_cmd_list(uint32 list)
+		inline ID3D12GraphicsCommandList4* get_gfx_cmd_list(u32 list)
 		{
 			return _command_buffers.get(list).ptr.Get();
 		}
@@ -360,7 +360,7 @@ namespace SFG
 		}
 
 	private:
-		void wait_for_fence(ID3D12Fence* fence, uint64 value) const;
+		void wait_for_fence(ID3D12Fence* fence, u64 value) const;
 
 	private:
 		pool_allocator<resource, gfx_id, MAX_RESOURCES>					  _resources;

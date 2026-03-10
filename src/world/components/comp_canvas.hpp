@@ -65,15 +65,15 @@ namespace SFG
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void update_counts_and_init(world& w, uint32 max_widget_count, uint16 max_buffer_count);
-		void set_is_3d(world& w, uint8 is_3d);
+		void update_counts_and_init(world& w, u32 max_widget_count, u16 max_buffer_count);
+		void set_is_3d(world& w, u8 is_3d);
 		void draw(world& w, const vector2ui16& size);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline const bitmask<uint8>& get_flags() const
+		inline const bitmask<u8>& get_flags() const
 		{
 			return _flags;
 		}
@@ -107,11 +107,11 @@ namespace SFG
 		vekt::builder*	 _builder		   = nullptr;
 		world*			 _world			   = nullptr;
 		vector2ui16		 _size			   = vector2ui16::zero;
-		uint32			 _max_widget_count = 1024;
-		uint16			 _max_buffer_count = 50;
-		uint32			 _idx_counter	   = 0;
-		uint32			 _vtx_counter	   = 0;
-		bitmask<uint8>	 _flags			   = 0;
+		u32				 _max_widget_count = 1024;
+		u16				 _max_buffer_count = 50;
+		u32				 _idx_counter	   = 0;
+		u32				 _vtx_counter	   = 0;
+		bitmask<u8>		 _flags			   = 0;
 	};
 
 	REFLECT_TYPE(comp_canvas);

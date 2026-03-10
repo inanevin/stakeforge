@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -53,7 +53,7 @@ namespace SFG
 	{
 		const char* name	   = nullptr;
 		size_t		total_size = 0;
-		uint8		id		   = 0;
+		u8			id		   = 0;
 	};
 
 	class memory_tracer
@@ -99,11 +99,11 @@ namespace SFG
 	private:
 		mutex						   _category_mtx;
 		vector_malloc<memory_category> _categories;
-		vector_malloc<uint8>		   _category_ids;
+		vector_malloc<u8>			   _category_ids;
 		alloc_map					   _allocations;
 
-		uint8		 _current_active_category = 0;
-		static uint8 s_category_counter;
+		u8		  _current_active_category = 0;
+		static u8 s_category_counter;
 	};
 
 #define PUSH_MEMORY_CATEGORY(NAME) SFG::memory_tracer::get().push_category(NAME)

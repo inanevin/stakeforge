@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void simple_file_watcher::add_path(const char* path, uint16 optional_id)
+	void simple_file_watcher::add_path(const char* path, u16 optional_id)
 	{
 		if (!file_system::exists(path))
 		{
@@ -40,7 +40,7 @@ namespace SFG
 			return;
 		}
 
-		const uint64 last_modified = file_system::get_last_modified_ticks(path);
+		const u64 last_modified = file_system::get_last_modified_ticks(path);
 		_paths.push_back(new entry(new std::filesystem::path(path), path, last_modified, optional_id));
 	}
 	void simple_file_watcher::remove_path(const char* path)
@@ -70,7 +70,7 @@ namespace SFG
 	{
 		for (entry* e : _paths)
 		{
-			const uint64 ticks = file_system::get_last_modified_ticks(*e->path);
+			const u64 ticks = file_system::get_last_modified_ticks(*e->path);
 			if (e->last_modified != ticks)
 			{
 				e->last_modified = ticks;

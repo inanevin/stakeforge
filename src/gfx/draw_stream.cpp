@@ -61,11 +61,11 @@ namespace SFG
 
 		draw_stream_bound_state bound = {};
 
-		for (uint32 i = 0; i < _commands_count; i++)
+		for (u32 i = 0; i < _commands_count; i++)
 		{
 			draw_command& draw = _commands[i];
 
-			const uint8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
+			const u8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
 			if (diff & 1u)
 				backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = draw.pipeline_hw});
 
@@ -73,17 +73,17 @@ namespace SFG
 				backend->cmd_bind_vertex_buffers(cmd_buffer, {.buffer = draw.vb_hw, .vertex_size = draw.vertex_size});
 
 			if (diff & 1u << 2)
-				backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = draw.ib_hw, .index_size = static_cast<uint8>(sizeof(primitive_index))});
+				backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = draw.ib_hw, .index_size = static_cast<u8>(sizeof(primitive_index))});
 
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&draw.entity_constant_index, .offset = constant_index_object_constant0, .count = 1, .param_index = rpi_constants});
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&draw.bone_constant_index, .offset = constant_index_object_constant1, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&draw.entity_constant_index, .offset = constant_index_object_constant0, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&draw.bone_constant_index, .offset = constant_index_object_constant1, .count = 1, .param_index = rpi_constants});
 
 #ifdef SFG_TOOLMODE
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&draw.entity_world_id, .offset = constant_index_object_constant2, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&draw.entity_world_id, .offset = constant_index_object_constant2, .count = 1, .param_index = rpi_constants});
 #endif
 
-			const uint32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.sampler_constant_index};
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
+			const u32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.sampler_constant_index};
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
 			backend->cmd_draw_indexed_instanced(cmd_buffer,
 												{
 													.index_count_per_instance = draw.index_count,
@@ -117,7 +117,7 @@ namespace SFG
 		ZoneScoped;
 
 		std::stable_sort(_commands, _commands + _commands_count, [&](auto const& A, auto const& B) {
-			const float da = A.distance, db = B.distance;
+			const f32 da = A.distance, db = B.distance;
 			if (A.priority == B.priority)
 			{
 				if (math::almost_equal(da, db))
@@ -140,11 +140,11 @@ namespace SFG
 
 		draw_stream_bound_state bound = {};
 
-		for (uint32 i = 0; i < _commands_count; i++)
+		for (u32 i = 0; i < _commands_count; i++)
 		{
 			draw_command_distance& draw = _commands[i];
 
-			const uint8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
+			const u8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
 			if (diff & 1u)
 				backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = draw.pipeline_hw});
 
@@ -152,17 +152,17 @@ namespace SFG
 				backend->cmd_bind_vertex_buffers(cmd_buffer, {.buffer = draw.vb_hw, .vertex_size = draw.vertex_size});
 
 			if (diff & 1u << 2)
-				backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = draw.ib_hw, .index_size = static_cast<uint8>(sizeof(primitive_index))});
+				backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = draw.ib_hw, .index_size = static_cast<u8>(sizeof(primitive_index))});
 
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&draw.entity_constant_index, .offset = constant_index_object_constant0, .count = 1, .param_index = rpi_constants});
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&draw.bone_constant_index, .offset = constant_index_object_constant1, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&draw.entity_constant_index, .offset = constant_index_object_constant0, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&draw.bone_constant_index, .offset = constant_index_object_constant1, .count = 1, .param_index = rpi_constants});
 
 #ifdef SFG_TOOLMODE
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&draw.entity_world_id, .offset = constant_index_object_constant2, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&draw.entity_world_id, .offset = constant_index_object_constant2, .count = 1, .param_index = rpi_constants});
 #endif
 
-			const uint32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.sampler_constant_index};
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
+			const u32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.sampler_constant_index};
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
 			backend->cmd_draw_indexed_instanced(cmd_buffer,
 												{
 													.index_count_per_instance = draw.index_count,
@@ -205,11 +205,11 @@ namespace SFG
 
 		draw_stream_bound_state bound = {};
 
-		for (uint32 i = 0; i < _commands_count; i++)
+		for (u32 i = 0; i < _commands_count; i++)
 		{
 			draw_command_gui& draw = _commands[i];
 
-			const uint8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
+			const u8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
 			if (diff & 1u)
 				backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = draw.pipeline_hw});
 
@@ -221,8 +221,8 @@ namespace SFG
 
 			backend->cmd_set_scissors(cmd_buffer, {.x = draw.clip.x, .y = draw.clip.y, .width = draw.clip.z, .height = draw.clip.w});
 
-			const uint32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.font_index};
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
+			const u32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.font_index};
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
 			backend->cmd_draw_indexed_instanced(cmd_buffer,
 												{
 													.index_count_per_instance = draw.index_count,
@@ -246,11 +246,11 @@ namespace SFG
 
 		draw_stream_bound_state bound = {};
 
-		for (uint32 i = 0; i < _commands_count; i++)
+		for (u32 i = 0; i < _commands_count; i++)
 		{
 			draw_command_gui& draw = _commands[i];
 
-			const uint8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
+			const u8 diff = bound.diff_mask(draw.pipeline_hw, draw.ib_hw, draw.vb_hw);
 			if (diff & 1u)
 				backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = draw.pipeline_hw});
 
@@ -260,8 +260,8 @@ namespace SFG
 			if (diff & 1u << 2)
 				backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = draw.ib_hw, .index_size = draw.idx_size});
 
-			const uint32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.font_index};
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
+			const u32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.font_index};
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
 			backend->cmd_draw_indexed_instanced(cmd_buffer,
 												{
 													.index_count_per_instance = draw.index_count,
@@ -296,7 +296,7 @@ namespace SFG
 			return draw_stream_bound_state_pipeline::make_sort_key(a.pipeline_hw) < draw_stream_bound_state_pipeline::make_sort_key(b.pipeline_hw);
 		});
 	}
-	void draw_stream_particle::draw(gfx_id cmd_buffer, gfx_id indirect_buffer, gfx_id indirect_signature, uint32 indirect_buffer_size, uint32 max_instances_per_system)
+	void draw_stream_particle::draw(gfx_id cmd_buffer, gfx_id indirect_buffer, gfx_id indirect_signature, u32 indirect_buffer_size, u32 max_instances_per_system)
 	{
 		ZoneScoped;
 
@@ -304,18 +304,18 @@ namespace SFG
 
 		draw_stream_bound_state_pipeline bound = {};
 
-		for (uint32 i = 0; i < _commands_count; i++)
+		for (u32 i = 0; i < _commands_count; i++)
 		{
 			draw_command_particle& draw = _commands[i];
 
-			const uint8 diff = bound.diff_mask(draw.pipeline_hw);
+			const u8 diff = bound.diff_mask(draw.pipeline_hw);
 			if (diff)
 				backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = draw.pipeline_hw});
 
-			const uint32 mat_constants[2] = {draw.material_index, draw.texture_buffer_index};
-			const uint32 rp_constant	  = draw.system_index * max_instances_per_system;
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&rp_constant, .offset = constant_index_rp_constant2, .count = 1, .param_index = rpi_constants});
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)mat_constants, .offset = constant_index_mat_constant0, .count = 2, .param_index = rpi_constants});
+			const u32 mat_constants[2] = {draw.material_index, draw.texture_buffer_index};
+			const u32 rp_constant	   = draw.system_index * max_instances_per_system;
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&rp_constant, .offset = constant_index_rp_constant2, .count = 1, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)mat_constants, .offset = constant_index_mat_constant0, .count = 2, .param_index = rpi_constants});
 
 			backend->cmd_execute_indirect(cmd_buffer,
 										  {
@@ -358,20 +358,20 @@ namespace SFG
 
 		draw_stream_bound_state_pipeline bound = {};
 
-		uint32 icounter = 0;
+		u32 icounter = 0;
 
-		for (uint32 i = 0; i < _commands_count; i++)
+		for (u32 i = 0; i < _commands_count; i++)
 		{
 			draw_command_sprite& draw = _commands[i];
 
-			const uint8 diff = bound.diff_mask(draw.pipeline_hw);
+			const u8 diff = bound.diff_mask(draw.pipeline_hw);
 			if (diff)
 				backend->cmd_bind_pipeline(cmd_buffer, {.pipeline = draw.pipeline_hw});
 
-			const uint32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.sampler_constant_index};
-			const uint32 rp_constant	  = icounter;
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
-			backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&rp_constant, .offset = constant_index_rp_constant3, .count = 1, .param_index = rpi_constants});
+			const u32 mat_constants[3] = {draw.material_constant_index, draw.texture_constant_index, draw.sampler_constant_index};
+			const u32 rp_constant	   = icounter;
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)mat_constants, .offset = constant_index_mat_constant0, .count = 3, .param_index = rpi_constants});
+			backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&rp_constant, .offset = constant_index_rp_constant3, .count = 1, .param_index = rpi_constants});
 			icounter += draw.instance_count;
 
 			backend->cmd_draw_instanced(cmd_buffer,

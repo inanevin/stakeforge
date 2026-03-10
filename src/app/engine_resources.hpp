@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum engine_resource_ident : uint8
+	enum engine_resource_ident : u8
 	{
 		shader_debug_console,
 		shader_gui_default,
@@ -87,7 +87,7 @@ namespace SFG
 		void*				  raw				  = nullptr;
 		void*				  direct			  = nullptr;
 		string_id			  sid				  = 0;
-		uint32				  extra_data		  = 0;
+		u32					  extra_data		  = 0;
 		engine_resource_type  res_type			  = engine_resource_type::unknown;
 		engine_resource_ident ident				  = engine_resource_ident::font_debug_console_default;
 		bool				  keep_raw_persistent = false;
@@ -120,7 +120,7 @@ namespace SFG
 
 		void		tick();
 		void		add_shader_reload_listener(shader_reload_callback&& cb);
-		static void on_resource_reloaded(const char* p, uint64 last_modified, uint16 id, void* user_data);
+		static void on_resource_reloaded(const char* p, u64 last_modified, u16 id, void* user_data);
 #endif
 
 		const engine_resource_def& get_def(engine_resource_ident t);

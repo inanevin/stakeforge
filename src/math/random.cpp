@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -45,9 +45,9 @@ namespace SFG
 		std::seed_seq seq{static_cast<uint32_t>(seed), static_cast<uint32_t>(seed >> 32), 0x9E3779B9u, 0x85EBCA6Bu, 0xC2B2AE35u};
 		rng() = std::mt19937{seq};
 	}
-	float random::random_01()
+	f32 random::random_01()
 	{
-		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		static thread_local std::uniform_real_distribution<f32> dist(0.0f, 1.0f);
 		return dist(rng());
 	}
 

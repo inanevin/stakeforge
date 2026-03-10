@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -32,7 +32,7 @@ namespace SFG
 {
 	void ostream::create(size_t size)
 	{
-		_data		  = new uint8[size];
+		_data		  = new u8[size];
 		_total_size	  = size;
 		_current_size = 0;
 	}
@@ -46,7 +46,7 @@ namespace SFG
 		_data		  = nullptr;
 	}
 
-	void ostream::write_raw_endian_safe(const uint8* ptr, size_t size)
+	void ostream::write_raw_endian_safe(const u8* ptr, size_t size)
 	{
 		if (_data == nullptr)
 			create(size);
@@ -55,10 +55,10 @@ namespace SFG
 
 		if (endianness::should_swap())
 		{
-			vector<uint8> v;
+			vector<u8> v;
 			v.insert(v.end(), ptr, (ptr) + size);
 
-			vector<uint8> v2;
+			vector<u8> v2;
 			v2.resize(v.size());
 
 			const size_t sz = v.size();
@@ -78,7 +78,7 @@ namespace SFG
 		_current_size += size;
 	}
 
-	void ostream::write_raw(const uint8* ptr, size_t size)
+	void ostream::write_raw(const u8* ptr, size_t size)
 	{
 		if (_data == nullptr)
 			create(size);
@@ -92,8 +92,8 @@ namespace SFG
 	{
 		if (_current_size + sz > _total_size)
 		{
-			_total_size	   = static_cast<size_t>((static_cast<float>(_current_size + sz) * 2.0f));
-			uint8* newData = new uint8[_total_size];
+			_total_size = static_cast<size_t>((static_cast<f32>(_current_size + sz) * 2.0f));
+			u8* newData = new u8[_total_size];
 			SFG_MEMCPY(newData, _data, _current_size);
 			delete[] _data;
 			_data = newData;

@@ -56,7 +56,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -205,7 +205,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			backend->destroy_command_buffer(pfd.cmd_buffer);
@@ -228,7 +228,7 @@ namespace SFG
 #endif
 	}
 
-	void render_pass_debug::prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index)
+	void render_pass_debug::prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -269,14 +269,14 @@ namespace SFG
 		if (snap == nullptr)
 			return;
 
-		const uint32 vtx_count_gui	= snap->vtx_count_gui;
-		const uint32 vtx_count_line = snap->vtx_count_line;
-		const uint32 vtx_count_tri	= snap->vtx_count_tri;
-		const uint32 idx_count_line = snap->idx_count_line;
-		const uint32 idx_count_tri	= snap->idx_count_tri;
-		const uint32 idx_count_gui	= snap->idx_count_gui;
-		const uint32 dc_count_gui	= snap->dc_count_gui;
-		const uint32 dd_count_gui	= snap->draw_data_count_gui;
+		const u32 vtx_count_gui	 = snap->vtx_count_gui;
+		const u32 vtx_count_line = snap->vtx_count_line;
+		const u32 vtx_count_tri	 = snap->vtx_count_tri;
+		const u32 idx_count_line = snap->idx_count_line;
+		const u32 idx_count_tri	 = snap->idx_count_tri;
+		const u32 idx_count_gui	 = snap->idx_count_gui;
+		const u32 dc_count_gui	 = snap->dc_count_gui;
+		const u32 dd_count_gui	 = snap->draw_data_count_gui;
 
 		SFG_ASSERT((vtx_count_gui == 0 && idx_count_gui == 0) || (vtx_count_gui != 0 && idx_count_gui != 0));
 		SFG_ASSERT((vtx_count_line == 0 && idx_count_line == 0) || (vtx_count_line != 0 && idx_count_line != 0));
@@ -315,7 +315,7 @@ namespace SFG
 			pfd.idx_buffer_gui.buffer_data(0, snap->indices_gui, sizeof(vekt::index) * idx_count_gui);
 			pfd.draw_data_gui.buffer_data(0, snap->draw_data_gui, sizeof(world_debug_rendering::gui_draw_call_data) * dd_count_gui);
 
-			for (uint32 i = 0; i < dc_count_gui; i++)
+			for (u32 i = 0; i < dc_count_gui; i++)
 			{
 				world_debug_rendering::gui_draw_call& dc = snap->draw_calls_gui[i];
 
@@ -417,7 +417,7 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= barriers.data(),
-									 .barrier_count = static_cast<uint16>(barriers.size()),
+									 .barrier_count = static_cast<u16>(barriers.size()),
 								 });
 		}
 
@@ -503,7 +503,7 @@ namespace SFG
 			backend->cmd_barrier(cmd_buffer,
 								 {
 									 .barriers		= barriers.data(),
-									 .barrier_count = static_cast<uint16>(barriers.size()),
+									 .barrier_count = static_cast<u16>(barriers.size()),
 								 });
 		}
 
@@ -550,16 +550,16 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 rp_constants[1] = {gpu_index_rp_ubo};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 1, .param_index = rpi_constants});
+		const u32 rp_constants[1] = {gpu_index_rp_ubo};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 1, .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -587,7 +587,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 
 		backend->close_command_buffer(cmd_buffer);

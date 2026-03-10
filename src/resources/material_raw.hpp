@@ -63,12 +63,12 @@ namespace SFG
 		string			   shader_path		  = "";
 		vector<string>	   textures_path	  = {};
 		material_pass_mode pass_mode		  = material_pass_mode::gbuffer;
-		uint8			   double_sided		  = 0;
-		uint8			   use_alpha_cutoff	  = 0;
+		u8			   double_sided		  = 0;
+		u8			   use_alpha_cutoff	  = 0;
 		string			   name				  = "";
 		string_id		   sid				  = 0;
 		sampler_desc	   sampler_definition = {};
-		uint16			   draw_priority	  = 0;
+		u16			   draw_priority	  = 0;
 
 		inline void destroy()
 		{

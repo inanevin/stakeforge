@@ -53,8 +53,8 @@ namespace SFG
 			vector4	  cam_right_and_pixel_size = vector4::zero;
 			vector4	  cam_up				   = vector4::zero;
 			vector4	  resolution_and_planes	   = vector4::zero;
-			float	  sdf_thickness			   = 0.5f;
-			float	  sdf_softness			   = 0.02f;
+			f32		  sdf_thickness			   = 0.5f;
+			f32		  sdf_softness			   = 0.02f;
 		};
 
 		struct per_frame_data
@@ -73,7 +73,7 @@ namespace SFG
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gfx_id			   depth_texture;
 			gfx_id			   input_texture;
@@ -93,14 +93,14 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index);
+		void prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index);
 		void render(const render_params& params);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}

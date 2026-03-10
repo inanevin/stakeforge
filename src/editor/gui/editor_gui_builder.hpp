@@ -56,7 +56,7 @@ namespace SFG
 		size_t MAX_RESOURCE_FIELD_SIZE = 512;
 		size_t MAX_CHECKBOX_SIZE	   = 4;
 
-		typedef void (*input_field_fn)(void* callback_ud, vekt::builder* b, vekt::id id, const char* txt, float value);
+		typedef void (*input_field_fn)(void* callback_ud, vekt::builder* b, vekt::id id, const char* txt, f32 value);
 		typedef void (*checkbox_fn)(void* callback_ud, vekt::builder* b, vekt::id id, unsigned char value);
 		typedef void (*resource_fn)(void* callback_ud, vekt::builder* b, vekt::id id, const string& value);
 		typedef void (*dropdown_fn)(void* callback_ud, vekt::builder* b, vekt::id dropdown_widget, unsigned int index);
@@ -118,10 +118,10 @@ namespace SFG
 			unsigned int		buffer_capacity = 0;
 			unsigned int		decimals		= 0;
 			unsigned int		sub_index		= 0;
-			float				value			= 0.0f;
-			float				value_increment = 0.0f;
-			float				min				= 0.0f;
-			float				max				= 0.0f;
+			f32				value			= 0.0f;
+			f32				value_increment = 0.0f;
+			f32				min				= 0.0f;
+			f32				max				= 0.0f;
 			gui_text_field_type type			= gui_text_field_type::text_only;
 			unsigned char		is_editing		= 0;
 			unsigned char		is_slider		= 0;
@@ -152,9 +152,9 @@ namespace SFG
 
 		struct gui_slider
 		{
-			float	 min		   = 0.0f;
-			float	 max		   = 0.0;
-			float	 value		   = 0.0f;
+			f32	 min		   = 0.0f;
+			f32	 max		   = 0.0;
+			f32	 value		   = 0.0f;
 			vekt::id widget		   = NULL_WIDGET_ID;
 			vekt::id slider_widget = NULL_WIDGET_ID;
 			vekt::id text_widget   = NULL_WIDGET_ID;
@@ -165,7 +165,7 @@ namespace SFG
 			vekt::id			widget		= NULL_WIDGET_ID;
 			vekt::id			text_widget = NULL_WIDGET_ID;
 			vector<const char*> items;
-			uint8				selected = 0;
+			u8				selected = 0;
 		};
 
 		struct reflected_property
@@ -234,16 +234,16 @@ namespace SFG
 		vekt::id add_property_single_hyperlink(const char* label, size_t buffer_capacity = 0);
 		id_pair	 add_property_row_checkbox(const char* label, bool initial_state);
 		id_pair	 add_property_row_resource(const char* label, const char* extension, const char* initial_resource, string_id type_id, size_t buffer_capacity = 0);
-		id_pair	 add_property_row_slider(const char* label, size_t buffer_capacity = 0, float min = 0.0f, float max = 0.0f, float val = 0.0f, bool is_int = false);
+		id_pair	 add_property_row_slider(const char* label, size_t buffer_capacity = 0, f32 min = 0.0f, f32 max = 0.0f, f32 val = 0.0f, bool is_int = false);
 		id_pair	 add_property_row_dropdown(const char* label, const char* initial_text = "", size_t buffer_capacity = 0);
 
 		// property row variants for fields
-		id_trip	 add_property_row_text_field(const char* label, const char* text, size_t buffer_capacity = 0, gui_text_field_type type = gui_text_field_type::text_only, unsigned int decimals = 0, float increment = 0.0f);
-		id_trip	 add_property_row_vector2(const char* label, const char* text, size_t buffer_capacity = 0, unsigned int decimals = 3, float increment = 0.1f);
-		id_quat	 add_property_row_vector3(const char* label, const char* text, size_t buffer_capacity = 0, unsigned int decimals = 3, float increment = 0.1f);
-		id_penth add_property_row_vector4(const char* label, const char* text, size_t buffer_capacity = 0, unsigned int decimals = 3, float increment = 0.1f);
+		id_trip	 add_property_row_text_field(const char* label, const char* text, size_t buffer_capacity = 0, gui_text_field_type type = gui_text_field_type::text_only, unsigned int decimals = 0, f32 increment = 0.0f);
+		id_trip	 add_property_row_vector2(const char* label, const char* text, size_t buffer_capacity = 0, unsigned int decimals = 3, f32 increment = 0.1f);
+		id_quat	 add_property_row_vector3(const char* label, const char* text, size_t buffer_capacity = 0, unsigned int decimals = 3, f32 increment = 0.1f);
+		id_penth add_property_row_vector4(const char* label, const char* text, size_t buffer_capacity = 0, unsigned int decimals = 3, f32 increment = 0.1f);
 		vekt::id add_property_row();
-		vekt::id add_row_cell(float size);
+		vekt::id add_row_cell(f32 size);
 		vekt::id add_row_separator(const vector4& color);
 		vekt::id add_col_separator(const vector4& color);
 
@@ -257,24 +257,24 @@ namespace SFG
 		vekt::id add_label(const char* label, size_t buffer_capacity = 0);
 		vekt::id add_hyperlink(const char* label, size_t buffer_capacity = 0);
 		id_pair	 add_button(const char* title, size_t buffer_capacity = 0);
-		id_pair	 add_icon_button(const char* icon, size_t buffer_capacity = 0, float size = 1.0f, bool is_row = false, vector4 color = vector4());
-		id_pair	 add_toggle_button(const char* icon, bool toggled_on, size_t buffer_capacity = 0, float size = 1.0f, bool is_row = false, vector4 color = vector4());
+		id_pair	 add_icon_button(const char* icon, size_t buffer_capacity = 0, f32 size = 1.0f, bool is_row = false, vector4 color = vector4());
+		id_pair	 add_toggle_button(const char* icon, bool toggled_on, size_t buffer_capacity = 0, f32 size = 1.0f, bool is_row = false, vector4 color = vector4());
 
 		id_pair	 add_text_field(const char*			text,
 								size_t				buffer_capacity = 0,
 								gui_text_field_type type			= gui_text_field_type::text_only,
 								unsigned int		decimals		= 0,
-								float				increment		= 0.0f,
-								float				min				= 0.0f,
-								float				max				= 0.0f,
-								float				val				= 0.0f,
+								f32				increment		= 0.0f,
+								f32				min				= 0.0f,
+								f32				max				= 0.0f,
+								f32				val				= 0.0f,
 								unsigned char		is_slider		= 0,
 								unsigned int		sub_index		= 0);
 		vekt::id add_checkbox(bool initial_state);
 		vekt::id add_resource(const char* res, const char* extension, string_id type_id, size_t buffer_capacity = 0);
 		vekt::id add_dropdown(const char* initial_text = "", size_t buffer_capacity = 0);
 		void	 add_dropdown_item(vekt::id dropdown_widget, const char* label, bool is_selected);
-		// vekt::id add_slider(float val, float min, float max, size_t buffer_capacity = 0);
+		// vekt::id add_slider(f32 val, f32 min, f32 max, size_t buffer_capacity = 0);
 
 		// -----------------------------------------------------------------------------
 		// util
@@ -283,7 +283,7 @@ namespace SFG
 		vekt::id set_fill_x(vekt::id id);
 		void	 set_text_field_text(gui_text_field& tf, const char* text);
 		void	 set_text_field_text(vekt::id id, const char* text, bool skip_if_focused);
-		void	 set_text_field_value(vekt::id id, float f, bool skip_if_focused, bool is_int = false);
+		void	 set_text_field_value(vekt::id id, f32 f, bool skip_if_focused, bool is_int = false);
 		void	 text_field_edit_complete(gui_text_field& tf);
 		void	 set_checkbox_value(vekt::id id, unsigned char value);
 		void	 set_widget_enabled(vekt::id id, bool enabled, const vector4& enabled_col, const vector4& disabled_col);
@@ -304,7 +304,7 @@ namespace SFG
 			_draw_order = o;
 		}
 
-		inline void set_indent(float f)
+		inline void set_indent(f32 f)
 		{
 			_indent = f;
 		}
@@ -312,7 +312,7 @@ namespace SFG
 		static vekt::input_event_result on_text_field_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase);
 		static vekt::input_event_result on_text_field_key(vekt::builder* b, vekt::id widget, const vekt::key_event& ev);
 		static void						on_text_field_draw(vekt::builder* b, vekt::id widget);
-		static void						on_text_field_drag(vekt::builder* b, vekt::id widget, float mp_x, float mp_y, float delta_x, float delta_y, unsigned int button);
+		static void						on_text_field_drag(vekt::builder* b, vekt::id widget, f32 mp_x, f32 mp_y, f32 delta_x, f32 delta_y, unsigned int button);
 		static void						on_text_field_focus_lost(vekt::builder* b, vekt::id widget);
 		static void						on_text_field_focus_gained(vekt::builder* b, vekt::id widget, bool from_nav);
 		static void						on_context_item_hover_begin(vekt::builder* b, vekt::id widget);
@@ -348,7 +348,7 @@ namespace SFG
 		vekt::id _root				= NULL_WIDGET_ID;
 		vekt::id _stack_ptr			= 0;
 
-		float		 _indent	 = 0.0f;
+		f32		 _indent	 = 0.0f;
 		unsigned int _draw_order = 0;
 	};
 

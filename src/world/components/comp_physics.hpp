@@ -123,7 +123,7 @@ namespace SFG
 			_extent_or_rad_height = ext;
 		}
 
-		inline void set_height_radius(float height, float radius)
+		inline void set_height_radius(f32 height, f32 radius)
 		{
 			_extent_or_rad_height.x = height;
 			_extent_or_rad_height.y = radius;
@@ -134,7 +134,7 @@ namespace SFG
 			_material_handle = h;
 		}
 
-		inline bitmask<uint8>& get_flags()
+		inline bitmask<u8>& get_flags()
 		{
 			return _flags;
 		}
@@ -156,7 +156,7 @@ namespace SFG
 		physics_body_type  _body_type			 = physics_body_type::static_body;
 		physics_shape_type _shape_type			 = physics_shape_type::box;
 		bool			   _is_sensor			 = false;
-		bitmask<uint8>	   _flags				 = 0;
+		bitmask<u8>		   _flags				 = 0;
 	};
 
 	REFLECT_TYPE(comp_physics);

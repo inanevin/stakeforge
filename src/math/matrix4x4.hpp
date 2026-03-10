@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -39,35 +39,35 @@ namespace SFG
 	class matrix4x4
 	{
 	public:
-		float m[16]; // Column-major storage: m[col * 4 + row]
+		f32 m[16]; // Column-major storage: m[col * 4 + row]
 
 		matrix4x4() = default;
-		matrix4x4(float m00,
-				  float m10,
-				  float m20,
-				  float m30, // Col 0
-				  float m01,
-				  float m11,
-				  float m21,
-				  float m31, // Col 1
-				  float m02,
-				  float m12,
-				  float m22,
-				  float m32, // Col 2
-				  float m03,
-				  float m13,
-				  float m23,
-				  float m33); // Col 3
+		matrix4x4(f32 m00,
+				  f32 m10,
+				  f32 m20,
+				  f32 m30, // Col 0
+				  f32 m01,
+				  f32 m11,
+				  f32 m21,
+				  f32 m31, // Col 1
+				  f32 m02,
+				  f32 m12,
+				  f32 m22,
+				  f32 m32, // Col 2
+				  f32 m03,
+				  f32 m13,
+				  f32 m23,
+				  f32 m33); // Col 3
 
 		static const matrix4x4 identity;
 
 		matrix4x4 get_normal_matrix() const;
 		matrix4x4 transpose() const;
-		float	  determinant() const;
+		f32		  determinant() const;
 		matrix4x4 inverse() const;
 		vector3	  get_scale() const;
 		vector3	  get_translation() const;
-		bool	  equals(const matrix4x4& other, float epsilon = MATH_EPS) const;
+		bool	  equals(const matrix4x4& other, f32 epsilon = MATH_EPS) const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -75,19 +75,19 @@ namespace SFG
 		static matrix4x4 translation(const vector3& t);
 		static matrix4x4 scale(const vector3& s);
 		static matrix4x4 rotation(const quat& q);
-		static matrix4x4 ortho_reverse_z(float left, float right, float top, float bottom, float near_plane, float far_plane);
-		static matrix4x4 ortho(float left, float right, float top, float bottom, float near_plane, float far_plane);
-		static matrix4x4 perspective_reverse_z(float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane);
-		static matrix4x4 perspective(float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane);
+		static matrix4x4 ortho_reverse_z(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane);
+		static matrix4x4 ortho(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane);
+		static matrix4x4 perspective_reverse_z(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane);
+		static matrix4x4 perspective(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane);
 		static matrix4x4 transform(const vector3& position, const quat& rotation, const vector3& scale);
 		static matrix4x4 look_at(const vector3& eye, const vector3& target, const vector3& up);
 		static matrix4x4 view(const quat& rot, const vector3& pos);
 
-		inline float operator[](int index) const
+		inline f32 operator[](int index) const
 		{
 			return m[index];
 		}
-		inline float& operator[](int index)
+		inline f32& operator[](int index)
 		{
 			return m[index];
 		}
@@ -121,7 +121,7 @@ namespace SFG
 
 		vector3 operator*(const vector3& v) const;
 
-		inline matrix4x4 operator*(float scalar) const
+		inline matrix4x4 operator*(f32 scalar) const
 		{
 			matrix4x4 result;
 			for (int i = 0; i < 16; ++i)
@@ -131,7 +131,7 @@ namespace SFG
 			return result;
 		}
 
-		matrix4x4 operator/(float scalar) const;
+		matrix4x4 operator/(f32 scalar) const;
 
 		inline matrix4x4& operator*=(const matrix4x4& other)
 		{
@@ -139,7 +139,7 @@ namespace SFG
 			return *this;
 		}
 
-		inline matrix4x4& operator*=(float scalar)
+		inline matrix4x4& operator*=(f32 scalar)
 		{
 			for (int i = 0; i < 16; ++i)
 			{
@@ -148,10 +148,10 @@ namespace SFG
 			return *this;
 		}
 
-		matrix4x4& operator/=(float scalar);
+		matrix4x4& operator/=(f32 scalar);
 	};
 
-	inline matrix4x4 operator*(float scalar, const matrix4x4& mat)
+	inline matrix4x4 operator*(f32 scalar, const matrix4x4& mat)
 	{
 		return mat * scalar;
 	}

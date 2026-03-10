@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum render_proxy_entity_flags : uint8
+	enum render_proxy_entity_flags : u8
 	{
 		render_proxy_entity_invisible	= 1 << 0,
 		render_proxy_entity_is_template = 1 << 1,
@@ -46,8 +46,8 @@ namespace SFG
 		matrix4x3			model			= {};
 		matrix3x3			normal			= {};
 		quat				rotation		= quat::identity;
-		uint32				_assigned_index = 0;
+		u32					_assigned_index = 0;
 		render_proxy_status status			= render_proxy_status::rps_inactive;
-		bitmask<uint8>		flags			= 0;
+		bitmask<u8>			flags			= 0;
 	};
 }

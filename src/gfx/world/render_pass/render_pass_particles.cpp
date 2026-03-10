@@ -52,19 +52,19 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		_indirect_sig_dispatch = backend->create_dispatch_indirect_signature(NULL_GFX_ID, sizeof(uint32) * 3);
+		_indirect_sig_dispatch = backend->create_dispatch_indirect_signature(NULL_GFX_ID, sizeof(u32) * 3);
 		_indirect_sig_draw	   = backend->create_draw_indirect_signature(NULL_GFX_ID, sizeof(particle_indirect_args));
 		_alloc.init(PASS_ALLOC_SIZE_PARTICLES, 8);
 
 		_sim_state.emit_counts.create(
 			{
-				.size		= sizeof(uint32) * MAX_WORLD_PARTICLES,
+				.size		= sizeof(u32) * MAX_WORLD_PARTICLES,
 				.flags		= resource_flags::rf_cpu_visible,
 				.debug_name = "emit_counts",
 			},
 			{
-				.size			 = sizeof(uint32) * MAX_WORLD_PARTICLES,
-				.structure_size	 = sizeof(uint32),
+				.size			 = sizeof(u32) * MAX_WORLD_PARTICLES,
+				.structure_size	 = sizeof(u32),
 				.structure_count = MAX_WORLD_PARTICLES,
 				.flags			 = resource_flags::rf_storage_buffer | resource_flags::rf_gpu_only,
 				.debug_name		 = "emit_counts_gpu",
@@ -128,13 +128,13 @@ namespace SFG
 
 		_sim_state.alive_list_a.create(
 			{
-				.size		= sizeof(uint32) * MAX_WORLD_PARTICLES,
+				.size		= sizeof(u32) * MAX_WORLD_PARTICLES,
 				.flags		= resource_flags::rf_cpu_visible,
 				.debug_name = "particle_alive_a",
 			},
 			{
-				.size			 = sizeof(uint32) * MAX_WORLD_PARTICLES,
-				.structure_size	 = sizeof(uint32),
+				.size			 = sizeof(u32) * MAX_WORLD_PARTICLES,
+				.structure_size	 = sizeof(u32),
 				.structure_count = MAX_WORLD_PARTICLES,
 				.flags			 = resource_flags::rf_gpu_write | resource_flags::rf_gpu_only,
 				.debug_name		 = "particle_alive_a_gpu",
@@ -142,13 +142,13 @@ namespace SFG
 
 		_sim_state.alive_list_b.create(
 			{
-				.size		= sizeof(uint32) * MAX_WORLD_PARTICLES,
+				.size		= sizeof(u32) * MAX_WORLD_PARTICLES,
 				.flags		= resource_flags::rf_cpu_visible,
 				.debug_name = "particle_alive_b",
 			},
 			{
-				.size			 = sizeof(uint32) * MAX_WORLD_PARTICLES,
-				.structure_size	 = sizeof(uint32),
+				.size			 = sizeof(u32) * MAX_WORLD_PARTICLES,
+				.structure_size	 = sizeof(u32),
 				.structure_count = MAX_WORLD_PARTICLES,
 				.flags			 = resource_flags::rf_gpu_write | resource_flags::rf_gpu_only,
 				.debug_name		 = "particle_alive_b_gpu",
@@ -156,13 +156,13 @@ namespace SFG
 
 		_sim_state.dead_indices.create(
 			{
-				.size		= sizeof(uint32) * MAX_WORLD_PARTICLES,
+				.size		= sizeof(u32) * MAX_WORLD_PARTICLES,
 				.flags		= resource_flags::rf_cpu_visible,
 				.debug_name = "particle_dead_indices",
 			},
 			{
-				.size			 = sizeof(uint32) * MAX_WORLD_PARTICLES,
-				.structure_size	 = sizeof(uint32),
+				.size			 = sizeof(u32) * MAX_WORLD_PARTICLES,
+				.structure_size	 = sizeof(u32),
 				.structure_count = MAX_WORLD_PARTICLES,
 				.flags			 = resource_flags::rf_gpu_write | resource_flags::rf_gpu_only,
 				.debug_name		 = "particle_dead_indices_gpu",
@@ -193,13 +193,13 @@ namespace SFG
 
 		_sim_state.sim_count_indirect_arguments.buffer_data(0, &dummy_sim_count_args, sizeof(particle_sim_count_args));
 
-		for (uint32 i = 0; i < MAX_WORLD_COMP_PARTICLE_EMITTERS; i++)
+		for (u32 i = 0; i < MAX_WORLD_COMP_PARTICLE_EMITTERS; i++)
 		{
-			for (uint32 j = 0; j < MAX_WORLD_PARTICLES_PER_EMITTER; j++)
+			for (u32 j = 0; j < MAX_WORLD_PARTICLES_PER_EMITTER; j++)
 			{
-				const uint32 local_j = MAX_WORLD_PARTICLES_PER_EMITTER - 1 - j;
-				const uint32 data	 = MAX_WORLD_PARTICLES_PER_EMITTER - j - 1;
-				_sim_state.dead_indices.buffer_data((i * MAX_WORLD_PARTICLES_PER_EMITTER + j) * sizeof(uint32), &data, sizeof(uint32));
+				const u32 local_j = MAX_WORLD_PARTICLES_PER_EMITTER - 1 - j;
+				const u32 data	  = MAX_WORLD_PARTICLES_PER_EMITTER - j - 1;
+				_sim_state.dead_indices.buffer_data((i * MAX_WORLD_PARTICLES_PER_EMITTER + j) * sizeof(u32), &data, sizeof(u32));
 			}
 
 			const particle_system_data sd = {
@@ -217,7 +217,7 @@ namespace SFG
 		string name = "";
 		name.reserve(256);
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -310,7 +310,7 @@ namespace SFG
 		backend->destroy_indirect_signature(_indirect_sig_draw);
 		_alloc.uninit();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -332,7 +332,7 @@ namespace SFG
 		_sim_state.counters.destroy();
 	}
 
-	void render_pass_particles::prepare(uint8 frame_index, proxy_manager& pm, const view& main_camera_view)
+	void render_pass_particles::prepare(u8 frame_index, proxy_manager& pm, const view& main_camera_view)
 	{
 		ZoneScoped;
 		per_frame_data& pfd = _pfd[frame_index];
@@ -340,17 +340,17 @@ namespace SFG
 		_draw_stream.prepare(_alloc, MAX_WORLD_COMP_PARTICLE_EMITTERS);
 		_num_systems = 0;
 
-		auto&		 particles		= *pm.get_particle_emitters();
-		const uint32 peak_particles = pm.get_peak_particle_emitters();
+		auto&	  particles		 = *pm.get_particle_emitters();
+		const u32 peak_particles = pm.get_peak_particle_emitters();
 
-		uint32		num_emitters	= 0;
-		const float particles_delta = static_cast<float>(frame_info::get_render_thread_time_milli()) * 0.001f;
+		u32		  num_emitters	  = 0;
+		const f32 particles_delta = static_cast<f32>(frame_info::get_render_thread_time_milli()) * 0.001f;
 
-		uint32			   emit_count = 0;
+		u32				   emit_count = 0;
 		bool			   emit_dead  = false;
 		particle_emit_args args		  = {};
 
-		for (uint32 i = 0; i < peak_particles; i++)
+		for (u32 i = 0; i < peak_particles; i++)
 		{
 			render_proxy_particle_emitter& p = particles.get(i);
 			if (p.status != render_proxy_status::rps_active)
@@ -398,33 +398,33 @@ namespace SFG
 				if (math::almost_equal(ep.spawn.wait_between_emits, 0.0f))
 				{
 					// emits constantly.
-					emit_count = static_cast<uint32>(random::random_int(static_cast<int>(ep.spawn.min_particle_count), static_cast<int>(ep.spawn.max_particle_count)));
+					emit_count = static_cast<u32>(random::random_int(static_cast<int>(ep.spawn.min_particle_count), static_cast<int>(ep.spawn.max_particle_count)));
 				}
 				else
 				{
 					// emit at start.
 					if (math::almost_equal(p.last_emitted, 0.0f))
 					{
-						emit_count = static_cast<uint32>(random::random_int(static_cast<int>(ep.spawn.min_particle_count), static_cast<int>(ep.spawn.max_particle_count)));
+						emit_count = static_cast<u32>(random::random_int(static_cast<int>(ep.spawn.min_particle_count), static_cast<int>(ep.spawn.max_particle_count)));
 						p.last_emitted += particles_delta;
 					}
 					else if (p.current_life - p.last_emitted > ep.spawn.wait_between_emits)
 					{
 						// emit in bursts
 						p.last_emitted = p.current_life;
-						emit_count	   = static_cast<uint32>(random::random_int(static_cast<int>(ep.spawn.min_particle_count), static_cast<int>(ep.spawn.max_particle_count)));
+						emit_count	   = static_cast<u32>(random::random_int(static_cast<int>(ep.spawn.min_particle_count), static_cast<int>(ep.spawn.max_particle_count)));
 					}
 				}
 				p.current_life += particles_delta;
 			}
 
-			_sim_state.emit_counts.buffer_data(sizeof(uint32) * num_emitters, &emit_count, sizeof(uint32));
+			_sim_state.emit_counts.buffer_data(sizeof(u32) * num_emitters, &emit_count, sizeof(u32));
 
 			const render_proxy_entity& e = pm.get_entity(p.entity);
 			SFG_ASSERT(e.status == render_proxy_status::rps_active);
 			const vector3 base_pos = e.model.get_translation();
 
-			const uint8 local_vel = ep.velocity.is_local;
+			const u8 local_vel = ep.velocity.is_local;
 
 			const vector3 min_start_vel = local_vel ? e.rotation * ep.velocity.min_start : ep.velocity.min_start;
 			const vector3 max_start_vel = local_vel ? e.rotation * ep.velocity.max_start : ep.velocity.max_start;
@@ -517,11 +517,11 @@ namespace SFG
 		if (num_emitters != 0)
 		{
 			_sim_state.emit_arguments.copy_region(cmd_buffer, 0, num_emitters * sizeof(particle_emit_args));
-			_sim_state.emit_counts.copy_region(cmd_buffer, 0, num_emitters * sizeof(uint32));
+			_sim_state.emit_counts.copy_region(cmd_buffer, 0, num_emitters * sizeof(u32));
 		}
 
 		if (!barriers.empty())
-			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		barriers.resize(0);
 
@@ -572,7 +572,7 @@ namespace SFG
 		}
 
 		if (!barriers.empty())
-			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+			backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		const world_id main_cam	   = pm.get_main_camera();
 		vector3		   cam_forward = vector3::zero;
@@ -589,7 +589,7 @@ namespace SFG
 			.cam_pos_and_delta		  = vector4(main_camera_view.position.x, main_camera_view.position.y, main_camera_view.position.z, particles_delta),
 			.cam_dir				  = vector4(cam_forward.x, cam_forward.y, cam_forward.z, 0.0f),
 			.max_particles_per_system = MAX_WORLD_PARTICLES_PER_EMITTER,
-			.frame_index			  = static_cast<uint32>(frame_info::get_frame() % UINT32_MAX),
+			.frame_index			  = static_cast<u32>(frame_info::get_frame() % UINT32_MAX),
 			.max_systems			  = MAX_WORLD_COMP_PARTICLE_EMITTERS,
 			.num_systems			  = num_emitters,
 		};
@@ -613,7 +613,7 @@ namespace SFG
 		backend->cmd_bind_layout_compute(cmd_buffer, {.layout = p.global_layout_compute});
 		backend->cmd_bind_group_compute(cmd_buffer, {.group = p.global_group});
 
-		const uint8 frame_switch = _sim_state.frame_switch;
+		const u8 frame_switch = _sim_state.frame_switch;
 		_sim_state.frame_switch ^= 1;
 
 		const gpu_index gpu_index_ubo					  = pfd.ubo.get_index();
@@ -688,14 +688,14 @@ namespace SFG
 			.resource	 = hw_instances,
 			.flags		 = barrier_flags::baf_is_resource,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "particle_clear");
 
 		// pass 0 - clear
 		{
 			const gpu_index constants[2] = {gpu_index_ubo, gpu_index_indirect_args};
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 2, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 2, .param_index = rpi_constants});
 		}
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = _shader_clear});
 		backend->cmd_dispatch(cmd_buffer,
@@ -720,7 +720,7 @@ namespace SFG
 				gpu_index_system_data_uav,
 				gpu_index_dead_list_uav,
 			};
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 7, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 7, .param_index = rpi_constants});
 		}
 
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = _shader_simulate});
@@ -763,7 +763,7 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "particle_emit");
 
@@ -779,7 +779,7 @@ namespace SFG
 				gpu_index_alive_list_b_uav,
 				gpu_index_counters_uav,
 			};
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 8, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 8, .param_index = rpi_constants});
 		}
 
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = _shader_emit});
@@ -812,7 +812,7 @@ namespace SFG
 			.flags	  = barrier_flags::baf_is_resource | barrier_flags::baf_is_uav,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "particle_write_count");
 
@@ -822,7 +822,7 @@ namespace SFG
 				gpu_index_counters_uav,
 				gpu_index_sim_count_indirect_args,
 			};
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 2, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 2, .param_index = rpi_constants});
 		}
 
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = _shader_write_count});
@@ -854,7 +854,7 @@ namespace SFG
 			.flags	  = barrier_flags::baf_is_resource | barrier_flags::baf_is_uav,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "particle_count");
 
@@ -868,13 +868,13 @@ namespace SFG
 				gpu_index_indirect_args,
 				gpu_index_instances_uav,
 			};
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 6, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 6, .param_index = rpi_constants});
 		}
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = _shader_count});
 		backend->cmd_execute_indirect(cmd_buffer,
 									  {
 										  .indirect_buffer		  = hw_sim_count_indirect,
-										  .indirect_buffer_offset = sizeof(uint32) * 3,
+										  .indirect_buffer_offset = sizeof(u32) * 3,
 										  .count				  = 1,
 										  .indirect_signature	  = _indirect_sig_dispatch,
 									  });
@@ -909,7 +909,7 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "particle_swap");
 
@@ -919,7 +919,7 @@ namespace SFG
 				gpu_index_counters_uav,
 				gpu_index_sim_count_indirect_args,
 			};
-			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 2, .param_index = rpi_constants});
+			backend->cmd_bind_constants_compute(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 2, .param_index = rpi_constants});
 		}
 		backend->cmd_bind_pipeline_compute(cmd_buffer, {.pipeline = _shader_swap});
 		backend->cmd_dispatch(cmd_buffer,
@@ -956,7 +956,7 @@ namespace SFG
 			.resource	 = hw_system_data,
 			.flags		 = barrier_flags::baf_is_resource,
 		});
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		backend->close_command_buffer(cmd_buffer);
 	}
@@ -998,13 +998,13 @@ namespace SFG
 														   .color_attachment_count = 1,
 													   });
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -1024,10 +1024,10 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
-		const uint32 constants[3] = {gpu_index_ubo, gpu_index_instances, 0};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)&constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
+		const u32 constants[3] = {gpu_index_ubo, gpu_index_instances, 0};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)&constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
 
 		if (_num_systems != 0)
 		{
@@ -1046,7 +1046,7 @@ namespace SFG
 			.flags		 = barrier_flags::baf_is_resource,
 		});
 
-		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<uint16>(barriers.size())});
+		backend->cmd_barrier(cmd_buffer, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
 		backend->close_command_buffer(cmd_buffer);
 	}

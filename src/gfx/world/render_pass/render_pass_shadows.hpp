@@ -71,14 +71,14 @@ namespace SFG
 			buffer_gpu				  ubos[BACK_BUFFER_COUNT] = {};
 			vector2ui16				  resolution			  = vector2ui16::zero;
 			gfx_id					  texture				  = {};
-			uint8					  view_index			  = 0;
-			uint8					  transition_owner		  = 0;
+			u8						  view_index			  = 0;
+			u8						  transition_owner		  = 0;
 		};
 
 	public:
 		struct render_params
 		{
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& size;
 			gpu_index		   gpu_index_entities;
 			gpu_index		   gpu_index_bones;
@@ -89,17 +89,17 @@ namespace SFG
 		struct pass_props
 		{
 			proxy_manager&	   pm;
-			uint8			   frame_index;
+			u8				   frame_index;
 			const vector2ui16& res;
 			gfx_id			   texture;
-			uint8			   transition_owner;
-			uint8			   view_index;
+			u8				   transition_owner;
+			u8				   view_index;
 			const matrix4x4&   proj;
 			const matrix4x4&   view;
 			const vector3&	   position;
-			float			   cascade_near;
-			float			   cascade_far;
-			float			   fov;
+			f32				   cascade_near;
+			f32				   cascade_far;
+			f32				   fov;
 		};
 
 		// -----------------------------------------------------------------------------
@@ -113,7 +113,7 @@ namespace SFG
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, uint8 frame_index);
+		void prepare(proxy_manager& pm, const view& main_camera_view, const vector2ui16& resolution, u8 frame_index);
 		void render(const render_params& params);
 		void add_pass(const pass_props& p);
 
@@ -121,19 +121,19 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id get_cmd_buffer(uint8 frame_index) const
+		inline gfx_id get_cmd_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_buffer;
 		}
 
-		inline uint16 get_pass_count() const
+		inline u16 get_pass_count() const
 		{
 			return _pass_count;
 		}
 
 	private:
 		pass*			_passes		= nullptr;
-		uint16			_pass_count = 0;
+		u16				_pass_count = 0;
 		per_frame_data	_pfd[BACK_BUFFER_COUNT];
 		vector<barrier> _barriers;
 		bump_allocator	_alloc = {};

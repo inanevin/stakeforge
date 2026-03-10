@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum class animation_interpolation : uint8
+	enum class animation_interpolation : u8
 	{
 		linear,
 		step,
@@ -44,7 +44,7 @@ namespace SFG
 
 	struct animation_keyframe_v3
 	{
-		float	time  = 0.0f;
+		f32	time  = 0.0f;
 		vector3 value = vector3::zero;
 
 		void serialize(ostream& stream) const;
@@ -53,7 +53,7 @@ namespace SFG
 
 	struct animation_keyframe_v3_spline
 	{
-		float	time		= 0.0f;
+		f32	time		= 0.0f;
 		vector3 in_tangent	= vector3::zero;
 		vector3 value		= vector3::zero;
 		vector3 out_tangent = vector3::zero;
@@ -64,7 +64,7 @@ namespace SFG
 
 	struct animation_keyframe_q
 	{
-		float time	= 0.0f;
+		f32 time	= 0.0f;
 		quat  value = quat();
 
 		void serialize(ostream& stream) const;
@@ -73,7 +73,7 @@ namespace SFG
 
 	struct animation_keyframe_q_spline
 	{
-		float time		  = 0.0f;
+		f32 time		  = 0.0f;
 		quat  in_tangent  = quat();
 		quat  value		  = quat();
 		quat  out_tangent = quat();

@@ -54,8 +54,8 @@ namespace SFG
 		stream << near_plane;
 		stream << far_plane;
 		stream << fov_degrees;
-		stream << static_cast<uint32>(cascades.size());
-		for (float f : cascades)
+		stream << static_cast<u32>(cascades.size());
+		for (f32 f : cascades)
 			stream << f;
 	}
 
@@ -65,11 +65,11 @@ namespace SFG
 		stream >> near_plane;
 		stream >> far_plane;
 		stream >> fov_degrees;
-		uint32 cascade_count = 0;
+		u32 cascade_count = 0;
 		stream >> cascade_count;
-		for (uint32 i = 0; i < cascade_count; i++)
+		for (u32 i = 0; i < cascade_count; i++)
 		{
-			float f = 0.0f;
+			f32 f = 0.0f;
 			stream >> f;
 			cascades.push_back(f);
 		}

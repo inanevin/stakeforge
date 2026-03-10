@@ -29,9 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void shared_cbv::init(uint32 total_size)
+	void shared_cbv::init(u32 total_size)
 	{
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			_buffers[i].create({
 				.size		= total_size,
@@ -43,7 +43,7 @@ namespace SFG
 
 	void shared_cbv::uninit()
 	{
-		for (uint8 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			_buffers[i].destroy();
 		}

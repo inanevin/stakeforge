@@ -39,10 +39,10 @@ namespace SFG
 	public:
 		struct joint_data
 		{
-			uint8 is_masked = 0;
+			u8 is_masked = 0;
 		};
 
-		void mask_joints(world& w, resource_handle skin, string_id* name_hashes, uint16 name_hashes_count);
+		void mask_joints(world& w, resource_handle skin, string_id* name_hashes, u16 name_hashes_count);
 		void mask_joint(world& w, resource_handle skin, string_id hash);
 
 		inline const joint_data* get_mask() const
@@ -50,19 +50,19 @@ namespace SFG
 			return joints;
 		}
 
-		inline void mask_joint(int16 j)
+		inline void mask_joint(i16 j)
 		{
 			joints[j].is_masked = 1;
 		}
 
-		inline bool is_masked(int16 j) const
+		inline bool is_masked(i16 j) const
 		{
 			return joints[j].is_masked;
 		}
 
 		inline void reset()
 		{
-			for (uint16 i = 0; i < MAX_WORLD_SKELETON_JOINTS; i++)
+			for (u16 i = 0; i < MAX_WORLD_SKELETON_JOINTS; i++)
 				joints[i].is_masked = 0;
 		}
 

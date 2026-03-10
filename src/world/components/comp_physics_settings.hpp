@@ -57,7 +57,7 @@ namespace SFG
 		template <typename T, int> friend class comp_cache;
 
 	private:
-		component_header _header	= {};
+		component_header _header  = {};
 		vector3			 _gravity = vector3(0.0f, -9.81f, 0.0f);
 	};
 

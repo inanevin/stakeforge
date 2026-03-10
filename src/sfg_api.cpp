@@ -5,7 +5,7 @@
 
 extern "C"
 {
-	SFG::app* create_app(uint32 width, uint32 height)
+	SFG::app* create_app(u32 width, u32 height)
 	{
 		SFG::app* app = new SFG::app();
 		app->init({width, height});
@@ -18,5 +18,4 @@ extern "C"
 		// app->uninit();
 		delete app;
 	}
-
 }

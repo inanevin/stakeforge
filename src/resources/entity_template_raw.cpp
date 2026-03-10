@@ -99,11 +99,11 @@ namespace SFG
 		r.position			 = j.value<vector3>("pos", vector3::zero);
 		r.rotation			 = j.value<quat>("rot", quat::identity);
 		r.scale				 = j.value<vector3>("scale", vector3::one);
-		r.visible			 = j.value<uint8>("visible", 1);
+		r.visible			 = j.value<u8>("visible", 1);
 		r.template_reference = j.value<string>("template", "");
-		r.parent			 = j.value<int32>("parent", -1);
-		r.first_child		 = j.value<int32>("first_child", -1);
-		r.next_sibling		 = j.value<int32>("next_sibling", -1);
+		r.parent			 = j.value<i32>("parent", -1);
+		r.first_child		 = j.value<i32>("first_child", -1);
+		r.next_sibling		 = j.value<i32>("next_sibling", -1);
 	}
 
 #endif
@@ -112,7 +112,7 @@ namespace SFG
 	{
 		stream << entities;
 		stream << resources;
-		const uint32 sz = static_cast<uint32>(component_buffer.get_size());
+		const u32 sz = static_cast<u32>(component_buffer.get_size());
 		stream << sz;
 		stream.write_raw(component_buffer.get_raw(), sz);
 	}
@@ -121,7 +121,7 @@ namespace SFG
 	{
 		stream >> entities;
 		stream >> resources;
-		uint32 sz = 0;
+		u32 sz = 0;
 		stream >> sz;
 		if (sz > 0)
 		{
@@ -192,10 +192,10 @@ namespace SFG
 			collect_entities(em, h, order);
 		}
 
-		hash_map<uint32, int32> index_by_world;
+		hash_map<u32, i32> index_by_world;
 		index_by_world.reserve(order.size());
 		for (size_t i = 0; i < order.size(); ++i)
-			index_by_world[order[i].index] = static_cast<int32>(i);
+			index_by_world[order[i].index] = static_cast<i32>(i);
 
 		j["entities"]	= json::array();
 		j["components"] = json::array();
@@ -232,7 +232,7 @@ namespace SFG
 				continue;
 			}
 
-			entity_template_utils::append_entity_components_as_json(jc, h, static_cast<uint32>(i), em, cm, rm, index_by_world, resource_paths);
+			entity_template_utils::append_entity_components_as_json(jc, h, static_cast<u32>(i), em, cm, rm, index_by_world, resource_paths);
 		}
 
 		json& jr = j["resources"];
@@ -301,13 +301,13 @@ namespace SFG
 		istream stream = serialization::load_from_file(meta_cache_path.c_str());
 
 		string file_path				= "";
-		uint64 saved_file_last_modified = 0;
+		u64 saved_file_last_modified = 0;
 		stream >> file_path;
 		stream >> saved_file_last_modified;
 
 		stream.destroy();
 
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 
 		if (file_last_modified != saved_file_last_modified)
 			return false;
@@ -323,7 +323,7 @@ namespace SFG
 		const string sid_str			= std::to_string(TO_SID(name));
 		const string relative			= file_system::get_filename_from_path(name);
 		const string file_path			= resource_directory_path + name;
-		const uint64 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + relative + "-" + sid_str + "_data" + extension;

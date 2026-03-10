@@ -50,7 +50,7 @@ namespace SFG
 
 		create_textures(size);
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -65,7 +65,7 @@ namespace SFG
 
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
@@ -76,7 +76,7 @@ namespace SFG
 		destroy_textures();
 	}
 
-	void render_pass_opaque::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, uint8 frame_index)
+	void render_pass_opaque::prepare(proxy_manager& pm, const vector<renderable_object>& renderables, const view& main_camera_view, u8 frame_index)
 	{
 		ZoneScoped;
 
@@ -107,7 +107,7 @@ namespace SFG
 		static_vector<barrier, 8> barriers;
 		static_vector<barrier, 8> barriers_after;
 
-		for (uint8 i = 0; i < GBUFFER_COLOR_TEXTURES; i++)
+		for (u8 i = 0; i < GBUFFER_COLOR_TEXTURES; i++)
 		{
 			const gfx_id txt = textures[i];
 
@@ -119,7 +119,7 @@ namespace SFG
 			att.view_index					  = 0;
 
 			// normals for compute
-			uint32 extra_state = i == 1 ? resource_state_non_ps_resource : 0;
+			u32 extra_state = i == 1 ? resource_state_non_ps_resource : 0;
 
 			barriers.push_back({
 				.from_states = resource_state::resource_state_ps_resource | extra_state,
@@ -140,7 +140,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers.data(),
-								 .barrier_count = static_cast<uint16>(barriers.size()),
+								 .barrier_count = static_cast<u16>(barriers.size()),
 							 });
 
 		BEGIN_DEBUG_EVENT(backend, cmd_buffer, "opaque_pass");
@@ -161,16 +161,16 @@ namespace SFG
 		backend->cmd_bind_layout(cmd_buffer, {.layout = p.global_layout});
 		backend->cmd_bind_group(cmd_buffer, {.group = p.global_group});
 
-		const uint32 rp_constants[3] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones};
-		backend->cmd_bind_constants(cmd_buffer, {.data = (uint8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
+		const u32 rp_constants[3] = {gpu_index_rp_ubo, p.gpu_index_entities, p.gpu_index_bones};
+		backend->cmd_bind_constants(cmd_buffer, {.data = (u8*)rp_constants, .offset = constant_index_rp_constant0, .count = 3, .param_index = rpi_constants});
 
-		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<uint16>(p.size.x), .height = static_cast<uint16>(p.size.y)});
+		backend->cmd_set_scissors(cmd_buffer, {.width = static_cast<u16>(p.size.x), .height = static_cast<u16>(p.size.y)});
 		backend->cmd_set_viewport(cmd_buffer,
 								  {
 									  .min_depth = 0.0f,
 									  .max_depth = 1.0f,
-									  .width	 = static_cast<uint16>(p.size.x),
-									  .height	 = static_cast<uint16>(p.size.y),
+									  .width	 = static_cast<u16>(p.size.x),
+									  .height	 = static_cast<u16>(p.size.y),
 
 								  });
 
@@ -183,7 +183,7 @@ namespace SFG
 		backend->cmd_barrier(cmd_buffer,
 							 {
 								 .barriers		= barriers_after.data(),
-								 .barrier_count = static_cast<uint16>(barriers_after.size()),
+								 .barrier_count = static_cast<u16>(barriers_after.size()),
 							 });
 
 		backend->close_command_buffer(cmd_buffer);
@@ -199,11 +199,11 @@ namespace SFG
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 
-			for (uint32 i = 0; i < GBUFFER_COLOR_TEXTURES; i++)
+			for (u32 i = 0; i < GBUFFER_COLOR_TEXTURES; i++)
 				backend->destroy_texture(pfd.color_textures[i]);
 			pfd.color_textures.clear();
 		}
@@ -225,13 +225,13 @@ namespace SFG
 		formats.push_back(render_target_definitions::get_format_gbuffer_normal());
 		formats.push_back(render_target_definitions::get_format_gbuffer_orm());
 		formats.push_back(render_target_definitions::get_format_gbuffer_emissive());
-		for (uint32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data& pfd = _pfd[i];
 			pfd.color_textures.clear();
 			pfd.gpu_index_color_textures.clear();
 
-			for (uint32 j = 0; j < GBUFFER_COLOR_TEXTURES; j++)
+			for (u32 j = 0; j < GBUFFER_COLOR_TEXTURES; j++)
 			{
 				pfd.color_textures.push_back(backend->create_texture({
 					.texture_format = formats[j],

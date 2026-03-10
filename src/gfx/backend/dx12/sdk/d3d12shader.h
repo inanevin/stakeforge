@@ -59,7 +59,7 @@ typedef struct _D3D12_SIGNATURE_PARAMETER_DESC
 	UINT						SemanticIndex;	 // Index of the semantic
 	UINT						Register;		 // Number of member variables
 	D3D_NAME					SystemValueType; // A predefined system value, or D3D_NAME_UNDEFINED if not applicable
-	D3D_REGISTER_COMPONENT_TYPE ComponentType;	 // Scalar type (e.g. uint, float, etc.)
+	D3D_REGISTER_COMPONENT_TYPE ComponentType;	 // Scalar type (e.g. uint, f32, etc.)
 	BYTE						Mask;			 // Mask to indicate which components of the register
 												 // are used (combination of D3D10_COMPONENT_MASK values)
 	BYTE ReadWriteMask;							 // Mask to indicate whether a given component is
@@ -95,7 +95,7 @@ typedef struct _D3D12_SHADER_VARIABLE_DESC
 typedef struct _D3D12_SHADER_TYPE_DESC
 {
 	D3D_SHADER_VARIABLE_CLASS Class;	// Variable class (e.g. object, matrix, etc.)
-	D3D_SHADER_VARIABLE_TYPE  Type;		// Variable type (e.g. float, sampler, etc.)
+	D3D_SHADER_VARIABLE_TYPE  Type;		// Variable type (e.g. f32, sampler, etc.)
 	UINT					  Rows;		// Number of rows (for matrices, 1 for other numeric, 0 if not applicable)
 	UINT					  Columns;	// Number of columns (for vectors & matrices, 1 for other numeric, 0 if not applicable)
 	UINT					  Elements; // Number of elements (0 if not an array)

@@ -30,26 +30,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	enum class physics_broadphase_layers : uint8
+	enum class physics_broadphase_layers : u8
 	{
 		non_moving = 0,
 		moving,
 	};
 
-	enum class physics_object_layers : uint16
+	enum class physics_object_layers : u16
 	{
 		non_moving = 0,
 		moving,
 	};
 
-	enum class physics_body_type : uint8
+	enum class physics_body_type : u8
 	{
 		static_body,
 		kinematic_body,
 		dynamic_body,
 	};
 
-	enum class physics_shape_type : uint8
+	enum class physics_shape_type : u8
 	{
 		sphere,
 		box,

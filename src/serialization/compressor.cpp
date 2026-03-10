@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -40,9 +40,9 @@ namespace SFG
 
 	ostream compressor::compress(ostream& stream)
 	{
-		const uint32 streamSize		  = static_cast<uint32>(stream.get_size());
-		const uint8	 shouldCompress	  = (streamSize < 150000000 && streamSize > 750000) ? 1 : 0;
-		const uint32 uncompressedSize = streamSize + sizeof(uint8) + sizeof(uint32);
+		const u32 streamSize	   = static_cast<u32>(stream.get_size());
+		const u8  shouldCompress   = (streamSize < 150000000 && streamSize > 750000) ? 1 : 0;
+		const u32 uncompressedSize = streamSize + sizeof(u8) + sizeof(u32);
 
 		stream << shouldCompress;
 		stream << uncompressedSize;
@@ -77,9 +77,9 @@ namespace SFG
 	istream compressor::decompress(istream& stream)
 	{
 		// Read uncompressed size of archive.
-		uint8  shouldDecompress = 0;
-		uint32 uncompressedSize = 0;
-		stream.seek(stream.get_size() - sizeof(uint32) - sizeof(uint8));
+		u8	shouldDecompress = 0;
+		u32 uncompressedSize = 0;
+		stream.seek(stream.get_size() - sizeof(u32) - sizeof(u8));
 		stream.read(shouldDecompress);
 		stream.read(uncompressedSize);
 		stream.seek(0);
@@ -87,7 +87,7 @@ namespace SFG
 		if (!shouldDecompress)
 		{
 			istream copy;
-			copy.create(stream.get_raw(), stream.get_size() - sizeof(uint32) - sizeof(uint8));
+			copy.create(stream.get_raw(), stream.get_size() - sizeof(u32) - sizeof(u8));
 			return copy;
 		}
 
@@ -97,7 +97,7 @@ namespace SFG
 		void*	  src			   = stream.get_raw();
 		void*	  ptr			   = decompressedStream.get_raw();
 		const int decompressedSize = LZ4_decompress_safe((char*)src, (char*)ptr, static_cast<int>(size), static_cast<int>(uncompressedSize));
-		decompressedStream.shrink(static_cast<size_t>(decompressedSize) - sizeof(uint32) - sizeof(uint8));
+		decompressedStream.shrink(static_cast<size_t>(decompressedSize) - sizeof(u32) - sizeof(u8));
 		return decompressedStream;
 	}
 }

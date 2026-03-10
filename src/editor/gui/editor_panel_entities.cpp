@@ -100,7 +100,7 @@ namespace SFG
 
 	void editor_panel_entities::rebuild_tree(world& w)
 	{
-		const float old_scroll = _builder->widget_get_pos_props(_entity_area).scroll_offset;
+		const f32 old_scroll = _builder->widget_get_pos_props(_entity_area).scroll_offset;
 
 		// Remove old nodes
 		for (vekt::id nid : _root_entity_widgets)
@@ -147,12 +147,12 @@ namespace SFG
 	vekt::id editor_panel_entities::build_entity_node(world& w, world_handle e, unsigned int depth)
 	{
 		entity_manager& em			= w.get_entity_manager();
-		const uint8		is_template = em.get_entity_flags(e).is_set(entity_flags::entity_flags_template);
-		const uint8		selected	= _selected_entity == e;
+		const u8		is_template = em.get_entity_flags(e).is_set(entity_flags::entity_flags_template);
+		const u8		selected	= _selected_entity == e;
 		if (is_template)
 			_entity_meta[e.index].collapsed = true;
 
-		const uint8 is_collapsed = _entity_meta[e.index].collapsed;
+		const u8 is_collapsed = _entity_meta[e.index].collapsed;
 
 		// Row container
 		const vekt::id row = _builder->allocate();
@@ -307,7 +307,7 @@ namespace SFG
 		return res;
 	}
 
-	void editor_panel_entities::set_collapse(world_handle h, uint8 collapsed)
+	void editor_panel_entities::set_collapse(world_handle h, u8 collapsed)
 	{
 		_entity_meta[h.index].collapsed = collapsed;
 		editor::get().get_app().get_world().get_entity_manager().set_hierarchy_dirty(1);
@@ -315,7 +315,7 @@ namespace SFG
 
 	void editor_panel_entities::toggle_collapse(world_handle h)
 	{
-		uint8 collapsed = _entity_meta[h.index].collapsed;
+		u8 collapsed = _entity_meta[h.index].collapsed;
 		collapsed ^= 1;
 		set_collapse(h, collapsed);
 	}
@@ -523,7 +523,7 @@ namespace SFG
 			// select entity
 			if (ev.type == vekt::input_event_type::pressed)
 			{
-				if (ev.button == static_cast<uint16>(input_code::mouse_1))
+				if (ev.button == static_cast<u16>(input_code::mouse_1))
 				{
 					editor::get().get_gui_controller().begin_context_menu(ev.position.x, ev.position.y);
 					self->_ctx_add_child = editor::get().get_gui_controller().add_context_menu_item("add_child");
@@ -548,7 +548,7 @@ namespace SFG
 			// toggle entity
 			if (ev.type == vekt::input_event_type::repeated)
 			{
-				const uint8 is_template = editor::get().get_app().get_world().get_entity_manager().get_entity_flags(clicked).is_set(entity_flags::entity_flags_template);
+				const u8 is_template = editor::get().get_app().get_world().get_entity_manager().get_entity_flags(clicked).is_set(entity_flags::entity_flags_template);
 				if (!is_template)
 					self->toggle_collapse(clicked);
 				editor::get().get_gui_controller().set_selected_entity(clicked);
@@ -591,7 +591,7 @@ namespace SFG
 		return vekt::input_event_result::not_handled;
 	}
 
-	void editor_panel_entities::on_tree_item_drag(vekt::builder* b, vekt::id widget, float mp_x, float mp_y, float delta_x, float delta_y, unsigned int button)
+	void editor_panel_entities::on_tree_item_drag(vekt::builder* b, vekt::id widget, f32 mp_x, f32 mp_y, f32 delta_x, f32 delta_y, unsigned int button)
 	{
 		editor_panel_entities* self = static_cast<editor_panel_entities*>(b->widget_get_user_data(widget).ptr);
 	}

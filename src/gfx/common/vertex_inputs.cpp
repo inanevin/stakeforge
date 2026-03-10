@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,28 +36,28 @@ namespace SFG
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.offset = 0,
-				.size	= sizeof(float) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "NORMAL",
-				.offset = sizeof(float) * 3,
-				.size	= sizeof(float) * 3,
+				.offset = sizeof(f32) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TANGENT",
-				.offset = sizeof(float) * 6,
-				.size	= sizeof(float) * 4,
+				.offset = sizeof(f32) * 6,
+				.size	= sizeof(f32) * 4,
 				.format = format::r32g32b32a32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TEXCOORD",
-				.offset = sizeof(float) * 10,
-				.size	= sizeof(float) * 2,
+				.offset = sizeof(f32) * 10,
+				.size	= sizeof(f32) * 2,
 				.format = format::r32g32_sfloat,
 			});
 		}
@@ -66,42 +66,42 @@ namespace SFG
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.offset = 0,
-				.size	= sizeof(float) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "NORMAL",
-				.offset = sizeof(float) * 3,
-				.size	= sizeof(float) * 3,
+				.offset = sizeof(f32) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TANGENT",
-				.offset = sizeof(float) * 6,
-				.size	= sizeof(float) * 4,
+				.offset = sizeof(f32) * 6,
+				.size	= sizeof(f32) * 4,
 				.format = format::r32g32b32a32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TEXCOORD",
-				.offset = sizeof(float) * 10,
-				.size	= sizeof(float) * 2,
+				.offset = sizeof(f32) * 10,
+				.size	= sizeof(f32) * 2,
 				.format = format::r32g32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "BLENDWEIGHT",
-				.offset = sizeof(float) * 12,
-				.size	= sizeof(float) * 4,
+				.offset = sizeof(f32) * 12,
+				.size	= sizeof(f32) * 4,
 				.format = format::r32g32b32a32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "BLENDINDICES",
-				.offset = sizeof(float) * 16,
-				.size	= sizeof(uint32) * 4,
+				.offset = sizeof(f32) * 16,
+				.size	= sizeof(u32) * 4,
 				.format = format::r32g32b32a32_uint,
 			});
 		}
@@ -110,27 +110,27 @@ namespace SFG
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.offset = 0,
-				.size	= sizeof(float) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.index	= 1,
-				.offset = sizeof(float) * 3,
-				.size	= sizeof(float) * 3,
+				.offset = sizeof(f32) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "COLOR",
-				.offset = sizeof(float) * 6,
-				.size	= sizeof(float) * 4,
+				.offset = sizeof(f32) * 6,
+				.size	= sizeof(f32) * 4,
 				.format = format::r32g32b32a32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.index	= 2,
-				.offset = sizeof(float) * 10,
-				.size	= sizeof(float),
+				.offset = sizeof(f32) * 10,
+				.size	= sizeof(f32),
 				.format = format::r32_sfloat,
 			});
 		}
@@ -139,14 +139,14 @@ namespace SFG
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.offset = 0,
-				.size	= sizeof(float) * 3,
+				.size	= sizeof(f32) * 3,
 				.format = format::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "COLOR",
-				.offset = sizeof(float) * 3,
-				.size	= sizeof(float) * 4,
+				.offset = sizeof(f32) * 3,
+				.size	= sizeof(f32) * 4,
 				.format = format::r32g32b32a32_sfloat,
 			});
 		}
@@ -155,20 +155,20 @@ namespace SFG
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.offset = 0,
-				.size	= sizeof(float) * 2,
+				.size	= sizeof(f32) * 2,
 				.format = format::r32g32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TEXCOORD",
-				.offset = sizeof(float) * 2,
-				.size	= sizeof(float) * 2,
+				.offset = sizeof(f32) * 2,
+				.size	= sizeof(f32) * 2,
 				.format = format::r32g32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "COLOR",
-				.offset = sizeof(float) * 4,
-				.size	= sizeof(float) * 4,
+				.offset = sizeof(f32) * 4,
+				.size	= sizeof(f32) * 4,
 				.format = format::r32g32b32a32_sfloat,
 			});
 		}

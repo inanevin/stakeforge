@@ -42,13 +42,13 @@ namespace SFG
 		};
 
 	public:
-		text_allocator() : _head(0) {};
+		text_allocator() : _head(0){};
 
 		// -----------------------------------------------------------------------------
 		// lifecycle
 		// -----------------------------------------------------------------------------
 
-		void init(uint32 capacity);
+		void init(u32 capacity);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -88,8 +88,8 @@ namespace SFG
 	private:
 		vector<allocation> _free_list;
 		char*			   _raw		 = nullptr;
-		uint32			   _head	 = 0;
-		uint32			   _capacity = 0;
+		u32				   _head	 = 0;
+		u32				   _capacity = 0;
 	};
 
 }

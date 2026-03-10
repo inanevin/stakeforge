@@ -62,7 +62,7 @@ namespace SFG
 	{
 	public:
 		physics_world() = delete;
-		physics_world(world& w) : _game_world(w) {};
+		physics_world(world& w) : _game_world(w){};
 
 		// -----------------------------------------------------------------------------
 		// lifecycle
@@ -72,15 +72,15 @@ namespace SFG
 		void uninit();
 		void init_simulation();
 		void uninit_simulation();
-		void simulate(float rate);
+		void simulate(f32 rate);
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
-		void	   add_bodies_to_world(JPH::BodyID* body_ids, uint32 count);
+		void	   add_bodies_to_world(JPH::BodyID* body_ids, u32 count);
 		void	   add_body_to_world(const JPH::Body& body);
 		void	   remove_body_from_world(const JPH::Body& body);
-		void	   remove_bodies_from_world(JPH::BodyID* body_ids, uint32 count);
+		void	   remove_bodies_from_world(JPH::BodyID* body_ids, u32 count);
 		JPH::Body* create_body(physics_body_type body_type, physics_shape_type shape, const vector3& extents_or_rad_height, resource_handle physical_material, bool is_sensor, const vector3& pos, const quat& rot, const vector3& scale, JPH::Shape* mesh_shape);
 		void	   destroy_body(JPH::Body* body);
 		void	   set_gravity(const vector3& g);
@@ -129,7 +129,7 @@ namespace SFG
 		JPH::TempAllocatorImpl* _allocator	= nullptr;
 		JPH::JobSystem*			_job_system = nullptr;
 
-		vector<uint32>			   _added_bodies = {};
+		vector<u32>				   _added_bodies = {};
 		world&					   _game_world;
 		physical_material_settings _default_material = {};
 		vector3					   _graivty			 = vector3::zero;
@@ -139,7 +139,7 @@ namespace SFG
 		physics_bp_layer_interface*		_bp_layer_interface		= nullptr;
 
 #if !USE_FIXED_FRAMERATE
-		float _dt_counter = 0.0f;
+		f32 _dt_counter = 0.0f;
 #endif
 	};
 }
