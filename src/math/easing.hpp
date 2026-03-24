@@ -28,22 +28,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class easing
+	namespace easing
 	{
-	public:
-		static f32 smooth_damp(f32 current, f32 target, f32* currentVelocity, f32 smoothTime, f32 maxSpeed, f32 deltaTime);
-		static f32 lerp(f32 val1, f32 val2, f32 amt);
-		static f32 cubic_lerp(f32 val1, f32 val2, f32 amt);
-		static f32 cubic_interp(f32 val0, f32 val1, f32 val2, f32 val3, f32 amt);
-		static f32 cubic_interp_tangents(f32 val1, f32 tan1, f32 val2, f32 tan2, f32 amt);
-		static f32 bilerp(f32 val00, f32 val10, f32 val01, f32 val11, f32 amtX, f32 amtY);
-		static f32 step(f32 edge, f32 x);
-		static f32 ease_in(f32 start, f32 end, f32 alpha);
-		static f32 ease_out(f32 start, f32 end, f32 alpha);
-		static f32 ease_in_out(f32 start, f32 end, f32 alpha);
-		static f32 cubic(f32 start, f32 end, f32 alpha);
-		static f32 exponential(f32 start, f32 end, f32 alpha);
-		static f32 bounce(f32 start, f32 end, f32 alpha);
-		static f32 sinusodial(f32 start, f32 end, f32 alpha);
+		f32 smooth_damp(f32 current, f32 target, f32* currentVelocity, f32 smoothTime, f32 maxSpeed, f32 deltaTime);
+		f32 lerp(f32 val1, f32 val2, f32 amt);
+		f32 cubic_lerp(f32 val1, f32 val2, f32 amt);
+		f32 cubic_interp(f32 val0, f32 val1, f32 val2, f32 val3, f32 amt);
+		f32 cubic_interp_tangents(f32 val1, f32 tan1, f32 val2, f32 tan2, f32 amt);
+		f32 bilerp(f32 val00, f32 val10, f32 val01, f32 val11, f32 amtX, f32 amtY);
+		f32 step(f32 edge, f32 x);
+		f32 ease_in(f32 start, f32 end, f32 alpha);
+		f32 ease_out(f32 start, f32 end, f32 alpha);
+		f32 ease_in_out(f32 start, f32 end, f32 alpha);
+		f32 cubic(f32 start, f32 end, f32 alpha);
+		f32 exponential(f32 start, f32 end, f32 alpha);
+		f32 bounce(f32 start, f32 end, f32 alpha);
+		f32 sinusodial(f32 start, f32 end, f32 alpha);
 	};
-} // namespace SFG
+}

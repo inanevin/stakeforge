@@ -69,10 +69,6 @@ namespace SFG
 	public:
 		typedef void (*callback_function)(log_level lvl, const char* msg, void* user_data);
 
-		/// <summary>
-		///
-		/// </summary>
-		/// <returns></returns>
 		static log& instance()
 		{
 			static log log;
@@ -136,12 +132,6 @@ namespace SFG
 			return result.str();
 		}
 
-		/// <summary>
-		///
-		/// </summary>
-		/// <typeparam name="...Args"></typeparam>
-		/// <param name="level"></param>
-		/// <param name="...args"></param>
 		template <typename... Args> void log_msg(log_level level, const Args&... args)
 		{
 			log_impl(level, format_str(args...).c_str());

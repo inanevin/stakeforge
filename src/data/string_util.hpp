@@ -32,22 +32,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class string_util
+	namespace string_util
 	{
-	public:
-		static string		  remove_all_except_first(const string& str, const string& delimiter);
-		static int			  append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
-		static void			  replace_all(string& str, const string& to_replace, const string& replacement);
-		static void			  to_upper(string& str);
-		static void			  to_lower(string& str);
-		static void			  remove_whitespace(string& str);
-		static wstring		  to_wstr(const string& string);
-		static void			  split(vector<string>& out, const string& str, const string& split);
-		static char*		  wchar_to_char(const wchar_t* wch);
-		static const wchar_t* char_to_wchar(const char* ch);
-		static bool			  to_float(const string& str, f32& out_f, u32& out_decimals, char seperator = '.');
-		static bool			  to_int(const string& str, int& out_i);
-		static bool			  to_big_uint(const string& str, u64& out_i);
-	};
+		string		   remove_all_except_first(const string& str, const string& delimiter);
+		int			   append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
+		void		   replace_all(string& str, const string& to_replace, const string& replacement);
+		void		   to_upper(string& str);
+		void		   to_lower(string& str);
+		void		   remove_whitespace(string& str);
+		wstring		   to_wstr(const string& string);
+		void		   split(vector<string>& out, const string& str, const string& split);
+		char*		   wchar_to_char(const wchar_t* wch);
+		const wchar_t* char_to_wchar(const char* ch);
+		bool		   to_float(const string& str, f32& out_f, u32& out_decimals, char seperator = '.');
+		bool		   to_int(const string& str, int& out_i);
+		bool		   to_big_uint(const string& str, u64& out_i);
+	}
 
 }

@@ -47,26 +47,23 @@ namespace SFG
 		sign	   = 1 << 9,
 	};
 
-	class process
+	namespace process
 	{
-	public:
-		static void	  init();
-		static void	  uninit();
-		static void	  pump_os_messages();
-		static void	  open_url(const char* url);
-		static bool	  open_directory(const char* dir);
-		static void	  message_box(const char* msg);
-		static void	  get_all_monitors(vector<monitor_info>& out);
-		static char	  get_character_from_key(u32 key);
-		static u16	  get_character_mask_from_key(u32 key, char ch);
-		static string select_folder(const char* title);
-		static string select_file(const char* title, const char* extension);
-		static void	  select_files(const char* title, const char* extension, vector<string>& out_files);
-		static string save_file(const char* title, const char* extension);
-		static string get_clipboard();
-		static void	  push_clipboard(const char* cp);
-
-	private:
+		void   init();
+		void   uninit();
+		void   pump_os_messages();
+		void   open_url(const char* url);
+		bool   open_directory(const char* dir);
+		void   message_box(const char* msg);
+		void   get_all_monitors(vector<monitor_info>& out);
+		char   get_character_from_key(u32 key);
+		u16	   get_character_mask_from_key(u32 key, char ch);
+		string select_folder(const char* title);
+		string select_file(const char* title, const char* extension);
+		void   select_files(const char* title, const char* extension, vector<string>& out_files);
+		string save_file(const char* title, const char* extension);
+		string get_clipboard();
+		void   push_clipboard(const char* cp);
 	};
 
-} // namespace SFG
+}

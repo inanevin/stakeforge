@@ -46,202 +46,197 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-
-	wstring string_util::to_wstr(const string& string)
+	namespace string_util
 	{
-		std::string												  str = string.c_str();
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-		return converter.from_bytes(str);
-	}
+		wstring to_wstr(const string& string)
+		{
+			std::string												  str = string.c_str();
+			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+			return converter.from_bytes(str);
+		}
 
-	char* string_util::wchar_to_char(const wchar_t* wch)
-	{
-		// Count required buffer size (plus one for null-terminator).
-		size_t size	  = (wcslen(wch) + 1) * sizeof(wchar_t);
-		char*  buffer = new char[size];
+		char* wchar_to_char(const wchar_t* wch)
+		{
+			size_t size	  = (wcslen(wch) + 1) * sizeof(wchar_t);
+			char*  buffer = new char[size];
 
 #ifdef __STDC_LIB_EXT1__
-		// wcstombs_s is only guaranteed to be available if __STDC_LIB_EXT1__ is defined
-		size_t convertedSize;
-		std::wcstombs_s(&convertedSize, buffer, size, input, size);
+			size_t convertedSize;
+			std::wcstombs_s(&convertedSize, buffer, size, input, size);
 #else
 #pragma warning(disable : 4996)
-		std::wcstombs(buffer, wch, size);
+			std::wcstombs(buffer, wch, size);
 #endif
-		return buffer;
-	}
+			return buffer;
+		}
 
-	const wchar_t* string_util::char_to_wchar(const char* ch)
-	{
+		const wchar_t* char_to_wchar(const char* ch)
+		{
 #ifdef SFG_PLATFORM_WINDOWS
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		std::wstring									 wide_str = converter.from_bytes(ch);
+			std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+			std::wstring									 wide_str = converter.from_bytes(ch);
 
-		wchar_t* wide_copy = new wchar_t[wide_str.size() + 1];
-		wcscpy_s(wide_copy, wide_str.size() + 1, wide_str.c_str());
+			wchar_t* wide_copy = new wchar_t[wide_str.size() + 1];
+			wcscpy_s(wide_copy, wide_str.size() + 1, wide_str.c_str());
 
-		return wide_copy;
+			return wide_copy;
 #endif
 
 #ifdef SFG_PLATFORM_OSX
-		// Convert the input char string to a wchar_t string on Apple platform
-		size_t	 length	   = strlen(ch);
-		wchar_t* wide_copy = new wchar_t[length + 1];
+			size_t	 length	   = strlen(ch);
+			wchar_t* wide_copy = new wchar_t[length + 1];
 
-		mbstowcs(wide_copy, ch, length);
-		wide_copy[length] = L'\0'; // Null-terminate the wide string
+			mbstowcs(wide_copy, ch, length);
+			wide_copy[length] = L'\0';
 
-		return wide_copy;
+			return wide_copy;
 #endif
-	}
-
-	void string_util::replace_all(string& str, const string& to_replace, const string& replacement)
-	{
-		if (to_replace.empty())
-			return;
-
-		std::string result;
-		result.reserve(str.size());
-
-		size_t pos = 0;
-		while (pos < str.size())
-		{
-			size_t found = str.find(to_replace, pos);
-			if (found == std::string::npos)
-			{
-				result.append(str, pos, str.size() - pos);
-				break;
-			}
-			result.append(str, pos, found - pos);
-			result.append(replacement);
-			pos = found + to_replace.size();
 		}
-		str = result;
-	}
 
-	bool string_util::to_float(const string& str, f32& out_f, u32& outDecimals, char seperator)
-	{
-		try
+		void replace_all(string& str, const string& to_replace, const string& replacement)
 		{
-			std::size_t pos = str.find(seperator);
+			if (to_replace.empty())
+				return;
+
+			std::string result;
+			result.reserve(str.size());
+
+			size_t pos = 0;
+			while (pos < str.size())
+			{
+				size_t found = str.find(to_replace, pos);
+				if (found == std::string::npos)
+				{
+					result.append(str, pos, str.size() - pos);
+					break;
+				}
+				result.append(str, pos, found - pos);
+				result.append(replacement);
+				pos = found + to_replace.size();
+			}
+			str = result;
+		}
+
+		bool to_float(const string& str, f32& out_f, u32& outDecimals, char seperator)
+		{
+			try
+			{
+				std::size_t pos = str.find(seperator);
+				if (pos != std::string::npos)
+					outDecimals = static_cast<u32>(str.length() - pos - 1);
+
+				out_f = std::stof(str);
+				return true;
+			}
+			catch (const std::exception& e)
+			{
+				return false;
+			}
+		}
+
+		bool to_int(const string& str, int& out_i)
+		{
+			try
+			{
+				out_i = std::stoi(str);
+				return true;
+			}
+			catch (const std::exception& e)
+			{
+				return false;
+			}
+		}
+
+		bool to_big_uint(const string& str, u64& out_i)
+		{
+			try
+			{
+				out_i = static_cast<u64>(std::stoull(str));
+				return true;
+			}
+			catch (const std::exception& e)
+			{
+				return false;
+			}
+		}
+
+		string remove_all_except_first(const string& str, const string& delimiter)
+		{
+			string		result = str;
+			std::size_t pos	   = result.find(delimiter);
+
 			if (pos != std::string::npos)
-				outDecimals = static_cast<u32>(str.length() - pos - 1);
-
-			out_f = std::stof(str);
-			return true;
-		}
-		catch (const std::exception& e)
-		{
-			return false;
-		}
-	}
-
-	bool string_util::to_int(const string& str, int& out_i)
-	{
-		try
-		{
-			out_i = std::stoi(str);
-			return true;
-		}
-		catch (const std::exception& e)
-		{
-			return false;
-		}
-	}
-
-	bool string_util::to_big_uint(const string& str, u64& out_i)
-	{
-		try
-		{
-			out_i = static_cast<u64>(std::stoull(str));
-			return true;
-		}
-		catch (const std::exception& e)
-		{
-			return false;
-		}
-	}
-
-	string string_util::remove_all_except_first(const string& str, const string& delimiter)
-	{
-		string		result = str;
-		std::size_t pos	   = result.find(delimiter); // find the first dot
-
-		// if there is a dot in the string
-		if (pos != std::string::npos)
-		{
-			// remove all subsequent dots
-			pos++; // start from the next character
-			std::size_t next;
-			while ((next = result.find('.', pos)) != std::string::npos)
 			{
-				result.erase(next, 1); // erase the dot
+				pos++;
+				std::size_t next;
+				while ((next = result.find('.', pos)) != std::string::npos)
+				{
+					result.erase(next, 1);
+				}
 			}
+
+			return result;
 		}
 
-		return result;
-	}
-
-	int string_util::append_float(f32 value, char* target_buffer, u32 max_chars, u32 decimals, bool null_term)
-	{
-		SFG_ASSERT(decimals < max_chars);
-		SFG_ASSERT(max_chars <= 16);
-		int	 written = 0;
-		char float_buf[16];
-
-		for (int precision = decimals; precision >= 0; --precision)
+		int append_float(f32 value, char* target_buffer, u32 max_chars, u32 decimals, bool null_term)
 		{
-			written = snprintf(float_buf, sizeof(float_buf), "%.*f", precision, value);
-			if (written <= static_cast<int>(max_chars))
-				break;
-		}
+			SFG_ASSERT(decimals < max_chars);
+			SFG_ASSERT(max_chars <= 16);
+			int	 written = 0;
+			char float_buf[16];
 
-		SFG_MEMCPY(target_buffer, float_buf, written);
-
-		if (null_term)
-			target_buffer[written] = '\0';
-		return written;
-	}
-
-	void string_util::split(vector<string>& out, const string& str, const string& split)
-	{
-		// Split the path into directories
-		size_t start = 0, end = str.find(split.c_str());
-		while (end != string::npos)
-		{
-			const auto aq = str.substr(start, end - start);
-			out.push_back(aq);
-			start = end + split.size();
-			end	  = str.find(split.c_str(), start);
-		}
-		out.push_back(str.substr(start));
-	}
-
-	void string_util::to_lower(string& input)
-	{
-		for (char& c : input)
-			c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-	}
-
-	void string_util::to_upper(string& input)
-	{
-		for (char& c : input)
-			c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-	}
-
-	void string_util::remove_whitespace(string& str)
-	{
-		size_t write = 0;
-		for (size_t read = 0; read < str.size(); ++read)
-		{
-			if (!std::isspace(static_cast<unsigned char>(str[read])))
+			for (int precision = decimals; precision >= 0; --precision)
 			{
-				str[write++] = str[read];
+				written = snprintf(float_buf, sizeof(float_buf), "%.*f", precision, value);
+				if (written <= static_cast<int>(max_chars))
+					break;
 			}
-		}
-		str.resize(write);
-	}
 
+			SFG_MEMCPY(target_buffer, float_buf, written);
+
+			if (null_term)
+				target_buffer[written] = '\0';
+			return written;
+		}
+
+		void split(vector<string>& out, const string& str, const string& split)
+		{
+			size_t start = 0, end = str.find(split.c_str());
+			while (end != string::npos)
+			{
+				const auto aq = str.substr(start, end - start);
+				out.push_back(aq);
+				start = end + split.size();
+				end	  = str.find(split.c_str(), start);
+			}
+			out.push_back(str.substr(start));
+		}
+
+		void to_lower(string& input)
+		{
+			for (char& c : input)
+				c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+		}
+
+		void to_upper(string& input)
+		{
+			for (char& c : input)
+				c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+		}
+
+		void remove_whitespace(string& str)
+		{
+			size_t write = 0;
+			for (size_t read = 0; read < str.size(); ++read)
+			{
+				if (!std::isspace(static_cast<unsigned char>(str[read])))
+				{
+					str[write++] = str[read];
+				}
+			}
+			str.resize(write);
+		}
+	}
 }
 
 #ifdef SFG_COMPILER_MSVC
