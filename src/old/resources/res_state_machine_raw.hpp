@@ -41,7 +41,7 @@ namespace SFG
 	struct res_state_machine_parameter_raw
 	{
 		string name	 = "";
-		f32  value = 0.0f;
+		f32	   value = 0.0f;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -62,10 +62,10 @@ namespace SFG
 	{
 		string								 name		   = "";
 		string								 mask		   = "";
-		f32								 duration	   = 0.0f;
-		f32								 speed		   = 1.0f;
-		u8								 is_looping	   = 1;
-		u8								 blend_type	   = 1;
+		f32									 duration	   = 0.0f;
+		f32									 speed		   = 1.0f;
+		u8									 is_looping	   = 1;
+		u8									 blend_type	   = 1;
 		string								 blend_param_x = "";
 		string								 blend_param_y = "";
 		vector<res_state_machine_sample_raw> samples;
@@ -79,9 +79,9 @@ namespace SFG
 		string						 from_state = "";
 		string						 to_state	= "";
 		string						 parameter	= "";
-		f32						 duration	= 0.0f;
-		f32						 target		= 0.0f;
-		u8						 priority	= 0;
+		f32							 duration	= 0.0f;
+		f32							 target		= 0.0f;
+		u8							 priority	= 0;
 		animation_transition_compare compare	= animation_transition_compare::greater;
 
 		void serialize(ostream& stream) const;

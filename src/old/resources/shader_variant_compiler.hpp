@@ -41,13 +41,13 @@ namespace SFG
 	public:
 		struct compile_params
 		{
-			u8				  stage;
-			span<u8>&		  data;
+			u8					  stage;
+			span<u8>&			  data;
 			const vector<string>& defines;
 			const string&		  text;
 			const vector<string>& folder_paths;
 			bool				  compile_layout;
-			span<u8>&		  out_layout;
+			span<u8>&			  out_layout;
 			const string&		  entry;
 		};
 

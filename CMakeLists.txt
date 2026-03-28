@@ -164,7 +164,6 @@ src/io/*.hpp
 src/data/*.hpp
 src/memory/*.hpp
 src/input/*.hpp
-src/game/*.hpp
 src/gfx/*.hpp
 src/gfx/util/*.hpp
 src/gfx/backend/*.hpp

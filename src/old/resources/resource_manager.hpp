@@ -354,7 +354,7 @@ namespace SFG
 		{
 			resource_cache_base* cache_ptr	   = nullptr;
 			string_id			 type		   = 0;
-			u32				 load_priority = 0;
+			u32					 load_priority = 0;
 		};
 
 	public:
@@ -633,15 +633,15 @@ namespace SFG
 		resource_handle		  _default_gui_mat		   = {};
 		resource_handle		  _default_gui_text_mat	   = {};
 		resource_handle		  _default_gui_sdf_mat	   = {};
-		u32				  _max_load_priority	   = 0;
-		u32				  _dynamic_sampler_count   = 0;
+		u32					  _max_load_priority	   = 0;
+		u32					  _dynamic_sampler_count   = 0;
 
 		// raws for defaults
 		texture_raw _dummy_color_raw   = {};
 		texture_raw _dummy_orm_raw	   = {};
 		texture_raw _dummy_normal_raw  = {};
-		u8*		_dummy_color_data  = nullptr;
-		u8*		_dummy_normal_data = nullptr;
-		u8*		_dummy_orm_data	   = nullptr;
+		u8*			_dummy_color_data  = nullptr;
+		u8*			_dummy_normal_data = nullptr;
+		u8*			_dummy_orm_data	   = nullptr;
 	};
 }

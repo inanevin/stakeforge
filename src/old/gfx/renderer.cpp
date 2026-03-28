@@ -104,7 +104,6 @@ namespace SFG
 			.flags	   = _swapchain_flags,
 		});
 
-
 		_world_renderer = new game_world_renderer(_proxy_manager, _world);
 		_world_renderer->init(_world_size, &_texture_queue, &_buffer_queue, s_bind_layout_global, s_bind_layout_global_compute);
 
@@ -353,7 +352,6 @@ namespace SFG
 
 #endif
 
-
 		// swapchain pass
 		{
 			render_pass_color_attachment* attachment = alloc.allocate<render_pass_color_attachment>(1);
@@ -417,7 +415,6 @@ namespace SFG
 		// backend->queue_wait(queue_gfx, &sem_world, &sem_world_value, 1);
 
 		backend->submit_commands(queue_gfx, &cmd_list, 1);
-
 
 		{
 			ZoneScopedN("present");

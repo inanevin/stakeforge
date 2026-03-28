@@ -17,7 +17,6 @@ _build
 [Oo]bj
 *.DS_Store
 _stakeforge_cache
-
 # Build results
 
 [Bb]in-obj/
@@ -73,6 +72,8 @@ artifacts/
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
+AGENTS.md
+util/agents
 
 # Chutzpah Test files
 _Chutzpah*

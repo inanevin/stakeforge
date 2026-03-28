@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "math/vector2ui16.hpp"
+#include "math/vec2u16.hpp"
 
 namespace SFG
 {
@@ -35,9 +35,9 @@ namespace SFG
 
 	struct texture_buffer
 	{
-		u8*			pixels = nullptr;
+		u8*		pixels = nullptr;
 		vec2u16 size   = vec2u16::zero;
-		u8			bpp	   = 0;
+		u8		bpp	   = 0;
 
 		void serialize(ostream& stream, bool write_addr = false) const;
 		void deserialize(istream& stream, bool read_addr = false);

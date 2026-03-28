@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "matrix4x4.hpp"
+#include "mat4x4.hpp"
 #include "math.hpp"
 #include "quat.hpp"
 #include "data/ostream.hpp"
@@ -33,21 +33,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 	mat4x4::mat4x4(f32 m00,
-						 f32 m10,
-						 f32 m20,
-						 f32 m30, // Col 0
-						 f32 m01,
-						 f32 m11,
-						 f32 m21,
-						 f32 m31, // Col 1
-						 f32 m02,
-						 f32 m12,
-						 f32 m22,
-						 f32 m32, // Col 2
-						 f32 m03,
-						 f32 m13,
-						 f32 m23,
-						 f32 m33) // Col 3
+				   f32 m10,
+				   f32 m20,
+				   f32 m30, // Col 0
+				   f32 m01,
+				   f32 m11,
+				   f32 m21,
+				   f32 m31, // Col 1
+				   f32 m02,
+				   f32 m12,
+				   f32 m22,
+				   f32 m32, // Col 2
+				   f32 m03,
+				   f32 m13,
+				   f32 m23,
+				   f32 m33) // Col 3
 	{
 		m[0]  = m00;
 		m[1]  = m10;
@@ -116,7 +116,7 @@ namespace SFG
 		if (math::abs(det) < MATH_EPS)
 			return identity;
 
-		f32		  inv_det = 1.0f / det;
+		f32	   inv_det = 1.0f / det;
 		mat4x4 inv;
 
 		f32 a = m[0], b = m[4], c = m[8], d = m[12];
@@ -256,16 +256,16 @@ namespace SFG
 
 	mat4x4 mat4x4::look_at(const vec3f& eye, const vec3f& target, const vec3f& up_vec)
 	{
-		vec3f	  z_axis = (eye - target).normalized();
-		vec3f	  x_axis = vec3f::cross(up_vec, z_axis).normalized();
-		vec3f	  y_axis = vec3f::cross(z_axis, x_axis);
+		vec3f  z_axis = (eye - target).normalized();
+		vec3f  x_axis = vec3f::cross(up_vec, z_axis).normalized();
+		vec3f  y_axis = vec3f::cross(z_axis, x_axis);
 		mat4x4 result = mat4x4(x_axis.x, y_axis.x, z_axis.x, 0.0f, x_axis.y, y_axis.y, z_axis.y, 0.0f, x_axis.z, y_axis.z, z_axis.z, 0.0f, -vec3f::dot(x_axis, eye), -vec3f::dot(y_axis, eye), -vec3f::dot(z_axis, eye), 1.0f);
 		return result;
 	}
 
 	mat4x4 mat4x4::view(const quat& rot, const vec3f& pos)
 	{
-		const mat4x4 rot_mat		= mat4x4::rotation(rot.inverse());
+		const mat4x4 rot_mat	 = mat4x4::rotation(rot.inverse());
 		const mat4x4 translation = mat4x4::translation(-pos);
 		return rot_mat * translation;
 	}

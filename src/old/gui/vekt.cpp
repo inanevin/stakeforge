@@ -48,13 +48,13 @@ namespace vekt
 	VEKT_VEC4 theme::color_divider		= {12.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
 	VEKT_VEC4 theme::color_item_outline = {42.0f / 255.0f, 42.0f / 255.0f, 42.0f / 255.0f, 1.0f};
 	VEKT_VEC4 theme::color_item_fg		= {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1.0f};
-	f32	  theme::item_height		= 24.0f;
-	f32	  theme::item_spacing		= 8.0f;
-	f32	  theme::indent_horizontal	= 8.0f;
-	f32	  theme::margin_horizontal	= 4.0f;
-	f32	  theme::margin_vertical	= 2.0f;
-	f32	  theme::border_thickness	= 6.0f;
-	f32	  theme::outline_thickness	= 2.0f;
+	f32		  theme::item_height		= 24.0f;
+	f32		  theme::item_spacing		= 8.0f;
+	f32		  theme::indent_horizontal	= 8.0f;
+	f32		  theme::margin_horizontal	= 4.0f;
+	f32		  theme::margin_vertical	= 2.0f;
+	f32		  theme::border_thickness	= 6.0f;
+	f32		  theme::outline_thickness	= 2.0f;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// :: BUILDER IMPL
@@ -873,7 +873,7 @@ namespace vekt
 
 			if (parent_pos_props.flags & pos_flags::pf_child_pos_row)
 			{
-				f32		 total		   = 0.0f;
+				f32			 total		   = 0.0f;
 				unsigned int total_count   = 0;
 				unsigned int waiting_count = 0;
 
@@ -915,7 +915,7 @@ namespace vekt
 			}
 			else if (parent_pos_props.flags & pos_flags::pf_child_pos_column)
 			{
-				f32		 total		   = 0.0f;
+				f32			 total		   = 0.0f;
 				unsigned int total_count   = 0;
 				unsigned int waiting_count = 0;
 
@@ -980,7 +980,7 @@ namespace vekt
 			const widget_meta& parent_meta = _metas[sc.scroll_parent];
 			const size_props&  parent_size = _size_properties[sc.scroll_parent];
 
-			f32		 total_y				  = 0.0f;
+			f32			 total_y				  = 0.0f;
 			unsigned int count					  = 0;
 			const f32	 available_size_default_y = _size_results[sc.scroll_parent].size.y - parent_size.child_margins.top - parent_size.child_margins.bottom;
 
@@ -1007,8 +1007,8 @@ namespace vekt
 
 			_size_results[widget].size.y = ratio > 1.0f ? _size_results[meta.parent].size.y * (1.0f / ratio) : 0.0f;
 
-			const f32 diff = total - available_size_default_y;
-			pos_props&	pp	 = _pos_properties[sc.scroll_parent];
+			const f32  diff = total - available_size_default_y;
+			pos_props& pp	= _pos_properties[sc.scroll_parent];
 
 			if (pp.scroll_offset < -diff)
 				pp.scroll_offset = -diff;
@@ -1046,10 +1046,10 @@ namespace vekt
 			if (pp.flags & pos_flags::pf_y_abs)
 				pr.pos.y = pp.pos.y;
 
-			const f32 my_pos_x = pr.pos.x;
-			const f32 my_pos_y = pr.pos.y;
-			const bool	is_row	 = pp.flags & pos_flags::pf_child_pos_row;
-			const bool	is_col	 = pp.flags & pos_flags::pf_child_pos_column;
+			const f32  my_pos_x = pr.pos.x;
+			const f32  my_pos_y = pr.pos.y;
+			const bool is_row	= pp.flags & pos_flags::pf_child_pos_row;
+			const bool is_col	= pp.flags & pos_flags::pf_child_pos_column;
 
 			widget_meta& meta = _metas[widget];
 
@@ -1465,16 +1465,16 @@ namespace vekt
 				pos_result&	 track_pr = _pos_results[sc.scroll_parent];
 				size_result& track_sr = _size_results[sc.scroll_parent];
 
-				const f32 track_top	 = track_pr.pos.y;
+				const f32 track_top	   = track_pr.pos.y;
 				const f32 track_height = track_sr.size.y;
-				const f32 thumb_h		 = thumb_sr.size.y;
-				const f32 travel		 = math::max(0.0f, track_height - thumb_h);
-				const f32 grab_y		 = _press_relative_pos.y;
-				f32		thumb_top	 = mouse.y - grab_y;
-				thumb_top				 = math::clamp(thumb_top, track_top, track_top + travel);
+				const f32 thumb_h	   = thumb_sr.size.y;
+				const f32 travel	   = math::max(0.0f, track_height - thumb_h);
+				const f32 grab_y	   = _press_relative_pos.y;
+				f32		  thumb_top	   = mouse.y - grab_y;
+				thumb_top			   = math::clamp(thumb_top, track_top, track_top + travel);
 
-				const f32 ratio	  = (travel > 0.0f) ? ((thumb_top - track_top) / travel) : 0.0f;
-				pos_props&	parent_pp = _pos_properties[sc.scroll_parent];
+				const f32  ratio	 = (travel > 0.0f) ? ((thumb_top - track_top) / travel) : 0.0f;
+				pos_props& parent_pp = _pos_properties[sc.scroll_parent];
 
 				parent_pp.scroll_offset = -ratio * sc._max_scroll;
 				sc.scroll_ratio			= ratio;
@@ -2186,7 +2186,7 @@ namespace vekt
 		draw_buffer* db = get_draw_buffer(draw_order, user_data, text.font);
 
 		const f32 pixel_scale = text.font->_scale;
-		const f32 subpixel	= text.font->type == font_type::lcd ? 3.0f : 1.0f;
+		const f32 subpixel	  = text.font->type == font_type::lcd ? 3.0f : 1.0f;
 
 		const unsigned int start_vertices_idx = db->vertex_count;
 		const unsigned int start_indices_idx  = db->index_count;
@@ -2200,7 +2200,7 @@ namespace vekt
 
 		unsigned int current_char = 0;
 
-		const f32 scale	= text.scale * pixel_scale;
+		const f32 scale	  = text.scale * pixel_scale;
 		const f32 spacing = static_cast<f32>(text.spacing) * scale;
 
 		auto draw_char = [&](const glyph& g, unsigned long c, unsigned long previous_char) {
@@ -2209,9 +2209,9 @@ namespace vekt
 				pen.x += static_cast<f32>(text.font->glyph_info[previous_char].kern_advance[c]) * scale;
 			}
 
-			const f32 quad_left	= pen.x + g.x_offset / subpixel * text.scale;
-			const f32 quad_top	= pen.y + g.y_offset * text.scale;
-			const f32 quad_right	= quad_left + g.width * text.scale;
+			const f32 quad_left	  = pen.x + g.x_offset / subpixel * text.scale;
+			const f32 quad_top	  = pen.y + g.y_offset * text.scale;
+			const f32 quad_right  = quad_left + g.width * text.scale;
 			const f32 quad_bottom = quad_top + g.height * text.scale;
 
 			vertex& v0 = vertices[current_char * 4];
@@ -2308,7 +2308,7 @@ namespace vekt
 		}
 
 		const f32 pixel_scale = text.font->_scale;
-		const f32 subpixel	= text.font->type == font_type::lcd ? 3.0f : 1.0f;
+		const f32 subpixel	  = text.font->type == font_type::lcd ? 3.0f : 1.0f;
 
 		const unsigned int start_vertices_idx = db->vertex_count;
 		const unsigned int start_indices_idx  = db->index_count;
@@ -2327,7 +2327,7 @@ namespace vekt
 
 		unsigned int current_char = 0;
 
-		const f32 scale	= text.scale * pixel_scale;
+		const f32 scale	  = text.scale * pixel_scale;
 		const f32 spacing = static_cast<f32>(text.spacing) * scale;
 
 		auto draw_char = [&](const glyph& g, unsigned long c, unsigned long previous_char) {
@@ -2336,9 +2336,9 @@ namespace vekt
 				pen.x += static_cast<f32>(text.font->glyph_info[previous_char].kern_advance[c]) * scale;
 			}
 
-			const f32 quad_left	= pen.x + g.x_offset / subpixel * text.scale;
-			const f32 quad_top	= pen.y + g.y_offset * text.scale;
-			const f32 quad_right	= quad_left + g.width * text.scale;
+			const f32 quad_left	  = pen.x + g.x_offset / subpixel * text.scale;
+			const f32 quad_top	  = pen.y + g.y_offset * text.scale;
+			const f32 quad_right  = quad_left + g.width * text.scale;
 			const f32 quad_bottom = quad_top + g.height * text.scale;
 
 			vertex& v0 = vertices[current_char * 4];
@@ -2436,7 +2436,7 @@ namespace vekt
 			return 0;
 
 		const font* fnt			= tp.font;
-		const f32 pixel_scale = fnt->_scale;
+		const f32	pixel_scale = fnt->_scale;
 
 		f32 total_x = 0.0f;
 
@@ -2483,7 +2483,7 @@ namespace vekt
 			return 0;
 
 		const font* fnt			= tp.font;
-		const f32 pixel_scale = fnt->_scale;
+		const f32	pixel_scale = fnt->_scale;
 
 		f32 total_x = 0.0f;
 
@@ -2494,8 +2494,8 @@ namespace vekt
 		const char* str = tp.text.c_str();
 #endif
 		const f32 spacing = static_cast<f32>(tp.spacing) * used_scale;
-		const f32 scale	= pixel_scale * used_scale;
-		f32		f		= 0.0f;
+		const f32 scale	  = pixel_scale * used_scale;
+		f32		  f		  = 0.0f;
 
 		for (size_t i = 0; str[i]; ++i)
 		{
@@ -2531,10 +2531,10 @@ namespace vekt
 			return VEKT_VEC2();
 
 		const font* fnt			= text.font;
-		const f32 pixel_scale = fnt->_scale;
+		const f32	pixel_scale = fnt->_scale;
 
 		f32 total_x = 0.0f;
-		f32 max_y	  = 0.0f;
+		f32 max_y	= 0.0f;
 
 		// if (!math::equals(text._parent_relative_scale, 0.0f, 0.001f) && (!math::equals(parent_size.x, 0.0f, 0.001f) || !math::equals(parent_size.y, 0.0f, 0.001f)))
 		// {
@@ -2550,7 +2550,7 @@ namespace vekt
 		const char* str = text.text.c_str();
 #endif
 		const f32 spacing = static_cast<f32>(text.spacing) * used_scale;
-		const f32 scale	= pixel_scale * used_scale;
+		const f32 scale	  = pixel_scale * used_scale;
 
 		for (size_t i = 0; str[i]; ++i)
 		{
@@ -2684,7 +2684,7 @@ namespace vekt
 
 	void builder::add_vertices(draw_buffer* db, const vector<VEKT_VEC2>& path, const VEKT_VEC4& color, const VEKT_VEC2& min, const VEKT_VEC2& max)
 	{
-		vertex*		vertices	= db->add_get_vertex(path.size());
+		vertex*	  vertices	  = db->add_get_vertex(path.size());
 		const f32 inv_x_range = 1.0f / (max.x - min.x);
 		const f32 inv_y_range = 1.0f / (max.y - min.y);
 
@@ -2859,9 +2859,9 @@ namespace vekt
 
 	VEKT_VEC4 builder::calculate_intersection(const VEKT_VEC4& r1, const VEKT_VEC4& r2) const
 	{
-		const f32 x	   = math::max(r1.x, r2.x);
-		const f32 y	   = math::max(r1.y, r2.y);
-		const f32 right  = math::min(r1.x + r1.z, r2.x + r2.z);
+		const f32 x		 = math::max(r1.x, r2.x);
+		const f32 y		 = math::max(r1.y, r2.y);
+		const f32 right	 = math::min(r1.x + r1.z, r2.x + r2.z);
 		const f32 bottom = math::min(r1.y + r1.w, r2.y + r2.w);
 
 		if (right < x || bottom < y)

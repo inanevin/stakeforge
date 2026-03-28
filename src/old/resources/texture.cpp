@@ -63,7 +63,7 @@ namespace SFG
 #endif
 
 		gfx_backend* backend	= gfx_backend::get();
-		u32		 total_size = 0;
+		u32			 total_size = 0;
 		for (const texture_buffer& buf : raw.buffers)
 			total_size += backend->get_texture_size(buf.size.x, buf.size.y, buf.bpp);
 

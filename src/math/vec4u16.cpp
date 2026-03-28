@@ -24,17 +24,23 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector2i16.hpp"
-#include "math.hpp"
+#include "vec4u16.hpp"
+#include "data/ostream.hpp"
+#include "data/istream.hpp"
 
 namespace SFG
 {
-	vec2i16 vec2i16::zero = vec2i16(0, 0);
-	vec2i16 vec2i16::one	= vec2i16(1, 1);
+	vec4u16 vec4u16::zero = vec4u16(0, 0, 0, 0);
+	vec4u16 vec4u16::one  = vec4u16(1, 1, 1, 1);
 
-	vec2i16 vec2i16::clamp(const vec2i16& v, const vec2i16& min, const vec2i16& max)
+	void vec4u16::serialize(ostream& stream) const
 	{
-		return vec2i16(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
+		stream << x << y << z << w;
+	}
+
+	void vec4u16::deserialize(istream& stream)
+	{
+		stream >> x >> y >> z >> w;
 	}
 
 }

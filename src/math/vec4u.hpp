@@ -24,41 +24,24 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector2ui16.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
-#ifdef SFG_JSON_SERIALIZE
-#include "vendor/nhlohmann/json.hpp"
-#endif
+#pragma once
+#include "common/size_definitions.hpp"
 
 namespace SFG
 {
-	vec2u16 vec2u16::zero = vec2u16(0, 0);
-	vec2u16 vec2u16::one  = vec2u16(1, 1);
-
-	void vec2u16::serialize(ostream& out) const
+	class vec4u
 	{
-		out << x << y;
-	}
+	public:
+		vec4u(){};
+		vec4u(u32 _x, u32 _y, u32 _z, u32 _w) : x(_x), y(_y), z(_z), w(_w){};
 
-	void vec2u16::deserialize(istream& in)
-	{
-		in >> x >> y;
-	}
+		static vec4u zero;
+		static vec4u one;
 
-#ifdef SFG_JSON_SERIALIZE
+		u32 x = 0;
+		u32 y = 0;
+		u32 z = 0;
+		u32 w = 0;
+	};
 
-	void to_json(nlohmann::json& j, const vec2u16& v)
-	{
-		j = nlohmann::json::array({v.x, v.y});
-	}
-
-	void from_json(const nlohmann::json& j, vec2u16& v)
-	{
-		if (!j.is_array() || j.size() < 2)
-			throw std::runtime_error("vec2u16 json err");
-		v.x = j.at(0).get<u16>();
-		v.y = j.at(1).get<u16>();
-	}
-#endif
 }

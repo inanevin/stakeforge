@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector3.hpp"
+#include "vec3f.hpp"
 #include "math.hpp"
 #include "math/easing.hpp"
 #include "data/ostream.hpp"

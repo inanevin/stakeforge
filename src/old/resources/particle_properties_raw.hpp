@@ -52,6 +52,5 @@ namespace SFG
 		void get_dependencies(vector<string>& out_deps) const {};
 #endif
 		void get_sub_resources(vector<string>& out_res) const {};
-
 	};
 }

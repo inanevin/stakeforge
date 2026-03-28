@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "shadow_util.hpp"
 #include "common/size_definitions.hpp"
-#include "math/matrix4x4.hpp"
-#include "math/vector3.hpp"
-#include "math/vector2ui16.hpp"
-#include "math/vector2.hpp"
+#include "math/mat4x4.hpp"
+#include "math/vec3f.hpp"
+#include "math/vec2u16.hpp"
+#include "math/vec2f.hpp"
 #include "math/math.hpp"
 
 namespace SFG
@@ -42,7 +42,7 @@ namespace SFG
 			{
 				for (u8 z = 0; z < 2; z++)
 				{
-					const vec4f v	 = inv_view_proj * vec4f(2.0f * x - 1.0f, 2.0f * y - 1.0f, z, 1.0f);
+					const vec4f v  = inv_view_proj * vec4f(2.0f * x - 1.0f, 2.0f * y - 1.0f, z, 1.0f);
 					const vec4f ws = v / v.w;
 					out_world_space.push_back(ws);
 				}

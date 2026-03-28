@@ -24,8 +24,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector2.hpp"
-#include "vector2ui16.hpp"
+#include "vec2f.hpp"
+#include "vec2u16.hpp"
 #include "math.hpp"
 #include "data/istream.hpp"
 #include "data/ostream.hpp"

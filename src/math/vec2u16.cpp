@@ -24,11 +24,41 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector2h.hpp"
+#include "vec2u16.hpp"
+#include "data/ostream.hpp"
+#include "data/istream.hpp"
+#ifdef SFG_JSON_SERIALIZE
+#include "vendor/nhlohmann/json.hpp"
+#endif
 
 namespace SFG
 {
-	vec2h vec2h::zero = vec2h(0.f, 0.f);
-	vec2h vec2h::one	= vec2h(1.f, 1.f);
+	vec2u16 vec2u16::zero = vec2u16(0, 0);
+	vec2u16 vec2u16::one  = vec2u16(1, 1);
 
+	void vec2u16::serialize(ostream& out) const
+	{
+		out << x << y;
+	}
+
+	void vec2u16::deserialize(istream& in)
+	{
+		in >> x >> y;
+	}
+
+#ifdef SFG_JSON_SERIALIZE
+
+	void to_json(nlohmann::json& j, const vec2u16& v)
+	{
+		j = nlohmann::json::array({v.x, v.y});
+	}
+
+	void from_json(const nlohmann::json& j, vec2u16& v)
+	{
+		if (!j.is_array() || j.size() < 2)
+			throw std::runtime_error("vec2u16 json err");
+		v.x = j.at(0).get<u16>();
+		v.y = j.at(1).get<u16>();
+	}
+#endif
 }

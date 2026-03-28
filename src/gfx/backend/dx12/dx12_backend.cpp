@@ -741,9 +741,9 @@ namespace SFG
 		 });
 
 		const u32 size_cbv_srv_uav = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		const u32 size_dsv		  = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-		const u32 size_rtv		  = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		const u32 size_sampler	  = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		const u32 size_dsv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		const u32 size_rtv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		const u32 size_sampler	   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 		constexpr size_t count_dsv		   = 1024;
 		constexpr size_t count_rtv		   = 1024;
@@ -903,7 +903,7 @@ namespace SFG
 		resource&	 res = _resources.get(id);
 
 		const u32 aligned_size = ALIGN_SIZE_POW(desc.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-		res.size				  = desc.flags.is_set(resource_flags::rf_constant_buffer) ? aligned_size : desc.size;
+		res.size			   = desc.flags.is_set(resource_flags::rf_constant_buffer) ? aligned_size : desc.size;
 
 		const D3D12_RESOURCE_DESC resource_desc = {
 			.Dimension		  = D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -1354,10 +1354,10 @@ namespace SFG
 			v.type				  = static_cast<u8>(view.type);
 			v.handle			  = _descriptors.add();
 
-			const u32 base_level		 = view.base_arr_level;
+			const u32 base_level	  = view.base_arr_level;
 			const u32 remaining_level = view.level_count == 0 ? (desc.array_length - base_level) : view.level_count;
-			const u32 base_mip		 = view.base_mip_level;
-			const u32 remaining_mip	 = view.mip_count == 0 ? (desc.mip_levels - base_mip) : view.mip_count;
+			const u32 base_mip		  = view.base_mip_level;
+			const u32 remaining_mip	  = view.mip_count == 0 ? (desc.mip_levels - base_mip) : view.mip_count;
 
 			descriptor_handle& dh = _descriptors.get(v.handle);
 
@@ -2559,7 +2559,7 @@ namespace SFG
 			offset += p.count;
 		}
 
-		const u32				  size_now	 = static_cast<u32>(_reuse_root_ranges.size());
+		const u32					  size_now	 = static_cast<u32>(_reuse_root_ranges.size());
 		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
 		_reuse_root_params.push_back({});
 		CD3DX12_ROOT_PARAMETER1& param = _reuse_root_params.back();
@@ -2997,7 +2997,7 @@ namespace SFG
 
 	u32 dx12_backend::get_texture_size(u32 width, u32 height, u32 bpp) const
 	{
-		const u32 row_pitch	 = static_cast<u32>((width * bpp + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
+		const u32 row_pitch	  = static_cast<u32>((width * bpp + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
 		const u32 slice_pitch = row_pitch * height;
 		return slice_pitch;
 	}
@@ -3014,13 +3014,13 @@ namespace SFG
 
 	void* dx12_backend::adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size) const
 	{
-		const u32 _bpp	   = static_cast<u32>(bpp);
+		const u32 _bpp		= static_cast<u32>(bpp);
 		const u32 alignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 		const u32 row_pitch = (width * _bpp + (alignment - 1)) & ~(alignment - 1);
-		out_total_size		   = row_pitch * height;
-		char* buffer		   = reinterpret_cast<char*>(new u8[out_total_size]);
-		char* src			   = reinterpret_cast<char*>(data);
-		char* dst			   = buffer;
+		out_total_size		= row_pitch * height;
+		char* buffer		= reinterpret_cast<char*>(new u8[out_total_size]);
+		char* src			= reinterpret_cast<char*>(data);
+		char* dst			= buffer;
 
 		if (dst != 0)
 		{
@@ -3086,7 +3086,7 @@ namespace SFG
 		ID3D12GraphicsCommandList4* cmd_list  = buffer.ptr.Get();
 		const texture&				txt		  = _textures.get(cmd.src_texture);
 		const resource&				res		  = _resources.get(cmd.dest_buffer);
-		const u32				row_pitch = static_cast<UINT>((cmd.size.x * cmd.bpp + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
+		const u32					row_pitch = static_cast<UINT>((cmd.size.x * cmd.bpp + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
 
 		const D3D12_TEXTURE_COPY_LOCATION dest_location = {
 			.pResource = res.ptr->GetResource(),

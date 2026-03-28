@@ -24,24 +24,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
-#include "common/size_definitions.hpp"
+#include "vec2u.hpp"
+#include "vec2i.hpp"
 
 namespace SFG
 {
-	class vec4u
+	vec2u vec2u::zero = vec2u(0, 0);
+	vec2u vec2u::one  = vec2u(1, 1);
+
+	vec2u::vec2u(const vec2i& v)
 	{
-	public:
-		vec4u() {};
-		vec4u(u32 _x, u32 _y, u32 _z, u32 _w) : x(_x), y(_y), z(_z), w(_w) {};
-
-		static vec4u zero;
-		static vec4u one;
-
-		u32 x = 0;
-		u32 y = 0;
-		u32 z = 0;
-		u32 w = 0;
-	};
-
+		x = static_cast<u32>(v.x);
+		x = static_cast<u32>(v.y);
+	}
 }

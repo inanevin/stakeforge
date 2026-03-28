@@ -120,7 +120,7 @@ namespace vekt
 		using const_iterator						   = const T*;
 		static constexpr unsigned int initial_capacity = 4;
 
-		vector() {};
+		vector(){};
 		vector(const vector<T>& other)
 		{
 			if (other.empty())
@@ -712,10 +712,10 @@ namespace vekt
 
 	struct margins
 	{
-		f32 top	 = 0.0f;
+		f32 top	   = 0.0f;
 		f32 bottom = 0.0f;
-		f32 left	 = 0.0f;
-		f32 right	 = 0.0f;
+		f32 left   = 0.0f;
+		f32 right  = 0.0f;
 	};
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -817,7 +817,7 @@ namespace vekt
 
 	struct rounding_props
 	{
-		f32		 rounding = 0.0f;
+		f32			 rounding = 0.0f;
 		unsigned int segments = 0;
 	};
 	struct font;
@@ -835,7 +835,7 @@ namespace vekt
 		size_t		 text_capacity = 0;
 		unsigned int append_ctr	   = 0;
 #endif
-		f32		  scale	  = 1.0f;
+		f32			  scale	  = 1.0f;
 		unsigned char spacing = 0;
 	};
 
@@ -941,9 +941,9 @@ namespace vekt
 		void copy(const vector<vekt::draw_buffer>& draw_buffers);
 	};
 
-	typedef void (*draw_callback)(const draw_buffer& db, void* user_data);
+	typedef void		(*draw_callback)(const draw_buffer& db, void* user_data);
 	typedef const char* (*allocate_text_callback)(void* ud, size_t sz);
-	typedef void (*deallocate_text_callback)(void* ud, const char* ptr);
+	typedef void		(*deallocate_text_callback)(void* ud, const char* ptr);
 
 	class theme
 	{
@@ -955,13 +955,13 @@ namespace vekt
 		static VEKT_VEC4 color_divider;
 		static VEKT_VEC4 color_item_outline;
 		static VEKT_VEC4 color_item_fg;
-		static f32	 item_height;
-		static f32	 item_spacing;
-		static f32	 indent_horizontal;
-		static f32	 margin_horizontal;
-		static f32	 margin_vertical;
-		static f32	 border_thickness;
-		static f32	 outline_thickness;
+		static f32		 item_height;
+		static f32		 item_spacing;
+		static f32		 indent_horizontal;
+		static f32		 margin_horizontal;
+		static f32		 margin_vertical;
+		static f32		 border_thickness;
+		static f32		 outline_thickness;
 	};
 
 	struct hover_callback
@@ -1003,7 +1003,7 @@ namespace vekt
 	{
 		margins		   child_margins = margins();
 		VEKT_VEC2	   size			 = VEKT_VEC2();
-		f32		   spacing		 = 0.0f;
+		f32			   spacing		 = 0.0f;
 		unsigned short flags		 = 0;
 	};
 
@@ -1020,15 +1020,15 @@ namespace vekt
 	struct pos_props
 	{
 		VEKT_VEC2	   pos			 = VEKT_VEC2();
-		f32		   scroll_offset = 0.0f;
+		f32			   scroll_offset = 0.0f;
 		unsigned short flags		 = 0;
 	};
 
 	struct scroll_props
 	{
-		id	  scroll_parent = NULL_WIDGET_ID;
-		f32 scroll_ratio	= 0.0f;
-		f32 _max_scroll	= 0.0f;
+		id	scroll_parent = NULL_WIDGET_ID;
+		f32 scroll_ratio  = 0.0f;
+		f32 _max_scroll	  = 0.0f;
 	};
 
 	struct custom_passes
@@ -1073,7 +1073,7 @@ namespace vekt
 			VEKT_VEC2	 p0			= VEKT_VEC2();
 			VEKT_VEC2	 p1			= VEKT_VEC2();
 			VEKT_VEC4	 color		= VEKT_VEC4(1, 1, 1, 1);
-			f32		 thickness	= 1.0f;
+			f32			 thickness	= 1.0f;
 			unsigned int draw_order = 0;
 			void*		 user_data	= nullptr;
 		};
@@ -1083,7 +1083,7 @@ namespace vekt
 			VEKT_VEC2	 p0			  = VEKT_VEC2();
 			VEKT_VEC2	 p1			  = VEKT_VEC2();
 			VEKT_VEC4	 color		  = VEKT_VEC4(1, 1, 1, 1);
-			f32		 thickness	  = 1.0f;
+			f32			 thickness	  = 1.0f;
 			unsigned int aa_thickness = 1;
 			unsigned int draw_order	  = 0;
 			void*		 user_data	  = nullptr;
@@ -1092,11 +1092,11 @@ namespace vekt
 		struct circle_props
 		{
 			VEKT_VEC2	 center		= VEKT_VEC2();
-			f32		 radius		= 0.0f;
+			f32			 radius		= 0.0f;
 			VEKT_VEC4	 color		= VEKT_VEC4(1, 1, 1, 1);
 			unsigned int segments	= 32;
 			bool		 filled		= true;
-			f32		 thickness	= 1.0f; // used when filled == false
+			f32			 thickness	= 1.0f; // used when filled == false
 			unsigned int draw_order = 0;
 			void*		 user_data	= nullptr;
 		};
@@ -1104,7 +1104,7 @@ namespace vekt
 		struct sphere_props
 		{
 			VEKT_VEC2	 center		= VEKT_VEC2();
-			f32		 radius		= 0.0f;
+			f32			 radius		= 0.0f;
 			VEKT_VEC4	 color		= VEKT_VEC4(1, 1, 1, 1);
 			unsigned int segments	= 32;
 			unsigned int draw_order = 0;
@@ -1169,7 +1169,7 @@ namespace vekt
 		input_color_props&	widget_get_input_colors(id widget);
 		text_props&			widget_get_text(id widget);
 		unsigned int		widget_get_character_index(id widget, f32 x_diff);
-		f32				widget_get_character_offset(id widget, unsigned int index);
+		f32					widget_get_character_offset(id widget, unsigned int index);
 		mouse_callback&		widget_get_mouse_callbacks(id widget);
 		key_callback&		widget_get_key_callbacks(id widget);
 		hover_callback&		widget_get_hover_callbacks(id widget);
@@ -1386,14 +1386,14 @@ namespace vekt
 		int			   height			 = 0;
 		int			   advance_x		 = 0;
 		int			   left_bearing		 = 0;
-		f32		   x_offset			 = 0.0f;
-		f32		   y_offset			 = 0.0f;
+		f32			   x_offset			 = 0.0f;
+		f32			   y_offset			 = 0.0f;
 		int			   atlas_x			 = 0;
 		int			   atlas_y			 = 0;
-		f32		   uv_x				 = 0.0f;
-		f32		   uv_y				 = 0.0f;
-		f32		   uv_w				 = 0.0f;
-		f32		   uv_h				 = 0.0f;
+		f32			   uv_x				 = 0.0f;
+		f32			   uv_y				 = 0.0f;
+		f32			   uv_w				 = 0.0f;
+		f32			   uv_h				 = 0.0f;
 	};
 
 	struct font
@@ -1403,7 +1403,7 @@ namespace vekt
 		unsigned int _font_id				= NULL_WIDGET_ID;
 		unsigned int _atlas_required_height = 0;
 		unsigned int _atlas_pos				= 0;
-		f32		 _scale					= 0.0f;
+		f32			 _scale					= 0.0f;
 		int			 ascent					= 0;
 		int			 descent				= 0;
 		int			 line_gap				= 0;
@@ -1417,7 +1417,7 @@ namespace vekt
 	public:
 		struct slice
 		{
-			slice(unsigned int pos_y, unsigned int h) : pos(pos_y), height(h) {};
+			slice(unsigned int pos_y, unsigned int h) : pos(pos_y), height(h){};
 			unsigned int pos	= 0;
 			unsigned int height = 0;
 		};
@@ -1479,7 +1479,7 @@ namespace vekt
 	public:
 		typedef void (*atlas_cb)(atlas* atl, void* user_data);
 
-		font_manager() {};
+		font_manager(){};
 		~font_manager()
 		{
 			ASSERT(_atlases.empty());

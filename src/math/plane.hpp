@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "vector3.hpp"
+#include "vec3f.hpp"
 
 namespace SFG
 {
@@ -40,8 +40,8 @@ namespace SFG
 		void normalize();
 		f32	 get_signed_distance(const vec3f& point) const;
 
-		vec3f normal	 = vec3f::zero;
-		f32		distance = 0.0f;
+		vec3f normal   = vec3f::zero;
+		f32	  distance = 0.0f;
 	};
 
 }

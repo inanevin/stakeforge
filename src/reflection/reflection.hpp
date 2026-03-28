@@ -45,8 +45,8 @@ namespace SFG
 	class field_value
 	{
 	public:
-		field_value() {};
-		field_value(void* addr) : _ptr(addr) {};
+		field_value(){};
+		field_value(void* addr) : _ptr(addr){};
 		template <typename T> T get_value()
 		{
 			return cast<T>();
@@ -98,12 +98,12 @@ namespace SFG
 		malloc_string		 _tooltip	  = "";
 		string_id			 _sid		  = 0;
 		string_id			 _sub_type_id = 0;
-		f32				 _min		  = 0.0f;
-		f32				 _max		  = 0.0f;
+		f32					 _min		  = 0.0f;
+		f32					 _max		  = 0.0f;
 		reflected_field_type _type		  = reflected_field_type::rf_float;
-		u8				 _is_list	  = 0;
-		u8				 _no_ui		  = 0;
-		u8				 _clamped	  = 0;
+		u8					 _is_list	  = 0;
+		u8					 _no_ui		  = 0;
+		u8					 _clamped	  = 0;
 	};
 
 	template <typename T, class C> class field : public field_base
@@ -358,7 +358,7 @@ namespace SFG
 		malloc_string _tag_str		   = "";
 		string_id	  _type_id		   = 0;
 		string_id	  _tag			   = 0;
-		u32		  _type_index	   = 0;
+		u32			  _type_index	   = 0;
 	};
 
 	class reflection

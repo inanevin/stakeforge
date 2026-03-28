@@ -43,8 +43,8 @@ namespace SFG
 	{
 		animation_interpolation interpolation = animation_interpolation::linear;
 		chunk_handle32			keyframes;
-		u16					keyframes_count = 0;
-		i16					node_index		= -1;
+		u16						keyframes_count = 0;
+		i16						node_index		= -1;
 
 		void	create_from_loader(const animation_channel_v3_raw& raw, chunk_allocator32& alloc);
 		void	destroy(chunk_allocator32& alloc);
@@ -55,8 +55,8 @@ namespace SFG
 	{
 		animation_interpolation interpolation = animation_interpolation::linear;
 		chunk_handle32			keyframes;
-		u16					keyframes_count = 0;
-		i16					node_index		= -1;
+		u16						keyframes_count = 0;
+		i16						node_index		= -1;
 
 		void create_from_loader(const animation_channel_q_raw& raw, chunk_allocator32& alloc);
 		void destroy(chunk_allocator32& alloc);
@@ -121,9 +121,9 @@ namespace SFG
 		chunk_handle32 _position_channels;
 		chunk_handle32 _scale_channels;
 		chunk_handle32 _rotation_channels;
-		u16		   _position_count = 0;
-		u16		   _rotation_count = 0;
-		u16		   _scale_count	   = 0;
+		u16			   _position_count = 0;
+		u16			   _rotation_count = 0;
+		u16			   _scale_count	   = 0;
 	};
 
 	REFLECT_TYPE(animation);

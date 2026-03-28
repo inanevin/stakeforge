@@ -67,13 +67,13 @@ namespace SFG
 		void*	  object_ptr  = nullptr;
 		void*	  data_ptr	  = nullptr;
 		string_id field_title = 0;
-		u32	  list_index  = 0;
+		u32		  list_index  = 0;
 	};
 
 	struct reflected_button_params
 	{
 		world&	  w;
 		void*	  object_ptr = nullptr;
-		string_id button_id  = 0;
+		string_id button_id	 = 0;
 	};
 };

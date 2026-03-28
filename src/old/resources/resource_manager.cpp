@@ -80,9 +80,9 @@ namespace SFG
 			_dummy_normal_data = reinterpret_cast<u8*>(SFG_MALLOC(4));
 			_dummy_orm_data	   = reinterpret_cast<u8*>(SFG_MALLOC(4));
 
-			u8 color_data[4]	 = {255, 255, 255, 255};
+			u8 color_data[4]  = {255, 255, 255, 255};
 			u8 normal_data[4] = {128, 128, 255, 255};
-			u8 orm_data[4]	 = {255, 255, 0, 255};
+			u8 orm_data[4]	  = {255, 255, 0, 255};
 
 			if (_dummy_color_data)
 				SFG_MEMCPY(_dummy_color_data, color_data, 4);
@@ -314,7 +314,7 @@ namespace SFG
 		}
 
 		// create actual resources.
-		const u32   max_passes = _max_load_priority + 1;
+		const u32	   max_passes = _max_load_priority + 1;
 		vector<string> dependencies;
 		vector<string> out_subs = {};
 
@@ -375,7 +375,7 @@ namespace SFG
 				filtered_relative_paths.push_back(p);
 		}
 
-		const u32 size		 = static_cast<u32>(filtered_relative_paths.size());
+		const u32	 size		 = static_cast<u32>(filtered_relative_paths.size());
 		const string working_dir = root_directory == nullptr ? editor_settings::get().working_dir : (root_directory);
 
 		vector<void*>	  resolved_loaders(filtered_relative_paths.size());
@@ -430,7 +430,7 @@ namespace SFG
 		});
 
 		// create actual resources.
-		const u32   max_passes = _max_load_priority + 1;
+		const u32	   max_passes = _max_load_priority + 1;
 		vector<string> dependencies;
 		vector<string> out_subs = {};
 
@@ -486,7 +486,7 @@ namespace SFG
 		w.root_dir		  = root_dir;
 
 		const string full_path = w.root_dir + w.path;
-		const u16 id		   = static_cast<u16>(_watched_resources.size() - 1);
+		const u16	 id		   = static_cast<u16>(_watched_resources.size() - 1);
 		_file_watch.add_path(full_path.c_str(), id);
 
 		for (const string& str : dependencies)
@@ -519,7 +519,7 @@ namespace SFG
 		{
 			model&				 m		= rm->get_resource<model>(w.base_handle);
 			const chunk_handle32 meshes = m.get_created_meshes();
-			const u16		 count	= m.get_mesh_count();
+			const u16			 count	= m.get_mesh_count();
 			if (count > 0)
 			{
 				resource_handle* mesh_handles = rm->_aux_memory.get<resource_handle>(meshes);

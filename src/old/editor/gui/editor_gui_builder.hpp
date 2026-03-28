@@ -118,10 +118,10 @@ namespace SFG
 			unsigned int		buffer_capacity = 0;
 			unsigned int		decimals		= 0;
 			unsigned int		sub_index		= 0;
-			f32				value			= 0.0f;
-			f32				value_increment = 0.0f;
-			f32				min				= 0.0f;
-			f32				max				= 0.0f;
+			f32					value			= 0.0f;
+			f32					value_increment = 0.0f;
+			f32					min				= 0.0f;
+			f32					max				= 0.0f;
 			gui_text_field_type type			= gui_text_field_type::text_only;
 			unsigned char		is_editing		= 0;
 			unsigned char		is_slider		= 0;
@@ -152,9 +152,9 @@ namespace SFG
 
 		struct gui_slider
 		{
-			f32	 min		   = 0.0f;
-			f32	 max		   = 0.0;
-			f32	 value		   = 0.0f;
+			f32		 min		   = 0.0f;
+			f32		 max		   = 0.0;
+			f32		 value		   = 0.0f;
 			vekt::id widget		   = NULL_WIDGET_ID;
 			vekt::id slider_widget = NULL_WIDGET_ID;
 			vekt::id text_widget   = NULL_WIDGET_ID;
@@ -165,7 +165,7 @@ namespace SFG
 			vekt::id			widget		= NULL_WIDGET_ID;
 			vekt::id			text_widget = NULL_WIDGET_ID;
 			vector<const char*> items;
-			u8				selected = 0;
+			u8					selected = 0;
 		};
 
 		struct reflected_property
@@ -264,10 +264,10 @@ namespace SFG
 								size_t				buffer_capacity = 0,
 								gui_text_field_type type			= gui_text_field_type::text_only,
 								unsigned int		decimals		= 0,
-								f32				increment		= 0.0f,
-								f32				min				= 0.0f,
-								f32				max				= 0.0f,
-								f32				val				= 0.0f,
+								f32					increment		= 0.0f,
+								f32					min				= 0.0f,
+								f32					max				= 0.0f,
+								f32					val				= 0.0f,
 								unsigned char		is_slider		= 0,
 								unsigned int		sub_index		= 0);
 		vekt::id add_checkbox(bool initial_state);
@@ -348,7 +348,7 @@ namespace SFG
 		vekt::id _root				= NULL_WIDGET_ID;
 		vekt::id _stack_ptr			= 0;
 
-		f32		 _indent	 = 0.0f;
+		f32			 _indent	 = 0.0f;
 		unsigned int _draw_order = 0;
 	};
 

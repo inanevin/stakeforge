@@ -163,8 +163,8 @@ namespace SFG
 
 		string file_path				  = "";
 		string source_path				  = "";
-		u64 saved_file_last_modified	  = 0;
-		u64 saved_source_last_modified = 0;
+		u64	   saved_file_last_modified	  = 0;
+		u64	   saved_source_last_modified = 0;
 		stream >> file_path;
 		stream >> source_path;
 		stream >> saved_file_last_modified;
@@ -173,7 +173,7 @@ namespace SFG
 		stream.destroy();
 
 		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 src_last_modified	 = file_system::get_last_modified_ticks(source_path);
 
 		if (file_last_modified != saved_file_last_modified || src_last_modified != saved_source_last_modified)
 			return false;
@@ -190,8 +190,8 @@ namespace SFG
 		const string relative			= file_system::get_filename_from_path(name);
 		const string file_path			= resource_directory_path + name;
 		const string source_path		= resource_directory_path + source;
-		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64	 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64	 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + relative + "-" + sid_str + "_data" + extension;

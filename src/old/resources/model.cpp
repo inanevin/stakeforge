@@ -65,13 +65,13 @@ namespace SFG
 
 		_total_aabb = raw.total_aabb;
 
-		const u16 node_count		 = static_cast<u16>(raw.loaded_nodes.size());
-		const u16 mesh_count		 = static_cast<u16>(raw.loaded_meshes.size());
-		const u16 skins_count	 = static_cast<u16>(raw.loaded_skins.size());
-		const u16 anims_count	 = static_cast<u16>(raw.loaded_animations.size());
+		const u16 node_count	  = static_cast<u16>(raw.loaded_nodes.size());
+		const u16 mesh_count	  = static_cast<u16>(raw.loaded_meshes.size());
+		const u16 skins_count	  = static_cast<u16>(raw.loaded_skins.size());
+		const u16 anims_count	  = static_cast<u16>(raw.loaded_animations.size());
 		const u16 materials_count = static_cast<u16>(raw.loaded_materials.size());
-		const u16 textures_count	 = static_cast<u16>(raw.loaded_textures.size());
-		const u16 lights_count	 = static_cast<u16>(raw.loaded_lights.size());
+		const u16 textures_count  = static_cast<u16>(raw.loaded_textures.size());
+		const u16 lights_count	  = static_cast<u16>(raw.loaded_lights.size());
 
 		if (node_count != 0)
 		{

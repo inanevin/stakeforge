@@ -69,17 +69,17 @@ namespace SFG
 
 	struct gizmo_draw_context
 	{
-		vector2		 root_pos	   = vector2::zero;
-		vector2		 root_size	   = vector2::zero;
-		matrix4x4	 view		   = matrix4x4::identity;
-		vector2		 center_screen = vector2::zero;
-		vector3		 entity_pos	   = vector3::zero;
-		quat		 entity_rot	   = quat::identity;
-		quat		 cam_rot	   = quat::identity;
-		vector3		 cam_pos	   = vector3::zero;
-		f32		 fov		   = 0.0f;
-		world_handle selected	   = {};
-		world_screen* screen	   = nullptr;
+		vector2		  root_pos		= vector2::zero;
+		vector2		  root_size		= vector2::zero;
+		matrix4x4	  view			= matrix4x4::identity;
+		vector2		  center_screen = vector2::zero;
+		vector3		  entity_pos	= vector3::zero;
+		quat		  entity_rot	= quat::identity;
+		quat		  cam_rot		= quat::identity;
+		vector3		  cam_pos		= vector3::zero;
+		f32			  fov			= 0.0f;
+		world_handle  selected		= {};
+		world_screen* screen		= nullptr;
 	};
 
 	class editor_gizmo_controls
@@ -148,6 +148,6 @@ namespace SFG
 		quat		   _drag_start_rot		  = quat::identity;
 		vector3		   _drag_start_scale	  = vector3::one;
 		vector3		   _drag_offset			  = vector3::zero;
-		f32		   _drag_amount			  = 0.0f;
+		f32			   _drag_amount			  = 0.0f;
 	};
 }

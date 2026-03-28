@@ -191,9 +191,9 @@ namespace SFG
 
 	void editor_panel_world::draw(const vector2ui16& window_size)
 	{
-		const vector2	root_sz = _builder->widget_get_size(_gui_builder.get_root());
+		const vector2 root_sz = _builder->widget_get_size(_gui_builder.get_root());
 		constexpr f32 ap_16_9 = 16.0f / 9.0f;
-		constexpr f32 ap_4_3	= 4.0f / 3.0f;
+		constexpr f32 ap_4_3  = 4.0f / 3.0f;
 
 		vekt::size_props& sz = _builder->widget_get_size_props(_world_viewer);
 
@@ -213,7 +213,7 @@ namespace SFG
 
 		case aspect_ratio::aspect_1_1: {
 			const f32 m = math::min(root_sz.x, root_sz.y);
-			sz.size		  = vector2(m, m);
+			sz.size		= vector2(m, m);
 			break;
 		}
 		}
@@ -476,12 +476,12 @@ namespace SFG
 			{
 				const vector2 local		 = ev.position - b->widget_get_pos(self->_world_viewer);
 				const vector2 panel_size = b->widget_get_size(self->_world_viewer);
-				const u16  x			 = static_cast<u16>(math::clamp(local.x, 0.0f, panel_size.x - 1.0f));
-				const u16  y			 = static_cast<u16>(math::clamp(local.y, 0.0f, panel_size.y - 1.0f));
+				const u16	  x			 = static_cast<u16>(math::clamp(local.x, 0.0f, panel_size.x - 1.0f));
+				const u16	  y			 = static_cast<u16>(math::clamp(local.y, 0.0f, panel_size.y - 1.0f));
 
 				const renderer& rend		= editor::get().get_app().get_renderer();
 				const u8		frame_index = rend.get_frame_index();
-				const u32	object_id	= rend.get_world_renderer()->get_render_pass_object_id().read_location(x, y, frame_index);
+				const u32		object_id	= rend.get_world_renderer()->get_render_pass_object_id().read_location(x, y, frame_index);
 
 				editor_gui_controller& controller = editor::get().get_gui_controller();
 
@@ -675,12 +675,12 @@ namespace SFG
 		const vector2 wv_pos = b->widget_get_pos(self->_world_viewer);
 
 		constexpr f32 box_size_multiplier = 0.03f;
-		constexpr f32 thickness			= 2.0f;
-		const vector2	size				= viewer_sz;
-		const vector2	box_size			= vector2(static_cast<f32>(size.x) * box_size_multiplier, static_cast<f32>(size.x) * box_size_multiplier);
-		const vector2	min					= wv_pos + vector2(editor_theme::get().outer_margin + box_size.x * 0.5f, size.y - editor_theme::get().outer_margin - box_size.y);
-		const vector2	max					= min + box_size;
-		const vector2	center				= (min + max) * 0.5f;
+		constexpr f32 thickness			  = 2.0f;
+		const vector2 size				  = viewer_sz;
+		const vector2 box_size			  = vector2(static_cast<f32>(size.x) * box_size_multiplier, static_cast<f32>(size.x) * box_size_multiplier);
+		const vector2 min				  = wv_pos + vector2(editor_theme::get().outer_margin + box_size.x * 0.5f, size.y - editor_theme::get().outer_margin - box_size.y);
+		const vector2 max				  = min + box_size;
+		const vector2 center			  = (min + max) * 0.5f;
 
 		b->add_line_aa({
 			.p0			  = vector2(center),

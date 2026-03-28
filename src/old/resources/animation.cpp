@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -125,9 +125,9 @@ namespace SFG
 			const f32 localT = (time - t0) / (t1 - t0);
 
 			// cubic Hermite spline interpolation.
-			const f32 t	= localT;
-			const f32 t2	= t * t;
-			const f32 t3	= t2 * t;
+			const f32 t	  = localT;
+			const f32 t2  = t * t;
+			const f32 t3  = t2 * t;
 			const f32 h00 = 2.0f * t3 - 3.0f * t2 + 1.0f;
 			const f32 h10 = t3 - 2.0f * t2 + t;
 			const f32 h01 = -2.0f * t3 + 3.0f * t2;
@@ -152,8 +152,8 @@ namespace SFG
 		const auto& kf0 = ptr[i];
 		const auto& kf1 = ptr[i + 1];
 
-		const f32 t0	   = kf0.time;
-		const f32 t1	   = kf1.time;
+		const f32 t0	 = kf0.time;
+		const f32 t1	 = kf1.time;
 		const f32 localT = (time - t0) / (t1 - t0);
 
 		switch (interpolation)
@@ -240,9 +240,9 @@ namespace SFG
 			const quat& tangentOut0 = kf0.out_tangent;
 
 			const f32 localT = (time - t0) / (t1 - t0);
-			const f32 t	   = localT;
-			const f32 t2	   = t * t;
-			const f32 t3	   = t2 * t;
+			const f32 t		 = localT;
+			const f32 t2	 = t * t;
+			const f32 t3	 = t2 * t;
 
 			const f32 h00 = 2.0f * t3 - 3.0f * t2 + 1.0f;
 			const f32 h10 = t3 - 2.0f * t2 + t;

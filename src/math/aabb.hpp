@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "math/vector3.hpp"
+#include "math/vec3f.hpp"
 
 namespace SFG
 {
@@ -46,10 +46,10 @@ namespace SFG
 		~aabb() = default;
 
 		vec3f bounds_half_extent = vec3f::zero;
-		vec3f bounds_min		   = vec3f::zero;
-		vec3f bounds_max		   = vec3f::zero;
+		vec3f bounds_min		 = vec3f::zero;
+		vec3f bounds_max		 = vec3f::zero;
 
-		bool	is_inside_plane(const vec3f& center, const plane& plane);
+		bool  is_inside_plane(const vec3f& center, const plane& plane);
 		vec3f get_positive(const vec3f& normal) const;
 		vec3f get_negative(const vec3f& normal) const;
 

@@ -66,7 +66,7 @@ namespace SFG
 #define DEFAULT_GUI_SDF_MAT_SID	 "assets/engine/materials/world/gui_sdf.stkmat"_hs
 
 	typedef pool_handle16 resource_handle;
-	typedef u16		  resource_id;
+	typedef u16			  resource_id;
 
 	struct resource_handle_and_type
 	{

@@ -52,16 +52,16 @@ namespace SFG
 			return;
 
 		static f32 stat_fetch_time = 0.0f;
-		static f32 mem_fetch_time	 = 0.0f;
+		static f32 mem_fetch_time  = 0.0f;
 
-		static f32  stat_main_thread	 = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
-		static f32  stat_render_thread = static_cast<f32>(g_frame_info.render_thread_time_milli.load());
-		static u32 stat_fps			 = g_frame_info.fps.load();
-		static u32 stat_dc			 = static_cast<u32>(g_frame_info.draw_calls_ui.load(std::memory_order_acquire));
-		static u32 stat_ram			 = 0;
-		static u32 stat_vram			 = 0;
-		static u32 stat_vram_txt		 = 0;
-		static u32 stat_vram_res		 = 0;
+		static f32 stat_main_thread	  = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
+		static f32 stat_render_thread = static_cast<f32>(g_frame_info.render_thread_time_milli.load());
+		static u32 stat_fps			  = g_frame_info.fps.load();
+		static u32 stat_dc			  = static_cast<u32>(g_frame_info.draw_calls_ui.load(std::memory_order_acquire));
+		static u32 stat_ram			  = 0;
+		static u32 stat_vram		  = 0;
+		static u32 stat_vram_txt	  = 0;
+		static u32 stat_vram_res	  = 0;
 
 		if (stat_fetch_time > 1500.0f)
 		{

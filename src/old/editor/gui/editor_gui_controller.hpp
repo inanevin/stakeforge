@@ -121,13 +121,13 @@ namespace SFG
 		editor_panel_entities*	_panel_entities	 = nullptr;
 		editor_panel_world*		_panel_world	 = nullptr;
 		editor_panel_inspector* _panel_inspector = nullptr;
-		u64					_ctx_frame		 = 0;
+		u64						_ctx_frame		 = 0;
 
 		vekt::id _ctx_bg			= NULL_WIDGET_ID;
 		vekt::id _ctx_root			= NULL_WIDGET_ID;
 		vekt::id _payload			= NULL_WIDGET_ID;
 		vekt::id _payload_text		= NULL_WIDGET_ID;
-		u8	 _payload_active	= 0;
+		u8		 _payload_active	= 0;
 		vekt::id _popup_root		= NULL_WIDGET_ID;
 		vekt::id _popup_window		= NULL_WIDGET_ID;
 		vekt::id _popup_prompt_text = NULL_WIDGET_ID;
@@ -137,9 +137,9 @@ namespace SFG
 		vekt::id _layout_root			 = NULL_WIDGET_ID;
 		vekt::id _layout_separator_left	 = NULL_WIDGET_ID;
 		vekt::id _layout_separator_right = NULL_WIDGET_ID;
-		f32	 _split_px				 = 320.0f;
-		f32	 _split_world_px		 = 0.0f;
-		f32	 _split_ratio			 = 0.25f;
-		f32	 _split_ratio_right		 = 0.7f;
+		f32		 _split_px				 = 320.0f;
+		f32		 _split_world_px		 = 0.0f;
+		f32		 _split_ratio			 = 0.25f;
+		f32		 _split_ratio_right		 = 0.7f;
 	};
 }

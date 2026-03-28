@@ -106,8 +106,8 @@ namespace SFG
 		inline void kill_popup()
 		{
 			_popup_save_yes = NULL_WIDGET_ID;
-			_popup_save_no  = NULL_WIDGET_ID;
-			_popup_action   = popup_action::none;
+			_popup_save_no	= NULL_WIDGET_ID;
+			_popup_action	= popup_action::none;
 		}
 		static vekt::input_event_result on_widget_mouse(vekt::builder* b, vekt::id widget, const vekt::mouse_event& ev, vekt::input_event_phase phase);
 		static vekt::input_event_result on_key(vekt::builder* b, vekt::id widget, const vekt::key_event& ev);
@@ -179,23 +179,23 @@ namespace SFG
 		vekt::id _wv_loaded_project = NULL_WIDGET_ID;
 		vekt::id _wv_loaded_level	= NULL_WIDGET_ID;
 
-		gizmo_mode	_gizmo_mode				 = gizmo_mode::position;
-		gizmo_axis	_gizmo_active_axis		 = gizmo_axis::none;
-		gizmo_axis	_gizmo_hover_axis		 = gizmo_axis::none;
-		gizmo_space _gizmo_space			 = gizmo_space::global;
-		bool		_gizmo_center_hover		 = false;
-		bool		_gizmo_center_handle	 = false;
-		bool		_audio_enabled			 = false;
-		bool		_physics_debug_enabled	 = false;
-		bool		_gizmo_dragging			 = false;
-		f32		_gizmo_drag_amount		 = 0.0f;
-		vector2		_gizmo_last_mouse		 = vector2::zero;
-		vector3		_gizmo_start_pos		 = vector3::zero;
-		quat		_gizmo_start_rot		 = quat::identity;
-		vector3		_gizmo_start_scale		 = vector3::one;
-		vector3		_gizmo_drag_offset		 = vector3::zero;
-		vector2		_gizmo_angle_start_dir	 = vector2::zero;
-		vector2		_gizmo_angle_current_dir = vector2::zero;
-		popup_action _popup_action			 = popup_action::none;
+		gizmo_mode	 _gizmo_mode			  = gizmo_mode::position;
+		gizmo_axis	 _gizmo_active_axis		  = gizmo_axis::none;
+		gizmo_axis	 _gizmo_hover_axis		  = gizmo_axis::none;
+		gizmo_space	 _gizmo_space			  = gizmo_space::global;
+		bool		 _gizmo_center_hover	  = false;
+		bool		 _gizmo_center_handle	  = false;
+		bool		 _audio_enabled			  = false;
+		bool		 _physics_debug_enabled	  = false;
+		bool		 _gizmo_dragging		  = false;
+		f32			 _gizmo_drag_amount		  = 0.0f;
+		vector2		 _gizmo_last_mouse		  = vector2::zero;
+		vector3		 _gizmo_start_pos		  = vector3::zero;
+		quat		 _gizmo_start_rot		  = quat::identity;
+		vector3		 _gizmo_start_scale		  = vector3::one;
+		vector3		 _gizmo_drag_offset		  = vector3::zero;
+		vector2		 _gizmo_angle_start_dir	  = vector2::zero;
+		vector2		 _gizmo_angle_current_dir = vector2::zero;
+		popup_action _popup_action			  = popup_action::none;
 	};
 }

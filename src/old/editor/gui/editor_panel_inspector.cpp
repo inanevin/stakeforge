@@ -129,7 +129,7 @@ namespace SFG
 		component_manager& cm = w.get_comp_manager();
 		if (w.get_playmode() == play_mode::none)
 		{
-			const f32 thickness	  = 0.05f;
+			const f32	thickness	  = 0.05f;
 			const color col_phy		  = color::red;
 			const color col_light	  = color::yellow;
 			const color col_light_alt = color::red;
@@ -165,9 +165,9 @@ namespace SFG
 							resource_manager&		  rm = w.get_resource_manager();
 							if (rm.is_valid<mesh>(mh))
 							{
-								const mesh&	 res	   = rm.get_resource<mesh>(mh);
-								const u32 vtx_count = res.get_collider_vertex_count();
-								const u32 idx_count = res.get_collider_index_count();
+								const mesh& res		  = rm.get_resource<mesh>(mh);
+								const u32	vtx_count = res.get_collider_vertex_count();
+								const u32	idx_count = res.get_collider_index_count();
 								if (vtx_count != 0 && idx_count != 0)
 								{
 									const vector3*		   vtx	= rm.get_aux().get<vector3>(res.get_collider_vertices());

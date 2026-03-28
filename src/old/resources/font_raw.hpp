@@ -40,12 +40,12 @@ namespace SFG
 	{
 		string		 name		  = "";
 		string		 source		  = "";
-		u16		 point_size	  = 0;
+		u16			 point_size	  = 0;
 		vector<char> font_data	  = {};
-		u8		 font_type	  = 0;
-		i16		 sdf_padding  = 0;
-		i16		 sdf_edge	  = 0;
-		f32		 sdf_distance = 0.0f;
+		u8			 font_type	  = 0;
+		i16			 sdf_padding  = 0;
+		i16			 sdf_edge	  = 0;
+		f32			 sdf_distance = 0.0f;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

@@ -57,9 +57,9 @@ namespace SFG
 			const char*	 icon	= nullptr;
 		};
 
-		vekt::builder* _builder = nullptr;
-		vector2		   _last_root_pos = vector2::zero;
-		vector2		   _last_root_size = vector2::zero;
-		vector<icon_entry> _icons = {};
+		vekt::builder*	   _builder		   = nullptr;
+		vector2			   _last_root_pos  = vector2::zero;
+		vector2			   _last_root_size = vector2::zero;
+		vector<icon_entry> _icons		   = {};
 	};
 }

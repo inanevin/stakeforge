@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,7 +44,7 @@ namespace SFG
 
 	struct animation_keyframe_v3
 	{
-		f32	time  = 0.0f;
+		f32		time  = 0.0f;
 		vector3 value = vector3::zero;
 
 		void serialize(ostream& stream) const;
@@ -53,7 +53,7 @@ namespace SFG
 
 	struct animation_keyframe_v3_spline
 	{
-		f32	time		= 0.0f;
+		f32		time		= 0.0f;
 		vector3 in_tangent	= vector3::zero;
 		vector3 value		= vector3::zero;
 		vector3 out_tangent = vector3::zero;
@@ -64,8 +64,8 @@ namespace SFG
 
 	struct animation_keyframe_q
 	{
-		f32 time	= 0.0f;
-		quat  value = quat();
+		f32	 time  = 0.0f;
+		quat value = quat();
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -73,10 +73,10 @@ namespace SFG
 
 	struct animation_keyframe_q_spline
 	{
-		f32 time		  = 0.0f;
-		quat  in_tangent  = quat();
-		quat  value		  = quat();
-		quat  out_tangent = quat();
+		f32	 time		 = 0.0f;
+		quat in_tangent	 = quat();
+		quat value		 = quat();
+		quat out_tangent = quat();
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

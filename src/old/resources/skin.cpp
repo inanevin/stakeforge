@@ -54,8 +54,8 @@ namespace SFG
 		_joints_count = static_cast<u16>(raw.joints.size());
 		_joints		  = alloc.allocate<skin_joint>(raw.joints.size());
 
-		skin_joint*	 ptr   = reinterpret_cast<skin_joint*>(alloc.get(_joints.head));
-		const u32 count = static_cast<u32>(raw.joints.size());
+		skin_joint* ptr	  = reinterpret_cast<skin_joint*>(alloc.get(_joints.head));
+		const u32	count = static_cast<u32>(raw.joints.size());
 
 		render_event_skin ev = {};
 		ev.root_index		 = raw.root_joint;

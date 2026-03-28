@@ -60,7 +60,7 @@ namespace SFG
 		void update_entity_name(world_handle h);
 		void set_entity_collapsed(world_handle h, bool collapsed);
 		void on_context_item(vekt::id id);
-		void on_popup_item(vekt::id id) {};
+		void on_popup_item(vekt::id id){};
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -142,7 +142,7 @@ namespace SFG
 
 		vekt::id _drag_src_widget = 0;
 		bool	 _is_payload_on	  = false;
-		f32	 _drag_y		  = 0.0f;
+		f32		 _drag_y		  = 0.0f;
 
 		world_handle _drag_source	  = {};
 		world_handle _selected_entity = {};

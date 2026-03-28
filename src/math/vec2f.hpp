@@ -46,8 +46,8 @@ namespace SFG
 	class vec2f
 	{
 	public:
-		vec2f() {};
-		vec2f(f32 _x, f32 _y) : x(_x), y(_y) {};
+		vec2f(){};
+		vec2f(f32 _x, f32 _y) : x(_x), y(_y){};
 		vec2f(const vec2u16& v);
 
 		f32 x = 0.0f;
@@ -61,15 +61,15 @@ namespace SFG
 		static vec2f abs(const vec2f& vector);
 		static vec2f min(const vec2f& a, const vec2f& b);
 		static vec2f max(const vec2f& a, const vec2f& b);
-		static f32	   dot(const vec2f& a, const vec2f& b);
-		static f32	   distance(const vec2f& a, const vec2f& b);
-		static f32	   angle(const vec2f& a, const vec2f& b);
+		static f32	 dot(const vec2f& a, const vec2f& b);
+		static f32	 distance(const vec2f& a, const vec2f& b);
+		static f32	 angle(const vec2f& a, const vec2f& b);
 
 		vec2f normalized() const;
-		bool	equals(const vec2f& other, f32 epsilon = MATH_EPS) const;
-		bool	is_zero(f32 epsilon = MATH_EPS) const;
-		f32		magnitude() const;
-		f32		magnitude_sqr() const;
+		bool  equals(const vec2f& other, f32 epsilon = MATH_EPS) const;
+		bool  is_zero(f32 epsilon = MATH_EPS) const;
+		f32	  magnitude() const;
+		f32	  magnitude_sqr() const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

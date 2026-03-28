@@ -24,8 +24,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "matrix3x3.hpp"
-#include "matrix4x4.hpp"
+#include "mat3x3.hpp"
+#include "mat4x4.hpp"
 #include "quat.hpp"
 #include "math.hpp" // for sqrtf, etc.
 #include "data/ostream.hpp"

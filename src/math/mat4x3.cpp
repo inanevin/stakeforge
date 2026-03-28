@@ -24,8 +24,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "matrix4x3.hpp"
-#include "matrix4x4.hpp"
+#include "mat4x3.hpp"
+#include "mat4x4.hpp"
 #include "math.hpp"
 #include "quat.hpp"
 #include "data/ostream.hpp"
@@ -197,52 +197,52 @@ namespace SFG
 	{
 		// Fill 4x4 with affine data
 		return mat4x4(m[0],
-						 m[1],
-						 m[2],
-						 0.0f, // Col 0
-						 m[3],
-						 m[4],
-						 m[5],
-						 0.0f, // Col 1
-						 m[6],
-						 m[7],
-						 m[8],
-						 0.0f, // Col 2
-						 m[9],
-						 m[10],
-						 m[11],
-						 1.0f // Col 3 (translation)
+					  m[1],
+					  m[2],
+					  0.0f, // Col 0
+					  m[3],
+					  m[4],
+					  m[5],
+					  0.0f, // Col 1
+					  m[6],
+					  m[7],
+					  m[8],
+					  0.0f, // Col 2
+					  m[9],
+					  m[10],
+					  m[11],
+					  1.0f // Col 3 (translation)
 		);
 	}
 
 	mat4x3 mat4x3::from_matrix4x4(const mat4x4& mat)
 	{
 		return mat4x3(mat.m[0],
-						 mat.m[1],
-						 mat.m[2], // Col 0
-						 mat.m[4],
-						 mat.m[5],
-						 mat.m[6], // Col 1
-						 mat.m[8],
-						 mat.m[9],
-						 mat.m[10], // Col 2
-						 mat.m[12],
-						 mat.m[13],
-						 mat.m[14] // Col 3
+					  mat.m[1],
+					  mat.m[2], // Col 0
+					  mat.m[4],
+					  mat.m[5],
+					  mat.m[6], // Col 1
+					  mat.m[8],
+					  mat.m[9],
+					  mat.m[10], // Col 2
+					  mat.m[12],
+					  mat.m[13],
+					  mat.m[14] // Col 3
 		);
 	}
 
 	mat3x3 mat4x3::to_linear3x3() const
 	{
 		return mat3x3(m[0],
-						 m[1],
-						 m[2], // Col 0
-						 m[3],
-						 m[4],
-						 m[5], // Col 1
-						 m[6],
-						 m[7],
-						 m[8]); // Col 2
+					  m[1],
+					  m[2], // Col 0
+					  m[3],
+					  m[4],
+					  m[5], // Col 1
+					  m[6],
+					  m[7],
+					  m[8]); // Col 2
 	}
 
 	void mat4x3::serialize(ostream& stream) const

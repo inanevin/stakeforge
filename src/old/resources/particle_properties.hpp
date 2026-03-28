@@ -70,7 +70,7 @@ namespace SFG
 
 	private:
 		particle_emit_properties _emit	= {};
-		bitmask<u8>			 _flags = 0;
+		bitmask<u8>				 _flags = 0;
 
 #ifndef SFG_STRIP_DEBUG_NAMES
 		chunk_handle32 _name;

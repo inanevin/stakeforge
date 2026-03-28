@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "frustum.hpp"
 #include "aabb.hpp"
-#include "matrix4x4.hpp"
-#include "matrix3x3.hpp"
+#include "mat4x4.hpp"
+#include "mat3x3.hpp"
 
 namespace SFG
 {
@@ -36,7 +36,7 @@ namespace SFG
 		frustum_result test = frustum_result::inside;
 
 		auto performTest = [&](const plane& p) {
-			const f32	  pos	 = -p.distance;
+			const f32	pos	   = -p.distance;
 			const vec3f normal = p.normal;
 
 			if (vec3f::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
@@ -142,8 +142,8 @@ namespace SFG
 
 		// r = |L^T * n| ? e_local
 		const vec3f v = linear_model.transposed() * p.normal;
-		const f32	  r = vec3f::dot(vec3f::abs(v), e_local);
-		const f32	  s = vec3f::dot(p.normal, c_world) + p.distance;
+		const f32	r = vec3f::dot(vec3f::abs(v), e_local);
+		const f32	s = vec3f::dot(p.normal, c_world) + p.distance;
 
 		if (s < -r)
 			return frustum_result::outside;

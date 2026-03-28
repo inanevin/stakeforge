@@ -717,7 +717,7 @@ namespace SFG
 			}
 			else if (ft == reflected_field_type::rf_int)
 			{
-				const f32 f	  = *reinterpret_cast<f32*>(data_ptr);
+				const f32 f = *reinterpret_cast<f32*>(data_ptr);
 				const i32 i = static_cast<i32>(f);
 				SFG_MEMCPY(ptr, &i, sizeof(i32));
 			}

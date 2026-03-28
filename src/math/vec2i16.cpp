@@ -24,17 +24,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector2ui.hpp"
-#include "vector2i.hpp"
+#include "vec2i16.hpp"
+#include "math.hpp"
 
 namespace SFG
 {
-	vec2u vec2u::zero = vec2u(0, 0);
-	vec2u vec2u::one  = vec2u(1, 1);
+	vec2i16 vec2i16::zero = vec2i16(0, 0);
+	vec2i16 vec2i16::one  = vec2i16(1, 1);
 
-	vec2u::vec2u(const vec2i& v)
+	vec2i16 vec2i16::clamp(const vec2i16& v, const vec2i16& min, const vec2i16& max)
 	{
-		x = static_cast<u32>(v.x);
-		x = static_cast<u32>(v.y);
+		return vec2i16(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
 	}
+
 }

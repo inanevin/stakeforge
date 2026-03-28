@@ -69,7 +69,7 @@ namespace SFG
 		const vector2 z_dir = vector2(z_cam.x, -z_cam.y);
 
 		constexpr f32 box_size_multiplier = 0.03f;
-		constexpr f32 thickness			= 2.0f;
+		constexpr f32 thickness			  = 2.0f;
 
 		const vector2 box_size = vector2(static_cast<f32>(size.x) * box_size_multiplier, static_cast<f32>(size.x) * box_size_multiplier);
 		const vector2 min	   = vector2(editor_theme::get().outer_margin + box_size.x * 0.5f, size.y - editor_theme::get().outer_margin - box_size.y);

@@ -27,9 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common/size_definitions.hpp"
-#include "vector4.hpp"
-#include "vector3.hpp"
-#include "matrix3x3.hpp"
+#include "vec4f.hpp"
+#include "vec3f.hpp"
+#include "mat3x3.hpp"
 
 namespace SFG
 {
@@ -77,7 +77,7 @@ namespace SFG
 		void   serialize(ostream& stream) const;
 		void   deserialize(istream& stream);
 
-		mat4x4	  to_matrix4x4() const;
+		mat4x4 to_matrix4x4() const;
 		mat3x3 to_linear3x3() const;
 
 		inline f32 operator[](int index) const

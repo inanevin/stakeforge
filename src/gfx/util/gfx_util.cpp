@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "gfx_util.hpp"
-#include "math/vector4.hpp"
+#include "math/vec4f.hpp"
 #include "gfx/backend/backend.hpp"
 
 namespace SFG

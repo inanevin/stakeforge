@@ -24,25 +24,23 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
-#include "common/size_definitions.hpp"
+#include "vec4i.hpp"
+#include "data/istream.hpp"
+#include "data/ostream.hpp"
 
 namespace SFG
 {
-	class vec2i;
+	vec4i vec4i::zero = vec4i(0, 0, 0, 0);
+	vec4i vec4i::one  = vec4i(1, 1, 1, 1);
 
-	class vec2u
+	void vec4i::serialize(ostream& stream) const
 	{
-	public:
-		vec2u() {};
-		vec2u(u32 _x, u32 _y) : x(_x), y(_y) {};
-		vec2u(const vec2i& v);
+		stream << x << y << z << w;
+	}
 
-		static vec2u zero;
-		static vec2u one;
-
-		u32 x = 0;
-		u32 y = 0;
-	};
+	void vec4i::deserialize(istream& stream)
+	{
+		stream >> x >> y >> z >> w;
+	}
 
 }

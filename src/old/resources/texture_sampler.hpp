@@ -68,8 +68,8 @@ namespace SFG
 		chunk_handle32 _name;
 #endif
 
-		sampler_desc   _desc  = {};
-		bitmask<u8> _flags = 0;
+		sampler_desc _desc	= {};
+		bitmask<u8>	 _flags = 0;
 	};
 
 	REFLECT_TYPE(texture_sampler);

@@ -150,11 +150,11 @@ namespace SFG
 		void*				_window_handle			  = nullptr;
 		void*				_platform_handle		  = nullptr;
 		int					_prev_confinement[4];
-		vec2i16			_mouse_position		= vec2i16::zero;
-		vec2i16			_mouse_position_abs = vec2i16::zero;
-		vec2i16			_position			= vec2i16::zero;
-		vec2u16			_true_size			= vec2u16::zero;
-		vec2u16			_size				= vec2u16::zero;
+		vec2i16				_mouse_position		= vec2i16::zero;
+		vec2i16				_mouse_position_abs = vec2i16::zero;
+		vec2i16				_position			= vec2i16::zero;
+		vec2u16				_true_size			= vec2u16::zero;
+		vec2u16				_size				= vec2u16::zero;
 		bitmask<u16>		_flags				= 0;
 		vector<string>		_dropped_files;
 		static u8			s_key_down_map[512];

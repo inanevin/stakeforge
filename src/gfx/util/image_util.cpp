@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "image_util.hpp"
 #include "io/log.hpp"
-#include "math/vector2ui16.hpp"
+#include "math/vec2u16.hpp"
 #include "math/math.hpp"
 #include "gfx/common/texture_buffer.hpp"
 #include "memory/memory.hpp"

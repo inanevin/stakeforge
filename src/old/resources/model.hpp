@@ -152,14 +152,14 @@ namespace SFG
 		chunk_handle32 _created_textures;
 		chunk_handle32 _created_lights;
 		aabb		   _total_aabb;
-		u16		   _nodes_count		= 0;
-		u16		   _meshes_count	= 0;
-		u16		   _skins_count		= 0;
-		u16		   _anims_count		= 0;
-		u16		   _materials_count = 0;
-		u16		   _textures_count	= 0;
-		u16		   _lights_count	= 0;
-		bitmask<u8> _flags;
+		u16			   _nodes_count		= 0;
+		u16			   _meshes_count	= 0;
+		u16			   _skins_count		= 0;
+		u16			   _anims_count		= 0;
+		u16			   _materials_count = 0;
+		u16			   _textures_count	= 0;
+		u16			   _lights_count	= 0;
+		bitmask<u8>	   _flags;
 	};
 
 	REFLECT_TYPE(model);

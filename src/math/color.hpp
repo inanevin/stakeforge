@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "vector4.hpp"
+#include "vec4f.hpp"
 
 #ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
@@ -46,9 +46,9 @@ namespace SFG
 		color		 srgb_to_linear();
 
 		vec4f to_vector() const;
-		void	round();
-		void	serialize(ostream& stream) const;
-		void	deserialize(istream& stream);
+		void  round();
+		void  serialize(ostream& stream) const;
+		void  deserialize(istream& stream);
 
 		bool operator!=(const color& rhs) const
 		{

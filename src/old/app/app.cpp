@@ -460,7 +460,7 @@ namespace SFG
 		if (_render_joined.load() == 0)
 			return;
 		_render_joined.store(0, std::memory_order_release);
-		_render_thread				   = std::thread(&app::render_loop, this);
+		_render_thread				  = std::thread(&app::render_loop, this);
 		g_frame_info.is_render_active = true;
 	}
 

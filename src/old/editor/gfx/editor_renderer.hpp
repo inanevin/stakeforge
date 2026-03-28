@@ -66,7 +66,7 @@ namespace SFG
 		struct render_params
 		{
 			gfx_id			cmd_buffer;
-			u8			frame_index;
+			u8				frame_index;
 			bump_allocator& alloc;
 			vector2ui16		size;
 			gfx_id			global_layout;
@@ -112,11 +112,11 @@ namespace SFG
 		struct gui_draw_call
 		{
 			vector4ui16				  scissors		  = vector4ui16::zero;
-			u32					  atlas_gpu_index = 0;
+			u32						  atlas_gpu_index = 0;
 			gfx_id					  shader		  = 0;
-			u16					  start_vtx		  = 0;
-			u16					  start_idx		  = 0;
-			u16					  index_count	  = 0;
+			u16						  start_vtx		  = 0;
+			u16						  start_idx		  = 0;
+			u16						  index_count	  = 0;
 			editor_gui_user_data_type ud_type		  = editor_gui_user_data_type::none;
 		};
 
@@ -125,11 +125,11 @@ namespace SFG
 			buffer_cpu_gpu buf_gui_vtx	   = {};
 			buffer_cpu_gpu buf_gui_idx	   = {};
 			buffer_gpu	   buf_pass_data   = {};
-			u32		   counter_vtx	   = 0;
-			u32		   counter_idx	   = 0;
+			u32			   counter_vtx	   = 0;
+			u32			   counter_idx	   = 0;
 			gpu_index	   gpu_index_rt	   = NULL_GPU_INDEX;
 			gfx_id		   hw_rt		   = NULL_GFX_ID;
-			u16		   draw_call_count = 0;
+			u16			   draw_call_count = 0;
 
 			inline void reset()
 			{
@@ -141,15 +141,15 @@ namespace SFG
 		struct gui_pass_view
 		{
 			matrix4x4 proj			= matrix4x4::identity;
-			f32	  sdf_thickness = 0.5f;
-			f32	  sdf_softness	= 0.02f;
+			f32		  sdf_thickness = 0.5f;
+			f32		  sdf_softness	= 0.02f;
 		};
 
 		struct atlas_ref
 		{
 			vekt::atlas*   atlas			   = nullptr;
 			gfx_id		   texture			   = 0;
-			u32		   texture_gpu_index   = 0;
+			u32			   texture_gpu_index   = 0;
 			gfx_id		   intermediate_buffer = 0;
 			texture_buffer buffer			   = {};
 
@@ -172,7 +172,7 @@ namespace SFG
 			static_vector<atlas_ref, 4> atlases;
 			texture_queue*				texture_queue = nullptr;
 			vector2ui16					screen_size	  = vector2ui16::zero;
-			u64						frame_counter = 0;
+			u64							frame_counter = 0;
 		};
 
 	private:
@@ -198,6 +198,6 @@ namespace SFG
 		vekt::snapshot* _snapshots		 = nullptr;
 		atomic<i8>		_snapshot_latest = UINT32_MAX;
 		atomic<i8>		_snapshot_in_use = 0;
-		u8			_snapshot_write	 = 0;
+		u8				_snapshot_write	 = 0;
 	};
 }

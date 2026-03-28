@@ -115,7 +115,7 @@ namespace SFG
 
 		void draw_move_gizmo(vekt::builder* builder, const gizmo_draw_context& ctx, gizmo_space space, gizmo_axis active_axis)
 		{
-			const f32 dist	  = vector3::distance(ctx.entity_pos, ctx.cam_pos);
+			const f32 dist		= vector3::distance(ctx.entity_pos, ctx.cam_pos);
 			const f32 gizmo_len = math::max(0.5f, dist * 0.1f);
 
 			struct axis_draw
@@ -203,7 +203,7 @@ namespace SFG
 
 		void draw_rotate_gizmo(vekt::builder* builder, const gizmo_draw_context& ctx, gizmo_space space, gizmo_axis active_axis)
 		{
-			const f32 dist	  = vector3::distance(ctx.entity_pos, ctx.cam_pos);
+			const f32 dist		= vector3::distance(ctx.entity_pos, ctx.cam_pos);
 			const f32 gizmo_len = math::max(0.5f, dist * 0.1f);
 
 			struct axis_circle
@@ -277,7 +277,7 @@ namespace SFG
 
 		void draw_scale_gizmo(vekt::builder* builder, const gizmo_draw_context& ctx, gizmo_space space, gizmo_axis active_axis)
 		{
-			const f32 dist	  = vector3::distance(ctx.entity_pos, ctx.cam_pos);
+			const f32 dist		= vector3::distance(ctx.entity_pos, ctx.cam_pos);
 			const f32 gizmo_len = math::max(0.5f, dist * 0.1f);
 
 			struct axis_draw
@@ -488,7 +488,7 @@ namespace SFG
 
 			vector3 axis_world		= vector3::zero;
 			vector2 axis_dir_screen = vector2::zero;
-			f32	axis_pixels		= 0.0f;
+			f32		axis_pixels		= 0.0f;
 
 			if (_active_axis != gizmo_axis::uniform && _style != gizmo_style::rotate)
 			{
@@ -497,7 +497,7 @@ namespace SFG
 				if (!project_point_render_thread(*ctx.screen, _last_root_pos, _last_root_size, ctx.entity_pos + axis_world * gizmo_len, axis_end_screen))
 					return false;
 
-				axis_dir_screen		 = axis_end_screen - ctx.center_screen;
+				axis_dir_screen	   = axis_end_screen - ctx.center_screen;
 				const f32 axis_len = axis_dir_screen.magnitude();
 				if (axis_len < MATH_EPS)
 					return false;
@@ -537,7 +537,7 @@ namespace SFG
 				if (!project_point_render_thread(*ctx.screen, _last_root_pos, _last_root_size, ctx.entity_pos + axis_world * gizmo_len, axis_end_screen))
 					return false;
 
-				axis_dir_screen		 = axis_end_screen - ctx.center_screen;
+				axis_dir_screen	   = axis_end_screen - ctx.center_screen;
 				const f32 axis_len = axis_dir_screen.magnitude();
 				if (axis_len < MATH_EPS)
 					return false;
@@ -555,10 +555,10 @@ namespace SFG
 				{
 					_drag_amount += (-delta.y) * 0.01f;
 					const f32 uniform_factor = math::max(0.01f, 1.0f + _drag_amount);
-					vector3		new_scale	   = _drag_start_scale * uniform_factor;
-					new_scale.x				   = math::max(0.01f, new_scale.x);
-					new_scale.y				   = math::max(0.01f, new_scale.y);
-					new_scale.z				   = math::max(0.01f, new_scale.z);
+					vector3	  new_scale		 = _drag_start_scale * uniform_factor;
+					new_scale.x				 = math::max(0.01f, new_scale.x);
+					new_scale.y				 = math::max(0.01f, new_scale.y);
+					new_scale.z				 = math::max(0.01f, new_scale.z);
 					em.set_entity_scale_abs(ctx.selected, new_scale);
 					_drag_last_mouse = pos;
 					return true;
@@ -615,7 +615,7 @@ namespace SFG
 		const quat	  entity_rot	= em.get_entity_rotation_abs(selected);
 		world_screen& screen		= w.get_screen();
 		vector2		  center_screen = vector2::zero;
-		f32		  dist			= 0.0f;
+		f32			  dist			= 0.0f;
 		vector2		  screen_pos	= vector2::zero;
 		if (!screen.world_to_screen_render_thread(entity_pos, screen_pos, dist))
 		{
@@ -632,13 +632,13 @@ namespace SFG
 
 		const f32 scale_x = _last_root_size.x / static_cast<f32>(res.x);
 		const f32 scale_y = _last_root_size.y / static_cast<f32>(res.y);
-		center_screen		  = vector2(_last_root_pos.x + screen_pos.x * scale_x, _last_root_pos.y + screen_pos.y * scale_y);
+		center_screen	  = vector2(_last_root_pos.x + screen_pos.x * scale_x, _last_root_pos.y + screen_pos.y * scale_y);
 
 		const f32 gizmo_len = math::max(0.5f, dist * 0.1f);
 		const f32 threshold = 8.0f;
 
 		gizmo_axis hovered	 = gizmo_axis::none;
-		f32	   best_dist = threshold;
+		f32		   best_dist = threshold;
 
 		if (_style == gizmo_style::move || _style == gizmo_style::scale)
 		{
@@ -706,7 +706,7 @@ namespace SFG
 			{
 				vector2 prev	 = vector2::zero;
 				bool	has_prev = false;
-				f32	min_dist = threshold;
+				f32		min_dist = threshold;
 
 				for (unsigned int i = 0; i <= segments; ++i)
 				{
@@ -768,7 +768,7 @@ namespace SFG
 
 		const vector3 entity_pos   = em.get_entity_position_abs(selected);
 		vector2		  gizmo_screen = vector2::zero;
-		world_screen& screen = w.get_screen();
+		world_screen& screen	   = w.get_screen();
 		if (!project_point_render_thread(screen, _last_root_pos, _last_root_size, entity_pos, gizmo_screen))
 			return false;
 

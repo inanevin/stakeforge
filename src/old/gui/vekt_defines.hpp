@@ -40,10 +40,10 @@ namespace vekt
 	enum class input_event_result;
 	struct VEKT_VEC2;
 
-	typedef void (*widget_func)(builder* b, id widget);
-	typedef void (*focus_gain_func)(builder* b, id widget, bool from_nav);
+	typedef void			   (*widget_func)(builder* b, id widget);
+	typedef void			   (*focus_gain_func)(builder* b, id widget, bool from_nav);
 	typedef input_event_result (*mouse_func)(builder* b, id widget, const mouse_event& ev, input_event_phase phase);
-	typedef void (*drag_func)(builder* b, id widget, f32 mouse_x, f32 mouse_y, f32 delta_x, f32 delta_y, unsigned int button);
+	typedef void			   (*drag_func)(builder* b, id widget, f32 mouse_x, f32 mouse_y, f32 delta_x, f32 delta_y, unsigned int button);
 	typedef input_event_result (*key_func)(builder* b, id widget, const key_event& ev);
 	typedef input_event_result (*wheel_func)(builder* b, id widget, const mouse_wheel_event& ev);
 

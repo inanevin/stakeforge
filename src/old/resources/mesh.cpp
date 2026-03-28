@@ -84,7 +84,7 @@ namespace SFG
 			for (u32 i = 0; i < m_size; i++)
 			{
 				const i16 mat = raw.materials[i];
-				idx[i]			= mat >= 0 ? static_cast<u16>(raw.materials[i]) : 0;
+				idx[i]		  = mat >= 0 ? static_cast<u16>(raw.materials[i]) : 0;
 			}
 		}
 
@@ -109,7 +109,7 @@ namespace SFG
 				vertices.push_back(JPH::Float3(vtx[i].x, vtx[i].y, vtx[i].z));
 
 			JPH::IndexedTriangleList triangles;
-			const u32			 tri_count = _collider_index_count / 3;
+			const u32				 tri_count = _collider_index_count / 3;
 			triangles.reserve(tri_count);
 			for (u32 i = 0; i < tri_count; i++)
 			{

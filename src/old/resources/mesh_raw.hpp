@@ -42,12 +42,12 @@ namespace SFG
 	{
 		string						  name		 = "";
 		string_id					  sid		 = 0;
-		u16						  node_index = 0;
-		i16						  skin_index = -1;
+		u16							  node_index = 0;
+		i16							  skin_index = -1;
 		aabb						  local_aabb = {};
 		vector<primitive_static_raw>  primitives_static;
 		vector<primitive_skinned_raw> primitives_skinned;
-		vector<i16>				  materials;
+		vector<i16>					  materials;
 		vector<vector3>				  collider_vertices;
 		vector<primitive_index>		  collider_indices;
 

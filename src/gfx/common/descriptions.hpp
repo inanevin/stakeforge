@@ -26,9 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "math/vector2.hpp"
-#include "math/vector2ui.hpp"
-#include "math/vector2ui16.hpp"
+#include "math/vec2f.hpp"
+#include "math/vec2u.hpp"
+#include "math/vec2u16.hpp"
 #include "data/bitmask.hpp"
 #include "data/vector.hpp"
 #include "data/span.hpp"
@@ -48,10 +48,10 @@ namespace SFG
 
 	struct viewport
 	{
-		vec2f		pos		 = vec2f::zero;
+		vec2f	pos		 = vec2f::zero;
 		vec2u16 size	 = vec2u16::zero;
-		f32			minDepth = 0.0f;
-		f32			maxDepth = 1.0f;
+		f32		minDepth = 0.0f;
+		f32		maxDepth = 1.0f;
 	};
 
 	struct scissors_rect
@@ -161,14 +161,14 @@ namespace SFG
 		void*		os_handle = nullptr;
 		f32			scaling	  = 1.0f;
 		format		format	  = format::undefined;
-		vec2u16 pos		  = vec2u16::zero;
-		vec2u16 size	  = vec2u16::zero;
+		vec2u16		pos		  = vec2u16::zero;
+		vec2u16		size	  = vec2u16::zero;
 		bitmask<u8> flags	  = 0;
 	};
 
 	struct swapchain_recreate_desc
 	{
-		vec2u16 size	  = vec2u16::zero;
+		vec2u16		size	  = vec2u16::zero;
 		gfx_id		swapchain = 0;
 		f32			scaling	  = 1.0f;
 		bitmask<u8> flags	  = 0;
@@ -205,7 +205,7 @@ namespace SFG
 	{
 		format			  texture_format	   = format::r8g8b8a8_srgb;
 		format			  depth_stencil_format = format::d16_unorm;
-		vec2u16		  size				   = vec2u16::zero;
+		vec2u16			  size				   = vec2u16::zero;
 		bitmask<u16>	  flags				   = 0;
 		vector<view_desc> views				   = {
 			   {},

@@ -24,30 +24,10 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
-
-#include "math_common.hpp"
-#include <vendor/um/umHalf.h>
-
-#undef min
-#undef max
+#include "vec4u.hpp"
 
 namespace SFG
 {
-	class istream;
-	class ostream;
-
-	class vec2h
-	{
-	public:
-		vec2h() {};
-		vec2h(f32 _x, f32 _y) : x(_x), y(_y) {};
-
-		half x = 0.0f;
-		half y = 0.0f;
-
-		static vec2h zero;
-		static vec2h one;
-	};
-
+	vec4u vec4u::zero = vec4u(0, 0, 0, 0);
+	vec4u vec4u::one  = vec4u(1, 1, 1, 1);
 }

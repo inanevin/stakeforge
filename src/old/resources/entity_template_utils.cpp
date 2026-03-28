@@ -113,8 +113,8 @@ namespace SFG
 				{
 					if (f->_is_list)
 					{
-						const auto&	 v				 = f->value(ptr).cast_ref<vector<resource_handle>>();
-						const u32 sz				 = static_cast<u32>(v.size());
+						const auto& v				 = f->value(ptr).cast_ref<vector<resource_handle>>();
+						const u32	sz				 = static_cast<u32>(v.size());
 						comp_json[f->_title.c_str()] = sz;
 						for (u32 i = 0; i < sz; ++i)
 						{
@@ -141,8 +141,8 @@ namespace SFG
 				{
 					if (f->_is_list)
 					{
-						const auto&	 v				 = f->value(ptr).cast_ref<vector<world_handle>>();
-						const u32 sz				 = static_cast<u32>(v.size());
+						const auto& v				 = f->value(ptr).cast_ref<vector<world_handle>>();
+						const u32	sz				 = static_cast<u32>(v.size());
 						comp_json[f->_title.c_str()] = sz;
 						for (u32 i = 0; i < sz; ++i)
 						{
@@ -167,10 +167,10 @@ namespace SFG
 	void entity_template_utils::component_json_to_component_buffer(const json& c, ostream& out)
 	{
 		const string_id comp_type	= c.value<string_id>("comp_type", 0);
-		const u32	e_index		= c.value<u32>("entity", 0);
+		const u32		e_index		= c.value<u32>("entity", 0);
 		auto&			comp_meta	= reflection::get().resolve(comp_type);
 		const auto&		fields		= comp_meta.get_fields();
-		const u32	fields_size = static_cast<u32>(fields.size());
+		const u32		fields_size = static_cast<u32>(fields.size());
 
 		out << comp_type;
 		out << e_index;
@@ -272,10 +272,10 @@ namespace SFG
 			out << c.comp_type;
 			out << entity_index;
 
-			void*		 ptr		 = cm.get_component(c.comp_type, c.comp_handle);
-			meta&		 comp_meta	 = reflection::get().resolve(c.comp_type);
-			const auto&	 fields		 = comp_meta.get_fields();
-			const u32 fields_size = static_cast<u32>(fields.size());
+			void*		ptr			= cm.get_component(c.comp_type, c.comp_handle);
+			meta&		comp_meta	= reflection::get().resolve(c.comp_type);
+			const auto& fields		= comp_meta.get_fields();
+			const u32	fields_size = static_cast<u32>(fields.size());
 			out << fields_size;
 
 			for (field_base* f : fields)
@@ -309,8 +309,8 @@ namespace SFG
 					out << f->_sub_type_id;
 					if (f->_is_list)
 					{
-						const auto&	 v	   = f->value(ptr).cast_ref<vector<resource_handle>>();
-						const u32 count = static_cast<u32>(v.size());
+						const auto& v	  = f->value(ptr).cast_ref<vector<resource_handle>>();
+						const u32	count = static_cast<u32>(v.size());
 						out << count;
 						for (u32 i = 0; i < count; ++i)
 						{
@@ -329,8 +329,8 @@ namespace SFG
 				{
 					if (f->_is_list)
 					{
-						const auto&	 v	   = f->value(ptr).cast_ref<vector<world_handle>>();
-						const u32 count = static_cast<u32>(v.size());
+						const auto& v	  = f->value(ptr).cast_ref<vector<world_handle>>();
+						const u32	count = static_cast<u32>(v.size());
 						out << count;
 						for (u32 i = 0; i < count; ++i)
 						{
@@ -397,8 +397,8 @@ namespace SFG
 		while (!in.is_eof())
 		{
 			string_id comp_type = 0;
-			u32	  e_index	= 0;
-			u32	  fields_sz = 0;
+			u32		  e_index	= 0;
+			u32		  fields_sz = 0;
 			in >> comp_type;
 			if (in.is_eof())
 				break;
@@ -497,7 +497,7 @@ namespace SFG
 				else if (ft == reflected_field_type::rf_resource)
 				{
 					string_id sub_type = 0;
-					u32	  count	   = 0;
+					u32		  count	   = 0;
 					in >> sub_type;
 					in >> count;
 					for (u32 i = 0; i < count; ++i)

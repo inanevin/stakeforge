@@ -132,7 +132,7 @@ namespace SFG
 
 	void editor_renderer::draw_end(vekt::builder* builder)
 	{
-		
+
 		const vekt::vector<vekt::draw_buffer>& draw_buffers = builder->get_draw_buffers();
 
 		const u8 published = _snapshot_write;
@@ -140,7 +140,7 @@ namespace SFG
 
 		_snapshot_latest.store((i8)published, std::memory_order_release);
 		const i8 in_use = _snapshot_in_use.load(std::memory_order_acquire);
-		u8	   next	  = (published + 1) % SNAPSHOTS_SIZE;
+		u8		 next	= (published + 1) % SNAPSHOTS_SIZE;
 		if ((i8)next == in_use)
 			next = (next + 1) % SNAPSHOTS_SIZE;
 
@@ -238,8 +238,8 @@ namespace SFG
 		const gfx_id render_target		 = pfd.hw_rt;
 		const gfx_id gui_vertex			 = pfd.buf_gui_vtx.get_gpu();
 		const gfx_id gui_index			 = pfd.buf_gui_idx.get_gpu();
-		const u16 dc_count			 = pfd.draw_call_count;
-		const u32 gpu_index_pass_data = pfd.buf_pass_data.get_index();
+		const u16	 dc_count			 = pfd.draw_call_count;
+		const u32	 gpu_index_pass_data = pfd.buf_pass_data.get_index();
 
 		static_vector<barrier, 1> barriers;
 
@@ -299,7 +299,7 @@ namespace SFG
 		backend->cmd_bind_index_buffers(cmd_buffer, {.buffer = gui_index, .index_size = sizeof(vekt::index)});
 
 		gfx_id last_pipeline	   = NULL_GFX_ID;
-		u32 last_atlas_constant = UINT32_MAX;
+		u32	   last_atlas_constant = UINT32_MAX;
 
 		for (u16 i = 0; i < dc_count; i++)
 		{
@@ -441,8 +441,8 @@ namespace SFG
 		const vekt::vertex*	  buffer_vtx_start = buffer.vertex_start;
 		const vekt::index*	  buffer_idx_start = buffer.index_start;
 		const vector4		  clip			   = buffer.clip;
-		const u32		  buffer_idx_count = buffer.index_count;
-		const u32		  buffer_vtx_count = buffer.vertex_count;
+		const u32			  buffer_idx_count = buffer.index_count;
+		const u32			  buffer_vtx_count = buffer.vertex_count;
 
 		const gfx_id sdf_shader		= _shaders.gui_sdf;
 		const gfx_id text_shader	= _shaders.gui_text;
@@ -450,9 +450,9 @@ namespace SFG
 		const gfx_id texture_shader = _shaders.gui_texture;
 
 		per_frame_data& pfd			= _pfd[frame_index];
-		const u32	vtx_counter = pfd.counter_vtx;
-		const u32	idx_counter = pfd.counter_idx;
-		const u16	dc_index	= pfd.draw_call_count++;
+		const u32		vtx_counter = pfd.counter_vtx;
+		const u32		idx_counter = pfd.counter_idx;
+		const u16		dc_index	= pfd.draw_call_count++;
 		pfd.counter_vtx += buffer_vtx_count;
 		pfd.counter_idx += buffer_idx_count;
 		pfd.buf_gui_vtx.buffer_data(sizeof(vekt::vertex) * static_cast<size_t>(vtx_counter), buffer_vtx_start, static_cast<size_t>(buffer_vtx_count) * sizeof(vekt::vertex));
@@ -536,13 +536,13 @@ namespace SFG
 														 .debug_name	 = "editor_gui_atlas"});
 		ref.texture_gpu_index = backend->get_texture_gpu_index(ref.texture, 0);
 
-		const u32 txt_size	   = backend->get_texture_size(atlas->get_width(), atlas->get_height(), atlas->get_is_lcd() ? 3 : 1);
+		const u32 txt_size		= backend->get_texture_size(atlas->get_width(), atlas->get_height(), atlas->get_is_lcd() ? 3 : 1);
 		const u32 adjusted_size = backend->align_texture_size(txt_size);
-		ref.intermediate_buffer	   = backend->create_resource({
-			   .size	   = adjusted_size,
-			   .flags	   = resource_flags::rf_cpu_visible,
-			   .debug_name = "editor_gui_inter_buffer",
-		   });
+		ref.intermediate_buffer = backend->create_resource({
+			.size		= adjusted_size,
+			.flags		= resource_flags::rf_cpu_visible,
+			.debug_name = "editor_gui_inter_buffer",
+		});
 
 		r->_gfx_data.atlases.push_back(ref);
 	}
@@ -559,14 +559,14 @@ namespace SFG
 				const unsigned char* data		  = atlas->get_data();
 				const unsigned int	 size		  = atlas->get_data_size();
 				const bool			 is_lcd		  = atlas->get_is_lcd();
-				const u32		 atlas_width  = atlas->get_width();
-				const u32		 atlas_height = atlas->get_height();
+				const u32			 atlas_width  = atlas->get_width();
+				const u32			 atlas_height = atlas->get_height();
 				const u8			 bpp		  = atlas->get_is_lcd() ? 3 : 1;
 
 				u32 adjusted_size = 0;
-				ref.buffer.pixels	 = reinterpret_cast<u8*>(backend->adjust_buffer_pitch((void*)data, atlas_width, atlas_height, bpp, adjusted_size));
-				ref.buffer.size		 = vector2ui16(static_cast<u16>(atlas_width), static_cast<u16>(atlas_height));
-				ref.buffer.bpp		 = bpp;
+				ref.buffer.pixels = reinterpret_cast<u8*>(backend->adjust_buffer_pitch((void*)data, atlas_width, atlas_height, bpp, adjusted_size));
+				ref.buffer.size	  = vector2ui16(static_cast<u16>(atlas_width), static_cast<u16>(atlas_height));
+				ref.buffer.bpp	  = bpp;
 
 				static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;
 				buffers.push_back(ref.buffer);

@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "data/static_vector.hpp"
-#include "math/vector4.hpp"
+#include "math/vec4f.hpp"
 
 namespace SFG
 {

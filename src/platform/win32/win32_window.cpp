@@ -488,11 +488,11 @@ namespace SFG
 			const i32 yPos = GET_Y_LPARAM(lParam);
 
 			static vec2i16 previousPosition = vec2i16::zero;
-			wnd->_mouse_position			   = vec2i16(xPos, yPos);
-			wnd->_mouse_position_abs		   = wnd->get_position() + wnd->_mouse_position;
+			wnd->_mouse_position			= vec2i16(xPos, yPos);
+			wnd->_mouse_position_abs		= wnd->get_position() + wnd->_mouse_position;
 
 			const vec2i16 delta = wnd->_mouse_position - previousPosition;
-			previousPosition	   = wnd->_mouse_position;
+			previousPosition	= wnd->_mouse_position;
 
 			const window_event ev = {
 				.value = delta,

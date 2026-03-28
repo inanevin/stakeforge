@@ -24,23 +24,30 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector4i.hpp"
-#include "data/istream.hpp"
-#include "data/ostream.hpp"
+#pragma once
+
+#include "math_common.hpp"
+#include <vendor/um/umHalf.h>
+
+#undef min
+#undef max
 
 namespace SFG
 {
-	vec4i vec4i::zero = vec4i(0, 0, 0, 0);
-	vec4i vec4i::one	= vec4i(1, 1, 1, 1);
+	class istream;
+	class ostream;
 
-	void vec4i::serialize(ostream& stream) const
+	class vec2h
 	{
-		stream << x << y << z << w;
-	}
+	public:
+		vec2h(){};
+		vec2h(f32 _x, f32 _y) : x(_x), y(_y){};
 
-	void vec4i::deserialize(istream& stream)
-	{
-		stream >> x >> y >> z >> w;
-	}
+		half x = 0.0f;
+		half y = 0.0f;
+
+		static vec2h zero;
+		static vec2h one;
+	};
 
 }

@@ -74,10 +74,10 @@ namespace SFG
 
 	private:
 		chunk_handle32 _name;
-		i16		   _parent_index = -1;
-		i16		   _light_index	 = -1;
-		i16		   _mesh_index	 = -1;
-		i16		   _skin_index	 = -1;
+		i16			   _parent_index = -1;
+		i16			   _light_index	 = -1;
+		i16			   _mesh_index	 = -1;
+		i16			   _skin_index	 = -1;
 		matrix4x3	   _local_matrix = {};
 	};
 }

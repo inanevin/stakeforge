@@ -49,10 +49,10 @@ namespace SFG
 		quat	rotation		   = quat::identity;
 		vector3 position		   = vector3::zero;
 		vector3 scale			   = vector3::one;
-		i32	parent			   = -1;
-		i32	first_child		   = -1;
-		i32	next_sibling	   = -1;
-		u8	visible			   = 0;
+		i32		parent			   = -1;
+		i32		first_child		   = -1;
+		i32		next_sibling	   = -1;
+		u8		visible			   = 0;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

@@ -24,23 +24,41 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector4ui16.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
+#pragma once
+#include "common/size_definitions.hpp"
 
 namespace SFG
 {
-	vec4u16 vec4u16::zero = vec4u16(0, 0, 0, 0);
-	vec4u16 vec4u16::one  = vec4u16(1, 1, 1, 1);
 
-	void vec4u16::serialize(ostream& stream) const
-	{
-		stream << x << y << z << w;
-	}
+	class ostream;
+	class istream;
 
-	void vec4u16::deserialize(istream& stream)
+	class vec4i
 	{
-		stream >> x >> y >> z >> w;
-	}
+	public:
+		vec4i(){};
+		vec4i(i32 _x, i32 _y, i32 _z, i32 _w) : x(_x), y(_y), z(_z), w(_w){};
+
+		static vec4i zero;
+		static vec4i one;
+
+		void serialize(ostream& stream) const;
+		void deserialize(istream& stream);
+
+		vec4i operator-(const vec4i& other) const
+		{
+			return vec4i(x - other.x, y - other.y, z - other.z, w - other.w);
+		}
+
+		vec4i operator+(const vec4i& other) const
+		{
+			return vec4i(x + other.x, y + other.y, z + other.z, w + other.w);
+		}
+
+		i32 x = 0;
+		i32 y = 0;
+		i32 z = 0;
+		i32 w = 0;
+	};
 
 }

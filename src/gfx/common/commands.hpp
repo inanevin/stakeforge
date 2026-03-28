@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common/size_definitions.hpp"
-#include "math/vector4.hpp"
+#include "math/vec4f.hpp"
 #include "data/bitmask.hpp"
 #include "gfx/common/descriptions.hpp"
 #include "gfx/common/barrier_description.hpp"
@@ -193,12 +193,12 @@ namespace SFG
 	{
 		static constexpr u8 TID = 10;
 
-		gfx_id	  dest_buffer = 0;
-		gfx_id	  src_texture = 0;
-		u32		  src_layer	  = 0;
-		u32		  src_mip	  = 0;
-		vec2u size		  = vec2u::zero;
-		u8		  bpp		  = 0;
+		gfx_id dest_buffer = 0;
+		gfx_id src_texture = 0;
+		u32	   src_layer   = 0;
+		u32	   src_mip	   = 0;
+		vec2u  size		   = vec2u::zero;
+		u8	   bpp		   = 0;
 	};
 
 	struct command_copy_buffer_to_texture

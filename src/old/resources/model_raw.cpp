@@ -122,7 +122,7 @@ namespace SFG
 			for (size_t j = 0; j < num_vertices; ++j)
 			{
 				const size_t stride					  = vertex_bv.byteStride == 0 ? sizeof(f32) * 3 : vertex_bv.byteStride;
-				const f32* rawFloatData			  = reinterpret_cast<const f32*>(vertex_b.data.data() + vertex_a.byteOffset + vertex_bv.byteOffset + j * stride);
+				const f32*	 rawFloatData			  = reinterpret_cast<const f32*>(vertex_b.data.data() + vertex_a.byteOffset + vertex_bv.byteOffset + j * stride);
 				prim.vertices[start_vertices + j].pos = vector3(rawFloatData[0], rawFloatData[1], rawFloatData[2]);
 			}
 
@@ -196,7 +196,7 @@ namespace SFG
 				for (size_t j = 0; j < num_normals; ++j)
 				{
 					const size_t stride						 = normals_bv.byteStride == 0 ? sizeof(f32) * 3 : normals_bv.byteStride;
-					const f32* raw_data					 = reinterpret_cast<const f32*>(normals_b.data.data() + normals_a.byteOffset + normals_bv.byteOffset + j * stride);
+					const f32*	 raw_data					 = reinterpret_cast<const f32*>(normals_b.data.data() + normals_a.byteOffset + normals_bv.byteOffset + j * stride);
 					prim.vertices[start_vertices + j].normal = vector3(raw_data[0], raw_data[1], raw_data[2]);
 				}
 			}
@@ -219,7 +219,7 @@ namespace SFG
 				for (size_t j = 0; j < num_uv; ++j)
 				{
 					const size_t stride					 = uv_bv.byteStride == 0 ? sizeof(f32) * 2 : uv_bv.byteStride;
-					const f32* raw_data				 = reinterpret_cast<const f32*>(uv_b.data.data() + uv_a.byteOffset + uv_bv.byteOffset + j * stride);
+					const f32*	 raw_data				 = reinterpret_cast<const f32*>(uv_b.data.data() + uv_a.byteOffset + uv_bv.byteOffset + j * stride);
 					prim.vertices[start_vertices + j].uv = vector2(raw_data[0], raw_data[1]);
 				}
 			}
@@ -242,7 +242,7 @@ namespace SFG
 				for (size_t j = 0; j < num_tangents; ++j)
 				{
 					const size_t stride						  = targents_bv.byteStride == 0 ? sizeof(f32) * 4 : targents_bv.byteStride;
-					const f32* raw_data					  = reinterpret_cast<const f32*>(tangents_b.data.data() + tangents_a.byteOffset + targents_bv.byteOffset + j * stride);
+					const f32*	 raw_data					  = reinterpret_cast<const f32*>(tangents_b.data.data() + tangents_a.byteOffset + targents_bv.byteOffset + j * stride);
 					prim.vertices[start_vertices + j].tangent = vector4(raw_data[0], raw_data[1], raw_data[2], raw_data[3]);
 				}
 			}
@@ -350,11 +350,11 @@ namespace SFG
 		const size_t all_meshes_sz = model.meshes.size();
 		loaded_meshes.resize(all_meshes_sz);
 
-		u32 empty_mesh_name_ctr = 0;
-		auto   get_empty_mesh_name = [&]() -> string {
-			  const string str = "empty_mesh_" + std::to_string(empty_mesh_name_ctr);
-			  empty_mesh_name_ctr++;
-			  return str;
+		u32	 empty_mesh_name_ctr = 0;
+		auto get_empty_mesh_name = [&]() -> string {
+			const string str = "empty_mesh_" + std::to_string(empty_mesh_name_ctr);
+			empty_mesh_name_ctr++;
+			return str;
 		};
 		for (size_t i = 0; i < all_meshes_sz; i++)
 		{
@@ -394,9 +394,9 @@ namespace SFG
 				// if skinned prim, fill joints & weights here & call generic fill_prim.
 				if (joints0 != tprim.attributes.end() && weights0 != tprim.attributes.end())
 				{
-					const u16 mat   = tprim.material < 0 ? 0 : static_cast<u16>(tprim.material);
-					auto		 it	   = vector_util::find_if(mesh.primitives_skinned, [mat](const primitive_skinned_raw& p) -> bool { return p.material_index == mat; });
-					const bool	 found = it != mesh.primitives_skinned.end();
+					const u16  mat	 = tprim.material < 0 ? 0 : static_cast<u16>(tprim.material);
+					auto	   it	 = vector_util::find_if(mesh.primitives_skinned, [mat](const primitive_skinned_raw& p) -> bool { return p.material_index == mat; });
+					const bool found = it != mesh.primitives_skinned.end();
 					if (!found)
 						mesh.primitives_skinned.push_back({});
 
@@ -425,14 +425,14 @@ namespace SFG
 
 						if (joints_a.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 						{
-							const size_t  stride					 = joints_bv.byteStride == 0 ? sizeof(u16) * 4 : joints_bv.byteStride;
-							const u16* rawData					 = reinterpret_cast<const u16*>(joints_b.data.data() + joints_a.byteOffset + joints_bv.byteOffset + j * stride);
+							const size_t stride						 = joints_bv.byteStride == 0 ? sizeof(u16) * 4 : joints_bv.byteStride;
+							const u16*	 rawData					 = reinterpret_cast<const u16*>(joints_b.data.data() + joints_a.byteOffset + joints_bv.byteOffset + j * stride);
 							prim.vertices[vertex_index].bone_indices = vector4i(rawData[0], rawData[1], rawData[2], rawData[3]);
 						}
 						else if (joints_a.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
 						{
 							const size_t   stride					 = joints_bv.byteStride == 0 ? sizeof(u8) * 4 : joints_bv.byteStride;
-							const u8*   rawData					 = reinterpret_cast<const u8*>(joints_b.data.data() + joints_a.byteOffset + joints_bv.byteOffset + j * stride);
+							const u8*	   rawData					 = reinterpret_cast<const u8*>(joints_b.data.data() + joints_a.byteOffset + joints_bv.byteOffset + j * stride);
 							const vector4i idx						 = vector4i(rawData[0], rawData[1], rawData[2], rawData[3]);
 							prim.vertices[vertex_index].bone_indices = idx;
 						}
@@ -445,9 +445,9 @@ namespace SFG
 					const size_t num_weights = weights_a.count;
 					for (size_t j = 0; j < num_weights; ++j)
 					{
-						const u32  vertex_index				 = start_vertex + j;
+						const u32	  vertex_index				 = start_vertex + j;
 						const size_t  stride					 = weights_bv.byteStride == 0 ? sizeof(f32) * 4 : weights_bv.byteStride;
-						const f32*  rawData					 = reinterpret_cast<const f32*>(weights_b.data.data() + weights_a.byteOffset + weights_bv.byteOffset + j * stride);
+						const f32*	  rawData					 = reinterpret_cast<const f32*>(weights_b.data.data() + weights_a.byteOffset + weights_bv.byteOffset + j * stride);
 						const vector4 weights					 = vector4(rawData[0], rawData[1], rawData[2], rawData[3]);
 						prim.vertices[vertex_index].bone_weights = weights;
 					}
@@ -459,9 +459,9 @@ namespace SFG
 					prim.material_index = static_cast<u16>(prim_mat_idx);
 					continue;
 				}
-				const u16 mat   = tprim.material < 0 ? 0 : static_cast<u16>(tprim.material);
-				auto		 it	   = vector_util::find_if(mesh.primitives_static, [mat](const primitive_static_raw& p) -> bool { return p.material_index == mat; });
-				const bool	 found = it != mesh.primitives_static.end();
+				const u16  mat	 = tprim.material < 0 ? 0 : static_cast<u16>(tprim.material);
+				auto	   it	 = vector_util::find_if(mesh.primitives_static, [mat](const primitive_static_raw& p) -> bool { return p.material_index == mat; });
+				const bool found = it != mesh.primitives_static.end();
 				if (!found)
 					mesh.primitives_static.push_back({});
 				primitive_static_raw& prim		   = found ? *it : mesh.primitives_static.back();
@@ -538,7 +538,7 @@ namespace SFG
 			for (size_t j = 0; j < joints_sz; j++)
 			{
 				const size_t stride		 = inverse_bind_bv.byteStride == 0 ? sizeof(f32) * 16 : inverse_bind_bv.byteStride;
-				const f32* raw		 = reinterpret_cast<const f32*>(inverse_bind_b.data.data() + inverse_bind_a.byteOffset + inverse_bind_bv.byteOffset + j * stride);
+				const f32*	 raw		 = reinterpret_cast<const f32*>(inverse_bind_b.data.data() + inverse_bind_a.byteOffset + inverse_bind_bv.byteOffset + j * stride);
 				const i32	 joint_index = tskin.joints[j];
 
 				const model_node_raw& node = loaded_nodes[joint_index];
@@ -564,8 +564,8 @@ namespace SFG
 			}
 		}
 
-		vector<i32>		 loaded_indices;
-		vector<i32>		 loaded_sampler_indices;
+		vector<i32>			 loaded_indices;
+		vector<i32>			 loaded_sampler_indices;
 		vector<sampler_desc> samplers;
 
 		if (import_textures)
@@ -777,7 +777,7 @@ namespace SFG
 					const string	name		 = (img.name.empty() ? ttexture.name : img.name) + "-constructed_rm";
 					const string	hash_path	 = string(relative_path) + "/" + name;
 					const string_id hash		 = TO_SID(hash_path);
-					u8*			texture_data = reinterpret_cast<u8*>(SFG_MALLOC(pixels));
+					u8*				texture_data = reinterpret_cast<u8*>(SFG_MALLOC(pixels));
 
 					for (u32 j = 0; j < height; j++)
 					{
@@ -786,7 +786,7 @@ namespace SFG
 							const u32 pixel = width * j + k;
 
 							const u8* src = &img.image[pixel * 4];
-							u8*		 dst = texture_data + pixel * 4;
+							u8*		  dst = texture_data + pixel * 4;
 
 							dst[0] = src[0];
 							dst[1] = 255;
@@ -812,9 +812,9 @@ namespace SFG
 				const int emissive_index = tmat.emissiveTexture.index;
 
 				// get tiling and offset.
-				u32 base_tiling	   = packing::pack_half2x16(1.0f, 1.0f);
-				u32 orm_tiling	   = base_tiling;
-				u32 normal_tiling   = base_tiling;
+				u32 base_tiling		= packing::pack_half2x16(1.0f, 1.0f);
+				u32 orm_tiling		= base_tiling;
+				u32 normal_tiling	= base_tiling;
 				u32 emissive_tiling = base_tiling;
 				u32 base_offset = 0, normal_offset = 0, orm_offset = 0, emissive_offset = 0;
 				get_tiling_offet_for_texture(tmat.pbrMetallicRoughness.baseColorTexture.extensions, base_tiling, base_offset);
@@ -945,7 +945,7 @@ namespace SFG
 
 				for (size_t k = 0; k < input_count; k++)
 				{
-					const f32* raw  = reinterpret_cast<const f32*>(base + k * stride);
+					const f32* raw	  = reinterpret_cast<const f32*>(base + k * stride);
 					keyframe_times[k] = *raw;
 					anim.duration	  = math::max(anim.duration, keyframe_times[k]);
 				}
@@ -1107,8 +1107,8 @@ namespace SFG
 			}
 
 			const u8 import_pbr_materials = json_data.value<u8>("import_pbr_materials", 0);
-			const u8 generate_colliders	 = json_data.value<u8>("generate_colliders", 0);
-			const u8 import_textures		 = import_pbr_materials;
+			const u8 generate_colliders	  = json_data.value<u8>("generate_colliders", 0);
+			const u8 import_textures	  = import_pbr_materials;
 
 			const bool success = import_gtlf(full_source.c_str(), name.c_str(), import_pbr_materials, import_textures);
 			if (!success)
@@ -1148,9 +1148,9 @@ namespace SFG
 
 		string file_path				  = "";
 		string source_path				  = "";
-		u64 saved_file_last_modified	  = 0;
-		u64 saved_source_last_modified = 0;
-		u32 loaded_textures_size		  = 0;
+		u64	   saved_file_last_modified	  = 0;
+		u64	   saved_source_last_modified = 0;
+		u32	   loaded_textures_size		  = 0;
 		stream >> file_path;
 		stream >> source_path;
 		stream >> saved_file_last_modified;
@@ -1158,7 +1158,7 @@ namespace SFG
 		stream.destroy();
 
 		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64 src_last_modified	 = file_system::get_last_modified_ticks(source_path);
 
 		if (file_last_modified != saved_file_last_modified || src_last_modified != saved_source_last_modified)
 			return false;
@@ -1176,8 +1176,8 @@ namespace SFG
 		const string relative			= file_system::get_filename_from_path(name);
 		const string file_path			= resource_directory_path + name;
 		const string source_path		= resource_directory_path + source;
-		const u64 file_last_modified = file_system::get_last_modified_ticks(file_path);
-		const u64 src_last_modified	= file_system::get_last_modified_ticks(source_path);
+		const u64	 file_last_modified = file_system::get_last_modified_ticks(file_path);
+		const u64	 src_last_modified	= file_system::get_last_modified_ticks(source_path);
 
 		const string meta_cache_path = cache_folder_path + relative + "-" + sid_str + "_meta" + extension;
 		const string data_cache_path = cache_folder_path + relative + "-" + sid_str + "_data" + extension;

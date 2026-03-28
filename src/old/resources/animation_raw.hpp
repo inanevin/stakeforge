@@ -41,7 +41,7 @@ namespace SFG
 		animation_interpolation				 interpolation = animation_interpolation::linear;
 		vector<animation_keyframe_v3>		 keyframes;
 		vector<animation_keyframe_v3_spline> keyframes_spline;
-		i16								 node_index = -1;
+		i16									 node_index = -1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -52,7 +52,7 @@ namespace SFG
 		animation_interpolation				interpolation = animation_interpolation::linear;
 		vector<animation_keyframe_q>		keyframes;
 		vector<animation_keyframe_q_spline> keyframes_spline;
-		i16								node_index = -1;
+		i16									node_index = -1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -65,7 +65,7 @@ namespace SFG
 		vector<animation_channel_q_raw>	 rotation_channels;
 		vector<animation_channel_v3_raw> scale_channels;
 		string_id						 sid	  = 0;
-		f32							 duration = 0.0f;
+		f32								 duration = 0.0f;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

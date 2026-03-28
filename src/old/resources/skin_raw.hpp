@@ -42,7 +42,7 @@ namespace SFG
 		string			   name = "";
 		string_id		   sid	= 0;
 		vector<skin_joint> joints;
-		i16			   root_joint = -1;
+		i16				   root_joint = -1;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);

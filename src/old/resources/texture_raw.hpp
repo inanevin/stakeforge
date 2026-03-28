@@ -44,7 +44,7 @@ namespace SFG
 	{
 		string											name		   = "";
 		string											source		   = "";
-		u8											texture_format = 0;
+		u8												texture_format = 0;
 		static_vector<texture_buffer, MAX_TEXTURE_MIPS> buffers;
 		string_id										sid				   = 0;
 		bool											buffers_persistent = 0;

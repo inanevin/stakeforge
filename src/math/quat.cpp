@@ -140,8 +140,8 @@ namespace SFG
 
 	quat quat::angle_axis(f32 angle_degrees, const vec3f& axis)
 	{
-		f32		angle_rad_half	= math::degrees_to_radians(angle_degrees * 0.5f);
-		f32		s				= math::sin(angle_rad_half);
+		f32	  angle_rad_half  = math::degrees_to_radians(angle_degrees * 0.5f);
+		f32	  s				  = math::sin(angle_rad_half);
 		vec3f normalized_axis = axis.normalized();
 		return quat(normalized_axis.x * s, normalized_axis.y * s, normalized_axis.z * s, math::cos(angle_rad_half));
 	}
@@ -192,8 +192,8 @@ namespace SFG
 
 	quat quat::look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector)
 	{
-		vec3f forward_vec	 = (target_point - source_point).normalized();
-		vec3f right_vec	 = vec3f::cross(up_vector, forward_vec).normalized();
+		vec3f forward_vec  = (target_point - source_point).normalized();
+		vec3f right_vec	   = vec3f::cross(up_vector, forward_vec).normalized();
 		vec3f final_up_vec = vec3f::cross(forward_vec, right_vec);
 
 		f32 m00 = right_vec.x;

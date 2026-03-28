@@ -24,24 +24,34 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector2i.hpp"
-#include "vector2ui.hpp"
-#include "math.hpp"
+#pragma once
+#include "common/size_definitions.hpp"
 
 namespace SFG
 {
-	vec2i vec2i::zero = vec2i(0, 0);
-	vec2i vec2i::one	= vec2i(1, 1);
-
-	vec2i::vec2i(const vec2u& v)
+	class vec2i16
 	{
-		x = static_cast<i32>(v.x);
-		y = static_cast<i32>(v.y);
-	}
+	public:
+		vec2i16(){};
+		vec2i16(i16 _x, i16 _y) : x(_x), y(_y){};
 
-	vec2i vec2i::clamp(const vec2i& v, const vec2i& min, const vec2i& max)
-	{
-		return vec2i(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
-	}
+		static vec2i16 zero;
+		static vec2i16 one;
+
+		static vec2i16 clamp(const vec2i16& v, const vec2i16& min, const vec2i16& max);
+
+		vec2i16 operator-(const vec2i16& other) const
+		{
+			return vec2i16(x - other.x, y - other.y);
+		}
+
+		vec2i16 operator+(const vec2i16& other) const
+		{
+			return vec2i16(x + other.x, y + other.y);
+		}
+
+		i16 x = 0;
+		i16 y = 0;
+	};
 
 }

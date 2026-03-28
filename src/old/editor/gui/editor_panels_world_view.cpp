@@ -60,7 +60,7 @@ namespace SFG
 			matrix4x4 proj		  = matrix4x4::identity;
 			matrix4x4 view_proj	  = matrix4x4::identity;
 			vector3	  cam_pos	  = vector3::zero;
-			f32	  fov_degrees = 60.0f;
+			f32		  fov_degrees = 60.0f;
 		};
 
 		vector3 axis_from_gizmo(editor_panels_world_view::gizmo_axis axis)
@@ -197,16 +197,16 @@ namespace SFG
 	void editor_panels_world_view::draw(const vector2ui16& window_size)
 	{
 		static f32 stat_fetch_time = 0.0f;
-		static f32 mem_fetch_time	 = 0.0f;
+		static f32 mem_fetch_time  = 0.0f;
 
-		static f32  stat_main_thread	 = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
-		static f32  stat_render_thread = static_cast<f32>(g_frame_info.render_thread_time_milli.load());
-		static u32 stat_fps			 = g_frame_info.fps.load();
-		static u32 stat_dc			 = static_cast<u32>(g_frame_info.draw_calls_ui.load(std::memory_order_acquire));
-		static u32 stat_ram			 = 0;
-		static u32 stat_vram			 = 0;
-		static u32 stat_vram_txt		 = 0;
-		static u32 stat_vram_res		 = 0;
+		static f32 stat_main_thread	  = static_cast<f32>(g_frame_info.main_thread_time_milli.load());
+		static f32 stat_render_thread = static_cast<f32>(g_frame_info.render_thread_time_milli.load());
+		static u32 stat_fps			  = g_frame_info.fps.load();
+		static u32 stat_dc			  = static_cast<u32>(g_frame_info.draw_calls_ui.load(std::memory_order_acquire));
+		static u32 stat_ram			  = 0;
+		static u32 stat_vram		  = 0;
+		static u32 stat_vram_txt	  = 0;
+		static u32 stat_vram_res	  = 0;
 
 		if (_stats_area != NULL_WIDGET_ID)
 		{
@@ -337,12 +337,12 @@ namespace SFG
 		if (!project_point(view_proj, panel_pos, panel_size, center, center_screen))
 			return;
 
-		const f32 dist	  = vector3::distance(center, cam_pos);
+		const f32 dist		= vector3::distance(center, cam_pos);
 		const f32 gizmo_len = math::max(0.5f, dist * 0.1f);
 
 		vector3 axis_world		= vector3::zero;
 		vector2 axis_dir_screen = vector2::zero;
-		f32	axis_pixels		= 0.0f;
+		f32		axis_pixels		= 0.0f;
 		if (!_gizmo_center_handle && _gizmo_active_axis != gizmo_axis::none)
 		{
 			axis_world				= axis_from_gizmo(_gizmo_active_axis, _gizmo_start_rot, _gizmo_space);
@@ -350,7 +350,7 @@ namespace SFG
 			if (!project_point(view_proj, panel_pos, panel_size, center + axis_world * gizmo_len, axis_end_screen))
 				return;
 
-			axis_dir_screen		 = axis_end_screen - center_screen;
+			axis_dir_screen	   = axis_end_screen - center_screen;
 			const f32 axis_len = axis_dir_screen.magnitude();
 			if (axis_len < MATH_EPS)
 				return;
@@ -392,10 +392,10 @@ namespace SFG
 			{
 				_gizmo_drag_amount += (-delta.y) * 0.01f;
 				const f32 uniform_factor = math::max(0.01f, 1.0f + _gizmo_drag_amount);
-				vector3		new_scale	   = _gizmo_start_scale * uniform_factor;
-				new_scale.x				   = math::max(0.01f, new_scale.x);
-				new_scale.y				   = math::max(0.01f, new_scale.y);
-				new_scale.z				   = math::max(0.01f, new_scale.z);
+				vector3	  new_scale		 = _gizmo_start_scale * uniform_factor;
+				new_scale.x				 = math::max(0.01f, new_scale.x);
+				new_scale.y				 = math::max(0.01f, new_scale.y);
+				new_scale.z				 = math::max(0.01f, new_scale.z);
 				em.set_entity_scale_abs(selected, new_scale);
 				_gizmo_last_mouse = mp;
 				return;
@@ -821,7 +821,7 @@ namespace SFG
 		const f32	  dist			  = vector3::distance(center, cam_pos);
 		const f32	  gizmo_len		  = math::max(0.5f, dist * 0.1f);
 		const f32	  thickness		  = 2.0f;
-		f32		  screen_radius	  = 12.0f;
+		f32			  screen_radius	  = 12.0f;
 		vector2		  axis_ref_screen = vector2::zero;
 		const vector3 axis_ref		  = axis_from_gizmo(gizmo_axis::x, entity_rot, self->_gizmo_space);
 		if (project_point(view_proj, panel_pos, panel_size, center + axis_ref * gizmo_len, axis_ref_screen))
@@ -889,13 +889,13 @@ namespace SFG
 
 				const unsigned int segments	 = 48;
 				const f32		   radius	 = gizmo_len * 0.75f;
-				f32			   best_dist = hover_threshold;
+				f32				   best_dist = hover_threshold;
 
 				for (const hover_circle& circle : circles)
 				{
 					vector2 prev	 = vector2::zero;
 					bool	has_prev = false;
-					f32	min_dist = hover_threshold;
+					f32		min_dist = hover_threshold;
 
 					for (unsigned int i = 0; i <= segments; ++i)
 					{
@@ -1184,14 +1184,14 @@ namespace SFG
 		editor_gui_controller& ctr = editor::get().get_gui_controller();
 		ctr.begin_popup("do you want to save the current level");
 		_popup_save_yes = ctr.popup_add_button("yes");
-		_popup_save_no  = ctr.popup_add_button("no");
+		_popup_save_no	= ctr.popup_add_button("no");
 
-		vekt::mouse_callback& yes_cb = _builder->widget_get_mouse_callbacks(_popup_save_yes);
-		yes_cb.on_mouse				  = on_widget_mouse;
+		vekt::mouse_callback& yes_cb						= _builder->widget_get_mouse_callbacks(_popup_save_yes);
+		yes_cb.on_mouse										= on_widget_mouse;
 		_builder->widget_get_user_data(_popup_save_yes).ptr = this;
 
-		vekt::mouse_callback& no_cb = _builder->widget_get_mouse_callbacks(_popup_save_no);
-		no_cb.on_mouse			  = on_widget_mouse;
+		vekt::mouse_callback& no_cb						   = _builder->widget_get_mouse_callbacks(_popup_save_no);
+		no_cb.on_mouse									   = on_widget_mouse;
 		_builder->widget_get_user_data(_popup_save_no).ptr = this;
 
 		ctr.end_popup();
@@ -1260,11 +1260,11 @@ namespace SFG
 		if (!project_point(view_proj, panel_pos, panel_size, center, center_screen))
 			return false;
 
-		const f32 dist		  = vector3::distance(center, cam_pos);
-		const f32 gizmo_len	  = math::max(0.5f, dist * 0.1f);
+		const f32 dist			= vector3::distance(center, cam_pos);
+		const f32 gizmo_len		= math::max(0.5f, dist * 0.1f);
 		const f32 hit_threshold = 8.0f;
 
-		f32		  screen_radius	  = 12.0f;
+		f32			  screen_radius	  = 12.0f;
 		vector2		  axis_ref_screen = vector2::zero;
 		const vector3 axis_ref		  = axis_from_gizmo(gizmo_axis::x, entity_rot, _gizmo_space);
 		if (project_point(view_proj, panel_pos, panel_size, center + axis_ref * gizmo_len, axis_ref_screen))
@@ -1277,7 +1277,7 @@ namespace SFG
 		const bool	  hit_center = mp.x >= rect_min.x && mp.x <= rect_max.x && mp.y >= rect_min.y && mp.y <= rect_max.y;
 
 		gizmo_axis picked	 = gizmo_axis::none;
-		f32	   best_dist = hit_threshold;
+		f32		   best_dist = hit_threshold;
 
 		if (_gizmo_mode == gizmo_mode::position || _gizmo_mode == gizmo_mode::scale)
 		{
@@ -1333,7 +1333,7 @@ namespace SFG
 			{
 				vector2 prev	 = vector2::zero;
 				bool	has_prev = false;
-				f32	min_dist = hit_threshold;
+				f32		min_dist = hit_threshold;
 
 				for (unsigned int i = 0; i <= segments; ++i)
 				{
@@ -1378,10 +1378,10 @@ namespace SFG
 			if (local.x < 0.0f || local.y < 0.0f || local.x >= panel_size.x || local.y >= panel_size.y)
 				return false;
 
-			const u16 x			 = static_cast<u16>(math::clamp(local.x, 0.0f, panel_size.x - 1.0f));
-			const u16 y			 = static_cast<u16>(math::clamp(local.y, 0.0f, panel_size.y - 1.0f));
-			const u8	 frame_index = rend.get_frame_index();
-			const u32 object_id	 = world_renderer->get_render_pass_object_id().read_location(x, y, frame_index);
+			const u16 x			  = static_cast<u16>(math::clamp(local.x, 0.0f, panel_size.x - 1.0f));
+			const u16 y			  = static_cast<u16>(math::clamp(local.y, 0.0f, panel_size.y - 1.0f));
+			const u8  frame_index = rend.get_frame_index();
+			const u32 object_id	  = world_renderer->get_render_pass_object_id().read_location(x, y, frame_index);
 			if (object_id == NULL_WORLD_ID)
 			{
 				editor::get().get_gui_controller().set_selected_entity({});

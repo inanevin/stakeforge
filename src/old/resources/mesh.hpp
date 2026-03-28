@@ -132,15 +132,15 @@ namespace SFG
 		chunk_handle32 _name;
 #endif
 		chunk_handle32 _material_indices	  = {};
-		u16		   _material_count		  = 0;
-		u16		   _node_index			  = 0;
-		i16		   _skin_index			  = 0;
+		u16			   _material_count		  = 0;
+		u16			   _node_index			  = 0;
+		i16			   _skin_index			  = 0;
 		chunk_handle32 _collider_vertices	  = {};
 		chunk_handle32 _collider_indices	  = {};
 		chunk_handle32 _mesh_shape			  = {};
-		u32		   _collider_vertex_count = 0;
-		u32		   _collider_index_count  = 0;
-		bitmask<u8> _flags				  = 0;
+		u32			   _collider_vertex_count = 0;
+		u32			   _collider_index_count  = 0;
+		bitmask<u8>	   _flags				  = 0;
 	};
 
 	REFLECT_TYPE(mesh);

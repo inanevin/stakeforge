@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "vector3.hpp"
+#include "vec3f.hpp"
 
 #ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
@@ -55,25 +55,25 @@ namespace SFG
 		vec3f get_right() const;
 		vec3f get_up() const;
 		vec3f get_forward() const;
-		quat	conjugate() const;
-		quat	inverse() const;
-		quat	normalized() const;
-		f32		dot(const quat& other) const;
-		f32		magnitude() const;
-		f32		sqr_magnitude() const;
-		void	normalize();
-		bool	equals(const quat& other, f32 epsilon = MATH_EPS) const;
+		quat  conjugate() const;
+		quat  inverse() const;
+		quat  normalized() const;
+		f32	  dot(const quat& other) const;
+		f32	  magnitude() const;
+		f32	  sqr_magnitude() const;
+		void  normalize();
+		bool  equals(const quat& other, f32 epsilon = MATH_EPS) const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		static quat	   from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
+		static quat	 from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
 		static vec3f to_euler(const quat& q);
-		static quat	   angle_axis(f32 angle_degrees, const vec3f& axis);
-		static quat	   lerp(const quat& a, const quat& b, f32 t);
-		static quat	   slerp(const quat& a, const quat& b, f32 t);
-		static quat	   look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector);
-		static quat	   from_rotation_matrix3x3(const f32 R_m[9]);
+		static quat	 angle_axis(f32 angle_degrees, const vec3f& axis);
+		static quat	 lerp(const quat& a, const quat& b, f32 t);
+		static quat	 slerp(const quat& a, const quat& b, f32 t);
+		static quat	 look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector);
+		static quat	 from_rotation_matrix3x3(const f32 R_m[9]);
 
 		inline bool is_identity(f32 epsilon = MATH_EPS) const
 		{

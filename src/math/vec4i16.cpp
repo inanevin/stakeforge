@@ -24,14 +24,14 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector4i16.hpp"
+#include "vec4i16.hpp"
 #include "data/ostream.hpp"
 #include "data/istream.hpp"
 
 namespace SFG
 {
 	vec4i16 vec4i16::zero = vec4i16(0, 0, 0, 0);
-	vec4i16 vec4i16::one	= vec4i16(1, 1, 1, 1);
+	vec4i16 vec4i16::one  = vec4i16(1, 1, 1, 1);
 
 	void vec4i16::serialize(ostream& stream) const
 	{

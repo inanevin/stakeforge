@@ -26,20 +26,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 #include "common/size_definitions.hpp"
-#include "math/vector2i16.hpp"
-#include "math/vector2ui16.hpp"
+#include "math/vec2i16.hpp"
+#include "math/vec2u16.hpp"
 #include "data/bitmask.hpp"
 
 namespace SFG
 {
 	struct monitor_info
 	{
-		vec2i16	position   = vec2i16::zero;
+		vec2i16 position   = vec2i16::zero;
 		vec2u16 size	   = vec2u16::zero;
 		vec2u16 work_size  = vec2u16::zero;
-		u32			dpi		   = 0;
-		f32			dpi_scale  = 0.0f;
-		bool		is_primary = false;
+		u32		dpi		   = 0;
+		f32		dpi_scale  = 0.0f;
+		bool	is_primary = false;
 	};
 
 	enum window_flags
@@ -97,7 +97,7 @@ namespace SFG
 
 	struct window_event
 	{
-		vec2i16			  value = vec2i16::zero;
+		vec2i16				  value = vec2i16::zero;
 		u16					  button;
 		window_event_type	  type	   = window_event_type::key;
 		window_event_sub_type sub_type = window_event_sub_type::press;

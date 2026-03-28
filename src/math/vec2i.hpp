@@ -24,10 +24,37 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "vector4ui.hpp"
+#pragma once
+#include "common/size_definitions.hpp"
 
 namespace SFG
 {
-	vec4u vec4u::zero = vec4u(0, 0, 0, 0);
-	vec4u vec4u::one  = vec4u(1, 1, 1, 1);
+	class vec2u;
+
+	class vec2i
+	{
+	public:
+		vec2i(){};
+		vec2i(i32 _x, i32 _y) : x(_x), y(_y){};
+		vec2i(const vec2u& v);
+
+		static vec2i zero;
+		static vec2i one;
+
+		static vec2i clamp(const vec2i& v, const vec2i& min, const vec2i& max);
+
+		vec2i operator-(const vec2i& other) const
+		{
+			return vec2i(x - other.x, y - other.y);
+		}
+
+		vec2i operator+(const vec2i& other) const
+		{
+			return vec2i(x + other.x, y + other.y);
+		}
+
+		i32 x = 0;
+		i32 y = 0;
+	};
+
 }

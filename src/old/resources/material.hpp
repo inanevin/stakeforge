@@ -58,7 +58,7 @@ namespace SFG
 			resource_handle		   shader;
 			resource_handle		   sampler;
 			const resource_handle* textures;
-			u8				   textures_count;
+			u8					   textures_count;
 			const void*			   data;
 			size_t				   data_size;
 		};
