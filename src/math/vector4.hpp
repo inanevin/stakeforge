@@ -30,17 +30,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #undef min
 #undef max
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
 #endif
 
 namespace SFG
 {
-
 	class istream;
 	class ostream;
 
-	class vector4
+	class vec4f
 	{
 	public:
 		f32 x = 0.0f;
@@ -48,26 +47,26 @@ namespace SFG
 		f32 z = 0.0f;
 		f32 w = 0.0f;
 
-		vector4() = default;
-		vector4(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
+		vec4f() = default;
+		vec4f(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
 		{
 		}
 
-		static const vector4 zero;
-		static const vector4 one;
+		static const vec4f zero;
+		static const vec4f one;
 
-		static vector4 clamp(const vector4& vector, const vector4& min, const vector4& max);
-		static vector4 abs(const vector4& vector);
-		static vector4 min(const vector4& a, const vector4& b);
-		static vector4 max(const vector4& a, const vector4& b);
-		static f32	   dot(const vector4& a, const vector4& b);
-		static f32	   distance(const vector4& a, const vector4& b);
-		vector4		   project(const vector4& on_normal) const;
-		vector4		   rotate(const vector4& axis, f32 angle_degrees) const;
-		bool		   equals(const vector4& other, f32 epsilon = MATH_EPS) const;
-		bool		   is_zero(f32 epsilon = MATH_EPS) const;
-		f32			   magnitude() const;
-		f32			   magnitude_sqr() const;
+		static vec4f clamp(const vec4f& vector, const vec4f& min, const vec4f& max);
+		static vec4f abs(const vec4f& vector);
+		static vec4f min(const vec4f& a, const vec4f& b);
+		static vec4f max(const vec4f& a, const vec4f& b);
+		static f32	 dot(const vec4f& a, const vec4f& b);
+		static f32	 distance(const vec4f& a, const vec4f& b);
+		vec4f		 project(const vec4f& on_normal) const;
+		vec4f		 rotate(const vec4f& axis, f32 angle_degrees) const;
+		bool		 equals(const vec4f& other, f32 epsilon = MATH_EPS) const;
+		bool		 is_zero(f32 epsilon = MATH_EPS) const;
+		f32			 magnitude() const;
+		f32			 magnitude_sqr() const;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
@@ -77,14 +76,14 @@ namespace SFG
 			return _x >= x && _x <= x + z && _y >= y && _y <= y + w;
 		}
 
-		inline vector4 normalized() const
+		inline vec4f normalized() const
 		{
 			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
-				return vector4(x / mag, y / mag, z / mag, w / mag);
+				return vec4f(x / mag, y / mag, z / mag, w / mag);
 			}
-			return vector4::zero;
+			return vec4f::zero;
 		}
 
 		inline void normalize()
@@ -103,26 +102,26 @@ namespace SFG
 			}
 		}
 
-		inline vector4 operator+(const vector4& other) const
+		inline vec4f operator+(const vec4f& other) const
 		{
-			return vector4(x + other.x, y + other.y, z + other.z, w + other.w);
+			return vec4f(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
-		inline vector4 operator-(const vector4& other) const
+		inline vec4f operator-(const vec4f& other) const
 		{
-			return vector4(x - other.x, y - other.y, z - other.z, w - other.w);
+			return vec4f(x - other.x, y - other.y, z - other.z, w - other.w);
 		}
-		inline vector4 operator*(f32 scalar) const
+		inline vec4f operator*(f32 scalar) const
 		{
-			return vector4(x * scalar, y * scalar, z * scalar, w * scalar);
+			return vec4f(x * scalar, y * scalar, z * scalar, w * scalar);
 		}
-		vector4 operator/(f32 scalar) const;
+		vec4f operator/(f32 scalar) const;
 
-		inline vector4 operator-() const
+		inline vec4f operator-() const
 		{
-			return vector4(-x, -y, -z, -w);
+			return vec4f(-x, -y, -z, -w);
 		}
 
-		inline vector4& operator+=(const vector4& other)
+		inline vec4f& operator+=(const vec4f& other)
 		{
 			x += other.x;
 			y += other.y;
@@ -130,7 +129,7 @@ namespace SFG
 			w += other.w;
 			return *this;
 		}
-		inline vector4& operator-=(const vector4& other)
+		inline vec4f& operator-=(const vec4f& other)
 		{
 			x -= other.x;
 			y -= other.y;
@@ -138,7 +137,7 @@ namespace SFG
 			w -= other.w;
 			return *this;
 		}
-		inline vector4& operator*=(f32 scalar)
+		inline vec4f& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
@@ -146,27 +145,27 @@ namespace SFG
 			w *= scalar;
 			return *this;
 		}
-		vector4& operator/=(f32 scalar);
+		vec4f& operator/=(f32 scalar);
 
-		inline bool operator==(const vector4& other) const
+		inline bool operator==(const vec4f& other) const
 		{
 			return equals(other);
 		}
-		inline bool operator!=(const vector4& other) const
+		inline bool operator!=(const vec4f& other) const
 		{
 			return !equals(other);
 		}
 	};
 
-	inline vector4 operator*(f32 scalar, const vector4& vector)
+	inline vec4f operator*(f32 scalar, const vec4f& vector)
 	{
 		return vector * scalar;
 	}
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vector4& v);
-	void from_json(const nlohmann::json& j, vector4& v);
+	void to_json(nlohmann::json& j, const vec4f& v);
+	void from_json(const nlohmann::json& j, vec4f& v);
 
 #endif
 

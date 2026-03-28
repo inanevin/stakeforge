@@ -48,10 +48,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory/memory.hpp"
 #include "memory/memory_tracer.hpp"
 #include "math/math_common.hpp"
-#include "game/game_max_defines.hpp"
-
-// game
-#include "game/app_defines.hpp"
 
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyD3D12.hpp>
@@ -3062,7 +3058,7 @@ namespace SFG
 		command_buffer&				buffer	 = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer.ptr.Get();
 
-		static_vector<D3D12_SUBRESOURCE_DATA, MAX_TEXTURE_MIPS> subresource_data;
+		static_vector<D3D12_SUBRESOURCE_DATA, 16> subresource_data;
 
 		for (u8 i = 0; i < cmd.mip_levels; i++)
 		{

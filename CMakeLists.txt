@@ -32,9 +32,13 @@
 
 cmake_minimum_required (VERSION 4.0)
 
-project (Stakeforge)
+project (stakeforge)
 
-set(CMAKE_CONFIGURATION_TYPES "DebugToolmode;ReleaseToolmode;Debug;Release;" CACHE STRING "" FORCE)
+set(SFG_CORE_TARGET stakeforge_core)
+set(SFG_GAME_TARGET stakeforge_game)
+set(SFG_EDITOR_TARGET stakeforge_editor)
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;" CACHE STRING "" FORCE)
 
 if(WIN32)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -55,16 +59,6 @@ endif()
 
 # ------------- COMPILE DEFINITIONS -------------
 
-add_compile_definitions($<$<CONFIG:DebugToolmode>:_ITERATOR_DEBUG_LEVEL=1>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_DEBUG>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_ENABLE_MEMORY_TRACER>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_GFX_SERIALIZE_SHADERS_PDB>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_GFX_USE_DEBUG_LAYERS>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_USE_DEBUG_CONTROLLER>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_DUMP_LOG_TRACE>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:SFG_TOOLMODE>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:JPH_DEBUG_RENDERER>)
-add_compile_definitions($<$<CONFIG:DebugToolmode>:USE_PIX>)
 
 add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=1>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_DEBUG>)
@@ -73,17 +67,13 @@ add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_SERIALIZE_SHADERS_PDB>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_USE_DEBUG_LAYERS>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_USE_DEBUG_CONTROLLER>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_DUMP_LOG_TRACE>)
+add_compile_definitions($<$<CONFIG:Debug>:USE_PIX>)
+add_compile_definitions($<$<CONFIG:Debug>:JPH_DEBUG_RENDERER>)
 
 add_compile_definitions($<$<CONFIG:Release>:_ITERATOR_DEBUG_LEVEL=0>)
 add_compile_definitions($<$<CONFIG:Release>:NDEBUG>)
 add_compile_definitions($<$<CONFIG:Release>:SFG_DUMP_LOG_TRACE>)
 add_compile_definitions($<$<CONFIG:Release>:TRACY_ENABLE>)
-
-add_compile_definitions($<$<CONFIG:ReleaseToolmode>:_ITERATOR_DEBUG_LEVEL=0>)
-add_compile_definitions($<$<CONFIG:ReleaseToolmode>:NDEBUG>)
-add_compile_definitions($<$<CONFIG:ReleaseToolmode>:SFG_TOOLMODE>)
-add_compile_definitions($<$<CONFIG:ReleaseToolmode>:SFG_USE_DEBUG_CONTROLLER>)
-add_compile_definitions($<$<CONFIG:ReleaseToolmode>:TRACY_ENABLE>)
 
 add_definitions(-DSFG_CONFIGURATION="$<CONFIGURATION>")
 add_definitions(-DSFG_ROOT_DIRECTORY="${CMAKE_SOURCE_DIR}/")
@@ -93,11 +83,12 @@ set(CMAKE_CXX_FLAGS_DEBUGTOOLMODE           "${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUGTOOLMODE    "${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
 set(CMAKE_SHARED_LINKER_FLAGS_DEBUGTOOLMODE "${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
 set(CMAKE_MODULE_LINKER_FLAGS_DEBUGTOOLMODE "${CMAKE_MODULE_LINKER_FLAGS_DEBUG}")
-set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,DebugToolmode>:ProgramDatabase>")
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:ProgramDatabase>")
 
 if (WIN32)
     add_compile_definitions(SFG_PLATFORM_WINDOWS=1)
 endif()
+
 if(APPLE)
     add_compile_definitions(SFG_PLATFORM_OSX=1)
 endif()
@@ -140,7 +131,6 @@ src/memory/*.cpp
 src/reflection/*.cpp
 src/serialization/*.cpp
 src/input/*.cpp
-src/game/*.cpp
 src/project/*.cpp
 src/gfx/*.cpp
 src/gfx/util/*.cpp
@@ -154,7 +144,6 @@ src/resources/*.cpp
 src/physics/*.cpp
 src/gui/*.cpp
 src/gui/widgets/*.cpp
-src/game/*.cpp
 src/world/*.cpp
 src/world/components/*.cpp
 src/world/animation/*.cpp
@@ -207,7 +196,24 @@ src/vendor/um/*.inl
 src/sfg_api.hpp
 )
 
+file(GLOB GAME_SOURCES
+
+)
+
+file(GLOB GAME_HEADERS
+
+)
+
+file(GLOB EDITOR_SOURCES
+
+)
+
+file(GLOB EDITOR_HEADERS
+
+)
+
 if(WIN32)
+
 
 file(GLOB PLATFORM_SOURCES 
 src/platform/win32/*.cpp
@@ -225,6 +231,24 @@ src/gfx/backend/dx12/sdk/*.h
 src/gfx/backend/dx12/sdk/Residency/*.hpp
 src/gfx/backend/dx12/sdk/Residency/*.h
 )
+
+file(GLOB GAME_PLATFORM_SOURCES
+src/game/platform/win32/*.cpp
+)
+
+file(GLOB GAME_PLATFORM_HEADERS
+src/game/platform/win32/*.hpp
+)
+
+
+file(GLOB EDITOR_PLATFORM_SOURCES
+src/editor/platform/win32/*.cpp
+)
+
+file(GLOB EDITOR_PLATFORM_HEADERS
+src/editor/platform/win32/*.hpp
+)
+
 set(ICON ${PROJECT_SOURCE_DIR})
 
 endif()
@@ -235,40 +259,27 @@ set(ICON ${PROJECT_SOURCE_DIR})
 
 endif()
 
-file(GLOB EDITOR_SOURCES CONFIGURE_DEPENDS 
-src/editor/*.cpp
-src/editor/gui/*.cpp
-src/editor/gfx/*.cpp
-)
-
-file(GLOB EDITOR_HEADERS CONFIGURE_DEPENDS 
-src/editor/*.hpp
-src/editor/gui/*.hpp
-src/editor/gfx/*.hpp
-
-)
-
 # ------------- TARGET -------------
 
 if (WIN32)
-    add_executable(${PROJECT_NAME} WIN32)
+    add_library(${SFG_CORE_TARGET} STATIC)
+    add_executable(${SFG_GAME_TARGET} WIN32 src/game/platform/win32/win32_main.cpp)
+    add_executable(${SFG_EDITOR_TARGET} WIN32 src/editor/platform/win32/win32_main.cpp)
 else()
-    add_executable(${PROJECT_NAME} MACOSX_BUNDLE)
+    add_library(${SFG_CORE_TARGET} STATIC)
+    add_executable(${SFG_GAME_TARGET} src/game/platform/main.cpp)
+    add_executable(${SFG_EDITOR_TARGET} src/editor/platform/main.cpp)
 endif()
 
-target_sources(${PROJECT_NAME} PRIVATE
+target_sources(${SFG_CORE_TARGET} PRIVATE
     ${SOURCES}
     ${HEADERS}
     ${PLATFORM_HEADERS}
     ${PLATFORM_SOURCES}
     ${ICON}
-    # Only in Debug configs:
-    $<$<CONFIG:DebugToolmode>:${EDITOR_SOURCES} ${EDITOR_HEADERS}>
-    $<$<CONFIG:ReleaseToolmode>:${EDITOR_SOURCES} ${EDITOR_HEADERS}>
 )
 
-
-target_compile_definitions(Stakeforge PRIVATE
+target_compile_definitions(${SFG_CORE_TARGET} PRIVATE
   SFG_MAJOR=1
   SFG_MINOR=0
   SFG_BUILD="${SFG_BUILD}"   # string macro
@@ -283,6 +294,8 @@ target_compile_definitions(Stakeforge PRIVATE
 # )
 
 include(${CMAKE_SOURCE_DIR}/utils/cmake/executable_settings.cmake)
+set_executable_settings(${SFG_GAME_TARGET})
+set_executable_settings(${SFG_EDITOR_TARGET})
 
 # ------------- EXPORT HEADER -------------
 # include(GenerateExportHeader)
@@ -291,9 +304,9 @@ include(${CMAKE_SOURCE_DIR}/utils/cmake/executable_settings.cmake)
 #     EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/sfg_export.h"
 # )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/)
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/deps/phmap/include)
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/deps/tracy-0.13.0/public)
+target_include_directories(${SFG_CORE_TARGET} PUBLIC ${PROJECT_SOURCE_DIR}/src/)
+target_include_directories(${SFG_CORE_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/deps/phmap/include)
+target_include_directories(${SFG_CORE_TARGET} PRIVATE ${PROJECT_SOURCE_DIR}/deps/tracy-0.13.0/public)
 
 
 # ------------- DEPS -------------
@@ -322,43 +335,56 @@ if(WIN32)
 
 include(deps/dxc/link.cmake)
 include(deps/pix/link.cmake)
-link_dxc()
-link_pix()
+link_dxc(stakeforge_core)
+link_pix(stakeforge_core)
 
-target_link_libraries(${PROJECT_NAME} 
-			PRIVATE d3d12.lib
-			PRIVATE dxgi.lib
-			PRIVATE dxguid.lib
+target_link_libraries(${SFG_CORE_TARGET}
             PUBLIC Jolt
-		)
+            PUBLIC d3d12.lib
+            PUBLIC dxgi.lib
+            PUBLIC dxguid.lib
+        )
 
 add_custom_command(
-TARGET ${PROJECT_NAME}
+TARGET ${SFG_GAME_TARGET}
 POST_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/deps/dx12_bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>")
 
 add_custom_command(
-TARGET ${PROJECT_NAME}
+TARGET ${SFG_EDITOR_TARGET}
+POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/deps/dx12_bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>")
+
+add_custom_command(
+TARGET ${SFG_GAME_TARGET}
+POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/deps/pix/bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>")
+
+add_custom_command(
+TARGET ${SFG_EDITOR_TARGET}
 POST_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/deps/pix/bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>")
 
 endif()
 
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(${SFG_CORE_TARGET}
 PUBLIC lz4
 )
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE
+target_link_libraries(${SFG_GAME_TARGET} PRIVATE ${SFG_CORE_TARGET})
+target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE ${SFG_CORE_TARGET})
+
+target_precompile_headers(${SFG_CORE_TARGET} PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/src/common/pch.hpp>"
 )
 
 set_target_properties(lz4 PROPERTIES FOLDER "Dependencies")
 
 include(${CMAKE_SOURCE_DIR}/utils/cmake/common_functions.cmake)
-group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES EDITOR_SOURCES EDITOR_HEADERS)
-group_generated()
+group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
+group_generated(${SFG_CORE_TARGET})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")
-set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${SFG_EDITOR_TARGET})
 

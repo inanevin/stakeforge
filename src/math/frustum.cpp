@@ -37,12 +37,12 @@ namespace SFG
 
 		auto performTest = [&](const plane& p) {
 			const f32	  pos	 = -p.distance;
-			const vector3 normal = p.normal;
+			const vec3f normal = p.normal;
 
-			if (vector3::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
+			if (vec3f::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
 				test = frustum_result ::outside;
 
-			if (vector3::dot(normal, local_box.get_negative(normal)) + pos < 0.0f)
+			if (vec3f::dot(normal, local_box.get_negative(normal)) + pos < 0.0f)
 				test = frustum_result::intersects;
 		};
 
@@ -71,10 +71,10 @@ namespace SFG
 		return test;
 	}
 
-	frustum_result frustum::test(const frustum& fr, const vector3& position, f32 sphere_radius)
+	frustum_result frustum::test(const frustum& fr, const vec3f& position, f32 sphere_radius)
 	{
 		auto performTest = [&](const plane& p) {
-			const f32 distance = vector3::dot(p.normal, position) + p.distance;
+			const f32 distance = vec3f::dot(p.normal, position) + p.distance;
 
 			if (distance < -sphere_radius)
 				return frustum_result::outside;
@@ -103,10 +103,10 @@ namespace SFG
 		return frustum_result::inside;
 	}
 
-	frustum_result frustum::test(const frustum& fr, const aabb& local_box, const matrix3x3& linear_model, const vector3& position)
+	frustum_result frustum::test(const frustum& fr, const aabb& local_box, const mat3x3& linear_model, const vec3f& position)
 	{
-		const vector3 c_local = (local_box.bounds_min + local_box.bounds_max) * 0.5f;
-		const vector3 e_local = (local_box.bounds_max - local_box.bounds_min) * 0.5f;
+		const vec3f c_local = (local_box.bounds_min + local_box.bounds_max) * 0.5f;
+		const vec3f e_local = (local_box.bounds_max - local_box.bounds_min) * 0.5f;
 
 		frustum_result agg = frustum_result::inside;
 
@@ -135,15 +135,15 @@ namespace SFG
 		return agg;
 	}
 
-	frustum_result frustum::classify_obb_vs_plane(const plane& p, const vector3& c_local, const vector3& e_local, const matrix3x3& linear_model, const vector3& position)
+	frustum_result frustum::classify_obb_vs_plane(const plane& p, const vec3f& c_local, const vec3f& e_local, const mat3x3& linear_model, const vec3f& position)
 	{
 		// world-space center
-		const vector3 c_world = linear_model * c_local + position;
+		const vec3f c_world = linear_model * c_local + position;
 
 		// r = |L^T * n| ? e_local
-		const vector3 v = linear_model.transposed() * p.normal;
-		const f32	  r = vector3::dot(vector3::abs(v), e_local);
-		const f32	  s = vector3::dot(p.normal, c_world) + p.distance;
+		const vec3f v = linear_model.transposed() * p.normal;
+		const f32	  r = vec3f::dot(vec3f::abs(v), e_local);
+		const f32	  s = vec3f::dot(p.normal, c_world) + p.distance;
 
 		if (s < -r)
 			return frustum_result::outside;
@@ -152,7 +152,7 @@ namespace SFG
 		return frustum_result::intersects;
 	}
 
-	frustum frustum::extract(const matrix4x4& m)
+	frustum frustum::extract(const mat4x4& m)
 	{
 		frustum fr = {};
 		fr.left	   = plane(m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]);

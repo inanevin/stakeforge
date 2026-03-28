@@ -29,25 +29,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class vector2i16
+	class vec2i16
 	{
 	public:
-		vector2i16(){};
-		vector2i16(i16 _x, i16 _y) : x(_x), y(_y){};
+		vec2i16() {};
+		vec2i16(i16 _x, i16 _y) : x(_x), y(_y) {};
 
-		static vector2i16 zero;
-		static vector2i16 one;
+		static vec2i16 zero;
+		static vec2i16 one;
 
-		static vector2i16 clamp(const vector2i16& v, const vector2i16& min, const vector2i16& max);
+		static vec2i16 clamp(const vec2i16& v, const vec2i16& min, const vec2i16& max);
 
-		vector2i16 operator-(const vector2i16& other) const
+		vec2i16 operator-(const vec2i16& other) const
 		{
-			return vector2i16(x - other.x, y - other.y);
+			return vec2i16(x - other.x, y - other.y);
 		}
 
-		vector2i16 operator+(const vector2i16& other) const
+		vec2i16 operator+(const vec2i16& other) const
 		{
-			return vector2i16(x + other.x, y + other.y);
+			return vec2i16(x + other.x, y + other.y);
 		}
 
 		i16 x = 0;

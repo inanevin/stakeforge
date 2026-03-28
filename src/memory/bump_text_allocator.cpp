@@ -68,11 +68,6 @@ namespace SFG
 	{
 		_head	   = 0;
 		_cur_start = _cur = _cur_end = nullptr;
-
-#ifdef SFG_TOOLMODE
-		if (_raw && _cap)
-			SFG_MEMSET(_raw, 0, _cap);
-#endif
 	}
 
 	const char* bump_text_allocator::allocate_reserve(size_t reserve_bytes_including_null)

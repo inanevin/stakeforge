@@ -37,7 +37,7 @@ namespace SFG
 	struct aabb
 	{
 		aabb() = default;
-		aabb(vector3 min, vector3 max)
+		aabb(vec3f min, vec3f max)
 		{
 			bounds_min		   = min;
 			bounds_max		   = max;
@@ -45,13 +45,13 @@ namespace SFG
 		}
 		~aabb() = default;
 
-		vector3 bounds_half_extent = vector3::zero;
-		vector3 bounds_min		   = vector3::zero;
-		vector3 bounds_max		   = vector3::zero;
+		vec3f bounds_half_extent = vec3f::zero;
+		vec3f bounds_min		   = vec3f::zero;
+		vec3f bounds_max		   = vec3f::zero;
 
-		bool	is_inside_plane(const vector3& center, const plane& plane);
-		vector3 get_positive(const vector3& normal) const;
-		vector3 get_negative(const vector3& normal) const;
+		bool	is_inside_plane(const vec3f& center, const plane& plane);
+		vec3f get_positive(const vec3f& normal) const;
+		vec3f get_negative(const vec3f& normal) const;
 
 		void remove(const aabb& other);
 		void add(const aabb& other);

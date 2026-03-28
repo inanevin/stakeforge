@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/istream.hpp"
 #include "data/ostream.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include <vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
 #endif
@@ -104,12 +104,12 @@ namespace SFG
 		stream >> x >> y >> z >> w;
 	}
 
-	vector4 color::to_vector() const
+	vec4f color::to_vector() const
 	{
-		return vector4(x, y, z, w);
+		return vec4f(x, y, z, w);
 	}
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
 	void to_json(nlohmann::json& j, const color& c)
 	{

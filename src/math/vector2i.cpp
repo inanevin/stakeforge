@@ -30,18 +30,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	vector2i vector2i::zero = vector2i(0, 0);
-	vector2i vector2i::one	= vector2i(1, 1);
+	vec2i vec2i::zero = vec2i(0, 0);
+	vec2i vec2i::one	= vec2i(1, 1);
 
-	vector2i::vector2i(const vector2ui& v)
+	vec2i::vec2i(const vec2u& v)
 	{
 		x = static_cast<i32>(v.x);
 		y = static_cast<i32>(v.y);
 	}
 
-	vector2i vector2i::clamp(const vector2i& v, const vector2i& min, const vector2i& max)
+	vec2i vec2i::clamp(const vec2i& v, const vec2i& min, const vec2i& max)
 	{
-		return vector2i(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
+		return vec2i(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
 	}
 
 }

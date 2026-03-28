@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/ostream.hpp"
 #include "data/istream.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json.hpp"
 #endif
 
@@ -37,19 +37,19 @@ namespace SFG
 {
 	const quat quat::identity(0.0f, 0.0f, 0.0f, 1.0f);
 
-	vector3 quat::get_right() const
+	vec3f quat::get_right() const
 	{
-		return (*this) * vector3::right;
+		return (*this) * vec3f::right;
 	}
 
-	vector3 quat::get_up() const
+	vec3f quat::get_up() const
 	{
-		return (*this) * vector3::up;
+		return (*this) * vec3f::up;
 	}
 
-	vector3 quat::get_forward() const
+	vec3f quat::get_forward() const
 	{
-		return (*this) * vector3::forward;
+		return (*this) * vec3f::forward;
 	}
 
 	quat quat::conjugate() const
@@ -116,9 +116,9 @@ namespace SFG
 		return q;
 	}
 
-	vector3 quat::to_euler(const quat& q)
+	vec3f quat::to_euler(const quat& q)
 	{
-		vector3 e;
+		vec3f e;
 
 		// X (pitch)
 		f32 sinp = 2.0f * (q.w * q.x + q.y * q.z);
@@ -138,11 +138,11 @@ namespace SFG
 		return e;
 	}
 
-	quat quat::angle_axis(f32 angle_degrees, const vector3& axis)
+	quat quat::angle_axis(f32 angle_degrees, const vec3f& axis)
 	{
 		f32		angle_rad_half	= math::degrees_to_radians(angle_degrees * 0.5f);
 		f32		s				= math::sin(angle_rad_half);
-		vector3 normalized_axis = axis.normalized();
+		vec3f normalized_axis = axis.normalized();
 		return quat(normalized_axis.x * s, normalized_axis.y * s, normalized_axis.z * s, math::cos(angle_rad_half));
 	}
 
@@ -190,11 +190,11 @@ namespace SFG
 		return (a * s0) + (b_adjusted * s1);
 	}
 
-	quat quat::look_at(const vector3& source_point, const vector3& target_point, const vector3& up_vector)
+	quat quat::look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector)
 	{
-		vector3 forward_vec	 = (target_point - source_point).normalized();
-		vector3 right_vec	 = vector3::cross(up_vector, forward_vec).normalized();
-		vector3 final_up_vec = vector3::cross(forward_vec, right_vec);
+		vec3f forward_vec	 = (target_point - source_point).normalized();
+		vec3f right_vec	 = vec3f::cross(up_vector, forward_vec).normalized();
+		vec3f final_up_vec = vec3f::cross(forward_vec, right_vec);
 
 		f32 m00 = right_vec.x;
 		f32 m01 = final_up_vec.x;
@@ -323,7 +323,7 @@ namespace SFG
 		stream >> x >> y >> z >> w;
 	}
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
 	void to_json(nlohmann::json& j, const quat& q)
 	{

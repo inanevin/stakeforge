@@ -29,10 +29,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	vector2ui vector2ui::zero = vector2ui(0, 0);
-	vector2ui vector2ui::one  = vector2ui(1, 1);
+	vec2u vec2u::zero = vec2u(0, 0);
+	vec2u vec2u::one  = vec2u(1, 1);
 
-	vector2ui::vector2ui(const vector2i& v)
+	vec2u::vec2u(const vec2i& v)
 	{
 		x = static_cast<u32>(v.x);
 		x = static_cast<u32>(v.y);

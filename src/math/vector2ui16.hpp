@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 #include "common/size_definitions.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
 #endif
 
@@ -37,35 +37,35 @@ namespace SFG
 	class istream;
 	class ostream;
 
-	struct vector2ui16
+	struct vec2u16
 	{
 	public:
-		vector2ui16(){};
-		vector2ui16(u32 _x, u32 _y) : x(_x), y(_y){};
+		vec2u16(){};
+		vec2u16(u32 _x, u32 _y) : x(_x), y(_y){};
 
-		static vector2ui16 zero;
-		static vector2ui16 one;
+		static vec2u16 zero;
+		static vec2u16 one;
 
 		void serialize(ostream& out) const;
 		void deserialize(istream& in);
 
-		inline bool operator==(const vector2ui16& other) const
+		inline bool operator==(const vec2u16& other) const
 		{
 			return x == other.x && y == other.y;
 		}
 
-		inline vector2ui16 operator/(u16 val) const
+		inline vec2u16 operator/(u16 val) const
 		{
-			return vector2ui16(x / val, y / val);
+			return vec2u16(x / val, y / val);
 		}
 		u16 x = 0;
 		u16 y = 0;
 	};
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vector2ui16& v);
-	void from_json(const nlohmann::json& j, vector2ui16& v);
+	void to_json(nlohmann::json& j, const vec2u16& v);
+	void from_json(const nlohmann::json& j, vec2u16& v);
 
 #endif
 

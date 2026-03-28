@@ -34,9 +34,9 @@ namespace SFG
 {
 	struct monitor_info
 	{
-		vector2i16	position   = vector2i16::zero;
-		vector2ui16 size	   = vector2ui16::zero;
-		vector2ui16 work_size  = vector2ui16::zero;
+		vec2i16	position   = vec2i16::zero;
+		vec2u16 size	   = vec2u16::zero;
+		vec2u16 work_size  = vec2u16::zero;
 		u32			dpi		   = 0;
 		f32			dpi_scale  = 0.0f;
 		bool		is_primary = false;
@@ -97,7 +97,7 @@ namespace SFG
 
 	struct window_event
 	{
-		vector2i16			  value = vector2i16::zero;
+		vec2i16			  value = vec2i16::zero;
 		u16					  button;
 		window_event_type	  type	   = window_event_type::key;
 		window_event_sub_type sub_type = window_event_sub_type::press;

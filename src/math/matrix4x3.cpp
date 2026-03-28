@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	matrix4x3::matrix4x3(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22, f32 m03, f32 m13, f32 m23)
+	mat4x3::mat4x3(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22, f32 m03, f32 m13, f32 m23)
 	{
 		m[0]  = m00;
 		m[1]  = m10;
@@ -50,27 +50,27 @@ namespace SFG
 		m[11] = m23;
 	}
 
-	const matrix4x3 matrix4x3::identity(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
+	const mat4x3 mat4x3::identity(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
 
-	vector3 matrix4x3::get_scale() const
+	vec3f mat4x3::get_scale() const
 	{
-		vector3 x_axis(m[0], m[1], m[2]);
-		vector3 y_axis(m[3], m[4], m[5]);
-		vector3 z_axis(m[6], m[7], m[8]);
-		return vector3(x_axis.magnitude(), y_axis.magnitude(), z_axis.magnitude());
+		vec3f x_axis(m[0], m[1], m[2]);
+		vec3f y_axis(m[3], m[4], m[5]);
+		vec3f z_axis(m[6], m[7], m[8]);
+		return vec3f(x_axis.magnitude(), y_axis.magnitude(), z_axis.magnitude());
 	}
 
-	matrix4x3 matrix4x3::translation(const vector3& t)
+	mat4x3 mat4x3::translation(const vec3f& t)
 	{
-		return matrix4x3(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, t.x, t.y, t.z);
+		return mat4x3(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, t.x, t.y, t.z);
 	}
 
-	matrix4x3 matrix4x3::scale(const vector3& s)
+	mat4x3 mat4x3::scale(const vec3f& s)
 	{
-		return matrix4x3(s.x, 0.0f, 0.0f, 0.0f, s.y, 0.0f, 0.0f, 0.0f, s.z, 0.0f, 0.0f, 0.0f);
+		return mat4x3(s.x, 0.0f, 0.0f, 0.0f, s.y, 0.0f, 0.0f, 0.0f, s.z, 0.0f, 0.0f, 0.0f);
 	}
 
-	matrix4x3 matrix4x3::rotation(const quat& q)
+	mat4x3 mat4x3::rotation(const quat& q)
 	{
 		f32 x2 = q.x * q.x;
 		f32 y2 = q.y * q.y;
@@ -82,23 +82,23 @@ namespace SFG
 		f32 wy = q.w * q.y;
 		f32 wz = q.w * q.z;
 
-		return matrix4x3(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2), 0.0f, 0.0f, 0.0f);
+		return mat4x3(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2), 0.0f, 0.0f, 0.0f);
 	}
 
-	matrix4x3 matrix4x3::transform(const vector3& position, const quat& rotation, const vector3& scale_vec)
+	mat4x3 mat4x3::transform(const vec3f& position, const quat& rotation, const vec3f& scale_vec)
 	{
-		matrix4x3 mat_s = matrix4x3::scale(scale_vec);
-		matrix4x3 mat_r = matrix4x3::rotation(rotation);
-		matrix4x3 mat_t = matrix4x3::translation(position);
+		mat4x3 mat_s = mat4x3::scale(scale_vec);
+		mat4x3 mat_r = mat4x3::rotation(rotation);
+		mat4x3 mat_t = mat4x3::translation(position);
 		return mat_t * mat_r * mat_s;
 	}
 
-	matrix4x3 matrix4x3::inverse() const
+	mat4x3 mat4x3::inverse() const
 	{
-		matrix4x3 result;
+		mat4x3 result;
 
-		vector3 s = get_scale();
-		vector3 inv_s_sq(1.0f / (s.x * s.x), 1.0f / (s.y * s.y), 1.0f / (s.z * s.z));
+		vec3f s = get_scale();
+		vec3f inv_s_sq(1.0f / (s.x * s.x), 1.0f / (s.y * s.y), 1.0f / (s.z * s.z));
 
 		result.m[0] = m[0];
 		result.m[1] = m[3];
@@ -120,9 +120,9 @@ namespace SFG
 		result.m[7] *= inv_s_sq.z;
 		result.m[8] *= inv_s_sq.z;
 
-		vector3 t(m[9], m[10], m[11]);
+		vec3f t(m[9], m[10], m[11]);
 
-		vector3 inv_t;
+		vec3f inv_t;
 		inv_t.x = result.m[0] * t.x + result.m[3] * t.y + result.m[6] * t.z;
 		inv_t.y = result.m[1] * t.x + result.m[4] * t.y + result.m[7] * t.z;
 		inv_t.z = result.m[2] * t.x + result.m[5] * t.y + result.m[8] * t.z;
@@ -134,26 +134,26 @@ namespace SFG
 		return result;
 	}
 
-	void matrix4x3::decompose(vector3& out_translation, quat& out_rotation, vector3& out_scale) const
+	void mat4x3::decompose(vec3f& out_translation, quat& out_rotation, vec3f& out_scale) const
 	{
 		out_translation = get_translation();
 
 		// --- 2. Extract Scale ---
-		vector3 x_axis(m[0], m[1], m[2]);
-		vector3 y_axis(m[3], m[4], m[5]);
-		vector3 z_axis(m[6], m[7], m[8]);
+		vec3f x_axis(m[0], m[1], m[2]);
+		vec3f y_axis(m[3], m[4], m[5]);
+		vec3f z_axis(m[6], m[7], m[8]);
 
 		out_scale.x = x_axis.magnitude();
 		out_scale.y = y_axis.magnitude();
 		out_scale.z = z_axis.magnitude();
 
 		// Prevent divide by zero
-		vector3 inv_scale(out_scale.x != 0.0f ? 1.0f / out_scale.x : 0.0f, out_scale.y != 0.0f ? 1.0f / out_scale.y : 0.0f, out_scale.z != 0.0f ? 1.0f / out_scale.z : 0.0f);
+		vec3f inv_scale(out_scale.x != 0.0f ? 1.0f / out_scale.x : 0.0f, out_scale.y != 0.0f ? 1.0f / out_scale.y : 0.0f, out_scale.z != 0.0f ? 1.0f / out_scale.z : 0.0f);
 
 		// --- 3. Extract Rotation ---
-		vector3 nx = x_axis * inv_scale.x;
-		vector3 ny = y_axis * inv_scale.y;
-		vector3 nz = z_axis * inv_scale.z;
+		vec3f nx = x_axis * inv_scale.x;
+		vec3f ny = y_axis * inv_scale.y;
+		vec3f nz = z_axis * inv_scale.z;
 
 		f32 trace = nx.x + ny.y + nz.z;
 
@@ -193,10 +193,10 @@ namespace SFG
 		out_rotation.normalize();
 	}
 
-	matrix4x4 matrix4x3::to_matrix4x4() const
+	mat4x4 mat4x3::to_matrix4x4() const
 	{
 		// Fill 4x4 with affine data
-		return matrix4x4(m[0],
+		return mat4x4(m[0],
 						 m[1],
 						 m[2],
 						 0.0f, // Col 0
@@ -215,9 +215,9 @@ namespace SFG
 		);
 	}
 
-	matrix4x3 matrix4x3::from_matrix4x4(const matrix4x4& mat)
+	mat4x3 mat4x3::from_matrix4x4(const mat4x4& mat)
 	{
-		return matrix4x3(mat.m[0],
+		return mat4x3(mat.m[0],
 						 mat.m[1],
 						 mat.m[2], // Col 0
 						 mat.m[4],
@@ -232,9 +232,9 @@ namespace SFG
 		);
 	}
 
-	matrix3x3 matrix4x3::to_linear3x3() const
+	mat3x3 mat4x3::to_linear3x3() const
 	{
-		return matrix3x3(m[0],
+		return mat3x3(m[0],
 						 m[1],
 						 m[2], // Col 0
 						 m[3],
@@ -245,12 +245,12 @@ namespace SFG
 						 m[8]); // Col 2
 	}
 
-	void matrix4x3::serialize(ostream& stream) const
+	void mat4x3::serialize(ostream& stream) const
 	{
 		for (int i = 0; i < 12; ++i)
 			stream << m[i];
 	}
-	void matrix4x3::deserialize(istream& stream)
+	void mat4x3::deserialize(istream& stream)
 	{
 		for (int i = 0; i < 12; ++i)
 			stream >> m[i];

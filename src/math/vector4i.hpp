@@ -33,26 +33,26 @@ namespace SFG
 	class ostream;
 	class istream;
 
-	class vector4i
+	class vec4i
 	{
 	public:
-		vector4i(){};
-		vector4i(i32 _x, i32 _y, i32 _z, i32 _w) : x(_x), y(_y), z(_z), w(_w){};
+		vec4i() {};
+		vec4i(i32 _x, i32 _y, i32 _z, i32 _w) : x(_x), y(_y), z(_z), w(_w) {};
 
-		static vector4i zero;
-		static vector4i one;
+		static vec4i zero;
+		static vec4i one;
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		vector4i operator-(const vector4i& other) const
+		vec4i operator-(const vec4i& other) const
 		{
-			return vector4i(x - other.x, y - other.y, z - other.z, w - other.w);
+			return vec4i(x - other.x, y - other.y, z - other.z, w - other.w);
 		}
 
-		vector4i operator+(const vector4i& other) const
+		vec4i operator+(const vec4i& other) const
 		{
-			return vector4i(x + other.x, y + other.y, z + other.z, w + other.w);
+			return vec4i(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
 
 		i32 x = 0;

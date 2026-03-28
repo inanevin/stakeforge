@@ -54,7 +54,7 @@ namespace SFG
 		return data;
 	}
 
-	void* image_util::load_from_file_ch(const char* file, vector2ui16& out_size, u8 force_channels)
+	void* image_util::load_from_file_ch(const char* file, vec2u16& out_size, u8 force_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
 		stbi_uc* data = stbi_load(file, &x, &y, &comp, static_cast<int>(force_channels));
@@ -65,7 +65,7 @@ namespace SFG
 			return nullptr;
 		}
 
-		out_size = vector2ui16(static_cast<u16>(x), static_cast<u16>(y));
+		out_size = vec2u16(static_cast<u16>(x), static_cast<u16>(y));
 
 		return data;
 	}
@@ -86,7 +86,7 @@ namespace SFG
 		return data;
 	}
 
-	void* image_util::load_from_file(const char* file, vector2ui16& out_size, u8& out_channels)
+	void* image_util::load_from_file(const char* file, vec2u16& out_size, u8& out_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
 		stbi_uc* data = stbi_load(file, &x, &y, &comp, 0);
@@ -98,7 +98,7 @@ namespace SFG
 		}
 
 		out_channels = static_cast<int>(comp);
-		out_size	 = vector2ui16(static_cast<u16>(x), static_cast<u16>(y));
+		out_size	 = vec2u16(static_cast<u16>(x), static_cast<u16>(y));
 
 		return data;
 	}
@@ -127,7 +127,7 @@ namespace SFG
 				h = 1;
 
 			texture_buffer mip = {};
-			mip.size		   = vector2ui16(w, h);
+			mip.size		   = vec2u16(w, h);
 			mip.pixels		   = (u8*)SFG_MALLOC(w * h * buf.bpp);
 			mip.bpp			   = buf.bpp;
 			PUSH_ALLOCATION_SZ(w * h * mip.bpp);

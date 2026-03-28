@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #undef min
 #undef max
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
 #endif
 
@@ -41,32 +41,32 @@ namespace SFG
 	class istream;
 	class ostream;
 
-	struct vector2ui16;
+	struct vec2u16;
 
-	class vector2
+	class vec2f
 	{
 	public:
-		vector2() {};
-		vector2(f32 _x, f32 _y) : x(_x), y(_y) {};
-		vector2(const vector2ui16& v);
+		vec2f() {};
+		vec2f(f32 _x, f32 _y) : x(_x), y(_y) {};
+		vec2f(const vec2u16& v);
 
 		f32 x = 0.0f;
 		f32 y = 0.0f;
 
-		static vector2 zero;
-		static vector2 one;
+		static vec2f zero;
+		static vec2f one;
 
-		static vector2 clamp(const vector2& vector, const vector2& min, const vector2& max);
-		static vector2 clamp_magnitude(const vector2& vector, f32 max_length);
-		static vector2 abs(const vector2& vector);
-		static vector2 min(const vector2& a, const vector2& b);
-		static vector2 max(const vector2& a, const vector2& b);
-		static f32	   dot(const vector2& a, const vector2& b);
-		static f32	   distance(const vector2& a, const vector2& b);
-		static f32	   angle(const vector2& a, const vector2& b);
+		static vec2f clamp(const vec2f& vector, const vec2f& min, const vec2f& max);
+		static vec2f clamp_magnitude(const vec2f& vector, f32 max_length);
+		static vec2f abs(const vec2f& vector);
+		static vec2f min(const vec2f& a, const vec2f& b);
+		static vec2f max(const vec2f& a, const vec2f& b);
+		static f32	   dot(const vec2f& a, const vec2f& b);
+		static f32	   distance(const vec2f& a, const vec2f& b);
+		static f32	   angle(const vec2f& a, const vec2f& b);
 
-		vector2 normalized() const;
-		bool	equals(const vector2& other, f32 epsilon = MATH_EPS) const;
+		vec2f normalized() const;
+		bool	equals(const vec2f& other, f32 epsilon = MATH_EPS) const;
 		bool	is_zero(f32 epsilon = MATH_EPS) const;
 		f32		magnitude() const;
 		f32		magnitude_sqr() const;
@@ -74,50 +74,50 @@ namespace SFG
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		inline vector2 operator+(const vector2& other) const
+		inline vec2f operator+(const vec2f& other) const
 		{
-			return vector2(x + other.x, y + other.y);
+			return vec2f(x + other.x, y + other.y);
 		}
-		inline vector2 operator-(const vector2& other) const
+		inline vec2f operator-(const vec2f& other) const
 		{
-			return vector2(x - other.x, y - other.y);
+			return vec2f(x - other.x, y - other.y);
 		}
-		inline vector2 operator*(f32 scalar) const
+		inline vec2f operator*(f32 scalar) const
 		{
-			return vector2(x * scalar, y * scalar);
+			return vec2f(x * scalar, y * scalar);
 		}
 
-		inline vector2 operator/(f32 scalar) const
+		inline vec2f operator/(f32 scalar) const
 		{
 			if (scalar == 0.0f)
 			{
-				return vector2(std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity());
+				return vec2f(std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity());
 			}
-			return vector2(x / scalar, y / scalar);
+			return vec2f(x / scalar, y / scalar);
 		}
 
-		inline vector2& operator+=(const vector2& other)
+		inline vec2f& operator+=(const vec2f& other)
 		{
 			x += other.x;
 			y += other.y;
 			return *this;
 		}
 
-		inline vector2& operator-=(const vector2& other)
+		inline vec2f& operator-=(const vec2f& other)
 		{
 			x -= other.x;
 			y -= other.y;
 			return *this;
 		}
 
-		inline vector2& operator*=(f32 scalar)
+		inline vec2f& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
 			return *this;
 		}
 
-		inline vector2& operator/=(f32 scalar)
+		inline vec2f& operator/=(f32 scalar)
 		{
 			if (scalar == 0.0f)
 			{
@@ -132,20 +132,20 @@ namespace SFG
 			return *this;
 		}
 
-		inline bool operator==(const vector2& other) const
+		inline bool operator==(const vec2f& other) const
 		{
 			return equals(other);
 		}
-		inline bool operator!=(const vector2& other) const
+		inline bool operator!=(const vec2f& other) const
 		{
 			return !(*this == other);
 		}
 	};
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vector2& v);
-	void from_json(const nlohmann::json& j, vector2& v);
+	void to_json(nlohmann::json& j, const vec2f& v);
+	void from_json(const nlohmann::json& j, vec2f& v);
 
 #endif
 }

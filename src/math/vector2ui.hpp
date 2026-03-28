@@ -29,17 +29,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class vector2i;
+	class vec2i;
 
-	class vector2ui
+	class vec2u
 	{
 	public:
-		vector2ui(){};
-		vector2ui(u32 _x, u32 _y) : x(_x), y(_y){};
-		vector2ui(const vector2i& v);
+		vec2u() {};
+		vec2u(u32 _x, u32 _y) : x(_x), y(_y) {};
+		vec2u(const vec2i& v);
 
-		static vector2ui zero;
-		static vector2ui one;
+		static vec2u zero;
+		static vec2u one;
 
 		u32 x = 0;
 		u32 y = 0;

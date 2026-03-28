@@ -34,13 +34,13 @@ namespace SFG
 	{
 		plane()	 = default;
 		~plane() = default;
-		plane(f32 x, f32 y, f32 z, f32 dist) : normal(vector3(x, y, z)), distance(dist){};
-		plane(const vector3& n, f32 dist) : normal(n), distance(dist){};
+		plane(f32 x, f32 y, f32 z, f32 dist) : normal(vec3f(x, y, z)), distance(dist){};
+		plane(const vec3f& n, f32 dist) : normal(n), distance(dist){};
 
 		void normalize();
-		f32	 get_signed_distance(const vector3& point) const;
+		f32	 get_signed_distance(const vec3f& point) const;
 
-		vector3 normal	 = vector3::zero;
+		vec3f normal	 = vec3f::zero;
 		f32		distance = 0.0f;
 	};
 

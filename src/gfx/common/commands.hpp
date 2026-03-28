@@ -79,7 +79,7 @@ namespace SFG
 
 	struct render_pass_color_attachment
 	{
-		vector4	 clear_color = vector4(0, 0, 0, 1);
+		vec4f	 clear_color = vec4f(0, 0, 0, 1);
 		gfx_id	 texture	 = 0;
 		load_op	 load_op	 = load_op::clear;
 		store_op store_op	 = store_op::store;
@@ -197,7 +197,7 @@ namespace SFG
 		gfx_id	  src_texture = 0;
 		u32		  src_layer	  = 0;
 		u32		  src_mip	  = 0;
-		vector2ui size		  = vector2ui::zero;
+		vec2u size		  = vec2u::zero;
 		u8		  bpp		  = 0;
 	};
 

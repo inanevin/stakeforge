@@ -32,14 +32,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	bool aabb::is_inside_plane(const vector3& center, const plane& plane)
+	bool aabb::is_inside_plane(const vec3f& center, const plane& plane)
 	{
 		const f32 r = bounds_half_extent.x * math::abs(plane.normal.x) + bounds_half_extent.y * math::abs(plane.normal.y) + bounds_half_extent.z * math::abs(plane.normal.z);
 		return -r <= plane.get_signed_distance(center);
 	}
-	vector3 aabb::get_positive(const vector3& normal) const
+	vec3f aabb::get_positive(const vec3f& normal) const
 	{
-		vector3 positive = bounds_min;
+		vec3f positive = bounds_min;
 		if (normal.x >= 0.0f)
 			positive.x = bounds_max.x;
 		if (normal.y >= 0.0f)
@@ -49,9 +49,9 @@ namespace SFG
 
 		return positive;
 	}
-	vector3 aabb::get_negative(const vector3& normal) const
+	vec3f aabb::get_negative(const vec3f& normal) const
 	{
-		vector3 negative = bounds_max;
+		vec3f negative = bounds_max;
 		if (normal.x >= 0.0f)
 			negative.x = bounds_min.x;
 		if (normal.y >= 0.0f)

@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	matrix3x3::matrix3x3(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22)
+	mat3x3::mat3x3(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22)
 	{
 		m[0] = m00;
 		m[1] = m10;
@@ -46,14 +46,14 @@ namespace SFG
 		m[8] = m22; // Col 2
 	}
 
-	const matrix3x3 matrix3x3::identity(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	const mat3x3 mat3x3::identity(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
-	matrix3x3 matrix3x3::scale(const vector3& s)
+	mat3x3 mat3x3::scale(const vec3f& s)
 	{
-		return matrix3x3(s.x, 0.0f, 0.0f, 0.0f, s.y, 0.0f, 0.0f, 0.0f, s.z);
+		return mat3x3(s.x, 0.0f, 0.0f, 0.0f, s.y, 0.0f, 0.0f, 0.0f, s.z);
 	}
 
-	matrix3x3 matrix3x3::rotation(const quat& q)
+	mat3x3 mat3x3::rotation(const quat& q)
 	{
 		const f32 x2 = q.x * q.x;
 		const f32 y2 = q.y * q.y;
@@ -65,25 +65,25 @@ namespace SFG
 		const f32 wy = q.w * q.y;
 		const f32 wz = q.w * q.z;
 
-		return matrix3x3(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2));
+		return mat3x3(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2));
 	}
 
-	matrix3x3 matrix3x3::from_axes(const vector3& x, const vector3& y, const vector3& z)
+	mat3x3 mat3x3::from_axes(const vec3f& x, const vec3f& y, const vec3f& z)
 	{
-		return matrix3x3(x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
+		return mat3x3(x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
 	}
 
-	matrix4x4 matrix3x3::to_matrix4x4() const
+	mat4x4 mat3x3::to_matrix4x4() const
 	{
-		return matrix4x4(m[0], m[1], m[2], 0.0f, m[3], m[4], m[5], 0.0f, m[6], m[7], m[8], 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+		return mat4x4(m[0], m[1], m[2], 0.0f, m[3], m[4], m[5], 0.0f, m[6], m[7], m[8], 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
-	matrix3x3 matrix3x3::transposed() const
+	mat3x3 mat3x3::transposed() const
 	{
-		return matrix3x3(m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]);
+		return mat3x3(m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]);
 	}
 
-	f32 matrix3x3::determinant() const
+	f32 mat3x3::determinant() const
 	{
 		const f32 a = m[0], d = m[3], g = m[6];
 		const f32 b = m[1], e = m[4], h = m[7];
@@ -92,7 +92,7 @@ namespace SFG
 		return a * (e * i - f * h) - d * (b * i - c * h) + g * (b * f - c * e);
 	}
 
-	matrix3x3 matrix3x3::inversed() const
+	mat3x3 mat3x3::inversed() const
 	{
 		const f32 a = m[0], d = m[3], g = m[6];
 		const f32 b = m[1], e = m[4], h = m[7];
@@ -116,24 +116,24 @@ namespace SFG
 
 		const f32 invDet = 1.0f / det;
 
-		return matrix3x3(A * invDet, D * invDet, G * invDet, B * invDet, E * invDet, H * invDet, C * invDet, F * invDet, I * invDet);
+		return mat3x3(A * invDet, D * invDet, G * invDet, B * invDet, E * invDet, H * invDet, C * invDet, F * invDet, I * invDet);
 	}
 
-	matrix3x3 matrix3x3::abs(const matrix3x3& A)
+	mat3x3 mat3x3::abs(const mat3x3& A)
 	{
-		matrix3x3 R;
+		mat3x3 R;
 		for (int i = 0; i < 9; ++i)
 			R.m[i] = fabsf(A.m[i]);
 		return R;
 	}
 
-	void matrix3x3::serialize(ostream& stream) const
+	void mat3x3::serialize(ostream& stream) const
 	{
 		for (int i = 0; i < 9; ++i)
 			stream << m[i];
 	}
 
-	void matrix3x3::deserialize(istream& stream)
+	void mat3x3::deserialize(istream& stream)
 	{
 		for (int i = 0; i < 9; ++i)
 			stream >> m[i];

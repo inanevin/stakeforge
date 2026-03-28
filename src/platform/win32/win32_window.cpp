@@ -237,7 +237,7 @@ namespace SFG
 			wnd->_flags.remove(wf_has_focus);
 
 			const window_event ev = {
-				.value = vector2i16(0, 0),
+				.value = vec2i16(0, 0),
 				.type  = window_event_type::focus,
 			};
 
@@ -248,7 +248,7 @@ namespace SFG
 			wnd->_flags.set(wf_has_focus);
 
 			const window_event ev = {
-				.value = vector2i16(1, 0),
+				.value = vec2i16(1, 0),
 				.type  = window_event_type::focus,
 			};
 			wnd->add_event(ev);
@@ -258,12 +258,12 @@ namespace SFG
 		case WM_MOVE: {
 			// const i32 x  = static_cast<i32>((short)LOWORD(lParam));
 			// const i32 y  = static_cast<i32>((short)HIWORD(lParam));
-			// wnd->_position = vector2i16(x, y);
+			// wnd->_position = vec2i16(x, y);
 			// wnd->_flags.set(window_flags::wf_pos_dirty);
 
 			RECT r;
 			GetWindowRect(hwnd, &r); // outer window (includes frame/caption)
-			wnd->_position = vector2i16(r.left, r.top);
+			wnd->_position = vec2i16(r.left, r.top);
 			wnd->_flags.set(window_flags::wf_pos_dirty);
 
 			return 0;
@@ -279,7 +279,7 @@ namespace SFG
 			if (wnd->_size.x == width && wnd->_size.y == height)
 				return 0;
 
-			wnd->_size = vector2ui16(static_cast<u16>(width), static_cast<u16>(height));
+			wnd->_size = vec2u16(static_cast<u16>(width), static_cast<u16>(height));
 			wnd->_flags.set(wf_size_dirty);
 
 			if (wnd->_flags.is_set(window_flags::wf_style_windowed))
@@ -325,7 +325,7 @@ namespace SFG
 					s_key_down_map[key] = 0;
 
 				const window_event ev = {
-					.value	  = vector2i16(static_cast<i32>(sc), 0),
+					.value	  = vec2i16(static_cast<i32>(sc), 0),
 					.button	  = static_cast<u16>(key),
 					.type	  = window_event_type::key,
 					.sub_type = is_release ? window_event_sub_type::release : (is_repeat ? window_event_sub_type::repeat : window_event_sub_type::press),
@@ -339,18 +339,18 @@ namespace SFG
 				// POINT  cursorPos;
 				// GetCursorPos(&cursorPos);
 				//
-				// wnd->_mouse_position_abs = vector2i16(static_cast<i32>(cursorPos.x), static_cast<i32>(cursorPos.y));
+				// wnd->_mouse_position_abs = vec2i16(static_cast<i32>(cursorPos.x), static_cast<i32>(cursorPos.y));
 				//
-				// const vector2i16 relative = wnd->_mouse_position_abs - wnd->_position;
-				// wnd->_mouse_position	  = vector2i16::clamp(relative, vector2i16(), vector2i16(static_cast<i16>(wnd->_size.x), static_cast<i16>(wnd->_size.y)));
+				// const vec2i16 relative = wnd->_mouse_position_abs - wnd->_position;
+				// wnd->_mouse_position	  = vec2i16::clamp(relative, vec2i16(), vec2i16(static_cast<i16>(wnd->_size.x), static_cast<i16>(wnd->_size.y)));
 
 				POINT screenPt;
 				GetCursorPos(&screenPt);
-				wnd->_mouse_position_abs = vector2i16((i32)screenPt.x, (i32)screenPt.y);
+				wnd->_mouse_position_abs = vec2i16((i32)screenPt.x, (i32)screenPt.y);
 
 				POINT clientPt = screenPt;
 				ScreenToClient(hwnd, &clientPt);
-				wnd->_mouse_position = vector2i16((i16)clientPt.x, (i16)clientPt.y);
+				wnd->_mouse_position = vec2i16((i16)clientPt.x, (i16)clientPt.y);
 
 				window_event ev = {
 					.value = wnd->_mouse_position,
@@ -405,7 +405,7 @@ namespace SFG
 					const short wheel	   = (short)raw->data.mouse.usButtonData / (short)WHEEL_DELTA;
 
 					const window_event mwe = {
-						.value = vector2i16(0, wheelDelta),
+						.value = vec2i16(0, wheelDelta),
 						.type  = window_event_type::wheel,
 						.flags = wef_high_freq,
 					};
@@ -417,7 +417,7 @@ namespace SFG
 					const i32 yPosRelative = raw->data.mouse.lLastY;
 
 					const window_event mdEvent = {
-						.value = vector2i16(xPosRelative, yPosRelative),
+						.value = vec2i16(xPosRelative, yPosRelative),
 						.type  = window_event_type::delta,
 						.flags = wef_high_freq,
 					};
@@ -445,7 +445,7 @@ namespace SFG
 				key = extended == 0 ? VK_LCONTROL : VK_RCONTROL;
 
 			const window_event ev = {
-				.value	  = vector2i16(scanCode, 0),
+				.value	  = vec2i16(scanCode, 0),
 				.button	  = static_cast<u16>(key),
 				.type	  = window_event_type::key,
 				.sub_type = is_repeat ? window_event_sub_type::repeat : window_event_sub_type::press,
@@ -473,7 +473,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value = vector2i16(scanCode, 0), .button = static_cast<u16>(key), .type = window_event_type::key, .sub_type = window_event_sub_type::release};
+				.value = vec2i16(scanCode, 0), .button = static_cast<u16>(key), .type = window_event_type::key, .sub_type = window_event_sub_type::release};
 
 			wnd->add_event(ev);
 
@@ -487,11 +487,11 @@ namespace SFG
 			const i32 xPos = GET_X_LPARAM(lParam);
 			const i32 yPos = GET_Y_LPARAM(lParam);
 
-			static vector2i16 previousPosition = vector2i16::zero;
-			wnd->_mouse_position			   = vector2i16(xPos, yPos);
+			static vec2i16 previousPosition = vec2i16::zero;
+			wnd->_mouse_position			   = vec2i16(xPos, yPos);
 			wnd->_mouse_position_abs		   = wnd->get_position() + wnd->_mouse_position;
 
-			const vector2i16 delta = wnd->_mouse_position - previousPosition;
+			const vec2i16 delta = wnd->_mouse_position - previousPosition;
 			previousPosition	   = wnd->_mouse_position;
 
 			const window_event ev = {
@@ -509,7 +509,7 @@ namespace SFG
 				return 0;
 			const i16		   delta = GET_WHEEL_DELTA_WPARAM(wParam) / (i16)(WHEEL_DELTA);
 			const window_event mwe	 = {
-				  .value = vector2i16(0, delta),
+				  .value = vec2i16(0, delta),
 				  .type	 = window_event_type::wheel,
 			  };
 
@@ -527,7 +527,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_0),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::press,
@@ -544,7 +544,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_0),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::repeat,
@@ -563,7 +563,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_1),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::press,
@@ -580,7 +580,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_1),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::repeat,
@@ -600,7 +600,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_2),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::press,
@@ -619,7 +619,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_0),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::release,
@@ -639,7 +639,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_1),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::release,
@@ -659,7 +659,7 @@ namespace SFG
 
 			const window_event ev = {
 
-				.value	  = vector2i16(x, y),
+				.value	  = vec2i16(x, y),
 				.button	  = static_cast<u16>(input_code::mouse_2),
 				.type	  = window_event_type::mouse,
 				.sub_type = window_event_sub_type::release,
@@ -680,7 +680,7 @@ namespace SFG
 		return s_key_down_map[key];
 	}
 
-	bool window::create(const char* title, u16 flags, const vector2i16& pos, const vector2ui16& size)
+	bool window::create(const char* title, u16 flags, const vec2i16& pos, const vec2u16& size)
 	{
 		HINSTANCE  hinst = GetModuleHandle(0);
 		WNDCLASSEX wcx;
@@ -765,7 +765,7 @@ namespace SFG
 			DestroyWindow(static_cast<HWND>(_window_handle));
 	}
 
-	void window::set_position(const vector2i16& pos)
+	void window::set_position(const vec2i16& pos)
 	{
 		HWND hwnd = static_cast<HWND>(_window_handle);
 		SetWindowPos(hwnd, NULL, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW);
@@ -776,7 +776,7 @@ namespace SFG
 		HWND hwnd = static_cast<HWND>(_window_handle);
 		ShowWindow(hwnd, SW_MAXIMIZE);
 	}
-	void window::set_size(const vector2ui16& full_size)
+	void window::set_size(const vec2u16& full_size)
 	{
 		HWND hwnd = (HWND)_window_handle;
 

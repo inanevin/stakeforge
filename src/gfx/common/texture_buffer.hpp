@@ -36,7 +36,7 @@ namespace SFG
 	struct texture_buffer
 	{
 		u8*			pixels = nullptr;
-		vector2ui16 size   = vector2ui16::zero;
+		vec2u16 size   = vec2u16::zero;
 		u8			bpp	   = 0;
 
 		void serialize(ostream& stream, bool write_addr = false) const;

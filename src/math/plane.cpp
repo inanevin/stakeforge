@@ -38,8 +38,8 @@ namespace SFG
 		}
 	}
 
-	f32 plane::get_signed_distance(const vector3& point) const
+	f32 plane::get_signed_distance(const vec3f& point) const
 	{
-		return vector3::dot(normal, point) - distance;
+		return vec3f::dot(normal, point) - distance;
 	}
 }

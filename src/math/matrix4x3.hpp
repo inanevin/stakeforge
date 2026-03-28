@@ -34,51 +34,51 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 	class quat;
-	class matrix4x4;
+	class mat4x4;
 	class ostream;
 	class istream;
 
-	class matrix4x3
+	class mat4x3
 	{
 	public:
 		f32 m[12]; // Column-major: m[col * 3 + row], 4 cols ? 3 rows
 
-		matrix4x3() = default;
-		matrix4x3(f32 m00,
-				  f32 m10,
-				  f32 m20, // Col 0
-				  f32 m01,
-				  f32 m11,
-				  f32 m21, // Col 1
-				  f32 m02,
-				  f32 m12,
-				  f32 m22, // Col 2
-				  f32 m03,
-				  f32 m13,
-				  f32 m23); // Col 3 (translation)
+		mat4x3() = default;
+		mat4x3(f32 m00,
+			   f32 m10,
+			   f32 m20, // Col 0
+			   f32 m01,
+			   f32 m11,
+			   f32 m21, // Col 1
+			   f32 m02,
+			   f32 m12,
+			   f32 m22, // Col 2
+			   f32 m03,
+			   f32 m13,
+			   f32 m23); // Col 3 (translation)
 
-		static const matrix4x3 identity;
+		static const mat4x3 identity;
 
-		inline vector3 get_translation() const
+		inline vec3f get_translation() const
 		{
-			return vector3(m[9], m[10], m[11]);
+			return vec3f(m[9], m[10], m[11]);
 		}
 
-		vector3 get_scale() const;
+		vec3f get_scale() const;
 
-		static matrix4x3 translation(const vector3& t);
-		static matrix4x3 scale(const vector3& s);
-		static matrix4x3 rotation(const quat& q);
-		static matrix4x3 transform(const vector3& position, const quat& rotation, const vector3& scale);
-		static matrix4x3 from_matrix4x4(const matrix4x4& mat);
+		static mat4x3 translation(const vec3f& t);
+		static mat4x3 scale(const vec3f& s);
+		static mat4x3 rotation(const quat& q);
+		static mat4x3 transform(const vec3f& position, const quat& rotation, const vec3f& scale);
+		static mat4x3 from_matrix4x4(const mat4x4& mat);
 
-		matrix4x3 inverse() const;
-		void	  decompose(vector3& position, quat& rotation, vector3& scale) const;
-		void	  serialize(ostream& stream) const;
-		void	  deserialize(istream& stream);
+		mat4x3 inverse() const;
+		void   decompose(vec3f& position, quat& rotation, vec3f& scale) const;
+		void   serialize(ostream& stream) const;
+		void   deserialize(istream& stream);
 
-		matrix4x4 to_matrix4x4() const;
-		matrix3x3 to_linear3x3() const;
+		mat4x4	  to_matrix4x4() const;
+		mat3x3 to_linear3x3() const;
 
 		inline f32 operator[](int index) const
 		{
@@ -89,20 +89,20 @@ namespace SFG
 			return m[index];
 		}
 
-		inline vector3 get_column(u8 idx) const
+		inline vec3f get_column(u8 idx) const
 		{
-			return vector3(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2]);
+			return vec3f(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2]);
 		}
 
-		inline vector4 get_column_v4(u8 idx) const
+		inline vec4f get_column_v4(u8 idx) const
 		{
-			return vector4(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2], 0.0f);
+			return vec4f(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2], 0.0f);
 		}
 
 		// Matrix ? Matrix (composition)
-		inline matrix4x3 operator*(const matrix4x3& other) const
+		inline mat4x3 operator*(const mat4x3& other) const
 		{
-			matrix4x3 result;
+			mat4x3 result;
 			// 3x3 linear part
 			for (int i = 0; i < 3; ++i) // row
 			{
@@ -119,20 +119,20 @@ namespace SFG
 			return result;
 		}
 
-		inline vector3 operator*(const vector3& v) const
+		inline vec3f operator*(const vec3f& v) const
 		{
-			return vector3(m[0] * v.x + m[3] * v.y + m[6] * v.z + m[9], m[1] * v.x + m[4] * v.y + m[7] * v.z + m[10], m[2] * v.x + m[5] * v.y + m[8] * v.z + m[11]);
+			return vec3f(m[0] * v.x + m[3] * v.y + m[6] * v.z + m[9], m[1] * v.x + m[4] * v.y + m[7] * v.z + m[10], m[2] * v.x + m[5] * v.y + m[8] * v.z + m[11]);
 		}
 
-		inline matrix4x3 operator*(f32 scalar) const
+		inline mat4x3 operator*(f32 scalar) const
 		{
-			matrix4x3 result;
+			mat4x3 result;
 			for (int i = 0; i < 12; ++i)
 				result.m[i] = m[i] * scalar;
 			return result;
 		}
 
-		inline matrix4x3& operator*=(f32 scalar)
+		inline mat4x3& operator*=(f32 scalar)
 		{
 			for (int i = 0; i < 12; ++i)
 				m[i] *= scalar;

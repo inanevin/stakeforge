@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 #include "vector4.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
 #endif
 
@@ -45,7 +45,7 @@ namespace SFG
 		color		 linear_to_srgb();
 		color		 srgb_to_linear();
 
-		vector4 to_vector() const;
+		vec4f to_vector() const;
 		void	round();
 		void	serialize(ostream& stream) const;
 		void	deserialize(istream& stream);
@@ -108,7 +108,7 @@ namespace SFG
 		f32 x, y, z, w = 1.0f;
 	};
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const color& c);
 	void from_json(const nlohmann::json& j, color& c);
 #endif

@@ -29,14 +29,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class vector4ui
+	class vec4u
 	{
 	public:
-		vector4ui(){};
-		vector4ui(u32 _x, u32 _y, u32 _z, u32 _w) : x(_x), y(_y), z(_z), w(_w){};
+		vec4u() {};
+		vec4u(u32 _x, u32 _y, u32 _z, u32 _w) : x(_x), y(_y), z(_z), w(_w) {};
 
-		static vector4ui zero;
-		static vector4ui one;
+		static vec4u zero;
+		static vec4u one;
 
 		u32 x = 0;
 		u32 y = 0;

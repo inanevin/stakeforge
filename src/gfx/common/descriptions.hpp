@@ -37,9 +37,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx/common/gfx_constants.hpp"
 #include "shader_description.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
 #endif
+
 namespace SFG
 {
 	class ostream;
@@ -47,16 +48,16 @@ namespace SFG
 
 	struct viewport
 	{
-		vector2		pos		 = vector2::zero;
-		vector2ui16 size	 = vector2ui16::zero;
+		vec2f		pos		 = vec2f::zero;
+		vec2u16 size	 = vec2u16::zero;
 		f32			minDepth = 0.0f;
 		f32			maxDepth = 1.0f;
 	};
 
 	struct scissors_rect
 	{
-		vector2ui16 pos	 = vector2ui16::zero;
-		vector2ui16 size = vector2ui16::zero;
+		vec2u16 pos	 = vec2u16::zero;
+		vec2u16 size = vec2u16::zero;
 	};
 
 	enum class command_type : u8
@@ -160,14 +161,14 @@ namespace SFG
 		void*		os_handle = nullptr;
 		f32			scaling	  = 1.0f;
 		format		format	  = format::undefined;
-		vector2ui16 pos		  = vector2ui16::zero;
-		vector2ui16 size	  = vector2ui16::zero;
+		vec2u16 pos		  = vec2u16::zero;
+		vec2u16 size	  = vec2u16::zero;
 		bitmask<u8> flags	  = 0;
 	};
 
 	struct swapchain_recreate_desc
 	{
-		vector2ui16 size	  = vector2ui16::zero;
+		vec2u16 size	  = vec2u16::zero;
 		gfx_id		swapchain = 0;
 		f32			scaling	  = 1.0f;
 		bitmask<u8> flags	  = 0;
@@ -204,7 +205,7 @@ namespace SFG
 	{
 		format			  texture_format	   = format::r8g8b8a8_srgb;
 		format			  depth_stencil_format = format::d16_unorm;
-		vector2ui16		  size				   = vector2ui16::zero;
+		vec2u16		  size				   = vec2u16::zero;
 		bitmask<u16>	  flags				   = 0;
 		vector<view_desc> views				   = {
 			   {},
@@ -300,7 +301,7 @@ namespace SFG
 		char		 debug_name[16] = {"CmdBuffer"};
 	};
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const sampler_desc& s);
 	void from_json(const nlohmann::json& j, sampler_desc& s);
 #endif

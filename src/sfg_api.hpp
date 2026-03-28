@@ -55,7 +55,4 @@ namespace SFG
 
 extern "C"
 {
-
-	SFG_EXPORT SFG::app* create_app(u32 width, u32 height);
-	SFG_EXPORT void		 destroy_app(SFG::app* app);
 }

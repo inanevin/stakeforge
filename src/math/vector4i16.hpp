@@ -32,26 +32,26 @@ namespace SFG
 	class ostream;
 	class istream;
 
-	class vector4i16
+	class vec4i16
 	{
 	public:
-		vector4i16(){};
-		vector4i16(i16 _x, i16 _y, i16 _z, i16 _w) : x(_x), y(_y), z(_z), w(_w){};
+		vec4i16(){};
+		vec4i16(i16 _x, i16 _y, i16 _z, i16 _w) : x(_x), y(_y), z(_z), w(_w){};
 
 		void serialize(ostream& stream) const;
 		void deserialize(istream& stream);
 
-		static vector4i16 zero;
-		static vector4i16 one;
+		static vec4i16 zero;
+		static vec4i16 one;
 
-		vector4i16 operator-(const vector4i16& other) const
+		vec4i16 operator-(const vec4i16& other) const
 		{
-			return vector4i16(x - other.x, y - other.y, z - other.z, w - other.w);
+			return vec4i16(x - other.x, y - other.y, z - other.z, w - other.w);
 		}
 
-		vector4i16 operator+(const vector4i16& other) const
+		vec4i16 operator+(const vec4i16& other) const
 		{
-			return vector4i16(x + other.x, y + other.y, z + other.z, w + other.w);
+			return vec4i16(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
 
 		i16 x = 0;

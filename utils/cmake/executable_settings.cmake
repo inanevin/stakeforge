@@ -27,12 +27,14 @@
 # SOFTWARE.
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-if(APPLE)
-   set_target_properties(${PROJECT_NAME} PROPERTIES
-       MACOSX_BUNDLE TRUE
-   )
-endif()
+function(set_executable_settings target_name)
+    if(APPLE)
+        set_target_properties(${target_name} PROPERTIES
+            MACOSX_BUNDLE TRUE
+        )
+    endif()
 
-if(MSVC)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/)
-endif()
+    if(MSVC)
+        set_property(TARGET ${target_name} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/)
+    endif()
+endfunction()

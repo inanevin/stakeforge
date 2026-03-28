@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	matrix4x4::matrix4x4(f32 m00,
+	mat4x4::mat4x4(f32 m00,
 						 f32 m10,
 						 f32 m20,
 						 f32 m30, // Col 0
@@ -67,19 +67,19 @@ namespace SFG
 		m[15] = m33;
 	}
 
-	const matrix4x4 matrix4x4::identity(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	const mat4x4 mat4x4::identity(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
-	matrix4x4 matrix4x4::get_normal_matrix() const
+	mat4x4 mat4x4::get_normal_matrix() const
 	{
-		matrix4x4 inv_mat = inverse();
-		if (inv_mat == matrix4x4::identity)
+		mat4x4 inv_mat = inverse();
+		if (inv_mat == mat4x4::identity)
 			return identity;
 		return inv_mat.transpose();
 	}
 
-	matrix4x4 matrix4x4::transpose() const
+	mat4x4 mat4x4::transpose() const
 	{
-		matrix4x4 result;
+		mat4x4 result;
 		for (int i = 0; i < 4; ++i)
 		{
 			for (int j = 0; j < 4; ++j)
@@ -90,7 +90,7 @@ namespace SFG
 		return result;
 	}
 
-	f32 matrix4x4::determinant() const
+	f32 mat4x4::determinant() const
 	{
 		f32 det;
 		f32 a = m[0], b = m[4], c = m[8], d = m[12];
@@ -110,14 +110,14 @@ namespace SFG
 		return det;
 	}
 
-	matrix4x4 matrix4x4::inverse() const
+	mat4x4 mat4x4::inverse() const
 	{
 		f32 det = determinant();
 		if (math::abs(det) < MATH_EPS)
 			return identity;
 
 		f32		  inv_det = 1.0f / det;
-		matrix4x4 inv;
+		mat4x4 inv;
 
 		f32 a = m[0], b = m[4], c = m[8], d = m[12];
 		f32 e = m[1], f = m[5], g = m[9], h = m[13];
@@ -144,30 +144,30 @@ namespace SFG
 		return inv;
 	}
 
-	vector3 matrix4x4::get_scale() const
+	vec3f mat4x4::get_scale() const
 	{
-		vector3 x_axis(m[0], m[1], m[2]);
-		vector3 y_axis(m[4], m[5], m[6]);
-		vector3 z_axis(m[8], m[9], m[10]);
-		return vector3(x_axis.magnitude(), y_axis.magnitude(), z_axis.magnitude());
+		vec3f x_axis(m[0], m[1], m[2]);
+		vec3f y_axis(m[4], m[5], m[6]);
+		vec3f z_axis(m[8], m[9], m[10]);
+		return vec3f(x_axis.magnitude(), y_axis.magnitude(), z_axis.magnitude());
 	}
 
-	vector3 matrix4x4::get_translation() const
+	vec3f mat4x4::get_translation() const
 	{
-		return vector3(m[12], m[13], m[14]);
+		return vec3f(m[12], m[13], m[14]);
 	}
 
-	matrix4x4 matrix4x4::translation(const vector3& t)
+	mat4x4 mat4x4::translation(const vec3f& t)
 	{
-		return matrix4x4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, t.x, t.y, t.z, 1.0f);
+		return mat4x4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, t.x, t.y, t.z, 1.0f);
 	}
 
-	matrix4x4 matrix4x4::scale(const vector3& s)
+	mat4x4 mat4x4::scale(const vec3f& s)
 	{
-		return matrix4x4(s.x, 0.0f, 0.0f, 0.0f, 0.0f, s.y, 0.0f, 0.0f, 0.0f, 0.0f, s.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+		return mat4x4(s.x, 0.0f, 0.0f, 0.0f, 0.0f, s.y, 0.0f, 0.0f, 0.0f, 0.0f, s.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
-	matrix4x4 matrix4x4::rotation(const quat& q)
+	mat4x4 mat4x4::rotation(const quat& q)
 	{
 		f32 x2 = q.x * q.x;
 		f32 y2 = q.y * q.y;
@@ -179,31 +179,31 @@ namespace SFG
 		f32 wy = q.w * q.y;
 		f32 wz = q.w * q.z;
 
-		return matrix4x4(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 0.0f, 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 0.0f, 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+		return mat4x4(1.0f - 2.0f * (y2 + z2), 2.0f * (xy + wz), 2.0f * (xz - wy), 0.0f, 2.0f * (xy - wz), 1.0f - 2.0f * (x2 + z2), 2.0f * (yz + wx), 0.0f, 2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (x2 + y2), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
-	matrix4x4 matrix4x4::ortho_reverse_z(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
+	mat4x4 mat4x4::ortho_reverse_z(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
 	{
 		const f32 inv_width	 = 1.0f / (right - left);
 		const f32 inv_height = 1.0f / (top - bottom);
 		const f32 inv_depth	 = 1.0f / (far_plane - near_plane);
 
 		// clang-format off
-		return matrix4x4(2.0f * inv_width, 0.0f, 0.0f, 0.0f, 
+		return mat4x4(2.0f * inv_width, 0.0f, 0.0f, 0.0f, 
 						0.0f, 2.0f * inv_height, 0.0f, 
 						0.0f, 0.0f, 0.0f, -inv_depth, 
 						0.0f, -(right + left) * inv_width, -(top + bottom) * inv_height, 1.0f + near_plane * inv_depth, 1.0f);
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::ortho(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
+	mat4x4 mat4x4::ortho(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
 	{
 		const f32 inv_width	 = 1.0f / (right - left);
 		const f32 inv_height = 1.0f / (top - bottom);
 		const f32 inv_depth	 = 1.0f / (near_plane - far_plane);
 
 		// clang-format off
-		return matrix4x4(
+		return mat4x4(
 						2.0f * inv_width,  0.0f,              0.0f, 0.0f,
 						0.0f,              2.0f * inv_height, 0.0f, 0.0f,
 						0.0f,              0.0f,              inv_depth, 0.0f,
@@ -213,7 +213,7 @@ namespace SFG
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::perspective_reverse_z(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
+	mat4x4 mat4x4::perspective_reverse_z(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
 	{
 		const f32 fov_rad	   = math::degrees_to_radians(fov_y_degrees);
 		const f32 tan_half_fov = math::tan(0.5f * fov_rad);
@@ -221,7 +221,7 @@ namespace SFG
 		const f32 inv_nf	   = 1.0f / (far_plane - near_plane);
 
 		// clang-format off
-		return matrix4x4(
+		return mat4x4(
 			f / aspect_ratio, 0.0f, 0.0f, 0.0f, 
 			0.0f, f, 0.0f, 0.0f, 
 			0.0f, 0.0f, near_plane * inv_nf, -1.0f,
@@ -229,7 +229,7 @@ namespace SFG
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::perspective(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
+	mat4x4 mat4x4::perspective(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
 	{
 		const f32 fov_rad	   = math::degrees_to_radians(fov_y_degrees);
 		const f32 tan_half_fov = math::tan(0.5f * fov_rad);
@@ -237,7 +237,7 @@ namespace SFG
 		const f32 inv_nf	   = 1.0f / (near_plane - far_plane);
 
 		// clang-format off
-		return matrix4x4(
+		return mat4x4(
 			f / aspect_ratio, 0.0f, 0.0f, 0.0f, 
 			0.0f, f, 0.0f, 0.0f, 
 			0.0f, 0.0f, far_plane * inv_nf, -1.0f,
@@ -245,43 +245,43 @@ namespace SFG
 		// clang-format on
 	}
 
-	matrix4x4 matrix4x4::transform(const vector3& position, const quat& rotation, const vector3& scale_vec)
+	mat4x4 mat4x4::transform(const vec3f& position, const quat& rotation, const vec3f& scale_vec)
 	{
-		matrix4x4 mat_s = matrix4x4::scale(scale_vec);
-		matrix4x4 mat_r = matrix4x4::rotation(rotation);
-		matrix4x4 mat_t = matrix4x4::translation(position);
+		mat4x4 mat_s = mat4x4::scale(scale_vec);
+		mat4x4 mat_r = mat4x4::rotation(rotation);
+		mat4x4 mat_t = mat4x4::translation(position);
 
 		return mat_t * mat_r * mat_s;
 	}
 
-	matrix4x4 matrix4x4::look_at(const vector3& eye, const vector3& target, const vector3& up_vec)
+	mat4x4 mat4x4::look_at(const vec3f& eye, const vec3f& target, const vec3f& up_vec)
 	{
-		vector3	  z_axis = (eye - target).normalized();
-		vector3	  x_axis = vector3::cross(up_vec, z_axis).normalized();
-		vector3	  y_axis = vector3::cross(z_axis, x_axis);
-		matrix4x4 result = matrix4x4(x_axis.x, y_axis.x, z_axis.x, 0.0f, x_axis.y, y_axis.y, z_axis.y, 0.0f, x_axis.z, y_axis.z, z_axis.z, 0.0f, -vector3::dot(x_axis, eye), -vector3::dot(y_axis, eye), -vector3::dot(z_axis, eye), 1.0f);
+		vec3f	  z_axis = (eye - target).normalized();
+		vec3f	  x_axis = vec3f::cross(up_vec, z_axis).normalized();
+		vec3f	  y_axis = vec3f::cross(z_axis, x_axis);
+		mat4x4 result = mat4x4(x_axis.x, y_axis.x, z_axis.x, 0.0f, x_axis.y, y_axis.y, z_axis.y, 0.0f, x_axis.z, y_axis.z, z_axis.z, 0.0f, -vec3f::dot(x_axis, eye), -vec3f::dot(y_axis, eye), -vec3f::dot(z_axis, eye), 1.0f);
 		return result;
 	}
 
-	matrix4x4 matrix4x4::view(const quat& rot, const vector3& pos)
+	mat4x4 mat4x4::view(const quat& rot, const vec3f& pos)
 	{
-		const matrix4x4 rot_mat		= matrix4x4::rotation(rot.inverse());
-		const matrix4x4 translation = matrix4x4::translation(-pos);
+		const mat4x4 rot_mat		= mat4x4::rotation(rot.inverse());
+		const mat4x4 translation = mat4x4::translation(-pos);
 		return rot_mat * translation;
 	}
 
-	vector3 matrix4x4::operator*(const vector3& v) const
+	vec3f mat4x4::operator*(const vec3f& v) const
 	{
-		vector4 temp_v4(v.x, v.y, v.z, 1.0f);
-		vector4 transformed_v4 = (*this) * temp_v4;
+		vec4f temp_v4(v.x, v.y, v.z, 1.0f);
+		vec4f transformed_v4 = (*this) * temp_v4;
 		if (math::abs(transformed_v4.w) < MATH_EPS)
-			return vector3(transformed_v4.x, transformed_v4.y, transformed_v4.z);
-		return vector3(transformed_v4.x / transformed_v4.w, transformed_v4.y / transformed_v4.w, transformed_v4.z / transformed_v4.w);
+			return vec3f(transformed_v4.x, transformed_v4.y, transformed_v4.z);
+		return vec3f(transformed_v4.x / transformed_v4.w, transformed_v4.y / transformed_v4.w, transformed_v4.z / transformed_v4.w);
 	}
 
-	matrix4x4 matrix4x4::operator/(f32 scalar) const
+	mat4x4 mat4x4::operator/(f32 scalar) const
 	{
-		matrix4x4 result;
+		mat4x4 result;
 		if (math::abs(scalar) < MATH_EPS)
 			return identity;
 		f32 inv_scalar = 1.0f / scalar;
@@ -292,7 +292,7 @@ namespace SFG
 		return result;
 	}
 
-	matrix4x4& matrix4x4::operator/=(f32 scalar)
+	mat4x4& mat4x4::operator/=(f32 scalar)
 	{
 		if (math::abs(scalar) < MATH_EPS)
 		{
@@ -310,7 +310,7 @@ namespace SFG
 		return *this;
 	}
 
-	bool matrix4x4::equals(const matrix4x4& other, f32 epsilon) const
+	bool mat4x4::equals(const mat4x4& other, f32 epsilon) const
 	{
 		for (int i = 0; i < 16; ++i)
 		{
@@ -322,12 +322,12 @@ namespace SFG
 		return true;
 	}
 
-	void matrix4x4::serialize(ostream& stream) const
+	void mat4x4::serialize(ostream& stream) const
 	{
 		for (int i = 0; i < 16; ++i)
 			stream << m[i];
 	}
-	void matrix4x4::deserialize(istream& stream)
+	void mat4x4::deserialize(istream& stream)
 	{
 		for (int i = 0; i < 16; ++i)
 			stream >> m[i];

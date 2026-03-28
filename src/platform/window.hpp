@@ -46,16 +46,16 @@ namespace SFG
 		// lifecycle
 		// -----------------------------------------------------------------------------
 
-		bool create(const char* title, u16 flags, const vector2i16& pos, const vector2ui16& size);
+		bool create(const char* title, u16 flags, const vec2i16& pos, const vec2u16& size);
 		void destroy();
 
 		// -----------------------------------------------------------------------------
 		// window api
 		// -----------------------------------------------------------------------------
 
-		void		set_position(const vector2i16& pos);
+		void		set_position(const vec2i16& pos);
 		void		maximize();
-		void		set_size(const vector2ui16& size);
+		void		set_size(const vec2u16& size);
 		void		set_style(window_flags flags);
 		void		bring_to_front();
 		void		confine_cursor(cursor_confinement conf);
@@ -71,16 +71,16 @@ namespace SFG
 
 		static bool is_key_down(u16 key);
 
-		inline const vector2i16 get_position() const
+		inline const vec2i16 get_position() const
 		{
 			return _position;
 		}
 
-		inline const vector2ui16 get_size() const
+		inline const vec2u16 get_size() const
 		{
 			return _size;
 		}
-		inline const vector2ui16 get_true_size() const
+		inline const vec2u16 get_true_size() const
 		{
 			return _true_size;
 		}
@@ -130,7 +130,7 @@ namespace SFG
 			_flags.set(window_flags::wf_pos_dirty, dirty);
 		}
 
-		inline const vector2i16& get_mouse_position() const
+		inline const vec2i16& get_mouse_position() const
 		{
 			return _mouse_position;
 		}
@@ -150,11 +150,11 @@ namespace SFG
 		void*				_window_handle			  = nullptr;
 		void*				_platform_handle		  = nullptr;
 		int					_prev_confinement[4];
-		vector2i16			_mouse_position		= vector2i16::zero;
-		vector2i16			_mouse_position_abs = vector2i16::zero;
-		vector2i16			_position			= vector2i16::zero;
-		vector2ui16			_true_size			= vector2ui16::zero;
-		vector2ui16			_size				= vector2ui16::zero;
+		vec2i16			_mouse_position		= vec2i16::zero;
+		vec2i16			_mouse_position_abs = vec2i16::zero;
+		vec2i16			_position			= vec2i16::zero;
+		vec2u16			_true_size			= vec2u16::zero;
+		vec2u16			_size				= vec2u16::zero;
 		bitmask<u16>		_flags				= 0;
 		vector<string>		_dropped_files;
 		static u8			s_key_down_map[512];

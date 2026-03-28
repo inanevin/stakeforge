@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vector3.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
 #endif
 
@@ -52,9 +52,9 @@ namespace SFG
 
 		static const quat identity;
 
-		vector3 get_right() const;
-		vector3 get_up() const;
-		vector3 get_forward() const;
+		vec3f get_right() const;
+		vec3f get_up() const;
+		vec3f get_forward() const;
 		quat	conjugate() const;
 		quat	inverse() const;
 		quat	normalized() const;
@@ -68,11 +68,11 @@ namespace SFG
 		void deserialize(istream& stream);
 
 		static quat	   from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
-		static vector3 to_euler(const quat& q);
-		static quat	   angle_axis(f32 angle_degrees, const vector3& axis);
+		static vec3f to_euler(const quat& q);
+		static quat	   angle_axis(f32 angle_degrees, const vec3f& axis);
 		static quat	   lerp(const quat& a, const quat& b, f32 t);
 		static quat	   slerp(const quat& a, const quat& b, f32 t);
-		static quat	   look_at(const vector3& source_point, const vector3& target_point, const vector3& up_vector);
+		static quat	   look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector);
 		static quat	   from_rotation_matrix3x3(const f32 R_m[9]);
 
 		inline bool is_identity(f32 epsilon = MATH_EPS) const
@@ -95,12 +95,12 @@ namespace SFG
 			return quat(w * other.x + x * other.w + y * other.z - z * other.y, w * other.y + y * other.w + z * other.x - x * other.z, w * other.z + z * other.w + x * other.y - y * other.x, w * other.w - x * other.x - y * other.y - z * other.z);
 		}
 
-		inline vector3 operator*(const vector3& v) const
+		inline vec3f operator*(const vec3f& v) const
 		{
 			quat p(v.x, v.y, v.z, 0.0f);
 			quat q_inv	   = this->conjugate();
 			quat rotated_p = (*this) * p * q_inv;
-			return vector3(rotated_p.x, rotated_p.y, rotated_p.z);
+			return vec3f(rotated_p.x, rotated_p.y, rotated_p.z);
 		}
 
 		inline quat operator*(f32 scalar) const
@@ -147,7 +147,7 @@ namespace SFG
 		return q * scalar;
 	}
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
 	void to_json(nlohmann::json& j, const quat& q);
 	void from_json(const nlohmann::json& j, quat& v);

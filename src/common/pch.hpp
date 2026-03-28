@@ -48,11 +48,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx/common/descriptions.hpp"
 #include "gfx/common/shader_description.hpp"
 #include "gfx/backend/backend.hpp"
-#include "resources/resource_manager.hpp"
 
 #include "io/log.hpp"
 #include "io/file_system.hpp"
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include <vendor/nhlohmann/json.hpp>
 #endif

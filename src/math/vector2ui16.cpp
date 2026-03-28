@@ -27,36 +27,36 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vector2ui16.hpp"
 #include "data/ostream.hpp"
 #include "data/istream.hpp"
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json.hpp"
 #endif
 
 namespace SFG
 {
-	vector2ui16 vector2ui16::zero = vector2ui16(0, 0);
-	vector2ui16 vector2ui16::one  = vector2ui16(1, 1);
+	vec2u16 vec2u16::zero = vec2u16(0, 0);
+	vec2u16 vec2u16::one  = vec2u16(1, 1);
 
-	void vector2ui16::serialize(ostream& out) const
+	void vec2u16::serialize(ostream& out) const
 	{
 		out << x << y;
 	}
 
-	void vector2ui16::deserialize(istream& in)
+	void vec2u16::deserialize(istream& in)
 	{
 		in >> x >> y;
 	}
 
-#ifdef SFG_TOOLMODE
+#ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vector2ui16& v)
+	void to_json(nlohmann::json& j, const vec2u16& v)
 	{
 		j = nlohmann::json::array({v.x, v.y});
 	}
 
-	void from_json(const nlohmann::json& j, vector2ui16& v)
+	void from_json(const nlohmann::json& j, vec2u16& v)
 	{
 		if (!j.is_array() || j.size() < 2)
-			throw std::runtime_error("vector2ui16 json err");
+			throw std::runtime_error("vec2u16 json err");
 		v.x = j.at(0).get<u16>();
 		v.y = j.at(1).get<u16>();
 	}
