@@ -30,4 +30,4 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T, int SZ> using array = std::array<T, SZ>;
+	template <typename T, int SZ> using array_t = std::array<T, SZ>;

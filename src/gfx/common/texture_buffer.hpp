@@ -30,8 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	struct texture_buffer
 	{
@@ -39,8 +39,8 @@ namespace SFG
 		vec2u16 size   = vec2u16::zero;
 		u8		bpp	   = 0;
 
-		void serialize(ostream& stream, bool write_addr = false) const;
-		void deserialize(istream& stream, bool read_addr = false);
+		void serialize(ostream_t& stream, bool write_addr = false) const;
+		void deserialize(istream_t& stream, bool read_addr = false);
 	};
 
 }

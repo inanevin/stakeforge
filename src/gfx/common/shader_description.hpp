@@ -39,8 +39,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	enum class blend_op : u8
 	{
@@ -172,18 +172,18 @@ namespace SFG
 
 	struct vertex_input
 	{
-		string name		= "TEXCOORD";
-		u8	   location = 0;
-		u8	   index	= 0;
-		size_t offset	= 0;
-		size_t size		= 0;
-		format format	= format::undefined;
+		string_t name	  = "TEXCOORD";
+		u8		 location = 0;
+		u8		 index	  = 0;
+		size_t	 offset	  = 0;
+		size_t	 size	  = 0;
+		format	 format	  = format::undefined;
 	};
 
 	struct shader_blob
 	{
 		shader_stage stage = {};
-		span<u8>	 data  = {};
+		span_t<u8>	 data  = {};
 	};
 
 	enum color_comp_flags
@@ -198,14 +198,14 @@ namespace SFG
 
 	struct color_blend_attachment
 	{
-		bool		 blend_enabled			= false;
-		blend_factor src_color_blend_factor = blend_factor::src_alpha;
-		blend_factor dst_color_blend_factor = blend_factor::one_minus_src_alpha;
-		blend_op	 color_blend_op			= blend_op::add;
-		blend_factor src_alpha_blend_factor = blend_factor::one;
-		blend_factor dst_alpha_blend_factor = blend_factor::zero;
-		blend_op	 alpha_blend_op			= blend_op::add;
-		bitmask<u8>	 color_comp_flags		= ccf_red | ccf_green | ccf_blue | ccf_alpha;
+		bool		  blend_enabled			 = false;
+		blend_factor  src_color_blend_factor = blend_factor::src_alpha;
+		blend_factor  dst_color_blend_factor = blend_factor::one_minus_src_alpha;
+		blend_op	  color_blend_op		 = blend_op::add;
+		blend_factor  src_alpha_blend_factor = blend_factor::one;
+		blend_factor  dst_alpha_blend_factor = blend_factor::zero;
+		blend_op	  alpha_blend_op		 = blend_op::add;
+		bitmask_t<u8> color_comp_flags		 = ccf_red | ccf_green | ccf_blue | ccf_alpha;
 	};
 
 	struct shader_color_attachment
@@ -237,17 +237,17 @@ namespace SFG
 		stencil_state front_stencil_state  = {};
 		u32			  stencil_compare_mask = 0xFF;
 		u32			  stencil_write_mask   = 0xFF;
-		bitmask<u8>	  flags				   = 0;
+		bitmask_t<u8> flags				   = 0;
 	};
 
 	struct shader_desc
 	{
-		string							vertex_entry  = "VSMain";
-		string							pixel_entry	  = "PSMain";
-		string							compute_entry = "CSMain";
-		bitmask<u16>					flags		  = 0;
-		vector<shader_color_attachment> attachments	  = {};
-		vector<vertex_input>			inputs		  = {};
+		string_t						  vertex_entry	= "VSMain";
+		string_t						  pixel_entry	= "PSMain";
+		string_t						  compute_entry = "CSMain";
+		bitmask_t<u16>					  flags			= 0;
+		vector_t<shader_color_attachment> attachments	= {};
+		vector_t<vertex_input>			  inputs		= {};
 
 		shader_depth_stencil_desc depth_stencil_desc = {};
 		logic_op				  blend_logic_op	 = logic_op::and_;
@@ -262,29 +262,29 @@ namespace SFG
 		f32 depth_bias_clamp	= 0.0f;
 		f32 depth_bias_slope	= 0.0f;
 
-		string debug_name = "shader";
+		string_t debug_name = "shader";
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
 	struct compile_variant
 	{
-		vector<shader_blob> blobs;
-		void				destroy();
+		vector_t<shader_blob> blobs;
+		void				  destroy();
 
-		void serialize(ostream& stream, bool address_only = false) const;
-		void deserialize(istream& stream, bool address_only = false);
+		void serialize(ostream_t& stream, bool address_only = false) const;
+		void deserialize(istream_t& stream, bool address_only = false);
 	};
 
 	struct pso_variant
 	{
-		shader_desc	 desc;
-		u32			 compile_variant = 0;
-		bitmask<u32> variant_flags	 = 0;
+		shader_desc	   desc;
+		u32			   compile_variant = 0;
+		bitmask_t<u32> variant_flags   = 0;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
 #ifdef SFG_JSON_SERIALIZE

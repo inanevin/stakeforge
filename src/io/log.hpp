@@ -161,10 +161,10 @@ namespace SFG
 	private:
 		template <typename T> using vector_malloc = std::vector<T, malloc_allocator_stl<T>>;
 
-		mutex					_mtx;
+		mutex_t					_mtx;
 		vector_malloc<listener> _listeners;
 #ifdef SFG_DUMP_LOG_TRACE
-		string _log_trace;
+		string_t _log_trace;
 #endif
 	};
 }

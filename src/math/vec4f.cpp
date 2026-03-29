@@ -37,14 +37,14 @@ namespace SFG
 	const vec4f vec4f::zero(0.0f, 0.0f, 0.0f, 0.0f);
 	const vec4f vec4f::one(1.0f, 1.0f, 1.0f, 1.0f);
 
-	vec4f vec4f::clamp(const vec4f& vector, const vec4f& min_vec, const vec4f& max_vec)
+	vec4f vec4f::clamp(const vec4f& vector_t, const vec4f& min_vec, const vec4f& max_vec)
 	{
-		return vec4f(math::clamp(vector.x, min_vec.x, max_vec.x), math::clamp(vector.y, min_vec.y, max_vec.y), math::clamp(vector.z, min_vec.z, max_vec.z), math::clamp(vector.w, min_vec.w, max_vec.w));
+		return vec4f(math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z), math::clamp(vector_t.w, min_vec.w, max_vec.w));
 	}
 
-	vec4f vec4f::abs(const vec4f& vector)
+	vec4f vec4f::abs(const vec4f& vector_t)
 	{
-		return vec4f(math::abs(vector.x), math::abs(vector.y), math::abs(vector.z), math::abs(vector.w));
+		return vec4f(math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z), math::abs(vector_t.w));
 	}
 
 	vec4f vec4f::min(const vec4f& a, const vec4f& b)
@@ -143,12 +143,12 @@ namespace SFG
 		return math::almost_equal(x, 0.0f, epsilon) && math::almost_equal(y, 0.0f, epsilon) && math::almost_equal(z, 0.0f, epsilon) && math::almost_equal(w, 0.0f, epsilon);
 	}
 
-	void vec4f::serialize(ostream& stream) const
+	void vec4f::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
 
-	void vec4f::deserialize(istream& stream)
+	void vec4f::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}

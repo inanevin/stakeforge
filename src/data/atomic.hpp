@@ -30,5 +30,5 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T> using atomic = std::atomic<T>;
+	template <typename T> using atomic_t = std::atomic<T>;
 }

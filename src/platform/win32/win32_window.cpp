@@ -105,7 +105,7 @@ namespace SFG
 
 		static BOOL CALLBACK EnumMonitorsProc(HMONITOR hMon, HDC, LPRECT, LPARAM lParam)
 		{
-			auto* out = reinterpret_cast<vector<monitor_info>*>(lParam);
+			auto* out = reinterpret_cast<vector_t<monitor_info>*>(lParam);
 
 			MONITORINFO mi{};
 			mi.cbSize = sizeof(mi);
@@ -896,7 +896,7 @@ namespace SFG
 		return _true_size.x == _monitor_info.work_size.x && _true_size.y == _monitor_info.work_size.y;
 	}
 
-	void window::query_all_monitors(vector<monitor_info>& out_info)
+	void window::query_all_monitors(vector_t<monitor_info>& out_info)
 	{
 		EnumDisplayMonitors(nullptr, nullptr, EnumMonitorsProc, reinterpret_cast<LPARAM>(&out_info));
 	}

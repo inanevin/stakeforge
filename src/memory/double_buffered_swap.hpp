@@ -56,6 +56,6 @@ namespace SFG
 		u32 _sz = 0;
 #endif
 
-		atomic<u8> _index{0};
+		atomic_t<u8> _index{0};
 	};
 }

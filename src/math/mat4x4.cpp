@@ -322,12 +322,12 @@ namespace SFG
 		return true;
 	}
 
-	void mat4x4::serialize(ostream& stream) const
+	void mat4x4::serialize(ostream_t& stream) const
 	{
 		for (int i = 0; i < 16; ++i)
 			stream << m[i];
 	}
-	void mat4x4::deserialize(istream& stream)
+	void mat4x4::deserialize(istream_t& stream)
 	{
 		for (int i = 0; i < 16; ++i)
 			stream >> m[i];

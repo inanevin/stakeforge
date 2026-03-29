@@ -57,7 +57,7 @@ namespace SFG
 
 	void log::log_impl(log_level level, const char* func, const char* msg)
 	{
-		string msg_str = func == nullptr ? (string(msg)) : (string(func) + "() -> " + string(msg));
+		string_t msg_str = func == nullptr ? (string_t(msg)) : (string_t(func) + "() -> " + string_t(msg));
 		msg_str += "\n";
 
 #ifdef SFG_DUMP_LOG_TRACE

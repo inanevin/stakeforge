@@ -36,16 +36,16 @@ namespace SFG
 	{
 
 	public:
-		static color  lerp(const color& c1, const color& c2, f32 a);
-		static color  from_hex(const string& hex);
-		static string to_hex(const color& color);
-		static color  hs_to_srgb(const color& color);
-		static color  srgb_to_hsv(const color& color);
-		static color  hsv_to_srgb(const color& color);
-		static color  srgb_to_linear(const color& color);
-		static color  linear_to_srgb(const color& color);
-		static color  brighten(const color& color, f32 amt);
-		static color  darken(const color& color, f32 amt);
+		static color	lerp(const color& c1, const color& c2, f32 a);
+		static color	from_hex(const string_t& hex);
+		static string_t to_hex(const color& color);
+		static color	hs_to_srgb(const color& color);
+		static color	srgb_to_hsv(const color& color);
+		static color	hsv_to_srgb(const color& color);
+		static color	srgb_to_linear(const color& color);
+		static color	linear_to_srgb(const color& color);
+		static color	brighten(const color& color, f32 amt);
+		static color	darken(const color& color, f32 amt);
 	};
 
 } // namespace SFG

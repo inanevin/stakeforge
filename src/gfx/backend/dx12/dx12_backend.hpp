@@ -187,7 +187,7 @@ namespace SFG
 
 		struct bind_group
 		{
-			vector<group_binding> bindings;
+			vector_t<group_binding> bindings;
 		};
 
 		struct command_buffer
@@ -202,7 +202,7 @@ namespace SFG
 			Microsoft::WRL::ComPtr<ID3D12CommandAllocator> ptr;
 		};
 
-		struct queue
+		struct queue_t
 		{
 			Microsoft::WRL::ComPtr<ID3D12CommandQueue> ptr;
 		};
@@ -223,15 +223,15 @@ namespace SFG
 		void reset_command_buffer(gfx_id cmd_buffer);
 		void reset_command_buffer_transfer(gfx_id cmd_buffer);
 		void close_command_buffer(gfx_id cmd_buffer);
-		void submit_commands(gfx_id queue, const gfx_id* commands, u8 commands_count);
-		void queue_wait(gfx_id queue, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
-		void queue_signal(gfx_id queue, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
+		void submit_commands(gfx_id queue_t, const gfx_id* commands, u8 commands_count);
+		void queue_wait(gfx_id queue_t, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
+		void queue_signal(gfx_id queue_t, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
 		void present(const gfx_id* swapchains, u8 swapchain_count);
 		u8	 get_back_buffer_index(gfx_id swapchain);
 		void wait_for_swapchain_latency(gfx_id swapchain);
 
-		bool compile_shader_vertex_pixel(u8 stage, const string& source, const vector<string>& defines, const vector<string>& source_paths, const char* entry, span<u8>& out, bool compile_layout, span<u8>& out_layout) const;
-		bool compile_shader_compute(const string& source, const vector<string>& source_paths, const char* entry, span<u8>& out, bool compile_layout, span<u8>& out_layout) const;
+		bool compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const;
+		bool compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const;
 
 		u32	   get_resource_gpu_index(gfx_id resource, bool use_secondary = false);
 		u32	   get_texture_gpu_index(gfx_id texture, u8 view_index);
@@ -242,7 +242,7 @@ namespace SFG
 		gfx_id create_swapchain(const swapchain_desc&);
 		gfx_id recreate_swapchain(const swapchain_recreate_desc& desc);
 		gfx_id create_semaphore();
-		gfx_id create_shader(const shader_desc& desc, const vector<shader_blob>& blobs, gfx_id existing_layout, span<u8> layout_data = {});
+		gfx_id create_shader(const shader_desc& desc, const vector_t<shader_blob>& blobs, gfx_id existing_layout, span_t<u8> layout_data = {});
 		gfx_id create_empty_bind_group();
 		gfx_id create_command_buffer(const command_buffer_desc& desc);
 		gfx_id create_command_allocator(u8 ctype);
@@ -256,13 +256,13 @@ namespace SFG
 		void   bind_group_add_pointer(gfx_id group, u8 root_param_index, u8 count, bool is_sampler);
 		void   bind_layout_add_constant(gfx_id layout, u32 count, u32 set, u32 binding, u8 shader_stage_visibility);
 		void   bind_layout_add_descriptor(gfx_id layout, u8 type, u32 set, u32 binding, u8 shader_stage_visibility);
-		void   bind_layout_add_pointer(gfx_id layout, const vector<bind_layout_pointer_param>& pointer_params, u8 shader_stage_visibility);
+		void   bind_layout_add_pointer(gfx_id layout, const vector_t<bind_layout_pointer_param>& pointer_params, u8 shader_stage_visibility);
 		void   bind_layout_add_immutable_sampler(gfx_id layout, u32 set, u32 binding, const sampler_desc& desc, u8 shader_stage_visibility);
 		void   finalize_bind_layout(gfx_id id, bool is_compute, bool is_dyn_index, const char* name);
 		void   bind_group_update_constants(gfx_id group, u8 binding_index, u8* constants, u8 count);
 		void   bind_group_update_descriptor(gfx_id group, u8 binding_index, gfx_id resource);
 		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const bind_group_pointer* updates, u16 update_count);
-		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const vector<bind_group_pointer>& updates);
+		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const vector_t<bind_group_pointer>& updates);
 
 		void destroy_resource(gfx_id id);
 		void destroy_texture(gfx_id id);
@@ -373,7 +373,7 @@ namespace SFG
 		pool_allocator<bind_group, gfx_id, MAX_BIND_GROUPS>				  _bind_groups;
 		pool_allocator<command_buffer, gfx_id, MAX_COMMAND_BUFFERS>		  _command_buffers;
 		pool_allocator<command_allocator, gfx_id, MAX_COMMAND_BUFFERS>	  _command_allocators;
-		pool_allocator<queue, gfx_id, MAX_QUEUES>						  _queues;
+		pool_allocator<queue_t, gfx_id, MAX_QUEUES>						  _queues;
 		pool_allocator<indirect_signature, gfx_id, 255>					  _indirect_signatures;
 		pool_allocator<descriptor_handle, gfx_id, MAX_DESCRIPTOR_HANDLES> _descriptors;
 		pool_allocator<bind_layout, gfx_id, MAX_BIND_LAYOUTS>			  _bind_layouts;
@@ -394,15 +394,15 @@ namespace SFG
 		gfx_id _queue_compute	  = 0;
 		bool   _tearing_supported = false;
 
-		vector<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_buffer	= {};
-		vector<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_sampler = {};
-		vector<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_src_descriptors_buffer	= {};
-		vector<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_src_descriptors_sampler	= {};
-		vector<CD3DX12_ROOT_PARAMETER1>		_reuse_root_params				= {};
-		vector<CD3DX12_DESCRIPTOR_RANGE1>	_reuse_root_ranges				= {};
-		vector<D3D12_STATIC_SAMPLER_DESC>	_reuse_static_samplers			= {};
+		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_buffer  = {};
+		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_sampler = {};
+		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_src_descriptors_buffer	  = {};
+		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_src_descriptors_sampler  = {};
+		vector_t<CD3DX12_ROOT_PARAMETER1>	  _reuse_root_params			  = {};
+		vector_t<CD3DX12_DESCRIPTOR_RANGE1>	  _reuse_root_ranges			  = {};
+		vector_t<D3D12_STATIC_SAMPLER_DESC>	  _reuse_static_samplers		  = {};
 
-		static_vector<descriptor_handle, 24> _external_descriptors;
+		static_vector_t<descriptor_handle, 24> _external_descriptors;
 
 		friend class app;
 

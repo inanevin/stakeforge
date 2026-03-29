@@ -30,5 +30,5 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T, typename U> using pair = std::pair<T, U>;
+	template <typename T, typename U> using pair_t = std::pair<T, U>;
 }

@@ -207,9 +207,9 @@ namespace SFG
 		};
 	}
 
-	vector<vertex_input> gfx_util::get_input_layout(input_layout_type type)
+	vector_t<vertex_input> gfx_util::get_input_layout(input_layout_type type)
 	{
-		vector<vertex_input> inputs;
+		vector_t<vertex_input> inputs;
 
 		switch (type)
 		{

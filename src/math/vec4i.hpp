@@ -30,8 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	class vec4i
 	{
@@ -42,8 +42,8 @@ namespace SFG
 		static vec4i zero;
 		static vec4i one;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		vec4i operator-(const vec4i& other) const
 		{

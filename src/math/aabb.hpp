@@ -31,8 +31,8 @@ namespace SFG
 {
 	struct plane;
 
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	struct aabb
 	{
@@ -55,8 +55,8 @@ namespace SFG
 
 		void remove(const aabb& other);
 		void add(const aabb& other);
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		inline void update_half_extents()
 		{

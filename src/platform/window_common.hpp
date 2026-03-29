@@ -101,6 +101,6 @@ namespace SFG
 		u16					  button;
 		window_event_type	  type	   = window_event_type::key;
 		window_event_sub_type sub_type = window_event_sub_type::press;
-		bitmask<u8>			  flags	   = 0;
+		bitmask_t<u8>		  flags	   = 0;
 	};
 }

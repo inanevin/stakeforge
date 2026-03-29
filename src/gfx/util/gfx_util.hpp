@@ -148,6 +148,6 @@ namespace SFG
 		static sampler_desc			  get_sampler_desc_shadow_2d();
 		static sampler_desc			  get_sampler_desc_shadow_cube();
 		static color_blend_attachment get_blend_attachment_alpha_blending();
-		static vector<vertex_input>	  get_input_layout(input_layout_type type);
+		static vector_t<vertex_input> get_input_layout(input_layout_type type);
 	};
 }

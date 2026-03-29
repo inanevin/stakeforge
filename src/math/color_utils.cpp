@@ -39,7 +39,7 @@ namespace SFG
 		return color(easing::lerp(c1.x, c2.x, a), easing::lerp(c1.y, c2.y, a), easing::lerp(c1.z, c2.z, a), easing::lerp(c1.w, c2.w, a));
 	}
 
-	color color_utils::from_hex(const string& hex)
+	color color_utils::from_hex(const string_t& hex)
 	{
 		if (hex.size() != 7)
 			return color::black;
@@ -57,7 +57,7 @@ namespace SFG
 		return color{static_cast<f32>(r) / 255.0f, static_cast<f32>(g) / 255.0f, static_cast<f32>(b) / 255.0f, 1.0f};
 	}
 
-	string color_utils::to_hex(const color& color)
+	string_t color_utils::to_hex(const color& color)
 	{
 		const i32		  r = static_cast<i32>(color.x * 255);
 		const i32		  g = static_cast<i32>(color.y * 255);

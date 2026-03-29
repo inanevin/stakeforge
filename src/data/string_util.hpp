@@ -34,19 +34,19 @@ namespace SFG
 {
 	namespace string_util
 	{
-		string		   remove_all_except_first(const string& str, const string& delimiter);
+		string_t	   remove_all_except_first(const string_t& str, const string_t& delimiter);
 		int			   append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
-		void		   replace_all(string& str, const string& to_replace, const string& replacement);
-		void		   to_upper(string& str);
-		void		   to_lower(string& str);
-		void		   remove_whitespace(string& str);
-		wstring		   to_wstr(const string& string);
-		void		   split(vector<string>& out, const string& str, const string& split);
+		void		   replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
+		void		   to_upper(string_t& str);
+		void		   to_lower(string_t& str);
+		void		   remove_whitespace(string_t& str);
+		wstring_t	   to_wstr(const string_t& string_t);
+		void		   split(vector_t<string_t>& out, const string_t& str, const string_t& split);
 		char*		   wchar_to_char(const wchar_t* wch);
 		const wchar_t* char_to_wchar(const char* ch);
-		bool		   to_float(const string& str, f32& out_f, u32& out_decimals, char seperator = '.');
-		bool		   to_int(const string& str, int& out_i);
-		bool		   to_big_uint(const string& str, u64& out_i);
+		bool		   to_float(const string_t& str, f32& out_f, u32& out_decimals, char seperator = '.');
+		bool		   to_int(const string_t& str, int& out_i);
+		bool		   to_big_uint(const string_t& str, u64& out_i);
 	}
 
 }

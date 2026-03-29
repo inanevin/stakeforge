@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	void texture_buffer::serialize(ostream& stream, bool write_addr) const
+	void texture_buffer::serialize(ostream_t& stream, bool write_addr) const
 	{
 		stream << size;
 		stream << bpp;
@@ -47,7 +47,7 @@ namespace SFG
 			stream.write_raw(pixels, sz);
 		}
 	}
-	void texture_buffer::deserialize(istream& stream, bool read_addr)
+	void texture_buffer::deserialize(istream_t& stream, bool read_addr)
 	{
 		stream >> size;
 		stream >> bpp;

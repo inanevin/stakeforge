@@ -34,8 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	class istream;
-	class ostream;
+	class istream_t;
+	class ostream_t;
 
 	struct vec2u16
 	{
@@ -46,8 +46,8 @@ namespace SFG
 		static vec2u16 zero;
 		static vec2u16 one;
 
-		void serialize(ostream& out) const;
-		void deserialize(istream& in);
+		void serialize(ostream_t& out) const;
+		void deserialize(istream_t& in);
 
 		inline bool operator==(const vec2u16& other) const
 		{

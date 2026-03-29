@@ -36,8 +36,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class istream;
-	class ostream;
+	class istream_t;
+	class ostream_t;
 
 	class vec4f
 	{
@@ -55,8 +55,8 @@ namespace SFG
 		static const vec4f zero;
 		static const vec4f one;
 
-		static vec4f clamp(const vec4f& vector, const vec4f& min, const vec4f& max);
-		static vec4f abs(const vec4f& vector);
+		static vec4f clamp(const vec4f& vector_t, const vec4f& min, const vec4f& max);
+		static vec4f abs(const vec4f& vector_t);
 		static vec4f min(const vec4f& a, const vec4f& b);
 		static vec4f max(const vec4f& a, const vec4f& b);
 		static f32	 dot(const vec4f& a, const vec4f& b);
@@ -68,8 +68,8 @@ namespace SFG
 		f32			 magnitude() const;
 		f32			 magnitude_sqr() const;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		inline bool is_point_inside(f32 _x, f32 _y) const
 		{
@@ -157,9 +157,9 @@ namespace SFG
 		}
 	};
 
-	inline vec4f operator*(f32 scalar, const vec4f& vector)
+	inline vec4f operator*(f32 scalar, const vec4f& vector_t)
 	{
-		return vector * scalar;
+		return vector_t * scalar;
 	}
 
 #ifdef SFG_JSON_SERIALIZE

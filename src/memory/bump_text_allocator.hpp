@@ -33,7 +33,7 @@ namespace SFG
 	class bump_text_allocator
 	{
 	public:
-		struct string_view
+		struct string_view_t
 		{
 			const char* ptr;
 			size_t		sz;
@@ -82,7 +82,7 @@ namespace SFG
 		// append utilities
 		// -----------------------------------------------------------------------------
 
-		bool append(string_view s);
+		bool append(string_view_t s);
 		bool append(const char* s);
 		bool append(char c);
 		bool append(i32 v);

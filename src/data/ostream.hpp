@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream
+	class ostream_t
 	{
 	public:
 		void create(size_t size);
@@ -87,7 +87,7 @@ namespace SFG
 	};
 
 	// arithmetic
-	template <typename T> std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, ostream&> operator<<(ostream& stream, T&& val)
+	template <typename T> std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, ostream_t&> operator<<(ostream_t& stream, T&& val)
 	{
 		using U = std::remove_cv_t<std::remove_reference_t<T>>;
 		U copy	= static_cast<U>(val);
@@ -98,7 +98,7 @@ namespace SFG
 	}
 
 	// string
-	inline ostream& operator<<(ostream& stream, const string& val)
+	inline ostream_t& operator<<(ostream_t& stream, const string_t& val)
 	{
 		const u32 sz = static_cast<u32>(val.size());
 		stream << sz;
@@ -107,7 +107,7 @@ namespace SFG
 	}
 
 	// enums
-	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, ostream&> operator<<(ostream& stream, T&& val)
+	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, ostream_t&> operator<<(ostream_t& stream, T&& val)
 	{
 		const u8 u = static_cast<u8>(val);
 		stream << u;
@@ -115,7 +115,7 @@ namespace SFG
 	}
 
 	// classes with serialize()
-	template <typename T> auto operator<<(ostream& stream, T&& val) -> decltype(val.serialize(stream), stream)
+	template <typename T> auto operator<<(ostream_t& stream, T&& val) -> decltype(val.serialize(stream), stream)
 	{
 		val.serialize(stream);
 		return stream;

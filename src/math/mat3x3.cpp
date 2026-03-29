@@ -127,13 +127,13 @@ namespace SFG
 		return R;
 	}
 
-	void mat3x3::serialize(ostream& stream) const
+	void mat3x3::serialize(ostream_t& stream) const
 	{
 		for (int i = 0; i < 9; ++i)
 			stream << m[i];
 	}
 
-	void mat3x3::deserialize(istream& stream)
+	void mat3x3::deserialize(istream_t& stream)
 	{
 		for (int i = 0; i < 9; ++i)
 			stream >> m[i];

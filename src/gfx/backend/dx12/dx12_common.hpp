@@ -34,11 +34,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	inline string HrToString(HRESULT hr)
+	inline string_t HrToString(HRESULT hr)
 	{
 		char s_str[64] = {};
 		sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<UINT>(hr));
-		return string(s_str);
+		return string_t(s_str);
 	}
 
 	class HrException : public std::runtime_error

@@ -42,9 +42,9 @@ namespace SFG
 	const vec3f vec3f::forward(0.0f, 0.0f, -1.0f);
 	const vec3f vec3f::right(1.0f, 0.0f, 0.0f);
 
-	vec3f vec3f::clamp(const vec3f& vector, const vec3f& min_vec, const vec3f& max_vec)
+	vec3f vec3f::clamp(const vec3f& vector_t, const vec3f& min_vec, const vec3f& max_vec)
 	{
-		return vec3f(math::clamp(vector.x, min_vec.x, max_vec.x), math::clamp(vector.y, min_vec.y, max_vec.y), math::clamp(vector.z, min_vec.z, max_vec.z));
+		return vec3f(math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z));
 	}
 
 	vec3f vec3f::cross(const vec3f& a, const vec3f& b)
@@ -52,9 +52,9 @@ namespace SFG
 		return vec3f(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 	}
 
-	vec3f vec3f::abs(const vec3f& vector)
+	vec3f vec3f::abs(const vec3f& vector_t)
 	{
-		return vec3f(math::abs(vector.x), math::abs(vector.y), math::abs(vector.z));
+		return vec3f(math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z));
 	}
 
 	vec3f vec3f::min(const vec3f& a, const vec3f& b)
@@ -138,12 +138,12 @@ namespace SFG
 		return x * x + y * y + z * z;
 	}
 
-	void vec3f::serialize(ostream& stream) const
+	void vec3f::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z;
 	}
 
-	void vec3f::deserialize(istream& stream)
+	void vec3f::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z;
 	}

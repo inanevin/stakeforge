@@ -43,8 +43,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	struct viewport
 	{
@@ -157,30 +157,30 @@ namespace SFG
 
 	struct swapchain_desc
 	{
-		void*		window	  = nullptr;
-		void*		os_handle = nullptr;
-		f32			scaling	  = 1.0f;
-		format		format	  = format::undefined;
-		vec2u16		pos		  = vec2u16::zero;
-		vec2u16		size	  = vec2u16::zero;
-		bitmask<u8> flags	  = 0;
+		void*		  window	= nullptr;
+		void*		  os_handle = nullptr;
+		f32			  scaling	= 1.0f;
+		format		  format	= format::undefined;
+		vec2u16		  pos		= vec2u16::zero;
+		vec2u16		  size		= vec2u16::zero;
+		bitmask_t<u8> flags		= 0;
 	};
 
 	struct swapchain_recreate_desc
 	{
-		vec2u16		size	  = vec2u16::zero;
-		gfx_id		swapchain = 0;
-		f32			scaling	  = 1.0f;
-		bitmask<u8> flags	  = 0;
+		vec2u16		  size		= vec2u16::zero;
+		gfx_id		  swapchain = 0;
+		f32			  scaling	= 1.0f;
+		bitmask_t<u8> flags		= 0;
 	};
 
 	struct resource_desc
 	{
-		u32			 size			 = 0;
-		u32			 structure_size	 = 0;
-		u32			 structure_count = 0;
-		bitmask<u16> flags			 = 0;
-		const char*	 debug_name		 = "resource";
+		u32			   size			   = 0;
+		u32			   structure_size  = 0;
+		u32			   structure_count = 0;
+		bitmask_t<u16> flags		   = 0;
+		const char*	   debug_name	   = "resource";
 	};
 
 	enum class view_type : u8
@@ -203,11 +203,11 @@ namespace SFG
 
 	struct texture_desc
 	{
-		format			  texture_format	   = format::r8g8b8a8_srgb;
-		format			  depth_stencil_format = format::d16_unorm;
-		vec2u16			  size				   = vec2u16::zero;
-		bitmask<u16>	  flags				   = 0;
-		vector<view_desc> views				   = {
+		format				texture_format		 = format::r8g8b8a8_srgb;
+		format				depth_stencil_format = format::d16_unorm;
+		vec2u16				size				 = vec2u16::zero;
+		bitmask_t<u16>		flags				 = 0;
+		vector_t<view_desc> views				 = {
 			   {},
 		   };
 		u8			mip_levels		= 1;
@@ -219,21 +219,21 @@ namespace SFG
 
 	struct sampler_desc
 	{
-		string		 debug_name = "sampler";
-		u32			 anisotropy = 0;
-		f32			 min_lod	= 0.0f;
-		f32			 max_lod	= 1.0f;
-		f32			 lod_bias	= 0.0f;
-		bitmask<u16> flags		= 0;
-		address_mode address_u	= address_mode::clamp;
-		address_mode address_v	= address_mode::clamp;
-		address_mode address_w	= address_mode::clamp;
-		compare_op	 compare	= {};
+		string_t	   debug_name = "sampler";
+		u32			   anisotropy = 0;
+		f32			   min_lod	  = 0.0f;
+		f32			   max_lod	  = 1.0f;
+		f32			   lod_bias	  = 0.0f;
+		bitmask_t<u16> flags	  = 0;
+		address_mode   address_u  = address_mode::clamp;
+		address_mode   address_v  = address_mode::clamp;
+		address_mode   address_w  = address_mode::clamp;
+		compare_op	   compare	  = {};
 
 		bool operator==(const sampler_desc& other) const;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
 	struct layout_entry
@@ -247,8 +247,8 @@ namespace SFG
 
 	struct binding
 	{
-		vector<layout_entry> entry_table;
-		shader_stage		 visibility;
+		vector_t<layout_entry> entry_table;
+		shader_stage		   visibility;
 	};
 
 	struct bind_layout_pointer_param
@@ -278,15 +278,15 @@ namespace SFG
 
 	struct binding_update
 	{
-		u32					 binding_index	= 0;
-		vector<binding_type> resource_types = {};
-		vector<gfx_id>		 resources		= {};
-		vector<u32>			 resource_views = {};
+		u32					   binding_index  = 0;
+		vector_t<binding_type> resource_types = {};
+		vector_t<gfx_id>	   resources	  = {};
+		vector_t<u32>		   resource_views = {};
 	};
 
 	struct bind_group_update_desc
 	{
-		vector<binding_update> updates;
+		vector_t<binding_update> updates;
 	};
 
 	struct queue_desc

@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	typedef std::mutex mutex;
+	typedef std::mutex mutex_t;
 
-#define LOCK_GUARD(X) std::lock_guard<mutex> lock_guard(X)
+#define LOCK_GUARD(X) std::lock_guard<mutex_t> lock_guard(X)
 }

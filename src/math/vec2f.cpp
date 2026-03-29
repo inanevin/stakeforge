@@ -46,24 +46,24 @@ namespace SFG
 		y = static_cast<f32>(v.y);
 	}
 
-	vec2f vec2f::clamp(const vec2f& vector, const vec2f& min_vec, const vec2f& max_vec)
+	vec2f vec2f::clamp(const vec2f& vector_t, const vec2f& min_vec, const vec2f& max_vec)
 	{
-		return vec2f(math::max(min_vec.x, math::min(vector.x, max_vec.x)), math::max(min_vec.y, math::min(vector.y, max_vec.y)));
+		return vec2f(math::max(min_vec.x, math::min(vector_t.x, max_vec.x)), math::max(min_vec.y, math::min(vector_t.y, max_vec.y)));
 	}
 
-	vec2f vec2f::clamp_magnitude(const vec2f& vector, f32 max_length)
+	vec2f vec2f::clamp_magnitude(const vec2f& vector_t, f32 max_length)
 	{
-		f32 mag = vector.magnitude();
+		f32 mag = vector_t.magnitude();
 		if (mag > max_length)
 		{
-			return vector.normalized() * max_length;
+			return vector_t.normalized() * max_length;
 		}
-		return vector;
+		return vector_t;
 	}
 
-	vec2f vec2f::abs(const vec2f& vector)
+	vec2f vec2f::abs(const vec2f& vector_t)
 	{
-		return vec2f(math::abs(vector.x), math::abs(vector.y));
+		return vec2f(math::abs(vector_t.x), math::abs(vector_t.y));
 	}
 
 	vec2f vec2f::min(const vec2f& a, const vec2f& b)
@@ -130,12 +130,12 @@ namespace SFG
 		return x * x + y * y;
 	}
 
-	void vec2f::serialize(ostream& stream) const
+	void vec2f::serialize(ostream_t& stream) const
 	{
 		stream << x << y;
 	}
 
-	void vec2f::deserialize(istream& stream)
+	void vec2f::deserialize(istream_t& stream)
 	{
 		stream >> x >> y;
 	}

@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T, int N> class static_vector
+	template <typename T, int N> class static_vector_t
 	{
 	public:
 		using value_type	  = T;
@@ -44,17 +44,17 @@ namespace SFG
 
 		static constexpr size_type capacity = N;
 
-		static_vector() : _head(0)
+		static_vector_t() : _head(0)
 		{
 		}
 
-		static_vector(value_type v) : _head(0)
+		static_vector_t(value_type v) : _head(0)
 		{
 			for (int i = 0; i < capacity; i++)
 				_data[i] = v;
 		}
 
-		constexpr static_vector(std::initializer_list<T> ilist)
+		constexpr static_vector_t(std::initializer_list<T> ilist)
 		{
 			_head = 0;
 			SFG_ASSERT(ilist.size() <= N && "initializer list too big");

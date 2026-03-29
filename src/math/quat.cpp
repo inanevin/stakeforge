@@ -314,11 +314,11 @@ namespace SFG
 		return math::almost_equal(x, other.x, epsilon) && math::almost_equal(y, other.y, epsilon) && math::almost_equal(z, other.z, epsilon) && math::almost_equal(w, other.w, epsilon);
 	}
 
-	void quat::serialize(ostream& stream) const
+	void quat::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
-	void quat::deserialize(istream& stream)
+	void quat::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}

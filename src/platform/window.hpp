@@ -62,7 +62,7 @@ namespace SFG
 		void		set_cursor_visible(bool vis);
 		static void set_cursor_state(cursor_state cs);
 		bool		is_maximized() const;
-		static void query_all_monitors(vector<monitor_info>& out_info);
+		static void query_all_monitors(vector_t<monitor_info>& out_info);
 		static f32	get_wheel_delta();
 
 		// -----------------------------------------------------------------------------
@@ -94,7 +94,7 @@ namespace SFG
 			return _platform_handle;
 		}
 
-		inline const bitmask<u16>& get_flags() const
+		inline const bitmask_t<u16>& get_flags() const
 		{
 			return _flags;
 		}
@@ -110,7 +110,7 @@ namespace SFG
 			_event_callback_user_data = user_data;
 		}
 
-		inline const vector<string>& get_dropped_files() const
+		inline const vector_t<string_t>& get_dropped_files() const
 		{
 			return _dropped_files;
 		}
@@ -155,8 +155,8 @@ namespace SFG
 		vec2i16				_position			= vec2i16::zero;
 		vec2u16				_true_size			= vec2u16::zero;
 		vec2u16				_size				= vec2u16::zero;
-		bitmask<u16>		_flags				= 0;
-		vector<string>		_dropped_files;
+		bitmask_t<u16>		_flags				= 0;
+		vector_t<string_t>	_dropped_files;
 		static u8			s_key_down_map[512];
 		static cursor_state s_cursor_state;
 	};

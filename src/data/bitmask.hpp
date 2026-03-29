@@ -31,13 +31,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	template <typename T> class bitmask
+	template <typename T> class bitmask_t
 	{
 	public:
-		bitmask()  = default;
-		~bitmask() = default;
+		bitmask_t()	 = default;
+		~bitmask_t() = default;
 
-		bitmask(T m) : _mask(m){};
+		bitmask_t(T m) : _mask(m){};
 
 		inline bool is_set(T m) const
 		{
@@ -72,7 +72,7 @@ namespace SFG
 			return _mask;
 		}
 
-		inline bool operator==(const bitmask<T>& other) const
+		inline bool operator==(const bitmask_t<T>& other) const
 		{
 			return _mask == other._mask;
 		}
@@ -81,7 +81,7 @@ namespace SFG
 		T _mask = 0;
 	};
 
-	typedef bitmask<u8>	 bitmask8;
-	typedef bitmask<u16> bitmask16;
-	typedef bitmask<u32> bitmask32;
+	typedef bitmask_t<u8>  bitmask8_t;
+	typedef bitmask_t<u16> bitmask16_t;
+	typedef bitmask_t<u32> bitmask32_t;
 }

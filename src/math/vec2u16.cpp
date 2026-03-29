@@ -36,12 +36,12 @@ namespace SFG
 	vec2u16 vec2u16::zero = vec2u16(0, 0);
 	vec2u16 vec2u16::one  = vec2u16(1, 1);
 
-	void vec2u16::serialize(ostream& out) const
+	void vec2u16::serialize(ostream_t& out) const
 	{
 		out << x << y;
 	}
 
-	void vec2u16::deserialize(istream& in)
+	void vec2u16::deserialize(istream_t& in)
 	{
 		in >> x >> y;
 	}

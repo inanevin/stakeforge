@@ -50,7 +50,7 @@ namespace SFG
 		struct entry
 		{
 			std::filesystem::path* path			 = nullptr;
-			string				   str			 = "";
+			string_t			   str			 = "";
 			u64					   last_modified = 0;
 			u16					   id			 = 0;
 
@@ -92,7 +92,7 @@ namespace SFG
 	private:
 		simple_file_watcher_callback _callback	  = nullptr;
 		void*						 _callback_ud = nullptr;
-		vector<entry*>				 _paths;
+		vector_t<entry*>			 _paths;
 		u16							 _tick_interval = 1;
 		u16							 _ticks			= 0;
 	};

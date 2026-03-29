@@ -86,10 +86,10 @@ namespace SFG
 		}
 
 	private:
-		vector<allocation> _free_list;
-		char*			   _raw		 = nullptr;
-		u32				   _head	 = 0;
-		u32				   _capacity = 0;
+		vector_t<allocation> _free_list;
+		char*				 _raw	   = nullptr;
+		u32					 _head	   = 0;
+		u32					 _capacity = 0;
 	};
 
 }

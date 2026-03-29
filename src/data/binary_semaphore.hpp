@@ -30,5 +30,5 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	typedef std::binary_semaphore binary_semaphore;
+	typedef std::binary_semaphore binary_semaphore_t;
 }

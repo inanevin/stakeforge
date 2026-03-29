@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <class T, class Alloc> istream& operator>>(istream& stream, std::vector<T, Alloc>& v)
+	template <class T, class Alloc> istream_t& operator>>(istream_t& stream, std::vector<T, Alloc>& v)
 	{
 		u32 sz = 0;
 		stream >> sz;

@@ -30,15 +30,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	class serialization
 	{
 	public:
-		static bool	   write_to_file(string_view fileInput, const char* targetFilePath);
-		static bool	   save_to_file(const char* path, ostream& stream);
-		static istream load_from_file(const char* path);
+		static bool		 write_to_file(string_view_t fileInput, const char* targetFilePath);
+		static bool		 save_to_file(const char* path, ostream_t& stream);
+		static istream_t load_from_file(const char* path);
 	};
 
 }

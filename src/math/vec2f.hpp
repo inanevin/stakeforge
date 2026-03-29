@@ -38,8 +38,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class istream;
-	class ostream;
+	class istream_t;
+	class ostream_t;
 
 	struct vec2u16;
 
@@ -56,9 +56,9 @@ namespace SFG
 		static vec2f zero;
 		static vec2f one;
 
-		static vec2f clamp(const vec2f& vector, const vec2f& min, const vec2f& max);
-		static vec2f clamp_magnitude(const vec2f& vector, f32 max_length);
-		static vec2f abs(const vec2f& vector);
+		static vec2f clamp(const vec2f& vector_t, const vec2f& min, const vec2f& max);
+		static vec2f clamp_magnitude(const vec2f& vector_t, f32 max_length);
+		static vec2f abs(const vec2f& vector_t);
 		static vec2f min(const vec2f& a, const vec2f& b);
 		static vec2f max(const vec2f& a, const vec2f& b);
 		static f32	 dot(const vec2f& a, const vec2f& b);
@@ -71,8 +71,8 @@ namespace SFG
 		f32	  magnitude() const;
 		f32	  magnitude_sqr() const;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		inline vec2f operator+(const vec2f& other) const
 		{

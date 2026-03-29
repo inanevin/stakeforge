@@ -61,10 +61,10 @@ namespace SFG
 
 	struct barrier
 	{
-		u32			from_states = 0;
-		u32			to_states	= 0;
-		gfx_id		resource	= 0;
-		bitmask<u8> flags		= 0;
+		u32			  from_states = 0;
+		u32			  to_states	  = 0;
+		gfx_id		  resource	  = 0;
+		bitmask_t<u8> flags		  = 0;
 	};
 
 }

@@ -70,7 +70,7 @@ namespace SFG
 		_head = 0;
 	}
 
-	chunk_handle32 chunk_allocator32::allocate_text(const string& source)
+	chunk_handle32 chunk_allocator32::allocate_text(const string_t& source)
 	{
 		const size_t		 len	= source.size();
 		const chunk_handle32 handle = allocate<u8>(len + 1);

@@ -85,7 +85,7 @@ namespace SFG
 	class field_base
 	{
 	public:
-		typedef vector<malloc_string, malloc_allocator_stl<malloc_string>> enum_vec;
+		typedef vector_t<malloc_string, malloc_allocator_stl<malloc_string>> enum_vec;
 
 		field_base()		  = default;
 		virtual ~field_base() = default;
@@ -169,11 +169,11 @@ namespace SFG
 			reflection_function_base* ptr = nullptr;
 		};
 
-		typedef vector<function_entry, malloc_allocator_stl<function_entry>> function_vec;
-		typedef vector<field_base*, malloc_allocator_stl<field_base*>>		 field_vec;
-		typedef vector<control_button, malloc_allocator_stl<control_button>> button_vec;
+		typedef vector_t<function_entry, malloc_allocator_stl<function_entry>> function_vec;
+		typedef vector_t<field_base*, malloc_allocator_stl<field_base*>>	   field_vec;
+		typedef vector_t<control_button, malloc_allocator_stl<control_button>> button_vec;
 
-		template <auto DATA, typename Class> field_base* add_field(const string& title, reflected_field_type type, const string& tooltip, f32 min, f32 max, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
+		template <auto DATA, typename Class> field_base* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, f32 min, f32 max, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
 			using ft = field<decltype(DATA), Class>;
 
@@ -194,7 +194,7 @@ namespace SFG
 			return f;
 		}
 
-		template <auto DATA, typename Class> field_base* add_field(const string& title, reflected_field_type type, const string& tooltip, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
+		template <auto DATA, typename Class> field_base* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
 			using ft = field<decltype(DATA), Class>;
 
@@ -214,7 +214,7 @@ namespace SFG
 			return f;
 		}
 
-		void add_control_button(const string& title, const string& tooltip)
+		void add_control_button(const string_t& title, const string_t& tooltip)
 		{
 			_control_buttons.push_back({.title = title.c_str(), .tooltip = tooltip.c_str(), .sid = TO_SID(title)});
 		}
@@ -370,7 +370,7 @@ namespace SFG
 			meta	  meta;
 		};
 
-		typedef vector<meta_entry, malloc_allocator_stl<meta_entry>> meta_vec;
+		typedef vector_t<meta_entry, malloc_allocator_stl<meta_entry>> meta_vec;
 
 		static reflection& get()
 		{
@@ -386,7 +386,7 @@ namespace SFG
 			}
 		}
 
-		meta& register_meta(string_id id, u32 index, const string& tag)
+		meta& register_meta(string_id id, u32 index, const string_t& tag)
 		{
 			meta_entry* entry = find_meta_entry(id);
 			if (!entry)

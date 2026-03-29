@@ -73,7 +73,7 @@ namespace SFG
 		void push_category(const char* name);
 		void pop_category();
 
-		mutex& get_category_mtx()
+		mutex_t& get_category_mtx()
 		{
 			return _category_mtx;
 		}
@@ -97,7 +97,7 @@ namespace SFG
 		void check_leaks();
 
 	private:
-		mutex						   _category_mtx;
+		mutex_t						   _category_mtx;
 		vector_malloc<memory_category> _categories;
 		vector_malloc<u8>			   _category_ids;
 		alloc_map					   _allocations;

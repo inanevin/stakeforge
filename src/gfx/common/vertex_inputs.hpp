@@ -44,6 +44,6 @@ namespace SFG
 	class vertex_inputs
 	{
 	public:
-		static void get_vertex_inputs(vertex_input_style, vector<vertex_input>& out_inputs);
+		static void get_vertex_inputs(vertex_input_style, vector_t<vertex_input>& out_inputs);
 	};
 }

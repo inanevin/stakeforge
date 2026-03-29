@@ -49,7 +49,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, vertex_input& s)
 	{
-		s.name	   = j.value<string>("name", "");
+		s.name	   = j.value<string_t>("name", "");
 		s.location = j.value<u8>("location", 0);
 		s.index	   = j.value<u8>("index", 0);
 		s.offset   = j.value<u8>("offset", 0);
@@ -78,16 +78,16 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, shader_desc& s)
 	{
-		s.pixel_entry		  = j.value<string>("pixel_entry", "");
-		s.vertex_entry		  = j.value<string>("vertex_entry", "");
-		s.compute_entry		  = j.value<string>("compute_entry", "");
+		s.pixel_entry		  = j.value<string_t>("pixel_entry", "");
+		s.vertex_entry		  = j.value<string_t>("vertex_entry", "");
+		s.compute_entry		  = j.value<string_t>("compute_entry", "");
 		s.cull				  = j.value<cull_mode>("cull", cull_mode::back);
 		s.front				  = j.value<front_face>("front", front_face::ccw);
 		s.fill				  = j.value<fill_mode>("fill", fill_mode::solid);
 		s.poly_mode			  = j.value<polygon_mode>("poly_mode", polygon_mode::fill);
 		s.topo				  = j.value<topology>("topology", topology::triangle_list);
-		s.inputs			  = j.value<vector<vertex_input>>("vertex_inputs", {});
-		s.attachments		  = j.value<vector<shader_color_attachment>>("color_attachments", {});
+		s.inputs			  = j.value<vector_t<vertex_input>>("vertex_inputs", {});
+		s.attachments		  = j.value<vector_t<shader_color_attachment>>("color_attachments", {});
 		s.samples			  = j.value<u32>("samples", 1);
 		s.depth_stencil_desc  = j.value<shader_depth_stencil_desc>("depth_stencil", {});
 		s.depth_bias_constant = j.value<f32>("depth_bias_constant", 0.0f);
@@ -113,7 +113,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, cull_mode& c)
 	{
-		const string& str = j.get<string>();
+		const string_t& str = j.get<string_t>();
 		if (str.compare("none") == 0)
 		{
 			c = cull_mode::none;
@@ -149,7 +149,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, fill_mode& c)
 	{
-		const string& str = j.get<string>();
+		const string_t& str = j.get<string_t>();
 
 		if (str.compare("wireframe") == 0)
 		{
@@ -175,7 +175,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, front_face& f)
 	{
-		const string& str = j.get<string>();
+		const string_t& str = j.get<string_t>();
 		if (str.compare("cw") == 0)
 		{
 			f = front_face::cw;
@@ -230,7 +230,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, blend_factor& f)
 	{
-		const string& str = j.get<string>();
+		const string_t& str = j.get<string_t>();
 
 		if (str.compare("zero") == 0)
 		{
@@ -319,7 +319,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, blend_op& op)
 	{
-		const string& str = j.get<string>();
+		const string_t& str = j.get<string_t>();
 
 		if (str.compare("add") == 0)
 		{
@@ -683,7 +683,7 @@ namespace SFG
 	}
 #endif
 
-	void shader_desc::serialize(ostream& stream) const
+	void shader_desc::serialize(ostream_t& stream) const
 	{
 		stream << debug_name;
 		stream << vertex_entry;
@@ -749,7 +749,7 @@ namespace SFG
 		stream << samples;
 	}
 
-	void shader_desc::deserialize(istream& stream)
+	void shader_desc::deserialize(istream_t& stream)
 	{
 		u16 sh_flags	= 0;
 		u32 layout_size = 0;
@@ -841,7 +841,7 @@ namespace SFG
 		blobs.clear();
 	}
 
-	void compile_variant::serialize(ostream& stream, bool address_only) const
+	void compile_variant::serialize(ostream_t& stream, bool address_only) const
 	{
 		const u32 sz = static_cast<u32>(blobs.size());
 		stream << sz;
@@ -867,7 +867,7 @@ namespace SFG
 		}
 	}
 
-	void compile_variant::deserialize(istream& stream, bool address_only)
+	void compile_variant::deserialize(istream_t& stream, bool address_only)
 	{
 		u32 sz = 0;
 		stream >> sz;
@@ -898,14 +898,14 @@ namespace SFG
 		}
 	}
 
-	void pso_variant::serialize(ostream& stream) const
+	void pso_variant::serialize(ostream_t& stream) const
 	{
 		stream << desc;
 		stream << compile_variant;
 		stream << variant_flags.value();
 	}
 
-	void pso_variant::deserialize(istream& stream)
+	void pso_variant::deserialize(istream_t& stream)
 	{
 		u32 flags_val = 0;
 		stream >> desc;

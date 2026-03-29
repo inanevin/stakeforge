@@ -32,8 +32,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 	class quat;
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 	class mat4x4;
 
 	// Column-major 3x3: m[col * 3 + row]
@@ -135,7 +135,7 @@ namespace SFG
 		}
 
 		// Utilities
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 }

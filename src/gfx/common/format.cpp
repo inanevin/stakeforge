@@ -146,7 +146,7 @@ namespace SFG
 
 	void from_json(const nlohmann::json& j, format& f)
 	{
-		const string str = j.get<string>();
+		const string_t str = j.get<string_t>();
 
 		if (str.compare("r8") == 0)
 		{

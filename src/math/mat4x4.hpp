@@ -33,8 +33,8 @@ namespace SFG
 {
 	class quat;
 
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	class mat4x4
 	{
@@ -69,8 +69,8 @@ namespace SFG
 		vec3f  get_translation() const;
 		bool   equals(const mat4x4& other, f32 epsilon = MATH_EPS) const;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		static mat4x4 translation(const vec3f& t);
 		static mat4x4 scale(const vec3f& s);

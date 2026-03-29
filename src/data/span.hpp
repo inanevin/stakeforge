@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T> struct span
+	template <typename T> struct span_t
 	{
 		T*	   data = nullptr;
 		size_t size = 0;

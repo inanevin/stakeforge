@@ -64,15 +64,15 @@ namespace SFG
 
 	struct frame_info_t
 	{
-		atomic<double> main_thread_time_milli		 = 0;
-		atomic<double> render_thread_time_milli		 = 0;
-		atomic<double> render_thread_elapsed_seconds = 0;
-		atomic<u32>	   fps							 = 0;
-		atomic<u64>	   frame						 = 0;
-		atomic<u64>	   render_frame					 = 0;
-		u32			   draw_calls					 = 0;
-		atomic<u32>	   draw_calls_ui				 = 0;
-		bool		   is_render_active				 = false;
+		atomic_t<double> main_thread_time_milli		   = 0;
+		atomic_t<double> render_thread_time_milli	   = 0;
+		atomic_t<double> render_thread_elapsed_seconds = 0;
+		atomic_t<u32>	 fps						   = 0;
+		atomic_t<u64>	 frame						   = 0;
+		atomic_t<u64>	 render_frame				   = 0;
+		u32				 draw_calls					   = 0;
+		atomic_t<u32>	 draw_calls_ui				   = 0;
+		bool			 is_render_active			   = false;
 	};
 
 	extern frame_info_t g_frame_info;

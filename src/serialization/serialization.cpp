@@ -36,7 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	bool serialization::write_to_file(string_view fileInput, const char* target_file)
+	bool serialization::write_to_file(string_view_t fileInput, const char* target_file)
 	{
 		std::ofstream outFile(target_file);
 
@@ -54,7 +54,7 @@ namespace SFG
 		return true;
 	}
 
-	bool serialization::save_to_file(const char* path, ostream& stream)
+	bool serialization::save_to_file(const char* path, ostream_t& stream)
 	{
 		if (file_system::exists(path))
 			file_system::delete_file(path);
@@ -67,7 +67,7 @@ namespace SFG
 			return false;
 		}
 
-		ostream compressed = compressor::compress(stream);
+		ostream_t compressed = compressor::compress(stream);
 		compressed.write_to_ofstream(wf);
 		wf.close();
 		compressed.destroy();
@@ -81,7 +81,7 @@ namespace SFG
 		return true;
 	}
 
-	istream serialization::load_from_file(const char* path)
+	istream_t serialization::load_from_file(const char* path)
 	{
 		if (!file_system::exists(path))
 		{
@@ -94,13 +94,13 @@ namespace SFG
 		if (!rf)
 		{
 			SFG_ERR("[Serialization] -> Could not open file for reading! {0}", path);
-			return istream();
+			return istream_t();
 		}
 
 		auto size = std::filesystem::file_size(path);
 
 		// Create
-		istream readStream;
+		istream_t readStream;
 		readStream.create(nullptr, size);
 		readStream.read_from_ifstream(rf);
 		rf.close();
@@ -112,7 +112,7 @@ namespace SFG
 			return {};
 		}
 
-		istream decompressedStream = compressor::decompress(readStream);
+		istream_t decompressedStream = compressor::decompress(readStream);
 		readStream.destroy();
 		return decompressedStream;
 	}

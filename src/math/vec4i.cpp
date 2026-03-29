@@ -33,12 +33,12 @@ namespace SFG
 	vec4i vec4i::zero = vec4i(0, 0, 0, 0);
 	vec4i vec4i::one  = vec4i(1, 1, 1, 1);
 
-	void vec4i::serialize(ostream& stream) const
+	void vec4i::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
 
-	void vec4i::deserialize(istream& stream)
+	void vec4i::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}

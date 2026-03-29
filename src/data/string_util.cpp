@@ -48,9 +48,9 @@ namespace SFG
 {
 	namespace string_util
 	{
-		wstring to_wstr(const string& string)
+		wstring_t to_wstr(const string_t& string_t)
 		{
-			std::string												  str = string.c_str();
+			std::string												  str = string_t.c_str();
 			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
 			return converter.from_bytes(str);
 		}
@@ -93,7 +93,7 @@ namespace SFG
 #endif
 		}
 
-		void replace_all(string& str, const string& to_replace, const string& replacement)
+		void replace_all(string_t& str, const string_t& to_replace, const string_t& replacement)
 		{
 			if (to_replace.empty())
 				return;
@@ -117,7 +117,7 @@ namespace SFG
 			str = result;
 		}
 
-		bool to_float(const string& str, f32& out_f, u32& outDecimals, char seperator)
+		bool to_float(const string_t& str, f32& out_f, u32& outDecimals, char seperator)
 		{
 			try
 			{
@@ -134,7 +134,7 @@ namespace SFG
 			}
 		}
 
-		bool to_int(const string& str, int& out_i)
+		bool to_int(const string_t& str, int& out_i)
 		{
 			try
 			{
@@ -147,7 +147,7 @@ namespace SFG
 			}
 		}
 
-		bool to_big_uint(const string& str, u64& out_i)
+		bool to_big_uint(const string_t& str, u64& out_i)
 		{
 			try
 			{
@@ -160,9 +160,9 @@ namespace SFG
 			}
 		}
 
-		string remove_all_except_first(const string& str, const string& delimiter)
+		string_t remove_all_except_first(const string_t& str, const string_t& delimiter)
 		{
-			string		result = str;
+			string_t	result = str;
 			std::size_t pos	   = result.find(delimiter);
 
 			if (pos != std::string::npos)
@@ -199,10 +199,10 @@ namespace SFG
 			return written;
 		}
 
-		void split(vector<string>& out, const string& str, const string& split)
+		void split(vector_t<string_t>& out, const string_t& str, const string_t& split)
 		{
 			size_t start = 0, end = str.find(split.c_str());
-			while (end != string::npos)
+			while (end != string_t::npos)
 			{
 				const auto aq = str.substr(start, end - start);
 				out.push_back(aq);
@@ -212,19 +212,19 @@ namespace SFG
 			out.push_back(str.substr(start));
 		}
 
-		void to_lower(string& input)
+		void to_lower(string_t& input)
 		{
 			for (char& c : input)
 				c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 		}
 
-		void to_upper(string& input)
+		void to_upper(string_t& input)
 		{
 			for (char& c : input)
 				c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 		}
 
-		void remove_whitespace(string& str)
+		void remove_whitespace(string_t& str)
 		{
 			size_t write = 0;
 			for (size_t read = 0; read < str.size(); ++read)

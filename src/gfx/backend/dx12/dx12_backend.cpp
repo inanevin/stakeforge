@@ -103,7 +103,7 @@ namespace SFG
 			return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		}
 
-		D3D12_FILTER get_filter(bitmask<u16> sampler_flags)
+		D3D12_FILTER get_filter(bitmask_t<u16> sampler_flags)
 		{
 			const bool compare = sampler_flags.is_set(sampler_flags::saf_compare);
 
@@ -129,7 +129,7 @@ namespace SFG
 			return compare ? D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 		}
 
-		void border_color(bitmask<u16> flags, float* color)
+		void border_color(bitmask_t<u16> flags, float* color)
 		{
 			if (flags.is_set(saf_border_transparent))
 				color[0] = color[1] = color[2] = color[3] = 0.0f;
@@ -284,7 +284,7 @@ namespace SFG
 			return DXGI_FORMAT_UNKNOWN;
 		}
 
-		u8 get_color_mask(bitmask<u8> comp_flags)
+		u8 get_color_mask(bitmask_t<u8> comp_flags)
 		{
 			return comp_flags.value(); // 1-1 map
 		}
@@ -511,7 +511,7 @@ namespace SFG
 
 		D3D12_RESOURCE_STATES get_resource_state(u32 states)
 		{
-			bitmask<u32>		  mask			= states;
+			bitmask_t<u32>		  mask			= states;
 			D3D12_RESOURCE_STATES target_states = {};
 
 			if (mask.is_set((u32)resource_state::resource_state_common))
@@ -833,8 +833,8 @@ namespace SFG
 
 	void dx12_backend::submit_commands(gfx_id queue_id, const gfx_id* commands, u8 commands_count)
 	{
-		queue&								  q = _queues.get(queue_id);
-		static_vector<ID3D12CommandList*, 32> lists;
+		queue_t&								q = _queues.get(queue_id);
+		static_vector_t<ID3D12CommandList*, 32> lists;
 		lists.resize(0);
 
 		for (u8 i = 0; i < commands_count; i++)
@@ -848,7 +848,7 @@ namespace SFG
 
 	void dx12_backend::queue_wait(gfx_id queue_id, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count)
 	{
-		queue& q = _queues.get(queue_id);
+		queue_t& q = _queues.get(queue_id);
 
 		for (u8 i = 0; i < semaphore_count; i++)
 			q.ptr->Wait(_semaphores.get(semaphores[i]).ptr.Get(), semaphore_values[i]);
@@ -856,7 +856,7 @@ namespace SFG
 
 	void dx12_backend::queue_signal(gfx_id queue_id, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count)
 	{
-		queue& q = _queues.get(queue_id);
+		queue_t& q = _queues.get(queue_id);
 
 		for (u8 i = 0; i < semaphore_count; i++)
 		{
@@ -1716,7 +1716,7 @@ namespace SFG
 		_semaphores.remove(id);
 	}
 
-	bool dx12_backend::compile_shader_vertex_pixel(u8 stage, const string& source, const vector<string>& defines, const vector<string>& source_paths, const char* entry, span<u8>& out, bool compile_root_sig, span<u8>& out_signature_data) const
+	bool dx12_backend::compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry, span_t<u8>& out, bool compile_root_sig, span_t<u8>& out_signature_data) const
 	{
 		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler;
 		throw_if_failed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler)));
@@ -1734,14 +1734,14 @@ namespace SFG
 		source_buffer.Size	   = source_blob->GetBufferSize();
 		source_buffer.Encoding = 0;
 
-		vector<const wchar_t*> include_paths;
+		vector_t<const wchar_t*> include_paths;
 		include_paths.reserve(source_paths.size());
-		for (const string& src_path : source_paths)
+		for (const string_t& src_path : source_paths)
 		{
 			include_paths.push_back(string_util::char_to_wchar(src_path.c_str()));
 		}
 
-		auto compile = [&](const wchar_t* target_profile, const wchar_t* target_entry, span<u8>& out, bool root_sig) -> bool {
+		auto compile = [&](const wchar_t* target_profile, const wchar_t* target_entry, span_t<u8>& out, bool root_sig) -> bool {
 			std::vector<std::wstring> arg_storage;
 			std::vector<LPCWSTR>	  arguments = {L"-T",
 												   target_profile,
@@ -1814,7 +1814,7 @@ namespace SFG
 			{
 				const wchar_t* path = reinterpret_cast<const wchar_t*>(debug_data_path->GetBufferPointer());
 
-				wstring str = L"/_shaders_pdb/";
+				wstring_t str = L"/_shaders_pdb/";
 				str += path;
 
 				if (debug_data && path)
@@ -1879,7 +1879,7 @@ namespace SFG
 		return true;
 	}
 
-	bool dx12_backend::compile_shader_compute(const string& source, const vector<string>& source_paths, const char* entry, span<u8>& out, bool compile_layout, span<u8>& out_layout) const
+	bool dx12_backend::compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const
 	{
 		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler;
 		throw_if_failed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler)));
@@ -1899,11 +1899,11 @@ namespace SFG
 
 		const wchar_t* entry_point = string_util::char_to_wchar(entry);
 
-		vector<LPCWSTR> arguments = {L"-T", L"cs_6_6", L"-E", entry_point, DXC_ARG_WARNINGS_ARE_ERRORS, L"-HV 2021"};
+		vector_t<LPCWSTR> arguments = {L"-T", L"cs_6_6", L"-E", entry_point, DXC_ARG_WARNINGS_ARE_ERRORS, L"-HV 2021"};
 
-		vector<const wchar_t*> include_paths;
+		vector_t<const wchar_t*> include_paths;
 		include_paths.reserve(source_paths.size());
-		for (const string& src_path : source_paths)
+		for (const string_t& src_path : source_paths)
 			include_paths.push_back(string_util::char_to_wchar(src_path.c_str()));
 
 		for (const wchar_t* include : include_paths)
@@ -2035,7 +2035,7 @@ namespace SFG
 		return _descriptors.get(s.descriptor_index).index;
 	}
 
-	gfx_id dx12_backend::create_shader(const shader_desc& desc, const vector<shader_blob>& blobs, gfx_id existing_layout, span<u8> layout_data)
+	gfx_id dx12_backend::create_shader(const shader_desc& desc, const vector_t<shader_blob>& blobs, gfx_id existing_layout, span_t<u8> layout_data)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2064,7 +2064,7 @@ namespace SFG
 			return id;
 		}
 
-		vector<D3D12_INPUT_ELEMENT_DESC> input_layout;
+		vector_t<D3D12_INPUT_ELEMENT_DESC> input_layout;
 
 		for (size_t i = 0; i < desc.inputs.size(); i++)
 		{
@@ -2316,7 +2316,7 @@ namespace SFG
 			_device->CopyDescriptors(descriptor_count_sampler, _reuse_dest_descriptors_sampler.data(), NULL, descriptor_count_sampler, _reuse_src_descriptors_sampler.data(), NULL, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	}
 
-	void dx12_backend::bind_group_update_pointer(gfx_id group, u8 binding_index, const vector<bind_group_pointer>& updates)
+	void dx12_backend::bind_group_update_pointer(gfx_id group, u8 binding_index, const vector_t<bind_group_pointer>& updates)
 	{
 		bind_group_update_pointer(group, binding_index, updates.data(), static_cast<u16>(updates.size()));
 	}
@@ -2401,7 +2401,7 @@ namespace SFG
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
 		const gfx_id id = _queues.add();
-		queue&		 q	= _queues.get(id);
+		queue_t&	 q	= _queues.get(id);
 
 		const D3D12_COMMAND_QUEUE_DESC queue_desc = {
 			.Type  = get_command_type(desc.type),
@@ -2524,7 +2524,7 @@ namespace SFG
 			SFG_ASSERT(false);
 	}
 
-	void dx12_backend::bind_layout_add_pointer(gfx_id layout, const vector<bind_layout_pointer_param>& pointer_params, u8 vis)
+	void dx12_backend::bind_layout_add_pointer(gfx_id layout, const vector_t<bind_layout_pointer_param>& pointer_params, u8 vis)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2640,7 +2640,7 @@ namespace SFG
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		queue& q = _queues.get(id);
+		queue_t& q = _queues.get(id);
 		q.ptr.Reset();
 		_queues.remove(id);
 	}
@@ -2677,7 +2677,7 @@ namespace SFG
 		command_buffer&				buffer	 = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer.ptr.Get();
 
-		static_vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 		color_attachments.resize(cmd.color_attachment_count);
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
@@ -2706,9 +2706,9 @@ namespace SFG
 
 	void dx12_backend::cmd_begin_render_pass_depth(gfx_id cmd_id, const command_begin_render_pass_depth& cmd)
 	{
-		command_buffer&										   buffer	= _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*							   cmd_list = buffer.ptr.Get();
-		static_vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer&											 buffer	  = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								 cmd_list = buffer.ptr.Get();
+		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 		color_attachments.resize(cmd.color_attachment_count);
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
@@ -2749,9 +2749,9 @@ namespace SFG
 
 	void dx12_backend::cmd_begin_render_pass_depth_read_only(gfx_id cmd_id, const command_begin_render_pass_depth& cmd)
 	{
-		command_buffer&										   buffer	= _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*							   cmd_list = buffer.ptr.Get();
-		static_vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer&											 buffer	  = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								 cmd_list = buffer.ptr.Get();
+		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 		color_attachments.resize(cmd.color_attachment_count);
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
@@ -2808,9 +2808,9 @@ namespace SFG
 
 	void dx12_backend::cmd_begin_render_pass_swapchain(gfx_id cmd_id, const command_begin_render_pass_swapchain& cmd)
 	{
-		command_buffer&										   buffer	= _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*							   cmd_list = buffer.ptr.Get();
-		static_vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer&											 buffer	  = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								 cmd_list = buffer.ptr.Get();
+		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 
 		color_attachments.resize(cmd.color_attachment_count);
 
@@ -2837,9 +2837,9 @@ namespace SFG
 
 	void dx12_backend::cmd_begin_render_pass_swapchain_depth(gfx_id cmd_id, const command_begin_render_pass_swapchain_depth& cmd)
 	{
-		command_buffer&										   buffer	= _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*							   cmd_list = buffer.ptr.Get();
-		static_vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer&											 buffer	  = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								 cmd_list = buffer.ptr.Get();
+		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 
 		color_attachments.resize(cmd.color_attachment_count);
 
@@ -3058,7 +3058,7 @@ namespace SFG
 		command_buffer&				buffer	 = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer.ptr.Get();
 
-		static_vector<D3D12_SUBRESOURCE_DATA, 16> subresource_data;
+		static_vector_t<D3D12_SUBRESOURCE_DATA, 16> subresource_data;
 
 		for (u8 i = 0; i < cmd.mip_levels; i++)
 		{
@@ -3230,7 +3230,7 @@ namespace SFG
 		command_buffer&				buffer	 = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer.ptr.Get();
 
-		static_vector<CD3DX12_RESOURCE_BARRIER, 256> barriers;
+		static_vector_t<CD3DX12_RESOURCE_BARRIER, 256> barriers;
 
 		for (u16 i = 0; i < cmd.barrier_count; i++)
 		{

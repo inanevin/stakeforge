@@ -34,8 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class istream;
-	class ostream;
+	class istream_t;
+	class ostream_t;
 
 	class vec2h
 	{

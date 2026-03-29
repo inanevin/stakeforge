@@ -34,11 +34,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class istream
+	class istream_t
 	{
 	public:
-		istream(){};
-		istream(u8* data, size_t size)
+		istream_t(){};
+		istream_t(u8* data, size_t size)
 		{
 			_data = data;
 			_size = size;
@@ -108,7 +108,7 @@ namespace SFG
 		size_t _size  = 0;
 	};
 
-	template <typename T> std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, istream&> operator>>(istream& stream, T& val)
+	template <typename T> std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, istream_t&> operator>>(istream_t& stream, T& val)
 	{
 		stream.read(val);
 		if (endianness::should_swap())
@@ -116,7 +116,7 @@ namespace SFG
 		return stream;
 	}
 
-	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, istream&> operator>>(istream& stream, T& val)
+	template <typename T> std::enable_if_t<std::is_enum_v<std::remove_reference_t<T>>, istream_t&> operator>>(istream_t& stream, T& val)
 	{
 		u8 u8 = 0;
 		stream >> u8;
@@ -124,21 +124,21 @@ namespace SFG
 		return stream;
 	}
 
-	inline istream& operator>>(istream& stream, string& val)
+	inline istream_t& operator>>(istream_t& stream, string_t& val)
 	{
 		u32 sz = 0;
 		stream >> sz;
-		val = string(reinterpret_cast<char*>(stream.get_data_current()), sz);
+		val = string_t(reinterpret_cast<char*>(stream.get_data_current()), sz);
 		stream.skip_by(sz);
 		return stream;
 	}
 
-	template <typename T> auto operator>>(istream& stream, T& val) -> decltype(val.deserialize(stream), stream)
+	template <typename T> auto operator>>(istream_t& stream, T& val) -> decltype(val.deserialize(stream), stream)
 	{
 		val.deserialize(stream);
 		return stream;
 	}
 
-	template <typename T> istream& operator>>(istream& stream, T&&) = delete;
+	template <typename T> istream_t& operator>>(istream_t& stream, T&&) = delete;
 
 }

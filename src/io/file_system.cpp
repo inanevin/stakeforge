@@ -53,10 +53,10 @@ namespace SFG
 
 		bool create_directory(const char* path)
 		{
-			vector<string> directories = {};
+			vector_t<string_t> directories = {};
 			string_util::split(directories, path, "/");
 
-			string current_path = "";
+			string_t current_path = "";
 			for (const auto& dir : directories)
 			{
 				current_path += dir + "/";
@@ -110,12 +110,12 @@ namespace SFG
 			return std::filesystem::exists(path);
 		}
 
-		string get_last_modified_date(const char* path)
+		string_t get_last_modified_date(const char* path)
 		{
 			std::filesystem::file_time_type ftime  = std::filesystem::last_write_time(path);
 			auto							sctp   = std::chrono::time_point_cast<std::chrono::system_clock::duration>(ftime - decltype(ftime)::clock::now() + std::chrono::system_clock::now());
 			std::time_t						cftime = std::chrono::system_clock::to_time_t(sctp);
-			const string					str	   = std::asctime(std::localtime(&cftime));
+			const string_t					str	   = std::asctime(std::localtime(&cftime));
 			return str;
 		}
 
@@ -141,9 +141,9 @@ namespace SFG
 			return static_cast<uint64_t>(std::chrono::duration_cast<dur>(ft.time_since_epoch()).count());
 		}
 
-		string get_directory_of_file(const char* path)
+		string_t get_directory_of_file(const char* path)
 		{
-			string		 str	 = path;
+			string_t	 str	 = path;
 			const char*	 cstr	 = path;
 			unsigned int str_len = (unsigned int)str.length();
 			unsigned int end	 = str_len - 1;
@@ -167,36 +167,36 @@ namespace SFG
 			}
 		}
 
-		string remove_extensions_from_path(const string& fileName)
+		string_t remove_extensions_from_path(const string_t& fileName)
 		{
 			const size_t last_index = fileName.find_last_of(".");
-			string		 path		= fileName.substr(0, last_index);
+			string_t	 path		= fileName.substr(0, last_index);
 			fix_path(path);
 			return path;
 		}
 
-		string get_filename_and_extension_from_path(const string& fileName)
+		string_t get_filename_and_extension_from_path(const string_t& fileName)
 		{
-			string path = fileName.substr(fileName.find_last_of("/\\") + 1);
+			string_t path = fileName.substr(fileName.find_last_of("/\\") + 1);
 			fix_path(path);
 			return path;
 		}
 
-		string get_file_extension(const string& file)
+		string_t get_file_extension(const string_t& file)
 		{
-			string path = file.substr(file.find_last_of(".") + 1);
+			string_t path = file.substr(file.find_last_of(".") + 1);
 			fix_path(path);
 			return path;
 		}
 
-		string get_filename_from_path(const string& file)
+		string_t get_filename_from_path(const string_t& file)
 		{
 			return remove_extensions_from_path(get_filename_and_extension_from_path(file));
 		}
 
-		string get_last_folder_from_path(const char* path)
+		string_t get_last_folder_from_path(const char* path)
 		{
-			string fixed_path = path;
+			string_t fixed_path = path;
 			fix_path(fixed_path);
 			const size_t last_slash = fixed_path.find_last_of("/\\");
 
@@ -204,12 +204,12 @@ namespace SFG
 				fixed_path = fixed_path.substr(0, last_slash);
 
 			const size_t actualLast = fixed_path.find_last_of("/\\");
-			if (actualLast != string::npos)
+			if (actualLast != string_t::npos)
 				fixed_path = fixed_path.substr(actualLast + 1, fixed_path.size());
 			return fixed_path;
 		}
 
-		string read_file_as_string(const char* file)
+		string_t read_file_as_string(const char* file)
 		{
 			std::ifstream ifs(file);
 			auto		  a = std::istreambuf_iterator<char>(ifs);
@@ -239,7 +239,7 @@ namespace SFG
 			}
 		}
 
-		string get_running_directory()
+		string_t get_running_directory()
 		{
 			try
 			{
@@ -253,25 +253,25 @@ namespace SFG
 			}
 		}
 
-		string get_user_directory()
+		string_t get_user_directory()
 		{
 #ifdef SFG_PLATFORM_WINDOWS
 			char path[MAX_PATH];
 			if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, path)))
 			{
-				string pp = string(path);
+				string_t pp = string_t(path);
 				return pp;
 			}
 			return std::string();
 #elif defined SFG_PLATFORM_OSX
 			struct passwd* pw	= getpwuid(getuid());
-			string		   path = string(pw->pw_dir);
+			string_t	   path = string_t(pw->pw_dir);
 			return path + "/Library/Application Support/";
 #endif
 			return "";
 		}
 
-		void fix_path(string& str)
+		void fix_path(string_t& str)
 		{
 			string_util::replace_all(str, "\\\\", "/");
 			string_util::replace_all(str, "\\", "/");
@@ -310,15 +310,15 @@ namespace SFG
 			}
 		} // namespace
 
-		string duplicate(const char* path)
+		string_t duplicate(const char* path)
 		{
 			try
 			{
 				if (std::filesystem::exists(path))
 				{
-					const bool	 is_dir			= file_system::is_directory(path);
-					const string corrected_path = is_dir ? path : file_system::remove_extensions_from_path(path);
-					string		 final_path		= corrected_path + " (Copy)";
+					const bool	   is_dir		  = file_system::is_directory(path);
+					const string_t corrected_path = is_dir ? path : file_system::remove_extensions_from_path(path);
+					string_t	   final_path	  = corrected_path + " (Copy)";
 
 					size_t inster_before_ext = final_path.length();
 					if (!is_dir)
@@ -362,7 +362,7 @@ namespace SFG
 			return "";
 		}
 
-		string get_relative(const char* src, const char* target)
+		string_t get_relative(const char* src, const char* target)
 		{
 			std::filesystem::path src_path(src);
 			std::filesystem::path dst_path(target);
@@ -394,7 +394,7 @@ namespace SFG
 			}
 		}
 
-		string get_system_time_str()
+		string_t get_system_time_str()
 		{
 			std::time_t		   now		 = std::time(nullptr);
 			std::tm*		   localTime = std::localtime(&now);
@@ -412,7 +412,7 @@ namespace SFG
 			seconds				   = local_time->tm_sec;
 		}
 
-		string get_time_str_from_microseconds(i64 microseconds)
+		string_t get_time_str_from_microseconds(i64 microseconds)
 		{
 			i64 total_seconds = microseconds / 1000000;
 

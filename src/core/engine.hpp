@@ -60,12 +60,12 @@ namespace SFG
 		void render();
 
 	private:
-		std::thread	   _render_thread;
-		atomic<bool>   _is_init				 = false;
-		atomic<bool>   _render_thread_active = false;
-		vector<world*> _worlds;
-		i64			   _previous_time  = 0;
-		i64			   _accumulator_ns = 0;
+		std::thread		 _render_thread;
+		atomic_t<bool>	 _is_init			   = false;
+		atomic_t<bool>	 _render_thread_active = false;
+		vector_t<world*> _worlds;
+		i64				 _previous_time	 = 0;
+		i64				 _accumulator_ns = 0;
 	};
 
 }

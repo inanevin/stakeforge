@@ -31,6 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 // Headers here.
 namespace SFG
 {
-	typedef std::string	 string;
-	typedef std::wstring wstring;
+	typedef std::string	 string_t;
+	typedef std::wstring wstring_t;
 }

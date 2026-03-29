@@ -107,10 +107,10 @@ namespace SFG
 		const u8 use_compare = j.value<u8>("use_compare", 0);
 		s.flags.set(sampler_flags::saf_compare, use_compare);
 
-		const string min	= j.value<string>("min", "anisotropic");
-		const string mag	= j.value<string>("mag", "anisotropic");
-		const string mip	= j.value<string>("mip", "linear");
-		const string border = j.value<string>("border", "transparent");
+		const string_t min	  = j.value<string_t>("min", "anisotropic");
+		const string_t mag	  = j.value<string_t>("mag", "anisotropic");
+		const string_t mip	  = j.value<string_t>("mip", "linear");
+		const string_t border = j.value<string_t>("border", "transparent");
 
 		if (min.compare("anisotropic") == 0)
 			s.flags.set(sampler_flags::saf_min_anisotropic);
@@ -132,7 +132,7 @@ namespace SFG
 			s.flags.set(sampler_flags::saf_mip_linear);
 
 		auto read_addr = [&](const char* name, address_mode& out_mode) {
-			const string s = j.value<string>(name, "clamp");
+			const string_t s = j.value<string_t>(name, "clamp");
 
 			if (s.compare("repeat") == 0)
 				out_mode = address_mode::repeat;
@@ -164,7 +164,7 @@ namespace SFG
 			   math::almost_equal(max_lod, other.max_lod) && math::almost_equal(lod_bias, other.lod_bias);
 	}
 
-	void sampler_desc::serialize(ostream& stream) const
+	void sampler_desc::serialize(ostream_t& stream) const
 	{
 		stream << anisotropy;
 		stream << lod_bias;
@@ -177,7 +177,7 @@ namespace SFG
 		stream << address_w;
 	}
 
-	void sampler_desc::deserialize(istream& stream)
+	void sampler_desc::deserialize(istream_t& stream)
 	{
 		u16 val	   = 0;
 		u8	addr_u = 0;

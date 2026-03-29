@@ -29,8 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class istream;
-	class ostream;
+	class istream_t;
+	class ostream_t;
 
 	class vec4u16
 	{
@@ -38,8 +38,8 @@ namespace SFG
 		vec4u16(){};
 		vec4u16(u16 _x, u16 _y, u16 _z, u16 _w) : x(_x), y(_y), z(_z), w(_w){};
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		static vec4u16 zero;
 		static vec4u16 one;

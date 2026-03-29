@@ -95,7 +95,7 @@ namespace SFG
 		u32					  _type		 = 0;
 		u64					  _cpu_start = {};
 		u64					  _gpu_start = {};
-		vector<block>		  _available_blocks;
+		vector_t<block>		  _available_blocks;
 		u32					  _max_descriptors = 0;
 		u32					  _descriptor_size = 0;
 		u32					  _current_index   = 0;

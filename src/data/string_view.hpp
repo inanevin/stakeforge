@@ -30,5 +30,5 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	typedef std::string_view string_view;
+	typedef std::string_view string_view_t;
 }

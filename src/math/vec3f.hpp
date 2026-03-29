@@ -36,8 +36,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class istream;
-	class ostream;
+	class istream_t;
+	class ostream_t;
 
 	class vec3f
 	{
@@ -57,9 +57,9 @@ namespace SFG
 		static const vec3f forward;
 		static const vec3f right;
 
-		static vec3f clamp(const vec3f& vector, const vec3f& min, const vec3f& max);
+		static vec3f clamp(const vec3f& vector_t, const vec3f& min, const vec3f& max);
 		static vec3f cross(const vec3f& a, const vec3f& b);
-		static vec3f abs(const vec3f& vector);
+		static vec3f abs(const vec3f& vector_t);
 		static vec3f min(const vec3f& a, const vec3f& b);
 		static vec3f max(const vec3f& a, const vec3f& b);
 		static vec3f lerp(const vec3f& a, const vec3f& b, f32 t);
@@ -74,8 +74,8 @@ namespace SFG
 		f32			 magnitude() const;
 		f32			 magnitude_sqr() const;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		inline vec3f normalized() const
 		{
@@ -177,9 +177,9 @@ namespace SFG
 		}
 	};
 
-	inline vec3f operator*(f32 scalar, const vec3f& vector)
+	inline vec3f operator*(f32 scalar, const vec3f& vector_t)
 	{
-		return vector * scalar;
+		return vector_t * scalar;
 	}
 
 #ifdef SFG_JSON_SERIALIZE

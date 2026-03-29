@@ -31,25 +31,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
-	class raw_stream
+	class raw_stream_t
 	{
 	public:
-		raw_stream() : _data({}){};
-		~raw_stream() = default;
+		raw_stream_t() : _data({}){};
+		~raw_stream_t() = default;
 
-		raw_stream(const raw_stream& other)			   = delete;
-		raw_stream& operator=(const raw_stream& other) = delete;
+		raw_stream_t(const raw_stream_t& other)			   = delete;
+		raw_stream_t& operator=(const raw_stream_t& other) = delete;
 
-		void create(ostream& stream);
+		void create(ostream_t& stream);
 		void create(u8* data, size_t size);
 		void destroy();
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
-		inline span<u8> get_span()
+		inline span_t<u8> get_span()
 		{
 			return _data;
 		}
@@ -70,7 +70,7 @@ namespace SFG
 		}
 
 	private:
-		span<u8> _data;
+		span_t<u8> _data;
 	};
 
 }

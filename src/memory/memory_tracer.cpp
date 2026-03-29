@@ -227,7 +227,7 @@ namespace SFG
 
 				if (SymGetLineFromAddr64(process, address, &displacement, line))
 				{
-					const string fn = line->FileName;
+					const string_t fn = line->FileName;
 
 					ss << "Location:" << line->FileName << "\n";
 					ss << "Smybol:" << symbol->Name << "\n";

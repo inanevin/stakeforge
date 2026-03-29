@@ -74,12 +74,12 @@ namespace SFG
 		bounds_max += other.bounds_max;
 	}
 
-	void aabb::serialize(ostream& stream) const
+	void aabb::serialize(ostream_t& stream) const
 	{
 		stream << bounds_min;
 		stream << bounds_max;
 	}
-	void aabb::deserialize(istream& stream)
+	void aabb::deserialize(istream_t& stream)
 	{
 		stream >> bounds_min;
 		stream >> bounds_max;

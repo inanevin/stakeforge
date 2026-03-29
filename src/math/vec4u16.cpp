@@ -33,12 +33,12 @@ namespace SFG
 	vec4u16 vec4u16::zero = vec4u16(0, 0, 0, 0);
 	vec4u16 vec4u16::one  = vec4u16(1, 1, 1, 1);
 
-	void vec4u16::serialize(ostream& stream) const
+	void vec4u16::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
 
-	void vec4u16::deserialize(istream& stream)
+	void vec4u16::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}

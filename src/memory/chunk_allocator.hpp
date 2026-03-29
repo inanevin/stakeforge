@@ -45,7 +45,7 @@ namespace SFG
 		void		   init(size_t total_size);
 		void		   uninit();
 		void		   reset();
-		chunk_handle32 allocate_text(const string& source);
+		chunk_handle32 allocate_text(const string_t& source);
 
 		template <typename T> inline chunk_handle32 allocate(size_t count)
 		{
@@ -174,10 +174,10 @@ namespace SFG
 		}
 
 	private:
-		u8*					   _raw = nullptr;
-		vector<chunk_handle32> _free_chunks; // ALWAYS kept sorted by head
-		u32					   _head	   = 0;
-		u32					   _total_size = 0;
+		u8*						 _raw = nullptr;
+		vector_t<chunk_handle32> _free_chunks; // ALWAYS kept sorted by head
+		u32						 _head		 = 0;
+		u32						 _total_size = 0;
 	};
 
 }

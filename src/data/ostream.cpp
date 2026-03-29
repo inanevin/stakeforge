@@ -30,14 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void ostream::create(size_t size)
+	void ostream_t::create(size_t size)
 	{
 		_data		  = new u8[size];
 		_total_size	  = size;
 		_current_size = 0;
 	}
 
-	void ostream::destroy()
+	void ostream_t::destroy()
 	{
 		delete[] _data;
 
@@ -46,7 +46,7 @@ namespace SFG
 		_data		  = nullptr;
 	}
 
-	void ostream::write_raw_endian_safe(const u8* ptr, size_t size)
+	void ostream_t::write_raw_endian_safe(const u8* ptr, size_t size)
 	{
 		if (_data == nullptr)
 			create(size);
@@ -55,10 +55,10 @@ namespace SFG
 
 		if (endianness::should_swap())
 		{
-			vector<u8> v;
+			vector_t<u8> v;
 			v.insert(v.end(), ptr, (ptr) + size);
 
-			vector<u8> v2;
+			vector_t<u8> v2;
 			v2.resize(v.size());
 
 			const size_t sz = v.size();
@@ -78,7 +78,7 @@ namespace SFG
 		_current_size += size;
 	}
 
-	void ostream::write_raw(const u8* ptr, size_t size)
+	void ostream_t::write_raw(const u8* ptr, size_t size)
 	{
 		if (_data == nullptr)
 			create(size);
@@ -88,7 +88,7 @@ namespace SFG
 		_current_size += size;
 	}
 
-	void ostream::check_grow(size_t sz)
+	void ostream_t::check_grow(size_t sz)
 	{
 		if (_current_size + sz > _total_size)
 		{
@@ -99,7 +99,7 @@ namespace SFG
 			_data = newData;
 		}
 	}
-	void ostream::write_to_ofstream(std::ofstream& stream)
+	void ostream_t::write_to_ofstream(std::ofstream& stream)
 	{
 		stream.write((char*)_data, _current_size);
 	}

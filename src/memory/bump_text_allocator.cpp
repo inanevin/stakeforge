@@ -103,7 +103,7 @@ namespace SFG
 
 		if (init_len > 0)
 		{
-			if (!append(string_view(initial_text, init_len)))
+			if (!append(string_view_t(initial_text, init_len)))
 				return nullptr;
 		}
 
@@ -133,7 +133,7 @@ namespace SFG
 		return (_cur_end > _cur) ? size_t(_cur_end - _cur) : 0;
 	}
 
-	bool bump_text_allocator::append(string_view s)
+	bool bump_text_allocator::append(string_view_t s)
 	{
 		if (!_cur_start)
 			return false;

@@ -30,20 +30,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void istream::open(u8* data, size_t size)
+	void istream_t::open(u8* data, size_t size)
 	{
 		_data  = data;
 		_size  = size;
 		_index = 0;
 	}
 
-	void istream::close()
+	void istream_t::close()
 	{
 		_data  = nullptr;
 		_size  = 0;
 		_index = 0;
 	}
-	void istream::create(u8* data, size_t size)
+	void istream_t::create(u8* data, size_t size)
 	{
 		destroy();
 		const size_t unaligned = size;
@@ -56,7 +56,7 @@ namespace SFG
 		_size  = size;
 	}
 
-	void istream::destroy()
+	void istream_t::destroy()
 	{
 		if (_data == nullptr)
 			return;
@@ -67,20 +67,20 @@ namespace SFG
 		_data  = nullptr;
 	}
 
-	void istream::read_from_ifstream(std::ifstream& stream)
+	void istream_t::read_from_ifstream(std::ifstream& stream)
 	{
 		stream.read((char*)_data, _size);
 	}
 
-	void istream::read_to_raw_endian_safe(void* ptr, size_t size)
+	void istream_t::read_to_raw_endian_safe(void* ptr, size_t size)
 	{
 		if (endianness::should_swap())
 		{
-			u8*		   data = &_data[_index];
-			vector<u8> v;
+			u8*			 data = &_data[_index];
+			vector_t<u8> v;
 			v.insert(v.end(), data, data + size);
 
-			vector<u8> v2;
+			vector_t<u8> v2;
 			v2.resize(v.size());
 
 			const size_t sz = v.size();
@@ -100,7 +100,7 @@ namespace SFG
 		_index += size;
 	}
 
-	void istream::read_to_raw(u8* ptr, size_t size)
+	void istream_t::read_to_raw(u8* ptr, size_t size)
 	{
 		SFG_MEMCPY(ptr, &_data[_index], size);
 		_index += size;

@@ -245,12 +245,12 @@ namespace SFG
 					  m[8]); // Col 2
 	}
 
-	void mat4x3::serialize(ostream& stream) const
+	void mat4x3::serialize(ostream_t& stream) const
 	{
 		for (int i = 0; i < 12; ++i)
 			stream << m[i];
 	}
-	void mat4x3::deserialize(istream& stream)
+	void mat4x3::deserialize(istream_t& stream)
 	{
 		for (int i = 0; i < 12; ++i)
 			stream >> m[i];

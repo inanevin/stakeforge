@@ -103,7 +103,7 @@ namespace SFG
 		return data;
 	}
 
-	void image_util::compress_to_buffer(void* data, size_t sz, ostream& stream)
+	void image_util::compress_to_buffer(void* data, size_t sz, ostream_t& stream)
 	{
 		//     int stbi_write_png_to_func(stbi_write_func *func, void *context, int w, int h, int comp, const void  *data, int stride_in_bytes);
 	}

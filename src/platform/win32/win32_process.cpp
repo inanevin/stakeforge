@@ -40,7 +40,7 @@ namespace
 {
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
 	{
-		SFG::vector<SFG::monitor_info>* infos = reinterpret_cast<SFG::vector<SFG::monitor_info>*>(l_param);
+		SFG::vector_t<SFG::monitor_info>* infos = reinterpret_cast<SFG::vector_t<SFG::monitor_info>*>(l_param);
 		infos->push_back({});
 		SFG::monitor_info& info = infos->back();
 
@@ -65,9 +65,9 @@ namespace SFG
 	namespace process
 	{
 
-		string select_folder(const char* title)
+		string_t select_folder(const char* title)
 		{
-			string result;
+			string_t result;
 
 			IFileDialog* dialog = nullptr;
 			HRESULT		 hr		= CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
@@ -103,9 +103,9 @@ namespace SFG
 			return result;
 		}
 
-		string select_file(const char* title, const char* extension)
+		string_t select_file(const char* title, const char* extension)
 		{
-			string result;
+			string_t result;
 
 			IFileDialog* dialog = nullptr;
 			HRESULT		 hr		= CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
@@ -181,7 +181,7 @@ namespace SFG
 			return result;
 		}
 
-		void select_files(const char* title, const char* extension, vector<string>& out_files)
+		void select_files(const char* title, const char* extension, vector_t<string_t>& out_files)
 		{
 			out_files.clear();
 
@@ -262,7 +262,7 @@ namespace SFG
 									int needed = WideCharToMultiByte(CP_UTF8, 0, pathW, -1, nullptr, 0, nullptr, nullptr);
 									if (needed > 0)
 									{
-										string path;
+										string_t path;
 										path.resize((size_t)needed - 1);
 										WideCharToMultiByte(CP_UTF8, 0, pathW, -1, path.data(), needed, nullptr, nullptr);
 										out_files.push_back(std::move(path));
@@ -280,9 +280,9 @@ namespace SFG
 			dialog->Release();
 		}
 
-		string save_file(const char* title, const char* extension)
+		string_t save_file(const char* title, const char* extension)
 		{
-			string result;
+			string_t result;
 
 			IFileDialog* dialog = nullptr;
 			HRESULT		 hr		= CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
@@ -368,23 +368,23 @@ namespace SFG
 			return result;
 		}
 
-		string get_clipboard()
+		string_t get_clipboard()
 		{
 			if (!OpenClipboard(nullptr))
-				return string();
+				return string_t();
 
 			HANDLE hData = GetClipboardData(CF_UNICODETEXT);
 			if (!hData)
 			{
 				CloseClipboard();
-				return string();
+				return string_t();
 			}
 
 			const wchar_t* w = static_cast<const wchar_t*>(GlobalLock(hData));
 			if (!w)
 			{
 				CloseClipboard();
-				return string();
+				return string_t();
 			}
 
 			const int needed = WideCharToMultiByte(CP_UTF8, 0, w, -1, nullptr, 0, nullptr, nullptr);
@@ -392,7 +392,7 @@ namespace SFG
 			{
 				GlobalUnlock(hData);
 				CloseClipboard();
-				return string();
+				return string_t();
 			}
 
 			std::string out;
@@ -402,7 +402,7 @@ namespace SFG
 			GlobalUnlock(hData);
 			CloseClipboard();
 
-			return string(out.c_str());
+			return string_t(out.c_str());
 		}
 
 		void push_clipboard(const char* cp)
@@ -502,7 +502,7 @@ namespace SFG
 		{
 			MessageBox(nullptr, msg, "Huh?", MB_OK | MB_ICONERROR);
 		}
-		void get_all_monitors(vector<monitor_info>& out)
+		void get_all_monitors(vector_t<monitor_info>& out)
 		{
 			EnumDisplayMonitors(NULL, NULL, enumerate_monitors, (LPARAM)&out);
 		}

@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 	class ostrem;
-	class istream;
+	class istream_t;
 	// LH coordinates
 	class quat
 	{
@@ -64,8 +64,8 @@ namespace SFG
 		void  normalize();
 		bool  equals(const quat& other, f32 epsilon = MATH_EPS) const;
 
-		void serialize(ostream& stream) const;
-		void deserialize(istream& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 
 		static quat	 from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
 		static vec3f to_euler(const quat& q);

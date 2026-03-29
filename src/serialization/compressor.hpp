@@ -28,13 +28,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	class compressor
 	{
 	public:
-		static ostream compress(ostream& stream);
-		static istream decompress(istream& stream);
+		static ostream_t compress(ostream_t& stream);
+		static istream_t decompress(istream_t& stream);
 	};
 };

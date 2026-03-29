@@ -31,21 +31,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void raw_stream::create(u8* data, size_t size)
+	void raw_stream_t::create(u8* data, size_t size)
 	{
 		destroy();
 		_data = {new u8[size], size};
 		SFG_MEMCPY(_data.data, data, size);
 	}
 
-	void raw_stream::create(ostream& stream)
+	void raw_stream_t::create(ostream_t& stream)
 	{
 		destroy();
 		_data = {new u8[stream.get_size()], stream.get_size()};
 		SFG_MEMCPY(_data.data, stream.get_raw(), stream.get_size());
 	}
 
-	void raw_stream::destroy()
+	void raw_stream_t::destroy()
 	{
 		if (is_empty())
 			return;
@@ -53,7 +53,7 @@ namespace SFG
 		_data = {};
 	}
 
-	void raw_stream::serialize(ostream& stream) const
+	void raw_stream_t::serialize(ostream_t& stream) const
 	{
 		const u32 sz = static_cast<u32>(_data.size);
 		stream.write(sz);
@@ -61,7 +61,7 @@ namespace SFG
 			stream.write_raw(_data.data, _data.size);
 	}
 
-	void raw_stream::deserialize(istream& stream)
+	void raw_stream_t::deserialize(istream_t& stream)
 	{
 		u32 size = 0;
 		stream.read(size);

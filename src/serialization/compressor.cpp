@@ -38,7 +38,7 @@ namespace SFG
 		return 255 * compressedSize + 24;
 	}
 
-	ostream compressor::compress(ostream& stream)
+	ostream_t compressor::compress(ostream_t& stream)
 	{
 		const u32 streamSize	   = static_cast<u32>(stream.get_size());
 		const u8  shouldCompress   = (streamSize < 150000000 && streamSize > 750000) ? 1 : 0;
@@ -49,7 +49,7 @@ namespace SFG
 
 		if (!shouldCompress)
 		{
-			ostream compressed;
+			ostream_t compressed;
 			compressed.create(stream.get_size());
 			compressed.write_raw(stream.get_raw(), stream.get_size());
 			return compressed;
@@ -59,7 +59,7 @@ namespace SFG
 		const int compressBound = LZ4_compressBound(size);
 
 		// Create stream capable of holding max compressed bytes.
-		ostream compressedStream = ostream();
+		ostream_t compressedStream = ostream_t();
 		compressedStream.create(compressBound);
 		char* dest		   = (char*)compressedStream.get_raw();
 		char* data		   = (char*)stream.get_raw();
@@ -74,7 +74,7 @@ namespace SFG
 		return compressedStream;
 	}
 
-	istream compressor::decompress(istream& stream)
+	istream_t compressor::decompress(istream_t& stream)
 	{
 		// Read uncompressed size of archive.
 		u8	shouldDecompress = 0;
@@ -86,13 +86,13 @@ namespace SFG
 
 		if (!shouldDecompress)
 		{
-			istream copy;
+			istream_t copy;
 			copy.create(stream.get_raw(), stream.get_size() - sizeof(u32) - sizeof(u8));
 			return copy;
 		}
 
 		const size_t size				= stream.get_size();
-		istream		 decompressedStream = istream();
+		istream_t	 decompressedStream = istream_t();
 		decompressedStream.create(nullptr, uncompressedSize);
 		void*	  src			   = stream.get_raw();
 		void*	  ptr			   = decompressedStream.get_raw();

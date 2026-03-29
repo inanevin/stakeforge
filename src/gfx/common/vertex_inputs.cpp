@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void vertex_inputs::get_vertex_inputs(vertex_input_style style, vector<vertex_input>& out_inputs)
+	void vertex_inputs::get_vertex_inputs(vertex_input_style style, vector_t<vertex_input>& out_inputs)
 	{
 		if (style == vertex_input_style::position_normal_tangents_uv)
 		{

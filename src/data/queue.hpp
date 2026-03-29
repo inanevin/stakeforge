@@ -30,6 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T, typename Container = std::deque<T>> using queue = std::queue<T, Container>;
+	template <typename T, typename Container = std::deque<T>> using queue_t = std::queue<T, Container>;
 
 }

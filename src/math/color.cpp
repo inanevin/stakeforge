@@ -94,12 +94,12 @@ namespace SFG
 		w = math::round(w);
 	}
 
-	void color::serialize(ostream& stream) const
+	void color::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
 
-	void color::deserialize(istream& stream)
+	void color::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}

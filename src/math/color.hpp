@@ -33,8 +33,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class ostream;
-	class istream;
+	class ostream_t;
+	class istream_t;
 
 	class color
 	{
@@ -47,8 +47,8 @@ namespace SFG
 
 		vec4f to_vector() const;
 		void  round();
-		void  serialize(ostream& stream) const;
-		void  deserialize(istream& stream);
+		void  serialize(ostream_t& stream) const;
+		void  deserialize(istream_t& stream);
 
 		bool operator!=(const color& rhs) const
 		{
