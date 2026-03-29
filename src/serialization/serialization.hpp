@@ -33,7 +33,7 @@ namespace SFG
 	class ostream_t;
 	class istream_t;
 
-	namespace serialization_t
+	namespace serialization
 	{
 		bool	  write_to_file(string_view_t fileInput, const char* targetFilePath);
 		bool	  save_to_file(const char* path, ostream_t& stream);

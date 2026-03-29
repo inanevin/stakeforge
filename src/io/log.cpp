@@ -44,7 +44,7 @@ namespace SFG
 	{
 
 #ifdef SFG_DUMP_LOG_TRACE
-		serialization_t::write_to_file(_log_trace, "sfg_log_trace.txt");
+		serialization::write_to_file(_log_trace, "sfg_log_trace.txt");
 #endif
 	}
 

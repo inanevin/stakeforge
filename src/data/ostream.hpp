@@ -91,8 +91,8 @@ namespace SFG
 	{
 		using U = std::remove_cv_t<std::remove_reference_t<T>>;
 		U copy	= static_cast<U>(val);
-		if (endianness_t::should_swap())
-			endianness_t::swap_endian(copy);
+		if (endianness::should_swap())
+			endianness::swap_endian(copy);
 		stream.write(copy);
 		return stream;
 	}

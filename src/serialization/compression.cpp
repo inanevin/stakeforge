@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "compressor.hpp"
+#include "compression.hpp"
 #include "io/log.hpp"
 #include "data/istream.hpp"
 #include "data/ostream.hpp"
@@ -38,7 +38,7 @@ namespace SFG
 		return 255 * compressedSize + 24;
 	}
 
-	ostream_t compressor::compress(ostream_t& stream)
+	ostream_t compression::compress(ostream_t& stream)
 	{
 		const u32 streamSize	   = static_cast<u32>(stream.get_size());
 		const u8  shouldCompress   = (streamSize < 150000000 && streamSize > 750000) ? 1 : 0;
@@ -58,7 +58,6 @@ namespace SFG
 		const int size			= static_cast<int>(stream.get_size());
 		const int compressBound = LZ4_compressBound(size);
 
-		// Create stream capable of holding max compressed bytes.
 		ostream_t compressedStream = ostream_t();
 		compressedStream.create(compressBound);
 		char* dest		   = (char*)compressedStream.get_raw();
@@ -67,16 +66,15 @@ namespace SFG
 
 		if (bytesWritten == 0)
 		{
-			SFG_ERR("[compressor] -> LZ4 compression failed!");
+			SFG_ERR("[compression] -> LZ4 compression failed!");
 		}
 
 		compressedStream.shrink(static_cast<size_t>(bytesWritten));
 		return compressedStream;
 	}
 
-	istream_t compressor::decompress(istream_t& stream)
+	istream_t compression::decompress(istream_t& stream)
 	{
-		// Read uncompressed size of archive.
 		u8	shouldDecompress = 0;
 		u32 uncompressedSize = 0;
 		stream.seek(stream.get_size() - sizeof(u32) - sizeof(u8));

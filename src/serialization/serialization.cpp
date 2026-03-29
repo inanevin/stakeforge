@@ -29,14 +29,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/file_system.hpp"
 #include "data/ostream.hpp"
 #include "data/istream.hpp"
-#include "compressor.hpp"
+#include "compression.hpp"
 
 #include <fstream>
 #include <filesystem>
 
 namespace SFG
 {
-	bool serialization_t::write_to_file(string_view_t fileInput, const char* target_file)
+	bool serialization::write_to_file(string_view_t fileInput, const char* target_file)
 	{
 		std::ofstream outFile(target_file);
 
@@ -54,7 +54,7 @@ namespace SFG
 		return true;
 	}
 
-	bool serialization_t::save_to_file(const char* path, ostream_t& stream)
+	bool serialization::save_to_file(const char* path, ostream_t& stream)
 	{
 		if (file_system::exists(path))
 			file_system::delete_file(path);
@@ -67,7 +67,7 @@ namespace SFG
 			return false;
 		}
 
-		ostream_t compressed = compressor::compress(stream);
+		ostream_t compressed = compression::compress(stream);
 		compressed.write_to_ofstream(wf);
 		wf.close();
 		compressed.destroy();
@@ -81,7 +81,7 @@ namespace SFG
 		return true;
 	}
 
-	istream_t serialization_t::load_from_file(const char* path)
+	istream_t serialization::load_from_file(const char* path)
 	{
 		if (!file_system::exists(path))
 		{
@@ -112,7 +112,7 @@ namespace SFG
 			return {};
 		}
 
-		istream_t decompressedStream = compressor::decompress(readStream);
+		istream_t decompressedStream = compression::decompress(readStream);
 		readStream.destroy();
 		return decompressedStream;
 	}
