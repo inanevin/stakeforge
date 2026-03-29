@@ -25,23 +25,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "engine.hpp"
+#include "engine_config.hpp"
 #include "platform/time.hpp"
 #include "world/world.hpp"
-
-namespace
-{
-	static inline constexpr double FIXED_FRAMERATE_NS_D		 = 16'666'667.0;
-	static inline constexpr i64	   FIXED_FRAMERATE_NS		 = static_cast<i64>(FIXED_FRAMERATE_NS_D);
-	static inline constexpr f32	   FIXED_FRAMERATE_S		 = static_cast<f32>(FIXED_FRAMERATE_NS_D / 1'000'000'000.0);
-	static inline constexpr u32	   FIXED_FRAMERATE_MAX_TICKS = 4;
-}
 
 namespace SFG
 {
 	void engine_t::init()
 	{
+		const double fixed_framerate_ns = g_engine_config.fixed_framerate_ns;
+
 		_previous_time	= time_t::get_cpu_microseconds();
-		_accumulator_ns = static_cast<i64>(FIXED_FRAMERATE_NS_D);
+		_accumulator_ns = static_cast<i64>(fixed_framerate_ns);
 		_is_init		= true;
 	}
 
@@ -66,6 +61,11 @@ namespace SFG
 		if (!_is_init)
 			return;
 
+		const double fixed_framerate_ns_d	   = g_engine_config.fixed_framerate_ns;
+		const i64	 fixed_framerate_ns		   = static_cast<i64>(fixed_framerate_ns_d);
+		const f32	 fixed_framerate_s		   = static_cast<f32>(fixed_framerate_ns_d / 1'000'000'000.0);
+		const u32	 fixed_framerate_max_ticks = g_engine_config.fixed_framerate_max_ticks;
+
 		const i64 current_time = time_t::get_cpu_microseconds();
 		const i64 delta_micro  = current_time - _previous_time;
 		_previous_time		   = current_time;
@@ -73,12 +73,12 @@ namespace SFG
 		u32 ticks = 0;
 		_accumulator_ns += delta_micro * 1000;
 
-		while (_accumulator_ns >= FIXED_FRAMERATE_NS && ticks < FIXED_FRAMERATE_MAX_TICKS)
+		while (_accumulator_ns >= fixed_framerate_ns && ticks < fixed_framerate_max_ticks)
 		{
-			_accumulator_ns -= FIXED_FRAMERATE_NS;
+			_accumulator_ns -= fixed_framerate_ns;
 
 			for (world_t* w : _worlds)
-				w->tick(FIXED_FRAMERATE_S);
+				w->tick(fixed_framerate_s);
 
 			ticks++;
 		}
