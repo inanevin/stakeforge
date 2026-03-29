@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct vertex_input;
+	struct vertex_input_t;
 
 	enum class vertex_input_style
 	{
@@ -41,9 +41,8 @@ namespace SFG
 		gui
 	};
 
-	class vertex_inputs
+	namespace vertex_inputs_t
 	{
-	public:
-		static void get_vertex_inputs(vertex_input_style, vector_t<vertex_input>& out_inputs);
-	};
+		void get_vertex_inputs(vertex_input_style, vector_t<vertex_input_t>& out_inputs);
+	}
 }

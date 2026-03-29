@@ -170,7 +170,7 @@ namespace SFG
 		shf_enable_blend_logic_op = 1 << 3,
 	};
 
-	struct vertex_input
+	struct vertex_input_t
 	{
 		string_t name	  = "TEXCOORD";
 		u8		 location = 0;
@@ -180,7 +180,7 @@ namespace SFG
 		format	 format	  = format::undefined;
 	};
 
-	struct shader_blob
+	struct shader_blob_t
 	{
 		shader_stage stage = {};
 		span_t<u8>	 data  = {};
@@ -196,7 +196,7 @@ namespace SFG
 		ccf_rgba  = ccf_red | ccf_green | ccf_blue | ccf_alpha,
 	};
 
-	struct color_blend_attachment
+	struct color_blend_attachment_t
 	{
 		bool		  blend_enabled			 = false;
 		blend_factor  src_color_blend_factor = blend_factor::src_alpha;
@@ -208,10 +208,10 @@ namespace SFG
 		bitmask_t<u8> color_comp_flags		 = ccf_red | ccf_green | ccf_blue | ccf_alpha;
 	};
 
-	struct shader_color_attachment
+	struct shader_color_attachment_t
 	{
-		format				   format			= format::b8g8r8a8_srgb;
-		color_blend_attachment blend_attachment = {};
+		format					 format			  = format::b8g8r8a8_srgb;
+		color_blend_attachment_t blend_attachment = {};
 	};
 
 	enum depth_stencil_flags
@@ -221,7 +221,7 @@ namespace SFG
 		dsf_enable_stencil = 1 << 2,
 	};
 
-	struct stencil_state
+	struct stencil_state_t
 	{
 		stencil_op fail_op		 = stencil_op::keep;
 		stencil_op pass_op		 = stencil_op::keep;
@@ -229,33 +229,33 @@ namespace SFG
 		compare_op compare_op	 = compare_op::always;
 	};
 
-	struct shader_depth_stencil_desc
+	struct shader_depth_stencil_desc_t
 	{
-		format		  attachment_format	   = format::d32_sfloat;
-		compare_op	  depth_compare		   = compare_op::lequal;
-		stencil_state back_stencil_state   = {};
-		stencil_state front_stencil_state  = {};
-		u32			  stencil_compare_mask = 0xFF;
-		u32			  stencil_write_mask   = 0xFF;
-		bitmask_t<u8> flags				   = 0;
+		format			attachment_format	 = format::d32_sfloat;
+		compare_op		depth_compare		 = compare_op::lequal;
+		stencil_state_t back_stencil_state	 = {};
+		stencil_state_t front_stencil_state	 = {};
+		u32				stencil_compare_mask = 0xFF;
+		u32				stencil_write_mask	 = 0xFF;
+		bitmask_t<u8>	flags				 = 0;
 	};
 
-	struct shader_desc
+	struct shader_desc_t
 	{
-		string_t						  vertex_entry	= "VSMain";
-		string_t						  pixel_entry	= "PSMain";
-		string_t						  compute_entry = "CSMain";
-		bitmask_t<u16>					  flags			= 0;
-		vector_t<shader_color_attachment> attachments	= {};
-		vector_t<vertex_input>			  inputs		= {};
+		string_t							vertex_entry  = "VSMain";
+		string_t							pixel_entry	  = "PSMain";
+		string_t							compute_entry = "CSMain";
+		bitmask_t<u16>						flags		  = 0;
+		vector_t<shader_color_attachment_t> attachments	  = {};
+		vector_t<vertex_input_t>			inputs		  = {};
 
-		shader_depth_stencil_desc depth_stencil_desc = {};
-		logic_op				  blend_logic_op	 = logic_op::and_;
-		topology				  topo				 = topology::triangle_list;
-		fill_mode				  fill				 = fill_mode::solid;
-		cull_mode				  cull				 = cull_mode::back;
-		front_face				  front				 = front_face::cw;
-		polygon_mode			  poly_mode			 = polygon_mode::fill;
+		shader_depth_stencil_desc_t depth_stencil_desc = {};
+		logic_op					blend_logic_op	   = logic_op::and_;
+		topology					topo			   = topology::triangle_list;
+		fill_mode					fill			   = fill_mode::solid;
+		cull_mode					cull			   = cull_mode::back;
+		front_face					front			   = front_face::cw;
+		polygon_mode				poly_mode		   = polygon_mode::fill;
 
 		u32 samples				= 1;
 		f32 depth_bias_constant = 0.0f;
@@ -268,20 +268,20 @@ namespace SFG
 		void deserialize(istream_t& stream);
 	};
 
-	struct compile_variant
+	struct compile_variant_t
 	{
-		vector_t<shader_blob> blobs;
-		void				  destroy();
+		vector_t<shader_blob_t> blobs;
+		void					destroy();
 
 		void serialize(ostream_t& stream, bool address_only = false) const;
 		void deserialize(istream_t& stream, bool address_only = false);
 	};
 
-	struct pso_variant
+	struct pso_variant_t
 	{
-		shader_desc	   desc;
-		u32			   compile_variant = 0;
-		bitmask_t<u32> variant_flags   = 0;
+		shader_desc_t  desc;
+		u32			   compile_variant_t = 0;
+		bitmask_t<u32> variant_flags	 = 0;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
@@ -289,11 +289,11 @@ namespace SFG
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vertex_input& s);
-	void from_json(const nlohmann::json& j, vertex_input& s);
+	void to_json(nlohmann::json& j, const vertex_input_t& s);
+	void from_json(const nlohmann::json& j, vertex_input_t& s);
 
-	void to_json(nlohmann::json& j, const shader_desc& s);
-	void from_json(const nlohmann::json& j, shader_desc& s);
+	void to_json(nlohmann::json& j, const shader_desc_t& s);
+	void from_json(const nlohmann::json& j, shader_desc_t& s);
 
 	void to_json(nlohmann::json& j, const cull_mode& c);
 	void from_json(const nlohmann::json& j, cull_mode& c);
@@ -322,17 +322,17 @@ namespace SFG
 	void to_json(nlohmann::json& j, const load_op& op);
 	void from_json(const nlohmann::json& j, load_op& op);
 
-	void to_json(nlohmann::json& j, const color_blend_attachment& att);
-	void from_json(const nlohmann::json& j, color_blend_attachment& att);
+	void to_json(nlohmann::json& j, const color_blend_attachment_t& att);
+	void from_json(const nlohmann::json& j, color_blend_attachment_t& att);
 
-	void to_json(nlohmann::json& j, const shader_color_attachment& att);
-	void from_json(const nlohmann::json& j, shader_color_attachment& att);
+	void to_json(nlohmann::json& j, const shader_color_attachment_t& att);
+	void from_json(const nlohmann::json& j, shader_color_attachment_t& att);
 
-	void to_json(nlohmann::json& j, const stencil_state& ss);
-	void from_json(const nlohmann::json& j, stencil_state& ss);
+	void to_json(nlohmann::json& j, const stencil_state_t& ss);
+	void from_json(const nlohmann::json& j, stencil_state_t& ss);
 
-	void to_json(nlohmann::json& j, const shader_depth_stencil_desc& att);
-	void from_json(const nlohmann::json& j, shader_depth_stencil_desc& att);
+	void to_json(nlohmann::json& j, const shader_depth_stencil_desc_t& att);
+	void from_json(const nlohmann::json& j, shader_depth_stencil_desc_t& att);
 
 #endif
 }

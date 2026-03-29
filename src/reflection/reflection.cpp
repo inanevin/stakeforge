@@ -28,14 +28,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	const meta* reflection::find_by_tag(const char* tag) const
+	const meta_t* reflection_t::find_by_tag(const char* tag) const
 	{
 		const string_id tagsid = TO_SID(tag);
-		for (const auto& entry : _metas)
+		for (const auto& entry_t : _metas)
 		{
-			if (entry.meta.get_tag() == tagsid)
+			if (entry_t.meta_t.get_tag() == tagsid)
 			{
-				return &entry.meta;
+				return &entry_t.meta_t;
 			}
 		}
 

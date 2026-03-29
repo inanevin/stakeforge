@@ -32,12 +32,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct resource_desc;
+	struct resource_desc_t;
 
-	class buffer_gpu
+	class buffer_gpu_t
 	{
 	public:
-		void create(const resource_desc& desc);
+		void create(const resource_desc_t& desc);
 		void destroy();
 		void buffer_data(size_t padding, const void* data, size_t size);
 
@@ -62,10 +62,10 @@ namespace SFG
 		gfx_id _hw = NULL_GFX_ID;
 	};
 
-	class buffer_cpu_gpu
+	class buffer_cpu_gpu_t
 	{
 	public:
-		void create(const resource_desc& desc_cpu, const resource_desc& desc_gpu);
+		void create(const resource_desc_t& desc_cpu, const resource_desc_t& desc_gpu);
 		void destroy();
 		void buffer_data(size_t padding, const void* data, size_t size);
 		void copy(gfx_id cmd_buffer);
@@ -96,10 +96,10 @@ namespace SFG
 		gfx_id _hw_gpu	   = NULL_GFX_ID;
 	};
 
-	class buffer
+	class buffer_t
 	{
 	public:
-		void create(const resource_desc& staging, const resource_desc& hw);
+		void create(const resource_desc_t& staging, const resource_desc_t& hw);
 		void destroy();
 		void buffer_data(size_t padding, const void* data, size_t size);
 		void copy(gfx_id cmd_buffer);

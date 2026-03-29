@@ -53,7 +53,7 @@ namespace SFG
 
 		check_grow(size);
 
-		if (endianness::should_swap())
+		if (endianness_t::should_swap())
 		{
 			vector_t<u8> v;
 			v.insert(v.end(), ptr, (ptr) + size);

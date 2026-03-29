@@ -40,20 +40,20 @@ namespace
 {
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
 	{
-		SFG::vector_t<SFG::monitor_info>* infos = reinterpret_cast<SFG::vector_t<SFG::monitor_info>*>(l_param);
+		SFG::vector_t<SFG::monitor_info_t>* infos = reinterpret_cast<SFG::vector_t<SFG::monitor_info_t>*>(l_param);
 		infos->push_back({});
-		SFG::monitor_info& info = infos->back();
+		SFG::monitor_info_t& info = infos->back();
 
-		MONITORINFOEX monitor_info;
-		monitor_info.cbSize = sizeof(monitor_info);
-		GetMonitorInfo(monitor, &monitor_info);
+		MONITORINFOEX monitor_info_t;
+		monitor_info_t.cbSize = sizeof(monitor_info_t);
+		GetMonitorInfo(monitor, &monitor_info_t);
 
 		UINT	dpiX, dpiY;
 		HRESULT temp2	= GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-		info.size		= {static_cast<u16>(monitor_info.rcMonitor.right - monitor_info.rcMonitor.left), static_cast<u16>(monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top)};
-		info.work_size	= {static_cast<u16>(monitor_info.rcWork.right - monitor_info.rcWork.left), static_cast<u16>(monitor_info.rcWork.bottom - monitor_info.rcWork.top)};
-		info.position	= {static_cast<i16>(monitor_info.rcWork.left), static_cast<i16>(monitor_info.rcWork.top)};
-		info.is_primary = (monitor_info.dwFlags & MONITORINFOF_PRIMARY) != 0;
+		info.size		= {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
+		info.work_size	= {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
+		info.position	= {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
+		info.is_primary = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
 		info.dpi		= dpiX;
 		info.dpi_scale	= static_cast<f32>(dpiX) / 96.0f;
 		return 1;
@@ -89,9 +89,9 @@ namespace SFG
 						PWSTR path = nullptr;
 						if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path)))
 						{
-							char buffer[MAX_PATH];
-							WideCharToMultiByte(CP_UTF8, 0, path, -1, buffer, MAX_PATH, nullptr, nullptr);
-							result = buffer;
+							char buffer_t[MAX_PATH];
+							WideCharToMultiByte(CP_UTF8, 0, path, -1, buffer_t, MAX_PATH, nullptr, nullptr);
+							result = buffer_t;
 							CoTaskMemFree(path);
 						}
 						item->Release();
@@ -502,7 +502,7 @@ namespace SFG
 		{
 			MessageBox(nullptr, msg, "Huh?", MB_OK | MB_ICONERROR);
 		}
-		void get_all_monitors(vector_t<monitor_info>& out)
+		void get_all_monitors(vector_t<monitor_info_t>& out)
 		{
 			EnumDisplayMonitors(NULL, NULL, enumerate_monitors, (LPARAM)&out);
 		}

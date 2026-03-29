@@ -34,26 +34,26 @@ struct ID3D12Device;
 
 namespace SFG
 {
-	class dx12_heap
+	class dx12_heap_t
 	{
 	private:
-		struct block
+		struct block_t
 		{
 			u32 start = 0;
 			u32 count = 0;
 		};
 
 	public:
-		dx12_heap()	 = default;
-		~dx12_heap() = default;
+		dx12_heap_t()  = default;
+		~dx12_heap_t() = default;
 
-		void			  init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access);
-		void			  uninit();
-		void			  reset();
-		void			  reset(u32 newStart);
-		void			  remove_handle(const descriptor_handle& handle);
-		descriptor_handle get_heap_handle_block(u32 count);
-		descriptor_handle get_offsetted_handle(u32 count);
+		void				init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access);
+		void				uninit();
+		void				reset();
+		void				reset(u32 newStart);
+		void				remove_handle(const descriptor_handle_t& handle);
+		descriptor_handle_t get_heap_handle_block(u32 count);
+		descriptor_handle_t get_offsetted_handle(u32 count);
 
 		inline ID3D12DescriptorHeap* get_heap()
 		{
@@ -95,7 +95,7 @@ namespace SFG
 		u32					  _type		 = 0;
 		u64					  _cpu_start = {};
 		u64					  _gpu_start = {};
-		vector_t<block>		  _available_blocks;
+		vector_t<block_t>	  _available_blocks;
 		u32					  _max_descriptors = 0;
 		u32					  _descriptor_size = 0;
 		u32					  _current_index   = 0;

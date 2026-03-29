@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void plane::normalize()
+	void plane_t::normalize()
 	{
 		f32 len = normal.magnitude();
 		if (len > MATH_EPS)
@@ -38,8 +38,8 @@ namespace SFG
 		}
 	}
 
-	f32 plane::get_signed_distance(const vec3f& point) const
+	f32 plane_t::get_signed_distance(const vec3f_t& point) const
 	{
-		return vec3f::dot(normal, point) - distance;
+		return vec3f_t::dot(normal, point) - distance;
 	}
 }

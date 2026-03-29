@@ -33,9 +33,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class mat4x4;
-	class mat3x3;
-	class vec3f;
+	class mat4x4_t;
+	class mat3x3_t;
+	class vec3f_t;
 
 	enum class frustum_result
 	{
@@ -44,22 +44,22 @@ namespace SFG
 		intersects,
 	};
 
-	struct aabb;
-	struct plane;
+	struct aabb_t;
+	struct plane_t;
 
-	struct frustum
+	struct frustum_t
 	{
-		static frustum_result test(const frustum& fr, const aabb& local_box);
-		static frustum_result test(const frustum& fr, const vec3f& position, f32 sphere_radius);
-		static frustum_result test(const frustum& fr, const aabb& local_box, const mat3x3& linear_model, const vec3f& position);
-		static frustum_result classify_obb_vs_plane(const plane& p, const vec3f& c_local, const vec3f& e_local, const mat3x3& linear_model, const vec3f& position);
-		static frustum		  extract(const mat4x4& view_proj);
+		static frustum_result test(const frustum_t& fr, const aabb_t& local_box);
+		static frustum_result test(const frustum_t& fr, const vec3f_t& position, f32 sphere_radius);
+		static frustum_result test(const frustum_t& fr, const aabb_t& local_box, const mat3x3_t& linear_model, const vec3f_t& position);
+		static frustum_result classify_obb_vs_plane(const plane_t& p, const vec3f_t& c_local, const vec3f_t& e_local, const mat3x3_t& linear_model, const vec3f_t& position);
+		static frustum_t	  extract(const mat4x4_t& view_proj);
 
-		plane left	 = {};
-		plane right	 = {};
-		plane bottom = {};
-		plane top	 = {};
-		plane near	 = {};
-		plane far	 = {};
+		plane_t left   = {};
+		plane_t right  = {};
+		plane_t bottom = {};
+		plane_t top	   = {};
+		plane_t near   = {};
+		plane_t far	   = {};
 	};
 }

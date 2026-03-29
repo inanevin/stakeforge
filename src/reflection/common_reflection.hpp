@@ -58,21 +58,21 @@ namespace SFG
 #define SFG_PROP_TYPE_resource		SFG::reflected_field_type::rf_resource
 #define SFG_PROP_TYPE_entity		SFG::reflected_field_type::rf_entity
 
-	class field_base;
-	class world;
+	class field_base_t;
+	class world_t;
 
-	struct reflected_field_changed_params
+	struct reflected_field_changed_params_t
 	{
-		world&	  w;
+		world_t&  w;
 		void*	  object_ptr  = nullptr;
 		void*	  data_ptr	  = nullptr;
 		string_id field_title = 0;
 		u32		  list_index  = 0;
 	};
 
-	struct reflected_button_params
+	struct reflected_button_params_t
 	{
-		world&	  w;
+		world_t&  w;
 		void*	  object_ptr = nullptr;
 		string_id button_id	 = 0;
 	};

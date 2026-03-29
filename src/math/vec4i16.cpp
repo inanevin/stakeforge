@@ -30,14 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	vec4i16 vec4i16::zero = vec4i16(0, 0, 0, 0);
-	vec4i16 vec4i16::one  = vec4i16(1, 1, 1, 1);
+	vec4i16_t vec4i16_t::zero = vec4i16_t(0, 0, 0, 0);
+	vec4i16_t vec4i16_t::one  = vec4i16_t(1, 1, 1, 1);
 
-	void vec4i16::serialize(ostream_t& stream) const
+	void vec4i16_t::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
-	void vec4i16::deserialize(istream_t& stream)
+	void vec4i16_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}

@@ -31,15 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct vec2u16;
-	struct vec2f;
-	class mat4x4;
-	class vec3f;
+	struct vec2u16_t;
+	struct vec2f_t;
+	class mat4x4_t;
+	class vec3f_t;
 
-	class shadow_util
+	namespace shadow_util_t
 	{
-	public:
-		static void get_world_space_ndc(const mat4x4& inv_view_proj, static_vector_t<vec4f, 8>& out_world_space, vec3f& out_center);
-		static void get_lightspace_projection(mat4x4& out_proj, const mat4x4& light_view, const static_vector_t<vec4f, 8>& world_space_ndc, const vec2u16& resolution, vec2f& out_texel_size);
-	};
+		void get_world_space_ndc(const mat4x4_t& inv_view_proj, static_vector_t<vec4f_t, 8>& out_world_space, vec3f_t& out_center);
+		void get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const static_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size);
+	}
 }

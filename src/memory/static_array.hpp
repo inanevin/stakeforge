@@ -32,13 +32,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T, int N> struct static_array
+	template <typename T, int N> struct static_array_t
 	{
-		~static_array()
+		~static_array_t()
 		{
 		}
 
-		static_array()
+		static_array_t()
 		{
 		}
 
@@ -77,12 +77,12 @@ namespace SFG
 		// iterator
 		// -----------------------------------------------------------------------------
 
-		template <typename TYPE> struct iterator
+		template <typename TYPE> struct iterator_t
 		{
 			using reference = TYPE&;
 			using pointer	= TYPE*;
 
-			iterator(pointer ptr, u32 begin, u32 end) : _ptr(ptr), _current(begin), _end(end)
+			iterator_t(pointer ptr, u32 begin, u32 end) : _ptr(ptr), _current(begin), _end(end)
 			{
 			}
 
@@ -95,25 +95,25 @@ namespace SFG
 				return _ptr + _current;
 			}
 
-			iterator& operator++()
+			iterator_t& operator++()
 			{
 				_current++;
 				return *this;
 			}
 
-			iterator& operator++(int)
+			iterator_t& operator++(int)
 			{
-				iterator tmp = *this;
+				iterator_t tmp = *this;
 				++(*this);
 				return tmp;
 			}
 
-			friend bool operator==(const iterator& a, const iterator& b)
+			friend bool operator==(const iterator_t& a, const iterator_t& b)
 			{
 				return a._current == b._current;
 			}
 
-			friend bool operator!=(const iterator& a, const iterator& b)
+			friend bool operator!=(const iterator_t& a, const iterator_t& b)
 			{
 				return a._current != b._current;
 			}
@@ -123,24 +123,24 @@ namespace SFG
 			u32		_end	 = 0;
 		};
 
-		iterator<const T> begin() const
+		iterator_t<const T> begin() const
 		{
-			return iterator<const T>(_items, 0, N);
+			return iterator_t<const T>(_items, 0, N);
 		}
 
-		iterator<const T> end() const
+		iterator_t<const T> end() const
 		{
-			return iterator<const T>(_items, N, N);
+			return iterator_t<const T>(_items, N, N);
 		}
 
-		iterator<T> begin()
+		iterator_t<T> begin()
 		{
-			return iterator<T>(_items, 0, N);
+			return iterator_t<T>(_items, 0, N);
 		}
 
-		iterator<T> end()
+		iterator_t<T> end()
 		{
-			return iterator<T>(_items, N, N);
+			return iterator_t<T>(_items, N, N);
 		}
 
 	private:

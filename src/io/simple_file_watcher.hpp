@@ -44,23 +44,23 @@ namespace SFG
 
 	typedef void (*simple_file_watcher_callback)(const char* p, u64 last_modified, u16 id, void* user_data);
 
-	class simple_file_watcher
+	class simple_file_watcher_t
 	{
 	private:
-		struct entry
+		struct entry_t
 		{
 			std::filesystem::path* path			 = nullptr;
 			string_t			   str			 = "";
 			u64					   last_modified = 0;
 			u16					   id			 = 0;
 
-			~entry()
+			~entry_t()
 			{
 			}
 		};
 
 	public:
-		~simple_file_watcher()
+		~simple_file_watcher_t()
 		{
 			clear();
 		}
@@ -92,7 +92,7 @@ namespace SFG
 	private:
 		simple_file_watcher_callback _callback	  = nullptr;
 		void*						 _callback_ud = nullptr;
-		vector_t<entry*>			 _paths;
+		vector_t<entry_t*>			 _paths;
 		u16							 _tick_interval = 1;
 		u16							 _ticks			= 0;
 	};

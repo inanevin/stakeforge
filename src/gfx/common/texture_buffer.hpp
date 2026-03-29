@@ -33,11 +33,11 @@ namespace SFG
 	class ostream_t;
 	class istream_t;
 
-	struct texture_buffer
+	struct texture_buffer_t
 	{
-		u8*		pixels = nullptr;
-		vec2u16 size   = vec2u16::zero;
-		u8		bpp	   = 0;
+		u8*		  pixels = nullptr;
+		vec2u16_t size	 = vec2u16_t::zero;
+		u8		  bpp	 = 0;
 
 		void serialize(ostream_t& stream, bool write_addr = false) const;
 		void deserialize(istream_t& stream, bool read_addr = false);

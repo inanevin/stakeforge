@@ -31,9 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct semaphore_data
+	struct semaphore_data_t
 	{
-		gfx_id semaphore = 0;
-		u64	   value	 = 0;
+		gfx_id semaphore_t = 0;
+		u64	   value	   = 0;
 	};
 }

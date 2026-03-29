@@ -34,9 +34,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	i64 time::s_frequency = 0;
+	i64 time_t::s_frequency = 0;
 
-	void time::init()
+	void time_t::init()
 	{
 		if (s_frequency == 0)
 		{
@@ -53,12 +53,12 @@ namespace SFG
 		}
 	}
 
-	void time::uninit()
+	void time_t::uninit()
 	{
 		timeEndPeriod(1);
 	}
 
-	i64 time::get_cpu_microseconds()
+	i64 time_t::get_cpu_microseconds()
 	{
 		LARGE_INTEGER cycles;
 		QueryPerformanceCounter(&cycles);
@@ -68,31 +68,31 @@ namespace SFG
 		return (cycles.QuadPart / s_frequency) * 1000000ll + ((cycles.QuadPart % s_frequency) * 1000000ll) / s_frequency;
 	}
 
-	double time::get_cpu_seconds()
+	double time_t::get_cpu_seconds()
 	{
 		LARGE_INTEGER cycles;
 		QueryPerformanceCounter(&cycles);
 		return static_cast<double>(cycles.QuadPart) * 1.0 / static_cast<double>(s_frequency);
 	}
 
-	i64 time::get_cpu_cycles()
+	i64 time_t::get_cpu_cycles()
 	{
 		LARGE_INTEGER Cycles;
 		QueryPerformanceCounter(&Cycles);
 		return Cycles.QuadPart;
 	}
 
-	double time::get_delta_seconds(i64 fromCycles, i64 toCycles)
+	double time_t::get_delta_seconds(i64 fromCycles, i64 toCycles)
 	{
 		return static_cast<double>(toCycles - fromCycles) * 1.0 / (static_cast<double>(s_frequency));
 	}
 
-	i64 time::get_delta_microseconds(i64 fromCycles, i64 toCycles)
+	i64 time_t::get_delta_microseconds(i64 fromCycles, i64 toCycles)
 	{
 		return ((toCycles - fromCycles) * 1000000ll) / s_frequency;
 	}
 
-	void time::throttle(i64 microseconds)
+	void time_t::throttle(i64 microseconds)
 	{
 		if (microseconds < 0)
 			return;
@@ -124,7 +124,7 @@ namespace SFG
 		}
 	}
 
-	void time::go_to_sleep(u32 milliseconds)
+	void time_t::go_to_sleep(u32 milliseconds)
 	{
 		if (milliseconds == 0)
 			YieldProcessor();
@@ -132,7 +132,7 @@ namespace SFG
 			::Sleep(milliseconds);
 	}
 
-	void time::yield_thread()
+	void time_t::yield_thread()
 	{
 		YieldProcessor();
 	}

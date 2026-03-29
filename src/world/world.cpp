@@ -28,15 +28,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void world::init()
+	void world_t::init()
 	{
 	}
 
-	void world::uninit()
+	void world_t::uninit()
 	{
 	}
 
-	void world::tick(f32 delta_time)
+	void world_t::tick(f32 delta_time)
 	{
 		(void)delta_time;
 	}

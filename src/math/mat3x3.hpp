@@ -31,40 +31,40 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class quat;
+	class quat_t;
 	class ostream_t;
 	class istream_t;
-	class mat4x4;
+	class mat4x4_t;
 
 	// Column-major 3x3: m[col * 3 + row]
-	class mat3x3
+	class mat3x3_t
 	{
 	public:
 		f32 m[9];
 
-		mat3x3() = default;
+		mat3x3_t() = default;
 
-		mat3x3(f32 m00,
-			   f32 m10,
-			   f32 m20, // Col 0
-			   f32 m01,
-			   f32 m11,
-			   f32 m21, // Col 1
-			   f32 m02,
-			   f32 m12,
-			   f32 m22); // Col 2
+		mat3x3_t(f32 m00,
+				 f32 m10,
+				 f32 m20, // Col 0
+				 f32 m01,
+				 f32 m11,
+				 f32 m21, // Col 1
+				 f32 m02,
+				 f32 m12,
+				 f32 m22); // Col 2
 
-		static const mat3x3 identity;
+		static const mat3x3_t identity;
 
-		static mat3x3 scale(const vec3f& s);
-		static mat3x3 rotation(const quat& q);
-		static mat3x3 from_axes(const vec3f& x, const vec3f& y, const vec3f& z);
-		static mat3x3 abs(const mat3x3& A);
+		static mat3x3_t scale(const vec3f_t& s);
+		static mat3x3_t rotation(const quat_t& q);
+		static mat3x3_t from_axes(const vec3f_t& x, const vec3f_t& y, const vec3f_t& z);
+		static mat3x3_t abs(const mat3x3_t& A);
 
-		mat4x4 to_matrix4x4() const;
-		mat3x3 transposed() const;
-		mat3x3 inversed() const;
-		f32	   determinant() const;
+		mat4x4_t to_matrix4x4() const;
+		mat3x3_t transposed() const;
+		mat3x3_t inversed() const;
+		f32		 determinant() const;
 
 		inline f32 operator[](int index) const
 		{
@@ -75,41 +75,41 @@ namespace SFG
 			return m[index];
 		}
 
-		inline vec3f get_column(int i) const
+		inline vec3f_t get_column(int i) const
 		{
-			return vec3f(m[i * 3 + 0], m[i * 3 + 1], m[i * 3 + 2]);
+			return vec3f_t(m[i * 3 + 0], m[i * 3 + 1], m[i * 3 + 2]);
 		}
 
-		inline vec4f get_column_v4(int i) const
+		inline vec4f_t get_column_v4(int i) const
 		{
-			return vec4f(m[i * 3 + 0], m[i * 3 + 1], m[i * 3 + 2], 0);
+			return vec4f_t(m[i * 3 + 0], m[i * 3 + 1], m[i * 3 + 2], 0);
 		}
 
-		inline void set_column(int i, const vec3f& c)
+		inline void set_column(int i, const vec3f_t& c)
 		{
 			m[i * 3 + 0] = c.x;
 			m[i * 3 + 1] = c.y;
 			m[i * 3 + 2] = c.z;
 		}
-		inline vec3f get_row(int i) const
+		inline vec3f_t get_row(int i) const
 		{
-			return vec3f(m[0 * 3 + i], m[1 * 3 + i], m[2 * 3 + i]);
+			return vec3f_t(m[0 * 3 + i], m[1 * 3 + i], m[2 * 3 + i]);
 		}
-		inline void set_row(int i, const vec3f& r)
+		inline void set_row(int i, const vec3f_t& r)
 		{
 			m[0 * 3 + i] = r.x;
 			m[1 * 3 + i] = r.y;
 			m[2 * 3 + i] = r.z;
 		}
 
-		inline vec3f operator*(const vec3f& v) const
+		inline vec3f_t operator*(const vec3f_t& v) const
 		{
-			return vec3f(m[0] * v.x + m[3] * v.y + m[6] * v.z, m[1] * v.x + m[4] * v.y + m[7] * v.z, m[2] * v.x + m[5] * v.y + m[8] * v.z);
+			return vec3f_t(m[0] * v.x + m[3] * v.y + m[6] * v.z, m[1] * v.x + m[4] * v.y + m[7] * v.z, m[2] * v.x + m[5] * v.y + m[8] * v.z);
 		}
 
-		inline mat3x3 operator*(const mat3x3& other) const
+		inline mat3x3_t operator*(const mat3x3_t& other) const
 		{
-			mat3x3 r;
+			mat3x3_t r;
 			for (int i = 0; i < 3; ++i)
 			{
 				for (int j = 0; j < 3; ++j)
@@ -120,14 +120,14 @@ namespace SFG
 			return r;
 		}
 
-		inline mat3x3 operator*(f32 s) const
+		inline mat3x3_t operator*(f32 s) const
 		{
-			mat3x3 r;
+			mat3x3_t r;
 			for (int i = 0; i < 9; ++i)
 				r.m[i] = m[i] * s;
 			return r;
 		}
-		inline mat3x3& operator*=(f32 s)
+		inline mat3x3_t& operator*=(f32 s)
 		{
 			for (int i = 0; i < 9; ++i)
 				m[i] *= s;

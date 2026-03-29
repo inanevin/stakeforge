@@ -46,12 +46,12 @@ namespace SFG
 			return false;
 		}
 
-		template <typename T, class Predicate> inline vector_t<T>::const_iterator find_if(const vector_t<T>& vec, Predicate pred)
+		template <typename T, class Predicate> inline typename vector_t<T>::const_iterator find_if(const vector_t<T>& vec, Predicate pred)
 		{
 			return std::find_if(vec.cbegin(), vec.cend(), pred);
 		}
 
-		template <typename T, class Predicate> inline vector_t<T>::iterator find_if(vector_t<T>& vec, Predicate pred)
+		template <typename T, class Predicate> inline typename vector_t<T>::iterator find_if(vector_t<T>& vec, Predicate pred)
 		{
 			return std::find_if(vec.begin(), vec.end(), pred);
 		}
@@ -61,7 +61,7 @@ namespace SFG
 			return static_cast<u32>(std::erase_if(vec, pred));
 		}
 
-		template <typename T> inline vector_t<T>::iterator remove(vector_t<T>& vec, T& value)
+		template <typename T> inline typename vector_t<T>::iterator remove(vector_t<T>& vec, T& value)
 		{
 			return vec.erase(std::remove(vec.begin(), vec.end(), value), vec.end());
 		}
@@ -81,7 +81,7 @@ namespace SFG
 
 		template <typename T> inline i32 find_next_index_if_removed(const vector_t<T>& vec, const T& value)
 		{
-			const i32 currentIndex = IndexOf(vec, value);
+			const i32 currentIndex = index_of(vec, value);
 
 			if (currentIndex == 0)
 			{

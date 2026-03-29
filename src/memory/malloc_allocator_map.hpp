@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <class T> struct malloc_allocator_map
+	template <class T> struct malloc_allocator_map_t
 	{
 		typedef size_t	  size_type;
 		typedef ptrdiff_t difference_type;
@@ -44,22 +44,22 @@ namespace SFG
 		typedef const T&  const_reference;
 		typedef T		  value_type;
 
-		template <class U> struct rebind
+		template <class U> struct rebind_t
 		{
-			typedef malloc_allocator_map<U> other;
+			typedef malloc_allocator_map_t<U> other;
 		};
-		malloc_allocator_map() throw()
+		malloc_allocator_map_t() throw()
 		{
 		}
-		malloc_allocator_map(const malloc_allocator_map&) throw()
-		{
-		}
-
-		template <class U> malloc_allocator_map(const malloc_allocator_map<U>&) throw()
+		malloc_allocator_map_t(const malloc_allocator_map_t&) throw()
 		{
 		}
 
-		~malloc_allocator_map() throw()
+		template <class U> malloc_allocator_map_t(const malloc_allocator_map_t<U>&) throw()
+		{
+		}
+
+		~malloc_allocator_map_t() throw()
 		{
 		}
 

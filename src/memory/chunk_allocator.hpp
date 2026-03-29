@@ -37,17 +37,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class chunk_allocator32
+	class chunk_allocator32_t
 	{
 	public:
-		~chunk_allocator32();
+		~chunk_allocator32_t();
 
-		void		   init(size_t total_size);
-		void		   uninit();
-		void		   reset();
-		chunk_handle32 allocate_text(const string_t& source);
+		void			 init(size_t total_size);
+		void			 uninit();
+		void			 reset();
+		chunk_handle32_t allocate_text(const string_t& source);
 
-		template <typename T> inline chunk_handle32 allocate(size_t count)
+		template <typename T> inline chunk_handle32_t allocate(size_t count)
 		{
 			SFG_ASSERT(count != 0);
 
@@ -60,7 +60,7 @@ namespace SFG
 			{
 				for (auto it = _free_chunks.begin(); it != _free_chunks.end(); ++it)
 				{
-					const chunk_handle32 chunk = *it;
+					const chunk_handle32_t chunk = *it;
 
 					const u32 aligned_head		= ALIGN_UP(chunk.head, item_alignment);
 					const u32 aligned_size_need = (aligned_head - chunk.head) + requested_size;
@@ -69,7 +69,7 @@ namespace SFG
 					{
 						_free_chunks.erase(it);
 
-						const chunk_handle32 allocated_chunk{aligned_head, requested_size};
+						const chunk_handle32_t allocated_chunk{aligned_head, requested_size};
 
 						// pre-split
 						if (aligned_head > chunk.head)
@@ -96,7 +96,7 @@ namespace SFG
 
 			SFG_ASSERT(_head <= _total_size && needed_size <= _total_size - _head);
 
-			const chunk_handle32 ret{current_aligned_head, requested_size};
+			const chunk_handle32_t ret{current_aligned_head, requested_size};
 
 			T* ptr = reinterpret_cast<T*>(_raw + ret.head);
 			for (size_t i = 0; i < count; ++i)
@@ -106,27 +106,27 @@ namespace SFG
 			return ret;
 		}
 
-		template <typename T> inline chunk_handle32 allocate(size_t count, T*& out)
+		template <typename T> inline chunk_handle32_t allocate(size_t count, T*& out)
 		{
-			const chunk_handle32 ret = allocate<T>(count);
-			out						 = get<T>(ret);
+			const chunk_handle32_t ret = allocate<T>(count);
+			out						   = get<T>(ret);
 			return ret;
 		}
 
-		inline void free(chunk_handle32 handle)
+		inline void free(chunk_handle32_t handle)
 		{
 			SFG_ASSERT(handle.size != 0);
 			SFG_MEMSET(_raw + handle.head, 0, handle.size); // optional
 			insert_free_chunk_sorted(handle);
 		}
 
-		template <typename T> T* get(chunk_handle32 handle)
+		template <typename T> T* get(chunk_handle32_t handle)
 		{
 			SFG_ASSERT(handle.size != 0);
 			return reinterpret_cast<T*>(_raw + handle.head);
 		}
 
-		template <typename T> T* get(chunk_handle32 handle) const
+		template <typename T> T* get(chunk_handle32_t handle) const
 		{
 			SFG_ASSERT(handle.size != 0);
 			return reinterpret_cast<T*>(_raw + handle.head);
@@ -143,9 +143,9 @@ namespace SFG
 
 	private:
 		// Insert while keeping order and coalescing neighbors.
-		inline void insert_free_chunk_sorted(chunk_handle32 c)
+		inline void insert_free_chunk_sorted(chunk_handle32_t c)
 		{
-			auto it = std::lower_bound(_free_chunks.begin(), _free_chunks.end(), c, [](const chunk_handle32& a, const chunk_handle32& b) { return a.head < b.head; });
+			auto it = std::lower_bound(_free_chunks.begin(), _free_chunks.end(), c, [](const chunk_handle32_t& a, const chunk_handle32_t& b) { return a.head < b.head; });
 
 			it = _free_chunks.insert(it, c); // insert c at sorted position
 
@@ -174,10 +174,10 @@ namespace SFG
 		}
 
 	private:
-		u8*						 _raw = nullptr;
-		vector_t<chunk_handle32> _free_chunks; // ALWAYS kept sorted by head
-		u32						 _head		 = 0;
-		u32						 _total_size = 0;
+		u8*						   _raw = nullptr;
+		vector_t<chunk_handle32_t> _free_chunks; // ALWAYS kept sorted by head
+		u32						   _head	   = 0;
+		u32						   _total_size = 0;
 	};
 
 }

@@ -296,9 +296,9 @@ namespace SFG
 				try
 				{
 					std::filesystem::create_directory(destination);
-					for (const auto& entry : std::filesystem::recursive_directory_iterator(source))
+					for (const auto& entry_t : std::filesystem::recursive_directory_iterator(source))
 					{
-						const auto& path			= entry.path();
+						const auto& path			= entry_t.path();
 						auto		relativePathStr = path.lexically_relative(source).string();
 						std::filesystem::copy(path, destination / relativePathStr, std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
 					}
@@ -449,9 +449,9 @@ namespace SFG
 
 				// Recursively copy the directory and its contents
 				std::filesystem::create_directories(destination); // Create the target folder
-				for (const auto& entry : std::filesystem::recursive_directory_iterator(source))
+				for (const auto& entry_t : std::filesystem::recursive_directory_iterator(source))
 				{
-					const auto& src_path	  = entry.path();
+					const auto& src_path	  = entry_t.path();
 					auto		relative_path = std::filesystem::relative(src_path, source);
 					auto		dest_path	  = destination / relative_path;
 

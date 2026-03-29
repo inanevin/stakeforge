@@ -33,27 +33,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	vec2u16 vec2u16::zero = vec2u16(0, 0);
-	vec2u16 vec2u16::one  = vec2u16(1, 1);
+	vec2u16_t vec2u16_t::zero = vec2u16_t(0, 0);
+	vec2u16_t vec2u16_t::one  = vec2u16_t(1, 1);
 
-	void vec2u16::serialize(ostream_t& out) const
+	void vec2u16_t::serialize(ostream_t& out) const
 	{
 		out << x << y;
 	}
 
-	void vec2u16::deserialize(istream_t& in)
+	void vec2u16_t::deserialize(istream_t& in)
 	{
 		in >> x >> y;
 	}
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vec2u16& v)
+	void to_json(nlohmann::json& j, const vec2u16_t& v)
 	{
-		j = nlohmann::json::array({v.x, v.y});
+		j = nlohmann::json::array_t({v.x, v.y});
 	}
 
-	void from_json(const nlohmann::json& j, vec2u16& v)
+	void from_json(const nlohmann::json& j, vec2u16_t& v)
 	{
 		if (!j.is_array() || j.size() < 2)
 			throw std::runtime_error("vec2u16 json err");

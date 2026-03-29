@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void text_allocator::init(u32 capacity)
+	void text_allocator_t::init(u32 capacity)
 	{
 		_raw	  = new char[capacity];
 		_capacity = capacity;
@@ -42,7 +42,7 @@ namespace SFG
 			SFG_MEMSET(_raw, 0, capacity);
 	}
 
-	void text_allocator::uninit()
+	void text_allocator_t::uninit()
 	{
 		delete[] _raw;
 		_raw	  = nullptr;
@@ -50,15 +50,15 @@ namespace SFG
 		_free_list.clear();
 	}
 
-	const char* text_allocator::allocate(size_t len)
+	const char* text_allocator_t::allocate(size_t len)
 	{
 		const size_t need = len + 1;
 
-		auto it = vector_util::find_if(_free_list, [need](const allocation& alloc) { return alloc.size >= need; });
+		auto it = vector_util::find_if(_free_list, [need](const allocation_t& alloc) { return alloc.size >= need; });
 
 		if (it != _free_list.end())
 		{
-			allocation& free = *it;
+			allocation_t& free = *it;
 
 			char* result = free.ptr;
 			if (free.size == need)
@@ -86,7 +86,7 @@ namespace SFG
 		return allocated;
 	}
 
-	const char* text_allocator::allocate(const char* text, size_t len)
+	const char* text_allocator_t::allocate(const char* text, size_t len)
 	{
 		if (!text)
 			return nullptr;
@@ -94,11 +94,11 @@ namespace SFG
 		const size_t txt_sz = std::strlen(text) + 1;
 		const size_t need	= txt_sz > len ? txt_sz : len;
 
-		auto it = vector_util::find_if(_free_list, [need](const allocation& alloc) { return alloc.size >= need; });
+		auto it = vector_util::find_if(_free_list, [need](const allocation_t& alloc) { return alloc.size >= need; });
 
 		if (it != _free_list.end())
 		{
-			allocation& free = *it;
+			allocation_t& free = *it;
 
 			char* result = free.ptr;
 			if (free.size == need)
@@ -124,7 +124,7 @@ namespace SFG
 		return allocated;
 	}
 
-	void text_allocator::deallocate(char* ptr)
+	void text_allocator_t::deallocate(char* ptr)
 	{
 		if (!ptr)
 			return;
@@ -134,7 +134,7 @@ namespace SFG
 		});
 	}
 
-	void text_allocator::deallocate(const char* ptr)
+	void text_allocator_t::deallocate(const char* ptr)
 	{
 		if (!ptr)
 			return;

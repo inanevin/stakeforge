@@ -35,29 +35,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	const quat quat::identity(0.0f, 0.0f, 0.0f, 1.0f);
+	const quat_t quat_t::identity(0.0f, 0.0f, 0.0f, 1.0f);
 
-	vec3f quat::get_right() const
+	vec3f_t quat_t::get_right() const
 	{
-		return (*this) * vec3f::right;
+		return (*this) * vec3f_t::right;
 	}
 
-	vec3f quat::get_up() const
+	vec3f_t quat_t::get_up() const
 	{
-		return (*this) * vec3f::up;
+		return (*this) * vec3f_t::up;
 	}
 
-	vec3f quat::get_forward() const
+	vec3f_t quat_t::get_forward() const
 	{
-		return (*this) * vec3f::forward;
+		return (*this) * vec3f_t::forward;
 	}
 
-	quat quat::conjugate() const
+	quat_t quat_t::conjugate() const
 	{
-		return quat(-x, -y, -z, w);
+		return quat_t(-x, -y, -z, w);
 	}
 
-	quat quat::inverse() const
+	quat_t quat_t::inverse() const
 	{
 		f32 mag_sqr = sqr_magnitude();
 		if (math::abs(mag_sqr) < MATH_EPS)
@@ -65,7 +65,7 @@ namespace SFG
 		return conjugate() / mag_sqr;
 	}
 
-	quat quat::normalized() const
+	quat_t quat_t::normalized() const
 	{
 		f32 mag = magnitude();
 		if (math::abs(mag) < MATH_EPS)
@@ -73,27 +73,27 @@ namespace SFG
 		return (*this) / mag;
 	}
 
-	void quat::normalize()
+	void quat_t::normalize()
 	{
 		*this = normalized();
 	}
 
-	f32 quat::dot(const quat& other) const
+	f32 quat_t::dot(const quat_t& other) const
 	{
 		return x * other.x + y * other.y + z * other.z + w * other.w;
 	}
 
-	f32 quat::magnitude() const
+	f32 quat_t::magnitude() const
 	{
 		return std::sqrt(sqr_magnitude());
 	}
 
-	f32 quat::sqr_magnitude() const
+	f32 quat_t::sqr_magnitude() const
 	{
 		return x * x + y * y + z * z + w * w;
 	}
 
-	quat quat::from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees)
+	quat_t quat_t::from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees)
 	{
 		f32 pitch_rad = math::degrees_to_radians(pitch_degrees); // X-axis
 		f32 yaw_rad	  = math::degrees_to_radians(yaw_degrees);	 // Y-axis
@@ -106,7 +106,7 @@ namespace SFG
 		f32 cz = math::cos(roll_rad * 0.5f);
 		f32 sz = math::sin(roll_rad * 0.5f);
 
-		quat q;
+		quat_t q;
 		// Z-Y-X Order: q = Q_z * Q_y * Q_x
 		q.w = cx * cy * cz + sx * sy * sz;
 		q.x = sx * cy * cz - cx * sy * sz;
@@ -116,9 +116,9 @@ namespace SFG
 		return q;
 	}
 
-	vec3f quat::to_euler(const quat& q)
+	vec3f_t quat_t::to_euler(const quat_t& q)
 	{
-		vec3f e;
+		vec3f_t e;
 
 		// X (pitch)
 		f32 sinp = 2.0f * (q.w * q.x + q.y * q.z);
@@ -138,18 +138,18 @@ namespace SFG
 		return e;
 	}
 
-	quat quat::angle_axis(f32 angle_degrees, const vec3f& axis)
+	quat_t quat_t::angle_axis(f32 angle_degrees, const vec3f_t& axis)
 	{
-		f32	  angle_rad_half  = math::degrees_to_radians(angle_degrees * 0.5f);
-		f32	  s				  = math::sin(angle_rad_half);
-		vec3f normalized_axis = axis.normalized();
-		return quat(normalized_axis.x * s, normalized_axis.y * s, normalized_axis.z * s, math::cos(angle_rad_half));
+		f32		angle_rad_half	= math::degrees_to_radians(angle_degrees * 0.5f);
+		f32		s				= math::sin(angle_rad_half);
+		vec3f_t normalized_axis = axis.normalized();
+		return quat_t(normalized_axis.x * s, normalized_axis.y * s, normalized_axis.z * s, math::cos(angle_rad_half));
 	}
 
-	quat quat::lerp(const quat& a, const quat& b, f32 t)
+	quat_t quat_t::lerp(const quat_t& a, const quat_t& b, f32 t)
 	{
-		f32	 dot_product = a.dot(b);
-		quat result		 = b;
+		f32	   dot_product = a.dot(b);
+		quat_t result	   = b;
 
 		if (dot_product < 0.0f)
 		{
@@ -162,10 +162,10 @@ namespace SFG
 		return (a * (1.0f - t) + (result * t)).normalized();
 	}
 
-	quat quat::slerp(const quat& a, const quat& b, f32 t)
+	quat_t quat_t::slerp(const quat_t& a, const quat_t& b, f32 t)
 	{
-		f32	 dot_product = a.dot(b);
-		quat b_adjusted	 = b;
+		f32	   dot_product = a.dot(b);
+		quat_t b_adjusted  = b;
 
 		if (dot_product < 0.0f)
 		{
@@ -190,11 +190,11 @@ namespace SFG
 		return (a * s0) + (b_adjusted * s1);
 	}
 
-	quat quat::look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector)
+	quat_t quat_t::look_at(const vec3f_t& source_point, const vec3f_t& target_point, const vec3f_t& up_vector)
 	{
-		vec3f forward_vec  = (target_point - source_point).normalized();
-		vec3f right_vec	   = vec3f::cross(up_vector, forward_vec).normalized();
-		vec3f final_up_vec = vec3f::cross(forward_vec, right_vec);
+		vec3f_t forward_vec	 = (target_point - source_point).normalized();
+		vec3f_t right_vec	 = vec3f_t::cross(up_vector, forward_vec).normalized();
+		vec3f_t final_up_vec = vec3f_t::cross(forward_vec, right_vec);
 
 		f32 m00 = right_vec.x;
 		f32 m01 = final_up_vec.x;
@@ -206,8 +206,8 @@ namespace SFG
 		f32 m21 = final_up_vec.z;
 		f32 m22 = forward_vec.z;
 
-		quat q;
-		f32	 trace = m00 + m11 + m22;
+		quat_t q;
+		f32	   trace = m00 + m11 + m22;
 
 		if (trace > 0.0f)
 		{
@@ -245,10 +245,10 @@ namespace SFG
 		return q.normalized();
 	}
 
-	quat quat::from_rotation_matrix3x3(const f32 R_m[9])
+	quat_t quat_t::from_rotation_matrix3x3(const f32 R_m[9])
 	{
-		f32	 trace = R_m[0] + R_m[4] + R_m[8]; // R[0,0] + R[1,1] + R[2,2]
-		quat q;
+		f32	   trace = R_m[0] + R_m[4] + R_m[8]; // R[0,0] + R[1,1] + R[2,2]
+		quat_t q;
 
 		if (trace > 0.0f)
 		{
@@ -286,14 +286,14 @@ namespace SFG
 		return q.normalized();
 	}
 
-	quat quat::operator/(f32 scalar) const
+	quat_t quat_t::operator/(f32 scalar) const
 	{
 		if (math::abs(scalar) < MATH_EPS)
 			return identity;
-		return quat(x / scalar, y / scalar, z / scalar, w / scalar);
+		return quat_t(x / scalar, y / scalar, z / scalar, w / scalar);
 	}
 
-	quat& quat::operator/=(f32 scalar)
+	quat_t& quat_t::operator/=(f32 scalar)
 	{
 		if (math::abs(scalar) > MATH_EPS)
 		{
@@ -309,28 +309,28 @@ namespace SFG
 		return *this;
 	}
 
-	bool quat::equals(const quat& other, f32 epsilon) const
+	bool quat_t::equals(const quat_t& other, f32 epsilon) const
 	{
 		return math::almost_equal(x, other.x, epsilon) && math::almost_equal(y, other.y, epsilon) && math::almost_equal(z, other.z, epsilon) && math::almost_equal(w, other.w, epsilon);
 	}
 
-	void quat::serialize(ostream_t& stream) const
+	void quat_t::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
-	void quat::deserialize(istream_t& stream)
+	void quat_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const quat& q)
+	void to_json(nlohmann::json& j, const quat_t& q)
 	{
-		j = nlohmann::json::array({q.x, q.y, q.z, q.w});
+		j = nlohmann::json::array_t({q.x, q.y, q.z, q.w});
 	}
 
-	void from_json(const nlohmann::json& j, quat& q)
+	void from_json(const nlohmann::json& j, quat_t& q)
 	{
 		if (!j.is_array() || j.size() < 4)
 			throw std::runtime_error("quat json err");

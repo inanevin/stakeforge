@@ -36,20 +36,20 @@ using json = nlohmann::json;
 
 namespace SFG
 {
-	color color::red	= color(1, 0, 0, 1);
-	color color::green	= color(0, 1, 0);
-	color color::blue	= color(0, 0, 1);
-	color color::cyan	= color(0, 1, 1);
-	color color::yellow = color(1, 1, 0);
-	color color::black	= color(0, 0, 0);
-	color color::white	= color(1, 1, 1);
-	color color::purple = color(1, 0, 1);
-	color color::maroon = color(0.5f, 0, 0);
-	color color::beige	= color(0.96f, 0.96f, 0.862f);
-	color color::brown	= color(0.647f, 0.164f, 0.164f);
-	color color::gray	= color(0.5f, 0.5f, 0.5f);
+	color_t color_t::red	= color_t(1, 0, 0, 1);
+	color_t color_t::green	= color_t(0, 1, 0);
+	color_t color_t::blue	= color_t(0, 0, 1);
+	color_t color_t::cyan	= color_t(0, 1, 1);
+	color_t color_t::yellow = color_t(1, 1, 0);
+	color_t color_t::black	= color_t(0, 0, 0);
+	color_t color_t::white	= color_t(1, 1, 1);
+	color_t color_t::purple = color_t(1, 0, 1);
+	color_t color_t::maroon = color_t(0.5f, 0, 0);
+	color_t color_t::beige	= color_t(0.96f, 0.96f, 0.862f);
+	color_t color_t::brown	= color_t(0.647f, 0.164f, 0.164f);
+	color_t color_t::gray	= color_t(0.5f, 0.5f, 0.5f);
 
-	color color::linear_to_srgb()
+	color_t color_t::linear_to_srgb()
 	{
 		auto convert = [](f32 value) {
 			if (value <= 0.0031308f)
@@ -62,10 +62,10 @@ namespace SFG
 			}
 		};
 
-		return color(convert(x), convert(y), convert(z), convert(w));
+		return color_t(convert(x), convert(y), convert(z), convert(w));
 	}
 
-	color color::srgb_to_linear()
+	color_t color_t::srgb_to_linear()
 	{
 		auto convert = [](f32 value) {
 			if (value <= 0.04045f)
@@ -78,15 +78,15 @@ namespace SFG
 			}
 		};
 
-		return color(convert(x), convert(y), convert(z), convert(w));
+		return color_t(convert(x), convert(y), convert(z), convert(w));
 	}
 
-	color color::from255(f32 r, f32 g, f32 b, f32 a)
+	color_t color_t::from255(f32 r, f32 g, f32 b, f32 a)
 	{
-		return color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+		return color_t(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 	}
 
-	void color::round()
+	void color_t::round()
 	{
 		x = math::round(x);
 		y = math::round(y);
@@ -94,29 +94,29 @@ namespace SFG
 		w = math::round(w);
 	}
 
-	void color::serialize(ostream_t& stream) const
+	void color_t::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z << w;
 	}
 
-	void color::deserialize(istream_t& stream)
+	void color_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
 	}
 
-	vec4f color::to_vector() const
+	vec4f_t color_t::to_vector() const
 	{
-		return vec4f(x, y, z, w);
+		return vec4f_t(x, y, z, w);
 	}
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const color& c)
+	void to_json(nlohmann::json& j, const color_t& c)
 	{
-		j = nlohmann::json::array({c.x, c.y, c.z, c.w});
+		j = nlohmann::json::array_t({c.x, c.y, c.z, c.w});
 	}
 
-	void from_json(const nlohmann::json& j, color& c)
+	void from_json(const nlohmann::json& j, color_t& c)
 	{
 		if (!j.is_array() || j.size() < 4)
 			throw std::runtime_error("color json err");

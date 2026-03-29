@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	void buffer::create(const resource_desc& staging, const resource_desc& hw)
+	void buffer_t::create(const resource_desc_t& staging, const resource_desc_t& hw)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		SFG_ASSERT(staging.size == hw.size);
@@ -54,7 +54,7 @@ namespace SFG
 			_index_secondary = backend->get_resource_gpu_index(_hw_gpu, true);
 	}
 
-	void buffer::destroy()
+	void buffer_t::destroy()
 	{
 		SFG_ASSERT(_hw_gpu != NULL_GFX_ID && _hw_staging != NULL_GFX_ID);
 		gfx_backend* backend = gfx_backend::get();
@@ -67,7 +67,7 @@ namespace SFG
 		_hw_gpu			 = NULL_GFX_ID;
 	}
 
-	void buffer::buffer_data(size_t padding, const void* data, size_t size)
+	void buffer_t::buffer_data(size_t padding, const void* data, size_t size)
 	{
 #ifdef SFG_DEBUG
 		SFG_ASSERT(padding + size <= _total_size);
@@ -75,7 +75,7 @@ namespace SFG
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer::copy(gfx_id cmd_buffer)
+	void buffer_t::copy(gfx_id cmd_buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->cmd_copy_resource(cmd_buffer,
@@ -85,7 +85,7 @@ namespace SFG
 								   });
 	}
 
-	void buffer::copy_region(gfx_id cmd_buffer, size_t padding, size_t size)
+	void buffer_t::copy_region(gfx_id cmd_buffer, size_t padding, size_t size)
 	{
 		SFG_ASSERT(size != 0);
 
@@ -100,7 +100,7 @@ namespace SFG
 										  });
 	}
 
-	void buffer_gpu::create(const resource_desc& desc)
+	void buffer_gpu_t::create(const resource_desc_t& desc)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		_hw					 = backend->create_resource(desc);
@@ -115,7 +115,7 @@ namespace SFG
 #endif
 	}
 
-	void buffer_gpu::destroy()
+	void buffer_gpu_t::destroy()
 	{
 		SFG_ASSERT(_hw != NULL_GFX_ID);
 		gfx_backend* backend = gfx_backend::get();
@@ -125,7 +125,7 @@ namespace SFG
 		_mapped = nullptr;
 	}
 
-	void buffer_gpu::buffer_data(size_t padding, const void* data, size_t size)
+	void buffer_gpu_t::buffer_data(size_t padding, const void* data, size_t size)
 	{
 #ifdef SFG_DEBUG
 		SFG_ASSERT(padding + size <= _total_size);
@@ -133,7 +133,7 @@ namespace SFG
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_cpu_gpu::create(const resource_desc& desc_cpu, const resource_desc& desc_gpu)
+	void buffer_cpu_gpu_t::create(const resource_desc_t& desc_cpu, const resource_desc_t& desc_gpu)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		SFG_ASSERT(desc_cpu.size == desc_gpu.size);
@@ -148,7 +148,7 @@ namespace SFG
 #endif
 	}
 
-	void buffer_cpu_gpu::destroy()
+	void buffer_cpu_gpu_t::destroy()
 	{
 		SFG_ASSERT(_hw_staging != NULL_GFX_ID);
 		SFG_ASSERT(_hw_gpu != NULL_GFX_ID);
@@ -159,7 +159,7 @@ namespace SFG
 		_mapped				  = nullptr;
 	}
 
-	void buffer_cpu_gpu::buffer_data(size_t padding, const void* data, size_t size)
+	void buffer_cpu_gpu_t::buffer_data(size_t padding, const void* data, size_t size)
 	{
 #ifdef SFG_DEBUG
 		SFG_ASSERT(padding + size <= _total_size);
@@ -167,7 +167,7 @@ namespace SFG
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_cpu_gpu::copy(gfx_id cmd_buffer)
+	void buffer_cpu_gpu_t::copy(gfx_id cmd_buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->cmd_copy_resource(cmd_buffer,
@@ -177,7 +177,7 @@ namespace SFG
 								   });
 	}
 
-	void buffer_cpu_gpu::copy_region(gfx_id cmd_buffer, size_t padding, size_t size)
+	void buffer_cpu_gpu_t::copy_region(gfx_id cmd_buffer, size_t padding, size_t size)
 	{
 		gfx_backend* backend = gfx_backend::get();
 

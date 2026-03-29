@@ -30,18 +30,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct plane
+	struct plane_t
 	{
-		plane()	 = default;
-		~plane() = default;
-		plane(f32 x, f32 y, f32 z, f32 dist) : normal(vec3f(x, y, z)), distance(dist){};
-		plane(const vec3f& n, f32 dist) : normal(n), distance(dist){};
+		plane_t()  = default;
+		~plane_t() = default;
+		plane_t(f32 x, f32 y, f32 z, f32 dist) : normal(vec3f_t(x, y, z)), distance(dist){};
+		plane_t(const vec3f_t& n, f32 dist) : normal(n), distance(dist){};
 
 		void normalize();
-		f32	 get_signed_distance(const vec3f& point) const;
+		f32	 get_signed_distance(const vec3f_t& point) const;
 
-		vec3f normal   = vec3f::zero;
-		f32	  distance = 0.0f;
+		vec3f_t normal	 = vec3f_t::zero;
+		f32		distance = 0.0f;
 	};
 
 }

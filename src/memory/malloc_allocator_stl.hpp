@@ -35,13 +35,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <class T> struct malloc_allocator_stl
+	template <class T> struct malloc_allocator_stl_t
 	{
 		typedef T value_type;
 
-		malloc_allocator_stl() = default;
+		malloc_allocator_stl_t() = default;
 
-		template <class U> constexpr malloc_allocator_stl(const malloc_allocator_stl<U>&) noexcept
+		template <class U> constexpr malloc_allocator_stl_t(const malloc_allocator_stl_t<U>&) noexcept
 		{
 		}
 
@@ -64,12 +64,12 @@ namespace SFG
 		}
 	};
 
-	template <class T, class U> bool operator==(const malloc_allocator_stl<T>&, const malloc_allocator_stl<U>&)
+	template <class T, class U> bool operator==(const malloc_allocator_stl_t<T>&, const malloc_allocator_stl_t<U>&)
 	{
 		return true;
 	}
 
-	template <class T, class U> bool operator!=(const malloc_allocator_stl<T>&, const malloc_allocator_stl<U>&)
+	template <class T, class U> bool operator!=(const malloc_allocator_stl_t<T>&, const malloc_allocator_stl_t<U>&)
 	{
 		return false;
 	}

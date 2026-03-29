@@ -34,18 +34,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	color color_utils::lerp(const color& c1, const color& c2, f32 a)
+	color_t color_utils_t::lerp(const color_t& c1, const color_t& c2, f32 a)
 	{
-		return color(easing::lerp(c1.x, c2.x, a), easing::lerp(c1.y, c2.y, a), easing::lerp(c1.z, c2.z, a), easing::lerp(c1.w, c2.w, a));
+		return color_t(easing::lerp(c1.x, c2.x, a), easing::lerp(c1.y, c2.y, a), easing::lerp(c1.z, c2.z, a), easing::lerp(c1.w, c2.w, a));
 	}
 
-	color color_utils::from_hex(const string_t& hex)
+	color_t color_utils_t::from_hex(const string_t& hex)
 	{
 		if (hex.size() != 7)
-			return color::black;
+			return color_t::black;
 
 		if (hex[0] != '#')
-			return color::black;
+			return color_t::black;
 
 		u32 r, g, b;
 
@@ -54,20 +54,20 @@ namespace SFG
 #else
 		const int ret = std::sscanf(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
 #endif
-		return color{static_cast<f32>(r) / 255.0f, static_cast<f32>(g) / 255.0f, static_cast<f32>(b) / 255.0f, 1.0f};
+		return color_t{static_cast<f32>(r) / 255.0f, static_cast<f32>(g) / 255.0f, static_cast<f32>(b) / 255.0f, 1.0f};
 	}
 
-	string_t color_utils::to_hex(const color& color)
+	string_t color_utils_t::to_hex(const color_t& color_t)
 	{
-		const i32		  r = static_cast<i32>(color.x * 255);
-		const i32		  g = static_cast<i32>(color.y * 255);
-		const i32		  b = static_cast<i32>(color.z * 255);
+		const i32		  r = static_cast<i32>(color_t.x * 255);
+		const i32		  g = static_cast<i32>(color_t.y * 255);
+		const i32		  b = static_cast<i32>(color_t.z * 255);
 		std::stringstream ss;
 		ss << "#" << std::hex << std::setfill('0') << std::setw(2) << r << std::setw(2) << g << std::setw(2) << b;
 		return ss.str();
 	}
 
-	color color_utils::hs_to_srgb(const color& col)
+	color_t color_utils_t::hs_to_srgb(const color_t& col)
 	{
 		const f32 hue		 = col.x;
 		const f32 saturation = col.y;
@@ -75,12 +75,12 @@ namespace SFG
 		const f32 r			 = math::clamp(math::abs(angle - 3.0f) - 1.0f, 0.0f, 1.0f);
 		const f32 g			 = math::clamp(2.0f - math::abs(angle - 2.0f), 0.0f, 1.0f);
 		const f32 b			 = math::clamp(2.0f - math::abs(angle - 4.0f), 0.0f, 1.0f);
-		return lerp(color::white, color(r, g, b, 1.0f), saturation);
+		return lerp(color_t::white, color_t(r, g, b, 1.0f), saturation);
 	}
 
-	color color_utils::srgb_to_hsv(const color& col)
+	color_t color_utils_t::srgb_to_hsv(const color_t& col)
 	{
-		color hsv;
+		color_t hsv;
 
 		f32 minVal = math::min(col.x, math::min(col.y, col.z));
 		f32 maxVal = math::max(col.x, math::max(col.y, col.z));
@@ -120,14 +120,14 @@ namespace SFG
 		return hsv;
 	}
 
-	color color_utils::hsv_to_srgb(const color& col)
+	color_t color_utils_t::hsv_to_srgb(const color_t& col)
 	{
-		color rgb;
-		f32	  C		= col.z * col.y;
-		f32	  integ = 0.0f;
-		f32	  X		= C * (1 - math::abs(math::modf(col.x / 60.0f, &integ) - 1.0f));
-		f32	  m		= col.z - C;
-		f32	  R1, G1, B1;
+		color_t rgb;
+		f32		C	  = col.z * col.y;
+		f32		integ = 0.0f;
+		f32		X	  = C * (1 - math::abs(math::modf(col.x / 60.0f, &integ) - 1.0f));
+		f32		m	  = col.z - C;
+		f32		R1, G1, B1;
 
 		if (col.x >= 0 && col.x < 60)
 		{
@@ -174,7 +174,7 @@ namespace SFG
 		return rgb;
 	}
 
-	color color_utils::srgb_to_linear(const color& col)
+	color_t color_utils_t::srgb_to_linear(const color_t& col)
 	{
 		auto convert = [](f32 value) {
 			if (value <= 0.04045f)
@@ -187,10 +187,10 @@ namespace SFG
 			}
 		};
 
-		return color(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
+		return color_t(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
 	}
 
-	color color_utils::linear_to_srgb(const color& col)
+	color_t color_utils_t::linear_to_srgb(const color_t& col)
 	{
 		auto convert = [](f32 value) {
 			if (value <= 0.0031308f)
@@ -203,17 +203,17 @@ namespace SFG
 			}
 		};
 
-		return color(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
+		return color_t(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
 	}
 
-	color color_utils::brighten(const color& color, f32 amt)
+	color_t color_utils_t::brighten(const color_t& color_t, f32 amt)
 	{
-		return lerp(color, color::white, amt);
+		return lerp(color_t, color_t::white, amt);
 	}
 
-	color color_utils::darken(const color& color, f32 amt)
+	color_t color_utils_t::darken(const color_t& color_t, f32 amt)
 	{
-		return lerp(color, color::white, amt);
+		return lerp(color_t, color_t::white, amt);
 	}
 
 } // namespace SFG

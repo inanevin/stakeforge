@@ -37,7 +37,7 @@ using json = nlohmann::json;
 namespace SFG
 {
 #ifdef SFG_JSON_SERIALIZE
-	void to_json(nlohmann::json& j, const vertex_input& s)
+	void to_json(nlohmann::json& j, const vertex_input_t& s)
 	{
 		j["name"]	  = s.name;
 		j["location"] = s.location;
@@ -47,7 +47,7 @@ namespace SFG
 		j["format"]	  = s.format;
 	}
 
-	void from_json(const nlohmann::json& j, vertex_input& s)
+	void from_json(const nlohmann::json& j, vertex_input_t& s)
 	{
 		s.name	   = j.value<string_t>("name", "");
 		s.location = j.value<u8>("location", 0);
@@ -57,7 +57,7 @@ namespace SFG
 		s.format   = j.value<format>("format", format::undefined);
 	}
 
-	void to_json(nlohmann::json& j, const shader_desc& s)
+	void to_json(nlohmann::json& j, const shader_desc_t& s)
 	{
 		j["pixel_entry"]		 = s.pixel_entry;
 		j["vertex_entry"]		 = s.vertex_entry;
@@ -76,7 +76,7 @@ namespace SFG
 		j["depth_bias_slope"]	 = s.depth_bias_slope;
 	}
 
-	void from_json(const nlohmann::json& j, shader_desc& s)
+	void from_json(const nlohmann::json& j, shader_desc_t& s)
 	{
 		s.pixel_entry		  = j.value<string_t>("pixel_entry", "");
 		s.vertex_entry		  = j.value<string_t>("vertex_entry", "");
@@ -86,10 +86,10 @@ namespace SFG
 		s.fill				  = j.value<fill_mode>("fill", fill_mode::solid);
 		s.poly_mode			  = j.value<polygon_mode>("poly_mode", polygon_mode::fill);
 		s.topo				  = j.value<topology>("topology", topology::triangle_list);
-		s.inputs			  = j.value<vector_t<vertex_input>>("vertex_inputs", {});
-		s.attachments		  = j.value<vector_t<shader_color_attachment>>("color_attachments", {});
+		s.inputs			  = j.value<vector_t<vertex_input_t>>("vertex_inputs", {});
+		s.attachments		  = j.value<vector_t<shader_color_attachment_t>>("color_attachments", {});
 		s.samples			  = j.value<u32>("samples", 1);
-		s.depth_stencil_desc  = j.value<shader_depth_stencil_desc>("depth_stencil", {});
+		s.depth_stencil_desc  = j.value<shader_depth_stencil_desc_t>("depth_stencil", {});
 		s.depth_bias_constant = j.value<f32>("depth_bias_constant", 0.0f);
 		s.depth_bias_slope	  = j.value<f32>("depth_bias_slope", 0.0f);
 		s.depth_bias_clamp	  = j.value<f32>("depth_bias_clamp", 0.0f);
@@ -602,7 +602,7 @@ namespace SFG
 		SFG_ASSERT(false);
 	}
 
-	void to_json(nlohmann::json& j, const color_blend_attachment& att)
+	void to_json(nlohmann::json& j, const color_blend_attachment_t& att)
 	{
 		j["blend_enabled"]			= att.blend_enabled;
 		j["src_color_blend_factor"] = att.src_color_blend_factor;
@@ -614,7 +614,7 @@ namespace SFG
 		j["color_comp_flags"]		= att.color_comp_flags.value();
 	}
 
-	void from_json(const nlohmann::json& j, color_blend_attachment& att)
+	void from_json(const nlohmann::json& j, color_blend_attachment_t& att)
 	{
 		att.blend_enabled		   = j.value("blend_enabled", false);
 		att.src_color_blend_factor = j.value("src_color_blend_factor", att.src_color_blend_factor);
@@ -624,23 +624,23 @@ namespace SFG
 		att.dst_alpha_blend_factor = j.value("dst_alpha_blend_factor", att.dst_alpha_blend_factor);
 		att.alpha_blend_op		   = j.value("alpha_blend_op", att.alpha_blend_op);
 
-		const u8 color		 = j.value<u8>("color_comp_flags", color_comp_flags::ccf_rgba);
-		att.color_comp_flags = color;
+		const u8 color_t	 = j.value<u8>("color_comp_flags", color_comp_flags::ccf_rgba);
+		att.color_comp_flags = color_t;
 	}
 
-	void to_json(nlohmann::json& j, const shader_color_attachment& att)
+	void to_json(nlohmann::json& j, const shader_color_attachment_t& att)
 	{
 		j["format"]			  = att.format;
 		j["blend_attachment"] = att.blend_attachment;
 	}
 
-	void from_json(const nlohmann::json& j, shader_color_attachment& att)
+	void from_json(const nlohmann::json& j, shader_color_attachment_t& att)
 	{
 		att.format			 = j.value<format>("format", format::undefined);
-		att.blend_attachment = j.value<color_blend_attachment>("blend_attachment", {});
+		att.blend_attachment = j.value<color_blend_attachment_t>("blend_attachment", {});
 	}
 
-	void to_json(nlohmann::json& j, const stencil_state& ss)
+	void to_json(nlohmann::json& j, const stencil_state_t& ss)
 	{
 		j["compare_op"]	   = ss.compare_op;
 		j["depth_fail_op"] = ss.depth_fail_op;
@@ -648,7 +648,7 @@ namespace SFG
 		j["pass_op"]	   = ss.pass_op;
 	}
 
-	void from_json(const nlohmann::json& j, stencil_state& ss)
+	void from_json(const nlohmann::json& j, stencil_state_t& ss)
 	{
 		ss.compare_op	 = j.value("compare_op", compare_op::always);
 		ss.depth_fail_op = j.value("depth_fail_op", stencil_op::keep);
@@ -656,7 +656,7 @@ namespace SFG
 		ss.pass_op		 = j.value("pass_op", stencil_op::keep);
 	}
 
-	void to_json(nlohmann::json& j, const shader_depth_stencil_desc& att)
+	void to_json(nlohmann::json& j, const shader_depth_stencil_desc_t& att)
 	{
 		j["attachment_format"]	  = att.attachment_format;
 		j["depth_compare"]		  = att.depth_compare;
@@ -668,12 +668,12 @@ namespace SFG
 		j["depth_test"]			  = att.flags.is_set(depth_stencil_flags::dsf_depth_test) ? 1 : 0;
 	}
 
-	void from_json(const nlohmann::json& j, shader_depth_stencil_desc& att)
+	void from_json(const nlohmann::json& j, shader_depth_stencil_desc_t& att)
 	{
 		att.attachment_format	 = j.value("attachment_format", format::d32_sfloat);
 		att.depth_compare		 = j.value("depth_compare", compare_op::lequal);
-		att.back_stencil_state	 = j.value("back_stencil_state", stencil_state{});
-		att.front_stencil_state	 = j.value("front_stencil_state", stencil_state{});
+		att.back_stencil_state	 = j.value("back_stencil_state", stencil_state_t{});
+		att.front_stencil_state	 = j.value("front_stencil_state", stencil_state_t{});
 		att.stencil_compare_mask = j.value("stencil_compare_mask", static_cast<u32>(0xFF));
 		att.stencil_write_mask	 = j.value("stencil_write_mask", static_cast<u32>(0xFF));
 		const u8 depth_write	 = j.value<u8>("depth_write", 0);
@@ -683,7 +683,7 @@ namespace SFG
 	}
 #endif
 
-	void shader_desc::serialize(ostream_t& stream) const
+	void shader_desc_t::serialize(ostream_t& stream) const
 	{
 		stream << debug_name;
 		stream << vertex_entry;
@@ -694,7 +694,7 @@ namespace SFG
 		const u16 att_count = static_cast<u16>(attachments.size());
 		stream << att_count;
 
-		for (const shader_color_attachment& att : attachments)
+		for (const shader_color_attachment_t& att : attachments)
 		{
 			stream << att.format;
 			stream << att.blend_attachment.blend_enabled;
@@ -730,7 +730,7 @@ namespace SFG
 		const u16 inp_count = static_cast<u16>(inputs.size());
 		stream << inp_count;
 
-		for (const vertex_input& inp : inputs)
+		for (const vertex_input_t& inp : inputs)
 		{
 			stream << inp.name;
 			stream << inp.location;
@@ -749,7 +749,7 @@ namespace SFG
 		stream << samples;
 	}
 
-	void shader_desc::deserialize(istream_t& stream)
+	void shader_desc_t::deserialize(istream_t& stream)
 	{
 		u16 sh_flags	= 0;
 		u32 layout_size = 0;
@@ -765,8 +765,8 @@ namespace SFG
 		attachments.resize(att_count);
 		for (u16 i = 0; i < att_count; i++)
 		{
-			shader_color_attachment& att   = attachments[i];
-			u8						 flags = 0;
+			shader_color_attachment_t& att	 = attachments[i];
+			u8						   flags = 0;
 			stream >> att.format;
 			stream >> att.blend_attachment.blend_enabled;
 			stream >> att.blend_attachment.src_alpha_blend_factor;
@@ -806,9 +806,9 @@ namespace SFG
 		inputs.resize(inp_count);
 		for (u16 i = 0; i < inp_count; i++)
 		{
-			vertex_input& inp	 = inputs[i];
-			u32			  offset = 0;
-			u32			  size	 = 0;
+			vertex_input_t& inp	   = inputs[i];
+			u32				offset = 0;
+			u32				size   = 0;
 
 			stream >> inp.name;
 			stream >> inp.location;
@@ -830,9 +830,9 @@ namespace SFG
 		stream >> samples;
 	}
 
-	void compile_variant::destroy()
+	void compile_variant_t::destroy()
 	{
-		for (shader_blob& b : blobs)
+		for (shader_blob_t& b : blobs)
 		{
 			if (b.data.size != 0)
 				delete[] b.data.data;
@@ -841,12 +841,12 @@ namespace SFG
 		blobs.clear();
 	}
 
-	void compile_variant::serialize(ostream_t& stream, bool address_only) const
+	void compile_variant_t::serialize(ostream_t& stream, bool address_only) const
 	{
 		const u32 sz = static_cast<u32>(blobs.size());
 		stream << sz;
 
-		for (const shader_blob& b : blobs)
+		for (const shader_blob_t& b : blobs)
 		{
 			const u32 blob_sz = static_cast<u32>(b.data.size);
 			stream << blob_sz;
@@ -867,7 +867,7 @@ namespace SFG
 		}
 	}
 
-	void compile_variant::deserialize(istream_t& stream, bool address_only)
+	void compile_variant_t::deserialize(istream_t& stream, bool address_only)
 	{
 		u32 sz = 0;
 		stream >> sz;
@@ -875,8 +875,8 @@ namespace SFG
 
 		for (u32 i = 0; i < sz; i++)
 		{
-			shader_blob& b		 = blobs[i];
-			u32			 blob_sz = 0;
+			shader_blob_t& b	   = blobs[i];
+			u32			   blob_sz = 0;
 			stream >> blob_sz;
 			stream >> b.stage;
 			b.data.size = static_cast<size_t>(blob_sz);
@@ -898,18 +898,18 @@ namespace SFG
 		}
 	}
 
-	void pso_variant::serialize(ostream_t& stream) const
+	void pso_variant_t::serialize(ostream_t& stream) const
 	{
 		stream << desc;
-		stream << compile_variant;
+		stream << compile_variant_t;
 		stream << variant_flags.value();
 	}
 
-	void pso_variant::deserialize(istream_t& stream)
+	void pso_variant_t::deserialize(istream_t& stream)
 	{
 		u32 flags_val = 0;
 		stream >> desc;
-		stream >> compile_variant;
+		stream >> compile_variant_t;
 		stream >> flags_val;
 		variant_flags = flags_val;
 	}

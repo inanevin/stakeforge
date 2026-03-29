@@ -28,6 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	vec4u vec4u::zero = vec4u(0, 0, 0, 0);
-	vec4u vec4u::one  = vec4u(1, 1, 1, 1);
+	vec4u_t vec4u_t::zero = vec4u_t(0, 0, 0, 0);
+	vec4u_t vec4u_t::one  = vec4u_t(1, 1, 1, 1);
 }

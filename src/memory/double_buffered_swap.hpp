@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class double_buffered_swap
+	class double_buffered_swap_t
 	{
 	public:
 		// -----------------------------------------------------------------------------

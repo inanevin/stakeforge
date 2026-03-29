@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	template <typename T, typename U, int N> struct pool_allocator
+	template <typename T, typename U, int N> struct pool_allocator_t
 	{
 
 		inline U add()

@@ -32,26 +32,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	std::mt19937& random::rng()
+	std::mt19937& random_t::rng()
 	{
-		thread_local std::mt19937 engine{[] {
+		thread_local std::mt19937 engine_t{[] {
 			std::seed_seq seq{static_cast<uint32_t>(std::random_device{}()), static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()), 0x9E3779B9u, 0x85EBCA6Bu, 0xC2B2AE35u};
 			return std::mt19937{seq};
 		}()};
-		return engine;
+		return engine_t;
 	}
-	void random::seed_rng(uint64_t seed)
+	void random_t::seed_rng(uint64_t seed)
 	{
 		std::seed_seq seq{static_cast<uint32_t>(seed), static_cast<uint32_t>(seed >> 32), 0x9E3779B9u, 0x85EBCA6Bu, 0xC2B2AE35u};
 		rng() = std::mt19937{seq};
 	}
-	f32 random::random_01()
+	f32 random_t::random_01()
 	{
 		static thread_local std::uniform_real_distribution<f32> dist(0.0f, 1.0f);
 		return dist(rng());
 	}
 
-	int random::random_int(int min_inclusive, int max_inclusive)
+	int random_t::random_int(int min_inclusive, int max_inclusive)
 	{
 		SFG_ASSERT(min_inclusive <= max_inclusive);
 		std::uniform_int_distribution<int> dist(min_inclusive, max_inclusive);

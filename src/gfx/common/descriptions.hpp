@@ -46,18 +46,18 @@ namespace SFG
 	class ostream_t;
 	class istream_t;
 
-	struct viewport
+	struct viewport_t
 	{
-		vec2f	pos		 = vec2f::zero;
-		vec2u16 size	 = vec2u16::zero;
-		f32		minDepth = 0.0f;
-		f32		maxDepth = 1.0f;
+		vec2f_t	  pos	   = vec2f_t::zero;
+		vec2u16_t size	   = vec2u16_t::zero;
+		f32		  minDepth = 0.0f;
+		f32		  maxDepth = 1.0f;
 	};
 
-	struct scissors_rect
+	struct scissors_rect_t
 	{
-		vec2u16 pos	 = vec2u16::zero;
-		vec2u16 size = vec2u16::zero;
+		vec2u16_t pos  = vec2u16_t::zero;
+		vec2u16_t size = vec2u16_t::zero;
 	};
 
 	enum class command_type : u8
@@ -95,7 +95,7 @@ namespace SFG
 		ssbo,
 		uav,
 		pointer,
-		sampler,
+		sampler_t,
 		texture_binding,
 	};
 
@@ -155,26 +155,26 @@ namespace SFG
 		mirrored_clamp,
 	};
 
-	struct swapchain_desc
+	struct swapchain_desc_t
 	{
-		void*		  window	= nullptr;
+		void*		  window_t	= nullptr;
 		void*		  os_handle = nullptr;
 		f32			  scaling	= 1.0f;
 		format		  format	= format::undefined;
-		vec2u16		  pos		= vec2u16::zero;
-		vec2u16		  size		= vec2u16::zero;
+		vec2u16_t	  pos		= vec2u16_t::zero;
+		vec2u16_t	  size		= vec2u16_t::zero;
 		bitmask_t<u8> flags		= 0;
 	};
 
-	struct swapchain_recreate_desc
+	struct swapchain_recreate_desc_t
 	{
-		vec2u16		  size		= vec2u16::zero;
-		gfx_id		  swapchain = 0;
-		f32			  scaling	= 1.0f;
-		bitmask_t<u8> flags		= 0;
+		vec2u16_t	  size		  = vec2u16_t::zero;
+		gfx_id		  swapchain_t = 0;
+		f32			  scaling	  = 1.0f;
+		bitmask_t<u8> flags		  = 0;
 	};
 
-	struct resource_desc
+	struct resource_desc_t
 	{
 		u32			   size			   = 0;
 		u32			   structure_size  = 0;
@@ -190,7 +190,7 @@ namespace SFG
 		depth_stencil,
 		gpu_write,
 	};
-	struct view_desc
+	struct view_desc_t
 	{
 		view_type type			 = view_type::sampled;
 		u8		  base_arr_level = 0;
@@ -201,13 +201,13 @@ namespace SFG
 		u8		  read_only		 = 0;
 	};
 
-	struct texture_desc
+	struct texture_desc_t
 	{
-		format				texture_format		 = format::r8g8b8a8_srgb;
-		format				depth_stencil_format = format::d16_unorm;
-		vec2u16				size				 = vec2u16::zero;
-		bitmask_t<u16>		flags				 = 0;
-		vector_t<view_desc> views				 = {
+		format				  texture_format	   = format::r8g8b8a8_srgb;
+		format				  depth_stencil_format = format::d16_unorm;
+		vec2u16_t			  size				   = vec2u16_t::zero;
+		bitmask_t<u16>		  flags				   = 0;
+		vector_t<view_desc_t> views				   = {
 			   {},
 		   };
 		u8			mip_levels		= 1;
@@ -217,7 +217,7 @@ namespace SFG
 		const char* debug_name		= "texture";
 	};
 
-	struct sampler_desc
+	struct sampler_desc_t
 	{
 		string_t	   debug_name = "sampler";
 		u32			   anisotropy = 0;
@@ -230,45 +230,45 @@ namespace SFG
 		address_mode   address_w  = address_mode::clamp;
 		compare_op	   compare	  = {};
 
-		bool operator==(const sampler_desc& other) const;
+		bool operator==(const sampler_desc_t& other) const;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 	};
 
-	struct layout_entry
+	struct layout_entry_t
 	{
-		binding_type type					= binding_type::constant;
-		u8			 count					= 1;
-		u8			 set					= 0;
-		u8			 binding				= 0;
-		sampler_desc immutable_sampler_desc = {};
+		binding_type   type					  = binding_type::constant;
+		u8			   count				  = 1;
+		u8			   set					  = 0;
+		u8			   binding_t			  = 0;
+		sampler_desc_t immutable_sampler_desc = {};
 	};
 
-	struct binding
+	struct binding_t
 	{
-		vector_t<layout_entry> entry_table;
-		shader_stage		   visibility;
+		vector_t<layout_entry_t> entry_table;
+		shader_stage			 visibility;
 	};
 
-	struct bind_layout_pointer_param
+	struct bind_layout_pointer_param_t
 	{
 		binding_type type		 = binding_type::ubo;
 		u8			 set		 = 0;
-		u8			 binding	 = 0;
+		u8			 binding_t	 = 0;
 		u8			 count		 = 0;
 		u8			 is_volatile = 0;
 	};
 
-	struct bind_group_pointer
+	struct bind_group_pointer_t
 	{
-		gfx_id		 resource	   = 0;
+		gfx_id		 resource_t	   = 0;
 		u8			 view		   = 0;
 		u8			 pointer_index = 0;
 		binding_type type		   = binding_type::ubo;
 	};
 
-	struct bind_group_binding
+	struct bind_group_binding_t
 	{
 		u8*			 constants	= nullptr;
 		u8			 root_index = 0;
@@ -276,7 +276,7 @@ namespace SFG
 		binding_type type		= binding_type::constant;
 	};
 
-	struct binding_update
+	struct binding_update_t
 	{
 		u32					   binding_index  = 0;
 		vector_t<binding_type> resource_types = {};
@@ -284,25 +284,25 @@ namespace SFG
 		vector_t<u32>		   resource_views = {};
 	};
 
-	struct bind_group_update_desc
+	struct bind_group_update_desc_t
 	{
-		vector_t<binding_update> updates;
+		vector_t<binding_update_t> updates;
 	};
 
-	struct queue_desc
+	struct queue_desc_t
 	{
 		command_type type			= command_type::graphics;
 		char		 debug_name[16] = {"Debug Name"};
 	};
 
-	struct command_buffer_desc
+	struct command_buffer_desc_t
 	{
 		command_type type			= command_type::graphics;
 		char		 debug_name[16] = {"CmdBuffer"};
 	};
 
 #ifdef SFG_JSON_SERIALIZE
-	void to_json(nlohmann::json& j, const sampler_desc& s);
-	void from_json(const nlohmann::json& j, sampler_desc& s);
+	void to_json(nlohmann::json& j, const sampler_desc_t& s);
+	void from_json(const nlohmann::json& j, sampler_desc_t& s);
 #endif
 }

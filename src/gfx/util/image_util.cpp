@@ -40,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void* image_util::load_from_file_ch(const char* file, u8 force_channels)
+	void* image_util_t::load_from_file_ch(const char* file, u8 force_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
 		stbi_uc* data = stbi_load(file, &x, &y, &comp, static_cast<int>(force_channels));
@@ -54,7 +54,7 @@ namespace SFG
 		return data;
 	}
 
-	void* image_util::load_from_file_ch(const char* file, vec2u16& out_size, u8 force_channels)
+	void* image_util_t::load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
 		stbi_uc* data = stbi_load(file, &x, &y, &comp, static_cast<int>(force_channels));
@@ -65,12 +65,12 @@ namespace SFG
 			return nullptr;
 		}
 
-		out_size = vec2u16(static_cast<u16>(x), static_cast<u16>(y));
+		out_size = vec2u16_t(static_cast<u16>(x), static_cast<u16>(y));
 
 		return data;
 	}
 
-	void* image_util::load_from_file(const char* file, u8& out_channels)
+	void* image_util_t::load_from_file(const char* file, u8& out_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
 		stbi_uc* data = stbi_load(file, &x, &y, &comp, 0);
@@ -86,7 +86,7 @@ namespace SFG
 		return data;
 	}
 
-	void* image_util::load_from_file(const char* file, vec2u16& out_size, u8& out_channels)
+	void* image_util_t::load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
 		stbi_uc* data = stbi_load(file, &x, &y, &comp, 0);
@@ -98,22 +98,22 @@ namespace SFG
 		}
 
 		out_channels = static_cast<int>(comp);
-		out_size	 = vec2u16(static_cast<u16>(x), static_cast<u16>(y));
+		out_size	 = vec2u16_t(static_cast<u16>(x), static_cast<u16>(y));
 
 		return data;
 	}
 
-	void image_util::compress_to_buffer(void* data, size_t sz, ostream_t& stream)
+	void image_util_t::compress_to_buffer(void* data, size_t sz, ostream_t& stream)
 	{
 		//     int stbi_write_png_to_func(stbi_write_func *func, void *context, int w, int h, int comp, const void  *data, int stride_in_bytes);
 	}
 
-	void image_util::generate_mips(texture_buffer* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha)
+	void image_util_t::generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha)
 	{
-		const texture_buffer& buf		  = out_buffers[0];
-		u8*					  last_pixels = buf.pixels;
-		u16					  last_w	  = buf.size.x;
-		u16					  last_h	  = buf.size.y;
+		const texture_buffer_t& buf			= out_buffers[0];
+		u8*						last_pixels = buf.pixels;
+		u16						last_w		= buf.size.x;
+		u16						last_h		= buf.size.y;
 
 		for (u8 i = 0; i < target_levels - 1; i++)
 		{
@@ -126,10 +126,10 @@ namespace SFG
 			if (h < 1)
 				h = 1;
 
-			texture_buffer mip = {};
-			mip.size		   = vec2u16(w, h);
-			mip.pixels		   = (u8*)SFG_MALLOC(w * h * buf.bpp);
-			mip.bpp			   = buf.bpp;
+			texture_buffer_t mip = {};
+			mip.size			 = vec2u16_t(w, h);
+			mip.pixels			 = (u8*)SFG_MALLOC(w * h * buf.bpp);
+			mip.bpp				 = buf.bpp;
 			PUSH_ALLOCATION_SZ(w * h * mip.bpp);
 			const stbir_colorspace cs = is_linear ? stbir_colorspace::STBIR_COLORSPACE_LINEAR : stbir_colorspace::STBIR_COLORSPACE_SRGB;
 
@@ -151,12 +151,12 @@ namespace SFG
 		}
 	}
 
-	u8 image_util::calculate_mip_levels(u16 width, u16 height)
+	u8 image_util_t::calculate_mip_levels(u16 width, u16 height)
 	{
 		return static_cast<u8>(math::floor_log2(math::max(width, height))) + 1;
 	}
 
-	void image_util::free(void* data)
+	void image_util_t::free(void* data)
 	{
 		::STBI_FREE(data);
 	}

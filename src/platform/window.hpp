@@ -36,33 +36,33 @@ struct HWND__;
 namespace SFG
 {
 
-	class window
+	class window_t
 	{
 	private:
 	public:
-		typedef void (*event_callback)(const window_event& ev, void* user_data);
+		typedef void (*event_callback)(const window_event_t& ev, void* user_data);
 
 		// -----------------------------------------------------------------------------
 		// lifecycle
 		// -----------------------------------------------------------------------------
 
-		bool create(const char* title, u16 flags, const vec2i16& pos, const vec2u16& size);
+		bool create(const char* title, u16 flags, const vec2i16_t& pos, const vec2u16_t& size);
 		void destroy();
 
 		// -----------------------------------------------------------------------------
 		// window api
 		// -----------------------------------------------------------------------------
 
-		void		set_position(const vec2i16& pos);
+		void		set_position(const vec2i16_t& pos);
 		void		maximize();
-		void		set_size(const vec2u16& size);
+		void		set_size(const vec2u16_t& size);
 		void		set_style(window_flags flags);
 		void		bring_to_front();
 		void		confine_cursor(cursor_confinement conf);
 		void		set_cursor_visible(bool vis);
 		static void set_cursor_state(cursor_state cs);
 		bool		is_maximized() const;
-		static void query_all_monitors(vector_t<monitor_info>& out_info);
+		static void query_all_monitors(vector_t<monitor_info_t>& out_info);
 		static f32	get_wheel_delta();
 
 		// -----------------------------------------------------------------------------
@@ -71,16 +71,16 @@ namespace SFG
 
 		static bool is_key_down(u16 key);
 
-		inline const vec2i16 get_position() const
+		inline const vec2i16_t get_position() const
 		{
 			return _position;
 		}
 
-		inline const vec2u16 get_size() const
+		inline const vec2u16_t get_size() const
 		{
 			return _size;
 		}
-		inline const vec2u16 get_true_size() const
+		inline const vec2u16_t get_true_size() const
 		{
 			return _true_size;
 		}
@@ -99,7 +99,7 @@ namespace SFG
 			return _flags;
 		}
 
-		inline const monitor_info& get_monitor_info() const
+		inline const monitor_info_t& get_monitor_info() const
 		{
 			return _monitor_info;
 		}
@@ -130,7 +130,7 @@ namespace SFG
 			_flags.set(window_flags::wf_pos_dirty, dirty);
 		}
 
-		inline const vec2i16& get_mouse_position() const
+		inline const vec2i16_t& get_mouse_position() const
 		{
 			return _mouse_position;
 		}
@@ -141,20 +141,20 @@ namespace SFG
 		static f32 UI_SCALE;
 
 	private:
-		void add_event(const window_event& ev);
+		void add_event(const window_event_t& ev);
 
 	private:
 		event_callback		_event_callback			  = nullptr;
 		void*				_event_callback_user_data = nullptr;
-		monitor_info		_monitor_info			  = {};
+		monitor_info_t		_monitor_info			  = {};
 		void*				_window_handle			  = nullptr;
 		void*				_platform_handle		  = nullptr;
 		int					_prev_confinement[4];
-		vec2i16				_mouse_position		= vec2i16::zero;
-		vec2i16				_mouse_position_abs = vec2i16::zero;
-		vec2i16				_position			= vec2i16::zero;
-		vec2u16				_true_size			= vec2u16::zero;
-		vec2u16				_size				= vec2u16::zero;
+		vec2i16_t			_mouse_position		= vec2i16_t::zero;
+		vec2i16_t			_mouse_position_abs = vec2i16_t::zero;
+		vec2i16_t			_position			= vec2i16_t::zero;
+		vec2u16_t			_true_size			= vec2u16_t::zero;
+		vec2u16_t			_size				= vec2u16_t::zero;
 		bitmask_t<u16>		_flags				= 0;
 		vector_t<string_t>	_dropped_files;
 		static u8			s_key_down_map[512];

@@ -31,18 +31,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	frustum_result frustum::test(const frustum& fr, const aabb& local_box)
+	frustum_result frustum_t::test(const frustum_t& fr, const aabb_t& local_box)
 	{
 		frustum_result test = frustum_result::inside;
 
-		auto performTest = [&](const plane& p) {
-			const f32	pos	   = -p.distance;
-			const vec3f normal = p.normal;
+		auto performTest = [&](const plane_t& p) {
+			const f32	  pos	 = -p.distance;
+			const vec3f_t normal = p.normal;
 
-			if (vec3f::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
+			if (vec3f_t::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
 				test = frustum_result ::outside;
 
-			if (vec3f::dot(normal, local_box.get_negative(normal)) + pos < 0.0f)
+			if (vec3f_t::dot(normal, local_box.get_negative(normal)) + pos < 0.0f)
 				test = frustum_result::intersects;
 		};
 
@@ -71,10 +71,10 @@ namespace SFG
 		return test;
 	}
 
-	frustum_result frustum::test(const frustum& fr, const vec3f& position, f32 sphere_radius)
+	frustum_result frustum_t::test(const frustum_t& fr, const vec3f_t& position, f32 sphere_radius)
 	{
-		auto performTest = [&](const plane& p) {
-			const f32 distance = vec3f::dot(p.normal, position) + p.distance;
+		auto performTest = [&](const plane_t& p) {
+			const f32 distance = vec3f_t::dot(p.normal, position) + p.distance;
 
 			if (distance < -sphere_radius)
 				return frustum_result::outside;
@@ -103,14 +103,14 @@ namespace SFG
 		return frustum_result::inside;
 	}
 
-	frustum_result frustum::test(const frustum& fr, const aabb& local_box, const mat3x3& linear_model, const vec3f& position)
+	frustum_result frustum_t::test(const frustum_t& fr, const aabb_t& local_box, const mat3x3_t& linear_model, const vec3f_t& position)
 	{
-		const vec3f c_local = (local_box.bounds_min + local_box.bounds_max) * 0.5f;
-		const vec3f e_local = (local_box.bounds_max - local_box.bounds_min) * 0.5f;
+		const vec3f_t c_local = (local_box.bounds_min + local_box.bounds_max) * 0.5f;
+		const vec3f_t e_local = (local_box.bounds_max - local_box.bounds_min) * 0.5f;
 
 		frustum_result agg = frustum_result::inside;
 
-		auto acc = [&](const plane& pl) {
+		auto acc = [&](const plane_t& pl) {
 			const frustum_result r = classify_obb_vs_plane(pl, c_local, e_local, linear_model, position);
 			if (r == frustum_result::outside)
 				return frustum_result::outside;
@@ -135,15 +135,15 @@ namespace SFG
 		return agg;
 	}
 
-	frustum_result frustum::classify_obb_vs_plane(const plane& p, const vec3f& c_local, const vec3f& e_local, const mat3x3& linear_model, const vec3f& position)
+	frustum_result frustum_t::classify_obb_vs_plane(const plane_t& p, const vec3f_t& c_local, const vec3f_t& e_local, const mat3x3_t& linear_model, const vec3f_t& position)
 	{
 		// world-space center
-		const vec3f c_world = linear_model * c_local + position;
+		const vec3f_t c_world = linear_model * c_local + position;
 
 		// r = |L^T * n| ? e_local
-		const vec3f v = linear_model.transposed() * p.normal;
-		const f32	r = vec3f::dot(vec3f::abs(v), e_local);
-		const f32	s = vec3f::dot(p.normal, c_world) + p.distance;
+		const vec3f_t v = linear_model.transposed() * p.normal;
+		const f32	  r = vec3f_t::dot(vec3f_t::abs(v), e_local);
+		const f32	  s = vec3f_t::dot(p.normal, c_world) + p.distance;
 
 		if (s < -r)
 			return frustum_result::outside;
@@ -152,15 +152,15 @@ namespace SFG
 		return frustum_result::intersects;
 	}
 
-	frustum frustum::extract(const mat4x4& m)
+	frustum_t frustum_t::extract(const mat4x4_t& m)
 	{
-		frustum fr = {};
-		fr.left	   = plane(m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]);
-		fr.right   = plane(m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]);
-		fr.bottom  = plane(m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]);
-		fr.top	   = plane(m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]);
-		fr.near	   = plane(m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]);
-		fr.far	   = plane(m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]);
+		frustum_t fr = {};
+		fr.left		 = plane_t(m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]);
+		fr.right	 = plane_t(m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]);
+		fr.bottom	 = plane_t(m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]);
+		fr.top		 = plane_t(m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]);
+		fr.near		 = plane_t(m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]);
+		fr.far		 = plane_t(m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]);
 		fr.left.normalize();
 		fr.right.normalize();
 		fr.bottom.normalize();

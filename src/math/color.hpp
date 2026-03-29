@@ -36,53 +36,53 @@ namespace SFG
 	class ostream_t;
 	class istream_t;
 
-	class color
+	class color_t
 	{
 
 	public:
-		color(f32 rv = 1.0f, f32 gv = 1.0f, f32 bv = 1.0f, f32 av = 1.0f) : x(rv), y(gv), z(bv), w(av){};
-		static color from255(f32 r, f32 g, f32 b, f32 a);
-		color		 linear_to_srgb();
-		color		 srgb_to_linear();
+		color_t(f32 rv = 1.0f, f32 gv = 1.0f, f32 bv = 1.0f, f32 av = 1.0f) : x(rv), y(gv), z(bv), w(av){};
+		static color_t from255(f32 r, f32 g, f32 b, f32 a);
+		color_t		   linear_to_srgb();
+		color_t		   srgb_to_linear();
 
-		vec4f to_vector() const;
-		void  round();
-		void  serialize(ostream_t& stream) const;
-		void  deserialize(istream_t& stream);
+		vec4f_t to_vector() const;
+		void	round();
+		void	serialize(ostream_t& stream) const;
+		void	deserialize(istream_t& stream);
 
-		bool operator!=(const color& rhs) const
+		bool operator!=(const color_t& rhs) const
 		{
 			return !(x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w);
 		}
 
-		bool operator==(const color& rhs) const
+		bool operator==(const color_t& rhs) const
 		{
 			return (x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w);
 		}
 
-		color operator*(const f32& rhs) const
+		color_t operator*(const f32& rhs) const
 		{
-			return color(x * rhs, y * rhs, z * rhs, w * rhs);
+			return color_t(x * rhs, y * rhs, z * rhs, w * rhs);
 		}
 
-		color operator+(const color& rhs) const
+		color_t operator+(const color_t& rhs) const
 		{
-			return color(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+			return color_t(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
 		}
 
-		color operator/(f32 v) const
+		color_t operator/(f32 v) const
 		{
-			return color(x / v, y / v, z / v, w / v);
+			return color_t(x / v, y / v, z / v, w / v);
 		}
 
-		color operator/=(f32 v) const
+		color_t operator/=(f32 v) const
 		{
-			return color(x / v, y / v, z / v, w / v);
+			return color_t(x / v, y / v, z / v, w / v);
 		}
 
-		color operator*=(f32 v) const
+		color_t operator*=(f32 v) const
 		{
-			return color(x * v, y * v, z * v, w * v);
+			return color_t(x * v, y * v, z * v, w * v);
 		}
 
 		f32& operator[](unsigned int i)
@@ -90,27 +90,27 @@ namespace SFG
 			return (&x)[i];
 		}
 
-		static color red;
-		static color green;
-		static color LightBlue;
-		static color blue;
-		static color DarkBlue;
-		static color cyan;
-		static color yellow;
-		static color black;
-		static color white;
-		static color purple;
-		static color maroon;
-		static color beige;
-		static color brown;
-		static color gray;
+		static color_t red;
+		static color_t green;
+		static color_t LightBlue;
+		static color_t blue;
+		static color_t DarkBlue;
+		static color_t cyan;
+		static color_t yellow;
+		static color_t black;
+		static color_t white;
+		static color_t purple;
+		static color_t maroon;
+		static color_t beige;
+		static color_t brown;
+		static color_t gray;
 
 		f32 x, y, z, w = 1.0f;
 	};
 
 #ifdef SFG_JSON_SERIALIZE
-	void to_json(nlohmann::json& j, const color& c);
-	void from_json(const nlohmann::json& j, color& c);
+	void to_json(nlohmann::json& j, const color_t& c);
+	void from_json(const nlohmann::json& j, color_t& c);
 #endif
 
 } // namespace SFG

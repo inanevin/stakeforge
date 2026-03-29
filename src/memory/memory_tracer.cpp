@@ -45,54 +45,54 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	u8 memory_tracer::s_category_counter = 0;
+	u8 memory_tracer_t::s_category_counter = 0;
 
 	namespace
 	{
 		void print(u32 n)
 		{
 			const size_t bufferSize = 256;
-			char*		 buffer		= static_cast<char*>(malloc(bufferSize));
-			if (!buffer)
+			char*		 buffer_t	= static_cast<char*>(malloc(bufferSize));
+			if (!buffer_t)
 				return;
-			const int written = snprintf(buffer, bufferSize, " %d\n", n);
+			const int written = snprintf(buffer_t, bufferSize, " %d\n", n);
 
 			if (written > 0 && static_cast<size_t>(written) < bufferSize)
 			{
-				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), buffer, static_cast<DWORD>(written), NULL, NULL);
+				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), buffer_t, static_cast<DWORD>(written), NULL, NULL);
 			}
 		}
 	}
-	void memory_tracer::on_allocation(void* ptr, size_t sz)
+	void memory_tracer_t::on_allocation(void* ptr, size_t sz)
 	{
 		LOCK_GUARD(_category_mtx);
 
-		memory_track& track = _allocations[ptr];
-		track.ptr			= ptr;
-		track.size			= sz;
+		memory_track_t& track = _allocations[ptr];
+		track.ptr			  = ptr;
+		track.size			  = sz;
 		capture_trace(track);
 
 		if (_categories.empty() || _current_active_category == 0)
 			return;
 
-		memory_category& cat = _categories[_current_active_category - 1];
+		memory_category_t& cat = _categories[_current_active_category - 1];
 		cat.total_size += track.size;
 
 		capture_trace(track);
 	}
 
-	void memory_tracer::on_allocation(size_t sz)
+	void memory_tracer_t::on_allocation(size_t sz)
 	{
 		LOCK_GUARD(_category_mtx);
 
 		if (_categories.empty() || _current_active_category == 0)
 			return;
 
-		memory_category& cat = _categories[_current_active_category - 1];
+		memory_category_t& cat = _categories[_current_active_category - 1];
 		cat.total_size += sz;
 	}
 
-	void memory_tracer::on_free(void* ptr)
+	void memory_tracer_t::on_free(void* ptr)
 	{
 		LOCK_GUARD(_category_mtx);
 
@@ -103,7 +103,7 @@ namespace SFG
 
 			if (!_categories.empty() && _current_active_category != 0)
 			{
-				memory_category& cat = _categories[_current_active_category - 1];
+				memory_category_t& cat = _categories[_current_active_category - 1];
 				cat.total_size -= it->second.size;
 				SFG_ASSERT(cat.total_size >= 0);
 			}
@@ -111,21 +111,21 @@ namespace SFG
 		}
 	}
 
-	void memory_tracer::on_free(size_t sz)
+	void memory_tracer_t::on_free(size_t sz)
 	{
 		if (!_categories.empty() && _current_active_category != 0)
 		{
-			memory_category& cat = _categories[_current_active_category - 1];
+			memory_category_t& cat = _categories[_current_active_category - 1];
 			cat.total_size -= sz;
 			SFG_ASSERT(cat.total_size >= 0);
 		}
 	}
 
-	void memory_tracer::push_category(const char* name)
+	void memory_tracer_t::push_category(const char* name)
 	{
 		LOCK_GUARD(_category_mtx);
 
-		auto it = std::find_if(_categories.begin(), _categories.end(), [&](const memory_category& saved) -> bool { return strcmp(saved.name, name) == 0; });
+		auto it = std::find_if(_categories.begin(), _categories.end(), [&](const memory_category_t& saved) -> bool { return strcmp(saved.name, name) == 0; });
 		if (it != _categories.end())
 		{
 			_current_active_category = it->id;
@@ -133,9 +133,9 @@ namespace SFG
 			return;
 		}
 
-		memory_category cat = {};
-		const size_t	sz	= strlen(name) + 1;
-		cat.name			= reinterpret_cast<const char*>(malloc(sz));
+		memory_category_t cat = {};
+		const size_t	  sz  = strlen(name) + 1;
+		cat.name			  = reinterpret_cast<const char*>(malloc(sz));
 
 		if (cat.name)
 			SFG_MEMCPY((void*)cat.name, (void*)name, sz);
@@ -145,7 +145,7 @@ namespace SFG
 		_categories.push_back(cat);
 	}
 
-	void memory_tracer::pop_category()
+	void memory_tracer_t::pop_category()
 	{
 		LOCK_GUARD(_category_mtx);
 
@@ -163,23 +163,23 @@ namespace SFG
 		}
 	}
 
-	void memory_tracer::capture_trace(memory_track& track)
+	void memory_tracer_t::capture_trace(memory_track_t& track)
 	{
 		track.stack_size = CaptureStackBackTrace(3, MEMORY_STACK_TRACE_SIZE, track.stack, nullptr);
 	}
 
-	void memory_tracer::destroy()
+	void memory_tracer_t::destroy()
 	{
 		HANDLE process = GetCurrentProcess();
 		SymCleanup(process);
 
-		for (const memory_category& cat : _categories)
+		for (const memory_category_t& cat : _categories)
 			free((void*)cat.name);
 
 		check_leaks();
 	}
 
-	void memory_tracer::check_leaks()
+	void memory_tracer_t::check_leaks()
 	{
 		for (auto& [ptr, alloc] : _allocations)
 		{

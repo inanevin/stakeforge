@@ -39,7 +39,7 @@ namespace SFG
 {
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const sampler_desc& s)
+	void to_json(nlohmann::json& j, const sampler_desc_t& s)
 	{
 		j["anisotropy"] = s.anisotropy;
 		j["min_lod"]	= s.min_lod;
@@ -96,7 +96,7 @@ namespace SFG
 			j["use_compare"] = 1;
 	}
 
-	void from_json(const nlohmann::json& j, sampler_desc& s)
+	void from_json(const nlohmann::json& j, sampler_desc_t& s)
 	{
 		s.anisotropy		 = j.value<u32>("anisotropy", 0);
 		s.min_lod			 = j.value<f32>("min_lod", .0f);
@@ -158,13 +158,13 @@ namespace SFG
 
 #endif
 
-	bool sampler_desc::operator==(const sampler_desc& other) const
+	bool sampler_desc_t::operator==(const sampler_desc_t& other) const
 	{
 		return other.anisotropy == anisotropy && other.flags == flags && other.address_u == address_u && other.address_v == address_v && other.address_w == address_w && other.compare == compare && math::almost_equal(min_lod, other.min_lod) &&
 			   math::almost_equal(max_lod, other.max_lod) && math::almost_equal(lod_bias, other.lod_bias);
 	}
 
-	void sampler_desc::serialize(ostream_t& stream) const
+	void sampler_desc_t::serialize(ostream_t& stream) const
 	{
 		stream << anisotropy;
 		stream << lod_bias;
@@ -177,7 +177,7 @@ namespace SFG
 		stream << address_w;
 	}
 
-	void sampler_desc::deserialize(istream_t& stream)
+	void sampler_desc_t::deserialize(istream_t& stream)
 	{
 		u16 val	   = 0;
 		u8	addr_u = 0;

@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void blend_definitions::get_blend_attachment(blend_definition_style style, color_blend_attachment& out_attachment)
+	void blend_definitions_t::get_blend_attachment(blend_definition_style style, color_blend_attachment_t& out_attachment)
 	{
 		if (style == blend_definition_style::none)
 		{

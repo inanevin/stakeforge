@@ -39,7 +39,7 @@ namespace SFG
 		using size_type		  = std::size_t;
 		using reference		  = value_type&;
 		using const_reference = const value_type&;
-		using iterator		  = T*;
+		using iterator_t	  = T*;
 		using const_iterator  = const T*;
 
 		static constexpr size_type capacity = N;
@@ -109,7 +109,7 @@ namespace SFG
 			return _data[_head - 1];
 		}
 
-		iterator begin()
+		iterator_t begin()
 		{
 			return _data;
 		}
@@ -122,7 +122,7 @@ namespace SFG
 			return _data;
 		}
 
-		iterator end()
+		iterator_t end()
 		{
 			return _data + _head;
 		}
@@ -180,7 +180,7 @@ namespace SFG
 		}
 
 		// Linear search for value. Returns end() if not found.
-		iterator find(const T& value)
+		iterator_t find(const T& value)
 		{
 			for (size_type i = 0; i < _head; ++i)
 				if (_data[i] == value)
@@ -197,7 +197,7 @@ namespace SFG
 		}
 
 		// Linear search by predicate. Returns end() if not found.
-		template <typename Pred> iterator find_if(Pred pred)
+		template <typename Pred> iterator_t find_if(Pred pred)
 		{
 			for (size_type i = 0; i < _head; ++i)
 				if (pred(_data[i]))

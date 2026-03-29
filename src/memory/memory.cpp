@@ -34,7 +34,7 @@ void* operator new(std::size_t size)
 	void* ptr = malloc(size);
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_allocation(ptr, size);
+	SFG::memory_tracer_t::get().on_allocation(ptr, size);
 #endif
 
 	TracyAlloc(ptr, size);
@@ -45,7 +45,7 @@ void* operator new[](size_t size)
 {
 	void* ptr = malloc(size);
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_allocation(ptr, size);
+	SFG::memory_tracer_t::get().on_allocation(ptr, size);
 #endif
 
 	TracyAlloc(ptr, size);
@@ -56,7 +56,7 @@ void* operator new[](size_t size)
 void operator delete[](void* ptr)
 {
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_free(ptr);
+	SFG::memory_tracer_t::get().on_free(ptr);
 #endif
 
 	TracyFree(ptr);
@@ -67,7 +67,7 @@ void operator delete[](void* ptr)
 void operator delete(void* ptr)
 {
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_free(ptr);
+	SFG::memory_tracer_t::get().on_free(ptr);
 #endif
 
 	TracyFree(ptr);
@@ -78,7 +78,7 @@ void operator delete(void* ptr)
 void operator delete(void* ptr, size_t sz)
 {
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_free(ptr);
+	SFG::memory_tracer_t::get().on_free(ptr);
 #endif
 
 	TracyFree(ptr);
@@ -88,7 +88,7 @@ void operator delete(void* ptr, size_t sz)
 void operator delete[](void* ptr, std::size_t sz)
 {
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_free(ptr);
+	SFG::memory_tracer_t::get().on_free(ptr);
 #endif
 
 	TracyFree(ptr);
@@ -99,7 +99,7 @@ void operator delete[](void* ptr, std::size_t sz)
 void operator delete(void* ptr, const std::nothrow_t& tag)
 {
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_free(ptr);
+	SFG::memory_tracer_t::get().on_free(ptr);
 #endif
 
 	TracyFree(ptr);
@@ -110,7 +110,7 @@ void operator delete(void* ptr, const std::nothrow_t& tag)
 void operator delete[](void* ptr, const std::nothrow_t& tag)
 {
 #ifdef SFG_ENABLE_MEMORY_TRACER
-	SFG::memory_tracer::get().on_free(ptr);
+	SFG::memory_tracer_t::get().on_free(ptr);
 #endif
 
 	TracyFree(ptr);

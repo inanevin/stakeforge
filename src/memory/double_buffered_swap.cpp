@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void double_buffered_swap::init(size_t sz, size_t alignment)
+	void double_buffered_swap_t::init(size_t sz, size_t alignment)
 	{
 		_data[0] = reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, sz));
 		_data[1] = reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, sz));
@@ -42,7 +42,7 @@ namespace SFG
 #endif
 	}
 
-	void double_buffered_swap::uninit()
+	void double_buffered_swap_t::uninit()
 	{
 		SFG_ALIGNED_FREE(_data[0]);
 		SFG_ALIGNED_FREE(_data[1]);
@@ -52,7 +52,7 @@ namespace SFG
 #endif
 	}
 
-	void double_buffered_swap::write(const void* src, size_t padding, size_t n)
+	void double_buffered_swap_t::write(const void* src, size_t padding, size_t n)
 	{
 		SFG_ASSERT(padding + n < _sz);
 
@@ -60,14 +60,14 @@ namespace SFG
 		SFG_MEMCPY(_data[cur] + padding, src, n);
 	}
 
-	void double_buffered_swap::swap()
+	void double_buffered_swap_t::swap()
 	{
 		uint8_t cur	 = _index.load(std::memory_order_relaxed);
 		uint8_t next = cur ^ 1;
 		_index.store(next, std::memory_order_release);
 	}
 
-	void double_buffered_swap::read(void* dst, size_t n) const
+	void double_buffered_swap_t::read(void* dst, size_t n) const
 	{
 		SFG_ASSERT(n < _sz);
 

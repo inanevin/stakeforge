@@ -34,7 +34,7 @@ namespace SFG
 	template <typename T> class bitmask_t
 	{
 	public:
-		bitmask_t()	 = default;
+		bitmask_t()  = default;
 		~bitmask_t() = default;
 
 		bitmask_t(T m) : _mask(m){};
@@ -81,7 +81,7 @@ namespace SFG
 		T _mask = 0;
 	};
 
-	typedef bitmask_t<u8>  bitmask8_t;
-	typedef bitmask_t<u16> bitmask16_t;
-	typedef bitmask_t<u32> bitmask32_t;
+	typedef bitmask_t<u8>	 bitmask8;
+	typedef bitmask_t<u16> bitmask16;
+	typedef bitmask_t<u32> bitmask32;
 }

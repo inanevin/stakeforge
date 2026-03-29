@@ -29,17 +29,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class random
+	namespace random_t
 	{
-	public:
-		static std::mt19937& rng();
-		static void			 seed_rng(uint64_t seed);
+		std::mt19937& rng();
+		void		  seed_rng(uint64_t seed);
 
 		// Uniform real in [0, 1).
-		static f32 random_01();
+		f32 random_01();
 
 		// [min_inclusive, max_inclusive].
-		static int random_int(int min_inclusive, int max_inclusive);
-	};
+		int random_int(int min_inclusive, int max_inclusive);
+	}
 
-};
+}

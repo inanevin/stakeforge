@@ -38,18 +38,18 @@ namespace
 
 namespace SFG
 {
-	void engine::init()
+	void engine_t::init()
 	{
-		_previous_time	= time::get_cpu_microseconds();
+		_previous_time	= time_t::get_cpu_microseconds();
 		_accumulator_ns = static_cast<i64>(FIXED_FRAMERATE_NS_D);
 		_is_init		= true;
 	}
 
-	void engine::uninit()
+	void engine_t::uninit()
 	{
 		end_render();
 
-		for (world* w : _worlds)
+		for (world_t* w : _worlds)
 		{
 			w->uninit();
 			delete w;
@@ -61,12 +61,12 @@ namespace SFG
 		_is_init		= false;
 	}
 
-	void engine::tick()
+	void engine_t::tick()
 	{
 		if (!_is_init)
 			return;
 
-		const i64 current_time = time::get_cpu_microseconds();
+		const i64 current_time = time_t::get_cpu_microseconds();
 		const i64 delta_micro  = current_time - _previous_time;
 		_previous_time		   = current_time;
 
@@ -77,23 +77,23 @@ namespace SFG
 		{
 			_accumulator_ns -= FIXED_FRAMERATE_NS;
 
-			for (world* w : _worlds)
+			for (world_t* w : _worlds)
 				w->tick(FIXED_FRAMERATE_S);
 
 			ticks++;
 		}
 	}
 
-	void engine::start_render()
+	void engine_t::start_render()
 	{
 		if (!_is_init || _render_thread_active)
 			return;
 
 		_render_thread_active = true;
-		_render_thread		  = std::thread(&engine::render, this);
+		_render_thread		  = std::thread(&engine_t::render, this);
 	}
 
-	void engine::end_render()
+	void engine_t::end_render()
 	{
 		if (!_render_thread_active && !_render_thread.joinable())
 			return;
@@ -104,21 +104,21 @@ namespace SFG
 			_render_thread.join();
 	}
 
-	void engine::render()
+	void engine_t::render()
 	{
 		while (_render_thread_active)
-			time::yield_thread();
+			time_t::yield_thread();
 	}
 
-	world* engine::create_world()
+	world_t* engine_t::create_world()
 	{
-		world* w = new world();
+		world_t* w = new world_t();
 		w->init();
 		_worlds.push_back(w);
 		return w;
 	}
 
-	void engine::destroy_world(world* w)
+	void engine_t::destroy_world(world_t* w)
 	{
 		for (auto it = _worlds.begin(); it != _worlds.end(); ++it)
 		{

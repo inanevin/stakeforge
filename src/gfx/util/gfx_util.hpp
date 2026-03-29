@@ -118,7 +118,7 @@ namespace SFG
 		constant_index_max,
 	};
 
-	struct root_constants
+	struct root_constants_t
 	{
 		u32 rp_ubo_index	   = 0;
 		u32 material_ubo_index = 0;
@@ -133,21 +133,20 @@ namespace SFG
 		u32 object_constant8   = 0;
 	};
 
-	class gfx_util
+	namespace gfx_util_t
 	{
-	public:
-		static gfx_id				  create_bind_layout_global(bool is_compute);
-		static sampler_desc			  get_sampler_desc_anisotropic();
-		static sampler_desc			  get_sampler_desc_anisotropic_repeat();
-		static sampler_desc			  get_sampler_desc_linear();
-		static sampler_desc			  get_sampler_desc_linear_repeat();
-		static sampler_desc			  get_sampler_desc_nearest();
-		static sampler_desc			  get_sampler_desc_nearest_repeat();
-		static sampler_desc			  get_sampler_desc_gui_default();
-		static sampler_desc			  get_sampler_desc_gui_text();
-		static sampler_desc			  get_sampler_desc_shadow_2d();
-		static sampler_desc			  get_sampler_desc_shadow_cube();
-		static color_blend_attachment get_blend_attachment_alpha_blending();
-		static vector_t<vertex_input> get_input_layout(input_layout_type type);
+		gfx_id					 create_bind_layout_global(bool is_compute);
+		sampler_desc_t			 get_sampler_desc_anisotropic();
+		sampler_desc_t			 get_sampler_desc_anisotropic_repeat();
+		sampler_desc_t			 get_sampler_desc_linear();
+		sampler_desc_t			 get_sampler_desc_linear_repeat();
+		sampler_desc_t			 get_sampler_desc_nearest();
+		sampler_desc_t			 get_sampler_desc_nearest_repeat();
+		sampler_desc_t			 get_sampler_desc_gui_default();
+		sampler_desc_t			 get_sampler_desc_gui_text();
+		sampler_desc_t			 get_sampler_desc_shadow_2d();
+		sampler_desc_t			 get_sampler_desc_shadow_cube();
+		color_blend_attachment_t get_blend_attachment_alpha_blending();
+		vector_t<vertex_input_t> get_input_layout(input_layout_type type);
 	};
 }

@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	vec2h vec2h::zero = vec2h(0.f, 0.f);
-	vec2h vec2h::one  = vec2h(1.f, 1.f);
+	vec2h_t vec2h_t::zero = vec2h_t(0.f, 0.f);
+	vec2h_t vec2h_t::one  = vec2h_t(1.f, 1.f);
 
 }

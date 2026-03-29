@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class time
+	class time_t
 	{
 	public:
 		static void	  init();

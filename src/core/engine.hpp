@@ -34,9 +34,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class world;
+	class world_t;
 
-	class engine
+	class engine_t
 	{
 	public:
 		// -----------------------------------------------------------------------------
@@ -50,22 +50,22 @@ namespace SFG
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void   tick();
-		void   start_render();
-		void   end_render();
-		world* create_world();
-		void   destroy_world(world* w);
+		void	 tick();
+		void	 start_render();
+		void	 end_render();
+		world_t* create_world();
+		void	 destroy_world(world_t* w);
 
 	private:
 		void render();
 
 	private:
-		std::thread		 _render_thread;
-		atomic_t<bool>	 _is_init			   = false;
-		atomic_t<bool>	 _render_thread_active = false;
-		vector_t<world*> _worlds;
-		i64				 _previous_time	 = 0;
-		i64				 _accumulator_ns = 0;
+		std::thread		   _render_thread;
+		atomic_t<bool>	   _is_init				 = false;
+		atomic_t<bool>	   _render_thread_active = false;
+		vector_t<world_t*> _worlds;
+		i64				   _previous_time  = 0;
+		i64				   _accumulator_ns = 0;
 	};
 
 }

@@ -37,7 +37,7 @@ namespace SFG
 	class ostrem;
 	class istream_t;
 	// LH coordinates
-	class quat
+	class quat_t
 	{
 	public:
 		f32 x = 0.0f;
@@ -45,83 +45,83 @@ namespace SFG
 		f32 z = 0.0f;
 		f32 w = 1.0f;
 
-		quat() = default;
-		quat(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
+		quat_t() = default;
+		quat_t(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
 		{
 		}
 
-		static const quat identity;
+		static const quat_t identity;
 
-		vec3f get_right() const;
-		vec3f get_up() const;
-		vec3f get_forward() const;
-		quat  conjugate() const;
-		quat  inverse() const;
-		quat  normalized() const;
-		f32	  dot(const quat& other) const;
-		f32	  magnitude() const;
-		f32	  sqr_magnitude() const;
-		void  normalize();
-		bool  equals(const quat& other, f32 epsilon = MATH_EPS) const;
+		vec3f_t get_right() const;
+		vec3f_t get_up() const;
+		vec3f_t get_forward() const;
+		quat_t	conjugate() const;
+		quat_t	inverse() const;
+		quat_t	normalized() const;
+		f32		dot(const quat_t& other) const;
+		f32		magnitude() const;
+		f32		sqr_magnitude() const;
+		void	normalize();
+		bool	equals(const quat_t& other, f32 epsilon = MATH_EPS) const;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 
-		static quat	 from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
-		static vec3f to_euler(const quat& q);
-		static quat	 angle_axis(f32 angle_degrees, const vec3f& axis);
-		static quat	 lerp(const quat& a, const quat& b, f32 t);
-		static quat	 slerp(const quat& a, const quat& b, f32 t);
-		static quat	 look_at(const vec3f& source_point, const vec3f& target_point, const vec3f& up_vector);
-		static quat	 from_rotation_matrix3x3(const f32 R_m[9]);
+		static quat_t  from_euler(f32 pitch_degrees, f32 yaw_degrees, f32 roll_degrees);
+		static vec3f_t to_euler(const quat_t& q);
+		static quat_t  angle_axis(f32 angle_degrees, const vec3f_t& axis);
+		static quat_t  lerp(const quat_t& a, const quat_t& b, f32 t);
+		static quat_t  slerp(const quat_t& a, const quat_t& b, f32 t);
+		static quat_t  look_at(const vec3f_t& source_point, const vec3f_t& target_point, const vec3f_t& up_vector);
+		static quat_t  from_rotation_matrix3x3(const f32 R_m[9]);
 
 		inline bool is_identity(f32 epsilon = MATH_EPS) const
 		{
 			return equals(identity, epsilon);
 		}
 
-		inline quat operator+(const quat& other) const
+		inline quat_t operator+(const quat_t& other) const
 		{
-			return quat(x + other.x, y + other.y, z + other.z, w + other.w);
+			return quat_t(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
 
-		inline quat operator-(const quat& other) const
+		inline quat_t operator-(const quat_t& other) const
 		{
-			return quat(x - other.x, y - other.y, z - other.z, w - other.w);
+			return quat_t(x - other.x, y - other.y, z - other.z, w - other.w);
 		}
 
-		inline quat operator*(const quat& other) const
+		inline quat_t operator*(const quat_t& other) const
 		{
-			return quat(w * other.x + x * other.w + y * other.z - z * other.y, w * other.y + y * other.w + z * other.x - x * other.z, w * other.z + z * other.w + x * other.y - y * other.x, w * other.w - x * other.x - y * other.y - z * other.z);
+			return quat_t(w * other.x + x * other.w + y * other.z - z * other.y, w * other.y + y * other.w + z * other.x - x * other.z, w * other.z + z * other.w + x * other.y - y * other.x, w * other.w - x * other.x - y * other.y - z * other.z);
 		}
 
-		inline vec3f operator*(const vec3f& v) const
+		inline vec3f_t operator*(const vec3f_t& v) const
 		{
-			quat p(v.x, v.y, v.z, 0.0f);
-			quat q_inv	   = this->conjugate();
-			quat rotated_p = (*this) * p * q_inv;
-			return vec3f(rotated_p.x, rotated_p.y, rotated_p.z);
+			quat_t p(v.x, v.y, v.z, 0.0f);
+			quat_t q_inv	 = this->conjugate();
+			quat_t rotated_p = (*this) * p * q_inv;
+			return vec3f_t(rotated_p.x, rotated_p.y, rotated_p.z);
 		}
 
-		inline quat operator*(f32 scalar) const
+		inline quat_t operator*(f32 scalar) const
 		{
-			return quat(x * scalar, y * scalar, z * scalar, w * scalar);
+			return quat_t(x * scalar, y * scalar, z * scalar, w * scalar);
 		}
 
-		quat operator/(f32 scalar) const;
+		quat_t operator/(f32 scalar) const;
 
-		inline quat operator-() const
+		inline quat_t operator-() const
 		{
-			return quat(-x, -y, -z, -w);
+			return quat_t(-x, -y, -z, -w);
 		}
 
-		inline quat& operator*=(const quat& other)
+		inline quat_t& operator*=(const quat_t& other)
 		{
 			*this = (*this) * other;
 			return *this;
 		}
 
-		inline quat& operator*=(f32 scalar)
+		inline quat_t& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
@@ -130,27 +130,27 @@ namespace SFG
 			return *this;
 		}
 
-		quat& operator/=(f32 scalar);
+		quat_t& operator/=(f32 scalar);
 
-		inline bool operator==(const quat& other) const
+		inline bool operator==(const quat_t& other) const
 		{
 			return equals(other);
 		}
-		inline bool operator!=(const quat& other) const
+		inline bool operator!=(const quat_t& other) const
 		{
 			return !equals(other);
 		}
 	};
 
-	inline quat operator*(f32 scalar, const quat& q)
+	inline quat_t operator*(f32 scalar, const quat_t& q)
 	{
 		return q * scalar;
 	}
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const quat& q);
-	void from_json(const nlohmann::json& j, quat& v);
+	void to_json(nlohmann::json& j, const quat_t& q);
+	void from_json(const nlohmann::json& j, quat_t& v);
 
 #endif
 

@@ -32,14 +32,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	chunk_allocator32::~chunk_allocator32()
+	chunk_allocator32_t::~chunk_allocator32_t()
 	{
 		SFG_ASSERT(_raw == nullptr);
 		if (_raw != nullptr)
 			uninit();
 	}
 
-	void chunk_allocator32::init(size_t size)
+	void chunk_allocator32_t::init(size_t size)
 	{
 		const size_t alignment = alignof(u32);
 		SFG_ASSERT(size % alignment == 0);
@@ -49,14 +49,14 @@ namespace SFG
 		_total_size			  = mem_size;
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
-		memory_tracer::get().on_allocation(_raw, mem_size);
+		memory_tracer_t::get().on_allocation(_raw, mem_size);
 #endif
 	}
 
-	void chunk_allocator32::uninit()
+	void chunk_allocator32_t::uninit()
 	{
 #ifdef SFG_ENABLE_MEMORY_TRACER
-		memory_tracer::get().on_free(_raw);
+		memory_tracer_t::get().on_free(_raw);
 #endif
 
 		SFG_ASSERT(_raw != nullptr);
@@ -64,17 +64,17 @@ namespace SFG
 		_raw = nullptr;
 	}
 
-	void chunk_allocator32::reset()
+	void chunk_allocator32_t::reset()
 	{
 		_free_chunks.resize(0);
 		_head = 0;
 	}
 
-	chunk_handle32 chunk_allocator32::allocate_text(const string_t& source)
+	chunk_handle32_t chunk_allocator32_t::allocate_text(const string_t& source)
 	{
-		const size_t		 len	= source.size();
-		const chunk_handle32 handle = allocate<u8>(len + 1);
-		char*				 dst	= (char*)get<u8>(handle);
+		const size_t		   len	  = source.size();
+		const chunk_handle32_t handle = allocate<u8>(len + 1);
+		char*				   dst	  = (char*)get<u8>(handle);
 		SFG_MEMCPY(dst, source.data(), len);
 		dst[len] = '\0';
 		return handle;

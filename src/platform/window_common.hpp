@@ -32,14 +32,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct monitor_info
+	struct monitor_info_t
 	{
-		vec2i16 position   = vec2i16::zero;
-		vec2u16 size	   = vec2u16::zero;
-		vec2u16 work_size  = vec2u16::zero;
-		u32		dpi		   = 0;
-		f32		dpi_scale  = 0.0f;
-		bool	is_primary = false;
+		vec2i16_t position	 = vec2i16_t::zero;
+		vec2u16_t size		 = vec2u16_t::zero;
+		vec2u16_t work_size	 = vec2u16_t::zero;
+		u32		  dpi		 = 0;
+		f32		  dpi_scale	 = 0.0f;
+		bool	  is_primary = false;
 	};
 
 	enum window_flags
@@ -91,13 +91,13 @@ namespace SFG
 	enum class cursor_confinement : u8
 	{
 		none,
-		window,
+		window_t,
 		pointer,
 	};
 
-	struct window_event
+	struct window_event_t
 	{
-		vec2i16				  value = vec2i16::zero;
+		vec2i16_t			  value = vec2i16_t::zero;
 		u16					  button;
 		window_event_type	  type	   = window_event_type::key;
 		window_event_sub_type sub_type = window_event_sub_type::press;

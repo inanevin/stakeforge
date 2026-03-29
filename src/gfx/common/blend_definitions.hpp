@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct color_blend_attachment;
+	struct color_blend_attachment_t;
 
 	enum class blend_definition_style
 	{
@@ -37,9 +37,8 @@ namespace SFG
 		additive,
 	};
 
-	class blend_definitions
+	namespace blend_definitions_t
 	{
-	public:
-		static void get_blend_attachment(blend_definition_style style, color_blend_attachment& out_attachment);
-	};
+		void get_blend_attachment(blend_definition_style style, color_blend_attachment_t& out_attachment);
+	}
 }

@@ -30,5 +30,5 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T> struct type_id;
+	template <typename T> struct type_id_t;
 }

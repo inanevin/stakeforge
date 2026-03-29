@@ -31,20 +31,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	template <typename T> struct call_ref
+	template <typename T> struct call_ref_t
 	{
 	};
 
 	// clang-format off
 #define REFLECT_TYPE(T)			\
-template <> struct call_ref<T>                              \
+template <> struct call_ref_t<T>                              \
 	{                                                          \
-		call_ref() { T::reflect();} \
+		call_ref_t() { T::reflect();} \
 	};\
-template <> struct type_id<T>                              \
+template <> struct type_id_t<T>                              \
 	{                                                          \
 		static constexpr string_id		  value = to_sid(#T); \
-		static inline call_ref<T> cr = {}; \
+		static inline call_ref_t<T> cr = {}; \
 	}
 
 	// clang-format on

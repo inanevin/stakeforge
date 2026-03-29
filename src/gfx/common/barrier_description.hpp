@@ -59,11 +59,11 @@ namespace SFG
 		resource_state_present		   = 1 << 15,
 	};
 
-	struct barrier
+	struct barrier_t
 	{
 		u32			  from_states = 0;
 		u32			  to_states	  = 0;
-		gfx_id		  resource	  = 0;
+		gfx_id		  resource_t  = 0;
 		bitmask_t<u8> flags		  = 0;
 	};
 

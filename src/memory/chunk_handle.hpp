@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct chunk_handle32
+	struct chunk_handle32_t
 	{
 		u32 head = 0;
 		u32 size = 0;

@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void bump_allocator::init(size_t sz, size_t alignment)
+	void bump_allocator_t::init(size_t sz, size_t alignment)
 	{
 		SFG_ASSERT(sz != 0);
 		_size = sz;
@@ -39,14 +39,14 @@ namespace SFG
 		PUSH_ALLOCATION_SZ(sz);
 	}
 
-	void bump_allocator::init(u8* existing, size_t sz)
+	void bump_allocator_t::init(u8* existing, size_t sz)
 	{
 		_owns = 0;
 		_raw  = existing;
 		_size = sz;
 	}
 
-	void bump_allocator::uninit()
+	void bump_allocator_t::uninit()
 	{
 		if (_owns)
 		{
@@ -56,7 +56,7 @@ namespace SFG
 		_raw = nullptr;
 	}
 
-	void* bump_allocator::allocate(size_t size, size_t alignment)
+	void* bump_allocator_t::allocate(size_t size, size_t alignment)
 	{
 		SFG_ASSERT(_head + size < _size);
 

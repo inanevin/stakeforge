@@ -40,13 +40,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	using malloc_string = std::basic_string<char, std::char_traits<char>, malloc_allocator_stl<char>>;
+	using malloc_string = std::basic_string<char, std::char_traits<char>, malloc_allocator_stl_t<char>>;
 
-	class field_value
+	class field_value_t
 	{
 	public:
-		field_value(){};
-		field_value(void* addr) : _ptr(addr){};
+		field_value_t(){};
+		field_value_t(void* addr) : _ptr(addr){};
 		template <typename T> T get_value()
 		{
 			return cast<T>();
@@ -78,20 +78,20 @@ namespace SFG
 		}
 
 	private:
-		template <typename T, typename U> friend class field;
+		template <typename T, typename U> friend class field_t;
 		void* _ptr = nullptr;
 	};
 
-	class field_base
+	class field_base_t
 	{
 	public:
-		typedef vector_t<malloc_string, malloc_allocator_stl<malloc_string>> enum_vec;
+		typedef vector_t<malloc_string, malloc_allocator_stl_t<malloc_string>> enum_vec;
 
-		field_base()		  = default;
-		virtual ~field_base() = default;
+		field_base_t()			= default;
+		virtual ~field_base_t() = default;
 
-		virtual field_value value(void* obj) const = 0;
-		virtual size_t		get_type_size() const  = 0;
+		virtual field_value_t value(void* obj) const = 0;
+		virtual size_t		  get_type_size() const	 = 0;
 
 		enum_vec			 _enum_list	  = {};
 		malloc_string		 _title		  = "";
@@ -106,20 +106,20 @@ namespace SFG
 		u8					 _clamped	  = 0;
 	};
 
-	template <typename T, class C> class field : public field_base
+	template <typename T, class C> class field_t : public field_base_t
 	{
 	public:
-		field()			 = default;
-		virtual ~field() = default;
+		field_t()		   = default;
+		virtual ~field_t() = default;
 
 		virtual size_t get_type_size() const override
 		{
 			return sizeof(T);
 		}
 
-		inline virtual field_value value(void* obj) const override
+		inline virtual field_value_t value(void* obj) const override
 		{
-			field_value val;
+			field_value_t val;
 			val._ptr = &((static_cast<C*>(obj))->*(_var));
 			return val;
 		}
@@ -127,24 +127,24 @@ namespace SFG
 		T _var = T();
 	};
 
-	struct reflection_function_base
+	struct reflection_function_base_t
 	{
-		virtual ~reflection_function_base()	  = default;
+		virtual ~reflection_function_base_t() = default;
 		virtual size_t signature_hash() const = 0;
 	};
 
-	template <typename RetVal, typename... Args> struct reflection_function : public reflection_function_base
+	template <typename RetVal, typename... Args> struct reflection_function_t : public reflection_function_base_t
 	{
 		using FuncType = std::function<RetVal(Args...)>;
 		FuncType func;
 
-		reflection_function(FuncType f) : func(std::move(f))
+		reflection_function_t(FuncType f) : func(std::move(f))
 		{
 		}
 
 		size_t signature_hash() const override
 		{
-			return typeid(reflection_function<RetVal, Args...>).hash_code();
+			return typeid(reflection_function_t<RetVal, Args...>).hash_code();
 		}
 
 		RetVal invoke(Args... args)
@@ -153,29 +153,29 @@ namespace SFG
 		}
 	};
 
-	struct control_button
+	struct control_button_t
 	{
 		malloc_string title	  = "";
 		malloc_string tooltip = "";
 		string_id	  sid	  = 0;
 	};
 
-	class meta
+	class meta_t
 	{
 	public:
-		struct function_entry
+		struct function_entry_t
 		{
-			string_id				  id  = 0;
-			reflection_function_base* ptr = nullptr;
+			string_id					id	= 0;
+			reflection_function_base_t* ptr = nullptr;
 		};
 
-		typedef vector_t<function_entry, malloc_allocator_stl<function_entry>> function_vec;
-		typedef vector_t<field_base*, malloc_allocator_stl<field_base*>>	   field_vec;
-		typedef vector_t<control_button, malloc_allocator_stl<control_button>> button_vec;
+		typedef vector_t<function_entry_t, malloc_allocator_stl_t<function_entry_t>> function_vec;
+		typedef vector_t<field_base_t*, malloc_allocator_stl_t<field_base_t*>>		 field_vec;
+		typedef vector_t<control_button_t, malloc_allocator_stl_t<control_button_t>> button_vec;
 
-		template <auto DATA, typename Class> field_base* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, f32 min, f32 max, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
+		template <auto DATA, typename Class> field_base_t* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, f32 min, f32 max, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
-			using ft = field<decltype(DATA), Class>;
+			using ft = field_t<decltype(DATA), Class>;
 
 			void* mem		= SFG_ALIGNED_MALLOC(alignof(ft), sizeof(ft));
 			ft*	  f			= new (mem) ft();
@@ -194,9 +194,9 @@ namespace SFG
 			return f;
 		}
 
-		template <auto DATA, typename Class> field_base* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
+		template <auto DATA, typename Class> field_base_t* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
-			using ft = field<decltype(DATA), Class>;
+			using ft = field_t<decltype(DATA), Class>;
 
 			void* mem		= SFG_ALIGNED_MALLOC(alignof(ft), sizeof(ft));
 			ft*	  f			= new (mem) ft();
@@ -219,16 +219,16 @@ namespace SFG
 			_control_buttons.push_back({.title = title.c_str(), .tooltip = tooltip.c_str(), .sid = TO_SID(title)});
 		}
 
-		template <typename RetVal, typename... Args, typename F> meta& add_function(string_id id, F&& f)
+		template <typename RetVal, typename... Args, typename F> meta_t& add_function(string_id id, F&& f)
 		{
-			using func_t						= reflection_function<RetVal, Args...>;
+			using func_t						= reflection_function_t<RetVal, Args...>;
 			std::function<RetVal(Args...)> func = std::forward<F>(f);
 
-			void*			mem			   = SFG_ALIGNED_MALLOC(alignof(func_t), sizeof(func_t));
-			func_t*			reflectionFunc = new (mem) func_t(std::move(func));
-			function_entry* entry		   = find_function_entry(id);
-			if (entry)
-				entry->ptr = reflectionFunc;
+			void*			  mem			 = SFG_ALIGNED_MALLOC(alignof(func_t), sizeof(func_t));
+			func_t*			  reflectionFunc = new (mem) func_t(std::move(func));
+			function_entry_t* entry_t		 = find_function_entry(id);
+			if (entry_t)
+				entry_t->ptr = reflectionFunc;
 			else
 				_functions.push_back({.id = id, .ptr = reflectionFunc});
 
@@ -238,20 +238,20 @@ namespace SFG
 
 		template <typename RetVal, typename... Args> RetVal invoke_function(string_id id, Args... args) const
 		{
-			const function_entry* entry = find_function_entry(id);
-			auto*				  ptr	= entry->ptr;
+			const function_entry_t* entry_t = find_function_entry(id);
+			auto*					ptr		= entry_t->ptr;
 			// Signature check
 			// if (ptr->signature_hash() != typeid(reflection_function<RetVal, Args...>).hash_code())
 			// 	throw std::runtime_error("Signature mismatch");
 
-			auto* func = static_cast<reflection_function<RetVal, Args...>*>(ptr);
+			auto* func = static_cast<reflection_function_t<RetVal, Args...>*>(ptr);
 			return func->invoke(std::forward<Args>(args)...);
 		}
 
-		reflection_function_base* get_function(string_id id)
+		reflection_function_base_t* get_function(string_id id)
 		{
-			function_entry* entry = find_function_entry(id);
-			return entry ? entry->ptr : nullptr;
+			function_entry_t* entry_t = find_function_entry(id);
+			return entry_t ? entry_t->ptr : nullptr;
 		}
 
 		bool has_function(string_id id) const
@@ -310,16 +310,16 @@ namespace SFG
 		}
 
 	private:
-		friend class reflection;
+		friend class reflection_t;
 
 		inline void destroy()
 		{
-			for (auto& entry : _functions)
+			for (auto& entry_t : _functions)
 			{
-				if (entry.ptr)
+				if (entry_t.ptr)
 				{
-					entry.ptr->~reflection_function_base();
-					SFG_ALIGNED_FREE(entry.ptr);
+					entry_t.ptr->~reflection_function_base_t();
+					SFG_ALIGNED_FREE(entry_t.ptr);
 				}
 			}
 
@@ -330,22 +330,22 @@ namespace SFG
 		}
 
 	private:
-		inline function_entry* find_function_entry(string_id id)
+		inline function_entry_t* find_function_entry(string_id id)
 		{
-			for (function_entry& entry : _functions)
+			for (function_entry_t& entry_t : _functions)
 			{
-				if (entry.id == id)
-					return &entry;
+				if (entry_t.id == id)
+					return &entry_t;
 			}
 			return nullptr;
 		}
 
-		inline const function_entry* find_function_entry(string_id id) const
+		inline const function_entry_t* find_function_entry(string_id id) const
 		{
-			for (const function_entry& entry : _functions)
+			for (const function_entry_t& entry_t : _functions)
 			{
-				if (entry.id == id)
-					return &entry;
+				if (entry_t.id == id)
+					return &entry_t;
 			}
 			return nullptr;
 		}
@@ -361,41 +361,41 @@ namespace SFG
 		u32			  _type_index	   = 0;
 	};
 
-	class reflection
+	class reflection_t
 	{
 	public:
-		struct meta_entry
+		struct meta_entry_t
 		{
 			string_id id = 0;
-			meta	  meta;
+			meta_t	  meta_t;
 		};
 
-		typedef vector_t<meta_entry, malloc_allocator_stl<meta_entry>> meta_vec;
+		typedef vector_t<meta_entry_t, malloc_allocator_stl_t<meta_entry_t>> meta_vec;
 
-		static reflection& get()
+		static reflection_t& get()
 		{
-			static reflection ref;
+			static reflection_t ref;
 			return ref;
 		}
 
-		~reflection()
+		~reflection_t()
 		{
-			for (auto& entry : _metas)
+			for (auto& entry_t : _metas)
 			{
-				entry.meta.destroy();
+				entry_t.meta_t.destroy();
 			}
 		}
 
-		meta& register_meta(string_id id, u32 index, const string_t& tag)
+		meta_t& register_meta(string_id id, u32 index, const string_t& tag)
 		{
-			meta_entry* entry = find_meta_entry(id);
-			if (!entry)
+			meta_entry_t* entry_t = find_meta_entry(id);
+			if (!entry_t)
 			{
 				_metas.push_back({.id = id});
-				entry = &_metas.back();
+				entry_t = &_metas.back();
 			}
 
-			meta& m		  = entry->meta;
+			meta_t& m	  = entry_t->meta_t;
 			m._type_id	  = id;
 			m._tag		  = TO_SID(tag);
 			m._tag_str	  = tag;
@@ -403,16 +403,16 @@ namespace SFG
 			return m;
 		}
 
-		meta& resolve(string_id id)
+		meta_t& resolve(string_id id)
 		{
-			meta_entry* entry = find_meta_entry(id);
-			return entry->meta;
+			meta_entry_t* entry_t = find_meta_entry(id);
+			return entry_t->meta_t;
 		}
 
-		meta* try_resolve(string_id id)
+		meta_t* try_resolve(string_id id)
 		{
-			meta_entry* entry = find_meta_entry(id);
-			return entry ? &entry->meta : nullptr;
+			meta_entry_t* entry_t = find_meta_entry(id);
+			return entry_t ? &entry_t->meta_t : nullptr;
 		}
 
 		const meta_vec& get_metas() const
@@ -420,25 +420,25 @@ namespace SFG
 			return _metas;
 		}
 
-		const meta* find_by_tag(const char* tag) const;
+		const meta_t* find_by_tag(const char* tag) const;
 
 	private:
-		inline meta_entry* find_meta_entry(string_id id)
+		inline meta_entry_t* find_meta_entry(string_id id)
 		{
-			for (meta_entry& entry : _metas)
+			for (meta_entry_t& entry_t : _metas)
 			{
-				if (entry.id == id)
-					return &entry;
+				if (entry_t.id == id)
+					return &entry_t;
 			}
 			return nullptr;
 		}
 
-		inline const meta_entry* find_meta_entry(string_id id) const
+		inline const meta_entry_t* find_meta_entry(string_id id) const
 		{
-			for (const meta_entry& entry : _metas)
+			for (const meta_entry_t& entry_t : _metas)
 			{
-				if (entry.id == id)
-					return &entry;
+				if (entry_t.id == id)
+					return &entry_t;
 			}
 			return nullptr;
 		}

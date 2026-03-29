@@ -39,7 +39,7 @@ namespace SFG
 	class istream_t;
 	class ostream_t;
 
-	class vec4f
+	class vec4f_t
 	{
 	public:
 		f32 x = 0.0f;
@@ -47,26 +47,26 @@ namespace SFG
 		f32 z = 0.0f;
 		f32 w = 0.0f;
 
-		vec4f() = default;
-		vec4f(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
+		vec4f_t() = default;
+		vec4f_t(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
 		{
 		}
 
-		static const vec4f zero;
-		static const vec4f one;
+		static const vec4f_t zero;
+		static const vec4f_t one;
 
-		static vec4f clamp(const vec4f& vector_t, const vec4f& min, const vec4f& max);
-		static vec4f abs(const vec4f& vector_t);
-		static vec4f min(const vec4f& a, const vec4f& b);
-		static vec4f max(const vec4f& a, const vec4f& b);
-		static f32	 dot(const vec4f& a, const vec4f& b);
-		static f32	 distance(const vec4f& a, const vec4f& b);
-		vec4f		 project(const vec4f& on_normal) const;
-		vec4f		 rotate(const vec4f& axis, f32 angle_degrees) const;
-		bool		 equals(const vec4f& other, f32 epsilon = MATH_EPS) const;
-		bool		 is_zero(f32 epsilon = MATH_EPS) const;
-		f32			 magnitude() const;
-		f32			 magnitude_sqr() const;
+		static vec4f_t clamp(const vec4f_t& vector_t, const vec4f_t& min, const vec4f_t& max);
+		static vec4f_t abs(const vec4f_t& vector_t);
+		static vec4f_t min(const vec4f_t& a, const vec4f_t& b);
+		static vec4f_t max(const vec4f_t& a, const vec4f_t& b);
+		static f32	   dot(const vec4f_t& a, const vec4f_t& b);
+		static f32	   distance(const vec4f_t& a, const vec4f_t& b);
+		vec4f_t		   project(const vec4f_t& on_normal) const;
+		vec4f_t		   rotate(const vec4f_t& axis, f32 angle_degrees) const;
+		bool		   equals(const vec4f_t& other, f32 epsilon = MATH_EPS) const;
+		bool		   is_zero(f32 epsilon = MATH_EPS) const;
+		f32			   magnitude() const;
+		f32			   magnitude_sqr() const;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
@@ -76,14 +76,14 @@ namespace SFG
 			return _x >= x && _x <= x + z && _y >= y && _y <= y + w;
 		}
 
-		inline vec4f normalized() const
+		inline vec4f_t normalized() const
 		{
 			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
-				return vec4f(x / mag, y / mag, z / mag, w / mag);
+				return vec4f_t(x / mag, y / mag, z / mag, w / mag);
 			}
-			return vec4f::zero;
+			return vec4f_t::zero;
 		}
 
 		inline void normalize()
@@ -102,26 +102,26 @@ namespace SFG
 			}
 		}
 
-		inline vec4f operator+(const vec4f& other) const
+		inline vec4f_t operator+(const vec4f_t& other) const
 		{
-			return vec4f(x + other.x, y + other.y, z + other.z, w + other.w);
+			return vec4f_t(x + other.x, y + other.y, z + other.z, w + other.w);
 		}
-		inline vec4f operator-(const vec4f& other) const
+		inline vec4f_t operator-(const vec4f_t& other) const
 		{
-			return vec4f(x - other.x, y - other.y, z - other.z, w - other.w);
+			return vec4f_t(x - other.x, y - other.y, z - other.z, w - other.w);
 		}
-		inline vec4f operator*(f32 scalar) const
+		inline vec4f_t operator*(f32 scalar) const
 		{
-			return vec4f(x * scalar, y * scalar, z * scalar, w * scalar);
+			return vec4f_t(x * scalar, y * scalar, z * scalar, w * scalar);
 		}
-		vec4f operator/(f32 scalar) const;
+		vec4f_t operator/(f32 scalar) const;
 
-		inline vec4f operator-() const
+		inline vec4f_t operator-() const
 		{
-			return vec4f(-x, -y, -z, -w);
+			return vec4f_t(-x, -y, -z, -w);
 		}
 
-		inline vec4f& operator+=(const vec4f& other)
+		inline vec4f_t& operator+=(const vec4f_t& other)
 		{
 			x += other.x;
 			y += other.y;
@@ -129,7 +129,7 @@ namespace SFG
 			w += other.w;
 			return *this;
 		}
-		inline vec4f& operator-=(const vec4f& other)
+		inline vec4f_t& operator-=(const vec4f_t& other)
 		{
 			x -= other.x;
 			y -= other.y;
@@ -137,7 +137,7 @@ namespace SFG
 			w -= other.w;
 			return *this;
 		}
-		inline vec4f& operator*=(f32 scalar)
+		inline vec4f_t& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
@@ -145,27 +145,27 @@ namespace SFG
 			w *= scalar;
 			return *this;
 		}
-		vec4f& operator/=(f32 scalar);
+		vec4f_t& operator/=(f32 scalar);
 
-		inline bool operator==(const vec4f& other) const
+		inline bool operator==(const vec4f_t& other) const
 		{
 			return equals(other);
 		}
-		inline bool operator!=(const vec4f& other) const
+		inline bool operator!=(const vec4f_t& other) const
 		{
 			return !equals(other);
 		}
 	};
 
-	inline vec4f operator*(f32 scalar, const vec4f& vector_t)
+	inline vec4f_t operator*(f32 scalar, const vec4f_t& vector_t)
 	{
 		return vector_t * scalar;
 	}
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vec4f& v);
-	void from_json(const nlohmann::json& j, vec4f& v);
+	void to_json(nlohmann::json& j, const vec4f_t& v);
+	void from_json(const nlohmann::json& j, vec4f_t& v);
 
 #endif
 

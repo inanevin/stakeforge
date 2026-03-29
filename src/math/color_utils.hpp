@@ -30,22 +30,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class color;
+	class color_t;
 
-	class color_utils
+	namespace color_utils_t
 	{
-
-	public:
-		static color	lerp(const color& c1, const color& c2, f32 a);
-		static color	from_hex(const string_t& hex);
-		static string_t to_hex(const color& color);
-		static color	hs_to_srgb(const color& color);
-		static color	srgb_to_hsv(const color& color);
-		static color	hsv_to_srgb(const color& color);
-		static color	srgb_to_linear(const color& color);
-		static color	linear_to_srgb(const color& color);
-		static color	brighten(const color& color, f32 amt);
-		static color	darken(const color& color, f32 amt);
-	};
+		color_t	 lerp(const color_t& c1, const color_t& c2, f32 a);
+		color_t	 from_hex(const string_t& hex);
+		string_t to_hex(const color_t& color_t);
+		color_t	 hs_to_srgb(const color_t& color_t);
+		color_t	 srgb_to_hsv(const color_t& color_t);
+		color_t	 hsv_to_srgb(const color_t& color_t);
+		color_t	 srgb_to_linear(const color_t& color_t);
+		color_t	 linear_to_srgb(const color_t& color_t);
+		color_t	 brighten(const color_t& color_t, f32 amt);
+		color_t	 darken(const color_t& color_t, f32 amt);
+	}
 
 } // namespace SFG

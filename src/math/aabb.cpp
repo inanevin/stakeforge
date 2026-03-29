@@ -32,14 +32,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	bool aabb::is_inside_plane(const vec3f& center, const plane& plane)
+	bool aabb_t::is_inside_plane(const vec3f_t& center, const plane_t& plane_t)
 	{
-		const f32 r = bounds_half_extent.x * math::abs(plane.normal.x) + bounds_half_extent.y * math::abs(plane.normal.y) + bounds_half_extent.z * math::abs(plane.normal.z);
-		return -r <= plane.get_signed_distance(center);
+		const f32 r = bounds_half_extent.x * math::abs(plane_t.normal.x) + bounds_half_extent.y * math::abs(plane_t.normal.y) + bounds_half_extent.z * math::abs(plane_t.normal.z);
+		return -r <= plane_t.get_signed_distance(center);
 	}
-	vec3f aabb::get_positive(const vec3f& normal) const
+	vec3f_t aabb_t::get_positive(const vec3f_t& normal) const
 	{
-		vec3f positive = bounds_min;
+		vec3f_t positive = bounds_min;
 		if (normal.x >= 0.0f)
 			positive.x = bounds_max.x;
 		if (normal.y >= 0.0f)
@@ -49,9 +49,9 @@ namespace SFG
 
 		return positive;
 	}
-	vec3f aabb::get_negative(const vec3f& normal) const
+	vec3f_t aabb_t::get_negative(const vec3f_t& normal) const
 	{
-		vec3f negative = bounds_max;
+		vec3f_t negative = bounds_max;
 		if (normal.x >= 0.0f)
 			negative.x = bounds_min.x;
 		if (normal.y >= 0.0f)
@@ -62,24 +62,24 @@ namespace SFG
 		return negative;
 	}
 
-	void aabb::remove(const aabb& other)
+	void aabb_t::remove(const aabb_t& other)
 	{
 		bounds_min -= other.bounds_min;
 		bounds_max -= other.bounds_max;
 	}
 
-	void aabb::add(const aabb& other)
+	void aabb_t::add(const aabb_t& other)
 	{
 		bounds_min += other.bounds_min;
 		bounds_max += other.bounds_max;
 	}
 
-	void aabb::serialize(ostream_t& stream) const
+	void aabb_t::serialize(ostream_t& stream) const
 	{
 		stream << bounds_min;
 		stream << bounds_max;
 	}
-	void aabb::deserialize(istream_t& stream)
+	void aabb_t::deserialize(istream_t& stream)
 	{
 		stream >> bounds_min;
 		stream >> bounds_max;

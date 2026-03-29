@@ -29,32 +29,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct plane;
+	struct plane_t;
 
 	class ostream_t;
 	class istream_t;
 
-	struct aabb
+	struct aabb_t
 	{
-		aabb() = default;
-		aabb(vec3f min, vec3f max)
+		aabb_t() = default;
+		aabb_t(vec3f_t min, vec3f_t max)
 		{
 			bounds_min		   = min;
 			bounds_max		   = max;
 			bounds_half_extent = (max - min) / 2.0f;
 		}
-		~aabb() = default;
+		~aabb_t() = default;
 
-		vec3f bounds_half_extent = vec3f::zero;
-		vec3f bounds_min		 = vec3f::zero;
-		vec3f bounds_max		 = vec3f::zero;
+		vec3f_t bounds_half_extent = vec3f_t::zero;
+		vec3f_t bounds_min		   = vec3f_t::zero;
+		vec3f_t bounds_max		   = vec3f_t::zero;
 
-		bool  is_inside_plane(const vec3f& center, const plane& plane);
-		vec3f get_positive(const vec3f& normal) const;
-		vec3f get_negative(const vec3f& normal) const;
+		bool	is_inside_plane(const vec3f_t& center, const plane_t& plane_t);
+		vec3f_t get_positive(const vec3f_t& normal) const;
+		vec3f_t get_negative(const vec3f_t& normal) const;
 
-		void remove(const aabb& other);
-		void add(const aabb& other);
+		void remove(const aabb_t& other);
+		void add(const aabb_t& other);
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 

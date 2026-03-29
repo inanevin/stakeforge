@@ -39,52 +39,52 @@ namespace SFG
 	class istream_t;
 	class ostream_t;
 
-	class vec3f
+	class vec3f_t
 	{
 	public:
 		f32 x = 0.0f;
 		f32 y = 0.0f;
 		f32 z = 0.0f;
 
-		vec3f() = default;
-		vec3f(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
+		vec3f_t() = default;
+		vec3f_t(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
 		{
 		}
 
-		static const vec3f zero;
-		static const vec3f one;
-		static const vec3f up;
-		static const vec3f forward;
-		static const vec3f right;
+		static const vec3f_t zero;
+		static const vec3f_t one;
+		static const vec3f_t up;
+		static const vec3f_t forward;
+		static const vec3f_t right;
 
-		static vec3f clamp(const vec3f& vector_t, const vec3f& min, const vec3f& max);
-		static vec3f cross(const vec3f& a, const vec3f& b);
-		static vec3f abs(const vec3f& vector_t);
-		static vec3f min(const vec3f& a, const vec3f& b);
-		static vec3f max(const vec3f& a, const vec3f& b);
-		static vec3f lerp(const vec3f& a, const vec3f& b, f32 t);
-		static f32	 dot(const vec3f& a, const vec3f& b);
-		static f32	 distance(const vec3f& a, const vec3f& b);
-		static f32	 distance_sqr(const vec3f& a, const vec3f& b);
-		vec3f		 project(const vec3f& on_normal) const;
-		vec3f		 rotate(const vec3f& axis, f32 angle_degrees) const;
-		vec3f		 reflect(const vec3f& in_normal) const;
-		bool		 equals(const vec3f& other, f32 epsilon = MATH_EPS) const;
-		bool		 is_zero(f32 epsilon = MATH_EPS) const;
-		f32			 magnitude() const;
-		f32			 magnitude_sqr() const;
+		static vec3f_t clamp(const vec3f_t& vector_t, const vec3f_t& min, const vec3f_t& max);
+		static vec3f_t cross(const vec3f_t& a, const vec3f_t& b);
+		static vec3f_t abs(const vec3f_t& vector_t);
+		static vec3f_t min(const vec3f_t& a, const vec3f_t& b);
+		static vec3f_t max(const vec3f_t& a, const vec3f_t& b);
+		static vec3f_t lerp(const vec3f_t& a, const vec3f_t& b, f32 t);
+		static f32	   dot(const vec3f_t& a, const vec3f_t& b);
+		static f32	   distance(const vec3f_t& a, const vec3f_t& b);
+		static f32	   distance_sqr(const vec3f_t& a, const vec3f_t& b);
+		vec3f_t		   project(const vec3f_t& on_normal) const;
+		vec3f_t		   rotate(const vec3f_t& axis, f32 angle_degrees) const;
+		vec3f_t		   reflect(const vec3f_t& in_normal) const;
+		bool		   equals(const vec3f_t& other, f32 epsilon = MATH_EPS) const;
+		bool		   is_zero(f32 epsilon = MATH_EPS) const;
+		f32			   magnitude() const;
+		f32			   magnitude_sqr() const;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 
-		inline vec3f normalized() const
+		inline vec3f_t normalized() const
 		{
 			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
-				return vec3f(x / mag, y / mag, z / mag);
+				return vec3f_t(x / mag, y / mag, z / mag);
 			}
-			return vec3f::zero;
+			return vec3f_t::zero;
 		}
 
 		inline void normalize()
@@ -100,57 +100,57 @@ namespace SFG
 				x = y = z = 0.0f;
 		}
 
-		inline vec3f operator+(const vec3f& other) const
+		inline vec3f_t operator+(const vec3f_t& other) const
 		{
-			return vec3f(x + other.x, y + other.y, z + other.z);
+			return vec3f_t(x + other.x, y + other.y, z + other.z);
 		}
-		inline vec3f operator-(const vec3f& other) const
+		inline vec3f_t operator-(const vec3f_t& other) const
 		{
-			return vec3f(x - other.x, y - other.y, z - other.z);
+			return vec3f_t(x - other.x, y - other.y, z - other.z);
 		}
-		inline vec3f operator*(f32 scalar) const
+		inline vec3f_t operator*(f32 scalar) const
 		{
-			return vec3f(x * scalar, y * scalar, z * scalar);
+			return vec3f_t(x * scalar, y * scalar, z * scalar);
 		}
-		inline vec3f operator/(f32 scalar) const
+		inline vec3f_t operator/(f32 scalar) const
 		{
 			if (scalar == 0.0f)
-				return vec3f::zero;
-			return vec3f(x / scalar, y / scalar, z / scalar);
+				return vec3f_t::zero;
+			return vec3f_t(x / scalar, y / scalar, z / scalar);
 		}
 
-		inline vec3f operator*(const vec3f& other) const
+		inline vec3f_t operator*(const vec3f_t& other) const
 		{
-			return vec3f(x * other.x, y * other.y, z * other.z);
+			return vec3f_t(x * other.x, y * other.y, z * other.z);
 		}
 
-		inline vec3f operator-() const
+		inline vec3f_t operator-() const
 		{
-			return vec3f(-x, -y, -z);
+			return vec3f_t(-x, -y, -z);
 		}
 
-		inline vec3f& operator+=(const vec3f& other)
+		inline vec3f_t& operator+=(const vec3f_t& other)
 		{
 			x += other.x;
 			y += other.y;
 			z += other.z;
 			return *this;
 		}
-		inline vec3f& operator-=(const vec3f& other)
+		inline vec3f_t& operator-=(const vec3f_t& other)
 		{
 			x -= other.x;
 			y -= other.y;
 			z -= other.z;
 			return *this;
 		}
-		inline vec3f& operator*=(f32 scalar)
+		inline vec3f_t& operator*=(f32 scalar)
 		{
 			x *= scalar;
 			y *= scalar;
 			z *= scalar;
 			return *this;
 		}
-		inline vec3f& operator/=(f32 scalar)
+		inline vec3f_t& operator/=(f32 scalar)
 		{
 			if (scalar != 0.0f)
 			{
@@ -167,25 +167,25 @@ namespace SFG
 			return *this;
 		}
 
-		inline bool operator==(const vec3f& other) const
+		inline bool operator==(const vec3f_t& other) const
 		{
 			return equals(other);
 		}
-		inline bool operator!=(const vec3f& other) const
+		inline bool operator!=(const vec3f_t& other) const
 		{
 			return !equals(other);
 		}
 	};
 
-	inline vec3f operator*(f32 scalar, const vec3f& vector_t)
+	inline vec3f_t operator*(f32 scalar, const vec3f_t& vector_t)
 	{
 		return vector_t * scalar;
 	}
 
 #ifdef SFG_JSON_SERIALIZE
 
-	void to_json(nlohmann::json& j, const vec3f& v);
-	void from_json(const nlohmann::json& j, vec3f& v);
+	void to_json(nlohmann::json& j, const vec3f_t& v);
+	void from_json(const nlohmann::json& j, vec3f_t& v);
 
 #endif
 }

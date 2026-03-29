@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	gfx_id gfx_util::create_bind_layout_global(bool is_compute)
+	gfx_id gfx_util_t::create_bind_layout_global(bool is_compute)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
@@ -42,19 +42,19 @@ namespace SFG
 
 		const shader_stage stg = is_compute ? shader_stage::compute : shader_stage::fragment;
 
-		backend->bind_layout_add_immutable_sampler(layout, 0, 0, gfx_util::get_sampler_desc_anisotropic(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 1, gfx_util::get_sampler_desc_anisotropic_repeat(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 2, gfx_util::get_sampler_desc_linear(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 3, gfx_util::get_sampler_desc_linear_repeat(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 4, gfx_util::get_sampler_desc_nearest(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 5, gfx_util::get_sampler_desc_nearest_repeat(), stg);
+		backend->bind_layout_add_immutable_sampler(layout, 0, 0, gfx_util_t::get_sampler_desc_anisotropic(), stg);
+		backend->bind_layout_add_immutable_sampler(layout, 0, 1, gfx_util_t::get_sampler_desc_anisotropic_repeat(), stg);
+		backend->bind_layout_add_immutable_sampler(layout, 0, 2, gfx_util_t::get_sampler_desc_linear(), stg);
+		backend->bind_layout_add_immutable_sampler(layout, 0, 3, gfx_util_t::get_sampler_desc_linear_repeat(), stg);
+		backend->bind_layout_add_immutable_sampler(layout, 0, 4, gfx_util_t::get_sampler_desc_nearest(), stg);
+		backend->bind_layout_add_immutable_sampler(layout, 0, 5, gfx_util_t::get_sampler_desc_nearest_repeat(), stg);
 
 		if (!is_compute)
 		{
-			backend->bind_layout_add_immutable_sampler(layout, 0, 6, gfx_util::get_sampler_desc_gui_default(), stg);
-			backend->bind_layout_add_immutable_sampler(layout, 0, 7, gfx_util::get_sampler_desc_gui_text(), stg);
-			backend->bind_layout_add_immutable_sampler(layout, 0, 8, gfx_util::get_sampler_desc_shadow_2d(), stg);
-			backend->bind_layout_add_immutable_sampler(layout, 0, 9, gfx_util::get_sampler_desc_shadow_cube(), stg);
+			backend->bind_layout_add_immutable_sampler(layout, 0, 6, gfx_util_t::get_sampler_desc_gui_default(), stg);
+			backend->bind_layout_add_immutable_sampler(layout, 0, 7, gfx_util_t::get_sampler_desc_gui_text(), stg);
+			backend->bind_layout_add_immutable_sampler(layout, 0, 8, gfx_util_t::get_sampler_desc_shadow_2d(), stg);
+			backend->bind_layout_add_immutable_sampler(layout, 0, 9, gfx_util_t::get_sampler_desc_shadow_cube(), stg);
 		}
 
 		backend->finalize_bind_layout(layout, is_compute, true, "global_layout");
@@ -62,7 +62,7 @@ namespace SFG
 		return layout;
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_anisotropic()
+	sampler_desc_t gfx_util_t::get_sampler_desc_anisotropic()
 	{
 		return {
 			.anisotropy = 6,
@@ -75,7 +75,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_anisotropic_repeat()
+	sampler_desc_t gfx_util_t::get_sampler_desc_anisotropic_repeat()
 	{
 		return {
 			.anisotropy = 8,
@@ -87,7 +87,7 @@ namespace SFG
 			.address_v	= address_mode::repeat,
 		};
 	}
-	sampler_desc gfx_util::get_sampler_desc_linear()
+	sampler_desc_t gfx_util_t::get_sampler_desc_linear()
 	{
 		return {
 			.anisotropy = 0,
@@ -100,7 +100,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_linear_repeat()
+	sampler_desc_t gfx_util_t::get_sampler_desc_linear_repeat()
 	{
 		return {
 			.anisotropy = 0,
@@ -113,7 +113,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_nearest()
+	sampler_desc_t gfx_util_t::get_sampler_desc_nearest()
 	{
 		return {
 			.anisotropy = 0,
@@ -126,7 +126,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_nearest_repeat()
+	sampler_desc_t gfx_util_t::get_sampler_desc_nearest_repeat()
 	{
 		return {
 			.anisotropy = 0,
@@ -139,7 +139,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_gui_default()
+	sampler_desc_t gfx_util_t::get_sampler_desc_gui_default()
 	{
 		return {
 			.anisotropy = 0,
@@ -152,7 +152,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_gui_text()
+	sampler_desc_t gfx_util_t::get_sampler_desc_gui_text()
 	{
 		return {
 			.anisotropy = 0,
@@ -165,7 +165,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_shadow_2d()
+	sampler_desc_t gfx_util_t::get_sampler_desc_shadow_2d()
 	{
 		return {
 			.anisotropy = 0,
@@ -179,7 +179,7 @@ namespace SFG
 		};
 	}
 
-	sampler_desc gfx_util::get_sampler_desc_shadow_cube()
+	sampler_desc_t gfx_util_t::get_sampler_desc_shadow_cube()
 	{
 		return {
 			.anisotropy = 0,
@@ -193,7 +193,7 @@ namespace SFG
 		};
 	}
 
-	color_blend_attachment gfx_util::get_blend_attachment_alpha_blending()
+	color_blend_attachment_t gfx_util_t::get_blend_attachment_alpha_blending()
 	{
 		return {
 			.blend_enabled			= true,
@@ -207,9 +207,9 @@ namespace SFG
 		};
 	}
 
-	vector_t<vertex_input> gfx_util::get_input_layout(input_layout_type type)
+	vector_t<vertex_input_t> gfx_util_t::get_input_layout(input_layout_type type)
 	{
-		vector_t<vertex_input> inputs;
+		vector_t<vertex_input_t> inputs;
 
 		switch (type)
 		{
@@ -220,23 +220,23 @@ namespace SFG
 					.location = 0,
 					.index	  = 0,
 					.offset	  = 0,
-					.size	  = sizeof(vec2f),
+					.size	  = sizeof(vec2f_t),
 					.format	  = format::r32g32_sfloat,
 				},
 				{
 					.name	  = "TEXCOORD",
 					.location = 0,
 					.index	  = 0,
-					.offset	  = sizeof(vec2f),
-					.size	  = sizeof(vec2f),
+					.offset	  = sizeof(vec2f_t),
+					.size	  = sizeof(vec2f_t),
 					.format	  = format::r32g32_sfloat,
 				},
 				{
 					.name	  = "COLOR",
 					.location = 0,
 					.index	  = 0,
-					.offset	  = sizeof(vec2f) * 2,
-					.size	  = sizeof(vec4f),
+					.offset	  = sizeof(vec2f_t) * 2,
+					.size	  = sizeof(vec4f_t),
 					.format	  = format::r32g32b32a32_sfloat,
 				},
 			};

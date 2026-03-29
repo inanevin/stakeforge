@@ -29,28 +29,28 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class vec2u;
+	class vec2u_t;
 
-	class vec2i
+	class vec2i_t
 	{
 	public:
-		vec2i(){};
-		vec2i(i32 _x, i32 _y) : x(_x), y(_y){};
-		vec2i(const vec2u& v);
+		vec2i_t(){};
+		vec2i_t(i32 _x, i32 _y) : x(_x), y(_y){};
+		vec2i_t(const vec2u_t& v);
 
-		static vec2i zero;
-		static vec2i one;
+		static vec2i_t zero;
+		static vec2i_t one;
 
-		static vec2i clamp(const vec2i& v, const vec2i& min, const vec2i& max);
+		static vec2i_t clamp(const vec2i_t& v, const vec2i_t& min, const vec2i_t& max);
 
-		vec2i operator-(const vec2i& other) const
+		vec2i_t operator-(const vec2i_t& other) const
 		{
-			return vec2i(x - other.x, y - other.y);
+			return vec2i_t(x - other.x, y - other.y);
 		}
 
-		vec2i operator+(const vec2i& other) const
+		vec2i_t operator+(const vec2i_t& other) const
 		{
-			return vec2i(x + other.x, y + other.y);
+			return vec2i_t(x + other.x, y + other.y);
 		}
 
 		i32 x = 0;

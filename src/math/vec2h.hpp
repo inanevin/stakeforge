@@ -37,17 +37,17 @@ namespace SFG
 	class istream_t;
 	class ostream_t;
 
-	class vec2h
+	class vec2h_t
 	{
 	public:
-		vec2h(){};
-		vec2h(f32 _x, f32 _y) : x(_x), y(_y){};
+		vec2h_t(){};
+		vec2h_t(f32 _x, f32 _y) : x(_x), y(_y){};
 
 		half x = 0.0f;
 		half y = 0.0f;
 
-		static vec2h zero;
-		static vec2h one;
+		static vec2h_t zero;
+		static vec2h_t one;
 	};
 
 }

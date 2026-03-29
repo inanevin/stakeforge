@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	void dx12_heap::init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access)
+	void dx12_heap_t::init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access)
 	{
 		_type			 = heap_type;
 		_max_descriptors = num_descriptors;
@@ -68,42 +68,42 @@ namespace SFG
 			_gpu_start = static_cast<u64>(_heap->GetGPUDescriptorHandleForHeapStart().ptr);
 	}
 
-	void dx12_heap::uninit()
+	void dx12_heap_t::uninit()
 	{
 		TracyFreeN(_heap, "GPU: Total");
 		_heap->Release();
 		_heap = NULL;
 	}
 
-	void dx12_heap::reset()
+	void dx12_heap_t::reset()
 	{
 		_current_index = 0;
 	}
 
-	void dx12_heap::reset(u32 newStart)
+	void dx12_heap_t::reset(u32 newStart)
 	{
 		_current_index = newStart;
 	}
 
-	descriptor_handle dx12_heap::get_heap_handle_block(u32 count)
+	descriptor_handle_t dx12_heap_t::get_heap_handle_block(u32 count)
 	{
 		for (auto it = _available_blocks.begin(); it != _available_blocks.end(); ++it)
 		{
-			auto& block = *it;
+			auto& block_t = *it;
 
-			if (block.count >= count)
+			if (block_t.count >= count)
 			{
-				const descriptor_handle handle = {
-					.cpu   = _cpu_start + block.start * _descriptor_size,
-					.gpu   = _gpu_start + block.start * _descriptor_size,
-					.index = block.start,
+				const descriptor_handle_t handle = {
+					.cpu   = _cpu_start + block_t.start * _descriptor_size,
+					.gpu   = _gpu_start + block_t.start * _descriptor_size,
+					.index = block_t.start,
 					.count = count,
 				};
 
-				block.start += count;
-				block.count -= count;
+				block_t.start += count;
+				block_t.count -= count;
 
-				if (block.count == 0)
+				if (block_t.count == 0)
 					_available_blocks.erase(it);
 
 				return handle;
@@ -132,7 +132,7 @@ namespace SFG
 		};
 	}
 
-	descriptor_handle dx12_heap::get_offsetted_handle(u32 count)
+	descriptor_handle_t dx12_heap_t::get_offsetted_handle(u32 count)
 	{
 		return {
 			.cpu = get_cpu_start() + count * get_descriptor_size(),
@@ -140,10 +140,10 @@ namespace SFG
 		};
 	}
 
-	void dx12_heap::remove_handle(const descriptor_handle& handle)
+	void dx12_heap_t::remove_handle(const descriptor_handle_t& handle)
 	{
 		const auto start = handle.index;
-		block	   b	 = {handle.index, handle.count};
+		block_t	   b	 = {handle.index, handle.count};
 		_available_blocks.push_back(b);
 	}
 }

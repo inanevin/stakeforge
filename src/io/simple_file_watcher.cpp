@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	void simple_file_watcher::add_path(const char* path, u16 optional_id)
+	void simple_file_watcher_t::add_path(const char* path, u16 optional_id)
 	{
 		if (!file_system::exists(path))
 		{
@@ -41,21 +41,21 @@ namespace SFG
 		}
 
 		const u64 last_modified = file_system::get_last_modified_ticks(path);
-		_paths.push_back(new entry(new std::filesystem::path(path), path, last_modified, optional_id));
+		_paths.push_back(new entry_t(new std::filesystem::path(path), path, last_modified, optional_id));
 	}
-	void simple_file_watcher::remove_path(const char* path)
+	void simple_file_watcher_t::remove_path(const char* path)
 	{
-		auto it = vector_util::find_if(_paths, [path](entry* e) -> bool { return strcmp(path, e->str.c_str()) == 0; });
+		auto it = vector_util::find_if(_paths, [path](entry_t* e) -> bool { return strcmp(path, e->str.c_str()) == 0; });
 
 		if (it != _paths.end())
 		{
-			entry* e = *it;
+			entry_t* e = *it;
 			delete e->path;
 			delete e;
 		}
 	}
 
-	void simple_file_watcher::tick()
+	void simple_file_watcher_t::tick()
 	{
 		_ticks++;
 
@@ -66,9 +66,9 @@ namespace SFG
 		}
 	}
 
-	void simple_file_watcher::watch()
+	void simple_file_watcher_t::watch()
 	{
-		for (entry* e : _paths)
+		for (entry_t* e : _paths)
 		{
 			const u64 ticks = file_system::get_last_modified_ticks(*e->path);
 			if (e->last_modified != ticks)
@@ -80,9 +80,9 @@ namespace SFG
 		}
 	}
 
-	void simple_file_watcher::clear()
+	void simple_file_watcher_t::clear()
 	{
-		for (const entry* p : _paths)
+		for (const entry_t* p : _paths)
 		{
 			delete p->path;
 			delete p;

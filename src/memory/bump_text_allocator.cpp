@@ -33,12 +33,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	bump_text_allocator::~bump_text_allocator()
+	bump_text_allocator_t::~bump_text_allocator_t()
 	{
 		uninit();
 	}
 
-	void bump_text_allocator::init(size_t capacity_bytes)
+	void bump_text_allocator_t::init(size_t capacity_bytes)
 	{
 		uninit();
 
@@ -55,7 +55,7 @@ namespace SFG
 			SFG_MEMSET(_raw, 0, _cap);
 	}
 
-	void bump_text_allocator::uninit()
+	void bump_text_allocator_t::uninit()
 	{
 		delete[] _raw;
 		_raw	   = nullptr;
@@ -64,13 +64,13 @@ namespace SFG
 		_cur_start = _cur = _cur_end = nullptr;
 	}
 
-	void bump_text_allocator::reset()
+	void bump_text_allocator_t::reset()
 	{
 		_head	   = 0;
 		_cur_start = _cur = _cur_end = nullptr;
 	}
 
-	const char* bump_text_allocator::allocate_reserve(size_t reserve_bytes_including_null)
+	const char* bump_text_allocator_t::allocate_reserve(size_t reserve_bytes_including_null)
 	{
 		if (!_raw || reserve_bytes_including_null == 0)
 			return nullptr;
@@ -89,7 +89,7 @@ namespace SFG
 		return _cur_start;
 	}
 
-	const char* bump_text_allocator::allocate(const char* initial_text, size_t reserve_extra)
+	const char* bump_text_allocator_t::allocate(const char* initial_text, size_t reserve_extra)
 	{
 		if (!initial_text)
 			initial_text = "";
@@ -111,7 +111,7 @@ namespace SFG
 		return start;
 	}
 
-	const char* bump_text_allocator::terminate()
+	const char* bump_text_allocator_t::terminate()
 	{
 		if (!_cur_start)
 			return nullptr;
@@ -120,12 +120,12 @@ namespace SFG
 		return _cur_start;
 	}
 
-	const char* bump_text_allocator::current_c_str() const
+	const char* bump_text_allocator_t::current_c_str() const
 	{
 		return _cur_start ? _cur_start : "";
 	}
 
-	size_t bump_text_allocator::remaining() const
+	size_t bump_text_allocator_t::remaining() const
 	{
 		if (!_cur_start)
 			return 0;
@@ -133,7 +133,7 @@ namespace SFG
 		return (_cur_end > _cur) ? size_t(_cur_end - _cur) : 0;
 	}
 
-	bool bump_text_allocator::append(string_view_t s)
+	bool bump_text_allocator_t::append(string_view_t s)
 	{
 		if (!_cur_start)
 			return false;
@@ -141,7 +141,7 @@ namespace SFG
 		return char_util::append(_cur, _cur_end, s.data(), s.size());
 	}
 
-	bool bump_text_allocator::append(const char* s)
+	bool bump_text_allocator_t::append(const char* s)
 	{
 		if (!_cur_start)
 			return false;
@@ -149,7 +149,7 @@ namespace SFG
 		return char_util::append(_cur, _cur_end, s);
 	}
 
-	bool bump_text_allocator::append(char c)
+	bool bump_text_allocator_t::append(char c)
 	{
 		if (!_cur_start)
 			return false;
@@ -157,28 +157,28 @@ namespace SFG
 		return char_util::append_char(_cur, _cur_end, c);
 	}
 
-	bool bump_text_allocator::append(i32 v)
+	bool bump_text_allocator_t::append(i32 v)
 	{
 		if (!_cur_start)
 			return false;
 
 		return char_util::append_i32(_cur, _cur_end, v);
 	}
-	bool bump_text_allocator::append(u32 v)
+	bool bump_text_allocator_t::append(u32 v)
 	{
 		if (!_cur_start)
 			return false;
 
 		return char_util::append_u32(_cur, _cur_end, v);
 	}
-	bool bump_text_allocator::append(i64 v)
+	bool bump_text_allocator_t::append(i64 v)
 	{
 		if (!_cur_start)
 			return false;
 
 		return char_util::append_i64(_cur, _cur_end, v);
 	}
-	bool bump_text_allocator::append(u64 v)
+	bool bump_text_allocator_t::append(u64 v)
 	{
 		if (!_cur_start)
 			return false;
@@ -186,7 +186,7 @@ namespace SFG
 		return char_util::append_u64(_cur, _cur_end, v);
 	}
 
-	bool bump_text_allocator::append_i64(i64 v)
+	bool bump_text_allocator_t::append_i64(i64 v)
 	{
 		if (!_cur_start)
 			return false;
@@ -194,7 +194,7 @@ namespace SFG
 		return char_util::append_i64(_cur, _cur_end, v);
 	}
 
-	bool bump_text_allocator::append_u64(u64 v)
+	bool bump_text_allocator_t::append_u64(u64 v)
 	{
 		if (!_cur_start)
 			return false;
@@ -202,7 +202,7 @@ namespace SFG
 		return char_util::append_u64(_cur, _cur_end, v);
 	}
 
-	bool bump_text_allocator::append(double v, int precision)
+	bool bump_text_allocator_t::append(double v, int precision)
 	{
 		if (!_cur_start)
 			return false;
@@ -210,7 +210,7 @@ namespace SFG
 		return char_util::append_double(_cur, _cur_end, v, precision);
 	}
 
-	bool bump_text_allocator::appendf(const char* fmt, ...)
+	bool bump_text_allocator_t::appendf(const char* fmt, ...)
 	{
 		if (!_cur_start)
 			return false;
@@ -222,12 +222,12 @@ namespace SFG
 		return ok;
 	}
 
-	bool bump_text_allocator::ensure_space(size_t bytes_needed_including_null) const
+	bool bump_text_allocator_t::ensure_space(size_t bytes_needed_including_null) const
 	{
 		return remaining() >= bytes_needed_including_null;
 	}
 
-	void bump_text_allocator::null_terminate_in_place()
+	void bump_text_allocator_t::null_terminate_in_place()
 	{
 		if (!_cur_start)
 			return;

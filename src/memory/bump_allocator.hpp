@@ -33,17 +33,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class bump_allocator
+	class bump_allocator_t
 	{
 	public:
 		void init(size_t sz, size_t alignment);
 		void init(u8* existing, size_t sz);
 		void uninit();
 
-		bump_allocator()									   = default;
-		bump_allocator& operator=(const bump_allocator& other) = delete;
-		bump_allocator(const bump_allocator& other)			   = delete;
-		~bump_allocator()
+		bump_allocator_t()										   = default;
+		bump_allocator_t& operator=(const bump_allocator_t& other) = delete;
+		bump_allocator_t(const bump_allocator_t& other)			   = delete;
+		~bump_allocator_t()
 		{
 			SFG_ASSERT(!_owns || _raw == nullptr);
 		}

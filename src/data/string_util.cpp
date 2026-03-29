@@ -57,17 +57,17 @@ namespace SFG
 
 		char* wchar_to_char(const wchar_t* wch)
 		{
-			size_t size	  = (wcslen(wch) + 1) * sizeof(wchar_t);
-			char*  buffer = new char[size];
+			size_t size		= (wcslen(wch) + 1) * sizeof(wchar_t);
+			char*  buffer_t = new char[size];
 
 #ifdef __STDC_LIB_EXT1__
 			size_t convertedSize;
-			std::wcstombs_s(&convertedSize, buffer, size, input, size);
+			std::wcstombs_s(&convertedSize, buffer_t, size, input, size);
 #else
 #pragma warning(disable : 4996)
-			std::wcstombs(buffer, wch, size);
+			std::wcstombs(buffer_t, wch, size);
 #endif
-			return buffer;
+			return buffer_t;
 		}
 
 		const wchar_t* char_to_wchar(const char* ch)

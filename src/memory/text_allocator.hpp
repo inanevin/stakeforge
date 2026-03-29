@@ -31,18 +31,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class text_allocator
+	class text_allocator_t
 	{
 
 	private:
-		struct allocation
+		struct allocation_t
 		{
 			char*  ptr	= nullptr;
 			size_t size = 0;
 		};
 
 	public:
-		text_allocator() : _head(0){};
+		text_allocator_t() : _head(0){};
 
 		// -----------------------------------------------------------------------------
 		// lifecycle
@@ -86,10 +86,10 @@ namespace SFG
 		}
 
 	private:
-		vector_t<allocation> _free_list;
-		char*				 _raw	   = nullptr;
-		u32					 _head	   = 0;
-		u32					 _capacity = 0;
+		vector_t<allocation_t> _free_list;
+		char*				   _raw		 = nullptr;
+		u32					   _head	 = 0;
+		u32					   _capacity = 0;
 	};
 
 }

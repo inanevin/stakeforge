@@ -30,13 +30,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/vector.hpp"
 namespace SFG
 {
-	struct vec2u16;
-	struct texture_buffer;
+	struct vec2u16_t;
+	struct texture_buffer_t;
 	class ostream_t;
 
-	class image_util
+	namespace image_util_t
 	{
-	public:
 		enum class mip_gen_filter
 		{
 			def = 0,
@@ -46,13 +45,13 @@ namespace SFG
 			catmullrom,
 			mitchell,
 		};
-		static void* load_from_file_ch(const char* file, u8 force_channels);
-		static void* load_from_file_ch(const char* file, vec2u16& out_size, u8 force_channels);
-		static void* load_from_file(const char* file, u8& out_channels);
-		static void* load_from_file(const char* file, vec2u16& out_size, u8& out_channels);
-		static void	 compress_to_buffer(void* data, size_t sz, ostream_t& stream);
-		static void	 generate_mips(texture_buffer* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
-		static u8	 calculate_mip_levels(u16 width, u16 height);
-		static void	 free(void* data);
-	};
+		void* load_from_file_ch(const char* file, u8 force_channels);
+		void* load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels);
+		void* load_from_file(const char* file, u8& out_channels);
+		void* load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels);
+		void  compress_to_buffer(void* data, size_t sz, ostream_t& stream);
+		void  generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
+		u8	  calculate_mip_levels(u16 width, u16 height);
+		void  free(void* data);
+	}
 }

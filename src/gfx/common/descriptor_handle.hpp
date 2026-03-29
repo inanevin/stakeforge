@@ -30,14 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	struct descriptor_handle
+	struct descriptor_handle_t
 	{
 		size_t cpu	 = 0;
 		u64	   gpu	 = 0;
 		u32	   index = 0;
 		u32	   count = 0;
 
-		bool operator==(const descriptor_handle& other) const
+		bool operator==(const descriptor_handle_t& other) const
 		{
 			return cpu == other.cpu && gpu == other.gpu;
 		}

@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	class bump_text_allocator
+	class bump_text_allocator_t
 	{
 	public:
 		struct string_view_t
@@ -54,11 +54,11 @@ namespace SFG
 			}
 		};
 
-		bump_text_allocator() = default;
-		~bump_text_allocator();
+		bump_text_allocator_t() = default;
+		~bump_text_allocator_t();
 
-		bump_text_allocator(const bump_text_allocator&)			   = delete;
-		bump_text_allocator& operator=(const bump_text_allocator&) = delete;
+		bump_text_allocator_t(const bump_text_allocator_t&)			   = delete;
+		bump_text_allocator_t& operator=(const bump_text_allocator_t&) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifecycle

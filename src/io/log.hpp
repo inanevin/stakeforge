@@ -28,21 +28,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef SFG_DEBUG
 
-#define SFG_ERR(...)   SFG::log::instance().log_msg_func(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_WARN(...)  SFG::log::instance().log_msg_func(SFG::log_level::warning, __FUNCTION__, __VA_ARGS__)
-#define SFG_INFO(...)  SFG::log::instance().log_msg_func(SFG::log_level::info, __FUNCTION__, __VA_ARGS__)
-#define SFG_TRACE(...) SFG::log::instance().log_msg(SFG::log_level::trace, __VA_ARGS__)
-#define SFG_FATAL(...) SFG::log::instance().log_msg_func(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_PROG(...)  SFG::log::instance().log_msg(SFG::log_level::progress, __VA_ARGS__)
+#define SFG_ERR(...)   SFG::log_t::instance().log_msg_func(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_WARN(...)  SFG::log_t::instance().log_msg_func(SFG::log_level::warning, __FUNCTION__, __VA_ARGS__)
+#define SFG_INFO(...)  SFG::log_t::instance().log_msg_func(SFG::log_level::info, __FUNCTION__, __VA_ARGS__)
+#define SFG_TRACE(...) SFG::log_t::instance().log_msg(SFG::log_level::trace, __VA_ARGS__)
+#define SFG_FATAL(...) SFG::log_t::instance().log_msg_func(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_PROG(...)  SFG::log_t::instance().log_msg(SFG::log_level::progress, __VA_ARGS__)
 
 #else
 
-#define SFG_ERR(...)   SFG::log::instance().log_msg(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_WARN(...)  SFG::log::instance().log_msg(SFG::log_level::warning, __FUNCTION__, __VA_ARGS__)
-#define SFG_INFO(...)  SFG::log::instance().log_msg_func(SFG::log_level::info, __FUNCTION__, __VA_ARGS__)
-#define SFG_TRACE(...) SFG::log::instance().log_msg(SFG::log_level::trace, __VA_ARGS__)
-#define SFG_FATAL(...) SFG::log::instance().log_msg(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_PROG(...)  SFG::log::instance().log_msg(SFG::log_level::progress, __VA_ARGS__)
+#define SFG_ERR(...)   SFG::log_t::instance().log_msg(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_WARN(...)  SFG::log_t::instance().log_msg(SFG::log_level::warning, __FUNCTION__, __VA_ARGS__)
+#define SFG_INFO(...)  SFG::log_t::instance().log_msg_func(SFG::log_level::info, __FUNCTION__, __VA_ARGS__)
+#define SFG_TRACE(...) SFG::log_t::instance().log_msg(SFG::log_level::trace, __VA_ARGS__)
+#define SFG_FATAL(...) SFG::log_t::instance().log_msg(SFG::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_PROG(...)  SFG::log_t::instance().log_msg(SFG::log_level::progress, __VA_ARGS__)
 
 #endif
 
@@ -64,25 +64,25 @@ namespace SFG
 		progress,
 	};
 
-	class log
+	class log_t
 	{
 	public:
 		typedef void (*callback_function)(log_level lvl, const char* msg, void* user_data);
 
-		static log& instance()
+		static log_t& instance()
 		{
-			static log log;
-			return log;
+			static log_t log_t;
+			return log_t;
 		}
 
-		log()
+		log_t()
 		{
 #ifdef SFG_DUMP_LOG_TRACE
 			_log_trace.reserve(1024 * 10);
 #endif
 		}
 
-		~log();
+		~log_t();
 
 		// Helper to convert various types to string
 		template <typename T> std::string to_str(const T& value)
@@ -146,7 +146,7 @@ namespace SFG
 		void remove_listener(unsigned int id);
 
 	private:
-		struct listener
+		struct listener_t
 		{
 			void*			  user_data = nullptr;
 			callback_function f			= nullptr;
@@ -159,10 +159,10 @@ namespace SFG
 		void		log_impl(log_level level, const char* func, const char* msg);
 
 	private:
-		template <typename T> using vector_malloc = std::vector<T, malloc_allocator_stl<T>>;
+		template <typename T> using vector_malloc = std::vector<T, malloc_allocator_stl_t<T>>;
 
-		mutex_t					_mtx;
-		vector_malloc<listener> _listeners;
+		mutex_t					  _mtx;
+		vector_malloc<listener_t> _listeners;
 #ifdef SFG_DUMP_LOG_TRACE
 		string_t _log_trace;
 #endif

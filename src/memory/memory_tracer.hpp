@@ -38,7 +38,7 @@ namespace SFG
 {
 #define MEMORY_STACK_TRACE_SIZE 50
 
-	struct memory_track
+	struct memory_track_t
 	{
 		void*		   ptr							  = nullptr;
 		size_t		   size							  = 0;
@@ -46,22 +46,22 @@ namespace SFG
 		void*		   stack[MEMORY_STACK_TRACE_SIZE] = {};
 	};
 
-	typedef phmap::flat_hash_map<void*, memory_track, phmap::priv::hash_default_hash<void*>, phmap::priv::hash_default_eq<void*>, malloc_allocator_map<void*>> alloc_map;
-	template <typename T> using vector_malloc = std::vector<T, malloc_allocator_stl<T>>;
+	typedef phmap::flat_hash_map<void*, memory_track_t, phmap::priv::hash_default_hash<void*>, phmap::priv::hash_default_eq<void*>, malloc_allocator_map_t<void*>> alloc_map;
+	template <typename T> using vector_malloc = std::vector<T, malloc_allocator_stl_t<T>>;
 
-	struct memory_category
+	struct memory_category_t
 	{
 		const char* name	   = nullptr;
 		size_t		total_size = 0;
 		u8			id		   = 0;
 	};
 
-	class memory_tracer
+	class memory_tracer_t
 	{
 	public:
-		static memory_tracer& get()
+		static memory_tracer_t& get()
 		{
-			static memory_tracer instance;
+			static memory_tracer_t instance;
 			return instance;
 		}
 
@@ -78,7 +78,7 @@ namespace SFG
 			return _category_mtx;
 		}
 
-		const vector_malloc<memory_category>& get_categories() const
+		const vector_malloc<memory_category_t>& get_categories() const
 		{
 			return _categories;
 		}
@@ -87,31 +87,31 @@ namespace SFG
 		void destroy();
 
 	private:
-		memory_tracer() = default;
-		~memory_tracer()
+		memory_tracer_t() = default;
+		~memory_tracer_t()
 		{
 			destroy();
 		}
 
-		void capture_trace(memory_track& track);
+		void capture_trace(memory_track_t& track);
 		void check_leaks();
 
 	private:
-		mutex_t						   _category_mtx;
-		vector_malloc<memory_category> _categories;
-		vector_malloc<u8>			   _category_ids;
-		alloc_map					   _allocations;
+		mutex_t							 _category_mtx;
+		vector_malloc<memory_category_t> _categories;
+		vector_malloc<u8>				 _category_ids;
+		alloc_map						 _allocations;
 
 		u8		  _current_active_category = 0;
 		static u8 s_category_counter;
 	};
 
-#define PUSH_MEMORY_CATEGORY(NAME) SFG::memory_tracer::get().push_category(NAME)
-#define POP_MEMORY_CATEGORY()	   SFG::memory_tracer::get().pop_category()
-#define PUSH_ALLOCATION(PTR, SIZE) SFG::memory_tracer::get().on_allocation(PTR, SIZE)
-#define PUSH_ALLOCATION_SZ(SIZE)   SFG::memory_tracer::get().on_allocation(SIZE)
-#define PUSH_DEALLOCATION(PTR)	   SFG::memory_tracer::get().on_free(PTR)
-#define PUSH_DEALLOCATION_SZ(SIZE) SFG::memory_tracer::get().on_free(SIZE)
+#define PUSH_MEMORY_CATEGORY(NAME) SFG::memory_tracer_t::get().push_category(NAME)
+#define POP_MEMORY_CATEGORY()	   SFG::memory_tracer_t::get().pop_category()
+#define PUSH_ALLOCATION(PTR, SIZE) SFG::memory_tracer_t::get().on_allocation(PTR, SIZE)
+#define PUSH_ALLOCATION_SZ(SIZE)   SFG::memory_tracer_t::get().on_allocation(SIZE)
+#define PUSH_DEALLOCATION(PTR)	   SFG::memory_tracer_t::get().on_free(PTR)
+#define PUSH_DEALLOCATION_SZ(SIZE) SFG::memory_tracer_t::get().on_free(SIZE)
 }
 
 #else

@@ -40,22 +40,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	log::~log()
+	log_t::~log_t()
 	{
 
 #ifdef SFG_DUMP_LOG_TRACE
-		serialization::write_to_file(_log_trace, "sfg_log_trace.txt");
+		serialization_t::write_to_file(_log_trace, "sfg_log_trace.txt");
 #endif
 	}
 
-	void log::log_impl(log_level level, const char* msg)
+	void log_t::log_impl(log_level level, const char* msg)
 	{
 		LOCK_GUARD(_mtx);
 
 		log_impl(level, nullptr, msg);
 	}
 
-	void log::log_impl(log_level level, const char* func, const char* msg)
+	void log_t::log_impl(log_level level, const char* func, const char* msg)
 	{
 		string_t msg_str = func == nullptr ? (string_t(msg)) : (string_t(func) + "() -> " + string_t(msg));
 		msg_str += "\n";
@@ -70,31 +70,31 @@ namespace SFG
 
 #ifdef SFG_PLATFORM_WINDOWS
 		HANDLE hConsole;
-		int	   color = 15;
+		int	   color_t = 15;
 
 		if (level == log_level::trace)
-			color = 3;
+			color_t = 3;
 		else if (level == log_level::info)
-			color = 15;
+			color_t = 15;
 		else if ((level == log_level::warning))
-			color = 6;
+			color_t = 6;
 		else if (level == log_level::error)
-			color = 4;
+			color_t = 4;
 		else if (level == log_level::progress)
-			color = 8;
+			color_t = 8;
 
 		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-		SetConsoleTextAttribute(hConsole, color);
+		SetConsoleTextAttribute(hConsole, color_t);
 		WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg_str.c_str(), static_cast<DWORD>(strlen(msg_str.c_str())), NULL, NULL);
 #else
 		std::cout << msg_str.c_str();
 #endif
 
-		for (const listener& l : _listeners)
+		for (const listener_t& l : _listeners)
 			l.f(level, msg, l.user_data);
 	}
 
-	void log::add_listener(unsigned int id, callback_function f, void* user_data)
+	void log_t::add_listener(unsigned int id, callback_function f, void* user_data)
 	{
 		_listeners.push_back({
 			.user_data = user_data,
@@ -103,12 +103,12 @@ namespace SFG
 		});
 	}
 
-	void log::remove_listener(unsigned int id)
+	void log_t::remove_listener(unsigned int id)
 	{
-		std::erase_if(_listeners, [id](const listener& l) -> bool { return l.id == id; });
+		std::erase_if(_listeners, [id](const listener_t& l) -> bool { return l.id == id; });
 	}
 
-	const char* log::get_level(log_level level)
+	const char* log_t::get_level(log_level level)
 	{
 		switch (level)
 		{

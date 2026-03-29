@@ -74,7 +74,7 @@ namespace SFG
 
 	void istream_t::read_to_raw_endian_safe(void* ptr, size_t size)
 	{
-		if (endianness::should_swap())
+		if (endianness_t::should_swap())
 		{
 			u8*			 data = &_data[_index];
 			vector_t<u8> v;

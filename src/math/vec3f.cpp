@@ -36,65 +36,65 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	const vec3f vec3f::zero(0.0f, 0.0f, 0.0f);
-	const vec3f vec3f::one(1.0f, 1.0f, 1.0f);
-	const vec3f vec3f::up(0.0f, 1.0f, 0.0f);
-	const vec3f vec3f::forward(0.0f, 0.0f, -1.0f);
-	const vec3f vec3f::right(1.0f, 0.0f, 0.0f);
+	const vec3f_t vec3f_t::zero(0.0f, 0.0f, 0.0f);
+	const vec3f_t vec3f_t::one(1.0f, 1.0f, 1.0f);
+	const vec3f_t vec3f_t::up(0.0f, 1.0f, 0.0f);
+	const vec3f_t vec3f_t::forward(0.0f, 0.0f, -1.0f);
+	const vec3f_t vec3f_t::right(1.0f, 0.0f, 0.0f);
 
-	vec3f vec3f::clamp(const vec3f& vector_t, const vec3f& min_vec, const vec3f& max_vec)
+	vec3f_t vec3f_t::clamp(const vec3f_t& vector_t, const vec3f_t& min_vec, const vec3f_t& max_vec)
 	{
-		return vec3f(math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z));
+		return vec3f_t(math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z));
 	}
 
-	vec3f vec3f::cross(const vec3f& a, const vec3f& b)
+	vec3f_t vec3f_t::cross(const vec3f_t& a, const vec3f_t& b)
 	{
-		return vec3f(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+		return vec3f_t(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 	}
 
-	vec3f vec3f::abs(const vec3f& vector_t)
+	vec3f_t vec3f_t::abs(const vec3f_t& vector_t)
 	{
-		return vec3f(math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z));
+		return vec3f_t(math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z));
 	}
 
-	vec3f vec3f::min(const vec3f& a, const vec3f& b)
+	vec3f_t vec3f_t::min(const vec3f_t& a, const vec3f_t& b)
 	{
-		return vec3f(math::min(a.x, b.x), math::min(a.y, b.y), math::min(a.z, b.z));
+		return vec3f_t(math::min(a.x, b.x), math::min(a.y, b.y), math::min(a.z, b.z));
 	}
 
-	vec3f vec3f::max(const vec3f& a, const vec3f& b)
+	vec3f_t vec3f_t::max(const vec3f_t& a, const vec3f_t& b)
 	{
-		return vec3f(math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z));
+		return vec3f_t(math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z));
 	}
 
-	vec3f vec3f::lerp(const vec3f& a, const vec3f& b, f32 t)
+	vec3f_t vec3f_t::lerp(const vec3f_t& a, const vec3f_t& b, f32 t)
 	{
-		return vec3f(easing::lerp(a.x, b.x, t), easing::lerp(a.y, b.y, t), easing::lerp(a.z, b.z, t));
+		return vec3f_t(easing::lerp(a.x, b.x, t), easing::lerp(a.y, b.y, t), easing::lerp(a.z, b.z, t));
 	}
 
-	f32 vec3f::dot(const vec3f& a, const vec3f& b)
+	f32 vec3f_t::dot(const vec3f_t& a, const vec3f_t& b)
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
-	f32 vec3f::distance(const vec3f& a, const vec3f& b)
+	f32 vec3f_t::distance(const vec3f_t& a, const vec3f_t& b)
 	{
 		return (a - b).magnitude();
 	}
 
-	f32 vec3f::distance_sqr(const vec3f& a, const vec3f& b)
+	f32 vec3f_t::distance_sqr(const vec3f_t& a, const vec3f_t& b)
 	{
 		return (a - b).magnitude_sqr();
 	}
 
-	vec3f vec3f::project(const vec3f& on_normal) const
+	vec3f_t vec3f_t::project(const vec3f_t& on_normal) const
 	{
 		return on_normal * dot(*this, on_normal);
 	}
 
-	vec3f vec3f::rotate(const vec3f& axis, f32 angle_degrees) const
+	vec3f_t vec3f_t::rotate(const vec3f_t& axis, f32 angle_degrees) const
 	{
-		vec3f unit_axis = axis.normalized();
+		vec3f_t unit_axis = axis.normalized();
 		if (unit_axis.is_zero())
 		{
 			return *this;
@@ -104,57 +104,57 @@ namespace SFG
 		f32 cos_theta = math::cos(angle_rad);
 		f32 sin_theta = math::sin(angle_rad);
 
-		vec3f v_rot = (*this * cos_theta) + (vec3f::cross(unit_axis, *this) * sin_theta) + (unit_axis * (vec3f::dot(unit_axis, *this) * (1.0f - cos_theta)));
+		vec3f_t v_rot = (*this * cos_theta) + (vec3f_t::cross(unit_axis, *this) * sin_theta) + (unit_axis * (vec3f_t::dot(unit_axis, *this) * (1.0f - cos_theta)));
 		return v_rot;
 	}
 
-	vec3f vec3f::reflect(const vec3f& in_normal) const
+	vec3f_t vec3f_t::reflect(const vec3f_t& in_normal) const
 	{
-		vec3f unit_normal = in_normal.normalized();
+		vec3f_t unit_normal = in_normal.normalized();
 		if (unit_normal.is_zero())
 		{
 			return -(*this);
 		}
-		return *this - (unit_normal * (2.0f * vec3f::dot(*this, unit_normal)));
+		return *this - (unit_normal * (2.0f * vec3f_t::dot(*this, unit_normal)));
 	}
 
-	bool vec3f::equals(const vec3f& other, f32 epsilon) const
+	bool vec3f_t::equals(const vec3f_t& other, f32 epsilon) const
 	{
 		return math::almost_equal(x, other.x, epsilon) && math::almost_equal(y, other.y, epsilon) && math::almost_equal(z, other.z, epsilon);
 	}
 
-	bool vec3f::is_zero(f32 epsilon) const
+	bool vec3f_t::is_zero(f32 epsilon) const
 	{
 		return math::almost_equal(x, 0.0f, epsilon) && math::almost_equal(y, 0.0f, epsilon) && math::almost_equal(z, 0.0f, epsilon);
 	}
 
-	f32 vec3f::magnitude() const
+	f32 vec3f_t::magnitude() const
 	{
 		return math::sqrt(x * x + y * y + z * z);
 	}
 
-	f32 vec3f::magnitude_sqr() const
+	f32 vec3f_t::magnitude_sqr() const
 	{
 		return x * x + y * y + z * z;
 	}
 
-	void vec3f::serialize(ostream_t& stream) const
+	void vec3f_t::serialize(ostream_t& stream) const
 	{
 		stream << x << y << z;
 	}
 
-	void vec3f::deserialize(istream_t& stream)
+	void vec3f_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z;
 	}
 
 #ifdef SFG_JSON_SERIALIZE
-	void to_json(nlohmann::json& j, const vec3f& v)
+	void to_json(nlohmann::json& j, const vec3f_t& v)
 	{
-		j = nlohmann::json::array({v.x, v.y, v.z});
+		j = nlohmann::json::array_t({v.x, v.y, v.z});
 	}
 
-	void from_json(const nlohmann::json& j, vec3f& v)
+	void from_json(const nlohmann::json& j, vec3f_t& v)
 	{
 		if (!j.is_array() || j.size() < 3)
 			throw std::runtime_error("vec3f json err");

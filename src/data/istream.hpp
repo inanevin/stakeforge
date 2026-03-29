@@ -111,8 +111,8 @@ namespace SFG
 	template <typename T> std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, istream_t&> operator>>(istream_t& stream, T& val)
 	{
 		stream.read(val);
-		if (endianness::should_swap())
-			endianness::swap_endian(val);
+		if (endianness_t::should_swap())
+			endianness_t::swap_endian(val);
 		return stream;
 	}
 

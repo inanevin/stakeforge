@@ -30,12 +30,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T> struct pool_handle
+	template <typename T> struct pool_handle_t
 	{
 		T generation = 0;
 		T index		 = 0;
 
-		bool operator==(const pool_handle& other) const
+		bool operator==(const pool_handle_t& other) const
 		{
 			return generation == other.generation && index == other.index;
 		}
@@ -46,7 +46,7 @@ namespace SFG
 		}
 	};
 
-	typedef pool_handle<u16> pool_handle16;
-	typedef pool_handle<u32> pool_handle32;
+	typedef pool_handle_t<u16> pool_handle16;
+	typedef pool_handle_t<u32> pool_handle32;
 
 }

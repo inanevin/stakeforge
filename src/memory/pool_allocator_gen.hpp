@@ -32,15 +32,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	template <typename T, typename SIZE_TYPE, int N> struct pool_allocator_gen
+	template <typename T, typename SIZE_TYPE, int N> struct pool_allocator_gen_t
 	{
 
-		~pool_allocator_gen()
+		~pool_allocator_gen_t()
 		{
 			reset();
 		}
 
-		pool_allocator_gen()
+		pool_allocator_gen_t()
 		{
 			for (u32 i = 0; i < N; i++)
 			{
@@ -55,7 +55,7 @@ namespace SFG
 		// lifecycle
 		// -----------------------------------------------------------------------------
 
-		inline pool_handle<SIZE_TYPE> add()
+		inline pool_handle_t<SIZE_TYPE> add()
 		{
 			if (_free_count > 0)
 			{
@@ -88,7 +88,7 @@ namespace SFG
 			return _free_count == 0 && _head >= N;
 		}
 
-		void remove(pool_handle<SIZE_TYPE> handle)
+		void remove(pool_handle_t<SIZE_TYPE> handle)
 		{
 			SFG_ASSERT(is_valid(handle));
 			_free_list[_free_count] = handle.index;
@@ -98,7 +98,7 @@ namespace SFG
 			_actives[handle.index] = 0;
 		}
 
-		inline bool is_valid(pool_handle<SIZE_TYPE> handle) const
+		inline bool is_valid(pool_handle_t<SIZE_TYPE> handle) const
 		{
 			return _generations[handle.index] == handle.generation;
 		}
@@ -121,13 +121,13 @@ namespace SFG
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		T& get(pool_handle<SIZE_TYPE> handle)
+		T& get(pool_handle_t<SIZE_TYPE> handle)
 		{
 			SFG_ASSERT(is_valid(handle));
 			return _items[handle.index];
 		}
 
-		const T& get(pool_handle<SIZE_TYPE> handle) const
+		const T& get(pool_handle_t<SIZE_TYPE> handle) const
 		{
 			SFG_ASSERT(is_valid(handle));
 			return _items[handle.index];
@@ -143,12 +143,12 @@ namespace SFG
 		// iterator
 		// -----------------------------------------------------------------------------
 
-		template <typename TYPE> struct iterator
+		template <typename TYPE> struct iterator_t
 		{
 			using reference = TYPE&;
 			using pointer	= TYPE*;
 
-			iterator(pointer ptr, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _ptr(ptr), _actives(actives), _current(begin), _end(end)
+			iterator_t(pointer ptr, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _ptr(ptr), _actives(actives), _current(begin), _end(end)
 			{
 				while (_current != end && actives[_current] == 0)
 					++_current;
@@ -163,7 +163,7 @@ namespace SFG
 				return (_ptr + _current);
 			}
 
-			iterator& operator++()
+			iterator_t& operator++()
 			{
 				do
 				{
@@ -172,19 +172,19 @@ namespace SFG
 				return *this;
 			}
 
-			iterator& operator++(int)
+			iterator_t& operator++(int)
 			{
-				iterator tmp = *this;
+				iterator_t tmp = *this;
 				++(*this);
 				return tmp;
 			}
 
-			friend bool operator==(const iterator& a, const iterator& b)
+			friend bool operator==(const iterator_t& a, const iterator_t& b)
 			{
 				return a._current == b._current;
 			}
 
-			friend bool operator!=(const iterator& a, const iterator& b)
+			friend bool operator!=(const iterator_t& a, const iterator_t& b)
 			{
 				return a._current != b._current;
 			}
@@ -195,39 +195,39 @@ namespace SFG
 			SIZE_TYPE _end	   = 0;
 		};
 
-		iterator<const T> begin() const
+		iterator_t<const T> begin() const
 		{
-			return iterator<const T>(_items, _actives, 0, _head);
+			return iterator_t<const T>(_items, _actives, 0, _head);
 		}
 
-		iterator<const T> end() const
+		iterator_t<const T> end() const
 		{
-			return iterator<const T>(_items, _actives, _head, _head);
+			return iterator_t<const T>(_items, _actives, _head, _head);
 		}
 
-		iterator<T> begin()
+		iterator_t<T> begin()
 		{
-			return iterator<T>(_items, _actives, 0, _head);
+			return iterator_t<T>(_items, _actives, 0, _head);
 		}
 
-		iterator<T> end()
+		iterator_t<T> end()
 		{
-			return iterator<T>(_items, _actives, _head, _head);
+			return iterator_t<T>(_items, _actives, _head, _head);
 		}
 
 		// -----------------------------------------------------------------------------
 		// handle iterators
 		// -----------------------------------------------------------------------------
 
-		struct handle_iterator
+		struct handle_iterator_t
 		{
-			handle_iterator(const SIZE_TYPE* gens, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _gens(gens), _actives(actives), _current(begin), _end(end)
+			handle_iterator_t(const SIZE_TYPE* gens, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _gens(gens), _actives(actives), _current(begin), _end(end)
 			{
 				while (_current != end && actives[_current] == 0)
 					++_current;
 			}
 
-			pool_handle<SIZE_TYPE> operator*() const
+			pool_handle_t<SIZE_TYPE> operator*() const
 			{
 				return {
 					.generation = _gens[_current],
@@ -235,7 +235,7 @@ namespace SFG
 				};
 			}
 
-			handle_iterator& operator++()
+			handle_iterator_t& operator++()
 			{
 				do
 				{
@@ -244,19 +244,19 @@ namespace SFG
 				return *this;
 			}
 
-			handle_iterator& operator++(int)
+			handle_iterator_t& operator++(int)
 			{
-				iterator tmp = *this;
+				iterator_t tmp = *this;
 				++(*this);
 				return tmp;
 			}
 
-			friend bool operator==(const handle_iterator& a, const handle_iterator& b)
+			friend bool operator==(const handle_iterator_t& a, const handle_iterator_t& b)
 			{
 				return a._current == b._current;
 			}
 
-			friend bool operator!=(const handle_iterator& a, const handle_iterator& b)
+			friend bool operator!=(const handle_iterator_t& a, const handle_iterator_t& b)
 			{
 				return a._current != b._current;
 			}
@@ -267,14 +267,14 @@ namespace SFG
 			SIZE_TYPE		 _end	  = 0;
 		};
 
-		handle_iterator handles_begin() const
+		handle_iterator_t handles_begin() const
 		{
-			return handle_iterator(_generations, _actives, 0, _head);
+			return handle_iterator_t(_generations, _actives, 0, _head);
 		}
 
-		handle_iterator handles_end() const
+		handle_iterator_t handles_end() const
 		{
-			return handle_iterator(_generations, _actives, _head, _head);
+			return handle_iterator_t(_generations, _actives, _head, _head);
 		}
 
 	private:

@@ -36,7 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SFG
 {
-	bool serialization::write_to_file(string_view_t fileInput, const char* target_file)
+	bool serialization_t::write_to_file(string_view_t fileInput, const char* target_file)
 	{
 		std::ofstream outFile(target_file);
 
@@ -54,7 +54,7 @@ namespace SFG
 		return true;
 	}
 
-	bool serialization::save_to_file(const char* path, ostream_t& stream)
+	bool serialization_t::save_to_file(const char* path, ostream_t& stream)
 	{
 		if (file_system::exists(path))
 			file_system::delete_file(path);
@@ -81,7 +81,7 @@ namespace SFG
 		return true;
 	}
 
-	istream_t serialization::load_from_file(const char* path)
+	istream_t serialization_t::load_from_file(const char* path)
 	{
 		if (!file_system::exists(path))
 		{

@@ -31,23 +31,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SFG
 {
 
-	class vec3h
+	class vec3h_t
 	{
 	public:
 		half x = 0.0f;
 		half y = 0.0f;
 		half z = 0.0f;
 
-		vec3h() = default;
-		vec3h(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
+		vec3h_t() = default;
+		vec3h_t(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
 		{
 		}
 
-		static const vec3h zero;
-		static const vec3h one;
-		static const vec3h up;
-		static const vec3h forward;
-		static const vec3h right;
+		static const vec3h_t zero;
+		static const vec3h_t one;
+		static const vec3h_t up;
+		static const vec3h_t forward;
+		static const vec3h_t right;
 	};
 
 }
