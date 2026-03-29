@@ -24,34 +24,21 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
-
-#define NOMINMAX
-#include <limits>
+#include "world.hpp"
 
 namespace SFG
 {
-#define MAX_RESOURCES		   1024
-#define MAX_TEXTURES		   1024
-#define MAX_SAMPLERS		   128
-#define MAX_SEMAPHORES		   64
-#define MAX_SHADERS			   2048
-#define MAX_PIPELINE_LAYOUTS   256
-#define MAX_SWAPCHAINS		   8
-#define MAX_BIND_GROUPS		   512
-#define MAX_BIND_LAYOUTS	   128
-#define MAX_COMMAND_BUFFERS	   256
-#define MAX_QUEUES			   8
-#define MAX_DESCRIPTOR_HANDLES 1024
-#define COMMANDS_MAX_TID	   25
-#define BACK_BUFFER_COUNT	   3
-#define FRAME_LATENCY		   2
-#define GPU_DEVICE			   0 // 0 discrete, 1 integratd
+	void world::init()
+	{
+	}
 
-	typedef unsigned short gfx_id;
-	typedef unsigned short primitive_index;
-	typedef unsigned int   gpu_index;
+	void world::uninit()
+	{
+	}
 
-#define NULL_GFX_ID	   (unsigned short)0xFFFF
-#define NULL_GPU_INDEX (unsigned int)0xFFFFFFFF
+	void world::tick(f32 delta_time)
+	{
+		(void)delta_time;
+	}
+
 }

@@ -123,6 +123,7 @@ endif()
 file(GLOB SOURCES 
 src/audio/*.cpp
 src/common/*.cpp
+src/core/*.cpp
 src/platform/*.cpp
 src/math/*.cpp
 src/io/*.cpp
@@ -158,6 +159,7 @@ src/vendor/miniaudio/*.c
 file(GLOB HEADERS 
 src/audio/*.hpp
 src/common/*.hpp
+src/core/*.hpp
 src/platform/*.hpp
 src/math/*.hpp
 src/io/*.hpp
@@ -318,7 +320,7 @@ set(OVERRIDE_MSVCCRT OFF CACHE BOOL "" FORCE)
 set(GENERATE_DEBUG_SYMBOLS ON CACHE BOOL "" FORCE)
 set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
 add_subdirectory(deps/JoltPhysics-5.4.0/Build)
-set_property(TARGET Jolt PROPERTY FOLDER Dependencies)
+set_property(TARGET Jolt PROPERTY FOLDER stakeforge/dependencies)
 
 
 if (MSVC)
@@ -328,7 +330,7 @@ endif()
 add_subdirectory(deps/lz4-1.9.4)
 
 add_subdirectory(deps/tracy-0.13.0)
-set_property(TARGET TracyClient PROPERTY FOLDER Dependencies)
+set_property(TARGET TracyClient PROPERTY FOLDER stakeforge/dependencies)
 
 if(WIN32)
 
@@ -377,7 +379,10 @@ target_precompile_headers(${SFG_CORE_TARGET} PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/src/common/pch.hpp>"
 )
 
-set_target_properties(lz4 PROPERTIES FOLDER "Dependencies")
+set_target_properties(lz4 PROPERTIES FOLDER "stakeforge/dependencies")
+set_target_properties(stakeforge_core PROPERTIES FOLDER "stakeforge")
+set_target_properties(stakeforge_editor PROPERTIES FOLDER "stakeforge")
+set_target_properties(stakeforge_game PROPERTIES FOLDER "stakeforge")
 
 include(${CMAKE_SOURCE_DIR}/utils/cmake/common_functions.cmake)
 group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)

@@ -26,82 +26,46 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "format.hpp"
+#include "common/size_definitions.hpp"
+#include "data/atomic.hpp"
+#include "data/vector.hpp"
+
+#include <thread>
 
 namespace SFG
 {
+	class world;
 
-	class render_target_definitions
+	class engine
 	{
 	public:
-		static inline format get_format_gbuffer_albedo()
-		{
-			return format::r8g8b8a8_srgb;
-		}
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
 
-		static inline format get_format_gbuffer_normal()
-		{
-			return format::r10g0b10a2_unorm;
-		}
+		void init();
+		void uninit();
 
-		static inline format get_format_gbuffer_orm()
-		{
-			return format::r8g8b8a8_unorm;
-		}
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
 
-		static inline format get_format_lighting()
-		{
-			return format::r16g16b16a16_sfloat;
-		}
+		void   tick();
+		void   start_render();
+		void   end_render();
+		world* create_world();
+		void   destroy_world(world* w);
 
-		static inline format get_format_post_combine()
-		{
-			return format::r16g16b16a16_sfloat;
-		}
+	private:
+		void render();
 
-		static inline format get_format_depth_default()
-		{
-			return format::d32_sfloat;
-		}
-
-		static inline format get_format_depth_default_read()
-		{
-			return format::r32_sfloat;
-		}
-
-		static inline format get_format_gbuffer_emissive()
-		{
-			return format::r16g16b16a16_sfloat;
-		}
-
-		static inline format get_format_swapchain()
-		{
-			return format::r8g8b8a8_srgb;
-		}
-
-		static inline format get_format_ssao_ao_out()
-		{
-			return format::r8_unorm;
-		}
-
-		static inline format get_format_object_id()
-		{
-			return format::r32_uint;
-		}
-
-		static inline format get_format_selection()
-		{
-			return format::r8g8b8a8_srgb;
-		}
-
-		static inline format get_format_shadows()
-		{
-			return format::d32_sfloat;
-		}
-
-		static inline format get_format_editor()
-		{
-			return format::r8g8b8a8_srgb;
-		}
+	private:
+		std::thread	   _render_thread;
+		atomic<bool>   _is_init				 = false;
+		atomic<bool>   _render_thread_active = false;
+		vector<world*> _worlds;
+		i64			   _previous_time  = 0;
+		i64			   _accumulator_ns = 0;
 	};
+
 }
