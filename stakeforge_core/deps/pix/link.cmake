@@ -1,0 +1,7 @@
+macro(link_pix project)
+   set(DIRNAME "pix")
+   set(LIBNAME "WinPixEventRuntime")
+   target_include_directories(${project} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/${DIRNAME}/include)
+   target_link_libraries(${project} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/${DIRNAME}/lib/${LIBNAME}.lib)
+   message("${project} -> ${DIRNAME} has been linked.")
+endmacro()

@@ -29,35 +29,53 @@
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 4.0)
+set(SFG_EDITOR_TARGET stakeforge_editor)
+set(SFG_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core)
 
-project(stakeforge)
+file(GLOB SOURCES
+${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;" CACHE STRING "" FORCE)
+file(GLOB HEADERS
+${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+)
+
 
 if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-endif()
-
-find_package(Git QUIET)
-set(SFG_BUILD "unknown")
-if(GIT_FOUND)
-    execute_process(
-        COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        OUTPUT_VARIABLE SFG_BUILD
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
+    file(GLOB PLATFORM_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/win32/*.cpp
     )
+
+    file(GLOB PLATFORM_HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/win32/*.hpp
+    )
+
+    add_executable(${SFG_EDITOR_TARGET} WIN32)
+else()
+    add_executable(${SFG_EDITOR_TARGET})
 endif()
 
-# ------------- TARGETS -------------
+target_sources(${SFG_EDITOR_TARGET} PRIVATE
+    ${SOURCES}
+    ${HEADERS}
+    ${PLATFORM_HEADERS}
+    ${PLATFORM_SOURCES}
+)
 
-add_subdirectory(stakeforge_core)
-add_subdirectory(stakeforge_editor)
-add_subdirectory(stakeforge_game)
-add_subdirectory(stakeforge_tests)
+if(APPLE)
+        set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES MACOSX_BUNDLE TRUE)
+endif()
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")
-set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT stakeforge_editor)
+if(MSVC)
+        set_property(TARGET ${SFG_EDITOR_TARGET} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/)
+endif()
+    
+target_include_directories(${SFG_EDITOR_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${SFG_EDITOR_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core/src)
+target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_core)
+
+include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
+sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})
+set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
+sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
+sfg_group_generated(${SFG_EDITOR_TARGET})

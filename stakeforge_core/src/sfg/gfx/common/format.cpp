@@ -1,0 +1,218 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "format.hpp"
+#include "io/assert.hpp"
+
+#ifdef SFG_JSON_SERIALIZE
+#include "data/string.hpp"
+#include <vendor/nhlohmann/json.hpp>
+using json = nlohmann::json;
+#endif
+
+namespace sfg
+{
+	u8 format_get_bpp(format fmt)
+	{
+		switch (fmt)
+		{
+		case format::r8_unorm:
+			return 1;
+		case format::r8g8b8a8_unorm:
+		case format::r8g8b8a8_srgb:
+			return 4;
+		case format::d16_unorm:
+			return 2;
+		case format::d32_sfloat:
+			return 4;
+		case format::r16g16b16a16_sfloat:
+			return 8;
+		case format::r10g0b10a2_unorm:
+			return 4;
+		case format::r8g8_unorm:
+			return 2;
+		case format::r32_uint:
+			return 4;
+		default:
+			break;
+		}
+
+		SFG_ASSERT(false);
+		return 0;
+	}
+
+	u8 format_get_channels(format fmt)
+	{
+		switch (fmt)
+		{
+		case format::r8_unorm:
+			return 1;
+		case format::r8g8b8a8_unorm:
+		case format::r8g8b8a8_srgb:
+			return 4;
+		case format::r16g16b16a16_sfloat:
+			return 4;
+		default:
+			break;
+		}
+		SFG_ASSERT(false);
+		return 0;
+	}
+
+	bool format_is_linear(format fmt)
+	{
+		switch (fmt)
+		{
+		case format::b8g8r8a8_srgb:
+		case format::bc3_block_srgb:
+		case format::r8g8b8a8_srgb:
+			return false;
+		default:
+			return true;
+		}
+
+		SFG_ASSERT(false);
+		return true;
+	}
+
+#ifdef SFG_JSON_SERIALIZE
+	void to_json(nlohmann::json& j, const format& f)
+	{
+		switch (f)
+		{
+		case format::r8_unorm:
+			j = "r8";
+			return;
+		case format::r8g8b8a8_srgb:
+			j = "r8g8b8a8_srgb";
+			return;
+		case format::r8g8b8a8_unorm:
+			j = "r8g8b8a8_unorm";
+			return;
+		case format::r32g32_sfloat:
+			j = "r32g32_sfloat";
+			return;
+		case format::r32g32b32_sfloat:
+			j = "r32g32b32_sfloat";
+			return;
+		case format::r16g16b16a16_sfloat:
+			j = "r16g16b16a16_sfloat";
+			return;
+		case format::r32g32b32a32_sfloat:
+			j = "r32g32b32a32_sfloat";
+			return;
+		case format::r32g32b32a32_uint:
+			j = "r32g32b32a32_uint";
+			return;
+		case format::d16_unorm:
+			j = "d16_unorm";
+			return;
+		case format::d32_sfloat:
+			j = "d32_sfloat";
+			return;
+		case format::r10g0b10a2_unorm:
+			j = "r10g10b10a2_unorm";
+			return;
+		case format::r32_sfloat:
+			j = "r32_sfloat";
+			return;
+		}
+
+		j = "undefined";
+	}
+
+	void from_json(const nlohmann::json& j, format& f)
+	{
+		const string_t str = j.get<string_t>();
+
+		if (str.compare("r8") == 0)
+		{
+			f = format::r8_unorm;
+			return;
+		}
+		if (str.compare("r8g8b8a8_srgb") == 0)
+		{
+			f = format::r8g8b8a8_srgb;
+			return;
+		}
+		if (str.compare("r8g8b8a8_unorm") == 0)
+		{
+			f = format::r8g8b8a8_unorm;
+			return;
+		}
+		if (str.compare("r32g32_sfloat") == 0)
+		{
+			f = format::r32g32_sfloat;
+			return;
+		}
+		if (str.compare("r32g32b32_sfloat") == 0)
+		{
+			f = format::r32g32b32_sfloat;
+			return;
+		}
+		if (str.compare("r32g32b32a32_sfloat") == 0)
+		{
+			f = format::r32g32b32a32_sfloat;
+			return;
+		}
+		if (str.compare("r16g16b16a16_sfloat") == 0)
+		{
+			f = format::r16g16b16a16_sfloat;
+			return;
+		}
+		if (str.compare("r32g32b32a32_uint") == 0)
+		{
+			f = format::r32g32b32a32_uint;
+			return;
+		}
+		if (str.compare("d32_sfloat") == 0)
+		{
+			f = format::d32_sfloat;
+			return;
+		}
+
+		if (str.compare("d16_unorm") == 0)
+		{
+			f = format::d16_unorm;
+			return;
+		}
+
+		if (str.compare("r10g0b10a2_unorm") == 0)
+		{
+			f = format::r10g0b10a2_unorm;
+			return;
+		}
+
+		if (str.compare("r32_sfloat") == 0)
+		{
+			f = format::r32_sfloat;
+			return;
+		}
+
+		f = format::undefined;
+	}
+#endif
+}

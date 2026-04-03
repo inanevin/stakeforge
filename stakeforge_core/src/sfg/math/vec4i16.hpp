@@ -1,0 +1,63 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#pragma once
+#include "common/size_definitions.hpp"
+
+namespace sfg
+{
+	class ostream_t;
+	class istream_t;
+
+	class vec4i16_t
+	{
+	public:
+		vec4i16_t(){};
+		vec4i16_t(i16 _x, i16 _y, i16 _z, i16 _w) : x(_x), y(_y), z(_z), w(_w){};
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
+
+		static vec4i16_t zero;
+		static vec4i16_t one;
+
+		vec4i16_t operator-(const vec4i16_t& other) const
+		{
+			return vec4i16_t(x - other.x, y - other.y, z - other.z, w - other.w);
+		}
+
+		vec4i16_t operator+(const vec4i16_t& other) const
+		{
+			return vec4i16_t(x + other.x, y + other.y, z + other.z, w + other.w);
+		}
+
+		i16 x = 0;
+		i16 y = 0;
+		i16 z = 0;
+		i16 w = 0;
+	};
+
+}
