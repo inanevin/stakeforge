@@ -33,8 +33,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	vec2u16_t vec2u16_t::zero = vec2u16_t(0, 0);
-	vec2u16_t vec2u16_t::one  = vec2u16_t(1, 1);
+
+	vec2u16_t vec2u16_t::zero = {};
+	vec2u16_t vec2u16_t::one  = {.x = 1, .y = 1};
 
 	void vec2u16_t::serialize(ostream_t& out) const
 	{

@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "gfx/common/gfx_constants.hpp"
-#include "data/vector.hpp"
+#include "memory/dynamic_pool_allocator.hpp"
 #include "surface.hpp"
 
 namespace sfg
@@ -48,6 +48,7 @@ namespace sfg
 
 		surface_id_t create_surface(const vec2u16_t& initial_size);
 		void		 destroy_surface(surface_id_t id);
+		void		 resize_surface(surface_id_t id, const vec2u16_t& size);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -64,9 +65,8 @@ namespace sfg
 		}
 
 	private:
-		vector_t<surface_t> _surfaces;
-		vector_t<u16>		_surface_free_list;
-		gfx_id				_global_bind_layout			= NULL_GFX_ID;
-		gfx_id				_global_compute_bind_layout = NULL_GFX_ID;
+		dynamic_pool_allocator_t<surface_t, surface_id_t> _surfaces;
+		gfx_id											  _global_bind_layout		  = NULL_GFX_ID;
+		gfx_id											  _global_compute_bind_layout = NULL_GFX_ID;
 	};
 }

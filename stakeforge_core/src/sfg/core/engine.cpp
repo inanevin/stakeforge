@@ -31,9 +31,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void engine_t::init()
+	void engine_t::init(const engine_config_t& config)
 	{
-		const double fixed_framerate_ns = g_engine_config.fixed_framerate_ns;
+		_config							= config;
+		const double fixed_framerate_ns = _config.fixed_framerate_ns;
 
 		if (!_renderer.init())
 			return;
@@ -60,10 +61,10 @@ namespace sfg
 
 	void engine_t::tick()
 	{
-		const double fixed_framerate_ns_d	   = g_engine_config.fixed_framerate_ns;
+		const double fixed_framerate_ns_d	   = _config.fixed_framerate_ns;
 		const i64	 fixed_framerate_ns		   = static_cast<i64>(fixed_framerate_ns_d);
 		const f32	 fixed_framerate_s		   = static_cast<f32>(fixed_framerate_ns_d / 1'000'000'000.0);
-		const u32	 fixed_framerate_max_ticks = g_engine_config.fixed_framerate_max_ticks;
+		const u32	 fixed_framerate_max_ticks = _config.fixed_framerate_max_ticks;
 
 		const i64 current_time = time_t::get_cpu_microseconds();
 		const i64 delta_micro  = current_time - _previous_time;

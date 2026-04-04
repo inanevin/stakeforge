@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/atomic.hpp"
 #include "data/vector.hpp"
 #include "gfx/renderer.hpp"
+#include "engine_config.hpp"
 
 #include <thread>
 
@@ -44,7 +45,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init();
+		void init(const engine_config_t& config);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -63,6 +64,7 @@ namespace sfg
 	private:
 		std::thread		   _render_thread;
 		renderer_t		   _renderer;
+		engine_config_t	   _config;
 		atomic_t<bool>	   _is_init				 = false;
 		atomic_t<bool>	   _render_thread_active = false;
 		vector_t<world_t*> _worlds;

@@ -74,4 +74,23 @@ namespace sfg
 		_global_bind_layout			= NULL_GFX_ID;
 		_global_compute_bind_layout = NULL_GFX_ID;
 	}
+
+	surface_id_t renderer_t::create_surface(const vec2u16_t& initial_size)
+	{
+		const surface_id_t id = _surfaces.add();
+		surface_t&		   sf = _surfaces.get(id);
+		sf.size				  = initial_size;
+		return id;
+	}
+
+	void renderer_t::destroy_surface(surface_id_t id)
+	{
+		_surfaces.remove(id);
+	}
+
+	void renderer_t::resize_surface(surface_id_t id, const vec2u16_t& size)
+	{
+		surface_t& sf = _surfaces.get(id);
+		sf.size		  = size;
+	}
 }

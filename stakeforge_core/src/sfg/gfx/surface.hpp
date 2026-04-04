@@ -31,11 +31,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	typedef u8 surface_id_t;
+	typedef u32 surface_id_t;
 
 	struct surface_t
 	{
-		vec2u16_t	 size = vec2u16_t(0, 0);
-		surface_id_t id	  = 0;
+		vec2u16_t	 size;
+		surface_id_t id;
 	};
 }

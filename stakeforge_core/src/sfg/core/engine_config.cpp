@@ -28,5 +28,4 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	engine_config_t g_engine_config;
 }

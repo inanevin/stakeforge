@@ -120,6 +120,55 @@ namespace sfg
 
 				return context.failures == 0;
 			}
+
+			bool iterators_match_empty_range()
+			{
+				test_context_t context;
+				context.suite	 = "dynamic_pool_allocator";
+				context.name	 = "iterators_match_empty_range";
+				context.failures = 0;
+
+				const allocator_t allocator;
+
+				SFG_TEST_EXPECT(context, allocator.begin() == allocator.end());
+
+				return context.failures == 0;
+			}
+
+			bool iterator_walks_elements_in_order()
+			{
+				test_context_t context;
+				context.suite	 = "dynamic_pool_allocator";
+				context.name	 = "iterator_walks_elements_in_order";
+				context.failures = 0;
+
+				allocator_t allocator;
+
+				const u32 id0	   = allocator.add();
+				const u32 id1	   = allocator.add();
+				const u32 id2	   = allocator.add();
+				allocator.get(id0) = 5;
+				allocator.get(id1) = 7;
+				allocator.get(id2) = 9;
+
+				allocator_t::iterator_t it = allocator.begin();
+				SFG_TEST_EXPECT(context, it != allocator.end());
+				SFG_TEST_EXPECT(context, *it == 5);
+				SFG_TEST_EXPECT(context, it.operator->() == &allocator.get(id0));
+
+				++it;
+				SFG_TEST_EXPECT(context, it != allocator.end());
+				SFG_TEST_EXPECT(context, *it == 7);
+
+				it++;
+				SFG_TEST_EXPECT(context, it != allocator.end());
+				SFG_TEST_EXPECT(context, *it == 9);
+
+				++it;
+				SFG_TEST_EXPECT(context, it == allocator.end());
+
+				return context.failures == 0;
+			}
 		}
 
 		void register_dynamic_pool_allocator_tests()
@@ -128,6 +177,8 @@ namespace sfg
 			register_test("dynamic_pool_allocator", "remove_reuses_free_index", &remove_reuses_free_index);
 			register_test("dynamic_pool_allocator", "reserve_and_clear_update_allocator_state", &reserve_and_clear_update_allocator_state);
 			register_test("dynamic_pool_allocator", "assignment_transfers_allocator_ownership", &assignment_transfers_allocator_ownership);
+			register_test("dynamic_pool_allocator", "iterators_match_empty_range", &iterators_match_empty_range);
+			register_test("dynamic_pool_allocator", "iterator_walks_elements_in_order", &iterator_walks_elements_in_order);
 		}
 	}
 }

@@ -36,5 +36,4 @@ namespace sfg
 		u32	   fixed_framerate_max_ticks = 4;
 	};
 
-	extern engine_config_t g_engine_config;
 }

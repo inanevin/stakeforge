@@ -39,7 +39,9 @@ namespace sfg
 	{
 
 	private:
-		static_assert(std::is_trivial_v<T> && std::is_integral_v<SIZE_TYPE> && std::is_unsigned_v<SIZE_TYPE>);
+		static_assert(std::is_trivially_copyable_v<T>);
+		static_assert(std::is_integral_v<SIZE_TYPE>);
+		static_assert(std::is_unsigned_v<SIZE_TYPE>);
 
 	public:
 		dynamic_pool_allocator_t()										= default;
@@ -158,6 +160,69 @@ namespace sfg
 			_free_list_head	  = 0;
 			_data			  = nullptr;
 			_free_list		  = nullptr;
+		}
+
+		// -----------------------------------------------------------------------------
+		// iterator
+		// -----------------------------------------------------------------------------
+
+		struct iterator_t
+		{
+			using reference = T&;
+			using pointer	= T*;
+
+			iterator_t(pointer ptr, SIZE_TYPE begin, SIZE_TYPE end) : _ptr(ptr), _current(begin), _end(end)
+			{
+			}
+
+			reference operator*() const
+			{
+				return *(_ptr + _current);
+			}
+
+			pointer operator->()
+			{
+				return (_ptr + _current);
+			}
+
+			iterator_t& operator++()
+			{
+				if (_current != _end)
+					_current++;
+
+				return *this;
+			}
+
+			iterator_t operator++(int)
+			{
+				iterator_t tmp = *this;
+				++(*this);
+				return tmp;
+			}
+
+			friend bool operator==(const iterator_t& a, const iterator_t& b)
+			{
+				return a._current == b._current;
+			}
+
+			friend bool operator!=(const iterator_t& a, const iterator_t& b)
+			{
+				return a._current != b._current;
+			}
+
+			pointer	  _ptr	   = nullptr;
+			SIZE_TYPE _current = 0;
+			SIZE_TYPE _end	   = 0;
+		};
+
+		iterator_t begin() const
+		{
+			return iterator_t(_data, 0, _size);
+		}
+
+		iterator_t end() const
+		{
+			return iterator_t(_data, _size, _size);
 		}
 
 	private:

@@ -40,9 +40,6 @@ namespace sfg
 	struct vec2u16_t
 	{
 	public:
-		vec2u16_t(){};
-		vec2u16_t(u32 _x, u32 _y) : x(_x), y(_y){};
-
 		static vec2u16_t zero;
 		static vec2u16_t one;
 
@@ -54,12 +51,8 @@ namespace sfg
 			return x == other.x && y == other.y;
 		}
 
-		inline vec2u16_t operator/(u16 val) const
-		{
-			return vec2u16_t(x / val, y / val);
-		}
-		u16 x = 0;
-		u16 y = 0;
+		u16 x;
+		u16 y;
 	};
 
 #ifdef SFG_JSON_SERIALIZE
