@@ -31,17 +31,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 
-	class vec3h_t
+	struct vec3h_t
 	{
-	public:
-		half x = 0.0f;
-		half y = 0.0f;
-		half z = 0.0f;
-
-		vec3h_t() = default;
-		vec3h_t(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
-		{
-		}
+		half x;
+		half y;
+		half z;
 
 		static const vec3h_t zero;
 		static const vec3h_t one;

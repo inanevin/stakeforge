@@ -32,80 +32,22 @@
 
 # ------------- COMPILE DEFINITIONS -------------
 
-add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=1>)
-add_compile_definitions($<$<CONFIG:Debug>:SFG_DEBUG>)
-add_compile_definitions($<$<CONFIG:Debug>:SFG_ENABLE_MEMORY_TRACER>)
-add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_SERIALIZE_SHADERS_PDB>)
-add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_USE_DEBUG_LAYERS>)
-add_compile_definitions($<$<CONFIG:Debug>:SFG_USE_DEBUG_CONTROLLER>)
-add_compile_definitions($<$<CONFIG:Debug>:SFG_DUMP_LOG_TRACE>)
-add_compile_definitions($<$<CONFIG:Debug>:USE_PIX>)
-add_compile_definitions($<$<CONFIG:Debug>:JPH_DEBUG_RENDERER>)
-
-add_compile_definitions($<$<CONFIG:Release>:_ITERATOR_DEBUG_LEVEL=0>)
-add_compile_definitions($<$<CONFIG:Release>:NDEBUG>)
-add_compile_definitions($<$<CONFIG:Release>:SFG_DUMP_LOG_TRACE>)
-add_compile_definitions($<$<CONFIG:Release>:TRACY_ENABLE>)
-
-add_definitions(-DSFG_CONFIGURATION="$<CONFIGURATION>")
-add_definitions(-DSFG_ROOT_DIRECTORY="${CMAKE_SOURCE_DIR}/")
-set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:ProgramDatabase>")
-
-if(WIN32)
-    add_compile_definitions(SFG_PLATFORM_WINDOWS=1)
-endif()
-
-if(APPLE)
-    add_compile_definitions(SFG_PLATFORM_OSX=1)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_definitions(SFG_COMPILER_CLANG=1)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    add_compile_definitions(SFG_COMPILER_GNU=1)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    add_compile_definitions(SFG_COMPILER_MSVC=1)
-else()
-    add_compile_definitions(SFG_COMPILER_UNKOWN=1)
-endif()
-
-add_compile_definitions(SFG_MAJOR=1)
-add_compile_definitions(SFG_MINOR=1)
-add_compile_definitions(SFG_BUILD="${SFG_BUILD}")
-
-# ------------- LANGUAGE -------------
-
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED YES)
-set(CMAKE_CXX_EXTENSIONS NO)
-set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++23")
-set(CMAKE_SUPPRESS_REGENERATION true)
-if(MSVC)
-    add_definitions("/MP")
-    add_compile_options(/GR-)
-    add_compile_definitions(_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS)
-endif()
+include(cmake/compile_definitions.cmake)
 
 # ------------- DEPS -------------
 
-set(CPP_RTTI_ENABLED OFF CACHE BOOL "" FORCE)
-set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
-set(OVERRIDE_CXX_FLAGS OFF CACHE BOOL "" FORCE)
-set(OVERRIDE_MSVCCRT OFF CACHE BOOL "" FORCE)
-set(GENERATE_DEBUG_SYMBOLS ON CACHE BOOL "" FORCE)
-set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
 add_subdirectory(deps/JoltPhysics-5.4.0/Build)
-set_property(TARGET Jolt PROPERTY FOLDER stakeforge/dependencies)
-
-if(MSVC)
-    target_compile_options(Jolt PRIVATE /wd4865 /wd5045)
-endif()
+set_target_properties(Jolt PROPERTIES FOLDER "stakeforge/dependencies")
 
 add_subdirectory(deps/lz4-1.9.4)
 set_target_properties(lz4 PROPERTIES FOLDER "stakeforge/dependencies")
 
 add_subdirectory(deps/tracy-0.13.0)
-set_property(TARGET TracyClient PROPERTY FOLDER stakeforge/dependencies)
+set_target_properties(TracyClient PROPERTIES FOLDER "stakeforge/dependencies")
+
+if(MSVC)
+    target_compile_options(Jolt PRIVATE /wd4865 /wd5045)
+endif()
 
 # ------------- SOURCES -------------
 
@@ -230,6 +172,8 @@ if(WIN32)
         PUBLIC d3d12.lib
         PUBLIC dxgi.lib
         PUBLIC dxguid.lib
+        PUBLIC Shcore.lib
+        PUBLIC Winmm.lib
     )
 endif()
 

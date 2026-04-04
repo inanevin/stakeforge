@@ -39,17 +39,11 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	class vec3f_t
+	struct vec3f_t
 	{
-	public:
-		f32 x = 0.0f;
-		f32 y = 0.0f;
-		f32 z = 0.0f;
-
-		vec3f_t() = default;
-		vec3f_t(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z)
-		{
-		}
+		f32 x;
+		f32 y;
+		f32 z;
 
 		static const vec3f_t zero;
 		static const vec3f_t one;
@@ -82,7 +76,7 @@ namespace sfg
 			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
-				return vec3f_t(x / mag, y / mag, z / mag);
+				return {x / mag, y / mag, z / mag};
 			}
 			return vec3f_t::zero;
 		}
@@ -102,31 +96,31 @@ namespace sfg
 
 		inline vec3f_t operator+(const vec3f_t& other) const
 		{
-			return vec3f_t(x + other.x, y + other.y, z + other.z);
+			return {x + other.x, y + other.y, z + other.z};
 		}
 		inline vec3f_t operator-(const vec3f_t& other) const
 		{
-			return vec3f_t(x - other.x, y - other.y, z - other.z);
+			return {x - other.x, y - other.y, z - other.z};
 		}
 		inline vec3f_t operator*(f32 scalar) const
 		{
-			return vec3f_t(x * scalar, y * scalar, z * scalar);
+			return {x * scalar, y * scalar, z * scalar};
 		}
 		inline vec3f_t operator/(f32 scalar) const
 		{
 			if (scalar == 0.0f)
 				return vec3f_t::zero;
-			return vec3f_t(x / scalar, y / scalar, z / scalar);
+			return {x / scalar, y / scalar, z / scalar};
 		}
 
 		inline vec3f_t operator*(const vec3f_t& other) const
 		{
-			return vec3f_t(x * other.x, y * other.y, z * other.z);
+			return {x * other.x, y * other.y, z * other.z};
 		}
 
 		inline vec3f_t operator-() const
 		{
-			return vec3f_t(-x, -y, -z);
+			return {-x, -y, -z};
 		}
 
 		inline vec3f_t& operator+=(const vec3f_t& other)

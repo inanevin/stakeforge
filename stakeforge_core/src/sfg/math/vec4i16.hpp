@@ -32,12 +32,8 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	class vec4i16_t
+	struct vec4i16_t
 	{
-	public:
-		vec4i16_t(){};
-		vec4i16_t(i16 _x, i16 _y, i16 _z, i16 _w) : x(_x), y(_y), z(_z), w(_w){};
-
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 
@@ -46,18 +42,18 @@ namespace sfg
 
 		vec4i16_t operator-(const vec4i16_t& other) const
 		{
-			return vec4i16_t(x - other.x, y - other.y, z - other.z, w - other.w);
+			return {x - other.x, y - other.y, z - other.z, w - other.w};
 		}
 
 		vec4i16_t operator+(const vec4i16_t& other) const
 		{
-			return vec4i16_t(x + other.x, y + other.y, z + other.z, w + other.w);
+			return {x + other.x, y + other.y, z + other.z, w + other.w};
 		}
 
-		i16 x = 0;
-		i16 y = 0;
-		i16 z = 0;
-		i16 w = 0;
+		i16 x;
+		i16 y;
+		i16 z;
+		i16 w;
 	};
 
 }

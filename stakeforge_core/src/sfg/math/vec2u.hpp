@@ -31,18 +31,13 @@ namespace sfg
 {
 	class vec2i_t;
 
-	class vec2u_t
+	struct vec2u_t
 	{
-	public:
-		vec2u_t(){};
-		vec2u_t(u32 _x, u32 _y) : x(_x), y(_y){};
-		vec2u_t(const vec2i_t& v);
-
 		static vec2u_t zero;
 		static vec2u_t one;
 
-		u32 x = 0;
-		u32 y = 0;
+		u32 x;
+		u32 y;
 	};
 
 }

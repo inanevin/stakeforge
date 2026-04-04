@@ -43,15 +43,10 @@ namespace sfg
 
 	struct vec2u16_t;
 
-	class vec2f_t
+	struct vec2f_t
 	{
-	public:
-		vec2f_t(){};
-		vec2f_t(f32 _x, f32 _y) : x(_x), y(_y){};
-		vec2f_t(const vec2u16_t& v);
-
-		f32 x = 0.0f;
-		f32 y = 0.0f;
+		f32 x;
+		f32 y;
 
 		static vec2f_t zero;
 		static vec2f_t one;
@@ -76,24 +71,24 @@ namespace sfg
 
 		inline vec2f_t operator+(const vec2f_t& other) const
 		{
-			return vec2f_t(x + other.x, y + other.y);
+			return {x + other.x, y + other.y};
 		}
 		inline vec2f_t operator-(const vec2f_t& other) const
 		{
-			return vec2f_t(x - other.x, y - other.y);
+			return {x - other.x, y - other.y};
 		}
 		inline vec2f_t operator*(f32 scalar) const
 		{
-			return vec2f_t(x * scalar, y * scalar);
+			return {x * scalar, y * scalar};
 		}
 
 		inline vec2f_t operator/(f32 scalar) const
 		{
 			if (scalar == 0.0f)
 			{
-				return vec2f_t(std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity());
+				return {std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity()};
 			}
-			return vec2f_t(x / scalar, y / scalar);
+			return {x / scalar, y / scalar};
 		}
 
 		inline vec2f_t& operator+=(const vec2f_t& other)

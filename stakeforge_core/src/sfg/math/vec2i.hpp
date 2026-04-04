@@ -31,13 +31,8 @@ namespace sfg
 {
 	class vec2u_t;
 
-	class vec2i_t
+	struct vec2i_t
 	{
-	public:
-		vec2i_t(){};
-		vec2i_t(i32 _x, i32 _y) : x(_x), y(_y){};
-		vec2i_t(const vec2u_t& v);
-
 		static vec2i_t zero;
 		static vec2i_t one;
 
@@ -45,16 +40,16 @@ namespace sfg
 
 		vec2i_t operator-(const vec2i_t& other) const
 		{
-			return vec2i_t(x - other.x, y - other.y);
+			return {x - other.x, y - other.y};
 		}
 
 		vec2i_t operator+(const vec2i_t& other) const
 		{
-			return vec2i_t(x + other.x, y + other.y);
+			return {x + other.x, y + other.y};
 		}
 
-		i32 x = 0;
-		i32 y = 0;
+		i32 x;
+		i32 y;
 	};
 
 }

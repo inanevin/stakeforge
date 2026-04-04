@@ -36,40 +36,40 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	const vec3f_t vec3f_t::zero(0.0f, 0.0f, 0.0f);
-	const vec3f_t vec3f_t::one(1.0f, 1.0f, 1.0f);
-	const vec3f_t vec3f_t::up(0.0f, 1.0f, 0.0f);
-	const vec3f_t vec3f_t::forward(0.0f, 0.0f, -1.0f);
-	const vec3f_t vec3f_t::right(1.0f, 0.0f, 0.0f);
+	const vec3f_t vec3f_t::zero	   = {0.0f, 0.0f, 0.0f};
+	const vec3f_t vec3f_t::one	   = {1.0f, 1.0f, 1.0f};
+	const vec3f_t vec3f_t::up	   = {0.0f, 1.0f, 0.0f};
+	const vec3f_t vec3f_t::forward = {0.0f, 0.0f, -1.0f};
+	const vec3f_t vec3f_t::right   = {1.0f, 0.0f, 0.0f};
 
 	vec3f_t vec3f_t::clamp(const vec3f_t& vector_t, const vec3f_t& min_vec, const vec3f_t& max_vec)
 	{
-		return vec3f_t(math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z));
+		return {math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z)};
 	}
 
 	vec3f_t vec3f_t::cross(const vec3f_t& a, const vec3f_t& b)
 	{
-		return vec3f_t(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+		return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 	}
 
 	vec3f_t vec3f_t::abs(const vec3f_t& vector_t)
 	{
-		return vec3f_t(math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z));
+		return {math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z)};
 	}
 
 	vec3f_t vec3f_t::min(const vec3f_t& a, const vec3f_t& b)
 	{
-		return vec3f_t(math::min(a.x, b.x), math::min(a.y, b.y), math::min(a.z, b.z));
+		return {math::min(a.x, b.x), math::min(a.y, b.y), math::min(a.z, b.z)};
 	}
 
 	vec3f_t vec3f_t::max(const vec3f_t& a, const vec3f_t& b)
 	{
-		return vec3f_t(math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z));
+		return {math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z)};
 	}
 
 	vec3f_t vec3f_t::lerp(const vec3f_t& a, const vec3f_t& b, f32 t)
 	{
-		return vec3f_t(easing::lerp(a.x, b.x, t), easing::lerp(a.y, b.y, t), easing::lerp(a.z, b.z, t));
+		return {easing::lerp(a.x, b.x, t), easing::lerp(a.y, b.y, t), easing::lerp(a.z, b.z, t)};
 	}
 
 	f32 vec3f_t::dot(const vec3f_t& a, const vec3f_t& b)

@@ -29,12 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	vec2u_t vec2u_t::zero = vec2u_t(0, 0);
-	vec2u_t vec2u_t::one  = vec2u_t(1, 1);
-
-	vec2u_t::vec2u_t(const vec2i_t& v)
-	{
-		x = static_cast<u32>(v.x);
-		x = static_cast<u32>(v.y);
-	}
+	vec2u_t vec2u_t::zero = {0, 0};
+	vec2u_t vec2u_t::one  = {1, 1};
 }

@@ -30,18 +30,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	vec2i_t vec2i_t::zero = vec2i_t(0, 0);
-	vec2i_t vec2i_t::one  = vec2i_t(1, 1);
-
-	vec2i_t::vec2i_t(const vec2u_t& v)
-	{
-		x = static_cast<i32>(v.x);
-		y = static_cast<i32>(v.y);
-	}
+	vec2i_t vec2i_t::zero = {0, 0};
+	vec2i_t vec2i_t::one  = {1, 1};
 
 	vec2i_t vec2i_t::clamp(const vec2i_t& v, const vec2i_t& min, const vec2i_t& max)
 	{
-		return vec2i_t(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
+		return {math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y)};
 	}
 
 }

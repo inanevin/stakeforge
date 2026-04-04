@@ -28,10 +28,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	const vec3h_t vec3h_t::zero(0.0f, 0.0f, 0.0f);
-	const vec3h_t vec3h_t::one(1.0f, 1.0f, 1.0f);
-	const vec3h_t vec3h_t::up(0.0f, 1.0f, 0.0f);
-	const vec3h_t vec3h_t::forward(0.0f, 0.0f, -1.0f);
-	const vec3h_t vec3h_t::right(1.0f, 0.0f, 0.0f);
+	const vec3h_t vec3h_t::zero	   = {0.0f, 0.0f, 0.0f};
+	const vec3h_t vec3h_t::one	   = {1.0f, 1.0f, 1.0f};
+	const vec3h_t vec3h_t::up	   = {0.0f, 1.0f, 0.0f};
+	const vec3h_t vec3h_t::forward = {0.0f, 0.0f, -1.0f};
+	const vec3h_t vec3h_t::right   = {1.0f, 0.0f, 0.0f};
 
 }

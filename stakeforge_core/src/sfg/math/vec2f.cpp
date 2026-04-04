@@ -37,18 +37,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	vec2f_t vec2f_t::zero = vec2f_t(0.f, 0.f);
-	vec2f_t vec2f_t::one  = vec2f_t(1.f, 1.f);
-
-	vec2f_t::vec2f_t(const vec2u16_t& v)
-	{
-		x = static_cast<f32>(v.x);
-		y = static_cast<f32>(v.y);
-	}
+	vec2f_t vec2f_t::zero = {0.f, 0.f};
+	vec2f_t vec2f_t::one  = {1.f, 1.f};
 
 	vec2f_t vec2f_t::clamp(const vec2f_t& vector_t, const vec2f_t& min_vec, const vec2f_t& max_vec)
 	{
-		return vec2f_t(math::max(min_vec.x, math::min(vector_t.x, max_vec.x)), math::max(min_vec.y, math::min(vector_t.y, max_vec.y)));
+		return {math::max(min_vec.x, math::min(vector_t.x, max_vec.x)), math::max(min_vec.y, math::min(vector_t.y, max_vec.y))};
 	}
 
 	vec2f_t vec2f_t::clamp_magnitude(const vec2f_t& vector_t, f32 max_length)
@@ -63,17 +57,17 @@ namespace sfg
 
 	vec2f_t vec2f_t::abs(const vec2f_t& vector_t)
 	{
-		return vec2f_t(math::abs(vector_t.x), math::abs(vector_t.y));
+		return {math::abs(vector_t.x), math::abs(vector_t.y)};
 	}
 
 	vec2f_t vec2f_t::min(const vec2f_t& a, const vec2f_t& b)
 	{
-		return vec2f_t(math::min(a.x, b.x), math::min(a.y, b.y));
+		return {math::min(a.x, b.x), math::min(a.y, b.y)};
 	}
 
 	vec2f_t vec2f_t::max(const vec2f_t& a, const vec2f_t& b)
 	{
-		return vec2f_t(math::max(a.x, b.x), math::max(a.y, b.y));
+		return {math::max(a.x, b.x), math::max(a.y, b.y)};
 	}
 
 	f32 vec2f_t::dot(const vec2f_t& a, const vec2f_t& b)
@@ -105,7 +99,7 @@ namespace sfg
 		f32 mag = magnitude();
 		if (mag > MATH_EPS)
 		{
-			return vec2f_t(x / mag, y / mag);
+			return {x / mag, y / mag};
 		}
 		return vec2f_t::zero;
 	}

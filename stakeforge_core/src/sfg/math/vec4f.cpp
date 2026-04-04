@@ -34,27 +34,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 namespace sfg
 {
-	const vec4f_t vec4f_t::zero(0.0f, 0.0f, 0.0f, 0.0f);
-	const vec4f_t vec4f_t::one(1.0f, 1.0f, 1.0f, 1.0f);
+	const vec4f_t vec4f_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};
+	const vec4f_t vec4f_t::one	= {1.0f, 1.0f, 1.0f, 1.0f};
 
 	vec4f_t vec4f_t::clamp(const vec4f_t& vector_t, const vec4f_t& min_vec, const vec4f_t& max_vec)
 	{
-		return vec4f_t(math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z), math::clamp(vector_t.w, min_vec.w, max_vec.w));
+		return {math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z), math::clamp(vector_t.w, min_vec.w, max_vec.w)};
 	}
 
 	vec4f_t vec4f_t::abs(const vec4f_t& vector_t)
 	{
-		return vec4f_t(math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z), math::abs(vector_t.w));
+		return {math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z), math::abs(vector_t.w)};
 	}
 
 	vec4f_t vec4f_t::min(const vec4f_t& a, const vec4f_t& b)
 	{
-		return vec4f_t(math::min(a.x, b.x), math::min(a.y, b.y), math::min(a.z, b.z), math::min(a.w, b.w));
+		return {math::min(a.x, b.x), math::min(a.y, b.y), math::min(a.z, b.z), math::min(a.w, b.w)};
 	}
 
 	vec4f_t vec4f_t::max(const vec4f_t& a, const vec4f_t& b)
 	{
-		return vec4f_t(math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z), math::max(a.w, b.w));
+		return {math::max(a.x, b.x), math::max(a.y, b.y), math::max(a.z, b.z), math::max(a.w, b.w)};
 	}
 
 	f32 vec4f_t::dot(const vec4f_t& a, const vec4f_t& b)
@@ -89,16 +89,16 @@ namespace sfg
 		f32 cos_theta = math::cos(angle_rad);
 		f32 sin_theta = math::sin(angle_rad);
 
-		vec4f_t v_xyz = vec4f_t(x, y, z, 0.0f);
-		vec4f_t k_xyz = vec4f_t(unit_axis.x, unit_axis.y, unit_axis.z, 0.0f);
+		vec4f_t v_xyz = {x, y, z, 0.0f};
+		vec4f_t k_xyz = {unit_axis.x, unit_axis.y, unit_axis.z, 0.0f};
 
-		vec4f_t cross_kv = vec4f_t(k_xyz.y * v_xyz.z - k_xyz.z * v_xyz.y, k_xyz.z * v_xyz.x - k_xyz.x * v_xyz.z, k_xyz.x * v_xyz.y - k_xyz.y * v_xyz.x, 0.0f);
+		vec4f_t cross_kv = {k_xyz.y * v_xyz.z - k_xyz.z * v_xyz.y, k_xyz.z * v_xyz.x - k_xyz.x * v_xyz.z, k_xyz.x * v_xyz.y - k_xyz.y * v_xyz.x, 0.0f};
 
 		f32 dot_kv = dot(k_xyz, v_xyz);
 
 		vec4f_t rotated_xyz = (v_xyz * cos_theta) + (cross_kv * sin_theta) + (k_xyz * (dot_kv * (1.0f - cos_theta)));
 
-		return vec4f_t(rotated_xyz.x, rotated_xyz.y, rotated_xyz.z, w);
+		return {rotated_xyz.x, rotated_xyz.y, rotated_xyz.z, w};
 	}
 	f32 vec4f_t::magnitude() const
 	{
@@ -114,7 +114,7 @@ namespace sfg
 	{
 		if (math::abs(scalar) < MATH_EPS)
 			return vec4f_t::zero;
-		return vec4f_t(x / scalar, y / scalar, z / scalar, w / scalar);
+		return {x / scalar, y / scalar, z / scalar, w / scalar};
 	}
 
 	vec4f_t& vec4f_t::operator/=(f32 scalar)

@@ -1,0 +1,62 @@
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++23")
+set(CMAKE_SUPPRESS_REGENERATION true)
+if(MSVC)
+    add_definitions("/MP")
+    add_compile_options(/GR-)
+    add_compile_definitions(_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS)
+endif()
+
+
+
+add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=1>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_DEBUG>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_ENABLE_MEMORY_TRACER>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_SERIALIZE_SHADERS_PDB>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_USE_DEBUG_LAYERS>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_USE_DEBUG_CONTROLLER>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_DUMP_LOG_TRACE>)
+add_compile_definitions($<$<CONFIG:Debug>:USE_PIX>)
+add_compile_definitions($<$<CONFIG:Debug>:JPH_DEBUG_RENDERER>)
+add_compile_definitions($<$<CONFIG:Release>:_ITERATOR_DEBUG_LEVEL=0>)
+add_compile_definitions($<$<CONFIG:Release>:NDEBUG>)
+add_compile_definitions($<$<CONFIG:Release>:SFG_DUMP_LOG_TRACE>)
+add_compile_definitions($<$<CONFIG:Release>:TRACY_ENABLE>)
+
+add_definitions(-DSFG_CONFIGURATION="$<CONFIGURATION>")
+add_definitions(-DSFG_ROOT_DIRECTORY="${CMAKE_SOURCE_DIR}/")
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:ProgramDatabase>")
+
+if(WIN32)
+    add_compile_definitions(SFG_PLATFORM_WINDOWS=1)
+endif()
+
+if(APPLE)
+    add_compile_definitions(SFG_PLATFORM_OSX=1)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_definitions(SFG_COMPILER_CLANG=1)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    add_compile_definitions(SFG_COMPILER_GNU=1)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    add_compile_definitions(SFG_COMPILER_MSVC=1)
+else()
+    add_compile_definitions(SFG_COMPILER_UNKOWN=1)
+endif()
+
+add_compile_definitions(SFG_MAJOR=1)
+add_compile_definitions(SFG_MINOR=1)
+add_compile_definitions(SFG_BUILD="${SFG_BUILD}")
+
+
+set(CPP_RTTI_ENABLED OFF CACHE BOOL "" FORCE)
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
+set(OVERRIDE_CXX_FLAGS OFF CACHE BOOL "" FORCE)
+set(OVERRIDE_MSVCCRT OFF CACHE BOOL "" FORCE)
+set(GENERATE_DEBUG_SYMBOLS ON CACHE BOOL "" FORCE)
+set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
+

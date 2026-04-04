@@ -39,18 +39,12 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	class vec4f_t
+	struct vec4f_t
 	{
-	public:
-		f32 x = 0.0f;
-		f32 y = 0.0f;
-		f32 z = 0.0f;
-		f32 w = 0.0f;
-
-		vec4f_t() = default;
-		vec4f_t(f32 _x, f32 _y, f32 _z, f32 _w) : x(_x), y(_y), z(_z), w(_w)
-		{
-		}
+		f32 x;
+		f32 y;
+		f32 z;
+		f32 w;
 
 		static const vec4f_t zero;
 		static const vec4f_t one;
@@ -81,7 +75,7 @@ namespace sfg
 			f32 mag = magnitude();
 			if (mag > MATH_EPS)
 			{
-				return vec4f_t(x / mag, y / mag, z / mag, w / mag);
+				return {x / mag, y / mag, z / mag, w / mag};
 			}
 			return vec4f_t::zero;
 		}
@@ -104,21 +98,21 @@ namespace sfg
 
 		inline vec4f_t operator+(const vec4f_t& other) const
 		{
-			return vec4f_t(x + other.x, y + other.y, z + other.z, w + other.w);
+			return {x + other.x, y + other.y, z + other.z, w + other.w};
 		}
 		inline vec4f_t operator-(const vec4f_t& other) const
 		{
-			return vec4f_t(x - other.x, y - other.y, z - other.z, w - other.w);
+			return {x - other.x, y - other.y, z - other.z, w - other.w};
 		}
 		inline vec4f_t operator*(f32 scalar) const
 		{
-			return vec4f_t(x * scalar, y * scalar, z * scalar, w * scalar);
+			return {x * scalar, y * scalar, z * scalar, w * scalar};
 		}
 		vec4f_t operator/(f32 scalar) const;
 
 		inline vec4f_t operator-() const
 		{
-			return vec4f_t(-x, -y, -z, -w);
+			return {-x, -y, -z, -w};
 		}
 
 		inline vec4f_t& operator+=(const vec4f_t& other)

@@ -37,14 +37,10 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	class vec2h_t
+	struct vec2h_t
 	{
-	public:
-		vec2h_t(){};
-		vec2h_t(f32 _x, f32 _y) : x(_x), y(_y){};
-
-		half x = 0.0f;
-		half y = 0.0f;
+		half x;
+		half y;
 
 		static vec2h_t zero;
 		static vec2h_t one;

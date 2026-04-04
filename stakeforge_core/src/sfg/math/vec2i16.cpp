@@ -29,12 +29,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	vec2i16_t vec2i16_t::zero = vec2i16_t(0, 0);
-	vec2i16_t vec2i16_t::one  = vec2i16_t(1, 1);
+	vec2i16_t vec2i16_t::zero = {0, 0};
+	vec2i16_t vec2i16_t::one  = {1, 1};
 
 	vec2i16_t vec2i16_t::clamp(const vec2i16_t& v, const vec2i16_t& min, const vec2i16_t& max)
 	{
-		return vec2i16_t(math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y));
+		return {math::clamp(v.x, min.x, max.x), math::clamp(v.y, min.y, max.y)};
 	}
 
 }

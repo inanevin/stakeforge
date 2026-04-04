@@ -32,22 +32,18 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	class vec4u16_t
+	struct vec4u16_t
 	{
-	public:
-		vec4u16_t(){};
-		vec4u16_t(u16 _x, u16 _y, u16 _z, u16 _w) : x(_x), y(_y), z(_z), w(_w){};
-
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 
 		static vec4u16_t zero;
 		static vec4u16_t one;
 
-		u16 x = 0;
-		u16 y = 0;
-		u16 z = 0;
-		u16 w = 0;
+		u16 x;
+		u16 y;
+		u16 z;
+		u16 w;
 	};
 
 }

@@ -39,6 +39,8 @@ namespace sfg
 		if (!_renderer.init())
 			return;
 
+		time_t::init();
+
 		_previous_time	= time_t::get_cpu_microseconds();
 		_accumulator_ns = static_cast<i64>(fixed_framerate_ns);
 	}

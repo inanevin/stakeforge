@@ -35,8 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dwmapi.h>
 #include <shellapi.h>
 #include <string>
-#pragma comment(lib, "dwmapi.lib")
-#pragma comment(lib, "Shcore.lib")
 
 namespace sfg
 {

@@ -29,12 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class vec2i16_t
+	struct vec2i16_t
 	{
-	public:
-		vec2i16_t(){};
-		vec2i16_t(i16 _x, i16 _y) : x(_x), y(_y){};
-
 		static vec2i16_t zero;
 		static vec2i16_t one;
 
@@ -42,16 +38,16 @@ namespace sfg
 
 		vec2i16_t operator-(const vec2i16_t& other) const
 		{
-			return vec2i16_t(x - other.x, y - other.y);
+			return {x - other.x, y - other.y};
 		}
 
 		vec2i16_t operator+(const vec2i16_t& other) const
 		{
-			return vec2i16_t(x + other.x, y + other.y);
+			return {x + other.x, y + other.y};
 		}
 
-		i16 x = 0;
-		i16 y = 0;
+		i16 x;
+		i16 y;
 	};
 
 }

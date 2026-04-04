@@ -30,8 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	vec4i_t vec4i_t::zero = vec4i_t(0, 0, 0, 0);
-	vec4i_t vec4i_t::one  = vec4i_t(1, 1, 1, 1);
+	vec4i_t vec4i_t::zero = {0, 0, 0, 0};
+	vec4i_t vec4i_t::one  = {1, 1, 1, 1};
 
 	void vec4i_t::serialize(ostream_t& stream) const
 	{
