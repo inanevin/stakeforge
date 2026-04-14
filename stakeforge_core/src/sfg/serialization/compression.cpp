@@ -42,34 +42,37 @@ namespace sfg
 	{
 		const u32 streamSize	   = static_cast<u32>(stream.get_size());
 		const u8  shouldCompress   = (streamSize < 150000000 && streamSize > 750000) ? 1 : 0;
-		const u32 uncompressedSize = streamSize + sizeof(u8) + sizeof(u32);
-
-		stream << shouldCompress;
-		stream << uncompressedSize;
+		const u32 uncompressedSize = streamSize;
 
 		if (!shouldCompress)
 		{
 			ostream_t compressed;
-			compressed.create(stream.get_size());
+			compressed.create(sizeof(u8) + sizeof(u32) + stream.get_size());
+			compressed << shouldCompress;
+			compressed << uncompressedSize;
 			compressed.write_raw(stream.get_raw(), stream.get_size());
 			return compressed;
 		}
 
-		const int size			= static_cast<int>(stream.get_size());
+		const int size			= static_cast<int>(streamSize);
 		const int compressBound = LZ4_compressBound(size);
 
 		ostream_t compressedStream = ostream_t();
-		compressedStream.create(compressBound);
-		char* dest		   = (char*)compressedStream.get_raw();
-		char* data		   = (char*)stream.get_raw();
+		compressedStream.create(sizeof(u8) + sizeof(u32) + static_cast<size_t>(compressBound));
+		compressedStream << shouldCompress;
+		compressedStream << uncompressedSize;
+
+		char* dest		   = reinterpret_cast<char*>(compressedStream.get_raw() + compressedStream.get_size());
+		char* data		   = reinterpret_cast<char*>(stream.get_raw());
 		int	  bytesWritten = LZ4_compress_default(data, dest, size, compressBound);
 
 		if (bytesWritten == 0)
 		{
 			SFG_ERR("[compression] -> LZ4 compression failed!");
+			return {};
 		}
 
-		compressedStream.shrink(static_cast<size_t>(bytesWritten));
+		compressedStream.shrink(sizeof(u8) + sizeof(u32) + static_cast<size_t>(bytesWritten));
 		return compressedStream;
 	}
 
@@ -77,25 +80,28 @@ namespace sfg
 	{
 		u8	shouldDecompress = 0;
 		u32 uncompressedSize = 0;
-		stream.seek(stream.get_size() - sizeof(u32) - sizeof(u8));
-		stream.read(shouldDecompress);
-		stream.read(uncompressedSize);
-		stream.seek(0);
+		stream >> shouldDecompress;
+		stream >> uncompressedSize;
 
 		if (!shouldDecompress)
 		{
 			istream_t copy;
-			copy.create(stream.get_raw(), stream.get_size() - sizeof(u32) - sizeof(u8));
+			copy.create(stream.get_data_current(), stream.get_size() - stream.tellg());
 			return copy;
 		}
 
-		const size_t size				= stream.get_size();
+		const size_t size				= stream.get_size() - stream.tellg();
 		istream_t	 decompressedStream = istream_t();
 		decompressedStream.create(nullptr, uncompressedSize);
-		void*	  src			   = stream.get_raw();
+		void*	  src			   = stream.get_data_current();
 		void*	  ptr			   = decompressedStream.get_raw();
 		const int decompressedSize = LZ4_decompress_safe((char*)src, (char*)ptr, static_cast<int>(size), static_cast<int>(uncompressedSize));
-		decompressedStream.shrink(static_cast<size_t>(decompressedSize) - sizeof(u32) - sizeof(u8));
+		if (decompressedSize < 0 || static_cast<u32>(decompressedSize) != uncompressedSize)
+		{
+			SFG_ERR("[compression] -> LZ4 decompression failed!");
+			return {};
+		}
+
 		return decompressedStream;
 	}
 }

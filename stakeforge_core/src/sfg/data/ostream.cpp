@@ -32,6 +32,10 @@ namespace sfg
 {
 	void ostream_t::create(size_t size)
 	{
+		destroy();
+		if (size == 0)
+			size = 1;
+
 		_data		  = new u8[size];
 		_total_size	  = size;
 		_current_size = 0;
@@ -48,6 +52,11 @@ namespace sfg
 
 	void ostream_t::write_raw_endian_safe(const u8* ptr, size_t size)
 	{
+		if (size == 0)
+			return;
+
+		SFG_ASSERT(ptr != nullptr);
+
 		if (_data == nullptr)
 			create(size);
 
@@ -80,6 +89,11 @@ namespace sfg
 
 	void ostream_t::write_raw(const u8* ptr, size_t size)
 	{
+		if (size == 0)
+			return;
+
+		SFG_ASSERT(ptr != nullptr);
+
 		if (_data == nullptr)
 			create(size);
 
@@ -92,13 +106,30 @@ namespace sfg
 	{
 		if (_current_size + sz > _total_size)
 		{
-			_total_size = static_cast<size_t>((static_cast<f32>(_current_size + sz) * 2.0f));
+			const size_t required = _current_size + sz;
+			size_t		 new_size = _total_size == 0 ? 1 : _total_size;
+			while (new_size < required)
+				new_size *= 2;
+
+			_total_size = new_size;
 			u8* newData = new u8[_total_size];
 			SFG_MEMCPY(newData, _data, _current_size);
 			delete[] _data;
 			_data = newData;
 		}
 	}
+
+	void ostream_t::move_from(ostream_t& other) noexcept
+	{
+		_data		  = other._data;
+		_current_size = other._current_size;
+		_total_size	  = other._total_size;
+
+		other._data			= nullptr;
+		other._current_size = 0;
+		other._total_size	= 0;
+	}
+
 	void ostream_t::write_to_ofstream(std::ofstream& stream)
 	{
 		stream.write((char*)_data, _current_size);

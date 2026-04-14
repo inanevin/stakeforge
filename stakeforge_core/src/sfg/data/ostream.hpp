@@ -32,24 +32,52 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory/memory.hpp"
 #include "io/assert.hpp"
 
+#include <iosfwd>
+#include <type_traits>
+#include <utility>
+
 namespace sfg
 {
 	class ostream_t
 	{
 	public:
+		ostream_t() = default;
+		~ostream_t()
+		{
+			destroy();
+		}
+
+		ostream_t(const ostream_t&)			   = delete;
+		ostream_t& operator=(const ostream_t&) = delete;
+
+		ostream_t(ostream_t&& other) noexcept
+		{
+			move_from(other);
+		}
+
+		ostream_t& operator=(ostream_t&& other) noexcept
+		{
+			if (this == &other)
+				return *this;
+
+			destroy();
+			move_from(other);
+			return *this;
+		}
+
 		void create(size_t size);
 		void destroy();
 		void write_to_ofstream(std::ofstream& stream);
 		void write_raw_endian_safe(const u8* ptr, size_t size);
 		void write_raw(const u8* ptr, size_t size);
 
-		template <typename T> void write(T& t)
+		template <typename T> std::enable_if_t<std::is_trivially_copyable_v<T>, void> write(const T& t)
 		{
 			if (_data == nullptr)
 				create(sizeof(T));
 
-			u8*	   ptr	= (u8*)&t;
-			size_t size = sizeof(T);
+			const u8* ptr  = reinterpret_cast<const u8*>(&t);
+			size_t	  size = sizeof(T);
 
 			check_grow(size);
 			SFG_MEMCPY(&_data[_current_size], ptr, size);
@@ -68,17 +96,19 @@ namespace sfg
 
 		inline void shrink(size_t size)
 		{
+			SFG_ASSERT(size <= _total_size);
 			_current_size = size;
 		}
 
 		inline void set(size_t pad, size_t sz, u8 val)
 		{
-			SFG_ASSERT(sz <= _total_size);
+			SFG_ASSERT(pad <= _total_size && sz <= _total_size - pad);
 			SFG_MEMSET(_data + pad, val, sz);
 		}
 
 	private:
 		void check_grow(size_t sz);
+		void move_from(ostream_t& other) noexcept;
 
 	private:
 		u8*	   _data		 = nullptr;
@@ -102,7 +132,7 @@ namespace sfg
 	{
 		const u32 sz = static_cast<u32>(val.size());
 		stream << sz;
-		stream.write_raw_endian_safe((u8*)val.data(), val.size());
+		stream.write_raw(reinterpret_cast<const u8*>(val.data()), val.size());
 		return stream;
 	}
 

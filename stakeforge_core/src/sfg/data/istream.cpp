@@ -32,25 +32,28 @@ namespace sfg
 {
 	void istream_t::open(u8* data, size_t size)
 	{
+		destroy();
 		_data  = data;
 		_size  = size;
 		_index = 0;
+		_owns  = false;
 	}
 
 	void istream_t::close()
 	{
-		_data  = nullptr;
-		_size  = 0;
-		_index = 0;
+		destroy();
 	}
 	void istream_t::create(u8* data, size_t size)
 	{
 		destroy();
-		const size_t unaligned = size;
-		_data				   = new u8[size];
+		if (size == 0)
+			return;
+
+		_data = new u8[size];
+		_owns = true;
 
 		if (data != nullptr)
-			SFG_MEMCPY(_data, data, unaligned);
+			SFG_MEMCPY(_data, data, size);
 
 		_index = 0;
 		_size  = size;
@@ -58,22 +61,27 @@ namespace sfg
 
 	void istream_t::destroy()
 	{
-		if (_data == nullptr)
-			return;
+		if (_owns)
+			delete[] _data;
 
-		delete[] _data;
 		_index = 0;
 		_size  = 0;
 		_data  = nullptr;
+		_owns  = false;
 	}
 
 	void istream_t::read_from_ifstream(std::ifstream& stream)
 	{
+		SFG_ASSERT(_data != nullptr);
 		stream.read((char*)_data, _size);
 	}
 
 	void istream_t::read_to_raw_endian_safe(void* ptr, size_t size)
 	{
+		SFG_ASSERT(ptr != nullptr);
+		SFG_ASSERT(_data != nullptr);
+		SFG_ASSERT(size <= _size - _index);
+
 		if (endianness::should_swap())
 		{
 			u8*			 data = &_data[_index];
@@ -102,8 +110,24 @@ namespace sfg
 
 	void istream_t::read_to_raw(u8* ptr, size_t size)
 	{
+		SFG_ASSERT(ptr != nullptr);
+		SFG_ASSERT(_data != nullptr);
+		SFG_ASSERT(size <= _size - _index);
 		SFG_MEMCPY(ptr, &_data[_index], size);
 		_index += size;
+	}
+
+	void istream_t::move_from(istream_t& other) noexcept
+	{
+		_data  = other._data;
+		_index = other._index;
+		_size  = other._size;
+		_owns  = other._owns;
+
+		other._data	 = nullptr;
+		other._index = 0;
+		other._size	 = 0;
+		other._owns	 = false;
 	}
 
 }

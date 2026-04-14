@@ -32,17 +32,43 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/string.hpp"
 #include "io/assert.hpp"
 
+#include <iosfwd>
+#include <type_traits>
+#include <utility>
+
 namespace sfg
 {
 	class istream_t
 	{
 	public:
-		istream_t(){};
+		istream_t() = default;
 		istream_t(u8* data, size_t size)
 		{
-			_data = data;
-			_size = size;
+			open(data, size);
 		}
+		~istream_t()
+		{
+			destroy();
+		}
+
+		istream_t(const istream_t&)			   = delete;
+		istream_t& operator=(const istream_t&) = delete;
+
+		istream_t(istream_t&& other) noexcept
+		{
+			move_from(other);
+		}
+
+		istream_t& operator=(istream_t&& other) noexcept
+		{
+			if (this == &other)
+				return *this;
+
+			destroy();
+			move_from(other);
+			return *this;
+		}
+
 		void open(u8* data, size_t size);
 		void close();
 		void create(u8* data, size_t size);
@@ -51,19 +77,23 @@ namespace sfg
 		void read_to_raw_endian_safe(void* ptr, size_t size);
 		void read_to_raw(u8* ptr, size_t size);
 
-		template <typename T> void read(T& t)
+		template <typename T> std::enable_if_t<std::is_trivially_copyable_v<T>, void> read(T& t)
 		{
+			SFG_ASSERT(_data != nullptr);
+			SFG_ASSERT(sizeof(T) <= _size - _index);
 			SFG_MEMCPY(reinterpret_cast<u8*>(&t), &_data[_index], sizeof(T));
 			_index += sizeof(T);
 		}
 
 		inline void skip_by(size_t size)
 		{
+			SFG_ASSERT(size <= _size - _index);
 			_index += size;
 		}
 
 		inline void seek(size_t ind)
 		{
+			SFG_ASSERT(ind <= _size);
 			_index = ind;
 		}
 
@@ -84,12 +114,16 @@ namespace sfg
 
 		inline u8* get_data_current()
 		{
+			SFG_ASSERT(_index <= _size);
 			return &_data[_index];
 		}
 
 		inline void shrink(size_t size)
 		{
+			SFG_ASSERT(size <= _size);
 			_size = size;
+			if (_index > _size)
+				_index = _size;
 		}
 
 		inline size_t tellg() const
@@ -103,9 +137,13 @@ namespace sfg
 		}
 
 	private:
+		void move_from(istream_t& other) noexcept;
+
+	private:
 		u8*	   _data  = nullptr;
 		size_t _index = 0;
 		size_t _size  = 0;
+		bool   _owns  = false;
 	};
 
 	template <typename T> std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, istream_t&> operator>>(istream_t& stream, T& val)

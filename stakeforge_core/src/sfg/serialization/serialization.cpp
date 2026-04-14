@@ -70,7 +70,6 @@ namespace sfg
 		ostream_t compressed = compression::compress(stream);
 		compressed.write_to_ofstream(wf);
 		wf.close();
-		compressed.destroy();
 
 		if (!wf.good())
 		{
@@ -89,7 +88,7 @@ namespace sfg
 			return {};
 		}
 
-		std::ifstream rf(path, std::ios::out | std::ios::binary);
+		std::ifstream rf(path, std::ios::in | std::ios::binary);
 
 		if (!rf)
 		{
@@ -113,7 +112,6 @@ namespace sfg
 		}
 
 		istream_t decompressedStream = compression::decompress(readStream);
-		readStream.destroy();
 		return decompressedStream;
 	}
 

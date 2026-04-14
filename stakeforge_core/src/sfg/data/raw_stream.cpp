@@ -34,6 +34,10 @@ namespace sfg
 	void raw_stream_t::create(u8* data, size_t size)
 	{
 		destroy();
+		if (size == 0)
+			return;
+
+		SFG_ASSERT(data != nullptr);
 		_data = {new u8[size], size};
 		SFG_MEMCPY(_data.data, data, size);
 	}
@@ -41,6 +45,9 @@ namespace sfg
 	void raw_stream_t::create(ostream_t& stream)
 	{
 		destroy();
+		if (stream.get_size() == 0)
+			return;
+
 		_data = {new u8[stream.get_size()], stream.get_size()};
 		SFG_MEMCPY(_data.data, stream.get_raw(), stream.get_size());
 	}
@@ -56,7 +63,7 @@ namespace sfg
 	void raw_stream_t::serialize(ostream_t& stream) const
 	{
 		const u32 sz = static_cast<u32>(_data.size);
-		stream.write(sz);
+		stream << sz;
 		if (sz != 0)
 			stream.write_raw(_data.data, _data.size);
 	}
@@ -64,12 +71,12 @@ namespace sfg
 	void raw_stream_t::deserialize(istream_t& stream)
 	{
 		u32 size = 0;
-		stream.read(size);
+		stream >> size;
+		destroy();
 		if (size != 0)
 		{
 			const size_t sz = static_cast<size_t>(size);
-			destroy();
-			_data = {new u8[sz], sz};
+			_data			= {new u8[sz], sz};
 			stream.read_to_raw(_data.data, _data.size);
 		}
 	}

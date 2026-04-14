@@ -27,13 +27,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "io/assert.hpp"
-#include <utility>
 #include <initializer_list>
+#include <memory>
+#include <new>
+#include <type_traits>
+#include <utility>
 
 namespace sfg
 {
 	template <typename T, int N> class static_vector_t
 	{
+		static_assert(N >= 0);
+
 	public:
 		using value_type	  = T;
 		using size_type		  = std::size_t;
@@ -51,15 +56,56 @@ namespace sfg
 		static_vector_t(value_type v) : _head(0)
 		{
 			for (int i = 0; i < capacity; i++)
-				_data[i] = v;
+				emplace_back(v);
 		}
 
-		constexpr static_vector_t(std::initializer_list<T> ilist)
+		static_vector_t(std::initializer_list<T> ilist)
 		{
 			_head = 0;
 			SFG_ASSERT(ilist.size() <= N && "initializer list too big");
 			for (auto&& e : ilist)
-				_data[_head++] = e;
+				emplace_back(e);
+		}
+
+		static_vector_t(const static_vector_t& other) : _head(0)
+		{
+			for (const T& value : other)
+				emplace_back(value);
+		}
+
+		static_vector_t& operator=(const static_vector_t& other)
+		{
+			if (this == &other)
+				return *this;
+
+			clear();
+			for (const T& value : other)
+				emplace_back(value);
+			return *this;
+		}
+
+		static_vector_t(static_vector_t&& other) noexcept(std::is_nothrow_move_constructible_v<T>) : _head(0)
+		{
+			for (T& value : other)
+				emplace_back(std::move(value));
+			other.clear();
+		}
+
+		static_vector_t& operator=(static_vector_t&& other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>)
+		{
+			if (this == &other)
+				return *this;
+
+			clear();
+			for (T& value : other)
+				emplace_back(std::move(value));
+			other.clear();
+			return *this;
+		}
+
+		~static_vector_t()
+		{
+			clear();
 		}
 
 		reference operator[](size_type index)
@@ -76,9 +122,9 @@ namespace sfg
 			if (index >= size())
 			{
 				SFG_ASSERT(false, "");
-				return _data[0];
+				return *ptr(0);
 			}
-			return _data[index];
+			return *ptr(index);
 		}
 
 		const_reference at(size_type index) const
@@ -86,53 +132,57 @@ namespace sfg
 			if (index >= size())
 			{
 				SFG_ASSERT(false, "");
-				return _data[0];
+				return *ptr(0);
 			}
-			return _data[index];
+			return *ptr(index);
 		}
 
 		reference front()
 		{
-			return _data[0];
+			SFG_ASSERT(!empty());
+			return *ptr(0);
 		}
 		const_reference front() const
 		{
-			return _data[0];
+			SFG_ASSERT(!empty());
+			return *ptr(0);
 		}
 
 		reference back()
 		{
-			return _data[_head - 1];
+			SFG_ASSERT(!empty());
+			return *ptr(_head - 1);
 		}
 		const_reference back() const
 		{
-			return _data[_head - 1];
+			SFG_ASSERT(!empty());
+			return *ptr(_head - 1);
 		}
 
 		iterator_t begin()
 		{
-			return _data;
+			return data();
 		}
 		const_iterator begin() const
 		{
-			return _data;
+			return data();
 		}
 		const_iterator cbegin() const
 		{
-			return _data;
+			return data();
 		}
 
 		iterator_t end()
 		{
-			return _data + _head;
+			return data() + _head;
 		}
 		const_iterator end() const
 		{
-			return _data + _head;
+			return data() + _head;
 		}
 		const_iterator cend() const
 		{
-			return _data + _head;
+			return data() + _head;
 		}
 
 		size_type size() const
@@ -150,32 +200,52 @@ namespace sfg
 
 		void push_back(const T& value)
 		{
-			SFG_ASSERT(!full());
-			_data[_head] = value;
-			_head++;
+			emplace_back(value);
 		}
 
 		void push_back(T&& value)
 		{
+			emplace_back(std::move(value));
+		}
+
+		template <typename... Args> reference emplace_back(Args&&... args)
+		{
 			SFG_ASSERT(!full());
-			_data[_head] = std::move(value);
+			T* inserted = ptr(_head);
+			std::construct_at(inserted, std::forward<Args>(args)...);
 			_head++;
+			return *inserted;
 		}
 
 		void pop_back()
 		{
 			if (!empty())
+			{
 				--_head;
+				std::destroy_at(ptr(_head));
+			}
 		}
 
 		void clear()
 		{
+			if constexpr (!std::is_trivially_destructible_v<T>)
+			{
+				for (size_type i = 0; i < _head; i++)
+					std::destroy_at(ptr(i));
+			}
+
 			_head = 0;
 		}
 
 		void resize(size_t sz)
 		{
 			SFG_ASSERT(sz <= capacity);
+			while (_head > sz)
+				pop_back();
+
+			while (_head < sz)
+				emplace_back();
+
 			_head = sz;
 		}
 
@@ -183,16 +253,16 @@ namespace sfg
 		iterator_t find(const T& value)
 		{
 			for (size_type i = 0; i < _head; ++i)
-				if (_data[i] == value)
-					return _data + i;
+				if (*ptr(i) == value)
+					return data() + i;
 			return end();
 		}
 
 		const_iterator find(const T& value) const
 		{
 			for (size_type i = 0; i < _head; ++i)
-				if (_data[i] == value)
-					return _data + i;
+				if (*ptr(i) == value)
+					return data() + i;
 			return end();
 		}
 
@@ -200,16 +270,16 @@ namespace sfg
 		template <typename Pred> iterator_t find_if(Pred pred)
 		{
 			for (size_type i = 0; i < _head; ++i)
-				if (pred(_data[i]))
-					return _data + i;
+				if (pred(*ptr(i)))
+					return data() + i;
 			return end();
 		}
 
 		template <typename Pred> const_iterator find_if(Pred pred) const
 		{
 			for (size_type i = 0; i < _head; ++i)
-				if (pred(_data[i]))
-					return _data + i;
+				if (pred(*ptr(i)))
+					return data() + i;
 			return end();
 		}
 
@@ -249,12 +319,9 @@ namespace sfg
 		{
 			SFG_ASSERT(idx < _head);
 			for (size_t i = idx; i < _head - 1; i++)
-				_data[i] = _data[i + 1];
+				*ptr(i) = std::move(*ptr(i + 1));
 
-			if (idx == _head - 1)
-				_data[idx] = T();
-
-			_head--;
+			pop_back();
 		}
 
 		void remove_index_swap(size_t idx)
@@ -262,24 +329,38 @@ namespace sfg
 			SFG_ASSERT(idx < _head);
 
 			if (idx < _head - 1)
-				_data[idx] = _data[_head - 1];
-			else
-				_data[idx] = T();
+				*ptr(idx) = std::move(*ptr(_head - 1));
 
-			_head--;
+			pop_back();
 		}
 
 		T* data()
 		{
-			return _data;
+			return ptr(0);
 		}
 		const T* data() const
 		{
-			return _data;
+			return ptr(0);
 		}
 
 	private:
-		T	   _data[N] = {};
-		size_t _head	= 0;
+		struct storage_t
+		{
+			alignas(T) unsigned char bytes[sizeof(T)];
+		};
+
+		T* ptr(size_type index)
+		{
+			return std::launder(reinterpret_cast<T*>(&_data[index]));
+		}
+
+		const T* ptr(size_type index) const
+		{
+			return std::launder(reinterpret_cast<const T*>(&_data[index]));
+		}
+
+	private:
+		storage_t _data[N] = {};
+		size_t	  _head	   = 0;
 	};
 }

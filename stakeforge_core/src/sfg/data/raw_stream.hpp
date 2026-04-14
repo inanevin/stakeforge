@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/size_definitions.hpp"
 #include "span.hpp"
 
+#include <utility>
+
 namespace sfg
 {
 	class ostream_t;
@@ -38,10 +40,28 @@ namespace sfg
 	{
 	public:
 		raw_stream_t() : _data({}){};
-		~raw_stream_t() = default;
+		~raw_stream_t()
+		{
+			destroy();
+		}
 
 		raw_stream_t(const raw_stream_t& other)			   = delete;
 		raw_stream_t& operator=(const raw_stream_t& other) = delete;
+
+		raw_stream_t(raw_stream_t&& other) noexcept
+		{
+			move_from(other);
+		}
+
+		raw_stream_t& operator=(raw_stream_t&& other) noexcept
+		{
+			if (this == &other)
+				return *this;
+
+			destroy();
+			move_from(other);
+			return *this;
+		}
 
 		void create(ostream_t& stream);
 		void create(u8* data, size_t size);
@@ -67,6 +87,13 @@ namespace sfg
 		bool is_empty() const
 		{
 			return _data.size == 0;
+		}
+
+	private:
+		void move_from(raw_stream_t& other) noexcept
+		{
+			_data		= other._data;
+			other._data = {};
 		}
 
 	private:
