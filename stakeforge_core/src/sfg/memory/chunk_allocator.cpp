@@ -41,7 +41,7 @@ namespace sfg
 
 	void chunk_allocator32_t::init(size_t size)
 	{
-		const size_t alignment = alignof(u32);
+		const size_t alignment = alignof(std::max_align_t);
 		SFG_ASSERT(size % alignment == 0);
 
 		const size_t mem_size = ALIGN_UP(size, alignment);

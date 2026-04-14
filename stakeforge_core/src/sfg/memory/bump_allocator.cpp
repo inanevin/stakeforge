@@ -58,7 +58,7 @@ namespace sfg
 
 	void* bump_allocator_t::allocate(size_t size, size_t alignment)
 	{
-		SFG_ASSERT(_head + size < _size);
+		SFG_ASSERT(size <= _size - _head);
 
 		void*  current_ptr = (void*)((u8*)_raw + _head);
 		size_t space	   = _size - _head;

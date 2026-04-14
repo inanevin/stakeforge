@@ -35,6 +35,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math/math_common.hpp"
 #include "memory.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <type_traits>
+
 namespace sfg
 {
 	class chunk_allocator32_t
@@ -49,6 +53,11 @@ namespace sfg
 
 		template <typename T> inline chunk_handle32_t allocate(size_t count)
 		{
+			static_assert(std::is_trivially_copyable_v<T>, "chunk_allocator32_t typed allocation only supports trivially copyable types");
+			static_assert(std::is_trivially_default_constructible_v<T>, "chunk_allocator32_t typed allocation only supports trivially default constructible types");
+			static_assert(std::is_trivially_destructible_v<T>, "chunk_allocator32_t typed allocation only supports trivially destructible types");
+			static_assert(alignof(T) <= alignof(std::max_align_t), "chunk_allocator32_t does not support over-aligned types");
+
 			SFG_ASSERT(count != 0);
 
 			const size_t item_alignment	  = alignof(T);
@@ -80,10 +89,9 @@ namespace sfg
 						if (remaining_size > 0)
 							insert_free_chunk_sorted({allocated_chunk.head + allocated_chunk.size, remaining_size});
 
-						// Default-initialize payload (see note below)
 						T* ptr = reinterpret_cast<T*>(_raw + allocated_chunk.head);
 						for (size_t i = 0; i < count; ++i)
-							ptr[i] = T();
+							std::construct_at(&ptr[i]);
 
 						return allocated_chunk;
 					}
@@ -100,7 +108,7 @@ namespace sfg
 
 			T* ptr = reinterpret_cast<T*>(_raw + ret.head);
 			for (size_t i = 0; i < count; ++i)
-				ptr[i] = T();
+				std::construct_at(&ptr[i]);
 
 			_head += needed_size;
 			return ret;

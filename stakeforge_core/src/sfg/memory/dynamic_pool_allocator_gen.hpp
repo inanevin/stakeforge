@@ -45,6 +45,7 @@ namespace sfg
 	private:
 		static_assert(std::is_integral_v<SIZE_TYPE>);
 		static_assert(std::is_unsigned_v<SIZE_TYPE>);
+		static_assert(std::is_nothrow_move_constructible_v<T> || std::is_copy_constructible_v<T>, "dynamic_pool_allocator_gen_t requires T to be nothrow move constructible or copy constructible");
 
 	public:
 		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
@@ -76,11 +77,16 @@ namespace sfg
 
 		inline HANDLE add()
 		{
+			return emplace();
+		}
+
+		template <typename... Args> inline HANDLE emplace(Args&&... args)
+		{
 			if (_free_list_head != 0)
 			{
 				const SIZE_TYPE idx = _free_list[_free_list_head - 1];
 				--_free_list_head;
-				std::construct_at<T>(&_data[idx]);
+				std::construct_at(&(_data[idx]), std::forward<Args>(args)...);
 				_actives[idx] = 1;
 				_size++;
 
@@ -92,7 +98,7 @@ namespace sfg
 			const SIZE_TYPE idx = _head;
 			_head++;
 			_size++;
-			std::construct_at<T>(&_data[idx]);
+			std::construct_at(&(_data[idx]), std::forward<Args>(args)...);
 			_actives[idx] = 1;
 			return {.generation = _generations[idx], .index = idx};
 		}
@@ -143,7 +149,8 @@ namespace sfg
 			SFG_ASSERT(is_valid(handle));
 			_free_list[_free_list_head] = handle.index;
 			_free_list_head++;
-			std::destroy_at<T>(&_data[handle.index]);
+			if constexpr (!std::is_trivially_destructible_v<T>)
+				std::destroy_at(&_data[handle.index]);
 			_actives[handle.index] = 0;
 			increment_generation(_generations[handle.index]);
 			_size--;
@@ -190,7 +197,8 @@ namespace sfg
 				if (_actives[i] == 0)
 					continue;
 
-				std::destroy_at<T>(&_data[i]);
+				if constexpr (!std::is_trivially_destructible_v<T>)
+					std::destroy_at(&_data[i]);
 				_actives[i] = 0;
 				increment_generation(_generations[i]);
 			}
@@ -204,13 +212,16 @@ namespace sfg
 		{
 			if (_data)
 			{
-				for (SIZE_TYPE i = 0; i < _head; i++)
+				if constexpr (!std::is_trivially_destructible_v<T>)
 				{
-					if (_actives[i] != 0)
-						std::destroy_at<T>(&_data[i]);
+					for (SIZE_TYPE i = 0; i < _head; i++)
+					{
+						if (_actives[i] != 0)
+							std::destroy_at(&_data[i]);
+					}
 				}
 
-				::operator delete(_data);
+				deallocate_data(_data);
 				delete[] _free_list;
 				delete[] _actives;
 				delete[] _generations;
@@ -417,11 +428,11 @@ namespace sfg
 	private:
 		inline void check_grow(SIZE_TYPE desired_cap = 0)
 		{
-			if (_head < _capacity && desired_cap < _capacity)
+			if ((desired_cap == 0 && _head < _capacity) || (desired_cap != 0 && desired_cap <= _capacity))
 				return;
 
 			const SIZE_TYPE new_cap		  = desired_cap != 0 ? desired_cap : (_capacity == 0 ? 4 : (_capacity * 2));
-			T*				new_data	  = static_cast<T*>(::operator new(sizeof(T) * new_cap));
+			T*				new_data	  = allocate_data(new_cap);
 			SIZE_TYPE*		new_free_list = new SIZE_TYPE[new_cap];
 			SIZE_TYPE*		new_gens	  = new SIZE_TYPE[new_cap];
 			u8*				new_actives	  = new u8[new_cap];
@@ -431,20 +442,27 @@ namespace sfg
 				{
 					SFG_MEMCPY(new_gens, _generations, sizeof(SIZE_TYPE) * _head);
 					SFG_MEMCPY(new_actives, _actives, sizeof(u8) * _head);
-					for (SIZE_TYPE i = 0; i < _head; i++)
+					if constexpr (std::is_trivially_copyable_v<T>)
 					{
-						if (_actives[i] == 0)
-							continue;
+						SFG_MEMCPY(new_data, _data, sizeof(T) * _head);
+					}
+					else
+					{
+						for (SIZE_TYPE i = 0; i < _head; i++)
+						{
+							if (_actives[i] == 0)
+								continue;
 
-						std::construct_at<T>(&new_data[i], std::move_if_noexcept(_data[i]));
-						std::destroy_at<T>(&_data[i]);
+							std::construct_at(&new_data[i], std::move_if_noexcept(_data[i]));
+							std::destroy_at(&_data[i]);
+						}
 					}
 				}
 
 				if (_free_list_head != 0)
 					SFG_MEMCPY(new_free_list, _free_list, sizeof(SIZE_TYPE) * _free_list_head);
 
-				::operator delete(_data);
+				deallocate_data(_data);
 				delete[] _free_list;
 				delete[] _actives;
 				delete[] _generations;
@@ -492,6 +510,16 @@ namespace sfg
 			generation++;
 			if (generation == 0)
 				generation++;
+		}
+
+		static T* allocate_data(SIZE_TYPE capacity)
+		{
+			return static_cast<T*>(::operator new(sizeof(T) * capacity, std::align_val_t(alignof(T))));
+		}
+
+		static void deallocate_data(T* data)
+		{
+			::operator delete(data, std::align_val_t(alignof(T)));
 		}
 
 	private:

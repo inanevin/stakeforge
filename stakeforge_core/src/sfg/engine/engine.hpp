@@ -81,6 +81,7 @@ namespace sfg
 	private:
 		void		render();
 		void		tick_windows();
+		void		rebind_window_runtimes();
 		static void on_window_event(void* handle, const window_event_t& ev, void* user_data);
 
 	private:

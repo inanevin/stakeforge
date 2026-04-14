@@ -30,6 +30,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/assert.hpp"
 #include "memory.hpp"
 
+#include <memory>
+#include <new>
+#include <type_traits>
+#include <utility>
+
 namespace sfg
 {
 	template <typename T, typename SIZE_TYPE, int N, typename TAG = T> struct pool_allocator_gen_t
@@ -37,6 +42,13 @@ namespace sfg
 		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
 		using handle_t = HANDLE;
 
+	private:
+		struct storage_t
+		{
+			alignas(T) unsigned char bytes[sizeof(T)];
+		};
+
+	public:
 		~pool_allocator_gen_t()
 		{
 			reset();
@@ -59,12 +71,18 @@ namespace sfg
 
 		inline HANDLE add()
 		{
+			return emplace();
+		}
+
+		template <typename... Args> inline HANDLE emplace(Args&&... args)
+		{
 			if (_free_count > 0)
 			{
 				const SIZE_TYPE index = _free_list[_free_count - 1];
-				new (&_items[index]) T();
 				_free_count--;
+				std::construct_at(ptr(index), std::forward<Args>(args)...);
 				_actives[index] = 1;
+				_size++;
 				return {
 					.generation = _generations[index],
 					.index		= index,
@@ -74,9 +92,10 @@ namespace sfg
 			SFG_ASSERT(_head < N);
 
 			const SIZE_TYPE index = _head;
-			new (&_items[index]) T();
+			std::construct_at(ptr(index), std::forward<Args>(args)...);
 			_actives[index] = 1;
 			_head++;
+			_size++;
 			return {
 				.generation = _generations[index],
 				.index		= index,
@@ -93,28 +112,34 @@ namespace sfg
 			SFG_ASSERT(is_valid(handle));
 			_free_list[_free_count] = handle.index;
 			_free_count++;
-			_generations[handle.index]++;
-			_items[handle.index].~T();
+			increment_generation(_generations[handle.index]);
+			std::destroy_at(ptr(handle.index));
 			_actives[handle.index] = 0;
+			_size--;
 		}
 
 		inline bool is_valid(HANDLE handle) const
 		{
-			return _generations[handle.index] == handle.generation;
+			return handle.generation != 0 && handle.index < _head && _actives[handle.index] != 0 && _generations[handle.index] == handle.generation;
 		}
 
 		void reset()
 		{
-			for (int i = 0; i < N; i++)
+			for (SIZE_TYPE i = 0; i < _head; i++)
 			{
-				_items[i].~T();
+				if (_actives[i] != 0)
+				{
+					std::destroy_at(ptr(i));
+					increment_generation(_generations[i]);
+				}
+
 				_free_list[i] = 0;
 				_actives[i]	  = 0;
-				_generations[i]++;
 			}
 
 			_head		= 0;
 			_free_count = 0;
+			_size		= 0;
 		}
 
 		// -----------------------------------------------------------------------------
@@ -124,13 +149,13 @@ namespace sfg
 		T& get(HANDLE handle)
 		{
 			SFG_ASSERT(is_valid(handle));
-			return _items[handle.index];
+			return *ptr(handle.index);
 		}
 
 		const T& get(HANDLE handle) const
 		{
 			SFG_ASSERT(is_valid(handle));
-			return _items[handle.index];
+			return *ptr(handle.index);
 		}
 
 		inline SIZE_TYPE get_generation(SIZE_TYPE index) const
@@ -145,10 +170,11 @@ namespace sfg
 
 		template <typename TYPE> struct iterator_t
 		{
-			using reference = TYPE&;
-			using pointer	= TYPE*;
+			using reference		= TYPE&;
+			using pointer		= TYPE*;
+			using storage_ptr_t = std::conditional_t<std::is_const_v<TYPE>, const storage_t*, storage_t*>;
 
-			iterator_t(pointer ptr, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _ptr(ptr), _actives(actives), _current(begin), _end(end)
+			iterator_t(storage_ptr_t storage, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _storage(storage), _actives(actives), _current(begin), _end(end)
 			{
 				while (_current != end && actives[_current] == 0)
 					++_current;
@@ -156,11 +182,11 @@ namespace sfg
 
 			reference operator*() const
 			{
-				return *(_ptr + _current);
+				return *std::launder(reinterpret_cast<pointer>(&_storage[_current]));
 			};
 			pointer operator->()
 			{
-				return (_ptr + _current);
+				return std::launder(reinterpret_cast<pointer>(&_storage[_current]));
 			}
 
 			iterator_t& operator++()
@@ -168,11 +194,11 @@ namespace sfg
 				do
 				{
 					_current++;
-				} while (_actives[_current] == 0 && _current != _end);
+				} while (_current != _end && _actives[_current] == 0);
 				return *this;
 			}
 
-			iterator_t& operator++(int)
+			iterator_t operator++(int)
 			{
 				iterator_t tmp = *this;
 				++(*this);
@@ -189,10 +215,10 @@ namespace sfg
 				return a._current != b._current;
 			}
 
-			pointer	  _ptr	   = nullptr;
-			const u8* _actives = nullptr;
-			SIZE_TYPE _current = 0;
-			SIZE_TYPE _end	   = 0;
+			storage_ptr_t _storage = nullptr;
+			const u8*	  _actives = nullptr;
+			SIZE_TYPE	  _current = 0;
+			SIZE_TYPE	  _end	   = 0;
 		};
 
 		iterator_t<const T> begin() const
@@ -240,13 +266,13 @@ namespace sfg
 				do
 				{
 					_current++;
-				} while (_actives[_current] == 0 && _current != _end);
+				} while (_current != _end && _actives[_current] == 0);
 				return *this;
 			}
 
-			handle_iterator_t& operator++(int)
+			handle_iterator_t operator++(int)
 			{
-				iterator_t tmp = *this;
+				handle_iterator_t tmp = *this;
 				++(*this);
 				return tmp;
 			}
@@ -277,13 +303,42 @@ namespace sfg
 			return handle_iterator_t(_generations, _actives, _head, _head);
 		}
 
+		handle_iterator_t begin_handle() const
+		{
+			return handles_begin();
+		}
+
+		handle_iterator_t end_handle() const
+		{
+			return handles_end();
+		}
+
 	private:
-		T		  _items[N];
+		T* ptr(SIZE_TYPE index)
+		{
+			return std::launder(reinterpret_cast<T*>(&_items[index]));
+		}
+
+		const T* ptr(SIZE_TYPE index) const
+		{
+			return std::launder(reinterpret_cast<const T*>(&_items[index]));
+		}
+
+		void increment_generation(SIZE_TYPE& generation)
+		{
+			generation++;
+			if (generation == 0)
+				generation++;
+		}
+
+	private:
+		storage_t _items[N];
 		SIZE_TYPE _free_count = 0;
 		SIZE_TYPE _free_list[N];
 		SIZE_TYPE _generations[N];
 		u8		  _actives[N];
 		SIZE_TYPE _head = 0;
+		SIZE_TYPE _size = 0;
 	};
 
 }

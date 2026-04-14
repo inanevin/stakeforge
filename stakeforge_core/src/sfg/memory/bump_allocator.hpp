@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/assert.hpp"
 #include "memory.hpp"
 #include <new>
+#include <type_traits>
 
 namespace sfg
 {
@@ -57,18 +58,22 @@ namespace sfg
 
 		template <typename T, typename... Args> T* allocate(size_t count, Args&&... args)
 		{
+			static_assert(std::is_trivially_copyable_v<T>, "bump_allocator_t typed allocation only supports trivially copyable types");
+			static_assert(std::is_trivially_destructible_v<T>, "bump_allocator_t typed allocation only supports trivially destructible types");
+			static_assert(sizeof...(Args) == 0, "bump_allocator_t typed allocation does not construct objects; use only trivial raw allocation");
+
 			if (count == 0)
 				return nullptr;
 
 			void* ptr	   = allocate(sizeof(T) * count, std::alignment_of<T>::value);
 			T*	  arrayPtr = reinterpret_cast<T*>(ptr);
-			// for (size_t i = 0; i < count; ++i)
-			//	new (&arrayPtr[i]) T(std::forward<Args>(args)...);
 			return arrayPtr;
 		}
 
 		template <typename T, typename... Args> T* emplace_aux(T firstValue, Args&&... remainingValues)
 		{
+			static_assert(std::is_trivially_copyable_v<T>, "bump_allocator_t::emplace_aux only supports trivially copyable types");
+
 			u8* initial_head = (u8*)_raw + _head;
 
 			u8* current_head = initial_head;

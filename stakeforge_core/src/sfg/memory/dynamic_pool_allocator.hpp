@@ -44,6 +44,7 @@ namespace sfg
 	private:
 		static_assert(std::is_integral_v<SIZE_TYPE>);
 		static_assert(std::is_unsigned_v<SIZE_TYPE>);
+		static_assert(std::is_nothrow_move_constructible_v<T> || std::is_copy_constructible_v<T>, "dynamic_pool_allocator_t requires T to be nothrow move constructible or copy constructible");
 
 	public:
 		dynamic_pool_allocator_t()										= default;
@@ -72,11 +73,16 @@ namespace sfg
 
 		inline SIZE_TYPE add()
 		{
+			return emplace();
+		}
+
+		template <typename... Args> inline SIZE_TYPE emplace(Args&&... args)
+		{
 			if (_free_list_head != 0)
 			{
 				const SIZE_TYPE idx = _free_list[_free_list_head - 1];
 				--_free_list_head;
-				std::construct_at(&_data[idx]);
+				std::construct_at(&_data[idx], std::forward<Args>(args)...);
 				_actives[idx] = 1;
 				_size++;
 				return idx;
@@ -87,7 +93,7 @@ namespace sfg
 			const SIZE_TYPE idx = _head;
 			_head++;
 			_size++;
-			std::construct_at(&_data[idx]);
+			std::construct_at(&_data[idx], std::forward<Args>(args)...);
 			_actives[idx] = 1;
 			return idx;
 		}
@@ -109,7 +115,8 @@ namespace sfg
 			SFG_ASSERT(id < _head && _actives[id] != 0);
 			_free_list[_free_list_head] = id;
 			_free_list_head++;
-			std::destroy_at(&_data[id]);
+			if constexpr (!std::is_trivially_destructible_v<T>)
+				std::destroy_at(&_data[id]);
 			_actives[id] = 0;
 			_size--;
 			return true;
@@ -150,7 +157,8 @@ namespace sfg
 				if (_actives[i] == 0)
 					continue;
 
-				std::destroy_at(&_data[i]);
+				if constexpr (!std::is_trivially_destructible_v<T>)
+					std::destroy_at(&_data[i]);
 				_actives[i] = 0;
 			}
 
@@ -163,13 +171,16 @@ namespace sfg
 		{
 			if (_data)
 			{
-				for (SIZE_TYPE i = 0; i < _head; i++)
+				if constexpr (!std::is_trivially_destructible_v<T>)
 				{
-					if (_actives[i] != 0)
-						std::destroy_at(&_data[i]);
+					for (SIZE_TYPE i = 0; i < _head; i++)
+					{
+						if (_actives[i] != 0)
+							std::destroy_at(&_data[i]);
+					}
 				}
 
-				::operator delete(_data);
+				deallocate_data(_data);
 				delete[] _free_list;
 				delete[] _actives;
 			}
@@ -259,11 +270,11 @@ namespace sfg
 	private:
 		inline void check_grow(SIZE_TYPE desired_cap = 0)
 		{
-			if (_head < _capacity && desired_cap < _capacity)
+			if ((desired_cap == 0 && _head < _capacity) || (desired_cap != 0 && desired_cap <= _capacity))
 				return;
 
 			const SIZE_TYPE new_cap		  = desired_cap != 0 ? desired_cap : (_capacity == 0 ? 4 : (_capacity * 2));
-			T*				new_data	  = static_cast<T*>(::operator new(sizeof(T) * new_cap));
+			T*				new_data	  = allocate_data(new_cap);
 			SIZE_TYPE*		new_free_list = new SIZE_TYPE[new_cap];
 			u8*				new_actives	  = new u8[new_cap];
 
@@ -272,20 +283,27 @@ namespace sfg
 				if (_head != 0)
 				{
 					SFG_MEMCPY(new_actives, _actives, sizeof(u8) * _head);
-					for (SIZE_TYPE i = 0; i < _head; i++)
+					if constexpr (std::is_trivially_copyable_v<T>)
 					{
-						if (_actives[i] == 0)
-							continue;
+						SFG_MEMCPY(new_data, _data, sizeof(T) * _head);
+					}
+					else
+					{
+						for (SIZE_TYPE i = 0; i < _head; i++)
+						{
+							if (_actives[i] == 0)
+								continue;
 
-						std::construct_at(&new_data[i], std::move_if_noexcept(_data[i]));
-						std::destroy_at(&_data[i]);
+							std::construct_at(&new_data[i], std::move_if_noexcept(_data[i]));
+							std::destroy_at(&_data[i]);
+						}
 					}
 				}
 
 				if (_free_list_head != 0)
 					SFG_MEMCPY(new_free_list, _free_list, sizeof(SIZE_TYPE) * _free_list_head);
 
-				::operator delete(_data);
+				deallocate_data(_data);
 				delete[] _free_list;
 				delete[] _actives;
 				_data	   = nullptr;
@@ -318,6 +336,16 @@ namespace sfg
 			other._head			  = 0;
 			other._size			  = 0;
 			other._capacity		  = 0;
+		}
+
+		static T* allocate_data(SIZE_TYPE capacity)
+		{
+			return static_cast<T*>(::operator new(sizeof(T) * capacity, std::align_val_t(alignof(T))));
+		}
+
+		static void deallocate_data(T* data)
+		{
+			::operator delete(data, std::align_val_t(alignof(T)));
 		}
 
 	private:

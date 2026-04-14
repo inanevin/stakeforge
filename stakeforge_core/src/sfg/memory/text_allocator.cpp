@@ -29,9 +29,37 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/assert.hpp"
 #include "data/vector_util.hpp"
 #include <cstring>
+#include <limits>
 
 namespace sfg
 {
+	namespace
+	{
+		constexpr size_t ALLOCATION_HEADER_SIZE = sizeof(u32);
+
+		void write_block_size(char* ptr, u32 size)
+		{
+			std::memcpy(ptr, &size, sizeof(size));
+		}
+
+		u32 read_block_size(const char* ptr)
+		{
+			u32 size = 0;
+			std::memcpy(&size, ptr, sizeof(size));
+			return size;
+		}
+
+		char* payload_from_block(char* block)
+		{
+			return block + ALLOCATION_HEADER_SIZE;
+		}
+
+		const char* header_from_payload(const char* payload)
+		{
+			return payload - ALLOCATION_HEADER_SIZE;
+		}
+	}
+
 	void text_allocator_t::init(u32 capacity)
 	{
 		_raw	  = new char[capacity];
@@ -52,37 +80,44 @@ namespace sfg
 
 	const char* text_allocator_t::allocate(size_t len)
 	{
-		const size_t need = len + 1;
+		const size_t payload_need = len + 1;
+		const size_t block_need	  = ALLOCATION_HEADER_SIZE + payload_need;
+		SFG_ASSERT(block_need <= std::numeric_limits<u32>::max());
 
-		auto it = vector_util::find_if(_free_list, [need](const allocation_t& alloc) { return alloc.size >= need; });
+		auto it = vector_util::find_if(_free_list, [block_need](const allocation_t& alloc) { return alloc.size >= block_need; });
 
 		if (it != _free_list.end())
 		{
 			allocation_t& free = *it;
 
-			char* result = free.ptr;
-			if (free.size == need)
+			char* block = free.ptr;
+			if (free.size == block_need)
 			{
 				_free_list.erase(it);
 			}
 			else
 			{
-				free.ptr += need;
-				free.size -= need;
+				free.ptr += block_need;
+				free.size -= block_need;
 			}
 
-			result[need - 1] = '\0';
+			write_block_size(block, static_cast<u32>(block_need));
+			char* result			 = payload_from_block(block);
+			result[payload_need - 1] = '\0';
 			return result;
 		}
 
 		// fallback to bump allocation
-		SFG_ASSERT(_head + need <= _capacity);
-		if (_head + need > _capacity)
+		SFG_ASSERT(_head + block_need <= _capacity);
+		if (_head + block_need > _capacity)
 			return nullptr;
 
-		char* allocated = &_raw[_head];
-		_head += need;
-		allocated[need - 1] = '\0';
+		char* block = &_raw[_head];
+		_head += static_cast<u32>(block_need);
+		write_block_size(block, static_cast<u32>(block_need));
+
+		char* allocated				= payload_from_block(block);
+		allocated[payload_need - 1] = '\0';
 		return allocated;
 	}
 
@@ -91,36 +126,47 @@ namespace sfg
 		if (!text)
 			return nullptr;
 
-		const size_t txt_sz = std::strlen(text) + 1;
-		const size_t need	= txt_sz > len ? txt_sz : len;
+		const size_t txt_sz		  = std::strlen(text) + 1;
+		const size_t payload_need = txt_sz > len ? txt_sz : len;
+		const size_t block_need	  = ALLOCATION_HEADER_SIZE + payload_need;
+		SFG_ASSERT(block_need <= std::numeric_limits<u32>::max());
 
-		auto it = vector_util::find_if(_free_list, [need](const allocation_t& alloc) { return alloc.size >= need; });
+		auto it = vector_util::find_if(_free_list, [block_need](const allocation_t& alloc) { return alloc.size >= block_need; });
 
 		if (it != _free_list.end())
 		{
 			allocation_t& free = *it;
 
-			char* result = free.ptr;
-			if (free.size == need)
+			char* block = free.ptr;
+			if (free.size == block_need)
 			{
 				_free_list.erase(it);
 			}
 			else
 			{
-				free.ptr += need;
-				free.size -= need;
+				free.ptr += block_need;
+				free.size -= block_need;
 			}
 
-			std::memcpy(result, text, need);
+			write_block_size(block, static_cast<u32>(block_need));
+			char* result = payload_from_block(block);
+			std::memcpy(result, text, txt_sz);
+			if (payload_need > txt_sz)
+				SFG_MEMSET(result + txt_sz, 0, payload_need - txt_sz);
 			return result;
 		}
 
-		if (_head + need > _capacity)
+		if (_head + block_need > _capacity)
 			return nullptr;
 
-		char* allocated = &_raw[_head];
-		std::memcpy(allocated, text, need);
-		_head += need;
+		char* block = &_raw[_head];
+		write_block_size(block, static_cast<u32>(block_need));
+		char* allocated = payload_from_block(block);
+		std::memcpy(allocated, text, txt_sz);
+		if (payload_need > txt_sz)
+			SFG_MEMSET(allocated + txt_sz, 0, payload_need - txt_sz);
+
+		_head += static_cast<u32>(block_need);
 		return allocated;
 	}
 
@@ -128,9 +174,12 @@ namespace sfg
 	{
 		if (!ptr)
 			return;
+
+		char* header = const_cast<char*>(header_from_payload(ptr));
+		SFG_ASSERT(header >= _raw && header < _raw + _capacity);
 		_free_list.push_back({
-			.ptr  = ptr,
-			.size = std::strlen(ptr) + 1,
+			.ptr  = header,
+			.size = read_block_size(header),
 		});
 	}
 
@@ -138,9 +187,12 @@ namespace sfg
 	{
 		if (!ptr)
 			return;
+
+		const char* header = header_from_payload(ptr);
+		SFG_ASSERT(header >= _raw && header < _raw + _capacity);
 		_free_list.push_back({
-			.ptr  = const_cast<char*>(ptr),
-			.size = std::strlen(ptr) + 1,
+			.ptr  = const_cast<char*>(header),
+			.size = read_block_size(header),
 		});
 	}
 

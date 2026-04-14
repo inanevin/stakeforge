@@ -169,13 +169,6 @@ namespace sfg
 
 	window_handle_t engine_t::create_window(const window_descriptor_t& descriptor)
 	{
-		if (_windows.head() >= _windows.capacity() && !_windows.contains_holes())
-		{
-			const engine_id_t new_capacity = _windows.capacity() == 0 ? INITIAL_WINDOWS : _windows.capacity() * 2;
-			_windows.reserve(new_capacity);
-			rebind_window_runtimes();
-		}
-
 		const window_handle_t handle			= _windows.add();
 		engine_window_t&	  window			= _windows.get(handle);
 		window.descriptor						= descriptor;
@@ -265,6 +258,7 @@ namespace sfg
 			}
 		}
 	}
+
 
 	void engine_t::render()
 	{
