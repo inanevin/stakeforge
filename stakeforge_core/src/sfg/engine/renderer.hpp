@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "gfx/common/gfx_constants.hpp"
+#include "gfx/common/format.hpp"
 #include "gfx/common/semaphore_data.hpp"
 
 namespace sfg

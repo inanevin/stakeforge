@@ -68,7 +68,7 @@ namespace sfg
 			};
 
 			using material_pool_t = sfg::dynamic_pool_allocator_gen_t<material_t>;
-			using texture_pool_t	 = sfg::dynamic_pool_allocator_gen_t<texture_t>;
+			using texture_pool_t  = sfg::dynamic_pool_allocator_gen_t<texture_t>;
 			static_assert(!std::is_same_v<material_pool_t::handle_t, texture_pool_t::handle_t>, "different pool value types should have different handle types");
 			static_assert(!std::is_convertible_v<material_pool_t::handle_t, texture_pool_t::handle_t>, "different pool value type handles should not be convertible");
 
@@ -96,7 +96,7 @@ namespace sfg
 				allocator.get(id1)			  = 22;
 
 				SFG_TEST_EXPECT(context, allocator.size() == 2);
-				SFG_TEST_EXPECT(context, allocator.high_water_mark() == 2);
+				SFG_TEST_EXPECT(context, allocator.head() == 2);
 				SFG_TEST_EXPECT(context, allocator.is_valid(id0));
 				SFG_TEST_EXPECT(context, allocator.is_valid(id1));
 
@@ -108,7 +108,7 @@ namespace sfg
 				SFG_TEST_EXPECT(context, allocator.contains_holes());
 
 				const allocator_t::HANDLE reused = allocator.add();
-				allocator.get(reused)			   = 33;
+				allocator.get(reused)			 = 33;
 
 				SFG_TEST_EXPECT(context, reused.index == id0.index);
 				SFG_TEST_EXPECT(context, reused.generation != id0.generation);
@@ -143,11 +143,47 @@ namespace sfg
 				SFG_TEST_EXPECT(context, sum == 10);
 
 				const allocator_t& const_allocator = allocator;
-				int				  const_sum		  = 0;
+				int				   const_sum	   = 0;
 				for (int value : const_allocator)
 					const_sum += value;
 
 				SFG_TEST_EXPECT(context, const_sum == 10);
+
+				return context.failures == 0;
+			}
+
+			bool handle_iteration_skips_removed_slots()
+			{
+				test_context_t context;
+				context.suite	 = "dynamic_pool_allocator_gen";
+				context.name	 = "handle_iteration_skips_removed_slots";
+				context.failures = 0;
+
+				allocator_t allocator;
+
+				const allocator_t::HANDLE id0 = allocator.add();
+				const allocator_t::HANDLE id1 = allocator.add();
+				const allocator_t::HANDLE id2 = allocator.add();
+
+				allocator.remove(id1);
+
+				u32	 count	   = 0;
+				bool found_id0 = false;
+				bool found_id1 = false;
+				bool found_id2 = false;
+				for (auto it = allocator.begin_handle(); it != allocator.end_handle(); ++it)
+				{
+					const allocator_t::HANDLE handle = *it;
+					count++;
+					found_id0 = found_id0 || handle == id0;
+					found_id1 = found_id1 || handle == id1;
+					found_id2 = found_id2 || handle == id2;
+				}
+
+				SFG_TEST_EXPECT(context, count == 2);
+				SFG_TEST_EXPECT(context, found_id0);
+				SFG_TEST_EXPECT(context, !found_id1);
+				SFG_TEST_EXPECT(context, found_id2);
 
 				return context.failures == 0;
 			}
@@ -187,9 +223,9 @@ namespace sfg
 					dynamic_pool_allocator_gen_t<non_trivial_t> allocator;
 					allocator.reserve(1);
 
-					auto id0				 = allocator.add();
+					auto id0				  = allocator.add();
 					*allocator.get(id0).value = 7;
-					auto id1				 = allocator.add();
+					auto id1				  = allocator.add();
 					*allocator.get(id1).value = 13;
 
 					SFG_TEST_EXPECT(context, allocator.capacity() >= 2);
@@ -239,6 +275,7 @@ namespace sfg
 		{
 			register_test("dynamic_pool_allocator_gen", "add_remove_and_reuse_preserve_generation_contract", &add_remove_and_reuse_preserve_generation_contract);
 			register_test("dynamic_pool_allocator_gen", "iteration_skips_removed_slots", &iteration_skips_removed_slots);
+			register_test("dynamic_pool_allocator_gen", "handle_iteration_skips_removed_slots", &handle_iteration_skips_removed_slots);
 			register_test("dynamic_pool_allocator_gen", "move_assignment_transfers_ownership", &move_assignment_transfers_ownership);
 			register_test("dynamic_pool_allocator_gen", "supports_non_trivial_move_only_types", &supports_non_trivial_move_only_types);
 			register_test("dynamic_pool_allocator_gen", "resize_zero_destroys_active_slots_and_invalidates_handles", &resize_zero_destroys_active_slots_and_invalidates_handles);

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common/size_definitions.hpp"
+#include "engine_config.hpp"
 #include "engine_window.hpp"
 #include "renderer.hpp"
 #include "data/atomic.hpp"
@@ -37,7 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class world_t;
-	struct engine_config_t;
 
 	class engine_t
 	{
@@ -47,6 +47,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		engine_error_code init();
+		engine_error_code init(const engine_config_t& config);
 		void			  uninit();
 
 		// -----------------------------------------------------------------------------
@@ -61,7 +62,12 @@ namespace sfg
 		// window
 		// -----------------------------------------------------------------------------
 
-
+		window_handle_t			   create_window(const window_descriptor_t& descriptor);
+		void					   destroy_window(window_handle_t handle);
+		bool					   is_window_valid(window_handle_t handle) const;
+		window_descriptor_t&	   get_window_descriptor(window_handle_t handle);
+		const window_descriptor_t& get_window_descriptor(window_handle_t handle) const;
+		const window_runtime_t&	   get_window_runtime(window_handle_t handle) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -74,20 +80,22 @@ namespace sfg
 
 	private:
 		void		render();
+		void		tick_windows();
 		static void on_window_event(void* handle, const window_event_t& ev, void* user_data);
 
 	private:
-		std::thread	   _render_thread;
-		renderer_t	   _renderer;
-		atomic_t<bool> _is_init				 = false;
-		atomic_t<bool> _render_thread_active = false;
-		i64			   _previous_time		 = 0;
-		i64			   _accumulator_ns		 = 0;
-		i64			   _start_time			 = 0;
-		i64			   _fps_main_time		 = 0;
-		i64			   _fps_render_time		 = 0;
-		u32			   _fps_main_frames		 = 0;
-		u32			   _fps_render_frames	 = 0;
+		dynamic_pool_allocator_gen_t<engine_window_t, engine_id_t, engine_window_pool_tag> _windows;
+		std::thread																		   _render_thread;
+		renderer_t																		   _renderer;
+		atomic_t<bool>																	   _is_init				 = false;
+		atomic_t<bool>																	   _render_thread_active = false;
+		i64																				   _previous_time		 = 0;
+		i64																				   _accumulator_ns		 = 0;
+		i64																				   _start_time			 = 0;
+		i64																				   _fps_main_time		 = 0;
+		i64																				   _fps_render_time		 = 0;
+		u32																				   _fps_main_frames		 = 0;
+		u32																				   _fps_render_frames	 = 0;
 	};
 
 }

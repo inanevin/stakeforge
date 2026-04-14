@@ -1080,6 +1080,13 @@ namespace sfg
 		DestroyWindow(hwnd);
 	}
 
+	void process::set_window_runtime(void* window_handle, window_runtime_t& runtime)
+	{
+		HWND hwnd = static_cast<HWND>(window_handle);
+		SFG_ASSERT(hwnd != nullptr);
+		SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&runtime));
+	}
+
 	void process::set_window_position(void* window, const sfg::vec2i16_t& pos)
 	{
 		HWND hwnd = static_cast<HWND>(window);

@@ -35,6 +35,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	namespace
+	{
+		constexpr engine_id_t INITIAL_WINDOWS = 32;
+	}
 
 	engine_error_code engine_t::init()
 	{
@@ -58,15 +62,33 @@ namespace sfg
 		g_engine_stats.reset();
 		g_engine_stats.main_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
 
-		_windows.reserve(32);
+		_windows.reserve(INITIAL_WINDOWS);
 
 		SFG_INFO("engine initialized correctly.");
 		return engine_error_code::none;
 	}
 
+	engine_error_code engine_t::init(const engine_config_t& config)
+	{
+		g_engine_config = config;
+		return init();
+	}
+
 	void engine_t::uninit()
 	{
 		end_render();
+
+		for (auto it = _windows.begin_handle(); it != _windows.end_handle();)
+		{
+			const window_handle_t handle = *it;
+			++it;
+
+			engine_window_t& window = _windows.get(handle);
+			if (window.runtime.window_handle != nullptr)
+				process::destroy_window(window.runtime.window_handle);
+
+			_windows.remove(handle);
+		}
 
 		_renderer.shutdown();
 		_previous_time	   = 0;
@@ -83,25 +105,7 @@ namespace sfg
 	void engine_t::tick()
 	{
 		process::pump_os_messages();
-
-		for (engine_window_t& ew : _windows)
-		{
-			const engine_window_state_t& state	 = ew.state;
-			const window_runtime_t&		 runtime = ew.runtime;
-			if (state.pos != runtime.pos)
-				process::set_window_position(runtime.window_handle, state.pos);
-
-			if (state.size != runtime.size)
-				process::set_window_size(runtime.window_handle, state.size, state.style);
-
-			if (state.style != runtime.style)
-				process::set_window_style(runtime.window_handle, state.size, state.style);
-
-			if (runtime.close_requested)
-			{
-				process::destroy_window(runtime.window_handle);
-			}
-		}
+		tick_windows();
 
 		const i64	 tick_start				   = time_t::get_cpu_microseconds();
 		const double fixed_framerate_ns_d	   = g_engine_config.fixed_framerate_ns;
@@ -163,6 +167,105 @@ namespace sfg
 		g_engine_stats.render_thread_id = 0;
 	}
 
+	window_handle_t engine_t::create_window(const window_descriptor_t& descriptor)
+	{
+		if (_windows.head() >= _windows.capacity() && !_windows.contains_holes())
+		{
+			const engine_id_t new_capacity = _windows.capacity() == 0 ? INITIAL_WINDOWS : _windows.capacity() * 2;
+			_windows.reserve(new_capacity);
+			rebind_window_runtimes();
+		}
+
+		const window_handle_t handle			= _windows.add();
+		engine_window_t&	  window			= _windows.get(handle);
+		window.descriptor						= descriptor;
+		window.runtime							= {};
+		window.runtime.event_callback			= &engine_t::on_window_event;
+		window.runtime.event_callback_user_data = this;
+		window.runtime.high_frequency_input		= descriptor.high_frequency_input;
+
+		for (auto it = _windows.begin_handle(); it != _windows.end_handle(); ++it)
+		{
+			engine_window_t& window = _windows.get(*it);
+			if (window.runtime.window_handle != nullptr)
+				process::set_window_runtime(window.runtime.window_handle, window.runtime);
+		}
+
+		if (!process::create_window(descriptor.title, descriptor.pos, descriptor.size, descriptor.style, window.runtime))
+		{
+			SFG_ERR("failed creating window!");
+			_windows.remove(handle);
+			return {};
+		}
+
+		return handle;
+	}
+
+	void engine_t::destroy_window(window_handle_t handle)
+	{
+		engine_window_t& window = _windows.get(handle);
+		if (window.runtime.window_handle != nullptr)
+			process::destroy_window(window.runtime.window_handle);
+
+		_windows.remove(handle);
+	}
+
+	bool engine_t::is_window_valid(window_handle_t handle) const
+	{
+		return _windows.is_valid(handle);
+	}
+
+	window_descriptor_t& engine_t::get_window_descriptor(window_handle_t handle)
+	{
+		return _windows.get(handle).descriptor;
+	}
+
+	const window_descriptor_t& engine_t::get_window_descriptor(window_handle_t handle) const
+	{
+		return _windows.get(handle).descriptor;
+	}
+
+	const window_runtime_t& engine_t::get_window_runtime(window_handle_t handle) const
+	{
+		return _windows.get(handle).runtime;
+	}
+
+	void engine_t::tick_windows()
+	{
+		for (auto it = _windows.begin_handle(); it != _windows.end_handle();)
+		{
+			const window_handle_t handle = *it;
+			++it;
+
+			engine_window_t&  window  = _windows.get(handle);
+			window_runtime_t& runtime = window.runtime;
+
+			if (runtime.close_requested)
+			{
+				if (runtime.window_handle != nullptr)
+					process::destroy_window(runtime.window_handle);
+
+				_windows.remove(handle);
+				continue;
+			}
+
+			window_descriptor_t& descriptor = window.descriptor;
+			runtime.high_frequency_input	= descriptor.high_frequency_input;
+
+			if (descriptor.pos != runtime.pos)
+				process::set_window_position(runtime.window_handle, descriptor.pos);
+
+			if (descriptor.size != runtime.size)
+				process::set_window_size(runtime.window_handle, descriptor.size, descriptor.style);
+
+			if (descriptor.style != runtime.style)
+			{
+				process::set_window_style(runtime.window_handle, descriptor.size, descriptor.style);
+				runtime.style = descriptor.style;
+			}
+		}
+	}
+
 	void engine_t::render()
 	{
 		g_engine_stats.render_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
@@ -186,26 +289,23 @@ namespace sfg
 		}
 	}
 
-	engine_id_t engine_t::create_window(const char* title, const engine_window_state_t& state)
-	{
-		const engine_id_t id				= _windows.add();
-		engine_window_t&  ew				= _windows.get(id);
-		ew.runtime.event_callback			= on_window_event;
-		ew.runtime.event_callback_user_data = this;
-		return id;
-	}
-
-	void engine_t::destroy_window(engine_id_t id)
-	{
-		engine_window_t& ew		   = _windows.get(id);
-		ew.runtime.close_requested = true;
-		process::destroy_window(ew.runtime.window_handle);
-		_windows.remove(id);
-	}
-
 	void engine_t::on_window_event(void* handle, const window_event_t& ev, void* user_data)
 	{
 		engine_t* self = static_cast<engine_t*>(user_data);
+		for (auto it = self->_windows.begin_handle(); it != self->_windows.end_handle(); ++it)
+		{
+			const window_handle_t window_handle = *it;
+			engine_window_t&	  window		= self->_windows.get(window_handle);
+			if (window.runtime.window_handle != handle)
+				continue;
+
+			if (ev.type == window_event_type_t::resize)
+				window.descriptor.size = window.runtime.size;
+			else if (ev.type == window_event_type_t::repos)
+				window.descriptor.pos = window.runtime.pos;
+
+			return;
+		}
 	}
 
 }

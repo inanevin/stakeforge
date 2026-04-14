@@ -126,6 +126,18 @@ namespace sfg
 			return handle.generation != 0 && handle.index < _head && _actives[handle.index] != 0 && handle.generation == _generations[handle.index];
 		}
 
+		inline bool is_active(SIZE_TYPE index) const
+		{
+			SFG_ASSERT(index < _head);
+			return _actives[index] != 0;
+		}
+
+		inline HANDLE get_handle(SIZE_TYPE index) const
+		{
+			SFG_ASSERT(index < _head && _actives[index] != 0);
+			return {.generation = _generations[index], .index = index};
+		}
+
 		inline bool remove(HANDLE handle)
 		{
 			SFG_ASSERT(is_valid(handle));
@@ -151,7 +163,7 @@ namespace sfg
 			return _size;
 		}
 
-		inline SIZE_TYPE high_water_mark() const
+		inline SIZE_TYPE head() const
 		{
 			return _head;
 		}
@@ -344,6 +356,62 @@ namespace sfg
 		const_iterator_t end() const
 		{
 			return const_iterator_t(_data, _actives, _head, _head);
+		}
+
+		struct handle_iterator_t
+		{
+			handle_iterator_t(const SIZE_TYPE* generations, const u8* actives, SIZE_TYPE begin, SIZE_TYPE end) : _generations(generations), _actives(actives), _current(begin), _end(end)
+			{
+				while (_current != _end && _actives[_current] == 0)
+					++_current;
+			}
+
+			HANDLE operator*() const
+			{
+				return {.generation = _generations[_current], .index = _current};
+			}
+
+			handle_iterator_t& operator++()
+			{
+				do
+				{
+					_current++;
+				} while (_current != _end && _actives[_current] == 0);
+
+				return *this;
+			}
+
+			handle_iterator_t operator++(int)
+			{
+				handle_iterator_t tmp = *this;
+				++(*this);
+				return tmp;
+			}
+
+			friend bool operator==(const handle_iterator_t& a, const handle_iterator_t& b)
+			{
+				return a._current == b._current;
+			}
+
+			friend bool operator!=(const handle_iterator_t& a, const handle_iterator_t& b)
+			{
+				return a._current != b._current;
+			}
+
+			const SIZE_TYPE* _generations = nullptr;
+			const u8*		 _actives	  = nullptr;
+			SIZE_TYPE		 _current	  = 0;
+			SIZE_TYPE		 _end		  = 0;
+		};
+
+		handle_iterator_t begin_handle() const
+		{
+			return handle_iterator_t(_generations, _actives, 0, _head);
+		}
+
+		handle_iterator_t end_handle() const
+		{
+			return handle_iterator_t(_generations, _actives, _head, _head);
 		}
 
 	private:

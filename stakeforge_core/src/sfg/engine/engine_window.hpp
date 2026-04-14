@@ -27,25 +27,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_engine.hpp"
-#include "gfx/common/gfx_constants.hpp"
+#include "memory/pool_handle.hpp"
 #include "platform/common_window.hpp"
 
 namespace sfg
 {
 	struct window_event_t;
 
-	struct engine_window_state_t
+	struct window_descriptor_t
 	{
-		vec2u16_t	   size	 = vec2u16_t::zero;
-		vec2i16_t	   pos	 = vec2i16_t::zero;
-		window_style_t style = window_style_t::app_window;
+		char		   title[64]			= {"stakeforge"};
+		vec2u16_t	   size					= vec2u16_t::zero;
+		vec2i16_t	   pos					= vec2i16_t::zero;
+		window_style_t style				= window_style_t::app_window;
+		bool		   high_frequency_input = false;
 	};
+
+	struct engine_window_pool_tag
+	{
+	};
+
+	using window_handle_t = pool_handle_t<engine_id_t, engine_window_pool_tag>;
 
 	struct engine_window_t
 	{
-		window_runtime_t	  runtime = {};
-		engine_window_state_t state	  = {};
-		engine_id_t			  id	  = 0;
+		window_descriptor_t descriptor = {};
+		window_runtime_t	runtime	   = {};
 	};
-
 }

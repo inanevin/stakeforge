@@ -78,6 +78,7 @@ namespace sfg
 				--_free_list_head;
 				std::construct_at(&_data[idx]);
 				_actives[idx] = 1;
+				_size++;
 				return idx;
 			}
 
@@ -85,6 +86,7 @@ namespace sfg
 
 			const SIZE_TYPE idx = _head;
 			_head++;
+			_size++;
 			std::construct_at(&_data[idx]);
 			_actives[idx] = 1;
 			return idx;
@@ -109,6 +111,7 @@ namespace sfg
 			_free_list_head++;
 			std::destroy_at(&_data[id]);
 			_actives[id] = 0;
+			_size--;
 			return true;
 		}
 
@@ -122,7 +125,7 @@ namespace sfg
 
 		inline SIZE_TYPE size() const
 		{
-			return _head;
+			return _size;
 		}
 
 		inline SIZE_TYPE capacity() const
@@ -132,7 +135,12 @@ namespace sfg
 
 		inline bool empty() const
 		{
-			return _head == 0;
+			return _size == 0;
+		}
+
+		inline bool contains_holes() const
+		{
+			return _size != _head;
 		}
 
 		inline void resize_zero()
@@ -146,6 +154,7 @@ namespace sfg
 				_actives[i] = 0;
 			}
 
+			_size			= 0;
 			_head			= 0;
 			_free_list_head = 0;
 		}
@@ -167,6 +176,7 @@ namespace sfg
 
 			_head = _capacity = 0;
 			_free_list_head	  = 0;
+			_size			  = 0;
 			_data			  = nullptr;
 			_free_list		  = nullptr;
 			_actives		  = nullptr;
@@ -300,11 +310,13 @@ namespace sfg
 			_free_list_head		  = other._free_list_head;
 			_head				  = other._head;
 			_capacity			  = other._capacity;
+			_size				  = other._size;
 			other._data			  = nullptr;
 			other._free_list	  = nullptr;
 			other._actives		  = nullptr;
 			other._free_list_head = 0;
 			other._head			  = 0;
+			other._size			  = 0;
 			other._capacity		  = 0;
 		}
 
@@ -314,6 +326,7 @@ namespace sfg
 		u8*		   _actives		   = nullptr;
 		SIZE_TYPE  _free_list_head = 0;
 		SIZE_TYPE  _head		   = 0;
+		SIZE_TYPE  _size		   = 0;
 		SIZE_TYPE  _capacity	   = 0;
 	};
 

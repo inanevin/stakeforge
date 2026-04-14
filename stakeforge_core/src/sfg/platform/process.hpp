@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "data/vector.hpp"
 #include "data/string.hpp"
 #include "common/size_definitions.hpp"
 
@@ -92,6 +93,7 @@ namespace sfg
 
 		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_t window_style, window_runtime_t& runtime);
 		static void destroy_window(void* window_handle);
+		static void set_window_runtime(void* window_handle, window_runtime_t& runtime);
 		static void set_window_size(void* window, const vec2u16_t& size, window_style_t style);
 		static void set_window_position(void* window, const vec2i16_t& pos);
 		static void set_window_style(void* window, const vec2u16_t& size, window_style_t style);

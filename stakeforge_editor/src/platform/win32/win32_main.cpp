@@ -33,23 +33,25 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		return static_cast<int>(result);
 	}
 
-	sfg::window_t window_config = {};
-	window_config.pos			   = sfg::vec2i16_t(100, 100);
-	window_config.size			   = sfg::vec2u16_t(800, 600);
-	window_config.style			   = sfg::window_style::app_window;
-	window_config.high_frequency_input = true;
+	sfg::window_descriptor_t window_config = {};
+	window_config.pos					   = sfg::vec2i16_t(100, 100);
+	window_config.size					   = sfg::vec2u16_t(800, 600);
+	window_config.style					   = sfg::window_style_t::app_window;
+	window_config.high_frequency_input	   = true;
 	strcpy_s(window_config.title, "sfg");
 
-	const sfg::engine_id_t main_window = engine.create_window(window_config);
-	sfg::renderer_t&	   renderer	   = engine.get_renderer();
-	renderer.create_surface(engine.get_window(main_window).size, sfg::format_t::b8g8r8a8_srgb, &engine.get_window_runtime(main_window));
+	const sfg::window_handle_t main_window = engine.create_window(window_config);
 
+	sfg::renderer_t&			 renderer		= engine.get_renderer();
+	const sfg::window_runtime_t& runtime		= engine.get_window_runtime(main_window);
+	const sfg::gfx_id_t			 main_swapchain = renderer.create_swapchain(engine.get_window_descriptor(main_window).size, sfg::format_t::b8g8r8a8_srgb, runtime.window_handle, runtime.platform_handle);
 	engine.start_render();
-	while (!engine.get_window_runtime(main_window).close_requested)
+	while (engine.is_window_valid(main_window) && !engine.get_window_runtime(main_window).close_requested)
 	{
 		engine.tick();
 	}
 	engine.end_render();
+	renderer.destroy_swapchain(main_swapchain);
 	engine.uninit();
 
 	sfg::process::uninit();
