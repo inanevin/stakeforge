@@ -328,10 +328,10 @@ static inline void CpuId( uint32_t* regs, uint32_t leaf )
 static void InitFailure( const char* msg )
 {
 #if defined TRACY_GDK
-    const char* format = "Tracy Profiler initialization failure: %s\n";
-    const int length = snprintf( nullptr, 0, format, msg );
+    const char* format_t = "Tracy Profiler initialization failure: %s\n";
+    const int length = snprintf( nullptr, 0, format_t, msg );
     char* buffer = (char*)alloca( length + 1 );
-    snprintf( buffer, length + 1, format, msg );
+    snprintf( buffer, length + 1, format_t, msg );
     OutputDebugStringA( buffer );
 #elif defined _WIN32
     bool hasConsole = false;

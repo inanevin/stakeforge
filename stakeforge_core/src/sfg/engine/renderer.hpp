@@ -26,80 +26,68 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/string.hpp"
-#include "common/size_definitions.hpp"
+#include "gfx/common/gfx_constants.hpp"
+#include "gfx/common/semaphore_data.hpp"
 
 namespace sfg
 {
-	struct monitor_info_t;
-	struct vec2u16_t;
-	struct vec2i16_t;
-	struct window_runtime_t;
-	enum class window_style_t : u8;
-	enum class window_cursor_confinement_t : u8;
-	enum class window_cursor_state_t : u8;
-
-	enum character_mask
+	class renderer_t
 	{
-		letter	   = 1 << 0,
-		number	   = 1 << 1,
-		separator  = 1 << 2,
-		symbol	   = 1 << 4,
-		whitespace = 1 << 5,
-		control	   = 1 << 6,
-		printable  = 1 << 7,
-		op		   = 1 << 8,
-		sign	   = 1 << 9,
-	};
-
-	class process
-	{
+	private:
+		struct per_frame_data_t
+		{
+			semaphore_data_t semaphore_frame = {};
+		};
 
 	public:
 		// -----------------------------------------------------------------------------
-		// process lifetime
+		// lifetime
 		// -----------------------------------------------------------------------------
 
-		static void init();
-		static void uninit();
-		static void pump_os_messages();
+		u8	 init();
+		void shutdown();
 
 		// -----------------------------------------------------------------------------
-		// io
+		// impl
 		// -----------------------------------------------------------------------------
 
-		static void		open_url(const char* url);
-		static bool		open_directory(const char* dir);
-		static void		message_box(const char* msg);
-		static void		select_files(const char* title, const char* extension, vector_t<string_t>& out_files);
-		static void		push_clipboard(const char* cp);
-		static string_t select_folder(const char* title);
-		static string_t select_file(const char* title, const char* extension);
-		static string_t save_file(const char* title, const char* extension);
-		static string_t get_clipboard();
+		void render();
+
+		gfx_id_t create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle);
+		void	 destroy_swapchain(gfx_id_t id);
+		void	 resize_swapchain(gfx_id_t id, const vec2u16_t& size);
+
+		gfx_id_t create_render_target(const vec2u16_t& size, format_t& format);
+		void	 destroy_render_target(gfx_id_t id);
 
 		// -----------------------------------------------------------------------------
-		// os query
+		// impl
 		// -----------------------------------------------------------------------------
 
-		static void get_all_monitors(vector_t<monitor_info_t>& out);
-		static char get_character_from_key(u32 key);
-		static u16	get_character_mask_from_key(u32 key, char ch);
-
 		// -----------------------------------------------------------------------------
-		// window
+		// accessors
 		// -----------------------------------------------------------------------------
 
-		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_t window_style, window_runtime_t& runtime);
-		static void destroy_window(void* window_handle);
-		static void set_window_size(void* window, const vec2u16_t& size, window_style_t style);
-		static void set_window_position(void* window, const vec2i16_t& pos);
-		static void set_window_style(void* window, const vec2u16_t& size, window_style_t style);
-		static void set_cursor_confinement(void* window_handle, window_cursor_confinement_t conf);
-		static void set_cursor_state(window_cursor_state_t state);
-		static void set_cursor_visible(bool visible);
+		inline gfx_id_t get_global_bind_layout() const
+		{
+			return _global_bind_layout;
+		}
+
+		inline gfx_id_t get_global_compute_bind_layout() const
+		{
+			return _global_compute_bind_layout;
+		}
+
+		inline u8 get_frame_index() const
+		{
+			return _frame_index;
+		}
 
 	private:
-		static int s_prev_clip[4];
+		per_frame_data_t _pfd[BACK_BUFFER_COUNT];
+		gfx_id_t		 _global_bind_layout		 = NULL_GFX_ID;
+		gfx_id_t		 _global_compute_bind_layout = NULL_GFX_ID;
+		u64				 _frame_counter				 = 0;
+		u8				 _frame_index				 = 0;
 	};
 }

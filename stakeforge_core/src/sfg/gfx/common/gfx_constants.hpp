@@ -46,9 +46,11 @@ namespace sfg
 #define COMMANDS_MAX_TID	   25
 #define BACK_BUFFER_COUNT	   3
 #define FRAME_LATENCY		   2
-#define GPU_DEVICE			   0 // 0 discrete, 1 integratd
 
-	typedef unsigned short gfx_id;
+	// 0 discrete, 1 integratd
+#define GPU_DEVICE 0
+
+	typedef unsigned short gfx_id_t;
 	typedef unsigned short primitive_index;
 	typedef unsigned int   gpu_index;
 

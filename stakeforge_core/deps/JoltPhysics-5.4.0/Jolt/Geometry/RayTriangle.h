@@ -72,7 +72,7 @@ JPH_INLINE float RayTriangle(Vec3Arg inOrigin, Vec3Arg inDirection, Vec3Arg inV0
 	return Vec3::sSelect(t, Vec3::sReplicate(FLT_MAX), no_intersection).GetX();
 }
 
-/// Intersect ray with 4 triangles in SOA format, returns 4 vector of closest points or FLT_MAX if no hit (uses bit tricks to do less divisions)
+/// Intersect ray with 4 triangles in SOA format_t, returns 4 vector of closest points or FLT_MAX if no hit (uses bit tricks to do less divisions)
 JPH_INLINE Vec4 RayTriangle4(Vec3Arg inOrigin, Vec3Arg inDirection, Vec4Arg inV0X, Vec4Arg inV0Y, Vec4Arg inV0Z, Vec4Arg inV1X, Vec4Arg inV1Y, Vec4Arg inV1Z, Vec4Arg inV2X, Vec4Arg inV2Y, Vec4Arg inV2Z)
 {
 	// Epsilon

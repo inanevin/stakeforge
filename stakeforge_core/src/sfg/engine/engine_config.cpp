@@ -24,10 +24,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "system_info.hpp"
+#include "engine_config.hpp"
 
 namespace sfg
 {
-	thread_info_t g_thread_info;
-	frame_info_t  g_frame_info;
+	engine_config_t g_engine_config = {};
 }

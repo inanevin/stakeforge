@@ -1086,7 +1086,7 @@ uint32 Vec4::CompressUnitVector() const
 	// Store highest component
 	value |= max_element << 29;
 
-	// Store the other three components in a compressed format
+	// Store the other three components in a compressed format_t
 	UVec4 compressed = Vec4::sClamp((v + Vec4::sReplicate(cOneOverSqrt2)) * (float(cMask) / (2.0f * cOneOverSqrt2)) + Vec4::sReplicate(0.5f), Vec4::sZero(), Vec4::sReplicate(cMask)).ToInt();
 	switch (max_element)
 	{

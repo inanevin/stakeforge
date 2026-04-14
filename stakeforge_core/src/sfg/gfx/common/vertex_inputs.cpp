@@ -37,28 +37,28 @@ namespace sfg
 				.name	= "POSITION",
 				.offset = 0,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "NORMAL",
 				.offset = sizeof(f32) * 3,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TANGENT",
 				.offset = sizeof(f32) * 6,
 				.size	= sizeof(f32) * 4,
-				.format = format::r32g32b32a32_sfloat,
+				.format = format_t::r32g32b32a32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TEXCOORD",
 				.offset = sizeof(f32) * 10,
 				.size	= sizeof(f32) * 2,
-				.format = format::r32g32_sfloat,
+				.format = format_t::r32g32_sfloat,
 			});
 		}
 		else if (style == vertex_input_style::position_normal_tangents_uv_skinned)
@@ -67,42 +67,42 @@ namespace sfg
 				.name	= "POSITION",
 				.offset = 0,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "NORMAL",
 				.offset = sizeof(f32) * 3,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TANGENT",
 				.offset = sizeof(f32) * 6,
 				.size	= sizeof(f32) * 4,
-				.format = format::r32g32b32a32_sfloat,
+				.format = format_t::r32g32b32a32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TEXCOORD",
 				.offset = sizeof(f32) * 10,
 				.size	= sizeof(f32) * 2,
-				.format = format::r32g32_sfloat,
+				.format = format_t::r32g32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "BLENDWEIGHT",
 				.offset = sizeof(f32) * 12,
 				.size	= sizeof(f32) * 4,
-				.format = format::r32g32b32a32_sfloat,
+				.format = format_t::r32g32b32a32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "BLENDINDICES",
 				.offset = sizeof(f32) * 16,
 				.size	= sizeof(u32) * 4,
-				.format = format::r32g32b32a32_uint,
+				.format = format_t::r32g32b32a32_uint,
 			});
 		}
 		else if (style == vertex_input_style::line_3d)
@@ -111,27 +111,27 @@ namespace sfg
 				.name	= "POSITION",
 				.offset = 0,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.index	= 1,
 				.offset = sizeof(f32) * 3,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "COLOR",
 				.offset = sizeof(f32) * 6,
 				.size	= sizeof(f32) * 4,
-				.format = format::r32g32b32a32_sfloat,
+				.format = format_t::r32g32b32a32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "POSITION",
 				.index	= 2,
 				.offset = sizeof(f32) * 10,
 				.size	= sizeof(f32),
-				.format = format::r32_sfloat,
+				.format = format_t::r32_sfloat,
 			});
 		}
 		else if (style == vertex_input_style::position_color)
@@ -140,14 +140,14 @@ namespace sfg
 				.name	= "POSITION",
 				.offset = 0,
 				.size	= sizeof(f32) * 3,
-				.format = format::r32g32b32_sfloat,
+				.format = format_t::r32g32b32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "COLOR",
 				.offset = sizeof(f32) * 3,
 				.size	= sizeof(f32) * 4,
-				.format = format::r32g32b32a32_sfloat,
+				.format = format_t::r32g32b32a32_sfloat,
 			});
 		}
 		else if (style == vertex_input_style::gui)
@@ -156,20 +156,20 @@ namespace sfg
 				.name	= "POSITION",
 				.offset = 0,
 				.size	= sizeof(f32) * 2,
-				.format = format::r32g32_sfloat,
+				.format = format_t::r32g32_sfloat,
 			});
 
 			out_inputs.push_back({
 				.name	= "TEXCOORD",
 				.offset = sizeof(f32) * 2,
 				.size	= sizeof(f32) * 2,
-				.format = format::r32g32_sfloat,
+				.format = format_t::r32g32_sfloat,
 			});
 			out_inputs.push_back({
 				.name	= "COLOR",
 				.offset = sizeof(f32) * 4,
 				.size	= sizeof(f32) * 4,
-				.format = format::r32g32b32a32_sfloat,
+				.format = format_t::r32g32b32a32_sfloat,
 			});
 		}
 	}

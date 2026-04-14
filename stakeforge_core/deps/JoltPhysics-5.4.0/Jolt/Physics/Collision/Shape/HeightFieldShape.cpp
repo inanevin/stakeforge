@@ -2691,7 +2691,7 @@ void HeightFieldShape::RestoreBinaryState(StreamIn &inStream)
 	inStream.Read(mNumBitsPerMaterialIndex);
 
 	// We don't have the exact number of reserved materials anymore, but ensure that our array is big enough
-	// TODO: Next time when we bump the binary serialization format of this class we should store the capacity and allocate the right amount, for now we accept a little bit of waste
+	// TODO: Next time when we bump the binary serialization format_t of this class we should store the capacity and allocate the right amount, for now we accept a little bit of waste
 	mMaterials.reserve(PhysicsMaterialList::size_type(1) << mNumBitsPerMaterialIndex);
 
 	CacheValues();

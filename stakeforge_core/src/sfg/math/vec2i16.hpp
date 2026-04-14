@@ -46,6 +46,11 @@ namespace sfg
 			return {x + other.x, y + other.y};
 		}
 
+		bool operator==(const vec2i16_t& other) const
+		{
+			return x == other.x && y == other.y;
+		}
+
 		i16 x;
 		i16 y;
 	};

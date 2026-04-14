@@ -60,7 +60,6 @@ namespace sfg
 			if (_free_count > 0)
 			{
 				const SIZE_TYPE index = _free_list[_free_count - 1];
-				_items[index].~T();
 				new (&_items[index]) T();
 				_free_count--;
 				_actives[index] = 1;
@@ -73,7 +72,6 @@ namespace sfg
 			SFG_ASSERT(_head < N);
 
 			const SIZE_TYPE index = _head;
-			_items[index].~T();
 			new (&_items[index]) T();
 			_actives[index] = 1;
 			_head++;

@@ -189,7 +189,7 @@ void MutableCompoundShape::CalculateSubShapeBounds(uint inStartIdx, uint inNumbe
 			bounds_max.SetColumn3(col, sub_shape_bounds.mMax);
 		}
 
-		// Transpose to go to structure of arrays format
+		// Transpose to go to structure of arrays format_t
 		Mat44 bounds_min_t = bounds_min.Transposed();
 		Mat44 bounds_max_t = bounds_max.Transposed();
 

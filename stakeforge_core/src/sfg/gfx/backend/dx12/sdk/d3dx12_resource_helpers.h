@@ -392,7 +392,7 @@ inline bool D3DX12GetCopyableFootprints(_In_ const D3D12_RESOURCE_DESC1&								
 	CD3DX12_RESOURCE_DESC1		  LresourceDesc;
 	const CD3DX12_RESOURCE_DESC1& resourceDesc = *D3DX12ConditionallyExpandAPIDesc(LresourceDesc, &ResourceDesc);
 
-	// Check if its a valid format
+	// Check if its a valid format_t
 	D3DX12_ASSERT(D3D12_PROPERTY_LAYOUT_FORMAT_TABLE::FormatExists(Format));
 
 	// D3DX12GetCopyableFootprints does not support buffers with width larger than UINT_MAX.

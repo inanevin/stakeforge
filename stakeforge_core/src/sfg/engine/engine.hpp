@@ -27,16 +27,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common/size_definitions.hpp"
+#include "engine_window.hpp"
+#include "renderer.hpp"
 #include "data/atomic.hpp"
-#include "data/vector.hpp"
-#include "gfx/renderer.hpp"
-#include "engine_config.hpp"
+#include "memory/dynamic_pool_allocator.hpp"
 
 #include <thread>
 
 namespace sfg
 {
 	class world_t;
+	struct engine_config_t;
 
 	class engine_t
 	{
@@ -45,31 +46,60 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const engine_config_t& config);
-		void uninit();
+		engine_error_code init();
+		void			  uninit();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void	 tick();
-		void	 start_render();
-		void	 end_render();
-		world_t* create_world();
-		void	 destroy_world(world_t* w);
+		void tick();
+		void start_render();
+		void end_render();
+
+		// -----------------------------------------------------------------------------
+		// window
+		// -----------------------------------------------------------------------------
+
+		engine_id_t create_window(const char* title, const engine_window_state_t& state);
+		void		destroy_window(engine_id_t id);
+
+		inline engine_window_state_t& get_window(engine_id_t id)
+		{
+			return _windows.get(id).state;
+		}
+
+		inline const window_runtime_t& get_window_runtime(engine_id_t id) const
+		{
+			return _windows.get(id).runtime;
+		}
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline renderer_t& get_renderer()
+		{
+			return _renderer;
+		}
 
 	private:
-		void render();
+		void		render();
+		static void on_window_event(u32 id, const window_event_t& ev, void* user_data);
 
 	private:
-		std::thread		   _render_thread;
-		renderer_t		   _renderer;
-		engine_config_t	   _config;
-		atomic_t<bool>	   _is_init				 = false;
-		atomic_t<bool>	   _render_thread_active = false;
-		vector_t<world_t*> _worlds;
-		i64				   _previous_time  = 0;
-		i64				   _accumulator_ns = 0;
+		dynamic_pool_allocator_t<engine_window_t, engine_id_t> _windows;
+		std::thread											   _render_thread;
+		renderer_t											   _renderer;
+		atomic_t<bool>										   _is_init				 = false;
+		atomic_t<bool>										   _render_thread_active = false;
+		i64													   _previous_time		 = 0;
+		i64													   _accumulator_ns		 = 0;
+		i64													   _start_time			 = 0;
+		i64													   _fps_main_time		 = 0;
+		i64													   _fps_render_time		 = 0;
+		u32													   _fps_main_frames		 = 0;
+		u32													   _fps_render_frames	 = 0;
 	};
 
 }

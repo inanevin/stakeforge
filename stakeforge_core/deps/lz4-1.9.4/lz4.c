@@ -243,7 +243,7 @@ static const int LZ4_minLength = (MFLIMIT + 1);
 #define GB *(1U << 30)
 
 #define LZ4_DISTANCE_ABSOLUTE_MAX 65535
-#if (LZ4_DISTANCE_MAX > LZ4_DISTANCE_ABSOLUTE_MAX) /* max supported by LZ4 format */
+#if (LZ4_DISTANCE_MAX > LZ4_DISTANCE_ABSOLUTE_MAX) /* max supported by LZ4 format_t */
 #error "LZ4_DISTANCE_MAX is too big : must be <= 65535"
 #endif
 

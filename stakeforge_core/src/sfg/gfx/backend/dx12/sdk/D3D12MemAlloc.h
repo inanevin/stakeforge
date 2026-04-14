@@ -1350,7 +1350,7 @@ namespace D3D12MA
 		*/
 		void CalculateStatistics(TotalStatistics* pStats);
 
-		/** \brief Builds and returns statistics as a string in JSON format.
+		/** \brief Builds and returns statistics as a string in JSON format_t.
 		*
 		@param[out] ppStatsString Must be freed using Allocator::FreeStatsString.
 		@param DetailedMap `TRUE` to include full list of allocations (can make the string quite long), `FALSE` to only return statistics.
@@ -1546,7 +1546,7 @@ namespace D3D12MA
 		*/
 		void CalculateStatistics(DetailedStatistics* pStats) const;
 
-		/** \brief Builds and returns statistics as a string in JSON format, including the list of allocations with their parameters.
+		/** \brief Builds and returns statistics as a string in JSON format_t, including the list of allocations with their parameters.
 		@param[out] ppStatsString Must be freed using VirtualBlock::FreeStatsString.
 		*/
 		void BuildStatsString(WCHAR** ppStatsString) const;
@@ -2116,14 +2116,14 @@ e.g. `GetSize()`, `GetOffset()`, `GetHeap()`.
 
 \section statistics_json_dump JSON dump
 
-You can dump internal state of the allocator to a string in JSON format using function D3D12MA::Allocator::BuildStatsString().
+You can dump internal state of the allocator to a string in JSON format_t using function D3D12MA::Allocator::BuildStatsString().
 The result is guaranteed to be correct JSON.
 It uses Windows Unicode (UTF-16) encoding.
 Any strings provided by user (see D3D12MA::Allocation::SetName())
 are copied as-is and properly escaped for JSON.
 It must be freed using function D3D12MA::Allocator::FreeStatsString().
 
-The format of this JSON string is not part of official documentation of the library,
+The format_t of this JSON string is not part of official documentation of the library,
 but it will not change in backward-incompatible way without increasing library major version number
 and appropriate mention in changelog.
 
@@ -2143,7 +2143,7 @@ It can be useful to save video memory, but it must be used with caution.
 For example, if you know the flow of your whole render frame in advance, you
 are going to use some intermediate textures or buffers only during a small range of render passes,
 and you know these ranges don't overlap in time, you can create these resources in
-the same place in memory, even if they have completely different parameters (width, height, format etc.).
+the same place in memory, even if they have completely different parameters (width, height, format_t etc.).
 
 ![Resource aliasing (overlap)](../gfx/Aliasing.png)
 
@@ -2478,10 +2478,10 @@ printf("My virtual block has %llu bytes used by %u virtual allocations\n",
 More detailed statistics can be obtained using function D3D12MA::VirtualBlock::CalculateStatistics(),
 but they are slower to calculate.
 
-You can also request a full list of allocations and free regions as a string in JSON format by calling
+You can also request a full list of allocations and free regions as a string in JSON format_t by calling
 D3D12MA::VirtualBlock::BuildStatsString.
 Returned string must be later freed using D3D12MA::VirtualBlock::FreeStatsString.
-The format of this string may differ from the one returned by the main D3D12 allocator, but it is similar.
+The format_t of this string may differ from the one returned by the main D3D12 allocator, but it is similar.
 
 \section virtual_allocator_additional_considerations Additional considerations
 

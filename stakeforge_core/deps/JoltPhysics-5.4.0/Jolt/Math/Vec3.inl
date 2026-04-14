@@ -885,7 +885,7 @@ uint32 Vec3::CompressUnitVector() const
 	// Store highest component
 	value |= max_element << 29;
 
-	// Store the other two components in a compressed format
+	// Store the other two components in a compressed format_t
 	UVec4 compressed = Vec3::sClamp((v + Vec3::sReplicate(cOneOverSqrt2)) * (float(cMask) / (2.0f * cOneOverSqrt2)) + Vec3::sReplicate(0.5f), Vec3::sZero(), Vec3::sReplicate(cMask)).ToInt();
 	switch (max_element)
 	{

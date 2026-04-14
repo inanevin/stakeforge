@@ -75,7 +75,7 @@ namespace sfg
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_t::copy(gfx_id cmd_buffer)
+	void buffer_t::copy(gfx_id_t cmd_buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->cmd_copy_resource(cmd_buffer,
@@ -85,7 +85,7 @@ namespace sfg
 								   });
 	}
 
-	void buffer_t::copy_region(gfx_id cmd_buffer, size_t padding, size_t size)
+	void buffer_t::copy_region(gfx_id_t cmd_buffer, size_t padding, size_t size)
 	{
 		SFG_ASSERT(size != 0);
 
@@ -167,7 +167,7 @@ namespace sfg
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_cpu_gpu_t::copy(gfx_id cmd_buffer)
+	void buffer_cpu_gpu_t::copy(gfx_id_t cmd_buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->cmd_copy_resource(cmd_buffer,
@@ -177,7 +177,7 @@ namespace sfg
 								   });
 	}
 
-	void buffer_cpu_gpu_t::copy_region(gfx_id cmd_buffer, size_t padding, size_t size)
+	void buffer_cpu_gpu_t::copy_region(gfx_id_t cmd_buffer, size_t padding, size_t size)
 	{
 		gfx_backend* backend = gfx_backend::get();
 

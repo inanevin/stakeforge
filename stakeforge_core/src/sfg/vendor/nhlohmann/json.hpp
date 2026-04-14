@@ -8897,7 +8897,7 @@ namespace detail
 			{
 				const auto x = std::strtoull(token_buffer.data(), &endptr, 10);
 
-				// we checked the number format before
+				// we checked the number format_t before
 				JSON_ASSERT(endptr == token_buffer.data() + token_buffer.size());
 
 				if (errno != ERANGE)
@@ -8913,7 +8913,7 @@ namespace detail
 			{
 				const auto x = std::strtoll(token_buffer.data(), &endptr, 10);
 
-				// we checked the number format before
+				// we checked the number format_t before
 				JSON_ASSERT(endptr == token_buffer.data() + token_buffer.size());
 
 				if (errno != ERANGE)
@@ -8930,7 +8930,7 @@ namespace detail
 			// integer conversion above failed
 			strtof(value_float, token_buffer.data(), &endptr);
 
-			// we checked the number format before
+			// we checked the number format_t before
 			JSON_ASSERT(endptr == token_buffer.data() + token_buffer.size());
 
 			return token_type::value_float;
@@ -10393,7 +10393,7 @@ namespace detail
 		~binary_reader()							   = default;
 
 		/*!
-		@param[in] format  the binary format to parse
+		@param[in] format_t  the binary format_t to parse
 		@param[in] sax_    a SAX event processor
 		@param[in] strict  whether to expect the input to be consumed completed
 		@param[in] tag_handler  how to treat CBOR tags
@@ -12380,7 +12380,7 @@ namespace detail
 					result = dim.at(dim.size() - 1);
 					return true;
 				}
-				if (!dim.empty()) // if ndarray, convert to an object in JData annotated array format
+				if (!dim.empty()) // if ndarray, convert to an object in JData annotated array format_t
 				{
 					for (auto i : dim) // test if any dimension in an ndarray is 0, if so, return a 1D empty container
 					{
@@ -12444,7 +12444,7 @@ namespace detail
 		/*!
 		@brief determine the type and size for a container
 
-		In the optimized UBJSON format, a type and a size can be provided to allow
+		In the optimized UBJSON format_t, a type and a size can be provided to allow
 		for a more compact representation.
 
 		@param[out] result  pair of the size and the type
@@ -12697,7 +12697,7 @@ namespace detail
 				return false;
 			}
 
-			// if bit-8 of size_and_type.second is set to 1, encode bjdata ndarray as an object in JData annotated array format (https://github.com/NeuroJSON/jdata):
+			// if bit-8 of size_and_type.second is set to 1, encode bjdata ndarray as an object in JData annotated array format_t (https://github.com/NeuroJSON/jdata):
 			// {"_ArrayType_" : "typeid", "_ArraySize_" : [n1, n2, ...], "_ArrayData_" : [v1, v2, ...]}
 
 			if (input_format == input_format_t::bjdata && size_and_type.first != npos && (size_and_type.second & (1 << 8)) != 0)
@@ -12812,7 +12812,7 @@ namespace detail
 			if (input_format == input_format_t::bjdata && size_and_type.first != npos && (size_and_type.second & (1 << 8)) != 0)
 			{
 				auto last_token = get_token_string();
-				return sax->parse_error(chars_read, last_token, parse_error::create(112, chars_read, exception_message(input_format, "BJData object does not support ND-array size in optimized format", "object"), nullptr));
+				return sax->parse_error(chars_read, last_token, parse_error::create(112, chars_read, exception_message(input_format, "BJData object does not support ND-array size in optimized format_t", "object"), nullptr));
 			}
 
 			string_t key;
@@ -13030,7 +13030,7 @@ namespace detail
 		@brief read a number from the input
 
 		@tparam NumberType the type of the number
-		@param[in] format   the current format (for diagnostics)
+		@param[in] format_t   the current format_t (for diagnostics)
 		@param[out] result  number of type @a NumberType
 
 		@return whether conversion completed
@@ -13043,7 +13043,7 @@ namespace detail
 		*/
 		template <typename NumberType, bool InputIsLittleEndian = false> bool get_number(const input_format_t format, NumberType& result)
 		{
-			// read in the original format
+			// read in the original format_t
 
 			if (JSON_HEDLEY_UNLIKELY(!get_to(result, format, "number")))
 			{
@@ -13060,7 +13060,7 @@ namespace detail
 		@brief create a string by reading characters from the input
 
 		@tparam NumberType the type of the number
-		@param[in] format the current format (for diagnostics)
+		@param[in] format_t the current format_t (for diagnostics)
 		@param[in] len number of characters to read
 		@param[out] result string created by reading @a len bytes
 
@@ -13090,7 +13090,7 @@ namespace detail
 		@brief create a byte array by reading bytes from the input
 
 		@tparam NumberType the type of the number
-		@param[in] format the current format (for diagnostics)
+		@param[in] format_t the current format_t (for diagnostics)
 		@param[in] len number of bytes to read
 		@param[out] result byte array created by reading @a len bytes
 
@@ -13117,7 +13117,7 @@ namespace detail
 		}
 
 		/*!
-		@param[in] format   the current format (for diagnostics)
+		@param[in] format_t   the current format_t (for diagnostics)
 		@param[in] context  further context information (for diagnostics)
 		@return whether the last read character is not EOF
 		*/
@@ -13142,7 +13142,7 @@ namespace detail
 		}
 
 		/*!
-		@param[in] format   the current format
+		@param[in] format_t   the current format_t
 		@param[in] detail   a detailed error message
 		@param[in] context  further context information
 		@return a message string to use in the parse_error exceptions
@@ -13196,7 +13196,7 @@ namespace detail
 		/// whether we can assume little endianness
 		const bool is_little_endian = little_endianness();
 
-		/// input format
+		/// input format_t
 		const input_format_t input_format = input_format_t::json;
 
 		/// the SAX parser
@@ -16646,10 +16646,10 @@ namespace detail
 
 		/*!
 		@param[in] j  JSON value to serialize
-		@param[in] use_count   whether to use '#' prefixes (optimized format)
-		@param[in] use_type    whether to use '$' prefixes (optimized format)
+		@param[in] use_count   whether to use '#' prefixes (optimized format_t)
+		@param[in] use_type    whether to use '$' prefixes (optimized format_t)
 		@param[in] add_prefix  whether prefixes need to be used for this value
-		@param[in] use_bjdata  whether write in BJData format, default is false
+		@param[in] use_bjdata  whether write in BJData format_t, default is false
 		@param[in] bjdata_version  which BJData version to use, default is draft2
 		*/
 		void write_ubjson(const BasicJsonType& j, const bool use_count, const bool use_type, const bool add_prefix = true, const bool use_bjdata = false, const bjdata_version_t bjdata_version = bjdata_version_t::draft2)
@@ -16785,7 +16785,7 @@ namespace detail
 				if (use_bjdata && j.m_data.m_value.object->size() == 3 && j.m_data.m_value.object->find("_ArrayType_") != j.m_data.m_value.object->end() && j.m_data.m_value.object->find("_ArraySize_") != j.m_data.m_value.object->end() &&
 					j.m_data.m_value.object->find("_ArrayData_") != j.m_data.m_value.object->end())
 				{
-					if (!write_bjdata_ndarray(*j.m_data.m_value.object, use_count, use_type, bjdata_version)) // decode bjdata ndarray in the JData format (https://github.com/NeuroJSON/jdata)
+					if (!write_bjdata_ndarray(*j.m_data.m_value.object, use_count, use_type, bjdata_version)) // decode bjdata ndarray in the JData format_t (https://github.com/NeuroJSON/jdata)
 					{
 						break;
 					}
@@ -18680,8 +18680,8 @@ namespace detail
 	/*!
 	@brief generates a decimal representation of the floating-point number value in [first, last).
 
-	The format of the resulting decimal representation is similar to printf's %g
-	format. Returns an iterator pointing past-the-end of the decimal representation.
+	The format_t of the resulting decimal representation is similar to printf's %g
+	format_t. Returns an iterator pointing past-the-end of the decimal representation.
 
 	@note The input number must be finite, i.e. NaN's and Inf's are not supported.
 	@note The buffer must be large enough.
@@ -18811,7 +18811,7 @@ namespace detail
 
 		- strings and object keys are escaped using `escape_string()`
 		- integer numbers are converted implicitly via `operator<<`
-		- floating-point numbers are converted to a string using `"%g"` format
+		- floating-point numbers are converted to a string using `"%g"` format_t
 		- binary values are serialized as objects containing the subtype and the
 		  byte array
 
@@ -24114,7 +24114,7 @@ public:
 		binary_writer<char>(o).write_bson(j);
 	}
 
-	/// @brief create a JSON value from an input in CBOR format
+	/// @brief create a JSON value from an input in CBOR format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_cbor/
 	template <typename InputType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_cbor(InputType&& i, const bool strict = true, const bool allow_exceptions = true, const cbor_tag_handler_t tag_handler = cbor_tag_handler_t::error)
 	{
@@ -24125,7 +24125,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in CBOR format
+	/// @brief create a JSON value from an input in CBOR format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_cbor/
 	template <typename IteratorType>
 	JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_cbor(IteratorType first, IteratorType last, const bool strict = true, const bool allow_exceptions = true, const cbor_tag_handler_t tag_handler = cbor_tag_handler_t::error)
@@ -24156,7 +24156,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in MessagePack format
+	/// @brief create a JSON value from an input in MessagePack format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_msgpack/
 	template <typename InputType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_msgpack(InputType&& i, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24167,7 +24167,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in MessagePack format
+	/// @brief create a JSON value from an input in MessagePack format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_msgpack/
 	template <typename IteratorType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_msgpack(IteratorType first, IteratorType last, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24195,7 +24195,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in UBJSON format
+	/// @brief create a JSON value from an input in UBJSON format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_ubjson/
 	template <typename InputType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_ubjson(InputType&& i, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24206,7 +24206,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in UBJSON format
+	/// @brief create a JSON value from an input in UBJSON format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_ubjson/
 	template <typename IteratorType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_ubjson(IteratorType first, IteratorType last, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24234,7 +24234,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in BJData format
+	/// @brief create a JSON value from an input in BJData format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_bjdata/
 	template <typename InputType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_bjdata(InputType&& i, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24245,7 +24245,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in BJData format
+	/// @brief create a JSON value from an input in BJData format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_bjdata/
 	template <typename IteratorType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_bjdata(IteratorType first, IteratorType last, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24256,7 +24256,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in BSON format
+	/// @brief create a JSON value from an input in BSON format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_bson/
 	template <typename InputType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_bson(InputType&& i, const bool strict = true, const bool allow_exceptions = true)
 	{
@@ -24267,7 +24267,7 @@ public:
 		return res ? result : basic_json(value_t::discarded);
 	}
 
-	/// @brief create a JSON value from an input in BSON format
+	/// @brief create a JSON value from an input in BSON format_t
 	/// @sa https://json.nlohmann.me/api/basic_json/from_bson/
 	template <typename IteratorType> JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json from_bson(IteratorType first, IteratorType last, const bool strict = true, const bool allow_exceptions = true)
 	{

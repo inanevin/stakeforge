@@ -758,7 +758,7 @@ namespace tinygltf
 		std::string extras_json_string;
 		std::string extensions_json_string;
 
-		// When this flag is true, data is stored to `image` in as-is format(e.g. jpeg
+		// When this flag is true, data is stored to `image` in as-is format_t(e.g. jpeg
 		// compressed for "image/jpeg" mime) This feature is good if you use custom
 		// image loader function. (e.g. delayed decoding of images for faster glTF
 		// parsing).
@@ -2748,7 +2748,7 @@ namespace tinygltf
 			std::string* msgOut = option.as_is ? warn : err;
 			if (msgOut)
 			{
-				(*msgOut) += "Unknown image format. STB cannot decode image header for image[" + std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
+				(*msgOut) += "Unknown image format_t. STB cannot decode image header for image[" + std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
 			}
 			if (!option.as_is)
 			{
@@ -2799,7 +2799,7 @@ namespace tinygltf
 				{
 					if (err)
 					{
-						(*err) += "Unknown image format. STB cannot decode image data for image[" + std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
+						(*err) += "Unknown image format_t. STB cannot decode image data for image[" + std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
 					}
 					return false;
 				}
@@ -2919,7 +2919,7 @@ namespace tinygltf
 			{
 				if ((image->bits != 8) || (image->pixel_type != TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE))
 				{
-					// Unsupported pixel format
+					// Unsupported pixel format_t
 					return false;
 				}
 
@@ -2948,7 +2948,7 @@ namespace tinygltf
 		}
 		else if (!embedImages)
 		{
-			// Error: can't output requested format to file
+			// Error: can't output requested format_t to file
 			return false;
 		}
 
@@ -7361,7 +7361,7 @@ namespace tinygltf
 		}
 
 		if ((header_and_json_size > uint64_t(size)) || (chunk0_length < 1) || (length > size) || (header_and_json_size > uint64_t(length)) || (chunk0_format != 0x4E4F534A))
-		{ // 0x4E4F534A = JSON format.
+		{ // 0x4E4F534A = JSON format_t.
 			if (err)
 			{
 				(*err) = "Invalid glTF binary.";

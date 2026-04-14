@@ -48,7 +48,7 @@ device when miniaudio tells you to. Data is delivered to and from devices asynch
 callback which you specify when initializing the device.
 
 When initializing the device you first need to configure it. The device configuration allows you to
-specify things like the format of the data delivered via the callback, the size of the internal
+specify things like the format_t of the data delivered via the callback, the size of the internal
 buffer and the ID of the device you want to emit or capture audio from.
 
 Once you have the device configuration set up you can initialize the device. When initializing a
@@ -67,7 +67,7 @@ device on the stack, but you could allocate it on the heap if that suits your si
     int main()
     {
         ma_device_config config = ma_device_config_init(ma_device_type_playback);
-        config.playback.format   = ma_format_f32;   // Set to ma_format_unknown to use the device's native format.
+        config.playback.format_t   = ma_format_f32;   // Set to ma_format_unknown to use the device's native format_t.
         config.playback.channels = 2;               // Set to 0 to use the device's native channel count.
         config.sampleRate        = 48000;           // Set to 0 to use the device's native sample rate.
         config.dataCallback      = data_callback;   // This function will be called when miniaudio needs more data.
@@ -94,7 +94,7 @@ buffer (`pInput`) to extract sound captured by the microphone. The `frameCount` 
 how many frames can be written to the output buffer and read from the input buffer. A "frame" is
 one sample for each channel. For example, in a stereo stream (2 channels), one frame is 2
 samples: one for the left, one for the right. The channel count is defined by the device config.
-The size in bytes of an individual sample is defined by the sample format which is also specified
+The size in bytes of an individual sample is defined by the sample format_t which is also specified
 in the device config. Multi-channel audio data is always interleaved, which means the samples for
 each frame are stored next to each other in memory. For example, in a stereo stream the first pair
 of samples will be the left and right samples for the first frame, the second pair of samples will
@@ -106,8 +106,8 @@ config with this function as it initializes it with logical defaults and ensures
 doesn't break when new members are added to the `ma_device_config` structure. The example above
 uses a fairly simple and standard device configuration. The call to `ma_device_config_init()` takes
 a single parameter, which is whether or not the device is a playback, capture, duplex or loopback
-device (loopback devices are not supported on all backends). The `config.playback.format` member
-sets the sample format which can be one of the following (all formats are native-endian):
+device (loopback devices are not supported on all backends). The `config.playback.format_t` member
+sets the sample format_t which can be one of the following (all formats are native-endian):
 
     +---------------+----------------------------------------+---------------------------+
     | Symbol        | Description                            | Range                     |
@@ -125,11 +125,11 @@ channel count cannot exceed MA_MAX_CHANNELS. The `config.sampleRate` member sets
 usually set to 44100 or 48000, but can be set to anything. It's recommended to keep this between
 8000 and 384000, however.
 
-Note that leaving the format, channel count and/or sample rate at their default values will result
+Note that leaving the format_t, channel count and/or sample rate at their default values will result
 in the internal device's native configuration being used which is useful if you want to avoid the
 overhead of miniaudio's automatic data conversion.
 
-In addition to the sample format, channel count and sample rate, the data callback and user data
+In addition to the sample format_t, channel count and sample rate, the data callback and user data
 pointer are also set via the config. The user data pointer is not passed into the callback as a
 parameter, but is instead set to the `pUserData` member of `ma_device` which you can access
 directly since all miniaudio structures are transparent.
@@ -163,7 +163,7 @@ same for capture. All you need to do is change the device type from `ma_device_t
 
     ```c
     ma_device_config config = ma_device_config_init(ma_device_type_capture);
-    config.capture.format   = MY_FORMAT;
+    config.capture.format_t   = MY_FORMAT;
     config.capture.channels = MY_CHANNEL_COUNT;
     ```
 
@@ -182,7 +182,7 @@ These are the available device types and how you should handle the buffers in th
     | ma_device_type_loopback | Read from input buffer, leave output buffer untouched. |
     +-------------------------+--------------------------------------------------------+
 
-You will notice in the example above that the sample format and channel count is specified
+You will notice in the example above that the sample format_t and channel count is specified
 separately for playback and capture. This is to support different data formats between the playback
 and capture devices in a full-duplex system. An example may be that you want to capture audio data
 as a monaural stream (one channel), but output sound to a stereo speaker system. Note that if you
@@ -228,7 +228,7 @@ enumerating devices. The example below shows how to enumerate devices.
 
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.pDeviceID = &pPlaybackInfos[chosenPlaybackDeviceIndex].id;
-    config.playback.format    = MY_FORMAT;
+    config.playback.format_t    = MY_FORMAT;
     config.playback.channels  = MY_CHANNEL_COUNT;
     config.sampleRate         = MY_SAMPLE_RATE;
     config.dataCallback       = data_callback;
@@ -725,7 +725,7 @@ uses each term.
 
 3.1. Sample
 -----------
-A sample is a single unit of audio data. If the sample format is f32, then one sample is one 32-bit
+A sample is a single unit of audio data. If the sample format_t is f32, then one sample is one 32-bit
 floating point number.
 
 3.2. Frame / PCM Frame
@@ -849,22 +849,22 @@ The current position of the cursor in PCM frames can also be retrieved:
     }
     ```
 
-You will often need to know the data format that will be returned after reading. This can be
+You will often need to know the data format_t that will be returned after reading. This can be
 retrieved like so:
 
     ```c
-    ma_format format;
+    ma_format format_t;
     ma_uint32 channels;
     ma_uint32 sampleRate;
     ma_channel channelMap[MA_MAX_CHANNELS];
 
-    result = ma_data_source_get_data_format(pDataSource, &format, &channels, &sampleRate, channelMap, MA_MAX_CHANNELS);
+    result = ma_data_source_get_data_format(pDataSource, &format_t, &channels, &sampleRate, channelMap, MA_MAX_CHANNELS);
     if (result != MA_SUCCESS) {
-        return result;  // Failed to retrieve data format.
+        return result;  // Failed to retrieve data format_t.
     }
     ```
 
-If you do not need a specific data format property, just pass in NULL to the respective parameter.
+If you do not need a specific data format_t property, just pass in NULL to the respective parameter.
 
 There may be cases where you want to implement something like a sound bank where you only want to
 read data within a certain range of the underlying data. To do this you can use a range:
@@ -955,7 +955,7 @@ base object (`ma_data_source_base`):
     ```c
     static ma_result my_data_source_read(ma_data_source* pDataSource, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead)
     {
-        // Read data here. Output in the same format returned by my_data_source_get_data_format().
+        // Read data here. Output in the same format_t returned by my_data_source_get_data_format().
     }
 
     static ma_result my_data_source_seek(ma_data_source* pDataSource, ma_uint64 frameIndex)
@@ -965,7 +965,7 @@ base object (`ma_data_source_base`):
 
     static ma_result my_data_source_get_data_format(ma_data_source* pDataSource, ma_format* pFormat, ma_uint32* pChannels, ma_uint32* pSampleRate, ma_channel* pChannelMap, size_t channelMapCap)
     {
-        // Return the format of the data here.
+        // Return the format_t of the data here.
     }
 
     static ma_result my_data_source_get_cursor(ma_data_source* pDataSource, ma_uint64* pCursor)
@@ -1252,7 +1252,7 @@ what a `ma_sound_group` is.
 
 When loading a sound, you specify a set of flags that control how the sound is loaded and what
 features are enabled for that sound. When no flags are set, the sound will be fully loaded into
-memory in exactly the same format as how it's stored on the file system. The resource manager will
+memory in exactly the same format_t as how it's stored on the file system. The resource manager will
 allocate a block of memory and then load the file directly into it. When reading audio data, it
 will be decoded dynamically on the fly. In order to save processing time on the audio thread, it
 might be beneficial to pre-decode the sound. You can do this with the `MA_SOUND_FLAG_DECODE` flag:
@@ -1507,7 +1507,7 @@ source, mainly for convenience:
 
     ```c
     ma_sound_seek_to_pcm_frame(&sound, frameIndex);
-    ma_sound_get_data_format(&sound, &format, &channels, &sampleRate, pChannelMap, channelMapCapacity);
+    ma_sound_get_data_format(&sound, &format_t, &channels, &sampleRate, pChannelMap, channelMapCapacity);
     ma_sound_get_cursor_in_pcm_frames(&sound, &cursor);
     ma_sound_get_length_in_pcm_frames(&sound, &length);
     ```
@@ -1517,7 +1517,7 @@ not have any notion of a data source, anything relating to a data source is unav
 
 Internally, sound data is loaded via the `ma_decoder` API which means by default it only supports
 file formats that have built-in support in miniaudio. You can extend this to support any kind of
-file format through the use of custom decoders. To do this you'll need to use a self-managed
+file format_t through the use of custom decoders. To do this you'll need to use a self-managed
 resource manager and configure it appropriately. See the "Resource Management" section below for
 details on how to set this up.
 
@@ -1554,22 +1554,22 @@ The example below is how you can initialize a resource manager using it's defaul
     }
     ```
 
-You can configure the format, channels and sample rate of the decoded audio data. By default it
-will use the file's native data format, but you can configure it to use a consistent format. This
+You can configure the format_t, channels and sample rate of the decoded audio data. By default it
+will use the file's native data format_t, but you can configure it to use a consistent format_t. This
 is useful for offloading the cost of data conversion to load time rather than dynamically
-converting at mixing time. To do this, you configure the decoded format, channels and sample rate
+converting at mixing time. To do this, you configure the decoded format_t, channels and sample rate
 like the code below:
 
     ```c
     config = ma_resource_manager_config_init();
-    config.decodedFormat     = device.playback.format;
+    config.decodedFormat     = device.playback.format_t;
     config.decodedChannels   = device.playback.channels;
     config.decodedSampleRate = device.sampleRate;
     ```
 
 In the code above, the resource manager will be configured so that any decoded audio data will be
-pre-converted at load time to the device's native data format. If instead you used defaults and
-the data format of the file did not match the device's data format, you would need to convert the
+pre-converted at load time to the device's native data format_t. If instead you used defaults and
+the data format_t of the file did not match the device's data format_t, you would need to convert the
 data at mixing time which may be prohibitive in high-performance and large scale scenarios like
 games.
 
@@ -1592,7 +1592,7 @@ vtables into the resource manager config:
     resourceManagerConfig.pCustomDecodingBackendUserData = NULL;
     ```
 
-This system can allow you to support any kind of file format. See the "Decoding" section for
+This system can allow you to support any kind of file format_t. See the "Decoding" section for
 details on how to implement custom decoders. The miniaudio repository includes examples for Opus
 via libopus and libopusfile and Vorbis via libvorbis and libvorbisfile.
 
@@ -1737,7 +1737,7 @@ matched up with a call to `ma_resource_manager_data_source_uninit()`. Sometimes 
 for a program to register self-managed raw audio data and associate it with a file path. Use the
 `ma_resource_manager_register_*()` and `ma_resource_manager_unregister_*()` APIs to do this.
 `ma_resource_manager_register_decoded_data()` is used to associate a pointer to raw, self-managed
-decoded audio data in the specified data format with the specified name. Likewise,
+decoded audio data in the specified data format_t with the specified name. Likewise,
 `ma_resource_manager_register_encoded_data()` is used to associate a pointer to raw self-managed
 encoded audio data (the raw file data) with the specified name. Note that these names need not be
 actual file paths. When `ma_resource_manager_data_source_init()` is called (without the
@@ -1770,7 +1770,7 @@ for sounds on an individual basis. There are two stages to loading a sound:
   * Completion of decoding of the file (the file is fully decoded)
 
 You can specify separate fences for each of the different stages. Waiting for the initialization
-of the internal decoder is important for when you need to know the sample format, channels and
+of the internal decoder is important for when you need to know the sample format_t, channels and
 sample rate of the file.
 
 The example below shows how you could use a fence when loading a number of sounds:
@@ -2101,7 +2101,7 @@ on. At the start of the graph there will be some kind of data source node which 
 inputs and will instead read directly from a data source. The base nodes don't literally need to
 read from a `ma_data_source` object, but they will always have some kind of underlying object that
 sources some kind of audio. The `ma_data_source_node` node can be used to read from a
-`ma_data_source`. Data is always in floating-point format and in the number of channels you
+`ma_data_source`. Data is always in floating-point format_t and in the number of channels you
 specified when the graph was initialized. The sample rate is defined by the underlying data sources.
 It's up to you to ensure they use a consistent and appropriate sample rate.
 
@@ -2537,14 +2537,14 @@ an example for loading a decoder from a file:
     ```
 
 When initializing a decoder, you can optionally pass in a pointer to a `ma_decoder_config` object
-(the `NULL` argument in the example above) which allows you to configure the output format, channel
+(the `NULL` argument in the example above) which allows you to configure the output format_t, channel
 count, sample rate and channel map:
 
     ```c
     ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 2, 48000);
     ```
 
-When passing in `NULL` for decoder config in `ma_decoder_init*()`, the output format will be the
+When passing in `NULL` for decoder config in `ma_decoder_init*()`, the output format_t will be the
 same as that defined by the decoding backend.
 
 Data is read from the decoder as PCM frames. This will output the number of PCM frames actually
@@ -2575,7 +2575,7 @@ If you want to loop back to the start, you can simply seek back to the first PCM
 
 When loading a decoder, miniaudio uses a trial and error technique to find the appropriate decoding
 backend. This can be unnecessarily inefficient if the type is already known. In this case you can
-use `encodingFormat` variable in the device config to specify a specific encoding format you want
+use `encodingFormat` variable in the device config to specify a specific encoding format_t you want
 to decode:
 
     ```c
@@ -2591,7 +2591,7 @@ backend to prefer.
 8.1. Custom Decoders
 --------------------
 It's possible to implement a custom decoder and plug it into miniaudio. This is extremely useful
-when you want to use the `ma_decoder` API, but need to support an encoding format that's not one of
+when you want to use the `ma_decoder` API, but need to support an encoding format_t that's not one of
 the stock formats supported by miniaudio. This can be put to particularly good use when using the
 `ma_engine` and/or `ma_resource_manager` APIs because they use `ma_decoder` internally. If, for
 example, you wanted to support Opus, you can do so with a custom decoder (there if a reference
@@ -2659,7 +2659,7 @@ opportunity to clean up and internal data.
 
 9. Encoding
 ===========
-The `ma_encoding` API is used for writing audio files. The only supported output format is WAV.
+The `ma_encoding` API is used for writing audio files. The only supported output format_t is WAV.
 This can be disabled by specifying the following option before the implementation of miniaudio:
 
     ```c
@@ -2684,7 +2684,7 @@ to output to a file.
     ```
 
 When initializing an encoder you must specify a config which is initialized with
-`ma_encoder_config_init()`. Here you must specify the file type, the output sample format, output
+`ma_encoder_config_init()`. Here you must specify the file type, the output sample format_t, output
 channel count and output sample rate. The following file types are supported:
 
     +------------------------+-------------+
@@ -2693,7 +2693,7 @@ channel count and output sample rate. The following file types are supported:
     | ma_encoding_format_wav | WAV         |
     +------------------------+-------------+
 
-If the format, channel count or sample rate is not supported by the output file type an error will
+If the format_t, channel count or sample rate is not supported by the output file type an error will
 be returned. The encoder will not perform data conversion so you will need to convert it before
 outputting any audio data. To output audio data, use `ma_encoder_write_pcm_frames()`, like in the
 example below:
@@ -2770,7 +2770,7 @@ initializing a simple channel converter which converts from mono to stereo.
 
     ```c
     ma_channel_converter_config config = ma_channel_converter_config_init(
-        ma_format,                      // Sample format
+        ma_format,                      // Sample format_t
         1,                              // Input channels
         NULL,                           // Input channel map
         2,                              // Output channels
@@ -2941,12 +2941,12 @@ The following example shows how data can be processed
     ```
 
 To initialize the resampler you first need to set up a config (`ma_resampler_config`) with
-`ma_resampler_config_init()`. You need to specify the sample format you want to use, the number of
+`ma_resampler_config_init()`. You need to specify the sample format_t you want to use, the number of
 channels, the input and output sample rate, and the algorithm.
 
-The sample format can be either `ma_format_s16` or `ma_format_f32`. If you need a different format
-you will need to perform pre- and post-conversions yourself where necessary. Note that the format
-is the same for both input and output. The format cannot be changed after initialization.
+The sample format_t can be either `ma_format_s16` or `ma_format_f32`. If you need a different format_t
+you will need to perform pre- and post-conversions yourself where necessary. Note that the format_t
+is the same for both input and output. The format_t cannot be changed after initialization.
 
 The resampler supports multiple channels and is always interleaved (both input and output). The
 channel count cannot be changed after initialization.
@@ -3057,9 +3057,9 @@ are optional and can be set to NULL if you're unable to implement them.
 
 10.4. General Data Conversion
 -----------------------------
-The `ma_data_converter` API can be used to wrap sample format conversion, channel conversion and
-resampling into one operation. This is what miniaudio uses internally to convert between the format
-requested when the device was initialized and the format of the backend's native device. The API
+The `ma_data_converter` API can be used to wrap sample format_t conversion, channel conversion and
+resampling into one operation. This is what miniaudio uses internally to convert between the format_t
+requested when the device was initialized and the format_t of the backend's native device. The API
 for general data conversion is very similar to the resampling API. Create a `ma_data_converter`
 object like this:
 
@@ -3170,7 +3170,7 @@ Biquad filtering is implemented using transposed direct form 2. The numerator co
 b1 and b2, and the denominator coefficients are a0, a1 and a2. The a0 coefficient is required and
 coefficients must not be pre-normalized.
 
-Supported formats are `ma_format_s16` and `ma_format_f32`. If you need to use a different format
+Supported formats are `ma_format_s16` and `ma_format_f32`. If you need to use a different format_t
 you need to convert it yourself beforehand. When using `ma_format_s16` the biquad filter will use
 fixed point arithmetic. When using `ma_format_f32`, floating point arithmetic will be used.
 
@@ -3187,7 +3187,7 @@ If you need to change the values of the coefficients, but maintain the values in
 can do so with `ma_biquad_reinit()`. This is useful if you need to change the properties of the
 filter while keeping the values of registers valid to avoid glitching. Do not use
 `ma_biquad_init()` for this as it will do a full initialization which involves clearing the
-registers to 0. Note that changing the format or channel count after initialization is invalid and
+registers to 0. Note that changing the format_t or channel count after initialization is invalid and
 will result in an error.
 
 
@@ -3217,7 +3217,7 @@ Low-pass filter example:
     ma_lpf_process_pcm_frames(&lpf, pFramesOut, pFramesIn, frameCount);
     ```
 
-Supported formats are `ma_format_s16` and` ma_format_f32`. If you need to use a different format
+Supported formats are `ma_format_s16` and` ma_format_f32`. If you need to use a different format_t
 you need to convert it yourself beforehand. Input and output frames are always interleaved.
 
 Filtering can be applied in-place by passing in the same pointer for both the input and output
@@ -3239,7 +3239,7 @@ you can chain first and second order filters together.
 If you need to change the configuration of the filter, but need to maintain the state of internal
 registers you can do so with `ma_lpf_reinit()`. This may be useful if you need to change the sample
 rate and/or cutoff frequency dynamically while maintaining smooth transitions. Note that changing the
-format or channel count after initialization is invalid and will result in an error.
+format_t or channel count after initialization is invalid and will result in an error.
 
 The `ma_lpf` object supports a configurable order, but if you only need a first order filter you
 may want to consider using `ma_lpf1`. Likewise, if you only need a second order filter you can use
@@ -3444,7 +3444,7 @@ Audio buffers are initialized using the standard configuration system used every
 
     ```c
     ma_audio_buffer_config config = ma_audio_buffer_config_init(
-        format,
+        format_t,
         channels,
         sizeInFrames,
         pExistingData,
@@ -3472,7 +3472,7 @@ immediately after the `ma_audio_buffer` structure. To do this, use
 
     ```c
     ma_audio_buffer_config config = ma_audio_buffer_config_init(
-        format,
+        format_t,
         channels,
         sizeInFrames,
         pExistingData,
@@ -3519,7 +3519,7 @@ output buffer. Instead you can use memory mapping to retrieve a pointer to a seg
     if (result == MA_SUCCESS) {
         // Map was successful. The value in frameCount will be how many frames were _actually_ mapped, which may be
         // less due to the end of the buffer being reached.
-        ma_copy_pcm_frames(pFramesOut, pMappedFrames, frameCount, pAudioBuffer->format, pAudioBuffer->channels);
+        ma_copy_pcm_frames(pFramesOut, pMappedFrames, frameCount, pAudioBuffer->format_t, pAudioBuffer->channels);
 
         // You must unmap the buffer.
         ma_audio_buffer_unmap(pAudioBuffer, frameCount);
@@ -3559,7 +3559,7 @@ you will want to use. To initialize a ring buffer, do something like the followi
     }
     ```
 
-The `ma_pcm_rb_init()` function takes the sample format and channel count as parameters because
+The `ma_pcm_rb_init()` function takes the sample format_t and channel count as parameters because
 it's the PCM variant of the ring buffer API. For the regular ring buffer that operates on bytes you
 would call `ma_rb_init()` which leaves these out and just takes the size of the buffer in bytes
 instead of frames. The fourth parameter is an optional pre-allocated buffer and the fifth parameter
@@ -4304,9 +4304,9 @@ typedef enum
     I like to keep these explicitly defined because they're used as a key into a lookup table. When items are
     added to this, make sure there are no gaps and that they're added to the lookup table in ma_get_bytes_per_sample().
     */
-    ma_format_unknown = 0,     /* Mainly used for indicating an error, but also used as the default for the output format for decoders. */
+    ma_format_unknown = 0,     /* Mainly used for indicating an error, but also used as the default for the output format_t for decoders. */
     ma_format_u8      = 1,
-    ma_format_s16     = 2,     /* Seems to be the most widely supported format. */
+    ma_format_s16     = 2,     /* Seems to be the most widely supported format_t. */
     ma_format_s24     = 3,     /* Tightly packed. 3 bytes per sample. */
     ma_format_s32     = 4,
     ma_format_f32     = 5,
@@ -4517,8 +4517,8 @@ Logging
 #include <stdarg.h> /* For va_list. */
 
 #if defined(__has_attribute)
-    #if __has_attribute(format)
-        #define MA_ATTRIBUTE_FORMAT(fmt, va) __attribute__((format(printf, fmt, va)))
+    #if __has_attribute(format_t)
+        #define MA_ATTRIBUTE_FORMAT(fmt, va) __attribute__((format_t(printf, fmt, va)))
     #endif
 #endif
 #ifndef MA_ATTRIBUTE_FORMAT
@@ -5317,7 +5317,7 @@ MA_API void ma_spatializer_get_relative_position_and_direction(const ma_spatiali
 DATA CONVERSION
 ===============
 
-This section contains the APIs for data conversion. You will find everything here for channel mapping, sample format conversion, resampling, etc.
+This section contains the APIs for data conversion. You will find everything here for channel mapping, sample format_t conversion, resampling, etc.
 
 *************************************************************************************************************************************************************
 ************************************************************************************************************************************************************/
@@ -5452,7 +5452,7 @@ MA_API void ma_resampler_uninit(ma_resampler* pResampler, const ma_allocation_ca
 /*
 Converts the given input data.
 
-Both the input and output frames must be in the format specified in the config when the resampler was initialized.
+Both the input and output frames must be in the format_t specified in the config when the resampler was initialized.
 
 On input, [pFrameCountOut] contains the number of output frames to process. On output it contains the number of output frames that
 were actually processed, which may be less than the requested amount which will happen if there's not enough input data. You can use
@@ -5614,7 +5614,7 @@ MA_API ma_data_converter_config ma_data_converter_config_init(ma_format formatIn
 typedef enum
 {
     ma_data_converter_execution_path_passthrough,       /* No conversion. */
-    ma_data_converter_execution_path_format_only,       /* Only format conversion. */
+    ma_data_converter_execution_path_format_only,       /* Only format_t conversion. */
     ma_data_converter_execution_path_channels_only,     /* Only channel conversion. */
     ma_data_converter_execution_path_resample_only,     /* Only resampling. */
     ma_data_converter_execution_path_resample_first,    /* All conversions, but resample as the first step. */
@@ -5812,7 +5812,7 @@ Conversion Helpers
 ************************************************************************************************************************************************************/
 
 /*
-High-level helper for doing a full format conversion in one go. Returns the number of output frames. Call this with pOut set to NULL to
+High-level helper for doing a full format_t conversion in one go. Returns the number of output frames. Call this with pOut set to NULL to
 determine the required size of the output buffer. frameCountOut should be set to the capacity of pOut. If pOut is NULL, frameCountOut is
 ignored.
 
@@ -6146,17 +6146,17 @@ Free's an aligned malloc'd buffer.
 MA_API void ma_aligned_free(void* p, const ma_allocation_callbacks* pAllocationCallbacks);
 
 /*
-Retrieves a friendly name for a format.
+Retrieves a friendly name for a format_t.
 */
 MA_API const char* ma_get_format_name(ma_format format);
 
 /*
-Blends two frames in floating point format.
+Blends two frames in floating point format_t.
 */
 MA_API void ma_blend_f32(float* pOut, float* pInA, float* pInB, float factor, ma_uint32 channels);
 
 /*
-Retrieves the size of a sample in bytes for the given format.
+Retrieves the size of a sample in bytes for the given format_t.
 
 This API is efficient and is implemented using a lookup table.
 
@@ -6450,7 +6450,7 @@ struct ma_job
                 char* pFilePath;
                 wchar_t* pFilePathW;
                 ma_uint32 flags;                                /* Resource manager data source flags that were used when initializing the data buffer. */
-                ma_async_notification* pInitNotification;       /* Signalled when the data buffer has been initialized and the format/channels/rate can be retrieved. */
+                ma_async_notification* pInitNotification;       /* Signalled when the data buffer has been initialized and the format_t/channels/rate can be retrieved. */
                 ma_async_notification* pDoneNotification;       /* Signalled when the data buffer has been fully decoded. Will be passed through to MA_JOB_TYPE_RESOURCE_MANAGER_PAGE_DATA_BUFFER_NODE when decoding. */
                 ma_fence* pInitFence;                           /* Released when initialization of the decoder is complete. */
                 ma_fence* pDoneFence;                           /* Released if initialization of the decoder fails. Passed through to PAGE_DATA_BUFFER_NODE untouched if init is successful. */
@@ -6474,9 +6474,9 @@ struct ma_job
             struct
             {
                 /*ma_resource_manager_data_buffer**/ void* pDataBuffer;
-                ma_async_notification* pInitNotification;       /* Signalled when the data buffer has been initialized and the format/channels/rate can be retrieved. */
+                ma_async_notification* pInitNotification;       /* Signalled when the data buffer has been initialized and the format_t/channels/rate can be retrieved. */
                 ma_async_notification* pDoneNotification;       /* Signalled when the data buffer has been fully decoded. */
-                ma_fence* pInitFence;                           /* Released when the data buffer has been initialized and the format/channels/rate can be retrieved. */
+                ma_fence* pInitFence;                           /* Released when the data buffer has been initialized and the format_t/channels/rate can be retrieved. */
                 ma_fence* pDoneFence;                           /* Released when the data buffer has been fully decoded. */
                 ma_uint64 rangeBegInPCMFrames;
                 ma_uint64 rangeEndInPCMFrames;
@@ -7092,7 +7092,7 @@ typedef struct
     ma_uint32 nativeDataFormatCount;
     struct
     {
-        ma_format format;       /* Sample format. If set to ma_format_unknown, all sample formats are supported. */
+        ma_format format;       /* Sample format_t. If set to ma_format_unknown, all sample formats are supported. */
         ma_uint32 channels;     /* If set to 0, all channels are supported. */
         ma_uint32 sampleRate;   /* If set to 0, all sample rates are supported. */
         ma_uint32 flags;        /* A combination of MA_DATA_FORMAT_FLAG_* flags. */
@@ -7108,7 +7108,7 @@ struct ma_device_config
     ma_uint32 periods;
     ma_performance_profile performanceProfile;
     ma_bool8 noPreSilencedOutputBuffer; /* When set to true, the contents of the output buffer passed into the data callback will be left undefined rather than initialized to silence. */
-    ma_bool8 noClip;                    /* When set to true, the contents of the output buffer passed into the data callback will not be clipped after returning. Only applies when the playback sample format is f32. */
+    ma_bool8 noClip;                    /* When set to true, the contents of the output buffer passed into the data callback will not be clipped after returning. Only applies when the playback sample format_t is f32. */
     ma_bool8 noDisableDenormals;        /* Do not disable denormals when firing the data callback. */
     ma_bool8 noFixedSizedCallback;      /* Disables strict fixed-sized data callbacks. Setting this to true will result in the period size being treated only as a hint to the backend. This is an optimization for those who don't need fixed sized callbacks. */
     ma_device_data_proc dataCallback;
@@ -7234,8 +7234,8 @@ The general flow goes like this:
   2) A device is created from the context that was created in the first step using `onDeviceInit()`, and optionally a device ID that was
      selected from device enumeration via `onContextEnumerateDevices()`.
   3) A device is started or stopped with `onDeviceStart()` / `onDeviceStop()`
-  4) Data is delivered to and from the device by the backend. This is always done based on the native format returned by the prior call
-     to `onDeviceInit()`. Conversion between the device's native format and the format requested by the application will be handled by
+  4) Data is delivered to and from the device by the backend. This is always done based on the native format_t returned by the prior call
+     to `onDeviceInit()`. Conversion between the device's native format_t and the format_t requested by the application will be handled by
      miniaudio internally.
 
 Initialization of the context is quite simple. You need to do any necessary initialization of internal objects and then output the
@@ -7252,12 +7252,12 @@ case when the device ID is NULL, in which case information about the default dev
 
 Once the context has been created and the device ID retrieved (if using anything other than the default device), the device can be created.
 This is a little bit more complicated than initialization of the context due to its more complicated configuration. When initializing a
-device, a duplex device may be requested. This means a separate data format needs to be specified for both playback and capture. On input,
-the data format is set to what the application wants. On output it's set to the native format which should match as closely as possible to
-the requested format. The conversion between the format requested by the application and the device's native format will be handled
+device, a duplex device may be requested. This means a separate data format_t needs to be specified for both playback and capture. On input,
+the data format_t is set to what the application wants. On output it's set to the native format_t which should match as closely as possible to
+the requested format_t. The conversion between the format_t requested by the application and the device's native format_t will be handled
 internally by miniaudio.
 
-On input, if the sample format is set to `ma_format_unknown`, the backend is free to use whatever sample format it desires, so long as it's
+On input, if the sample format_t is set to `ma_format_unknown`, the backend is free to use whatever sample format_t it desires, so long as it's
 supported by miniaudio. When the channel count is set to 0, the backend should use the device's native channel count. The same applies for
 sample rate. For the channel map, the default should be used when `ma_channel_map_is_blank()` returns true (all channels set to
 `MA_CHANNEL_NONE`). On input, the `periodSizeInFrames` or `periodSizeInMilliseconds` option should always be set. The backend should
@@ -7832,7 +7832,7 @@ struct ma_device
         void* pIntermediaryBuffer;          /* For implementing fixed sized buffer callbacks. Will be null if using variable sized callbacks. */
         ma_uint32 intermediaryBufferCap;
         ma_uint32 intermediaryBufferLen;    /* How many valid frames are sitting in the intermediary buffer. */
-        void* pInputCache;                  /* In external format. Can be null. */
+        void* pInputCache;                  /* In external format_t. Can be null. */
         ma_uint64 inputCacheCap;
         ma_uint64 inputCacheConsumed;
         ma_uint64 inputCacheRemaining;
@@ -8586,7 +8586,7 @@ Safe, but don't try initializing a device in a callback.
 Remarks
 -------
 The returned config will be initialized to defaults. You will normally want to customize a few variables before initializing the device. See Example 1 for a
-typical configuration which sets the sample format, channel count, sample rate, data callback and user data. These are usually things you will want to change
+typical configuration which sets the sample format_t, channel count, sample rate, data callback and user data. These are usually things you will want to change
 before initializing the device.
 
 See `ma_device_init()` for details on specific configuration options.
@@ -8600,7 +8600,7 @@ to the `ma_device_config` structure.
 
 ```c
 ma_device_config config = ma_device_config_init(ma_device_type_playback);
-config.playback.format   = ma_format_f32;
+config.playback.format_t   = ma_format_f32;
 config.playback.channels = 2;
 config.sampleRate        = 48000;
 config.dataCallback      = ma_data_callback;
@@ -8631,9 +8631,9 @@ miniaudio's defaults should work fine for most scenarios. If you're building a g
 media player you can make it larger. Note that the period size you request is actually just a hint - miniaudio will tell the backend what you want, but the
 backend is ultimately responsible for what it gives you. You cannot assume you will get exactly what you ask for.
 
-When delivering data to and from a device you need to make sure it's in the correct format which you can set through the device configuration. You just set the
-format that you want to use and miniaudio will perform all of the necessary conversion for you internally. When delivering data to and from the callback you
-can assume the format is the same as what you requested when you initialized the device. See Remarks for more details on miniaudio's data conversion pipeline.
+When delivering data to and from a device you need to make sure it's in the correct format_t which you can set through the device configuration. You just set the
+format_t that you want to use and miniaudio will perform all of the necessary conversion for you internally. When delivering data to and from the callback you
+can assume the format_t is the same as what you requested when you initialized the device. See Remarks for more details on miniaudio's data conversion pipeline.
 
 
 Parameters
@@ -8708,7 +8708,7 @@ then be set directly on the structure. Below are the members of the `ma_device_c
     noClip
         When set to true, the contents of the output buffer are left alone after returning and it will be left up to the backend itself to decide whether or
         not to clip. When set to false (default), the contents of the output buffer passed into the data callback will be clipped after returning. This only
-        applies when the playback sample format is f32.
+        applies when the playback sample format_t is f32.
 
     noDisableDenormals
         By default, miniaudio will disable denormals when the data callback is called. Setting this to true will prevent the disabling of denormals.
@@ -8746,9 +8746,9 @@ then be set directly on the structure. Below are the members of the `ma_device_c
         A pointer to a `ma_device_id` structure containing the ID of the playback device to initialize. Setting this NULL (default) will use the system's
         default playback device. Retrieve the device ID from the `ma_device_info` structure, which can be retrieved using device enumeration.
 
-    playback.format
-        The sample format to use for playback. When set to `ma_format_unknown` the device's native format will be used. This can be retrieved after
-        initialization from the device object directly with `device.playback.format`.
+    playback.format_t
+        The sample format_t to use for playback. When set to `ma_format_unknown` the device's native format_t will be used. This can be retrieved after
+        initialization from the device object directly with `device.playback.format_t`.
 
     playback.channels
         The number of channels to use for playback. When set to 0 the device's native channel count will be used. This can be retrieved after initialization
@@ -8767,9 +8767,9 @@ then be set directly on the structure. Below are the members of the `ma_device_c
         A pointer to a `ma_device_id` structure containing the ID of the capture device to initialize. Setting this NULL (default) will use the system's
         default capture device. Retrieve the device ID from the `ma_device_info` structure, which can be retrieved using device enumeration.
 
-    capture.format
-        The sample format to use for capture. When set to `ma_format_unknown` the device's native format will be used. This can be retrieved after
-        initialization from the device object directly with `device.capture.format`.
+    capture.format_t
+        The sample format_t to use for capture. When set to `ma_format_unknown` the device's native format_t will be used. This can be retrieved after
+        initialization from the device object directly with `device.capture.format_t`.
 
     capture.channels
         The number of channels to use for capture. When set to 0 the device's native channel count will be used. This can be retrieved after initialization
@@ -8801,7 +8801,7 @@ then be set directly on the structure. Below are the members of the `ma_device_c
         ALSA only. When set to true, disables MMap mode. Defaults to false.
 
     alsa.noAutoFormat
-        ALSA only. When set to true, disables ALSA's automatic format conversion by including the SND_PCM_NO_AUTO_FORMAT flag. Defaults to false.
+        ALSA only. When set to true, disables ALSA's automatic format_t conversion by including the SND_PCM_NO_AUTO_FORMAT flag. Defaults to false.
 
     alsa.noAutoChannels
         ALSA only. When set to true, disables ALSA's automatic channel conversion by including the SND_PCM_NO_AUTO_CHANNELS flag. Defaults to false.
@@ -8864,9 +8864,9 @@ config) which is the most reliable option. Some backends do not have a practical
 for example) in which case it just acts as a hint. Unless you have special requirements you should try avoiding exclusive mode as it's intrusive to the user.
 Starting with Windows 10, miniaudio will use low-latency shared mode where possible which may make exclusive mode unnecessary.
 
-When sending or receiving data to/from a device, miniaudio will internally perform a format conversion to convert between the format specified by the config
-and the format used internally by the backend. If you pass in 0 for the sample format, channel count, sample rate _and_ channel map, data transmission will run
-on an optimized pass-through fast path. You can retrieve the format, channel count and sample rate by inspecting the `playback/capture.format`,
+When sending or receiving data to/from a device, miniaudio will internally perform a format_t conversion to convert between the format_t specified by the config
+and the format_t used internally by the backend. If you pass in 0 for the sample format_t, channel count, sample rate _and_ channel map, data transmission will run
+on an optimized pass-through fast path. You can retrieve the format_t, channel count and sample rate by inspecting the `playback/capture.format_t`,
 `playback/capture.channels` and `sampleRate` members of the device object.
 
 When compiling for UWP you must ensure you call this function on the main UI thread because the operating system may need to present the user with a message
@@ -8883,7 +8883,7 @@ playback device this is usually all you need.
 
 ```c
 ma_device_config config = ma_device_config_init(ma_device_type_playback);
-config.playback.format   = ma_format_f32;
+config.playback.format_t   = ma_format_f32;
 config.playback.channels = 2;
 config.sampleRate        = 48000;
 config.dataCallback      = ma_data_callback;
@@ -8921,7 +8921,7 @@ if (result != MA_SUCCESS) {
 
 ma_device_config config = ma_device_config_init(ma_device_type_playback);
 config.playback.pDeviceID       = pMyChosenDeviceID;    // <-- Get this from the `id` member of one of the `ma_device_info` objects returned by ma_context_get_devices().
-config.playback.format          = ma_format_f32;
+config.playback.format_t          = ma_format_f32;
 config.playback.channels        = 2;
 config.sampleRate               = 48000;
 config.dataCallback             = ma_data_callback;
@@ -9336,10 +9336,10 @@ deviceType [in]
     The type of the device that was just reinitialized.
 
 pPlaybackDescriptor [in]
-    The descriptor of the playback device containing the internal data format and buffer sizes.
+    The descriptor of the playback device containing the internal data format_t and buffer sizes.
 
 pPlaybackDescriptor [in]
-    The descriptor of the capture device containing the internal data format and buffer sizes.
+    The descriptor of the capture device containing the internal data format_t and buffer sizes.
 
 
 Return Value
@@ -9854,7 +9854,7 @@ MA_API float ma_volume_db_to_linear(float gain);
 
 
 /*
-Mixes the specified number of frames in floating point format with a volume factor.
+Mixes the specified number of frames in floating point format_t with a volume factor.
 
 This will run on an optimized path when the volume is equal to 1.
 */
@@ -9980,7 +9980,7 @@ typedef ma_result (* ma_decoder_tell_proc)(ma_decoder* pDecoder, ma_int64* pCurs
 
 typedef struct
 {
-    ma_format format;      /* Set to 0 or ma_format_unknown to use the stream's internal format. */
+    ma_format format;      /* Set to 0 or ma_format_unknown to use the stream's internal format_t. */
     ma_uint32 channels;    /* Set to 0 to use the stream's internal channels. */
     ma_uint32 sampleRate;  /* Set to 0 to use the stream's internal sample rate. */
     ma_channel* pChannelMap;
@@ -10010,7 +10010,7 @@ struct ma_decoder
     ma_uint32 outputChannels;
     ma_uint32 outputSampleRate;
     ma_data_converter converter;    /* Data conversion is achieved by running frames through this. */
-    void* pInputCache;              /* In input format. Can be null if it's not needed. */
+    void* pInputCache;              /* In input format_t. Can be null if it's not needed. */
     ma_uint64 inputCacheCap;        /* The capacity of the input cache. */
     ma_uint64 inputCacheConsumed;   /* The number of frames that have been consumed in the cache. Used for determining the next valid frame. */
     ma_uint64 inputCacheRemaining;  /* The number of valid frames remaining in the cache. */
@@ -10061,7 +10061,7 @@ This is not thread safe without your own synchronization.
 MA_API ma_result ma_decoder_seek_to_pcm_frame(ma_decoder* pDecoder, ma_uint64 frameIndex);
 
 /*
-Retrieves the decoder's output data format.
+Retrieves the decoder's output data format_t.
 */
 MA_API ma_result ma_decoder_get_data_format(ma_decoder* pDecoder, ma_format* pFormat, ma_uint32* pChannels, ma_uint32* pSampleRate, ma_channel* pChannelMap, size_t channelMapCap);
 
@@ -10113,7 +10113,7 @@ MA_API ma_result ma_decode_memory(const void* pData, size_t dataSize, ma_decoder
 Encoding
 ========
 
-Encoders do not perform any format conversion for you. If your target format does not support the format, and error will be returned.
+Encoders do not perform any format_t conversion for you. If your target format_t does not support the format_t, and error will be returned.
 
 ************************************************************************************************************************************************************/
 #ifndef MA_NO_ENCODING
@@ -10509,7 +10509,7 @@ typedef struct
 {
     ma_allocation_callbacks allocationCallbacks;
     ma_log* pLog;
-    ma_format decodedFormat;        /* The decoded format to use. Set to ma_format_unknown (default) to use the file's native format. */
+    ma_format decodedFormat;        /* The decoded format_t to use. Set to ma_format_unknown (default) to use the file's native format_t. */
     ma_uint32 decodedChannels;      /* The decoded channel count to use. Set to 0 (default) to use the file's native channel count. */
     ma_uint32 decodedSampleRate;    /* the decoded sample rate to use. Set to 0 (default) to use the file's native sample rate. */
     ma_uint32 jobThreadCount;       /* Set to 0 if you want to self-manage your job threads. Defaults to 1. */
@@ -12183,7 +12183,7 @@ int ma_android_sdk_version()
 #endif
 
 
-/* The default format when ma_format_unknown (0) is requested when initializing a device. */
+/* The default format_t when ma_format_unknown (0) is requested when initializing a device. */
 #ifndef MA_DEFAULT_FORMAT
 #define MA_DEFAULT_FORMAT                                   ma_format_f32
 #endif
@@ -13758,16 +13758,16 @@ We need to emulate _vscprintf() for the VC6 build. This can be more efficient, b
 logging function, I'm happy to keep this simple. In the VC6 build we can implement this in terms of _vsnprintf().
 */
 #if defined(_MSC_VER) && _MSC_VER < 1900
-static int ma_vscprintf(const ma_allocation_callbacks* pAllocationCallbacks, const char* format, va_list args)
+static int ma_vscprintf(const ma_allocation_callbacks* pAllocationCallbacks, const char* format_t, va_list args)
 {
 #if _MSC_VER > 1200
-    return _vscprintf(format, args);
+    return _vscprintf(format_t, args);
 #else
     int result;
     char* pTempBuffer = NULL;
     size_t tempBufferCap = 1024;
 
-    if (format == NULL) {
+    if (format_t == NULL) {
         errno = EINVAL;
         return -1;
     }
@@ -13782,7 +13782,7 @@ static int ma_vscprintf(const ma_allocation_callbacks* pAllocationCallbacks, con
 
         pTempBuffer = pNewTempBuffer;
 
-        result = _vsnprintf(pTempBuffer, tempBufferCap, format, args);
+        result = _vsnprintf(pTempBuffer, tempBufferCap, format_t, args);
         ma_free(pTempBuffer, NULL);
 
         if (result != -1) {
@@ -20435,7 +20435,7 @@ static void ma_device__read_frames_from_client(ma_device* pDevice, ma_uint32 fra
             }
         } else {
             while (totalFramesReadOut < frameCount) {
-                ma_uint8 pIntermediaryBuffer[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In client format. */
+                ma_uint8 pIntermediaryBuffer[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In client format_t. */
                 ma_uint64 intermediaryBufferCap = sizeof(pIntermediaryBuffer) / ma_get_bytes_per_frame(pDevice->playback.format, pDevice->playback.channels);
                 ma_uint64 framesToReadThisIterationIn;
                 ma_uint64 framesReadThisIterationIn;
@@ -20457,7 +20457,7 @@ static void ma_device__read_frames_from_client(ma_device* pDevice, ma_uint32 fra
                 ma_device__handle_data_callback(pDevice, pIntermediaryBuffer, NULL, (ma_uint32)framesToReadThisIterationIn);
 
                 /*
-                At this point we have our decoded data in input format and now we need to convert to output format. Note that even if we didn't read any
+                At this point we have our decoded data in input format_t and now we need to convert to output format_t. Note that even if we didn't read any
                 input frames, we still want to try processing frames because there may some output frames generated from cached input data.
                 */
                 framesReadThisIterationIn  = framesToReadThisIterationIn;
@@ -20537,7 +20537,7 @@ static ma_result ma_device__handle_duplex_callback_capture(ma_device* pDevice, m
     MA_ASSERT(pFramesInDeviceFormat != NULL);
     MA_ASSERT(pRB != NULL);
 
-    /* Write to the ring buffer. The ring buffer is in the client format which means we need to convert. */
+    /* Write to the ring buffer. The ring buffer is in the client format_t which means we need to convert. */
     for (;;) {
         ma_uint32 framesToProcessInDeviceFormat = (frameCountInDeviceFormat - totalDeviceFramesProcessed);
         ma_uint32 framesToProcessInClientFormat = MA_DATA_CONVERTER_STACK_BUFFER_SIZE / ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels);
@@ -20596,7 +20596,7 @@ static ma_result ma_device__handle_duplex_callback_playback(ma_device* pDevice, 
     MA_ASSERT(pDevice->playback.pInputCache != NULL);
 
     /*
-    Sitting in the ring buffer should be captured data from the capture callback in external format. If there's not enough data in there for
+    Sitting in the ring buffer should be captured data from the capture callback in external format_t. If there's not enough data in there for
     the whole frameCount frames we just use silence instead for the input data.
     */
     MA_ZERO_MEMORY(silentInputFrames, sizeof(silentInputFrames));
@@ -20669,7 +20669,7 @@ MA_API ma_uint32 ma_get_format_priority_index(ma_format format) /* Lower = bette
         }
     }
 
-    /* Getting here means the format could not be found or is equal to ma_format_unknown. */
+    /* Getting here means the format_t could not be found or is equal to ma_format_unknown. */
     return (ma_uint32)-1;
 }
 
@@ -20753,7 +20753,7 @@ static ma_result ma_device_audio_thread__default_read_write(ma_device* pDevice)
                     capturedDeviceFramesRemaining = capturedDeviceFramesToProcess;
                     capturedDeviceFramesProcessed = 0;
 
-                    /* At this point we have our captured data in device format and we now need to convert it to client format. */
+                    /* At this point we have our captured data in device format_t and we now need to convert it to client format_t. */
                     for (;;) {
                         ma_uint8  capturedClientData[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];
                         ma_uint8  playbackClientData[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];
@@ -20763,7 +20763,7 @@ static ma_result ma_device_audio_thread__default_read_write(ma_device* pDevice)
                         ma_uint64 capturedDeviceFramesToProcessThisIteration = capturedDeviceFramesRemaining;
                         ma_uint8* pRunningCapturedDeviceFrames = ma_offset_ptr(capturedDeviceData, capturedDeviceFramesProcessed * ma_get_bytes_per_frame(pDevice->capture.internalFormat,  pDevice->capture.internalChannels));
 
-                        /* Convert capture data from device format to client format. */
+                        /* Convert capture data from device format_t to client format_t. */
                         result = ma_data_converter_process_pcm_frames(&pDevice->capture.converter, pRunningCapturedDeviceFrames, &capturedDeviceFramesToProcessThisIteration, capturedClientData, &capturedClientFramesToProcessThisIteration);
                         if (result != MA_SUCCESS) {
                             break;
@@ -22795,13 +22795,13 @@ static ma_result ma_context_get_device_info_from_IAudioClient__wasapi(ma_context
     if (SUCCEEDED(hr)) {
         ma_add_native_data_format_to_device_info_from_WAVEFORMATEX(pWF, ma_share_mode_shared, pInfo);
     } else {
-        ma_log_postf(ma_context_get_log(pContext), MA_LOG_LEVEL_ERROR, "[WASAPI] Failed to retrieve mix format for device info retrieval.");
+        ma_log_postf(ma_context_get_log(pContext), MA_LOG_LEVEL_ERROR, "[WASAPI] Failed to retrieve mix format_t for device info retrieval.");
         return ma_result_from_HRESULT(hr);
     }
 
     /*
     Exclusive Mode. We repeatedly call IsFormatSupported() here. This is not currently supported on
-    UWP. Failure to retrieve the exclusive mode format is not considered an error, so from here on
+    UWP. Failure to retrieve the exclusive mode format_t is not considered an error, so from here on
     out, MA_SUCCESS is guaranteed to be returned.
     */
     #if defined(MA_WIN32_DESKTOP) || defined(MA_WIN32_GDK)
@@ -22809,7 +22809,7 @@ static ma_result ma_context_get_device_info_from_IAudioClient__wasapi(ma_context
         ma_IPropertyStore *pProperties;
 
         /*
-        The first thing to do is get the format from PKEY_AudioEngine_DeviceFormat. This should give us a channel count we assume is
+        The first thing to do is get the format_t from PKEY_AudioEngine_DeviceFormat. This should give us a channel count we assume is
         correct which will simplify our searching.
         */
         hr = ma_IMMDevice_OpenPropertyStore((ma_IMMDevice*)pMMDevice, STGM_READ, &pProperties);
@@ -22822,17 +22822,17 @@ static ma_result ma_context_get_device_info_from_IAudioClient__wasapi(ma_context
                 pWF = (MA_WAVEFORMATEX*)var.blob.pBlobData;
 
                 /*
-                In my testing, the format returned by PKEY_AudioEngine_DeviceFormat is suitable for exclusive mode so we check this format
+                In my testing, the format_t returned by PKEY_AudioEngine_DeviceFormat is suitable for exclusive mode so we check this format_t
                 first. If this fails, fall back to a search.
                 */
                 hr = ma_IAudioClient_IsFormatSupported((ma_IAudioClient*)pAudioClient, MA_AUDCLNT_SHAREMODE_EXCLUSIVE, pWF, NULL);
                 if (SUCCEEDED(hr)) {
-                    /* The format returned by PKEY_AudioEngine_DeviceFormat is supported. */
+                    /* The format_t returned by PKEY_AudioEngine_DeviceFormat is supported. */
                     ma_add_native_data_format_to_device_info_from_WAVEFORMATEX(pWF, ma_share_mode_exclusive, pInfo);
                 } else {
                     /*
-                    The format returned by PKEY_AudioEngine_DeviceFormat is not supported, so fall back to a search. We assume the channel
-                    count returned by MA_PKEY_AudioEngine_DeviceFormat is valid and correct. For simplicity we're only returning one format.
+                    The format_t returned by PKEY_AudioEngine_DeviceFormat is not supported, so fall back to a search. We assume the channel
+                    count returned by MA_PKEY_AudioEngine_DeviceFormat is valid and correct. For simplicity we're only returning one format_t.
                     */
                     ma_uint32 channels = pWF->nChannels;
                     ma_channel defaultChannelMap[MA_MAX_CHANNELS];
@@ -22861,7 +22861,7 @@ static ma_result ma_context_get_device_info_from_IAudioClient__wasapi(ma_context
                         wf.wBitsPerSample       = (WORD)(ma_get_bytes_per_sample(format)*8);
                         wf.nBlockAlign          = (WORD)(wf.nChannels * wf.wBitsPerSample / 8);
                         wf.nAvgBytesPerSec      = wf.nBlockAlign * wf.nSamplesPerSec;
-                        wf.Samples.wValidBitsPerSample = /*(format == ma_format_s24_32) ? 24 :*/ wf.wBitsPerSample;
+                        wf.Samples.wValidBitsPerSample = /*(format_t == ma_format_s24_32) ? 24 :*/ wf.wBitsPerSample;
                         if (format == ma_format_f32) {
                             wf.SubFormat = MA_GUID_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
                         } else {
@@ -22887,11 +22887,11 @@ static ma_result ma_context_get_device_info_from_IAudioClient__wasapi(ma_context
                     ma_PropVariantClear(pContext, &var);
 
                     if (!found) {
-                        ma_log_postf(ma_context_get_log(pContext), MA_LOG_LEVEL_WARNING, "[WASAPI] Failed to find suitable device format for device info retrieval.");
+                        ma_log_postf(ma_context_get_log(pContext), MA_LOG_LEVEL_WARNING, "[WASAPI] Failed to find suitable device format_t for device info retrieval.");
                     }
                 }
             } else {
-                ma_log_postf(ma_context_get_log(pContext), MA_LOG_LEVEL_WARNING, "[WASAPI] Failed to retrieve device format for device info retrieval.");
+                ma_log_postf(ma_context_get_log(pContext), MA_LOG_LEVEL_WARNING, "[WASAPI] Failed to retrieve device format_t for device info retrieval.");
             }
 
             ma_IPropertyStore_Release(pProperties);
@@ -23059,7 +23059,7 @@ static ma_result ma_context_get_device_id_from_MMDevice__wasapi(ma_context* pCon
         size_t idlen = ma_strlen_WCHAR(pDeviceIDString);
         if (idlen+1 > ma_countof(pDeviceID->wasapi)) {
             ma_CoTaskMemFree(pContext, pDeviceIDString);
-            MA_ASSERT(MA_FALSE);  /* NOTE: If this is triggered, please report it. It means the format of the ID must have changed and is too long to fit in our fixed sized buffer. */
+            MA_ASSERT(MA_FALSE);  /* NOTE: If this is triggered, please report it. It means the format_t of the ID must have changed and is too long to fit in our fixed sized buffer. */
             return MA_ERROR;
         }
 
@@ -23652,11 +23652,11 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
         }
     }
 
-    /* Here is where we try to determine the best format to use with the device. If the client if wanting exclusive mode, first try finding the best format for that. If this fails, fall back to shared mode. */
+    /* Here is where we try to determine the best format_t to use with the device. If the client if wanting exclusive mode, first try finding the best format_t for that. If this fails, fall back to shared mode. */
     result = MA_FORMAT_NOT_SUPPORTED;
     if (pData->shareMode == ma_share_mode_exclusive) {
     #if defined(MA_WIN32_DESKTOP) || defined(MA_WIN32_GDK)
-        /* In exclusive mode on desktop we always use the backend's native format. */
+        /* In exclusive mode on desktop we always use the backend's native format_t. */
         ma_IPropertyStore* pStore = NULL;
         hr = ma_IMMDevice_OpenPropertyStore(pDeviceInterface, STGM_READ, &pStore);
         if (SUCCEEDED(hr)) {
@@ -23677,7 +23677,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
         }
     #else
         /*
-        I do not know how to query the device's native format on UWP so for now I'm just disabling support for
+        I do not know how to query the device's native format_t on UWP so for now I'm just disabling support for
         exclusive mode. The alternative is to enumerate over different formats and check IsFormatSupported()
         until you find one that works.
 
@@ -23693,7 +23693,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
             result = MA_SHARE_MODE_NOT_SUPPORTED;
         }
     } else {
-        /* In shared mode we are always using the format reported by the operating system. */
+        /* In shared mode we are always using the format_t reported by the operating system. */
         MA_WAVEFORMATEXTENSIBLE* pNativeFormat = NULL;
         hr = ma_IAudioClient_GetMixFormat((ma_IAudioClient*)pData->pAudioClient, (MA_WAVEFORMATEX**)&pNativeFormat);
         if (hr != S_OK) {
@@ -23714,7 +23714,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
         } else {
             /*
             I've seen cases where cbSize will be set to sizeof(WAVEFORMATEX) even though the structure itself
-            is given the format tag of WAVE_FORMAT_EXTENSIBLE. If the format tag is WAVE_FORMAT_EXTENSIBLE
+            is given the format_t tag of WAVE_FORMAT_EXTENSIBLE. If the format_t tag is WAVE_FORMAT_EXTENSIBLE
             want to make sure we copy the whole WAVEFORMATEXTENSIBLE structure. Otherwise we'll have to be
             safe and only copy the WAVEFORMATEX part.
             */
@@ -23743,9 +23743,9 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
         shareMode = MA_AUDCLNT_SHAREMODE_SHARED;
     }
 
-    /* Return an error if we still haven't found a format. */
+    /* Return an error if we still haven't found a format_t. */
     if (result != MA_SUCCESS) {
-        errorMsg = "[WASAPI] Failed to find best device mix format.";
+        errorMsg = "[WASAPI] Failed to find best device mix format_t.";
         goto done;
     }
 
@@ -23762,7 +23762,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
     pData->formatOut = ma_format_from_WAVEFORMATEX((MA_WAVEFORMATEX*)&wf);
     if (pData->formatOut == ma_format_unknown) {
         /*
-        The format isn't supported. This is almost certainly because the exclusive mode format isn't supported by miniaudio. We need to return MA_SHARE_MODE_NOT_SUPPORTED
+        The format_t isn't supported. This is almost certainly because the exclusive mode format_t isn't supported by miniaudio. We need to return MA_SHARE_MODE_NOT_SUPPORTED
         in this case so that the caller can detect it and fall back to shared mode if desired. We should never get here if shared mode was requested, but just for
         completeness we'll check for it and return MA_FORMAT_NOT_SUPPORTED.
         */
@@ -23772,7 +23772,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
             result = MA_FORMAT_NOT_SUPPORTED;
         }
 
-        errorMsg = "[WASAPI] Native format not supported.";
+        errorMsg = "[WASAPI] Native format_t not supported.";
         goto done;
     }
 
@@ -25959,7 +25959,7 @@ static ma_result ma_context_get_device_info__dsound(ma_context* pContext, ma_dev
         /*
         Capture. This is a little different to playback due to the say the supported formats are reported. Technically capture
         devices can support a number of different formats, but for simplicity and consistency with ma_device_init() I'm just
-        reporting the best format.
+        reporting the best format_t.
         */
         ma_IDirectSoundCapture* pDirectSoundCapture;
         WORD channels;
@@ -25979,7 +25979,7 @@ static ma_result ma_context_get_device_info__dsound(ma_context* pContext, ma_dev
 
         ma_IDirectSoundCapture_Release(pDirectSoundCapture);
 
-        /* The format is always an integer format and is based on the bits per sample. */
+        /* The format_t is always an integer format_t and is based on the bits per sample. */
         if (bitsPerSample == 8) {
             pDeviceInfo->nativeDataFormats[0].format = ma_format_u8;
         } else if (bitsPerSample == 16) {
@@ -26164,7 +26164,7 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
         hr = ma_IDirectSoundCaptureBuffer_GetFormat((ma_IDirectSoundCaptureBuffer*)pDevice->dsound.pCaptureBuffer, (MA_WAVEFORMATEX*)pActualFormat, sizeof(rawdata), NULL);
         if (FAILED(hr)) {
             ma_device_uninit__dsound(pDevice);
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] Failed to retrieve the actual format of the capture device's buffer.");
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] Failed to retrieve the actual format_t of the capture device's buffer.");
             return ma_result_from_HRESULT(hr);
         }
 
@@ -26181,7 +26181,7 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
         }
 
         /*
-        After getting the actual format the size of the buffer in frames may have actually changed. However, we want this to be as close to what the
+        After getting the actual format_t the size of the buffer in frames may have actually changed. However, we want this to be as close to what the
         user has asked for as possible, so let's go ahead and release the old capture buffer and create a new one in this case.
         */
         if (periodSizeInFrames != (descDS.dwBufferBytes / ma_get_bytes_per_frame(pDescriptorCapture->format, pDescriptorCapture->channels) / periodCount)) {
@@ -26235,7 +26235,7 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
         }
 
 
-        /* We may want to make some adjustments to the format if we are using defaults. */
+        /* We may want to make some adjustments to the format_t if we are using defaults. */
         MA_ZERO_OBJECT(&caps);
         caps.dwSize = sizeof(caps);
         hr = ma_IDirectSound_GetCaps((ma_IDirectSound*)pDevice->dsound.pPlayback, &caps);
@@ -26281,14 +26281,14 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
         /*
         From MSDN:
 
-        The method succeeds even if the hardware does not support the requested format; DirectSound sets the buffer to the closest
-        supported format. To determine whether this has happened, an application can call the GetFormat method for the primary buffer
-        and compare the result with the format that was requested with the SetFormat method.
+        The method succeeds even if the hardware does not support the requested format_t; DirectSound sets the buffer to the closest
+        supported format_t. To determine whether this has happened, an application can call the GetFormat method for the primary buffer
+        and compare the result with the format_t that was requested with the SetFormat method.
         */
         hr = ma_IDirectSoundBuffer_SetFormat((ma_IDirectSoundBuffer*)pDevice->dsound.pPlaybackPrimaryBuffer, (MA_WAVEFORMATEX*)&wf);
         if (FAILED(hr)) {
             /*
-            If setting of the format failed we'll try again with some fallback settings. On Windows 98 I have
+            If setting of the format_t failed we'll try again with some fallback settings. On Windows 98 I have
             observed that IEEE_FLOAT does not work. We'll therefore enforce PCM. I also had issues where a
             sample rate of 48000 did not work correctly. Not sure if it was a driver issue or not, but will
             use 44100 for the sample rate.
@@ -26304,7 +26304,7 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
             hr = ma_IDirectSoundBuffer_SetFormat((ma_IDirectSoundBuffer*)pDevice->dsound.pPlaybackPrimaryBuffer, (MA_WAVEFORMATEX*)&wf);
             if (FAILED(hr)) {
                 ma_device_uninit__dsound(pDevice);
-                ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] Failed to set format of playback device's primary buffer.");
+                ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] Failed to set format_t of playback device's primary buffer.");
                 return ma_result_from_HRESULT(hr);
             }
         }
@@ -26314,7 +26314,7 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
         hr = ma_IDirectSoundBuffer_GetFormat((ma_IDirectSoundBuffer*)pDevice->dsound.pPlaybackPrimaryBuffer, (MA_WAVEFORMATEX*)pActualFormat, sizeof(rawdata), NULL);
         if (FAILED(hr)) {
             ma_device_uninit__dsound(pDevice);
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] Failed to retrieve the actual format of the playback device's primary buffer.");
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] Failed to retrieve the actual format_t of the playback device's primary buffer.");
             return ma_result_from_HRESULT(hr);
         }
 
@@ -26484,7 +26484,7 @@ static ma_result ma_device_data_loop__dsound(ma_device* pDevice)
 
                     ma_device__handle_data_callback(pDevice, outputFramesInClientFormat, inputFramesInClientFormat, (ma_uint32)clientCapturedFramesToProcess);
 
-                    /* At this point we have input and output data in client format. All we need to do now is convert it to the output device format. This may take a few passes. */
+                    /* At this point we have input and output data in client format_t. All we need to do now is convert it to the output device format_t. This may take a few passes. */
                     for (;;) {
                         ma_uint32 framesWrittenThisIteration;
                         DWORD physicalPlayCursorInBytes;
@@ -27260,7 +27260,7 @@ static ma_result ma_context_get_device_info_from_WAVECAPS(ma_context* pContext, 
     - The name GUID can be null, in which we case we just need to stick to the original 31 characters.
     - If the name GUID is not present in the registry we'll also need to stick to the original 31 characters.
     - I like consistency, so I want the returned device names to be consistent with those returned by WASAPI and DirectSound. The
-      problem, however is that WASAPI and DirectSound use "<component> (<name>)" format (such as "Speakers (High Definition Audio)"),
+      problem, however is that WASAPI and DirectSound use "<component> (<name>)" format_t (such as "Speakers (High Definition Audio)"),
       but WinMM does not specify the component name. From my admittedly limited testing, I've notice the component name seems to
       usually fit within the 31 characters of the fixed sized buffer, so what I'm going to do is parse that string for the component
       name, and then concatenate the name from the registry.
@@ -27555,7 +27555,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
             goto on_error;
         }
 
-        /* The format should be based on the device's actual format. */
+        /* The format_t should be based on the device's actual format_t. */
         if (((MA_PFN_waveInGetDevCapsA)pDevice->pContext->winmm.waveInGetDevCapsA)(winMMDeviceIDCapture, &caps, sizeof(caps)) != MA_MMSYSERR_NOERROR) {
             errorMsg = "[WinMM] Failed to retrieve internal device caps.", errorCode = MA_FORMAT_NOT_SUPPORTED;
             goto on_error;
@@ -27563,7 +27563,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
 
         result = ma_formats_flags_to_WAVEFORMATEX__winmm(caps.dwFormats, caps.wChannels, &wf);
         if (result != MA_SUCCESS) {
-            errorMsg = "[WinMM] Could not find appropriate format for internal device.", errorCode = result;
+            errorMsg = "[WinMM] Could not find appropriate format_t for internal device.", errorCode = result;
             goto on_error;
         }
 
@@ -27593,7 +27593,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
             goto on_error;
         }
 
-        /* The format should be based on the device's actual format. */
+        /* The format_t should be based on the device's actual format_t. */
         if (((MA_PFN_waveOutGetDevCapsA)pDevice->pContext->winmm.waveOutGetDevCapsA)(winMMDeviceIDPlayback, &caps, sizeof(caps)) != MA_MMSYSERR_NOERROR) {
             errorMsg = "[WinMM] Failed to retrieve internal device caps.", errorCode = MA_FORMAT_NOT_SUPPORTED;
             goto on_error;
@@ -27601,7 +27601,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
 
         result = ma_formats_flags_to_WAVEFORMATEX__winmm(caps.dwFormats, caps.wChannels, &wf);
         if (result != MA_SUCCESS) {
-            errorMsg = "[WinMM] Could not find appropriate format for internal device.", errorCode = result;
+            errorMsg = "[WinMM] Could not find appropriate format_t for internal device.", errorCode = result;
             goto on_error;
         }
 
@@ -28288,7 +28288,7 @@ typedef int                  (* ma_snd_pcm_close_proc)                         (
 typedef size_t               (* ma_snd_pcm_hw_params_sizeof_proc)              (void);
 typedef int                  (* ma_snd_pcm_hw_params_any_proc)                 (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params);
 typedef int                  (* ma_snd_pcm_hw_params_set_format_proc)          (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, ma_snd_pcm_format_t val);
-typedef int                  (* ma_snd_pcm_hw_params_set_format_first_proc)    (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, ma_snd_pcm_format_t *format);
+typedef int                  (* ma_snd_pcm_hw_params_set_format_first_proc)    (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, ma_snd_pcm_format_t *format_t);
 typedef void                 (* ma_snd_pcm_hw_params_get_format_mask_proc)     (ma_snd_pcm_hw_params_t *params, ma_snd_pcm_format_mask_t *mask);
 typedef int                  (* ma_snd_pcm_hw_params_set_channels_proc)        (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, unsigned int val);
 typedef int                  (* ma_snd_pcm_hw_params_set_channels_near_proc)   (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, unsigned int *val);
@@ -28300,7 +28300,7 @@ typedef int                  (* ma_snd_pcm_hw_params_set_rate_minmax_proc)     (
 typedef int                  (* ma_snd_pcm_hw_params_set_buffer_size_near_proc)(ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, ma_snd_pcm_uframes_t *val);
 typedef int                  (* ma_snd_pcm_hw_params_set_periods_near_proc)    (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, unsigned int *val, int *dir);
 typedef int                  (* ma_snd_pcm_hw_params_set_access_proc)          (ma_snd_pcm_t *pcm, ma_snd_pcm_hw_params_t *params, ma_snd_pcm_access_t _access);
-typedef int                  (* ma_snd_pcm_hw_params_get_format_proc)          (const ma_snd_pcm_hw_params_t *params, ma_snd_pcm_format_t *format);
+typedef int                  (* ma_snd_pcm_hw_params_get_format_proc)          (const ma_snd_pcm_hw_params_t *params, ma_snd_pcm_format_t *format_t);
 typedef int                  (* ma_snd_pcm_hw_params_get_channels_proc)        (const ma_snd_pcm_hw_params_t *params, unsigned int *val);
 typedef int                  (* ma_snd_pcm_hw_params_get_channels_min_proc)    (const ma_snd_pcm_hw_params_t *params, unsigned int *val);
 typedef int                  (* ma_snd_pcm_hw_params_get_channels_max_proc)    (const ma_snd_pcm_hw_params_t *params, unsigned int *val);
@@ -28370,7 +28370,7 @@ static const char* g_maBlacklistedCaptureDeviceNamesALSA[] = {
 };
 
 
-static ma_snd_pcm_format_t ma_convert_ma_format_to_alsa_format(ma_format format)
+static ma_snd_pcm_format_t ma_convert_ma_format_to_alsa_format(ma_format format_t)
 {
     ma_snd_pcm_format_t ALSAFormats[] = {
         MA_SND_PCM_FORMAT_UNKNOWN,     /* ma_format_unknown */
@@ -28390,7 +28390,7 @@ static ma_snd_pcm_format_t ma_convert_ma_format_to_alsa_format(ma_format format)
         ALSAFormats[5] = MA_SND_PCM_FORMAT_FLOAT_BE;
     }
 
-    return ALSAFormats[format];
+    return ALSAFormats[format_t];
 }
 
 static ma_format ma_format_from_alsa(ma_snd_pcm_format_t formatALSA)
@@ -28527,7 +28527,7 @@ static const char* ma_find_char(const char* str, char c, int* index)
 
 static ma_bool32 ma_is_device_name_in_hw_format__alsa(const char* hwid)
 {
-    /* This function is just checking whether or not hwid is in "hw:%d,%d" format. */
+    /* This function is just checking whether or not hwid is in "hw:%d,%d" format_t. */
 
     int commaPos;
     const char* dev;
@@ -28591,7 +28591,7 @@ static int ma_convert_device_name_to_hw_format__alsa(ma_context* pContext, char*
         return -1;
     }
 
-    /* If the input name is already in "hw:%d,%d" format, just return that verbatim. */
+    /* If the input name is already in "hw:%d,%d" format_t, just return that verbatim. */
     if (ma_is_device_name_in_hw_format__alsa(src)) {
         return ma_strcpy_s(dst, dstSize, src);
     }
@@ -28715,8 +28715,8 @@ static ma_result ma_context_open_pcm__alsa(ma_context* pContext, ma_share_mode s
         /*
         We're trying to open a specific device. There's a few things to consider here:
 
-        miniaudio recognizes a special format of device id that excludes the "hw", "dmix", etc. prefix. It looks like this: ":0,0", ":0,1", etc. When
-        an ID of this format is specified, it indicates to miniaudio that it can try different combinations of plugins ("hw", "dmix", etc.) until it
+        miniaudio recognizes a special format_t of device id that excludes the "hw", "dmix", etc. prefix. It looks like this: ":0,0", ":0,1", etc. When
+        an ID of this format_t is specified, it indicates to miniaudio that it can try different combinations of plugins ("hw", "dmix", etc.) until it
         finds an appropriate one that works. This comes in very handy when trying to open a device in shared mode ("dmix"), vs exclusive mode ("hw").
         */
 
@@ -28725,12 +28725,12 @@ static ma_result ma_context_open_pcm__alsa(ma_context* pContext, ma_share_mode s
         int resultALSA = -ENODEV;
 
         if (deviceID.alsa[0] != ':') {
-            /* The ID is not in ":0,0" format. Use the ID exactly as-is. */
+            /* The ID is not in ":0,0" format_t. Use the ID exactly as-is. */
             resultALSA = ((ma_snd_pcm_open_proc)pContext->alsa.snd_pcm_open)(&pPCM, deviceID.alsa, stream, openMode);
         } else {
             char hwid[256];
 
-            /* The ID is in ":0,0" format. Try different plugins depending on the shared mode. */
+            /* The ID is in ":0,0" format_t. Try different plugins depending on the shared mode. */
             if (deviceID.alsa[1] == '\0') {
                 deviceID.alsa[0] = '\0';  /* An ID of ":" should be converted to "". */
             }
@@ -28809,11 +28809,11 @@ static ma_result ma_context_enumerate_devices__alsa(ma_context* pContext, ma_enu
                 /* Verbose mode. Use the name exactly as-is. */
                 ma_strncpy_s(hwid, sizeof(hwid), NAME, (size_t)-1);
             } else {
-                /* Simplified mode. Use ":%d,%d" format. */
+                /* Simplified mode. Use ":%d,%d" format_t. */
                 if (ma_convert_device_name_to_hw_format__alsa(pContext, hwid, sizeof(hwid), NAME) == 0) {
                     /*
                     At this point, hwid looks like "hw:0,0". In simplified enumeration mode, we actually want to strip off the
-                    plugin name so it looks like ":0,0". The reason for this is that this special format is detected at device
+                    plugin name so it looks like ":0,0". The reason for this is that this special format_t is detected at device
                     initialization time and is used as an indicator to try to use the most appropriate plugin depending on the
                     device type and sharing mode.
                     */
@@ -28967,14 +28967,14 @@ static ma_bool32 ma_context_get_device_info_enum_callback__alsa(ma_context* pCon
     return !pData->foundDevice;
 }
 
-static void ma_context_test_rate_and_add_native_data_format__alsa(ma_context* pContext, ma_snd_pcm_t* pPCM, ma_snd_pcm_hw_params_t* pHWParams, ma_format format, ma_uint32 channels, ma_uint32 sampleRate, ma_uint32 flags, ma_device_info* pDeviceInfo)
+static void ma_context_test_rate_and_add_native_data_format__alsa(ma_context* pContext, ma_snd_pcm_t* pPCM, ma_snd_pcm_hw_params_t* pHWParams, ma_format format_t, ma_uint32 channels, ma_uint32 sampleRate, ma_uint32 flags, ma_device_info* pDeviceInfo)
 {
     MA_ASSERT(pPCM        != NULL);
     MA_ASSERT(pHWParams   != NULL);
     MA_ASSERT(pDeviceInfo != NULL);
 
     if (pDeviceInfo->nativeDataFormatCount < ma_countof(pDeviceInfo->nativeDataFormats) && ((ma_snd_pcm_hw_params_test_rate_proc)pContext->alsa.snd_pcm_hw_params_test_rate)(pPCM, pHWParams, sampleRate, 0) == 0) {
-        pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].format     = format;
+        pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].format_t     = format_t;
         pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].channels   = channels;
         pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].sampleRate = sampleRate;
         pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].flags      = flags;
@@ -28982,7 +28982,7 @@ static void ma_context_test_rate_and_add_native_data_format__alsa(ma_context* pC
     }
 }
 
-static void ma_context_iterate_rates_and_add_native_data_format__alsa(ma_context* pContext, ma_snd_pcm_t* pPCM, ma_snd_pcm_hw_params_t* pHWParams, ma_format format, ma_uint32 channels, ma_uint32 flags, ma_device_info* pDeviceInfo)
+static void ma_context_iterate_rates_and_add_native_data_format__alsa(ma_context* pContext, ma_snd_pcm_t* pPCM, ma_snd_pcm_hw_params_t* pHWParams, ma_format format_t, ma_uint32 channels, ma_uint32 flags, ma_device_info* pDeviceInfo)
 {
     ma_uint32 iSampleRate;
     unsigned int minSampleRate;
@@ -29001,17 +29001,17 @@ static void ma_context_iterate_rates_and_add_native_data_format__alsa(ma_context
         ma_uint32 standardSampleRate = g_maStandardSampleRatePriorities[iSampleRate];
 
         if (standardSampleRate >= minSampleRate && standardSampleRate <= maxSampleRate) {
-            ma_context_test_rate_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format, channels, standardSampleRate, flags, pDeviceInfo);
+            ma_context_test_rate_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format_t, channels, standardSampleRate, flags, pDeviceInfo);
         }
     }
 
     /* Now make sure our min and max rates are included just in case they aren't in the range of our standard rates. */
     if (!ma_is_standard_sample_rate(minSampleRate)) {
-        ma_context_test_rate_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format, channels, minSampleRate, flags, pDeviceInfo);
+        ma_context_test_rate_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format_t, channels, minSampleRate, flags, pDeviceInfo);
     }
 
     if (!ma_is_standard_sample_rate(maxSampleRate) && maxSampleRate != minSampleRate) {
-        ma_context_test_rate_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format, channels, maxSampleRate, flags, pDeviceInfo);
+        ma_context_test_rate_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format_t, channels, maxSampleRate, flags, pDeviceInfo);
     }
 }
 
@@ -29070,7 +29070,7 @@ static ma_result ma_context_get_device_info__alsa(ma_context* pContext, ma_devic
     Some ALSA devices can support many permutations of formats, channels and rates. We only support
     a fixed number of permutations which means we need to employ some strategies to ensure the best
     combinations are returned. An example is the "pulse" device which can do its own data conversion
-    in software and as a result can support any combination of format, channels and rate.
+    in software and as a result can support any combination of format_t, channels and rate.
 
     We want to ensure that the first data formats are the best. We have a list of favored sample
     formats and sample rates, so these will be the basis of our iteration.
@@ -29078,25 +29078,25 @@ static ma_result ma_context_get_device_info__alsa(ma_context* pContext, ma_devic
 
     /* Formats. We just iterate over our standard formats and test them, making sure we reset the configuration space each iteration. */
     for (iFormat = 0; iFormat < ma_countof(g_maFormatPriorities); iFormat += 1) {
-        ma_format format = g_maFormatPriorities[iFormat];
+        ma_format format_t = g_maFormatPriorities[iFormat];
 
         /*
-        For each format we need to make sure we reset the configuration space so we don't return
-        channel counts and rates that aren't compatible with a format.
+        For each format_t we need to make sure we reset the configuration space so we don't return
+        channel counts and rates that aren't compatible with a format_t.
         */
         ((ma_snd_pcm_hw_params_any_proc)pContext->alsa.snd_pcm_hw_params_any)(pPCM, pHWParams);
 
-        /* Test the format first. If this fails it means the format is not supported and we can skip it. */
-        if (((ma_snd_pcm_hw_params_test_format_proc)pContext->alsa.snd_pcm_hw_params_test_format)(pPCM, pHWParams, ma_convert_ma_format_to_alsa_format(format)) == 0) {
-            /* The format is supported. */
+        /* Test the format_t first. If this fails it means the format_t is not supported and we can skip it. */
+        if (((ma_snd_pcm_hw_params_test_format_proc)pContext->alsa.snd_pcm_hw_params_test_format)(pPCM, pHWParams, ma_convert_ma_format_to_alsa_format(format_t)) == 0) {
+            /* The format_t is supported. */
             unsigned int minChannels;
             unsigned int maxChannels;
 
             /*
-            The configuration space needs to be restricted to this format so we can get an accurate
-            picture of which sample rates and channel counts are support with this format.
+            The configuration space needs to be restricted to this format_t so we can get an accurate
+            picture of which sample rates and channel counts are support with this format_t.
             */
-            ((ma_snd_pcm_hw_params_set_format_proc)pContext->alsa.snd_pcm_hw_params_set_format)(pPCM, pHWParams, ma_convert_ma_format_to_alsa_format(format));
+            ((ma_snd_pcm_hw_params_set_format_proc)pContext->alsa.snd_pcm_hw_params_set_format)(pPCM, pHWParams, ma_convert_ma_format_to_alsa_format(format_t));
 
             /* Now we need to check for supported channels. */
             ((ma_snd_pcm_hw_params_get_channels_min_proc)pContext->alsa.snd_pcm_hw_params_get_channels_min)(pHWParams, &minChannels);
@@ -29118,7 +29118,7 @@ static ma_result ma_context_get_device_info__alsa(ma_context* pContext, ma_devic
 
             if (minChannels == MA_MIN_CHANNELS && maxChannels == MA_MAX_CHANNELS) {
                 /* The device supports all channels. Don't iterate over every single one. Instead just set the channels to 0 which means all channels are supported. */
-                ma_context_iterate_rates_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format, 0, 0, pDeviceInfo);    /* Intentionally setting the channel count to 0 as that means all channels are supported. */
+                ma_context_iterate_rates_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format_t, 0, 0, pDeviceInfo);    /* Intentionally setting the channel count to 0 as that means all channels are supported. */
             } else {
                 /* The device only supports a specific set of channels. We need to iterate over all of them. */
                 for (iChannel = minChannels; iChannel <= maxChannels; iChannel += 1) {
@@ -29127,7 +29127,7 @@ static ma_result ma_context_get_device_info__alsa(ma_context* pContext, ma_devic
 
                     /* Make sure our channel range is reset before testing again or else we'll always fail the test. */
                     ((ma_snd_pcm_hw_params_any_proc)pContext->alsa.snd_pcm_hw_params_any)(pPCM, pHWParams);
-                    ((ma_snd_pcm_hw_params_set_format_proc)pContext->alsa.snd_pcm_hw_params_set_format)(pPCM, pHWParams, ma_convert_ma_format_to_alsa_format(format));
+                    ((ma_snd_pcm_hw_params_set_format_proc)pContext->alsa.snd_pcm_hw_params_set_format)(pPCM, pHWParams, ma_convert_ma_format_to_alsa_format(format_t));
 
                     if (((ma_snd_pcm_hw_params_test_channels_proc)pContext->alsa.snd_pcm_hw_params_test_channels)(pPCM, pHWParams, channels) == 0) {
                         /* The channel count is supported. */
@@ -29136,14 +29136,14 @@ static ma_result ma_context_get_device_info__alsa(ma_context* pContext, ma_devic
                         ((ma_snd_pcm_hw_params_set_channels_proc)pContext->alsa.snd_pcm_hw_params_set_channels)(pPCM, pHWParams, channels);
 
                         /* Only after the configuration space has been restricted to the specific channel count should we iterate over our sample rates. */
-                        ma_context_iterate_rates_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format, channels, 0, pDeviceInfo);
+                        ma_context_iterate_rates_and_add_native_data_format__alsa(pContext, pPCM, pHWParams, format_t, channels, 0, pDeviceInfo);
                     } else {
                         /* The channel count is not supported. Skip. */
                     }
                 }
             }
         } else {
-            /* The format is not supported. Skip. */
+            /* The format_t is not supported. Skip. */
         }
     }
 
@@ -29197,7 +29197,7 @@ static ma_result ma_device_init_by_type__alsa(ma_device* pDevice, const ma_devic
     MA_ASSERT(deviceType != ma_device_type_duplex); /* This function should only be called for playback _or_ capture, never duplex. */
     MA_ASSERT(pDevice != NULL);
 
-    formatALSA = ma_convert_ma_format_to_alsa_format(pDescriptor->format);
+    formatALSA = ma_convert_ma_format_to_alsa_format(pDescriptor->format_t);
 
     openMode = 0;
     if (pConfig->alsa.noAutoResample) {
@@ -29255,18 +29255,18 @@ static ma_result ma_device_init_by_type__alsa(ma_device* pDevice, const ma_devic
     }
 
     /*
-    Most important properties first. The documentation for OSS (yes, I know this is ALSA!) recommends format, channels, then sample rate. I can't
+    Most important properties first. The documentation for OSS (yes, I know this is ALSA!) recommends format_t, channels, then sample rate. I can't
     find any documentation for ALSA specifically, so I'm going to copy the recommendation for OSS.
     */
 
     /* Format. */
     {
         /*
-        At this point we should have a list of supported formats, so now we need to find the best one. We first check if the requested format is
+        At this point we should have a list of supported formats, so now we need to find the best one. We first check if the requested format_t is
         supported, and if so, use that one. If it's not supported, we just run though a list of formats and try to find the best one.
         */
         if (formatALSA == MA_SND_PCM_FORMAT_UNKNOWN || ((ma_snd_pcm_hw_params_test_format_proc)pDevice->pContext->alsa.snd_pcm_hw_params_test_format)(pPCM, pHWParams, formatALSA) != 0) {
-            /* We're either requesting the native format or the specified format is not supported. */
+            /* We're either requesting the native format_t or the specified format_t is not supported. */
             size_t iFormat;
 
             formatALSA = MA_SND_PCM_FORMAT_UNKNOWN;
@@ -29297,7 +29297,7 @@ static ma_result ma_device_init_by_type__alsa(ma_device* pDevice, const ma_devic
         if (internalFormat == ma_format_unknown) {
             ma_free(pHWParams, &pDevice->pContext->allocationCallbacks);
             ((ma_snd_pcm_close_proc)pDevice->pContext->alsa.snd_pcm_close)(pPCM);
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[ALSA] The chosen format is not supported by miniaudio.");
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[ALSA] The chosen format_t is not supported by miniaudio.");
             return MA_FORMAT_NOT_SUPPORTED;
         }
     }
@@ -29600,7 +29600,7 @@ static ma_result ma_device_init_by_type__alsa(ma_device* pDevice, const ma_devic
         pDevice->alsa.isUsingMMapPlayback = isUsingMMap;
     }
 
-    pDescriptor->format             = internalFormat;
+    pDescriptor->format_t             = internalFormat;
     pDescriptor->channels           = internalChannels;
     pDescriptor->sampleRate         = internalSampleRate;
     ma_channel_map_copy(pDescriptor->channelMap, internalChannelMap, ma_min(internalChannels, MA_MAX_CHANNELS));
@@ -30275,7 +30275,7 @@ host machine. The fact that this would be the default rather than making `pa_con
 Once the context has been created and connected you can start creating a stream. A PulseAudio stream is analogous to miniaudio's device.
 The initialization of a stream is fairly standard - you configure some attributes (analogous to miniaudio's device config) and then call
 `pa_stream_new()` to actually create it. Here is where we start to get into "operations". When configuring the stream, you can get
-information about the source (such as sample format, sample rate, etc.), however it's not synchronous. Instead, a `pa_operation` object
+information about the source (such as sample format_t, sample rate, etc.), however it's not synchronous. Instead, a `pa_operation` object
 is returned from `pa_context_get_source_info_by_name()` (capture) or `pa_context_get_sink_info_by_name()` (playback). Then, you need to
 run a loop (again!) to wait for the operation to complete which you can determine via a callback or polling, just like we did with the
 context. Then, as an added bonus, you need to decrement the reference counter of the `pa_operation` object to ensure memory is cleaned up.
@@ -30775,7 +30775,7 @@ typedef struct
 
 typedef struct
 {
-    ma_pa_sample_format_t format;
+    ma_pa_sample_format_t format_t;
     ma_uint32 rate;
     ma_uint8 channels;
 } ma_pa_sample_spec;
@@ -30931,10 +30931,10 @@ static ma_result ma_result_from_pulse(int result)
 }
 
 #if 0
-static ma_pa_sample_format_t ma_format_to_pulse(ma_format format)
+static ma_pa_sample_format_t ma_format_to_pulse(ma_format format_t)
 {
     if (ma_is_little_endian()) {
-        switch (format) {
+        switch (format_t) {
             case ma_format_s16: return MA_PA_SAMPLE_S16LE;
             case ma_format_s24: return MA_PA_SAMPLE_S24LE;
             case ma_format_s32: return MA_PA_SAMPLE_S32LE;
@@ -30942,7 +30942,7 @@ static ma_pa_sample_format_t ma_format_to_pulse(ma_format format)
             default: break;
         }
     } else {
-        switch (format) {
+        switch (format_t) {
             case ma_format_s16: return MA_PA_SAMPLE_S16BE;
             case ma_format_s24: return MA_PA_SAMPLE_S24BE;
             case ma_format_s32: return MA_PA_SAMPLE_S32BE;
@@ -30952,17 +30952,17 @@ static ma_pa_sample_format_t ma_format_to_pulse(ma_format format)
     }
 
     /* Endian agnostic. */
-    switch (format) {
+    switch (format_t) {
         case ma_format_u8: return MA_PA_SAMPLE_U8;
         default: return MA_PA_SAMPLE_INVALID;
     }
 }
 #endif
 
-static ma_format ma_format_from_pulse(ma_pa_sample_format_t format)
+static ma_format ma_format_from_pulse(ma_pa_sample_format_t format_t)
 {
     if (ma_is_little_endian()) {
-        switch (format) {
+        switch (format_t) {
             case MA_PA_SAMPLE_S16LE:     return ma_format_s16;
             case MA_PA_SAMPLE_S24LE:     return ma_format_s24;
             case MA_PA_SAMPLE_S32LE:     return ma_format_s32;
@@ -30970,7 +30970,7 @@ static ma_format ma_format_from_pulse(ma_pa_sample_format_t format)
             default: break;
         }
     } else {
-        switch (format) {
+        switch (format_t) {
             case MA_PA_SAMPLE_S16BE:     return ma_format_s16;
             case MA_PA_SAMPLE_S24BE:     return ma_format_s24;
             case MA_PA_SAMPLE_S32BE:     return ma_format_s32;
@@ -30980,7 +30980,7 @@ static ma_format ma_format_from_pulse(ma_pa_sample_format_t format)
     }
 
     /* Endian agnostic. */
-    switch (format) {
+    switch (format_t) {
         case MA_PA_SAMPLE_U8: return ma_format_u8;
         default: return ma_format_unknown;
     }
@@ -31528,11 +31528,11 @@ static void ma_context_get_device_info_sink_callback__pulse(ma_pa_context* pPuls
     }
 
     /*
-    We're just reporting a single data format here. I think technically PulseAudio might support
+    We're just reporting a single data format_t here. I think technically PulseAudio might support
     all formats, but I don't trust that PulseAudio will do *anything* right, so I'm just going to
-    report the "native" device format.
+    report the "native" device format_t.
     */
-    pData->pDeviceInfo->nativeDataFormats[0].format     = ma_format_from_pulse(pInfo->sample_spec.format);
+    pData->pDeviceInfo->nativeDataFormats[0].format_t     = ma_format_from_pulse(pInfo->sample_spec.format_t);
     pData->pDeviceInfo->nativeDataFormats[0].channels   = pInfo->sample_spec.channels;
     pData->pDeviceInfo->nativeDataFormats[0].sampleRate = pInfo->sample_spec.rate;
     pData->pDeviceInfo->nativeDataFormats[0].flags      = 0;
@@ -31565,11 +31565,11 @@ static void ma_context_get_device_info_source_callback__pulse(ma_pa_context* pPu
     }
 
     /*
-    We're just reporting a single data format here. I think technically PulseAudio might support
+    We're just reporting a single data format_t here. I think technically PulseAudio might support
     all formats, but I don't trust that PulseAudio will do *anything* right, so I'm just going to
-    report the "native" device format.
+    report the "native" device format_t.
     */
-    pData->pDeviceInfo->nativeDataFormats[0].format     = ma_format_from_pulse(pInfo->sample_spec.format);
+    pData->pDeviceInfo->nativeDataFormats[0].format_t     = ma_format_from_pulse(pInfo->sample_spec.format_t);
     pData->pDeviceInfo->nativeDataFormats[0].channels   = pInfo->sample_spec.channels;
     pData->pDeviceInfo->nativeDataFormats[0].sampleRate = pInfo->sample_spec.rate;
     pData->pDeviceInfo->nativeDataFormats[0].flags      = 0;
@@ -31657,7 +31657,7 @@ static ma_result ma_device_uninit__pulse(ma_device* pDevice)
 static ma_pa_buffer_attr ma_device__pa_buffer_attr_new(ma_uint32 periodSizeInFrames, ma_uint32 periods, const ma_pa_sample_spec* ss)
 {
     ma_pa_buffer_attr attr;
-    attr.maxlength = periodSizeInFrames * periods * ma_get_bytes_per_frame(ma_format_from_pulse(ss->format), ss->channels);
+    attr.maxlength = periodSizeInFrames * periods * ma_get_bytes_per_frame(ma_format_from_pulse(ss->format_t), ss->channels);
     attr.tlength   = attr.maxlength / periods;
     attr.prebuf    = (ma_uint32)-1;
     attr.minreq    = (ma_uint32)-1;
@@ -31776,7 +31776,7 @@ static ma_result ma_device_write_to_stream__pulse(ma_device* pDevice, ma_pa_stre
                 ma_device_handle_backend_data_callback(pDevice, pMappedPCMFrames, NULL, framesMapped);
             } else {
                 /* Device is not started. Write silence. */
-                ma_silence_pcm_frames(pMappedPCMFrames, framesMapped, pDevice->playback.format, pDevice->playback.channels);
+                ma_silence_pcm_frames(pMappedPCMFrames, framesMapped, pDevice->playback.format_t, pDevice->playback.channels);
             }
 
             pulseResult = ((ma_pa_stream_write_proc)pDevice->pContext->pulse.pa_stream_write)(pStream, pMappedPCMFrames, bytesMapped, NULL, 0, MA_PA_SEEK_RELATIVE);
@@ -31923,7 +31923,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
     int error = 0;
     const char* devPlayback = NULL;
     const char* devCapture  = NULL;
-    ma_format format = ma_format_unknown;
+    ma_format format_t = ma_format_unknown;
     ma_uint32 channels = 0;
     ma_uint32 sampleRate = 0;
     ma_pa_sink_info sinkInfo;
@@ -31955,7 +31955,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
             devPlayback = pDescriptorPlayback->pDeviceID->pulse;
         }
 
-        format     = pDescriptorPlayback->format;
+        format_t     = pDescriptorPlayback->format_t;
         channels   = pDescriptorPlayback->channels;
         sampleRate = pDescriptorPlayback->sampleRate;
     }
@@ -31965,7 +31965,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
             devCapture = pDescriptorCapture->pDeviceID->pulse;
         }
 
-        format     = pDescriptorCapture->format;
+        format_t     = pDescriptorCapture->format_t;
         channels   = pDescriptorCapture->channels;
         sampleRate = pDescriptorCapture->sampleRate;
     }
@@ -32007,14 +32007,14 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
         }
         streamFlags = MA_PA_STREAM_START_CORKED | MA_PA_STREAM_ADJUST_LATENCY;
 
-        if (ma_format_from_pulse(ss.format) == ma_format_unknown) {
+        if (ma_format_from_pulse(ss.format_t) == ma_format_unknown) {
             if (ma_is_little_endian()) {
-                ss.format = MA_PA_SAMPLE_FLOAT32LE;
+                ss.format_t = MA_PA_SAMPLE_FLOAT32LE;
             } else {
-                ss.format = MA_PA_SAMPLE_FLOAT32BE;
+                ss.format_t = MA_PA_SAMPLE_FLOAT32BE;
             }
             streamFlags |= MA_PA_STREAM_FIX_FORMAT;
-            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] sample_spec.format not supported by miniaudio. Defaulting to PA_SAMPLE_FLOAT32.\n");
+            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] sample_spec.format_t not supported by miniaudio. Defaulting to PA_SAMPLE_FLOAT32.\n");
         }
         if (ss.rate == 0) {
             ss.rate = MA_DEFAULT_SAMPLE_RATE;
@@ -32069,21 +32069,21 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
         }
 
 
-        /* Internal format. */
+        /* Internal format_t. */
         pActualSS = ((ma_pa_stream_get_sample_spec_proc)pDevice->pContext->pulse.pa_stream_get_sample_spec)((ma_pa_stream*)pDevice->pulse.pStreamCapture);
         if (pActualSS != NULL) {
             ss = *pActualSS;
-            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Capture sample spec: format=%s, channels=%d, rate=%d\n", ma_get_format_name(ma_format_from_pulse(ss.format)), ss.channels, ss.rate);
+            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Capture sample spec: format_t=%s, channels=%d, rate=%d\n", ma_get_format_name(ma_format_from_pulse(ss.format_t)), ss.channels, ss.rate);
         } else {
             ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Failed to retrieve capture sample spec.\n");
         }
 
-        pDescriptorCapture->format     = ma_format_from_pulse(ss.format);
+        pDescriptorCapture->format_t     = ma_format_from_pulse(ss.format_t);
         pDescriptorCapture->channels   = ss.channels;
         pDescriptorCapture->sampleRate = ss.rate;
 
-        if (pDescriptorCapture->format == ma_format_unknown || pDescriptorCapture->channels == 0 || pDescriptorCapture->sampleRate == 0) {
-            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[PulseAudio] Capture sample spec is invalid. Device unusable by miniaudio. format=%s, channels=%d, sampleRate=%d.\n", ma_get_format_name(pDescriptorCapture->format), pDescriptorCapture->channels, pDescriptorCapture->sampleRate);
+        if (pDescriptorCapture->format_t == ma_format_unknown || pDescriptorCapture->channels == 0 || pDescriptorCapture->sampleRate == 0) {
+            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[PulseAudio] Capture sample spec is invalid. Device unusable by miniaudio. format_t=%s, channels=%d, sampleRate=%d.\n", ma_get_format_name(pDescriptorCapture->format_t), pDescriptorCapture->channels, pDescriptorCapture->sampleRate);
             result = MA_ERROR;
             goto on_error4;
         }
@@ -32131,7 +32131,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
             pDescriptorCapture->periodCount = 1;
         }
 
-        pDescriptorCapture->periodSizeInFrames = attr.maxlength / ma_get_bytes_per_frame(pDescriptorCapture->format, pDescriptorCapture->channels) / pDescriptorCapture->periodCount;
+        pDescriptorCapture->periodSizeInFrames = attr.maxlength / ma_get_bytes_per_frame(pDescriptorCapture->format_t, pDescriptorCapture->channels) / pDescriptorCapture->periodCount;
         ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Capture actual attr: maxlength=%d, tlength=%d, prebuf=%d, minreq=%d, fragsize=%d; periodSizeInFrames=%d\n", attr.maxlength, attr.tlength, attr.prebuf, attr.minreq, attr.fragsize, pDescriptorCapture->periodSizeInFrames);
     }
 
@@ -32165,14 +32165,14 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
         }
 
         streamFlags = MA_PA_STREAM_START_CORKED | MA_PA_STREAM_ADJUST_LATENCY;
-        if (ma_format_from_pulse(ss.format) == ma_format_unknown) {
+        if (ma_format_from_pulse(ss.format_t) == ma_format_unknown) {
             if (ma_is_little_endian()) {
-                ss.format = MA_PA_SAMPLE_FLOAT32LE;
+                ss.format_t = MA_PA_SAMPLE_FLOAT32LE;
             } else {
-                ss.format = MA_PA_SAMPLE_FLOAT32BE;
+                ss.format_t = MA_PA_SAMPLE_FLOAT32BE;
             }
             streamFlags |= MA_PA_STREAM_FIX_FORMAT;
-            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] sample_spec.format not supported by miniaudio. Defaulting to PA_SAMPLE_FLOAT32.\n");
+            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] sample_spec.format_t not supported by miniaudio. Defaulting to PA_SAMPLE_FLOAT32.\n");
         }
         if (ss.rate == 0) {
             ss.rate = MA_DEFAULT_SAMPLE_RATE;
@@ -32231,21 +32231,21 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
         }
 
 
-        /* Internal format. */
+        /* Internal format_t. */
         pActualSS = ((ma_pa_stream_get_sample_spec_proc)pDevice->pContext->pulse.pa_stream_get_sample_spec)((ma_pa_stream*)pDevice->pulse.pStreamPlayback);
         if (pActualSS != NULL) {
             ss = *pActualSS;
-            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Playback sample spec: format=%s, channels=%d, rate=%d\n", ma_get_format_name(ma_format_from_pulse(ss.format)), ss.channels, ss.rate);
+            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Playback sample spec: format_t=%s, channels=%d, rate=%d\n", ma_get_format_name(ma_format_from_pulse(ss.format_t)), ss.channels, ss.rate);
         } else {
             ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Failed to retrieve playback sample spec.\n");
         }
 
-        pDescriptorPlayback->format     = ma_format_from_pulse(ss.format);
+        pDescriptorPlayback->format_t     = ma_format_from_pulse(ss.format_t);
         pDescriptorPlayback->channels   = ss.channels;
         pDescriptorPlayback->sampleRate = ss.rate;
 
-        if (pDescriptorPlayback->format == ma_format_unknown || pDescriptorPlayback->channels == 0 || pDescriptorPlayback->sampleRate == 0) {
-            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[PulseAudio] Playback sample spec is invalid. Device unusable by miniaudio. format=%s, channels=%d, sampleRate=%d.\n", ma_get_format_name(pDescriptorPlayback->format), pDescriptorPlayback->channels, pDescriptorPlayback->sampleRate);
+        if (pDescriptorPlayback->format_t == ma_format_unknown || pDescriptorPlayback->channels == 0 || pDescriptorPlayback->sampleRate == 0) {
+            ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[PulseAudio] Playback sample spec is invalid. Device unusable by miniaudio. format_t=%s, channels=%d, sampleRate=%d.\n", ma_get_format_name(pDescriptorPlayback->format_t), pDescriptorPlayback->channels, pDescriptorPlayback->sampleRate);
             result = MA_ERROR;
             goto on_error4;
         }
@@ -32293,7 +32293,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
             pDescriptorPlayback->periodCount = 1;
         }
 
-        pDescriptorPlayback->periodSizeInFrames = attr.maxlength / ma_get_bytes_per_frame(pDescriptorPlayback->format, pDescriptorPlayback->channels) / pDescriptorPlayback->periodCount;
+        pDescriptorPlayback->periodSizeInFrames = attr.maxlength / ma_get_bytes_per_frame(pDescriptorPlayback->format_t, pDescriptorPlayback->channels) / pDescriptorPlayback->periodCount;
         ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[PulseAudio] Playback actual attr: maxlength=%d, tlength=%d, prebuf=%d, minreq=%d, fragsize=%d; internalPeriodSizeInFrames=%d\n", attr.maxlength, attr.tlength, attr.prebuf, attr.minreq, attr.fragsize, pDescriptorPlayback->periodSizeInFrames);
     }
 
@@ -32305,7 +32305,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
     onDeviceDataLoop callback is NULL, which is not the case for PulseAudio.
     */
     if (pConfig->deviceType == ma_device_type_duplex) {
-        ma_format rbFormat     = (format != ma_format_unknown) ? format     : pDescriptorCapture->format;
+        ma_format rbFormat     = (format_t != ma_format_unknown) ? format_t     : pDescriptorCapture->format_t;
         ma_uint32 rbChannels   = (channels   > 0)              ? channels   : pDescriptorCapture->channels;
         ma_uint32 rbSampleRate = (sampleRate > 0)              ? sampleRate : pDescriptorCapture->sampleRate;
 
@@ -33655,7 +33655,7 @@ static ma_result ma_format_from_AudioStreamBasicDescription(const AudioStreamBas
         }
     }
 
-    /* Getting here means the format is not supported. */
+    /* Getting here means the format_t is not supported. */
     return MA_FORMAT_NOT_SUPPORTED;
 }
 
@@ -34026,7 +34026,7 @@ static ma_result ma_get_AudioObject_stream_descriptions(ma_context* pContext, Au
 
     /*
     TODO: Experiment with kAudioStreamPropertyAvailablePhysicalFormats instead of (or in addition to) kAudioStreamPropertyAvailableVirtualFormats. My
-          MacBook Pro uses s24/32 format, however, which miniaudio does not currently support.
+          MacBook Pro uses s24/32 format_t, however, which miniaudio does not currently support.
     */
     propAddress.mSelector = kAudioStreamPropertyAvailableVirtualFormats; /*kAudioStreamPropertyAvailablePhysicalFormats;*/
     propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
@@ -34423,7 +34423,7 @@ static ma_result ma_find_AudioObjectID(ma_context* pContext, ma_device_type devi
 }
 
 
-static ma_result ma_find_best_format__coreaudio(ma_context* pContext, AudioObjectID deviceObjectID, ma_device_type deviceType, ma_format format, ma_uint32 channels, ma_uint32 sampleRate, const AudioStreamBasicDescription* pOrigFormat, AudioStreamBasicDescription* pFormat)
+static ma_result ma_find_best_format__coreaudio(ma_context* pContext, AudioObjectID deviceObjectID, ma_device_type deviceType, ma_format format_t, ma_uint32 channels, ma_uint32 sampleRate, const AudioStreamBasicDescription* pOrigFormat, AudioStreamBasicDescription* pFormat)
 {
     UInt32 deviceFormatDescriptionCount;
     AudioStreamRangedDescription* pDeviceFormatDescriptions;
@@ -34450,7 +34450,7 @@ static ma_result ma_find_best_format__coreaudio(ma_context* pContext, AudioObjec
         desiredChannelCount = pOrigFormat->mChannelsPerFrame;
     }
 
-    desiredFormat = format;
+    desiredFormat = format_t;
     if (desiredFormat == ma_format_unknown) {
         result = ma_format_from_AudioStreamBasicDescription(pOrigFormat, &desiredFormat);
         if (result != MA_SUCCESS || desiredFormat == ma_format_unknown) {
@@ -34487,52 +34487,52 @@ static ma_result ma_find_best_format__coreaudio(ma_context* pContext, AudioObjec
         ma_result formatResult;
         ma_format bestSampleFormatSoFar;
 
-        /* If the format is not supported by miniaudio we need to skip this one entirely. */
+        /* If the format_t is not supported by miniaudio we need to skip this one entirely. */
         formatResult = ma_format_from_AudioStreamBasicDescription(&pDeviceFormatDescriptions[iFormat].mFormat, &thisSampleFormat);
         if (formatResult != MA_SUCCESS || thisSampleFormat == ma_format_unknown) {
-            continue;   /* The format is not supported by miniaudio. Skip. */
+            continue;   /* The format_t is not supported by miniaudio. Skip. */
         }
 
         ma_format_from_AudioStreamBasicDescription(&bestDeviceFormatSoFar, &bestSampleFormatSoFar);
 
-        /* Getting here means the format is supported by miniaudio which makes this format a candidate. */
+        /* Getting here means the format_t is supported by miniaudio which makes this format_t a candidate. */
         if (thisDeviceFormat.mSampleRate != desiredSampleRate) {
             /*
-            The sample rate does not match, but this format could still be usable, although it's a very low priority. If the best format
+            The sample rate does not match, but this format_t could still be usable, although it's a very low priority. If the best format_t
             so far has an equal sample rate we can just ignore this one.
             */
             if (bestDeviceFormatSoFar.mSampleRate == desiredSampleRate) {
-                continue;   /* The best sample rate so far has the same sample rate as what we requested which means it's still the best so far. Skip this format. */
+                continue;   /* The best sample rate so far has the same sample rate as what we requested which means it's still the best so far. Skip this format_t. */
             } else {
-                /* In this case, neither the best format so far nor this one have the same sample rate. Check the channel count next. */
+                /* In this case, neither the best format_t so far nor this one have the same sample rate. Check the channel count next. */
                 if (thisDeviceFormat.mChannelsPerFrame != desiredChannelCount) {
-                    /* This format has a different sample rate _and_ a different channel count. */
+                    /* This format_t has a different sample rate _and_ a different channel count. */
                     if (bestDeviceFormatSoFar.mChannelsPerFrame == desiredChannelCount) {
-                        continue;   /* No change to the best format. */
+                        continue;   /* No change to the best format_t. */
                     } else {
                         /*
-                        Both this format and the best so far have different sample rates and different channel counts. Whichever has the
-                        best format is the new best.
+                        Both this format_t and the best so far have different sample rates and different channel counts. Whichever has the
+                        best format_t is the new best.
                         */
                         if (ma_get_format_priority_index(thisSampleFormat) < ma_get_format_priority_index(bestSampleFormatSoFar)) {
                             bestDeviceFormatSoFar = thisDeviceFormat;
                             continue;
                         } else {
-                            continue;   /* No change to the best format. */
+                            continue;   /* No change to the best format_t. */
                         }
                     }
                 } else {
-                    /* This format has a different sample rate but the desired channel count. */
+                    /* This format_t has a different sample rate but the desired channel count. */
                     if (bestDeviceFormatSoFar.mChannelsPerFrame == desiredChannelCount) {
-                        /* Both this format and the best so far have the desired channel count. Whichever has the best format is the new best. */
+                        /* Both this format_t and the best so far have the desired channel count. Whichever has the best format_t is the new best. */
                         if (ma_get_format_priority_index(thisSampleFormat) < ma_get_format_priority_index(bestSampleFormatSoFar)) {
                             bestDeviceFormatSoFar = thisDeviceFormat;
                             continue;
                         } else {
-                            continue;   /* No change to the best format for now. */
+                            continue;   /* No change to the best format_t for now. */
                         }
                     } else {
-                        /* This format has the desired channel count, but the best so far does not. We have a new best. */
+                        /* This format_t has the desired channel count, but the best so far does not. We have a new best. */
                         bestDeviceFormatSoFar = thisDeviceFormat;
                         continue;
                     }
@@ -34540,34 +34540,34 @@ static ma_result ma_find_best_format__coreaudio(ma_context* pContext, AudioObjec
             }
         } else {
             /*
-            The sample rates match which makes this format a very high priority contender. If the best format so far has a different
+            The sample rates match which makes this format_t a very high priority contender. If the best format_t so far has a different
             sample rate it needs to be replaced with this one.
             */
             if (bestDeviceFormatSoFar.mSampleRate != desiredSampleRate) {
                 bestDeviceFormatSoFar = thisDeviceFormat;
                 continue;
             } else {
-                /* In this case both this format and the best format so far have the same sample rate. Check the channel count next. */
+                /* In this case both this format_t and the best format_t so far have the same sample rate. Check the channel count next. */
                 if (thisDeviceFormat.mChannelsPerFrame == desiredChannelCount) {
                     /*
-                    In this case this format has the same channel count as what the client is requesting. If the best format so far has
+                    In this case this format_t has the same channel count as what the client is requesting. If the best format_t so far has
                     a different count, this one becomes the new best.
                     */
                     if (bestDeviceFormatSoFar.mChannelsPerFrame != desiredChannelCount) {
                         bestDeviceFormatSoFar = thisDeviceFormat;
                         continue;
                     } else {
-                        /* In this case both this format and the best so far have the ideal sample rate and channel count. Check the format. */
+                        /* In this case both this format_t and the best so far have the ideal sample rate and channel count. Check the format_t. */
                         if (thisSampleFormat == desiredFormat) {
                             bestDeviceFormatSoFar = thisDeviceFormat;
                             break;  /* Found the exact match. */
                         } else {
-                            /* The formats are different. The new best format is the one with the highest priority format according to miniaudio. */
+                            /* The formats are different. The new best format_t is the one with the highest priority format_t according to miniaudio. */
                             if (ma_get_format_priority_index(thisSampleFormat) < ma_get_format_priority_index(bestSampleFormatSoFar)) {
                                 bestDeviceFormatSoFar = thisDeviceFormat;
                                 continue;
                             } else {
-                                continue;   /* No change to the best format for now. */
+                                continue;   /* No change to the best format_t for now. */
                             }
                         }
                     }
@@ -34581,14 +34581,14 @@ static ma_result ma_find_best_format__coreaudio(ma_context* pContext, AudioObjec
                     } else {
                         /*
                         This is the case where both have the same sample rate (good) but different channel counts. Right now both have about
-                        the same priority, but we need to compare the format now.
+                        the same priority, but we need to compare the format_t now.
                         */
                         if (thisSampleFormat == bestSampleFormatSoFar) {
                             if (ma_get_format_priority_index(thisSampleFormat) < ma_get_format_priority_index(bestSampleFormatSoFar)) {
                                 bestDeviceFormatSoFar = thisDeviceFormat;
                                 continue;
                             } else {
-                                continue;   /* No change to the best format for now. */
+                                continue;   /* No change to the best format_t for now. */
                             }
                         }
                     }
@@ -34776,7 +34776,7 @@ static ma_result ma_context_get_device_info__coreaudio(ma_context* pContext, ma_
         being reported which reduces this quite a bit. For sample rates we're only reporting those that are
         one of miniaudio's recognized "standard" rates. If there are still more formats than can fit into
         our fixed sized array we'll just need to truncate them. This is unlikely and will probably only happen
-        if some driver performs software data conversion and therefore reports every possible format and
+        if some driver performs software data conversion and therefore reports every possible format_t and
         sample rate.
         */
         pDeviceInfo->nativeDataFormatCount = 0;
@@ -34800,32 +34800,32 @@ static ma_result ma_context_get_device_info__coreaudio(ma_context* pContext, ma_
             }
 
             for (iStreamDescription = 0; iStreamDescription < streamDescriptionCount; ++iStreamDescription) {
-                ma_format format;
+                ma_format format_t;
                 ma_bool32 hasFormatBeenHandled = MA_FALSE;
                 ma_uint32 iOutputFormat;
                 ma_uint32 iSampleRate;
 
-                result = ma_format_from_AudioStreamBasicDescription(&pStreamDescriptions[iStreamDescription].mFormat, &format);
+                result = ma_format_from_AudioStreamBasicDescription(&pStreamDescriptions[iStreamDescription].mFormat, &format_t);
                 if (result != MA_SUCCESS) {
                     continue;
                 }
 
-                MA_ASSERT(format != ma_format_unknown);
+                MA_ASSERT(format_t != ma_format_unknown);
 
-                /* Make sure the format isn't already in the output list. */
+                /* Make sure the format_t isn't already in the output list. */
                 for (iOutputFormat = 0; iOutputFormat < uniqueFormatCount; ++iOutputFormat) {
-                    if (uniqueFormats[iOutputFormat] == format) {
+                    if (uniqueFormats[iOutputFormat] == format_t) {
                         hasFormatBeenHandled = MA_TRUE;
                         break;
                     }
                 }
 
-                /* If we've already handled this format just skip it. */
+                /* If we've already handled this format_t just skip it. */
                 if (hasFormatBeenHandled) {
                     continue;
                 }
 
-                uniqueFormats[uniqueFormatCount] = format;
+                uniqueFormats[uniqueFormatCount] = format_t;
                 uniqueFormatCount += 1;
 
                 /* Sample Rates */
@@ -34843,8 +34843,8 @@ static ma_result ma_context_get_device_info__coreaudio(ma_context* pContext, ma_
                     for (iStandardSampleRate = 0; iStandardSampleRate < ma_countof(g_maStandardSampleRatePriorities); iStandardSampleRate += 1) {
                         ma_uint32 standardSampleRate = g_maStandardSampleRatePriorities[iStandardSampleRate];
                         if (standardSampleRate >= pSampleRateRanges[iSampleRate].mMinimum && standardSampleRate <= pSampleRateRanges[iSampleRate].mMaximum) {
-                            /* We have a new data format. Add it to the list. */
-                            pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].format     = format;
+                            /* We have a new data format_t. Add it to the list. */
+                            pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].format_t     = format_t;
                             pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].channels   = channels;
                             pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].sampleRate = standardSampleRate;
                             pDeviceInfo->nativeDataFormats[pDeviceInfo->nativeDataFormatCount].flags      = 0;
@@ -34915,7 +34915,7 @@ static ma_result ma_context_get_device_info__coreaudio(ma_context* pContext, ma_
 
 
         /*
-        Retrieving device information is more annoying on mobile than desktop. For simplicity I'm locking this down to whatever format is
+        Retrieving device information is more annoying on mobile than desktop. For simplicity I'm locking this down to whatever format_t is
         reported on a temporary I/O unit. The problem, however, is that this doesn't return a value for the sample rate which we need to
         retrieve from the AVAudioSession shared instance.
         */
@@ -34948,10 +34948,10 @@ static ma_result ma_context_get_device_info__coreaudio(ma_context* pContext, ma_
         ((ma_AudioComponentInstanceDispose_proc)pContext->coreaudio.AudioComponentInstanceDispose)(audioUnit);
         audioUnit = NULL;
 
-        /* Only a single format is being reported for iOS. */
+        /* Only a single format_t is being reported for iOS. */
         pDeviceInfo->nativeDataFormatCount = 1;
 
-        result = ma_format_from_AudioStreamBasicDescription(&bestFormat, &pDeviceInfo->nativeDataFormats[0].format);
+        result = ma_format_from_AudioStreamBasicDescription(&bestFormat, &pDeviceInfo->nativeDataFormats[0].format_t);
         if (result != MA_SUCCESS) {
             return result;
         }
@@ -34975,14 +34975,14 @@ static ma_result ma_context_get_device_info__coreaudio(ma_context* pContext, ma_
     return MA_SUCCESS;
 }
 
-static AudioBufferList* ma_allocate_AudioBufferList__coreaudio(ma_uint32 sizeInFrames, ma_format format, ma_uint32 channels, ma_stream_layout layout, const ma_allocation_callbacks* pAllocationCallbacks)
+static AudioBufferList* ma_allocate_AudioBufferList__coreaudio(ma_uint32 sizeInFrames, ma_format format_t, ma_uint32 channels, ma_stream_layout layout, const ma_allocation_callbacks* pAllocationCallbacks)
 {
     AudioBufferList* pBufferList;
     UInt32 audioBufferSizeInBytes;
     size_t allocationSize;
 
     MA_ASSERT(sizeInFrames > 0);
-    MA_ASSERT(format != ma_format_unknown);
+    MA_ASSERT(format_t != ma_format_unknown);
     MA_ASSERT(channels > 0);
 
     allocationSize = sizeof(AudioBufferList) - sizeof(AudioBuffer);  /* Subtract sizeof(AudioBuffer) because that part is dynamically sized. */
@@ -34994,14 +34994,14 @@ static AudioBufferList* ma_allocate_AudioBufferList__coreaudio(ma_uint32 sizeInF
         allocationSize += sizeof(AudioBuffer) * channels;
     }
 
-    allocationSize += sizeInFrames * ma_get_bytes_per_frame(format, channels);
+    allocationSize += sizeInFrames * ma_get_bytes_per_frame(format_t, channels);
 
     pBufferList = (AudioBufferList*)ma_malloc(allocationSize, pAllocationCallbacks);
     if (pBufferList == NULL) {
         return NULL;
     }
 
-    audioBufferSizeInBytes = (UInt32)(sizeInFrames * ma_get_bytes_per_sample(format));
+    audioBufferSizeInBytes = (UInt32)(sizeInFrames * ma_get_bytes_per_sample(format_t));
 
     if (layout == ma_stream_layout_interleaved) {
         pBufferList->mNumberBuffers = 1;
@@ -35021,17 +35021,17 @@ static AudioBufferList* ma_allocate_AudioBufferList__coreaudio(ma_uint32 sizeInF
     return pBufferList;
 }
 
-static ma_result ma_device_realloc_AudioBufferList__coreaudio(ma_device* pDevice, ma_uint32 sizeInFrames, ma_format format, ma_uint32 channels, ma_stream_layout layout)
+static ma_result ma_device_realloc_AudioBufferList__coreaudio(ma_device* pDevice, ma_uint32 sizeInFrames, ma_format format_t, ma_uint32 channels, ma_stream_layout layout)
 {
     MA_ASSERT(pDevice != NULL);
-    MA_ASSERT(format != ma_format_unknown);
+    MA_ASSERT(format_t != ma_format_unknown);
     MA_ASSERT(channels > 0);
 
     /* Only resize the buffer if necessary. */
     if (pDevice->coreaudio.audioBufferCapInFrames < sizeInFrames) {
         AudioBufferList* pNewAudioBufferList;
 
-        pNewAudioBufferList = ma_allocate_AudioBufferList__coreaudio(sizeInFrames, format, channels, layout, &pDevice->pContext->allocationCallbacks);
+        pNewAudioBufferList = ma_allocate_AudioBufferList__coreaudio(sizeInFrames, format_t, channels, layout, &pDevice->pContext->allocationCallbacks);
         if (pNewAudioBufferList == NULL) {
             return MA_OUT_OF_MEMORY;
         }
@@ -35833,15 +35833,15 @@ static ma_result ma_device_init_internal__coreaudio(ma_context* pContext, ma_dev
 
     /*
     Format. This is the hardest part of initialization because there's a few variables to take into account.
-      1) The format must be supported by the device.
-      2) The format must be supported miniaudio.
+      1) The format_t must be supported by the device.
+      2) The format_t must be supported miniaudio.
       3) There's a priority that miniaudio prefers.
 
-    Ideally we would like to use a format that's as close to the hardware as possible so we can get as close to a passthrough as possible. The
-    most important property is the sample rate. miniaudio can do format conversion for any sample rate and channel count, but cannot do the same
-    for the sample data format. If the sample data format is not supported by miniaudio it must be ignored completely.
+    Ideally we would like to use a format_t that's as close to the hardware as possible so we can get as close to a passthrough as possible. The
+    most important property is the sample rate. miniaudio can do format_t conversion for any sample rate and channel count, but cannot do the same
+    for the sample data format_t. If the sample data format_t is not supported by miniaudio it must be ignored completely.
 
-    On mobile platforms this is a bit different. We just force the use of whatever the audio unit's current format is set to.
+    On mobile platforms this is a bit different. We just force the use of whatever the audio unit's current format_t is set to.
     */
     {
         AudioStreamBasicDescription origFormat;
@@ -35882,8 +35882,8 @@ static ma_result ma_device_init_internal__coreaudio(ma_context* pContext, ma_dev
         safe and apply the same rule to output as well.
 
         I have tried going against the documentation by setting the sample rate anyway, but this just results in AudioUnitRender()
-        returning a result code of -10863. I have also tried changing the format directly on the input scope on the input bus, but
-        this just results in `ca_require: IsStreamFormatWritable(inScope, inElement) NotWritable` when trying to set the format.
+        returning a result code of -10863. I have also tried changing the format_t directly on the input scope on the input bus, but
+        this just results in `ca_require: IsStreamFormatWritable(inScope, inElement) NotWritable` when trying to set the format_t.
 
         Something that does seem to work, however, has been setting the nominal sample rate on the device object. The problem with
         this, however, is that it actually changes the sample rate at the operating system level and not just the application. This
@@ -35914,7 +35914,7 @@ static ma_result ma_device_init_internal__coreaudio(ma_context* pContext, ma_dev
 
         status = ((ma_AudioUnitSetProperty_proc)pContext->coreaudio.AudioUnitSetProperty)(pData->audioUnit, kAudioUnitProperty_StreamFormat, formatScope, formatElement, &bestFormat, sizeof(bestFormat));
         if (status != noErr) {
-            /* We failed to set the format, so fall back to the current format of the audio unit. */
+            /* We failed to set the format_t, so fall back to the current format_t of the audio unit. */
             bestFormat = origFormat;
         }
     #else
@@ -36826,14 +36826,14 @@ static ma_format ma_find_best_format_from_sio_cap__sndio(struct ma_sio_cap* caps
             le   = caps->enc[iEncoding].le;
             msb  = caps->enc[iEncoding].msb;
             format = ma_format_from_sio_enc__sndio(bits, bps, sig, le, msb);
-            if (format == ma_format_unknown) {
+            if (format_t == ma_format_unknown) {
                 continue;   /* Format not supported. */
             }
 
             if (bestFormat == ma_format_unknown) {
                 bestFormat = format;
             } else {
-                if (ma_get_format_priority_index(bestFormat) > ma_get_format_priority_index(format)) {    /* <-- Lower = better. */
+                if (ma_get_format_priority_index(bestFormat) > ma_get_format_priority_index(format_t)) {    /* <-- Lower = better. */
                     bestFormat = format;
                 }
             }
@@ -36875,11 +36875,11 @@ static ma_uint32 ma_find_best_channels_from_sio_cap__sndio(struct ma_sio_cap* ca
             le   = caps->enc[iEncoding].le;
             msb  = caps->enc[iEncoding].msb;
             format = ma_format_from_sio_enc__sndio(bits, bps, sig, le, msb);
-            if (format != requiredFormat) {
+            if (format_t != requiredFormat) {
                 continue;
             }
 
-            /* Getting here means the format is supported. Iterate over each channel count and grab the biggest one. */
+            /* Getting here means the format_t is supported. Iterate over each channel count and grab the biggest one. */
             for (iChannel = 0; iChannel < MA_SIO_NCHAN; iChannel += 1) {
                 unsigned int chan = 0;
                 unsigned int channels;
@@ -36946,11 +36946,11 @@ static ma_uint32 ma_find_best_sample_rate_from_sio_cap__sndio(struct ma_sio_cap*
             le   = caps->enc[iEncoding].le;
             msb  = caps->enc[iEncoding].msb;
             format = ma_format_from_sio_enc__sndio(bits, bps, sig, le, msb);
-            if (format != requiredFormat) {
+            if (format_t != requiredFormat) {
                 continue;
             }
 
-            /* Getting here means the format is supported. Iterate over each channel count and grab the biggest one. */
+            /* Getting here means the format_t is supported. Iterate over each channel count and grab the biggest one. */
             for (iChannel = 0; iChannel < MA_SIO_NCHAN; iChannel += 1) {
                 unsigned int chan = 0;
                 unsigned int channels;
@@ -37109,7 +37109,7 @@ static ma_result ma_context_get_device_info__sndio(ma_context* pContext, ma_devi
             le   = caps.enc[iEncoding].le;
             msb  = caps.enc[iEncoding].msb;
             format = ma_format_from_sio_enc__sndio(bits, bps, sig, le, msb);
-            if (format == ma_format_unknown) {
+            if (format_t == ma_format_unknown) {
                 continue;   /* Format not supported. */
             }
 
@@ -37139,7 +37139,7 @@ static ma_result ma_context_get_device_info__sndio(ma_context* pContext, ma_devi
                 /* Sample Rates. */
                 for (iRate = 0; iRate < MA_SIO_NRATE; iRate += 1) {
                     if ((caps.confs[iConfig].rate & (1UL << iRate)) != 0) {
-                        ma_device_info_add_native_data_format(pDeviceInfo, format, channels, caps.rate[iRate], 0);
+                        ma_device_info_add_native_data_format(pDeviceInfo, format_t, channels, caps.rate[iRate], 0);
                     }
                 }
             }
@@ -37208,7 +37208,7 @@ static ma_result ma_device_init_handle__sndio(ma_device* pDevice, const ma_devic
         return MA_FAILED_TO_OPEN_BACKEND_DEVICE;
     }
 
-    /* We need to retrieve the device caps to determine the most appropriate format to use. */
+    /* We need to retrieve the device caps to determine the most appropriate format_t to use. */
     if (((ma_sio_getcap_proc)pDevice->pContext->sndio.sio_getcap)((struct ma_sio_hdl*)handle, &caps) == 0) {
         ((ma_sio_close_proc)pDevice->pContext->sndio.sio_close)((struct ma_sio_hdl*)handle);
         ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[sndio] Failed to retrieve device caps.");
@@ -37224,25 +37224,25 @@ static ma_result ma_device_init_handle__sndio(ma_device* pDevice, const ma_devic
     value returned by ma_find_best_channels_from_sio_cap__sndio().
     */
     if (deviceType == ma_device_type_capture) {
-        if (format == ma_format_unknown) {
+        if (format_t == ma_format_unknown) {
             format = ma_find_best_format_from_sio_cap__sndio(&caps);
         }
 
         if (channels == 0) {
             if (strlen(pDeviceName) > strlen("rsnd/") && strncmp(pDeviceName, "rsnd/", strlen("rsnd/")) == 0) {
-                channels = ma_find_best_channels_from_sio_cap__sndio(&caps, deviceType, format);
+                channels = ma_find_best_channels_from_sio_cap__sndio(&caps, deviceType, format_t);
             } else {
                 channels = MA_DEFAULT_CHANNELS;
             }
         }
     } else {
-        if (format == ma_format_unknown) {
+        if (format_t == ma_format_unknown) {
             format = ma_find_best_format_from_sio_cap__sndio(&caps);
         }
 
         if (channels == 0) {
             if (strlen(pDeviceName) > strlen("rsnd/") && strncmp(pDeviceName, "rsnd/", strlen("rsnd/")) == 0) {
-                channels = ma_find_best_channels_from_sio_cap__sndio(&caps, deviceType, format);
+                channels = ma_find_best_channels_from_sio_cap__sndio(&caps, deviceType, format_t);
             } else {
                 channels = MA_DEFAULT_CHANNELS;
             }
@@ -37250,7 +37250,7 @@ static ma_result ma_device_init_handle__sndio(ma_device* pDevice, const ma_devic
     }
 
     if (sampleRate == 0) {
-        sampleRate = ma_find_best_sample_rate_from_sio_cap__sndio(&caps, pConfig->deviceType, format, channels);
+        sampleRate = ma_find_best_sample_rate_from_sio_cap__sndio(&caps, pConfig->deviceType, format_t, channels);
     }
 
 
@@ -37258,7 +37258,7 @@ static ma_result ma_device_init_handle__sndio(ma_device* pDevice, const ma_devic
     par.msb = 0;
     par.le  = ma_is_little_endian();
 
-    switch (format) {
+    switch (format_t) {
         case ma_format_u8:
         {
             par.bits = 8;
@@ -37618,12 +37618,12 @@ static ma_format ma_format_from_encoding__audio4(unsigned int encoding, unsigned
     return ma_format_unknown;  /* Encoding not supported. */
 }
 
-static void ma_encoding_from_format__audio4(ma_format format, unsigned int* pEncoding, unsigned int* pPrecision)
+static void ma_encoding_from_format__audio4(ma_format format_t, unsigned int* pEncoding, unsigned int* pPrecision)
 {
     MA_ASSERT(pEncoding  != NULL);
     MA_ASSERT(pPrecision != NULL);
 
-    switch (format)
+    switch (format_t)
     {
         case ma_format_u8:
         {
@@ -37665,7 +37665,7 @@ static ma_format ma_best_format_from_fd__audio4(int fd, ma_format preferredForma
     ma_uint32 iFormat;
     int counter = 0;
 
-    /* First check to see if the preferred format is supported. */
+    /* First check to see if the preferred format_t is supported. */
     if (preferredFormat != ma_format_unknown) {
         counter = 0;
         for (;;) {
@@ -37676,15 +37676,15 @@ static ma_format ma_best_format_from_fd__audio4(int fd, ma_format preferredForma
             }
 
             if (preferredFormat == ma_format_from_encoding__audio4(encoding.encoding, encoding.precision)) {
-                return preferredFormat;  /* Found the preferred format. */
+                return preferredFormat;  /* Found the preferred format_t. */
             }
 
-            /* Getting here means this encoding does not match our preferred format so we need to more on to the next encoding. */
+            /* Getting here means this encoding does not match our preferred format_t so we need to more on to the next encoding. */
             counter += 1;
         }
     }
 
-    /* Getting here means our preferred format is not supported, so fall back to our standard priorities. */
+    /* Getting here means our preferred format_t is not supported, so fall back to our standard priorities. */
     for (iFormat = 0; iFormat < ma_countof(g_maFormatPriorities); iFormat += 1) {
         ma_format format = g_maFormatPriorities[iFormat];
 
@@ -37696,16 +37696,16 @@ static ma_format ma_best_format_from_fd__audio4(int fd, ma_format preferredForma
                 break;
             }
 
-            if (format == ma_format_from_encoding__audio4(encoding.encoding, encoding.precision)) {
-                return format;  /* Found a workable format. */
+            if (format_t == ma_format_from_encoding__audio4(encoding.encoding, encoding.precision)) {
+                return format;  /* Found a workable format_t. */
             }
 
-            /* Getting here means this encoding does not match our preferred format so we need to more on to the next encoding. */
+            /* Getting here means this encoding does not match our preferred format_t so we need to more on to the next encoding. */
             counter += 1;
         }
     }
 
-    /* Getting here means not appropriate format was found. */
+    /* Getting here means not appropriate format_t was found. */
     return ma_format_unknown;
 }
 #else
@@ -37785,8 +37785,8 @@ static ma_result ma_context_get_device_info_from_fd__audio4(ma_context* pContext
             }
 
             format = ma_format_from_encoding__audio4(encoding.encoding, encoding.precision);
-            if (format != ma_format_unknown) {
-                ma_device_info_add_native_data_format(pDeviceInfo, format, channels, sampleRate, 0);
+            if (format_t != ma_format_unknown) {
+                ma_device_info_add_native_data_format(pDeviceInfo, format_t, channels, sampleRate, 0);
             }
 
             counter += 1;
@@ -37804,7 +37804,7 @@ static ma_result ma_context_get_device_info_from_fd__audio4(ma_context* pContext
         }
 
         format = ma_format_from_swpar__audio4(&fdPar);
-        if (format == ma_format_unknown) {
+        if (format_t == ma_format_unknown) {
             return MA_FORMAT_NOT_SUPPORTED;
         }
 
@@ -37817,7 +37817,7 @@ static ma_result ma_context_get_device_info_from_fd__audio4(ma_context* pContext
         sampleRate = fdPar.rate;
 
         pDeviceInfo->nativeDataFormatCount = 0;
-        ma_device_info_add_native_data_format(pDeviceInfo, format, channels, sampleRate, 0);
+        ma_device_info_add_native_data_format(pDeviceInfo, format_t, channels, sampleRate, 0);
     }
     #endif
 
@@ -37902,7 +37902,7 @@ static ma_result ma_context_get_device_info__audio4(ma_context* pContext, ma_dev
 
     /*
     We need to open the "/dev/audioctlN" device to get the info. To do this we need to extract the number
-    from the device ID which will be in "/dev/audioN" format.
+    from the device ID which will be in "/dev/audioN" format_t.
     */
     if (pDeviceID == NULL) {
         /* Default device. */
@@ -38026,14 +38026,14 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
             `encoding` and `precision` are one of the values obtained by AUDIO_GETENC.
 
         It sounds like a direct contradiction to me. I'm going to play this safe any only use the
-        best sample format returned by AUDIO_GETENC. If the requested format is supported we'll
-        use that, but otherwise we'll just use our standard format priorities to pick an
+        best sample format_t returned by AUDIO_GETENC. If the requested format_t is supported we'll
+        use that, but otherwise we'll just use our standard format_t priorities to pick an
         appropriate one.
         */
         AUDIO_INITINFO(&fdInfo);
 
         /*
-        Get the default format from the audioctl file if we're asking for a default device. If we
+        Get the default format_t from the audioctl file if we're asking for a default device. If we
         retrieve it from /dev/audio it'll default to mono 8000Hz.
         */
         if (iDefaultDevice != (size_t)-1) {
@@ -38061,7 +38061,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
         /* We get the driver to do as much of the data conversion as possible. */
         if (deviceType == ma_device_type_capture) {
             fdInfo.mode = AUMODE_RECORD;
-            ma_encoding_from_format__audio4(ma_best_format_from_fd__audio4(fd, pDescriptor->format), &fdInfo.record.encoding, &fdInfo.record.precision);
+            ma_encoding_from_format__audio4(ma_best_format_from_fd__audio4(fd, pDescriptor->format_t), &fdInfo.record.encoding, &fdInfo.record.precision);
 
             if (pDescriptor->channels != 0) {
                 fdInfo.record.channels = ma_clamp(pDescriptor->channels, 1, 12);    /* From the documentation: `channels` ranges from 1 to 12. */
@@ -38072,7 +38072,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
             }
         } else {
             fdInfo.mode = AUMODE_PLAY;
-            ma_encoding_from_format__audio4(ma_best_format_from_fd__audio4(fd, pDescriptor->format), &fdInfo.play.encoding, &fdInfo.play.precision);
+            ma_encoding_from_format__audio4(ma_best_format_from_fd__audio4(fd, pDescriptor->format_t), &fdInfo.play.encoding, &fdInfo.play.precision);
 
             if (pDescriptor->channels != 0) {
                 fdInfo.play.channels = ma_clamp(pDescriptor->channels, 1, 12);    /* From the documentation: `channels` ranges from 1 to 12. */
@@ -38085,7 +38085,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
 
         if (ioctl(fd, AUDIO_SETINFO, &fdInfo) < 0) {
             close(fd);
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] Failed to set device format. AUDIO_SETINFO failed.");
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] Failed to set device format_t. AUDIO_SETINFO failed.");
             return ma_result_from_errno(errno);
         }
 
@@ -38107,7 +38107,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
 
         if (internalFormat == ma_format_unknown) {
             close(fd);
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] The device's internal device format is not supported by miniaudio. The device is unusable.");
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] The device's internal device format_t is not supported by miniaudio. The device is unusable.");
             return MA_FORMAT_NOT_SUPPORTED;
         }
 
@@ -38146,7 +38146,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
     {
         struct audio_swpar fdPar;
 
-        /* We need to retrieve the format of the device so we can know the channel count and sample rate. Then we can calculate the buffer size. */
+        /* We need to retrieve the format_t of the device so we can know the channel count and sample rate. Then we can calculate the buffer size. */
         if (ioctl(fd, AUDIO_GETPAR, &fdPar) < 0) {
             close(fd);
             ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] Failed to retrieve initial device parameters.");
@@ -38159,7 +38159,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
 
         if (internalFormat == ma_format_unknown) {
             close(fd);
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] The device's internal device format is not supported by miniaudio. The device is unusable.");
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] The device's internal device format_t is not supported by miniaudio. The device is unusable.");
             return MA_FORMAT_NOT_SUPPORTED;
         }
 
@@ -38201,7 +38201,7 @@ static ma_result ma_device_init_fd__audio4(ma_device* pDevice, const ma_device_c
 
     if (internalFormat == ma_format_unknown) {
         close(fd);
-        ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] The device's internal device format is not supported by miniaudio. The device is unusable.");
+        ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[audio4] The device's internal device format_t is not supported by miniaudio. The device is unusable.");
         return MA_FORMAT_NOT_SUPPORTED;
     }
 
@@ -38543,7 +38543,7 @@ static ma_result ma_context_enumerate_devices__oss(ma_context* pContext, ma_enum
     return MA_SUCCESS;
 }
 
-static void ma_context_add_native_data_format__oss(ma_context* pContext, oss_audioinfo* pAudioInfo, ma_format format, ma_device_info* pDeviceInfo)
+static void ma_context_add_native_data_format__oss(ma_context* pContext, oss_audioinfo* pAudioInfo, ma_format format_t, ma_device_info* pDeviceInfo)
 {
     unsigned int minChannels;
     unsigned int maxChannels;
@@ -38567,11 +38567,11 @@ static void ma_context_add_native_data_format__oss(ma_context* pContext, oss_aud
             unsigned int rate = pAudioInfo->rates[iRate];
 
             if (minChannels == MA_MIN_CHANNELS && maxChannels == MA_MAX_CHANNELS) {
-                ma_device_info_add_native_data_format(pDeviceInfo, format, 0, rate, 0);   /* Set the channel count to 0 to indicate that all channel counts are supported. */
+                ma_device_info_add_native_data_format(pDeviceInfo, format_t, 0, rate, 0);   /* Set the channel count to 0 to indicate that all channel counts are supported. */
             } else {
                 unsigned int iChannel;
                 for (iChannel = minChannels; iChannel <= maxChannels; iChannel += 1) {
-                     ma_device_info_add_native_data_format(pDeviceInfo, format, iChannel, rate, 0);
+                     ma_device_info_add_native_data_format(pDeviceInfo, format_t, iChannel, rate, 0);
                 }
             }
         }
@@ -38581,11 +38581,11 @@ static void ma_context_add_native_data_format__oss(ma_context* pContext, oss_aud
 
             if (standardRate >= (ma_uint32)pAudioInfo->min_rate && standardRate <= (ma_uint32)pAudioInfo->max_rate) {
                 if (minChannels == MA_MIN_CHANNELS && maxChannels == MA_MAX_CHANNELS) {
-                    ma_device_info_add_native_data_format(pDeviceInfo, format, 0, standardRate, 0);   /* Set the channel count to 0 to indicate that all channel counts are supported. */
+                    ma_device_info_add_native_data_format(pDeviceInfo, format_t, 0, standardRate, 0);   /* Set the channel count to 0 to indicate that all channel counts are supported. */
                 } else {
                     unsigned int iChannel;
                     for (iChannel = minChannels; iChannel <= maxChannels; iChannel += 1) {
-                         ma_device_info_add_native_data_format(pDeviceInfo, format, iChannel, standardRate, 0);
+                         ma_device_info_add_native_data_format(pDeviceInfo, format_t, iChannel, standardRate, 0);
                     }
                 }
             }
@@ -38707,10 +38707,10 @@ static ma_result ma_device_uninit__oss(ma_device* pDevice)
     return MA_SUCCESS;
 }
 
-static int ma_format_to_oss(ma_format format)
+static int ma_format_to_oss(ma_format format_t)
 {
     int ossFormat = AFMT_U8;
-    switch (format) {
+    switch (format_t) {
         case ma_format_s16: ossFormat = (ma_is_little_endian()) ? AFMT_S16_LE : AFMT_S16_BE; break;
         case ma_format_s24: ossFormat = (ma_is_little_endian()) ? AFMT_S32_LE : AFMT_S32_BE; break;
         case ma_format_s32: ossFormat = (ma_is_little_endian()) ? AFMT_S32_LE : AFMT_S32_BE; break;
@@ -38763,7 +38763,7 @@ static ma_result ma_device_init_fd__oss(ma_device* pDevice, const ma_device_conf
 
     pDeviceID     = pDescriptor->pDeviceID;
     shareMode     = pDescriptor->shareMode;
-    ossFormat     = ma_format_to_oss((pDescriptor->format != ma_format_unknown) ? pDescriptor->format : ma_format_s16); /* Use s16 by default because OSS doesn't like floating point. */
+    ossFormat     = ma_format_to_oss((pDescriptor->format_t != ma_format_unknown) ? pDescriptor->format : ma_format_s16); /* Use s16 by default because OSS doesn't like floating point. */
     ossChannels   = (int)(pDescriptor->channels   > 0) ? pDescriptor->channels   : MA_DEFAULT_CHANNELS;
     ossSampleRate = (int)(pDescriptor->sampleRate > 0) ? pDescriptor->sampleRate : MA_DEFAULT_SAMPLE_RATE;
 
@@ -38784,7 +38784,7 @@ static ma_result ma_device_init_fd__oss(ma_device* pDevice, const ma_device_conf
     ossResult = ioctl(fd, SNDCTL_DSP_SETFMT, &ossFormat);
     if (ossResult == -1) {
         close(fd);
-        ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[OSS] Failed to set format.");
+        ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[OSS] Failed to set format_t.");
         return ma_result_from_errno(errno);
     }
 
@@ -38808,7 +38808,7 @@ static ma_result ma_device_init_fd__oss(ma_device* pDevice, const ma_device_conf
     Buffer.
 
     The documentation says that the fragment settings should be set as soon as possible, but I'm not sure if
-    it should be done before or after format/channels/rate.
+    it should be done before or after format_t/channels/rate.
 
     OSS wants the fragment size in bytes and a power of 2. When setting, we specify the power, not the actual
     value.
@@ -38852,10 +38852,10 @@ static ma_result ma_device_init_fd__oss(ma_device* pDevice, const ma_device_conf
     pDescriptor->sampleRate         = ossSampleRate;
     ma_channel_map_init_standard(ma_standard_channel_map_sound4, pDescriptor->channelMap, ma_countof(pDescriptor->channelMap), pDescriptor->channels);
     pDescriptor->periodCount        = (ma_uint32)(ossFragment >> 16);
-    pDescriptor->periodSizeInFrames = (ma_uint32)(1 << (ossFragment & 0xFFFF)) / ma_get_bytes_per_frame(pDescriptor->format, pDescriptor->channels);
+    pDescriptor->periodSizeInFrames = (ma_uint32)(1 << (ossFragment & 0xFFFF)) / ma_get_bytes_per_frame(pDescriptor->format_t, pDescriptor->channels);
 
-    if (pDescriptor->format == ma_format_unknown) {
-        ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[OSS] The device's internal format is not supported by miniaudio.");
+    if (pDescriptor->format_t == ma_format_unknown) {
+        ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[OSS] The device's internal format_t is not supported by miniaudio.");
         return MA_FORMAT_NOT_SUPPORTED;
     }
 
@@ -39161,7 +39161,7 @@ typedef ma_aaudio_result_t       (* MA_PFN_AAudioStreamBuilder_delete)          
 typedef void                     (* MA_PFN_AAudioStreamBuilder_setDeviceId)              (ma_AAudioStreamBuilder* pBuilder, int32_t deviceId);
 typedef void                     (* MA_PFN_AAudioStreamBuilder_setDirection)             (ma_AAudioStreamBuilder* pBuilder, ma_aaudio_direction_t direction);
 typedef void                     (* MA_PFN_AAudioStreamBuilder_setSharingMode)           (ma_AAudioStreamBuilder* pBuilder, ma_aaudio_sharing_mode_t sharingMode);
-typedef void                     (* MA_PFN_AAudioStreamBuilder_setFormat)                (ma_AAudioStreamBuilder* pBuilder, ma_aaudio_format_t format);
+typedef void                     (* MA_PFN_AAudioStreamBuilder_setFormat)                (ma_AAudioStreamBuilder* pBuilder, ma_aaudio_format_t format_t);
 typedef void                     (* MA_PFN_AAudioStreamBuilder_setChannelCount)          (ma_AAudioStreamBuilder* pBuilder, int32_t channelCount);
 typedef void                     (* MA_PFN_AAudioStreamBuilder_setSampleRate)            (ma_AAudioStreamBuilder* pBuilder, int32_t sampleRate);
 typedef void                     (* MA_PFN_AAudioStreamBuilder_setBufferCapacityInFrames)(ma_AAudioStreamBuilder* pBuilder, int32_t numFrames);
@@ -39362,8 +39362,8 @@ static ma_result ma_create_and_configure_AAudioStreamBuilder__aaudio(ma_context*
             ((MA_PFN_AAudioStreamBuilder_setChannelCount)pContext->aaudio.AAudioStreamBuilder_setChannelCount)(pBuilder, pDescriptor->channels);
         }
 
-        if (pDescriptor->format != ma_format_unknown) {
-            ((MA_PFN_AAudioStreamBuilder_setFormat)pContext->aaudio.AAudioStreamBuilder_setFormat)(pBuilder, (pDescriptor->format == ma_format_s16) ? MA_AAUDIO_FORMAT_PCM_I16 : MA_AAUDIO_FORMAT_PCM_FLOAT);
+        if (pDescriptor->format_t != ma_format_unknown) {
+            ((MA_PFN_AAudioStreamBuilder_setFormat)pContext->aaudio.AAudioStreamBuilder_setFormat)(pBuilder, (pDescriptor->format_t == ma_format_s16) ? MA_AAUDIO_FORMAT_PCM_I16 : MA_AAUDIO_FORMAT_PCM_FLOAT);
         }
 
 
@@ -39549,7 +39549,7 @@ static ma_result ma_context_enumerate_devices__aaudio(ma_context* pContext, ma_e
     return MA_SUCCESS;
 }
 
-static void ma_context_add_native_data_format_from_AAudioStream_ex__aaudio(ma_context* pContext, ma_AAudioStream* pStream, ma_format format, ma_uint32 flags, ma_device_info* pDeviceInfo)
+static void ma_context_add_native_data_format_from_AAudioStream_ex__aaudio(ma_context* pContext, ma_AAudioStream* pStream, ma_format format_t, ma_uint32 flags, ma_device_info* pDeviceInfo)
 {
     MA_ASSERT(pContext    != NULL);
     MA_ASSERT(pStream     != NULL);
@@ -40524,7 +40524,7 @@ return_default_device:;
     return MA_SUCCESS;
 }
 
-static void ma_context_add_data_format_ex__opensl(ma_context* pContext, ma_format format, ma_uint32 channels, ma_uint32 sampleRate, ma_device_info* pDeviceInfo)
+static void ma_context_add_data_format_ex__opensl(ma_context* pContext, ma_format format_t, ma_uint32 channels, ma_uint32 sampleRate, ma_device_info* pDeviceInfo)
 {
     MA_ASSERT(pContext    != NULL);
     MA_ASSERT(pDeviceInfo != NULL);
@@ -40536,7 +40536,7 @@ static void ma_context_add_data_format_ex__opensl(ma_context* pContext, ma_forma
     pDeviceInfo->nativeDataFormatCount += 1;
 }
 
-static void ma_context_add_data_format__opensl(ma_context* pContext, ma_format format, ma_device_info* pDeviceInfo)
+static void ma_context_add_data_format__opensl(ma_context* pContext, ma_format format_t, ma_device_info* pDeviceInfo)
 {
     ma_uint32 minChannels   = 1;
     ma_uint32 maxChannels   = 2;
@@ -40549,14 +40549,14 @@ static void ma_context_add_data_format__opensl(ma_context* pContext, ma_format f
     MA_ASSERT(pDeviceInfo != NULL);
 
     /*
-    Each sample format can support mono and stereo, and we'll support a small subset of standard
+    Each sample format_t can support mono and stereo, and we'll support a small subset of standard
     rates (up to 48000). A better solution would be to somehow find a native sample rate.
     */
     for (iChannel = minChannels; iChannel < maxChannels; iChannel += 1) {
         for (iSampleRate = 0; iSampleRate < ma_countof(g_maStandardSampleRatePriorities); iSampleRate += 1) {
             ma_uint32 standardSampleRate = g_maStandardSampleRatePriorities[iSampleRate];
             if (standardSampleRate >= minSampleRate && standardSampleRate <= maxSampleRate) {
-                ma_context_add_data_format_ex__opensl(pContext, format, iChannel, standardSampleRate, pDeviceInfo);
+                ma_context_add_data_format_ex__opensl(pContext, format_t, iChannel, standardSampleRate, pDeviceInfo);
             }
         }
     }
@@ -40634,7 +40634,7 @@ return_detailed_info:
     /*
     For now we're just outputting a set of values that are supported by the API but not necessarily supported
     by the device natively. Later on we should work on this so that it more closely reflects the device's
-    actual native format.
+    actual native format_t.
     */
     pDeviceInfo->nativeDataFormatCount = 0;
 #if defined(MA_ANDROID) && __ANDROID_API__ >= 21
@@ -40761,10 +40761,10 @@ typedef SLAndroidDataFormat_PCM_EX  ma_SLDataFormat_PCM;
 typedef SLDataFormat_PCM            ma_SLDataFormat_PCM;
 #endif
 
-static ma_result ma_SLDataFormat_PCM_init__opensl(ma_format format, ma_uint32 channels, ma_uint32 sampleRate, const ma_channel* channelMap, ma_SLDataFormat_PCM* pDataFormat)
+static ma_result ma_SLDataFormat_PCM_init__opensl(ma_format format_t, ma_uint32 channels, ma_uint32 sampleRate, const ma_channel* channelMap, ma_SLDataFormat_PCM* pDataFormat)
 {
-    /* We need to convert our format/channels/rate so that they aren't set to default. */
-    if (format == ma_format_unknown) {
+    /* We need to convert our format_t/channels/rate so that they aren't set to default. */
+    if (format_t == ma_format_unknown) {
         format = MA_DEFAULT_FORMAT;
     }
     if (channels == 0) {
@@ -40775,7 +40775,7 @@ static ma_result ma_SLDataFormat_PCM_init__opensl(ma_format format, ma_uint32 ch
     }
 
 #if defined(MA_ANDROID) && __ANDROID_API__ >= 21
-    if (format == ma_format_f32) {
+    if (format_t == ma_format_f32) {
         pDataFormat->formatType     = SL_ANDROID_DATAFORMAT_PCM_EX;
         pDataFormat->representation = SL_ANDROID_PCM_REPRESENTATION_FLOAT;
     } else {
@@ -40787,12 +40787,12 @@ static ma_result ma_SLDataFormat_PCM_init__opensl(ma_format format, ma_uint32 ch
 
     pDataFormat->numChannels   = channels;
     ((SLDataFormat_PCM*)pDataFormat)->samplesPerSec = ma_round_to_standard_sample_rate__opensl(sampleRate * 1000);  /* In millihertz. Annoyingly, the sample rate variable is named differently between SLAndroidDataFormat_PCM_EX and SLDataFormat_PCM */
-    pDataFormat->bitsPerSample = ma_get_bytes_per_sample(format) * 8;
+    pDataFormat->bitsPerSample = ma_get_bytes_per_sample(format_t) * 8;
     pDataFormat->channelMask   = ma_channel_map_to_channel_mask__opensl(channelMap, channels);
     pDataFormat->endianness    = (ma_is_little_endian()) ? SL_BYTEORDER_LITTLEENDIAN : SL_BYTEORDER_BIGENDIAN;
 
     /*
-    Android has a few restrictions on the format as documented here: https://developer.android.com/ndk/guides/audio/opensl-for-android.html
+    Android has a few restrictions on the format_t as documented here: https://developer.android.com/ndk/guides/audio/opensl-for-android.html
      - Only mono and stereo is supported.
      - Only u8 and s16 formats are supported.
      - Maximum sample rate of 48000.
@@ -40910,7 +40910,7 @@ static ma_result ma_device_init__opensl(ma_device* pDevice, const ma_device_conf
         SLDataSink sink;
         SLAndroidConfigurationItf pRecorderConfig;
 
-        ma_SLDataFormat_PCM_init__opensl(pDescriptorCapture->format, pDescriptorCapture->channels, pDescriptorCapture->sampleRate, pDescriptorCapture->channelMap, &pcm);
+        ma_SLDataFormat_PCM_init__opensl(pDescriptorCapture->format_t, pDescriptorCapture->channels, pDescriptorCapture->sampleRate, pDescriptorCapture->channelMap, &pcm);
 
         locatorDevice.locatorType = SL_DATALOCATOR_IODEVICE;
         locatorDevice.deviceType  = SL_IODEVICE_AUDIOINPUT;
@@ -40927,7 +40927,7 @@ static ma_result ma_device_init__opensl(ma_device* pDevice, const ma_device_conf
 
         resultSL = (*g_maEngineSL)->CreateAudioRecorder(g_maEngineSL, (SLObjectItf*)&pDevice->opensl.pAudioRecorderObj, &source, &sink, ma_countof(itfIDs), itfIDs, itfIDsRequired);
         if (resultSL == SL_RESULT_CONTENT_UNSUPPORTED || resultSL == SL_RESULT_PARAMETER_INVALID) {
-            /* Unsupported format. Fall back to something safer and try again. If this fails, just abort. */
+            /* Unsupported format_t. Fall back to something safer and try again. If this fails, just abort. */
             pcm.formatType    = SL_DATAFORMAT_PCM;
             pcm.numChannels   = 1;
             ((SLDataFormat_PCM*)&pcm)->samplesPerSec = SL_SAMPLINGRATE_16;  /* The name of the sample rate variable is different between SLAndroidDataFormat_PCM_EX and SLDataFormat_PCM. */
@@ -40984,14 +40984,14 @@ static ma_result ma_device_init__opensl(ma_device* pDevice, const ma_device_conf
             return ma_result_from_OpenSL(resultSL);
         }
 
-        /* The internal format is determined by the "pcm" object. */
-        ma_deconstruct_SLDataFormat_PCM__opensl(&pcm, &pDescriptorCapture->format, &pDescriptorCapture->channels, &pDescriptorCapture->sampleRate, pDescriptorCapture->channelMap, ma_countof(pDescriptorCapture->channelMap));
+        /* The internal format_t is determined by the "pcm" object. */
+        ma_deconstruct_SLDataFormat_PCM__opensl(&pcm, &pDescriptorCapture->format_t, &pDescriptorCapture->channels, &pDescriptorCapture->sampleRate, pDescriptorCapture->channelMap, ma_countof(pDescriptorCapture->channelMap));
 
         /* Buffer. */
         pDescriptorCapture->periodSizeInFrames = ma_calculate_buffer_size_in_frames_from_descriptor(pDescriptorCapture, pDescriptorCapture->sampleRate, pConfig->performanceProfile);
         pDevice->opensl.currentBufferIndexCapture = 0;
 
-        bufferSizeInBytes = pDescriptorCapture->periodSizeInFrames * ma_get_bytes_per_frame(pDescriptorCapture->format, pDescriptorCapture->channels) * pDescriptorCapture->periodCount;
+        bufferSizeInBytes = pDescriptorCapture->periodSizeInFrames * ma_get_bytes_per_frame(pDescriptorCapture->format_t, pDescriptorCapture->channels) * pDescriptorCapture->periodCount;
         pDevice->opensl.pBufferCapture = (ma_uint8*)ma_calloc(bufferSizeInBytes, &pDevice->pContext->allocationCallbacks);
         if (pDevice->opensl.pBufferCapture == NULL) {
             ma_device_uninit__opensl(pDevice);
@@ -41008,7 +41008,7 @@ static ma_result ma_device_init__opensl(ma_device* pDevice, const ma_device_conf
         SLDataSink sink;
         SLAndroidConfigurationItf pPlayerConfig;
 
-        ma_SLDataFormat_PCM_init__opensl(pDescriptorPlayback->format, pDescriptorPlayback->channels, pDescriptorPlayback->sampleRate, pDescriptorPlayback->channelMap, &pcm);
+        ma_SLDataFormat_PCM_init__opensl(pDescriptorPlayback->format_t, pDescriptorPlayback->channels, pDescriptorPlayback->sampleRate, pDescriptorPlayback->channelMap, &pcm);
 
         resultSL = (*g_maEngineSL)->CreateOutputMix(g_maEngineSL, (SLObjectItf*)&pDevice->opensl.pOutputMixObj, 0, NULL, NULL);
         if (resultSL != SL_RESULT_SUCCESS) {
@@ -41050,7 +41050,7 @@ static ma_result ma_device_init__opensl(ma_device* pDevice, const ma_device_conf
 
         resultSL = (*g_maEngineSL)->CreateAudioPlayer(g_maEngineSL, (SLObjectItf*)&pDevice->opensl.pAudioPlayerObj, &source, &sink, ma_countof(itfIDs), itfIDs, itfIDsRequired);
         if (resultSL == SL_RESULT_CONTENT_UNSUPPORTED || resultSL == SL_RESULT_PARAMETER_INVALID) {
-            /* Unsupported format. Fall back to something safer and try again. If this fails, just abort. */
+            /* Unsupported format_t. Fall back to something safer and try again. If this fails, just abort. */
             pcm.formatType = SL_DATAFORMAT_PCM;
             pcm.numChannels = 2;
             ((SLDataFormat_PCM*)&pcm)->samplesPerSec = SL_SAMPLINGRATE_16;
@@ -41107,14 +41107,14 @@ static ma_result ma_device_init__opensl(ma_device* pDevice, const ma_device_conf
             return ma_result_from_OpenSL(resultSL);
         }
 
-        /* The internal format is determined by the "pcm" object. */
-        ma_deconstruct_SLDataFormat_PCM__opensl(&pcm, &pDescriptorPlayback->format, &pDescriptorPlayback->channels, &pDescriptorPlayback->sampleRate, pDescriptorPlayback->channelMap, ma_countof(pDescriptorPlayback->channelMap));
+        /* The internal format_t is determined by the "pcm" object. */
+        ma_deconstruct_SLDataFormat_PCM__opensl(&pcm, &pDescriptorPlayback->format_t, &pDescriptorPlayback->channels, &pDescriptorPlayback->sampleRate, pDescriptorPlayback->channelMap, ma_countof(pDescriptorPlayback->channelMap));
 
         /* Buffer. */
         pDescriptorPlayback->periodSizeInFrames = ma_calculate_buffer_size_in_frames_from_descriptor(pDescriptorPlayback, pDescriptorPlayback->sampleRate, pConfig->performanceProfile);
         pDevice->opensl.currentBufferIndexPlayback   = 0;
 
-        bufferSizeInBytes = pDescriptorPlayback->periodSizeInFrames * ma_get_bytes_per_frame(pDescriptorPlayback->format, pDescriptorPlayback->channels) * pDescriptorPlayback->periodCount;
+        bufferSizeInBytes = pDescriptorPlayback->periodSizeInFrames * ma_get_bytes_per_frame(pDescriptorPlayback->format_t, pDescriptorPlayback->channels) * pDescriptorPlayback->periodCount;
         pDevice->opensl.pBufferPlayback = (ma_uint8*)ma_calloc(bufferSizeInBytes, &pDevice->pContext->allocationCallbacks);
         if (pDevice->opensl.pBufferPlayback == NULL) {
             ma_device_uninit__opensl(pDevice);
@@ -41876,7 +41876,7 @@ static void ma_audio_worklet_processor_created__webaudio(EMSCRIPTEN_WEBAUDIO_T a
         }
     }
 
-    /* We need to update the descriptors so that they reflect the internal data format. Both capture and playback should be the same. */
+    /* We need to update the descriptors so that they reflect the internal data format_t. Both capture and playback should be the same. */
     sampleRate = EM_ASM_INT({ return emscriptenGetAudioObject($0).sampleRate; }, audioContext);
 
     if (pParameters->pDescriptorCapture != NULL) {
@@ -42479,7 +42479,7 @@ static ma_result ma_device__post_init_setup(ma_device* pDevice, ma_device_type d
 
     /* Data converters. */
     if (deviceType == ma_device_type_capture || deviceType == ma_device_type_duplex || deviceType == ma_device_type_loopback) {
-        /* Converting from internal device format to client format. */
+        /* Converting from internal device format_t to client format_t. */
         ma_data_converter_config converterConfig = ma_data_converter_config_init_default();
         converterConfig.formatIn                        = pDevice->capture.internalFormat;
         converterConfig.channelsIn                      = pDevice->capture.internalChannels;
@@ -42509,7 +42509,7 @@ static ma_result ma_device__post_init_setup(ma_device* pDevice, ma_device_type d
     }
 
     if (deviceType == ma_device_type_playback || deviceType == ma_device_type_duplex) {
-        /* Converting from client format to device format. */
+        /* Converting from client format_t to device format_t. */
         ma_data_converter_config converterConfig = ma_data_converter_config_init_default();
         converterConfig.formatIn                        = pDevice->playback.format;
         converterConfig.channelsIn                      = pDevice->playback.channels;
@@ -43704,8 +43704,8 @@ MA_API ma_result ma_device_init(ma_context* pContext, const ma_device_config* pC
 
 #if 0
     /*
-    On output the descriptors will contain the *actual* data format of the device. We need this to know how to convert the data between
-    the requested format and the internal format.
+    On output the descriptors will contain the *actual* data format_t of the device. We need this to know how to convert the data between
+    the requested format_t and the internal format_t.
     */
     if (pConfig->deviceType == ma_device_type_capture || pConfig->deviceType == ma_device_type_duplex || pConfig->deviceType == ma_device_type_loopback) {
         if (!ma_device_descriptor_is_valid(&descriptorCapture)) {
@@ -44635,7 +44635,7 @@ MA_API void ma_clip_pcm_frames(void* pDst, const void* pSrc, ma_uint64 frameCoun
         case ma_format_s32: ma_clip_samples_s32((ma_int32*)pDst, (const ma_int64*)pSrc, sampleCount); break;
         case ma_format_f32: ma_clip_samples_f32((   float*)pDst, (const    float*)pSrc, sampleCount); break;
 
-        /* Do nothing if we don't know the format. We're including these here to silence a compiler warning about enums not being handled by the switch. */
+        /* Do nothing if we don't know the format_t. We're including these here to silence a compiler warning about enums not being handled by the switch. */
         case ma_format_unknown:
         case ma_format_count:
             break;
@@ -44965,7 +44965,7 @@ MA_API void ma_copy_and_apply_volume_and_clip_pcm_frames(void* pDst, const void*
             case ma_format_s32: ma_copy_and_apply_volume_and_clip_samples_s32((ma_int32*)pDst, (const ma_int64*)pSrc, sampleCount, volume); break;
             case ma_format_f32: ma_copy_and_apply_volume_and_clip_samples_f32((   float*)pDst, (const    float*)pSrc, sampleCount, volume); break;
 
-            /* Do nothing if we don't know the format. We're including these here to silence a compiler warning about enums not being handled by the switch. */
+            /* Do nothing if we don't know the format_t. We're including these here to silence a compiler warning about enums not being handled by the switch. */
             case ma_format_unknown:
             case ma_format_count:
                 break;
@@ -46987,7 +46987,7 @@ MA_API void ma_deinterleave_pcm_frames(ma_format format, ma_uint32 channels, ma_
         return; /* Invalid args. */
     }
 
-    /* For efficiency we do this per format. */
+    /* For efficiency we do this per format_t. */
     switch (format) {
         case ma_format_s16:
         {
@@ -47249,7 +47249,7 @@ MA_API ma_result ma_biquad_reinit(const ma_biquad_config* pConfig, ma_biquad* pB
         return MA_INVALID_ARGS;
     }
 
-    /* The format cannot be changed after initialization. */
+    /* The format_t cannot be changed after initialization. */
     if (pBQ->format != ma_format_unknown && pBQ->format != pConfig->format) {
         return MA_INVALID_OPERATION;
     }
@@ -47576,7 +47576,7 @@ MA_API ma_result ma_lpf1_reinit(const ma_lpf1_config* pConfig, ma_lpf1* pLPF)
         return MA_INVALID_ARGS;
     }
 
-    /* The format cannot be changed after initialization. */
+    /* The format_t cannot be changed after initialization. */
     if (pLPF->format != ma_format_unknown && pLPF->format != pConfig->format) {
         return MA_INVALID_OPERATION;
     }
@@ -47970,7 +47970,7 @@ static ma_result ma_lpf_reinit__internal(const ma_lpf_config* pConfig, void* pHe
         return MA_INVALID_ARGS;
     }
 
-    /* The format cannot be changed after initialization. */
+    /* The format_t cannot be changed after initialization. */
     if (pLPF->format != ma_format_unknown && pLPF->format != pConfig->format) {
         return MA_INVALID_OPERATION;
     }
@@ -48464,7 +48464,7 @@ MA_API ma_result ma_hpf1_reinit(const ma_hpf1_config* pConfig, ma_hpf1* pHPF)
         return MA_INVALID_ARGS;
     }
 
-    /* The format cannot be changed after initialization. */
+    /* The format_t cannot be changed after initialization. */
     if (pHPF->format != ma_format_unknown && pHPF->format != pConfig->format) {
         return MA_INVALID_OPERATION;
     }
@@ -48832,7 +48832,7 @@ static ma_result ma_hpf_reinit__internal(const ma_hpf_config* pConfig, void* pHe
         return MA_INVALID_ARGS;
     }
 
-    /* The format cannot be changed after initialization. */
+    /* The format_t cannot be changed after initialization. */
     if (pHPF->format != ma_format_unknown && pHPF->format != pConfig->format) {
         return MA_INVALID_OPERATION;
     }
@@ -49378,7 +49378,7 @@ static ma_result ma_bpf_reinit__internal(const ma_bpf_config* pConfig, void* pHe
         return MA_INVALID_ARGS;
     }
 
-    /* The format cannot be changed after initialization. */
+    /* The format_t cannot be changed after initialization. */
     if (pBPF->format != ma_format_unknown && pBPF->format != pConfig->format) {
         return MA_INVALID_OPERATION;
     }
@@ -51085,7 +51085,7 @@ static void ma_stereo_balance_pcm_frames(void* pFramesOut, const void* pFramesIn
     switch (format) {
         case ma_format_f32: ma_stereo_balance_pcm_frames_f32((float*)pFramesOut, (float*)pFramesIn, frameCount, pan); break;
 
-        /* Unknown format. Just copy. */
+        /* Unknown format_t. Just copy. */
         default:
         {
             ma_copy_pcm_frames(pFramesOut, pFramesIn, frameCount, format, 2);
@@ -51139,7 +51139,7 @@ static void ma_stereo_pan_pcm_frames(void* pFramesOut, const void* pFramesIn, ma
     switch (format) {
         case ma_format_f32: ma_stereo_pan_pcm_frames_f32((float*)pFramesOut, (float*)pFramesIn, frameCount, pan); break;
 
-        /* Unknown format. Just copy. */
+        /* Unknown format_t. Just copy. */
         default:
         {
             ma_copy_pcm_frames(pFramesOut, pFramesIn, frameCount, format, 2);
@@ -52277,7 +52277,7 @@ MA_API ma_result ma_spatializer_process_pcm_frames(ma_spatializer* pSpatializer,
             if (pSpatializer->channelsIn == pSpatializer->channelsOut) {
                 ma_copy_pcm_frames(pFramesOut, pFramesIn, frameCount, ma_format_f32, pSpatializer->channelsIn);
             } else {
-                ma_channel_map_apply_f32((float*)pFramesOut, pChannelMapOut, pSpatializer->channelsOut, (const float*)pFramesIn, pChannelMapIn, pSpatializer->channelsIn, frameCount, ma_channel_mix_mode_rectangular, ma_mono_expansion_mode_default);   /* Safe casts to float* because f32 is the only supported format. */
+                ma_channel_map_apply_f32((float*)pFramesOut, pChannelMapOut, pSpatializer->channelsOut, (const float*)pFramesIn, pChannelMapIn, pSpatializer->channelsIn, frameCount, ma_channel_mix_mode_rectangular, ma_mono_expansion_mode_default);   /* Safe casts to float* because f32 is the only supported format_t. */
             }
         } else {
             /* The listener is disabled. Output silence. */
@@ -53618,7 +53618,7 @@ MA_API ma_result ma_linear_resampler_process_pcm_frames(ma_linear_resampler* pRe
     } else if (pResampler->config.format == ma_format_f32) {
         return ma_linear_resampler_process_pcm_frames_f32(pResampler, pFramesIn, pFrameCountIn, pFramesOut, pFrameCountOut);
     } else {
-        /* Should never get here. Getting here means the format is not supported and you didn't check the return value of ma_linear_resampler_init(). */
+        /* Should never get here. Getting here means the format_t is not supported and you didn't check the return value of ma_linear_resampler_init(). */
         MA_ASSERT(MA_FALSE);
         return MA_INVALID_ARGS;
     }
@@ -54640,7 +54640,7 @@ static ma_result ma_channel_map_apply_shuffle_table(void* pFramesOut, ma_uint32 
             ma_channel_map_apply_shuffle_table_f32((float*)pFramesOut, channelsOut, (const float*)pFramesIn, channelsIn, frameCount, pShuffleTable);
         } break;
 
-        default: return MA_INVALID_ARGS;    /* Unknown format. */
+        default: return MA_INVALID_ARGS;    /* Unknown format_t. */
     }
 
     return MA_SUCCESS;
@@ -55572,7 +55572,7 @@ static ma_result ma_channel_converter_process_pcm_frames__mono_in(ma_channel_con
             }
         } break;
 
-        default: return MA_INVALID_OPERATION;   /* Unknown format. */
+        default: return MA_INVALID_OPERATION;   /* Unknown format_t. */
     }
 
     return MA_SUCCESS;
@@ -55665,7 +55665,7 @@ static ma_result ma_channel_converter_process_pcm_frames__mono_out(ma_channel_co
             }
         } break;
 
-        default: return MA_INVALID_OPERATION;   /* Unknown format. */
+        default: return MA_INVALID_OPERATION;   /* Unknown format_t. */
     }
 
     return MA_SUCCESS;
@@ -55771,7 +55771,7 @@ static ma_result ma_channel_converter_process_pcm_frames__weights(ma_channel_con
             }
         } break;
 
-        default: return MA_INVALID_OPERATION;   /* Unknown format. */
+        default: return MA_INVALID_OPERATION;   /* Unknown format_t. */
     }
 
     return MA_SUCCESS;
@@ -55883,10 +55883,10 @@ static ma_format ma_data_converter_config_get_mid_format(const ma_data_converter
 
     /*
     We want to avoid as much data conversion as possible. The channel converter and linear
-    resampler both support s16 and f32 natively. We need to decide on the format to use for this
-    stage. We call this the mid format because it's used in the middle stage of the conversion
-    pipeline. If the output format is either s16 or f32 we use that one. If that is not the case it
-    will do the same thing for the input format. If it's neither we just use f32. If we are using a
+    resampler both support s16 and f32 natively. We need to decide on the format_t to use for this
+    stage. We call this the mid format_t because it's used in the middle stage of the conversion
+    pipeline. If the output format_t is either s16 or f32 we use that one. If that is not the case it
+    will do the same thing for the input format_t. If it's neither we just use f32. If we are using a
     custom resampling backend, we can only guarantee that f32 will be supported so we'll be forced
     to use that if resampling is required.
     */
@@ -56042,7 +56042,7 @@ MA_API ma_result ma_data_converter_init_preallocated(const ma_data_converter_con
 
     /*
     Determine if resampling is required. We need to do this so we can determine an appropriate
-    mid format to use. If resampling is required, the mid format must be ma_format_f32 since
+    mid format_t to use. If resampling is required, the mid format_t must be ma_format_f32 since
     that is the only one that is guaranteed to supported by custom resampling backends.
     */
     isResamplingRequired = ma_data_converter_config_is_resampler_required(pConfig);
@@ -56078,20 +56078,20 @@ MA_API ma_result ma_data_converter_init_preallocated(const ma_data_converter_con
     }
 
 
-    /* We can simplify pre- and post-format conversion if we have neither channel conversion nor resampling. */
+    /* We can simplify pre- and post-format_t conversion if we have neither channel conversion nor resampling. */
     if (pConverter->hasChannelConverter == MA_FALSE && pConverter->hasResampler == MA_FALSE) {
-        /* We have neither channel conversion nor resampling so we'll only need one of pre- or post-format conversion, or none if the input and output formats are the same. */
+        /* We have neither channel conversion nor resampling so we'll only need one of pre- or post-format_t conversion, or none if the input and output formats are the same. */
         if (pConverter->formatIn == pConverter->formatOut) {
             /* The formats are the same so we can just pass through. */
             pConverter->hasPreFormatConversion  = MA_FALSE;
             pConverter->hasPostFormatConversion = MA_FALSE;
         } else {
-            /* The formats are different so we need to do either pre- or post-format conversion. It doesn't matter which. */
+            /* The formats are different so we need to do either pre- or post-format_t conversion. It doesn't matter which. */
             pConverter->hasPreFormatConversion  = MA_FALSE;
             pConverter->hasPostFormatConversion = MA_TRUE;
         }
     } else {
-        /* We have a channel converter and/or resampler so we'll need channel conversion based on the mid format. */
+        /* We have a channel converter and/or resampler so we'll need channel conversion based on the mid format_t. */
         if (pConverter->formatIn != midFormat) {
             pConverter->hasPreFormatConversion  = MA_TRUE;
         }
@@ -56311,7 +56311,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_with_format_conv
             pFramesOutThisIteration = NULL;
         }
 
-        /* Do a pre format conversion if necessary. */
+        /* Do a pre format_t conversion if necessary. */
         if (pConverter->hasPreFormatConversion) {
             ma_uint8 pTempBufferIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];
             const ma_uint32 tempBufferInCap = sizeof(pTempBufferIn) / ma_get_bytes_per_frame(pConverter->resampler.format, pConverter->resampler.channels);
@@ -56343,7 +56343,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_with_format_conv
 
                 result = ma_resampler_process_pcm_frames(&pConverter->resampler, pTempBufferIn, &frameCountInThisIteration, pTempBufferOut, &frameCountOutThisIteration);
             } else {
-                /* Only pre-format required. Output straight to the output buffer. */
+                /* Only pre-format_t required. Output straight to the output buffer. */
                 result = ma_resampler_process_pcm_frames(&pConverter->resampler, pTempBufferIn, &frameCountInThisIteration, pFramesOutThisIteration, &frameCountOutThisIteration);
             }
 
@@ -56351,7 +56351,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_with_format_conv
                 break;
             }
         } else {
-            /* No pre-format required. Just read straight from the input buffer. */
+            /* No pre-format_t required. Just read straight from the input buffer. */
             MA_ASSERT(pConverter->hasPostFormatConversion == MA_TRUE);
 
             frameCountInThisIteration  = (frameCountIn  - framesProcessedIn);
@@ -56366,7 +56366,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_with_format_conv
             }
         }
 
-        /* If we are doing a post format conversion we need to do that now. */
+        /* If we are doing a post format_t conversion we need to do that now. */
         if (pConverter->hasPostFormatConversion) {
             if (pFramesOutThisIteration != NULL) {
                 ma_convert_pcm_frames_format(pFramesOutThisIteration, pConverter->formatOut, pTempBufferOut, pConverter->resampler.format, frameCountOutThisIteration, pConverter->resampler.channels, pConverter->ditherMode);
@@ -56399,7 +56399,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_only(ma_data_con
     MA_ASSERT(pConverter != NULL);
 
     if (pConverter->hasPreFormatConversion == MA_FALSE && pConverter->hasPostFormatConversion == MA_FALSE) {
-        /* Neither pre- nor post-format required. This is simple case where only resampling is required. */
+        /* Neither pre- nor post-format_t required. This is simple case where only resampling is required. */
         return ma_resampler_process_pcm_frames(&pConverter->resampler, pFramesIn, pFrameCountIn, pFramesOut, pFrameCountOut);
     } else {
         /* Format conversion required. */
@@ -56429,7 +56429,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_only(ma_data_con
     frameCount = ma_min(frameCountIn, frameCountOut);
 
     if (pConverter->hasPreFormatConversion == MA_FALSE && pConverter->hasPostFormatConversion == MA_FALSE) {
-        /* No format conversion required. */
+        /* No format_t conversion required. */
         result = ma_channel_converter_process_pcm_frames(&pConverter->channelConverter, pFramesOut, pFramesIn, frameCount);
         if (result != MA_SUCCESS) {
             return result;
@@ -56457,7 +56457,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_only(ma_data_con
                 pFramesOutThisIteration = NULL;
             }
 
-            /* Do a pre format conversion if necessary. */
+            /* Do a pre format_t conversion if necessary. */
             if (pConverter->hasPreFormatConversion) {
                 ma_uint8 pTempBufferIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];
                 const ma_uint32 tempBufferInCap = sizeof(pTempBufferIn) / ma_get_bytes_per_frame(pConverter->channelConverter.format, pConverter->channelConverter.channelsIn);
@@ -56483,7 +56483,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_only(ma_data_con
                     /* Both input and output conversion required. Output to the temp buffer. */
                     result = ma_channel_converter_process_pcm_frames(&pConverter->channelConverter, pTempBufferOut, pTempBufferIn, frameCountThisIteration);
                 } else {
-                    /* Only pre-format required. Output straight to the output buffer. */
+                    /* Only pre-format_t required. Output straight to the output buffer. */
                     result = ma_channel_converter_process_pcm_frames(&pConverter->channelConverter, pFramesOutThisIteration, pTempBufferIn, frameCountThisIteration);
                 }
 
@@ -56491,7 +56491,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_only(ma_data_con
                     break;
                 }
             } else {
-                /* No pre-format required. Just read straight from the input buffer. */
+                /* No pre-format_t required. Just read straight from the input buffer. */
                 MA_ASSERT(pConverter->hasPostFormatConversion == MA_TRUE);
 
                 frameCountThisIteration = (frameCount - framesProcessed);
@@ -56505,7 +56505,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_only(ma_data_con
                 }
             }
 
-            /* If we are doing a post format conversion we need to do that now. */
+            /* If we are doing a post format_t conversion we need to do that now. */
             if (pConverter->hasPostFormatConversion) {
                 if (pFramesOutThisIteration != NULL) {
                     ma_convert_pcm_frames_format(pFramesOutThisIteration, pConverter->formatOut, pTempBufferOut, pConverter->channelConverter.format, frameCountThisIteration, pConverter->channelConverter.channelsOut, pConverter->ditherMode);
@@ -56533,11 +56533,11 @@ static ma_result ma_data_converter_process_pcm_frames__resample_first(ma_data_co
     ma_uint64 frameCountOut;
     ma_uint64 framesProcessedIn;
     ma_uint64 framesProcessedOut;
-    ma_uint8  pTempBufferIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];   /* In resampler format. */
+    ma_uint8  pTempBufferIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];   /* In resampler format_t. */
     ma_uint64 tempBufferInCap;
-    ma_uint8  pTempBufferMid[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In resampler format, channel converter input format. */
+    ma_uint8  pTempBufferMid[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In resampler format_t, channel converter input format_t. */
     ma_uint64 tempBufferMidCap;
-    ma_uint8  pTempBufferOut[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In channel converter output format. */
+    ma_uint8  pTempBufferOut[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In channel converter output format_t. */
     ma_uint64 tempBufferOutCap;
 
     MA_ASSERT(pConverter != NULL);
@@ -56603,7 +56603,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_first(ma_data_co
         /*
         We need to try to predict how many input frames will be required for the resampler. If the
         resampler can tell us, we'll use that. Otherwise we'll need to make a best guess. The further
-        off we are from this, the more wasted format conversions we'll end up doing.
+        off we are from this, the more wasted format_t conversions we'll end up doing.
         */
         #if 1
         {
@@ -56654,7 +56654,7 @@ static ma_result ma_data_converter_process_pcm_frames__resample_first(ma_data_co
                 return result;
             }
 
-            /* Finally we do post format conversion. */
+            /* Finally we do post format_t conversion. */
             if (pConverter->hasPostFormatConversion) {
                 ma_convert_pcm_frames_format(pRunningFramesOut, pConverter->formatOut, pChannelsBufferOut, pConverter->channelConverter.format, frameCountOutThisIteration, pConverter->channelConverter.channelsOut, pConverter->ditherMode);
             }
@@ -56689,11 +56689,11 @@ static ma_result ma_data_converter_process_pcm_frames__channels_first(ma_data_co
     ma_uint64 frameCountOut;
     ma_uint64 framesProcessedIn;
     ma_uint64 framesProcessedOut;
-    ma_uint8  pTempBufferIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];   /* In resampler format. */
+    ma_uint8  pTempBufferIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];   /* In resampler format_t. */
     ma_uint64 tempBufferInCap;
-    ma_uint8  pTempBufferMid[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In resampler format, channel converter input format. */
+    ma_uint8  pTempBufferMid[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In resampler format_t, channel converter input format_t. */
     ma_uint64 tempBufferMidCap;
-    ma_uint8  pTempBufferOut[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In channel converter output format. */
+    ma_uint8  pTempBufferOut[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In channel converter output format_t. */
     ma_uint64 tempBufferOutCap;
 
     MA_ASSERT(pConverter != NULL);
@@ -56735,7 +56735,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_first(ma_data_co
 
         /*
         Before doing any processing we need to determine how many frames we should try processing
-        this iteration, for both input and output. The resampler requires us to perform format and
+        this iteration, for both input and output. The resampler requires us to perform format_t and
         channel conversion before passing any data into it. If we get our input count wrong, we'll
         end up performing redundant pre-processing. This isn't the end of the world, but it does
         result in some inefficiencies proportionate to how far our estimates are off.
@@ -56784,7 +56784,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_first(ma_data_co
         #endif
 
 
-        /* Pre format conversion. */
+        /* Pre format_t conversion. */
         if (pConverter->hasPreFormatConversion) {
             if (pRunningFramesIn != NULL) {
                 ma_convert_pcm_frames_format(pTempBufferIn, pConverter->channelConverter.format, pRunningFramesIn, pConverter->formatIn, frameCountInThisIteration, pConverter->channelsIn, pConverter->ditherMode);
@@ -56817,7 +56817,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_first(ma_data_co
         }
 
 
-        /* Post format conversion. */
+        /* Post format_t conversion. */
         if (pConverter->hasPostFormatConversion) {
             if (pRunningFramesOut != NULL) {
                 ma_convert_pcm_frames_format(pRunningFramesOut, pConverter->formatOut, pResampleBufferOut, pConverter->resampler.format, frameCountOutThisIteration, pConverter->channelsOut, pConverter->ditherMode);
@@ -59289,7 +59289,7 @@ MA_API ma_result ma_data_source_read_pcm_frames(ma_data_source* pDataSource, voi
     loop = ma_data_source_is_looping(pDataSource);
 
     /*
-    We need to know the data format so we can advance the output buffer as we read frames. If this
+    We need to know the data format_t so we can advance the output buffer as we read frames. If this
     fails, chaining will not work and we'll just read as much as we can from the current source.
     */
     if (ma_data_source_get_data_format(pDataSource, &format, &channels, NULL, NULL, 0) != MA_SUCCESS) {
@@ -60669,7 +60669,7 @@ MA_API ma_result ma_paged_audio_buffer_init(const ma_paged_audio_buffer_config* 
 
     MA_ZERO_OBJECT(pPagedAudioBuffer);
 
-    /* A config is required for the format and channel count. */
+    /* A config is required for the format_t and channel count. */
     if (pConfig == NULL) {
         return MA_INVALID_ARGS;
     }
@@ -62822,7 +62822,7 @@ static ma_result ma_decoder__init_data_converter(ma_decoder* pDecoder, const ma_
 
     result = ma_data_source_get_data_format(pDecoder->pBackend, &internalFormat, &internalChannels, &internalSampleRate, internalChannelMap, ma_countof(internalChannelMap));
     if (result != MA_SUCCESS) {
-        return result;  /* Failed to retrieve the internal data format. */
+        return result;  /* Failed to retrieve the internal data format_t. */
     }
 
 
@@ -62837,7 +62837,7 @@ static ma_result ma_decoder__init_data_converter(ma_decoder* pDecoder, const ma_
     }
 
 
-    /* Output format. */
+    /* Output format_t. */
     if (pConfig->format == ma_format_unknown) {
         pDecoder->outputFormat = internalFormat;
     } else {
@@ -63317,7 +63317,7 @@ static ma_result ma_wav_init_internal(const ma_decoding_backend_config* pConfig,
     if (pConfig != NULL && (pConfig->preferredFormat == ma_format_f32 || pConfig->preferredFormat == ma_format_s16 || pConfig->preferredFormat == ma_format_s32)) {
         pWav->format = pConfig->preferredFormat;
     } else {
-        /* Getting here means something other than f32 and s16 was specified. Just leave this unset to use the default format. */
+        /* Getting here means something other than f32 and s16 was specified. Just leave this unset to use the default format_t. */
     }
 
     dataSourceConfig = ma_data_source_config_init();
@@ -63334,8 +63334,8 @@ static ma_result ma_wav_init_internal(const ma_decoding_backend_config* pConfig,
 static ma_result ma_wav_post_init(ma_wav* pWav)
 {
     /*
-    If an explicit format was not specified, try picking the closest match based on the internal
-    format. The format needs to be supported by miniaudio.
+    If an explicit format_t was not specified, try picking the closest match based on the internal
+    format_t. The format_t needs to be supported by miniaudio.
     */
     if (pWav->format == ma_format_unknown) {
         switch (pWav->dr.translatedFormatTag)
@@ -63547,7 +63547,7 @@ MA_API ma_result ma_wav_read_pcm_frames(ma_wav* pWav, void* pFramesOut, ma_uint6
 
     #if !defined(MA_NO_WAV)
     {
-        /* We always use floating point format. */
+        /* We always use floating point format_t. */
         ma_result result = MA_SUCCESS;  /* Must be initialized to MA_SUCCESS. */
         ma_uint64 totalFramesRead = 0;
         ma_format format;
@@ -63572,7 +63572,7 @@ MA_API ma_result ma_wav_read_pcm_frames(ma_wav* pWav, void* pFramesOut, ma_uint6
             } break;
 
             /* Fallback to a raw read. */
-            case ma_format_unknown: return MA_INVALID_OPERATION; /* <-- this should never be hit because initialization would just fall back to a supported format. */
+            case ma_format_unknown: return MA_INVALID_OPERATION; /* <-- this should never be hit because initialization would just fall back to a supported format_t. */
             default:
             {
                 totalFramesRead = ma_dr_wav_read_pcm_frames(&pWav->dr, frameCount, pFramesOut);
@@ -64023,7 +64023,7 @@ static ma_result ma_flac_init_internal(const ma_decoding_backend_config* pConfig
     if (pConfig != NULL && (pConfig->preferredFormat == ma_format_f32 || pConfig->preferredFormat == ma_format_s16 || pConfig->preferredFormat == ma_format_s32)) {
         pFlac->format = pConfig->preferredFormat;
     } else {
-        /* Getting here means something other than f32 and s16 was specified. Just leave this unset to use the default format. */
+        /* Getting here means something other than f32 and s16 was specified. Just leave this unset to use the default format_t. */
     }
 
     dataSourceConfig = ma_data_source_config_init();
@@ -64196,7 +64196,7 @@ MA_API ma_result ma_flac_read_pcm_frames(ma_flac* pFlac, void* pFramesOut, ma_ui
 
     #if !defined(MA_NO_FLAC)
     {
-        /* We always use floating point format. */
+        /* We always use floating point format_t. */
         ma_result result = MA_SUCCESS;  /* Must be initialized to MA_SUCCESS. */
         ma_uint64 totalFramesRead = 0;
         ma_format format;
@@ -64665,7 +64665,7 @@ static ma_result ma_mp3_init_internal(const ma_decoding_backend_config* pConfig,
     if (pConfig != NULL && (pConfig->preferredFormat == ma_format_f32 || pConfig->preferredFormat == ma_format_s16)) {
         pMP3->format = pConfig->preferredFormat;
     } else {
-        /* Getting here means something other than f32 and s16 was specified. Just leave this unset to use the default format. */
+        /* Getting here means something other than f32 and s16 was specified. Just leave this unset to use the default format_t. */
     }
 
     dataSourceConfig = ma_data_source_config_init();
@@ -64902,7 +64902,7 @@ MA_API ma_result ma_mp3_read_pcm_frames(ma_mp3* pMP3, void* pFramesOut, ma_uint6
 
     #if !defined(MA_NO_MP3)
     {
-        /* We always use floating point format. */
+        /* We always use floating point format_t. */
         ma_result result = MA_SUCCESS;  /* Must be initialized to MA_SUCCESS. */
         ma_uint64 totalFramesRead = 0;
         ma_format format;
@@ -65599,15 +65599,15 @@ MA_API ma_result ma_stbvorbis_read_pcm_frames(ma_stbvorbis* pVorbis, void* pFram
 
     #if !defined(MA_NO_VORBIS)
     {
-        /* We always use floating point format. */
+        /* We always use floating point format_t. */
         ma_result result = MA_SUCCESS;  /* Must be initialized to MA_SUCCESS. */
         ma_uint64 totalFramesRead = 0;
         ma_format format;
         ma_uint32 channels;
 
-        ma_stbvorbis_get_data_format(pVorbis, &format, &channels, NULL, NULL, 0);
+        ma_stbvorbis_get_data_format(pVorbis, &format_t, &channels, NULL, NULL, 0);
 
-        if (format == ma_format_f32) {
+        if (format_t == ma_format_f32) {
             /* We read differently depending on whether or not we're using push mode. */
             if (pVorbis->usingPushMode) {
                 /* Push mode. This is the complex case. */
@@ -65706,7 +65706,7 @@ MA_API ma_result ma_stbvorbis_read_pcm_frames(ma_stbvorbis* pVorbis, void* pFram
                         framesRemaining = INT_MAX;
                     }
 
-                    framesRead = stb_vorbis_get_samples_float_interleaved(pVorbis->stb, channels, (float*)ma_offset_pcm_frames_ptr(pFramesOut, totalFramesRead, format, channels), (int)framesRemaining * channels);   /* Safe cast. */
+                    framesRead = stb_vorbis_get_samples_float_interleaved(pVorbis->stb, channels, (float*)ma_offset_pcm_frames_ptr(pFramesOut, totalFramesRead, format_t, channels), (int)framesRemaining * channels);   /* Safe cast. */
                     totalFramesRead += framesRead;
 
                     if (framesRead < (int)framesRemaining) {
@@ -66201,11 +66201,11 @@ static ma_result ma_decoder_init__internal(ma_decoder_read_proc onRead, ma_decod
     }
 
     if (result != MA_SUCCESS) {
-        /* Getting here means we couldn't load a specific decoding backend based on the encoding format. */
+        /* Getting here means we couldn't load a specific decoding backend based on the encoding format_t. */
 
         /*
         We use trial and error to open a decoder. We prioritize custom decoders so that if they
-        implement the same encoding format they take priority over the built-in decoders.
+        implement the same encoding format_t they take priority over the built-in decoders.
         */
         if (result != MA_SUCCESS) {
             result = ma_decoder_init_custom__internal(pConfig, pDecoder);
@@ -66216,7 +66216,7 @@ static ma_result ma_decoder_init__internal(ma_decoder_read_proc onRead, ma_decod
 
         /*
         If we get to this point and we still haven't found a decoder, and the caller has requested a
-        specific encoding format, there's no hope for it. Abort.
+        specific encoding format_t, there's no hope for it. Abort.
         */
         if (pConfig->encodingFormat != ma_encoding_format_unknown) {
             return MA_NO_BACKEND;
@@ -66425,17 +66425,17 @@ MA_API ma_result ma_decoder_init_memory(const void* pData, size_t dataSize, cons
     }
 
     if (result != MA_SUCCESS) {
-        /* Getting here means we weren't able to initialize a decoder of a specific encoding format. */
+        /* Getting here means we weren't able to initialize a decoder of a specific encoding format_t. */
 
         /*
         We use trial and error to open a decoder. We prioritize custom decoders so that if they
-        implement the same encoding format they take priority over the built-in decoders.
+        implement the same encoding format_t they take priority over the built-in decoders.
         */
         result = ma_decoder_init_custom_from_memory__internal(pData, dataSize, &config, pDecoder);
 
         /*
         If we get to this point and we still haven't found a decoder, and the caller has requested a
-        specific encoding format, there's no hope for it. Abort.
+        specific encoding format_t, there's no hope for it. Abort.
         */
         if (result != MA_SUCCESS && config.encodingFormat != ma_encoding_format_unknown) {
             return MA_NO_BACKEND;
@@ -66777,11 +66777,11 @@ MA_API ma_result ma_decoder_init_vfs(ma_vfs* pVFS, const char* pFilePath, const 
     }
 
     if (result != MA_SUCCESS) {
-        /* Getting here means we weren't able to initialize a decoder of a specific encoding format. */
+        /* Getting here means we weren't able to initialize a decoder of a specific encoding format_t. */
 
         /*
         We use trial and error to open a decoder. We prioritize custom decoders so that if they
-        implement the same encoding format they take priority over the built-in decoders.
+        implement the same encoding format_t they take priority over the built-in decoders.
         */
         if (result != MA_SUCCESS) {
             result = ma_decoder_init_custom__internal(&config, pDecoder);
@@ -66792,7 +66792,7 @@ MA_API ma_result ma_decoder_init_vfs(ma_vfs* pVFS, const char* pFilePath, const 
 
         /*
         If we get to this point and we still haven't found a decoder, and the caller has requested a
-        specific encoding format, there's no hope for it. Abort.
+        specific encoding format_t, there's no hope for it. Abort.
         */
         if (config.encodingFormat != ma_encoding_format_unknown) {
             return MA_NO_BACKEND;
@@ -66910,11 +66910,11 @@ MA_API ma_result ma_decoder_init_vfs_w(ma_vfs* pVFS, const wchar_t* pFilePath, c
     }
 
     if (result != MA_SUCCESS) {
-        /* Getting here means we weren't able to initialize a decoder of a specific encoding format. */
+        /* Getting here means we weren't able to initialize a decoder of a specific encoding format_t. */
 
         /*
         We use trial and error to open a decoder. We prioritize custom decoders so that if they
-        implement the same encoding format they take priority over the built-in decoders.
+        implement the same encoding format_t they take priority over the built-in decoders.
         */
         if (result != MA_SUCCESS) {
             result = ma_decoder_init_custom__internal(&config, pDecoder);
@@ -66925,7 +66925,7 @@ MA_API ma_result ma_decoder_init_vfs_w(ma_vfs* pVFS, const wchar_t* pFilePath, c
 
         /*
         If we get to this point and we still haven't found a decoder, and the caller has requested a
-        specific encoding format, there's no hope for it. Abort.
+        specific encoding format_t, there's no hope for it. Abort.
         */
         if (config.encodingFormat != ma_encoding_format_unknown) {
             return MA_NO_BACKEND;
@@ -67027,17 +67027,17 @@ MA_API ma_result ma_decoder_init_file(const char* pFilePath, const ma_decoder_co
     }
 
     if (result != MA_SUCCESS) {
-        /* Getting here means we weren't able to initialize a decoder of a specific encoding format. */
+        /* Getting here means we weren't able to initialize a decoder of a specific encoding format_t. */
 
         /*
         We use trial and error to open a decoder. We prioritize custom decoders so that if they
-        implement the same encoding format they take priority over the built-in decoders.
+        implement the same encoding format_t they take priority over the built-in decoders.
         */
         result = ma_decoder_init_custom_from_file__internal(pFilePath, &config, pDecoder);
 
         /*
         If we get to this point and we still haven't found a decoder, and the caller has requested a
-        specific encoding format, there's no hope for it. Abort.
+        specific encoding format_t, there's no hope for it. Abort.
         */
         if (result != MA_SUCCESS && config.encodingFormat != ma_encoding_format_unknown) {
             return MA_NO_BACKEND;
@@ -67177,17 +67177,17 @@ MA_API ma_result ma_decoder_init_file_w(const wchar_t* pFilePath, const ma_decod
     }
 
     if (result != MA_SUCCESS) {
-        /* Getting here means we weren't able to initialize a decoder of a specific encoding format. */
+        /* Getting here means we weren't able to initialize a decoder of a specific encoding format_t. */
 
         /*
         We use trial and error to open a decoder. We prioritize custom decoders so that if they
-        implement the same encoding format they take priority over the built-in decoders.
+        implement the same encoding format_t they take priority over the built-in decoders.
         */
         result = ma_decoder_init_custom_from_file_w__internal(pFilePath, &config, pDecoder);
 
         /*
         If we get to this point and we still haven't found a decoder, and the caller has requested a
-        specific encoding format, there's no hope for it. Abort.
+        specific encoding format_t, there's no hope for it. Abort.
         */
         if (result != MA_SUCCESS && config.encodingFormat != ma_encoding_format_unknown) {
             return MA_NO_BACKEND;
@@ -67342,7 +67342,7 @@ MA_API ma_result ma_decoder_read_pcm_frames(ma_decoder* pDecoder, void* pFramesO
 
             result = ma_data_source_get_data_format(pDecoder->pBackend, &internalFormat, &internalChannels, NULL, NULL, 0);
             if (result != MA_SUCCESS) {
-                return result;   /* Failed to retrieve the internal format and channel count. */
+                return result;   /* Failed to retrieve the internal format_t and channel count. */
             }
 
             /*
@@ -67397,7 +67397,7 @@ MA_API ma_result ma_decoder_read_pcm_frames(ma_decoder* pDecoder, void* pFramesO
             } else {
                 /* We have a way of determining the required number of input frames so just use the stack. */
                 while (totalFramesReadOut < frameCount) {
-                    ma_uint8 pIntermediaryBuffer[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In internal format. */
+                    ma_uint8 pIntermediaryBuffer[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];  /* In internal format_t. */
                     ma_uint64 intermediaryBufferCap = sizeof(pIntermediaryBuffer) / ma_get_bytes_per_frame(internalFormat, internalChannels);
                     ma_uint64 framesToReadThisIterationIn;
                     ma_uint64 framesReadThisIterationIn;
@@ -67432,7 +67432,7 @@ MA_API ma_result ma_decoder_read_pcm_frames(ma_decoder* pDecoder, void* pFramesO
                     }
 
                     /*
-                    At this point we have our decoded data in input format and now we need to convert to output format. Note that even if we didn't read any
+                    At this point we have our decoded data in input format_t and now we need to convert to output format_t. Note that even if we didn't read any
                     input frames, we still want to try processing frames because there may some output frames generated from cached input data.
                     */
                     framesReadThisIterationOut = framesToReadThisIterationOut;
@@ -70270,7 +70270,7 @@ static ma_result ma_resource_manager_data_buffer_init_connector(ma_resource_mana
 
     /*
     Initialization of the connector is when we can fire the init notification. This will give the application access to
-    the format/channels/rate of the data source.
+    the format_t/channels/rate of the data source.
     */
     if (result == MA_SUCCESS) {
         /*
@@ -72295,7 +72295,7 @@ MA_API ma_result ma_resource_manager_data_stream_get_data_format(ma_resource_man
     }
 
     /*
-    We're being a little bit naughty here and accessing the internal decoder from the public API. The output data format is constant, and we've defined this function
+    We're being a little bit naughty here and accessing the internal decoder from the public API. The output data format_t is constant, and we've defined this function
     such that the application is responsible for ensuring it's not called while uninitializing so it should be safe.
     */
     return ma_data_source_get_data_format(&pDataStream->decoder, pFormat, pChannels, pSampleRate, pChannelMap, channelMapCap);
@@ -75374,7 +75374,7 @@ static void ma_data_source_node_process_pcm_frames(ma_node* pNode, const float**
     MA_ASSERT(frameCount > 0);
 
     if (ma_data_source_get_data_format(pDataSourceNode->pDataSource, &format, &channels, NULL, NULL, 0) == MA_SUCCESS) { /* <-- Don't care about sample rate here. */
-        /* The node graph system requires samples be in floating point format. This is checked in ma_data_source_node_init(). */
+        /* The node graph system requires samples be in floating point format_t. This is checked in ma_data_source_node_init(). */
         MA_ASSERT(format == ma_format_f32);
         (void)format;   /* Just to silence some static analysis tools. */
 
@@ -75396,7 +75396,7 @@ static ma_node_vtable g_ma_data_source_node_vtable =
 MA_API ma_result ma_data_source_node_init(ma_node_graph* pNodeGraph, const ma_data_source_node_config* pConfig, const ma_allocation_callbacks* pAllocationCallbacks, ma_data_source_node* pDataSourceNode)
 {
     ma_result result;
-    ma_format format;   /* For validating the format, which must be ma_format_f32. */
+    ma_format format;   /* For validating the format_t, which must be ma_format_f32. */
     ma_uint32 channels; /* For specifying the channel count of the output bus. */
     ma_node_config baseConfig;
 
@@ -75417,7 +75417,7 @@ MA_API ma_result ma_data_source_node_init(ma_node_graph* pNodeGraph, const ma_da
 
     MA_ASSERT(format == ma_format_f32); /* <-- If you've triggered this it means your data source is not outputting floating-point samples. You must configure your data source to use ma_format_f32. */
     if (format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* Invalid format. */
+        return MA_INVALID_ARGS; /* Invalid format_t. */
     }
 
     /* The channel count is defined by the data source. If the caller has manually changed the channels we just ignore it. */
@@ -75612,7 +75612,7 @@ MA_API ma_result ma_biquad_node_init(ma_node_graph* pNodeGraph, const ma_biquad_
     }
 
     if (pConfig->biquad.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_biquad_init(&pConfig->biquad, pAllocationCallbacks, &pNode->biquad);
@@ -75704,7 +75704,7 @@ MA_API ma_result ma_lpf_node_init(ma_node_graph* pNodeGraph, const ma_lpf_node_c
     }
 
     if (pConfig->lpf.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_lpf_init(&pConfig->lpf, pAllocationCallbacks, &pNode->lpf);
@@ -75798,7 +75798,7 @@ MA_API ma_result ma_hpf_node_init(ma_node_graph* pNodeGraph, const ma_hpf_node_c
     }
 
     if (pConfig->hpf.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_hpf_init(&pConfig->hpf, pAllocationCallbacks, &pNode->hpf);
@@ -75893,7 +75893,7 @@ MA_API ma_result ma_bpf_node_init(ma_node_graph* pNodeGraph, const ma_bpf_node_c
     }
 
     if (pConfig->bpf.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_bpf_init(&pConfig->bpf, pAllocationCallbacks, &pNode->bpf);
@@ -75987,7 +75987,7 @@ MA_API ma_result ma_notch_node_init(ma_node_graph* pNodeGraph, const ma_notch_no
     }
 
     if (pConfig->notch.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_notch2_init(&pConfig->notch, pAllocationCallbacks, &pNode->notch);
@@ -76081,7 +76081,7 @@ MA_API ma_result ma_peak_node_init(ma_node_graph* pNodeGraph, const ma_peak_node
     }
 
     if (pConfig->peak.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_peak2_init(&pConfig->peak, pAllocationCallbacks, &pNode->peak);
@@ -76176,7 +76176,7 @@ MA_API ma_result ma_loshelf_node_init(ma_node_graph* pNodeGraph, const ma_loshel
     }
 
     if (pConfig->loshelf.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_loshelf2_init(&pConfig->loshelf, pAllocationCallbacks, &pNode->loshelf);
@@ -76270,7 +76270,7 @@ MA_API ma_result ma_hishelf_node_init(ma_node_graph* pNodeGraph, const ma_hishel
     }
 
     if (pConfig->hishelf.format != ma_format_f32) {
-        return MA_INVALID_ARGS; /* The format must be f32. */
+        return MA_INVALID_ARGS; /* The format_t must be f32. */
     }
 
     result = ma_hishelf2_init(&pConfig->hishelf, pAllocationCallbacks, &pNode->hishelf);
@@ -76880,11 +76880,11 @@ static void ma_engine_node_process_pcm_frames__sound(ma_node* pNode, const float
                 pRunningFramesIn = (float*)temp;
                 ma_engine_node_process_pcm_frames__general(&pSound->engineNode, &pRunningFramesIn, &frameCountIn, &pRunningFramesOut, &frameCountOut);
             } else {
-                /* Slow path. Need to do sample format conversion to f32. If we give the f32 buffer the same count as the first temp buffer, we're guaranteed it'll be large enough. */
+                /* Slow path. Need to do sample format_t conversion to f32. If we give the f32 buffer the same count as the first temp buffer, we're guaranteed it'll be large enough. */
                 float tempf32[MA_DATA_CONVERTER_STACK_BUFFER_SIZE]; /* Do not do `MA_DATA_CONVERTER_STACK_BUFFER_SIZE/sizeof(float)` here like we've done in other places. */
                 ma_convert_pcm_frames_format(tempf32, ma_format_f32, temp, dataSourceFormat, framesJustRead, dataSourceChannels, ma_dither_mode_none);
 
-                /* Now that we have our samples in f32 format we can process like normal. */
+                /* Now that we have our samples in f32 format_t we can process like normal. */
                 pRunningFramesIn = tempf32;
                 ma_engine_node_process_pcm_frames__general(&pSound->engineNode, &pRunningFramesIn, &frameCountIn, &pRunningFramesOut, &frameCountOut);
             }
@@ -79308,7 +79308,7 @@ MA_API ma_result ma_sound_get_data_format(const ma_sound* pSound, ma_format* pFo
         return MA_INVALID_ARGS;
     }
 
-    /* The data format is retrieved directly from the data source if the sound is backed by one. Otherwise we pull it from the node. */
+    /* The data format_t is retrieved directly from the data source if the sound is backed by one. Otherwise we pull it from the node. */
     if (pSound->pDataSource == NULL) {
         ma_uint32 channels;
 

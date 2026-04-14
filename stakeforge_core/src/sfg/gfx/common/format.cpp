@@ -35,26 +35,26 @@ using json = nlohmann::json;
 
 namespace sfg
 {
-	u8 format_get_bpp(format fmt)
+	u8 format_get_bpp(format_t fmt)
 	{
 		switch (fmt)
 		{
-		case format::r8_unorm:
+		case format_t::r8_unorm:
 			return 1;
-		case format::r8g8b8a8_unorm:
-		case format::r8g8b8a8_srgb:
+		case format_t::r8g8b8a8_unorm:
+		case format_t::r8g8b8a8_srgb:
 			return 4;
-		case format::d16_unorm:
+		case format_t::d16_unorm:
 			return 2;
-		case format::d32_sfloat:
+		case format_t::d32_sfloat:
 			return 4;
-		case format::r16g16b16a16_sfloat:
+		case format_t::r16g16b16a16_sfloat:
 			return 8;
-		case format::r10g0b10a2_unorm:
+		case format_t::r10g0b10a2_unorm:
 			return 4;
-		case format::r8g8_unorm:
+		case format_t::r8g8_unorm:
 			return 2;
-		case format::r32_uint:
+		case format_t::r32_uint:
 			return 4;
 		default:
 			break;
@@ -64,16 +64,16 @@ namespace sfg
 		return 0;
 	}
 
-	u8 format_get_channels(format fmt)
+	u8 format_get_channels(format_t fmt)
 	{
 		switch (fmt)
 		{
-		case format::r8_unorm:
+		case format_t::r8_unorm:
 			return 1;
-		case format::r8g8b8a8_unorm:
-		case format::r8g8b8a8_srgb:
+		case format_t::r8g8b8a8_unorm:
+		case format_t::r8g8b8a8_srgb:
 			return 4;
-		case format::r16g16b16a16_sfloat:
+		case format_t::r16g16b16a16_sfloat:
 			return 4;
 		default:
 			break;
@@ -82,13 +82,13 @@ namespace sfg
 		return 0;
 	}
 
-	bool format_is_linear(format fmt)
+	bool format_is_linear(format_t fmt)
 	{
 		switch (fmt)
 		{
-		case format::b8g8r8a8_srgb:
-		case format::bc3_block_srgb:
-		case format::r8g8b8a8_srgb:
+		case format_t::b8g8r8a8_srgb:
+		case format_t::bc3_block_srgb:
+		case format_t::r8g8b8a8_srgb:
 			return false;
 		default:
 			return true;
@@ -99,44 +99,44 @@ namespace sfg
 	}
 
 #ifdef SFG_JSON_SERIALIZE
-	void to_json(nlohmann::json& j, const format& f)
+	void to_json(nlohmann::json& j, const format_t& f)
 	{
 		switch (f)
 		{
-		case format::r8_unorm:
+		case format_t::r8_unorm:
 			j = "r8";
 			return;
-		case format::r8g8b8a8_srgb:
+		case format_t::r8g8b8a8_srgb:
 			j = "r8g8b8a8_srgb";
 			return;
-		case format::r8g8b8a8_unorm:
+		case format_t::r8g8b8a8_unorm:
 			j = "r8g8b8a8_unorm";
 			return;
-		case format::r32g32_sfloat:
+		case format_t::r32g32_sfloat:
 			j = "r32g32_sfloat";
 			return;
-		case format::r32g32b32_sfloat:
+		case format_t::r32g32b32_sfloat:
 			j = "r32g32b32_sfloat";
 			return;
-		case format::r16g16b16a16_sfloat:
+		case format_t::r16g16b16a16_sfloat:
 			j = "r16g16b16a16_sfloat";
 			return;
-		case format::r32g32b32a32_sfloat:
+		case format_t::r32g32b32a32_sfloat:
 			j = "r32g32b32a32_sfloat";
 			return;
-		case format::r32g32b32a32_uint:
+		case format_t::r32g32b32a32_uint:
 			j = "r32g32b32a32_uint";
 			return;
-		case format::d16_unorm:
+		case format_t::d16_unorm:
 			j = "d16_unorm";
 			return;
-		case format::d32_sfloat:
+		case format_t::d32_sfloat:
 			j = "d32_sfloat";
 			return;
-		case format::r10g0b10a2_unorm:
+		case format_t::r10g0b10a2_unorm:
 			j = "r10g10b10a2_unorm";
 			return;
-		case format::r32_sfloat:
+		case format_t::r32_sfloat:
 			j = "r32_sfloat";
 			return;
 		}
@@ -144,75 +144,75 @@ namespace sfg
 		j = "undefined";
 	}
 
-	void from_json(const nlohmann::json& j, format& f)
+	void from_json(const nlohmann::json& j, format_t& f)
 	{
 		const string_t str = j.get<string_t>();
 
 		if (str.compare("r8") == 0)
 		{
-			f = format::r8_unorm;
+			f = format_t::r8_unorm;
 			return;
 		}
 		if (str.compare("r8g8b8a8_srgb") == 0)
 		{
-			f = format::r8g8b8a8_srgb;
+			f = format_t::r8g8b8a8_srgb;
 			return;
 		}
 		if (str.compare("r8g8b8a8_unorm") == 0)
 		{
-			f = format::r8g8b8a8_unorm;
+			f = format_t::r8g8b8a8_unorm;
 			return;
 		}
 		if (str.compare("r32g32_sfloat") == 0)
 		{
-			f = format::r32g32_sfloat;
+			f = format_t::r32g32_sfloat;
 			return;
 		}
 		if (str.compare("r32g32b32_sfloat") == 0)
 		{
-			f = format::r32g32b32_sfloat;
+			f = format_t::r32g32b32_sfloat;
 			return;
 		}
 		if (str.compare("r32g32b32a32_sfloat") == 0)
 		{
-			f = format::r32g32b32a32_sfloat;
+			f = format_t::r32g32b32a32_sfloat;
 			return;
 		}
 		if (str.compare("r16g16b16a16_sfloat") == 0)
 		{
-			f = format::r16g16b16a16_sfloat;
+			f = format_t::r16g16b16a16_sfloat;
 			return;
 		}
 		if (str.compare("r32g32b32a32_uint") == 0)
 		{
-			f = format::r32g32b32a32_uint;
+			f = format_t::r32g32b32a32_uint;
 			return;
 		}
 		if (str.compare("d32_sfloat") == 0)
 		{
-			f = format::d32_sfloat;
+			f = format_t::d32_sfloat;
 			return;
 		}
 
 		if (str.compare("d16_unorm") == 0)
 		{
-			f = format::d16_unorm;
+			f = format_t::d16_unorm;
 			return;
 		}
 
 		if (str.compare("r10g0b10a2_unorm") == 0)
 		{
-			f = format::r10g0b10a2_unorm;
+			f = format_t::r10g0b10a2_unorm;
 			return;
 		}
 
 		if (str.compare("r32_sfloat") == 0)
 		{
-			f = format::r32_sfloat;
+			f = format_t::r32_sfloat;
 			return;
 		}
 
-		f = format::undefined;
+		f = format_t::undefined;
 	}
 #endif
 }

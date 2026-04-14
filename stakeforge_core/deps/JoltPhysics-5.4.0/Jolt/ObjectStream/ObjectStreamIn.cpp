@@ -22,7 +22,7 @@ ObjectStreamIn::ObjectStreamIn(istream &inStream) :
 
 bool ObjectStreamIn::GetInfo(istream &inStream, EStreamType &outType, int &outVersion, int &outRevision)
 {
-	// Read header and check if it is the correct format, e.g. "TOS 1.00"
+	// Read header and check if it is the correct format_t, e.g. "TOS 1.00"
 	char header[9];
 	memset(header, 0, 9);
 	inStream.read(header, 8);

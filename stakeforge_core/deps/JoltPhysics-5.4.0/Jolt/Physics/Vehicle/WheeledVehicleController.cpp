@@ -461,7 +461,7 @@ void WheeledVehicleController::PostCollide(float inDeltaTime, PhysicsSystem &inP
 		//
 		// ww(i,t+dt)=ww(i,t)+dt*ddt_ww(i,t+dt)
 		//
-		// Expanding both equations (the equations above are in wxMaxima format and this can easily be done by expand(%)):
+		// Expanding both equations (the equations above are in wxMaxima format_t and this can easily be done by expand(%)):
 		//
 		// For wheel:
 		//

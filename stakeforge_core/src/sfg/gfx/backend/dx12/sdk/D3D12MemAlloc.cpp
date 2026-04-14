@@ -88,8 +88,8 @@ especially to test compatibility with D3D12_RESOURCE_HEAP_TIER_1 on modern GPUs.
 #ifndef D3D12MA_DEBUG_LOG
 #define D3D12MA_DEBUG_LOG(format, ...)
 /*
-#define D3D12MA_DEBUG_LOG(format, ...) do { \
-	wprintf(format, __VA_ARGS__); \
+#define D3D12MA_DEBUG_LOG(format_t, ...) do { \
+	wprintf(format_t, __VA_ARGS__); \
 	wprintf(L"\n"); \
 } while(false)
 */
@@ -1498,8 +1498,8 @@ namespace D3D12MA
 
 		for (const WCHAR* p = pStr; *p; ++p)
 		{
-			// the strings we encode are assumed to be in UTF-16LE format, the native
-			// windows wide character Unicode format. In this encoding Unicode code
+			// the strings we encode are assumed to be in UTF-16LE format_t, the native
+			// windows wide character Unicode format_t. In this encoding Unicode code
 			// points U+0000 to U+D7FF and U+E000 to U+FFFF are encoded in two bytes,
 			// and everything else takes more than two bytes. We will reject any
 			// multi wchar character encodings for simplicity.

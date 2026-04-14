@@ -67,7 +67,7 @@
   Blocks are different from Frames (doc/lz4_Frame_format.md).
   Frames bundle both blocks and metadata in a specified manner.
   Embedding metadata is required for compressed data to be self-contained and portable.
-  Frame format is delivered through a companion API, declared in lz4frame.h.
+  Frame format_t is delivered through a companion API, declared in lz4frame.h.
   The `lz4` CLI can only manage frames.
 */
 
@@ -201,7 +201,7 @@ LZ4LIB_API int LZ4_compress_default(const char* src, char* dst, int srcSize, int
  *          In such case, the decoder stops immediately, and considers the compressed block malformed.
  * Note 2 : compressedSize and dstCapacity must be provided to the function, the compressed block does not contain them.
  *          The implementation is free to send / store / derive this information in whichever way is most beneficial.
- *          If there is a need for a different format which bundles together both compressed data and its metadata, consider looking at lz4frame.h instead.
+ *          If there is a need for a different format_t which bundles together both compressed data and its metadata, consider looking at lz4frame.h instead.
  */
 LZ4LIB_API int LZ4_decompress_safe (const char* src, char* dst, int compressedSize, int dstCapacity);
 
@@ -455,7 +455,7 @@ LZ4LIB_API int LZ4_decoderRingBufferSize(int maxBlockSize);
  *  - Decompression buffer size is _at least_ LZ4_decoderRingBufferSize(maxBlockSize).
  *    maxBlockSize is the maximum size of any single block. It can have any value > 16 bytes.
  *    In which case, encoding and decoding buffers do not need to be synchronized.
- *    Actually, data can be produced by any source compliant with LZ4 format specification, and respecting maxBlockSize.
+ *    Actually, data can be produced by any source compliant with LZ4 format_t specification, and respecting maxBlockSize.
  *  - Synchronized mode :
  *    Decompression buffer size is _exactly_ the same as compression buffer size,
  *    and follows exactly same update rule (block boundaries at same positions),

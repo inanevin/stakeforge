@@ -135,7 +135,7 @@
 		 pixels affecting that output pixel have alpha=0, in which case
 		 the result for that pixel is the same as it would be without
 		 STBIR_FLAG_ALPHA_PREMULTIPLIED. However, this is only true for
-		 input images in integer formats. For input images in float format,
+		 input images in integer formats. For input images in float format_t,
 		 input pixels with alpha=0 have no effect, and output pixels
 		 which have alpha=0 will be 0 in all channels. (For float images,
 		 you can manually achieve the same result by adding a tiny epsilon

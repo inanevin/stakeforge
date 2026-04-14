@@ -135,7 +135,7 @@ namespace sfg
 
 	namespace gfx_util_t
 	{
-		gfx_id					 create_bind_layout_global(bool is_compute);
+		gfx_id_t					 create_bind_layout_global(bool is_compute);
 		sampler_desc_t			 get_sampler_desc_anisotropic();
 		sampler_desc_t			 get_sampler_desc_anisotropic_repeat();
 		sampler_desc_t			 get_sampler_desc_linear();

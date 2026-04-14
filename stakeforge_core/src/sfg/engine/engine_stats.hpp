@@ -27,15 +27,33 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common/size_definitions.hpp"
-#include "math/vec2u16.hpp"
+#include "data/atomic.hpp"
 
 namespace sfg
 {
-	typedef u32 surface_id_t;
-
-	struct surface_t
+	struct engine_stats_t
 	{
-		vec2u16_t	 size;
-		surface_id_t id;
+		atomic_t<double> main_thread_time_ms	  = 0.0;
+		atomic_t<double> render_thread_time_ms	  = 0.0;
+		atomic_t<u32>	 fps_main				  = 0;
+		atomic_t<u32>	 fps_render				  = 0;
+		atomic_t<u64>	 render_frame_counter	  = 0;
+		atomic_t<double> app_elapsed_time_seconds = 0.0;
+		atomic_t<u64>	 main_thread_id			  = 0;
+		atomic_t<u64>	 render_thread_id		  = 0;
+
+		inline void reset()
+		{
+			main_thread_time_ms		 = 0.0;
+			render_thread_time_ms	 = 0.0;
+			fps_main				 = 0;
+			fps_render				 = 0;
+			render_frame_counter	 = 0;
+			app_elapsed_time_seconds = 0.0;
+			main_thread_id			 = 0;
+			render_thread_id		 = 0;
+		}
 	};
+
+	extern engine_stats_t g_engine_stats;
 }

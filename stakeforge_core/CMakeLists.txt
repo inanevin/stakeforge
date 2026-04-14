@@ -54,7 +54,7 @@ endif()
 file(GLOB SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/audio/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/engine/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/math/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.cpp
@@ -89,7 +89,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.c
 file(GLOB HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/audio/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/engine/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/math/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.hpp
@@ -137,6 +137,8 @@ if(WIN32)
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/Residency/*.c
     )
 
+    list(FILTER PLATFORM_SOURCES EXCLUDE REGEX ".*/win32_window\\.cpp$")
+
     file(GLOB PLATFORM_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/*.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/*.hpp
@@ -172,6 +174,7 @@ if(WIN32)
         PUBLIC d3d12.lib
         PUBLIC dxgi.lib
         PUBLIC dxguid.lib
+        PUBLIC Dwmapi.lib
         PUBLIC Shcore.lib
         PUBLIC Winmm.lib
     )

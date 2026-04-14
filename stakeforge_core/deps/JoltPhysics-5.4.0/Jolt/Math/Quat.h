@@ -100,7 +100,7 @@ public:
 	/// @return [0, 0, 0, 0]
 	JPH_INLINE static Quat		sZero()															{ return Quat(Vec4::sZero()); }
 
-	/// @return [1, 0, 0, 0] (or in storage format Quat(0, 0, 0, 1))
+	/// @return [1, 0, 0, 0] (or in storage format_t Quat(0, 0, 0, 1))
 	JPH_INLINE static Quat		sIdentity()														{ return Quat(0, 0, 0, 1); }
 
 	///@}

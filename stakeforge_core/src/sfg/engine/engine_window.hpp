@@ -26,47 +26,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "common_engine.hpp"
 #include "gfx/common/gfx_constants.hpp"
-#include "memory/dynamic_pool_allocator.hpp"
-#include "surface.hpp"
+#include "platform/common_window.hpp"
 
 namespace sfg
 {
-	class renderer_t
+	struct window_event_t;
+
+	struct engine_window_state_t
 	{
-	public:
-		// -----------------------------------------------------------------------------
-		// lifetime
-		// -----------------------------------------------------------------------------
-
-		bool init();
-		void shutdown();
-
-		// -----------------------------------------------------------------------------
-		// impl
-		// -----------------------------------------------------------------------------
-
-		surface_id_t create_surface(const vec2u16_t& initial_size);
-		void		 destroy_surface(surface_id_t id);
-		void		 resize_surface(surface_id_t id, const vec2u16_t& size);
-
-		// -----------------------------------------------------------------------------
-		// accessors
-		// -----------------------------------------------------------------------------
-
-		inline gfx_id get_global_bind_layout() const
-		{
-			return _global_bind_layout;
-		}
-
-		inline gfx_id get_global_compute_bind_layout() const
-		{
-			return _global_compute_bind_layout;
-		}
-
-	private:
-		dynamic_pool_allocator_t<surface_t, surface_id_t> _surfaces;
-		gfx_id											  _global_bind_layout		  = NULL_GFX_ID;
-		gfx_id											  _global_compute_bind_layout = NULL_GFX_ID;
+		vec2u16_t	   size	 = vec2u16_t::zero;
+		vec2i16_t	   pos	 = vec2i16_t::zero;
+		window_style_t style = window_style_t::app_window;
 	};
+
+	struct engine_window_t
+	{
+		window_runtime_t	  runtime = {};
+		engine_window_state_t state	  = {};
+		engine_id_t			  id	  = 0;
+	};
+
 }

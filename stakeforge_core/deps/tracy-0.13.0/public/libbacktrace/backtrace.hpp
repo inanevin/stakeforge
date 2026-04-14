@@ -134,7 +134,7 @@ extern int backtrace_simple (struct backtrace_state *state, int skip,
 			     backtrace_error_callback error_callback,
 			     void *data);
 
-/* Print the current backtrace in a user readable format to a FILE.
+/* Print the current backtrace in a user readable format_t to a FILE.
    SKIP is the number of frames to skip, as in backtrace_full.  Any
    error messages are printed to stderr.  This function requires debug
    info for the executable.  */

@@ -33,21 +33,20 @@ namespace sfg
 
 	template <typename T, typename U, int N> struct pool_allocator_t
 	{
-
 		inline U add()
 		{
 			if (_free_size != 0)
 			{
 				const U id = _free_list[_free_size - 1];
 				_free_size--;
-				_data[id] = T();
+				new (&_data[id]) T();
 				return id;
 			}
 
 			const U id = _head;
 			_head++;
 			SFG_ASSERT(_head < N);
-			_data[id] = T();
+			new (&_data[id]) T();
 			return id;
 		}
 

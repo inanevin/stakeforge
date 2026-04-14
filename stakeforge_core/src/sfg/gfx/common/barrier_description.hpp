@@ -63,7 +63,7 @@ namespace sfg
 	{
 		u32			  from_states = 0;
 		u32			  to_states	  = 0;
-		gfx_id		  resource_t  = 0;
+		gfx_id_t		  resource_t  = 0;
 		bitmask_t<u8> flags		  = 0;
 	};
 

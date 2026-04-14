@@ -41,7 +41,7 @@ public:
 		bool								bFloatNormFormat : 1;
 		bool								bPlanar : 1;
 		bool								bYUV : 1;
-		bool								bDependantFormatCastSet : 1; // This indicates that the format cast set is dependent on FL/driver version
+		bool								bDependantFormatCastSet : 1; // This indicates that the format_t cast set is dependent on FL/driver version
 		bool								bInternal : 1;
 	} FORMAT_DETAIL;
 

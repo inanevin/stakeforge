@@ -25,82 +25,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
+
 #include "common/size_definitions.hpp"
-#include "math/vec2i16.hpp"
-#include "math/vec2u16.hpp"
-#include "data/bitmask.hpp"
 
 namespace sfg
 {
-	struct monitor_info_t
+	struct engine_config_t
 	{
-		vec2i16_t position	 = vec2i16_t::zero;
-		vec2u16_t size		 = vec2u16_t::zero;
-		vec2u16_t work_size	 = vec2u16_t::zero;
-		u32		  dpi		 = 0;
-		f32		  dpi_scale	 = 0.0f;
-		bool	  is_primary = false;
+		double fixed_framerate_ns		 = 16'666'667.0;
+		u32	   fixed_framerate_max_ticks = 4;
 	};
 
-	enum window_flags
-	{
-		wf_size_dirty			   = 1 << 0,
-		wf_has_focus			   = 1 << 1,
-		wf_high_freq			   = 1 << 2,
-		wf_close_requested		   = 1 << 3,
-		wf_style_windowed		   = 1 << 4,
-		wf_style_borderless		   = 1 << 5,
-		wf_cursor_hidden		   = 1 << 6,
-		wf_cursor_confined_window  = 1 << 7,
-		wf_cursor_confined_pointer = 1 << 8,
-		wf_pos_dirty			   = 1 << 9,
-	};
-
-	enum window_event_flags
-	{
-		wef_high_freq = 1 << 0,
-	};
-
-	enum class cursor_state : u8
-	{
-		arrow,
-		hand,
-		resize_hr,
-		resize_vt,
-		resize_nwse,
-		resize_nesw,
-		caret,
-	};
-	enum class window_event_type : u8
-	{
-		key = 0,
-		mouse,
-		wheel,
-		delta,
-		focus,
-		display_change,
-	};
-
-	enum class window_event_sub_type : u8
-	{
-		press,
-		release,
-		repeat,
-	};
-
-	enum class cursor_confinement : u8
-	{
-		none,
-		window_t,
-		pointer,
-	};
-
-	struct window_event_t
-	{
-		vec2i16_t			  value = vec2i16_t::zero;
-		u16					  button;
-		window_event_type	  type	   = window_event_type::key;
-		window_event_sub_type sub_type = window_event_sub_type::press;
-		bitmask_t<u8>		  flags	   = 0;
-	};
+	extern engine_config_t g_engine_config;
 }

@@ -13,7 +13,7 @@
 //   geometry program, etc.
 //
 // - Any information that HLSL needs to give to drivers is encoded in
-//   this token format in some form.
+//   this token format_t in some form.
 //
 // - Enable common tools and source code for managing all tokenizable
 //   program formats.
@@ -32,7 +32,7 @@
 // - DWORD based tokens always, for simplicity
 // - Opcode token is generally a single DWORD, though there is a bit indicating
 //   if extended information (extra DWORD(s)) are present
-// - Operand tokens are a completely self contained, extensible format,
+// - Operand tokens are a completely self contained, extensible format_t,
 //   with scalar and 4-vector data types as first class citizens, but
 //   allowance for extension to n-component vectors.
 // - Initial operand token identifies register type, register file
@@ -1714,7 +1714,7 @@ typedef enum D3D10_SB_CONSTANT_BUFFER_ACCESS_PATTERN
 // (6) DWORD indicating length of operands.
 // (7) Encoded operands.
 // (8) String with trailing zero, padded to a multiple of DWORDs.
-//     The string is in the given format and the operands given should
+//     The string is in the given format_t and the operands given should
 //     be used for argument substitutions when formatting.
 // ----------------------------------------------------------------------------
 
@@ -1743,7 +1743,7 @@ typedef enum D3D11_SB_SHADER_MESSAGE_FORMAT
 // OpcodeToken0 is followed by:
 // (1) DWORD indicating length of declaration, including OpcodeToken0.
 // (2) DWORD indicating number of constant mappings (up to 6 mappings).
-// (3+) Constant mapping tables in following format.
+// (3+) Constant mapping tables in following format_t.
 //
 // struct _Clip_Plane_Constant_Mapping
 // {

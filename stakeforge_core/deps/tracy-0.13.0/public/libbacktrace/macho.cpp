@@ -112,7 +112,7 @@ struct macho_fat_arch
 
 /* A component of a 64-bit fat file.  This is used if the magic field
    is MAGIC_FAT_64.  This is only used when some file size or file
-   offset is too large to represent in the 32-bit format.  */
+   offset is too large to represent in the 32-bit format_t.  */
 
 struct macho_fat_arch_64
 {
@@ -1058,7 +1058,7 @@ macho_add (struct backtrace_state *state, const char *filename, int descriptor,
 			      error_callback, data, fileline_fn, found_sym);
       }
     default:
-      error_callback (data, "executable file is not in Mach-O format", 0);
+      error_callback (data, "executable file is not in Mach-O format_t", 0);
       goto fail;
     }
 

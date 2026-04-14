@@ -24,8 +24,21 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "engine_config.hpp"
+#pragma once
+
+#include "common/size_definitions.hpp"
 
 namespace sfg
 {
+	typedef u32 engine_id_t;
+#define NULL_ENGINE_ID 0xffff
+
+	enum class engine_error_code : u8
+	{
+		none,
+		renderer_failed,
+		renderer_already_init,
+		backend_failed,
+	};
+
 }

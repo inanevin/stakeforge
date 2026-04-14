@@ -31,11 +31,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 
-	gfx_id gfx_util_t::create_bind_layout_global(bool is_compute)
+	gfx_id_t gfx_util_t::create_bind_layout_global(bool is_compute)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		gfx_id layout = backend->create_empty_bind_layout();
+		gfx_id_t layout = backend->create_empty_bind_layout();
 
 		backend->bind_layout_add_descriptor(layout, binding_type::ubo, 0, rpi_engine_cbv, shader_stage::all);
 		backend->bind_layout_add_constant(layout, constant_index_max, 0, rpi_constants, shader_stage::all);
@@ -221,7 +221,7 @@ namespace sfg
 					.index	  = 0,
 					.offset	  = 0,
 					.size	  = sizeof(vec2f_t),
-					.format	  = format::r32g32_sfloat,
+					.format	  = format_t::r32g32_sfloat,
 				},
 				{
 					.name	  = "TEXCOORD",
@@ -229,7 +229,7 @@ namespace sfg
 					.index	  = 0,
 					.offset	  = sizeof(vec2f_t),
 					.size	  = sizeof(vec2f_t),
-					.format	  = format::r32g32_sfloat,
+					.format	  = format_t::r32g32_sfloat,
 				},
 				{
 					.name	  = "COLOR",
@@ -237,7 +237,7 @@ namespace sfg
 					.index	  = 0,
 					.offset	  = sizeof(vec2f_t) * 2,
 					.size	  = sizeof(vec4f_t),
-					.format	  = format::r32g32b32a32_sfloat,
+					.format	  = format_t::r32g32b32a32_sfloat,
 				},
 			};
 			break;

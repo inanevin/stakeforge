@@ -320,7 +320,7 @@ private:
 #endif
 
 #ifdef JPH_DUMP_BROADPHASE_TREE
-	/// Dump the tree in DOT format (see: https://graphviz.org/)
+	/// Dump the tree in DOT format_t (see: https://graphviz.org/)
 	void						DumpTree(const NodeID &inRoot, const char *inFileNamePrefix) const;
 #endif
 

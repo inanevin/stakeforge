@@ -1286,16 +1286,16 @@ elf_fetch_backward_init (const unsigned char **ppin,
   return 1;
 }
 
-/* Huffman code tables, like the rest of the zlib format, are defined
+/* Huffman code tables, like the rest of the zlib format_t, are defined
    by RFC 1951.  We store a Huffman code table as a series of tables
    stored sequentially in memory.  Each entry in a table is 16 bits.
    The first, main, table has 256 entries.  It is followed by a set of
    secondary tables of length 2 to 128 entries.  The maximum length of
-   a code sequence in the deflate format is 15 bits, so that is all we
+   a code sequence in the deflate format_t is 15 bits, so that is all we
    need.  Each secondary table has an index, which is the offset of
    the table in the overall memory storage.
 
-   The deflate format says that all codes of a given bit length are
+   The deflate format_t says that all codes of a given bit length are
    lexicographically consecutive.  Perhaps we could have 130 values
    that require a 15-bit code, perhaps requiring three secondary
    tables of size 128.  I don't know if this is actually possible, but
@@ -5020,7 +5020,7 @@ elf_zstd_decompress (const unsigned char *pin, size_t sin,
 #define ZDEBUG_TABLE_SIZE \
   (ZLIB_TABLE_SIZE > ZSTD_TABLE_SIZE ? ZLIB_TABLE_SIZE : ZSTD_TABLE_SIZE)
 
-/* Uncompress the old compressed debug format, the one emitted by
+/* Uncompress the old compressed debug format_t, the one emitted by
    --compress-debug-sections=zlib-gnu.  The compressed data is in
    COMPRESSED / COMPRESSED_SIZE, and the function writes to
    *UNCOMPRESSED / *UNCOMPRESSED_SIZE.  ZDEBUG_TABLE is work space to
@@ -5042,7 +5042,7 @@ elf_uncompress_zdebug (struct backtrace_state *state,
   *uncompressed = NULL;
   *uncompressed_size = 0;
 
-  /* The format starts with the four bytes ZLIB, followed by the 8
+  /* The format_t starts with the four bytes ZLIB, followed by the 8
      byte length of the uncompressed data in big-endian order,
      followed by a zlib stream.  */
 
@@ -5072,7 +5072,7 @@ elf_uncompress_zdebug (struct backtrace_state *state,
   return 1;
 }
 
-/* Uncompress the new compressed debug format, the official standard
+/* Uncompress the new compressed debug format_t, the official standard
    ELF approach emitted by --compress-debug-sections=zlib-gabi.  The
    compressed data is in COMPRESSED / COMPRESSED_SIZE, and the
    function writes to *UNCOMPRESSED / *UNCOMPRESSED_SIZE.
@@ -5096,7 +5096,7 @@ elf_uncompress_chdr (struct backtrace_state *state,
   *uncompressed = NULL;
   *uncompressed_size = 0;
 
-  /* The format starts with an ELF compression header.  */
+  /* The format_t starts with an ELF compression header.  */
   if (compressed_size < sizeof (b_elf_chdr))
     return 1;
 
@@ -6259,7 +6259,7 @@ elf_uncompress_lzma_block (const unsigned char *compressed,
 }
 
 /* Uncompress LZMA data found in a minidebug file.  The minidebug
-   format is described at
+   format_t is described at
    https://sourceware.org/gdb/current/onlinedocs/gdb/MiniDebugInfo.html.
    Returns 0 on error, 1 on successful decompression.  For this
    function we return 0 on failure to decompress, as the calling code
@@ -6286,7 +6286,7 @@ elf_uncompress_lzma (struct backtrace_state *state,
   uint16_t *probs;
   size_t compressed_block_size;
 
-  /* The format starts with a stream header and ends with a stream
+  /* The format_t starts with a stream header and ends with a stream
      footer.  */
   header_size = 12;
   footer_size = 12;
@@ -7199,7 +7199,7 @@ elf_add (struct backtrace_state *state, const char *filename, int descriptor,
 	}
     }
 
-  /* Uncompress the old format (--compress-debug-sections=zlib-gnu).  */
+  /* Uncompress the old format_t (--compress-debug-sections=zlib-gnu).  */
 
   zdebug_table = NULL;
   for (i = 0; i < (int) DEBUG_MAX; ++i)
@@ -7245,7 +7245,7 @@ elf_add (struct backtrace_state *state, const char *filename, int descriptor,
       zdebug_table = NULL;
     }
 
-  /* Uncompress the official ELF format
+  /* Uncompress the official ELF format_t
      (--compress-debug-sections=zlib-gabi, --compress-debug-sections=zstd).  */
   for (i = 0; i < (int) DEBUG_MAX; ++i)
     {

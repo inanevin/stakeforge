@@ -3,6 +3,7 @@
 #include "sfg/memory/dynamic_pool_allocator.hpp"
 
 #include <type_traits>
+#include <utility>
 
 namespace sfg
 {
@@ -105,7 +106,7 @@ namespace sfg
 				source.get(id0) = 17;
 				source.get(id1) = 29;
 
-				target = source;
+				target = std::move(source);
 
 				SFG_TEST_EXPECT(context, source.size() == 0);
 				SFG_TEST_EXPECT(context, source.capacity() == 0);
@@ -151,7 +152,7 @@ namespace sfg
 				allocator.get(id1) = 7;
 				allocator.get(id2) = 9;
 
-				allocator_t::iterator_t it = allocator.begin();
+				auto it = allocator.begin();
 				SFG_TEST_EXPECT(context, it != allocator.end());
 				SFG_TEST_EXPECT(context, *it == 5);
 				SFG_TEST_EXPECT(context, it.operator->() == &allocator.get(id0));
@@ -169,6 +170,7 @@ namespace sfg
 
 				return context.failures == 0;
 			}
+
 		}
 
 		void register_dynamic_pool_allocator_tests()

@@ -35,7 +35,7 @@ namespace sfg
 	{
 	};
 
-	// clang-format off
+	// clang-format_t off
 #define REFLECT_TYPE(T)			\
 template <> struct call_ref_t<T>                              \
 	{                                                          \
@@ -47,5 +47,5 @@ template <> struct type_id_t<T>                              \
 		static inline call_ref_t<T> cr = {}; \
 	}
 
-	// clang-format on
+	// clang-format_t on
 }

@@ -389,7 +389,7 @@ public:
 		{
 		}
 
-		/// Unpacks triangles in the format t1v1,t1v2,t1v3, t2v1,t2v2,t2v3, ...
+		/// Unpacks triangles in the format_t t1v1,t1v2,t1v3, t2v1,t2v2,t2v3, ...
 		JPH_INLINE void				Unpack(const void *inTriangleStart, uint32 inNumTriangles, Vec3 *outTriangles) const
 		{
 			JPH_ASSERT(inNumTriangles > 0);

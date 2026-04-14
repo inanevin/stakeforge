@@ -232,7 +232,7 @@ rpmalloc_thread_statistics(rpmalloc_thread_statistics_t* stats);
 RPMALLOC_EXPORT void
 rpmalloc_global_statistics(rpmalloc_global_statistics_t* stats);
 
-//! Dump all statistics in human readable format to file (should be a FILE*)
+//! Dump all statistics in human readable format_t to file (should be a FILE*)
 RPMALLOC_EXPORT void
 rpmalloc_dump_statistics(void* file);
 

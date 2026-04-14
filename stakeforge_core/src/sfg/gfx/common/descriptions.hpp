@@ -160,7 +160,7 @@ namespace sfg
 		void*		  window_t	= nullptr;
 		void*		  os_handle = nullptr;
 		f32			  scaling	= 1.0f;
-		format		  format	= format::undefined;
+		format_t		  format	= format_t::undefined;
 		vec2u16_t	  pos		= vec2u16_t::zero;
 		vec2u16_t	  size		= vec2u16_t::zero;
 		bitmask_t<u8> flags		= 0;
@@ -169,7 +169,7 @@ namespace sfg
 	struct swapchain_recreate_desc_t
 	{
 		vec2u16_t	  size		  = vec2u16_t::zero;
-		gfx_id		  swapchain_t = 0;
+		gfx_id_t		  swapchain_t = 0;
 		f32			  scaling	  = 1.0f;
 		bitmask_t<u8> flags		  = 0;
 	};
@@ -203,8 +203,8 @@ namespace sfg
 
 	struct texture_desc_t
 	{
-		format				  texture_format	   = format::r8g8b8a8_srgb;
-		format				  depth_stencil_format = format::d16_unorm;
+		format_t				  texture_format	   = format_t::r8g8b8a8_srgb;
+		format_t				  depth_stencil_format = format_t::d16_unorm;
 		vec2u16_t			  size				   = vec2u16_t::zero;
 		bitmask_t<u16>		  flags				   = 0;
 		vector_t<view_desc_t> views				   = {
@@ -262,7 +262,7 @@ namespace sfg
 
 	struct bind_group_pointer_t
 	{
-		gfx_id		 resource_t	   = 0;
+		gfx_id_t		 resource_t	   = 0;
 		u8			 view		   = 0;
 		u8			 pointer_index = 0;
 		binding_type type		   = binding_type::ubo;
@@ -280,7 +280,7 @@ namespace sfg
 	{
 		u32					   binding_index  = 0;
 		vector_t<binding_type> resource_types = {};
-		vector_t<gfx_id>	   resources	  = {};
+		vector_t<gfx_id_t>	   resources	  = {};
 		vector_t<u32>		   resource_views = {};
 	};
 

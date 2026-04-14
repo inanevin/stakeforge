@@ -32,7 +32,7 @@ JPH_EXPORT void VectorToString(const Array<String> &inVector, String &outString,
 /// Convert a string to lower case
 JPH_EXPORT String ToLower(const string_view &inString);
 
-/// Converts the lower 4 bits of inNibble to a string that represents the number in binary format
+/// Converts the lower 4 bits of inNibble to a string that represents the number in binary format_t
 JPH_EXPORT const char *NibbleToBinary(uint32 inNibble);
 
 JPH_NAMESPACE_END

@@ -549,7 +549,7 @@ struct line_header
   const char **filenames;
 };
 
-/* A format description from a line header.  */
+/* A format_t description from a line header.  */
 
 struct line_header_format
 {
@@ -2900,7 +2900,7 @@ read_lnct (struct backtrace_state *state, struct dwarf_data *ddata,
   return 1;
 }
 
-/* Read a set of DWARF 5 line header format entries, setting *PCOUNT
+/* Read a set of DWARF 5 line header format_t entries, setting *PCOUNT
    and *PPATHS.  Return 1 on success, 0 on failure.  */
 
 static int

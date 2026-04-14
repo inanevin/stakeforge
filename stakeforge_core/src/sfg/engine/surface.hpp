@@ -26,14 +26,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
+#include "common_engine.hpp"
+#include "engine_window.hpp"
+#include "math/vec2u16.hpp"
+#include "data/bitmask.hpp"
+#include "gfx/common/gfx_constants.hpp"
+#include "gfx/common/format.hpp"
 
 namespace sfg
 {
-	struct engine_config_t
+	typedef u32 renderer_id_t;
+
+	enum surface_flags : u8
 	{
-		double fixed_framerate_ns		 = 16'666'667.0;
-		u32	   fixed_framerate_max_ticks = 4;
+		surface_flags_should_render = 1 << 0,
 	};
 
+	struct surface_t
+	{
+		vec2u16_t	  size		   = vec2u16_t::zero;
+		renderer_id_t id		   = 0;
+		window_runtime_t* wnd	   = nullptr;
+		format_t		  surface_format = format_t::undefined;
+		gfx_id			  gpu		   = NULL_GFX_ID;
+		bitmask_t<u8>	  flags		   = 0;
+	};
 }

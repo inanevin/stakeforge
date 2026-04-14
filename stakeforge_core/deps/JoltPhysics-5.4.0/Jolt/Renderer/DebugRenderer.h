@@ -178,7 +178,7 @@ public:
 	/// Singleton instance
 	static DebugRenderer *	sInstance;
 
-	/// Vertex format used by the triangle renderer
+	/// Vertex format_t used by the triangle renderer
 	class Vertex
 	{
 	public:

@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/span.hpp"
 #include "data/string.hpp"
 #include "data/bitmask.hpp"
-#include "memory/pool_allocator.hpp"
+#include "memory/dynamic_pool_allocator.hpp"
 #include "dx12_heap.hpp"
 #include <wrl/client.h>
 #include <dxgi1_6.h>
@@ -119,15 +119,15 @@ namespace sfg
 
 		struct texture_view_t
 		{
-			gfx_id handle = 0;
-			u8	   type	  = 0;
+			gfx_id_t handle = 0;
+			u8		 type	= 0;
 		};
 
 		struct texture_t
 		{
 			D3D12MA::Allocation* ptr = nullptr;
 			texture_view_t		 views[8];
-			gfx_id				 shared_handle = 0;
+			gfx_id_t			 shared_handle = 0;
 			u8					 format		   = 0;
 			u8					 view_count	   = 0;
 		};
@@ -139,7 +139,7 @@ namespace sfg
 
 		struct sampler_t
 		{
-			gfx_id descriptor_index = 0;
+			gfx_id_t descriptor_index = 0;
 		};
 
 		struct swapchain_t
@@ -149,12 +149,12 @@ namespace sfg
 #ifdef SFG_ENABLE_MEMORY_TRACER
 			u32 size = 0;
 #endif
-			gfx_id rtv_indices[BACK_BUFFER_COUNT] = {};
-			u8	   format						  = 0;
-			u8	   image_index					  = 0;
-			u8	   vsync						  = 0;
-			u8	   tearing						  = 0;
-			HANDLE frame_latency_waitable		  = NULL;
+			gfx_id_t rtv_indices[BACK_BUFFER_COUNT] = {};
+			u8		 format							= 0;
+			u8		 image_index					= 0;
+			u8		 vsync							= 0;
+			u8		 tearing						= 0;
+			HANDLE	 frame_latency_waitable			= NULL;
 		};
 
 		struct semaphore_t
@@ -178,11 +178,11 @@ namespace sfg
 
 		struct group_binding_t
 		{
-			u8*	   constants		= nullptr;
-			gfx_id descriptor_index = 0;
-			u32	   root_param_index = 0;
-			u8	   binding_type		= 0;
-			u8	   count			= 0;
+			u8*		 constants		  = nullptr;
+			gfx_id_t descriptor_index = 0;
+			u32		 root_param_index = 0;
+			u8		 binding_type	  = 0;
+			u8		 count			  = 0;
 		};
 
 		struct bind_group_t
@@ -193,7 +193,7 @@ namespace sfg
 		struct command_buffer_t
 		{
 			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> ptr;
-			gfx_id											   allocator   = 0;
+			gfx_id_t										   allocator   = 0;
 			u8												   is_transfer = 0;
 		};
 
@@ -218,128 +218,128 @@ namespace sfg
 			return s_instance;
 		}
 
-		bool init();
+		u8	 init();
 		void uninit();
-		void reset_command_buffer(gfx_id cmd_buffer);
-		void reset_command_buffer_transfer(gfx_id cmd_buffer);
-		void close_command_buffer(gfx_id cmd_buffer);
-		void submit_commands(gfx_id queue_t, const gfx_id* commands, u8 commands_count);
-		void queue_wait(gfx_id queue_t, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
-		void queue_signal(gfx_id queue_t, const gfx_id* semaphores, const u64* semaphore_values, u8 semaphore_count);
-		void present(const gfx_id* swapchains, u8 swapchain_count);
-		u8	 get_back_buffer_index(gfx_id swapchain_t);
-		void wait_for_swapchain_latency(gfx_id swapchain_t);
+		void reset_command_buffer(gfx_id_t cmd_buffer);
+		void reset_command_buffer_transfer(gfx_id_t cmd_buffer);
+		void close_command_buffer(gfx_id_t cmd_buffer);
+		void submit_commands(gfx_id_t queue_t, const gfx_id_t* commands, u8 commands_count);
+		void queue_wait(gfx_id_t queue_t, const gfx_id_t* semaphores, const u64* semaphore_values, u8 semaphore_count);
+		void queue_signal(gfx_id_t queue_t, const gfx_id_t* semaphores, const u64* semaphore_values, u8 semaphore_count);
+		void present(const gfx_id_t* swapchains, u8 swapchain_count);
+		u8	 get_back_buffer_index(gfx_id_t swapchain_t);
+		void wait_for_swapchain_latency(gfx_id_t swapchain_t);
 
 		bool compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const;
 		bool compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const;
 
-		u32	   get_resource_gpu_index(gfx_id resource_t, bool use_secondary = false);
-		u32	   get_texture_gpu_index(gfx_id texture_t, u8 view_index);
-		u32	   get_sampler_gpu_index(gfx_id sampler_t);
-		gfx_id create_resource(const resource_desc_t& desc);
-		gfx_id create_texture(const texture_desc_t& desc);
-		gfx_id create_sampler(const sampler_desc_t& desc);
-		gfx_id create_swapchain(const swapchain_desc_t&);
-		gfx_id recreate_swapchain(const swapchain_recreate_desc_t& desc);
-		gfx_id create_semaphore();
-		gfx_id create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_id existing_layout, span_t<u8> layout_data = {});
-		gfx_id create_empty_bind_group();
-		gfx_id create_command_buffer(const command_buffer_desc_t& desc);
-		gfx_id create_command_allocator(u8 ctype);
-		gfx_id create_queue(const queue_desc_t& desc);
-		gfx_id create_empty_bind_layout();
-		gfx_id create_draw_indirect_signature(gfx_id bind_layout_t, size_t sz);
-		gfx_id create_dispatch_indirect_signature(gfx_id bind_layout_t, size_t sz);
-		void   destroy_indirect_signature(gfx_id sig);
-		void   bind_group_add_descriptor(gfx_id group, u8 root_param_index, u8 binding_type);
-		void   bind_group_add_constant(gfx_id group, u8 root_param_index, u8* data, u8 count);
-		void   bind_group_add_pointer(gfx_id group, u8 root_param_index, u8 count, bool is_sampler);
-		void   bind_layout_add_constant(gfx_id layout, u32 count, u32 set, u32 binding_t, u8 shader_stage_visibility);
-		void   bind_layout_add_descriptor(gfx_id layout, u8 type, u32 set, u32 binding_t, u8 shader_stage_visibility);
-		void   bind_layout_add_pointer(gfx_id layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 shader_stage_visibility);
-		void   bind_layout_add_immutable_sampler(gfx_id layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 shader_stage_visibility);
-		void   finalize_bind_layout(gfx_id id, bool is_compute, bool is_dyn_index, const char* name);
-		void   bind_group_update_constants(gfx_id group, u8 binding_index, u8* constants, u8 count);
-		void   bind_group_update_descriptor(gfx_id group, u8 binding_index, gfx_id resource_t);
-		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count);
-		void   bind_group_update_pointer(gfx_id group, u8 binding_index, const vector_t<bind_group_pointer_t>& updates);
+		u32		 get_resource_gpu_index(gfx_id_t resource_t, bool use_secondary = false);
+		u32		 get_texture_gpu_index(gfx_id_t texture_t, u8 view_index);
+		u32		 get_sampler_gpu_index(gfx_id_t sampler_t);
+		gfx_id_t create_resource(const resource_desc_t& desc);
+		gfx_id_t create_texture(const texture_desc_t& desc);
+		gfx_id_t create_sampler(const sampler_desc_t& desc);
+		gfx_id_t create_swapchain(const swapchain_desc_t&);
+		gfx_id_t recreate_swapchain(const swapchain_recreate_desc_t& desc);
+		gfx_id_t create_semaphore();
+		gfx_id_t create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_id_t existing_layout, span_t<u8> layout_data = {});
+		gfx_id_t create_empty_bind_group();
+		gfx_id_t create_command_buffer(const command_buffer_desc_t& desc);
+		gfx_id_t create_command_allocator(u8 ctype);
+		gfx_id_t create_queue(const queue_desc_t& desc);
+		gfx_id_t create_empty_bind_layout();
+		gfx_id_t create_draw_indirect_signature(gfx_id_t bind_layout_t, size_t sz);
+		gfx_id_t create_dispatch_indirect_signature(gfx_id_t bind_layout_t, size_t sz);
+		void	 destroy_indirect_signature(gfx_id_t sig);
+		void	 bind_group_add_descriptor(gfx_id_t group, u8 root_param_index, u8 binding_type);
+		void	 bind_group_add_constant(gfx_id_t group, u8 root_param_index, u8* data, u8 count);
+		void	 bind_group_add_pointer(gfx_id_t group, u8 root_param_index, u8 count, bool is_sampler);
+		void	 bind_layout_add_constant(gfx_id_t layout, u32 count, u32 set, u32 binding_t, u8 shader_stage_visibility);
+		void	 bind_layout_add_descriptor(gfx_id_t layout, u8 type, u32 set, u32 binding_t, u8 shader_stage_visibility);
+		void	 bind_layout_add_pointer(gfx_id_t layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 shader_stage_visibility);
+		void	 bind_layout_add_immutable_sampler(gfx_id_t layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 shader_stage_visibility);
+		void	 finalize_bind_layout(gfx_id_t id, bool is_compute, bool is_dyn_index, const char* name);
+		void	 bind_group_update_constants(gfx_id_t group, u8 binding_index, u8* constants, u8 count);
+		void	 bind_group_update_descriptor(gfx_id_t group, u8 binding_index, gfx_id_t resource_t);
+		void	 bind_group_update_pointer(gfx_id_t group, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count);
+		void	 bind_group_update_pointer(gfx_id_t group, u8 binding_index, const vector_t<bind_group_pointer_t>& updates);
 
-		void destroy_resource(gfx_id id);
-		void destroy_texture(gfx_id id);
-		void destroy_sampler(gfx_id id);
-		void destroy_swapchain(gfx_id id);
-		void destroy_semaphore(gfx_id id);
-		void destroy_shader(gfx_id id);
-		void destroy_bind_group(gfx_id id);
-		void destroy_command_buffer(gfx_id id);
-		void destroy_command_allocator(gfx_id id);
-		void destroy_queue(gfx_id id);
-		void destroy_bind_layout(gfx_id id);
+		void destroy_resource(gfx_id_t id);
+		void destroy_texture(gfx_id_t id);
+		void destroy_sampler(gfx_id_t id);
+		void destroy_swapchain(gfx_id_t id);
+		void destroy_semaphore(gfx_id_t id);
+		void destroy_shader(gfx_id_t id);
+		void destroy_bind_group(gfx_id_t id);
+		void destroy_command_buffer(gfx_id_t id);
+		void destroy_command_allocator(gfx_id_t id);
+		void destroy_queue(gfx_id_t id);
+		void destroy_bind_layout(gfx_id_t id);
 
-		void wait_semaphore(gfx_id id, u64 value) const;
-		void map_resource(gfx_id id, u8*& ptr) const;
-		void unmap_resource(gfx_id id) const;
+		void wait_semaphore(gfx_id_t id, u64 value) const;
+		void map_resource(gfx_id_t id, u8*& ptr) const;
+		void unmap_resource(gfx_id_t id) const;
 
-		inline HANDLE get_swapchain_latency_handle(gfx_id id)
+		inline HANDLE get_swapchain_latency_handle(gfx_id_t id)
 		{
 			return _swapchains.get(id).frame_latency_waitable;
 		}
 
-		HANDLE get_shared_handle_for_texture(gfx_id id);
+		HANDLE get_shared_handle_for_texture(gfx_id_t id);
 
 		u32	  get_texture_size(u32 width, u32 height, u32 bpp) const;
 		u32	  align_texture_size(u32 size) const;
 		u32	  align_texture_size_pitch(u32 size) const;
 		void* adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size) const;
 
-		void cmd_begin_event(gfx_id cmd_list, const char* label);
-		void cmd_end_event(gfx_id cmd_list);
-		void cmd_begin_render_pass(gfx_id cmd_list, const command_begin_render_pass_t& command);
-		void cmd_begin_render_pass_depth(gfx_id cmd_list, const command_begin_render_pass_depth_t& command);
-		void cmd_begin_render_pass_depth_read_only(gfx_id cmd_list, const command_begin_render_pass_depth_t& command);
-		void cmd_begin_render_pass_depth_only(gfx_id cmd_list, const command_begin_render_pass_depth_only_t& command);
-		void cmd_begin_render_pass_swapchain(gfx_id cmd_list, const command_begin_render_pass_swapchain_t& command);
-		void cmd_begin_render_pass_swapchain_depth(gfx_id cmd_list, const command_begin_render_pass_swapchain_depth_t& command);
-		void cmd_end_render_pass(gfx_id cmd_list, const command_end_render_pass_t& command) const;
-		void cmd_set_scissors(gfx_id cmd_list, const command_set_scissors_t& command) const;
-		void cmd_set_viewport(gfx_id cmd_list, const command_set_viewport_t& command) const;
-		void cmd_bind_pipeline(gfx_id cmd_list, const command_bind_pipeline_t& command) const;
-		void cmd_bind_pipeline_compute(gfx_id cmd_list, const command_bind_pipeline_compute_t& command) const;
-		void cmd_draw_instanced(gfx_id cmd_list, const command_draw_instanced_t& command) const;
-		void cmd_draw_indexed_instanced(gfx_id cmd_list, const command_draw_indexed_instanced_t& command) const;
-		void cmd_execute_indirect(gfx_id cmd_list, const command_draw_indirect_t& command) const;
-		void cmd_bind_vertex_buffers(gfx_id cmd_list, const command_bind_vertex_buffers_t& command) const;
-		void cmd_bind_index_buffers(gfx_id cmd_list, const command_bind_index_buffers_t& command) const;
-		void cmd_copy_resource(gfx_id cmd_list, const command_copy_resource_t& command) const;
-		void cmd_copy_resource_region(gfx_id cmd_list, const command_copy_resource_region_t& command) const;
-		void cmd_copy_buffer_to_texture(gfx_id cmd_list, const command_copy_buffer_to_texture_t& command);
-		void cmd_copy_texture_to_buffer(gfx_id cmd_list, const command_copy_texture_to_buffer_t& command) const;
-		void cmd_copy_texture_to_texture(gfx_id cmd_list, const command_copy_texture_to_texture_t& command) const;
-		void cmd_bind_constants(gfx_id cmd_list, const command_bind_constants_t& command) const;
-		void cmd_bind_constants_compute(gfx_id cmd_list, const command_bind_constants_t& command) const;
-		void cmd_bind_layout(gfx_id cmd_list, const command_bind_layout_t& command) const;
-		void cmd_bind_layout_compute(gfx_id cmd_list, const command_bind_layout_compute_t& command) const;
-		void cmd_bind_group(gfx_id cmd_list, const command_bind_group_t& command) const;
-		void cmd_bind_group_compute(gfx_id cmd_list, const command_bind_group_t& command) const;
-		void cmd_dispatch(gfx_id cmd_list, const command_dispatch_t& command) const;
-		void cmd_barrier(gfx_id cmd_list, const command_barrier_t& command);
+		void cmd_begin_event(gfx_id_t cmd_list, const char* label);
+		void cmd_end_event(gfx_id_t cmd_list);
+		void cmd_begin_render_pass(gfx_id_t cmd_list, const command_begin_render_pass_t& command);
+		void cmd_begin_render_pass_depth(gfx_id_t cmd_list, const command_begin_render_pass_depth_t& command);
+		void cmd_begin_render_pass_depth_read_only(gfx_id_t cmd_list, const command_begin_render_pass_depth_t& command);
+		void cmd_begin_render_pass_depth_only(gfx_id_t cmd_list, const command_begin_render_pass_depth_only_t& command);
+		void cmd_begin_render_pass_swapchain(gfx_id_t cmd_list, const command_begin_render_pass_swapchain_t& command);
+		void cmd_begin_render_pass_swapchain_depth(gfx_id_t cmd_list, const command_begin_render_pass_swapchain_depth_t& command);
+		void cmd_end_render_pass(gfx_id_t cmd_list, const command_end_render_pass_t& command) const;
+		void cmd_set_scissors(gfx_id_t cmd_list, const command_set_scissors_t& command) const;
+		void cmd_set_viewport(gfx_id_t cmd_list, const command_set_viewport_t& command) const;
+		void cmd_bind_pipeline(gfx_id_t cmd_list, const command_bind_pipeline_t& command) const;
+		void cmd_bind_pipeline_compute(gfx_id_t cmd_list, const command_bind_pipeline_compute_t& command) const;
+		void cmd_draw_instanced(gfx_id_t cmd_list, const command_draw_instanced_t& command) const;
+		void cmd_draw_indexed_instanced(gfx_id_t cmd_list, const command_draw_indexed_instanced_t& command) const;
+		void cmd_execute_indirect(gfx_id_t cmd_list, const command_draw_indirect_t& command) const;
+		void cmd_bind_vertex_buffers(gfx_id_t cmd_list, const command_bind_vertex_buffers_t& command) const;
+		void cmd_bind_index_buffers(gfx_id_t cmd_list, const command_bind_index_buffers_t& command) const;
+		void cmd_copy_resource(gfx_id_t cmd_list, const command_copy_resource_t& command) const;
+		void cmd_copy_resource_region(gfx_id_t cmd_list, const command_copy_resource_region_t& command) const;
+		void cmd_copy_buffer_to_texture(gfx_id_t cmd_list, const command_copy_buffer_to_texture_t& command);
+		void cmd_copy_texture_to_buffer(gfx_id_t cmd_list, const command_copy_texture_to_buffer_t& command) const;
+		void cmd_copy_texture_to_texture(gfx_id_t cmd_list, const command_copy_texture_to_texture_t& command) const;
+		void cmd_bind_constants(gfx_id_t cmd_list, const command_bind_constants_t& command) const;
+		void cmd_bind_constants_compute(gfx_id_t cmd_list, const command_bind_constants_t& command) const;
+		void cmd_bind_layout(gfx_id_t cmd_list, const command_bind_layout_t& command) const;
+		void cmd_bind_layout_compute(gfx_id_t cmd_list, const command_bind_layout_compute_t& command) const;
+		void cmd_bind_group(gfx_id_t cmd_list, const command_bind_group_t& command) const;
+		void cmd_bind_group_compute(gfx_id_t cmd_list, const command_bind_group_t& command) const;
+		void cmd_dispatch(gfx_id_t cmd_list, const command_dispatch_t& command) const;
+		void cmd_barrier(gfx_id_t cmd_list, const command_barrier_t& command);
 
 		ID3D12DescriptorHeap* get_srv_heap();
 		void				  alloc_srv(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle);
 		void				  free_srv(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle);
 		u64					  get_srv_gpu_handle_from_index(u32 index);
 
-		inline gfx_id get_queue_gfx() const
+		inline gfx_id_t get_queue_gfx() const
 		{
 			return _queue_graphics;
 		}
 
-		inline gfx_id get_queue_transfer() const
+		inline gfx_id_t get_queue_transfer() const
 		{
 			return _queue_transfer;
 		}
 
-		inline gfx_id get_queue_compute() const
+		inline gfx_id_t get_queue_compute() const
 		{
 			return _queue_compute;
 		}
@@ -363,20 +363,20 @@ namespace sfg
 		void wait_for_fence(ID3D12Fence* fence, u64 value) const;
 
 	private:
-		pool_allocator_t<resource_t, gfx_id, MAX_RESOURCES>					  _resources;
-		pool_allocator_t<texture_t, gfx_id, MAX_TEXTURES>					  _textures;
-		pool_allocator_t<texture_shared_handle_t, gfx_id, MAX_TEXTURES>		  _texture_shared_handles;
-		pool_allocator_t<sampler_t, gfx_id, MAX_SAMPLERS>					  _samplers;
-		pool_allocator_t<swapchain_t, gfx_id, MAX_SWAPCHAINS>				  _swapchains;
-		pool_allocator_t<semaphore_t, gfx_id, MAX_SEMAPHORES>				  _semaphores;
-		pool_allocator_t<shader_t, gfx_id, MAX_SHADERS>						  _shaders;
-		pool_allocator_t<bind_group_t, gfx_id, MAX_BIND_GROUPS>				  _bind_groups;
-		pool_allocator_t<command_buffer_t, gfx_id, MAX_COMMAND_BUFFERS>		  _command_buffers;
-		pool_allocator_t<command_allocator_t, gfx_id, MAX_COMMAND_BUFFERS>	  _command_allocators;
-		pool_allocator_t<queue_t, gfx_id, MAX_QUEUES>						  _queues;
-		pool_allocator_t<indirect_signature_t, gfx_id, 255>					  _indirect_signatures;
-		pool_allocator_t<descriptor_handle_t, gfx_id, MAX_DESCRIPTOR_HANDLES> _descriptors;
-		pool_allocator_t<bind_layout_t, gfx_id, MAX_BIND_LAYOUTS>			  _bind_layouts;
+		dynamic_pool_allocator_t<resource_t, gfx_id_t>				_resources;
+		dynamic_pool_allocator_t<texture_t, gfx_id_t>				_textures;
+		dynamic_pool_allocator_t<texture_shared_handle_t, gfx_id_t> _texture_shared_handles;
+		dynamic_pool_allocator_t<sampler_t, gfx_id_t>				_samplers;
+		dynamic_pool_allocator_t<swapchain_t, gfx_id_t>				_swapchains;
+		dynamic_pool_allocator_t<semaphore_t, gfx_id_t>				_semaphores;
+		dynamic_pool_allocator_t<shader_t, gfx_id_t>				_shaders;
+		dynamic_pool_allocator_t<bind_group_t, gfx_id_t>			_bind_groups;
+		dynamic_pool_allocator_t<command_buffer_t, gfx_id_t>		_command_buffers;
+		dynamic_pool_allocator_t<command_allocator_t, gfx_id_t>		_command_allocators;
+		dynamic_pool_allocator_t<queue_t, gfx_id_t>					_queues;
+		dynamic_pool_allocator_t<indirect_signature_t, gfx_id_t>	_indirect_signatures;
+		dynamic_pool_allocator_t<descriptor_handle_t, gfx_id_t>		_descriptors;
+		dynamic_pool_allocator_t<bind_layout_t, gfx_id_t>			_bind_layouts;
 
 		dx12_heap_t _heap_rtv		  = {};
 		dx12_heap_t _heap_dsv		  = {};
@@ -389,10 +389,10 @@ namespace sfg
 		Microsoft::WRL::ComPtr<IDXGIFactory4>	   _factory	  = nullptr;
 		static Microsoft::WRL::ComPtr<IDxcLibrary> s_idxcLib;
 
-		gfx_id _queue_graphics	  = 0;
-		gfx_id _queue_transfer	  = 0;
-		gfx_id _queue_compute	  = 0;
-		bool   _tearing_supported = false;
+		gfx_id_t _queue_graphics	= 0;
+		gfx_id_t _queue_transfer	= 0;
+		gfx_id_t _queue_compute		= 0;
+		bool	 _tearing_supported = false;
 
 		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_buffer  = {};
 		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_sampler = {};

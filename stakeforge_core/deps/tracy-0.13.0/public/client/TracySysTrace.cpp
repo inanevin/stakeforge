@@ -1467,7 +1467,7 @@ void SysTraceWorker( void* ptr )
                         const auto rid = ring.GetId();
                         if( rid == EventContextSwitch )
                         {
-                            // Layout: See /sys/kernel/debug/tracing/events/sched/sched_switch/format
+                            // Layout: See /sys/kernel/debug/tracing/events/sched/sched_switch/format_t
                             //   u64 time    // PERF_SAMPLE_TIME
                             //   u64 cnt     // PERF_SAMPLE_CALLCHAIN
                             //   u64 ip[cnt] // PERF_SAMPLE_CALLCHAIN
@@ -1543,7 +1543,7 @@ void SysTraceWorker( void* ptr )
                         }
                         else if( rid == EventWaking)
                         {
-                            // See /sys/kernel/debug/tracing/events/sched/sched_waking/format
+                            // See /sys/kernel/debug/tracing/events/sched/sched_waking/format_t
                             // Layout:
                             //   u64 time // PERF_SAMPLE_TIME
                             //   u32 size
