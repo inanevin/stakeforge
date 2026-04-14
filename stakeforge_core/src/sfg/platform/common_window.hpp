@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct window_event_t;
 	typedef void (*window_event_callback)(void* hwnd, const window_event_t& ev, void* user_data);
 
 	struct monitor_info_t

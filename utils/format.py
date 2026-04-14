@@ -24,7 +24,7 @@ def find_clang_format(repo_root: Path) -> Path:
 
 
 def collect_files(src_root: Path) -> list[Path]:
-    patterns = ("*.hpp", "*.cpp")
+    patterns = ("*.h", "*.hpp", "*.c", "*.cpp")
     files = []
     for pattern in patterns:
         files.extend(src_root.rglob(pattern))
@@ -58,7 +58,7 @@ def collect_requested_files(repo_root: Path, paths: list[str]) -> list[Path]:
             if not candidate.is_file():
                 print(f"skipping missing file: {candidate}", file=sys.stderr)
                 continue
-            if candidate.suffix not in {".hpp", ".cpp"}:
+            if candidate.suffix not in {".h", ".hpp", ".c", ".cpp"}:
                 print(f"skipping unsupported file: {candidate}", file=sys.stderr)
                 continue
             if candidate in seen:

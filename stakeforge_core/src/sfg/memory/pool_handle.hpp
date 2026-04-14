@@ -30,10 +30,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	template <typename T> struct pool_handle_t
+	template <typename SIZE_TYPE, typename TAG = void> struct pool_handle_t
 	{
-		T generation = 0;
-		T index		 = 0;
+		SIZE_TYPE generation = 0;
+		SIZE_TYPE index		 = 0;
 
 		bool operator==(const pool_handle_t& other) const
 		{

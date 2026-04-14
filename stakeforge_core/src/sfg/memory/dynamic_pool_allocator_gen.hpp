@@ -39,7 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 
-	template <typename T, typename SIZE_TYPE = u32> class dynamic_pool_allocator_gen_t
+	template <typename T, typename SIZE_TYPE = u32, typename TAG = T> class dynamic_pool_allocator_gen_t
 	{
 
 	private:
@@ -47,7 +47,8 @@ namespace sfg
 		static_assert(std::is_unsigned_v<SIZE_TYPE>);
 
 	public:
-		using HANDLE = pool_handle_t<SIZE_TYPE>;
+		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
+		using handle_t = HANDLE;
 
 		dynamic_pool_allocator_gen_t()													   = default;
 		dynamic_pool_allocator_gen_t(const dynamic_pool_allocator_gen_t& other)			   = delete;
@@ -436,6 +437,6 @@ namespace sfg
 		SIZE_TYPE  _capacity	   = 0;
 	};
 
-	template <typename T, typename SIZE_TYPE = u32> using dynamic_pool_gen_t = dynamic_pool_allocator_gen_t<T, SIZE_TYPE>;
+	template <typename T, typename SIZE_TYPE = u32, typename TAG = T> using dynamic_pool_gen_t = dynamic_pool_allocator_gen_t<T, SIZE_TYPE, TAG>;
 
 }

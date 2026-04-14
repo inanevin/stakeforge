@@ -90,6 +90,19 @@ namespace sfg
 
 	namespace
 	{
+		constexpr gfx_id_t INITIAL_RESOURCES		  = 1024;
+		constexpr gfx_id_t INITIAL_TEXTURES			  = 1024;
+		constexpr gfx_id_t INITIAL_SAMPLERS			  = 128;
+		constexpr gfx_id_t INITIAL_SEMAPHORES		  = 64;
+		constexpr gfx_id_t INITIAL_SHADERS			  = 2048;
+		constexpr gfx_id_t INITIAL_PIPELINE_LAYOUTS	  = 256;
+		constexpr gfx_id_t INITIAL_SWAPCHAINS		  = 8;
+		constexpr gfx_id_t INITIAL_BIND_GROUPS		  = 512;
+		constexpr gfx_id_t INITIAL_BIND_LAYOUTS		  = 128;
+		constexpr gfx_id_t INITIAL_COMMAND_BUFFERS	  = 256;
+		constexpr gfx_id_t INITIAL_QUEUES			  = 8;
+		constexpr gfx_id_t INITIAL_DESCRIPTOR_HANDLES = 1024;
+
 		D3D12_TEXTURE_ADDRESS_MODE get_address_mode(address_mode mode)
 		{
 			if (mode == address_mode::repeat)
@@ -730,20 +743,20 @@ namespace sfg
 			}
 		}
 
-		_resources.reserve(MAX_RESOURCES);
-		_textures.reserve(MAX_TEXTURES);
-		_texture_shared_handles.reserve(MAX_TEXTURES);
-		_samplers.reserve(MAX_SAMPLERS);
-		_swapchains.reserve(MAX_SWAPCHAINS);
-		_semaphores.reserve(MAX_SEMAPHORES);
-		_shaders.reserve(MAX_SHADERS);
-		_bind_groups.reserve(MAX_BIND_GROUPS);
-		_command_buffers.reserve(MAX_COMMAND_BUFFERS);
-		_command_allocators.reserve(MAX_COMMAND_BUFFERS);
-		_queues.reserve(MAX_QUEUES);
-		_indirect_signatures.reserve(MAX_PIPELINE_LAYOUTS);
-		_descriptors.reserve(MAX_DESCRIPTOR_HANDLES);
-		_bind_layouts.reserve(MAX_BIND_LAYOUTS);
+		_resources.reserve(INITIAL_RESOURCES);
+		_textures.reserve(INITIAL_TEXTURES);
+		_texture_shared_handles.reserve(INITIAL_TEXTURES);
+		_samplers.reserve(INITIAL_SAMPLERS);
+		_swapchains.reserve(INITIAL_SWAPCHAINS);
+		_semaphores.reserve(INITIAL_SEMAPHORES);
+		_shaders.reserve(INITIAL_SHADERS);
+		_bind_groups.reserve(INITIAL_BIND_GROUPS);
+		_command_buffers.reserve(INITIAL_COMMAND_BUFFERS);
+		_command_allocators.reserve(INITIAL_COMMAND_BUFFERS);
+		_queues.reserve(INITIAL_QUEUES);
+		_indirect_signatures.reserve(INITIAL_PIPELINE_LAYOUTS);
+		_descriptors.reserve(INITIAL_DESCRIPTOR_HANDLES);
+		_bind_layouts.reserve(INITIAL_BIND_LAYOUTS);
 
 		_queue_graphics = create_queue({
 			.type		= command_type::graphics,

@@ -32,8 +32,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	template <typename T, typename SIZE_TYPE, int N> struct pool_allocator_gen_t
+	template <typename T, typename SIZE_TYPE, int N, typename TAG = T> struct pool_allocator_gen_t
 	{
+		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
+		using handle_t = HANDLE;
 
 		~pool_allocator_gen_t()
 		{
@@ -55,7 +57,7 @@ namespace sfg
 		// lifecycle
 		// -----------------------------------------------------------------------------
 
-		inline pool_handle_t<SIZE_TYPE> add()
+		inline HANDLE add()
 		{
 			if (_free_count > 0)
 			{
@@ -86,7 +88,7 @@ namespace sfg
 			return _free_count == 0 && _head >= N;
 		}
 
-		void remove(pool_handle_t<SIZE_TYPE> handle)
+		void remove(HANDLE handle)
 		{
 			SFG_ASSERT(is_valid(handle));
 			_free_list[_free_count] = handle.index;
@@ -96,7 +98,7 @@ namespace sfg
 			_actives[handle.index] = 0;
 		}
 
-		inline bool is_valid(pool_handle_t<SIZE_TYPE> handle) const
+		inline bool is_valid(HANDLE handle) const
 		{
 			return _generations[handle.index] == handle.generation;
 		}
@@ -119,13 +121,13 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		T& get(pool_handle_t<SIZE_TYPE> handle)
+		T& get(HANDLE handle)
 		{
 			SFG_ASSERT(is_valid(handle));
 			return _items[handle.index];
 		}
 
-		const T& get(pool_handle_t<SIZE_TYPE> handle) const
+		const T& get(HANDLE handle) const
 		{
 			SFG_ASSERT(is_valid(handle));
 			return _items[handle.index];
@@ -225,7 +227,7 @@ namespace sfg
 					++_current;
 			}
 
-			pool_handle_t<SIZE_TYPE> operator*() const
+			HANDLE operator*() const
 			{
 				return {
 					.generation = _gens[_current],

@@ -31,19 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define MAX_RESOURCES		   1024
-#define MAX_TEXTURES		   1024
-#define MAX_SAMPLERS		   128
-#define MAX_SEMAPHORES		   64
-#define MAX_SHADERS			   2048
-#define MAX_PIPELINE_LAYOUTS   256
-#define MAX_SWAPCHAINS		   8
-#define MAX_BIND_GROUPS		   512
-#define MAX_BIND_LAYOUTS	   128
-#define MAX_COMMAND_BUFFERS	   256
-#define MAX_QUEUES			   8
-#define MAX_DESCRIPTOR_HANDLES 1024
-#define COMMANDS_MAX_TID	   25
 #define BACK_BUFFER_COUNT	   3
 #define FRAME_LATENCY		   2
 

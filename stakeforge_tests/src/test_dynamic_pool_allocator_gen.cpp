@@ -1,6 +1,7 @@
 #include "test_registry.hpp"
 
 #include "sfg/memory/dynamic_pool_allocator_gen.hpp"
+#include "sfg/memory/pool_allocator_gen.hpp"
 
 #include <memory>
 #include <type_traits>
@@ -47,6 +48,38 @@ namespace sfg
 			static_assert(!std::is_copy_assignable_v<allocator_t>, "dynamic_pool_allocator_gen should not be copy assignable");
 			static_assert(std::is_move_constructible_v<allocator_t>, "dynamic_pool_allocator_gen should be move constructible");
 			static_assert(std::is_move_assignable_v<allocator_t>, "dynamic_pool_allocator_gen should be move assignable");
+
+			struct material_t
+			{
+				int value = 0;
+			};
+
+			struct texture_t
+			{
+				int value = 0;
+			};
+
+			struct material_pool_a_tag
+			{
+			};
+
+			struct material_pool_b_tag
+			{
+			};
+
+			using material_pool_t = sfg::dynamic_pool_allocator_gen_t<material_t>;
+			using texture_pool_t	 = sfg::dynamic_pool_allocator_gen_t<texture_t>;
+			static_assert(!std::is_same_v<material_pool_t::handle_t, texture_pool_t::handle_t>, "different pool value types should have different handle types");
+			static_assert(!std::is_convertible_v<material_pool_t::handle_t, texture_pool_t::handle_t>, "different pool value type handles should not be convertible");
+
+			using material_pool_a_t = sfg::dynamic_pool_allocator_gen_t<material_t, u32, material_pool_a_tag>;
+			using material_pool_b_t = sfg::dynamic_pool_allocator_gen_t<material_t, u32, material_pool_b_tag>;
+			static_assert(!std::is_same_v<material_pool_a_t::handle_t, material_pool_b_t::handle_t>, "different explicit pool tags should have different handle types");
+			static_assert(!std::is_convertible_v<material_pool_a_t::handle_t, material_pool_b_t::handle_t>, "different explicit pool tag handles should not be convertible");
+
+			using fixed_material_pool_t = sfg::pool_allocator_gen_t<material_t, u16, 8>;
+			using fixed_texture_pool_t	= sfg::pool_allocator_gen_t<texture_t, u16, 8>;
+			static_assert(!std::is_same_v<fixed_material_pool_t::handle_t, fixed_texture_pool_t::handle_t>, "fixed pools should have typed handles");
 
 			bool add_remove_and_reuse_preserve_generation_contract()
 			{

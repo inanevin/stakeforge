@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+*.sln text eol=crlf
+*.slnx text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
+*.vcxproj.user text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf

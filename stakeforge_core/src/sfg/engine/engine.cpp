@@ -188,45 +188,24 @@ namespace sfg
 
 	engine_id_t engine_t::create_window(const char* title, const engine_window_state_t& state)
 	{
-		const engine_id_t id = _windows.add();
-		engine_window_t&  ew = _windows.get(id);
-
+		const engine_id_t id				= _windows.add();
+		engine_window_t&  ew				= _windows.get(id);
 		ew.runtime.event_callback			= on_window_event;
 		ew.runtime.event_callback_user_data = this;
-
-		if (!process::create_window(title, state.pos, state.size, state.style, ew.runtime))
-		{
-			SFG_ERR("failed creating window!");
-			return id;
-		}
-
 		return id;
 	}
 
 	void engine_t::destroy_window(engine_id_t id)
 	{
-		engine_window_t& ew = _windows.get(id);
+		engine_window_t& ew		   = _windows.get(id);
+		ew.runtime.close_requested = true;
 		process::destroy_window(ew.runtime.window_handle);
 		_windows.remove(id);
 	}
 
-	void engine_t::on_window_event(u32 id, const window_event_t& ev, void* user_data)
+	void engine_t::on_window_event(void* handle, const window_event_t& ev, void* user_data)
 	{
-		engine_t*		 self = static_cast<engine_t*>(user_data);
-		engine_window_t& ew	  = self->_windows.get(static_cast<engine_id_t>(id));
-
-		if (ev.type != window_event_type_t::resize)
-		{
-
-			return;
-		}
-
-		if (self->_renderer.should_resize(&ew.runtime))
-		{
-			self->end_render();
-			self->_renderer.window_resize(&ew.runtime, ew.runtime.size);
-			self->start_render();
-		}
+		engine_t* self = static_cast<engine_t*>(user_data);
 	}
 
 }

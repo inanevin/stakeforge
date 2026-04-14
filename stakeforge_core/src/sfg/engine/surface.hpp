@@ -44,11 +44,11 @@ namespace sfg
 
 	struct surface_t
 	{
-		vec2u16_t	  size		   = vec2u16_t::zero;
-		renderer_id_t id		   = 0;
-		window_runtime_t* wnd	   = nullptr;
+		vec2u16_t		  size			 = vec2u16_t::zero;
+		renderer_id_t	  id			 = 0;
+		window_runtime_t* wnd			 = nullptr;
 		format_t		  surface_format = format_t::undefined;
-		gfx_id			  gpu		   = NULL_GFX_ID;
-		bitmask_t<u8>	  flags		   = 0;
+		gfx_id_t		  gpu			 = NULL_GFX_ID;
+		bitmask_t<u8>	  flags			 = 0;
 	};
 }

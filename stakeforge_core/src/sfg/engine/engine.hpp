@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine_window.hpp"
 #include "renderer.hpp"
 #include "data/atomic.hpp"
-#include "memory/dynamic_pool_allocator.hpp"
+#include "memory/dynamic_pool_allocator_gen.hpp"
 
 #include <thread>
 
@@ -61,18 +61,7 @@ namespace sfg
 		// window
 		// -----------------------------------------------------------------------------
 
-		engine_id_t create_window(const char* title, const engine_window_state_t& state);
-		void		destroy_window(engine_id_t id);
 
-		inline engine_window_state_t& get_window(engine_id_t id)
-		{
-			return _windows.get(id).state;
-		}
-
-		inline const window_runtime_t& get_window_runtime(engine_id_t id) const
-		{
-			return _windows.get(id).runtime;
-		}
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -85,21 +74,20 @@ namespace sfg
 
 	private:
 		void		render();
-		static void on_window_event(u32 id, const window_event_t& ev, void* user_data);
+		static void on_window_event(void* handle, const window_event_t& ev, void* user_data);
 
 	private:
-		dynamic_pool_allocator_t<engine_window_t, engine_id_t> _windows;
-		std::thread											   _render_thread;
-		renderer_t											   _renderer;
-		atomic_t<bool>										   _is_init				 = false;
-		atomic_t<bool>										   _render_thread_active = false;
-		i64													   _previous_time		 = 0;
-		i64													   _accumulator_ns		 = 0;
-		i64													   _start_time			 = 0;
-		i64													   _fps_main_time		 = 0;
-		i64													   _fps_render_time		 = 0;
-		u32													   _fps_main_frames		 = 0;
-		u32													   _fps_render_frames	 = 0;
+		std::thread	   _render_thread;
+		renderer_t	   _renderer;
+		atomic_t<bool> _is_init				 = false;
+		atomic_t<bool> _render_thread_active = false;
+		i64			   _previous_time		 = 0;
+		i64			   _accumulator_ns		 = 0;
+		i64			   _start_time			 = 0;
+		i64			   _fps_main_time		 = 0;
+		i64			   _fps_render_time		 = 0;
+		u32			   _fps_main_frames		 = 0;
+		u32			   _fps_render_frames	 = 0;
 	};
 
 }
