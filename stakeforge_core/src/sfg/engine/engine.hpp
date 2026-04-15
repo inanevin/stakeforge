@@ -92,7 +92,6 @@ namespace sfg
 
 	private:
 		void		render();
-		void		tick_surfaces();
 		void		create_surface_render_target(surface_t& surface);
 		void		destroy_surface_render_target(surface_t& surface);
 		static void on_window_event(void* handle, const window_event_t& ev, void* user_data);

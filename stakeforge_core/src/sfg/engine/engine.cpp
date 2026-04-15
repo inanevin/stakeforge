@@ -152,6 +152,7 @@ namespace sfg
 					end_render();
 
 				process::set_window_size(runtime.window_handle, descriptor.size, descriptor.style);
+				_renderer.resize_swapchain(runtime.swapchain, runtime.size);
 			}
 
 			if (descriptor.style != runtime.style)
@@ -232,6 +233,29 @@ namespace sfg
 		_render_thread		  = std::thread(&engine_t::render, this);
 	}
 
+	void engine_t::render()
+	{
+		g_engine_stats.render_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+
+		while (_render_thread_active)
+		{
+			const i64 render_start = time_t::get_cpu_microseconds();
+			_renderer.render();
+			const i64 render_end				 = time_t::get_cpu_microseconds();
+			g_engine_stats.render_thread_time_ms = static_cast<double>(render_end - render_start) / 1000.0;
+			g_engine_stats.render_frame_counter++;
+			_fps_render_frames++;
+
+			const i64 fps_delta = render_end - _fps_render_time;
+			if (fps_delta >= 1000000)
+			{
+				g_engine_stats.fps_render = static_cast<u32>((static_cast<u64>(_fps_render_frames) * 1000000ull) / static_cast<u64>(fps_delta));
+				_fps_render_time		  = render_end;
+				_fps_render_frames		  = 0;
+			}
+		}
+	}
+
 	void engine_t::end_render()
 	{
 		if (!_render_thread_active && !_render_thread.joinable())
@@ -271,6 +295,8 @@ namespace sfg
 			return {};
 		}
 
+		window.runtime.swapchain = _renderer.create_swapchain(window.runtime.size, format_t::b8g8r8a8_srgb, window.runtime.window_handle, window.runtime.platform_handle);
+
 		return handle;
 	}
 
@@ -281,6 +307,7 @@ namespace sfg
 		engine_window_t& window = _windows.get(handle);
 		if (window.runtime.window_handle != nullptr)
 			process::destroy_window(window.runtime.window_handle);
+		_renderer.destroy_swapchain(window.runtime.swapchain);
 
 		_windows.remove(handle);
 	}
@@ -346,29 +373,6 @@ namespace sfg
 		return _surfaces.get(handle).runtime;
 	}
 
-	void engine_t::render()
-	{
-		g_engine_stats.render_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-
-		while (_render_thread_active)
-		{
-			const i64 render_start = time_t::get_cpu_microseconds();
-			_renderer.render();
-			const i64 render_end				 = time_t::get_cpu_microseconds();
-			g_engine_stats.render_thread_time_ms = static_cast<double>(render_end - render_start) / 1000.0;
-			g_engine_stats.render_frame_counter++;
-			_fps_render_frames++;
-
-			const i64 fps_delta = render_end - _fps_render_time;
-			if (fps_delta >= 1000000)
-			{
-				g_engine_stats.fps_render = static_cast<u32>((static_cast<u64>(_fps_render_frames) * 1000000ull) / static_cast<u64>(fps_delta));
-				_fps_render_time		  = render_end;
-				_fps_render_frames		  = 0;
-			}
-		}
-	}
-
 	void engine_t::create_surface_render_target(surface_t& surface)
 	{
 		SFG_ASSERT(surface.descriptor.size.x != 0 && surface.descriptor.size.y != 0);
@@ -396,10 +400,18 @@ namespace sfg
 				continue;
 
 			if (ev.type == window_event_type_t::resize)
+			{
 				window.descriptor.size = window.runtime.size;
-			else if (ev.type == window_event_type_t::repos)
-				window.descriptor.pos = window.runtime.pos;
 
+				if (self->_render_thread_active)
+					self->end_render();
+
+				self->_renderer.resize_swapchain(window.runtime.swapchain, window.descriptor.size);
+			}
+			else if (ev.type == window_event_type_t::repos)
+			{
+				window.descriptor.pos = window.runtime.pos;
+			}
 			return;
 		}
 	}

@@ -44,14 +44,12 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	sfg::renderer_t&			 renderer		= engine.get_renderer();
 	const sfg::window_runtime_t& runtime		= engine.get_window_runtime(main_window);
-	const sfg::gfx_id_t			 main_swapchain = renderer.create_swapchain(engine.get_window_descriptor(main_window).size, sfg::format_t::b8g8r8a8_srgb, runtime.window_handle, runtime.platform_handle);
 	engine.start_render();
 	while (engine.is_window_valid(main_window) && !engine.get_window_runtime(main_window).close_requested)
 	{
 		engine.tick();
 	}
 	engine.end_render();
-	renderer.destroy_swapchain(main_swapchain);
 	engine.uninit();
 
 	sfg::process::uninit();

@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math/vec2i16.hpp"
 #include "math/vec2u16.hpp"
 #include "data/bitmask.hpp"
+#include "gfx/common/gfx_constants.hpp"
 
 namespace sfg
 {
@@ -113,6 +114,7 @@ namespace sfg
 		vec2u16_t			  true_size				   = vec2u16_t::zero;
 		vec2i16_t			  mouse_position_abs	   = vec2i16_t::zero;
 		vec2i16_t			  mouse_position		   = vec2i16_t::zero;
+		gfx_id_t			  swapchain				   = NULL_GFX_ID;
 		window_style_t		  style					   = window_style_t::app_window;
 		bool				  has_focus				   = false;
 		bool				  close_requested		   = false;
