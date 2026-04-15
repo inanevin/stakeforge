@@ -110,7 +110,7 @@ namespace sfg
 		// {
 		// 	if (sf.wnd != nullptr || !sf.flags.is_set(surface_flags_should_render))
 		// 		continue;
-		// 
+		//
 		// 	backend->wait_for_swapchain_latency(sf.gpu);
 		// 	swapchains.push_back(sf.gpu);
 		// }
@@ -162,7 +162,7 @@ namespace sfg
 		});
 	}
 
-	gfx_id_t renderer_t::create_render_target(const vec2u16_t& size, format_t& format)
+	gfx_id_t renderer_t::create_render_target(const vec2u16_t& size, format_t format)
 	{
 		gfx_backend* backend = gfx_backend::get();
 

@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/size_definitions.hpp"
 #include "engine_config.hpp"
 #include "engine_window.hpp"
+#include "surface.hpp"
 #include "renderer.hpp"
 #include "data/atomic.hpp"
 #include "memory/dynamic_pool_allocator_gen.hpp"
@@ -70,6 +71,17 @@ namespace sfg
 		const window_runtime_t&	   get_window_runtime(window_handle_t handle) const;
 
 		// -----------------------------------------------------------------------------
+		// surface
+		// -----------------------------------------------------------------------------
+
+		surface_handle_t			create_surface(const surface_descriptor_t& descriptor);
+		void						destroy_surface(surface_handle_t handle);
+		bool						is_surface_valid(surface_handle_t handle) const;
+		surface_descriptor_t&		get_surface_descriptor(surface_handle_t handle);
+		const surface_descriptor_t& get_surface_descriptor(surface_handle_t handle) const;
+		const surface_runtime_t&	get_surface_runtime(surface_handle_t handle) const;
+
+		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
@@ -80,12 +92,14 @@ namespace sfg
 
 	private:
 		void		render();
-		void		tick_windows();
-		void		rebind_window_runtimes();
+		void		tick_surfaces();
+		void		create_surface_render_target(surface_t& surface);
+		void		destroy_surface_render_target(surface_t& surface);
 		static void on_window_event(void* handle, const window_event_t& ev, void* user_data);
 
 	private:
 		dynamic_pool_allocator_gen_t<engine_window_t, engine_id_t, engine_window_pool_tag> _windows;
+		dynamic_pool_allocator_gen_t<surface_t, engine_id_t, surface_tag>				   _surfaces;
 		std::thread																		   _render_thread;
 		renderer_t																		   _renderer;
 		atomic_t<bool>																	   _is_init				 = false;

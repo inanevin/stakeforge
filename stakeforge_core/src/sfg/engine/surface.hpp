@@ -27,28 +27,35 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_engine.hpp"
-#include "engine_window.hpp"
 #include "math/vec2u16.hpp"
-#include "data/bitmask.hpp"
 #include "gfx/common/gfx_constants.hpp"
 #include "gfx/common/format.hpp"
+#include "memory/pool_handle.hpp"
 
 namespace sfg
 {
-	typedef u32 renderer_id_t;
-
-	enum surface_flags : u8
+	struct surface_tag
 	{
-		surface_flags_should_render = 1 << 0,
+	};
+
+	using surface_handle_t = pool_handle_t<engine_id_t, surface_tag>;
+
+	struct surface_descriptor_t
+	{
+		vec2u16_t size	 = vec2u16_t::zero;
+		format_t  format = format_t::r8g8b8a8_srgb;
+	};
+
+	struct surface_runtime_t
+	{
+		gfx_id_t  id	 = NULL_GFX_ID;
+		vec2u16_t size	 = vec2u16_t::zero;
+		format_t  format = format_t::undefined;
 	};
 
 	struct surface_t
 	{
-		vec2u16_t		  size			 = vec2u16_t::zero;
-		renderer_id_t	  id			 = 0;
-		window_runtime_t* wnd			 = nullptr;
-		format_t		  surface_format = format_t::undefined;
-		gfx_id_t		  gpu			 = NULL_GFX_ID;
-		bitmask_t<u8>	  flags			 = 0;
+		surface_descriptor_t descriptor = {};
+		surface_runtime_t	 runtime	= {};
 	};
 }

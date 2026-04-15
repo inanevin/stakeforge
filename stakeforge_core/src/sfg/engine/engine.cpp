@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine.hpp"
 #include "engine_config.hpp"
 #include "engine_stats.hpp"
+#include "io/assert.hpp"
 #include "platform/process.hpp"
 #include "platform/time.hpp"
 #include "world/world.hpp"
@@ -35,10 +36,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	namespace
-	{
-		constexpr engine_id_t INITIAL_WINDOWS = 32;
-	}
+	constexpr engine_id_t INITIAL_WINDOWS  = 32;
+	constexpr engine_id_t INITIAL_SURFACES = 32;
+#define THIS_THREAD_ID static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))
 
 	engine_error_code engine_t::init()
 	{
@@ -63,6 +63,7 @@ namespace sfg
 		g_engine_stats.main_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
 
 		_windows.reserve(INITIAL_WINDOWS);
+		_surfaces.reserve(INITIAL_SURFACES);
 
 		SFG_INFO("engine initialized correctly.");
 		return engine_error_code::none;
@@ -77,6 +78,16 @@ namespace sfg
 	void engine_t::uninit()
 	{
 		end_render();
+
+		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle();)
+		{
+			const surface_handle_t handle = *it;
+			++it;
+
+			surface_t& surface = _surfaces.get(handle);
+			destroy_surface_render_target(surface);
+			_surfaces.remove(handle);
+		}
 
 		for (auto it = _windows.begin_handle(); it != _windows.end_handle();)
 		{
@@ -105,7 +116,74 @@ namespace sfg
 	void engine_t::tick()
 	{
 		process::pump_os_messages();
-		tick_windows();
+
+		const bool was_render_active = _render_thread_active;
+
+		// -----------------------------------------------------------------------------
+		// windows
+		// -----------------------------------------------------------------------------
+
+		for (auto it = _windows.begin_handle(); it != _windows.end_handle();)
+		{
+			const window_handle_t handle = *it;
+			++it;
+
+			engine_window_t&  window  = _windows.get(handle);
+			window_runtime_t& runtime = window.runtime;
+
+			if (runtime.close_requested)
+			{
+				if (runtime.window_handle != nullptr)
+					process::destroy_window(runtime.window_handle);
+
+				_windows.remove(handle);
+				continue;
+			}
+
+			window_descriptor_t& descriptor = window.descriptor;
+			runtime.high_frequency_input	= descriptor.high_frequency_input;
+
+			if (descriptor.pos != runtime.pos)
+				process::set_window_position(runtime.window_handle, descriptor.pos);
+
+			if (descriptor.size != runtime.size)
+			{
+				if (_render_thread_active)
+					end_render();
+
+				process::set_window_size(runtime.window_handle, descriptor.size, descriptor.style);
+			}
+
+			if (descriptor.style != runtime.style)
+			{
+				process::set_window_style(runtime.window_handle, descriptor.size, descriptor.style);
+				runtime.style = descriptor.style;
+			}
+		}
+
+		// -----------------------------------------------------------------------------
+		// surfaces
+		// -----------------------------------------------------------------------------
+
+		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
+		{
+			surface_t& surface = _surfaces.get(*it);
+			if (surface.descriptor.size == surface.runtime.size && surface.descriptor.format == surface.runtime.format)
+				continue;
+
+			if (_render_thread_active)
+				end_render();
+
+			destroy_surface_render_target(surface);
+			create_surface_render_target(surface);
+		}
+
+		if (!_render_thread_active && was_render_active)
+			start_render();
+
+		// -----------------------------------------------------------------------------
+		// timing
+		// -----------------------------------------------------------------------------
 
 		const i64	 tick_start				   = time_t::get_cpu_microseconds();
 		const double fixed_framerate_ns_d	   = g_engine_config.fixed_framerate_ns;
@@ -169,6 +247,8 @@ namespace sfg
 
 	window_handle_t engine_t::create_window(const window_descriptor_t& descriptor)
 	{
+		SFG_ASSERT(THIS_THREAD_ID == g_engine_stats.main_thread_id);
+
 		const window_handle_t handle			= _windows.add();
 		engine_window_t&	  window			= _windows.get(handle);
 		window.descriptor						= descriptor;
@@ -196,6 +276,8 @@ namespace sfg
 
 	void engine_t::destroy_window(window_handle_t handle)
 	{
+		SFG_ASSERT(THIS_THREAD_ID == g_engine_stats.main_thread_id);
+
 		engine_window_t& window = _windows.get(handle);
 		if (window.runtime.window_handle != nullptr)
 			process::destroy_window(window.runtime.window_handle);
@@ -223,42 +305,46 @@ namespace sfg
 		return _windows.get(handle).runtime;
 	}
 
-	void engine_t::tick_windows()
+	surface_handle_t engine_t::create_surface(const surface_descriptor_t& descriptor)
 	{
-		for (auto it = _windows.begin_handle(); it != _windows.end_handle();)
-		{
-			const window_handle_t handle = *it;
-			++it;
+		SFG_ASSERT(THIS_THREAD_ID == g_engine_stats.main_thread_id);
 
-			engine_window_t&  window  = _windows.get(handle);
-			window_runtime_t& runtime = window.runtime;
+		const surface_handle_t handle  = _surfaces.add();
+		surface_t&			   surface = _surfaces.get(handle);
+		surface.descriptor			   = descriptor;
+		surface.runtime				   = {};
+		create_surface_render_target(surface);
 
-			if (runtime.close_requested)
-			{
-				if (runtime.window_handle != nullptr)
-					process::destroy_window(runtime.window_handle);
-
-				_windows.remove(handle);
-				continue;
-			}
-
-			window_descriptor_t& descriptor = window.descriptor;
-			runtime.high_frequency_input	= descriptor.high_frequency_input;
-
-			if (descriptor.pos != runtime.pos)
-				process::set_window_position(runtime.window_handle, descriptor.pos);
-
-			if (descriptor.size != runtime.size)
-				process::set_window_size(runtime.window_handle, descriptor.size, descriptor.style);
-
-			if (descriptor.style != runtime.style)
-			{
-				process::set_window_style(runtime.window_handle, descriptor.size, descriptor.style);
-				runtime.style = descriptor.style;
-			}
-		}
+		return handle;
 	}
 
+	void engine_t::destroy_surface(surface_handle_t handle)
+	{
+		SFG_ASSERT(THIS_THREAD_ID == g_engine_stats.main_thread_id);
+		surface_t& surface = _surfaces.get(handle);
+		destroy_surface_render_target(surface);
+		_surfaces.remove(handle);
+	}
+
+	bool engine_t::is_surface_valid(surface_handle_t handle) const
+	{
+		return _surfaces.is_valid(handle);
+	}
+
+	surface_descriptor_t& engine_t::get_surface_descriptor(surface_handle_t handle)
+	{
+		return _surfaces.get(handle).descriptor;
+	}
+
+	const surface_descriptor_t& engine_t::get_surface_descriptor(surface_handle_t handle) const
+	{
+		return _surfaces.get(handle).descriptor;
+	}
+
+	const surface_runtime_t& engine_t::get_surface_runtime(surface_handle_t handle) const
+	{
+		return _surfaces.get(handle).runtime;
+	}
 
 	void engine_t::render()
 	{
@@ -281,6 +367,22 @@ namespace sfg
 				_fps_render_frames		  = 0;
 			}
 		}
+	}
+
+	void engine_t::create_surface_render_target(surface_t& surface)
+	{
+		SFG_ASSERT(surface.descriptor.size.x != 0 && surface.descriptor.size.y != 0);
+		SFG_ASSERT(surface.descriptor.format != format_t::undefined);
+		surface.runtime.id	   = _renderer.create_render_target(surface.descriptor.size, surface.descriptor.format);
+		surface.runtime.size   = surface.descriptor.size;
+		surface.runtime.format = surface.descriptor.format;
+	}
+
+	void engine_t::destroy_surface_render_target(surface_t& surface)
+	{
+		SFG_ASSERT(surface.runtime.id != NULL_GFX_ID);
+		_renderer.destroy_render_target(surface.runtime.id);
+		surface.runtime = {};
 	}
 
 	void engine_t::on_window_event(void* handle, const window_event_t& ev, void* user_data)

@@ -58,7 +58,7 @@ namespace sfg
 		void	 destroy_swapchain(gfx_id_t id);
 		void	 resize_swapchain(gfx_id_t id, const vec2u16_t& size);
 
-		gfx_id_t create_render_target(const vec2u16_t& size, format_t& format);
+		gfx_id_t create_render_target(const vec2u16_t& size, format_t format);
 		void	 destroy_render_target(gfx_id_t id);
 
 		// -----------------------------------------------------------------------------
