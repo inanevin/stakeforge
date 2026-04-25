@@ -3,24 +3,11 @@
 #include "stakeforge_api.h"
 #include "engine/engine_runtime.hpp"
 
-#include <cstddef>
 #include <new>
 
 namespace
 {
 	sfg::engine_runtime_t* g_engine = nullptr;
-
-	sfg::engine_runtime_config_t to_runtime_config(const engine_config_t* config)
-	{
-		sfg::engine_runtime_config_t runtime_config = {};
-		if (config == nullptr)
-			return runtime_config;
-
-		runtime_config.fixed_framerate_ns		 = config->fixed_framerate_ns;
-		runtime_config.fixed_framerate_max_ticks = config->fixed_framerate_max_ticks;
-		runtime_config.frame_allocator_size		 = static_cast<size_t>(config->frame_allocator_size);
-		return runtime_config;
-	}
 
 	sfg_api_result_t to_api_result(sfg::engine_runtime_error_code result)
 	{
@@ -52,7 +39,8 @@ sfg_api_result_t sfg_engine_init(const engine_config_t* config)
 	if (engine == nullptr)
 		return sfg_api_result_engine_init_failed;
 
-	const sfg::engine_runtime_error_code result = engine->init(to_runtime_config(config));
+	const engine_config_t				 engine_config = config != nullptr ? *config : sfg::default_engine_config();
+	const sfg::engine_runtime_error_code result		   = engine->init(engine_config);
 	if (result != sfg::engine_runtime_error_code::none)
 	{
 		delete engine;

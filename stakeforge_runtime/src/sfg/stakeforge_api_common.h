@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include <stdint.h>
+#include "common/size_definitions.hpp"
 
 #ifdef __cplusplus
 extern "C"
@@ -22,15 +22,15 @@ extern "C"
 
 	typedef struct engine_config_t
 	{
-		double	 fixed_framerate_ns;
-		uint32_t fixed_framerate_max_ticks;
-		uint64_t frame_allocator_size;
+		double fixed_framerate_ns;
+		u32	   fixed_framerate_max_ticks;
+		u64	   frame_allocator_size;
 	} engine_config_t;
 
 	typedef struct world_handle_t
 	{
-		uint32_t generation;
-		uint32_t index;
+		u32 generation;
+		u32 index;
 	} world_handle_t;
 
 #ifdef __cplusplus

@@ -14,7 +14,7 @@ namespace sfg
 {
 #define THIS_THREAD_ID static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))
 
-	engine_runtime_error_code engine_runtime_t::init(const engine_runtime_config_t& config)
+	engine_runtime_error_code engine_runtime_t::init(const engine_config_t& config)
 	{
 		g_engine_runtime_config = config;
 
@@ -38,14 +38,14 @@ namespace sfg
 		g_engine_runtime_stats.reset();
 		g_engine_runtime_stats.main_thread_id = THIS_THREAD_ID;
 
-		frame_allocator_tls_t::init(g_engine_runtime_config.frame_allocator_size);
+		frame_allocator_tls_t::init(static_cast<size_t>(g_engine_runtime_config.frame_allocator_size));
 		SFG_INFO("engine runtime initialized correctly.");
 		return engine_runtime_error_code::none;
 	}
 
 	engine_runtime_error_code engine_runtime_t::init()
 	{
-		return init({});
+		return init(default_engine_config());
 	}
 
 	void engine_runtime_t::uninit()
@@ -103,7 +103,8 @@ namespace sfg
 		while (_accumulator_ns >= fixed_framerate_ns && ticks < fixed_framerate_max_ticks)
 		{
 			_accumulator_ns -= fixed_framerate_ns;
-			tick_worlds(fixed_framerate_s);
+			for (world_t& world : _worlds)
+				world.tick(fixed_framerate_s);
 			ticks++;
 		}
 
@@ -173,12 +174,6 @@ namespace sfg
 		_render_thread		  = std::thread(&engine_runtime_t::render, this);
 	}
 
-	void engine_runtime_t::tick_worlds(f32 delta_time)
-	{
-		for (world_t& world : _worlds)
-			world.tick(delta_time);
-	}
-
 	void engine_runtime_t::end_render()
 	{
 		if (!_render_thread_active && !_render_thread.joinable())
@@ -197,7 +192,7 @@ namespace sfg
 
 	void engine_runtime_t::render()
 	{
-		frame_allocator_tls_t::init(g_engine_runtime_config.frame_allocator_size);
+		frame_allocator_tls_t::init(static_cast<size_t>(g_engine_runtime_config.frame_allocator_size));
 
 		const u64 render_thread_id				= THIS_THREAD_ID;
 		g_engine_runtime_stats.render_thread_id = render_thread_id;

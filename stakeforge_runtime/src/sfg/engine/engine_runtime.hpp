@@ -16,7 +16,7 @@ namespace sfg
 	class engine_runtime_t
 	{
 	public:
-		engine_runtime_error_code init(const engine_runtime_config_t& config);
+		engine_runtime_error_code init(const engine_config_t& config);
 		engine_runtime_error_code init();
 		void					  uninit();
 		void					  tick();
