@@ -31,6 +31,8 @@
 
 set(SFG_GAME_TARGET stakeforge_game)
 set(SFG_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core)
+set(SFG_RUNTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_runtime)
+include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -76,7 +78,8 @@ if(MSVC)
 endif()
     
 target_include_directories(${SFG_GAME_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(${SFG_GAME_TARGET} PRIVATE stakeforge_core)
+target_include_directories(${SFG_GAME_TARGET} PRIVATE ${SFG_RUNTIME_DIR}/src)
+target_link_libraries(${SFG_GAME_TARGET} PRIVATE stakeforge_runtime)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_GAME_TARGET} ${SFG_CORE_DIR})

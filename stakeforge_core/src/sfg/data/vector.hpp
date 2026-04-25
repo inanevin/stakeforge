@@ -30,5 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	template <typename T, class Alloc = std::allocator<T>> using vector_t = std::vector<T, Alloc>;
+	template <typename T, class Alloc = std::allocator<T>> using vector_t		= std::vector<T, Alloc>;
+	template <typename T, template <typename> class Alloc> using vector_alloc_t = std::vector<T, Alloc<T>>;
 }

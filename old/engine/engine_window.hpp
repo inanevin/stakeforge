@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_engine.hpp"
-#include "memory/pool_handle.hpp"
 #include "platform/common_window.hpp"
 
 namespace sfg
@@ -42,12 +41,6 @@ namespace sfg
 		window_style_t style				= window_style_t::app_window;
 		bool		   high_frequency_input = false;
 	};
-
-	struct engine_window_pool_tag
-	{
-	};
-
-	using window_handle_t = pool_handle_t<engine_id_t, engine_window_pool_tag>;
 
 	struct engine_window_t
 	{

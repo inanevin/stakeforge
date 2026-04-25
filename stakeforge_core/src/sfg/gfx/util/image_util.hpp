@@ -49,7 +49,6 @@ namespace sfg
 		void* load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels);
 		void* load_from_file(const char* file, u8& out_channels);
 		void* load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels);
-		void  compress_to_buffer(void* data, size_t sz, ostream_t& stream);
 		void  generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
 		u8	  calculate_mip_levels(u16 width, u16 height);
 		void  free(void* data);

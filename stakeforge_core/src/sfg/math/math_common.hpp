@@ -45,11 +45,12 @@ namespace sfg
 #define MATH_EPS								0.00001f
 #define MATH_INF_F								std::numeric_limits<f32>::infinity()
 #define MATH_NAN								std::numeric_limits<f32>::quiet_NaN()
-#define ALIGN_SIZE_POW(sizeToAlign, PowerOfTwo) (((sizeToAlign) + (PowerOfTwo)-1) & ~((PowerOfTwo)-1))
+#define ALIGN_SIZE_POW(sizeToAlign, PowerOfTwo) (((sizeToAlign) + (PowerOfTwo) - 1) & ~((PowerOfTwo) - 1))
 #define ALIGN_UP(size, alignment)				(size + alignment - 1) & ~(alignment - 1)
 #define SET_BIT(value, bit)						value | (1 << bit)
 #define CHECK_BIT(value, bit)					(value & (1 << bit)) != 0
 #define UNSET_BIT(value, bit)					value & ~(1 << bit)
+#define IS_POW(value)							value != 0 && (value & (value - 1)) == 0
 
 	}
 }

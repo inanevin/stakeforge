@@ -27,14 +27,78 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common/size_definitions.hpp"
+#include "common/string_id.hpp"
+#include "data/hash_map.hpp"
+#include "data/string.hpp"
+#include "data/vector.hpp"
 
 namespace sfg
 {
-	struct engine_config_t
+	enum class virtual_fs_mode_t : u8
 	{
-		double fixed_framerate_ns		 = 16'666'667.0;
-		u32	   fixed_framerate_max_ticks = 4;
+		package,
+		directory,
 	};
 
-	extern engine_config_t g_engine_config;
+	enum class package_type_t : u8
+	{
+		engine,
+		resources,
+		levels,
+	};
+
+	struct package_identifier_t
+	{
+		string_t	   package_name = {};
+		package_type_t package_type = package_type_t::resources;
+	};
+
+	struct virtual_fs_config_t
+	{
+		virtual_fs_mode_t			   mode				= virtual_fs_mode_t::package;
+		vector_t<string_t>			   root_directories = {};
+		vector_t<package_identifier_t> packages			= {};
+	};
+
+	struct vfs_entry_t
+	{
+		string_t relative_path = {};
+		string_t absolute_path = {};
+		string_t filename	   = {};
+		string_t extension	   = {};
+	};
+
+	class virtual_fs_t
+	{
+	public:
+		bool init(const virtual_fs_config_t& config);
+		void uninit();
+		bool refresh();
+
+		const string_t& get_file_abs(string_id relative_path_hash) const;
+
+		inline bool is_directory_mode() const
+		{
+			return _config.mode == virtual_fs_mode_t::directory;
+		}
+
+		inline const virtual_fs_config_t& get_config() const
+		{
+			return _config;
+		}
+
+		inline const hash_map_t<string_id, vfs_entry_t>& get_entries() const
+		{
+			return _entries;
+		}
+
+	private:
+		bool validate_directory_mode_config();
+		bool validate_package_mode_config() const;
+		void refresh_directory_entries();
+
+	private:
+		virtual_fs_config_t				   _config	= {};
+		hash_map_t<string_id, vfs_entry_t> _entries = {};
+	};
 }

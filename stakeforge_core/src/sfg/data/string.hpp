@@ -26,11 +26,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <string>
+#include "memory/frame_allocator.hpp"
 
 // Headers here.
 namespace sfg
 {
-	typedef std::string	 string_t;
-	typedef std::wstring wstring_t;
+	template <typename T, class Alloc = std::allocator<T>> using basic_string_t = std::basic_string<T, std::char_traits<T>, Alloc>;
+	template <template <typename> class Alloc> using string_alloc_t				= basic_string_t<char, Alloc<char>>;
+	template <template <typename> class Alloc> using wstring_alloc_t			= basic_string_t<wchar_t, Alloc<wchar_t>>;
+
+	typedef basic_string_t<char>	string_t;
+	typedef basic_string_t<wchar_t> wstring_t;
 }

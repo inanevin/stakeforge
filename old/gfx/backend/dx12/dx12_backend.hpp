@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/span.hpp"
 #include "data/string.hpp"
 #include "data/bitmask.hpp"
-#include "memory/pool_allocator.hpp"
+#include "memory/pool_allocator_gen.hpp"
 #include "dx12_heap.hpp"
 #include <wrl/client.h>
 #include <dxgi1_6.h>
@@ -363,20 +363,20 @@ namespace SFG
 		void wait_for_fence(ID3D12Fence* fence, u64 value) const;
 
 	private:
-		pool_allocator<resource, gfx_id, MAX_RESOURCES>					  _resources;
-		pool_allocator<texture, gfx_id, MAX_TEXTURES>					  _textures;
-		pool_allocator<texture_shared_handle, gfx_id, MAX_TEXTURES>		  _texture_shared_handles;
-		pool_allocator<sampler, gfx_id, MAX_SAMPLERS>					  _samplers;
-		pool_allocator<swapchain, gfx_id, MAX_SWAPCHAINS>				  _swapchains;
-		pool_allocator<semaphore, gfx_id, MAX_SEMAPHORES>				  _semaphores;
-		pool_allocator<shader, gfx_id, MAX_SHADERS>						  _shaders;
-		pool_allocator<bind_group, gfx_id, MAX_BIND_GROUPS>				  _bind_groups;
-		pool_allocator<command_buffer, gfx_id, MAX_COMMAND_BUFFERS>		  _command_buffers;
-		pool_allocator<command_allocator, gfx_id, MAX_COMMAND_BUFFERS>	  _command_allocators;
-		pool_allocator<queue, gfx_id, MAX_QUEUES>						  _queues;
-		pool_allocator<indirect_signature, gfx_id, 255>					  _indirect_signatures;
-		pool_allocator<descriptor_handle, gfx_id, MAX_DESCRIPTOR_HANDLES> _descriptors;
-		pool_allocator<bind_layout, gfx_id, MAX_BIND_LAYOUTS>			  _bind_layouts;
+		sfg::pool_allocator_gen_t<resource, gfx_id, MAX_RESOURCES>					 _resources;
+		sfg::pool_allocator_gen_t<texture, gfx_id, MAX_TEXTURES>					 _textures;
+		sfg::pool_allocator_gen_t<texture_shared_handle, gfx_id, MAX_TEXTURES>		 _texture_shared_handles;
+		sfg::pool_allocator_gen_t<sampler, gfx_id, MAX_SAMPLERS>					 _samplers;
+		sfg::pool_allocator_gen_t<swapchain, gfx_id, MAX_SWAPCHAINS>				 _swapchains;
+		sfg::pool_allocator_gen_t<semaphore, gfx_id, MAX_SEMAPHORES>				 _semaphores;
+		sfg::pool_allocator_gen_t<shader, gfx_id, MAX_SHADERS>						 _shaders;
+		sfg::pool_allocator_gen_t<bind_group, gfx_id, MAX_BIND_GROUPS>				 _bind_groups;
+		sfg::pool_allocator_gen_t<command_buffer, gfx_id, MAX_COMMAND_BUFFERS>		 _command_buffers;
+		sfg::pool_allocator_gen_t<command_allocator, gfx_id, MAX_COMMAND_BUFFERS>	 _command_allocators;
+		sfg::pool_allocator_gen_t<queue, gfx_id, MAX_QUEUES>						 _queues;
+		sfg::pool_allocator_gen_t<indirect_signature, gfx_id, 255>					 _indirect_signatures;
+		sfg::pool_allocator_gen_t<descriptor_handle, gfx_id, MAX_DESCRIPTOR_HANDLES> _descriptors;
+		sfg::pool_allocator_gen_t<bind_layout, gfx_id, MAX_BIND_LAYOUTS>			 _bind_layouts;
 
 		dx12_heap _heap_rtv			= {};
 		dx12_heap _heap_dsv			= {};

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/size_definitions.hpp"
 #include "data/string.hpp"
+#include "data/vector.hpp"
 
 namespace std
 {
@@ -47,9 +48,11 @@ namespace sfg
 		bool	 is_directory(const char* path);
 		bool	 change_directory_name(const char* oldPath, const char* new_path);
 		bool	 exists(const char* path);
+		bool	 is_absolute_path(const char* path);
 		string_t get_last_modified_date(const char* path);
 		u64		 get_last_modified_ticks(const char* path) noexcept;
 		u64		 get_last_modified_ticks(const std::filesystem::path& path) noexcept;
+		string_t get_absolute_path(const char* path);
 		string_t get_directory_of_file(const char* path);
 		string_t remove_extensions_from_path(const string_t& filename);
 		string_t get_filename_and_extension_from_path(const string_t& filename);
@@ -69,6 +72,7 @@ namespace sfg
 		void	 get_sys_time_ints(i32& hours, i32& minutes, i32& seconds);
 		void	 copy_directory(const char* copyDir, const char* target_parent_folder);
 		void	 copy_file_to_directory(const char* file, const char* target_parent_folder);
+		void	 get_files_recursive(const char* directory, vector_t<string_t>& out_files);
 	};
 
 }

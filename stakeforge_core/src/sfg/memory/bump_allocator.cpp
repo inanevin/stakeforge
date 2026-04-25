@@ -36,7 +36,7 @@ namespace sfg
 		_size = sz;
 		_raw  = SFG_ALIGNED_MALLOC(alignment, sz);
 		_owns = 1;
-		PUSH_ALLOCATION_SZ(sz);
+		SFG_MEMTRACE_ALLOC(_raw, sz);
 	}
 
 	void bump_allocator_t::init(u8* existing, size_t sz)
@@ -50,8 +50,8 @@ namespace sfg
 	{
 		if (_owns)
 		{
+			SFG_MEMTRACE_DEALLOC(_raw);
 			SFG_ALIGNED_FREE(_raw);
-			PUSH_DEALLOCATION_SZ(_size);
 		}
 		_raw = nullptr;
 	}

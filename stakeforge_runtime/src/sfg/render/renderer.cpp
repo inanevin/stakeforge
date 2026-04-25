@@ -1,0 +1,104 @@
+// Copyright (c) 2025 Inan Evin
+
+#include "renderer.hpp"
+#include "gfx/backend/backend.hpp"
+#include "gfx/common/descriptions.hpp"
+#include "gfx/util/gfx_util.hpp"
+#include "io/assert.hpp"
+#include "io/log.hpp"
+
+namespace sfg
+{
+	engine_runtime_error_code renderer_t::init()
+	{
+		if (gfx_backend::s_instance)
+		{
+			SFG_ERR("renderer is already init!");
+			return engine_runtime_error_code::renderer_already_init;
+		}
+
+		gfx_backend::s_instance = new gfx_backend();
+		gfx_backend* backend	= gfx_backend::get();
+		const u8	 result		= backend->init();
+		if (result != 0)
+		{
+			delete gfx_backend::s_instance;
+			gfx_backend::s_instance = nullptr;
+			return engine_runtime_error_code::backend_failed;
+		}
+
+		_global_bind_layout			= gfx_util_t::create_bind_layout_global(false);
+		_global_compute_bind_layout = gfx_util_t::create_bind_layout_global(true);
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		{
+			_pfd[i].semaphore_frame.semaphore_t = backend->create_semaphore();
+			_pfd[i].semaphore_frame.value		= 0;
+		}
+
+		return engine_runtime_error_code::none;
+	}
+
+	void renderer_t::uninit()
+	{
+		if (gfx_backend::s_instance == nullptr)
+		{
+			SFG_ERR("renderer is not initialized!");
+			return;
+		}
+
+		gfx_backend* backend = gfx_backend::get();
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		{
+			per_frame_data_t& pfd = _pfd[i];
+			if (pfd.semaphore_frame.semaphore_t.is_null())
+				continue;
+
+			backend->destroy_semaphore(pfd.semaphore_frame.semaphore_t);
+			pfd.semaphore_frame.semaphore_t = {};
+			pfd.semaphore_frame.value		= 0;
+		}
+
+		backend->destroy_bind_layout(_global_bind_layout);
+		backend->destroy_bind_layout(_global_compute_bind_layout);
+		backend->uninit();
+
+		delete gfx_backend::s_instance;
+		gfx_backend::s_instance = nullptr;
+
+		_global_bind_layout			= {};
+		_global_compute_bind_layout = {};
+		_frame_counter				= 0;
+		_frame_index				= 0;
+	}
+
+	void renderer_t::join()
+	{
+		gfx_backend* backend = gfx_backend::get();
+		SFG_ASSERT(backend != nullptr);
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		{
+			per_frame_data_t& pfd = _pfd[i];
+			backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+		}
+	}
+
+	void renderer_t::render()
+	{
+		gfx_backend* backend = gfx_backend::get();
+		SFG_ASSERT(backend != nullptr);
+
+		const gfx_queue_handle queue_gfx = backend->get_queue_gfx();
+		_frame_index					 = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
+
+		per_frame_data_t& pfd = _pfd[_frame_index];
+		backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+
+		pfd.semaphore_frame.value++;
+		backend->queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
+
+		_frame_counter++;
+	}
+}

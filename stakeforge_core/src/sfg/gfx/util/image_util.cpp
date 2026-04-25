@@ -50,6 +50,7 @@ namespace sfg
 			SFG_ERR("Failed loading image from file! {0}", file);
 			return nullptr;
 		}
+		SFG_MEMTRACE_ALLOC(data, x * y * (force_channels == 0 ? comp : force_channels));
 
 		return data;
 	}
@@ -66,6 +67,7 @@ namespace sfg
 		}
 
 		out_size = vec2u16_t(static_cast<u16>(x), static_cast<u16>(y));
+		SFG_MEMTRACE_ALLOC(data, x * y * (force_channels == 0 ? comp : force_channels));
 
 		return data;
 	}
@@ -82,7 +84,7 @@ namespace sfg
 		}
 
 		out_channels = static_cast<int>(comp);
-
+		SFG_MEMTRACE_ALLOC(data, x * y * comp);
 		return data;
 	}
 
@@ -99,13 +101,8 @@ namespace sfg
 
 		out_channels = static_cast<int>(comp);
 		out_size	 = vec2u16_t(static_cast<u16>(x), static_cast<u16>(y));
-
+		SFG_MEMTRACE_ALLOC(data, x * y * comp);
 		return data;
-	}
-
-	void image_util_t::compress_to_buffer(void* data, size_t sz, ostream_t& stream)
-	{
-		//     int stbi_write_png_to_func(stbi_write_func *func, void *context, int w, int h, int comp, const void  *data, int stride_in_bytes);
 	}
 
 	void image_util_t::generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha)
@@ -130,7 +127,7 @@ namespace sfg
 			mip.size			 = vec2u16_t(w, h);
 			mip.pixels			 = (u8*)SFG_MALLOC(w * h * buf.bpp);
 			mip.bpp				 = buf.bpp;
-			PUSH_ALLOCATION_SZ(w * h * mip.bpp);
+			SFG_MEMTRACE_ALLOC(mip.pixels, w * h * mip.bpp);
 			const stbir_colorspace cs = is_linear ? stbir_colorspace::STBIR_COLORSPACE_LINEAR : stbir_colorspace::STBIR_COLORSPACE_SRGB;
 
 			int ret = 0;

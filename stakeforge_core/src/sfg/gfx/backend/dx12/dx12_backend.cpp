@@ -34,8 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/string_util.hpp"
 #include "data/vector_util.hpp"
 
-#include "engine/engine_stats.hpp"
-#include "engine/common_engine.hpp"
+#include "gfx/gfx_runtime_state.hpp"
 
 // gfx
 #include "gfx/common/descriptions.hpp"
@@ -44,14 +43,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx/common/commands.hpp"
 
 // misc
-#include "engine/engine_config.hpp"
 #include "io/log.hpp"
 #include "memory/memory.hpp"
 #include "memory/memory_tracer.hpp"
 #include "math/math_common.hpp"
-
-#include <tracy/Tracy.hpp>
-#include <tracy/TracyD3D12.hpp>
 
 #ifdef SFG_DEBUG
 #include <WinPixEventRuntime/pix3.h>
@@ -70,7 +65,7 @@ namespace sfg
 
 	Microsoft::WRL::ComPtr<IDxcLibrary> dx12_backend_t::s_idxcLib;
 
-#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(g_engine_stats.render_thread_id.load() == 0 || g_engine_stats.render_thread_id == static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id())))
+#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(g_gfx_runtime_stats.render_thread_id.load() == 0 || g_gfx_runtime_stats.render_thread_id == static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id())))
 
 #define DX12_THROW(exception, ...)                                                                                                                                                                                                                                 \
 	SFG_FATAL(__VA_ARGS__);                                                                                                                                                                                                                                        \
@@ -702,7 +697,7 @@ namespace sfg
 		if (!SUCCEEDED(_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts))))
 		{
 			SFG_ERR("failed checking device options!");
-			return static_cast<u8>(engine_error_code::backend_failed);
+			return static_cast<u8>(gfx_runtime_error_code::backend_failed);
 		}
 
 		D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = {};
@@ -713,13 +708,13 @@ namespace sfg
 		if (!SUCCEEDED(hr))
 		{
 			SFG_ERR("shader model 6.6 is not supported on this device!");
-			return static_cast<u8>(engine_error_code::backend_failed);
+			return static_cast<u8>(gfx_runtime_error_code::backend_failed);
 		}
 
 		if (opts.ResourceBindingTier != D3D12_RESOURCE_BINDING_TIER_3)
 		{
 			SFG_ERR("GPU device does not support resource binding tier 3!");
-			return static_cast<u8>(engine_error_code::backend_failed);
+			return static_cast<u8>(gfx_runtime_error_code::backend_failed);
 		}
 
 		// Allocator
@@ -739,7 +734,7 @@ namespace sfg
 			if (FAILED(hr))
 			{
 				SFG_ERR("failed to create DXC library!");
-				return static_cast<u8>(engine_error_code::backend_failed);
+				return static_cast<u8>(gfx_runtime_error_code::backend_failed);
 			}
 		}
 
@@ -793,7 +788,7 @@ namespace sfg
 		_reuse_root_params.reserve(100);
 		_reuse_root_ranges.reserve(100);
 		_reuse_static_samplers.reserve(100);
-		return static_cast<u8>(engine_error_code::none);
+		return static_cast<u8>(gfx_runtime_error_code::none);
 	}
 
 	void dx12_backend_t::uninit()
@@ -834,7 +829,7 @@ namespace sfg
 		_device.Reset();
 	}
 
-	void dx12_backend_t::reset_command_buffer(gfx_id_t cmd_buffer)
+	void dx12_backend_t::reset_command_buffer(gfx_command_buffer_handle cmd_buffer)
 	{
 		command_buffer_t&			cmd_buf	  = _command_buffers.get(cmd_buffer);
 		ID3D12GraphicsCommandList4* cmd_list  = cmd_buf.ptr.Get();
@@ -845,7 +840,7 @@ namespace sfg
 		cmd_list->SetDescriptorHeaps(_countof(heaps), heaps);
 	}
 
-	void dx12_backend_t::reset_command_buffer_transfer(gfx_id_t cmd_buffer)
+	void dx12_backend_t::reset_command_buffer_transfer(gfx_command_buffer_handle cmd_buffer)
 	{
 		command_buffer_t&			cmd_buf	  = _command_buffers.get(cmd_buffer);
 		ID3D12GraphicsCommandList4* cmd_list  = cmd_buf.ptr.Get();
@@ -854,14 +849,14 @@ namespace sfg
 		throw_if_failed(cmd_list->Reset(cmd_alloc, nullptr));
 	}
 
-	void dx12_backend_t::close_command_buffer(gfx_id_t cmd_buffer)
+	void dx12_backend_t::close_command_buffer(gfx_command_buffer_handle cmd_buffer)
 	{
 		command_buffer_t&			cmd_buf	 = _command_buffers.get(cmd_buffer);
 		ID3D12GraphicsCommandList4* cmd_list = cmd_buf.ptr.Get();
 		throw_if_failed(cmd_list->Close());
 	}
 
-	void dx12_backend_t::submit_commands(gfx_id_t queue_id, const gfx_id_t* commands, u8 commands_count)
+	void dx12_backend_t::submit_commands(gfx_queue_handle queue_id, const gfx_command_buffer_handle* commands, u8 commands_count)
 	{
 		queue_t&								q = _queues.get(queue_id);
 		static_vector_t<ID3D12CommandList*, 32> lists;
@@ -876,7 +871,7 @@ namespace sfg
 		q.ptr->ExecuteCommandLists(static_cast<u32>(commands_count), lists.data());
 	}
 
-	void dx12_backend_t::queue_wait(gfx_id_t queue_id, const gfx_id_t* semaphores, const u64* semaphore_values, u8 semaphore_count)
+	void dx12_backend_t::queue_wait(gfx_queue_handle queue_id, const gfx_semaphore_handle* semaphores, const u64* semaphore_values, u8 semaphore_count)
 	{
 		queue_t& q = _queues.get(queue_id);
 
@@ -884,7 +879,7 @@ namespace sfg
 			q.ptr->Wait(_semaphores.get(semaphores[i]).ptr.Get(), semaphore_values[i]);
 	}
 
-	void dx12_backend_t::queue_signal(gfx_id_t queue_id, const gfx_id_t* semaphores, const u64* semaphore_values, u8 semaphore_count)
+	void dx12_backend_t::queue_signal(gfx_queue_handle queue_id, const gfx_semaphore_handle* semaphores, const u64* semaphore_values, u8 semaphore_count)
 	{
 		queue_t& q = _queues.get(queue_id);
 
@@ -894,7 +889,7 @@ namespace sfg
 		}
 	}
 
-	void dx12_backend_t::present(const gfx_id_t* swapchains, u8 swapchain_count)
+	void dx12_backend_t::present(const gfx_swapchain_handle* swapchains, u8 swapchain_count)
 	{
 		for (u8 i = 0; i < swapchain_count; i++)
 		{
@@ -906,7 +901,7 @@ namespace sfg
 		}
 	}
 
-	void dx12_backend_t::wait_for_swapchain_latency(gfx_id_t swapchain_id)
+	void dx12_backend_t::wait_for_swapchain_latency(gfx_swapchain_handle swapchain_id)
 	{
 #if USE_WAITABLE_SWAPCHAIN
 		swapchain_t& swp = _swapchains.get(swapchain_id);
@@ -917,19 +912,19 @@ namespace sfg
 #endif
 	}
 
-	u8 dx12_backend_t::get_back_buffer_index(gfx_id_t s)
+	u8 dx12_backend_t::get_back_buffer_index(gfx_swapchain_handle s)
 	{
 		swapchain_t& swp = _swapchains.get(s);
 		swp.image_index	 = swp.ptr->GetCurrentBackBufferIndex();
 		return swp.image_index;
 	}
 
-	gfx_id_t dx12_backend_t::create_resource(const resource_desc_t& desc)
+	gfx_resource_handle dx12_backend_t::create_resource(const resource_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id  = _resources.add();
-		resource_t&	   res = _resources.get(id);
+		const gfx_resource_handle id  = _resources.add();
+		resource_t&				  res = _resources.get(id);
 
 		const u32 aligned_size = ALIGN_SIZE_POW(desc.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 		res.size			   = desc.flags.is_set(resource_flags::rf_constant_buffer) ? aligned_size : desc.size;
@@ -977,16 +972,15 @@ namespace sfg
 
 		throw_if_failed(_allocator->CreateResource(&allocation_desc, &resource_desc_t, state, NULL, &res.ptr, IID_NULL, NULL));
 
-		PUSH_MEMORY_CATEGORY("Gfx");
-		PUSH_ALLOCATION_SZ(desc.size);
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("GPU");
+			SFG_MEMTRACE_ALLOC(res.ptr, desc.size);
+		}
 
-		PUSH_MEMORY_CATEGORY("GfxRes");
-		PUSH_ALLOCATION_SZ(desc.size);
-		POP_MEMORY_CATEGORY();
-
-		// TracyAllocN(res.ptr, res.ptr->GetSize(), "GPU: Resource");
-		// TracyAllocN(res.ptr, res.ptr->GetSize(), "GPU: Total");
+		{
+			SFG_MEMTRACE_SCOPE("GPUR");
+			SFG_MEMTRACE_ALLOC(res.ptr->GetResource(), desc.size);
+		}
 
 		if (desc.flags.is_set(resource_flags::rf_constant_buffer))
 		{
@@ -994,7 +988,7 @@ namespace sfg
 				.BufferLocation = res.ptr->GetResource()->GetGPUVirtualAddress(),
 				.SizeInBytes	= static_cast<UINT>(res.size),
 			};
-			res.descriptor_index	= static_cast<i16>(_descriptors.add());
+			res.descriptor_index	= _descriptors.add();
 			descriptor_handle_t& dh = _descriptors.get(res.descriptor_index);
 			dh						= _heap_gpu_buffer.get_heap_handle_block(1);
 			_device->CreateConstantBufferView(&desc, {dh.cpu});
@@ -1016,7 +1010,7 @@ namespace sfg
 						},
 
 				};
-				res.descriptor_index	= static_cast<i16>(_descriptors.add());
+				res.descriptor_index	= _descriptors.add();
 				descriptor_handle_t& dh = _descriptors.get(res.descriptor_index);
 				dh						= _heap_gpu_buffer.get_heap_handle_block(1);
 				_device->CreateShaderResourceView(res.ptr->GetResource(), &srv, {dh.cpu});
@@ -1036,16 +1030,16 @@ namespace sfg
 						},
 				};
 
-				if (res.descriptor_index == -1)
+				if (res.descriptor_index.is_null())
 				{
-					res.descriptor_index	= static_cast<i16>(_descriptors.add());
+					res.descriptor_index	= _descriptors.add();
 					descriptor_handle_t& dh = _descriptors.get(res.descriptor_index);
 					dh						= _heap_gpu_buffer.get_heap_handle_block(1);
 					_device->CreateUnorderedAccessView(res.ptr->GetResource(), NULL, &uav, {dh.cpu});
 				}
 				else
 				{
-					res.descriptor_index_secondary = static_cast<i16>(_descriptors.add());
+					res.descriptor_index_secondary = _descriptors.add();
 					descriptor_handle_t& dh		   = _descriptors.get(res.descriptor_index_secondary);
 					dh							   = _heap_gpu_buffer.get_heap_handle_block(1);
 					_device->CreateUnorderedAccessView(res.ptr->GetResource(), NULL, &uav, {dh.cpu});
@@ -1058,66 +1052,66 @@ namespace sfg
 		return id;
 	}
 
-	void dx12_backend_t::map_resource(gfx_id_t id, u8*& ptr) const
+	void dx12_backend_t::map_resource(gfx_resource_handle id, u8*& ptr) const
 	{
 		const resource_t& res = _resources.get(id);
 		CD3DX12_RANGE	  range(0, 0);
 		throw_if_failed(res.ptr->GetResource()->Map(0, &range, reinterpret_cast<void**>(&ptr)));
 	}
 
-	void dx12_backend_t::unmap_resource(gfx_id_t id) const
+	void dx12_backend_t::unmap_resource(gfx_resource_handle id) const
 	{
 		const resource_t& res = _resources.get(id);
 		CD3DX12_RANGE	  range(0, 0);
 		res.ptr->GetResource()->Unmap(0, &range);
 	}
 
-	HANDLE dx12_backend_t::get_shared_handle_for_texture(gfx_id_t id)
+	HANDLE dx12_backend_t::get_shared_handle_for_texture(gfx_texture_handle id)
 	{
 		return _texture_shared_handles.get(_textures.get(id).shared_handle).handle;
 	}
 
-	void dx12_backend_t::destroy_resource(gfx_id_t id)
+	void dx12_backend_t::destroy_resource(gfx_resource_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
 		resource_t& res = _resources.get(id);
 
-		PUSH_MEMORY_CATEGORY("Gfx");
-		PUSH_DEALLOCATION_SZ(res.size);
-		POP_MEMORY_CATEGORY();
-		PUSH_MEMORY_CATEGORY("GfxRes");
-		PUSH_DEALLOCATION_SZ(res.size);
-		POP_MEMORY_CATEGORY();
-
-		// TracyFreeN(res.ptr, "GPU: Total");
-		// TracyFreeN(res.ptr, "GPU: Resource");
-
-		if (res.descriptor_index != -1)
 		{
-			descriptor_handle_t& dh = _descriptors.get(static_cast<gfx_id_t>(res.descriptor_index));
+			SFG_MEMTRACE_SCOPE("GPU");
+			SFG_MEMTRACE_DEALLOC(res.ptr);
+		}
+
+		{
+			SFG_MEMTRACE_SCOPE("GPUR");
+			SFG_MEMTRACE_DEALLOC(res.ptr->GetResource());
+		}
+
+		if (!res.descriptor_index.is_null())
+		{
+			descriptor_handle_t& dh = _descriptors.get(res.descriptor_index);
 			_heap_gpu_buffer.remove_handle(dh);
 			_descriptors.remove(res.descriptor_index);
 		}
 
-		if (res.descriptor_index_secondary != -1)
+		if (!res.descriptor_index_secondary.is_null())
 		{
-			descriptor_handle_t& dh = _descriptors.get(static_cast<gfx_id_t>(res.descriptor_index_secondary));
+			descriptor_handle_t& dh = _descriptors.get(res.descriptor_index_secondary);
 			_heap_gpu_buffer.remove_handle(dh);
 			_descriptors.remove(res.descriptor_index_secondary);
 		}
 
-		res.descriptor_index = -1;
+		res.descriptor_index = {};
 		res.ptr->Release();
 		_resources.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_texture(const texture_desc_t& desc)
+	gfx_texture_handle dx12_backend_t::create_texture(const texture_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id  = _textures.add();
-		texture_t&	   txt = _textures.get(id);
+		const gfx_texture_handle id	 = _textures.add();
+		texture_t&				 txt = _textures.get(id);
 
 		const DXGI_FORMAT color_format = get_format(desc.texture_format);
 		const DXGI_FORMAT depth_format = get_format(desc.depth_stencil_format);
@@ -1179,17 +1173,16 @@ namespace sfg
 		NAME_DX12_OBJECT_CSTR(txt.ptr->GetResource(), desc.debug_name);
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
-		PUSH_MEMORY_CATEGORY("Gfx");
-		PUSH_ALLOCATION_SZ(txt.ptr->GetSize());
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("GPU");
+			SFG_MEMTRACE_ALLOC(txt.ptr, txt.ptr->GetSize());
+		}
 
-		PUSH_MEMORY_CATEGORY("GfxTxt");
-		PUSH_ALLOCATION_SZ(txt.ptr->GetSize());
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("GPUT");
+			SFG_MEMTRACE_ALLOC(txt.ptr->GetResource(), txt.ptr->GetSize());
+		}
 #endif
-
-		// TracyAllocN(txt.ptr, txt.ptr->GetSize(), "GPU: Texture");
-		// TracyAllocN(txt.ptr, txt.ptr->GetSize(), "GPU: Total");
 
 		if (desc.flags.is_set(texture_flags::tf_shared))
 		{
@@ -1415,24 +1408,31 @@ namespace sfg
 		return id;
 	}
 
-	void dx12_backend_t::destroy_texture(gfx_id_t id)
+	void dx12_backend_t::destroy_texture(gfx_texture_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
 		texture_t& txt = _textures.get(id);
 
-		PUSH_MEMORY_CATEGORY("Gfx");
-		PUSH_DEALLOCATION_SZ(txt.ptr->GetSize());
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("GPU");
+			SFG_MEMTRACE_DEALLOC(txt.ptr);
+		}
 
-		PUSH_MEMORY_CATEGORY("GfxTxt");
-		PUSH_DEALLOCATION_SZ(txt.ptr->GetSize());
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("GPUT");
+			SFG_MEMTRACE_DEALLOC(txt.ptr->GetResource());
+		}
 
-		texture_shared_handle_t& handle = _texture_shared_handles.get(txt.shared_handle);
-		if (handle.handle != 0)
-			CloseHandle(handle.handle);
-		handle.handle = 0;
+		if (!txt.shared_handle.is_null())
+		{
+			texture_shared_handle_t& handle = _texture_shared_handles.get(txt.shared_handle);
+			if (handle.handle != 0)
+				CloseHandle(handle.handle);
+			handle.handle = 0;
+			_texture_shared_handles.remove(txt.shared_handle);
+			txt.shared_handle = {};
+		}
 
 		for (u8 i = 0; i < txt.view_count; i++)
 		{
@@ -1454,14 +1454,12 @@ namespace sfg
 			_descriptors.remove(v.handle);
 		}
 
-		// TracyFreeN(txt.ptr, "GPU: Total");
-		// TracyFreeN(txt.ptr, "GPU: Texture");
 		txt.ptr->Release();
 		txt.ptr = NULL;
 		_textures.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_sampler(const sampler_desc_t& desc)
+	gfx_sampler_handle dx12_backend_t::create_sampler(const sampler_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -1478,8 +1476,8 @@ namespace sfg
 		};
 		border_color(desc.flags, samplerDesc.BorderColor);
 
-		const gfx_id_t id  = _samplers.add();
-		sampler_t&	   smp = _samplers.get(id);
+		const gfx_sampler_handle id	 = _samplers.add();
+		sampler_t&				 smp = _samplers.get(id);
 
 		smp.descriptor_index	= _descriptors.add();
 		descriptor_handle_t& dh = _descriptors.get(smp.descriptor_index);
@@ -1489,7 +1487,7 @@ namespace sfg
 		return id;
 	}
 
-	void dx12_backend_t::destroy_sampler(gfx_id_t id)
+	void dx12_backend_t::destroy_sampler(gfx_sampler_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -1500,12 +1498,12 @@ namespace sfg
 		_samplers.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_swapchain(const swapchain_desc_t& desc)
+	gfx_swapchain_handle dx12_backend_t::create_swapchain(const swapchain_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id  = _swapchains.add();
-		swapchain_t&   swp = _swapchains.get(id);
+		const gfx_swapchain_handle id  = _swapchains.add();
+		swapchain_t&			   swp = _swapchains.get(id);
 
 		if (desc.flags.is_set(swapchain_flags::sf_vsync_every_v_blank))
 			swp.vsync = 1;
@@ -1559,18 +1557,12 @@ namespace sfg
 		throw_if_failed(swapchain_t.As(&swp.ptr));
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
-		PUSH_MEMORY_CATEGORY("Gfx");
 		swp.size = desc.size.x * desc.size.y * 4;
-		PUSH_ALLOCATION_SZ(swp.size);
-		POP_MEMORY_CATEGORY();
-
-		PUSH_MEMORY_CATEGORY("GfxTxt");
-		PUSH_ALLOCATION_SZ(swp.size);
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("Gfx");
+			SFG_MEMTRACE_ALLOC(swp.ptr.Get(), swp.size);
+		}
 #endif
-
-		// TracyAllocN(swp.ptr.Get(), swapchain_desc.Width * swapchain_desc.Height * 4, "GPU: Texture");
-		// TracyAllocN(swp.ptr.Get(), swapchain_desc.Width * swapchain_desc.Height * 4, "GPU: Total");
 
 #if USE_WAITABLE_SWAPCHAIN
 		Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2;
@@ -1599,11 +1591,18 @@ namespace sfg
 			}
 		}
 
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		{
+			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_ALLOC(swp.textures[0].Get(), swp.size);
+		}
+#endif
+
 		// swp.image_index = swp.ptr->GetCurrentBackBufferIndex();
 		return id;
 	}
 
-	gfx_id_t dx12_backend_t::recreate_swapchain(const swapchain_recreate_desc_t& desc)
+	gfx_swapchain_handle dx12_backend_t::recreate_swapchain(const swapchain_recreate_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -1611,6 +1610,10 @@ namespace sfg
 
 		DXGI_SWAP_CHAIN_DESC swp_desc = {};
 		swp.ptr->GetDesc(&swp_desc);
+
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		ID3D12Resource* old_swapchain_texture = swp.textures[0].Get();
+#endif
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -1631,21 +1634,18 @@ namespace sfg
 #ifdef SFG_ENABLE_MEMORY_TRACER
 
 		const size_t new_size = desc.size.x * desc.size.y * 4;
-		PUSH_MEMORY_CATEGORY("GfxTxt");
-		PUSH_DEALLOCATION_SZ(swp.size);
-		PUSH_ALLOCATION_SZ(new_size);
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_DEALLOC(old_swapchain_texture);
+		}
 
-		PUSH_MEMORY_CATEGORY("Gfx");
-		PUSH_DEALLOCATION_SZ(swp.size);
-		PUSH_ALLOCATION_SZ(new_size);
-		swp.size = new_size;
-		POP_MEMORY_CATEGORY();
+		{
+			SFG_MEMTRACE_SCOPE("Gfx");
+			SFG_MEMTRACE_DEALLOC(swp.ptr.Get());
+			SFG_MEMTRACE_ALLOC(swp.ptr.Get(), new_size);
+		}
 
 #endif
-
-		// TracyFreeN(swp.ptr.Get(), "GPU: Total");
-		// TracyFreeN(swp.ptr.Get(), "GPU: Texture");
 
 #if USE_WAITABLE_SWAPCHAIN
 		UINT flags = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
@@ -1655,9 +1655,6 @@ namespace sfg
 
 		throw_if_failed(swp.ptr->ResizeBuffers(BACK_BUFFER_COUNT, static_cast<UINT>(desc.size.x), static_cast<UINT>(desc.size.y), swp_desc.BufferDesc.Format, flags));
 		// swp.image_index = swp.ptr->GetCurrentBackBufferIndex();
-
-		// TracyAllocN(swp.ptr.Get(), desc.size.x * desc.size.y * 4, "GPU: Total");
-		// TracyAllocN(swp.ptr.Get(), desc.size.x * desc.size.y * 4, "GPU: Texture");
 
 		// Re-apply frame latency settings and refresh waitable object after resize
 		{
@@ -1685,14 +1682,34 @@ namespace sfg
 			NAME_DX12_OBJECT_CSTR(swp.textures[i], "Swapchain RTV");
 		}
 
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		{
+			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_ALLOC(swp.textures[0].Get(), new_size);
+		}
+		swp.size = static_cast<u32>(new_size);
+#endif
+
 		return desc.swapchain_t;
 	}
 
-	void dx12_backend_t::destroy_swapchain(gfx_id_t id)
+	void dx12_backend_t::destroy_swapchain(gfx_swapchain_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
 		swapchain_t& swp = _swapchains.get(id);
+
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		{
+			SFG_MEMTRACE_SCOPE("Gfx");
+			SFG_MEMTRACE_DEALLOC(swp.ptr.Get());
+		}
+
+		{
+			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_DEALLOC(swp.textures[0].Get());
+		}
+#endif
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -1702,40 +1719,27 @@ namespace sfg
 			swp.textures[i].Reset();
 		}
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
-		PUSH_MEMORY_CATEGORY("Gfx");
-		PUSH_DEALLOCATION_SZ(swp.size);
-		POP_MEMORY_CATEGORY();
-
-		PUSH_MEMORY_CATEGORY("GfxTxt");
-		PUSH_DEALLOCATION_SZ(swp.size);
-		POP_MEMORY_CATEGORY();
-#endif
-
-		// TracyFreeN(swp.ptr.Get(), "GPU: Texture");
-		// TracyFreeN(swp.ptr.Get(), "GPU: Total");
-
 		swp.ptr.Reset();
 		_swapchains.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_semaphore()
+	gfx_semaphore_handle dx12_backend_t::create_semaphore()
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id  = _semaphores.add();
-		semaphore_t&   sem = _semaphores.get(id);
+		const gfx_semaphore_handle id  = _semaphores.add();
+		semaphore_t&			   sem = _semaphores.get(id);
 		throw_if_failed(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&sem.ptr)));
 		return id;
 	}
 
-	void dx12_backend_t::wait_semaphore(gfx_id_t id, u64 value) const
+	void dx12_backend_t::wait_semaphore(gfx_semaphore_handle id, u64 value) const
 	{
 		const semaphore_t& sem = _semaphores.get(id);
 		wait_for_fence(sem.ptr.Get(), value);
 	}
 
-	void dx12_backend_t::destroy_semaphore(gfx_id_t id)
+	void dx12_backend_t::destroy_semaphore(gfx_semaphore_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2038,10 +2042,10 @@ namespace sfg
 		return true;
 	}
 
-	u32 dx12_backend_t::get_resource_gpu_index(gfx_id_t id, bool use_secondary)
+	u32 dx12_backend_t::get_resource_gpu_index(gfx_resource_handle id, bool use_secondary)
 	{
 		const resource_t& r = _resources.get(id);
-		if (r.descriptor_index == -1)
+		if (r.descriptor_index.is_null())
 			return UINT32_MAX;
 
 		if (use_secondary)
@@ -2050,26 +2054,26 @@ namespace sfg
 		return _descriptors.get(r.descriptor_index).index;
 	}
 
-	u32 dx12_backend_t::get_texture_gpu_index(gfx_id_t id, u8 view_index)
+	u32 dx12_backend_t::get_texture_gpu_index(gfx_texture_handle id, u8 view_index)
 	{
 		const texture_t& t = _textures.get(id);
 		SFG_ASSERT(t.view_count > view_index);
 		return _descriptors.get(t.views[view_index].handle).index;
 	}
 
-	u32 dx12_backend_t::get_sampler_gpu_index(gfx_id_t id)
+	u32 dx12_backend_t::get_sampler_gpu_index(gfx_sampler_handle id)
 	{
 		const sampler_t& s = _samplers.get(id);
 		return _descriptors.get(s.descriptor_index).index;
 	}
 
-	gfx_id_t dx12_backend_t::create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_id_t existing_layout, span_t<u8> layout_data)
+	gfx_shader_handle dx12_backend_t::create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id = _shaders.add();
-		shader_t&	   sh = _shaders.get(id);
-		sh.topology		  = static_cast<u8>(get_topology(desc.topo));
+		const gfx_shader_handle id = _shaders.add();
+		shader_t&				sh = _shaders.get(id);
+		sh.topology				   = static_cast<u8>(get_topology(desc.topo));
 
 		if (layout_data.size != 0)
 		{
@@ -2189,7 +2193,7 @@ namespace sfg
 		return id;
 	}
 
-	void dx12_backend_t::destroy_shader(gfx_id_t id)
+	void dx12_backend_t::destroy_shader(gfx_shader_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2201,15 +2205,15 @@ namespace sfg
 		_shaders.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_empty_bind_group()
+	gfx_bind_group_handle dx12_backend_t::create_empty_bind_group()
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id = _bind_groups.add();
+		const gfx_bind_group_handle id = _bind_groups.add();
 		return id;
 	}
 
-	void dx12_backend_t::bind_group_add_descriptor(gfx_id_t group, u8 root_param_index, u8 type)
+	void dx12_backend_t::bind_group_add_descriptor(gfx_bind_group_handle group, u8 root_param_index, u8 type)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2225,7 +2229,7 @@ namespace sfg
 		SFG_ASSERT(tp != binding_type::pointer && tp != binding_type::sampler_t);
 	}
 
-	void dx12_backend_t::bind_group_add_constant(gfx_id_t group, u8 root_param_index, u8* data, u8 count)
+	void dx12_backend_t::bind_group_add_constant(gfx_bind_group_handle group, u8 root_param_index, u8* data, u8 count)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2239,7 +2243,7 @@ namespace sfg
 		gbinding.constants		  = data;
 	}
 
-	void dx12_backend_t::bind_group_add_pointer(gfx_id_t group, u8 root_param_index, u8 count, bool is_sampler)
+	void dx12_backend_t::bind_group_add_pointer(gfx_bind_group_handle group, u8 root_param_index, u8 count, bool is_sampler)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2264,7 +2268,7 @@ namespace sfg
 		}
 	}
 
-	void dx12_backend_t::bind_group_update_constants(gfx_id_t id, u8 binding_index, u8* constants, u8 count)
+	void dx12_backend_t::bind_group_update_constants(gfx_bind_group_handle id, u8 binding_index, u8* constants, u8 count)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2274,7 +2278,7 @@ namespace sfg
 		binding_t.count			   = count;
 	}
 
-	void dx12_backend_t::bind_group_update_descriptor(gfx_id_t id, u8 binding_index, gfx_id_t res_id)
+	void dx12_backend_t::bind_group_update_descriptor(gfx_bind_group_handle id, u8 binding_index, gfx_resource_handle res_id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2286,7 +2290,7 @@ namespace sfg
 		dh.gpu					 = res.ptr->GetResource()->GetGPUVirtualAddress();
 	}
 
-	void dx12_backend_t::bind_group_update_pointer(gfx_id_t id, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count)
+	void dx12_backend_t::bind_group_update_pointer(gfx_bind_group_handle id, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2305,7 +2309,7 @@ namespace sfg
 			const bind_group_pointer_t& p = updates[i];
 			if (p.type == binding_type::texture_binding)
 			{
-				const texture_t& txt = _textures.get(p.resource_t);
+				const texture_t& txt = _textures.get(p.texture_t);
 				SFG_ASSERT(txt.view_count > p.view);
 				const texture_view_t& view = txt.views[p.view];
 				SFG_ASSERT(view.type == static_cast<u8>(view_type::sampled));
@@ -2316,7 +2320,7 @@ namespace sfg
 			}
 			else if (p.type == binding_type::sampler_t)
 			{
-				const sampler_t&		   smp = _samplers.get(p.resource_t);
+				const sampler_t&		   smp = _samplers.get(p.sampler_t);
 				const descriptor_handle_t& dh  = _descriptors.get(smp.descriptor_index);
 				_reuse_src_descriptors_sampler.push_back({dh.cpu});
 				_reuse_dest_descriptors_sampler.push_back({binding_dh.cpu + p.pointer_index * _heap_gpu_sampler.get_descriptor_size()});
@@ -2344,12 +2348,12 @@ namespace sfg
 			_device->CopyDescriptors(descriptor_count_sampler, _reuse_dest_descriptors_sampler.data(), NULL, descriptor_count_sampler, _reuse_src_descriptors_sampler.data(), NULL, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	}
 
-	void dx12_backend_t::bind_group_update_pointer(gfx_id_t group, u8 binding_index, const vector_t<bind_group_pointer_t>& updates)
+	void dx12_backend_t::bind_group_update_pointer(gfx_bind_group_handle group, u8 binding_index, const vector_t<bind_group_pointer_t>& updates)
 	{
 		bind_group_update_pointer(group, binding_index, updates.data(), static_cast<u16>(updates.size()));
 	}
 
-	void dx12_backend_t::destroy_bind_group(gfx_id_t id)
+	void dx12_backend_t::destroy_bind_group(gfx_bind_group_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2379,14 +2383,14 @@ namespace sfg
 		_bind_groups.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_command_buffer(const command_buffer_desc_t& desc)
+	gfx_command_buffer_handle dx12_backend_t::create_command_buffer(const command_buffer_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t		 id		  = _command_buffers.add();
-		const gfx_id_t		 alloc_id = create_command_allocator(static_cast<u8>(desc.type));
-		command_allocator_t& alloc	  = _command_allocators.get(alloc_id);
-		command_buffer_t&	 cmd	  = _command_buffers.get(id);
+		const gfx_command_buffer_handle	   id		= _command_buffers.add();
+		const gfx_command_allocator_handle alloc_id = create_command_allocator(static_cast<u8>(desc.type));
+		command_allocator_t&			   alloc	= _command_allocators.get(alloc_id);
+		command_buffer_t&				   cmd		= _command_buffers.get(id);
 		throw_if_failed(_device->CreateCommandList(0, get_command_type(desc.type), alloc.ptr.Get(), nullptr, IID_PPV_ARGS(cmd.ptr.GetAddressOf())));
 		cmd.allocator	= alloc_id;
 		cmd.is_transfer = desc.type == command_type::transfer;
@@ -2395,7 +2399,7 @@ namespace sfg
 		return id;
 	}
 
-	void dx12_backend_t::destroy_command_buffer(gfx_id_t id)
+	void dx12_backend_t::destroy_command_buffer(gfx_command_buffer_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2405,17 +2409,17 @@ namespace sfg
 		_command_buffers.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_command_allocator(u8 type)
+	gfx_command_allocator_handle dx12_backend_t::create_command_allocator(u8 type)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t		 id	   = _command_allocators.add();
-		command_allocator_t& alloc = _command_allocators.get(id);
+		const gfx_command_allocator_handle id	 = _command_allocators.add();
+		command_allocator_t&			   alloc = _command_allocators.get(id);
 		throw_if_failed(_device->CreateCommandAllocator(get_command_type(static_cast<command_type>(type)), IID_PPV_ARGS(alloc.ptr.GetAddressOf())));
 		return id;
 	}
 
-	void dx12_backend_t::destroy_command_allocator(gfx_id_t id)
+	void dx12_backend_t::destroy_command_allocator(gfx_command_allocator_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2424,12 +2428,12 @@ namespace sfg
 		_command_allocators.remove(id);
 	}
 
-	gfx_id_t dx12_backend_t::create_queue(const queue_desc_t& desc)
+	gfx_queue_handle dx12_backend_t::create_queue(const queue_desc_t& desc)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id = _queues.add();
-		queue_t&	   q  = _queues.get(id);
+		const gfx_queue_handle id = _queues.add();
+		queue_t&			   q  = _queues.get(id);
 
 		const D3D12_COMMAND_QUEUE_DESC queue_desc_t = {
 			.Type  = get_command_type(desc.type),
@@ -2440,21 +2444,21 @@ namespace sfg
 		return id;
 	}
 
-	gfx_id_t dx12_backend_t::create_empty_bind_layout()
+	gfx_bind_layout_handle dx12_backend_t::create_empty_bind_layout()
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
-		const gfx_id_t id = _bind_layouts.add();
+		const gfx_bind_layout_handle id = _bind_layouts.add();
 		_reuse_root_params.resize(0);
 		_reuse_static_samplers.resize(0);
 		_reuse_root_ranges.resize(0);
 		return id;
 	}
 
-	gfx_id_t dx12_backend_t::create_draw_indirect_signature(gfx_id_t bind_layout_id, size_t struct_size)
+	gfx_indirect_signature_handle dx12_backend_t::create_draw_indirect_signature(gfx_bind_layout_handle bind_layout_id, size_t struct_size)
 	{
-		const gfx_id_t		  id = _indirect_signatures.add();
-		indirect_signature_t& s	 = _indirect_signatures.get(id);
+		const gfx_indirect_signature_handle id = _indirect_signatures.add();
+		indirect_signature_t&				s  = _indirect_signatures.get(id);
 
 		D3D12_INDIRECT_ARGUMENT_DESC argumentDesc = {};
 		argumentDesc.Type						  = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
@@ -2466,7 +2470,7 @@ namespace sfg
 
 		ID3D12RootSignature* root = NULL;
 
-		if (bind_layout_id != NULL_GFX_ID)
+		if (!bind_layout_id.is_null())
 		{
 			bind_layout_t& bl = _bind_layouts.get(bind_layout_id);
 			root			  = bl.root_signature.Get();
@@ -2483,10 +2487,10 @@ namespace sfg
 		return id;
 	}
 
-	gfx_id_t dx12_backend_t::create_dispatch_indirect_signature(gfx_id_t bind_layout_id, size_t struct_size)
+	gfx_indirect_signature_handle dx12_backend_t::create_dispatch_indirect_signature(gfx_bind_layout_handle bind_layout_id, size_t struct_size)
 	{
-		const gfx_id_t		  id = _indirect_signatures.add();
-		indirect_signature_t& s	 = _indirect_signatures.get(id);
+		const gfx_indirect_signature_handle id = _indirect_signatures.add();
+		indirect_signature_t&				s  = _indirect_signatures.get(id);
 
 		D3D12_INDIRECT_ARGUMENT_DESC argumentDesc = {};
 		argumentDesc.Type						  = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
@@ -2498,7 +2502,7 @@ namespace sfg
 
 		ID3D12RootSignature* root = NULL;
 
-		if (bind_layout_id != NULL_GFX_ID)
+		if (!bind_layout_id.is_null())
 		{
 			bind_layout_t& bl = _bind_layouts.get(bind_layout_id);
 			root			  = bl.root_signature.Get();
@@ -2515,14 +2519,14 @@ namespace sfg
 		return id;
 	}
 
-	void dx12_backend_t::destroy_indirect_signature(gfx_id_t sig)
+	void dx12_backend_t::destroy_indirect_signature(gfx_indirect_signature_handle sig)
 	{
 		indirect_signature_t& s = _indirect_signatures.get(sig);
 		s.signature.Reset();
 		_indirect_signatures.remove(sig);
 	}
 
-	void dx12_backend_t::bind_layout_add_constant(gfx_id_t layout, u32 count, u32 set, u32 binding_t, u8 vis)
+	void dx12_backend_t::bind_layout_add_constant(gfx_bind_layout_handle layout, u32 count, u32 set, u32 binding_t, u8 vis)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2532,7 +2536,7 @@ namespace sfg
 		param.InitAsConstants(count, binding_t, set, visibility);
 	}
 
-	void dx12_backend_t::bind_layout_add_descriptor(gfx_id_t layout, u8 type, u32 set, u32 binding_t, u8 vis)
+	void dx12_backend_t::bind_layout_add_descriptor(gfx_bind_layout_handle layout, u8 type, u32 set, u32 binding_t, u8 vis)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2552,7 +2556,7 @@ namespace sfg
 			SFG_ASSERT(false);
 	}
 
-	void dx12_backend_t::bind_layout_add_pointer(gfx_id_t layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 vis)
+	void dx12_backend_t::bind_layout_add_pointer(gfx_bind_layout_handle layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 vis)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2594,7 +2598,7 @@ namespace sfg
 		param.InitAsDescriptorTable(size_now - start, &_reuse_root_ranges[start], visibility);
 	}
 
-	void dx12_backend_t::bind_layout_add_immutable_sampler(gfx_id_t layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 vis)
+	void dx12_backend_t::bind_layout_add_immutable_sampler(gfx_bind_layout_handle layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 vis)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2616,7 +2620,7 @@ namespace sfg
 		});
 	}
 
-	void dx12_backend_t::finalize_bind_layout(gfx_id_t id, bool is_compute, bool is_dyn_indexed, const char* name)
+	void dx12_backend_t::finalize_bind_layout(gfx_bind_layout_handle id, bool is_compute, bool is_dyn_indexed, const char* name)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2655,7 +2659,7 @@ namespace sfg
 		_reuse_root_ranges.resize(0);
 	}
 
-	void dx12_backend_t::destroy_bind_layout(gfx_id_t id)
+	void dx12_backend_t::destroy_bind_layout(gfx_bind_layout_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2664,7 +2668,7 @@ namespace sfg
 		_bind_layouts.remove(id);
 	}
 
-	void dx12_backend_t::destroy_queue(gfx_id_t id)
+	void dx12_backend_t::destroy_queue(gfx_queue_handle id)
 	{
 		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
 
@@ -2700,7 +2704,7 @@ namespace sfg
 		}
 	}
 
-	void dx12_backend_t::cmd_begin_render_pass(gfx_id_t cmd_id, const command_begin_render_pass_t& cmd)
+	void dx12_backend_t::cmd_begin_render_pass(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_t& cmd)
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2732,7 +2736,7 @@ namespace sfg
 		cmd_list->BeginRenderPass(cmd.color_attachment_count, color_attachments.data(), NULL, D3D12_RENDER_PASS_FLAG_NONE);
 	}
 
-	void dx12_backend_t::cmd_begin_render_pass_depth(gfx_id_t cmd_id, const command_begin_render_pass_depth_t& cmd)
+	void dx12_backend_t::cmd_begin_render_pass_depth(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_depth_t& cmd)
 	{
 		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
@@ -2775,7 +2779,7 @@ namespace sfg
 		cmd_list->BeginRenderPass(cmd.color_attachment_count, color_attachments.data(), &depth_stencil_desc, D3D12_RENDER_PASS_FLAG_NONE);
 	}
 
-	void dx12_backend_t::cmd_begin_render_pass_depth_read_only(gfx_id_t cmd_id, const command_begin_render_pass_depth_t& cmd)
+	void dx12_backend_t::cmd_begin_render_pass_depth_read_only(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_depth_t& cmd)
 	{
 		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
@@ -2815,7 +2819,7 @@ namespace sfg
 		cmd_list->BeginRenderPass(cmd.color_attachment_count, color_attachments.data(), &depth_stencil_desc, D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH);
 	}
 
-	void dx12_backend_t::cmd_begin_render_pass_depth_only(gfx_id_t cmd_id, const command_begin_render_pass_depth_only_t& cmd)
+	void dx12_backend_t::cmd_begin_render_pass_depth_only(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_depth_only_t& cmd)
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2834,7 +2838,7 @@ namespace sfg
 		cmd_list->BeginRenderPass(0, NULL, &depth_stencil_desc, D3D12_RENDER_PASS_FLAG_NONE);
 	}
 
-	void dx12_backend_t::cmd_begin_render_pass_swapchain(gfx_id_t cmd_id, const command_begin_render_pass_swapchain_t& cmd)
+	void dx12_backend_t::cmd_begin_render_pass_swapchain(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_swapchain_t& cmd)
 	{
 		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
@@ -2844,9 +2848,9 @@ namespace sfg
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
-			const render_pass_color_attachment_t& att = cmd.color_attachments[i];
-			const swapchain_t&					  swp = _swapchains.get(att.texture_t);
-			const descriptor_handle_t&			  dh  = _descriptors.get(swp.rtv_indices[swp.image_index]);
+			const render_pass_swapchain_attachment_t& att = cmd.color_attachments[i];
+			const swapchain_t&						  swp = _swapchains.get(att.swapchain_t);
+			const descriptor_handle_t&				  dh  = _descriptors.get(swp.rtv_indices[swp.image_index]);
 
 			CD3DX12_CLEAR_VALUE cv;
 			cv.Format	= static_cast<DXGI_FORMAT>(swp.format);
@@ -2863,7 +2867,7 @@ namespace sfg
 		cmd_list->BeginRenderPass(cmd.color_attachment_count, color_attachments.data(), NULL, D3D12_RENDER_PASS_FLAG_NONE);
 	}
 
-	void dx12_backend_t::cmd_begin_render_pass_swapchain_depth(gfx_id_t cmd_id, const command_begin_render_pass_swapchain_depth_t& cmd)
+	void dx12_backend_t::cmd_begin_render_pass_swapchain_depth(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_swapchain_depth_t& cmd)
 	{
 		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
@@ -2873,9 +2877,9 @@ namespace sfg
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
-			const render_pass_color_attachment_t& att = cmd.color_attachments[i];
-			const swapchain_t&					  swp = _swapchains.get(att.texture_t);
-			const descriptor_handle_t&			  dh  = _descriptors.get(swp.rtv_indices[swp.image_index]);
+			const render_pass_swapchain_attachment_t& att = cmd.color_attachments[i];
+			const swapchain_t&						  swp = _swapchains.get(att.swapchain_t);
+			const descriptor_handle_t&				  dh  = _descriptors.get(swp.rtv_indices[swp.image_index]);
 
 			CD3DX12_CLEAR_VALUE cv;
 			cv.Format	= static_cast<DXGI_FORMAT>(swp.format);
@@ -2903,14 +2907,14 @@ namespace sfg
 		cmd_list->BeginRenderPass(cmd.color_attachment_count, color_attachments.data(), &depth_stencil_desc, D3D12_RENDER_PASS_FLAG_NONE);
 	}
 
-	void dx12_backend_t::cmd_end_render_pass(gfx_id_t cmd_id, const command_end_render_pass_t& cmd) const
+	void dx12_backend_t::cmd_end_render_pass(gfx_command_buffer_handle cmd_id, const command_end_render_pass_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		cmd_list->EndRenderPass();
 	}
 
-	void dx12_backend_t::cmd_set_scissors(gfx_id_t cmd_id, const command_set_scissors_t& cmd) const
+	void dx12_backend_t::cmd_set_scissors(gfx_command_buffer_handle cmd_id, const command_set_scissors_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2922,7 +2926,7 @@ namespace sfg
 		cmd_list->RSSetScissorRects(1, &sc);
 	}
 
-	void dx12_backend_t::cmd_set_viewport(gfx_id_t cmd_id, const command_set_viewport_t& cmd) const
+	void dx12_backend_t::cmd_set_viewport(gfx_command_buffer_handle cmd_id, const command_set_viewport_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2936,7 +2940,7 @@ namespace sfg
 		cmd_list->RSSetViewports(1, &vp);
 	}
 
-	void dx12_backend_t::cmd_bind_pipeline(gfx_id_t cmd_id, const command_bind_pipeline_t& cmd) const
+	void dx12_backend_t::cmd_bind_pipeline(gfx_command_buffer_handle cmd_id, const command_bind_pipeline_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2946,7 +2950,7 @@ namespace sfg
 		cmd_list->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(sh.topology));
 	}
 
-	void dx12_backend_t::cmd_bind_pipeline_compute(gfx_id_t cmd_id, const command_bind_pipeline_compute_t& cmd) const
+	void dx12_backend_t::cmd_bind_pipeline_compute(gfx_command_buffer_handle cmd_id, const command_bind_pipeline_compute_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2954,21 +2958,21 @@ namespace sfg
 		cmd_list->SetPipelineState(sh.ptr.Get());
 	}
 
-	void dx12_backend_t::cmd_draw_instanced(gfx_id_t cmd_id, const command_draw_instanced_t& cmd) const
+	void dx12_backend_t::cmd_draw_instanced(gfx_command_buffer_handle cmd_id, const command_draw_instanced_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		cmd_list->DrawInstanced(cmd.vertex_count_per_instance, cmd.instance_count, cmd.start_vertex_location, cmd.start_instance_location);
 	}
 
-	void dx12_backend_t::cmd_draw_indexed_instanced(gfx_id_t cmd_id, const command_draw_indexed_instanced_t& cmd) const
+	void dx12_backend_t::cmd_draw_indexed_instanced(gfx_command_buffer_handle cmd_id, const command_draw_indexed_instanced_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		cmd_list->DrawIndexedInstanced(cmd.index_count_per_instance, cmd.instance_count, cmd.start_index_location, cmd.base_vertex_location, cmd.start_instance_location);
 	}
 
-	void dx12_backend_t::cmd_execute_indirect(gfx_id_t cmd_id, const command_draw_indirect_t& cmd) const
+	void dx12_backend_t::cmd_execute_indirect(gfx_command_buffer_handle cmd_id, const command_draw_indirect_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -2976,7 +2980,7 @@ namespace sfg
 		cmd_list->ExecuteIndirect(_indirect_signatures.get(cmd.indirect_signature_t).signature.Get(), cmd.count, _resources.get(cmd.indirect_buffer).ptr->GetResource(), cmd.indirect_buffer_offset, NULL, 0);
 	}
 
-	void dx12_backend_t::cmd_bind_vertex_buffers(gfx_id_t cmd_id, const command_bind_vertex_buffers_t& cmd) const
+	void dx12_backend_t::cmd_bind_vertex_buffers(gfx_command_buffer_handle cmd_id, const command_bind_vertex_buffers_t& cmd) const
 	{
 		const command_buffer_t&		   buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4*	   cmd_list = buffer_t.ptr.Get();
@@ -2990,7 +2994,7 @@ namespace sfg
 		cmd_list->IASetVertexBuffers(cmd.slot, 1, &view);
 	}
 
-	void dx12_backend_t::cmd_bind_index_buffers(gfx_id_t cmd_id, const command_bind_index_buffers_t& cmd) const
+	void dx12_backend_t::cmd_bind_index_buffers(gfx_command_buffer_handle cmd_id, const command_bind_index_buffers_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3005,7 +3009,7 @@ namespace sfg
 		cmd_list->IASetIndexBuffer(&view);
 	}
 
-	void dx12_backend_t::cmd_copy_resource(gfx_id_t cmd_id, const command_copy_resource_t& cmd) const
+	void dx12_backend_t::cmd_copy_resource(gfx_command_buffer_handle cmd_id, const command_copy_resource_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3014,7 +3018,7 @@ namespace sfg
 		cmd_list->CopyResource(dest_res.ptr->GetResource(), src_res.ptr->GetResource());
 	}
 
-	void dx12_backend_t::cmd_copy_resource_region(gfx_id_t cmd_id, const command_copy_resource_region_t& cmd) const
+	void dx12_backend_t::cmd_copy_resource_region(gfx_command_buffer_handle cmd_id, const command_copy_resource_region_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3063,7 +3067,7 @@ namespace sfg
 		return buffer_t;
 	}
 
-	void dx12_backend_t::cmd_begin_event(gfx_id_t cmd_id, const char* label)
+	void dx12_backend_t::cmd_begin_event(gfx_command_buffer_handle cmd_id, const char* label)
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3072,7 +3076,7 @@ namespace sfg
 #endif
 	}
 
-	void dx12_backend_t::cmd_end_event(gfx_id_t cmd_id)
+	void dx12_backend_t::cmd_end_event(gfx_command_buffer_handle cmd_id)
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3081,7 +3085,7 @@ namespace sfg
 #endif
 	}
 
-	void dx12_backend_t::cmd_copy_buffer_to_texture(gfx_id_t cmd_id, const command_copy_buffer_to_texture_t& cmd)
+	void dx12_backend_t::cmd_copy_buffer_to_texture(gfx_command_buffer_handle cmd_id, const command_copy_buffer_to_texture_t& cmd)
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3108,7 +3112,7 @@ namespace sfg
 		UpdateSubresources(cmd_list, txt.ptr->GetResource(), res.ptr->GetResource(), 0, cmd.mip_levels * cmd.destination_slice, cmd.mip_levels, subresource_data.data());
 	}
 
-	void dx12_backend_t::cmd_copy_texture_to_buffer(gfx_id_t cmd_id, const command_copy_texture_to_buffer_t& cmd) const
+	void dx12_backend_t::cmd_copy_texture_to_buffer(gfx_command_buffer_handle cmd_id, const command_copy_texture_to_buffer_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t  = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list  = buffer_t.ptr.Get();
@@ -3142,7 +3146,7 @@ namespace sfg
 		cmd_list->CopyTextureRegion(&dest_location, 0, 0, 0, &src_location, NULL);
 	}
 
-	void dx12_backend_t::cmd_copy_texture_to_texture(gfx_id_t cmd_id, const command_copy_texture_to_texture_t& cmd) const
+	void dx12_backend_t::cmd_copy_texture_to_texture(gfx_command_buffer_handle cmd_id, const command_copy_texture_to_texture_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3164,21 +3168,21 @@ namespace sfg
 		cmd_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
 	}
 
-	void dx12_backend_t::cmd_bind_constants(gfx_id_t cmd_id, const command_bind_constants_t& cmd) const
+	void dx12_backend_t::cmd_bind_constants(gfx_command_buffer_handle cmd_id, const command_bind_constants_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		cmd_list->SetGraphicsRoot32BitConstants(static_cast<u32>(cmd.param_index), static_cast<u32>(cmd.count), cmd.data, cmd.offset);
 	}
 
-	void dx12_backend_t::cmd_bind_constants_compute(gfx_id_t cmd_id, const command_bind_constants_t& cmd) const
+	void dx12_backend_t::cmd_bind_constants_compute(gfx_command_buffer_handle cmd_id, const command_bind_constants_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		cmd_list->SetComputeRoot32BitConstants(static_cast<u32>(cmd.param_index), static_cast<u32>(cmd.count), cmd.data, cmd.offset);
 	}
 
-	void dx12_backend_t::cmd_bind_layout(gfx_id_t cmd_id, const command_bind_layout_t& cmd) const
+	void dx12_backend_t::cmd_bind_layout(gfx_command_buffer_handle cmd_id, const command_bind_layout_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3186,7 +3190,7 @@ namespace sfg
 		cmd_list->SetGraphicsRootSignature(layout.root_signature.Get());
 	}
 
-	void dx12_backend_t::cmd_bind_layout_compute(gfx_id_t cmd_id, const command_bind_layout_compute_t& cmd) const
+	void dx12_backend_t::cmd_bind_layout_compute(gfx_command_buffer_handle cmd_id, const command_bind_layout_compute_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3194,7 +3198,7 @@ namespace sfg
 		cmd_list->SetComputeRootSignature(layout.root_signature.Get());
 	}
 
-	void dx12_backend_t::cmd_bind_group(gfx_id_t cmd_id, const command_bind_group_t& cmd) const
+	void dx12_backend_t::cmd_bind_group(gfx_command_buffer_handle cmd_id, const command_bind_group_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3220,7 +3224,7 @@ namespace sfg
 		}
 	}
 
-	void dx12_backend_t::cmd_bind_group_compute(gfx_id_t cmd_id, const command_bind_group_t& cmd) const
+	void dx12_backend_t::cmd_bind_group_compute(gfx_command_buffer_handle cmd_id, const command_bind_group_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3246,14 +3250,14 @@ namespace sfg
 		}
 	}
 
-	void dx12_backend_t::cmd_dispatch(gfx_id_t cmd_id, const command_dispatch_t& cmd) const
+	void dx12_backend_t::cmd_dispatch(gfx_command_buffer_handle cmd_id, const command_dispatch_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		cmd_list->Dispatch(cmd.group_size_x, cmd.group_size_y, cmd.group_size_z);
 	}
 
-	void dx12_backend_t::cmd_barrier(gfx_id_t cmd_id, const command_barrier_t& cmd)
+	void dx12_backend_t::cmd_barrier(gfx_command_buffer_handle cmd_id, const command_barrier_t& cmd)
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
@@ -3272,12 +3276,12 @@ namespace sfg
 			}
 			else if (barrier_t.flags.is_set(barrier_flags::baf_is_swapchain))
 			{
-				swapchain_t& swp = _swapchains.get(barrier_t.resource_t);
+				swapchain_t& swp = _swapchains.get(barrier_t.swapchain_t);
 				res				 = swp.textures[swp.image_index].Get();
 			}
 			else
 			{
-				texture_t& txt = _textures.get(barrier_t.resource_t);
+				texture_t& txt = _textures.get(barrier_t.texture_t);
 				res			   = txt.ptr->GetResource();
 			}
 

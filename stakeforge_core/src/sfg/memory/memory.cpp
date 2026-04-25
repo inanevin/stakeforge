@@ -27,8 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.hpp"
 #include "memory_tracer.hpp"
 
-#include <tracy/Tracy.hpp>
-
 void* operator new(std::size_t size)
 {
 	void* ptr = malloc(size);
@@ -36,8 +34,6 @@ void* operator new(std::size_t size)
 #ifdef SFG_ENABLE_MEMORY_TRACER
 	sfg::memory_tracer_t::get().on_allocation(ptr, size);
 #endif
-
-	TracyAlloc(ptr, size);
 	return ptr;
 }
 
@@ -48,8 +44,6 @@ void* operator new[](size_t size)
 	sfg::memory_tracer_t::get().on_allocation(ptr, size);
 #endif
 
-	TracyAlloc(ptr, size);
-
 	return ptr;
 }
 
@@ -58,8 +52,6 @@ void operator delete[](void* ptr)
 #ifdef SFG_ENABLE_MEMORY_TRACER
 	sfg::memory_tracer_t::get().on_free(ptr);
 #endif
-
-	TracyFree(ptr);
 
 	free(ptr);
 }
@@ -70,8 +62,6 @@ void operator delete(void* ptr)
 	sfg::memory_tracer_t::get().on_free(ptr);
 #endif
 
-	TracyFree(ptr);
-
 	free(ptr);
 }
 
@@ -81,8 +71,6 @@ void operator delete(void* ptr, size_t sz)
 	sfg::memory_tracer_t::get().on_free(ptr);
 #endif
 
-	TracyFree(ptr);
-
 	free(ptr);
 }
 void operator delete[](void* ptr, std::size_t sz)
@@ -90,8 +78,6 @@ void operator delete[](void* ptr, std::size_t sz)
 #ifdef SFG_ENABLE_MEMORY_TRACER
 	sfg::memory_tracer_t::get().on_free(ptr);
 #endif
-
-	TracyFree(ptr);
 
 	free(ptr);
 }
@@ -102,8 +88,6 @@ void operator delete(void* ptr, const std::nothrow_t& tag)
 	sfg::memory_tracer_t::get().on_free(ptr);
 #endif
 
-	TracyFree(ptr);
-
 	free(ptr);
 }
 
@@ -112,8 +96,6 @@ void operator delete[](void* ptr, const std::nothrow_t& tag)
 #ifdef SFG_ENABLE_MEMORY_TRACER
 	sfg::memory_tracer_t::get().on_free(ptr);
 #endif
-
-	TracyFree(ptr);
 
 	free(ptr);
 }

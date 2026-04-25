@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/assert.hpp"
 #include "io/log.hpp"
 #include "input/input_mappings.hpp"
-#include "engine/engine_window.hpp"
 #include "platform/common_window.hpp"
 
 #define WIN32_LEAN_AND_MEAN
@@ -199,10 +198,10 @@ namespace
 					   });
 			return 0;
 		case WM_CLOSE:
-			runtime->close_requested = true;
+			runtime->set_flag(sfg::window_runtime_flags_t::close_requested);
 			return 0;
 		case WM_KILLFOCUS:
-			runtime->has_focus = false;
+			runtime->set_flag(sfg::window_runtime_flags_t::has_focus, false);
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(0, 0),
@@ -210,7 +209,7 @@ namespace
 					   });
 			return 0;
 		case WM_SETFOCUS:
-			runtime->has_focus = true;
+			runtime->set_flag(sfg::window_runtime_flags_t::has_focus);
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(1, 0),
@@ -233,8 +232,12 @@ namespace
 				static_cast<u16>(LOWORD(l_param)),
 				static_cast<u16>(HIWORD(l_param)),
 			};
+			const bool minimized		 = w_param == SIZE_MINIMIZED;
+			const bool minimized_changed = runtime->has_flag(sfg::window_runtime_flags_t::minimized) != minimized;
 
-			if (runtime->size.x == size.x && runtime->size.y == size.y)
+			runtime->set_flag(sfg::window_runtime_flags_t::minimized, minimized);
+
+			if (runtime->size.x == size.x && runtime->size.y == size.y && !minimized_changed)
 				return 0;
 
 			runtime->size	   = size;
@@ -247,7 +250,7 @@ namespace
 			return 0;
 		}
 		case WM_INPUT: {
-			if (!runtime->high_frequency_input)
+			if (!runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
 				return 0;
 
 			UINT raw_size					  = sizeof(RAWINPUT);
@@ -371,7 +374,7 @@ namespace
 			return 0;
 		}
 		case WM_KEYDOWN: {
-			if (runtime->high_frequency_input)
+			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
 				return 0;
 
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
@@ -395,7 +398,7 @@ namespace
 			return 0;
 		}
 		case WM_KEYUP: {
-			if (runtime->high_frequency_input)
+			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
 				return 0;
 
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
@@ -418,7 +421,7 @@ namespace
 			return 0;
 		}
 		case WM_MOUSEMOVE: {
-			if (runtime->high_frequency_input)
+			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
 				return 0;
 
 			const sfg::vec2i16_t previous = runtime->mouse_position;
@@ -433,7 +436,7 @@ namespace
 			return 0;
 		}
 		case WM_MOUSEWHEEL:
-			if (runtime->high_frequency_input)
+			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
 				return 0;
 
 			push_event(*runtime,
@@ -450,7 +453,7 @@ namespace
 		case WM_RBUTTONUP:
 		case WM_MBUTTONDOWN:
 		case WM_MBUTTONUP: {
-			if (runtime->high_frequency_input)
+			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
 				return 0;
 
 			u16 button = static_cast<u16>(sfg::input_code::mouse_0);

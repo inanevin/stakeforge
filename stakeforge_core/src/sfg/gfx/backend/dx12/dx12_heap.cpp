@@ -32,8 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dx12_common.hpp"
 #include "io/log.hpp"
 #include "io/assert.hpp"
-
-#include <tracy/Tracy.hpp>
+#include "memory/memory_tracer.hpp"
 
 namespace sfg
 {
@@ -60,7 +59,10 @@ namespace sfg
 			SFG_ERR("Exception when creating a descriptor heap! {0}", e.what());
 		}
 
-		TracyAllocN(_heap, num_descriptors * descriptor_size, "GPU: Total");
+		{
+			SFG_MEMTRACE_SCOPE("GPU");
+			SFG_MEMTRACE_ALLOC(_heap, num_descriptors * descriptor_size);
+		}
 
 		_heap->SetName(L"Descriptor Heap");
 		_cpu_start = static_cast<u64>(_heap->GetCPUDescriptorHandleForHeapStart().ptr);
@@ -70,7 +72,11 @@ namespace sfg
 
 	void dx12_heap_t::uninit()
 	{
-		TracyFreeN(_heap, "GPU: Total");
+		{
+			SFG_MEMTRACE_SCOPE("GPU");
+			SFG_MEMTRACE_DEALLOC(_heap);
+		}
+
 		_heap->Release();
 		_heap = NULL;
 	}

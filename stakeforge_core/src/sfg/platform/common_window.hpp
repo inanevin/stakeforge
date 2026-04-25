@@ -102,6 +102,15 @@ namespace sfg
 		bitmask_t<u8>			flags	 = 0;
 	};
 
+	enum class window_runtime_flags_t : u8
+	{
+		has_focus			 = 1 << 0,
+		close_requested		 = 1 << 1,
+		high_frequency_input = 1 << 2,
+		minimized			 = 1 << 3,
+		external_resize		 = 1 << 4,
+	};
+
 	struct window_runtime_t
 	{
 		monitor_info_t		  monitor_info			   = {};
@@ -114,11 +123,24 @@ namespace sfg
 		vec2u16_t			  true_size				   = vec2u16_t::zero;
 		vec2i16_t			  mouse_position_abs	   = vec2i16_t::zero;
 		vec2i16_t			  mouse_position		   = vec2i16_t::zero;
-		gfx_id_t			  swapchain				   = NULL_GFX_ID;
+		gfx_swapchain_handle  swapchain				   = {};
 		window_style_t		  style					   = window_style_t::app_window;
-		bool				  has_focus				   = false;
-		bool				  close_requested		   = false;
-		bool				  high_frequency_input	   = false;
+		bitmask_t<u8>		  flags					   = 0;
+
+		inline bool has_flag(window_runtime_flags_t flag) const
+		{
+			return flags.is_set(static_cast<u8>(flag));
+		}
+
+		inline void set_flag(window_runtime_flags_t flag, bool is_set = true)
+		{
+			flags.set(static_cast<u8>(flag), is_set);
+		}
+
+		inline void remove_flag(window_runtime_flags_t flag)
+		{
+			flags.remove(static_cast<u8>(flag));
+		}
 	};
 
 }

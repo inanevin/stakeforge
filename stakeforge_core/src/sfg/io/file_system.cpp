@@ -110,6 +110,11 @@ namespace sfg
 			return std::filesystem::exists(path);
 		}
 
+		bool is_absolute_path(const char* path)
+		{
+			return std::filesystem::path(path).is_absolute();
+		}
+
 		string_t get_last_modified_date(const char* path)
 		{
 			std::filesystem::file_time_type ftime  = std::filesystem::last_write_time(path);
@@ -277,6 +282,20 @@ namespace sfg
 			string_util::replace_all(str, "\\", "/");
 		}
 
+		string_t get_absolute_path(const char* path)
+		{
+			try
+			{
+				string_t absolute_path = std::filesystem::absolute(path).lexically_normal().string();
+				fix_path(absolute_path);
+				return absolute_path;
+			}
+			catch (const std::exception&)
+			{
+				return "";
+			}
+		}
+
 		namespace
 		{
 			void SFGCopyFile(const std::filesystem::path& source, const std::filesystem::path& destination)
@@ -367,7 +386,9 @@ namespace sfg
 			std::filesystem::path src_path(src);
 			std::filesystem::path dst_path(target);
 			std::filesystem::path relative_path = std::filesystem::relative(dst_path, src_path);
-			return relative_path.string();
+			string_t			  result		= relative_path.string();
+			fix_path(result);
+			return result;
 		}
 
 		void perform_move(const char* target_file, const char* target_dir)
@@ -503,6 +524,26 @@ namespace sfg
 			catch (const std::filesystem::filesystem_error& e)
 			{
 				SFG_ERR("Filesystem error : {0} { 1 }", file, targetParentFolder);
+			}
+		}
+
+		void get_files_recursive(const char* directory, vector_t<string_t>& out_files)
+		{
+			try
+			{
+				for (const auto& entry_t : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
+				{
+					if (!entry_t.is_regular_file())
+						continue;
+
+					string_t path = entry_t.path().lexically_normal().string();
+					fix_path(path);
+					out_files.push_back(std::move(path));
+				}
+			}
+			catch (const std::exception& ex)
+			{
+				SFG_ERR("Error while reading directory recursively {0} {1}", directory, ex.what());
 			}
 		}
 	}

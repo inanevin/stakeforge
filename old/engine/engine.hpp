@@ -31,7 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine_window.hpp"
 #include "surface.hpp"
 #include "renderer.hpp"
+#include "virtual_fs.hpp"
 #include "data/atomic.hpp"
+#include "memory/pool_allocator_gen.hpp"
 #include "memory/dynamic_pool_allocator_gen.hpp"
 
 #include <thread>
@@ -47,8 +49,8 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
+		engine_error_code init(const engine_config_t& config, const virtual_fs_config_t& file_system_config);
 		engine_error_code init();
-		engine_error_code init(const engine_config_t& config);
 		void			  uninit();
 
 		// -----------------------------------------------------------------------------
@@ -56,8 +58,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void tick();
-		void start_render();
-		void end_render();
 
 		// -----------------------------------------------------------------------------
 		// window
@@ -90,26 +90,40 @@ namespace sfg
 			return _renderer;
 		}
 
+		inline virtual_fs_t& get_vfs()
+		{
+			return _vfs;
+		}
+
+		inline const virtual_fs_t& get_vfs() const
+		{
+			return _vfs;
+		}
+
 	private:
-		void		render();
-		void		create_surface_render_target(surface_t& surface);
+		void ensure_render_thread();
+		void end_render();
+		void render();
+
+		void		create_surface_render_target(surface_t& surface, const vec2u16_t& size);
 		void		destroy_surface_render_target(surface_t& surface);
 		static void on_window_event(void* handle, const window_event_t& ev, void* user_data);
 
 	private:
-		dynamic_pool_allocator_gen_t<engine_window_t, engine_id_t, engine_window_pool_tag> _windows;
-		dynamic_pool_allocator_gen_t<surface_t, engine_id_t, surface_tag>				   _surfaces;
-		std::thread																		   _render_thread;
-		renderer_t																		   _renderer;
-		atomic_t<bool>																	   _is_init				 = false;
-		atomic_t<bool>																	   _render_thread_active = false;
-		i64																				   _previous_time		 = 0;
-		i64																				   _accumulator_ns		 = 0;
-		i64																				   _start_time			 = 0;
-		i64																				   _fps_main_time		 = 0;
-		i64																				   _fps_render_time		 = 0;
-		u32																				   _fps_main_frames		 = 0;
-		u32																				   _fps_render_frames	 = 0;
+		pool_allocator_gen_t<engine_window_t, engine_id_t, renderer_t::MAX_SWAPCHAINS, engine_window_pool_tag> _windows;
+		dynamic_pool_allocator_gen_t<surface_t, engine_id_t, surface_tag>									   _surfaces;
+		std::thread																							   _render_thread;
+		renderer_t																							   _renderer;
+		virtual_fs_t																						   _vfs;
+		atomic_t<bool>																						   _is_init				 = false;
+		atomic_t<bool>																						   _render_thread_active = false;
+		i64																									   _previous_time		 = 0;
+		i64																									   _accumulator_ns		 = 0;
+		i64																									   _start_time			 = 0;
+		i64																									   _fps_main_time		 = 0;
+		i64																									   _fps_render_time		 = 0;
+		u32																									   _fps_main_frames		 = 0;
+		u32																									   _fps_render_frames	 = 0;
 	};
 
 }

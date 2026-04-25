@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math/matrix4x3.hpp"
 #include "game/game_max_defines.hpp"
 #include "resources/common_resources.hpp"
-#include "memory/pool_allocator.hpp"
+#include "memory/pool_allocator_gen.hpp"
 #include "memory/static_array.hpp"
 
 namespace SFG
@@ -62,9 +62,9 @@ namespace SFG
 		void free_batch(u16 b);
 
 	private:
-		pool_allocator<u16, u16, MAX_WORLD_BONE_BATCHES>* _bone_batches		 = nullptr;
-		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>* _local_matrices	 = nullptr;
-		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>* _inv_bind_matrices = nullptr;
-		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>* _abs_matrices		 = nullptr;
+		sfg::pool_allocator_gen_t<u16, u16, MAX_WORLD_BONE_BATCHES>* _bone_batches		= nullptr;
+		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>*			 _local_matrices	= nullptr;
+		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>*			 _inv_bind_matrices = nullptr;
+		static_array<bone_batch, MAX_WORLD_BONE_BATCHES>*			 _abs_matrices		= nullptr;
 	};
 }

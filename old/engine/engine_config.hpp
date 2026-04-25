@@ -26,36 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common_engine.hpp"
-#include "math/vec2u16.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "gfx/common/format.hpp"
-#include "memory/pool_handle.hpp"
+#include "common/size_definitions.hpp"
 
 namespace sfg
 {
-	struct surface_tag
+	struct engine_config_t
 	{
+		double fixed_framerate_ns		 = 16'666'667.0;
+		u32	   fixed_framerate_max_ticks = 4;
+		size_t frame_allocator_size		 = 1024 * 1024 * 4;
 	};
 
-	using surface_handle_t = pool_handle_t<engine_id_t, surface_tag>;
-
-	struct surface_descriptor_t
-	{
-		vec2u16_t size	 = vec2u16_t::zero;
-		format_t  format = format_t::r8g8b8a8_srgb;
-	};
-
-	struct surface_runtime_t
-	{
-		gfx_id_t  id	 = NULL_GFX_ID;
-		vec2u16_t size	 = vec2u16_t::zero;
-		format_t  format = format_t::undefined;
-	};
-
-	struct surface_t
-	{
-		surface_descriptor_t descriptor = {};
-		surface_runtime_t	 runtime	= {};
-	};
+	extern engine_config_t g_engine_config;
 }

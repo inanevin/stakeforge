@@ -33,7 +33,7 @@ namespace sfg
 {
 	struct semaphore_data_t
 	{
-		gfx_id_t semaphore_t = 0;
-		u64	   value	   = 0;
+		gfx_semaphore_handle semaphore_t = {};
+		u64					 value		 = 0;
 	};
 }

@@ -26,19 +26,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
+#include "common_engine.hpp"
+#include "math/vec2u16.hpp"
+#include "gfx/common/gfx_constants.hpp"
+#include "gfx/common/format.hpp"
 
 namespace sfg
 {
-	typedef u32 engine_id_t;
-#define NULL_ENGINE_ID 0xffff
 
-	enum class engine_error_code : u8
+	struct surface_descriptor_t
 	{
-		none,
-		renderer_failed,
-		renderer_already_init,
-		backend_failed,
+		vec2u16_t		size		  = vec2u16_t::zero;
+		window_handle_t attach_window = {};
+		format_t		format		  = format_t::r8g8b8a8_srgb;
 	};
 
+	struct surface_runtime_t
+	{
+		gfx_texture_handle rt	  = {};
+		vec2u16_t		   size	  = vec2u16_t::zero;
+		format_t		   format = format_t::undefined;
+	};
+
+	struct surface_t
+	{
+		surface_descriptor_t descriptor = {};
+		surface_runtime_t	 runtime	= {};
+	};
 }

@@ -56,15 +56,15 @@ namespace sfg
 
 	void buffer_t::destroy()
 	{
-		SFG_ASSERT(_hw_gpu != NULL_GFX_ID && _hw_staging != NULL_GFX_ID);
+		SFG_ASSERT(!_hw_gpu.is_null() && !_hw_staging.is_null());
 		gfx_backend* backend = gfx_backend::get();
 		backend->destroy_resource(_hw_staging);
 		backend->destroy_resource(_hw_gpu);
 		_mapped			 = nullptr;
 		_index			 = UINT32_MAX;
 		_index_secondary = UINT32_MAX;
-		_hw_staging		 = NULL_GFX_ID;
-		_hw_gpu			 = NULL_GFX_ID;
+		_hw_staging		 = {};
+		_hw_gpu			 = {};
 	}
 
 	void buffer_t::buffer_data(size_t padding, const void* data, size_t size)
@@ -75,7 +75,7 @@ namespace sfg
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_t::copy(gfx_id_t cmd_buffer)
+	void buffer_t::copy(gfx_command_buffer_handle cmd_buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->cmd_copy_resource(cmd_buffer,
@@ -85,7 +85,7 @@ namespace sfg
 								   });
 	}
 
-	void buffer_t::copy_region(gfx_id_t cmd_buffer, size_t padding, size_t size)
+	void buffer_t::copy_region(gfx_command_buffer_handle cmd_buffer, size_t padding, size_t size)
 	{
 		SFG_ASSERT(size != 0);
 
@@ -117,10 +117,10 @@ namespace sfg
 
 	void buffer_gpu_t::destroy()
 	{
-		SFG_ASSERT(_hw != NULL_GFX_ID);
+		SFG_ASSERT(!_hw.is_null());
 		gfx_backend* backend = gfx_backend::get();
 		backend->destroy_resource(_hw);
-		_hw		= NULL_GFX_ID;
+		_hw		= {};
 		_index	= NULL_GPU_INDEX;
 		_mapped = nullptr;
 	}
@@ -150,13 +150,14 @@ namespace sfg
 
 	void buffer_cpu_gpu_t::destroy()
 	{
-		SFG_ASSERT(_hw_staging != NULL_GFX_ID);
-		SFG_ASSERT(_hw_gpu != NULL_GFX_ID);
+		SFG_ASSERT(!_hw_staging.is_null());
+		SFG_ASSERT(!_hw_gpu.is_null());
 		gfx_backend* backend = gfx_backend::get();
 		backend->destroy_resource(_hw_staging);
 		backend->destroy_resource(_hw_gpu);
-		_hw_staging = _hw_gpu = NULL_GFX_ID;
-		_mapped				  = nullptr;
+		_hw_staging = {};
+		_hw_gpu		= {};
+		_mapped		= nullptr;
 	}
 
 	void buffer_cpu_gpu_t::buffer_data(size_t padding, const void* data, size_t size)
@@ -167,7 +168,7 @@ namespace sfg
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_cpu_gpu_t::copy(gfx_id_t cmd_buffer)
+	void buffer_cpu_gpu_t::copy(gfx_command_buffer_handle cmd_buffer)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->cmd_copy_resource(cmd_buffer,
@@ -177,7 +178,7 @@ namespace sfg
 								   });
 	}
 
-	void buffer_cpu_gpu_t::copy_region(gfx_id_t cmd_buffer, size_t padding, size_t size)
+	void buffer_cpu_gpu_t::copy_region(gfx_command_buffer_handle cmd_buffer, size_t padding, size_t size)
 	{
 		gfx_backend* backend = gfx_backend::get();
 

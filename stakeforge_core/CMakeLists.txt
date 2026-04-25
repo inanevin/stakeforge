@@ -54,7 +54,6 @@ endif()
 file(GLOB SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/audio/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/engine/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/math/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.cpp
@@ -76,10 +75,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/physics/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/widgets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/components/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/animation/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/particles/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.cpp
@@ -89,7 +84,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.c
 file(GLOB HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/audio/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/engine/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/math/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.hpp
@@ -112,10 +106,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/physics/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/animation/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/particles/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/components/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/stb/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/moodycamel/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/nhlohmann/*.hpp

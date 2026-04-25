@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/file_system.hpp"
 #include "io/log.hpp"
 #include "platform/process.hpp"
+#include <tracy/Tracy.hpp>
 #include <fstream>
 #include <sstream>
 #include <Windows.h>
@@ -49,6 +50,9 @@ namespace sfg
 
 	namespace
 	{
+		thread_local vector_malloc<u8> s_category_stack;
+		thread_local u8				   s_active_category_id = 0;
+
 		void print(u32 n)
 		{
 			const size_t bufferSize = 256;
@@ -63,73 +67,110 @@ namespace sfg
 			}
 		}
 	}
+
+	vector_malloc<u8>& memory_tracer_t::category_stack()
+	{
+		return s_category_stack;
+	}
+
+	u8& memory_tracer_t::active_category_id()
+	{
+		return s_active_category_id;
+	}
+
+	memory_category_t* memory_tracer_t::find_category(u8 id)
+	{
+		if (id == 0)
+			return nullptr;
+
+		for (memory_category_t& category : _categories)
+		{
+			if (category.id == id)
+				return &category;
+		}
+
+		return nullptr;
+	}
+
+	const memory_category_t* memory_tracer_t::find_category(u8 id) const
+	{
+		if (id == 0)
+			return nullptr;
+
+		for (const memory_category_t& category : _categories)
+		{
+			if (category.id == id)
+				return &category;
+		}
+
+		return nullptr;
+	}
+
 	void memory_tracer_t::on_allocation(void* ptr, size_t sz)
 	{
+		if (ptr == nullptr)
+			return;
+
 		LOCK_GUARD(_category_mtx);
 
 		memory_track_t& track = _allocations[ptr];
 		track.ptr			  = ptr;
 		track.size			  = sz;
+		track.category_id	  = active_category_id();
 		capture_trace(track);
 
-		if (_categories.empty() || _current_active_category == 0)
-			return;
-
-		memory_category_t& cat = _categories[_current_active_category - 1];
-		cat.total_size += track.size;
-
-		capture_trace(track);
-	}
-
-	void memory_tracer_t::on_allocation(size_t sz)
-	{
-		LOCK_GUARD(_category_mtx);
-
-		if (_categories.empty() || _current_active_category == 0)
-			return;
-
-		memory_category_t& cat = _categories[_current_active_category - 1];
-		cat.total_size += sz;
+		memory_category_t* cat = find_category(track.category_id);
+		if (cat != nullptr)
+		{
+			cat->total_size += track.size;
+			TracyAllocN(ptr, sz, cat->name);
+		}
+		else
+		{
+			TracyAlloc(ptr, sz);
+		}
 	}
 
 	void memory_tracer_t::on_free(void* ptr)
 	{
+		if (ptr == nullptr)
+			return;
+
 		LOCK_GUARD(_category_mtx);
 
 		auto it = _allocations.find(ptr);
-		if (it != _allocations.end())
+		if (it == _allocations.end())
 		{
-			_allocations.erase(it);
-
-			if (!_categories.empty() && _current_active_category != 0)
-			{
-				memory_category_t& cat = _categories[_current_active_category - 1];
-				cat.total_size -= it->second.size;
-				SFG_ASSERT(cat.total_size >= 0);
-			}
+			TracyFree(ptr);
 			return;
 		}
-	}
 
-	void memory_tracer_t::on_free(size_t sz)
-	{
-		if (!_categories.empty() && _current_active_category != 0)
+		const memory_track_t track = it->second;
+		if (memory_category_t* cat = find_category(track.category_id))
 		{
-			memory_category_t& cat = _categories[_current_active_category - 1];
-			cat.total_size -= sz;
-			SFG_ASSERT(cat.total_size >= 0);
+			SFG_ASSERT(cat->total_size >= track.size);
+			cat->total_size -= track.size;
+			TracyFreeN(ptr, cat->name);
 		}
+		else
+		{
+			TracyFree(ptr);
+		}
+
+		_allocations.erase(it);
 	}
 
 	void memory_tracer_t::push_category(const char* name)
 	{
 		LOCK_GUARD(_category_mtx);
 
+		vector_malloc<u8>& stack = category_stack();
+
 		auto it = std::find_if(_categories.begin(), _categories.end(), [&](const memory_category_t& saved) -> bool { return strcmp(saved.name, name) == 0; });
 		if (it != _categories.end())
 		{
-			_current_active_category = it->id;
-			_category_ids.push_back(_current_active_category);
+			active_category_id() = it->id;
+			stack.push_back(active_category_id());
 			return;
 		}
 
@@ -140,27 +181,25 @@ namespace sfg
 		if (cat.name)
 			SFG_MEMCPY((void*)cat.name, (void*)name, sz);
 		cat.id = ++s_category_counter;
-		_category_ids.push_back(s_category_counter);
-		_current_active_category = s_category_counter;
+		stack.push_back(cat.id);
+		active_category_id() = cat.id;
 		_categories.push_back(cat);
 	}
 
 	void memory_tracer_t::pop_category()
 	{
-		LOCK_GUARD(_category_mtx);
+		vector_malloc<u8>& stack = category_stack();
+		SFG_ASSERT(!stack.empty());
 
-		if (_category_ids.size() > 1)
+		stack.pop_back();
+
+		if (!stack.empty())
 		{
-			// pop current active one.
-			_category_ids.pop_back();
-			const u8 id = _category_ids.back();
-			_category_ids.pop_back();
-			_current_active_category = id;
+			active_category_id() = stack.back();
+			return;
 		}
-		else
-		{
-			_current_active_category = 1;
-		}
+
+		active_category_id() = 0;
 	}
 
 	void memory_tracer_t::capture_trace(memory_track_t& track)

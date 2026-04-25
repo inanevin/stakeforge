@@ -31,22 +31,37 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "platform/process.hpp"
 #include "platform/time.hpp"
 #include "world/world.hpp"
+#include "memory/frame_allocator.hpp"
+#include "memory/memory_tracer.hpp"
 
 #include <functional>
 
 namespace sfg
 {
-	constexpr engine_id_t INITIAL_WINDOWS  = 32;
 	constexpr engine_id_t INITIAL_SURFACES = 32;
 #define THIS_THREAD_ID static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))
 
-	engine_error_code engine_t::init()
+	engine_error_code engine_t::init(const engine_config_t& config, const virtual_fs_config_t& file_system_config)
 	{
+		g_engine_config = config;
+
+		SFG_MEMTRACE_CATEGORY("RAM");
+
+		if (!_vfs.init(file_system_config))
+		{
+			SFG_MEMTRACE_CATEGORY_POP();
+			return engine_error_code::virtual_fs_failed;
+		}
+
 		const double fixed_framerate_ns = g_engine_config.fixed_framerate_ns;
 
 		const u8 renderer_result = _renderer.init();
 		if (renderer_result != static_cast<u8>(engine_error_code::none))
+		{
+			_vfs.uninit();
+			SFG_MEMTRACE_CATEGORY_POP();
 			return static_cast<engine_error_code>(renderer_result);
+		}
 
 		time_t::init();
 
@@ -62,17 +77,11 @@ namespace sfg
 		g_engine_stats.reset();
 		g_engine_stats.main_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
 
-		_windows.reserve(INITIAL_WINDOWS);
 		_surfaces.reserve(INITIAL_SURFACES);
 
 		SFG_INFO("engine initialized correctly.");
+		frame_allocator_tls_t::init(g_engine_config.frame_allocator_size);
 		return engine_error_code::none;
-	}
-
-	engine_error_code engine_t::init(const engine_config_t& config)
-	{
-		g_engine_config = config;
-		return init();
 	}
 
 	void engine_t::uninit()
@@ -95,6 +104,12 @@ namespace sfg
 			++it;
 
 			engine_window_t& window = _windows.get(handle);
+			if (!window.runtime.swapchain.is_null())
+			{
+				_renderer.destroy_swapchain(window.runtime.swapchain);
+				window.runtime.swapchain = {};
+			}
+
 			if (window.runtime.window_handle != nullptr)
 				process::destroy_window(window.runtime.window_handle);
 
@@ -111,13 +126,15 @@ namespace sfg
 		_fps_render_frames = 0;
 		_is_init		   = false;
 		g_engine_stats.reset();
+		frame_allocator_tls_t::uninit();
+		_vfs.uninit();
+		SFG_MEMTRACE_CATEGORY_POP();
 	}
 
 	void engine_t::tick()
 	{
+		frame_allocator_tls_t::reset();
 		process::pump_os_messages();
-
-		const bool was_render_active = _render_thread_active;
 
 		// -----------------------------------------------------------------------------
 		// windows
@@ -131,8 +148,16 @@ namespace sfg
 			engine_window_t&  window  = _windows.get(handle);
 			window_runtime_t& runtime = window.runtime;
 
-			if (runtime.close_requested)
+			if (runtime.has_flag(window_runtime_flags_t::close_requested))
 			{
+				end_render();
+
+				if (!runtime.swapchain.is_null())
+				{
+					_renderer.destroy_swapchain(runtime.swapchain);
+					runtime.swapchain = {};
+				}
+
 				if (runtime.window_handle != nullptr)
 					process::destroy_window(runtime.window_handle);
 
@@ -141,18 +166,25 @@ namespace sfg
 			}
 
 			window_descriptor_t& descriptor = window.descriptor;
-			runtime.high_frequency_input	= descriptor.high_frequency_input;
+			runtime.set_flag(window_runtime_flags_t::high_frequency_input, descriptor.high_frequency_input);
 
 			if (descriptor.pos != runtime.pos)
 				process::set_window_position(runtime.window_handle, descriptor.pos);
 
-			if (descriptor.size != runtime.size)
-			{
-				if (_render_thread_active)
-					end_render();
+			const bool		external_resize = runtime.has_flag(window_runtime_flags_t::external_resize);
+			const vec2u16_t resize_size		= external_resize ? runtime.size : descriptor.size;
 
-				process::set_window_size(runtime.window_handle, descriptor.size, descriptor.style);
-				_renderer.resize_swapchain(runtime.swapchain, runtime.size);
+			if (external_resize || descriptor.size != runtime.size)
+			{
+				end_render();
+
+				if (external_resize)
+					descriptor.size = runtime.size;
+				else
+					process::set_window_size(runtime.window_handle, descriptor.size, descriptor.style);
+
+				runtime.remove_flag(window_runtime_flags_t::external_resize);
+				_renderer.resize_swapchain(runtime.swapchain, runtime.has_flag(window_runtime_flags_t::minimized) ? vec2u16_t::zero : resize_size);
 			}
 
 			if (descriptor.style != runtime.style)
@@ -169,18 +201,29 @@ namespace sfg
 		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 		{
 			surface_t& surface = _surfaces.get(*it);
+
+			// surface belongs to window, follows same size.
+			if (is_window_valid(surface.descriptor.attach_window))
+			{
+				const engine_window_t& window = _windows.get(surface.descriptor.attach_window);
+				if (surface.runtime.size != window.runtime.size)
+				{
+					end_render();
+					destroy_surface_render_target(surface);
+					create_surface_render_target(surface, window.runtime.size);
+				}
+				continue;
+			}
+
 			if (surface.descriptor.size == surface.runtime.size && surface.descriptor.format == surface.runtime.format)
 				continue;
 
-			if (_render_thread_active)
-				end_render();
-
+			end_render();
 			destroy_surface_render_target(surface);
-			create_surface_render_target(surface);
+			create_surface_render_target(surface, surface.descriptor.size);
 		}
 
-		if (!_render_thread_active && was_render_active)
-			start_render();
+		ensure_render_thread();
 
 		// -----------------------------------------------------------------------------
 		// timing
@@ -224,7 +267,7 @@ namespace sfg
 		}
 	}
 
-	void engine_t::start_render()
+	void engine_t::ensure_render_thread()
 	{
 		if (_render_thread_active)
 			return;
@@ -235,10 +278,14 @@ namespace sfg
 
 	void engine_t::render()
 	{
+		frame_allocator_tls_t::init(g_engine_config.frame_allocator_size);
+
 		g_engine_stats.render_thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
 
 		while (_render_thread_active)
 		{
+			frame_allocator_tls_t::reset();
+
 			const i64 render_start = time_t::get_cpu_microseconds();
 			_renderer.render();
 			const i64 render_end				 = time_t::get_cpu_microseconds();
@@ -254,6 +301,8 @@ namespace sfg
 				_fps_render_frames		  = 0;
 			}
 		}
+
+		frame_allocator_tls_t::uninit();
 	}
 
 	void engine_t::end_render()
@@ -265,6 +314,7 @@ namespace sfg
 
 		if (_render_thread.joinable())
 			_render_thread.join();
+		_renderer.join();
 
 		g_engine_stats.render_thread_id = 0;
 	}
@@ -279,7 +329,7 @@ namespace sfg
 		window.runtime							= {};
 		window.runtime.event_callback			= &engine_t::on_window_event;
 		window.runtime.event_callback_user_data = this;
-		window.runtime.high_frequency_input		= descriptor.high_frequency_input;
+		window.runtime.set_flag(window_runtime_flags_t::high_frequency_input, descriptor.high_frequency_input);
 
 		for (auto it = _windows.begin_handle(); it != _windows.end_handle(); ++it)
 		{
@@ -295,7 +345,14 @@ namespace sfg
 			return {};
 		}
 
+		const bool was_render_active = _render_thread_active;
+		if (_render_thread_active)
+			end_render();
+
 		window.runtime.swapchain = _renderer.create_swapchain(window.runtime.size, format_t::b8g8r8a8_srgb, window.runtime.window_handle, window.runtime.platform_handle);
+
+		if (!_render_thread_active && was_render_active)
+			ensure_render_thread();
 
 		return handle;
 	}
@@ -304,12 +361,21 @@ namespace sfg
 	{
 		SFG_ASSERT(THIS_THREAD_ID == g_engine_stats.main_thread_id);
 
-		engine_window_t& window = _windows.get(handle);
+		engine_window_t& window			   = _windows.get(handle);
+		const bool		 was_render_active = _render_thread_active;
+		if (_render_thread_active)
+			end_render();
+
+		_renderer.destroy_swapchain(window.runtime.swapchain);
+		window.runtime.swapchain = {};
+
 		if (window.runtime.window_handle != nullptr)
 			process::destroy_window(window.runtime.window_handle);
-		_renderer.destroy_swapchain(window.runtime.swapchain);
 
 		_windows.remove(handle);
+
+		if (!_render_thread_active && was_render_active)
+			ensure_render_thread();
 	}
 
 	bool engine_t::is_window_valid(window_handle_t handle) const
@@ -340,7 +406,7 @@ namespace sfg
 		surface_t&			   surface = _surfaces.get(handle);
 		surface.descriptor			   = descriptor;
 		surface.runtime				   = {};
-		create_surface_render_target(surface);
+		create_surface_render_target(surface, descriptor.size);
 
 		return handle;
 	}
@@ -373,25 +439,26 @@ namespace sfg
 		return _surfaces.get(handle).runtime;
 	}
 
-	void engine_t::create_surface_render_target(surface_t& surface)
+	void engine_t::create_surface_render_target(surface_t& surface, const vec2u16_t& size)
 	{
 		SFG_ASSERT(surface.descriptor.size.x != 0 && surface.descriptor.size.y != 0);
 		SFG_ASSERT(surface.descriptor.format != format_t::undefined);
-		surface.runtime.id	   = _renderer.create_render_target(surface.descriptor.size, surface.descriptor.format);
-		surface.runtime.size   = surface.descriptor.size;
+		surface.runtime.rt	   = _renderer.create_render_target(size, surface.descriptor.format);
+		surface.runtime.size   = size;
 		surface.runtime.format = surface.descriptor.format;
 	}
 
 	void engine_t::destroy_surface_render_target(surface_t& surface)
 	{
-		SFG_ASSERT(surface.runtime.id != NULL_GFX_ID);
-		_renderer.destroy_render_target(surface.runtime.id);
+		SFG_ASSERT(!surface.runtime.rt.is_null());
+		_renderer.destroy_render_target(surface.runtime.rt);
 		surface.runtime = {};
 	}
 
 	void engine_t::on_window_event(void* handle, const window_event_t& ev, void* user_data)
 	{
 		engine_t* self = static_cast<engine_t*>(user_data);
+
 		for (auto it = self->_windows.begin_handle(); it != self->_windows.end_handle(); ++it)
 		{
 			const window_handle_t window_handle = *it;
@@ -401,12 +468,8 @@ namespace sfg
 
 			if (ev.type == window_event_type_t::resize)
 			{
-				window.descriptor.size = window.runtime.size;
-
-				if (self->_render_thread_active)
-					self->end_render();
-
-				self->_renderer.resize_swapchain(window.runtime.swapchain, window.descriptor.size);
+				window.runtime.size = vec2u16_t(ev.value.x, ev.value.y);
+				window.runtime.set_flag(window_runtime_flags_t::external_resize);
 			}
 			else if (ev.type == window_event_type_t::repos)
 			{

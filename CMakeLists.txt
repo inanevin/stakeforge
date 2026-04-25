@@ -54,6 +54,7 @@ endif()
 # ------------- TARGETS -------------
 
 add_subdirectory(stakeforge_core)
+add_subdirectory(stakeforge_runtime)
 add_subdirectory(stakeforge_editor)
 add_subdirectory(stakeforge_game)
 add_subdirectory(stakeforge_tests)

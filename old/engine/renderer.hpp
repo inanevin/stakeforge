@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx/common/gfx_constants.hpp"
 #include "gfx/common/format.hpp"
 #include "gfx/common/semaphore_data.hpp"
+#include "data/static_vector.hpp"
+#include "math/vec2u16.hpp"
 
 namespace sfg
 {
@@ -41,12 +43,15 @@ namespace sfg
 		};
 
 	public:
+		static constexpr int MAX_SWAPCHAINS = 16;
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
 		u8	 init();
 		void shutdown();
+		void join();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -54,12 +59,12 @@ namespace sfg
 
 		void render();
 
-		gfx_id_t create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle);
-		void	 destroy_swapchain(gfx_id_t id);
-		void	 resize_swapchain(gfx_id_t id, const vec2u16_t& size);
+		gfx_swapchain_handle create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle);
+		void				 destroy_swapchain(gfx_swapchain_handle id);
+		void				 resize_swapchain(gfx_swapchain_handle id, const vec2u16_t& size);
 
-		gfx_id_t create_render_target(const vec2u16_t& size, format_t format);
-		void	 destroy_render_target(gfx_id_t id);
+		gfx_texture_handle create_render_target(const vec2u16_t& size, format_t format);
+		void			   destroy_render_target(gfx_texture_handle id);
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -69,12 +74,12 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline gfx_id_t get_global_bind_layout() const
+		inline gfx_bind_layout_handle get_global_bind_layout() const
 		{
 			return _global_bind_layout;
 		}
 
-		inline gfx_id_t get_global_compute_bind_layout() const
+		inline gfx_bind_layout_handle get_global_compute_bind_layout() const
 		{
 			return _global_compute_bind_layout;
 		}
@@ -85,10 +90,19 @@ namespace sfg
 		}
 
 	private:
-		per_frame_data_t _pfd[BACK_BUFFER_COUNT];
-		gfx_id_t		 _global_bind_layout		 = NULL_GFX_ID;
-		gfx_id_t		 _global_compute_bind_layout = NULL_GFX_ID;
-		u64				 _frame_counter				 = 0;
-		u8				 _frame_index				 = 0;
+		struct renderer_swapchain_t
+		{
+			gfx_swapchain_handle id			 = {};
+			vec2u16_t			 size		 = vec2u16_t::zero;
+			format_t			 format		 = format_t::undefined;
+			bool				 presentable = false;
+		};
+
+		per_frame_data_t									  _pfd[BACK_BUFFER_COUNT];
+		static_vector_t<renderer_swapchain_t, MAX_SWAPCHAINS> _swapchains;
+		gfx_bind_layout_handle								  _global_bind_layout		  = {};
+		gfx_bind_layout_handle								  _global_compute_bind_layout = {};
+		u64													  _frame_counter			  = 0;
+		u8													  _frame_index				  = 0;
 	};
 }

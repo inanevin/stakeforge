@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx/common/descriptions.hpp"
 #include "gfx/util/gfx_util.hpp"
 #include "common_engine.hpp"
+#include "memory/frame_allocator.hpp"
 
 namespace sfg
 {
@@ -77,11 +78,11 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd = _pfd[i];
-			if (pfd.semaphore_frame.semaphore_t == NULL_GFX_ID)
+			if (pfd.semaphore_frame.semaphore_t.is_null())
 				continue;
 
 			backend->destroy_semaphore(pfd.semaphore_frame.semaphore_t);
-			pfd.semaphore_frame.semaphore_t = NULL_GFX_ID;
+			pfd.semaphore_frame.semaphore_t = {};
 			pfd.semaphore_frame.value		= 0;
 		}
 
@@ -92,28 +93,40 @@ namespace sfg
 		delete gfx_backend::s_instance;
 		gfx_backend::s_instance = nullptr;
 
-		_global_bind_layout			= NULL_GFX_ID;
-		_global_compute_bind_layout = NULL_GFX_ID;
+		_global_bind_layout			= {};
+		_global_compute_bind_layout = {};
 		_frame_counter				= 0;
 		_frame_index				= 0;
+		_swapchains.clear();
+	}
+
+	void renderer_t::join()
+	{
+		gfx_backend* backend = gfx_backend::get();
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
+		{
+			per_frame_data_t& pfd = _pfd[i];
+			backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+		}
 	}
 
 	void renderer_t::render()
 	{
-		gfx_backend*				  backend	 = gfx_backend::get();
-		const gfx_id_t				  queue_gfx	 = backend->get_queue_gfx();
-		static_vector_t<gfx_id_t, 16> swapchains = {};
+		gfx_backend*															backend	   = gfx_backend::get();
+		const gfx_queue_handle													queue_gfx  = backend->get_queue_gfx();
+		vector_t<gfx_swapchain_handle, frame_allocator_t<gfx_swapchain_handle>> swapchains = {};
 
 		_frame_index = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 
-		// for (const surface_t& sf : _surfaces)
-		// {
-		// 	if (sf.wnd != nullptr || !sf.flags.is_set(surface_flags_should_render))
-		// 		continue;
-		//
-		// 	backend->wait_for_swapchain_latency(sf.gpu);
-		// 	swapchains.push_back(sf.gpu);
-		// }
+		for (const renderer_swapchain_t& swp : _swapchains)
+		{
+			if (!swp.presentable)
+				continue;
+
+			backend->wait_for_swapchain_latency(swp.id);
+			swapchains.push_back(swp.id);
+		}
 
 		per_frame_data_t& pfd = _pfd[_frame_index];
 		backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
@@ -127,11 +140,13 @@ namespace sfg
 		_frame_counter++;
 	}
 
-	gfx_id_t renderer_t::create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle)
+	gfx_swapchain_handle renderer_t::create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle)
 	{
+		SFG_ASSERT(size.x != 0 && size.y != 0);
+
 		gfx_backend* backend = gfx_backend::get();
 
-		const gfx_id_t id = backend->create_swapchain({
+		const gfx_swapchain_handle id = backend->create_swapchain({
 			.window_t  = window_handle,
 			.os_handle = platform_handle,
 			.scaling   = 1.0f,
@@ -141,17 +156,65 @@ namespace sfg
 			.flags	   = swapchain_flags::sf_vsync_every_v_blank,
 		});
 
+		_swapchains.push_back({
+			.id			 = id,
+			.size		 = size,
+			.format		 = format,
+			.presentable = true,
+		});
+
 		return id;
 	}
 
-	void renderer_t::destroy_swapchain(gfx_id_t id)
+	void renderer_t::destroy_swapchain(gfx_swapchain_handle id)
 	{
+		renderer_swapchain_t* swp = nullptr;
+		u32					  idx = 0;
+		for (renderer_swapchain_t& current : _swapchains)
+		{
+			if (current.id == id)
+			{
+				swp = &current;
+				break;
+			}
+
+			idx++;
+		}
+
+		SFG_ASSERT(swp != nullptr);
+
 		gfx_backend* backend = gfx_backend::get();
 		backend->destroy_swapchain(id);
+		_swapchains.remove_index_swap(idx);
 	}
 
-	void renderer_t::resize_swapchain(gfx_id_t id, const vec2u16_t& size)
+	void renderer_t::resize_swapchain(gfx_swapchain_handle id, const vec2u16_t& size)
 	{
+		renderer_swapchain_t* swp = nullptr;
+		for (renderer_swapchain_t& current : _swapchains)
+		{
+			if (current.id == id)
+			{
+				swp = &current;
+				break;
+			}
+		}
+
+		SFG_ASSERT(swp != nullptr);
+
+		if (size.x == 0 || size.y == 0)
+		{
+			swp->presentable = false;
+			swp->size		 = vec2u16_t::zero;
+			return;
+		}
+
+		if (size == swp->size)
+		{
+			swp->presentable = true;
+			return;
+		}
+
 		gfx_backend* backend = gfx_backend::get();
 
 		backend->recreate_swapchain({
@@ -160,9 +223,12 @@ namespace sfg
 			.scaling	 = 1.0f,
 			.flags		 = swapchain_flags::sf_vsync_every_v_blank,
 		});
+
+		swp->size		 = size;
+		swp->presentable = true;
 	}
 
-	gfx_id_t renderer_t::create_render_target(const vec2u16_t& size, format_t format)
+	gfx_texture_handle renderer_t::create_render_target(const vec2u16_t& size, format_t format)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
@@ -176,7 +242,7 @@ namespace sfg
 		});
 	}
 
-	void renderer_t::destroy_render_target(gfx_id_t id)
+	void renderer_t::destroy_render_target(gfx_texture_handle id)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->destroy_texture(id);
