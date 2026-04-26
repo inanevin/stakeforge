@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "engine/engine_config.hpp"
+#include "runtime/engine/engine_config.hpp"
 #include "gfx/common/gfx_constants.hpp"
 #include "gfx/common/semaphore_data.hpp"
 

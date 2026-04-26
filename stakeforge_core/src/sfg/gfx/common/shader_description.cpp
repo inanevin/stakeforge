@@ -29,14 +29,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/ostream.hpp"
 #include "data/istream.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json.hpp"
 using json = nlohmann::json;
-#endif
 
 namespace sfg
 {
-#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const vertex_input_t& s)
 	{
 		j["name"]	  = s.name;
@@ -44,7 +41,7 @@ namespace sfg
 		j["index"]	  = s.index;
 		j["offset"]	  = s.offset;
 		j["size"]	  = s.size;
-		j["format_t"]	  = s.format_t;
+		j["format"]	  = s.format;
 	}
 
 	void from_json(const nlohmann::json& j, vertex_input_t& s)
@@ -54,7 +51,7 @@ namespace sfg
 		s.index	   = j.value<u8>("index", 0);
 		s.offset   = j.value<u8>("offset", 0);
 		s.size	   = j.value<u32>("size", 0);
-		s.format_t   = j.value<format_t>("format_t", format_t::undefined);
+		s.format   = j.value<format_t>("format", format_t::undefined);
 	}
 
 	void to_json(nlohmann::json& j, const shader_desc_t& s)
@@ -630,13 +627,13 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const shader_color_attachment_t& att)
 	{
-		j["format_t"]			  = att.format_t;
+		j["format"]			  = att.format;
 		j["blend_attachment"] = att.blend_attachment;
 	}
 
 	void from_json(const nlohmann::json& j, shader_color_attachment_t& att)
 	{
-		att.format_t			 = j.value<format_t>("format_t", format_t::undefined);
+		att.format			 = j.value<format_t>("format", format_t::undefined);
 		att.blend_attachment = j.value<color_blend_attachment_t>("blend_attachment", {});
 	}
 
@@ -681,7 +678,6 @@ namespace sfg
 		att.flags.set(depth_stencil_flags::dsf_depth_write, depth_write);
 		att.flags.set(depth_stencil_flags::dsf_depth_test, depth_test);
 	}
-#endif
 
 	void shader_desc_t::serialize(ostream_t& stream) const
 	{

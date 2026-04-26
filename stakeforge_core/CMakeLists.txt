@@ -72,11 +72,16 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/world/render_pass/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/event_stream/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/proxy/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/physics/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/widgets/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.c
 )
@@ -103,6 +108,10 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/widgets/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/project/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/physics/*.hpp
@@ -115,6 +124,8 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.inl
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api_common.hpp
 )
 
 if(WIN32)

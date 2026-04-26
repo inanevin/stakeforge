@@ -30,9 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #undef min
 #undef max
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 namespace sfg
 {
@@ -156,11 +154,7 @@ namespace sfg
 		return vector_t * scalar;
 	}
 
-#ifdef SFG_JSON_SERIALIZE
-
 	void to_json(nlohmann::json& j, const vec4f_t& v);
 	void from_json(const nlohmann::json& j, vec4f_t& v);
-
-#endif
 
 }

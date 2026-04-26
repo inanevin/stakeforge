@@ -2,8 +2,8 @@
 #pragma once
 
 #include "common/size_definitions.hpp"
-#include "engine/common_engine.hpp"
-#include "engine/engine_config.hpp"
+#include "runtime/engine/common_engine.hpp"
+#include "runtime/engine/engine_config.hpp"
 
 typedef enum sfg_api_result_t
 {

@@ -29,10 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/istream.hpp"
 #include "data/ostream.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include <vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
-#endif
 
 namespace sfg
 {
@@ -109,8 +107,6 @@ namespace sfg
 		return vec4f_t(x, y, z, w);
 	}
 
-#ifdef SFG_JSON_SERIALIZE
-
 	void to_json(nlohmann::json& j, const color_t& c)
 	{
 		j = nlohmann::json::array_t({c.x, c.y, c.z, c.w});
@@ -125,6 +121,5 @@ namespace sfg
 		c.z = j.at(2).get<f32>();
 		c.w = j.at(3).get<f32>();
 	}
-#endif
 
 } // namespace sfg

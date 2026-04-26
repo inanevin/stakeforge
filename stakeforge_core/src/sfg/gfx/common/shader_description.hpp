@@ -30,12 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/vector.hpp"
 #include "data/span.hpp"
 #include "data/string.hpp"
-#include "format.hpp"
 #include "gfx/common/gfx_constants.hpp"
-
-#ifdef SFG_JSON_SERIALIZE
-#include "vendor/nhlohmann/json_fwd.hpp"
-#endif
+#include "gfx/common/format.hpp"
 
 namespace sfg
 {
@@ -177,7 +173,7 @@ namespace sfg
 		u8		 index	  = 0;
 		size_t	 offset	  = 0;
 		size_t	 size	  = 0;
-		format_t	 format	  = format_t::undefined;
+		format_t format	  = format_t::undefined;
 	};
 
 	struct shader_blob_t
@@ -210,7 +206,7 @@ namespace sfg
 
 	struct shader_color_attachment_t
 	{
-		format_t					 format			  = format_t::b8g8r8a8_srgb;
+		format_t				 format			  = format_t::b8g8r8a8_srgb;
 		color_blend_attachment_t blend_attachment = {};
 	};
 
@@ -231,7 +227,7 @@ namespace sfg
 
 	struct shader_depth_stencil_desc_t
 	{
-		format_t			attachment_format	 = format_t::d32_sfloat;
+		format_t		attachment_format	 = format_t::d32_sfloat;
 		compare_op		depth_compare		 = compare_op::lequal;
 		stencil_state_t back_stencil_state	 = {};
 		stencil_state_t front_stencil_state	 = {};
@@ -287,8 +283,6 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-#ifdef SFG_JSON_SERIALIZE
-
 	void to_json(nlohmann::json& j, const vertex_input_t& s);
 	void from_json(const nlohmann::json& j, vertex_input_t& s);
 
@@ -334,5 +328,4 @@ namespace sfg
 	void to_json(nlohmann::json& j, const shader_depth_stencil_desc_t& att);
 	void from_json(const nlohmann::json& j, shader_depth_stencil_desc_t& att);
 
-#endif
 }

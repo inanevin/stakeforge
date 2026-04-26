@@ -91,21 +91,33 @@ def collect_requested_files(repo_root: Path, paths: list[str]) -> list[Path]:
 
 
 def format_files(clang_format: Path, repo_root: Path, files: list[Path], check: bool) -> int:
-    if not files:
-        return 0
+	if not files:
+		return 0
 
-    command = [
-        str(clang_format),
-        "-style=file",
-    ]
-    if check:
-        command.extend(["--dry-run", "--Werror"])
-    else:
-        command.append("-i")
-    command.extend(str(path) for path in files)
+	if check:
+		command = [
+			str(clang_format),
+			"-style=file",
+			"--dry-run",
+			"--Werror",
+		]
+		command.extend(str(path) for path in files)
+		result = subprocess.run(command, cwd=repo_root)
+		return result.returncode
 
-    result = subprocess.run(command, cwd=repo_root)
-    return result.returncode
+	for path in files:
+		command = [
+			str(clang_format),
+			"-style=file",
+			str(path),
+		]
+		result = subprocess.run(command, cwd=repo_root, stdout=subprocess.PIPE)
+		if result.returncode != 0:
+			return result.returncode
+
+		path.write_bytes(result.stdout)
+
+	return 0
 
 
 def main() -> int:

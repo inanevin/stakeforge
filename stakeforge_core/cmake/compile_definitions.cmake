@@ -14,6 +14,7 @@ endif()
 
 add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=1>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_DEBUG>)
+add_compile_definitions($<$<CONFIG:Debug>:SFG_JSON_SERIALIZE>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_ENABLE_MEMORY_TRACER>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_SERIALIZE_SHADERS_PDB>)
 add_compile_definitions($<$<CONFIG:Debug>:SFG_GFX_USE_DEBUG_LAYERS>)

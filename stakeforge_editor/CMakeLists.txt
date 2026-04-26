@@ -31,7 +31,6 @@
 
 set(SFG_EDITOR_TARGET stakeforge_editor)
 set(SFG_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core)
-set(SFG_RUNTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_runtime)
 include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 
 file(GLOB SOURCES
@@ -75,8 +74,7 @@ if(MSVC)
 endif()
     
 target_include_directories(${SFG_EDITOR_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(${SFG_EDITOR_TARGET} PRIVATE ${SFG_RUNTIME_DIR}/src)
-target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_runtime)
+target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_core)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})

@@ -3,11 +3,11 @@
 
 #include "common_engine.hpp"
 #include "engine_config.hpp"
-#include "render/renderer.hpp"
+#include "runtime/render/renderer.hpp"
 #include "data/atomic.hpp"
 #include "memory/dynamic_pool_allocator_gen.hpp"
-#include "resources/resource_manager.hpp"
-#include "world/world.hpp"
+#include "runtime/resources/resource_manager.hpp"
+#include "runtime/world/world.hpp"
 
 #include <thread>
 

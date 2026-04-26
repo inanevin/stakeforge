@@ -27,9 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 #include "common/size_definitions.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 namespace sfg
 {
@@ -55,11 +53,7 @@ namespace sfg
 		u16 y;
 	};
 
-#ifdef SFG_JSON_SERIALIZE
-
 	void to_json(nlohmann::json& j, const vec2u16_t& v);
 	void from_json(const nlohmann::json& j, vec2u16_t& v);
-
-#endif
 
 }

@@ -25,11 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
+#include "common/size_definitions.hpp"
 #include "math_common.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 #undef min
 #undef max
@@ -176,10 +175,7 @@ namespace sfg
 		return vector_t * scalar;
 	}
 
-#ifdef SFG_JSON_SERIALIZE
-
 	void to_json(nlohmann::json& j, const vec3f_t& v);
 	void from_json(const nlohmann::json& j, vec3f_t& v);
 
-#endif
 }

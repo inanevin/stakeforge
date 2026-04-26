@@ -9,6 +9,27 @@ namespace sfg
 {
 	class resource_manager_t;
 
+	enum class resource_type_t : u8
+	{
+		invalid,
+		audio,
+		font,
+		mesh,
+		skeleton,
+		animation,
+		particle_properties,
+		material,
+		shader,
+		texture,
+		texture_sampler,
+		physical_material,
+		prefab,
+		animation_state_machine,
+		count,
+	};
+
+	inline constexpr u8 resource_type_max = static_cast<u8>(resource_type_t::count);
+
 	enum class resource_state_t : u8
 	{
 		unloaded,
@@ -22,7 +43,7 @@ namespace sfg
 	struct resource_entry_t
 	{
 		u64				 hash		 = 0;
-		u32				 type		 = 0;
+		resource_type_t	 type		 = resource_type_t::invalid;
 		u32				 ref_count	 = 0;
 		resource_state_t state		 = resource_state_t::unloaded;
 		chunk_handle32_t source_path = {};
@@ -43,11 +64,11 @@ namespace sfg
 		using destroy_internals_fn_t = void (*)(resource_entry_t& entry, resource_context_t& ctx);
 		using unload_cpu_fn_t		 = void (*)(resource_entry_t& entry, resource_context_t& ctx);
 
-		u32 type				= 0;
-		u32 metadata_size		= 0;
-		u32 metadata_alignment	= 0;
-		u32 internals_size		= 0;
-		u32 internals_alignment = 0;
+		resource_type_t type				= resource_type_t::invalid;
+		u32				metadata_size		= 0;
+		u32				metadata_alignment	= 0;
+		u32				internals_size		= 0;
+		u32				internals_alignment = 0;
 
 		load_cpu_fn_t		   load_cpu			 = nullptr;
 		create_internals_fn_t  create_internals	 = nullptr;

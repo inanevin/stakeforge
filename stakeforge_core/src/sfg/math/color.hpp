@@ -27,9 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 #include "vec4f.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 namespace sfg
 {
@@ -40,7 +38,7 @@ namespace sfg
 	{
 
 	public:
-		color_t(f32 rv = 1.0f, f32 gv = 1.0f, f32 bv = 1.0f, f32 av = 1.0f) : x(rv), y(gv), z(bv), w(av){};
+		color_t(f32 rv = 1.0f, f32 gv = 1.0f, f32 bv = 1.0f, f32 av = 1.0f) : x(rv), y(gv), z(bv), w(av) {};
 		static color_t from255(f32 r, f32 g, f32 b, f32 a);
 		color_t		   linear_to_srgb();
 		color_t		   srgb_to_linear();
@@ -108,9 +106,7 @@ namespace sfg
 		f32 x, y, z, w = 1.0f;
 	};
 
-#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const color_t& c);
 	void from_json(const nlohmann::json& j, color_t& c);
-#endif
 
 } // namespace sfg

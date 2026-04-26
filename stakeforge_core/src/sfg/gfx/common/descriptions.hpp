@@ -37,9 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx/common/gfx_constants.hpp"
 #include "shader_description.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 namespace sfg
 {
@@ -305,8 +303,6 @@ namespace sfg
 		char		 debug_name[16] = {"CmdBuffer"};
 	};
 
-#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const sampler_desc_t& s);
 	void from_json(const nlohmann::json& j, sampler_desc_t& s);
-#endif
 }

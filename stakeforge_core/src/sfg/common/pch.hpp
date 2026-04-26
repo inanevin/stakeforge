@@ -52,6 +52,4 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "io/log.hpp"
 #include "io/file_system.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include <vendor/nhlohmann/json.hpp>
-#endif

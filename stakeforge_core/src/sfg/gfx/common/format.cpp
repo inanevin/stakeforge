@@ -27,11 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "format.hpp"
 #include "io/assert.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "data/string.hpp"
 #include <vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
-#endif
 
 namespace sfg
 {
@@ -98,7 +96,6 @@ namespace sfg
 		return true;
 	}
 
-#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const format_t& f)
 	{
 		switch (f)
@@ -214,5 +211,4 @@ namespace sfg
 
 		f = format_t::undefined;
 	}
-#endif
 }

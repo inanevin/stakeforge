@@ -28,9 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec3f.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 namespace sfg
 {
@@ -147,11 +145,7 @@ namespace sfg
 		return q * scalar;
 	}
 
-#ifdef SFG_JSON_SERIALIZE
-
 	void to_json(nlohmann::json& j, const quat_t& q);
 	void from_json(const nlohmann::json& j, quat_t& v);
-
-#endif
 
 }

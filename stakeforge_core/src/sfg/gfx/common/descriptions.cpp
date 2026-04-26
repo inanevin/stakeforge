@@ -29,15 +29,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/istream.hpp"
 #include "math/math.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "io/assert.hpp"
 #include <vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
-#endif
 
 namespace sfg
 {
-#ifdef SFG_JSON_SERIALIZE
 
 	void to_json(nlohmann::json& j, const sampler_desc_t& s)
 	{
@@ -155,8 +152,6 @@ namespace sfg
 		else if (border.compare("white") == 0)
 			s.flags.set(sampler_flags::saf_border_white);
 	}
-
-#endif
 
 	bool sampler_desc_t::operator==(const sampler_desc_t& other) const
 	{

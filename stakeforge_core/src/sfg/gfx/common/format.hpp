@@ -28,9 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/size_definitions.hpp"
 
-#ifdef SFG_JSON_SERIALIZE
 #include "vendor/nhlohmann/json_fwd.hpp"
-#endif
 
 namespace sfg
 {
@@ -112,8 +110,6 @@ namespace sfg
 	u8	 format_get_channels(format_t fmt);
 	bool format_is_linear(format_t fmt);
 
-#ifdef SFG_JSON_SERIALIZE
 	void to_json(nlohmann::json& j, const format_t& f);
 	void from_json(const nlohmann::json& j, format_t& f);
-#endif
 }
