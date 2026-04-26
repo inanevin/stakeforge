@@ -13,14 +13,10 @@ namespace sfg
 		backend_failed,
 	};
 
-	inline constexpr engine_config_t default_engine_config()
+	struct engine_config_t
 	{
-		return {
-			.fixed_framerate_ns		   = 16'666'667.0,
-			.fixed_framerate_max_ticks = 4,
-			.frame_allocator_size	   = 1024ull * 1024ull * 4ull,
-		};
-	}
-
-	extern engine_config_t g_engine_runtime_config;
+		double fixed_framerate_ns		 = 16'666'667.0;
+		size_t frame_allocator_size		 = 1024ull * 1024ull * 4ull;
+		u8	   fixed_framerate_max_ticks = 4;
+	};
 }

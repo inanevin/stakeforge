@@ -49,7 +49,6 @@ namespace sfg
 
 	public:
 		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
-		using handle_t = HANDLE;
 
 		dynamic_pool_allocator_gen_t()													   = default;
 		dynamic_pool_allocator_gen_t(const dynamic_pool_allocator_gen_t& other)			   = delete;

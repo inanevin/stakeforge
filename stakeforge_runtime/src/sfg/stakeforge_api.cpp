@@ -27,20 +27,19 @@ namespace
 	}
 }
 
-sfg_api_result_t sfg_engine_init(const engine_config_t* config)
+sfg_api_result_t sfg_engine_init(const sfg::engine_config_t& config)
 {
 	if (g_engine != nullptr)
 		return sfg_api_result_engine_already_initialized;
 
-	if (config != nullptr && (config->fixed_framerate_ns <= 0.0 || config->fixed_framerate_max_ticks == 0 || config->frame_allocator_size == 0))
+	if ((config.fixed_framerate_ns <= 0.0 || config.fixed_framerate_max_ticks == 0 || config.frame_allocator_size == 0))
 		return sfg_api_result_invalid_argument;
 
 	sfg::engine_runtime_t* engine = new (std::nothrow) sfg::engine_runtime_t();
 	if (engine == nullptr)
 		return sfg_api_result_engine_init_failed;
 
-	const engine_config_t				 engine_config = config != nullptr ? *config : sfg::default_engine_config();
-	const sfg::engine_runtime_error_code result		   = engine->init(engine_config);
+	const sfg::engine_runtime_error_code result = engine->init(config);
 	if (result != sfg::engine_runtime_error_code::none)
 	{
 		delete engine;
@@ -71,7 +70,7 @@ sfg_api_result_t sfg_engine_frame(void)
 	return sfg_api_result_success;
 }
 
-sfg_api_result_t sfg_world_create(world_handle_t* out_world)
+sfg_api_result_t sfg_world_create(sfg::world_handle_t* out_world)
 {
 	if (g_engine == nullptr)
 		return sfg_api_result_engine_not_initialized;
@@ -83,7 +82,7 @@ sfg_api_result_t sfg_world_create(world_handle_t* out_world)
 	return sfg_api_result_success;
 }
 
-sfg_api_result_t sfg_world_destroy(world_handle_t world)
+sfg_api_result_t sfg_world_destroy(sfg::world_handle_t world)
 {
 	if (g_engine == nullptr)
 		return sfg_api_result_engine_not_initialized;
