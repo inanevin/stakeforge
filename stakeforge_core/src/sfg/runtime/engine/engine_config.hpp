@@ -5,13 +5,6 @@
 
 namespace sfg
 {
-	enum class engine_runtime_error_code : u8
-	{
-		none,
-		renderer_already_init,
-		backend_failed,
-	};
-
 	struct engine_config_t
 	{
 		double fixed_framerate_ns		 = 16'666'667.0;

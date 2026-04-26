@@ -16,10 +16,18 @@ namespace sfg
 		};
 
 	public:
-		engine_runtime_error_code init();
-		void					  uninit();
-		void					  join();
-		void					  render();
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		bool init();
+		void uninit();
+		void join();
+		void render();
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
 
 		inline gfx_bind_layout_handle get_global_bind_layout() const
 		{

@@ -16,12 +16,26 @@ namespace sfg
 	class engine_runtime_t
 	{
 	public:
-		engine_runtime_error_code init(const engine_config_t& config);
-		void					  uninit();
-		void					  tick();
-		world_handle_t			  create_world();
-		bool					  destroy_world(world_handle_t handle);
-		bool					  is_world_valid(world_handle_t handle) const;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		bool init(const engine_config_t& config);
+		void uninit();
+		void tick();
+
+		// -----------------------------------------------------------------------------
+		// world
+		// -----------------------------------------------------------------------------
+
+		world_handle_t create_world();
+		bool		   destroy_world(world_handle_t handle);
+		bool		   is_world_valid(world_handle_t handle) const;
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
 
 		inline renderer_t& get_renderer()
 		{

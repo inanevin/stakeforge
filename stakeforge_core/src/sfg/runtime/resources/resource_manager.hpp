@@ -12,14 +12,26 @@ namespace sfg
 	class resource_manager_t
 	{
 	public:
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
 		void init(size_t resource_memory_size);
 		void uninit();
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
 
 		resource_entry_t*			find_entry(u64 hash);
 		const resource_entry_t*		find_entry(u64 hash) const;
 		void						register_type_desc(const resource_type_desc_t& desc);
 		resource_type_desc_t*		find_type_desc(resource_type_t type);
 		const resource_type_desc_t* find_type_desc(resource_type_t type) const;
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
 
 		inline chunk_allocator_t& get_memory()
 		{

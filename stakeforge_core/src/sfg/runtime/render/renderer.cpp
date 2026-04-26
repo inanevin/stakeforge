@@ -9,22 +9,13 @@
 
 namespace sfg
 {
-	engine_runtime_error_code renderer_t::init()
+	bool renderer_t::init()
 	{
-		if (gfx_backend::s_instance)
+		gfx_backend* backend = gfx_backend::get();
+		if (backend == nullptr)
 		{
-			SFG_ERR("renderer is already init!");
-			return engine_runtime_error_code::renderer_already_init;
-		}
-
-		gfx_backend::s_instance = new gfx_backend();
-		gfx_backend* backend	= gfx_backend::get();
-		const u8	 result		= backend->init();
-		if (result != 0)
-		{
-			delete gfx_backend::s_instance;
-			gfx_backend::s_instance = nullptr;
-			return engine_runtime_error_code::backend_failed;
+			SFG_ERR("renderer requires an initialized backend!");
+			return false;
 		}
 
 		_global_bind_layout			= gfx_util_t::create_bind_layout_global(false);
@@ -36,17 +27,11 @@ namespace sfg
 			_pfd[i].semaphore_frame.value		= 0;
 		}
 
-		return engine_runtime_error_code::none;
+		return true;
 	}
 
 	void renderer_t::uninit()
 	{
-		if (gfx_backend::s_instance == nullptr)
-		{
-			SFG_ERR("renderer is not initialized!");
-			return;
-		}
-
 		gfx_backend* backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
@@ -62,10 +47,6 @@ namespace sfg
 
 		backend->destroy_bind_layout(_global_bind_layout);
 		backend->destroy_bind_layout(_global_compute_bind_layout);
-		backend->uninit();
-
-		delete gfx_backend::s_instance;
-		gfx_backend::s_instance = nullptr;
 
 		_global_bind_layout			= {};
 		_global_compute_bind_layout = {};
@@ -76,7 +57,6 @@ namespace sfg
 	void renderer_t::join()
 	{
 		gfx_backend* backend = gfx_backend::get();
-		SFG_ASSERT(backend != nullptr);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -88,7 +68,6 @@ namespace sfg
 	void renderer_t::render()
 	{
 		gfx_backend* backend = gfx_backend::get();
-		SFG_ASSERT(backend != nullptr);
 
 		const gfx_queue_handle queue_gfx = backend->get_queue_gfx();
 		_frame_index					 = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);

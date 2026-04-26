@@ -2,7 +2,7 @@
 
 #include "engine_runtime.hpp"
 #include "engine_stats.hpp"
-#include "gfx/gfx_runtime_state.hpp"
+#include "gfx/backend/backend.hpp"
 #include "io/assert.hpp"
 #include "io/log.hpp"
 #include "memory/frame_allocator.hpp"
@@ -14,13 +14,16 @@ namespace sfg
 {
 #define THIS_THREAD_ID static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))
 
-	engine_runtime_error_code engine_runtime_t::init(const engine_config_t& config)
+	bool engine_runtime_t::init(const engine_config_t& config)
 	{
 		_config = config;
 
-		const engine_runtime_error_code renderer_result = _renderer.init();
-		if (renderer_result != engine_runtime_error_code::none)
-			return renderer_result;
+		gfx_backend* backend = gfx_backend::get();
+		if (!backend)
+		{
+			SFG_ERR("engine runtime needs gfx_backend initialized!");
+			return false;
+		}
 
 		_resource_manager.init(_config.resource_allocator_size);
 
@@ -42,7 +45,7 @@ namespace sfg
 
 		frame_allocator_tls_t::init(static_cast<size_t>(_config.frame_allocator_size));
 		SFG_INFO("engine runtime initialized correctly.");
-		return engine_runtime_error_code::none;
+		return true;
 	}
 
 	void engine_runtime_t::uninit()
@@ -64,6 +67,7 @@ namespace sfg
 
 		_resource_manager.uninit();
 		_renderer.uninit();
+		gfx_backend::uninit_instance();
 
 		_previous_time	   = 0;
 		_accumulator_ns	   = 0;
@@ -178,7 +182,6 @@ namespace sfg
 		_renderer.join();
 
 		g_engine_runtime_stats.render_thread_id = 0;
-		g_gfx_runtime_stats.render_thread_id	= 0;
 	}
 
 	void engine_runtime_t::render()
@@ -187,7 +190,6 @@ namespace sfg
 
 		const u64 render_thread_id				= THIS_THREAD_ID;
 		g_engine_runtime_stats.render_thread_id = render_thread_id;
-		g_gfx_runtime_stats.render_thread_id	= render_thread_id;
 
 		while (_render_thread_active)
 		{

@@ -38,12 +38,13 @@ namespace sfg
 
 	struct monitor_info_t
 	{
-		vec2i16_t position	 = vec2i16_t::zero;
-		vec2u16_t size		 = vec2u16_t::zero;
-		vec2u16_t work_size	 = vec2u16_t::zero;
-		u32		  dpi		 = 0;
-		f32		  dpi_scale	 = 0.0f;
-		bool	  is_primary = false;
+		vec2i16_t position	  = vec2i16_t::zero;
+		vec2u16_t size		  = vec2u16_t::zero;
+		vec2u16_t work_size	  = vec2u16_t::zero;
+		u64		  device_hash = 0;
+		u32		  dpi		  = 0;
+		f32		  dpi_scale	  = 0.0f;
+		bool	  is_primary  = false;
 	};
 
 	enum class window_style_t : u8
@@ -108,7 +109,6 @@ namespace sfg
 		close_requested		 = 1 << 1,
 		high_frequency_input = 1 << 2,
 		minimized			 = 1 << 3,
-		external_resize		 = 1 << 4,
 	};
 
 	struct window_runtime_t

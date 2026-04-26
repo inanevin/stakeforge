@@ -9,22 +9,6 @@ namespace
 {
 	sfg::engine_runtime_t* g_engine = nullptr;
 
-	sfg_api_result_t to_api_result(sfg::engine_runtime_error_code result)
-	{
-		switch (result)
-		{
-		case sfg::engine_runtime_error_code::none:
-			return sfg_api_result_success;
-		case sfg::engine_runtime_error_code::renderer_already_init:
-			return sfg_api_result_renderer_already_initialized;
-		case sfg::engine_runtime_error_code::backend_failed:
-			return sfg_api_result_backend_failed;
-		default:
-			break;
-		}
-
-		return sfg_api_result_engine_init_failed;
-	}
 }
 
 sfg_api_result_t sfg_engine_init(const sfg::engine_config_t& config)
@@ -39,11 +23,10 @@ sfg_api_result_t sfg_engine_init(const sfg::engine_config_t& config)
 	if (engine == nullptr)
 		return sfg_api_result_engine_init_failed;
 
-	const sfg::engine_runtime_error_code result = engine->init(config);
-	if (result != sfg::engine_runtime_error_code::none)
+	if (!engine->init(config))
 	{
 		delete engine;
-		return to_api_result(result);
+		return sfg_api_result_engine_init_failed;
 	}
 
 	g_engine = engine;

@@ -34,8 +34,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/string_util.hpp"
 #include "data/vector_util.hpp"
 
-#include "gfx/gfx_runtime_state.hpp"
-
 // gfx
 #include "gfx/common/descriptions.hpp"
 #include "gfx/common/texture_buffer.hpp"
@@ -47,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory/memory.hpp"
 #include "memory/memory_tracer.hpp"
 #include "math/math_common.hpp"
+#include "runtime/engine/engine_stats.hpp"
 
 #ifdef SFG_DEBUG
 #include <WinPixEventRuntime/pix3.h>
@@ -65,7 +64,7 @@ namespace sfg
 
 	Microsoft::WRL::ComPtr<IDxcLibrary> dx12_backend_t::s_idxcLib;
 
-#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(g_gfx_runtime_stats.render_thread_id.load() == 0 || g_gfx_runtime_stats.render_thread_id == static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id())))
+#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(g_engine_runtime_stats.render_thread_id.load() == 0 || g_engine_runtime_stats.render_thread_id == static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id())))
 
 #define DX12_THROW(exception, ...)                                                                                                                                                                                                                                 \
 	SFG_FATAL(__VA_ARGS__);                                                                                                                                                                                                                                        \
@@ -648,8 +647,33 @@ namespace sfg
 
 	dx12_backend_t* dx12_backend_t::s_instance = nullptr;
 
+	bool dx12_backend_t::init_instance()
+	{
+		if (s_instance != nullptr)
+			return false;
+
+		s_instance				= new dx12_backend_t();
+		dx12_backend_t* backend = dx12_backend_t::get();
+		if (!backend->init())
+		{
+			delete s_instance;
+			s_instance = nullptr;
+			return false;
+		}
+
+		return true;
+	}
+
+	void dx12_backend_t::uninit_instance()
+	{
+		dx12_backend_t* backend = dx12_backend_t::get();
+		backend->uninit();
+		delete s_instance;
+		s_instance = nullptr;
+	}
+
 	DWORD msgcallback = 0;
-	u8	  dx12_backend_t::init()
+	bool  dx12_backend_t::init()
 	{
 		UINT dxgiFactoryFlags = 0;
 
@@ -697,7 +721,7 @@ namespace sfg
 		if (!SUCCEEDED(_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts))))
 		{
 			SFG_ERR("failed checking device options!");
-			return static_cast<u8>(gfx_runtime_error_code::backend_failed);
+			return false;
 		}
 
 		D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = {};
@@ -708,13 +732,13 @@ namespace sfg
 		if (!SUCCEEDED(hr))
 		{
 			SFG_ERR("shader model 6.6 is not supported on this device!");
-			return static_cast<u8>(gfx_runtime_error_code::backend_failed);
+			return false;
 		}
 
 		if (opts.ResourceBindingTier != D3D12_RESOURCE_BINDING_TIER_3)
 		{
 			SFG_ERR("GPU device does not support resource binding tier 3!");
-			return static_cast<u8>(gfx_runtime_error_code::backend_failed);
+			return false;
 		}
 
 		// Allocator
@@ -734,7 +758,7 @@ namespace sfg
 			if (FAILED(hr))
 			{
 				SFG_ERR("failed to create DXC library!");
-				return static_cast<u8>(gfx_runtime_error_code::backend_failed);
+				return false;
 			}
 		}
 
@@ -788,7 +812,7 @@ namespace sfg
 		_reuse_root_params.reserve(100);
 		_reuse_root_ranges.reserve(100);
 		_reuse_static_samplers.reserve(100);
-		return static_cast<u8>(gfx_runtime_error_code::none);
+		return true;
 	}
 
 	void dx12_backend_t::uninit()

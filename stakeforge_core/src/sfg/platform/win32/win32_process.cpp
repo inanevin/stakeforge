@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <cstdio>
 #include <shellapi.h>
 #include <shellscalingapi.h>
 #include <shobjidl.h>
@@ -42,6 +43,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace
 {
 	u8 g_key_down_map[512] = {};
+
+	u64 hash_device_name(const char* str)
+	{
+		u64 hash = 14695981039346656037ULL;
+		while (*str)
+		{
+			hash ^= static_cast<u8>(*str++);
+			hash *= 1099511628211ULL;
+		}
+		return hash;
+	}
 
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
 	{
@@ -54,13 +66,14 @@ namespace
 		GetMonitorInfo(monitor, &monitor_info_t);
 
 		UINT	dpiX, dpiY;
-		HRESULT temp2	= GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-		info.size		= {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
-		info.work_size	= {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
-		info.position	= {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
-		info.is_primary = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
-		info.dpi		= dpiX;
-		info.dpi_scale	= static_cast<f32>(dpiX) / 96.0f;
+		HRESULT temp2	 = GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+		info.size		 = {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
+		info.work_size	 = {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
+		info.position	 = {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
+		info.device_hash = hash_device_name(monitor_info_t.szDevice);
+		info.is_primary	 = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
+		info.dpi		 = dpiX;
+		info.dpi_scale	 = static_cast<f32>(dpiX) / 96.0f;
 		return 1;
 	}
 
@@ -129,13 +142,14 @@ namespace
 		GetMonitorInfo(monitor, &monitor_info_t);
 
 		UINT	dpiX, dpiY;
-		HRESULT temp2	= GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-		info.size		= {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
-		info.work_size	= {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
-		info.position	= {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
-		info.is_primary = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
-		info.dpi		= dpiX;
-		info.dpi_scale	= static_cast<f32>(dpiX) / 96.0f;
+		HRESULT temp2	 = GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+		info.size		 = {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
+		info.work_size	 = {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
+		info.position	 = {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
+		info.device_hash = hash_device_name(monitor_info_t.szDevice);
+		info.is_primary	 = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
+		info.dpi		 = dpiX;
+		info.dpi_scale	 = static_cast<f32>(dpiX) / 96.0f;
 		return info;
 	}
 

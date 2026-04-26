@@ -218,7 +218,10 @@ namespace sfg
 			return s_instance;
 		}
 
-		u8	 init();
+		static bool init_instance();
+		static void uninit_instance();
+
+		bool init();
 		void uninit();
 		void reset_command_buffer(gfx_command_buffer_handle cmd_buffer);
 		void reset_command_buffer_transfer(gfx_command_buffer_handle cmd_buffer);
