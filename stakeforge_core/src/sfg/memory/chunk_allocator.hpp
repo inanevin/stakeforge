@@ -36,81 +36,42 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.hpp"
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <type_traits>
 
 namespace sfg
 {
-	class chunk_allocator32_t
+	class chunk_allocator_t
 	{
 	public:
-		~chunk_allocator32_t();
+		~chunk_allocator_t();
 
 		void			 init(size_t total_size);
 		void			 uninit();
 		void			 reset();
+		void			 reserve(size_t total_size);
+		chunk_handle32_t allocate_bytes(size_t size, size_t alignment);
 		chunk_handle32_t allocate_text(const string_t& source);
 
 		template <typename T> inline chunk_handle32_t allocate(size_t count)
 		{
-			static_assert(std::is_trivially_copyable_v<T>, "chunk_allocator32_t typed allocation only supports trivially copyable types");
-			static_assert(std::is_trivially_default_constructible_v<T>, "chunk_allocator32_t typed allocation only supports trivially default constructible types");
-			static_assert(std::is_trivially_destructible_v<T>, "chunk_allocator32_t typed allocation only supports trivially destructible types");
-			static_assert(alignof(T) <= alignof(std::max_align_t), "chunk_allocator32_t does not support over-aligned types");
+			static_assert(std::is_trivially_copyable_v<T>, "chunk_allocator_t typed allocation only supports trivially copyable types");
+			static_assert(std::is_trivially_default_constructible_v<T>, "chunk_allocator_t typed allocation only supports trivially default constructible types");
+			static_assert(std::is_trivially_destructible_v<T>, "chunk_allocator_t typed allocation only supports trivially destructible types");
 
 			SFG_ASSERT(count != 0);
 
 			const size_t item_alignment	  = alignof(T);
 			const size_t padded_item_size = ALIGN_UP(sizeof(T), item_alignment);
-			const u32	 requested_size	  = static_cast<u32>(padded_item_size * count);
+			SFG_ASSERT(padded_item_size <= std::numeric_limits<u32>::max());
+			SFG_ASSERT(count <= std::numeric_limits<u32>::max() / padded_item_size);
 
-			// Try reuse from free list (always sorted)
-			if (!_free_chunks.empty())
-			{
-				for (auto it = _free_chunks.begin(); it != _free_chunks.end(); ++it)
-				{
-					const chunk_handle32_t chunk = *it;
-
-					const u32 aligned_head		= ALIGN_UP(chunk.head, item_alignment);
-					const u32 aligned_size_need = (aligned_head - chunk.head) + requested_size;
-
-					if (chunk.size >= aligned_size_need)
-					{
-						_free_chunks.erase(it);
-
-						const chunk_handle32_t allocated_chunk{aligned_head, requested_size};
-
-						// pre-split
-						if (aligned_head > chunk.head)
-							insert_free_chunk_sorted({chunk.head, aligned_head - chunk.head});
-
-						// post-split
-						const u32 remaining_size = chunk.size - aligned_size_need;
-						if (remaining_size > 0)
-							insert_free_chunk_sorted({allocated_chunk.head + allocated_chunk.size, remaining_size});
-
-						T* ptr = reinterpret_cast<T*>(_raw + allocated_chunk.head);
-						for (size_t i = 0; i < count; ++i)
-							std::construct_at(&ptr[i]);
-
-						return allocated_chunk;
-					}
-				}
-			}
-
-			// Fallback: bump the head
-			const u32 current_aligned_head = ALIGN_UP(_head, item_alignment);
-			const u32 needed_size		   = (current_aligned_head - _head) + requested_size;
-
-			SFG_ASSERT(_head <= _total_size && needed_size <= _total_size - _head);
-
-			const chunk_handle32_t ret{current_aligned_head, requested_size};
-
-			T* ptr = reinterpret_cast<T*>(_raw + ret.head);
+			const chunk_handle32_t ret = allocate_bytes(padded_item_size * count, item_alignment);
+			T*					   ptr = reinterpret_cast<T*>(_raw + ret.head);
 			for (size_t i = 0; i < count; ++i)
 				std::construct_at(&ptr[i]);
 
-			_head += needed_size;
 			return ret;
 		}
 
@@ -149,7 +110,14 @@ namespace sfg
 			return _head;
 		}
 
+		inline u32 get_capacity() const
+		{
+			return _total_size;
+		}
+
 	private:
+		void grow_to(size_t required_total_size);
+
 		// Insert while keeping order and coalescing neighbors.
 		inline void insert_free_chunk_sorted(chunk_handle32_t c)
 		{
@@ -188,4 +156,5 @@ namespace sfg
 		u32						   _total_size = 0;
 	};
 
+	using chunk_allocator32_t = chunk_allocator_t;
 }

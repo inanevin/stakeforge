@@ -6,6 +6,7 @@
 #include "render/renderer.hpp"
 #include "data/atomic.hpp"
 #include "memory/dynamic_pool_allocator_gen.hpp"
+#include "resources/resource_manager.hpp"
 #include "world/world.hpp"
 
 #include <thread>
@@ -32,6 +33,16 @@ namespace sfg
 			return _renderer;
 		}
 
+		inline resource_manager_t& get_resource_manager()
+		{
+			return _resource_manager;
+		}
+
+		inline const resource_manager_t& get_resource_manager() const
+		{
+			return _resource_manager;
+		}
+
 	private:
 		void ensure_render_thread();
 		void end_render();
@@ -41,6 +52,7 @@ namespace sfg
 	private:
 		dynamic_pool_allocator_gen_t<world_t, u32, world_handle_tag> _worlds;
 		renderer_t													 _renderer;
+		resource_manager_t											 _resource_manager;
 		std::thread													 _render_thread;
 		engine_config_t												 _config			   = {};
 		i64															 _previous_time		   = 0;

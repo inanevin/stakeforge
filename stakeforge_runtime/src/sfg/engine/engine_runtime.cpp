@@ -22,6 +22,8 @@ namespace sfg
 		if (renderer_result != engine_runtime_error_code::none)
 			return renderer_result;
 
+		_resource_manager.init(_config.resource_allocator_size);
+
 		time_t::init();
 
 		const double fixed_framerate_ns = _config.fixed_framerate_ns;
@@ -60,6 +62,7 @@ namespace sfg
 			_worlds.remove(handle);
 		}
 
+		_resource_manager.uninit();
 		_renderer.uninit();
 
 		_previous_time	   = 0;

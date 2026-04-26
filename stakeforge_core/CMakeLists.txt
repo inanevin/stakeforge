@@ -150,7 +150,7 @@ target_sources(${SFG_CORE_TARGET} PRIVATE
 )
 
 target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg)
-target_include_directories(${SFG_CORE_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/deps/phmap/include)
+target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/phmap/include)
 target_include_directories(${SFG_CORE_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/deps/tracy-0.13.0/public)
 
 if(WIN32)

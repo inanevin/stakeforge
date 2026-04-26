@@ -32,6 +32,26 @@ def collect_files(src_root: Path) -> list[Path]:
     return files
 
 
+def collect_source_roots(repo_root: Path) -> list[Path]:
+    roots = []
+    candidates = [repo_root / "src"]
+    candidates.extend(sorted(repo_root.glob("*/src")))
+
+    seen = set()
+    for candidate in candidates:
+        if not candidate.is_dir():
+            continue
+
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+
+        seen.add(resolved)
+        roots.append(resolved)
+
+    return roots
+
+
 def collect_requested_files(repo_root: Path, paths: list[str]) -> list[Path]:
     files = []
     seen = set()
@@ -70,13 +90,13 @@ def collect_requested_files(repo_root: Path, paths: list[str]) -> list[Path]:
     return files
 
 
-def format_files(clang_format: Path, style_file: Path, files: list[Path], check: bool) -> int:
+def format_files(clang_format: Path, repo_root: Path, files: list[Path], check: bool) -> int:
     if not files:
         return 0
 
     command = [
         str(clang_format),
-        f"-style=file:{style_file}",
+        "-style=file",
     ]
     if check:
         command.extend(["--dry-run", "--Werror"])
@@ -84,7 +104,7 @@ def format_files(clang_format: Path, style_file: Path, files: list[Path], check:
         command.append("-i")
     command.extend(str(path) for path in files)
 
-    result = subprocess.run(command)
+    result = subprocess.run(command, cwd=repo_root)
     return result.returncode
 
 
@@ -95,12 +115,7 @@ def main() -> int:
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent
-    src_root = repo_root / "src"
     style_file = repo_root / ".clang-format"
-
-    if not src_root.is_dir():
-        print(f"missing source directory: {src_root}", file=sys.stderr)
-        return 1
 
     if not style_file.is_file():
         print(f"missing style file: {style_file}", file=sys.stderr)
@@ -115,8 +130,16 @@ def main() -> int:
     if args.paths:
         files = collect_requested_files(repo_root, args.paths)
     else:
-        files = collect_files(src_root)
-    return format_files(clang_format, style_file, files, args.check)
+        src_roots = collect_source_roots(repo_root)
+        if not src_roots:
+            print(f"missing source directories under: {repo_root}", file=sys.stderr)
+            return 1
+
+        files = []
+        for src_root in src_roots:
+            files.extend(collect_files(src_root))
+
+    return format_files(clang_format, repo_root, files, args.check)
 
 
 if __name__ == "__main__":

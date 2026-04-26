@@ -1,15 +1,16 @@
-#include "stakeforge_api.h"
+#include "stakeforge_api.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR pCmdLine, _In_ int nCmdShow)
 {
-	const sfg_api_result_t result = sfg_engine_init(nullptr);
+	const sfg::engine_config_t config = {};
+	const sfg_api_result_t	   result = sfg_engine_init(config);
 	if (result != sfg_api_result_success)
 		return static_cast<int>(result);
 
-	world_handle_t world = {};
+	sfg::world_handle_t world = {};
 	if (sfg_world_create(&world) != sfg_api_result_success)
 	{
 		sfg_engine_uninit();

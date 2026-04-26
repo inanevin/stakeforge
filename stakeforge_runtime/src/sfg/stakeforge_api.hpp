@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "stakeforge_api_common.h"
+#include "stakeforge_api_common.hpp"
 
 sfg_api_result_t sfg_engine_init(const sfg::engine_config_t& config);
 sfg_api_result_t sfg_engine_uninit(void);

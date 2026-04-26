@@ -42,7 +42,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/world/*.cpp
 )
 
 file(GLOB HEADERS
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/engine/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/render/*.hpp
