@@ -162,129 +162,129 @@ namespace sfg
 			}
 		}
 
-		DXGI_FORMAT get_format(format_t format)
+		DXGI_FORMAT get_format(format_e format)
 		{
 			switch (format)
 			{
-			case format_t::undefined:
+			case format_e::undefined:
 				return DXGI_FORMAT_UNKNOWN;
 
 				// 8 bit
-			case format_t::r8_sint:
+			case format_e::r8_sint:
 				return DXGI_FORMAT_R8_SINT;
-			case format_t::r8_uint:
+			case format_e::r8_uint:
 				return DXGI_FORMAT_R8_UINT;
-			case format_t::r8_unorm:
+			case format_e::r8_unorm:
 				return DXGI_FORMAT_R8_UNORM;
-			case format_t::r8_snorm:
+			case format_e::r8_snorm:
 				return DXGI_FORMAT_R8_SNORM;
 
-			case format_t::r8g8_sint:
+			case format_e::r8g8_sint:
 				return DXGI_FORMAT_R8G8_SINT;
-			case format_t::r8g8_uint:
+			case format_e::r8g8_uint:
 				return DXGI_FORMAT_R8G8_UINT;
-			case format_t::r8g8_unorm:
+			case format_e::r8g8_unorm:
 				return DXGI_FORMAT_R8G8_UNORM;
-			case format_t::r8g8_snorm:
+			case format_e::r8g8_snorm:
 				return DXGI_FORMAT_R8G8_SNORM;
 
-			case format_t::r8g8b8a8_sint:
+			case format_e::r8g8b8a8_sint:
 				return DXGI_FORMAT_R8G8B8A8_SINT;
-			case format_t::r8g8b8a8_uint:
+			case format_e::r8g8b8a8_uint:
 				return DXGI_FORMAT_R8G8B8A8_UINT;
-			case format_t::r8g8b8a8_unorm:
+			case format_e::r8g8b8a8_unorm:
 				return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case format_t::r8g8b8a8_snorm:
+			case format_e::r8g8b8a8_snorm:
 				return DXGI_FORMAT_R8G8B8A8_SNORM;
-			case format_t::r8g8b8a8_srgb:
+			case format_e::r8g8b8a8_srgb:
 				return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
-			case format_t::b8g8r8a8_unorm:
+			case format_e::b8g8r8a8_unorm:
 				return DXGI_FORMAT_B8G8R8A8_UNORM;
-			case format_t::b8g8r8a8_srgb:
+			case format_e::b8g8r8a8_srgb:
 				return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
 
 				// 16 bit
-			case format_t::r16_sint:
+			case format_e::r16_sint:
 				return DXGI_FORMAT_R16_SINT;
-			case format_t::r16_uint:
+			case format_e::r16_uint:
 				return DXGI_FORMAT_R16_UINT;
-			case format_t::r16_unorm:
+			case format_e::r16_unorm:
 				return DXGI_FORMAT_R16_UNORM;
-			case format_t::r16_snorm:
+			case format_e::r16_snorm:
 				return DXGI_FORMAT_R16_SNORM;
-			case format_t::r16_sfloat:
+			case format_e::r16_sfloat:
 				return DXGI_FORMAT_R16_FLOAT;
 
-			case format_t::r16g16_sint:
+			case format_e::r16g16_sint:
 				return DXGI_FORMAT_R16G16_SINT;
-			case format_t::r16g16_uint:
+			case format_e::r16g16_uint:
 				return DXGI_FORMAT_R16G16_UINT;
-			case format_t::r16g16_unorm:
+			case format_e::r16g16_unorm:
 				return DXGI_FORMAT_R16G16_UNORM;
-			case format_t::r16g16_snorm:
+			case format_e::r16g16_snorm:
 				return DXGI_FORMAT_R16G16_SNORM;
-			case format_t::r16g16_sfloat:
+			case format_e::r16g16_sfloat:
 				return DXGI_FORMAT_R16G16_FLOAT;
 
-			case format_t::r16g16b16a16_sint:
+			case format_e::r16g16b16a16_sint:
 				return DXGI_FORMAT_R16G16B16A16_SINT;
-			case format_t::r16g16b16a16_uint:
+			case format_e::r16g16b16a16_uint:
 				return DXGI_FORMAT_R16G16B16A16_UINT;
-			case format_t::r16g16b16a16_unorm:
+			case format_e::r16g16b16a16_unorm:
 				return DXGI_FORMAT_R16G16B16A16_UNORM;
-			case format_t::r16g16b16a16_snorm:
+			case format_e::r16g16b16a16_snorm:
 				return DXGI_FORMAT_R16G16B16A16_SNORM;
-			case format_t::r16g16b16a16_sfloat:
+			case format_e::r16g16b16a16_sfloat:
 				return DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 				// 32 bit
-			case format_t::r32_sint:
+			case format_e::r32_sint:
 				return DXGI_FORMAT_R32_SINT;
-			case format_t::r32_uint:
+			case format_e::r32_uint:
 				return DXGI_FORMAT_R32_UINT;
-			case format_t::r32_sfloat:
+			case format_e::r32_sfloat:
 				return DXGI_FORMAT_R32_FLOAT;
 
-			case format_t::r32g32_sint:
+			case format_e::r32g32_sint:
 				return DXGI_FORMAT_R32G32_SINT;
-			case format_t::r32g32_uint:
+			case format_e::r32g32_uint:
 				return DXGI_FORMAT_R32G32_UINT;
-			case format_t::r32g32_sfloat:
+			case format_e::r32g32_sfloat:
 				return DXGI_FORMAT_R32G32_FLOAT;
 
-			case format_t::r32g32b32_sfloat:
+			case format_e::r32g32b32_sfloat:
 				return DXGI_FORMAT_R32G32B32_FLOAT;
-			case format_t::r32g32b32_sint:
+			case format_e::r32g32b32_sint:
 				return DXGI_FORMAT_R32G32B32_SINT;
-			case format_t::r32g32b32_uint:
+			case format_e::r32g32b32_uint:
 				return DXGI_FORMAT_R32G32B32_UINT;
 
-			case format_t::r32g32b32a32_sint:
+			case format_e::r32g32b32a32_sint:
 				return DXGI_FORMAT_R32G32B32A32_SINT;
-			case format_t::r32g32b32a32_uint:
+			case format_e::r32g32b32a32_uint:
 				return DXGI_FORMAT_R32G32B32A32_UINT;
-			case format_t::r32g32b32a32_sfloat:
+			case format_e::r32g32b32a32_sfloat:
 				return DXGI_FORMAT_R32G32B32A32_FLOAT;
 
 				// depth-stencil
-			case format_t::d32_sfloat:
+			case format_e::d32_sfloat:
 				return DXGI_FORMAT_D32_FLOAT;
-			case format_t::d24_unorm_s8_uint:
+			case format_e::d24_unorm_s8_uint:
 				return DXGI_FORMAT_D24_UNORM_S8_UINT;
-			case format_t::d16_unorm:
+			case format_e::d16_unorm:
 				return DXGI_FORMAT_D16_UNORM;
 
 				// misc
-			case format_t::r11g11b10_sfloat:
+			case format_e::r11g11b10_sfloat:
 				return DXGI_FORMAT_R11G11B10_FLOAT;
-			case format_t::r10g0b10a2_int:
+			case format_e::r10g0b10a2_int:
 				return DXGI_FORMAT_R10G10B10A2_UINT;
-			case format_t::r10g0b10a2_unorm:
+			case format_e::r10g0b10a2_unorm:
 				return DXGI_FORMAT_R10G10B10A2_UNORM;
-			case format_t::bc3_block_srgb:
+			case format_e::bc3_block_srgb:
 				return DXGI_FORMAT_BC3_UNORM_SRGB;
-			case format_t::bc3_block_unorm:
+			case format_e::bc3_block_unorm:
 				return DXGI_FORMAT_BC3_UNORM;
 
 			default:
@@ -645,19 +645,18 @@ namespace sfg
 
 	}
 
-	dx12_backend_t* dx12_backend_t::s_instance = nullptr;
+	unique_t<dx12_backend_t> dx12_backend_t::s_instance = nullptr;
 
 	bool dx12_backend_t::init_instance()
 	{
 		if (s_instance != nullptr)
 			return false;
 
-		s_instance				= new dx12_backend_t();
+		s_instance				= make_unique<dx12_backend_t>();
 		dx12_backend_t* backend = dx12_backend_t::get();
 		if (!backend->init())
 		{
-			delete s_instance;
-			s_instance = nullptr;
+			s_instance.reset();
 			return false;
 		}
 
@@ -668,8 +667,7 @@ namespace sfg
 	{
 		dx12_backend_t* backend = dx12_backend_t::get();
 		backend->uninit();
-		delete s_instance;
-		s_instance = nullptr;
+		s_instance.reset();
 	}
 
 	DWORD msgcallback = 0;
@@ -1537,20 +1535,20 @@ namespace sfg
 			swp.vsync = 0;
 
 		DXGI_FORMAT swap_format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		if (desc.format == format_t::r16g16b16a16_sfloat)
+		if (desc.format == format_e::r16g16b16a16_sfloat)
 		{
 			swap_format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 		}
-		else if (desc.format == format_t::r8g8b8a8_unorm)
+		else if (desc.format == format_e::r8g8b8a8_unorm)
 		{
 			swap_format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		}
-		else if (desc.format == format_t::r8g8b8a8_srgb)
+		else if (desc.format == format_e::r8g8b8a8_srgb)
 		{
 			swap_format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		}
 
-		// this is view(rtv) format_t
+		// this is view(rtv) format_e
 		swp.format = static_cast<u8>(get_format(desc.format));
 
 		const bool vsync_on = desc.flags.is_set(swapchain_flags::sf_vsync_every_v_blank) || desc.flags.is_set(swapchain_flags::sf_vsync_every_2v_blank);

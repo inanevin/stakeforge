@@ -35,7 +35,7 @@ namespace sfg
 	void register_shader_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::shader;
+		desc.type				  = resource_type_e::shader;
 		desc.metadata_size		  = sizeof(shader_metadata_t);
 		desc.metadata_alignment	  = alignof(shader_metadata_t);
 		desc.internals_size		  = sizeof(shader_internals_t);

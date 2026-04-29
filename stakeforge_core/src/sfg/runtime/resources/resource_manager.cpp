@@ -66,13 +66,13 @@ namespace sfg
 	void resource_manager_t::register_type_desc(const resource_type_desc_t& desc)
 	{
 		const u8 type = static_cast<u8>(desc.type);
-		SFG_ASSERT(desc.type != resource_type_t::invalid);
+		SFG_ASSERT(desc.type != resource_type_e::invalid);
 		SFG_ASSERT(type < resource_type_max);
 		SFG_ASSERT(_type_descs.find(type) == _type_descs.end());
 		_type_descs.emplace(type, desc);
 	}
 
-	resource_type_desc_t* resource_manager_t::find_type_desc(resource_type_t type)
+	resource_type_desc_t* resource_manager_t::find_type_desc(resource_type_e type)
 	{
 		auto it = _type_descs.find(static_cast<u8>(type));
 		if (it == _type_descs.end())
@@ -81,7 +81,7 @@ namespace sfg
 		return &it->second;
 	}
 
-	const resource_type_desc_t* resource_manager_t::find_type_desc(resource_type_t type) const
+	const resource_type_desc_t* resource_manager_t::find_type_desc(resource_type_e type) const
 	{
 		auto it = _type_descs.find(static_cast<u8>(type));
 		if (it == _type_descs.end())

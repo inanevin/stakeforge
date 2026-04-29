@@ -27,8 +27,6 @@ namespace sfg
 
 		_resource_manager.init(_config.resource_allocator_size);
 
-		time_t::init();
-
 		const double fixed_framerate_ns = _config.fixed_framerate_ns;
 
 		_previous_time	   = time_t::get_cpu_microseconds();
@@ -38,7 +36,6 @@ namespace sfg
 		_fps_render_time   = _previous_time;
 		_fps_main_frames   = 0;
 		_fps_render_frames = 0;
-		_is_init		   = true;
 
 		g_engine_runtime_stats.reset();
 		g_engine_runtime_stats.main_thread_id = THIS_THREAD_ID;
@@ -50,9 +47,6 @@ namespace sfg
 
 	void engine_runtime_t::uninit()
 	{
-		if (!_is_init)
-			return;
-
 		end_render();
 
 		for (auto it = _worlds.begin_handle(); it != _worlds.end_handle();)
@@ -76,14 +70,12 @@ namespace sfg
 		_fps_render_time   = 0;
 		_fps_main_frames   = 0;
 		_fps_render_frames = 0;
-		_is_init		   = false;
 		g_engine_runtime_stats.reset();
 		frame_allocator_tls_t::uninit();
 	}
 
 	void engine_runtime_t::tick()
 	{
-		SFG_ASSERT(_is_init);
 		SFG_ASSERT(THIS_THREAD_ID == g_engine_runtime_stats.main_thread_id);
 
 		frame_allocator_tls_t::reset();
@@ -126,7 +118,6 @@ namespace sfg
 
 	world_handle_t engine_runtime_t::create_world()
 	{
-		SFG_ASSERT(_is_init);
 		SFG_ASSERT(THIS_THREAD_ID == g_engine_runtime_stats.main_thread_id);
 
 		const world_handle_t handle = _worlds.add();
@@ -137,7 +128,6 @@ namespace sfg
 
 	bool engine_runtime_t::destroy_world(world_handle_t handle)
 	{
-		SFG_ASSERT(_is_init);
 		SFG_ASSERT(THIS_THREAD_ID == g_engine_runtime_stats.main_thread_id);
 
 		if (!_worlds.is_valid(handle))

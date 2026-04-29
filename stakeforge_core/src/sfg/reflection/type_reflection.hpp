@@ -35,17 +35,20 @@ namespace sfg
 	{
 	};
 
-	// clang-format_t off
-#define REFLECT_TYPE(T)			\
-template <> struct call_ref_t<T>                              \
-	{                                                          \
-		call_ref_t() { T::reflect();} \
-	};\
-template <> struct type_id_t<T>                              \
-	{                                                          \
-		static constexpr string_id		  value = to_sid(#T); \
-		static inline call_ref_t<T> cr = {}; \
+	// clang-format_e off
+#define REFLECT_TYPE(T)                                                                                                                                                                                                                                            \
+	template <> struct call_ref_t<T>                                                                                                                                                                                                                               \
+	{                                                                                                                                                                                                                                                              \
+		call_ref_t()                                                                                                                                                                                                                                               \
+		{                                                                                                                                                                                                                                                          \
+			T::reflect();                                                                                                                                                                                                                                          \
+		}                                                                                                                                                                                                                                                          \
+	};                                                                                                                                                                                                                                                             \
+	template <> struct type_id_t<T>                                                                                                                                                                                                                                \
+	{                                                                                                                                                                                                                                                              \
+		static constexpr string_id	value = to_sid(#T);                                                                                                                                                                                                            \
+		static inline call_ref_t<T> cr	  = {};                                                                                                                                                                                                                    \
 	}
 
-	// clang-format_t on
+	// clang-format_e on
 }

@@ -188,12 +188,9 @@ namespace sfg
 		const f32 inv_height = 1.0f / (top - bottom);
 		const f32 inv_depth	 = 1.0f / (far_plane - near_plane);
 
-		// clang-format_t off
-		return mat4x4_t(2.0f * inv_width, 0.0f, 0.0f, 0.0f, 
-						0.0f, 2.0f * inv_height, 0.0f, 
-						0.0f, 0.0f, 0.0f, -inv_depth, 
-						0.0f, -(right + left) * inv_width, -(top + bottom) * inv_height, 1.0f + near_plane * inv_depth, 1.0f);
-		// clang-format_t on
+		// clang-format_e off
+		return mat4x4_t(2.0f * inv_width, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f * inv_height, 0.0f, 0.0f, 0.0f, 0.0f, -inv_depth, 0.0f, -(right + left) * inv_width, -(top + bottom) * inv_height, 1.0f + near_plane * inv_depth, 1.0f);
+		// clang-format_e on
 	}
 
 	mat4x4_t mat4x4_t::ortho(f32 left, f32 right, f32 top, f32 bottom, f32 near_plane, f32 far_plane)
@@ -202,15 +199,9 @@ namespace sfg
 		const f32 inv_height = 1.0f / (top - bottom);
 		const f32 inv_depth	 = 1.0f / (near_plane - far_plane);
 
-		// clang-format_t off
-		return mat4x4_t(
-						2.0f * inv_width,  0.0f,              0.0f, 0.0f,
-						0.0f,              2.0f * inv_height, 0.0f, 0.0f,
-						0.0f,              0.0f,              inv_depth, 0.0f,
-						-(right + left) * inv_width,
-						-(top + bottom)  * inv_height,
-						 near_plane * inv_depth, 1.0f);
-		// clang-format_t on
+		// clang-format_e off
+		return mat4x4_t(2.0f * inv_width, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f * inv_height, 0.0f, 0.0f, 0.0f, 0.0f, inv_depth, 0.0f, -(right + left) * inv_width, -(top + bottom) * inv_height, near_plane * inv_depth, 1.0f);
+		// clang-format_e on
 	}
 
 	mat4x4_t mat4x4_t::perspective_reverse_z(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
@@ -220,13 +211,9 @@ namespace sfg
 		const f32 f			   = 1.0f / tan_half_fov;
 		const f32 inv_nf	   = 1.0f / (far_plane - near_plane);
 
-		// clang-format_t off
-		return mat4x4_t(
-			f / aspect_ratio, 0.0f, 0.0f, 0.0f, 
-			0.0f, f, 0.0f, 0.0f, 
-			0.0f, 0.0f, near_plane * inv_nf, -1.0f,
-			0.0f, 0.0f, near_plane * far_plane * inv_nf, 0.0f);
-		// clang-format_t on
+		// clang-format_e off
+		return mat4x4_t(f / aspect_ratio, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, near_plane * inv_nf, -1.0f, 0.0f, 0.0f, near_plane * far_plane * inv_nf, 0.0f);
+		// clang-format_e on
 	}
 
 	mat4x4_t mat4x4_t::perspective(f32 fov_y_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
@@ -236,13 +223,9 @@ namespace sfg
 		const f32 f			   = 1.0f / tan_half_fov;
 		const f32 inv_nf	   = 1.0f / (near_plane - far_plane);
 
-		// clang-format_t off
-		return mat4x4_t(
-			f / aspect_ratio, 0.0f, 0.0f, 0.0f, 
-			0.0f, f, 0.0f, 0.0f, 
-			0.0f, 0.0f, far_plane * inv_nf, -1.0f,
-			0.0f, 0.0f, near_plane * far_plane * inv_nf, 0.0f);
-		// clang-format_t on
+		// clang-format_e off
+		return mat4x4_t(f / aspect_ratio, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, far_plane * inv_nf, -1.0f, 0.0f, 0.0f, near_plane * far_plane * inv_nf, 0.0f);
+		// clang-format_e on
 	}
 
 	mat4x4_t mat4x4_t::transform(const vec3f_t& position, const quat_t& rotation, const vec3f_t& scale_vec)

@@ -35,7 +35,7 @@ namespace sfg
 	void register_particle_properties_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::particle_properties;
+		desc.type				  = resource_type_e::particle_properties;
 		desc.metadata_size		  = sizeof(particle_properties_metadata_t);
 		desc.metadata_alignment	  = alignof(particle_properties_metadata_t);
 		desc.internals_size		  = sizeof(particle_properties_internals_t);

@@ -35,7 +35,7 @@ namespace sfg
 	void register_physical_material_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::physical_material;
+		desc.type				  = resource_type_e::physical_material;
 		desc.metadata_size		  = sizeof(physical_material_metadata_t);
 		desc.metadata_alignment	  = alignof(physical_material_metadata_t);
 		desc.internals_size		  = sizeof(physical_material_internals_t);

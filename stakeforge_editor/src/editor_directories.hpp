@@ -10,5 +10,6 @@ namespace sfg
 	public:
 		static string_t get_user_directory();
 		static string_t get_settings_path();
+		static string_t get_editor_assets();
 	};
 }

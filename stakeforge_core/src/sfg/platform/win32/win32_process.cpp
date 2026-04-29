@@ -115,9 +115,9 @@ namespace
 		return composition_enabled && success;
 	}
 
-	u32 get_style(sfg::window_style_t style)
+	u32 get_style(sfg::window_style_e style)
 	{
-		if (style == sfg::window_style_t::app_window)
+		if (style == sfg::window_style_e::app_window)
 			return static_cast<u32>(WS_OVERLAPPEDWINDOW);
 		else
 		{
@@ -173,9 +173,9 @@ namespace
 		};
 	}
 
-	sfg::vec2u16_t get_outer_size_for_config(const sfg::vec2u16_t& client_size, sfg::window_style_t style)
+	sfg::vec2u16_t get_outer_size_for_config(const sfg::vec2u16_t& client_size, sfg::window_style_e style)
 	{
-		if (style != sfg::window_style_t::app_window)
+		if (style != sfg::window_style_e::app_window)
 			return client_size;
 
 		RECT window_rect = {0, 0, static_cast<LONG>(client_size.x), static_cast<LONG>(client_size.y)};
@@ -208,26 +208,26 @@ namespace
 			runtime->monitor_info = fetch_monitor_info(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY));
 			push_event(*runtime,
 					   {
-						   .type = sfg::window_event_type_t::display_change,
+						   .type = sfg::window_event_type_e::display_change,
 					   });
 			return 0;
 		case WM_CLOSE:
-			runtime->set_flag(sfg::window_runtime_flags_t::close_requested);
+			runtime->set_flag(sfg::window_runtime_flags_e::close_requested);
 			return 0;
 		case WM_KILLFOCUS:
-			runtime->set_flag(sfg::window_runtime_flags_t::has_focus, false);
+			runtime->set_flag(sfg::window_runtime_flags_e::has_focus, false);
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(0, 0),
-						   .type  = sfg::window_event_type_t::focus,
+						   .type  = sfg::window_event_type_e::focus,
 					   });
 			return 0;
 		case WM_SETFOCUS:
-			runtime->set_flag(sfg::window_runtime_flags_t::has_focus);
+			runtime->set_flag(sfg::window_runtime_flags_e::has_focus);
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(1, 0),
-						   .type  = sfg::window_event_type_t::focus,
+						   .type  = sfg::window_event_type_e::focus,
 					   });
 			return 0;
 		case WM_MOVE: {
@@ -237,7 +237,7 @@ namespace
 			push_event(*runtime,
 					   {
 						   .value = runtime->pos,
-						   .type  = sfg::window_event_type_t::repos,
+						   .type  = sfg::window_event_type_e::repos,
 					   });
 			return 0;
 		}
@@ -247,9 +247,9 @@ namespace
 				static_cast<u16>(HIWORD(l_param)),
 			};
 			const bool minimized		 = w_param == SIZE_MINIMIZED;
-			const bool minimized_changed = runtime->has_flag(sfg::window_runtime_flags_t::minimized) != minimized;
+			const bool minimized_changed = runtime->has_flag(sfg::window_runtime_flags_e::minimized) != minimized;
 
-			runtime->set_flag(sfg::window_runtime_flags_t::minimized, minimized);
+			runtime->set_flag(sfg::window_runtime_flags_e::minimized, minimized);
 
 			if (runtime->size.x == size.x && runtime->size.y == size.y && !minimized_changed)
 				return 0;
@@ -259,12 +259,12 @@ namespace
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(static_cast<i16>(size.x), static_cast<i16>(size.y)),
-						   .type  = sfg::window_event_type_t::resize,
+						   .type  = sfg::window_event_type_e::resize,
 					   });
 			return 0;
 		}
 		case WM_INPUT: {
-			if (!runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
+			if (!runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
 
 			UINT raw_size					  = sizeof(RAWINPUT);
@@ -298,8 +298,8 @@ namespace
 						   {
 							   .value	 = sfg::vec2i16_t(static_cast<i16>(sc), 0),
 							   .button	 = static_cast<u16>(key),
-							   .type	 = sfg::window_event_type_t::key,
-							   .sub_type = is_release ? sfg::window_event_sub_type_t::release : (is_repeat ? sfg::window_event_sub_type_t::repeat : sfg::window_event_sub_type_t::press),
+							   .type	 = sfg::window_event_type_e::key,
+							   .sub_type = is_release ? sfg::window_event_sub_type_e::release : (is_repeat ? sfg::window_event_sub_type_e::repeat : sfg::window_event_sub_type_e::press),
 							   .flags	 = sfg::wef_high_freq,
 						   });
 				return 0;
@@ -317,7 +317,7 @@ namespace
 
 				sfg::window_event_t ev = {
 					.value = runtime->mouse_position,
-					.type  = sfg::window_event_type_t::mouse,
+					.type  = sfg::window_event_type_e::mouse,
 					.flags = sfg::wef_high_freq,
 				};
 
@@ -326,37 +326,37 @@ namespace
 				if ((mouse_flags & RI_MOUSE_LEFT_BUTTON_DOWN) != 0)
 				{
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_0);
-					ev.sub_type = sfg::window_event_sub_type_t::press;
+					ev.sub_type = sfg::window_event_sub_type_e::press;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_LEFT_BUTTON_UP) != 0)
 				{
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_0);
-					ev.sub_type = sfg::window_event_sub_type_t::release;
+					ev.sub_type = sfg::window_event_sub_type_e::release;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_RIGHT_BUTTON_DOWN) != 0)
 				{
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_1);
-					ev.sub_type = sfg::window_event_sub_type_t::press;
+					ev.sub_type = sfg::window_event_sub_type_e::press;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_RIGHT_BUTTON_UP) != 0)
 				{
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_1);
-					ev.sub_type = sfg::window_event_sub_type_t::release;
+					ev.sub_type = sfg::window_event_sub_type_e::release;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) != 0)
 				{
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_2);
-					ev.sub_type = sfg::window_event_sub_type_t::press;
+					ev.sub_type = sfg::window_event_sub_type_e::press;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_MIDDLE_BUTTON_UP) != 0)
 				{
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_2);
-					ev.sub_type = sfg::window_event_sub_type_t::release;
+					ev.sub_type = sfg::window_event_sub_type_e::release;
 					emit_mouse	= true;
 				}
 
@@ -371,7 +371,7 @@ namespace
 					push_event(*runtime,
 							   {
 								   .value = sfg::vec2i16_t(0, static_cast<i16>(raw->data.mouse.usButtonData)),
-								   .type  = sfg::window_event_type_t::wheel,
+								   .type  = sfg::window_event_type_e::wheel,
 								   .flags = sfg::wef_high_freq,
 							   });
 					return 0;
@@ -380,7 +380,7 @@ namespace
 				push_event(*runtime,
 						   {
 							   .value = sfg::vec2i16_t(static_cast<i16>(raw->data.mouse.lLastX), static_cast<i16>(raw->data.mouse.lLastY)),
-							   .type  = sfg::window_event_type_t::delta,
+							   .type  = sfg::window_event_type_e::delta,
 							   .flags = sfg::wef_high_freq,
 						   });
 				return 0;
@@ -388,7 +388,7 @@ namespace
 			return 0;
 		}
 		case WM_KEYDOWN: {
-			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
 
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
@@ -406,13 +406,13 @@ namespace
 					   {
 						   .value	 = sfg::vec2i16_t(static_cast<i16>(scan_code), 0),
 						   .button	 = static_cast<u16>(key),
-						   .type	 = sfg::window_event_type_t::key,
-						   .sub_type = is_repeat ? sfg::window_event_sub_type_t::repeat : sfg::window_event_sub_type_t::press,
+						   .type	 = sfg::window_event_type_e::key,
+						   .sub_type = is_repeat ? sfg::window_event_sub_type_e::repeat : sfg::window_event_sub_type_e::press,
 					   });
 			return 0;
 		}
 		case WM_KEYUP: {
-			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
 
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
@@ -429,13 +429,13 @@ namespace
 					   {
 						   .value	 = sfg::vec2i16_t(static_cast<i16>(scan_code), 0),
 						   .button	 = static_cast<u16>(key),
-						   .type	 = sfg::window_event_type_t::key,
-						   .sub_type = sfg::window_event_sub_type_t::release,
+						   .type	 = sfg::window_event_type_e::key,
+						   .sub_type = sfg::window_event_sub_type_e::release,
 					   });
 			return 0;
 		}
 		case WM_MOUSEMOVE: {
-			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
 
 			const sfg::vec2i16_t previous = runtime->mouse_position;
@@ -445,18 +445,18 @@ namespace
 			push_event(*runtime,
 					   {
 						   .value = runtime->mouse_position - previous,
-						   .type  = sfg::window_event_type_t::delta,
+						   .type  = sfg::window_event_type_e::delta,
 					   });
 			return 0;
 		}
 		case WM_MOUSEWHEEL:
-			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
 
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(0, static_cast<i16>(GET_WHEEL_DELTA_WPARAM(w_param) / WHEEL_DELTA)),
-						   .type  = sfg::window_event_type_t::wheel,
+						   .type  = sfg::window_event_type_e::wheel,
 					   });
 			return 0;
 		case WM_LBUTTONDOWN:
@@ -467,7 +467,7 @@ namespace
 		case WM_RBUTTONUP:
 		case WM_MBUTTONDOWN:
 		case WM_MBUTTONUP: {
-			if (runtime->has_flag(sfg::window_runtime_flags_t::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
 
 			u16 button = static_cast<u16>(sfg::input_code::mouse_0);
@@ -476,17 +476,17 @@ namespace
 			else if (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP)
 				button = static_cast<u16>(sfg::input_code::mouse_2);
 
-			sfg::window_event_sub_type_t sub_type = sfg::window_event_sub_type_t::press;
+			sfg::window_event_sub_type_e sub_type = sfg::window_event_sub_type_e::press;
 			if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
-				sub_type = sfg::window_event_sub_type_t::release;
+				sub_type = sfg::window_event_sub_type_e::release;
 			else if (msg == WM_LBUTTONDBLCLK || msg == WM_RBUTTONDBLCLK)
-				sub_type = sfg::window_event_sub_type_t::repeat;
+				sub_type = sfg::window_event_sub_type_e::repeat;
 
 			push_event(*runtime,
 					   {
 						   .value	 = sfg::vec2i16_t(static_cast<i16>(GET_X_LPARAM(l_param)), static_cast<i16>(GET_Y_LPARAM(l_param))),
 						   .button	 = button,
-						   .type	 = sfg::window_event_type_t::mouse,
+						   .type	 = sfg::window_event_type_e::mouse,
 						   .sub_type = sub_type,
 					   });
 			return 0;
@@ -1033,7 +1033,7 @@ namespace sfg
 		return mask;
 	}
 
-	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_t window_style, window_runtime_t& runtime)
+	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, window_runtime_t& runtime)
 	{
 		HINSTANCE  instance = GetModuleHandle(nullptr);
 		WNDCLASSEX class_info{};
@@ -1110,7 +1110,7 @@ namespace sfg
 		SetWindowPos(hwnd, nullptr, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
-	void process::set_window_size(void* window, const sfg::vec2u16_t& size, window_style_t style)
+	void process::set_window_size(void* window, const sfg::vec2u16_t& size, window_style_e style)
 	{
 		HWND hwnd = static_cast<HWND>(window);
 
@@ -1121,7 +1121,7 @@ namespace sfg
 		SetWindowPos(hwnd, nullptr, 0, 0, outer_size.x, outer_size.y, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
-	void process::set_window_style(void* window, const vec2u16_t& size, window_style_t style)
+	void process::set_window_style(void* window, const vec2u16_t& size, window_style_e style)
 	{
 		HWND		hwnd	   = static_cast<HWND>(window);
 		const DWORD stylew	   = get_style(style);
@@ -1130,12 +1130,12 @@ namespace sfg
 		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, outer_size.x, outer_size.y, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 	}
 
-	void process::set_cursor_confinement(void* window_handle, window_cursor_confinement_t conf)
+	void process::set_cursor_confinement(void* window_handle, window_cursor_confinement_e conf)
 	{
 		HWND hwnd = static_cast<HWND>(window_handle);
 		SFG_ASSERT(hwnd != nullptr);
 
-		if (conf == sfg::window_cursor_confinement_t::none)
+		if (conf == sfg::window_cursor_confinement_e::none)
 		{
 			const RECT rect = {
 				s_prev_clip[0],
@@ -1154,7 +1154,7 @@ namespace sfg
 		s_prev_clip[2] = old_clip.right;
 		s_prev_clip[3] = old_clip.bottom;
 
-		if (conf == sfg::window_cursor_confinement_t::window)
+		if (conf == sfg::window_cursor_confinement_e::window)
 		{
 			RECT clip_rect{};
 			GetWindowRect(hwnd, &clip_rect);
@@ -1173,31 +1173,31 @@ namespace sfg
 		ClipCursor(&clip_rect);
 	}
 
-	void process::set_cursor_state(window_cursor_state_t state)
+	void process::set_cursor_state(window_cursor_state_e state)
 	{
 		LPCTSTR cursor_id = IDC_ARROW;
 
 		switch (state)
 		{
-		case sfg::window_cursor_state_t::arrow:
+		case sfg::window_cursor_state_e::arrow:
 			cursor_id = IDC_ARROW;
 			break;
-		case sfg::window_cursor_state_t::hand:
+		case sfg::window_cursor_state_e::hand:
 			cursor_id = IDC_HAND;
 			break;
-		case sfg::window_cursor_state_t::resize_hr:
+		case sfg::window_cursor_state_e::resize_hr:
 			cursor_id = IDC_SIZEWE;
 			break;
-		case sfg::window_cursor_state_t::resize_vt:
+		case sfg::window_cursor_state_e::resize_vt:
 			cursor_id = IDC_SIZENS;
 			break;
-		case sfg::window_cursor_state_t::resize_nwse:
+		case sfg::window_cursor_state_e::resize_nwse:
 			cursor_id = IDC_SIZENWSE;
 			break;
-		case sfg::window_cursor_state_t::resize_nesw:
+		case sfg::window_cursor_state_e::resize_nesw:
 			cursor_id = IDC_SIZENESW;
 			break;
-		case sfg::window_cursor_state_t::caret:
+		case sfg::window_cursor_state_e::caret:
 			cursor_id = IDC_IBEAM;
 			break;
 		}

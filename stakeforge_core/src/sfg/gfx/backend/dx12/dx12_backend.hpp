@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/span.hpp"
 #include "data/string.hpp"
 #include "data/bitmask.hpp"
+#include "data/unique.hpp"
 #include "memory/dynamic_pool_allocator_gen.hpp"
 #include "dx12_heap.hpp"
 #include <wrl/client.h>
@@ -215,7 +216,7 @@ namespace sfg
 	public:
 		inline static dx12_backend_t* get()
 		{
-			return s_instance;
+			return s_instance.get();
 		}
 
 		static bool init_instance();
@@ -410,6 +411,6 @@ namespace sfg
 		friend class app;
 		friend class renderer_t;
 
-		static dx12_backend_t* s_instance;
+		static unique_t<dx12_backend_t> s_instance;
 	};
 }

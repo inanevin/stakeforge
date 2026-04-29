@@ -26,8 +26,8 @@ namespace sfg
 		resource_entry_t*			find_entry(u64 hash);
 		const resource_entry_t*		find_entry(u64 hash) const;
 		void						register_type_desc(const resource_type_desc_t& desc);
-		resource_type_desc_t*		find_type_desc(resource_type_t type);
-		const resource_type_desc_t* find_type_desc(resource_type_t type) const;
+		resource_type_desc_t*		find_type_desc(resource_type_e type);
+		const resource_type_desc_t* find_type_desc(resource_type_e type) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors

@@ -9,7 +9,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 {
 	AllocConsole();
 
-	sfg::editor_app_t app;
+	sfg::editor_app_t& app = sfg::editor_app_t::get();
 	app.init();
 	app.uninit();
 

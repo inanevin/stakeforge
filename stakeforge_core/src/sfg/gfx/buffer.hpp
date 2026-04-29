@@ -46,14 +46,14 @@ namespace sfg
 			return _hw;
 		}
 
-		inline gpu_index get_index() const
+		inline gpu_index_t get_index() const
 		{
 			return _index;
 		}
 
 	private:
-		u8*		  _mapped = nullptr;
-		gpu_index _index  = NULL_GPU_INDEX;
+		u8*			_mapped = nullptr;
+		gpu_index_t _index	= NULL_GPU_INDEX;
 
 #ifdef SFG_DEBUG
 		u32 _total_size = 0;
@@ -136,8 +136,8 @@ namespace sfg
 		u32 _total_size = 0;
 #endif
 
-		gpu_index _index		   = NULL_GPU_INDEX;
-		gpu_index _index_secondary = NULL_GPU_INDEX;
+		gpu_index_t _index			 = NULL_GPU_INDEX;
+		gpu_index_t _index_secondary = NULL_GPU_INDEX;
 
 		gfx_resource_handle _hw_staging = {};
 		gfx_resource_handle _hw_gpu		= {};

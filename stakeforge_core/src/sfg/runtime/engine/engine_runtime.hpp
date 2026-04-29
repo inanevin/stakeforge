@@ -16,7 +16,6 @@ namespace sfg
 	class engine_runtime_t
 	{
 	public:
-
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
@@ -76,7 +75,6 @@ namespace sfg
 		i64															 _fps_render_time	   = 0;
 		u32															 _fps_main_frames	   = 0;
 		u32															 _fps_render_frames	   = 0;
-		atomic_t<bool>												 _is_init			   = false;
 		atomic_t<bool>												 _render_thread_active = false;
 	};
 }

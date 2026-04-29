@@ -1,0 +1,155 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#pragma once
+
+#include "common/size_definitions.hpp"
+#include "data/hash_map.hpp"
+#include "memory/text_allocator.hpp"
+#include "ui/layout/layout_tree.hpp"
+#include "ui/input/input_router.hpp"
+#include "ui/paint/paint.hpp"
+#include "ui/vg/vg_canvas.hpp"
+#include "ui/vg/vg_font.hpp"
+#include "ui/ui_theme.hpp"
+
+namespace sfg::ui
+{
+	struct ui_config_t
+	{
+		vg_canvas_config_t canvas			  = {};
+		input_config_t	   input			  = {};
+		u32				   max_widgets		  = 1024;
+		u32				   atlas_width		  = 1024;
+		u32				   atlas_height		  = 1024;
+		u32				   text_pool_capacity = 64 * 1024;
+	};
+
+	struct widget_text_ref_t
+	{
+		const char* ptr = nullptr;
+		u32			len = 0;
+	};
+
+	class ui_context
+	{
+	public:
+		ui_context()							 = default;
+		ui_context(const ui_context&)			 = delete;
+		ui_context& operator=(const ui_context&) = delete;
+		~ui_context();
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(const ui_config_t& cfg);
+		void uninit();
+		void tick(const vec4f_t& screen_rect, f32 dt_seconds);
+
+		// -----------------------------------------------------------------------------
+		// events
+		// -----------------------------------------------------------------------------
+
+		void on_mouse_move(const vec2f_t& pos);
+		void on_mouse_button(mouse_button_e btn, bool pressed);
+		void on_wheel(f32 delta);
+		void on_key(const key_event_t& ev);
+
+		// -----------------------------------------------------------------------------
+		// text
+		// -----------------------------------------------------------------------------
+
+		void		set_widget_text(widget_id_t id, const char* text, u32 len);
+		void		clear_widget_text(widget_id_t id);
+		const char* widget_text(widget_id_t id) const;
+		u32			widget_text_len(widget_id_t id) const;
+
+		// -----------------------------------------------------------------------------
+		// widgets
+		// -----------------------------------------------------------------------------
+
+		widget_id_t make_panel(widget_id_t parent);
+		widget_id_t make_row(widget_id_t parent);
+		widget_id_t make_column(widget_id_t parent);
+		widget_id_t make_spacer(widget_id_t parent, f32 size_px = 0.0f);
+		widget_id_t make_label(widget_id_t parent, const char* text, vg_font_t* font);
+		widget_id_t make_button(widget_id_t parent, const char* text, vg_font_t* font);
+		widget_id_t make_divider(widget_id_t parent, bool horizontal);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline layout_tree_t& get_tree()
+		{
+			return _tree;
+		}
+		inline const layout_tree_t& get_tree() const
+		{
+			return _tree;
+		}
+		inline paint_layer_t& get_paint()
+		{
+			return _paint;
+		}
+		inline input_router_t& get_input()
+		{
+			return _input;
+		}
+		inline vg_canvas_t& get_canvas()
+		{
+			return _canvas;
+		}
+		inline vg_font_manager_t& get_fonts()
+		{
+			return _fonts;
+		}
+		inline theme_t& get_theme()
+		{
+			return _theme;
+		}
+		inline const theme_t& get_theme() const
+		{
+			return _theme;
+		}
+
+		inline widget_id_t get_root() const
+		{
+			return _tree.get_root();
+		}
+
+	private:
+		input_router_t							   _input;
+		vg_canvas_t								   _canvas;
+		layout_tree_t							   _tree;
+		theme_t									   _theme;
+		vg_font_manager_t						   _fonts;
+		paint_layer_t							   _paint;
+		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
+		text_allocator_t						   _text_pool;
+	};
+}

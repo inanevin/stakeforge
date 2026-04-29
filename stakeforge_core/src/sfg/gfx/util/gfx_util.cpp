@@ -221,7 +221,7 @@ namespace sfg
 					.index	  = 0,
 					.offset	  = 0,
 					.size	  = sizeof(vec2f_t),
-					.format	  = format_t::r32g32_sfloat,
+					.format	  = format_e::r32g32_sfloat,
 				},
 				{
 					.name	  = "TEXCOORD",
@@ -229,7 +229,7 @@ namespace sfg
 					.index	  = 0,
 					.offset	  = sizeof(vec2f_t),
 					.size	  = sizeof(vec2f_t),
-					.format	  = format_t::r32g32_sfloat,
+					.format	  = format_e::r32g32_sfloat,
 				},
 				{
 					.name	  = "COLOR",
@@ -237,7 +237,7 @@ namespace sfg
 					.index	  = 0,
 					.offset	  = sizeof(vec2f_t) * 2,
 					.size	  = sizeof(vec4f_t),
-					.format	  = format_t::r32g32b32a32_sfloat,
+					.format	  = format_e::r32g32b32a32_sfloat,
 				},
 			};
 			break;

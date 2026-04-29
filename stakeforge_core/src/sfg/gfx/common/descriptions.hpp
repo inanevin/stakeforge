@@ -158,7 +158,7 @@ namespace sfg
 		void*		  window_t	= nullptr;
 		void*		  os_handle = nullptr;
 		f32			  scaling	= 1.0f;
-		format_t	  format	= format_t::undefined;
+		format_e	  format	= format_e::undefined;
 		vec2u16_t	  pos		= vec2u16_t::zero;
 		vec2u16_t	  size		= vec2u16_t::zero;
 		bitmask_t<u8> flags		= 0;
@@ -201,8 +201,8 @@ namespace sfg
 
 	struct texture_desc_t
 	{
-		format_t			  texture_format	   = format_t::r8g8b8a8_srgb;
-		format_t			  depth_stencil_format = format_t::d16_unorm;
+		format_e			  texture_format	   = format_e::r8g8b8a8_srgb;
+		format_e			  depth_stencil_format = format_e::d16_unorm;
 		vec2u16_t			  size				   = vec2u16_t::zero;
 		bitmask_t<u16>		  flags				   = 0;
 		vector_t<view_desc_t> views				   = {

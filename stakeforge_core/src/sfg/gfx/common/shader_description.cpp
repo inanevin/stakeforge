@@ -51,7 +51,7 @@ namespace sfg
 		s.index	   = j.value<u8>("index", 0);
 		s.offset   = j.value<u8>("offset", 0);
 		s.size	   = j.value<u32>("size", 0);
-		s.format   = j.value<format_t>("format", format_t::undefined);
+		s.format   = j.value<format_e>("format", format_e::undefined);
 	}
 
 	void to_json(nlohmann::json& j, const shader_desc_t& s)
@@ -633,7 +633,7 @@ namespace sfg
 
 	void from_json(const nlohmann::json& j, shader_color_attachment_t& att)
 	{
-		att.format			 = j.value<format_t>("format", format_t::undefined);
+		att.format			 = j.value<format_e>("format", format_e::undefined);
 		att.blend_attachment = j.value<color_blend_attachment_t>("blend_attachment", {});
 	}
 
@@ -667,7 +667,7 @@ namespace sfg
 
 	void from_json(const nlohmann::json& j, shader_depth_stencil_desc_t& att)
 	{
-		att.attachment_format	 = j.value("attachment_format", format_t::d32_sfloat);
+		att.attachment_format	 = j.value("attachment_format", format_e::d32_sfloat);
 		att.depth_compare		 = j.value("depth_compare", compare_op::lequal);
 		att.back_stencil_state	 = j.value("back_stencil_state", stencil_state_t{});
 		att.front_stencil_state	 = j.value("front_stencil_state", stencil_state_t{});

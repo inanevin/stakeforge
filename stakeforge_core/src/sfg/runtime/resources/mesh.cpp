@@ -35,7 +35,7 @@ namespace sfg
 	void register_mesh_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::mesh;
+		desc.type				  = resource_type_e::mesh;
 		desc.metadata_size		  = sizeof(mesh_metadata_t);
 		desc.metadata_alignment	  = alignof(mesh_metadata_t);
 		desc.internals_size		  = sizeof(mesh_internals_t);

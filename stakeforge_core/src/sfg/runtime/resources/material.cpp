@@ -35,7 +35,7 @@ namespace sfg
 	void register_material_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::material;
+		desc.type				  = resource_type_e::material;
 		desc.metadata_size		  = sizeof(material_metadata_t);
 		desc.metadata_alignment	  = alignof(material_metadata_t);
 		desc.internals_size		  = sizeof(material_internals_t);

@@ -32,6 +32,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	simple_file_watcher_t::entry_t::entry_t(unique_t<std::filesystem::path> p, const char* s, u64 lm, u16 i) : path(std::move(p)), str(s), last_modified(lm), id(i)
+	{
+	}
+
+	simple_file_watcher_t::entry_t::~entry_t() = default;
+
 	void simple_file_watcher_t::add_path(const char* path, u16 optional_id)
 	{
 		if (!file_system::exists(path))
@@ -41,18 +47,14 @@ namespace sfg
 		}
 
 		const u64 last_modified = file_system::get_last_modified_ticks(path);
-		_paths.push_back(new entry_t(new std::filesystem::path(path), path, last_modified, optional_id));
+		_paths.push_back(unique_t<entry_t>(new entry_t(make_unique<std::filesystem::path>(path), path, last_modified, optional_id)));
 	}
 	void simple_file_watcher_t::remove_path(const char* path)
 	{
-		auto it = vector_util::find_if(_paths, [path](entry_t* e) -> bool { return strcmp(path, e->str.c_str()) == 0; });
+		auto it = vector_util::find_if(_paths, [path](const unique_t<entry_t>& e) -> bool { return strcmp(path, e->str.c_str()) == 0; });
 
 		if (it != _paths.end())
-		{
-			entry_t* e = *it;
-			delete e->path;
-			delete e;
-		}
+			_paths.erase(it);
 	}
 
 	void simple_file_watcher_t::tick()
@@ -68,7 +70,7 @@ namespace sfg
 
 	void simple_file_watcher_t::watch()
 	{
-		for (entry_t* e : _paths)
+		for (const unique_t<entry_t>& e : _paths)
 		{
 			const u64 ticks = file_system::get_last_modified_ticks(*e->path);
 			if (e->last_modified != ticks)
@@ -82,12 +84,6 @@ namespace sfg
 
 	void simple_file_watcher_t::clear()
 	{
-		for (const entry_t* p : _paths)
-		{
-			delete p->path;
-			delete p;
-		}
-
 		_paths.resize(0);
 		_ticks = 0;
 	}

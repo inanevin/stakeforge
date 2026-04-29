@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	enum class format_t : u8
+	enum class format_e : u8
 	{
 		undefined = 0,
 
@@ -106,10 +106,10 @@ namespace sfg
 		format_max,
 	};
 
-	u8	 format_get_bpp(format_t fmt);
-	u8	 format_get_channels(format_t fmt);
-	bool format_is_linear(format_t fmt);
+	u8	 format_get_bpp(format_e fmt);
+	u8	 format_get_channels(format_e fmt);
+	bool format_is_linear(format_e fmt);
 
-	void to_json(nlohmann::json& j, const format_t& f);
-	void from_json(const nlohmann::json& j, format_t& f);
+	void to_json(nlohmann::json& j, const format_e& f);
+	void from_json(const nlohmann::json& j, format_e& f);
 }

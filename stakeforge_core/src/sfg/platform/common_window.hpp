@@ -47,13 +47,13 @@ namespace sfg
 		bool	  is_primary  = false;
 	};
 
-	enum class window_style_t : u8
+	enum class window_style_e : u8
 	{
 		app_window,
 		borderless,
 	};
 
-	enum class window_cursor_confinement_t : u8
+	enum class window_cursor_confinement_e : u8
 	{
 		none,
 		window,
@@ -65,7 +65,7 @@ namespace sfg
 		wef_high_freq = 1 << 0,
 	};
 
-	enum class window_cursor_state_t : u8
+	enum class window_cursor_state_e : u8
 	{
 		arrow,
 		hand,
@@ -75,7 +75,7 @@ namespace sfg
 		resize_nesw,
 		caret,
 	};
-	enum class window_event_type_t : u8
+	enum class window_event_type_e : u8
 	{
 		key = 0,
 		mouse,
@@ -87,7 +87,7 @@ namespace sfg
 		repos,
 	};
 
-	enum class window_event_sub_type_t : u8
+	enum class window_event_sub_type_e : u8
 	{
 		press,
 		release,
@@ -98,12 +98,12 @@ namespace sfg
 	{
 		vec2i16_t				value = vec2i16_t::zero;
 		u16						button;
-		window_event_type_t		type	 = window_event_type_t::key;
-		window_event_sub_type_t sub_type = window_event_sub_type_t::press;
+		window_event_type_e		type	 = window_event_type_e::key;
+		window_event_sub_type_e sub_type = window_event_sub_type_e::press;
 		bitmask_t<u8>			flags	 = 0;
 	};
 
-	enum class window_runtime_flags_t : u8
+	enum class window_runtime_flags_e : u8
 	{
 		has_focus			 = 1 << 0,
 		close_requested		 = 1 << 1,
@@ -124,20 +124,20 @@ namespace sfg
 		vec2i16_t			  mouse_position_abs	   = vec2i16_t::zero;
 		vec2i16_t			  mouse_position		   = vec2i16_t::zero;
 		gfx_swapchain_handle  swapchain				   = {};
-		window_style_t		  style					   = window_style_t::app_window;
+		window_style_e		  style					   = window_style_e::app_window;
 		bitmask_t<u8>		  flags					   = 0;
 
-		inline bool has_flag(window_runtime_flags_t flag) const
+		inline bool has_flag(window_runtime_flags_e flag) const
 		{
 			return flags.is_set(static_cast<u8>(flag));
 		}
 
-		inline void set_flag(window_runtime_flags_t flag, bool is_set = true)
+		inline void set_flag(window_runtime_flags_e flag, bool is_set = true)
 		{
 			flags.set(static_cast<u8>(flag), is_set);
 		}
 
-		inline void remove_flag(window_runtime_flags_t flag)
+		inline void remove_flag(window_runtime_flags_e flag)
 		{
 			flags.remove(static_cast<u8>(flag));
 		}

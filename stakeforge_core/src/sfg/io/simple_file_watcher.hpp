@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/size_definitions.hpp"
 #include "data/string.hpp"
+#include "data/unique.hpp"
 #include "data/vector.hpp"
 #include "common/string_id.hpp"
 
@@ -49,14 +50,13 @@ namespace sfg
 	private:
 		struct entry_t
 		{
-			std::filesystem::path* path			 = nullptr;
-			string_t			   str			 = "";
-			u64					   last_modified = 0;
-			u16					   id			 = 0;
+			unique_t<std::filesystem::path> path;
+			string_t						str			  = "";
+			u64								last_modified = 0;
+			u16								id			  = 0;
 
-			~entry_t()
-			{
-			}
+			entry_t(unique_t<std::filesystem::path> p, const char* s, u64 lm, u16 i);
+			~entry_t();
 		};
 
 	public:
@@ -92,7 +92,7 @@ namespace sfg
 	private:
 		simple_file_watcher_callback _callback	  = nullptr;
 		void*						 _callback_ud = nullptr;
-		vector_t<entry_t*>			 _paths;
+		vector_t<unique_t<entry_t>>	 _paths;
 		u16							 _tick_interval = 1;
 		u16							 _ticks			= 0;
 	};

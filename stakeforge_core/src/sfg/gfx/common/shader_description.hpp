@@ -173,7 +173,7 @@ namespace sfg
 		u8		 index	  = 0;
 		size_t	 offset	  = 0;
 		size_t	 size	  = 0;
-		format_t format	  = format_t::undefined;
+		format_e format	  = format_e::undefined;
 	};
 
 	struct shader_blob_t
@@ -206,7 +206,7 @@ namespace sfg
 
 	struct shader_color_attachment_t
 	{
-		format_t				 format			  = format_t::b8g8r8a8_srgb;
+		format_e				 format			  = format_e::b8g8r8a8_srgb;
 		color_blend_attachment_t blend_attachment = {};
 	};
 
@@ -227,7 +227,7 @@ namespace sfg
 
 	struct shader_depth_stencil_desc_t
 	{
-		format_t		attachment_format	 = format_t::d32_sfloat;
+		format_e		attachment_format	 = format_e::d32_sfloat;
 		compare_op		depth_compare		 = compare_op::lequal;
 		stencil_state_t back_stencil_state	 = {};
 		stencil_state_t front_stencil_state	 = {};

@@ -35,7 +35,7 @@ namespace sfg
 	void register_animation_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::animation;
+		desc.type				  = resource_type_e::animation;
 		desc.metadata_size		  = sizeof(animation_metadata_t);
 		desc.metadata_alignment	  = alignof(animation_metadata_t);
 		desc.internals_size		  = sizeof(animation_internals_t);

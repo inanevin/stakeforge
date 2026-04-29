@@ -35,7 +35,7 @@ namespace sfg
 	void register_skeleton_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::skeleton;
+		desc.type				  = resource_type_e::skeleton;
 		desc.metadata_size		  = sizeof(skeleton_metadata_t);
 		desc.metadata_alignment	  = alignof(skeleton_metadata_t);
 		desc.internals_size		  = sizeof(skeleton_internals_t);

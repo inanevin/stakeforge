@@ -27,4 +27,9 @@ namespace sfg
 	{
 		return get_user_directory() + SETTINGS_FILE;
 	}
+
+	string_t editor_directories_t::get_editor_assets()
+	{
+		return string_t(SFG_ROOT_DIRECTORY) + "stakeforge_editor/assets/";
+	}
 }

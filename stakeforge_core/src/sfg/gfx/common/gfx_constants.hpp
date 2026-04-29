@@ -40,7 +40,7 @@ namespace sfg
 
 	typedef unsigned short gfx_id_t;
 	typedef unsigned short primitive_index;
-	typedef unsigned int   gpu_index;
+	typedef unsigned int   gpu_index_t;
 
 	struct gfx_resource_handle_tag
 	{

@@ -1,0 +1,355 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "input_router.hpp"
+#include "io/assert.hpp"
+#include "math/math.hpp"
+#include "ui/layout/layout_tree.hpp"
+
+#include <algorithm>
+
+namespace sfg::ui
+{
+	namespace
+	{
+		bool point_in_rect(const vec4f_t& r, const vec2f_t& p)
+		{
+			return p.x >= r.x && p.x <= r.x + r.z && p.y >= r.y && p.y <= r.y + r.w;
+		}
+	}
+
+	void input_router_t::init(const input_config_t& cfg)
+	{
+		_config = cfg;
+		_listeners.clear();
+		_focus_order.resize(0);
+		_hit_order.resize(0);
+		_focus_order.reserve(64);
+		_hit_order.reserve(256);
+		_hovered = INVALID_WIDGET;
+		_focused = INVALID_WIDGET;
+		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
+		{
+			_pressed[i]		  = INVALID_WIDGET;
+			_pressed_state[i] = {};
+			_last_click[i]	  = {};
+		}
+	}
+
+	void input_router_t::uninit()
+	{
+		_listeners.clear();
+		_focus_order.resize(0);
+		_hit_order.resize(0);
+	}
+
+	void input_router_t::set_listener(widget_id_t id, const listener_bundle_t& b)
+	{
+		_listeners[id] = b;
+	}
+
+	void input_router_t::clear_listener(widget_id_t id)
+	{
+		_listeners.erase(id);
+	}
+
+	void input_router_t::rebuild_hit_test(const layout_tree_t& tree)
+	{
+		_hit_order.resize(0);
+		_focus_order.resize(0);
+
+		const auto dfs = tree.get_dfs();
+
+		for (size_t i = 0; i < dfs.size; ++i)
+		{
+			const widget_id_t id = dfs.data[i];
+			if (id == tree.get_root())
+				continue;
+
+			const layout_in_t& in = tree.in_const(id);
+			if (in.flags & wf_visible)
+			{
+				if (!(in.flags & wf_no_input))
+					_hit_order.push_back(id);
+				if (in.flags & wf_focusable)
+					_focus_order.push_back(id);
+			}
+		}
+
+		std::stable_sort(_hit_order.begin(), _hit_order.end(), [&](widget_id_t a, widget_id_t b) {
+			const u32 da = tree.draw_order_const(a);
+			const u32 db = tree.draw_order_const(b);
+			return da > db;
+		});
+	}
+
+	widget_id_t input_router_t::hit_test(const vec2f_t& pos) const
+	{
+		for (widget_id_t id : _hit_order)
+		{
+			const layout_out_t& out = _tree->out(id);
+			if (out.clip.z <= 0.0f || out.clip.w <= 0.0f)
+				continue;
+			if (point_in_rect(out.clip, pos))
+				return id;
+		}
+		return INVALID_WIDGET;
+	}
+
+	void input_router_t::fire_hover_change(widget_id_t new_hover)
+	{
+		if (new_hover == _hovered)
+		{
+			if (_hovered != INVALID_WIDGET)
+			{
+				auto it = _listeners.find(_hovered);
+				if (it != _listeners.end() && it->second.on_hover_move)
+					it->second.on_hover_move(*this, _hovered, _mouse, _mouse - _mouse_prev, it->second.user_data);
+			}
+			return;
+		}
+
+		if (_hovered != INVALID_WIDGET)
+		{
+			auto it = _listeners.find(_hovered);
+			if (it != _listeners.end() && it->second.on_hover_exit)
+				it->second.on_hover_exit(*this, _hovered, _mouse, {0, 0}, it->second.user_data);
+		}
+
+		_hovered = new_hover;
+
+		if (_hovered != INVALID_WIDGET)
+		{
+			auto it = _listeners.find(_hovered);
+			if (it != _listeners.end() && it->second.on_hover_enter)
+				it->second.on_hover_enter(*this, _hovered, _mouse, {0, 0}, it->second.user_data);
+		}
+	}
+
+	void input_router_t::tick(const layout_tree_t& tree, f32 dt_seconds)
+	{
+		_tree = &tree;
+		_accum_time += dt_seconds;
+
+		rebuild_hit_test(tree);
+
+		const widget_id_t target = hit_test(_mouse);
+		if (target != _hovered)
+			fire_hover_change(target);
+
+		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
+		{
+			press_state_t& ps = _pressed_state[i];
+			if (_pressed[i] == INVALID_WIDGET)
+				continue;
+			ps.held_seconds += dt_seconds;
+
+			const vec2f_t delta = _mouse - ps.press_pos;
+			if (!ps.dragging && (math::abs(delta.x) > _config.drag_threshold_pixels || math::abs(delta.y) > _config.drag_threshold_pixels))
+			{
+				ps.dragging = true;
+				auto it		= _listeners.find(_pressed[i]);
+				if (it != _listeners.end() && it->second.on_drag_begin)
+					it->second.on_drag_begin(*this, _pressed[i], _mouse, delta, it->second.user_data);
+			}
+
+			if (ps.dragging)
+			{
+				auto it = _listeners.find(_pressed[i]);
+				if (it != _listeners.end() && it->second.on_drag)
+					it->second.on_drag(*this, _pressed[i], _mouse, _mouse - _mouse_prev, it->second.user_data);
+			}
+		}
+
+		_mouse_prev = _mouse;
+	}
+
+	void input_router_t::on_mouse_move(const vec2f_t& pos)
+	{
+		_mouse = pos;
+		if (_tree == nullptr)
+			return;
+		const widget_id_t target = hit_test(_mouse);
+		fire_hover_change(target);
+	}
+
+	void input_router_t::on_mouse_button(mouse_button_e btn, bool pressed)
+	{
+		const u32 b = static_cast<u32>(btn);
+
+		if (pressed)
+		{
+			const widget_id_t target = _hovered;
+			if (_focused != target)
+			{
+				if (_focused != INVALID_WIDGET)
+				{
+					auto it = _listeners.find(_focused);
+					if (it != _listeners.end() && it->second.on_focus_lose)
+						it->second.on_focus_lose(*this, _focused, false, it->second.user_data);
+				}
+				_focused = target;
+				if (_focused != INVALID_WIDGET)
+				{
+					auto it = _listeners.find(_focused);
+					if (it != _listeners.end() && it->second.on_focus_gain)
+						it->second.on_focus_gain(*this, _focused, false, it->second.user_data);
+				}
+			}
+
+			_pressed[b]		  = target;
+			_pressed_state[b] = {target, _mouse, 0.0f, false};
+			if (target != INVALID_WIDGET)
+			{
+				auto it = _listeners.find(target);
+				if (it != _listeners.end() && it->second.on_press)
+					it->second.on_press(*this, target, _mouse, btn, it->second.user_data);
+			}
+			return;
+		}
+
+		const widget_id_t target = _pressed[b];
+		press_state_t&	  ps	 = _pressed_state[b];
+		_pressed[b]				 = INVALID_WIDGET;
+
+		if (target == INVALID_WIDGET)
+			return;
+
+		auto lit = _listeners.find(target);
+		if (lit != _listeners.end() && lit->second.on_release)
+			lit->second.on_release(*this, target, _mouse, btn, lit->second.user_data);
+
+		if (ps.dragging)
+		{
+			if (lit != _listeners.end() && lit->second.on_drag_end)
+				lit->second.on_drag_end(*this, target, _mouse, _mouse - ps.press_pos, lit->second.user_data);
+			return;
+		}
+
+		const widget_id_t under = hit_test(_mouse);
+		if (under != target || ps.held_seconds > _config.click_max_seconds)
+			return;
+
+		if (lit != _listeners.end() && lit->second.on_click)
+			lit->second.on_click(*this, target, _mouse, btn, lit->second.user_data);
+
+		click_record_t& rec	  = _last_click[b];
+		const f32		since = _accum_time - rec.t_seconds;
+		if (rec.target == target && since <= _config.double_click_max_seconds)
+		{
+			if (lit != _listeners.end() && lit->second.on_double_click)
+				lit->second.on_double_click(*this, target, _mouse, btn, lit->second.user_data);
+			rec = {INVALID_WIDGET, 0.0f};
+		}
+		else
+		{
+			rec = {target, _accum_time};
+		}
+	}
+
+	void input_router_t::on_wheel(f32 delta)
+	{
+		widget_id_t cur = _hovered;
+		while (cur != INVALID_WIDGET)
+		{
+			auto it = _listeners.find(cur);
+			if (it != _listeners.end() && it->second.on_wheel)
+			{
+				it->second.on_wheel(*this, cur, delta, it->second.user_data);
+				return;
+			}
+			if (_tree == nullptr)
+				return;
+			cur = _tree->node(cur).parent;
+		}
+	}
+
+	void input_router_t::on_key(const key_event_t& ev)
+	{
+		if (_focused == INVALID_WIDGET)
+			return;
+		auto it = _listeners.find(_focused);
+		if (it != _listeners.end() && it->second.on_key)
+			it->second.on_key(*this, _focused, ev, it->second.user_data);
+	}
+
+	void input_router_t::set_focus(widget_id_t id, bool from_nav)
+	{
+		if (_focused == id)
+			return;
+		if (_focused != INVALID_WIDGET)
+		{
+			auto it = _listeners.find(_focused);
+			if (it != _listeners.end() && it->second.on_focus_lose)
+				it->second.on_focus_lose(*this, _focused, from_nav, it->second.user_data);
+		}
+		_focused = id;
+		if (_focused != INVALID_WIDGET)
+		{
+			auto it = _listeners.find(_focused);
+			if (it != _listeners.end() && it->second.on_focus_gain)
+				it->second.on_focus_gain(*this, _focused, from_nav, it->second.user_data);
+		}
+	}
+
+	void input_router_t::next_focus()
+	{
+		if (_focus_order.empty())
+			return;
+		size_t idx = 0;
+		if (_focused != INVALID_WIDGET)
+		{
+			for (size_t i = 0; i < _focus_order.size(); ++i)
+			{
+				if (_focus_order[i] == _focused)
+				{
+					idx = (i + 1) % _focus_order.size();
+					break;
+				}
+			}
+		}
+		set_focus(_focus_order[idx], true);
+	}
+
+	void input_router_t::prev_focus()
+	{
+		if (_focus_order.empty())
+			return;
+		size_t idx = _focus_order.size() - 1;
+		if (_focused != INVALID_WIDGET)
+		{
+			for (size_t i = 0; i < _focus_order.size(); ++i)
+			{
+				if (_focus_order[i] == _focused)
+				{
+					idx = (i + _focus_order.size() - 1) % _focus_order.size();
+					break;
+				}
+			}
+		}
+		set_focus(_focus_order[idx], true);
+	}
+}

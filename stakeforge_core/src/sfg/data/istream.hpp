@@ -42,10 +42,12 @@ namespace sfg
 	{
 	public:
 		istream_t() = default;
+
 		istream_t(u8* data, size_t size)
 		{
 			open(data, size);
 		}
+
 		~istream_t()
 		{
 			destroy();
@@ -73,9 +75,13 @@ namespace sfg
 		void close();
 		void create(u8* data, size_t size);
 		void destroy();
-		void read_from_ifstream(std::ifstream& stream);
 		void read_to_raw_endian_safe(void* ptr, size_t size);
+		void read_from_ifstream(std::ifstream& stream);
 		void read_to_raw(u8* ptr, size_t size);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
 
 		template <typename T> std::enable_if_t<std::is_trivially_copyable_v<T>, void> read(T& t)
 		{

@@ -35,7 +35,7 @@ namespace sfg
 	void register_texture_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::texture;
+		desc.type				  = resource_type_e::texture;
 		desc.metadata_size		  = sizeof(texture_metadata_t);
 		desc.metadata_alignment	  = alignof(texture_metadata_t);
 		desc.internals_size		  = sizeof(texture_internals_t);

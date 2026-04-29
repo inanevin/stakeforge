@@ -36,9 +36,9 @@ namespace sfg
 	struct vec2u16_t;
 	struct vec2i16_t;
 	struct window_runtime_t;
-	enum class window_style_t : u8;
-	enum class window_cursor_confinement_t : u8;
-	enum class window_cursor_state_t : u8;
+	enum class window_style_e : u8;
+	enum class window_cursor_confinement_e : u8;
+	enum class window_cursor_state_e : u8;
 
 	enum character_mask
 	{
@@ -91,14 +91,14 @@ namespace sfg
 		// window
 		// -----------------------------------------------------------------------------
 
-		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_t window_style, window_runtime_t& runtime);
+		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, window_runtime_t& runtime);
 		static void destroy_window(void* window_handle);
 		static void set_window_runtime(void* window_handle, window_runtime_t& runtime);
-		static void set_window_size(void* window, const vec2u16_t& size, window_style_t style);
+		static void set_window_size(void* window, const vec2u16_t& size, window_style_e style);
 		static void set_window_position(void* window, const vec2i16_t& pos);
-		static void set_window_style(void* window, const vec2u16_t& size, window_style_t style);
-		static void set_cursor_confinement(void* window_handle, window_cursor_confinement_t conf);
-		static void set_cursor_state(window_cursor_state_t state);
+		static void set_window_style(void* window, const vec2u16_t& size, window_style_e style);
+		static void set_cursor_confinement(void* window_handle, window_cursor_confinement_e conf);
+		static void set_cursor_state(window_cursor_state_e state);
 		static void set_cursor_visible(bool visible);
 
 	private:

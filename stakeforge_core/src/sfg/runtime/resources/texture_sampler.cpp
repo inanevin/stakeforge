@@ -35,7 +35,7 @@ namespace sfg
 	void register_texture_sampler_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::texture_sampler;
+		desc.type				  = resource_type_e::texture_sampler;
 		desc.metadata_size		  = sizeof(texture_sampler_metadata_t);
 		desc.metadata_alignment	  = alignof(texture_sampler_metadata_t);
 		desc.internals_size		  = sizeof(texture_sampler_internals_t);

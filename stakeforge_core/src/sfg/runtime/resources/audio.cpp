@@ -35,7 +35,7 @@ namespace sfg
 	void register_audio_resource(resource_manager_t& resource_manager)
 	{
 		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_t::audio;
+		desc.type				  = resource_type_e::audio;
 		desc.metadata_size		  = sizeof(audio_metadata_t);
 		desc.metadata_alignment	  = alignof(audio_metadata_t);
 		desc.internals_size		  = sizeof(audio_internals_t);
