@@ -30,15 +30,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-
 	gfx_bind_layout_handle gfx_util_t::create_bind_layout_global(bool is_compute)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
 		gfx_bind_layout_handle layout = backend->create_empty_bind_layout();
-
-		backend->bind_layout_add_descriptor(layout, binding_type::ubo, 0, rpi_engine_cbv, shader_stage::all);
-		backend->bind_layout_add_constant(layout, constant_index_max, 0, rpi_constants, shader_stage::all);
+		backend->bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage::all);
 
 		const shader_stage stg = is_compute ? shader_stage::compute : shader_stage::fragment;
 
@@ -51,8 +48,6 @@ namespace sfg
 
 		if (!is_compute)
 		{
-			backend->bind_layout_add_immutable_sampler(layout, 0, 6, gfx_util_t::get_sampler_desc_gui_default(), stg);
-			backend->bind_layout_add_immutable_sampler(layout, 0, 7, gfx_util_t::get_sampler_desc_gui_text(), stg);
 			backend->bind_layout_add_immutable_sampler(layout, 0, 8, gfx_util_t::get_sampler_desc_shadow_2d(), stg);
 			backend->bind_layout_add_immutable_sampler(layout, 0, 9, gfx_util_t::get_sampler_desc_shadow_cube(), stg);
 		}
@@ -139,32 +134,6 @@ namespace sfg
 		};
 	}
 
-	sampler_desc_t gfx_util_t::get_sampler_desc_gui_default()
-	{
-		return {
-			.anisotropy = 0,
-			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
-			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_linear | sampler_flags::saf_border_transparent,
-			.address_u	= address_mode::clamp,
-			.address_v	= address_mode::clamp,
-		};
-	}
-
-	sampler_desc_t gfx_util_t::get_sampler_desc_gui_text()
-	{
-		return {
-			.anisotropy = 0,
-			.min_lod	= 0.0f,
-			.max_lod	= 1.0f,
-			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_linear | sampler_flags::saf_border_white,
-			.address_u	= address_mode::clamp,
-			.address_v	= address_mode::clamp,
-		};
-	}
-
 	sampler_desc_t gfx_util_t::get_sampler_desc_shadow_2d()
 	{
 		return {
@@ -205,48 +174,6 @@ namespace sfg
 			.alpha_blend_op			= blend_op::add,
 			.color_comp_flags		= ccf_red | ccf_green | ccf_blue | ccf_alpha,
 		};
-	}
-
-	vector_t<vertex_input_t> gfx_util_t::get_input_layout(input_layout_type type)
-	{
-		vector_t<vertex_input_t> inputs;
-
-		switch (type)
-		{
-		case input_layout_type::gui_default: {
-			inputs = {
-				{
-					.name	  = "POSITION",
-					.location = 0,
-					.index	  = 0,
-					.offset	  = 0,
-					.size	  = sizeof(vec2f_t),
-					.format	  = format_e::r32g32_sfloat,
-				},
-				{
-					.name	  = "TEXCOORD",
-					.location = 0,
-					.index	  = 0,
-					.offset	  = sizeof(vec2f_t),
-					.size	  = sizeof(vec2f_t),
-					.format	  = format_e::r32g32_sfloat,
-				},
-				{
-					.name	  = "COLOR",
-					.location = 0,
-					.index	  = 0,
-					.offset	  = sizeof(vec2f_t) * 2,
-					.size	  = sizeof(vec4f_t),
-					.format	  = format_e::r32g32b32a32_sfloat,
-				},
-			};
-			break;
-		}
-		default:
-			break;
-		}
-
-		return inputs;
 	}
 
 }

@@ -1,29 +1,48 @@
-#define UI_SDF_RS \
-	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED)," \
-	"RootConstants(num32BitConstants=16, b0, space=0, visibility=SHADER_VISIBILITY_VERTEX)," \
-	"RootConstants(num32BitConstants=4, b1, space=0, visibility=SHADER_VISIBILITY_PIXEL)," \
-	"StaticSampler(s0, " \
-		"filter=FILTER_MIN_MAG_MIP_LINEAR, " \
-		"addressU=TEXTURE_ADDRESS_CLAMP, " \
-		"addressV=TEXTURE_ADDRESS_CLAMP, " \
-		"addressW=TEXTURE_ADDRESS_CLAMP, " \
-		"borderColor=STATIC_BORDER_COLOR_TRANSPARENT_BLACK, " \
-		"visibility=SHADER_VISIBILITY_PIXEL)"
+// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  This file is a part of: Stakeforge Engine
+//  https://github.com/inanevin/StakeforgeEngine
+//  
+//  Author: Inan Evin
+//  http://www.inanevin.com
+//  
+//  Copyright (c) [2025-] [Inan Evin]
+//  
+//  Redistribution and use in source and binary forms, with or without modification,
+//  are permitted provided that the following conditions are met:
+//  
+//     1. Redistributions of source code must retain the above copyright notice, this
+//        list of conditions and the following disclaimer.
+//  
+//     2. Redistributions in binary form must reproduce the above copyright notice,
+//        this list of conditions and the following disclaimer in the documentation
+//        and/or other materials provided with the distribution.
+//  
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+//  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+//  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+//  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+//  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+//  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+//  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+//  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+//  OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+//  OF THE POSSIBILITY OF SUCH DAMAGE.
+// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-cbuffer projection_cb : register(b0, space0)
+#include "layout_defines.hlsl"
+
+struct projection_cb
 {
 	float4x4 projection;
 };
 
-cbuffer mat_cb : register(b1, space0)
+struct mat_cb
 {
-	uint  atlas_idx;
 	float sdf_threshold;
 	float sdf_softness;
-	uint  _pad0;
 };
 
-SamplerState samp_linear : register(s0, space0);
+SamplerState samp_linear : static_sampler_linear;
 
 struct VSInput
 {
@@ -39,21 +58,24 @@ struct VSOutput
 	float4 color : COLOR0;
 };
 
-[RootSignature(UI_SDF_RS)]
 VSOutput VSMain(VSInput IN)
 {
 	VSOutput OUT;
-	OUT.pos   = mul(projection, float4(IN.pos, 0.0f, 1.0f));
+	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_rp_constant0);
+	OUT.pos   = mul(proj.projection, float4(IN.pos, 0.0f, 1.0f));
 	OUT.uv    = IN.uv;
 	OUT.color = IN.color;
 	return OUT;
 }
 
+
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	Texture2D atlas    = ResourceDescriptorHeap[atlas_idx];
+	Texture2D atlas = sfg_get_texture<Texture2D>(sfg_mat_constant0);
+	mat_cb mat = sfg_get_cbv<mat_cb>(sfg_mat_constant1);
+
 	float     d        = atlas.SampleLevel(samp_linear, IN.uv, 0).r;
-	float     w        = max(sdf_softness, fwidth(d));
-	float     coverage = smoothstep(sdf_threshold - w, sdf_threshold + w, d);
+	float     w        = max(mat.sdf_softness, fwidth(d));
+	float     coverage = smoothstep(mat.sdf_threshold - w, mat.sdf_threshold + w, d);
 	return float4(IN.color.rgb, IN.color.a * coverage);
 }
