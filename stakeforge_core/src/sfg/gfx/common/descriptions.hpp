@@ -211,7 +211,7 @@ namespace sfg
 		u8			array_length	= 1;
 		u8			samples			= 1;
 		f32			clear_values[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-		const char* debug_name		= "texture";
+		string_t	debug_name		= "texture";
 	};
 
 	struct sampler_desc_t

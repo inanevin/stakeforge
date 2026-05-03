@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vg_canvas.hpp"
 #include "vg_path.hpp"
-#include "vg_atlas.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>

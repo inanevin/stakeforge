@@ -102,9 +102,9 @@ namespace sfg
 
 		stream << font_wire_magic;
 		stream << font_wire_version;
+		stream << total_pixels;
 		stream << src.ascent << src.descent << src.line_gap;
 		stream << src.size << src.scale << src.kind;
-		stream << total_pixels;
 
 		for (u32 i = 0; i < 128; ++i)
 		{

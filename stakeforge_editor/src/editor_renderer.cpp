@@ -12,7 +12,8 @@
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/ui/vg/vg_atlas.hpp>
+#include <sfg/runtime/resources/atlas.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/ui/vg/vg_canvas.hpp>
 
 namespace sfg
@@ -28,12 +29,7 @@ namespace sfg
 
 	bool editor_renderer_t::init()
 	{
-		gfx_backend* backend = gfx_backend::get();
-		if (backend == nullptr)
-		{
-			SFG_ERR("editor renderer requires an initialized backend!");
-			return false;
-		}
+		gfx_backend& backend = gfx_backend::get();
 
 		const resource_pack_t& resources = editor_app_t::get().get_resources();
 
@@ -52,8 +48,8 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd			= _pfd[i];
-			pfd.semaphore_frame.semaphore_t = backend->create_semaphore();
-			pfd.command_buffer				= backend->create_command_buffer({
+			pfd.semaphore_frame.semaphore_t = backend.create_semaphore();
+			pfd.command_buffer				= backend.create_command_buffer({
 							 .type		 = command_type::graphics,
 							 .debug_name = "editor_gfx",
 			 });
@@ -62,9 +58,9 @@ namespace sfg
 			g_desc.size			   = sizeof(global_buffer_data_t);
 			g_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 			g_desc.debug_name	   = "editor_global";
-			pfd.global_buffer	   = backend->create_resource(g_desc);
-			backend->map_resource(pfd.global_buffer, pfd.mapped_global);
-			pfd.global_index = backend->get_resource_gpu_index(pfd.global_buffer);
+			pfd.global_buffer	   = backend.create_resource(g_desc);
+			backend.map_resource(pfd.global_buffer, pfd.mapped_global);
+			pfd.global_index = backend.get_resource_gpu_index(pfd.global_buffer);
 		}
 
 		_swapchains.reserve(8);
@@ -75,25 +71,25 @@ namespace sfg
 
 	void editor_renderer_t::uninit()
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		join();
 
 		// _ui_renderer.uninit();
 		_texture_queue.uninit();
 
-		backend->destroy_bind_layout(_global_layout);
+		backend.destroy_bind_layout(_global_layout);
 		_global_layout = {};
 
 		for (gfx_swapchain_handle swapchain : _swapchains)
-			backend->destroy_swapchain(swapchain);
+			backend.destroy_swapchain(swapchain);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd = _pfd[i];
-			backend->destroy_resource(pfd.global_buffer);
-			backend->destroy_command_buffer(pfd.command_buffer);
-			backend->destroy_semaphore(pfd.semaphore_frame.semaphore_t);
+			backend.destroy_resource(pfd.global_buffer);
+			backend.destroy_command_buffer(pfd.command_buffer);
+			backend.destroy_semaphore(pfd.semaphore_frame.semaphore_t);
 			pfd = {};
 		}
 
@@ -105,22 +101,22 @@ namespace sfg
 
 	void editor_renderer_t::join()
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			const per_frame_data_t& pfd = _pfd[i];
 			if (!pfd.semaphore_frame.semaphore_t.is_null())
-				backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+				backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 		}
 	}
 
 	gfx_swapchain_handle editor_renderer_t::create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size)
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(window_handle != nullptr);
 
-		const gfx_swapchain_handle swapchain = backend->create_swapchain({
+		const gfx_swapchain_handle swapchain = backend.create_swapchain({
 			.window_t  = window_handle,
 			.os_handle = platform_handle,
 			.scaling   = dpi_scale == 0.0f ? 1.0f : dpi_scale,
@@ -136,10 +132,10 @@ namespace sfg
 
 	void editor_renderer_t::resize_swapchain(gfx_swapchain_handle swapchain, vec2u16_t size, f32 dpi_scale)
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(!swapchain.is_null());
 
-		backend->recreate_swapchain({
+		backend.recreate_swapchain({
 			.size		 = size,
 			.swapchain_t = swapchain,
 			.scaling	 = dpi_scale == 0.0f ? 1.0f : dpi_scale,
@@ -149,12 +145,12 @@ namespace sfg
 
 	void editor_renderer_t::destroy_swapchain(gfx_swapchain_handle swapchain)
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		if (swapchain.is_null())
 			return;
 
-		backend->destroy_swapchain(swapchain);
+		backend.destroy_swapchain(swapchain);
 
 		for (size_t i = 0; i < _swapchains.size(); i++)
 		{
@@ -169,7 +165,9 @@ namespace sfg
 
 	void editor_renderer_t::render(span_t<const surface_render_target_t> targets, f32 delta_time)
 	{
-		gfx_backend* backend = gfx_backend::get();
+		render_resources_t::get().drain();
+
+		gfx_backend& backend = gfx_backend::get();
 
 		if (targets.size == 0)
 			return;
@@ -177,23 +175,23 @@ namespace sfg
 		for (size_t i = 0; i < targets.size; i++)
 		{
 			const surface_render_target_t& t = targets.data[i];
-			backend->wait_for_swapchain_latency(t.swapchain);
-			backend->get_back_buffer_index(t.swapchain);
+			backend.wait_for_swapchain_latency(t.swapchain);
+			backend.get_back_buffer_index(t.swapchain);
 		}
 
 		_elapsed_time += delta_time;
 		_frame_index		  = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd = _pfd[_frame_index];
-		backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+		backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 
 		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = _elapsed_time};
 		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
 
 		const gfx_command_buffer_handle command_buffer = pfd.command_buffer;
-		backend->reset_command_buffer(command_buffer);
+		backend.reset_command_buffer(command_buffer);
 
-		backend->cmd_bind_layout(command_buffer, {.layout = _global_layout});
-		backend->cmd_bind_constants(command_buffer, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
+		backend.cmd_bind_layout(command_buffer, {.layout = _global_layout});
+		backend.cmd_bind_constants(command_buffer, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		_texture_queue.flush(command_buffer);
 		_texture_queue.transit(command_buffer);
@@ -208,7 +206,7 @@ namespace sfg
 				.swapchain_t = t.swapchain,
 				.flags		 = barrier_flags::baf_is_swapchain,
 			};
-			backend->cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
+			backend.cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
 
 			render_pass_swapchain_attachment_t attachment = {
 				.clear_color = vec4f_t(0.04f, 0.04f, 0.04f, 1.0f),
@@ -218,15 +216,15 @@ namespace sfg
 				.view_index	 = 0,
 			};
 
-			backend->cmd_begin_render_pass_swapchain(command_buffer,
+			backend.cmd_begin_render_pass_swapchain(command_buffer,
 													 {
 														 .color_attachments		 = &attachment,
 														 .color_attachment_count = 1,
 													 });
 
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
-			backend->cmd_set_viewport(command_buffer, vp);
-			backend->cmd_end_render_pass(command_buffer, {});
+			backend.cmd_set_viewport(command_buffer, vp);
+			backend.cmd_end_render_pass(command_buffer, {});
 
 			barrier = {
 				.from_states = resource_state_render_target,
@@ -234,22 +232,22 @@ namespace sfg
 				.swapchain_t = t.swapchain,
 				.flags		 = barrier_flags::baf_is_swapchain,
 			};
-			backend->cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
+			backend.cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
 		}
 
-		backend->close_command_buffer(command_buffer);
+		backend.close_command_buffer(command_buffer);
 
-		const gfx_queue_handle queue_gfx = backend->get_queue_gfx();
-		backend->submit_commands(queue_gfx, &command_buffer, 1);
+		const gfx_queue_handle queue_gfx = backend.get_queue_gfx();
+		backend.submit_commands(queue_gfx, &command_buffer, 1);
 
 		frame_vector_t<gfx_swapchain_handle> present_list;
 
 		for (size_t i = 0; i < targets.size; i++)
 			present_list.push_back(targets.data[i].swapchain);
-		backend->present(present_list.data(), static_cast<u8>(targets.size));
+		backend.present(present_list.data(), static_cast<u8>(targets.size));
 
 		pfd.semaphore_frame.value++;
-		backend->queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
+		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
 
 		_frame_counter++;
 	}

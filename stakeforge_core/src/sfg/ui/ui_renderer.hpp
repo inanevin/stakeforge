@@ -33,13 +33,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class atlas_t;
 	class texture_queue_t;
 }
 
 namespace sfg::ui
 {
 	class vg_canvas_t;
-	class vg_atlas_t;
 
 	struct ui_render_group_t
 	{
@@ -73,7 +73,7 @@ namespace sfg::ui
 		// atlas
 		// -----------------------------------------------------------------------------
 
-		void update_atlas(texture_queue_t& queue, vg_atlas_t* atlas);
+		void update_atlas(texture_queue_t& queue, atlas_t* atlas);
 
 	private:
 		struct per_frame_data_t

@@ -32,27 +32,27 @@ namespace sfg
 {
 	gfx_bind_layout_handle gfx_util_t::create_bind_layout_global(bool is_compute)
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
-		gfx_bind_layout_handle layout = backend->create_empty_bind_layout();
-		backend->bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage::all);
+		gfx_bind_layout_handle layout = backend.create_empty_bind_layout();
+		backend.bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage::all);
 
 		const shader_stage stg = is_compute ? shader_stage::compute : shader_stage::fragment;
 
-		backend->bind_layout_add_immutable_sampler(layout, 0, 0, gfx_util_t::get_sampler_desc_anisotropic(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 1, gfx_util_t::get_sampler_desc_anisotropic_repeat(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 2, gfx_util_t::get_sampler_desc_linear(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 3, gfx_util_t::get_sampler_desc_linear_repeat(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 4, gfx_util_t::get_sampler_desc_nearest(), stg);
-		backend->bind_layout_add_immutable_sampler(layout, 0, 5, gfx_util_t::get_sampler_desc_nearest_repeat(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 0, gfx_util_t::get_sampler_desc_anisotropic(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 1, gfx_util_t::get_sampler_desc_anisotropic_repeat(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 2, gfx_util_t::get_sampler_desc_linear(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 3, gfx_util_t::get_sampler_desc_linear_repeat(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 4, gfx_util_t::get_sampler_desc_nearest(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 5, gfx_util_t::get_sampler_desc_nearest_repeat(), stg);
 
 		if (!is_compute)
 		{
-			backend->bind_layout_add_immutable_sampler(layout, 0, 8, gfx_util_t::get_sampler_desc_shadow_2d(), stg);
-			backend->bind_layout_add_immutable_sampler(layout, 0, 9, gfx_util_t::get_sampler_desc_shadow_cube(), stg);
+			backend.bind_layout_add_immutable_sampler(layout, 0, 8, gfx_util_t::get_sampler_desc_shadow_2d(), stg);
+			backend.bind_layout_add_immutable_sampler(layout, 0, 9, gfx_util_t::get_sampler_desc_shadow_cube(), stg);
 		}
 
-		backend->finalize_bind_layout(layout, is_compute, true, "global_layout");
+		backend.finalize_bind_layout(layout, is_compute, true, "global_layout");
 
 		return layout;
 	}

@@ -6,24 +6,20 @@
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 
 namespace sfg
 {
 	bool renderer_t::init()
 	{
-		gfx_backend* backend = gfx_backend::get();
-		if (backend == nullptr)
-		{
-			SFG_ERR("renderer requires an initialized backend!");
-			return false;
-		}
+		gfx_backend& backend = gfx_backend::get();
 
 		_global_bind_layout			= gfx_util_t::create_bind_layout_global(false);
 		_global_compute_bind_layout = gfx_util_t::create_bind_layout_global(true);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
-			_pfd[i].semaphore_frame.semaphore_t = backend->create_semaphore();
+			_pfd[i].semaphore_frame.semaphore_t = backend.create_semaphore();
 			_pfd[i].semaphore_frame.value		= 0;
 		}
 
@@ -32,7 +28,7 @@ namespace sfg
 
 	void renderer_t::uninit()
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -40,13 +36,13 @@ namespace sfg
 			if (pfd.semaphore_frame.semaphore_t.is_null())
 				continue;
 
-			backend->destroy_semaphore(pfd.semaphore_frame.semaphore_t);
+			backend.destroy_semaphore(pfd.semaphore_frame.semaphore_t);
 			pfd.semaphore_frame.semaphore_t = {};
 			pfd.semaphore_frame.value		= 0;
 		}
 
-		backend->destroy_bind_layout(_global_bind_layout);
-		backend->destroy_bind_layout(_global_compute_bind_layout);
+		backend.destroy_bind_layout(_global_bind_layout);
+		backend.destroy_bind_layout(_global_compute_bind_layout);
 
 		_global_bind_layout			= {};
 		_global_compute_bind_layout = {};
@@ -56,27 +52,29 @@ namespace sfg
 
 	void renderer_t::join()
 	{
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd = _pfd[i];
-			backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+			backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 		}
 	}
 
 	void renderer_t::render()
 	{
-		gfx_backend* backend = gfx_backend::get();
+		render_resources_t::get().drain();
 
-		const gfx_queue_handle queue_gfx = backend->get_queue_gfx();
+		gfx_backend& backend = gfx_backend::get();
+
+		const gfx_queue_handle queue_gfx = backend.get_queue_gfx();
 		_frame_index					 = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 
 		per_frame_data_t& pfd = _pfd[_frame_index];
-		backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+		backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 
 		pfd.semaphore_frame.value++;
-		backend->queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
+		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
 
 		_frame_counter++;
 	}

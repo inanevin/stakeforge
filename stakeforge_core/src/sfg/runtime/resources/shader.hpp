@@ -61,5 +61,5 @@ namespace sfg
 	extern const resource_type_desc_t shader_resource_desc;
 
 	inline constexpr u32 shader_wire_magic	 = 0x52444853;
-	inline constexpr u32 shader_wire_version = 2;
+	inline constexpr u32 shader_wire_version = 3;
 }

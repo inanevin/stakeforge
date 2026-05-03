@@ -71,5 +71,5 @@ namespace sfg
 	extern const resource_type_desc_t font_resource_desc;
 
 	inline constexpr u32 font_wire_magic   = 0x53464E54;
-	inline constexpr u32 font_wire_version = 1;
+	inline constexpr u32 font_wire_version = 2;
 }

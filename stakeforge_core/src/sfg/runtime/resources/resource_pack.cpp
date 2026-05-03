@@ -198,7 +198,6 @@ namespace sfg
 
 		_watcher.set_callback(&resource_pack_t::on_file_changed, this);
 
-		_mgr->wait_for_all();
 		return true;
 	}
 
@@ -236,7 +235,6 @@ namespace sfg
 		{
 			for (sid_t sid : _loaded)
 				_mgr->unload_resource(sid);
-			_mgr->wait_for_all();
 		}
 		_loaded.clear();
 		_mgr = nullptr;

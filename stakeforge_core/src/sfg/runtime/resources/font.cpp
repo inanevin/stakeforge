@@ -9,9 +9,10 @@ namespace sfg
 {
 	bool font_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx)
 	{
-		u32 magic	= 0;
-		u32 version = 0;
-		stream >> magic >> version;
+		u32 magic		 = 0;
+		u32 version		 = 0;
+		u32 payload_size = 0;
+		stream >> magic >> version >> payload_size;
 		if (magic != font_wire_magic || version != font_wire_version)
 		{
 			SFG_ERR("invalid font binary, magic={0} version={1}", magic, version);
@@ -20,11 +21,12 @@ namespace sfg
 
 		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
 		font_data_t*	   data = mem.get<font_data_t>(entry.cpu_data);
-		data->pixels			= chunk_handle32_t{};
+
+		data->pixels	  = entry.payload;
+		data->pixels_size = payload_size;
 
 		stream >> data->ascent >> data->descent >> data->line_gap;
 		stream >> data->size >> data->scale >> data->kind;
-		stream >> data->pixels_size;
 
 		for (u32 i = 0; i < 128; i++)
 		{
@@ -36,11 +38,10 @@ namespace sfg
 				stream >> g.kern_advance[k];
 		}
 
-		if (data->pixels_size != 0)
+		if (payload_size != 0)
 		{
-			data->pixels = mem.allocate_bytes(data->pixels_size, 1);
-			u8* dst		 = mem.get(data->pixels.head);
-			stream.read_to_raw(dst, static_cast<size_t>(data->pixels_size));
+			u8* dst = mem.get(entry.payload.head);
+			stream.read_to_raw(dst, static_cast<size_t>(payload_size));
 		}
 
 		return true;
@@ -59,14 +60,8 @@ namespace sfg
 	{
 	}
 
-	void font_unload_cpu(resource_entry_t& entry, resource_context_t& ctx)
+	void font_unload_cpu(resource_entry_t&, resource_context_t&)
 	{
-		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
-		font_data_t*	   data = mem.get<font_data_t>(entry.cpu_data);
-		if (data->pixels)
-			mem.free(data->pixels);
-		data->pixels	  = chunk_handle32_t{};
-		data->pixels_size = 0;
 	}
 
 	const resource_type_desc_t font_resource_desc = {

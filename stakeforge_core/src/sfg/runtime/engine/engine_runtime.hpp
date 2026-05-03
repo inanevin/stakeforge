@@ -52,12 +52,12 @@ namespace sfg
 
 		inline resource_manager_t& get_resource_manager()
 		{
-			return _resource_manager;
+			return resource_manager_t::get();
 		}
 
 		inline const resource_manager_t& get_resource_manager() const
 		{
-			return _resource_manager;
+			return resource_manager_t::get();
 		}
 
 	private:
@@ -69,7 +69,6 @@ namespace sfg
 	private:
 		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;
 		renderer_t										   _renderer;
-		resource_manager_t								   _resource_manager;
 		engine_config_t									   _config = {};
 		std::thread										   _render_thread;
 		i64												   _previous_time		 = 0;

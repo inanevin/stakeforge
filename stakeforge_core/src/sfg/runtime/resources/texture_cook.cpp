@@ -73,9 +73,9 @@ namespace sfg
 
 		stream << texture_wire_magic;
 		stream << texture_wire_version;
+		stream << total;
 		stream << src.width << src.height;
 		stream << src.channels << is_linear_u8 << src.mip_count;
-		stream << total;
 
 		for (u8 i = 0; i < src.mip_count; ++i)
 		{

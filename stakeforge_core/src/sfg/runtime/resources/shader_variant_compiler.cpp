@@ -12,11 +12,11 @@ namespace sfg
 	{
 		bool compile_stage(u8 stage_u8, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& include_paths, const char* entry, shader_compile_blob_t& out)
 		{
-			gfx_backend* backend = gfx_backend::get();
+			gfx_backend& backend = gfx_backend::get();
 			span_t<u8>	 blob	 = {};
 			span_t<u8>	 dummy	 = {};
 
-			if (!backend->compile_shader_vertex_pixel(stage_u8, source, defines, include_paths, entry, blob, false, dummy))
+			if (!backend.compile_shader_vertex_pixel(stage_u8, source, defines, include_paths, entry, blob, false, dummy))
 				return false;
 
 			out.stage = stage_u8;

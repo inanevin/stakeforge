@@ -644,34 +644,12 @@ namespace sfg
 
 	}
 
-	unique_t<dx12_backend_t> dx12_backend_t::s_instance = nullptr;
-
-	bool dx12_backend_t::init_instance()
-	{
-		if (s_instance != nullptr)
-			return false;
-
-		s_instance				= make_unique<dx12_backend_t>();
-		dx12_backend_t* backend = dx12_backend_t::get();
-		if (!backend->init())
-		{
-			s_instance.reset();
-			return false;
-		}
-
-		return true;
-	}
-
-	void dx12_backend_t::uninit_instance()
-	{
-		dx12_backend_t* backend = dx12_backend_t::get();
-		backend->uninit();
-		s_instance.reset();
-	}
-
 	DWORD msgcallback = 0;
 	bool  dx12_backend_t::init()
 	{
+		if (_device != nullptr)
+			return false;
+
 		UINT dxgiFactoryFlags = 0;
 
 #ifdef SFG_GFX_USE_DEBUG_LAYERS
@@ -807,6 +785,9 @@ namespace sfg
 
 	void dx12_backend_t::uninit()
 	{
+		if (_device == nullptr)
+			return;
+
 		destroy_queue(_queue_graphics);
 		destroy_queue(_queue_transfer);
 		destroy_queue(_queue_compute);
@@ -1184,7 +1165,7 @@ namespace sfg
 		const D3D12_RESOURCE_ALLOCATION_INFO& allocation_info = _device->GetResourceAllocationInfo(0, 1, &resource_desc_t);
 
 		throw_if_failed(_allocator->CreateResource(&allocation_desc, &resource_desc_t, state, clear_value_ptr, &txt.ptr, IID_NULL, NULL));
-		NAME_DX12_OBJECT_CSTR(txt.ptr->GetResource(), desc.debug_name);
+		NAME_DX12_OBJECT_CSTR(txt.ptr->GetResource(), desc.debug_name.c_str());
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
 		{

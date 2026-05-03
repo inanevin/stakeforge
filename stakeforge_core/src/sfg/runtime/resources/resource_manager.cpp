@@ -3,7 +3,9 @@
 #include "resource_manager.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/job/job_system.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 
 #include <thread>
 
@@ -12,10 +14,17 @@ namespace sfg
 	resource_manager_t::resource_manager_t()  = default;
 	resource_manager_t::~resource_manager_t() = default;
 
+	resource_manager_t& resource_manager_t::get()
+	{
+		static resource_manager_t instance;
+		return instance;
+	}
+
 	void resource_manager_t::init(u32 max_resources, size_t resource_memory_size)
 	{
 		SFG_ASSERT(resource_memory_size != 0);
 		_memory.init(resource_memory_size);
+		_atlas_manager.init();
 		_entries.reserve(256);
 		_loads.reserve(256);
 		_unloads.reserve(256);
@@ -25,6 +34,7 @@ namespace sfg
 	{
 		wait_for_all();
 		_entries.clear();
+		_atlas_manager.uninit();
 		_memory.uninit();
 	}
 
@@ -33,6 +43,7 @@ namespace sfg
 		// update completed ones, fire awaiting, clean unloaded.
 
 		drain_completed();
+		drain_render_completed();
 
 		if (!_loads.empty())
 			fire_loads();
@@ -57,6 +68,7 @@ namespace sfg
 		}
 
 		drain_completed();
+		drain_render_completed();
 		drain_unloads();
 	}
 
@@ -82,7 +94,7 @@ namespace sfg
 			});
 		}
 
-		_loads.clear();
+		_loads.resize(0);
 	}
 
 	void resource_manager_t::drain_completed()
@@ -94,35 +106,97 @@ namespace sfg
 			SFG_ASSERT(entry);
 
 			if (entry->state == resource_state_e::queued)
-				entry->state = resource_state_e::cpu_ready;
+			{
+				entry->state					 = resource_state_e::cpu_ready;
+				const resource_type_desc_t* desc = find_resource_type_desc(entry->type);
+
+				if (!desc->create_internals)
+					entry->state = resource_state_e::ready;
+				else
+				{
+					resource_context_t ctx{*this};
+					if (!desc->create_internals(*entry, ctx))
+						entry->state = resource_state_e::failed;
+					else if (desc->complete_internals != nullptr)
+						entry->state = resource_state_e::internals_queued;
+					else
+						entry->state = resource_state_e::ready;
+				}
+			}
 
 			_memory.free(req.data);
 		}
 	}
 
+	void resource_manager_t::drain_render_completed()
+	{
+		render_resource_completion_t completion = {};
+		while (render_resources_t::get().try_dequeue_completion(completion))
+		{
+			resource_entry_t* entry = find_entry(completion.hash);
+			SFG_ASSERT(entry);
+			SFG_ASSERT(entry->type == completion.type);
+			SFG_ASSERT(entry->state == resource_state_e::internals_queued);
+
+			if (completion.state == resource_state_e::failed)
+			{
+				entry->state = resource_state_e::failed;
+				continue;
+			}
+
+			const resource_type_desc_t* desc = find_resource_type_desc(entry->type);
+			if (desc->complete_internals == nullptr)
+			{
+				entry->state = resource_state_e::ready;
+				continue;
+			}
+
+			resource_context_t ctx{*this};
+			if (desc->complete_internals(*entry, ctx, completion.get_payload()))
+				entry->state = resource_state_e::ready;
+			else
+				entry->state = resource_state_e::failed;
+		}
+	}
+
 	void resource_manager_t::drain_unloads()
 	{
-		if (!_unloads.empty() && _pending.load(std::memory_order_acquire) == 0)
+		if (_unloads.empty() || _pending.load(std::memory_order_acquire) != 0)
+			return;
+
+		frame_vector_t<u64> still_pending;
+		for (u64 hash : _unloads)
 		{
-			for (u64 hash : _unloads)
+			auto it = _entries.find(hash);
+			SFG_ASSERT(it != _entries.end());
+
+			resource_entry_t&			e	 = it->second;
+			const resource_type_desc_t* desc = find_resource_type_desc(e.type);
+
+			if (e.state == resource_state_e::internals_queued)
 			{
-				auto it = _entries.find(hash);
-				SFG_ASSERT(it != _entries.end());
-
-				resource_entry_t&			e	 = it->second;
-				const resource_type_desc_t* desc = find_resource_type_desc(e.type);
-
-				resource_context_t ctx{*this};
-				desc->unload(e, ctx);
-
-				if (e.cpu_data)
-					_memory.free(e.cpu_data);
-				if (e.internals)
-					_memory.free(e.internals);
-
-				_entries.erase(it);
+				still_pending.push_back(hash);
+				continue;
 			}
+
+			resource_context_t ctx{*this};
+			if (desc->destroy_internals != nullptr)
+				desc->destroy_internals(e, ctx);
+			desc->unload(e, ctx);
+
+			if (e.cpu_data)
+				_memory.free(e.cpu_data);
+			if (e.internals)
+				_memory.free(e.internals);
+			if (e.payload)
+				_memory.free(e.payload);
+
+			_entries.erase(it);
 		}
+
+		_unloads.resize(0);
+		for (u64 h : still_pending)
+			_unloads.push_back(h);
 	}
 
 	resource_state_e resource_manager_t::load_resource(sid_t hash, span_t<u8> data, resource_type_e type)
@@ -141,13 +215,26 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
+		u32 payload_size = 0;
+		if (data.size >= sizeof(u32) * 3)
+		{
+			SFG_MEMCPY(&payload_size, data.data + sizeof(u32) * 2, sizeof(u32));
+			if (payload_size > data.size)
+			{
+				SFG_ERR("invalid cooked resource, payload_size {0} exceeds data size {1}", payload_size, static_cast<u32>(data.size));
+				return resource_state_e::failed;
+			}
+		}
+
 		resource_entry_t entry = {};
 		entry.type			   = type;
 		entry.ref_count		   = 1;
 		entry.hash			   = hash;
 		entry.cpu_data		   = _memory.allocate_bytes(desc->data_size, desc->data_alignment);
 		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::queued;
+		if (payload_size != 0)
+			entry.payload = _memory.allocate_bytes(payload_size, 1);
+		entry.state = resource_state_e::queued;
 		_entries.emplace(hash, entry);
 
 		const chunk_handle32_t stored = _memory.allocate_bytes(data.size, 8);

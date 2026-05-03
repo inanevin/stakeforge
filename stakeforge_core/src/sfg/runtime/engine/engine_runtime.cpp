@@ -9,6 +9,7 @@
 #include <sfg/platform/time.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/job/job_system.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <functional>
 
 namespace sfg
@@ -31,26 +32,22 @@ namespace sfg
 
 	bool engine_runtime_t::init_backend()
 	{
-		return gfx_backend::init_instance();
+		if (!gfx_backend::get().init())
+			return false;
+		return true;
 	}
 
 	void engine_runtime_t::uninit_backend()
 	{
-		gfx_backend::uninit_instance();
+		render_resources_t::get().drain();
+		gfx_backend::get().uninit();
 	}
 
 	bool engine_runtime_t::init(const engine_config_t& config)
 	{
 		_config = config;
 
-		gfx_backend* backend = gfx_backend::get();
-		if (!backend)
-		{
-			SFG_ERR("engine runtime needs gfx_backend initialized!");
-			return false;
-		}
-
-		_resource_manager.init(_config.resource_max_count, _config.resource_allocator_size);
+		resource_manager_t::get().init(_config.resource_max_count, _config.resource_allocator_size);
 
 		const double fixed_framerate_ns = _config.fixed_framerate_ns;
 
@@ -72,6 +69,8 @@ namespace sfg
 	void engine_runtime_t::uninit()
 	{
 		end_render();
+		render_resources_t::get().drain();
+		resource_manager_t::get().tick();
 
 		for (auto it = _worlds.begin_handle(); it != _worlds.end_handle();)
 		{
@@ -83,9 +82,9 @@ namespace sfg
 			_worlds.remove(handle);
 		}
 
-		_resource_manager.uninit();
+		resource_manager_t::get().uninit();
 		_renderer.uninit();
-		gfx_backend::uninit_instance();
+		uninit_backend();
 
 		_previous_time	   = 0;
 		_accumulator_ns	   = 0;
@@ -103,6 +102,7 @@ namespace sfg
 		SFG_ASSERT(THIS_THREAD_ID == g_engine_runtime_stats.main_thread_id);
 
 		frame_allocator_tls_t::reset();
+		resource_manager_t::get().tick();
 		ensure_render_thread();
 
 		const i64	 tick_start				   = time_t::get_cpu_microseconds();

@@ -15,6 +15,7 @@
 #include <sfg/ui/ui_context.hpp>
 #include <sfg/ui/input/input_router.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <string>
 
 namespace sfg
@@ -80,24 +81,31 @@ namespace sfg
 		if (!engine_runtime_t::init_backend())
 			return false;
 
-		_resource_manager.init(1024, 64ull * 1024ull * 1024ull);
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		resource_manager.init(1024, 64ull * 1024ull * 1024ull);
 
 		resource_pack_t::init_params_t pack_params;
 		pack_params.manifest_path = editor_directories_t::get_editor_manifest();
 		pack_params.assets_dir	  = editor_directories_t::get_editor_assets();
 		pack_params.cache_dir	  = editor_directories_t::get_editor_resource_cache();
 
-		if (!_resources.init(_resource_manager, pack_params))
+		if (!_resources.init(resource_manager, pack_params))
 		{
-			_resource_manager.uninit();
+			render_resources_t::get().drain();
+			resource_manager.tick();
+			resource_manager.uninit();
+			engine_runtime_t::uninit_backend();
 			engine_runtime_t::uninit_globals();
 			return false;
 		}
 
 		if (!_renderer.init())
 		{
+			render_resources_t::get().drain();
+			resource_manager.tick();
 			_resources.uninit();
-			_resource_manager.uninit();
+			resource_manager.uninit();
+			engine_runtime_t::uninit_backend();
 			engine_runtime_t::uninit_globals();
 			return false;
 		}
@@ -119,11 +127,13 @@ namespace sfg
 		}
 		if (_surfaces.empty())
 		{
+			render_resources_t::get().drain();
+			resource_manager.tick();
 			_renderer.uninit();
 			_resources.uninit();
-			_resource_manager.uninit();
-			gfx_backend::uninit_instance();
-			process::uninit();
+			resource_manager.uninit();
+			engine_runtime_t::uninit_backend();
+			engine_runtime_t::uninit_globals();
 			return false;
 		}
 
@@ -137,6 +147,8 @@ namespace sfg
 		save_settings();
 
 		_renderer.join();
+		render_resources_t::get().drain();
+		resource_manager_t::get().tick();
 
 		for (editor_surface_t& surface : _surfaces)
 		{
@@ -153,7 +165,7 @@ namespace sfg
 
 		_renderer.uninit();
 		_resources.uninit();
-		_resource_manager.uninit();
+		resource_manager_t::get().uninit();
 		_surfaces.resize_zero();
 		engine_runtime_t::uninit_backend();
 		engine_runtime_t::uninit_globals();
@@ -180,6 +192,8 @@ namespace sfg
 			frame_allocator_tls_t::reset();
 
 			process::pump_os_messages();
+			_resources.tick();
+			resource_manager_t::get().tick();
 
 			const i64	now = time_t::get_cpu_microseconds();
 			const float dt	= static_cast<f32>(now - _last_tick_us) / 1.0e6f;

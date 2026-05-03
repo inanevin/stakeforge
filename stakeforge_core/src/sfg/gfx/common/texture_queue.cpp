@@ -92,7 +92,7 @@ namespace sfg
 		if (_uploads.empty())
 			return;
 
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		for (entry_t& e : _uploads)
 		{
@@ -104,7 +104,7 @@ namespace sfg
 					.texture_t	 = e.texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				};
-				backend->cmd_barrier(cmd, {.barriers = &pre, .barrier_count = 1});
+				backend.cmd_barrier(cmd, {.barriers = &pre, .barrier_count = 1});
 			}
 
 			command_copy_buffer_to_texture_t cp = {};
@@ -113,7 +113,7 @@ namespace sfg
 			cp.intermediate_buffer				= e.staging;
 			cp.mip_levels						= static_cast<u8>(e.mips.size());
 			cp.destination_slice				= 0;
-			backend->cmd_copy_buffer_to_texture(cmd, cp);
+			backend.cmd_copy_buffer_to_texture(cmd, cp);
 
 			if (e.to_states != 0)
 				_transits.push_back({.texture = e.texture, .to_states = e.to_states});
@@ -129,7 +129,7 @@ namespace sfg
 		if (_transits.empty())
 			return;
 
-		gfx_backend* backend = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		for (const transit_entry_t& te : _transits)
 		{
@@ -139,7 +139,7 @@ namespace sfg
 				.texture_t	 = te.texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
-			backend->cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
+			backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
 		}
 		_transits.resize(0);
 	}

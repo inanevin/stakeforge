@@ -10,9 +10,10 @@ namespace sfg
 {
 	bool shader_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx)
 	{
-		u32 magic	= 0;
-		u32 version = 0;
-		stream >> magic >> version;
+		u32 magic		 = 0;
+		u32 version		 = 0;
+		u32 payload_size = 0;
+		stream >> magic >> version >> payload_size;
 		if (magic != shader_wire_magic || version != shader_wire_version)
 		{
 			SFG_ERR("invalid shader binary, magic={0} version={1}", magic, version);
@@ -23,7 +24,10 @@ namespace sfg
 		shader_data_t*	   data = mem.get<shader_data_t>(entry.cpu_data);
 		*data					= shader_data_t{};
 
-		stream >> data->type >> data->compile_variant_count >> data->pso_variant_count >> data->blobs_size;
+		data->blobs		 = entry.payload;
+		data->blobs_size = payload_size;
+
+		stream >> data->type >> data->compile_variant_count >> data->pso_variant_count;
 
 		SFG_ASSERT(data->compile_variant_count <= shader_max_compile_variants);
 		SFG_ASSERT(data->pso_variant_count <= shader_max_pso_variants);
@@ -46,11 +50,10 @@ namespace sfg
 			stream >> pv.compile_variant_index >> pv.variant_flags;
 		}
 
-		if (data->blobs_size != 0)
+		if (payload_size != 0)
 		{
-			data->blobs = mem.allocate_bytes(data->blobs_size, 1);
-			u8* dst		= mem.get(data->blobs.head);
-			stream.read_to_raw(dst, static_cast<size_t>(data->blobs_size));
+			u8* dst = mem.get(entry.payload.head);
+			stream.read_to_raw(dst, static_cast<size_t>(payload_size));
 		}
 
 		return true;
@@ -69,14 +72,8 @@ namespace sfg
 	{
 	}
 
-	void shader_unload_cpu(resource_entry_t& entry, resource_context_t& ctx)
+	void shader_unload_cpu(resource_entry_t&, resource_context_t&)
 	{
-		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
-		shader_data_t*	   data = mem.get<shader_data_t>(entry.cpu_data);
-		if (data->blobs)
-			mem.free(data->blobs);
-		data->blobs		 = chunk_handle32_t{};
-		data->blobs_size = 0;
 	}
 
 	const resource_type_desc_t shader_resource_desc = {

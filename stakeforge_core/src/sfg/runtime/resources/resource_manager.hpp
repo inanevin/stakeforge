@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include "atlas_manager.hpp"
 #include "common_resources.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
@@ -17,6 +18,8 @@ namespace sfg
 	class resource_manager_t
 	{
 	public:
+		static resource_manager_t& get();
+
 		resource_manager_t();
 		~resource_manager_t();
 
@@ -54,6 +57,16 @@ namespace sfg
 			return _memory;
 		}
 
+		inline atlas_manager_t& get_atlas_manager()
+		{
+			return _atlas_manager;
+		}
+
+		inline const atlas_manager_t& get_atlas_manager() const
+		{
+			return _atlas_manager;
+		}
+
 		inline u32 get_pending_count() const
 		{
 			return _pending.load(std::memory_order_acquire);
@@ -69,12 +82,14 @@ namespace sfg
 		resource_entry_t* find_entry(u64 hash);
 		void			  fire_loads();
 		void			  drain_completed();
+		void			  drain_render_completed();
 		void			  drain_unloads();
 
 	private:
 		atomic_t<u32>								_pending = 0;
 		moodycamel::ConcurrentQueue<load_request_t> _completed;
 		chunk_allocator_t							_memory;
+		atlas_manager_t								_atlas_manager;
 		vector_t<load_request_t>					_loads;
 		vector_t<u64>								_unloads;
 		hash_map_t<sid_t, resource_entry_t>			_entries;

@@ -63,7 +63,7 @@ namespace sfg
 
 		inline resource_manager_t& get_resource_manager()
 		{
-			return _resource_manager;
+			return resource_manager_t::get();
 		}
 
 	private:
@@ -72,7 +72,6 @@ namespace sfg
 
 	private:
 		editor_renderer_t												_renderer;
-		resource_manager_t												_resource_manager;
 		resource_pack_t													_resources;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		editor_settings_t												_settings;

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common_resources.hpp"
+#include <sfg/gfx/common/gfx_constants.hpp>
 
 namespace sfg
 {
@@ -29,7 +30,7 @@ namespace sfg
 
 	struct texture_internals_t
 	{
-		u32 reserved = 0;
+		gfx_texture_handle texture = {};
 	};
 
 	struct texture_config_t
@@ -40,13 +41,14 @@ namespace sfg
 
 	extern bool texture_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
 	extern bool texture_create_internals(resource_entry_t& entry, resource_context_t& ctx);
+	extern bool texture_complete_internals(resource_entry_t& entry, resource_context_t& ctx, const resource_internals_completion_t& completion);
 	extern void texture_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
 	extern void texture_unload(resource_entry_t& entry, resource_context_t& ctx);
 	extern void texture_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
 
 	extern const resource_type_desc_t texture_resource_desc;
-	
+
 	inline constexpr u32 texture_wire_magic	  = 0x53465458;
-	inline constexpr u32 texture_wire_version = 1;
+	inline constexpr u32 texture_wire_version = 2;
 	inline constexpr u8	 texture_max_mips	  = 16;
 }

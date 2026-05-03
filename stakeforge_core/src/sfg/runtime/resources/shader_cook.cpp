@@ -50,10 +50,10 @@ namespace sfg
 
 		stream << shader_wire_magic;
 		stream << shader_wire_version;
+		stream << blobs_size;
 		stream << src.type;
 		stream << compile_variant_count;
 		stream << pso_variant_count;
-		stream << blobs_size;
 
 		for (u8 i = 0; i < compile_variant_count; ++i)
 		{
