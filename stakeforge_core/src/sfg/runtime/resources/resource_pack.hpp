@@ -2,9 +2,14 @@
 #pragma once
 
 #include "common_resources.hpp"
+#include "resource_cooker.hpp"
 #include <sfg/common/string_id.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+
+#if !defined(SFG_EMBED_ASSETS)
+#include <sfg/io/simple_file_watcher.hpp>
+#endif
 
 namespace sfg
 {
@@ -31,10 +36,32 @@ namespace sfg
 		};
 
 		bool init(resource_manager_t& mgr, const init_params_t& params);
+		void tick();
 		void uninit();
+
+	private:
+#if !defined(SFG_EMBED_ASSETS)
+		struct watched_entry_t
+		{
+			string_t		  source_path;
+			string_t		  name;
+			cooking_options_t options;
+			resource_type_e	  type = resource_type_e::invalid;
+			sid_t			  sid  = 0;
+		};
+
+		static void on_file_changed(const char* path, u64 last_modified, u16 id, void* user_data);
+		void		recook_watched(u16 id);
+#endif
 
 	private:
 		resource_manager_t* _mgr = nullptr;
 		vector_t<sid_t>		_loaded;
+
+#if !defined(SFG_EMBED_ASSETS)
+		string_t				  _cache_dir;
+		simple_file_watcher_t	  _watcher;
+		vector_t<watched_entry_t> _watched;
+#endif
 	};
 }

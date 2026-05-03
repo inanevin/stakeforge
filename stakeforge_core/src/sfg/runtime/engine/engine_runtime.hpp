@@ -20,9 +20,13 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool init(const engine_config_t& config);
-		void uninit();
-		void tick();
+		static void init_globals();
+		static void uninit_globals();
+		static bool init_backend();
+		static void uninit_backend();
+		bool		init(const engine_config_t& config);
+		void		uninit();
+		void		tick();
 
 		// -----------------------------------------------------------------------------
 		// world

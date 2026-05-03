@@ -14,6 +14,7 @@
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/ui/ui_context.hpp>
 #include <sfg/ui/input/input_router.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <string>
 
 namespace sfg
@@ -75,13 +76,9 @@ namespace sfg
 		if (!reload_settings())
 			return false;
 
-		process::init();
-
-		if (!gfx_backend::init_instance())
-		{
-			process::uninit();
+		engine_runtime_t::init_globals();
+		if (!engine_runtime_t::init_backend())
 			return false;
-		}
 
 		_resource_manager.init(1024, 64ull * 1024ull * 1024ull);
 
@@ -93,8 +90,7 @@ namespace sfg
 		if (!_resources.init(_resource_manager, pack_params))
 		{
 			_resource_manager.uninit();
-			gfx_backend::uninit_instance();
-			process::uninit();
+			engine_runtime_t::uninit_globals();
 			return false;
 		}
 
@@ -102,8 +98,7 @@ namespace sfg
 		{
 			_resources.uninit();
 			_resource_manager.uninit();
-			gfx_backend::uninit_instance();
-			process::uninit();
+			engine_runtime_t::uninit_globals();
 			return false;
 		}
 
@@ -132,7 +127,6 @@ namespace sfg
 			return false;
 		}
 
-		time_t::init();
 		_last_tick_us = time_t::get_cpu_microseconds();
 		tick();
 		return true;
@@ -160,10 +154,9 @@ namespace sfg
 		_renderer.uninit();
 		_resources.uninit();
 		_resource_manager.uninit();
-		gfx_backend::uninit_instance();
 		_surfaces.resize_zero();
-		process::uninit();
-		time_t::uninit();
+		engine_runtime_t::uninit_backend();
+		engine_runtime_t::uninit_globals();
 	}
 
 	void editor_app_t::init_surface_ui(editor_surface_t& surface)

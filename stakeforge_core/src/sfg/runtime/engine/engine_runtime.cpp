@@ -7,18 +7,41 @@
 #include <sfg/io/log.hpp>
 #include <sfg/memory/frame_allocator.hpp>
 #include <sfg/platform/time.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/job/job_system.hpp>
-
 #include <functional>
 
 namespace sfg
 {
 #define THIS_THREAD_ID static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))
 
+	void engine_runtime_t::init_globals()
+	{
+		job_system_t::get().init();
+		time_t::init();
+		process::init();
+	}
+
+	void engine_runtime_t::uninit_globals()
+	{
+		job_system_t::get().uninit();
+		time_t::uninit();
+		process::uninit();
+	}
+
+	bool engine_runtime_t::init_backend()
+	{
+		return gfx_backend::init_instance();
+	}
+
+	void engine_runtime_t::uninit_backend()
+	{
+		gfx_backend::uninit_instance();
+	}
+
 	bool engine_runtime_t::init(const engine_config_t& config)
 	{
 		_config = config;
-		job_system_t::get().init();
 
 		gfx_backend* backend = gfx_backend::get();
 		if (!backend)
@@ -73,7 +96,6 @@ namespace sfg
 		_fps_render_frames = 0;
 		g_engine_runtime_stats.reset();
 		frame_allocator_tls_t::uninit();
-		job_system_t::get().uninit();
 	}
 
 	void engine_runtime_t::tick()
