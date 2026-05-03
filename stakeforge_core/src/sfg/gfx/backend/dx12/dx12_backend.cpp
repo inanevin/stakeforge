@@ -749,15 +749,8 @@ namespace sfg
 			throw_if_failed(D3D12MA::CreateAllocator(&allocatorDesc, &_allocator));
 		}
 
-		// DXC
-		{
-			HRESULT hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&s_idxcLib));
-			if (FAILED(hr))
-			{
-				SFG_ERR("failed to create DXC library!");
-				return false;
-			}
-		}
+		if (!ensure_idxc_lib())
+			return false;
 
 		_resources.reserve(INITIAL_RESOURCES);
 		_textures.reserve(INITIAL_TEXTURES);
@@ -1769,8 +1762,25 @@ namespace sfg
 		_semaphores.remove(id);
 	}
 
-	bool dx12_backend_t::compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_root_sig, span_t<u8>& out_signature_data) const
+	bool dx12_backend_t::ensure_idxc_lib()
 	{
+		if (s_idxcLib)
+			return true;
+
+		const HRESULT hr = DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&s_idxcLib));
+		if (FAILED(hr))
+		{
+			SFG_ERR("failed to create DXC library!");
+			return false;
+		}
+		return true;
+	}
+
+	bool dx12_backend_t::compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_root_sig, span_t<u8>& out_signature_data)
+	{
+		if (!ensure_idxc_lib())
+			return false;
+
 		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler;
 		throw_if_failed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler)));
 
@@ -1932,8 +1942,11 @@ namespace sfg
 		return true;
 	}
 
-	bool dx12_backend_t::compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const
+	bool dx12_backend_t::compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout)
 	{
+		if (!ensure_idxc_lib())
+			return false;
+
 		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler;
 		throw_if_failed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler)));
 

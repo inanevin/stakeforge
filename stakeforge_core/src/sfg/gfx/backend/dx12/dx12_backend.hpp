@@ -234,8 +234,8 @@ namespace sfg
 		u8	 get_back_buffer_index(gfx_swapchain_handle swapchain_t);
 		void wait_for_swapchain_latency(gfx_swapchain_handle swapchain_t);
 
-		bool compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const;
-		bool compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout) const;
+		static bool compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout);
+		static bool compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout);
 
 		u32							  get_resource_gpu_index(gfx_resource_handle resource_t, bool use_secondary = false);
 		u32							  get_texture_gpu_index(gfx_texture_handle texture_t, u8 view_index);
@@ -387,6 +387,8 @@ namespace sfg
 		Microsoft::WRL::ComPtr<ID3D12Device>	   _device	  = nullptr;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>	   _factory	  = nullptr;
 		static Microsoft::WRL::ComPtr<IDxcLibrary> s_idxcLib;
+
+		static bool ensure_idxc_lib();
 
 		gfx_queue_handle _queue_graphics	= {};
 		gfx_queue_handle _queue_transfer	= {};

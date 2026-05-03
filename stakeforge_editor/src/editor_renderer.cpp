@@ -3,7 +3,6 @@
 #include "editor_renderer.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
-#include "editor_resources.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
@@ -36,7 +35,7 @@ namespace sfg
 			return false;
 		}
 
-		const editor_resources_t& resources = editor_app_t::get().get_resources();
+		const resource_pack_t& resources = editor_app_t::get().get_resources();
 
 		const string_t shaders_dir	   = editor_directories_t::get_editor_assets() + "shaders/";
 		const string_t ui_default_path = shaders_dir + "ui_default.hlsl";

@@ -2,6 +2,8 @@
 
 #include "resource_cooker.hpp"
 #include "font_cook.hpp"
+#include "shader_cook.hpp"
+#include "shader_variant_compiler.hpp"
 #include "texture_cook.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
@@ -97,6 +99,45 @@ namespace sfg
 		bool parse_bool(const string_t& val)
 		{
 			return val == "true" || val == "1";
+		}
+
+		shader_type_e parse_shader_type(const string_t& s)
+		{
+			if (s == "ui_default")
+				return shader_type_e::editor_ui_default;
+			if (s == "ui_text")
+				return shader_type_e::editor_ui_text;
+			if (s == "ui_sdf")
+				return shader_type_e::editor_ui_sdf;
+			return shader_type_e::invalid;
+		}
+
+		void parse_shader_arguments(const string_t& arguments, shader_config_t& cfg)
+		{
+			if (arguments.empty())
+				return;
+
+			vector_t<string_t> tokens;
+			string_util::split(tokens, arguments, ",");
+
+			for (string_t& tok : tokens)
+			{
+				string_util::remove_whitespace(tok);
+				if (tok.empty())
+					continue;
+
+				const size_t eq = tok.find('=');
+				if (eq == string_t::npos)
+					continue;
+
+				const string_t key = tok.substr(0, eq);
+				const string_t val = tok.substr(eq + 1);
+				if (key.empty() || val.empty())
+					continue;
+
+				if (key == "shader_type" || key == "type")
+					cfg.type = parse_shader_type(val);
+			}
 		}
 
 		void parse_texture_arguments(const string_t& arguments, texture_config_t& cfg)
@@ -263,8 +304,40 @@ namespace sfg
 			return cook_result_e::success;
 		}
 
-		cook_result_e cook_shader(const char*, const cooking_options_t&, ostream_t&)
+		cook_result_e cook_shader(const char* full_path, const cooking_options_t& options, ostream_t& stream)
 		{
+			shader_config_t cfg = {};
+			parse_shader_arguments(options.arguments, cfg);
+
+			if (cfg.type == shader_type_e::invalid)
+			{
+				SFG_ERR("shader cook: missing or invalid shader_type for {0}", full_path);
+				return cook_result_e::cook_failed;
+			}
+
+			const string_t source = file_system::read_file_as_string(full_path);
+			if (source.empty())
+			{
+				SFG_ERR("shader cook: failed to read source {0}", full_path);
+				return cook_result_e::cook_failed;
+			}
+
+			const string_t			 directory	   = file_system::get_directory_of_file(full_path);
+			const vector_t<string_t> include_paths = directory.empty() ? vector_t<string_t>{} : vector_t<string_t>{directory};
+
+			shader_compile_t compile = {};
+			if (!shader_variant_compiler::compile(cfg.type, source, include_paths, compile))
+			{
+				SFG_ERR("shader cook: variant compile failed for {0}", full_path);
+				return cook_result_e::cook_failed;
+			}
+
+			if (!shader_cook_serialize(compile, stream))
+			{
+				SFG_ERR("shader cook: serialize failed for {0}", full_path);
+				return cook_result_e::cook_failed;
+			}
+
 			return cook_result_e::success;
 		}
 

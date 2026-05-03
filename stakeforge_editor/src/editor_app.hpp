@@ -3,10 +3,11 @@
 
 #include "common_editor.hpp"
 #include "editor_renderer.hpp"
-#include "editor_resources.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
 #include <sfg/memory/dynamic_gen_pool.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/resource_pack.hpp>
 
 namespace sfg
 {
@@ -51,13 +52,18 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline editor_resources_t& get_resources()
+		inline resource_pack_t& get_resources()
 		{
 			return _resources;
 		}
-		inline const editor_resources_t& get_resources() const
+		inline const resource_pack_t& get_resources() const
 		{
 			return _resources;
+		}
+
+		inline resource_manager_t& get_resource_manager()
+		{
+			return _resource_manager;
 		}
 
 	private:
@@ -66,7 +72,8 @@ namespace sfg
 
 	private:
 		editor_renderer_t												_renderer;
-		editor_resources_t												_resources;
+		resource_manager_t												_resource_manager;
+		resource_pack_t													_resources;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		editor_settings_t												_settings;
 		i64																_last_tick_us = 0;

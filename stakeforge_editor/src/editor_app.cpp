@@ -2,7 +2,6 @@
 
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
-#include "editor_resources.hpp"
 #include "editor_surface.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/gfx/backend/backend.hpp>
@@ -84,8 +83,16 @@ namespace sfg
 			return false;
 		}
 
-		if (!_resources.init())
+		_resource_manager.init(1024, 64ull * 1024ull * 1024ull);
+
+		resource_pack_t::init_params_t pack_params;
+		pack_params.manifest_path = editor_directories_t::get_editor_manifest();
+		pack_params.assets_dir	  = editor_directories_t::get_editor_assets();
+		pack_params.cache_dir	  = editor_directories_t::get_editor_resource_cache();
+
+		if (!_resources.init(_resource_manager, pack_params))
 		{
+			_resource_manager.uninit();
 			gfx_backend::uninit_instance();
 			process::uninit();
 			return false;
@@ -94,6 +101,7 @@ namespace sfg
 		if (!_renderer.init())
 		{
 			_resources.uninit();
+			_resource_manager.uninit();
 			gfx_backend::uninit_instance();
 			process::uninit();
 			return false;
@@ -118,6 +126,7 @@ namespace sfg
 		{
 			_renderer.uninit();
 			_resources.uninit();
+			_resource_manager.uninit();
 			gfx_backend::uninit_instance();
 			process::uninit();
 			return false;
@@ -150,6 +159,7 @@ namespace sfg
 
 		_renderer.uninit();
 		_resources.uninit();
+		_resource_manager.uninit();
 		gfx_backend::uninit_instance();
 		_surfaces.resize_zero();
 		process::uninit();

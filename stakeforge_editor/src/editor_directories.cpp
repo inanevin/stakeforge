@@ -29,6 +29,16 @@ namespace sfg
 
 	string_t editor_directories_t::get_editor_assets()
 	{
-		return string_t(SFG_ROOT_DIRECTORY) + "stakeforge/editor/assets/";
+		return string_t(SFG_ROOT_DIRECTORY) + "assets/editor/";
+	}
+
+	string_t editor_directories_t::get_editor_resource_cache()
+	{
+		return get_user_directory() + "editor/resource_cache/";
+	}
+
+	string_t editor_directories_t::get_editor_manifest()
+	{
+		return string_t(SFG_ROOT_DIRECTORY) + "assets/assets_editor.sfg";
 	}
 }

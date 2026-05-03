@@ -1,17 +1,64 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader.hpp"
+#include "resource_manager.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 
 namespace sfg
 {
-	bool shader_load(resource_entry_t&, istream_t&, resource_context_t&)
+	bool shader_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx)
 	{
-		return false;
+		u32 magic	= 0;
+		u32 version = 0;
+		stream >> magic >> version;
+		if (magic != shader_wire_magic || version != shader_wire_version)
+		{
+			SFG_ERR("invalid shader binary, magic={0} version={1}", magic, version);
+			return false;
+		}
+
+		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
+		shader_data_t*	   data = mem.get<shader_data_t>(entry.cpu_data);
+		*data					= shader_data_t{};
+
+		stream >> data->type >> data->compile_variant_count >> data->pso_variant_count >> data->blobs_size;
+
+		SFG_ASSERT(data->compile_variant_count <= shader_max_compile_variants);
+		SFG_ASSERT(data->pso_variant_count <= shader_max_pso_variants);
+
+		for (u8 i = 0; i < data->compile_variant_count; ++i)
+		{
+			shader_compile_variant_t& cv = data->compile_variants[i];
+			stream >> cv.stage_count;
+			SFG_ASSERT(cv.stage_count <= shader_max_stages_per_variant);
+			for (u8 j = 0; j < cv.stage_count; ++j)
+			{
+				shader_stage_entry_t& s = cv.stages[j];
+				stream >> s.stage >> s.offset >> s.size;
+			}
+		}
+
+		for (u8 i = 0; i < data->pso_variant_count; ++i)
+		{
+			shader_pso_variant_t& pv = data->pso_variants[i];
+			stream >> pv.compile_variant_index >> pv.variant_flags;
+		}
+
+		if (data->blobs_size != 0)
+		{
+			data->blobs = mem.allocate_bytes(data->blobs_size, 1);
+			u8* dst		= mem.get(data->blobs.head);
+			stream.read_to_raw(dst, static_cast<size_t>(data->blobs_size));
+		}
+
+		return true;
 	}
 
 	bool shader_create_internals(resource_entry_t&, resource_context_t&)
 	{
-		return false;
+		return true;
 	}
 
 	void shader_destroy_internals(resource_entry_t&, resource_context_t&)
@@ -22,8 +69,14 @@ namespace sfg
 	{
 	}
 
-	void shader_unload_cpu(resource_entry_t&, resource_context_t&)
+	void shader_unload_cpu(resource_entry_t& entry, resource_context_t& ctx)
 	{
+		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
+		shader_data_t*	   data = mem.get<shader_data_t>(entry.cpu_data);
+		if (data->blobs)
+			mem.free(data->blobs);
+		data->blobs		 = chunk_handle32_t{};
+		data->blobs_size = 0;
 	}
 
 	const resource_type_desc_t shader_resource_desc = {

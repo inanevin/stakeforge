@@ -11,5 +11,7 @@ namespace sfg
 		static string_t get_user_directory();
 		static string_t get_settings_path();
 		static string_t get_editor_assets();
+		static string_t get_editor_resource_cache();
+		static string_t get_editor_manifest();
 	};
 }
