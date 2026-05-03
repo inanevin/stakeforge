@@ -160,6 +160,21 @@ namespace sfg
 			}
 		}
 
+		bool to_bool(const string_t& str, bool& out_b)
+		{
+			if (str == "true" || str == "1")
+			{
+				out_b = true;
+				return true;
+			}
+			if (str == "false" || str == "0")
+			{
+				out_b = false;
+				return true;
+			}
+			return false;
+		}
+
 		string_t remove_all_except_first(const string_t& str, const string_t& delimiter)
 		{
 			string_t	result = str;

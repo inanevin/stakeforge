@@ -47,6 +47,7 @@ namespace sfg
 		bool		   to_float(const string_t& str, f32& out_f, u32& out_decimals, char seperator = '.');
 		bool		   to_int(const string_t& str, int& out_i);
 		bool		   to_big_uint(const string_t& str, u64& out_i);
+		bool		   to_bool(const string_t& str, bool& out_b);
 	}
 
 }

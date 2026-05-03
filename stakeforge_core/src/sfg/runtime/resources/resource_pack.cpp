@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "resource_pack.hpp"
+#include "manifest_util.hpp"
 #include "resource_cache.hpp"
 #include "resource_manager.hpp"
 
@@ -16,66 +17,6 @@ namespace sfg
 	namespace
 	{
 		using json = nlohmann::json;
-
-		resource_type_e resolve_resource_type(const string_t& s)
-		{
-			if (s == "audio")
-				return resource_type_e::audio;
-			if (s == "font")
-				return resource_type_e::font;
-			if (s == "mesh")
-				return resource_type_e::mesh;
-			if (s == "skeleton")
-				return resource_type_e::skeleton;
-			if (s == "animation")
-				return resource_type_e::animation;
-			if (s == "particle_properties")
-				return resource_type_e::particle_properties;
-			if (s == "material")
-				return resource_type_e::material;
-			if (s == "shader")
-				return resource_type_e::shader;
-			if (s == "texture")
-				return resource_type_e::texture;
-			if (s == "texture_sampler")
-				return resource_type_e::texture_sampler;
-			if (s == "physical_material")
-				return resource_type_e::physical_material;
-			if (s == "prefab")
-				return resource_type_e::prefab;
-			if (s == "animation_state_machine")
-				return resource_type_e::animation_state_machine;
-			return resource_type_e::invalid;
-		}
-
-		string_t options_to_arguments(const json& options)
-		{
-			if (options.is_string())
-				return options.get<string_t>();
-
-			if (!options.is_object())
-				return string_t{};
-
-			string_t result;
-			bool	 first = true;
-			for (auto it = options.begin(); it != options.end(); ++it)
-			{
-				if (!first)
-					result += ",";
-				first = false;
-				result += it.key();
-				result += "=";
-				if (it->is_string())
-					result += it->get<string_t>();
-				else if (it->is_boolean())
-					result += it->get<bool>() ? "true" : "false";
-				else if (it->is_number_integer())
-					result += std::to_string(it->get<i64>());
-				else if (it->is_number())
-					result += std::to_string(it->get<double>());
-			}
-			return result;
-		}
 
 #if !defined(SFG_EMBED_ASSETS)
 		struct parsed_entry_t
@@ -117,7 +58,7 @@ namespace sfg
 
 			const auto opts_it = entry.find("options");
 			if (opts_it != entry.end())
-				out.options.arguments = options_to_arguments(*opts_it);
+				out.options.arguments = manifest_util::options_to_arguments(*opts_it);
 
 			out.source_path = assets_dir + path;
 			out.name		= name;

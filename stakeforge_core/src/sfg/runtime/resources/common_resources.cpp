@@ -33,4 +33,35 @@ namespace sfg
 		&prefab_resource_desc,
 		&animation_state_machine_resource_desc,
 	};
+
+	resource_type_e resolve_resource_type(const string_t& s)
+	{
+		if (s == "audio")
+			return resource_type_e::audio;
+		if (s == "font")
+			return resource_type_e::font;
+		if (s == "mesh")
+			return resource_type_e::mesh;
+		if (s == "skeleton")
+			return resource_type_e::skeleton;
+		if (s == "animation")
+			return resource_type_e::animation;
+		if (s == "particle_properties")
+			return resource_type_e::particle_properties;
+		if (s == "material")
+			return resource_type_e::material;
+		if (s == "shader")
+			return resource_type_e::shader;
+		if (s == "texture")
+			return resource_type_e::texture;
+		if (s == "texture_sampler")
+			return resource_type_e::texture_sampler;
+		if (s == "physical_material")
+			return resource_type_e::physical_material;
+		if (s == "prefab")
+			return resource_type_e::prefab;
+		if (s == "animation_state_machine")
+			return resource_type_e::animation_state_machine;
+		return resource_type_e::invalid;
+	}
 }

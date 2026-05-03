@@ -3,6 +3,7 @@
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/common/string_id.hpp>
@@ -92,4 +93,6 @@ namespace sfg
 			return nullptr;
 		return g_resource_type_descs[t];
 	}
+
+	resource_type_e resolve_resource_type(const string_t& s);
 }

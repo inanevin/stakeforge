@@ -37,22 +37,7 @@ namespace sfg
 		if (!_loads.empty())
 			fire_loads();
 
-		if (!_unloads.empty() && _pending.load(std::memory_order_acquire) == 0)
-		{
-			for (u64 hash : _unloads)
-			{
-				auto it = _entries.find(hash);
-				SFG_ASSERT(it != _entries.end());
-
-				resource_entry_t& e = it->second;
-				if (e.cpu_data)
-					_memory.free(e.cpu_data);
-				if (e.internals)
-					_memory.free(e.internals);
-
-				_entries.erase(it);
-			}
-		}
+		drain_unloads();
 	}
 
 	void resource_manager_t::wait_for_all()
@@ -72,6 +57,7 @@ namespace sfg
 		}
 
 		drain_completed();
+		drain_unloads();
 	}
 
 	void resource_manager_t::fire_loads()
@@ -111,6 +97,31 @@ namespace sfg
 				entry->state = resource_state_e::cpu_ready;
 
 			_memory.free(req.data);
+		}
+	}
+
+	void resource_manager_t::drain_unloads()
+	{
+		if (!_unloads.empty() && _pending.load(std::memory_order_acquire) == 0)
+		{
+			for (u64 hash : _unloads)
+			{
+				auto it = _entries.find(hash);
+				SFG_ASSERT(it != _entries.end());
+
+				resource_entry_t&			e	 = it->second;
+				const resource_type_desc_t* desc = find_resource_type_desc(e.type);
+
+				resource_context_t ctx{*this};
+				desc->unload(e, ctx);
+
+				if (e.cpu_data)
+					_memory.free(e.cpu_data);
+				if (e.internals)
+					_memory.free(e.internals);
+
+				_entries.erase(it);
+			}
 		}
 	}
 

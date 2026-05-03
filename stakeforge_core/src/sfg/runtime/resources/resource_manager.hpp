@@ -69,6 +69,7 @@ namespace sfg
 		resource_entry_t* find_entry(u64 hash);
 		void			  fire_loads();
 		void			  drain_completed();
+		void			  drain_unloads();
 
 	private:
 		atomic_t<u32>								_pending = 0;

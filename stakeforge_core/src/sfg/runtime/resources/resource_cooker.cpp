@@ -96,11 +96,6 @@ namespace sfg
 			return out_dir;
 		}
 
-		bool parse_bool(const string_t& val)
-		{
-			return val == "true" || val == "1";
-		}
-
 		shader_type_e parse_shader_type(const string_t& s)
 		{
 			if (s == "ui_default")
@@ -163,10 +158,17 @@ namespace sfg
 				if (key.empty() || val.empty())
 					continue;
 
+				bool b = false;
 				if (key == "generate_mipmaps" || key == "mips")
-					cfg.generate_mipmaps = parse_bool(val);
+				{
+					if (string_util::to_bool(val, b))
+						cfg.generate_mipmaps = b;
+				}
 				else if (key == "is_linear" || key == "linear")
-					cfg.is_linear = parse_bool(val);
+				{
+					if (string_util::to_bool(val, b))
+						cfg.is_linear = b;
+				}
 			}
 		}
 
