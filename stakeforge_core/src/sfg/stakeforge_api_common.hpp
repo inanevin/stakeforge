@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "runtime/engine/common_engine.hpp"
-#include "runtime/engine/engine_config.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
+#include <sfg/runtime/engine/engine_config.hpp>
 
 typedef enum sfg_api_result_t
 {

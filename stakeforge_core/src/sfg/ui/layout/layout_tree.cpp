@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "layout_tree.hpp"
-#include "io/assert.hpp"
-#include "math/math.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 
 namespace sfg::ui
 {

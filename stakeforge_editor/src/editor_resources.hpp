@@ -1,20 +1,22 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "common/string_id.hpp"
-#include "data/hash_map.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "io/assert.hpp"
-#include "memory/bump_allocator.hpp"
+#include <sfg/common/string_id.hpp>
+#include <sfg/data/hash_map.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/memory/bump_allocator.hpp>
 
 namespace sfg
 {
+	struct font_data_t;
 	struct shader_desc_t;
 
 	enum class editor_resource_type_e : u8
 	{
 		texture,
 		shader,
+		font,
 	};
 
 	struct editor_texture_t
@@ -25,6 +27,11 @@ namespace sfg
 	struct editor_shader_t
 	{
 		gfx_shader_handle handle = {};
+	};
+
+	struct editor_font_t
+	{
+		font_data_t* font = nullptr;
 	};
 
 	class editor_resources_t
@@ -54,7 +61,7 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		template <typename T> const T& get_resource(string_id sid, editor_resource_type_e type) const
+		template <typename T> const T& get_resource(sid_t sid, editor_resource_type_e type) const
 		{
 			const auto it = _resources.find(sid);
 			SFG_ASSERT(it != _resources.end());
@@ -64,6 +71,6 @@ namespace sfg
 
 	private:
 		bump_allocator_t			   _allocator = {};
-		hash_map_t<string_id, entry_t> _resources = {};
+		hash_map_t<sid_t, entry_t> _resources = {};
 	};
 }

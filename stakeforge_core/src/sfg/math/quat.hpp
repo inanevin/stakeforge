@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec3f.hpp"
 
-#include "vendor/nhlohmann/json_fwd.hpp"
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {

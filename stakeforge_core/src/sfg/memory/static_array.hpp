@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "io/assert.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/io/assert.hpp>
 #include "memory.hpp"
 
 namespace sfg

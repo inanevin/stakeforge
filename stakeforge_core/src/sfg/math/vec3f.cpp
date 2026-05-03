@@ -26,11 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec3f.hpp"
 #include "math.hpp"
-#include "math/easing.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
+#include <sfg/math/easing.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 
-#include "vendor/nhlohmann/json.hpp"
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {

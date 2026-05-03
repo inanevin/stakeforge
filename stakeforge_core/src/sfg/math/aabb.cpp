@@ -26,9 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "aabb.hpp"
 #include "plane.hpp"
-#include "math/math.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
+#include <sfg/math/math.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 
 namespace sfg
 {

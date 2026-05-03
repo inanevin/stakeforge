@@ -25,9 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "paint.hpp"
-#include "io/assert.hpp"
-#include "ui/input/input_router.hpp"
-#include "ui/layout/layout_tree.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/ui/input/input_router.hpp>
+#include <sfg/ui/layout/layout_tree.hpp>
 
 namespace sfg::ui
 {

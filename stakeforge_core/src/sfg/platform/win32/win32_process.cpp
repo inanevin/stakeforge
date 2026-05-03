@@ -24,11 +24,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "platform/process.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
-#include "input/input_mappings.hpp"
-#include "platform/common_window.hpp"
+#include <sfg/platform/process.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/input/input_mappings.hpp>
+#include <sfg/platform/common_window.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

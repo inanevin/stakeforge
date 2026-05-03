@@ -29,10 +29,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef SFG_ENABLE_MEMORY_TRACER
 
 #include "memory.hpp"
-#include "io/assert.hpp"
-#include "io/file_system.hpp"
-#include "io/log.hpp"
-#include "platform/process.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/platform/process.hpp>
 #include <tracy/Tracy.hpp>
 #include <fstream>
 #include <sstream>

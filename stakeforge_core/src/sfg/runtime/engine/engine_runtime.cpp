@@ -2,11 +2,12 @@
 
 #include "engine_runtime.hpp"
 #include "engine_stats.hpp"
-#include "gfx/backend/backend.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
-#include "memory/frame_allocator.hpp"
-#include "platform/time.hpp"
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/memory/frame_allocator.hpp>
+#include <sfg/platform/time.hpp>
+#include <sfg/job/job_system.hpp>
 
 #include <functional>
 
@@ -17,6 +18,7 @@ namespace sfg
 	bool engine_runtime_t::init(const engine_config_t& config)
 	{
 		_config = config;
+		job_system_t::get().init();
 
 		gfx_backend* backend = gfx_backend::get();
 		if (!backend)
@@ -25,7 +27,7 @@ namespace sfg
 			return false;
 		}
 
-		_resource_manager.init(_config.resource_allocator_size);
+		_resource_manager.init(_config.resource_max_count, _config.resource_allocator_size);
 
 		const double fixed_framerate_ns = _config.fixed_framerate_ns;
 
@@ -40,7 +42,6 @@ namespace sfg
 		g_engine_runtime_stats.reset();
 		g_engine_runtime_stats.main_thread_id = THIS_THREAD_ID;
 
-		frame_allocator_tls_t::init(static_cast<size_t>(_config.frame_allocator_size));
 		SFG_INFO("engine runtime initialized correctly.");
 		return true;
 	}
@@ -72,6 +73,7 @@ namespace sfg
 		_fps_render_frames = 0;
 		g_engine_runtime_stats.reset();
 		frame_allocator_tls_t::uninit();
+		job_system_t::get().uninit();
 	}
 
 	void engine_runtime_t::tick()
@@ -176,7 +178,7 @@ namespace sfg
 
 	void engine_runtime_t::render()
 	{
-		frame_allocator_tls_t::init(static_cast<size_t>(_config.frame_allocator_size));
+		frame_allocator_tls_t::init(static_cast<size_t>(_config.render_frame_allocator_size));
 
 		const u64 render_thread_id				= THIS_THREAD_ID;
 		g_engine_runtime_stats.render_thread_id = render_thread_id;

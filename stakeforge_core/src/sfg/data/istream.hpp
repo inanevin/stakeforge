@@ -26,15 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "serialization/endianness.hpp"
-#include "memory/memory.hpp"
-#include "data/string.hpp"
-#include "io/assert.hpp"
-
-#include <iosfwd>
+#include "string.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/serialization/endianness.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/io/assert.hpp>
 #include <type_traits>
-#include <utility>
 
 namespace sfg
 {

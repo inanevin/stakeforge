@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "text_allocator.hpp"
 #include "memory.hpp"
-#include "io/assert.hpp"
-#include "data/vector_util.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/data/vector_util.hpp>
 #include <cstring>
 #include <limits>
 

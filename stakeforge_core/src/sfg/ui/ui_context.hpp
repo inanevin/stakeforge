@@ -26,15 +26,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/hash_map.hpp"
-#include "memory/text_allocator.hpp"
-#include "ui/layout/layout_tree.hpp"
-#include "ui/input/input_router.hpp"
-#include "ui/paint/paint.hpp"
-#include "ui/vg/vg_canvas.hpp"
-#include "ui/vg/vg_font.hpp"
-#include "ui/ui_theme.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/hash_map.hpp>
+#include <sfg/memory/text_allocator.hpp>
+#include <sfg/runtime/resources/font.hpp>
+#include <sfg/ui/layout/layout_tree.hpp>
+#include <sfg/ui/input/input_router.hpp>
+#include <sfg/ui/paint/paint.hpp>
+#include <sfg/ui/vg/vg_canvas.hpp>
+#include <sfg/ui/ui_theme.hpp>
 
 namespace sfg::ui
 {
@@ -60,7 +60,7 @@ namespace sfg::ui
 		ui_context()							 = default;
 		ui_context(const ui_context&)			 = delete;
 		ui_context& operator=(const ui_context&) = delete;
-		~ui_context();
+		~ui_context()							 = default;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -96,8 +96,8 @@ namespace sfg::ui
 		widget_id_t make_row(widget_id_t parent);
 		widget_id_t make_column(widget_id_t parent);
 		widget_id_t make_spacer(widget_id_t parent, f32 size_px = 0.0f);
-		widget_id_t make_label(widget_id_t parent, const char* text, vg_font_t* font);
-		widget_id_t make_button(widget_id_t parent, const char* text, vg_font_t* font);
+		widget_id_t make_label(widget_id_t parent, const char* text, font_data_t* font);
+		widget_id_t make_button(widget_id_t parent, const char* text, font_data_t* font);
 		widget_id_t make_divider(widget_id_t parent, bool horizontal);
 
 		// -----------------------------------------------------------------------------
@@ -124,10 +124,6 @@ namespace sfg::ui
 		{
 			return _canvas;
 		}
-		inline vg_font_manager_t& get_fonts()
-		{
-			return _fonts;
-		}
 		inline theme_t& get_theme()
 		{
 			return _theme;
@@ -147,7 +143,6 @@ namespace sfg::ui
 		vg_canvas_t								   _canvas;
 		layout_tree_t							   _tree;
 		theme_t									   _theme;
-		vg_font_manager_t						   _fonts;
 		paint_layer_t							   _paint;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		text_allocator_t						   _text_pool;

@@ -26,20 +26,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "gfx/common/descriptor_handle.hpp"
-#include "data/vector.hpp"
-#include "data/static_vector.hpp"
-#include "data/span.hpp"
-#include "data/string.hpp"
-#include "data/bitmask.hpp"
-#include "data/unique.hpp"
-#include "memory/dynamic_pool_allocator_gen.hpp"
 #include "dx12_heap.hpp"
+#include "sdk/d3dx12.h"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/gfx/common/descriptor_handle.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/static_vector.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/bitmask.hpp>
+#include <sfg/data/unique.hpp>
+#include <sfg/memory/dynamic_gen_pool.hpp>
 #include <wrl/client.h>
 #include <dxgi1_6.h>
-#include "gfx/backend/dx12/sdk/d3dx12.h"
 
 namespace D3D12MA
 {
@@ -328,11 +328,6 @@ namespace sfg
 		void cmd_dispatch(gfx_command_buffer_handle cmd_list, const command_dispatch_t& command) const;
 		void cmd_barrier(gfx_command_buffer_handle cmd_list, const command_barrier_t& command);
 
-		ID3D12DescriptorHeap* get_srv_heap();
-		void				  alloc_srv(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle);
-		void				  free_srv(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle);
-		u64					  get_srv_gpu_handle_from_index(u32 index);
-
 		inline gfx_queue_handle get_queue_gfx() const
 		{
 			return _queue_graphics;
@@ -367,20 +362,20 @@ namespace sfg
 		void wait_for_fence(ID3D12Fence* fence, u64 value) const;
 
 	private:
-		dynamic_pool_allocator_gen_t<resource_t, gfx_id_t, gfx_resource_handle_tag>						_resources;
-		dynamic_pool_allocator_gen_t<texture_t, gfx_id_t, gfx_texture_handle_tag>						_textures;
-		dynamic_pool_allocator_gen_t<texture_shared_handle_t, gfx_id_t, gfx_texture_shared_handle_tag>	_texture_shared_handles;
-		dynamic_pool_allocator_gen_t<sampler_t, gfx_id_t, gfx_sampler_handle_tag>						_samplers;
-		dynamic_pool_allocator_gen_t<swapchain_t, gfx_id_t, gfx_swapchain_handle_tag>					_swapchains;
-		dynamic_pool_allocator_gen_t<semaphore_t, gfx_id_t, gfx_semaphore_handle_tag>					_semaphores;
-		dynamic_pool_allocator_gen_t<shader_t, gfx_id_t, gfx_shader_handle_tag>							_shaders;
-		dynamic_pool_allocator_gen_t<bind_group_t, gfx_id_t, gfx_bind_group_handle_tag>					_bind_groups;
-		dynamic_pool_allocator_gen_t<command_buffer_t, gfx_id_t, gfx_command_buffer_handle_tag>			_command_buffers;
-		dynamic_pool_allocator_gen_t<command_allocator_t, gfx_id_t, gfx_command_allocator_handle_tag>	_command_allocators;
-		dynamic_pool_allocator_gen_t<queue_t, gfx_id_t, gfx_queue_handle_tag>							_queues;
-		dynamic_pool_allocator_gen_t<indirect_signature_t, gfx_id_t, gfx_indirect_signature_handle_tag> _indirect_signatures;
-		dynamic_pool_allocator_gen_t<descriptor_handle_t, gfx_id_t, gfx_descriptor_handle_tag>			_descriptors;
-		dynamic_pool_allocator_gen_t<bind_layout_t, gfx_id_t, gfx_bind_layout_handle_tag>				_bind_layouts;
+		dynamic_gen_pool_t<resource_t, gfx_id_t, gfx_resource_handle_tag>					  _resources;
+		dynamic_gen_pool_t<texture_t, gfx_id_t, gfx_texture_handle_tag>						  _textures;
+		dynamic_gen_pool_t<texture_shared_handle_t, gfx_id_t, gfx_texture_shared_handle_tag>  _texture_shared_handles;
+		dynamic_gen_pool_t<sampler_t, gfx_id_t, gfx_sampler_handle_tag>						  _samplers;
+		dynamic_gen_pool_t<swapchain_t, gfx_id_t, gfx_swapchain_handle_tag>					  _swapchains;
+		dynamic_gen_pool_t<semaphore_t, gfx_id_t, gfx_semaphore_handle_tag>					  _semaphores;
+		dynamic_gen_pool_t<shader_t, gfx_id_t, gfx_shader_handle_tag>						  _shaders;
+		dynamic_gen_pool_t<bind_group_t, gfx_id_t, gfx_bind_group_handle_tag>				  _bind_groups;
+		dynamic_gen_pool_t<command_buffer_t, gfx_id_t, gfx_command_buffer_handle_tag>		  _command_buffers;
+		dynamic_gen_pool_t<command_allocator_t, gfx_id_t, gfx_command_allocator_handle_tag>	  _command_allocators;
+		dynamic_gen_pool_t<queue_t, gfx_id_t, gfx_queue_handle_tag>							  _queues;
+		dynamic_gen_pool_t<indirect_signature_t, gfx_id_t, gfx_indirect_signature_handle_tag> _indirect_signatures;
+		dynamic_gen_pool_t<descriptor_handle_t, gfx_id_t, gfx_descriptor_handle_tag>		  _descriptors;
+		dynamic_gen_pool_t<bind_layout_t, gfx_id_t, gfx_bind_layout_handle_tag>				  _bind_layouts;
 
 		dx12_heap_t _heap_rtv		  = {};
 		dx12_heap_t _heap_dsv		  = {};
@@ -405,8 +400,6 @@ namespace sfg
 		vector_t<CD3DX12_ROOT_PARAMETER1>	  _reuse_root_params			  = {};
 		vector_t<CD3DX12_DESCRIPTOR_RANGE1>	  _reuse_root_ranges			  = {};
 		vector_t<D3D12_STATIC_SAMPLER_DESC>	  _reuse_static_samplers		  = {};
-
-		static_vector_t<descriptor_handle_t, 24> _external_descriptors;
 
 		friend class app;
 		friend class renderer_t;

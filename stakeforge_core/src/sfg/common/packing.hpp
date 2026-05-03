@@ -26,9 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "math/math.hpp"
-#include "memory/memory.hpp"
+#include "size_definitions.hpp"
+#include <sfg/math/math.hpp>
+#include <sfg/memory/memory.hpp>
 
 namespace sfg
 {

@@ -5,7 +5,9 @@
 
 namespace sfg
 {
-	struct shader_metadata_t
+	class istream_t;
+
+	struct shader_data_t
 	{
 		u32 reserved = 0;
 	};
@@ -15,9 +17,11 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern bool shader_load_cpu(resource_entry_t& entry, span_t<const u8> data, resource_context_t& ctx);
+	extern bool shader_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
 	extern bool shader_create_internals(resource_entry_t& entry, resource_context_t& ctx);
 	extern void shader_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	extern void shader_unload(resource_entry_t& entry, resource_context_t& ctx);
 	extern void shader_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
-	extern void register_shader_resource(resource_manager_t& resource_manager);
+
+	extern const resource_type_desc_t shader_resource_desc;
 }

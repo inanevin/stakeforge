@@ -46,11 +46,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#include "data/mutex.hpp"
-#include "memory/malloc_allocator_stl.hpp"
-#include "data/vector.hpp"
-#include "data/string.hpp"
-
+#include <sfg/data/mutex.hpp>
+#include <sfg/memory/malloc_allocator_stl.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/string.hpp>
 #include <sstream>
 
 namespace sfg

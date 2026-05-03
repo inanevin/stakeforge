@@ -24,28 +24,31 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#include "job_system.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 
-#include "data/vector.hpp"
+#include <thread>
 
 namespace sfg
 {
-	namespace
+	job_system_t::~job_system_t() = default;
+
+	void job_system_t::init(u32 worker_count)
 	{
+		SFG_ASSERT(!_executor);
 
-		template <typename T> struct is_vector_t : std::false_type
-		{
-		};
+		const size_t n = worker_count == 0 ? static_cast<size_t>(std::thread::hardware_concurrency()) : static_cast<size_t>(worker_count);
+		_executor	   = make_unique<tf::Executor>(n);
 
-		template <typename U> struct is_vector_t<std::vector<U>> : std::true_type
-		{
-		};
+		SFG_INFO("initialized with {0} workers", _executor->num_workers());
+	}
 
-		template <typename U> struct is_vector_t<const std::vector<U>> : std::true_type
-		{
-		};
+	void job_system_t::uninit()
+	{
+		SFG_ASSERT(_executor);
 
-		template <typename T> inline constexpr bool is_vector_v = is_vector_t<T>::value;
-
+		_executor->wait_for_all();
+		_executor.reset();
 	}
 }

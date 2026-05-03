@@ -25,11 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "common/size_definitions.hpp"
-#include "math/vec2i16.hpp"
-#include "math/vec2u16.hpp"
-#include "data/bitmask.hpp"
-#include "gfx/common/gfx_constants.hpp"
+
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/vec2i16.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/data/bitmask.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 
 namespace sfg
 {

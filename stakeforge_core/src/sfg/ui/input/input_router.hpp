@@ -26,11 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/vector.hpp"
-#include "data/hash_map.hpp"
-#include "math/vec2f.hpp"
-#include "ui/ui_common.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/hash_map.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/ui/ui_common.hpp>
 
 namespace sfg::ui
 {

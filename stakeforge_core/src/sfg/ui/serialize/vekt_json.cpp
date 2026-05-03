@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vekt_json.hpp"
-#include "ui/ui_context.hpp"
-#include "vendor/nhlohmann/json.hpp"
+#include <sfg/ui/ui_context.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg::ui
 {

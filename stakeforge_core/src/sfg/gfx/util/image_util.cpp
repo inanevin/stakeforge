@@ -25,18 +25,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "image_util.hpp"
-#include "io/log.hpp"
-#include "math/vec2u16.hpp"
-#include "math/math.hpp"
-#include "gfx/common/texture_buffer.hpp"
-#include "memory/memory.hpp"
-#include "memory/memory_tracer.hpp"
+#include <sfg/io/log.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/gfx/common/texture_buffer.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/memory/memory_tracer.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "vendor/stb/stb_image.h"
-#include "vendor/stb/stb_image_write.h"
-#include "vendor/stb/stb_image_resize.h"
+#include <sfg/vendor/stb/stb_image.h>
+#include <sfg/vendor/stb/stb_image_write.h>
+#include <sfg/vendor/stb/stb_image_resize.h>
 
 namespace sfg
 {

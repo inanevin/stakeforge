@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/vector.hpp"
+#include "vector.hpp"
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {

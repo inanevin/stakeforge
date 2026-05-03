@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/bitmask.hpp"
-#include "gfx/common/gfx_constants.hpp"
+#include "gfx_constants.hpp"
+#include <sfg/data/bitmask.hpp>
 
 namespace sfg
 {

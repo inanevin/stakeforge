@@ -25,27 +25,43 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui_renderer.hpp"
-#include "ui/vg/vg_canvas.hpp"
-#include "gfx/backend/backend.hpp"
-#include "gfx/common/commands.hpp"
-#include "gfx/common/descriptions.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
-#include "math/math.hpp"
+#include "vg/vg_canvas.hpp"
+#include "vg/vg_atlas.hpp"
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/common/commands.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/texture_buffer.hpp>
+#include <sfg/gfx/common/texture_queue.hpp>
+#include <sfg/gfx/util/gfx_util.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/math/mat4x4.hpp>
 
 namespace sfg::ui
 {
+	namespace
+	{
+		struct sdf_params_data_t
+		{
+			f32 sdf_threshold = 0.5f;
+			f32 sdf_softness  = 0.0625f;
+			f32 _pad0		  = 0.0f;
+			f32 _pad1		  = 0.0f;
+		};
+	}
+
 	ui_renderer_t::~ui_renderer_t() = default;
 
-	void ui_renderer_t::init(const ui_render_group_t& default_group, const ui_render_group_t& default_text_group, const ui_render_group_t& default_sdf_group, const ui_renderer_config_t& cfg)
+	void ui_renderer_t::init(gfx_shader_handle default_pipeline, gfx_shader_handle text_pipeline, gfx_shader_handle sdf_pipeline, const ui_renderer_config_t& cfg)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		_default_group		= default_group;
-		_default_text_group = default_text_group;
-		_default_sdf_group	= default_sdf_group;
-		_vtx_capacity		= cfg.vertex_buffer_bytes;
-		_idx_capacity		= cfg.index_buffer_bytes;
+		_default_pipeline = default_pipeline;
+		_text_pipeline	  = text_pipeline;
+		_sdf_pipeline	  = sdf_pipeline;
+		_vtx_capacity	  = cfg.vertex_buffer_bytes;
+		_idx_capacity	  = cfg.index_buffer_bytes;
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -64,43 +80,148 @@ namespace sfg::ui
 			i_desc.debug_name	   = "ui_renderer_idx";
 			p.index_buffer		   = backend->create_resource(i_desc);
 			backend->map_resource(p.index_buffer, p.mapped_idx);
+
+			resource_desc_t proj_desc = {};
+			proj_desc.size			  = sizeof(f32) * 16;
+			proj_desc.flags			  = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+			proj_desc.debug_name	  = "ui_renderer_projection";
+			p.projection_buffer		  = backend->create_resource(proj_desc);
+			backend->map_resource(p.projection_buffer, p.mapped_projection);
+			p.projection_index = backend->get_resource_gpu_index(p.projection_buffer);
 		}
+
+		resource_desc_t sdf_desc = {};
+		sdf_desc.size			 = sizeof(sdf_params_data_t);
+		sdf_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		sdf_desc.debug_name		 = "ui_renderer_sdf_params";
+		_sdf_params				 = backend->create_resource(sdf_desc);
+		_sdf_params_index		 = backend->get_resource_gpu_index(_sdf_params);
+
+		u8* sdf_mapped = nullptr;
+		backend->map_resource(_sdf_params, sdf_mapped);
+		const sdf_params_data_t defaults = {};
+		SFG_MEMCPY(sdf_mapped, &defaults, sizeof(sdf_params_data_t));
+		backend->unmap_resource(_sdf_params);
 	}
 
 	void ui_renderer_t::uninit()
 	{
 		gfx_backend* backend = gfx_backend::get();
 
+		for (auto& kv : _atlases)
+		{
+			backend->destroy_texture(kv.second.texture);
+			backend->destroy_resource(kv.second.staging);
+		}
+		_atlases.clear();
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			per_frame_data_t& p = _pfd[i];
 			backend->destroy_resource(p.vertex_buffer);
 			backend->destroy_resource(p.index_buffer);
+			backend->destroy_resource(p.projection_buffer);
 			p = {};
 		}
 
-		_default_group		= {};
-		_default_text_group = {};
-		_default_sdf_group	= {};
-		_vtx_capacity		= 0;
-		_idx_capacity		= 0;
+		backend->destroy_resource(_sdf_params);
+
+		_default_pipeline = {};
+		_text_pipeline	  = {};
+		_sdf_pipeline	  = {};
+		_sdf_params		  = {};
+		_sdf_params_index = 0;
+		_vtx_capacity	  = 0;
+		_idx_capacity	  = 0;
 	}
 
-	void ui_renderer_t::render(gfx_command_buffer_handle cmd, const vg_canvas_t& canvas, u8 frame_index)
+	void ui_renderer_t::update_atlas(texture_queue_t& queue, vg_atlas_t* atlas)
+	{
+		gfx_backend* backend = gfx_backend::get();
+
+		const u32  atlas_id = atlas->get_id();
+		const u32  width	= atlas->get_width();
+		const u32  height	= atlas->get_height();
+		const bool is_lcd	= atlas->get_is_lcd();
+		const u8   bpp		= is_lcd ? 3u : 1u;
+
+		atlas_entry_t& entry = _atlases[atlas_id];
+
+		const bool needs_recreate = entry.texture.is_null() || entry.width != width || entry.height != height || entry.bpp != bpp;
+
+		if (needs_recreate)
+		{
+			if (!entry.texture.is_null())
+				backend->destroy_texture(entry.texture);
+			if (!entry.staging.is_null())
+				backend->destroy_resource(entry.staging);
+
+			texture_desc_t desc = {};
+			desc.texture_format = is_lcd ? format_e::r8g8b8a8_unorm : format_e::r8_unorm;
+			desc.size			= {static_cast<u16>(width), static_cast<u16>(height)};
+			desc.flags			= texture_flags::tf_sampled | texture_flags::tf_transfer_dest | texture_flags::tf_is_2d;
+			desc.mip_levels		= 1;
+			desc.array_length	= 1;
+			desc.samples		= 1;
+			desc.debug_name		= "ui_atlas";
+			entry.texture		= backend->create_texture(desc);
+			entry.gpu_index		= backend->get_texture_gpu_index(entry.texture, 0);
+
+			resource_desc_t s_desc = {};
+			s_desc.size			   = backend->align_texture_size(width * height * bpp);
+			s_desc.flags		   = resource_flags::rf_cpu_visible;
+			s_desc.debug_name	   = "ui_atlas_staging";
+			entry.staging		   = backend->create_resource(s_desc);
+
+			entry.width		   = width;
+			entry.height	   = height;
+			entry.bpp		   = bpp;
+			entry.transitioned = false;
+		}
+
+		if (!atlas->is_dirty())
+			return;
+
+		const texture_buffer_t mip = {
+			.pixels = atlas->get_data(),
+			.size	= {static_cast<u16>(width), static_cast<u16>(height)},
+			.bpp	= bpp,
+		};
+
+		texture_upload_desc_t upload = {};
+		upload.texture				 = entry.texture;
+		upload.staging				 = entry.staging;
+		upload.mips					 = {&mip, 1};
+		upload.from_states			 = entry.transitioned ? resource_state_ps_resource : resource_state_common;
+		upload.to_states			 = resource_state_ps_resource;
+		upload.ownership			 = texture_data_ownership_e::none;
+		queue.add(upload);
+
+		entry.transitioned = true;
+		atlas->clear_dirty();
+	}
+
+	void ui_renderer_t::render(gfx_command_buffer_handle cmd, const vg_canvas_t& canvas, u8 frame_index, vec2u16_t fb_size)
 	{
 		gfx_backend*	  backend = gfx_backend::get();
 		per_frame_data_t& p		  = _pfd[frame_index % BACK_BUFFER_COUNT];
 
-		const auto& get_draw_buffers = canvas.get_draw_buffers();
-		if (get_draw_buffers.empty())
+		const auto& draw_buffers = canvas.get_draw_buffers();
+		if (draw_buffers.empty())
 			return;
+
+		const mat4x4_t proj = mat4x4_t::ortho(0.0f, static_cast<f32>(fb_size.x), 0.0f, static_cast<f32>(fb_size.y), 0.0f, 1.0f);
+		SFG_MEMCPY(p.mapped_projection, proj.m, sizeof(f32) * 16);
+
+		command_bind_constants_t bc_proj = {.data = &p.projection_index, .offset = constant_rp0, .count = 1, .param_index = 0};
+		backend->cmd_bind_constants(cmd, bc_proj);
 
 		u32 vtx_offset = 0;
 		u32 idx_offset = 0;
 
-		ui_render_group_t current = {};
+		gfx_shader_handle current_pipeline = {};
 
-		for (const vg_draw_buffer_t& db : get_draw_buffers)
+		for (const vg_draw_buffer_t& db : draw_buffers)
 		{
 			if (db.vertex_count == 0 || db.index_count == 0)
 				continue;
@@ -114,43 +235,48 @@ namespace sfg::ui
 				continue;
 			}
 
-			const ui_render_group_t* selected = nullptr;
-			if (db.user_data != nullptr)
-			{
-				selected = static_cast<const ui_render_group_t*>(db.user_data);
-			}
-			else if (db.font_id == invalid_id_u32)
-			{
-				selected = &_default_group;
-			}
-			else if (db.font_kind == vg_font_kind_e::sdf)
-			{
-				selected = &_default_sdf_group;
-			}
+			const ui_render_group_t* user_group = static_cast<const ui_render_group_t*>(db.user_data);
+			const bool				 is_text	= db.font_id != invalid_id_u32;
+			const bool				 is_sdf		= is_text && db.font_kind == font_kind_e::sdf;
+
+			gfx_shader_handle pipeline = {};
+			if (user_group != nullptr)
+				pipeline = user_group->pipeline;
+			else if (!is_text)
+				pipeline = _default_pipeline;
+			else if (is_sdf)
+				pipeline = _sdf_pipeline;
 			else
-			{
-				selected = &_default_text_group;
-			}
+				pipeline = _text_pipeline;
 
-			if (selected->layout != current.layout)
+			if (pipeline != current_pipeline)
 			{
-				command_bind_layout_t bl = {.layout = selected->layout};
-				backend->cmd_bind_layout(cmd, bl);
-				current.layout = selected->layout;
-			}
-
-			if (selected->group != current.group)
-			{
-				command_bind_group_t bg = {.group = selected->group};
-				backend->cmd_bind_group(cmd, bg);
-				current.group = selected->group;
-			}
-
-			if (selected->pipeline != current.pipeline)
-			{
-				command_bind_pipeline_t bp = {.pipeline = selected->pipeline};
+				command_bind_pipeline_t bp = {.pipeline = pipeline};
 				backend->cmd_bind_pipeline(cmd, bp);
-				current.pipeline = selected->pipeline;
+				current_pipeline = pipeline;
+			}
+
+			if (is_text)
+			{
+				u32		   atlas_index = 0;
+				const auto it		   = _atlases.find(db.atlas_id);
+				if (it != _atlases.end())
+					atlas_index = it->second.gpu_index;
+
+				command_bind_constants_t bc_mat0 = {.data = &atlas_index, .offset = constant_mat0, .count = 1, .param_index = 0};
+				backend->cmd_bind_constants(cmd, bc_mat0);
+
+				if (is_sdf)
+				{
+					command_bind_constants_t bc_mat1 = {.data = &_sdf_params_index, .offset = constant_mat1, .count = 1, .param_index = 0};
+					backend->cmd_bind_constants(cmd, bc_mat1);
+				}
+			}
+
+			if (user_group != nullptr)
+			{
+				command_bind_constants_t bc_obj = {.data = const_cast<u32*>(user_group->constants), .offset = constant_obj0, .count = 4, .param_index = 0};
+				backend->cmd_bind_constants(cmd, bc_obj);
 			}
 
 			SFG_MEMCPY(p.mapped_vtx + vtx_offset, db.vertex_start, vtx_size);

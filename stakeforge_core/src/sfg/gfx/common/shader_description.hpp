@@ -26,12 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/bitmask.hpp"
-#include "data/vector.hpp"
-#include "data/span.hpp"
-#include "data/string.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "gfx/common/format.hpp"
+#include "gfx_constants.hpp"
+#include "format.hpp"
+#include <sfg/data/bitmask.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/data/string.hpp>
 
 namespace sfg
 {

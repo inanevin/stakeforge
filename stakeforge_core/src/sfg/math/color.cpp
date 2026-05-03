@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "color.hpp"
 #include "math.hpp"
-#include "data/istream.hpp"
-#include "data/ostream.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 
-#include <vendor/nhlohmann/json.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace sfg

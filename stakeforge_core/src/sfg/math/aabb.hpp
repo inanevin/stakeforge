@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "math/vec3f.hpp"
+#include "vec3f.hpp"
 
 namespace sfg
 {

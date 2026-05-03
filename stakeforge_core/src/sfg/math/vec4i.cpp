@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vec4i.hpp"
-#include "data/istream.hpp"
-#include "data/ostream.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 
 namespace sfg
 {

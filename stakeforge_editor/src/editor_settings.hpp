@@ -1,12 +1,12 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "data/string.hpp"
-#include "data/vector.hpp"
-#include "math/vec2i16.hpp"
-#include "math/vec2u16.hpp"
-
-#include "vendor/nhlohmann/json_fwd.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/math/vec2i16.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {

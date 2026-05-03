@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "quat.hpp"
 #include "math.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 
-#include "vendor/nhlohmann/json.hpp"
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {

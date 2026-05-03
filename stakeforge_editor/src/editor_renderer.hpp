@@ -1,12 +1,13 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "data/span.hpp"
-#include "data/vector.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "gfx/common/semaphore_data.hpp"
-#include "math/vec2u16.hpp"
-#include "ui/ui_renderer.hpp"
+#include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/gfx/common/semaphore_data.hpp>
+#include <sfg/gfx/common/texture_queue.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/ui/ui_renderer.hpp>
 
 namespace sfg
 {
@@ -18,7 +19,6 @@ namespace sfg
 	struct surface_render_target_t
 	{
 		gfx_swapchain_handle swapchain = {};
-		ui::vg_canvas_t*	 canvas	   = nullptr;
 		vec2u16_t			 size	   = {};
 	};
 
@@ -29,6 +29,9 @@ namespace sfg
 		{
 			semaphore_data_t		  semaphore_frame = {};
 			gfx_command_buffer_handle command_buffer  = {};
+			gfx_resource_handle		  global_buffer	  = {};
+			u8*						  mapped_global	  = nullptr;
+			u32						  global_index	  = 0;
 		};
 
 	public:
@@ -38,7 +41,7 @@ namespace sfg
 
 		bool init();
 		void uninit();
-		void render(span_t<const surface_render_target_t> targets);
+		void render(span_t<const surface_render_target_t> targets, f32 delta_time);
 		void join();
 
 		// -----------------------------------------------------------------------------
@@ -50,14 +53,13 @@ namespace sfg
 		void				 destroy_swapchain(gfx_swapchain_handle swapchain);
 
 	private:
-		vector_t<gfx_swapchain_handle>	  _swapchains;
-		vector_t<surface_render_target_t> _eligible_targets;
-		per_frame_data_t				  _pfd[BACK_BUFFER_COUNT] = {};
-		ui::ui_renderer_t				  _ui_renderer			  = {};
-		gfx_bind_layout_handle			  _ui_default_layout	  = {};
-		gfx_bind_layout_handle			  _ui_text_layout		  = {};
-		gfx_bind_layout_handle			  _ui_sdf_layout		  = {};
-		u64								  _frame_counter		  = 0;
-		u8								  _frame_index			  = 0;
+		vector_t<gfx_swapchain_handle> _swapchains;
+		per_frame_data_t			   _pfd[BACK_BUFFER_COUNT] = {};
+		ui::ui_renderer_t			   _ui_renderer			   = {};
+		texture_queue_t				   _texture_queue		   = {};
+		gfx_bind_layout_handle		   _global_layout		   = {};
+		f32							   _elapsed_time		   = 0.0f;
+		u64							   _frame_counter		   = 0;
+		u8							   _frame_index			   = 0;
 	};
 }

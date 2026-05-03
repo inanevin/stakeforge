@@ -6,8 +6,7 @@
 #include "editor_resources.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
-#include "memory/dynamic_pool_allocator_gen.hpp"
-#include "ui/vg/vg_font.hpp"
+#include <sfg/memory/dynamic_gen_pool.hpp>
 
 namespace sfg
 {
@@ -66,14 +65,10 @@ namespace sfg
 		static void on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
 
 	private:
-		using surface_pool_t = dynamic_pool_gen_t<editor_surface_t, u16, editor_surface_tag_t>;
-
-		editor_renderer_t  _renderer;
-		editor_resources_t _resources;
-		surface_pool_t	   _surfaces;
-		editor_settings_t  _settings;
-
-		ui::vg_font_t* _ui_font	   = nullptr;
-		i64				 _last_tick_us = 0;
+		editor_renderer_t												_renderer;
+		editor_resources_t												_resources;
+		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
+		editor_settings_t												_settings;
+		i64																_last_tick_us = 0;
 	};
 }

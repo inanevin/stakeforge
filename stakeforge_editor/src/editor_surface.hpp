@@ -2,11 +2,11 @@
 #pragma once
 
 #include "common_editor.hpp"
-#include "data/unique.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "math/vec2u16.hpp"
-#include "platform/common_window.hpp"
-#include "ui/ui_context.hpp"
+#include <sfg/data/unique.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/platform/common_window.hpp>
+#include <sfg/ui/ui_context.hpp>
 
 namespace sfg
 {

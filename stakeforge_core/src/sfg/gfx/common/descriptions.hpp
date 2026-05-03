@@ -26,18 +26,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "math/vec2f.hpp"
-#include "math/vec2u.hpp"
-#include "math/vec2u16.hpp"
-#include "data/bitmask.hpp"
-#include "data/vector.hpp"
-#include "data/span.hpp"
-#include "data/string.hpp"
 #include "format.hpp"
-#include "gfx/common/gfx_constants.hpp"
+#include "gfx_constants.hpp"
 #include "shader_description.hpp"
-
-#include "vendor/nhlohmann/json_fwd.hpp"
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec2u.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/data/bitmask.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {

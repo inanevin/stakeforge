@@ -25,27 +25,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "dx12_backend.hpp"
-
 #include "sdk/d3d12.h"
 #include "dx12_common.hpp"
 
 // data
-#include "data/static_vector.hpp"
-#include "data/string_util.hpp"
-#include "data/vector_util.hpp"
+#include <sfg/data/static_vector.hpp>
+#include <sfg/data/string_util.hpp>
+#include <sfg/data/vector_util.hpp>
 
 // gfx
-#include "gfx/common/descriptions.hpp"
-#include "gfx/common/texture_buffer.hpp"
-#include "gfx/backend/dx12/sdk/D3D12MemAlloc.h"
-#include "gfx/common/commands.hpp"
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/texture_buffer.hpp>
+#include <sfg/gfx/backend/dx12/sdk/D3D12MemAlloc.h>
+#include <sfg/gfx/common/commands.hpp>
 
 // misc
-#include "io/log.hpp"
-#include "memory/memory.hpp"
-#include "memory/memory_tracer.hpp"
-#include "math/math_common.hpp"
-#include "runtime/engine/engine_stats.hpp"
+#include <sfg/io/log.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/memory/memory_tracer.hpp>
+#include <sfg/math/math_common.hpp>
+#include <sfg/runtime/engine/engine_stats.hpp>
 
 #ifdef SFG_DEBUG
 #include <WinPixEventRuntime/pix3.h>
@@ -3315,33 +3314,6 @@ namespace sfg
 
 		if (!barriers.empty())
 			cmd_list->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
-	}
-
-	ID3D12DescriptorHeap* dx12_backend_t::get_srv_heap()
-	{
-		return _heap_gpu_buffer.get_heap();
-	}
-
-	void dx12_backend_t::alloc_srv(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle)
-	{
-		const descriptor_handle_t handle = _heap_gpu_buffer.get_heap_handle_block(1);
-		out_cpu_handle->ptr				 = handle.cpu;
-		out_gpu_handle->ptr				 = handle.gpu;
-		_external_descriptors.push_back(handle);
-	}
-
-	void dx12_backend_t::free_srv(D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
-	{
-		descriptor_handle_t* h = _external_descriptors.find_if([&](const descriptor_handle_t& h) -> bool { return h.cpu == cpu_handle.ptr && h.gpu == gpu_handle.ptr; });
-		SFG_ASSERT(h != nullptr);
-
-		_heap_gpu_buffer.remove_handle(*h);
-		_external_descriptors.remove(*h);
-	}
-
-	u64 dx12_backend_t::get_srv_gpu_handle_from_index(u32 index)
-	{
-		return _heap_gpu_buffer.get_gpu_start() + static_cast<u64>(index) * _heap_gpu_buffer.get_descriptor_size();
 	}
 
 }

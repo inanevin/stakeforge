@@ -25,8 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
+
 #include "math_common.hpp"
-#include <vendor/um/umHalf.h>
+#include <sfg/vendor/um/umHalf.h>
 
 namespace sfg
 {

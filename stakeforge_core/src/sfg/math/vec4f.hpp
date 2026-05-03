@@ -25,12 +25,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
+
 #include "math_common.hpp"
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #undef min
 #undef max
 
-#include "vendor/nhlohmann/json_fwd.hpp"
 
 namespace sfg
 {

@@ -24,9 +24,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pool_allocator_gen.hpp"
+#pragma once
+
+#include "vector.hpp"
+#include <sfg/memory/frame_allocator.hpp>
 
 namespace sfg
 {
-
+	template <typename T> using frame_vector_t = vector_t<T, frame_allocator_t<T>>;
 }

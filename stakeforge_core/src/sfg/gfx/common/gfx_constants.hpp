@@ -27,8 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #define NOMINMAX
-#include <limits>
-#include "memory/pool_handle.hpp"
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {

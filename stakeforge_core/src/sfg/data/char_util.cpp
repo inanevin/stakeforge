@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "char_util.hpp"
-#include "memory/memory.hpp"
+#include <sfg/memory/memory.hpp>
 
 #include <cstring>
 #include <cstdio>

@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
-#include "gfx/backend/dx12/sdk/ID3DIncludeInterface.hpp"
+#include <sfg/gfx/backend/dx12/sdk/ID3DIncludeInterface.hpp>
 #include <wrl/client.h>
 
 using Microsoft::WRL::ComPtr;

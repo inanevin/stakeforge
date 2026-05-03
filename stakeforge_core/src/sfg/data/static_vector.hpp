@@ -26,12 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "io/assert.hpp"
-#include <initializer_list>
-#include <memory>
-#include <new>
-#include <type_traits>
-#include <utility>
+#include <sfg/io/assert.hpp>
+#include <sfg/memory/memory.hpp>
 
 namespace sfg
 {

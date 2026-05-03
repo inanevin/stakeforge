@@ -25,12 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "buffer.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
-#include "memory/memory.hpp"
-#include "gfx/backend/backend.hpp"
-#include "gfx/common/descriptions.hpp"
-#include "gfx/common/commands.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/commands.hpp>
 
 namespace sfg
 {

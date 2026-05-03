@@ -25,8 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "frame_allocator.hpp"
-#include "memory/memory_tracer.hpp"
-#include "math/math_common.hpp"
+#include "memory.hpp"
+#include "memory_tracer.hpp"
+#include <sfg/math/math_common.hpp>
 
 namespace sfg
 {

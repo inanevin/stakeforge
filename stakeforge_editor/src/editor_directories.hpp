@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "data/string.hpp"
+#include <sfg/data/string.hpp>
 
 namespace sfg
 {

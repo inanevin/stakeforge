@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "random.hpp"
-#include "io/assert.hpp"
+#include <sfg/io/assert.hpp>
 #include <cstdint>
 #include <chrono>
 #include <cassert>

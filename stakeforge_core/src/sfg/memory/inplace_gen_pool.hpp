@@ -27,17 +27,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "pool_handle.hpp"
-#include "io/assert.hpp"
 #include "memory.hpp"
-
-#include <memory>
+#include <sfg/io/assert.hpp>
 #include <new>
-#include <type_traits>
-#include <utility>
 
 namespace sfg
 {
-	template <typename T, typename SIZE_TYPE, int N, typename TAG = T> struct pool_allocator_gen_t
+	template <typename T, typename SIZE_TYPE, int N, typename TAG = T> struct inplace_gen_pool_t
 	{
 		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
 		using handle_t = HANDLE;
@@ -49,12 +45,12 @@ namespace sfg
 		};
 
 	public:
-		~pool_allocator_gen_t()
+		~inplace_gen_pool_t()
 		{
 			reset();
 		}
 
-		pool_allocator_gen_t()
+		inplace_gen_pool_t()
 		{
 			for (u32 i = 0; i < N; i++)
 			{

@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "bump_text_allocator.hpp"
-#include "memory/memory.hpp"
-#include "data/char_util.hpp"
+#include <sfg/memory/memory.hpp>
+#include <sfg/data/char_util.hpp>
 
 #include <cstdarg>
 #include <cstring>

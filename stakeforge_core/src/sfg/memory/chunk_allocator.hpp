@@ -26,18 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
 #include "chunk_handle.hpp"
-#include "io/assert.hpp"
-#include "data/vector.hpp"
-#include "data/vector_util.hpp"
-#include "data/string.hpp"
-#include "math/math_common.hpp"
 #include "memory.hpp"
 
+#include <sfg/io/assert.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/vector_util.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/math/math_common.hpp>
+
 #include <cstddef>
-#include <limits>
-#include <memory>
 #include <type_traits>
 
 namespace sfg

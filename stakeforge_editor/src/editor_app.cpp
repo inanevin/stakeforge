@@ -1,37 +1,26 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "editor_app.hpp"
-
 #include "editor_directories.hpp"
 #include "editor_resources.hpp"
 #include "editor_surface.hpp"
-#include "gfx/backend/backend.hpp"
-#include "io/assert.hpp"
-#include "io/file_system.hpp"
-#include "io/log.hpp"
-#include "platform/process.hpp"
-#include "platform/time.hpp"
-#include "serialization/serialization.hpp"
-#include "vendor/nhlohmann/json.hpp"
-
-#include "ui/ui_context.hpp"
-#include "ui/input/input_router.hpp"
-
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/platform/process.hpp>
+#include <sfg/platform/time.hpp>
+#include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/ui/ui_context.hpp>
+#include <sfg/ui/input/input_router.hpp>
 #include <string>
 
 namespace sfg
 {
 	namespace
 	{
-		constexpr const char* k_default_font_path = "../../../assets/engine/fonts/Roboto-Regular.ttf";
-
-		editor_settings_t make_default_settings()
-		{
-			editor_settings_t settings = {};
-			settings.windows.push_back({});
-			return settings;
-		}
-
 		ui::mouse_button_e map_button(u16 b)
 		{
 			if (b == 1)
@@ -169,72 +158,31 @@ namespace sfg
 
 	void editor_app_t::init_surface_ui(editor_surface_t& surface)
 	{
-		surface.ui = std::make_unique<ui::ui_context>();
+		surface.ui = make_unique<ui::ui_context>();
 
 		ui::ui_config_t cfg = {};
 		cfg.max_widgets		= 512;
 		cfg.atlas_width		= 1024;
 		cfg.atlas_height	= 1024;
 		surface.ui->init(cfg);
-
-		// Load a default font once and share across surfaces.
-		// For simplicity we load per-surface; the editor can later switch to a shared font cache.
-		ui::vg_font_config_t fcfg = {};
-		fcfg.size				  = 14;
-		fcfg.kind				  = ui::vg_font_kind_e::bitmap;
-		_ui_font				  = surface.ui->get_fonts().load_font_from_file(k_default_font_path, fcfg);
-		if (_ui_font == nullptr)
-			SFG_WARN("editor: failed to load default UI font from {0}", k_default_font_path);
-
-		{
-			auto& ui   = *surface.ui;
-			auto  root = ui.get_root();
-
-			// Root layout: flow column, full size.
-			auto& root_in		  = ui.get_tree().in(root);
-			root_in.flow		  = ui::flow_e::column;
-			root_in.child_spacing = 4.0f;
-			root_in.child_margins = {8.0f, 8.0f, 8.0f, 8.0f};
-
-			// Header panel.
-			auto  header	 = ui.make_row(root);
-			auto& hin		 = ui.get_tree().in(header);
-			hin.size_mode_y	 = ui::axis_mode_e::fixed;
-			hin.size_value.y = 28.0f;
-
-			if (_ui_font)
-			{
-				ui.make_label(header, "HebeEditor", _ui_font);
-				ui.make_spacer(header); // fill remaining
-				ui.make_button(header, "File", _ui_font);
-				ui.make_button(header, "View", _ui_font);
-				ui.make_button(header, "Help", _ui_font);
-			}
-
-			// Body splitter (just a single panel for now).
-			auto  body		= ui.make_panel(root);
-			auto& bin		= ui.get_tree().in(body);
-			bin.size_mode_x = ui::axis_mode_e::fill;
-			bin.size_mode_y = ui::axis_mode_e::fill;
-
-			if (_ui_font)
-			{
-				ui::vg_text_paint_t tp = {.font = _ui_font, .color = ui.get_theme().color_item_fg, .scale = 1.0f, .spacing = 0};
-				ui.make_label(body, "Welcome to ui UI! Layout/input/paint/serialize hooked up.", _ui_font);
-			}
-		}
 	}
 
 	void editor_app_t::tick()
 	{
+		frame_allocator_tls_t::init(1024 * 1024);
+
 		bool tick = true;
 		while (tick)
 		{
+			frame_allocator_tls_t::reset();
+
 			process::pump_os_messages();
 
 			const i64	now = time_t::get_cpu_microseconds();
 			const float dt	= static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us	= now;
+
+			frame_vector_t<surface_render_target_t> targets;
 
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{
@@ -248,13 +196,15 @@ namespace sfg
 					continue;
 				}
 
+				const bool minimized = surface.runtime.has_flag(window_runtime_flags_e::minimized);
+				if (minimized)
+					continue;
+
 				if (surface.runtime.size != surface.swapchain_size)
 				{
 					_renderer.join();
-					const bool		minimized	= surface.runtime.has_flag(window_runtime_flags_e::minimized);
-					const vec2u16_t resize_size = (!minimized && surface.runtime.size.x != 0 && surface.runtime.size.y != 0) ? surface.runtime.size : vec2u16_t{1, 1};
-					_renderer.resize_swapchain(surface.swapchain, resize_size, surface.runtime.monitor_info.dpi_scale);
-					surface.swapchain_size = resize_size;
+					_renderer.resize_swapchain(surface.swapchain, surface.runtime.size, surface.runtime.monitor_info.dpi_scale);
+					surface.swapchain_size = surface.runtime.size;
 				}
 
 				if (surface.ui)
@@ -262,6 +212,11 @@ namespace sfg
 					const vec4f_t screen = {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					surface.ui->tick(screen, dt);
 				}
+
+				targets.push_back({
+					.swapchain = surface.swapchain,
+					.size	   = surface.swapchain_size,
+				});
 			}
 
 			if (_surfaces.empty())
@@ -270,20 +225,10 @@ namespace sfg
 				break;
 			}
 
-			vector_t<surface_render_target_t> targets;
-			targets.reserve(_surfaces.size());
-			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
-			{
-				editor_surface_t& surface = _surfaces.get(*it);
-				targets.push_back({
-					.swapchain = surface.swapchain,
-					.canvas	   = surface.ui ? &surface.ui->get_canvas() : nullptr,
-					.size	   = surface.swapchain_size,
-				});
-			}
-
-			_renderer.render({targets.data(), targets.size()});
+			_renderer.render({targets.data(), targets.size()}, dt);
 		}
+
+		frame_allocator_tls_t::uninit();
 	}
 
 	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size)
@@ -341,7 +286,7 @@ namespace sfg
 		const string_t path = editor_directories_t::get_settings_path();
 		if (!file_system::exists(path.c_str()))
 		{
-			_settings = make_default_settings();
+			_settings = {};
 			flush_settings_to_disk();
 			return true;
 		}
@@ -354,7 +299,7 @@ namespace sfg
 		catch (const std::exception& e)
 		{
 			SFG_ERR("failed loading editor settings: {0}", e.what());
-			_settings = make_default_settings();
+			_settings = {};
 			flush_settings_to_disk();
 			return true;
 		}

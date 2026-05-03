@@ -26,18 +26,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "gfx/common/gfx_constants.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/data/hash_map.hpp>
+#include <sfg/math/vec2u16.hpp>
+
+namespace sfg
+{
+	class texture_queue_t;
+}
 
 namespace sfg::ui
 {
 	class vg_canvas_t;
+	class vg_atlas_t;
 
 	struct ui_render_group_t
 	{
-		gfx_bind_layout_handle layout	= {};
-		gfx_bind_group_handle  group	= {};
-		gfx_shader_handle	   pipeline = {};
+		gfx_shader_handle pipeline	   = {};
+		u32				  constants[4] = {};
 	};
 
 	struct ui_renderer_config_t
@@ -58,25 +65,48 @@ namespace sfg::ui
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const ui_render_group_t& default_group, const ui_render_group_t& default_text_group, const ui_render_group_t& default_sdf_group, const ui_renderer_config_t& cfg = {});
+		void init(gfx_shader_handle default_pipeline, gfx_shader_handle text_pipeline, gfx_shader_handle sdf_pipeline, const ui_renderer_config_t& cfg = {});
 		void uninit();
-		void render(gfx_command_buffer_handle cmd, const vg_canvas_t& canvas, u8 frame_index);
+		void render(gfx_command_buffer_handle cmd, const vg_canvas_t& canvas, u8 frame_index, vec2u16_t fb_size);
+
+		// -----------------------------------------------------------------------------
+		// atlas
+		// -----------------------------------------------------------------------------
+
+		void update_atlas(texture_queue_t& queue, vg_atlas_t* atlas);
 
 	private:
 		struct per_frame_data_t
 		{
-			gfx_resource_handle vertex_buffer = {};
-			gfx_resource_handle index_buffer  = {};
-			u8*					mapped_vtx	  = nullptr;
-			u8*					mapped_idx	  = nullptr;
+			gfx_resource_handle vertex_buffer	  = {};
+			gfx_resource_handle index_buffer	  = {};
+			gfx_resource_handle projection_buffer = {};
+			u8*					mapped_vtx		  = nullptr;
+			u8*					mapped_idx		  = nullptr;
+			u8*					mapped_projection = nullptr;
+			u32					projection_index  = 0;
+		};
+
+		struct atlas_entry_t
+		{
+			gfx_texture_handle	texture		 = {};
+			gfx_resource_handle staging		 = {};
+			u32					gpu_index	 = 0;
+			u32					width		 = 0;
+			u32					height		 = 0;
+			u8					bpp			 = 1;
+			bool				transitioned = false;
 		};
 
 	private:
-		per_frame_data_t  _pfd[BACK_BUFFER_COUNT] = {};
-		ui_render_group_t _default_group		  = {};
-		ui_render_group_t _default_text_group	  = {};
-		ui_render_group_t _default_sdf_group	  = {};
-		u32				  _vtx_capacity			  = 0;
-		u32				  _idx_capacity			  = 0;
+		per_frame_data_t			   _pfd[BACK_BUFFER_COUNT] = {};
+		hash_map_t<u32, atlas_entry_t> _atlases;
+		gfx_shader_handle			   _default_pipeline = {};
+		gfx_shader_handle			   _text_pipeline	 = {};
+		gfx_shader_handle			   _sdf_pipeline	 = {};
+		gfx_resource_handle			   _sdf_params		 = {};
+		u32							   _sdf_params_index = 0;
+		u32							   _vtx_capacity	 = 0;
+		u32							   _idx_capacity	 = 0;
 	};
 }

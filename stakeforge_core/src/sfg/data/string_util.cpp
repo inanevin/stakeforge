@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "string_util.hpp"
-#include "memory/memory.hpp"
-#include "io/assert.hpp"
+#include <sfg/memory/memory.hpp>
+#include <sfg/io/assert.hpp>
 #include <charconv>
 #include <codecvt>
 #include <locale>

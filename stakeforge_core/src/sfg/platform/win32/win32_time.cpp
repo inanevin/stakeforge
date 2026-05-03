@@ -24,8 +24,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "platform/time.hpp"
-#include "io/log.hpp"
+#include <sfg/platform/time.hpp>
+#include <sfg/io/log.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

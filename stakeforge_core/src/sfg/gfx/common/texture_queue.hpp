@@ -26,105 +26,91 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/unique.hpp"
-#include "data/vector.hpp"
-#include "ui/ui_common.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/data/static_vector.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/gfx/common/texture_buffer.hpp>
 
-namespace sfg::ui
+namespace sfg
 {
-	class vg_atlas_t;
-
-	enum class vg_font_kind_e : u8
+	enum class texture_data_ownership_e : u8
 	{
-		bitmap,
-		sdf,
-		lcd,
+		none,		  // queue does not free pixel data
+		c_free,		  // SFG_FREE on each mip's pixels
+		delete_array, // delete[] on each mip's pixels
 	};
 
-	struct vg_glyph_t
+	struct texture_upload_desc_t
 	{
-		u8* sdf_data		  = nullptr;
-		i32 kern_advance[128] = {0};
-		i32 width			  = 0;
-		i32 height			  = 0;
-		i32 advance_x		  = 0;
-		i32 left_bearing	  = 0;
-		f32 x_offset		  = 0.0f;
-		f32 y_offset		  = 0.0f;
-		i32 atlas_x			  = 0;
-		i32 atlas_y			  = 0;
-		f32 uv_x			  = 0.0f;
-		f32 uv_y			  = 0.0f;
-		f32 uv_w			  = 0.0f;
-		f32 uv_h			  = 0.0f;
+		gfx_texture_handle			   texture	   = {};
+		gfx_resource_handle			   staging	   = {};
+		span_t<const texture_buffer_t> mips		   = {};
+		u32							   from_states = 0;
+		u32							   to_states   = 0;
+		texture_data_ownership_e	   ownership   = texture_data_ownership_e::none;
 	};
 
-	struct vg_font_t
-	{
-		vg_glyph_t	   glyph_info[128]		  = {};
-		vg_atlas_t*	   _atlas				  = nullptr;
-		u32			   _font_id				  = invalid_id_u32;
-		u32			   _atlas_required_height = 0;
-		u32			   _atlas_pos			  = 0;
-		f32			   _scale				  = 0.0f;
-		i32			   ascent				  = 0;
-		i32			   descent				  = 0;
-		i32			   line_gap				  = 0;
-		u32			   size					  = 0;
-		vg_font_kind_e kind					  = vg_font_kind_e::bitmap;
-	};
-
-	struct vg_font_config_t
-	{
-		u32			   size			= 16;
-		u32			   range_start	= 32;
-		u32			   range_end	= 128;
-		vg_font_kind_e kind			= vg_font_kind_e::bitmap;
-		i32			   sdf_padding	= 3;
-		i32			   sdf_edge		= 128;
-		f32			   sdf_distance = 32.0f;
-	};
-
-	class vg_font_manager_t
+	class texture_queue_t
 	{
 	public:
-		vg_font_manager_t();
-		vg_font_manager_t(const vg_font_manager_t&)			   = delete;
-		vg_font_manager_t& operator=(const vg_font_manager_t&) = delete;
-		~vg_font_manager_t();
+		static constexpr u32 MAX_MIPS = 16;
+
+		texture_queue_t()								   = default;
+		texture_queue_t(const texture_queue_t&)			   = delete;
+		texture_queue_t& operator=(const texture_queue_t&) = delete;
+		~texture_queue_t();
 
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(u32 atlas_width, u32 atlas_height);
+		void init(u32 reserve_count = 16);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		vg_font_t* load_font_from_file(const char* path, const vg_font_config_t& cfg);
-		vg_font_t* load_font(const u8* data, size_t data_size, const vg_font_config_t& cfg);
-		void	   unload_font(vg_font_t* fnt);
+		void add(const texture_upload_desc_t& desc);
+		void flush(gfx_command_buffer_handle cmd);
+		void transit(gfx_command_buffer_handle cmd);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline const vector_t<unique_t<vg_atlas_t>>& atlases() const
+		inline bool has_uploads() const
 		{
-			return _atlases;
+			return !_uploads.empty();
+		}
+		inline bool has_transits() const
+		{
+			return !_transits.empty();
 		}
 
 	private:
-		void place_into_atlas(vg_font_t* fnt);
+		struct entry_t
+		{
+			gfx_texture_handle							texture		= {};
+			gfx_resource_handle							staging		= {};
+			static_vector_t<texture_buffer_t, MAX_MIPS> mips		= {};
+			u32											from_states = 0;
+			u32											to_states	= 0;
+			texture_data_ownership_e					ownership	= texture_data_ownership_e::none;
+		};
+
+		struct transit_entry_t
+		{
+			gfx_texture_handle texture	 = {};
+			u32				   to_states = 0;
+		};
+
+		static void release_entry(entry_t& entry);
 
 	private:
-		vector_t<unique_t<vg_atlas_t>> _atlases;
-		vector_t<unique_t<vg_font_t>>  _fonts;
-		u32							   _atlas_width	 = 1024;
-		u32							   _atlas_height = 1024;
+		vector_t<entry_t>		  _uploads	= {};
+		vector_t<transit_entry_t> _transits = {};
 	};
 }

@@ -28,15 +28,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
-	ui_context::~ui_context() = default;
-
 	void ui_context::init(const ui_config_t& cfg)
 	{
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
 		_input.init(cfg.input);
 		_canvas.init(cfg.canvas);
-		_fonts.init(cfg.atlas_width, cfg.atlas_height);
 		_text_pool.init(cfg.text_pool_capacity);
 	}
 
@@ -45,7 +42,6 @@ namespace sfg::ui
 		_widget_texts.clear();
 		_text_pool.uninit();
 		_canvas.uninit();
-		_fonts.uninit();
 		_input.uninit();
 		_paint.uninit();
 		_tree.uninit();
@@ -186,7 +182,7 @@ namespace sfg::ui
 		return id;
 	}
 
-	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, vg_font_t* font)
+	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, font_data_t* font)
 	{
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);
@@ -209,7 +205,7 @@ namespace sfg::ui
 		return id;
 	}
 
-	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, vg_font_t* font)
+	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, font_data_t* font)
 	{
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);

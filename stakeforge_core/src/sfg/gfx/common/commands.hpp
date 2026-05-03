@@ -26,11 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "math/vec4f.hpp"
-#include "data/bitmask.hpp"
-#include "gfx/common/descriptions.hpp"
-#include "gfx/common/barrier_description.hpp"
+#include "descriptions.hpp"
+#include "barrier_description.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/vec4f.hpp>
+#include <sfg/data/bitmask.hpp>
 
 namespace sfg
 {

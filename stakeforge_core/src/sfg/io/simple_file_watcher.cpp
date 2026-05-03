@@ -25,9 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "simple_file_watcher.hpp"
-#include "data/vector_util.hpp"
-#include "io/log.hpp"
-#include "io/file_system.hpp"
+#include "log.hpp"
+#include "file_system.hpp"
+#include <sfg/data/vector_util.hpp>
 #include <filesystem>
 
 namespace sfg

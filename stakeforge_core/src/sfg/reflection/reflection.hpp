@@ -25,14 +25,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "data/vector.hpp"
-#include "data/string.hpp"
-#include "common/string_id.hpp"
-#include "common/type_id.hpp"
-#include "io/assert.hpp"
-#include "reflection/common_reflection.hpp"
-#include "memory/malloc_allocator_stl.hpp"
-#include "memory/memory.hpp"
+#include "common_reflection.hpp"
+#include <sfg/data/vector.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/common/string_id.hpp>
+#include <sfg/common/type_id.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/memory/malloc_allocator_stl.hpp>
+#include <sfg/memory/memory.hpp>
 #include <functional>
 
 #pragma warning(push)
@@ -96,8 +96,8 @@ namespace sfg
 		enum_vec			 _enum_list	  = {};
 		malloc_string		 _title		  = "";
 		malloc_string		 _tooltip	  = "";
-		string_id			 _sid		  = 0;
-		string_id			 _sub_type_id = 0;
+		sid_t			 _sid		  = 0;
+		sid_t			 _sub_type_id = 0;
 		f32					 _min		  = 0.0f;
 		f32					 _max		  = 0.0f;
 		reflected_field_type _type		  = reflected_field_type::rf_float;
@@ -157,7 +157,7 @@ namespace sfg
 	{
 		malloc_string title	  = "";
 		malloc_string tooltip = "";
-		string_id	  sid	  = 0;
+		sid_t	  sid	  = 0;
 	};
 
 	class meta_t
@@ -165,7 +165,7 @@ namespace sfg
 	public:
 		struct function_entry_t
 		{
-			string_id					id	= 0;
+			sid_t					id	= 0;
 			reflection_function_base_t* ptr = nullptr;
 		};
 
@@ -173,7 +173,7 @@ namespace sfg
 		typedef vector_t<field_base_t*, malloc_allocator_stl_t<field_base_t*>>		 field_vec;
 		typedef vector_t<control_button_t, malloc_allocator_stl_t<control_button_t>> button_vec;
 
-		template <auto DATA, typename Class> field_base_t* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, f32 min, f32 max, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
+		template <auto DATA, typename Class> field_base_t* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, f32 min, f32 max, sid_t sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
 			using ft = field_t<decltype(DATA), Class>;
 
@@ -194,7 +194,7 @@ namespace sfg
 			return f;
 		}
 
-		template <auto DATA, typename Class> field_base_t* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, string_id sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
+		template <auto DATA, typename Class> field_base_t* add_field(const string_t& title, reflected_field_type type, const string_t& tooltip, sid_t sub_type_id = 0, u8 is_list = 0, u8 no_ui = 0)
 		{
 			using ft = field_t<decltype(DATA), Class>;
 
@@ -219,7 +219,7 @@ namespace sfg
 			_control_buttons.push_back({.title = title.c_str(), .tooltip = tooltip.c_str(), .sid = TO_SID(title)});
 		}
 
-		template <typename RetVal, typename... Args, typename F> meta_t& add_function(string_id id, F&& f)
+		template <typename RetVal, typename... Args, typename F> meta_t& add_function(sid_t id, F&& f)
 		{
 			using func_t						= reflection_function_t<RetVal, Args...>;
 			std::function<RetVal(Args...)> func = std::forward<F>(f);
@@ -236,7 +236,7 @@ namespace sfg
 			return *this;
 		}
 
-		template <typename RetVal, typename... Args> RetVal invoke_function(string_id id, Args... args) const
+		template <typename RetVal, typename... Args> RetVal invoke_function(sid_t id, Args... args) const
 		{
 			const function_entry_t* entry_t = find_function_entry(id);
 			auto*					ptr		= entry_t->ptr;
@@ -248,23 +248,23 @@ namespace sfg
 			return func->invoke(std::forward<Args>(args)...);
 		}
 
-		reflection_function_base_t* get_function(string_id id)
+		reflection_function_base_t* get_function(sid_t id)
 		{
 			function_entry_t* entry_t = find_function_entry(id);
 			return entry_t ? entry_t->ptr : nullptr;
 		}
 
-		bool has_function(string_id id) const
+		bool has_function(sid_t id) const
 		{
 			return find_function_entry(id) != nullptr;
 		}
 
-		inline string_id get_type_id() const
+		inline sid_t get_type_id() const
 		{
 			return _type_id;
 		}
 
-		inline const string_id get_tag() const
+		inline const sid_t get_tag() const
 		{
 			return _tag;
 		}
@@ -330,7 +330,7 @@ namespace sfg
 		}
 
 	private:
-		inline function_entry_t* find_function_entry(string_id id)
+		inline function_entry_t* find_function_entry(sid_t id)
 		{
 			for (function_entry_t& entry_t : _functions)
 			{
@@ -340,7 +340,7 @@ namespace sfg
 			return nullptr;
 		}
 
-		inline const function_entry_t* find_function_entry(string_id id) const
+		inline const function_entry_t* find_function_entry(sid_t id) const
 		{
 			for (const function_entry_t& entry_t : _functions)
 			{
@@ -356,8 +356,8 @@ namespace sfg
 		malloc_string _title		   = "";
 		malloc_string _category		   = "";
 		malloc_string _tag_str		   = "";
-		string_id	  _type_id		   = 0;
-		string_id	  _tag			   = 0;
+		sid_t	  _type_id		   = 0;
+		sid_t	  _tag			   = 0;
 		u32			  _type_index	   = 0;
 	};
 
@@ -366,7 +366,7 @@ namespace sfg
 	public:
 		struct meta_entry_t
 		{
-			string_id id = 0;
+			sid_t id = 0;
 			meta_t	  meta_t;
 		};
 
@@ -386,7 +386,7 @@ namespace sfg
 			}
 		}
 
-		meta_t& register_meta(string_id id, u32 index, const string_t& tag)
+		meta_t& register_meta(sid_t id, u32 index, const string_t& tag)
 		{
 			meta_entry_t* entry_t = find_meta_entry(id);
 			if (!entry_t)
@@ -403,13 +403,13 @@ namespace sfg
 			return m;
 		}
 
-		meta_t& resolve(string_id id)
+		meta_t& resolve(sid_t id)
 		{
 			meta_entry_t* entry_t = find_meta_entry(id);
 			return entry_t->meta_t;
 		}
 
-		meta_t* try_resolve(string_id id)
+		meta_t* try_resolve(sid_t id)
 		{
 			meta_entry_t* entry_t = find_meta_entry(id);
 			return entry_t ? &entry_t->meta_t : nullptr;
@@ -423,7 +423,7 @@ namespace sfg
 		const meta_t* find_by_tag(const char* tag) const;
 
 	private:
-		inline meta_entry_t* find_meta_entry(string_id id)
+		inline meta_entry_t* find_meta_entry(sid_t id)
 		{
 			for (meta_entry_t& entry_t : _metas)
 			{
@@ -433,7 +433,7 @@ namespace sfg
 			return nullptr;
 		}
 
-		inline const meta_entry_t* find_meta_entry(string_id id) const
+		inline const meta_entry_t* find_meta_entry(sid_t id) const
 		{
 			for (const meta_entry_t& entry_t : _metas)
 			{

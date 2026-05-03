@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/string.hpp"
-#include "common/size_definitions.hpp"
-#include "io/log.hpp"
-#include "io/assert.hpp"
+#include <sfg/data/string.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/io/assert.hpp>
 #include <stdexcept>
 
 namespace sfg

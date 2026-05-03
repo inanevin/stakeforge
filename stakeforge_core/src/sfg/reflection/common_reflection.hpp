@@ -25,8 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "common/size_definitions.hpp"
-#include "common/string_id.hpp"
+
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/common/string_id.hpp>
+
 namespace sfg
 {
 	enum class reflected_field_type : u8
@@ -66,7 +68,7 @@ namespace sfg
 		world_t&  w;
 		void*	  object_ptr  = nullptr;
 		void*	  data_ptr	  = nullptr;
-		string_id field_title = 0;
+		sid_t field_title = 0;
 		u32		  list_index  = 0;
 	};
 
@@ -74,6 +76,6 @@ namespace sfg
 	{
 		world_t&  w;
 		void*	  object_ptr = nullptr;
-		string_id button_id	 = 0;
+		sid_t button_id	 = 0;
 	};
 };

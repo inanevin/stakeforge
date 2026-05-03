@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "blend_definitions.hpp"
-#include "gfx/common/shader_description.hpp"
+#include <sfg/gfx/common/shader_description.hpp>
 
 namespace sfg
 {

@@ -1,16 +1,16 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "editor_resources.hpp"
-
-#include "data/vector.hpp"
 #include "editor_directories.hpp"
-#include "gfx/backend/backend.hpp"
-#include "gfx/common/descriptions.hpp"
-#include "gfx/common/format.hpp"
-#include "gfx/common/shader_description.hpp"
-#include "io/assert.hpp"
-#include "io/file_system.hpp"
-#include "io/log.hpp"
+
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/format.hpp>
+#include <sfg/gfx/common/shader_description.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 
 namespace sfg
 {
@@ -54,21 +54,22 @@ namespace sfg
 		_allocator.init(64 * 1024, alignof(std::max_align_t));
 		_resources.reserve(16);
 
-		const shader_desc_t default_desc = make_ui_shader_desc("ui_default", true);
-		const shader_desc_t text_desc	 = make_ui_shader_desc("ui_text", true);
-		const shader_desc_t sdf_desc	 = make_ui_shader_desc("ui_sdf", true);
-
-		const string_t assets		= editor_directories_t::get_editor_assets();
-		const string_t default_path = assets + "shaders/ui_default.hlsl";
-		const string_t text_path	= assets + "shaders/ui_text.hlsl";
-		const string_t sdf_path		= assets + "shaders/ui_sdf.hlsl";
-
-		if (load_shader(default_path.c_str(), default_desc) == nullptr)
-			return false;
-		if (load_shader(text_path.c_str(), text_desc) == nullptr)
-			return false;
-		if (load_shader(sdf_path.c_str(), sdf_desc) == nullptr)
-			return false;
+		// const shader_desc_t default_desc = make_ui_shader_desc("ui_default", true);
+		// const shader_desc_t text_desc	 = make_ui_shader_desc("ui_text", true);
+		// const shader_desc_t sdf_desc	 = make_ui_shader_desc("ui_sdf", true);
+		//
+		// const string_t assets			 = editor_directories_t::get_editor_assets();
+		// const string_t default_path		 = assets + "shaders/ui_default.hlsl";
+		// const string_t text_path		 = assets + "shaders/ui_text.hlsl";
+		// const string_t sdf_path			 = assets + "shaders/ui_sdf.hlsl";
+		// const string_t default_font_path = assets + "fonts/RobotoRegular.ttf";
+		//
+		// if (load_shader(default_path.c_str(), default_desc) == nullptr)
+		// 	return false;
+		// if (load_shader(text_path.c_str(), text_desc) == nullptr)
+		// 	return false;
+		// if (load_shader(sdf_path.c_str(), sdf_desc) == nullptr)
+		// 	return false;
 		return true;
 	}
 
@@ -218,4 +219,5 @@ namespace sfg
 		SFG_TRACE("loaded: {0}", path);
 		return texture;
 	}
+
 }

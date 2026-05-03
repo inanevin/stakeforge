@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "bump_allocator.hpp"
-#include "memory/memory.hpp"
-#include "memory/memory_tracer.hpp"
+#include "memory.hpp"
+#include "memory_tracer.hpp"
 
 namespace sfg
 {

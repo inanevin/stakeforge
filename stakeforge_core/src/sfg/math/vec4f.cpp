@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec4f.hpp"
 #include "math.hpp"
-#include "data/istream.hpp"
-#include "data/ostream.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 
-#include "vendor/nhlohmann/json.hpp"
+#include <sfg/vendor/nhlohmann/json.hpp>
 namespace sfg
 {
 	const vec4f_t vec4f_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};

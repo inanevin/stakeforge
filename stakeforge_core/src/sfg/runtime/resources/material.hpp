@@ -5,7 +5,9 @@
 
 namespace sfg
 {
-	struct material_metadata_t
+	class istream_t;
+
+	struct material_data_t
 	{
 		u32 reserved = 0;
 	};
@@ -15,9 +17,11 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern bool material_load_cpu(resource_entry_t& entry, span_t<const u8> data, resource_context_t& ctx);
+	extern bool material_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
 	extern bool material_create_internals(resource_entry_t& entry, resource_context_t& ctx);
 	extern void material_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	extern void material_unload(resource_entry_t& entry, resource_context_t& ctx);
 	extern void material_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
-	extern void register_material_resource(resource_manager_t& resource_manager);
+
+	extern const resource_type_desc_t material_resource_desc;
 }

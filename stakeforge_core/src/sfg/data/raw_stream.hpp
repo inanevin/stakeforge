@@ -26,10 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
 #include "span.hpp"
-
-#include <utility>
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {

@@ -25,9 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "compression.hpp"
-#include "io/log.hpp"
-#include "data/istream.hpp"
-#include "data/ostream.hpp"
+#include <sfg/io/log.hpp>
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <lz4/lz4.h>
 
 namespace sfg

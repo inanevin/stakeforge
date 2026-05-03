@@ -2,8 +2,8 @@
 
 #include "editor_settings.hpp"
 
-#include "common/size_definitions.hpp"
-#include "vendor/nhlohmann/json.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {

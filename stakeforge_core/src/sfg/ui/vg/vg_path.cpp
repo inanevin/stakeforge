@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vg_path.hpp"
-#include "math/math.hpp"
+#include <sfg/math/math.hpp>
 
 namespace sfg::ui
 {

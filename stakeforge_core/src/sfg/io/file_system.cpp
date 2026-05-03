@@ -26,8 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "file_system.hpp"
 #include "log.hpp"
-#include "data/string_util.hpp"
-
+#include <sfg/data/string_util.hpp>
 #include <filesystem>
 #include <fstream>
 

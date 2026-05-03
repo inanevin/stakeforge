@@ -25,8 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "log.hpp"
-#include "data/vector_util.hpp"
-#include "data/string.hpp"
+#include <sfg/data/vector_util.hpp>
+#include <sfg/data/string.hpp>
 
 #ifdef SFG_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef SFG_DUMP_LOG_TRACE
-#include "serialization/serialization.hpp"
+#include <sfg/serialization/serialization.hpp>
 #endif
 
 #include <iostream>

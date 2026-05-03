@@ -26,46 +26,41 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <memory>
-#include <new>
-#include <type_traits>
-#include <utility>
-
-#include "common/size_definitions.hpp"
 #include "pool_handle.hpp"
-#include "io/assert.hpp"
 #include "memory.hpp"
+#include <sfg/io/assert.hpp>
+#include <type_traits>
 
 namespace sfg
 {
 
-	template <typename T, typename SIZE_TYPE = u32, typename TAG = T> class dynamic_pool_allocator_gen_t
+	template <typename T, typename SIZE_TYPE = u32, typename TAG = T> class dynamic_gen_pool_t
 	{
 
 	private:
 		static_assert(std::is_integral_v<SIZE_TYPE>);
 		static_assert(std::is_unsigned_v<SIZE_TYPE>);
-		static_assert(std::is_nothrow_move_constructible_v<T> || std::is_copy_constructible_v<T>, "dynamic_pool_allocator_gen_t requires T to be nothrow move constructible or copy constructible");
+		static_assert(std::is_nothrow_move_constructible_v<T> || std::is_copy_constructible_v<T>, "dynamic_gen_pool_t requires T to be nothrow move constructible or copy constructible");
 
 	public:
 		using HANDLE   = pool_handle_t<SIZE_TYPE, TAG>;
 		using handle_t = HANDLE;
 
-		dynamic_pool_allocator_gen_t()													   = default;
-		dynamic_pool_allocator_gen_t(const dynamic_pool_allocator_gen_t& other)			   = delete;
-		dynamic_pool_allocator_gen_t& operator=(const dynamic_pool_allocator_gen_t& other) = delete;
+		dynamic_gen_pool_t()										   = default;
+		dynamic_gen_pool_t(const dynamic_gen_pool_t& other)			   = delete;
+		dynamic_gen_pool_t& operator=(const dynamic_gen_pool_t& other) = delete;
 
-		dynamic_pool_allocator_gen_t(dynamic_pool_allocator_gen_t&& other) noexcept
+		dynamic_gen_pool_t(dynamic_gen_pool_t&& other) noexcept
 		{
 			move_from(other);
 		}
 
-		~dynamic_pool_allocator_gen_t()
+		~dynamic_gen_pool_t()
 		{
 			clear();
 		}
 
-		dynamic_pool_allocator_gen_t& operator=(dynamic_pool_allocator_gen_t&& other) noexcept
+		dynamic_gen_pool_t& operator=(dynamic_gen_pool_t&& other) noexcept
 		{
 			if (this == &other)
 				return *this;
@@ -485,7 +480,7 @@ namespace sfg
 			}
 		}
 
-		inline void move_from(dynamic_pool_allocator_gen_t& other)
+		inline void move_from(dynamic_gen_pool_t& other)
 		{
 			_data				  = other._data;
 			_free_list			  = other._free_list;
@@ -532,7 +527,5 @@ namespace sfg
 		SIZE_TYPE  _size		   = 0;
 		SIZE_TYPE  _capacity	   = 0;
 	};
-
-	template <typename T, typename SIZE_TYPE = u32, typename TAG = T> using dynamic_pool_gen_t = dynamic_pool_allocator_gen_t<T, SIZE_TYPE, TAG>;
 
 }

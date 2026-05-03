@@ -24,11 +24,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "common/size_definitions.hpp"
 #include "color_utils.hpp"
 #include "color.hpp"
 #include "math.hpp"
 #include "easing.hpp"
+#include <sfg/common/size_definitions.hpp>
 #include <iomanip>
 #include <sstream>
 

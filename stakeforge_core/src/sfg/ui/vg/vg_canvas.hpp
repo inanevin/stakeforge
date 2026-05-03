@@ -26,13 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/vector.hpp"
-#include "data/span.hpp"
-#include "math/vec2f.hpp"
-#include "math/vec4f.hpp"
-#include "ui/ui_common.hpp"
-#include "ui/vg/vg_font.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/resources/font.hpp>
+#include <sfg/ui/ui_common.hpp>
 
 namespace sfg::ui
 {
@@ -83,27 +83,27 @@ namespace sfg::ui
 
 	struct vg_text_paint_t
 	{
-		vg_font_t* font	   = nullptr;
-		vec4f_t	   color   = {1, 1, 1, 1};
-		f32		   scale   = 1.0f;
-		u8		   spacing = 0;
-		bool	   flip_uv = false;
+		font_data_t* font	 = nullptr;
+		vec4f_t		 color	 = {1, 1, 1, 1};
+		f32			 scale	 = 1.0f;
+		u8			 spacing = 0;
+		bool		 flip_uv = false;
 	};
 
 	struct vg_draw_buffer_t
 	{
-		vg_vertex_t*   vertex_start	   = nullptr;
-		vg_index_t*	   index_start	   = nullptr;
-		void*		   user_data	   = nullptr;
-		vec4f_t		   clip			   = {0, 0, 0, 0};
-		u32			   atlas_id		   = invalid_id_u32;
-		u32			   font_id		   = invalid_id_u32;
-		u32			   draw_order	   = 0;
-		u32			   vertex_count	   = 0;
-		u32			   index_count	   = 0;
-		u32			   vertex_capacity = 0;
-		u32			   index_capacity  = 0;
-		vg_font_kind_e font_kind	   = vg_font_kind_e::bitmap;
+		vg_vertex_t* vertex_start	 = nullptr;
+		vg_index_t*	 index_start	 = nullptr;
+		void*		 user_data		 = nullptr;
+		vec4f_t		 clip			 = {0, 0, 0, 0};
+		u32			 atlas_id		 = invalid_id_u32;
+		u32			 font_id		 = invalid_id_u32;
+		u32			 draw_order		 = 0;
+		u32			 vertex_count	 = 0;
+		u32			 index_count	 = 0;
+		u32			 vertex_capacity = 0;
+		u32			 index_capacity	 = 0;
+		font_kind_e	 font_kind		 = font_kind_e::bitmap;
 	};
 
 	struct vg_canvas_config_t
@@ -162,7 +162,7 @@ namespace sfg::ui
 		}
 
 	private:
-		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, void* user_data, vg_font_t* font);
+		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, void* user_data, font_data_t* font);
 		vec4f_t			  intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
 
 	private:

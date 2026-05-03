@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
@@ -34,5 +34,10 @@ namespace sfg
 	{
 		u32 head = 0;
 		u32 size = 0;
+
+		explicit operator bool() const
+		{
+			return size != 0;
+		}
 	};
 }

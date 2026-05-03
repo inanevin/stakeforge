@@ -25,11 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vg_atlas.hpp"
-#include "vg_font.hpp"
-#include "io/assert.hpp"
-#include "memory/memory.hpp"
-#include "memory/memory_tracer.hpp"
-#include <cstring>
+#include <sfg/io/assert.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/memory/memory_tracer.hpp>
 
 namespace sfg::ui
 {
@@ -48,9 +46,6 @@ namespace sfg::ui
 		_data	   = static_cast<u8*>(SFG_MALLOC(_data_size));
 		SFG_MEMTRACE_ALLOC(_data, _data_size);
 		std::memset(_data, 0, _data_size);
-
-		_slices.resize(0);
-		_slices.push_back({0, _height});
 		_dirty = true;
 	}
 
@@ -61,63 +56,8 @@ namespace sfg::ui
 			SFG_MEMTRACE_DEALLOC(_data);
 			SFG_FREE(_data);
 		}
-		_data = nullptr;
-		_slices.resize(0);
-		_fonts.resize(0);
+		_data	   = nullptr;
 		_data_size = 0;
 		_dirty	   = false;
-	}
-
-	bool vg_atlas_t::add_font(vg_font_t* font)
-	{
-		if (font->_atlas_required_height > _height)
-			return false;
-
-		u32		 best_diff	= _height + 1;
-		slice_t* best_slice = nullptr;
-		for (slice_t& s : _slices)
-		{
-			if (s.height < font->_atlas_required_height)
-				continue;
-			const u32 diff = s.height - font->_atlas_required_height;
-			if (diff < best_diff)
-			{
-				best_diff  = diff;
-				best_slice = &s;
-			}
-		}
-
-		if (best_slice == nullptr)
-			return false;
-
-		font->_atlas	 = this;
-		font->_atlas_pos = best_slice->pos;
-		font->_font_id	 = static_cast<u32>(_fonts.size());
-
-		best_slice->pos += font->_atlas_required_height;
-		best_slice->height -= font->_atlas_required_height;
-
-		if (best_slice->height == 0)
-		{
-			const size_t idx = static_cast<size_t>(best_slice - _slices.data());
-			_slices.erase(_slices.begin() + idx);
-		}
-
-		_fonts.push_back(font);
-		return true;
-	}
-
-	void vg_atlas_t::remove_font(vg_font_t* font)
-	{
-		_slices.push_back({font->_atlas_pos, font->_atlas_required_height});
-
-		for (auto it = _fonts.begin(); it != _fonts.end(); ++it)
-		{
-			if (*it == font)
-			{
-				_fonts.erase(it);
-				break;
-			}
-		}
 	}
 }

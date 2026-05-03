@@ -24,13 +24,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "serialization/serialization.hpp"
-#include "io/log.hpp"
-#include "io/file_system.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
+#include "serialization.hpp"
 #include "compression.hpp"
-
+#include <sfg/io/log.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 #include <fstream>
 #include <filesystem>
 
@@ -47,7 +46,7 @@ namespace sfg
 		}
 		else
 		{
-			SFG_ERR("Failed writing to file! {0}", target_file);
+			SFG_ERR("failed writing to file! {0}", target_file);
 			return false;
 		}
 
@@ -63,7 +62,7 @@ namespace sfg
 
 		if (!wf)
 		{
-			SFG_ERR("[Serialization] -> Could not open file for writing! {0}", path);
+			SFG_ERR("could not open file for writing! {0}", path);
 			return false;
 		}
 
@@ -73,7 +72,7 @@ namespace sfg
 
 		if (!wf.good())
 		{
-			SFG_ERR("[Serialization] -> Error occured while writing the file! {0}", path);
+			SFG_ERR("error occured while writing the file! {0}", path);
 			return false;
 		}
 
@@ -84,7 +83,7 @@ namespace sfg
 	{
 		if (!file_system::exists(path))
 		{
-			SFG_ERR("[Serialization] -> File doesn't exists: {0}", path);
+			SFG_ERR("file doesn't exists: {0}", path);
 			return {};
 		}
 
@@ -92,7 +91,7 @@ namespace sfg
 
 		if (!rf)
 		{
-			SFG_ERR("[Serialization] -> Could not open file for reading! {0}", path);
+			SFG_ERR("could not open file for reading! {0}", path);
 			return istream_t();
 		}
 
@@ -106,7 +105,7 @@ namespace sfg
 
 		if (!rf.good())
 		{
-			SFG_ERR("[Serialization] -> Error occured while reading the file! {0}", path);
+			SFG_ERR("error occured while reading the file! {0}", path);
 			readStream.destroy();
 			return {};
 		}

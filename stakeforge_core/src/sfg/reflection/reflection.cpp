@@ -24,13 +24,13 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "reflection/reflection.hpp"
+#include <sfg/reflection/reflection.hpp>
 
 namespace sfg
 {
 	const meta_t* reflection_t::find_by_tag(const char* tag) const
 	{
-		const string_id tagsid = TO_SID(tag);
+		const sid_t tagsid = TO_SID(tag);
 		for (const auto& entry_t : _metas)
 		{
 			if (entry_t.meta_t.get_tag() == tagsid)

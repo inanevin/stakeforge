@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/vector.hpp"
-#include "data/ostream.hpp"
+#include "vector.hpp"
+#include "ostream.hpp"
 
 namespace sfg
 {

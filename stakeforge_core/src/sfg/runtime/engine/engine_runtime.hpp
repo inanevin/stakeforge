@@ -3,11 +3,11 @@
 
 #include "common_engine.hpp"
 #include "engine_config.hpp"
-#include "runtime/render/renderer.hpp"
-#include "data/atomic.hpp"
-#include "memory/dynamic_pool_allocator_gen.hpp"
-#include "runtime/resources/resource_manager.hpp"
-#include "runtime/world/world.hpp"
+#include <sfg/runtime/render/renderer.hpp>
+#include <sfg/data/atomic.hpp>
+#include <sfg/memory/dynamic_gen_pool.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/world/world.hpp>
 
 #include <thread>
 
@@ -63,18 +63,18 @@ namespace sfg
 		void tick_worlds(f32 delta_time);
 
 	private:
-		dynamic_pool_allocator_gen_t<world_t, u32, world_handle_tag> _worlds;
-		renderer_t													 _renderer;
-		resource_manager_t											 _resource_manager;
-		std::thread													 _render_thread;
-		engine_config_t												 _config			   = {};
-		i64															 _previous_time		   = 0;
-		i64															 _accumulator_ns	   = 0;
-		i64															 _start_time		   = 0;
-		i64															 _fps_main_time		   = 0;
-		i64															 _fps_render_time	   = 0;
-		u32															 _fps_main_frames	   = 0;
-		u32															 _fps_render_frames	   = 0;
-		atomic_t<bool>												 _render_thread_active = false;
+		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;
+		renderer_t										   _renderer;
+		resource_manager_t								   _resource_manager;
+		engine_config_t									   _config = {};
+		std::thread										   _render_thread;
+		i64												   _previous_time		 = 0;
+		i64												   _accumulator_ns		 = 0;
+		i64												   _start_time			 = 0;
+		i64												   _fps_main_time		 = 0;
+		i64												   _fps_render_time		 = 0;
+		u32												   _fps_main_frames		 = 0;
+		u32												   _fps_render_frames	 = 0;
+		atomic_t<bool>									   _render_thread_active = false;
 	};
 }

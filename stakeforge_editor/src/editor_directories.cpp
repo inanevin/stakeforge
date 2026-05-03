@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "editor_directories.hpp"
-
-#include "io/file_system.hpp"
+#include <sfg/io/file_system.hpp>
 
 namespace sfg
 {
@@ -30,6 +29,6 @@ namespace sfg
 
 	string_t editor_directories_t::get_editor_assets()
 	{
-		return string_t(SFG_ROOT_DIRECTORY) + "stakeforge_editor/assets/";
+		return string_t(SFG_ROOT_DIRECTORY) + "stakeforge/editor/assets/";
 	}
 }

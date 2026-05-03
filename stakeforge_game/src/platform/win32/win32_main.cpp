@@ -1,4 +1,4 @@
-#include "stakeforge_api.hpp"
+#include <sfg/stakeforge_api.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

@@ -25,12 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "shadow_util.hpp"
-#include "common/size_definitions.hpp"
-#include "math/mat4x4.hpp"
-#include "math/vec3f.hpp"
-#include "math/vec2u16.hpp"
-#include "math/vec2f.hpp"
-#include "math/math.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/mat4x4.hpp>
+#include <sfg/math/vec3f.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/math.hpp>
 
 namespace sfg
 {

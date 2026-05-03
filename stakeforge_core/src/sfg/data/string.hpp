@@ -26,9 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "memory/frame_allocator.hpp"
+#include <string>
 
-// Headers here.
 namespace sfg
 {
 	template <typename T, class Alloc = std::allocator<T>> using basic_string_t = std::basic_string<T, std::char_traits<T>, Alloc>;

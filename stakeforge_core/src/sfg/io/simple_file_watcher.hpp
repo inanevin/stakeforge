@@ -26,11 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/string.hpp"
-#include "data/unique.hpp"
-#include "data/vector.hpp"
-#include "common/string_id.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/unique.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/common/string_id.hpp>
 
 namespace std
 {

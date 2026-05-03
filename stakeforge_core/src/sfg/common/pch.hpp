@@ -39,17 +39,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <chrono>
 
-#include "data/vector.hpp"
-#include "data/hash_map.hpp"
-#include "data/string.hpp"
-#include "data/mutex.hpp"
-#include "data/string_view.hpp"
+#include <sfg/data/vector.hpp>
+#include <sfg/data/hash_map.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/mutex.hpp>
+#include <sfg/data/string_view.hpp>
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/frame_string.hpp>
 
-#include "gfx/common/descriptions.hpp"
-#include "gfx/common/shader_description.hpp"
-#include "gfx/backend/backend.hpp"
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/shader_description.hpp>
+#include <sfg/gfx/backend/backend.hpp>
 
-#include "io/log.hpp"
-#include "io/file_system.hpp"
+#include <sfg/io/log.hpp>
+#include <sfg/io/file_system.hpp>
 
-#include <vendor/nhlohmann/json.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>

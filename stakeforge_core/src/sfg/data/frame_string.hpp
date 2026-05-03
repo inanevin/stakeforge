@@ -26,13 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
+#include "string.hpp"
+#include <sfg/memory/frame_allocator.hpp>
 
 namespace sfg
 {
-	class hash_t
-	{
-	public:
-	};
-
+	template <typename T> using frame_string_t = basic_string_t<T, frame_allocator_t<T>>;
 }

@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
 #include "vec4f.hpp"
 #include "vec3f.hpp"
 #include "mat3x3.hpp"
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {

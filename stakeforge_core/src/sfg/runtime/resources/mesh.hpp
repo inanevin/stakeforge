@@ -5,7 +5,7 @@
 
 namespace sfg
 {
-	struct mesh_metadata_t
+	struct mesh_data_t
 	{
 		u32 reserved = 0;
 	};
@@ -15,9 +15,11 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern bool mesh_load_cpu(resource_entry_t& entry, span_t<const u8> data, resource_context_t& ctx);
+	extern bool mesh_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
 	extern bool mesh_create_internals(resource_entry_t& entry, resource_context_t& ctx);
 	extern void mesh_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	extern void mesh_unload(resource_entry_t& entry, resource_context_t& ctx);
 	extern void mesh_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
-	extern void register_mesh_resource(resource_manager_t& resource_manager);
+
+	extern const resource_type_desc_t mesh_resource_desc;
 }

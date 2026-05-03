@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "renderer.hpp"
-#include "gfx/backend/backend.hpp"
-#include "gfx/common/descriptions.hpp"
-#include "gfx/util/gfx_util.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/util/gfx_util.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 
 namespace sfg
 {

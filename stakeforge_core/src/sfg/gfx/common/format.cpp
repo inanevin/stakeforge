@@ -25,10 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "format.hpp"
-#include "io/assert.hpp"
-
-#include "data/string.hpp"
-#include <vendor/nhlohmann/json.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace sfg

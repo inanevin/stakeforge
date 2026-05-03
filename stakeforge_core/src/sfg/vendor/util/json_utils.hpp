@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
-#include "common/size_definitions.hpp"
-#include "data/string.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/string.hpp>
 
 namespace sfg
 {

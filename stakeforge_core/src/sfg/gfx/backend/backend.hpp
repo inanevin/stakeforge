@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #ifdef SFG_PLATFORM_WINDOWS
-#include "gfx/backend/dx12/dx12_backend.hpp"
+#include <sfg/gfx/backend/dx12/dx12_backend.hpp>
 #else
 #endif
 

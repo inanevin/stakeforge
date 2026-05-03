@@ -25,9 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "input_router.hpp"
-#include "io/assert.hpp"
-#include "math/math.hpp"
-#include "ui/layout/layout_tree.hpp"
+#include <sfg/ui/layout/layout_tree.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 
 #include <algorithm>
 

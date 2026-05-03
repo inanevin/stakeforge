@@ -1,7 +1,7 @@
 #include "test_registry.hpp"
 
-#include "sfg/memory/dynamic_pool_allocator_gen.hpp"
-#include "sfg/memory/pool_allocator_gen.hpp"
+#include "sfg/memory/dynamic_gen_pool.hpp"
+#include "sfg/memory/inplace_gen_pool.hpp"
 
 #include <memory>
 #include <type_traits>
@@ -43,11 +43,11 @@ namespace sfg
 				static inline int live_count = 0;
 			};
 
-			using allocator_t = sfg::dynamic_pool_allocator_gen_t<int>;
-			static_assert(!std::is_copy_constructible_v<allocator_t>, "dynamic_pool_allocator_gen should not be copy constructible");
-			static_assert(!std::is_copy_assignable_v<allocator_t>, "dynamic_pool_allocator_gen should not be copy assignable");
-			static_assert(std::is_move_constructible_v<allocator_t>, "dynamic_pool_allocator_gen should be move constructible");
-			static_assert(std::is_move_assignable_v<allocator_t>, "dynamic_pool_allocator_gen should be move assignable");
+			using allocator_t = sfg::dynamic_gen_pool_t<int>;
+			static_assert(!std::is_copy_constructible_v<allocator_t>, "dynamic_gen_pool should not be copy constructible");
+			static_assert(!std::is_copy_assignable_v<allocator_t>, "dynamic_gen_pool should not be copy assignable");
+			static_assert(std::is_move_constructible_v<allocator_t>, "dynamic_gen_pool should be move constructible");
+			static_assert(std::is_move_assignable_v<allocator_t>, "dynamic_gen_pool should be move assignable");
 
 			struct material_t
 			{
@@ -67,24 +67,24 @@ namespace sfg
 			{
 			};
 
-			using material_pool_t = sfg::dynamic_pool_allocator_gen_t<material_t>;
-			using texture_pool_t  = sfg::dynamic_pool_allocator_gen_t<texture_t>;
+			using material_pool_t = sfg::dynamic_gen_pool_t<material_t>;
+			using texture_pool_t  = sfg::dynamic_gen_pool_t<texture_t>;
 			static_assert(!std::is_same_v<material_pool_t::handle_t, texture_pool_t::handle_t>, "different pool value types should have different handle types");
 			static_assert(!std::is_convertible_v<material_pool_t::handle_t, texture_pool_t::handle_t>, "different pool value type handles should not be convertible");
 
-			using material_pool_a_t = sfg::dynamic_pool_allocator_gen_t<material_t, u32, material_pool_a_tag>;
-			using material_pool_b_t = sfg::dynamic_pool_allocator_gen_t<material_t, u32, material_pool_b_tag>;
+			using material_pool_a_t = sfg::dynamic_gen_pool_t<material_t, u32, material_pool_a_tag>;
+			using material_pool_b_t = sfg::dynamic_gen_pool_t<material_t, u32, material_pool_b_tag>;
 			static_assert(!std::is_same_v<material_pool_a_t::handle_t, material_pool_b_t::handle_t>, "different explicit pool tags should have different handle types");
 			static_assert(!std::is_convertible_v<material_pool_a_t::handle_t, material_pool_b_t::handle_t>, "different explicit pool tag handles should not be convertible");
 
-			using fixed_material_pool_t = sfg::pool_allocator_gen_t<material_t, u16, 8>;
-			using fixed_texture_pool_t	= sfg::pool_allocator_gen_t<texture_t, u16, 8>;
+			using fixed_material_pool_t = sfg::inplace_gen_pool_t<material_t, u16, 8>;
+			using fixed_texture_pool_t	= sfg::inplace_gen_pool_t<texture_t, u16, 8>;
 			static_assert(!std::is_same_v<fixed_material_pool_t::handle_t, fixed_texture_pool_t::handle_t>, "fixed pools should have typed handles");
 
 			bool add_remove_and_reuse_preserve_generation_contract()
 			{
 				test_context_t context;
-				context.suite	 = "dynamic_pool_allocator_gen";
+				context.suite	 = "dynamic_gen_pool";
 				context.name	 = "add_remove_and_reuse_preserve_generation_contract";
 				context.failures = 0;
 
@@ -121,7 +121,7 @@ namespace sfg
 			bool iteration_skips_removed_slots()
 			{
 				test_context_t context;
-				context.suite	 = "dynamic_pool_allocator_gen";
+				context.suite	 = "dynamic_gen_pool";
 				context.name	 = "iteration_skips_removed_slots";
 				context.failures = 0;
 
@@ -155,7 +155,7 @@ namespace sfg
 			bool handle_iteration_skips_removed_slots()
 			{
 				test_context_t context;
-				context.suite	 = "dynamic_pool_allocator_gen";
+				context.suite	 = "dynamic_gen_pool";
 				context.name	 = "handle_iteration_skips_removed_slots";
 				context.failures = 0;
 
@@ -191,7 +191,7 @@ namespace sfg
 			bool move_assignment_transfers_ownership()
 			{
 				test_context_t context;
-				context.suite	 = "dynamic_pool_allocator_gen";
+				context.suite	 = "dynamic_gen_pool";
 				context.name	 = "move_assignment_transfers_ownership";
 				context.failures = 0;
 
@@ -214,13 +214,13 @@ namespace sfg
 			bool supports_non_trivial_move_only_types()
 			{
 				test_context_t context;
-				context.suite	 = "dynamic_pool_allocator_gen";
+				context.suite	 = "dynamic_gen_pool";
 				context.name	 = "supports_non_trivial_move_only_types";
 				context.failures = 0;
 
 				non_trivial_t::live_count = 0;
 				{
-					dynamic_pool_allocator_gen_t<non_trivial_t> allocator;
+					dynamic_gen_pool_t<non_trivial_t> allocator;
 					allocator.reserve(1);
 
 					auto id0				  = allocator.add();
@@ -246,11 +246,11 @@ namespace sfg
 			bool resize_zero_destroys_active_slots_and_invalidates_handles()
 			{
 				test_context_t context;
-				context.suite	 = "dynamic_pool_allocator_gen";
+				context.suite	 = "dynamic_gen_pool";
 				context.name	 = "resize_zero_destroys_active_slots_and_invalidates_handles";
 				context.failures = 0;
 
-				dynamic_pool_allocator_gen_t<non_trivial_t> allocator;
+				dynamic_gen_pool_t<non_trivial_t> allocator;
 				non_trivial_t::live_count = 0;
 
 				auto id0 = allocator.add();
@@ -271,14 +271,14 @@ namespace sfg
 			}
 		}
 
-		void register_dynamic_pool_allocator_gen_tests()
+		void register_dynamic_gen_pool_tests()
 		{
-			register_test("dynamic_pool_allocator_gen", "add_remove_and_reuse_preserve_generation_contract", &add_remove_and_reuse_preserve_generation_contract);
-			register_test("dynamic_pool_allocator_gen", "iteration_skips_removed_slots", &iteration_skips_removed_slots);
-			register_test("dynamic_pool_allocator_gen", "handle_iteration_skips_removed_slots", &handle_iteration_skips_removed_slots);
-			register_test("dynamic_pool_allocator_gen", "move_assignment_transfers_ownership", &move_assignment_transfers_ownership);
-			register_test("dynamic_pool_allocator_gen", "supports_non_trivial_move_only_types", &supports_non_trivial_move_only_types);
-			register_test("dynamic_pool_allocator_gen", "resize_zero_destroys_active_slots_and_invalidates_handles", &resize_zero_destroys_active_slots_and_invalidates_handles);
+			register_test("dynamic_gen_pool", "add_remove_and_reuse_preserve_generation_contract", &add_remove_and_reuse_preserve_generation_contract);
+			register_test("dynamic_gen_pool", "iteration_skips_removed_slots", &iteration_skips_removed_slots);
+			register_test("dynamic_gen_pool", "handle_iteration_skips_removed_slots", &handle_iteration_skips_removed_slots);
+			register_test("dynamic_gen_pool", "move_assignment_transfers_ownership", &move_assignment_transfers_ownership);
+			register_test("dynamic_gen_pool", "supports_non_trivial_move_only_types", &supports_non_trivial_move_only_types);
+			register_test("dynamic_gen_pool", "resize_zero_destroys_active_slots_and_invalidates_handles", &resize_zero_destroys_active_slots_and_invalidates_handles);
 		}
 	}
 }

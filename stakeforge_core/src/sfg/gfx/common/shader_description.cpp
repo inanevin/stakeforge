@@ -25,11 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "shader_description.hpp"
-#include "io/assert.hpp"
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
-
-#include "vendor/nhlohmann/json.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace sfg

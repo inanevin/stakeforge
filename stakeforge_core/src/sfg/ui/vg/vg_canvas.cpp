@@ -27,11 +27,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vg_canvas.hpp"
 #include "vg_path.hpp"
 #include "vg_atlas.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
-#include "math/math.hpp"
-#include "memory/memory.hpp"
-#include "memory/memory_tracer.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/memory/memory_tracer.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -297,12 +297,12 @@ namespace sfg::ui
 		return {x, y, r - x, t - y};
 	}
 
-	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, void* user_data, vg_font_t* font)
+	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, void* user_data, font_data_t* font)
 	{
 		const vec4f_t clip	 = current_clip();
-		const u32	  fnt_id = font ? font->_font_id : invalid_id_u32;
-		const u32	  atl_id = font ? font->_atlas->get_id() : invalid_id_u32;
-		const auto	  knd	 = font ? font->kind : vg_font_kind_e::bitmap;
+		const u32	  fnt_id = font ? static_cast<u32>(reinterpret_cast<uintptr_t>(font)) : invalid_id_u32;
+		const u32	  atl_id = invalid_id_u32;
+		const auto	  knd	 = font ? font->kind : font_kind_e::bitmap;
 
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
@@ -492,15 +492,15 @@ namespace sfg::ui
 		if (!paint.font || !text || len == 0)
 			return {0.0f, 0.0f};
 
-		const vg_font_t* fnt	 = paint.font;
-		const f32		 scale	 = paint.scale * fnt->_scale;
-		const f32		 spacing = static_cast<f32>(paint.spacing) * scale;
+		const font_data_t* fnt	   = paint.font;
+		const f32		   scale   = paint.scale * fnt->scale;
+		const f32		   spacing = static_cast<f32>(paint.spacing) * scale;
 
 		f32 total_x = 0.0f;
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u8		  c = static_cast<u8>(text[i]);
-			const vg_glyph_t& g = fnt->glyph_info[c];
+			const u8			c = static_cast<u8>(text[i]);
+			const font_glyph_t& g = fnt->glyph_info[c];
 			total_x += g.advance_x * scale;
 
 			if (i + 1 < len)
@@ -552,10 +552,10 @@ namespace sfg::ui
 			}
 		}
 
-		const vg_font_t* fnt	  = paint.font;
-		const f32		 scale	  = paint.scale * fnt->_scale;
-		const f32		 spacing  = static_cast<f32>(paint.spacing) * scale;
-		const f32		 subpixel = (fnt->kind == vg_font_kind_e::lcd) ? 3.0f : 1.0f;
+		const font_data_t* fnt		= paint.font;
+		const f32		   scale	= paint.scale * fnt->scale;
+		const f32		   spacing	= static_cast<f32>(paint.spacing) * scale;
+		const f32		   subpixel = (fnt->kind == font_kind_e::lcd) ? 3.0f : 1.0f;
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
@@ -571,8 +571,8 @@ namespace sfg::ui
 
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u8		  c = static_cast<u8>(text[i]);
-			const vg_glyph_t& g = fnt->glyph_info[c];
+			const u8			c = static_cast<u8>(text[i]);
+			const font_glyph_t& g = fnt->glyph_info[c];
 
 			if (prev != 0)
 				pen.x += static_cast<f32>(fnt->glyph_info[prev].kern_advance[c]) * scale;

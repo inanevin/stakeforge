@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <cmath>
 #include "math_common.hpp"
+#include <cmath>
 
 #undef min
 #undef max

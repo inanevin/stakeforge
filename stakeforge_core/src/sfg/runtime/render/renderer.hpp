@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "runtime/engine/engine_config.hpp"
-#include "gfx/common/gfx_constants.hpp"
-#include "gfx/common/semaphore_data.hpp"
+#include <sfg/runtime/engine/engine_config.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/gfx/common/semaphore_data.hpp>
 
 namespace sfg
 {

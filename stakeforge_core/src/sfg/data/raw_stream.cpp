@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "raw_stream.hpp"
 #include "ostream.hpp"
 #include "istream.hpp"
-#include "memory/memory.hpp"
+#include <sfg/memory/memory.hpp>
 
 namespace sfg
 {

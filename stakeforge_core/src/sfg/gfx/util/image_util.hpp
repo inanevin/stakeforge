@@ -26,8 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/vector.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+
 namespace sfg
 {
 	struct vec2u16_t;

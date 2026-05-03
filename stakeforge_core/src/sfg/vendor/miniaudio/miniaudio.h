@@ -85162,7 +85162,7 @@ static MA_INLINE ma_uint8 ma_dr_flac_crc8(ma_uint8 crc, ma_uint32 data, ma_uint3
 {
 #ifdef MA_DR_FLAC_NO_CRC
     (void)crc;
-    (void)data;
+    
     (void)count;
     return 0;
 #else
@@ -85239,7 +85239,7 @@ static MA_INLINE ma_uint16 ma_dr_flac_crc16__32bit(ma_uint16 crc, ma_uint32 data
 {
 #ifdef MA_DR_FLAC_NO_CRC
     (void)crc;
-    (void)data;
+    
     (void)count;
     return 0;
 #else
@@ -85281,7 +85281,7 @@ static MA_INLINE ma_uint16 ma_dr_flac_crc16__64bit(ma_uint16 crc, ma_uint64 data
 {
 #ifdef MA_DR_FLAC_NO_CRC
     (void)crc;
-    (void)data;
+    
     (void)count;
     return 0;
 #else
@@ -88929,7 +88929,7 @@ static MA_INLINE ma_uint32 ma_dr_flac_crc32_byte(ma_uint32 crc32, ma_uint8 data)
 #ifndef MA_DR_FLAC_NO_CRC
     return (crc32 << 8) ^ ma_dr_flac__crc32_table[(ma_uint8)((crc32 >> 24) & 0xFF) ^ data];
 #else
-    (void)data;
+    
     return crc32;
 #endif
 }

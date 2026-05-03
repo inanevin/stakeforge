@@ -27,9 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mat3x3.hpp"
 #include "mat4x4.hpp"
 #include "quat.hpp"
-#include "math.hpp" // for sqrtf, etc.
-#include "data/ostream.hpp"
-#include "data/istream.hpp"
+#include "math.hpp"
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 
 namespace sfg
 {

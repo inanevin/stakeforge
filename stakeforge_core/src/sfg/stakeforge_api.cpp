@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "stakeforge_api.hpp"
-#include "runtime/engine/engine_runtime.hpp"
+#include <sfg/runtime/engine/engine_runtime.hpp>
 
 #include <new>
 
@@ -16,7 +16,7 @@ sfg_api_result_t sfg_engine_init(const sfg::engine_config_t& config)
 	if (g_engine != nullptr)
 		return sfg_api_result_engine_already_initialized;
 
-	if ((config.fixed_framerate_ns <= 0.0 || config.fixed_framerate_max_ticks == 0 || config.frame_allocator_size == 0 || config.resource_allocator_size == 0))
+	if ((config.fixed_framerate_ns <= 0.0 || config.fixed_framerate_max_ticks == 0 || config.render_frame_allocator_size == 0 || config.resource_allocator_size == 0))
 		return sfg_api_result_invalid_argument;
 
 	sfg::engine_runtime_t* engine = new (std::nothrow) sfg::engine_runtime_t();

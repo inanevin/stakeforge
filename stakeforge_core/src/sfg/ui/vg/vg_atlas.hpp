@@ -26,14 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/vector.hpp"
-#include "ui/ui_common.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/ui/ui_common.hpp>
 
 namespace sfg::ui
 {
-	struct vg_font_t;
-
 	class vg_atlas_t
 	{
 	public:
@@ -50,20 +48,9 @@ namespace sfg::ui
 		void uninit();
 
 		// -----------------------------------------------------------------------------
-		// impl
-		// -----------------------------------------------------------------------------
-
-		bool add_font(vg_font_t* font);
-		void remove_font(vg_font_t* font);
-
-		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline bool is_empty() const
-		{
-			return _fonts.empty();
-		}
 		inline u32 get_width() const
 		{
 			return _width;
@@ -106,20 +93,12 @@ namespace sfg::ui
 		}
 
 	private:
-		struct slice_t
-		{
-			u32 pos	   = 0;
-			u32 height = 0;
-		};
-
-		vector_t<slice_t>	 _slices;
-		vector_t<vg_font_t*> _fonts;
-		u8*					 _data		= nullptr;
-		u32					 _data_size = 0;
-		u32					 _width		= 0;
-		u32					 _height	= 0;
-		u32					 _id		= invalid_id_u32;
-		bool				 _is_lcd	= false;
-		bool				 _dirty		= false;
+		u8*	 _data		= nullptr;
+		u32	 _data_size = 0;
+		u32	 _width		= 0;
+		u32	 _height	= 0;
+		u32	 _id		= invalid_id_u32;
+		bool _is_lcd	= false;
+		bool _dirty		= false;
 	};
 }

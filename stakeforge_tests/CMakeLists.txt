@@ -94,7 +94,6 @@ if(WIN32)
 endif()
     
 target_include_directories(${SFG_TESTS_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(${SFG_TESTS_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core/src)
 target_link_libraries(${SFG_TESTS_TARGET} PRIVATE stakeforge_core)
 
 if(WIN32)

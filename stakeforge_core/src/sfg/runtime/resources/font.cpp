@@ -2,48 +2,83 @@
 
 #include "font.hpp"
 #include "resource_manager.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/io/log.hpp>
 
 namespace sfg
 {
-	bool font_load_cpu(resource_entry_t& entry, span_t<const u8> data, resource_context_t& ctx)
+	bool font_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx)
 	{
-		(void)entry;
-		(void)data;
-		(void)ctx;
-		return false;
+		u32 magic	= 0;
+		u32 version = 0;
+		stream >> magic >> version;
+		if (magic != font_wire_magic || version != font_wire_version)
+		{
+			SFG_ERR("invalid font binary, magic={0} version={1}", magic, version);
+			return false;
+		}
+
+		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
+		font_data_t*	   data = mem.get<font_data_t>(entry.cpu_data);
+		data->pixels			= chunk_handle32_t{};
+
+		stream >> data->ascent >> data->descent >> data->line_gap;
+		stream >> data->size >> data->scale >> data->kind;
+		stream >> data->pixels_size;
+
+		for (u32 i = 0; i < 128; i++)
+		{
+			font_glyph_t& g = data->glyph_info[i];
+			stream >> g.pixel_offset >> g.pixel_size;
+			stream >> g.width >> g.height >> g.advance_x >> g.left_bearing;
+			stream >> g.x_offset >> g.y_offset;
+			for (i32 k = 0; k < 128; k++)
+				stream >> g.kern_advance[k];
+		}
+
+		if (data->pixels_size != 0)
+		{
+			data->pixels = mem.allocate_bytes(data->pixels_size, 1);
+			u8* dst		 = mem.get(data->pixels.head);
+			stream.read_to_raw(dst, static_cast<size_t>(data->pixels_size));
+		}
+
+		return true;
 	}
 
-	bool font_create_internals(resource_entry_t& entry, resource_context_t& ctx)
+	bool font_create_internals(resource_entry_t&, resource_context_t&)
 	{
-		(void)entry;
-		(void)ctx;
-		return false;
+		return true;
 	}
 
-	void font_destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
+	void font_destroy_internals(resource_entry_t&, resource_context_t&)
 	{
-		(void)entry;
-		(void)ctx;
+	}
+
+	void font_unload(resource_entry_t&, resource_context_t&)
+	{
 	}
 
 	void font_unload_cpu(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		(void)entry;
-		(void)ctx;
+		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
+		font_data_t*	   data = mem.get<font_data_t>(entry.cpu_data);
+		if (data->pixels)
+			mem.free(data->pixels);
+		data->pixels	  = chunk_handle32_t{};
+		data->pixels_size = 0;
 	}
 
-	void register_font_resource(resource_manager_t& resource_manager)
-	{
-		resource_type_desc_t desc = {};
-		desc.type				  = resource_type_e::font;
-		desc.metadata_size		  = sizeof(font_metadata_t);
-		desc.metadata_alignment	  = alignof(font_metadata_t);
-		desc.internals_size		  = sizeof(font_internals_t);
-		desc.internals_alignment  = alignof(font_internals_t);
-		desc.load_cpu			  = font_load_cpu;
-		desc.create_internals	  = font_create_internals;
-		desc.destroy_internals	  = font_destroy_internals;
-		desc.unload_cpu			  = font_unload_cpu;
-		resource_manager.register_type_desc(desc);
-	}
+	const resource_type_desc_t font_resource_desc = {
+		.type				 = resource_type_e::font,
+		.data_size			 = sizeof(font_data_t),
+		.data_alignment		 = alignof(font_data_t),
+		.internals_size		 = sizeof(font_internals_t),
+		.internals_alignment = alignof(font_internals_t),
+		.load				 = font_load,
+		.create_internals	 = font_create_internals,
+		.destroy_internals	 = font_destroy_internals,
+		.unload				 = font_unload,
+		.unload_cpu			 = font_unload_cpu,
+	};
 }

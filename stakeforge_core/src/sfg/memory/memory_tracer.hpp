@@ -27,12 +27,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
-#include "data/mutex.hpp"
 
-#include "data/hash_map.hpp"
-#include "common/size_definitions.hpp"
 #include "malloc_allocator_map.hpp"
 #include "malloc_allocator_stl.hpp"
+
+#include <sfg/data/mutex.hpp>
+#include <sfg/data/hash_map.hpp>
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {

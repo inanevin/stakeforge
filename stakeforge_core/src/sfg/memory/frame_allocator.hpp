@@ -26,16 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "io/assert.hpp"
-#include "memory.hpp"
-
-#include <cstddef>
-#include <limits>
-#include <new>
-#include <string>
-#include <type_traits>
-#include <vector>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/io/assert.hpp>
 
 namespace sfg
 {
@@ -82,10 +74,16 @@ namespace sfg
 		[[nodiscard]] T* allocate(std::size_t n)
 		{
 			if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
-				throw std::bad_array_new_length();
+			{
+				SFG_ASSERT(false);
+				return nullptr;
+			}
 
 			if (n == 0)
+			{
+				SFG_ASSERT(false);
 				return nullptr;
+			}
 
 			return static_cast<T*>(frame_allocator_tls_t::allocate(n * sizeof(T), alignof(T)));
 		}
@@ -105,6 +103,4 @@ namespace sfg
 		return false;
 	}
 
-	template <typename T> using frame_vector_t = std::vector<T, frame_allocator_t<T>>;
-	using frame_string_t					   = std::basic_string<char, std::char_traits<char>, frame_allocator_t<char>>;
 }

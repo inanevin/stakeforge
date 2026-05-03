@@ -30,9 +30,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "sdk/d3d12.h"
 #include "dx12_common.hpp"
-#include "io/log.hpp"
-#include "io/assert.hpp"
-#include "memory/memory_tracer.hpp"
+#include <sfg/io/log.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/memory/memory_tracer.hpp>
 
 namespace sfg
 {

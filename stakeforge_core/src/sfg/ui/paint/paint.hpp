@@ -26,12 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common/size_definitions.hpp"
-#include "data/vector.hpp"
-#include "data/span.hpp"
-#include "math/vec4f.hpp"
-#include "ui/ui_common.hpp"
-#include "ui/vg/vg_canvas.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/math/vec4f.hpp>
+#include <sfg/ui/ui_common.hpp>
+#include <sfg/ui/vg/vg_canvas.hpp>
 
 namespace sfg::ui
 {

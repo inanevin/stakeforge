@@ -26,8 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/vector.hpp"
-#include "gfx/common/descriptor_handle.hpp"
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/descriptor_handle.hpp>
 
 struct ID3D12DescriptorHeap;
 struct ID3D12Device;

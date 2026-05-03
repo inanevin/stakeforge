@@ -25,8 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "common/size_definitions.hpp"
-#include "gfx/common/descriptions.hpp"
+
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
 
 namespace sfg
 {

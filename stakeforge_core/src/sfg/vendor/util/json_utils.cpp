@@ -1,7 +1,7 @@
 #include "json_utils.hpp"
 
-#include "gfx/common/format.hpp"
-#include "gfx/common/shader_description.hpp"
+#include <sfg/gfx/common/format.hpp>
+#include <sfg/gfx/common/shader_description.hpp>
 
 namespace sfg
 {

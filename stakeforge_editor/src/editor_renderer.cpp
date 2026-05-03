@@ -1,49 +1,30 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "editor_renderer.hpp"
-
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_resources.hpp"
-#include "gfx/backend/backend.hpp"
-#include "gfx/common/barrier_description.hpp"
-#include "gfx/common/commands.hpp"
-#include "gfx/common/descriptions.hpp"
-#include "gfx/common/shader_description.hpp"
-#include "io/assert.hpp"
-#include "io/log.hpp"
-#include "ui/vg/vg_canvas.hpp"
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/common/barrier_description.hpp>
+#include <sfg/gfx/common/commands.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/shader_description.hpp>
+#include <sfg/gfx/util/gfx_util.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/ui/vg/vg_atlas.hpp>
+#include <sfg/ui/vg/vg_canvas.hpp>
 
 namespace sfg
 {
 	namespace
 	{
-		gfx_bind_layout_handle make_ui_default_layout(gfx_backend* backend)
+		struct global_buffer_data_t
 		{
-			const gfx_bind_layout_handle layout = backend->create_empty_bind_layout();
-			backend->bind_layout_add_constant(layout, 16, 0, 0, shader_stage::vertex);
-			backend->finalize_bind_layout(layout, false, false, "ui_default_layout");
-			return layout;
-		}
-
-		gfx_bind_layout_handle make_ui_text_layout(gfx_backend* backend, const char* name)
-		{
-			const gfx_bind_layout_handle layout = backend->create_empty_bind_layout();
-			backend->bind_layout_add_constant(layout, 16, 0, 0, shader_stage::vertex);
-			backend->bind_layout_add_constant(layout, 4, 0, 1, shader_stage::fragment);
-
-			sampler_desc_t samp = {};
-			samp.flags			= sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_linear | sampler_flags::saf_border_transparent;
-			samp.address_u		= address_mode::clamp;
-			samp.address_v		= address_mode::clamp;
-			samp.address_w		= address_mode::clamp;
-			samp.min_lod		= 0.0f;
-			samp.max_lod		= 0.0f;
-			backend->bind_layout_add_immutable_sampler(layout, 0, 0, samp, shader_stage::fragment);
-
-			backend->finalize_bind_layout(layout, false, true, name);
-			return layout;
-		}
+			f32 delta_time	 = 0.0f;
+			f32 elapsed_time = 0.0f;
+		};
 	}
 
 	bool editor_renderer_t::init()
@@ -62,9 +43,12 @@ namespace sfg
 		const string_t ui_text_path	   = shaders_dir + "ui_text.hlsl";
 		const string_t ui_sdf_path	   = shaders_dir + "ui_sdf.hlsl";
 
-		const editor_shader_t& ui_default = resources.get_resource<editor_shader_t>(TO_SID(ui_default_path.c_str()), editor_resource_type_e::shader);
-		const editor_shader_t& ui_text	  = resources.get_resource<editor_shader_t>(TO_SID(ui_text_path.c_str()), editor_resource_type_e::shader);
-		const editor_shader_t& ui_sdf	  = resources.get_resource<editor_shader_t>(TO_SID(ui_sdf_path.c_str()), editor_resource_type_e::shader);
+		// const editor_shader_t& ui_default = resources.get_resource<editor_shader_t>(TO_SID(ui_default_path.c_str()), editor_resource_type_e::shader);
+		// const editor_shader_t& ui_text	  = resources.get_resource<editor_shader_t>(TO_SID(ui_text_path.c_str()), editor_resource_type_e::shader);
+		// const editor_shader_t& ui_sdf	  = resources.get_resource<editor_shader_t>(TO_SID(ui_sdf_path.c_str()), editor_resource_type_e::shader);
+		//_ui_renderer.init(ui_default.handle, ui_text.handle, ui_sdf.handle);
+
+		_global_layout = gfx_util_t::create_bind_layout_global(false);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -74,20 +58,19 @@ namespace sfg
 							 .type		 = command_type::graphics,
 							 .debug_name = "editor_gfx",
 			 });
+
+			resource_desc_t g_desc = {};
+			g_desc.size			   = sizeof(global_buffer_data_t);
+			g_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+			g_desc.debug_name	   = "editor_global";
+			pfd.global_buffer	   = backend->create_resource(g_desc);
+			backend->map_resource(pfd.global_buffer, pfd.mapped_global);
+			pfd.global_index = backend->get_resource_gpu_index(pfd.global_buffer);
 		}
 
 		_swapchains.reserve(8);
-		_eligible_targets.reserve(8);
+		_texture_queue.init();
 
-		_ui_default_layout = make_ui_default_layout(backend);
-		_ui_text_layout	   = make_ui_text_layout(backend, "ui_text_layout");
-		_ui_sdf_layout	   = make_ui_text_layout(backend, "ui_sdf_layout");
-
-		const ui::ui_render_group_t default_group = {.layout = _ui_default_layout, .group = {}, .pipeline = ui_default.handle};
-		const ui::ui_render_group_t text_group	  = {.layout = _ui_text_layout, .group = {}, .pipeline = ui_text.handle};
-		const ui::ui_render_group_t sdf_group	  = {.layout = _ui_sdf_layout, .group = {}, .pipeline = ui_sdf.handle};
-
-		_ui_renderer.init(default_group, text_group, sdf_group);
 		return true;
 	}
 
@@ -97,43 +80,26 @@ namespace sfg
 
 		join();
 
-		_ui_renderer.uninit();
+		// _ui_renderer.uninit();
+		_texture_queue.uninit();
 
-		if (!_ui_default_layout.is_null())
-			backend->destroy_bind_layout(_ui_default_layout);
-		if (!_ui_text_layout.is_null())
-			backend->destroy_bind_layout(_ui_text_layout);
-		if (!_ui_sdf_layout.is_null())
-			backend->destroy_bind_layout(_ui_sdf_layout);
-		_ui_default_layout = {};
-		_ui_text_layout	   = {};
-		_ui_sdf_layout	   = {};
+		backend->destroy_bind_layout(_global_layout);
+		_global_layout = {};
 
 		for (gfx_swapchain_handle swapchain : _swapchains)
-		{
-			if (!swapchain.is_null())
-				backend->destroy_swapchain(swapchain);
-		}
+			backend->destroy_swapchain(swapchain);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd = _pfd[i];
-
-			if (!pfd.command_buffer.is_null())
-			{
-				backend->destroy_command_buffer(pfd.command_buffer);
-				pfd.command_buffer = {};
-			}
-
-			if (!pfd.semaphore_frame.semaphore_t.is_null())
-			{
-				backend->destroy_semaphore(pfd.semaphore_frame.semaphore_t);
-				pfd.semaphore_frame = {};
-			}
+			backend->destroy_resource(pfd.global_buffer);
+			backend->destroy_command_buffer(pfd.command_buffer);
+			backend->destroy_semaphore(pfd.semaphore_frame.semaphore_t);
+			pfd = {};
 		}
 
 		_swapchains.resize(0);
-		_eligible_targets.resize(0);
+		_elapsed_time  = 0.0f;
 		_frame_counter = 0;
 		_frame_index   = 0;
 	}
@@ -202,31 +168,41 @@ namespace sfg
 		}
 	}
 
-	void editor_renderer_t::render(span_t<const surface_render_target_t> targets)
+	void editor_renderer_t::render(span_t<const surface_render_target_t> targets, f32 delta_time)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		_eligible_targets.resize(0);
+		if (targets.size == 0)
+			return;
+
 		for (size_t i = 0; i < targets.size; i++)
 		{
 			const surface_render_target_t& t = targets.data[i];
 			backend->wait_for_swapchain_latency(t.swapchain);
 			backend->get_back_buffer_index(t.swapchain);
-			_eligible_targets.push_back(t);
 		}
 
-		if (_eligible_targets.empty())
-			return;
-
+		_elapsed_time += delta_time;
 		_frame_index		  = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd = _pfd[_frame_index];
 		backend->wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 
+		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = _elapsed_time};
+		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
+
 		const gfx_command_buffer_handle command_buffer = pfd.command_buffer;
 		backend->reset_command_buffer(command_buffer);
 
-		for (const surface_render_target_t& t : _eligible_targets)
+		backend->cmd_bind_layout(command_buffer, {.layout = _global_layout});
+		backend->cmd_bind_constants(command_buffer, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
+
+		_texture_queue.flush(command_buffer);
+		_texture_queue.transit(command_buffer);
+
+		for (size_t i = 0; i < targets.size; i++)
 		{
+			const surface_render_target_t& t = targets.data[i];
+
 			barrier_t barrier = {
 				.from_states = resource_state_common,
 				.to_states	 = resource_state_render_target,
@@ -251,10 +227,6 @@ namespace sfg
 
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
 			backend->cmd_set_viewport(command_buffer, vp);
-
-			if (t.canvas != nullptr)
-				_ui_renderer.render(command_buffer, *t.canvas, _frame_index);
-
 			backend->cmd_end_render_pass(command_buffer, {});
 
 			barrier = {
@@ -271,12 +243,11 @@ namespace sfg
 		const gfx_queue_handle queue_gfx = backend->get_queue_gfx();
 		backend->submit_commands(queue_gfx, &command_buffer, 1);
 
-		const size_t				   target_count = _eligible_targets.size();
-		vector_t<gfx_swapchain_handle> present_list;
-		present_list.reserve(target_count);
-		for (const surface_render_target_t& t : _eligible_targets)
-			present_list.push_back(t.swapchain);
-		backend->present(present_list.data(), static_cast<u8>(target_count));
+		frame_vector_t<gfx_swapchain_handle> present_list;
+
+		for (size_t i = 0; i < targets.size; i++)
+			present_list.push_back(targets.data[i].swapchain);
+		backend->present(present_list.data(), static_cast<u8>(targets.size));
 
 		pfd.semaphore_frame.value++;
 		backend->queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);

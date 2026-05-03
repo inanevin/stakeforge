@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "data/string_view.hpp"
+#include <sfg/data/string_view.hpp>
 
 namespace sfg
 {

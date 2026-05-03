@@ -62,6 +62,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/memory/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/input/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/job/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/project/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/util/*.cpp
@@ -90,6 +91,12 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/algorithm/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/core/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/cuda/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/cuda/algorithm/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/utility/*.cpp
 )
 
 file(GLOB HEADERS
@@ -101,6 +108,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/data/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/memory/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/input/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/job/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/util/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/*.hpp
@@ -135,6 +143,12 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/syoyo/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.inl
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/algorithm/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/core/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/cuda/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/cuda/algorithm/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/utility/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api_common.hpp
@@ -172,7 +186,7 @@ target_sources(${SFG_CORE_TARGET} PRIVATE
     ${PLATFORM_SOURCES}
 )
 
-target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg)
+target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/phmap/include)
 target_include_directories(${SFG_CORE_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/deps/tracy-0.13.0/public)
 

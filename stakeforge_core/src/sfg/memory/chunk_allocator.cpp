@@ -25,9 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "chunk_allocator.hpp"
-#include "math/math_common.hpp"
-
-#include "memory/memory_tracer.hpp"
+#include "memory_tracer.hpp"
+#include <sfg/math/math_common.hpp>
 
 namespace sfg
 {
