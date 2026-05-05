@@ -5,7 +5,7 @@
 
 namespace sfg
 {
-	struct font_data_t;
+	struct font_runtime_t;
 
 	class atlas_t
 	{
@@ -18,8 +18,8 @@ namespace sfg
 		void init(u32 width, u32 height, bool is_lcd);
 		void uninit();
 
-		bool add_font(font_data_t* font);
-		void remove_font(font_data_t* font);
+		bool add_font(font_runtime_t* font);
+		void remove_font(font_runtime_t* font);
 
 		inline bool is_empty() const
 		{

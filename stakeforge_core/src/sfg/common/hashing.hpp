@@ -29,45 +29,42 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	using sid_t = u64;
-
-	constexpr sid_t hash_bytes(const char* str, size_t len) noexcept
+	class hashing_t
 	{
-		sid_t h = 1469598103934665603ull;
-		for (size_t i = 0; i < len; ++i)
-			h = (h ^ static_cast<unsigned char>(str[i])) * 1099511628211ull;
-		return h;
-	}
+	public:
+		static constexpr sid_t hash_bytes(const char* str, size_t len) noexcept
+		{
+			sid_t h = 1469598103934665603ull;
+			for (size_t i = 0; i < len; ++i)
+				h = (h ^ static_cast<unsigned char>(str[i])) * 1099511628211ull;
+			return h;
+		}
 
-	// compile-time for string literals (covers #T)
-	template <size_t N> consteval sid_t to_sid(const char (&lit)[N]) noexcept
-	{
-		static_assert(N > 0);
-		// N includes '\0'
-		return hash_bytes(lit, N - 1);
-	}
+		template <size_t N> static consteval sid_t to_sid(const char (&lit)[N]) noexcept
+		{
+			static_assert(N > 0);
+			return hash_bytes(lit, N - 1);
+		}
 
-	// runtime for C-strings
-	constexpr sid_t to_sid(const char* s) noexcept
-	{
-		// no pointer casts => friendlier to constexpr rules too
-		sid_t h = 1469598103934665603ull;
-		for (size_t i = 0; s[i] != '\0'; ++i)
-			h = (h ^ static_cast<unsigned char>(s[i])) * 1099511628211ull;
-		return h;
-	}
+		static constexpr sid_t to_sid(const char* s) noexcept
+		{
+			sid_t h = 1469598103934665603ull;
+			for (size_t i = 0; s[i] != '\0'; ++i)
+				h = (h ^ static_cast<unsigned char>(s[i])) * 1099511628211ull;
+			return h;
+		}
 
-	// string-like: has data() and size()
-	template <class S> constexpr auto to_sid(const S& s) noexcept -> decltype(s.data(), s.size(), sid_t{})
-	{
-		return hash_bytes(s.data(), static_cast<size_t>(s.size()));
-	}
+		template <class S> static constexpr auto to_sid(const S& s) noexcept -> decltype(s.data(), s.size(), sid_t{})
+		{
+			return hash_bytes(s.data(), static_cast<size_t>(s.size()));
+		}
+	};
 
 	constexpr sid_t operator"" _hs(const char* str, size_t len) noexcept
 	{
-		return hash_bytes(str, len);
+		return hashing_t::hash_bytes(str, len);
 	}
 
-#define TO_SID(X)  ::sfg::to_sid((X))
+#define TO_SID(X)  ::sfg::hashing_t::to_sid((X))
 #define TO_SIDC(X) (X##_hs)
 }

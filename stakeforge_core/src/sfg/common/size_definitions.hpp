@@ -42,5 +42,5 @@ typedef float			   f32;
 
 namespace sfg
 {
-
+	using sid_t = u64;
 }

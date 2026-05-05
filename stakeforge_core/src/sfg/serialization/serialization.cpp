@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool serialization::write_to_file(string_view_t fileInput, const char* target_file)
+	bool serializer_t::write_to_file(string_view_t fileInput, const char* target_file)
 	{
 		std::ofstream outFile(target_file);
 
@@ -53,10 +53,10 @@ namespace sfg
 		return true;
 	}
 
-	bool serialization::save_to_file(const char* path, ostream_t& stream)
+	bool serializer_t::save_to_file(const char* path, const ostream_t& stream)
 	{
-		if (file_system::exists(path))
-			file_system::delete_file(path);
+		if (file_system_t::exists(path))
+			file_system_t::delete_file(path);
 
 		std::ofstream wf(path, std::ios::out | std::ios::binary);
 
@@ -66,7 +66,7 @@ namespace sfg
 			return false;
 		}
 
-		ostream_t compressed = compression::compress(stream);
+		ostream_t compressed = compressor_t::compress(stream);
 		compressed.write_to_ofstream(wf);
 		wf.close();
 
@@ -79,9 +79,9 @@ namespace sfg
 		return true;
 	}
 
-	istream_t serialization::load_from_file(const char* path)
+	istream_t serializer_t::load_from_file(const char* path)
 	{
-		if (!file_system::exists(path))
+		if (!file_system_t::exists(path))
 		{
 			SFG_ERR("file doesn't exists: {0}", path);
 			return {};
@@ -98,19 +98,19 @@ namespace sfg
 		auto size = std::filesystem::file_size(path);
 
 		// Create
-		istream_t readStream;
-		readStream.create(nullptr, size);
-		readStream.read_from_ifstream(rf);
+		istream_t read_stream;
+		read_stream.create(nullptr, size);
+		read_stream.read_from_ifstream(rf);
 		rf.close();
 
 		if (!rf.good())
 		{
 			SFG_ERR("error occured while reading the file! {0}", path);
-			readStream.destroy();
+			read_stream.destroy();
 			return {};
 		}
 
-		istream_t decompressedStream = compression::decompress(readStream);
+		istream_t decompressedStream = compressor_t::decompress(read_stream);
 		return decompressedStream;
 	}
 

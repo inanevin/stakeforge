@@ -32,13 +32,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	size_t estimate_decompressed_size(size_t compressedSize)
+	namespace
 	{
-		// return (compressedSize << 8) - compressedSize - 2526;
-		return 255 * compressedSize + 24;
+		size_t estimate_decompressed_size(size_t compressedSize)
+		{
+			// return (compressedSize << 8) - compressedSize - 2526;
+			return 255 * compressedSize + 24;
+		}
 	}
 
-	ostream_t compression::compress(ostream_t& stream)
+	ostream_t compressor_t::compress(const ostream_t& stream)
 	{
 		const u32 streamSize	   = static_cast<u32>(stream.get_size());
 		const u8  shouldCompress   = (streamSize < 150000000 && streamSize > 750000) ? 1 : 0;
@@ -68,7 +71,7 @@ namespace sfg
 
 		if (bytesWritten == 0)
 		{
-			SFG_ERR("[compression] -> LZ4 compression failed!");
+			SFG_ERR("LZ4 compression failed!");
 			return {};
 		}
 
@@ -76,7 +79,7 @@ namespace sfg
 		return compressedStream;
 	}
 
-	istream_t compression::decompress(istream_t& stream)
+	istream_t compressor_t::decompress(istream_t& stream)
 	{
 		u8	shouldDecompress = 0;
 		u32 uncompressedSize = 0;
@@ -90,18 +93,18 @@ namespace sfg
 			return copy;
 		}
 
-		const size_t size				= stream.get_size() - stream.tellg();
-		istream_t	 decompressedStream = istream_t();
-		decompressedStream.create(nullptr, uncompressedSize);
+		const size_t size				 = stream.get_size() - stream.tellg();
+		istream_t	 decompressed_stream = istream_t();
+		decompressed_stream.create(nullptr, uncompressedSize);
 		void*	  src			   = stream.get_data_current();
-		void*	  ptr			   = decompressedStream.get_raw();
+		void*	  ptr			   = decompressed_stream.get_raw();
 		const int decompressedSize = LZ4_decompress_safe((char*)src, (char*)ptr, static_cast<int>(size), static_cast<int>(uncompressedSize));
 		if (decompressedSize < 0 || static_cast<u32>(decompressedSize) != uncompressedSize)
 		{
-			SFG_ERR("[compression] -> LZ4 decompression failed!");
+			SFG_ERR("LZ4 decompression failed!");
 			return {};
 		}
 
-		return decompressedStream;
+		return decompressed_stream;
 	}
 }

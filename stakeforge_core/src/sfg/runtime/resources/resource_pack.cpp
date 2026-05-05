@@ -1,91 +1,90 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "resource_pack.hpp"
-#include "manifest_util.hpp"
 #include "resource_cache.hpp"
 #include "resource_manager.hpp"
 
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/memory.hpp>
+
+#if !defined(SFG_EMBED_ASSETS)
+#include "animation_state_machine_cook.hpp"
+#include "audio_cook.hpp"
+#include "font_cook.hpp"
+#include "glb_cook.hpp"
+#include "material_cook.hpp"
+#include "particle_properties_cook.hpp"
+#include "physical_material_cook.hpp"
+#include "prefab_cook.hpp"
+#include "resource_cooker.hpp"
+#include "resource_manifest.hpp"
+#include "shader_cook.hpp"
+#include "texture_cook.hpp"
+#include "texture_sampler_cook.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
+#endif
 
 namespace sfg
 {
+#if !defined(SFG_EMBED_ASSETS)
 	namespace
 	{
-		using json = nlohmann::json;
-
-#if !defined(SFG_EMBED_ASSETS)
-		struct parsed_entry_t
+		resource_cooker_t::result_e cook_for_type(resource_type_e type, const char* full_path, ostream_t& stream)
 		{
-			string_t		  source_path;
-			string_t		  name;
-			cooking_options_t options;
-			resource_type_e	  type = resource_type_e::invalid;
-			sid_t			  sid  = 0;
-		};
-
-		bool parse_entry(const json& entry, const string_t& assets_dir, parsed_entry_t& out)
-		{
-			const auto name_it = entry.find("name");
-			const auto path_it = entry.find("path");
-			const auto type_it = entry.find("type");
-
-			if (path_it == entry.end() || !path_it->is_string())
+			switch (type)
 			{
-				SFG_ERR("resource_pack: manifest entry missing 'path'");
-				return false;
+			case resource_type_e::texture:
+				return resource_cooker_t::cook_texture(full_path, {}, stream);
+			case resource_type_e::shader:
+				return resource_cooker_t::cook_shader(full_path, {}, stream);
+			case resource_type_e::audio:
+				return resource_cooker_t::cook_audio(full_path, {}, stream);
+			case resource_type_e::font:
+				return resource_cooker_t::cook_font(full_path, {}, stream);
+			case resource_type_e::material:
+				return resource_cooker_t::cook_material(full_path, {}, stream);
+			case resource_type_e::particle_properties:
+				return resource_cooker_t::cook_particle_properties(full_path, {}, stream);
+			case resource_type_e::texture_sampler:
+				return resource_cooker_t::cook_texture_sampler(full_path, {}, stream);
+			case resource_type_e::physical_material:
+				return resource_cooker_t::cook_physical_material(full_path, {}, stream);
+			case resource_type_e::animation_state_machine:
+				return resource_cooker_t::cook_animation_state_machine(full_path, {}, stream);
+			case resource_type_e::prefab:
+				return resource_cooker_t::cook_prefab(full_path, {}, stream);
+			case resource_type_e::mesh:
+			case resource_type_e::skeleton:
+			case resource_type_e::animation:
+				return resource_cooker_t::cook_glb(full_path, {}, stream);
+			default:
+				SFG_ERR("unsupported resource type for cooking: {0}", static_cast<u8>(type));
+				return resource_cooker_t::result_e::cook_failed;
 			}
-			if (type_it == entry.end() || !type_it->is_string())
-			{
-				SFG_ERR("resource_pack: manifest entry missing 'type'");
-				return false;
-			}
-
-			const string_t path = path_it->get<string_t>();
-			const string_t type = type_it->get<string_t>();
-			const string_t name = (name_it != entry.end() && name_it->is_string()) ? name_it->get<string_t>() : path;
-
-			const resource_type_e rtype = resolve_resource_type(type);
-			if (rtype == resource_type_e::invalid)
-			{
-				SFG_ERR("resource_pack: unknown type '{0}' for {1}", type.c_str(), path.c_str());
-				return false;
-			}
-
-			const auto opts_it = entry.find("options");
-			if (opts_it != entry.end())
-				out.options.arguments = manifest_util::options_to_arguments(*opts_it);
-
-			out.source_path = assets_dir + path;
-			out.name		= name;
-			out.type		= rtype;
-			out.sid			= TO_SID(path);
-			return true;
 		}
 
-		bool cook_and_cache(const string_t& source_path, const string_t& name, const cooking_options_t& options, const string_t& cache_dir, vector_t<u8>& out_bytes)
+		bool cook_and_cache(const string_t& source_path, const string_t& name, resource_type_e type, const string_t& cache_dir, span_t<u8>& out_data)
 		{
-			ostream_t			stream;
-			const cook_result_e r = cook_resource(source_path.c_str(), options, stream);
-			if (r != cook_result_e::success)
+			ostream_t						  stream;
+			const resource_cooker_t::result_e r = cook_for_type(type, source_path.c_str(), stream);
+			if (r != resource_cooker_t::result_e::success)
 			{
 				SFG_ERR("resource_pack: cook failed for {0}", source_path.c_str());
 				return false;
 			}
 
-			if (!resource_cache::save(cache_dir.c_str(), name.c_str(), source_path.c_str(), stream))
+			if (!resource_cache_t::save(cache_dir.c_str(), name.c_str(), stream))
 				SFG_WARN("resource_pack: cache save failed for {0}", name.c_str());
 
-			out_bytes.resize(stream.get_size());
-			SFG_MEMCPY(out_bytes.data(), stream.get_raw(), stream.get_size());
+			out_data = stream.evict();
 			return true;
 		}
-#endif
 	}
+#endif
 
 #if defined(SFG_EMBED_ASSETS)
 	bool resource_pack_t::init(resource_manager_t& mgr, const init_params_t& params)
@@ -132,68 +131,70 @@ namespace sfg
 		_mgr	   = &mgr;
 		_cache_dir = params.cache_dir;
 
-		if (!file_system::exists(params.manifest_path.c_str()))
+		if (!file_system_t::exists(params.manifest_path.c_str()))
 		{
 			SFG_WARN("resource_pack: no manifest at {0}", params.manifest_path.c_str());
 			return true;
 		}
 
-		const string_t json_text = file_system::read_file_as_string(params.manifest_path.c_str());
-
-		json manifest;
-		try
+		const string_t		 json_text = file_system_t::read_file_as_string(params.manifest_path.c_str());
+		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
+		if (doc.is_discarded())
 		{
-			manifest = json::parse(json_text);
-		}
-		catch (const json::parse_error& e)
-		{
-			SFG_ERR("resource_pack: parse error: {0}", e.what());
+			SFG_ERR("resource_pack: failed to parse manifest at {0}", params.manifest_path.c_str());
 			return false;
 		}
 
-		const auto resources_it = manifest.find("resources");
-		if (resources_it == manifest.end() || !resources_it->is_array())
+		const resource_manifest_t manifest = doc;
+		resource_cache_t::ensure_directory(_cache_dir.c_str());
+
+		_loaded.reserve(manifest.resources.size());
+		_watched.reserve(manifest.resources.size());
+		_watcher.reserve(static_cast<int>(manifest.resources.size()));
+
+		for (const resource_manifest_entry_t& entry : manifest.resources)
 		{
-			SFG_WARN("resource_pack: 'resources' array missing in {0}", params.manifest_path.c_str());
-			return true;
-		}
-
-		resource_cache::ensure_directory(_cache_dir.c_str());
-
-		_loaded.reserve(resources_it->size());
-		_watched.reserve(resources_it->size());
-		_watcher.reserve(static_cast<int>(resources_it->size()));
-
-		for (const auto& entry : *resources_it)
-		{
-			parsed_entry_t pe;
-			if (!parse_entry(entry, params.assets_dir, pe))
-				continue;
-
-			if (!file_system::exists(pe.source_path.c_str()))
+			if (entry.type == resource_type_e::invalid)
 			{
-				SFG_ERR("resource_pack: source missing: {0}", pe.source_path.c_str());
+				SFG_ERR("resource_pack: invalid type for {0}", entry.path.c_str());
 				continue;
 			}
 
-			vector_t<u8> bytes;
-			const bool	 fresh = resource_cache::try_load_fresh(_cache_dir.c_str(), pe.name.c_str(), pe.source_path.c_str(), bytes);
-			if (!fresh && !cook_and_cache(pe.source_path, pe.name, pe.options, _cache_dir, bytes))
+			const string_t source_path = params.assets_dir + entry.path;
+			const sid_t	   sid		   = TO_SID(entry.path);
+
+			if (!file_system_t::exists(source_path.c_str()))
+			{
+				SFG_ERR("resource_pack: source missing: {0}", source_path.c_str());
+				continue;
+			}
+
+			const resource_type_desc_t* const desc	   = find_resource_type_desc(entry.type);
+			const resource_header_t			  expected = {
+						  .magic		  = desc != nullptr ? desc->wire_magic : 0,
+						  .version		  = desc != nullptr ? desc->wire_version : 0,
+						  .modified_ticks = file_system_t::get_last_modified_ticks(source_path.c_str()),
+			  };
+
+			span_t<u8> data	  = {};
+			istream_t  cached = resource_cache_t::try_load(_cache_dir.c_str(), entry.name.c_str(), expected);
+			if (!cached.empty())
+				data = cached.evict();
+			else if (!cook_and_cache(source_path, entry.name, entry.type, _cache_dir, data))
 				continue;
 
-			const span_t<u8> data = {bytes.data(), bytes.size()};
-			const auto		 st	  = mgr.load_resource(pe.sid, data, pe.type);
+			const auto st = mgr.load_resource(sid, data, entry.type);
 			if (st == resource_state_e::failed)
 			{
-				SFG_ERR("resource_pack: load_resource failed for {0}", pe.source_path.c_str());
+				SFG_ERR("resource_pack: load_resource failed for {0}", source_path.c_str());
 				continue;
 			}
 
-			_loaded.push_back(pe.sid);
+			_loaded.push_back(sid);
 
 			const u16 id = static_cast<u16>(_watched.size());
-			_watched.push_back({.source_path = pe.source_path, .name = pe.name, .options = pe.options, .type = pe.type, .sid = pe.sid});
-			_watcher.add_path(pe.source_path.c_str(), id);
+			_watched.push_back({.source_path = source_path, .name = entry.name, .type = entry.type, .sid = sid});
+			_watcher.add_path(source_path.c_str(), id);
 		}
 
 		_watcher.set_callback(&resource_pack_t::on_file_changed, this);
@@ -217,14 +218,13 @@ namespace sfg
 		SFG_ASSERT(id < _watched.size());
 		const watched_entry_t& e = _watched[id];
 
-		vector_t<u8> bytes;
-		if (!cook_and_cache(e.source_path, e.name, e.options, _cache_dir, bytes))
+		span_t<u8> data = {};
+		if (!cook_and_cache(e.source_path, e.name, e.type, _cache_dir, data))
 			return;
 
 		SFG_INFO("resource_pack: recooked {0}", e.source_path.c_str());
 
 		// TODO:
-		// const span_t<u8> data = {bytes.data(), bytes.size()};
 		// _mgr->reload_resource(e.sid, data, e.type);
 	}
 #endif

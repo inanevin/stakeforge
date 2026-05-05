@@ -71,7 +71,7 @@ namespace sfg
 
 		static void		open_url(const char* url);
 		static bool		open_directory(const char* dir);
-		static void		message_box(const char* msg);
+		static void		message_box(const char* title, const char* msg);
 		static void		select_files(const char* title, const char* extension, vector_t<string_t>& out_files);
 		static void		push_clipboard(const char* cp);
 		static string_t select_folder(const char* title);

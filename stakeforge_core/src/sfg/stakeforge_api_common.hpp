@@ -3,7 +3,6 @@
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
-#include <sfg/runtime/engine/engine_config.hpp>
 
 typedef enum sfg_api_result_t
 {

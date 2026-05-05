@@ -48,7 +48,6 @@ namespace sfg
 		void			 init(size_t total_size);
 		void			 uninit();
 		void			 reset();
-		void			 reserve(size_t total_size);
 		chunk_handle32_t allocate_bytes(size_t size, size_t alignment);
 		chunk_handle32_t allocate_text(const string_t& source);
 
@@ -114,8 +113,6 @@ namespace sfg
 		}
 
 	private:
-		void grow_to(size_t required_total_size);
-
 		// Insert while keeping order and coalescing neighbors.
 		inline void insert_free_chunk_sorted(chunk_handle32_t c)
 		{

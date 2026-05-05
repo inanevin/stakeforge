@@ -40,13 +40,13 @@ namespace sfg
 
 	void simple_file_watcher_t::add_path(const char* path, u16 optional_id)
 	{
-		if (!file_system::exists(path))
+		if (!file_system_t::exists(path))
 		{
 			SFG_ERR("Can't add path to file watcher as it doesn't exist! {0}", path);
 			return;
 		}
 
-		const u64 last_modified = file_system::get_last_modified_ticks(path);
+		const u64 last_modified = file_system_t::get_last_modified_ticks(path);
 		_paths.push_back(unique_t<entry_t>(new entry_t(make_unique<std::filesystem::path>(path), path, last_modified, optional_id)));
 	}
 	void simple_file_watcher_t::remove_path(const char* path)
@@ -72,7 +72,7 @@ namespace sfg
 	{
 		for (const unique_t<entry_t>& e : _paths)
 		{
-			const u64 ticks = file_system::get_last_modified_ticks(*e->path);
+			const u64 ticks = file_system_t::get_last_modified_ticks(*e->path);
 			if (e->last_modified != ticks)
 			{
 				e->last_modified = ticks;

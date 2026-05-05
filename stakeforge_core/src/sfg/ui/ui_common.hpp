@@ -30,8 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
-	constexpr u32 invalid_id_u32 = 0xFFFFFFFFu;
-	constexpr u16 invalid_id_u16 = 0xFFFFu;
+	constexpr u32 INVALID_ID_U32 = 0xFFFFFFFFu;
+	constexpr u16 INVALID_ID_U16 = 0xFFFFu;
 
 	using widget_id_t = u16;
 #define INVALID_WIDGET 0xFFFFu

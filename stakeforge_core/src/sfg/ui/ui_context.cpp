@@ -182,7 +182,7 @@ namespace sfg::ui
 		return id;
 	}
 
-	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, font_data_t* font)
+	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, font_runtime_t* font)
 	{
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);
@@ -205,7 +205,7 @@ namespace sfg::ui
 		return id;
 	}
 
-	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, font_data_t* font)
+	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, font_runtime_t* font)
 	{
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);

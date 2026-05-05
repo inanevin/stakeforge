@@ -31,9 +31,10 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	namespace compression
+	class compressor_t
 	{
-		ostream_t compress(ostream_t& stream);
-		istream_t decompress(istream_t& stream);
-	}
-};
+	public:
+		static ostream_t compress(const ostream_t& stream);
+		static istream_t decompress(istream_t& stream);
+	};
+}

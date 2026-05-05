@@ -6,12 +6,27 @@
 #include <sfg/data/string.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
-#include <sfg/common/string_id.hpp>
 
 namespace sfg
 {
 	class resource_manager_t;
 	class istream_t;
+	class ostream_t;
+	struct render_resource_completion_t;
+
+	struct resource_header_t
+	{
+		u32 magic		   = 0;
+		u32 version		   = 0;
+		u32 payload_size   = 0;
+		u32 payload_offset = 0;
+		u64 modified_ticks = 0;
+
+		void serialize(ostream_t& stream) const;
+		bool deserialize(istream_t& stream);
+
+		void patch_payload_offset(ostream_t& stream, size_t header_pos) const;
+	};
 
 	enum class resource_type_e : u8
 	{
@@ -37,7 +52,7 @@ namespace sfg
 	};
 	typedef pool_handle_t<u32, resource_handle_tag_t> resource_handle_t;
 
-	inline constexpr u8 resource_type_max = static_cast<u8>(resource_type_e::count);
+	inline constexpr u8 RESOURCE_TYPE_MAX = static_cast<u8>(resource_type_e::count);
 
 	enum class resource_state_e : u8
 	{
@@ -51,9 +66,10 @@ namespace sfg
 	struct resource_entry_t
 	{
 		sid_t			 hash	   = 0;
-		chunk_handle32_t cpu_data  = {};
+		chunk_handle32_t runtime   = {};
 		chunk_handle32_t internals = {};
-		chunk_handle32_t payload   = {};
+		span_t<u8>		 full_data = {};
+		span_t<u8>		 payload   = {};
 		u32				 ref_count = 0;
 		resource_state_e state	   = resource_state_e::cpu_ready;
 		resource_type_e	 type	   = resource_type_e::invalid;
@@ -64,44 +80,48 @@ namespace sfg
 		resource_manager_t& resource_manager;
 	};
 
-	struct resource_internals_completion_t
+	enum class create_internals_result_e : u8
 	{
-		const void* data = nullptr;
-		u32			size = 0;
+		failed,
+		ready,
+		queued,
+	};
+
+	enum class complete_internals_result_e : u8
+	{
+		failed,
+		ready,
+		pending,
 	};
 
 	struct resource_type_desc_t
 	{
-		using load_fn_t				  = bool (*)(resource_entry_t& entry, istream_t& data, resource_context_t& ctx);
-		using create_internals_fn_t	  = bool (*)(resource_entry_t& entry, resource_context_t& ctx);
-		using complete_internals_fn_t = bool (*)(resource_entry_t& entry, resource_context_t& ctx, const resource_internals_completion_t& completion);
+		using load_fn_t				  = bool (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using create_internals_fn_t	  = create_internals_result_e (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using complete_internals_fn_t = complete_internals_result_e (*)(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
 		using destroy_internals_fn_t  = void (*)(resource_entry_t& entry, resource_context_t& ctx);
-		using unload_fn_t			  = void (*)(resource_entry_t& entry, resource_context_t& ctx);
-		using unload_cpu_fn_t		  = void (*)(resource_entry_t& entry, resource_context_t& ctx);
 
 		resource_type_e type				= resource_type_e::invalid;
-		u32				data_size			= 0;
-		u32				data_alignment		= 0;
+		u32				runtime_size		= 0;
+		u32				runtime_alignment	= 0;
 		u32				internals_size		= 0;
 		u32				internals_alignment = 0;
+		u32				wire_magic			= 0;
+		u32				wire_version		= 0;
 
 		load_fn_t				load			   = nullptr;
 		create_internals_fn_t	create_internals   = nullptr;
 		complete_internals_fn_t complete_internals = nullptr;
 		destroy_internals_fn_t	destroy_internals  = nullptr;
-		unload_fn_t				unload			   = nullptr;
-		unload_cpu_fn_t			unload_cpu		   = nullptr;
 	};
 
-	extern const resource_type_desc_t* const g_resource_type_descs[resource_type_max];
+	extern const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];
 
 	inline const resource_type_desc_t* find_resource_type_desc(resource_type_e type)
 	{
 		const u8 t = static_cast<u8>(type);
-		if (t >= resource_type_max)
+		if (t >= RESOURCE_TYPE_MAX)
 			return nullptr;
 		return g_resource_type_descs[t];
 	}
-
-	resource_type_e resolve_resource_type(const string_t& s);
 }

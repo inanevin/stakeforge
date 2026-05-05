@@ -2,21 +2,18 @@
 
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
+#include "editor_settings.hpp"
 #include "editor_surface.hpp"
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/memory/frame_allocator.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
-#include <sfg/serialization/serialization.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/ui/ui_context.hpp>
 #include <sfg/ui/input/input_router.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
-#include <sfg/runtime/render/render_resources.hpp>
-#include <string>
 
 namespace sfg
 {
@@ -35,7 +32,25 @@ namespace sfg
 	void editor_app_t::on_window_event(void*, const window_event_t& ev, void* user_data)
 	{
 		editor_surface_t* surface = static_cast<editor_surface_t*>(user_data);
-		if (!surface || !surface->ui)
+		if (!surface)
+			return;
+
+		switch (ev.type)
+		{
+		case window_event_type_e::resize:
+			editor_settings_t::get().get_window(surface->settings_idx).size = surface->runtime.size;
+			return;
+		case window_event_type_e::repos:
+			editor_settings_t::get().get_window(surface->settings_idx).position = surface->runtime.pos;
+			return;
+		case window_event_type_e::display_change:
+			editor_settings_t::get().get_window(surface->settings_idx).monitor_ident = surface->runtime.monitor_info.device_hash;
+			return;
+		default:
+			break;
+		}
+
+		if (!surface->ui)
 			return;
 
 		ui::ui_context& ui = *surface->ui;
@@ -74,25 +89,28 @@ namespace sfg
 
 	bool editor_app_t::init()
 	{
-		if (!reload_settings())
+		editor_settings_t& settings = editor_settings_t::get();
+		if (!settings.reload())
 			return false;
 
 		engine_runtime_t::init_globals();
+
 		if (!engine_runtime_t::init_backend())
+		{
+			engine_runtime_t::uninit_globals();
 			return false;
+		}
 
 		resource_manager_t& resource_manager = resource_manager_t::get();
-		resource_manager.init(1024, 64ull * 1024ull * 1024ull);
+		resource_manager.init(64ull * 1024ull * 1024ull);
 
 		resource_pack_t::init_params_t pack_params;
 		pack_params.manifest_path = editor_directories_t::get_editor_manifest();
 		pack_params.assets_dir	  = editor_directories_t::get_editor_assets();
 		pack_params.cache_dir	  = editor_directories_t::get_editor_resource_cache();
-
-		if (!_resources.init(resource_manager, pack_params))
+		if (!_resource_pack.init(resource_manager, pack_params))
 		{
-			render_resources_t::get().drain();
-			resource_manager.tick();
+			resource_manager.drain();
 			resource_manager.uninit();
 			engine_runtime_t::uninit_backend();
 			engine_runtime_t::uninit_globals();
@@ -101,36 +119,38 @@ namespace sfg
 
 		if (!_renderer.init())
 		{
-			render_resources_t::get().drain();
-			resource_manager.tick();
-			_resources.uninit();
+			resource_manager.drain();
+			_resource_pack.uninit();
 			resource_manager.uninit();
 			engine_runtime_t::uninit_backend();
 			engine_runtime_t::uninit_globals();
 			return false;
 		}
 
-		// create windows saved from settings.
+		_render_targets.reserve(8);
+
 		vector_t<monitor_info_t> monitors;
 		process::get_all_monitors(monitors);
-		for (const editor_window_settings_t& ws : _settings.windows)
+		const u16 window_count = settings.get_window_count();
+		for (u16 i = 0; i < window_count; ++i)
 		{
-			const u64 ident = ws.monitor_ident;
-			auto	  it	= std::find_if(monitors.begin(), monitors.end(), [ident](const monitor_info_t& m) -> bool { return m.device_hash == ident; });
+			const editor_window_settings_t& ws	  = settings.get_window(i);
+			const u64						ident = ws.monitor_ident;
+			auto							it	  = std::find_if(monitors.begin(), monitors.end(), [ident](const monitor_info_t& m) -> bool { return m.device_hash == ident; });
 
 			const vec2u16_t size	 = (ws.size.x == 0 || ws.size.y == 0) ? vec2u16_t(800, 600) : ws.size;
 			vec2i16_t		position = ws.position;
 			if (it == monitors.end())
 				position = vec2i16_t::zero;
 
-			create_surface(position, size);
+			create_surface(position, size, i);
 		}
+
 		if (_surfaces.empty())
 		{
-			render_resources_t::get().drain();
-			resource_manager.tick();
+			resource_manager.drain();
 			_renderer.uninit();
-			_resources.uninit();
+			_resource_pack.uninit();
 			resource_manager.uninit();
 			engine_runtime_t::uninit_backend();
 			engine_runtime_t::uninit_globals();
@@ -144,11 +164,10 @@ namespace sfg
 
 	void editor_app_t::uninit()
 	{
-		save_settings();
+		editor_settings_t::get().save();
 
-		_renderer.join();
-		render_resources_t::get().drain();
-		resource_manager_t::get().tick();
+		end_render();
+		resource_manager_t::get().drain();
 
 		for (editor_surface_t& surface : _surfaces)
 		{
@@ -164,9 +183,10 @@ namespace sfg
 		}
 
 		_renderer.uninit();
-		_resources.uninit();
+		_resource_pack.uninit();
 		resource_manager_t::get().uninit();
 		_surfaces.resize_zero();
+		_render_targets.resize(0);
 		engine_runtime_t::uninit_backend();
 		engine_runtime_t::uninit_globals();
 	}
@@ -184,7 +204,7 @@ namespace sfg
 
 	void editor_app_t::tick()
 	{
-		frame_allocator_tls_t::init(1024 * 1024);
+		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 
 		bool tick = true;
 		while (tick)
@@ -192,14 +212,15 @@ namespace sfg
 			frame_allocator_tls_t::reset();
 
 			process::pump_os_messages();
-			_resources.tick();
-			resource_manager_t::get().tick();
 
-			const i64	now = time_t::get_cpu_microseconds();
-			const float dt	= static_cast<f32>(now - _last_tick_us) / 1.0e6f;
-			_last_tick_us	= now;
+			_resource_pack.tick();
+			resource_manager_t::get().drain();
 
-			frame_vector_t<surface_render_target_t> targets;
+			const i64 now = time_t::get_cpu_microseconds();
+			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
+			_last_tick_us = now;
+
+			_render_targets.resize(0);
 
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{
@@ -208,7 +229,7 @@ namespace sfg
 
 				if (surface.runtime.has_flag(window_runtime_flags_e::close_requested))
 				{
-					_renderer.join();
+					end_render();
 					destroy_surface(handle);
 					continue;
 				}
@@ -219,7 +240,7 @@ namespace sfg
 
 				if (surface.runtime.size != surface.swapchain_size)
 				{
-					_renderer.join();
+					end_render();
 					_renderer.resize_swapchain(surface.swapchain, surface.runtime.size, surface.runtime.monitor_info.dpi_scale);
 					surface.swapchain_size = surface.runtime.size;
 				}
@@ -230,7 +251,7 @@ namespace sfg
 					surface.ui->tick(screen, dt);
 				}
 
-				targets.push_back({
+				_render_targets.push_back({
 					.swapchain = surface.swapchain,
 					.size	   = surface.swapchain_size,
 				});
@@ -242,16 +263,62 @@ namespace sfg
 				break;
 			}
 
-			_renderer.render({targets.data(), targets.size()}, dt);
+			_render_delta_time = dt;
+			ensure_render_thread();
 		}
 
+		end_render();
 		frame_allocator_tls_t::uninit();
 	}
 
-	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size)
+	void editor_app_t::start_render()
 	{
-		vector_t<monitor_info_t> monitors;
-		process::get_all_monitors(monitors);
+		SFG_ASSERT(!_render_thread_active.load());
+		_render_thread_active = true;
+		_render_thread		  = std::thread(&editor_app_t::render_loop, this);
+	}
+
+	void editor_app_t::end_render()
+	{
+		if (!_render_thread_active.load() && !_render_thread.joinable())
+			return;
+
+		_render_thread_active = false;
+
+		if (_render_thread.joinable())
+			_render_thread.join();
+
+		_renderer.join();
+	}
+
+	void editor_app_t::ensure_render_thread()
+	{
+		if (_render_thread_active.load())
+			return;
+
+		start_render();
+	}
+
+	void editor_app_t::render_loop()
+	{
+		frame_allocator_tls_t::init(RENDER_FRAME_ALLOC_SIZE);
+		g_engine_thread_ids.render_thread_id = SFG_THIS_THREAD_ID();
+
+		while (_render_thread_active.load())
+		{
+			frame_allocator_tls_t::reset();
+			render_resources_t::get().drain();
+			_renderer.render({_render_targets.data(), _render_targets.size()}, _render_delta_time);
+			time_t::yield_thread();
+		}
+
+		g_engine_thread_ids.render_thread_id = 0;
+		frame_allocator_tls_t::uninit();
+	}
+
+	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, u16 settings_idx)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() && !SFG_IS_RENDER_RUNNING());
 
 		if (size.x == 0 || size.y == 0)
 		{
@@ -271,18 +338,28 @@ namespace sfg
 
 		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size);
 		surface.swapchain_size = surface.runtime.size;
+		surface.settings_idx   = settings_idx;
 
 		init_surface_ui(surface);
 
 		surface.runtime.event_callback			 = &editor_app_t::on_window_event;
 		surface.runtime.event_callback_user_data = &surface;
 
+		editor_window_settings_t& ws = editor_settings_t::get().get_window(settings_idx);
+		ws.position					 = surface.runtime.pos;
+		ws.size						 = surface.runtime.size;
+		ws.monitor_ident			 = surface.runtime.monitor_info.device_hash;
+
 		return handle;
 	}
 
 	void editor_app_t::destroy_surface(surface_handle_t handle)
 	{
-		editor_surface_t& surface = _surfaces.get(handle);
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() && !SFG_IS_RENDER_RUNNING());
+
+		editor_surface_t& surface	  = _surfaces.get(handle);
+		const u16		  removed_idx = surface.settings_idx;
+
 		if (surface.ui)
 		{
 			surface.ui->uninit();
@@ -292,65 +369,14 @@ namespace sfg
 		surface.swapchain = {};
 		process::destroy_window(surface.runtime.window_handle);
 		_surfaces.remove(handle);
+
+		editor_settings_t::get().remove_window(removed_idx);
+
+		for (editor_surface_t& other : _surfaces)
+		{
+			if (other.settings_idx > removed_idx)
+				other.settings_idx--;
+		}
 	}
 
-	bool editor_app_t::reload_settings()
-	{
-		const string_t directory = editor_directories_t::get_user_directory();
-		if (!file_system::exists(directory.c_str()) && !file_system::create_directory(directory.c_str()))
-			return false;
-
-		const string_t path = editor_directories_t::get_settings_path();
-		if (!file_system::exists(path.c_str()))
-		{
-			_settings = {};
-			flush_settings_to_disk();
-			return true;
-		}
-
-		try
-		{
-			const string_t data = file_system::read_file_as_string(path.c_str());
-			_settings			= nlohmann::json::parse(data).get<editor_settings_t>();
-		}
-		catch (const std::exception& e)
-		{
-			SFG_ERR("failed loading editor settings: {0}", e.what());
-			_settings = {};
-			flush_settings_to_disk();
-			return true;
-		}
-
-		if (_settings.windows.empty())
-			_settings.windows.push_back({});
-
-		return true;
-	}
-
-	void editor_app_t::save_settings()
-	{
-		_settings.windows.resize(0);
-
-		for (editor_surface_t& surface : _surfaces)
-		{
-			_settings.windows.push_back({
-				.position	   = surface.runtime.pos,
-				.size		   = surface.runtime.size,
-				.monitor_ident = surface.runtime.monitor_info.device_hash,
-			});
-		}
-
-		flush_settings_to_disk();
-	}
-
-	void editor_app_t::flush_settings_to_disk()
-	{
-		const string_t directory = editor_directories_t::get_user_directory();
-		if (!file_system::exists(directory.c_str()) && !file_system::create_directory(directory.c_str()))
-			return;
-
-		const nlohmann::json json_data = _settings;
-		const string_t		 data	   = json_data.dump(4);
-		serialization::write_to_file(string_view_t(data.data(), data.size()), editor_directories_t::get_settings_path().c_str());
-	}
 }

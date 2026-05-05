@@ -236,7 +236,7 @@ namespace sfg::ui
 			}
 
 			const ui_render_group_t* user_group = static_cast<const ui_render_group_t*>(db.user_data);
-			const bool				 is_text	= db.font_id != invalid_id_u32;
+			const bool				 is_text	= db.font_id != INVALID_ID_U32;
 			const bool				 is_sdf		= is_text && db.font_kind == font_kind_e::sdf;
 
 			gfx_shader_handle pipeline = {};

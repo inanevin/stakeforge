@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/memory/memory_tracer.hpp>
 #include <sfg/math/math_common.hpp>
-#include <sfg/runtime/engine/engine_stats.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
 
 #ifdef SFG_DEBUG
 #include <WinPixEventRuntime/pix3.h>
@@ -62,8 +62,6 @@ namespace sfg
 {
 
 	Microsoft::WRL::ComPtr<IDxcLibrary> dx12_backend_t::s_idxcLib;
-
-#define SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD() SFG_ASSERT(g_engine_runtime_stats.render_thread_id.load() == 0 || g_engine_runtime_stats.render_thread_id == static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id())))
 
 #define DX12_THROW(exception, ...)                                                                                                                                                                                                                                 \
 	SFG_FATAL(__VA_ARGS__);                                                                                                                                                                                                                                        \
@@ -916,7 +914,7 @@ namespace sfg
 
 	gfx_resource_handle dx12_backend_t::create_resource(const resource_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_resource_handle id  = _resources.add();
 		resource_t&				  res = _resources.get(id);
@@ -1068,7 +1066,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_resource(gfx_resource_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		resource_t& res = _resources.get(id);
 
@@ -1103,7 +1101,7 @@ namespace sfg
 
 	gfx_texture_handle dx12_backend_t::create_texture(const texture_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_texture_handle id	 = _textures.add();
 		texture_t&				 txt = _textures.get(id);
@@ -1405,7 +1403,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_texture(gfx_texture_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		texture_t& txt = _textures.get(id);
 
@@ -1456,7 +1454,7 @@ namespace sfg
 
 	gfx_sampler_handle dx12_backend_t::create_sampler(const sampler_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		D3D12_SAMPLER_DESC samplerDesc = {
 			.Filter			= get_filter(desc.flags),
@@ -1484,7 +1482,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_sampler(gfx_sampler_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		sampler_t&			 smp = _samplers.get(id);
 		descriptor_handle_t& dh	 = _descriptors.get(smp.descriptor_index);
@@ -1495,7 +1493,7 @@ namespace sfg
 
 	gfx_swapchain_handle dx12_backend_t::create_swapchain(const swapchain_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_swapchain_handle id  = _swapchains.add();
 		swapchain_t&			   swp = _swapchains.get(id);
@@ -1599,7 +1597,7 @@ namespace sfg
 
 	gfx_swapchain_handle dx12_backend_t::recreate_swapchain(const swapchain_recreate_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		swapchain_t& swp = _swapchains.get(desc.swapchain_t);
 
@@ -1690,7 +1688,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_swapchain(gfx_swapchain_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		swapchain_t& swp = _swapchains.get(id);
 
@@ -1720,7 +1718,7 @@ namespace sfg
 
 	gfx_semaphore_handle dx12_backend_t::create_semaphore()
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_semaphore_handle id  = _semaphores.add();
 		semaphore_t&			   sem = _semaphores.get(id);
@@ -1736,7 +1734,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_semaphore(gfx_semaphore_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		semaphore_t& sem = _semaphores.get(id);
 		sem.ptr.Reset();
@@ -2084,7 +2082,7 @@ namespace sfg
 
 	gfx_shader_handle dx12_backend_t::create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_shader_handle id = _shaders.add();
 		shader_t&				sh = _shaders.get(id);
@@ -2210,7 +2208,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_shader(gfx_shader_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		shader_t& sh = _shaders.get(id);
 
@@ -2222,7 +2220,7 @@ namespace sfg
 
 	gfx_bind_group_handle dx12_backend_t::create_empty_bind_group()
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_bind_group_handle id = _bind_groups.add();
 		return id;
@@ -2230,7 +2228,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_group_add_descriptor(gfx_bind_group_handle group, u8 root_param_index, u8 type)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t& bind_group_t = _bind_groups.get(group);
 		bind_group_t.bindings.push_back({});
@@ -2246,7 +2244,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_group_add_constant(gfx_bind_group_handle group, u8 root_param_index, u8* data, u8 count)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t& bind_group_t = _bind_groups.get(group);
 		bind_group_t.bindings.push_back({});
@@ -2260,7 +2258,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_group_add_pointer(gfx_bind_group_handle group, u8 root_param_index, u8 count, bool is_sampler)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t& bind_group_t = _bind_groups.get(group);
 		bind_group_t.bindings.push_back({});
@@ -2285,7 +2283,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_group_update_constants(gfx_bind_group_handle id, u8 binding_index, u8* constants, u8 count)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t&	 group	   = _bind_groups.get(id);
 		group_binding_t& binding_t = group.bindings[binding_index];
@@ -2295,7 +2293,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_group_update_descriptor(gfx_bind_group_handle id, u8 binding_index, gfx_resource_handle res_id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t&	 group	   = _bind_groups.get(id);
 		group_binding_t& binding_t = group.bindings[binding_index];
@@ -2307,7 +2305,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_group_update_pointer(gfx_bind_group_handle id, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t&	 group	   = _bind_groups.get(id);
 		group_binding_t& binding_t = group.bindings[binding_index];
@@ -2370,7 +2368,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_bind_group(gfx_bind_group_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_group_t& group = _bind_groups.get(id);
 
@@ -2400,7 +2398,7 @@ namespace sfg
 
 	gfx_command_buffer_handle dx12_backend_t::create_command_buffer(const command_buffer_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_command_buffer_handle	   id		= _command_buffers.add();
 		const gfx_command_allocator_handle alloc_id = create_command_allocator(static_cast<u8>(desc.type));
@@ -2416,7 +2414,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_command_buffer(gfx_command_buffer_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		command_buffer_t& cmd = _command_buffers.get(id);
 		cmd.ptr.Reset();
@@ -2426,7 +2424,7 @@ namespace sfg
 
 	gfx_command_allocator_handle dx12_backend_t::create_command_allocator(u8 type)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_command_allocator_handle id	 = _command_allocators.add();
 		command_allocator_t&			   alloc = _command_allocators.get(id);
@@ -2436,7 +2434,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_command_allocator(gfx_command_allocator_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		command_allocator_t& alloc = _command_allocators.get(id);
 		alloc.ptr.Reset();
@@ -2445,7 +2443,7 @@ namespace sfg
 
 	gfx_queue_handle dx12_backend_t::create_queue(const queue_desc_t& desc)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_queue_handle id = _queues.add();
 		queue_t&			   q  = _queues.get(id);
@@ -2461,7 +2459,7 @@ namespace sfg
 
 	gfx_bind_layout_handle dx12_backend_t::create_empty_bind_layout()
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const gfx_bind_layout_handle id = _bind_layouts.add();
 		_reuse_root_params.resize(0);
@@ -2543,7 +2541,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_layout_add_constant(gfx_bind_layout_handle layout, u32 count, u32 set, u32 binding_t, u8 vis)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
 		_reuse_root_params.push_back({});
@@ -2553,7 +2551,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_layout_add_descriptor(gfx_bind_layout_handle layout, u8 type, u32 set, u32 binding_t, u8 vis)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
 		_reuse_root_params.push_back({});
@@ -2573,7 +2571,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_layout_add_pointer(gfx_bind_layout_handle layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 vis)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const u32 start = static_cast<u32>(_reuse_root_ranges.size());
 
@@ -2615,7 +2613,7 @@ namespace sfg
 
 	void dx12_backend_t::bind_layout_add_immutable_sampler(gfx_bind_layout_handle layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 vis)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
 
@@ -2637,7 +2635,7 @@ namespace sfg
 
 	void dx12_backend_t::finalize_bind_layout(gfx_bind_layout_handle id, bool is_compute, bool is_dyn_indexed, const char* name)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
@@ -2676,7 +2674,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_bind_layout(gfx_bind_layout_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		bind_layout_t& layout = _bind_layouts.get(id);
 		layout.root_signature.Reset();
@@ -2685,7 +2683,7 @@ namespace sfg
 
 	void dx12_backend_t::destroy_queue(gfx_queue_handle id)
 	{
-		SFG_VERIFY_RENDER_NOT_RUNNING_OR_RENDER_THREAD();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		queue_t& q = _queues.get(id);
 		q.ptr.Reset();

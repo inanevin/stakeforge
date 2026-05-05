@@ -557,9 +557,9 @@ namespace sfg
 		return (reinterpret_cast<INT_PTR>(r) > 32);
 	}
 
-	void process::message_box(const char* msg)
+	void process::message_box(const char* title, const char* msg)
 	{
-		MessageBox(nullptr, msg, "Huh?", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, msg, title, MB_OK | MB_ICONERROR);
 	}
 
 	void process::select_files(const char* title, const char* extension, vector_t<string_t>& out_files)

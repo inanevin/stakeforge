@@ -76,14 +76,6 @@ namespace sfg
 		_head = 0;
 	}
 
-	void chunk_allocator_t::reserve(size_t total_size)
-	{
-		if (total_size <= _total_size)
-			return;
-
-		grow_to(total_size);
-	}
-
 	chunk_handle32_t chunk_allocator_t::allocate_bytes(size_t size, size_t alignment)
 	{
 		SFG_ASSERT(size != 0);
@@ -124,8 +116,8 @@ namespace sfg
 		const u32 current_aligned_head = ALIGN_UP(_head, static_cast<u32>(alignment));
 		const u32 needed_size		   = (current_aligned_head - _head) + requested_size;
 
-		if (_head > _total_size || needed_size > _total_size - _head)
-			grow_to(static_cast<size_t>(current_aligned_head) + requested_size);
+		SFG_ASSERT(_head <= _total_size);
+		SFG_ASSERT(needed_size <= _total_size - _head);
 
 		const chunk_handle32_t ret{current_aligned_head, requested_size};
 		_head += needed_size;
@@ -142,33 +134,4 @@ namespace sfg
 		return handle;
 	}
 
-	void chunk_allocator_t::grow_to(size_t required_total_size)
-	{
-		const size_t alignment = alignof(std::max_align_t);
-		size_t		 new_size  = _total_size == 0 ? alignment : _total_size;
-
-		while (new_size < required_total_size)
-			new_size *= 2;
-
-		new_size = ALIGN_UP(new_size, alignment);
-		SFG_ASSERT(new_size <= std::numeric_limits<u32>::max());
-
-		u8* new_raw = reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, new_size));
-		SFG_ASSERT(new_raw != nullptr);
-
-		if (_raw != nullptr && _head != 0)
-			SFG_MEMCPY(new_raw, _raw, _head);
-
-#ifdef SFG_ENABLE_MEMORY_TRACER
-		memory_tracer_t::get().on_allocation(new_raw, new_size);
-		if (_raw != nullptr)
-			memory_tracer_t::get().on_free(_raw);
-#endif
-
-		if (_raw != nullptr)
-			SFG_ALIGNED_FREE(_raw);
-
-		_raw		= new_raw;
-		_total_size = static_cast<u32>(new_size);
-	}
 }

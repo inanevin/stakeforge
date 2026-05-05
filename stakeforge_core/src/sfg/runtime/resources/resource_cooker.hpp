@@ -2,45 +2,43 @@
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/string.hpp>
 
 namespace sfg
 {
-	class istream_t;
 	class ostream_t;
 
-	struct cooking_options_t
-	{
-		string_t arguments;
-	};
+	struct texture_cook_config_t;
+	struct shader_cook_config_t;
+	struct audio_cook_config_t;
+	struct glb_cook_config_t;
+	struct font_cook_config_t;
+	struct material_cook_config_t;
+	struct particle_properties_cook_config_t;
+	struct texture_sampler_cook_config_t;
+	struct physical_material_cook_config_t;
+	struct animation_state_machine_cook_config_t;
+	struct prefab_cook_config_t;
 
-	enum class cook_result_e : u8
+	class resource_cooker_t
 	{
-		success,
-		invalid_path,
-		unsupported_extension,
-		unsupported_schema,
-		invalid_meta_file,
-		cook_failed,
-	};
+	public:
+		enum class result_e : u8
+		{
+			success,
+			invalid_path,
+			cook_failed,
+		};
 
-	enum class cook_kind_e : u8
-	{
-		invalid,
-		texture,
-		audio,
-		glb,
-		font,
-		shader,
-		material,
-		particle,
-		sampler,
-		physical_material,
-		animation_state_machine,
-		prefab,
-		count,
+		static result_e cook_texture(const char* full_path, const texture_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_shader(const char* full_path, const shader_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_audio(const char* full_path, const audio_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_glb(const char* full_path, const glb_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_font(const char* full_path, const font_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_material(const char* full_path, const material_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_particle_properties(const char* full_path, const particle_properties_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_texture_sampler(const char* full_path, const texture_sampler_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_physical_material(const char* full_path, const physical_material_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_animation_state_machine(const char* full_path, const animation_state_machine_cook_config_t& cfg, ostream_t& stream);
+		static result_e cook_prefab(const char* full_path, const prefab_cook_config_t& cfg, ostream_t& stream);
 	};
-
-	cook_result_e cook_resource(const char* full_path, const cooking_options_t& options, ostream_t& stream);
-	cook_result_e cook_resource(const char* full_path, const char* output_directory, const cooking_options_t& options);
 }

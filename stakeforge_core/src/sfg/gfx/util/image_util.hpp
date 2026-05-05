@@ -35,8 +35,9 @@ namespace sfg
 	struct texture_buffer_t;
 	class ostream_t;
 
-	namespace image_util_t
+	class image_util_t
 	{
+	public:
 		enum class mip_gen_filter
 		{
 			def = 0,
@@ -46,12 +47,13 @@ namespace sfg
 			catmullrom,
 			mitchell,
 		};
-		void* load_from_file_ch(const char* file, u8 force_channels);
-		void* load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels);
-		void* load_from_file(const char* file, u8& out_channels);
-		void* load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels);
-		void  generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
-		u8	  calculate_mip_levels(u16 width, u16 height);
-		void  free(void* data);
-	}
+
+		static void* load_from_file_ch(const char* file, u8 force_channels);
+		static void* load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels);
+		static void* load_from_file(const char* file, u8& out_channels);
+		static void* load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels);
+		static void	 generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
+		static u8	 calculate_mip_levels(u16 width, u16 height);
+		static void	 free(void* data);
+	};
 }

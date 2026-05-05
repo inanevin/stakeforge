@@ -23,7 +23,7 @@ namespace sfg
 		_atlas_height = 0;
 	}
 
-	bool atlas_manager_t::add_font(font_data_t* font)
+	bool atlas_manager_t::add_font(font_runtime_t* font)
 	{
 		SFG_ASSERT(font != nullptr);
 		const bool need_lcd = font->kind == font_kind_e::lcd;
@@ -50,11 +50,11 @@ namespace sfg
 		return true;
 	}
 
-	void atlas_manager_t::remove_font(font_data_t* font)
+	void atlas_manager_t::remove_font(font_runtime_t* font)
 	{
 		SFG_ASSERT(font != nullptr);
 		// TODO: route remove_font once create_internals/destroy_internals wires fonts to specific atlases.
 		// The font would need to know which atlas it was placed in (e.g. an atlas id stored in
-		// font_data_t at runtime) so the manager can dispatch to the right atlas here.
+		// font_runtime_t at runtime) so the manager can dispatch to the right atlas here.
 	}
 }

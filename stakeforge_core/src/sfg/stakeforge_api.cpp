@@ -8,22 +8,18 @@
 namespace
 {
 	sfg::engine_runtime_t* g_engine = nullptr;
-
 }
 
-sfg_api_result_t sfg_engine_init(const sfg::engine_config_t& config)
+sfg_api_result_t sfg_engine_init(void)
 {
 	if (g_engine != nullptr)
 		return sfg_api_result_engine_already_initialized;
-
-	if ((config.fixed_framerate_ns <= 0.0 || config.fixed_framerate_max_ticks == 0 || config.render_frame_allocator_size == 0 || config.resource_allocator_size == 0))
-		return sfg_api_result_invalid_argument;
 
 	sfg::engine_runtime_t* engine = new (std::nothrow) sfg::engine_runtime_t();
 	if (engine == nullptr)
 		return sfg_api_result_engine_init_failed;
 
-	if (!engine->init(config))
+	if (!engine->init())
 	{
 		delete engine;
 		return sfg_api_result_engine_init_failed;
@@ -44,12 +40,21 @@ sfg_api_result_t sfg_engine_uninit(void)
 	return sfg_api_result_success;
 }
 
-sfg_api_result_t sfg_engine_frame(void)
+sfg_api_result_t sfg_engine_simulate(f32 delta_time)
 {
 	if (g_engine == nullptr)
 		return sfg_api_result_engine_not_initialized;
 
-	g_engine->tick();
+	g_engine->simulate(delta_time);
+	return sfg_api_result_success;
+}
+
+sfg_api_result_t sfg_engine_render(void)
+{
+	if (g_engine == nullptr)
+		return sfg_api_result_engine_not_initialized;
+
+	g_engine->render();
 	return sfg_api_result_success;
 }
 

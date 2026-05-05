@@ -296,11 +296,11 @@ namespace sfg::ui
 		return {x, y, r - x, t - y};
 	}
 
-	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, void* user_data, font_data_t* font)
+	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, void* user_data, font_runtime_t* font)
 	{
 		const vec4f_t clip	 = current_clip();
-		const u32	  fnt_id = font ? static_cast<u32>(reinterpret_cast<uintptr_t>(font)) : invalid_id_u32;
-		const u32	  atl_id = invalid_id_u32;
+		const u32	  fnt_id = font ? static_cast<u32>(reinterpret_cast<uintptr_t>(font)) : INVALID_ID_U32;
+		const u32	  atl_id = INVALID_ID_U32;
 		const auto	  knd	 = font ? font->kind : font_kind_e::bitmap;
 
 		for (vg_draw_buffer_t& db : _draw_buffers)
@@ -380,7 +380,7 @@ namespace sfg::ui
 			}
 		}
 
-		u32 outline_outer_base = invalid_id_u32;
+		u32 outline_outer_base = INVALID_ID_U32;
 		if (out)
 		{
 			outline_outer_base = db->vertex_count;
@@ -491,15 +491,15 @@ namespace sfg::ui
 		if (!paint.font || !text || len == 0)
 			return {0.0f, 0.0f};
 
-		const font_data_t* fnt	   = paint.font;
-		const f32		   scale   = paint.scale * fnt->scale;
-		const f32		   spacing = static_cast<f32>(paint.spacing) * scale;
+		const font_runtime_t* fnt	  = paint.font;
+		const f32			  scale	  = paint.scale * fnt->scale;
+		const f32			  spacing = static_cast<f32>(paint.spacing) * scale;
 
 		f32 total_x = 0.0f;
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u8			c = static_cast<u8>(text[i]);
-			const font_glyph_t& g = fnt->glyph_info[c];
+			const u8					c = static_cast<u8>(text[i]);
+			const font_runtime_glyph_t& g = fnt->glyph_info[c];
 			total_x += g.advance_x * scale;
 
 			if (i + 1 < len)
@@ -551,10 +551,10 @@ namespace sfg::ui
 			}
 		}
 
-		const font_data_t* fnt		= paint.font;
-		const f32		   scale	= paint.scale * fnt->scale;
-		const f32		   spacing	= static_cast<f32>(paint.spacing) * scale;
-		const f32		   subpixel = (fnt->kind == font_kind_e::lcd) ? 3.0f : 1.0f;
+		const font_runtime_t* fnt	   = paint.font;
+		const f32			  scale	   = paint.scale * fnt->scale;
+		const f32			  spacing  = static_cast<f32>(paint.spacing) * scale;
+		const f32			  subpixel = (fnt->kind == font_kind_e::lcd) ? 3.0f : 1.0f;
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
@@ -570,8 +570,8 @@ namespace sfg::ui
 
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u8			c = static_cast<u8>(text[i]);
-			const font_glyph_t& g = fnt->glyph_info[c];
+			const u8					c = static_cast<u8>(text[i]);
+			const font_runtime_glyph_t& g = fnt->glyph_info[c];
 
 			if (prev != 0)
 				pen.x += static_cast<f32>(fnt->glyph_info[prev].kern_advance[c]) * scale;

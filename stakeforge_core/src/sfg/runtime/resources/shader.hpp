@@ -3,63 +3,68 @@
 
 #include "common_resources.hpp"
 #include "shader_types.hpp"
+#include <sfg/data/bitmask.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 
 namespace sfg
 {
 	class istream_t;
 
-	inline constexpr u8 shader_max_compile_variants	  = 16;
-	inline constexpr u8 shader_max_pso_variants		  = 32;
-	inline constexpr u8 shader_max_stages_per_variant = 4;
+	class shader_loader_t
+	{
+	public:
+		static constexpr u8	 MAX_COMPILE_VARIANTS  = 16;
+		static constexpr u8	 MAX_PSO_VARIANTS	   = 32;
+		static constexpr u8	 MAX_STAGE_PER_VARIANT = 4;
+		static constexpr u32 WIRE_MAGIC			   = 0x52444853;
+		static constexpr u32 WIRE_VERSION		   = 5;
 
-	struct shader_stage_entry_t
+		static bool						   load(resource_entry_t& entry, resource_context_t& ctx);
+		static create_internals_result_e   create_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static complete_internals_result_e complete_internals(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
+		static void						   destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	struct shader_runtime_stage_entry_t
 	{
 		u32 offset = 0;
 		u32 size   = 0;
 		u8	stage  = 0;
 	};
 
-	struct shader_compile_variant_t
+	struct shader_runtime_compile_variant_t
 	{
-		u8					 stage_count						   = 0;
-		shader_stage_entry_t stages[shader_max_stages_per_variant] = {};
+		u8							 stage_count									= 0;
+		shader_runtime_stage_entry_t stages[shader_loader_t::MAX_STAGE_PER_VARIANT] = {};
 	};
 
-	struct shader_pso_variant_t
+	struct shader_runtime_pso_variant_t
 	{
 		u32 variant_flags		  = 0;
+		u32 desc_offset			  = 0;
+		u32 desc_size			  = 0;
 		u8	compile_variant_index = 0;
 	};
 
-	struct shader_data_t
+	struct shader_runtime_t
 	{
-		chunk_handle32_t		 blobs										   = {};
-		u32						 blobs_size									   = 0;
-		shader_type_e			 type										   = shader_type_e::invalid;
-		u8						 compile_variant_count						   = 0;
-		u8						 pso_variant_count							   = 0;
-		shader_compile_variant_t compile_variants[shader_max_compile_variants] = {};
-		shader_pso_variant_t	 pso_variants[shader_max_pso_variants]		   = {};
+		shader_type_e					 type													 = shader_type_e::invalid;
+		u8								 compile_variant_count									 = 0;
+		u8								 pso_variant_count										 = 0;
+		shader_runtime_compile_variant_t compile_variants[shader_loader_t::MAX_COMPILE_VARIANTS] = {};
+		shader_runtime_pso_variant_t	 pso_variants[shader_loader_t::MAX_PSO_VARIANTS]		 = {};
 	};
 
 	struct shader_internals_t
 	{
-		u32 reserved = 0;
-	};
+		gfx_shader_handle psos[shader_loader_t::MAX_PSO_VARIANTS]	   = {};
+		bitmask_t<u32>	  pso_flags[shader_loader_t::MAX_PSO_VARIANTS] = {};
+		u8				  pso_count									   = 0;
+		u8				  pending_count								   = 0;
+		bool			  had_failure								   = false;
 
-	struct shader_config_t
-	{
-		shader_type_e type = shader_type_e::invalid;
+		gfx_shader_handle find_pso(bitmask_t<u32> flags) const;
 	};
-
-	extern bool shader_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
-	extern bool shader_create_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void shader_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void shader_unload(resource_entry_t& entry, resource_context_t& ctx);
-	extern void shader_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
 
 	extern const resource_type_desc_t shader_resource_desc;
-
-	inline constexpr u32 shader_wire_magic	 = 0x52444853;
-	inline constexpr u32 shader_wire_version = 3;
 }

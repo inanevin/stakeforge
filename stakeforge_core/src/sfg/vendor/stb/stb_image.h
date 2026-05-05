@@ -6749,7 +6749,7 @@ static int stbi__psd_decode_rle(stbi__context* s, stbi_uc* p, int pixelCount)
 static void* stbi__psd_load(stbi__context* s, int* x, int* y, int* comp, int req_comp, stbi__result_info* ri, int bpc)
 {
 	int		 pixelCount;
-	int		 channelCount, compression;
+	int		 channelCount, compressor_t;
 	int		 channel, i;
 	int		 bitdepth;
 	int		 w, h;
@@ -6806,15 +6806,15 @@ static void* stbi__psd_load(stbi__context* s, int* x, int* y, int* comp, int req
 	// Known values:
 	//   0: no compression
 	//   1: RLE compressed
-	compression = stbi__get16be(s);
-	if (compression > 1) return stbi__errpuc("bad compression", "PSD has an unknown compression format_t");
+	compressor_t = stbi__get16be(s);
+	if (compressor_t > 1) return stbi__errpuc("bad compression", "PSD has an unknown compression format_t");
 
 	// Check size
 	if (!stbi__mad3sizes_valid(4, w, h, 0)) return stbi__errpuc("too large", "Corrupt PSD");
 
 	// Create the destination image.
 
-	if (!compression && bitdepth == 16 && bpc == 16)
+	if (!compressor_t && bitdepth == 16 && bpc == 16)
 	{
 		out					 = (stbi_uc*)stbi__malloc_mad3(8, w, h, 0);
 		ri->bits_per_channel = 16;
@@ -6829,7 +6829,7 @@ static void* stbi__psd_load(stbi__context* s, int* x, int* y, int* comp, int req
 	// memset( out, 0, pixelCount * 4 );
 
 	// Finally, the image data.
-	if (compression)
+	if (compressor_t)
 	{
 		// RLE as used by .PSD and .TIFF
 		// Loop until you get the number of unpacked bytes you are expecting:

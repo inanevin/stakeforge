@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/unique.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/common/string_id.hpp>
 
 namespace std
 {

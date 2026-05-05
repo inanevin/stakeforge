@@ -18,16 +18,15 @@ namespace sfg
 
 	struct render_resource_completion_t
 	{
-		resource_internals_completion_t get_payload() const;
-
-		sid_t				   hash		= 0;
-		resource_type_e		   type		= resource_type_e::invalid;
-		render_resource_kind_e kind		= render_resource_kind_e::resource;
-		resource_state_e	   state	= resource_state_e::failed;
-		gfx_resource_handle	   resource = {};
-		gfx_texture_handle	   texture	= {};
-		gfx_sampler_handle	   sampler	= {};
-		gfx_shader_handle	   shader	= {};
+		sid_t				   hash		 = 0;
+		resource_type_e		   type		 = resource_type_e::invalid;
+		render_resource_kind_e kind		 = render_resource_kind_e::resource;
+		resource_state_e	   state	 = resource_state_e::failed;
+		u32					   user_data = 0;
+		gfx_resource_handle	   resource	 = {};
+		gfx_texture_handle	   texture	 = {};
+		gfx_sampler_handle	   sampler	 = {};
+		gfx_shader_handle	   shader	 = {};
 	};
 
 	class render_resources_t
@@ -43,7 +42,7 @@ namespace sfg
 		void enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc);
 		void enqueue_create_texture(sid_t hash, const texture_desc_t& desc);
 		void enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
-		void enqueue_create_shader(sid_t hash, resource_type_e type, const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_bind_layout_handle existing_layout = {}, span_t<u8> layout_data = {});
+		void enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, vector_t<shader_blob_t>&& blobs, gfx_bind_layout_handle existing_layout = {}, span_t<u8> layout_data = {});
 
 		void enqueue_destroy_resource(gfx_resource_handle handle);
 		void enqueue_destroy_texture(gfx_texture_handle handle);
@@ -77,9 +76,10 @@ namespace sfg
 
 		struct create_shader_request_t
 		{
-			sid_t					hash = 0;
-			resource_type_e			type = resource_type_e::invalid;
-			shader_desc_t			desc = {};
+			sid_t					hash	  = 0;
+			resource_type_e			type	  = resource_type_e::invalid;
+			u32						user_data = 0;
+			shader_desc_t			desc	  = {};
 			vector_t<shader_blob_t> blobs;
 			gfx_bind_layout_handle	existing_layout = {};
 			vector_t<u8>			layout_data;

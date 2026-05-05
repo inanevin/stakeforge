@@ -103,6 +103,14 @@ namespace sfg
 			SFG_MEMSET(_data + pad, val, sz);
 		}
 
+		inline span_t<u8> evict()
+		{
+			span_t<u8> sp = {_data, _total_size};
+			_data		  = nullptr;
+			_current_size = _total_size = 0;
+			return sp;
+		}
+
 	private:
 		void check_grow(size_t sz);
 		void move_from(ostream_t& other) noexcept;

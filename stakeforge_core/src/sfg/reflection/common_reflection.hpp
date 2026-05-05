@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/common/string_id.hpp>
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
@@ -65,17 +65,17 @@ namespace sfg
 
 	struct reflected_field_changed_params_t
 	{
-		world_t&  w;
-		void*	  object_ptr  = nullptr;
-		void*	  data_ptr	  = nullptr;
-		sid_t field_title = 0;
-		u32		  list_index  = 0;
+		world_t& w;
+		void*	 object_ptr	 = nullptr;
+		void*	 data_ptr	 = nullptr;
+		sid_t	 field_title = 0;
+		u32		 list_index	 = 0;
 	};
 
 	struct reflected_button_params_t
 	{
-		world_t&  w;
-		void*	  object_ptr = nullptr;
-		sid_t button_id	 = 0;
+		world_t& w;
+		void*	 object_ptr = nullptr;
+		sid_t	 button_id	= 0;
 	};
 };

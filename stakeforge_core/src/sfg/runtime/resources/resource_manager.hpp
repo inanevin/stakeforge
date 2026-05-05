@@ -5,10 +5,7 @@
 #include "common_resources.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
-#include <sfg/common/string_id.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
-#include <sfg/vendor/moodycamel/concurrentqueue.h>
-#include <sfg/vendor/moodycamel/readerwriterqueue.h>
 #include <cstddef>
 
 namespace sfg
@@ -30,9 +27,9 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(u32 max_resources, size_t resource_memory_size);
+		void init(size_t resource_memory_size);
 		void uninit();
-		void tick();
+		void drain();
 		void wait_for_all();
 
 		// -----------------------------------------------------------------------------
@@ -75,23 +72,32 @@ namespace sfg
 	private:
 		struct load_request_t
 		{
-			u64				 hash = 0;
-			chunk_handle32_t data = {};
+			u64				 hash		  = 0;
+			chunk_handle32_t runtime	  = {};
+			chunk_handle32_t internals	  = {};
+			span_t<u8>		 runtime_data = {};
+			span_t<u8>		 payload	  = {};
+			resource_type_e	 type		  = resource_type_e::invalid;
+			bool			 success	  = false;
 		};
+
+		struct queues_t;
 
 		resource_entry_t* find_entry(u64 hash);
 		void			  fire_loads();
 		void			  drain_completed();
 		void			  drain_render_completed();
 		void			  drain_unloads();
+		void			  free_entry_chunks(resource_entry_t& entry);
+		void			  free_entry_full_data(resource_entry_t& entry);
 
 	private:
-		atomic_t<u32>								_pending = 0;
-		moodycamel::ConcurrentQueue<load_request_t> _completed;
-		chunk_allocator_t							_memory;
-		atlas_manager_t								_atlas_manager;
-		vector_t<load_request_t>					_loads;
-		vector_t<u64>								_unloads;
-		hash_map_t<sid_t, resource_entry_t>			_entries;
+		chunk_allocator_t					_memory;
+		hash_map_t<sid_t, resource_entry_t> _entries;
+		atlas_manager_t						_atlas_manager;
+		vector_t<load_request_t>			_loads;
+		vector_t<u64>						_unloads;
+		queues_t*							_queues	 = nullptr;
+		atomic_t<u32>						_pending = 0;
 	};
 }

@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common_reflection.hpp"
 #include <sfg/data/vector.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/common/string_id.hpp>
+#include <sfg/common/hashing.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/malloc_allocator_stl.hpp>
@@ -45,8 +45,8 @@ namespace sfg
 	class field_value_t
 	{
 	public:
-		field_value_t(){};
-		field_value_t(void* addr) : _ptr(addr){};
+		field_value_t() {};
+		field_value_t(void* addr) : _ptr(addr) {};
 		template <typename T> T get_value()
 		{
 			return cast<T>();
@@ -96,8 +96,8 @@ namespace sfg
 		enum_vec			 _enum_list	  = {};
 		malloc_string		 _title		  = "";
 		malloc_string		 _tooltip	  = "";
-		sid_t			 _sid		  = 0;
-		sid_t			 _sub_type_id = 0;
+		sid_t				 _sid		  = 0;
+		sid_t				 _sub_type_id = 0;
 		f32					 _min		  = 0.0f;
 		f32					 _max		  = 0.0f;
 		reflected_field_type _type		  = reflected_field_type::rf_float;
@@ -157,7 +157,7 @@ namespace sfg
 	{
 		malloc_string title	  = "";
 		malloc_string tooltip = "";
-		sid_t	  sid	  = 0;
+		sid_t		  sid	  = 0;
 	};
 
 	class meta_t
@@ -165,7 +165,7 @@ namespace sfg
 	public:
 		struct function_entry_t
 		{
-			sid_t					id	= 0;
+			sid_t						id	= 0;
 			reflection_function_base_t* ptr = nullptr;
 		};
 
@@ -356,8 +356,8 @@ namespace sfg
 		malloc_string _title		   = "";
 		malloc_string _category		   = "";
 		malloc_string _tag_str		   = "";
-		sid_t	  _type_id		   = 0;
-		sid_t	  _tag			   = 0;
+		sid_t		  _type_id		   = 0;
+		sid_t		  _tag			   = 0;
 		u32			  _type_index	   = 0;
 	};
 
@@ -366,8 +366,8 @@ namespace sfg
 	public:
 		struct meta_entry_t
 		{
-			sid_t id = 0;
-			meta_t	  meta_t;
+			sid_t  id = 0;
+			meta_t meta_t;
 		};
 
 		typedef vector_t<meta_entry_t, malloc_allocator_stl_t<meta_entry_t>> meta_vec;

@@ -2,17 +2,18 @@
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/data/vector.hpp>
 
 namespace sfg
 {
+	class istream_t;
 	class ostream_t;
+	struct resource_header_t;
 
-	namespace resource_cache
+	class resource_cache_t
 	{
-		bool ensure_directory(const char* dir);
-		bool try_load_fresh(const char* cache_dir, const char* name, const char* source_path, vector_t<u8>& out_bytes);
-		bool save(const char* cache_dir, const char* name, const char* source_path, const ostream_t& cooked);
-	}
+	public:
+		static bool		 ensure_directory(const char* cache_dir);
+		static istream_t try_load(const char* cache_dir, const char* name, const resource_header_t& expected);
+		static bool		 save(const char* cache_dir, const char* name, const ostream_t& cooked);
+	};
 }

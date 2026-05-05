@@ -36,7 +36,7 @@ namespace sfg
 {
 	color_t color_utils_t::lerp(const color_t& c1, const color_t& c2, f32 a)
 	{
-		return color_t(easing::lerp(c1.x, c2.x, a), easing::lerp(c1.y, c2.y, a), easing::lerp(c1.z, c2.z, a), easing::lerp(c1.w, c2.w, a));
+		return color_t(easing_t::lerp(c1.x, c2.x, a), easing_t::lerp(c1.y, c2.y, a), easing_t::lerp(c1.z, c2.z, a), easing_t::lerp(c1.w, c2.w, a));
 	}
 
 	color_t color_utils_t::from_hex(const string_t& hex)

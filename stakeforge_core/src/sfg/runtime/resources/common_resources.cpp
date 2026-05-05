@@ -1,6 +1,10 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "common_resources.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/memory/memory.hpp>
+
 #include "animation.hpp"
 #include "animation_state_machine.hpp"
 #include "audio.hpp"
@@ -17,7 +21,23 @@
 
 namespace sfg
 {
-	const resource_type_desc_t* const g_resource_type_descs[resource_type_max] = {
+	void resource_header_t::serialize(ostream_t& stream) const
+	{
+		stream << magic << version << payload_size << payload_offset << modified_ticks;
+	}
+
+	bool resource_header_t::deserialize(istream_t& stream)
+	{
+		stream >> magic >> version >> payload_size >> payload_offset >> modified_ticks;
+		return true;
+	}
+
+	void resource_header_t::patch_payload_offset(ostream_t& stream, size_t header_pos) const
+	{
+		SFG_MEMCPY(stream.get_raw() + header_pos + sizeof(u32) * 3, &payload_offset, sizeof(u32));
+	}
+
+	const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX] = {
 		nullptr,
 		&audio_resource_desc,
 		&font_resource_desc,
@@ -33,35 +53,4 @@ namespace sfg
 		&prefab_resource_desc,
 		&animation_state_machine_resource_desc,
 	};
-
-	resource_type_e resolve_resource_type(const string_t& s)
-	{
-		if (s == "audio")
-			return resource_type_e::audio;
-		if (s == "font")
-			return resource_type_e::font;
-		if (s == "mesh")
-			return resource_type_e::mesh;
-		if (s == "skeleton")
-			return resource_type_e::skeleton;
-		if (s == "animation")
-			return resource_type_e::animation;
-		if (s == "particle_properties")
-			return resource_type_e::particle_properties;
-		if (s == "material")
-			return resource_type_e::material;
-		if (s == "shader")
-			return resource_type_e::shader;
-		if (s == "texture")
-			return resource_type_e::texture;
-		if (s == "texture_sampler")
-			return resource_type_e::texture_sampler;
-		if (s == "physical_material")
-			return resource_type_e::physical_material;
-		if (s == "prefab")
-			return resource_type_e::prefab;
-		if (s == "animation_state_machine")
-			return resource_type_e::animation_state_machine;
-		return resource_type_e::invalid;
-	}
 }

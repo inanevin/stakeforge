@@ -33,11 +33,12 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	namespace serialization
+	class serializer_t
 	{
-		bool	  write_to_file(string_view_t fileInput, const char* targetFilePath);
-		bool	  save_to_file(const char* path, ostream_t& stream);
-		istream_t load_from_file(const char* path);
-	}
+	public:
+		static bool		 write_to_file(string_view_t fileInput, const char* targetFilePath);
+		static bool		 save_to_file(const char* path, const ostream_t& stream);
+		static istream_t load_from_file(const char* path);
+	};
 
 }

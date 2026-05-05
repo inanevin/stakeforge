@@ -43,7 +43,7 @@ namespace sfg
 		_dirty		  = false;
 	}
 
-	bool atlas_t::add_font(font_data_t* font)
+	bool atlas_t::add_font(font_runtime_t* font)
 	{
 		SFG_ASSERT(font != nullptr);
 
@@ -52,7 +52,7 @@ namespace sfg
 		const i32 x_padding	  = 2;
 		for (u32 i = 0; i < 128; ++i)
 		{
-			const font_glyph_t& g = font->glyph_info[i];
+			const font_runtime_glyph_t& g = font->glyph_info[i];
 			if (g.width >= 1)
 				total_width += g.width + x_padding;
 			max_height = math::max(max_height, g.height);
@@ -72,7 +72,7 @@ namespace sfg
 
 		for (u32 i = 0; i < 128; ++i)
 		{
-			font_glyph_t& g = font->glyph_info[i];
+			font_runtime_glyph_t& g = font->glyph_info[i];
 			if (g.width <= 0 || g.height <= 0 || g.pixel_size == 0)
 				continue;
 
@@ -104,7 +104,7 @@ namespace sfg
 		return true;
 	}
 
-	void atlas_t::remove_font(font_data_t*)
+	void atlas_t::remove_font(font_runtime_t*)
 	{
 		SFG_ASSERT(_font_count > 0);
 		_font_count--;

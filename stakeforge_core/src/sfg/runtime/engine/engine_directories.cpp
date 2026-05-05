@@ -12,8 +12,8 @@ namespace sfg
 
 	string_t engine_directories_t::get_user_directory()
 	{
-		string_t dir = file_system::get_user_directory();
-		file_system::fix_path(dir);
+		string_t dir = file_system_t::get_user_directory();
+		file_system_t::fix_path(dir);
 		if (!dir.empty() && dir.back() != '/')
 			dir += '/';
 		dir += STAKEFORGE_DIR;

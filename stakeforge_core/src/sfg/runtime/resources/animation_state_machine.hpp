@@ -7,7 +7,7 @@ namespace sfg
 {
 	class istream_t;
 
-	struct animation_state_machine_data_t
+	struct animation_state_machine_runtime_t
 	{
 		u32 reserved = 0;
 	};
@@ -17,11 +17,13 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern bool animation_state_machine_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
-	extern bool animation_state_machine_create_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void animation_state_machine_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void animation_state_machine_unload(resource_entry_t& entry, resource_context_t& ctx);
-	extern void animation_state_machine_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
+	class animation_state_machine_loader_t
+	{
+	public:
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	};
 
 	extern const resource_type_desc_t animation_state_machine_resource_desc;
 }

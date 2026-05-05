@@ -2,6 +2,8 @@
 
 #include "font_cook.hpp"
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 
@@ -10,7 +12,22 @@
 
 namespace sfg
 {
-	bool font_cook_from_ttf(span_t<const u8> ttf, const font_config_t& cfg, font_cook_t& out)
+	namespace
+	{
+		struct glyph_data_t
+		{
+			vector_t<u8> pixels;
+			i32			 width			   = 0;
+			i32			 height			   = 0;
+			i32			 advance_x		   = 0;
+			i32			 left_bearing	   = 0;
+			f32			 x_offset		   = 0.0f;
+			f32			 y_offset		   = 0.0f;
+			i32			 kern_advance[128] = {0};
+		};
+	}
+
+	bool font_cooker::cook_from_file(const font_cook_config_t& cfg, const char* full_path, ostream_t& stream)
 	{
 		if (cfg.range_start >= cfg.range_end || cfg.range_end > 128)
 		{
@@ -18,19 +35,30 @@ namespace sfg
 			return false;
 		}
 
+		char*  ttf_data = nullptr;
+		size_t ttf_size = 0;
+		file_system_t::read_file(full_path, ttf_data, ttf_size);
+		if (ttf_data == nullptr || ttf_size == 0)
+		{
+			SFG_ERR("failed to read font file {0}", full_path);
+			return false;
+		}
+
+		const u8* ttf_bytes = reinterpret_cast<const u8*>(ttf_data);
+
 		stbtt_fontinfo stb_font;
-		stbtt_InitFont(&stb_font, ttf.data, stbtt_GetFontOffsetForIndex(ttf.data, 0));
+		stbtt_InitFont(&stb_font, ttf_bytes, stbtt_GetFontOffsetForIndex(ttf_bytes, 0));
 
-		out.scale = stbtt_ScaleForMappingEmToPixels(&stb_font, static_cast<f32>(cfg.size));
-		out.kind  = cfg.kind;
-		out.size  = cfg.size;
-		stbtt_GetFontVMetrics(&stb_font, &out.ascent, &out.descent, &out.line_gap);
+		const f32 scale	 = stbtt_ScaleForMappingEmToPixels(&stb_font, static_cast<f32>(cfg.size));
+		i32		  ascent = 0, descent = 0, line_gap = 0;
+		stbtt_GetFontVMetrics(&stb_font, &ascent, &descent, &line_gap);
 
-		const f32 scale = out.scale;
+		vector_t<glyph_data_t> glyphs;
+		glyphs.resize(128);
 
 		for (u32 i = cfg.range_start; i < cfg.range_end; ++i)
 		{
-			font_cook_glyph_t& g = out.glyphs[i];
+			glyph_data_t& g = glyphs[i];
 
 			if (cfg.kind == font_kind_e::sdf)
 			{
@@ -87,29 +115,32 @@ namespace sfg
 				g.kern_advance[j] = stbtt_GetCodepointKernAdvance(&stb_font, static_cast<i32>(i), j);
 		}
 
-		return true;
-	}
+		delete[] ttf_data;
 
-	bool font_cook_serialize(const font_cook_t& src, ostream_t& stream)
-	{
 		u32 total_pixels = 0;
 		u32 offsets[128] = {0};
 		for (u32 i = 0; i < 128; ++i)
 		{
 			offsets[i] = total_pixels;
-			total_pixels += static_cast<u32>(src.glyphs[i].pixels.size());
+			total_pixels += static_cast<u32>(glyphs[i].pixels.size());
 		}
 
-		stream << font_wire_magic;
-		stream << font_wire_version;
-		stream << total_pixels;
-		stream << src.ascent << src.descent << src.line_gap;
-		stream << src.size << src.scale << src.kind;
+		const size_t	  header_pos = stream.get_size();
+		resource_header_t header	 = {
+				.magic			= font_loader_t::WIRE_MAGIC,
+				.version		= font_loader_t::WIRE_VERSION,
+				.payload_size	= total_pixels,
+				.modified_ticks = file_system_t::get_last_modified_ticks(full_path),
+		};
+		header.serialize(stream);
+
+		stream << ascent << descent << line_gap;
+		stream << cfg.size << scale << cfg.kind;
 
 		for (u32 i = 0; i < 128; ++i)
 		{
-			const font_cook_glyph_t& g	  = src.glyphs[i];
-			const u32				 size = static_cast<u32>(g.pixels.size());
+			const glyph_data_t& g	 = glyphs[i];
+			const u32			size = static_cast<u32>(g.pixels.size());
 			stream << offsets[i] << size;
 			stream << g.width << g.height << g.advance_x << g.left_bearing;
 			stream << g.x_offset << g.y_offset;
@@ -117,9 +148,12 @@ namespace sfg
 				stream << g.kern_advance[k];
 		}
 
+		header.payload_offset = static_cast<u32>(stream.get_size() - header_pos);
+		header.patch_payload_offset(stream, header_pos);
+
 		for (u32 i = 0; i < 128; ++i)
 		{
-			const font_cook_glyph_t& g = src.glyphs[i];
+			const glyph_data_t& g = glyphs[i];
 			if (!g.pixels.empty())
 				stream.write_raw(g.pixels.data(), g.pixels.size());
 		}

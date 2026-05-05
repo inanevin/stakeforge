@@ -46,7 +46,7 @@ namespace sfg
 	};                                                                                                                                                                                                                                                             \
 	template <> struct type_id_t<T>                                                                                                                                                                                                                                \
 	{                                                                                                                                                                                                                                                              \
-		static constexpr string_id	value = to_sid(#T);                                                                                                                                                                                                            \
+		static constexpr sid_t		value = hashing_t::to_sid(#T);                                                                                                                                                                                                 \
 		static inline call_ref_t<T> cr	  = {};                                                                                                                                                                                                                    \
 	}
 

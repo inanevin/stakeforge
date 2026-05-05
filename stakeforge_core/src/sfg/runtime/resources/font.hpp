@@ -12,7 +12,18 @@ namespace sfg
 		lcd,
 	};
 
-	struct font_glyph_t
+	class font_loader_t
+	{
+	public:
+		static constexpr u32 WIRE_MAGIC	  = 0x53464E54;
+		static constexpr u32 WIRE_VERSION = 3;
+
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	struct font_runtime_glyph_t
 	{
 		u32 pixel_offset	  = 0;
 		u32 pixel_size		  = 0;
@@ -33,17 +44,15 @@ namespace sfg
 		f32 uv_h	= 0.0f;
 	};
 
-	struct font_data_t
+	struct font_runtime_t
 	{
-		chunk_handle32_t pixels			 = {};
-		u32				 pixels_size	 = 0;
-		i32				 ascent			 = 0;
-		i32				 descent		 = 0;
-		i32				 line_gap		 = 0;
-		u32				 size			 = 0;
-		f32				 scale			 = 0.0f;
-		font_kind_e		 kind			 = font_kind_e::bitmap;
-		font_glyph_t	 glyph_info[128] = {};
+		i32					 ascent			 = 0;
+		i32					 descent		 = 0;
+		i32					 line_gap		 = 0;
+		u32					 size			 = 0;
+		f32					 scale			 = 0.0f;
+		font_kind_e			 kind			 = font_kind_e::bitmap;
+		font_runtime_glyph_t glyph_info[128] = {};
 	};
 
 	struct font_internals_t
@@ -51,25 +60,5 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	struct font_config_t
-	{
-		u32			size		 = 16;
-		u32			range_start	 = 32;
-		u32			range_end	 = 128;
-		i32			sdf_padding	 = 3;
-		i32			sdf_edge	 = 128;
-		f32			sdf_distance = 32.0f;
-		font_kind_e kind		 = font_kind_e::bitmap;
-	};
-
-	extern bool font_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
-	extern bool font_create_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void font_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void font_unload(resource_entry_t& entry, resource_context_t& ctx);
-	extern void font_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
-
 	extern const resource_type_desc_t font_resource_desc;
-
-	inline constexpr u32 font_wire_magic   = 0x53464E54;
-	inline constexpr u32 font_wire_version = 2;
 }

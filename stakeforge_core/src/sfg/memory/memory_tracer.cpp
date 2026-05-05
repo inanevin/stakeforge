@@ -220,12 +220,12 @@ namespace sfg
 
 	void memory_tracer_t::check_leaks()
 	{
+		std::ostringstream leak_stream;
+		size_t			   total_leak = 0;
+
 		for (auto& [ptr, alloc] : _allocations)
 		{
-			std::ostringstream ss;
-
-			ss << "****************** LEAK DETECTED ******************\n";
-			ss << "Size: " << alloc.size << " bytes \n";
+			total_leak += alloc.size;
 
 			HANDLE		process = GetCurrentProcess();
 			static bool inited	= false;
@@ -258,7 +258,7 @@ namespace sfg
 
 			for (int i = 0; i < alloc.stack_size; ++i)
 			{
-				ss << "------ Stack Trace " << i << "------\n";
+				leak_stream << "------ Stack Trace " << i << "------\n";
 
 				DWORD64 address = (DWORD64)(alloc.stack[i]);
 
@@ -268,21 +268,21 @@ namespace sfg
 				{
 					const string_t fn = line->FileName;
 
-					ss << "Location:" << line->FileName << "\n";
-					ss << "Smybol:" << symbol->Name << "\n";
-					ss << "Line:" << line->LineNumber << "\n";
-					ss << "SymbolAddr:" << symbol->Address << "\n";
+					leak_stream << "Location:" << line->FileName << "\n";
+					leak_stream << "Smybol:" << symbol->Name << "\n";
+					leak_stream << "Line:" << line->LineNumber << "\n";
+					leak_stream << "SymbolAddr:" << symbol->Address << "\n";
 				}
 				else
 				{
-					ss << "Smybol:" << symbol->Name << "\n";
-					ss << "SymbolAddr:" << symbol->Address << "\n";
+					leak_stream << "Smybol:" << symbol->Name << "\n";
+					leak_stream << "SymbolAddr:" << symbol->Address << "\n";
 				}
 
 				IMAGEHLP_MODULE64 moduleInfo;
 				moduleInfo.SizeOfStruct = sizeof(moduleInfo);
 				if (::SymGetModuleInfo64(process, symbol->ModBase, &moduleInfo))
-					ss << "Module:" << moduleInfo.ModuleName << "\n";
+					leak_stream << "Module:" << moduleInfo.ModuleName << "\n";
 			}
 
 			if (not_valid)
@@ -291,11 +291,19 @@ namespace sfg
 			std::free(line);
 			std::free(symbolAll);
 
-			ss << "\n";
-			ss << "\n";
+			leak_stream << "\n";
+			leak_stream << "\n";
+		}
 
-			process::message_box(ss.str().c_str());
-			ss.clear();
+		if (total_leak != 0)
+		{
+			std::ostringstream head;
+			head << "Total: " << total_leak << " bytes, " << (static_cast<double>(total_leak) / (double)(1024 * 1024)) << " mbs \n";
+			head << leak_stream.str();
+
+			process::message_box("Leak detected!", head.str().c_str());
+			leak_stream.clear();
+			head.clear();
 		}
 	}
 }

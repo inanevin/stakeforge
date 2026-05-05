@@ -6,26 +6,10 @@
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
 
 namespace sfg
 {
-	resource_internals_completion_t render_resource_completion_t::get_payload() const
-	{
-		switch (kind)
-		{
-		case render_resource_kind_e::resource:
-			return {.data = &resource, .size = sizeof(resource)};
-		case render_resource_kind_e::texture:
-			return {.data = &texture, .size = sizeof(texture)};
-		case render_resource_kind_e::sampler:
-			return {.data = &sampler, .size = sizeof(sampler)};
-		case render_resource_kind_e::shader:
-			return {.data = &shader, .size = sizeof(shader)};
-		default:
-			return {};
-		}
-	}
-
 	render_resources_t& render_resources_t::get()
 	{
 		static render_resources_t instance;
@@ -47,13 +31,14 @@ namespace sfg
 		_create_sampler_q.enqueue({.hash = hash, .type = type, .desc = desc});
 	}
 
-	void render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e type, const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
+	void render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, vector_t<shader_blob_t>&& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
 	{
 		create_shader_request_t req = {};
 		req.hash					= hash;
 		req.type					= type;
+		req.user_data				= user_data;
 		req.desc					= desc;
-		req.blobs					= blobs;
+		req.blobs					= std::move(blobs);
 		req.existing_layout			= existing_layout;
 		if (layout_data.data != nullptr && layout_data.size != 0)
 		{
@@ -98,6 +83,8 @@ namespace sfg
 
 	void render_resources_t::drain()
 	{
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+
 		gfx_backend& backend = gfx_backend::get();
 
 		gfx_resource_handle resource_to_destroy = {};
@@ -161,11 +148,12 @@ namespace sfg
 			const span_t<u8>		layout_data = {.data = shader_req.layout_data.empty() ? nullptr : shader_req.layout_data.data(), .size = shader_req.layout_data.size()};
 			const gfx_shader_handle handle		= backend.create_shader(shader_req.desc, shader_req.blobs, shader_req.existing_layout, layout_data);
 			_completed_q.enqueue({
-				.hash	= shader_req.hash,
-				.type	= shader_req.type,
-				.kind	= render_resource_kind_e::shader,
-				.state	= handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.shader = handle,
+				.hash	   = shader_req.hash,
+				.type	   = shader_req.type,
+				.kind	   = render_resource_kind_e::shader,
+				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
+				.user_data = shader_req.user_data,
+				.shader	   = handle,
 			});
 		}
 	}

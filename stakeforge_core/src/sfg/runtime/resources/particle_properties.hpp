@@ -7,7 +7,7 @@ namespace sfg
 {
 	class istream_t;
 
-	struct particle_properties_data_t
+	struct particle_properties_runtime_t
 	{
 		u32 reserved = 0;
 	};
@@ -17,11 +17,13 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern bool particle_properties_load(resource_entry_t& entry, istream_t& stream, resource_context_t& ctx);
-	extern bool particle_properties_create_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void particle_properties_destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
-	extern void particle_properties_unload(resource_entry_t& entry, resource_context_t& ctx);
-	extern void particle_properties_unload_cpu(resource_entry_t& entry, resource_context_t& ctx);
+	class particle_properties_loader_t
+	{
+	public:
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	};
 
 	extern const resource_type_desc_t particle_properties_resource_desc;
 }

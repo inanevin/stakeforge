@@ -139,6 +139,15 @@ namespace sfg
 			return _index >= _size;
 		}
 
+		inline span_t<u8> evict()
+		{
+			span_t<u8> sp = {_data, _size};
+			_data		  = nullptr;
+			_owns		  = false;
+			_index = _size = 0;
+			return sp;
+		}
+
 	private:
 		void move_from(istream_t& other) noexcept;
 

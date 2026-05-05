@@ -67,7 +67,7 @@ namespace sfg
 
 	vec3f_t vec3f_t::lerp(const vec3f_t& a, const vec3f_t& b, f32 t)
 	{
-		return {easing::lerp(a.x, b.x, t), easing::lerp(a.y, b.y, t), easing::lerp(a.z, b.z, t)};
+		return {easing_t::lerp(a.x, b.x, t), easing_t::lerp(a.y, b.y, t), easing_t::lerp(a.z, b.z, t)};
 	}
 
 	f32 vec3f_t::dot(const vec3f_t& a, const vec3f_t& b)

@@ -96,8 +96,8 @@ namespace sfg::ui
 		widget_id_t make_row(widget_id_t parent);
 		widget_id_t make_column(widget_id_t parent);
 		widget_id_t make_spacer(widget_id_t parent, f32 size_px = 0.0f);
-		widget_id_t make_label(widget_id_t parent, const char* text, font_data_t* font);
-		widget_id_t make_button(widget_id_t parent, const char* text, font_data_t* font);
+		widget_id_t make_label(widget_id_t parent, const char* text, font_runtime_t* font);
+		widget_id_t make_button(widget_id_t parent, const char* text, font_runtime_t* font);
 		widget_id_t make_divider(widget_id_t parent, bool horizontal);
 
 		// -----------------------------------------------------------------------------

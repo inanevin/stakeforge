@@ -48,6 +48,16 @@ namespace sfg
 		static void	  go_to_sleep(u32 milliseconds);
 		static void	  yield_thread();
 
+		static inline double micro_to_ms(i64 microseconds)
+		{
+			return static_cast<double>(microseconds) * 0.001;
+		}
+
+		static inline double micro_to_s(i64 microseconds)
+		{
+			return static_cast<double>(microseconds) * 0.000001;
+		}
+
 	private:
 #ifdef SFG_PLATFORM_OSX
 		static mach_timebase_info_data_t s_timebaseInfo;

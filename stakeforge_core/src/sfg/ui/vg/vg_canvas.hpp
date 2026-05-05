@@ -83,11 +83,11 @@ namespace sfg::ui
 
 	struct vg_text_paint_t
 	{
-		font_data_t* font	 = nullptr;
-		vec4f_t		 color	 = {1, 1, 1, 1};
-		f32			 scale	 = 1.0f;
-		u8			 spacing = 0;
-		bool		 flip_uv = false;
+		font_runtime_t* font	= nullptr;
+		vec4f_t			color	= {1, 1, 1, 1};
+		f32				scale	= 1.0f;
+		u8				spacing = 0;
+		bool			flip_uv = false;
 	};
 
 	struct vg_draw_buffer_t
@@ -96,8 +96,8 @@ namespace sfg::ui
 		vg_index_t*	 index_start	 = nullptr;
 		void*		 user_data		 = nullptr;
 		vec4f_t		 clip			 = {0, 0, 0, 0};
-		u32			 atlas_id		 = invalid_id_u32;
-		u32			 font_id		 = invalid_id_u32;
+		u32			 atlas_id		 = INVALID_ID_U32;
+		u32			 font_id		 = INVALID_ID_U32;
 		u32			 draw_order		 = 0;
 		u32			 vertex_count	 = 0;
 		u32			 index_count	 = 0;
@@ -162,7 +162,7 @@ namespace sfg::ui
 		}
 
 	private:
-		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, void* user_data, font_data_t* font);
+		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, void* user_data, font_runtime_t* font);
 		vec4f_t			  intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
 
 	private:
