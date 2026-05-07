@@ -51,7 +51,7 @@ namespace sfg
 
 		bool try_dequeue_completion(render_resource_completion_t& out_completion);
 
-		void drain();
+		void flush();
 
 	private:
 		struct create_resource_request_t

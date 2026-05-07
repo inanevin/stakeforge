@@ -51,10 +51,9 @@ struct VSOutput
 	float4 color : COLOR0;
 };
 
-[RootSignature(UI_DEFAULT_RS)]
 VSOutput VSMain(VSInput IN)
 {
-	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_rp_constant0);
+	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_constant_rp0);
 	VSOutput OUT;
 	OUT.pos   = mul(proj.projection, float4(IN.pos, 0.0f, 1.0f));
 	OUT.uv    = IN.uv;

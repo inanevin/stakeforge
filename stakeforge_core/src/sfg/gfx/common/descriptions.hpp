@@ -85,7 +85,7 @@ namespace sfg
 		sf_allow_tearing		= 1 << 3,
 	};
 
-	enum binding_type : u8
+	enum binding_type_e : u8
 	{
 		constant,
 		ubo,
@@ -235,7 +235,7 @@ namespace sfg
 
 	struct layout_entry_t
 	{
-		binding_type   type					  = binding_type::constant;
+		binding_type_e   type					  = binding_type_e::constant;
 		u8			   count				  = 1;
 		u8			   set					  = 0;
 		u8			   binding_t			  = 0;
@@ -245,12 +245,12 @@ namespace sfg
 	struct binding_t
 	{
 		vector_t<layout_entry_t> entry_table;
-		shader_stage			 visibility;
+		shader_stage_e			 visibility;
 	};
 
 	struct bind_layout_pointer_param_t
 	{
-		binding_type type		 = binding_type::ubo;
+		binding_type_e type		 = binding_type_e::ubo;
 		u8			 set		 = 0;
 		u8			 binding_t	 = 0;
 		u8			 count		 = 0;
@@ -264,7 +264,7 @@ namespace sfg
 		gfx_sampler_handle	sampler_t	  = {};
 		u8					view		  = 0;
 		u8					pointer_index = 0;
-		binding_type		type		  = binding_type::ubo;
+		binding_type_e		type		  = binding_type_e::ubo;
 	};
 
 	struct bind_group_binding_t
@@ -272,13 +272,13 @@ namespace sfg
 		u8*			 constants	= nullptr;
 		u8			 root_index = 0;
 		u8			 count		= 0;
-		binding_type type		= binding_type::constant;
+		binding_type_e type		= binding_type_e::constant;
 	};
 
 	struct binding_update_t
 	{
 		u32							  binding_index	 = 0;
-		vector_t<binding_type>		  resource_types = {};
+		vector_t<binding_type_e>		  resource_types = {};
 		vector_t<gfx_resource_handle> resources		 = {};
 		vector_t<gfx_texture_handle>  textures		 = {};
 		vector_t<gfx_sampler_handle>  samplers		 = {};

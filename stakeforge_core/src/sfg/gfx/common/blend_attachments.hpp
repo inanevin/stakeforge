@@ -24,48 +24,20 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "blend_definitions.hpp"
-#include <sfg/gfx/common/shader_description.hpp>
+#pragma once
 
 namespace sfg
 {
-	void blend_definitions_t::get_blend_attachment(blend_definition_style style, color_blend_attachment_t& out_attachment)
+	struct color_blend_attachment_t;
+
+	class blend_attachments_t
 	{
-		if (style == blend_definition_style::none)
-		{
-			out_attachment = {
-				.blend_enabled	  = false,
-				.color_comp_flags = ccf_red | ccf_green | ccf_blue | ccf_alpha,
-			};
-		}
-		else if (style == blend_definition_style::alpha_blend)
-		{
-			out_attachment = {
-				.blend_enabled			= true,
-				.src_color_blend_factor = blend_factor::src_alpha,
-				.dst_color_blend_factor = blend_factor::one_minus_src_alpha,
-				.color_blend_op			= blend_op::add,
-				.src_alpha_blend_factor = blend_factor::one,
-				.dst_alpha_blend_factor = blend_factor::zero,
-				.alpha_blend_op			= blend_op::add,
-				.color_comp_flags		= ccf_red | ccf_green | ccf_blue | ccf_alpha,
-			};
-		}
-		else if (style == blend_definition_style::additive)
-		{
-			out_attachment = {
-				.blend_enabled = true,
-				// Cout = Cs * As + Cd
-				.src_color_blend_factor = blend_factor::src_alpha,
-				.dst_color_blend_factor = blend_factor::one,
-				.color_blend_op			= blend_op::add,
-
-				.src_alpha_blend_factor = blend_factor::zero,
-				.dst_alpha_blend_factor = blend_factor::one,
-				.alpha_blend_op			= blend_op::add,
-
-				.color_comp_flags = ccf_red | ccf_green | ccf_blue | ccf_alpha,
-			};
-		}
-	}
+	public:
+		static color_blend_attachment_t get_none();
+		static color_blend_attachment_t get_alpha_blend();
+		static color_blend_attachment_t get_premultiplied_alpha();
+		static color_blend_attachment_t get_additive();
+		static color_blend_attachment_t get_multiply();
+		static color_blend_attachment_t get_screen();
+	};
 }

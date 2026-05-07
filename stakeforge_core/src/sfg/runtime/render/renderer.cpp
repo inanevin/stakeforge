@@ -63,7 +63,7 @@ namespace sfg
 
 	void renderer_t::render()
 	{
-		render_resources_t::get().drain();
+		render_resources_t::get().flush();
 
 		gfx_backend& backend = gfx_backend::get();
 

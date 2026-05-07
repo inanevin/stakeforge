@@ -20,7 +20,6 @@
 #include "particle_properties_cook.hpp"
 #include "physical_material_cook.hpp"
 #include "prefab_cook.hpp"
-#include "resource_cooker.hpp"
 #include "resource_manifest.hpp"
 #include "shader_cook.hpp"
 #include "texture_cook.hpp"
@@ -33,45 +32,73 @@ namespace sfg
 #if !defined(SFG_EMBED_ASSETS)
 	namespace
 	{
-		resource_cooker_t::result_e cook_for_type(resource_type_e type, const char* full_path, ostream_t& stream)
+		bool cook_for_schema(const string_t& schema, const nlohmann::json& config, const char* full_path, ostream_t& stream)
 		{
-			switch (type)
+			if (schema == "sfg.schema.texture")
 			{
-			case resource_type_e::texture:
-				return resource_cooker_t::cook_texture(full_path, {}, stream);
-			case resource_type_e::shader:
-				return resource_cooker_t::cook_shader(full_path, {}, stream);
-			case resource_type_e::audio:
-				return resource_cooker_t::cook_audio(full_path, {}, stream);
-			case resource_type_e::font:
-				return resource_cooker_t::cook_font(full_path, {}, stream);
-			case resource_type_e::material:
-				return resource_cooker_t::cook_material(full_path, {}, stream);
-			case resource_type_e::particle_properties:
-				return resource_cooker_t::cook_particle_properties(full_path, {}, stream);
-			case resource_type_e::texture_sampler:
-				return resource_cooker_t::cook_texture_sampler(full_path, {}, stream);
-			case resource_type_e::physical_material:
-				return resource_cooker_t::cook_physical_material(full_path, {}, stream);
-			case resource_type_e::animation_state_machine:
-				return resource_cooker_t::cook_animation_state_machine(full_path, {}, stream);
-			case resource_type_e::prefab:
-				return resource_cooker_t::cook_prefab(full_path, {}, stream);
-			case resource_type_e::mesh:
-			case resource_type_e::skeleton:
-			case resource_type_e::animation:
-				return resource_cooker_t::cook_glb(full_path, {}, stream);
-			default:
-				SFG_ERR("unsupported resource type for cooking: {0}", static_cast<u8>(type));
-				return resource_cooker_t::result_e::cook_failed;
+				const texture_cook_config_t cfg = config;
+				return texture_cooker::cook_from_file(cfg, full_path, stream);
 			}
+			if (schema == "sfg.schema.shader")
+			{
+				const shader_cook_config_t cfg = config;
+				return shader_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.audio")
+			{
+				const audio_cook_config_t cfg = config;
+				return audio_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.font")
+			{
+				const font_cook_config_t cfg = config;
+				return font_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.material")
+			{
+				const material_cook_config_t cfg = config;
+				return material_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.particle_properties")
+			{
+				const particle_properties_cook_config_t cfg = config;
+				return particle_properties_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.texture_sampler")
+			{
+				const texture_sampler_cook_config_t cfg = config;
+				return texture_sampler_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.physical_material")
+			{
+				const physical_material_cook_config_t cfg = config;
+				return physical_material_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.animation_state_machine")
+			{
+				const animation_state_machine_cook_config_t cfg = config;
+				return animation_state_machine_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.prefab")
+			{
+				const prefab_cook_config_t cfg = config;
+				return prefab_cooker::cook_from_file(cfg, full_path, stream);
+			}
+			if (schema == "sfg.schema.model")
+			{
+				const glb_cook_config_t cfg = config;
+				return glb_cooker::cook_from_file(cfg, full_path, stream);
+			}
+
+			SFG_ERR("unknown cook schema: {0}", schema.c_str());
+			return false;
 		}
 
-		bool cook_and_cache(const string_t& source_path, const string_t& name, resource_type_e type, const string_t& cache_dir, span_t<u8>& out_data)
+		bool cook_and_cache(const string_t& source_path, const string_t& name, const nlohmann::json& config, const string_t& cache_dir, span_t<u8>& out_data)
 		{
-			ostream_t						  stream;
-			const resource_cooker_t::result_e r = cook_for_type(type, source_path.c_str(), stream);
-			if (r != resource_cooker_t::result_e::success)
+			const string_t schema = config.value<string_t>("schema", "");
+			ostream_t	   stream;
+			if (!cook_for_schema(schema, config, source_path.c_str(), stream))
 			{
 				SFG_ERR("resource_pack: cook failed for {0}", source_path.c_str());
 				return false;
@@ -118,7 +145,6 @@ namespace sfg
 			_loaded.push_back(sid);
 		}
 
-		_mgr->wait_for_all();
 		return true;
 	}
 
@@ -180,10 +206,10 @@ namespace sfg
 			istream_t  cached = resource_cache_t::try_load(_cache_dir.c_str(), entry.name.c_str(), expected);
 			if (!cached.empty())
 				data = cached.evict();
-			else if (!cook_and_cache(source_path, entry.name, entry.type, _cache_dir, data))
+			else if (!cook_and_cache(source_path, entry.name, entry.config, _cache_dir, data))
 				continue;
 
-			const auto st = mgr.load_resource(sid, data, entry.type);
+			const auto st = mgr.load_resource(sid, entry.path.c_str(), data, entry.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("resource_pack: load_resource failed for {0}", source_path.c_str());
@@ -193,7 +219,7 @@ namespace sfg
 			_loaded.push_back(sid);
 
 			const u16 id = static_cast<u16>(_watched.size());
-			_watched.push_back({.source_path = source_path, .name = entry.name, .type = entry.type, .sid = sid});
+			_watched.push_back({.source_path = source_path, .name = entry.name, .config_json = entry.config.dump(), .type = entry.type, .sid = sid});
 			_watcher.add_path(source_path.c_str(), id);
 		}
 
@@ -218,8 +244,15 @@ namespace sfg
 		SFG_ASSERT(id < _watched.size());
 		const watched_entry_t& e = _watched[id];
 
+		const nlohmann::json config = nlohmann::json::parse(e.config_json, nullptr, false);
+		if (config.is_discarded())
+		{
+			SFG_ERR("resource_pack: failed to re-parse config for {0}", e.source_path.c_str());
+			return;
+		}
+
 		span_t<u8> data = {};
-		if (!cook_and_cache(e.source_path, e.name, e.type, _cache_dir, data))
+		if (!cook_and_cache(e.source_path, e.name, config, _cache_dir, data))
 			return;
 
 		SFG_INFO("resource_pack: recooked {0}", e.source_path.c_str());

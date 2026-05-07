@@ -1,103 +1,15 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader_cook.hpp"
+#include "shader_cook_variants.hpp"
 #include <sfg/data/ostream.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/data/vector.hpp>
-#include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/memory.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	namespace
-	{
-		struct stage_blob_t
-		{
-			vector_t<u8> bytes;
-			u8			 stage = 0;
-		};
-
-		struct cook_compile_variant_t
-		{
-			vector_t<stage_blob_t> stages;
-		};
-
-		struct cook_pso_variant_t
-		{
-			shader_desc_t desc					= {};
-			u32			  variant_flags			= 0;
-			u8			  compile_variant_index = 0;
-		};
-
-		bool compile_stage(u8 stage_u8, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& include_paths, const char* entry, stage_blob_t& out)
-		{
-			gfx_backend& backend = gfx_backend::get();
-			span_t<u8>	 blob	 = {};
-			span_t<u8>	 dummy	 = {};
-
-			if (!backend.compile_shader_vertex_pixel(stage_u8, source, defines, include_paths, entry, blob, false, dummy))
-				return false;
-
-			out.stage = stage_u8;
-			out.bytes.resize(blob.size);
-			SFG_MEMCPY(out.bytes.data(), blob.data, blob.size);
-			delete[] blob.data;
-			return true;
-		}
-
-		bool add_compile_variant_vs_ps(cook_compile_variant_t& cv, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& include_paths)
-		{
-			cv.stages.push_back({});
-			if (!compile_stage(static_cast<u8>(shader_stage::vertex), source, defines, include_paths, "VSMain", cv.stages.back()))
-				return false;
-
-			cv.stages.push_back({});
-			if (!compile_stage(static_cast<u8>(shader_stage::fragment), source, defines, include_paths, "PSMain", cv.stages.back()))
-				return false;
-
-			return true;
-		}
-
-		shader_desc_t make_simple_ui_desc()
-		{
-			shader_desc_t d						   = {};
-			d.topo								   = topology::triangle_list;
-			d.cull								   = cull_mode::none;
-			d.front								   = front_face::ccw;
-			d.fill								   = fill_mode::solid;
-			d.poly_mode							   = polygon_mode::fill;
-			d.samples							   = 1;
-			d.depth_stencil_desc.attachment_format = format_e::undefined;
-			d.depth_stencil_desc.flags			   = 0;
-
-			shader_color_attachment_t att				= {};
-			att.format									= format_e::b8g8r8a8_srgb;
-			att.blend_attachment.blend_enabled			= true;
-			att.blend_attachment.src_color_blend_factor = blend_factor::src_alpha;
-			att.blend_attachment.dst_color_blend_factor = blend_factor::one_minus_src_alpha;
-			att.blend_attachment.color_blend_op			= blend_op::add;
-			att.blend_attachment.src_alpha_blend_factor = blend_factor::one;
-			att.blend_attachment.dst_alpha_blend_factor = blend_factor::zero;
-			att.blend_attachment.alpha_blend_op			= blend_op::add;
-			d.attachments.push_back(att);
-
-			return d;
-		}
-
-		bool compile_style_simple(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& compiles, vector_t<cook_pso_variant_t>& psos)
-		{
-			compiles.push_back({});
-			if (!add_compile_variant_vs_ps(compiles.back(), source, {}, include_paths))
-				return false;
-
-			psos.push_back({.desc = make_simple_ui_desc(), .variant_flags = 0, .compile_variant_index = 0});
-			return true;
-		}
-	}
-
 	bool shader_cooker::cook_from_file(const shader_cook_config_t& cfg, const char* full_path, ostream_t& stream)
 	{
 		if (cfg.type == shader_type_e::invalid)
@@ -122,9 +34,7 @@ namespace sfg
 		switch (cfg.type)
 		{
 		case shader_type_e::editor_ui_default:
-		case shader_type_e::editor_ui_text:
-		case shader_type_e::editor_ui_sdf:
-			if (!compile_style_simple(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_editor_ui(source, include_paths, compiles, psos))
 				return false;
 			break;
 		default:
@@ -165,7 +75,7 @@ namespace sfg
 				return false;
 			}
 			per_compile_entries[i].reserve(cv.stages.size());
-			for (const stage_blob_t& b : cv.stages)
+			for (const cook_stage_blob_t& b : cv.stages)
 			{
 				per_compile_entries[i].push_back({.offset = blobs_size, .size = static_cast<u32>(b.bytes.size()), .stage = b.stage});
 				blobs_size += static_cast<u32>(b.bytes.size());
@@ -230,7 +140,7 @@ namespace sfg
 
 		for (u8 i = 0; i < compile_variant_count; ++i)
 		{
-			for (const stage_blob_t& b : compiles[i].stages)
+			for (const cook_stage_blob_t& b : compiles[i].stages)
 			{
 				if (!b.bytes.empty())
 					stream.write_raw(b.bytes.data(), b.bytes.size());
@@ -245,5 +155,10 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	void from_json(const nlohmann::json& j, shader_cook_config_t& c)
+	{
+		c.type = j.value<shader_type_e>("type", shader_type_e::invalid);
 	}
 }

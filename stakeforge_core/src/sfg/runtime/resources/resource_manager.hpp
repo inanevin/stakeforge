@@ -29,14 +29,14 @@ namespace sfg
 
 		void init(size_t resource_memory_size);
 		void uninit();
-		void drain();
+		void flush();
 		void wait_for_all();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		resource_state_e		load_resource(sid_t hash, span_t<u8> data, resource_type_e type);
+		resource_state_e		load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
 
@@ -84,12 +84,12 @@ namespace sfg
 		struct queues_t;
 
 		resource_entry_t* find_entry(u64 hash);
-		void			  fire_loads();
-		void			  drain_completed();
-		void			  drain_render_completed();
-		void			  drain_unloads();
-		void			  free_entry_chunks(resource_entry_t& entry);
-		void			  free_entry_full_data(resource_entry_t& entry);
+		void			  fire_loads(bool wait);
+		void			  flush_completed_resources();
+		void			  flush_completed_render_resources();
+		void			  flush_unloads();
+		void			  free_entry(resource_entry_t& entry);
+		void			  free_entry_load_data(resource_entry_t& entry);
 
 	private:
 		chunk_allocator_t					_memory;

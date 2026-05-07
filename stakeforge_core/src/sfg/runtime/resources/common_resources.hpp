@@ -65,14 +65,15 @@ namespace sfg
 
 	struct resource_entry_t
 	{
-		sid_t			 hash	   = 0;
-		chunk_handle32_t runtime   = {};
-		chunk_handle32_t internals = {};
-		span_t<u8>		 full_data = {};
-		span_t<u8>		 payload   = {};
-		u32				 ref_count = 0;
-		resource_state_e state	   = resource_state_e::cpu_ready;
-		resource_type_e	 type	   = resource_type_e::invalid;
+		sid_t			 hash		= 0;
+		chunk_handle32_t runtime	= {};
+		chunk_handle32_t internals	= {};
+		chunk_handle32_t debug_name = {};
+		span_t<u8>		 load_data	= {};
+		span_t<u8>		 payload	= {};
+		u32				 ref_count	= 0;
+		resource_state_e state		= resource_state_e::cpu_ready;
+		resource_type_e	 type		= resource_type_e::invalid;
 	};
 
 	struct resource_context_t

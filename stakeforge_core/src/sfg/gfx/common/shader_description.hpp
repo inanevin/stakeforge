@@ -150,7 +150,7 @@ namespace sfg
 		none,
 	};
 
-	enum shader_stage : u8
+	enum shader_stage_e : u8
 	{
 		vertex,
 		fragment,
@@ -178,7 +178,7 @@ namespace sfg
 
 	struct shader_blob_t
 	{
-		shader_stage stage = {};
+		shader_stage_e stage = {};
 		span_t<u8>	 data  = {};
 	};
 

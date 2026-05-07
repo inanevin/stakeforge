@@ -1,3 +1,13 @@
 {
-    "resources": []
+    "resources": [
+        {
+            "name": "ui_default",
+            "path": "editor/shaders/ui_default.hlsl",
+            "type": "shader",
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": "editor_ui_default"
+            }
+        }
+    ]
 }

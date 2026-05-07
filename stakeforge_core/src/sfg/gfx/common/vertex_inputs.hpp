@@ -32,17 +32,13 @@ namespace sfg
 {
 	struct vertex_input_t;
 
-	enum class vertex_input_style
+	class vertex_inputs_t
 	{
-		position_normal_tangents_uv,
-		position_normal_tangents_uv_skinned,
-		line_3d,
-		position_color,
-		gui
+	public:
+		static void get_pos_normal_tangent_uv(vector_t<vertex_input_t>& out_inputs);
+		static void get_pos_normal_tangent_uv_skinned(vector_t<vertex_input_t>& out_inputs);
+		static void get_line_3d(vector_t<vertex_input_t>& out_inputs);
+		static void get_pos_color(vector_t<vertex_input_t>& out_inputs);
+		static void get_editor_ui(vector_t<vertex_input_t>& out_inputs);
 	};
-
-	namespace vertex_inputs_t
-	{
-		void get_vertex_inputs(vertex_input_style, vector_t<vertex_input_t>& out_inputs);
-	}
 }

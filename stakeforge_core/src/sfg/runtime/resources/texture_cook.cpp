@@ -7,6 +7,7 @@
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -77,5 +78,11 @@ namespace sfg
 			image_util_t::free(buffers[i].pixels);
 
 		return true;
+	}
+
+	void from_json(const nlohmann::json& j, texture_cook_config_t& c)
+	{
+		c.generate_mipmaps = j.value<bool>("generate_mipmaps", false);
+		c.is_linear		   = j.value<bool>("is_linear", false);
 	}
 }

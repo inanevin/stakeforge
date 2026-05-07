@@ -83,17 +83,17 @@ namespace sfg
 		constant_max,
 	};
 
-	namespace gfx_util_t
+	class gfx_util_t
 	{
-		gfx_bind_layout_handle	 create_bind_layout_global(bool is_compute);
-		sampler_desc_t			 get_sampler_desc_anisotropic();
-		sampler_desc_t			 get_sampler_desc_anisotropic_repeat();
-		sampler_desc_t			 get_sampler_desc_linear();
-		sampler_desc_t			 get_sampler_desc_linear_repeat();
-		sampler_desc_t			 get_sampler_desc_nearest();
-		sampler_desc_t			 get_sampler_desc_nearest_repeat();
-		sampler_desc_t			 get_sampler_desc_shadow_2d();
-		sampler_desc_t			 get_sampler_desc_shadow_cube();
-		color_blend_attachment_t get_blend_attachment_alpha_blending();
+	public:
+		static gfx_bind_layout_handle create_bind_layout_global(bool is_compute);
+		static sampler_desc_t		  get_sampler_desc_anisotropic();
+		static sampler_desc_t		  get_sampler_desc_anisotropic_repeat();
+		static sampler_desc_t		  get_sampler_desc_linear();
+		static sampler_desc_t		  get_sampler_desc_linear_repeat();
+		static sampler_desc_t		  get_sampler_desc_nearest();
+		static sampler_desc_t		  get_sampler_desc_nearest_repeat();
+		static sampler_desc_t		  get_sampler_desc_shadow_2d();
+		static sampler_desc_t		  get_sampler_desc_shadow_cube();
 	};
 }

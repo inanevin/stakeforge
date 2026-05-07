@@ -6,6 +6,7 @@
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 
 namespace sfg
@@ -77,7 +78,7 @@ namespace sfg
 			for (u8 j = 0; j < cv.stage_count; ++j)
 			{
 				const shader_runtime_stage_entry_t& s = cv.stages[j];
-				blobs[j].stage						  = static_cast<shader_stage>(s.stage);
+				blobs[j].stage						  = static_cast<shader_stage_e>(s.stage);
 				blobs[j].data						  = {.data = payload + s.offset, .size = s.size};
 			}
 
@@ -89,7 +90,7 @@ namespace sfg
 				desc.deserialize(desc_stream);
 			}
 
-			render_resources_t::get().enqueue_create_shader(entry.hash, entry.type, static_cast<u32>(i), desc, std::move(blobs));
+			render_resources_t::get().enqueue_create_shader(entry.hash, entry.type, static_cast<u32>(i), desc, std::move(blobs), render_globals_t::get_global_bind_layout());
 		}
 
 		return create_internals_result_e::queued;

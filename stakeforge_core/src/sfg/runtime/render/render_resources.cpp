@@ -81,7 +81,7 @@ namespace sfg
 		return _completed_q.try_dequeue(out_completion);
 	}
 
-	void render_resources_t::drain()
+	void render_resources_t::flush()
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 

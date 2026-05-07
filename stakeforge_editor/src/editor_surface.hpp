@@ -17,5 +17,6 @@ namespace sfg
 		vec2u16_t				 swapchain_size = {};
 		unique_t<ui::ui_context> ui;
 		u16						 settings_idx = 0;
+		bool					 is_minimized = false;
 	};
 }

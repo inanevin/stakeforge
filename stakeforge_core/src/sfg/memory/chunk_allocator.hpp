@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/data/vector_util.hpp>
-#include <sfg/data/string.hpp>
 #include <sfg/math/math_common.hpp>
 
 #include <cstddef>
@@ -49,7 +48,8 @@ namespace sfg
 		void			 uninit();
 		void			 reset();
 		chunk_handle32_t allocate_bytes(size_t size, size_t alignment);
-		chunk_handle32_t allocate_text(const string_t& source);
+		chunk_handle32_t allocate_text(const char* src);
+		const char*		 get_text(chunk_handle32_t handle);
 
 		template <typename T> inline chunk_handle32_t allocate(size_t count)
 		{

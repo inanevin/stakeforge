@@ -2,10 +2,12 @@
 
 #include "font_cook.hpp"
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <sfg/vendor/stb/stb_truetype.h>
@@ -159,5 +161,28 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	void from_json(const nlohmann::json& j, font_kind_e& k)
+	{
+		const string_t s = j.get<string_t>();
+
+		if (s == "sdf")
+			k = font_kind_e::sdf;
+		else if (s == "lcd")
+			k = font_kind_e::lcd;
+		else
+			k = font_kind_e::bitmap;
+	}
+
+	void from_json(const nlohmann::json& j, font_cook_config_t& c)
+	{
+		c.size		   = j.value<u32>("size", 16);
+		c.range_start  = j.value<u32>("range_start", 32);
+		c.range_end	   = j.value<u32>("range_end", 128);
+		c.sdf_padding  = j.value<i32>("sdf_padding", 3);
+		c.sdf_edge	   = j.value<i32>("sdf_edge", 128);
+		c.sdf_distance = j.value<f32>("sdf_distance", 32.0f);
+		c.kind		   = j.value<font_kind_e>("kind", font_kind_e::bitmap);
 	}
 }

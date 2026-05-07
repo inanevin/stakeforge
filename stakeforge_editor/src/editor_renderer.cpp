@@ -12,8 +12,12 @@
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/runtime/resources/atlas.hpp>
+#include <sfg/memory/frame_allocator.hpp>
+#include <sfg/platform/time.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/ui/vg/vg_canvas.hpp>
 
 namespace sfg
@@ -43,8 +47,6 @@ namespace sfg
 		// const editor_shader_t& ui_sdf	  = resources.get_resource<editor_shader_t>(TO_SID(ui_sdf_path.c_str()), editor_resource_type_e::shader);
 		//_ui_renderer.init(ui_default.handle, ui_text.handle, ui_sdf.handle);
 
-		_global_layout = gfx_util_t::create_bind_layout_global(false);
-
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd			= _pfd[i];
@@ -63,7 +65,7 @@ namespace sfg
 			pfd.global_index = backend.get_resource_gpu_index(pfd.global_buffer);
 		}
 
-		_swapchains.reserve(8);
+		_render_targets.reserve(8);
 		_texture_queue.init();
 
 		return true;
@@ -78,11 +80,8 @@ namespace sfg
 		// _ui_renderer.uninit();
 		_texture_queue.uninit();
 
-		backend.destroy_bind_layout(_global_layout);
-		_global_layout = {};
-
-		for (gfx_swapchain_handle swapchain : _swapchains)
-			backend.destroy_swapchain(swapchain);
+		for (const surface_render_target_t& t : _render_targets)
+			backend.destroy_swapchain(t.swapchain);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -93,8 +92,7 @@ namespace sfg
 			pfd = {};
 		}
 
-		_swapchains.resize(0);
-		_elapsed_time  = 0.0f;
+		_render_targets.resize(0);
 		_frame_counter = 0;
 		_frame_index   = 0;
 	}
@@ -106,8 +104,7 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			const per_frame_data_t& pfd = _pfd[i];
-			if (!pfd.semaphore_frame.semaphore_t.is_null())
-				backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+			backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 		}
 	}
 
@@ -126,7 +123,12 @@ namespace sfg
 			.flags	   = swapchain_flags::sf_vsync_every_v_blank,
 		});
 
-		_swapchains.push_back(swapchain);
+		_render_targets.push_back({
+			.swapchain = swapchain,
+			.size	   = size,
+			.minimized = false,
+		});
+
 		return swapchain;
 	}
 
@@ -135,8 +137,12 @@ namespace sfg
 		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(!swapchain.is_null());
 
+		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
+		SFG_ASSERT(it != _render_targets.end());
+		it->size = size;
+
 		backend.recreate_swapchain({
-			.size		 = size,
+			.size		 = (size.x == 0 || size.y == 0) ? vec2u16_t(4, 4) : size,
 			.swapchain_t = swapchain,
 			.scaling	 = dpi_scale == 0.0f ? 1.0f : dpi_scale,
 			.flags		 = swapchain_flags::sf_vsync_every_v_blank,
@@ -146,60 +152,81 @@ namespace sfg
 	void editor_renderer_t::destroy_swapchain(gfx_swapchain_handle swapchain)
 	{
 		gfx_backend& backend = gfx_backend::get();
-
 		if (swapchain.is_null())
 			return;
 
-		backend.destroy_swapchain(swapchain);
+		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
+		SFG_ASSERT(it != _render_targets.end());
 
-		for (size_t i = 0; i < _swapchains.size(); i++)
-		{
-			if (_swapchains[i] == swapchain)
-			{
-				_swapchains[i] = _swapchains.back();
-				_swapchains.pop_back();
-				return;
-			}
-		}
+		backend.destroy_swapchain(swapchain);
+		_render_targets.erase(it);
 	}
 
-	void editor_renderer_t::render(span_t<const surface_render_target_t> targets, f32 delta_time)
+	void editor_renderer_t::set_swapchain_minimized(gfx_swapchain_handle handle, bool is_minimized)
 	{
-		render_resources_t::get().drain();
+		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
+		SFG_ASSERT(it != _render_targets.end());
+		it->minimized = is_minimized;
+	}
+
+	void editor_renderer_t::render()
+	{
+		render_resources_t::get().flush();
 
 		gfx_backend& backend = gfx_backend::get();
 
-		if (targets.size == 0)
+		if (_render_targets.empty())
 			return;
 
-		for (size_t i = 0; i < targets.size; i++)
+		struct rt_t
 		{
-			const surface_render_target_t& t = targets.data[i];
+			gfx_swapchain_handle swapchain;
+			vec2u16_t			 size;
+		};
+
+		frame_vector_t<rt_t>				 render_targets;
+		frame_vector_t<gfx_swapchain_handle> present_list;
+
+		for (const surface_render_target_t& t : _render_targets)
+		{
+			if (t.minimized)
+				continue;
 			backend.wait_for_swapchain_latency(t.swapchain);
 			backend.get_back_buffer_index(t.swapchain);
+			render_targets.push_back({t.swapchain, t.size});
+			present_list.push_back(t.swapchain);
 		}
 
-		_elapsed_time += delta_time;
+		if (render_targets.empty())
+			return;
+
+		const i64  now		 = time_t::get_cpu_microseconds();
+		static i64 prev_time = now;
+		const i64  delta	 = now - prev_time;
+		prev_time			 = now;
+
+		static f32 elapsed_time = 0.0f;
+		elapsed_time += time_t::micro_to_s(delta);
+		const f32 delta_time = time_t::micro_to_s(delta);
+
 		_frame_index		  = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd = _pfd[_frame_index];
 		backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
 
-		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = _elapsed_time};
+		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
 		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
 
 		const gfx_command_buffer_handle command_buffer = pfd.command_buffer;
 		backend.reset_command_buffer(command_buffer);
 
-		backend.cmd_bind_layout(command_buffer, {.layout = _global_layout});
+		backend.cmd_bind_layout(command_buffer, {.layout = render_globals_t::get_global_bind_layout()});
 		backend.cmd_bind_constants(command_buffer, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		_texture_queue.flush(command_buffer);
 		_texture_queue.transit(command_buffer);
 
-		for (size_t i = 0; i < targets.size; i++)
+		for (const rt_t& t : render_targets)
 		{
-			const surface_render_target_t& t = targets.data[i];
-
 			barrier_t barrier = {
 				.from_states = resource_state_common,
 				.to_states	 = resource_state_render_target,
@@ -217,10 +244,10 @@ namespace sfg
 			};
 
 			backend.cmd_begin_render_pass_swapchain(command_buffer,
-													 {
-														 .color_attachments		 = &attachment,
-														 .color_attachment_count = 1,
-													 });
+													{
+														.color_attachments		= &attachment,
+														.color_attachment_count = 1,
+													});
 
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
 			backend.cmd_set_viewport(command_buffer, vp);
@@ -240,15 +267,50 @@ namespace sfg
 		const gfx_queue_handle queue_gfx = backend.get_queue_gfx();
 		backend.submit_commands(queue_gfx, &command_buffer, 1);
 
-		frame_vector_t<gfx_swapchain_handle> present_list;
-
-		for (size_t i = 0; i < targets.size; i++)
-			present_list.push_back(targets.data[i].swapchain);
-		backend.present(present_list.data(), static_cast<u8>(targets.size));
+		backend.present(present_list.data(), static_cast<u8>(present_list.size()));
 
 		pfd.semaphore_frame.value++;
 		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
 
 		_frame_counter++;
+	}
+
+	void editor_renderer_t::ensure_render()
+	{
+		if (_render_thread_active.load())
+			return;
+
+		_render_thread_active = true;
+		_render_thread		  = std::thread(&editor_renderer_t::render_loop, this);
+	}
+
+	void editor_renderer_t::end_render()
+	{
+		if (!_render_thread_active.load() && !_render_thread.joinable())
+			return;
+
+		_render_thread_active = false;
+
+		if (_render_thread.joinable())
+			_render_thread.join();
+
+		join();
+	}
+
+	void editor_renderer_t::render_loop()
+	{
+		frame_allocator_tls_t::init(RENDER_FRAME_ALLOC_SIZE);
+		g_engine_thread_ids.render_thread_id = SFG_THIS_THREAD_ID();
+
+		while (_render_thread_active.load())
+		{
+			frame_allocator_tls_t::reset();
+			render_resources_t::get().flush();
+			render();
+			time_t::yield_thread();
+		}
+
+		g_engine_thread_ids.render_thread_id = 0;
+		frame_allocator_tls_t::uninit();
 	}
 }

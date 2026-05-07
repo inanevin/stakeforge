@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gfx_util.hpp"
 #include <sfg/math/vec4f.hpp>
 #include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
 
 namespace sfg
 {
@@ -35,9 +36,9 @@ namespace sfg
 		gfx_backend& backend = gfx_backend::get();
 
 		gfx_bind_layout_handle layout = backend.create_empty_bind_layout();
-		backend.bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage::all);
+		backend.bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage_e::all);
 
-		const shader_stage stg = is_compute ? shader_stage::compute : shader_stage::fragment;
+		const shader_stage_e stg = is_compute ? shader_stage_e::compute : shader_stage_e::fragment;
 
 		backend.bind_layout_add_immutable_sampler(layout, 0, 0, gfx_util_t::get_sampler_desc_anisotropic(), stg);
 		backend.bind_layout_add_immutable_sampler(layout, 0, 1, gfx_util_t::get_sampler_desc_anisotropic_repeat(), stg);
@@ -159,20 +160,6 @@ namespace sfg
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
 			.compare	= compare_op::lequal,
-		};
-	}
-
-	color_blend_attachment_t gfx_util_t::get_blend_attachment_alpha_blending()
-	{
-		return {
-			.blend_enabled			= true,
-			.src_color_blend_factor = blend_factor::src_alpha,
-			.dst_color_blend_factor = blend_factor::one_minus_src_alpha,
-			.color_blend_op			= blend_op::add,
-			.src_alpha_blend_factor = blend_factor::one,
-			.dst_alpha_blend_factor = blend_factor::one_minus_src_alpha,
-			.alpha_blend_op			= blend_op::add,
-			.color_comp_flags		= ccf_red | ccf_green | ccf_blue | ccf_alpha,
 		};
 	}
 

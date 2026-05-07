@@ -1,60 +1,9 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "resource_manifest.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const resource_type_e& t)
-	{
-		switch (t)
-		{
-		case resource_type_e::audio:
-			j = "audio";
-			return;
-		case resource_type_e::font:
-			j = "font";
-			return;
-		case resource_type_e::mesh:
-			j = "mesh";
-			return;
-		case resource_type_e::skeleton:
-			j = "skeleton";
-			return;
-		case resource_type_e::animation:
-			j = "animation";
-			return;
-		case resource_type_e::particle_properties:
-			j = "particle_properties";
-			return;
-		case resource_type_e::material:
-			j = "material";
-			return;
-		case resource_type_e::shader:
-			j = "shader";
-			return;
-		case resource_type_e::texture:
-			j = "texture";
-			return;
-		case resource_type_e::texture_sampler:
-			j = "texture_sampler";
-			return;
-		case resource_type_e::physical_material:
-			j = "physical_material";
-			return;
-		case resource_type_e::prefab:
-			j = "prefab";
-			return;
-		case resource_type_e::animation_state_machine:
-			j = "animation_state_machine";
-			return;
-		default:
-			break;
-		}
-
-		j = "invalid";
-	}
-
 	void from_json(const nlohmann::json& j, resource_type_e& t)
 	{
 		const string_t s = j.get<string_t>();
@@ -89,23 +38,12 @@ namespace sfg
 			t = resource_type_e::invalid;
 	}
 
-	void to_json(nlohmann::json& j, const resource_manifest_entry_t& e)
-	{
-		j["name"] = e.name;
-		j["path"] = e.path;
-		j["type"] = e.type;
-	}
-
 	void from_json(const nlohmann::json& j, resource_manifest_entry_t& e)
 	{
-		e.path = j.value<string_t>("path", "");
-		e.name = j.value<string_t>("name", "");
-		e.type = j.value<resource_type_e>("path", resource_type_e::invalid);
-	}
-
-	void to_json(nlohmann::json& j, const resource_manifest_t& m)
-	{
-		j["resources"] = m.resources;
+		e.path	 = j.value<string_t>("path", "");
+		e.name	 = j.value<string_t>("name", "");
+		e.type	 = j.value<resource_type_e>("type", resource_type_e::invalid);
+		e.config = j.value<nlohmann::json>("config", nlohmann::json::object());
 	}
 
 	void from_json(const nlohmann::json& j, resource_manifest_t& m)

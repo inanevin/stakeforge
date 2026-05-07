@@ -124,14 +124,23 @@ namespace sfg
 		return ret;
 	}
 
-	chunk_handle32_t chunk_allocator_t::allocate_text(const string_t& source)
+	chunk_handle32_t chunk_allocator_t::allocate_text(const char* src)
 	{
-		const size_t		   len	  = source.size();
+		const size_t		   len	  = strlen(src);
 		const chunk_handle32_t handle = allocate<u8>(len + 1);
 		char*				   dst	  = (char*)get<u8>(handle);
-		SFG_MEMCPY(dst, source.data(), len);
+		SFG_MEMCPY(dst, src, len);
 		dst[len] = '\0';
 		return handle;
+	}
+
+	const char* chunk_allocator_t::get_text(chunk_handle32_t handle)
+	{
+		if (handle.size == 0)
+			return nullptr;
+
+		const u8* data = _raw + handle.head;
+		return reinterpret_cast<const char*>(data);
 	}
 
 }

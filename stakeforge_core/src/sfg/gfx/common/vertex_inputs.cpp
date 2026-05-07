@@ -29,148 +29,144 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void vertex_inputs_t::get_vertex_inputs(vertex_input_style style, vector_t<vertex_input_t>& out_inputs)
+	void vertex_inputs_t::get_pos_normal_tangent_uv(vector_t<vertex_input_t>& out_inputs)
 	{
-		if (style == vertex_input_style::position_normal_tangents_uv)
-		{
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.offset = 0,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
+		out_inputs.reserve(out_inputs.size() + 4);
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.offset = 0,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "NORMAL",
+			.offset = sizeof(f32) * 3,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "TANGENT",
+			.offset = sizeof(f32) * 6,
+			.size	= sizeof(f32) * 4,
+			.format = format_e::r32g32b32a32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "TEXCOORD",
+			.offset = sizeof(f32) * 10,
+			.size	= sizeof(f32) * 2,
+			.format = format_e::r32g32_sfloat,
+		});
+	}
 
-			out_inputs.push_back({
-				.name	= "NORMAL",
-				.offset = sizeof(f32) * 3,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
+	void vertex_inputs_t::get_pos_normal_tangent_uv_skinned(vector_t<vertex_input_t>& out_inputs)
+	{
+		out_inputs.reserve(out_inputs.size() + 6);
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.offset = 0,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "NORMAL",
+			.offset = sizeof(f32) * 3,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "TANGENT",
+			.offset = sizeof(f32) * 6,
+			.size	= sizeof(f32) * 4,
+			.format = format_e::r32g32b32a32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "TEXCOORD",
+			.offset = sizeof(f32) * 10,
+			.size	= sizeof(f32) * 2,
+			.format = format_e::r32g32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "BLENDWEIGHT",
+			.offset = sizeof(f32) * 12,
+			.size	= sizeof(f32) * 4,
+			.format = format_e::r32g32b32a32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "BLENDINDICES",
+			.offset = sizeof(f32) * 16,
+			.size	= sizeof(u32) * 4,
+			.format = format_e::r32g32b32a32_uint,
+		});
+	}
 
-			out_inputs.push_back({
-				.name	= "TANGENT",
-				.offset = sizeof(f32) * 6,
-				.size	= sizeof(f32) * 4,
-				.format = format_e::r32g32b32a32_sfloat,
-			});
+	void vertex_inputs_t::get_line_3d(vector_t<vertex_input_t>& out_inputs)
+	{
+		out_inputs.reserve(out_inputs.size() + 4);
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.offset = 0,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.index	= 1,
+			.offset = sizeof(f32) * 3,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "COLOR",
+			.offset = sizeof(f32) * 6,
+			.size	= sizeof(f32) * 4,
+			.format = format_e::r32g32b32a32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.index	= 2,
+			.offset = sizeof(f32) * 10,
+			.size	= sizeof(f32),
+			.format = format_e::r32_sfloat,
+		});
+	}
 
-			out_inputs.push_back({
-				.name	= "TEXCOORD",
-				.offset = sizeof(f32) * 10,
-				.size	= sizeof(f32) * 2,
-				.format = format_e::r32g32_sfloat,
-			});
-		}
-		else if (style == vertex_input_style::position_normal_tangents_uv_skinned)
-		{
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.offset = 0,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
+	void vertex_inputs_t::get_pos_color(vector_t<vertex_input_t>& out_inputs)
+	{
+		out_inputs.reserve(out_inputs.size() + 2);
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.offset = 0,
+			.size	= sizeof(f32) * 3,
+			.format = format_e::r32g32b32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "COLOR",
+			.offset = sizeof(f32) * 3,
+			.size	= sizeof(f32) * 4,
+			.format = format_e::r32g32b32a32_sfloat,
+		});
+	}
 
-			out_inputs.push_back({
-				.name	= "NORMAL",
-				.offset = sizeof(f32) * 3,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
-
-			out_inputs.push_back({
-				.name	= "TANGENT",
-				.offset = sizeof(f32) * 6,
-				.size	= sizeof(f32) * 4,
-				.format = format_e::r32g32b32a32_sfloat,
-			});
-
-			out_inputs.push_back({
-				.name	= "TEXCOORD",
-				.offset = sizeof(f32) * 10,
-				.size	= sizeof(f32) * 2,
-				.format = format_e::r32g32_sfloat,
-			});
-
-			out_inputs.push_back({
-				.name	= "BLENDWEIGHT",
-				.offset = sizeof(f32) * 12,
-				.size	= sizeof(f32) * 4,
-				.format = format_e::r32g32b32a32_sfloat,
-			});
-
-			out_inputs.push_back({
-				.name	= "BLENDINDICES",
-				.offset = sizeof(f32) * 16,
-				.size	= sizeof(u32) * 4,
-				.format = format_e::r32g32b32a32_uint,
-			});
-		}
-		else if (style == vertex_input_style::line_3d)
-		{
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.offset = 0,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.index	= 1,
-				.offset = sizeof(f32) * 3,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
-			out_inputs.push_back({
-				.name	= "COLOR",
-				.offset = sizeof(f32) * 6,
-				.size	= sizeof(f32) * 4,
-				.format = format_e::r32g32b32a32_sfloat,
-			});
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.index	= 2,
-				.offset = sizeof(f32) * 10,
-				.size	= sizeof(f32),
-				.format = format_e::r32_sfloat,
-			});
-		}
-		else if (style == vertex_input_style::position_color)
-		{
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.offset = 0,
-				.size	= sizeof(f32) * 3,
-				.format = format_e::r32g32b32_sfloat,
-			});
-
-			out_inputs.push_back({
-				.name	= "COLOR",
-				.offset = sizeof(f32) * 3,
-				.size	= sizeof(f32) * 4,
-				.format = format_e::r32g32b32a32_sfloat,
-			});
-		}
-		else if (style == vertex_input_style::gui)
-		{
-			out_inputs.push_back({
-				.name	= "POSITION",
-				.offset = 0,
-				.size	= sizeof(f32) * 2,
-				.format = format_e::r32g32_sfloat,
-			});
-
-			out_inputs.push_back({
-				.name	= "TEXCOORD",
-				.offset = sizeof(f32) * 2,
-				.size	= sizeof(f32) * 2,
-				.format = format_e::r32g32_sfloat,
-			});
-			out_inputs.push_back({
-				.name	= "COLOR",
-				.offset = sizeof(f32) * 4,
-				.size	= sizeof(f32) * 4,
-				.format = format_e::r32g32b32a32_sfloat,
-			});
-		}
+	void vertex_inputs_t::get_editor_ui(vector_t<vertex_input_t>& out_inputs)
+	{
+		out_inputs.reserve(out_inputs.size() + 3);
+		out_inputs.push_back({
+			.name	= "POSITION",
+			.offset = 0,
+			.size	= sizeof(f32) * 2,
+			.format = format_e::r32g32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "TEXCOORD",
+			.offset = sizeof(f32) * 2,
+			.size	= sizeof(f32) * 2,
+			.format = format_e::r32g32_sfloat,
+		});
+		out_inputs.push_back({
+			.name	= "COLOR",
+			.offset = sizeof(f32) * 4,
+			.size	= sizeof(f32) * 4,
+			.format = format_e::r32g32b32a32_sfloat,
+		});
 	}
 }

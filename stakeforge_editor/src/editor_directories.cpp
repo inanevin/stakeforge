@@ -29,7 +29,7 @@ namespace sfg
 
 	string_t editor_directories_t::get_editor_assets()
 	{
-		return string_t(SFG_ROOT_DIRECTORY) + "assets/editor/";
+		return string_t(SFG_ROOT_DIRECTORY) + "assets/";
 	}
 
 	string_t editor_directories_t::get_editor_resource_cache()

@@ -32,13 +32,13 @@
 #define static_sampler_linear register(s0, space0)
 #define static_sampler_linear_repeat register(s1, space0)
 
-cbuffer sfg_globals : register(b0, space0)
+struct sfg_globals
 {
     float sfg_global_delta;
     float sfg_global_elapsed;
-}
+};
 
-cbuffer sfg_constants : register(b1, space0)
+cbuffer sfg_constants : register(b0, space0)
 {
    uint sfg_constant_global0;
    uint sfg_constant_global1;
@@ -88,8 +88,6 @@ cbuffer sfg_constants : register(b1, space0)
    uint sfg_constant_obj12;
    uint sfg_constant_obj13;
 }
-
-
 
 
 template<typename T>

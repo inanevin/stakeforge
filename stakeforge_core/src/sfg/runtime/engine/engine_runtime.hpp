@@ -11,7 +11,7 @@ namespace sfg
 	class engine_runtime_t
 	{
 	public:
-		static void init_globals();
+		static void init_globals(size_t resource_manager_memory);
 		static void uninit_globals();
 		static bool init_backend();
 		static void uninit_backend();

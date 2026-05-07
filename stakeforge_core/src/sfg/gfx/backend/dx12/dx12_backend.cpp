@@ -557,11 +557,11 @@ namespace sfg
 			return target_states;
 		}
 
-		D3D12_SHADER_VISIBILITY get_visibility(shader_stage stage)
+		D3D12_SHADER_VISIBILITY get_visibility(shader_stage_e stage)
 		{
-			if (stage == shader_stage::vertex)
+			if (stage == shader_stage_e::vertex)
 				return D3D12_SHADER_VISIBILITY_VERTEX;
-			else if (stage == shader_stage::fragment)
+			else if (stage == shader_stage_e::fragment)
 				return D3D12_SHADER_VISIBILITY_PIXEL;
 			else
 				return D3D12_SHADER_VISIBILITY_ALL;
@@ -1908,7 +1908,7 @@ namespace sfg
 
 		const wchar_t* target_entry = string_util::char_to_wchar(entry_t);
 
-		const wchar_t* t = stage == shader_stage::vertex ? L"vs_6_6" : L"ps_6_6";
+		const wchar_t* t = stage == shader_stage_e::vertex ? L"vs_6_6" : L"ps_6_6";
 		if (!compile(t, target_entry, out, compile_root_sig))
 		{
 			delete[] target_entry;
@@ -2097,7 +2097,7 @@ namespace sfg
 			sh.root_signature = _bind_layouts.get(existing_layout).root_signature;
 
 		/* Early out if compute */
-		const auto it = vector_util::find_if(blobs, [](const shader_blob_t& b) -> bool { return b.stage == shader_stage::compute; });
+		const auto it = vector_util::find_if(blobs, [](const shader_blob_t& b) -> bool { return b.stage == shader_stage_e::compute; });
 		if (it != blobs.end())
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC cpsd = {};
@@ -2185,12 +2185,12 @@ namespace sfg
 			const void*	 byte_code = (void*)bl.data.data;
 			const SIZE_T length	   = static_cast<SIZE_T>(bl.data.size);
 
-			if (bl.stage == shader_stage::vertex)
+			if (bl.stage == shader_stage_e::vertex)
 			{
 				pso_desc.VS.pShaderBytecode = byte_code;
 				pso_desc.VS.BytecodeLength	= length;
 			}
-			else if (bl.stage == shader_stage::fragment)
+			else if (bl.stage == shader_stage_e::fragment)
 			{
 				pso_desc.PS.pShaderBytecode = byte_code;
 				pso_desc.PS.BytecodeLength	= length;
@@ -2238,8 +2238,8 @@ namespace sfg
 		gbinding.count			  = 1;
 		gbinding.binding_type	  = type;
 
-		const binding_type tp = static_cast<binding_type>(type);
-		SFG_ASSERT(tp != binding_type::pointer && tp != binding_type::sampler_t);
+		const binding_type_e tp = static_cast<binding_type_e>(type);
+		SFG_ASSERT(tp != binding_type_e::pointer && tp != binding_type_e::sampler_t);
 	}
 
 	void dx12_backend_t::bind_group_add_constant(gfx_bind_group_handle group, u8 root_param_index, u8* data, u8 count)
@@ -2252,7 +2252,7 @@ namespace sfg
 		gbinding.descriptor_index = _descriptors.add();
 		gbinding.root_param_index = root_param_index;
 		gbinding.count			  = count;
-		gbinding.binding_type	  = binding_type::constant;
+		gbinding.binding_type	  = binding_type_e::constant;
 		gbinding.constants		  = data;
 	}
 
@@ -2271,13 +2271,13 @@ namespace sfg
 		{
 			descriptor_handle_t& dh = _descriptors.get(gbinding.descriptor_index);
 			dh						= _heap_gpu_sampler.get_heap_handle_block(count);
-			gbinding.binding_type	= binding_type::sampler_t;
+			gbinding.binding_type	= binding_type_e::sampler_t;
 		}
 		else
 		{
 			descriptor_handle_t& dh = _descriptors.get(gbinding.descriptor_index);
 			dh						= _heap_gpu_buffer.get_heap_handle_block(count);
-			gbinding.binding_type	= binding_type::pointer;
+			gbinding.binding_type	= binding_type_e::pointer;
 		}
 	}
 
@@ -2320,7 +2320,7 @@ namespace sfg
 		for (u8 i = 0; i < update_count; i++)
 		{
 			const bind_group_pointer_t& p = updates[i];
-			if (p.type == binding_type::texture_binding)
+			if (p.type == binding_type_e::texture_binding)
 			{
 				const texture_t& txt = _textures.get(p.texture_t);
 				SFG_ASSERT(txt.view_count > p.view);
@@ -2331,14 +2331,14 @@ namespace sfg
 				_reuse_src_descriptors_buffer.push_back({dh.cpu});
 				_reuse_dest_descriptors_buffer.push_back({binding_dh.cpu + p.pointer_index * _heap_gpu_buffer.get_descriptor_size()});
 			}
-			else if (p.type == binding_type::sampler_t)
+			else if (p.type == binding_type_e::sampler_t)
 			{
 				const sampler_t&		   smp = _samplers.get(p.sampler_t);
 				const descriptor_handle_t& dh  = _descriptors.get(smp.descriptor_index);
 				_reuse_src_descriptors_sampler.push_back({dh.cpu});
 				_reuse_dest_descriptors_sampler.push_back({binding_dh.cpu + p.pointer_index * _heap_gpu_sampler.get_descriptor_size()});
 			}
-			else if (p.type == binding_type::ubo || p.type == binding_type::ssbo || p.type == binding_type::uav)
+			else if (p.type == binding_type_e::ubo || p.type == binding_type_e::ssbo || p.type == binding_type_e::uav)
 			{
 				const resource_t&	 res = _resources.get(p.resource_t);
 				descriptor_handle_t& dh	 = _descriptors.get(res.descriptor_index);
@@ -2377,14 +2377,14 @@ namespace sfg
 		{
 			const group_binding_t& binding_t = group.bindings[i];
 
-			const binding_type type = static_cast<binding_type>(binding_t.binding_type);
+			const binding_type_e type = static_cast<binding_type_e>(binding_t.binding_type);
 
-			if (type == binding_type::sampler_t)
+			if (type == binding_type_e::sampler_t)
 			{
 				const descriptor_handle_t& dh = _descriptors.get(binding_t.descriptor_index);
 				_heap_gpu_sampler.remove_handle(dh);
 			}
-			else if (type == binding_type::pointer)
+			else if (type == binding_type_e::pointer)
 			{
 				const descriptor_handle_t& dh = _descriptors.get(binding_t.descriptor_index);
 				_heap_gpu_buffer.remove_handle(dh);
@@ -2539,31 +2539,31 @@ namespace sfg
 		_indirect_signatures.remove(sig);
 	}
 
-	void dx12_backend_t::bind_layout_add_constant(gfx_bind_layout_handle layout, u32 count, u32 set, u32 binding_t, u8 vis)
+	void dx12_backend_t::bind_layout_add_constant(gfx_bind_layout_handle layout, u32 count, u32 set, u32 binding, u8 vis)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
-		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
+		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage_e>(vis));
 		_reuse_root_params.push_back({});
 		CD3DX12_ROOT_PARAMETER1& param = _reuse_root_params.back();
-		param.InitAsConstants(count, binding_t, set, visibility);
+		param.InitAsConstants(count, binding, set, visibility);
 	}
 
 	void dx12_backend_t::bind_layout_add_descriptor(gfx_bind_layout_handle layout, u8 type, u32 set, u32 binding_t, u8 vis)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
-		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
+		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage_e>(vis));
 		_reuse_root_params.push_back({});
 		CD3DX12_ROOT_PARAMETER1& param = _reuse_root_params.back();
 
-		const binding_type tp = static_cast<binding_type>(type);
+		const binding_type_e tp = static_cast<binding_type_e>(type);
 
-		if (tp == binding_type::ubo)
+		if (tp == binding_type_e::ubo)
 			param.InitAsConstantBufferView(binding_t, set, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility);
-		else if (tp == binding_type::ssbo)
+		else if (tp == binding_type_e::ssbo)
 			param.InitAsShaderResourceView(binding_t, set, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility);
-		else if (tp == binding_type::uav)
+		else if (tp == binding_type_e::uav)
 			param.InitAsUnorderedAccessView(binding_t, set, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility);
 		else
 			SFG_ASSERT(false);
@@ -2584,19 +2584,19 @@ namespace sfg
 
 			const D3D12_DESCRIPTOR_RANGE_FLAGS flags = p.is_volatile ? D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE : D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
 
-			if (p.type == binding_type::ubo)
+			if (p.type == binding_type_e::ubo)
 			{
 				range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, p.count, p.binding_t, p.set, flags, offset);
 			}
-			else if (p.type == binding_type::ssbo || p.type == binding_type::texture_binding)
+			else if (p.type == binding_type_e::ssbo || p.type == binding_type_e::texture_binding)
 			{
 				range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, p.count, p.binding_t, p.set, flags, offset);
 			}
-			else if (p.type == binding_type::uav)
+			else if (p.type == binding_type_e::uav)
 			{
 				range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, p.count, p.binding_t, p.set, flags, offset);
 			}
-			else if (p.type == binding_type::sampler_t)
+			else if (p.type == binding_type_e::sampler_t)
 			{
 				range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, p.count, p.binding_t, p.set, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, offset);
 			}
@@ -2605,7 +2605,7 @@ namespace sfg
 		}
 
 		const u32					  size_now	 = static_cast<u32>(_reuse_root_ranges.size());
-		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
+		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage_e>(vis));
 		_reuse_root_params.push_back({});
 		CD3DX12_ROOT_PARAMETER1& param = _reuse_root_params.back();
 		param.InitAsDescriptorTable(size_now - start, &_reuse_root_ranges[start], visibility);
@@ -2615,7 +2615,7 @@ namespace sfg
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
-		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage>(vis));
+		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage_e>(vis));
 
 		_reuse_static_samplers.push_back({
 			.Filter			  = get_filter(desc.flags),
@@ -3222,17 +3222,17 @@ namespace sfg
 		{
 			const group_binding_t&	   binding_t = group.bindings[i];
 			const descriptor_handle_t& dh		 = _descriptors.get(binding_t.descriptor_index);
-			const binding_type		   type		 = static_cast<binding_type>(binding_t.binding_type);
+			const binding_type_e	   type		 = static_cast<binding_type_e>(binding_t.binding_type);
 
-			if (type == binding_type::sampler_t || type == binding_type::pointer)
+			if (type == binding_type_e::sampler_t || type == binding_type_e::pointer)
 				cmd_list->SetGraphicsRootDescriptorTable(binding_t.root_param_index, {dh.gpu});
-			else if (type == binding_type::ubo)
+			else if (type == binding_type_e::ubo)
 				cmd_list->SetGraphicsRootConstantBufferView(binding_t.root_param_index, dh.gpu);
-			else if (type == binding_type::ssbo)
+			else if (type == binding_type_e::ssbo)
 				cmd_list->SetGraphicsRootShaderResourceView(binding_t.root_param_index, dh.gpu);
-			else if (type == binding_type::uav)
+			else if (type == binding_type_e::uav)
 				cmd_list->SetGraphicsRootUnorderedAccessView(binding_t.root_param_index, dh.gpu);
-			else if (type == binding_type::constant)
+			else if (type == binding_type_e::constant)
 				cmd_list->SetGraphicsRoot32BitConstants(binding_t.root_param_index, binding_t.count, binding_t.constants, 0);
 		}
 	}
@@ -3248,17 +3248,17 @@ namespace sfg
 		{
 			const group_binding_t&	   binding_t = group.bindings[i];
 			const descriptor_handle_t& dh		 = _descriptors.get(binding_t.descriptor_index);
-			const binding_type		   type		 = static_cast<binding_type>(binding_t.binding_type);
+			const binding_type_e	   type		 = static_cast<binding_type_e>(binding_t.binding_type);
 
-			if (type == binding_type::sampler_t || type == binding_type::pointer)
+			if (type == binding_type_e::sampler_t || type == binding_type_e::pointer)
 				cmd_list->SetComputeRootDescriptorTable(binding_t.root_param_index, {dh.gpu});
-			else if (type == binding_type::ubo)
+			else if (type == binding_type_e::ubo)
 				cmd_list->SetComputeRootConstantBufferView(binding_t.root_param_index, dh.gpu);
-			else if (type == binding_type::ssbo)
+			else if (type == binding_type_e::ssbo)
 				cmd_list->SetComputeRootShaderResourceView(binding_t.root_param_index, dh.gpu);
-			else if (type == binding_type::uav)
+			else if (type == binding_type_e::uav)
 				cmd_list->SetComputeRootUnorderedAccessView(binding_t.root_param_index, dh.gpu);
-			else if (type == binding_type::constant)
+			else if (type == binding_type_e::constant)
 				cmd_list->SetComputeRoot32BitConstants(binding_t.root_param_index, binding_t.count, binding_t.constants, 0);
 		}
 	}
