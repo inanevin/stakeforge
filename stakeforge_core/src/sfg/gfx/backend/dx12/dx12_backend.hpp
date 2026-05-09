@@ -87,6 +87,7 @@ namespace sfg
 	struct command_copy_resource_t;
 	struct command_copy_resource_region_t;
 	struct command_copy_buffer_to_texture_t;
+	struct command_copy_buffer_region_to_texture_t;
 	struct command_copy_texture_to_buffer_t;
 	struct command_copy_texture_to_texture_t;
 	struct command_bind_constants_t;
@@ -314,6 +315,7 @@ namespace sfg
 		void cmd_copy_resource(gfx_command_buffer_handle cmd_list, const command_copy_resource_t& command) const;
 		void cmd_copy_resource_region(gfx_command_buffer_handle cmd_list, const command_copy_resource_region_t& command) const;
 		void cmd_copy_buffer_to_texture(gfx_command_buffer_handle cmd_list, const command_copy_buffer_to_texture_t& command);
+		void cmd_copy_buffer_region_to_texture(gfx_command_buffer_handle cmd_list, const command_copy_buffer_region_to_texture_t& command) const;
 		void cmd_copy_texture_to_buffer(gfx_command_buffer_handle cmd_list, const command_copy_texture_to_buffer_t& command) const;
 		void cmd_copy_texture_to_texture(gfx_command_buffer_handle cmd_list, const command_copy_texture_to_texture_t& command) const;
 		void cmd_bind_constants(gfx_command_buffer_handle cmd_list, const command_bind_constants_t& command) const;
@@ -402,6 +404,5 @@ namespace sfg
 
 		friend class app;
 		friend class renderer_t;
-
 	};
 }

@@ -221,6 +221,22 @@ namespace sfg
 		u8					destination_slice	= 0;
 	};
 
+	struct command_copy_buffer_region_to_texture_t
+	{
+		static constexpr u8 TID = 27;
+
+		gfx_resource_handle src_buffer	  = {};
+		gfx_texture_handle	dst_texture	  = {};
+		u64					src_offset	  = 0;
+		u32					src_row_pitch = 0;
+		u16					dst_x		  = 0;
+		u16					dst_y		  = 0;
+		u16					width		  = 0;
+		u16					height		  = 0;
+		u8					dst_mip		  = 0;
+		u8					bpp			  = 0;
+	};
+
 	struct command_copy_texture_to_texture_t
 	{
 		static constexpr u8 TID = 12;

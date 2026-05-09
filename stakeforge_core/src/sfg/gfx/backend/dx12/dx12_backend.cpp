@@ -3125,6 +3125,39 @@ namespace sfg
 		UpdateSubresources(cmd_list, txt.ptr->GetResource(), res.ptr->GetResource(), 0, cmd.mip_levels * cmd.destination_slice, cmd.mip_levels, subresource_data.data());
 	}
 
+	void dx12_backend_t::cmd_copy_buffer_region_to_texture(gfx_command_buffer_handle cmd_id, const command_copy_buffer_region_to_texture_t& cmd) const
+	{
+		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
+		const resource_t&			res		 = _resources.get(cmd.src_buffer);
+		const texture_t&			txt		 = _textures.get(cmd.dst_texture);
+
+		const D3D12_TEXTURE_COPY_LOCATION src_location = {
+			.pResource = res.ptr->GetResource(),
+			.Type	   = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+			.PlacedFootprint =
+				{
+					.Offset = cmd.src_offset,
+					.Footprint =
+						{
+							.Format	  = static_cast<DXGI_FORMAT>(txt.format),
+							.Width	  = static_cast<UINT>(cmd.width),
+							.Height	  = static_cast<UINT>(cmd.height),
+							.Depth	  = 1,
+							.RowPitch = cmd.src_row_pitch,
+						},
+				},
+		};
+
+		const D3D12_TEXTURE_COPY_LOCATION dst_location = {
+			.pResource		  = txt.ptr->GetResource(),
+			.Type			  = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+			.SubresourceIndex = static_cast<UINT>(cmd.dst_mip),
+		};
+
+		cmd_list->CopyTextureRegion(&dst_location, static_cast<UINT>(cmd.dst_x), static_cast<UINT>(cmd.dst_y), 0, &src_location, nullptr);
+	}
+
 	void dx12_backend_t::cmd_copy_texture_to_buffer(gfx_command_buffer_handle cmd_id, const command_copy_texture_to_buffer_t& cmd) const
 	{
 		const command_buffer_t&		buffer_t  = _command_buffers.get(cmd_id);
