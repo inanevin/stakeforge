@@ -10,13 +10,7 @@ namespace sfg
 
 	struct font_cook_config_t
 	{
-		u32			size		 = 16;
-		u32			range_start	 = 32;
-		u32			range_end	 = 128;
-		i32			sdf_padding	 = 3;
-		i32			sdf_edge	 = 128;
-		f32			sdf_distance = 32.0f;
-		font_kind_e kind		 = font_kind_e::bitmap;
+		u32 reserved = 0;
 	};
 
 	class font_cooker
@@ -25,6 +19,5 @@ namespace sfg
 		static bool cook_from_file(const font_cook_config_t& cfg, const char* full_path, ostream_t& stream);
 	};
 
-	void from_json(const nlohmann::json& j, font_kind_e& k);
 	void from_json(const nlohmann::json& j, font_cook_config_t& c);
 }

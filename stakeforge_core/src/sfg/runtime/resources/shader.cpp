@@ -3,6 +3,7 @@
 #include "shader.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -17,36 +18,38 @@ namespace sfg
 		u8*				   bytes = mem.get(entry.runtime.head);
 
 		istream_t stream;
-		stream.open(bytes, entry.runtime.size);
+		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
-		shader_runtime_t local = {};
-		stream >> local.type >> local.compile_variant_count >> local.pso_variant_count;
+		shader_runtime_t* runtime = mem.get<shader_runtime_t>(entry.runtime);
+		stream >> runtime->type;
+		stream >> runtime->compile_variant_count;
 
-		SFG_ASSERT(local.compile_variant_count <= MAX_COMPILE_VARIANTS);
-		SFG_ASSERT(local.pso_variant_count <= MAX_PSO_VARIANTS);
-
-		for (u8 i = 0; i < local.compile_variant_count; ++i)
+		for (u8 i = 0; i < runtime->compile_variant_count; i++)
 		{
-			shader_runtime_compile_variant_t& cv = local.compile_variants[i];
-			stream >> cv.stage_count;
-			SFG_ASSERT(cv.stage_count <= MAX_STAGE_PER_VARIANT);
-			for (u8 j = 0; j < cv.stage_count; ++j)
+			shader_runtime_compile_variant_t& v = runtime->compile_variants[i];
+			stream >> v.stage_count;
+
+			for (u8 j = 0; j < v.stage_count; j++)
 			{
-				shader_runtime_stage_entry_t& s = cv.stages[j];
-				stream >> s.stage >> s.offset >> s.size;
+				shader_runtime_stage_entry_t& s = v.stages[j];
+				stream >> s.stage;
+				u32 size = 0;
+				stream >> size;
+				s.data = {stream.get_data_current(), static_cast<size_t>(size)};
+				stream.skip_by(s.data.size);
 			}
 		}
 
-		for (u8 i = 0; i < local.pso_variant_count; ++i)
+		stream >> runtime->pso_variant_count;
+
+		for (u8 i = 0; i < runtime->pso_variant_count; i++)
 		{
-			shader_runtime_pso_variant_t& pv = local.pso_variants[i];
-			stream >> pv.compile_variant_index;
-			stream >> pv.variant_flags;
-			stream >> pv.desc_offset;
-			stream >> pv.desc_size;
+			shader_runtime_pso_variant_t& v = runtime->pso_variants[i];
+			stream >> v.compile_variant_index;
+			stream >> v.variant_flags;
+			v.desc.deserialize(stream);
 		}
 
-		*mem.get<shader_runtime_t>(entry.runtime) = local;
 		return true;
 	}
 
@@ -56,14 +59,21 @@ namespace sfg
 		const shader_runtime_t* data	  = mem.get<shader_runtime_t>(entry.runtime);
 		shader_internals_t*		internals = mem.get<shader_internals_t>(entry.internals);
 
+		// done with runtime data.
+		shader_runtime_t* runtime = mem.get<shader_runtime_t>(entry.runtime);
+		for (u8 i = 0; i < runtime->compile_variant_count; i++)
+		{
+			shader_runtime_compile_variant_t& v = runtime->compile_variants[i];
+			for (u8 j = 0; j < v.stage_count; j++)
+				v.stages[j].data = {};
+		}
+
 		*internals				 = shader_internals_t{};
 		internals->pso_count	 = data->pso_variant_count;
 		internals->pending_count = data->pso_variant_count;
 
 		if (data->pso_variant_count == 0)
 			return create_internals_result_e::ready;
-
-		u8* payload = entry.payload.data;
 
 		for (u8 i = 0; i < data->pso_variant_count; ++i)
 		{
@@ -79,24 +89,16 @@ namespace sfg
 			{
 				const shader_runtime_stage_entry_t& s = cv.stages[j];
 				blobs[j].stage						  = static_cast<shader_stage_e>(s.stage);
-				blobs[j].data						  = {.data = payload + s.offset, .size = s.size};
+				blobs[j].data						  = s.data;
 			}
 
-			shader_desc_t desc = {};
-			if (pv.desc_size != 0)
-			{
-				istream_t desc_stream;
-				desc_stream.open(payload + pv.desc_offset, pv.desc_size);
-				desc.deserialize(desc_stream);
-			}
-
-			render_resources_t::get().enqueue_create_shader(entry.hash, entry.type, static_cast<u32>(i), desc, std::move(blobs), render_globals_t::get_global_bind_layout());
+			render_resources_t::get().enqueue_create_shader(entry.hash, entry.type, static_cast<u32>(i), pv.desc, std::move(blobs), render_globals_t::get_global_bind_layout());
 		}
 
 		return create_internals_result_e::queued;
 	}
 
-	complete_internals_result_e shader_loader_t::complete_internals(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion)
+	resource_ready_result_e shader_loader_t::resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion)
 	{
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		shader_internals_t* internals = mem.get<shader_internals_t>(entry.internals);
@@ -111,7 +113,7 @@ namespace sfg
 
 		internals->pending_count--;
 		if (internals->pending_count != 0)
-			return complete_internals_result_e::pending;
+			return resource_ready_result_e::pending;
 
 		if (internals->had_failure)
 		{
@@ -123,10 +125,10 @@ namespace sfg
 					internals->psos[i] = {};
 				}
 			}
-			return complete_internals_result_e::failed;
+			return resource_ready_result_e::failed;
 		}
 
-		return complete_internals_result_e::ready;
+		return resource_ready_result_e::ready;
 	}
 
 	void shader_loader_t::destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
@@ -167,7 +169,7 @@ namespace sfg
 		.wire_version		 = shader_loader_t::WIRE_VERSION,
 		.load				 = shader_loader_t::load,
 		.create_internals	 = shader_loader_t::create_internals,
-		.complete_internals	 = shader_loader_t::complete_internals,
+		.resource_ready	 = shader_loader_t::resource_ready,
 		.destroy_internals	 = shader_loader_t::destroy_internals,
 	};
 

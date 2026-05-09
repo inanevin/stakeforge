@@ -13,38 +13,40 @@ namespace sfg
 {
 	bool texture_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		chunk_allocator_t& mem	 = ctx.resource_manager.get_memory();
-		u8*				   bytes = mem.get(entry.runtime.head);
+		chunk_allocator_t& mem	   = ctx.resource_manager.get_memory();
+		texture_runtime_t* runtime = mem.get<texture_runtime_t>(entry.runtime);
 
 		istream_t stream;
-		stream.open(bytes, entry.runtime.size);
+		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
-		texture_runtime_t local = {};
-		stream >> local.width >> local.height;
-		stream >> local.channels >> local.is_linear >> local.mip_count;
+		stream >> runtime->channels >> runtime->is_linear >> runtime->mip_count;
 
-		SFG_ASSERT(local.mip_count <= MAX_MIPS);
+		SFG_ASSERT(runtime->mip_count <= MAX_MIPS);
 
-		for (u8 i = 0; i < local.mip_count; ++i)
+		for (u8 i = 0; i < runtime->mip_count; ++i)
 		{
-			texture_runtime_mip_t& m = local.mips[i];
-			stream >> m.offset >> m.size >> m.width >> m.height;
+			texture_buffer_t& buf = runtime->mips[i];
+			stream >> buf.bpp;
+			stream >> buf.size;
+
+			const size_t sz = buf.bpp * buf.size.x * buf.size.y;
+			buf.pixels		= stream.get_data_current();
+			stream.skip_by(sz);
 		}
 
-		*mem.get<texture_runtime_t>(entry.runtime) = local;
 		return true;
 	}
 
 	create_internals_result_e texture_loader_t::create_internals(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		chunk_allocator_t&		 mem  = ctx.resource_manager.get_memory();
-		const texture_runtime_t* data = mem.get<texture_runtime_t>(entry.runtime);
+		chunk_allocator_t&		 mem	 = ctx.resource_manager.get_memory();
+		const texture_runtime_t* runtime = mem.get<texture_runtime_t>(entry.runtime);
 
 		texture_desc_t desc = {};
-		desc.texture_format = data->is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
-		desc.size			= {static_cast<u16>(data->width), static_cast<u16>(data->height)};
+		desc.texture_format = runtime->is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
+		desc.size			= runtime->mips[0].size;
 		desc.flags			= texture_flags::tf_sampled | texture_flags::tf_transfer_dest | texture_flags::tf_is_2d;
-		desc.mip_levels		= data->mip_count == 0 ? 1u : data->mip_count;
+		desc.mip_levels		= runtime->mip_count == 0 ? 1u : runtime->mip_count;
 		desc.array_length	= 1;
 		desc.samples		= 1;
 		desc.debug_name		= "texture";
@@ -53,15 +55,24 @@ namespace sfg
 		return create_internals_result_e::queued;
 	}
 
-	complete_internals_result_e texture_loader_t::complete_internals(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion)
+	resource_ready_result_e texture_loader_t::resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion)
 	{
-		if (completion.state == resource_state_e::failed)
-			return complete_internals_result_e::failed;
+		chunk_allocator_t& mem = ctx.resource_manager.get_memory();
 
-		chunk_allocator_t&	 mem	   = ctx.resource_manager.get_memory();
+		// done with pixels.
+		texture_runtime_t* runtime = mem.get<texture_runtime_t>(entry.runtime);
+		for (u8 i = 0; i < runtime->mip_count; i++)
+		{
+			texture_buffer_t& b = runtime->mips[i];
+			b.pixels			= nullptr;
+		}
+
+		if (completion.state == resource_state_e::failed)
+			return resource_ready_result_e::failed;
+
 		texture_internals_t* internals = mem.get<texture_internals_t>(entry.internals);
 		internals->texture			   = completion.texture;
-		return complete_internals_result_e::ready;
+		return resource_ready_result_e::ready;
 	}
 
 	void texture_loader_t::destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
@@ -82,7 +93,7 @@ namespace sfg
 		.wire_version		 = texture_loader_t::WIRE_VERSION,
 		.load				 = texture_loader_t::load,
 		.create_internals	 = texture_loader_t::create_internals,
-		.complete_internals	 = texture_loader_t::complete_internals,
+		.resource_ready	 = texture_loader_t::resource_ready,
 		.destroy_internals	 = texture_loader_t::destroy_internals,
 	};
 }
