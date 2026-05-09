@@ -76,12 +76,12 @@ namespace sfg
 		_destroy_shader_q.enqueue(handle);
 	}
 
-	bool render_resources_t::try_dequeue_completion(render_resource_completion_t& out_completion)
+	bool render_resources_t::drain_completion(render_resource_completion_t& out_completion)
 	{
 		return _completed_q.try_dequeue(out_completion);
 	}
 
-	void render_resources_t::flush()
+	void render_resources_t::flush_create_destroys()
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 

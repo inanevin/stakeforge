@@ -30,39 +30,4 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-
-	void texture_buffer_t::serialize(ostream_t& stream, bool write_addr) const
-	{
-		stream << size;
-		stream << bpp;
-		SFG_ASSERT(pixels != nullptr);
-		if (write_addr)
-		{
-			const u64 addr = reinterpret_cast<u64>(pixels);
-			stream << addr;
-		}
-		else
-		{
-			const size_t sz = static_cast<size_t>(bpp * size.x * size.y);
-			stream.write_raw(pixels, sz);
-		}
-	}
-	void texture_buffer_t::deserialize(istream_t& stream, bool read_addr)
-	{
-		stream >> size;
-		stream >> bpp;
-
-		if (read_addr)
-		{
-			u64 addr = 0;
-			stream >> addr;
-			pixels = reinterpret_cast<u8*>(addr);
-		}
-		else
-		{
-			const size_t sz = static_cast<size_t>(bpp * size.x * size.y);
-			pixels			= reinterpret_cast<u8*>(SFG_MALLOC(sz));
-			stream.read_to_raw(pixels, sz);
-		}
-	}
 }

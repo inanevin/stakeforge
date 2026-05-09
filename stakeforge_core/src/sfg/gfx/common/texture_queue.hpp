@@ -37,9 +37,9 @@ namespace sfg
 {
 	enum class texture_data_ownership_e : u8
 	{
-		none,		  // queue does not free pixel data
-		c_free,		  // SFG_FREE on each mip's pixels
-		delete_array, // delete[] on each mip's pixels
+		none,
+		c_free,
+		delete_array,
 	};
 
 	struct texture_upload_desc_t
@@ -50,6 +50,23 @@ namespace sfg
 		u32							   from_states = 0;
 		u32							   to_states   = 0;
 		texture_data_ownership_e	   ownership   = texture_data_ownership_e::none;
+	};
+
+	struct texture_region_upload_desc_t
+	{
+		gfx_texture_handle	src_texture	  = {};
+		gfx_texture_handle	dst_texture	  = {};
+		gfx_resource_handle src_buffer	  = {};
+		u64					src_offset	  = 0;
+		u32					src_row_pitch = 0;
+		u16					dst_x		  = 0;
+		u16					dst_y		  = 0;
+		u16					width		  = 0;
+		u16					height		  = 0;
+		u8					bpp			  = 0;
+		u8					dst_mip		  = 0;
+		u32					from_states	  = 0;
+		u32					to_states	  = 0;
 	};
 
 	class texture_queue_t
@@ -66,7 +83,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(u32 reserve_count = 16);
+		void init(u32 reserve_count = 32);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -74,21 +91,20 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void add(const texture_upload_desc_t& desc);
-		void flush(gfx_command_buffer_handle cmd);
+		void add_region(const texture_region_upload_desc_t& desc);
+
+		// flush issues copies on the (transfer) command buffer; returns true if anything was emitted.
+		bool flush(gfx_command_buffer_handle cmd);
+
+		// transit issues post-upload barriers on the (graphics) command buffer.
 		void transit(gfx_command_buffer_handle cmd);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline bool has_uploads() const
-		{
-			return !_uploads.empty();
-		}
-		inline bool has_transits() const
-		{
-			return !_transits.empty();
-		}
+		bool has_uploads() const;
+		bool has_transits() const;
 
 	private:
 		struct entry_t
@@ -101,6 +117,22 @@ namespace sfg
 			texture_data_ownership_e					ownership	= texture_data_ownership_e::none;
 		};
 
+		struct region_entry_t
+		{
+			gfx_texture_handle	dst_texture	  = {};
+			gfx_resource_handle src_buffer	  = {};
+			u64					src_offset	  = 0;
+			u32					src_row_pitch = 0;
+			u16					dst_x		  = 0;
+			u16					dst_y		  = 0;
+			u16					width		  = 0;
+			u16					height		  = 0;
+			u8					bpp			  = 0;
+			u8					dst_mip		  = 0;
+			u32					from_states	  = 0;
+			u32					to_states	  = 0;
+		};
+
 		struct transit_entry_t
 		{
 			gfx_texture_handle texture	 = {};
@@ -111,6 +143,7 @@ namespace sfg
 
 	private:
 		vector_t<entry_t>		  _uploads	= {};
+		vector_t<region_entry_t>  _regions	= {};
 		vector_t<transit_entry_t> _transits = {};
 	};
 }

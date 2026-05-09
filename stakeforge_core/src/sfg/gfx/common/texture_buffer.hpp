@@ -38,9 +38,6 @@ namespace sfg
 		u8*		  pixels = nullptr;
 		vec2u16_t size	 = vec2u16_t::zero;
 		u8		  bpp	 = 0;
-
-		void serialize(ostream_t& stream, bool write_addr = false) const;
-		void deserialize(istream_t& stream, bool read_addr = false);
 	};
 
 }

@@ -38,12 +38,14 @@ namespace sfg
 			return false;
 
 		render_globals_t::s_global_bind_layout = gfx_util_t::create_bind_layout_global(false);
+		render_resources_t::get().get_texture_upload_queue().init();
 		return true;
 	}
 
 	void engine_runtime_t::uninit_backend()
 	{
-		render_resources_t::get().flush();
+		render_resources_t::get().flush_create_destroys();
+		render_resources_t::get().get_texture_upload_queue().uninit();
 		gfx_backend& backend = gfx_backend::get();
 		if (!render_globals_t::s_global_bind_layout.is_null())
 		{
@@ -55,9 +57,6 @@ namespace sfg
 
 	bool engine_runtime_t::init()
 	{
-		if (!_renderer.init())
-			return false;
-
 		SFG_INFO("engine runtime initialized correctly.");
 		return true;
 	}
@@ -73,8 +72,6 @@ namespace sfg
 			world.uninit();
 			_worlds.remove(handle);
 		}
-
-		_renderer.uninit();
 	}
 
 	void engine_runtime_t::simulate(f32 delta_time)

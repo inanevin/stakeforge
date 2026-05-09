@@ -3,6 +3,7 @@
 
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/vendor/moodycamel/readerwriterqueue.h>
 
@@ -39,19 +40,39 @@ namespace sfg
 		render_resources_t(const render_resources_t&)			 = delete;
 		render_resources_t& operator=(const render_resources_t&) = delete;
 
+		// -----------------------------------------------------------------------------
+		// creation
+		// -----------------------------------------------------------------------------
+
 		void enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc);
 		void enqueue_create_texture(sid_t hash, const texture_desc_t& desc);
 		void enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
 		void enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, vector_t<shader_blob_t>&& blobs, gfx_bind_layout_handle existing_layout = {}, span_t<u8> layout_data = {});
+
+		// -----------------------------------------------------------------------------
+		// destroy
+		// -----------------------------------------------------------------------------
 
 		void enqueue_destroy_resource(gfx_resource_handle handle);
 		void enqueue_destroy_texture(gfx_texture_handle handle);
 		void enqueue_destroy_sampler(gfx_sampler_handle handle);
 		void enqueue_destroy_shader(gfx_shader_handle handle);
 
-		bool try_dequeue_completion(render_resource_completion_t& out_completion);
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
 
-		void flush();
+		bool drain_completion(render_resource_completion_t& out_completion);
+		void flush_create_destroys();
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline texture_queue_t& get_texture_upload_queue()
+		{
+			return _texture_upload_queue;
+		}
 
 	private:
 		struct create_resource_request_t
@@ -94,5 +115,6 @@ namespace sfg
 		moodycamel::ReaderWriterQueue<gfx_sampler_handle>			_destroy_sampler_q;
 		moodycamel::ReaderWriterQueue<gfx_shader_handle>			_destroy_shader_q;
 		moodycamel::ReaderWriterQueue<render_resource_completion_t> _completed_q;
+		texture_queue_t												_texture_upload_queue = {};
 	};
 }

@@ -38,6 +38,7 @@ namespace sfg
 	void texture_queue_t::init(u32 reserve_count)
 	{
 		_uploads.reserve(reserve_count);
+		_regions.reserve(reserve_count);
 		_transits.reserve(reserve_count);
 	}
 
@@ -46,6 +47,7 @@ namespace sfg
 		for (entry_t& e : _uploads)
 			release_entry(e);
 		_uploads.resize(0);
+		_regions.resize(0);
 		_transits.resize(0);
 	}
 
@@ -87,10 +89,34 @@ namespace sfg
 		_uploads.push_back(std::move(entry));
 	}
 
-	void texture_queue_t::flush(gfx_command_buffer_handle cmd)
+	void texture_queue_t::add_region(const texture_region_upload_desc_t& desc)
 	{
-		if (_uploads.empty())
-			return;
+		SFG_ASSERT(!desc.dst_texture.is_null());
+		SFG_ASSERT(!desc.src_buffer.is_null());
+		SFG_ASSERT(desc.width > 0 && desc.height > 0);
+		SFG_ASSERT(desc.bpp > 0);
+
+		region_entry_t r;
+		r.dst_texture	= desc.dst_texture;
+		r.src_buffer	= desc.src_buffer;
+		r.src_offset	= desc.src_offset;
+		r.src_row_pitch = desc.src_row_pitch;
+		r.dst_x			= desc.dst_x;
+		r.dst_y			= desc.dst_y;
+		r.width			= desc.width;
+		r.height		= desc.height;
+		r.bpp			= desc.bpp;
+		r.dst_mip		= desc.dst_mip;
+		r.from_states	= desc.from_states;
+		r.to_states		= desc.to_states;
+
+		_regions.push_back(r);
+	}
+
+	bool texture_queue_t::flush(gfx_command_buffer_handle cmd)
+	{
+		if (_uploads.empty() && _regions.empty())
+			return false;
 
 		gfx_backend& backend = gfx_backend::get();
 
@@ -121,7 +147,39 @@ namespace sfg
 			release_entry(e);
 		}
 
+		for (const region_entry_t& r : _regions)
+		{
+			if (r.from_states != 0)
+			{
+				const barrier_t pre = {
+					.from_states = r.from_states,
+					.to_states	 = resource_state_copy_dest,
+					.texture_t	 = r.dst_texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				};
+				backend.cmd_barrier(cmd, {.barriers = &pre, .barrier_count = 1});
+			}
+
+			command_copy_buffer_region_to_texture_t cp = {};
+			cp.src_buffer							   = r.src_buffer;
+			cp.dst_texture							   = r.dst_texture;
+			cp.src_offset							   = r.src_offset;
+			cp.src_row_pitch						   = r.src_row_pitch;
+			cp.dst_x								   = r.dst_x;
+			cp.dst_y								   = r.dst_y;
+			cp.width								   = r.width;
+			cp.height								   = r.height;
+			cp.dst_mip								   = r.dst_mip;
+			cp.bpp									   = r.bpp;
+			backend.cmd_copy_buffer_region_to_texture(cmd, cp);
+
+			if (r.to_states != 0)
+				_transits.push_back({.texture = r.dst_texture, .to_states = r.to_states});
+		}
+
 		_uploads.resize(0);
+		_regions.resize(0);
+		return true;
 	}
 
 	void texture_queue_t::transit(gfx_command_buffer_handle cmd)
@@ -142,5 +200,15 @@ namespace sfg
 			backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
 		}
 		_transits.resize(0);
+	}
+
+	bool texture_queue_t::has_uploads() const
+	{
+		return !_uploads.empty() || !_regions.empty();
+	}
+
+	bool texture_queue_t::has_transits() const
+	{
+		return !_transits.empty();
 	}
 }
