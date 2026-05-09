@@ -110,8 +110,6 @@ namespace sfg
 			bool			 success	= false;
 		};
 
-		struct queues_t;
-
 		resource_entry_t* find_entry(u64 hash);
 		void			  fire_loads(bool wait);
 		void			  flush_completed_resources();
@@ -127,7 +125,6 @@ namespace sfg
 		atlas_manager_t								_atlas_manager;
 		vector_t<load_request_t>					_loads;
 		vector_t<u64>								_unloads;
-		queues_t*									_queues	 = nullptr;
 		atomic_t<u32>								_pending = 0;
 	};
 }

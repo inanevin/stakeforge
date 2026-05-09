@@ -18,21 +18,25 @@ namespace sfg
 
 	void render_resources_t::enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		_create_resource_q.enqueue({.hash = hash, .type = type, .desc = desc});
 	}
 
 	void render_resources_t::enqueue_create_texture(sid_t hash, const texture_desc_t& desc)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		_create_texture_q.enqueue({.hash = hash, .desc = desc});
 	}
 
 	void render_resources_t::enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		_create_sampler_q.enqueue({.hash = hash, .type = type, .desc = desc});
 	}
 
 	void render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, vector_t<shader_blob_t>&& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		create_shader_request_t req = {};
 		req.hash					= hash;
 		req.type					= type;
@@ -50,6 +54,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_resource(gfx_resource_handle handle)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_destroy_resource_q.enqueue(handle);
@@ -57,6 +62,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_texture(gfx_texture_handle handle)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_destroy_texture_q.enqueue(handle);
@@ -64,6 +70,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_sampler(gfx_sampler_handle handle)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_destroy_sampler_q.enqueue(handle);
@@ -71,6 +78,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_shader(gfx_shader_handle handle)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_destroy_shader_q.enqueue(handle);
@@ -78,6 +86,7 @@ namespace sfg
 
 	bool render_resources_t::drain_completion(render_resource_completion_t& out_completion)
 	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		return _completed_q.try_dequeue(out_completion);
 	}
 
