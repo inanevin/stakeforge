@@ -16,16 +16,12 @@ namespace sfg
 
 	struct resource_header_t
 	{
-		u32			  magic			 = 0;
-		u32			  version		 = 0;
-		u32			  payload_size	 = 0;
-		u32			  payload_offset = 0;
-		vector_t<u64> source_ticks	 = {};
+		u32			  magic		   = 0;
+		u32			  version	   = 0;
+		vector_t<u64> source_ticks = {};
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
-
-		void patch_payload_offset(ostream_t& stream, size_t header_pos) const;
 	};
 
 	enum class resource_type_e : u8
@@ -62,15 +58,15 @@ namespace sfg
 
 	struct resource_entry_t
 	{
-		sid_t			 hash		= 0;
-		chunk_handle32_t runtime	= {};
-		chunk_handle32_t internals	= {};
-		chunk_handle32_t debug_name = {};
-		span_t<u8>		 load_data	= {};
-		span_t<u8>		 payload	= {};
-		u32				 ref_count	= 0;
-		resource_state_e state		= resource_state_e::cpu_ready;
-		resource_type_e	 type		= resource_type_e::invalid;
+		sid_t			 hash			   = 0;
+		chunk_handle32_t runtime		   = {};
+		chunk_handle32_t internals		   = {};
+		chunk_handle32_t debug_name		   = {};
+		span_t<u8>		 full_load_data	   = {};
+		span_t<u8>		 after_header_data = {};
+		u32				 ref_count		   = 0;
+		resource_state_e state			   = resource_state_e::cpu_ready;
+		resource_type_e	 type			   = resource_type_e::invalid;
 	};
 
 	struct resource_context_t
@@ -85,7 +81,7 @@ namespace sfg
 		queued,
 	};
 
-	enum class complete_internals_result_e : u8
+	enum class resource_ready_result_e : u8
 	{
 		failed,
 		ready,
@@ -94,10 +90,10 @@ namespace sfg
 
 	struct resource_type_desc_t
 	{
-		using load_fn_t				  = bool (*)(resource_entry_t& entry, resource_context_t& ctx);
-		using create_internals_fn_t	  = create_internals_result_e (*)(resource_entry_t& entry, resource_context_t& ctx);
-		using complete_internals_fn_t = complete_internals_result_e (*)(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
-		using destroy_internals_fn_t  = void (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using load_fn_t				 = bool (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using create_internals_fn_t	 = create_internals_result_e (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using resource_ready_fn		 = resource_ready_result_e (*)(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
+		using destroy_internals_fn_t = void (*)(resource_entry_t& entry, resource_context_t& ctx);
 
 		resource_type_e type				= resource_type_e::invalid;
 		u32				runtime_size		= 0;
@@ -107,10 +103,10 @@ namespace sfg
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
 
-		load_fn_t				load			   = nullptr;
-		create_internals_fn_t	create_internals   = nullptr;
-		complete_internals_fn_t complete_internals = nullptr;
-		destroy_internals_fn_t	destroy_internals  = nullptr;
+		load_fn_t			   load				 = nullptr;
+		create_internals_fn_t  create_internals	 = nullptr;
+		resource_ready_fn	   resource_ready	 = nullptr;
+		destroy_internals_fn_t destroy_internals = nullptr;
 	};
 
 	extern const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];

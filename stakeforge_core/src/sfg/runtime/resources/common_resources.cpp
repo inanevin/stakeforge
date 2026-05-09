@@ -25,19 +25,14 @@ namespace sfg
 {
 	void resource_header_t::serialize(ostream_t& stream) const
 	{
-		stream << magic << version << payload_size << payload_offset;
+		stream << magic << version;
 		stream << source_ticks;
 	}
 
 	void resource_header_t::deserialize(istream_t& stream)
 	{
-		stream >> magic >> version >> payload_size >> payload_offset;
+		stream >> magic >> version;
 		stream >> source_ticks;
-	}
-
-	void resource_header_t::patch_payload_offset(ostream_t& stream, size_t header_pos) const
-	{
-		SFG_MEMCPY(stream.get_raw() + header_pos + sizeof(u32) * 3, &payload_offset, sizeof(u32));
 	}
 
 	const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX] = {
