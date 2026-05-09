@@ -27,12 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui_renderer.hpp"
 #include "ui_context.hpp"
 #include "vg/vg_canvas.hpp"
-#include <sfg/runtime/resources/atlas.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
-#include <sfg/gfx/common/texture_buffer.hpp>
-#include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -52,7 +49,6 @@ namespace sfg::ui
 		};
 	}
 
-	ui_renderer_t::~ui_renderer_t() = default;
 
 	void ui_renderer_t::init(const ui_renderer_config_t& cfg)
 	{
@@ -106,13 +102,6 @@ namespace sfg::ui
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		for (auto& kv : _atlases)
-		{
-			backend.destroy_texture(kv.second.texture);
-			backend.destroy_resource(kv.second.staging);
-		}
-		_atlases.clear();
-
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			per_frame_data_t& p = _pfd[i];
@@ -128,72 +117,6 @@ namespace sfg::ui
 		_sdf_params_index = 0;
 		_vtx_capacity	  = 0;
 		_idx_capacity	  = 0;
-	}
-
-	void ui_renderer_t::update_atlas(texture_queue_t& queue, atlas_runtime_t* atlas)
-	{
-		gfx_backend& backend = gfx_backend::get();
-
-		const u32  atlas_id = atlas->id;
-		const u32  width	= atlas->width;
-		const u32  height	= atlas->height;
-		const bool is_lcd	= atlas->is_lcd;
-		const u8   bpp		= is_lcd ? 3u : 1u;
-
-		atlas_entry_t& entry = _atlases[atlas_id];
-
-		const bool needs_recreate = entry.texture.is_null() || entry.width != width || entry.height != height || entry.bpp != bpp;
-
-		if (needs_recreate)
-		{
-			if (!entry.texture.is_null())
-				backend.destroy_texture(entry.texture);
-			if (!entry.staging.is_null())
-				backend.destroy_resource(entry.staging);
-
-			texture_desc_t desc = {};
-			desc.texture_format = is_lcd ? format_e::r8g8b8a8_unorm : format_e::r8_unorm;
-			desc.size			= {static_cast<u16>(width), static_cast<u16>(height)};
-			desc.flags			= texture_flags::tf_sampled | texture_flags::tf_transfer_dest | texture_flags::tf_is_2d;
-			desc.mip_levels		= 1;
-			desc.array_length	= 1;
-			desc.samples		= 1;
-			desc.debug_name		= "ui_atlas";
-			entry.texture		= backend.create_texture(desc);
-			entry.gpu_index		= backend.get_texture_gpu_index(entry.texture, 0);
-
-			resource_desc_t s_desc = {};
-			s_desc.size			   = backend.align_texture_size(width * height * bpp);
-			s_desc.flags		   = resource_flags::rf_cpu_visible;
-			s_desc.debug_name	   = "ui_atlas_staging";
-			entry.staging		   = backend.create_resource(s_desc);
-
-			entry.width		   = width;
-			entry.height	   = height;
-			entry.bpp		   = bpp;
-			entry.transitioned = false;
-		}
-
-		if (!atlas->dirty)
-			return;
-
-		const texture_buffer_t mip = {
-			.pixels = atlas->data,
-			.size	= {static_cast<u16>(width), static_cast<u16>(height)},
-			.bpp	= bpp,
-		};
-
-		texture_upload_desc_t upload = {};
-		upload.texture				 = entry.texture;
-		upload.staging				 = entry.staging;
-		upload.mips					 = {&mip, 1};
-		upload.from_states			 = entry.transitioned ? resource_state_ps_resource : resource_state_common;
-		upload.to_states			 = resource_state_ps_resource;
-		upload.ownership			 = texture_data_ownership_e::none;
-		queue.add(upload);
-
-		entry.transitioned = true;
-		atlas->dirty	   = false;
 	}
 
 	void ui_renderer_t::render(gfx_command_buffer_handle cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)

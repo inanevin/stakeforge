@@ -28,14 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/data/hash_map.hpp>
 #include <sfg/math/vec2u16.hpp>
-
-namespace sfg
-{
-	struct atlas_runtime_t;
-	class texture_queue_t;
-}
 
 namespace sfg::ui
 {
@@ -51,9 +44,9 @@ namespace sfg::ui
 	{
 	public:
 		ui_renderer_t()								   = default;
+		~ui_renderer_t()							   = default;
 		ui_renderer_t(const ui_renderer_t&)			   = delete;
 		ui_renderer_t& operator=(const ui_renderer_t&) = delete;
-		~ui_renderer_t();
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -62,12 +55,6 @@ namespace sfg::ui
 		void init(const ui_renderer_config_t& cfg = {});
 		void uninit();
 		void render(gfx_command_buffer_handle cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size);
-
-		// -----------------------------------------------------------------------------
-		// atlas
-		// -----------------------------------------------------------------------------
-
-		void update_atlas(texture_queue_t& queue, atlas_runtime_t* atlas);
 
 	private:
 		struct per_frame_data_t
@@ -81,23 +68,11 @@ namespace sfg::ui
 			gpu_index_t			projection_index  = 0;
 		};
 
-		struct atlas_entry_t
-		{
-			gfx_texture_handle	texture		 = {};
-			gfx_resource_handle staging		 = {};
-			gpu_index_t			gpu_index	 = 0;
-			u32					width		 = 0;
-			u32					height		 = 0;
-			u8					bpp			 = 1;
-			bool				transitioned = false;
-		};
-
 	private:
-		per_frame_data_t			   _pfd[BACK_BUFFER_COUNT] = {};
-		hash_map_t<u32, atlas_entry_t> _atlases;
-		gfx_resource_handle			   _sdf_params		 = {};
-		gpu_index_t					   _sdf_params_index = 0;
-		u32							   _vtx_capacity	 = 0;
-		u32							   _idx_capacity	 = 0;
+		per_frame_data_t	_pfd[BACK_BUFFER_COUNT] = {};
+		gfx_resource_handle _sdf_params				= {};
+		gpu_index_t			_sdf_params_index		= 0;
+		u32					_vtx_capacity			= 0;
+		u32					_idx_capacity			= 0;
 	};
 }

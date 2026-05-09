@@ -6,20 +6,19 @@
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
-#include <cstddef>
+#include <sfg/vendor/moodycamel/concurrentqueue.h>
 
 namespace sfg
 {
 	class istream_t;
 
-	class resource_manager_t
+	class resource_manager_t final
 	{
 	public:
 		static resource_manager_t& get();
 
-		resource_manager_t();
-		~resource_manager_t();
-
+		resource_manager_t()									 = default;
+		~resource_manager_t()									 = default;
 		resource_manager_t(const resource_manager_t&)			 = delete;
 		resource_manager_t& operator=(const resource_manager_t&) = delete;
 
@@ -37,6 +36,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
+		// transfers data ownership to resource manager.
 		resource_state_e		load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
@@ -105,13 +105,9 @@ namespace sfg
 	private:
 		struct load_request_t
 		{
-			u64				 hash		  = 0;
-			chunk_handle32_t runtime	  = {};
-			chunk_handle32_t internals	  = {};
-			span_t<u8>		 runtime_data = {};
-			span_t<u8>		 payload	  = {};
-			resource_type_e	 type		  = resource_type_e::invalid;
-			bool			 success	  = false;
+			u64				 hash		= 0;
+			resource_entry_t copy_entry = {};
+			bool			 success	= false;
 		};
 
 		struct queues_t;
@@ -125,12 +121,13 @@ namespace sfg
 		void			  free_entry_load_data(resource_entry_t& entry);
 
 	private:
-		chunk_allocator_t					_memory;
-		hash_map_t<sid_t, resource_entry_t> _entries;
-		atlas_manager_t						_atlas_manager;
-		vector_t<load_request_t>			_loads;
-		vector_t<u64>						_unloads;
-		queues_t*							_queues	 = nullptr;
-		atomic_t<u32>						_pending = 0;
+		moodycamel::ConcurrentQueue<load_request_t> _completed;
+		chunk_allocator_t							_memory;
+		hash_map_t<sid_t, resource_entry_t>			_entries;
+		atlas_manager_t								_atlas_manager;
+		vector_t<load_request_t>					_loads;
+		vector_t<u64>								_unloads;
+		queues_t*									_queues	 = nullptr;
+		atomic_t<u32>								_pending = 0;
 	};
 }

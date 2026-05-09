@@ -7,25 +7,9 @@
 #include <sfg/job/job_system.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
-#include <sfg/vendor/moodycamel/concurrentqueue.h>
-
-#include <thread>
 
 namespace sfg
 {
-	struct resource_manager_t::queues_t
-	{
-		moodycamel::ConcurrentQueue<load_request_t> completed;
-	};
-
-	resource_manager_t::resource_manager_t() : _queues(new queues_t())
-	{
-	}
-
-	resource_manager_t::~resource_manager_t()
-	{
-		delete _queues;
-	}
 
 	// -----------------------------------------------------------------------------
 	// PUBLIC API
@@ -115,7 +99,7 @@ namespace sfg
 			if (!any_pending)
 				break;
 
-			render_resources_t::get().flush();
+			render_resources_t::get().flush_create_destroys();
 			flush_completed_render_resources();
 		}
 
@@ -138,18 +122,18 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		if (data.size < sizeof(u32) * 5)
+		if (data.size < sizeof(resource_header_t))
 		{
 			SFG_ERR("data does not contain a resource header!");
 			return resource_state_e::failed;
 		}
 
+		/* Span data layout should be: resource_header_t + any (or no) data for runtime metadata + payload */
+
 		istream_t peek;
 		peek.open(data.data, data.size);
 		resource_header_t header = {};
 		header.deserialize(peek);
-
-		const size_t header_disk_size = peek.tellg();
 
 		if (header.magic != desc->wire_magic || header.version != desc->wire_version)
 		{
@@ -157,31 +141,21 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		if (header.payload_offset < header_disk_size || data.size < static_cast<size_t>(header.payload_offset) + header.payload_size)
+		if (data.size == sizeof(resource_header_t))
 		{
-			SFG_ERR("invalid cooked resource, data layout is corrupt!");
+			SFG_ERR("resource data only has header and no payload!");
 			return resource_state_e::failed;
 		}
 
-		const size_t cooked_runtime_size = header.payload_offset - header_disk_size;
-		if (cooked_runtime_size > desc->runtime_size)
-		{
-			SFG_ERR("invalid cooked resource, runtime portion exceeds runtime chunk size!");
-			return resource_state_e::failed;
-		}
-
-		const span_t<u8> runtime_data = {data.data + header_disk_size, cooked_runtime_size};
-		const span_t<u8> payload	  = {data.data + header.payload_offset, header.payload_size};
-
-		resource_entry_t entry = {};
-		entry.type			   = type;
-		entry.ref_count		   = 1;
-		entry.hash			   = hash;
-		entry.load_data		   = data;
-		entry.payload		   = payload;
-		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
-		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::queued;
+		resource_entry_t entry	= {};
+		entry.type				= type;
+		entry.ref_count			= 1;
+		entry.hash				= hash;
+		entry.full_load_data	= data;
+		entry.after_header_data = {data.data + sizeof(resource_header_t), data.size - sizeof(resource_header_t)};
+		entry.runtime			= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
+		entry.internals			= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
+		entry.state				= resource_state_e::queued;
 
 		const size_t name_sz = strlen(debug_name);
 		if (name_sz != 0)
@@ -190,13 +164,9 @@ namespace sfg
 		_entries.emplace(hash, entry);
 
 		_loads.push_back({
-			.hash		  = hash,
-			.runtime	  = entry.runtime,
-			.internals	  = entry.internals,
-			.runtime_data = runtime_data,
-			.payload	  = payload,
-			.type		  = type,
-			.success	  = false,
+			.hash		= hash,
+			.copy_entry = entry,
+			.success	= false,
 		});
 
 		return entry.state;
@@ -240,22 +210,12 @@ namespace sfg
 		for (load_request_t& req : _loads)
 		{
 			job_system_t::get().silent_async([this, req]() mutable {
-				const resource_type_desc_t* desc = find_resource_type_desc(req.type);
-
-				u8* runtime_dst = _memory.get(req.runtime.head);
-				SFG_MEMCPY(runtime_dst, req.runtime_data.data, req.runtime_data.size);
-
-				resource_entry_t local = {};
-				local.hash			   = req.hash;
-				local.runtime		   = req.runtime;
-				local.internals		   = req.internals;
-				local.payload		   = req.payload;
-				local.type			   = req.type;
+				const resource_type_desc_t* desc = find_resource_type_desc(req.copy_entry.type);
 
 				resource_context_t ctx{*this};
-				req.success = desc->load(local, ctx);
+				req.success = desc->load(req.copy_entry, ctx);
 
-				_queues->completed.enqueue(req);
+				_completed.enqueue(req);
 				_pending.fetch_sub(1, std::memory_order_release);
 			});
 		}
@@ -280,7 +240,7 @@ namespace sfg
 	void resource_manager_t::flush_completed_resources()
 	{
 		load_request_t req = {};
-		while (_queues->completed.try_dequeue(req))
+		while (_completed.try_dequeue(req))
 		{
 			resource_entry_t* entry = find_entry(req.hash);
 			SFG_ASSERT(entry);
@@ -315,7 +275,7 @@ namespace sfg
 			}
 			else if (r == create_internals_result_e::queued)
 			{
-				SFG_ASSERT(desc->complete_internals != nullptr);
+				SFG_ASSERT(desc->resource_ready != nullptr);
 				entry->state = resource_state_e::internals_queued;
 				SFG_TRACE("loaded resource and queued internals: {0}", _memory.get_text(entry->debug_name));
 			}
@@ -331,7 +291,7 @@ namespace sfg
 	void resource_manager_t::flush_completed_render_resources()
 	{
 		render_resource_completion_t completion = {};
-		while (render_resources_t::get().try_dequeue_completion(completion))
+		while (render_resources_t::get().drain_completion(completion))
 		{
 			resource_entry_t* entry = find_entry(completion.hash);
 			SFG_ASSERT(entry);
@@ -339,17 +299,17 @@ namespace sfg
 			SFG_ASSERT(entry->state == resource_state_e::internals_queued);
 
 			const resource_type_desc_t* desc = find_resource_type_desc(entry->type);
-			SFG_ASSERT(desc->complete_internals != nullptr);
+			SFG_ASSERT(desc->resource_ready != nullptr);
 
-			resource_context_t				  ctx{*this};
-			const complete_internals_result_e r = desc->complete_internals(*entry, ctx, completion);
-			if (r == complete_internals_result_e::ready)
+			resource_context_t			  ctx{*this};
+			const resource_ready_result_e r = desc->resource_ready(*entry, ctx, completion);
+			if (r == resource_ready_result_e::ready)
 			{
 				entry->state = resource_state_e::ready;
 				SFG_TRACE("loaded resource internals: {0}", _memory.get_text(entry->debug_name));
 				free_entry_load_data(*entry);
 			}
-			else if (r == complete_internals_result_e::failed)
+			else if (r == resource_ready_result_e::failed)
 			{
 				entry->state = resource_state_e::failed;
 				SFG_TRACE("failed loading resource internals: {0}", _memory.get_text(entry->debug_name));
@@ -415,12 +375,12 @@ namespace sfg
 
 	void resource_manager_t::free_entry_load_data(resource_entry_t& entry)
 	{
-		if (entry.load_data.data != nullptr)
+		if (entry.full_load_data.data != nullptr)
 		{
-			delete[] entry.load_data.data;
-			entry.load_data = {};
+			delete[] entry.full_load_data.data;
+			entry.full_load_data = {};
 		}
-		entry.payload = {};
+		entry.after_header_data = {};
 	}
 
 	resource_entry_t* resource_manager_t::find_entry(u64 hash)
