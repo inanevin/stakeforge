@@ -26,6 +26,14 @@
                 "schema": "sfg.schema.shader",
                 "type": "editor_ui_default"
             }
+        },
+        {
+            "name": "font_roboto",
+            "path": "engine/fonts/Roboto-Regular.ttf",
+            "type": "font",
+            "config": {
+                "schema": "sfg.schema.font"
+            }
         }
     ]
 }

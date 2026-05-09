@@ -65,6 +65,8 @@ VSOutput VSMain(VSInput IN)
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	Texture2D atlas    = sfg_get_texture<Texture2D>(sfg_constant_mat0);
-	float     coverage = atlas.SampleLevel(smp_linear, IN.uv, 0).r;
-	return float4(IN.color.rgb, IN.color.a * coverage);
+	float4    sampled  = atlas.SampleLevel(smp_linear, IN.uv, 0);
+	float3    coverage = sampled.rgb;
+	float     alpha    = max(coverage.r, max(coverage.g, coverage.b));
+	return float4(IN.color.rgb * coverage, IN.color.a * alpha);
 }
