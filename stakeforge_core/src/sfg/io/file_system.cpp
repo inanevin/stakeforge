@@ -239,6 +239,20 @@ namespace sfg
 		}
 	}
 
+	void file_system_t::find_lines_with_keyword(const char* file, const char* keyword, vector_t<string_t>& out_lines)
+	{
+		std::ifstream ifs(file);
+		if (!ifs)
+			return;
+
+		std::string line;
+		while (std::getline(ifs, line))
+		{
+			if (line.find(keyword) != std::string::npos)
+				out_lines.push_back(line);
+		}
+	}
+
 	string_t file_system_t::get_running_directory()
 	{
 		try

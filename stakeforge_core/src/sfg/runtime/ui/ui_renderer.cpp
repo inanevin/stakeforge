@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui_renderer.hpp"
+#include "ui_context.hpp"
 #include "vg/vg_canvas.hpp"
 #include <sfg/runtime/resources/atlas.hpp>
 #include <sfg/gfx/backend/backend.hpp>
@@ -53,15 +54,12 @@ namespace sfg::ui
 
 	ui_renderer_t::~ui_renderer_t() = default;
 
-	void ui_renderer_t::init(gfx_shader_handle default_pipeline, gfx_shader_handle text_pipeline, gfx_shader_handle sdf_pipeline, const ui_renderer_config_t& cfg)
+	void ui_renderer_t::init(const ui_renderer_config_t& cfg)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		_default_pipeline = default_pipeline;
-		_text_pipeline	  = text_pipeline;
-		_sdf_pipeline	  = sdf_pipeline;
-		_vtx_capacity	  = cfg.vertex_buffer_bytes;
-		_idx_capacity	  = cfg.index_buffer_bytes;
+		_vtx_capacity = cfg.vertex_buffer_bytes;
+		_idx_capacity = cfg.index_buffer_bytes;
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -126,23 +124,20 @@ namespace sfg::ui
 
 		backend.destroy_resource(_sdf_params);
 
-		_default_pipeline = {};
-		_text_pipeline	  = {};
-		_sdf_pipeline	  = {};
 		_sdf_params		  = {};
 		_sdf_params_index = 0;
 		_vtx_capacity	  = 0;
 		_idx_capacity	  = 0;
 	}
 
-	void ui_renderer_t::update_atlas(texture_queue_t& queue, atlas_t* atlas)
+	void ui_renderer_t::update_atlas(texture_queue_t& queue, atlas_runtime_t* atlas)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const u32  atlas_id = atlas->get_id();
-		const u32  width	= atlas->get_width();
-		const u32  height	= atlas->get_height();
-		const bool is_lcd	= atlas->get_is_lcd();
+		const u32  atlas_id = atlas->id;
+		const u32  width	= atlas->width;
+		const u32  height	= atlas->height;
+		const bool is_lcd	= atlas->is_lcd;
 		const u8   bpp		= is_lcd ? 3u : 1u;
 
 		atlas_entry_t& entry = _atlases[atlas_id];
@@ -179,11 +174,11 @@ namespace sfg::ui
 			entry.transitioned = false;
 		}
 
-		if (!atlas->is_dirty())
+		if (!atlas->dirty)
 			return;
 
 		const texture_buffer_t mip = {
-			.pixels = atlas->get_data(),
+			.pixels = atlas->data,
 			.size	= {static_cast<u16>(width), static_cast<u16>(height)},
 			.bpp	= bpp,
 		};
@@ -198,22 +193,22 @@ namespace sfg::ui
 		queue.add(upload);
 
 		entry.transitioned = true;
-		atlas->clear_dirty();
+		atlas->dirty	   = false;
 	}
 
-	void ui_renderer_t::render(gfx_command_buffer_handle cmd, const vg_canvas_t& canvas, u8 frame_index, vec2u16_t fb_size)
+	void ui_renderer_t::render(gfx_command_buffer_handle cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)
 	{
 		gfx_backend&	  backend = gfx_backend::get();
-		per_frame_data_t& p		  = _pfd[frame_index % BACK_BUFFER_COUNT];
+		per_frame_data_t& pfd	  = _pfd[frame_index % BACK_BUFFER_COUNT];
 
-		const auto& draw_buffers = canvas.get_draw_buffers();
-		if (draw_buffers.empty())
+		const vg_draw_snapshot_t* snap = ctx.acquire_render_snapshot();
+		if (snap == nullptr || snap->draw_buffer_count == 0)
 			return;
 
 		const mat4x4_t proj = mat4x4_t::ortho(0.0f, static_cast<f32>(fb_size.x), 0.0f, static_cast<f32>(fb_size.y), 0.0f, 1.0f);
-		SFG_MEMCPY(p.mapped_projection, proj.m, sizeof(f32) * 16);
+		SFG_MEMCPY(pfd.mapped_projection, proj.m, sizeof(f32) * 16);
 
-		command_bind_constants_t bc_proj = {.data = &p.projection_index, .offset = constant_rp0, .count = 1, .param_index = 0};
+		command_bind_constants_t bc_proj = {.data = &pfd.projection_index, .offset = constant_rp0, .count = 1, .param_index = 0};
 		backend.cmd_bind_constants(cmd, bc_proj);
 
 		u32 vtx_offset = 0;
@@ -221,8 +216,10 @@ namespace sfg::ui
 
 		gfx_shader_handle current_pipeline = {};
 
-		for (const vg_draw_buffer_t& db : draw_buffers)
+		for (u32 i = 0; i < snap->draw_buffer_count; ++i)
 		{
+			const vg_draw_buffer_final_t& db = snap->draw_buffers[i];
+
 			if (db.vertex_count == 0 || db.index_count == 0)
 				continue;
 
@@ -231,23 +228,17 @@ namespace sfg::ui
 
 			if (vtx_offset + vtx_size > _vtx_capacity || idx_offset + idx_size > _idx_capacity)
 			{
-				SFG_ERR("ui_renderer: per-frame upload buffer exhausted, dropping draw");
+				SFG_ERR("per-frame upload buffer exhausted, dropping draw");
 				continue;
 			}
 
-			const ui_render_group_t* user_group = static_cast<const ui_render_group_t*>(db.user_data);
-			const bool				 is_text	= db.font_id != INVALID_ID_U32;
-			const bool				 is_sdf		= is_text && db.font_kind == font_kind_e::sdf;
+			const bool has_atlas = !db.resolved.atlas.is_null();
+			const bool is_sdf	 = has_atlas && db.is_atlas_sdf;
 
-			gfx_shader_handle pipeline = {};
-			if (user_group != nullptr)
-				pipeline = user_group->pipeline;
-			else if (!is_text)
-				pipeline = _default_pipeline;
-			else if (is_sdf)
-				pipeline = _sdf_pipeline;
-			else
-				pipeline = _text_pipeline;
+			const gfx_shader_handle pipeline = db.resolved.pipeline;
+
+			if (pipeline.is_null())
+				continue;
 
 			if (pipeline != current_pipeline)
 			{
@@ -256,12 +247,9 @@ namespace sfg::ui
 				current_pipeline = pipeline;
 			}
 
-			if (is_text)
+			if (has_atlas)
 			{
-				u32		   atlas_index = 0;
-				const auto it		   = _atlases.find(db.atlas_id);
-				if (it != _atlases.end())
-					atlas_index = it->second.gpu_index;
+				gpu_index_t atlas_index = backend.get_texture_gpu_index(db.resolved.atlas, 0);
 
 				command_bind_constants_t bc_mat0 = {.data = &atlas_index, .offset = constant_mat0, .count = 1, .param_index = 0};
 				backend.cmd_bind_constants(cmd, bc_mat0);
@@ -273,14 +261,11 @@ namespace sfg::ui
 				}
 			}
 
-			if (user_group != nullptr)
-			{
-				command_bind_constants_t bc_obj = {.data = const_cast<u32*>(user_group->constants), .offset = constant_obj0, .count = 4, .param_index = 0};
-				backend.cmd_bind_constants(cmd, bc_obj);
-			}
+			command_bind_constants_t bc_obj = {.data = const_cast<gpu_index_t*>(db.resolved.constants), .offset = constant_obj0, .count = 4, .param_index = 0};
+			backend.cmd_bind_constants(cmd, bc_obj);
 
-			SFG_MEMCPY(p.mapped_vtx + vtx_offset, db.vertex_start, vtx_size);
-			SFG_MEMCPY(p.mapped_idx + idx_offset, db.index_start, idx_size);
+			SFG_MEMCPY(pfd.mapped_vtx + vtx_offset, snap->vertices + db.vertex_offset, vtx_size);
+			SFG_MEMCPY(pfd.mapped_idx + idx_offset, snap->indices + db.index_offset, idx_size);
 
 			const u16			   sx = static_cast<u16>(math::max(0.0f, db.clip.x));
 			const u16			   sy = static_cast<u16>(math::max(0.0f, db.clip.y));
@@ -290,14 +275,14 @@ namespace sfg::ui
 			backend.cmd_set_scissors(cmd, sc);
 
 			command_bind_vertex_buffers_t vb = {};
-			vb.buffer_t						 = p.vertex_buffer;
+			vb.buffer_t						 = pfd.vertex_buffer;
 			vb.slot							 = 0;
 			vb.vertex_size					 = sizeof(vg_vertex_t);
 			vb.offset						 = vtx_offset;
 			backend.cmd_bind_vertex_buffers(cmd, vb);
 
 			command_bind_index_buffers_t ib = {};
-			ib.buffer_t						= p.index_buffer;
+			ib.buffer_t						= pfd.index_buffer;
 			ib.offset						= idx_offset;
 			ib.index_size					= sizeof(vg_index_t);
 			backend.cmd_bind_index_buffers(cmd, ib);

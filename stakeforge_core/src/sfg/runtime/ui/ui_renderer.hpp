@@ -33,19 +33,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class atlas_t;
+	struct atlas_runtime_t;
 	class texture_queue_t;
 }
 
 namespace sfg::ui
 {
-	class vg_canvas_t;
-
-	struct ui_render_group_t
-	{
-		gfx_shader_handle pipeline	   = {};
-		u32				  constants[4] = {};
-	};
+	class ui_context;
 
 	struct ui_renderer_config_t
 	{
@@ -65,15 +59,15 @@ namespace sfg::ui
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(gfx_shader_handle default_pipeline, gfx_shader_handle text_pipeline, gfx_shader_handle sdf_pipeline, const ui_renderer_config_t& cfg = {});
+		void init(const ui_renderer_config_t& cfg = {});
 		void uninit();
-		void render(gfx_command_buffer_handle cmd, const vg_canvas_t& canvas, u8 frame_index, vec2u16_t fb_size);
+		void render(gfx_command_buffer_handle cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size);
 
 		// -----------------------------------------------------------------------------
 		// atlas
 		// -----------------------------------------------------------------------------
 
-		void update_atlas(texture_queue_t& queue, atlas_t* atlas);
+		void update_atlas(texture_queue_t& queue, atlas_runtime_t* atlas);
 
 	private:
 		struct per_frame_data_t
@@ -84,14 +78,14 @@ namespace sfg::ui
 			u8*					mapped_vtx		  = nullptr;
 			u8*					mapped_idx		  = nullptr;
 			u8*					mapped_projection = nullptr;
-			u32					projection_index  = 0;
+			gpu_index_t			projection_index  = 0;
 		};
 
 		struct atlas_entry_t
 		{
 			gfx_texture_handle	texture		 = {};
 			gfx_resource_handle staging		 = {};
-			u32					gpu_index	 = 0;
+			gpu_index_t			gpu_index	 = 0;
 			u32					width		 = 0;
 			u32					height		 = 0;
 			u8					bpp			 = 1;
@@ -101,11 +95,8 @@ namespace sfg::ui
 	private:
 		per_frame_data_t			   _pfd[BACK_BUFFER_COUNT] = {};
 		hash_map_t<u32, atlas_entry_t> _atlases;
-		gfx_shader_handle			   _default_pipeline = {};
-		gfx_shader_handle			   _text_pipeline	 = {};
-		gfx_shader_handle			   _sdf_pipeline	 = {};
 		gfx_resource_handle			   _sdf_params		 = {};
-		u32							   _sdf_params_index = 0;
+		gpu_index_t					   _sdf_params_index = 0;
 		u32							   _vtx_capacity	 = 0;
 		u32							   _idx_capacity	 = 0;
 	};

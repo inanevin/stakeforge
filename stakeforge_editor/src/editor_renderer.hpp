@@ -8,7 +8,7 @@
 #include <sfg/gfx/common/semaphore_data.hpp>
 #include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/math/vec2u16.hpp>
-#include <sfg/ui/ui_renderer.hpp>
+#include <sfg/runtime/ui/ui_renderer.hpp>
 
 #include <thread>
 
@@ -16,7 +16,7 @@ namespace sfg
 {
 	namespace ui
 	{
-		class vg_canvas_t;
+		class ui_context;
 	}
 
 	class editor_renderer_t
@@ -34,6 +34,7 @@ namespace sfg
 		struct surface_render_target_t
 		{
 			gfx_swapchain_handle swapchain = {};
+			ui::ui_context*		 ui		   = nullptr;
 			vec2u16_t			 size	   = {};
 			bool				 minimized = false;
 		};
@@ -59,7 +60,7 @@ namespace sfg
 		// swapchain
 		// -----------------------------------------------------------------------------
 
-		gfx_swapchain_handle create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size);
+		gfx_swapchain_handle create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size, ui::ui_context* ui);
 		void				 resize_swapchain(gfx_swapchain_handle swapchain, vec2u16_t size, f32 dpi_scale);
 		void				 destroy_swapchain(gfx_swapchain_handle swapchain);
 		void				 set_swapchain_minimized(gfx_swapchain_handle handle, bool is_minimized);
@@ -72,8 +73,11 @@ namespace sfg
 		per_frame_data_t				  _pfd[BACK_BUFFER_COUNT] = {};
 		texture_queue_t					  _texture_queue		  = {};
 		vector_t<surface_render_target_t> _render_targets;
-		u64								  _frame_counter = 0;
-		u8								  _frame_index	 = 0;
+		gfx_shader_handle				  _shader_ui_default = {};
+		gfx_shader_handle				  _shader_ui_text	 = {};
+		gfx_shader_handle				  _shader_ui_sdf	 = {};
+		u64								  _frame_counter	 = 0;
+		u8								  _frame_index		 = 0;
 		std::thread						  _render_thread;
 		atomic_t<bool>					  _render_thread_active = false;
 	};

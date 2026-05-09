@@ -4,6 +4,8 @@
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/data/ostream_vector.hpp>
+#include <sfg/data/istream_vector.hpp>
 
 #include "animation.hpp"
 #include "animation_state_machine.hpp"
@@ -23,13 +25,14 @@ namespace sfg
 {
 	void resource_header_t::serialize(ostream_t& stream) const
 	{
-		stream << magic << version << payload_size << payload_offset << modified_ticks;
+		stream << magic << version << payload_size << payload_offset;
+		stream << source_ticks;
 	}
 
-	bool resource_header_t::deserialize(istream_t& stream)
+	void resource_header_t::deserialize(istream_t& stream)
 	{
-		stream >> magic >> version >> payload_size >> payload_offset >> modified_ticks;
-		return true;
+		stream >> magic >> version >> payload_size >> payload_offset;
+		stream >> source_ticks;
 	}
 
 	void resource_header_t::patch_payload_offset(ostream_t& stream, size_t header_pos) const

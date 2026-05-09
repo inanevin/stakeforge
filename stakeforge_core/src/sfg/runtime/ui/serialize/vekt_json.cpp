@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vekt_json.hpp"
-#include <sfg/ui/ui_context.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg::ui
@@ -96,23 +96,24 @@ namespace sfg::ui
 			p.filled			= j.value("filled", true);
 		}
 
-		nlohmann::json text_paint_to_json(const vg_text_paint_t& p)
+		nlohmann::json text_style_to_json(const vg_text_style_t& s)
 		{
 			nlohmann::json j;
-			j["color"]	 = p.color;
-			j["scale"]	 = p.scale;
-			j["spacing"] = p.spacing;
-			j["flip"]	 = p.flip_uv;
+			j["font"]	 = s.font;
+			j["color"]	 = s.color;
+			j["scale"]	 = s.scale;
+			j["spacing"] = s.spacing;
+			j["flip"]	 = s.flip_uv;
 			return j;
 		}
 
-		void text_paint_from_json(const nlohmann::json& j, vg_text_paint_t& p)
+		void text_style_from_json(const nlohmann::json& j, vg_text_style_t& s)
 		{
-			p.color	  = j.value("color", vec4f_t{1, 1, 1, 1});
-			p.scale	  = j.value("scale", 1.0f);
-			p.spacing = j.value("spacing", static_cast<u8>(0));
-			p.flip_uv = j.value("flip", false);
-			p.font	  = nullptr;
+			s.font	  = j.value<resource_handle_t>("font", NULL_RESOURCE_HANDLE);
+			s.color	  = j.value("color", vec4f_t{1, 1, 1, 1});
+			s.scale	  = j.value("scale", 1.0f);
+			s.spacing = j.value("spacing", static_cast<u8>(0));
+			s.flip_uv = j.value("flip", false);
 		}
 
 		nlohmann::json paint_def_to_json(const paint_def_t& d, const char* text_data, u32 text_len)
@@ -131,7 +132,7 @@ namespace sfg::ui
 				j["rect"] = rect_paint_to_json(d.rect);
 			else if (d.kind == paint_kind_e::text)
 			{
-				j["text"]	   = text_paint_to_json(d.text);
+				j["text"]	   = text_style_to_json(d.text);
 				j["text_data"] = std::string(text_data ? text_data : "", text_len);
 			}
 			return j;
@@ -179,7 +180,7 @@ namespace sfg::ui
 				rect_paint_from_json(jp.at("rect"), pd.rect);
 			else if (pd.kind == paint_kind_e::text && jp.contains("text"))
 			{
-				text_paint_from_json(jp.at("text"), pd.text);
+				text_style_from_json(jp.at("text"), pd.text);
 				const std::string td = jp.value("text_data", std::string());
 				ui.set_widget_text(id, td.c_str(), static_cast<u32>(td.size()));
 				pd.text_data = ui.widget_text(id);

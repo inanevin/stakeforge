@@ -129,10 +129,10 @@ namespace sfg
 
 		const size_t	  header_pos = stream.get_size();
 		resource_header_t header	 = {
-				.magic			= font_loader_t::WIRE_MAGIC,
-				.version		= font_loader_t::WIRE_VERSION,
-				.payload_size	= total_pixels,
-				.modified_ticks = file_system_t::get_last_modified_ticks(full_path),
+				.magic		  = font_loader_t::WIRE_MAGIC,
+				.version	  = font_loader_t::WIRE_VERSION,
+				.payload_size = total_pixels,
+				.source_ticks = {file_system_t::get_last_modified_ticks(full_path)},
 		};
 		header.serialize(stream);
 

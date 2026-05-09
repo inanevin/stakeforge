@@ -52,6 +52,7 @@ namespace sfg
 		u32					 size			 = 0;
 		f32					 scale			 = 0.0f;
 		font_kind_e			 kind			 = font_kind_e::bitmap;
+		resource_handle_t	 atlas			 = NULL_RESOURCE_HANDLE;
 		font_runtime_glyph_t glyph_info[128] = {};
 	};
 

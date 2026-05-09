@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/span.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec4f.hpp>
-#include <sfg/ui/ui_common.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
 {

@@ -4,6 +4,8 @@
 #include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
+#include "editor_ui_tests.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/frame_allocator.hpp>
@@ -11,8 +13,8 @@
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/ui/ui_context.hpp>
-#include <sfg/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
 
 namespace sfg
 {
@@ -112,6 +114,8 @@ namespace sfg
 			return false;
 		}
 
+		resource_manager_t::get().wait_for_all_complete();
+
 		if (!_renderer.init())
 		{
 			_resource_pack.uninit();
@@ -191,11 +195,18 @@ namespace sfg
 		cfg.atlas_width		= 1024;
 		cfg.atlas_height	= 1024;
 		surface.ui->init(cfg);
+
+		ui::ui_pipelines_t pipelines = {};
+		pipelines.default_pipeline	 = "editor/shaders/ui_default.hlsl"_hs;
+		pipelines.text_pipeline		 = "editor/shaders/ui_text.hlsl"_hs;
+		pipelines.sdf_pipeline		 = "editor/shaders/ui_sdf.hlsl"_hs;
+		surface.ui->set_pipelines(pipelines);
+
+		editor_ui_tests_t::make_test_general(*surface.ui);
 	}
 
 	void editor_app_t::tick()
 	{
-
 		bool tick = true;
 		while (tick)
 		{
@@ -242,6 +253,7 @@ namespace sfg
 				{
 					const vec4f_t screen = {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					surface.ui->tick(screen, dt);
+					surface.ui->publish_frame();
 				}
 			}
 
@@ -278,15 +290,15 @@ namespace sfg
 			return {};
 		}
 
-		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size);
+		init_surface_ui(surface);
+
+		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size, surface.ui.get());
 		surface.swapchain_size = surface.runtime.size;
 		surface.settings_idx   = editor_settings_t::get().add_window({
 			  .position		 = surface.runtime.pos,
 			  .size			 = surface.runtime.size,
 			  .monitor_ident = surface.runtime.monitor_info.device_hash,
 		  });
-
-		init_surface_ui(surface);
 
 		surface.runtime.event_callback			 = &editor_app_t::on_window_event;
 		surface.runtime.event_callback_user_data = &surface;

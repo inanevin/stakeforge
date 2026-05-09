@@ -30,8 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/math/vec4f.hpp>
-#include <sfg/ui/ui_common.hpp>
-#include <sfg/ui/vg/vg_canvas.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
+#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg::ui
 {
@@ -58,10 +58,11 @@ namespace sfg::ui
 
 	struct paint_def_t
 	{
-		paint_kind_e	kind		= paint_kind_e::none;
-		u8				state_flags = 0;
-		vg_rect_paint_t rect		= {};
-		vg_text_paint_t text		= {};
+		paint_kind_e	  kind		   = paint_kind_e::none;
+		u8				  state_flags  = 0;
+		vg_rect_paint_t	  rect		   = {};
+		vg_text_style_t	  text		   = {};
+		ui_render_state_t render_state = {};
 		// paint layer does not own this memory.
 		const char* text_data = nullptr;
 		u32			text_len  = 0;
@@ -98,8 +99,9 @@ namespace sfg::ui
 		// -----------------------------------------------------------------------------
 
 		void set_rect(widget_id_t id, const vg_rect_paint_t& p);
-		void set_text(widget_id_t id, const char* text, u32 len, const vg_text_paint_t& p);
+		void set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s);
 		void set_custom(widget_id_t id, paint_custom_fn fn, void* user_data);
+		void set_render_state(widget_id_t id, const ui_render_state_t& s);
 		void set_hover_color(widget_id_t id, const vec4f_t& c);
 		void set_press_color(widget_id_t id, const vec4f_t& c);
 		void set_focus_color(widget_id_t id, const vec4f_t& c);

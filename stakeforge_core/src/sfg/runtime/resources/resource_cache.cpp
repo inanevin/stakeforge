@@ -21,7 +21,7 @@ namespace sfg
 			if (!p.empty() && p.back() != '/')
 				p += '/';
 			p += name;
-			p += ".sfg_cache";
+			p += ".sfg_bin";
 			return p;
 		}
 	}
@@ -46,8 +46,19 @@ namespace sfg
 
 		resource_header_t header = {};
 		header.deserialize(stream);
-		if (header.magic != expected.magic || header.version != expected.version || header.modified_ticks != expected.modified_ticks)
+
+		if (header.magic != expected.magic || header.version != expected.version)
 			return {};
+
+		const u32 hash_sz = static_cast<u32>(expected.source_ticks.size());
+		for (u32 i = 0; i < hash_sz; i++)
+		{
+			const u32 header_sz = static_cast<u32>(header.source_ticks.size());
+			if (header_sz <= i)
+				return {};
+			if (header.source_ticks[i] != expected.source_ticks[i])
+				return {};
+		}
 
 		stream.seek(0);
 		return stream;

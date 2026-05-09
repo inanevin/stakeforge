@@ -27,6 +27,51 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.hpp"
 #include "memory_tracer.hpp"
 
+namespace sfg
+{
+	void* malloc_traced(size_t size)
+	{
+		void* ptr = malloc(size);
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		memory_tracer_t::get().on_allocation(ptr, size);
+#endif
+		return ptr;
+	}
+
+	void free_traced(void* ptr)
+	{
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		memory_tracer_t::get().on_free(ptr);
+#endif
+		free(ptr);
+	}
+
+	void* aligned_malloc_traced(size_t alignment, size_t size)
+	{
+#ifdef SFG_COMPILER_MSVC
+		void* ptr = _aligned_malloc(size, alignment);
+#else
+		void* ptr = std::aligned_alloc(alignment, size);
+#endif
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		memory_tracer_t::get().on_allocation(ptr, size);
+#endif
+		return ptr;
+	}
+
+	void aligned_free_traced(void* ptr)
+	{
+#ifdef SFG_ENABLE_MEMORY_TRACER
+		memory_tracer_t::get().on_free(ptr);
+#endif
+#ifdef SFG_COMPILER_MSVC
+		_aligned_free(ptr);
+#else
+		std::free(ptr);
+#endif
+	}
+}
+
 void* operator new(std::size_t size)
 {
 	void* ptr = malloc(size);

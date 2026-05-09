@@ -29,13 +29,54 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/data/span.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/font.hpp>
-#include <sfg/ui/ui_common.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg
+{
+	class resource_manager_t;
+}
 
 namespace sfg::ui
 {
+	struct ui_pipelines_t
+	{
+		resource_handle_t default_pipeline = 0;
+		resource_handle_t text_pipeline	   = 0;
+		resource_handle_t sdf_pipeline	   = 0;
+	};
+
+	enum class ui_resource_type_e : u8
+	{
+		none,
+		texture,
+	};
+
+	struct ui_resource_ref_t
+	{
+		resource_handle_t  handle = NULL_RESOURCE_HANDLE;
+		ui_resource_type_e type	  = ui_resource_type_e::none;
+	};
+
+	struct ui_render_state_t
+	{
+		resource_handle_t pipeline	   = NULL_RESOURCE_HANDLE;
+		resource_handle_t atlas		   = NULL_RESOURCE_HANDLE;
+		ui_resource_ref_t constants[4] = {};
+		bool			  is_atlas_sdf = false;
+	};
+
+	struct ui_resolved_state_t
+	{
+		gfx_shader_handle  pipeline		= {};
+		gfx_texture_handle atlas		= {};
+		gpu_index_t		   constants[4] = {};
+	};
+
 	struct vg_vertex_t
 	{
 		vec2f_t pos;
@@ -81,38 +122,67 @@ namespace sfg::ui
 		bool	filled		 = true;
 	};
 
+	struct vg_text_style_t
+	{
+		resource_handle_t font	  = NULL_RESOURCE_HANDLE;
+		vec4f_t			  color	  = {1, 1, 1, 1};
+		f32				  scale	  = 1.0f;
+		u8				  spacing = 0;
+		bool			  flip_uv = false;
+	};
+
 	struct vg_text_paint_t
 	{
-		font_runtime_t* font	= nullptr;
-		vec4f_t			color	= {1, 1, 1, 1};
-		f32				scale	= 1.0f;
-		u8				spacing = 0;
-		bool			flip_uv = false;
+		const font_runtime_t* font	  = nullptr;
+		vec4f_t				  color	  = {1, 1, 1, 1};
+		f32					  scale	  = 1.0f;
+		u8					  spacing = 0;
+		bool				  flip_uv = false;
 	};
 
 	struct vg_draw_buffer_t
 	{
-		vg_vertex_t* vertex_start	 = nullptr;
-		vg_index_t*	 index_start	 = nullptr;
-		void*		 user_data		 = nullptr;
-		vec4f_t		 clip			 = {0, 0, 0, 0};
-		u32			 atlas_id		 = INVALID_ID_U32;
-		u32			 font_id		 = INVALID_ID_U32;
-		u32			 draw_order		 = 0;
-		u32			 vertex_count	 = 0;
-		u32			 index_count	 = 0;
-		u32			 vertex_capacity = 0;
-		u32			 index_capacity	 = 0;
-		font_kind_e	 font_kind		 = font_kind_e::bitmap;
+		vg_vertex_t*		vertex_start	= nullptr;
+		vg_index_t*			index_start		= nullptr;
+		ui_render_state_t	state			= {};
+		ui_resolved_state_t resolved		= {};
+		vec4f_t				clip			= {0, 0, 0, 0};
+		u32					draw_order		= 0;
+		u32					vertex_count	= 0;
+		u32					index_count		= 0;
+		u32					vertex_capacity = 0;
+		u32					index_capacity	= 0;
+	};
+
+	struct vg_draw_buffer_final_t
+	{
+		ui_resolved_state_t resolved	  = {};
+		vec4f_t				clip		  = {0, 0, 0, 0};
+		u32					draw_order	  = 0;
+		u32					vertex_count  = 0;
+		u32					index_count	  = 0;
+		u32					vertex_offset = 0;
+		u32					index_offset  = 0;
+		bool				is_atlas_sdf  = false;
+	};
+
+	struct vg_draw_snapshot_t
+	{
+		const vg_draw_buffer_final_t* draw_buffers		= nullptr;
+		const vg_vertex_t*			  vertices			= nullptr;
+		const vg_index_t*			  indices			= nullptr;
+		u32							  draw_buffer_count = 0;
+		u32							  vertex_count		= 0;
+		u32							  index_count		= 0;
 	};
 
 	struct vg_canvas_config_t
 	{
-		u64 vertex_buffer_bytes		= 1u << 20; // 1 MB
-		u64 index_buffer_bytes		= 1u << 20; // 1 MB
+		u64 vertex_buffer_bytes		= 1u << 22; // 4 MB
+		u64 index_buffer_bytes		= 1u << 22; // 4 MB
 		u32 buffer_count			= 64;
-		u32 text_cache_vertex_bytes = 1u << 20;
-		u32 text_cache_index_bytes	= 1u << 20;
+		u32 text_cache_vertex_bytes = 1u << 22;
+		u32 text_cache_index_bytes	= 1u << 22;
 		u32 clip_stack_capacity		= 64;
 	};
 
@@ -144,13 +214,25 @@ namespace sfg::ui
 		static vec2f_t measure_text(const char* text, size_t len, const vg_text_paint_t& paint);
 
 		// -----------------------------------------------------------------------------
+		// pipelines
+		// -----------------------------------------------------------------------------
+
+		void set_pipelines(const ui_pipelines_t& pipelines);
+		void resolve();
+
+		inline const ui_pipelines_t& get_pipelines() const
+		{
+			return _pipelines;
+		}
+
+		// -----------------------------------------------------------------------------
 		// paint
 		// -----------------------------------------------------------------------------
 
-		void add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, u32 draw_order = 0, void* user_data = nullptr);
-		void add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, u32 draw_order = 0, void* user_data = nullptr);
-		void add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, u32 draw_order = 0, void* user_data = nullptr);
-		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, u32 draw_order = 0, void* user_data = nullptr, bool use_cache = true);
+		void add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {});
+		void add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {});
+		void add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {});
+		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {}, bool use_cache = true);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -162,7 +244,7 @@ namespace sfg::ui
 		}
 
 	private:
-		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, void* user_data, font_runtime_t* font);
+		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, const ui_render_state_t& state);
 		vec4f_t			  intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
 
 	private:
@@ -186,6 +268,7 @@ namespace sfg::ui
 		vector_t<vec2f_t>			 _path0;
 		vector_t<vec2f_t>			 _path1;
 		vector_t<vec2f_t>			 _path2;
+		ui_pipelines_t				 _pipelines					 = {};
 		vg_vertex_t*				 _vertex_pool				 = nullptr;
 		vg_index_t*					 _index_pool				 = nullptr;
 		vg_vertex_t*				 _text_cache_vertex_buffer	 = nullptr;

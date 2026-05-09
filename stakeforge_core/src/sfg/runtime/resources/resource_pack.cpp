@@ -183,7 +183,7 @@ namespace sfg
 			if (entry.type == resource_type_e::invalid)
 			{
 				SFG_ERR("resource_pack: invalid type for {0}", entry.path.c_str());
-				continue;
+				return false;
 			}
 
 			const string_t source_path = params.assets_dir + entry.path;
@@ -192,28 +192,31 @@ namespace sfg
 			if (!file_system_t::exists(source_path.c_str()))
 			{
 				SFG_ERR("resource_pack: source missing: {0}", source_path.c_str());
-				continue;
+				return false;
 			}
 
 			const resource_type_desc_t* const desc	   = find_resource_type_desc(entry.type);
-			const resource_header_t			  expected = {
-						  .magic		  = desc != nullptr ? desc->wire_magic : 0,
-						  .version		  = desc != nullptr ? desc->wire_version : 0,
-						  .modified_ticks = file_system_t::get_last_modified_ticks(source_path.c_str()),
-			  };
+			resource_header_t				  expected = {
+								.magic	 = desc != nullptr ? desc->wire_magic : 0,
+								.version = desc != nullptr ? desc->wire_version : 0,
+			};
+			if (entry.type == resource_type_e::shader)
+				shader_cooker::collect_source_ticks(source_path.c_str(), expected.source_ticks);
+			else
+				expected.source_ticks.push_back(file_system_t::get_last_modified_ticks(source_path.c_str()));
 
 			span_t<u8> data	  = {};
 			istream_t  cached = resource_cache_t::try_load(_cache_dir.c_str(), entry.name.c_str(), expected);
 			if (!cached.empty())
 				data = cached.evict();
 			else if (!cook_and_cache(source_path, entry.name, entry.config, _cache_dir, data))
-				continue;
+				return false;
 
 			const auto st = mgr.load_resource(sid, entry.path.c_str(), data, entry.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("resource_pack: load_resource failed for {0}", source_path.c_str());
-				continue;
+				return false;
 			}
 
 			_loaded.push_back(sid);

@@ -31,6 +31,7 @@ namespace sfg
 		void uninit();
 		void flush();
 		void wait_for_all();
+		void wait_for_all_complete();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -39,6 +40,38 @@ namespace sfg
 		resource_state_e		load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
+
+		// -----------------------------------------------------------------------------
+		// queries
+		// -----------------------------------------------------------------------------
+
+		template <typename T> inline const T* find_internals(u64 hash)
+		{
+			const resource_entry_t* entry = find_entry(hash);
+			if (entry == nullptr || entry->state != resource_state_e::ready || entry->internals.size == 0)
+				return nullptr;
+			return _memory.get<T>(entry->internals);
+		}
+
+		template <typename T> inline const T* find_runtime(u64 hash)
+		{
+			const resource_entry_t* entry = find_entry(hash);
+			if (entry == nullptr || entry->state < resource_state_e::cpu_ready || entry->state == resource_state_e::failed || entry->runtime.size == 0)
+				return nullptr;
+			return _memory.get<T>(entry->runtime);
+		}
+
+		inline bool is_ready(u64 hash) const
+		{
+			const resource_entry_t* entry = find_entry(hash);
+			return entry != nullptr && entry->state == resource_state_e::ready;
+		}
+
+		inline resource_state_e get_entry_state(u64 hash) const
+		{
+			const resource_entry_t* entry = find_entry(hash);
+			return entry != nullptr ? entry->state : resource_state_e::failed;
+		}
 
 		// -----------------------------------------------------------------------------
 		// accessors

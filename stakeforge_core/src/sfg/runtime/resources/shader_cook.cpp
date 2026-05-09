@@ -103,11 +103,11 @@ namespace sfg
 
 		const size_t	  header_pos = stream.get_size();
 		resource_header_t header	 = {
-				.magic			= shader_loader_t::WIRE_MAGIC,
-				.version		= shader_loader_t::WIRE_VERSION,
-				.payload_size	= payload_size,
-				.modified_ticks = file_system_t::get_last_modified_ticks(full_path),
+				.magic		  = shader_loader_t::WIRE_MAGIC,
+				.version	  = shader_loader_t::WIRE_VERSION,
+				.payload_size = payload_size,
 		};
+		shader_cooker::collect_source_ticks(full_path, header.source_ticks);
 		header.serialize(stream);
 
 		stream << cfg.type;
@@ -155,6 +155,33 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	void shader_cooker::collect_source_ticks(const char* full_path, vector_t<u64>& out)
+	{
+		out.push_back(file_system_t::get_last_modified_ticks(full_path));
+
+		string_t directory = file_system_t::get_directory_of_file(full_path);
+		if (!directory.empty() && directory.back() != '/')
+			directory += '/';
+
+		vector_t<string_t> include_lines;
+		file_system_t::find_lines_with_keyword(full_path, "#include", include_lines);
+
+		out.reserve(out.size() + include_lines.size());
+		for (const string_t& line : include_lines)
+		{
+			const size_t open_quote = line.find('"');
+			if (open_quote == string_t::npos)
+				continue;
+			const size_t close_quote = line.find('"', open_quote + 1);
+			if (close_quote == string_t::npos)
+				continue;
+
+			const string_t rel_path = line.substr(open_quote + 1, close_quote - open_quote - 1);
+			const string_t resolved = directory + rel_path;
+			out.push_back(file_system_t::get_last_modified_ticks(resolved.c_str()));
+		}
 	}
 
 	void from_json(const nlohmann::json& j, shader_cook_config_t& c)

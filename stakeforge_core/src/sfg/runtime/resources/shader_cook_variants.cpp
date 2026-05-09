@@ -48,7 +48,7 @@ namespace sfg
 
 		shader_desc_t desc						  = {};
 		desc.topo								  = topology::triangle_list;
-		desc.cull								  = cull_mode::front;
+		desc.cull								  = cull_mode::back;
 		desc.front								  = front_face::cw;
 		desc.fill								  = fill_mode::solid;
 		desc.poly_mode							  = polygon_mode::fill;

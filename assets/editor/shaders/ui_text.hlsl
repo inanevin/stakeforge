@@ -55,7 +55,7 @@ struct VSOutput
 VSOutput VSMain(VSInput IN)
 {
 	VSOutput OUT;
-	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_rp_constant0);
+	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_constant_rp0);
 	OUT.pos   = mul(proj.projection, float4(IN.pos, 0.0f, 1.0f));
 	OUT.uv    = IN.uv;
 	OUT.color = IN.color;
@@ -64,7 +64,7 @@ VSOutput VSMain(VSInput IN)
 
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	Texture2D atlas    = sfg_get_texture<Texture2D>(sfg_mat_constant0);
+	Texture2D atlas    = sfg_get_texture<Texture2D>(sfg_constant_mat0);
 	float     coverage = atlas.SampleLevel(smp_linear, IN.uv, 0).r;
 	return float4(IN.color.rgb, IN.color.a * coverage);
 }

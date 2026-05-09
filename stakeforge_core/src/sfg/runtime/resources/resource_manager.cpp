@@ -54,26 +54,7 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		wait_for_all();
-
-		// wait for queued internals to finish
-		while (true)
-		{
-			bool any_pending = false;
-			for (auto& kv : _entries)
-			{
-				if (kv.second.state == resource_state_e::internals_queued)
-				{
-					any_pending = true;
-					break;
-				}
-			}
-			if (!any_pending)
-				break;
-
-			render_resources_t::get().flush();
-			flush_completed_render_resources();
-		}
+		wait_for_all_complete();
 
 		for (auto& pair : _entries)
 		{
@@ -106,10 +87,38 @@ namespace sfg
 	void resource_manager_t::wait_for_all()
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-
 		fire_loads(true);
 		flush_completed_resources();
 		flush_completed_render_resources();
+		flush_unloads();
+	}
+
+	void resource_manager_t::wait_for_all_complete()
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		fire_loads(true);
+		flush_completed_resources();
+
+		while (true)
+		{
+			bool any_pending = false;
+			for (auto& kv : _entries)
+			{
+				if (kv.second.state == resource_state_e::internals_queued)
+				{
+					any_pending = true;
+					break;
+				}
+			}
+			if (!any_pending)
+				break;
+
+			render_resources_t::get().flush();
+			flush_completed_render_resources();
+		}
+
 		flush_unloads();
 	}
 
@@ -129,7 +138,7 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		if (data.size <= sizeof(resource_header_t))
+		if (data.size < sizeof(u32) * 5)
 		{
 			SFG_ERR("data does not contain a resource header!");
 			return resource_state_e::failed;
@@ -140,26 +149,28 @@ namespace sfg
 		resource_header_t header = {};
 		header.deserialize(peek);
 
+		const size_t header_disk_size = peek.tellg();
+
 		if (header.magic != desc->wire_magic || header.version != desc->wire_version)
 		{
 			SFG_ERR("invalid cooked resource, magic or version does not match! [magic-desc_magic]: {0} - {1}, [version-desc_version]: {2} - {3}", header.magic, desc->wire_magic, header.version, desc->wire_version);
 			return resource_state_e::failed;
 		}
 
-		if (header.payload_offset < sizeof(resource_header_t) || data.size < static_cast<size_t>(header.payload_offset) + header.payload_size)
+		if (header.payload_offset < header_disk_size || data.size < static_cast<size_t>(header.payload_offset) + header.payload_size)
 		{
 			SFG_ERR("invalid cooked resource, data layout is corrupt!");
 			return resource_state_e::failed;
 		}
 
-		const size_t cooked_runtime_size = header.payload_offset - sizeof(resource_header_t);
+		const size_t cooked_runtime_size = header.payload_offset - header_disk_size;
 		if (cooked_runtime_size > desc->runtime_size)
 		{
 			SFG_ERR("invalid cooked resource, runtime portion exceeds runtime chunk size!");
 			return resource_state_e::failed;
 		}
 
-		const span_t<u8> runtime_data = {data.data + sizeof(resource_header_t), cooked_runtime_size};
+		const span_t<u8> runtime_data = {data.data + header_disk_size, cooked_runtime_size};
 		const span_t<u8> payload	  = {data.data + header.payload_offset, header.payload_size};
 
 		resource_entry_t entry = {};

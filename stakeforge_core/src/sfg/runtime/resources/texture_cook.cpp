@@ -48,10 +48,10 @@ namespace sfg
 
 		const size_t	  header_pos = stream.get_size();
 		resource_header_t header	 = {
-				.magic			= texture_loader_t::WIRE_MAGIC,
-				.version		= texture_loader_t::WIRE_VERSION,
-				.payload_size	= total,
-				.modified_ticks = file_system_t::get_last_modified_ticks(full_path),
+				.magic		  = texture_loader_t::WIRE_MAGIC,
+				.version	  = texture_loader_t::WIRE_VERSION,
+				.payload_size = total,
+				.source_ticks = {file_system_t::get_last_modified_ticks(full_path)},
 		};
 		header.serialize(stream);
 

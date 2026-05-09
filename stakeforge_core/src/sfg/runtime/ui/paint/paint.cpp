@@ -26,8 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "paint.hpp"
 #include <sfg/io/assert.hpp>
-#include <sfg/ui/input/input_router.hpp>
-#include <sfg/ui/layout/layout_tree.hpp>
+#include <sfg/runtime/resources/atlas.hpp>
+#include <sfg/runtime/resources/font.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/layout/layout_tree.hpp>
 
 namespace sfg::ui
 {
@@ -68,11 +71,11 @@ namespace sfg::ui
 		_defs[id].rect = p;
 	}
 
-	void paint_layer_t::set_text(widget_id_t id, const char* text, u32 len, const vg_text_paint_t& p)
+	void paint_layer_t::set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s)
 	{
 		SFG_ASSERT(id < _defs.size());
 		_defs[id].kind		= paint_kind_e::text;
-		_defs[id].text		= p;
+		_defs[id].text		= s;
 		_defs[id].text_data = text;
 		_defs[id].text_len	= len;
 	}
@@ -83,6 +86,12 @@ namespace sfg::ui
 		_defs[id].kind		= paint_kind_e::custom;
 		_defs[id].custom_fn = fn;
 		_defs[id].custom_ud = user_data;
+	}
+
+	void paint_layer_t::set_render_state(widget_id_t id, const ui_render_state_t& s)
+	{
+		SFG_ASSERT(id < _defs.size());
+		_defs[id].render_state = s;
 	}
 
 	void paint_layer_t::set_hover_color(widget_id_t id, const vec4f_t& c)
@@ -174,14 +183,27 @@ namespace sfg::ui
 					if (paint.outline_thickness <= 0.0f)
 						paint.outline_thickness = 1.0f;
 				}
-				canvas.add_rect({o.pos.x, o.pos.y}, {o.pos.x + o.size.x, o.pos.y + o.size.y}, paint, draw_order, nullptr);
+				canvas.add_rect({o.pos.x, o.pos.y}, {o.pos.x + o.size.x, o.pos.y + o.size.y}, paint, draw_order, pd.render_state);
 			}
 			else if (pd.kind == paint_kind_e::text && pd.text_data != nullptr && pd.text_len > 0)
 			{
-				vg_text_paint_t paint = pd.text;
-				if (has_override)
-					paint.color = override_color;
-				canvas.add_text(pd.text_data, pd.text_len, {o.pos.x, o.pos.y}, paint, draw_order, nullptr);
+				resource_manager_t&	  rm   = resource_manager_t::get();
+				const font_runtime_t* font = rm.find_runtime<font_runtime_t>(pd.text.font);
+				if (font != nullptr && font->atlas != NULL_RESOURCE_HANDLE && rm.find_internals<atlas_internals_t>(font->atlas) != nullptr)
+				{
+					vg_text_paint_t paint = {};
+					paint.font			  = font;
+					paint.color			  = has_override ? override_color : pd.text.color;
+					paint.scale			  = pd.text.scale;
+					paint.spacing		  = pd.text.spacing;
+					paint.flip_uv		  = pd.text.flip_uv;
+
+					ui_render_state_t state = pd.render_state;
+					state.atlas				= font->atlas;
+					state.is_atlas_sdf		= font->kind == font_kind_e::sdf;
+
+					canvas.add_text(pd.text_data, pd.text_len, {o.pos.x, o.pos.y}, paint, draw_order, state);
+				}
 			}
 			else if (pd.kind == paint_kind_e::custom && pd.custom_fn)
 			{

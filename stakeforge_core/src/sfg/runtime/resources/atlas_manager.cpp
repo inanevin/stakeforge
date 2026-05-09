@@ -16,8 +16,8 @@ namespace sfg
 
 	void atlas_manager_t::uninit()
 	{
-		for (unique_t<atlas_t>& a : _atlases)
-			a->uninit();
+		for (unique_t<atlas_runtime_t>& a : _atlases)
+			atlas_uninit(*a);
 		_atlases.clear();
 		_atlas_width  = 0;
 		_atlas_height = 0;
@@ -28,22 +28,22 @@ namespace sfg
 		SFG_ASSERT(font != nullptr);
 		const bool need_lcd = font->kind == font_kind_e::lcd;
 
-		for (unique_t<atlas_t>& a : _atlases)
+		for (unique_t<atlas_runtime_t>& a : _atlases)
 		{
-			if (a->get_is_lcd() != need_lcd)
+			if (a->is_lcd != need_lcd)
 				continue;
-			if (a->add_font(font))
+			if (atlas_add_font(*a, font))
 				return true;
 		}
 
-		unique_t<atlas_t> a = make_unique<atlas_t>();
-		a->init(_atlas_width, _atlas_height, need_lcd);
-		a->set_id(static_cast<u32>(_atlases.size()));
-		const bool ok = a->add_font(font);
+		unique_t<atlas_runtime_t> a = make_unique<atlas_runtime_t>();
+		atlas_init(*a, _atlas_width, _atlas_height, need_lcd);
+		a->id		  = static_cast<u32>(_atlases.size());
+		const bool ok = atlas_add_font(*a, font);
 		if (!ok)
 		{
 			SFG_ERR("atlas_manager: font does not fit in a fresh atlas of {0}x{1}", _atlas_width, _atlas_height);
-			a->uninit();
+			atlas_uninit(*a);
 			return false;
 		}
 		_atlases.push_back(std::move(a));

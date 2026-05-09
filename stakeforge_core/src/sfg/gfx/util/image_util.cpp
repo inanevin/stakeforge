@@ -155,8 +155,8 @@ namespace sfg
 
 	void image_util_t::free(void* data)
 	{
-		::STBI_FREE(data);
 		SFG_MEMTRACE_DEALLOC(data);
+		::STBI_FREE(data);
 	}
 
 }

@@ -17,8 +17,12 @@
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/resources/atlas.hpp>
+#include <sfg/runtime/resources/atlas_manager.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/ui/vg/vg_canvas.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/common/hashing.hpp>
+#include <sfg/runtime/resources/shader.hpp>
 
 namespace sfg
 {
@@ -35,17 +39,18 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
+		const shader_internals_t* int_ui_def  = resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/ui_default.hlsl"_hs);
+		const shader_internals_t* int_ui_text = resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/ui_text.hlsl"_hs);
+		const shader_internals_t* int_ui_sdf  = resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/ui_sdf.hlsl"_hs);
+		SFG_ASSERT(int_ui_def && int_ui_text && int_ui_sdf);
+		int_ui_def->find_pso(0);
+
 		const resource_pack_t& resources = editor_app_t::get().get_resources();
 
 		const string_t shaders_dir	   = editor_directories_t::get_editor_assets() + "shaders/";
 		const string_t ui_default_path = shaders_dir + "ui_default.hlsl";
 		const string_t ui_text_path	   = shaders_dir + "ui_text.hlsl";
 		const string_t ui_sdf_path	   = shaders_dir + "ui_sdf.hlsl";
-
-		// const editor_shader_t& ui_default = resources.get_resource<editor_shader_t>(TO_SID(ui_default_path.c_str()), editor_resource_type_e::shader);
-		// const editor_shader_t& ui_text	  = resources.get_resource<editor_shader_t>(TO_SID(ui_text_path.c_str()), editor_resource_type_e::shader);
-		// const editor_shader_t& ui_sdf	  = resources.get_resource<editor_shader_t>(TO_SID(ui_sdf_path.c_str()), editor_resource_type_e::shader);
-		//_ui_renderer.init(ui_default.handle, ui_text.handle, ui_sdf.handle);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -67,6 +72,7 @@ namespace sfg
 
 		_render_targets.reserve(8);
 		_texture_queue.init();
+		_ui_renderer.init();
 
 		return true;
 	}
@@ -77,7 +83,7 @@ namespace sfg
 
 		join();
 
-		// _ui_renderer.uninit();
+		_ui_renderer.uninit();
 		_texture_queue.uninit();
 
 		for (const surface_render_target_t& t : _render_targets)
@@ -108,7 +114,7 @@ namespace sfg
 		}
 	}
 
-	gfx_swapchain_handle editor_renderer_t::create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size)
+	gfx_swapchain_handle editor_renderer_t::create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size, ui::ui_context* ui)
 	{
 		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(window_handle != nullptr);
@@ -125,6 +131,7 @@ namespace sfg
 
 		_render_targets.push_back({
 			.swapchain = swapchain,
+			.ui		   = ui,
 			.size	   = size,
 			.minimized = false,
 		});
@@ -181,6 +188,7 @@ namespace sfg
 		struct rt_t
 		{
 			gfx_swapchain_handle swapchain;
+			ui::ui_context*		 ui;
 			vec2u16_t			 size;
 		};
 
@@ -193,7 +201,7 @@ namespace sfg
 				continue;
 			backend.wait_for_swapchain_latency(t.swapchain);
 			backend.get_back_buffer_index(t.swapchain);
-			render_targets.push_back({t.swapchain, t.size});
+			render_targets.push_back({t.swapchain, t.ui, t.size});
 			present_list.push_back(t.swapchain);
 		}
 
@@ -222,6 +230,10 @@ namespace sfg
 		backend.cmd_bind_layout(command_buffer, {.layout = render_globals_t::get_global_bind_layout()});
 		backend.cmd_bind_constants(command_buffer, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
+		const vector_t<unique_t<atlas_runtime_t>>& atlases = resource_manager_t::get().get_atlas_manager().get_atlases();
+		for (const unique_t<atlas_runtime_t>& a : atlases)
+			_ui_renderer.update_atlas(_texture_queue, a.get());
+
 		_texture_queue.flush(command_buffer);
 		_texture_queue.transit(command_buffer);
 
@@ -236,7 +248,7 @@ namespace sfg
 			backend.cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
 
 			render_pass_swapchain_attachment_t attachment = {
-				.clear_color = vec4f_t(0.04f, 0.04f, 0.04f, 1.0f),
+				.clear_color = vec4f_t(0, 0, 0, 1.0f),
 				.swapchain_t = t.swapchain,
 				.load_op	 = load_op::clear,
 				.store_op	 = store_op::store,
@@ -251,6 +263,10 @@ namespace sfg
 
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
 			backend.cmd_set_viewport(command_buffer, vp);
+
+			if (t.ui != nullptr)
+				_ui_renderer.render(command_buffer, *t.ui, _frame_index, t.size);
+
 			backend.cmd_end_render_pass(command_buffer, {});
 
 			barrier = {

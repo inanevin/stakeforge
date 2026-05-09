@@ -3,7 +3,7 @@
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
-#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
 
@@ -16,14 +16,14 @@ namespace sfg
 
 	struct resource_header_t
 	{
-		u32 magic		   = 0;
-		u32 version		   = 0;
-		u32 payload_size   = 0;
-		u32 payload_offset = 0;
-		u64 modified_ticks = 0;
+		u32			  magic			 = 0;
+		u32			  version		 = 0;
+		u32			  payload_size	 = 0;
+		u32			  payload_offset = 0;
+		vector_t<u64> source_ticks	 = {};
 
 		void serialize(ostream_t& stream) const;
-		bool deserialize(istream_t& stream);
+		void deserialize(istream_t& stream);
 
 		void patch_payload_offset(ostream_t& stream, size_t header_pos) const;
 	};
@@ -46,11 +46,8 @@ namespace sfg
 		animation_state_machine,
 		count,
 	};
-
-	struct resource_handle_tag_t
-	{
-	};
-	typedef pool_handle_t<u32, resource_handle_tag_t> resource_handle_t;
+	typedef sid_t resource_handle_t;
+#define NULL_RESOURCE_HANDLE UINT64_MAX
 
 	inline constexpr u8 RESOURCE_TYPE_MAX = static_cast<u8>(resource_type_e::count);
 

@@ -26,11 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vg_canvas.hpp"
 #include "vg_path.hpp"
+#include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/memory/memory_tracer.hpp>
+#include <sfg/runtime/resources/atlas.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/shader.hpp>
+#include <sfg/runtime/resources/texture.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -254,6 +259,85 @@ namespace sfg::ui
 		_path2.resize(0);
 	}
 
+	void vg_canvas_t::set_pipelines(const ui_pipelines_t& pipelines)
+	{
+		_pipelines = pipelines;
+	}
+
+	namespace
+	{
+		gfx_shader_handle resolve_shader(resource_handle_t handle)
+		{
+			if (handle == 0)
+				return {};
+			const shader_internals_t* internals = resource_manager_t::get().find_internals<shader_internals_t>(handle);
+			if (internals == nullptr)
+				return {};
+			return internals->find_pso(0);
+		}
+
+		gpu_index_t resolve_texture_index(resource_handle_t handle)
+		{
+			if (handle == NULL_RESOURCE_HANDLE)
+				return NULL_GPU_INDEX;
+			const texture_internals_t* internals = resource_manager_t::get().find_internals<texture_internals_t>(handle);
+			if (internals == nullptr || internals->texture.is_null())
+				return NULL_GPU_INDEX;
+			return gfx_backend::get().get_texture_gpu_index(internals->texture, 0);
+		}
+
+		gfx_texture_handle resolve_atlas_texture(resource_handle_t handle)
+		{
+			if (handle == NULL_RESOURCE_HANDLE)
+				return {};
+			const atlas_internals_t* internals = resource_manager_t::get().find_internals<atlas_internals_t>(handle);
+			if (internals == nullptr)
+				return {};
+			return internals->texture;
+		}
+	}
+
+	void vg_canvas_t::resolve()
+	{
+		const gfx_shader_handle def_pipe  = resolve_shader(_pipelines.default_pipeline);
+		const gfx_shader_handle text_pipe = resolve_shader(_pipelines.text_pipeline);
+		const gfx_shader_handle sdf_pipe  = resolve_shader(_pipelines.sdf_pipeline);
+
+		for (vg_draw_buffer_t& db : _draw_buffers)
+		{
+			if (db.state.pipeline == NULL_RESOURCE_HANDLE)
+			{
+				if (db.state.atlas == NULL_RESOURCE_HANDLE)
+					db.resolved.pipeline = def_pipe;
+				else if (db.state.is_atlas_sdf)
+					db.resolved.pipeline = sdf_pipe;
+				else
+					db.resolved.pipeline = text_pipe;
+			}
+			else
+			{
+				const gfx_shader_handle p = resolve_shader(db.state.pipeline);
+				SFG_ASSERT(!p.is_null());
+				db.resolved.pipeline = p;
+			}
+
+			db.resolved.atlas = resolve_atlas_texture(db.state.atlas);
+
+			for (u8 i = 0; i < 4; ++i)
+			{
+				const ui_resource_ref_t& ref = db.state.constants[i];
+				if (ref.type == ui_resource_type_e::texture)
+				{
+					const gpu_index_t idx = resolve_texture_index(ref.handle);
+					SFG_ASSERT(idx != NULL_GPU_INDEX);
+					db.resolved.constants[i] = idx;
+				}
+				else
+					db.resolved.constants[i] = NULL_GPU_INDEX;
+			}
+		}
+	}
+
 	void vg_canvas_t::frame_begin(const vec4f_t& screen_clip)
 	{
 		_draw_buffers.resize(0);
@@ -296,20 +380,19 @@ namespace sfg::ui
 		return {x, y, r - x, t - y};
 	}
 
-	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, void* user_data, font_runtime_t* font)
+	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, const ui_render_state_t& state)
 	{
-		const vec4f_t clip	 = current_clip();
-		const u32	  fnt_id = font ? static_cast<u32>(reinterpret_cast<uintptr_t>(font)) : INVALID_ID_U32;
-		const u32	  atl_id = INVALID_ID_U32;
-		const auto	  knd	 = font ? font->kind : font_kind_e::bitmap;
+		const vec4f_t clip = current_clip();
 
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
 			if (db.draw_order != draw_order)
 				continue;
-			if (db.user_data != user_data)
+			if (db.state.pipeline != state.pipeline)
 				continue;
-			if (db.font_id != fnt_id)
+			if (db.state.atlas != state.atlas)
+				continue;
+			if (SFG_MEMCMP(db.state.constants, state.constants, sizeof(state.constants)) != 0)
 				continue;
 			if (!db.clip.equals(clip, 0.5f))
 				continue;
@@ -325,18 +408,16 @@ namespace sfg::ui
 		db.index_capacity  = _index_capacity_per_buffer;
 		db.clip			   = clip;
 		db.draw_order	   = draw_order;
-		db.user_data	   = user_data;
-		db.font_id		   = fnt_id;
-		db.atlas_id		   = atl_id;
-		db.font_kind	   = knd;
+		db.state		   = state;
+
 		_buffer_counter++;
 		_draw_buffers.push_back(db);
 		return &_draw_buffers.back();
 	}
 
-	void vg_canvas_t::add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, u32 draw_order, void* user_data)
+	void vg_canvas_t::add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, u32 draw_order, const ui_render_state_t& state)
 	{
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, user_data, nullptr);
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		const bool round = paint.rounding > 0.0f;
 		const bool out	 = paint.outline_thickness > 0.0f;
@@ -412,9 +493,9 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_canvas_t::add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, u32 draw_order, void* user_data)
+	void vg_canvas_t::add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, u32 draw_order, const ui_render_state_t& state)
 	{
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, user_data, nullptr);
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		const vec2f_t dir = (p1 - p0).normalized();
 		const vec2f_t n	  = {-dir.y, dir.x};
@@ -443,9 +524,9 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, u32 draw_order, void* user_data)
+	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, u32 draw_order, const ui_render_state_t& state)
 	{
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, user_data, nullptr);
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		const vec2f_t bb_min = {center.x - radius - paint.thickness, center.y - radius - paint.thickness};
 		const vec2f_t bb_max = {center.x + radius + paint.thickness, center.y + radius + paint.thickness};
@@ -514,7 +595,7 @@ namespace sfg::ui
 		return {total_x - spacing, height};
 	}
 
-	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, u32 draw_order, void* user_data, bool use_cache)
+	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, u32 draw_order, const ui_render_state_t& state, bool use_cache)
 	{
 		if (!paint.font)
 		{
@@ -524,7 +605,7 @@ namespace sfg::ui
 		if (len == 0)
 			return;
 
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, user_data, paint.font);
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		if (use_cache)
 		{
@@ -537,8 +618,8 @@ namespace sfg::ui
 				const u32	 vtx_base = db->vertex_count;
 				vg_vertex_t* verts	  = take_vertices(db, e.vtx_count);
 				vg_index_t*	 indices  = take_indices(db, e.idx_count);
-				std::memcpy(verts, &_text_cache_vertex_buffer[e.vtx_start], e.vtx_count * sizeof(vg_vertex_t));
-				std::memcpy(indices, &_text_cache_index_buffer[e.idx_start], e.idx_count * sizeof(vg_index_t));
+				SFG_MEMCPY(verts, &_text_cache_vertex_buffer[e.vtx_start], e.vtx_count * sizeof(vg_vertex_t));
+				SFG_MEMCPY(indices, &_text_cache_index_buffer[e.idx_start], e.idx_count * sizeof(vg_index_t));
 
 				for (u32 i = 0; i < e.vtx_count; ++i)
 				{
@@ -643,7 +724,7 @@ namespace sfg::ui
 				e.idx_start = _text_cache_index_count;
 				e.idx_count = idx_count;
 
-				std::memcpy(&_text_cache_vertex_buffer[_text_cache_vertex_count], verts, vtx_count * sizeof(vg_vertex_t));
+				SFG_MEMCPY(&_text_cache_vertex_buffer[_text_cache_vertex_count], verts, vtx_count * sizeof(vg_vertex_t));
 				vg_index_t* cache_idx = &_text_cache_index_buffer[_text_cache_index_count];
 				for (u32 i = 0; i < idx_count; ++i)
 					cache_idx[i] = static_cast<vg_index_t>(indices[i] - vtx_base);

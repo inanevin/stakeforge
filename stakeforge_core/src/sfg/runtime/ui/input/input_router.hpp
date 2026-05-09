@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/math/vec2f.hpp>
-#include <sfg/ui/ui_common.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
 {

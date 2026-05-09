@@ -27,14 +27,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/resources/font.hpp>
-#include <sfg/ui/layout/layout_tree.hpp>
-#include <sfg/ui/input/input_router.hpp>
-#include <sfg/ui/paint/paint.hpp>
-#include <sfg/ui/vg/vg_canvas.hpp>
-#include <sfg/ui/ui_theme.hpp>
+#include <sfg/runtime/ui/layout/layout_tree.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/paint/paint.hpp>
+#include <sfg/runtime/ui/vg/vg_canvas.hpp>
+#include <sfg/runtime/ui/ui_theme.hpp>
 
 namespace sfg::ui
 {
@@ -69,6 +70,19 @@ namespace sfg::ui
 		void init(const ui_config_t& cfg);
 		void uninit();
 		void tick(const vec4f_t& screen_rect, f32 dt_seconds);
+		void publish_frame();
+
+		// -----------------------------------------------------------------------------
+		// render-thread snapshot
+		// -----------------------------------------------------------------------------
+
+		const vg_draw_snapshot_t* acquire_render_snapshot();
+
+		// -----------------------------------------------------------------------------
+		// pipelines
+		// -----------------------------------------------------------------------------
+
+		void set_pipelines(const ui_pipelines_t& pipelines);
 
 		// -----------------------------------------------------------------------------
 		// events
@@ -96,8 +110,8 @@ namespace sfg::ui
 		widget_id_t make_row(widget_id_t parent);
 		widget_id_t make_column(widget_id_t parent);
 		widget_id_t make_spacer(widget_id_t parent, f32 size_px = 0.0f);
-		widget_id_t make_label(widget_id_t parent, const char* text, font_runtime_t* font);
-		widget_id_t make_button(widget_id_t parent, const char* text, font_runtime_t* font);
+		widget_id_t make_label(widget_id_t parent, const char* text, resource_handle_t font);
+		widget_id_t make_button(widget_id_t parent, const char* text, resource_handle_t font);
 		widget_id_t make_divider(widget_id_t parent, bool horizontal);
 
 		// -----------------------------------------------------------------------------
@@ -139,12 +153,31 @@ namespace sfg::ui
 		}
 
 	private:
-		input_router_t							   _input;
+		struct snapshot_slot_t
+		{
+			vg_draw_buffer_final_t* draw_buffers		 = nullptr;
+			vg_vertex_t*			vertices			 = nullptr;
+			vg_index_t*				indices				 = nullptr;
+			u32						draw_buffer_capacity = 0;
+			u32						vertex_capacity		 = 0;
+			u32						index_capacity		 = 0;
+			vg_draw_snapshot_t		snapshot			 = {};
+		};
+
+		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity);
+		void free_snapshot_slot(snapshot_slot_t& slot);
+
+	private:
 		vg_canvas_t								   _canvas;
+		input_router_t							   _input;
 		layout_tree_t							   _tree;
 		theme_t									   _theme;
+		snapshot_slot_t							   _snapshot_slots[3] = {};
 		paint_layer_t							   _paint;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		text_allocator_t						   _text_pool;
+		atomic_t<u8>							   _snapshot_mailbox = {};
+		u8										   _producer_slot	 = 0;
+		u8										   _consumer_slot	 = 0;
 	};
 }

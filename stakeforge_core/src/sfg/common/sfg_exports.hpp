@@ -26,27 +26,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#ifdef SFG_COMPILER_MSVC
-#include <malloc.h>
+#if defined(SFG_CORE_SHARED)
+#if defined(SFG_PLATFORM_WINDOWS)
+#if defined(SFG_CORE_BUILDING)
+#define SFG_API __declspec(dllexport)
 #else
-#include <cstdlib>
+#define SFG_API __declspec(dllimport)
 #endif
-
-#include <memory>
-#define SFG_MEMCPY(...)	 memcpy(__VA_ARGS__)
-#define SFG_MEMMOVE(...) memmove(__VA_ARGS__)
-#define SFG_MEMSET(...)	 memset(__VA_ARGS__)
-#define SFG_MEMCMP(...)	 memcmp(__VA_ARGS__)
-
-namespace sfg
-{
-	void* malloc_traced(size_t size);
-	void  free_traced(void* ptr);
-	void* aligned_malloc_traced(size_t alignment, size_t size);
-	void  aligned_free_traced(void* ptr);
-}
-
-#define SFG_MALLOC(SIZE)					sfg::malloc_traced(SIZE)
-#define SFG_FREE(PTR)						sfg::free_traced(PTR)
-#define SFG_ALIGNED_MALLOC(ALIGNMENT, SIZE) sfg::aligned_malloc_traced(ALIGNMENT, SIZE)
-#define SFG_ALIGNED_FREE(PTR)				sfg::aligned_free_traced(PTR)
+#else
+#if defined(SFG_CORE_BUILDING)
+#define SFG_API __attribute__((visibility("default")))
+#else
+#define SFG_API
+#endif
+#endif
+#else
+#define SFG_API
+#endif

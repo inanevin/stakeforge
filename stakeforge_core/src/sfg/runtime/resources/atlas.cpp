@@ -5,45 +5,37 @@
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/memory/memory_tracer.hpp>
 
 namespace sfg
 {
-	atlas_t::~atlas_t()
-	{
-		SFG_ASSERT(_data == nullptr);
-	}
-
-	void atlas_t::init(u32 width, u32 height, bool is_lcd)
+	void atlas_init(atlas_runtime_t& atlas, u32 width, u32 height, bool is_lcd)
 	{
 		SFG_ASSERT(width > 0 && height > 0);
-		_width	   = width;
-		_height	   = height;
-		_is_lcd	   = is_lcd;
-		_data_size = width * height * (is_lcd ? 3u : 1u);
-		_data	   = static_cast<u8*>(SFG_MALLOC(_data_size));
-		SFG_MEMTRACE_ALLOC(_data, _data_size);
-		SFG_MEMSET(_data, 0, _data_size);
-		_vertical_pos = 0;
-		_font_count	  = 0;
-		_dirty		  = true;
+		atlas.width		= width;
+		atlas.height	= height;
+		atlas.is_lcd	= is_lcd;
+		atlas.data_size = width * height * (is_lcd ? 3u : 1u);
+		atlas.data		= static_cast<u8*>(SFG_MALLOC(atlas.data_size));
+		SFG_MEMSET(atlas.data, 0, atlas.data_size);
+		atlas.vertical_pos = 0;
+		atlas.font_count   = 0;
+		atlas.dirty		   = true;
 	}
 
-	void atlas_t::uninit()
+	void atlas_uninit(atlas_runtime_t& atlas)
 	{
-		if (_data)
+		if (atlas.data)
 		{
-			SFG_MEMTRACE_DEALLOC(_data);
-			SFG_FREE(_data);
+			SFG_FREE(atlas.data);
 		}
-		_data		  = nullptr;
-		_data_size	  = 0;
-		_vertical_pos = 0;
-		_font_count	  = 0;
-		_dirty		  = false;
+		atlas.data		   = nullptr;
+		atlas.data_size	   = 0;
+		atlas.vertical_pos = 0;
+		atlas.font_count   = 0;
+		atlas.dirty		   = false;
 	}
 
-	bool atlas_t::add_font(font_runtime_t* font)
+	bool atlas_add_font(atlas_runtime_t& atlas, font_runtime_t* font)
 	{
 		SFG_ASSERT(font != nullptr);
 
@@ -58,14 +50,14 @@ namespace sfg
 			max_height = math::max(max_height, g.height);
 		}
 
-		const i32 atlas_w		  = static_cast<i32>(_width);
+		const i32 atlas_w		  = static_cast<i32>(atlas.width);
 		const i32 required_rows	  = atlas_w > 0 ? static_cast<i32>(math::ceil(static_cast<f32>(total_width) / static_cast<f32>(atlas_w))) : 0;
 		const u32 required_height = static_cast<u32>(required_rows * max_height);
 
-		if (_vertical_pos + required_height > _height)
+		if (atlas.vertical_pos + required_height > atlas.height)
 			return false;
 
-		const u32 slot_top = _vertical_pos;
+		const u32 slot_top = atlas.vertical_pos;
 
 		i32 pen_x = 0;
 		i32 pen_y = 0;
@@ -86,27 +78,27 @@ namespace sfg
 
 			g.atlas_x = pen_x;
 			g.atlas_y = static_cast<i32>(slot_top) + pen_y;
-			g.uv_x	  = static_cast<f32>(g.atlas_x) / static_cast<f32>(_width);
-			g.uv_y	  = static_cast<f32>(g.atlas_y) / static_cast<f32>(_height);
-			g.uv_w	  = static_cast<f32>(g.width) / static_cast<f32>(_width);
-			g.uv_h	  = static_cast<f32>(g.height) / static_cast<f32>(_height);
+			g.uv_x	  = static_cast<f32>(g.atlas_x) / static_cast<f32>(atlas.width);
+			g.uv_y	  = static_cast<f32>(g.atlas_y) / static_cast<f32>(atlas.height);
+			g.uv_w	  = static_cast<f32>(g.width) / static_cast<f32>(atlas.width);
+			g.uv_h	  = static_cast<f32>(g.height) / static_cast<f32>(atlas.height);
 
-			// TODO: copy this glyph's pixels from the font's pixel blob into _data at (atlas_x, atlas_y).
+			// TODO: copy this glyph's pixels from the font's pixel blob into atlas.data at (atlas_x, atlas_y).
 			// Source bytes live at font->pixels chunk + g.pixel_offset, but the atlas does not own a
 			// chunk_allocator; resolution will be threaded through when create_internals is wired up.
 
 			pen_x += g.width + x_padding;
 		}
 
-		_vertical_pos += required_height;
-		_font_count++;
-		_dirty = true;
+		atlas.vertical_pos += required_height;
+		atlas.font_count++;
+		atlas.dirty = true;
 		return true;
 	}
 
-	void atlas_t::remove_font(font_runtime_t*)
+	void atlas_remove_font(atlas_runtime_t& atlas, font_runtime_t*)
 	{
-		SFG_ASSERT(_font_count > 0);
-		_font_count--;
+		SFG_ASSERT(atlas.font_count > 0);
+		atlas.font_count--;
 	}
 }

@@ -6,7 +6,7 @@
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/platform/common_window.hpp>
-#include <sfg/ui/ui_context.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
