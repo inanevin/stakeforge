@@ -12,5 +12,6 @@ namespace sfg
 	{
 	public:
 		static void make_test_general(ui::ui_context& ui);
+		static void make_test_text(ui::ui_context& ui);
 	};
 }

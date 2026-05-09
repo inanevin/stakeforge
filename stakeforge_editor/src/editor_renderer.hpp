@@ -6,7 +6,6 @@
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/semaphore_data.hpp>
-#include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/ui/ui_renderer.hpp>
 
@@ -24,11 +23,13 @@ namespace sfg
 	private:
 		struct per_frame_data_t
 		{
-			semaphore_data_t		  semaphore_frame = {};
-			gfx_command_buffer_handle command_buffer  = {};
-			gfx_resource_handle		  global_buffer	  = {};
-			u8*						  mapped_global	  = nullptr;
-			u32						  global_index	  = 0;
+			semaphore_data_t		  semaphore_frame	  = {};
+			semaphore_data_t		  semaphore_transfer  = {};
+			gfx_command_buffer_handle cmd_gfx	  = {};
+			gfx_command_buffer_handle cmd_transfer = {};
+			gfx_resource_handle		  global_buffer		  = {};
+			u8*						  mapped_global		  = nullptr;
+			u32						  global_index		  = 0;
 		};
 
 		struct surface_render_target_t
@@ -71,7 +72,6 @@ namespace sfg
 		static constexpr size_t			  RENDER_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 		ui::ui_renderer_t				  _ui_renderer			  = {};
 		per_frame_data_t				  _pfd[BACK_BUFFER_COUNT] = {};
-		texture_queue_t					  _texture_queue		  = {};
 		vector_t<surface_render_target_t> _render_targets;
 		gfx_shader_handle				  _shader_ui_default = {};
 		gfx_shader_handle				  _shader_ui_text	 = {};

@@ -15,6 +15,7 @@
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg
 {
@@ -202,7 +203,7 @@ namespace sfg
 		pipelines.sdf_pipeline		 = "editor/shaders/ui_sdf.hlsl"_hs;
 		surface.ui->set_pipelines(pipelines);
 
-		editor_ui_tests_t::make_test_general(*surface.ui);
+		editor_ui_tests_t::make_test_text(*surface.ui);
 	}
 
 	void editor_app_t::tick()
@@ -251,8 +252,9 @@ namespace sfg
 
 				if (!minimized && surface.ui)
 				{
-					const vec4f_t screen = {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
-					surface.ui->tick(screen, dt);
+					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
+					const f32	  dpi_scale = surface.runtime.monitor_info.dpi_scale > 0.0f ? surface.runtime.monitor_info.dpi_scale : 1.0f;
+					surface.ui->tick(screen, dpi_scale, dt);
 					surface.ui->publish_frame();
 				}
 			}

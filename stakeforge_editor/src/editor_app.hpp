@@ -6,7 +6,6 @@
 #include "editor_surface.hpp"
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 
 namespace sfg
@@ -39,11 +38,6 @@ namespace sfg
 		inline const resource_pack_t& get_resources() const
 		{
 			return _resource_pack;
-		}
-
-		inline resource_manager_t& get_resource_manager()
-		{
-			return resource_manager_t::get();
 		}
 
 	private:

@@ -2,7 +2,6 @@
 #pragma once
 
 #include "common_engine.hpp"
-#include <sfg/runtime/render/renderer.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -25,18 +24,7 @@ namespace sfg
 		bool		   destroy_world(world_handle_t handle);
 		bool		   is_world_valid(world_handle_t handle) const;
 
-		inline renderer_t& get_renderer()
-		{
-			return _renderer;
-		}
-
-		inline const renderer_t& get_renderer() const
-		{
-			return _renderer;
-		}
-
 	private:
 		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;
-		renderer_t										   _renderer;
 	};
 }

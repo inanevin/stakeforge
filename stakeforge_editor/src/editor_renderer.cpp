@@ -3,26 +3,24 @@
 #include "editor_renderer.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
+#include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/frame_allocator.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
-#include <sfg/runtime/resources/atlas.hpp>
-#include <sfg/runtime/resources/atlas_manager.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/common/hashing.hpp>
 #include <sfg/runtime/resources/shader.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg
 {
@@ -54,24 +52,30 @@ namespace sfg
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
-			per_frame_data_t& pfd			= _pfd[i];
-			pfd.semaphore_frame.semaphore_t = backend.create_semaphore();
-			pfd.command_buffer				= backend.create_command_buffer({
-							 .type		 = command_type::graphics,
-							 .debug_name = "editor_gfx",
-			 });
+			per_frame_data_t& pfd	   = _pfd[i];
+			pfd.semaphore_frame.sem	   = backend.create_semaphore();
+			pfd.semaphore_transfer.sem = backend.create_semaphore();
+			pfd.cmd_gfx				   = backend.create_command_buffer({
+							   .type	   = command_type::graphics,
+							   .debug_name = "editor_gfx",
+			   });
+			pfd.cmd_transfer		   = backend.create_command_buffer({
+						  .type		  = command_type::transfer,
+						  .debug_name = "editor_xfer",
+			  });
 
-			resource_desc_t g_desc = {};
-			g_desc.size			   = sizeof(global_buffer_data_t);
-			g_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-			g_desc.debug_name	   = "editor_global";
-			pfd.global_buffer	   = backend.create_resource(g_desc);
+			const resource_desc_t desc = {
+				.size		= sizeof(global_buffer_data_t),
+				.flags		= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible,
+				.debug_name = "editor_global",
+			};
+
+			pfd.global_buffer = backend.create_resource(desc);
 			backend.map_resource(pfd.global_buffer, pfd.mapped_global);
 			pfd.global_index = backend.get_resource_gpu_index(pfd.global_buffer);
 		}
 
 		_render_targets.reserve(8);
-		_texture_queue.init();
 		_ui_renderer.init();
 
 		return true;
@@ -84,7 +88,6 @@ namespace sfg
 		join();
 
 		_ui_renderer.uninit();
-		_texture_queue.uninit();
 
 		for (const surface_render_target_t& t : _render_targets)
 			backend.destroy_swapchain(t.swapchain);
@@ -93,8 +96,10 @@ namespace sfg
 		{
 			per_frame_data_t& pfd = _pfd[i];
 			backend.destroy_resource(pfd.global_buffer);
-			backend.destroy_command_buffer(pfd.command_buffer);
-			backend.destroy_semaphore(pfd.semaphore_frame.semaphore_t);
+			backend.destroy_command_buffer(pfd.cmd_gfx);
+			backend.destroy_command_buffer(pfd.cmd_transfer);
+			backend.destroy_semaphore(pfd.semaphore_frame.sem);
+			backend.destroy_semaphore(pfd.semaphore_transfer.sem);
 			pfd = {};
 		}
 
@@ -110,7 +115,7 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			const per_frame_data_t& pfd = _pfd[i];
-			backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+			backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		}
 	}
 
@@ -178,13 +183,11 @@ namespace sfg
 
 	void editor_renderer_t::render()
 	{
-		render_resources_t::get().flush();
+		render_resources_t::get().flush_create_destroys();
+		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
+		gfx_backend&	 backend	   = gfx_backend::get();
 
-		gfx_backend& backend = gfx_backend::get();
-
-		if (_render_targets.empty())
-			return;
-
+		/* figure out swapchain list */
 		struct rt_t
 		{
 			gfx_swapchain_handle swapchain;
@@ -194,7 +197,6 @@ namespace sfg
 
 		frame_vector_t<rt_t>				 render_targets;
 		frame_vector_t<gfx_swapchain_handle> present_list;
-
 		for (const surface_render_target_t& t : _render_targets)
 		{
 			if (t.minimized)
@@ -208,34 +210,53 @@ namespace sfg
 		if (render_targets.empty())
 			return;
 
-		const i64  now		 = time_t::get_cpu_microseconds();
-		static i64 prev_time = now;
-		const i64  delta	 = now - prev_time;
-		prev_time			 = now;
+		/* time calc, globals, frame index */
 
+		const i64  now			= time_t::get_cpu_microseconds();
+		static i64 prev_time	= now;
+		const i64  delta		= now - prev_time;
+		prev_time				= now;
 		static f32 elapsed_time = 0.0f;
 		elapsed_time += time_t::micro_to_s(delta);
 		const f32 delta_time = time_t::micro_to_s(delta);
 
 		_frame_index		  = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd = _pfd[_frame_index];
-		backend.wait_semaphore(pfd.semaphore_frame.semaphore_t, pfd.semaphore_frame.value);
+
+		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 
 		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
 		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
 
-		const gfx_command_buffer_handle command_buffer = pfd.command_buffer;
-		backend.reset_command_buffer(command_buffer);
+		/* graphics & transfer */
 
-		backend.cmd_bind_layout(command_buffer, {.layout = render_globals_t::get_global_bind_layout()});
-		backend.cmd_bind_constants(command_buffer, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
+		const gfx_queue_handle			queue_gfx	   = backend.get_queue_gfx();
+		const gfx_queue_handle			queue_transfer = backend.get_queue_transfer();
+		const gfx_command_buffer_handle cmd			   = pfd.cmd_gfx;
+		const gfx_command_buffer_handle cmd_transfer   = pfd.cmd_transfer;
 
-		const vector_t<unique_t<atlas_runtime_t>>& atlases = resource_manager_t::get().get_atlas_manager().get_atlases();
-		for (const unique_t<atlas_runtime_t>& a : atlases)
-			_ui_renderer.update_atlas(_texture_queue, a.get());
+		/* flush uploads, begin graphics & transits */
 
-		_texture_queue.flush(command_buffer);
-		_texture_queue.transit(command_buffer);
+		bool transfer_submitted = false;
+		if (texture_queue.has_uploads())
+		{
+			backend.reset_command_buffer_transfer(cmd_transfer);
+			if (texture_queue.flush(cmd_transfer))
+			{
+				backend.close_command_buffer(cmd_transfer);
+				backend.submit_commands(queue_transfer, &cmd_transfer, 1);
+				pfd.semaphore_transfer.value++;
+				backend.queue_signal(queue_transfer, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
+				transfer_submitted = true;
+			}
+		}
+
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = render_globals_t::get_global_bind_layout()});
+		backend.cmd_bind_constants(cmd, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
+		texture_queue.transit(cmd);
+
+		/* render pass per rt */
 
 		for (const rt_t& t : render_targets)
 		{
@@ -245,7 +266,7 @@ namespace sfg
 				.swapchain_t = t.swapchain,
 				.flags		 = barrier_flags::baf_is_swapchain,
 			};
-			backend.cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
+			backend.cmd_barrier(cmd, {.barriers = &barrier, .barrier_count = 1});
 
 			render_pass_swapchain_attachment_t attachment = {
 				.clear_color = vec4f_t(0, 0, 0, 1.0f),
@@ -255,19 +276,19 @@ namespace sfg
 				.view_index	 = 0,
 			};
 
-			backend.cmd_begin_render_pass_swapchain(command_buffer,
+			backend.cmd_begin_render_pass_swapchain(cmd,
 													{
 														.color_attachments		= &attachment,
 														.color_attachment_count = 1,
 													});
 
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
-			backend.cmd_set_viewport(command_buffer, vp);
+			backend.cmd_set_viewport(cmd, vp);
 
 			if (t.ui != nullptr)
-				_ui_renderer.render(command_buffer, *t.ui, _frame_index, t.size);
+				_ui_renderer.render(cmd, *t.ui, _frame_index, t.size);
 
-			backend.cmd_end_render_pass(command_buffer, {});
+			backend.cmd_end_render_pass(cmd, {});
 
 			barrier = {
 				.from_states = resource_state_render_target,
@@ -275,18 +296,18 @@ namespace sfg
 				.swapchain_t = t.swapchain,
 				.flags		 = barrier_flags::baf_is_swapchain,
 			};
-			backend.cmd_barrier(command_buffer, {.barriers = &barrier, .barrier_count = 1});
+			backend.cmd_barrier(cmd, {.barriers = &barrier, .barrier_count = 1});
 		}
 
-		backend.close_command_buffer(command_buffer);
+		/* submit & present */
+		backend.close_command_buffer(cmd);
+		if (transfer_submitted)
+			backend.queue_wait(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
 
-		const gfx_queue_handle queue_gfx = backend.get_queue_gfx();
-		backend.submit_commands(queue_gfx, &command_buffer, 1);
-
+		backend.submit_commands(queue_gfx, &cmd, 1);
 		backend.present(present_list.data(), static_cast<u8>(present_list.size()));
-
 		pfd.semaphore_frame.value++;
-		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.semaphore_t, &pfd.semaphore_frame.value, 1);
+		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
 
 		_frame_counter++;
 	}
@@ -321,7 +342,6 @@ namespace sfg
 		while (_render_thread_active.load())
 		{
 			frame_allocator_tls_t::reset();
-			render_resources_t::get().flush();
 			render();
 			time_t::yield_thread();
 		}
