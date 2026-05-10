@@ -34,6 +34,7 @@ namespace sfg
 	{
 		gfx_texture_handle	texture		  = {};
 		gfx_resource_handle staging		  = {};
+		gpu_index_t			gpu_index	  = NULL_GPU_INDEX;
 		u8					pending_count = 0;
 		u8					had_failure	  = 0;
 	};

@@ -64,34 +64,40 @@ namespace sfg::ui
 		_defs[id] = {};
 	}
 
-	void paint_layer_t::set_rect(widget_id_t id, const vg_rect_paint_t& p)
+	void paint_layer_t::set_rect(widget_id_t id, const vg_rect_paint_t& p, const ui_render_state_t& state)
 	{
 		SFG_ASSERT(id < _defs.size());
-		_defs[id].kind = paint_kind_e::rect;
-		_defs[id].rect = p;
+		paint_def_t& def = _defs[id];
+		def.kind		 = paint_kind_e::rect;
+		def.rect		 = p;
+		def.render_state = state;
+		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
+			def.render_state.pipeline = _pipelines.default_pipeline;
 	}
 
-	void paint_layer_t::set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s)
+	void paint_layer_t::set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s, const ui_render_state_t& state)
 	{
 		SFG_ASSERT(id < _defs.size());
-		_defs[id].kind		= paint_kind_e::text;
-		_defs[id].text		= s;
-		_defs[id].text_data = text;
-		_defs[id].text_len	= len;
+		paint_def_t& def = _defs[id];
+		def.kind		 = paint_kind_e::text;
+		def.text		 = s;
+		def.text_data	 = text;
+		def.text_len	 = len;
+		def.render_state = state;
+		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
+			def.render_state.pipeline = s.raster_mode == glyph_raster_mode_e::lcd ? _pipelines.text_pipeline : _pipelines.sdf_pipeline;
 	}
 
-	void paint_layer_t::set_custom(widget_id_t id, paint_custom_fn fn, void* user_data)
+	void paint_layer_t::set_custom(widget_id_t id, paint_custom_fn fn, void* user_data, const ui_render_state_t& state)
 	{
 		SFG_ASSERT(id < _defs.size());
-		_defs[id].kind		= paint_kind_e::custom;
-		_defs[id].custom_fn = fn;
-		_defs[id].custom_ud = user_data;
-	}
-
-	void paint_layer_t::set_render_state(widget_id_t id, const ui_render_state_t& s)
-	{
-		SFG_ASSERT(id < _defs.size());
-		_defs[id].render_state = s;
+		paint_def_t& def = _defs[id];
+		def.kind		 = paint_kind_e::custom;
+		def.custom_fn	 = fn;
+		def.custom_ud	 = user_data;
+		def.render_state = state;
+		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
+			def.render_state.pipeline = _pipelines.default_pipeline;
 	}
 
 	void paint_layer_t::set_hover_color(widget_id_t id, const vec4f_t& c)
@@ -216,7 +222,7 @@ namespace sfg::ui
 					if (paint.outline_thickness <= 0.0f)
 						paint.outline_thickness = 1.0f;
 				}
-				canvas.add_rect({o.pos.x, o.pos.y}, {o.pos.x + o.size.x, o.pos.y + o.size.y}, paint, draw_order, pd.render_state);
+				canvas.add_rect({o.pos.x, o.pos.y}, {o.pos.x + o.size.x, o.pos.y + o.size.y}, paint, pd.render_state, draw_order);
 			}
 			else if (pd.kind == paint_kind_e::text && pd.text_data != nullptr && pd.text_len > 0)
 			{
@@ -233,11 +239,7 @@ namespace sfg::ui
 					paint.raster_mode	  = pd.text.raster_mode;
 					paint.flip_uv		  = pd.text.flip_uv;
 
-					ui_render_state_t state = pd.render_state;
-					state.is_glyph_atlas	= true;
-					state.is_sdf			= pd.text.raster_mode == glyph_raster_mode_e::sdf;
-
-					canvas.add_text(pd.text_data, pd.text_len, {o.pos.x, o.pos.y}, paint, draw_order, state);
+					canvas.add_text(pd.text_data, pd.text_len, {o.pos.x, o.pos.y}, paint, pd.render_state, draw_order);
 				}
 			}
 			else if (pd.kind == paint_kind_e::custom && pd.custom_fn)

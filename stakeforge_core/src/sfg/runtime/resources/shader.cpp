@@ -96,6 +96,7 @@ namespace sfg
 			shader_desc_t desc = {};
 			stream.open(pv.desc_stream.data, pv.desc_stream.size);
 			desc.deserialize(stream);
+			desc.set_name(mem.get_text(entry.debug_name));
 
 			render_resources_t::get().enqueue_create_shader(entry.hash, entry.type, static_cast<u32>(i), desc, {.data = blobs.data(), .size = blobs.size()}, render_globals_t::get_global_bind_layout());
 		}

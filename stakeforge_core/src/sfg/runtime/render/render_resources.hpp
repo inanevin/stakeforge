@@ -29,6 +29,7 @@ namespace sfg
 		gfx_texture_handle	   texture	 = {};
 		gfx_sampler_handle	   sampler	 = {};
 		gfx_shader_handle	   shader	 = {};
+		gpu_index_t			   gpu_index = NULL_GPU_INDEX;
 	};
 
 	class render_resources_t

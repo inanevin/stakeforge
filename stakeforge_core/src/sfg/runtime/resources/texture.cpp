@@ -60,7 +60,7 @@ namespace sfg
 		desc.mip_levels		= runtime->mip_count;
 		desc.array_length	= 1;
 		desc.samples		= 1;
-		desc.set_name("texture");
+		desc.set_name(mem.get_text(entry.debug_name));
 
 		u32 staging_size = 0;
 		for (u8 i = 0; i < runtime->mip_count; ++i)
@@ -94,7 +94,8 @@ namespace sfg
 		}
 		else if (completion.kind == render_resource_kind_e::texture)
 		{
-			internals->texture = completion.texture;
+			internals->texture	 = completion.texture;
+			internals->gpu_index = completion.gpu_index;
 		}
 		else
 		{

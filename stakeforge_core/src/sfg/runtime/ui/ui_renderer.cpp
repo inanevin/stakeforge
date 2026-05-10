@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/mat4x4.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg::ui
 {
@@ -154,9 +155,6 @@ namespace sfg::ui
 				continue;
 			}
 
-			const bool has_atlas = !db.resolved.atlas.is_null();
-			const bool is_sdf	 = has_atlas && db.is_sdf;
-
 			const gfx_shader_handle pipeline = db.resolved.pipeline;
 
 			if (pipeline.is_null())
@@ -169,19 +167,12 @@ namespace sfg::ui
 				current_pipeline = pipeline;
 			}
 
-			if (has_atlas)
-			{
-				gpu_index_t atlas_index = backend.get_texture_gpu_index(db.resolved.atlas, 0);
+			glyph_atlas_t&	  glyph_atlas = resource_manager_t::get().get_glyph_atlas();
+			const gpu_index_t atlas_index = glyph_atlas.get_gpu_index();
 
-				command_bind_constants_t bc_mat0 = {.data = &atlas_index, .offset = constant_mat0, .count = 1, .param_index = 0};
-				backend.cmd_bind_constants(cmd, bc_mat0);
-
-				if (is_sdf)
-				{
-					command_bind_constants_t bc_mat1 = {.data = &_sdf_params_index, .offset = constant_mat1, .count = 1, .param_index = 0};
-					backend.cmd_bind_constants(cmd, bc_mat1);
-				}
-			}
+			gpu_index_t				 mat_constants[2] = {glyph_atlas.get_gpu_index(), _sdf_params_index};
+			command_bind_constants_t bc_mat0		  = {.data = mat_constants, .offset = constant_mat0, .count = 2, .param_index = 0};
+			backend.cmd_bind_constants(cmd, bc_mat0);
 
 			command_bind_constants_t bc_obj = {.data = const_cast<gpu_index_t*>(db.resolved.constants), .offset = constant_obj0, .count = 4, .param_index = 0};
 			backend.cmd_bind_constants(cmd, bc_obj);

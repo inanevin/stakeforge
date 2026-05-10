@@ -271,11 +271,6 @@ namespace sfg::ui
 		_path2.resize(0);
 	}
 
-	void vg_canvas_t::set_pipelines(const ui_pipelines_t& pipelines)
-	{
-		_pipelines = pipelines;
-	}
-
 	namespace
 	{
 		gfx_shader_handle resolve_shader(resource_handle_t handle)
@@ -298,48 +293,16 @@ namespace sfg::ui
 			return gfx_backend::get().get_texture_gpu_index(internals->texture, 0);
 		}
 
-		gfx_texture_handle resolve_atlas_texture(resource_handle_t handle)
-		{
-			if (handle == NULL_RESOURCE_HANDLE)
-				return {};
-			const atlas_internals_t* internals = resource_manager_t::get().find_internals<atlas_internals_t>(handle);
-			if (internals == nullptr)
-				return {};
-			return internals->texture;
-		}
 	}
 
 	void vg_canvas_t::resolve()
 	{
-		const gfx_shader_handle def_pipe	= resolve_shader(_pipelines.default_pipeline);
-		const gfx_shader_handle text_pipe	= resolve_shader(_pipelines.text_pipeline);
-		const gfx_shader_handle sdf_pipe	= resolve_shader(_pipelines.sdf_pipeline);
-		glyph_atlas_t&			glyph_atlas = resource_manager_t::get().get_glyph_atlas();
-
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
-			if (db.state.pipeline == NULL_RESOURCE_HANDLE)
-			{
-				if (db.state.is_glyph_atlas)
-					db.resolved.pipeline = db.state.is_sdf ? sdf_pipe : text_pipe;
-				else if (db.state.atlas == NULL_RESOURCE_HANDLE)
-					db.resolved.pipeline = def_pipe;
-				else if (db.state.is_sdf)
-					db.resolved.pipeline = sdf_pipe;
-				else
-					db.resolved.pipeline = text_pipe;
-			}
-			else
-			{
-				const gfx_shader_handle p = resolve_shader(db.state.pipeline);
-				SFG_ASSERT(!p.is_null());
-				db.resolved.pipeline = p;
-			}
-
-			if (db.state.is_glyph_atlas)
-				db.resolved.atlas = glyph_atlas.get_texture();
-			else
-				db.resolved.atlas = resolve_atlas_texture(db.state.atlas);
+			SFG_ASSERT(db.state.pipeline != NULL_RESOURCE_HANDLE);
+			const gfx_shader_handle p = resolve_shader(db.state.pipeline);
+			SFG_ASSERT(!p.is_null());
+			db.resolved.pipeline = p;
 
 			for (u8 i = 0; i < 4; ++i)
 			{
@@ -408,8 +371,6 @@ namespace sfg::ui
 				continue;
 			if (db.state.pipeline != state.pipeline)
 				continue;
-			if (db.state.atlas != state.atlas)
-				continue;
 			if (SFG_MEMCMP(db.state.constants, state.constants, sizeof(state.constants)) != 0)
 				continue;
 			if (!db.clip.equals(clip, 0.5f))
@@ -433,7 +394,7 @@ namespace sfg::ui
 		return &_draw_buffers.back();
 	}
 
-	void vg_canvas_t::add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, u32 draw_order, const ui_render_state_t& state)
+	void vg_canvas_t::add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
@@ -511,7 +472,7 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_canvas_t::add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, u32 draw_order, const ui_render_state_t& state)
+	void vg_canvas_t::add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
@@ -542,7 +503,7 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, u32 draw_order, const ui_render_state_t& state)
+	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
@@ -615,7 +576,7 @@ namespace sfg::ui
 		return {total_x - spacing, height};
 	}
 
-	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, u32 draw_order, const ui_render_state_t& state, bool use_cache)
+	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order, bool use_cache)
 	{
 		if (!paint.font)
 		{

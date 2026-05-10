@@ -96,11 +96,6 @@ namespace sfg::ui
 		slot = {};
 	}
 
-	void ui_context::set_pipelines(const ui_pipelines_t& pipelines)
-	{
-		_canvas.set_pipelines(pipelines);
-	}
-
 	void ui_context::tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds)
 	{
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
@@ -142,7 +137,6 @@ namespace sfg::ui
 			dst.index_count				= src.index_count;
 			dst.vertex_offset			= vtx_offset;
 			dst.index_offset			= idx_offset;
-			dst.is_sdf					= src.state.is_sdf;
 
 			SFG_MEMCPY(slot.vertices + vtx_offset, src.vertex_start, src.vertex_count * sizeof(vg_vertex_t));
 			SFG_MEMCPY(slot.indices + idx_offset, src.index_start, src.index_count * sizeof(vg_index_t));

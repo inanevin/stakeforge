@@ -134,11 +134,12 @@ namespace sfg
 		{
 			const gfx_resource_handle handle = backend.create_resource(resource_req.desc);
 			_completed_q.enqueue({
-				.hash	  = resource_req.hash,
-				.type	  = resource_req.type,
-				.kind	  = render_resource_kind_e::resource,
-				.state	  = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.resource = handle,
+				.hash	   = resource_req.hash,
+				.type	   = resource_req.type,
+				.kind	   = render_resource_kind_e::resource,
+				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
+				.resource  = handle,
+				.gpu_index = backend.get_resource_gpu_index(handle),
 			});
 		}
 
@@ -147,11 +148,12 @@ namespace sfg
 		{
 			const gfx_texture_handle handle = backend.create_texture(req.desc);
 			_completed_q.enqueue({
-				.hash	 = req.hash,
-				.type	 = resource_type_e::texture,
-				.kind	 = render_resource_kind_e::texture,
-				.state	 = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.texture = handle,
+				.hash	   = req.hash,
+				.type	   = resource_type_e::texture,
+				.kind	   = render_resource_kind_e::texture,
+				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
+				.texture   = handle,
+				.gpu_index = backend.get_texture_gpu_index(handle, 0),
 			});
 		}
 
@@ -160,11 +162,12 @@ namespace sfg
 		{
 			const gfx_sampler_handle handle = backend.create_sampler(sampler_req.desc);
 			_completed_q.enqueue({
-				.hash	 = sampler_req.hash,
-				.type	 = sampler_req.type,
-				.kind	 = render_resource_kind_e::sampler,
-				.state	 = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.sampler = handle,
+				.hash	   = sampler_req.hash,
+				.type	   = sampler_req.type,
+				.kind	   = render_resource_kind_e::sampler,
+				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
+				.sampler   = handle,
+				.gpu_index = backend.get_sampler_gpu_index(handle),
 			});
 		}
 

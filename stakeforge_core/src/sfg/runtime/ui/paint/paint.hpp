@@ -39,6 +39,13 @@ namespace sfg::ui
 	class paint_layer_t;
 	class layout_tree_t;
 
+	struct paint_pipelines_t
+	{
+		resource_handle_t default_pipeline = 0;
+		resource_handle_t text_pipeline	   = 0;
+		resource_handle_t sdf_pipeline	   = 0;
+	};
+
 	enum class paint_kind_e : u8
 	{
 		none,
@@ -99,16 +106,30 @@ namespace sfg::ui
 		// draw
 		// -----------------------------------------------------------------------------
 
-		void set_rect(widget_id_t id, const vg_rect_paint_t& p);
-		void set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s);
-		void set_custom(widget_id_t id, paint_custom_fn fn, void* user_data);
-		void set_render_state(widget_id_t id, const ui_render_state_t& s);
+		void set_rect(widget_id_t id, const vg_rect_paint_t& p, const ui_render_state_t& state = {});
+		void set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s, const ui_render_state_t& state = {});
+		void set_custom(widget_id_t id, paint_custom_fn fn, void* user_data, const ui_render_state_t& state = {});
 		void set_hover_color(widget_id_t id, const vec4f_t& c);
 		void set_press_color(widget_id_t id, const vec4f_t& c);
 		void set_focus_color(widget_id_t id, const vec4f_t& c);
 
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline void set_pipelines(const paint_pipelines_t& pipelines)
+		{
+			_pipelines = pipelines;
+		}
+
+		inline const paint_pipelines_t& get_pipelines() const
+		{
+			return _pipelines;
+		}
+
 	private:
 		vector_t<paint_def_t> _defs;
 		vector_t<u8>		  _clip_stack;
+		paint_pipelines_t	  _pipelines = {};
 	};
 }

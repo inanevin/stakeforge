@@ -43,12 +43,6 @@ namespace sfg
 
 namespace sfg::ui
 {
-	struct ui_pipelines_t
-	{
-		resource_handle_t default_pipeline = 0;
-		resource_handle_t text_pipeline	   = 0;
-		resource_handle_t sdf_pipeline	   = 0;
-	};
 
 	enum class ui_resource_type_e : u8
 	{
@@ -64,18 +58,14 @@ namespace sfg::ui
 
 	struct ui_render_state_t
 	{
-		resource_handle_t pipeline		 = NULL_RESOURCE_HANDLE;
-		resource_handle_t atlas			 = NULL_RESOURCE_HANDLE;
-		ui_resource_ref_t constants[4]	 = {};
-		bool			  is_sdf	 = false;
-		bool			  is_glyph_atlas = false;
+		resource_handle_t pipeline	   = NULL_RESOURCE_HANDLE;
+		ui_resource_ref_t constants[4] = {};
 	};
 
 	struct ui_resolved_state_t
 	{
-		gfx_shader_handle  pipeline		= {};
-		gfx_texture_handle atlas		= {};
-		gpu_index_t		   constants[4] = {};
+		gfx_shader_handle pipeline	   = {};
+		gpu_index_t		  constants[4] = {};
 	};
 
 	struct vg_vertex_t
@@ -167,7 +157,6 @@ namespace sfg::ui
 		u32					index_count	  = 0;
 		u32					vertex_offset = 0;
 		u32					index_offset  = 0;
-		bool				is_sdf  = false;
 	};
 
 	struct vg_draw_snapshot_t
@@ -221,22 +210,16 @@ namespace sfg::ui
 		// pipelines
 		// -----------------------------------------------------------------------------
 
-		void set_pipelines(const ui_pipelines_t& pipelines);
 		void resolve();
-
-		inline const ui_pipelines_t& get_pipelines() const
-		{
-			return _pipelines;
-		}
 
 		// -----------------------------------------------------------------------------
 		// paint
 		// -----------------------------------------------------------------------------
 
-		void add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {});
-		void add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {});
-		void add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {});
-		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, u32 draw_order = 0, const ui_render_state_t& state = {}, bool use_cache = true);
+		void add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
+		void add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
+		void add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
+		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0, bool use_cache = true);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -272,7 +255,6 @@ namespace sfg::ui
 		vector_t<vec2f_t>			 _path0;
 		vector_t<vec2f_t>			 _path1;
 		vector_t<vec2f_t>			 _path2;
-		ui_pipelines_t				 _pipelines					 = {};
 		vg_vertex_t*				 _vertex_pool				 = nullptr;
 		vg_index_t*					 _index_pool				 = nullptr;
 		vg_vertex_t*				 _text_cache_vertex_buffer	 = nullptr;
