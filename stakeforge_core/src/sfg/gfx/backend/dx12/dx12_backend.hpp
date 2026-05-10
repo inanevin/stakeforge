@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/descriptor_handle.hpp>
+#include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/data/static_vector.hpp>
 #include <sfg/data/span.hpp>
@@ -129,6 +130,7 @@ namespace sfg
 			D3D12MA::Allocation*	  ptr = nullptr;
 			texture_view_t			  views[8];
 			gfx_texture_shared_handle shared_handle = {};
+			u32						  state			= resource_state_common;
 			u8						  format		= 0;
 			u8						  view_count	= 0;
 		};
@@ -237,6 +239,8 @@ namespace sfg
 
 		u32							  get_resource_gpu_index(gfx_resource_handle resource_t, bool use_secondary = false);
 		u32							  get_texture_gpu_index(gfx_texture_handle texture_t, u8 view_index);
+		u32							  get_texture_state(gfx_texture_handle texture_t) const;
+		void						  set_texture_state(gfx_texture_handle texture_t, u32 state);
 		u32							  get_sampler_gpu_index(gfx_sampler_handle sampler_t);
 		gfx_resource_handle			  create_resource(const resource_desc_t& desc);
 		gfx_texture_handle			  create_texture(const texture_desc_t& desc);
@@ -244,7 +248,7 @@ namespace sfg
 		gfx_swapchain_handle		  create_swapchain(const swapchain_desc_t&);
 		gfx_swapchain_handle		  recreate_swapchain(const swapchain_recreate_desc_t& desc);
 		gfx_semaphore_handle		  create_semaphore();
-		gfx_shader_handle			  create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_bind_layout_handle existing_layout = {}, span_t<u8> layout_data = {});
+		gfx_shader_handle			  create_shader(const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout = {});
 		gfx_bind_group_handle		  create_empty_bind_group();
 		gfx_command_buffer_handle	  create_command_buffer(const command_buffer_desc_t& desc);
 		gfx_command_allocator_handle  create_command_allocator(u8 ctype);
@@ -289,10 +293,10 @@ namespace sfg
 
 		HANDLE get_shared_handle_for_texture(gfx_texture_handle id);
 
-		u32	  get_texture_size(u32 width, u32 height, u32 bpp) const;
-		u32	  align_texture_size(u32 size) const;
-		u32	  align_texture_size_pitch(u32 size) const;
-		void* adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size) const;
+		static u32	 get_texture_size(u32 width, u32 height, u32 bpp);
+		static u32	 align_texture_size(u32 size);
+		static u32	 align_texture_size_pitch(u32 size);
+		static void* adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size);
 
 		void cmd_begin_event(gfx_command_buffer_handle cmd_list, const char* label);
 		void cmd_end_event(gfx_command_buffer_handle cmd_list);

@@ -78,11 +78,10 @@ namespace sfg
 		SFG_ASSERT(desc.mips.size <= MAX_MIPS);
 
 		entry_t entry;
-		entry.texture	  = desc.texture;
-		entry.staging	  = desc.staging;
-		entry.from_states = desc.from_states;
-		entry.to_states	  = desc.to_states;
-		entry.ownership	  = desc.ownership;
+		entry.texture		= desc.texture;
+		entry.staging		= desc.staging;
+		entry.target_states = desc.target_states;
+		entry.ownership		= desc.ownership;
 		for (size_t i = 0; i < desc.mips.size; i++)
 			entry.mips.push_back(desc.mips.data[i]);
 
@@ -107,10 +106,52 @@ namespace sfg
 		r.height		= desc.height;
 		r.bpp			= desc.bpp;
 		r.dst_mip		= desc.dst_mip;
-		r.from_states	= desc.from_states;
-		r.to_states		= desc.to_states;
+		r.target_states = desc.target_states;
 
 		_regions.push_back(r);
+	}
+
+	bool texture_queue_t::prepare(gfx_command_buffer_handle cmd)
+	{
+		if (_uploads.empty() && _regions.empty())
+			return false;
+
+		gfx_backend& backend = gfx_backend::get();
+
+		bool emitted = false;
+		for (const entry_t& e : _uploads)
+		{
+			const u32 current_states = backend.get_texture_state(e.texture);
+			if (current_states != resource_state_common)
+			{
+				const barrier_t b = {
+					.from_states = current_states,
+					.to_states	 = resource_state_common,
+					.texture_t	 = e.texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				};
+				backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
+				emitted = true;
+			}
+		}
+
+		for (const region_entry_t& r : _regions)
+		{
+			const u32 current_states = backend.get_texture_state(r.dst_texture);
+			if (current_states != resource_state_common)
+			{
+				const barrier_t b = {
+					.from_states = current_states,
+					.to_states	 = resource_state_common,
+					.texture_t	 = r.dst_texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				};
+				backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
+				emitted = true;
+			}
+		}
+
+		return emitted;
 	}
 
 	bool texture_queue_t::flush(gfx_command_buffer_handle cmd)
@@ -122,16 +163,7 @@ namespace sfg
 
 		for (entry_t& e : _uploads)
 		{
-			if (e.from_states != 0)
-			{
-				const barrier_t pre = {
-					.from_states = e.from_states,
-					.to_states	 = resource_state_copy_dest,
-					.texture_t	 = e.texture,
-					.flags		 = barrier_flags::baf_is_texture,
-				};
-				backend.cmd_barrier(cmd, {.barriers = &pre, .barrier_count = 1});
-			}
+			SFG_ASSERT(backend.get_texture_state(e.texture) == resource_state_common);
 
 			command_copy_buffer_to_texture_t cp = {};
 			cp.textures							= e.mips.data();
@@ -141,24 +173,15 @@ namespace sfg
 			cp.destination_slice				= 0;
 			backend.cmd_copy_buffer_to_texture(cmd, cp);
 
-			if (e.to_states != 0)
-				_transits.push_back({.texture = e.texture, .to_states = e.to_states});
+			if (e.target_states != 0)
+				_transits.push_back({.texture = e.texture, .target_states = e.target_states});
 
 			release_entry(e);
 		}
 
 		for (const region_entry_t& r : _regions)
 		{
-			if (r.from_states != 0)
-			{
-				const barrier_t pre = {
-					.from_states = r.from_states,
-					.to_states	 = resource_state_copy_dest,
-					.texture_t	 = r.dst_texture,
-					.flags		 = barrier_flags::baf_is_texture,
-				};
-				backend.cmd_barrier(cmd, {.barriers = &pre, .barrier_count = 1});
-			}
+			SFG_ASSERT(backend.get_texture_state(r.dst_texture) == resource_state_common);
 
 			command_copy_buffer_region_to_texture_t cp = {};
 			cp.src_buffer							   = r.src_buffer;
@@ -173,8 +196,8 @@ namespace sfg
 			cp.bpp									   = r.bpp;
 			backend.cmd_copy_buffer_region_to_texture(cmd, cp);
 
-			if (r.to_states != 0)
-				_transits.push_back({.texture = r.dst_texture, .to_states = r.to_states});
+			if (r.target_states != 0)
+				_transits.push_back({.texture = r.dst_texture, .target_states = r.target_states});
 		}
 
 		_uploads.resize(0);
@@ -191,13 +214,17 @@ namespace sfg
 
 		for (const transit_entry_t& te : _transits)
 		{
-			const barrier_t b = {
-				.from_states = resource_state_copy_dest,
-				.to_states	 = te.to_states,
-				.texture_t	 = te.texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-			backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
+			const u32 current_states = backend.get_texture_state(te.texture);
+			if (current_states != te.target_states)
+			{
+				const barrier_t b = {
+					.from_states = current_states,
+					.to_states	 = te.target_states,
+					.texture_t	 = te.texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				};
+				backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
+			}
 		}
 		_transits.resize(0);
 	}

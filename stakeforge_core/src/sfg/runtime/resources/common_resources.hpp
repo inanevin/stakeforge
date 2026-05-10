@@ -20,8 +20,8 @@ namespace sfg
 		u32			  version	   = 0;
 		vector_t<u64> source_ticks = {};
 
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
+		void   serialize(ostream_t& stream) const;
+		void   deserialize(istream_t& stream);
 	};
 
 	enum class resource_type_e : u8

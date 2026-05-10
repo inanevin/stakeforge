@@ -56,13 +56,13 @@ namespace sfg
 		desc.depth_stencil_desc.attachment_format = format_e::undefined;
 		desc.depth_stencil_desc.flags			  = 0;
 
-		vertex_inputs_t::get_editor_ui(desc.inputs);
+		vertex_inputs_t::get_editor_ui(desc);
 
 		shader_color_attachment_t att = {
 			.format			  = format_e::b8g8r8a8_srgb,
 			.blend_attachment = blend_attachments_t::get_alpha_blend(),
 		};
-		desc.attachments.push_back(att);
+		desc.add_attachment(att);
 
 		out_psos.push_back({.desc = desc, .variant_flags = 0, .compile_variant_index = 0});
 		return true;

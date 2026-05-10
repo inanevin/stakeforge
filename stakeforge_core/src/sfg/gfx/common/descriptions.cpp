@@ -29,11 +29,37 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <cstring>
 using json = nlohmann::json;
 
 namespace sfg
 {
+	namespace
+	{
+		void set_desc_name(char* dst, size_t capacity, const char* src)
+		{
+			SFG_ASSERT(src != nullptr);
+			if (src == nullptr)
+				return;
+			const size_t len = std::strlen(src);
+			SFG_ASSERT(len < capacity);
+			if (len >= capacity)
+				return;
+			SFG_MEMCPY(dst, src, len + 1);
+		}
+	}
+
+	void resource_desc_t::set_name(const char* name)
+	{
+		set_desc_name(debug_name, MAX_DEBUG_NAME, name);
+	}
+
+	void texture_desc_t::set_name(const char* name)
+	{
+		set_desc_name(debug_name, MAX_DEBUG_NAME, name);
+	}
 
 	void to_json(nlohmann::json& j, const sampler_desc_t& s)
 	{
@@ -158,6 +184,11 @@ namespace sfg
 			   math::almost_equal(max_lod, other.max_lod) && math::almost_equal(lod_bias, other.lod_bias);
 	}
 
+	void sampler_desc_t::set_name(const char* name)
+	{
+		set_desc_name(debug_name, MAX_DEBUG_NAME, name);
+	}
+
 	void sampler_desc_t::serialize(ostream_t& stream) const
 	{
 		stream << anisotropy;
@@ -165,7 +196,7 @@ namespace sfg
 		stream << min_lod;
 		stream << max_lod;
 		stream << flags.value();
-		stream << debug_name;
+		stream << string_t(debug_name);
 		stream << address_u;
 		stream << address_v;
 		stream << address_w;
@@ -182,7 +213,9 @@ namespace sfg
 		stream >> min_lod;
 		stream >> max_lod;
 		stream >> val;
-		stream >> debug_name;
+		string_t name;
+		stream >> name;
+		set_name(name.c_str());
 		stream >> addr_u;
 		stream >> addr_v;
 		stream >> addr_w;

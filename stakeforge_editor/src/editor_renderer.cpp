@@ -59,17 +59,19 @@ namespace sfg
 							   .type	   = command_type::graphics,
 							   .debug_name = "editor_gfx",
 			   });
+			pfd.cmd_gfx_prepare		   = backend.create_command_buffer({
+					   .type	   = command_type::graphics,
+					   .debug_name = "editor_prep",
+			   });
 			pfd.cmd_transfer		   = backend.create_command_buffer({
 						  .type		  = command_type::transfer,
 						  .debug_name = "editor_xfer",
 			  });
 
-			const resource_desc_t desc = {
-				.size		= sizeof(global_buffer_data_t),
-				.flags		= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible,
-				.debug_name = "editor_global",
-			};
-
+			resource_desc_t desc = {};
+			desc.size			 = sizeof(global_buffer_data_t);
+			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+			desc.set_name("editor_global");
 			pfd.global_buffer = backend.create_resource(desc);
 			backend.map_resource(pfd.global_buffer, pfd.mapped_global);
 			pfd.global_index = backend.get_resource_gpu_index(pfd.global_buffer);
@@ -97,6 +99,7 @@ namespace sfg
 			per_frame_data_t& pfd = _pfd[i];
 			backend.destroy_resource(pfd.global_buffer);
 			backend.destroy_command_buffer(pfd.cmd_gfx);
+			backend.destroy_command_buffer(pfd.cmd_gfx_prepare);
 			backend.destroy_command_buffer(pfd.cmd_transfer);
 			backend.destroy_semaphore(pfd.semaphore_frame.sem);
 			backend.destroy_semaphore(pfd.semaphore_transfer.sem);
@@ -183,7 +186,7 @@ namespace sfg
 
 	void editor_renderer_t::render()
 	{
-		render_resources_t::get().flush_create_destroys();
+		render_resources_t::get().drain_requests();
 		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
 		gfx_backend&	 backend	   = gfx_backend::get();
 
@@ -233,13 +236,29 @@ namespace sfg
 		const gfx_queue_handle			queue_gfx	   = backend.get_queue_gfx();
 		const gfx_queue_handle			queue_transfer = backend.get_queue_transfer();
 		const gfx_command_buffer_handle cmd			   = pfd.cmd_gfx;
+		const gfx_command_buffer_handle cmd_prepare	   = pfd.cmd_gfx_prepare;
 		const gfx_command_buffer_handle cmd_transfer   = pfd.cmd_transfer;
 
 		/* flush uploads, begin graphics & transits */
 
+		bool prepare_submitted	= false;
 		bool transfer_submitted = false;
 		if (texture_queue.has_uploads())
 		{
+			backend.reset_command_buffer(cmd_prepare);
+			const bool prepare_emitted = texture_queue.prepare(cmd_prepare);
+			backend.close_command_buffer(cmd_prepare);
+			if (prepare_emitted)
+			{
+				backend.submit_commands(queue_gfx, &cmd_prepare, 1);
+				pfd.semaphore_transfer.value++;
+				backend.queue_signal(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
+				prepare_submitted = true;
+			}
+
+			if (prepare_submitted)
+				backend.queue_wait(queue_transfer, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
+
 			backend.reset_command_buffer_transfer(cmd_transfer);
 			if (texture_queue.flush(cmd_transfer))
 			{

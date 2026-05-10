@@ -26,19 +26,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/data/vector.hpp>
-
 namespace sfg
 {
-	struct vertex_input_t;
+	struct shader_desc_t;
 
 	class vertex_inputs_t
 	{
 	public:
-		static void get_pos_normal_tangent_uv(vector_t<vertex_input_t>& out_inputs);
-		static void get_pos_normal_tangent_uv_skinned(vector_t<vertex_input_t>& out_inputs);
-		static void get_line_3d(vector_t<vertex_input_t>& out_inputs);
-		static void get_pos_color(vector_t<vertex_input_t>& out_inputs);
-		static void get_editor_ui(vector_t<vertex_input_t>& out_inputs);
+		static void get_pos_normal_tangent_uv(shader_desc_t& out_desc);
+		static void get_pos_normal_tangent_uv_skinned(shader_desc_t& out_desc);
+		static void get_line_3d(shader_desc_t& out_desc);
+		static void get_pos_color(shader_desc_t& out_desc);
+		static void get_editor_ui(shader_desc_t& out_desc);
 	};
 }

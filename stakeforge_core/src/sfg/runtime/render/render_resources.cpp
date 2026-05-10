@@ -4,7 +4,6 @@
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 
@@ -34,21 +33,18 @@ namespace sfg
 		_create_sampler_q.enqueue({.hash = hash, .type = type, .desc = desc});
 	}
 
-	void render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, vector_t<shader_blob_t>&& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
+	void render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(blobs.size <= MAX_SHADER_STAGES);
 		create_shader_request_t req = {};
 		req.hash					= hash;
 		req.type					= type;
 		req.user_data				= user_data;
 		req.desc					= desc;
-		req.blobs					= std::move(blobs);
 		req.existing_layout			= existing_layout;
-		if (layout_data.data != nullptr && layout_data.size != 0)
-		{
-			req.layout_data.resize(layout_data.size);
-			SFG_MEMCPY(req.layout_data.data(), layout_data.data, layout_data.size);
-		}
+		for (size_t i = 0; i < blobs.size; ++i)
+			req.blobs.push_back(blobs.data[i]);
 		_create_shader_q.enqueue(std::move(req));
 	}
 
@@ -84,13 +80,34 @@ namespace sfg
 		_destroy_shader_q.enqueue(handle);
 	}
 
+	void render_resources_t::enqueue_texture_upload(const texture_upload_desc_t& desc)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+
+		texture_upload_request_t req = {};
+		req.texture					 = desc.texture;
+		req.staging					 = desc.staging;
+		req.target_states			 = desc.target_states;
+		req.ownership				 = desc.ownership;
+		for (size_t i = 0; i < desc.mips.size; ++i)
+			req.mips.push_back(desc.mips.data[i]);
+
+		_texture_upload_q.enqueue(std::move(req));
+	}
+
+	void render_resources_t::enqueue_texture_region_upload(const texture_region_upload_desc_t& desc)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		_texture_region_upload_q.enqueue(desc);
+	}
+
 	bool render_resources_t::drain_completion(render_resource_completion_t& out_completion)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		return _completed_q.try_dequeue(out_completion);
 	}
 
-	void render_resources_t::flush_create_destroys()
+	void render_resources_t::drain_requests()
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
@@ -154,8 +171,8 @@ namespace sfg
 		create_shader_request_t shader_req = {};
 		while (_create_shader_q.try_dequeue(shader_req))
 		{
-			const span_t<u8>		layout_data = {.data = shader_req.layout_data.empty() ? nullptr : shader_req.layout_data.data(), .size = shader_req.layout_data.size()};
-			const gfx_shader_handle handle		= backend.create_shader(shader_req.desc, shader_req.blobs, shader_req.existing_layout, layout_data);
+			const span_t<const shader_blob_t> blobs	 = {.data = shader_req.blobs.data(), .size = shader_req.blobs.size()};
+			const gfx_shader_handle			  handle = backend.create_shader(shader_req.desc, blobs, shader_req.existing_layout);
 			_completed_q.enqueue({
 				.hash	   = shader_req.hash,
 				.type	   = shader_req.type,
@@ -165,5 +182,22 @@ namespace sfg
 				.shader	   = handle,
 			});
 		}
+
+		texture_upload_request_t texture_upload_req = {};
+		while (_texture_upload_q.try_dequeue(texture_upload_req))
+		{
+			const texture_upload_desc_t desc = {
+				.texture	   = texture_upload_req.texture,
+				.staging	   = texture_upload_req.staging,
+				.mips		   = {.data = texture_upload_req.mips.data(), .size = texture_upload_req.mips.size()},
+				.target_states = texture_upload_req.target_states,
+				.ownership	   = texture_upload_req.ownership,
+			};
+			_texture_upload_queue.add(desc);
+		}
+
+		texture_region_upload_desc_t texture_region_upload_req = {};
+		while (_texture_region_upload_q.try_dequeue(texture_region_upload_req))
+			_texture_upload_queue.add_region(texture_region_upload_req);
 	}
 }

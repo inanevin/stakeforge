@@ -56,6 +56,14 @@ namespace sfg
 			return false;
 		}
 
+		resource_header_t header = {
+			.magic	 = shader_loader_t::WIRE_MAGIC,
+			.version = shader_loader_t::WIRE_VERSION,
+		};
+		collect_source_ticks(full_path, header.source_ticks);
+
+		header.serialize(stream);
+
 		stream << cfg.type;
 		stream << compile_variant_count;
 
@@ -79,7 +87,13 @@ namespace sfg
 		{
 			stream << v.compile_variant_index;
 			stream << v.variant_flags;
+
+			const size_t size = stream.get_size();
+			stream << 0;
+
 			v.desc.serialize(stream);
+			u32 total = static_cast<u32>(stream.get_size() - size - sizeof(u32));
+			SFG_MEMCPY(stream.get_raw() + size, &total, sizeof(u32));
 		}
 
 		return true;

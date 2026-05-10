@@ -29,10 +29,19 @@
         },
         {
             "name": "font_roboto",
-            "path": "engine/fonts/Roboto-Regular.ttf",
+            "path": "editor/fonts/Roboto-Regular.ttf",
             "type": "font",
             "config": {
                 "schema": "sfg.schema.font"
+            }
+        },
+        {
+            "name": "test",
+            "path": "editor/textures/test.jpg",
+            "type": "texture",
+            "config": {
+                "schema": "sfg.schema.texture",
+                "generate_mipmaps": true
             }
         }
     ]

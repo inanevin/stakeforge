@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 // data
 #include <sfg/data/static_vector.hpp>
 #include <sfg/data/string_util.hpp>
-#include <sfg/data/vector_util.hpp>
 
 // gfx
 #include <sfg/gfx/common/descriptions.hpp>
@@ -1163,7 +1162,7 @@ namespace sfg
 		const D3D12_RESOURCE_ALLOCATION_INFO& allocation_info = _device->GetResourceAllocationInfo(0, 1, &resource_desc_t);
 
 		throw_if_failed(_allocator->CreateResource(&allocation_desc, &resource_desc_t, state, clear_value_ptr, &txt.ptr, IID_NULL, NULL));
-		NAME_DX12_OBJECT_CSTR(txt.ptr->GetResource(), desc.debug_name.c_str());
+		NAME_DX12_OBJECT_CSTR(txt.ptr->GetResource(), desc.debug_name);
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
 		{
@@ -1360,7 +1359,7 @@ namespace sfg
 			_device->CreateUnorderedAccessView(txt.ptr->GetResource(), NULL, &uav_desc, {targetDescriptor.cpu});
 		};
 
-		txt.view_count = static_cast<u8>(desc.views.size());
+		txt.view_count = desc.view_count;
 
 		for (u8 i = 0; i < txt.view_count; i++)
 		{
@@ -2074,48 +2073,63 @@ namespace sfg
 		return _descriptors.get(t.views[view_index].handle).index;
 	}
 
+	u32 dx12_backend_t::get_texture_state(gfx_texture_handle id) const
+	{
+		const texture_t& t = _textures.get(id);
+		return t.state;
+	}
+
+	void dx12_backend_t::set_texture_state(gfx_texture_handle id, u32 state)
+	{
+		texture_t& t = _textures.get(id);
+		t.state		 = state;
+	}
+
 	u32 dx12_backend_t::get_sampler_gpu_index(gfx_sampler_handle id)
 	{
 		const sampler_t& s = _samplers.get(id);
 		return _descriptors.get(s.descriptor_index).index;
 	}
 
-	gfx_shader_handle dx12_backend_t::create_shader(const shader_desc_t& desc, const vector_t<shader_blob_t>& blobs, gfx_bind_layout_handle existing_layout, span_t<u8> layout_data)
+	gfx_shader_handle dx12_backend_t::create_shader(const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
+		SFG_ASSERT(!existing_layout.is_null());
 
 		const gfx_shader_handle id = _shaders.add();
 		shader_t&				sh = _shaders.get(id);
 		sh.topology				   = static_cast<u8>(get_topology(desc.topo));
 
-		if (layout_data.size != 0)
-		{
-			throw_if_failed(_device->CreateRootSignature(0, layout_data.data, layout_data.size, IID_PPV_ARGS(&sh.root_signature)));
-			sh.owns_root_sig = true;
-		}
-		else
-			sh.root_signature = _bind_layouts.get(existing_layout).root_signature;
+		sh.root_signature = _bind_layouts.get(existing_layout).root_signature;
 
 		/* Early out if compute */
-		const auto it = vector_util::find_if(blobs, [](const shader_blob_t& b) -> bool { return b.stage == shader_stage_e::compute; });
-		if (it != blobs.end())
+		const shader_blob_t* compute_blob = nullptr;
+		for (size_t i = 0; i < blobs.size; ++i)
+		{
+			if (blobs.data[i].stage == shader_stage_e::compute)
+			{
+				compute_blob = &blobs.data[i];
+				break;
+			}
+		}
+		if (compute_blob != nullptr)
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC cpsd = {};
 			cpsd.pRootSignature					   = sh.root_signature.Get();
-			cpsd.CS								   = {it->data.data, it->data.size};
+			cpsd.CS								   = {compute_blob->data.data, compute_blob->data.size};
 			cpsd.NodeMask						   = 0;
 			_device->CreateComputePipelineState(&cpsd, IID_PPV_ARGS(&sh.ptr));
-			NAME_DX12_OBJECT_CSTR(sh.ptr, desc.debug_name.c_str());
+			NAME_DX12_OBJECT_CSTR(sh.ptr, desc.debug_name);
 			return id;
 		}
 
 		vector_t<D3D12_INPUT_ELEMENT_DESC> input_layout;
 
-		for (size_t i = 0; i < desc.inputs.size(); i++)
+		for (u8 i = 0; i < desc.input_count; i++)
 		{
 			const vertex_input_t& inp = desc.inputs[i];
 			input_layout.push_back({
-				.SemanticName		  = inp.name.c_str(),
+				.SemanticName		  = inp.name,
 				.SemanticIndex		  = inp.index,
 				.Format				  = get_format(inp.format),
 				.InputSlot			  = inp.location,
@@ -2136,7 +2150,7 @@ namespace sfg
 		pso_desc.BlendState.AlphaToCoverageEnable  = desc.flags.is_set(shader_flags::shf_enable_alpha_to_cov);
 		pso_desc.BlendState.IndependentBlendEnable = false;
 
-		const u32 attachment_count = static_cast<u32>(desc.attachments.size());
+		const u32 attachment_count = static_cast<u32>(desc.attachment_count);
 
 		for (u32 i = 0; i < attachment_count; i++)
 		{
@@ -2180,10 +2194,11 @@ namespace sfg
 		pso_desc.RasterizerState.SlopeScaledDepthBias  = desc.depth_bias_slope;
 		pso_desc.DSVFormat							   = get_format(desc.depth_stencil_desc.attachment_format);
 
-		for (const shader_blob_t& bl : blobs)
+		for (size_t i = 0; i < blobs.size; ++i)
 		{
-			const void*	 byte_code = (void*)bl.data.data;
-			const SIZE_T length	   = static_cast<SIZE_T>(bl.data.size);
+			const shader_blob_t& bl		   = blobs.data[i];
+			const void*			 byte_code = (void*)bl.data.data;
+			const SIZE_T		 length	   = static_cast<SIZE_T>(bl.data.size);
 
 			if (bl.stage == shader_stage_e::vertex)
 			{
@@ -2202,7 +2217,7 @@ namespace sfg
 		}
 
 		throw_if_failed(_device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&sh.ptr)));
-		NAME_DX12_OBJECT_CSTR(sh.ptr, desc.debug_name.c_str());
+		NAME_DX12_OBJECT_CSTR(sh.ptr, desc.debug_name);
 		return id;
 	}
 
@@ -3040,24 +3055,24 @@ namespace sfg
 		cmd_list->CopyBufferRegion(dest_res.ptr->GetResource(), cmd.dst_offset, src_res.ptr->GetResource(), cmd.src_offset, cmd.size);
 	}
 
-	u32 dx12_backend_t::get_texture_size(u32 width, u32 height, u32 bpp) const
+	u32 dx12_backend_t::get_texture_size(u32 width, u32 height, u32 bpp)
 	{
 		const u32 row_pitch	  = static_cast<u32>((width * bpp + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
 		const u32 slice_pitch = row_pitch * height;
 		return slice_pitch;
 	}
 
-	u32 dx12_backend_t::align_texture_size(u32 size) const
+	u32 dx12_backend_t::align_texture_size(u32 size)
 	{
 		return (size + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
 	}
 
-	u32 dx12_backend_t::align_texture_size_pitch(u32 size) const
+	u32 dx12_backend_t::align_texture_size_pitch(u32 size)
 	{
 		return (size + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
 	}
 
-	void* dx12_backend_t::adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size) const
+	void* dx12_backend_t::adjust_buffer_pitch(void* data, u32 width, u32 height, u8 bpp, u32& out_total_size)
 	{
 		const u32 _bpp		= static_cast<u32>(bpp);
 		const u32 alignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
@@ -3332,9 +3347,15 @@ namespace sfg
 			}
 
 			if (barrier_t.flags.is_set(barrier_flags::baf_is_uav))
+			{
 				barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(res));
+			}
 			else
+			{
 				barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(barrier_t.from_states), get_resource_state(barrier_t.to_states)));
+				if (barrier_t.flags.is_set(barrier_flags::baf_is_texture))
+					set_texture_state(barrier_t.texture_t, barrier_t.to_states);
+			}
 		}
 
 		if (!barriers.empty())

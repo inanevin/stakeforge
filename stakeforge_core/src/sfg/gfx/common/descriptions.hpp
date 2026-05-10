@@ -173,11 +173,15 @@ namespace sfg
 
 	struct resource_desc_t
 	{
-		u32			   size			   = 0;
-		u32			   structure_size  = 0;
-		u32			   structure_count = 0;
-		bitmask_t<u16> flags		   = 0;
-		const char*	   debug_name	   = "resource";
+		static constexpr size_t MAX_DEBUG_NAME = 64;
+
+		u32			   size						  = 0;
+		u32			   structure_size			  = 0;
+		u32			   structure_count			  = 0;
+		bitmask_t<u16> flags					  = 0;
+		char		   debug_name[MAX_DEBUG_NAME] = {"resource"};
+
+		void set_name(const char* name);
 	};
 
 	enum class view_type : u8
@@ -187,6 +191,7 @@ namespace sfg
 		depth_stencil,
 		gpu_write,
 	};
+
 	struct view_desc_t
 	{
 		view_type type			 = view_type::sampled;
@@ -200,42 +205,49 @@ namespace sfg
 
 	struct texture_desc_t
 	{
-		format_e			  texture_format	   = format_e::r8g8b8a8_srgb;
-		format_e			  depth_stencil_format = format_e::d16_unorm;
-		vec2u16_t			  size				   = vec2u16_t::zero;
-		bitmask_t<u16>		  flags				   = 0;
-		vector_t<view_desc_t> views				   = {
-			   {},
-		   };
-		u8			mip_levels		= 1;
-		u8			array_length	= 1;
-		u8			samples			= 1;
-		f32			clear_values[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-		string_t	debug_name		= "texture";
+		static constexpr size_t MAX_DEBUG_NAME = 64;
+		static constexpr size_t MAX_VIEWS	   = 8;
+
+		format_e	   texture_format			  = format_e::r8g8b8a8_srgb;
+		format_e	   depth_stencil_format		  = format_e::d16_unorm;
+		vec2u16_t	   size						  = vec2u16_t::zero;
+		bitmask_t<u16> flags					  = 0;
+		view_desc_t	   views[MAX_VIEWS]			  = {{}};
+		u8			   view_count				  = 0;
+		u8			   mip_levels				  = 1;
+		u8			   array_length				  = 1;
+		u8			   samples					  = 1;
+		f32			   clear_values[4]			  = {0.0f, 0.0f, 0.0f, 1.0f};
+		char		   debug_name[MAX_DEBUG_NAME] = {"texture"};
+
+		void set_name(const char* name);
 	};
 
 	struct sampler_desc_t
 	{
-		string_t	   debug_name = "sampler";
-		u32			   anisotropy = 0;
-		f32			   min_lod	  = 0.0f;
-		f32			   max_lod	  = 1.0f;
-		f32			   lod_bias	  = 0.0f;
-		bitmask_t<u16> flags	  = 0;
-		address_mode   address_u  = address_mode::clamp;
-		address_mode   address_v  = address_mode::clamp;
-		address_mode   address_w  = address_mode::clamp;
-		compare_op	   compare	  = {};
+		static constexpr size_t MAX_DEBUG_NAME = 64;
+
+		char		   debug_name[MAX_DEBUG_NAME] = {"sampler"};
+		u32			   anisotropy				  = 0;
+		f32			   min_lod					  = 0.0f;
+		f32			   max_lod					  = 1.0f;
+		f32			   lod_bias					  = 0.0f;
+		bitmask_t<u16> flags					  = 0;
+		address_mode   address_u				  = address_mode::clamp;
+		address_mode   address_v				  = address_mode::clamp;
+		address_mode   address_w				  = address_mode::clamp;
+		compare_op	   compare					  = {};
 
 		bool operator==(const sampler_desc_t& other) const;
 
+		void set_name(const char* name);
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 	};
 
 	struct layout_entry_t
 	{
-		binding_type_e   type					  = binding_type_e::constant;
+		binding_type_e type					  = binding_type_e::constant;
 		u8			   count				  = 1;
 		u8			   set					  = 0;
 		u8			   binding_t			  = 0;
@@ -250,11 +262,11 @@ namespace sfg
 
 	struct bind_layout_pointer_param_t
 	{
-		binding_type_e type		 = binding_type_e::ubo;
-		u8			 set		 = 0;
-		u8			 binding_t	 = 0;
-		u8			 count		 = 0;
-		u8			 is_volatile = 0;
+		binding_type_e type		   = binding_type_e::ubo;
+		u8			   set		   = 0;
+		u8			   binding_t   = 0;
+		u8			   count	   = 0;
+		u8			   is_volatile = 0;
 	};
 
 	struct bind_group_pointer_t
@@ -269,16 +281,16 @@ namespace sfg
 
 	struct bind_group_binding_t
 	{
-		u8*			 constants	= nullptr;
-		u8			 root_index = 0;
-		u8			 count		= 0;
-		binding_type_e type		= binding_type_e::constant;
+		u8*			   constants  = nullptr;
+		u8			   root_index = 0;
+		u8			   count	  = 0;
+		binding_type_e type		  = binding_type_e::constant;
 	};
 
 	struct binding_update_t
 	{
 		u32							  binding_index	 = 0;
-		vector_t<binding_type_e>		  resource_types = {};
+		vector_t<binding_type_e>	  resource_types = {};
 		vector_t<gfx_resource_handle> resources		 = {};
 		vector_t<gfx_texture_handle>  textures		 = {};
 		vector_t<gfx_sampler_handle>  samplers		 = {};

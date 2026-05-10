@@ -168,18 +168,22 @@ namespace sfg
 
 	struct vertex_input_t
 	{
-		string_t name	  = "TEXCOORD";
-		u8		 location = 0;
-		u8		 index	  = 0;
-		size_t	 offset	  = 0;
-		size_t	 size	  = 0;
-		format_e format	  = format_e::undefined;
+		static constexpr size_t MAX_NAME = 32;
+
+		char	 name[MAX_NAME] = {"TEXCOORD"};
+		u8		 location		= 0;
+		u8		 index			= 0;
+		size_t	 offset			= 0;
+		size_t	 size			= 0;
+		format_e format			= format_e::undefined;
+
+		void set_name(const char* name);
 	};
 
 	struct shader_blob_t
 	{
 		shader_stage_e stage = {};
-		span_t<u8>	 data  = {};
+		span_t<u8>	   data	 = {};
 	};
 
 	enum color_comp_flags
@@ -238,12 +242,19 @@ namespace sfg
 
 	struct shader_desc_t
 	{
-		string_t							vertex_entry  = "VSMain";
-		string_t							pixel_entry	  = "PSMain";
-		string_t							compute_entry = "CSMain";
-		bitmask_t<u16>						flags		  = 0;
-		vector_t<shader_color_attachment_t> attachments	  = {};
-		vector_t<vertex_input_t>			inputs		  = {};
+		static constexpr size_t MAX_DEBUG_NAME	  = 64;
+		static constexpr size_t MAX_ENTRY_NAME	  = 32;
+		static constexpr size_t MAX_ATTACHMENTS	  = 6;
+		static constexpr size_t MAX_VERTEX_INPUTS = 8;
+
+		char					  vertex_entry[MAX_ENTRY_NAME]	= {"VSMain"};
+		char					  pixel_entry[MAX_ENTRY_NAME]	= {"PSMain"};
+		char					  compute_entry[MAX_ENTRY_NAME] = {"CSMain"};
+		bitmask_t<u16>			  flags							= 0;
+		shader_color_attachment_t attachments[MAX_ATTACHMENTS]	= {};
+		vertex_input_t			  inputs[MAX_VERTEX_INPUTS]		= {};
+		u8						  attachment_count				= 0;
+		u8						  input_count					= 0;
 
 		shader_depth_stencil_desc_t depth_stencil_desc = {};
 		logic_op					blend_logic_op	   = logic_op::and_;
@@ -258,8 +269,14 @@ namespace sfg
 		f32 depth_bias_clamp	= 0.0f;
 		f32 depth_bias_slope	= 0.0f;
 
-		string_t debug_name = "shader";
+		char debug_name[MAX_DEBUG_NAME] = {"shader"};
 
+		void set_name(const char* name);
+		void set_vertex_entry(const char* name);
+		void set_pixel_entry(const char* name);
+		void set_compute_entry(const char* name);
+		void add_attachment(const shader_color_attachment_t& attachment);
+		void add_input(const vertex_input_t& input);
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 	};

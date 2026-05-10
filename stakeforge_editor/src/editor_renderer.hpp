@@ -23,13 +23,14 @@ namespace sfg
 	private:
 		struct per_frame_data_t
 		{
-			semaphore_data_t		  semaphore_frame	  = {};
-			semaphore_data_t		  semaphore_transfer  = {};
-			gfx_command_buffer_handle cmd_gfx	  = {};
-			gfx_command_buffer_handle cmd_transfer = {};
-			gfx_resource_handle		  global_buffer		  = {};
-			u8*						  mapped_global		  = nullptr;
-			u32						  global_index		  = 0;
+			semaphore_data_t		  semaphore_frame	 = {};
+			semaphore_data_t		  semaphore_transfer = {};
+			gfx_command_buffer_handle cmd_gfx			 = {};
+			gfx_command_buffer_handle cmd_gfx_prepare	 = {};
+			gfx_command_buffer_handle cmd_transfer		 = {};
+			gfx_resource_handle		  global_buffer		 = {};
+			u8*						  mapped_global		 = nullptr;
+			u32						  global_index		 = 0;
 		};
 
 		struct surface_render_target_t

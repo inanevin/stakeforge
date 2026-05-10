@@ -73,6 +73,7 @@ artifacts/
 *.vcxproj.user
 *.vcxproj.filters
 CLAUDE.md
+AGENTS.md
 .claude/
 # Chutzpah Test files
 _Chutzpah*

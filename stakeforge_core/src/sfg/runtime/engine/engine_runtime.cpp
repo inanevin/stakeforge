@@ -44,7 +44,7 @@ namespace sfg
 
 	void engine_runtime_t::uninit_backend()
 	{
-		render_resources_t::get().flush_create_destroys();
+		render_resources_t::get().drain_requests();
 		render_resources_t::get().get_texture_upload_queue().uninit();
 		gfx_backend& backend = gfx_backend::get();
 		if (!render_globals_t::s_global_bind_layout.is_null())

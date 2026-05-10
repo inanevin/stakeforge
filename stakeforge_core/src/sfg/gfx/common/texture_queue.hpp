@@ -44,12 +44,11 @@ namespace sfg
 
 	struct texture_upload_desc_t
 	{
-		gfx_texture_handle			   texture	   = {};
-		gfx_resource_handle			   staging	   = {};
-		span_t<const texture_buffer_t> mips		   = {};
-		u32							   from_states = 0;
-		u32							   to_states   = 0;
-		texture_data_ownership_e	   ownership   = texture_data_ownership_e::none;
+		gfx_texture_handle			   texture		 = {};
+		gfx_resource_handle			   staging		 = {};
+		span_t<const texture_buffer_t> mips			 = {};
+		u32							   target_states = 0;
+		texture_data_ownership_e	   ownership	 = texture_data_ownership_e::none;
 	};
 
 	struct texture_region_upload_desc_t
@@ -65,8 +64,7 @@ namespace sfg
 		u16					height		  = 0;
 		u8					bpp			  = 0;
 		u8					dst_mip		  = 0;
-		u32					from_states	  = 0;
-		u32					to_states	  = 0;
+		u32					target_states = 0;
 	};
 
 	class texture_queue_t
@@ -93,6 +91,8 @@ namespace sfg
 		void add(const texture_upload_desc_t& desc);
 		void add_region(const texture_region_upload_desc_t& desc);
 
+		bool prepare(gfx_command_buffer_handle cmd);
+
 		// flush issues copies on the (transfer) command buffer; returns true if anything was emitted.
 		bool flush(gfx_command_buffer_handle cmd);
 
@@ -109,12 +109,11 @@ namespace sfg
 	private:
 		struct entry_t
 		{
-			gfx_texture_handle							texture		= {};
-			gfx_resource_handle							staging		= {};
-			static_vector_t<texture_buffer_t, MAX_MIPS> mips		= {};
-			u32											from_states = 0;
-			u32											to_states	= 0;
-			texture_data_ownership_e					ownership	= texture_data_ownership_e::none;
+			gfx_texture_handle							texture		  = {};
+			gfx_resource_handle							staging		  = {};
+			static_vector_t<texture_buffer_t, MAX_MIPS> mips		  = {};
+			u32											target_states = 0;
+			texture_data_ownership_e					ownership	  = texture_data_ownership_e::none;
 		};
 
 		struct region_entry_t
@@ -129,14 +128,13 @@ namespace sfg
 			u16					height		  = 0;
 			u8					bpp			  = 0;
 			u8					dst_mip		  = 0;
-			u32					from_states	  = 0;
-			u32					to_states	  = 0;
+			u32					target_states = 0;
 		};
 
 		struct transit_entry_t
 		{
-			gfx_texture_handle texture	 = {};
-			u32				   to_states = 0;
+			gfx_texture_handle texture		 = {};
+			u32				   target_states = 0;
 		};
 
 		static void release_entry(entry_t& entry);

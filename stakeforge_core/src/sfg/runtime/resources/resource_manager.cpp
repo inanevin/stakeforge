@@ -99,7 +99,7 @@ namespace sfg
 			if (!any_pending)
 				break;
 
-			render_resources_t::get().flush_create_destroys();
+			render_resources_t::get().drain_requests();
 			flush_completed_render_resources();
 		}
 
@@ -122,12 +122,6 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		if (data.size < sizeof(resource_header_t))
-		{
-			SFG_ERR("data does not contain a resource header!");
-			return resource_state_e::failed;
-		}
-
 		/* Span data layout should be: resource_header_t + any (or no) data for runtime metadata + payload */
 
 		istream_t peek;
@@ -141,7 +135,9 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		if (data.size == sizeof(resource_header_t))
+		const size_t header_size = peek.tellg();
+
+		if (data.size == header_size)
 		{
 			SFG_ERR("resource data only has header and no payload!");
 			return resource_state_e::failed;
@@ -152,7 +148,7 @@ namespace sfg
 		entry.ref_count			= 1;
 		entry.hash				= hash;
 		entry.full_load_data	= data;
-		entry.after_header_data = {data.data + sizeof(resource_header_t), data.size - sizeof(resource_header_t)};
+		entry.after_header_data = {data.data + header_size, data.size - header_size};
 		entry.runtime			= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
 		entry.internals			= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
 		entry.state				= resource_state_e::queued;

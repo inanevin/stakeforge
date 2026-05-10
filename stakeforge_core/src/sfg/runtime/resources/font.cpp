@@ -13,6 +13,7 @@ namespace sfg
 	{
 		chunk_allocator_t& mem	   = ctx.resource_manager.get_memory();
 		font_runtime_t*	   runtime = mem.get<font_runtime_t>(entry.runtime);
+		*runtime				   = {};
 
 		istream_t stream;
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
@@ -29,8 +30,8 @@ namespace sfg
 			return false;
 		}
 
-		runtime->face			= fi;
-		runtime->face_id		= entry.hash;
+		runtime->face	 = fi;
+		runtime->face_id = entry.hash;
 		stbtt_GetFontVMetrics(fi, &runtime->ascent, &runtime->descent, &runtime->line_gap);
 		return true;
 	}
@@ -44,7 +45,6 @@ namespace sfg
 	{
 		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
 		font_runtime_t*	   font = mem.get<font_runtime_t>(entry.runtime);
-		
 	}
 
 	const resource_type_desc_t font_resource_desc = {
