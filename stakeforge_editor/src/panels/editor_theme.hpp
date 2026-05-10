@@ -28,14 +28,19 @@ namespace sfg
 		vec4f_t color_fg3 = color_t::from255(214.0f, 214.0f, 214.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_fg4 = color_t::from255(245.0f, 245.0f, 245.0f, 255.0f).srgb_to_linear().to_vector();
 
-		vec4f_t color_accent0	= color_t::from255(102.0f, 153.0f, 255.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_accent1	= color_t::from255(69.0f, 199.0f, 168.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_highlight = color_t::from255(245.0f, 194.0f, 82.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent0	  = color_t::from255(151.0f, 0.0f, 119.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent0_dim = color_t::from255(151.0f, 0.0f, 119.0f, 125.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent1	  = color_t::from255(7, 131, 214, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent1_dim = color_t::from255(7, 131, 214, 125.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent2	  = color_t::from255(255.0f, 102.0f, 0.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent2_dim = color_t::from255(255.0f, 102.0f, 0.0f, 125.0f).srgb_to_linear().to_vector();
+		vec4f_t color_highlight	  = color_t::from255(245.0f, 194.0f, 82.0f, 255.0f).srgb_to_linear().to_vector();
 
 		sid_t font_default		= "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs;
 		sid_t font_default_mono = "editor/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf"_hs;
 		sid_t font_big_title	= "editor/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
 
+		f32 aa_thickness		   = 2.0f;
 		f32 text_default_px_size   = 16.0f;
 		f32 text_big_title_px_size = 32.0f;
 		f32 item_height			   = 28.0f;

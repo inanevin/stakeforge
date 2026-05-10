@@ -590,6 +590,48 @@ namespace sfg::ui
 		}
 	}
 
+	void vg_canvas_t::add_convex(span_t<const vec2f_t> path, const vg_convex_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
+	{
+		if (path.size < 3)
+			return;
+
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
+
+		vec2f_t bb_min = path.data[0];
+		vec2f_t bb_max = path.data[0];
+		for (size_t i = 1; i < path.size; ++i)
+		{
+			bb_min = vec2f_t::min(bb_min, path.data[i]);
+			bb_max = vec2f_t::max(bb_max, path.data[i]);
+		}
+
+		const u32 base = db->vertex_count;
+		if (paint.gradient != vg_gradient_e::none)
+			emit_path_grad(db, path, paint.fill_color_a, paint.fill_color_b, paint.gradient, bb_min, bb_max);
+		else
+			emit_path_solid(db, path, paint.fill_color_a, bb_min, bb_max);
+
+		vg_index_t* idx = take_indices(db, static_cast<u32>((path.size - 2) * 3));
+		for (size_t i = 0; i < path.size - 2; ++i)
+		{
+			idx[i * 3 + 0] = static_cast<vg_index_t>(base);
+			idx[i * 3 + 1] = static_cast<vg_index_t>(base + i + 1);
+			idx[i * 3 + 2] = static_cast<vg_index_t>(base + i + 2);
+		}
+
+		if (paint.aa_thickness > 0.0f)
+		{
+			_path0.resize(path.size);
+			for (size_t i = 0; i < path.size; ++i)
+				_path0[i] = path.data[i];
+
+			vg_path_expand(_path2, _path0, paint.aa_thickness);
+			const u32 aa_base = db->vertex_count;
+			emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
+			emit_strip_indices(db, aa_base, base, static_cast<u32>(path.size));
+		}
+	}
+
 	vec2f_t vg_canvas_t::measure_text(const char* text, size_t len, const vg_text_paint_t& paint)
 	{
 		if (!paint.font || !text || len == 0)

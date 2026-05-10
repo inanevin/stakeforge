@@ -121,6 +121,14 @@ namespace sfg::ui
 		bool	filled		 = true;
 	};
 
+	struct vg_convex_paint_t
+	{
+		vec4f_t		  fill_color_a = {1, 1, 1, 1};
+		vec4f_t		  fill_color_b = {1, 1, 1, 1};
+		f32			  aa_thickness = 0.0f;
+		vg_gradient_e gradient	   = vg_gradient_e::none;
+	};
+
 	struct vg_text_style_t
 	{
 		resource_handle_t	font		= NULL_RESOURCE_HANDLE;

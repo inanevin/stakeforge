@@ -19,55 +19,47 @@ namespace sfg
 
 			ui::ui_render_state_t state = {};
 			state.pipeline				= paint.get_pipelines().default_pipeline;
-
-			const vec4f_t color		= theme.color_accent1;
-			const f32	  thick		= theme.item_height * 0.54f;
-			const f32	  angle_run = 2.75f;
-			const f32	  pad_y		= theme.item_height * 0.45f;
-			const f32	  full_h	= out.size.y - pad_y * 2.0f;
-			const f32	  half_h	= full_h * 0.50f;
-			const f32	  center_y	= out.pos.y + out.size.y * 0.5f;
-			const f32	  full_w	= full_h * angle_run;
-			const f32	  half_w	= half_h * angle_run;
-			const f32	  full_x0	= out.pos.x + out.size.x * 0.38f - full_w * 0.5f;
-			const f32	  full_x1	= full_x0 + full_w;
-			const f32	  half_x0	= out.pos.x + out.size.x * 0.66f - half_w * 0.5f;
-			const f32	  half_x1	= half_x0 + half_w;
-			const f32	  half_y0	= center_y + half_h * 0.5f;
-			const f32	  half_y1	= center_y - half_h * 0.5f;
-			const f32	  full_y0	= center_y + full_h * 0.5f;
-			const f32	  full_y1	= center_y - full_h * 0.5f;
+			ui::vg_convex_paint_t p		= {};
+			p.fill_color_b				= theme.color_accent0;
+			p.fill_color_a				= theme.color_accent0_dim;
+			p.gradient = ui::vg_gradient_e::vertical;
+			p.aa_thickness				= theme.aa_thickness;
 
 			canvas.push_clip({out.pos.x, out.pos.y, out.size.x, out.size.y});
-			ui::vg_draw_buffer_t* db = canvas.get_draw_buffer(ui.get_tree().draw_order_const(id), state);
 
-			const vec2f_t half_p0	   = {half_x0, half_y0};
-			const vec2f_t half_p1	   = {half_x1, half_y1};
-			const vec2f_t half_dir	   = (half_p1 - half_p0).normalized();
-			const vec2f_t half_off	   = {-half_dir.y * thick * 0.5f, half_dir.x * thick * 0.5f};
-			const vec2f_t half_path[4] = {
-				half_p0 - half_off,
-				half_p1 - half_off,
-				half_p1 + half_off,
-				half_p0 + half_off,
-			};
-			const u32 half_base = db->vertex_count;
-			ui::vg_canvas_t::emit_path_solid(db, {half_path, 4}, color, {out.pos.x, out.pos.y}, {out.pos.x + out.size.x, out.pos.y + out.size.y});
-			ui::vg_canvas_t::emit_quad_indices(db, half_base);
+			const f32 width = out.size.x * 0.2f;
+			const f32 lean	= 0.35f;
 
-			const vec2f_t full_p0	   = {full_x0, full_y0};
-			const vec2f_t full_p1	   = {full_x1, full_y1};
-			const vec2f_t full_dir	   = (full_p1 - full_p0).normalized();
-			const vec2f_t full_off	   = {-full_dir.y * thick * 0.5f, full_dir.x * thick * 0.5f};
-			const vec2f_t full_path[4] = {
-				full_p0 - full_off,
-				full_p1 - full_off,
-				full_p1 + full_off,
-				full_p0 + full_off,
-			};
-			const u32 full_base = db->vertex_count;
-			ui::vg_canvas_t::emit_path_solid(db, {full_path, 4}, color, {out.pos.x, out.pos.y}, {out.pos.x + out.size.x, out.pos.y + out.size.y});
-			ui::vg_canvas_t::emit_quad_indices(db, full_base);
+			{
+				const f32 x_start = out.pos.x;
+				const f32 y_start = out.pos.y + out.size.y * 0.5f;
+				const f32 y_end	  = out.pos.y + out.size.y;
+				const f32 skew	  = (y_end - y_start) * lean;
+
+				const vec2f_t p0	  = {x_start + skew, y_start};
+				const vec2f_t p1	  = {p0.x + width, y_start};
+				const vec2f_t p2	  = {x_start + width, y_end};
+				const vec2f_t p3	  = {x_start, y_end};
+				vec2f_t		  path[4] = {p0, p1, p2, p3};
+
+				canvas.add_convex({&path[0], 4}, p, state, ui.get_tree().draw_order_const(id));
+			}
+
+			{
+				const f32 x_start = out.pos.x + width + width * 0.2f;
+				const f32 y_start = out.pos.y;
+				const f32 y_end	  = out.pos.y + out.size.y;
+				const f32 skew	  = (y_end - y_start) * lean;
+
+				const vec2f_t p0	  = {x_start + skew, y_start};
+				const vec2f_t p1	  = {p0.x + width, y_start};
+				const vec2f_t p2	  = {x_start + width, y_end};
+				const vec2f_t p3	  = {x_start, y_end};
+				vec2f_t		  path[4] = {p0, p1, p2, p3};
+
+				canvas.add_convex({&path[0], 4}, p, state, ui.get_tree().draw_order_const(id));
+			}
+
 			canvas.pop_clip();
 		}
 	}
