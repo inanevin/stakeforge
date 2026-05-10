@@ -106,11 +106,11 @@ namespace sfg::ui
 
 	struct tree_node_t
 	{
-		widget_id_t parent		 = INVALID_WIDGET;
-		widget_id_t first_child	 = INVALID_WIDGET;
-		widget_id_t last_child	 = INVALID_WIDGET;
-		widget_id_t next_sibling = INVALID_WIDGET;
-		widget_id_t prev_sibling = INVALID_WIDGET;
+		widget_id_t parent		 = NULL_WIDGET;
+		widget_id_t first_child	 = NULL_WIDGET;
+		widget_id_t last_child	 = NULL_WIDGET;
+		widget_id_t next_sibling = NULL_WIDGET;
+		widget_id_t prev_sibling = NULL_WIDGET;
 		u16			child_count	 = 0;
 		u32			draw_order	 = 0;
 		u8			depth		 = 0;
@@ -206,7 +206,7 @@ namespace sfg::ui
 		vector_t<widget_id_t>  _free_list;
 		vector_t<widget_id_t>  _dfs;
 		vector_t<u32>		   _dfs_descendants;
-		widget_id_t			   _root		   = INVALID_WIDGET;
+		widget_id_t			   _root		   = NULL_WIDGET;
 		u32					   _max_widgets	   = 0;
 		u32					   _alive_count	   = 0;
 		bool				   _topology_dirty = true;

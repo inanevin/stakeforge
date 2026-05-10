@@ -30,12 +30,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/memory/text_allocator.hpp>
-#include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
-#include <sfg/runtime/ui/ui_theme.hpp>
 
 namespace sfg::ui
 {
@@ -70,6 +68,12 @@ namespace sfg::ui
 		void uninit();
 		void tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds);
 		void publish_frame();
+		void set_debug_draw(bool enabled);
+
+		inline bool is_debug_draw_enabled() const
+		{
+			return _debug_draw;
+		}
 
 		inline f32 get_dpi_scale() const
 		{
@@ -106,18 +110,6 @@ namespace sfg::ui
 		u32			widget_text_len(widget_id_t id) const;
 
 		// -----------------------------------------------------------------------------
-		// widgets
-		// -----------------------------------------------------------------------------
-
-		widget_id_t make_panel(widget_id_t parent);
-		widget_id_t make_row(widget_id_t parent);
-		widget_id_t make_column(widget_id_t parent);
-		widget_id_t make_spacer(widget_id_t parent, f32 size_px = 0.0f);
-		widget_id_t make_label(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size = 13.0f, glyph_raster_mode_e raster_mode = glyph_raster_mode_e::lcd);
-		widget_id_t make_button(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size = 13.0f, glyph_raster_mode_e raster_mode = glyph_raster_mode_e::lcd);
-		widget_id_t make_divider(widget_id_t parent, bool horizontal);
-
-		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
@@ -141,14 +133,6 @@ namespace sfg::ui
 		{
 			return _canvas;
 		}
-		inline theme_t& get_theme()
-		{
-			return _theme;
-		}
-		inline const theme_t& get_theme() const
-		{
-			return _theme;
-		}
 
 		inline widget_id_t get_root() const
 		{
@@ -169,12 +153,12 @@ namespace sfg::ui
 
 		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity);
 		void free_snapshot_slot(snapshot_slot_t& slot);
+		void draw_debug_hovered_widget();
 
 	private:
 		vg_canvas_t								   _canvas;
 		input_router_t							   _input;
 		layout_tree_t							   _tree;
-		theme_t									   _theme;
 		snapshot_slot_t							   _snapshot_slots[3] = {};
 		paint_layer_t							   _paint;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
@@ -185,5 +169,6 @@ namespace sfg::ui
 		f32										   _user_ui_scale	 = 1.0f;
 		f32										   _ui_scale		 = 1.0f;
 		f32										   _dpi_scale		 = 1.0f;
+		bool									   _debug_draw		 = false;
 	};
 }

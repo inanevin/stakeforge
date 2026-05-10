@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common_editor.hpp"
+#include "panels/editor_base.hpp"
 #include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -16,6 +17,7 @@ namespace sfg
 		gfx_swapchain_handle	 swapchain		= {};
 		vec2u16_t				 swapchain_size = {};
 		unique_t<ui::ui_context> ui;
+		editor_base_t			 editor;
 		u16						 settings_idx = 0;
 		bool					 is_minimized = false;
 	};

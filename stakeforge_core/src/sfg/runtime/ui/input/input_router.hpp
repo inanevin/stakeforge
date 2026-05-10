@@ -150,7 +150,7 @@ namespace sfg::ui
 	private:
 		struct press_state_t
 		{
-			widget_id_t target		 = INVALID_WIDGET;
+			widget_id_t target		 = NULL_WIDGET;
 			vec2f_t		press_pos	 = {0, 0};
 			f32			held_seconds = 0.0f;
 			bool		dragging	 = false;
@@ -158,7 +158,7 @@ namespace sfg::ui
 
 		struct click_record_t
 		{
-			widget_id_t target	  = INVALID_WIDGET;
+			widget_id_t target	  = NULL_WIDGET;
 			f32			t_seconds = 0.0f;
 		};
 
@@ -171,13 +171,13 @@ namespace sfg::ui
 		const layout_tree_t*					   _tree   = nullptr;
 
 		press_state_t  _pressed_state[static_cast<u32>(mouse_button_e::count)] = {};
-		widget_id_t	   _pressed[static_cast<u32>(mouse_button_e::count)]	   = {INVALID_WIDGET, INVALID_WIDGET, INVALID_WIDGET};
+		widget_id_t	   _pressed[static_cast<u32>(mouse_button_e::count)]	   = {NULL_WIDGET, NULL_WIDGET, NULL_WIDGET};
 		click_record_t _last_click[static_cast<u32>(mouse_button_e::count)]	   = {};
 
 		vec2f_t		_mouse		= {0, 0};
 		vec2f_t		_mouse_prev = {0, 0};
 		f32			_accum_time = 0.0f;
-		widget_id_t _hovered	= INVALID_WIDGET;
-		widget_id_t _focused	= INVALID_WIDGET;
+		widget_id_t _hovered	= NULL_WIDGET;
+		widget_id_t _focused	= NULL_WIDGET;
 	};
 }

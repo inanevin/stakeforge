@@ -4,8 +4,8 @@
 #include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
-#include "editor_ui_tests.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/frame_allocator.hpp>
@@ -77,6 +77,9 @@ namespace sfg
 			ui.on_wheel(static_cast<f32>(ev.value.y));
 			break;
 		case window_event_type_e::key: {
+			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
+				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
+
 			ui::key_event_t k = {};
 			k.key			  = ev.button;
 			k.scan_code		  = static_cast<u16>(ev.value.x);
@@ -169,6 +172,7 @@ namespace sfg
 		{
 			if (surface.ui)
 			{
+				surface.editor.uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
 			}
@@ -201,8 +205,16 @@ namespace sfg
 		pipelines.grayscale_text_pipeline = "editor/shaders/editor_ui_text_grayscale.hlsl"_hs;
 		pipelines.sdf_pipeline			  = "editor/shaders/ui_sdf.hlsl"_hs;
 		surface.ui->get_paint().set_pipelines(pipelines);
+		surface.ui->set_debug_draw(_debug_mode);
 
-		editor_ui_tests_t::make_test_general(*surface.ui);
+		surface.editor.init(*surface.ui);
+	}
+
+	void editor_app_t::set_debug_mode(bool enabled)
+	{
+		_debug_mode = enabled;
+		for (editor_surface_t& surface : _surfaces)
+			surface.ui->set_debug_draw(enabled);
 	}
 
 	void editor_app_t::tick()
@@ -320,6 +332,7 @@ namespace sfg
 
 		if (surface.ui)
 		{
+			surface.editor.uninit();
 			surface.ui->uninit();
 			surface.ui.reset();
 		}

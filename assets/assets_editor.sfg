@@ -45,6 +45,22 @@
             }
         },
         {
+            "name": "font_ibm_mono",
+            "path": "editor/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf",
+            "type": "font",
+            "config": {
+                "schema": "sfg.schema.font"
+            }
+        },
+        {
+            "name": "font_orbitron",
+            "path": "editor/fonts/Orbitron/static/Orbitron-Bold.ttf",
+            "type": "font",
+            "config": {
+                "schema": "sfg.schema.font"
+            }
+        },
+        {
             "name": "test",
             "path": "editor/textures/test.jpg",
             "type": "texture",

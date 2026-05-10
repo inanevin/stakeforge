@@ -49,11 +49,11 @@ namespace sfg::ui
 		_hit_order.resize(0);
 		_focus_order.reserve(64);
 		_hit_order.reserve(256);
-		_hovered = INVALID_WIDGET;
-		_focused = INVALID_WIDGET;
+		_hovered = NULL_WIDGET;
+		_focused = NULL_WIDGET;
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
 		{
-			_pressed[i]		  = INVALID_WIDGET;
+			_pressed[i]		  = NULL_WIDGET;
 			_pressed_state[i] = {};
 			_last_click[i]	  = {};
 		}
@@ -116,14 +116,14 @@ namespace sfg::ui
 			if (point_in_rect(out.clip, pos))
 				return id;
 		}
-		return INVALID_WIDGET;
+		return NULL_WIDGET;
 	}
 
 	void input_router_t::fire_hover_change(widget_id_t new_hover)
 	{
 		if (new_hover == _hovered)
 		{
-			if (_hovered != INVALID_WIDGET)
+			if (_hovered != NULL_WIDGET)
 			{
 				auto it = _listeners.find(_hovered);
 				if (it != _listeners.end() && it->second.on_hover_move)
@@ -132,7 +132,7 @@ namespace sfg::ui
 			return;
 		}
 
-		if (_hovered != INVALID_WIDGET)
+		if (_hovered != NULL_WIDGET)
 		{
 			auto it = _listeners.find(_hovered);
 			if (it != _listeners.end() && it->second.on_hover_exit)
@@ -141,7 +141,7 @@ namespace sfg::ui
 
 		_hovered = new_hover;
 
-		if (_hovered != INVALID_WIDGET)
+		if (_hovered != NULL_WIDGET)
 		{
 			auto it = _listeners.find(_hovered);
 			if (it != _listeners.end() && it->second.on_hover_enter)
@@ -163,7 +163,7 @@ namespace sfg::ui
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
 		{
 			press_state_t& ps = _pressed_state[i];
-			if (_pressed[i] == INVALID_WIDGET)
+			if (_pressed[i] == NULL_WIDGET)
 				continue;
 			ps.held_seconds += dt_seconds;
 
@@ -205,14 +205,14 @@ namespace sfg::ui
 			const widget_id_t target = _hovered;
 			if (_focused != target)
 			{
-				if (_focused != INVALID_WIDGET)
+				if (_focused != NULL_WIDGET)
 				{
 					auto it = _listeners.find(_focused);
 					if (it != _listeners.end() && it->second.on_focus_lose)
 						it->second.on_focus_lose(*this, _focused, false, it->second.user_data);
 				}
 				_focused = target;
-				if (_focused != INVALID_WIDGET)
+				if (_focused != NULL_WIDGET)
 				{
 					auto it = _listeners.find(_focused);
 					if (it != _listeners.end() && it->second.on_focus_gain)
@@ -222,7 +222,7 @@ namespace sfg::ui
 
 			_pressed[b]		  = target;
 			_pressed_state[b] = {target, _mouse, 0.0f, false};
-			if (target != INVALID_WIDGET)
+			if (target != NULL_WIDGET)
 			{
 				auto it = _listeners.find(target);
 				if (it != _listeners.end() && it->second.on_press)
@@ -233,9 +233,9 @@ namespace sfg::ui
 
 		const widget_id_t target = _pressed[b];
 		press_state_t&	  ps	 = _pressed_state[b];
-		_pressed[b]				 = INVALID_WIDGET;
+		_pressed[b]				 = NULL_WIDGET;
 
-		if (target == INVALID_WIDGET)
+		if (target == NULL_WIDGET)
 			return;
 
 		auto lit = _listeners.find(target);
@@ -262,7 +262,7 @@ namespace sfg::ui
 		{
 			if (lit != _listeners.end() && lit->second.on_double_click)
 				lit->second.on_double_click(*this, target, _mouse, btn, lit->second.user_data);
-			rec = {INVALID_WIDGET, 0.0f};
+			rec = {NULL_WIDGET, 0.0f};
 		}
 		else
 		{
@@ -273,7 +273,7 @@ namespace sfg::ui
 	void input_router_t::on_wheel(f32 delta)
 	{
 		widget_id_t cur = _hovered;
-		while (cur != INVALID_WIDGET)
+		while (cur != NULL_WIDGET)
 		{
 			auto it = _listeners.find(cur);
 			if (it != _listeners.end() && it->second.on_wheel)
@@ -289,7 +289,7 @@ namespace sfg::ui
 
 	void input_router_t::on_key(const key_event_t& ev)
 	{
-		if (_focused == INVALID_WIDGET)
+		if (_focused == NULL_WIDGET)
 			return;
 		auto it = _listeners.find(_focused);
 		if (it != _listeners.end() && it->second.on_key)
@@ -300,14 +300,14 @@ namespace sfg::ui
 	{
 		if (_focused == id)
 			return;
-		if (_focused != INVALID_WIDGET)
+		if (_focused != NULL_WIDGET)
 		{
 			auto it = _listeners.find(_focused);
 			if (it != _listeners.end() && it->second.on_focus_lose)
 				it->second.on_focus_lose(*this, _focused, from_nav, it->second.user_data);
 		}
 		_focused = id;
-		if (_focused != INVALID_WIDGET)
+		if (_focused != NULL_WIDGET)
 		{
 			auto it = _listeners.find(_focused);
 			if (it != _listeners.end() && it->second.on_focus_gain)
@@ -320,7 +320,7 @@ namespace sfg::ui
 		if (_focus_order.empty())
 			return;
 		size_t idx = 0;
-		if (_focused != INVALID_WIDGET)
+		if (_focused != NULL_WIDGET)
 		{
 			for (size_t i = 0; i < _focus_order.size(); ++i)
 			{
@@ -339,7 +339,7 @@ namespace sfg::ui
 		if (_focus_order.empty())
 			return;
 		size_t idx = _focus_order.size() - 1;
-		if (_focused != INVALID_WIDGET)
+		if (_focused != NULL_WIDGET)
 		{
 			for (size_t i = 0; i < _focus_order.size(); ++i)
 			{

@@ -153,7 +153,7 @@ namespace sfg::ui
 
 			nlohmann::json children = nlohmann::json::array();
 			widget_id_t	   c		= tree.node(id).first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				children.push_back(widget_to_json(ui, c));
 				c = tree.node(c).next_sibling;
@@ -205,7 +205,7 @@ namespace sfg::ui
 		void destroy_children(layout_tree_t& tree, widget_id_t id)
 		{
 			widget_id_t c = tree.node(id).first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				const widget_id_t next = tree.node(c).next_sibling;
 				tree.deallocate(c);

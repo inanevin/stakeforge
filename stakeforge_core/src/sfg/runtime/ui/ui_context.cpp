@@ -36,6 +36,14 @@ namespace sfg::ui
 #define SNAPSHOT_SLOT_MASK	0x3
 #define SNAPSHOT_FRESH_FLAG 0x80
 
+	namespace
+	{
+		bool point_in_rect(const vec4f_t& rect, const vec2f_t& point)
+		{
+			return point.x >= rect.x && point.x <= rect.x + rect.z && point.y >= rect.y && point.y <= rect.y + rect.w;
+		}
+	}
+
 	void ui_context::init(const ui_config_t& cfg)
 	{
 		_user_ui_scale = cfg.user_ui_scale;
@@ -109,9 +117,54 @@ namespace sfg::ui
 
 		_canvas.frame_begin(screen_rect);
 		_paint.paint_all(_tree, _input, _canvas, _ui_scale, _dpi_scale);
+		if (_debug_draw)
+			draw_debug_hovered_widget();
 		_canvas.frame_end();
 
 		_canvas.resolve();
+	}
+
+	void ui_context::set_debug_draw(bool enabled)
+	{
+		_debug_draw = enabled;
+	}
+
+	void ui_context::draw_debug_hovered_widget()
+	{
+		const span_t<const widget_id_t> dfs	   = _tree.get_dfs();
+		const vec2f_t&					mouse  = _input.get_mouse_position();
+		widget_id_t						target = NULL_WIDGET;
+
+		for (size_t i = 0; i < dfs.size; ++i)
+		{
+			const widget_id_t id = dfs.data[i];
+			if (id == _tree.get_root())
+				continue;
+
+			const layout_in_t& in = _tree.in_const(id);
+			if (!(in.flags & wf_visible))
+				continue;
+
+			const layout_out_t& out = _tree.out(id);
+			if (out.clip.z <= 0.0f || out.clip.w <= 0.0f)
+				continue;
+			if (point_in_rect(out.clip, mouse))
+				target = id;
+		}
+
+		if (target == NULL_WIDGET)
+			return;
+
+		const layout_out_t& out = _tree.out(target);
+
+		vg_rect_paint_t rect   = {};
+		rect.filled			   = false;
+		rect.outline_color	   = {1.0f, 0.0f, 1.0f, 1.0f};
+		rect.outline_thickness = 1.0f;
+
+		ui_render_state_t state = {};
+		state.pipeline			= _paint.get_pipelines().default_pipeline;
+		_canvas.add_rect({out.pos.x, out.pos.y}, {out.pos.x + out.size.x, out.pos.y + out.size.y}, rect, state, 0xFFFFFFFFu);
 	}
 
 	void ui_context::publish_frame()
@@ -244,146 +297,4 @@ namespace sfg::ui
 		return it->second.len;
 	}
 
-	widget_id_t ui_context::make_panel(widget_id_t parent)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		layout_in_t& in	 = _tree.in(id);
-		in.size_mode_x	 = axis_mode_e::parent_relative;
-		in.size_mode_y	 = axis_mode_e::parent_relative;
-		in.size_value	 = {1.0f, 1.0f};
-		in.child_margins = {_theme.margin_vertical, _theme.margin_horizontal, _theme.margin_vertical, _theme.margin_horizontal};
-		in.child_spacing = _theme.item_spacing;
-
-		vg_rect_paint_t rect   = {};
-		rect.fill_color_a	   = _theme.color_panel_bg;
-		rect.fill_color_b	   = _theme.color_panel_bg;
-		rect.outline_color	   = _theme.color_item_outline;
-		rect.outline_thickness = _theme.outline_thickness;
-		_paint.set_rect(id, rect);
-
-		return id;
-	}
-
-	widget_id_t ui_context::make_row(widget_id_t parent)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		layout_in_t& in	 = _tree.in(id);
-		in.size_mode_x	 = axis_mode_e::parent_relative;
-		in.size_mode_y	 = axis_mode_e::parent_relative;
-		in.size_value	 = {1.0f, 1.0f};
-		in.flow			 = flow_e::row;
-		in.child_spacing = _theme.item_spacing;
-		return id;
-	}
-
-	widget_id_t ui_context::make_column(widget_id_t parent)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		layout_in_t& in	 = _tree.in(id);
-		in.size_mode_x	 = axis_mode_e::parent_relative;
-		in.size_mode_y	 = axis_mode_e::parent_relative;
-		in.size_value	 = {1.0f, 1.0f};
-		in.flow			 = flow_e::column;
-		in.child_spacing = _theme.item_spacing;
-		in.child_margins = {_theme.margin_vertical, _theme.margin_vertical, _theme.margin_horizontal, _theme.margin_horizontal};
-
-		return id;
-	}
-
-	widget_id_t ui_context::make_spacer(widget_id_t parent, f32 size_px)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		layout_in_t& in = _tree.in(id);
-		if (size_px > 0.0f)
-		{
-			in.size_mode_x = axis_mode_e::fixed;
-			in.size_mode_y = axis_mode_e::fixed;
-			in.size_value  = {size_px, size_px};
-		}
-		else
-		{
-			in.size_mode_x = axis_mode_e::fill;
-			in.size_mode_y = axis_mode_e::fill;
-		}
-		return id;
-	}
-
-	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size, glyph_raster_mode_e raster_mode)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		set_widget_text(id, text);
-		_paint.set_text(id, widget_text(id), widget_text_len(id), {.font = font, .color = _theme.color_item_fg, .point_size = point_size, .spacing = 0, .raster_mode = raster_mode});
-		return id;
-	}
-
-	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size, glyph_raster_mode_e raster_mode)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		const u32 len = static_cast<u32>(text ? strlen(text) : 0);
-
-		layout_in_t& in	 = _tree.in(id);
-		in.size_mode_x	 = axis_mode_e::sum_children;
-		in.size_mode_y	 = axis_mode_e::fixed;
-		in.size_value	 = {0.0f, _theme.item_height};
-		in.flags		 = wf_visible | wf_focusable;
-		in.child_margins = {_theme.margin_vertical, _theme.margin_horizontal * 2, _theme.margin_vertical, _theme.margin_horizontal * 2};
-		in.flow			 = flow_e::row;
-
-		vg_rect_paint_t rect   = {};
-		rect.fill_color_a	   = _theme.color_item_bg;
-		rect.fill_color_b	   = _theme.color_item_bg;
-		rect.outline_color	   = _theme.color_item_outline;
-		rect.outline_thickness = _theme.outline_thickness;
-		_paint.set_rect(id, rect);
-		_paint.set_hover_color(id, _theme.color_item_hover);
-		_paint.set_press_color(id, _theme.color_item_press);
-		_paint.set_focus_color(id, _theme.color_focus);
-
-		{
-			const ui::widget_id_t label = make_label(id, text, font, point_size, raster_mode);
-			layout_in_t&		  in	= _tree.in(label);
-			in.pos_mode_y				= pos_mode_e::relative_in_parent;
-			in.pos_value.y				= 0.5f;
-			in.anchor_y					= anchor_e::center;
-		}
-		return id;
-	}
-
-	widget_id_t ui_context::make_divider(widget_id_t parent, bool horizontal)
-	{
-		const widget_id_t id = _tree.allocate();
-		_tree.attach(parent, id);
-
-		layout_in_t& in = _tree.in(id);
-		if (horizontal)
-		{
-			in.size_mode_x = axis_mode_e::parent_relative;
-			in.size_mode_y = axis_mode_e::fixed;
-			in.size_value  = {1.0f, 1.0f};
-		}
-		else
-		{
-			in.size_mode_x = axis_mode_e::fixed;
-			in.size_mode_y = axis_mode_e::parent_relative;
-			in.size_value  = {1.0f, 1.0f};
-		}
-
-		vg_rect_paint_t rect = {};
-		rect.fill_color_a	 = _theme.color_divider;
-		rect.fill_color_b	 = _theme.color_divider;
-		_paint.set_rect(id, rect);
-		return id;
-	}
 }

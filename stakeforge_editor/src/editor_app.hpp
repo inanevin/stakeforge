@@ -44,6 +44,7 @@ namespace sfg
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
 		void		init_surface_ui(editor_surface_t& surface);
+		void		set_debug_mode(bool enabled);
 		static void on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
 
 	private:
@@ -52,5 +53,6 @@ namespace sfg
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		i64																_last_tick_us			 = 0;
 		u8																_atlas_upload_frame_slot = 0;
+		bool															_debug_mode				 = false;
 	};
 }

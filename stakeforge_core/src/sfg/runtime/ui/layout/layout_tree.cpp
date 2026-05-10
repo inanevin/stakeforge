@@ -83,7 +83,7 @@ namespace sfg::ui
 		_dfs.resize(0);
 		_dfs_descendants.resize(0);
 		_alive_count = 0;
-		_root		 = INVALID_WIDGET;
+		_root		 = NULL_WIDGET;
 	}
 
 	widget_id_t layout_tree_t::allocate()
@@ -107,14 +107,14 @@ namespace sfg::ui
 		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
 
 		widget_id_t c = _nodes[id].first_child;
-		while (c != INVALID_WIDGET)
+		while (c != NULL_WIDGET)
 		{
 			const widget_id_t next = _nodes[c].next_sibling;
 			deallocate(c);
 			c = next;
 		}
 
-		if (_nodes[id].parent != INVALID_WIDGET)
+		if (_nodes[id].parent != NULL_WIDGET)
 			detach(id);
 
 		_nodes[id].alive = 0;
@@ -130,7 +130,7 @@ namespace sfg::ui
 		SFG_ASSERT(child < _max_widgets && _nodes[child].alive);
 		SFG_ASSERT(parent != child);
 
-		if (_nodes[child].parent != INVALID_WIDGET)
+		if (_nodes[child].parent != NULL_WIDGET)
 			detach(child);
 
 		tree_node_t& p = _nodes[parent];
@@ -138,9 +138,9 @@ namespace sfg::ui
 
 		c.parent	   = parent;
 		c.prev_sibling = p.last_child;
-		c.next_sibling = INVALID_WIDGET;
+		c.next_sibling = NULL_WIDGET;
 
-		if (p.last_child != INVALID_WIDGET)
+		if (p.last_child != NULL_WIDGET)
 			_nodes[p.last_child].next_sibling = child;
 		else
 			p.first_child = child;
@@ -155,25 +155,25 @@ namespace sfg::ui
 	{
 		SFG_ASSERT(child < _max_widgets && _nodes[child].alive);
 		tree_node_t& c = _nodes[child];
-		if (c.parent == INVALID_WIDGET)
+		if (c.parent == NULL_WIDGET)
 			return;
 
 		tree_node_t& p = _nodes[c.parent];
-		if (c.prev_sibling != INVALID_WIDGET)
+		if (c.prev_sibling != NULL_WIDGET)
 			_nodes[c.prev_sibling].next_sibling = c.next_sibling;
 		else
 			p.first_child = c.next_sibling;
 
-		if (c.next_sibling != INVALID_WIDGET)
+		if (c.next_sibling != NULL_WIDGET)
 			_nodes[c.next_sibling].prev_sibling = c.prev_sibling;
 		else
 			p.last_child = c.prev_sibling;
 
 		p.child_count--;
 
-		c.parent		= INVALID_WIDGET;
-		c.prev_sibling	= INVALID_WIDGET;
-		c.next_sibling	= INVALID_WIDGET;
+		c.parent		= NULL_WIDGET;
+		c.prev_sibling	= NULL_WIDGET;
+		c.next_sibling	= NULL_WIDGET;
 		_topology_dirty = true;
 		_layout_dirty	= true;
 	}
@@ -243,7 +243,7 @@ namespace sfg::ui
 
 			u32			descendants = 0;
 			widget_id_t c			= nodes[id].first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				descendants += 1 + dfs_emit(nodes, dfs, dfs_desc, c, static_cast<u8>(depth + 1));
 				c = nodes[c].next_sibling;
@@ -317,7 +317,7 @@ namespace sfg::ui
 			f32			total_y = 0.0f;
 			u32			counted = 0;
 			widget_id_t c		= n.first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				const layout_in_t&	cin	 = _layout_ins[c];
 				const layout_out_t& cout = _layout_outs[c];
@@ -359,7 +359,7 @@ namespace sfg::ui
 			const tree_node_t& n   = _nodes[id];
 			if (id == _root)
 				continue;
-			if (n.parent == INVALID_WIDGET)
+			if (n.parent == NULL_WIDGET)
 				continue;
 
 			const layout_in_t&	pin			= _layout_ins[n.parent];
@@ -396,7 +396,7 @@ namespace sfg::ui
 			u32 visible_count = 0;
 
 			widget_id_t c = n.first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				const layout_in_t&	cin	 = _layout_ins[c];
 				const layout_out_t& cout = _layout_outs[c];
@@ -434,7 +434,7 @@ namespace sfg::ui
 			const f32 per_fill		  = fill_count > 0 ? leftover / static_cast<f32>(fill_count) : 0.0f;
 
 			c = n.first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				const layout_in_t& cin = _layout_ins[c];
 				layout_out_t&	   o   = _layout_outs[c];
@@ -479,7 +479,7 @@ namespace sfg::ui
 			f32			  flow_y  = inner_y + in.scroll_offset * scale;
 
 			widget_id_t c = n.first_child;
-			while (c != INVALID_WIDGET)
+			while (c != NULL_WIDGET)
 			{
 				const layout_in_t& cin = _layout_ins[c];
 				layout_out_t&	   co  = _layout_outs[c];

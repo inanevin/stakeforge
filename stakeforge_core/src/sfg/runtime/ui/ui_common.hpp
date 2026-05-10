@@ -43,7 +43,7 @@ namespace sfg::ui
 	constexpr u16 INVALID_ID_U16 = 0xFFFFu;
 
 	using widget_id_t = u16;
-#define INVALID_WIDGET 0xFFFFu
+#define NULL_WIDGET 0xFFFFu
 
 	enum class glyph_raster_mode_e : u8
 	{

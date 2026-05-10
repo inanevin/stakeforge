@@ -315,7 +315,7 @@ namespace sfg
 			if (r == resource_ready_result_e::ready)
 			{
 				entry->state = resource_state_e::ready;
-				SFG_TRACE("loaded resource internals: {0} {1}", _memory.get_text(entry->debug_name));
+				SFG_TRACE("loaded resource internals: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
 				free_entry_load_data(*entry);
 			}
 			else if (r == resource_ready_result_e::failed)

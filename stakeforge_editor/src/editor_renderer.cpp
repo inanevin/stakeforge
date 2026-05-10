@@ -37,21 +37,6 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const shader_internals_t* int_ui_def			= resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/ui_default.hlsl"_hs);
-		const shader_internals_t* int_ui_text_lcd		= resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/editor_ui_text_lcd.hlsl"_hs);
-		const shader_internals_t* int_ui_text_grayscale = resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/editor_ui_text_grayscale.hlsl"_hs);
-		const shader_internals_t* int_ui_sdf			= resource_manager_t::get().find_internals<shader_internals_t>("editor/shaders/ui_sdf.hlsl"_hs);
-		SFG_ASSERT(int_ui_def && int_ui_text_lcd && int_ui_text_grayscale && int_ui_sdf);
-		int_ui_def->find_pso(0);
-
-		const resource_pack_t& resources = editor_app_t::get().get_resources();
-
-		const string_t shaders_dir			  = editor_directories_t::get_editor_assets() + "shaders/";
-		const string_t ui_default_path		  = shaders_dir + "ui_default.hlsl";
-		const string_t ui_text_lcd_path		  = shaders_dir + "editor_ui_text_lcd.hlsl";
-		const string_t ui_text_grayscale_path = shaders_dir + "editor_ui_text_grayscale.hlsl";
-		const string_t ui_sdf_path			  = shaders_dir + "ui_sdf.hlsl";
-
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd	   = _pfd[i];
