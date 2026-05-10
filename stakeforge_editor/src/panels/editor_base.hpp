@@ -41,15 +41,22 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context* _ui				 = nullptr;
-		ui::widget_id_t _base			 = NULL_WIDGET;
-		ui::widget_id_t _top_section	 = NULL_WIDGET;
-		ui::widget_id_t _top_row_left	 = NULL_WIDGET;
-		ui::widget_id_t _top_row_strikes = NULL_WIDGET;
-		ui::widget_id_t _top_row_mid	 = NULL_WIDGET;
-		ui::widget_id_t _top_row_right	 = NULL_WIDGET;
-		ui::widget_id_t _title_label	 = NULL_WIDGET;
-		ui::widget_id_t _mid_section	 = NULL_WIDGET;
-		ui::widget_id_t _bottom_section	 = NULL_WIDGET;
+		ui::ui_context* _ui					   = nullptr;
+		ui::widget_id_t _base				   = NULL_WIDGET;
+		ui::widget_id_t _top_section		   = NULL_WIDGET;
+		ui::widget_id_t _top_row_left		   = NULL_WIDGET;
+		ui::widget_id_t _top_row_strikes	   = NULL_WIDGET;
+		ui::widget_id_t _top_row_mid		   = NULL_WIDGET;
+		ui::widget_id_t _top_mid_file		   = NULL_WIDGET;
+		ui::widget_id_t _top_mid_divider	   = NULL_WIDGET;
+		ui::widget_id_t _top_mid_util		   = NULL_WIDGET;
+		ui::widget_id_t _top_row_right		   = NULL_WIDGET;
+		ui::widget_id_t _top_row_right_buttons = NULL_WIDGET;
+		ui::widget_id_t _title_group		   = NULL_WIDGET;
+		ui::widget_id_t _title_label		   = NULL_WIDGET;
+		ui::widget_id_t _version_label		   = NULL_WIDGET;
+		ui::widget_id_t _build_label		   = NULL_WIDGET;
+		ui::widget_id_t _mid_section		   = NULL_WIDGET;
+		ui::widget_id_t _bottom_section		   = NULL_WIDGET;
 	};
 }

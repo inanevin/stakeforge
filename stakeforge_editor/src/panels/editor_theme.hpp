@@ -28,6 +28,9 @@ namespace sfg
 		vec4f_t color_fg3 = color_t::from255(214.0f, 214.0f, 214.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_fg4 = color_t::from255(245.0f, 245.0f, 245.0f, 255.0f).srgb_to_linear().to_vector();
 
+		vec4f_t color_divider_dark	= color_bg0;
+		vec4f_t color_divider_light = color_fg3;
+
 		vec4f_t color_accent0	  = color_t::from255(151.0f, 0.0f, 119.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent0_dim = color_t::from255(151.0f, 0.0f, 119.0f, 125.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent1	  = color_t::from255(7, 131, 214, 255.0f).srgb_to_linear().to_vector();
@@ -35,20 +38,26 @@ namespace sfg
 		vec4f_t color_accent2	  = color_t::from255(255.0f, 102.0f, 0.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent2_dim = color_t::from255(255.0f, 102.0f, 0.0f, 125.0f).srgb_to_linear().to_vector();
 		vec4f_t color_highlight	  = color_t::from255(245.0f, 194.0f, 82.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent_err	  = color_t::from255(225.0f, 45.0f, 40.0f, 255.0f).srgb_to_linear().to_vector();
 
 		sid_t font_default		= "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs;
 		sid_t font_default_mono = "editor/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf"_hs;
 		sid_t font_big_title	= "editor/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
+		sid_t font_icons		= "editor/fonts/icons.ttf"_hs;
+		sid_t shader_big_title	= "editor/shaders/editor_ui_text_lcd_glitch.hlsl"_hs;
 
-		f32 aa_thickness		   = 2.0f;
-		f32 text_default_px_size   = 16.0f;
-		f32 text_big_title_px_size = 32.0f;
-		f32 item_height			   = 28.0f;
-		f32 item_spacing		   = 8.0f;
-		f32 indent_horizontal	   = 8.0f;
-		f32 margin_horizontal	   = 8.0f;
-		f32 margin_vertical		   = 4.0f;
-		f32 outline_thickness	   = 2.0f;
-		f32 divider_thickness	   = 1.0f;
+		f32 aa_thickness			 = 2.0f;
+		f32 text_default_px_size	 = 14.0f;
+		f32 text_small_px_size		 = 10.0f;
+		f32 text_big_title_px_size	 = 24.0f;
+		f32 text_small_title_px_size = 10.0f;
+		f32 icon_default_px_size	 = 14.0f;
+		f32 item_height				 = 28.0f;
+		f32 item_spacing			 = 8.0f;
+		f32 indent_horizontal		 = 8.0f;
+		f32 margin_horizontal		 = 8.0f;
+		f32 margin_vertical			 = 4.0f;
+		f32 outline_thickness		 = 2.0f;
+		f32 divider_thickness		 = 1.0f;
 	};
 }

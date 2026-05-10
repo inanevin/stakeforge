@@ -18,9 +18,7 @@ namespace sfg
 	class editor_dividers_t final
 	{
 	public:
-		static ui::widget_id_t make_divider_horizontal(ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& color);
-		static ui::widget_id_t make_divider_vertical(ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& color);
-		static ui::widget_id_t make_divider_horizontal_dropshadow(ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& color, bool flip = false);
-		static ui::widget_id_t make_divider_vertical_dropshadow(ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& color, bool flip = false);
+		static ui::widget_id_t add_divider_hor(ui::ui_context& ui, ui::widget_id_t parent, f32 thickness, const vec4f_t& color_a, const vec4f_t& color_b, ui::vg_gradient_e gradient);
+		static ui::widget_id_t add_divider_ver(ui::ui_context& ui, ui::widget_id_t parent, f32 thickness, const vec4f_t& color_a, const vec4f_t& color_b, ui::vg_gradient_e gradient);
 	};
 }

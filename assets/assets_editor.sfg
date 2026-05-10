@@ -19,6 +19,15 @@
             }
         },
         {
+            "name": "ui_text_lcd_glitch",
+            "path": "editor/shaders/editor_ui_text_lcd_glitch.hlsl",
+            "type": "shader",
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": "editor_ui_lcd_text"
+            }
+        },
+        {
             "name": "ui_text_grayscale",
             "path": "editor/shaders/editor_ui_text_grayscale.hlsl",
             "type": "shader",
@@ -55,6 +64,14 @@
         {
             "name": "font_orbitron",
             "path": "editor/fonts/Orbitron/static/Orbitron-Bold.ttf",
+            "type": "font",
+            "config": {
+                "schema": "sfg.schema.font"
+            }
+        },
+        {
+            "name": "font_icons",
+            "path": "editor/fonts/icons.ttf",
             "type": "font",
             "config": {
                 "schema": "sfg.schema.font"

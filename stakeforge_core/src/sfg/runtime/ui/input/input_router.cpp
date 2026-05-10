@@ -92,7 +92,7 @@ namespace sfg::ui
 			const layout_in_t& in = tree.in_const(id);
 			if (in.flags & wf_visible)
 			{
-				if (!(in.flags & wf_no_input))
+				if (in.flags & wf_input)
 					_hit_order.push_back(id);
 				if (in.flags & wf_focusable)
 					_focus_order.push_back(id);

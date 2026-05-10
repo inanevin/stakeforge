@@ -174,6 +174,7 @@ namespace sfg::ui
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
 		text_allocator_t						   _text_pool;
+		widget_text_ref_t						   _debug_hover_text;
 		atomic_t<u8>							   _snapshot_mailbox = {};
 		u8										   _producer_slot	 = 0;
 		u8										   _consumer_slot	 = 0;

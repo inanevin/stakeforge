@@ -23,9 +23,9 @@ namespace sfg
 	{
 		ui::mouse_button_e map_button(u16 b)
 		{
-			if (b == 1)
+			if (b == static_cast<u16>(input_code::mouse_right))
 				return ui::mouse_button_e::right;
-			if (b == 2)
+			if (b == static_cast<u16>(input_code::mouse_middle))
 				return ui::mouse_button_e::middle;
 			return ui::mouse_button_e::left;
 		}

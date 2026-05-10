@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui_context.hpp"
+#include <sfg/data/char_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
@@ -34,11 +35,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
-#define SNAPSHOT_SLOT_COUNT	  3
-#define SNAPSHOT_SLOT_MASK	  0x3
-#define SNAPSHOT_FRESH_FLAG	  0x80
-#define DEBUG_TEXT_POINT_SIZE 12.0f
-#define DEBUG_TEXT_PADDING	  2.0f
+#define SNAPSHOT_SLOT_COUNT			  3
+#define SNAPSHOT_SLOT_MASK			  0x3
+#define SNAPSHOT_FRESH_FLAG			  0x80
+#define DEBUG_TEXT_POINT_SIZE		  12.0f
+#define DEBUG_TEXT_PADDING			  2.0f
+#define DEBUG_HOVER_TEXT_CAPACITY	  256
+#define DEBUG_HOVER_RECT_TEXT_RESERVE 64
 
 	namespace
 	{
@@ -57,6 +60,8 @@ namespace sfg::ui
 		_input.init(cfg.input);
 		_canvas.init(cfg.canvas);
 		_text_pool.init(cfg.text_pool_capacity);
+		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
+		_debug_hover_text.len = 0;
 
 		const u32 snap_vtx_cap = static_cast<u32>(cfg.canvas.vertex_buffer_bytes / sizeof(vg_vertex_t));
 		const u32 snap_idx_cap = static_cast<u32>(cfg.canvas.index_buffer_bytes / sizeof(vg_index_t));
@@ -78,6 +83,7 @@ namespace sfg::ui
 
 		_widget_debug_names.clear();
 		_widget_texts.clear();
+		_debug_hover_text = {};
 		_text_pool.uninit();
 		_canvas.uninit();
 		_input.uninit();
@@ -182,6 +188,35 @@ namespace sfg::ui
 		if (name == nullptr || len == 0)
 			return;
 
+		char* debug_text = const_cast<char*>(_debug_hover_text.ptr);
+		char* cur		 = debug_text;
+		char* end		 = debug_text + DEBUG_HOVER_TEXT_CAPACITY;
+		u32	  name_len	 = len;
+		if (name_len > DEBUG_HOVER_TEXT_CAPACITY - DEBUG_HOVER_RECT_TEXT_RESERVE)
+			name_len = DEBUG_HOVER_TEXT_CAPACITY - DEBUG_HOVER_RECT_TEXT_RESERVE;
+
+		if (!char_util::append(cur, end, name, name_len))
+			return;
+		if (!char_util::append(cur, end, " ["))
+			return;
+		if (!char_util::append_i32(cur, end, static_cast<i32>(math::round(out.pos.x))))
+			return;
+		if (!char_util::append(cur, end, ", "))
+			return;
+		if (!char_util::append_i32(cur, end, static_cast<i32>(math::round(out.pos.y))))
+			return;
+		if (!char_util::append(cur, end, ", "))
+			return;
+		if (!char_util::append_i32(cur, end, static_cast<i32>(math::round(out.size.x))))
+			return;
+		if (!char_util::append(cur, end, ", "))
+			return;
+		if (!char_util::append_i32(cur, end, static_cast<i32>(math::round(out.size.y))))
+			return;
+		if (!char_util::append(cur, end, "]"))
+			return;
+		_debug_hover_text.len = static_cast<u32>(cur - debug_text);
+
 		const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(_debug_font);
 		if (font == nullptr || font->face == nullptr)
 		{
@@ -206,7 +241,7 @@ namespace sfg::ui
 		text_paint.raster_px	   = static_cast<u32>(px);
 		text_paint.raster_mode	   = glyph_raster_mode_e::grayscale;
 
-		const vec2f_t text_size = vg_canvas_t::measure_text(name, len, text_paint);
+		const vec2f_t text_size = vg_canvas_t::measure_text(_debug_hover_text.ptr, _debug_hover_text.len, text_paint);
 		if (text_size.x <= 0.0f || text_size.y <= 0.0f)
 			return;
 
@@ -258,7 +293,7 @@ namespace sfg::ui
 		if (text_state.pipeline == NULL_RESOURCE_HANDLE)
 			return;
 
-		_canvas.add_text(name, len, text_pos, text_paint, text_state, 0xFFFFFFFFu);
+		_canvas.add_text(_debug_hover_text.ptr, _debug_hover_text.len, text_pos, text_paint, text_state, 0xFFFFFFFFu);
 	}
 
 	void ui_context::publish_frame()

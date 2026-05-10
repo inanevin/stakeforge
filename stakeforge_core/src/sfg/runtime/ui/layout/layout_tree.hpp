@@ -73,7 +73,7 @@ namespace sfg::ui
 		wf_clip_children = 1 << 1,
 		wf_overlay		 = 1 << 2,
 		wf_focusable	 = 1 << 3,
-		wf_no_input		 = 1 << 4,
+		wf_input		 = 1 << 4,
 		wf_scroll_x		 = 1 << 5,
 		wf_scroll_y		 = 1 << 6,
 		wf_custom_solve	 = 1 << 7,
