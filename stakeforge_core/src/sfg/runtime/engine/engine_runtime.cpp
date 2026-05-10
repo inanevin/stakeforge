@@ -10,6 +10,7 @@
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/engine/freetype_runtime.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 
@@ -21,12 +22,14 @@ namespace sfg
 		job_system_t::get().init();
 		time_t::init();
 		process::init();
+		freetype_runtime_t::init();
 		resource_manager_t::get().init(resource_manager_memory);
 	}
 
 	void engine_runtime_t::uninit_globals()
 	{
 		resource_manager_t::get().uninit();
+		freetype_runtime_t::uninit();
 		job_system_t::get().uninit();
 		time_t::uninit();
 		process::uninit();

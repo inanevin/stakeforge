@@ -2,10 +2,13 @@
 
 #include "font.hpp"
 #include "resource_manager.hpp"
+#include <sfg/data/istream.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/vendor/stb/stb_truetype.h>
-#include <sfg/data/istream.hpp>
+#include <sfg/runtime/engine/freetype_runtime.hpp>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 namespace sfg
 {
@@ -34,21 +37,21 @@ namespace sfg
 		SFG_MEMCPY(ttf_dst, ttf_src, runtime->ttf_size);
 		runtime->ttf_data = ttf_dst;
 
-		runtime->face_chunk = mem.allocate_bytes(sizeof(stbtt_fontinfo), alignof(stbtt_fontinfo));
-		stbtt_fontinfo* fi	= reinterpret_cast<stbtt_fontinfo*>(mem.get(runtime->face_chunk.head));
-
-		if (stbtt_InitFont(fi, runtime->ttf_data, stbtt_GetFontOffsetForIndex(runtime->ttf_data, 0)) == 0)
+		FT_Face	   face	   = nullptr;
+		FT_Library library = static_cast<FT_Library>(freetype_runtime_t::get_library());
+		if (FT_New_Memory_Face(library, runtime->ttf_data, static_cast<FT_Long>(runtime->ttf_size), 0, &face) != 0)
 		{
-			SFG_ERR("stbtt_InitFont failed");
-			mem.free(runtime->face_chunk);
+			SFG_ERR("FT_New_Memory_Face failed");
 			mem.free(runtime->ttf_chunk);
 			*runtime = {};
 			return create_internals_result_e::failed;
 		}
 
-		runtime->face	 = fi;
+		runtime->face	 = face;
 		runtime->face_id = entry.hash;
-		stbtt_GetFontVMetrics(fi, &runtime->ascent, &runtime->descent, &runtime->line_gap);
+		runtime->ascent	 = static_cast<i32>(face->ascender);
+		runtime->descent = static_cast<i32>(face->descender);
+		runtime->height	 = static_cast<i32>(face->height);
 		return create_internals_result_e::ready;
 	}
 
@@ -56,8 +59,10 @@ namespace sfg
 	{
 		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
 		font_runtime_t*	   font = mem.get<font_runtime_t>(entry.runtime);
-		if (font->face_chunk)
-			mem.free(font->face_chunk);
+		if (font->face != nullptr)
+		{
+			FT_Done_Face(static_cast<FT_Face>(font->face));
+		}
 		if (font->ttf_chunk)
 			mem.free(font->ttf_chunk);
 		*font = {};

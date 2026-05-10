@@ -42,6 +42,14 @@ set_target_properties(Jolt PROPERTIES FOLDER "stakeforge/dependencies")
 add_subdirectory(deps/lz4-1.9.4)
 set_target_properties(lz4 PROPERTIES FOLDER "stakeforge/dependencies")
 
+set(FT_DISABLE_ZLIB TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI TRUE CACHE BOOL "" FORCE)
+add_subdirectory(deps/freetype-2.14.3)
+set_target_properties(freetype PROPERTIES FOLDER "stakeforge/dependencies")
+
 add_subdirectory(deps/tracy-0.13.0)
 set_target_properties(TracyClient PROPERTIES FOLDER "stakeforge/dependencies")
 
@@ -207,7 +215,7 @@ if(WIN32)
     )
 endif()
 
-target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4)
+target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4 freetype)
 
 target_precompile_headers(${SFG_CORE_TARGET} PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/pch.hpp>"

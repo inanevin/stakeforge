@@ -10,7 +10,9 @@
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/font.hpp>
-#include <sfg/vendor/stb/stb_truetype.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 namespace sfg::ui
 {
@@ -22,13 +24,6 @@ namespace sfg::ui
 		constexpr u32 PITCH_ALIGNMENT	   = 256;
 		constexpr u32 PLACEMENT_ALIGNMENT  = 512;
 		constexpr i32 GLYPH_UPLOAD_PADDING = 1;
-		constexpr i32 LCD_FILTER_RADIUS	   = 2;
-		constexpr i32 LCD_FILTER_WEIGHT_0  = 8;
-		constexpr i32 LCD_FILTER_WEIGHT_1  = 77;
-		constexpr i32 LCD_FILTER_WEIGHT_2  = 86;
-		constexpr i32 SDF_PADDING		   = 8;
-		constexpr u8  SDF_ONEDGE_VALUE	   = 128;
-		constexpr f32 SDF_DIST_SCALE	   = 16.0f;
 
 		inline u64 make_glyph_key(u64 face_id, u32 codepoint, u32 px_size, glyph_raster_mode_e mode)
 		{
@@ -45,22 +40,15 @@ namespace sfg::ui
 			return (v + a - 1u) & ~(a - 1u);
 		}
 
-		inline u8 filter_lcd_sample(const u8* row, i32 width, i32 x)
+		inline f32 from_26dot6(FT_Pos v)
 		{
-			const i32 x0 = x - 2;
-			const i32 x1 = x - 1;
-			const i32 x3 = x + 1;
-			const i32 x4 = x + 2;
-			i32		  v	 = row[x] * LCD_FILTER_WEIGHT_2;
-			if (x0 >= 0)
-				v += row[x0] * LCD_FILTER_WEIGHT_0;
-			if (x1 >= 0)
-				v += row[x1] * LCD_FILTER_WEIGHT_1;
-			if (x3 < width)
-				v += row[x3] * LCD_FILTER_WEIGHT_1;
-			if (x4 < width)
-				v += row[x4] * LCD_FILTER_WEIGHT_0;
-			return static_cast<u8>((v + 128) >> 8);
+			return static_cast<f32>(v) / 64.0f;
+		}
+
+		inline const u8* bitmap_row(const FT_Bitmap& bitmap, i32 y)
+		{
+			const i32 pitch = bitmap.pitch;
+			return pitch >= 0 ? bitmap.buffer + static_cast<size_t>(y) * static_cast<size_t>(pitch) : bitmap.buffer + static_cast<size_t>(bitmap.rows - 1 - y) * static_cast<size_t>(-pitch);
 		}
 	}
 
@@ -183,13 +171,17 @@ namespace sfg::ui
 		if (it != _metrics.end())
 			return it->second;
 
-		const stbtt_fontinfo* fi	= static_cast<const stbtt_fontinfo*>(font->face);
-		const f32			  scale = stbtt_ScaleForMappingEmToPixels(const_cast<stbtt_fontinfo*>(fi), static_cast<f32>(px_size));
+		FT_Face face = static_cast<FT_Face>(font->face);
+		if (FT_Set_Pixel_Sizes(face, 0, px_size) != 0)
+		{
+			SFG_ERR("FT_Set_Pixel_Sizes failed");
+			return {};
+		}
 
 		size_metrics_t m;
-		m.ascent_px		 = static_cast<f32>(font->ascent) * scale;
-		m.descent_px	 = static_cast<f32>(font->descent) * scale;
-		m.line_height_px = static_cast<f32>(font->ascent - font->descent + font->line_gap) * scale;
+		m.ascent_px		 = from_26dot6(face->size->metrics.ascender);
+		m.descent_px	 = from_26dot6(face->size->metrics.descender);
+		m.line_height_px = from_26dot6(face->size->metrics.height);
 		m.px_height		 = static_cast<f32>(px_size);
 		_metrics[key]	 = m;
 		return m;
@@ -201,10 +193,19 @@ namespace sfg::ui
 		SFG_ASSERT(font != nullptr && font->face != nullptr);
 		if (prev_cp == 0)
 			return 0.0f;
-		const stbtt_fontinfo* fi	= static_cast<const stbtt_fontinfo*>(font->face);
-		const f32			  scale = stbtt_ScaleForMappingEmToPixels(const_cast<stbtt_fontinfo*>(fi), static_cast<f32>(px_size));
-		const i32			  kern	= stbtt_GetCodepointKernAdvance(const_cast<stbtt_fontinfo*>(fi), static_cast<i32>(prev_cp), static_cast<i32>(next_cp));
-		return static_cast<f32>(kern) * scale;
+		FT_Face face = static_cast<FT_Face>(font->face);
+		if (!FT_HAS_KERNING(face) || FT_Set_Pixel_Sizes(face, 0, px_size) != 0)
+			return 0.0f;
+
+		const FT_UInt prev = FT_Get_Char_Index(face, prev_cp);
+		const FT_UInt next = FT_Get_Char_Index(face, next_cp);
+		if (prev == 0 || next == 0)
+			return 0.0f;
+
+		FT_Vector kern = {};
+		if (FT_Get_Kerning(face, prev, next, FT_KERNING_DEFAULT, &kern) != 0)
+			return 0.0f;
+		return from_26dot6(kern.x);
 	}
 
 	bool glyph_atlas_t::allocate_slot(i32 w, i32 h, i16& out_x, i16& out_y)
@@ -271,135 +272,100 @@ namespace sfg::ui
 			return &it->second;
 		}
 
-		stbtt_fontinfo* fi		  = static_cast<stbtt_fontinfo*>(font->face);
-		const f32		scale_y	  = stbtt_ScaleForMappingEmToPixels(fi, static_cast<f32>(px_size));
-		const f32		scale_x	  = scale_y * 3.0f;
-		const i32		glyph_idx = stbtt_FindGlyphIndex(fi, static_cast<i32>(codepoint));
+		FT_Face face = static_cast<FT_Face>(font->face);
+		if (FT_Set_Pixel_Sizes(face, 0, px_size) != 0)
+		{
+			SFG_ERR("FT_Set_Pixel_Sizes failed");
+			glyph_entry_t entry = {};
+			_entries[key]		= entry;
+			return &_entries[key];
+		}
 
-		i32 advance_w = 0, lsb = 0;
-		stbtt_GetGlyphHMetrics(fi, glyph_idx, &advance_w, &lsb);
-		const f32 advance_px = static_cast<f32>(advance_w) * scale_y;
+		const FT_UInt glyph_idx = FT_Get_Char_Index(face, codepoint);
 
 		glyph_entry_t entry	  = {};
-		entry.advance_x		  = advance_px;
 		entry.last_used_frame = _frame;
 
 		i32 dst_w_pixels = 0;
 		i32 dst_h_pixels = 0;
-		f32 left_bearing = static_cast<f32>(lsb) * scale_y;
+		f32 left_bearing = 0.0f;
 		f32 top_bearing	 = 0.0f;
 		u8* rgba		 = nullptr;
 
 		if (glyph_idx != 0)
 		{
+			FT_Int32	   load_flags  = FT_LOAD_DEFAULT;
+			FT_Render_Mode render_mode = FT_RENDER_MODE_NORMAL;
 			if (mode == glyph_raster_mode_e::lcd)
 			{
-				i32 ix0 = 0, iy0 = 0, ix1 = 0, iy1 = 0;
-				stbtt_GetGlyphBitmapBoxSubpixel(fi, glyph_idx, scale_x, scale_y, 0.0f, 0.0f, &ix0, &iy0, &ix1, &iy1);
-
-				const i32 tight_sub_w = ix1 - ix0;
-				const i32 bmp_h		  = iy1 - iy0;
-				const i32 sub_w		  = tight_sub_w + LCD_FILTER_RADIUS * 2;
-				dst_w_pixels		  = (sub_w + 2) / 3;
-				dst_h_pixels		  = bmp_h;
-				left_bearing		  = static_cast<f32>(ix0 - LCD_FILTER_RADIUS) / 3.0f;
-				top_bearing			  = static_cast<f32>(iy0);
-
-				if (tight_sub_w > 0 && dst_w_pixels > 0 && dst_h_pixels > 0)
-				{
-					const u32 sub_buf_bytes = static_cast<u32>(sub_w) * static_cast<u32>(bmp_h);
-					u8*		  sub			= static_cast<u8*>(SFG_MALLOC(sub_buf_bytes));
-					SFG_MEMSET(sub, 0, sub_buf_bytes);
-					stbtt_MakeGlyphBitmapSubpixel(fi, sub + LCD_FILTER_RADIUS, tight_sub_w, bmp_h, sub_w, scale_x, scale_y, 0.0f, 0.0f, glyph_idx);
-
-					const u32 rgba_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels) * ATLAS_BPP;
-					rgba				 = static_cast<u8*>(SFG_MALLOC(rgba_bytes));
-
-					for (i32 y = 0; y < dst_h_pixels; ++y)
-					{
-						const u8* src_row = sub + static_cast<size_t>(y) * static_cast<size_t>(sub_w);
-						u8*		  dst_row = rgba + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels) * ATLAS_BPP;
-						for (i32 x = 0; x < dst_w_pixels; ++x)
-						{
-							const i32 sx = x * 3;
-							const u8  r	 = (sx + 0) < sub_w ? filter_lcd_sample(src_row, sub_w, sx + 0) : 0;
-							const u8  g	 = (sx + 1) < sub_w ? filter_lcd_sample(src_row, sub_w, sx + 1) : 0;
-							const u8  b	 = (sx + 2) < sub_w ? filter_lcd_sample(src_row, sub_w, sx + 2) : 0;
-							u8		  a	 = r;
-							if (g > a)
-								a = g;
-							if (b > a)
-								a = b;
-							dst_row[x * 4 + 0] = r;
-							dst_row[x * 4 + 1] = g;
-							dst_row[x * 4 + 2] = b;
-							dst_row[x * 4 + 3] = a;
-						}
-					}
-					SFG_FREE(sub);
-				}
+				load_flags |= FT_LOAD_TARGET_LCD;
+				render_mode = FT_RENDER_MODE_LCD;
 			}
 			else if (mode == glyph_raster_mode_e::grayscale)
 			{
-				i32 ix0 = 0, iy0 = 0, ix1 = 0, iy1 = 0;
-				stbtt_GetGlyphBitmapBoxSubpixel(fi, glyph_idx, scale_y, scale_y, 0.0f, 0.0f, &ix0, &iy0, &ix1, &iy1);
-
-				dst_w_pixels = ix1 - ix0;
-				dst_h_pixels = iy1 - iy0;
-				left_bearing = static_cast<f32>(ix0);
-				top_bearing	 = static_cast<f32>(iy0);
-
-				if (dst_w_pixels > 0 && dst_h_pixels > 0)
-				{
-					const u32 bitmap_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels);
-					u8*		  bitmap	   = static_cast<u8*>(SFG_MALLOC(bitmap_bytes));
-					stbtt_MakeGlyphBitmapSubpixel(fi, bitmap, dst_w_pixels, dst_h_pixels, dst_w_pixels, scale_y, scale_y, 0.0f, 0.0f, glyph_idx);
-
-					const u32 rgba_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels) * ATLAS_BPP;
-					rgba				 = static_cast<u8*>(SFG_MALLOC(rgba_bytes));
-					for (i32 y = 0; y < dst_h_pixels; ++y)
-					{
-						const u8* src_row = bitmap + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels);
-						u8*		  dst_row = rgba + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels) * ATLAS_BPP;
-						for (i32 x = 0; x < dst_w_pixels; ++x)
-						{
-							const u8 v		   = src_row[x];
-							dst_row[x * 4 + 0] = v;
-							dst_row[x * 4 + 1] = v;
-							dst_row[x * 4 + 2] = v;
-							dst_row[x * 4 + 3] = v;
-						}
-					}
-					SFG_FREE(bitmap);
-				}
+				load_flags |= FT_LOAD_TARGET_NORMAL;
+				render_mode = FT_RENDER_MODE_NORMAL;
 			}
 			else
 			{
-				i32 xoff = 0, yoff = 0;
-				u8* sdf		 = stbtt_GetGlyphSDF(fi, scale_y, glyph_idx, SDF_PADDING, SDF_ONEDGE_VALUE, SDF_DIST_SCALE, &dst_w_pixels, &dst_h_pixels, &xoff, &yoff);
-				left_bearing = static_cast<f32>(xoff);
-				top_bearing	 = static_cast<f32>(yoff);
+				load_flags |= FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP;
+				render_mode = FT_RENDER_MODE_SDF;
+			}
 
-				if (sdf != nullptr && dst_w_pixels > 0 && dst_h_pixels > 0)
+			bool rendered = false;
+			if (FT_Load_Glyph(face, glyph_idx, load_flags) == 0)
+			{
+				FT_GlyphSlot slot = face->glyph;
+				entry.advance_x	  = from_26dot6(slot->advance.x);
+				rendered		  = FT_Render_Glyph(slot, render_mode) == 0;
+			}
+
+			if (rendered && face->glyph->bitmap.buffer != nullptr)
+			{
+				FT_GlyphSlot	 slot = face->glyph;
+				const FT_Bitmap& bmp  = slot->bitmap;
+				left_bearing		  = static_cast<f32>(slot->bitmap_left);
+				top_bearing			  = -static_cast<f32>(slot->bitmap_top);
+				dst_h_pixels		  = static_cast<i32>(bmp.rows);
+				dst_w_pixels		  = mode == glyph_raster_mode_e::lcd ? static_cast<i32>((bmp.width + 2) / 3) : static_cast<i32>(bmp.width);
+
+				if (dst_w_pixels > 0 && dst_h_pixels > 0 && bmp.buffer != nullptr)
 				{
 					const u32 rgba_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels) * ATLAS_BPP;
 					rgba				 = static_cast<u8*>(SFG_MALLOC(rgba_bytes));
 					for (i32 y = 0; y < dst_h_pixels; ++y)
 					{
-						const u8* src_row = sdf + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels);
+						const u8* src_row = bitmap_row(bmp, y);
 						u8*		  dst_row = rgba + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels) * ATLAS_BPP;
 						for (i32 x = 0; x < dst_w_pixels; ++x)
 						{
-							const u8 v		   = src_row[x];
-							dst_row[x * 4 + 0] = v;
-							dst_row[x * 4 + 1] = v;
-							dst_row[x * 4 + 2] = v;
-							dst_row[x * 4 + 3] = v;
+							if (mode == glyph_raster_mode_e::lcd)
+							{
+								const i32 sx = x * 3;
+								const u8  r	 = sx + 0 < static_cast<i32>(bmp.width) ? src_row[sx + 0] : 0;
+								const u8  g	 = sx + 1 < static_cast<i32>(bmp.width) ? src_row[sx + 1] : 0;
+								const u8  b	 = sx + 2 < static_cast<i32>(bmp.width) ? src_row[sx + 2] : 0;
+								u8		  a	 = r;
+								if (g > a)
+									a = g;
+								if (b > a)
+									a = b;
+								dst_row[x * 4 + 0] = r;
+								dst_row[x * 4 + 1] = g;
+								dst_row[x * 4 + 2] = b;
+								dst_row[x * 4 + 3] = a;
+							}
+							else
+							{
+								const u8 v		   = src_row[x];
+								dst_row[x * 4 + 0] = v;
+								dst_row[x * 4 + 1] = v;
+								dst_row[x * 4 + 2] = v;
+								dst_row[x * 4 + 3] = v;
+							}
 						}
 					}
 				}
-				if (sdf != nullptr)
-					stbtt_FreeSDF(sdf, nullptr);
 			}
 		}
 

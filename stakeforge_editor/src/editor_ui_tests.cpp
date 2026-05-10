@@ -56,6 +56,6 @@ namespace sfg
 
 		const f32 sizes[] = {10.0f, 12.0f, 13.0f, 14.0f, 16.0f, 20.0f, 24.0f, 32.0f, 48.0f, 64.0f, 128.0f};
 		for (f32 sz : sizes)
-			ui.make_label(col, "The quick brown fox jumps over the lazy dog", font, sz, ui::glyph_raster_mode_e::grayscale);
+			ui.make_label(col, "The quick brown fox jumps over the lazy dog", font, sz, ui::glyph_raster_mode_e::lcd);
 	}
 }

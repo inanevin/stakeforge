@@ -7,9 +7,6 @@
 #include <sfg/memory/memory.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include <sfg/vendor/stb/stb_truetype.h>
-
 namespace sfg
 {
 	bool font_cooker::cook_from_file(const font_cook_config_t&, const char* full_path, ostream_t& stream)
