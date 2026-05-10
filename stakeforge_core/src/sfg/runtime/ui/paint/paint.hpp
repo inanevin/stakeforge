@@ -84,7 +84,8 @@ namespace sfg::ui
 
 		void init(u32 max_widgets);
 		void uninit();
-		void paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas);
+		void update_text_layout(layout_tree_t& tree, f32 dpi_scale);
+		void paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 dpi_scale);
 
 		// -----------------------------------------------------------------------------
 		// widget

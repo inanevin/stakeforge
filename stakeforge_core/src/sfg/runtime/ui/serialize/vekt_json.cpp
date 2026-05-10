@@ -99,21 +99,23 @@ namespace sfg::ui
 		nlohmann::json text_style_to_json(const vg_text_style_t& s)
 		{
 			nlohmann::json j;
-			j["font"]	 = s.font;
-			j["color"]	 = s.color;
-			j["scale"]	 = s.scale;
-			j["spacing"] = s.spacing;
-			j["flip"]	 = s.flip_uv;
+			j["font"]		= s.font;
+			j["color"]		= s.color;
+			j["point_size"] = s.point_size;
+			j["spacing"]	= s.spacing;
+			j["raster"]		= static_cast<u8>(s.raster_mode);
+			j["flip"]		= s.flip_uv;
 			return j;
 		}
 
 		void text_style_from_json(const nlohmann::json& j, vg_text_style_t& s)
 		{
-			s.font	  = j.value<resource_handle_t>("font", NULL_RESOURCE_HANDLE);
-			s.color	  = j.value("color", vec4f_t{1, 1, 1, 1});
-			s.scale	  = j.value("scale", 1.0f);
-			s.spacing = j.value("spacing", static_cast<u8>(0));
-			s.flip_uv = j.value("flip", false);
+			s.font		  = j.value<resource_handle_t>("font", NULL_RESOURCE_HANDLE);
+			s.color		  = j.value("color", vec4f_t{1, 1, 1, 1});
+			s.point_size  = j.value("point_size", 13.0f);
+			s.spacing	  = j.value("spacing", static_cast<u8>(0));
+			s.raster_mode = static_cast<glyph_raster_mode_e>(j.value("raster", static_cast<u8>(glyph_raster_mode_e::lcd)));
+			s.flip_uv	  = j.value("flip", false);
 		}
 
 		nlohmann::json paint_def_to_json(const paint_def_t& d, const char* text_data, u32 text_len)

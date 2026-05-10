@@ -115,7 +115,39 @@ namespace sfg::ui
 		_defs[id].state_flags |= psf_has_focus;
 	}
 
-	void paint_layer_t::paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas)
+	void paint_layer_t::update_text_layout(layout_tree_t& tree, f32 dpi_scale)
+	{
+		resource_manager_t& rm = resource_manager_t::get();
+
+		for (u32 i = 0; i < static_cast<u32>(_defs.size()); ++i)
+		{
+			const paint_def_t& pd = _defs[i];
+			if (pd.kind != paint_kind_e::text || pd.text_data == nullptr || pd.text_len == 0)
+				continue;
+
+			const font_runtime_t* font = rm.find_runtime<font_runtime_t>(pd.text.font);
+			if (font == nullptr || font->face == nullptr)
+				continue;
+
+			vg_text_paint_t paint = {};
+			paint.font			  = font;
+			paint.color			  = pd.text.color;
+			paint.point_size	  = pd.text.point_size;
+			paint.dpi_scale		  = dpi_scale;
+			paint.spacing		  = pd.text.spacing;
+			paint.raster_mode	  = pd.text.raster_mode;
+			paint.flip_uv		  = pd.text.flip_uv;
+
+			const vec2f_t m	 = vg_canvas_t::measure_text(pd.text_data, pd.text_len, paint);
+			layout_in_t&  in = tree.in(static_cast<widget_id_t>(i));
+			in.size_mode_x	 = axis_mode_e::fixed;
+			in.size_mode_y	 = axis_mode_e::fixed;
+			in.size_value.x	 = m.x;
+			in.size_value.y	 = m.y;
+		}
+	}
+
+	void paint_layer_t::paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 dpi_scale)
 	{
 		const auto dfs = tree.get_dfs();
 
@@ -189,18 +221,20 @@ namespace sfg::ui
 			{
 				resource_manager_t&	  rm   = resource_manager_t::get();
 				const font_runtime_t* font = rm.find_runtime<font_runtime_t>(pd.text.font);
-				if (font != nullptr && font->atlas != NULL_RESOURCE_HANDLE && rm.find_internals<atlas_internals_t>(font->atlas) != nullptr)
+				if (font != nullptr && font->face != nullptr)
 				{
 					vg_text_paint_t paint = {};
 					paint.font			  = font;
 					paint.color			  = has_override ? override_color : pd.text.color;
-					paint.scale			  = pd.text.scale;
+					paint.point_size	  = pd.text.point_size;
+					paint.dpi_scale		  = dpi_scale;
 					paint.spacing		  = pd.text.spacing;
+					paint.raster_mode	  = pd.text.raster_mode;
 					paint.flip_uv		  = pd.text.flip_uv;
 
 					ui_render_state_t state = pd.render_state;
-					state.atlas				= font->atlas;
-					state.is_atlas_sdf		= font->kind == font_kind_e::sdf;
+					state.is_glyph_atlas	= true;
+					state.is_atlas_sdf		= pd.text.raster_mode == glyph_raster_mode_e::sdf;
 
 					canvas.add_text(pd.text_data, pd.text_len, {o.pos.x, o.pos.y}, paint, draw_order, state);
 				}

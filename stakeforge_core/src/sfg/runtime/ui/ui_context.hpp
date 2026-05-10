@@ -44,8 +44,6 @@ namespace sfg::ui
 		vg_canvas_config_t canvas			  = {};
 		input_config_t	   input			  = {};
 		u32				   max_widgets		  = 1024;
-		u32				   atlas_width		  = 1024;
-		u32				   atlas_height		  = 1024;
 		u32				   text_pool_capacity = 64 * 1024;
 	};
 
@@ -69,8 +67,13 @@ namespace sfg::ui
 
 		void init(const ui_config_t& cfg);
 		void uninit();
-		void tick(const vec4f_t& screen_rect, f32 dt_seconds);
+		void tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds);
 		void publish_frame();
+
+		inline f32 get_dpi_scale() const
+		{
+			return _dpi_scale;
+		}
 
 		// -----------------------------------------------------------------------------
 		// render-thread snapshot
@@ -110,8 +113,8 @@ namespace sfg::ui
 		widget_id_t make_row(widget_id_t parent);
 		widget_id_t make_column(widget_id_t parent);
 		widget_id_t make_spacer(widget_id_t parent, f32 size_px = 0.0f);
-		widget_id_t make_label(widget_id_t parent, const char* text, resource_handle_t font);
-		widget_id_t make_button(widget_id_t parent, const char* text, resource_handle_t font);
+		widget_id_t make_label(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size = 13.0f, glyph_raster_mode_e raster_mode = glyph_raster_mode_e::lcd);
+		widget_id_t make_button(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size = 13.0f, glyph_raster_mode_e raster_mode = glyph_raster_mode_e::lcd);
 		widget_id_t make_divider(widget_id_t parent, bool horizontal);
 
 		// -----------------------------------------------------------------------------
@@ -179,5 +182,6 @@ namespace sfg::ui
 		atomic_t<u8>							   _snapshot_mailbox = {};
 		u8										   _producer_slot	 = 0;
 		u8										   _consumer_slot	 = 0;
+		f32										   _dpi_scale		 = 1.0f;
 	};
 }

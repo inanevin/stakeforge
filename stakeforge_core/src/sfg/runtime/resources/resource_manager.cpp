@@ -27,10 +27,16 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
 		_memory.init(resource_memory_size);
-		_atlas_manager.init();
 		_entries.reserve(256);
 		_loads.reserve(256);
 		_unloads.reserve(256);
+	}
+
+	void resource_manager_t::init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		_glyph_atlas.init(glyph_atlas_config);
 	}
 
 	void resource_manager_t::uninit()
@@ -54,7 +60,8 @@ namespace sfg
 			free_entry(e);
 		}
 		_entries.clear();
-		_atlas_manager.uninit();
+		if (_glyph_atlas.is_initialized())
+			_glyph_atlas.uninit();
 		_memory.uninit();
 	}
 
@@ -191,6 +198,12 @@ namespace sfg
 		return &it->second;
 	}
 
+	void resource_manager_t::drain_atlases(u8 frame_slot)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		_glyph_atlas.drain_uploads(frame_slot);
+	}
+
 	// -----------------------------------------------------------------------------
 	// PRIVATE API
 	// -----------------------------------------------------------------------------
@@ -245,7 +258,7 @@ namespace sfg
 			if (!req.success)
 			{
 				entry->state = resource_state_e::failed;
-				SFG_ERR("failed loading resource: {0}", _memory.get_text(entry->debug_name));
+				SFG_ERR("failed loading resource: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
 				free_entry(*entry);
 				continue;
 			}
@@ -256,7 +269,7 @@ namespace sfg
 			if (desc->create_internals == nullptr)
 			{
 				entry->state = resource_state_e::ready;
-				SFG_TRACE("loaded resource: {0}", _memory.get_text(entry->debug_name));
+				SFG_TRACE("loaded resource: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
 				free_entry_load_data(*entry);
 				continue;
 			}
@@ -266,20 +279,20 @@ namespace sfg
 			if (r == create_internals_result_e::failed)
 			{
 				entry->state = resource_state_e::failed;
-				SFG_ERR("failed creating internals for resource: {0}", _memory.get_text(entry->debug_name));
+				SFG_ERR("failed creating internals for resource: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
 				free_entry(*entry);
 			}
 			else if (r == create_internals_result_e::queued)
 			{
 				SFG_ASSERT(desc->resource_ready != nullptr);
 				entry->state = resource_state_e::internals_queued;
-				SFG_TRACE("loaded resource and queued internals: {0}", _memory.get_text(entry->debug_name));
+				SFG_TRACE("loaded resource and queued internals: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
 			}
 			else
 			{
 				entry->state = resource_state_e::ready;
 				free_entry_load_data(*entry);
-				SFG_TRACE("loaded resource and internals: {0}", _memory.get_text(entry->debug_name));
+				SFG_TRACE("loaded resource and internals: {0}", _memory.get_text(entry->debug_name), entry->hash);
 			}
 		}
 	}
@@ -302,13 +315,13 @@ namespace sfg
 			if (r == resource_ready_result_e::ready)
 			{
 				entry->state = resource_state_e::ready;
-				SFG_TRACE("loaded resource internals: {0}", _memory.get_text(entry->debug_name));
+				SFG_TRACE("loaded resource internals: {0} {1}", _memory.get_text(entry->debug_name));
 				free_entry_load_data(*entry);
 			}
 			else if (r == resource_ready_result_e::failed)
 			{
 				entry->state = resource_state_e::failed;
-				SFG_TRACE("failed loading resource internals: {0}", _memory.get_text(entry->debug_name));
+				SFG_TRACE("failed loading resource internals: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
 				free_entry(*entry);
 			}
 		}

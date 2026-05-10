@@ -35,7 +35,7 @@ namespace sfg
 
 	void editor_ui_tests_t::make_test_text(ui::ui_context& ui)
 	{
-		const resource_handle_t font = "engine/fonts/Roboto-Regular.ttf"_hs;
+		const resource_handle_t font = "editor/fonts/Roboto-Regular.ttf"_hs;
 
 		ui::layout_tree_t&	  tree = ui.get_tree();
 		const ui::widget_id_t col  = ui.make_column(ui.get_root());

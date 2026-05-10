@@ -6,6 +6,7 @@
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
+#include <sfg/runtime/ui/glyph_atlas.hpp>
 #include <sfg/vendor/moodycamel/concurrentqueue.h>
 
 namespace sfg
@@ -27,6 +28,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void init(size_t resource_memory_size);
+		void init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config = {});
 		void uninit();
 		void flush();
 		void wait_for_all();
@@ -40,6 +42,7 @@ namespace sfg
 		resource_state_e		load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
+		void					drain_atlases(u8 frame_slot);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -87,14 +90,14 @@ namespace sfg
 			return _memory;
 		}
 
-		inline atlas_manager_t& get_atlas_manager()
+		inline ui::glyph_atlas_t& get_glyph_atlas()
 		{
-			return _atlas_manager;
+			return _glyph_atlas;
 		}
 
-		inline const atlas_manager_t& get_atlas_manager() const
+		inline const ui::glyph_atlas_t& get_glyph_atlas() const
 		{
-			return _atlas_manager;
+			return _glyph_atlas;
 		}
 
 		inline u32 get_pending_count() const
@@ -122,7 +125,7 @@ namespace sfg
 		moodycamel::ConcurrentQueue<load_request_t> _completed;
 		chunk_allocator_t							_memory;
 		hash_map_t<sid_t, resource_entry_t>			_entries;
-		atlas_manager_t								_atlas_manager;
+		ui::glyph_atlas_t							_glyph_atlas;
 		vector_t<load_request_t>					_loads;
 		vector_t<u64>								_unloads;
 		atomic_t<u32>								_pending = 0;

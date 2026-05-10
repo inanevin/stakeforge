@@ -64,10 +64,11 @@ namespace sfg::ui
 
 	struct ui_render_state_t
 	{
-		resource_handle_t pipeline	   = NULL_RESOURCE_HANDLE;
-		resource_handle_t atlas		   = NULL_RESOURCE_HANDLE;
-		ui_resource_ref_t constants[4] = {};
-		bool			  is_atlas_sdf = false;
+		resource_handle_t pipeline		 = NULL_RESOURCE_HANDLE;
+		resource_handle_t atlas			 = NULL_RESOURCE_HANDLE;
+		ui_resource_ref_t constants[4]	 = {};
+		bool			  is_atlas_sdf	 = false;
+		bool			  is_glyph_atlas = false;
 	};
 
 	struct ui_resolved_state_t
@@ -124,20 +125,23 @@ namespace sfg::ui
 
 	struct vg_text_style_t
 	{
-		resource_handle_t font	  = NULL_RESOURCE_HANDLE;
-		vec4f_t			  color	  = {1, 1, 1, 1};
-		f32				  scale	  = 1.0f;
-		u8				  spacing = 0;
-		bool			  flip_uv = false;
+		resource_handle_t	font		= NULL_RESOURCE_HANDLE;
+		vec4f_t				color		= {1, 1, 1, 1};
+		f32					point_size	= 13.0f;
+		u8					spacing		= 0;
+		glyph_raster_mode_e raster_mode = glyph_raster_mode_e::lcd;
+		bool				flip_uv		= false;
 	};
 
 	struct vg_text_paint_t
 	{
-		const font_runtime_t* font	  = nullptr;
-		vec4f_t				  color	  = {1, 1, 1, 1};
-		f32					  scale	  = 1.0f;
-		u8					  spacing = 0;
-		bool				  flip_uv = false;
+		const font_runtime_t* font		  = nullptr;
+		vec4f_t				  color		  = {1, 1, 1, 1};
+		f32					  point_size  = 13.0f;
+		f32					  dpi_scale	  = 1.0f;
+		u8					  spacing	  = 0;
+		glyph_raster_mode_e	  raster_mode = glyph_raster_mode_e::lcd;
+		bool				  flip_uv	  = false;
 	};
 
 	struct vg_draw_buffer_t

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common_resources.hpp"
+#include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
@@ -18,13 +19,15 @@ namespace sfg
 
 	struct font_runtime_t
 	{
-		void*	  face	   = nullptr;
-		const u8* ttf_data = nullptr;
-		u32		  ttf_size = 0;
-		i32		  ascent   = 0;
-		i32		  descent  = 0;
-		i32		  line_gap = 0;
-		u64		  face_id  = 0;
+		void*			 face		= nullptr;
+		const u8*		 ttf_data	= nullptr;
+		chunk_handle32_t ttf_chunk	= {};
+		chunk_handle32_t face_chunk = {};
+		u32				 ttf_size	= 0;
+		i32				 ascent		= 0;
+		i32				 descent	= 0;
+		i32				 line_gap	= 0;
+		u64				 face_id	= 0;
 	};
 
 	struct font_internals_t

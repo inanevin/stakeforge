@@ -49,7 +49,6 @@ namespace sfg::ui
 		};
 	}
 
-
 	void ui_renderer_t::init(const ui_renderer_config_t& cfg)
 	{
 		gfx_backend& backend = gfx_backend::get();
@@ -64,22 +63,22 @@ namespace sfg::ui
 			resource_desc_t v_desc = {};
 			v_desc.size			   = _vtx_capacity;
 			v_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
-			v_desc.debug_name	   = "ui_renderer_vtx";
-			p.vertex_buffer		   = backend.create_resource(v_desc);
+			v_desc.set_name("ui_renderer_vtx");
+			p.vertex_buffer = backend.create_resource(v_desc);
 			backend.map_resource(p.vertex_buffer, p.mapped_vtx);
 
 			resource_desc_t i_desc = {};
 			i_desc.size			   = _idx_capacity;
 			i_desc.flags		   = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
-			i_desc.debug_name	   = "ui_renderer_idx";
-			p.index_buffer		   = backend.create_resource(i_desc);
+			i_desc.set_name("ui_renderer_idx");
+			p.index_buffer = backend.create_resource(i_desc);
 			backend.map_resource(p.index_buffer, p.mapped_idx);
 
 			resource_desc_t proj_desc = {};
 			proj_desc.size			  = sizeof(f32) * 16;
 			proj_desc.flags			  = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-			proj_desc.debug_name	  = "ui_renderer_projection";
-			p.projection_buffer		  = backend.create_resource(proj_desc);
+			proj_desc.set_name("ui_renderer_projection");
+			p.projection_buffer = backend.create_resource(proj_desc);
 			backend.map_resource(p.projection_buffer, p.mapped_projection);
 			p.projection_index = backend.get_resource_gpu_index(p.projection_buffer);
 		}
@@ -87,9 +86,9 @@ namespace sfg::ui
 		resource_desc_t sdf_desc = {};
 		sdf_desc.size			 = sizeof(sdf_params_data_t);
 		sdf_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-		sdf_desc.debug_name		 = "ui_renderer_sdf_params";
-		_sdf_params				 = backend.create_resource(sdf_desc);
-		_sdf_params_index		 = backend.get_resource_gpu_index(_sdf_params);
+		sdf_desc.set_name("ui_renderer_sdf_params");
+		_sdf_params		  = backend.create_resource(sdf_desc);
+		_sdf_params_index = backend.get_resource_gpu_index(_sdf_params);
 
 		u8* sdf_mapped = nullptr;
 		backend.map_resource(_sdf_params, sdf_mapped);

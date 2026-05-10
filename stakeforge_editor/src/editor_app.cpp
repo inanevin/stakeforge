@@ -97,7 +97,7 @@ namespace sfg
 
 		engine_runtime_t::init_globals(64ull * 1024ull * 1024ull);
 
-		if (!engine_runtime_t::init_backend())
+		if (!engine_runtime_t::init_backend({}))
 		{
 			engine_runtime_t::uninit_globals();
 			return false;
@@ -193,8 +193,6 @@ namespace sfg
 
 		ui::ui_config_t cfg = {};
 		cfg.max_widgets		= 512;
-		cfg.atlas_width		= 1024;
-		cfg.atlas_height	= 1024;
 		surface.ui->init(cfg);
 
 		ui::ui_pipelines_t pipelines = {};
@@ -203,7 +201,7 @@ namespace sfg
 		pipelines.sdf_pipeline		 = "editor/shaders/ui_sdf.hlsl"_hs;
 		surface.ui->set_pipelines(pipelines);
 
-		editor_ui_tests_t::make_test_general(*surface.ui);
+		editor_ui_tests_t::make_test_text(*surface.ui);
 	}
 
 	void editor_app_t::tick()
@@ -258,6 +256,9 @@ namespace sfg
 					surface.ui->publish_frame();
 				}
 			}
+
+			resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
+			_atlas_upload_frame_slot = static_cast<u8>((_atlas_upload_frame_slot + 1) % BACK_BUFFER_COUNT);
 
 			if (_surfaces.empty())
 			{

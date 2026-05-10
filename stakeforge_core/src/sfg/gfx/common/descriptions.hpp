@@ -213,7 +213,7 @@ namespace sfg
 		vec2u16_t	   size						  = vec2u16_t::zero;
 		bitmask_t<u16> flags					  = 0;
 		view_desc_t	   views[MAX_VIEWS]			  = {{}};
-		u8			   view_count				  = 0;
+		u8			   view_count				  = 1;
 		u8			   mip_levels				  = 1;
 		u8			   array_length				  = 1;
 		u8			   samples					  = 1;

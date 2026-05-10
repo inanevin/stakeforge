@@ -6,8 +6,6 @@
 
 namespace sfg
 {
-	struct font_runtime_t;
-
 	struct atlas_runtime_t
 	{
 		u8*	 data		  = nullptr;
@@ -16,7 +14,6 @@ namespace sfg
 		u32	 height		  = 0;
 		u32	 id			  = 0xFFFFFFFFu;
 		u32	 vertical_pos = 0;
-		u32	 font_count	  = 0;
 		bool is_lcd		  = false;
 		bool dirty		  = false;
 	};
@@ -28,6 +25,4 @@ namespace sfg
 
 	void atlas_init(atlas_runtime_t& atlas, u32 width, u32 height, bool is_lcd);
 	void atlas_uninit(atlas_runtime_t& atlas);
-	bool atlas_add_font(atlas_runtime_t& atlas, font_runtime_t* font);
-	void atlas_remove_font(atlas_runtime_t& atlas, font_runtime_t* font);
 }

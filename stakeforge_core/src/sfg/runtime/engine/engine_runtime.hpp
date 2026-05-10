@@ -7,12 +7,17 @@
 
 namespace sfg
 {
+	namespace ui
+	{
+		struct glyph_atlas_config_t;
+	}
+
 	class engine_runtime_t
 	{
 	public:
-		static void init_globals(size_t resource_manager_memory);
+		static void init_globals(size_t resource_manager_memory = 64ull * 1024ull * 1024ull);
 		static void uninit_globals();
-		static bool init_backend();
+		static bool init_backend(const ui::glyph_atlas_config_t& glyph_atlas_config);
 		static void uninit_backend();
 
 		bool init();

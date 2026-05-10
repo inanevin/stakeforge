@@ -102,13 +102,15 @@ namespace sfg::ui
 		_canvas.set_pipelines(pipelines);
 	}
 
-	void ui_context::tick(const vec4f_t& screen_rect, f32 dt_seconds)
+	void ui_context::tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds)
 	{
+		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
+		_paint.update_text_layout(_tree, _dpi_scale);
 		_tree.solve(screen_rect);
 		_input.tick(_tree, dt_seconds);
 
 		_canvas.frame_begin(screen_rect);
-		_paint.paint_all(_tree, _input, _canvas);
+		_paint.paint_all(_tree, _input, _canvas, _dpi_scale);
 		_canvas.frame_end();
 
 		_canvas.resolve();
@@ -202,6 +204,13 @@ namespace sfg::ui
 			_text_pool.deallocate(e.ptr);
 		e.ptr = _text_pool.allocate(text, len);
 		e.len = len;
+
+		paint_def_t& pd = _paint.def(id);
+		if (pd.kind == paint_kind_e::text)
+		{
+			pd.text_data = e.ptr;
+			pd.text_len	 = e.len;
+		}
 	}
 
 	void ui_context::clear_widget_text(widget_id_t id)
@@ -212,6 +221,13 @@ namespace sfg::ui
 		if (it->second.ptr != nullptr)
 			_text_pool.deallocate(it->second.ptr);
 		_widget_texts.erase(it);
+
+		paint_def_t& pd = _paint.def(id);
+		if (pd.kind == paint_kind_e::text)
+		{
+			pd.text_data = nullptr;
+			pd.text_len	 = 0;
+		}
 	}
 
 	const char* ui_context::widget_text(widget_id_t id) const
@@ -300,7 +316,7 @@ namespace sfg::ui
 		return id;
 	}
 
-	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, resource_handle_t font)
+	widget_id_t ui_context::make_label(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size, glyph_raster_mode_e raster_mode)
 	{
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);
@@ -313,12 +329,12 @@ namespace sfg::ui
 		in.size_mode_y	= axis_mode_e::fixed;
 		in.size_value	= {0.0f, _theme.item_height};
 
-		const vg_text_style_t style = {.font = font, .color = _theme.color_item_fg, .scale = 1.0f, .spacing = 0};
+		const vg_text_style_t style = {.font = font, .color = _theme.color_item_fg, .point_size = point_size, .spacing = 0, .raster_mode = raster_mode};
 
 		const font_runtime_t* fnt = resource_manager_t::get().find_runtime<font_runtime_t>(font);
-		if (fnt != nullptr)
+		if (fnt != nullptr && fnt->face != nullptr)
 		{
-			const vg_text_paint_t tp = {.font = fnt, .color = style.color, .scale = style.scale, .spacing = style.spacing, .flip_uv = style.flip_uv};
+			const vg_text_paint_t tp = {.font = fnt, .color = style.color, .point_size = style.point_size, .dpi_scale = _dpi_scale, .spacing = style.spacing, .raster_mode = style.raster_mode, .flip_uv = style.flip_uv};
 			const vec2f_t		  m	 = vg_canvas_t::measure_text(text, len, tp);
 			in.size_mode_x			 = axis_mode_e::fixed;
 			in.size_value.x			 = m.x;
@@ -329,7 +345,7 @@ namespace sfg::ui
 		return id;
 	}
 
-	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, resource_handle_t font)
+	widget_id_t ui_context::make_button(widget_id_t parent, const char* text, resource_handle_t font, f32 point_size, glyph_raster_mode_e raster_mode)
 	{
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);
@@ -358,13 +374,13 @@ namespace sfg::ui
 		const widget_id_t lbl = _tree.allocate();
 		_tree.attach(id, lbl);
 
-		const vg_text_style_t style = {.font = font, .color = _theme.color_item_fg, .scale = 1.0f, .spacing = 0};
+		const vg_text_style_t style = {.font = font, .color = _theme.color_item_fg, .point_size = point_size, .spacing = 0, .raster_mode = raster_mode};
 
 		const font_runtime_t* fnt = resource_manager_t::get().find_runtime<font_runtime_t>(font);
 		vec2f_t				  m	  = {0.0f, 0.0f};
-		if (fnt != nullptr)
+		if (fnt != nullptr && fnt->face != nullptr)
 		{
-			const vg_text_paint_t tp = {.font = fnt, .color = style.color, .scale = style.scale, .spacing = style.spacing, .flip_uv = style.flip_uv};
+			const vg_text_paint_t tp = {.font = fnt, .color = style.color, .point_size = style.point_size, .dpi_scale = _dpi_scale, .spacing = style.spacing, .raster_mode = style.raster_mode, .flip_uv = style.flip_uv};
 			m						 = vg_canvas_t::measure_text(text, len, tp);
 		}
 

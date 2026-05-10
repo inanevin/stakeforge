@@ -36,4 +36,10 @@ namespace sfg::ui
 	using widget_id_t = u16;
 #define INVALID_WIDGET 0xFFFFu
 
+	enum class glyph_raster_mode_e : u8
+	{
+		lcd,
+		sdf,
+	};
+
 }

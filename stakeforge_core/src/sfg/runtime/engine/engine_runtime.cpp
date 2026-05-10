@@ -11,6 +11,7 @@
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/ui/glyph_atlas.hpp>
 
 namespace sfg
 {
@@ -32,13 +33,15 @@ namespace sfg
 		g_engine_thread_ids.main_thread_id = 0;
 	}
 
-	bool engine_runtime_t::init_backend()
+	bool engine_runtime_t::init_backend(const ui::glyph_atlas_config_t& glyph_atlas_config = {})
 	{
 		if (!gfx_backend::get().init())
 			return false;
 
 		render_globals_t::s_global_bind_layout = gfx_util_t::create_bind_layout_global(false);
+		resource_manager_t::get().init_atlases(glyph_atlas_config);
 		render_resources_t::get().get_texture_upload_queue().init();
+
 		return true;
 	}
 

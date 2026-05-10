@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/texture.hpp>
+#include <sfg/runtime/ui/glyph_atlas.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -64,10 +65,21 @@ namespace sfg::ui
 			h	  = hash_bytes(h, text, len);
 			h	  = hash_bytes(h, &p.font, sizeof(p.font));
 			h	  = hash_bytes(h, &p.color, sizeof(p.color));
-			h	  = hash_bytes(h, &p.scale, sizeof(p.scale));
+			h	  = hash_bytes(h, &p.point_size, sizeof(p.point_size));
+			h	  = hash_bytes(h, &p.dpi_scale, sizeof(p.dpi_scale));
 			h	  = hash_bytes(h, &p.spacing, sizeof(p.spacing));
+			h	  = hash_bytes(h, &p.raster_mode, sizeof(p.raster_mode));
 			h	  = hash_bytes(h, &p.flip_uv, sizeof(p.flip_uv));
 			return h;
+		}
+
+		inline u32 px_size_for(const vg_text_paint_t& p)
+		{
+			const f32 px = p.point_size * (p.dpi_scale > 0.0f ? p.dpi_scale : 1.0f);
+			i32		  i	 = static_cast<i32>(px + 0.5f);
+			if (i < 1)
+				i = 1;
+			return static_cast<u32>(i);
 		}
 
 		inline vg_vertex_t* take_vertices(vg_draw_buffer_t* db, u32 count)
@@ -299,15 +311,18 @@ namespace sfg::ui
 
 	void vg_canvas_t::resolve()
 	{
-		const gfx_shader_handle def_pipe  = resolve_shader(_pipelines.default_pipeline);
-		const gfx_shader_handle text_pipe = resolve_shader(_pipelines.text_pipeline);
-		const gfx_shader_handle sdf_pipe  = resolve_shader(_pipelines.sdf_pipeline);
+		const gfx_shader_handle def_pipe	= resolve_shader(_pipelines.default_pipeline);
+		const gfx_shader_handle text_pipe	= resolve_shader(_pipelines.text_pipeline);
+		const gfx_shader_handle sdf_pipe	= resolve_shader(_pipelines.sdf_pipeline);
+		glyph_atlas_t&			glyph_atlas = resource_manager_t::get().get_glyph_atlas();
 
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
 			if (db.state.pipeline == NULL_RESOURCE_HANDLE)
 			{
-				if (db.state.atlas == NULL_RESOURCE_HANDLE)
+				if (db.state.is_glyph_atlas)
+					db.resolved.pipeline = db.state.is_atlas_sdf ? sdf_pipe : text_pipe;
+				else if (db.state.atlas == NULL_RESOURCE_HANDLE)
 					db.resolved.pipeline = def_pipe;
 				else if (db.state.is_atlas_sdf)
 					db.resolved.pipeline = sdf_pipe;
@@ -321,7 +336,10 @@ namespace sfg::ui
 				db.resolved.pipeline = p;
 			}
 
-			db.resolved.atlas = resolve_atlas_texture(db.state.atlas);
+			if (db.state.is_glyph_atlas)
+				db.resolved.atlas = glyph_atlas.get_texture();
+			else
+				db.resolved.atlas = resolve_atlas_texture(db.state.atlas);
 
 			for (u8 i = 0; i < 4; ++i)
 			{
@@ -572,26 +590,28 @@ namespace sfg::ui
 		if (!paint.font || !text || len == 0)
 			return {0.0f, 0.0f};
 
-		const font_runtime_t* fnt	  = paint.font;
-		const f32			  scale	  = paint.scale * fnt->scale;
-		const f32			  spacing = static_cast<f32>(paint.spacing) * scale;
+		const u32			 px		 = px_size_for(paint);
+		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
+		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
+		const f32			 inv_dpi = paint.dpi_scale > 0.0f ? 1.0f / paint.dpi_scale : 1.0f;
+		const f32			 spacing = static_cast<f32>(paint.spacing);
 
 		f32 total_x = 0.0f;
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u8					c = static_cast<u8>(text[i]);
-			const font_runtime_glyph_t& g = fnt->glyph_info[c];
-			total_x += g.advance_x * scale;
+			const u32			 c = static_cast<u8>(text[i]);
+			const glyph_entry_t* g = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
+			total_x += g->advance_x * inv_dpi;
 
 			if (i + 1 < len)
 			{
-				const u8 c1 = static_cast<u8>(text[i + 1]);
-				total_x += g.kern_advance[c1] * scale;
+				const u32 c1 = static_cast<u8>(text[i + 1]);
+				total_x += atlas.get_kern_advance(paint.font, c, c1, px) * inv_dpi;
 			}
 			total_x += spacing;
 		}
 
-		const f32 height = (static_cast<f32>(fnt->ascent) - static_cast<f32>(fnt->descent)) * scale;
+		const f32 height = metrics.line_height_px * inv_dpi;
 		return {total_x - spacing, height};
 	}
 
@@ -632,10 +652,11 @@ namespace sfg::ui
 			}
 		}
 
-		const font_runtime_t* fnt	   = paint.font;
-		const f32			  scale	   = paint.scale * fnt->scale;
-		const f32			  spacing  = static_cast<f32>(paint.spacing) * scale;
-		const f32			  subpixel = (fnt->kind == font_kind_e::lcd) ? 3.0f : 1.0f;
+		const u32			 px		 = px_size_for(paint);
+		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
+		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
+		const f32			 inv_dpi = paint.dpi_scale > 0.0f ? 1.0f / paint.dpi_scale : 1.0f;
+		const f32			 spacing = static_cast<f32>(paint.spacing);
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
@@ -644,23 +665,23 @@ namespace sfg::ui
 		vg_index_t*	 indices = take_indices(db, char_count * 6);
 
 		const vec2f_t pen_origin = use_cache ? vec2f_t{0.0f, 0.0f} : pos;
-		vec2f_t		  pen		 = {pen_origin.x, pen_origin.y + static_cast<f32>(fnt->ascent) * scale};
+		vec2f_t		  pen		 = {pen_origin.x, pen_origin.y + metrics.ascent_px * inv_dpi};
 
 		u32 emitted_chars = 0;
 		u32 prev		  = 0;
 
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u8					c = static_cast<u8>(text[i]);
-			const font_runtime_glyph_t& g = fnt->glyph_info[c];
+			const u32			 c = static_cast<u8>(text[i]);
+			const glyph_entry_t* g = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
 
 			if (prev != 0)
-				pen.x += static_cast<f32>(fnt->glyph_info[prev].kern_advance[c]) * scale;
+				pen.x += atlas.get_kern_advance(paint.font, prev, c, px) * inv_dpi;
 
-			const f32 quad_left	  = pen.x + (g.x_offset / subpixel) * paint.scale;
-			const f32 quad_top	  = pen.y + g.y_offset * paint.scale;
-			const f32 quad_right  = quad_left + g.width * paint.scale;
-			const f32 quad_bottom = quad_top + g.height * paint.scale;
+			const f32 quad_left	  = pen.x + g->left_bearing * inv_dpi;
+			const f32 quad_top	  = pen.y + g->top_bearing * inv_dpi;
+			const f32 quad_right  = quad_left + static_cast<f32>(g->width) * inv_dpi;
+			const f32 quad_bottom = quad_top + static_cast<f32>(g->height) * inv_dpi;
 
 			vg_vertex_t& v0 = verts[emitted_chars * 4 + 0];
 			vg_vertex_t& v1 = verts[emitted_chars * 4 + 1];
@@ -677,10 +698,10 @@ namespace sfg::ui
 			v2.color = paint.color;
 			v3.color = paint.color;
 
-			const f32 ux = g.uv_x;
-			const f32 uy = g.uv_y;
-			const f32 uw = g.uv_w;
-			const f32 uh = g.uv_h;
+			const f32 ux = g->uv_x;
+			const f32 uy = g->uv_y;
+			const f32 uw = g->uv_w;
+			const f32 uh = g->uv_h;
 
 			if (paint.flip_uv)
 			{
@@ -705,7 +726,7 @@ namespace sfg::ui
 			indices[emitted_chars * 6 + 4] = static_cast<vg_index_t>(base + 2);
 			indices[emitted_chars * 6 + 5] = static_cast<vg_index_t>(base + 3);
 
-			pen.x += g.advance_x * scale + spacing;
+			pen.x += g->advance_x * inv_dpi + spacing;
 			emitted_chars++;
 			prev = c;
 		}

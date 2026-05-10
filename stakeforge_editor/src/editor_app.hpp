@@ -50,6 +50,7 @@ namespace sfg
 		editor_renderer_t												_renderer;
 		resource_pack_t													_resource_pack;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
-		i64																_last_tick_us = 0;
+		i64																_last_tick_us			 = 0;
+		u8																_atlas_upload_frame_slot = 0;
 	};
 }

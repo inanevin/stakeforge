@@ -20,24 +20,35 @@ namespace sfg
 
 		stream >> runtime->ttf_size;
 		runtime->ttf_data = stream.get_data_current();
+		return true;
+	}
 
-		chunk_handle32_t face_chunk = mem.allocate_bytes(sizeof(stbtt_fontinfo), alignof(stbtt_fontinfo));
-		stbtt_fontinfo*	 fi			= reinterpret_cast<stbtt_fontinfo*>(mem.get(face_chunk.head));
+	create_internals_result_e font_loader_t::create_internals(resource_entry_t& entry, resource_context_t& ctx)
+	{
+		chunk_allocator_t& mem	   = ctx.resource_manager.get_memory();
+		font_runtime_t*	   runtime = mem.get<font_runtime_t>(entry.runtime);
+
+		const u8* ttf_src  = runtime->ttf_data;
+		runtime->ttf_chunk = mem.allocate_bytes(runtime->ttf_size, alignof(u8));
+		u8* ttf_dst		   = mem.get<u8>(runtime->ttf_chunk);
+		SFG_MEMCPY(ttf_dst, ttf_src, runtime->ttf_size);
+		runtime->ttf_data = ttf_dst;
+
+		runtime->face_chunk = mem.allocate_bytes(sizeof(stbtt_fontinfo), alignof(stbtt_fontinfo));
+		stbtt_fontinfo* fi	= reinterpret_cast<stbtt_fontinfo*>(mem.get(runtime->face_chunk.head));
 
 		if (stbtt_InitFont(fi, runtime->ttf_data, stbtt_GetFontOffsetForIndex(runtime->ttf_data, 0)) == 0)
 		{
-			SFG_ERR(" stbtt_InitFont failed");
-			return false;
+			SFG_ERR("stbtt_InitFont failed");
+			mem.free(runtime->face_chunk);
+			mem.free(runtime->ttf_chunk);
+			*runtime = {};
+			return create_internals_result_e::failed;
 		}
 
 		runtime->face	 = fi;
 		runtime->face_id = entry.hash;
 		stbtt_GetFontVMetrics(fi, &runtime->ascent, &runtime->descent, &runtime->line_gap);
-		return true;
-	}
-
-	create_internals_result_e font_loader_t::create_internals(resource_entry_t&, resource_context_t&)
-	{
 		return create_internals_result_e::ready;
 	}
 
@@ -45,6 +56,11 @@ namespace sfg
 	{
 		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
 		font_runtime_t*	   font = mem.get<font_runtime_t>(entry.runtime);
+		if (font->face_chunk)
+			mem.free(font->face_chunk);
+		if (font->ttf_chunk)
+			mem.free(font->ttf_chunk);
+		*font = {};
 	}
 
 	const resource_type_desc_t font_resource_desc = {
