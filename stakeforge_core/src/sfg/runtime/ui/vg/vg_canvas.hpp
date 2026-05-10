@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -126,6 +127,21 @@ namespace sfg::ui
 		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0, bool use_cache = true);
 
 		// -----------------------------------------------------------------------------
+		// emit
+		// -----------------------------------------------------------------------------
+
+		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, const ui_render_state_t& state);
+
+		static void emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
+		static void emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max);
+		static void emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
+		static void emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max);
+		static void emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max);
+		static void emit_quad_indices(vg_draw_buffer_t* db, u32 base);
+		static void emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size);
+		static void emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+
+		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
@@ -135,8 +151,7 @@ namespace sfg::ui
 		}
 
 	private:
-		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, const ui_render_state_t& state);
-		vec4f_t			  intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
+		vec4f_t intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
 
 	private:
 		struct text_cache_entry_t

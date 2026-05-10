@@ -119,115 +119,115 @@ namespace sfg::ui
 			db->index_count += count;
 			return p;
 		}
+	}
 
-		void emit_path_solid(vg_draw_buffer_t* db, const vector_t<vec2f_t>& path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
+	void vg_canvas_t::emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
+	{
+		const f32	 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
+		const f32	 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
+		vg_vertex_t* v	   = take_vertices(db, static_cast<u32>(path.size));
+		for (size_t i = 0; i < path.size; ++i)
 		{
-			const f32	 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
-			const f32	 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
-			vg_vertex_t* v	   = take_vertices(db, static_cast<u32>(path.size()));
-			for (size_t i = 0; i < path.size(); ++i)
-			{
-				v[i].pos   = path[i];
-				v[i].color = color;
-				v[i].uv.x  = (path[i].x - min.x) * inv_x;
-				v[i].uv.y  = (path[i].y - min.y) * inv_y;
-			}
+			v[i].pos   = path.data[i];
+			v[i].color = color;
+			v[i].uv.x  = (path.data[i].x - min.x) * inv_x;
+			v[i].uv.y  = (path.data[i].y - min.y) * inv_y;
 		}
+	}
 
-		void emit_path_grad(vg_draw_buffer_t* db, const vector_t<vec2f_t>& path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max)
+	void vg_canvas_t::emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max)
+	{
+		const f32 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
+		const f32 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
+
+		vg_vertex_t*  v	   = take_vertices(db, static_cast<u32>(path.size));
+		const vec4f_t diff = color_b - color_a;
+
+		for (size_t i = 0; i < path.size; ++i)
 		{
-			const f32 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
-			const f32 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
-
-			vg_vertex_t*  v	   = take_vertices(db, static_cast<u32>(path.size()));
-			const vec4f_t diff = color_b - color_a;
-
-			for (size_t i = 0; i < path.size(); ++i)
-			{
-				const f32 ux = (path[i].x - min.x) * inv_x;
-				const f32 uy = (path[i].y - min.y) * inv_y;
-				const f32 t	 = (dir == vg_gradient_e::horizontal) ? ux : uy;
-				v[i].pos	 = path[i];
-				v[i].color.x = color_a.x + diff.x * t;
-				v[i].color.y = color_a.y + diff.y * t;
-				v[i].color.z = color_a.z + diff.z * t;
-				v[i].color.w = color_a.w + diff.w * t;
-				v[i].uv.x	 = ux;
-				v[i].uv.y	 = uy;
-			}
+			const f32 ux = (path.data[i].x - min.x) * inv_x;
+			const f32 uy = (path.data[i].y - min.y) * inv_y;
+			const f32 t	 = (dir == vg_gradient_e::horizontal) ? ux : uy;
+			v[i].pos	 = path.data[i];
+			v[i].color.x = color_a.x + diff.x * t;
+			v[i].color.y = color_a.y + diff.y * t;
+			v[i].color.z = color_a.z + diff.z * t;
+			v[i].color.w = color_a.w + diff.w * t;
+			v[i].uv.x	 = ux;
+			v[i].uv.y	 = uy;
 		}
+	}
 
-		void emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
+	void vg_canvas_t::emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
+	{
+		vg_vertex_t* v = take_vertices(db, 1);
+		v[0].pos	   = {(min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f};
+		v[0].uv		   = {0.5f, 0.5f};
+		v[0].color	   = color;
+	}
+
+	void vg_canvas_t::emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max)
+	{
+		vg_vertex_t* v = take_vertices(db, 1);
+		v[0].pos	   = {(min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f};
+		v[0].uv		   = {0.5f, 0.5f};
+		v[0].color	   = (color_a + color_b) * 0.5f;
+	}
+
+	void vg_canvas_t::emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max)
+	{
+		const f32 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
+		const f32 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
+
+		vg_vertex_t* v = take_vertices(db, static_cast<u32>(path.size));
+		for (size_t i = 0; i < path.size; ++i)
 		{
-			vg_vertex_t* v = take_vertices(db, 1);
-			v[0].pos	   = {(min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f};
-			v[0].uv		   = {0.5f, 0.5f};
-			v[0].color	   = color;
+			v[i].pos	 = path.data[i];
+			v[i].color	 = db->vertex_start[source_vtx_base + i].color;
+			v[i].color.w = alpha;
+			v[i].uv.x	 = (path.data[i].x - min.x) * inv_x;
+			v[i].uv.y	 = (path.data[i].y - min.y) * inv_y;
 		}
+	}
 
-		void emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max)
+	void vg_canvas_t::emit_quad_indices(vg_draw_buffer_t* db, u32 base)
+	{
+		vg_index_t* idx = take_indices(db, 6);
+		idx[0]			= static_cast<vg_index_t>(base + 0);
+		idx[1]			= static_cast<vg_index_t>(base + 1);
+		idx[2]			= static_cast<vg_index_t>(base + 3);
+		idx[3]			= static_cast<vg_index_t>(base + 1);
+		idx[4]			= static_cast<vg_index_t>(base + 2);
+		idx[5]			= static_cast<vg_index_t>(base + 3);
+	}
+
+	void vg_canvas_t::emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size)
+	{
+		vg_index_t* idx = take_indices(db, ring_size * 3);
+		for (u32 i = 0; i < ring_size; ++i)
 		{
-			vg_vertex_t* v = take_vertices(db, 1);
-			v[0].pos	   = {(min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f};
-			v[0].uv		   = {0.5f, 0.5f};
-			v[0].color	   = (color_a + color_b) * 0.5f;
+			idx[i * 3 + 0] = static_cast<vg_index_t>(center_idx);
+			idx[i * 3 + 1] = static_cast<vg_index_t>(ring_base + i);
+			idx[i * 3 + 2] = static_cast<vg_index_t>(ring_base + ((i + 1) % ring_size));
 		}
+	}
 
-		void emit_path_alpha(vg_draw_buffer_t* db, const vector_t<vec2f_t>& path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max)
+	void vg_canvas_t::emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
+	{
+		vg_index_t* idx = take_indices(db, ring_size * 6);
+		for (u32 i = 0; i < ring_size; ++i)
 		{
-			const f32 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
-			const f32 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
-
-			vg_vertex_t* v = take_vertices(db, static_cast<u32>(path.size()));
-			for (size_t i = 0; i < path.size(); ++i)
-			{
-				v[i].pos	 = path[i];
-				v[i].color	 = db->vertex_start[source_vtx_base + i].color;
-				v[i].color.w = alpha;
-				v[i].uv.x	 = (path[i].x - min.x) * inv_x;
-				v[i].uv.y	 = (path[i].y - min.y) * inv_y;
-			}
-		}
-
-		void emit_quad_indices(vg_draw_buffer_t* db, u32 base)
-		{
-			vg_index_t* idx = take_indices(db, 6);
-			idx[0]			= static_cast<vg_index_t>(base + 0);
-			idx[1]			= static_cast<vg_index_t>(base + 1);
-			idx[2]			= static_cast<vg_index_t>(base + 3);
-			idx[3]			= static_cast<vg_index_t>(base + 1);
-			idx[4]			= static_cast<vg_index_t>(base + 2);
-			idx[5]			= static_cast<vg_index_t>(base + 3);
-		}
-
-		void emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size)
-		{
-			vg_index_t* idx = take_indices(db, ring_size * 3);
-			for (u32 i = 0; i < ring_size; ++i)
-			{
-				idx[i * 3 + 0] = static_cast<vg_index_t>(center_idx);
-				idx[i * 3 + 1] = static_cast<vg_index_t>(ring_base + i);
-				idx[i * 3 + 2] = static_cast<vg_index_t>(ring_base + ((i + 1) % ring_size));
-			}
-		}
-
-		void emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
-		{
-			vg_index_t* idx = take_indices(db, ring_size * 6);
-			for (u32 i = 0; i < ring_size; ++i)
-			{
-				const u32 o0   = outer_base + i;
-				const u32 o1   = outer_base + ((i + 1) % ring_size);
-				const u32 in0  = inner_base + i;
-				const u32 in1  = inner_base + ((i + 1) % ring_size);
-				const u32 base = i * 6;
-				idx[base + 0]  = static_cast<vg_index_t>(o0);
-				idx[base + 1]  = static_cast<vg_index_t>(o1);
-				idx[base + 2]  = static_cast<vg_index_t>(in0);
-				idx[base + 3]  = static_cast<vg_index_t>(o1);
-				idx[base + 4]  = static_cast<vg_index_t>(in1);
-				idx[base + 5]  = static_cast<vg_index_t>(in0);
-			}
+			const u32 o0   = outer_base + i;
+			const u32 o1   = outer_base + ((i + 1) % ring_size);
+			const u32 in0  = inner_base + i;
+			const u32 in1  = inner_base + ((i + 1) % ring_size);
+			const u32 base = i * 6;
+			idx[base + 0]  = static_cast<vg_index_t>(o0);
+			idx[base + 1]  = static_cast<vg_index_t>(o1);
+			idx[base + 2]  = static_cast<vg_index_t>(in0);
+			idx[base + 3]  = static_cast<vg_index_t>(o1);
+			idx[base + 4]  = static_cast<vg_index_t>(in1);
+			idx[base + 5]  = static_cast<vg_index_t>(in0);
 		}
 	}
 
@@ -465,9 +465,9 @@ namespace sfg::ui
 		if (paint.filled)
 		{
 			if (grad)
-				emit_path_grad(db, _path0, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
+				emit_path_grad(db, {_path0.data(), _path0.size()}, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
 			else
-				emit_path_solid(db, _path0, paint.fill_color_a, draw_min, draw_max);
+				emit_path_solid(db, {_path0.data(), _path0.size()}, paint.fill_color_a, draw_min, draw_max);
 
 			if (round)
 			{
@@ -490,16 +490,16 @@ namespace sfg::ui
 			outline_outer_base = db->vertex_count;
 			if (paint.filled)
 			{
-				emit_path_solid(db, _path1, paint.outline_color, draw_min, draw_max);
+				emit_path_solid(db, {_path1.data(), _path1.size()}, paint.outline_color, draw_min, draw_max);
 				const u32 outline_inner_base = db->vertex_count;
-				emit_path_solid(db, _path0, paint.outline_color, draw_min, draw_max);
+				emit_path_solid(db, {_path0.data(), _path0.size()}, paint.outline_color, draw_min, draw_max);
 				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(_path0.size()));
 			}
 			else
 			{
-				emit_path_solid(db, _path0, paint.outline_color, draw_min, draw_max);
+				emit_path_solid(db, {_path0.data(), _path0.size()}, paint.outline_color, draw_min, draw_max);
 				const u32 outline_inner_base = db->vertex_count;
-				emit_path_solid(db, _path1, paint.outline_color, draw_min, draw_max);
+				emit_path_solid(db, {_path1.data(), _path1.size()}, paint.outline_color, draw_min, draw_max);
 				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(_path0.size()));
 			}
 		}
@@ -511,7 +511,7 @@ namespace sfg::ui
 
 			vg_path_expand(_path2, outermost_path, paint.aa_thickness);
 			const u32 aa_base = db->vertex_count;
-			emit_path_alpha(db, _path2, outermost_base, 0.0f, draw_min, draw_max);
+			emit_path_alpha(db, {_path2.data(), _path2.size()}, outermost_base, 0.0f, draw_min, draw_max);
 			emit_strip_indices(db, aa_base, outermost_base, static_cast<u32>(outermost_path.size()));
 		}
 	}
@@ -535,14 +535,14 @@ namespace sfg::ui
 		_path0[2] = {p1.x + off.x, p1.y + off.y};
 		_path0[3] = {p0.x + off.x, p0.y + off.y};
 
-		emit_path_solid(db, _path0, paint.color, bb_min, bb_max);
+		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
 		emit_quad_indices(db, base);
 
 		if (paint.aa_thickness > 0.0f)
 		{
 			vg_path_expand(_path2, _path0, paint.aa_thickness);
 			const u32 aa_base = db->vertex_count;
-			emit_path_alpha(db, _path2, base, 0.0f, bb_min, bb_max);
+			emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
 			emit_strip_indices(db, aa_base, base, 4);
 		}
 	}
@@ -557,7 +557,7 @@ namespace sfg::ui
 		vg_path_circle(_path0, center, radius, paint.segments);
 
 		const u32 base = db->vertex_count;
-		emit_path_solid(db, _path0, paint.color, bb_min, bb_max);
+		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
 
 		if (paint.filled)
 		{
@@ -569,7 +569,7 @@ namespace sfg::ui
 			{
 				vg_path_expand(_path2, _path0, paint.aa_thickness);
 				const u32 aa_base = db->vertex_count;
-				emit_path_alpha(db, _path2, base, 0.0f, bb_min, bb_max);
+				emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
 				emit_strip_indices(db, aa_base, base, paint.segments);
 			}
 		}
@@ -577,14 +577,14 @@ namespace sfg::ui
 		{
 			vg_path_expand(_path1, _path0, -paint.thickness);
 			const u32 inner_base = db->vertex_count;
-			emit_path_solid(db, _path1, paint.color, bb_min, bb_max);
+			emit_path_solid(db, {_path1.data(), _path1.size()}, paint.color, bb_min, bb_max);
 			emit_strip_indices(db, base, inner_base, paint.segments);
 
 			if (paint.aa_thickness > 0.0f)
 			{
 				vg_path_expand(_path2, _path0, paint.aa_thickness);
 				const u32 aa_base = db->vertex_count;
-				emit_path_alpha(db, _path2, base, 0.0f, bb_min, bb_max);
+				emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
 				emit_strip_indices(db, aa_base, base, paint.segments);
 			}
 		}
