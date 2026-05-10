@@ -69,6 +69,7 @@ namespace sfg::ui
 		void tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds);
 		void publish_frame();
 		void set_debug_draw(bool enabled);
+		void set_debug_font(resource_handle_t font);
 
 		inline bool is_debug_draw_enabled() const
 		{
@@ -108,6 +109,15 @@ namespace sfg::ui
 		void		clear_widget_text(widget_id_t id);
 		const char* widget_text(widget_id_t id) const;
 		u32			widget_text_len(widget_id_t id) const;
+
+		// -----------------------------------------------------------------------------
+		// debug
+		// -----------------------------------------------------------------------------
+
+		void		set_widget_debug_name(widget_id_t id, const char* text);
+		void		clear_widget_debug_name(widget_id_t id);
+		const char* widget_debug_name(widget_id_t id) const;
+		u32			widget_debug_name_len(widget_id_t id) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -162,6 +172,7 @@ namespace sfg::ui
 		snapshot_slot_t							   _snapshot_slots[3] = {};
 		paint_layer_t							   _paint;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
+		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
 		text_allocator_t						   _text_pool;
 		atomic_t<u8>							   _snapshot_mailbox = {};
 		u8										   _producer_slot	 = 0;
@@ -169,6 +180,7 @@ namespace sfg::ui
 		f32										   _user_ui_scale	 = 1.0f;
 		f32										   _ui_scale		 = 1.0f;
 		f32										   _dpi_scale		 = 1.0f;
+		resource_handle_t						   _debug_font		 = NULL_RESOURCE_HANDLE;
 		bool									   _debug_draw		 = false;
 	};
 }

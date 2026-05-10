@@ -19,7 +19,7 @@ namespace sfg
 		vec4f_t color_bg0 = color_t::from255(3.0f, 3.0f, 3.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_bg1 = color_t::from255(6.0f, 6.0f, 6.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_bg2 = color_t::from255(12.0f, 12.0f, 12.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_bg3 = color_t::from255(24.0f, 24.0f, 24.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_bg3 = color_t::from255(18.0f, 18.0f, 18.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_bg4 = color_t::from255(42.0f, 42.0f, 42.0f, 255.0f).srgb_to_linear().to_vector();
 
 		vec4f_t color_fg0 = color_t::from255(107.0f, 107.0f, 107.0f, 255.0f).srgb_to_linear().to_vector();
@@ -37,7 +37,7 @@ namespace sfg
 		sid_t font_big_title	= "editor/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
 
 		f32 text_default_px_size   = 16.0f;
-		f32 text_big_title_px_size = 42.0f;
+		f32 text_big_title_px_size = 32.0f;
 		f32 item_height			   = 28.0f;
 		f32 item_spacing		   = 8.0f;
 		f32 indent_horizontal	   = 8.0f;

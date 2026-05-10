@@ -29,12 +29,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/resources/font.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg::ui
 {
-#define SNAPSHOT_SLOT_COUNT 3
-#define SNAPSHOT_SLOT_MASK	0x3
-#define SNAPSHOT_FRESH_FLAG 0x80
+#define SNAPSHOT_SLOT_COUNT	  3
+#define SNAPSHOT_SLOT_MASK	  0x3
+#define SNAPSHOT_FRESH_FLAG	  0x80
+#define DEBUG_TEXT_POINT_SIZE 12.0f
+#define DEBUG_TEXT_PADDING	  2.0f
 
 	namespace
 	{
@@ -72,12 +76,14 @@ namespace sfg::ui
 		_producer_slot = 0;
 		_consumer_slot = 0;
 
+		_widget_debug_names.clear();
 		_widget_texts.clear();
 		_text_pool.uninit();
 		_canvas.uninit();
 		_input.uninit();
 		_paint.uninit();
 		_tree.uninit();
+		_debug_font = NULL_RESOURCE_HANDLE;
 	}
 
 	void ui_context::allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity)
@@ -129,6 +135,11 @@ namespace sfg::ui
 		_debug_draw = enabled;
 	}
 
+	void ui_context::set_debug_font(resource_handle_t font)
+	{
+		_debug_font = font;
+	}
+
 	void ui_context::draw_debug_hovered_widget()
 	{
 		const span_t<const widget_id_t> dfs	   = _tree.get_dfs();
@@ -165,6 +176,89 @@ namespace sfg::ui
 		ui_render_state_t state = {};
 		state.pipeline			= _paint.get_pipelines().default_pipeline;
 		_canvas.add_rect({out.pos.x, out.pos.y}, {out.pos.x + out.size.x, out.pos.y + out.size.y}, rect, state, 0xFFFFFFFFu);
+
+		const char* name = widget_debug_name(target);
+		const u32	len	 = widget_debug_name_len(target);
+		if (name == nullptr || len == 0)
+			return;
+
+		const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(_debug_font);
+		if (font == nullptr || font->face == nullptr)
+		{
+			const paint_def_t& pd = _paint.def_const(target);
+			if (pd.kind != paint_kind_e::text)
+				return;
+			font = resource_manager_t::get().find_runtime<font_runtime_t>(pd.text.font);
+			if (font == nullptr || font->face == nullptr)
+				return;
+		}
+
+		const f32 scale = _ui_scale > 0.0f ? _ui_scale : 1.0f;
+		const f32 dpi	= _dpi_scale > 0.0f ? _dpi_scale : 1.0f;
+		i32		  px	= static_cast<i32>(DEBUG_TEXT_POINT_SIZE * scale * dpi + 0.5f);
+		if (px < 1)
+			px = 1;
+
+		vg_text_paint_t text_paint = {};
+		text_paint.font			   = font;
+		text_paint.color		   = {1.0f, 0.0f, 1.0f, 1.0f};
+		text_paint.size_px		   = DEBUG_TEXT_POINT_SIZE * scale;
+		text_paint.raster_px	   = static_cast<u32>(px);
+		text_paint.raster_mode	   = glyph_raster_mode_e::grayscale;
+
+		const vec2f_t text_size = vg_canvas_t::measure_text(name, len, text_paint);
+		if (text_size.x <= 0.0f || text_size.y <= 0.0f)
+			return;
+
+		const layout_out_t& root_out  = _tree.out(_tree.get_root());
+		const f32			screen_x0 = root_out.clip.x;
+		const f32			screen_y0 = root_out.clip.y;
+		const f32			screen_x1 = root_out.clip.x + root_out.clip.z;
+		const f32			screen_y1 = root_out.clip.y + root_out.clip.w;
+
+		const f32 x0 = out.pos.x;
+		const f32 y0 = out.pos.y;
+		const f32 x1 = out.pos.x + out.size.x;
+		const f32 y1 = out.pos.y + out.size.y;
+		const f32 w	 = text_size.x;
+		const f32 h	 = text_size.y;
+		const f32 p	 = DEBUG_TEXT_PADDING;
+
+		vec2f_t candidates[8] = {
+			{x0, y0 - h - p},
+			{x1 - w, y0 - h - p},
+			{x0, y1 + p},
+			{x1 - w, y1 + p},
+			{x0 + p, y0 + p},
+			{x1 - w - p, y0 + p},
+			{x0 + p, y1 - h - p},
+			{x1 - w - p, y1 - h - p},
+		};
+
+		vec2f_t text_pos = candidates[0];
+		bool	found	 = false;
+		for (const vec2f_t& c : candidates)
+		{
+			if (c.x >= screen_x0 && c.y >= screen_y0 && c.x + w <= screen_x1 && c.y + h <= screen_y1)
+			{
+				text_pos = c;
+				found	 = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			text_pos.x = math::clamp(x0 + p, screen_x0, math::max(screen_x0, screen_x1 - w));
+			text_pos.y = math::clamp(y0 + p, screen_y0, math::max(screen_y0, screen_y1 - h));
+		}
+
+		ui_render_state_t text_state = {};
+		text_state.pipeline			 = _paint.get_pipelines().grayscale_text_pipeline;
+		if (text_state.pipeline == NULL_RESOURCE_HANDLE)
+			return;
+
+		_canvas.add_text(name, len, text_pos, text_paint, text_state, 0xFFFFFFFFu);
 	}
 
 	void ui_context::publish_frame()
@@ -293,6 +387,42 @@ namespace sfg::ui
 	{
 		auto it = _widget_texts.find(id);
 		if (it == _widget_texts.end())
+			return 0;
+		return it->second.len;
+	}
+
+	void ui_context::set_widget_debug_name(widget_id_t id, const char* text)
+	{
+		auto& e = _widget_debug_names[id];
+		if (e.ptr != nullptr)
+			_text_pool.deallocate(e.ptr);
+		const u32 len = static_cast<u32>(strlen(text));
+		e.ptr		  = _text_pool.allocate(text, len);
+		e.len		  = len;
+	}
+
+	void ui_context::clear_widget_debug_name(widget_id_t id)
+	{
+		auto it = _widget_debug_names.find(id);
+		if (it == _widget_debug_names.end())
+			return;
+		if (it->second.ptr != nullptr)
+			_text_pool.deallocate(it->second.ptr);
+		_widget_debug_names.erase(it);
+	}
+
+	const char* ui_context::widget_debug_name(widget_id_t id) const
+	{
+		auto it = _widget_debug_names.find(id);
+		if (it == _widget_debug_names.end())
+			return nullptr;
+		return it->second.ptr;
+	}
+
+	u32 ui_context::widget_debug_name_len(widget_id_t id) const
+	{
+		auto it = _widget_debug_names.find(id);
+		if (it == _widget_debug_names.end())
 			return 0;
 		return it->second.len;
 	}

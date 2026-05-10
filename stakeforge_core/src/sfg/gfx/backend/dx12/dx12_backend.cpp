@@ -3010,13 +3010,14 @@ namespace sfg
 
 	void dx12_backend_t::cmd_bind_vertex_buffers(gfx_command_buffer_handle cmd_id, const command_bind_vertex_buffers_t& cmd) const
 	{
-		const command_buffer_t&		   buffer_t = _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*	   cmd_list = buffer_t.ptr.Get();
-		const resource_t&			   res		= _resources.get(cmd.buffer_t);
-		const D3D12_VERTEX_BUFFER_VIEW view		= {
-				.BufferLocation = res.ptr->GetResource()->GetGPUVirtualAddress(),
-				.SizeInBytes	= static_cast<u32>(res.size),
-				.StrideInBytes	= static_cast<u32>(cmd.vertex_size),
+		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
+		const resource_t&			res		 = _resources.get(cmd.buffer_t);
+		SFG_ASSERT(cmd.offset <= res.size);
+		const D3D12_VERTEX_BUFFER_VIEW view = {
+			.BufferLocation = res.ptr->GetResource()->GetGPUVirtualAddress() + cmd.offset,
+			.SizeInBytes	= static_cast<u32>(res.size - cmd.offset),
+			.StrideInBytes	= static_cast<u32>(cmd.vertex_size),
 		};
 
 		cmd_list->IASetVertexBuffers(cmd.slot, 1, &view);
@@ -3027,10 +3028,11 @@ namespace sfg
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 		const resource_t&			res		 = _resources.get(cmd.buffer_t);
+		SFG_ASSERT(cmd.offset <= res.size);
 
 		const D3D12_INDEX_BUFFER_VIEW view = {
-			.BufferLocation = res.ptr->GetResource()->GetGPUVirtualAddress(),
-			.SizeInBytes	= static_cast<u32>(res.size),
+			.BufferLocation = res.ptr->GetResource()->GetGPUVirtualAddress() + cmd.offset,
+			.SizeInBytes	= static_cast<u32>(res.size - cmd.offset),
 			.Format			= cmd.index_size == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
 		};
 

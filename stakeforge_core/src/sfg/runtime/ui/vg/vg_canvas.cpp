@@ -402,14 +402,14 @@ namespace sfg::ui
 
 		SFG_ASSERT(_buffer_counter < _buffer_count);
 
-		vg_draw_buffer_t db;
-		db.vertex_start	   = _vertex_pool + _buffer_counter * _vertex_capacity_per_buffer;
-		db.index_start	   = _index_pool + _buffer_counter * _index_capacity_per_buffer;
-		db.vertex_capacity = _vertex_capacity_per_buffer;
-		db.index_capacity  = _index_capacity_per_buffer;
-		db.clip			   = clip;
-		db.draw_order	   = draw_order;
-		db.state		   = state;
+		vg_draw_buffer_t db = {};
+		db.vertex_start		= _vertex_pool + _buffer_counter * _vertex_capacity_per_buffer;
+		db.index_start		= _index_pool + _buffer_counter * _index_capacity_per_buffer;
+		db.vertex_capacity	= _vertex_capacity_per_buffer;
+		db.index_capacity	= _index_capacity_per_buffer;
+		db.clip				= clip;
+		db.draw_order		= draw_order;
+		db.state			= state;
 
 		_buffer_counter++;
 		_draw_buffers.push_back(db);
