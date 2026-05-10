@@ -28,10 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/data/span.hpp>
-#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
-#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg::ui
 {
@@ -60,6 +57,8 @@ namespace sfg::ui
 		psf_has_press = 1 << 1,
 		psf_has_focus = 1 << 2,
 	};
+
+	class vg_canvas_t;
 
 	using paint_custom_fn = void (*)(paint_layer_t& paint, widget_id_t id, vg_canvas_t& canvas, void* user_data);
 
