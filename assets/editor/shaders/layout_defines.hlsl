@@ -29,8 +29,12 @@
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define static_sampler_linear register(s0, space0)
-#define static_sampler_linear_repeat register(s1, space0)
+#define static_sampler_ani register(s0, space0)
+#define static_sampler_ani_repeat register(s1, space0)
+#define static_sampler_linear register(s2, space0)
+#define static_sampler_linear_repeat register(s3, space0)
+#define static_sampler_nearest register(s4, space0)
+#define static_sampler_nearest_repeat register(s5, space0)
 
 struct sfg_globals
 {

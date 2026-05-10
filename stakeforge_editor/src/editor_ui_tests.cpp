@@ -11,7 +11,14 @@ namespace sfg
 		ui::layout_tree_t& tree	 = ui.get_tree();
 		ui::paint_layer_t& paint = ui.get_paint();
 
-		const ui::widget_id_t col = ui.make_row(ui.get_root());
+		const ui::widget_id_t col = ui.make_column(ui.get_root());
+		ui.make_button(col, "test_buttonssssssssss", "editor/fonts/Roboto-Regular.ttf"_hs);
+		ui.make_label(col, "what the fuck", "editor/fonts/Roboto-Regular.ttf"_hs);
+
+		{
+		}
+
+		return;
 
 		for (u32 i = 0; i < 4; i++)
 		{
@@ -46,7 +53,7 @@ namespace sfg
 		col_in.size_value		= {1.0f, 1.0f};
 		col_in.child_margins	= {16.0f, 16.0f, 16.0f, 16.0f};
 
-		const f32 sizes[] = {10.0f, 12.0f, 13.0f, 14.0f, 16.0f, 20.0f, 24.0f, 32.0f};
+		const f32 sizes[] = {10.0f, 12.0f, 13.0f, 14.0f, 16.0f, 20.0f, 24.0f, 32.0f, 48.0f, 64.0f, 128.0f};
 		for (f32 sz : sizes)
 			ui.make_label(col, "The quick brown fox jumps over the lazy dog", font, sz);
 	}

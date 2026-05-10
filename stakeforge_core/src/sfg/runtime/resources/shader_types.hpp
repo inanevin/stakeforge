@@ -10,6 +10,8 @@ namespace sfg
 	{
 		invalid,
 		editor_ui_default,
+		editor_ui_lcd_text,
+		editor_ui_sdf,
 		count,
 	};
 

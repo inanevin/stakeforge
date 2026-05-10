@@ -16,14 +16,19 @@ namespace sfg::ui
 {
 	namespace
 	{
-		constexpr u32 ATLAS_BPP			  = 4;
-		constexpr i32 SHELF_PADDING_X	  = 1;
-		constexpr i32 SHELF_PADDING_Y	  = 1;
-		constexpr u32 PITCH_ALIGNMENT	  = 256;
-		constexpr u32 PLACEMENT_ALIGNMENT = 512;
-		constexpr i32 SDF_PADDING		  = 8;
-		constexpr u8  SDF_ONEDGE_VALUE	  = 128;
-		constexpr f32 SDF_DIST_SCALE	  = 16.0f;
+		constexpr u32 ATLAS_BPP			   = 4;
+		constexpr i32 SHELF_PADDING_X	   = 1;
+		constexpr i32 SHELF_PADDING_Y	   = 1;
+		constexpr u32 PITCH_ALIGNMENT	   = 256;
+		constexpr u32 PLACEMENT_ALIGNMENT  = 512;
+		constexpr i32 GLYPH_UPLOAD_PADDING = 1;
+		constexpr i32 LCD_FILTER_RADIUS	   = 2;
+		constexpr i32 LCD_FILTER_WEIGHT_0  = 8;
+		constexpr i32 LCD_FILTER_WEIGHT_1  = 77;
+		constexpr i32 LCD_FILTER_WEIGHT_2  = 86;
+		constexpr i32 SDF_PADDING		   = 8;
+		constexpr u8  SDF_ONEDGE_VALUE	   = 128;
+		constexpr f32 SDF_DIST_SCALE	   = 16.0f;
 
 		inline u64 make_glyph_key(u64 face_id, u32 codepoint, u32 px_size, glyph_raster_mode_e mode)
 		{
@@ -38,6 +43,24 @@ namespace sfg::ui
 		inline u32 align_up(u32 v, u32 a)
 		{
 			return (v + a - 1u) & ~(a - 1u);
+		}
+
+		inline u8 filter_lcd_sample(const u8* row, i32 width, i32 x)
+		{
+			const i32 x0 = x - 2;
+			const i32 x1 = x - 1;
+			const i32 x3 = x + 1;
+			const i32 x4 = x + 2;
+			i32		  v	 = row[x] * LCD_FILTER_WEIGHT_2;
+			if (x0 >= 0)
+				v += row[x0] * LCD_FILTER_WEIGHT_0;
+			if (x1 >= 0)
+				v += row[x1] * LCD_FILTER_WEIGHT_1;
+			if (x3 < width)
+				v += row[x3] * LCD_FILTER_WEIGHT_1;
+			if (x4 < width)
+				v += row[x4] * LCD_FILTER_WEIGHT_0;
+			return static_cast<u8>((v + 128) >> 8);
 		}
 	}
 
@@ -274,19 +297,20 @@ namespace sfg::ui
 				i32 ix0 = 0, iy0 = 0, ix1 = 0, iy1 = 0;
 				stbtt_GetGlyphBitmapBoxSubpixel(fi, glyph_idx, scale_x, scale_y, 0.0f, 0.0f, &ix0, &iy0, &ix1, &iy1);
 
-				const i32 sub_w = ix1 - ix0;
-				const i32 bmp_h = iy1 - iy0;
-				dst_w_pixels	= (sub_w + 2) / 3;
-				dst_h_pixels	= bmp_h;
-				left_bearing	= static_cast<f32>(ix0) / 3.0f;
-				top_bearing		= static_cast<f32>(iy0);
+				const i32 tight_sub_w = ix1 - ix0;
+				const i32 bmp_h		  = iy1 - iy0;
+				const i32 sub_w		  = tight_sub_w + LCD_FILTER_RADIUS * 2;
+				dst_w_pixels		  = (sub_w + 2) / 3;
+				dst_h_pixels		  = bmp_h;
+				left_bearing		  = static_cast<f32>(ix0 - LCD_FILTER_RADIUS) / 3.0f;
+				top_bearing			  = static_cast<f32>(iy0);
 
-				if (dst_w_pixels > 0 && dst_h_pixels > 0)
+				if (tight_sub_w > 0 && dst_w_pixels > 0 && dst_h_pixels > 0)
 				{
 					const u32 sub_buf_bytes = static_cast<u32>(sub_w) * static_cast<u32>(bmp_h);
 					u8*		  sub			= static_cast<u8*>(SFG_MALLOC(sub_buf_bytes));
 					SFG_MEMSET(sub, 0, sub_buf_bytes);
-					stbtt_MakeGlyphBitmapSubpixel(fi, sub, sub_w, bmp_h, sub_w, scale_x, scale_y, 0.0f, 0.0f, glyph_idx);
+					stbtt_MakeGlyphBitmapSubpixel(fi, sub + LCD_FILTER_RADIUS, tight_sub_w, bmp_h, sub_w, scale_x, scale_y, 0.0f, 0.0f, glyph_idx);
 
 					const u32 rgba_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels) * ATLAS_BPP;
 					rgba				 = static_cast<u8*>(SFG_MALLOC(rgba_bytes));
@@ -298,9 +322,9 @@ namespace sfg::ui
 						for (i32 x = 0; x < dst_w_pixels; ++x)
 						{
 							const i32 sx = x * 3;
-							const u8  r	 = (sx + 0) < sub_w ? src_row[sx + 0] : 0;
-							const u8  g	 = (sx + 1) < sub_w ? src_row[sx + 1] : 0;
-							const u8  b	 = (sx + 2) < sub_w ? src_row[sx + 2] : 0;
+							const u8  r	 = (sx + 0) < sub_w ? filter_lcd_sample(src_row, sub_w, sx + 0) : 0;
+							const u8  g	 = (sx + 1) < sub_w ? filter_lcd_sample(src_row, sub_w, sx + 1) : 0;
+							const u8  b	 = (sx + 2) < sub_w ? filter_lcd_sample(src_row, sub_w, sx + 2) : 0;
 							u8		  a	 = r;
 							if (g > a)
 								a = g;
@@ -359,8 +383,22 @@ namespace sfg::ui
 			return &_entries[key];
 		}
 
+		const i32 upload_w	   = dst_w_pixels + GLYPH_UPLOAD_PADDING * 2;
+		const i32 upload_h	   = dst_h_pixels + GLYPH_UPLOAD_PADDING * 2;
+		const u32 upload_bytes = static_cast<u32>(upload_w) * static_cast<u32>(upload_h) * ATLAS_BPP;
+		u8*		  upload_rgba  = static_cast<u8*>(SFG_MALLOC(upload_bytes));
+		SFG_MEMSET(upload_rgba, 0, upload_bytes);
+		for (i32 y = 0; y < dst_h_pixels; ++y)
+		{
+			const u8* src_row = rgba + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels) * ATLAS_BPP;
+			u8*		  dst_row = upload_rgba + (static_cast<size_t>(y + GLYPH_UPLOAD_PADDING) * static_cast<size_t>(upload_w) + GLYPH_UPLOAD_PADDING) * ATLAS_BPP;
+			SFG_MEMCPY(dst_row, src_row, static_cast<size_t>(dst_w_pixels) * ATLAS_BPP);
+		}
+		SFG_FREE(rgba);
+		rgba = upload_rgba;
+
 		i16 ax = 0, ay = 0;
-		if (!allocate_slot(dst_w_pixels, dst_h_pixels, ax, ay))
+		if (!allocate_slot(upload_w, upload_h, ax, ay))
 		{
 			SFG_FREE(rgba);
 			SFG_ASSERT(!"glyph atlas full");
@@ -370,18 +408,18 @@ namespace sfg::ui
 			return &_entries[key];
 		}
 
-		entry.atlas_x = ax;
-		entry.atlas_y = ay;
-		entry.uv_x	  = static_cast<f32>(ax) / static_cast<f32>(_width);
-		entry.uv_y	  = static_cast<f32>(ay) / static_cast<f32>(_height);
+		entry.atlas_x = static_cast<i16>(ax + GLYPH_UPLOAD_PADDING);
+		entry.atlas_y = static_cast<i16>(ay + GLYPH_UPLOAD_PADDING);
+		entry.uv_x	  = static_cast<f32>(entry.atlas_x) / static_cast<f32>(_width);
+		entry.uv_y	  = static_cast<f32>(entry.atlas_y) / static_cast<f32>(_height);
 		entry.uv_w	  = static_cast<f32>(dst_w_pixels) / static_cast<f32>(_width);
 		entry.uv_h	  = static_cast<f32>(dst_h_pixels) / static_cast<f32>(_height);
 
 		pending_upload_t up;
 		up.atlas_x = ax;
 		up.atlas_y = ay;
-		up.width   = static_cast<i16>(dst_w_pixels);
-		up.height  = static_cast<i16>(dst_h_pixels);
+		up.width   = static_cast<i16>(upload_w);
+		up.height  = static_cast<i16>(upload_h);
 		up.rgba	   = rgba;
 		_pending.push_back(up);
 

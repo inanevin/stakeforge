@@ -321,10 +321,10 @@ namespace sfg::ui
 			if (db.state.pipeline == NULL_RESOURCE_HANDLE)
 			{
 				if (db.state.is_glyph_atlas)
-					db.resolved.pipeline = db.state.is_atlas_sdf ? sdf_pipe : text_pipe;
+					db.resolved.pipeline = db.state.is_sdf ? sdf_pipe : text_pipe;
 				else if (db.state.atlas == NULL_RESOURCE_HANDLE)
 					db.resolved.pipeline = def_pipe;
-				else if (db.state.is_atlas_sdf)
+				else if (db.state.is_sdf)
 					db.resolved.pipeline = sdf_pipe;
 				else
 					db.resolved.pipeline = text_pipe;

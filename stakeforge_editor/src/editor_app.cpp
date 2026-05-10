@@ -201,7 +201,7 @@ namespace sfg
 		pipelines.sdf_pipeline		 = "editor/shaders/ui_sdf.hlsl"_hs;
 		surface.ui->set_pipelines(pipelines);
 
-		editor_ui_tests_t::make_test_text(*surface.ui);
+		editor_ui_tests_t::make_test_general(*surface.ui);
 	}
 
 	void editor_app_t::tick()

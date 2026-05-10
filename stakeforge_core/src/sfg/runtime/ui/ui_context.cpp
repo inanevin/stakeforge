@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui_context.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 
 namespace sfg::ui
@@ -143,7 +142,7 @@ namespace sfg::ui
 			dst.index_count				= src.index_count;
 			dst.vertex_offset			= vtx_offset;
 			dst.index_offset			= idx_offset;
-			dst.is_atlas_sdf			= src.state.is_atlas_sdf;
+			dst.is_sdf					= src.state.is_sdf;
 
 			SFG_MEMCPY(slot.vertices + vtx_offset, src.vertex_start, src.vertex_count * sizeof(vg_vertex_t));
 			SFG_MEMCPY(slot.indices + idx_offset, src.index_start, src.index_count * sizeof(vg_index_t));
@@ -197,13 +196,14 @@ namespace sfg::ui
 		_input.on_key(ev);
 	}
 
-	void ui_context::set_widget_text(widget_id_t id, const char* text, u32 len)
+	void ui_context::set_widget_text(widget_id_t id, const char* text)
 	{
 		auto& e = _widget_texts[id];
 		if (e.ptr != nullptr)
 			_text_pool.deallocate(e.ptr);
-		e.ptr = _text_pool.allocate(text, len);
-		e.len = len;
+		const u32 len = static_cast<u32>(strlen(text));
+		e.ptr		  = _text_pool.allocate(text, len);
+		e.len		  = len;
 
 		paint_def_t& pd = _paint.def(id);
 		if (pd.kind == paint_kind_e::text)
@@ -293,6 +293,8 @@ namespace sfg::ui
 		in.size_value	 = {1.0f, 1.0f};
 		in.flow			 = flow_e::column;
 		in.child_spacing = _theme.item_spacing;
+		in.child_margins = {_theme.margin_vertical, _theme.margin_vertical, _theme.margin_horizontal, _theme.margin_horizontal};
+
 		return id;
 	}
 
@@ -321,27 +323,8 @@ namespace sfg::ui
 		const widget_id_t id = _tree.allocate();
 		_tree.attach(parent, id);
 
-		const u32 len = static_cast<u32>(text ? strlen(text) : 0);
-		set_widget_text(id, text, len);
-
-		layout_in_t& in = _tree.in(id);
-		in.size_mode_x	= axis_mode_e::sum_children;
-		in.size_mode_y	= axis_mode_e::fixed;
-		in.size_value	= {0.0f, _theme.item_height};
-
-		const vg_text_style_t style = {.font = font, .color = _theme.color_item_fg, .point_size = point_size, .spacing = 0, .raster_mode = raster_mode};
-
-		const font_runtime_t* fnt = resource_manager_t::get().find_runtime<font_runtime_t>(font);
-		if (fnt != nullptr && fnt->face != nullptr)
-		{
-			const vg_text_paint_t tp = {.font = fnt, .color = style.color, .point_size = style.point_size, .dpi_scale = _dpi_scale, .spacing = style.spacing, .raster_mode = style.raster_mode, .flip_uv = style.flip_uv};
-			const vec2f_t		  m	 = vg_canvas_t::measure_text(text, len, tp);
-			in.size_mode_x			 = axis_mode_e::fixed;
-			in.size_value.x			 = m.x;
-			in.size_value.y			 = m.y > 0.0f ? m.y : _theme.item_height;
-		}
-
-		_paint.set_text(id, widget_text(id), widget_text_len(id), style);
+		set_widget_text(id, text);
+		_paint.set_text(id, widget_text(id), widget_text_len(id), {.font = font, .color = _theme.color_item_fg, .point_size = point_size, .spacing = 0, .raster_mode = raster_mode});
 		return id;
 	}
 
@@ -351,7 +334,6 @@ namespace sfg::ui
 		_tree.attach(parent, id);
 
 		const u32 len = static_cast<u32>(text ? strlen(text) : 0);
-		set_widget_text(id, text, len);
 
 		layout_in_t& in	 = _tree.in(id);
 		in.size_mode_x	 = axis_mode_e::sum_children;
@@ -371,25 +353,7 @@ namespace sfg::ui
 		_paint.set_press_color(id, _theme.color_item_press);
 		_paint.set_focus_color(id, _theme.color_focus);
 
-		const widget_id_t lbl = _tree.allocate();
-		_tree.attach(id, lbl);
-
-		const vg_text_style_t style = {.font = font, .color = _theme.color_item_fg, .point_size = point_size, .spacing = 0, .raster_mode = raster_mode};
-
-		const font_runtime_t* fnt = resource_manager_t::get().find_runtime<font_runtime_t>(font);
-		vec2f_t				  m	  = {0.0f, 0.0f};
-		if (fnt != nullptr && fnt->face != nullptr)
-		{
-			const vg_text_paint_t tp = {.font = fnt, .color = style.color, .point_size = style.point_size, .dpi_scale = _dpi_scale, .spacing = style.spacing, .raster_mode = style.raster_mode, .flip_uv = style.flip_uv};
-			m						 = vg_canvas_t::measure_text(text, len, tp);
-		}
-
-		layout_in_t& lin = _tree.in(lbl);
-		lin.size_mode_x	 = axis_mode_e::fixed;
-		lin.size_mode_y	 = axis_mode_e::fixed;
-		lin.size_value	 = {m.x, m.y > 0.0f ? m.y : _theme.item_height};
-		lin.flags		 = wf_visible | wf_no_input;
-		_paint.set_text(lbl, widget_text(id), widget_text_len(id), style);
+		make_label(id, text, font, point_size, raster_mode);
 
 		return id;
 	}

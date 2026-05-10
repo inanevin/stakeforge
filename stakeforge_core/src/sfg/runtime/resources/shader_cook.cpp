@@ -34,7 +34,15 @@ namespace sfg
 		switch (cfg.type)
 		{
 		case shader_type_e::editor_ui_default:
-			if (!shader_cook_variants_t::cook_editor_ui(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_editor_ui_default(source, include_paths, compiles, psos))
+				return false;
+			break;
+		case shader_type_e::editor_ui_lcd_text:
+			if (!shader_cook_variants_t::cook_editor_ui_lcd_text(source, include_paths, compiles, psos))
+				return false;
+			break;
+		case shader_type_e::editor_ui_sdf:
+			if (!shader_cook_variants_t::cook_editor_ui_sdf(source, include_paths, compiles, psos))
 				return false;
 			break;
 		default:

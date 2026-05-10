@@ -155,7 +155,7 @@ namespace sfg::ui
 			}
 
 			const bool has_atlas = !db.resolved.atlas.is_null();
-			const bool is_sdf	 = has_atlas && db.is_atlas_sdf;
+			const bool is_sdf	 = has_atlas && db.is_sdf;
 
 			const gfx_shader_handle pipeline = db.resolved.pipeline;
 

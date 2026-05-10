@@ -67,7 +67,7 @@ namespace sfg::ui
 		resource_handle_t pipeline		 = NULL_RESOURCE_HANDLE;
 		resource_handle_t atlas			 = NULL_RESOURCE_HANDLE;
 		ui_resource_ref_t constants[4]	 = {};
-		bool			  is_atlas_sdf	 = false;
+		bool			  is_sdf	 = false;
 		bool			  is_glyph_atlas = false;
 	};
 
@@ -167,7 +167,7 @@ namespace sfg::ui
 		u32					index_count	  = 0;
 		u32					vertex_offset = 0;
 		u32					index_offset  = 0;
-		bool				is_atlas_sdf  = false;
+		bool				is_sdf  = false;
 	};
 
 	struct vg_draw_snapshot_t

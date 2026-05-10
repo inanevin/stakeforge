@@ -184,7 +184,7 @@ namespace sfg::ui
 			{
 				text_style_from_json(jp.at("text"), pd.text);
 				const std::string td = jp.value("text_data", std::string());
-				ui.set_widget_text(id, td.c_str(), static_cast<u32>(td.size()));
+				ui.set_widget_text(id, td.c_str());
 				pd.text_data = ui.widget_text(id);
 				pd.text_len	 = ui.widget_text_len(id);
 			}

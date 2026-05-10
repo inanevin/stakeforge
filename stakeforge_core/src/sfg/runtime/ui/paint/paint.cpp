@@ -119,6 +119,8 @@ namespace sfg::ui
 	{
 		resource_manager_t& rm = resource_manager_t::get();
 
+		vg_text_paint_t paint = {};
+
 		for (u32 i = 0; i < static_cast<u32>(_defs.size()); ++i)
 		{
 			const paint_def_t& pd = _defs[i];
@@ -129,14 +131,13 @@ namespace sfg::ui
 			if (font == nullptr || font->face == nullptr)
 				continue;
 
-			vg_text_paint_t paint = {};
-			paint.font			  = font;
-			paint.color			  = pd.text.color;
-			paint.point_size	  = pd.text.point_size;
-			paint.dpi_scale		  = dpi_scale;
-			paint.spacing		  = pd.text.spacing;
-			paint.raster_mode	  = pd.text.raster_mode;
-			paint.flip_uv		  = pd.text.flip_uv;
+			paint.font		  = font;
+			paint.color		  = pd.text.color;
+			paint.point_size  = pd.text.point_size;
+			paint.dpi_scale	  = dpi_scale;
+			paint.spacing	  = pd.text.spacing;
+			paint.raster_mode = pd.text.raster_mode;
+			paint.flip_uv	  = pd.text.flip_uv;
 
 			const vec2f_t m	 = vg_canvas_t::measure_text(pd.text_data, pd.text_len, paint);
 			layout_in_t&  in = tree.in(static_cast<widget_id_t>(i));
@@ -234,7 +235,7 @@ namespace sfg::ui
 
 					ui_render_state_t state = pd.render_state;
 					state.is_glyph_atlas	= true;
-					state.is_atlas_sdf		= pd.text.raster_mode == glyph_raster_mode_e::sdf;
+					state.is_sdf			= pd.text.raster_mode == glyph_raster_mode_e::sdf;
 
 					canvas.add_text(pd.text_data, pd.text_len, {o.pos.x, o.pos.y}, paint, draw_order, state);
 				}

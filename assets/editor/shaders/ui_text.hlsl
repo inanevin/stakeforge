@@ -36,7 +36,7 @@ struct projection_cb
 	float4x4 projection;
 };
 
-SamplerState smp_linear : static_sampler_linear;
+SamplerState smp : static_sampler_linear;
 
 struct VSInput
 {
@@ -65,8 +65,8 @@ VSOutput VSMain(VSInput IN)
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	Texture2D atlas    = sfg_get_texture<Texture2D>(sfg_constant_mat0);
-	float4    sampled  = atlas.SampleLevel(smp_linear, IN.uv, 0);
+	float4    sampled  = atlas.SampleLevel(smp, IN.uv, 0);
 	float3    coverage = sampled.rgb;
 	float     alpha    = max(coverage.r, max(coverage.g, coverage.b));
-	return float4(IN.color.rgb * coverage, IN.color.a * alpha);
+	return float4(IN.color.rgb * coverage * IN.color.a, IN.color.a * alpha);
 }

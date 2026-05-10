@@ -35,6 +35,7 @@ namespace sfg
 	public:
 		static color_blend_attachment_t get_none();
 		static color_blend_attachment_t get_alpha_blend();
+		static color_blend_attachment_t get_lcd_text();
 		static color_blend_attachment_t get_premultiplied_alpha();
 		static color_blend_attachment_t get_additive();
 		static color_blend_attachment_t get_multiply();

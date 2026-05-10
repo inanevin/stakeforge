@@ -51,6 +51,20 @@ namespace sfg
 		};
 	}
 
+	color_blend_attachment_t blend_attachments_t::get_lcd_text()
+	{
+		return {
+			.blend_enabled			= true,
+			.src_color_blend_factor = blend_factor::one,
+			.dst_color_blend_factor = blend_factor::one_minus_src_color,
+			.color_blend_op			= blend_op::add,
+			.src_alpha_blend_factor = blend_factor::one,
+			.dst_alpha_blend_factor = blend_factor::one_minus_src_alpha,
+			.alpha_blend_op			= blend_op::add,
+			.color_comp_flags		= ccf_rgba,
+		};
+	}
+
 	color_blend_attachment_t blend_attachments_t::get_premultiplied_alpha()
 	{
 		return {

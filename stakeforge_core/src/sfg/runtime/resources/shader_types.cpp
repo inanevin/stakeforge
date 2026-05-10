@@ -10,6 +10,10 @@ namespace sfg
 
 		if (s == "editor_ui_default")
 			t = shader_type_e::editor_ui_default;
+		else if (s == "editor_ui_lcd_text")
+			t = shader_type_e::editor_ui_lcd_text;
+		else if (s == "editor_ui_sdf")
+			t = shader_type_e::editor_ui_sdf;
 		else
 			t = shader_type_e::invalid;
 	}

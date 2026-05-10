@@ -15,7 +15,7 @@
             "type": "shader",
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_default"
+                "type": "editor_ui_lcd_text"
             }
         },
         {
@@ -24,7 +24,7 @@
             "type": "shader",
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_default"
+                "type": "editor_ui_sdf"
             }
         },
         {
