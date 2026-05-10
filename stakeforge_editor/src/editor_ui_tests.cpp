@@ -8,12 +8,13 @@ namespace sfg
 {
 	void editor_ui_tests_t::make_test_general(ui::ui_context& ui)
 	{
+		return make_test_text(ui);
 		ui::layout_tree_t& tree	 = ui.get_tree();
 		ui::paint_layer_t& paint = ui.get_paint();
 
 		const ui::widget_id_t col = ui.make_column(ui.get_root());
 		//ui.make_button(col, "test_buttonssss", "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs, 45);
-		ui.make_label(col, "The quick brown fox jumps over the lazy dog", "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs, 18);
+		ui.make_label(col, "The quick brown fox jumps over the lazy dog", "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs, 14);
 
 		{
 		}

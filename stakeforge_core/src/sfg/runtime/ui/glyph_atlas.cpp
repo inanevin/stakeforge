@@ -184,7 +184,7 @@ namespace sfg::ui
 			return it->second;
 
 		const stbtt_fontinfo* fi	= static_cast<const stbtt_fontinfo*>(font->face);
-		const f32			  scale = stbtt_ScaleForPixelHeight(const_cast<stbtt_fontinfo*>(fi), static_cast<f32>(px_size));
+		const f32			  scale = stbtt_ScaleForMappingEmToPixels(const_cast<stbtt_fontinfo*>(fi), static_cast<f32>(px_size));
 
 		size_metrics_t m;
 		m.ascent_px		 = static_cast<f32>(font->ascent) * scale;
@@ -202,7 +202,7 @@ namespace sfg::ui
 		if (prev_cp == 0)
 			return 0.0f;
 		const stbtt_fontinfo* fi	= static_cast<const stbtt_fontinfo*>(font->face);
-		const f32			  scale = stbtt_ScaleForPixelHeight(const_cast<stbtt_fontinfo*>(fi), static_cast<f32>(px_size));
+		const f32			  scale = stbtt_ScaleForMappingEmToPixels(const_cast<stbtt_fontinfo*>(fi), static_cast<f32>(px_size));
 		const i32			  kern	= stbtt_GetCodepointKernAdvance(const_cast<stbtt_fontinfo*>(fi), static_cast<i32>(prev_cp), static_cast<i32>(next_cp));
 		return static_cast<f32>(kern) * scale;
 	}
@@ -272,7 +272,7 @@ namespace sfg::ui
 		}
 
 		stbtt_fontinfo* fi		  = static_cast<stbtt_fontinfo*>(font->face);
-		const f32		scale_y	  = stbtt_ScaleForPixelHeight(fi, static_cast<f32>(px_size));
+		const f32		scale_y	  = stbtt_ScaleForMappingEmToPixels(fi, static_cast<f32>(px_size));
 		const f32		scale_x	  = scale_y * 3.0f;
 		const i32		glyph_idx = stbtt_FindGlyphIndex(fi, static_cast<i32>(codepoint));
 

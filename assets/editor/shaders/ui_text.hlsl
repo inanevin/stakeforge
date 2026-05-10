@@ -36,7 +36,7 @@ struct projection_cb
 	float4x4 projection;
 };
 
-SamplerState smp : static_sampler_linear;
+SamplerState smp : static_sampler_nearest;
 
 struct VSInput
 {
