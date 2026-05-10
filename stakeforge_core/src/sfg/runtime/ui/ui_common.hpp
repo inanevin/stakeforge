@@ -48,6 +48,7 @@ namespace sfg::ui
 	enum class glyph_raster_mode_e : u8
 	{
 		lcd,
+		grayscale,
 		sdf,
 	};
 

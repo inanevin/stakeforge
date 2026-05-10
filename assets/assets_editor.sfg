@@ -10,12 +10,21 @@
             }
         },
         {
-            "name": "ui_textt",
-            "path": "editor/shaders/ui_text.hlsl",
+            "name": "ui_text_lcd",
+            "path": "editor/shaders/editor_ui_text_lcd.hlsl",
             "type": "shader",
             "config": {
                 "schema": "sfg.schema.shader",
                 "type": "editor_ui_lcd_text"
+            }
+        },
+        {
+            "name": "ui_text_grayscale",
+            "path": "editor/shaders/editor_ui_text_grayscale.hlsl",
+            "type": "shader",
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": "editor_ui_text_grayscale"
             }
         },
         {

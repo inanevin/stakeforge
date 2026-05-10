@@ -41,6 +41,10 @@ namespace sfg
 			if (!shader_cook_variants_t::cook_editor_ui_lcd_text(source, include_paths, compiles, psos))
 				return false;
 			break;
+		case shader_type_e::editor_ui_text_grayscale:
+			if (!shader_cook_variants_t::cook_editor_ui_text_grayscale(source, include_paths, compiles, psos))
+				return false;
+			break;
 		case shader_type_e::editor_ui_sdf:
 			if (!shader_cook_variants_t::cook_editor_ui_sdf(source, include_paths, compiles, psos))
 				return false;

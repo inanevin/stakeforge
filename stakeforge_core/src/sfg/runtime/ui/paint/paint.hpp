@@ -38,9 +38,10 @@ namespace sfg::ui
 
 	struct paint_pipelines_t
 	{
-		resource_handle_t default_pipeline = 0;
-		resource_handle_t text_pipeline	   = 0;
-		resource_handle_t sdf_pipeline	   = 0;
+		resource_handle_t default_pipeline		  = 0;
+		resource_handle_t text_pipeline			  = 0;
+		resource_handle_t grayscale_text_pipeline = 0;
+		resource_handle_t sdf_pipeline			  = 0;
 	};
 
 	enum class paint_kind_e : u8

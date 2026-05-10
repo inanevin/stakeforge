@@ -98,7 +98,20 @@ namespace sfg::ui
 		def.text_len	 = len;
 		def.render_state = state;
 		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
-			def.render_state.pipeline = s.raster_mode == glyph_raster_mode_e::lcd ? _pipelines.text_pipeline : _pipelines.sdf_pipeline;
+		{
+			switch (s.raster_mode)
+			{
+			case glyph_raster_mode_e::lcd:
+				def.render_state.pipeline = _pipelines.text_pipeline;
+				break;
+			case glyph_raster_mode_e::grayscale:
+				def.render_state.pipeline = _pipelines.grayscale_text_pipeline;
+				break;
+			case glyph_raster_mode_e::sdf:
+				def.render_state.pipeline = _pipelines.sdf_pipeline;
+				break;
+			}
+		}
 	}
 
 	void paint_layer_t::set_custom(widget_id_t id, paint_custom_fn fn, void* user_data, const ui_render_state_t& state)

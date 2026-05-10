@@ -339,6 +339,40 @@ namespace sfg::ui
 					SFG_FREE(sub);
 				}
 			}
+			else if (mode == glyph_raster_mode_e::grayscale)
+			{
+				i32 ix0 = 0, iy0 = 0, ix1 = 0, iy1 = 0;
+				stbtt_GetGlyphBitmapBoxSubpixel(fi, glyph_idx, scale_y, scale_y, 0.0f, 0.0f, &ix0, &iy0, &ix1, &iy1);
+
+				dst_w_pixels = ix1 - ix0;
+				dst_h_pixels = iy1 - iy0;
+				left_bearing = static_cast<f32>(ix0);
+				top_bearing	 = static_cast<f32>(iy0);
+
+				if (dst_w_pixels > 0 && dst_h_pixels > 0)
+				{
+					const u32 bitmap_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels);
+					u8*		  bitmap	   = static_cast<u8*>(SFG_MALLOC(bitmap_bytes));
+					stbtt_MakeGlyphBitmapSubpixel(fi, bitmap, dst_w_pixels, dst_h_pixels, dst_w_pixels, scale_y, scale_y, 0.0f, 0.0f, glyph_idx);
+
+					const u32 rgba_bytes = static_cast<u32>(dst_w_pixels) * static_cast<u32>(dst_h_pixels) * ATLAS_BPP;
+					rgba				 = static_cast<u8*>(SFG_MALLOC(rgba_bytes));
+					for (i32 y = 0; y < dst_h_pixels; ++y)
+					{
+						const u8* src_row = bitmap + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels);
+						u8*		  dst_row = rgba + static_cast<size_t>(y) * static_cast<size_t>(dst_w_pixels) * ATLAS_BPP;
+						for (i32 x = 0; x < dst_w_pixels; ++x)
+						{
+							const u8 v		   = src_row[x];
+							dst_row[x * 4 + 0] = v;
+							dst_row[x * 4 + 1] = v;
+							dst_row[x * 4 + 2] = v;
+							dst_row[x * 4 + 3] = v;
+						}
+					}
+					SFG_FREE(bitmap);
+				}
+			}
 			else
 			{
 				i32 xoff = 0, yoff = 0;

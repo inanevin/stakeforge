@@ -12,6 +12,7 @@ namespace sfg
 		editor_ui_default,
 		editor_ui_lcd_text,
 		editor_ui_sdf,
+		editor_ui_text_grayscale,
 		count,
 	};
 

@@ -195,10 +195,11 @@ namespace sfg
 		cfg.max_widgets		= 512;
 		surface.ui->init(cfg);
 
-		ui::paint_pipelines_t pipelines = {};
-		pipelines.default_pipeline		= "editor/shaders/ui_default.hlsl"_hs;
-		pipelines.text_pipeline			= "editor/shaders/ui_text.hlsl"_hs;
-		pipelines.sdf_pipeline			= "editor/shaders/ui_sdf.hlsl"_hs;
+		ui::paint_pipelines_t pipelines	  = {};
+		pipelines.default_pipeline		  = "editor/shaders/ui_default.hlsl"_hs;
+		pipelines.text_pipeline			  = "editor/shaders/editor_ui_text_lcd.hlsl"_hs;
+		pipelines.grayscale_text_pipeline = "editor/shaders/editor_ui_text_grayscale.hlsl"_hs;
+		pipelines.sdf_pipeline			  = "editor/shaders/ui_sdf.hlsl"_hs;
 		surface.ui->get_paint().set_pipelines(pipelines);
 
 		editor_ui_tests_t::make_test_general(*surface.ui);
