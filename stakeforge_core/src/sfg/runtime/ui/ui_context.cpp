@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui_context.hpp"
 #include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 
@@ -37,6 +38,8 @@ namespace sfg::ui
 
 	void ui_context::init(const ui_config_t& cfg)
 	{
+		_user_ui_scale = cfg.user_ui_scale;
+
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
 		_input.init(cfg.input);
@@ -99,12 +102,13 @@ namespace sfg::ui
 	void ui_context::tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds)
 	{
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
-		_paint.update_text_layout(_tree, _dpi_scale);
-		_tree.solve(screen_rect);
+		_ui_scale  = _dpi_scale * _user_ui_scale;
+		_paint.update_text_layout(_tree, _ui_scale, _dpi_scale);
+		_tree.solve(screen_rect, _ui_scale);
 		_input.tick(_tree, dt_seconds);
 
 		_canvas.frame_begin(screen_rect);
-		_paint.paint_all(_tree, _input, _canvas, _dpi_scale);
+		_paint.paint_all(_tree, _input, _canvas, _ui_scale, _dpi_scale);
 		_canvas.frame_end();
 
 		_canvas.resolve();
@@ -347,8 +351,13 @@ namespace sfg::ui
 		_paint.set_press_color(id, _theme.color_item_press);
 		_paint.set_focus_color(id, _theme.color_focus);
 
-		make_label(id, text, font, point_size, raster_mode);
-
+		{
+			const ui::widget_id_t label = make_label(id, text, font, point_size, raster_mode);
+			layout_in_t&		  in	= _tree.in(label);
+			in.pos_mode_y				= pos_mode_e::relative_in_parent;
+			in.pos_value.y				= 0.5f;
+			in.anchor_y					= anchor_e::center;
+		}
 		return id;
 	}
 

@@ -28,8 +28,8 @@
             }
         },
         {
-            "name": "font_roboto",
-            "path": "editor/fonts/Roboto-Regular.ttf",
+            "name": "font_ibm",
+            "path": "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf",
             "type": "font",
             "config": {
                 "schema": "sfg.schema.font"

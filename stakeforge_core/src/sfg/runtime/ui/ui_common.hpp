@@ -134,9 +134,9 @@ namespace sfg::ui
 	{
 		const font_runtime_t* font		  = nullptr;
 		vec4f_t				  color		  = {1, 1, 1, 1};
-		f32					  point_size  = 13.0f;
-		f32					  dpi_scale	  = 1.0f;
-		u8					  spacing	  = 0;
+		f32					  size_px	  = 13.0f;
+		u32					  raster_px	  = 13;
+		f32					  spacing	  = 0.0f;
 		glyph_raster_mode_e	  raster_mode = glyph_raster_mode_e::lcd;
 		bool				  flip_uv	  = false;
 	};

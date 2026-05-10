@@ -48,6 +48,7 @@ namespace sfg
 		if (!file_system_t::exists(path.c_str()))
 		{
 			_windows.resize(0);
+			_windows.push_back({});
 			flush_to_disk();
 			return true;
 		}

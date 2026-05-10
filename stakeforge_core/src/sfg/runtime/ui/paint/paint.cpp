@@ -35,6 +35,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	namespace
+	{
+		u32 raster_px_for(f32 size_px, f32 dpi_scale)
+		{
+			const f32 scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
+			i32		  px	= static_cast<i32>(size_px * scale + 0.5f);
+			if (px < 1)
+				px = 1;
+			return static_cast<u32>(px);
+		}
+	}
+
 	void paint_layer_t::init(u32 max_widgets)
 	{
 		_defs.resize(max_widgets);
@@ -122,11 +134,12 @@ namespace sfg::ui
 		_defs[id].state_flags |= psf_has_focus;
 	}
 
-	void paint_layer_t::update_text_layout(layout_tree_t& tree, f32 dpi_scale)
+	void paint_layer_t::update_text_layout(layout_tree_t& tree, f32 ui_scale, f32 dpi_scale)
 	{
 		resource_manager_t& rm = resource_manager_t::get();
 
 		vg_text_paint_t paint = {};
+		const f32		scale = ui_scale > 0.0f ? ui_scale : 1.0f;
 
 		for (u32 i = 0; i < static_cast<u32>(_defs.size()); ++i)
 		{
@@ -140,9 +153,9 @@ namespace sfg::ui
 
 			paint.font		  = font;
 			paint.color		  = pd.text.color;
-			paint.point_size  = pd.text.point_size;
-			paint.dpi_scale	  = dpi_scale;
-			paint.spacing	  = pd.text.spacing;
+			paint.size_px	  = pd.text.point_size;
+			paint.raster_px	  = raster_px_for(pd.text.point_size * scale, dpi_scale);
+			paint.spacing	  = static_cast<f32>(pd.text.spacing);
 			paint.raster_mode = pd.text.raster_mode;
 			paint.flip_uv	  = pd.text.flip_uv;
 
@@ -155,9 +168,10 @@ namespace sfg::ui
 		}
 	}
 
-	void paint_layer_t::paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 dpi_scale)
+	void paint_layer_t::paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale)
 	{
-		const auto dfs = tree.get_dfs();
+		const auto dfs	 = tree.get_dfs();
+		const f32  scale = ui_scale > 0.0f ? ui_scale : 1.0f;
 
 		_clip_stack.resize(0);
 
@@ -234,9 +248,9 @@ namespace sfg::ui
 					vg_text_paint_t paint = {};
 					paint.font			  = font;
 					paint.color			  = has_override ? override_color : pd.text.color;
-					paint.point_size	  = pd.text.point_size;
-					paint.dpi_scale		  = dpi_scale;
-					paint.spacing		  = pd.text.spacing;
+					paint.size_px		  = pd.text.point_size * scale;
+					paint.raster_px		  = raster_px_for(paint.size_px, dpi_scale);
+					paint.spacing		  = static_cast<f32>(pd.text.spacing) * scale;
 					paint.raster_mode	  = pd.text.raster_mode;
 					paint.flip_uv		  = pd.text.flip_uv;
 

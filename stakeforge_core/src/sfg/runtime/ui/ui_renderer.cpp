@@ -48,6 +48,18 @@ namespace sfg::ui
 			f32 _pad0		  = 0.0f;
 			f32 _pad1		  = 0.0f;
 		};
+
+		inline u16 scissor_pos(f32 v)
+		{
+			return static_cast<u16>(math::max(0.0f, math::floor(v)));
+		}
+
+		inline u16 scissor_size(f32 min_v, f32 size_v)
+		{
+			const f32 min_px = math::max(0.0f, math::floor(min_v));
+			const f32 max_px = math::max(min_px, math::ceil(min_v + size_v));
+			return static_cast<u16>(max_px - min_px);
+		}
 	}
 
 	void ui_renderer_t::init(const ui_renderer_config_t& cfg)
@@ -180,10 +192,10 @@ namespace sfg::ui
 			SFG_MEMCPY(pfd.mapped_vtx + vtx_offset, snap->vertices + db.vertex_offset, vtx_size);
 			SFG_MEMCPY(pfd.mapped_idx + idx_offset, snap->indices + db.index_offset, idx_size);
 
-			const u16			   sx = static_cast<u16>(math::max(0.0f, db.clip.x));
-			const u16			   sy = static_cast<u16>(math::max(0.0f, db.clip.y));
-			const u16			   sw = static_cast<u16>(math::max(0.0f, db.clip.z));
-			const u16			   sh = static_cast<u16>(math::max(0.0f, db.clip.w));
+			const u16			   sx = scissor_pos(db.clip.x);
+			const u16			   sy = scissor_pos(db.clip.y);
+			const u16			   sw = scissor_size(db.clip.x, db.clip.z);
+			const u16			   sh = scissor_size(db.clip.y, db.clip.w);
 			command_set_scissors_t sc = {.x = sx, .y = sy, .width = sw, .height = sh};
 			backend.cmd_set_scissors(cmd, sc);
 

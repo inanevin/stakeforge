@@ -43,6 +43,7 @@ namespace sfg::ui
 	{
 		vg_canvas_config_t canvas			  = {};
 		input_config_t	   input			  = {};
+		f32				   user_ui_scale	  = 1.0f;
 		u32				   max_widgets		  = 1024;
 		u32				   text_pool_capacity = 64 * 1024;
 	};
@@ -73,6 +74,11 @@ namespace sfg::ui
 		inline f32 get_dpi_scale() const
 		{
 			return _dpi_scale;
+		}
+
+		inline f32 get_ui_scale() const
+		{
+			return _ui_scale;
 		}
 
 		// -----------------------------------------------------------------------------
@@ -176,6 +182,8 @@ namespace sfg::ui
 		atomic_t<u8>							   _snapshot_mailbox = {};
 		u8										   _producer_slot	 = 0;
 		u8										   _consumer_slot	 = 0;
+		f32										   _user_ui_scale	 = 1.0f;
+		f32										   _ui_scale		 = 1.0f;
 		f32										   _dpi_scale		 = 1.0f;
 	};
 }

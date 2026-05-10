@@ -134,7 +134,7 @@ namespace sfg
 			const u64						ident = ws.monitor_ident;
 			auto							it	  = std::find_if(monitors.begin(), monitors.end(), [ident](const monitor_info_t& m) -> bool { return m.device_hash == ident; });
 
-			const vec2u16_t size	 = (ws.size.x == 0 || ws.size.y == 0) ? vec2u16_t(800, 600) : ws.size;
+			const vec2u16_t size	 = (ws.size.x == 0 || ws.size.y == 0) ? vec2u16_t(1920, 1080) : ws.size;
 			vec2i16_t		position = ws.position;
 			if (it == monitors.end())
 				position = vec2i16_t::zero;

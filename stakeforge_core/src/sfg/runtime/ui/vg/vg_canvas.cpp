@@ -65,21 +65,43 @@ namespace sfg::ui
 			h	  = hash_bytes(h, text, len);
 			h	  = hash_bytes(h, &p.font, sizeof(p.font));
 			h	  = hash_bytes(h, &p.color, sizeof(p.color));
-			h	  = hash_bytes(h, &p.point_size, sizeof(p.point_size));
-			h	  = hash_bytes(h, &p.dpi_scale, sizeof(p.dpi_scale));
+			h	  = hash_bytes(h, &p.size_px, sizeof(p.size_px));
+			h	  = hash_bytes(h, &p.raster_px, sizeof(p.raster_px));
 			h	  = hash_bytes(h, &p.spacing, sizeof(p.spacing));
 			h	  = hash_bytes(h, &p.raster_mode, sizeof(p.raster_mode));
 			h	  = hash_bytes(h, &p.flip_uv, sizeof(p.flip_uv));
 			return h;
 		}
 
-		inline u32 px_size_for(const vg_text_paint_t& p)
+		inline u32 raster_px_for(const vg_text_paint_t& p)
 		{
-			const f32 px = p.point_size * (p.dpi_scale > 0.0f ? p.dpi_scale : 1.0f);
-			i32		  i	 = static_cast<i32>(px + 0.5f);
-			if (i < 1)
-				i = 1;
-			return static_cast<u32>(i);
+			return p.raster_px > 0 ? p.raster_px : 1;
+		}
+
+		inline f32 draw_scale_for(const vg_text_paint_t& p, u32 raster_px)
+		{
+			return p.size_px > 0.0f ? p.size_px / static_cast<f32>(raster_px) : 1.0f;
+		}
+
+		inline f32 snap_px(f32 v)
+		{
+			return math::round(v);
+		}
+
+		inline f32 snap_size_px(f32 v)
+		{
+			return math::max(0.0f, math::round(v));
+		}
+
+		inline f32 snap_thickness_px(f32 v)
+		{
+			return v > 0.0f ? math::max(1.0f, math::round(v)) : 0.0f;
+		}
+
+		inline void snap_rect_px(const vec2f_t& in_min, const vec2f_t& in_max, vec2f_t& out_min, vec2f_t& out_max)
+		{
+			out_min = {snap_px(in_min.x), snap_px(in_min.y)};
+			out_max = {out_min.x + snap_size_px(in_max.x - in_min.x), out_min.y + snap_size_px(in_max.y - in_min.y)};
 		}
 
 		inline vg_vertex_t* take_vertices(vg_draw_buffer_t* db, u32 count)
@@ -402,36 +424,58 @@ namespace sfg::ui
 		const bool out	 = paint.outline_thickness > 0.0f;
 		const bool aa	 = paint.aa_thickness > 0.0f;
 		const bool grad	 = paint.gradient != vg_gradient_e::none;
+		vec2f_t	   draw_min;
+		vec2f_t	   draw_max;
 
 		if (!paint.filled && !out)
 			return;
 
+		snap_rect_px(min, max, draw_min, draw_max);
+
 		if (round)
-			vg_path_rounded_rect(_path0, min, max, paint.rounding, paint.rounding_segs);
+			vg_path_rounded_rect(_path0, draw_min, draw_max, snap_size_px(paint.rounding), paint.rounding_segs);
 		else
-			vg_path_sharp_rect(_path0, min, max);
+			vg_path_sharp_rect(_path0, draw_min, draw_max);
 
 		if (out)
 		{
-			const f32 dir = paint.filled ? 1.0f : -1.0f;
-			vg_path_expand(_path1, _path0, paint.outline_thickness * dir);
+			f32 thickness = snap_thickness_px(paint.outline_thickness);
+			if (round)
+			{
+				const f32 dir = paint.filled ? 1.0f : -1.0f;
+				vg_path_expand(_path1, _path0, thickness * dir);
+			}
+			else if (paint.filled)
+			{
+				const vec2f_t outline_min = {draw_min.x - thickness, draw_min.y - thickness};
+				const vec2f_t outline_max = {draw_max.x + thickness, draw_max.y + thickness};
+				vg_path_sharp_rect(_path1, outline_min, outline_max);
+			}
+			else
+			{
+				const f32 max_thickness	  = math::min((draw_max.x - draw_min.x) * 0.5f, (draw_max.y - draw_min.y) * 0.5f);
+				thickness				  = math::min(thickness, max_thickness);
+				const vec2f_t outline_min = {draw_min.x + thickness, draw_min.y + thickness};
+				const vec2f_t outline_max = {draw_max.x - thickness, draw_max.y - thickness};
+				vg_path_sharp_rect(_path1, outline_min, outline_max);
+			}
 		}
 
 		const u32 fill_vtx_base = db->vertex_count;
 		if (paint.filled)
 		{
 			if (grad)
-				emit_path_grad(db, _path0, paint.fill_color_a, paint.fill_color_b, paint.gradient, min, max);
+				emit_path_grad(db, _path0, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
 			else
-				emit_path_solid(db, _path0, paint.fill_color_a, min, max);
+				emit_path_solid(db, _path0, paint.fill_color_a, draw_min, draw_max);
 
 			if (round)
 			{
 				const u32 center_idx = db->vertex_count;
 				if (grad)
-					emit_central_grad(db, paint.fill_color_a, paint.fill_color_b, min, max);
+					emit_central_grad(db, paint.fill_color_a, paint.fill_color_b, draw_min, draw_max);
 				else
-					emit_central_solid(db, paint.fill_color_a, min, max);
+					emit_central_solid(db, paint.fill_color_a, draw_min, draw_max);
 				emit_fan_indices(db, fill_vtx_base, center_idx, static_cast<u32>(_path0.size()));
 			}
 			else
@@ -446,16 +490,16 @@ namespace sfg::ui
 			outline_outer_base = db->vertex_count;
 			if (paint.filled)
 			{
-				emit_path_solid(db, _path1, paint.outline_color, min, max);
+				emit_path_solid(db, _path1, paint.outline_color, draw_min, draw_max);
 				const u32 outline_inner_base = db->vertex_count;
-				emit_path_solid(db, _path0, paint.outline_color, min, max);
+				emit_path_solid(db, _path0, paint.outline_color, draw_min, draw_max);
 				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(_path0.size()));
 			}
 			else
 			{
-				emit_path_solid(db, _path0, paint.outline_color, min, max);
+				emit_path_solid(db, _path0, paint.outline_color, draw_min, draw_max);
 				const u32 outline_inner_base = db->vertex_count;
-				emit_path_solid(db, _path1, paint.outline_color, min, max);
+				emit_path_solid(db, _path1, paint.outline_color, draw_min, draw_max);
 				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(_path0.size()));
 			}
 		}
@@ -467,7 +511,7 @@ namespace sfg::ui
 
 			vg_path_expand(_path2, outermost_path, paint.aa_thickness);
 			const u32 aa_base = db->vertex_count;
-			emit_path_alpha(db, _path2, outermost_base, 0.0f, min, max);
+			emit_path_alpha(db, _path2, outermost_base, 0.0f, draw_min, draw_max);
 			emit_strip_indices(db, aa_base, outermost_base, static_cast<u32>(outermost_path.size()));
 		}
 	}
@@ -551,28 +595,28 @@ namespace sfg::ui
 		if (!paint.font || !text || len == 0)
 			return {0.0f, 0.0f};
 
-		const u32			 px		 = px_size_for(paint);
+		const u32			 px		 = raster_px_for(paint);
 		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
 		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
-		const f32			 inv_dpi = paint.dpi_scale > 0.0f ? 1.0f / paint.dpi_scale : 1.0f;
-		const f32			 spacing = static_cast<f32>(paint.spacing);
+		const f32			 scale	 = draw_scale_for(paint, px);
+		const f32			 spacing = paint.spacing;
 
 		f32 total_x = 0.0f;
 		for (size_t i = 0; i < len; ++i)
 		{
 			const u32			 c = static_cast<u8>(text[i]);
 			const glyph_entry_t* g = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
-			total_x += g->advance_x * inv_dpi;
+			total_x += g->advance_x * scale;
 
 			if (i + 1 < len)
 			{
 				const u32 c1 = static_cast<u8>(text[i + 1]);
-				total_x += atlas.get_kern_advance(paint.font, c, c1, px) * inv_dpi;
+				total_x += atlas.get_kern_advance(paint.font, c, c1, px) * scale;
 			}
 			total_x += spacing;
 		}
 
-		const f32 height = metrics.line_height_px * inv_dpi;
+		const f32 height = metrics.line_height_px * scale;
 		return {total_x - spacing, height};
 	}
 
@@ -586,7 +630,8 @@ namespace sfg::ui
 		if (len == 0)
 			return;
 
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
+		vg_draw_buffer_t* db	   = get_draw_buffer(draw_order, state);
+		const vec2f_t	  draw_pos = {snap_px(pos.x), snap_px(pos.y)};
 
 		if (use_cache)
 		{
@@ -604,8 +649,8 @@ namespace sfg::ui
 
 				for (u32 i = 0; i < e.vtx_count; ++i)
 				{
-					verts[i].pos.x += pos.x;
-					verts[i].pos.y += pos.y;
+					verts[i].pos.x += draw_pos.x;
+					verts[i].pos.y += draw_pos.y;
 				}
 				for (u32 i = 0; i < e.idx_count; ++i)
 					indices[i] = static_cast<vg_index_t>(indices[i] + vtx_base);
@@ -613,11 +658,11 @@ namespace sfg::ui
 			}
 		}
 
-		const u32			 px		 = px_size_for(paint);
+		const u32			 px		 = raster_px_for(paint);
 		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
 		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
-		const f32			 inv_dpi = paint.dpi_scale > 0.0f ? 1.0f / paint.dpi_scale : 1.0f;
-		const f32			 spacing = static_cast<f32>(paint.spacing);
+		const f32			 scale	 = draw_scale_for(paint, px);
+		const f32			 spacing = paint.spacing;
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
@@ -625,8 +670,8 @@ namespace sfg::ui
 		vg_vertex_t* verts	 = take_vertices(db, char_count * 4);
 		vg_index_t*	 indices = take_indices(db, char_count * 6);
 
-		const vec2f_t pen_origin = use_cache ? vec2f_t{0.0f, 0.0f} : pos;
-		vec2f_t		  pen		 = {pen_origin.x, pen_origin.y + metrics.ascent_px * inv_dpi};
+		const vec2f_t pen_origin = use_cache ? vec2f_t{0.0f, 0.0f} : draw_pos;
+		vec2f_t		  pen		 = {pen_origin.x, pen_origin.y + metrics.ascent_px * scale};
 
 		u32 emitted_chars = 0;
 		u32 prev		  = 0;
@@ -637,12 +682,12 @@ namespace sfg::ui
 			const glyph_entry_t* g = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
 
 			if (prev != 0)
-				pen.x += atlas.get_kern_advance(paint.font, prev, c, px) * inv_dpi;
+				pen.x += atlas.get_kern_advance(paint.font, prev, c, px) * scale;
 
-			const f32 quad_left	  = pen.x + g->left_bearing * inv_dpi;
-			const f32 quad_top	  = pen.y + g->top_bearing * inv_dpi;
-			const f32 quad_right  = quad_left + static_cast<f32>(g->width) * inv_dpi;
-			const f32 quad_bottom = quad_top + static_cast<f32>(g->height) * inv_dpi;
+			const f32 quad_left	  = pen.x + g->left_bearing * scale;
+			const f32 quad_top	  = pen.y + g->top_bearing * scale;
+			const f32 quad_right  = quad_left + static_cast<f32>(g->width) * scale;
+			const f32 quad_bottom = quad_top + static_cast<f32>(g->height) * scale;
 
 			vg_vertex_t& v0 = verts[emitted_chars * 4 + 0];
 			vg_vertex_t& v1 = verts[emitted_chars * 4 + 1];
@@ -687,7 +732,7 @@ namespace sfg::ui
 			indices[emitted_chars * 6 + 4] = static_cast<vg_index_t>(base + 2);
 			indices[emitted_chars * 6 + 5] = static_cast<vg_index_t>(base + 3);
 
-			pen.x += g->advance_x * inv_dpi + spacing;
+			pen.x += g->advance_x * scale + spacing;
 			emitted_chars++;
 			prev = c;
 		}
@@ -718,8 +763,8 @@ namespace sfg::ui
 
 			for (u32 i = 0; i < vtx_count; ++i)
 			{
-				verts[i].pos.x += pos.x;
-				verts[i].pos.y += pos.y;
+				verts[i].pos.x += draw_pos.x;
+				verts[i].pos.y += draw_pos.y;
 			}
 		}
 	}

@@ -14,7 +14,7 @@ namespace sfg
 	struct editor_window_settings_t
 	{
 		vec2i16_t position		= {64, 64};
-		vec2u16_t size			= {1280, 720};
+		vec2u16_t size			= {1920, 1080};
 		u64		  monitor_ident = UINT64_MAX;
 	};
 

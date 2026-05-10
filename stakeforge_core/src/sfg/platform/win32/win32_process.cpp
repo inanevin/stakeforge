@@ -234,6 +234,11 @@ namespace
 			RECT rect{};
 			GetWindowRect(hwnd, &rect);
 			runtime->pos = sfg::vec2i16_t(static_cast<i16>(rect.left), static_cast<i16>(rect.top));
+
+			const sfg::monitor_info_t mi = fetch_monitor_info(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY));
+			if (runtime->monitor_info.device_hash != mi.device_hash)
+				runtime->monitor_info = mi;
+
 			push_event(*runtime,
 					   {
 						   .value = runtime->pos,

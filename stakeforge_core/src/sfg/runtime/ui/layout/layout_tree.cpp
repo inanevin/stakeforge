@@ -42,6 +42,11 @@ namespace sfg::ui
 				return {0, 0, 0, 0};
 			return {x, y, r - x, t - y};
 		}
+
+		inline vec4f_t scale_rect(const vec4f_t& v, f32 scale)
+		{
+			return {v.x * scale, v.y * scale, v.z * scale, v.w * scale};
+		}
 	}
 
 	layout_tree_t::~layout_tree_t()
@@ -256,10 +261,12 @@ namespace sfg::ui
 		_topology_dirty = false;
 	}
 
-	void layout_tree_t::solve(const vec4f_t& screen_rect)
+	void layout_tree_t::solve(const vec4f_t& screen_rect, f32 ui_scale)
 	{
 		if (_topology_dirty)
 			flatten();
+
+		const f32 scale = ui_scale > 0.0f ? ui_scale : 1.0f;
 
 		layout_in_t&  ri = _layout_ins[_root];
 		layout_out_t& ro = _layout_outs[_root];
@@ -288,10 +295,10 @@ namespace sfg::ui
 				continue;
 			}
 
-			if (in.size_mode_x == axis_mode_e::fixed)
-				out.size.x = in.size_value.x;
-			if (in.size_mode_y == axis_mode_e::fixed)
-				out.size.y = in.size_value.y;
+			if (id != _root && in.size_mode_x == axis_mode_e::fixed)
+				out.size.x = in.size_value.x * scale;
+			if (id != _root && in.size_mode_y == axis_mode_e::fixed)
+				out.size.y = in.size_value.y * scale;
 		}
 
 		for (i32 i = static_cast<i32>(_dfs.size()) - 1; i >= 0; --i)
@@ -322,12 +329,12 @@ namespace sfg::ui
 				}
 
 				if (in.size_mode_x == axis_mode_e::sum_children && cin.size_mode_x != axis_mode_e::parent_relative)
-					total_x += cout.size.x + (counted > 0 ? in.child_spacing : 0.0f);
+					total_x += cout.size.x + (counted > 0 ? in.child_spacing * scale : 0.0f);
 				else if (in.size_mode_x == axis_mode_e::max_children && cin.size_mode_x != axis_mode_e::parent_relative)
 					total_x = math::max(total_x, cout.size.x);
 
 				if (in.size_mode_y == axis_mode_e::sum_children && cin.size_mode_y != axis_mode_e::parent_relative)
-					total_y += cout.size.y + (counted > 0 ? in.child_spacing : 0.0f);
+					total_y += cout.size.y + (counted > 0 ? in.child_spacing * scale : 0.0f);
 				else if (in.size_mode_y == axis_mode_e::max_children && cin.size_mode_y != axis_mode_e::parent_relative)
 					total_y = math::max(total_y, cout.size.y);
 
@@ -335,8 +342,9 @@ namespace sfg::ui
 				c = next;
 			}
 
-			const f32 mh = in.child_margins.x + in.child_margins.z;
-			const f32 mw = in.child_margins.w + in.child_margins.y;
+			const vec4f_t margins = scale_rect(in.child_margins, scale);
+			const f32	  mh	  = margins.x + margins.z;
+			const f32	  mw	  = margins.w + margins.y;
 
 			if (dx)
 				out.size.x = total_x + mw;
@@ -354,10 +362,11 @@ namespace sfg::ui
 			if (n.parent == INVALID_WIDGET)
 				continue;
 
-			const layout_in_t&	pin		 = _layout_ins[n.parent];
-			const layout_out_t& pout	 = _layout_outs[n.parent];
-			const f32			pinner_w = pout.size.x - pin.child_margins.w - pin.child_margins.y;
-			const f32			pinner_h = pout.size.y - pin.child_margins.x - pin.child_margins.z;
+			const layout_in_t&	pin			= _layout_ins[n.parent];
+			const layout_out_t& pout		= _layout_outs[n.parent];
+			const vec4f_t		pin_margins = scale_rect(pin.child_margins, scale);
+			const f32			pinner_w	= pout.size.x - pin_margins.w - pin_margins.y;
+			const f32			pinner_h	= pout.size.y - pin_margins.x - pin_margins.z;
 
 			if (in.size_mode_x == axis_mode_e::parent_relative)
 				out.size.x = pinner_w * in.size_value.x;
@@ -378,8 +387,9 @@ namespace sfg::ui
 				continue;
 			const tree_node_t& n = _nodes[id];
 
-			const f32 inner_w = pout.size.x - in.child_margins.w - in.child_margins.y;
-			const f32 inner_h = pout.size.y - in.child_margins.x - in.child_margins.z;
+			const vec4f_t margins = scale_rect(in.child_margins, scale);
+			const f32	  inner_w = pout.size.x - margins.w - margins.y;
+			const f32	  inner_h = pout.size.y - margins.x - margins.z;
 
 			f32 used		  = 0.0f;
 			u32 fill_count	  = 0;
@@ -418,7 +428,7 @@ namespace sfg::ui
 			if (visible_count == 0)
 				continue;
 
-			const f32 spacing_total	  = in.child_spacing * static_cast<f32>(visible_count - 1);
+			const f32 spacing_total	  = in.child_spacing * scale * static_cast<f32>(visible_count - 1);
 			const f32 main_axis_avail = (in.flow == flow_e::row) ? inner_w : inner_h;
 			const f32 leftover		  = math::max(0.0f, main_axis_avail - used - spacing_total);
 			const f32 per_fill		  = fill_count > 0 ? leftover / static_cast<f32>(fill_count) : 0.0f;
@@ -460,12 +470,13 @@ namespace sfg::ui
 			const layout_out_t& out = _layout_outs[id];
 			const tree_node_t&	n	= _nodes[id];
 
-			const f32 inner_x = out.pos.x + in.child_margins.w;
-			const f32 inner_y = out.pos.y + in.child_margins.x;
-			const f32 inner_w = out.size.x - in.child_margins.w - in.child_margins.y;
-			const f32 inner_h = out.size.y - in.child_margins.x - in.child_margins.z;
-			f32		  flow_x  = inner_x;
-			f32		  flow_y  = inner_y + in.scroll_offset;
+			const vec4f_t margins = scale_rect(in.child_margins, scale);
+			const f32	  inner_x = out.pos.x + margins.w;
+			const f32	  inner_y = out.pos.y + margins.x;
+			const f32	  inner_w = out.size.x - margins.w - margins.y;
+			const f32	  inner_h = out.size.y - margins.x - margins.z;
+			f32			  flow_x  = inner_x;
+			f32			  flow_y  = inner_y + in.scroll_offset * scale;
 
 			widget_id_t c = n.first_child;
 			while (c != INVALID_WIDGET)
@@ -480,7 +491,7 @@ namespace sfg::ui
 				}
 				else if (cin.pos_mode_x == pos_mode_e::offset_in_parent)
 				{
-					co.pos.x = inner_x + cin.pos_value.x;
+					co.pos.x = inner_x + cin.pos_value.x * scale;
 				}
 				else if (cin.pos_mode_x == pos_mode_e::relative_in_parent)
 				{
@@ -496,7 +507,7 @@ namespace sfg::ui
 					if (in.flow == flow_e::row && !(cin.flags & wf_overlay) && (cin.flags & wf_visible))
 					{
 						co.pos.x = flow_x;
-						flow_x += co.size.x + in.child_spacing;
+						flow_x += co.size.x + in.child_spacing * scale;
 					}
 					else
 					{
@@ -510,7 +521,7 @@ namespace sfg::ui
 				}
 				else if (cin.pos_mode_y == pos_mode_e::offset_in_parent)
 				{
-					co.pos.y = inner_y + cin.pos_value.y;
+					co.pos.y = inner_y + cin.pos_value.y * scale;
 				}
 				else if (cin.pos_mode_y == pos_mode_e::relative_in_parent)
 				{
@@ -526,11 +537,11 @@ namespace sfg::ui
 					if (in.flow == flow_e::column && !(cin.flags & wf_overlay) && (cin.flags & wf_visible))
 					{
 						co.pos.y = flow_y;
-						flow_y += co.size.y + in.child_spacing;
+						flow_y += co.size.y + in.child_spacing * scale;
 					}
 					else
 					{
-						co.pos.y = inner_y + in.scroll_offset;
+						co.pos.y = inner_y + in.scroll_offset * scale;
 					}
 				}
 

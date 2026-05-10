@@ -135,7 +135,7 @@ namespace sfg::ui
 
 		void init(u32 max_widgets);
 		void uninit();
-		void solve(const vec4f_t& screen_rect);
+		void solve(const vec4f_t& screen_rect, f32 ui_scale = 1.0f);
 
 		// -----------------------------------------------------------------------------
 		// widgets
