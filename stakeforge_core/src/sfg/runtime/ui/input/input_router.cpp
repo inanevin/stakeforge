@@ -76,6 +76,28 @@ namespace sfg::ui
 		_listeners.erase(id);
 	}
 
+	void input_router_t::set_popup_scope(widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy)
+	{
+		SFG_ASSERT(popup_root_count <= POPUP_SCOPE_MAX_ROOTS);
+
+		_popup_scope.owner_root		  = owner_root;
+		_popup_scope.popup_root_count = popup_root_count;
+		_popup_scope.on_outside_press = on_outside_press;
+		_popup_scope.user_data		  = user_data;
+		_popup_scope.hover_policy	  = hover_policy;
+		_popup_scope.active			  = true;
+
+		for (u32 i = 0; i < popup_root_count; ++i)
+			_popup_scope.popup_roots[i] = popup_roots[i];
+		for (u32 i = popup_root_count; i < POPUP_SCOPE_MAX_ROOTS; ++i)
+			_popup_scope.popup_roots[i] = NULL_WIDGET;
+	}
+
+	void input_router_t::clear_popup_scope()
+	{
+		_popup_scope = {};
+	}
+
 	void input_router_t::rebuild_hit_test(const layout_tree_t& tree)
 	{
 		_hit_order.resize(0);
@@ -106,7 +128,7 @@ namespace sfg::ui
 		});
 	}
 
-	widget_id_t input_router_t::hit_test(const vec2f_t& pos) const
+	widget_id_t input_router_t::raw_hit_test(const vec2f_t& pos) const
 	{
 		for (widget_id_t id : _hit_order)
 		{
@@ -116,6 +138,44 @@ namespace sfg::ui
 			if (point_in_rect(out.clip, pos))
 				return id;
 		}
+		return NULL_WIDGET;
+	}
+
+	bool input_router_t::is_in_subtree(widget_id_t id, widget_id_t root) const
+	{
+		widget_id_t cur = id;
+		while (cur != NULL_WIDGET)
+		{
+			if (cur == root)
+				return true;
+			cur = _tree->node(cur).parent;
+		}
+		return false;
+	}
+
+	bool input_router_t::is_in_popup_scope(widget_id_t id) const
+	{
+		if (!_popup_scope.active || id == NULL_WIDGET)
+			return false;
+		if (is_in_subtree(id, _popup_scope.owner_root))
+			return true;
+		for (u32 i = 0; i < _popup_scope.popup_root_count; ++i)
+		{
+			if (is_in_subtree(id, _popup_scope.popup_roots[i]))
+				return true;
+		}
+		return false;
+	}
+
+	widget_id_t input_router_t::hit_test(const vec2f_t& pos) const
+	{
+		const widget_id_t target = raw_hit_test(pos);
+		if (!_popup_scope.active)
+			return target;
+		if (is_in_popup_scope(target))
+			return target;
+		if (_popup_scope.hover_policy == popup_hover_policy_e::pass_outside)
+			return target;
 		return NULL_WIDGET;
 	}
 
@@ -202,7 +262,19 @@ namespace sfg::ui
 
 		if (pressed)
 		{
-			const widget_id_t target = _hovered;
+			widget_id_t target = _hovered;
+			if (_popup_scope.active)
+			{
+				const widget_id_t raw_target = raw_hit_test(_mouse);
+				if (!is_in_popup_scope(raw_target))
+				{
+					if (_popup_scope.on_outside_press)
+						_popup_scope.on_outside_press(*this, _mouse, btn, _popup_scope.user_data);
+					target = NULL_WIDGET;
+					fire_hover_change(hit_test(_mouse));
+				}
+			}
+
 			if (_focused != target)
 			{
 				if (_focused != NULL_WIDGET)

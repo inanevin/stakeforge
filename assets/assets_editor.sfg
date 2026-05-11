@@ -62,8 +62,16 @@
             }
         },
         {
-            "name": "font_orbitron",
+            "name": "font_orbitron_bold",
             "path": "editor/fonts/Orbitron/static/Orbitron-Bold.ttf",
+            "type": "font",
+            "config": {
+                "schema": "sfg.schema.font"
+            }
+        },
+        {
+            "name": "font_orbitron_extra_bold",
+            "path": "editor/fonts/Orbitron/static/Orbitron-ExtraBold.ttf",
             "type": "font",
             "config": {
                 "schema": "sfg.schema.font"

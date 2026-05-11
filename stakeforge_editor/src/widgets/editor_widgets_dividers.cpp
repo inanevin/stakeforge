@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
-#include "widgets/editor_dividers.hpp"
+#include "widgets/editor_widgets_dividers.hpp"
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>

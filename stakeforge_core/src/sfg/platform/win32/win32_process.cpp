@@ -1135,6 +1135,20 @@ namespace sfg
 		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, outer_size.x, outer_size.y, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 	}
 
+	void process::minimize_window(void* window)
+	{
+		HWND hwnd = static_cast<HWND>(window);
+		SFG_ASSERT(hwnd != nullptr);
+		ShowWindow(hwnd, SW_MINIMIZE);
+	}
+
+	void process::toggle_maximize_window(void* window)
+	{
+		HWND hwnd = static_cast<HWND>(window);
+		SFG_ASSERT(hwnd != nullptr);
+		ShowWindow(hwnd, IsZoomed(hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+	}
+
 	void process::set_cursor_confinement(void* window_handle, window_cursor_confinement_e conf)
 	{
 		HWND hwnd = static_cast<HWND>(window_handle);

@@ -2,9 +2,11 @@
 
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
+#include "editor_modal_controller.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -13,8 +15,10 @@
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg
@@ -29,6 +33,7 @@ namespace sfg
 				return ui::mouse_button_e::middle;
 			return ui::mouse_button_e::left;
 		}
+
 	}
 
 	void editor_app_t::on_window_event(void*, const window_event_t& ev, void* user_data)
@@ -97,6 +102,7 @@ namespace sfg
 		editor_settings_t& settings = editor_settings_t::get();
 		if (!settings.reload())
 			return false;
+		_current_project = settings.get_project();
 
 		engine_runtime_t::init_globals(64ull * 1024ull * 1024ull);
 
@@ -142,7 +148,7 @@ namespace sfg
 			if (it == monitors.end())
 				position = vec2i16_t::zero;
 
-			create_surface(position, size);
+			create_surface(position, size, i);
 		}
 
 		if (_surfaces.empty())
@@ -157,6 +163,8 @@ namespace sfg
 		_last_tick_us = time_t::get_cpu_microseconds();
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
+		if (!load_project(_current_project.path.c_str()))
+			get_primary_surface().editor.prompt_no_project_modal();
 		tick();
 		return true;
 	}
@@ -173,6 +181,7 @@ namespace sfg
 			if (surface.ui)
 			{
 				surface.editor.uninit();
+				surface.modal_controller.uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
 			}
@@ -207,7 +216,9 @@ namespace sfg
 		surface.ui->get_paint().set_pipelines(pipelines);
 		surface.ui->set_debug_draw(_debug_mode);
 
-		surface.editor.init(*surface.ui);
+		surface.modal_controller.init(*surface.ui);
+		surface.editor.init(*surface.ui, surface);
+		surface.editor.set_current_project_name(_current_project.name.c_str());
 	}
 
 	void editor_app_t::set_debug_mode(bool enabled)
@@ -215,6 +226,105 @@ namespace sfg
 		_debug_mode = enabled;
 		for (editor_surface_t& surface : _surfaces)
 			surface.ui->set_debug_draw(enabled);
+	}
+
+	void editor_app_t::unload_current_project()
+	{
+	}
+
+	bool editor_app_t::create_project(const char* path)
+	{
+		if (!editor_project_t::is_project_path(path))
+			return false;
+
+		const editor_project_t project	 = editor_project_t::make_default_project(path);
+		const nlohmann::json   json_data = project;
+		const string_t		   data		 = json_data.dump(4);
+		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), path))
+			return false;
+
+		return load_project(path);
+	}
+
+	bool editor_app_t::load_project(const char* path)
+	{
+		if (!editor_project_t::is_project_path(path) || !file_system_t::exists(path))
+			return false;
+
+		const string_t		 json_text = file_system_t::read_file_as_string(path);
+		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
+		if (doc.is_discarded())
+			return false;
+
+		editor_project_t project = {};
+		doc.get_to(project);
+		project.path = path;
+
+		unload_current_project();
+		_current_project					   = project;
+		editor_settings_t::get().get_project() = _current_project;
+		editor_settings_t::get().save();
+		for (editor_surface_t& surface : _surfaces)
+			surface.editor.set_current_project_name(_current_project.name.c_str());
+		return true;
+	}
+
+	bool editor_app_t::save_project()
+	{
+		if (!editor_project_t::is_project_path(_current_project.path.c_str()))
+			return false;
+
+		const nlohmann::json json_data = _current_project;
+		const string_t		 data	   = json_data.dump(4);
+		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), _current_project.path.c_str()))
+			return false;
+
+		editor_settings_t::get().get_project() = _current_project;
+		editor_settings_t::get().save();
+		return true;
+	}
+
+	bool editor_app_t::save_project_as(const char* path)
+	{
+		if (!editor_project_t::is_project_path(path))
+			return false;
+
+		const string_t old_path = _current_project.path;
+		_current_project.path	= path;
+		if (!save_project())
+		{
+			_current_project.path = old_path;
+			return false;
+		}
+		return true;
+	}
+
+	editor_surface_t& editor_app_t::get_primary_surface()
+	{
+		SFG_ASSERT(!_surfaces.empty());
+		return *_surfaces.begin();
+	}
+
+	editor_modal_controller_t& editor_app_t::get_modal_controller(editor_surface_t& surface)
+	{
+		for (editor_surface_t& candidate : _surfaces)
+		{
+			if (&candidate == &surface)
+				return candidate.modal_controller;
+		}
+		SFG_ASSERT(false);
+		return surface.modal_controller;
+	}
+
+	const editor_modal_controller_t& editor_app_t::get_modal_controller(const editor_surface_t& surface) const
+	{
+		for (const editor_surface_t& candidate : _surfaces)
+		{
+			if (&candidate == &surface)
+				return candidate.modal_controller;
+		}
+		SFG_ASSERT(false);
+		return surface.modal_controller;
 	}
 
 	void editor_app_t::tick()
@@ -287,6 +397,11 @@ namespace sfg
 
 	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size)
 	{
+		return create_surface(pos, size, UINT16_MAX);
+	}
+
+	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, u16 settings_idx)
+	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		_renderer.end_render();
 
@@ -310,11 +425,12 @@ namespace sfg
 
 		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size, surface.ui.get());
 		surface.swapchain_size = surface.runtime.size;
-		surface.settings_idx   = editor_settings_t::get().add_window({
-			  .position		 = surface.runtime.pos,
-			  .size			 = surface.runtime.size,
-			  .monitor_ident = surface.runtime.monitor_info.device_hash,
-		  });
+		surface.settings_idx   = settings_idx == UINT16_MAX ? editor_settings_t::get().add_window({
+																  .position		 = surface.runtime.pos,
+																  .size			 = surface.runtime.size,
+																  .monitor_ident = surface.runtime.monitor_info.device_hash,
+															  })
+															: settings_idx;
 
 		surface.runtime.event_callback			 = &editor_app_t::on_window_event;
 		surface.runtime.event_callback_user_data = &surface;
@@ -333,6 +449,7 @@ namespace sfg
 		if (surface.ui)
 		{
 			surface.editor.uninit();
+			surface.modal_controller.uninit();
 			surface.ui->uninit();
 			surface.ui.reset();
 		}

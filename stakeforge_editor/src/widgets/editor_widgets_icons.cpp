@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
-#include "widgets/editor_icon_widgets.hpp"
+#include "widgets/editor_widgets_icons.hpp"
 #include "panels/editor_theme.hpp"
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>

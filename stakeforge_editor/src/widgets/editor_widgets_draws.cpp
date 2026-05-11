@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
-#include "widgets/editor_custom_draws.hpp"
+#include "widgets/editor_widgets_draws.hpp"
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg

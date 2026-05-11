@@ -3,6 +3,7 @@
 
 #include "common_editor.hpp"
 #include "editor_renderer.hpp"
+#include "editor_project.hpp"
 #include "editor_surface.hpp"
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
@@ -30,6 +31,10 @@ namespace sfg
 
 		surface_handle_t create_surface(const vec2i16_t& pos, const vec2u16_t& size);
 		void			 destroy_surface(surface_handle_t handle);
+		bool			 create_project(const char* path);
+		bool			 load_project(const char* path);
+		bool			 save_project();
+		bool			 save_project_as(const char* path);
 
 		inline resource_pack_t& get_resources()
 		{
@@ -39,17 +44,23 @@ namespace sfg
 		{
 			return _resource_pack;
 		}
+		editor_modal_controller_t&		 get_modal_controller(editor_surface_t& surface);
+		const editor_modal_controller_t& get_modal_controller(const editor_surface_t& surface) const;
 
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
-		void		init_surface_ui(editor_surface_t& surface);
-		void		set_debug_mode(bool enabled);
-		static void on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
+		void			  init_surface_ui(editor_surface_t& surface);
+		void			  set_debug_mode(bool enabled);
+		void			  unload_current_project();
+		editor_surface_t& get_primary_surface();
+		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, u16 settings_idx);
+		static void		  on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
 
 	private:
 		editor_renderer_t												_renderer;
 		resource_pack_t													_resource_pack;
+		editor_project_t												_current_project;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		i64																_last_tick_us			 = 0;
 		u8																_atlas_upload_frame_slot = 0;

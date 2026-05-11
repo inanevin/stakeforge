@@ -59,11 +59,18 @@ namespace sfg::ui
 	struct input_router_t;
 	class layout_tree_t;
 
-	using on_mouse_fn = void (*)(input_router_t& router, widget_id_t id, const vec2f_t& pos, mouse_button_e btn, void* user_data);
-	using on_move_fn  = void (*)(input_router_t& router, widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
-	using on_focus_fn = void (*)(input_router_t& router, widget_id_t id, bool from_nav, void* user_data);
-	using on_key_fn	  = void (*)(input_router_t& router, widget_id_t id, const key_event_t& ev, void* user_data);
-	using on_wheel_fn = void (*)(input_router_t& router, widget_id_t id, f32 delta, void* user_data);
+	using on_mouse_fn				= void (*)(input_router_t& router, widget_id_t id, const vec2f_t& pos, mouse_button_e btn, void* user_data);
+	using on_move_fn				= void (*)(input_router_t& router, widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+	using on_focus_fn				= void (*)(input_router_t& router, widget_id_t id, bool from_nav, void* user_data);
+	using on_key_fn					= void (*)(input_router_t& router, widget_id_t id, const key_event_t& ev, void* user_data);
+	using on_wheel_fn				= void (*)(input_router_t& router, widget_id_t id, f32 delta, void* user_data);
+	using on_popup_outside_press_fn = void (*)(input_router_t& router, const vec2f_t& pos, mouse_button_e btn, void* user_data);
+
+	enum class popup_hover_policy_e : u8
+	{
+		block_outside,
+		pass_outside,
+	};
 
 	struct listener_bundle_t
 	{
@@ -108,6 +115,8 @@ namespace sfg::ui
 
 		void set_listener(widget_id_t id, const listener_bundle_t& b);
 		void clear_listener(widget_id_t id);
+		void set_popup_scope(widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy = popup_hover_policy_e::block_outside);
+		void clear_popup_scope();
 
 		// -----------------------------------------------------------------------------
 		// events
@@ -141,10 +150,17 @@ namespace sfg::ui
 		{
 			return _mouse;
 		}
+		inline bool is_popup_scope_active() const
+		{
+			return _popup_scope.active;
+		}
 
 	private:
 		void		rebuild_hit_test(const layout_tree_t& tree);
+		widget_id_t raw_hit_test(const vec2f_t& pos) const;
 		widget_id_t hit_test(const vec2f_t& pos) const;
+		bool		is_in_popup_scope(widget_id_t id) const;
+		bool		is_in_subtree(widget_id_t id, widget_id_t root) const;
 		void		fire_hover_change(widget_id_t new_hover);
 
 	private:
@@ -162,8 +178,20 @@ namespace sfg::ui
 			f32			t_seconds = 0.0f;
 		};
 
-	private:
+		static constexpr u32 POPUP_SCOPE_MAX_ROOTS = 8;
 
+		struct popup_scope_t
+		{
+			widget_id_t				  owner_root						 = NULL_WIDGET;
+			widget_id_t				  popup_roots[POPUP_SCOPE_MAX_ROOTS] = {};
+			u32						  popup_root_count					 = 0;
+			on_popup_outside_press_fn on_outside_press					 = nullptr;
+			void*					  user_data							 = nullptr;
+			popup_hover_policy_e	  hover_policy						 = popup_hover_policy_e::block_outside;
+			bool					  active							 = false;
+		};
+
+	private:
 		hash_map_t<widget_id_t, listener_bundle_t> _listeners;
 		vector_t<widget_id_t>					   _focus_order;
 		vector_t<widget_id_t>					   _hit_order;
@@ -174,10 +202,11 @@ namespace sfg::ui
 		widget_id_t	   _pressed[static_cast<u32>(mouse_button_e::count)]	   = {NULL_WIDGET, NULL_WIDGET, NULL_WIDGET};
 		click_record_t _last_click[static_cast<u32>(mouse_button_e::count)]	   = {};
 
-		vec2f_t		_mouse		= {0, 0};
-		vec2f_t		_mouse_prev = {0, 0};
-		f32			_accum_time = 0.0f;
-		widget_id_t _hovered	= NULL_WIDGET;
-		widget_id_t _focused	= NULL_WIDGET;
+		vec2f_t		  _mouse	   = {0, 0};
+		vec2f_t		  _mouse_prev  = {0, 0};
+		f32			  _accum_time  = 0.0f;
+		widget_id_t	  _hovered	   = NULL_WIDGET;
+		widget_id_t	  _focused	   = NULL_WIDGET;
+		popup_scope_t _popup_scope = {};
 	};
 }

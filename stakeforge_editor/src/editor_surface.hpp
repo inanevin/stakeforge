@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common_editor.hpp"
+#include "editor_modal_controller.hpp"
 #include "panels/editor_base.hpp"
 #include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -13,12 +14,13 @@ namespace sfg
 {
 	struct editor_surface_t
 	{
-		window_runtime_t		 runtime		= {};
-		gfx_swapchain_handle	 swapchain		= {};
-		vec2u16_t				 swapchain_size = {};
-		unique_t<ui::ui_context> ui;
-		editor_base_t			 editor;
-		u16						 settings_idx = 0;
-		bool					 is_minimized = false;
+		window_runtime_t		  runtime		 = {};
+		gfx_swapchain_handle	  swapchain		 = {};
+		vec2u16_t				  swapchain_size = {};
+		unique_t<ui::ui_context>  ui;
+		editor_modal_controller_t modal_controller;
+		editor_base_t			  editor;
+		u16						  settings_idx = 0;
+		bool					  is_minimized = false;
 	};
 }

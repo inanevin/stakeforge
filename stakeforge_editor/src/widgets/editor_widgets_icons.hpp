@@ -33,3 +33,19 @@
 #define ICON_WINDOW_MINIMIZE "\u0058"
 #define ICON_WINDOW_MAXIMIZE "\u0054"
 #define ICON_WINDOW_CLOSE	 ICON_CROSS
+
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg::ui
+{
+	class ui_context;
+}
+
+namespace sfg
+{
+	class editor_icon_widgets_t final
+	{
+	public:
+		static ui::widget_id_t add_icon(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 point_size, const vec4f_t& color);
+	};
+}

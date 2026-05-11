@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include "editor_project.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
@@ -52,6 +53,14 @@ namespace sfg
 		{
 			return static_cast<u16>(_windows.size());
 		}
+		inline editor_project_t& get_project()
+		{
+			return _project;
+		}
+		inline const editor_project_t& get_project() const
+		{
+			return _project;
+		}
 
 	private:
 		void flush_to_disk();
@@ -62,6 +71,7 @@ namespace sfg
 		editor_settings_t& operator=(const editor_settings_t&) = delete;
 
 		vector_t<editor_window_settings_t> _windows;
+		editor_project_t				   _project;
 
 		friend void to_json(nlohmann::json& j, const editor_settings_t& settings);
 		friend void from_json(const nlohmann::json& j, editor_settings_t& settings);

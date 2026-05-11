@@ -31,11 +31,13 @@ namespace sfg
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)
 	{
 		j["windows"] = settings._windows;
+		j["project"] = settings._project;
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
 	{
 		settings._windows = j.value("windows", vector_t<editor_window_settings_t>{});
+		settings._project = j.value("project", editor_project_t{});
 	}
 
 	bool editor_settings_t::reload()
