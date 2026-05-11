@@ -397,7 +397,7 @@ namespace sfg
 			paint.set_text(_title_label,
 						   ui.widget_text(_title_label),
 						   ui.widget_text_len(_title_label),
-						   {.font = theme.font_title, .color = theme.color_fg2, .point_size = theme.text_big_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd},
+						   {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = theme.text_big_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd},
 						   title_state);
 
 			_version_label = tree.allocate();
@@ -408,15 +408,15 @@ namespace sfg
 			paint.set_text(_version_label,
 						   ui.widget_text(_version_label),
 						   ui.widget_text_len(_version_label),
-						   {.font = theme.font_title, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
 
 			_build_label = tree.allocate();
 			ui.set_widget_debug_name(_build_label, "build_label");
 			tree.attach(_title_group, _build_label);
-
+			
 			ui.set_widget_text(_build_label, SFG_EDITOR_BUILD_TEXT);
 			paint.set_text(
-				_build_label, ui.widget_text(_build_label), ui.widget_text_len(_build_label), {.font = theme.font_title, .color = theme.color_fg0, .point_size = theme.text_small_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+				_build_label, ui.widget_text(_build_label), ui.widget_text_len(_build_label), {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
 		}
 
 		// top-left strikes

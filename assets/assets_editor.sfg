@@ -70,8 +70,16 @@
             }
         },
         {
-            "name": "font_orbitron_extra_bold",
-            "path": "editor/fonts/Orbitron/static/Orbitron-ExtraBold.ttf",
+            "name": "font_play",
+            "path": "editor/fonts/Play/Play-Regular.ttf",
+            "type": "font",
+            "config": {
+                "schema": "sfg.schema.font"
+            }
+        },
+        {
+            "name": "font_play_bold",
+            "path": "editor/fonts/Play/Play-Bold.ttf",
             "type": "font",
             "config": {
                 "schema": "sfg.schema.font"

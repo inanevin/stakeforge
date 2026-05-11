@@ -137,7 +137,7 @@ namespace sfg
 			label_in.anchor_y		  = ui::anchor_e::center;
 
 			ui.set_widget_text(label, items[i].text);
-			paint.set_text(label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+			paint.set_text(label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd});
 		}
 
 		_foreground = tree.allocate();

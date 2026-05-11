@@ -43,8 +43,9 @@ namespace sfg
 
 		sid_t font_default		= "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs;
 		sid_t font_default_mono = "editor/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf"_hs;
-		sid_t font_title		= "editor/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
-		sid_t font_title_bold	= "editor/fonts/Orbitron/static/Orbitron-ExtraBold.ttf"_hs;
+		sid_t font_sfg			= "editor/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
+		sid_t font_title		= "editor/fonts/Play/Play-Regular.ttf"_hs;
+		sid_t font_title_bold	= "editor/fonts/Play/Play-Bold.ttf"_hs;
 		sid_t font_icons		= "editor/fonts/icons.ttf"_hs;
 		sid_t shader_glitch_lcd = "editor/shaders/editor_ui_text_lcd_glitch.hlsl"_hs;
 
@@ -52,7 +53,7 @@ namespace sfg
 		f32 text_default_px_size	 = 12.0f;
 		f32 text_small_px_size		 = 10.0f;
 		f32 text_big_title_px_size	 = 24.0f;
-		f32 text_med_title_px_size	 = 12.0f;
+		f32 text_med_title_px_size	 = 10.0f;
 		f32 text_small_title_px_size = 8.0f;
 		f32 icon_default_px_size	 = 10.0f;
 		f32 item_height				 = 24.0f;
