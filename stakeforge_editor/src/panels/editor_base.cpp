@@ -4,6 +4,7 @@
 #include "panels/editor_theme.hpp"
 #include "editor_app.hpp"
 #include "editor_surface.hpp"
+#include "editor_text_rasterization.hpp"
 #include "widgets/editor_widgets_dividers.hpp"
 #include "widgets/editor_widgets_draws.hpp"
 #include "widgets/editor_widgets_file_menu.hpp"
@@ -397,7 +398,7 @@ namespace sfg
 			paint.set_text(_title_label,
 						   ui.widget_text(_title_label),
 						   ui.widget_text_len(_title_label),
-						   {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = theme.text_big_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd},
+						   {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = theme.text_big_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()},
 						   title_state);
 
 			_version_label = tree.allocate();
@@ -408,15 +409,17 @@ namespace sfg
 			paint.set_text(_version_label,
 						   ui.widget_text(_version_label),
 						   ui.widget_text_len(_version_label),
-						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 			_build_label = tree.allocate();
 			ui.set_widget_debug_name(_build_label, "build_label");
 			tree.attach(_title_group, _build_label);
-			
+
 			ui.set_widget_text(_build_label, SFG_EDITOR_BUILD_TEXT);
-			paint.set_text(
-				_build_label, ui.widget_text(_build_label), ui.widget_text_len(_build_label), {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+			paint.set_text(_build_label,
+						   ui.widget_text(_build_label),
+						   ui.widget_text_len(_build_label),
+						   {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		// top-left strikes
@@ -550,7 +553,7 @@ namespace sfg
 			paint.set_text(_project_label,
 						   ui.widget_text(_project_label),
 						   ui.widget_text_len(_project_label),
-						   {.font = theme.font_title, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+						   {.font = theme.font_title, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.divider_thickness * 4.0f, theme.color_divider_dark, color_divider_dark_transparent, ui::vg_gradient_e::vertical);

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "widgets/editor_widgets_file_menu.hpp"
+#include "editor_text_rasterization.hpp"
 #include "panels/editor_theme.hpp"
 #include "widgets/editor_widgets_icons.hpp"
 #include <sfg/io/assert.hpp>
@@ -137,7 +138,7 @@ namespace sfg
 			label_in.anchor_y		  = ui::anchor_e::center;
 
 			ui.set_widget_text(label, items[i].text);
-			paint.set_text(label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd});
+			paint.set_text(label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		_foreground = tree.allocate();
@@ -214,7 +215,7 @@ namespace sfg
 				label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 				label_in.pos_value		  = {style.padding_x, 0.5f};
 				label_in.anchor_y		  = ui::anchor_e::center;
-				paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+				paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 				const ui::widget_id_t shortcut = tree.allocate();
 				_row_shortcuts[d][r]		   = shortcut;
@@ -229,7 +230,7 @@ namespace sfg
 				shortcut_in.pos_value		 = {1.0f, 0.5f};
 				shortcut_in.anchor_x		 = ui::anchor_e::end;
 				shortcut_in.anchor_y		 = ui::anchor_e::center;
-				paint.set_text(shortcut, nullptr, 0, {.font = theme.font_title_bold, .color = style.shortcut_color, .point_size = style.shortcut_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+				paint.set_text(shortcut, nullptr, 0, {.font = theme.font_title_bold, .color = style.shortcut_color, .point_size = style.shortcut_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 				const ui::widget_id_t icon = tree.allocate();
 				_row_icons[d][r]		   = icon;
@@ -245,7 +246,7 @@ namespace sfg
 				icon_in.anchor_x		 = ui::anchor_e::end;
 				icon_in.anchor_y		 = ui::anchor_e::center;
 				ui.set_widget_text(icon, ICON_DD_RIGHT);
-				paint.set_text(icon, ui.widget_text(icon), ui.widget_text_len(icon), {.font = theme.font_icons, .color = style.icon_color, .point_size = style.icon_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+				paint.set_text(icon, ui.widget_text(icon), ui.widget_text_len(icon), {.font = theme.font_icons, .color = style.icon_color, .point_size = style.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 				const ui::widget_id_t title_line = tree.allocate();
 				_row_title_lines[d][r]			 = title_line;
@@ -504,7 +505,7 @@ namespace sfg
 							.color		 = is_title ? _style.title_color : _style.text_color,
 							.point_size	 = is_title ? _style.title_size : _style.text_size,
 							.spacing	 = 0,
-							.raster_mode = ui::glyph_raster_mode_e::grayscale});
+							.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 			set_widget_visible(tree, _row_labels[depth][i], true, false);
 
 			if (!is_title && text_len(rows[i].shortcut) > 0)
@@ -647,7 +648,7 @@ namespace sfg
 		paint.color				  = _style.text_color;
 		paint.size_px			  = point_size;
 		paint.raster_px			  = static_cast<u32>(math::max(1.0f, point_size * _ui->get_ui_scale() * _ui->get_dpi_scale() + 0.5f));
-		paint.raster_mode		  = ui::glyph_raster_mode_e::grayscale;
+		paint.raster_mode		  = editor_text_rasterization_t::get_rasterization_type();
 
 		return ui::vg_canvas_t::measure_text(text, len, paint).x;
 	}

@@ -23,7 +23,7 @@ namespace sfg
 			return false;
 		}
 
-		FT_Library_SetLcdFilter(library, FT_LCD_FILTER_DEFAULT);
+		FT_Error err = FT_Library_SetLcdFilter(library, FT_LCD_FILTER_DEFAULT);
 		s_library = library;
 		return true;
 	}

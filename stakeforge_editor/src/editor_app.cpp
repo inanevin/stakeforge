@@ -5,6 +5,7 @@
 #include "editor_modal_controller.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
+#include "editor_text_rasterization.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -99,6 +100,8 @@ namespace sfg
 
 	bool editor_app_t::init()
 	{
+		editor_text_rasterization_t::set_rasterization_type(ui::glyph_raster_mode_e::lcd);
+
 		editor_settings_t& settings = editor_settings_t::get();
 		if (!settings.reload())
 			return false;

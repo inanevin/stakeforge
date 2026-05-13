@@ -24,24 +24,19 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "widgets/editor_widgets_frames.hpp"
-#include "panels/editor_theme.hpp"
-#include <sfg/runtime/ui/paint/paint.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
+#include "editor_text_rasterization.hpp"
 
 namespace sfg
 {
-	void editor_widgets_frames_t::make_frame_modal(ui::ui_context& ui, ui::widget_id_t id)
-	{
-		const editor_theme_t& theme = editor_theme_t::get();
+	ui::glyph_raster_mode_e editor_text_rasterization_t::_rasterization_type = ui::glyph_raster_mode_e::grayscale;
 
-		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_bg3;
-		rect.fill_color_b		 = theme.color_bg2;
-		rect.gradient			 = ui::vg_gradient_e::vertical;
-		rect.rounding			 = 4.0f;
-		rect.rounding_segs		 = 8;
-		rect.aa_thickness		 = theme.aa_thickness;
-		ui.get_paint().set_rect(id, rect);
+	ui::glyph_raster_mode_e editor_text_rasterization_t::get_rasterization_type()
+	{
+		return _rasterization_type;
+	}
+
+	void editor_text_rasterization_t::set_rasterization_type(ui::glyph_raster_mode_e rasterization_type)
+	{
+		_rasterization_type = rasterization_type;
 	}
 }

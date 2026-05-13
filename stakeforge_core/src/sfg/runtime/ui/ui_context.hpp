@@ -71,21 +71,6 @@ namespace sfg::ui
 		void set_debug_draw(bool enabled);
 		void set_debug_font(resource_handle_t font);
 
-		inline bool is_debug_draw_enabled() const
-		{
-			return _debug_draw;
-		}
-
-		inline f32 get_dpi_scale() const
-		{
-			return _dpi_scale;
-		}
-
-		inline f32 get_ui_scale() const
-		{
-			return _ui_scale;
-		}
-
 		// -----------------------------------------------------------------------------
 		// render-thread snapshot
 		// -----------------------------------------------------------------------------
@@ -122,6 +107,26 @@ namespace sfg::ui
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+
+		inline bool is_debug_draw_enabled() const
+		{
+			return _debug_draw;
+		}
+
+		inline f32 get_dpi_scale() const
+		{
+			return _dpi_scale;
+		}
+
+		inline f32 get_ui_scale() const
+		{
+			return _ui_scale;
+		}
+
+		inline void set_user_ui_scale(f32 f)
+		{
+			_user_ui_scale = f;
+		}
 
 		inline layout_tree_t& get_tree()
 		{

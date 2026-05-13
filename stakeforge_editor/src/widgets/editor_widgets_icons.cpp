@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "widgets/editor_widgets_icons.hpp"
+#include "editor_text_rasterization.hpp"
 #include "panels/editor_theme.hpp"
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -26,7 +27,7 @@ namespace sfg
 		in.anchor_y			= ui::anchor_e::center;
 
 		ui.set_widget_text(id, icon);
-		paint.set_text(id, ui.widget_text(id), ui.widget_text_len(id), {.font = theme.font_icons, .color = color, .point_size = point_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+		paint.set_text(id, ui.widget_text(id), ui.widget_text_len(id), {.font = theme.font_icons, .color = color, .point_size = point_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		return id;
 	}

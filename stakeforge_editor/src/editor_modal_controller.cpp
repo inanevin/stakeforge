@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "editor_modal_controller.hpp"
+#include "editor_text_rasterization.hpp"
 #include "panels/editor_theme.hpp"
 #include "widgets/editor_widgets_buttons.hpp"
 #include "widgets/editor_widgets_frames.hpp"
@@ -104,13 +105,13 @@ namespace sfg
 		ui.set_widget_debug_name(_title, "modal_title");
 		tree.attach(_window, _title);
 		tree.draw_order(_title) = MODAL_DRAW_ORDER + 3;
-		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_description = tree.allocate();
 		ui.set_widget_debug_name(_description, "modal_description");
 		tree.attach(_window, _description);
 		tree.draw_order(_description) = MODAL_DRAW_ORDER + 3;
-		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_button_row = tree.allocate();
 		ui.set_widget_debug_name(_button_row, "modal_button_row");
@@ -157,7 +158,7 @@ namespace sfg
 			label_in.pos_value		  = {0.5f, 0.5f};
 			label_in.anchor_x		  = ui::anchor_e::center;
 			label_in.anchor_y		  = ui::anchor_e::center;
-			paint.set_text(_button_labels[i], nullptr, 0, {.font = theme.font_default, .color = theme.color_fg3, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::grayscale});
+			paint.set_text(_button_labels[i], nullptr, 0, {.font = theme.font_default, .color = theme.color_fg3, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		set_visible(false);
