@@ -553,7 +553,7 @@ namespace sfg
 			paint.set_text(_project_label,
 						   ui.widget_text(_project_label),
 						   ui.widget_text_len(_project_label),
-						   {.font = theme.font_title, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.divider_thickness * 4.0f, theme.color_divider_dark, color_divider_dark_transparent, ui::vg_gradient_e::vertical);

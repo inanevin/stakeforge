@@ -32,6 +32,46 @@ namespace sfg
 	class hashing_t
 	{
 	public:
+		static constexpr u64 FNV_1A_64_OFFSET = 14695981039346656037ull;
+		static constexpr u64 FNV_1A_64_PRIME  = 1099511628211ull;
+
+		static inline u64 hash_fnv_1a64(u64 hash, const void* ptr, size_t len) noexcept
+		{
+			const u8* bytes = static_cast<const u8*>(ptr);
+			for (size_t i = 0; i < len; ++i)
+				hash = (hash ^ bytes[i]) * FNV_1A_64_PRIME;
+			return hash;
+		}
+
+		static inline u64 hash_fnv_1a64(const void* ptr, size_t len) noexcept
+		{
+			return hash_fnv_1a64(FNV_1A_64_OFFSET, ptr, len);
+		}
+
+		static constexpr u64 hash_fnv_1a64(const char* str) noexcept
+		{
+			u64 hash = FNV_1A_64_OFFSET;
+			for (size_t i = 0; str[i] != '\0'; ++i)
+				hash = (hash ^ static_cast<u8>(str[i])) * FNV_1A_64_PRIME;
+			return hash;
+		}
+
+		template <typename T> static inline u64 hash_fnv_1a64_value(u64 hash, const T& value) noexcept
+		{
+			return hash_fnv_1a64(hash, &value, sizeof(value));
+		}
+
+		template <typename... Args> static inline u64 hash_fnv_1a64_values(u64 hash, const Args&... args) noexcept
+		{
+			((hash = hash_fnv_1a64_value(hash, args)), ...);
+			return hash;
+		}
+
+		template <typename... Args> static inline u64 hash_fnv_1a64_bytes_and_values(const void* ptr, size_t len, const Args&... args) noexcept
+		{
+			return hash_fnv_1a64_values(hash_fnv_1a64(ptr, len), args...);
+		}
+
 		static constexpr sid_t hash_bytes(const char* str, size_t len) noexcept
 		{
 			sid_t h = 1469598103934665603ull;

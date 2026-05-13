@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vg_canvas.hpp"
 #include "vg_path.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -45,34 +46,6 @@ namespace sfg::ui
 {
 	namespace
 	{
-		constexpr u64 fnv_offset = 14695981039346656037ull;
-		constexpr u64 fnv_prime	 = 1099511628211ull;
-
-		inline u64 hash_bytes(u64 h, const void* ptr, size_t n)
-		{
-			const u8* b = static_cast<const u8*>(ptr);
-			for (size_t i = 0; i < n; ++i)
-			{
-				h ^= b[i];
-				h *= fnv_prime;
-			}
-			return h;
-		}
-
-		u64 hash_text(const char* text, size_t len, const vg_text_paint_t& p)
-		{
-			u64 h = fnv_offset;
-			h	  = hash_bytes(h, text, len);
-			h	  = hash_bytes(h, &p.font, sizeof(p.font));
-			h	  = hash_bytes(h, &p.color, sizeof(p.color));
-			h	  = hash_bytes(h, &p.size_px, sizeof(p.size_px));
-			h	  = hash_bytes(h, &p.raster_px, sizeof(p.raster_px));
-			h	  = hash_bytes(h, &p.spacing, sizeof(p.spacing));
-			h	  = hash_bytes(h, &p.raster_mode, sizeof(p.raster_mode));
-			h	  = hash_bytes(h, &p.flip_uv, sizeof(p.flip_uv));
-			return h;
-		}
-
 		inline u32 raster_px_for(const vg_text_paint_t& p)
 		{
 			return p.raster_px > 0 ? p.raster_px : 1;
@@ -672,15 +645,16 @@ namespace sfg::ui
 		if (len == 0)
 			return;
 
-		vg_draw_buffer_t* db	   = get_draw_buffer(draw_order, state);
-		const vec2f_t	  draw_pos = {snap_px(pos.x), snap_px(pos.y)};
+		vg_draw_buffer_t* db		 = get_draw_buffer(draw_order, state);
+		const vec2f_t	  draw_pos	 = {snap_px(pos.x), snap_px(pos.y)};
+		u64				  cache_hash = 0;
 
 		if (use_cache)
 		{
-			const u64 hash = hash_text(text, len, paint);
+			cache_hash = hashing_t::hash_fnv_1a64_bytes_and_values(text, len, paint.font, paint.color, paint.size_px, paint.raster_px, paint.spacing, paint.raster_mode, paint.flip_uv);
 			for (const text_cache_entry_t& e : _text_cache)
 			{
-				if (e.hash != hash)
+				if (e.hash != cache_hash)
 					continue;
 
 				const u32	 vtx_base = db->vertex_count;
@@ -787,7 +761,7 @@ namespace sfg::ui
 			if (_text_cache_vertex_count + vtx_count <= _text_cache_vertex_capacity && _text_cache_index_count + idx_count <= _text_cache_index_capacity)
 			{
 				text_cache_entry_t e;
-				e.hash		= hash_text(text, len, paint);
+				e.hash		= cache_hash;
 				e.vtx_start = _text_cache_vertex_count;
 				e.vtx_count = vtx_count;
 				e.idx_start = _text_cache_index_count;

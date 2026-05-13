@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <sfg/platform/process.hpp>
+#include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -44,17 +45,6 @@ namespace
 {
 	u8 g_key_down_map[512] = {};
 
-	u64 hash_device_name(const char* str)
-	{
-		u64 hash = 14695981039346656037ULL;
-		while (*str)
-		{
-			hash ^= static_cast<u8>(*str++);
-			hash *= 1099511628211ULL;
-		}
-		return hash;
-	}
-
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
 	{
 		sfg::vector_t<sfg::monitor_info_t>* infos = reinterpret_cast<sfg::vector_t<sfg::monitor_info_t>*>(l_param);
@@ -70,7 +60,7 @@ namespace
 		info.size		 = {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
 		info.work_size	 = {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
 		info.position	 = {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
-		info.device_hash = hash_device_name(monitor_info_t.szDevice);
+		info.device_hash = sfg::hashing_t::hash_fnv_1a64(monitor_info_t.szDevice);
 		info.is_primary	 = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
 		info.dpi		 = dpiX;
 		info.dpi_scale	 = static_cast<f32>(dpiX) / 96.0f;
@@ -146,7 +136,7 @@ namespace
 		info.size		 = {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
 		info.work_size	 = {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
 		info.position	 = {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
-		info.device_hash = hash_device_name(monitor_info_t.szDevice);
+		info.device_hash = sfg::hashing_t::hash_fnv_1a64(monitor_info_t.szDevice);
 		info.is_primary	 = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
 		info.dpi		 = dpiX;
 		info.dpi_scale	 = static_cast<f32>(dpiX) / 96.0f;
