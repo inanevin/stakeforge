@@ -27,35 +27,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "docking/dock_widget.hpp"
-#include "widgets/editor_widgets_file_menu.hpp"
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
 {
+	struct input_router_t;
 	class ui_context;
+	enum class mouse_button_e : u8;
 }
 
 namespace sfg
 {
 	struct window_runtime_t;
 
-	enum class editor_project_prompt_action_e : u8
-	{
-		none,
-		new_project,
-		load_project,
-	};
-
-	class editor_base_t final
+	class editor_secondary_base_t final
 	{
 	public:
-		editor_base_t()									   = default;
-		~editor_base_t()								   = default;
-		editor_base_t(const editor_base_t&)				   = delete;
-		editor_base_t& operator=(const editor_base_t&)	   = delete;
-		editor_base_t(editor_base_t&&) noexcept			   = default;
-		editor_base_t& operator=(editor_base_t&&) noexcept = default;
+		editor_secondary_base_t()											   = default;
+		~editor_secondary_base_t()											   = default;
+		editor_secondary_base_t(const editor_secondary_base_t&)				   = delete;
+		editor_secondary_base_t& operator=(const editor_secondary_base_t&)	   = delete;
+		editor_secondary_base_t(editor_secondary_base_t&&) noexcept			   = default;
+		editor_secondary_base_t& operator=(editor_secondary_base_t&&) noexcept = default;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -65,43 +59,36 @@ namespace sfg
 		void uninit();
 
 		// -----------------------------------------------------------------------------
-		// impl
+		// queries
 		// -----------------------------------------------------------------------------
 
-		void prompt_no_project_modal();
-		void prompt_project_save_modal(editor_project_prompt_action_e action);
-		void complete_project_save_prompt(bool save);
-		void cancel_project_save_prompt();
-		void set_current_project_name(const char* name);
 		bool is_window_drag_region(const vec2i16_t& pos) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline ui::ui_context& get_ui()
+		inline dock_widget_t& get_dock_widget()
 		{
-			return *_ui;
+			return _dock_widget;
 		}
-		inline const ui::ui_context& get_ui() const
+
+		inline const dock_widget_t& get_dock_widget() const
 		{
-			return *_ui;
+			return _dock_widget;
 		}
 
 	private:
-		ui::ui_context*				   _ui				= nullptr;
-		ui::widget_id_t				   _base			= NULL_WIDGET;
-		ui::widget_id_t				   _project_label	= NULL_WIDGET;
-		ui::widget_id_t				   _top_row_left	= NULL_WIDGET;
-		ui::widget_id_t				   _top_row_strikes = NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_file	= NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_util	= NULL_WIDGET;
-		ui::widget_id_t				   _label_wrap		= NULL_WIDGET;
-		dock_widget_t				   _dock_widget;
-		editor_file_menu_t			   _file_menu;
-		editor_project_prompt_action_e _pending_project_prompt_action = editor_project_prompt_action_e::none;
+		static void on_minimize_window(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_maximize_window(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_close_window(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
-		static void on_no_project_open(void* user_data);
-		static void on_no_project_create(void* user_data);
+	private:
+		ui::ui_context*	  _ui			  = nullptr;
+		window_runtime_t* _runtime		  = nullptr;
+		ui::widget_id_t	  _root			  = NULL_WIDGET;
+		ui::widget_id_t	  _title_frame	  = NULL_WIDGET;
+		ui::widget_id_t	  _window_buttons = NULL_WIDGET;
+		dock_widget_t	  _dock_widget;
 	};
 }

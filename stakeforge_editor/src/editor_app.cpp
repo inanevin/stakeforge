@@ -7,6 +7,7 @@
 #include "editor_surface.hpp"
 #include "editor_text_rasterization.hpp"
 #include "panels/editor_panel.hpp"
+#include "panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -94,10 +95,10 @@ namespace sfg
 	{
 		editor_app_t&	  app	  = *static_cast<editor_app_t*>(user_data);
 		editor_surface_t& surface = app.get_surface_by_runtime(runtime);
-		if (surface.content == editor_surface_content_e::editor_base)
-			return surface.editor->is_window_drag_region(pos);
-		if (surface.content == editor_surface_content_e::dock)
-			return surface.dock_widget->is_window_drag_region(pos);
+		if (surface.type == editor_surface_type_e::primary)
+			return surface.primary->is_window_drag_region(pos);
+		if (surface.type == editor_surface_type_e::secondary)
+			return surface.secondary->is_window_drag_region(pos);
 		return false;
 	}
 
@@ -144,7 +145,7 @@ namespace sfg
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
-			create_surface(window.pos, get_layout_window_size(window), editor_surface_content_e::editor_base);
+			create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
 		}
 		else
 		{
@@ -162,18 +163,18 @@ namespace sfg
 			if (primary_window == nullptr)
 				return false;
 
-			create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_content_e::editor_base);
+			create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_type_e::primary);
 
 			for (const editor_layout_window_t& window : layout.windows)
 			{
 				if (&window == primary_window)
 					continue;
 
-				create_surface(window.pos, get_layout_window_size(window), editor_surface_content_e::dock);
+				create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::secondary);
 			}
 		}
 
-		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_content_e::payload_root);
+		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
 		if (payload_surface.is_null())
 			return false;
 		_payload_controller.init(_surfaces.get(payload_surface));
@@ -192,7 +193,7 @@ namespace sfg
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 		if (!load_project(_current_project.path.c_str()))
-			get_main_surface().editor->prompt_no_project_modal();
+			get_main_surface().primary->prompt_no_project_modal();
 		tick();
 		return true;
 	}
@@ -209,10 +210,10 @@ namespace sfg
 		{
 			if (surface.ui)
 			{
-				if (surface.content == editor_surface_content_e::editor_base)
-					surface.editor->uninit();
-				if (surface.content == editor_surface_content_e::dock)
-					surface.dock_widget->uninit();
+				if (surface.type == editor_surface_type_e::primary)
+					surface.primary->uninit();
+				if (surface.type == editor_surface_type_e::secondary)
+					surface.secondary->uninit();
 				surface.modal_controller->uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
@@ -250,19 +251,16 @@ namespace sfg
 
 		surface.modal_controller = make_unique<editor_modal_controller_t>();
 		surface.modal_controller->init(*surface.ui);
-		if (surface.content == editor_surface_content_e::editor_base)
+		if (surface.type == editor_surface_type_e::primary)
 		{
-			surface.editor = make_unique<editor_base_t>();
-			surface.editor->init(*surface.ui, *surface.runtime);
-			surface.editor->set_current_project_name(_current_project.name.c_str());
+			surface.primary = make_unique<editor_primary_base_t>();
+			surface.primary->init(*surface.ui, *surface.runtime);
+			surface.primary->set_current_project_name(_current_project.name.c_str());
 		}
-		else if (surface.content == editor_surface_content_e::dock)
+		else if (surface.type == editor_surface_type_e::secondary)
 		{
-			surface.dock_widget				 = make_unique<dock_widget_t>();
-			dock_widget_config_t dock_config = {};
-			dock_config.runtime				 = surface.runtime.get();
-			dock_config.show_window_buttons	 = true;
-			surface.dock_widget->init(*surface.ui, surface.ui->get_root(), dock_config);
+			surface.secondary = make_unique<editor_secondary_base_t>();
+			surface.secondary->init(*surface.ui, *surface.runtime);
 		}
 	}
 
@@ -306,15 +304,17 @@ namespace sfg
 		vec2u16_t		size  = payload.size_value;
 		if (size.x == 0 || size.y == 0)
 			size = {640, 480};
+		size.y = static_cast<u16>(size.y + editor_theme_t::get().item_height);
 
-		const surface_handle_t surface_handle = app.create_surface(payload.pos, size, editor_surface_content_e::dock);
+		const surface_handle_t surface_handle = app.create_surface(payload.pos, size, editor_surface_type_e::secondary);
 		if (surface_handle.is_null())
 			return;
 
 		editor_surface_t&		 surface = app._surfaces.get(surface_handle);
-		const dock_node_handle_t leaf	 = surface.dock_widget->create_leaf_node(surface.dock_widget->get_root());
-		surface.dock_widget->set_root_node(leaf);
-		surface.dock_widget->dock_node_add_panel(leaf, panel);
+		dock_widget_t&			 dock	 = surface.secondary->get_dock_widget();
+		const dock_node_handle_t leaf	 = dock.create_leaf_node(dock.get_root());
+		dock.set_root_node(leaf);
+		dock.dock_node_add_panel(leaf, panel);
 	}
 
 	void editor_app_t::unload_current_project()
@@ -355,8 +355,8 @@ namespace sfg
 		editor_settings_t::get().save();
 		for (editor_surface_t& surface : _surfaces)
 		{
-			if (surface.content == editor_surface_content_e::editor_base)
-				surface.editor->set_current_project_name(_current_project.name.c_str());
+			if (surface.type == editor_surface_type_e::primary)
+				surface.primary->set_current_project_name(_current_project.name.c_str());
 		}
 		return true;
 	}
@@ -399,13 +399,13 @@ namespace sfg
 		bool primary_saved = false;
 		for (const editor_surface_t& surface : _surfaces)
 		{
-			if (surface.content == editor_surface_content_e::payload_root)
+			if (surface.type == editor_surface_type_e::payload)
 				continue;
 
 			editor_layout_window_t window = {};
 			window.pos					  = surface.runtime->pos;
 			window.size					  = surface.runtime->size;
-			window.is_primary			  = surface.content == editor_surface_content_e::editor_base;
+			window.is_primary			  = surface.type == editor_surface_type_e::primary;
 			if (window.is_primary)
 			{
 				SFG_ASSERT(!primary_saved);
@@ -422,7 +422,7 @@ namespace sfg
 		SFG_ASSERT(!_surfaces.empty());
 		for (editor_surface_t& surface : _surfaces)
 		{
-			if (surface.content == editor_surface_content_e::editor_base)
+			if (surface.type == editor_surface_type_e::primary)
 				return surface;
 		}
 		SFG_ASSERT(false);
@@ -433,7 +433,7 @@ namespace sfg
 	{
 		SFG_ASSERT(!_surfaces.empty());
 		for (const editor_surface_t& surface : _surfaces)
-			if (surface.content == editor_surface_content_e::editor_base)
+			if (surface.type == editor_surface_type_e::primary)
 				return surface;
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
@@ -498,7 +498,7 @@ namespace sfg
 				if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || main_destroyed)
 				{
 					_renderer.end_render();
-					if (surface.content == editor_surface_content_e::editor_base)
+					if (surface.type == editor_surface_type_e::primary)
 						main_destroyed = true;
 
 					destroy_surface(handle);
@@ -556,10 +556,10 @@ namespace sfg
 
 	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size)
 	{
-		return create_surface(pos, size, editor_surface_content_e::dock);
+		return create_surface(pos, size, editor_surface_type_e::secondary);
 	}
 
-	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_content_e content)
+	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		_renderer.end_render();
@@ -572,11 +572,11 @@ namespace sfg
 
 		const surface_handle_t handle  = _surfaces.add();
 		editor_surface_t&	   surface = _surfaces.get(handle);
-		surface.content				   = content;
+		surface.type				   = type;
 		surface.runtime				   = make_unique<window_runtime_t>();
 
-		const window_style_e window_style = content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::borderless;
-		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, content == editor_surface_content_e::payload_root, *surface.runtime))
+		const window_style_e window_style = type == editor_surface_type_e::payload ? window_style_e::alpha : window_style_e::borderless;
+		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, type == editor_surface_type_e::payload, *surface.runtime))
 		{
 			SFG_ERR("failed creating editor surface window!");
 			_surfaces.remove(handle);
@@ -605,11 +605,11 @@ namespace sfg
 
 		if (surface.ui)
 		{
-			if (surface.content == editor_surface_content_e::editor_base)
-				surface.editor->uninit();
-			if (surface.content == editor_surface_content_e::dock)
-				surface.dock_widget->uninit();
-			if (surface.content == editor_surface_content_e::payload_root)
+			if (surface.type == editor_surface_type_e::primary)
+				surface.primary->uninit();
+			if (surface.type == editor_surface_type_e::secondary)
+				surface.secondary->uninit();
+			if (surface.type == editor_surface_type_e::payload)
 				_payload_controller.uninit();
 			surface.modal_controller->uninit();
 			surface.ui->uninit();

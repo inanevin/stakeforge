@@ -27,9 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
-#include "docking/dock_widget.hpp"
 #include "editor_modal_controller.hpp"
-#include "panels/editor_base.hpp"
+#include "panels/editor_primary_base.hpp"
+#include "panels/editor_secondary_base.hpp"
 #include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -38,25 +38,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	enum class editor_surface_content_e : u8
+	enum class editor_surface_type_e : u8
 	{
-		dock,
-		editor_base,
-		payload_root,
+		primary,
+		secondary,
+		payload,
 	};
 
 	struct editor_surface_t
 	{
-		unique_t<editor_base_t>				editor;
+		unique_t<editor_primary_base_t>		primary;
+		unique_t<editor_secondary_base_t>	secondary;
 		unique_t<editor_modal_controller_t> modal_controller;
-		unique_t<dock_widget_t>				dock_widget;
 		unique_t<window_runtime_t>			runtime;
 		unique_t<ui::ui_context>			ui;
 		gfx_swapchain_handle				swapchain	   = {};
 		vec2u16_t							swapchain_size = {};
 		ui::widget_id_t						payload_root   = NULL_WIDGET;
 		ui::widget_id_t						payload_text   = NULL_WIDGET;
-		editor_surface_content_e			content		   = editor_surface_content_e::dock;
+		editor_surface_type_e				type		   = editor_surface_type_e::secondary;
 		bool								is_minimized   = false;
 		bool								is_hidden	   = false;
 	};

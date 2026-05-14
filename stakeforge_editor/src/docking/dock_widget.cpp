@@ -13,7 +13,6 @@
 #include <sfg/math/math.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/platform/common_window.hpp>
-#include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -57,7 +56,6 @@ namespace sfg
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::none;
 
-		ui.get_paint().set_custom(_root, draw_dock_previews, this);
 		editor_app_t::get().get_payload_controller().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 	}
 
@@ -79,14 +77,12 @@ namespace sfg
 		_ui->deallocate_widget(_root);
 		editor_app_t::get().get_payload_controller().unregister_listener(this);
 
-		_ui						   = nullptr;
-		_runtime				   = nullptr;
-		_root					   = NULL_WIDGET;
-		_root_node				   = {};
-		_config					   = {};
-		_hovered_dock_preview	   = DOCK_PREVIEW_NONE;
-		_panel_payload_active	   = false;
-		_panel_payload_over_widget = false;
+		_ui					  = nullptr;
+		_runtime			  = nullptr;
+		_root				  = NULL_WIDGET;
+		_root_node			  = {};
+		_config				  = {};
+		_panel_payload_active = false;
 		_dock_nodes.clear();
 		_dock_borders.clear();
 	}
@@ -114,15 +110,13 @@ namespace sfg
 		widget_in.child_spacing	   = 0.0f;
 		widget_in.child_margins	   = {0.0f, 0.0f, 0.0f, 0.0f};
 
+		paint.set_custom(node.widget, draw_leaf_dock_previews, this);
+
 		editor_tab_area_config_t tab_config = {};
 		tab_config.tab_switched				= on_leaf_tab_switched;
 		tab_config.tab_dragged_out			= on_leaf_tab_dragged_out;
 		tab_config.user_data				= this;
 		tab_config.can_drag_out				= true;
-		tab_config.window_minimized			= on_window_minimized;
-		tab_config.window_maximized			= on_window_maximized;
-		tab_config.window_closed			= on_window_closed;
-		tab_config.show_window_buttons		= _config.show_window_buttons;
 		node.tab_area.init(ui, node.widget, tab_config);
 
 		node.body = ui.allocate_widget();
@@ -215,9 +209,8 @@ namespace sfg
 
 	void dock_widget_t::update_dock_previews(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos)
 	{
-		_panel_payload_active	   = payload.type == editor_payload_type_e::panel;
-		_panel_payload_over_widget = false;
-		_hovered_dock_preview	   = DOCK_PREVIEW_NONE;
+		_panel_payload_active = payload.type == editor_payload_type_e::panel;
+		clear_dock_previews();
 
 		if (!_panel_payload_active)
 			return;
@@ -229,39 +222,105 @@ namespace sfg
 			static_cast<f32>(abs_mouse_pos.y - _runtime->pos.y),
 		};
 
-		const ui::layout_out_t& out		  = _ui->get_tree().out(_root);
-		const vec4f_t			root_rect = {out.pos.x, out.pos.y, out.size.x, out.size.y};
-		_panel_payload_over_widget		  = contains(root_rect, mouse);
-		if (!_panel_payload_over_widget)
+		dock_node_t* node = find_leaf_at(mouse);
+		if (node == nullptr)
 			return;
 
-		const editor_theme_t& theme	   = editor_theme_t::get();
-		const f32			  margin   = theme.item_height;
-		const f32			  x		   = out.pos.x + margin;
-		const f32			  y		   = out.pos.y + margin;
-		const f32			  w		   = math::max(theme.item_height * 4.0f, out.size.x - margin * 2.0f);
-		const f32			  h		   = math::max(theme.item_height * 4.0f, out.size.y - margin * 2.0f);
-		const f32			  edge_w   = math::min(w * 0.09f, theme.item_height * 3.5f);
-		const f32			  edge_h   = math::min(h * 0.09f, theme.item_height * 2.75f);
-		const f32			  long_w   = w * 0.16f;
-		const f32			  long_h   = h * 0.16f;
-		const f32			  center_w = math::min(w * 0.11f, theme.item_height * 3.5f);
-		const f32			  center_h = math::min(h * 0.11f, theme.item_height * 2.75f);
+		update_leaf_dock_previews(*node, mouse);
+	}
 
-		_dock_preview_rects[0] = {x + (w - long_w) * 0.5f, y, long_w, edge_h};
-		_dock_preview_rects[1] = {x, y + (h - long_h) * 0.5f, edge_w, long_h};
-		_dock_preview_rects[2] = {x + (w - long_w) * 0.5f, y + h - edge_h, long_w, edge_h};
-		_dock_preview_rects[3] = {x + w - edge_w, y + (h - long_h) * 0.5f, edge_w, long_h};
-		_dock_preview_rects[4] = {x + (w - center_w) * 0.5f, y + (h - center_h) * 0.5f, center_w, center_h};
+	void dock_widget_t::clear_dock_previews()
+	{
+		for (dock_node_t& node : _dock_nodes)
+		{
+			if (node.node_type == dock_node_type_e::leaf)
+			{
+				node.is_payload_over = false;
+				node.hovered_preview = dock_preview_e::none;
+			}
+		}
+	}
+
+	void dock_widget_t::update_leaf_dock_previews(dock_node_t& node, const vec2f_t& mouse)
+	{
+		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
+
+		node.is_payload_over = true;
+		node.hovered_preview = dock_preview_e::none;
+
+		const ui::layout_out_t& out		 = _ui->get_tree().out(node.widget);
+		const editor_theme_t&	theme	 = editor_theme_t::get();
+		const f32				margin	 = theme.item_height;
+		const f32				x		 = out.pos.x + margin;
+		const f32				y		 = out.pos.y + margin;
+		const f32				w		 = math::max(theme.item_height * 4.0f, out.size.x - margin * 2.0f);
+		const f32				h		 = math::max(theme.item_height * 4.0f, out.size.y - margin * 2.0f);
+		const f32				edge_w	 = math::min(w * 0.09f, theme.item_height * 3.5f);
+		const f32				edge_h	 = math::min(h * 0.09f, theme.item_height * 2.75f);
+		const f32				long_w	 = w * 0.16f;
+		const f32				long_h	 = h * 0.16f;
+		const f32				center_w = math::min(w * 0.11f, theme.item_height * 3.5f);
+		const f32				center_h = math::min(h * 0.11f, theme.item_height * 2.75f);
+
+		node.preview_rects[static_cast<u32>(dock_preview_e::top)]	 = {x + (w - long_w) * 0.5f, y, long_w, edge_h};
+		node.preview_rects[static_cast<u32>(dock_preview_e::left)]	 = {x, y + (h - long_h) * 0.5f, edge_w, long_h};
+		node.preview_rects[static_cast<u32>(dock_preview_e::bottom)] = {x + (w - long_w) * 0.5f, y + h - edge_h, long_w, edge_h};
+		node.preview_rects[static_cast<u32>(dock_preview_e::right)]	 = {x + w - edge_w, y + (h - long_h) * 0.5f, edge_w, long_h};
+		node.preview_rects[static_cast<u32>(dock_preview_e::center)] = {x + (w - center_w) * 0.5f, y + (h - center_h) * 0.5f, center_w, center_h};
 
 		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
 		{
-			if (contains(_dock_preview_rects[i], mouse))
+			if (contains(node.preview_rects[i], mouse))
 			{
-				_hovered_dock_preview = i;
+				node.hovered_preview = static_cast<dock_preview_e>(i);
 				return;
 			}
 		}
+	}
+
+	dock_node_t* dock_widget_t::find_leaf_at(const vec2f_t& mouse)
+	{
+		ui::layout_tree_t& tree = _ui->get_tree();
+		for (dock_node_t& node : _dock_nodes)
+		{
+			if (node.node_type == dock_node_type_e::leaf)
+			{
+				const ui::layout_out_t& out	 = tree.out(node.widget);
+				const vec4f_t			rect = {out.pos.x, out.pos.y, out.size.x, out.size.y};
+				if (contains(rect, mouse))
+					return &node;
+			}
+		}
+		return nullptr;
+	}
+
+	const dock_node_t* dock_widget_t::find_node_by_widget(ui::widget_id_t widget) const
+	{
+		for (const dock_node_t& node : _dock_nodes)
+		{
+			if (node.widget == widget)
+				return &node;
+		}
+		SFG_ASSERT(false);
+		return nullptr;
+	}
+
+	bool dock_widget_t::apply_payload_to_preview(dock_node_t& node, dock_preview_e preview, editor_panel_t* panel)
+	{
+		SFG_ASSERT(panel != nullptr);
+		if (preview == dock_preview_e::center)
+		{
+			dock_node_add_panel(node, panel);
+			return true;
+		}
+		return apply_payload_to_split_preview(node, preview, panel);
+	}
+
+	bool dock_widget_t::apply_payload_to_split_preview(dock_node_t& node, dock_preview_e preview, editor_panel_t* panel)
+	{
+		SFG_ASSERT(preview != dock_preview_e::center && preview != dock_preview_e::none);
+		dock_node_add_panel(node, panel);
+		return true;
 	}
 
 	void dock_widget_t::on_leaf_tab_switched(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
@@ -294,29 +353,20 @@ namespace sfg
 		SFG_ASSERT(false);
 	}
 
-	void dock_widget_t::on_window_minimized(editor_tab_area_t&, void* user_data)
+	bool dock_widget_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
 	{
-		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
-		SFG_ASSERT(dock_widget._runtime != nullptr);
-		process::minimize_window(dock_widget._runtime->window_handle);
-	}
+		if (payload.type != editor_payload_type_e::panel)
+			return false;
 
-	void dock_widget_t::on_window_maximized(editor_tab_area_t&, void* user_data)
-	{
-		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
-		SFG_ASSERT(dock_widget._runtime != nullptr);
-		process::toggle_maximize_window(dock_widget._runtime->window_handle);
-	}
+		SFG_ASSERT(payload.user_ptr != nullptr);
 
-	void dock_widget_t::on_window_closed(editor_tab_area_t&, void* user_data)
-	{
 		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
-		SFG_ASSERT(dock_widget._runtime != nullptr);
-		dock_widget._runtime->set_flag(window_runtime_flags_e::close_requested);
-	}
+		for (dock_node_t& node : dock_widget._dock_nodes)
+		{
+			if (node.node_type == dock_node_type_e::leaf && node.is_payload_over && node.hovered_preview != dock_preview_e::none)
+				return dock_widget.apply_payload_to_preview(node, node.hovered_preview, static_cast<editor_panel_t*>(payload.user_ptr));
+		}
 
-	bool dock_widget_t::on_payload_drop(const editor_payload_t&, void*)
-	{
 		return false;
 	}
 
@@ -328,16 +378,16 @@ namespace sfg
 
 	void dock_widget_t::on_payload_end(const editor_payload_t&, void* user_data)
 	{
-		dock_widget_t& dock_widget			   = *static_cast<dock_widget_t*>(user_data);
-		dock_widget._panel_payload_active	   = false;
-		dock_widget._panel_payload_over_widget = false;
-		dock_widget._hovered_dock_preview	   = DOCK_PREVIEW_NONE;
+		dock_widget_t& dock_widget		  = *static_cast<dock_widget_t*>(user_data);
+		dock_widget._panel_payload_active = false;
+		dock_widget.clear_dock_previews();
 	}
 
-	void dock_widget_t::draw_dock_previews(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
+	void dock_widget_t::draw_leaf_dock_previews(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
-		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
-		if (!dock_widget._panel_payload_active || !dock_widget._panel_payload_over_widget)
+		dock_widget_t&	   dock_widget = *static_cast<dock_widget_t*>(user_data);
+		const dock_node_t* node		   = dock_widget.find_node_by_widget(id);
+		if (!dock_widget._panel_payload_active || !node->is_payload_over)
 			return;
 
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -362,8 +412,8 @@ namespace sfg
 		const u32 draw_order = dock_widget._ui->get_tree().draw_order_const(id) + 1;
 		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
 		{
-			vec4f_t preview = dock_widget._dock_preview_rects[i];
-			if (i == dock_widget._hovered_dock_preview)
+			vec4f_t preview = node->preview_rects[i];
+			if (static_cast<dock_preview_e>(i) == node->hovered_preview)
 				preview = expand_rect(preview, theme.item_spacing * (0.5f + pulse));
 
 			canvas.add_rect({preview.x, preview.y}, {preview.x + preview.z, preview.y + preview.w}, rect, state, draw_order);

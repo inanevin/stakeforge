@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
-#include "panels/editor_base.hpp"
+#include "panels/editor_primary_base.hpp"
 #include "panels/editor_panel_factory.hpp"
 #include "panels/editor_panel_types.hpp"
 #include "panels/editor_theme.hpp"
@@ -290,25 +290,25 @@ namespace sfg
 
 		void on_open_modal_save(void* user_data)
 		{
-			editor_base_t& base = *static_cast<editor_base_t*>(user_data);
+			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
 			base.complete_project_save_prompt(true);
 		}
 
 		void on_open_modal_dont_save(void* user_data)
 		{
-			editor_base_t& base = *static_cast<editor_base_t*>(user_data);
+			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
 			base.complete_project_save_prompt(false);
 		}
 
 		void on_open_modal_cancel(void* user_data)
 		{
-			editor_base_t& base = *static_cast<editor_base_t*>(user_data);
+			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
 			base.cancel_project_save_prompt();
 		}
 
 		void on_file_menu_command(u16 command, void* user_data)
 		{
-			editor_base_t& base = *static_cast<editor_base_t*>(user_data);
+			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
 
 			if (is_panel_menu_command(command))
 				return;
@@ -352,7 +352,7 @@ namespace sfg
 		}
 	}
 
-	void editor_base_t::init(ui::ui_context& ui, window_runtime_t& runtime)
+	void editor_primary_base_t::init(ui::ui_context& ui, window_runtime_t& runtime)
 	{
 		_ui													 = &ui;
 		const editor_theme_t& theme							 = editor_theme_t::get();
@@ -632,6 +632,7 @@ namespace sfg
 		_dock_widget.set_root_node(demo_leaf);
 		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::entities));
 		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::world));
+		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::log));
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
@@ -653,7 +654,7 @@ namespace sfg
 		}
 	}
 
-	void editor_base_t::uninit()
+	void editor_primary_base_t::uninit()
 	{
 		_dock_widget.uninit();
 		_file_menu.uninit();
@@ -671,12 +672,12 @@ namespace sfg
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
 	}
 
-	void editor_base_t::set_current_project_name(const char* name)
+	void editor_primary_base_t::set_current_project_name(const char* name)
 	{
 		_ui->set_widget_text(_project_label, name);
 	}
 
-	bool editor_base_t::is_window_drag_region(const vec2i16_t& pos) const
+	bool editor_primary_base_t::is_window_drag_region(const vec2i16_t& pos) const
 	{
 		const vec2f_t p = {static_cast<f32>(pos.x), static_cast<f32>(pos.y)};
 
@@ -701,7 +702,7 @@ namespace sfg
 		return p.x >= label.x && p.x <= label.x + label.z && p.y >= label.y && p.y <= label.y + label.w;
 	}
 
-	void editor_base_t::prompt_project_save_modal(editor_project_prompt_action_e action)
+	void editor_primary_base_t::prompt_project_save_modal(editor_project_prompt_action_e action)
 	{
 		_pending_project_prompt_action		 = action;
 		editor_modal_button_desc_t buttons[] = {
@@ -712,7 +713,7 @@ namespace sfg
 		editor_app_t::get().get_modal_controller().request_modal("Would you like to save?", "Save current changes before continuing?", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])));
 	}
 
-	void editor_base_t::complete_project_save_prompt(bool save)
+	void editor_primary_base_t::complete_project_save_prompt(bool save)
 	{
 		const editor_project_prompt_action_e action = _pending_project_prompt_action;
 		_pending_project_prompt_action				= editor_project_prompt_action_e::none;
@@ -736,12 +737,12 @@ namespace sfg
 		}
 	}
 
-	void editor_base_t::cancel_project_save_prompt()
+	void editor_primary_base_t::cancel_project_save_prompt()
 	{
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
 	}
 
-	void editor_base_t::prompt_no_project_modal()
+	void editor_primary_base_t::prompt_no_project_modal()
 	{
 		editor_modal_button_desc_t buttons[] = {
 			{.text = "Open", .callback = on_no_project_open, .user_data = this},
@@ -750,18 +751,18 @@ namespace sfg
 		editor_app_t::get().get_modal_controller().request_modal("No Project", "No last project found. Open an existing project or create a new one.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
 	}
 
-	void editor_base_t::on_no_project_open(void* user_data)
+	void editor_primary_base_t::on_no_project_open(void* user_data)
 	{
-		editor_base_t& base = *static_cast<editor_base_t*>(user_data);
-		const string_t path = process::select_file("Open Project", "sfg_project");
+		editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
+		const string_t		   path = process::select_file("Open Project", "sfg_project");
 		if (!editor_app_t::get().load_project(path.c_str()))
 			base.prompt_no_project_modal();
 	}
 
-	void editor_base_t::on_no_project_create(void* user_data)
+	void editor_primary_base_t::on_no_project_create(void* user_data)
 	{
-		editor_base_t& base = *static_cast<editor_base_t*>(user_data);
-		const string_t path = process::save_file("Create Project", "sfg_project");
+		editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
+		const string_t		   path = process::save_file("Create Project", "sfg_project");
 		if (path.empty())
 		{
 			base.prompt_no_project_modal();
