@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "docking/dock_widget.hpp"
 #include "widgets/editor_widgets_file_menu.hpp"
+#include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -70,6 +71,7 @@ namespace sfg
 		void complete_project_save_prompt(bool save);
 		void cancel_project_save_prompt();
 		void set_current_project_name(const char* name);
+		bool is_window_drag_region(const vec2i16_t& pos) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -85,9 +87,13 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*				   _ui			  = nullptr;
-		ui::widget_id_t				   _base		  = NULL_WIDGET;
-		ui::widget_id_t				   _project_label = NULL_WIDGET;
+		ui::ui_context*				   _ui				= nullptr;
+		ui::widget_id_t				   _base			= NULL_WIDGET;
+		ui::widget_id_t				   _project_label	= NULL_WIDGET;
+		ui::widget_id_t				   _top_row_left	= NULL_WIDGET;
+		ui::widget_id_t				   _top_row_strikes = NULL_WIDGET;
+		ui::widget_id_t				   _top_mid_util	= NULL_WIDGET;
+		ui::widget_id_t				   _label_wrap		= NULL_WIDGET;
 		dock_widget_t				   _dock_widget;
 		editor_file_menu_t			   _file_menu;
 		editor_project_prompt_action_e _pending_project_prompt_action = editor_project_prompt_action_e::none;

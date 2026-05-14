@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "docking/dock_area.hpp"
+#include <sfg/math/vec2i16.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -65,6 +66,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+
+		bool is_window_drag_region(const vec2i16_t& pos) const;
 
 		inline ui::widget_id_t get_root() const
 		{

@@ -91,6 +91,16 @@ namespace sfg
 		}
 	}
 
+	bool editor_app_t::on_window_client_hit_test(window_runtime_t&, const vec2i16_t& pos, void* user_data)
+	{
+		editor_surface_t& surface = *static_cast<editor_surface_t*>(user_data);
+		if (surface.content == editor_surface_content_e::editor_base)
+			return surface.editor.is_window_drag_region(pos);
+		if (surface.content == editor_surface_content_e::dock)
+			return surface.dock_widget.is_window_drag_region(pos);
+		return false;
+	}
+
 	bool editor_app_t::init()
 	{
 		editor_text_rasterization_t::set_subpixel_enabled(true);
@@ -547,7 +557,8 @@ namespace sfg
 		editor_surface_t&	   surface = _surfaces.get(handle);
 		surface.content				   = content;
 
-		if (!process::create_window("Stakeforge Editor", pos, size, content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::app_window, 0.75f, content == editor_surface_content_e::payload_root, surface.runtime))
+		const window_style_e window_style = content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::borderless;
+		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, content == editor_surface_content_e::payload_root, surface.runtime))
 		{
 			SFG_ERR("failed creating editor surface window!");
 			_surfaces.remove(handle);
@@ -559,8 +570,10 @@ namespace sfg
 		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size, surface.ui.get());
 		surface.swapchain_size = surface.runtime.size;
 
-		surface.runtime.event_callback			 = &editor_app_t::on_window_event;
-		surface.runtime.event_callback_user_data = &surface;
+		surface.runtime.event_callback			  = &editor_app_t::on_window_event;
+		surface.runtime.event_callback_user_data  = &surface;
+		surface.runtime.client_hit_test_callback  = &editor_app_t::on_window_client_hit_test;
+		surface.runtime.client_hit_test_user_data = &surface;
 
 		return handle;
 	}

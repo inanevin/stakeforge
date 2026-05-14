@@ -35,7 +35,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	struct window_event_t;
+	struct window_runtime_t;
 	typedef void (*window_event_callback)(void* hwnd, const window_event_t& ev, void* user_data);
+	typedef bool (*window_client_hit_test_callback)(window_runtime_t& runtime, const vec2i16_t& pos, void* user_data);
 
 	struct monitor_info_t
 	{
@@ -115,20 +117,22 @@ namespace sfg
 
 	struct window_runtime_t
 	{
-		monitor_info_t		  monitor_info			   = {};
-		window_event_callback event_callback		   = nullptr;
-		void*				  event_callback_user_data = nullptr;
-		void*				  window_handle			   = nullptr;
-		void*				  platform_handle		   = nullptr;
-		vec2i16_t			  pos					   = vec2i16_t::zero;
-		vec2u16_t			  size					   = vec2u16_t::zero;
-		vec2u16_t			  true_size				   = vec2u16_t::zero;
-		vec2i16_t			  mouse_position_abs	   = vec2i16_t::zero;
-		vec2i16_t			  mouse_position		   = vec2i16_t::zero;
-		gfx_swapchain_handle  swapchain				   = {};
-		window_style_e		  style					   = window_style_e::app_window;
-		bitmask_t<u8>		  flags					   = 0;
-		bool				  is_hidden				   = false;
+		monitor_info_t					monitor_info			  = {};
+		window_event_callback			event_callback			  = nullptr;
+		void*							event_callback_user_data  = nullptr;
+		window_client_hit_test_callback client_hit_test_callback  = nullptr;
+		void*							client_hit_test_user_data = nullptr;
+		void*							window_handle			  = nullptr;
+		void*							platform_handle			  = nullptr;
+		vec2i16_t						pos						  = vec2i16_t::zero;
+		vec2u16_t						size					  = vec2u16_t::zero;
+		vec2u16_t						true_size				  = vec2u16_t::zero;
+		vec2i16_t						mouse_position_abs		  = vec2i16_t::zero;
+		vec2i16_t						mouse_position			  = vec2i16_t::zero;
+		gfx_swapchain_handle			swapchain				  = {};
+		window_style_e					style					  = window_style_e::app_window;
+		bitmask_t<u8>					flags					  = 0;
+		bool							is_hidden				  = false;
 
 		inline bool has_flag(window_runtime_flags_e flag) const
 		{

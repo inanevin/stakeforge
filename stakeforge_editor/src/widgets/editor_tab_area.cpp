@@ -269,6 +269,18 @@ namespace sfg
 		switch_tab(identifier);
 	}
 
+	bool editor_tab_area_t::is_over_tab(const vec2f_t& pos) const
+	{
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		for (const editor_tab_t& tab : _tabs)
+		{
+			const ui::layout_out_t& out = tree.out(tab.widget);
+			if (pos.x >= out.pos.x && pos.x <= out.pos.x + out.size.x && pos.y >= out.pos.y && pos.y <= out.pos.y + out.size.y)
+				return true;
+		}
+		return false;
+	}
+
 	void editor_tab_area_t::refresh_status()
 	{
 		if (!_config.can_close)

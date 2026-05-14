@@ -121,6 +121,23 @@ namespace sfg
 		dock_node_add_panel(_dock_nodes.get(handle), panel);
 	}
 
+	bool dock_widget_t::is_window_drag_region(const vec2i16_t& pos) const
+	{
+		if (_root_node.is_null())
+			return false;
+
+		const dock_node_t& node = _dock_nodes.get(_root_node);
+		if (node.node_type != dock_node_type_e::leaf)
+			return false;
+
+		const vec2f_t			p	= {static_cast<f32>(pos.x), static_cast<f32>(pos.y)};
+		const ui::layout_out_t& out = _ui->get_tree().out(node.tab_area.get_root());
+		if (p.x < out.pos.x || p.x > out.pos.x + out.size.x || p.y < out.pos.y || p.y > out.pos.y + out.size.y)
+			return false;
+
+		return !node.tab_area.is_over_tab(p);
+	}
+
 	void dock_widget_t::dock_node_add_panel(dock_node_t& node, editor_panel_t* panel)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);

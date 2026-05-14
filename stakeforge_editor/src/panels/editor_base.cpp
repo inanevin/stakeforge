@@ -417,7 +417,8 @@ namespace sfg
 
 		// top-left title
 		{
-			top_row_left = ui.allocate_widget();
+			top_row_left  = ui.allocate_widget();
+			_top_row_left = top_row_left;
 			ui.set_widget_debug_name(top_row_left, "top_row_left");
 			tree.attach(top_section, top_row_left);
 
@@ -471,7 +472,8 @@ namespace sfg
 
 		// top-left strikes
 		{
-			top_row_strikes = ui.allocate_widget();
+			top_row_strikes	 = ui.allocate_widget();
+			_top_row_strikes = top_row_strikes;
 			ui.set_widget_debug_name(top_row_strikes, "top_row_strikes");
 			tree.attach(top_section, top_row_strikes);
 
@@ -533,7 +535,8 @@ namespace sfg
 			top_mid_divider = editor_dividers_t::add_divider_hor(ui, top_row_mid, theme.divider_thickness, theme.color_text2, theme.color_panel_light, ui::vg_gradient_e::horizontal);
 			ui.set_widget_debug_name(top_mid_divider, "top_mid_divider");
 
-			top_mid_util = ui.allocate_widget();
+			top_mid_util  = ui.allocate_widget();
+			_top_mid_util = top_mid_util;
 			ui.set_widget_debug_name(top_mid_util, "top_mid_util");
 			tree.attach(top_row_mid, top_mid_util);
 
@@ -586,7 +589,8 @@ namespace sfg
 			listener.on_click = on_close_window;
 			ui.get_input().set_listener(window_close, listener);
 
-			label_wrap = ui.allocate_widget();
+			label_wrap	= ui.allocate_widget();
+			_label_wrap = label_wrap;
 			ui.set_widget_debug_name(label_wrap, "label_wrap");
 			tree.attach(top_row_right, label_wrap);
 
@@ -656,12 +660,36 @@ namespace sfg
 		_ui							   = nullptr;
 		_base						   = NULL_WIDGET;
 		_project_label				   = NULL_WIDGET;
+		_top_row_left				   = NULL_WIDGET;
+		_top_row_strikes			   = NULL_WIDGET;
+		_top_mid_util				   = NULL_WIDGET;
+		_label_wrap					   = NULL_WIDGET;
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
 	}
 
 	void editor_base_t::set_current_project_name(const char* name)
 	{
 		_ui->set_widget_text(_project_label, name);
+	}
+
+	bool editor_base_t::is_window_drag_region(const vec2i16_t& pos) const
+	{
+		const vec2f_t p = {static_cast<f32>(pos.x), static_cast<f32>(pos.y)};
+
+		const vec4f_t left = _ui->get_tree().bounds(_top_row_left);
+		if (p.x >= left.x && p.x <= left.x + left.z && p.y >= left.y && p.y <= left.y + left.w)
+			return true;
+
+		const vec4f_t strikes = _ui->get_tree().bounds(_top_row_strikes);
+		if (p.x >= strikes.x && p.x <= strikes.x + strikes.z && p.y >= strikes.y && p.y <= strikes.y + strikes.w)
+			return true;
+
+		const vec4f_t util = _ui->get_tree().bounds(_top_mid_util);
+		if (p.x >= util.x && p.x <= util.x + util.z && p.y >= util.y && p.y <= util.y + util.w)
+			return true;
+
+		const vec4f_t label = _ui->get_tree().bounds(_label_wrap);
+		return p.x >= label.x && p.x <= label.x + label.z && p.y >= label.y && p.y <= label.y + label.w;
 	}
 
 	void editor_base_t::prompt_project_save_modal(editor_project_prompt_action_e action)

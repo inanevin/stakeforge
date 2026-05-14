@@ -123,17 +123,7 @@ namespace
 		else if (style == sfg::window_style_e::alpha)
 			return WS_POPUP | WS_VISIBLE;
 		else
-		{
-			return WS_POPUP | WS_VISIBLE;
-
-			DWORD style = 0;
-			if (composition_enabled())
-				style = WS_POPUP | WS_THICKFRAME | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
-			else
-				style = WS_POPUP | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
-
-			return style;
-		}
+			return WS_POPUP | WS_THICKFRAME;
 	}
 
 	u32 get_ex_style(sfg::window_style_e style, bool always_on_top = false)
@@ -207,6 +197,44 @@ namespace
 		SetLayeredWindowAttributes(hwnd, color_key, final_alpha, LWA_ALPHA | LWA_COLORKEY);
 	}
 
+	LRESULT get_borderless_resize_hit_test(HWND hwnd, POINT pt)
+	{
+		if (IsZoomed(hwnd))
+			return HTCLIENT;
+
+		RECT rect{};
+		GetWindowRect(hwnd, &rect);
+
+		const LONG system_border_x = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+		const LONG system_border_y = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+		const LONG border_x		   = system_border_x > 8 ? system_border_x : 8;
+		const LONG border_y		   = system_border_y > 8 ? system_border_y : 8;
+
+		const bool left	  = pt.x >= rect.left && pt.x < rect.left + border_x;
+		const bool right  = pt.x < rect.right && pt.x >= rect.right - border_x;
+		const bool top	  = pt.y >= rect.top && pt.y < rect.top + border_y;
+		const bool bottom = pt.y < rect.bottom && pt.y >= rect.bottom - border_y;
+
+		if (top && left)
+			return HTTOPLEFT;
+		if (top && right)
+			return HTTOPRIGHT;
+		if (bottom && left)
+			return HTBOTTOMLEFT;
+		if (bottom && right)
+			return HTBOTTOMRIGHT;
+		if (left)
+			return HTLEFT;
+		if (right)
+			return HTRIGHT;
+		if (top)
+			return HTTOP;
+		if (bottom)
+			return HTBOTTOM;
+
+		return HTCLIENT;
+	}
+
 	void push_event(sfg::window_runtime_t& runtime, const sfg::window_event_t& ev)
 	{
 		if (runtime.event_callback != nullptr)
@@ -221,6 +249,29 @@ namespace
 
 		switch (msg)
 		{
+		case WM_NCCALCSIZE:
+			if (runtime->style == sfg::window_style_e::borderless)
+				return 0;
+			break;
+		case WM_NCHITTEST: {
+			const LRESULT result = DefWindowProcA(hwnd, msg, w_param, l_param);
+			if (result != HTCLIENT || runtime->style != sfg::window_style_e::borderless)
+				return result;
+
+			POINT		  pt	 = {GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param)};
+			const LRESULT resize = get_borderless_resize_hit_test(hwnd, pt);
+			if (resize != HTCLIENT)
+				return resize;
+
+			if (runtime->client_hit_test_callback == nullptr)
+				return result;
+
+			ScreenToClient(hwnd, &pt);
+			if (runtime->client_hit_test_callback(*runtime, {static_cast<i16>(pt.x), static_cast<i16>(pt.y)}, runtime->client_hit_test_user_data))
+				return HTCAPTION;
+
+			return result;
+		}
 		case WM_DROPFILES:
 			DragFinish(reinterpret_cast<HDROP>(w_param));
 			return 0;

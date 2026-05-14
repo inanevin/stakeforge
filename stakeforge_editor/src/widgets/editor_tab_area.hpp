@@ -105,6 +105,7 @@ namespace sfg
 		{
 			return _root;
 		}
+		bool is_over_tab(const vec2f_t& pos) const;
 
 	private:
 		void		  update_markers(f32 dt);
