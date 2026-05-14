@@ -352,7 +352,7 @@ namespace sfg
 		}
 	}
 
-	void editor_base_t::init(ui::ui_context& ui)
+	void editor_base_t::init(ui::ui_context& ui, window_runtime_t& runtime)
 	{
 		_ui													 = &ui;
 		const editor_theme_t& theme							 = editor_theme_t::get();
@@ -623,7 +623,9 @@ namespace sfg
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		_dock_widget.init(ui, _base);
+		dock_widget_config_t dock_config = {};
+		dock_config.runtime				 = &runtime;
+		_dock_widget.init(ui, _base, dock_config);
 		ui::layout_in_t& dock_in		   = tree.in(_dock_widget.get_root());
 		dock_in.size_mode_y				   = ui::axis_mode_e::fill;
 		const dock_node_handle_t demo_leaf = _dock_widget.create_leaf_node(_dock_widget.get_root());

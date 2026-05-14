@@ -38,6 +38,8 @@ namespace sfg::ui
 
 namespace sfg
 {
+	struct window_runtime_t;
+
 	enum class editor_project_prompt_action_e : u8
 	{
 		none,
@@ -59,7 +61,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui);
+		void init(ui::ui_context& ui, window_runtime_t& runtime);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

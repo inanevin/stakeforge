@@ -33,11 +33,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	class paint_layer_t;
 	class ui_context;
+	class vg_canvas_t;
 }
 
 namespace sfg
 {
+	struct editor_payload_t;
 	struct window_runtime_t;
 
 	struct dock_widget_config_t
@@ -84,10 +87,13 @@ namespace sfg
 
 	private:
 		static constexpr u32 DOCK_POOL_INITIAL_CAPACITY = 32;
+		static constexpr u32 DOCK_PREVIEW_COUNT			= 5;
+		static constexpr u32 DOCK_PREVIEW_NONE			= DOCK_PREVIEW_COUNT;
 
 		void				 dock_node_add_panel(dock_node_t& node, editor_panel_t* panel);
 		void				 dock_node_remove_panel(dock_node_t& node, sid_t identifier);
 		void				 set_leaf_active_panel(dock_node_t& node, sid_t active_tab);
+		void				 update_dock_previews(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos);
 		dock_node_handle_t	 alloc_dock_node();
 		void				 free_dock_node(dock_node_handle_t handle);
 		dock_border_handle_t alloc_dock_border();
@@ -98,14 +104,22 @@ namespace sfg
 		static void on_window_minimized(editor_tab_area_t& tab_area, void* user_data);
 		static void on_window_maximized(editor_tab_area_t& tab_area, void* user_data);
 		static void on_window_closed(editor_tab_area_t& tab_area, void* user_data);
+		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
+		static void on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data);
+		static void on_payload_end(const editor_payload_t& payload, void* user_data);
+		static void draw_dock_previews(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
-		ui::ui_context*											  _ui			= nullptr;
-		window_runtime_t*										  _runtime		= nullptr;
-		ui::widget_id_t											  _root			= NULL_WIDGET;
-		dock_node_handle_t										  _root_node	= {};
-		dock_widget_config_t									  _config		= {};
-		dynamic_gen_pool_t<dock_node_t, u16, dock_node_tag_t>	  _dock_nodes	= {};
-		dynamic_gen_pool_t<dock_border_t, u16, dock_border_tag_t> _dock_borders = {};
+		ui::ui_context*											  _ui									  = nullptr;
+		window_runtime_t*										  _runtime								  = nullptr;
+		vec4f_t													  _dock_preview_rects[DOCK_PREVIEW_COUNT] = {};
+		ui::widget_id_t											  _root									  = NULL_WIDGET;
+		dock_node_handle_t										  _root_node							  = {};
+		dock_widget_config_t									  _config								  = {};
+		dynamic_gen_pool_t<dock_node_t, u16, dock_node_tag_t>	  _dock_nodes							  = {};
+		dynamic_gen_pool_t<dock_border_t, u16, dock_border_tag_t> _dock_borders							  = {};
+		u32														  _hovered_dock_preview					  = DOCK_PREVIEW_NONE;
+		bool													  _panel_payload_active					  = false;
+		bool													  _panel_payload_over_widget			  = false;
 	};
 }

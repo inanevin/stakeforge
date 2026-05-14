@@ -2,21 +2,39 @@
 
 #include "docking/dock_widget.hpp"
 #include "editor_app.hpp"
+#include "editor_payload_controller.hpp"
 #include "editor_payload_type.hpp"
 #include "panels/editor_panel.hpp"
 #include "panels/editor_panel_factory.hpp"
 #include "panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/easing.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
+#include <sfg/platform/time.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		bool contains(const vec4f_t& rect, const vec2f_t& p)
+		{
+			return p.x >= rect.x && p.x <= rect.x + rect.z && p.y >= rect.y && p.y <= rect.y + rect.w;
+		}
+
+		vec4f_t expand_rect(const vec4f_t& rect, f32 value)
+		{
+			return {rect.x - value, rect.y - value, rect.z + value * 2.0f, rect.w + value * 2.0f};
+		}
+	}
+
 	void dock_widget_t::init(ui::ui_context& ui, ui::widget_id_t parent, const dock_widget_config_t& config)
 	{
 		SFG_ASSERT(_ui == nullptr);
@@ -38,6 +56,9 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::none;
+
+		ui.get_paint().set_custom(_root, draw_dock_previews, this);
+		editor_app_t::get().get_payload_controller().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 	}
 
 	void dock_widget_t::uninit()
@@ -56,12 +77,16 @@ namespace sfg
 		}
 
 		_ui->deallocate_widget(_root);
+		editor_app_t::get().get_payload_controller().unregister_listener(this);
 
-		_ui		   = nullptr;
-		_runtime   = nullptr;
-		_root	   = NULL_WIDGET;
-		_root_node = {};
-		_config	   = {};
+		_ui						   = nullptr;
+		_runtime				   = nullptr;
+		_root					   = NULL_WIDGET;
+		_root_node				   = {};
+		_config					   = {};
+		_hovered_dock_preview	   = DOCK_PREVIEW_NONE;
+		_panel_payload_active	   = false;
+		_panel_payload_over_widget = false;
 		_dock_nodes.clear();
 		_dock_borders.clear();
 	}
@@ -188,6 +213,57 @@ namespace sfg
 			panel->make_visible(TO_SID(panel->get_title()) == active_tab);
 	}
 
+	void dock_widget_t::update_dock_previews(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos)
+	{
+		_panel_payload_active	   = payload.type == editor_payload_type_e::panel;
+		_panel_payload_over_widget = false;
+		_hovered_dock_preview	   = DOCK_PREVIEW_NONE;
+
+		if (!_panel_payload_active)
+			return;
+
+		SFG_ASSERT(_runtime != nullptr);
+
+		const vec2f_t mouse = {
+			static_cast<f32>(abs_mouse_pos.x - _runtime->pos.x),
+			static_cast<f32>(abs_mouse_pos.y - _runtime->pos.y),
+		};
+
+		const ui::layout_out_t& out		  = _ui->get_tree().out(_root);
+		const vec4f_t			root_rect = {out.pos.x, out.pos.y, out.size.x, out.size.y};
+		_panel_payload_over_widget		  = contains(root_rect, mouse);
+		if (!_panel_payload_over_widget)
+			return;
+
+		const editor_theme_t& theme	   = editor_theme_t::get();
+		const f32			  margin   = theme.item_height;
+		const f32			  x		   = out.pos.x + margin;
+		const f32			  y		   = out.pos.y + margin;
+		const f32			  w		   = math::max(theme.item_height * 4.0f, out.size.x - margin * 2.0f);
+		const f32			  h		   = math::max(theme.item_height * 4.0f, out.size.y - margin * 2.0f);
+		const f32			  edge_w   = math::min(w * 0.09f, theme.item_height * 3.5f);
+		const f32			  edge_h   = math::min(h * 0.09f, theme.item_height * 2.75f);
+		const f32			  long_w   = w * 0.16f;
+		const f32			  long_h   = h * 0.16f;
+		const f32			  center_w = math::min(w * 0.11f, theme.item_height * 3.5f);
+		const f32			  center_h = math::min(h * 0.11f, theme.item_height * 2.75f);
+
+		_dock_preview_rects[0] = {x + (w - long_w) * 0.5f, y, long_w, edge_h};
+		_dock_preview_rects[1] = {x, y + (h - long_h) * 0.5f, edge_w, long_h};
+		_dock_preview_rects[2] = {x + (w - long_w) * 0.5f, y + h - edge_h, long_w, edge_h};
+		_dock_preview_rects[3] = {x + w - edge_w, y + (h - long_h) * 0.5f, edge_w, long_h};
+		_dock_preview_rects[4] = {x + (w - center_w) * 0.5f, y + (h - center_h) * 0.5f, center_w, center_h};
+
+		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
+		{
+			if (contains(_dock_preview_rects[i], mouse))
+			{
+				_hovered_dock_preview = i;
+				return;
+			}
+		}
+	}
+
 	void dock_widget_t::on_leaf_tab_switched(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
 	{
 		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
@@ -237,6 +313,61 @@ namespace sfg
 		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
 		SFG_ASSERT(dock_widget._runtime != nullptr);
 		dock_widget._runtime->set_flag(window_runtime_flags_e::close_requested);
+	}
+
+	bool dock_widget_t::on_payload_drop(const editor_payload_t&, void*)
+	{
+		return false;
+	}
+
+	void dock_widget_t::on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		dock_widget.update_dock_previews(payload, abs_mouse_pos);
+	}
+
+	void dock_widget_t::on_payload_end(const editor_payload_t&, void* user_data)
+	{
+		dock_widget_t& dock_widget			   = *static_cast<dock_widget_t*>(user_data);
+		dock_widget._panel_payload_active	   = false;
+		dock_widget._panel_payload_over_widget = false;
+		dock_widget._hovered_dock_preview	   = DOCK_PREVIEW_NONE;
+	}
+
+	void dock_widget_t::draw_dock_previews(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		if (!dock_widget._panel_payload_active || !dock_widget._panel_payload_over_widget)
+			return;
+
+		const editor_theme_t& theme = editor_theme_t::get();
+		const u64			  us	= static_cast<u64>(time_t::get_cpu_microseconds());
+		const f32			  phase = static_cast<f32>(us % 800000ull) / 800000.0f;
+		const f32			  pulse = easing_t::sinusodial(0.0f, 1.0f, phase);
+
+		ui::vg_rect_paint_t rect = {};
+		rect.fill_color_a		 = theme.color_accent1;
+		rect.fill_color_b		 = theme.color_accent1;
+		rect.outline_color		 = theme.color_accent1;
+		rect.rounding			 = theme.item_spacing;
+		rect.outline_thickness	 = theme.outline_thickness;
+		rect.rounding_segs		 = 8;
+		rect.fill_color_a.w		 = 0.18f;
+		rect.fill_color_b.w		 = 0.18f;
+		rect.outline_color.w	 = 0.85f;
+
+		ui::ui_render_state_t state = {};
+		state.pipeline				= paint.get_pipelines().default_pipeline;
+
+		const u32 draw_order = dock_widget._ui->get_tree().draw_order_const(id) + 1;
+		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
+		{
+			vec4f_t preview = dock_widget._dock_preview_rects[i];
+			if (i == dock_widget._hovered_dock_preview)
+				preview = expand_rect(preview, theme.item_spacing * (0.5f + pulse));
+
+			canvas.add_rect({preview.x, preview.y}, {preview.x + preview.z, preview.y + preview.w}, rect, state, draw_order);
+		}
 	}
 
 	dock_node_handle_t dock_widget_t::alloc_dock_node()

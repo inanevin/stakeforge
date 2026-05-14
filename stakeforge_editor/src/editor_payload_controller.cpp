@@ -101,6 +101,10 @@ namespace sfg
 
 		follow_cursor();
 
+		const vec2i16_t		   cursor  = process::get_cursor_position();
+		const editor_payload_t payload = make_payload(cursor);
+		tick_listeners(payload, cursor);
+
 		const bool mouse_down = is_any_mouse_down();
 		if (mouse_down)
 		{
@@ -133,7 +137,24 @@ namespace sfg
 	void editor_payload_controller_t::register_listener(editor_payload_listener_fn fn, void* user_data)
 	{
 		SFG_ASSERT(fn != nullptr);
-		_listeners.push_back({fn, user_data});
+		_listeners.push_back({.fn = fn, .user_data = user_data});
+	}
+
+	void editor_payload_controller_t::register_listener(editor_payload_listener_fn fn, editor_payload_tick_fn tick_fn, editor_payload_end_fn end_fn, void* user_data)
+	{
+		SFG_ASSERT(fn != nullptr || tick_fn != nullptr || end_fn != nullptr);
+		_listeners.push_back({.fn = fn, .tick_fn = tick_fn, .end_fn = end_fn, .user_data = user_data});
+	}
+
+	void editor_payload_controller_t::unregister_listener(void* user_data)
+	{
+		for (auto it = _listeners.begin(); it != _listeners.end();)
+		{
+			if (it->user_data == user_data)
+				it = _listeners.erase(it);
+			else
+				++it;
+		}
 	}
 
 	void editor_payload_controller_t::set_unhandled_listener(editor_payload_unhandled_fn fn, void* user_data)
@@ -147,22 +168,19 @@ namespace sfg
 		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(_active);
 
-		editor_payload_t payload = {};
-		payload.text			 = _text.c_str();
-		payload.user_ptr		 = _user_ptr;
-		payload.type			 = _type;
-		payload.pos				 = process::get_cursor_position();
-		payload.size_value		 = _size_value;
+		const editor_payload_t payload = make_payload(process::get_cursor_position());
 
 		bool accepted = false;
 		for (const listener_t& listener : _listeners)
 		{
-			if (listener.fn(payload, listener.user_data))
+			if (listener.fn != nullptr && listener.fn(payload, listener.user_data))
 			{
 				accepted = true;
 				break;
 			}
 		}
+
+		end_listeners(payload);
 
 		if (!accepted && _unhandled_fn != nullptr)
 			_unhandled_fn(payload, _unhandled_user_data);
@@ -179,6 +197,35 @@ namespace sfg
 	bool editor_payload_controller_t::is_any_mouse_down() const
 	{
 		return process::is_mouse_down(static_cast<u16>(input_code::mouse_0)) || process::is_mouse_down(static_cast<u16>(input_code::mouse_1)) || process::is_mouse_down(static_cast<u16>(input_code::mouse_2));
+	}
+
+	editor_payload_t editor_payload_controller_t::make_payload(const vec2i16_t& pos) const
+	{
+		editor_payload_t payload = {};
+		payload.text			 = _text.c_str();
+		payload.user_ptr		 = _user_ptr;
+		payload.type			 = _type;
+		payload.pos				 = pos;
+		payload.size_value		 = _size_value;
+		return payload;
+	}
+
+	void editor_payload_controller_t::tick_listeners(const editor_payload_t& payload, const vec2i16_t& pos)
+	{
+		for (const listener_t& listener : _listeners)
+		{
+			if (listener.tick_fn != nullptr)
+				listener.tick_fn(payload, pos, listener.user_data);
+		}
+	}
+
+	void editor_payload_controller_t::end_listeners(const editor_payload_t& payload)
+	{
+		for (const listener_t& listener : _listeners)
+		{
+			if (listener.end_fn != nullptr)
+				listener.end_fn(payload, listener.user_data);
+		}
 	}
 
 	void editor_payload_controller_t::set_visible(bool visible)

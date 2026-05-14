@@ -253,7 +253,7 @@ namespace sfg
 		if (surface.content == editor_surface_content_e::editor_base)
 		{
 			surface.editor = make_unique<editor_base_t>();
-			surface.editor->init(*surface.ui);
+			surface.editor->init(*surface.ui, *surface.runtime);
 			surface.editor->set_current_project_name(_current_project.name.c_str());
 		}
 		else if (surface.content == editor_surface_content_e::dock)
