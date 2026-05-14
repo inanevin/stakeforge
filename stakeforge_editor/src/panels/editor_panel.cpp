@@ -17,7 +17,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "editor_panel");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.pos_mode_x		 = ui::pos_mode_e::flow;
@@ -33,5 +32,23 @@ namespace sfg
 
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;
+	}
+
+	void editor_panel_t::assign(ui::ui_context& ui, ui::widget_id_t parent)
+	{
+		if (!is_inited())
+		{
+			init(ui, parent);
+			return;
+		}
+
+		SFG_ASSERT(_ui == &ui);
+		_ui->get_tree().attach(parent, _root);
+	}
+
+	void editor_panel_t::set_title(const char* title)
+	{
+		SFG_ASSERT(title != nullptr);
+		_title = title;
 	}
 }

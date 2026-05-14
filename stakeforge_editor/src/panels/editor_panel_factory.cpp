@@ -7,25 +7,36 @@ namespace sfg
 {
 	editor_panel_t* editor_panel_factory_t::create_panel(editor_panel_type_e type)
 	{
+		editor_panel_t* panel = nullptr;
 		switch (type)
 		{
 		case editor_panel_type_e::entities:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		case editor_panel_type_e::assets:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		case editor_panel_type_e::log:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		case editor_panel_type_e::world:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		case editor_panel_type_e::inspector:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		case editor_panel_type_e::animation:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		case editor_panel_type_e::profiling:
-			return new editor_panel_t();
+			panel = new editor_panel_t();
+			break;
 		default:
 			return nullptr;
 		}
+
+		panel->set_title(editor_panel_type_to_string(type));
+		return panel;
 	}
 
 	void editor_panel_factory_t::delete_panel(editor_panel_t* panel)

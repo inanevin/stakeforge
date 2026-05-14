@@ -65,6 +65,22 @@ namespace sfg
 		}
 	}
 
+	ui::widget_id_t editor_misc_widgets_t::add_spacer(ui::ui_context& ui, ui::widget_id_t parent, const vec2f_t& size)
+	{
+		ui::layout_tree_t& tree = ui.get_tree();
+
+		const ui::widget_id_t id = ui.allocate_widget();
+		tree.attach(parent, id);
+		ui.set_widget_debug_name(id, "spacer");
+
+		ui::layout_in_t& in = tree.in(id);
+		in.size_mode_x		= ui::axis_mode_e::fixed;
+		in.size_mode_y		= ui::axis_mode_e::fixed;
+		in.size_value		= size;
+
+		return id;
+	}
+
 	editor_window_buttons_t editor_misc_widgets_t::add_window_buttons(
 		ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& frame_color, const vec4f_t& alternative_frame_color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& icon_color, f32 icon_point_size)
 	{

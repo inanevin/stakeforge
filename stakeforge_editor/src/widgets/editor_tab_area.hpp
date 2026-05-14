@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -35,21 +37,48 @@ namespace sfg::ui
 
 namespace sfg
 {
-	struct editor_window_buttons_t
+	struct editor_tab_t
 	{
-		ui::widget_id_t minimize_frame = NULL_WIDGET;
-		ui::widget_id_t maximize_frame = NULL_WIDGET;
-		ui::widget_id_t close_frame	   = NULL_WIDGET;
-		ui::widget_id_t minimize_icon  = NULL_WIDGET;
-		ui::widget_id_t maximize_icon  = NULL_WIDGET;
-		ui::widget_id_t close_icon	   = NULL_WIDGET;
+		sid_t			identifier = 0;
+		ui::widget_id_t widget	   = NULL_WIDGET;
 	};
 
-	class editor_misc_widgets_t final
+	class editor_tab_area_t final
 	{
 	public:
-		static ui::widget_id_t		   add_spacer(ui::ui_context& ui, ui::widget_id_t parent, const vec2f_t& size);
-		static editor_window_buttons_t add_window_buttons(
-			ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& frame_color, const vec4f_t& alternative_frame_color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& icon_color, f32 icon_point_size);
+		editor_tab_area_t()										   = default;
+		~editor_tab_area_t()									   = default;
+		editor_tab_area_t(const editor_tab_area_t&)				   = delete;
+		editor_tab_area_t& operator=(const editor_tab_area_t&)	   = delete;
+		editor_tab_area_t(editor_tab_area_t&&) noexcept			   = default;
+		editor_tab_area_t& operator=(editor_tab_area_t&&) noexcept = default;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent);
+		void uninit();
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void add_tab(const char* title);
+		void remove_tab(sid_t identifier);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
+
+	private:
+		ui::ui_context*		   _ui	 = nullptr;
+		ui::widget_id_t		   _root = NULL_WIDGET;
+		vector_t<editor_tab_t> _tabs;
 	};
 }

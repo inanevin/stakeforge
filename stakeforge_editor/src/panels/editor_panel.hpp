@@ -51,6 +51,8 @@ namespace sfg
 
 		virtual void init(ui::ui_context& ui, ui::widget_id_t parent);
 		virtual void uninit();
+		void		 assign(ui::ui_context& ui, ui::widget_id_t parent);
+		void		 set_title(const char* title);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -60,9 +62,18 @@ namespace sfg
 		{
 			return _root;
 		}
+		inline bool is_inited() const
+		{
+			return _ui != nullptr;
+		}
+		inline const char* get_title() const
+		{
+			return _title;
+		}
 
 	protected:
-		ui::ui_context* _ui	  = nullptr;
-		ui::widget_id_t _root = NULL_WIDGET;
+		ui::ui_context* _ui	   = nullptr;
+		ui::widget_id_t _root  = NULL_WIDGET;
+		const char*		_title = "";
 	};
 }

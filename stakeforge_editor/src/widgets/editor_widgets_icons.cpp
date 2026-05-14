@@ -18,6 +18,7 @@ namespace sfg
 		const ui::widget_id_t id = ui.allocate_widget();
 		tree.attach(parent, id);
 		tree.draw_order(id) = tree.draw_order_const(parent) + 1;
+		ui.set_widget_debug_name(id, "icon");
 
 		ui::layout_in_t& in = tree.in(id);
 		in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
@@ -30,5 +31,27 @@ namespace sfg
 		paint.set_text(id, ui.widget_text(id), ui.widget_text_len(id), {.font = theme.font_icons, .color = color, .point_size = point_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		return id;
+	}
+
+	ui::widget_id_t editor_icon_widgets_t::add_naked_icon_button(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 size, const vec4f_t& color)
+	{
+		ui::layout_tree_t& tree = ui.get_tree();
+
+		const ui::widget_id_t wrapper = ui.allocate_widget();
+		tree.attach(parent, wrapper);
+		ui.set_widget_debug_name(wrapper, "icon_button_wrapper");
+
+		ui::layout_in_t& in = tree.in(wrapper);
+		in.flags			= ui::wf_visible | ui::wf_input;
+		in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+		in.pos_value.y		= 0.5f;
+		in.anchor_y			= ui::anchor_e::center;
+		in.size_mode_x		= ui::axis_mode_e::fixed;
+		in.size_mode_y		= ui::axis_mode_e::fixed;
+		in.size_value		= {size, size};
+
+		add_icon(ui, wrapper, icon, size, color);
+
+		return wrapper;
 	}
 }

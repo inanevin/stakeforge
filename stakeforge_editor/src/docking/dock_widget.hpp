@@ -67,6 +67,7 @@ namespace sfg
 		static constexpr u32 DOCK_POOL_INITIAL_CAPACITY = 32;
 
 		dock_node_handle_t	 create_leaf_node(ui::widget_id_t parent);
+		void				 dock_node_add_panel(dock_node_t& node, editor_panel_t* panel);
 		dock_node_handle_t	 alloc_dock_node();
 		void				 free_dock_node(dock_node_handle_t handle);
 		dock_border_handle_t alloc_dock_border();

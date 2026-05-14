@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
+#include "widgets/editor_tab_area.hpp"
 
 namespace sfg
 {
@@ -60,11 +61,11 @@ namespace sfg
 	struct dock_node_t
 	{
 		vector_t<editor_panel_t*> panels;
-		f32						  split_value	  = 0.0f;
-		dock_border_handle_t	  border		  = {};
-		ui::widget_id_t			  widget		  = NULL_WIDGET;
-		ui::widget_id_t			  tab_area		  = NULL_WIDGET;
-		ui::widget_id_t			  body			  = NULL_WIDGET;
+		f32						  split_value = 0.0f;
+		dock_border_handle_t	  border	  = {};
+		ui::widget_id_t			  widget	  = NULL_WIDGET;
+		ui::widget_id_t			  body		  = NULL_WIDGET;
+		editor_tab_area_t		  tab_area;
 		dock_node_type_e		  node_type		  = dock_node_type_e::leaf;
 		dock_split_direction_e	  split_direction = dock_split_direction_e::horizontal;
 	};
