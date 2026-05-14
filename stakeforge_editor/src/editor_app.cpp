@@ -45,20 +45,19 @@ namespace sfg
 
 	void editor_app_t::on_window_event(void*, const window_event_t& ev, void* user_data)
 	{
-		editor_surface_t* surface = static_cast<editor_surface_t*>(user_data);
-		if (!surface)
+		window_runtime_t& runtime = *static_cast<window_runtime_t*>(user_data);
+		editor_surface_t& surface = editor_app_t::get().get_surface_by_runtime(runtime);
+
+		if (!surface.ui)
 			return;
 
-		if (!surface->ui)
-			return;
-
-		ui::ui_context& ui = *surface->ui;
+		ui::ui_context& ui = *surface.ui;
 
 		switch (ev.type)
 		{
 		case window_event_type_e::delta:
 		case window_event_type_e::mouse: {
-			const vec2i16_t mp = surface->runtime.mouse_position;
+			const vec2i16_t mp = runtime.mouse_position;
 			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
 
 			if (ev.type == window_event_type_e::mouse)
@@ -91,13 +90,14 @@ namespace sfg
 		}
 	}
 
-	bool editor_app_t::on_window_client_hit_test(window_runtime_t&, const vec2i16_t& pos, void* user_data)
+	bool editor_app_t::on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void* user_data)
 	{
-		editor_surface_t& surface = *static_cast<editor_surface_t*>(user_data);
+		editor_app_t&	  app	  = *static_cast<editor_app_t*>(user_data);
+		editor_surface_t& surface = app.get_surface_by_runtime(runtime);
 		if (surface.content == editor_surface_content_e::editor_base)
-			return surface.editor.is_window_drag_region(pos);
+			return surface.editor->is_window_drag_region(pos);
 		if (surface.content == editor_surface_content_e::dock)
-			return surface.dock_widget.is_window_drag_region(pos);
+			return surface.dock_widget->is_window_drag_region(pos);
 		return false;
 	}
 
@@ -192,7 +192,7 @@ namespace sfg
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 		if (!load_project(_current_project.path.c_str()))
-			get_main_surface().editor.prompt_no_project_modal();
+			get_main_surface().editor->prompt_no_project_modal();
 		tick();
 		return true;
 	}
@@ -210,10 +210,10 @@ namespace sfg
 			if (surface.ui)
 			{
 				if (surface.content == editor_surface_content_e::editor_base)
-					surface.editor.uninit();
+					surface.editor->uninit();
 				if (surface.content == editor_surface_content_e::dock)
-					surface.dock_widget.uninit();
-				surface.modal_controller.uninit();
+					surface.dock_widget->uninit();
+				surface.modal_controller->uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
 			}
@@ -221,7 +221,7 @@ namespace sfg
 			if (!surface.swapchain.is_null())
 				_renderer.destroy_swapchain(surface.swapchain);
 			surface.swapchain = {};
-			process::destroy_window(surface.runtime.window_handle);
+			process::destroy_window(surface.runtime->window_handle);
 		}
 
 		_renderer.uninit();
@@ -248,15 +248,18 @@ namespace sfg
 		surface.ui->get_paint().set_pipelines(pipelines);
 		surface.ui->set_debug_draw(_debug_mode);
 
-		surface.modal_controller.init(*surface.ui);
+		surface.modal_controller = make_unique<editor_modal_controller_t>();
+		surface.modal_controller->init(*surface.ui);
 		if (surface.content == editor_surface_content_e::editor_base)
 		{
-			surface.editor.init(*surface.ui);
-			surface.editor.set_current_project_name(_current_project.name.c_str());
+			surface.editor = make_unique<editor_base_t>();
+			surface.editor->init(*surface.ui);
+			surface.editor->set_current_project_name(_current_project.name.c_str());
 		}
 		else if (surface.content == editor_surface_content_e::dock)
 		{
-			surface.dock_widget.init(*surface.ui, surface.ui->get_root());
+			surface.dock_widget = make_unique<dock_widget_t>();
+			surface.dock_widget->init(*surface.ui, surface.ui->get_root());
 		}
 	}
 
@@ -306,9 +309,9 @@ namespace sfg
 			return;
 
 		editor_surface_t&		 surface = app._surfaces.get(surface_handle);
-		const dock_node_handle_t leaf	 = surface.dock_widget.create_leaf_node(surface.dock_widget.get_root());
-		surface.dock_widget.set_root_node(leaf);
-		surface.dock_widget.dock_node_add_panel(leaf, panel);
+		const dock_node_handle_t leaf	 = surface.dock_widget->create_leaf_node(surface.dock_widget->get_root());
+		surface.dock_widget->set_root_node(leaf);
+		surface.dock_widget->dock_node_add_panel(leaf, panel);
 	}
 
 	void editor_app_t::unload_current_project()
@@ -350,7 +353,7 @@ namespace sfg
 		for (editor_surface_t& surface : _surfaces)
 		{
 			if (surface.content == editor_surface_content_e::editor_base)
-				surface.editor.set_current_project_name(_current_project.name.c_str());
+				surface.editor->set_current_project_name(_current_project.name.c_str());
 		}
 		return true;
 	}
@@ -397,8 +400,8 @@ namespace sfg
 				continue;
 
 			editor_layout_window_t window = {};
-			window.pos					  = surface.runtime.pos;
-			window.size					  = surface.runtime.size;
+			window.pos					  = surface.runtime->pos;
+			window.size					  = surface.runtime->size;
 			window.is_primary			  = surface.content == editor_surface_content_e::editor_base;
 			if (window.is_primary)
 			{
@@ -433,14 +436,25 @@ namespace sfg
 		return *_surfaces.begin();
 	}
 
+	editor_surface_t& editor_app_t::get_surface_by_runtime(window_runtime_t& runtime)
+	{
+		for (editor_surface_t& surface : _surfaces)
+		{
+			if (surface.runtime.get() == &runtime)
+				return surface;
+		}
+		SFG_ASSERT(false);
+		return *_surfaces.begin();
+	}
+
 	editor_modal_controller_t& editor_app_t::get_modal_controller()
 	{
-		return get_main_surface().modal_controller;
+		return *get_main_surface().modal_controller;
 	}
 
 	const editor_modal_controller_t& editor_app_t::get_modal_controller() const
 	{
-		return get_main_surface().modal_controller;
+		return *get_main_surface().modal_controller;
 	}
 
 	editor_payload_controller_t& editor_app_t::get_payload_controller()
@@ -478,7 +492,7 @@ namespace sfg
 				const surface_handle_t handle  = *it;
 				editor_surface_t&	   surface = _surfaces.get(handle);
 
-				if (surface.runtime.has_flag(window_runtime_flags_e::close_requested) || main_destroyed)
+				if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || main_destroyed)
 				{
 					_renderer.end_render();
 					if (surface.content == editor_surface_content_e::editor_base)
@@ -489,8 +503,8 @@ namespace sfg
 					continue;
 				}
 
-				const bool minimized = surface.runtime.has_flag(window_runtime_flags_e::minimized);
-				const bool hidden	 = surface.runtime.is_hidden;
+				const bool minimized = surface.runtime->has_flag(window_runtime_flags_e::minimized);
+				const bool hidden	 = surface.runtime->is_hidden;
 
 				if (minimized != surface.is_minimized)
 				{
@@ -506,17 +520,17 @@ namespace sfg
 					_renderer.set_swapchain_visible(surface.swapchain, !hidden);
 				}
 
-				if (!minimized && !hidden && surface.runtime.size != surface.swapchain_size)
+				if (!minimized && !hidden && surface.runtime->size != surface.swapchain_size)
 				{
 					_renderer.end_render();
-					_renderer.resize_swapchain(surface.swapchain, surface.runtime.size, surface.runtime.monitor_info.dpi_scale);
-					surface.swapchain_size = surface.runtime.size;
+					_renderer.resize_swapchain(surface.swapchain, surface.runtime->size, surface.runtime->monitor_info.dpi_scale);
+					surface.swapchain_size = surface.runtime->size;
 				}
 
 				if (!minimized && !hidden && surface.ui)
 				{
 					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
-					const f32	  dpi_scale = surface.runtime.monitor_info.dpi_scale > 0.0f ? surface.runtime.monitor_info.dpi_scale : 1.0f;
+					const f32	  dpi_scale = surface.runtime->monitor_info.dpi_scale > 0.0f ? surface.runtime->monitor_info.dpi_scale : 1.0f;
 					surface.ui->tick(screen, dpi_scale, dt);
 					surface.ui->publish_frame();
 				}
@@ -556,9 +570,10 @@ namespace sfg
 		const surface_handle_t handle  = _surfaces.add();
 		editor_surface_t&	   surface = _surfaces.get(handle);
 		surface.content				   = content;
+		surface.runtime				   = make_unique<window_runtime_t>();
 
 		const window_style_e window_style = content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::borderless;
-		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, content == editor_surface_content_e::payload_root, surface.runtime))
+		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, content == editor_surface_content_e::payload_root, *surface.runtime))
 		{
 			SFG_ERR("failed creating editor surface window!");
 			_surfaces.remove(handle);
@@ -567,13 +582,13 @@ namespace sfg
 
 		init_surface_ui(surface);
 
-		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size, surface.ui.get());
-		surface.swapchain_size = surface.runtime.size;
+		surface.swapchain	   = _renderer.create_swapchain(surface.runtime->window_handle, surface.runtime->platform_handle, surface.runtime->monitor_info.dpi_scale, surface.runtime->size, surface.ui.get());
+		surface.swapchain_size = surface.runtime->size;
 
-		surface.runtime.event_callback			  = &editor_app_t::on_window_event;
-		surface.runtime.event_callback_user_data  = &surface;
-		surface.runtime.client_hit_test_callback  = &editor_app_t::on_window_client_hit_test;
-		surface.runtime.client_hit_test_user_data = &surface;
+		surface.runtime->event_callback			   = &editor_app_t::on_window_event;
+		surface.runtime->event_callback_user_data  = surface.runtime.get();
+		surface.runtime->client_hit_test_callback  = &editor_app_t::on_window_client_hit_test;
+		surface.runtime->client_hit_test_user_data = this;
 
 		return handle;
 	}
@@ -588,18 +603,18 @@ namespace sfg
 		if (surface.ui)
 		{
 			if (surface.content == editor_surface_content_e::editor_base)
-				surface.editor.uninit();
+				surface.editor->uninit();
 			if (surface.content == editor_surface_content_e::dock)
-				surface.dock_widget.uninit();
+				surface.dock_widget->uninit();
 			if (surface.content == editor_surface_content_e::payload_root)
 				_payload_controller.uninit();
-			surface.modal_controller.uninit();
+			surface.modal_controller->uninit();
 			surface.ui->uninit();
 			surface.ui.reset();
 		}
 		_renderer.destroy_swapchain(surface.swapchain);
 		surface.swapchain = {};
-		process::destroy_window(surface.runtime.window_handle);
+		process::destroy_window(surface.runtime->window_handle);
 		_surfaces.remove(handle);
 	}
 

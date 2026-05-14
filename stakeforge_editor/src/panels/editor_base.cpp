@@ -234,7 +234,7 @@ namespace sfg
 			if (btn != ui::mouse_button_e::left)
 				return;
 
-			process::minimize_window(editor_app_t::get().get_main_surface().runtime.window_handle);
+			process::minimize_window(editor_app_t::get().get_main_surface().runtime->window_handle);
 		}
 
 		void on_maximize_window(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void*)
@@ -242,7 +242,7 @@ namespace sfg
 			if (btn != ui::mouse_button_e::left)
 				return;
 
-			process::toggle_maximize_window(editor_app_t::get().get_main_surface().runtime.window_handle);
+			process::toggle_maximize_window(editor_app_t::get().get_main_surface().runtime->window_handle);
 		}
 
 		void on_close_window(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void*)
@@ -250,7 +250,7 @@ namespace sfg
 			if (btn != ui::mouse_button_e::left)
 				return;
 
-			editor_app_t::get().get_main_surface().runtime.set_flag(window_runtime_flags_e::close_requested);
+			editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
 		}
 
 		void request_error_modal(const char* title, const char* description)
@@ -334,7 +334,7 @@ namespace sfg
 			case editor_file_menu_commands_e::scene_load:
 				break;
 			case editor_file_menu_commands_e::file_exit:
-				editor_app_t::get().get_main_surface().runtime.set_flag(window_runtime_flags_e::close_requested);
+				editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
 				break;
 			case editor_file_menu_commands_e::view_debug_bounds:
 			case editor_file_menu_commands_e::debug_toggle_bounds:

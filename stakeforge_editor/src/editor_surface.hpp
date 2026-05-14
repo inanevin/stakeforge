@@ -47,17 +47,17 @@ namespace sfg
 
 	struct editor_surface_t
 	{
-		window_runtime_t		  runtime		 = {};
-		gfx_swapchain_handle	  swapchain		 = {};
-		vec2u16_t				  swapchain_size = {};
-		unique_t<ui::ui_context>  ui;
-		editor_modal_controller_t modal_controller;
-		editor_base_t			  editor;
-		dock_widget_t			  dock_widget;
-		ui::widget_id_t			  payload_root = NULL_WIDGET;
-		ui::widget_id_t			  payload_text = NULL_WIDGET;
-		editor_surface_content_e  content	   = editor_surface_content_e::dock;
-		bool					  is_minimized = false;
-		bool					  is_hidden	   = false;
+		unique_t<editor_base_t>				editor;
+		unique_t<editor_modal_controller_t> modal_controller;
+		unique_t<dock_widget_t>				dock_widget;
+		unique_t<window_runtime_t>			runtime;
+		unique_t<ui::ui_context>			ui;
+		gfx_swapchain_handle				swapchain	   = {};
+		vec2u16_t							swapchain_size = {};
+		ui::widget_id_t						payload_root   = NULL_WIDGET;
+		ui::widget_id_t						payload_text   = NULL_WIDGET;
+		editor_surface_content_e			content		   = editor_surface_content_e::dock;
+		bool								is_minimized   = false;
+		bool								is_hidden	   = false;
 	};
 }

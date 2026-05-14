@@ -10,6 +10,11 @@
 namespace sfg
 {
 	struct editor_surface_t;
+	struct window_runtime_t;
+	namespace ui
+	{
+		class ui_context;
+	}
 
 	struct editor_payload_t
 	{
@@ -69,7 +74,8 @@ namespace sfg
 		void follow_cursor();
 
 	private:
-		editor_surface_t*			_surface			 = nullptr;
+		window_runtime_t*			_runtime			 = nullptr;
+		ui::ui_context*				_ui					 = nullptr;
 		vector_t<listener_t>		_listeners			 = {};
 		string_t					_text				 = {};
 		void*						_user_ptr			 = nullptr;

@@ -18,10 +18,12 @@ namespace sfg
 
 	void editor_payload_controller_t::init(editor_surface_t& surface)
 	{
-		SFG_ASSERT(_surface == nullptr);
+		SFG_ASSERT(_runtime == nullptr);
 		SFG_ASSERT(surface.ui);
+		SFG_ASSERT(surface.runtime);
 
-		_surface					= &surface;
+		_runtime					= surface.runtime.get();
+		_ui							= surface.ui.get();
 		ui::ui_context&		  ui	= *surface.ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -64,22 +66,21 @@ namespace sfg
 
 		surface.payload_root = _frame;
 		surface.payload_text = _text_widget;
-		process::set_window_visible(surface.runtime.window_handle, false);
+		process::set_window_visible(surface.runtime->window_handle, false);
 	}
 
 	void editor_payload_controller_t::uninit()
 	{
-		if (_surface == nullptr)
+		if (_runtime == nullptr)
 			return;
 
-		if (_surface->ui)
+		if (_ui != nullptr)
 		{
-			_surface->ui->deallocate_widget(_frame);
-			_surface->payload_root = NULL_WIDGET;
-			_surface->payload_text = NULL_WIDGET;
+			_ui->deallocate_widget(_frame);
 		}
 
-		_surface			 = nullptr;
+		_runtime			 = nullptr;
+		_ui					 = nullptr;
 		_frame				 = NULL_WIDGET;
 		_text_widget		 = NULL_WIDGET;
 		_text				 = {};
@@ -113,7 +114,8 @@ namespace sfg
 
 	void editor_payload_controller_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value)
 	{
-		SFG_ASSERT(_surface != nullptr);
+		SFG_ASSERT(_runtime != nullptr);
+		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(!_active);
 
 		_text			= text != nullptr ? text : "";
@@ -123,7 +125,7 @@ namespace sfg
 		_active			= true;
 		_mouse_was_down = is_any_mouse_down();
 
-		_surface->ui->set_widget_text(_text_widget, _text.c_str());
+		_ui->set_widget_text(_text_widget, _text.c_str());
 		set_visible(true);
 		follow_cursor();
 	}
@@ -142,7 +144,7 @@ namespace sfg
 
 	bool editor_payload_controller_t::drop_payload()
 	{
-		SFG_ASSERT(_surface != nullptr);
+		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(_active);
 
 		editor_payload_t payload = {};
@@ -181,19 +183,20 @@ namespace sfg
 
 	void editor_payload_controller_t::set_visible(bool visible)
 	{
-		SFG_ASSERT(_surface != nullptr);
+		SFG_ASSERT(_runtime != nullptr);
+		SFG_ASSERT(_ui != nullptr);
 
-		ui::layout_tree_t& tree		= _surface->ui->get_tree();
+		ui::layout_tree_t& tree		= _ui->get_tree();
 		tree.in(_frame).flags		= visible ? static_cast<u16>(ui::wf_visible) : static_cast<u16>(ui::wf_overlay);
 		tree.in(_text_widget).flags = visible ? static_cast<u16>(ui::wf_visible) : static_cast<u16>(ui::wf_overlay);
-		process::set_window_visible(_surface->runtime.window_handle, visible);
+		process::set_window_visible(_runtime->window_handle, visible);
 	}
 
 	void editor_payload_controller_t::follow_cursor()
 	{
-		SFG_ASSERT(_surface != nullptr);
+		SFG_ASSERT(_runtime != nullptr);
 
 		const vec2i16_t pos = process::get_cursor_position() + PAYLOAD_CURSOR_OFFSET;
-		process::set_window_position(_surface->runtime.window_handle, pos);
+		process::set_window_position(_runtime->window_handle, pos);
 	}
 }
