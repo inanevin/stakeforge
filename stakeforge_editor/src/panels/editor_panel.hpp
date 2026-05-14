@@ -52,6 +52,7 @@ namespace sfg
 		virtual void init(ui::ui_context& ui, ui::widget_id_t parent);
 		virtual void uninit();
 		void		 assign(ui::ui_context& ui, ui::widget_id_t parent);
+		void		 deassign();
 		void		 make_visible(bool visible);
 		void		 set_title(const char* title);
 

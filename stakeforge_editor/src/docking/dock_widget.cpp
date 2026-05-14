@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "docking/dock_widget.hpp"
+#include "editor_app.hpp"
+#include "editor_payload_type.hpp"
 #include "panels/editor_panel.hpp"
 #include "panels/editor_panel_factory.hpp"
 #include "panels/editor_panel_types.hpp"
@@ -83,7 +85,9 @@ namespace sfg
 
 		editor_tab_area_config_t tab_config = {};
 		tab_config.tab_switched				= on_leaf_tab_switched;
+		tab_config.tab_dragged_out			= on_leaf_tab_dragged_out;
 		tab_config.user_data				= this;
+		tab_config.can_drag_out				= true;
 		node.tab_area.init(ui, node.widget, tab_config);
 
 		node.body = ui.allocate_widget();
@@ -117,6 +121,25 @@ namespace sfg
 		node.tab_area.select_tab(TO_SID(panel->get_title()));
 	}
 
+	void dock_widget_t::dock_node_remove_panel(dock_node_t& node, sid_t identifier)
+	{
+		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
+
+		for (auto it = node.panels.begin(); it != node.panels.end(); ++it)
+		{
+			editor_panel_t* panel = *it;
+			if (TO_SID(panel->get_title()) == identifier)
+			{
+				panel->deassign();
+				node.panels.erase(it);
+				editor_app_t::get().create_payload(panel->get_title(), editor_payload_type_e::panel, panel);
+				return;
+			}
+		}
+
+		SFG_ASSERT(false);
+	}
+
 	void dock_widget_t::set_leaf_active_panel(dock_node_t& node, sid_t active_tab)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
@@ -133,6 +156,21 @@ namespace sfg
 			if (&node.tab_area == &tab_area)
 			{
 				dock_widget.set_leaf_active_panel(node, identifier);
+				return;
+			}
+		}
+
+		SFG_ASSERT(false);
+	}
+
+	void dock_widget_t::on_leaf_tab_dragged_out(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		for (dock_node_t& node : dock_widget._dock_nodes)
+		{
+			if (&node.tab_area == &tab_area)
+			{
+				dock_widget.dock_node_remove_panel(node, identifier);
 				return;
 			}
 		}

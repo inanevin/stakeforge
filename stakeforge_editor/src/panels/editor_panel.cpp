@@ -46,6 +46,12 @@ namespace sfg
 		_ui->get_tree().attach(parent, _root);
 	}
 
+	void editor_panel_t::deassign()
+	{
+		SFG_ASSERT(_ui != nullptr);
+		_ui->get_tree().detach(_root);
+	}
+
 	void editor_panel_t::make_visible(bool visible)
 	{
 		ui::layout_in_t& in = _ui->get_tree().in(_root);

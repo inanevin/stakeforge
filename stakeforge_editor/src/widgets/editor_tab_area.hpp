@@ -49,7 +49,12 @@ namespace sfg
 		ui::widget_id_t widget			= NULL_WIDGET;
 		ui::widget_id_t marker			= NULL_WIDGET;
 		ui::widget_id_t marker_inner	= NULL_WIDGET;
+		ui::widget_id_t label			= NULL_WIDGET;
 		ui::widget_id_t close_button	= NULL_WIDGET;
+		f32				pos_x			= 0.0f;
+		f32				pos_y			= 0.0f;
+		f32				velocity_x		= 0.0f;
+		f32				velocity_y		= 0.0f;
 		f32				marker_height	= 0.0f;
 		f32				marker_velocity = 0.0f;
 	};
@@ -60,9 +65,11 @@ namespace sfg
 	{
 		editor_tab_callback_fn tab_switched			= nullptr;
 		editor_tab_callback_fn tab_removed			= nullptr;
+		editor_tab_callback_fn tab_dragged_out		= nullptr;
 		void*				   user_data			= nullptr;
 		bool				   can_close_single_tab = false;
 		bool				   can_close			= true;
+		bool				   can_drag_out			= false;
 	};
 
 	class editor_tab_area_t final
@@ -101,20 +108,30 @@ namespace sfg
 
 	private:
 		void		  update_markers(f32 dt);
+		void		  update_tab_positions(f32 dt);
 		void		  refresh_status();
 		void		  switch_tab(sid_t identifier);
+		void		  reorder_dragged_tab(const vec2f_t& pos);
+		void		  finish_tab_drag(const vec2f_t& pos);
+		bool		  try_drag_out(const vec2f_t& pos);
+		size_t		  find_tab_index(sid_t identifier) const;
 		editor_tab_t& find_tab_by_widget(ui::widget_id_t widget);
 
 		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt, void* user_data);
 		static void draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 		static void on_tab_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_tab_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_tab_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_tab_drag_end(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_close_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
 		ui::ui_context*			 _ui   = nullptr;
 		ui::widget_id_t			 _root = NULL_WIDGET;
 		vector_t<editor_tab_t>	 _tabs;
-		editor_tab_area_config_t _config	 = {};
-		sid_t					 _active_tab = 0;
+		editor_tab_area_config_t _config	  = {};
+		sid_t					 _active_tab  = 0;
+		sid_t					 _drag_tab	  = 0;
+		vec2f_t					 _drag_offset = {};
 	};
 }

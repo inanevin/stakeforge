@@ -33,7 +33,7 @@ namespace sfg
 		in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.size_value		= {1.0f, theme.item_height};
-		in.flow				= ui::flow_e::row;
+		in.flow				= ui::flow_e::none;
 		in.child_spacing	= 0.0f;
 		in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -51,8 +51,10 @@ namespace sfg
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;
 		_tabs.clear();
-		_config		= {};
-		_active_tab = 0;
+		_config		 = {};
+		_active_tab	 = 0;
+		_drag_tab	 = 0;
+		_drag_offset = {};
 	}
 
 	void editor_tab_area_t::update_markers(f32 dt)
@@ -82,6 +84,54 @@ namespace sfg
 		}
 	}
 
+	void editor_tab_area_t::update_tab_positions(f32 dt)
+	{
+		ui::layout_tree_t&		tree	  = _ui->get_tree();
+		const ui::layout_out_t& root	  = tree.out(_root);
+		const vec2f_t&			mp		  = _ui->get_input().get_mouse_position();
+		const f32				inv_scale = 1.0f / _ui->get_ui_scale();
+		f32						slot_x	  = 0.0f;
+
+		for (editor_tab_t& tab : _tabs)
+		{
+			const ui::layout_out_t& out		 = tree.out(tab.widget);
+			f32						target_x = slot_x;
+			f32						target_y = 0.0f;
+			slot_x += out.size.x;
+
+			const bool dragging = tab.identifier == _drag_tab;
+			if (dragging)
+			{
+				target_x	   = mp.x - root.pos.x - _drag_offset.x;
+				tab.pos_x	   = target_x;
+				tab.pos_y	   = 0.0f;
+				tab.velocity_x = 0.0f;
+				tab.velocity_y = 0.0f;
+			}
+			else if (dt <= 0.0f)
+			{
+				tab.pos_x	   = target_x;
+				tab.pos_y	   = target_y;
+				tab.velocity_x = 0.0f;
+				tab.velocity_y = 0.0f;
+			}
+			else
+			{
+				tab.pos_x = easing_t::smooth_damp(tab.pos_x, target_x, &tab.velocity_x, 0.08f, 1000.0f, dt);
+				tab.pos_y = easing_t::smooth_damp(tab.pos_y, target_y, &tab.velocity_y, 0.08f, 1000.0f, dt);
+			}
+
+			ui::layout_in_t& in				  = tree.in(tab.widget);
+			in.pos_value					  = {tab.pos_x * inv_scale, tab.pos_y * inv_scale};
+			tree.draw_order(tab.widget)		  = dragging ? 1000u : 0u;
+			tree.draw_order(tab.marker)		  = dragging ? 1001u : 0u;
+			tree.draw_order(tab.marker_inner) = dragging ? 1002u : 0u;
+			tree.draw_order(tab.label)		  = dragging ? 1002u : 0u;
+			if (tab.close_button != NULL_WIDGET)
+				tree.draw_order(tab.close_button) = dragging ? 1002u : 0u;
+		}
+	}
+
 	void editor_tab_area_t::add_tab(const char* title)
 	{
 		SFG_ASSERT(title != nullptr);
@@ -104,6 +154,8 @@ namespace sfg
 		tab_in.size_mode_x		= ui::axis_mode_e::sum_children;
 		tab_in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		tab_in.size_value		= {0.0f, 1.0f};
+		tab_in.pos_mode_x		= ui::pos_mode_e::offset_in_parent;
+		tab_in.pos_mode_y		= ui::pos_mode_e::offset_in_parent;
 		tab_in.flow				= ui::flow_e::row;
 		tab_in.child_spacing	= theme.item_spacing;
 		tab_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
@@ -113,6 +165,9 @@ namespace sfg
 		ui::listener_bundle_t tab_listener = {};
 		tab_listener.user_data			   = this;
 		tab_listener.on_click			   = on_tab_click;
+		tab_listener.on_drag_begin		   = on_tab_drag_begin;
+		tab_listener.on_drag			   = on_tab_drag;
+		tab_listener.on_drag_end		   = on_tab_drag_end;
 		ui.get_input().set_listener(tab, tab_listener);
 
 		const ui::widget_id_t marker = ui.allocate_widget();
@@ -176,10 +231,11 @@ namespace sfg
 		}
 
 		const f32 marker_height = _active_tab == 0 ? 1.0f : 0.0f;
-		_tabs.push_back({.identifier = identifier, .widget = tab, .marker = marker, .marker_inner = marker_inner, .close_button = close_button, .marker_height = marker_height});
+		_tabs.push_back({.identifier = identifier, .widget = tab, .marker = marker, .marker_inner = marker_inner, .label = label, .close_button = close_button, .marker_height = marker_height});
 		if (_active_tab == 0)
 			_active_tab = identifier;
 		update_markers(0.0f);
+		update_tab_positions(0.0f);
 		refresh_status();
 	}
 
@@ -237,6 +293,18 @@ namespace sfg
 			_config.tab_switched(*this, identifier, _config.user_data);
 	}
 
+	size_t editor_tab_area_t::find_tab_index(sid_t identifier) const
+	{
+		for (size_t i = 0; i < _tabs.size(); ++i)
+		{
+			if (_tabs[i].identifier == identifier)
+				return i;
+		}
+
+		SFG_ASSERT(false);
+		return 0;
+	}
+
 	editor_tab_t& editor_tab_area_t::find_tab_by_widget(ui::widget_id_t widget)
 	{
 		for (editor_tab_t& tab : _tabs)
@@ -253,6 +321,12 @@ namespace sfg
 	{
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		tab_area.update_markers(dt);
+		if (tab_area._drag_tab != 0 && tab_area.try_drag_out(tab_area._ui->get_input().get_mouse_position()))
+			return;
+
+		tab_area.update_tab_positions(dt);
+		if (tab_area._drag_tab != 0)
+			tab_area.reorder_dragged_tab(tab_area._ui->get_input().get_mouse_position());
 	}
 
 	void editor_tab_area_t::draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
@@ -300,6 +374,95 @@ namespace sfg
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		editor_tab_t&	   tab		= tab_area.find_tab_by_widget(id);
 		tab_area.switch_tab(tab.identifier);
+	}
+
+	void editor_tab_area_t::reorder_dragged_tab(const vec2f_t& pos)
+	{
+		if (_drag_tab == 0 || _tabs.size() < 2)
+			return;
+
+		const ui::layout_tree_t& tree	  = _ui->get_tree();
+		const ui::layout_out_t&	 root_out = tree.out(_root);
+		const f32				 local_x  = pos.x - root_out.pos.x;
+		size_t					 target	  = 0;
+		f32						 x		  = 0.0f;
+
+		for (size_t i = 0; i < _tabs.size(); ++i)
+		{
+			if (_tabs[i].identifier == _drag_tab)
+				continue;
+
+			const f32 w = tree.out(_tabs[i].widget).size.x;
+			if (local_x < x + w * 0.5f)
+				break;
+
+			x += w;
+			target++;
+		}
+
+		const size_t current = find_tab_index(_drag_tab);
+		if (target == current)
+			return;
+
+		editor_tab_t tab = _tabs[current];
+		_tabs.erase(_tabs.begin() + current);
+		_tabs.insert(_tabs.begin() + target, tab);
+	}
+
+	void editor_tab_area_t::finish_tab_drag(const vec2f_t& pos)
+	{
+		if (_drag_tab == 0)
+			return;
+
+		if (try_drag_out(pos))
+			return;
+
+		_drag_tab = 0;
+	}
+
+	bool editor_tab_area_t::try_drag_out(const vec2f_t& pos)
+	{
+		if (_drag_tab == 0 || !_config.can_drag_out)
+			return false;
+
+		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
+		if (pos.y >= root_out.pos.y && pos.y <= root_out.pos.y + root_out.size.y)
+			return false;
+
+		const sid_t dragged = _drag_tab;
+		_drag_tab			= 0;
+		remove_tab(dragged);
+		if (_config.tab_dragged_out != nullptr)
+			_config.tab_dragged_out(*this, dragged, _config.user_data);
+
+		return true;
+	}
+
+	void editor_tab_area_t::on_tab_drag_begin(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t&, void* user_data)
+	{
+		editor_tab_area_t&		tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		editor_tab_t&			tab		 = tab_area.find_tab_by_widget(id);
+		const ui::layout_out_t& out		 = tab_area._ui->get_tree().out(tab.widget);
+		tab_area._drag_tab				 = tab.identifier;
+		tab_area._drag_offset			 = pos - out.pos;
+		tab.pos_x						 = out.pos.x - tab_area._ui->get_tree().out(tab_area._root).pos.x;
+		tab.pos_y						 = out.pos.y - tab_area._ui->get_tree().out(tab_area._root).pos.y;
+		tab_area.switch_tab(tab.identifier);
+	}
+
+	void editor_tab_area_t::on_tab_drag(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
+	{
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		if (tab_area.try_drag_out(pos))
+			return;
+
+		tab_area.reorder_dragged_tab(pos);
+	}
+
+	void editor_tab_area_t::on_tab_drag_end(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
+	{
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		tab_area.finish_tab_drag(pos);
 	}
 
 	void editor_tab_area_t::on_close_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
