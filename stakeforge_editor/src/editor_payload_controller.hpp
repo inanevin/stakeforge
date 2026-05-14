@@ -1,0 +1,78 @@
+#pragma once
+
+#include "editor_payload_type.hpp"
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/math/vec2i16.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg
+{
+	struct editor_surface_t;
+
+	struct editor_payload_t
+	{
+		const char*			  text	   = nullptr;
+		void*				  user_ptr = nullptr;
+		vec2i16_t			  pos	   = vec2i16_t::zero;
+		editor_payload_type_e type	   = editor_payload_type_e::panel;
+	};
+
+	using editor_payload_listener_fn = bool (*)(const editor_payload_t& payload, void* user_data);
+
+	class editor_payload_controller_t final
+	{
+	public:
+		editor_payload_controller_t()											   = default;
+		~editor_payload_controller_t()											   = default;
+		editor_payload_controller_t(const editor_payload_controller_t&)			   = delete;
+		editor_payload_controller_t& operator=(const editor_payload_controller_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(editor_surface_t& surface);
+		void uninit();
+		void tick();
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr);
+		void register_listener(editor_payload_listener_fn fn, void* user_data);
+		bool drop_payload();
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline bool is_payload_active() const
+		{
+			return _active;
+		}
+
+	private:
+		struct listener_t
+		{
+			editor_payload_listener_fn fn		 = nullptr;
+			void*					   user_data = nullptr;
+		};
+
+		bool is_any_mouse_down() const;
+		void set_visible(bool visible);
+		void follow_cursor();
+
+	private:
+		editor_surface_t*	  _surface		  = nullptr;
+		vector_t<listener_t>  _listeners	  = {};
+		string_t			  _text			  = {};
+		void*				  _user_ptr		  = nullptr;
+		editor_payload_type_e _type			  = editor_payload_type_e::panel;
+		ui::widget_id_t		  _frame		  = NULL_WIDGET;
+		ui::widget_id_t		  _text_widget	  = NULL_WIDGET;
+		bool				  _active		  = false;
+		bool				  _mouse_was_down = false;
+	};
+}

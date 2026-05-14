@@ -45,6 +45,17 @@ namespace
 {
 	u8 g_key_down_map[512] = {};
 
+	void set_key_down(u32 key, bool down)
+	{
+		if (key < static_cast<u32>(sizeof(g_key_down_map)))
+			g_key_down_map[key] = down ? 1 : 0;
+	}
+
+	bool get_key_down(u32 key)
+	{
+		return key < static_cast<u32>(sizeof(g_key_down_map)) && g_key_down_map[key] != 0;
+	}
+
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
 	{
 		sfg::vector_t<sfg::monitor_info_t>* infos = reinterpret_cast<sfg::vector_t<sfg::monitor_info_t>*>(l_param);
@@ -125,11 +136,14 @@ namespace
 		}
 	}
 
-	u32 get_ex_style(sfg::window_style_e style)
+	u32 get_ex_style(sfg::window_style_e style, bool always_on_top = false)
 	{
+		u32 ex_style = static_cast<u32>(WS_EX_APPWINDOW);
 		if (style == sfg::window_style_e::alpha)
-			return static_cast<u32>(WS_EX_APPWINDOW | WS_EX_LAYERED);
-		return static_cast<u32>(WS_EX_APPWINDOW);
+			ex_style |= static_cast<u32>(WS_EX_LAYERED);
+		if (always_on_top)
+			ex_style |= static_cast<u32>(WS_EX_TOPMOST);
+		return ex_style;
 	}
 
 	sfg::monitor_info_t fetch_monitor_info(HMONITOR monitor)
@@ -221,6 +235,9 @@ namespace
 		case WM_CLOSE:
 			runtime->set_flag(sfg::window_runtime_flags_e::close_requested);
 			return 0;
+		case WM_SHOWWINDOW:
+			runtime->is_hidden = w_param == FALSE;
+			return 0;
 		case WM_KILLFOCUS:
 			runtime->set_flag(sfg::window_runtime_flags_e::has_focus, false);
 			push_event(*runtime,
@@ -300,11 +317,11 @@ namespace
 				u8 is_repeat = 0;
 				if (!is_release)
 				{
-					is_repeat			= g_key_down_map[key];
-					g_key_down_map[key] = 1;
+					is_repeat = get_key_down(key);
+					set_key_down(key, true);
 				}
 				else
-					g_key_down_map[key] = 0;
+					set_key_down(key, false);
 
 				push_event(*runtime,
 						   {
@@ -337,36 +354,42 @@ namespace
 				const USHORT mouse_flags = raw->data.mouse.usButtonFlags;
 				if ((mouse_flags & RI_MOUSE_LEFT_BUTTON_DOWN) != 0)
 				{
+					set_key_down(static_cast<u32>(sfg::input_code::mouse_0), true);
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_0);
 					ev.sub_type = sfg::window_event_sub_type_e::press;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_LEFT_BUTTON_UP) != 0)
 				{
+					set_key_down(static_cast<u32>(sfg::input_code::mouse_0), false);
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_0);
 					ev.sub_type = sfg::window_event_sub_type_e::release;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_RIGHT_BUTTON_DOWN) != 0)
 				{
+					set_key_down(static_cast<u32>(sfg::input_code::mouse_1), true);
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_1);
 					ev.sub_type = sfg::window_event_sub_type_e::press;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_RIGHT_BUTTON_UP) != 0)
 				{
+					set_key_down(static_cast<u32>(sfg::input_code::mouse_1), false);
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_1);
 					ev.sub_type = sfg::window_event_sub_type_e::release;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) != 0)
 				{
+					set_key_down(static_cast<u32>(sfg::input_code::mouse_2), true);
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_2);
 					ev.sub_type = sfg::window_event_sub_type_e::press;
 					emit_mouse	= true;
 				}
 				if ((mouse_flags & RI_MOUSE_MIDDLE_BUTTON_UP) != 0)
 				{
+					set_key_down(static_cast<u32>(sfg::input_code::mouse_2), false);
 					ev.button	= static_cast<u16>(sfg::input_code::mouse_2);
 					ev.sub_type = sfg::window_event_sub_type_e::release;
 					emit_mouse	= true;
@@ -407,12 +430,13 @@ namespace
 			const bool extended	 = (l_param & 0x01000000) != 0;
 			const bool is_repeat = (l_param & (1 << 30)) != 0;
 			u32		   key		 = static_cast<u32>(w_param);
-			g_key_down_map[key]	 = 1;
 
 			if (w_param == VK_SHIFT)
 				key = extended ? VK_RSHIFT : VK_LSHIFT;
 			else if (w_param == VK_CONTROL)
 				key = extended ? VK_RCONTROL : VK_LCONTROL;
+
+			set_key_down(key, true);
 
 			push_event(*runtime,
 					   {
@@ -430,12 +454,13 @@ namespace
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
 			const bool extended	 = (l_param & 0x01000000) != 0;
 			u32		   key		 = static_cast<u32>(w_param);
-			g_key_down_map[key]	 = 0;
 
 			if (w_param == VK_SHIFT)
 				key = extended ? VK_RSHIFT : VK_LSHIFT;
 			else if (w_param == VK_CONTROL)
 				key = extended ? VK_RCONTROL : VK_LCONTROL;
+
+			set_key_down(key, false);
 
 			push_event(*runtime,
 					   {
@@ -493,6 +518,11 @@ namespace
 				sub_type = sfg::window_event_sub_type_e::release;
 			else if (msg == WM_LBUTTONDBLCLK || msg == WM_RBUTTONDBLCLK)
 				sub_type = sfg::window_event_sub_type_e::repeat;
+
+			if (sub_type == sfg::window_event_sub_type_e::release)
+				set_key_down(button, false);
+			else
+				set_key_down(button, true);
 
 			push_event(*runtime,
 					   {
@@ -1045,7 +1075,28 @@ namespace sfg
 		return mask;
 	}
 
-	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, window_runtime_t& runtime)
+	bool process::is_key_down(u16 key)
+	{
+		if (key >= static_cast<u16>(sizeof(g_key_down_map)))
+			return false;
+		const bool down = (GetAsyncKeyState(static_cast<int>(key)) & 0x8000) != 0;
+		set_key_down(key, down);
+		return down;
+	}
+
+	bool process::is_mouse_down(u16 button)
+	{
+		return is_key_down(button);
+	}
+
+	vec2i16_t process::get_cursor_position()
+	{
+		POINT pt{};
+		GetCursorPos(&pt);
+		return {static_cast<i16>(pt.x), static_cast<i16>(pt.y)};
+	}
+
+	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, bool always_on_top, window_runtime_t& runtime)
 	{
 		HINSTANCE  instance = GetModuleHandle(nullptr);
 		WNDCLASSEX class_info{};
@@ -1068,7 +1119,7 @@ namespace sfg
 		}
 
 		const DWORD stylew	   = get_style(window_style);
-		const DWORD ex_style   = get_ex_style(window_style);
+		const DWORD ex_style   = get_ex_style(window_style, always_on_top);
 		const auto	outer_size = get_outer_size_for_config(size, window_style);
 
 		HWND hwnd = CreateWindowExA(ex_style, title, title, stylew, pos.x, pos.y, outer_size.x, outer_size.y, nullptr, nullptr, instance, nullptr);
@@ -1083,6 +1134,7 @@ namespace sfg
 		runtime.style			= window_style;
 		runtime.window_handle	= hwnd;
 		runtime.platform_handle = instance;
+		runtime.is_hidden		= false;
 		SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&runtime));
 
 		RAWINPUTDEVICE raw_devices[2] = {};
@@ -1122,6 +1174,16 @@ namespace sfg
 	{
 		HWND hwnd = static_cast<HWND>(window);
 		SetWindowPos(hwnd, nullptr, pos.x, pos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+
+	void process::set_window_visible(void* window, bool visible)
+	{
+		HWND hwnd = static_cast<HWND>(window);
+		SFG_ASSERT(hwnd != nullptr);
+		window_runtime_t* runtime = reinterpret_cast<window_runtime_t*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+		SFG_ASSERT(runtime != nullptr);
+		runtime->is_hidden = !visible;
+		ShowWindow(hwnd, visible ? SW_SHOWNOACTIVATE : SW_HIDE);
 	}
 
 	void process::set_window_size(void* window, const sfg::vec2u16_t& size, window_style_e style)

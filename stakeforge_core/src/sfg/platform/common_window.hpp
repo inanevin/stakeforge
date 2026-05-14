@@ -128,6 +128,7 @@ namespace sfg
 		gfx_swapchain_handle  swapchain				   = {};
 		window_style_e		  style					   = window_style_e::app_window;
 		bitmask_t<u8>		  flags					   = 0;
+		bool				  is_hidden				   = false;
 
 		inline bool has_flag(window_runtime_flags_e flag) const
 		{

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
+#include "editor_payload_controller.hpp"
 #include "editor_renderer.hpp"
 #include "editor_project.hpp"
 #include "editor_surface.hpp"
@@ -63,6 +64,7 @@ namespace sfg
 		void			 save_layout();
 		void			 set_debug_mode(bool enabled);
 		void			 set_text_subpixel_enabled(bool enabled);
+		void			 create_payload(const char* text, editor_payload_type_e type, void* user_ptr);
 
 		inline bool is_debug_mode_enabled() const
 		{
@@ -78,10 +80,12 @@ namespace sfg
 		{
 			return _resource_pack;
 		}
-		editor_surface_t&				 get_main_surface();
-		const editor_surface_t&			 get_main_surface() const;
-		editor_modal_controller_t&		 get_modal_controller();
-		const editor_modal_controller_t& get_modal_controller() const;
+		editor_surface_t&				   get_main_surface();
+		const editor_surface_t&			   get_main_surface() const;
+		editor_modal_controller_t&		   get_modal_controller();
+		const editor_modal_controller_t&   get_modal_controller() const;
+		editor_payload_controller_t&	   get_payload_controller();
+		const editor_payload_controller_t& get_payload_controller() const;
 
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
@@ -96,6 +100,7 @@ namespace sfg
 		resource_pack_t													_resource_pack;
 		editor_project_t												_current_project;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
+		editor_payload_controller_t										_payload_controller;
 		i64																_last_tick_us			 = 0;
 		u8																_atlas_upload_frame_slot = 0;
 		bool															_debug_mode				 = false;

@@ -83,19 +83,23 @@ namespace sfg
 		// os query
 		// -----------------------------------------------------------------------------
 
-		static void get_all_monitors(vector_t<monitor_info_t>& out);
-		static char get_character_from_key(u32 key);
-		static u16	get_character_mask_from_key(u32 key, char ch);
+		static void		 get_all_monitors(vector_t<monitor_info_t>& out);
+		static char		 get_character_from_key(u32 key);
+		static u16		 get_character_mask_from_key(u32 key, char ch);
+		static bool		 is_key_down(u16 key);
+		static bool		 is_mouse_down(u16 button);
+		static vec2i16_t get_cursor_position();
 
 		// -----------------------------------------------------------------------------
 		// window
 		// -----------------------------------------------------------------------------
 
-		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, window_runtime_t& runtime);
+		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, bool always_on_top, window_runtime_t& runtime);
 		static void destroy_window(void* window_handle);
 		static void set_window_runtime(void* window_handle, window_runtime_t& runtime);
 		static void set_window_size(void* window, const vec2u16_t& size, window_style_e style);
 		static void set_window_position(void* window, const vec2i16_t& pos);
+		static void set_window_visible(void* window, bool visible);
 		static void set_window_style(void* window, const vec2u16_t& size, window_style_e style);
 		static void minimize_window(void* window);
 		static void toggle_maximize_window(void* window);

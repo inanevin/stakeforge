@@ -66,6 +66,7 @@ namespace sfg
 			unique_t<ui::ui_renderer_t> ui_renderer;
 			vec2u16_t					size	  = {};
 			bool						minimized = false;
+			bool						visible	  = true;
 		};
 
 	public:
@@ -93,6 +94,7 @@ namespace sfg
 		void				 resize_swapchain(gfx_swapchain_handle swapchain, vec2u16_t size, f32 dpi_scale);
 		void				 destroy_swapchain(gfx_swapchain_handle swapchain);
 		void				 set_swapchain_minimized(gfx_swapchain_handle handle, bool is_minimized);
+		void				 set_swapchain_visible(gfx_swapchain_handle handle, bool visible);
 
 	private:
 		void render_loop();

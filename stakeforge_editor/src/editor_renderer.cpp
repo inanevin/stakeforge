@@ -162,6 +162,7 @@ namespace sfg
 			.ui_renderer = std::move(ui_renderer),
 			.size		 = size,
 			.minimized	 = false,
+			.visible	 = true,
 		});
 
 		return swapchain;
@@ -207,6 +208,13 @@ namespace sfg
 		it->minimized = is_minimized;
 	}
 
+	void editor_renderer_t::set_swapchain_visible(gfx_swapchain_handle handle, bool visible)
+	{
+		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
+		SFG_ASSERT(it != _render_targets.end());
+		it->visible = visible;
+	}
+
 	void editor_renderer_t::render()
 	{
 		render_resources_t::get().drain_requests();
@@ -226,7 +234,7 @@ namespace sfg
 		frame_vector_t<gfx_swapchain_handle> present_list;
 		for (const surface_render_target_t& t : _render_targets)
 		{
-			if (t.minimized)
+			if (t.minimized || !t.visible)
 				continue;
 			backend.wait_for_swapchain_latency(t.swapchain);
 			backend.get_back_buffer_index(t.swapchain);

@@ -17,8 +17,6 @@
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -77,6 +75,8 @@ namespace sfg
 		case window_event_type_e::key: {
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
+			if (ev.button == static_cast<u16>(input_code::key_f4) && ev.sub_type == window_event_sub_type_e::press)
+				editor_app_t::get().create_payload("Debug payload", editor_payload_type_e::panel, nullptr);
 
 			ui::key_event_t k = {};
 			k.key			  = ev.button;
@@ -162,7 +162,10 @@ namespace sfg
 			}
 		}
 
-		create_surface({0, 0}, {256, 256}, editor_surface_content_e::payload_root);
+		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_content_e::payload_root);
+		if (payload_surface.is_null())
+			return false;
+		_payload_controller.init(_surfaces.get(payload_surface));
 
 		if (_surfaces.empty())
 		{
@@ -188,6 +191,7 @@ namespace sfg
 
 		_renderer.end_render();
 		resource_manager_t::get().flush();
+		_payload_controller.uninit();
 
 		for (editor_surface_t& surface : _surfaces)
 		{
@@ -197,8 +201,6 @@ namespace sfg
 					surface.editor.uninit();
 				if (surface.content == editor_surface_content_e::dock)
 					surface.dock_widget.uninit();
-				if (surface.content == editor_surface_content_e::payload_root)
-					surface.ui->deallocate_widget(surface.payload_root);
 				surface.modal_controller.uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
@@ -244,26 +246,6 @@ namespace sfg
 		{
 			surface.dock_widget.init(*surface.ui, surface.ui->get_root());
 		}
-		else
-		{
-			ui::layout_tree_t& tree	 = surface.ui->get_tree();
-			ui::paint_layer_t& paint = surface.ui->get_paint();
-
-			surface.payload_root = surface.ui->allocate_widget();
-			surface.ui->set_widget_debug_name(surface.payload_root, "payload_root");
-			tree.attach(surface.ui->get_root(), surface.payload_root);
-
-			ui::layout_in_t& in = tree.in(surface.payload_root);
-			in.size_mode_x		= ui::axis_mode_e::parent_relative;
-			in.size_mode_y		= ui::axis_mode_e::parent_relative;
-			in.size_value		= {1.0f, 1.0f};
-
-			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = {0.0f, 0.0f, 0.0f, 1.0f};
-			rect.fill_color_b		 = {0.0f, 0.0f, 0.0f, 1.0f};
-
-			paint.set_rect(surface.payload_root, rect);
-		}
 	}
 
 	void editor_app_t::set_debug_mode(bool enabled)
@@ -287,6 +269,11 @@ namespace sfg
 	bool editor_app_t::is_text_subpixel_enabled() const
 	{
 		return editor_text_rasterization_t::is_subpixel_enabled();
+	}
+
+	void editor_app_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr)
+	{
+		_payload_controller.create_payload(text, type, user_ptr);
 	}
 
 	void editor_app_t::unload_current_project()
@@ -421,6 +408,16 @@ namespace sfg
 		return get_main_surface().modal_controller;
 	}
 
+	editor_payload_controller_t& editor_app_t::get_payload_controller()
+	{
+		return _payload_controller;
+	}
+
+	const editor_payload_controller_t& editor_app_t::get_payload_controller() const
+	{
+		return _payload_controller;
+	}
+
 	void editor_app_t::tick()
 	{
 		bool tick = true;
@@ -436,6 +433,8 @@ namespace sfg
 			const i64 now = time_t::get_cpu_microseconds();
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
+
+			_payload_controller.tick();
 
 			bool main_destroyed = false;
 
@@ -456,6 +455,7 @@ namespace sfg
 				}
 
 				const bool minimized = surface.runtime.has_flag(window_runtime_flags_e::minimized);
+				const bool hidden	 = surface.runtime.is_hidden;
 
 				if (minimized != surface.is_minimized)
 				{
@@ -464,14 +464,21 @@ namespace sfg
 					_renderer.set_swapchain_minimized(surface.swapchain, minimized);
 				}
 
-				if (!minimized && surface.runtime.size != surface.swapchain_size)
+				if (hidden != surface.is_hidden)
+				{
+					surface.is_hidden = hidden;
+					_renderer.end_render();
+					_renderer.set_swapchain_visible(surface.swapchain, !hidden);
+				}
+
+				if (!minimized && !hidden && surface.runtime.size != surface.swapchain_size)
 				{
 					_renderer.end_render();
 					_renderer.resize_swapchain(surface.swapchain, surface.runtime.size, surface.runtime.monitor_info.dpi_scale);
 					surface.swapchain_size = surface.runtime.size;
 				}
 
-				if (!minimized && surface.ui)
+				if (!minimized && !hidden && surface.ui)
 				{
 					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					const f32	  dpi_scale = surface.runtime.monitor_info.dpi_scale > 0.0f ? surface.runtime.monitor_info.dpi_scale : 1.0f;
@@ -515,7 +522,7 @@ namespace sfg
 		editor_surface_t&	   surface = _surfaces.get(handle);
 		surface.content				   = content;
 
-		if (!process::create_window("Stakeforge Editor", pos, size, content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::app_window, 0.75f, surface.runtime))
+		if (!process::create_window("Stakeforge Editor", pos, size, content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::app_window, 0.75f, content == editor_surface_content_e::payload_root, surface.runtime))
 		{
 			SFG_ERR("failed creating editor surface window!");
 			_surfaces.remove(handle);
@@ -547,7 +554,7 @@ namespace sfg
 			if (surface.content == editor_surface_content_e::dock)
 				surface.dock_widget.uninit();
 			if (surface.content == editor_surface_content_e::payload_root)
-				surface.ui->deallocate_widget(surface.payload_root);
+				_payload_controller.uninit();
 			surface.modal_controller.uninit();
 			surface.ui->uninit();
 			surface.ui.reset();

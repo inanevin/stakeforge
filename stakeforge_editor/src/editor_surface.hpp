@@ -55,7 +55,9 @@ namespace sfg
 		editor_base_t			  editor;
 		dock_widget_t			  dock_widget;
 		ui::widget_id_t			  payload_root = NULL_WIDGET;
+		ui::widget_id_t			  payload_text = NULL_WIDGET;
 		editor_surface_content_e  content	   = editor_surface_content_e::dock;
 		bool					  is_minimized = false;
+		bool					  is_hidden	   = false;
 	};
 }
