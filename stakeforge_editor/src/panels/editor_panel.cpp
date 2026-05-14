@@ -14,7 +14,7 @@ namespace sfg
 		_ui						= &ui;
 		ui::layout_tree_t& tree = ui.get_tree();
 
-		_root = tree.allocate();
+		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "editor_panel");
 		tree.attach(parent, _root);
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
@@ -29,8 +29,7 @@ namespace sfg
 
 	void editor_panel_t::uninit()
 	{
-		if (_ui != nullptr)
-			_ui->clear_widget_debug_name(_root);
+		_ui->deallocate_widget(_root);
 
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;

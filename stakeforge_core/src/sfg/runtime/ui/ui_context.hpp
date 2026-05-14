@@ -72,6 +72,13 @@ namespace sfg::ui
 		void set_debug_font(resource_handle_t font);
 
 		// -----------------------------------------------------------------------------
+		// widgets
+		// -----------------------------------------------------------------------------
+
+		widget_id_t allocate_widget();
+		void		deallocate_widget(widget_id_t id);
+
+		// -----------------------------------------------------------------------------
 		// render-thread snapshot
 		// -----------------------------------------------------------------------------
 
@@ -168,6 +175,7 @@ namespace sfg::ui
 
 		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity);
 		void free_snapshot_slot(snapshot_slot_t& slot);
+		void clear_widget_state_recursive(widget_id_t id);
 		void draw_debug_hovered_widget();
 
 	private:

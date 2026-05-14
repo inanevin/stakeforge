@@ -76,6 +76,42 @@ namespace sfg::ui
 		_listeners.erase(id);
 	}
 
+	void input_router_t::clear_widget_state(widget_id_t id)
+	{
+		clear_listener(id);
+
+		if (_hovered == id)
+			_hovered = NULL_WIDGET;
+		if (_focused == id)
+			_focused = NULL_WIDGET;
+
+		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
+		{
+			if (_pressed[i] == id)
+			{
+				_pressed[i]		  = NULL_WIDGET;
+				_pressed_state[i] = {};
+			}
+			if (_last_click[i].target == id)
+				_last_click[i] = {};
+		}
+
+		if (_popup_scope.owner_root == id)
+		{
+			clear_popup_scope();
+			return;
+		}
+
+		for (u32 i = 0; i < _popup_scope.popup_root_count; ++i)
+		{
+			if (_popup_scope.popup_roots[i] == id)
+			{
+				clear_popup_scope();
+				return;
+			}
+		}
+	}
+
 	void input_router_t::set_popup_scope(widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy)
 	{
 		SFG_ASSERT(popup_root_count <= POPUP_SCOPE_MAX_ROOTS);

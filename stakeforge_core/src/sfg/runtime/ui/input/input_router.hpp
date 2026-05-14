@@ -115,6 +115,7 @@ namespace sfg::ui
 
 		void set_listener(widget_id_t id, const listener_bundle_t& b);
 		void clear_listener(widget_id_t id);
+		void clear_widget_state(widget_id_t id);
 		void set_popup_scope(widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy = popup_hover_policy_e::block_outside);
 		void clear_popup_scope();
 

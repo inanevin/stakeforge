@@ -44,7 +44,7 @@ namespace sfg
 			const bool			   parent_column = parent_in.flow == ui::flow_e::column;
 			SFG_ASSERT(parent_row || parent_column);
 
-			const ui::widget_id_t id = tree.allocate();
+			const ui::widget_id_t id = ui.allocate_widget();
 			tree.attach(parent, id);
 			tree.draw_order(id) = tree.draw_order_const(parent) + 1;
 

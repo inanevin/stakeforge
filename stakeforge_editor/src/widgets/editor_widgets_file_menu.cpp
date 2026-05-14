@@ -120,7 +120,7 @@ namespace sfg
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		_root = tree.allocate();
+		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "file_menu");
 		tree.attach(parent, _root);
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
@@ -140,7 +140,7 @@ namespace sfg
 
 		for (u32 i = 0; i < item_count; ++i)
 		{
-			const ui::widget_id_t frame = tree.allocate();
+			const ui::widget_id_t frame = ui.allocate_widget();
 			_top_frames[i]				= frame;
 			ui.set_widget_debug_name(frame, "file_menu_top_item");
 			tree.attach(_root, frame);
@@ -160,7 +160,7 @@ namespace sfg
 			paint.set_press_color(frame, style.press_color);
 			ui.get_input().set_listener(frame, top_listener);
 
-			const ui::widget_id_t label = tree.allocate();
+			const ui::widget_id_t label = ui.allocate_widget();
 			_top_labels[i]				= label;
 			ui.set_widget_debug_name(label, "file_menu_top_label");
 			tree.attach(frame, label);
@@ -177,7 +177,7 @@ namespace sfg
 			paint.set_text(label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
-		_foreground = tree.allocate();
+		_foreground = ui.allocate_widget();
 		ui.set_widget_debug_name(_foreground, "file_menu_foreground");
 		tree.attach(ui.get_root(), _foreground);
 		tree.draw_order(_foreground) = FILE_MENU_DRAW_ORDER;
@@ -196,7 +196,7 @@ namespace sfg
 
 		for (u32 d = 0; d < MAX_DEPTH; ++d)
 		{
-			const ui::widget_id_t panel = tree.allocate();
+			const ui::widget_id_t panel = ui.allocate_widget();
 			_panels[d]					= panel;
 			ui.set_widget_debug_name(panel, "file_menu_dropdown");
 			tree.attach(_foreground, panel);
@@ -219,7 +219,7 @@ namespace sfg
 
 			for (u32 r = 0; r < MAX_ROWS; ++r)
 			{
-				const ui::widget_id_t row = tree.allocate();
+				const ui::widget_id_t row = ui.allocate_widget();
 				_row_frames[d][r]		  = row;
 				ui.set_widget_debug_name(row, "file_menu_dropdown_row");
 				tree.attach(panel, row);
@@ -239,7 +239,7 @@ namespace sfg
 				paint.set_press_color(row, style.press_color);
 				ui.get_input().set_listener(row, row_listener);
 
-				const ui::widget_id_t label = tree.allocate();
+				const ui::widget_id_t label = ui.allocate_widget();
 				_row_labels[d][r]			= label;
 				ui.set_widget_debug_name(label, "file_menu_dropdown_label");
 				tree.attach(row, label);
@@ -253,7 +253,7 @@ namespace sfg
 				label_in.anchor_y		  = ui::anchor_e::center;
 				paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = style.text_color, .point_size = style.text_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-				const ui::widget_id_t shortcut = tree.allocate();
+				const ui::widget_id_t shortcut = ui.allocate_widget();
 				_row_shortcuts[d][r]		   = shortcut;
 				ui.set_widget_debug_name(shortcut, "file_menu_dropdown_shortcut");
 				tree.attach(row, shortcut);
@@ -268,7 +268,7 @@ namespace sfg
 				shortcut_in.anchor_y		 = ui::anchor_e::center;
 				paint.set_text(shortcut, nullptr, 0, {.font = theme.font_title_bold, .color = style.shortcut_color, .point_size = style.shortcut_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-				const ui::widget_id_t icon = tree.allocate();
+				const ui::widget_id_t icon = ui.allocate_widget();
 				_row_icons[d][r]		   = icon;
 				ui.set_widget_debug_name(icon, "file_menu_dropdown_icon");
 				tree.attach(row, icon);
@@ -284,7 +284,7 @@ namespace sfg
 				icon_in.size_mode_y		 = ui::axis_mode_e::fixed;
 				icon_in.size_value		 = {style.icon_size, style.row_height};
 
-				const ui::widget_id_t icon_label = tree.allocate();
+				const ui::widget_id_t icon_label = ui.allocate_widget();
 				_row_icon_labels[d][r]			 = icon_label;
 				ui.set_widget_debug_name(icon_label, "file_menu_dropdown_icon_label");
 				tree.attach(icon, icon_label);
@@ -303,7 +303,7 @@ namespace sfg
 							   ui.widget_text_len(icon_label),
 							   {.font = theme.font_icons, .color = style.icon_color, .point_size = style.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-				const ui::widget_id_t title_line = tree.allocate();
+				const ui::widget_id_t title_line = ui.allocate_widget();
 				_row_title_lines[d][r]			 = title_line;
 				ui.set_widget_debug_name(title_line, "file_menu_dropdown_title_line");
 				tree.attach(row, title_line);
@@ -333,37 +333,8 @@ namespace sfg
 
 	void editor_file_menu_t::uninit()
 	{
-		if (_ui != nullptr)
-		{
-			ui::input_router_t& input = _ui->get_input();
-			input.clear_popup_scope();
-			for (u32 i = 0; i < _item_count; ++i)
-			{
-				input.clear_listener(_top_frames[i]);
-				_ui->clear_widget_text(_top_labels[i]);
-				_ui->clear_widget_debug_name(_top_frames[i]);
-				_ui->clear_widget_debug_name(_top_labels[i]);
-			}
-			for (u32 d = 0; d < MAX_DEPTH; ++d)
-			{
-				_ui->clear_widget_debug_name(_panels[d]);
-				for (u32 r = 0; r < MAX_ROWS; ++r)
-				{
-					input.clear_listener(_row_frames[d][r]);
-					_ui->clear_widget_text(_row_labels[d][r]);
-					_ui->clear_widget_text(_row_shortcuts[d][r]);
-					_ui->clear_widget_text(_row_icon_labels[d][r]);
-					_ui->clear_widget_debug_name(_row_frames[d][r]);
-					_ui->clear_widget_debug_name(_row_labels[d][r]);
-					_ui->clear_widget_debug_name(_row_shortcuts[d][r]);
-					_ui->clear_widget_debug_name(_row_icons[d][r]);
-					_ui->clear_widget_debug_name(_row_icon_labels[d][r]);
-					_ui->clear_widget_debug_name(_row_title_lines[d][r]);
-				}
-			}
-			_ui->clear_widget_debug_name(_root);
-			_ui->clear_widget_debug_name(_foreground);
-		}
+		_ui->deallocate_widget(_root);
+		_ui->deallocate_widget(_foreground);
 
 		_ui				   = nullptr;
 		_items			   = nullptr;

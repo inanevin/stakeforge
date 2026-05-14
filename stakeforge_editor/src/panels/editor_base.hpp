@@ -86,28 +86,9 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*				   _ui					  = nullptr;
-		ui::widget_id_t				   _base				  = NULL_WIDGET;
-		ui::widget_id_t				   _top_section			  = NULL_WIDGET;
-		ui::widget_id_t				   _top_row_left		  = NULL_WIDGET;
-		ui::widget_id_t				   _top_row_strikes		  = NULL_WIDGET;
-		ui::widget_id_t				   _top_row_mid			  = NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_file		  = NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_divider		  = NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_util		  = NULL_WIDGET;
-		ui::widget_id_t				   _top_row_right		  = NULL_WIDGET;
-		ui::widget_id_t				   _top_row_right_buttons = NULL_WIDGET;
-		ui::widget_id_t				   _window_minimize		  = NULL_WIDGET;
-		ui::widget_id_t				   _window_maximize		  = NULL_WIDGET;
-		ui::widget_id_t				   _window_close		  = NULL_WIDGET;
-		ui::widget_id_t				   _label_wrap			  = NULL_WIDGET;
-		ui::widget_id_t				   _project_label		  = NULL_WIDGET;
-		ui::widget_id_t				   _title_group			  = NULL_WIDGET;
-		ui::widget_id_t				   _title_label			  = NULL_WIDGET;
-		ui::widget_id_t				   _version_label		  = NULL_WIDGET;
-		ui::widget_id_t				   _build_label			  = NULL_WIDGET;
-		ui::widget_id_t				   _mid_section			  = NULL_WIDGET;
-		ui::widget_id_t				   _bottom_section		  = NULL_WIDGET;
+		ui::ui_context*				   _ui			  = nullptr;
+		ui::widget_id_t				   _base		  = NULL_WIDGET;
+		ui::widget_id_t				   _project_label = NULL_WIDGET;
 		dock_widget_t				   _dock_widget;
 		editor_file_menu_t			   _file_menu;
 		editor_project_prompt_action_e _pending_project_prompt_action = editor_project_prompt_action_e::none;

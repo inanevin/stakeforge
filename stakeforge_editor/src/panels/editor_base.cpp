@@ -359,11 +359,30 @@ namespace sfg
 		ui::paint_layer_t&	  paint							 = ui.get_paint();
 		const f32			  item_height					 = theme.item_height;
 		const vec4f_t		  color_divider_dark_transparent = {theme.color_divider_dark.x, theme.color_divider_dark.y, theme.color_divider_dark.z, 0.0f};
+		ui::widget_id_t		  top_section					 = NULL_WIDGET;
+		ui::widget_id_t		  top_row_left					 = NULL_WIDGET;
+		ui::widget_id_t		  top_row_strikes				 = NULL_WIDGET;
+		ui::widget_id_t		  top_row_mid					 = NULL_WIDGET;
+		ui::widget_id_t		  top_mid_file					 = NULL_WIDGET;
+		ui::widget_id_t		  top_mid_divider				 = NULL_WIDGET;
+		ui::widget_id_t		  top_mid_util					 = NULL_WIDGET;
+		ui::widget_id_t		  top_row_right					 = NULL_WIDGET;
+		ui::widget_id_t		  top_row_right_buttons			 = NULL_WIDGET;
+		ui::widget_id_t		  window_minimize				 = NULL_WIDGET;
+		ui::widget_id_t		  window_maximize				 = NULL_WIDGET;
+		ui::widget_id_t		  window_close					 = NULL_WIDGET;
+		ui::widget_id_t		  label_wrap					 = NULL_WIDGET;
+		ui::widget_id_t		  title_group					 = NULL_WIDGET;
+		ui::widget_id_t		  title_label					 = NULL_WIDGET;
+		ui::widget_id_t		  version_label					 = NULL_WIDGET;
+		ui::widget_id_t		  build_label					 = NULL_WIDGET;
+		ui::widget_id_t		  mid_section					 = NULL_WIDGET;
+		ui::widget_id_t		  bottom_section				 = NULL_WIDGET;
 		ui.set_debug_font(theme.font_default);
 
 		// base
 		{
-			_base = tree.allocate();
+			_base = ui.allocate_widget();
 			ui.set_widget_debug_name(_base, "base");
 			tree.attach(ui.get_root(), _base);
 
@@ -378,11 +397,11 @@ namespace sfg
 
 		// top
 		{
-			_top_section = tree.allocate();
-			ui.set_widget_debug_name(_top_section, "top_section");
-			tree.attach(_base, _top_section);
+			top_section = ui.allocate_widget();
+			ui.set_widget_debug_name(top_section, "top_section");
+			tree.attach(_base, top_section);
 
-			ui::layout_in_t& in = tree.in(_top_section);
+			ui::layout_in_t& in = tree.in(top_section);
 			in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			in.size_mode_y		= ui::axis_mode_e::fixed;
 			in.size_value		= {1.0f, item_height * 3.0f};
@@ -393,16 +412,16 @@ namespace sfg
 			ui::vg_rect_paint_t rect = {};
 			rect.fill_color_a		 = theme.color_bg3;
 			rect.fill_color_b		 = theme.color_bg3;
-			paint.set_rect(_top_section, rect);
+			paint.set_rect(top_section, rect);
 		}
 
 		// top-left title
 		{
-			_top_row_left = tree.allocate();
-			ui.set_widget_debug_name(_top_row_left, "top_row_left");
-			tree.attach(_top_section, _top_row_left);
+			top_row_left = ui.allocate_widget();
+			ui.set_widget_debug_name(top_row_left, "top_row_left");
+			tree.attach(top_section, top_row_left);
 
-			ui::layout_in_t& in = tree.in(_top_row_left);
+			ui::layout_in_t& in = tree.in(top_row_left);
 			in.size_mode_x		= ui::axis_mode_e::sum_children;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {0.0f, 1.0f};
@@ -410,11 +429,11 @@ namespace sfg
 			in.child_spacing	= 0.0f;
 			in.child_margins	= {0.0f, theme.margin_horizontal * 2, 0.0f, theme.margin_horizontal * 2};
 
-			_title_group = tree.allocate();
-			ui.set_widget_debug_name(_title_group, "title_group");
-			tree.attach(_top_row_left, _title_group);
+			title_group = ui.allocate_widget();
+			ui.set_widget_debug_name(title_group, "title_group");
+			tree.attach(top_row_left, title_group);
 
-			ui::layout_in_t& group_in = tree.in(_title_group);
+			ui::layout_in_t& group_in = tree.in(title_group);
 			group_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			group_in.pos_value.y	  = 0.5f;
 			group_in.anchor_y		  = ui::anchor_e::center;
@@ -424,53 +443,52 @@ namespace sfg
 			group_in.child_spacing	  = 0.0f;
 			group_in.child_margins	  = {0.0f, 0.0f, 0.0f, 0.0f};
 
-			_title_label = tree.allocate();
-			ui.set_widget_debug_name(_title_label, "title_label");
-			tree.attach(_title_group, _title_label);
+			title_label = ui.allocate_widget();
+			ui.set_widget_debug_name(title_label, "title_label");
+			tree.attach(title_group, title_label);
 
-			ui.set_widget_text(_title_label, "stakeforge");
+			ui.set_widget_text(title_label, "stakeforge");
 			ui::ui_render_state_t title_state = {};
 			title_state.pipeline			  = theme.shader_glitch_lcd;
-			paint.set_text(_title_label, ui.widget_text(_title_label), ui.widget_text_len(_title_label), {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = 20.0f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
+			paint.set_text(title_label, ui.widget_text(title_label), ui.widget_text_len(title_label), {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = 20.0f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
-			_version_label = tree.allocate();
-			ui.set_widget_debug_name(_version_label, "version_label");
-			tree.attach(_title_group, _version_label);
+			version_label = ui.allocate_widget();
+			ui.set_widget_debug_name(version_label, "version_label");
+			tree.attach(title_group, version_label);
 
-			ui.set_widget_text(_version_label, SFG_EDITOR_VERSION_TEXT);
+			ui.set_widget_text(version_label, SFG_EDITOR_VERSION_TEXT);
 			paint.set_text(
-				_version_label, ui.widget_text(_version_label), ui.widget_text_len(_version_label), {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+				version_label, ui.widget_text(version_label), ui.widget_text_len(version_label), {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-			_build_label = tree.allocate();
-			ui.set_widget_debug_name(_build_label, "build_label");
-			tree.attach(_title_group, _build_label);
+			build_label = ui.allocate_widget();
+			ui.set_widget_debug_name(build_label, "build_label");
+			tree.attach(title_group, build_label);
 
-			ui.set_widget_text(_build_label, SFG_EDITOR_BUILD_TEXT);
-			paint.set_text(
-				_build_label, ui.widget_text(_build_label), ui.widget_text_len(_build_label), {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			ui.set_widget_text(build_label, SFG_EDITOR_BUILD_TEXT);
+			paint.set_text(build_label, ui.widget_text(build_label), ui.widget_text_len(build_label), {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		// top-left strikes
 		{
-			_top_row_strikes = tree.allocate();
-			ui.set_widget_debug_name(_top_row_strikes, "top_row_strikes");
-			tree.attach(_top_section, _top_row_strikes);
+			top_row_strikes = ui.allocate_widget();
+			ui.set_widget_debug_name(top_row_strikes, "top_row_strikes");
+			tree.attach(top_section, top_row_strikes);
 
-			ui::layout_in_t& in = tree.in(_top_row_strikes);
+			ui::layout_in_t& in = tree.in(top_row_strikes);
 			in.size_mode_x		= ui::axis_mode_e::fixed;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {item_height * 3.0f, 1.0f};
 
-			paint.set_custom(_top_row_strikes, draw_top_row_strikes, &ui);
+			paint.set_custom(top_row_strikes, draw_top_row_strikes, &ui);
 		}
 
 		// top-mid
 		{
-			_top_row_mid = tree.allocate();
-			ui.set_widget_debug_name(_top_row_mid, "top_row_mid");
-			tree.attach(_top_section, _top_row_mid);
+			top_row_mid = ui.allocate_widget();
+			ui.set_widget_debug_name(top_row_mid, "top_row_mid");
+			tree.attach(top_section, top_row_mid);
 
-			ui::layout_in_t& in = tree.in(_top_row_mid);
+			ui::layout_in_t& in = tree.in(top_row_mid);
 			in.size_mode_x		= ui::axis_mode_e::fill;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {1.0f, 1.0f};
@@ -478,11 +496,11 @@ namespace sfg
 			in.child_spacing	= 0.0f;
 			in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
-			_top_mid_file = tree.allocate();
-			ui.set_widget_debug_name(_top_mid_file, "top_mid_file");
-			tree.attach(_top_row_mid, _top_mid_file);
+			top_mid_file = ui.allocate_widget();
+			ui.set_widget_debug_name(top_mid_file, "top_mid_file");
+			tree.attach(top_row_mid, top_mid_file);
 
-			ui::layout_in_t& file_in = tree.in(_top_mid_file);
+			ui::layout_in_t& file_in = tree.in(top_mid_file);
 			file_in.size_mode_x		 = ui::axis_mode_e::fill;
 			file_in.size_mode_y		 = ui::axis_mode_e::fixed;
 			file_in.size_value		 = {1.0f, theme.item_height};
@@ -508,16 +526,16 @@ namespace sfg
 			file_menu_style.padding_x				 = theme.indent_horizontal;
 			file_menu_style.shortcut_gap			 = theme.item_height * 1.75f;
 			file_menu_style.title_gap				 = theme.indent_horizontal;
-			_file_menu.init(ui, _top_mid_file, FILE_MENU_ITEMS, static_cast<u16>(sizeof(FILE_MENU_ITEMS) / sizeof(FILE_MENU_ITEMS[0])), file_menu_style, on_file_menu_command, this);
+			_file_menu.init(ui, top_mid_file, FILE_MENU_ITEMS, static_cast<u16>(sizeof(FILE_MENU_ITEMS) / sizeof(FILE_MENU_ITEMS[0])), file_menu_style, on_file_menu_command, this);
 
-			_top_mid_divider = editor_dividers_t::add_divider_hor(ui, _top_row_mid, theme.divider_thickness, theme.color_fg0, theme.color_bg3, ui::vg_gradient_e::horizontal);
-			ui.set_widget_debug_name(_top_mid_divider, "top_mid_divider");
+			top_mid_divider = editor_dividers_t::add_divider_hor(ui, top_row_mid, theme.divider_thickness, theme.color_fg0, theme.color_bg3, ui::vg_gradient_e::horizontal);
+			ui.set_widget_debug_name(top_mid_divider, "top_mid_divider");
 
-			_top_mid_util = tree.allocate();
-			ui.set_widget_debug_name(_top_mid_util, "top_mid_util");
-			tree.attach(_top_row_mid, _top_mid_util);
+			top_mid_util = ui.allocate_widget();
+			ui.set_widget_debug_name(top_mid_util, "top_mid_util");
+			tree.attach(top_row_mid, top_mid_util);
 
-			ui::layout_in_t& util_in = tree.in(_top_mid_util);
+			ui::layout_in_t& util_in = tree.in(top_mid_util);
 			util_in.size_mode_x		 = ui::axis_mode_e::fill;
 			util_in.size_mode_y		 = ui::axis_mode_e::fill;
 			util_in.size_value		 = {1.0f, 1.0f};
@@ -525,11 +543,11 @@ namespace sfg
 
 		// top-right
 		{
-			_top_row_right = tree.allocate();
-			ui.set_widget_debug_name(_top_row_right, "top_row_right");
-			tree.attach(_top_section, _top_row_right);
+			top_row_right = ui.allocate_widget();
+			ui.set_widget_debug_name(top_row_right, "top_row_right");
+			tree.attach(top_section, top_row_right);
 
-			ui::layout_in_t& in = tree.in(_top_row_right);
+			ui::layout_in_t& in = tree.in(top_row_right);
 			in.size_mode_x		= ui::axis_mode_e::fixed;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {theme.item_height * 6, 1.0f};
@@ -537,11 +555,11 @@ namespace sfg
 			in.child_spacing	= theme.item_spacing;
 			in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
-			_top_row_right_buttons = tree.allocate();
-			ui.set_widget_debug_name(_top_row_right_buttons, "top_row_right_buttons");
-			tree.attach(_top_row_right, _top_row_right_buttons);
+			top_row_right_buttons = ui.allocate_widget();
+			ui.set_widget_debug_name(top_row_right_buttons, "top_row_right_buttons");
+			tree.attach(top_row_right, top_row_right_buttons);
 
-			ui::layout_in_t& buttons_in = tree.in(_top_row_right_buttons);
+			ui::layout_in_t& buttons_in = tree.in(top_row_right_buttons);
 			buttons_in.pos_mode_y		= ui::pos_mode_e::flow;
 			buttons_in.pos_value.y		= 0.0f;
 			buttons_in.anchor_y			= ui::anchor_e::start;
@@ -552,35 +570,35 @@ namespace sfg
 			buttons_in.child_spacing	= 0.0f;
 			buttons_in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
-			const editor_window_buttons_t window_buttons = editor_misc_widgets_t::add_window_buttons(ui, _top_row_right_buttons, theme.color_bg0, theme.color_accent_err, theme.color_bg4, theme.color_bg2, theme.color_fg3, theme.icon_default_px_size);
-			_window_minimize							 = window_buttons.minimize_frame;
-			_window_maximize							 = window_buttons.maximize_frame;
-			_window_close								 = window_buttons.close_frame;
+			const editor_window_buttons_t window_buttons = editor_misc_widgets_t::add_window_buttons(ui, top_row_right_buttons, theme.color_bg0, theme.color_accent_err, theme.color_bg4, theme.color_bg2, theme.color_fg3, theme.icon_default_px_size);
+			window_minimize								 = window_buttons.minimize_frame;
+			window_maximize								 = window_buttons.maximize_frame;
+			window_close								 = window_buttons.close_frame;
 
 			ui::listener_bundle_t listener = {};
 			listener.user_data			   = this;
 			listener.on_click			   = on_minimize_window;
-			ui.get_input().set_listener(_window_minimize, listener);
+			ui.get_input().set_listener(window_minimize, listener);
 			listener.on_click = on_maximize_window;
-			ui.get_input().set_listener(_window_maximize, listener);
+			ui.get_input().set_listener(window_maximize, listener);
 			listener.on_click = on_close_window;
-			ui.get_input().set_listener(_window_close, listener);
+			ui.get_input().set_listener(window_close, listener);
 
-			_label_wrap = tree.allocate();
-			ui.set_widget_debug_name(_label_wrap, "label_wrap");
-			tree.attach(_top_row_right, _label_wrap);
+			label_wrap = ui.allocate_widget();
+			ui.set_widget_debug_name(label_wrap, "label_wrap");
+			tree.attach(top_row_right, label_wrap);
 
-			ui::layout_in_t& label_wrap_in = tree.in(_label_wrap);
+			ui::layout_in_t& label_wrap_in = tree.in(label_wrap);
 			label_wrap_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 			label_wrap_in.pos_mode_y	   = ui::pos_mode_e::flow;
 			label_wrap_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 			label_wrap_in.size_mode_y	   = ui::axis_mode_e::fill;
 			label_wrap_in.size_value.x	   = 1.0f;
 
-			_project_label = tree.allocate();
+			_project_label = ui.allocate_widget();
 			ui.set_widget_debug_name(_project_label, "project_label");
-			tree.attach(_label_wrap, _project_label);
-			tree.draw_order(_project_label) = tree.draw_order_const(_top_row_right) + 1;
+			tree.attach(label_wrap, _project_label);
+			tree.draw_order(_project_label) = tree.draw_order_const(top_row_right) + 1;
 
 			ui::layout_in_t& project_in = tree.in(_project_label);
 			project_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
@@ -600,11 +618,11 @@ namespace sfg
 
 		// mid
 		{
-			_mid_section = tree.allocate();
-			ui.set_widget_debug_name(_mid_section, "mid_section");
-			tree.attach(_base, _mid_section);
+			mid_section = ui.allocate_widget();
+			ui.set_widget_debug_name(mid_section, "mid_section");
+			tree.attach(_base, mid_section);
 
-			ui::layout_in_t& in = tree.in(_mid_section);
+			ui::layout_in_t& in = tree.in(mid_section);
 			in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			in.size_mode_y		= ui::axis_mode_e::fill;
 			in.size_value		= {1.0f, 1.0f};
@@ -612,20 +630,20 @@ namespace sfg
 			ui::vg_rect_paint_t rect = {};
 			rect.fill_color_a		 = theme.color_bg1;
 			rect.fill_color_b		 = theme.color_bg1;
-			paint.set_rect(_mid_section, rect);
+			paint.set_rect(mid_section, rect);
 
-			_dock_widget.init(ui, _mid_section);
+			_dock_widget.init(ui, mid_section);
 		}
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.divider_thickness * 4.0f, color_divider_dark_transparent, theme.color_divider_dark, ui::vg_gradient_e::vertical);
 
 		// bottom
 		{
-			_bottom_section = tree.allocate();
-			ui.set_widget_debug_name(_bottom_section, "bottom_section");
-			tree.attach(_base, _bottom_section);
+			bottom_section = ui.allocate_widget();
+			ui.set_widget_debug_name(bottom_section, "bottom_section");
+			tree.attach(_base, bottom_section);
 
-			ui::layout_in_t& in = tree.in(_bottom_section);
+			ui::layout_in_t& in = tree.in(bottom_section);
 			in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			in.size_mode_y		= ui::axis_mode_e::fixed;
 			in.size_value		= {1.0f, item_height};
@@ -633,7 +651,7 @@ namespace sfg
 			ui::vg_rect_paint_t rect = {};
 			rect.fill_color_a		 = theme.color_bg3;
 			rect.fill_color_b		 = theme.color_bg3;
-			paint.set_rect(_bottom_section, rect);
+			paint.set_rect(bottom_section, rect);
 		}
 	}
 
@@ -642,52 +660,11 @@ namespace sfg
 		_dock_widget.uninit();
 		_file_menu.uninit();
 
-		if (_ui != nullptr)
-		{
-			_ui->get_input().clear_listener(_window_minimize);
-			_ui->get_input().clear_listener(_window_maximize);
-			_ui->get_input().clear_listener(_window_close);
-			_ui->clear_widget_debug_name(_base);
-			_ui->clear_widget_debug_name(_top_section);
-			_ui->clear_widget_debug_name(_top_row_left);
-			_ui->clear_widget_debug_name(_top_row_strikes);
-			_ui->clear_widget_debug_name(_top_row_mid);
-			_ui->clear_widget_debug_name(_top_mid_file);
-			_ui->clear_widget_debug_name(_top_mid_divider);
-			_ui->clear_widget_debug_name(_top_mid_util);
-			_ui->clear_widget_debug_name(_top_row_right);
-			_ui->clear_widget_debug_name(_top_row_right_buttons);
-			_ui->clear_widget_debug_name(_project_label);
-			_ui->clear_widget_text(_project_label);
-			_ui->clear_widget_debug_name(_title_group);
-			_ui->clear_widget_debug_name(_title_label);
-			_ui->clear_widget_debug_name(_version_label);
-			_ui->clear_widget_debug_name(_build_label);
-			_ui->clear_widget_debug_name(_mid_section);
-			_ui->clear_widget_debug_name(_bottom_section);
-		}
+		_ui->deallocate_widget(_base);
 
 		_ui							   = nullptr;
 		_base						   = NULL_WIDGET;
-		_top_section				   = NULL_WIDGET;
-		_top_row_left				   = NULL_WIDGET;
-		_top_row_strikes			   = NULL_WIDGET;
-		_top_row_mid				   = NULL_WIDGET;
-		_top_mid_file				   = NULL_WIDGET;
-		_top_mid_divider			   = NULL_WIDGET;
-		_top_mid_util				   = NULL_WIDGET;
-		_top_row_right				   = NULL_WIDGET;
-		_top_row_right_buttons		   = NULL_WIDGET;
-		_window_minimize			   = NULL_WIDGET;
-		_window_maximize			   = NULL_WIDGET;
-		_window_close				   = NULL_WIDGET;
 		_project_label				   = NULL_WIDGET;
-		_title_group				   = NULL_WIDGET;
-		_title_label				   = NULL_WIDGET;
-		_version_label				   = NULL_WIDGET;
-		_build_label				   = NULL_WIDGET;
-		_mid_section				   = NULL_WIDGET;
-		_bottom_section				   = NULL_WIDGET;
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
 	}
 

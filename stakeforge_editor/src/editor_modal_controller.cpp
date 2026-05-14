@@ -53,7 +53,7 @@ namespace sfg
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		_foreground = tree.allocate();
+		_foreground = ui.allocate_widget();
 		ui.set_widget_debug_name(_foreground, "modal_foreground");
 		tree.attach(ui.get_root(), _foreground);
 		tree.draw_order(_foreground) = MODAL_DRAW_ORDER;
@@ -64,7 +64,7 @@ namespace sfg
 		foreground_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_value	   = {1.0f, 1.0f};
 
-		_dimmer = tree.allocate();
+		_dimmer = ui.allocate_widget();
 		ui.set_widget_debug_name(_dimmer, "modal_dimmer");
 		tree.attach(_foreground, _dimmer);
 		tree.draw_order(_dimmer) = MODAL_DRAW_ORDER + 1;
@@ -80,7 +80,7 @@ namespace sfg
 		dimmer_rect.fill_color_b		= {0.0f, 0.0f, 0.0f, 0.5f};
 		paint.set_rect(_dimmer, dimmer_rect);
 
-		_window = tree.allocate();
+		_window = ui.allocate_widget();
 		ui.set_widget_debug_name(_window, "modal_window");
 		tree.attach(_foreground, _window);
 		tree.draw_order(_window) = MODAL_DRAW_ORDER + 2;
@@ -101,19 +101,19 @@ namespace sfg
 
 		editor_widgets_frames_t::make_frame_modal(ui, _window);
 
-		_title = tree.allocate();
+		_title = ui.allocate_widget();
 		ui.set_widget_debug_name(_title, "modal_title");
 		tree.attach(_window, _title);
 		tree.draw_order(_title) = MODAL_DRAW_ORDER + 3;
 		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		_description = tree.allocate();
+		_description = ui.allocate_widget();
 		ui.set_widget_debug_name(_description, "modal_description");
 		tree.attach(_window, _description);
 		tree.draw_order(_description) = MODAL_DRAW_ORDER + 3;
 		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		_button_row = tree.allocate();
+		_button_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_button_row, "modal_button_row");
 		tree.attach(_window, _button_row);
 		tree.draw_order(_button_row) = MODAL_DRAW_ORDER + 3;
@@ -132,12 +132,12 @@ namespace sfg
 
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
-			_button_frames[i] = tree.allocate();
+			_button_frames[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_button_frames[i], "modal_button");
 			tree.attach(_button_row, _button_frames[i]);
 			tree.draw_order(_button_frames[i]) = MODAL_DRAW_ORDER + 4;
 
-			_button_labels[i] = tree.allocate();
+			_button_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_button_labels[i], "modal_button_label");
 			tree.attach(_button_frames[i], _button_labels[i]);
 			tree.draw_order(_button_labels[i]) = MODAL_DRAW_ORDER + 5;
@@ -151,30 +151,10 @@ namespace sfg
 
 	void editor_modal_controller_t::uninit()
 	{
-		if (_ui == nullptr)
-			return;
-
 		if (_visible)
 			set_visible(false);
 
-		ui::ui_context&		ui	  = *_ui;
-		ui::input_router_t& input = ui.get_input();
-		for (u32 i = 0; i < MAX_BUTTONS; ++i)
-		{
-			input.clear_listener(_button_frames[i]);
-			ui.clear_widget_text(_button_labels[i]);
-			ui.clear_widget_debug_name(_button_frames[i]);
-			ui.clear_widget_debug_name(_button_labels[i]);
-		}
-
-		ui.clear_widget_text(_title);
-		ui.clear_widget_text(_description);
-		ui.clear_widget_debug_name(_foreground);
-		ui.clear_widget_debug_name(_dimmer);
-		ui.clear_widget_debug_name(_window);
-		ui.clear_widget_debug_name(_title);
-		ui.clear_widget_debug_name(_description);
-		ui.clear_widget_debug_name(_button_row);
+		_ui->deallocate_widget(_foreground);
 
 		_ui			  = nullptr;
 		_foreground	  = NULL_WIDGET;

@@ -195,20 +195,21 @@ namespace sfg::ui
 			{
 				for (const auto& cj : j.at("children"))
 				{
-					const widget_id_t cid = ui.get_tree().allocate();
+					const widget_id_t cid = ui.allocate_widget();
 					ui.get_tree().attach(id, cid);
 					widget_from_json(ui, cid, cj);
 				}
 			}
 		}
 
-		void destroy_children(layout_tree_t& tree, widget_id_t id)
+		void destroy_children(ui_context& ui, widget_id_t id)
 		{
-			widget_id_t c = tree.node(id).first_child;
+			layout_tree_t& tree = ui.get_tree();
+			widget_id_t	   c	= tree.node(id).first_child;
 			while (c != NULL_WIDGET)
 			{
 				const widget_id_t next = tree.node(c).next_sibling;
-				tree.deallocate(c);
+				ui.deallocate_widget(c);
 				c = next;
 			}
 		}
@@ -224,7 +225,7 @@ namespace sfg::ui
 	{
 		try
 		{
-			destroy_children(ui.get_tree(), ui.get_tree().get_root());
+			destroy_children(ui, ui.get_tree().get_root());
 			widget_from_json(ui, ui.get_tree().get_root(), j);
 			return true;
 		}

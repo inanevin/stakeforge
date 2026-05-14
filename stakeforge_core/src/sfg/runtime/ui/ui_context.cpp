@@ -146,6 +146,34 @@ namespace sfg::ui
 		_debug_font = font;
 	}
 
+	widget_id_t ui_context::allocate_widget()
+	{
+		return _tree.allocate();
+	}
+
+	void ui_context::deallocate_widget(widget_id_t id)
+	{
+		SFG_ASSERT(id != _tree.get_root());
+		clear_widget_state_recursive(id);
+		_tree.deallocate(id);
+	}
+
+	void ui_context::clear_widget_state_recursive(widget_id_t id)
+	{
+		widget_id_t child = _tree.node(id).first_child;
+		while (child != NULL_WIDGET)
+		{
+			const widget_id_t next = _tree.node(child).next_sibling;
+			clear_widget_state_recursive(child);
+			child = next;
+		}
+
+		_input.clear_widget_state(id);
+		clear_widget_text(id);
+		clear_widget_debug_name(id);
+		_paint.clear(id);
+	}
+
 	void ui_context::draw_debug_hovered_widget()
 	{
 		const span_t<const widget_id_t> dfs	   = _tree.get_dfs();

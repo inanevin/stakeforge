@@ -15,7 +15,7 @@ namespace sfg
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 
-		const ui::widget_id_t id = tree.allocate();
+		const ui::widget_id_t id = ui.allocate_widget();
 		tree.attach(parent, id);
 		tree.draw_order(id) = tree.draw_order_const(parent) + 1;
 
