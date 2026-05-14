@@ -769,8 +769,8 @@ namespace sfg
 			const shader_color_attachment_t& att = attachments[i];
 			stream << att.format;
 			stream << att.blend_attachment.blend_enabled;
-			stream << att.blend_attachment.src_alpha_blend_factor;
-			stream << att.blend_attachment.dst_alpha_blend_factor;
+			stream << att.blend_attachment.src_color_blend_factor;
+			stream << att.blend_attachment.dst_color_blend_factor;
 			stream << att.blend_attachment.color_blend_op;
 			stream << att.blend_attachment.src_alpha_blend_factor;
 			stream << att.blend_attachment.dst_alpha_blend_factor;

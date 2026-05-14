@@ -56,7 +56,7 @@ namespace sfg
 		return {
 			.blend_enabled			= true,
 			.src_color_blend_factor = blend_factor::one,
-			.dst_color_blend_factor = blend_factor::one_minus_src_color,
+			.dst_color_blend_factor = blend_factor::one_minus_src_alpha,
 			.color_blend_op			= blend_op::add,
 			.src_alpha_blend_factor = blend_factor::one,
 			.dst_alpha_blend_factor = blend_factor::one_minus_src_alpha,

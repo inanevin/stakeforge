@@ -45,6 +45,20 @@ namespace sfg::ui
 				px = 1;
 			return static_cast<u32>(px);
 		}
+
+		resource_handle_t text_pipeline_for(const paint_pipelines_t& pipelines, glyph_raster_mode_e raster_mode)
+		{
+			switch (raster_mode)
+			{
+			case glyph_raster_mode_e::lcd:
+				return pipelines.text_pipeline;
+			case glyph_raster_mode_e::grayscale:
+				return pipelines.grayscale_text_pipeline;
+			case glyph_raster_mode_e::sdf:
+				return pipelines.sdf_pipeline;
+			}
+			return NULL_RESOURCE_HANDLE;
+		}
 	}
 
 	void paint_layer_t::init(u32 max_widgets)
@@ -98,18 +112,17 @@ namespace sfg::ui
 		def.text_len	 = len;
 		def.render_state = state;
 		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
+			def.render_state.pipeline = text_pipeline_for(_pipelines, s.raster_mode);
+	}
+
+	void paint_layer_t::set_text_raster_mode(glyph_raster_mode_e raster_mode)
+	{
+		for (paint_def_t& def : _defs)
 		{
-			switch (s.raster_mode)
+			if (def.kind == paint_kind_e::text)
 			{
-			case glyph_raster_mode_e::lcd:
-				def.render_state.pipeline = _pipelines.text_pipeline;
-				break;
-			case glyph_raster_mode_e::grayscale:
-				def.render_state.pipeline = _pipelines.grayscale_text_pipeline;
-				break;
-			case glyph_raster_mode_e::sdf:
-				def.render_state.pipeline = _pipelines.sdf_pipeline;
-				break;
+				def.text.raster_mode	  = raster_mode;
+				def.render_state.pipeline = text_pipeline_for(_pipelines, raster_mode);
 			}
 		}
 	}

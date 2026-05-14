@@ -91,7 +91,8 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	tint			= lerp(tint, float3(1.0f, 0.15f, 0.65f), minor_band * GLITCH_MINOR_TINT);
 	tint		   += strike * alpha * GLITCH_STRIKE_INTENSITY * float3(1.0f, 0.14f, 0.8f);
 
-	float3 rgb = tint * coverage * IN.color.a * scan;
-	alpha	   = saturate(alpha * IN.color.a * (GLITCH_BASE_ALPHA + major_band * GLITCH_MAJOR_ALPHA + strike * GLITCH_STRIKE_ALPHA));
+	float3 weight = coverage * IN.color.a;
+	float3 rgb	  = tint * weight * scan;
+	alpha		  = saturate(alpha * IN.color.a * (GLITCH_BASE_ALPHA + major_band * GLITCH_MAJOR_ALPHA + strike * GLITCH_STRIKE_ALPHA));
 	return float4(rgb, alpha);
 }

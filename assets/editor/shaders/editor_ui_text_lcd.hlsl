@@ -37,5 +37,6 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	float4    sampled  = atlas.SampleLevel(smp, IN.uv, 0);
 	float3    coverage = sampled.rgb;
 	float     alpha    = max(coverage.r, max(coverage.g, coverage.b));
-	return float4(IN.color.rgb * coverage * IN.color.a, IN.color.a * alpha);
+	float3    weight   = coverage * IN.color.a;
+	return float4(IN.color.rgb * weight, IN.color.a * alpha);
 }
