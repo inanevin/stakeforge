@@ -99,8 +99,8 @@ namespace sfg
 		body_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};
 
 		ui::vg_rect_paint_t body_rect = {};
-		body_rect.fill_color_a		  = theme.color_bg2;
-		body_rect.fill_color_b		  = theme.color_bg2;
+		body_rect.fill_color_a		  = theme.color_panel;
+		body_rect.fill_color_b		  = theme.color_panel;
 		paint.set_rect(node.body, body_rect);
 
 		return handle;

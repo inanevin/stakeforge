@@ -111,7 +111,7 @@ namespace sfg
 		ui.set_widget_debug_name(_description, "modal_description");
 		tree.attach(_window, _description);
 		tree.draw_order(_description) = MODAL_DRAW_ORDER + 3;
-		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_button_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_button_row, "modal_button_row");

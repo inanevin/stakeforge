@@ -409,8 +409,8 @@ namespace sfg
 			in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
 			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_bg1;
-			rect.fill_color_b		 = theme.color_bg1;
+			rect.fill_color_a		 = theme.color_frame_light;
+			rect.fill_color_b		 = theme.color_frame_light;
 			paint.set_rect(top_section, rect);
 		}
 
@@ -449,7 +449,7 @@ namespace sfg
 			ui.set_widget_text(title_label, "stakeforge");
 			ui::ui_render_state_t title_state = {};
 			title_state.pipeline			  = theme.shader_glitch_lcd;
-			paint.set_text(title_label, ui.widget_text(title_label), ui.widget_text_len(title_label), {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = 20.0f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
+			paint.set_text(title_label, ui.widget_text(title_label), ui.widget_text_len(title_label), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = 20.0f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 			version_label = ui.allocate_widget();
 			ui.set_widget_debug_name(version_label, "version_label");
@@ -457,14 +457,14 @@ namespace sfg
 
 			ui.set_widget_text(version_label, SFG_EDITOR_VERSION_TEXT);
 			paint.set_text(
-				version_label, ui.widget_text(version_label), ui.widget_text_len(version_label), {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+				version_label, ui.widget_text(version_label), ui.widget_text_len(version_label), {.font = theme.font_sfg, .color = theme.color_text1, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 			build_label = ui.allocate_widget();
 			ui.set_widget_debug_name(build_label, "build_label");
 			tree.attach(title_group, build_label);
 
 			ui.set_widget_text(build_label, SFG_EDITOR_BUILD_TEXT);
-			paint.set_text(build_label, ui.widget_text(build_label), ui.widget_text_len(build_label), {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			paint.set_text(build_label, ui.widget_text(build_label), ui.widget_text_len(build_label), {.font = theme.font_sfg, .color = theme.color_text2, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		// top-left strikes
@@ -506,15 +506,15 @@ namespace sfg
 
 			editor_file_menu_style_t file_menu_style = {};
 			file_menu_style.frame_color				 = {0, 0, 0, 0};
-			file_menu_style.hover_color				 = theme.color_bg4;
-			file_menu_style.press_color				 = theme.color_bg2;
-			file_menu_style.selected_color			 = theme.color_bg2;
-			file_menu_style.dropdown_color			 = theme.color_bg2;
-			file_menu_style.text_color				 = theme.color_fg4;
-			file_menu_style.shortcut_color			 = theme.color_fg0;
-			file_menu_style.title_color				 = theme.color_fg1;
-			file_menu_style.title_line_color		 = theme.color_fg0;
-			file_menu_style.icon_color				 = theme.color_fg2;
+			file_menu_style.hover_color				 = theme.color_light;
+			file_menu_style.press_color				 = theme.color_panel;
+			file_menu_style.selected_color			 = theme.color_panel;
+			file_menu_style.dropdown_color			 = theme.color_frame_light;
+			file_menu_style.text_color				 = theme.color_text0;
+			file_menu_style.shortcut_color			 = theme.color_text2;
+			file_menu_style.title_color				 = theme.color_text1;
+			file_menu_style.title_line_color		 = theme.color_text2;
+			file_menu_style.icon_color				 = theme.color_text0;
 			file_menu_style.button_width			 = theme.item_height * 2.5f;
 			file_menu_style.row_height				 = theme.item_height;
 			file_menu_style.text_size				 = theme.text_default_px_size;
@@ -528,7 +528,7 @@ namespace sfg
 			file_menu_style.title_gap				 = theme.indent_horizontal;
 			_file_menu.init(ui, top_mid_file, FILE_MENU_ITEMS, static_cast<u16>(sizeof(FILE_MENU_ITEMS) / sizeof(FILE_MENU_ITEMS[0])), file_menu_style, on_file_menu_command, this);
 
-			top_mid_divider = editor_dividers_t::add_divider_hor(ui, top_row_mid, theme.divider_thickness, theme.color_fg0, theme.color_bg3, ui::vg_gradient_e::horizontal);
+			top_mid_divider = editor_dividers_t::add_divider_hor(ui, top_row_mid, theme.divider_thickness, theme.color_text2, theme.color_panel_light, ui::vg_gradient_e::horizontal);
 			ui.set_widget_debug_name(top_mid_divider, "top_mid_divider");
 
 			top_mid_util = ui.allocate_widget();
@@ -570,7 +570,7 @@ namespace sfg
 			buttons_in.child_spacing	= 0.0f;
 			buttons_in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
-			const editor_window_buttons_t window_buttons = editor_misc_widgets_t::add_window_buttons(ui, top_row_right_buttons, theme.color_bg0, theme.color_accent_err, theme.color_bg4, theme.color_bg2, theme.color_fg4, theme.icon_default_px_size);
+			const editor_window_buttons_t window_buttons = editor_misc_widgets_t::add_window_buttons(ui, top_row_right_buttons, theme.color_frame, theme.color_accent_err, theme.color_light, theme.color_panel, theme.color_text0, theme.icon_default_px_size);
 			window_minimize								 = window_buttons.minimize_frame;
 			window_maximize								 = window_buttons.maximize_frame;
 			window_close								 = window_buttons.close_frame;
@@ -611,7 +611,7 @@ namespace sfg
 			paint.set_text(_project_label,
 						   ui.widget_text(_project_label),
 						   ui.widget_text_len(_project_label),
-						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+						   {.font = theme.font_sfg, .color = theme.color_text1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
@@ -634,8 +634,8 @@ namespace sfg
 			in.size_value		= {1.0f, item_height};
 
 			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_bg1;
-			rect.fill_color_b		 = theme.color_bg1;
+			rect.fill_color_a		 = theme.color_frame_light;
+			rect.fill_color_b		 = theme.color_frame_light;
 			paint.set_rect(bottom_section, rect);
 		}
 	}

@@ -46,14 +46,14 @@ namespace sfg
 		frame_in.size_value		  = {1.0f, 1.0f};
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_bg4;
-		rect.fill_color_b		 = theme.color_bg4;
+		rect.fill_color_a		 = theme.color_light;
+		rect.fill_color_b		 = theme.color_light;
 		rect.rounding			 = 3.0f;
 		rect.rounding_segs		 = 6;
 		rect.aa_thickness		 = theme.aa_thickness;
 		paint.set_rect(frame, rect);
-		paint.set_hover_color(frame, theme.color_bg3);
-		paint.set_press_color(frame, theme.color_bg1);
+		paint.set_hover_color(frame, theme.color_panel_light);
+		paint.set_press_color(frame, theme.color_frame_light);
 
 		ui::layout_in_t& label_in = tree.in(label);
 		label_in.flags			  = ui::wf_overlay;
@@ -62,6 +62,6 @@ namespace sfg
 		label_in.pos_value		  = {0.5f, 0.5f};
 		label_in.anchor_x		  = ui::anchor_e::center;
 		label_in.anchor_y		  = ui::anchor_e::center;
-		paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg4, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 }

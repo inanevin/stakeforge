@@ -36,8 +36,8 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_bg3;
-		rect.fill_color_b		 = theme.color_bg2;
+		rect.fill_color_a		 = theme.color_frame_light;
+		rect.fill_color_b		 = theme.color_frame;
 		rect.gradient			 = ui::vg_gradient_e::vertical;
 		rect.rounding			 = 4.0f;
 		rect.rounding_segs		 = 8;

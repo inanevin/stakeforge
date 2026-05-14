@@ -38,8 +38,8 @@ namespace sfg
 		in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_bg0;
-		rect.fill_color_b		 = theme.color_bg0;
+		rect.fill_color_a		 = theme.color_frame;
+		rect.fill_color_b		 = theme.color_frame;
 		paint.set_rect(_root, rect);
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 	}
@@ -128,8 +128,8 @@ namespace sfg
 		marker_in.size_value	   = {theme.item_height * 0.15f, theme.item_height * 0.65f};
 
 		ui::vg_rect_paint_t marker_wrapper_rect = {};
-		marker_wrapper_rect.fill_color_a		= theme.color_bg0;
-		marker_wrapper_rect.fill_color_b		= theme.color_bg0;
+		marker_wrapper_rect.fill_color_a		= theme.color_frame;
+		marker_wrapper_rect.fill_color_b		= theme.color_frame;
 		paint.set_rect(marker, marker_wrapper_rect);
 
 		const ui::widget_id_t marker_inner = ui.allocate_widget();
@@ -162,12 +162,12 @@ namespace sfg
 
 		ui.set_widget_text(label, title);
 		paint.set_text(
-			label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = theme.color_fg4, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		ui::widget_id_t close_button = NULL_WIDGET;
 		if (_config.can_close)
 		{
-			close_button = editor_icon_widgets_t::add_naked_icon_button(ui, tab, ICON_CROSS, theme.icon_default_px_size, theme.color_fg1, theme.color_accent1, theme.color_accent1_dim, theme.color_fg0);
+			close_button = editor_icon_widgets_t::add_naked_icon_button(ui, tab, ICON_CROSS, theme.icon_default_px_size, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text2);
 
 			ui::listener_bundle_t close_listener = {};
 			close_listener.user_data			 = this;
@@ -280,7 +280,7 @@ namespace sfg
 			is_hovered = parent == id;
 		}
 
-		const vec4f_t color = tab.identifier == tab_area._active_tab ? theme.color_bg3 : (is_hovered ? theme.color_bg3 : theme.color_bg0);
+		const vec4f_t color = tab.identifier == tab_area._active_tab ? theme.color_panel_light : (is_hovered ? theme.color_panel_light : theme.color_frame);
 
 		ui::vg_convex_paint_t convex = {};
 		convex.fill_color_a			 = color;
