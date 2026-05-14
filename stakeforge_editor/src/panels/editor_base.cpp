@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "panels/editor_base.hpp"
+#include "panels/editor_panel_factory.hpp"
 #include "panels/editor_panel_types.hpp"
 #include "panels/editor_theme.hpp"
 #include "editor_app.hpp"
@@ -464,7 +465,8 @@ namespace sfg
 			tree.attach(title_group, build_label);
 
 			ui.set_widget_text(build_label, SFG_EDITOR_BUILD_TEXT);
-			paint.set_text(build_label, ui.widget_text(build_label), ui.widget_text_len(build_label), {.font = theme.font_sfg, .color = theme.color_text2, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			paint.set_text(
+				build_label, ui.widget_text(build_label), ui.widget_text_len(build_label), {.font = theme.font_sfg, .color = theme.color_text2, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		// top-left strikes
@@ -617,8 +619,12 @@ namespace sfg
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		_dock_widget.init(ui, _base);
-		ui::layout_in_t& dock_in = tree.in(_dock_widget.get_root());
-		dock_in.size_mode_y		 = ui::axis_mode_e::fill;
+		ui::layout_in_t& dock_in		   = tree.in(_dock_widget.get_root());
+		dock_in.size_mode_y				   = ui::axis_mode_e::fill;
+		const dock_node_handle_t demo_leaf = _dock_widget.create_leaf_node(_dock_widget.get_root());
+		_dock_widget.set_root_node(demo_leaf);
+		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::entities));
+		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::world));
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 

@@ -128,7 +128,7 @@ namespace sfg
 			tree.draw_order(tab.marker_inner) = dragging ? 1002u : 0u;
 			tree.draw_order(tab.label)		  = dragging ? 1002u : 0u;
 			if (tab.close_button != NULL_WIDGET)
-				tree.draw_order(tab.close_button) = dragging ? 1002u : 0u;
+				tree.draw_order(tab.close_button) = dragging ? 1002u : 1u;
 		}
 	}
 

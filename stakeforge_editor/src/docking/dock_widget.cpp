@@ -5,10 +5,10 @@
 #include "editor_payload_type.hpp"
 #include "panels/editor_panel.hpp"
 #include "panels/editor_panel_factory.hpp"
-#include "panels/editor_panel_types.hpp"
 #include "panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -34,23 +34,23 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::none;
-
-		_root_node = create_leaf_node(_root);
-		dock_node_add_panel(_dock_nodes.get(_root_node), editor_panel_factory_t::create_panel(editor_panel_type_e::entities));
-		dock_node_add_panel(_dock_nodes.get(_root_node), editor_panel_factory_t::create_panel(editor_panel_type_e::world));
 	}
 
 	void dock_widget_t::uninit()
 	{
-		dock_node_t& root_node = _dock_nodes.get(_root_node);
-		for (editor_panel_t* panel : root_node.panels)
+		if (!_root_node.is_null())
 		{
-			panel->uninit();
-			editor_panel_factory_t::delete_panel(panel);
+			dock_node_t& root_node = _dock_nodes.get(_root_node);
+			for (editor_panel_t* panel : root_node.panels)
+			{
+				panel->uninit();
+				editor_panel_factory_t::delete_panel(panel);
+			}
+			root_node.panels.clear();
+			root_node.tab_area.uninit();
+			free_dock_node(_root_node);
 		}
-		root_node.panels.clear();
-		root_node.tab_area.uninit();
-		free_dock_node(_root_node);
+
 		_ui->deallocate_widget(_root);
 
 		_ui		   = nullptr;
@@ -110,6 +110,17 @@ namespace sfg
 		return handle;
 	}
 
+	void dock_widget_t::set_root_node(dock_node_handle_t handle)
+	{
+		SFG_ASSERT(_dock_nodes.is_valid(handle));
+		_root_node = handle;
+	}
+
+	void dock_widget_t::dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel)
+	{
+		dock_node_add_panel(_dock_nodes.get(handle), panel);
+	}
+
 	void dock_widget_t::dock_node_add_panel(dock_node_t& node, editor_panel_t* panel)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
@@ -130,9 +141,11 @@ namespace sfg
 			editor_panel_t* panel = *it;
 			if (TO_SID(panel->get_title()) == identifier)
 			{
+				const ui::layout_out_t& out	 = _ui->get_tree().out(node.widget);
+				const vec2u16_t			size = {static_cast<u16>(out.size.x), static_cast<u16>(out.size.y)};
 				panel->deassign();
 				node.panels.erase(it);
-				editor_app_t::get().create_payload(panel->get_title(), editor_payload_type_e::panel, panel);
+				editor_app_t::get().create_payload(panel->get_title(), editor_payload_type_e::panel, panel, size);
 				return;
 			}
 		}

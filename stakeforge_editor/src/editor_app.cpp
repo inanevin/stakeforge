@@ -6,6 +6,7 @@
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
 #include "editor_text_rasterization.hpp"
+#include "panels/editor_panel.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -76,7 +77,7 @@ namespace sfg
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
 			if (ev.button == static_cast<u16>(input_code::key_f4) && ev.sub_type == window_event_sub_type_e::press)
-				editor_app_t::get().create_payload("Debug payload", editor_payload_type_e::panel, nullptr);
+				editor_app_t::get().create_payload("Debug payload", editor_payload_type_e::resource, nullptr);
 
 			ui::key_event_t k = {};
 			k.key			  = ev.button;
@@ -166,6 +167,7 @@ namespace sfg
 		if (payload_surface.is_null())
 			return false;
 		_payload_controller.init(_surfaces.get(payload_surface));
+		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
 
 		if (_surfaces.empty())
 		{
@@ -271,9 +273,32 @@ namespace sfg
 		return editor_text_rasterization_t::is_subpixel_enabled();
 	}
 
-	void editor_app_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr)
+	void editor_app_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value)
 	{
-		_payload_controller.create_payload(text, type, user_ptr);
+		_payload_controller.create_payload(text, type, user_ptr, size_value);
+	}
+
+	void editor_app_t::on_payload_unhandled(const editor_payload_t& payload, void* user_data)
+	{
+		if (payload.type != editor_payload_type_e::panel)
+			return;
+
+		SFG_ASSERT(payload.user_ptr != nullptr);
+
+		editor_app_t&	app	  = *static_cast<editor_app_t*>(user_data);
+		editor_panel_t* panel = static_cast<editor_panel_t*>(payload.user_ptr);
+		vec2u16_t		size  = payload.size_value;
+		if (size.x == 0 || size.y == 0)
+			size = {640, 480};
+
+		const surface_handle_t surface_handle = app.create_surface(payload.pos, size, editor_surface_content_e::dock);
+		if (surface_handle.is_null())
+			return;
+
+		editor_surface_t&		 surface = app._surfaces.get(surface_handle);
+		const dock_node_handle_t leaf	 = surface.dock_widget.create_leaf_node(surface.dock_widget.get_root());
+		surface.dock_widget.set_root_node(leaf);
+		surface.dock_widget.dock_node_add_panel(leaf, panel);
 	}
 
 	void editor_app_t::unload_current_project()

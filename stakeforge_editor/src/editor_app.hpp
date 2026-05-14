@@ -64,7 +64,7 @@ namespace sfg
 		void			 save_layout();
 		void			 set_debug_mode(bool enabled);
 		void			 set_text_subpixel_enabled(bool enabled);
-		void			 create_payload(const char* text, editor_payload_type_e type, void* user_ptr);
+		void			 create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
 		inline bool is_debug_mode_enabled() const
 		{
@@ -94,6 +94,7 @@ namespace sfg
 		void			 unload_current_project();
 		surface_handle_t create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_content_e content);
 		static void		 on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
+		static void		 on_payload_unhandled(const editor_payload_t& payload, void* user_data);
 
 	private:
 		editor_renderer_t												_renderer;

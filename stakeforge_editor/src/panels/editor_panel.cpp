@@ -42,7 +42,13 @@ namespace sfg
 			return;
 		}
 
-		SFG_ASSERT(_ui == &ui);
+		if (_ui != &ui)
+		{
+			uninit();
+			init(ui, parent);
+			return;
+		}
+
 		_ui->get_tree().attach(parent, _root);
 	}
 

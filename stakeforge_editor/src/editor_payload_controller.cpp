@@ -79,14 +79,17 @@ namespace sfg
 			_surface->payload_text = NULL_WIDGET;
 		}
 
-		_surface		= nullptr;
-		_frame			= NULL_WIDGET;
-		_text_widget	= NULL_WIDGET;
-		_text			= {};
-		_user_ptr		= nullptr;
-		_type			= editor_payload_type_e::panel;
-		_active			= false;
-		_mouse_was_down = false;
+		_surface			 = nullptr;
+		_frame				 = NULL_WIDGET;
+		_text_widget		 = NULL_WIDGET;
+		_text				 = {};
+		_user_ptr			 = nullptr;
+		_unhandled_user_data = nullptr;
+		_unhandled_fn		 = nullptr;
+		_size_value			 = {};
+		_type				 = editor_payload_type_e::panel;
+		_active				 = false;
+		_mouse_was_down		 = false;
 		_listeners.clear();
 	}
 
@@ -108,7 +111,7 @@ namespace sfg
 			drop_payload();
 	}
 
-	void editor_payload_controller_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr)
+	void editor_payload_controller_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value)
 	{
 		SFG_ASSERT(_surface != nullptr);
 		SFG_ASSERT(!_active);
@@ -116,6 +119,7 @@ namespace sfg
 		_text			= text != nullptr ? text : "";
 		_type			= type;
 		_user_ptr		= user_ptr;
+		_size_value		= size_value;
 		_active			= true;
 		_mouse_was_down = is_any_mouse_down();
 
@@ -130,6 +134,12 @@ namespace sfg
 		_listeners.push_back({fn, user_data});
 	}
 
+	void editor_payload_controller_t::set_unhandled_listener(editor_payload_unhandled_fn fn, void* user_data)
+	{
+		_unhandled_fn		 = fn;
+		_unhandled_user_data = user_data;
+	}
+
 	bool editor_payload_controller_t::drop_payload()
 	{
 		SFG_ASSERT(_surface != nullptr);
@@ -140,6 +150,7 @@ namespace sfg
 		payload.user_ptr		 = _user_ptr;
 		payload.type			 = _type;
 		payload.pos				 = process::get_cursor_position();
+		payload.size_value		 = _size_value;
 
 		bool accepted = false;
 		for (const listener_t& listener : _listeners)
@@ -151,9 +162,13 @@ namespace sfg
 			}
 		}
 
+		if (!accepted && _unhandled_fn != nullptr)
+			_unhandled_fn(payload, _unhandled_user_data);
+
 		_active			= false;
 		_mouse_was_down = false;
 		_user_ptr		= nullptr;
+		_size_value		= {};
 		_text.clear();
 		set_visible(false);
 		return accepted;

@@ -55,6 +55,14 @@ namespace sfg
 		void uninit();
 
 		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		dock_node_handle_t create_leaf_node(ui::widget_id_t parent);
+		void			   set_root_node(dock_node_handle_t handle);
+		void			   dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel);
+
+		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
@@ -66,7 +74,6 @@ namespace sfg
 	private:
 		static constexpr u32 DOCK_POOL_INITIAL_CAPACITY = 32;
 
-		dock_node_handle_t	 create_leaf_node(ui::widget_id_t parent);
 		void				 dock_node_add_panel(dock_node_t& node, editor_panel_t* panel);
 		void				 dock_node_remove_panel(dock_node_t& node, sid_t identifier);
 		void				 set_leaf_active_panel(dock_node_t& node, sid_t active_tab);
