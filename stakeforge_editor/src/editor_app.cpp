@@ -17,6 +17,8 @@
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/layout/layout_tree.hpp>
+#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -131,7 +133,7 @@ namespace sfg
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
-			create_surface(window.pos, window.size, true);
+			create_surface(window.pos, get_layout_window_size(window), editor_surface_content_e::editor_base);
 		}
 		else
 		{
@@ -149,16 +151,18 @@ namespace sfg
 			if (primary_window == nullptr)
 				return false;
 
-			create_surface(primary_window->pos, get_layout_window_size(*primary_window), true);
+			create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_content_e::editor_base);
 
 			for (const editor_layout_window_t& window : layout.windows)
 			{
 				if (&window == primary_window)
 					continue;
 
-				create_surface(window.pos, get_layout_window_size(window), false);
+				create_surface(window.pos, get_layout_window_size(window), editor_surface_content_e::dock);
 			}
 		}
+
+		create_surface({0, 0}, {256, 256}, editor_surface_content_e::payload_root);
 
 		if (_surfaces.empty())
 		{
@@ -189,10 +193,12 @@ namespace sfg
 		{
 			if (surface.ui)
 			{
-				if (surface.has_editor_base)
+				if (surface.content == editor_surface_content_e::editor_base)
 					surface.editor.uninit();
-				if (surface.has_dock_widget)
+				if (surface.content == editor_surface_content_e::dock)
 					surface.dock_widget.uninit();
+				if (surface.content == editor_surface_content_e::payload_root)
+					surface.ui->deallocate_widget(surface.payload_root);
 				surface.modal_controller.uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
@@ -212,7 +218,7 @@ namespace sfg
 		frame_allocator_tls_t::uninit();
 	}
 
-	void editor_app_t::init_surface_ui(editor_surface_t& surface, bool install_editor_base)
+	void editor_app_t::init_surface_ui(editor_surface_t& surface)
 	{
 		surface.ui = make_unique<ui::ui_context>();
 
@@ -229,16 +235,34 @@ namespace sfg
 		surface.ui->set_debug_draw(_debug_mode);
 
 		surface.modal_controller.init(*surface.ui);
-		if (install_editor_base)
+		if (surface.content == editor_surface_content_e::editor_base)
 		{
 			surface.editor.init(*surface.ui);
 			surface.editor.set_current_project_name(_current_project.name.c_str());
-			surface.has_editor_base = true;
+		}
+		else if (surface.content == editor_surface_content_e::dock)
+		{
+			surface.dock_widget.init(*surface.ui, surface.ui->get_root());
 		}
 		else
 		{
-			surface.dock_widget.init(*surface.ui, surface.ui->get_root());
-			surface.has_dock_widget = true;
+			ui::layout_tree_t& tree	 = surface.ui->get_tree();
+			ui::paint_layer_t& paint = surface.ui->get_paint();
+
+			surface.payload_root = surface.ui->allocate_widget();
+			surface.ui->set_widget_debug_name(surface.payload_root, "payload_root");
+			tree.attach(surface.ui->get_root(), surface.payload_root);
+
+			ui::layout_in_t& in = tree.in(surface.payload_root);
+			in.size_mode_x		= ui::axis_mode_e::parent_relative;
+			in.size_mode_y		= ui::axis_mode_e::parent_relative;
+			in.size_value		= {1.0f, 1.0f};
+
+			ui::vg_rect_paint_t rect = {};
+			rect.fill_color_a		 = {0.0f, 0.0f, 0.0f, 1.0f};
+			rect.fill_color_b		 = {0.0f, 0.0f, 0.0f, 1.0f};
+
+			paint.set_rect(surface.payload_root, rect);
 		}
 	}
 
@@ -303,7 +327,7 @@ namespace sfg
 		editor_settings_t::get().save();
 		for (editor_surface_t& surface : _surfaces)
 		{
-			if (surface.has_editor_base)
+			if (surface.content == editor_surface_content_e::editor_base)
 				surface.editor.set_current_project_name(_current_project.name.c_str());
 		}
 		return true;
@@ -347,12 +371,18 @@ namespace sfg
 		bool primary_saved = false;
 		for (const editor_surface_t& surface : _surfaces)
 		{
+			if (surface.content == editor_surface_content_e::payload_root)
+				continue;
+
 			editor_layout_window_t window = {};
 			window.pos					  = surface.runtime.pos;
 			window.size					  = surface.runtime.size;
-			window.is_primary			  = surface.has_editor_base && !primary_saved;
+			window.is_primary			  = surface.content == editor_surface_content_e::editor_base;
 			if (window.is_primary)
+			{
+				SFG_ASSERT(!primary_saved);
 				primary_saved = true;
+			}
 			layout.windows.push_back(window);
 		}
 
@@ -364,7 +394,7 @@ namespace sfg
 		SFG_ASSERT(!_surfaces.empty());
 		for (editor_surface_t& surface : _surfaces)
 		{
-			if (surface.has_editor_base)
+			if (surface.content == editor_surface_content_e::editor_base)
 				return surface;
 		}
 		SFG_ASSERT(false);
@@ -375,7 +405,7 @@ namespace sfg
 	{
 		SFG_ASSERT(!_surfaces.empty());
 		for (const editor_surface_t& surface : _surfaces)
-			if (surface.has_editor_base)
+			if (surface.content == editor_surface_content_e::editor_base)
 				return surface;
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
@@ -407,15 +437,21 @@ namespace sfg
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
 
+			bool main_destroyed = false;
+
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{
 				const surface_handle_t handle  = *it;
 				editor_surface_t&	   surface = _surfaces.get(handle);
 
-				if (surface.runtime.has_flag(window_runtime_flags_e::close_requested))
+				if (surface.runtime.has_flag(window_runtime_flags_e::close_requested) || main_destroyed)
 				{
 					_renderer.end_render();
+					if (surface.content == editor_surface_content_e::editor_base)
+						main_destroyed = true;
+
 					destroy_surface(handle);
+
 					continue;
 				}
 
@@ -439,10 +475,6 @@ namespace sfg
 				{
 					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					const f32	  dpi_scale = surface.runtime.monitor_info.dpi_scale > 0.0f ? surface.runtime.monitor_info.dpi_scale : 1.0f;
-					if (surface.has_editor_base)
-						surface.editor.update(dt);
-					if (surface.has_dock_widget)
-						surface.dock_widget.update(dt);
 					surface.ui->tick(screen, dpi_scale, dt);
 					surface.ui->publish_frame();
 				}
@@ -465,10 +497,10 @@ namespace sfg
 
 	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size)
 	{
-		return create_surface(pos, size, false);
+		return create_surface(pos, size, editor_surface_content_e::dock);
 	}
 
-	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, bool install_editor_base)
+	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_content_e content)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		_renderer.end_render();
@@ -481,15 +513,16 @@ namespace sfg
 
 		const surface_handle_t handle  = _surfaces.add();
 		editor_surface_t&	   surface = _surfaces.get(handle);
+		surface.content				   = content;
 
-		if (!process::create_window("Stakeforge Editor", pos, size, window_style_e::app_window, surface.runtime))
+		if (!process::create_window("Stakeforge Editor", pos, size, content == editor_surface_content_e::payload_root ? window_style_e::alpha : window_style_e::app_window, 0.75f, surface.runtime))
 		{
 			SFG_ERR("failed creating editor surface window!");
 			_surfaces.remove(handle);
 			return {};
 		}
 
-		init_surface_ui(surface, install_editor_base);
+		init_surface_ui(surface);
 
 		surface.swapchain	   = _renderer.create_swapchain(surface.runtime.window_handle, surface.runtime.platform_handle, surface.runtime.monitor_info.dpi_scale, surface.runtime.size, surface.ui.get());
 		surface.swapchain_size = surface.runtime.size;
@@ -509,10 +542,12 @@ namespace sfg
 
 		if (surface.ui)
 		{
-			if (surface.has_editor_base)
+			if (surface.content == editor_surface_content_e::editor_base)
 				surface.editor.uninit();
-			if (surface.has_dock_widget)
+			if (surface.content == editor_surface_content_e::dock)
 				surface.dock_widget.uninit();
+			if (surface.content == editor_surface_content_e::payload_root)
+				surface.ui->deallocate_widget(surface.payload_root);
 			surface.modal_controller.uninit();
 			surface.ui->uninit();
 			surface.ui.reset();

@@ -41,11 +41,11 @@ namespace sfg
 			return instance;
 		}
 
-		vec4f_t color_bg0 = color_t::from255(3.0f, 3.0f, 3.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_bg1 = color_t::from255(6.0f, 6.0f, 6.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_bg2 = color_t::from255(12.0f, 12.0f, 12.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_bg3 = color_t::from255(18.0f, 18.0f, 18.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_bg4 = color_t::from255(42.0f, 42.0f, 42.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_bg0 = color_t::from255(2.0f, 2.0f, 2.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_bg1 = color_t::from255(13.0f, 13.0f, 13.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_bg2 = color_t::from255(28.0f, 28.0f, 28.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_bg3 = color_t::from255(40.0f, 40.0f, 40.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_bg4 = color_t::from255(48.0f, 48.0f, 48.0f, 255.0f).srgb_to_linear().to_vector();
 
 		vec4f_t color_fg0 = color_t::from255(107.0f, 107.0f, 107.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_fg1 = color_t::from255(143.0f, 143.0f, 143.0f, 255.0f).srgb_to_linear().to_vector();
@@ -89,5 +89,6 @@ namespace sfg
 		f32 margin_vertical			 = 4.0f;
 		f32 outline_thickness		 = 2.0f;
 		f32 divider_thickness		 = 1.0f;
+		f32 border_thickness		 = 2.0f;
 	};
 }

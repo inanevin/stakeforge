@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/unique.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/gfx/common/commands.hpp>
@@ -45,6 +46,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+
+#include <utility>
 
 namespace sfg
 {
@@ -89,7 +92,6 @@ namespace sfg
 		}
 
 		_render_targets.reserve(8);
-		_ui_renderer.init();
 
 		return true;
 	}
@@ -100,10 +102,11 @@ namespace sfg
 
 		join();
 
-		_ui_renderer.uninit();
-
-		for (const surface_render_target_t& t : _render_targets)
+		for (surface_render_target_t& t : _render_targets)
+		{
+			t.ui_renderer->uninit();
 			backend.destroy_swapchain(t.swapchain);
+		}
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
@@ -138,6 +141,8 @@ namespace sfg
 		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(window_handle != nullptr);
 
+		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
+
 		const gfx_swapchain_handle swapchain = backend.create_swapchain({
 			.window_t  = window_handle,
 			.os_handle = platform_handle,
@@ -145,14 +150,18 @@ namespace sfg
 			.format	   = format_e::b8g8r8a8_srgb,
 			.pos	   = vec2u16_t::zero,
 			.size	   = size,
-			.flags	   = swapchain_flags::sf_vsync_every_v_blank,
+			.flags	   = flags,
 		});
 
+		unique_t<ui::ui_renderer_t> ui_renderer = make_unique<ui::ui_renderer_t>();
+		ui_renderer->init();
+
 		_render_targets.push_back({
-			.swapchain = swapchain,
-			.ui		   = ui,
-			.size	   = size,
-			.minimized = false,
+			.swapchain	 = swapchain,
+			.ui			 = ui,
+			.ui_renderer = std::move(ui_renderer),
+			.size		 = size,
+			.minimized	 = false,
 		});
 
 		return swapchain;
@@ -167,11 +176,13 @@ namespace sfg
 		SFG_ASSERT(it != _render_targets.end());
 		it->size = size;
 
+		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
+
 		backend.recreate_swapchain({
 			.size		 = (size.x == 0 || size.y == 0) ? vec2u16_t(4, 4) : size,
 			.swapchain_t = swapchain,
 			.scaling	 = dpi_scale == 0.0f ? 1.0f : dpi_scale,
-			.flags		 = swapchain_flags::sf_vsync_every_v_blank,
+			.flags		 = flags,
 		});
 	}
 
@@ -184,6 +195,7 @@ namespace sfg
 		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
 		SFG_ASSERT(it != _render_targets.end());
 
+		it->ui_renderer->uninit();
 		backend.destroy_swapchain(swapchain);
 		_render_targets.erase(it);
 	}
@@ -206,6 +218,7 @@ namespace sfg
 		{
 			gfx_swapchain_handle swapchain;
 			ui::ui_context*		 ui;
+			ui::ui_renderer_t*	 ui_renderer;
 			vec2u16_t			 size;
 		};
 
@@ -217,7 +230,7 @@ namespace sfg
 				continue;
 			backend.wait_for_swapchain_latency(t.swapchain);
 			backend.get_back_buffer_index(t.swapchain);
-			render_targets.push_back({t.swapchain, t.ui, t.size});
+			render_targets.push_back({t.swapchain, t.ui, t.ui_renderer.get(), t.size});
 			present_list.push_back(t.swapchain);
 		}
 
@@ -316,7 +329,7 @@ namespace sfg
 			backend.cmd_set_viewport(cmd, vp);
 
 			if (t.ui != nullptr)
-				_ui_renderer.render(cmd, *t.ui, _frame_index, t.size);
+				t.ui_renderer->render(cmd, *t.ui, _frame_index, t.size);
 
 			backend.cmd_end_render_pass(cmd, {});
 

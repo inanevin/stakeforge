@@ -91,7 +91,7 @@ namespace sfg
 		// window
 		// -----------------------------------------------------------------------------
 
-		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, window_runtime_t& runtime);
+		static bool create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, window_runtime_t& runtime);
 		static void destroy_window(void* window_handle);
 		static void set_window_runtime(void* window_handle, window_runtime_t& runtime);
 		static void set_window_size(void* window, const vec2u16_t& size, window_style_e style);

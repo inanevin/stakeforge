@@ -109,6 +109,8 @@ namespace
 	{
 		if (style == sfg::window_style_e::app_window)
 			return static_cast<u32>(WS_OVERLAPPEDWINDOW);
+		else if (style == sfg::window_style_e::alpha)
+			return WS_POPUP | WS_VISIBLE;
 		else
 		{
 			return WS_POPUP | WS_VISIBLE;
@@ -121,6 +123,13 @@ namespace
 
 			return style;
 		}
+	}
+
+	u32 get_ex_style(sfg::window_style_e style)
+	{
+		if (style == sfg::window_style_e::alpha)
+			return static_cast<u32>(WS_EX_APPWINDOW | WS_EX_LAYERED);
+		return static_cast<u32>(WS_EX_APPWINDOW);
 	}
 
 	sfg::monitor_info_t fetch_monitor_info(HMONITOR monitor)
@@ -174,6 +183,14 @@ namespace
 			static_cast<u16>(window_rect.right - window_rect.left),
 			static_cast<u16>(window_rect.bottom - window_rect.top),
 		};
+	}
+
+	void configure_alpha_window(HWND hwnd, f32 alpha)
+	{
+		SFG_ASSERT(alpha >= 0.0f && alpha <= 1.0f);
+		const BYTE	   final_alpha = static_cast<BYTE>(alpha * 255.0f);
+		const COLORREF color_key   = RGB(1, 1, 1);
+		SetLayeredWindowAttributes(hwnd, color_key, final_alpha, LWA_ALPHA | LWA_COLORKEY);
 	}
 
 	void push_event(sfg::window_runtime_t& runtime, const sfg::window_event_t& ev)
@@ -1028,7 +1045,7 @@ namespace sfg
 		return mask;
 	}
 
-	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, window_runtime_t& runtime)
+	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, window_runtime_t& runtime)
 	{
 		HINSTANCE  instance = GetModuleHandle(nullptr);
 		WNDCLASSEX class_info{};
@@ -1051,12 +1068,14 @@ namespace sfg
 		}
 
 		const DWORD stylew	   = get_style(window_style);
-		const DWORD ex_style   = WS_EX_APPWINDOW;
+		const DWORD ex_style   = get_ex_style(window_style);
 		const auto	outer_size = get_outer_size_for_config(size, window_style);
 
 		HWND hwnd = CreateWindowExA(ex_style, title, title, stylew, pos.x, pos.y, outer_size.x, outer_size.y, nullptr, nullptr, instance, nullptr);
 		if (hwnd == nullptr)
 			return false;
+		if (window_style == window_style_e::alpha)
+			configure_alpha_window(hwnd, window_alpha);
 
 		runtime.monitor_info	= fetch_monitor_info(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY));
 		runtime.pos				= pos;
@@ -1120,8 +1139,12 @@ namespace sfg
 	{
 		HWND		hwnd	   = static_cast<HWND>(window);
 		const DWORD stylew	   = get_style(style);
+		const DWORD ex_style   = get_ex_style(style);
 		const auto	outer_size = get_outer_size_for_config(size, style);
 		SetWindowLongPtr(hwnd, GWL_STYLE, static_cast<LONG_PTR>(stylew));
+		SetWindowLongPtr(hwnd, GWL_EXSTYLE, static_cast<LONG_PTR>(ex_style));
+		if (style == window_style_e::alpha)
+			configure_alpha_window(hwnd, 0.5f);
 		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, outer_size.x, outer_size.y, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 	}
 

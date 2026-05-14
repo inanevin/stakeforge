@@ -60,6 +60,8 @@ namespace sfg::ui
 		_input.init(cfg.input);
 		_canvas.init(cfg.canvas);
 		_text_pool.init(cfg.text_pool_capacity);
+		_pre_layout_tick_defs.resize(cfg.max_widgets);
+		_pre_layout_tick_widgets.reserve(cfg.max_widgets);
 		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
 		_debug_hover_text.len = 0;
 
@@ -84,6 +86,8 @@ namespace sfg::ui
 		_widget_debug_names.clear();
 		_widget_texts.clear();
 		_debug_hover_text = {};
+		_pre_layout_tick_widgets.resize(0);
+		_pre_layout_tick_defs.resize(0);
 		_text_pool.uninit();
 		_canvas.uninit();
 		_input.uninit();
@@ -123,6 +127,7 @@ namespace sfg::ui
 	{
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
 		_ui_scale  = _dpi_scale * _user_ui_scale;
+		run_pre_layout_ticks(dt_seconds);
 		_paint.update_text_layout(_tree, _ui_scale, _dpi_scale);
 		_tree.solve(screen_rect, _ui_scale);
 		_input.tick(_tree, dt_seconds);
@@ -158,6 +163,37 @@ namespace sfg::ui
 		_tree.deallocate(id);
 	}
 
+	void ui_context::set_pre_layout_tick(widget_id_t id, ui_pre_layout_tick_fn fn, void* user_data)
+	{
+		SFG_ASSERT(_tree.is_alive(id));
+		SFG_ASSERT(fn != nullptr);
+
+		pre_layout_tick_def_t& def = _pre_layout_tick_defs[id];
+		if (def.fn == nullptr)
+			_pre_layout_tick_widgets.push_back(id);
+		def.fn		  = fn;
+		def.user_data = user_data;
+	}
+
+	void ui_context::clear_pre_layout_tick(widget_id_t id)
+	{
+		SFG_ASSERT(id < _pre_layout_tick_defs.size());
+
+		pre_layout_tick_def_t& def = _pre_layout_tick_defs[id];
+		if (def.fn == nullptr)
+			return;
+
+		def = {};
+		for (auto it = _pre_layout_tick_widgets.begin(); it != _pre_layout_tick_widgets.end(); ++it)
+		{
+			if (*it == id)
+			{
+				_pre_layout_tick_widgets.erase(it);
+				return;
+			}
+		}
+	}
+
 	void ui_context::clear_widget_state_recursive(widget_id_t id)
 	{
 		widget_id_t child = _tree.node(id).first_child;
@@ -169,9 +205,19 @@ namespace sfg::ui
 		}
 
 		_input.clear_widget_state(id);
+		clear_pre_layout_tick(id);
 		clear_widget_text(id);
 		clear_widget_debug_name(id);
 		_paint.clear(id);
+	}
+
+	void ui_context::run_pre_layout_ticks(f32 dt_seconds)
+	{
+		for (widget_id_t id : _pre_layout_tick_widgets)
+		{
+			pre_layout_tick_def_t& def = _pre_layout_tick_defs[id];
+			def.fn(*this, id, dt_seconds, def.user_data);
+		}
 	}
 
 	void ui_context::draw_debug_hovered_widget()

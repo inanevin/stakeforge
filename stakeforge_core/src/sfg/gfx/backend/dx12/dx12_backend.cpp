@@ -78,6 +78,8 @@ namespace sfg
 #define NAME_DX12_OBJECT(x, NAME)
 #endif
 
+#define USE_WAITABLE_SWAPCHAIN
+
 	namespace
 	{
 		constexpr gfx_id_t INITIAL_RESOURCES		  = 1024;
@@ -895,7 +897,7 @@ namespace sfg
 
 	void dx12_backend_t::wait_for_swapchain_latency(gfx_swapchain_handle swapchain_id)
 	{
-#if USE_WAITABLE_SWAPCHAIN
+#ifdef USE_WAITABLE_SWAPCHAIN
 		swapchain_t& swp = _swapchains.get(swapchain_id);
 		if (swp.frame_latency_waitable != NULL)
 		{
@@ -1525,6 +1527,12 @@ namespace sfg
 		const bool tearing	= _tearing_supported && !vsync_on && desc.flags.is_set(swapchain_flags::sf_allow_tearing);
 		swp.tearing			= tearing;
 
+#ifdef USE_WAITABLE_SWAPCHAIN
+		const UINT swapchain_flags_t = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+#else
+		const UINT swapchain_flags_t = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0);
+#endif
+
 		const DXGI_SWAP_CHAIN_DESC1 swapchain_desc_t = {
 			.Width	= static_cast<UINT>(desc.size.x),
 			.Height = static_cast<UINT>(desc.size.y),
@@ -1536,11 +1544,7 @@ namespace sfg
 			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
 			.BufferCount = BACK_BUFFER_COUNT,
 			.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
-#if USE_WAITABLE_SWAPCHAIN
-			.Flags = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT,
-#else
-			.Flags = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0),
-#endif
+			.Flags		 = swapchain_flags_t,
 		};
 
 		ComPtr<IDXGISwapChain1> swapchain_t;
@@ -1556,7 +1560,7 @@ namespace sfg
 		}
 #endif
 
-#if USE_WAITABLE_SWAPCHAIN
+#ifdef USE_WAITABLE_SWAPCHAIN
 		Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2;
 		if (SUCCEEDED(swp.ptr.As(&sc2)))
 		{
@@ -1639,7 +1643,7 @@ namespace sfg
 
 #endif
 
-#if USE_WAITABLE_SWAPCHAIN
+#ifdef USE_WAITABLE_SWAPCHAIN
 		UINT flags = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 #else
 		UINT flags = (tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : (UINT)0);
@@ -1650,7 +1654,7 @@ namespace sfg
 
 		// Re-apply frame latency settings and refresh waitable object after resize
 		{
-#if USE_WAITABLE_SWAPCHAIN
+#ifdef USE_WAITABLE_SWAPCHAIN
 			Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2;
 			if (SUCCEEDED(swp.ptr.As(&sc2)))
 			{

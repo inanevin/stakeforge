@@ -58,11 +58,6 @@ namespace sfg
 		_dock_borders.clear();
 	}
 
-	void dock_widget_t::update(f32 dt)
-	{
-		_dock_nodes.get(_root_node).tab_area.update(dt);
-	}
-
 	dock_node_handle_t dock_widget_t::create_leaf_node(ui::widget_id_t parent)
 	{
 		ui::ui_context&		  ui	= *_ui;
@@ -104,8 +99,8 @@ namespace sfg
 		body_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};
 
 		ui::vg_rect_paint_t body_rect = {};
-		body_rect.fill_color_a		  = theme.color_bg3;
-		body_rect.fill_color_b		  = theme.color_bg3;
+		body_rect.fill_color_a		  = theme.color_bg2;
+		body_rect.fill_color_b		  = theme.color_bg2;
 		paint.set_rect(node.body, body_rect);
 
 		return handle;

@@ -37,6 +37,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	class ui_context;
+
+	using ui_pre_layout_tick_fn = void (*)(ui_context& ui, widget_id_t id, f32 dt_seconds, void* user_data);
+
 	struct ui_config_t
 	{
 		vg_canvas_config_t canvas			  = {};
@@ -77,6 +81,8 @@ namespace sfg::ui
 
 		widget_id_t allocate_widget();
 		void		deallocate_widget(widget_id_t id);
+		void		set_pre_layout_tick(widget_id_t id, ui_pre_layout_tick_fn fn, void* user_data);
+		void		clear_pre_layout_tick(widget_id_t id);
 
 		// -----------------------------------------------------------------------------
 		// render-thread snapshot
@@ -173,9 +179,16 @@ namespace sfg::ui
 			vg_draw_snapshot_t		snapshot			 = {};
 		};
 
+		struct pre_layout_tick_def_t
+		{
+			ui_pre_layout_tick_fn fn		= nullptr;
+			void*				  user_data = nullptr;
+		};
+
 		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity);
 		void free_snapshot_slot(snapshot_slot_t& slot);
 		void clear_widget_state_recursive(widget_id_t id);
+		void run_pre_layout_ticks(f32 dt_seconds);
 		void draw_debug_hovered_widget();
 
 	private:
@@ -184,6 +197,7 @@ namespace sfg::ui
 		layout_tree_t							   _tree;
 		snapshot_slot_t							   _snapshot_slots[3] = {};
 		paint_layer_t							   _paint;
+		vector_t<widget_id_t>					   _pre_layout_tick_widgets;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
 		text_allocator_t						   _text_pool;
@@ -196,5 +210,6 @@ namespace sfg::ui
 		f32										   _dpi_scale		 = 1.0f;
 		resource_handle_t						   _debug_font		 = NULL_RESOURCE_HANDLE;
 		bool									   _debug_draw		 = false;
+		vector_t<pre_layout_tick_def_t>			   _pre_layout_tick_defs;
 	};
 }

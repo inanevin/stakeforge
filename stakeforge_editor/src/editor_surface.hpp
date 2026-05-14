@@ -38,6 +38,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	enum class editor_surface_content_e : u8
+	{
+		dock,
+		editor_base,
+		payload_root,
+	};
+
 	struct editor_surface_t
 	{
 		window_runtime_t		  runtime		 = {};
@@ -47,8 +54,8 @@ namespace sfg
 		editor_modal_controller_t modal_controller;
 		editor_base_t			  editor;
 		dock_widget_t			  dock_widget;
-		bool					  has_editor_base = false;
-		bool					  has_dock_widget = false;
-		bool					  is_minimized	  = false;
+		ui::widget_id_t			  payload_root = NULL_WIDGET;
+		editor_surface_content_e  content	   = editor_surface_content_e::dock;
+		bool					  is_minimized = false;
 	};
 }

@@ -81,7 +81,6 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_tab_area_config_t& config = {});
 		void uninit();
-		void update(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -101,10 +100,12 @@ namespace sfg
 		}
 
 	private:
+		void		  update_markers(f32 dt);
 		void		  refresh_status();
 		void		  switch_tab(sid_t identifier);
 		editor_tab_t& find_tab_by_widget(ui::widget_id_t widget);
 
+		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt, void* user_data);
 		static void draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 		static void on_tab_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_close_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);

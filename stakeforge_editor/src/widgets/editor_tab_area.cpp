@@ -41,6 +41,7 @@ namespace sfg
 		rect.fill_color_a		 = theme.color_bg0;
 		rect.fill_color_b		 = theme.color_bg0;
 		paint.set_rect(_root, rect);
+		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 	}
 
 	void editor_tab_area_t::uninit()
@@ -54,7 +55,7 @@ namespace sfg
 		_active_tab = 0;
 	}
 
-	void editor_tab_area_t::update(f32 dt)
+	void editor_tab_area_t::update_markers(f32 dt)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 		for (editor_tab_t& tab : _tabs)
@@ -178,7 +179,7 @@ namespace sfg
 		_tabs.push_back({.identifier = identifier, .widget = tab, .marker = marker, .marker_inner = marker_inner, .close_button = close_button, .marker_height = marker_height});
 		if (_active_tab == 0)
 			_active_tab = identifier;
-		update(0.0f);
+		update_markers(0.0f);
 		refresh_status();
 	}
 
@@ -248,6 +249,12 @@ namespace sfg
 		return _tabs.front();
 	}
 
+	void editor_tab_area_t::on_pre_layout_tick(ui::ui_context&, ui::widget_id_t, f32 dt, void* user_data)
+	{
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		tab_area.update_markers(dt);
+	}
+
 	void editor_tab_area_t::draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
 		editor_tab_area_t&		tab_area = *static_cast<editor_tab_area_t*>(user_data);
@@ -273,7 +280,7 @@ namespace sfg
 			is_hovered = parent == id;
 		}
 
-		const vec4f_t color = tab.identifier == tab_area._active_tab ? theme.color_bg4 : (is_hovered ? theme.color_bg4 : theme.color_bg2);
+		const vec4f_t color = tab.identifier == tab_area._active_tab ? theme.color_bg3 : (is_hovered ? theme.color_bg3 : theme.color_bg0);
 
 		ui::vg_convex_paint_t convex = {};
 		convex.fill_color_a			 = color;

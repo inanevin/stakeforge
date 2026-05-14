@@ -52,6 +52,7 @@ namespace sfg
 	{
 		app_window,
 		borderless,
+		alpha,
 	};
 
 	enum class window_cursor_confinement_e : u8

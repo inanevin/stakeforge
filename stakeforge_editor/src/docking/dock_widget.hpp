@@ -53,7 +53,6 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent);
 		void uninit();
-		void update(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// accessors

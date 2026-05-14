@@ -86,9 +86,9 @@ namespace sfg
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
-		void			 init_surface_ui(editor_surface_t& surface, bool install_editor_base);
+		void			 init_surface_ui(editor_surface_t& surface);
 		void			 unload_current_project();
-		surface_handle_t create_surface(const vec2i16_t& pos, const vec2u16_t& size, bool install_editor_base);
+		surface_handle_t create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_content_e content);
 		static void		 on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
 
 	private:

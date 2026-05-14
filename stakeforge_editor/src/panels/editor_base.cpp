@@ -376,7 +376,6 @@ namespace sfg
 		ui::widget_id_t		  title_label					 = NULL_WIDGET;
 		ui::widget_id_t		  version_label					 = NULL_WIDGET;
 		ui::widget_id_t		  build_label					 = NULL_WIDGET;
-		ui::widget_id_t		  mid_section					 = NULL_WIDGET;
 		ui::widget_id_t		  bottom_section				 = NULL_WIDGET;
 		ui.set_debug_font(theme.font_default);
 
@@ -410,8 +409,8 @@ namespace sfg
 			in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
 			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_bg3;
-			rect.fill_color_b		 = theme.color_bg3;
+			rect.fill_color_a		 = theme.color_bg1;
+			rect.fill_color_b		 = theme.color_bg1;
 			paint.set_rect(top_section, rect);
 		}
 
@@ -615,28 +614,13 @@ namespace sfg
 						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
-		editor_dividers_t::add_divider_hor(ui, _base, theme.divider_thickness * 4.0f, theme.color_divider_dark, color_divider_dark_transparent, ui::vg_gradient_e::vertical);
+		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		// mid
-		{
-			mid_section = ui.allocate_widget();
-			ui.set_widget_debug_name(mid_section, "mid_section");
-			tree.attach(_base, mid_section);
+		_dock_widget.init(ui, _base);
+		ui::layout_in_t& dock_in = tree.in(_dock_widget.get_root());
+		dock_in.size_mode_y		 = ui::axis_mode_e::fill;
 
-			ui::layout_in_t& in = tree.in(mid_section);
-			in.size_mode_x		= ui::axis_mode_e::parent_relative;
-			in.size_mode_y		= ui::axis_mode_e::fill;
-			in.size_value		= {1.0f, 1.0f};
-
-			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_bg1;
-			rect.fill_color_b		 = theme.color_bg1;
-			paint.set_rect(mid_section, rect);
-
-			_dock_widget.init(ui, mid_section);
-		}
-
-		editor_dividers_t::add_divider_hor(ui, _base, theme.divider_thickness * 4.0f, color_divider_dark_transparent, theme.color_divider_dark, ui::vg_gradient_e::vertical);
+		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		// bottom
 		{
@@ -650,8 +634,8 @@ namespace sfg
 			in.size_value		= {1.0f, item_height};
 
 			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_bg3;
-			rect.fill_color_b		 = theme.color_bg3;
+			rect.fill_color_a		 = theme.color_bg1;
+			rect.fill_color_b		 = theme.color_bg1;
 			paint.set_rect(bottom_section, rect);
 		}
 	}
@@ -667,11 +651,6 @@ namespace sfg
 		_base						   = NULL_WIDGET;
 		_project_label				   = NULL_WIDGET;
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
-	}
-
-	void editor_base_t::update(f32 dt)
-	{
-		_dock_widget.update(dt);
 	}
 
 	void editor_base_t::set_current_project_name(const char* name)
