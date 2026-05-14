@@ -27,10 +27,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
-	struct editor_surface_tag_t;
-	typedef pool_handle_t<u16, editor_surface_tag_t> surface_handle_t;
+	enum class editor_panel_type_e : u8
+	{
+		entities,
+		assets,
+		log,
+		world,
+		inspector,
+		animation,
+		profiling,
+		max,
+	};
+
+	const char* editor_panel_type_to_string(editor_panel_type_e type);
 }

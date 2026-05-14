@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
+#include "docking/dock_widget.hpp"
 #include "editor_modal_controller.hpp"
 #include "panels/editor_base.hpp"
 #include <sfg/data/unique.hpp>
@@ -45,7 +46,9 @@ namespace sfg
 		unique_t<ui::ui_context>  ui;
 		editor_modal_controller_t modal_controller;
 		editor_base_t			  editor;
-		u16						  settings_idx = 0;
-		bool					  is_minimized = false;
+		dock_widget_t			  dock_widget;
+		bool					  has_editor_base = false;
+		bool					  has_dock_widget = false;
+		bool					  is_minimized	  = false;
 	};
 }

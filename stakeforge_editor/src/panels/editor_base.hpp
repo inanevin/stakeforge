@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "docking/dock_widget.hpp"
 #include "widgets/editor_widgets_file_menu.hpp"
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -36,8 +37,6 @@ namespace sfg::ui
 
 namespace sfg
 {
-	struct editor_surface_t;
-
 	enum class editor_project_prompt_action_e : u8
 	{
 		none,
@@ -59,7 +58,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, editor_surface_t& surface);
+		void init(ui::ui_context& ui);
 		void uninit();
 		void update();
 
@@ -85,18 +84,9 @@ namespace sfg
 		{
 			return *_ui;
 		}
-		inline editor_surface_t& get_surface()
-		{
-			return *_surface;
-		}
-		inline const editor_surface_t& get_surface() const
-		{
-			return *_surface;
-		}
 
 	private:
 		ui::ui_context*				   _ui					  = nullptr;
-		editor_surface_t*			   _surface				  = nullptr;
 		ui::widget_id_t				   _base				  = NULL_WIDGET;
 		ui::widget_id_t				   _top_section			  = NULL_WIDGET;
 		ui::widget_id_t				   _top_row_left		  = NULL_WIDGET;
@@ -118,6 +108,7 @@ namespace sfg
 		ui::widget_id_t				   _build_label			  = NULL_WIDGET;
 		ui::widget_id_t				   _mid_section			  = NULL_WIDGET;
 		ui::widget_id_t				   _bottom_section		  = NULL_WIDGET;
+		dock_widget_t				   _dock_widget;
 		editor_file_menu_t			   _file_menu;
 		editor_project_prompt_action_e _pending_project_prompt_action = editor_project_prompt_action_e::none;
 

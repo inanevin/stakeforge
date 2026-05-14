@@ -26,11 +26,43 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg::ui
+{
+	class ui_context;
+}
 
 namespace sfg
 {
-	struct editor_surface_tag_t;
-	typedef pool_handle_t<u16, editor_surface_tag_t> surface_handle_t;
+	class editor_panel_t
+	{
+	public:
+		editor_panel_t()									 = default;
+		virtual ~editor_panel_t()							 = default;
+		editor_panel_t(const editor_panel_t&)				 = delete;
+		editor_panel_t& operator=(const editor_panel_t&)	 = delete;
+		editor_panel_t(editor_panel_t&&) noexcept			 = default;
+		editor_panel_t& operator=(editor_panel_t&&) noexcept = default;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		virtual void init(ui::ui_context& ui, ui::widget_id_t parent);
+		virtual void uninit();
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
+
+	protected:
+		ui::ui_context* _ui	  = nullptr;
+		ui::widget_id_t _root = NULL_WIDGET;
+	};
 }

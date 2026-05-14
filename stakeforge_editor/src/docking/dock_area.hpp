@@ -26,11 +26,42 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
-	struct editor_surface_tag_t;
-	typedef pool_handle_t<u16, editor_surface_tag_t> surface_handle_t;
+	class editor_panel_t;
+
+	struct dock_node_tag_t;
+	struct dock_border_tag_t;
+
+	typedef pool_handle_t<u16, dock_node_tag_t>	  dock_node_handle_t;
+	typedef pool_handle_t<u16, dock_border_tag_t> dock_border_handle_t;
+
+	enum class dock_node_type_e : u8
+	{
+		leaf,
+		split,
+	};
+
+	enum class dock_split_direction_e : u8
+	{
+		horizontal,
+		vertical,
+	};
+
+	struct dock_border_t
+	{
+		u32 reserved = 0;
+	};
+
+	struct dock_node_t
+	{
+		vector_t<editor_panel_t*> panels;
+		f32						  split_value	  = 0.0f;
+		dock_border_handle_t	  border		  = {};
+		dock_node_type_e		  node_type		  = dock_node_type_e::leaf;
+		dock_split_direction_e	  split_direction = dock_split_direction_e::horizontal;
+	};
 }

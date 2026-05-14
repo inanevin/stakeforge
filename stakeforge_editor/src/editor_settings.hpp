@@ -26,24 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "editor_layout.hpp"
 #include "editor_project.hpp"
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/span.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/data/vector.hpp>
-#include <sfg/math/vec2i16.hpp>
-#include <sfg/math/vec2u16.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	struct editor_window_settings_t
-	{
-		vec2i16_t position		= {64, 64};
-		vec2u16_t size			= {1920, 1080};
-		u64		  monitor_ident = UINT64_MAX;
-	};
-
 	class editor_settings_t
 	{
 	public:
@@ -56,28 +45,6 @@ namespace sfg
 		bool reload();
 		void save();
 
-		u16	 add_window(const editor_window_settings_t& w);
-		void remove_window(u16 index);
-
-		inline editor_window_settings_t& get_window(u16 index)
-		{
-			return _windows[index];
-		}
-
-		inline const editor_window_settings_t& get_window(u16 index) const
-		{
-			return _windows[index];
-		}
-
-		inline span_t<const editor_window_settings_t> get_windows() const
-		{
-			return {_windows.data(), _windows.size()};
-		}
-
-		inline u16 get_window_count() const
-		{
-			return static_cast<u16>(_windows.size());
-		}
 		inline editor_project_t& get_project()
 		{
 			return _project;
@@ -85,6 +52,14 @@ namespace sfg
 		inline const editor_project_t& get_project() const
 		{
 			return _project;
+		}
+		inline editor_layout_t& get_layout()
+		{
+			return _layout;
+		}
+		inline const editor_layout_t& get_layout() const
+		{
+			return _layout;
 		}
 
 	private:
@@ -95,15 +70,13 @@ namespace sfg
 		editor_settings_t(const editor_settings_t&)			   = delete;
 		editor_settings_t& operator=(const editor_settings_t&) = delete;
 
-		vector_t<editor_window_settings_t> _windows;
-		editor_project_t				   _project;
+		editor_layout_t	 _layout;
+		editor_project_t _project;
 
 		friend void to_json(nlohmann::json& j, const editor_settings_t& settings);
 		friend void from_json(const nlohmann::json& j, editor_settings_t& settings);
 	};
 
-	void to_json(nlohmann::json& j, const editor_window_settings_t& settings);
-	void from_json(const nlohmann::json& j, editor_window_settings_t& settings);
 	void to_json(nlohmann::json& j, const editor_settings_t& settings);
 	void from_json(const nlohmann::json& j, editor_settings_t& settings);
 }

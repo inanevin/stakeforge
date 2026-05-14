@@ -9,8 +9,8 @@ are permitted provided that the following conditions are met:
 	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+	  this list of conditions in the documentation and/or other materials provided
+	  with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,11 +26,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/math/vec2i16.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	struct editor_surface_tag_t;
-	typedef pool_handle_t<u16, editor_surface_tag_t> surface_handle_t;
+	struct editor_layout_window_t
+	{
+		vec2i16_t pos		 = {64, 64};
+		vec2u16_t size		 = {1920, 1080};
+		bool	  is_primary = false;
+		string_t  dock_layout;
+	};
+
+	struct editor_layout_t
+	{
+		vector_t<editor_layout_window_t> windows;
+	};
+
+	void to_json(nlohmann::json& j, const editor_layout_window_t& window);
+	void from_json(const nlohmann::json& j, editor_layout_window_t& window);
+	void to_json(nlohmann::json& j, const editor_layout_t& layout);
+	void from_json(const nlohmann::json& j, editor_layout_t& layout);
 }

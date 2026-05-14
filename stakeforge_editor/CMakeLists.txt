@@ -35,26 +35,16 @@ include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 
 file(GLOB SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-)
-
-file(GLOB PANEL_SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/panels/*.cpp
-)
-
-file(GLOB WIDGET_SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/docking/*.cpp
 )
 
 file(GLOB HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
-)
-
-file(GLOB PANEL_HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/panels/*.hpp
-)
-
-file(GLOB WIDGET_HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/docking/*.hpp
 )
 
 
@@ -74,11 +64,7 @@ endif()
 
 target_sources(${SFG_EDITOR_TARGET} PRIVATE
     ${SOURCES}
-    ${PANEL_SOURCES}
-    ${WIDGET_SOURCES}
     ${HEADERS}
-    ${PANEL_HEADERS}
-    ${WIDGET_HEADERS}
     ${PLATFORM_HEADERS}
     ${PLATFORM_SOURCES}
 )
@@ -99,5 +85,5 @@ target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_core)
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
-sfg_group_sources(HEADERS SOURCES PANEL_HEADERS PANEL_SOURCES WIDGET_HEADERS WIDGET_SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
+sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_EDITOR_TARGET})

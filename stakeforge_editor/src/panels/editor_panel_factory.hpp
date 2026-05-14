@@ -26,11 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include "panels/editor_panel_types.hpp"
 
 namespace sfg
 {
-	struct editor_surface_tag_t;
-	typedef pool_handle_t<u16, editor_surface_tag_t> surface_handle_t;
+	class editor_panel_t;
+
+	class editor_panel_factory_t final
+	{
+	public:
+		static editor_panel_t* create_panel(editor_panel_type_e type);
+		static void			   delete_panel(editor_panel_t* panel);
+	};
 }

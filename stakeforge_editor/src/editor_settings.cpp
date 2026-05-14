@@ -35,32 +35,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const editor_window_settings_t& settings)
-	{
-		j["position"]			= nlohmann::json::array_t({settings.position.x, settings.position.y});
-		j["size"]				= settings.size;
-		j["monitor_identifier"] = settings.monitor_ident;
-	}
-
-	void from_json(const nlohmann::json& j, editor_window_settings_t& settings)
-	{
-		const nlohmann::json position = j.value("position", nlohmann::json::array_t({64, 64}));
-		if (position.is_array() && position.size() >= 2)
-			settings.position = {position.at(0).get<i16>(), position.at(1).get<i16>()};
-
-		settings.size		   = j.value("size", vec2u16_t{1280, 720});
-		settings.monitor_ident = j.value<u64>("monitor_identifier", UINT64_MAX);
-	}
-
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)
 	{
-		j["windows"] = settings._windows;
+		j["layout"]	 = settings._layout;
 		j["project"] = settings._project;
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
 	{
-		settings._windows = j.value("windows", vector_t<editor_window_settings_t>{});
+		settings._layout  = j.value("layout", editor_layout_t{});
 		settings._project = j.value("project", editor_project_t{});
 	}
 
@@ -73,46 +56,28 @@ namespace sfg
 		const string_t path = editor_directories_t::get_settings_path();
 		if (!file_system_t::exists(path.c_str()))
 		{
-			_windows.resize(0);
-			_windows.push_back({});
+			_layout = {};
 			flush_to_disk();
 			return true;
 		}
 
-		try
+		const string_t		 data = file_system_t::read_file_as_string(path.c_str());
+		const nlohmann::json doc  = nlohmann::json::parse(data, nullptr, false);
+		if (doc.is_discarded())
 		{
-			const string_t data = file_system_t::read_file_as_string(path.c_str());
-			nlohmann::json::parse(data).get_to(*this);
-		}
-		catch (const std::exception& e)
-		{
-			SFG_ERR("failed loading editor settings: {0}", e.what());
-			_windows.resize(0);
+			SFG_ERR("failed loading editor settings");
+			_layout = {};
 			flush_to_disk();
 			return true;
 		}
 
-		if (_windows.empty())
-			_windows.push_back({});
-
+		doc.get_to(*this);
 		return true;
 	}
 
 	void editor_settings_t::save()
 	{
 		flush_to_disk();
-	}
-
-	u16 editor_settings_t::add_window(const editor_window_settings_t& w)
-	{
-		const u16 idx = static_cast<u16>(_windows.size());
-		_windows.push_back(w);
-		return idx;
-	}
-
-	void editor_settings_t::remove_window(u16 index)
-	{
-		_windows.erase(_windows.begin() + index);
 	}
 
 	void editor_settings_t::flush_to_disk()
