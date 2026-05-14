@@ -67,7 +67,7 @@ namespace sfg::ui
 		column,
 	};
 
-	enum widget_flag_e : u8
+	enum widget_flag_e : u16
 	{
 		wf_visible		 = 1 << 0,
 		wf_clip_children = 1 << 1,
@@ -77,6 +77,7 @@ namespace sfg::ui
 		wf_scroll_x		 = 1 << 5,
 		wf_scroll_y		 = 1 << 6,
 		wf_custom_solve	 = 1 << 7,
+		wf_disabled		 = 1 << 8,
 	};
 
 	struct layout_in_t
@@ -93,7 +94,7 @@ namespace sfg::ui
 		anchor_e	anchor_x	  = anchor_e::start;
 		anchor_e	anchor_y	  = anchor_e::start;
 		flow_e		flow		  = flow_e::none;
-		u8			flags		  = wf_visible;
+		u16			flags		  = wf_visible;
 	};
 
 	struct layout_out_t

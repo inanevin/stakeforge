@@ -65,7 +65,7 @@ namespace sfg::ui
 			in.anchor_x		 = static_cast<anchor_e>(j.value("anchor_x", static_cast<u8>(anchor_e::start)));
 			in.anchor_y		 = static_cast<anchor_e>(j.value("anchor_y", static_cast<u8>(anchor_e::start)));
 			in.flow			 = static_cast<flow_e>(j.value("flow", static_cast<u8>(flow_e::none)));
-			in.flags		 = j.value("flags", static_cast<u8>(wf_visible));
+			in.flags		 = j.value("flags", static_cast<u16>(wf_visible));
 		}
 
 		nlohmann::json rect_paint_to_json(const vg_rect_paint_t& p)

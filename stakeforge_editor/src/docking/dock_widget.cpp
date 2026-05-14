@@ -5,6 +5,7 @@
 #include "panels/editor_panel_factory.hpp"
 #include "panels/editor_panel_types.hpp"
 #include "panels/editor_theme.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -34,6 +35,7 @@ namespace sfg
 
 		_root_node = create_leaf_node(_root);
 		dock_node_add_panel(_dock_nodes.get(_root_node), editor_panel_factory_t::create_panel(editor_panel_type_e::entities));
+		dock_node_add_panel(_dock_nodes.get(_root_node), editor_panel_factory_t::create_panel(editor_panel_type_e::world));
 	}
 
 	void dock_widget_t::uninit()
@@ -54,6 +56,11 @@ namespace sfg
 		_root_node = {};
 		_dock_nodes.clear();
 		_dock_borders.clear();
+	}
+
+	void dock_widget_t::update(f32 dt)
+	{
+		_dock_nodes.get(_root_node).tab_area.update(dt);
 	}
 
 	dock_node_handle_t dock_widget_t::create_leaf_node(ui::widget_id_t parent)
@@ -79,7 +86,10 @@ namespace sfg
 		widget_in.child_spacing	   = 0.0f;
 		widget_in.child_margins	   = {0.0f, 0.0f, 0.0f, 0.0f};
 
-		node.tab_area.init(ui, node.widget);
+		editor_tab_area_config_t tab_config = {};
+		tab_config.tab_switched				= on_leaf_tab_switched;
+		tab_config.user_data				= this;
+		node.tab_area.init(ui, node.widget, tab_config);
 
 		node.body = ui.allocate_widget();
 		ui.set_widget_debug_name(node.body, "dock_node_body");
@@ -109,6 +119,30 @@ namespace sfg
 		node.tab_area.add_tab(panel->get_title());
 		panel->assign(*_ui, node.body);
 		node.panels.push_back(panel);
+		node.tab_area.select_tab(TO_SID(panel->get_title()));
+	}
+
+	void dock_widget_t::set_leaf_active_panel(dock_node_t& node, sid_t active_tab)
+	{
+		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
+
+		for (editor_panel_t* panel : node.panels)
+			panel->make_visible(TO_SID(panel->get_title()) == active_tab);
+	}
+
+	void dock_widget_t::on_leaf_tab_switched(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		for (dock_node_t& node : dock_widget._dock_nodes)
+		{
+			if (&node.tab_area == &tab_area)
+			{
+				dock_widget.set_leaf_active_panel(node, identifier);
+				return;
+			}
+		}
+
+		SFG_ASSERT(false);
 	}
 
 	dock_node_handle_t dock_widget_t::alloc_dock_node()

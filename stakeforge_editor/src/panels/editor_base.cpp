@@ -440,7 +440,7 @@ namespace sfg
 			group_in.size_mode_x	  = ui::axis_mode_e::max_children;
 			group_in.size_mode_y	  = ui::axis_mode_e::sum_children;
 			group_in.flow			  = ui::flow_e::column;
-			group_in.child_spacing = theme.item_spacing * 0.5f;
+			group_in.child_spacing	  = theme.item_spacing * 0.5f;
 			group_in.child_margins	  = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			title_label = ui.allocate_widget();
@@ -511,7 +511,7 @@ namespace sfg
 			file_menu_style.press_color				 = theme.color_bg2;
 			file_menu_style.selected_color			 = theme.color_bg2;
 			file_menu_style.dropdown_color			 = theme.color_bg2;
-			file_menu_style.text_color				 = theme.color_fg3;
+			file_menu_style.text_color				 = theme.color_fg4;
 			file_menu_style.shortcut_color			 = theme.color_fg0;
 			file_menu_style.title_color				 = theme.color_fg1;
 			file_menu_style.title_line_color		 = theme.color_fg0;
@@ -570,7 +570,7 @@ namespace sfg
 			buttons_in.child_spacing	= 0.0f;
 			buttons_in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
-			const editor_window_buttons_t window_buttons = editor_misc_widgets_t::add_window_buttons(ui, top_row_right_buttons, theme.color_bg0, theme.color_accent_err, theme.color_bg4, theme.color_bg2, theme.color_fg3, theme.icon_default_px_size);
+			const editor_window_buttons_t window_buttons = editor_misc_widgets_t::add_window_buttons(ui, top_row_right_buttons, theme.color_bg0, theme.color_accent_err, theme.color_bg4, theme.color_bg2, theme.color_fg4, theme.icon_default_px_size);
 			window_minimize								 = window_buttons.minimize_frame;
 			window_maximize								 = window_buttons.maximize_frame;
 			window_close								 = window_buttons.close_frame;
@@ -666,6 +666,11 @@ namespace sfg
 		_base						   = NULL_WIDGET;
 		_project_label				   = NULL_WIDGET;
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
+	}
+
+	void editor_base_t::update(f32 dt)
+	{
+		_dock_widget.update(dt);
 	}
 
 	void editor_base_t::set_current_project_name(const char* name)

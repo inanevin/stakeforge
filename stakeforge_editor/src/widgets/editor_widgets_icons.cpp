@@ -33,12 +33,14 @@ namespace sfg
 		return id;
 	}
 
-	ui::widget_id_t editor_icon_widgets_t::add_naked_icon_button(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 size, const vec4f_t& color)
+	ui::widget_id_t editor_icon_widgets_t::add_naked_icon_button(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 size, const vec4f_t& color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& disabled_color)
 	{
-		ui::layout_tree_t& tree = ui.get_tree();
+		ui::layout_tree_t& tree	 = ui.get_tree();
+		ui::paint_layer_t& paint = ui.get_paint();
 
 		const ui::widget_id_t wrapper = ui.allocate_widget();
 		tree.attach(parent, wrapper);
+		tree.draw_order(wrapper) = tree.draw_order_const(parent) + 1;
 		ui.set_widget_debug_name(wrapper, "icon_button_wrapper");
 
 		ui::layout_in_t& in = tree.in(wrapper);
@@ -50,7 +52,11 @@ namespace sfg
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.size_value		= {size, size};
 
-		add_icon(ui, wrapper, icon, size, color);
+		const ui::widget_id_t icon_widget = add_icon(ui, wrapper, icon, size, color);
+		paint.set_hover_color(icon_widget, hover_color);
+		paint.set_press_color(icon_widget, press_color);
+		paint.set_disabled_color(icon_widget, disabled_color);
+		paint.set_state_source(icon_widget, wrapper);
 
 		return wrapper;
 	}

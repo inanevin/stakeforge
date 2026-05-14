@@ -150,9 +150,10 @@ namespace sfg::ui
 			const layout_in_t& in = tree.in_const(id);
 			if (in.flags & wf_visible)
 			{
+				const bool disabled = (in.flags & wf_disabled) != 0;
 				if (in.flags & wf_input)
 					_hit_order.push_back(id);
-				if (in.flags & wf_focusable)
+				if ((in.flags & wf_focusable) && !disabled)
 					_focus_order.push_back(id);
 			}
 		}
@@ -172,7 +173,11 @@ namespace sfg::ui
 			if (out.clip.z <= 0.0f || out.clip.w <= 0.0f)
 				continue;
 			if (point_in_rect(out.clip, pos))
+			{
+				if (_tree->in_const(id).flags & wf_disabled)
+					return NULL_WIDGET;
 				return id;
+			}
 		}
 		return NULL_WIDGET;
 	}
@@ -346,14 +351,18 @@ namespace sfg::ui
 		if (target == NULL_WIDGET)
 			return;
 
-		auto lit = _listeners.find(target);
-		if (lit != _listeners.end() && lit->second.on_release)
-			lit->second.on_release(*this, target, _mouse, btn, lit->second.user_data);
+		auto					lit			 = _listeners.find(target);
+		const bool				has_listener = lit != _listeners.end();
+		const listener_bundle_t listener	 = has_listener ? lit->second : listener_bundle_t{};
+		if (listener.on_release)
+			listener.on_release(*this, target, _mouse, btn, listener.user_data);
+		if (_tree != nullptr && !_tree->is_alive(target))
+			return;
 
 		if (ps.dragging)
 		{
-			if (lit != _listeners.end() && lit->second.on_drag_end)
-				lit->second.on_drag_end(*this, target, _mouse, _mouse - ps.press_pos, lit->second.user_data);
+			if (listener.on_drag_end)
+				listener.on_drag_end(*this, target, _mouse, _mouse - ps.press_pos, listener.user_data);
 			return;
 		}
 
@@ -361,13 +370,16 @@ namespace sfg::ui
 		if (under != target || ps.held_seconds > _config.click_max_seconds)
 			return;
 
-		if (lit != _listeners.end() && lit->second.on_click)
-			lit->second.on_click(*this, target, _mouse, btn, lit->second.user_data);
+		if (listener.on_click)
+			listener.on_click(*this, target, _mouse, btn, listener.user_data);
+		if (_tree != nullptr && !_tree->is_alive(target))
+			return;
 
 		click_record_t& rec	  = _last_click[b];
 		const f32		since = _accum_time - rec.t_seconds;
 		if (rec.target == target && since <= _config.double_click_max_seconds)
 		{
+			lit = _listeners.find(target);
 			if (lit != _listeners.end() && lit->second.on_double_click)
 				lit->second.on_double_click(*this, target, _mouse, btn, lit->second.user_data);
 			rec = {NULL_WIDGET, 0.0f};

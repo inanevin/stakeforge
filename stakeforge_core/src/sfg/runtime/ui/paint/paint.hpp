@@ -54,9 +54,10 @@ namespace sfg::ui
 
 	enum paint_state_flag_e : u8
 	{
-		psf_has_hover = 1 << 0,
-		psf_has_press = 1 << 1,
-		psf_has_focus = 1 << 2,
+		psf_has_hover	 = 1 << 0,
+		psf_has_press	 = 1 << 1,
+		psf_has_focus	 = 1 << 2,
+		psf_has_disabled = 1 << 3,
 	};
 
 	class vg_canvas_t;
@@ -74,9 +75,11 @@ namespace sfg::ui
 		const char* text_data = nullptr;
 		u32			text_len  = 0;
 
-		vec4f_t hover_color = {0, 0, 0, 0};
-		vec4f_t press_color = {0, 0, 0, 0};
-		vec4f_t focus_color = {0, 0, 0, 0};
+		vec4f_t		hover_color	   = {0, 0, 0, 0};
+		vec4f_t		press_color	   = {0, 0, 0, 0};
+		vec4f_t		focus_color	   = {0, 0, 0, 0};
+		vec4f_t		disabled_color = {0, 0, 0, 0};
+		widget_id_t state_source   = NULL_WIDGET;
 
 		paint_custom_fn custom_fn = nullptr;
 		void*			custom_ud = nullptr;
@@ -113,6 +116,8 @@ namespace sfg::ui
 		void set_hover_color(widget_id_t id, const vec4f_t& c);
 		void set_press_color(widget_id_t id, const vec4f_t& c);
 		void set_focus_color(widget_id_t id, const vec4f_t& c);
+		void set_disabled_color(widget_id_t id, const vec4f_t& c);
+		void set_state_source(widget_id_t id, widget_id_t source);
 
 		// -----------------------------------------------------------------------------
 		// accessors

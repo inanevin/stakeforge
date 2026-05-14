@@ -439,6 +439,10 @@ namespace sfg
 				{
 					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					const f32	  dpi_scale = surface.runtime.monitor_info.dpi_scale > 0.0f ? surface.runtime.monitor_info.dpi_scale : 1.0f;
+					if (surface.has_editor_base)
+						surface.editor.update(dt);
+					if (surface.has_dock_widget)
+						surface.dock_widget.update(dt);
 					surface.ui->tick(screen, dpi_scale, dt);
 					surface.ui->publish_frame();
 				}

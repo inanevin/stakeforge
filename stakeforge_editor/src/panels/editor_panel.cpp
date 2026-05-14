@@ -46,6 +46,15 @@ namespace sfg
 		_ui->get_tree().attach(parent, _root);
 	}
 
+	void editor_panel_t::make_visible(bool visible)
+	{
+		ui::layout_in_t& in = _ui->get_tree().in(_root);
+		if (visible)
+			in.flags |= ui::wf_visible;
+		else
+			in.flags &= ~ui::wf_visible;
+	}
+
 	void editor_panel_t::set_title(const char* title)
 	{
 		SFG_ASSERT(title != nullptr);

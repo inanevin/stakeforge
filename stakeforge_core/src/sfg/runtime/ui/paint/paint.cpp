@@ -160,6 +160,19 @@ namespace sfg::ui
 		_defs[id].state_flags |= psf_has_focus;
 	}
 
+	void paint_layer_t::set_disabled_color(widget_id_t id, const vec4f_t& c)
+	{
+		SFG_ASSERT(id < _defs.size());
+		_defs[id].disabled_color = c;
+		_defs[id].state_flags |= psf_has_disabled;
+	}
+
+	void paint_layer_t::set_state_source(widget_id_t id, widget_id_t source)
+	{
+		SFG_ASSERT(id < _defs.size());
+		_defs[id].state_source = source;
+	}
+
 	void paint_layer_t::update_text_layout(layout_tree_t& tree, f32 ui_scale, f32 dpi_scale)
 	{
 		resource_manager_t& rm = resource_manager_t::get();
@@ -234,15 +247,22 @@ namespace sfg::ui
 
 			const paint_def_t& pd		  = _defs[id];
 			const u32		   draw_order = tree.draw_order_const(id);
+			const widget_id_t  state_id	  = pd.state_source != NULL_WIDGET ? pd.state_source : id;
+			const layout_in_t& state_in	  = tree.in_const(state_id);
 
 			vec4f_t override_color = {0, 0, 0, 0};
 			bool	has_override   = false;
-			if ((pd.state_flags & psf_has_press) && pressed_l == id)
+			if ((pd.state_flags & psf_has_disabled) && (state_in.flags & wf_disabled))
+			{
+				override_color = pd.disabled_color;
+				has_override   = true;
+			}
+			else if ((pd.state_flags & psf_has_press) && pressed_l == state_id)
 			{
 				override_color = pd.press_color;
 				has_override   = true;
 			}
-			else if ((pd.state_flags & psf_has_hover) && get_hovered == id)
+			else if ((pd.state_flags & psf_has_hover) && get_hovered == state_id)
 			{
 				override_color = pd.hover_color;
 				has_override   = true;
@@ -257,7 +277,7 @@ namespace sfg::ui
 					paint.fill_color_b = override_color;
 					paint.gradient	   = vg_gradient_e::none;
 				}
-				if ((pd.state_flags & psf_has_focus) && get_focused == id)
+				if ((pd.state_flags & psf_has_focus) && get_focused == state_id)
 				{
 					paint.outline_color = pd.focus_color;
 					if (paint.outline_thickness <= 0.0f)

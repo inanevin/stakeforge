@@ -71,6 +71,6 @@ namespace sfg
 	{
 	public:
 		static ui::widget_id_t add_icon(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 point_size, const vec4f_t& color);
-		static ui::widget_id_t add_naked_icon_button(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 size, const vec4f_t& color);
+		static ui::widget_id_t add_naked_icon_button(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 size, const vec4f_t& color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& disabled_color);
 	};
 }

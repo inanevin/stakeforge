@@ -60,7 +60,7 @@ namespace sfg
 
 		void init(ui::ui_context& ui);
 		void uninit();
-		void update();
+		void update(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// impl

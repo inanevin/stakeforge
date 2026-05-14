@@ -32,15 +32,37 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	struct input_router_t;
+	class paint_layer_t;
 	class ui_context;
+	class vg_canvas_t;
+	enum class mouse_button_e : u8;
 }
 
 namespace sfg
 {
+	class editor_tab_area_t;
+
 	struct editor_tab_t
 	{
-		sid_t			identifier = 0;
-		ui::widget_id_t widget	   = NULL_WIDGET;
+		sid_t			identifier		= 0;
+		ui::widget_id_t widget			= NULL_WIDGET;
+		ui::widget_id_t marker			= NULL_WIDGET;
+		ui::widget_id_t marker_inner	= NULL_WIDGET;
+		ui::widget_id_t close_button	= NULL_WIDGET;
+		f32				marker_height	= 0.0f;
+		f32				marker_velocity = 0.0f;
+	};
+
+	using editor_tab_callback_fn = void (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+
+	struct editor_tab_area_config_t
+	{
+		editor_tab_callback_fn tab_switched			= nullptr;
+		editor_tab_callback_fn tab_removed			= nullptr;
+		void*				   user_data			= nullptr;
+		bool				   can_close_single_tab = false;
+		bool				   can_close			= true;
 	};
 
 	class editor_tab_area_t final
@@ -57,8 +79,9 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_tab_area_config_t& config = {});
 		void uninit();
+		void update(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -66,6 +89,7 @@ namespace sfg
 
 		void add_tab(const char* title);
 		void remove_tab(sid_t identifier);
+		void select_tab(sid_t identifier);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -77,8 +101,19 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*		   _ui	 = nullptr;
-		ui::widget_id_t		   _root = NULL_WIDGET;
-		vector_t<editor_tab_t> _tabs;
+		void		  refresh_status();
+		void		  switch_tab(sid_t identifier);
+		editor_tab_t& find_tab_by_widget(ui::widget_id_t widget);
+
+		static void draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
+		static void on_tab_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_close_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+
+	private:
+		ui::ui_context*			 _ui   = nullptr;
+		ui::widget_id_t			 _root = NULL_WIDGET;
+		vector_t<editor_tab_t>	 _tabs;
+		editor_tab_area_config_t _config	 = {};
+		sid_t					 _active_tab = 0;
 	};
 }

@@ -48,11 +48,12 @@ namespace sfg::ui
 	{
 		struct text_bounds_t
 		{
-			f32 min_x	  = 0.0f;
-			f32 min_y	  = 0.0f;
-			f32 max_x	  = 0.0f;
-			f32 max_y	  = 0.0f;
-			f32 advance_x = 0.0f;
+			f32	 min_x	   = 0.0f;
+			f32	 min_y	   = 0.0f;
+			f32	 max_x	   = 0.0f;
+			f32	 max_y	   = 0.0f;
+			f32	 advance_x = 0.0f;
+			bool valid	   = false;
 		};
 
 		inline u32 raster_px_for(const vg_text_paint_t& p)
@@ -89,7 +90,6 @@ namespace sfg::ui
 		text_bounds_t measure_text_bounds(const char* text, size_t len, glyph_atlas_t& atlas, const font_runtime_t* font, const size_metrics_t& metrics, u32 px, glyph_raster_mode_e raster_mode, f32 scale, f32 spacing)
 		{
 			text_bounds_t bounds = {};
-			bool		  valid	 = false;
 			vec2f_t		  pen	 = {0.0f, metrics.ascent_px * scale};
 			u32			  prev	 = 0;
 
@@ -108,13 +108,13 @@ namespace sfg::ui
 					const f32 quad_right  = quad_left + static_cast<f32>(g->width) * scale;
 					const f32 quad_bottom = quad_top + static_cast<f32>(g->height) * scale;
 
-					if (!valid)
+					if (!bounds.valid)
 					{
 						bounds.min_x = quad_left;
 						bounds.min_y = quad_top;
 						bounds.max_x = quad_right;
 						bounds.max_y = quad_bottom;
-						valid		 = true;
+						bounds.valid = true;
 					}
 					else
 					{
@@ -130,7 +130,7 @@ namespace sfg::ui
 			}
 
 			bounds.advance_x = pen.x - spacing;
-			if (!valid)
+			if (!bounds.valid)
 			{
 				bounds.max_x = math::max(0.0f, bounds.advance_x);
 				bounds.max_y = metrics.line_height_px * scale;
@@ -678,7 +678,7 @@ namespace sfg::ui
 		const f32			 spacing = paint.spacing;
 
 		const text_bounds_t bounds = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
-		return {math::max(bounds.advance_x, bounds.max_x - bounds.min_x), bounds.max_y - bounds.min_y};
+		return {bounds.valid ? bounds.max_x - bounds.min_x : math::max(0.0f, bounds.advance_x), bounds.max_y - bounds.min_y};
 	}
 
 	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order, bool use_cache)

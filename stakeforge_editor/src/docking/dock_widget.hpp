@@ -53,6 +53,7 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent);
 		void uninit();
+		void update(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -68,10 +69,13 @@ namespace sfg
 
 		dock_node_handle_t	 create_leaf_node(ui::widget_id_t parent);
 		void				 dock_node_add_panel(dock_node_t& node, editor_panel_t* panel);
+		void				 set_leaf_active_panel(dock_node_t& node, sid_t active_tab);
 		dock_node_handle_t	 alloc_dock_node();
 		void				 free_dock_node(dock_node_handle_t handle);
 		dock_border_handle_t alloc_dock_border();
 		void				 free_dock_border(dock_border_handle_t handle);
+
+		static void on_leaf_tab_switched(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 
 	private:
 		ui::ui_context*											  _ui			= nullptr;

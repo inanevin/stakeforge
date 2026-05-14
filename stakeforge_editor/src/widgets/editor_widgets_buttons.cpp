@@ -62,6 +62,6 @@ namespace sfg
 		label_in.pos_value		  = {0.5f, 0.5f};
 		label_in.anchor_x		  = ui::anchor_e::center;
 		label_in.anchor_y		  = ui::anchor_e::center;
-		paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg3, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(label, nullptr, 0, {.font = theme.font_default, .color = theme.color_fg4, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 }
