@@ -126,9 +126,9 @@ namespace sfg
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		root_in.size_mode_x		 = ui::axis_mode_e::sum_children;
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
-		root_in.size_value		 = {1.0f, 1.0f};
+		root_in.size_value		 = {0.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = 0.0f;
 		root_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};

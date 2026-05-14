@@ -114,7 +114,10 @@ namespace sfg
 		void		  switch_tab(sid_t identifier);
 		void		  reorder_dragged_tab(const vec2f_t& pos);
 		void		  finish_tab_drag(const vec2f_t& pos);
-		bool		  try_drag_out(const vec2f_t& pos);
+		bool		  is_drag_out_position(const vec2f_t& pos) const;
+		void		  request_drag_out(sid_t identifier);
+		void		  request_close(sid_t identifier);
+		bool		  consume_pending_removals();
 		size_t		  find_tab_index(sid_t identifier) const;
 		editor_tab_t& find_tab_by_widget(ui::widget_id_t widget);
 
@@ -130,9 +133,11 @@ namespace sfg
 		ui::ui_context*			 _ui   = nullptr;
 		ui::widget_id_t			 _root = NULL_WIDGET;
 		vector_t<editor_tab_t>	 _tabs;
-		editor_tab_area_config_t _config	  = {};
-		sid_t					 _active_tab  = 0;
-		sid_t					 _drag_tab	  = 0;
-		vec2f_t					 _drag_offset = {};
+		editor_tab_area_config_t _config			   = {};
+		sid_t					 _active_tab		   = 0;
+		sid_t					 _drag_tab			   = 0;
+		sid_t					 _pending_close_tab	   = 0;
+		sid_t					 _pending_drag_out_tab = 0;
+		vec2f_t					 _drag_offset		   = {};
 	};
 }

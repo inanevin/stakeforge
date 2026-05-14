@@ -92,6 +92,7 @@ namespace sfg
 		ui::widget_id_t				   _project_label	= NULL_WIDGET;
 		ui::widget_id_t				   _top_row_left	= NULL_WIDGET;
 		ui::widget_id_t				   _top_row_strikes = NULL_WIDGET;
+		ui::widget_id_t				   _top_mid_file	= NULL_WIDGET;
 		ui::widget_id_t				   _top_mid_util	= NULL_WIDGET;
 		ui::widget_id_t				   _label_wrap		= NULL_WIDGET;
 		dock_widget_t				   _dock_widget;

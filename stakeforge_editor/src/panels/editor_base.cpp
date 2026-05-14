@@ -499,7 +499,8 @@ namespace sfg
 			in.child_spacing	= 0.0f;
 			in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
 
-			top_mid_file = ui.allocate_widget();
+			top_mid_file  = ui.allocate_widget();
+			_top_mid_file = top_mid_file;
 			ui.set_widget_debug_name(top_mid_file, "top_mid_file");
 			tree.attach(top_row_mid, top_mid_file);
 
@@ -662,6 +663,7 @@ namespace sfg
 		_project_label				   = NULL_WIDGET;
 		_top_row_left				   = NULL_WIDGET;
 		_top_row_strikes			   = NULL_WIDGET;
+		_top_mid_file				   = NULL_WIDGET;
 		_top_mid_util				   = NULL_WIDGET;
 		_label_wrap					   = NULL_WIDGET;
 		_pending_project_prompt_action = editor_project_prompt_action_e::none;
@@ -683,6 +685,11 @@ namespace sfg
 		const vec4f_t strikes = _ui->get_tree().bounds(_top_row_strikes);
 		if (p.x >= strikes.x && p.x <= strikes.x + strikes.z && p.y >= strikes.y && p.y <= strikes.y + strikes.w)
 			return true;
+
+		const vec4f_t file_row	= _ui->get_tree().bounds(_top_mid_file);
+		const vec4f_t file_menu = _ui->get_tree().bounds(_file_menu.get_root());
+		if (p.x >= file_row.x && p.x <= file_row.x + file_row.z && p.y >= file_row.y && p.y <= file_row.y + file_row.w)
+			return p.x > file_menu.x + file_menu.z;
 
 		const vec4f_t util = _ui->get_tree().bounds(_top_mid_util);
 		if (p.x >= util.x && p.x <= util.x + util.z && p.y >= util.y && p.y <= util.y + util.w)

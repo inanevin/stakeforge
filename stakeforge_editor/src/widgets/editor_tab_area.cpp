@@ -51,10 +51,12 @@ namespace sfg
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;
 		_tabs.clear();
-		_config		 = {};
-		_active_tab	 = 0;
-		_drag_tab	 = 0;
-		_drag_offset = {};
+		_config				  = {};
+		_active_tab			  = 0;
+		_drag_tab			  = 0;
+		_pending_close_tab	  = 0;
+		_pending_drag_out_tab = 0;
+		_drag_offset		  = {};
 	}
 
 	void editor_tab_area_t::update_markers(f32 dt)
@@ -298,6 +300,43 @@ namespace sfg
 		}
 	}
 
+	void editor_tab_area_t::request_close(sid_t identifier)
+	{
+		_pending_close_tab = identifier;
+		if (_drag_tab == identifier)
+			_drag_tab = 0;
+	}
+
+	void editor_tab_area_t::request_drag_out(sid_t identifier)
+	{
+		_pending_drag_out_tab = identifier;
+		if (_drag_tab == identifier)
+			_drag_tab = 0;
+	}
+
+	bool editor_tab_area_t::consume_pending_removals()
+	{
+		if (_pending_drag_out_tab != 0)
+		{
+			const sid_t dragged	  = _pending_drag_out_tab;
+			_pending_drag_out_tab = 0;
+			remove_tab(dragged);
+			if (_config.tab_dragged_out != nullptr)
+				_config.tab_dragged_out(*this, dragged, _config.user_data);
+			return true;
+		}
+
+		if (_pending_close_tab != 0)
+		{
+			const sid_t closed = _pending_close_tab;
+			_pending_close_tab = 0;
+			remove_tab(closed);
+			return true;
+		}
+
+		return false;
+	}
+
 	void editor_tab_area_t::switch_tab(sid_t identifier)
 	{
 		_active_tab = identifier;
@@ -333,7 +372,9 @@ namespace sfg
 	{
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		tab_area.update_markers(dt);
-		if (tab_area._drag_tab != 0 && tab_area.try_drag_out(tab_area._ui->get_input().get_mouse_position()))
+		if (tab_area._drag_tab != 0 && tab_area.is_drag_out_position(tab_area._ui->get_input().get_mouse_position()))
+			tab_area.request_drag_out(tab_area._drag_tab);
+		if (tab_area.consume_pending_removals())
 			return;
 
 		tab_area.update_tab_positions(dt);
@@ -426,13 +467,13 @@ namespace sfg
 		if (_drag_tab == 0)
 			return;
 
-		if (try_drag_out(pos))
-			return;
+		if (is_drag_out_position(pos))
+			request_drag_out(_drag_tab);
 
 		_drag_tab = 0;
 	}
 
-	bool editor_tab_area_t::try_drag_out(const vec2f_t& pos)
+	bool editor_tab_area_t::is_drag_out_position(const vec2f_t& pos) const
 	{
 		if (_drag_tab == 0 || !_config.can_drag_out)
 			return false;
@@ -440,12 +481,6 @@ namespace sfg
 		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
 		if (pos.y >= root_out.pos.y && pos.y <= root_out.pos.y + root_out.size.y)
 			return false;
-
-		const sid_t dragged = _drag_tab;
-		_drag_tab			= 0;
-		remove_tab(dragged);
-		if (_config.tab_dragged_out != nullptr)
-			_config.tab_dragged_out(*this, dragged, _config.user_data);
 
 		return true;
 	}
@@ -465,8 +500,11 @@ namespace sfg
 	void editor_tab_area_t::on_tab_drag(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
 	{
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
-		if (tab_area.try_drag_out(pos))
+		if (tab_area.is_drag_out_position(pos))
+		{
+			tab_area.request_drag_out(tab_area._drag_tab);
 			return;
+		}
 
 		tab_area.reorder_dragged_tab(pos);
 	}
@@ -484,6 +522,6 @@ namespace sfg
 
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		const editor_tab_t tab		= tab_area.find_tab_by_widget(id);
-		tab_area.remove_tab(tab.identifier);
+		tab_area.request_close(tab.identifier);
 	}
 }
