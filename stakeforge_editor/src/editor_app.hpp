@@ -60,6 +60,14 @@ namespace sfg
 		bool			 load_project(const char* path);
 		bool			 save_project();
 		bool			 save_project_as(const char* path);
+		void			 set_debug_mode(bool enabled);
+		void			 set_text_subpixel_enabled(bool enabled);
+
+		inline bool is_debug_mode_enabled() const
+		{
+			return _debug_mode;
+		}
+		bool is_text_subpixel_enabled() const;
 
 		inline resource_pack_t& get_resources()
 		{
@@ -76,7 +84,6 @@ namespace sfg
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
 		void			  init_surface_ui(editor_surface_t& surface);
-		void			  set_debug_mode(bool enabled);
 		void			  unload_current_project();
 		editor_surface_t& get_primary_surface();
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, u16 settings_idx);

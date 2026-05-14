@@ -30,6 +30,16 @@ namespace sfg
 {
 	ui::glyph_raster_mode_e editor_text_rasterization_t::_rasterization_type = ui::glyph_raster_mode_e::grayscale;
 
+	bool editor_text_rasterization_t::is_subpixel_enabled()
+	{
+		return _rasterization_type == ui::glyph_raster_mode_e::lcd;
+	}
+
+	void editor_text_rasterization_t::set_subpixel_enabled(bool enabled)
+	{
+		set_rasterization_type(enabled ? ui::glyph_raster_mode_e::lcd : ui::glyph_raster_mode_e::grayscale);
+	}
+
 	ui::glyph_raster_mode_e editor_text_rasterization_t::get_rasterization_type()
 	{
 		return _rasterization_type;

@@ -105,7 +105,7 @@ namespace sfg
 		ui.set_widget_debug_name(_title, "modal_title");
 		tree.attach(_window, _title);
 		tree.draw_order(_title) = MODAL_DRAW_ORDER + 3;
-		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_description = tree.allocate();
 		ui.set_widget_debug_name(_description, "modal_description");
@@ -137,28 +137,13 @@ namespace sfg
 			tree.attach(_button_row, _button_frames[i]);
 			tree.draw_order(_button_frames[i]) = MODAL_DRAW_ORDER + 4;
 
-			ui::layout_in_t& button_in = tree.in(_button_frames[i]);
-			button_in.flags			   = ui::wf_overlay;
-			button_in.size_mode_x	   = ui::axis_mode_e::fill;
-			button_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
-			button_in.size_value	   = {1.0f, 1.0f};
-
-			editor_widgets_buttons_t::make_button_modal(ui, _button_frames[i]);
-			ui.get_input().set_listener(_button_frames[i], button_listener);
-
 			_button_labels[i] = tree.allocate();
 			ui.set_widget_debug_name(_button_labels[i], "modal_button_label");
 			tree.attach(_button_frames[i], _button_labels[i]);
 			tree.draw_order(_button_labels[i]) = MODAL_DRAW_ORDER + 5;
 
-			ui::layout_in_t& label_in = tree.in(_button_labels[i]);
-			label_in.flags			  = ui::wf_overlay;
-			label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
-			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-			label_in.pos_value		  = {0.5f, 0.5f};
-			label_in.anchor_x		  = ui::anchor_e::center;
-			label_in.anchor_y		  = ui::anchor_e::center;
-			paint.set_text(_button_labels[i], nullptr, 0, {.font = theme.font_default, .color = theme.color_fg3, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			editor_widgets_buttons_t::make_button_modal(ui, _button_frames[i], _button_labels[i]);
+			ui.get_input().set_listener(_button_frames[i], button_listener);
 		}
 
 		set_visible(false);

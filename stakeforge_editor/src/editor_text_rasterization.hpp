@@ -41,6 +41,8 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		static bool					   is_subpixel_enabled();
+		static void					   set_subpixel_enabled(bool enabled);
 		static ui::glyph_raster_mode_e get_rasterization_type();
 
 	private:

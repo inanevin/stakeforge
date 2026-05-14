@@ -80,6 +80,26 @@ namespace sfg
 			help_build_info,
 		};
 
+		bool is_editor_debug_bounds_enabled(void*)
+		{
+			return editor_app_t::get().is_debug_mode_enabled();
+		}
+
+		void set_editor_debug_bounds_enabled(u16, bool enabled, void*)
+		{
+			editor_app_t::get().set_debug_mode(enabled);
+		}
+
+		bool is_editor_subpixel_text_enabled(void*)
+		{
+			return editor_app_t::get().is_text_subpixel_enabled();
+		}
+
+		void set_editor_subpixel_text_enabled(u16, bool enabled, void*)
+		{
+			editor_app_t::get().set_text_subpixel_enabled(enabled);
+		}
+
 		const editor_file_menu_row_desc_t FILE_ROWS[] = {
 			{.kind = editor_file_menu_row_kind_e::title, .text = "Project"},
 			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::project_new)},
@@ -111,7 +131,9 @@ namespace sfg
 			{.kind = editor_file_menu_row_kind_e::title, .text = "Panels"},
 			{.text = "World", .command = static_cast<u16>(editor_file_menu_commands_e::view_world)},
 			{.text = "Inspector", .command = static_cast<u16>(editor_file_menu_commands_e::view_inspector)},
-			{.text = "Debug Bounds", .command = static_cast<u16>(editor_file_menu_commands_e::view_debug_bounds)},
+			{.kind = editor_file_menu_row_kind_e::title, .text = "Editor"},
+			{.kind = editor_file_menu_row_kind_e::toggle, .text = "Subpixel Text", .toggle_query = is_editor_subpixel_text_enabled, .toggle_callback = set_editor_subpixel_text_enabled},
+			{.kind = editor_file_menu_row_kind_e::toggle, .text = "Debug Bounds", .toggle_query = is_editor_debug_bounds_enabled, .toggle_callback = set_editor_debug_bounds_enabled, .close_on_toggle = true},
 		};
 
 		const editor_file_menu_row_desc_t ENTITY_ROWS[] = {
@@ -300,7 +322,7 @@ namespace sfg
 				break;
 			case editor_file_menu_commands_e::view_debug_bounds:
 			case editor_file_menu_commands_e::debug_toggle_bounds:
-				base.get_ui().set_debug_draw(!base.get_ui().is_debug_draw_enabled());
+				editor_app_t::get().set_debug_mode(!editor_app_t::get().is_debug_mode_enabled());
 				break;
 			case editor_file_menu_commands_e::help_github:
 				process::open_url("https://github.com/inanevin/stakeforge");
@@ -395,31 +417,23 @@ namespace sfg
 			ui.set_widget_text(_title_label, "stakeforge");
 			ui::ui_render_state_t title_state = {};
 			title_state.pipeline			  = theme.shader_glitch_lcd;
-			paint.set_text(_title_label,
-						   ui.widget_text(_title_label),
-						   ui.widget_text_len(_title_label),
-						   {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = theme.text_big_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()},
-						   title_state);
+			paint.set_text(_title_label, ui.widget_text(_title_label), ui.widget_text_len(_title_label), {.font = theme.font_sfg, .color = theme.color_fg2, .point_size = 20.0f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 			_version_label = tree.allocate();
 			ui.set_widget_debug_name(_version_label, "version_label");
 			tree.attach(_title_group, _version_label);
 
 			ui.set_widget_text(_version_label, SFG_EDITOR_VERSION_TEXT);
-			paint.set_text(_version_label,
-						   ui.widget_text(_version_label),
-						   ui.widget_text_len(_version_label),
-						   {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			paint.set_text(
+				_version_label, ui.widget_text(_version_label), ui.widget_text_len(_version_label), {.font = theme.font_sfg, .color = theme.color_fg1, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 			_build_label = tree.allocate();
 			ui.set_widget_debug_name(_build_label, "build_label");
 			tree.attach(_title_group, _build_label);
 
 			ui.set_widget_text(_build_label, SFG_EDITOR_BUILD_TEXT);
-			paint.set_text(_build_label,
-						   ui.widget_text(_build_label),
-						   ui.widget_text_len(_build_label),
-						   {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = theme.text_med_title_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			paint.set_text(
+				_build_label, ui.widget_text(_build_label), ui.widget_text_len(_build_label), {.font = theme.font_sfg, .color = theme.color_fg0, .point_size = 10.0f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
 		// top-left strikes
@@ -538,16 +552,28 @@ namespace sfg
 			listener.on_click = on_close_window;
 			ui.get_input().set_listener(_window_close, listener);
 
+			_label_wrap = tree.allocate();
+			ui.set_widget_debug_name(_label_wrap, "label_wrap");
+			tree.attach(_top_row_right, _label_wrap);
+
+			ui::layout_in_t& label_wrap_in = tree.in(_label_wrap);
+			label_wrap_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+			label_wrap_in.pos_mode_y	   = ui::pos_mode_e::flow;
+			label_wrap_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+			label_wrap_in.size_mode_y	   = ui::axis_mode_e::fill;
+			label_wrap_in.size_value.x	   = 1.0f;
+
 			_project_label = tree.allocate();
 			ui.set_widget_debug_name(_project_label, "project_label");
-			tree.attach(_top_row_right, _project_label);
+			tree.attach(_label_wrap, _project_label);
 			tree.draw_order(_project_label) = tree.draw_order_const(_top_row_right) + 1;
 
 			ui::layout_in_t& project_in = tree.in(_project_label);
 			project_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
-			project_in.pos_mode_y		= ui::pos_mode_e::flow;
-			project_in.pos_value.x		= 0.5f;
+			project_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+			project_in.pos_value		= {0.5f, 0.5f};
 			project_in.anchor_x			= ui::anchor_e::center;
+			project_in.anchor_y			= ui::anchor_e::center;
 
 			ui.set_widget_text(_project_label, "");
 			paint.set_text(_project_label,

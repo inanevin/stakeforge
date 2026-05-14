@@ -100,7 +100,7 @@ namespace sfg
 
 	bool editor_app_t::init()
 	{
-		editor_text_rasterization_t::set_rasterization_type(ui::glyph_raster_mode_e::lcd);
+		editor_text_rasterization_t::set_subpixel_enabled(true);
 
 		editor_settings_t& settings = editor_settings_t::get();
 		if (!settings.reload())
@@ -229,6 +229,22 @@ namespace sfg
 		_debug_mode = enabled;
 		for (editor_surface_t& surface : _surfaces)
 			surface.ui->set_debug_draw(enabled);
+	}
+
+	void editor_app_t::set_text_subpixel_enabled(bool enabled)
+	{
+		editor_text_rasterization_t::set_subpixel_enabled(enabled);
+		const ui::glyph_raster_mode_e raster_mode = editor_text_rasterization_t::get_rasterization_type();
+		for (editor_surface_t& surface : _surfaces)
+		{
+			if (surface.ui)
+				surface.ui->get_paint().set_text_raster_mode(raster_mode);
+		}
+	}
+
+	bool editor_app_t::is_text_subpixel_enabled() const
+	{
+		return editor_text_rasterization_t::is_subpixel_enabled();
 	}
 
 	void editor_app_t::unload_current_project()
