@@ -258,8 +258,11 @@ namespace sfg
 		}
 		else if (surface.content == editor_surface_content_e::dock)
 		{
-			surface.dock_widget = make_unique<dock_widget_t>();
-			surface.dock_widget->init(*surface.ui, surface.ui->get_root());
+			surface.dock_widget				 = make_unique<dock_widget_t>();
+			dock_widget_config_t dock_config = {};
+			dock_config.runtime				 = surface.runtime.get();
+			dock_config.show_window_buttons	 = true;
+			surface.dock_widget->init(*surface.ui, surface.ui->get_root(), dock_config);
 		}
 	}
 

@@ -9,17 +9,21 @@
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/platform/common_window.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
-	void dock_widget_t::init(ui::ui_context& ui, ui::widget_id_t parent)
+	void dock_widget_t::init(ui::ui_context& ui, ui::widget_id_t parent, const dock_widget_config_t& config)
 	{
 		SFG_ASSERT(_ui == nullptr);
 
 		_ui						= &ui;
+		_runtime				= config.runtime;
+		_config					= config;
 		ui::layout_tree_t& tree = ui.get_tree();
 
 		_dock_nodes.reserve(DOCK_POOL_INITIAL_CAPACITY);
@@ -54,8 +58,10 @@ namespace sfg
 		_ui->deallocate_widget(_root);
 
 		_ui		   = nullptr;
+		_runtime   = nullptr;
 		_root	   = NULL_WIDGET;
 		_root_node = {};
+		_config	   = {};
 		_dock_nodes.clear();
 		_dock_borders.clear();
 	}
@@ -88,6 +94,10 @@ namespace sfg
 		tab_config.tab_dragged_out			= on_leaf_tab_dragged_out;
 		tab_config.user_data				= this;
 		tab_config.can_drag_out				= true;
+		tab_config.window_minimized			= on_window_minimized;
+		tab_config.window_maximized			= on_window_maximized;
+		tab_config.window_closed			= on_window_closed;
+		tab_config.show_window_buttons		= _config.show_window_buttons;
 		node.tab_area.init(ui, node.widget, tab_config);
 
 		node.body = ui.allocate_widget();
@@ -206,6 +216,27 @@ namespace sfg
 		}
 
 		SFG_ASSERT(false);
+	}
+
+	void dock_widget_t::on_window_minimized(editor_tab_area_t&, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		SFG_ASSERT(dock_widget._runtime != nullptr);
+		process::minimize_window(dock_widget._runtime->window_handle);
+	}
+
+	void dock_widget_t::on_window_maximized(editor_tab_area_t&, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		SFG_ASSERT(dock_widget._runtime != nullptr);
+		process::toggle_maximize_window(dock_widget._runtime->window_handle);
+	}
+
+	void dock_widget_t::on_window_closed(editor_tab_area_t&, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		SFG_ASSERT(dock_widget._runtime != nullptr);
+		dock_widget._runtime->set_flag(window_runtime_flags_e::close_requested);
 	}
 
 	dock_node_handle_t dock_widget_t::alloc_dock_node()

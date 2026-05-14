@@ -4,6 +4,7 @@
 #include "editor_text_rasterization.hpp"
 #include "panels/editor_theme.hpp"
 #include "widgets/editor_widgets_icons.hpp"
+#include "widgets/editor_widgets_misc.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/math/easing.hpp>
 #include <sfg/math/math.hpp>
@@ -42,14 +43,52 @@ namespace sfg
 		rect.fill_color_b		 = theme.color_frame;
 		paint.set_rect(_root, rect);
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
+
+		if (_config.show_window_buttons)
+		{
+			_window_buttons_root = ui.allocate_widget();
+			ui.set_widget_debug_name(_window_buttons_root, "tab_area_window_buttons");
+			tree.attach(_root, _window_buttons_root);
+			tree.draw_order(_window_buttons_root) = tree.draw_order_const(_root) + 2;
+
+			ui::layout_in_t& buttons_in = tree.in(_window_buttons_root);
+			buttons_in.flags			= ui::wf_visible;
+			buttons_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
+			buttons_in.pos_value.x		= 1.0f;
+			buttons_in.anchor_x			= ui::anchor_e::end;
+			buttons_in.size_mode_x		= ui::axis_mode_e::fixed;
+			buttons_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+			buttons_in.size_value		= {theme.item_height * 6.0f, 1.0f};
+			buttons_in.flow				= ui::flow_e::row;
+			buttons_in.child_spacing	= 0.0f;
+			buttons_in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
+
+			const editor_window_buttons_t buttons = editor_misc_widgets_t::add_window_buttons(ui, _window_buttons_root, theme.color_frame, theme.color_accent_err, theme.color_light, theme.color_panel, theme.color_text0, theme.icon_default_px_size);
+			_window_minimize					  = buttons.minimize_frame;
+			_window_maximize					  = buttons.maximize_frame;
+			_window_close						  = buttons.close_frame;
+
+			ui::listener_bundle_t listener = {};
+			listener.user_data			   = this;
+			listener.on_click			   = on_window_minimize_click;
+			ui.get_input().set_listener(_window_minimize, listener);
+			listener.on_click = on_window_maximize_click;
+			ui.get_input().set_listener(_window_maximize, listener);
+			listener.on_click = on_window_close_click;
+			ui.get_input().set_listener(_window_close, listener);
+		}
 	}
 
 	void editor_tab_area_t::uninit()
 	{
 		_ui->deallocate_widget(_root);
 
-		_ui	  = nullptr;
-		_root = NULL_WIDGET;
+		_ui					 = nullptr;
+		_root				 = NULL_WIDGET;
+		_window_buttons_root = NULL_WIDGET;
+		_window_minimize	 = NULL_WIDGET;
+		_window_maximize	 = NULL_WIDGET;
+		_window_close		 = NULL_WIDGET;
 		_tabs.clear();
 		_config				  = {};
 		_active_tab			  = 0;
@@ -274,6 +313,13 @@ namespace sfg
 	bool editor_tab_area_t::is_over_tab(const vec2f_t& pos) const
 	{
 		const ui::layout_tree_t& tree = _ui->get_tree();
+		if (_window_buttons_root != NULL_WIDGET)
+		{
+			const ui::layout_out_t& out = tree.out(_window_buttons_root);
+			if (pos.x >= out.pos.x && pos.x <= out.pos.x + out.size.x && pos.y >= out.pos.y && pos.y <= out.pos.y + out.size.y)
+				return true;
+		}
+
 		for (const editor_tab_t& tab : _tabs)
 		{
 			const ui::layout_out_t& out = tree.out(tab.widget);
@@ -475,7 +521,7 @@ namespace sfg
 
 	bool editor_tab_area_t::is_drag_out_position(const vec2f_t& pos) const
 	{
-		if (_drag_tab == 0 || !_config.can_drag_out)
+		if (_drag_tab == 0 || _tabs.size() < 2 || !_config.can_drag_out)
 			return false;
 
 		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
@@ -487,13 +533,19 @@ namespace sfg
 
 	void editor_tab_area_t::on_tab_drag_begin(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t&, void* user_data)
 	{
-		editor_tab_area_t&		tab_area = *static_cast<editor_tab_area_t*>(user_data);
-		editor_tab_t&			tab		 = tab_area.find_tab_by_widget(id);
-		const ui::layout_out_t& out		 = tab_area._ui->get_tree().out(tab.widget);
-		tab_area._drag_tab				 = tab.identifier;
-		tab_area._drag_offset			 = pos - out.pos;
-		tab.pos_x						 = out.pos.x - tab_area._ui->get_tree().out(tab_area._root).pos.x;
-		tab.pos_y						 = out.pos.y - tab_area._ui->get_tree().out(tab_area._root).pos.y;
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		editor_tab_t&	   tab		= tab_area.find_tab_by_widget(id);
+		if (tab_area._tabs.size() < 2)
+		{
+			tab_area.switch_tab(tab.identifier);
+			return;
+		}
+
+		const ui::layout_out_t& out = tab_area._ui->get_tree().out(tab.widget);
+		tab_area._drag_tab			= tab.identifier;
+		tab_area._drag_offset		= pos - out.pos;
+		tab.pos_x					= out.pos.x - tab_area._ui->get_tree().out(tab_area._root).pos.x;
+		tab.pos_y					= out.pos.y - tab_area._ui->get_tree().out(tab_area._root).pos.y;
 		tab_area.switch_tab(tab.identifier);
 	}
 
@@ -523,5 +575,35 @@ namespace sfg
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		const editor_tab_t tab		= tab_area.find_tab_by_widget(id);
 		tab_area.request_close(tab.identifier);
+	}
+
+	void editor_tab_area_t::on_window_minimize_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		if (tab_area._config.window_minimized != nullptr)
+			tab_area._config.window_minimized(tab_area, tab_area._config.user_data);
+	}
+
+	void editor_tab_area_t::on_window_maximize_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		if (tab_area._config.window_maximized != nullptr)
+			tab_area._config.window_maximized(tab_area, tab_area._config.user_data);
+	}
+
+	void editor_tab_area_t::on_window_close_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
+		if (tab_area._config.window_closed != nullptr)
+			tab_area._config.window_closed(tab_area, tab_area._config.user_data);
 	}
 }

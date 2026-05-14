@@ -38,6 +38,14 @@ namespace sfg::ui
 
 namespace sfg
 {
+	struct window_runtime_t;
+
+	struct dock_widget_config_t
+	{
+		window_runtime_t* runtime			  = nullptr;
+		bool			  show_window_buttons = false;
+	};
+
 	class dock_widget_t final
 	{
 	public:
@@ -52,7 +60,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const dock_widget_config_t& config = {});
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -87,11 +95,16 @@ namespace sfg
 
 		static void on_leaf_tab_switched(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 		static void on_leaf_tab_dragged_out(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+		static void on_window_minimized(editor_tab_area_t& tab_area, void* user_data);
+		static void on_window_maximized(editor_tab_area_t& tab_area, void* user_data);
+		static void on_window_closed(editor_tab_area_t& tab_area, void* user_data);
 
 	private:
 		ui::ui_context*											  _ui			= nullptr;
+		window_runtime_t*										  _runtime		= nullptr;
 		ui::widget_id_t											  _root			= NULL_WIDGET;
 		dock_node_handle_t										  _root_node	= {};
+		dock_widget_config_t									  _config		= {};
 		dynamic_gen_pool_t<dock_node_t, u16, dock_node_tag_t>	  _dock_nodes	= {};
 		dynamic_gen_pool_t<dock_border_t, u16, dock_border_tag_t> _dock_borders = {};
 	};

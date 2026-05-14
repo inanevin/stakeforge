@@ -59,17 +59,22 @@ namespace sfg
 		f32				marker_velocity = 0.0f;
 	};
 
-	using editor_tab_callback_fn = void (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+	using editor_tab_callback_fn			   = void (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+	using editor_tab_window_button_callback_fn = void (*)(editor_tab_area_t& tab_area, void* user_data);
 
 	struct editor_tab_area_config_t
 	{
-		editor_tab_callback_fn tab_switched			= nullptr;
-		editor_tab_callback_fn tab_removed			= nullptr;
-		editor_tab_callback_fn tab_dragged_out		= nullptr;
-		void*				   user_data			= nullptr;
-		bool				   can_close_single_tab = false;
-		bool				   can_close			= true;
-		bool				   can_drag_out			= false;
+		editor_tab_callback_fn				 tab_switched		  = nullptr;
+		editor_tab_callback_fn				 tab_removed		  = nullptr;
+		editor_tab_callback_fn				 tab_dragged_out	  = nullptr;
+		editor_tab_window_button_callback_fn window_minimized	  = nullptr;
+		editor_tab_window_button_callback_fn window_maximized	  = nullptr;
+		editor_tab_window_button_callback_fn window_closed		  = nullptr;
+		void*								 user_data			  = nullptr;
+		bool								 can_close_single_tab = false;
+		bool								 can_close			  = true;
+		bool								 can_drag_out		  = false;
+		bool								 show_window_buttons  = false;
 	};
 
 	class editor_tab_area_t final
@@ -128,10 +133,17 @@ namespace sfg
 		static void on_tab_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_tab_drag_end(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_close_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_window_minimize_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_window_maximize_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_window_close_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		ui::ui_context*			 _ui   = nullptr;
-		ui::widget_id_t			 _root = NULL_WIDGET;
+		ui::ui_context*			 _ui				  = nullptr;
+		ui::widget_id_t			 _root				  = NULL_WIDGET;
+		ui::widget_id_t			 _window_buttons_root = NULL_WIDGET;
+		ui::widget_id_t			 _window_minimize	  = NULL_WIDGET;
+		ui::widget_id_t			 _window_maximize	  = NULL_WIDGET;
+		ui::widget_id_t			 _window_close		  = NULL_WIDGET;
 		vector_t<editor_tab_t>	 _tabs;
 		editor_tab_area_config_t _config			   = {};
 		sid_t					 _active_tab		   = 0;
