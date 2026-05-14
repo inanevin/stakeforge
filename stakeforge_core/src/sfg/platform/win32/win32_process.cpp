@@ -123,7 +123,7 @@ namespace
 		else if (style == sfg::window_style_e::alpha)
 			return WS_POPUP | WS_VISIBLE;
 		else
-			return WS_POPUP | WS_THICKFRAME;
+			return static_cast<u32>(WS_OVERLAPPEDWINDOW);
 	}
 
 	u32 get_ex_style(sfg::window_style_e style, bool always_on_top = false)
@@ -235,6 +235,39 @@ namespace
 		return HTCLIENT;
 	}
 
+	bool get_monitor_info(HWND hwnd, MONITORINFO& monitor_info)
+	{
+		HMONITOR monitor	= MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+		monitor_info.cbSize = sizeof(monitor_info);
+		return GetMonitorInfo(monitor, &monitor_info) != FALSE;
+	}
+
+	void apply_borderless_maximized_client_rect(HWND hwnd, RECT& rect)
+	{
+		if (!IsZoomed(hwnd))
+			return;
+
+		MONITORINFO monitor_info{};
+		if (get_monitor_info(hwnd, monitor_info))
+			rect = monitor_info.rcWork;
+	}
+
+	void apply_borderless_min_max_info(HWND hwnd, MINMAXINFO& min_max_info)
+	{
+		MONITORINFO monitor_info{};
+		if (!get_monitor_info(hwnd, monitor_info))
+			return;
+
+		const RECT& work_rect	 = monitor_info.rcWork;
+		const RECT& monitor_rect = monitor_info.rcMonitor;
+
+		min_max_info.ptMaxPosition.x = work_rect.left - monitor_rect.left;
+		min_max_info.ptMaxPosition.y = work_rect.top - monitor_rect.top;
+		min_max_info.ptMaxSize.x	 = work_rect.right - work_rect.left;
+		min_max_info.ptMaxSize.y	 = work_rect.bottom - work_rect.top;
+		min_max_info.ptMaxTrackSize	 = min_max_info.ptMaxSize;
+	}
+
 	void push_event(sfg::window_runtime_t& runtime, const sfg::window_event_t& ev)
 	{
 		if (runtime.event_callback != nullptr)
@@ -251,7 +284,30 @@ namespace
 		{
 		case WM_NCCALCSIZE:
 			if (runtime->style == sfg::window_style_e::borderless)
+			{
+				if (w_param == TRUE)
+				{
+					NCCALCSIZE_PARAMS* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(l_param);
+					apply_borderless_maximized_client_rect(hwnd, params->rgrc[0]);
+				}
 				return 0;
+			}
+			break;
+		case WM_NCPAINT:
+			if (runtime->style == sfg::window_style_e::borderless)
+				return 0;
+			break;
+		case WM_NCACTIVATE:
+			if (runtime->style == sfg::window_style_e::borderless)
+				return TRUE;
+			break;
+		case WM_GETMINMAXINFO:
+			if (runtime->style == sfg::window_style_e::borderless)
+			{
+				MINMAXINFO* min_max_info = reinterpret_cast<MINMAXINFO*>(l_param);
+				apply_borderless_min_max_info(hwnd, *min_max_info);
+				return 0;
+			}
 			break;
 		case WM_NCHITTEST: {
 			const LRESULT result = DefWindowProcA(hwnd, msg, w_param, l_param);
@@ -1198,8 +1254,10 @@ namespace sfg
 		raw_devices[1].dwFlags		  = RIDEV_INPUTSINK;
 		raw_devices[1].hwndTarget	  = hwnd;
 		RegisterRawInputDevices(raw_devices, 2, sizeof(raw_devices[0]));
-		OpenIcon(hwnd);
-		SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		UINT window_pos_flags = SWP_NOMOVE | SWP_NOSIZE;
+		if (window_style == window_style_e::borderless)
+			window_pos_flags |= SWP_FRAMECHANGED;
+		SetWindowPos(hwnd, always_on_top ? HWND_TOPMOST : HWND_TOP, 0, 0, 0, 0, window_pos_flags);
 		ShowWindow(hwnd, SW_SHOW);
 		UpdateWindow(hwnd);
 		DragAcceptFiles(hwnd, TRUE);
@@ -1250,15 +1308,22 @@ namespace sfg
 
 	void process::set_window_style(void* window, const vec2u16_t& size, window_style_e style)
 	{
-		HWND		hwnd	   = static_cast<HWND>(window);
-		const DWORD stylew	   = get_style(style);
-		const DWORD ex_style   = get_ex_style(style);
-		const auto	outer_size = get_outer_size_for_config(size, style);
+		HWND			  hwnd		 = static_cast<HWND>(window);
+		const DWORD		  stylew	 = get_style(style);
+		const DWORD		  ex_style	 = get_ex_style(style);
+		const auto		  outer_size = get_outer_size_for_config(size, style);
+		window_runtime_t* runtime	 = reinterpret_cast<window_runtime_t*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+		SFG_ASSERT(runtime != nullptr);
+		runtime->style = style;
 		SetWindowLongPtr(hwnd, GWL_STYLE, static_cast<LONG_PTR>(stylew));
 		SetWindowLongPtr(hwnd, GWL_EXSTYLE, static_cast<LONG_PTR>(ex_style));
 		if (style == window_style_e::alpha)
 			configure_alpha_window(hwnd, 0.5f);
-		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, outer_size.x, outer_size.y, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+		UINT window_pos_flags = SWP_NOMOVE | SWP_FRAMECHANGED | SWP_SHOWWINDOW;
+		if (style != window_style_e::alpha)
+			window_pos_flags |= SWP_NOZORDER;
+		SetWindowPos(hwnd, style == window_style_e::alpha ? HWND_TOPMOST : nullptr, 0, 0, outer_size.x, outer_size.y, window_pos_flags);
 	}
 
 	void process::minimize_window(void* window)
