@@ -90,6 +90,7 @@ namespace sfg
 		f32		title_line_thickness = 1.0f;
 		f32		icon_size			 = 8.0f;
 		f32		padding_x			 = 8.0f;
+		f32		padding_y			 = 4.0f;
 		f32		shortcut_gap		 = 32.0f;
 		f32		title_gap			 = 8.0f;
 	};

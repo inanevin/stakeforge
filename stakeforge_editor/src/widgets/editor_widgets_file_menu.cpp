@@ -210,7 +210,7 @@ namespace sfg
 			panel_in.size_mode_y	  = ui::axis_mode_e::sum_children;
 			panel_in.flow			  = ui::flow_e::column;
 			panel_in.child_spacing	  = 0.0f;
-			panel_in.child_margins	  = {0.0f, 0.0f, 0.0f, 0.0f};
+			panel_in.child_margins	  = {style.padding_y, 0.0f, style.padding_y, 0.0f};
 
 			ui::vg_rect_paint_t panel_rect = {};
 			panel_rect.fill_color_a		   = style.dropdown_color;
@@ -511,7 +511,7 @@ namespace sfg
 
 		const f32				scale	  = _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 		const f32				width_px  = width * scale;
-		const f32				height	  = static_cast<f32>(row_count) * _style.row_height;
+		const f32				height	  = static_cast<f32>(row_count) * _style.row_height + _style.padding_y * 2.0f;
 		const f32				height_px = height * scale;
 		const ui::layout_out_t& root_out  = tree.out(tree.get_root());
 		const f32				screen_x0 = root_out.clip.x;

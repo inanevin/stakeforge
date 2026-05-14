@@ -524,6 +524,7 @@ namespace sfg
 			file_menu_style.title_line_thickness	 = theme.divider_thickness;
 			file_menu_style.icon_size				 = theme.icon_default_px_size;
 			file_menu_style.padding_x				 = theme.indent_horizontal;
+			file_menu_style.padding_y				 = theme.item_spacing;
 			file_menu_style.shortcut_gap			 = theme.item_height * 1.75f;
 			file_menu_style.title_gap				 = theme.indent_horizontal;
 			_file_menu.init(ui, top_mid_file, FILE_MENU_ITEMS, static_cast<u16>(sizeof(FILE_MENU_ITEMS) / sizeof(FILE_MENU_ITEMS[0])), file_menu_style, on_file_menu_command, this);
