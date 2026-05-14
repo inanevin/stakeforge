@@ -75,9 +75,9 @@ namespace sfg
 		sid_t shader_glitch_lcd = "editor/shaders/editor_ui_text_lcd_glitch.hlsl"_hs;
 
 		f32 aa_thickness			 = 2.0f;
+		f32 text_big_px_size		 = 15.0f;
 		f32 text_default_px_size	 = 12.0f;
 		f32 text_small_px_size		 = 10.0f;
-		f32 text_big_title_px_size	 = 24.0f;
 		f32 text_med_title_px_size	 = 14.0f;
 		f32 text_small_title_px_size = 10.0f;
 		f32 icon_default_px_size	 = 10.0f;

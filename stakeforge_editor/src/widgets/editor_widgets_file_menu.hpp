@@ -37,22 +37,30 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_file_menu_command_fn = void (*)(u16 command, void* user_data);
+	using editor_file_menu_command_fn	   = void (*)(u16 command, void* user_data);
+	using editor_file_menu_toggle_query_fn = bool (*)(void* user_data);
+	using editor_file_menu_toggle_fn	   = void (*)(u16 command, bool value, void* user_data);
 
 	enum class editor_file_menu_row_kind_e : u8
 	{
 		item,
 		title,
+		toggle,
 	};
 
 	struct editor_file_menu_row_desc_t
 	{
-		editor_file_menu_row_kind_e		   kind		   = editor_file_menu_row_kind_e::item;
-		const char*						   text		   = nullptr;
-		const char*						   shortcut	   = nullptr;
-		const editor_file_menu_row_desc_t* children	   = nullptr;
-		u16								   child_count = 0;
-		u16								   command	   = 0;
+		editor_file_menu_row_kind_e		   kind				= editor_file_menu_row_kind_e::item;
+		const char*						   text				= nullptr;
+		const char*						   shortcut			= nullptr;
+		const editor_file_menu_row_desc_t* children			= nullptr;
+		u16								   child_count		= 0;
+		u16								   command			= 0;
+		bool*							   toggle_value		= nullptr;
+		editor_file_menu_toggle_query_fn   toggle_query		= nullptr;
+		editor_file_menu_toggle_fn		   toggle_callback	= nullptr;
+		void*							   toggle_user_data = nullptr;
+		bool							   close_on_toggle	= false;
 	};
 
 	struct editor_file_menu_item_desc_t
@@ -157,6 +165,7 @@ namespace sfg
 		ui::widget_id_t						_row_labels[MAX_DEPTH][MAX_ROWS]	  = {};
 		ui::widget_id_t						_row_shortcuts[MAX_DEPTH][MAX_ROWS]	  = {};
 		ui::widget_id_t						_row_icons[MAX_DEPTH][MAX_ROWS]		  = {};
+		ui::widget_id_t						_row_icon_labels[MAX_DEPTH][MAX_ROWS] = {};
 		ui::widget_id_t						_row_title_lines[MAX_DEPTH][MAX_ROWS] = {};
 		const editor_file_menu_row_desc_t*	_active_rows[MAX_DEPTH]				  = {};
 		u16									_active_row_counts[MAX_DEPTH]		  = {};

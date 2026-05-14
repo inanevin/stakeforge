@@ -41,6 +41,42 @@ namespace sfg
 			return text != nullptr ? static_cast<u32>(strlen(text)) : 0;
 		}
 
+		bool is_title_row(const editor_file_menu_row_desc_t& row)
+		{
+			return row.kind == editor_file_menu_row_kind_e::title;
+		}
+
+		bool is_toggle_row(const editor_file_menu_row_desc_t& row)
+		{
+			return row.kind == editor_file_menu_row_kind_e::toggle;
+		}
+
+		bool has_dropdown(const editor_file_menu_row_desc_t& row)
+		{
+			return row.child_count > 0;
+		}
+
+		bool has_icon_slot(const editor_file_menu_row_desc_t& row)
+		{
+			return has_dropdown(row) || is_toggle_row(row);
+		}
+
+		bool is_toggled(const editor_file_menu_row_desc_t& row)
+		{
+			if (row.toggle_query != nullptr)
+				return row.toggle_query(row.toggle_user_data);
+			SFG_ASSERT(row.toggle_value != nullptr);
+			return *row.toggle_value;
+		}
+
+		const char* row_icon(const editor_file_menu_row_desc_t& row)
+		{
+			if (has_dropdown(row))
+				return ICON_DD_RIGHT;
+			if (is_toggle_row(row) && is_toggled(row))
+				return ICON_CHECK;
+			return nullptr;
+		}
 	}
 
 	void editor_file_menu_t::handle_top_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -239,14 +275,33 @@ namespace sfg
 				tree.draw_order(icon) = tree.draw_order_const(row) + 1;
 
 				ui::layout_in_t& icon_in = tree.in(icon);
-				icon_in.flags			 = ui::wf_overlay;
 				icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 				icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 				icon_in.pos_value		 = {1.0f, 0.5f};
 				icon_in.anchor_x		 = ui::anchor_e::end;
 				icon_in.anchor_y		 = ui::anchor_e::center;
-				ui.set_widget_text(icon, ICON_DD_RIGHT);
-				paint.set_text(icon, ui.widget_text(icon), ui.widget_text_len(icon), {.font = theme.font_icons, .color = style.icon_color, .point_size = style.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+				icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
+				icon_in.size_mode_y		 = ui::axis_mode_e::fixed;
+				icon_in.size_value		 = {style.icon_size, style.row_height};
+
+				const ui::widget_id_t icon_label = tree.allocate();
+				_row_icon_labels[d][r]			 = icon_label;
+				ui.set_widget_debug_name(icon_label, "file_menu_dropdown_icon_label");
+				tree.attach(icon, icon_label);
+				tree.draw_order(icon_label) = tree.draw_order_const(icon) + 1;
+
+				ui::layout_in_t& icon_label_in = tree.in(icon_label);
+				icon_label_in.flags			   = ui::wf_overlay;
+				icon_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+				icon_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+				icon_label_in.pos_value		   = {0.5f, 0.5f};
+				icon_label_in.anchor_x		   = ui::anchor_e::center;
+				icon_label_in.anchor_y		   = ui::anchor_e::center;
+				ui.set_widget_text(icon_label, ICON_DD_RIGHT);
+				paint.set_text(icon_label,
+							   ui.widget_text(icon_label),
+							   ui.widget_text_len(icon_label),
+							   {.font = theme.font_icons, .color = style.icon_color, .point_size = style.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 				const ui::widget_id_t title_line = tree.allocate();
 				_row_title_lines[d][r]			 = title_line;
@@ -297,11 +352,12 @@ namespace sfg
 					input.clear_listener(_row_frames[d][r]);
 					_ui->clear_widget_text(_row_labels[d][r]);
 					_ui->clear_widget_text(_row_shortcuts[d][r]);
-					_ui->clear_widget_text(_row_icons[d][r]);
+					_ui->clear_widget_text(_row_icon_labels[d][r]);
 					_ui->clear_widget_debug_name(_row_frames[d][r]);
 					_ui->clear_widget_debug_name(_row_labels[d][r]);
 					_ui->clear_widget_debug_name(_row_shortcuts[d][r]);
 					_ui->clear_widget_debug_name(_row_icons[d][r]);
+					_ui->clear_widget_debug_name(_row_icon_labels[d][r]);
 					_ui->clear_widget_debug_name(_row_title_lines[d][r]);
 				}
 			}
@@ -336,6 +392,7 @@ namespace sfg
 				_row_labels[d][r]	   = NULL_WIDGET;
 				_row_shortcuts[d][r]   = NULL_WIDGET;
 				_row_icons[d][r]	   = NULL_WIDGET;
+				_row_icon_labels[d][r] = NULL_WIDGET;
 				_row_title_lines[d][r] = NULL_WIDGET;
 			}
 		}
@@ -377,11 +434,42 @@ namespace sfg
 		if (!find_row_index(id, depth, row))
 			return;
 		const editor_file_menu_row_desc_t& desc = _active_rows[depth][row];
-		if (desc.kind == editor_file_menu_row_kind_e::title)
+		if (is_title_row(desc))
 			return;
+
+		if (is_toggle_row(desc))
+		{
+			SFG_ASSERT(desc.toggle_value != nullptr || desc.toggle_query != nullptr);
+			const bool toggled = !is_toggled(desc);
+			if (desc.toggle_value != nullptr)
+				*desc.toggle_value = toggled;
+
+			if (desc.close_on_toggle)
+				close();
+
+			if (desc.toggle_callback != nullptr)
+				desc.toggle_callback(desc.command, toggled, desc.toggle_user_data);
+			if (desc.command != 0 && _command_fn != nullptr)
+				_command_fn(desc.command, _command_user_data);
+
+			if (desc.close_on_toggle)
+				return;
+
+			hide_dropdowns_from(depth + 1);
+			const char* icon = row_icon(desc);
+			if (icon != nullptr)
+				_ui->set_widget_text(_row_icon_labels[depth][row], icon);
+			else
+				_ui->clear_widget_text(_row_icon_labels[depth][row]);
+			set_widget_visible(_ui->get_tree(), _row_icons[depth][row], icon != nullptr, false);
+			set_widget_visible(_ui->get_tree(), _row_icon_labels[depth][row], icon != nullptr, false);
+			refresh_popup_scope();
+			return;
+		}
+
 		if (desc.command != 0 && _command_fn != nullptr)
 			_command_fn(desc.command, _command_user_data);
-		if (desc.child_count == 0)
+		if (!has_dropdown(desc))
 			close();
 	}
 
@@ -393,13 +481,13 @@ namespace sfg
 			return;
 
 		const editor_file_menu_row_desc_t& desc = _active_rows[depth][row];
-		if (desc.kind == editor_file_menu_row_kind_e::title)
+		if (is_title_row(desc))
 		{
 			hide_dropdowns_from(depth + 1);
 			refresh_popup_scope();
 			return;
 		}
-		if (desc.child_count > 0)
+		if (has_dropdown(desc))
 			show_dropdown(depth + 1, desc.children, desc.child_count, _ui->get_tree().bounds(id));
 		else
 			hide_dropdowns_from(depth + 1);
@@ -436,7 +524,7 @@ namespace sfg
 		f32 width = 0.0f;
 		for (u32 i = 0; i < row_count; ++i)
 		{
-			const bool is_title	  = rows[i].kind == editor_file_menu_row_kind_e::title;
+			const bool is_title	  = is_title_row(rows[i]);
 			const f32  label_w	  = measure_text_width(rows[i].text, is_title ? theme.font_title : theme.font_default, is_title ? _style.title_size : _style.text_size);
 			const f32  shortcut_w = is_title ? 0.0f : measure_text_width(rows[i].shortcut, theme.font_title_bold, _style.shortcut_size);
 			f32		   row_w	  = _style.padding_x * 2.0f + label_w;
@@ -444,7 +532,7 @@ namespace sfg
 				row_w += _style.title_gap + _style.shortcut_gap * 1.25f;
 			else if (shortcut_w > 0.0f)
 				row_w += _style.shortcut_gap + shortcut_w;
-			if (!is_title && rows[i].child_count > 0)
+			if (!is_title && has_icon_slot(rows[i]))
 				row_w += (shortcut_w > 0.0f ? _style.padding_x : _style.shortcut_gap) + _style.icon_size;
 			width = math::max(width, row_w);
 		}
@@ -478,7 +566,7 @@ namespace sfg
 
 		for (u32 i = 0; i < row_count; ++i)
 		{
-			const bool			  is_title = rows[i].kind == editor_file_menu_row_kind_e::title;
+			const bool			  is_title = is_title_row(rows[i]);
 			const ui::widget_id_t row	   = _row_frames[depth][i];
 			set_widget_visible(tree, row, true, true);
 			set_rect_color(paint, row, {0, 0, 0, 0});
@@ -514,7 +602,7 @@ namespace sfg
 				set_widget_visible(tree, _row_shortcuts[depth][i], true, false);
 				ui::layout_in_t& shortcut_in = tree.in(_row_shortcuts[depth][i]);
 				shortcut_in.pos_value.x		 = 1.0f - (_style.padding_x / width);
-				if (rows[i].child_count > 0)
+				if (has_icon_slot(rows[i]))
 					shortcut_in.pos_value.x = 1.0f - ((_style.padding_x * 2.0f + _style.icon_size) / width);
 			}
 			else
@@ -541,12 +629,18 @@ namespace sfg
 			}
 			set_widget_visible(tree, _row_title_lines[depth][i], is_title, false);
 
-			if (!is_title && rows[i].child_count > 0)
+			const char* icon = !is_title ? row_icon(rows[i]) : nullptr;
+			if (icon != nullptr)
 			{
 				ui::layout_in_t& icon_in = tree.in(_row_icons[depth][i]);
 				icon_in.pos_value.x		 = 1.0f - (_style.padding_x / width);
+				icon_in.size_value		 = {_style.icon_size, _style.row_height};
+				_ui->set_widget_text(_row_icon_labels[depth][i], icon);
 			}
-			set_widget_visible(tree, _row_icons[depth][i], !is_title && rows[i].child_count > 0, false);
+			else
+				_ui->clear_widget_text(_row_icon_labels[depth][i]);
+			set_widget_visible(tree, _row_icons[depth][i], icon != nullptr, false);
+			set_widget_visible(tree, _row_icon_labels[depth][i], icon != nullptr, false);
 		}
 
 		for (u32 i = row_count; i < MAX_ROWS; ++i)
@@ -555,6 +649,7 @@ namespace sfg
 			set_widget_visible(tree, _row_labels[depth][i], false, false);
 			set_widget_visible(tree, _row_shortcuts[depth][i], false, false);
 			set_widget_visible(tree, _row_icons[depth][i], false, false);
+			set_widget_visible(tree, _row_icon_labels[depth][i], false, false);
 			set_widget_visible(tree, _row_title_lines[depth][i], false, false);
 		}
 	}
@@ -574,6 +669,7 @@ namespace sfg
 				set_widget_visible(tree, _row_labels[d][r], false, false);
 				set_widget_visible(tree, _row_shortcuts[d][r], false, false);
 				set_widget_visible(tree, _row_icons[d][r], false, false);
+				set_widget_visible(tree, _row_icon_labels[d][r], false, false);
 				set_widget_visible(tree, _row_title_lines[d][r], false, false);
 			}
 		}

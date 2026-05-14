@@ -61,6 +61,7 @@ namespace sfg
 
 		void init(ui::ui_context& ui, editor_surface_t& surface);
 		void uninit();
+		void update();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -109,6 +110,7 @@ namespace sfg
 		ui::widget_id_t				   _window_minimize		  = NULL_WIDGET;
 		ui::widget_id_t				   _window_maximize		  = NULL_WIDGET;
 		ui::widget_id_t				   _window_close		  = NULL_WIDGET;
+		ui::widget_id_t				   _label_wrap			  = NULL_WIDGET;
 		ui::widget_id_t				   _project_label		  = NULL_WIDGET;
 		ui::widget_id_t				   _title_group			  = NULL_WIDGET;
 		ui::widget_id_t				   _title_label			  = NULL_WIDGET;
