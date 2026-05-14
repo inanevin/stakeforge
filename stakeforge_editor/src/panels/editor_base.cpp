@@ -440,7 +440,7 @@ namespace sfg
 			group_in.size_mode_x	  = ui::axis_mode_e::max_children;
 			group_in.size_mode_y	  = ui::axis_mode_e::sum_children;
 			group_in.flow			  = ui::flow_e::column;
-			group_in.child_spacing	  = 0.0f;
+			group_in.child_spacing = theme.item_spacing * 0.5f;
 			group_in.child_margins	  = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			title_label = ui.allocate_widget();

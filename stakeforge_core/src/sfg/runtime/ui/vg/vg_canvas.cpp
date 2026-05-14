@@ -46,6 +46,15 @@ namespace sfg::ui
 {
 	namespace
 	{
+		struct text_bounds_t
+		{
+			f32 min_x	  = 0.0f;
+			f32 min_y	  = 0.0f;
+			f32 max_x	  = 0.0f;
+			f32 max_y	  = 0.0f;
+			f32 advance_x = 0.0f;
+		};
+
 		inline u32 raster_px_for(const vg_text_paint_t& p)
 		{
 			return p.raster_px > 0 ? p.raster_px : 1;
@@ -75,6 +84,58 @@ namespace sfg::ui
 		{
 			out_min = {snap_px(in_min.x), snap_px(in_min.y)};
 			out_max = {out_min.x + snap_size_px(in_max.x - in_min.x), out_min.y + snap_size_px(in_max.y - in_min.y)};
+		}
+
+		text_bounds_t measure_text_bounds(const char* text, size_t len, glyph_atlas_t& atlas, const font_runtime_t* font, const size_metrics_t& metrics, u32 px, glyph_raster_mode_e raster_mode, f32 scale, f32 spacing)
+		{
+			text_bounds_t bounds = {};
+			bool		  valid	 = false;
+			vec2f_t		  pen	 = {0.0f, metrics.ascent_px * scale};
+			u32			  prev	 = 0;
+
+			for (size_t i = 0; i < len; ++i)
+			{
+				const u32 c = static_cast<u8>(text[i]);
+				if (prev != 0)
+					pen.x += atlas.get_kern_advance(font, prev, c, px) * scale;
+
+				const glyph_entry_t* g = atlas.request_glyph(font, c, px, raster_mode);
+
+				if (g->width > 0 && g->height > 0)
+				{
+					const f32 quad_left	  = pen.x + g->left_bearing * scale;
+					const f32 quad_top	  = pen.y + g->top_bearing * scale;
+					const f32 quad_right  = quad_left + static_cast<f32>(g->width) * scale;
+					const f32 quad_bottom = quad_top + static_cast<f32>(g->height) * scale;
+
+					if (!valid)
+					{
+						bounds.min_x = quad_left;
+						bounds.min_y = quad_top;
+						bounds.max_x = quad_right;
+						bounds.max_y = quad_bottom;
+						valid		 = true;
+					}
+					else
+					{
+						bounds.min_x = math::min(bounds.min_x, quad_left);
+						bounds.min_y = math::min(bounds.min_y, quad_top);
+						bounds.max_x = math::max(bounds.max_x, quad_right);
+						bounds.max_y = math::max(bounds.max_y, quad_bottom);
+					}
+				}
+
+				pen.x += g->advance_x * scale + spacing;
+				prev = c;
+			}
+
+			bounds.advance_x = pen.x - spacing;
+			if (!valid)
+			{
+				bounds.max_x = math::max(0.0f, bounds.advance_x);
+				bounds.max_y = metrics.line_height_px * scale;
+			}
+			return bounds;
 		}
 
 		inline vg_vertex_t* take_vertices(vg_draw_buffer_t* db, u32 count)
@@ -616,23 +677,8 @@ namespace sfg::ui
 		const f32			 scale	 = draw_scale_for(paint, px);
 		const f32			 spacing = paint.spacing;
 
-		f32 total_x = 0.0f;
-		for (size_t i = 0; i < len; ++i)
-		{
-			const u32			 c = static_cast<u8>(text[i]);
-			const glyph_entry_t* g = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
-			total_x += g->advance_x * scale;
-
-			if (i + 1 < len)
-			{
-				const u32 c1 = static_cast<u8>(text[i + 1]);
-				total_x += atlas.get_kern_advance(paint.font, c, c1, px) * scale;
-			}
-			total_x += spacing;
-		}
-
-		const f32 height = metrics.line_height_px * scale;
-		return {total_x - spacing, height};
+		const text_bounds_t bounds = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
+		return {math::max(bounds.advance_x, bounds.max_x - bounds.min_x), bounds.max_y - bounds.min_y};
 	}
 
 	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order, bool use_cache)
@@ -679,6 +725,7 @@ namespace sfg::ui
 		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
 		const f32			 scale	 = draw_scale_for(paint, px);
 		const f32			 spacing = paint.spacing;
+		const text_bounds_t	 bounds	 = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
@@ -687,7 +734,7 @@ namespace sfg::ui
 		vg_index_t*	 indices = take_indices(db, char_count * 6);
 
 		const vec2f_t pen_origin = use_cache ? vec2f_t{0.0f, 0.0f} : draw_pos;
-		vec2f_t		  pen		 = {pen_origin.x, pen_origin.y + metrics.ascent_px * scale};
+		vec2f_t		  pen		 = {pen_origin.x - bounds.min_x, pen_origin.y + metrics.ascent_px * scale - bounds.min_y};
 
 		u32 emitted_chars = 0;
 		u32 prev		  = 0;
