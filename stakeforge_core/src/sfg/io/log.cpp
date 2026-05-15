@@ -52,13 +52,13 @@ namespace sfg
 
 	void log_t::log_impl(log_level level, const char* msg)
 	{
-		LOCK_GUARD(_mtx);
-
 		log_impl(level, nullptr, msg);
 	}
 
 	void log_t::log_impl(log_level level, const char* func, const char* msg)
 	{
+		LOCK_GUARD(_mtx);
+
 		string_t msg_str = func == nullptr ? (string_t(msg)) : (string_t(func) + "() -> " + string_t(msg));
 		msg_str += "\n";
 
@@ -106,6 +106,8 @@ namespace sfg
 
 	void log_t::add_listener(unsigned int id, callback_function f, void* user_data)
 	{
+		LOCK_GUARD(_mtx);
+
 		_listeners.push_back({
 			.user_data = user_data,
 			.f		   = f,
@@ -115,6 +117,8 @@ namespace sfg
 
 	void log_t::remove_listener(unsigned int id)
 	{
+		LOCK_GUARD(_mtx);
+
 		std::erase_if(_listeners, [id](const listener_t& l) -> bool { return l.id == id; });
 	}
 

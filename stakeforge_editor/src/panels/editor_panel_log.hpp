@@ -29,6 +29,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "panels/editor_panel.hpp"
 #include "widgets/editor_widgets_dropdown.hpp"
 #include "widgets/editor_widgets_icon_button.hpp"
+#include "widgets/editor_widgets_scrollbar.hpp"
+#include <sfg/data/mutex.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+
+namespace sfg
+{
+	enum class log_level;
+}
 
 namespace sfg
 {
@@ -72,10 +81,32 @@ namespace sfg
 		static u16	get_selected_source(void* user_data);
 		static void on_source_pressed(u16 value, void* user_data);
 		static void on_filter_pressed(bool toggled, void* user_data);
+		static void on_log(log_level level, const char* msg, void* user_data);
+		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		bool		is_filter_enabled(u8 flag) const;
+		void		drain_pending_logs();
+		void		add_log_row(log_level level, const char* text);
+		void		refresh_log_filter_visibility();
+		void		trim_log_rows();
+
+	private:
+		struct log_record_t
+		{
+			string_t  text;
+			log_level level;
+		};
+
+		struct log_row_t
+		{
+			ui::widget_id_t root = NULL_WIDGET;
+			ui::widget_id_t icon = NULL_WIDGET;
+			ui::widget_id_t text = NULL_WIDGET;
+			u8				flag = 0;
+		};
 
 	private:
 		editor_dropdown_t		 _source_dropdown;
+		editor_scrollbar_t		 _scrollbar;
 		editor_icon_button_t	 _info_button;
 		editor_icon_button_t	 _trace_button;
 		editor_icon_button_t	 _warn_button;
@@ -84,9 +115,14 @@ namespace sfg
 		log_filter_button_data_t _trace_filter_data;
 		log_filter_button_data_t _warn_filter_data;
 		log_filter_button_data_t _err_filter_data;
-		ui::widget_id_t			 _top_row		   = NULL_WIDGET;
-		ui::widget_id_t			 _body			   = NULL_WIDGET;
+		ui::widget_id_t			 _top_row = NULL_WIDGET;
+		ui::widget_id_t			 _body	  = NULL_WIDGET;
+		vector_t<log_row_t>		 _rows;
+		vector_t<log_record_t>	 _pending_logs;
+		vector_t<log_record_t>	 _drained_logs;
+		mutex_t					 _pending_logs_mtx;
 		log_source_type_e		 _source_type	   = log_source_type_e::all;
+		u32						 _listener_id	   = 0;
 		u8						 _log_filter_flags = log_level_filter_all;
 	};
 }

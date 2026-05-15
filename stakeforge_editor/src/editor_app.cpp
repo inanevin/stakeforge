@@ -630,6 +630,17 @@ namespace sfg
 			}
 
 			_renderer.ensure_render();
+
+			static bool b = true;
+
+			if (b)
+			{
+				b = false;
+				for (int a = 0; a < 50; a++)
+				{
+					SFG_TRACE("heall yeah tesdting uh baby lewgooo");
+				}
+			}
 		}
 
 		_renderer.end_render();

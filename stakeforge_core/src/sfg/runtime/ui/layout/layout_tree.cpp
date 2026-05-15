@@ -466,7 +466,7 @@ namespace sfg::ui
 
 		for (widget_id_t id : _dfs)
 		{
-			const layout_in_t&	in	= _layout_ins[id];
+			layout_in_t&		in	= _layout_ins[id];
 			const layout_out_t& out = _layout_outs[id];
 			const tree_node_t&	n	= _nodes[id];
 
@@ -475,8 +475,10 @@ namespace sfg::ui
 			const f32	  inner_y = out.pos.y + margins.x;
 			const f32	  inner_w = out.size.x - margins.w - margins.y;
 			const f32	  inner_h = out.size.y - margins.x - margins.z;
-			f32			  flow_x  = inner_x;
-			f32			  flow_y  = inner_y + in.scroll_offset * scale;
+			in.scroll_offset.x	  = math::clamp(in.scroll_offset.x, -out.max_scroll.x, 0.0f);
+			in.scroll_offset.y	  = math::clamp(in.scroll_offset.y, -out.max_scroll.y, 0.0f);
+			f32 flow_x			  = inner_x + in.scroll_offset.x * scale;
+			f32 flow_y			  = inner_y + in.scroll_offset.y * scale;
 
 			widget_id_t c = n.first_child;
 			while (c != NULL_WIDGET)
@@ -511,7 +513,7 @@ namespace sfg::ui
 					}
 					else
 					{
-						co.pos.x = inner_x;
+						co.pos.x = inner_x + in.scroll_offset.x * scale;
 					}
 				}
 
@@ -541,12 +543,57 @@ namespace sfg::ui
 					}
 					else
 					{
-						co.pos.y = inner_y + in.scroll_offset * scale;
+						co.pos.y = inner_y + in.scroll_offset.y * scale;
 					}
 				}
 
 				c = nxt;
 			}
+		}
+
+		for (widget_id_t id : _dfs)
+		{
+			const layout_in_t& in  = _layout_ins[id];
+			layout_out_t&	   out = _layout_outs[id];
+			const tree_node_t& n   = _nodes[id];
+
+			if ((in.flags & (wf_scroll_x | wf_scroll_y)) == 0)
+			{
+				out.max_scroll = {};
+				continue;
+			}
+
+			const vec4f_t margins = scale_rect(in.child_margins, scale);
+			const f32	  inner_x = out.pos.x + margins.w;
+			const f32	  inner_y = out.pos.y + margins.x;
+			const f32	  inner_w = out.size.x - margins.w - margins.y;
+			const f32	  inner_h = out.size.y - margins.x - margins.z;
+			f32			  min_x	  = inner_x;
+			f32			  min_y	  = inner_y;
+			f32			  max_x	  = inner_x + inner_w;
+			f32			  max_y	  = inner_y + inner_h;
+
+			widget_id_t c = n.first_child;
+			while (c != NULL_WIDGET)
+			{
+				const layout_in_t&	cin	 = _layout_ins[c];
+				const layout_out_t& cout = _layout_outs[c];
+				const widget_id_t	next = _nodes[c].next_sibling;
+				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
+				{
+					c = next;
+					continue;
+				}
+
+				min_x = math::min(min_x, cout.pos.x - in.scroll_offset.x * scale);
+				min_y = math::min(min_y, cout.pos.y - in.scroll_offset.y * scale);
+				max_x = math::max(max_x, cout.pos.x - in.scroll_offset.x * scale + cout.size.x);
+				max_y = math::max(max_y, cout.pos.y - in.scroll_offset.y * scale + cout.size.y);
+				c	  = next;
+			}
+
+			out.max_scroll.x = (in.flags & wf_scroll_x) ? math::max(0.0f, max_x - min_x - inner_w) / scale : 0.0f;
+			out.max_scroll.y = (in.flags & wf_scroll_y) ? math::max(0.0f, max_y - min_y - inner_h) / scale : 0.0f;
 		}
 
 		for (widget_id_t id : _dfs)

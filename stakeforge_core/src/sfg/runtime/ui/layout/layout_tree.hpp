@@ -85,8 +85,8 @@ namespace sfg::ui
 		vec2f_t		size_value	  = {0.0f, 0.0f};
 		vec2f_t		pos_value	  = {0.0f, 0.0f};
 		vec4f_t		child_margins = {0.0f, 0.0f, 0.0f, 0.0f}; // top, right, bottom, left
+		vec2f_t		scroll_offset = {0.0f, 0.0f};
 		f32			child_spacing = 0.0f;
-		f32			scroll_offset = 0.0f;
 		axis_mode_e size_mode_x	  = axis_mode_e::fixed;
 		axis_mode_e size_mode_y	  = axis_mode_e::fixed;
 		pos_mode_e	pos_mode_x	  = pos_mode_e::flow;
@@ -102,7 +102,7 @@ namespace sfg::ui
 		vec2f_t pos		   = {0.0f, 0.0f};
 		vec2f_t size	   = {0.0f, 0.0f};
 		vec4f_t clip	   = {0.0f, 0.0f, 0.0f, 0.0f}; // intersected with ancestor clips
-		f32		max_scroll = 0.0f;
+		vec2f_t max_scroll = {0.0f, 0.0f};
 	};
 
 	struct tree_node_t

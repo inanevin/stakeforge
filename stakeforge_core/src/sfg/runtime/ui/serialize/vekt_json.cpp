@@ -57,7 +57,7 @@ namespace sfg::ui
 			in.pos_value	 = j.value("pos", vec2f_t{0, 0});
 			in.child_margins = j.value("margins", vec4f_t{0, 0, 0, 0});
 			in.child_spacing = j.value("spacing", 0.0f);
-			in.scroll_offset = j.value("scroll", 0.0f);
+			in.scroll_offset = j.value("scroll", vec2f_t{0, 0});
 			in.size_mode_x	 = static_cast<axis_mode_e>(j.value("size_mode_x", static_cast<u8>(axis_mode_e::fixed)));
 			in.size_mode_y	 = static_cast<axis_mode_e>(j.value("size_mode_y", static_cast<u8>(axis_mode_e::fixed)));
 			in.pos_mode_x	 = static_cast<pos_mode_e>(j.value("pos_mode_x", static_cast<u8>(pos_mode_e::flow)));
