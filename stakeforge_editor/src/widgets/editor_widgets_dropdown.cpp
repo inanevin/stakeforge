@@ -180,7 +180,7 @@ namespace sfg
 			row_in.size_value		= {1.0f, theme.item_height};
 			row_in.flow				= ui::flow_e::row;
 			row_in.child_spacing	= 0.0f;
-			row_in.child_margins	= {0.0f, theme.indent_horizontal, 0.0f, 0.0f};
+			row_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, 0.0f};
 
 			ui::vg_rect_paint_t row_rect = {};
 			row_rect.fill_color_a		 = {0, 0, 0, 0};
@@ -323,7 +323,7 @@ namespace sfg
 						   _ui->widget_text(_row_labels[i]),
 						   _ui->widget_text_len(_row_labels[i]),
 						   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-			width = math::max(width, theme.item_height + static_cast<f32>(_ui->widget_text_len(_row_labels[i])) * theme.text_default_px_size * 0.7f + theme.indent_horizontal * 2.0f);
+			width = math::max(width, theme.item_height + static_cast<f32>(_ui->widget_text_len(_row_labels[i])) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
 		}
 
 		const f32 scale		= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;

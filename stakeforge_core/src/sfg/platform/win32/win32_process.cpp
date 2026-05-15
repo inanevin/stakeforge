@@ -43,7 +43,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-	u8 g_key_down_map[512] = {};
+	u8						   g_key_down_map[512] = {};
+	sfg::window_cursor_state_e g_cursor_state	   = sfg::window_cursor_state_e::arrow;
 
 	void set_key_down(u32 key, bool down)
 	{
@@ -54,6 +55,34 @@ namespace
 	bool get_key_down(u32 key)
 	{
 		return key < static_cast<u32>(sizeof(g_key_down_map)) && g_key_down_map[key] != 0;
+	}
+
+	LPCTSTR cursor_id_from_state(sfg::window_cursor_state_e state)
+	{
+		switch (state)
+		{
+		case sfg::window_cursor_state_e::arrow:
+			return IDC_ARROW;
+		case sfg::window_cursor_state_e::hand:
+			return IDC_HAND;
+		case sfg::window_cursor_state_e::resize_hr:
+			return IDC_SIZEWE;
+		case sfg::window_cursor_state_e::resize_vt:
+			return IDC_SIZENS;
+		case sfg::window_cursor_state_e::resize_nwse:
+			return IDC_SIZENWSE;
+		case sfg::window_cursor_state_e::resize_nesw:
+			return IDC_SIZENESW;
+		case sfg::window_cursor_state_e::caret:
+			return IDC_IBEAM;
+		}
+
+		return IDC_ARROW;
+	}
+
+	void apply_cursor_state()
+	{
+		::SetCursor(::LoadCursor(nullptr, cursor_id_from_state(g_cursor_state)));
 	}
 
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
@@ -282,6 +311,13 @@ namespace
 
 		switch (msg)
 		{
+		case WM_SETCURSOR:
+			if (LOWORD(l_param) == HTCLIENT)
+			{
+				apply_cursor_state();
+				return TRUE;
+			}
+			break;
 		case WM_NCCALCSIZE:
 			if (runtime->style == sfg::window_style_e::borderless)
 			{
@@ -610,6 +646,7 @@ namespace
 		case WM_RBUTTONDBLCLK:
 		case WM_RBUTTONUP:
 		case WM_MBUTTONDOWN:
+		case WM_MBUTTONDBLCLK:
 		case WM_MBUTTONUP: {
 			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				return 0;
@@ -617,14 +654,12 @@ namespace
 			u16 button = static_cast<u16>(sfg::input_code::mouse_0);
 			if (msg == WM_RBUTTONDOWN || msg == WM_RBUTTONDBLCLK || msg == WM_RBUTTONUP)
 				button = static_cast<u16>(sfg::input_code::mouse_1);
-			else if (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP)
+			else if (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONDBLCLK || msg == WM_MBUTTONUP)
 				button = static_cast<u16>(sfg::input_code::mouse_2);
 
 			sfg::window_event_sub_type_e sub_type = sfg::window_event_sub_type_e::press;
 			if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
 				sub_type = sfg::window_event_sub_type_e::release;
-			else if (msg == WM_LBUTTONDBLCLK || msg == WM_RBUTTONDBLCLK)
-				sub_type = sfg::window_event_sub_type_e::repeat;
 
 			if (sub_type == sfg::window_event_sub_type_e::release)
 				set_key_down(button, false);
@@ -1385,34 +1420,8 @@ namespace sfg
 
 	void process::set_cursor_state(window_cursor_state_e state)
 	{
-		LPCTSTR cursor_id = IDC_ARROW;
-
-		switch (state)
-		{
-		case sfg::window_cursor_state_e::arrow:
-			cursor_id = IDC_ARROW;
-			break;
-		case sfg::window_cursor_state_e::hand:
-			cursor_id = IDC_HAND;
-			break;
-		case sfg::window_cursor_state_e::resize_hr:
-			cursor_id = IDC_SIZEWE;
-			break;
-		case sfg::window_cursor_state_e::resize_vt:
-			cursor_id = IDC_SIZENS;
-			break;
-		case sfg::window_cursor_state_e::resize_nwse:
-			cursor_id = IDC_SIZENWSE;
-			break;
-		case sfg::window_cursor_state_e::resize_nesw:
-			cursor_id = IDC_SIZENESW;
-			break;
-		case sfg::window_cursor_state_e::caret:
-			cursor_id = IDC_IBEAM;
-			break;
-		}
-
-		::SetCursor(::LoadCursor(nullptr, cursor_id));
+		g_cursor_state = state;
+		apply_cursor_state();
 	}
 
 	void process::set_cursor_visible(bool visible)

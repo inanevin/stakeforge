@@ -39,6 +39,15 @@ namespace sfg
 		game,
 	};
 
+	enum log_level_filter_flags_e : u8
+	{
+		log_level_filter_info  = 1 << 0,
+		log_level_filter_trace = 1 << 1,
+		log_level_filter_warn  = 1 << 2,
+		log_level_filter_err   = 1 << 3,
+		log_level_filter_all   = log_level_filter_info | log_level_filter_trace | log_level_filter_warn | log_level_filter_err,
+	};
+
 	class editor_panel_log_t final : public editor_panel_t
 	{
 	public:
@@ -54,23 +63,30 @@ namespace sfg
 		void make_visible(bool visible) override;
 
 	private:
+		struct log_filter_button_data_t
+		{
+			editor_panel_log_t* panel = nullptr;
+			u8					flag  = 0;
+		};
+
 		static u16	get_selected_source(void* user_data);
 		static void on_source_pressed(u16 value, void* user_data);
 		static void on_filter_pressed(bool toggled, void* user_data);
+		bool		is_filter_enabled(u8 flag) const;
 
 	private:
-		editor_dropdown_t	 _source_dropdown;
-		editor_icon_button_t _info_button;
-		editor_icon_button_t _trace_button;
-		editor_icon_button_t _warn_button;
-		editor_icon_button_t _err_button;
-		ui::widget_id_t		 _top_row	  = NULL_WIDGET;
-		ui::widget_id_t		 _body		  = NULL_WIDGET;
-		ui::widget_id_t		 _bottom_row  = NULL_WIDGET;
-		log_source_type_e	 _source_type = log_source_type_e::all;
-		bool				 _show_info	  = true;
-		bool				 _show_trace  = true;
-		bool				 _show_warn	  = true;
-		bool				 _show_err	  = true;
+		editor_dropdown_t		 _source_dropdown;
+		editor_icon_button_t	 _info_button;
+		editor_icon_button_t	 _trace_button;
+		editor_icon_button_t	 _warn_button;
+		editor_icon_button_t	 _err_button;
+		log_filter_button_data_t _info_filter_data;
+		log_filter_button_data_t _trace_filter_data;
+		log_filter_button_data_t _warn_filter_data;
+		log_filter_button_data_t _err_filter_data;
+		ui::widget_id_t			 _top_row		   = NULL_WIDGET;
+		ui::widget_id_t			 _body			   = NULL_WIDGET;
+		log_source_type_e		 _source_type	   = log_source_type_e::all;
+		u8						 _log_filter_flags = log_level_filter_all;
 	};
 }
