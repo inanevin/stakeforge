@@ -145,7 +145,7 @@ namespace sfg
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
-			const surface_handle_t		handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
+			const surface_handle_t		 handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
 			if (handle.is_null())
 				return false;
 			load_surface_default_layout(_surfaces.get(handle));
@@ -205,8 +205,6 @@ namespace sfg
 
 	void editor_app_t::uninit()
 	{
-		save_layout();
-
 		_renderer.end_render();
 		resource_manager_t::get().flush();
 		_payload_controller.uninit();
@@ -291,11 +289,11 @@ namespace sfg
 						   {"split_value", 0.68f},
 						   {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "World"}, {"data", nlohmann::json::object()}}})}}},
 						   {"positive",
-							nlohmann::json{{"type", "leaf"},
-										   {"panels",
-											nlohmann::json::array({nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}},
-																   nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}},
-																   nlohmann::json{{"type", "Profiling"}, {"data", nlohmann::json::object()}}})}}},
+							nlohmann::json{
+								{"type", "leaf"},
+								{"panels",
+								 nlohmann::json::array(
+									 {nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Profiling"}, {"data", nlohmann::json::object()}}})}}},
 					   }},
 					  {"positive", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Inspector"}, {"data", nlohmann::json::object()}}})}}},
 				  }},
@@ -473,6 +471,27 @@ namespace sfg
 		}
 
 		editor_settings_t::get().save();
+	}
+
+	void editor_app_t::apply_default_layout()
+	{
+		vector_t<surface_handle_t> destroy_handles;
+		for (u16 i = 0; i < _surfaces.head(); ++i)
+		{
+			if (!_surfaces.is_active(i))
+				continue;
+
+			const surface_handle_t	handle	= _surfaces.get_handle(i);
+			const editor_surface_t& surface = _surfaces.get(handle);
+			if (surface.type == editor_surface_type_e::secondary)
+				destroy_handles.push_back(handle);
+		}
+
+		for (surface_handle_t handle : destroy_handles)
+			destroy_surface(handle);
+
+		load_surface_default_layout(get_main_surface());
+		save_layout();
 	}
 
 	editor_surface_t& editor_app_t::get_main_surface()
@@ -660,6 +679,8 @@ namespace sfg
 		_renderer.end_render();
 
 		editor_surface_t& surface = _surfaces.get(handle);
+		if (surface.type == editor_surface_type_e::primary)
+			save_layout();
 
 		if (surface.ui)
 		{

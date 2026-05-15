@@ -62,6 +62,7 @@ namespace sfg
 		bool			 save_project();
 		bool			 save_project_as(const char* path);
 		void			 save_layout();
+		void			 apply_default_layout();
 		void			 set_debug_mode(bool enabled);
 		void			 set_text_subpixel_enabled(bool enabled);
 		void			 create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});

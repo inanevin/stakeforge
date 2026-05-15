@@ -1,7 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "panels/editor_primary_base.hpp"
-#include "panels/editor_panel_factory.hpp"
 #include "panels/editor_panel_types.hpp"
 #include "panels/editor_theme.hpp"
 #include "editor_app.hpp"
@@ -60,6 +59,7 @@ namespace sfg
 			edit_paste,
 			view_command_palette,
 			view_debug_bounds,
+			layout_apply_default,
 			entity_create_empty,
 			entity_create_camera,
 			entity_create_light,
@@ -136,6 +136,10 @@ namespace sfg
 			{.text = "Paste", .shortcut = "Ctrl+V", .command = static_cast<u16>(editor_file_menu_commands_e::edit_paste)},
 		};
 
+		const editor_file_menu_row_desc_t LAYOUT_ROWS[] = {
+			{.text = "Apply Default Layout", .command = static_cast<u16>(editor_file_menu_commands_e::layout_apply_default)},
+		};
+
 		const editor_file_menu_row_desc_t VIEW_ROWS[] = {
 			{.kind = editor_file_menu_row_kind_e::title, .text = "Tools"},
 			{.text = "Command Palette", .shortcut = "Ctrl+Shift+P", .command = static_cast<u16>(editor_file_menu_commands_e::view_command_palette)},
@@ -148,6 +152,7 @@ namespace sfg
 			{.text = editor_panel_type_to_string(editor_panel_type_e::animation), .command = panel_menu_command(editor_panel_type_e::animation)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::profiling), .command = panel_menu_command(editor_panel_type_e::profiling)},
 			{.kind = editor_file_menu_row_kind_e::title, .text = "Editor"},
+			{.text = "Layouts", .children = LAYOUT_ROWS, .child_count = static_cast<u16>(sizeof(LAYOUT_ROWS) / sizeof(LAYOUT_ROWS[0]))},
 			{.kind = editor_file_menu_row_kind_e::toggle, .text = "Subpixel Text", .toggle_query = is_editor_subpixel_text_enabled, .toggle_callback = set_editor_subpixel_text_enabled},
 			{.kind = editor_file_menu_row_kind_e::toggle, .text = "Debug Bounds", .toggle_query = is_editor_debug_bounds_enabled, .toggle_callback = set_editor_debug_bounds_enabled, .close_on_toggle = true},
 		};
@@ -339,6 +344,9 @@ namespace sfg
 			case editor_file_menu_commands_e::view_debug_bounds:
 			case editor_file_menu_commands_e::debug_toggle_bounds:
 				editor_app_t::get().set_debug_mode(!editor_app_t::get().is_debug_mode_enabled());
+				break;
+			case editor_file_menu_commands_e::layout_apply_default:
+				editor_app_t::get().apply_default_layout();
 				break;
 			case editor_file_menu_commands_e::help_github:
 				process::open_url("https://github.com/inanevin/stakeforge");
@@ -626,16 +634,8 @@ namespace sfg
 		dock_widget_config_t dock_config = {};
 		dock_config.runtime				 = &runtime;
 		_dock_widget.init(ui, _base, dock_config);
-		ui::layout_in_t& dock_in		   = tree.in(_dock_widget.get_root());
-		dock_in.size_mode_y				   = ui::axis_mode_e::fill;
-		const dock_node_handle_t demo_leaf = _dock_widget.create_leaf_node(_dock_widget.get_root());
-		_dock_widget.set_root_node(demo_leaf);
-		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::entities));
-		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::world));
-		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::log));
-		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::profiling));
-		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::inspector));
-		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::assets));
+		ui::layout_in_t& dock_in = tree.in(_dock_widget.get_root());
+		dock_in.size_mode_y		 = ui::axis_mode_e::fill;
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
