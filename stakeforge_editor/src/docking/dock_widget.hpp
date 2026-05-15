@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg::ui
 {
@@ -80,6 +81,8 @@ namespace sfg
 		dock_node_handle_t create_leaf_node(ui::widget_id_t parent);
 		void			   set_root_node(dock_node_handle_t handle);
 		void			   dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel);
+		nlohmann::json	   to_json() const;
+		bool			   from_json(const nlohmann::json& j);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -97,6 +100,7 @@ namespace sfg
 		static constexpr u32 DOCK_PREVIEW_COUNT			= static_cast<u32>(dock_preview_e::none);
 
 		void				 init_leaf_node_content(dock_node_t& node);
+		dock_node_handle_t	 create_split_node(ui::widget_id_t parent, dock_split_direction_e direction, f32 split_value);
 		void				 dock_node_add_panel(dock_node_t& node, editor_panel_t* panel);
 		void				 dock_node_remove_panel(dock_node_t& node, sid_t identifier);
 		void				 destroy_dock_node(dock_node_handle_t handle);
@@ -113,6 +117,8 @@ namespace sfg
 		void				 configure_split_child_layout(dock_node_t& split_node);
 		bool				 can_split_leaf(const dock_node_t& node, dock_preview_e preview) const;
 		bool				 split_leaf_node(dock_node_handle_t handle, dock_preview_e preview, editor_panel_t* panel);
+		nlohmann::json		 dock_node_to_json(const dock_node_t& node) const;
+		dock_node_handle_t	 dock_node_from_json(ui::widget_id_t parent, const nlohmann::json& j);
 		dock_node_t*		 find_leaf_at(const vec2f_t& mouse);
 		const dock_node_t*	 find_node_by_widget(ui::widget_id_t widget) const;
 		dock_border_t*		 find_border_by_widget(ui::widget_id_t widget);

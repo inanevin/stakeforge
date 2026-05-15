@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "panels/editor_panel_types.hpp"
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
@@ -25,5 +26,17 @@ namespace sfg
 		default:
 			return "";
 		}
+	}
+
+	editor_panel_type_e editor_panel_type_from_string(const char* value)
+	{
+		const sid_t id = TO_SID(value);
+		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
+		{
+			const editor_panel_type_e type = static_cast<editor_panel_type_e>(i);
+			if (TO_SID(editor_panel_type_to_string(type)) == id)
+				return type;
+		}
+		return editor_panel_type_e::max;
 	}
 }

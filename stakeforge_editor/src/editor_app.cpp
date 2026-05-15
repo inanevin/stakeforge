@@ -145,7 +145,10 @@ namespace sfg
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
-			create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
+			const surface_handle_t		handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
+			if (handle.is_null())
+				return false;
+			load_surface_default_layout(_surfaces.get(handle));
 		}
 		else
 		{
@@ -163,14 +166,16 @@ namespace sfg
 			if (primary_window == nullptr)
 				return false;
 
-			create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_type_e::primary);
+			const surface_handle_t primary_handle = create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_type_e::primary);
+			load_surface_dock_layout(_surfaces.get(primary_handle), primary_window->dock_layout);
 
 			for (const editor_layout_window_t& window : layout.windows)
 			{
 				if (&window == primary_window)
 					continue;
 
-				create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::secondary);
+				const surface_handle_t secondary_handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::secondary);
+				load_surface_dock_layout(_surfaces.get(secondary_handle), window.dock_layout);
 			}
 		}
 
@@ -262,6 +267,55 @@ namespace sfg
 			surface.secondary = make_unique<editor_secondary_base_t>();
 			surface.secondary->init(*surface.ui, *surface.runtime);
 		}
+	}
+
+	void editor_app_t::load_surface_default_layout(editor_surface_t& surface)
+	{
+		nlohmann::json layout = {
+			{"version", 1},
+			{"root",
+			 nlohmann::json{
+				 {"type", "split"},
+				 {"direction", "horizontal"},
+				 {"split_value", 0.22f},
+				 {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Entities"}, {"data", nlohmann::json::object()}}})}}},
+				 {"positive",
+				  nlohmann::json{
+					  {"type", "split"},
+					  {"direction", "horizontal"},
+					  {"split_value", 0.72f},
+					  {"negative",
+					   nlohmann::json{
+						   {"type", "split"},
+						   {"direction", "vertical"},
+						   {"split_value", 0.68f},
+						   {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "World"}, {"data", nlohmann::json::object()}}})}}},
+						   {"positive",
+							nlohmann::json{{"type", "leaf"},
+										   {"panels",
+											nlohmann::json::array({nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}},
+																   nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}},
+																   nlohmann::json{{"type", "Profiling"}, {"data", nlohmann::json::object()}}})}}},
+					   }},
+					  {"positive", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Inspector"}, {"data", nlohmann::json::object()}}})}}},
+				  }},
+			 }},
+		};
+
+		if (surface.type == editor_surface_type_e::primary)
+			surface.primary->get_dock_widget().from_json(layout);
+	}
+
+	void editor_app_t::load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout)
+	{
+		const nlohmann::json doc = nlohmann::json::parse(dock_layout, nullptr, false);
+		if (doc.is_discarded() || !doc.is_object())
+			return;
+
+		if (surface.type == editor_surface_type_e::primary)
+			surface.primary->get_dock_widget().from_json(doc);
+		else if (surface.type == editor_surface_type_e::secondary)
+			surface.secondary->get_dock_widget().from_json(doc);
 	}
 
 	void editor_app_t::set_debug_mode(bool enabled)
@@ -406,6 +460,10 @@ namespace sfg
 			window.pos					  = surface.runtime->pos;
 			window.size					  = surface.runtime->size;
 			window.is_primary			  = surface.type == editor_surface_type_e::primary;
+			if (surface.type == editor_surface_type_e::primary)
+				window.dock_layout = string_t(surface.primary->get_dock_widget().to_json().dump());
+			else if (surface.type == editor_surface_type_e::secondary)
+				window.dock_layout = string_t(surface.secondary->get_dock_widget().to_json().dump());
 			if (window.is_primary)
 			{
 				SFG_ASSERT(!primary_saved);

@@ -4,6 +4,7 @@
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -32,6 +33,15 @@ namespace sfg
 
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;
+	}
+
+	void editor_panel_t::serialize(nlohmann::json& j) const
+	{
+		j = nlohmann::json::object();
+	}
+
+	void editor_panel_t::deserialize(const nlohmann::json&)
+	{
 	}
 
 	void editor_panel_t::assign(ui::ui_context& ui, ui::widget_id_t parent)
@@ -71,5 +81,10 @@ namespace sfg
 	{
 		SFG_ASSERT(title != nullptr);
 		_title = title;
+	}
+
+	void editor_panel_t::set_type(editor_panel_type_e type)
+	{
+		_type = type;
 	}
 }

@@ -87,6 +87,14 @@ namespace sfg
 		{
 			return *_ui;
 		}
+		inline dock_widget_t& get_dock_widget()
+		{
+			return _dock_widget;
+		}
+		inline const dock_widget_t& get_dock_widget() const
+		{
+			return _dock_widget;
+		}
 
 	private:
 		ui::ui_context*				   _ui				= nullptr;

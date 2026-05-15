@@ -6,6 +6,7 @@
 #include "editor_payload_type.hpp"
 #include "panels/editor_panel.hpp"
 #include "panels/editor_panel_factory.hpp"
+#include "panels/editor_panel_types.hpp"
 #include "panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
@@ -20,6 +21,7 @@
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 #define DOCK_PREVIEW_MARGIN_ITEM_HEIGHTS		1.0f
 #define DOCK_PREVIEW_MIN_AXIS_ITEM_HEIGHTS		4.0f
@@ -43,6 +45,46 @@ namespace sfg
 		vec4f_t expand_rect(const vec4f_t& rect, f32 value)
 		{
 			return {rect.x - value, rect.y - value, rect.z + value * 2.0f, rect.w + value * 2.0f};
+		}
+
+		const char* dock_node_type_to_string(dock_node_type_e type)
+		{
+			switch (type)
+			{
+			case dock_node_type_e::leaf:
+				return "leaf";
+			case dock_node_type_e::split:
+				return "split";
+			}
+			return "leaf";
+		}
+
+		dock_node_type_e dock_node_type_from_string(const char* value)
+		{
+			const sid_t id = TO_SID(value);
+			if (id == TO_SID("split"))
+				return dock_node_type_e::split;
+			return dock_node_type_e::leaf;
+		}
+
+		const char* dock_split_direction_to_string(dock_split_direction_e direction)
+		{
+			switch (direction)
+			{
+			case dock_split_direction_e::horizontal:
+				return "horizontal";
+			case dock_split_direction_e::vertical:
+				return "vertical";
+			}
+			return "horizontal";
+		}
+
+		dock_split_direction_e dock_split_direction_from_string(const char* value)
+		{
+			const sid_t id = TO_SID(value);
+			if (id == TO_SID("vertical"))
+				return dock_split_direction_e::vertical;
+			return dock_split_direction_e::horizontal;
 		}
 	}
 
@@ -151,10 +193,60 @@ namespace sfg
 		return handle;
 	}
 
+	dock_node_handle_t dock_widget_t::create_split_node(ui::widget_id_t parent, dock_split_direction_e direction, f32 split_value)
+	{
+		ui::ui_context&			 ui		= *_ui;
+		ui::layout_tree_t&		 tree	= ui.get_tree();
+		const dock_node_handle_t handle = alloc_dock_node();
+		dock_node_t&			 node	= _dock_nodes.get(handle);
+		node.node_type					= dock_node_type_e::split;
+		node.split_direction			= direction;
+		node.split_value				= split_value;
+
+		node.widget = ui.allocate_widget();
+		ui.set_widget_debug_name(node.widget, "dock_node_split");
+		tree.attach(parent, node.widget);
+
+		ui::layout_in_t& widget_in = tree.in(node.widget);
+		widget_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		widget_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+		widget_in.size_value	   = {1.0f, 1.0f};
+
+		return handle;
+	}
+
 	void dock_widget_t::set_root_node(dock_node_handle_t handle)
 	{
 		SFG_ASSERT(_dock_nodes.is_valid(handle));
 		_root_node = handle;
+	}
+
+	nlohmann::json dock_widget_t::to_json() const
+	{
+		nlohmann::json j = nlohmann::json::object();
+		j["version"]	 = 1;
+		if (!_root_node.is_null())
+			j["root"] = dock_node_to_json(_dock_nodes.get(_root_node));
+		return j;
+	}
+
+	bool dock_widget_t::from_json(const nlohmann::json& j)
+	{
+		if (!j.is_object())
+			return false;
+
+		if (!j.contains("root") || !j.at("root").is_object())
+			return false;
+
+		if (!_root_node.is_null())
+		{
+			destroy_dock_node(_root_node);
+			_root_node = {};
+		}
+
+		const nlohmann::json& root = j.at("root");
+		_root_node				   = dock_node_from_json(_root, root);
+		return !_root_node.is_null();
 	}
 
 	void dock_widget_t::dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel)
@@ -593,6 +685,93 @@ namespace sfg
 
 		dock_node_add_panel(_dock_nodes.get(new_leaf), panel);
 		return true;
+	}
+
+	nlohmann::json dock_widget_t::dock_node_to_json(const dock_node_t& node) const
+	{
+		nlohmann::json j = nlohmann::json::object();
+		j["type"]		 = dock_node_type_to_string(node.node_type);
+
+		if (node.node_type == dock_node_type_e::split)
+		{
+			j["direction"]	 = dock_split_direction_to_string(node.split_direction);
+			j["split_value"] = node.split_value;
+			j["negative"]	 = dock_node_to_json(_dock_nodes.get(node.split_negative));
+			j["positive"]	 = dock_node_to_json(_dock_nodes.get(node.split_positive));
+			return j;
+		}
+
+		nlohmann::json panels = nlohmann::json::array();
+		for (editor_panel_t* panel : node.panels)
+		{
+			nlohmann::json panel_data = nlohmann::json::object();
+			panel->serialize(panel_data);
+
+			nlohmann::json panel_json = nlohmann::json::object();
+			panel_json["type"]		  = editor_panel_type_to_string(panel->get_type());
+			panel_json["data"]		  = panel_data;
+			panels.push_back(panel_json);
+		}
+
+		j["panels"]			   = panels;
+		const sid_t active_tab = node.tab_area.get_active_tab();
+		for (editor_panel_t* panel : node.panels)
+		{
+			if (TO_SID(panel->get_title()) == active_tab)
+			{
+				j["active_panel"] = panel->get_title();
+				break;
+			}
+		}
+		return j;
+	}
+
+	dock_node_handle_t dock_widget_t::dock_node_from_json(ui::widget_id_t parent, const nlohmann::json& j)
+	{
+		const string_t		   type_name = j.value<string_t>("type", "leaf");
+		const dock_node_type_e type		 = dock_node_type_from_string(type_name.c_str());
+		if (type == dock_node_type_e::split)
+		{
+			const string_t				 direction_name = j.value<string_t>("direction", "horizontal");
+			const dock_split_direction_e direction		= dock_split_direction_from_string(direction_name.c_str());
+			const f32					 split_value	= math::clamp(j.value<f32>("split_value", DOCK_SPLIT_INITIAL_VALUE), 0.0f, 1.0f);
+			const dock_node_handle_t	 handle			= create_split_node(parent, direction, split_value);
+			dock_node_t&				 node			= _dock_nodes.get(handle);
+
+			const nlohmann::json negative = j.value("negative", nlohmann::json{{"type", "leaf"}});
+			const nlohmann::json positive = j.value("positive", nlohmann::json{{"type", "leaf"}});
+			node.split_negative			  = dock_node_from_json(node.widget, negative);
+			init_split_border(node, handle);
+			node.split_positive = dock_node_from_json(node.widget, positive);
+			configure_split_child_layout(node);
+			return handle;
+		}
+
+		const dock_node_handle_t handle = create_leaf_node(parent);
+		dock_node_t&			 node	= _dock_nodes.get(handle);
+		const nlohmann::json	 panels = j.value("panels", nlohmann::json::array());
+		for (const nlohmann::json& panel_json : panels)
+		{
+			const string_t			  type_name = panel_json.value<string_t>("type", {});
+			const editor_panel_type_e type		= editor_panel_type_from_string(type_name.c_str());
+			if (type == editor_panel_type_e::max)
+				continue;
+
+			editor_panel_t* panel = editor_panel_factory_t::create_panel(type);
+			panel->deserialize(panel_json.value("data", nlohmann::json::object()));
+			dock_node_add_panel(node, panel);
+		}
+
+		const string_t active_panel = j.value<string_t>("active_panel", {});
+		for (editor_panel_t* panel : node.panels)
+		{
+			if (TO_SID(panel->get_title()) == TO_SID(active_panel))
+			{
+				node.tab_area.select_tab(TO_SID(panel->get_title()));
+				break;
+			}
+		}
+		return handle;
 	}
 
 	dock_node_t* dock_widget_t::find_leaf_at(const vec2f_t& mouse)

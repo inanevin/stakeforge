@@ -42,5 +42,6 @@ namespace sfg
 		max,
 	};
 
-	const char* editor_panel_type_to_string(editor_panel_type_e type);
+	const char*			editor_panel_type_to_string(editor_panel_type_e type);
+	editor_panel_type_e editor_panel_type_from_string(const char* value);
 }

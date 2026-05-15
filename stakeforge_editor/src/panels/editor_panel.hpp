@@ -26,7 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "panels/editor_panel_types.hpp"
 #include <sfg/runtime/ui/ui_common.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg::ui
 {
@@ -51,10 +53,13 @@ namespace sfg
 
 		virtual void init(ui::ui_context& ui, ui::widget_id_t parent);
 		virtual void uninit();
+		virtual void serialize(nlohmann::json& j) const;
+		virtual void deserialize(const nlohmann::json& j);
 		void		 assign(ui::ui_context& ui, ui::widget_id_t parent);
 		void		 deassign();
 		void		 make_visible(bool visible);
 		void		 set_title(const char* title);
+		void		 set_type(editor_panel_type_e type);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -72,10 +77,15 @@ namespace sfg
 		{
 			return _title;
 		}
+		inline editor_panel_type_e get_type() const
+		{
+			return _type;
+		}
 
 	protected:
-		ui::ui_context* _ui	   = nullptr;
-		ui::widget_id_t _root  = NULL_WIDGET;
-		const char*		_title = "";
+		ui::ui_context*		_ui	   = nullptr;
+		ui::widget_id_t		_root  = NULL_WIDGET;
+		const char*			_title = "";
+		editor_panel_type_e _type  = editor_panel_type_e::max;
 	};
 }

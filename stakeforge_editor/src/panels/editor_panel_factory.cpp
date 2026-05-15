@@ -36,6 +36,7 @@ namespace sfg
 		}
 
 		panel->set_title(editor_panel_type_to_string(type));
+		panel->set_type(type);
 		return panel;
 	}
 

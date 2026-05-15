@@ -91,6 +91,8 @@ namespace sfg
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
 		void			  init_surface_ui(editor_surface_t& surface);
+		void			  load_surface_default_layout(editor_surface_t& surface);
+		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
 		void			  unload_current_project();
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);

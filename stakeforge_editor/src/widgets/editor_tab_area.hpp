@@ -107,6 +107,10 @@ namespace sfg
 		{
 			return _root;
 		}
+		inline sid_t get_active_tab() const
+		{
+			return _active_tab;
+		}
 		bool is_over_tab(const vec2f_t& pos) const;
 
 	private:
