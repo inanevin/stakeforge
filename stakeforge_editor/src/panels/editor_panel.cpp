@@ -8,6 +8,27 @@
 
 namespace sfg
 {
+	namespace
+	{
+		void set_visible_recursive(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible)
+		{
+			ui::layout_in_t& in = tree.in(id);
+			if (visible)
+				in.flags |= ui::wf_visible;
+			else
+				in.flags &= ~ui::wf_visible;
+
+			const ui::tree_node_t& node	 = tree.node(id);
+			ui::widget_id_t		   child = node.first_child;
+			while (child != NULL_WIDGET)
+			{
+				const ui::widget_id_t next = tree.node(child).next_sibling;
+				set_visible_recursive(tree, child, visible);
+				child = next;
+			}
+		}
+	}
+
 	void editor_panel_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		SFG_ASSERT(_ui == nullptr);
@@ -70,11 +91,7 @@ namespace sfg
 
 	void editor_panel_t::make_visible(bool visible)
 	{
-		ui::layout_in_t& in = _ui->get_tree().in(_root);
-		if (visible)
-			in.flags |= ui::wf_visible;
-		else
-			in.flags &= ~ui::wf_visible;
+		set_visible_recursive(_ui->get_tree(), _root, visible);
 	}
 
 	void editor_panel_t::set_title(const char* title)

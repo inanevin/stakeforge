@@ -46,8 +46,8 @@
             }
         },
         {
-            "name": "ui_dock_preview",
-            "path": "editor/shaders/editor_ui_dock_preview.hlsl",
+            "name": "ui_glitch_rect",
+            "path": "editor/shaders/editor_ui_glitch_rect.hlsl",
             "type": "shader",
             "config": {
                 "schema": "sfg.schema.shader",

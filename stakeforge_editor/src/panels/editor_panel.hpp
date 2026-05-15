@@ -57,7 +57,7 @@ namespace sfg
 		virtual void deserialize(const nlohmann::json& j);
 		void		 assign(ui::ui_context& ui, ui::widget_id_t parent);
 		void		 deassign();
-		void		 make_visible(bool visible);
+		virtual void make_visible(bool visible);
 		void		 set_title(const char* title);
 		void		 set_type(editor_panel_type_e type);
 

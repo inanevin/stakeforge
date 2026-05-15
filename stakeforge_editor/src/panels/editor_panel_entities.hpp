@@ -26,40 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common_editor.hpp"
-#include "editor_modal_controller.hpp"
-#include "editor_tooltip_controller.hpp"
-#include "panels/editor_primary_base.hpp"
-#include "panels/editor_secondary_base.hpp"
-#include <sfg/data/unique.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/vec2u16.hpp>
-#include <sfg/platform/common_window.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
+#include "panels/editor_panel.hpp"
 
 namespace sfg
 {
-	enum class editor_surface_type_e : u8
+	class editor_panel_entities_t final : public editor_panel_t
 	{
-		primary,
-		secondary,
-		payload,
-	};
-
-	struct editor_surface_t
-	{
-		unique_t<editor_primary_base_t>		  primary;
-		unique_t<editor_secondary_base_t>	  secondary;
-		unique_t<editor_modal_controller_t>	  modal_controller;
-		unique_t<editor_tooltip_controller_t> tooltip_controller;
-		unique_t<window_runtime_t>			  runtime;
-		unique_t<ui::ui_context>			  ui;
-		gfx_swapchain_handle				  swapchain		 = {};
-		vec2u16_t							  swapchain_size = {};
-		ui::widget_id_t						  payload_root	 = NULL_WIDGET;
-		ui::widget_id_t						  payload_text	 = NULL_WIDGET;
-		editor_surface_type_e				  type			 = editor_surface_type_e::secondary;
-		bool								  is_minimized	 = false;
-		bool								  is_hidden		 = false;
+	public:
+		editor_panel_entities_t();
+		~editor_panel_entities_t() override								   = default;
+		editor_panel_entities_t(const editor_panel_entities_t&)			   = delete;
+		editor_panel_entities_t& operator=(const editor_panel_entities_t&) = delete;
 	};
 }

@@ -26,40 +26,51 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common_editor.hpp"
-#include "editor_modal_controller.hpp"
-#include "editor_tooltip_controller.hpp"
-#include "panels/editor_primary_base.hpp"
-#include "panels/editor_secondary_base.hpp"
-#include <sfg/data/unique.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/vec2u16.hpp>
-#include <sfg/platform/common_window.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
+#include "panels/editor_panel.hpp"
+#include "widgets/editor_widgets_dropdown.hpp"
+#include "widgets/editor_widgets_icon_button.hpp"
 
 namespace sfg
 {
-	enum class editor_surface_type_e : u8
+	enum class log_source_type_e : u8
 	{
-		primary,
-		secondary,
-		payload,
+		all,
+		editor,
+		game,
 	};
 
-	struct editor_surface_t
+	class editor_panel_log_t final : public editor_panel_t
 	{
-		unique_t<editor_primary_base_t>		  primary;
-		unique_t<editor_secondary_base_t>	  secondary;
-		unique_t<editor_modal_controller_t>	  modal_controller;
-		unique_t<editor_tooltip_controller_t> tooltip_controller;
-		unique_t<window_runtime_t>			  runtime;
-		unique_t<ui::ui_context>			  ui;
-		gfx_swapchain_handle				  swapchain		 = {};
-		vec2u16_t							  swapchain_size = {};
-		ui::widget_id_t						  payload_root	 = NULL_WIDGET;
-		ui::widget_id_t						  payload_text	 = NULL_WIDGET;
-		editor_surface_type_e				  type			 = editor_surface_type_e::secondary;
-		bool								  is_minimized	 = false;
-		bool								  is_hidden		 = false;
+	public:
+		editor_panel_log_t();
+		~editor_panel_log_t() override							 = default;
+		editor_panel_log_t(const editor_panel_log_t&)			 = delete;
+		editor_panel_log_t& operator=(const editor_panel_log_t&) = delete;
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+		void serialize(nlohmann::json& j) const override;
+		void deserialize(const nlohmann::json& j) override;
+		void make_visible(bool visible) override;
+
+	private:
+		static u16	get_selected_source(void* user_data);
+		static void on_source_pressed(u16 value, void* user_data);
+		static void on_filter_pressed(bool toggled, void* user_data);
+
+	private:
+		editor_dropdown_t	 _source_dropdown;
+		editor_icon_button_t _info_button;
+		editor_icon_button_t _trace_button;
+		editor_icon_button_t _warn_button;
+		editor_icon_button_t _err_button;
+		ui::widget_id_t		 _top_row	  = NULL_WIDGET;
+		ui::widget_id_t		 _body		  = NULL_WIDGET;
+		ui::widget_id_t		 _bottom_row  = NULL_WIDGET;
+		log_source_type_e	 _source_type = log_source_type_e::all;
+		bool				 _show_info	  = true;
+		bool				 _show_trace  = true;
+		bool				 _show_warn	  = true;
+		bool				 _show_err	  = true;
 	};
 }

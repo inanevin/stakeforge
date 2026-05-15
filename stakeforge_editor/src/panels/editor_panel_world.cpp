@@ -1,0 +1,12 @@
+// Copyright (c) 2025 Inan Evin
+
+#include "panels/editor_panel_world.hpp"
+
+namespace sfg
+{
+	editor_panel_world_t::editor_panel_world_t()
+	{
+		set_type(editor_panel_type_e::world);
+		set_title(editor_panel_type_to_string(editor_panel_type_e::world));
+	}
+}

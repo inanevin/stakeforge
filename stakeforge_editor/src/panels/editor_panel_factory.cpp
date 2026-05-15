@@ -1,43 +1,37 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "panels/editor_panel_factory.hpp"
-#include "panels/editor_panel.hpp"
+#include "panels/editor_panel_animation.hpp"
+#include "panels/editor_panel_assets.hpp"
+#include "panels/editor_panel_entities.hpp"
+#include "panels/editor_panel_inspector.hpp"
+#include "panels/editor_panel_log.hpp"
+#include "panels/editor_panel_profiling.hpp"
+#include "panels/editor_panel_world.hpp"
 
 namespace sfg
 {
 	editor_panel_t* editor_panel_factory_t::create_panel(editor_panel_type_e type)
 	{
-		editor_panel_t* panel = nullptr;
 		switch (type)
 		{
 		case editor_panel_type_e::entities:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_entities_t();
 		case editor_panel_type_e::assets:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_assets_t();
 		case editor_panel_type_e::log:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_log_t();
 		case editor_panel_type_e::world:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_world_t();
 		case editor_panel_type_e::inspector:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_inspector_t();
 		case editor_panel_type_e::animation:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_animation_t();
 		case editor_panel_type_e::profiling:
-			panel = new editor_panel_t();
-			break;
+			return new editor_panel_profiling_t();
 		default:
 			return nullptr;
 		}
-
-		panel->set_title(editor_panel_type_to_string(type));
-		panel->set_type(type);
-		return panel;
 	}
 
 	void editor_panel_factory_t::delete_panel(editor_panel_t* panel)

@@ -217,6 +217,7 @@ namespace sfg
 					surface.primary->uninit();
 				if (surface.type == editor_surface_type_e::secondary)
 					surface.secondary->uninit();
+				surface.tooltip_controller->uninit();
 				surface.modal_controller->uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
@@ -241,7 +242,7 @@ namespace sfg
 		surface.ui = make_unique<ui::ui_context>();
 
 		ui::ui_config_t cfg = {};
-		cfg.max_widgets		= 512;
+		cfg.max_widgets		= 2048;
 		surface.ui->init(cfg);
 
 		ui::paint_pipelines_t pipelines	  = {};
@@ -251,6 +252,9 @@ namespace sfg
 		pipelines.sdf_pipeline			  = "editor/shaders/ui_sdf.hlsl"_hs;
 		surface.ui->get_paint().set_pipelines(pipelines);
 		surface.ui->set_debug_draw(_debug_mode);
+
+		surface.tooltip_controller = make_unique<editor_tooltip_controller_t>();
+		surface.tooltip_controller->init(*surface.ui);
 
 		surface.modal_controller = make_unique<editor_modal_controller_t>();
 		surface.modal_controller->init(*surface.ui);
@@ -690,6 +694,7 @@ namespace sfg
 				surface.secondary->uninit();
 			if (surface.type == editor_surface_type_e::payload)
 				_payload_controller.uninit();
+			surface.tooltip_controller->uninit();
 			surface.modal_controller->uninit();
 			surface.ui->uninit();
 			surface.ui.reset();

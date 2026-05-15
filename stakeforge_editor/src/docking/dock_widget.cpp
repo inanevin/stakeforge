@@ -1025,7 +1025,7 @@ namespace sfg
 		rect.outline_color.w	 = 0.85f;
 
 		ui::ui_render_state_t state = {};
-		state.pipeline				= theme.shader_dock_preview;
+		state.pipeline				= theme.shader_glitch_rect;
 
 		const u32 draw_order = dock_widget._ui->get_tree().draw_order_const(id) + 1;
 		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
