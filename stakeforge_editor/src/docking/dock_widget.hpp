@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	class input_router_t;
 	class paint_layer_t;
 	class ui_context;
 	class vg_canvas_t;
@@ -95,17 +96,28 @@ namespace sfg
 		static constexpr u32 DOCK_POOL_INITIAL_CAPACITY = 32;
 		static constexpr u32 DOCK_PREVIEW_COUNT			= static_cast<u32>(dock_preview_e::none);
 
+		void				 init_leaf_node_content(dock_node_t& node);
 		void				 dock_node_add_panel(dock_node_t& node, editor_panel_t* panel);
 		void				 dock_node_remove_panel(dock_node_t& node, sid_t identifier);
+		void				 destroy_dock_node(dock_node_handle_t handle);
 		void				 set_leaf_active_panel(dock_node_t& node, sid_t active_tab);
 		void				 update_dock_previews(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos);
 		void				 clear_dock_previews();
 		void				 update_leaf_dock_previews(dock_node_t& node, const vec2f_t& mouse);
 		void				 collapse_empty_leaf_after_drag_out(dock_node_t& node);
+		dock_node_handle_t	 find_node_handle(const dock_node_t& node) const;
+		bool				 find_parent_split(dock_node_handle_t child, dock_node_handle_t& out_parent, bool& out_is_negative) const;
+		void				 init_split_border(dock_node_t& split_node, dock_node_handle_t split_handle);
+		void				 destroy_split_border(dock_node_t& split_node);
+		void				 apply_split_border_drag(dock_border_t& border, const vec2f_t& pos);
+		void				 configure_split_child_layout(dock_node_t& split_node);
+		bool				 can_split_leaf(const dock_node_t& node, dock_preview_e preview) const;
+		bool				 split_leaf_node(dock_node_handle_t handle, dock_preview_e preview, editor_panel_t* panel);
 		dock_node_t*		 find_leaf_at(const vec2f_t& mouse);
 		const dock_node_t*	 find_node_by_widget(ui::widget_id_t widget) const;
-		bool				 apply_payload_to_preview(dock_node_t& node, dock_preview_e preview, editor_panel_t* panel);
-		bool				 apply_payload_to_split_preview(dock_node_t& node, dock_preview_e preview, editor_panel_t* panel);
+		dock_border_t*		 find_border_by_widget(ui::widget_id_t widget);
+		bool				 apply_payload_to_preview(dock_node_handle_t handle, dock_preview_e preview, editor_panel_t* panel);
+		bool				 apply_payload_to_split_preview(dock_node_handle_t handle, dock_preview_e preview, editor_panel_t* panel);
 		dock_node_handle_t	 alloc_dock_node();
 		void				 free_dock_node(dock_node_handle_t handle);
 		dock_border_handle_t alloc_dock_border();
@@ -117,6 +129,13 @@ namespace sfg
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static void on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data);
 		static void on_payload_end(const editor_payload_t& payload, void* user_data);
+		static void on_split_border_hover_enter(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_split_border_hover_exit(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_split_border_hover_move(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_split_border_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_split_border_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_split_border_drag_end(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void draw_split_border(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 		static void draw_leaf_dock_previews(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:

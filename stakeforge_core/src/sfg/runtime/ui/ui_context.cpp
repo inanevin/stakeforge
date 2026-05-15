@@ -213,10 +213,27 @@ namespace sfg::ui
 
 	void ui_context::run_pre_layout_ticks(f32 dt_seconds)
 	{
-		for (widget_id_t id : _pre_layout_tick_widgets)
+		for (size_t i = 0; i < _pre_layout_tick_widgets.size();)
 		{
-			pre_layout_tick_def_t& def = _pre_layout_tick_defs[id];
-			def.fn(*this, id, dt_seconds, def.user_data);
+			const widget_id_t id = _pre_layout_tick_widgets[i];
+			if (!_tree.is_alive(id))
+			{
+				_pre_layout_tick_widgets.erase(_pre_layout_tick_widgets.begin() + i);
+				continue;
+			}
+
+			pre_layout_tick_def_t& def		 = _pre_layout_tick_defs[id];
+			ui_pre_layout_tick_fn  fn		 = def.fn;
+			void*				   user_data = def.user_data;
+			if (fn == nullptr)
+			{
+				_pre_layout_tick_widgets.erase(_pre_layout_tick_widgets.begin() + i);
+				continue;
+			}
+
+			fn(*this, id, dt_seconds, user_data);
+			if (i < _pre_layout_tick_widgets.size() && _pre_layout_tick_widgets[i] == id)
+				++i;
 		}
 	}
 

@@ -633,6 +633,9 @@ namespace sfg
 		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::entities));
 		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::world));
 		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::log));
+		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::profiling));
+		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::inspector));
+		_dock_widget.dock_node_add_panel(demo_leaf, editor_panel_factory_t::create_panel(editor_panel_type_e::assets));
 
 		editor_dividers_t::add_divider_hor(ui, _base, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 

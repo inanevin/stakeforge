@@ -65,7 +65,9 @@ namespace sfg
 
 	struct dock_border_t
 	{
-		u32 reserved = 0;
+		dock_node_handle_t split	   = {};
+		ui::widget_id_t	   widget	   = NULL_WIDGET;
+		bool			   is_dragging = false;
 	};
 
 	struct dock_node_t
@@ -74,6 +76,8 @@ namespace sfg
 		vec4f_t					  preview_rects[5] = {};
 		f32						  split_value	   = 0.0f;
 		dock_border_handle_t	  border		   = {};
+		dock_node_handle_t		  split_negative   = {};
+		dock_node_handle_t		  split_positive   = {};
 		ui::widget_id_t			  widget		   = NULL_WIDGET;
 		ui::widget_id_t			  body			   = NULL_WIDGET;
 		editor_tab_area_t		  tab_area;
