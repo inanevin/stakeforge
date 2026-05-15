@@ -101,8 +101,9 @@ namespace sfg
 		listener.on_click = on_close_window;
 		ui.get_input().set_listener(buttons.close_frame, listener);
 
-		dock_widget_config_t dock_config = {};
-		dock_config.runtime				 = &runtime;
+		dock_widget_config_t dock_config   = {};
+		dock_config.runtime				   = &runtime;
+		dock_config.root_drag_out_behavior = dock_widget_root_drag_out_e::close_window;
 		_dock_widget.init(ui, _root, dock_config);
 		ui::layout_in_t& dock_in = tree.in(_dock_widget.get_root());
 		dock_in.size_mode_y		 = ui::axis_mode_e::fill;

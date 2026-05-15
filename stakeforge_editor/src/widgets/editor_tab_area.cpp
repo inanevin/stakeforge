@@ -473,9 +473,20 @@ namespace sfg
 		_drag_tab = 0;
 	}
 
-	bool editor_tab_area_t::is_drag_out_position(const vec2f_t& pos) const
+	bool editor_tab_area_t::is_drag_out_allowed(sid_t identifier)
 	{
-		if (_drag_tab == 0 || _tabs.size() < 2 || !_config.can_drag_out)
+		if (!_config.can_drag_out)
+			return false;
+
+		if (_config.drag_out_allowed != nullptr)
+			return _config.drag_out_allowed(*this, identifier, _config.user_data);
+
+		return true;
+	}
+
+	bool editor_tab_area_t::is_drag_out_position(const vec2f_t& pos)
+	{
+		if (_drag_tab == 0 || !is_drag_out_allowed(_drag_tab))
 			return false;
 
 		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
@@ -489,7 +500,7 @@ namespace sfg
 	{
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		editor_tab_t&	   tab		= tab_area.find_tab_by_widget(id);
-		if (tab_area._tabs.size() < 2)
+		if (tab_area._tabs.size() < 2 && !tab_area.is_drag_out_allowed(tab.identifier))
 		{
 			tab_area.switch_tab(tab.identifier);
 			return;

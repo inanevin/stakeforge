@@ -59,17 +59,19 @@ namespace sfg
 		f32				marker_velocity = 0.0f;
 	};
 
-	using editor_tab_callback_fn = void (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+	using editor_tab_drag_out_allowed_fn = bool (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+	using editor_tab_callback_fn		 = void (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 
 	struct editor_tab_area_config_t
 	{
-		editor_tab_callback_fn tab_switched			= nullptr;
-		editor_tab_callback_fn tab_removed			= nullptr;
-		editor_tab_callback_fn tab_dragged_out		= nullptr;
-		void*				   user_data			= nullptr;
-		bool				   can_close_single_tab = false;
-		bool				   can_close			= true;
-		bool				   can_drag_out			= false;
+		editor_tab_callback_fn		   tab_switched			= nullptr;
+		editor_tab_callback_fn		   tab_removed			= nullptr;
+		editor_tab_callback_fn		   tab_dragged_out		= nullptr;
+		editor_tab_drag_out_allowed_fn drag_out_allowed		= nullptr;
+		void*						   user_data			= nullptr;
+		bool						   can_close_single_tab = false;
+		bool						   can_close			= true;
+		bool						   can_drag_out			= false;
 	};
 
 	class editor_tab_area_t final
@@ -114,7 +116,8 @@ namespace sfg
 		void		  switch_tab(sid_t identifier);
 		void		  reorder_dragged_tab(const vec2f_t& pos);
 		void		  finish_tab_drag(const vec2f_t& pos);
-		bool		  is_drag_out_position(const vec2f_t& pos) const;
+		bool		  is_drag_out_allowed(sid_t identifier);
+		bool		  is_drag_out_position(const vec2f_t& pos);
 		void		  request_drag_out(sid_t identifier);
 		void		  request_close(sid_t identifier);
 		bool		  consume_pending_removals();

@@ -43,9 +43,16 @@ namespace sfg
 	struct editor_payload_t;
 	struct window_runtime_t;
 
+	enum class dock_widget_root_drag_out_e : u8
+	{
+		disabled,
+		close_window,
+	};
+
 	struct dock_widget_config_t
 	{
-		window_runtime_t* runtime = nullptr;
+		window_runtime_t*			runtime				   = nullptr;
+		dock_widget_root_drag_out_e root_drag_out_behavior = dock_widget_root_drag_out_e::disabled;
 	};
 
 	class dock_widget_t final
@@ -94,6 +101,7 @@ namespace sfg
 		void				 update_dock_previews(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos);
 		void				 clear_dock_previews();
 		void				 update_leaf_dock_previews(dock_node_t& node, const vec2f_t& mouse);
+		void				 collapse_empty_leaf_after_drag_out(dock_node_t& node);
 		dock_node_t*		 find_leaf_at(const vec2f_t& mouse);
 		const dock_node_t*	 find_node_by_widget(ui::widget_id_t widget) const;
 		bool				 apply_payload_to_preview(dock_node_t& node, dock_preview_e preview, editor_panel_t* panel);
@@ -105,6 +113,7 @@ namespace sfg
 
 		static void on_leaf_tab_switched(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 		static void on_leaf_tab_dragged_out(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+		static bool is_leaf_tab_drag_out_allowed(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static void on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data);
 		static void on_payload_end(const editor_payload_t& payload, void* user_data);
