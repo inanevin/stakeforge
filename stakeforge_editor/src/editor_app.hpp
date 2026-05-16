@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_renderer.hpp"
 #include "editor_project.hpp"
 #include "editor_surface.hpp"
-#include <sfg/data/vector.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 

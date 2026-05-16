@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "panels/editor_panel.hpp"
 #include "widgets/editor_widgets_dropdown.hpp"
 #include "widgets/editor_widgets_icon_button.hpp"
+#include "widgets/editor_widgets_input_field.hpp"
 #include "widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/mutex.hpp>
 #include <sfg/data/string.hpp>
@@ -72,6 +73,8 @@ namespace sfg
 		void make_visible(bool visible) override;
 
 	private:
+		struct log_row_t;
+
 		struct log_filter_button_data_t
 		{
 			editor_panel_log_t* panel = nullptr;
@@ -81,12 +84,20 @@ namespace sfg
 		static u16	get_selected_source(void* user_data);
 		static void on_source_pressed(u16 value, void* user_data);
 		static void on_filter_pressed(bool toggled, void* user_data);
+		static void on_collapse_pressed(bool toggled, void* user_data);
+		static void on_search_changed(const char* value, void* user_data);
 		static void on_log(log_level level, const char* msg, void* user_data);
 		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		bool		is_filter_enabled(u8 flag) const;
+		bool		is_log_row_visible(const log_row_t& row) const;
 		void		drain_pending_logs();
 		void		add_log_row(log_level level, const char* text);
+		void		update_log_row_text(log_row_t& row);
+		log_row_t*	find_collapsed_row(u64 hash);
+		void		move_log_row_to_bottom(log_row_t& row);
+		void		collapse_existing_rows();
 		void		refresh_log_filter_visibility();
+		void		set_log_row_visible(const log_row_t& row, bool visible);
 		void		trim_log_rows();
 
 	private:
@@ -101,16 +112,21 @@ namespace sfg
 			ui::widget_id_t root = NULL_WIDGET;
 			ui::widget_id_t icon = NULL_WIDGET;
 			ui::widget_id_t text = NULL_WIDGET;
-			u8				flag = 0;
+			string_t		raw_text;
+			u64				hash  = 0;
+			u32				count = 1;
+			u8				flag  = 0;
 		};
 
 	private:
 		editor_dropdown_t		 _source_dropdown;
+		editor_input_field_t	 _search_input;
 		editor_scrollbar_t		 _scrollbar;
 		editor_icon_button_t	 _info_button;
 		editor_icon_button_t	 _trace_button;
 		editor_icon_button_t	 _warn_button;
 		editor_icon_button_t	 _err_button;
+		editor_icon_button_t	 _collapse_button;
 		log_filter_button_data_t _info_filter_data;
 		log_filter_button_data_t _trace_filter_data;
 		log_filter_button_data_t _warn_filter_data;
@@ -121,8 +137,10 @@ namespace sfg
 		vector_t<log_record_t>	 _pending_logs;
 		vector_t<log_record_t>	 _drained_logs;
 		mutex_t					 _pending_logs_mtx;
+		string_t				 _search_text;
 		log_source_type_e		 _source_type	   = log_source_type_e::all;
 		u32						 _listener_id	   = 0;
 		u8						 _log_filter_flags = log_level_filter_all;
+		bool					 _is_collapsed	   = false;
 	};
 }

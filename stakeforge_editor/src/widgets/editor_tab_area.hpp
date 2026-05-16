@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/hashing.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 

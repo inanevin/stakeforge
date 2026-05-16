@@ -67,6 +67,7 @@ namespace sfg
 		static string_t duplicate(const char* path);
 		static string_t get_relative(const char* src, const char* target);
 		static string_t get_system_time_str();
+		static string_t get_system_time_tag_str(u32 count = 1);
 		static string_t get_time_str_from_microseconds(i64 microseconds);
 		static void		read_file(const char* file_path, char*& out_data, size_t& out_size);
 		static void		find_lines_with_keyword(const char* file, const char* keyword, vector_t<string_t>& out_lines);

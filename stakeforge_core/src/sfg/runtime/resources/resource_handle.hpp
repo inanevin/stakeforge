@@ -24,42 +24,13 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "panels/editor_panel_factory.hpp"
-#include "panels/editor_panel_animation.hpp"
-#include "panels/editor_panel_assets.hpp"
-#include "panels/editor_panel_entities.hpp"
-#include "panels/editor_panel_inspector.hpp"
-#include "panels/editor_panel_log.hpp"
-#include "panels/editor_panel_profiling.hpp"
-#include "panels/editor_panel_world.hpp"
+
+#pragma once
+
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
-	editor_panel_t* editor_panel_factory_t::create_panel(editor_panel_type_e type)
-	{
-		switch (type)
-		{
-		case editor_panel_type_e::entities:
-			return new editor_panel_entities_t();
-		case editor_panel_type_e::assets:
-			return new editor_panel_assets_t();
-		case editor_panel_type_e::log:
-			return new editor_panel_log_t();
-		case editor_panel_type_e::world:
-			return new editor_panel_world_t();
-		case editor_panel_type_e::inspector:
-			return new editor_panel_inspector_t();
-		case editor_panel_type_e::animation:
-			return new editor_panel_animation_t();
-		case editor_panel_type_e::profiling:
-			return new editor_panel_profiling_t();
-		default:
-			return nullptr;
-		}
-	}
-
-	void editor_panel_factory_t::delete_panel(editor_panel_t* panel)
-	{
-		delete panel;
-	}
+	typedef sid_t resource_handle_t;
+#define NULL_RESOURCE_HANDLE UINT64_MAX
 }

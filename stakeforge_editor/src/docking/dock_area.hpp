@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/vector.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include "widgets/editor_tab_area.hpp"
@@ -63,6 +64,11 @@ namespace sfg
 		none,
 	};
 
+	const char*			   dock_node_type_to_string(dock_node_type_e type);
+	dock_node_type_e	   dock_node_type_from_string(const char* value);
+	const char*			   dock_split_direction_to_string(dock_split_direction_e direction);
+	dock_split_direction_e dock_split_direction_from_string(const char* value);
+
 	struct dock_border_t
 	{
 		dock_node_handle_t split	   = {};
@@ -73,7 +79,7 @@ namespace sfg
 	struct dock_node_t
 	{
 		vector_t<editor_panel_t*> panels;
-		vec4f_t					  preview_rects[5] = {};
+		rectf_t					  preview_rects[5] = {};
 		f32						  split_value	   = 0.0f;
 		dock_border_handle_t	  border		   = {};
 		dock_node_handle_t		  split_negative   = {};

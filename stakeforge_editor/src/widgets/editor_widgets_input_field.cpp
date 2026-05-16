@@ -1,5 +1,29 @@
-// Copyright (c) 2025 Inan Evin
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
 
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 #include "widgets/editor_widgets_input_field.hpp"
 #include "editor_text_rasterization.hpp"
 #include "panels/editor_theme.hpp"
@@ -38,11 +62,6 @@ namespace sfg
 			return action == ui::key_action_e::press || action == ui::key_action_e::repeat;
 		}
 
-		u32 raster_px_for(f32 point_size, f32 ui_scale, f32 dpi_scale)
-		{
-			const f32 scale = ui_scale > 0.0f ? ui_scale : 1.0f;
-			return static_cast<u32>(math::max(1.0f, point_size * scale * dpi_scale + 0.5f));
-		}
 	}
 
 	void editor_input_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_config_t& config)
@@ -145,19 +164,21 @@ namespace sfg
 	{
 		_ui->deallocate_widget(_root);
 
-		_ui				  = nullptr;
-		_root			  = NULL_WIDGET;
-		_slider			  = NULL_WIDGET;
-		_label			  = NULL_WIDGET;
-		_overlay		  = NULL_WIDGET;
-		_config			  = {};
-		_text[0]		  = '\0';
-		_text_advances[0] = 0.0f;
-		_text_len		  = 0;
-		_caret			  = 0;
-		_selection_anchor = 0;
-		_number_value	  = 0.0f;
-		_blink_seconds	  = 0.0f;
+		_ui						= nullptr;
+		_root					= NULL_WIDGET;
+		_slider					= NULL_WIDGET;
+		_label					= NULL_WIDGET;
+		_overlay				= NULL_WIDGET;
+		_config					= {};
+		_text[0]				= '\0';
+		_text_advances[0]		= 0.0f;
+		_text_len				= 0;
+		_caret					= 0;
+		_selection_anchor		= 0;
+		_number_value			= 0.0f;
+		_blink_seconds			= 0.0f;
+		_text_advance_ui_scale	= 0.0f;
+		_text_advance_dpi_scale = 0.0f;
 	}
 
 	void editor_input_field_t::set_text(const char* value)
@@ -366,27 +387,39 @@ namespace sfg
 
 	void editor_input_field_t::rebuild_text_advances()
 	{
-		_text_advances[0] = 0.0f;
+		_text_advances[0]		= 0.0f;
+		const f32 ui_scale		= ui::get_valid_scale(_ui->get_ui_scale());
+		const f32 dpi_scale		= ui::get_valid_scale(_ui->get_dpi_scale());
+		_text_advance_ui_scale	= ui_scale;
+		_text_advance_dpi_scale = dpi_scale;
 		if (_text_len == 0)
 			return;
 
 		const editor_theme_t&	   theme	  = editor_theme_t::get();
 		const font_runtime_t*	   font		  = resource_manager_t::get().find_runtime<font_runtime_t>(theme.font_default);
-		const f32				   size		  = theme.text_default_px_size;
-		const u32				   px		  = raster_px_for(size, _ui->get_ui_scale(), _ui->get_dpi_scale());
-		const f32				   draw_scale = size / static_cast<f32>(px);
 		const ui::vg_text_style_t& text_style = _ui->get_paint().def(_label).text;
-		u32						   prev		  = 0;
-		f32						   pen		  = 0.0f;
 
 		if (font == nullptr || font->face == nullptr)
 		{
 			for (u32 i = 0; i < _text_len; ++i)
-				_text_advances[i + 1] = static_cast<f32>(i + 1) * theme.text_default_px_size * INPUT_TEXT_WIDTH_FACTOR;
+				_text_advances[i + 1] = static_cast<f32>(i + 1) * theme.text_default_px_size * ui_scale * INPUT_TEXT_WIDTH_FACTOR;
 			return;
 		}
 
-		ui::glyph_atlas_t& atlas = resource_manager_t::get().get_glyph_atlas();
+		ui::vg_text_paint_t text_paint = {};
+		text_paint.font				   = font;
+		text_paint.color			   = text_style.color;
+		text_paint.size_px			   = text_style.point_size * ui_scale;
+		text_paint.raster_px		   = ui::get_text_raster_px(text_paint.size_px, dpi_scale);
+		text_paint.spacing			   = static_cast<f32>(text_style.spacing) * ui_scale;
+		text_paint.raster_mode		   = text_style.raster_mode;
+		text_paint.flip_uv			   = text_style.flip_uv;
+
+		ui::glyph_atlas_t& atlas	  = resource_manager_t::get().get_glyph_atlas();
+		const u32		   px		  = ui::get_text_paint_raster_px(text_paint);
+		const f32		   draw_scale = ui::get_text_paint_draw_scale(text_paint, px);
+		u32				   prev		  = 0;
+		f32				   pen		  = 0.0f;
 		for (u32 i = 0; i < _text_len; ++i)
 		{
 			const u32 c = static_cast<u8>(_text[i]);
@@ -394,7 +427,7 @@ namespace sfg
 				pen += atlas.get_kern_advance(font, prev, c, px) * draw_scale;
 
 			const ui::glyph_entry_t* g = atlas.request_glyph(font, c, px, text_style.raster_mode);
-			pen += g->advance_x * draw_scale + static_cast<f32>(text_style.spacing);
+			pen += g->advance_x * draw_scale + text_paint.spacing;
 			_text_advances[i + 1] = pen;
 			prev				  = c;
 		}
@@ -609,7 +642,12 @@ namespace sfg
 
 	void editor_input_field_t::on_pre_layout_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
 	{
-		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
+		editor_input_field_t& field		= *static_cast<editor_input_field_t*>(user_data);
+		const f32			  ui_scale	= ui::get_valid_scale(field._ui->get_ui_scale());
+		const f32			  dpi_scale = ui::get_valid_scale(field._ui->get_dpi_scale());
+		if (field._text_advance_ui_scale != ui_scale || field._text_advance_dpi_scale != dpi_scale)
+			field.rebuild_text_advances();
+
 		if (field._ui->get_input().get_focused() == field._root)
 		{
 			field._blink_seconds += dt_seconds;
@@ -678,7 +716,7 @@ namespace sfg
 		const f32			x	 = label_out.pos.x + field.text_width(field._caret);
 		ui::vg_line_paint_t line = {};
 		line.color				 = theme.color_text0;
-		line.thickness			 = INPUT_CARET_WIDTH;
+		line.thickness			 = math::max(1.0f, INPUT_CARET_WIDTH * ui::get_valid_scale(field._ui->get_ui_scale()));
 		canvas.add_line({x, y0}, {x, y1}, line, state, draw_order + 1);
 	}
 }

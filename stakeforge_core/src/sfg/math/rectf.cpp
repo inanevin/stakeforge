@@ -64,7 +64,7 @@ namespace sfg
 
 	bool rectf_t::is_point_inside(f32 px, f32 py) const
 	{
-		return px >= x && px <= get_right() && py >= y && py <= get_bottom();
+		return contains(px, py);
 	}
 
 	bool rectf_t::is_overlapping(const rectf_t& other) const
@@ -80,6 +80,21 @@ namespace sfg
 	bool rectf_t::contains(const rectf_t& other) const
 	{
 		return other.x >= x && other.get_right() <= get_right() && other.y >= y && other.get_bottom() <= get_bottom();
+	}
+
+	bool rectf_t::contains(const vec2f_t& point) const
+	{
+		return contains(point.x, point.y);
+	}
+
+	bool rectf_t::contains(f32 px, f32 py) const
+	{
+		return px >= x && px <= get_right() && py >= y && py <= get_bottom();
+	}
+
+	rectf_t rectf_t::expand(f32 value) const
+	{
+		return {x - value, y - value, w + value * 2.0f, h + value * 2.0f};
 	}
 
 	vec2f_t rectf_t::get_min() const

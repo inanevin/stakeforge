@@ -146,5 +146,7 @@ namespace sfg
 		u32							_selection_anchor			  = 0;
 		f32							_number_value				  = 0.0f;
 		f32							_blink_seconds				  = 0.0f;
+		f32							_text_advance_ui_scale		  = 0.0f;
+		f32							_text_advance_dpi_scale		  = 0.0f;
 	};
 }

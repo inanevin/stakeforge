@@ -1,5 +1,29 @@
-// Copyright (c) 2025 Inan Evin
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
 
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 #include "widgets/editor_widgets_scrollbar.hpp"
 #include "panels/editor_theme.hpp"
 #include <sfg/math/math.hpp>
@@ -133,6 +157,7 @@ namespace sfg
 	void editor_scrollbar_t::update_axis(axis_state_t& axis)
 	{
 		const bool				enabled	   = axis.axis == axis_e::x ? ((_config.axes & editor_scrollbar_axis_x) != 0) : ((_config.axes & editor_scrollbar_axis_y) != 0);
+		const f32				ui_scale   = _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 		ui::layout_tree_t&		tree	   = _ui->get_tree();
 		ui::layout_in_t&		target_in  = tree.in(_config.target);
 		const ui::layout_out_t& target_out = tree.out(_config.target);
@@ -155,26 +180,27 @@ namespace sfg
 		track_in.flags = ui::wf_visible | ui::wf_input | ui::wf_overlay;
 		thumb_in.flags = ui::wf_visible | ui::wf_input | ui::wf_overlay;
 
-		const f32 viewport = axis.axis == axis_e::x ? track_out.size.x : track_out.size.y;
-		const f32 content  = viewport + max_scroll;
-		const f32 thumb	   = math::max(EDITOR_SCROLLBAR_MIN_THUMB, viewport * viewport / content);
-		const f32 range	   = math::max(1.0f, viewport - thumb);
-		const f32 offset   = axis.axis == axis_e::x ? -target_in.scroll_offset.x : -target_in.scroll_offset.y;
-		const f32 pos	   = max_scroll > 0.0f ? range * math::clamp(offset / max_scroll, 0.0f, 1.0f) : 0.0f;
+		const f32 viewport	= axis.axis == axis_e::x ? track_out.size.x : track_out.size.y;
+		const f32 scroll_px = max_scroll * ui_scale;
+		const f32 content	= viewport + scroll_px;
+		const f32 thumb		= math::max(EDITOR_SCROLLBAR_MIN_THUMB * ui_scale, viewport * viewport / content);
+		const f32 range		= math::max(1.0f, viewport - thumb);
+		const f32 offset	= axis.axis == axis_e::x ? -target_in.scroll_offset.x : -target_in.scroll_offset.y;
+		const f32 pos		= max_scroll > 0.0f ? range * math::clamp(offset / max_scroll, 0.0f, 1.0f) : 0.0f;
 
 		if (axis.axis == axis_e::x)
 		{
 			thumb_in.size_mode_x = ui::axis_mode_e::fixed;
 			thumb_in.size_mode_y = ui::axis_mode_e::parent_relative;
-			thumb_in.size_value	 = {thumb, 1.0f};
-			thumb_in.pos_value	 = {pos, 0.0f};
+			thumb_in.size_value	 = {thumb / ui_scale, 1.0f};
+			thumb_in.pos_value	 = {pos / ui_scale, 0.0f};
 		}
 		else
 		{
 			thumb_in.size_mode_x = ui::axis_mode_e::parent_relative;
 			thumb_in.size_mode_y = ui::axis_mode_e::fixed;
-			thumb_in.size_value	 = {1.0f, thumb};
-			thumb_in.pos_value	 = {0.0f, pos};
+			thumb_in.size_value	 = {1.0f, thumb / ui_scale};
+			thumb_in.pos_value	 = {0.0f, pos / ui_scale};
 		}
 	}
 
@@ -211,8 +237,9 @@ namespace sfg
 		ui::layout_tree_t&		tree	   = scrollbar._ui->get_tree();
 		ui::layout_in_t&		root_in	   = tree.in(scrollbar._root);
 		const ui::layout_out_t& target_out = tree.out(scrollbar._config.target);
+		const f32				ui_scale   = scrollbar._ui->get_ui_scale() > 0.0f ? scrollbar._ui->get_ui_scale() : 1.0f;
 		root_in.pos_value				   = target_out.pos;
-		root_in.size_value				   = target_out.size;
+		root_in.size_value				   = target_out.size / ui_scale;
 
 		if (scrollbar._stick_y)
 			scrollbar.set_scroll(axis_e::y, -target_out.max_scroll.y);

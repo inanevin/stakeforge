@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include "resource_handle.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
@@ -20,8 +21,8 @@ namespace sfg
 		u32			  version	   = 0;
 		vector_t<u64> source_ticks = {};
 
-		void   serialize(ostream_t& stream) const;
-		void   deserialize(istream_t& stream);
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
 	enum class resource_type_e : u8
@@ -42,8 +43,6 @@ namespace sfg
 		animation_state_machine,
 		count,
 	};
-	typedef sid_t resource_handle_t;
-#define NULL_RESOURCE_HANDLE UINT64_MAX
 
 	inline constexpr u8 RESOURCE_TYPE_MAX = static_cast<u8>(resource_type_e::count);
 

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "math_common.hpp"
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
@@ -49,13 +50,16 @@ namespace sfg
 		static rectf_t from_min_max(const vec2f_t& min, const vec2f_t& max);
 		static rectf_t from_min_max(f32 min_x, f32 min_y, f32 max_x, f32 max_y);
 
-		bool equals(const rectf_t& other, f32 epsilon = MATH_EPS) const;
-		bool is_zero(f32 epsilon = MATH_EPS) const;
-		bool is_point_inside(const vec2f_t& point) const;
-		bool is_point_inside(f32 px, f32 py) const;
-		bool is_overlapping(const rectf_t& other) const;
-		bool is_inside(const rectf_t& other) const;
-		bool contains(const rectf_t& other) const;
+		bool	equals(const rectf_t& other, f32 epsilon = MATH_EPS) const;
+		bool	is_zero(f32 epsilon = MATH_EPS) const;
+		bool	is_point_inside(const vec2f_t& point) const;
+		bool	is_point_inside(f32 px, f32 py) const;
+		bool	is_overlapping(const rectf_t& other) const;
+		bool	is_inside(const rectf_t& other) const;
+		bool	contains(const rectf_t& other) const;
+		bool	contains(const vec2f_t& point) const;
+		bool	contains(f32 px, f32 py) const;
+		rectf_t expand(f32 value) const;
 
 		vec2f_t get_min() const;
 		vec2f_t get_max() const;

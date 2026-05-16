@@ -49,7 +49,7 @@ namespace sfg
 
 		vec4f_t color_text2 = color_t::from255(107.0f, 107.0f, 107.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_text1 = color_t::from255(143.0f, 143.0f, 143.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_text0 = color_t::from255(230.0f, 230.0f, 230.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_text0 = color_t::from255(218.0f, 218.0f, 218.0f, 255.0f).srgb_to_linear().to_vector();
 
 		vec4f_t color_divider_dark = color_frame;
 

@@ -1,5 +1,29 @@
-// Copyright (c) 2025 Inan Evin
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
 
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 #include "docking/dock_widget.hpp"
 #include "editor_app.hpp"
 #include "editor_payload_controller.hpp"
@@ -35,59 +59,6 @@
 
 namespace sfg
 {
-	namespace
-	{
-		bool contains(const vec4f_t& rect, const vec2f_t& p)
-		{
-			return p.x >= rect.x && p.x <= rect.x + rect.z && p.y >= rect.y && p.y <= rect.y + rect.w;
-		}
-
-		vec4f_t expand_rect(const vec4f_t& rect, f32 value)
-		{
-			return {rect.x - value, rect.y - value, rect.z + value * 2.0f, rect.w + value * 2.0f};
-		}
-
-		const char* dock_node_type_to_string(dock_node_type_e type)
-		{
-			switch (type)
-			{
-			case dock_node_type_e::leaf:
-				return "leaf";
-			case dock_node_type_e::split:
-				return "split";
-			}
-			return "leaf";
-		}
-
-		dock_node_type_e dock_node_type_from_string(const char* value)
-		{
-			const sid_t id = TO_SID(value);
-			if (id == TO_SID("split"))
-				return dock_node_type_e::split;
-			return dock_node_type_e::leaf;
-		}
-
-		const char* dock_split_direction_to_string(dock_split_direction_e direction)
-		{
-			switch (direction)
-			{
-			case dock_split_direction_e::horizontal:
-				return "horizontal";
-			case dock_split_direction_e::vertical:
-				return "vertical";
-			}
-			return "horizontal";
-		}
-
-		dock_split_direction_e dock_split_direction_from_string(const char* value)
-		{
-			const sid_t id = TO_SID(value);
-			if (id == TO_SID("vertical"))
-				return dock_split_direction_e::vertical;
-			return dock_split_direction_e::horizontal;
-		}
-	}
-
 	void dock_widget_t::init(ui::ui_context& ui, ui::widget_id_t parent, const dock_widget_config_t& config)
 	{
 		SFG_ASSERT(_ui == nullptr);
@@ -360,7 +331,7 @@ namespace sfg
 
 		node.is_payload_over = true;
 		node.hovered_preview = dock_preview_e::none;
-		for (vec4f_t& rect : node.preview_rects)
+		for (rectf_t& rect : node.preview_rects)
 			rect = {};
 
 		const ui::layout_out_t& out					 = _ui->get_tree().out(node.widget);
@@ -394,8 +365,8 @@ namespace sfg
 
 		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
 		{
-			const vec4f_t& preview = node.preview_rects[i];
-			if (preview.z > 0.0f && preview.w > 0.0f && contains(preview, mouse))
+			const rectf_t& preview = node.preview_rects[i];
+			if (preview.w > 0.0f && preview.h > 0.0f && preview.contains(mouse))
 			{
 				node.hovered_preview = static_cast<dock_preview_e>(i);
 				return;
@@ -782,8 +753,8 @@ namespace sfg
 			if (node.node_type == dock_node_type_e::leaf)
 			{
 				const ui::layout_out_t& out	 = tree.out(node.widget);
-				const vec4f_t			rect = {out.pos.x, out.pos.y, out.size.x, out.size.y};
-				if (contains(rect, mouse))
+				const rectf_t			rect = {out.pos.x, out.pos.y, out.size.x, out.size.y};
+				if (rect.contains(mouse))
 					return &node;
 			}
 		}
@@ -1030,14 +1001,14 @@ namespace sfg
 		const u32 draw_order = dock_widget._ui->get_tree().draw_order_const(id) + 1;
 		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
 		{
-			vec4f_t preview = node->preview_rects[i];
-			if (preview.z <= 0.0f || preview.w <= 0.0f)
+			rectf_t preview = node->preview_rects[i];
+			if (preview.w <= 0.0f || preview.h <= 0.0f)
 				continue;
 
 			if (static_cast<dock_preview_e>(i) == node->hovered_preview)
-				preview = expand_rect(preview, theme.item_spacing * (DOCK_PREVIEW_HOVER_EXPAND_ITEM_SPACINGS + pulse));
+				preview = preview.expand(theme.item_spacing * (DOCK_PREVIEW_HOVER_EXPAND_ITEM_SPACINGS + pulse));
 
-			canvas.add_rect({preview.x, preview.y}, {preview.x + preview.z, preview.y + preview.w}, rect, state, draw_order);
+			canvas.add_rect({preview.x, preview.y}, {preview.x + preview.w, preview.y + preview.h}, rect, state, draw_order);
 		}
 	}
 

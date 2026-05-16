@@ -430,6 +430,16 @@ namespace sfg
 		return oss.str();
 	}
 
+	string_t file_system_t::get_system_time_tag_str(u32 count)
+	{
+		string_t out = "[";
+		out += get_system_time_str();
+		if (count > 1)
+			out += "x" + std::to_string(count);
+		out += "]";
+		return out;
+	}
+
 	void file_system_t::get_sys_time_ints(i32& hours, i32& minutes, i32& seconds)
 	{
 		std::time_t now		   = std::time(nullptr);

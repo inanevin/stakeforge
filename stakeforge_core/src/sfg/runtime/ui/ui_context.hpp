@@ -46,6 +46,7 @@ namespace sfg::ui
 		vg_canvas_config_t canvas			  = {};
 		input_config_t	   input			  = {};
 		f32				   user_ui_scale	  = 1.0f;
+		f32				   dpi_scale		  = 1.0f;
 		u32				   max_widgets		  = 1024;
 		u32				   text_pool_capacity = 64 * 1024;
 	};
@@ -138,7 +139,7 @@ namespace sfg::ui
 
 		inline void set_user_ui_scale(f32 f)
 		{
-			_user_ui_scale = f;
+			_user_ui_scale = get_valid_scale(f);
 		}
 
 		inline layout_tree_t& get_tree()

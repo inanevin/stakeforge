@@ -56,16 +56,6 @@ namespace sfg::ui
 			bool valid	   = false;
 		};
 
-		inline u32 raster_px_for(const vg_text_paint_t& p)
-		{
-			return p.raster_px > 0 ? p.raster_px : 1;
-		}
-
-		inline f32 draw_scale_for(const vg_text_paint_t& p, u32 raster_px)
-		{
-			return p.size_px > 0.0f ? p.size_px / static_cast<f32>(raster_px) : 1.0f;
-		}
-
 		inline f32 snap_px(f32 v)
 		{
 			return math::round(v);
@@ -671,10 +661,10 @@ namespace sfg::ui
 		if (!paint.font || !text || len == 0)
 			return {0.0f, 0.0f};
 
-		const u32			 px		 = raster_px_for(paint);
+		const u32			 px		 = get_text_paint_raster_px(paint);
 		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
 		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
-		const f32			 scale	 = draw_scale_for(paint, px);
+		const f32			 scale	 = get_text_paint_draw_scale(paint, px);
 		const f32			 spacing = paint.spacing;
 
 		const text_bounds_t bounds = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
@@ -720,10 +710,10 @@ namespace sfg::ui
 			}
 		}
 
-		const u32			 px		 = raster_px_for(paint);
+		const u32			 px		 = get_text_paint_raster_px(paint);
 		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
 		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
-		const f32			 scale	 = draw_scale_for(paint, px);
+		const f32			 scale	 = get_text_paint_draw_scale(paint, px);
 		const f32			 spacing = paint.spacing;
 		const text_bounds_t	 bounds	 = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
 

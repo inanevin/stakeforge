@@ -26,11 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/resources/common_resources.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec4f.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
@@ -149,5 +148,26 @@ namespace sfg::ui
 		glyph_raster_mode_e	  raster_mode = glyph_raster_mode_e::lcd;
 		bool				  flip_uv	  = false;
 	};
+
+	inline f32 get_valid_scale(f32 scale)
+	{
+		return scale > 0.0f ? scale : 1.0f;
+	}
+
+	inline u32 get_text_raster_px(f32 size_px, f32 dpi_scale)
+	{
+		const i32 px = static_cast<i32>(size_px * get_valid_scale(dpi_scale) + 0.5f);
+		return px > 0 ? static_cast<u32>(px) : 1;
+	}
+
+	inline u32 get_text_paint_raster_px(const vg_text_paint_t& paint)
+	{
+		return paint.raster_px > 0 ? paint.raster_px : 1;
+	}
+
+	inline f32 get_text_paint_draw_scale(const vg_text_paint_t& paint, u32 raster_px)
+	{
+		return paint.size_px > 0.0f ? paint.size_px / static_cast<f32>(raster_px) : 1.0f;
+	}
 
 }

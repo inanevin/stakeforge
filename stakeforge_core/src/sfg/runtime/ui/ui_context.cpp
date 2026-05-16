@@ -53,7 +53,9 @@ namespace sfg::ui
 
 	void ui_context::init(const ui_config_t& cfg)
 	{
-		_user_ui_scale = cfg.user_ui_scale;
+		_user_ui_scale = get_valid_scale(cfg.user_ui_scale);
+		_dpi_scale	   = get_valid_scale(cfg.dpi_scale);
+		_ui_scale	   = _dpi_scale * _user_ui_scale;
 
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
@@ -319,17 +321,14 @@ namespace sfg::ui
 				return;
 		}
 
-		const f32 scale = _ui_scale > 0.0f ? _ui_scale : 1.0f;
-		const f32 dpi	= _dpi_scale > 0.0f ? _dpi_scale : 1.0f;
-		i32		  px	= static_cast<i32>(DEBUG_TEXT_POINT_SIZE * scale * dpi + 0.5f);
-		if (px < 1)
-			px = 1;
+		const f32 scale = get_valid_scale(_ui_scale);
+		const f32 dpi	= get_valid_scale(_dpi_scale);
 
 		vg_text_paint_t text_paint = {};
 		text_paint.font			   = font;
 		text_paint.color		   = {1.0f, 0.0f, 1.0f, 1.0f};
 		text_paint.size_px		   = DEBUG_TEXT_POINT_SIZE * scale;
-		text_paint.raster_px	   = static_cast<u32>(px);
+		text_paint.raster_px	   = get_text_raster_px(text_paint.size_px, dpi);
 		text_paint.raster_mode	   = glyph_raster_mode_e::grayscale;
 
 		const vec2f_t text_size = vg_canvas_t::measure_text(_debug_hover_text.ptr, _debug_hover_text.len, text_paint);
