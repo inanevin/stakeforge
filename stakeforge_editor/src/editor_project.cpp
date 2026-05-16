@@ -39,24 +39,33 @@ namespace sfg
 
 	editor_project_t editor_project_t::make_default_project(const char* path)
 	{
-		editor_project_t project	= {};
-		project.path				= path;
-		project.name				= file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(project.path));
-		project.last_world_resource = {};
+		editor_project_t project   = {};
+		project.path			   = path;
+		project.name			   = file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(project.path));
+		project.last_world_path	   = {};
+		project.world_tick_rate	   = 60;
+		project.world_physics_rate = 100;
+		project.max_sim_steps	   = 4;
 		return project;
 	}
 
 	void to_json(nlohmann::json& j, const editor_project_t& project)
 	{
-		j["path"]				 = project.path;
-		j["name"]				 = project.name;
-		j["last_world_resource"] = project.last_world_resource;
+		j["path"]				= project.path;
+		j["name"]				= project.name;
+		j["last_world"]			= project.last_world_path;
+		j["world_tick_rate"]	= project.world_tick_rate;
+		j["world_physics_rate"] = project.world_physics_rate;
+		j["max_sim_steps"]		= project.max_sim_steps;
 	}
 
 	void from_json(const nlohmann::json& j, editor_project_t& project)
 	{
-		project.path				= j.value<string_t>("path", {});
-		project.name				= j.value<string_t>("name", {});
-		project.last_world_resource = j.value<string_t>("last_world_resource", {});
+		project.path			   = j.value<string_t>("path", {});
+		project.name			   = j.value<string_t>("name", {});
+		project.last_world_path	   = j.value<string_t>("last_world", j.value<string_t>("last_world_resource", {}));
+		project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
+		project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
+		project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);
 	}
 }

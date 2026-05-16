@@ -90,7 +90,7 @@ namespace sfg
 		f32 indent_horizontal		 = 8.0f;
 		f32 margin_horizontal		 = 8.0f;
 		f32 margin_vertical			 = 4.0f;
-		f32 outline_thickness		 = 2.0f;
+		f32 outline_thickness		 = 1.0f;
 		f32 divider_thickness		 = 1.0f;
 		f32 border_thickness		 = 2.0f;
 	};

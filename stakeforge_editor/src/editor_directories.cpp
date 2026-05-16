@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_directories.hpp"
+#include "editor_project.hpp"
+#include "editor_settings.hpp"
 #include <sfg/io/file_system.hpp>
 
 namespace sfg
@@ -64,5 +66,25 @@ namespace sfg
 	string_t editor_directories_t::get_editor_manifest()
 	{
 		return string_t(SFG_ROOT_DIRECTORY) + "assets/assets_editor.sfg";
+	}
+
+	string_t editor_directories_t::get_project_assets_directory()
+	{
+		return get_project_assets_directory(editor_settings_t::get().get_project());
+	}
+
+	string_t editor_directories_t::get_project_assets_directory(const editor_project_t& project)
+	{
+		string_t project_path = file_system_t::get_absolute_path(project.path.c_str());
+		if (project_path.empty())
+			project_path = project.path;
+		file_system_t::fix_path(project_path);
+
+		string_t directory = file_system_t::get_directory_of_file(project_path.c_str());
+		file_system_t::fix_path(directory);
+		if (!directory.empty() && directory.back() != '/')
+			directory += '/';
+		directory += "assets/";
+		return directory;
 	}
 }

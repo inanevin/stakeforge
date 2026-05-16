@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -35,7 +36,10 @@ namespace sfg
 	{
 		string_t path;
 		string_t name;
-		string_t last_world_resource;
+		string_t last_world_path;
+		u32		 world_tick_rate	= 60;
+		u32		 world_physics_rate = 100;
+		u32		 max_sim_steps		= 4;
 
 		static bool				is_project_path(const char* path);
 		static editor_project_t make_default_project(const char* path);

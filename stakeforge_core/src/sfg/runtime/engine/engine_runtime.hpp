@@ -28,6 +28,8 @@ namespace sfg
 		world_handle_t create_world();
 		bool		   destroy_world(world_handle_t handle);
 		bool		   is_world_valid(world_handle_t handle) const;
+		world_t&	   get_world(world_handle_t handle);
+		const world_t& get_world(world_handle_t handle) const;
 
 	private:
 		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;

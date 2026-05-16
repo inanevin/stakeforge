@@ -113,4 +113,14 @@ namespace sfg
 	{
 		return _worlds.is_valid(handle);
 	}
+
+	world_t& engine_runtime_t::get_world(world_handle_t handle)
+	{
+		return _worlds.get(handle);
+	}
+
+	const world_t& engine_runtime_t::get_world(world_handle_t handle) const
+	{
+		return _worlds.get(handle);
+	}
 }

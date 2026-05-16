@@ -31,7 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_renderer.hpp"
 #include "editor_project.hpp"
 #include "editor_surface.hpp"
+#include "editor_world_controller.hpp"
 #include <sfg/memory/dynamic_gen_pool.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 
 namespace sfg
@@ -94,6 +96,7 @@ namespace sfg
 		void			  load_surface_default_layout(editor_surface_t& surface);
 		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
 		void			  unload_current_project();
+		bool			  load_main_world_from_project();
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);
 		static void		  on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
@@ -102,6 +105,8 @@ namespace sfg
 
 	private:
 		editor_renderer_t												_renderer;
+		engine_runtime_t												_runtime;
+		editor_world_controller_t										_world_controller;
 		resource_pack_t													_resource_pack;
 		editor_project_t												_current_project;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;

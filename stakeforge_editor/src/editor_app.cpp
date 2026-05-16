@@ -143,6 +143,14 @@ namespace sfg
 			return false;
 		}
 
+		if (!_runtime.init())
+		{
+			engine_runtime_t::uninit_globals();
+			engine_runtime_t::uninit_backend();
+			return false;
+		}
+		_world_controller.init(_runtime);
+
 		resource_pack_t::init_params_t pack_params;
 		pack_params.manifest_path = editor_directories_t::get_editor_manifest();
 		pack_params.assets_dir	  = editor_directories_t::get_editor_assets();
@@ -150,6 +158,8 @@ namespace sfg
 
 		if (!_resource_pack.init(resource_manager_t::get(), pack_params))
 		{
+			_world_controller.uninit();
+			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
 			engine_runtime_t::uninit_backend();
 			return false;
@@ -160,6 +170,8 @@ namespace sfg
 		if (!_renderer.init())
 		{
 			_resource_pack.uninit();
+			_world_controller.uninit();
+			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
 			engine_runtime_t::uninit_backend();
 			return false;
@@ -213,6 +225,8 @@ namespace sfg
 		{
 			_renderer.uninit();
 			_resource_pack.uninit();
+			_world_controller.uninit();
+			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
 			engine_runtime_t::uninit_backend();
 			return false;
@@ -256,6 +270,8 @@ namespace sfg
 		_renderer.uninit();
 		_resource_pack.uninit();
 		_surfaces.resize_zero();
+		_world_controller.uninit();
+		_runtime.uninit();
 		engine_runtime_t::uninit_globals();
 		engine_runtime_t::uninit_backend();
 		frame_allocator_tls_t::uninit();
@@ -402,6 +418,40 @@ namespace sfg
 
 	void editor_app_t::unload_current_project()
 	{
+		_world_controller.destroy_worlds();
+	}
+
+	bool editor_app_t::load_main_world_from_project()
+	{
+		const string_t assets_dir = editor_directories_t::get_project_assets_directory(_current_project);
+		if (!file_system_t::exists(assets_dir.c_str()) && !file_system_t::create_directory(assets_dir.c_str()))
+			return false;
+
+		const world_handle_t world = _world_controller.create_world();
+		_world_controller.set_main_world(world);
+
+		string_t last_world_path = _current_project.last_world_path;
+		file_system_t::fix_path(last_world_path);
+		if (last_world_path.empty())
+		{
+			_world_controller.install_default_world(world);
+			return true;
+		}
+
+		const string_t full_world_path = assets_dir + last_world_path;
+		if (!file_system_t::exists(full_world_path.c_str()))
+		{
+			_world_controller.install_default_world(world);
+			return true;
+		}
+
+		const string_t		 json_text = file_system_t::read_file_as_string(full_world_path.c_str());
+		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
+		if (doc.is_discarded())
+			return false;
+
+		doc.get_to(_runtime.get_world(world));
+		return true;
 	}
 
 	bool editor_app_t::create_project(const char* path)
@@ -433,7 +483,13 @@ namespace sfg
 		project.path = path;
 
 		unload_current_project();
-		_current_project					   = project;
+		_current_project = project;
+		if (!load_main_world_from_project())
+		{
+			unload_current_project();
+			return false;
+		}
+
 		editor_settings_t::get().get_project() = _current_project;
 		editor_settings_t::get().save();
 		for (editor_surface_t& surface : _surfaces)
@@ -452,6 +508,10 @@ namespace sfg
 		const nlohmann::json json_data = _current_project;
 		const string_t		 data	   = json_data.dump(4);
 		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), _current_project.path.c_str()))
+			return false;
+
+		const string_t assets_dir = editor_directories_t::get_project_assets_directory(_current_project);
+		if (!file_system_t::exists(assets_dir.c_str()) && !file_system_t::create_directory(assets_dir.c_str()))
 			return false;
 
 		editor_settings_t::get().get_project() = _current_project;
@@ -595,6 +655,7 @@ namespace sfg
 			_last_tick_us = now;
 
 			_payload_controller.tick();
+			_world_controller.tick(_current_project.world_tick_rate, _current_project.world_physics_rate, _current_project.max_sim_steps);
 
 			bool main_destroyed = false;
 

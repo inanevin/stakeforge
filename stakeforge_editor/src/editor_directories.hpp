@@ -30,6 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct editor_project_t;
+
 	class editor_directories_t
 	{
 	public:
@@ -38,5 +40,7 @@ namespace sfg
 		static string_t get_editor_assets();
 		static string_t get_editor_resource_cache();
 		static string_t get_editor_manifest();
+		static string_t get_project_assets_directory();
+		static string_t get_project_assets_directory(const editor_project_t& project);
 	};
 }
