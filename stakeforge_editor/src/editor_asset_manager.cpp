@@ -22,48 +22,21 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#pragma once
+#include "editor_asset_manager.hpp"
 
-#include "common_editor.hpp"
-#include "editor_action_menu_controller.hpp"
-#include "editor_modal_controller.hpp"
-#include "editor_popup_controller.hpp"
-#include "editor_tooltip_controller.hpp"
-#include "panels/editor_primary_base.hpp"
-#include "panels/editor_secondary_base.hpp"
-#include <sfg/data/unique.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/vec2u16.hpp>
-#include <sfg/platform/common_window.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
+#include "editor_project.hpp"
 
 namespace sfg
 {
-	enum class editor_surface_type_e : u8
+	bool editor_asset_manager_t::init(const editor_project_t&)
 	{
-		primary,
-		secondary,
-		payload,
-	};
+		return true;
+	}
 
-	struct editor_surface_t
+	void editor_asset_manager_t::uninit()
 	{
-		unique_t<editor_primary_base_t>			  primary;
-		unique_t<editor_secondary_base_t>		  secondary;
-		unique_t<editor_action_menu_controller_t> action_menu_controller;
-		unique_t<editor_modal_controller_t>		  modal_controller;
-		unique_t<editor_popup_controller_t>		  popup_controller;
-		unique_t<editor_tooltip_controller_t>	  tooltip_controller;
-		unique_t<window_runtime_t>				  runtime;
-		unique_t<ui::ui_context>				  ui;
-		gfx_swapchain_handle					  swapchain		 = {};
-		vec2u16_t								  swapchain_size = {};
-		ui::widget_id_t							  payload_root	 = NULL_WIDGET;
-		ui::widget_id_t							  payload_text	 = NULL_WIDGET;
-		editor_surface_type_e					  type			 = editor_surface_type_e::secondary;
-		bool									  is_minimized	 = false;
-		bool									  is_hidden		 = false;
-	};
+	}
 }

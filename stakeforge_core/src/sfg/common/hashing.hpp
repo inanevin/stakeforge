@@ -98,6 +98,8 @@ namespace sfg
 		{
 			return hash_bytes(s.data(), static_cast<size_t>(s.size()));
 		}
+
+		static u64 generate_guid64();
 	};
 
 	constexpr sid_t operator"" _hs(const char* str, size_t len) noexcept

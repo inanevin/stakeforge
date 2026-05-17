@@ -25,8 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_app.hpp"
+#include "editor_action_menu_controller.hpp"
 #include "editor_directories.hpp"
 #include "editor_modal_controller.hpp"
+#include "editor_popup_controller.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
 #include "editor_text_rasterization.hpp"
@@ -256,7 +258,9 @@ namespace sfg
 				if (surface.type == editor_surface_type_e::secondary)
 					surface.secondary->uninit();
 				surface.tooltip_controller->uninit();
+				surface.popup_controller->uninit();
 				surface.modal_controller->uninit();
+				surface.action_menu_controller->uninit();
 				surface.ui->uninit();
 				surface.ui.reset();
 			}
@@ -269,6 +273,7 @@ namespace sfg
 
 		_renderer.uninit();
 		_resource_pack.uninit();
+		_asset_manager.uninit();
 		_surfaces.resize_zero();
 		_world_controller.uninit();
 		_runtime.uninit();
@@ -301,6 +306,12 @@ namespace sfg
 
 		surface.modal_controller = make_unique<editor_modal_controller_t>();
 		surface.modal_controller->init(*surface.ui);
+
+		surface.popup_controller = make_unique<editor_popup_controller_t>();
+		surface.popup_controller->init(*surface.ui);
+
+		surface.action_menu_controller = make_unique<editor_action_menu_controller_t>();
+		surface.action_menu_controller->init(*surface.ui);
 		if (surface.type == editor_surface_type_e::primary)
 		{
 			surface.primary = make_unique<editor_primary_base_t>();
@@ -418,6 +429,7 @@ namespace sfg
 
 	void editor_app_t::unload_current_project()
 	{
+		_asset_manager.uninit();
 		_world_controller.destroy_worlds();
 	}
 
@@ -484,6 +496,12 @@ namespace sfg
 
 		unload_current_project();
 		_current_project = project;
+		if (!_asset_manager.init(_current_project))
+		{
+			unload_current_project();
+			return false;
+		}
+
 		if (!load_main_world_from_project())
 		{
 			unload_current_project();
@@ -626,6 +644,26 @@ namespace sfg
 	const editor_modal_controller_t& editor_app_t::get_modal_controller() const
 	{
 		return *get_main_surface().modal_controller;
+	}
+
+	editor_action_menu_controller_t& editor_app_t::get_action_menu_controller()
+	{
+		return *get_main_surface().action_menu_controller;
+	}
+
+	const editor_action_menu_controller_t& editor_app_t::get_action_menu_controller() const
+	{
+		return *get_main_surface().action_menu_controller;
+	}
+
+	editor_popup_controller_t& editor_app_t::get_popup_controller()
+	{
+		return *get_main_surface().popup_controller;
+	}
+
+	const editor_popup_controller_t& editor_app_t::get_popup_controller() const
+	{
+		return *get_main_surface().popup_controller;
 	}
 
 	editor_payload_controller_t& editor_app_t::get_payload_controller()
@@ -794,7 +832,9 @@ namespace sfg
 			if (surface.type == editor_surface_type_e::payload)
 				_payload_controller.uninit();
 			surface.tooltip_controller->uninit();
+			surface.popup_controller->uninit();
 			surface.modal_controller->uninit();
+			surface.action_menu_controller->uninit();
 			surface.ui->uninit();
 			surface.ui.reset();
 		}

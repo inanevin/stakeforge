@@ -31,9 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg::ui
 {
 	class input_router_t;
-	class paint_layer_t;
 	class ui_context;
-	class vg_canvas_t;
 	enum class mouse_button_e : u8;
 }
 
@@ -94,31 +92,17 @@ namespace sfg
 		}
 
 	private:
-		static constexpr u32 MAX_ITEMS = 16;
-
 		u16			get_selected() const;
 		const char* get_selected_text() const;
-		void		open();
-		void		set_popup_visible(bool visible);
-		void		refresh_rows();
-		u32			find_row(ui::widget_id_t id) const;
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void draw_selected_marker(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
+		static void on_popup_item_pressed(u16 value, void* user_data);
 
 	private:
-		ui::ui_context*			 _ui					 = nullptr;
-		ui::widget_id_t			 _root					 = NULL_WIDGET;
-		ui::widget_id_t			 _title					 = NULL_WIDGET;
-		ui::widget_id_t			 _icon_frame			 = NULL_WIDGET;
-		ui::widget_id_t			 _foreground			 = NULL_WIDGET;
-		ui::widget_id_t			 _panel					 = NULL_WIDGET;
-		ui::widget_id_t			 _row_frames[MAX_ITEMS]	 = {};
-		ui::widget_id_t			 _row_markers[MAX_ITEMS] = {};
-		ui::widget_id_t			 _row_labels[MAX_ITEMS]	 = {};
-		editor_dropdown_config_t _config				 = {};
-		bool					 _open					 = false;
+		ui::ui_context*			 _ui		 = nullptr;
+		ui::widget_id_t			 _root		 = NULL_WIDGET;
+		ui::widget_id_t			 _title		 = NULL_WIDGET;
+		ui::widget_id_t			 _icon_frame = NULL_WIDGET;
+		editor_dropdown_config_t _config	 = {};
 	};
 }

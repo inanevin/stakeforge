@@ -35,14 +35,14 @@ namespace sfg
 	const vec4f_t vec4f_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};
 	const vec4f_t vec4f_t::one	= {1.0f, 1.0f, 1.0f, 1.0f};
 
-	vec4f_t vec4f_t::clamp(const vec4f_t& vector_t, const vec4f_t& min_vec, const vec4f_t& max_vec)
+	vec4f_t vec4f_t::clamp(const vec4f_t& vector, const vec4f_t& min_vec, const vec4f_t& max_vec)
 	{
-		return {math::clamp(vector_t.x, min_vec.x, max_vec.x), math::clamp(vector_t.y, min_vec.y, max_vec.y), math::clamp(vector_t.z, min_vec.z, max_vec.z), math::clamp(vector_t.w, min_vec.w, max_vec.w)};
+		return {math::clamp(vector.x, min_vec.x, max_vec.x), math::clamp(vector.y, min_vec.y, max_vec.y), math::clamp(vector.z, min_vec.z, max_vec.z), math::clamp(vector.w, min_vec.w, max_vec.w)};
 	}
 
-	vec4f_t vec4f_t::abs(const vec4f_t& vector_t)
+	vec4f_t vec4f_t::abs(const vec4f_t& vector)
 	{
-		return {math::abs(vector_t.x), math::abs(vector_t.y), math::abs(vector_t.z), math::abs(vector_t.w)};
+		return {math::abs(vector.x), math::abs(vector.y), math::abs(vector.z), math::abs(vector.w)};
 	}
 
 	vec4f_t vec4f_t::min(const vec4f_t& a, const vec4f_t& b)

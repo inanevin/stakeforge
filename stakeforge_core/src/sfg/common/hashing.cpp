@@ -25,3 +25,39 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "hashing.hpp"
+
+#include <atomic>
+#include <chrono>
+#include <random>
+#include <thread>
+
+namespace sfg
+{
+	namespace
+	{
+		u64 make_guid64_seed()
+		{
+			static std::atomic<u64> counter = 0;
+
+			std::random_device rd;
+			const u64		   r0		 = (static_cast<u64>(rd()) << 32) | static_cast<u64>(rd());
+			const u64		   r1		 = (static_cast<u64>(rd()) << 32) | static_cast<u64>(rd());
+			const u64		   now		 = static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+			const u64		   thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+			const u64		   seq		 = counter.fetch_add(1, std::memory_order_relaxed);
+
+			return hashing_t::hash_fnv_1a64_values(hashing_t::FNV_1A_64_OFFSET, r0, r1, now, thread_id, seq);
+		}
+	}
+
+	u64 hashing_t::generate_guid64()
+	{
+		thread_local std::mt19937_64 rng(make_guid64_seed());
+
+		u64 guid = rng();
+		while (guid == 0)
+			guid = rng();
+
+		return guid;
+	}
+}

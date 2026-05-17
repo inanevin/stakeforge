@@ -49,7 +49,7 @@ namespace sfg
 		static const vec4f_t one;
 
 		static vec4f_t clamp(const vec4f_t& vector_t, const vec4f_t& min, const vec4f_t& max);
-		static vec4f_t abs(const vec4f_t& vector_t);
+		static vec4f_t abs(const vec4f_t& vector);
 		static vec4f_t min(const vec4f_t& a, const vec4f_t& b);
 		static vec4f_t max(const vec4f_t& a, const vec4f_t& b);
 		static f32	   dot(const vec4f_t& a, const vec4f_t& b);
@@ -150,9 +150,9 @@ namespace sfg
 		}
 	};
 
-	inline vec4f_t operator*(f32 scalar, const vec4f_t& vector_t)
+	inline vec4f_t operator*(f32 scalar, const vec4f_t& vector)
 	{
-		return vector_t * scalar;
+		return vector * scalar;
 	}
 
 	void to_json(nlohmann::json& j, const vec4f_t& v);

@@ -122,7 +122,7 @@ namespace sfg
 			thumb_in.pos_mode_y		  = ui::pos_mode_e::offset_in_parent;
 			set_scrollbar_rect(paint, axis->thumb, theme.color_accent0_dim, theme.item_rounding);
 			paint.set_hover_color(axis->thumb, theme.color_accent0);
-			paint.set_press_color(axis->thumb, theme.color_accent0_dim);
+			paint.set_press_color(axis->thumb, theme.color_accent0);
 
 			ui::listener_bundle_t thumb_listener = {};
 			thumb_listener.user_data			 = axis;

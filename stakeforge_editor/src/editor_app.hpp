@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
+#include "editor_asset_manager.hpp"
 #include "editor_payload_controller.hpp"
 #include "editor_renderer.hpp"
 #include "editor_project.hpp"
@@ -82,12 +83,24 @@ namespace sfg
 		{
 			return _resource_pack;
 		}
-		editor_surface_t&				   get_main_surface();
-		const editor_surface_t&			   get_main_surface() const;
-		editor_modal_controller_t&		   get_modal_controller();
-		const editor_modal_controller_t&   get_modal_controller() const;
-		editor_payload_controller_t&	   get_payload_controller();
-		const editor_payload_controller_t& get_payload_controller() const;
+		inline editor_asset_manager_t& get_asset_manager()
+		{
+			return _asset_manager;
+		}
+		inline const editor_asset_manager_t& get_asset_manager() const
+		{
+			return _asset_manager;
+		}
+		editor_surface_t&					   get_main_surface();
+		const editor_surface_t&				   get_main_surface() const;
+		editor_modal_controller_t&			   get_modal_controller();
+		const editor_modal_controller_t&	   get_modal_controller() const;
+		editor_action_menu_controller_t&	   get_action_menu_controller();
+		const editor_action_menu_controller_t& get_action_menu_controller() const;
+		editor_popup_controller_t&			   get_popup_controller();
+		const editor_popup_controller_t&	   get_popup_controller() const;
+		editor_payload_controller_t&		   get_payload_controller();
+		const editor_payload_controller_t&	   get_payload_controller() const;
 
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
@@ -108,6 +121,7 @@ namespace sfg
 		engine_runtime_t												_runtime;
 		editor_world_controller_t										_world_controller;
 		resource_pack_t													_resource_pack;
+		editor_asset_manager_t											_asset_manager;
 		editor_project_t												_current_project;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		editor_payload_controller_t										_payload_controller;

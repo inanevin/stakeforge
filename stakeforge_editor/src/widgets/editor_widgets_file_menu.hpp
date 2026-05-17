@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "editor_action_menu_controller.hpp"
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -37,31 +38,11 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_file_menu_command_fn	   = void (*)(u16 command, void* user_data);
-	using editor_file_menu_toggle_query_fn = bool (*)(void* user_data);
-	using editor_file_menu_toggle_fn	   = void (*)(u16 command, bool value, void* user_data);
-
-	enum class editor_file_menu_row_kind_e : u8
-	{
-		item,
-		title,
-		toggle,
-	};
-
-	struct editor_file_menu_row_desc_t
-	{
-		editor_file_menu_row_kind_e		   kind				= editor_file_menu_row_kind_e::item;
-		const char*						   text				= nullptr;
-		const char*						   shortcut			= nullptr;
-		const editor_file_menu_row_desc_t* children			= nullptr;
-		u16								   child_count		= 0;
-		u16								   command			= 0;
-		bool*							   toggle_value		= nullptr;
-		editor_file_menu_toggle_query_fn   toggle_query		= nullptr;
-		editor_file_menu_toggle_fn		   toggle_callback	= nullptr;
-		void*							   toggle_user_data = nullptr;
-		bool							   close_on_toggle	= false;
-	};
+	using editor_file_menu_command_fn	   = editor_action_menu_command_fn;
+	using editor_file_menu_toggle_query_fn = editor_action_menu_toggle_query_fn;
+	using editor_file_menu_toggle_fn	   = editor_action_menu_toggle_fn;
+	using editor_file_menu_row_kind_e	   = editor_action_menu_row_kind_e;
+	using editor_file_menu_row_desc_t	   = editor_action_menu_row_desc_t;
 
 	struct editor_file_menu_item_desc_t
 	{
@@ -129,49 +110,28 @@ namespace sfg
 
 	private:
 		static constexpr u32 MAX_TOP_ITEMS = 8;
-		static constexpr u32 MAX_DEPTH	   = 4;
-		static constexpr u32 MAX_ROWS	   = 16;
 
-		static void handle_top_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void handle_top_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
-		static void handle_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void handle_row_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
-		static void handle_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		void		on_top_click(ui::widget_id_t id, ui::mouse_button_e btn);
-		void		on_top_hover(ui::widget_id_t id);
-		void		on_row_click(ui::widget_id_t id, ui::mouse_button_e btn);
-		void		on_row_hover(ui::widget_id_t id);
-		void		open_top(u32 index);
-		void		show_dropdown(u32 depth, const editor_file_menu_row_desc_t* rows, u16 row_count, const vec4f_t& anchor);
-		void		hide_dropdowns_from(u32 depth);
-		void		refresh_popup_scope();
-		void		refresh_top_frames();
-		u32			find_top_index(ui::widget_id_t id) const;
-		bool		find_row_index(ui::widget_id_t id, u32& out_depth, u32& out_row) const;
-		f32			measure_text_width(const char* text, resource_handle_t font_handle, f32 point_size) const;
+		static void				   handle_top_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void				   handle_top_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void				   handle_action_menu_closed(void* user_data);
+		void					   on_top_click(ui::widget_id_t id, ui::mouse_button_e btn);
+		void					   on_top_hover(ui::widget_id_t id);
+		void					   open_top(u32 index);
+		void					   refresh_top_frames();
+		u32						   find_top_index(ui::widget_id_t id) const;
+		editor_action_menu_style_t get_action_menu_style() const;
 
 	private:
-		ui::ui_context*						_ui									  = nullptr;
-		const editor_file_menu_item_desc_t* _items								  = nullptr;
-		u16									_item_count							  = 0;
-		editor_file_menu_style_t			_style								  = {};
-		editor_file_menu_command_fn			_command_fn							  = nullptr;
-		void*								_command_user_data					  = nullptr;
-		ui::widget_id_t						_root								  = NULL_WIDGET;
-		ui::widget_id_t						_foreground							  = NULL_WIDGET;
-		ui::widget_id_t						_top_frames[MAX_TOP_ITEMS]			  = {};
-		ui::widget_id_t						_top_labels[MAX_TOP_ITEMS]			  = {};
-		ui::widget_id_t						_panels[MAX_DEPTH]					  = {};
-		ui::widget_id_t						_row_frames[MAX_DEPTH][MAX_ROWS]	  = {};
-		ui::widget_id_t						_row_labels[MAX_DEPTH][MAX_ROWS]	  = {};
-		ui::widget_id_t						_row_shortcuts[MAX_DEPTH][MAX_ROWS]	  = {};
-		ui::widget_id_t						_row_icons[MAX_DEPTH][MAX_ROWS]		  = {};
-		ui::widget_id_t						_row_icon_labels[MAX_DEPTH][MAX_ROWS] = {};
-		ui::widget_id_t						_row_title_lines[MAX_DEPTH][MAX_ROWS] = {};
-		const editor_file_menu_row_desc_t*	_active_rows[MAX_DEPTH]				  = {};
-		u16									_active_row_counts[MAX_DEPTH]		  = {};
-		u32									_active_depth						  = 0;
-		u32									_selected_top						  = 0;
-		bool								_open								  = false;
+		ui::ui_context*						_ui						   = nullptr;
+		const editor_file_menu_item_desc_t* _items					   = nullptr;
+		u16									_item_count				   = 0;
+		editor_file_menu_style_t			_style					   = {};
+		editor_file_menu_command_fn			_command_fn				   = nullptr;
+		void*								_command_user_data		   = nullptr;
+		ui::widget_id_t						_root					   = NULL_WIDGET;
+		ui::widget_id_t						_top_frames[MAX_TOP_ITEMS] = {};
+		ui::widget_id_t						_top_labels[MAX_TOP_ITEMS] = {};
+		u32									_selected_top			   = 0;
+		bool								_open					   = false;
 	};
 }
