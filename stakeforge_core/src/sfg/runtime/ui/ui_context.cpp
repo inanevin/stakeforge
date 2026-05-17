@@ -255,6 +255,8 @@ namespace sfg::ui
 			const layout_in_t& in = _tree.in_const(id);
 			if (!(in.flags & wf_visible))
 				continue;
+			if (in.flags & wf_overlay)
+				continue;
 
 			const layout_out_t& out = _tree.out(id);
 			if (out.clip.z <= 0.0f || out.clip.w <= 0.0f)

@@ -34,6 +34,7 @@ namespace sfg
 	enum class editor_asset_node_type_e : u8
 	{
 		folder,
+		file,
 		asset,
 	};
 

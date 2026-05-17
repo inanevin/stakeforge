@@ -40,6 +40,18 @@ namespace std
 
 namespace sfg
 {
+	enum class file_system_entry_type_e : u8
+	{
+		file,
+		directory,
+	};
+
+	struct file_system_entry_t
+	{
+		string_t				 path;
+		file_system_entry_type_e type = file_system_entry_type_e::file;
+	};
+
 	class file_system_t
 	{
 	public:
@@ -76,5 +88,6 @@ namespace sfg
 		static void		copy_directory(const char* copyDir, const char* target_parent_folder);
 		static void		copy_file_to_directory(const char* file, const char* target_parent_folder);
 		static void		get_files_recursive(const char* directory, vector_t<string_t>& out_files);
+		static void		get_entries_recursive(const char* directory, vector_t<file_system_entry_t>& out_entries);
 	};
 }

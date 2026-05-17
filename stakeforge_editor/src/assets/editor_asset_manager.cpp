@@ -40,6 +40,18 @@ namespace sfg
 {
 	bool editor_asset_manager_t::init(const editor_project_t& project)
 	{
+		return rescan(project);
+	}
+
+	void editor_asset_manager_t::uninit()
+	{
+		_asset_tree.clear();
+		_root_node = {};
+		_generation++;
+	}
+
+	bool editor_asset_manager_t::rescan(const editor_project_t& project)
+	{
 		if (!editor_directories_t::ensure_project_assets_directory(project))
 			return false;
 
@@ -47,46 +59,51 @@ namespace sfg
 		return build_asset_tree(assets_dir);
 	}
 
-	void editor_asset_manager_t::uninit()
-	{
-		_asset_tree.clear();
-		_root_node = {};
-	}
-
 	bool editor_asset_manager_t::build_asset_tree(const string_t& assets_dir)
 	{
-		vector_t<string_t> files;
-		file_system_t::get_files_recursive(assets_dir.c_str(), files);
+		vector_t<file_system_entry_t> entries;
+		file_system_t::get_entries_recursive(assets_dir.c_str(), entries);
 
 		_asset_tree.clear();
-		_asset_tree.reserve(static_cast<u32>(files.size() * 4 + 1));
+		_asset_tree.reserve(static_cast<u32>(entries.size() + 1));
 
 		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
 		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .type = editor_asset_node_type_e::folder});
 
 		vector_t<string_t> parts;
-		for (const string_t& file : files)
+		for (const file_system_entry_t& entry : entries)
 		{
-			if (file_system_t::get_file_extension(file) != "sfg_asset")
-				continue;
-
-			editor_asset_t asset = {};
-			if (!read_asset(file.c_str(), asset))
-				return false;
-
-			const string_t relative = file_system_t::get_relative(assets_dir.c_str(), file.c_str());
+			const string_t relative = file_system_t::get_relative(assets_dir.c_str(), entry.path.c_str());
 			parts.clear();
 			string_util::split(parts, relative, "/");
 
-			editor_asset_node_handle_t parent = _root_node;
-			for (size_t i = 0; i + 1 < parts.size(); ++i)
+			editor_asset_node_handle_t parent			 = _root_node;
+			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
+			for (size_t i = 0; i < folder_part_count; ++i)
 				parent = get_or_create_child_folder(parent, parts[i]);
 
-			const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
-			const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = name, .type = editor_asset_node_type_e::asset});
-			_asset_tree.attach(parent, asset_node);
+			if (entry.type == file_system_entry_type_e::directory)
+				continue;
+
+			editor_asset_t asset = {};
+			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
+			{
+				if (!read_asset(entry.path.c_str(), asset))
+					return false;
+
+				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
+				const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = name, .type = editor_asset_node_type_e::asset});
+				_asset_tree.attach(parent, asset_node);
+			}
+			else
+			{
+				asset.source_abs_path					   = entry.path;
+				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = parts.back(), .type = editor_asset_node_type_e::file});
+				_asset_tree.attach(parent, file_node);
+			}
 		}
 
+		_generation++;
 		return true;
 	}
 

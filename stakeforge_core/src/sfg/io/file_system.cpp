@@ -553,4 +553,27 @@ namespace sfg
 			SFG_ERR("Error while reading directory recursively {0} {1}", directory, ex.what());
 		}
 	}
+
+	void file_system_t::get_entries_recursive(const char* directory, vector_t<file_system_entry_t>& out_entries)
+	{
+		try
+		{
+			for (const auto& entry_t : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
+			{
+				file_system_entry_type_e type = file_system_entry_type_e::file;
+				if (entry_t.is_directory())
+					type = file_system_entry_type_e::directory;
+				else if (!entry_t.is_regular_file())
+					continue;
+
+				string_t path = entry_t.path().lexically_normal().string();
+				fix_path(path);
+				out_entries.push_back(file_system_entry_t{.path = std::move(path), .type = type});
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			SFG_ERR("Error while reading directory recursively {0} {1}", directory, ex.what());
+		}
+	}
 }

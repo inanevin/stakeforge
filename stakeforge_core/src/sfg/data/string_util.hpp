@@ -29,16 +29,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vector.hpp"
 #include "string.hpp"
 #include <sfg/common/size_definitions.hpp>
+#include <cctype>
 
 namespace sfg
 {
 	namespace string_util
 	{
-		string_t	   remove_all_except_first(const string_t& str, const string_t& delimiter);
-		int			   append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
-		void		   replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
-		void		   to_upper(string_t& str);
-		void		   to_lower(string_t& str);
+		string_t					 remove_all_except_first(const string_t& str, const string_t& delimiter);
+		int							 append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
+		void						 replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
+		void						 to_upper(string_t& str);
+		void						 to_lower(string_t& str);
+		template <class STRING> void to_lower(STRING& input)
+		{
+			for (char& c : input)
+				c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+		}
 		void		   remove_whitespace(string_t& str);
 		wstring_t	   to_wstr(const string_t& string_t);
 		void		   split(vector_t<string_t>& out, const string_t& str, const string_t& split);

@@ -53,6 +53,7 @@ namespace sfg
 
 		bool init(const editor_project_t& project);
 		void uninit();
+		bool rescan(const editor_project_t& project);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -68,6 +69,11 @@ namespace sfg
 			return _root_node;
 		}
 
+		inline u32 get_generation() const
+		{
+			return _generation;
+		}
+
 	private:
 		bool					   build_asset_tree(const string_t& assets_dir);
 		bool					   read_asset(const char* path, editor_asset_t& out_asset) const;
@@ -77,5 +83,6 @@ namespace sfg
 	private:
 		editor_asset_tree_t		   _asset_tree;
 		editor_asset_node_handle_t _root_node;
+		u32						   _generation = 0;
 	};
 }
