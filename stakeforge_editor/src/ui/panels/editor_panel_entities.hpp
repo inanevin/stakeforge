@@ -26,23 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/data/string.hpp>
+#include "ui/panels/editor_panel.hpp"
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	class editor_panel_entities_t final : public editor_panel_t
 	{
 	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
+		editor_panel_entities_t();
+		~editor_panel_entities_t() override								   = default;
+		editor_panel_entities_t(const editor_panel_entities_t&)			   = delete;
+		editor_panel_entities_t& operator=(const editor_panel_entities_t&) = delete;
 	};
 }

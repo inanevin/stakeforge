@@ -87,4 +87,22 @@ namespace sfg
 		directory += "assets/";
 		return directory;
 	}
+
+	string_t editor_directories_t::get_project_asset_cache_directory(const editor_project_t& project)
+	{
+		return get_project_assets_directory(project) + "_cache/";
+	}
+
+	bool editor_directories_t::ensure_project_assets_directory(const editor_project_t& project)
+	{
+		const string_t assets_dir = get_project_assets_directory(project);
+		if (!file_system_t::exists(assets_dir.c_str()) && !file_system_t::create_directory(assets_dir.c_str()))
+			return false;
+
+		const string_t cache_dir = get_project_asset_cache_directory(project);
+		if (!file_system_t::exists(cache_dir.c_str()) && !file_system_t::create_directory(cache_dir.c_str()))
+			return false;
+
+		return true;
+	}
 }

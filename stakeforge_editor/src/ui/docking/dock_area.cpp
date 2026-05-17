@@ -22,27 +22,50 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
-
-#pragma once
-
-#include <sfg/data/string.hpp>
+#include "ui/docking/dock_area.hpp"
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	const char* dock_node_type_to_string(dock_node_type_e type)
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
-	};
+		switch (type)
+		{
+		case dock_node_type_e::leaf:
+			return "leaf";
+		case dock_node_type_e::split:
+			return "split";
+		}
+		return "leaf";
+	}
+
+	dock_node_type_e dock_node_type_from_string(const char* value)
+	{
+		const sid_t id = TO_SID(value);
+		if (id == TO_SID("split"))
+			return dock_node_type_e::split;
+		return dock_node_type_e::leaf;
+	}
+
+	const char* dock_split_direction_to_string(dock_split_direction_e direction)
+	{
+		switch (direction)
+		{
+		case dock_split_direction_e::horizontal:
+			return "horizontal";
+		case dock_split_direction_e::vertical:
+			return "vertical";
+		}
+		return "horizontal";
+	}
+
+	dock_split_direction_e dock_split_direction_from_string(const char* value)
+	{
+		const sid_t id = TO_SID(value);
+		if (id == TO_SID("vertical"))
+			return dock_split_direction_e::vertical;
+		return dock_split_direction_e::horizontal;
+	}
 }

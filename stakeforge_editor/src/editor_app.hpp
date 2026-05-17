@@ -27,8 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
-#include "editor_asset_manager.hpp"
-#include "editor_payload_controller.hpp"
+#include "assets/editor_asset_manager.hpp"
+#include "ui/editor_payload_controller.hpp"
 #include "editor_renderer.hpp"
 #include "editor_project.hpp"
 #include "editor_surface.hpp"

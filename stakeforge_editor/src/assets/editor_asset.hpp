@@ -22,27 +22,26 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	struct editor_asset_t
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
+		string_t		source_abs_path;
+		sid_t			guid		  = 0;
+		resource_type_e resource_type = resource_type_e::invalid;
+		bool			has_binary	  = false;
 	};
+
+	void to_json(nlohmann::json& j, const editor_asset_t& asset);
+	void from_json(const nlohmann::json& j, editor_asset_t& asset);
 }

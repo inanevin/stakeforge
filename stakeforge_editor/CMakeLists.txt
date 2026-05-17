@@ -35,16 +35,20 @@ include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 
 file(GLOB SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/panels/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/docking/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docking/*.cpp
 )
 
 file(GLOB HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/panels/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/docking/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docking/*.hpp
 )
 
 

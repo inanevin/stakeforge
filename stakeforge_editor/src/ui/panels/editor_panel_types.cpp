@@ -22,27 +22,45 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
-
-#pragma once
-
-#include <sfg/data/string.hpp>
+#include "ui/panels/editor_panel_types.hpp"
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	const char* editor_panel_type_to_string(editor_panel_type_e type)
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
-	};
+		switch (type)
+		{
+		case editor_panel_type_e::entities:
+			return "Entities";
+		case editor_panel_type_e::assets:
+			return "Assets";
+		case editor_panel_type_e::log:
+			return "Log";
+		case editor_panel_type_e::world:
+			return "World";
+		case editor_panel_type_e::inspector:
+			return "Inspector";
+		case editor_panel_type_e::animation:
+			return "Animation";
+		case editor_panel_type_e::profiling:
+			return "Profiling";
+		default:
+			return "";
+		}
+	}
+
+	editor_panel_type_e editor_panel_type_from_string(const char* value)
+	{
+		const sid_t id = TO_SID(value);
+		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
+		{
+			const editor_panel_type_e type = static_cast<editor_panel_type_e>(i);
+			if (TO_SID(editor_panel_type_to_string(type)) == id)
+				return type;
+		}
+		return editor_panel_type_e::max;
+	}
 }

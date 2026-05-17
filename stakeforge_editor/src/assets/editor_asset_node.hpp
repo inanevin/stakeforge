@@ -22,27 +22,25 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include <sfg/data/string.hpp>
+#include "assets/editor_asset.hpp"
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	enum class editor_asset_node_type_e : u8
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
+		folder,
+		asset,
+	};
+
+	struct editor_asset_node_t
+	{
+		editor_asset_t			 asset;
+		string_t				 name;
+		editor_asset_node_type_e type = editor_asset_node_type_e::folder;
 	};
 }

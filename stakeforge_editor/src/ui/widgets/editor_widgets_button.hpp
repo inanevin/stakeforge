@@ -19,30 +19,50 @@ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
 INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
 
-#include <sfg/data/string.hpp>
+#include "ui/widgets/editor_widget_width.hpp"
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg::ui
+{
+	class ui_context;
+}
 
 namespace sfg
 {
-	struct editor_project_t;
+	struct editor_button_config_t
+	{
+		const char*					 text  = nullptr;
+		editor_widget_width_config_t width = {};
+	};
 
-	class editor_directories_t
+	class editor_button_t final
 	{
 	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
+		editor_button_t()								   = default;
+		~editor_button_t()								   = default;
+		editor_button_t(const editor_button_t&)			   = delete;
+		editor_button_t& operator=(const editor_button_t&) = delete;
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_button_config_t& config);
+		void uninit();
+		void set_text(const char* text);
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
+
+	private:
+		ui::ui_context*		   _ui	   = nullptr;
+		ui::widget_id_t		   _root   = NULL_WIDGET;
+		ui::widget_id_t		   _label  = NULL_WIDGET;
+		editor_button_config_t _config = {};
 	};
 }

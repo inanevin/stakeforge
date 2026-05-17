@@ -27,12 +27,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
-#include "editor_action_menu_controller.hpp"
-#include "editor_modal_controller.hpp"
-#include "editor_popup_controller.hpp"
-#include "editor_tooltip_controller.hpp"
-#include "panels/editor_primary_base.hpp"
-#include "panels/editor_secondary_base.hpp"
+#include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_modal_controller.hpp"
+#include "ui/editor_popup_controller.hpp"
+#include "ui/editor_tooltip_controller.hpp"
+#include "ui/panels/editor_primary_base.hpp"
+#include "ui/panels/editor_secondary_base.hpp"
 #include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>

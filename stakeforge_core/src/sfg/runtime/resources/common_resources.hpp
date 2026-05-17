@@ -7,6 +7,7 @@
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -45,6 +46,9 @@ namespace sfg
 	};
 
 	inline constexpr u8 RESOURCE_TYPE_MAX = static_cast<u8>(resource_type_e::count);
+
+	void to_json(nlohmann::json& j, const resource_type_e& t);
+	void from_json(const nlohmann::json& j, resource_type_e& t);
 
 	enum class resource_state_e : u8
 	{

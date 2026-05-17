@@ -21,8 +21,6 @@ namespace sfg
 		vector_t<resource_manifest_entry_t> resources;
 	};
 
-	void from_json(const nlohmann::json& j, resource_type_e& t);
-
 	void from_json(const nlohmann::json& j, resource_manifest_entry_t& e);
 
 	void from_json(const nlohmann::json& j, resource_manifest_t& m);

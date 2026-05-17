@@ -22,27 +22,31 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
-
-#pragma once
-
-#include <sfg/data/string.hpp>
+#include "ui/editor_text_rasterization.hpp"
 
 namespace sfg
 {
-	struct editor_project_t;
+	ui::glyph_raster_mode_e editor_text_rasterization_t::_rasterization_type = ui::glyph_raster_mode_e::grayscale;
 
-	class editor_directories_t
+	bool editor_text_rasterization_t::is_subpixel_enabled()
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
-	};
+		return _rasterization_type == ui::glyph_raster_mode_e::lcd;
+	}
+
+	void editor_text_rasterization_t::set_subpixel_enabled(bool enabled)
+	{
+		set_rasterization_type(enabled ? ui::glyph_raster_mode_e::lcd : ui::glyph_raster_mode_e::grayscale);
+	}
+
+	ui::glyph_raster_mode_e editor_text_rasterization_t::get_rasterization_type()
+	{
+		return _rasterization_type;
+	}
+
+	void editor_text_rasterization_t::set_rasterization_type(ui::glyph_raster_mode_e rasterization_type)
+	{
+		_rasterization_type = rasterization_type;
+	}
 }

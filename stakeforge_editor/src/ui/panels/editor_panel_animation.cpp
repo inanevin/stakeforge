@@ -22,27 +22,15 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
-
-#pragma once
-
-#include <sfg/data/string.hpp>
+#include "ui/panels/editor_panel_animation.hpp"
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	editor_panel_animation_t::editor_panel_animation_t()
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
-	};
+		set_type(editor_panel_type_e::animation);
+		set_title(editor_panel_type_to_string(editor_panel_type_e::animation));
+	}
 }

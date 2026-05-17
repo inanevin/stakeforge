@@ -22,27 +22,28 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#pragma once
+#include "assets/editor_asset.hpp"
 
-#include <sfg/data/string.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	struct editor_project_t;
-
-	class editor_directories_t
+	void to_json(nlohmann::json& j, const editor_asset_t& asset)
 	{
-	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
-	};
+		j["guid"]			 = asset.guid;
+		j["resource_type"]	 = asset.resource_type;
+		j["source_abs_path"] = asset.source_abs_path;
+		j["has_binary"]		 = asset.has_binary;
+	}
+
+	void from_json(const nlohmann::json& j, editor_asset_t& asset)
+	{
+		asset.guid			  = j.value<sid_t>("guid", 0);
+		asset.resource_type	  = j.value<resource_type_e>("resource_type", j.value<resource_type_e>("type", resource_type_e::invalid));
+		asset.source_abs_path = j.value<string_t>("source_abs_path", {});
+		asset.has_binary	  = j.value<bool>("has_binary", false);
+	}
 }

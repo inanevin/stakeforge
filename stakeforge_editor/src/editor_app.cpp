@@ -25,15 +25,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_app.hpp"
-#include "editor_action_menu_controller.hpp"
+#include "ui/editor_action_menu_controller.hpp"
 #include "editor_directories.hpp"
-#include "editor_modal_controller.hpp"
-#include "editor_popup_controller.hpp"
+#include "ui/editor_modal_controller.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
-#include "editor_text_rasterization.hpp"
-#include "panels/editor_panel.hpp"
-#include "panels/editor_theme.hpp"
+#include "ui/editor_text_rasterization.hpp"
+#include "ui/panels/editor_panel.hpp"
+#include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -436,7 +436,7 @@ namespace sfg
 	bool editor_app_t::load_main_world_from_project()
 	{
 		const string_t assets_dir = editor_directories_t::get_project_assets_directory(_current_project);
-		if (!file_system_t::exists(assets_dir.c_str()) && !file_system_t::create_directory(assets_dir.c_str()))
+		if (!editor_directories_t::ensure_project_assets_directory(_current_project))
 			return false;
 
 		const world_handle_t world = _world_controller.create_world();
@@ -528,8 +528,7 @@ namespace sfg
 		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), _current_project.path.c_str()))
 			return false;
 
-		const string_t assets_dir = editor_directories_t::get_project_assets_directory(_current_project);
-		if (!file_system_t::exists(assets_dir.c_str()) && !file_system_t::create_directory(assets_dir.c_str()))
+		if (!editor_directories_t::ensure_project_assets_directory(_current_project))
 			return false;
 
 		editor_settings_t::get().get_project() = _current_project;
