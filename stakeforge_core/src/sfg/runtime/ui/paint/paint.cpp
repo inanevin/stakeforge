@@ -54,14 +54,15 @@ namespace sfg::ui
 
 	void paint_layer_t::init(u32 max_widgets)
 	{
+		_defs.init(max_widgets);
+		_clip_stack.init(max_widgets);
 		_defs.resize(max_widgets);
-		_clip_stack.reserve(64);
 	}
 
 	void paint_layer_t::uninit()
 	{
-		_defs.resize(0);
-		_clip_stack.resize(0);
+		_clip_stack.uninit();
+		_defs.uninit();
 	}
 
 	paint_def_t& paint_layer_t::def(widget_id_t id)

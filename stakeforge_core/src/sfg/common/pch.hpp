@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <chrono>
 
 #include <sfg/data/vector.hpp>
+#include <sfg/data/fixed_vector.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/mutex.hpp>

@@ -58,30 +58,33 @@ namespace sfg::ui
 	{
 		SFG_ASSERT(max_widgets > 0 && max_widgets <= 0xFFFEu);
 		_max_widgets = max_widgets;
+		_nodes.init(max_widgets);
+		_layout_ins.init(max_widgets);
+		_layout_outs.init(max_widgets);
+		_custom_cbs.init(max_widgets);
+		_free_list.init(max_widgets);
+		_dfs.init(max_widgets);
+		_dfs_descendants.init(max_widgets);
 		_nodes.resize(max_widgets);
 		_layout_ins.resize(max_widgets);
 		_layout_outs.resize(max_widgets);
 		_custom_cbs.resize(max_widgets);
-		_free_list.reserve(max_widgets);
 
 		for (u32 i = 0; i < max_widgets; ++i)
 			_free_list.push_back(static_cast<widget_id_t>(max_widgets - 1 - i));
-
-		_dfs.reserve(max_widgets);
-		_dfs_descendants.reserve(max_widgets);
 
 		_root = allocate();
 	}
 
 	void layout_tree_t::uninit()
 	{
-		_nodes.resize(0);
-		_layout_ins.resize(0);
-		_layout_outs.resize(0);
-		_custom_cbs.resize(0);
-		_free_list.resize(0);
-		_dfs.resize(0);
-		_dfs_descendants.resize(0);
+		_dfs_descendants.uninit();
+		_dfs.uninit();
+		_free_list.uninit();
+		_custom_cbs.uninit();
+		_layout_outs.uninit();
+		_layout_ins.uninit();
+		_nodes.uninit();
 		_alive_count = 0;
 		_root		 = NULL_WIDGET;
 	}
@@ -234,7 +237,7 @@ namespace sfg::ui
 
 	namespace
 	{
-		u32 dfs_emit(vector_t<tree_node_t>& nodes, vector_t<widget_id_t>& dfs, vector_t<u32>& dfs_desc, widget_id_t id, u8 depth)
+		u32 dfs_emit(fixed_vector_t<tree_node_t>& nodes, fixed_vector_t<widget_id_t>& dfs, fixed_vector_t<u32>& dfs_desc, widget_id_t id, u8 depth)
 		{
 			nodes[id].depth	 = depth;
 			const u32 my_idx = static_cast<u32>(dfs.size());

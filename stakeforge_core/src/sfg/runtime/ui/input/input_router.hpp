@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/vector.hpp>
+#include <sfg/data/fixed_vector.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -105,7 +105,7 @@ namespace sfg::ui
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const input_config_t& cfg = {});
+		void init(const input_config_t& cfg = {}, u32 max_widgets = 1024);
 		void uninit();
 		void tick(const layout_tree_t& tree, f32 dt_seconds);
 
@@ -194,8 +194,8 @@ namespace sfg::ui
 
 	private:
 		hash_map_t<widget_id_t, listener_bundle_t> _listeners;
-		vector_t<widget_id_t>					   _focus_order;
-		vector_t<widget_id_t>					   _hit_order;
+		fixed_vector_t<widget_id_t>				   _focus_order;
+		fixed_vector_t<widget_id_t>				   _hit_order;
 		input_config_t							   _config = {};
 		const layout_tree_t*					   _tree   = nullptr;
 

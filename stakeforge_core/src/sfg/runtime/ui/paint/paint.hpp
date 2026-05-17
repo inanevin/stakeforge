@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/vector.hpp>
+#include <sfg/data/fixed_vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -134,8 +134,8 @@ namespace sfg::ui
 		}
 
 	private:
-		vector_t<paint_def_t> _defs;
-		vector_t<u8>		  _clip_stack;
-		paint_pipelines_t	  _pipelines = {};
+		fixed_vector_t<paint_def_t> _defs;
+		fixed_vector_t<u8>			_clip_stack;
+		paint_pipelines_t			_pipelines = {};
 	};
 }

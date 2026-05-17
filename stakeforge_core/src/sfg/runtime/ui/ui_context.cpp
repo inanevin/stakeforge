@@ -59,11 +59,12 @@ namespace sfg::ui
 
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
-		_input.init(cfg.input);
+		_input.init(cfg.input, cfg.max_widgets);
 		_canvas.init(cfg.canvas);
 		_text_pool.init(cfg.text_pool_capacity);
+		_pre_layout_tick_defs.init(cfg.max_widgets);
+		_pre_layout_tick_widgets.init(cfg.max_widgets);
 		_pre_layout_tick_defs.resize(cfg.max_widgets);
-		_pre_layout_tick_widgets.reserve(cfg.max_widgets);
 		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
 		_debug_hover_text.len = 0;
 
@@ -88,8 +89,8 @@ namespace sfg::ui
 		_widget_debug_names.clear();
 		_widget_texts.clear();
 		_debug_hover_text = {};
-		_pre_layout_tick_widgets.resize(0);
-		_pre_layout_tick_defs.resize(0);
+		_pre_layout_tick_widgets.uninit();
+		_pre_layout_tick_defs.uninit();
 		_text_pool.uninit();
 		_canvas.uninit();
 		_input.uninit();

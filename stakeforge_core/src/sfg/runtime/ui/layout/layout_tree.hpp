@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/vector.hpp>
+#include <sfg/data/fixed_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec4f.hpp>
@@ -200,17 +200,17 @@ namespace sfg::ui
 		};
 
 	private:
-		vector_t<tree_node_t>  _nodes;
-		vector_t<layout_in_t>  _layout_ins;
-		vector_t<layout_out_t> _layout_outs;
-		vector_t<custom_cb_t>  _custom_cbs;
-		vector_t<widget_id_t>  _free_list;
-		vector_t<widget_id_t>  _dfs;
-		vector_t<u32>		   _dfs_descendants;
-		widget_id_t			   _root		   = NULL_WIDGET;
-		u32					   _max_widgets	   = 0;
-		u32					   _alive_count	   = 0;
-		bool				   _topology_dirty = true;
-		bool				   _layout_dirty   = true;
+		fixed_vector_t<tree_node_t>	 _nodes;
+		fixed_vector_t<layout_in_t>	 _layout_ins;
+		fixed_vector_t<layout_out_t> _layout_outs;
+		fixed_vector_t<custom_cb_t>	 _custom_cbs;
+		fixed_vector_t<widget_id_t>	 _free_list;
+		fixed_vector_t<widget_id_t>	 _dfs;
+		fixed_vector_t<u32>			 _dfs_descendants;
+		widget_id_t					 _root			 = NULL_WIDGET;
+		u32							 _max_widgets	 = 0;
+		u32							 _alive_count	 = 0;
+		bool						 _topology_dirty = true;
+		bool						 _layout_dirty	 = true;
 	};
 }

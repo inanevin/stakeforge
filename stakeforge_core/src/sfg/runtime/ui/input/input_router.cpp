@@ -41,14 +41,12 @@ namespace sfg::ui
 		}
 	}
 
-	void input_router_t::init(const input_config_t& cfg)
+	void input_router_t::init(const input_config_t& cfg, u32 max_widgets)
 	{
 		_config = cfg;
 		_listeners.clear();
-		_focus_order.resize(0);
-		_hit_order.resize(0);
-		_focus_order.reserve(64);
-		_hit_order.reserve(256);
+		_focus_order.init(max_widgets);
+		_hit_order.init(max_widgets);
 		_hovered = NULL_WIDGET;
 		_focused = NULL_WIDGET;
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
@@ -62,8 +60,8 @@ namespace sfg::ui
 	void input_router_t::uninit()
 	{
 		_listeners.clear();
-		_focus_order.resize(0);
-		_hit_order.resize(0);
+		_hit_order.uninit();
+		_focus_order.uninit();
 	}
 
 	void input_router_t::set_listener(widget_id_t id, const listener_bundle_t& b)

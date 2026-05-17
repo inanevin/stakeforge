@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/fixed_vector.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -198,7 +199,7 @@ namespace sfg::ui
 		layout_tree_t							   _tree;
 		snapshot_slot_t							   _snapshot_slots[3] = {};
 		paint_layer_t							   _paint;
-		vector_t<widget_id_t>					   _pre_layout_tick_widgets;
+		fixed_vector_t<widget_id_t>				   _pre_layout_tick_widgets;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
 		text_allocator_t						   _text_pool;
@@ -211,6 +212,6 @@ namespace sfg::ui
 		f32										   _dpi_scale		 = 1.0f;
 		resource_handle_t						   _debug_font		 = NULL_RESOURCE_HANDLE;
 		bool									   _debug_draw		 = false;
-		vector_t<pre_layout_tick_def_t>			   _pre_layout_tick_defs;
+		fixed_vector_t<pre_layout_tick_def_t>	   _pre_layout_tick_defs;
 	};
 }
