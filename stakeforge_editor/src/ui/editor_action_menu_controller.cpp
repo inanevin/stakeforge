@@ -79,12 +79,12 @@ namespace sfg
 
 		bool has_children(const editor_action_menu_row_desc_t& row)
 		{
-			return row.child_count > 0;
+			return !row.disabled && row.child_count > 0;
 		}
 
 		bool has_icon_slot(const editor_action_menu_row_desc_t& row)
 		{
-			return has_children(row) || is_toggle_row(row);
+			return row.icon != nullptr || has_children(row) || is_toggle_row(row);
 		}
 
 		bool is_toggled(const editor_action_menu_row_desc_t& row)
@@ -101,7 +101,16 @@ namespace sfg
 				return ICON_DD_RIGHT;
 			if (is_toggle_row(row) && is_toggled(row))
 				return ICON_CHECK;
-			return nullptr;
+			return row.icon;
+		}
+
+		vec4f_t row_icon_color(const editor_action_menu_row_desc_t& row, const editor_action_menu_style_t& style)
+		{
+			if (row.disabled)
+				return style.disabled_text_color;
+			if (row.icon != nullptr && row.has_icon_color && !has_children(row) && !(is_toggle_row(row) && is_toggled(row)))
+				return row.icon_color;
+			return style.icon_color;
 		}
 	}
 
@@ -131,6 +140,10 @@ namespace sfg
 		row_listener.on_click			   = handle_row_click;
 		row_listener.on_hover_enter		   = handle_row_hover;
 
+		ui::listener_bundle_t panel_listener = {};
+		panel_listener.user_data			 = this;
+		panel_listener.on_hover_enter		 = handle_panel_hover;
+
 		for (u32 d = 0; d < MAX_DEPTH; ++d)
 		{
 			_panels[d] = ui.allocate_widget();
@@ -154,6 +167,7 @@ namespace sfg
 			panel_rect.outline_color	   = theme.color_outline;
 			panel_rect.outline_thickness   = theme.outline_thickness;
 			paint.set_rect(_panels[d], panel_rect);
+			ui.get_input().set_listener(_panels[d], panel_listener);
 
 			for (u32 r = 0; r < MAX_ROWS; ++r)
 			{
@@ -348,7 +362,7 @@ namespace sfg
 			return;
 
 		const editor_action_menu_row_desc_t& desc = menu._active_rows[depth][row];
-		if (is_title_row(desc))
+		if (is_title_row(desc) || desc.disabled)
 			return;
 
 		if (is_toggle_row(desc))
@@ -393,7 +407,7 @@ namespace sfg
 			return;
 
 		const editor_action_menu_row_desc_t& desc = menu._active_rows[depth][row];
-		if (is_title_row(desc))
+		if (is_title_row(desc) || desc.disabled)
 		{
 			menu.hide_panels_from(depth + 1);
 			menu.refresh_popup_scope();
@@ -404,6 +418,20 @@ namespace sfg
 		else
 			menu.hide_panels_from(depth + 1);
 		menu.refresh_popup_scope();
+	}
+
+	void editor_action_menu_controller_t::handle_panel_hover(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, const vec2f_t&, void* user_data)
+	{
+		editor_action_menu_controller_t& menu = *static_cast<editor_action_menu_controller_t*>(user_data);
+		for (u32 d = 0; d < MAX_DEPTH; ++d)
+		{
+			if (menu._panels[d] != id)
+				continue;
+
+			menu.hide_panels_from(d + 1);
+			menu.refresh_popup_scope();
+			return;
+		}
 	}
 
 	void editor_action_menu_controller_t::handle_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -466,19 +494,23 @@ namespace sfg
 		y = math::clamp(y, screen_y0, math::max(screen_y0, screen_y1 - height_px));
 
 		ui::layout_in_t& panel_in = tree.in(_panels[depth]);
-		panel_in.flags			  = ui::wf_visible;
+		panel_in.flags			  = ui::wf_visible | ui::wf_input;
 		panel_in.pos_value		  = {x, y};
 		panel_in.size_value		  = {width, 0.0f};
 		panel_in.child_margins	  = {style.padding_y, 0.0f, style.padding_y, 0.0f};
 		set_rect_color(paint, _panels[depth], style.dropdown_color);
+		ui::paint_def_t& def	   = paint.def(_panels[depth]);
+		def.rect.outline_color	   = theme.color_outline_light;
+		def.rect.outline_thickness = theme.outline_thickness;
 
 		for (u32 i = 0; i < row_count; ++i)
 		{
 			const bool is_title = is_title_row(rows[i]);
-			set_widget_visible(tree, _row_frames[depth][i], true, !is_title);
+			const bool disabled = rows[i].disabled;
+			set_widget_visible(tree, _row_frames[depth][i], true, !is_title && !disabled);
 			tree.in(_row_frames[depth][i]).size_value.y = style.row_height;
 			set_rect_color(paint, _row_frames[depth][i], {0.0f, 0.0f, 0.0f, 0.0f});
-			paint.def(_row_frames[depth][i]).state_flags = is_title ? 0 : static_cast<u8>(ui::psf_has_hover | ui::psf_has_press);
+			paint.def(_row_frames[depth][i]).state_flags = is_title || disabled ? 0 : static_cast<u8>(ui::psf_has_hover | ui::psf_has_press);
 			paint.set_hover_color(_row_frames[depth][i], style.hover_color);
 			paint.set_press_color(_row_frames[depth][i], style.press_color);
 
@@ -501,7 +533,7 @@ namespace sfg
 						   _ui->widget_text(_row_labels[depth][i]),
 						   _ui->widget_text_len(_row_labels[depth][i]),
 						   {.font		 = is_title ? theme.font_title : theme.font_default,
-							.color		 = is_title ? style.title_color : style.text_color,
+							.color		 = is_title ? style.title_color : (disabled ? style.disabled_text_color : style.text_color),
 							.point_size	 = is_title ? style.title_size : style.text_size,
 							.spacing	 = 0,
 							.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
@@ -515,7 +547,7 @@ namespace sfg
 				shortcut_in.pos_value		 = {1.0f - (style.padding_x / width), 0.5f};
 				if (has_icon_slot(rows[i]))
 					shortcut_in.pos_value.x = 1.0f - ((style.padding_x * 2.0f + style.icon_size) / width);
-				paint.def(_row_shortcuts[depth][i]).text.color		= style.shortcut_color;
+				paint.def(_row_shortcuts[depth][i]).text.color		= disabled ? style.disabled_text_color : style.shortcut_color;
 				paint.def(_row_shortcuts[depth][i]).text.point_size = style.shortcut_size;
 			}
 			else
@@ -546,7 +578,7 @@ namespace sfg
 				icon_in.pos_value		 = {1.0f - (style.padding_x / width), 0.5f};
 				icon_in.size_value		 = {style.icon_size, style.row_height};
 				_ui->set_widget_text(_row_icon_labels[depth][i], icon);
-				paint.def(_row_icon_labels[depth][i]).text.color	  = style.icon_color;
+				paint.def(_row_icon_labels[depth][i]).text.color	  = row_icon_color(rows[i], style);
 				paint.def(_row_icon_labels[depth][i]).text.point_size = style.icon_size;
 			}
 			else

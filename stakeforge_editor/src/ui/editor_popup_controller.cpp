@@ -90,9 +90,9 @@ namespace sfg
 		frame_in.child_margins	  = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
 
 		ui::vg_rect_paint_t frame_rect = {};
-		frame_rect.fill_color_a		   = theme.color_frame;
-		frame_rect.fill_color_b		   = theme.color_frame;
-		frame_rect.outline_color	   = theme.color_outline;
+		frame_rect.fill_color_a		   = theme.color_frame_light;
+		frame_rect.fill_color_b		   = theme.color_frame_light;
+		frame_rect.outline_color	   = theme.color_outline_light;
 		frame_rect.outline_thickness   = theme.outline_thickness;
 		paint.set_rect(_frame, frame_rect);
 

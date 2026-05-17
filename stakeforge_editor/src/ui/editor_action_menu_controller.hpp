@@ -58,6 +58,8 @@ namespace sfg
 		editor_action_menu_row_kind_e		 kind			  = editor_action_menu_row_kind_e::item;
 		const char*							 text			  = nullptr;
 		const char*							 shortcut		  = nullptr;
+		const char*							 icon			  = nullptr;
+		vec4f_t								 icon_color		  = {1, 1, 1, 1};
 		const editor_action_menu_row_desc_t* children		  = nullptr;
 		u16									 child_count	  = 0;
 		u16									 command		  = 0;
@@ -65,7 +67,9 @@ namespace sfg
 		editor_action_menu_toggle_query_fn	 toggle_query	  = nullptr;
 		editor_action_menu_toggle_fn		 toggle_callback  = nullptr;
 		void*								 toggle_user_data = nullptr;
+		bool								 has_icon_color	  = false;
 		bool								 close_on_toggle  = false;
+		bool								 disabled		  = false;
 	};
 
 	struct editor_action_menu_style_t
@@ -75,6 +79,7 @@ namespace sfg
 		vec4f_t press_color			 = {0, 0, 0, 0};
 		vec4f_t text_color			 = {1, 1, 1, 1};
 		vec4f_t shortcut_color		 = {1, 1, 1, 1};
+		vec4f_t disabled_text_color	 = {1, 1, 1, 1};
 		vec4f_t title_color			 = {1, 1, 1, 1};
 		vec4f_t title_line_color	 = {1, 1, 1, 1};
 		vec4f_t icon_color			 = {1, 1, 1, 1};
@@ -145,6 +150,7 @@ namespace sfg
 
 		static void handle_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void handle_row_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void handle_panel_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void handle_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:

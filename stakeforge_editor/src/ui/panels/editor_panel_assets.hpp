@@ -27,12 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset_manager.hpp"
+#include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include "ui/widgets/editor_widgets_slider.hpp"
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -71,24 +73,35 @@ namespace sfg
 		void apply_pane_split();
 
 		void		  open_filter_popup();
+		void		  open_action_menu(const vec2f_t& pos, bool folder_context, u64 folder_hash);
 		void		  refresh_folder_rows();
 		void		  append_folder_rows(editor_asset_node_handle_t node, u16 depth, const frame_string_t<char>& path);
 		folder_row_t& get_or_create_folder_row(size_t index);
-		void		  update_folder_row(folder_row_t& row, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded);
+		void		  update_folder_row(folder_row_t& row, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  refresh_folder_row_backgrounds();
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
 		void		  select_folder_row(u64 path_hash);
 		void		  toggle_folder_fold(u64 path_hash);
+		void		  toggle_folder_favourite(u64 path_hash);
 		bool		  folder_matches_search(const editor_asset_node_t& node) const;
 		bool		  folder_subtree_matches_search(editor_asset_node_handle_t node) const;
-		bool		  is_folder_folded(u64 path_hash) const;
-		bool		  has_folder_child(editor_asset_node_handle_t node) const;
+		bool		  is_folder_expanded(u64 path_hash) const;
+		bool		  is_folder_favourite(u64 path_hash) const;
+		bool		  is_folder_hidden(const editor_asset_node_t& node) const;
+		bool		  is_folder_promoted(const editor_asset_node_t& node) const;
+		bool		  folder_passes_filter(u64 path_hash) const;
+		bool		  folder_subtree_has_visible_row(editor_asset_node_handle_t node, const frame_string_t<char>& path) const;
+		bool		  has_visible_folder_child(editor_asset_node_handle_t node, const frame_string_t<char>& path) const;
 
 		static void on_filter_popup_pressed(u16 value, void* user_data);
 		static void on_filter_button_pressed(bool toggled, void* user_data);
 		static void on_refresh_button_pressed(bool toggled, void* user_data);
+		static void on_action_menu_command(u16 command, void* user_data);
 		static void on_search_changed(const char* value, void* user_data);
+		static void on_thumbnail_slider_changed(f32 value, void* user_data);
+		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_asset_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_folder_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -101,30 +114,43 @@ namespace sfg
 			ui::widget_id_t root		 = NULL_WIDGET;
 			ui::widget_id_t icon		 = NULL_WIDGET;
 			ui::widget_id_t icon_text	 = NULL_WIDGET;
+			ui::widget_id_t star		 = NULL_WIDGET;
+			ui::widget_id_t star_text	 = NULL_WIDGET;
 			ui::widget_id_t label		 = NULL_WIDGET;
 			u64				path_hash	 = 0;
 			u16				depth		 = 0;
 			bool			has_children = false;
+			bool			is_favourite = false;
 		};
 
 	private:
-		editor_icon_button_t   _filter_button			 = {};
-		editor_icon_button_t   _refresh_button			 = {};
-		editor_input_field_t   _search_input			 = {};
-		editor_split_border_t  _split_border			 = {};
-		editor_scrollbar_t	   _left_scrollbar			 = {};
-		ui::widget_id_t		   _assets_left_pane		 = NULL_WIDGET;
-		ui::widget_id_t		   _assets_left_pane_top_row = NULL_WIDGET;
-		ui::widget_id_t		   _assets_left_pane_body	 = NULL_WIDGET;
-		ui::widget_id_t		   _assets_body_pane		 = NULL_WIDGET;
-		vector_t<folder_row_t> _folder_rows				 = {};
-		vector_t<u64>		   _folded_folder_hashes	 = {};
-		string_t			   _search_str				 = {};
-		u64					   _selected_folder_hash	 = 0;
-		u32					   _asset_tree_generation	 = 0;
-		u32					   _visible_folder_row_count = 0;
-		f32					   _pane_split				 = 0.3f;
-		u8					   _filter_flags			 = assets_filter_all;
-		bool				   _has_selected_folder		 = false;
+		editor_icon_button_t		  _filter_button			  = {};
+		editor_icon_button_t		  _refresh_button			  = {};
+		editor_input_field_t		  _search_input				  = {};
+		editor_slider_t				  _thumbnail_slider			  = {};
+		editor_split_border_t		  _split_border				  = {};
+		editor_scrollbar_t			  _left_scrollbar			  = {};
+		ui::widget_id_t				  _assets_left_pane			  = NULL_WIDGET;
+		ui::widget_id_t				  _assets_left_pane_top_row	  = NULL_WIDGET;
+		ui::widget_id_t				  _assets_left_pane_body	  = NULL_WIDGET;
+		ui::widget_id_t				  _assets_body_pane			  = NULL_WIDGET;
+		ui::widget_id_t				  _assets_body_pane_top		  = NULL_WIDGET;
+		ui::widget_id_t				  _assets_body_pane_divider	  = NULL_WIDGET;
+		ui::widget_id_t				  _assets_body_pane_bottom	  = NULL_WIDGET;
+		editor_action_menu_row_desc_t _action_menu_rows[5]		  = {};
+		editor_action_menu_row_desc_t _action_menu_create_rows[1] = {};
+		vector_t<folder_row_t>		  _folder_rows				  = {};
+		vector_t<u64>				  _expanded_folder_hashes	  = {};
+		vector_t<u64>				  _favourite_folder_hashes	  = {};
+		string_t					  _search_str				  = {};
+		u64							  _action_menu_folder_hash	  = 0;
+		u64							  _selected_folder_hash		  = 0;
+		u32							  _asset_tree_generation	  = 0;
+		u32							  _visible_folder_row_count	  = 0;
+		f32							  _thumbnail_slider_value	  = 1.0f;
+		f32							  _pane_split				  = 0.3f;
+		u8							  _filter_flags				  = assets_filter_all;
+		bool						  _has_action_menu_folder	  = false;
+		bool						  _has_selected_folder		  = false;
 	};
 }

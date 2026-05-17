@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
@@ -46,9 +47,19 @@ namespace sfg
 #define ASSETS_PANE_SPLIT_MAX			   0.35f
 #define ASSETS_SPLIT_BORDER_THICKNESS_MULT 2.0f
 #define ASSETS_FOLDER_INDENT_MULT		   2.0f
+#define ASSETS_SCROLL_WHEEL_STEP		   32.0f
 
 	namespace
 	{
+		enum assets_action_menu_command_e : u16
+		{
+			assets_action_menu_create_folder	= 1,
+			assets_action_menu_delete			= 2,
+			assets_action_menu_duplicate		= 3,
+			assets_action_menu_toggle_favourite = 4,
+			assets_action_menu_open_in_os		= 5,
+		};
+
 		const char* assets_filter_to_text(u8 filter)
 		{
 			return filter == assets_filter_favourites ? "Favourites" : "All";
@@ -171,6 +182,13 @@ namespace sfg
 		left_scrollbar_config.target					= _assets_left_pane_body;
 		left_scrollbar_config.axes						= editor_scrollbar_axis_y;
 		_left_scrollbar.init(ui, left_scrollbar_config);
+
+		ui::listener_bundle_t body_listener = {};
+		body_listener.user_data				= this;
+		body_listener.on_click				= on_assets_body_clicked;
+		body_listener.on_wheel				= on_assets_body_wheel;
+		ui.get_input().set_listener(_assets_left_pane_body, body_listener);
+
 		ui.set_pre_layout_tick(_assets_left_pane_body, on_asset_tree_tick, this);
 
 		editor_split_border_t::config_t split_config = {};
@@ -183,6 +201,48 @@ namespace sfg
 		ui.set_widget_debug_name(_assets_body_pane, "assets_body_pane");
 		tree.attach(_root, _assets_body_pane);
 
+		ui::layout_in_t& body_pane_in = tree.in(_assets_body_pane);
+		body_pane_in.flow			  = ui::flow_e::column;
+		body_pane_in.child_spacing	  = 0.0f;
+		body_pane_in.child_margins	  = {0.0f, 0.0f, 0.0f, 0.0f};
+
+		_assets_body_pane_top = ui.allocate_widget();
+		ui.set_widget_debug_name(_assets_body_pane_top, "assets_body_pane_top");
+		tree.attach(_assets_body_pane, _assets_body_pane_top);
+
+		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
+		body_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		body_top_in.size_mode_y		 = ui::axis_mode_e::fill;
+		body_top_in.size_value		 = {1.0f, 1.0f};
+
+		_assets_body_pane_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.divider_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		ui.set_widget_debug_name(_assets_body_pane_divider, "assets_body_pane_divider");
+
+		_assets_body_pane_bottom = ui.allocate_widget();
+		ui.set_widget_debug_name(_assets_body_pane_bottom, "assets_body_pane_bottom");
+		tree.attach(_assets_body_pane, _assets_body_pane_bottom);
+
+		ui::layout_in_t& body_bottom_in = tree.in(_assets_body_pane_bottom);
+		body_bottom_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		body_bottom_in.size_mode_y		= ui::axis_mode_e::fixed;
+		body_bottom_in.size_value		= {1.0f, theme.item_area_height};
+		body_bottom_in.flow				= ui::flow_e::row;
+		body_bottom_in.child_spacing	= theme.item_spacing;
+		body_bottom_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+
+		editor_slider_config_t slider_config = {};
+		slider_config.label					 = "Size";
+		slider_config.on_changed			 = on_thumbnail_slider_changed;
+		slider_config.user_data				 = this;
+		slider_config.value					 = _thumbnail_slider_value;
+		slider_config.min_value				 = 0.2f;
+		slider_config.max_value				 = 1.0f;
+		slider_config.width					 = theme.item_width * 2.0f;
+		slider_config.decimal_count			 = 2;
+		slider_config.fixed_width			 = true;
+		slider_config.display_label			 = true;
+		_thumbnail_slider.init(ui, _assets_body_pane_bottom, slider_config);
+
 		apply_pane_split();
 		refresh_folder_rows();
 	}
@@ -193,23 +253,34 @@ namespace sfg
 		_search_input.uninit();
 		_filter_button.uninit();
 		_refresh_button.uninit();
+		_thumbnail_slider.uninit();
 		_split_border.uninit();
 		_left_scrollbar.uninit();
 		_ui->deallocate_widget(_assets_left_pane_top_row);
 		_ui->deallocate_widget(_assets_left_pane_body);
 		_ui->deallocate_widget(_assets_left_pane);
+		_ui->deallocate_widget(_assets_body_pane_top);
+		_ui->deallocate_widget(_assets_body_pane_divider);
+		_ui->deallocate_widget(_assets_body_pane_bottom);
 		_ui->deallocate_widget(_assets_body_pane);
 
 		_assets_left_pane		  = NULL_WIDGET;
 		_assets_left_pane_top_row = NULL_WIDGET;
 		_assets_left_pane_body	  = NULL_WIDGET;
 		_assets_body_pane		  = NULL_WIDGET;
+		_assets_body_pane_top	  = NULL_WIDGET;
+		_assets_body_pane_divider = NULL_WIDGET;
+		_assets_body_pane_bottom  = NULL_WIDGET;
 		_folder_rows.clear();
-		_folded_folder_hashes.clear();
+		_expanded_folder_hashes.clear();
+		_favourite_folder_hashes.clear();
 		_search_str.clear();
+		_action_menu_folder_hash  = 0;
 		_selected_folder_hash	  = 0;
 		_asset_tree_generation	  = 0;
 		_visible_folder_row_count = 0;
+		_thumbnail_slider_value	  = 1.0f;
+		_has_action_menu_folder	  = false;
 		_has_selected_folder	  = false;
 
 		editor_panel_t::uninit();
@@ -217,18 +288,22 @@ namespace sfg
 
 	void editor_panel_assets_t::serialize(nlohmann::json& j) const
 	{
-		j				= nlohmann::json::object();
-		j["pane_split"] = _pane_split;
-		j["filter"]		= static_cast<u32>(_filter_flags);
-		j["search_str"] = _search_str;
+		j							= nlohmann::json::object();
+		j["pane_split"]				= _pane_split;
+		j["filter"]					= static_cast<u32>(_filter_flags);
+		j["search_str"]				= _search_str;
+		j["favourites"]				= _favourite_folder_hashes;
+		j["thumbnail_slider_value"] = _thumbnail_slider_value;
 	}
 
 	void editor_panel_assets_t::deserialize(const nlohmann::json& j)
 	{
-		_pane_split		= math::clamp(j.value<f32>("pane_split", _pane_split), ASSETS_PANE_SPLIT_MIN, ASSETS_PANE_SPLIT_MAX);
-		const u8 filter = static_cast<u8>(j.value<u32>("filter", static_cast<u32>(assets_filter_all))) & static_cast<u8>(assets_filter_all | assets_filter_favourites);
-		_filter_flags	= (filter & assets_filter_favourites) != 0 ? assets_filter_favourites : assets_filter_all;
-		_search_str		= j.value<string_t>("search_str", {});
+		_pane_split				 = math::clamp(j.value<f32>("pane_split", _pane_split), ASSETS_PANE_SPLIT_MIN, ASSETS_PANE_SPLIT_MAX);
+		const u8 filter			 = static_cast<u8>(j.value<u32>("filter", static_cast<u32>(assets_filter_all))) & static_cast<u8>(assets_filter_all | assets_filter_favourites);
+		_filter_flags			 = (filter & assets_filter_favourites) != 0 ? assets_filter_favourites : assets_filter_all;
+		_search_str				 = j.value<string_t>("search_str", {});
+		_favourite_folder_hashes = j.value<vector_t<u64>>("favourites", {});
+		_thumbnail_slider_value	 = math::clamp(j.value<f32>("thumbnail_slider_value", _thumbnail_slider_value), 0.2f, 1.0f);
 	}
 
 	void editor_panel_assets_t::make_visible(bool visible)
@@ -285,6 +360,81 @@ namespace sfg
 		popup->request_popup(desc);
 	}
 
+	void editor_panel_assets_t::open_action_menu(const vec2f_t& pos, bool folder_context, u64 folder_hash)
+	{
+		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
+		SFG_ASSERT(menu != nullptr);
+
+		_has_action_menu_folder	 = folder_context;
+		_action_menu_folder_hash = folder_context ? folder_hash : 0;
+
+		_action_menu_create_rows[0] = {
+			.text	 = "Folder",
+			.command = assets_action_menu_create_folder,
+		};
+
+		_action_menu_rows[0] = {
+			.text		 = "Create",
+			.children	 = _action_menu_create_rows,
+			.child_count = static_cast<u16>(sizeof(_action_menu_create_rows) / sizeof(_action_menu_create_rows[0])),
+		};
+		_action_menu_rows[1] = {
+			.text	  = "Delete",
+			.command  = assets_action_menu_delete,
+			.disabled = !folder_context,
+		};
+		_action_menu_rows[2] = {
+			.text	  = "Duplicate",
+			.command  = assets_action_menu_duplicate,
+			.disabled = !folder_context,
+		};
+		_action_menu_rows[3] = {
+			.text			= "Toggle Favourite",
+			.icon			= ICON_STAR,
+			.icon_color		= editor_theme_t::get().color_accent1,
+			.command		= assets_action_menu_toggle_favourite,
+			.has_icon_color = true,
+			.disabled		= !folder_context,
+		};
+		_action_menu_rows[4] = {
+			.text	 = "Open In OS",
+			.command = assets_action_menu_open_in_os,
+		};
+
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		editor_action_menu_style_t style = {};
+		style.dropdown_color			 = theme.color_frame;
+		style.hover_color				 = theme.color_panel_light;
+		style.press_color				 = theme.color_light;
+		style.text_color				 = theme.color_text0;
+		style.shortcut_color			 = theme.color_text2;
+		style.disabled_text_color		 = theme.color_text_disabled;
+		style.title_color				 = theme.color_text2;
+		style.title_line_color			 = theme.color_text2;
+		style.icon_color				 = theme.color_text0;
+		style.min_width					 = theme.item_width * 1.4f;
+		style.row_height				 = theme.item_height;
+		style.text_size					 = theme.text_default_px_size;
+		style.shortcut_size				 = theme.text_small_title_px_size;
+		style.title_size				 = theme.text_small_title_px_size;
+		style.title_line_thickness		 = theme.divider_thickness;
+		style.icon_size					 = theme.icon_default_px_size;
+		style.padding_x					 = theme.margin_horizontal;
+		style.padding_y					 = theme.margin_vertical;
+		style.shortcut_gap				 = theme.item_spacing * 4.0f;
+		style.title_gap					 = theme.item_spacing;
+
+		editor_action_menu_desc_t desc = {};
+		desc.rows					   = _action_menu_rows;
+		desc.row_count				   = static_cast<u16>(sizeof(_action_menu_rows) / sizeof(_action_menu_rows[0]));
+		desc.pos					   = pos;
+		desc.style					   = style;
+		desc.command_fn				   = on_action_menu_command;
+		desc.command_user_data		   = this;
+		menu->request_action_menu(desc);
+	}
+
 	void editor_panel_assets_t::refresh_folder_rows()
 	{
 		const editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
@@ -312,16 +462,26 @@ namespace sfg
 		const editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
 		const editor_asset_tree_t&	  asset_tree	= asset_manager.get_asset_tree();
 		const editor_asset_node_t&	  asset_node	= asset_tree.value(node);
+		if (is_folder_hidden(asset_node))
+			return;
+
 		if (!_search_str.empty() && !folder_subtree_matches_search(node))
 			return;
 
-		const u64 path_hash = hashing_t::hash_fnv_1a64(path.c_str());
+		const u64  path_hash = hashing_t::hash_fnv_1a64(path.c_str());
+		const bool promoted	 = is_folder_promoted(asset_node);
+		const bool favourite = is_folder_favourite(path_hash);
+		const bool visible	 = !promoted && folder_passes_filter(path_hash);
 
-		const bool has_children = has_folder_child(node);
-		const bool folded		= _search_str.empty() && is_folder_folded(path_hash);
+		bool folded = false;
+		if (visible)
+		{
+			const bool has_children = has_visible_folder_child(node, path);
+			folded					= _search_str.empty() && has_children && !is_folder_expanded(path_hash);
 
-		folder_row_t& row = get_or_create_folder_row(_visible_folder_row_count++);
-		update_folder_row(row, asset_node.name.c_str(), depth, path_hash, has_children, folded);
+			folder_row_t& row = get_or_create_folder_row(_visible_folder_row_count++);
+			update_folder_row(row, asset_node.name.c_str(), depth, path_hash, has_children, folded, favourite);
+		}
 
 		if (folded)
 			return;
@@ -335,8 +495,7 @@ namespace sfg
 				frame_string_t<char> child_path = path;
 				child_path += "/";
 				child_path += child_node.name;
-				if (_search_str.empty() || folder_subtree_matches_search(child))
-					append_folder_rows(child, static_cast<u16>(depth + 1), child_path);
+				append_folder_rows(child, static_cast<u16>(depth + (visible ? 1 : 0)), child_path);
 			}
 
 			child = asset_tree.next_sibling(child);
@@ -417,6 +576,37 @@ namespace sfg
 		icon_text_in.size_mode_x	  = ui::axis_mode_e::fixed;
 		icon_text_in.size_mode_y	  = ui::axis_mode_e::fixed;
 
+		row.star = ui.allocate_widget();
+		ui.set_widget_debug_name(row.star, "asset_folder_row_star_wrapper");
+		tree.attach(row.root, row.star);
+		tree.draw_order(row.star) = tree.draw_order_const(row.root) + 2;
+
+		ui::layout_in_t& star_in = tree.in(row.star);
+		star_in.flags			 = 0;
+		star_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+		star_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		star_in.pos_value		 = {1.0f, 0.5f};
+		star_in.anchor_x		 = ui::anchor_e::end;
+		star_in.anchor_y		 = ui::anchor_e::center;
+		star_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		star_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		star_in.size_value		 = {theme.item_height, theme.item_height};
+
+		row.star_text = ui.allocate_widget();
+		ui.set_widget_debug_name(row.star_text, "asset_folder_row_star");
+		tree.attach(row.star, row.star_text);
+		tree.draw_order(row.star_text) = tree.draw_order_const(row.star) + 1;
+
+		ui::layout_in_t& star_text_in = tree.in(row.star_text);
+		star_text_in.flags			  = 0;
+		star_text_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
+		star_text_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		star_text_in.pos_value		  = {0.5f, 0.5f};
+		star_text_in.anchor_x		  = ui::anchor_e::center;
+		star_text_in.anchor_y		  = ui::anchor_e::center;
+		star_text_in.size_mode_x	  = ui::axis_mode_e::fixed;
+		star_text_in.size_mode_y	  = ui::axis_mode_e::fixed;
+
 		row.label = ui.allocate_widget();
 		ui.set_widget_debug_name(row.label, "asset_folder_row_label");
 		tree.attach(row.root, row.label);
@@ -434,7 +624,7 @@ namespace sfg
 		return _folder_rows.back();
 	}
 
-	void editor_panel_assets_t::update_folder_row(folder_row_t& row, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded)
+	void editor_panel_assets_t::update_folder_row(folder_row_t& row, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite)
 	{
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		ui::paint_layer_t&	  paint = _ui->get_paint();
@@ -443,12 +633,13 @@ namespace sfg
 		row.path_hash	 = path_hash;
 		row.depth		 = depth;
 		row.has_children = has_children;
+		row.is_favourite = is_favourite;
 
 		set_folder_row_visible(row, true);
 		update_folder_row_background(row);
 
 		ui::layout_in_t& row_in		 = tree.in(row.root);
-		row_in.child_margins		 = {0.0f, 0.0f, 0.0f, theme.margin_horizontal + static_cast<f32>(depth) * theme.indent_horizontal * ASSETS_FOLDER_INDENT_MULT};
+		row_in.child_margins		 = {0.0f, theme.item_height, 0.0f, theme.margin_horizontal + static_cast<f32>(depth) * theme.indent_horizontal * ASSETS_FOLDER_INDENT_MULT};
 		tree.in(row.icon).flags		 = has_children ? static_cast<u16>(ui::wf_visible | ui::wf_input) : static_cast<u16>(ui::wf_visible);
 		tree.in(row.icon_text).flags = ui::wf_visible | ui::wf_overlay;
 
@@ -458,6 +649,12 @@ namespace sfg
 					   _ui->widget_text(row.icon_text),
 					   _ui->widget_text_len(row.icon_text),
 					   {.font = theme.font_icons, .color = theme.color_text0, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_ui->set_widget_text(row.star_text, ICON_STAR);
+		paint.set_text(row.star_text,
+					   _ui->widget_text(row.star_text),
+					   _ui->widget_text_len(row.star_text),
+					   {.font = theme.font_icons, .color = theme.color_accent1, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_ui->set_widget_text(row.label, name);
 		paint.set_text(row.label,
@@ -493,6 +690,8 @@ namespace sfg
 		set_widget_visible(tree, row.root, visible, true);
 		set_widget_visible(tree, row.icon, visible, false);
 		tree.in(row.icon_text).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : 0;
+		tree.in(row.star).flags		 = visible && row.is_favourite ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : 0;
+		tree.in(row.star_text).flags = visible && row.is_favourite ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : 0;
 		set_widget_visible(tree, row.label, visible, false);
 	}
 
@@ -505,17 +704,33 @@ namespace sfg
 
 	void editor_panel_assets_t::toggle_folder_fold(u64 path_hash)
 	{
-		for (auto it = _folded_folder_hashes.begin(); it != _folded_folder_hashes.end(); ++it)
+		for (auto it = _expanded_folder_hashes.begin(); it != _expanded_folder_hashes.end(); ++it)
 		{
 			if (*it != path_hash)
 				continue;
 
-			_folded_folder_hashes.erase(it);
+			_expanded_folder_hashes.erase(it);
 			refresh_folder_rows();
 			return;
 		}
 
-		_folded_folder_hashes.push_back(path_hash);
+		_expanded_folder_hashes.push_back(path_hash);
+		refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::toggle_folder_favourite(u64 path_hash)
+	{
+		for (auto it = _favourite_folder_hashes.begin(); it != _favourite_folder_hashes.end(); ++it)
+		{
+			if (*it != path_hash)
+				continue;
+
+			_favourite_folder_hashes.erase(it);
+			refresh_folder_rows();
+			return;
+		}
+
+		_favourite_folder_hashes.push_back(path_hash);
 		refresh_folder_rows();
 	}
 
@@ -533,8 +748,12 @@ namespace sfg
 
 	bool editor_panel_assets_t::folder_subtree_matches_search(editor_asset_node_handle_t node) const
 	{
-		const editor_asset_tree_t& tree = editor_app_t::get().get_asset_manager().get_asset_tree();
-		if (folder_matches_search(tree.value(node)))
+		const editor_asset_tree_t& tree		  = editor_app_t::get().get_asset_manager().get_asset_tree();
+		const editor_asset_node_t& asset_node = tree.value(node);
+		if (is_folder_hidden(asset_node))
+			return false;
+
+		if (!is_folder_promoted(asset_node) && folder_matches_search(asset_node))
 			return true;
 
 		editor_asset_node_handle_t child = tree.first_child(node);
@@ -548,9 +767,9 @@ namespace sfg
 		return false;
 	}
 
-	bool editor_panel_assets_t::is_folder_folded(u64 path_hash) const
+	bool editor_panel_assets_t::is_folder_expanded(u64 path_hash) const
 	{
-		for (u64 hash : _folded_folder_hashes)
+		for (u64 hash : _expanded_folder_hashes)
 		{
 			if (hash == path_hash)
 				return true;
@@ -558,14 +777,78 @@ namespace sfg
 		return false;
 	}
 
-	bool editor_panel_assets_t::has_folder_child(editor_asset_node_handle_t node) const
+	bool editor_panel_assets_t::is_folder_favourite(u64 path_hash) const
+	{
+		for (u64 hash : _favourite_folder_hashes)
+		{
+			if (hash == path_hash)
+				return true;
+		}
+		return false;
+	}
+
+	bool editor_panel_assets_t::is_folder_hidden(const editor_asset_node_t& node) const
+	{
+		return !node.name.empty() && node.name[0] == '_';
+	}
+
+	bool editor_panel_assets_t::is_folder_promoted(const editor_asset_node_t& node) const
+	{
+		return node.name == "assets";
+	}
+
+	bool editor_panel_assets_t::folder_passes_filter(u64 path_hash) const
+	{
+		return _filter_flags != assets_filter_favourites || is_folder_favourite(path_hash);
+	}
+
+	bool editor_panel_assets_t::folder_subtree_has_visible_row(editor_asset_node_handle_t node, const frame_string_t<char>& path) const
+	{
+		const editor_asset_tree_t& tree		  = editor_app_t::get().get_asset_manager().get_asset_tree();
+		const editor_asset_node_t& asset_node = tree.value(node);
+		if (is_folder_hidden(asset_node))
+			return false;
+
+		if (!_search_str.empty() && !folder_subtree_matches_search(node))
+			return false;
+
+		const u64 path_hash = hashing_t::hash_fnv_1a64(path.c_str());
+		if (!is_folder_promoted(asset_node) && folder_passes_filter(path_hash))
+			return true;
+
+		editor_asset_node_handle_t child = tree.first_child(node);
+		while (!child.is_null())
+		{
+			const editor_asset_node_t& child_node = tree.value(child);
+			if (child_node.type == editor_asset_node_type_e::folder)
+			{
+				frame_string_t<char> child_path = path;
+				child_path += "/";
+				child_path += child_node.name;
+				if (folder_subtree_has_visible_row(child, child_path))
+					return true;
+			}
+
+			child = tree.next_sibling(child);
+		}
+		return false;
+	}
+
+	bool editor_panel_assets_t::has_visible_folder_child(editor_asset_node_handle_t node, const frame_string_t<char>& path) const
 	{
 		const editor_asset_tree_t& tree	 = editor_app_t::get().get_asset_manager().get_asset_tree();
 		editor_asset_node_handle_t child = tree.first_child(node);
 		while (!child.is_null())
 		{
-			if (tree.value(child).type == editor_asset_node_type_e::folder)
-				return true;
+			const editor_asset_node_t& child_node = tree.value(child);
+			if (child_node.type == editor_asset_node_type_e::folder)
+			{
+				frame_string_t<char> child_path = path;
+				child_path += "/";
+				child_path += child_node.name;
+				if (folder_subtree_has_visible_row(child, child_path))
+					return true;
+			}
 
 			child = tree.next_sibling(child);
 		}
@@ -576,6 +859,7 @@ namespace sfg
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel._filter_flags			 = value == assets_filter_favourites ? assets_filter_favourites : assets_filter_all;
+		panel.refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::on_filter_button_pressed(bool, void* user_data)
@@ -591,11 +875,44 @@ namespace sfg
 			panel.refresh_folder_rows();
 	}
 
+	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		if (command != assets_action_menu_toggle_favourite || !panel._has_action_menu_folder)
+			return;
+
+		panel.toggle_folder_favourite(panel._action_menu_folder_hash);
+	}
+
 	void editor_panel_assets_t::on_search_changed(const char* value, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel._search_str			 = value != nullptr ? value : "";
 		panel.refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::on_thumbnail_slider_changed(f32 value, void* user_data)
+	{
+		editor_panel_assets_t& panel  = *static_cast<editor_panel_assets_t*>(user_data);
+		panel._thumbnail_slider_value = value;
+	}
+
+	void editor_panel_assets_t::on_assets_body_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::right)
+			return;
+
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.open_action_menu(pos, false, 0);
+	}
+
+	void editor_panel_assets_t::on_assets_body_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)
+	{
+		editor_panel_assets_t&	panel = *static_cast<editor_panel_assets_t*>(user_data);
+		ui::layout_tree_t&		tree  = panel._ui->get_tree();
+		ui::layout_in_t&		in	  = tree.in(panel._assets_left_pane_body);
+		const ui::layout_out_t& out	  = tree.out(panel._assets_left_pane_body);
+		in.scroll_offset.y			  = math::clamp(in.scroll_offset.y + delta * ASSETS_SCROLL_WHEEL_STEP, -out.max_scroll.y, 0.0f);
 	}
 
 	void editor_panel_assets_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)
@@ -616,25 +933,28 @@ namespace sfg
 			panel.refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::on_folder_icon_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_panel_assets_t::on_folder_icon_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
-		if (btn != ui::mouse_button_e::left)
+		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)
 			return;
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		for (const folder_row_t& row : panel._folder_rows)
 		{
-			if (row.icon != id || !row.has_children)
+			if (row.icon != id)
 				continue;
 
-			panel.toggle_folder_fold(row.path_hash);
+			if (btn == ui::mouse_button_e::right)
+				panel.open_action_menu(pos, true, row.path_hash);
+			else if (row.has_children)
+				panel.toggle_folder_fold(row.path_hash);
 			return;
 		}
 	}
 
-	void editor_panel_assets_t::on_folder_row_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_panel_assets_t::on_folder_row_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
-		if (btn != ui::mouse_button_e::left)
+		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)
 			return;
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
@@ -643,7 +963,10 @@ namespace sfg
 			if (row.root != id)
 				continue;
 
-			panel.select_folder_row(row.path_hash);
+			if (btn == ui::mouse_button_e::right)
+				panel.open_action_menu(pos, true, row.path_hash);
+			else
+				panel.select_folder_row(row.path_hash);
 			return;
 		}
 	}

@@ -237,6 +237,7 @@ namespace sfg
 		style.press_color				 = _style.press_color;
 		style.text_color				 = _style.text_color;
 		style.shortcut_color			 = _style.shortcut_color;
+		style.disabled_text_color		 = editor_theme_t::get().color_text_disabled;
 		style.title_color				 = _style.title_color;
 		style.title_line_color			 = _style.title_line_color;
 		style.icon_color				 = _style.icon_color;
