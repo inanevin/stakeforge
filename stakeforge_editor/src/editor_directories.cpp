@@ -81,7 +81,6 @@ namespace sfg
 		file_system_t::fix_path(project_path);
 
 		string_t directory = file_system_t::get_directory_of_file(project_path.c_str());
-		file_system_t::fix_path(directory);
 		if (!directory.empty() && directory.back() != '/')
 			directory += '/';
 		directory += "assets/";

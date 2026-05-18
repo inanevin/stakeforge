@@ -84,6 +84,13 @@ namespace sfg
 		void		  select_folder_row(u64 path_hash);
 		void		  toggle_folder_fold(u64 path_hash);
 		void		  toggle_folder_favourite(u64 path_hash);
+		void		  create_folder();
+		void		  delete_folder();
+		void		  duplicate_folder();
+		void		  open_folder_directory() const;
+		string_t	  get_action_menu_target_folder_path() const;
+		string_t	  get_folder_absolute_path(u64 path_hash) const;
+		bool		  find_folder_path(editor_asset_node_handle_t node, const frame_string_t<char>& path, u64 path_hash, string_t& out_path) const;
 		bool		  folder_matches_search(const editor_asset_node_t& node) const;
 		bool		  folder_subtree_matches_search(editor_asset_node_handle_t node) const;
 		bool		  is_folder_expanded(u64 path_hash) const;
@@ -137,7 +144,7 @@ namespace sfg
 		ui::widget_id_t				  _assets_body_pane_top		  = NULL_WIDGET;
 		ui::widget_id_t				  _assets_body_pane_divider	  = NULL_WIDGET;
 		ui::widget_id_t				  _assets_body_pane_bottom	  = NULL_WIDGET;
-		editor_action_menu_row_desc_t _action_menu_rows[5]		  = {};
+		editor_action_menu_row_desc_t _action_menu_rows[6]		  = {};
 		editor_action_menu_row_desc_t _action_menu_create_rows[1] = {};
 		vector_t<folder_row_t>		  _folder_rows				  = {};
 		vector_t<u64>				  _expanded_folder_hashes	  = {};

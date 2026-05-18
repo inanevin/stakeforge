@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_assets.hpp"
 #include "editor_app.hpp"
+#include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -34,7 +35,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -57,7 +60,8 @@ namespace sfg
 			assets_action_menu_delete			= 2,
 			assets_action_menu_duplicate		= 3,
 			assets_action_menu_toggle_favourite = 4,
-			assets_action_menu_open_in_os		= 5,
+			assets_action_menu_open_directory	= 5,
+			assets_action_menu_rename			= 6,
 		};
 
 		const char* assets_filter_to_text(u8 filter)
@@ -389,6 +393,11 @@ namespace sfg
 			.disabled = !folder_context,
 		};
 		_action_menu_rows[3] = {
+			.text	  = "Rename",
+			.command  = assets_action_menu_rename,
+			.disabled = true,
+		};
+		_action_menu_rows[4] = {
 			.text			= "Toggle Favourite",
 			.icon			= ICON_STAR,
 			.icon_color		= editor_theme_t::get().color_accent1,
@@ -396,9 +405,9 @@ namespace sfg
 			.has_icon_color = true,
 			.disabled		= !folder_context,
 		};
-		_action_menu_rows[4] = {
+		_action_menu_rows[5] = {
 			.text	 = "Open In OS",
-			.command = assets_action_menu_open_in_os,
+			.command = assets_action_menu_open_directory,
 		};
 
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -734,6 +743,150 @@ namespace sfg
 		refresh_folder_rows();
 	}
 
+	void editor_panel_assets_t::create_folder()
+	{
+		string_t parent_path = get_action_menu_target_folder_path();
+		if (parent_path.empty())
+			return;
+
+		if (!parent_path.empty() && parent_path.back() != '/')
+			parent_path += '/';
+
+		string_t new_folder_path = parent_path + "New Folder";
+		u32		 copy_index		 = 1;
+		while (file_system_t::exists(new_folder_path.c_str()))
+			new_folder_path = parent_path + "New Folder " + std::to_string(copy_index++);
+
+		if (!file_system_t::create_directory(new_folder_path.c_str()))
+			return;
+
+		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		if (asset_manager.rescan(editor_settings_t::get().get_project()))
+			refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::delete_folder()
+	{
+		SFG_ASSERT(_has_action_menu_folder);
+
+		const string_t folder_path = get_folder_absolute_path(_action_menu_folder_hash);
+		SFG_ASSERT(!folder_path.empty());
+		if (!file_system_t::delete_directory(folder_path.c_str()))
+			return;
+
+		if (_has_selected_folder && _selected_folder_hash == _action_menu_folder_hash)
+			_has_selected_folder = false;
+
+		for (auto it = _favourite_folder_hashes.begin(); it != _favourite_folder_hashes.end(); ++it)
+		{
+			if (*it != _action_menu_folder_hash)
+				continue;
+
+			_favourite_folder_hashes.erase(it);
+			break;
+		}
+
+		for (auto it = _expanded_folder_hashes.begin(); it != _expanded_folder_hashes.end(); ++it)
+		{
+			if (*it != _action_menu_folder_hash)
+				continue;
+
+			_expanded_folder_hashes.erase(it);
+			break;
+		}
+
+		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		if (asset_manager.rescan(editor_settings_t::get().get_project()))
+			refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::duplicate_folder()
+	{
+		SFG_ASSERT(_has_action_menu_folder);
+
+		const string_t folder_path = get_folder_absolute_path(_action_menu_folder_hash);
+		SFG_ASSERT(!folder_path.empty());
+		if (file_system_t::duplicate(folder_path.c_str()).empty())
+			return;
+
+		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		if (asset_manager.rescan(editor_settings_t::get().get_project()))
+			refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::open_folder_directory() const
+	{
+		const string_t folder_path = get_action_menu_target_folder_path();
+		if (!folder_path.empty())
+			process::open_directory(folder_path.c_str());
+	}
+
+	string_t editor_panel_assets_t::get_action_menu_target_folder_path() const
+	{
+		if (_has_action_menu_folder)
+			return get_folder_absolute_path(_action_menu_folder_hash);
+
+		if (_has_selected_folder)
+		{
+			const string_t selected_path = get_folder_absolute_path(_selected_folder_hash);
+			if (!selected_path.empty())
+				return selected_path;
+		}
+
+		return editor_directories_t::get_project_assets_directory(editor_settings_t::get().get_project());
+	}
+
+	string_t editor_panel_assets_t::get_folder_absolute_path(u64 path_hash) const
+	{
+		const editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		const editor_asset_tree_t&	  asset_tree	= asset_manager.get_asset_tree();
+		if (asset_tree.empty() || asset_manager.get_root_node().is_null() || !asset_tree.is_valid(asset_manager.get_root_node()))
+			return {};
+
+		const editor_asset_node_t& root		 = asset_tree.value(asset_manager.get_root_node());
+		frame_string_t<char>	   root_path = root.name.c_str();
+		string_t				   node_path;
+		if (!find_folder_path(asset_manager.get_root_node(), root_path, path_hash, node_path))
+			return {};
+
+		string_t assets_path = editor_directories_t::get_project_assets_directory(editor_settings_t::get().get_project());
+		if (!assets_path.empty() && assets_path.back() != '/')
+			assets_path += '/';
+
+		if (node_path == root.name)
+			return assets_path;
+
+		const size_t root_prefix_len = root.name.size() + 1;
+		return assets_path + node_path.substr(root_prefix_len);
+	}
+
+	bool editor_panel_assets_t::find_folder_path(editor_asset_node_handle_t node, const frame_string_t<char>& path, u64 path_hash, string_t& out_path) const
+	{
+		const editor_asset_tree_t& asset_tree = editor_app_t::get().get_asset_manager().get_asset_tree();
+		if (hashing_t::hash_fnv_1a64(path.c_str()) == path_hash)
+		{
+			out_path = path.c_str();
+			return true;
+		}
+
+		editor_asset_node_handle_t child = asset_tree.first_child(node);
+		while (!child.is_null())
+		{
+			const editor_asset_node_t& child_node = asset_tree.value(child);
+			if (child_node.type == editor_asset_node_type_e::folder)
+			{
+				frame_string_t<char> child_path = path;
+				child_path += "/";
+				child_path += child_node.name;
+				if (find_folder_path(child, child_path, path_hash, out_path))
+					return true;
+			}
+
+			child = asset_tree.next_sibling(child);
+		}
+		return false;
+	}
+
 	bool editor_panel_assets_t::folder_matches_search(const editor_asset_node_t& node) const
 	{
 		if (_search_str.empty())
@@ -878,10 +1031,27 @@ namespace sfg
 	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (command != assets_action_menu_toggle_favourite || !panel._has_action_menu_folder)
+		switch (command)
+		{
+		case assets_action_menu_create_folder:
+			panel.create_folder();
 			return;
-
-		panel.toggle_folder_favourite(panel._action_menu_folder_hash);
+		case assets_action_menu_delete:
+			panel.delete_folder();
+			return;
+		case assets_action_menu_duplicate:
+			panel.duplicate_folder();
+			return;
+		case assets_action_menu_toggle_favourite:
+			if (panel._has_action_menu_folder)
+				panel.toggle_folder_favourite(panel._action_menu_folder_hash);
+			return;
+		case assets_action_menu_open_directory:
+			panel.open_folder_directory();
+			return;
+		default:
+			return;
+		}
 	}
 
 	void editor_panel_assets_t::on_search_changed(const char* value, void* user_data)

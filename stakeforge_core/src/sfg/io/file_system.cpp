@@ -179,14 +179,12 @@ namespace sfg
 	string_t file_system_t::get_filename_and_extension_from_path(const string_t& fileName)
 	{
 		string_t path = fileName.substr(fileName.find_last_of("/\\") + 1);
-		fix_path(path);
 		return path;
 	}
 
 	string_t file_system_t::get_file_extension(const string_t& file)
 	{
 		string_t path = file.substr(file.find_last_of(".") + 1);
-		fix_path(path);
 		return path;
 	}
 
@@ -197,8 +195,7 @@ namespace sfg
 
 	string_t file_system_t::get_last_folder_from_path(const char* path)
 	{
-		string_t fixed_path = path;
-		fix_path(fixed_path);
+		string_t	 fixed_path = path;
 		const size_t last_slash = fixed_path.find_last_of("/\\");
 
 		if (last_slash == fixed_path.size() || last_slash == fixed_path.size() - 1)

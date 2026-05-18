@@ -735,7 +735,6 @@ namespace sfg
 		if (!dir || !*dir)
 			return false;
 
-		// Opens the folder in Explorer
 		HINSTANCE r = ShellExecuteA(nullptr, "open", dir, nullptr, nullptr, SW_SHOWNORMAL);
 
 		return (reinterpret_cast<INT_PTR>(r) > 32);
