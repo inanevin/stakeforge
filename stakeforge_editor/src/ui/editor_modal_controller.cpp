@@ -42,6 +42,9 @@ namespace sfg
 		constexpr u32 MODAL_DRAW_ORDER = 60000u;
 		constexpr f32 MODAL_WIDTH	   = 480.0f;
 
+		editor_modal_controller_t* s_controllers[editor_modal_controller_t::MAX_CONTROLLERS] = {};
+		u32						   s_controller_count										 = 0;
+
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			ui::layout_in_t& in = tree.in(id);
@@ -71,6 +74,7 @@ namespace sfg
 	void editor_modal_controller_t::init(ui::ui_context& ui)
 	{
 		SFG_ASSERT(_ui == nullptr);
+		SFG_ASSERT(s_controller_count < MAX_CONTROLLERS);
 
 		_ui							= &ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -170,6 +174,7 @@ namespace sfg
 			ui.get_input().set_listener(_button_frames[i], button_listener);
 		}
 
+		s_controllers[s_controller_count++] = this;
 		set_visible(false);
 	}
 
@@ -179,6 +184,17 @@ namespace sfg
 			set_visible(false);
 
 		_ui->deallocate_widget(_foreground);
+
+		for (u32 i = 0; i < s_controller_count; ++i)
+		{
+			if (s_controllers[i] == this)
+			{
+				s_controllers[i]					  = s_controllers[s_controller_count - 1];
+				s_controllers[s_controller_count - 1] = nullptr;
+				s_controller_count--;
+				break;
+			}
+		}
 
 		_ui			  = nullptr;
 		_foreground	  = NULL_WIDGET;
@@ -232,6 +248,16 @@ namespace sfg
 		_button_count = 0;
 		for (editor_modal_button_desc_t& button : _buttons)
 			button = {};
+	}
+
+	editor_modal_controller_t* editor_modal_controller_t::find(ui::ui_context& ui)
+	{
+		for (u32 i = 0; i < s_controller_count; ++i)
+		{
+			if (s_controllers[i]->_ui == &ui)
+				return s_controllers[i];
+		}
+		return nullptr;
 	}
 
 	void editor_modal_controller_t::set_visible(bool visible)

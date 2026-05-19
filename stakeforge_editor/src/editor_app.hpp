@@ -69,38 +69,14 @@ namespace sfg
 		void			 set_text_subpixel_enabled(bool enabled);
 		void			 create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
+		editor_surface_t&		get_main_surface();
+		const editor_surface_t& get_main_surface() const;
+
 		inline bool is_debug_mode_enabled() const
 		{
 			return _debug_mode;
 		}
 		bool is_text_subpixel_enabled() const;
-
-		inline resource_pack_t& get_resources()
-		{
-			return _resource_pack;
-		}
-		inline const resource_pack_t& get_resources() const
-		{
-			return _resource_pack;
-		}
-		inline editor_asset_manager_t& get_asset_manager()
-		{
-			return _asset_manager;
-		}
-		inline const editor_asset_manager_t& get_asset_manager() const
-		{
-			return _asset_manager;
-		}
-		editor_surface_t&					   get_main_surface();
-		const editor_surface_t&				   get_main_surface() const;
-		editor_modal_controller_t&			   get_modal_controller();
-		const editor_modal_controller_t&	   get_modal_controller() const;
-		editor_action_menu_controller_t&	   get_action_menu_controller();
-		const editor_action_menu_controller_t& get_action_menu_controller() const;
-		editor_popup_controller_t&			   get_popup_controller();
-		const editor_popup_controller_t&	   get_popup_controller() const;
-		editor_payload_controller_t&		   get_payload_controller();
-		const editor_payload_controller_t&	   get_payload_controller() const;
 
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;

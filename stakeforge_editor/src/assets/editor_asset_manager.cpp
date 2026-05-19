@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 
 #include <sfg/data/string_util.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -38,12 +39,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool editor_asset_manager_t::init(const editor_project_t& project)
+	namespace
 	{
-		return rescan(project);
+		editor_asset_manager_t* s_instance = nullptr;
+	}
+
+	bool editor_asset_manager_t::init(const editor_project_t&)
+	{
+		SFG_ASSERT(s_instance == nullptr);
+		s_instance = this;
+		clear();
+		return true;
 	}
 
 	void editor_asset_manager_t::uninit()
+	{
+		SFG_ASSERT(s_instance == this);
+		clear();
+		s_instance = nullptr;
+	}
+
+	void editor_asset_manager_t::clear()
 	{
 		_asset_tree.clear();
 		_root_node = {};
@@ -97,7 +113,7 @@ namespace sfg
 			}
 			else
 			{
-				asset.source_relative_path					   = entry.path;
+				asset.source_relative_path				   = entry.path;
 				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = parts.back(), .type = editor_asset_node_type_e::file});
 				_asset_tree.attach(parent, file_node);
 			}
@@ -119,6 +135,12 @@ namespace sfg
 
 		doc.get_to(out_asset);
 		return true;
+	}
+
+	editor_asset_manager_t& editor_asset_manager_t::get()
+	{
+		SFG_ASSERT(s_instance != nullptr);
+		return *s_instance;
 	}
 
 	editor_asset_node_handle_t editor_asset_manager_t::find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const

@@ -26,21 +26,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common_editor.hpp"
-#include "ui/editor_action_menu_controller.hpp"
-#include "ui/editor_modal_controller.hpp"
-#include "ui/editor_popup_controller.hpp"
-#include "ui/editor_tooltip_controller.hpp"
-#include "ui/panels/editor_primary_base.hpp"
-#include "ui/panels/editor_secondary_base.hpp"
 #include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>
-#include <sfg/platform/common_window.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg
 {
+	class editor_action_menu_controller_t;
+	class editor_modal_controller_t;
+	class editor_popup_controller_t;
+	class editor_primary_base_t;
+	class editor_secondary_base_t;
+	class editor_tooltip_controller_t;
+	struct window_runtime_t;
+	namespace ui
+	{
+		class ui_context;
+	}
+
 	enum class editor_surface_type_e : u8
 	{
 		primary,
@@ -50,6 +54,13 @@ namespace sfg
 
 	struct editor_surface_t
 	{
+		editor_surface_t();
+		~editor_surface_t();
+		editor_surface_t(const editor_surface_t&)			 = delete;
+		editor_surface_t& operator=(const editor_surface_t&) = delete;
+		editor_surface_t(editor_surface_t&& other) noexcept;
+		editor_surface_t& operator=(editor_surface_t&& other) noexcept;
+
 		unique_t<editor_primary_base_t>			  primary;
 		unique_t<editor_secondary_base_t>		  secondary;
 		unique_t<editor_action_menu_controller_t> action_menu_controller;

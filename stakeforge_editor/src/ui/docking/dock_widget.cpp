@@ -81,7 +81,7 @@ namespace sfg
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::none;
 
-		editor_app_t::get().get_payload_controller().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
+		editor_payload_controller_t::get().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 	}
 
 	void dock_widget_t::uninit()
@@ -90,7 +90,7 @@ namespace sfg
 			destroy_dock_node(_root_node);
 
 		_ui->deallocate_widget(_root);
-		editor_app_t::get().get_payload_controller().unregister_listener(this);
+		editor_payload_controller_t::get().unregister_listener(this);
 
 		_ui					  = nullptr;
 		_runtime			  = nullptr;

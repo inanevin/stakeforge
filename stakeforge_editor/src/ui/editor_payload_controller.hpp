@@ -92,6 +92,8 @@ namespace sfg
 			return _active;
 		}
 
+		static editor_payload_controller_t& get();
+
 	private:
 		struct listener_t
 		{

@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_assets.hpp"
-#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "ui/editor_action_menu_controller.hpp"
@@ -490,7 +489,7 @@ namespace sfg
 
 	void editor_panel_assets_t::refresh_folder_rows()
 	{
-		const editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&	  asset_tree	= asset_manager.get_asset_tree();
 		_asset_tree_generation						= asset_manager.get_generation();
 		_visible_folder_row_count					= 0;
@@ -509,7 +508,7 @@ namespace sfg
 
 	bool editor_panel_assets_t::append_folder_rows(editor_asset_node_handle_t node, u16 depth, u64 path_hash)
 	{
-		const editor_asset_tree_t& tree		  = editor_app_t::get().get_asset_manager().get_asset_tree();
+		const editor_asset_tree_t& tree		  = editor_asset_manager_t::get().get_asset_tree();
 		const editor_asset_node_t& asset_node = tree.value(node);
 		if ((asset_node.flags & editor_asset_node_flag_hidden) != 0)
 			return false;
@@ -784,7 +783,7 @@ namespace sfg
 		if (!file_system_t::create_directory(new_folder_path.c_str()))
 			return;
 
-		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		if (asset_manager.rescan(editor_settings_t::get().get_project()))
 			refresh_folder_rows();
 	}
@@ -804,7 +803,7 @@ namespace sfg
 		remove_hash(_favourite_folder_hashes, _action_menu_folder_hash);
 		remove_hash(_expanded_folder_hashes, _action_menu_folder_hash);
 
-		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		if (asset_manager.rescan(editor_settings_t::get().get_project()))
 			refresh_folder_rows();
 	}
@@ -818,7 +817,7 @@ namespace sfg
 		if (file_system_t::duplicate(folder_path.c_str()).empty())
 			return;
 
-		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		if (asset_manager.rescan(editor_settings_t::get().get_project()))
 			refresh_folder_rows();
 	}
@@ -841,7 +840,7 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
 
-		const editor_asset_tree_t& tree	   = editor_app_t::get().get_asset_manager().get_asset_tree();
+		const editor_asset_tree_t& tree	   = editor_asset_manager_t::get().get_asset_tree();
 		const ui::layout_out_t&	   row_out = _ui->get_tree().out(target_row->root);
 		const f32				   scale   = ui::get_valid_scale(_ui->get_ui_scale());
 
@@ -868,7 +867,7 @@ namespace sfg
 				return;
 		}
 
-		const editor_asset_tree_t& tree		= editor_app_t::get().get_asset_manager().get_asset_tree();
+		const editor_asset_tree_t& tree		= editor_asset_manager_t::get().get_asset_tree();
 		const string_t			   old_name = tree.value(_action_menu_folder).name;
 		if (new_name == old_name)
 			return;
@@ -903,7 +902,7 @@ namespace sfg
 		}
 		_action_menu_folder_hash = new_hash;
 
-		editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		if (asset_manager.rescan(editor_settings_t::get().get_project()))
 			refresh_folder_rows();
 	}
@@ -931,7 +930,7 @@ namespace sfg
 
 	string_t editor_panel_assets_t::get_folder_absolute_path(editor_asset_node_handle_t node) const
 	{
-		const editor_asset_manager_t&	 asset_manager = editor_app_t::get().get_asset_manager();
+		const editor_asset_manager_t&	 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 asset_tree	   = asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t root_handle   = asset_manager.get_root_node();
 		if (node.is_null() || !asset_tree.is_valid(node) || root_handle.is_null())
@@ -966,7 +965,7 @@ namespace sfg
 
 	u64 editor_panel_assets_t::get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const
 	{
-		const editor_asset_manager_t&	 asset_manager = editor_app_t::get().get_asset_manager();
+		const editor_asset_manager_t&	 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 asset_tree	   = asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t root_handle   = asset_manager.get_root_node();
 		SFG_ASSERT(!node.is_null());
@@ -1019,7 +1018,7 @@ namespace sfg
 	void editor_panel_assets_t::on_refresh_button_pressed(bool, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (editor_app_t::get().get_asset_manager().rescan(editor_settings_t::get().get_project()))
+		if (editor_asset_manager_t::get().rescan(editor_settings_t::get().get_project()))
 			panel.refresh_folder_rows();
 	}
 
@@ -1116,7 +1115,7 @@ namespace sfg
 	void editor_panel_assets_t::on_asset_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_assets_t&		  panel			= *static_cast<editor_panel_assets_t*>(user_data);
-		const editor_asset_manager_t& asset_manager = editor_app_t::get().get_asset_manager();
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		if (panel._asset_tree_generation != asset_manager.get_generation())
 			panel.refresh_folder_rows();
 	}

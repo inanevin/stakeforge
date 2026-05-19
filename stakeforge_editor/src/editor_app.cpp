@@ -25,30 +25,34 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_app.hpp"
-#include "ui/editor_action_menu_controller.hpp"
 #include "editor_directories.hpp"
-#include "ui/editor_modal_controller.hpp"
-#include "ui/editor_popup_controller.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
+#include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_modal_controller.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
+#include "ui/panels/editor_primary_base.hpp"
+#include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
-#include <sfg/io/file_system.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/frame_allocator.hpp>
+#include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg
 {
@@ -179,6 +183,14 @@ namespace sfg
 			return false;
 		}
 
+		_asset_manager.init(_current_project);
+
+		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
+		if (payload_surface.is_null())
+			return false;
+		_payload_controller.init(_surfaces.get(payload_surface));
+		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
+
 		const editor_layout_t& layout = settings.get_layout();
 		if (layout.windows.empty())
 		{
@@ -217,12 +229,6 @@ namespace sfg
 			}
 		}
 
-		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
-		if (payload_surface.is_null())
-			return false;
-		_payload_controller.init(_surfaces.get(payload_surface));
-		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
-
 		if (_surfaces.empty())
 		{
 			_renderer.uninit();
@@ -247,26 +253,41 @@ namespace sfg
 	{
 		_renderer.end_render();
 		resource_manager_t::get().flush();
-		_payload_controller.uninit();
 
 		for (editor_surface_t& surface : _surfaces)
 		{
-			if (surface.ui)
-			{
-				if (surface.type == editor_surface_type_e::primary)
-					surface.primary->uninit();
-				if (surface.type == editor_surface_type_e::secondary)
-					surface.secondary->uninit();
-				surface.tooltip_controller->uninit();
-				surface.popup_controller->uninit();
-				surface.modal_controller->uninit();
-				surface.action_menu_controller->uninit();
-				surface.ui->uninit();
-				surface.ui.reset();
-			}
+			if (surface.type == editor_surface_type_e::payload || !surface.ui)
+				continue;
 
-			if (!surface.swapchain.is_null())
-				_renderer.destroy_swapchain(surface.swapchain);
+			if (surface.type == editor_surface_type_e::primary)
+				surface.primary->uninit();
+			if (surface.type == editor_surface_type_e::secondary)
+				surface.secondary->uninit();
+			surface.tooltip_controller->uninit();
+			surface.popup_controller->uninit();
+			surface.modal_controller->uninit();
+			surface.action_menu_controller->uninit();
+			surface.ui->uninit();
+			surface.ui.reset();
+		}
+
+		for (editor_surface_t& surface : _surfaces)
+		{
+			if (surface.type != editor_surface_type_e::payload || !surface.ui)
+				continue;
+
+			_payload_controller.uninit();
+			surface.tooltip_controller->uninit();
+			surface.popup_controller->uninit();
+			surface.modal_controller->uninit();
+			surface.action_menu_controller->uninit();
+			surface.ui->uninit();
+			surface.ui.reset();
+		}
+
+		for (editor_surface_t& surface : _surfaces)
+		{
+			_renderer.destroy_swapchain(surface.swapchain);
 			surface.swapchain = {};
 			process::destroy_window(surface.runtime->window_handle);
 		}
@@ -429,7 +450,7 @@ namespace sfg
 
 	void editor_app_t::unload_current_project()
 	{
-		_asset_manager.uninit();
+		_asset_manager.clear();
 		_world_controller.destroy_worlds();
 	}
 
@@ -496,7 +517,7 @@ namespace sfg
 
 		unload_current_project();
 		_current_project = project;
-		if (!_asset_manager.init(_current_project))
+		if (!_asset_manager.rescan(_current_project))
 		{
 			unload_current_project();
 			return false;
@@ -633,46 +654,6 @@ namespace sfg
 		}
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
-	}
-
-	editor_modal_controller_t& editor_app_t::get_modal_controller()
-	{
-		return *get_main_surface().modal_controller;
-	}
-
-	const editor_modal_controller_t& editor_app_t::get_modal_controller() const
-	{
-		return *get_main_surface().modal_controller;
-	}
-
-	editor_action_menu_controller_t& editor_app_t::get_action_menu_controller()
-	{
-		return *get_main_surface().action_menu_controller;
-	}
-
-	const editor_action_menu_controller_t& editor_app_t::get_action_menu_controller() const
-	{
-		return *get_main_surface().action_menu_controller;
-	}
-
-	editor_popup_controller_t& editor_app_t::get_popup_controller()
-	{
-		return *get_main_surface().popup_controller;
-	}
-
-	const editor_popup_controller_t& editor_app_t::get_popup_controller() const
-	{
-		return *get_main_surface().popup_controller;
-	}
-
-	editor_payload_controller_t& editor_app_t::get_payload_controller()
-	{
-		return _payload_controller;
-	}
-
-	const editor_payload_controller_t& editor_app_t::get_payload_controller() const
-	{
-		return _payload_controller;
 	}
 
 	void editor_app_t::tick()

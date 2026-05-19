@@ -29,11 +29,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "editor_app.hpp"
 #include "ui/editor_action_menu_common.hpp"
+#include "ui/editor_modal_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_draws.hpp"
 #include "ui/widgets/editor_widgets_file_menu.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -128,7 +131,7 @@ namespace sfg
 
 		bool is_editor_subpixel_text_enabled(void*)
 		{
-			return editor_app_t::get().is_text_subpixel_enabled();
+			return editor_text_rasterization_t::is_subpixel_enabled();
 		}
 
 		void set_editor_subpixel_text_enabled(u16, bool enabled, void*)
@@ -283,39 +286,46 @@ namespace sfg
 			editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
 		}
 
-		void request_error_modal(const char* title, const char* description)
+		editor_modal_controller_t& modal_controller_for(editor_primary_base_t& base)
+		{
+			editor_modal_controller_t* modal = editor_modal_controller_t::find(base.get_ui());
+			SFG_ASSERT(modal != nullptr);
+			return *modal;
+		}
+
+		void request_error_modal(editor_primary_base_t& base, const char* title, const char* description)
 		{
 			editor_modal_button_desc_t buttons[] = {
 				{.text = "Ok"},
 			};
-			editor_app_t::get().get_modal_controller().request_modal(title, description, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::error);
+			modal_controller_for(base).request_modal(title, description, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::error);
 		}
 
-		void open_project_from_dialog()
+		void open_project_from_dialog(editor_primary_base_t& base)
 		{
 			const string_t path = process::select_file("Open Project", "sfg_project");
 			if (path.empty())
 				return;
 			if (!editor_app_t::get().load_project(path.c_str()))
-				request_error_modal("Failed Loading Project", "Selected file could not be loaded as a Stakeforge project.");
+				request_error_modal(base, "Failed Loading Project", "Selected file could not be loaded as a Stakeforge project.");
 		}
 
-		void create_project_from_dialog()
+		void create_project_from_dialog(editor_primary_base_t& base)
 		{
 			const string_t path = process::save_file("Create Project", "sfg_project");
 			if (path.empty())
 				return;
 			if (!editor_app_t::get().create_project(path.c_str()))
-				request_error_modal("Failed Creating Project", "New project could not be created.");
+				request_error_modal(base, "Failed Creating Project", "New project could not be created.");
 		}
 
-		void save_project_as_from_dialog()
+		void save_project_as_from_dialog(editor_primary_base_t& base)
 		{
 			const string_t path = process::save_file("Save Project As", "sfg_project");
 			if (path.empty())
 				return;
 			if (!editor_app_t::get().save_project_as(path.c_str()))
-				request_error_modal("Failed Saving Project", "Current project could not be saved.");
+				request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
 		}
 
 		void on_open_modal_save(void* user_data)
@@ -353,10 +363,10 @@ namespace sfg
 				break;
 			case editor_file_menu_commands_e::project_save:
 				if (!editor_app_t::get().save_project())
-					request_error_modal("Failed Saving Project", "Current project could not be saved.");
+					request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
 				break;
 			case editor_file_menu_commands_e::project_save_as:
-				save_project_as_from_dialog();
+				save_project_as_from_dialog(base);
 				break;
 			case editor_file_menu_commands_e::scene_new:
 			case editor_file_menu_commands_e::scene_save:
@@ -738,7 +748,7 @@ namespace sfg
 			{.text = "Don't Save", .callback = on_open_modal_dont_save, .user_data = this},
 			{.text = "Cancel", .callback = on_open_modal_cancel, .user_data = this},
 		};
-		editor_app_t::get().get_modal_controller().request_modal("Would you like to save?", "Save current changes before continuing?", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])));
+		modal_controller_for(*this).request_modal("Would you like to save?", "Save current changes before continuing?", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])));
 	}
 
 	void editor_primary_base_t::complete_project_save_prompt(bool save)
@@ -748,17 +758,17 @@ namespace sfg
 
 		if (save && !editor_app_t::get().save_project())
 		{
-			request_error_modal("Failed Saving Project", "Current project could not be saved.");
+			request_error_modal(*this, "Failed Saving Project", "Current project could not be saved.");
 			return;
 		}
 
 		switch (action)
 		{
 		case editor_project_prompt_action_e::new_project:
-			create_project_from_dialog();
+			create_project_from_dialog(*this);
 			break;
 		case editor_project_prompt_action_e::load_project:
-			open_project_from_dialog();
+			open_project_from_dialog(*this);
 			break;
 		default:
 			break;
@@ -776,7 +786,7 @@ namespace sfg
 			{.text = "Open", .callback = on_no_project_open, .user_data = this},
 			{.text = "Create", .callback = on_no_project_create, .user_data = this},
 		};
-		editor_app_t::get().get_modal_controller().request_modal("No Project", "No last project found. Open an existing project or create a new one.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
+		modal_controller_for(*this).request_modal("No Project", "No last project found. Open an existing project or create a new one.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
 	}
 
 	void editor_primary_base_t::on_no_project_open(void* user_data)

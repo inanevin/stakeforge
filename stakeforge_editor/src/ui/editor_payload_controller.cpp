@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -40,14 +41,18 @@ namespace sfg
 	namespace
 	{
 		constexpr vec2i16_t PAYLOAD_CURSOR_OFFSET = {20, 20};
+
+		editor_payload_controller_t* s_instance = nullptr;
 	}
 
 	void editor_payload_controller_t::init(editor_surface_t& surface)
 	{
 		SFG_ASSERT(_runtime == nullptr);
+		SFG_ASSERT(s_instance == nullptr);
 		SFG_ASSERT(surface.ui);
 		SFG_ASSERT(surface.runtime);
 
+		s_instance					= this;
 		_runtime					= surface.runtime.get();
 		_ui							= surface.ui.get();
 		ui::ui_context&		  ui	= *surface.ui;
@@ -100,6 +105,8 @@ namespace sfg
 		if (_runtime == nullptr)
 			return;
 
+		SFG_ASSERT(s_instance == this);
+
 		if (_ui != nullptr)
 		{
 			_ui->deallocate_widget(_frame);
@@ -118,6 +125,7 @@ namespace sfg
 		_active				 = false;
 		_mouse_was_down		 = false;
 		_listeners.clear();
+		s_instance = nullptr;
 	}
 
 	void editor_payload_controller_t::tick()
@@ -223,6 +231,12 @@ namespace sfg
 	bool editor_payload_controller_t::is_any_mouse_down() const
 	{
 		return process::is_mouse_down(static_cast<u16>(input_code::mouse_0)) || process::is_mouse_down(static_cast<u16>(input_code::mouse_1)) || process::is_mouse_down(static_cast<u16>(input_code::mouse_2));
+	}
+
+	editor_payload_controller_t& editor_payload_controller_t::get()
+	{
+		SFG_ASSERT(s_instance != nullptr);
+		return *s_instance;
 	}
 
 	editor_payload_t editor_payload_controller_t::make_payload(const vec2i16_t& pos) const

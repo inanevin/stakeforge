@@ -53,6 +53,7 @@ namespace sfg
 
 		bool init(const editor_project_t& project);
 		void uninit();
+		void clear();
 		bool rescan(const editor_project_t& project);
 
 		// -----------------------------------------------------------------------------
@@ -73,6 +74,8 @@ namespace sfg
 		{
 			return _generation;
 		}
+
+		static editor_asset_manager_t& get();
 
 	private:
 		bool					   build_asset_tree(const string_t& assets_dir);

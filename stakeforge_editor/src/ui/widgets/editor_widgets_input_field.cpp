@@ -187,9 +187,9 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 
 		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0) | ui::wf_focusable | ui::wf_clip_children) : 0;
-		tree.in(_slider).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
-		tree.in(_label).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
-		tree.in(_overlay).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;
+		//tree.in(_slider).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
+		//tree.in(_label).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
+		//tree.in(_overlay).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;
 	}
 
 	void editor_input_field_t::set_text(const char* value)

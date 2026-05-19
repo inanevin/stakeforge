@@ -56,6 +56,8 @@ namespace sfg
 	class editor_modal_controller_t final
 	{
 	public:
+		static constexpr u32 MAX_CONTROLLERS = 16;
+
 		editor_modal_controller_t()												   = default;
 		~editor_modal_controller_t()											   = default;
 		editor_modal_controller_t(const editor_modal_controller_t&)				   = delete;
@@ -76,6 +78,8 @@ namespace sfg
 
 		void request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity = editor_modal_severity_e::normal);
 		void close_modal();
+
+		static editor_modal_controller_t* find(ui::ui_context& ui);
 
 	private:
 		static constexpr u32 MAX_BUTTONS = 4;
