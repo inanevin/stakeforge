@@ -77,7 +77,7 @@ namespace sfg
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : static_cast<u16>(ui::wf_overlay);
+			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
 		}
 
 		void set_rect_color(ui::paint_layer_t& paint, ui::widget_id_t id, const vec4f_t& color)
@@ -156,7 +156,7 @@ namespace sfg
 		tree.draw_order(_foreground) = ACTION_MENU_DRAW_ORDER;
 
 		ui::layout_in_t& fg_in = tree.in(_foreground);
-		fg_in.flags			   = ui::wf_overlay;
+		fg_in.flags			   = 0;
 		fg_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		fg_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		fg_in.size_value	   = {1.0f, 1.0f};
@@ -178,7 +178,7 @@ namespace sfg
 			tree.draw_order(_panels[d]) = ACTION_MENU_DRAW_ORDER + d * 64u + 1u;
 
 			ui::layout_in_t& panel_in = tree.in(_panels[d]);
-			panel_in.flags			  = ui::wf_overlay;
+			panel_in.flags			  = 0;
 			panel_in.pos_mode_x		  = ui::pos_mode_e::absolute_screen;
 			panel_in.pos_mode_y		  = ui::pos_mode_e::absolute_screen;
 			panel_in.size_mode_x	  = ui::axis_mode_e::fixed;
@@ -203,7 +203,7 @@ namespace sfg
 				tree.draw_order(_row_frames[d][r]) = tree.draw_order_const(_panels[d]) + 1;
 
 				ui::layout_in_t& row_in = tree.in(_row_frames[d][r]);
-				row_in.flags			= ui::wf_overlay;
+				row_in.flags			= 0;
 				row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 				row_in.size_mode_y		= ui::axis_mode_e::fixed;
 				row_in.size_value		= {1.0f, theme.item_height};
@@ -220,7 +220,7 @@ namespace sfg
 				tree.draw_order(_row_labels[d][r]) = tree.draw_order_const(_row_frames[d][r]) + 1;
 
 				ui::layout_in_t& label_in = tree.in(_row_labels[d][r]);
-				label_in.flags			  = ui::wf_overlay;
+				label_in.flags			  = 0;
 				label_in.pos_mode_x		  = ui::pos_mode_e::offset_in_parent;
 				label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 				label_in.anchor_y		  = ui::anchor_e::center;
@@ -232,7 +232,7 @@ namespace sfg
 				tree.draw_order(_row_shortcuts[d][r]) = tree.draw_order_const(_row_frames[d][r]) + 1;
 
 				ui::layout_in_t& shortcut_in = tree.in(_row_shortcuts[d][r]);
-				shortcut_in.flags			 = ui::wf_overlay;
+				shortcut_in.flags			 = 0;
 				shortcut_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 				shortcut_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 				shortcut_in.anchor_x		 = ui::anchor_e::end;
@@ -258,7 +258,7 @@ namespace sfg
 				tree.draw_order(_row_icon_labels[d][r]) = tree.draw_order_const(_row_icons[d][r]) + 1;
 
 				ui::layout_in_t& icon_label_in = tree.in(_row_icon_labels[d][r]);
-				icon_label_in.flags			   = ui::wf_overlay;
+				icon_label_in.flags			   = 0;
 				icon_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 				icon_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 				icon_label_in.pos_value		   = {0.5f, 0.5f};
@@ -272,7 +272,7 @@ namespace sfg
 				tree.draw_order(_row_title_lines[d][r]) = tree.draw_order_const(_row_frames[d][r]) + 1;
 
 				ui::layout_in_t& title_line_in = tree.in(_row_title_lines[d][r]);
-				title_line_in.flags			   = ui::wf_overlay;
+				title_line_in.flags			   = 0;
 				title_line_in.pos_mode_x	   = ui::pos_mode_e::offset_in_parent;
 				title_line_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 				title_line_in.anchor_y		   = ui::anchor_e::center;

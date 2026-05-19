@@ -85,7 +85,7 @@ namespace sfg
 			tree.draw_order(axis->track) = tree.draw_order_const(_root) + 1;
 
 			ui::layout_in_t& track_in = tree.in(axis->track);
-			track_in.flags			  = ui::wf_overlay;
+			track_in.flags			  = 0;
 			track_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 			track_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			if (axis->axis == axis_e::x)
@@ -117,7 +117,7 @@ namespace sfg
 			tree.draw_order(axis->thumb) = tree.draw_order_const(axis->track) + 1;
 
 			ui::layout_in_t& thumb_in = tree.in(axis->thumb);
-			thumb_in.flags			  = ui::wf_overlay;
+			thumb_in.flags			  = 0;
 			thumb_in.pos_mode_x		  = ui::pos_mode_e::offset_in_parent;
 			thumb_in.pos_mode_y		  = ui::pos_mode_e::offset_in_parent;
 			set_scrollbar_rect(paint, axis->thumb, theme.color_accent0_dim, theme.item_rounding);
@@ -168,8 +168,8 @@ namespace sfg
 		const f32 max_scroll = axis.axis == axis_e::x ? target_out.max_scroll.x : target_out.max_scroll.y;
 		if (!enabled || max_scroll <= 0.0f)
 		{
-			track_in.flags = ui::wf_overlay;
-			thumb_in.flags = ui::wf_overlay;
+			track_in.flags = 0;
+			thumb_in.flags = 0;
 			if (axis.axis == axis_e::x)
 				target_in.scroll_offset.x = 0.0f;
 			else
@@ -177,8 +177,8 @@ namespace sfg
 			return;
 		}
 
-		track_in.flags = ui::wf_visible | ui::wf_input | ui::wf_overlay;
-		thumb_in.flags = ui::wf_visible | ui::wf_input | ui::wf_overlay;
+		track_in.flags = ui::wf_visible | ui::wf_input;
+		thumb_in.flags = ui::wf_visible | ui::wf_input;
 
 		const f32 viewport	= axis.axis == axis_e::x ? track_out.size.x : track_out.size.y;
 		const f32 scroll_px = max_scroll * ui_scale;

@@ -45,7 +45,7 @@ namespace sfg
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u8>(ui::wf_visible | (input ? ui::wf_input : 0)) : static_cast<u8>(ui::wf_overlay);
+			in.flags			= visible ? static_cast<u8>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
 		}
 
 		vec4f_t get_title_color(editor_modal_severity_e severity)
@@ -83,7 +83,7 @@ namespace sfg
 		tree.draw_order(_foreground) = MODAL_DRAW_ORDER;
 
 		ui::layout_in_t& foreground_in = tree.in(_foreground);
-		foreground_in.flags			   = ui::wf_overlay;
+		foreground_in.flags			   = 0;
 		foreground_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_value	   = {1.0f, 1.0f};
@@ -94,7 +94,7 @@ namespace sfg
 		tree.draw_order(_dimmer) = MODAL_DRAW_ORDER + 1;
 
 		ui::layout_in_t& dimmer_in = tree.in(_dimmer);
-		dimmer_in.flags			   = ui::wf_overlay;
+		dimmer_in.flags			   = 0;
 		dimmer_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		dimmer_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		dimmer_in.size_value	   = {1.0f, 1.0f};
@@ -110,7 +110,7 @@ namespace sfg
 		tree.draw_order(_window) = MODAL_DRAW_ORDER + 2;
 
 		ui::layout_in_t& window_in = tree.in(_window);
-		window_in.flags			   = ui::wf_overlay;
+		window_in.flags			   = 0;
 		window_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		window_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		window_in.pos_value		   = {0.5f, 0.5f};
@@ -143,7 +143,7 @@ namespace sfg
 		tree.draw_order(_button_row) = MODAL_DRAW_ORDER + 3;
 
 		ui::layout_in_t& button_row_in = tree.in(_button_row);
-		button_row_in.flags			   = ui::wf_overlay;
+		button_row_in.flags			   = 0;
 		button_row_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		button_row_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		button_row_in.size_value	   = {1.0f, theme.item_height};

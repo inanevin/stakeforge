@@ -69,7 +69,7 @@ namespace sfg
 			assets_action_menu_rename			= 6,
 		};
 
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input, bool overlay)
+		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			u16 flags = 0;
 			if (visible)
@@ -77,8 +77,6 @@ namespace sfg
 				flags = ui::wf_visible;
 				if (input)
 					flags |= ui::wf_input;
-				if (overlay)
-					flags |= ui::wf_overlay;
 			}
 			tree.in(id).flags = flags;
 		}
@@ -639,7 +637,7 @@ namespace sfg
 		tree.draw_order(row.icon_text) = tree.draw_order_const(row.icon) + 1;
 
 		ui::layout_in_t& icon_text_in = tree.in(row.icon_text);
-		icon_text_in.flags			  = ui::wf_visible | ui::wf_overlay;
+		icon_text_in.flags			  = ui::wf_visible;
 		icon_text_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		icon_text_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		icon_text_in.pos_value		  = {0.5f, 0.5f};
@@ -744,11 +742,11 @@ namespace sfg
 	void editor_panel_assets_t::set_folder_row_visible(const folder_row_t& row, bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
-		set_widget_visible(tree, row.root, visible, /*input=*/true, /*overlay=*/false);
-		set_widget_visible(tree, row.icon, visible, /*input=*/false, /*overlay=*/false);
-		set_widget_visible(tree, row.icon_text, visible, /*input=*/false, /*overlay=*/true);
-		set_widget_visible(tree, row.star_text, visible && row.is_favourite, /*input=*/false, /*overlay=*/true);
-		set_widget_visible(tree, row.label, visible, /*input=*/false, /*overlay=*/false);
+		set_widget_visible(tree, row.root, visible, /*input=*/true);
+		set_widget_visible(tree, row.icon, visible, /*input=*/false);
+		set_widget_visible(tree, row.icon_text, visible, /*input=*/false);
+		set_widget_visible(tree, row.star_text, visible && row.is_favourite, /*input=*/false);
+		set_widget_visible(tree, row.label, visible, /*input=*/false);
 	}
 
 	void editor_panel_assets_t::select_folder_row(u64 path_hash)

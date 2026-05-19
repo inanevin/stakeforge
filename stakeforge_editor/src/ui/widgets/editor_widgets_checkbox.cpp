@@ -79,7 +79,7 @@ namespace sfg
 		tree.draw_order(_check) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& check_in = tree.in(_check);
-		check_in.flags			  = ui::wf_overlay;
+		check_in.flags			  = 0;
 		check_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		check_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		check_in.pos_value		  = {0.5f, 0.5f};
@@ -111,7 +111,7 @@ namespace sfg
 
 	void editor_checkbox_t::refresh()
 	{
-		_ui->get_tree().in(_check).flags = _checked ? ui::wf_visible | ui::wf_overlay : 0;
+		_ui->get_tree().in(_check).flags = _checked ? ui::wf_visible : 0;
 	}
 
 	void editor_checkbox_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

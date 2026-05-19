@@ -325,7 +325,7 @@ namespace sfg::ui
 				const layout_in_t&	cin	 = _layout_ins[c];
 				const layout_out_t& cout = _layout_outs[c];
 				const widget_id_t	next = _nodes[c].next_sibling;
-				if (cin.flags & wf_overlay)
+				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
 				{
 					c = next;
 					continue;
@@ -443,7 +443,7 @@ namespace sfg::ui
 				layout_out_t&	   o   = _layout_outs[c];
 				const widget_id_t  nxt = _nodes[c].next_sibling;
 
-				if (cin.flags & wf_overlay)
+				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
 				{
 					c = nxt;
 					continue;

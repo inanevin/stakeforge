@@ -50,7 +50,7 @@ namespace sfg
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : static_cast<u16>(ui::wf_overlay);
+			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
 		}
 	}
 
@@ -70,7 +70,7 @@ namespace sfg
 		tree.draw_order(_foreground) = POPUP_DRAW_ORDER;
 
 		ui::layout_in_t& foreground_in = tree.in(_foreground);
-		foreground_in.flags			   = ui::wf_overlay;
+		foreground_in.flags			   = 0;
 		foreground_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_value	   = {1.0f, 1.0f};
@@ -81,7 +81,7 @@ namespace sfg
 		tree.draw_order(_frame) = POPUP_DRAW_ORDER + 1;
 
 		ui::layout_in_t& frame_in = tree.in(_frame);
-		frame_in.flags			  = ui::wf_overlay;
+		frame_in.flags			  = 0;
 		frame_in.pos_mode_x		  = ui::pos_mode_e::absolute_screen;
 		frame_in.pos_mode_y		  = ui::pos_mode_e::absolute_screen;
 		frame_in.size_mode_x	  = ui::axis_mode_e::fixed;
@@ -109,7 +109,7 @@ namespace sfg
 			tree.draw_order(_row_frames[i]) = POPUP_DRAW_ORDER + 2;
 
 			ui::layout_in_t& row_in = tree.in(_row_frames[i]);
-			row_in.flags			= ui::wf_overlay;
+			row_in.flags			= 0;
 			row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			row_in.size_mode_y		= ui::axis_mode_e::fixed;
 			row_in.size_value		= {1.0f, theme.item_height};
@@ -131,7 +131,7 @@ namespace sfg
 			tree.draw_order(_row_markers[i]) = POPUP_DRAW_ORDER + 3;
 
 			ui::layout_in_t& marker_in = tree.in(_row_markers[i]);
-			marker_in.flags			   = ui::wf_overlay;
+			marker_in.flags			   = 0;
 			marker_in.size_mode_x	   = ui::axis_mode_e::fixed;
 			marker_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 			marker_in.size_value	   = {theme.item_height, 1.0f};
@@ -143,7 +143,7 @@ namespace sfg
 			tree.draw_order(_row_labels[i]) = POPUP_DRAW_ORDER + 3;
 
 			ui::layout_in_t& label_in = tree.in(_row_labels[i]);
-			label_in.flags			  = ui::wf_overlay;
+			label_in.flags			  = 0;
 			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			label_in.pos_value.y	  = 0.5f;
 			label_in.anchor_y		  = ui::anchor_e::center;

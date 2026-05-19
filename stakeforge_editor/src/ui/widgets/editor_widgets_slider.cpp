@@ -63,7 +63,7 @@ namespace sfg
 		root_in.pos_value.y		 = 0.5f;
 		root_in.anchor_y		 = ui::anchor_e::center;
 
-		_slider					 = ui.allocate_widget();
+		_slider = ui.allocate_widget();
 		ui.set_widget_debug_name(_slider, "editor_slider_slider");
 		tree.attach(_root, _slider);
 		tree.draw_order(_slider) = tree.draw_order_const(_root) + 1;
@@ -89,7 +89,7 @@ namespace sfg
 		tree.draw_order(_bg) = tree.draw_order_const(_slider) + 1;
 
 		ui::layout_in_t& bg_in = tree.in(_bg);
-		bg_in.flags			   = ui::wf_visible | ui::wf_overlay;
+		bg_in.flags			   = ui::wf_visible;
 		bg_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		bg_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		bg_in.pos_value		   = {0.0f, 0.5f};
@@ -109,7 +109,7 @@ namespace sfg
 		tree.draw_order(_icon) = tree.draw_order_const(_slider) + 2;
 
 		ui::layout_in_t& icon_in = tree.in(_icon);
-		icon_in.flags			 = ui::wf_visible | ui::wf_overlay;
+		icon_in.flags			 = ui::wf_visible;
 		icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_value.y		 = 0.5f;

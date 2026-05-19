@@ -60,7 +60,7 @@ namespace sfg
 		tree.attach(ui.get_root(), _frame);
 
 		ui::layout_in_t& frame_in = tree.in(_frame);
-		frame_in.flags			  = ui::wf_overlay;
+		frame_in.flags			  = 0;
 		frame_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		frame_in.size_value		  = {1.0f, 1.0f};
@@ -76,7 +76,7 @@ namespace sfg
 		tree.attach(_frame, _text_widget);
 
 		ui::layout_in_t& text_in = tree.in(_text_widget);
-		text_in.flags			 = ui::wf_overlay;
+		text_in.flags			 = 0;
 		text_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		text_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		text_in.pos_value.y		 = 0.5f;
@@ -260,8 +260,8 @@ namespace sfg
 		SFG_ASSERT(_ui != nullptr);
 
 		ui::layout_tree_t& tree		= _ui->get_tree();
-		tree.in(_frame).flags		= visible ? static_cast<u16>(ui::wf_visible) : static_cast<u16>(ui::wf_overlay);
-		tree.in(_text_widget).flags = visible ? static_cast<u16>(ui::wf_visible) : static_cast<u16>(ui::wf_overlay);
+		tree.in(_frame).flags		= visible ? static_cast<u16>(ui::wf_visible) : 0;
+		tree.in(_text_widget).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;
 		process::set_window_visible(_runtime->window_handle, visible);
 	}
 

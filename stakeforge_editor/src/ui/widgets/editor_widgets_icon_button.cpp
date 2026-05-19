@@ -68,7 +68,7 @@ namespace sfg
 		tree.draw_order(_icon) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& icon_in = tree.in(_icon);
-		icon_in.flags			 = ui::wf_overlay;
+		icon_in.flags			 = ui::wf_visible;
 		icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_value		 = {0.5f, 0.5f};
