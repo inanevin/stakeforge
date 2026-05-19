@@ -158,6 +158,7 @@ namespace sfg
 			set_text_raw(config.text_value != nullptr ? config.text_value : "");
 		}
 		refresh_text();
+		set_visible(true);
 	}
 
 	void editor_input_field_t::uninit()
@@ -181,9 +182,25 @@ namespace sfg
 		_text_advance_dpi_scale = 0.0f;
 	}
 
+	void editor_input_field_t::set_visible(bool visible, bool input)
+	{
+		ui::layout_tree_t& tree = _ui->get_tree();
+
+		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0) | ui::wf_focusable | ui::wf_clip_children) : static_cast<u16>(ui::wf_overlay);
+		tree.in(_slider).flags	= visible ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		tree.in(_label).flags	= visible ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		tree.in(_overlay).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+	}
+
 	void editor_input_field_t::set_text(const char* value)
 	{
 		set_text_raw(value);
+		refresh_text();
+	}
+
+	void editor_input_field_t::set_placeholder(const char* value)
+	{
+		_config.placeholder = value;
 		refresh_text();
 	}
 
@@ -196,6 +213,13 @@ namespace sfg
 			_number_value = static_cast<f32>(static_cast<i32>(_number_value + (_number_value >= 0.0f ? 0.5f : -0.5f)));
 		format_number();
 		refresh_text();
+	}
+
+	void editor_input_field_t::select_all()
+	{
+		_selection_anchor = 0;
+		_caret			  = _text_len;
+		reset_caret_blink();
 	}
 
 	void editor_input_field_t::refresh_text()
@@ -280,34 +304,39 @@ namespace sfg
 
 	void editor_input_field_t::insert_char(char c)
 	{
-		if (!accepts_char(c) || _text_len + 1 >= TEXT_CAPACITY)
+		if (!insert_char_data(c))
 			return;
-		erase_selection();
-		if (_text_len + 1 >= TEXT_CAPACITY)
-			return;
-		std::memmove(_text + _caret + 1, _text + _caret, _text_len - _caret + 1);
-		_text[_caret] = c;
-		_text_len++;
-		set_caret(_caret + 1);
-		if (is_number_type())
-		{
-			update_number_from_text();
-			refresh_text();
-			notify_changed();
-		}
-		else
-		{
-			refresh_text();
-			notify_changed();
-		}
+		update_number_from_text();
+		refresh_text();
+		notify_changed();
 	}
 
 	void editor_input_field_t::insert_text(const char* text)
 	{
 		if (text == nullptr)
 			return;
+		bool any = false;
 		for (const char* c = text; *c != '\0'; ++c)
-			insert_char(*c);
+			any |= insert_char_data(*c);
+		if (!any)
+			return;
+		update_number_from_text();
+		refresh_text();
+		notify_changed();
+	}
+
+	bool editor_input_field_t::insert_char_data(char c)
+	{
+		if (!accepts_char(c) || _text_len + 1 >= TEXT_CAPACITY)
+			return false;
+		erase_selection();
+		if (_text_len + 1 >= TEXT_CAPACITY)
+			return false;
+		std::memmove(_text + _caret + 1, _text + _caret, _text_len - _caret + 1);
+		_text[_caret] = c;
+		_text_len++;
+		set_caret(_caret + 1);
+		return true;
 	}
 
 	void editor_input_field_t::erase_selection()
@@ -330,13 +359,6 @@ namespace sfg
 	{
 		_caret			  = math::min(index, _text_len);
 		_selection_anchor = _caret;
-		reset_caret_blink();
-	}
-
-	void editor_input_field_t::select_all()
-	{
-		_selection_anchor = 0;
-		_caret			  = _text_len;
 		reset_caret_blink();
 	}
 
@@ -631,6 +653,8 @@ namespace sfg
 		if (ev.key == static_cast<u16>(input_code::key_return))
 		{
 			field.commit_number_text();
+			if (field._config.on_submitted != nullptr)
+				field._config.on_submitted(field._config.user_data);
 			return;
 		}
 

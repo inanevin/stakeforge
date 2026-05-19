@@ -41,6 +41,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	editor_action_menu_style_t make_default_action_menu_style(const editor_theme_t& theme)
+	{
+		editor_action_menu_style_t style = {};
+		style.dropdown_color			 = theme.color_frame;
+		style.hover_color				 = theme.color_panel_light;
+		style.press_color				 = theme.color_light;
+		style.text_color				 = theme.color_text0;
+		style.shortcut_color			 = theme.color_text2;
+		style.disabled_text_color		 = theme.color_text_disabled;
+		style.title_color				 = theme.color_text2;
+		style.title_line_color			 = theme.color_text2;
+		style.icon_color				 = theme.color_text0;
+		style.min_width					 = theme.item_width * 1.4f;
+		style.row_height				 = theme.item_height;
+		style.text_size					 = theme.text_default_px_size;
+		style.shortcut_size				 = theme.text_small_title_px_size;
+		style.title_size				 = theme.text_small_title_px_size;
+		style.title_line_thickness		 = theme.divider_thickness;
+		style.icon_size					 = theme.icon_default_px_size;
+		style.padding_x					 = theme.margin_horizontal;
+		style.padding_y					 = theme.margin_vertical;
+		style.shortcut_gap				 = theme.item_spacing * 4.0f;
+		style.title_gap					 = theme.item_spacing;
+		return style;
+	}
+
 	namespace
 	{
 		constexpr u32 ACTION_MENU_DRAW_ORDER = 51000u;

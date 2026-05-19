@@ -115,6 +115,9 @@ namespace sfg
 		rect.fill_color_a		  = color;
 		rect.fill_color_b		  = color;
 		rect.rounding			  = theme.item_rounding;
+		rect.outline_color		  = _config.toggle_enabled && _toggled ? theme.color_outline_light : vec4f_t::zero;
+		rect.outline_thickness	  = theme.outline_thickness;
+
 		paint.set_rect(_root, rect);
 		paint.set_hover_color(_root, _config.hover_color);
 		paint.set_press_color(_root, _config.press_color);

@@ -76,8 +76,8 @@ namespace sfg::ui
 
 	struct vg_canvas_config_t
 	{
-		u64 vertex_buffer_bytes		= 1u << 23; // 8 MB
-		u64 index_buffer_bytes		= 1u << 23; // 8 MB
+		u64 vertex_buffer_bytes		= 1u << 24; // 16 MB
+		u64 index_buffer_bytes		= 1u << 24; // 16 MB
 		u32 buffer_count			= 48;
 		u32 text_cache_vertex_bytes = 1u << 22;
 		u32 text_cache_index_bytes	= 1u << 22;

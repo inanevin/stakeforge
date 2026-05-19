@@ -76,6 +76,7 @@ namespace sfg
 		static string_t get_running_directory();
 		static string_t get_user_directory();
 		static void		fix_path(string_t& str);
+		static void		fix_path_end_slash(string_t& str);
 		static string_t duplicate(const char* path);
 		static string_t get_relative(const char* src, const char* target);
 		static string_t get_system_time_str();

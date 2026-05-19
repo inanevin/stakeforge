@@ -59,6 +59,7 @@ namespace sfg
 	};
 
 	using editor_tab_drag_out_allowed_fn = bool (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
+	using editor_tab_close_allowed_fn	 = bool (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 	using editor_tab_callback_fn		 = void (*)(editor_tab_area_t& tab_area, sid_t identifier, void* user_data);
 
 	struct editor_tab_area_config_t
@@ -67,6 +68,7 @@ namespace sfg
 		editor_tab_callback_fn		   tab_removed			= nullptr;
 		editor_tab_callback_fn		   tab_dragged_out		= nullptr;
 		editor_tab_drag_out_allowed_fn drag_out_allowed		= nullptr;
+		editor_tab_close_allowed_fn	   close_allowed		= nullptr;
 		void*						   user_data			= nullptr;
 		bool						   can_close_single_tab = false;
 		bool						   can_close			= true;
@@ -123,6 +125,7 @@ namespace sfg
 		bool		  is_drag_out_position(const vec2f_t& pos);
 		void		  request_drag_out(sid_t identifier);
 		void		  request_close(sid_t identifier);
+		void		  remove_tab(sid_t identifier, bool notify_removed);
 		bool		  consume_pending_removals();
 		size_t		  find_tab_index(sid_t identifier) const;
 		editor_tab_t& find_tab_by_widget(ui::widget_id_t widget);

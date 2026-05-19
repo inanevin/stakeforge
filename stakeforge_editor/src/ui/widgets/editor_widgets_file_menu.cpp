@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_widgets_file_menu.hpp"
+#include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/io/assert.hpp>
@@ -63,7 +64,7 @@ namespace sfg
 		menu.refresh_top_frames();
 	}
 
-	void editor_file_menu_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_file_menu_item_desc_t* items, u16 item_count, const editor_file_menu_style_t& style, editor_file_menu_command_fn command_fn, void* command_user_data)
+	void editor_file_menu_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_file_menu_item_desc_t* items, u16 item_count, const editor_file_menu_style_t& style, void (*command_fn)(u16 command, void* user_data), void* command_user_data)
 	{
 		SFG_ASSERT(item_count <= MAX_TOP_ITEMS);
 

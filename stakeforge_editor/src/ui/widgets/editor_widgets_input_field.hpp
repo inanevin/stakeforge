@@ -49,6 +49,7 @@ namespace sfg
 
 	using editor_input_field_text_fn   = void (*)(const char* value, void* user_data);
 	using editor_input_field_number_fn = void (*)(f32 value, void* user_data);
+	using editor_input_field_submit_fn = void (*)(void* user_data);
 
 	struct editor_input_field_config_t
 	{
@@ -56,6 +57,7 @@ namespace sfg
 		const char*					 text_value		   = nullptr;
 		editor_input_field_text_fn	 on_text_changed   = nullptr;
 		editor_input_field_number_fn on_number_changed = nullptr;
+		editor_input_field_submit_fn on_submitted	   = nullptr;
 		void*						 user_data		   = nullptr;
 		editor_input_field_type_e	 type			   = editor_input_field_type_e::text;
 		f32							 number_value	   = 0.0f;
@@ -75,8 +77,11 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_config_t& config);
 		void uninit();
+		void set_visible(bool visible, bool input = true);
 		void set_text(const char* value);
+		void set_placeholder(const char* value);
 		void set_number(f32 value);
+		void select_all();
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -104,10 +109,10 @@ namespace sfg
 		void format_number();
 		void insert_char(char c);
 		void insert_text(const char* text);
+		bool insert_char_data(char c);
 		void erase_selection();
 		void erase_range(u32 start, u32 end);
 		void set_caret(u32 index);
-		void select_all();
 		void update_drag_selection(const vec2f_t& pos);
 		void apply_number_delta(f32 delta_x);
 		void rebuild_text_advances();

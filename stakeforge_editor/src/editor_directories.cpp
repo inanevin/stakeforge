@@ -31,20 +31,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	namespace
-	{
-		constexpr const char* STAKEFORGE_DIR = "stakeforge";
-		constexpr const char* SETTINGS_FILE	 = "editor.sfg";
-	}
+
+#define STAKEFORGE_DIR "stakeforge/";
+#define SETTINGS_FILE  "editor.sfg";
 
 	string_t editor_directories_t::get_user_directory()
 	{
 		string_t dir = file_system_t::get_user_directory();
 		file_system_t::fix_path(dir);
-		if (!dir.empty() && dir.back() != '/')
-			dir += '/';
+		file_system_t::fix_path_end_slash(dir);
 		dir += STAKEFORGE_DIR;
-		dir += '/';
 		return dir;
 	}
 
@@ -81,8 +77,7 @@ namespace sfg
 		file_system_t::fix_path(project_path);
 
 		string_t directory = file_system_t::get_directory_of_file(project_path.c_str());
-		if (!directory.empty() && directory.back() != '/')
-			directory += '/';
+		file_system_t::fix_path_end_slash(directory);
 		directory += "assets/";
 		return directory;
 	}

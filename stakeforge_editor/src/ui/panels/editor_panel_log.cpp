@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/frame_string.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/file_system.hpp>
@@ -39,15 +40,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <cctype>
 
 namespace sfg
 {
-#define EDITOR_LOG_PANEL_ROW_CAPACITY 192
+#define EDITOR_LOG_PANEL_ROW_CAPACITY	  192
+#define EDITOR_LOG_PANEL_AUTO_SCROLL_SLOP 1.0f
+#define EDITOR_LOG_PANEL_LISTENER_ID	  0x0E100001u
 
 	namespace
 	{
-		u32 g_log_panel_listener_id = 1;
-
 		const editor_dropdown_item_t LOG_SOURCE_ITEMS[] = {
 			{.text = "All", .value = static_cast<u16>(log_source_type_e::all)},
 			{.text = "Editor", .value = static_cast<u16>(log_source_type_e::editor)},
@@ -129,26 +131,32 @@ namespace sfg
 			return theme.color_text0;
 		}
 
-		bool text_matches_search(const char* text, const string_t& search)
+		bool find_case_insensitive(const char* haystack, const string_t& needle_lower)
 		{
-			if (search.empty())
+			if (needle_lower.empty())
 				return true;
-			if (text == nullptr)
+			if (haystack == nullptr)
 				return false;
 
-			string_t haystack = text;
-			string_t needle	  = search;
-			string_util::to_lower(haystack);
-			string_util::to_lower(needle);
-			return haystack.find(needle) != string_t::npos;
+			const char* const needle = needle_lower.data();
+			const size_t	  nlen	 = needle_lower.size();
+			for (const char* p = haystack; *p != '\0'; ++p)
+			{
+				size_t i = 0;
+				while (i < nlen && p[i] != '\0' && static_cast<char>(std::tolower(static_cast<unsigned char>(p[i]))) == needle[i])
+					++i;
+				if (i == nlen)
+					return true;
+			}
+			return false;
 		}
 
-		string_t make_log_display_text(const string_t& raw_text, u32 count)
+		void build_log_display_text(frame_string_t<char>& out, const char* raw_text, u32 count)
 		{
-			string_t text = file_system_t::get_system_time_tag_str(count);
-			text += " ";
-			text += raw_text;
-			return text;
+			const string_t tag = file_system_t::get_system_time_tag_str(count);
+			out				   = tag.c_str();
+			out += " ";
+			out += raw_text;
 		}
 	}
 
@@ -158,8 +166,16 @@ namespace sfg
 		set_title(editor_panel_type_to_string(editor_panel_type_e::log));
 	}
 
+	vector_t<editor_panel_log_t::log_record_t> editor_panel_log_t::_stored_logs				 = {};
+	vector_t<editor_panel_log_t::log_record_t> editor_panel_log_t::_pending_logs			 = {};
+	mutex_t									   editor_panel_log_t::_log_storage_mtx			 = {};
+	u64										   editor_panel_log_t::_next_stored_log_sequence = 1;
+	u32										   editor_panel_log_t::_log_storage_generation	 = 1;
+	bool									   editor_panel_log_t::_log_listener_installed	 = false;
+
 	void editor_panel_log_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
+		install_log_listener();
 		editor_panel_t::init(ui, parent);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -175,13 +191,13 @@ namespace sfg
 		ui.set_widget_debug_name(_top_row, "log_top_row");
 		tree.attach(_root, _top_row);
 
-		ui::layout_in_t& title_in = tree.in(_top_row);
-		title_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-		title_in.size_mode_y	  = ui::axis_mode_e::fixed;
-		title_in.size_value		  = {1.0f, theme.item_area_height};
-		title_in.flow			  = ui::flow_e::row;
-		title_in.child_spacing	  = theme.item_spacing;
-		title_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		ui::layout_in_t& top_in = tree.in(_top_row);
+		top_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		top_in.size_mode_y		= ui::axis_mode_e::fixed;
+		top_in.size_value		= {1.0f, theme.item_area_height};
+		top_in.flow				= ui::flow_e::row;
+		top_in.child_spacing	= theme.item_spacing;
+		top_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		editor_dropdown_config_t source_dropdown_config = {};
 		source_dropdown_config.items					= LOG_SOURCE_ITEMS;
@@ -197,48 +213,37 @@ namespace sfg
 		editor_icon_button_config_t button_config = {};
 		button_config.frame_color				  = {0.0f, 0.0f, 0.0f, 0.0f};
 		button_config.hover_color				  = theme.color_panel_light;
-		button_config.press_color				  = theme.color_frame;
-		button_config.frame_toggled_color		  = theme.color_frame;
+		button_config.press_color				  = theme.color_frame_light;
+		button_config.frame_toggled_color		  = theme.color_frame_light;
 		button_config.size						  = theme.item_height;
-		button_config.icon_size					  = theme.text_default_px_size;
+		button_config.icon_size					  = theme.text_big_px_size;
 		button_config.toggle_enabled			  = true;
 		button_config.on_clicked				  = on_filter_pressed;
 
-		_warn_filter_data		   = {.panel = this, .flag = log_level_filter_warn};
-		button_config.icon		   = ICON_WARN;
-		button_config.toggled_icon = ICON_WARN;
-		button_config.icon_color   = theme.color_accent_warn;
-		button_config.tooltip	   = "Warnings";
-		button_config.toggled	   = is_filter_enabled(log_level_filter_warn);
-		button_config.user_data	   = &_warn_filter_data;
-		_warn_button.init(ui, _top_row, button_config);
+		const struct
+		{
+			const char* icon;
+			vec4f_t		color;
+			const char* tooltip;
+			u8			flag;
+		} filter_specs[FILTER_BUTTON_COUNT] = {
+			{ICON_WARN, theme.color_accent_warn, "Warnings", log_level_filter_warn},
+			{ICON_ERROR, theme.color_accent_err, "Errors", log_level_filter_err},
+			{ICON_INFO, theme.color_text0, "Info", log_level_filter_info},
+			{ICON_TRACE, theme.color_accent1, "Trace", log_level_filter_trace},
+		};
 
-		_err_filter_data		   = {.panel = this, .flag = log_level_filter_err};
-		button_config.icon		   = ICON_ERROR;
-		button_config.toggled_icon = ICON_ERROR;
-		button_config.icon_color   = theme.color_accent_err;
-		button_config.tooltip	   = "Errors";
-		button_config.toggled	   = is_filter_enabled(log_level_filter_err);
-		button_config.user_data	   = &_err_filter_data;
-		_err_button.init(ui, _top_row, button_config);
-
-		_info_filter_data		   = {.panel = this, .flag = log_level_filter_info};
-		button_config.icon		   = ICON_INFO;
-		button_config.toggled_icon = ICON_INFO;
-		button_config.icon_color   = theme.color_text0;
-		button_config.tooltip	   = "Info";
-		button_config.toggled	   = is_filter_enabled(log_level_filter_info);
-		button_config.user_data	   = &_info_filter_data;
-		_info_button.init(ui, _top_row, button_config);
-
-		_trace_filter_data		   = {.panel = this, .flag = log_level_filter_trace};
-		button_config.icon		   = ICON_TRACE;
-		button_config.toggled_icon = ICON_TRACE;
-		button_config.icon_color   = theme.color_accent1;
-		button_config.tooltip	   = "Trace";
-		button_config.toggled	   = is_filter_enabled(log_level_filter_trace);
-		button_config.user_data	   = &_trace_filter_data;
-		_trace_button.init(ui, _top_row, button_config);
+		for (size_t i = 0; i < FILTER_BUTTON_COUNT; ++i)
+		{
+			_filter_button_data[i]	   = {.panel = this, .flag = filter_specs[i].flag};
+			button_config.icon		   = filter_specs[i].icon;
+			button_config.toggled_icon = filter_specs[i].icon;
+			button_config.icon_color   = filter_specs[i].color;
+			button_config.tooltip	   = filter_specs[i].tooltip;
+			button_config.toggled	   = (_log_filter_flags & filter_specs[i].flag) != 0;
+			button_config.user_data	   = &_filter_button_data[i];
+			_filter_buttons[i].init(ui, _top_row, button_config);
+		}
 
 		button_config.icon		   = ICON_DD_DOWN;
 		button_config.toggled_icon = ICON_DD_DOWN;
@@ -248,6 +253,16 @@ namespace sfg
 		button_config.user_data	   = this;
 		button_config.on_clicked   = on_collapse_pressed;
 		_collapse_button.init(ui, _top_row, button_config);
+
+		button_config.icon			 = ICON_TRASH;
+		button_config.toggled_icon	 = nullptr;
+		button_config.icon_color	 = theme.color_accent_err;
+		button_config.tooltip		 = "Clear";
+		button_config.toggled		 = false;
+		button_config.toggle_enabled = false;
+		button_config.user_data		 = this;
+		button_config.on_clicked	 = on_clear_pressed;
+		_clear_button.init(ui, _top_row, button_config);
 
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
@@ -291,33 +306,23 @@ namespace sfg
 		_scrollbar.init(ui, scrollbar_config);
 
 		_rows.reserve(EDITOR_LOG_PANEL_ROW_CAPACITY);
-		_pending_logs.reserve(32);
 		_drained_logs.reserve(32);
-		_listener_id = g_log_panel_listener_id++;
-		log_t::instance().add_listener(_listener_id, on_log, this);
 		ui.set_pre_layout_tick(_body, on_log_tick, this);
+		drain_pending_logs();
 	}
 
 	void editor_panel_log_t::uninit()
 	{
-		log_t::instance().remove_listener(_listener_id);
 		_scrollbar.uninit();
-		_trace_button.uninit();
-		_info_button.uninit();
-		_err_button.uninit();
-		_warn_button.uninit();
+		for (editor_icon_button_t& button : _filter_buttons)
+			button.uninit();
 		_collapse_button.uninit();
+		_clear_button.uninit();
 		_search_input.uninit();
 		_source_dropdown.uninit();
-		editor_panel_t::uninit();
-
-		_top_row = NULL_WIDGET;
-		_body	 = NULL_WIDGET;
 		_rows.clear();
-		_pending_logs.clear();
 		_drained_logs.clear();
-		_search_text.clear();
-		_listener_id = 0;
+		editor_panel_t::uninit();
 	}
 
 	void editor_panel_log_t::serialize(nlohmann::json& j) const
@@ -332,7 +337,7 @@ namespace sfg
 	{
 		const string_t source_type = j.value<string_t>("source_type", "all");
 		_source_type			   = log_source_type_from_string(source_type.c_str());
-		_log_filter_flags		   = static_cast<u8>(j.value<u32>("log_filter_flags", static_cast<u32>(log_level_filter_all))) & log_level_filter_all;
+		_log_filter_flags		   = static_cast<u8>(j.value<u32>("log_filter_flags", static_cast<u32>(log_level_filter_all)));
 		_is_collapsed			   = j.value("is_collapsed", false);
 	}
 
@@ -371,28 +376,36 @@ namespace sfg
 			panel.collapse_existing_rows();
 	}
 
+	void editor_panel_log_t::on_clear_pressed(bool, void* user_data)
+	{
+		static_cast<editor_panel_log_t*>(user_data)->clear_logs();
+	}
+
 	void editor_panel_log_t::on_search_changed(const char* value, void* user_data)
 	{
 		editor_panel_log_t& panel = *static_cast<editor_panel_log_t*>(user_data);
 		panel._search_text		  = value != nullptr ? value : "";
+		panel._search_text_lower  = panel._search_text;
+		string_util::to_lower(panel._search_text_lower);
 		panel.refresh_log_filter_visibility();
-	}
-
-	bool editor_panel_log_t::is_filter_enabled(u8 flag) const
-	{
-		return (_log_filter_flags & flag) != 0;
 	}
 
 	bool editor_panel_log_t::is_log_row_visible(const log_row_t& row) const
 	{
-		return is_filter_enabled(row.flag) && text_matches_search(row.raw_text.c_str(), _search_text);
+		return (_log_filter_flags & row.flag) != 0 && find_case_insensitive(row.raw_text.c_str(), _search_text_lower);
 	}
 
-	void editor_panel_log_t::on_log(log_level level, const char* msg, void* user_data)
+	bool editor_panel_log_t::is_scrolled_to_end() const
 	{
-		editor_panel_log_t& panel = *static_cast<editor_panel_log_t*>(user_data);
-		LOCK_GUARD(panel._pending_logs_mtx);
-		panel._pending_logs.push_back({.text = msg, .level = level});
+		const ui::layout_in_t&	in	= _ui->get_tree().in_const(_body);
+		const ui::layout_out_t& out = _ui->get_tree().out(_body);
+		return out.max_scroll.y <= 0.0f || in.scroll_offset.y <= -out.max_scroll.y + EDITOR_LOG_PANEL_AUTO_SCROLL_SLOP;
+	}
+
+	void editor_panel_log_t::on_log(log_level level, const char* msg, void*)
+	{
+		LOCK_GUARD(_log_storage_mtx);
+		_pending_logs.push_back({.text = msg, .level = level});
 	}
 
 	void editor_panel_log_t::on_log_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
@@ -403,15 +416,37 @@ namespace sfg
 	void editor_panel_log_t::drain_pending_logs()
 	{
 		_drained_logs.clear();
+		bool clear_rows = false;
 		{
-			LOCK_GUARD(_pending_logs_mtx);
-			_pending_logs.swap(_drained_logs);
+			LOCK_GUARD(_log_storage_mtx);
+			append_pending_logs_to_storage();
+			clear_rows = _storage_generation != _log_storage_generation;
+			if (clear_rows)
+			{
+				_storage_generation = _log_storage_generation;
+				_next_log_sequence	= 0;
+			}
+			for (const log_record_t& record : _stored_logs)
+			{
+				if (record.sequence >= _next_log_sequence)
+					_drained_logs.push_back(record);
+			}
 		}
 
-		for (const log_record_t& record : _drained_logs)
-			add_log_row(record.level, record.text.c_str());
+		if (clear_rows)
+			clear_log_rows();
 
-		if (!_drained_logs.empty())
+		if (_drained_logs.empty())
+			return;
+
+		const bool was_at_end = is_scrolled_to_end();
+		for (const log_record_t& record : _drained_logs)
+		{
+			add_log_row(record.level, record.text.c_str());
+			_next_log_sequence = record.sequence + 1;
+		}
+
+		if (was_at_end)
 			_scrollbar.scroll_to_end_y();
 	}
 
@@ -425,13 +460,17 @@ namespace sfg
 		const u64 hash = hashing_t::hash_fnv_1a64(text);
 		if (_is_collapsed)
 		{
-			log_row_t* existing = find_collapsed_row(hash);
-			if (existing != nullptr)
+			for (size_t i = 0; i < _rows.size(); ++i)
 			{
-				existing->count++;
-				update_log_row_text(*existing);
-				move_log_row_to_bottom(*existing);
-				set_log_row_visible(_rows.back(), is_log_row_visible(_rows.back()));
+				log_row_t& row = _rows[i];
+				if (row.hash != hash)
+					continue;
+
+				row.count++;
+				update_log_row_text(row);
+				move_log_row_to_bottom(i);
+				log_row_t& moved = _rows.back();
+				set_log_row_visible(moved, is_log_row_visible(moved));
 				return;
 			}
 		}
@@ -479,73 +518,99 @@ namespace sfg
 		ui::layout_in_t& text_in = tree.in(row.text);
 		text_in.flags			 = ui::wf_visible;
 
-		const string_t display_text = make_log_display_text(row.raw_text, row.count);
-		ui.set_widget_text(row.text, display_text.c_str());
-		paint.set_text(row.text,
-					   ui.widget_text(row.text),
-					   ui.widget_text_len(row.text),
-					   {.font = theme.font_default_mono, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(row.text, nullptr, 0, {.font = theme.font_default_mono, .color = log_level_to_color(level, theme), .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		_rows.push_back(row);
-		set_log_row_visible(_rows.back(), is_log_row_visible(_rows.back()));
+		_rows.push_back(std::move(row));
+		log_row_t& stored = _rows.back();
+		update_log_row_text(stored);
+		set_log_row_visible(stored, is_log_row_visible(stored));
 		trim_log_rows();
 	}
 
 	void editor_panel_log_t::update_log_row_text(log_row_t& row)
 	{
-		const string_t display_text = make_log_display_text(row.raw_text, row.count);
+		frame_string_t<char> display_text;
+		build_log_display_text(display_text, row.raw_text.c_str(), row.count);
 		_ui->set_widget_text(row.text, display_text.c_str());
 	}
 
-	editor_panel_log_t::log_row_t* editor_panel_log_t::find_collapsed_row(u64 hash)
+	void editor_panel_log_t::move_log_row_to_bottom(size_t index)
 	{
-		for (log_row_t& row : _rows)
-		{
-			if (row.hash == hash)
-				return &row;
-		}
-		return nullptr;
-	}
+		SFG_ASSERT(index < _rows.size());
 
-	void editor_panel_log_t::move_log_row_to_bottom(log_row_t& row)
-	{
 		ui::layout_tree_t& tree = _ui->get_tree();
-		tree.detach(row.root);
-		tree.attach(_body, row.root);
+		tree.detach(_rows[index].root);
+		tree.attach(_body, _rows[index].root);
 
-		for (auto it = _rows.begin(); it != _rows.end(); ++it)
-		{
-			if (&(*it) != &row)
-				continue;
-
-			log_row_t moved = std::move(*it);
-			_rows.erase(it);
-			_rows.push_back(std::move(moved));
+		if (index + 1 == _rows.size())
 			return;
-		}
+
+		log_row_t moved = std::move(_rows[index]);
+		_rows.erase(_rows.begin() + index);
+		_rows.push_back(std::move(moved));
 	}
 
 	void editor_panel_log_t::collapse_existing_rows()
 	{
-		for (size_t i = 0; i < _rows.size(); ++i)
-		{
-			log_row_t& base = _rows[i];
-			for (size_t j = i + 1; j < _rows.size();)
-			{
-				log_row_t& candidate = _rows[j];
-				if (candidate.hash != base.hash)
-				{
-					++j;
-					continue;
-				}
+		// Mark duplicate rows for removal in a single forward pass, accumulating counts onto the survivor.
+		const size_t row_count = _rows.size();
+		if (row_count < 2)
+			return;
 
-				base.count += candidate.count;
-				_ui->deallocate_widget(candidate.root);
-				_rows.erase(_rows.begin() + j);
+		vector_t<bool> remove(row_count, false);
+		for (size_t i = 0; i < row_count; ++i)
+		{
+			if (remove[i])
+				continue;
+			log_row_t& base = _rows[i];
+			for (size_t j = i + 1; j < row_count; ++j)
+			{
+				if (remove[j] || _rows[j].hash != base.hash)
+					continue;
+				base.count += _rows[j].count;
+				_ui->deallocate_widget(_rows[j].root);
+				remove[j] = true;
 			}
-			update_log_row_text(base);
-			set_log_row_visible(base, is_log_row_visible(base));
 		}
+
+		// Compact in one O(N) pass.
+		size_t write = 0;
+		for (size_t read = 0; read < row_count; ++read)
+		{
+			if (remove[read])
+				continue;
+			if (write != read)
+				_rows[write] = std::move(_rows[read]);
+			++write;
+		}
+		_rows.resize(write);
+
+		for (log_row_t& row : _rows)
+		{
+			update_log_row_text(row);
+			set_log_row_visible(row, is_log_row_visible(row));
+		}
+	}
+
+	void editor_panel_log_t::clear_log_rows()
+	{
+		for (const log_row_t& row : _rows)
+			_ui->deallocate_widget(row.root);
+		_rows.clear();
+	}
+
+	void editor_panel_log_t::clear_logs()
+	{
+		{
+			LOCK_GUARD(_log_storage_mtx);
+			_stored_logs.clear();
+			_pending_logs.clear();
+			_log_storage_generation++;
+			_storage_generation = _log_storage_generation;
+			_next_log_sequence	= _next_stored_log_sequence;
+		}
+		_drained_logs.clear();
+		clear_log_rows();
 	}
 
 	void editor_panel_log_t::refresh_log_filter_visibility()
@@ -570,5 +635,32 @@ namespace sfg
 			_ui->deallocate_widget(_rows.front().root);
 			_rows.erase(_rows.begin());
 		}
+	}
+
+	void editor_panel_log_t::install_log_listener()
+	{
+		if (_log_listener_installed)
+			return;
+
+		{
+			LOCK_GUARD(_log_storage_mtx);
+			_stored_logs.reserve(EDITOR_LOG_PANEL_ROW_CAPACITY);
+			_pending_logs.reserve(32);
+		}
+		log_t::instance().add_listener(EDITOR_LOG_PANEL_LISTENER_ID, on_log, nullptr);
+		_log_listener_installed = true;
+	}
+
+	void editor_panel_log_t::append_pending_logs_to_storage()
+	{
+		for (log_record_t& record : _pending_logs)
+		{
+			record.sequence = _next_stored_log_sequence++;
+			_stored_logs.push_back(std::move(record));
+		}
+		_pending_logs.clear();
+
+		while (_stored_logs.size() > EDITOR_LOG_PANEL_ROW_CAPACITY)
+			_stored_logs.erase(_stored_logs.begin());
 	}
 }

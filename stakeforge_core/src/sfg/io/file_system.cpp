@@ -271,6 +271,7 @@ namespace sfg
 		if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, path)))
 		{
 			string_t pp = string_t(path);
+			fix_path(pp);
 			return pp;
 		}
 		return std::string();
@@ -286,6 +287,12 @@ namespace sfg
 	{
 		string_util::replace_all(str, "\\\\", "/");
 		string_util::replace_all(str, "\\", "/");
+	}
+
+	void file_system_t::fix_path_end_slash(string_t& str)
+	{
+		if (!str.empty() && str.back() != '/')
+			str += '/';
 	}
 
 	string_t file_system_t::get_absolute_path(const char* path)

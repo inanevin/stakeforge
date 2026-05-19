@@ -68,7 +68,7 @@ namespace sfg
 		_asset_tree.reserve(static_cast<u32>(entries.size() + 1));
 
 		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
-		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .type = editor_asset_node_type_e::folder});
+		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .type = editor_asset_node_type_e::folder, .flags = editor_asset_node_flag_promoted});
 
 		vector_t<string_t> parts;
 		for (const file_system_entry_t& entry : entries)
@@ -97,7 +97,7 @@ namespace sfg
 			}
 			else
 			{
-				asset.source_abs_path					   = entry.path;
+				asset.source_relative_path					   = entry.path;
 				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = parts.back(), .type = editor_asset_node_type_e::file});
 				_asset_tree.attach(parent, file_node);
 			}
@@ -141,7 +141,8 @@ namespace sfg
 		if (!existing.is_null())
 			return existing;
 
-		const editor_asset_node_handle_t folder = _asset_tree.emplace(editor_asset_node_t{.name = name, .type = editor_asset_node_type_e::folder});
+		const u8						 flags	= !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
+		const editor_asset_node_handle_t folder = _asset_tree.emplace(editor_asset_node_t{.name = name, .type = editor_asset_node_type_e::folder, .flags = flags});
 		_asset_tree.attach(parent, folder);
 		return folder;
 	}

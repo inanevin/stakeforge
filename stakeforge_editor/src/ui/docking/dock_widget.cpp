@@ -119,7 +119,9 @@ namespace sfg
 		editor_tab_area_config_t tab_config = {};
 		tab_config.tab_switched				= on_leaf_tab_switched;
 		tab_config.tab_dragged_out			= on_leaf_tab_dragged_out;
+		tab_config.tab_removed				= on_leaf_tab_closed;
 		tab_config.drag_out_allowed			= is_leaf_tab_drag_out_allowed;
+		tab_config.close_allowed			= is_leaf_tab_close_allowed;
 		tab_config.user_data				= this;
 		tab_config.can_drag_out				= true;
 		node.tab_area.init(ui, node.widget, tab_config);
@@ -390,13 +392,11 @@ namespace sfg
 
 		if (sibling.node_type == dock_node_type_e::leaf)
 		{
-			vector_t<editor_panel_t*> panels = sibling.panels;
+			const sid_t				  active_tab = sibling.tab_area.get_active_tab();
+			vector_t<editor_panel_t*> panels	 = sibling.panels;
 			sibling.panels.clear();
 			for (editor_panel_t* panel : panels)
-			{
 				panel->deassign();
-				panel->uninit();
-			}
 
 			destroy_split_border(parent);
 			destroy_dock_node(empty_handle);
@@ -411,6 +411,8 @@ namespace sfg
 			init_leaf_node_content(collapsed);
 			for (editor_panel_t* panel : panels)
 				dock_node_add_panel(collapsed, panel);
+			if (active_tab != 0)
+				collapsed.tab_area.select_tab(active_tab);
 			return;
 		}
 
@@ -620,13 +622,11 @@ namespace sfg
 
 		const bool				  split_horizontal = preview == dock_preview_e::left || preview == dock_preview_e::right;
 		const bool				  new_is_negative  = preview == dock_preview_e::left || preview == dock_preview_e::top;
+		const sid_t				  active_tab	   = node.tab_area.get_active_tab();
 		vector_t<editor_panel_t*> existing_panels  = node.panels;
 		node.panels.clear();
 		for (editor_panel_t* existing_panel : existing_panels)
-		{
 			existing_panel->deassign();
-			existing_panel->uninit();
-		}
 
 		node.tab_area.uninit();
 		_ui->deallocate_widget(node.body);
@@ -653,6 +653,8 @@ namespace sfg
 		dock_node_t& existing_node = _dock_nodes.get(existing_leaf);
 		for (editor_panel_t* existing_panel : existing_panels)
 			dock_node_add_panel(existing_node, existing_panel);
+		if (active_tab != 0)
+			existing_node.tab_area.select_tab(active_tab);
 
 		dock_node_add_panel(_dock_nodes.get(new_leaf), panel);
 		return true;
@@ -856,6 +858,60 @@ namespace sfg
 
 		SFG_ASSERT(false);
 		return false;
+	}
+
+	bool dock_widget_t::is_leaf_tab_close_allowed(editor_tab_area_t& tab_area, sid_t, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		for (dock_node_t& node : dock_widget._dock_nodes)
+		{
+			if (&node.tab_area == &tab_area)
+			{
+				const bool is_root = !dock_widget._root_node.is_null() && &node == &dock_widget._dock_nodes.get(dock_widget._root_node);
+				if (!is_root)
+					return true;
+				if (dock_widget._config.root_drag_out_behavior == dock_widget_root_drag_out_e::close_window)
+					return true;
+				return node.panels.size() > 1;
+			}
+		}
+
+		SFG_ASSERT(false);
+		return false;
+	}
+
+	void dock_widget_t::on_leaf_tab_closed(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
+	{
+		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		for (dock_node_t& node : dock_widget._dock_nodes)
+		{
+			if (&node.tab_area == &tab_area)
+			{
+				const bool is_root = !dock_widget._root_node.is_null() && &node == &dock_widget._dock_nodes.get(dock_widget._root_node);
+				for (auto it = node.panels.begin(); it != node.panels.end(); ++it)
+				{
+					editor_panel_t* panel = *it;
+					if (TO_SID(panel->get_title()) == identifier)
+					{
+						panel->deassign();
+						panel->uninit();
+						editor_panel_factory_t::delete_panel(panel);
+						node.panels.erase(it);
+						break;
+					}
+				}
+				if (node.panels.empty())
+				{
+					if (is_root && dock_widget._config.root_drag_out_behavior == dock_widget_root_drag_out_e::close_window)
+						dock_widget._runtime->set_flag(window_runtime_flags_e::close_requested);
+					else if (!is_root)
+						dock_widget.collapse_empty_leaf_after_drag_out(node);
+				}
+				return;
+			}
+		}
+
+		SFG_ASSERT(false);
 	}
 
 	bool dock_widget_t::on_payload_drop(const editor_payload_t& payload, void* user_data)

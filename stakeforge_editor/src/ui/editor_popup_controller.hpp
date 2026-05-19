@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/editor_widgets_input_field.hpp"
 #include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -41,6 +42,7 @@ namespace sfg::ui
 namespace sfg
 {
 	using editor_popup_item_pressed_fn = void (*)(u16 id, void* user_data);
+	using editor_popup_input_closed_fn = void (*)(const char* value, void* user_data);
 
 	struct editor_popup_item_desc_t
 	{
@@ -58,6 +60,16 @@ namespace sfg
 		f32								width			 = 0.0f;
 		u16								item_count		 = 0;
 		bool							close_on_pressed = true;
+	};
+
+	struct editor_input_popup_desc_t
+	{
+		editor_popup_input_closed_fn closed		 = nullptr;
+		void*						 user_data	 = nullptr;
+		const char*					 text		 = nullptr;
+		const char*					 placeholder = nullptr;
+		vec2f_t						 pos		 = {};
+		f32							 width		 = 0.0f;
 	};
 
 	class editor_popup_controller_t final
@@ -84,12 +96,20 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void request_popup(const editor_popup_desc_t& desc);
-		void close_popup();
+		void request_input_popup(const editor_input_popup_desc_t& desc);
+		void close_popup(bool notify_input = false);
 
 		static editor_popup_controller_t* find(ui::ui_context& ui);
 
 	private:
 		static constexpr u32 MAX_ITEMS = 16;
+
+		enum class popup_mode_e : u8
+		{
+			none,
+			items,
+			input,
+		};
 
 		void set_visible(bool visible);
 		void refresh_rows();
@@ -98,17 +118,21 @@ namespace sfg
 
 		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_input_submitted(void* user_data);
 		static void draw_selected_marker(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
-		ui::ui_context*			 _ui					 = nullptr;
-		ui::widget_id_t			 _foreground			 = NULL_WIDGET;
-		ui::widget_id_t			 _frame					 = NULL_WIDGET;
-		ui::widget_id_t			 _row_frames[MAX_ITEMS]	 = {};
-		ui::widget_id_t			 _row_markers[MAX_ITEMS] = {};
-		ui::widget_id_t			 _row_labels[MAX_ITEMS]	 = {};
-		editor_popup_desc_t		 _desc					 = {};
-		editor_popup_item_desc_t _items[MAX_ITEMS]		 = {};
-		bool					 _visible				 = false;
+		ui::ui_context*			  _ui					  = nullptr;
+		ui::widget_id_t			  _foreground			  = NULL_WIDGET;
+		ui::widget_id_t			  _frame				  = NULL_WIDGET;
+		ui::widget_id_t			  _row_frames[MAX_ITEMS]  = {};
+		ui::widget_id_t			  _row_markers[MAX_ITEMS] = {};
+		ui::widget_id_t			  _row_labels[MAX_ITEMS]  = {};
+		editor_popup_desc_t		  _desc					  = {};
+		editor_input_popup_desc_t _input_desc			  = {};
+		editor_input_field_t	  _input				  = {};
+		editor_popup_item_desc_t  _items[MAX_ITEMS]		  = {};
+		popup_mode_e			  _mode					  = popup_mode_e::none;
+		bool					  _visible				  = false;
 	};
 }

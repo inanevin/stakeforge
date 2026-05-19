@@ -26,7 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "ui/editor_action_menu_controller.hpp"
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -38,17 +39,14 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_file_menu_command_fn	   = editor_action_menu_command_fn;
-	using editor_file_menu_toggle_query_fn = editor_action_menu_toggle_query_fn;
-	using editor_file_menu_toggle_fn	   = editor_action_menu_toggle_fn;
-	using editor_file_menu_row_kind_e	   = editor_action_menu_row_kind_e;
-	using editor_file_menu_row_desc_t	   = editor_action_menu_row_desc_t;
+	struct editor_action_menu_row_desc_t;
+	struct editor_action_menu_style_t;
 
 	struct editor_file_menu_item_desc_t
 	{
-		const char*						   text		 = nullptr;
-		const editor_file_menu_row_desc_t* rows		 = nullptr;
-		u16								   row_count = 0;
+		const char*							 text	   = nullptr;
+		const editor_action_menu_row_desc_t* rows	   = nullptr;
+		u16									 row_count = 0;
 	};
 
 	struct editor_file_menu_style_t
@@ -90,7 +88,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_file_menu_item_desc_t* items, u16 item_count, const editor_file_menu_style_t& style, editor_file_menu_command_fn command_fn, void* command_user_data);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_file_menu_item_desc_t* items, u16 item_count, const editor_file_menu_style_t& style, void (*command_fn)(u16 command, void* user_data), void* command_user_data);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -122,16 +120,16 @@ namespace sfg
 		editor_action_menu_style_t get_action_menu_style() const;
 
 	private:
-		ui::ui_context*						_ui						   = nullptr;
-		const editor_file_menu_item_desc_t* _items					   = nullptr;
-		u16									_item_count				   = 0;
-		editor_file_menu_style_t			_style					   = {};
-		editor_file_menu_command_fn			_command_fn				   = nullptr;
-		void*								_command_user_data		   = nullptr;
-		ui::widget_id_t						_root					   = NULL_WIDGET;
-		ui::widget_id_t						_top_frames[MAX_TOP_ITEMS] = {};
-		ui::widget_id_t						_top_labels[MAX_TOP_ITEMS] = {};
-		u32									_selected_top			   = 0;
-		bool								_open					   = false;
+		ui::ui_context*						_ui			  = nullptr;
+		const editor_file_menu_item_desc_t* _items		  = nullptr;
+		u16									_item_count	  = 0;
+		editor_file_menu_style_t			_style		  = {};
+		void (*_command_fn)(u16 command, void* user_data) = nullptr;
+		void*			_command_user_data				  = nullptr;
+		ui::widget_id_t _root							  = NULL_WIDGET;
+		ui::widget_id_t _top_frames[MAX_TOP_ITEMS]		  = {};
+		ui::widget_id_t _top_labels[MAX_TOP_ITEMS]		  = {};
+		u32				_selected_top					  = 0;
+		bool			_open							  = false;
 	};
 }

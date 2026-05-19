@@ -35,7 +35,7 @@ namespace sfg
 	{
 		j["guid"]			 = asset.guid;
 		j["resource_type"]	 = asset.resource_type;
-		j["source_abs_path"] = asset.source_abs_path;
+		j["source_relative_path"] = asset.source_relative_path;
 		j["has_binary"]		 = asset.has_binary;
 	}
 
@@ -43,7 +43,7 @@ namespace sfg
 	{
 		asset.guid			  = j.value<sid_t>("guid", 0);
 		asset.resource_type	  = j.value<resource_type_e>("resource_type", j.value<resource_type_e>("type", resource_type_e::invalid));
-		asset.source_abs_path = j.value<string_t>("source_abs_path", {});
+		asset.source_relative_path = j.value<string_t>("source_relative_path", {});
 		asset.has_binary	  = j.value<bool>("has_binary", false);
 	}
 }

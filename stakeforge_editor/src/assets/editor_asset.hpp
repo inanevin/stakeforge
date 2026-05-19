@@ -36,7 +36,7 @@ namespace sfg
 {
 	struct editor_asset_t
 	{
-		string_t		source_abs_path;
+		string_t		source_relative_path;
 		sid_t			guid		  = 0;
 		resource_type_e resource_type = resource_type_e::invalid;
 		bool			has_binary	  = false;

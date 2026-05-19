@@ -18,8 +18,7 @@ namespace sfg
 		{
 			string_t p = dir;
 			file_system_t::fix_path(p);
-			if (!p.empty() && p.back() != '/')
-				p += '/';
+			file_system_t::fix_path_end_slash(p);
 			p += name;
 			p += ".sfg_bin";
 			return p;

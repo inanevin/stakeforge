@@ -75,7 +75,6 @@ namespace sfg
 	void editor_panel_t::uninit()
 	{
 		_ui->deallocate_widget(_root);
-
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;
 	}

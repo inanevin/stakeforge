@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -149,13 +150,20 @@ namespace sfg
 			paint.set_text(_row_labels[i], nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
+		editor_input_field_config_t input_config = {};
+		input_config.on_submitted				 = on_input_submitted;
+		input_config.user_data					 = this;
+		_input.init(ui, _foreground, input_config);
+		tree.draw_order(_input.get_root()) = POPUP_DRAW_ORDER + 2;
+
 		s_controllers[s_controller_count++] = this;
 		set_visible(false);
 	}
 
 	void editor_popup_controller_t::uninit()
 	{
-		close_popup();
+		close_popup(false);
+		_input.uninit();
 		_ui->deallocate_widget(_foreground);
 
 		for (u32 i = 0; i < s_controller_count; ++i)
@@ -173,6 +181,8 @@ namespace sfg
 		_foreground = NULL_WIDGET;
 		_frame		= NULL_WIDGET;
 		_desc		= {};
+		_input_desc = {};
+		_mode		= popup_mode_e::none;
 		_visible	= false;
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
@@ -189,8 +199,9 @@ namespace sfg
 		SFG_ASSERT(desc.items != nullptr);
 		SFG_ASSERT(desc.item_count <= MAX_ITEMS);
 
-		close_popup();
+		close_popup(false);
 		_desc = desc;
+		_mode = popup_mode_e::items;
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 			_items[i] = i < desc.item_count ? desc.items[i] : editor_popup_item_desc_t{};
 
@@ -202,16 +213,45 @@ namespace sfg
 		_ui->get_input().set_popup_scope(_frame, popup_roots, 1, on_popup_outside, this);
 	}
 
-	void editor_popup_controller_t::close_popup()
+	void editor_popup_controller_t::request_input_popup(const editor_input_popup_desc_t& desc)
+	{
+		SFG_ASSERT(_ui != nullptr);
+
+		close_popup(false);
+		_input_desc = desc;
+		_mode		= popup_mode_e::input;
+		_input.set_placeholder(desc.placeholder);
+		_input.set_text(desc.text != nullptr ? desc.text : "");
+
+		refresh_layout();
+		set_visible(true);
+		_ui->get_input().set_focus(_input.get_root(), false);
+		_input.select_all();
+
+		ui::widget_id_t popup_roots[] = {_input.get_root()};
+		_ui->get_input().set_popup_scope(_input.get_root(), popup_roots, 1, on_popup_outside, this);
+	}
+
+	void editor_popup_controller_t::close_popup(bool notify_input)
 	{
 		if (_ui == nullptr || !_visible)
 			return;
 
+		const bool						   notify			= notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
+		const editor_popup_input_closed_fn closed			= _input_desc.closed;
+		void*							   closed_user_data = _input_desc.user_data;
+		const string_t					   input_value		= _input.get_text();
+
 		set_visible(false);
 		_ui->get_input().clear_popup_scope();
-		_desc = {};
+		_desc		= {};
+		_input_desc = {};
+		_mode		= popup_mode_e::none;
 		for (editor_popup_item_desc_t& item : _items)
 			item = {};
+
+		if (notify)
+			closed(input_value.c_str(), closed_user_data);
 	}
 
 	editor_popup_controller_t* editor_popup_controller_t::find(ui::ui_context& ui)
@@ -229,14 +269,15 @@ namespace sfg
 		_visible				= visible;
 		ui::layout_tree_t& tree = _ui->get_tree();
 		set_widget_visible(tree, _foreground, visible, false);
-		set_widget_visible(tree, _frame, visible, false);
+		set_widget_visible(tree, _frame, visible && _mode == popup_mode_e::items, false);
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
-			const bool item_visible = visible && i < _desc.item_count;
+			const bool item_visible = visible && _mode == popup_mode_e::items && i < _desc.item_count;
 			set_widget_visible(tree, _row_frames[i], item_visible, item_visible);
 			set_widget_visible(tree, _row_markers[i], item_visible, false);
 			set_widget_visible(tree, _row_labels[i], item_visible, false);
 		}
+		_input.set_visible(visible && _mode == popup_mode_e::input);
 	}
 
 	void editor_popup_controller_t::refresh_rows()
@@ -259,25 +300,46 @@ namespace sfg
 		const editor_theme_t&	theme  = editor_theme_t::get();
 		const ui::layout_out_t& screen = tree.out(tree.get_root());
 
-		f32 width = _desc.width;
-		for (u32 i = 0; i < _desc.item_count; ++i)
-			width = math::max(width, theme.item_height + static_cast<f32>(_ui->widget_text_len(_row_labels[i])) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+		f32 width  = _desc.width;
+		f32 height = static_cast<f32>(_desc.item_count) * theme.item_height + theme.margin_vertical * 2.0f;
+		if (_mode == popup_mode_e::items)
+		{
+			for (u32 i = 0; i < _desc.item_count; ++i)
+				width = math::max(width, theme.item_height + static_cast<f32>(_ui->widget_text_len(_row_labels[i])) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+		}
+		else if (_mode == popup_mode_e::input)
+		{
+			width  = math::max(_input_desc.width, theme.item_width);
+			height = theme.item_height + theme.margin_vertical * 2.0f;
+		}
 
 		const f32 scale		= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 		const f32 width_px	= width * scale;
-		const f32 height_px = (static_cast<f32>(_desc.item_count) * theme.item_height + theme.margin_vertical * 2.0f) * scale;
-		f32		  x			= _desc.pos.x;
-		f32		  y			= _desc.pos.y;
+		const f32 height_px = height * scale;
+		f32		  x			= _mode == popup_mode_e::input ? _input_desc.pos.x : _desc.pos.x;
+		f32		  y			= _mode == popup_mode_e::input ? _input_desc.pos.y : _desc.pos.y;
 		if (x + width_px > screen.clip.x + screen.clip.z)
 			x = screen.clip.x + screen.clip.z - width_px;
 		if (y + height_px > screen.clip.y + screen.clip.w)
-			y = _desc.pos.y - height_px;
+			y = (_mode == popup_mode_e::input ? _input_desc.pos.y : _desc.pos.y) - height_px;
 		x = math::clamp(x, screen.clip.x, math::max(screen.clip.x, screen.clip.x + screen.clip.z - width_px));
 		y = math::clamp(y, screen.clip.y, math::max(screen.clip.y, screen.clip.y + screen.clip.w - height_px));
 
 		ui::layout_in_t& frame_in = tree.in(_frame);
-		frame_in.pos_value		  = {x, y};
-		frame_in.size_value		  = {width, 0.0f};
+		if (_mode == popup_mode_e::input)
+		{
+			ui::layout_in_t& input_in = tree.in(_input.get_root());
+			input_in.pos_mode_x		  = ui::pos_mode_e::absolute_screen;
+			input_in.pos_mode_y		  = ui::pos_mode_e::absolute_screen;
+			input_in.pos_value		  = {x, y};
+			input_in.size_mode_x	  = ui::axis_mode_e::fixed;
+			input_in.size_mode_y	  = ui::axis_mode_e::fixed;
+			input_in.size_value		  = {width, theme.item_height};
+			return;
+		}
+
+		frame_in.pos_value	= {x, y};
+		frame_in.size_value = {width, 0.0f};
 	}
 
 	u32 editor_popup_controller_t::find_row(ui::widget_id_t id) const
@@ -310,8 +372,14 @@ namespace sfg
 
 	void editor_popup_controller_t::on_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
+		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
 		if (btn == ui::mouse_button_e::left)
-			static_cast<editor_popup_controller_t*>(user_data)->close_popup();
+			popup.close_popup(true);
+	}
+
+	void editor_popup_controller_t::on_input_submitted(void* user_data)
+	{
+		static_cast<editor_popup_controller_t*>(user_data)->close_popup(true);
 	}
 
 	void editor_popup_controller_t::draw_selected_marker(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)

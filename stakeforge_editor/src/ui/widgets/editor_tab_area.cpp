@@ -267,6 +267,11 @@ namespace sfg
 
 	void editor_tab_area_t::remove_tab(sid_t identifier)
 	{
+		remove_tab(identifier, true);
+	}
+
+	void editor_tab_area_t::remove_tab(sid_t identifier, bool notify_removed)
+	{
 		for (auto it = _tabs.begin(); it != _tabs.end(); ++it)
 		{
 			if (it->identifier == identifier)
@@ -274,8 +279,6 @@ namespace sfg
 				const bool was_active = _active_tab == identifier;
 				_ui->deallocate_widget(it->widget);
 				_tabs.erase(it);
-				if (_config.tab_removed != nullptr)
-					_config.tab_removed(*this, identifier, _config.user_data);
 				if (was_active)
 				{
 					_active_tab = 0;
@@ -283,6 +286,8 @@ namespace sfg
 						switch_tab(_tabs.front().identifier);
 				}
 				refresh_status();
+				if (notify_removed && _config.tab_removed != nullptr)
+					_config.tab_removed(*this, identifier, _config.user_data);
 				return;
 			}
 		}
@@ -312,11 +317,11 @@ namespace sfg
 		if (!_config.can_close)
 			return;
 
-		const bool		   disabled = !_config.can_close_single_tab && _tabs.size() <= 1;
-		ui::layout_tree_t& tree		= _ui->get_tree();
+		ui::layout_tree_t& tree = _ui->get_tree();
 		for (const editor_tab_t& tab : _tabs)
 		{
-			ui::layout_in_t& in = tree.in(tab.close_button);
+			const bool		 disabled = _config.close_allowed != nullptr ? !_config.close_allowed(*this, tab.identifier, _config.user_data) : !_config.can_close_single_tab && _tabs.size() <= 1;
+			ui::layout_in_t& in		  = tree.in(tab.close_button);
 			if (disabled)
 				in.flags |= ui::wf_disabled;
 			else
@@ -344,7 +349,7 @@ namespace sfg
 		{
 			const sid_t dragged	  = _pending_drag_out_tab;
 			_pending_drag_out_tab = 0;
-			remove_tab(dragged);
+			remove_tab(dragged, false);
 			if (_config.tab_dragged_out != nullptr)
 				_config.tab_dragged_out(*this, dragged, _config.user_data);
 			return true;

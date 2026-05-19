@@ -41,9 +41,9 @@ namespace sfg
 			return instance;
 		}
 
-		vec4f_t color_frame		  = color_t::from255(6.0f, 6.0f, 6.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_frame_light = color_t::from255(13.0f, 13.0f, 13.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_panel		  = color_t::from255(24.0f, 24.0f, 24.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_frame		  = color_t::from255(14, 14, 14, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_frame_light = color_t::from255(20, 20, 20, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_panel		  = color_t::from255(28, 28, 28, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_panel_light = color_t::from255(38.0f, 38.0f, 38.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_light		  = color_t::from255(48.0f, 48.0f, 48.0f, 255.0f).srgb_to_linear().to_vector();
 
@@ -56,8 +56,8 @@ namespace sfg
 
 		vec4f_t color_accent0_light = color_t::from255(180.0f, 0.0f, 119.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent0		= color_t::from255(151.0f, 0.0f, 119.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_accent0_dim	= color_t::from255(151.0f, 0.0f, 119.0f, 125.0f).srgb_to_linear().to_vector();
-		vec4f_t color_accent1		= color_t::from255(7, 131, 214, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent0_dim	= color_t::from255(91.0f, 0.0f, 72.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_accent1		= color_t::from255(90, 190, 255, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent1_dim	= color_t::from255(7, 131, 214, 200.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent2		= color_t::from255(255.0f, 102.0f, 0.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_accent2_dim	= color_t::from255(255.0f, 102.0f, 0.0f, 125.0f).srgb_to_linear().to_vector();
@@ -87,7 +87,7 @@ namespace sfg
 		f32 item_height				 = 20.0f;
 		f32 item_width				 = item_height * 5.0f;
 		f32 item_spacing			 = 8.0f;
-		f32 item_rounding			 = 1.0f;
+		f32 item_rounding			 = 2.0f;
 		f32 indent_horizontal		 = 8.0f;
 		f32 margin_horizontal		 = 8.0f;
 		f32 margin_vertical			 = 4.0f;

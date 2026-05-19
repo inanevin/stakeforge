@@ -38,10 +38,17 @@ namespace sfg
 		asset,
 	};
 
+	enum editor_asset_node_flags_e : u8
+	{
+		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
+		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
+	};
+
 	struct editor_asset_node_t
 	{
 		editor_asset_t			 asset;
 		string_t				 name;
-		editor_asset_node_type_e type = editor_asset_node_type_e::folder;
+		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
+		u8						 flags = 0;
 	};
 }
