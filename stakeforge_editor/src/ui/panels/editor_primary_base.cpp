@@ -430,6 +430,7 @@ namespace sfg
 			tree.attach(ui.get_root(), _base);
 
 			ui::layout_in_t& in = tree.in(_base);
+			in.flags			= ui::wf_visible;
 			in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {1.0f, 1.0f};
@@ -451,10 +452,12 @@ namespace sfg
 			in.flow				= ui::flow_e::row;
 			in.child_spacing	= 0.0f;
 			in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
+			tree.set_visible(top_section, true);
 
 			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_frame_light;
+			rect.fill_color_a		 = theme.color_frame;
 			rect.fill_color_b		 = theme.color_frame_light;
+			rect.gradient			 = ui::vg_gradient_e::horizontal;
 			paint.set_rect(top_section, rect);
 		}
 
@@ -472,12 +475,14 @@ namespace sfg
 			in.flow				= ui::flow_e::row;
 			in.child_spacing	= 0.0f;
 			in.child_margins	= {0.0f, theme.margin_horizontal * 2, 0.0f, theme.margin_horizontal * 2};
+			tree.set_visible(top_row_left, true);
 
 			title_group = ui.allocate_widget();
 			ui.set_widget_debug_name(title_group, "title_group");
 			tree.attach(top_row_left, title_group);
 
 			ui::layout_in_t& group_in = tree.in(title_group);
+			group_in.flags			  = ui::wf_visible;
 			group_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			group_in.pos_value.y	  = 0.5f;
 			group_in.anchor_y		  = ui::anchor_e::center;
@@ -488,8 +493,9 @@ namespace sfg
 			group_in.child_margins	  = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			title_label = ui.allocate_widget();
-			ui.set_widget_debug_name(title_label, "title_label");
 			tree.attach(title_group, title_label);
+			tree.set_visible(title_label, true);
+			ui.set_widget_debug_name(title_label, "title_label");
 
 			ui.set_widget_text(title_label, "stakeforge");
 			ui::ui_render_state_t title_state = {};
@@ -499,6 +505,7 @@ namespace sfg
 			version_label = ui.allocate_widget();
 			ui.set_widget_debug_name(version_label, "version_label");
 			tree.attach(title_group, version_label);
+			tree.set_visible(version_label, true);
 
 			ui.set_widget_text(version_label, SFG_EDITOR_VERSION_TEXT);
 			paint.set_text(
@@ -507,6 +514,7 @@ namespace sfg
 			build_label = ui.allocate_widget();
 			ui.set_widget_debug_name(build_label, "build_label");
 			tree.attach(title_group, build_label);
+			tree.set_visible(build_label, true);
 
 			ui.set_widget_text(build_label, SFG_EDITOR_BUILD_TEXT);
 			paint.set_text(
@@ -521,6 +529,7 @@ namespace sfg
 			tree.attach(top_section, top_row_strikes);
 
 			ui::layout_in_t& in = tree.in(top_row_strikes);
+			in.flags			= ui::wf_visible;
 			in.size_mode_x		= ui::axis_mode_e::fixed;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {item_height * 3.0f, 1.0f};
@@ -535,6 +544,7 @@ namespace sfg
 			tree.attach(top_section, top_row_mid);
 
 			ui::layout_in_t& in = tree.in(top_row_mid);
+			in.flags			= ui::wf_visible;
 			in.size_mode_x		= ui::axis_mode_e::fill;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {1.0f, 1.0f};
@@ -548,6 +558,7 @@ namespace sfg
 			tree.attach(top_row_mid, top_mid_file);
 
 			ui::layout_in_t& file_in = tree.in(top_mid_file);
+			file_in.flags			 = ui::wf_visible;
 			file_in.size_mode_x		 = ui::axis_mode_e::fill;
 			file_in.size_mode_y		 = ui::axis_mode_e::fixed;
 			file_in.size_value		 = {1.0f, theme.item_height};
@@ -585,6 +596,7 @@ namespace sfg
 			tree.attach(top_row_mid, top_mid_util);
 
 			ui::layout_in_t& util_in = tree.in(top_mid_util);
+			util_in.flags			 = ui::wf_visible;
 			util_in.size_mode_x		 = ui::axis_mode_e::fill;
 			util_in.size_mode_y		 = ui::axis_mode_e::fill;
 			util_in.size_value		 = {1.0f, 1.0f};
@@ -597,6 +609,7 @@ namespace sfg
 			tree.attach(top_section, top_row_right);
 
 			ui::layout_in_t& in = tree.in(top_row_right);
+			in.flags			= ui::wf_visible;
 			in.size_mode_x		= ui::axis_mode_e::fixed;
 			in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			in.size_value		= {theme.item_height * 6, 1.0f};
@@ -609,6 +622,7 @@ namespace sfg
 			tree.attach(top_row_right, top_row_right_buttons);
 
 			ui::layout_in_t& buttons_in = tree.in(top_row_right_buttons);
+			buttons_in.flags			= ui::wf_visible;
 			buttons_in.pos_mode_y		= ui::pos_mode_e::flow;
 			buttons_in.pos_value.y		= 0.0f;
 			buttons_in.anchor_y			= ui::anchor_e::start;
@@ -639,6 +653,7 @@ namespace sfg
 			tree.attach(top_row_right, label_wrap);
 
 			ui::layout_in_t& label_wrap_in = tree.in(label_wrap);
+			label_wrap_in.flags			   = ui::wf_visible;
 			label_wrap_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 			label_wrap_in.pos_mode_y	   = ui::pos_mode_e::flow;
 			label_wrap_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
@@ -651,6 +666,7 @@ namespace sfg
 			tree.draw_order(_project_label) = tree.draw_order_const(top_row_right) + 1;
 
 			ui::layout_in_t& project_in = tree.in(_project_label);
+			project_in.flags			= ui::wf_visible;
 			project_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
 			project_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 			project_in.pos_value		= {0.5f, 0.5f};
@@ -681,6 +697,7 @@ namespace sfg
 			tree.attach(_base, bottom_section);
 
 			ui::layout_in_t& in = tree.in(bottom_section);
+			in.flags			= ui::wf_visible;
 			in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			in.size_mode_y		= ui::axis_mode_e::fixed;
 			in.size_value		= {1.0f, item_height};

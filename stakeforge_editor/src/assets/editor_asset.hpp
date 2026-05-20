@@ -27,21 +27,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "assets/editor_asset_type.hpp"
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	struct editor_asset_t
+	enum class editor_asset_source_type_e : u8
 	{
-		string_t		source_relative_path;
-		sid_t			guid		  = 0;
-		resource_type_e resource_type = resource_type_e::invalid;
-		bool			has_binary	  = false;
+		none,
+		file,
+		embedded,
 	};
 
+	struct editor_asset_t
+	{
+		string_t				   source_relative_path;
+		string_t				   embedded_source;
+		sid_t					   guid		   = 0;
+		editor_asset_type_e		   asset_type  = editor_asset_type_e::invalid;
+		editor_asset_source_type_e source_type = editor_asset_source_type_e::file;
+	};
+
+	void to_json(nlohmann::json& j, const editor_asset_source_type_e& t);
+	void from_json(const nlohmann::json& j, editor_asset_source_type_e& t);
 	void to_json(nlohmann::json& j, const editor_asset_t& asset);
 	void from_json(const nlohmann::json& j, editor_asset_t& asset);
 }

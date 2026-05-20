@@ -65,6 +65,7 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
+		root_in.flags			 = ui::wf_visible;
 		root_in.pos_mode_x		 = ui::pos_mode_e::flow;
 		root_in.pos_mode_y		 = ui::pos_mode_e::flow;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;

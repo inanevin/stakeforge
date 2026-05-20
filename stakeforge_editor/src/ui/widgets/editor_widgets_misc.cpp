@@ -74,6 +74,7 @@ namespace sfg
 		ui.set_widget_debug_name(id, "spacer");
 
 		ui::layout_in_t& in = tree.in(id);
+		in.flags			= ui::wf_visible;
 		in.size_mode_x		= ui::axis_mode_e::fixed;
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.size_value		= size;

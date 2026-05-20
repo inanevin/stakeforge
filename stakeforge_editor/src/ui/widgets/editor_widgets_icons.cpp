@@ -45,6 +45,7 @@ namespace sfg
 		ui.set_widget_debug_name(id, "icon");
 
 		ui::layout_in_t& in = tree.in(id);
+		in.flags			= ui::wf_visible;
 		in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
 		in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		in.pos_value		= {0.5f, 0.5f};

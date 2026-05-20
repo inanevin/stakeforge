@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 
 #include <sfg/data/string_util.hpp>
+#include <sfg/data/frame_string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
@@ -62,6 +63,7 @@ namespace sfg
 	void editor_asset_manager_t::clear()
 	{
 		_asset_tree.clear();
+		_assets.clear();
 		_root_node = {};
 		_generation++;
 	}
@@ -80,8 +82,10 @@ namespace sfg
 		vector_t<file_system_entry_t> entries;
 		file_system_t::get_entries_recursive(assets_dir.c_str(), entries);
 
-		_asset_tree.clear();
+		_asset_tree.resize_zero();
 		_asset_tree.reserve(static_cast<u32>(entries.size() + 1));
+		hash_map_t<u64, editor_asset_t> found_assets;
+		found_assets.reserve(entries.size());
 
 		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
 		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .type = editor_asset_node_type_e::folder, .flags = editor_asset_node_flag_promoted});
@@ -90,7 +94,7 @@ namespace sfg
 		for (const file_system_entry_t& entry : entries)
 		{
 			const string_t relative = file_system_t::get_relative(assets_dir.c_str(), entry.path.c_str());
-			parts.clear();
+			parts.resize(0);
 			string_util::split(parts, relative, "/");
 
 			editor_asset_node_handle_t parent			 = _root_node;
@@ -107,17 +111,40 @@ namespace sfg
 				if (!read_asset(entry.path.c_str(), asset))
 					return false;
 
+				const u64 asset_id = asset.guid;
+				if (asset_id == 0)
+				{
+					SFG_ERR("asset {0} has an invalid guid", entry.path.c_str());
+					return false;
+				}
+				if (found_assets.find(asset_id) != found_assets.end())
+				{
+					SFG_ERR("asset {0} has a duplicate guid", entry.path.c_str());
+					return false;
+				}
+
+				found_assets.emplace(asset_id, std::move(asset));
+
 				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
-				const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = name, .type = editor_asset_node_type_e::asset});
+				const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset_id = asset_id, .name = name, .type = editor_asset_node_type_e::asset});
 				_asset_tree.attach(parent, asset_node);
 			}
 			else
 			{
-				asset.source_relative_path				   = entry.path;
-				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.asset = std::move(asset), .name = parts.back(), .type = editor_asset_node_type_e::file});
+				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.name = parts.back(), .type = editor_asset_node_type_e::file});
 				_asset_tree.attach(parent, file_node);
 			}
 		}
+
+		for (auto it = _assets.begin(); it != _assets.end();)
+		{
+			const u64 asset_id = it->first;
+			++it;
+			if (found_assets.find(asset_id) == found_assets.end())
+				_assets.erase(asset_id);
+		}
+		for (auto& found : found_assets)
+			_assets[found.first] = std::move(found.second);
 
 		_generation++;
 		return true;

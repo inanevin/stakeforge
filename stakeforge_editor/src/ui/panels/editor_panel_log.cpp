@@ -192,6 +192,7 @@ namespace sfg
 		tree.attach(_root, _top_row);
 
 		ui::layout_in_t& top_in = tree.in(_top_row);
+		top_in.flags			= ui::wf_visible;
 		top_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		top_in.size_mode_y		= ui::axis_mode_e::fixed;
 		top_in.size_value		= {1.0f, theme.item_area_height};
@@ -272,7 +273,7 @@ namespace sfg
 		_search_input.init(ui, _top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
-		search_in.flags |= ui::wf_overlay;
+		search_in.flags |= ui::wf_visible | ui::wf_overlay;
 		search_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
 		search_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
 		search_in.pos_value	  = {1.0f, 0.5f};

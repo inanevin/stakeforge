@@ -245,6 +245,9 @@ namespace sfg
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 		if (!load_project(_current_project.path.c_str()))
 			get_main_surface().primary->prompt_no_project_modal();
+
+		_close = false;
+
 		tick();
 		return true;
 	}
@@ -675,18 +678,16 @@ namespace sfg
 			_payload_controller.tick();
 			_world_controller.tick(_current_project.world_tick_rate, _current_project.world_physics_rate, _current_project.max_sim_steps);
 
-			bool main_destroyed = false;
-
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{
 				const surface_handle_t handle  = *it;
 				editor_surface_t&	   surface = _surfaces.get(handle);
 
-				if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || main_destroyed)
+				if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || _close)
 				{
 					_renderer.end_render();
 					if (surface.type == editor_surface_type_e::primary)
-						main_destroyed = true;
+						_close = true;
 
 					destroy_surface(handle);
 

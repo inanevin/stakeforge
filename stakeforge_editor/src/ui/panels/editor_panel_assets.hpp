@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset_manager.hpp"
-#include "ui/editor_action_menu_common.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
@@ -133,38 +132,32 @@ namespace sfg
 		static void on_folder_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		editor_icon_button_t		  _filter_button				 = {};
-		editor_icon_button_t		  _refresh_button				 = {};
-		editor_input_field_t		  _search_input					 = {};
-		editor_slider_t				  _thumbnail_slider				 = {};
-		editor_split_border_t		  _split_border					 = {};
-		editor_scrollbar_t			  _left_scrollbar				 = {};
-		vector_t<folder_row_t>		  _folder_rows					 = {};
-		vector_t<u64>				  _expanded_folder_hashes		 = {};
-		vector_t<u64>				  _favourite_folder_hashes		 = {};
-		string_t					  _search_str					 = {};
-		string_t					  _search_str_lower				 = {};
-		editor_action_menu_row_desc_t _action_menu_rows[7]			 = {};
-		editor_action_menu_row_desc_t _action_menu_create_rows[5]	 = {};
-		editor_action_menu_row_desc_t _action_menu_animation_rows[1] = {};
-		editor_action_menu_row_desc_t _action_menu_graphics_rows[4]	 = {};
-		editor_action_menu_row_desc_t _action_menu_gameplay_rows[1]	 = {};
-		editor_action_menu_row_desc_t _action_menu_physics_rows[1]	 = {};
-		u64							  _action_menu_folder_hash		 = 0;
-		u64							  _selected_folder_hash			 = 0;
-		editor_asset_node_handle_t	  _action_menu_folder			 = {};
-		ui::widget_id_t				  _assets_left_pane				 = NULL_WIDGET;
-		ui::widget_id_t				  _assets_left_pane_top_row		 = NULL_WIDGET;
-		ui::widget_id_t				  _assets_left_pane_body		 = NULL_WIDGET;
-		ui::widget_id_t				  _assets_body_pane				 = NULL_WIDGET;
-		ui::widget_id_t				  _assets_body_pane_top			 = NULL_WIDGET;
-		ui::widget_id_t				  _assets_body_pane_divider		 = NULL_WIDGET;
-		ui::widget_id_t				  _assets_body_pane_bottom		 = NULL_WIDGET;
-		u32							  _asset_tree_generation		 = 0;
-		u32							  _visible_folder_row_count		 = 0;
-		f32							  _thumbnail_slider_value		 = 1.0f;
-		f32							  _pane_split					 = 0.3f;
-		bool						  _favourites_only				 = false;
-		bool						  _rename_popup_pending			 = false;
+		editor_icon_button_t	   _filter_button			 = {};
+		editor_icon_button_t	   _refresh_button			 = {};
+		editor_input_field_t	   _search_input			 = {};
+		editor_slider_t			   _thumbnail_slider		 = {};
+		editor_split_border_t	   _split_border			 = {};
+		editor_scrollbar_t		   _left_scrollbar			 = {};
+		vector_t<folder_row_t>	   _folder_rows				 = {};
+		vector_t<u64>			   _expanded_folder_hashes	 = {};
+		vector_t<u64>			   _favourite_folder_hashes	 = {};
+		string_t				   _search_str				 = {};
+		string_t				   _search_str_lower		 = {};
+		u64						   _action_menu_folder_hash	 = 0;
+		u64						   _selected_folder_hash	 = 0;
+		editor_asset_node_handle_t _action_menu_folder		 = {};
+		ui::widget_id_t			   _assets_left_pane		 = NULL_WIDGET;
+		ui::widget_id_t			   _assets_left_pane_top_row = NULL_WIDGET;
+		ui::widget_id_t			   _assets_left_pane_body	 = NULL_WIDGET;
+		ui::widget_id_t			   _assets_body_pane		 = NULL_WIDGET;
+		ui::widget_id_t			   _assets_body_pane_top	 = NULL_WIDGET;
+		ui::widget_id_t			   _assets_body_pane_divider = NULL_WIDGET;
+		ui::widget_id_t			   _assets_body_pane_bottom	 = NULL_WIDGET;
+		u32						   _asset_tree_generation	 = 0;
+		u32						   _visible_folder_row_count = 0;
+		f32						   _thumbnail_slider_value	 = 1.0f;
+		f32						   _pane_split				 = 0.3f;
+		bool					   _favourites_only			 = false;
+		bool					   _rename_popup_pending	 = false;
 	};
 }

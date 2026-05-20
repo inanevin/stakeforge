@@ -229,6 +229,14 @@ namespace sfg::ui
 		return id < _max_widgets && _nodes[id].alive != 0;
 	}
 
+	void layout_tree_t::set_visible(widget_id_t id, bool visible)
+	{
+		if (visible)
+			in(id).flags |= wf_visible;
+		else
+			in(id).flags &= ~wf_visible;
+	}
+
 	vec4f_t layout_tree_t::bounds(widget_id_t id) const
 	{
 		const layout_out_t& o = out(id);

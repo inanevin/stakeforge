@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
@@ -34,15 +35,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/ui/vg/vg_canvas.hpp>
-#include <cmath>
 
 namespace sfg
 {
 	namespace
 	{
-		constexpr u32 POPUP_DRAW_ORDER		   = 50000u;
-		constexpr u32 SELECTED_MARKER_SEGMENTS = 16;
+		constexpr u32 POPUP_DRAW_ORDER = 50000u;
 
 		editor_popup_controller_t* s_controllers[editor_popup_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
@@ -135,7 +133,24 @@ namespace sfg
 			marker_in.size_mode_x	   = ui::axis_mode_e::fixed;
 			marker_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 			marker_in.size_value	   = {theme.item_height, 1.0f};
-			paint.set_custom(_row_markers[i], draw_selected_marker, this);
+
+			_row_marker_labels[i] = ui.allocate_widget();
+			ui.set_widget_debug_name(_row_marker_labels[i], "popup_selected_marker_icon");
+			tree.attach(_row_markers[i], _row_marker_labels[i]);
+			tree.draw_order(_row_marker_labels[i]) = POPUP_DRAW_ORDER + 4;
+
+			ui::layout_in_t& marker_label_in = tree.in(_row_marker_labels[i]);
+			marker_label_in.flags			 = 0;
+			marker_label_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+			marker_label_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+			marker_label_in.pos_value		 = {0.5f, 0.5f};
+			marker_label_in.anchor_x		 = ui::anchor_e::center;
+			marker_label_in.anchor_y		 = ui::anchor_e::center;
+			ui.set_widget_text(_row_marker_labels[i], ICON_FILLED_CIRCLE);
+			paint.set_text(_row_marker_labels[i],
+						   ui.widget_text(_row_marker_labels[i]),
+						   ui.widget_text_len(_row_marker_labels[i]),
+						   {.font = theme.font_icons, .color = theme.color_accent0, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 			_row_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_labels[i], "popup_item_label");
@@ -186,10 +201,11 @@ namespace sfg
 		_visible	= false;
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
-			_row_frames[i]	= NULL_WIDGET;
-			_row_markers[i] = NULL_WIDGET;
-			_row_labels[i]	= NULL_WIDGET;
-			_items[i]		= {};
+			_row_frames[i]		  = NULL_WIDGET;
+			_row_markers[i]		  = NULL_WIDGET;
+			_row_marker_labels[i] = NULL_WIDGET;
+			_row_labels[i]		  = NULL_WIDGET;
+			_items[i]			  = {};
 		}
 	}
 
@@ -272,9 +288,11 @@ namespace sfg
 		set_widget_visible(tree, _frame, visible && _mode == popup_mode_e::items, false);
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
-			const bool item_visible = visible && _mode == popup_mode_e::items && i < _desc.item_count;
+			const bool item_visible	  = visible && _mode == popup_mode_e::items && i < _desc.item_count;
+			const bool marker_visible = item_visible && _items[i].selected;
 			set_widget_visible(tree, _row_frames[i], item_visible, item_visible);
 			set_widget_visible(tree, _row_markers[i], item_visible, false);
+			set_widget_visible(tree, _row_marker_labels[i], marker_visible, false);
 			set_widget_visible(tree, _row_labels[i], item_visible, false);
 		}
 		_input.set_visible(visible && _mode == popup_mode_e::input);
@@ -291,6 +309,8 @@ namespace sfg
 						   _ui->widget_text(_row_labels[i]),
 						   _ui->widget_text_len(_row_labels[i]),
 						   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			paint.def(_row_marker_labels[i]).text.color = theme.color_accent0;
+			set_widget_visible(_ui->get_tree(), _row_marker_labels[i], _visible && _items[i].selected, false);
 		}
 	}
 
@@ -380,33 +400,5 @@ namespace sfg
 	void editor_popup_controller_t::on_input_submitted(void* user_data)
 	{
 		static_cast<editor_popup_controller_t*>(user_data)->close_popup(true);
-	}
-
-	void editor_popup_controller_t::draw_selected_marker(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
-	{
-		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
-		u32						   row	 = popup.find_row(popup._ui->get_tree().node(id).parent);
-		if (!popup._items[row].selected)
-			return;
-
-		const editor_theme_t&	theme						   = editor_theme_t::get();
-		const ui::layout_out_t& out							   = popup._ui->get_tree().out(id);
-		const f32				radius						   = math::max(2.0f, math::min(out.size.x, out.size.y) * 0.18f);
-		const vec2f_t			center						   = {out.pos.x + out.size.x * 0.5f, out.pos.y + out.size.y * 0.5f};
-		vec2f_t					path[SELECTED_MARKER_SEGMENTS] = {};
-		for (u32 i = 0; i < SELECTED_MARKER_SEGMENTS; ++i)
-		{
-			const f32 a = static_cast<f32>(i) / static_cast<f32>(SELECTED_MARKER_SEGMENTS) * 6.28318530718f;
-			path[i]		= {center.x + std::cos(a) * radius, center.y + std::sin(a) * radius};
-		}
-
-		ui::ui_render_state_t state	 = {};
-		state.pipeline				 = paint.get_pipelines().default_pipeline;
-		ui::vg_convex_paint_t marker = {};
-		marker.fill_color_a			 = theme.color_accent0_light;
-		marker.fill_color_b			 = theme.color_accent0;
-		marker.gradient				 = ui::vg_gradient_e::vertical;
-		marker.aa_thickness			 = theme.aa_thickness;
-		canvas.add_convex({path, SELECTED_MARKER_SEGMENTS}, marker, state, popup._ui->get_tree().draw_order_const(id));
 	}
 }

@@ -53,6 +53,7 @@ namespace sfg
 		tree.attach(ui.get_root(), _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
+		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		root_in.size_value		 = {1.0f, 1.0f};
@@ -65,6 +66,7 @@ namespace sfg
 		tree.attach(_root, _title_frame);
 
 		ui::layout_in_t& title_in = tree.in(_title_frame);
+		title_in.flags			  = ui::wf_visible;
 		title_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		title_in.size_mode_y	  = ui::axis_mode_e::fixed;
 		title_in.size_value		  = {1.0f, theme.item_height};
@@ -82,6 +84,7 @@ namespace sfg
 		tree.attach(_title_frame, title);
 
 		ui::layout_in_t& title_text_in = tree.in(title);
+		title_text_in.flags			   = ui::wf_visible;
 		title_text_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		title_text_in.pos_value.y	   = 0.5f;
 		title_text_in.anchor_y		   = ui::anchor_e::center;
@@ -98,6 +101,7 @@ namespace sfg
 		tree.attach(_title_frame, spacer);
 
 		ui::layout_in_t& spacer_in = tree.in(spacer);
+		spacer_in.flags			   = ui::wf_visible;
 		spacer_in.size_mode_x	   = ui::axis_mode_e::fill;
 		spacer_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		spacer_in.size_value	   = {1.0f, 1.0f};
@@ -107,6 +111,7 @@ namespace sfg
 		tree.attach(_title_frame, _window_buttons);
 
 		ui::layout_in_t& buttons_in = tree.in(_window_buttons);
+		buttons_in.flags			= ui::wf_visible;
 		buttons_in.size_mode_x		= ui::axis_mode_e::fixed;
 		buttons_in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		buttons_in.size_value		= {theme.item_height * 6.0f, 1.0f};

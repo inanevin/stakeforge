@@ -35,6 +35,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/frame_string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/math/math.hpp>
@@ -66,6 +68,43 @@ namespace sfg
 			assets_action_menu_toggle_favourite = 4,
 			assets_action_menu_open_directory	= 5,
 			assets_action_menu_rename			= 6,
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ANIMATION_ROWS[] = {
+			{.text = "Animation State Machine"},
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {
+			{.text = "Shader"},
+			{.text = "Texture Sampler"},
+			{.text = "Material"},
+			{.text = "Particle Properties"},
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {
+			{.text = "C# Script"},
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_PHYSICS_ROWS[] = {
+			{.text = "Physical Material"},
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_CREATE_ROWS[] = {
+			{.text = "Folder", .command = assets_action_menu_create_folder},
+			{.text = "Animation", .children = ASSETS_ACTION_MENU_ANIMATION_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS) / sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS[0]))},
+			{.text = "Graphics", .children = ASSETS_ACTION_MENU_GRAPHICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS) / sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS[0]))},
+			{.text = "Gameplay", .children = ASSETS_ACTION_MENU_GAMEPLAY_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GAMEPLAY_ROWS) / sizeof(ASSETS_ACTION_MENU_GAMEPLAY_ROWS[0]))},
+			{.text = "Physics", .children = ASSETS_ACTION_MENU_PHYSICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_PHYSICS_ROWS) / sizeof(ASSETS_ACTION_MENU_PHYSICS_ROWS[0]))},
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ROWS[] = {
+			{.text = "Create", .children = ASSETS_ACTION_MENU_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_CREATE_ROWS) / sizeof(ASSETS_ACTION_MENU_CREATE_ROWS[0]))},
+			{.text = "Import"},
+			{.text = "Delete", .command = assets_action_menu_delete},
+			{.text = "Duplicate", .command = assets_action_menu_duplicate},
+			{.text = "Rename", .command = assets_action_menu_rename},
+			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_action_menu_toggle_favourite, .has_icon_color = true},
+			{.text = "Open In OS", .command = assets_action_menu_open_directory},
 		};
 
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
@@ -149,6 +188,7 @@ namespace sfg
 		tree.attach(_root, _assets_left_pane);
 
 		ui::layout_in_t& left_pane_in = tree.in(_assets_left_pane);
+		left_pane_in.flags			  = ui::wf_visible;
 		left_pane_in.flow			  = ui::flow_e::column;
 		left_pane_in.child_spacing	  = 0.0f;
 		left_pane_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
@@ -160,6 +200,7 @@ namespace sfg
 		tree.attach(_assets_left_pane, _assets_left_pane_top_row);
 
 		ui::layout_in_t& top_row_in = tree.in(_assets_left_pane_top_row);
+		top_row_in.flags			= ui::wf_visible;
 		top_row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		top_row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		top_row_in.size_value		= {1.0f, theme.item_area_height};
@@ -198,7 +239,7 @@ namespace sfg
 		_search_input.init(ui, _assets_left_pane_top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
-		search_in.flags |= ui::wf_overlay;
+		search_in.flags |= ui::wf_visible | ui::wf_overlay;
 		search_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
 		search_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
 		search_in.pos_value	  = {1.0f, 0.5f};
@@ -255,6 +296,7 @@ namespace sfg
 		tree.attach(_root, _assets_body_pane);
 
 		ui::layout_in_t& body_pane_in = tree.in(_assets_body_pane);
+		body_pane_in.flags			  = ui::wf_visible;
 		body_pane_in.flow			  = ui::flow_e::column;
 		body_pane_in.child_spacing	  = 0.0f;
 		body_pane_in.size_mode_x	  = ui::axis_mode_e::fill;
@@ -266,6 +308,7 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
+		body_top_in.flags			 = ui::wf_visible;
 		body_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		body_top_in.size_mode_y		 = ui::axis_mode_e::fill;
 		body_top_in.size_value		 = {1.0f, 1.0f};
@@ -278,6 +321,7 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_bottom);
 
 		ui::layout_in_t& body_bottom_in = tree.in(_assets_body_pane_bottom);
+		body_bottom_in.flags			= ui::wf_visible;
 		body_bottom_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		body_bottom_in.size_mode_y		= ui::axis_mode_e::fixed;
 		body_bottom_in.size_value		= {1.0f, theme.item_area_height};
@@ -393,91 +437,15 @@ namespace sfg
 		_action_menu_folder_hash  = folder.is_null() ? 0 : folder_hash;
 		const bool folder_context = !folder.is_null();
 
-		_action_menu_create_rows[0] = {
-			.text	 = "Folder",
-			.command = assets_action_menu_create_folder,
-		};
-		_action_menu_animation_rows[0] = {
-			.text = "Animation State Machine",
-		};
-		_action_menu_graphics_rows[0] = {
-			.text = "Shader",
-		};
-		_action_menu_graphics_rows[1] = {
-			.text = "Texture Sampler",
-		};
-		_action_menu_graphics_rows[2] = {
-			.text = "Material",
-		};
-		_action_menu_graphics_rows[3] = {
-			.text = "Particle Properties",
-		};
-		_action_menu_gameplay_rows[0] = {
-			.text = "C# Script",
-		};
-		_action_menu_physics_rows[0] = {
-			.text = "Physical Material",
-		};
-		_action_menu_create_rows[1] = {
-			.text		 = "Animation",
-			.children	 = _action_menu_animation_rows,
-			.child_count = static_cast<u16>(sizeof(_action_menu_animation_rows) / sizeof(_action_menu_animation_rows[0])),
-		};
-		_action_menu_create_rows[2] = {
-			.text		 = "Graphics",
-			.children	 = _action_menu_graphics_rows,
-			.child_count = static_cast<u16>(sizeof(_action_menu_graphics_rows) / sizeof(_action_menu_graphics_rows[0])),
-		};
-		_action_menu_create_rows[3] = {
-			.text		 = "Gameplay",
-			.children	 = _action_menu_gameplay_rows,
-			.child_count = static_cast<u16>(sizeof(_action_menu_gameplay_rows) / sizeof(_action_menu_gameplay_rows[0])),
-		};
-		_action_menu_create_rows[4] = {
-			.text		 = "Physics",
-			.children	 = _action_menu_physics_rows,
-			.child_count = static_cast<u16>(sizeof(_action_menu_physics_rows) / sizeof(_action_menu_physics_rows[0])),
-		};
-
-		_action_menu_rows[0] = {
-			.text		 = "Create",
-			.children	 = _action_menu_create_rows,
-			.child_count = static_cast<u16>(sizeof(_action_menu_create_rows) / sizeof(_action_menu_create_rows[0])),
-		};
-		_action_menu_rows[1] = {
-			.text = "Import",
-		};
-		_action_menu_rows[2] = {
-			.text	  = "Delete",
-			.command  = assets_action_menu_delete,
-			.disabled = !folder_context,
-		};
-		_action_menu_rows[3] = {
-			.text	  = "Duplicate",
-			.command  = assets_action_menu_duplicate,
-			.disabled = !folder_context,
-		};
-		_action_menu_rows[4] = {
-			.text	  = "Rename",
-			.command  = assets_action_menu_rename,
-			.disabled = !folder_context,
-		};
-		_action_menu_rows[5] = {
-			.text			= "Toggle Favourite",
-			.icon			= ICON_STAR,
-			.icon_color		= editor_theme_t::get().color_accent1,
-			.command		= assets_action_menu_toggle_favourite,
-			.has_icon_color = true,
-			.disabled		= !folder_context,
-		};
-		_action_menu_rows[6] = {
-			.text	 = "Open In OS",
-			.command = assets_action_menu_open_directory,
-		};
+		ASSETS_ACTION_MENU_ROWS[2].disabled	  = !folder_context;
+		ASSETS_ACTION_MENU_ROWS[3].disabled	  = !folder_context;
+		ASSETS_ACTION_MENU_ROWS[4].disabled	  = !folder_context;
+		ASSETS_ACTION_MENU_ROWS[5].disabled	  = !folder_context;
+		ASSETS_ACTION_MENU_ROWS[5].icon_color = editor_theme_t::get().color_accent1;
 
 		editor_action_menu_desc_t desc = {};
-		desc.rows					   = _action_menu_rows;
-		desc.row_count				   = static_cast<u16>(sizeof(_action_menu_rows) / sizeof(_action_menu_rows[0]));
+		desc.rows					   = ASSETS_ACTION_MENU_ROWS;
+		desc.row_count				   = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_ROWS) / sizeof(ASSETS_ACTION_MENU_ROWS[0]));
 		desc.pos					   = pos;
 		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
 		desc.command_fn				   = on_action_menu_command;
@@ -945,8 +913,8 @@ namespace sfg
 		if (node == root_handle)
 			return assets_path;
 
-		vector_t<editor_asset_node_handle_t> chain;
-		editor_asset_node_handle_t			 current = node;
+		frame_vector_t<editor_asset_node_handle_t> chain;
+		editor_asset_node_handle_t				   current = node;
 		while (!current.is_null() && !(current == root_handle))
 		{
 			chain.push_back(current);
@@ -972,8 +940,8 @@ namespace sfg
 		SFG_ASSERT(!root_handle.is_null());
 		SFG_ASSERT(asset_tree.is_valid(node));
 
-		vector_t<editor_asset_node_handle_t> chain;
-		editor_asset_node_handle_t			 current = node;
+		frame_vector_t<editor_asset_node_handle_t> chain;
+		editor_asset_node_handle_t				   current = node;
 		while (!current.is_null() && !(current == root_handle))
 		{
 			chain.push_back(current);

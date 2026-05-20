@@ -115,7 +115,7 @@ namespace sfg
 		tree.draw_order(_slider) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& slider_in = tree.in(_slider);
-		slider_in.flags			   = 0;
+		slider_in.flags			   = ui::wf_visible;
 		slider_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		slider_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		slider_in.size_value	   = {1.0f, 1.0f};
@@ -127,7 +127,7 @@ namespace sfg
 		tree.draw_order(_label) = tree.draw_order_const(_root) + 2;
 
 		ui::layout_in_t& label_in = tree.in(_label);
-		label_in.flags			  = 0;
+		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -139,7 +139,7 @@ namespace sfg
 		tree.draw_order(_overlay) = tree.draw_order_const(_root) + 3;
 
 		ui::layout_in_t& overlay_in = tree.in(_overlay);
-		overlay_in.flags			= 0;
+		overlay_in.flags			= ui::wf_visible;
 		overlay_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		overlay_in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		overlay_in.size_value		= {1.0f, 1.0f};
@@ -187,9 +187,9 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 
 		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0) | ui::wf_focusable | ui::wf_clip_children) : 0;
-		//tree.in(_slider).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
-		//tree.in(_label).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
-		//tree.in(_overlay).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;
+		tree.in(_slider).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
+		tree.in(_label).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
+		tree.in(_overlay).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;
 	}
 
 	void editor_input_field_t::set_text(const char* value)

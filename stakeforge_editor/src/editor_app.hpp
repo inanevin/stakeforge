@@ -104,5 +104,6 @@ namespace sfg
 		i64																_last_tick_us			 = 0;
 		u8																_atlas_upload_frame_slot = 0;
 		bool															_debug_mode				 = false;
+		bool															_close					 = false;
 	};
 }

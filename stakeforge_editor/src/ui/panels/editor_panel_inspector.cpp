@@ -54,6 +54,7 @@ namespace sfg
 		tree.attach(_root, _column);
 
 		ui::layout_in_t& column_in = tree.in(_column);
+		column_in.flags			   = ui::wf_visible;
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		column_in.size_mode_y	   = ui::axis_mode_e::sum_children;
 		column_in.size_value	   = {1.0f, 0.0f};

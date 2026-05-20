@@ -94,7 +94,7 @@ namespace sfg::ui
 		anchor_e	anchor_x	  = anchor_e::start;
 		anchor_e	anchor_y	  = anchor_e::start;
 		flow_e		flow		  = flow_e::none;
-		u16			flags		  = wf_visible;
+		u16			flags		  = 0;
 	};
 
 	struct layout_out_t
@@ -155,6 +155,7 @@ namespace sfg::ui
 		const layout_out_t& out(widget_id_t id) const;
 		vec4f_t				bounds(widget_id_t id) const;
 		bool				is_alive(widget_id_t id) const;
+		void				set_visible(widget_id_t id, bool vis);
 
 		// -----------------------------------------------------------------------------
 		// accessors
