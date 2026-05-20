@@ -57,35 +57,29 @@ namespace sfg
 		void uninit();
 		void tick();
 
-		surface_handle_t create_surface(const vec2i16_t& pos, const vec2u16_t& size);
-		void			 destroy_surface(surface_handle_t handle);
-		bool			 create_project(const char* path);
-		bool			 load_project(const char* path);
-		bool			 save_project();
-		bool			 save_project_as(const char* path);
-		void			 save_layout();
-		void			 apply_default_layout();
-		void			 set_debug_mode(bool enabled);
-		void			 set_text_subpixel_enabled(bool enabled);
-		void			 create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
+		void destroy_surface(surface_handle_t handle);
+		bool create_project(const char* path);
+		bool load_project(const char* path);
+		bool save_project();
+		bool save_project_as(const char* path);
+		void save_layout();
+		void apply_default_layout();
+		void set_debug_mode(bool enabled);
+		void set_text_subpixel_enabled(bool enabled);
+		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
-		editor_surface_t&		get_main_surface();
-		const editor_surface_t& get_main_surface() const;
+		editor_surface_t& get_main_surface();
 
 		inline bool is_debug_mode_enabled() const
 		{
 			return _debug_mode;
 		}
-		bool is_text_subpixel_enabled() const;
 
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
-		void			  init_surface_ui(editor_surface_t& surface);
-		void			  load_surface_default_layout(editor_surface_t& surface);
 		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
 		void			  unload_current_project();
-		bool			  load_main_world_from_project();
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);
 		static void		  on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);

@@ -48,7 +48,7 @@ namespace sfg
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u8>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
+			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
 		}
 
 		vec4f_t get_title_color(editor_modal_severity_e severity)
@@ -242,7 +242,8 @@ namespace sfg
 
 	void editor_modal_controller_t::close_modal()
 	{
-		if (_ui == nullptr || !_visible)
+		SFG_ASSERT(_ui != nullptr);
+		if (!_visible)
 			return;
 		set_visible(false);
 		_button_count = 0;

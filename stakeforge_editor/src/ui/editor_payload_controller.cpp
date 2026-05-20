@@ -102,15 +102,8 @@ namespace sfg
 
 	void editor_payload_controller_t::uninit()
 	{
-		if (_runtime == nullptr)
-			return;
-
 		SFG_ASSERT(s_instance == this);
-
-		if (_ui != nullptr)
-		{
-			_ui->deallocate_widget(_frame);
-		}
+		_ui->deallocate_widget(_frame);
 
 		_runtime			 = nullptr;
 		_ui					 = nullptr;
@@ -166,12 +159,6 @@ namespace sfg
 		_ui->set_widget_text(_text_widget, _text.c_str());
 		set_visible(true);
 		follow_cursor();
-	}
-
-	void editor_payload_controller_t::register_listener(editor_payload_listener_fn fn, void* user_data)
-	{
-		SFG_ASSERT(fn != nullptr);
-		_listeners.push_back({.fn = fn, .user_data = user_data});
 	}
 
 	void editor_payload_controller_t::register_listener(editor_payload_listener_fn fn, editor_payload_tick_fn tick_fn, editor_payload_end_fn end_fn, void* user_data)

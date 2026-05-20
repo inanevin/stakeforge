@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -78,11 +79,7 @@ namespace sfg
 	{
 		window_runtime_t& runtime = *static_cast<window_runtime_t*>(user_data);
 		editor_surface_t& surface = editor_app_t::get().get_surface_by_runtime(runtime);
-
-		if (!surface.ui)
-			return;
-
-		ui::ui_context& ui = *surface.ui;
+		ui::ui_context&	  ui	  = *surface.ui;
 
 		switch (ev.type)
 		{
@@ -135,11 +132,15 @@ namespace sfg
 	bool editor_app_t::init()
 	{
 		editor_text_rasterization_t::set_subpixel_enabled(true);
+		editor_directories_t::init_paths();
 
-		editor_settings_t& settings = editor_settings_t::get();
-		if (!settings.reload())
+		/* load editor settings, engine globals, init backend & engine & editor managers */
+
+		const string_t settings_text = file_system_t::read_file_as_string(editor_directories_t::get_settings_path().c_str());
+		nlohmann::json settings_json = nlohmann::json::parse(settings_text, nullptr, false);
+		if (settings_json.is_discarded())
 			return false;
-		_current_project = settings.get_project();
+		editor_settings_t::get() = settings_json;
 
 		engine_runtime_t::init_globals(64ull * 1024ull * 1024ull);
 
@@ -155,13 +156,16 @@ namespace sfg
 			engine_runtime_t::uninit_backend();
 			return false;
 		}
+
 		_world_controller.init(_runtime);
+		_asset_manager.init();
+
+		/* resources & renderers init */
 
 		resource_pack_t::init_params_t pack_params;
 		pack_params.manifest_path = editor_directories_t::get_editor_manifest();
 		pack_params.assets_dir	  = editor_directories_t::get_editor_assets();
 		pack_params.cache_dir	  = editor_directories_t::get_editor_resource_cache();
-
 		if (!_resource_pack.init(resource_manager_t::get(), pack_params))
 		{
 			_world_controller.uninit();
@@ -170,7 +174,6 @@ namespace sfg
 			engine_runtime_t::uninit_backend();
 			return false;
 		}
-
 		resource_manager_t::get().wait_for_all_complete();
 
 		if (!_renderer.init())
@@ -183,7 +186,7 @@ namespace sfg
 			return false;
 		}
 
-		_asset_manager.init(_current_project);
+		/* payload window & layout/surface initing */
 
 		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
 		if (payload_surface.is_null())
@@ -191,14 +194,14 @@ namespace sfg
 		_payload_controller.init(_surfaces.get(payload_surface));
 		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
 
-		const editor_layout_t& layout = settings.get_layout();
+		const editor_layout_t& layout = editor_settings_t::get().layout;
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
 			const surface_handle_t		 handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
 			if (handle.is_null())
 				return false;
-			load_surface_default_layout(_surfaces.get(handle));
+			editor_layout_t::load_surface_default_layout(_surfaces.get(handle));
 		}
 		else
 		{
@@ -243,7 +246,9 @@ namespace sfg
 		_last_tick_us = time_t::get_cpu_microseconds();
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
-		if (!load_project(_current_project.path.c_str()))
+
+		_current_project = editor_settings_t::get().get_project();
+		if (!load_project(_current_project._path.c_str()))
 			get_main_surface().primary->prompt_no_project_modal();
 
 		_close = false;
@@ -254,47 +259,10 @@ namespace sfg
 
 	void editor_app_t::uninit()
 	{
+		SFG_ASSERT(_surfaces.empty());
+
 		_renderer.end_render();
 		resource_manager_t::get().flush();
-
-		for (editor_surface_t& surface : _surfaces)
-		{
-			if (surface.type == editor_surface_type_e::payload || !surface.ui)
-				continue;
-
-			if (surface.type == editor_surface_type_e::primary)
-				surface.primary->uninit();
-			if (surface.type == editor_surface_type_e::secondary)
-				surface.secondary->uninit();
-			surface.tooltip_controller->uninit();
-			surface.popup_controller->uninit();
-			surface.modal_controller->uninit();
-			surface.action_menu_controller->uninit();
-			surface.ui->uninit();
-			surface.ui.reset();
-		}
-
-		for (editor_surface_t& surface : _surfaces)
-		{
-			if (surface.type != editor_surface_type_e::payload || !surface.ui)
-				continue;
-
-			_payload_controller.uninit();
-			surface.tooltip_controller->uninit();
-			surface.popup_controller->uninit();
-			surface.modal_controller->uninit();
-			surface.action_menu_controller->uninit();
-			surface.ui->uninit();
-			surface.ui.reset();
-		}
-
-		for (editor_surface_t& surface : _surfaces)
-		{
-			_renderer.destroy_swapchain(surface.swapchain);
-			surface.swapchain = {};
-			process::destroy_window(surface.runtime->window_handle);
-		}
-
 		_renderer.uninit();
 		_resource_pack.uninit();
 		_asset_manager.uninit();
@@ -304,86 +272,6 @@ namespace sfg
 		engine_runtime_t::uninit_globals();
 		engine_runtime_t::uninit_backend();
 		frame_allocator_tls_t::uninit();
-	}
-
-	void editor_app_t::init_surface_ui(editor_surface_t& surface)
-	{
-		surface.ui = make_unique<ui::ui_context>();
-
-		ui::ui_config_t cfg = {};
-		cfg.max_widgets		= 2048;
-		cfg.user_ui_scale	= 1.0f;
-		cfg.dpi_scale		= surface.runtime->monitor_info.dpi_scale;
-
-		surface.ui->init(cfg);
-
-		ui::paint_pipelines_t pipelines	  = {};
-		pipelines.default_pipeline		  = "editor/shaders/ui_default.hlsl"_hs;
-		pipelines.text_pipeline			  = "editor/shaders/editor_ui_text_lcd.hlsl"_hs;
-		pipelines.grayscale_text_pipeline = "editor/shaders/editor_ui_text_grayscale.hlsl"_hs;
-		pipelines.sdf_pipeline			  = "editor/shaders/ui_sdf.hlsl"_hs;
-		surface.ui->get_paint().set_pipelines(pipelines);
-		surface.ui->set_debug_draw(_debug_mode);
-
-		surface.tooltip_controller = make_unique<editor_tooltip_controller_t>();
-		surface.tooltip_controller->init(*surface.ui);
-
-		surface.modal_controller = make_unique<editor_modal_controller_t>();
-		surface.modal_controller->init(*surface.ui);
-
-		surface.popup_controller = make_unique<editor_popup_controller_t>();
-		surface.popup_controller->init(*surface.ui);
-
-		surface.action_menu_controller = make_unique<editor_action_menu_controller_t>();
-		surface.action_menu_controller->init(*surface.ui);
-		if (surface.type == editor_surface_type_e::primary)
-		{
-			surface.primary = make_unique<editor_primary_base_t>();
-			surface.primary->init(*surface.ui, *surface.runtime);
-			surface.primary->set_current_project_name(_current_project.name.c_str());
-		}
-		else if (surface.type == editor_surface_type_e::secondary)
-		{
-			surface.secondary = make_unique<editor_secondary_base_t>();
-			surface.secondary->init(*surface.ui, *surface.runtime);
-		}
-	}
-
-	void editor_app_t::load_surface_default_layout(editor_surface_t& surface)
-	{
-		nlohmann::json layout = {
-			{"version", 1},
-			{"root",
-			 nlohmann::json{
-				 {"type", "split"},
-				 {"direction", "horizontal"},
-				 {"split_value", 0.22f},
-				 {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Entities"}, {"data", nlohmann::json::object()}}})}}},
-				 {"positive",
-				  nlohmann::json{
-					  {"type", "split"},
-					  {"direction", "horizontal"},
-					  {"split_value", 0.72f},
-					  {"negative",
-					   nlohmann::json{
-						   {"type", "split"},
-						   {"direction", "vertical"},
-						   {"split_value", 0.68f},
-						   {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "World"}, {"data", nlohmann::json::object()}}})}}},
-						   {"positive",
-							nlohmann::json{
-								{"type", "leaf"},
-								{"panels",
-								 nlohmann::json::array(
-									 {nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Profiling"}, {"data", nlohmann::json::object()}}})}}},
-					   }},
-					  {"positive", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Inspector"}, {"data", nlohmann::json::object()}}})}}},
-				  }},
-			 }},
-		};
-
-		if (surface.type == editor_surface_type_e::primary)
-			surface.primary->get_dock_widget().from_json(layout);
 	}
 
 	void editor_app_t::load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout)
@@ -410,15 +298,7 @@ namespace sfg
 		editor_text_rasterization_t::set_subpixel_enabled(enabled);
 		const ui::glyph_raster_mode_e raster_mode = editor_text_rasterization_t::get_rasterization_type();
 		for (editor_surface_t& surface : _surfaces)
-		{
-			if (surface.ui)
-				surface.ui->get_paint().set_text_raster_mode(raster_mode);
-		}
-	}
-
-	bool editor_app_t::is_text_subpixel_enabled() const
-	{
-		return editor_text_rasterization_t::is_subpixel_enabled();
+			surface.ui->get_paint().set_text_raster_mode(raster_mode);
 	}
 
 	void editor_app_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value)
@@ -457,39 +337,6 @@ namespace sfg
 		_world_controller.destroy_worlds();
 	}
 
-	bool editor_app_t::load_main_world_from_project()
-	{
-		const string_t assets_dir = editor_directories_t::get_project_assets_directory(_current_project);
-		if (!editor_directories_t::ensure_project_assets_directory(_current_project))
-			return false;
-
-		const world_handle_t world = _world_controller.create_world();
-		_world_controller.set_main_world(world);
-
-		string_t last_world_path = _current_project.last_world_path;
-		file_system_t::fix_path(last_world_path);
-		if (last_world_path.empty())
-		{
-			_world_controller.install_default_world(world);
-			return true;
-		}
-
-		const string_t full_world_path = assets_dir + last_world_path;
-		if (!file_system_t::exists(full_world_path.c_str()))
-		{
-			_world_controller.install_default_world(world);
-			return true;
-		}
-
-		const string_t		 json_text = file_system_t::read_file_as_string(full_world_path.c_str());
-		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
-		if (doc.is_discarded())
-			return false;
-
-		doc.get_to(_runtime.get_world(world));
-		return true;
-	}
-
 	bool editor_app_t::create_project(const char* path)
 	{
 		if (!editor_project_t::is_project_path(path))
@@ -514,42 +361,26 @@ namespace sfg
 		if (doc.is_discarded())
 			return false;
 
-		editor_project_t project = {};
-		doc.get_to(project);
-		project.path = path;
-
 		unload_current_project();
-		_current_project = project;
-		if (!_asset_manager.rescan(_current_project))
-		{
-			unload_current_project();
-			return false;
-		}
-
-		if (!load_main_world_from_project())
-		{
-			unload_current_project();
-			return false;
-		}
+		_current_project = doc;
+		_current_project.set_path(path);
+		_asset_manager.rescan(_current_project._assets_path);
 
 		editor_settings_t::get().get_project() = _current_project;
 		editor_settings_t::get().save();
-		for (editor_surface_t& surface : _surfaces)
-		{
-			if (surface.type == editor_surface_type_e::primary)
-				surface.primary->set_current_project_name(_current_project.name.c_str());
-		}
+		get_main_surface().primary->set_current_project_name(_current_project._name.c_str());
+
 		return true;
 	}
 
 	bool editor_app_t::save_project()
 	{
-		if (!editor_project_t::is_project_path(_current_project.path.c_str()))
+		if (!editor_project_t::is_project_path(_current_project._path.c_str()))
 			return false;
 
 		const nlohmann::json json_data = _current_project;
 		const string_t		 data	   = json_data.dump(4);
-		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), _current_project.path.c_str()))
+		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), _current_project._path.c_str()))
 			return false;
 
 		if (!editor_directories_t::ensure_project_assets_directory(_current_project))
@@ -565,11 +396,11 @@ namespace sfg
 		if (!editor_project_t::is_project_path(path))
 			return false;
 
-		const string_t old_path = _current_project.path;
-		_current_project.path	= path;
+		const string_t old_path = _current_project._path;
+		_current_project.set_path(path);
 		if (!save_project())
 		{
-			_current_project.path = old_path;
+			_current_project.set_path(old_path.c_str());
 			return false;
 		}
 		return true;
@@ -607,7 +438,7 @@ namespace sfg
 
 	void editor_app_t::apply_default_layout()
 	{
-		vector_t<surface_handle_t> destroy_handles;
+		frame_vector_t<surface_handle_t> destroy_handles;
 		for (u16 i = 0; i < _surfaces.head(); ++i)
 		{
 			if (!_surfaces.is_active(i))
@@ -622,7 +453,7 @@ namespace sfg
 		for (surface_handle_t handle : destroy_handles)
 			destroy_surface(handle);
 
-		load_surface_default_layout(get_main_surface());
+		editor_layout_t::load_surface_default_layout(get_main_surface());
 		save_layout();
 	}
 
@@ -634,16 +465,6 @@ namespace sfg
 			if (surface.type == editor_surface_type_e::primary)
 				return surface;
 		}
-		SFG_ASSERT(false);
-		return *_surfaces.begin();
-	}
-
-	const editor_surface_t& editor_app_t::get_main_surface() const
-	{
-		SFG_ASSERT(!_surfaces.empty());
-		for (const editor_surface_t& surface : _surfaces)
-			if (surface.type == editor_surface_type_e::primary)
-				return surface;
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
 	}
@@ -718,7 +539,7 @@ namespace sfg
 					surface.swapchain_size = surface.runtime->size;
 				}
 
-				if (!minimized && !hidden && surface.ui)
+				if (!minimized && !hidden)
 				{
 					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					const f32	  dpi_scale = surface.runtime->monitor_info.dpi_scale > 0.0f ? surface.runtime->monitor_info.dpi_scale : 1.0f;
@@ -737,25 +558,9 @@ namespace sfg
 			}
 
 			_renderer.ensure_render();
-
-			static bool b = true;
-
-			if (b)
-			{
-				b = false;
-				for (int a = 0; a < 50; a++)
-				{
-					SFG_TRACE("heall yeah tesdting uh baby lewgooo");
-				}
-			}
 		}
 
 		_renderer.end_render();
-	}
-
-	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size)
-	{
-		return create_surface(pos, size, editor_surface_type_e::secondary);
 	}
 
 	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type)
@@ -782,7 +587,41 @@ namespace sfg
 			return {};
 		}
 
-		init_surface_ui(surface);
+		surface.ui = make_unique<ui::ui_context>();
+		surface.ui->init({
+			.user_ui_scale = 1.0f,
+			.dpi_scale	   = surface.runtime->monitor_info.dpi_scale,
+			.max_widgets   = 2048,
+		});
+		surface.ui->get_paint().set_pipelines({
+			.default_pipeline		 = "editor/shaders/ui_default.hlsl"_hs,
+			.text_pipeline			 = "editor/shaders/editor_ui_text_lcd.hlsl"_hs,
+			.grayscale_text_pipeline = "editor/shaders/editor_ui_text_grayscale.hlsl"_hs,
+			.sdf_pipeline			 = "editor/shaders/ui_sdf.hlsl"_hs,
+		});
+		surface.ui->set_debug_draw(_debug_mode);
+
+		surface.tooltip_controller = make_unique<editor_tooltip_controller_t>();
+		surface.tooltip_controller->init(*surface.ui);
+
+		surface.modal_controller = make_unique<editor_modal_controller_t>();
+		surface.modal_controller->init(*surface.ui);
+
+		surface.popup_controller = make_unique<editor_popup_controller_t>();
+		surface.popup_controller->init(*surface.ui);
+
+		surface.action_menu_controller = make_unique<editor_action_menu_controller_t>();
+		surface.action_menu_controller->init(*surface.ui);
+		if (surface.type == editor_surface_type_e::primary)
+		{
+			surface.primary = make_unique<editor_primary_base_t>();
+			surface.primary->init(*surface.ui, *surface.runtime);
+		}
+		else if (surface.type == editor_surface_type_e::secondary)
+		{
+			surface.secondary = make_unique<editor_secondary_base_t>();
+			surface.secondary->init(*surface.ui, *surface.runtime);
+		}
 
 		surface.swapchain	   = _renderer.create_swapchain(surface.runtime->window_handle, surface.runtime->platform_handle, surface.runtime->monitor_info.dpi_scale, surface.runtime->size, surface.ui.get());
 		surface.swapchain_size = surface.runtime->size;
@@ -804,21 +643,19 @@ namespace sfg
 		if (surface.type == editor_surface_type_e::primary)
 			save_layout();
 
-		if (surface.ui)
-		{
-			if (surface.type == editor_surface_type_e::primary)
-				surface.primary->uninit();
-			if (surface.type == editor_surface_type_e::secondary)
-				surface.secondary->uninit();
-			if (surface.type == editor_surface_type_e::payload)
-				_payload_controller.uninit();
-			surface.tooltip_controller->uninit();
-			surface.popup_controller->uninit();
-			surface.modal_controller->uninit();
-			surface.action_menu_controller->uninit();
-			surface.ui->uninit();
-			surface.ui.reset();
-		}
+		if (surface.type == editor_surface_type_e::primary)
+			surface.primary->uninit();
+		else if (surface.type == editor_surface_type_e::secondary)
+			surface.secondary->uninit();
+		else
+			_payload_controller.uninit();
+
+		surface.tooltip_controller->uninit();
+		surface.popup_controller->uninit();
+		surface.modal_controller->uninit();
+		surface.action_menu_controller->uninit();
+		surface.ui->uninit();
+		surface.ui.reset();
 		_renderer.destroy_swapchain(surface.swapchain);
 		surface.swapchain = {};
 		process::destroy_window(surface.runtime->window_handle);

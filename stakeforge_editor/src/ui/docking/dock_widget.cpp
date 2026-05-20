@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_types.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/easing.hpp>
 #include <sfg/math/math.hpp>
@@ -397,8 +398,8 @@ namespace sfg
 
 		if (sibling.node_type == dock_node_type_e::leaf)
 		{
-			const sid_t				  active_tab = sibling.tab_area.get_active_tab();
-			vector_t<editor_panel_t*> panels	 = sibling.panels;
+			const sid_t						active_tab = sibling.tab_area.get_active_tab();
+			frame_vector_t<editor_panel_t*> panels(sibling.panels.begin(), sibling.panels.end());
 			sibling.panels.clear();
 			for (editor_panel_t* panel : panels)
 				panel->deassign();
@@ -625,10 +626,10 @@ namespace sfg
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
 		SFG_ASSERT(can_split_leaf(node, preview));
 
-		const bool				  split_horizontal = preview == dock_preview_e::left || preview == dock_preview_e::right;
-		const bool				  new_is_negative  = preview == dock_preview_e::left || preview == dock_preview_e::top;
-		const sid_t				  active_tab	   = node.tab_area.get_active_tab();
-		vector_t<editor_panel_t*> existing_panels  = node.panels;
+		const bool						split_horizontal = preview == dock_preview_e::left || preview == dock_preview_e::right;
+		const bool						new_is_negative	 = preview == dock_preview_e::left || preview == dock_preview_e::top;
+		const sid_t						active_tab		 = node.tab_area.get_active_tab();
+		frame_vector_t<editor_panel_t*> existing_panels(node.panels.begin(), node.panels.end());
 		node.panels.clear();
 		for (editor_panel_t* existing_panel : existing_panels)
 			existing_panel->deassign();

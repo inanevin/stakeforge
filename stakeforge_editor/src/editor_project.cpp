@@ -30,18 +30,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool editor_project_t::is_project_path(const char* path)
-	{
-		if (path == nullptr || path[0] == '\0')
-			return false;
-		return file_system_t::get_file_extension(path) == "sfg_project";
-	}
-
 	editor_project_t editor_project_t::make_default_project(const char* path)
 	{
-		editor_project_t project   = {};
-		project.path			   = path;
-		project.name			   = file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(project.path));
+		editor_project_t project = {};
+		project.refresh_runtime(path);
 		project.last_world_path	   = {};
 		project.world_tick_rate	   = 60;
 		project.world_physics_rate = 100;
@@ -49,10 +41,21 @@ namespace sfg
 		return project;
 	}
 
+	void editor_project_t::refresh_runtime(const char* path)
+	{
+		_runtime = {};
+
+		_runtime.path = path;
+		file_system_t::fix_path(_runtime.path);
+		_runtime.name	   = file_system_t::get_filename_from_path(path);
+		const string_t dir = file_system_t::get_directory_of_file(_runtime.path.c_str());
+
+		_runtime.assets_path = dir + "assets/";
+		_runtime.cache_path	 = _runtime.assets_path + "/_cache/";
+	}
+
 	void to_json(nlohmann::json& j, const editor_project_t& project)
 	{
-		j["path"]				= project.path;
-		j["name"]				= project.name;
 		j["last_world"]			= project.last_world_path;
 		j["world_tick_rate"]	= project.world_tick_rate;
 		j["world_physics_rate"] = project.world_physics_rate;
@@ -61,9 +64,7 @@ namespace sfg
 
 	void from_json(const nlohmann::json& j, editor_project_t& project)
 	{
-		project.path			   = j.value<string_t>("path", {});
-		project.name			   = j.value<string_t>("name", {});
-		project.last_world_path	   = j.value<string_t>("last_world", j.value<string_t>("last_world_resource", {}));
+		project.last_world_path	   = j.value<string_t>("last_world", "");
 		project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
 		project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
 		project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);

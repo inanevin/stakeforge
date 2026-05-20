@@ -184,6 +184,8 @@ namespace sfg
 
 	string_t file_system_t::get_file_extension(const string_t& file)
 	{
+		if (file.empty())
+			return "";
 		string_t path = file.substr(file.find_last_of(".") + 1);
 		return path;
 	}

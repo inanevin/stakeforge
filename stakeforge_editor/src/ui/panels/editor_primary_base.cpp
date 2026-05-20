@@ -114,11 +114,6 @@ namespace sfg
 			return static_cast<u16>(PANEL_MENU_COMMAND_BASE + static_cast<u16>(type));
 		}
 
-		bool is_panel_menu_command(u16 command)
-		{
-			return command >= PANEL_MENU_COMMAND_BASE && command < panel_menu_command(editor_panel_type_e::max);
-		}
-
 		bool is_editor_debug_bounds_enabled(void*)
 		{
 			return editor_app_t::get().is_debug_mode_enabled();
@@ -350,7 +345,7 @@ namespace sfg
 		{
 			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
 
-			if (is_panel_menu_command(command))
+			if (command >= PANEL_MENU_COMMAND_BASE && command < panel_menu_command(editor_panel_type_e::max))
 				return;
 
 			switch (static_cast<editor_file_menu_commands_e>(command))

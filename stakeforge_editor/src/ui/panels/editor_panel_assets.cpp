@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_assets.hpp"
 #include "editor_directories.hpp"
-#include "editor_settings.hpp"
+#include "editor_project.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -46,6 +46,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <algorithm>
 
 namespace sfg
 {
@@ -119,49 +121,6 @@ namespace sfg
 			tree.in(id).flags = flags;
 		}
 
-		bool contains_hash(const vector_t<u64>& set, u64 hash)
-		{
-			for (u64 h : set)
-			{
-				if (h == hash)
-					return true;
-			}
-			return false;
-		}
-
-		void toggle_hash(vector_t<u64>& set, u64 hash)
-		{
-			for (auto it = set.begin(); it != set.end(); ++it)
-			{
-				if (*it != hash)
-					continue;
-				set.erase(it);
-				return;
-			}
-			set.push_back(hash);
-		}
-
-		void remove_hash(vector_t<u64>& set, u64 hash)
-		{
-			for (auto it = set.begin(); it != set.end(); ++it)
-			{
-				if (*it != hash)
-					continue;
-				set.erase(it);
-				return;
-			}
-		}
-
-		u64 combine_path_hash(u64 parent_hash, const string_t& child_name)
-		{
-			const u64 with_sep = hashing_t::hash_fnv_1a64(parent_hash, "/", 1);
-			return hashing_t::hash_fnv_1a64(with_sep, child_name.c_str(), child_name.size());
-		}
-
-		bool name_contains_lower(const string_t& name_lower, const string_t& needle_lower)
-		{
-			return name_lower.find(needle_lower) != string_t::npos;
-		}
 	}
 
 	editor_panel_assets_t::editor_panel_assets_t()
@@ -465,25 +424,27 @@ namespace sfg
 		const editor_asset_node_handle_t root_handle = asset_manager.get_root_node();
 		if (!asset_tree.empty() && !root_handle.is_null() && asset_tree.is_valid(root_handle))
 		{
-			const editor_asset_node_t& root		 = asset_tree.value(root_handle);
-			const u64				   root_hash = hashing_t::hash_fnv_1a64(hashing_t::FNV_1A_64_OFFSET, root.name.c_str(), root.name.size());
-			append_folder_rows(root_handle, 0, root_hash);
+			const editor_asset_node_t& root = asset_tree.value(root_handle);
+			frame_string_t<char>	   current_path;
+			current_path.assign(root.name.c_str(), root.name.size());
+			append_folder_rows(root_handle, 0, current_path);
 		}
 
 		for (size_t i = _visible_folder_row_count; i < _folder_rows.size(); ++i)
 			set_folder_row_visible(_folder_rows[i], false);
 	}
 
-	bool editor_panel_assets_t::append_folder_rows(editor_asset_node_handle_t node, u16 depth, u64 path_hash)
+	bool editor_panel_assets_t::append_folder_rows(editor_asset_node_handle_t node, u16 depth, frame_string_t<char>& current_path)
 	{
 		const editor_asset_tree_t& tree		  = editor_asset_manager_t::get().get_asset_tree();
 		const editor_asset_node_t& asset_node = tree.value(node);
 		if ((asset_node.flags & editor_asset_node_flag_hidden) != 0)
 			return false;
 
+		const u64  path_hash	 = hashing_t::hash_u64(current_path.c_str(), current_path.size());
 		const bool search_active = !_search_str_lower.empty();
 		const bool promoted		 = (asset_node.flags & editor_asset_node_flag_promoted) != 0;
-		const bool favourite	 = contains_hash(_favourite_folder_hashes, path_hash);
+		const bool favourite	 = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), path_hash) != _favourite_folder_hashes.end();
 		const bool passes_filter = !_favourites_only || favourite;
 
 		bool self_matches_search = !search_active;
@@ -491,10 +452,10 @@ namespace sfg
 		{
 			string_t name_lower = asset_node.name;
 			string_util::to_lower(name_lower);
-			self_matches_search = name_contains_lower(name_lower, _search_str_lower);
+			self_matches_search = name_lower.find(_search_str_lower) != string_t::npos;
 		}
 
-		const bool is_expanded	 = contains_hash(_expanded_folder_hashes, path_hash);
+		const bool is_expanded	 = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), path_hash) != _expanded_folder_hashes.end();
 		const bool may_emit_self = !promoted && passes_filter;
 		const bool will_fold	 = may_emit_self && !search_active && !is_expanded;
 
@@ -510,8 +471,11 @@ namespace sfg
 				const editor_asset_node_t& child_node = tree.value(child);
 				if (child_node.type == editor_asset_node_type_e::folder)
 				{
-					const u64 child_hash = combine_path_hash(path_hash, child_node.name);
-					any_visible |= append_folder_rows(child, child_depth, child_hash);
+					const size_t saved_len = current_path.size();
+					current_path += '/';
+					current_path.append(child_node.name.c_str(), child_node.name.size());
+					any_visible |= append_folder_rows(child, child_depth, current_path);
+					current_path.resize(saved_len);
 				}
 				child = tree.next_sibling(child);
 			}
@@ -724,13 +688,21 @@ namespace sfg
 
 	void editor_panel_assets_t::toggle_folder_fold(u64 path_hash)
 	{
-		toggle_hash(_expanded_folder_hashes, path_hash);
+		auto it = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), path_hash);
+		if (it != _expanded_folder_hashes.end())
+			_expanded_folder_hashes.erase(it);
+		else
+			_expanded_folder_hashes.push_back(path_hash);
 		refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::toggle_folder_favourite(u64 path_hash)
 	{
-		toggle_hash(_favourite_folder_hashes, path_hash);
+		auto it = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), path_hash);
+		if (it != _favourite_folder_hashes.end())
+			_favourite_folder_hashes.erase(it);
+		else
+			_favourite_folder_hashes.push_back(path_hash);
 		refresh_folder_rows();
 	}
 
@@ -752,8 +724,8 @@ namespace sfg
 			return;
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		if (asset_manager.rescan(editor_settings_t::get().get_project()))
-			refresh_folder_rows();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::delete_folder()
@@ -768,12 +740,14 @@ namespace sfg
 		if (_selected_folder_hash == _action_menu_folder_hash)
 			_selected_folder_hash = 0;
 
-		remove_hash(_favourite_folder_hashes, _action_menu_folder_hash);
-		remove_hash(_expanded_folder_hashes, _action_menu_folder_hash);
+		if (auto it = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), _action_menu_folder_hash); it != _favourite_folder_hashes.end())
+			_favourite_folder_hashes.erase(it);
+		if (auto it = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), _action_menu_folder_hash); it != _expanded_folder_hashes.end())
+			_expanded_folder_hashes.erase(it);
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		if (asset_manager.rescan(editor_settings_t::get().get_project()))
-			refresh_folder_rows();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::duplicate_folder()
@@ -786,8 +760,8 @@ namespace sfg
 			return;
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		if (asset_manager.rescan(editor_settings_t::get().get_project()))
-			refresh_folder_rows();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::open_rename_popup()
@@ -856,23 +830,23 @@ namespace sfg
 
 		if (_selected_folder_hash == old_hash)
 			_selected_folder_hash = new_hash;
-		if (contains_hash(_favourite_folder_hashes, old_hash))
+		if (auto it = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), old_hash); it != _favourite_folder_hashes.end())
 		{
-			remove_hash(_favourite_folder_hashes, old_hash);
-			if (!contains_hash(_favourite_folder_hashes, new_hash))
+			_favourite_folder_hashes.erase(it);
+			if (std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), new_hash) == _favourite_folder_hashes.end())
 				_favourite_folder_hashes.push_back(new_hash);
 		}
-		if (contains_hash(_expanded_folder_hashes, old_hash))
+		if (auto it = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), old_hash); it != _expanded_folder_hashes.end())
 		{
-			remove_hash(_expanded_folder_hashes, old_hash);
-			if (!contains_hash(_expanded_folder_hashes, new_hash))
+			_expanded_folder_hashes.erase(it);
+			if (std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), new_hash) == _expanded_folder_hashes.end())
 				_expanded_folder_hashes.push_back(new_hash);
 		}
 		_action_menu_folder_hash = new_hash;
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		if (asset_manager.rescan(editor_settings_t::get().get_project()))
-			refresh_folder_rows();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
 	}
 
 	string_t editor_panel_assets_t::get_action_menu_target_folder_path() const
@@ -893,7 +867,7 @@ namespace sfg
 			}
 		}
 
-		return editor_directories_t::get_project_assets_directory(editor_settings_t::get().get_project());
+		return editor_project_t::get()._runtime.assets_path;
 	}
 
 	string_t editor_panel_assets_t::get_folder_absolute_path(editor_asset_node_handle_t node) const
@@ -904,7 +878,7 @@ namespace sfg
 		if (node.is_null() || !asset_tree.is_valid(node) || root_handle.is_null())
 			return {};
 
-		string_t assets_path = editor_directories_t::get_project_assets_directory(editor_settings_t::get().get_project());
+		string_t assets_path = editor_project_t::get()._runtime.assets_path;
 		if (assets_path.empty())
 			return {};
 		if (assets_path.back() != '/')
@@ -950,13 +924,17 @@ namespace sfg
 
 		const editor_asset_node_t& root		 = asset_tree.value(root_handle);
 		const string_t&			   root_name = node == root_handle ? name : root.name;
-		u64						   hash		 = hashing_t::hash_fnv_1a64(hashing_t::FNV_1A_64_OFFSET, root_name.c_str(), root_name.size());
+
+		frame_string_t<char> relative_path;
+		relative_path.assign(root_name.c_str(), root_name.size());
 		for (size_t i = chain.size(); i-- > 0;)
 		{
 			const editor_asset_node_t& chain_node = asset_tree.value(chain[i]);
-			hash								  = combine_path_hash(hash, chain[i] == node ? name : chain_node.name);
+			const string_t&			   segment	  = chain[i] == node ? name : chain_node.name;
+			relative_path += '/';
+			relative_path.append(segment.c_str(), segment.size());
 		}
-		return hash;
+		return hashing_t::hash_u64(relative_path.c_str(), relative_path.size());
 	}
 
 	const editor_panel_assets_t::folder_row_t* editor_panel_assets_t::find_row_by_widget(ui::widget_id_t id, bool match_icon) const
@@ -986,8 +964,8 @@ namespace sfg
 	void editor_panel_assets_t::on_refresh_button_pressed(bool, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (editor_asset_manager_t::get().rescan(editor_settings_t::get().get_project()))
-			panel.refresh_folder_rows();
+		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.name);
+		panel.refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)

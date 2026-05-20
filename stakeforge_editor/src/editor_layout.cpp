@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_layout.hpp"
+#include "editor_surface.hpp"
+#include "ui/panels/editor_primary_base.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -59,5 +61,42 @@ namespace sfg
 	void from_json(const nlohmann::json& j, editor_layout_t& layout)
 	{
 		layout.windows = j.value("windows", vector_t<editor_layout_window_t>{});
+	}
+
+	void editor_layout_t::load_surface_default_layout(editor_surface_t& surface)
+	{
+		nlohmann::json layout = {
+			{"version", 1},
+			{"root",
+			 nlohmann::json{
+				 {"type", "split"},
+				 {"direction", "horizontal"},
+				 {"split_value", 0.22f},
+				 {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Entities"}, {"data", nlohmann::json::object()}}})}}},
+				 {"positive",
+				  nlohmann::json{
+					  {"type", "split"},
+					  {"direction", "horizontal"},
+					  {"split_value", 0.72f},
+					  {"negative",
+					   nlohmann::json{
+						   {"type", "split"},
+						   {"direction", "vertical"},
+						   {"split_value", 0.68f},
+						   {"negative", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "World"}, {"data", nlohmann::json::object()}}})}}},
+						   {"positive",
+							nlohmann::json{
+								{"type", "leaf"},
+								{"panels",
+								 nlohmann::json::array(
+									 {nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Profiling"}, {"data", nlohmann::json::object()}}})}}},
+					   }},
+					  {"positive", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Inspector"}, {"data", nlohmann::json::object()}}})}}},
+				  }},
+			 }},
+		};
+
+		if (surface.type == editor_surface_type_e::primary)
+			surface.primary->get_dock_widget().from_json(layout);
 	}
 }

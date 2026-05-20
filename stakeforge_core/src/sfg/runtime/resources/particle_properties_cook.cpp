@@ -1,16 +1,11 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "particle_properties_cook.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	bool particle_properties_cooker::cook_from_file(const particle_properties_cook_config_t&, const char*, ostream_t&)
+	bool particle_properties_cooker::cook_from_file(const char*, ostream_t&)
 	{
 		return false;
-	}
-
-	void from_json(const nlohmann::json&, particle_properties_cook_config_t&)
-	{
 	}
 }

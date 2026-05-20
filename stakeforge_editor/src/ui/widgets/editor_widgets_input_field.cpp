@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/input/input_mappings.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
@@ -51,16 +52,6 @@ namespace sfg
 		constexpr f32 INPUT_CARET_WIDTH		  = 1.0f;
 		constexpr f32 INPUT_CARET_HEIGHT	  = 0.8f;
 		constexpr f32 INPUT_CARET_BLINK_TIME  = 0.9f;
-
-		bool is_ctrl_down()
-		{
-			return process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-		}
-
-		bool is_press_or_repeat(ui::key_action_e action)
-		{
-			return action == ui::key_action_e::press || action == ui::key_action_e::repeat;
-		}
 
 	}
 
@@ -313,8 +304,7 @@ namespace sfg
 
 	void editor_input_field_t::insert_text(const char* text)
 	{
-		if (text == nullptr)
-			return;
+		SFG_ASSERT(text != nullptr);
 		bool any = false;
 		for (const char* c = text; *c != '\0'; ++c)
 			any |= insert_char_data(*c);
@@ -330,8 +320,6 @@ namespace sfg
 		if (!accepts_char(c) || _text_len + 1 >= TEXT_CAPACITY)
 			return false;
 		erase_selection();
-		if (_text_len + 1 >= TEXT_CAPACITY)
-			return false;
 		std::memmove(_text + _caret + 1, _text + _caret, _text_len - _caret + 1);
 		_text[_caret] = c;
 		_text_len++;
@@ -571,11 +559,11 @@ namespace sfg
 
 	void editor_input_field_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
 	{
-		if (!is_press_or_repeat(ev.action))
+		if (ev.action != ui::key_action_e::press && ev.action != ui::key_action_e::repeat)
 			return;
 
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
-		const bool			  ctrl	= is_ctrl_down();
+		const bool			  ctrl	= process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 
 		if (ev.key == static_cast<u16>(input_code::key_left))
 		{

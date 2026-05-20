@@ -26,68 +26,51 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "editor_settings.hpp"
 #include "editor_directories.hpp"
-
-#include <sfg/common/size_definitions.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/serialization/serialization.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const editor_settings_t& settings)
+	bool editor_settings_t::save()
 	{
-		j["layout"]	 = settings._layout;
-		j["project"] = settings._project;
-	}
+		nlohmann::json json_data = "";
+		to_json(json_data);
 
-	void from_json(const nlohmann::json& j, editor_settings_t& settings)
-	{
-		settings._layout  = j.value("layout", editor_layout_t{});
-		settings._project = j.value("project", editor_project_t{});
-	}
-
-	bool editor_settings_t::reload()
-	{
-		const string_t directory = editor_directories_t::get_user_directory();
-		if (!file_system_t::exists(directory.c_str()) && !file_system_t::create_directory(directory.c_str()))
-			return false;
-
-		const string_t path = editor_directories_t::get_settings_path();
-		if (!file_system_t::exists(path.c_str()))
+		const string_t data		= json_data.dump(4);
+		const string_t settings = editor_directories_t::get_editor_settings();
+		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), settings.c_str()))
 		{
-			_layout = {};
-			flush_to_disk();
-			return true;
+			SFG_ERR("failed file serialization!");
 		}
+	}
 
-		const string_t		 data = file_system_t::read_file_as_string(path.c_str());
-		const nlohmann::json doc  = nlohmann::json::parse(data, nullptr, false);
-		if (doc.is_discarded())
+	bool editor_settings_t::ensure_loaded()
+	{
+		const string_t settings = editor_directories_t::get_editor_settings();
+		if (!file_system_t::exists(settings.c_str()))
 		{
-			SFG_ERR("failed loading editor settings");
-			_layout = {};
-			flush_to_disk();
-			return true;
+			editor_settings_t::get() = {};
+			return editor_settings_t::get().save();
 		}
+		
+		nlohmann::json json = file_system_t::read_file_as_string(settings.c_str());
 
-		doc.get_to(*this);
-		return true;
+		 = nlohmann::json::parse();
+		return false;
 	}
 
-	void editor_settings_t::save()
+	void editor_settings_t::to_json(nlohmann::json& j)
 	{
-		flush_to_disk();
+		j["layout"]		  = _layout;
+		j["project_path"] = _last_project_path;
 	}
 
-	void editor_settings_t::flush_to_disk()
+	void editor_settings_t::from_json(const nlohmann::json& j)
 	{
-		const string_t directory = editor_directories_t::get_user_directory();
-		if (!file_system_t::exists(directory.c_str()) && !file_system_t::create_directory(directory.c_str()))
-			return;
-
-		const nlohmann::json json_data = *this;
-		const string_t		 data	   = json_data.dump(4);
-		serializer_t::write_to_file(string_view_t(data.data(), data.size()), editor_directories_t::get_settings_path().c_str());
+		_layout			   = j.value("layout", editor_layout_t{});
+		_last_project_path = j.value<string_t>("project_path", {});
 	}
+
 }

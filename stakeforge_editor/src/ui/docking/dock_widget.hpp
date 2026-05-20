@@ -88,8 +88,6 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		bool is_window_drag_region(const vec2i16_t& pos) const;
-
 		inline ui::widget_id_t get_root() const
 		{
 			return _root;

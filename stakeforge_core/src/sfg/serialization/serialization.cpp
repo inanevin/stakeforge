@@ -35,13 +35,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool serializer_t::write_to_file(string_view_t fileInput, const char* target_file)
+	bool serializer_t::write_to_file(string_view_t file_input, const char* target_file)
 	{
 		std::ofstream outFile(target_file);
 
 		if (outFile.is_open())
 		{
-			outFile.write(fileInput.data(), fileInput.size());
+			outFile.write(file_input.data(), file_input.size());
 			outFile.close();
 		}
 		else

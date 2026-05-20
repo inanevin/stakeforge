@@ -32,16 +32,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	struct editor_project_t
+	struct editor_project_runtime_t
 	{
 		string_t path;
+		string_t assets_path;
+		string_t cache_path;
 		string_t name;
-		string_t last_world_path;
-		u32		 world_tick_rate	= 60;
-		u32		 world_physics_rate = 100;
-		u32		 max_sim_steps		= 4;
+	};
 
-		static bool				is_project_path(const char* path);
+	struct editor_project_t
+	{
+		static editor_project_t& get()
+		{
+			static editor_project_t instance;
+			return instance;
+		}
+
+		editor_project_runtime_t _runtime = {};
+		string_t				 last_world_path;
+		u32						 world_tick_rate	= 60;
+		u32						 world_physics_rate = 100;
+		u32						 max_sim_steps		= 4;
+
+		void					refresh_runtime(const char* path);
 		static editor_project_t make_default_project(const char* path);
 	};
 

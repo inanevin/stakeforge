@@ -53,10 +53,10 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool init(const editor_project_t& project);
+		bool init();
 		void uninit();
 		void clear();
-		bool rescan(const editor_project_t& project);
+		void rescan(const string_t& assets_dir);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -91,7 +91,6 @@ namespace sfg
 		static editor_asset_manager_t& get();
 
 	private:
-		bool					   build_asset_tree(const string_t& assets_dir);
 		bool					   read_asset(const char* path, editor_asset_t& out_asset) const;
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);

@@ -93,15 +93,9 @@ namespace sfg
 		frame_rect.fill_color_a		   = theme.color_frame;
 		frame_rect.fill_color_b		   = theme.color_frame;
 		frame_rect.outline_color	   = theme.color_outline_light;
-		// frame_rect.outline_color.w	   = 0.72f;
-		frame_rect.outline_thickness = theme.outline_thickness;
-		frame_rect.rounding			 = theme.item_rounding;
-		// frame_rect.rounding_segs	   = 4;
-		//	frame_rect.aa_thickness		   = theme.aa_thickness;
-
-		ui::ui_render_state_t frame_state = {};
-		// frame_state.pipeline			  = theme.shader_glitch_rect;
-		paint.set_rect(_frame, frame_rect, frame_state);
+		frame_rect.outline_thickness   = theme.outline_thickness;
+		frame_rect.rounding			   = theme.item_rounding;
+		paint.set_rect(_frame, frame_rect);
 
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "tooltip_label");

@@ -77,7 +77,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
-		void register_listener(editor_payload_listener_fn fn, void* user_data);
 		void register_listener(editor_payload_listener_fn fn, editor_payload_tick_fn tick_fn, editor_payload_end_fn end_fn, void* user_data);
 		void unregister_listener(void* user_data);
 		void set_unhandled_listener(editor_payload_unhandled_fn fn, void* user_data);

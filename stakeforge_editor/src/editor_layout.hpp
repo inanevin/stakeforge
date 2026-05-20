@@ -34,6 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct editor_surface_t;
+
 	struct editor_layout_window_t
 	{
 		vec2i16_t pos		 = {64, 64};
@@ -45,6 +47,8 @@ namespace sfg
 	struct editor_layout_t
 	{
 		vector_t<editor_layout_window_t> windows;
+
+		static void load_surface_default_layout(editor_surface_t& surface);
 	};
 
 	void to_json(nlohmann::json& j, const editor_layout_window_t& window);

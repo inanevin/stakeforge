@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "ui/widgets/editor_widgets_slider.hpp"
+#include <sfg/data/frame_string.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 
@@ -85,7 +86,7 @@ namespace sfg
 		void open_filter_popup();
 		void open_action_menu(const vec2f_t& pos, editor_asset_node_handle_t folder, u64 folder_hash);
 		void refresh_folder_rows();
-		bool append_folder_rows(editor_asset_node_handle_t node, u16 depth, u64 path_hash);
+		bool append_folder_rows(editor_asset_node_handle_t node, u16 depth, frame_string_t<char>& current_path);
 
 		folder_row_t& get_or_create_folder_row(size_t index);
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);

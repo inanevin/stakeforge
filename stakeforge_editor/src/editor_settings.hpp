@@ -27,8 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "editor_layout.hpp"
-#include "editor_project.hpp"
-#include <sfg/common/size_definitions.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
@@ -42,41 +40,19 @@ namespace sfg
 			return instance;
 		}
 
-		bool reload();
-		void save();
-
-		inline editor_project_t& get_project()
-		{
-			return _project;
-		}
-		inline const editor_project_t& get_project() const
-		{
-			return _project;
-		}
-		inline editor_layout_t& get_layout()
-		{
-			return _layout;
-		}
-		inline const editor_layout_t& get_layout() const
-		{
-			return _layout;
-		}
+		bool save();
 
 	private:
-		void flush_to_disk();
+		friend class editor_app_t;
 
-		editor_settings_t()									   = default;
-		~editor_settings_t()								   = default;
-		editor_settings_t(const editor_settings_t&)			   = delete;
-		editor_settings_t& operator=(const editor_settings_t&) = delete;
+		static bool ensure_loaded();
 
-		editor_layout_t	 _layout;
-		editor_project_t _project;
+		void to_json(nlohmann::json& j);
+		void from_json(const nlohmann::json& j);
 
-		friend void to_json(nlohmann::json& j, const editor_settings_t& settings);
-		friend void from_json(const nlohmann::json& j, editor_settings_t& settings);
+	private:
+		editor_layout_t _layout			   = {};
+		string_t		_last_project_path = "";
 	};
 
-	void to_json(nlohmann::json& j, const editor_settings_t& settings);
-	void from_json(const nlohmann::json& j, editor_settings_t& settings);
 }

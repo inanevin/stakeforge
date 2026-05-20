@@ -36,17 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	namespace
-	{
-		void set_rect_color(ui::paint_layer_t& paint, ui::widget_id_t id, const vec4f_t& color)
-		{
-			ui::paint_def_t& def  = paint.def(id);
-			def.rect.fill_color_a = color;
-			def.rect.fill_color_b = color;
-			def.rect.gradient	  = ui::vg_gradient_e::none;
-		}
-	}
-
 	void editor_file_menu_t::handle_top_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		static_cast<editor_file_menu_t*>(user_data)->on_top_click(id, btn);
@@ -167,8 +156,8 @@ namespace sfg
 			return;
 
 		editor_action_menu_controller_t* controller = editor_action_menu_controller_t::find(*_ui);
-		if (controller != nullptr)
-			controller->close_action_menu();
+		SFG_ASSERT(controller != nullptr);
+		controller->close_action_menu();
 	}
 
 	void editor_file_menu_t::on_top_click(ui::widget_id_t id, ui::mouse_button_e btn)
@@ -216,8 +205,11 @@ namespace sfg
 		ui::paint_layer_t& paint = _ui->get_paint();
 		for (u32 i = 0; i < _item_count; ++i)
 		{
-			const vec4f_t color = (_open && i == _selected_top) ? _style.selected_color : _style.frame_color;
-			set_rect_color(paint, _top_frames[i], color);
+			const vec4f_t	 color = (_open && i == _selected_top) ? _style.selected_color : _style.frame_color;
+			ui::paint_def_t& def   = paint.def(_top_frames[i]);
+			def.rect.fill_color_a  = color;
+			def.rect.fill_color_b  = color;
+			def.rect.gradient	   = ui::vg_gradient_e::none;
 		}
 	}
 

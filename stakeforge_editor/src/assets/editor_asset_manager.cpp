@@ -45,7 +45,7 @@ namespace sfg
 		editor_asset_manager_t* s_instance = nullptr;
 	}
 
-	bool editor_asset_manager_t::init(const editor_project_t&)
+	bool editor_asset_manager_t::init()
 	{
 		SFG_ASSERT(s_instance == nullptr);
 		s_instance = this;
@@ -68,16 +68,7 @@ namespace sfg
 		_generation++;
 	}
 
-	bool editor_asset_manager_t::rescan(const editor_project_t& project)
-	{
-		if (!editor_directories_t::ensure_project_assets_directory(project))
-			return false;
-
-		const string_t assets_dir = editor_directories_t::get_project_assets_directory(project);
-		return build_asset_tree(assets_dir);
-	}
-
-	bool editor_asset_manager_t::build_asset_tree(const string_t& assets_dir)
+	void editor_asset_manager_t::rescan(const string_t& assets_dir)
 	{
 		vector_t<file_system_entry_t> entries;
 		file_system_t::get_entries_recursive(assets_dir.c_str(), entries);
@@ -109,18 +100,18 @@ namespace sfg
 			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
 			{
 				if (!read_asset(entry.path.c_str(), asset))
-					return false;
+					continue;
 
 				const u64 asset_id = asset.guid;
 				if (asset_id == 0)
 				{
 					SFG_ERR("asset {0} has an invalid guid", entry.path.c_str());
-					return false;
+					continue;
 				}
 				if (found_assets.find(asset_id) != found_assets.end())
 				{
 					SFG_ERR("asset {0} has a duplicate guid", entry.path.c_str());
-					return false;
+					continue;
 				}
 
 				found_assets.emplace(asset_id, std::move(asset));
@@ -147,7 +138,6 @@ namespace sfg
 			_assets[found.first] = std::move(found.second);
 
 		_generation++;
-		return true;
 	}
 
 	bool editor_asset_manager_t::read_asset(const char* path, editor_asset_t& out_asset) const

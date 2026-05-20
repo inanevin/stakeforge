@@ -35,14 +35,40 @@ namespace sfg
 	class editor_directories_t
 	{
 	public:
-		static string_t get_user_directory();
-		static string_t get_settings_path();
-		static string_t get_editor_assets();
-		static string_t get_editor_resource_cache();
-		static string_t get_editor_manifest();
-		static string_t get_project_assets_directory();
-		static string_t get_project_assets_directory(const editor_project_t& project);
-		static string_t get_project_asset_cache_directory(const editor_project_t& project);
-		static bool		ensure_project_assets_directory(const editor_project_t& project);
+		static inline const string_t& get_editor_resource_cache()
+		{
+			return s_editor_resource_cache;
+		}
+
+		static inline const string_t& get_editor_manifest()
+		{
+			return s_editor_manifest;
+		}
+
+		static inline const string_t& get_user_directory()
+		{
+			return s_user_directory;
+		}
+
+		static inline const string_t& get_editor_assets()
+		{
+			return s_user_directory;
+		}
+
+		static inline const string_t& get_editor_settings()
+		{
+			return s_editor_settings;
+		}
+
+	private:
+		friend class editor_app_t;
+
+		static string_t s_user_directory;
+		static string_t s_editor_settings;
+		static string_t s_editor_assets;
+		static string_t s_editor_resource_cache;
+		static string_t s_editor_manifest;
+
+		static void init_paths();
 	};
 }

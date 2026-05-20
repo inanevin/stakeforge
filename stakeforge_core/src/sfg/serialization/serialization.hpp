@@ -36,7 +36,7 @@ namespace sfg
 	class serializer_t
 	{
 	public:
-		static bool		 write_to_file(string_view_t fileInput, const char* targetFilePath);
+		static bool		 write_to_file(string_view_t file_input, const char* target_path);
 		static bool		 save_to_file(const char* path, const ostream_t& stream);
 		static istream_t load_from_file(const char* path);
 	};

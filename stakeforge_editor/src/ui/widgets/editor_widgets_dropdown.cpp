@@ -158,8 +158,8 @@ namespace sfg
 	void editor_dropdown_t::close()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		if (popup != nullptr)
-			popup->close_popup();
+		SFG_ASSERT(popup != nullptr);
+		popup->close_popup();
 	}
 
 	void editor_dropdown_t::refresh_title()
@@ -203,8 +203,8 @@ namespace sfg
 		editor_popup_controller_t* popup	= editor_popup_controller_t::find(*dropdown._ui);
 		SFG_ASSERT(popup != nullptr);
 
-		editor_popup_item_desc_t items[16] = {};
-		SFG_ASSERT(dropdown._config.item_count <= 16);
+		editor_popup_item_desc_t items[editor_popup_controller_t::MAX_ITEMS] = {};
+		SFG_ASSERT(dropdown._config.item_count <= editor_popup_controller_t::MAX_ITEMS);
 		const u16 selected = dropdown.get_selected();
 		for (u32 i = 0; i < dropdown._config.item_count; ++i)
 		{

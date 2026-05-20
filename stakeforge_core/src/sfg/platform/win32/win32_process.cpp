@@ -100,7 +100,7 @@ namespace
 		info.size		 = {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
 		info.work_size	 = {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
 		info.position	 = {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
-		info.device_hash = sfg::hashing_t::hash_fnv_1a64(monitor_info_t.szDevice);
+		info.device_hash = sfg::hashing_t::hash_u64(monitor_info_t.szDevice);
 		info.is_primary	 = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
 		info.dpi		 = dpiX;
 		info.dpi_scale	 = static_cast<f32>(dpiX) / 96.0f;
@@ -178,7 +178,7 @@ namespace
 		info.size		 = {static_cast<u16>(monitor_info_t.rcMonitor.right - monitor_info_t.rcMonitor.left), static_cast<u16>(monitor_info_t.rcMonitor.bottom - monitor_info_t.rcMonitor.top)};
 		info.work_size	 = {static_cast<u16>(monitor_info_t.rcWork.right - monitor_info_t.rcWork.left), static_cast<u16>(monitor_info_t.rcWork.bottom - monitor_info_t.rcWork.top)};
 		info.position	 = {static_cast<i16>(monitor_info_t.rcWork.left), static_cast<i16>(monitor_info_t.rcWork.top)};
-		info.device_hash = sfg::hashing_t::hash_fnv_1a64(monitor_info_t.szDevice);
+		info.device_hash = sfg::hashing_t::hash_u64(monitor_info_t.szDevice);
 		info.is_primary	 = (monitor_info_t.dwFlags & MONITORINFOF_PRIMARY) != 0;
 		info.dpi		 = dpiX;
 		info.dpi_scale	 = static_cast<f32>(dpiX) / 96.0f;

@@ -56,33 +56,27 @@ namespace sfg
 			}
 			if (schema == "sfg.schema.material")
 			{
-				const material_cook_config_t cfg = config;
-				return material_cooker::cook_from_file(cfg, full_path, stream);
+				return material_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.particle_properties")
 			{
-				const particle_properties_cook_config_t cfg = config;
-				return particle_properties_cooker::cook_from_file(cfg, full_path, stream);
+				return particle_properties_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.texture_sampler")
 			{
-				const texture_sampler_cook_config_t cfg = config;
-				return texture_sampler_cooker::cook_from_file(cfg, full_path, stream);
+				return texture_sampler_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.physical_material")
 			{
-				const physical_material_cook_config_t cfg = config;
-				return physical_material_cooker::cook_from_file(cfg, full_path, stream);
+				return physical_material_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.animation_state_machine")
 			{
-				const animation_state_machine_cook_config_t cfg = config;
-				return animation_state_machine_cooker::cook_from_file(cfg, full_path, stream);
+				return animation_state_machine_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.prefab")
 			{
-				const prefab_cook_config_t cfg = config;
-				return prefab_cooker::cook_from_file(cfg, full_path, stream);
+				return prefab_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.model")
 			{
@@ -114,7 +108,7 @@ namespace sfg
 #endif
 
 #if defined(SFG_EMBED_ASSETS)
-	bool resource_pack_t::init(resource_manager_t& mgr, const init_params_t& params)
+	bool resource_pack_t::init(resource_manager_t& mgr, const init_params_t& pa rams)
 	{
 		_mgr = &mgr;
 

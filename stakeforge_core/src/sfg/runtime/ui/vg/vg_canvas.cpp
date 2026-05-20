@@ -687,7 +687,7 @@ namespace sfg::ui
 
 		if (use_cache)
 		{
-			cache_hash = hashing_t::hash_fnv_1a64_bytes_and_values(text, len, paint.font, paint.color, paint.size_px, paint.raster_px, paint.spacing, paint.raster_mode, paint.flip_uv);
+			cache_hash = hashing_t::hash_u64_combine(hashing_t::hash_u64(text, len), paint.font, paint.color, paint.size_px, paint.raster_px, paint.spacing, paint.raster_mode, paint.flip_uv);
 			for (const text_cache_entry_t& e : _text_cache)
 			{
 				if (e.hash != cache_hash)

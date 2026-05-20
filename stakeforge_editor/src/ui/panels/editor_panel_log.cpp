@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_string.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/file_system.hpp>
@@ -130,34 +131,7 @@ namespace sfg
 			}
 			return theme.color_text0;
 		}
-
-		bool find_case_insensitive(const char* haystack, const string_t& needle_lower)
-		{
-			if (needle_lower.empty())
-				return true;
-			if (haystack == nullptr)
-				return false;
-
-			const char* const needle = needle_lower.data();
-			const size_t	  nlen	 = needle_lower.size();
-			for (const char* p = haystack; *p != '\0'; ++p)
-			{
-				size_t i = 0;
-				while (i < nlen && p[i] != '\0' && static_cast<char>(std::tolower(static_cast<unsigned char>(p[i]))) == needle[i])
-					++i;
-				if (i == nlen)
-					return true;
-			}
-			return false;
-		}
-
-		void build_log_display_text(frame_string_t<char>& out, const char* raw_text, u32 count)
-		{
-			const string_t tag = file_system_t::get_system_time_tag_str(count);
-			out				   = tag.c_str();
-			out += " ";
-			out += raw_text;
-		}
+	
 	}
 
 	editor_panel_log_t::editor_panel_log_t()
@@ -393,7 +367,9 @@ namespace sfg
 
 	bool editor_panel_log_t::is_log_row_visible(const log_row_t& row) const
 	{
-		return (_log_filter_flags & row.flag) != 0 && find_case_insensitive(row.raw_text.c_str(), _search_text_lower);
+		string_t lower_case_raw = row.raw_text;
+		string_util::to_lower(lower_case_raw);
+		return (_log_filter_flags & row.flag) != 0 && lower_case_raw.find(_search_text_lower) != string_t::npos;
 	}
 
 	bool editor_panel_log_t::is_scrolled_to_end() const
@@ -458,7 +434,7 @@ namespace sfg
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		const u64 hash = hashing_t::hash_fnv_1a64(text);
+		const u64 hash = hashing_t::hash_u64(text);
 		if (_is_collapsed)
 		{
 			for (size_t i = 0; i < _rows.size(); ++i)
@@ -531,7 +507,8 @@ namespace sfg
 	void editor_panel_log_t::update_log_row_text(log_row_t& row)
 	{
 		frame_string_t<char> display_text;
-		build_log_display_text(display_text, row.raw_text.c_str(), row.count);
+		const string_t		 tag = file_system_t::get_system_time_tag_str(row.count);
+		display_text			 = tag + " " + row.raw_text;
 		_ui->set_widget_text(row.text, display_text.c_str());
 	}
 
@@ -553,12 +530,11 @@ namespace sfg
 
 	void editor_panel_log_t::collapse_existing_rows()
 	{
-		// Mark duplicate rows for removal in a single forward pass, accumulating counts onto the survivor.
 		const size_t row_count = _rows.size();
 		if (row_count < 2)
 			return;
 
-		vector_t<bool> remove(row_count, false);
+		frame_vector_t<bool> remove(row_count, false);
 		for (size_t i = 0; i < row_count; ++i)
 		{
 			if (remove[i])
@@ -574,7 +550,6 @@ namespace sfg
 			}
 		}
 
-		// Compact in one O(N) pass.
 		size_t write = 0;
 		for (size_t read = 0; read < row_count; ++read)
 		{
@@ -661,7 +636,10 @@ namespace sfg
 		}
 		_pending_logs.clear();
 
-		while (_stored_logs.size() > EDITOR_LOG_PANEL_ROW_CAPACITY)
-			_stored_logs.erase(_stored_logs.begin());
+		if (_stored_logs.size() > EDITOR_LOG_PANEL_ROW_CAPACITY)
+		{
+			const size_t excess = _stored_logs.size() - EDITOR_LOG_PANEL_ROW_CAPACITY;
+			_stored_logs.erase(_stored_logs.begin(), _stored_logs.begin() + excess);
+		}
 	}
 }

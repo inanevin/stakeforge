@@ -74,6 +74,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 MAX_CONTROLLERS = 16;
+		static constexpr u32 MAX_ITEMS		 = 16;
 
 		editor_popup_controller_t()												   = default;
 		~editor_popup_controller_t()											   = default;
@@ -100,8 +101,6 @@ namespace sfg
 		static editor_popup_controller_t* find(ui::ui_context& ui);
 
 	private:
-		static constexpr u32 MAX_ITEMS = 16;
-
 		enum class popup_mode_e : u8
 		{
 			none,

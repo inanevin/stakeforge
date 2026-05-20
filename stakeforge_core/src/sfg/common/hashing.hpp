@@ -29,82 +29,78 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	constexpr sid_t operator"" _hs(const char* str, size_t len) noexcept;
+
 	class hashing_t
 	{
 	public:
-		static constexpr u64 FNV_1A_64_OFFSET = 14695981039346656037ull;
-		static constexpr u64 FNV_1A_64_PRIME  = 1099511628211ull;
+		static inline u64 hash_u64(const void* ptr, size_t len) noexcept
+		{
+			return hash_u64(FNV_OFFSET, ptr, len);
+		}
 
-		static inline u64 hash_fnv_1a64(u64 hash, const void* ptr, size_t len) noexcept
+		static inline u64 hash_u64(u64 seed, const void* ptr, size_t len) noexcept
 		{
 			const u8* bytes = static_cast<const u8*>(ptr);
 			for (size_t i = 0; i < len; ++i)
-				hash = (hash ^ bytes[i]) * FNV_1A_64_PRIME;
-			return hash;
+				seed = (seed ^ bytes[i]) * FNV_PRIME;
+			return seed;
 		}
 
-		static inline u64 hash_fnv_1a64(const void* ptr, size_t len) noexcept
+		static constexpr u64 hash_u64(const char* str) noexcept
 		{
-			return hash_fnv_1a64(FNV_1A_64_OFFSET, ptr, len);
-		}
-
-		static constexpr u64 hash_fnv_1a64(const char* str) noexcept
-		{
-			u64 hash = FNV_1A_64_OFFSET;
+			u64 hash = FNV_OFFSET;
 			for (size_t i = 0; str[i] != '\0'; ++i)
-				hash = (hash ^ static_cast<u8>(str[i])) * FNV_1A_64_PRIME;
+				hash = (hash ^ static_cast<u8>(str[i])) * FNV_PRIME;
 			return hash;
 		}
 
-		template <typename T> static inline u64 hash_fnv_1a64_value(u64 hash, const T& value) noexcept
+		template <typename... Args> static inline u64 hash_u64_combine(u64 seed, const Args&... args) noexcept
 		{
-			return hash_fnv_1a64(hash, &value, sizeof(value));
-		}
-
-		template <typename... Args> static inline u64 hash_fnv_1a64_values(u64 hash, const Args&... args) noexcept
-		{
-			((hash = hash_fnv_1a64_value(hash, args)), ...);
-			return hash;
-		}
-
-		template <typename... Args> static inline u64 hash_fnv_1a64_bytes_and_values(const void* ptr, size_t len, const Args&... args) noexcept
-		{
-			return hash_fnv_1a64_values(hash_fnv_1a64(ptr, len), args...);
-		}
-
-		static constexpr sid_t hash_bytes(const char* str, size_t len) noexcept
-		{
-			sid_t h = 1469598103934665603ull;
-			for (size_t i = 0; i < len; ++i)
-				h = (h ^ static_cast<unsigned char>(str[i])) * 1099511628211ull;
-			return h;
+			((seed = hash_u64(seed, &args, sizeof(args))), ...);
+			return seed;
 		}
 
 		template <size_t N> static consteval sid_t to_sid(const char (&lit)[N]) noexcept
 		{
 			static_assert(N > 0);
-			return hash_bytes(lit, N - 1);
+			return hash_sid_bytes(lit, N - 1);
 		}
 
 		static constexpr sid_t to_sid(const char* s) noexcept
 		{
-			sid_t h = 1469598103934665603ull;
+			sid_t h = SID_OFFSET;
 			for (size_t i = 0; s[i] != '\0'; ++i)
-				h = (h ^ static_cast<unsigned char>(s[i])) * 1099511628211ull;
+				h = (h ^ static_cast<u8>(s[i])) * FNV_PRIME;
 			return h;
 		}
 
 		template <class S> static constexpr auto to_sid(const S& s) noexcept -> decltype(s.data(), s.size(), sid_t{})
 		{
-			return hash_bytes(s.data(), static_cast<size_t>(s.size()));
+			return hash_sid_bytes(s.data(), static_cast<size_t>(s.size()));
 		}
 
 		static u64 generate_guid64();
+
+	private:
+		friend constexpr sid_t operator"" _hs(const char* str, size_t len) noexcept;
+
+		static constexpr u64 FNV_OFFSET = 14695981039346656037ull;
+		static constexpr u64 FNV_PRIME	= 1099511628211ull;
+		static constexpr u64 SID_OFFSET = 1469598103934665603ull;
+
+		static constexpr sid_t hash_sid_bytes(const char* str, size_t len) noexcept
+		{
+			sid_t h = SID_OFFSET;
+			for (size_t i = 0; i < len; ++i)
+				h = (h ^ static_cast<u8>(str[i])) * FNV_PRIME;
+			return h;
+		}
 	};
 
 	constexpr sid_t operator"" _hs(const char* str, size_t len) noexcept
 	{
-		return hashing_t::hash_bytes(str, len);
+		return hashing_t::hash_sid_bytes(str, len);
 	}
 
 #define TO_SID(X)  ::sfg::hashing_t::to_sid((X))

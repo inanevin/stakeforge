@@ -47,29 +47,6 @@ namespace sfg
 			out[len] = '\0';
 		}
 
-		bool hex_to_color(const char* text, vec4f_t& out)
-		{
-			if (text == nullptr || std::strlen(text) != 7 || text[0] != '#')
-				return false;
-
-			color_t srgb = color_utils_t::from_hex(string_t{text});
-			out			 = srgb.srgb_to_linear().to_vector();
-			return true;
-		}
-
-		void set_color_rect(ui::paint_layer_t& paint, ui::widget_id_t id, const vec4f_t& color)
-		{
-			const editor_theme_t& theme = editor_theme_t::get();
-			ui::vg_rect_paint_t	  rect	= {};
-			rect.fill_color_a			= color;
-			rect.fill_color_b			= color;
-			rect.outline_color			= theme.color_outline_light;
-			rect.outline_thickness		= theme.outline_thickness;
-			rect.rounding				= theme.item_rounding;
-			rect.rounding_segs			= 4;
-			rect.aa_thickness			= theme.aa_thickness;
-			paint.set_rect(id, rect);
-		}
 	}
 
 	void editor_color_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_color_field_config_t& config)
@@ -145,7 +122,16 @@ namespace sfg
 
 	void editor_color_field_t::refresh_color()
 	{
-		set_color_rect(_ui->get_paint(), _swatch, _color);
+		const editor_theme_t& theme = editor_theme_t::get();
+		ui::vg_rect_paint_t	  rect	= {};
+		rect.fill_color_a			= _color;
+		rect.fill_color_b			= _color;
+		rect.outline_color			= theme.color_outline_light;
+		rect.outline_thickness		= theme.outline_thickness;
+		rect.rounding				= theme.item_rounding;
+		rect.rounding_segs			= 4;
+		rect.aa_thickness			= theme.aa_thickness;
+		_ui->get_paint().set_rect(_swatch, rect);
 	}
 
 	void editor_color_field_t::refresh_text()
@@ -163,11 +149,11 @@ namespace sfg
 		if (field._refreshing)
 			return;
 
-		vec4f_t color = {};
-		if (!hex_to_color(value, color))
+		if (value == nullptr || std::strlen(value) != 7 || value[0] != '#')
 			return;
 
-		field._color = color;
+		color_t srgb = color_utils_t::from_hex(string_t{value});
+		field._color = srgb.srgb_to_linear().to_vector();
 		field.refresh_color();
 		if (field._config.on_changed != nullptr)
 			field._config.on_changed(field._color, field._config.user_data);

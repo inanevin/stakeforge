@@ -46,7 +46,7 @@ namespace sfg
 			const u64		   thread_id = static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
 			const u64		   seq		 = counter.fetch_add(1, std::memory_order_relaxed);
 
-			return hashing_t::hash_fnv_1a64_values(hashing_t::FNV_1A_64_OFFSET, r0, r1, now, thread_id, seq);
+			return hashing_t::hash_u64_combine(hashing_t::hash_u64(&r0, sizeof(r0)), r1, now, thread_id, seq);
 		}
 	}
 
