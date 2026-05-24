@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "texture_sampler.hpp"
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -10,6 +10,6 @@ namespace sfg
 	class texture_sampler_cooker
 	{
 	public:
-		static bool cook_from_file(const char* full_path, ostream_t& stream);
+		static bool cook_from_json(const nlohmann::json& json_data, ostream_t& stream);
 	};
 }

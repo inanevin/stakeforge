@@ -77,16 +77,38 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity = editor_modal_severity_e::normal);
+		void start_loading_bar(const char* title, const char* description, f32 progress = 0.0f);
+		void progress_loading_bar(f32 progress);
+		void end_loading_bar();
 		void close_modal();
 
 		static editor_modal_controller_t* find(ui::ui_context& ui);
 
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline f32 get_loading_bar_progress() const
+		{
+			return _loading_bar_progress;
+		}
+
+		bool is_loading_bar_active() const;
+
 	private:
 		static constexpr u32 MAX_BUTTONS = 4;
+
+		enum class modal_mode_e : u8
+		{
+			none,
+			buttons,
+			loading_bar,
+		};
 
 		static void handle_button_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		void		on_button_click(ui::widget_id_t id, ui::mouse_button_e btn);
 		void		set_visible(bool visible);
+		void		update_loading_bar(f32 progress);
 		u32			find_button_index(ui::widget_id_t id) const;
 
 	private:
@@ -96,11 +118,16 @@ namespace sfg
 		ui::widget_id_t			   _window					   = NULL_WIDGET;
 		ui::widget_id_t			   _title					   = NULL_WIDGET;
 		ui::widget_id_t			   _description				   = NULL_WIDGET;
+		ui::widget_id_t			   _loading_bar				   = NULL_WIDGET;
+		ui::widget_id_t			   _loading_bar_fill		   = NULL_WIDGET;
+		ui::widget_id_t			   _loading_bar_label		   = NULL_WIDGET;
 		ui::widget_id_t			   _button_row				   = NULL_WIDGET;
 		ui::widget_id_t			   _button_frames[MAX_BUTTONS] = {};
 		ui::widget_id_t			   _button_labels[MAX_BUTTONS] = {};
 		editor_modal_button_desc_t _buttons[MAX_BUTTONS]	   = {};
+		f32						   _loading_bar_progress	   = 0.0f;
 		u16						   _button_count			   = 0;
+		modal_mode_e			   _mode					   = modal_mode_e::none;
 		bool					   _visible					   = false;
 	};
 }

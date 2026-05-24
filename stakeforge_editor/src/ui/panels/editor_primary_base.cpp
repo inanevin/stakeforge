@@ -28,6 +28,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_types.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "editor_app.hpp"
+#include "editor_settings.hpp"
+#include "editor_project.hpp"
 #include "ui/editor_action_menu_common.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -319,7 +321,7 @@ namespace sfg
 			const string_t path = process::save_file("Save Project As", "sfg_project");
 			if (path.empty())
 				return;
-			if (!editor_app_t::get().save_project_as(path.c_str()))
+			if (!editor_project_t::get().save(path.c_str()))
 				request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
 		}
 
@@ -357,7 +359,7 @@ namespace sfg
 				base.prompt_project_save_modal(editor_project_prompt_action_e::load_project);
 				break;
 			case editor_file_menu_commands_e::project_save:
-				if (!editor_app_t::get().save_project())
+				if (!editor_project_t::get().save(editor_project_t::get()._runtime.path.c_str()))
 					request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
 				break;
 			case editor_file_menu_commands_e::project_save_as:
@@ -768,7 +770,7 @@ namespace sfg
 		const editor_project_prompt_action_e action = _pending_project_prompt_action;
 		_pending_project_prompt_action				= editor_project_prompt_action_e::none;
 
-		if (save && !editor_app_t::get().save_project())
+		if (save && !editor_project_t::get().save(editor_project_t::get()._runtime.path.c_str()))
 		{
 			request_error_modal(*this, "Failed Saving Project", "Current project could not be saved.");
 			return;

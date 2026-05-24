@@ -31,9 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class editor_settings_t
+	struct editor_settings_t
 	{
-	public:
 		inline static editor_settings_t& get()
 		{
 			static editor_settings_t instance;
@@ -41,18 +40,13 @@ namespace sfg
 		}
 
 		bool save();
+		bool ensure_loaded();
 
-	private:
-		friend class editor_app_t;
-
-		static bool ensure_loaded();
-
-		void to_json(nlohmann::json& j);
-		void from_json(const nlohmann::json& j);
-
-	private:
-		editor_layout_t _layout			   = {};
-		string_t		_last_project_path = "";
+		editor_layout_t layout			  = {};
+		string_t		last_project_path = "";
 	};
+
+	void to_json(nlohmann::json& j, const editor_settings_t& settings);
+	void from_json(const nlohmann::json& j, editor_settings_t& settings);
 
 }

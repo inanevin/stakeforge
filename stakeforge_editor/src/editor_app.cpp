@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
+#include "editor_project.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
@@ -133,15 +134,10 @@ namespace sfg
 	{
 		editor_text_rasterization_t::set_subpixel_enabled(true);
 		editor_directories_t::init_paths();
-
-		/* load editor settings, engine globals, init backend & engine & editor managers */
-
-		const string_t settings_text = file_system_t::read_file_as_string(editor_directories_t::get_settings_path().c_str());
-		nlohmann::json settings_json = nlohmann::json::parse(settings_text, nullptr, false);
-		if (settings_json.is_discarded())
+		if (!editor_settings_t::get().ensure_loaded())
 			return false;
-		editor_settings_t::get() = settings_json;
 
+		/* engine globals, init backend & engine & editor managers */
 		engine_runtime_t::init_globals(64ull * 1024ull * 1024ull);
 
 		if (!engine_runtime_t::init_backend({}))
@@ -247,9 +243,11 @@ namespace sfg
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 
-		_current_project = editor_settings_t::get().get_project();
-		if (!load_project(_current_project._path.c_str()))
+		const string_t& last_project = editor_settings_t::get().last_project_path;
+		if (!file_system_t::exists(last_project.c_str()) || !load_project(last_project.c_str()))
+		{
 			get_main_surface().primary->prompt_no_project_modal();
+		}
 
 		_close = false;
 
@@ -339,8 +337,7 @@ namespace sfg
 
 	bool editor_app_t::create_project(const char* path)
 	{
-		if (!editor_project_t::is_project_path(path))
-			return false;
+		SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
 
 		const editor_project_t project	 = editor_project_t::make_default_project(path);
 		const nlohmann::json   json_data = project;
@@ -353,62 +350,27 @@ namespace sfg
 
 	bool editor_app_t::load_project(const char* path)
 	{
-		if (!editor_project_t::is_project_path(path) || !file_system_t::exists(path))
-			return false;
-
-		const string_t		 json_text = file_system_t::read_file_as_string(path);
-		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
-		if (doc.is_discarded())
-			return false;
+		SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
+		SFG_ASSERT(file_system_t::exists(path));
 
 		unload_current_project();
-		_current_project = doc;
-		_current_project.set_path(path);
-		_asset_manager.rescan(_current_project._assets_path);
 
-		editor_settings_t::get().get_project() = _current_project;
-		editor_settings_t::get().save();
-		get_main_surface().primary->set_current_project_name(_current_project._name.c_str());
-
-		return true;
-	}
-
-	bool editor_app_t::save_project()
-	{
-		if (!editor_project_t::is_project_path(_current_project._path.c_str()))
-			return false;
-
-		const nlohmann::json json_data = _current_project;
-		const string_t		 data	   = json_data.dump(4);
-		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), _current_project._path.c_str()))
-			return false;
-
-		if (!editor_directories_t::ensure_project_assets_directory(_current_project))
-			return false;
-
-		editor_settings_t::get().get_project() = _current_project;
-		editor_settings_t::get().save();
-		return true;
-	}
-
-	bool editor_app_t::save_project_as(const char* path)
-	{
-		if (!editor_project_t::is_project_path(path))
-			return false;
-
-		const string_t old_path = _current_project._path;
-		_current_project.set_path(path);
-		if (!save_project())
+		editor_project_t& proj = editor_project_t::get();
+		if (!proj.try_load(path))
 		{
-			_current_project.set_path(old_path.c_str());
 			return false;
 		}
+
+		_asset_manager.rescan(proj._runtime.assets_path);
+		editor_settings_t::get().last_project_path = path;
+		editor_settings_t::get().save();
+		get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 		return true;
 	}
 
 	void editor_app_t::save_layout()
 	{
-		editor_layout_t& layout = editor_settings_t::get().get_layout();
+		editor_layout_t& layout = editor_settings_t::get().layout;
 		layout					= {};
 
 		bool primary_saved = false;
@@ -483,21 +445,25 @@ namespace sfg
 	void editor_app_t::tick()
 	{
 		bool tick = true;
+
 		while (tick)
 		{
+			editor_project_t& project = editor_project_t::get();
+
 			frame_allocator_tls_t::reset();
 
 			process::pump_os_messages();
 
 			_resource_pack.tick();
 			resource_manager_t::get().flush();
+			_asset_manager.tick();
 
 			const i64 now = time_t::get_cpu_microseconds();
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
 
 			_payload_controller.tick();
-			_world_controller.tick(_current_project.world_tick_rate, _current_project.world_physics_rate, _current_project.max_sim_steps);
+			_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
 
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{

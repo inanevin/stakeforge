@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/platform/process.hpp>
+#include <sfg/serialization/serialization.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -64,23 +65,29 @@ namespace sfg
 	{
 		enum assets_action_menu_command_e : u16
 		{
-			assets_action_menu_create_folder	= 1,
-			assets_action_menu_delete			= 2,
-			assets_action_menu_duplicate		= 3,
-			assets_action_menu_toggle_favourite = 4,
-			assets_action_menu_open_directory	= 5,
-			assets_action_menu_rename			= 6,
+			assets_action_menu_create_folder				  = 1,
+			assets_action_menu_delete						  = 2,
+			assets_action_menu_duplicate					  = 3,
+			assets_action_menu_toggle_favourite				  = 4,
+			assets_action_menu_open_directory				  = 5,
+			assets_action_menu_rename						  = 6,
+			assets_action_menu_create_animation_state_machine = 7,
+			assets_action_menu_create_shader				  = 8,
+			assets_action_menu_create_texture_sampler		  = 9,
+			assets_action_menu_create_material				  = 10,
+			assets_action_menu_create_particle_properties	  = 11,
+			assets_action_menu_create_physical_material		  = 12,
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ANIMATION_ROWS[] = {
-			{.text = "Animation State Machine"},
+			{.text = "Animation State Machine", .command = assets_action_menu_create_animation_state_machine},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {
-			{.text = "Shader"},
-			{.text = "Texture Sampler"},
-			{.text = "Material"},
-			{.text = "Particle Properties"},
+			{.text = "Shader", .command = assets_action_menu_create_shader},
+			{.text = "Texture Sampler", .command = assets_action_menu_create_texture_sampler},
+			{.text = "Material", .command = assets_action_menu_create_material},
+			{.text = "Particle Properties", .command = assets_action_menu_create_particle_properties},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {
@@ -88,7 +95,7 @@ namespace sfg
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_PHYSICS_ROWS[] = {
-			{.text = "Physical Material"},
+			{.text = "Physical Material", .command = assets_action_menu_create_physical_material},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_CREATE_ROWS[] = {
@@ -121,6 +128,26 @@ namespace sfg
 			tree.in(id).flags = flags;
 		}
 
+		editor_asset_type_e asset_type_from_create_command(u16 command)
+		{
+			switch (command)
+			{
+			case assets_action_menu_create_animation_state_machine:
+				return editor_asset_type_e::animation_state_machine;
+			case assets_action_menu_create_shader:
+				return editor_asset_type_e::shader;
+			case assets_action_menu_create_texture_sampler:
+				return editor_asset_type_e::texture_sampler;
+			case assets_action_menu_create_material:
+				return editor_asset_type_e::material;
+			case assets_action_menu_create_particle_properties:
+				return editor_asset_type_e::particle_properties;
+			case assets_action_menu_create_physical_material:
+				return editor_asset_type_e::physical_material;
+			default:
+				return editor_asset_type_e::invalid;
+			}
+		}
 	}
 
 	editor_panel_assets_t::editor_panel_assets_t()
@@ -394,6 +421,7 @@ namespace sfg
 
 		_action_menu_folder		  = folder;
 		_action_menu_folder_hash  = folder.is_null() ? 0 : folder_hash;
+		_action_menu_pos		  = pos;
 		const bool folder_context = !folder.is_null();
 
 		ASSETS_ACTION_MENU_ROWS[2].disabled	  = !folder_context;
@@ -706,8 +734,27 @@ namespace sfg
 		refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::create_folder()
+	void editor_panel_assets_t::open_create_popup(editor_asset_type_e asset_type)
 	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		editor_input_popup_desc_t desc = {};
+		desc.closed					   = on_create_popup_closed;
+		desc.user_data				   = this;
+		desc.placeholder			   = "Name";
+		desc.pos					   = _action_menu_pos;
+		desc.width					   = editor_theme_t::get().item_width;
+		_create_popup_asset_type	   = asset_type;
+		popup->request_input_popup(desc);
+	}
+
+	void editor_panel_assets_t::create_folder(const char* name)
+	{
+		string_t folder_name = name != nullptr ? name : "";
+		if (!editor_directories_t::is_valid_asset_name(folder_name.c_str()))
+			return;
+
 		string_t parent_path = get_action_menu_target_folder_path();
 		if (parent_path.empty())
 			return;
@@ -715,15 +762,59 @@ namespace sfg
 		if (parent_path.back() != '/')
 			parent_path += '/';
 
-		string_t new_folder_path = parent_path + "New Folder";
-		u32		 copy_index		 = 1;
-		while (file_system_t::exists(new_folder_path.c_str()))
-			new_folder_path = parent_path + "New Folder " + std::to_string(copy_index++);
+		const string_t new_folder_path = parent_path + folder_name;
+		if (file_system_t::exists(new_folder_path.c_str()))
+			return;
 
 		if (!file_system_t::create_directory(new_folder_path.c_str()))
 			return;
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::create_asset(editor_asset_type_e asset_type, const char* directory, const char* name)
+	{
+		SFG_ASSERT(asset_type != editor_asset_type_e::invalid);
+		SFG_ASSERT(asset_type != editor_asset_type_e::count);
+
+		string_t asset_name = name != nullptr ? name : "";
+		if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+			return;
+
+		string_t parent_path = directory != nullptr ? directory : "";
+		if (parent_path.empty())
+			return;
+		if (parent_path.back() != '/')
+			parent_path += '/';
+
+		const string_t asset_path = parent_path + asset_name + ".sfg_asset";
+		if (file_system_t::exists(asset_path.c_str()))
+			return;
+
+		editor_asset_t asset = {};
+		asset.version		 = editor_asset_t::VERSION;
+		asset.guid			 = hashing_t::generate_guid64();
+		asset.asset_type	 = asset_type;
+		asset.source_type	 = editor_asset_source_type_e::none;
+
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		const auto&				descriptors	  = asset_manager.get_asset_descriptors();
+		const auto				descriptor_it = descriptors.find(asset_type);
+		SFG_ASSERT(descriptor_it != descriptors.end());
+		if (descriptor_it->second.create_default != nullptr)
+		{
+			if (!descriptor_it->second.create_default(asset, parent_path.c_str(), asset_name.c_str()))
+				return;
+		}
+
+		const nlohmann::json json_data = asset;
+		const string_t		 data	   = json_data.dump(4);
+		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), asset_path.c_str()))
+			return;
+
+		asset_manager.cook_assets(&asset, 1);
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
 	}
@@ -800,14 +891,8 @@ namespace sfg
 		SFG_ASSERT(!_action_menu_folder.is_null());
 
 		string_t new_name = name != nullptr ? name : "";
-		if (new_name.empty())
+		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
 			return;
-
-		for (char c : new_name)
-		{
-			if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '\"' || c == '<' || c == '>' || c == '|')
-				return;
-		}
 
 		const editor_asset_tree_t& tree		= editor_asset_manager_t::get().get_asset_tree();
 		const string_t			   old_name = tree.value(_action_menu_folder).name;
@@ -970,11 +1055,20 @@ namespace sfg
 
 	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)
 	{
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		editor_panel_assets_t&	  panel		 = *static_cast<editor_panel_assets_t*>(user_data);
+		const editor_asset_type_e asset_type = asset_type_from_create_command(command);
+		if (asset_type != editor_asset_type_e::invalid)
+		{
+			panel._create_popup_asset_type = asset_type;
+			panel._create_popup_pending	   = true;
+			return;
+		}
+
 		switch (command)
 		{
 		case assets_action_menu_create_folder:
-			panel.create_folder();
+			panel._create_popup_asset_type = editor_asset_type_e::invalid;
+			panel._create_popup_pending	   = true;
 			return;
 		case assets_action_menu_delete:
 			panel.delete_folder();
@@ -1003,11 +1097,34 @@ namespace sfg
 	void editor_panel_assets_t::on_action_menu_closed(void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		if (panel._create_popup_pending)
+		{
+			const editor_asset_type_e asset_type = panel._create_popup_asset_type;
+			panel._create_popup_pending			 = false;
+			panel.open_create_popup(asset_type);
+			return;
+		}
+
 		if (!panel._rename_popup_pending)
 			return;
 
 		panel._rename_popup_pending = false;
 		panel.open_rename_popup();
+	}
+
+	void editor_panel_assets_t::on_create_popup_closed(const char* value, void* user_data)
+	{
+		editor_panel_assets_t&	  panel		 = *static_cast<editor_panel_assets_t*>(user_data);
+		const editor_asset_type_e asset_type = panel._create_popup_asset_type;
+		panel._create_popup_asset_type		 = editor_asset_type_e::invalid;
+		if (asset_type == editor_asset_type_e::invalid)
+		{
+			panel.create_folder(value);
+			return;
+		}
+
+		const string_t directory = panel.get_action_menu_target_folder_path();
+		panel.create_asset(asset_type, directory.c_str(), value);
 	}
 
 	void editor_panel_assets_t::on_rename_popup_closed(const char* value, void* user_data)

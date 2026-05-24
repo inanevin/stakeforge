@@ -34,11 +34,25 @@ namespace sfg
 #define STAKEFORGE_DIR "stakeforge/";
 #define SETTINGS_FILE  "editor.sfg";
 
-	string_t s_user_directory		 = "";
-	string_t s_editor_settings		 = "";
-	string_t s_editor_assets		 = "";
-	string_t s_editor_resource_cache = "";
-	string_t s_editor_manifest		 = "";
+	string_t editor_directories_t::s_user_directory		   = "";
+	string_t editor_directories_t::s_editor_settings	   = "";
+	string_t editor_directories_t::s_editor_assets		   = "";
+	string_t editor_directories_t::s_editor_resource_cache = "";
+	string_t editor_directories_t::s_editor_manifest	   = "";
+
+	bool editor_directories_t::is_valid_asset_name(const char* name)
+	{
+		if (name == nullptr || name[0] == '\0')
+			return false;
+
+		for (const char* it = name; *it != '\0'; ++it)
+		{
+			const char c = *it;
+			if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '\"' || c == '<' || c == '>' || c == '|')
+				return false;
+		}
+		return true;
+	}
 
 	void editor_directories_t::init_paths()
 	{

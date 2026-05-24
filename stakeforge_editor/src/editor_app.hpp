@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "editor_renderer.hpp"
-#include "editor_project.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
 #include <sfg/memory/dynamic_gen_pool.hpp>
@@ -60,8 +59,6 @@ namespace sfg
 		void destroy_surface(surface_handle_t handle);
 		bool create_project(const char* path);
 		bool load_project(const char* path);
-		bool save_project();
-		bool save_project_as(const char* path);
 		void save_layout();
 		void apply_default_layout();
 		void set_debug_mode(bool enabled);
@@ -92,7 +89,6 @@ namespace sfg
 		editor_world_controller_t										_world_controller;
 		resource_pack_t													_resource_pack;
 		editor_asset_manager_t											_asset_manager;
-		editor_project_t												_current_project;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		editor_payload_controller_t										_payload_controller;
 		i64																_last_tick_us			 = 0;

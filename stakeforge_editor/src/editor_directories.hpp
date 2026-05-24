@@ -52,13 +52,15 @@ namespace sfg
 
 		static inline const string_t& get_editor_assets()
 		{
-			return s_user_directory;
+			return s_editor_assets;
 		}
 
 		static inline const string_t& get_editor_settings()
 		{
 			return s_editor_settings;
 		}
+
+		static bool is_valid_asset_name(const char* name);
 
 	private:
 		friend class editor_app_t;

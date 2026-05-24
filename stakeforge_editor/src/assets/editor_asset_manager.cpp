@@ -27,9 +27,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 
+#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
+#include "ui/editor_modal_controller.hpp"
 
+#include <sfg/job/job_system.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/data/frame_string.hpp>
 #include <sfg/io/assert.hpp>
@@ -37,6 +40,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <utility>
+
+#include <sfg/platform/time.hpp>
 
 namespace sfg
 {
@@ -49,6 +54,21 @@ namespace sfg
 	{
 		SFG_ASSERT(s_instance == nullptr);
 		s_instance = this;
+		_asset_descriptors.clear();
+		_asset_descriptors.reserve(static_cast<size_t>(editor_asset_type_e::count) - 1);
+		editor_asset_loader_audio_t::register_type();
+		editor_asset_loader_font_t::register_type();
+		editor_asset_loader_mesh_t::register_type();
+		editor_asset_loader_skeleton_t::register_type();
+		editor_asset_loader_animation_t::register_type();
+		editor_asset_loader_particle_properties_t::register_type();
+		editor_asset_loader_material_t::register_type();
+		editor_asset_loader_shader_t::register_type();
+		editor_asset_loader_texture_t::register_type();
+		editor_asset_loader_texture_sampler_t::register_type();
+		editor_asset_loader_physical_material_t::register_type();
+		editor_asset_loader_prefab_t::register_type();
+		editor_asset_loader_animation_state_machine_t::register_type();
 		clear();
 		return true;
 	}
@@ -56,8 +76,35 @@ namespace sfg
 	void editor_asset_manager_t::uninit()
 	{
 		SFG_ASSERT(s_instance == this);
+		if (_cook_in_progress)
+			job_system_t::get().wait_for_all();
 		clear();
-		s_instance = nullptr;
+		_cook_assets.clear();
+		_asset_descriptors.clear();
+		_cooked_count.store(0, std::memory_order_relaxed);
+		_cook_finished.store(false, std::memory_order_relaxed);
+		_total_cook_count = 0;
+		_cook_in_progress = false;
+		s_instance		  = nullptr;
+	}
+
+	void editor_asset_manager_t::tick()
+	{
+		if (!_cook_in_progress)
+			return;
+
+		const u32				   cooked	= _cooked_count.load(std::memory_order_relaxed);
+		const f32				   progress = _total_cook_count != 0 ? static_cast<f32>(cooked) / static_cast<f32>(_total_cook_count) : 1.0f;
+		editor_modal_controller_t& modal	= *editor_app_t::get().get_main_surface().modal_controller;
+		modal.progress_loading_bar(progress);
+
+		if (cooked != _total_cook_count || !_cook_finished.load(std::memory_order_acquire))
+			return;
+
+		modal.end_loading_bar();
+		_cook_assets.resize(0);
+		_total_cook_count = 0;
+		_cook_in_progress = false;
 	}
 
 	void editor_asset_manager_t::clear()
@@ -138,6 +185,47 @@ namespace sfg
 			_assets[found.first] = std::move(found.second);
 
 		_generation++;
+	}
+
+	void editor_asset_manager_t::register_descriptor(const editor_asset_descriptor_t& desc)
+	{
+		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
+		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
+		_asset_descriptors[desc.asset_type] = desc;
+	}
+
+	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u8 size)
+	{
+		SFG_ASSERT(!_cook_in_progress);
+
+		if (size == 0)
+			return;
+
+		_cook_assets.resize(0);
+		_cook_assets.reserve(size);
+		for (u8 i = 0; i < size; ++i)
+			_cook_assets.push_back(assets[i]);
+
+		_cooked_count.store(0, std::memory_order_relaxed);
+		_cook_finished.store(false, std::memory_order_relaxed);
+		_total_cook_count = size;
+		_cook_in_progress = true;
+
+		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
+		modal.start_loading_bar("Cooking Assets", "Preparing asset cache.", 0.0f);
+
+		const string_t cache_dir = editor_project_t::get()._runtime.cache_path;
+		job_system_t::get().silent_async([this, cache_dir]() {
+			for (const editor_asset_t& asset : _cook_assets)
+			{
+				const auto descriptor_it = _asset_descriptors.find(asset.asset_type);
+				SFG_ASSERT(descriptor_it != _asset_descriptors.end());
+				if (descriptor_it->second.cook != nullptr && !descriptor_it->second.cook(asset, cache_dir.c_str()))
+					SFG_ERR("failed cooking asset {0}", asset.guid);
+				_cooked_count.fetch_add(1, std::memory_order_relaxed);
+			}
+			_cook_finished.store(true, std::memory_order_release);
+		});
 	}
 
 	bool editor_asset_manager_t::read_asset(const char* path, editor_asset_t& out_asset) const

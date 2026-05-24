@@ -30,9 +30,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_node.hpp"
 
+#include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/tree.hpp>
+#include <sfg/data/vector.hpp>
 
 namespace sfg
 {
@@ -55,8 +57,16 @@ namespace sfg
 
 		bool init();
 		void uninit();
+		void tick();
 		void clear();
 		void rescan(const string_t& assets_dir);
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void register_descriptor(const editor_asset_descriptor_t& desc);
+		void cook_assets(editor_asset_t* assets, u8 size);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -70,6 +80,11 @@ namespace sfg
 		inline const hash_map_t<u64, editor_asset_t>& get_assets() const
 		{
 			return _assets;
+		}
+
+		inline const hash_map_t<editor_asset_type_e, editor_asset_descriptor_t>& get_asset_descriptors() const
+		{
+			return _asset_descriptors;
 		}
 
 		inline editor_asset_node_handle_t get_root_node() const
@@ -96,9 +111,15 @@ namespace sfg
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
 	private:
-		editor_asset_tree_t				_asset_tree;
-		hash_map_t<u64, editor_asset_t> _assets;
-		editor_asset_node_handle_t		_root_node;
-		u32								_generation = 0;
+		editor_asset_tree_t										   _asset_tree;
+		hash_map_t<u64, editor_asset_t>							   _assets;
+		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
+		vector_t<editor_asset_t>								   _cook_assets;
+		atomic_t<u32>											   _cooked_count  = 0;
+		atomic_t<bool>											   _cook_finished = false;
+		editor_asset_node_handle_t								   _root_node;
+		u32														   _generation		 = 0;
+		u32														   _total_cook_count = 0;
+		bool													   _cook_in_progress = false;
 	};
 }

@@ -35,15 +35,17 @@ namespace sfg
 {
 	bool editor_settings_t::save()
 	{
-		nlohmann::json json_data = "";
-		to_json(json_data);
+		const nlohmann::json json_data = *this;
 
 		const string_t data		= json_data.dump(4);
 		const string_t settings = editor_directories_t::get_editor_settings();
 		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), settings.c_str()))
 		{
 			SFG_ERR("failed file serialization!");
+			return false;
 		}
+
+		return true;
 	}
 
 	bool editor_settings_t::ensure_loaded()
@@ -54,23 +56,26 @@ namespace sfg
 			editor_settings_t::get() = {};
 			return editor_settings_t::get().save();
 		}
-		
-		nlohmann::json json = file_system_t::read_file_as_string(settings.c_str());
 
-		 = nlohmann::json::parse();
-		return false;
+		const string_t		 json_text = file_system_t::read_file_as_string(settings.c_str());
+		const nlohmann::json json	   = nlohmann::json::parse(json_text, nullptr, false);
+		if (json.is_discarded())
+			return false;
+
+		*this = json;
+		return true;
 	}
 
-	void editor_settings_t::to_json(nlohmann::json& j)
+	void to_json(nlohmann::json& j, const editor_settings_t& settings)
 	{
-		j["layout"]		  = _layout;
-		j["project_path"] = _last_project_path;
+		j["layout"]		  = settings.layout;
+		j["project_path"] = settings.last_project_path;
 	}
 
-	void editor_settings_t::from_json(const nlohmann::json& j)
+	void from_json(const nlohmann::json& j, editor_settings_t& settings)
 	{
-		_layout			   = j.value("layout", editor_layout_t{});
-		_last_project_path = j.value<string_t>("project_path", {});
+		settings.layout			   = j.value("layout", editor_layout_t{});
+		settings.last_project_path = j.value<string_t>("project_path", {});
 	}
 
 }

@@ -97,7 +97,9 @@ namespace sfg
 		void select_folder_row(u64 path_hash);
 		void toggle_folder_fold(u64 path_hash);
 		void toggle_folder_favourite(u64 path_hash);
-		void create_folder();
+		void open_create_popup(editor_asset_type_e asset_type);
+		void create_folder(const char* name);
+		void create_asset(editor_asset_type_e asset_type, const char* directory, const char* name);
 		void delete_folder();
 		void duplicate_folder();
 		void open_rename_popup();
@@ -121,6 +123,7 @@ namespace sfg
 		static void on_refresh_button_pressed(bool toggled, void* user_data);
 		static void on_action_menu_command(u16 command, void* user_data);
 		static void on_action_menu_closed(void* user_data);
+		static void on_create_popup_closed(const char* value, void* user_data);
 		static void on_rename_popup_closed(const char* value, void* user_data);
 		static void on_search_changed(const char* value, void* user_data);
 		static void on_thumbnail_slider_changed(f32 value, void* user_data);
@@ -144,6 +147,7 @@ namespace sfg
 		vector_t<u64>			   _favourite_folder_hashes	 = {};
 		string_t				   _search_str				 = {};
 		string_t				   _search_str_lower		 = {};
+		vec2f_t					   _action_menu_pos			 = {};
 		u64						   _action_menu_folder_hash	 = 0;
 		u64						   _selected_folder_hash	 = 0;
 		editor_asset_node_handle_t _action_menu_folder		 = {};
@@ -158,7 +162,9 @@ namespace sfg
 		u32						   _visible_folder_row_count = 0;
 		f32						   _thumbnail_slider_value	 = 1.0f;
 		f32						   _pane_split				 = 0.3f;
+		editor_asset_type_e		   _create_popup_asset_type	 = editor_asset_type_e::invalid;
 		bool					   _favourites_only			 = false;
+		bool					   _create_popup_pending	 = false;
 		bool					   _rename_popup_pending	 = false;
 	};
 }

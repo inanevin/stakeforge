@@ -64,7 +64,7 @@ namespace sfg
 			}
 			if (schema == "sfg.schema.texture_sampler")
 			{
-				return texture_sampler_cooker::cook_from_file(full_path, stream);
+				return texture_sampler_cooker::cook_from_json(config, stream);
 			}
 			if (schema == "sfg.schema.physical_material")
 			{
@@ -196,6 +196,11 @@ namespace sfg
 			};
 			if (entry.type == resource_type_e::shader)
 				shader_cooker::collect_source_ticks(source_path.c_str(), expected.source_ticks);
+			else if (entry.type == resource_type_e::texture_sampler)
+			{
+				const string_t config_data = entry.config.dump();
+				expected.source_ticks.push_back(hashing_t::hash_u64(config_data.data(), config_data.size()));
+			}
 			else
 				expected.source_ticks.push_back(file_system_t::get_last_modified_ticks(source_path.c_str()));
 

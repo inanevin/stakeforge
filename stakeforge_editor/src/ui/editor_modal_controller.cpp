@@ -30,10 +30,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_buttons.hpp"
 #include "ui/widgets/editor_widgets_frames.hpp"
 #include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <cstdio>
 
 namespace sfg
 {
@@ -141,6 +143,67 @@ namespace sfg
 		tree.draw_order(_description) = MODAL_DRAW_ORDER + 3;
 		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
+		_loading_bar = ui.allocate_widget();
+		ui.set_widget_debug_name(_loading_bar, "modal_loading_bar");
+		tree.attach(_window, _loading_bar);
+		tree.draw_order(_loading_bar) = MODAL_DRAW_ORDER + 3;
+
+		ui::layout_in_t& loading_bar_in = tree.in(_loading_bar);
+		loading_bar_in.flags			= 0;
+		loading_bar_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		loading_bar_in.size_mode_y		= ui::axis_mode_e::fixed;
+		loading_bar_in.size_value		= {1.0f, theme.item_height};
+		loading_bar_in.flow				= ui::flow_e::none;
+		loading_bar_in.child_margins	= {0.0f, 0.0f, 0.0f, 0.0f};
+
+		ui::vg_rect_paint_t loading_bar_rect = {};
+		loading_bar_rect.fill_color_a		 = theme.color_frame;
+		loading_bar_rect.fill_color_b		 = theme.color_frame;
+		loading_bar_rect.outline_color		 = theme.color_outline_light;
+		loading_bar_rect.outline_thickness	 = theme.outline_thickness;
+		loading_bar_rect.rounding			 = theme.item_rounding;
+		loading_bar_rect.rounding_segs		 = 4;
+		loading_bar_rect.aa_thickness		 = theme.aa_thickness;
+		paint.set_rect(_loading_bar, loading_bar_rect);
+
+		_loading_bar_fill = ui.allocate_widget();
+		ui.set_widget_debug_name(_loading_bar_fill, "modal_loading_bar_fill");
+		tree.attach(_loading_bar, _loading_bar_fill);
+		tree.draw_order(_loading_bar_fill) = MODAL_DRAW_ORDER + 4;
+
+		ui::layout_in_t& loading_bar_fill_in = tree.in(_loading_bar_fill);
+		loading_bar_fill_in.flags			 = 0;
+		loading_bar_fill_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		loading_bar_fill_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
+		loading_bar_fill_in.size_value		 = {0.0f, 1.0f};
+
+		ui::vg_rect_paint_t loading_bar_fill_rect = {};
+		loading_bar_fill_rect.fill_color_a		  = theme.color_accent1_dim;
+		loading_bar_fill_rect.fill_color_b		  = theme.color_accent1;
+		loading_bar_fill_rect.gradient			  = ui::vg_gradient_e::horizontal;
+		loading_bar_fill_rect.rounding			  = theme.item_rounding;
+		loading_bar_fill_rect.rounding_segs		  = 4;
+		loading_bar_fill_rect.aa_thickness		  = theme.aa_thickness;
+		paint.set_rect(_loading_bar_fill, loading_bar_fill_rect);
+
+		_loading_bar_label = ui.allocate_widget();
+		ui.set_widget_debug_name(_loading_bar_label, "modal_loading_bar_label");
+		tree.attach(_loading_bar, _loading_bar_label);
+		tree.draw_order(_loading_bar_label) = MODAL_DRAW_ORDER + 5;
+
+		ui::layout_in_t& loading_bar_label_in = tree.in(_loading_bar_label);
+		loading_bar_label_in.flags			  = 0;
+		loading_bar_label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
+		loading_bar_label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		loading_bar_label_in.pos_value		  = {0.5f, 0.5f};
+		loading_bar_label_in.anchor_x		  = ui::anchor_e::center;
+		loading_bar_label_in.anchor_y		  = ui::anchor_e::center;
+		ui.set_widget_text(_loading_bar_label, "0%");
+		paint.set_text(_loading_bar_label,
+					   ui.widget_text(_loading_bar_label),
+					   ui.widget_text_len(_loading_bar_label),
+					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
 		_button_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_button_row, "modal_button_row");
 		tree.attach(_window, _button_row);
@@ -196,15 +259,20 @@ namespace sfg
 			}
 		}
 
-		_ui			  = nullptr;
-		_foreground	  = NULL_WIDGET;
-		_dimmer		  = NULL_WIDGET;
-		_window		  = NULL_WIDGET;
-		_title		  = NULL_WIDGET;
-		_description  = NULL_WIDGET;
-		_button_row	  = NULL_WIDGET;
-		_button_count = 0;
-		_visible	  = false;
+		_ui					  = nullptr;
+		_foreground			  = NULL_WIDGET;
+		_dimmer				  = NULL_WIDGET;
+		_window				  = NULL_WIDGET;
+		_title				  = NULL_WIDGET;
+		_description		  = NULL_WIDGET;
+		_loading_bar		  = NULL_WIDGET;
+		_loading_bar_fill	  = NULL_WIDGET;
+		_loading_bar_label	  = NULL_WIDGET;
+		_button_row			  = NULL_WIDGET;
+		_button_count		  = 0;
+		_loading_bar_progress = 0.0f;
+		_mode				  = modal_mode_e::none;
+		_visible			  = false;
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			_button_frames[i] = NULL_WIDGET;
@@ -219,6 +287,7 @@ namespace sfg
 		SFG_ASSERT(button_count <= MAX_BUTTONS);
 
 		_button_count = button_count;
+		_mode		  = modal_mode_e::buttons;
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 			_buttons[i] = i < button_count ? buttons[i] : editor_modal_button_desc_t{};
 
@@ -240,13 +309,45 @@ namespace sfg
 		set_visible(true);
 	}
 
+	void editor_modal_controller_t::start_loading_bar(const char* title, const char* description, f32 progress)
+	{
+		SFG_ASSERT(_ui != nullptr);
+
+		_button_count = 0;
+		_mode		  = modal_mode_e::loading_bar;
+		for (editor_modal_button_desc_t& button : _buttons)
+			button = {};
+
+		_ui->set_widget_text(_title, title);
+		_ui->set_widget_text(_description, description);
+		_ui->get_paint().def(_title).text.color = get_title_color(editor_modal_severity_e::normal);
+		update_loading_bar(progress);
+		set_visible(true);
+	}
+
+	void editor_modal_controller_t::progress_loading_bar(f32 progress)
+	{
+		SFG_ASSERT(_ui != nullptr);
+		SFG_ASSERT(_mode == modal_mode_e::loading_bar);
+		update_loading_bar(progress);
+	}
+
+	void editor_modal_controller_t::end_loading_bar()
+	{
+		SFG_ASSERT(_ui != nullptr);
+		SFG_ASSERT(_mode == modal_mode_e::loading_bar);
+		close_modal();
+	}
+
 	void editor_modal_controller_t::close_modal()
 	{
 		SFG_ASSERT(_ui != nullptr);
 		if (!_visible)
 			return;
 		set_visible(false);
-		_button_count = 0;
+		_button_count		  = 0;
+		_loading_bar_progress = 0.0f;
+		_mode				  = modal_mode_e::none;
 		for (editor_modal_button_desc_t& button : _buttons)
 			button = {};
 	}
@@ -261,6 +362,11 @@ namespace sfg
 		return nullptr;
 	}
 
+	bool editor_modal_controller_t::is_loading_bar_active() const
+	{
+		return _visible && _mode == modal_mode_e::loading_bar;
+	}
+
 	void editor_modal_controller_t::set_visible(bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
@@ -271,13 +377,27 @@ namespace sfg
 		set_widget_visible(tree, _window, visible, false);
 		set_widget_visible(tree, _title, visible, false);
 		set_widget_visible(tree, _description, visible, false);
-		set_widget_visible(tree, _button_row, visible, false);
+		const bool loading_visible = visible && _mode == modal_mode_e::loading_bar;
+		set_widget_visible(tree, _loading_bar, loading_visible, false);
+		set_widget_visible(tree, _loading_bar_fill, loading_visible, false);
+		set_widget_visible(tree, _loading_bar_label, loading_visible, false);
+		set_widget_visible(tree, _button_row, visible && _mode == modal_mode_e::buttons, false);
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
-			const bool button_visible = visible && i < _button_count;
+			const bool button_visible = visible && _mode == modal_mode_e::buttons && i < _button_count;
 			set_widget_visible(tree, _button_frames[i], button_visible, button_visible);
 			set_widget_visible(tree, _button_labels[i], button_visible, false);
 		}
+	}
+
+	void editor_modal_controller_t::update_loading_bar(f32 progress)
+	{
+		_loading_bar_progress							   = math::clamp(progress, 0.0f, 1.0f);
+		_ui->get_tree().in(_loading_bar_fill).size_value.x = _loading_bar_progress;
+
+		char text[8] = {};
+		snprintf(text, sizeof(text), "%u%%", static_cast<u32>(math::round(_loading_bar_progress * 100.0f)));
+		_ui->set_widget_text(_loading_bar_label, text);
 	}
 
 	void editor_modal_controller_t::on_button_click(ui::widget_id_t id, ui::mouse_button_e btn)

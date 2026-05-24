@@ -196,7 +196,6 @@ namespace sfg
 		stream << min_lod;
 		stream << max_lod;
 		stream << flags.value();
-		stream << string_t(debug_name);
 		stream << address_u;
 		stream << address_v;
 		stream << address_w;
@@ -213,9 +212,6 @@ namespace sfg
 		stream >> min_lod;
 		stream >> max_lod;
 		stream >> val;
-		string_t name;
-		stream >> name;
-		set_name(name.c_str());
 		stream >> addr_u;
 		stream >> addr_v;
 		stream >> addr_w;

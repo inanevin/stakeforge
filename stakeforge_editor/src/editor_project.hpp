@@ -54,6 +54,8 @@ namespace sfg
 		u32						 world_physics_rate = 100;
 		u32						 max_sim_steps		= 4;
 
+		bool					save(const char* path);
+		bool					try_load(const char* path);
 		void					refresh_runtime(const char* path);
 		static editor_project_t make_default_project(const char* path);
 	};

@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "editor_project.hpp"
 #include <sfg/io/file_system.hpp>
+#include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -41,6 +42,28 @@ namespace sfg
 		return project;
 	}
 
+	bool editor_project_t::save(const char* path)
+	{
+		const nlohmann::json js		  = *this;
+		const string_t		 contents = js.dump(4);
+		return serializer_t::write_to_file(contents, path);
+	}
+
+	bool editor_project_t::try_load(const char* path)
+	{
+		if (!file_system_t::exists(path))
+			return false;
+
+		const string_t&		 contents = file_system_t::read_file_as_string(path);
+		const nlohmann::json js		  = nlohmann::json::parse(contents, nullptr, false);
+		if (js.is_discarded())
+			return false;
+
+		*this = js;
+		refresh_runtime(path);
+		return true;
+	}
+
 	void editor_project_t::refresh_runtime(const char* path)
 	{
 		_runtime = {};
@@ -51,7 +74,13 @@ namespace sfg
 		const string_t dir = file_system_t::get_directory_of_file(_runtime.path.c_str());
 
 		_runtime.assets_path = dir + "assets/";
-		_runtime.cache_path	 = _runtime.assets_path + "/_cache/";
+		_runtime.cache_path	 = _runtime.assets_path + "_cache/";
+
+		if (!file_system_t::exists(_runtime.assets_path.c_str()))
+			file_system_t::create_directory(_runtime.assets_path.c_str());
+
+		if (!file_system_t::exists(_runtime.cache_path.c_str()))
+			file_system_t::create_directory(_runtime.cache_path.c_str());
 	}
 
 	void to_json(nlohmann::json& j, const editor_project_t& project)
