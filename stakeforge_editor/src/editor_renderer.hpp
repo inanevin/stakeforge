@@ -44,6 +44,8 @@ namespace sfg
 		class ui_context;
 	}
 
+	class editor_world_controller_t;
+
 	class editor_renderer_t
 	{
 	private:
@@ -51,6 +53,7 @@ namespace sfg
 		{
 			semaphore_data_t		  semaphore_frame	 = {};
 			semaphore_data_t		  semaphore_transfer = {};
+			semaphore_data_t		  semaphore_world	 = {};
 			gfx_command_buffer_handle cmd_gfx			 = {};
 			gfx_command_buffer_handle cmd_gfx_prepare	 = {};
 			gfx_command_buffer_handle cmd_transfer		 = {};
@@ -76,14 +79,14 @@ namespace sfg
 
 		bool init();
 		void uninit();
-		void render();
+		void render(editor_world_controller_t& world_controller);
 		void join();
 
 		// -----------------------------------------------------------------------------
 		// threading
 		// -----------------------------------------------------------------------------
 
-		void ensure_render();
+		void ensure_render(editor_world_controller_t& world_controller);
 		void end_render();
 
 		// -----------------------------------------------------------------------------
@@ -107,6 +110,7 @@ namespace sfg
 		gfx_shader_handle				  _shader_ui_sdf	 = {};
 		u64								  _frame_counter	 = 0;
 		u8								  _frame_index		 = 0;
+		editor_world_controller_t*		  _world_controller	 = nullptr;
 		std::thread						  _render_thread;
 		atomic_t<bool>					  _render_thread_active = false;
 	};

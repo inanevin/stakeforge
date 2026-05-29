@@ -38,8 +38,6 @@ namespace sfg
 
 namespace sfg::ui
 {
-	constexpr u32 INVALID_ID_U32 = 0xFFFFFFFFu;
-	constexpr u16 INVALID_ID_U16 = 0xFFFFu;
 
 	using widget_id_t = u16;
 #define NULL_WIDGET 0xFFFFu
@@ -54,13 +52,16 @@ namespace sfg::ui
 	enum class ui_resource_type_e : u8
 	{
 		none,
+		gpu_index,
+		gpu_index_fof,
 		texture,
 	};
 
 	struct ui_resource_ref_t
 	{
-		resource_handle_t  handle = NULL_RESOURCE_HANDLE;
-		ui_resource_type_e type	  = ui_resource_type_e::none;
+		gpu_index_t		   gpu_indices[BACK_BUFFER_COUNT] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};
+		resource_handle_t  handle						  = NULL_RESOURCE_HANDLE;
+		ui_resource_type_e type							  = ui_resource_type_e::none;
 	};
 
 	struct ui_render_state_t
@@ -71,8 +72,10 @@ namespace sfg::ui
 
 	struct ui_resolved_state_t
 	{
-		gfx_shader_handle pipeline	   = {};
-		gpu_index_t		  constants[4] = {};
+		gfx_shader_handle  pipeline								 = {};
+		gpu_index_t		   constants[4]							 = {};
+		gpu_index_t		   constant_frames[4][BACK_BUFFER_COUNT] = {};
+		ui_resource_type_e constant_types[4]					 = {};
 	};
 
 	struct vg_vertex_t

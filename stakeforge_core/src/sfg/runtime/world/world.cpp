@@ -1,29 +1,243 @@
-// Copyright (c) 2025 Inan Evin
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 
 #include "world.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/io/assert.hpp>
+#include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
 {
+
 	void world_t::init()
 	{
+		_component_tables.reserve(64);
+		_entity_free_list.reserve(1024);
+		engine_components_util_t::register_engine_components(*this);
+
+		_component_hierarchy_table	   = &get_component_table(component_hierarchy_t::TYPE_ID)->table;
+		_component_transform_table	   = &get_component_table(component_transform_t::TYPE_ID)->table;
+		_component_mesh_renderer_table = &get_component_table(component_mesh_renderer_t::TYPE_ID)->table;
+		_component_alive_table		   = &get_component_table(component_alive_t::TYPE_ID)->table;
+		_component_disabled_table	   = &get_component_table(component_disabled_t::TYPE_ID)->table;
 	}
 
 	void world_t::uninit()
 	{
+		for (world_component_table_t& table : _component_tables)
+			ecs_t::table_uninit(table.table);
+
+		_component_tables.resize(0);
+		_entity_free_list.resize(0);
+		_component_hierarchy_table	   = nullptr;
+		_component_transform_table	   = nullptr;
+		_component_mesh_renderer_table = nullptr;
+		_component_alive_table		   = nullptr;
+		_component_disabled_table	   = nullptr;
+		_entity_head				   = 0;
 	}
 
 	void world_t::tick(f32 delta_time)
 	{
-		(void)delta_time;
 	}
 
-	void to_json(nlohmann::json& j, const world_t&)
+	entity_id_t world_t::create_entity()
 	{
-		j = nlohmann::json::object();
+		entity_id_t id = NULL_ENTITY_ID;
+		if (!_entity_free_list.empty())
+		{
+			id = _entity_free_list.back();
+			_entity_free_list.pop_back();
+		}
+		else
+		{
+			SFG_ASSERT(_entity_head < ECS_MAX_ENTITIES);
+			id = _entity_head;
+			_entity_head++;
+		}
+
+		ecs_t::table_add(*_component_alive_table, id);
+		ecs_helpers_t::table_add_or_get_as<component_transform_t>(*_component_transform_table, id);
+
+		return id;
 	}
 
-	void from_json(const nlohmann::json&, world_t&)
+	void world_t::destroy_entity(entity_id_t id)
 	{
+		SFG_ASSERT(is_alive(id));
+
+		ecs_t::table_remove(*_component_alive_table, id);
+		ecs_t::table_remove(*_component_transform_table, id);
+		_entity_free_list.push_back(id);
+	}
+
+	void world_t::attach_to(entity_id_t id, entity_id_t parent)
+	{
+		SFG_ASSERT(id != parent);
+		SFG_ASSERT(is_alive(id));
+		SFG_ASSERT(is_alive(parent));
+
+		for (entity_id_t current = parent; current != NULL_ENTITY_ID;)
+		{
+			SFG_ASSERT(current != id);
+			const component_hierarchy_t* current_hierarchy = ecs_helpers_t::table_find_as<component_hierarchy_t>(*_component_hierarchy_table, current);
+			if (current_hierarchy == nullptr)
+				break;
+			current = current_hierarchy->parent;
+		}
+
+		component_hierarchy_t* hierarchy = ecs_helpers_t::table_find_as<component_hierarchy_t>(*_component_hierarchy_table, id);
+		if (hierarchy != nullptr && hierarchy->parent == parent)
+			return;
+
+		detach(id);
+
+		ecs_helpers_t::table_add_or_get_as<component_hierarchy_t>(*_component_hierarchy_table, parent);
+		ecs_helpers_t::table_add_or_get_as<component_hierarchy_t>(*_component_hierarchy_table, id);
+
+		component_hierarchy_t& parent_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_component_hierarchy_table, parent);
+		component_hierarchy_t& child_hierarchy	= ecs_helpers_t::table_get_as<component_hierarchy_t>(*_component_hierarchy_table, id);
+
+		child_hierarchy.parent		 = parent;
+		child_hierarchy.prev_sibling = NULL_ENTITY_ID;
+		child_hierarchy.next_sibling = NULL_ENTITY_ID;
+
+		if (parent_hierarchy.first_child == NULL_ENTITY_ID)
+		{
+			parent_hierarchy.first_child = id;
+			return;
+		}
+
+		entity_id_t last_child = parent_hierarchy.first_child;
+		while (true)
+		{
+			component_hierarchy_t& last_child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_component_hierarchy_table, last_child);
+			if (last_child_hierarchy.next_sibling == NULL_ENTITY_ID)
+			{
+				last_child_hierarchy.next_sibling = id;
+				child_hierarchy.prev_sibling	  = last_child;
+				break;
+			}
+
+			last_child = last_child_hierarchy.next_sibling;
+		}
+	}
+
+	void world_t::detach(entity_id_t id)
+	{
+		SFG_ASSERT(is_alive(id));
+
+		component_hierarchy_t* hierarchy = ecs_helpers_t::table_find_as<component_hierarchy_t>(*_component_hierarchy_table, id);
+		if (hierarchy == nullptr)
+			return;
+
+		const entity_id_t parent	   = hierarchy->parent;
+		const entity_id_t next_sibling = hierarchy->next_sibling;
+		const entity_id_t prev_sibling = hierarchy->prev_sibling;
+		const entity_id_t first_child  = hierarchy->first_child;
+
+		bool remove_parent = false;
+
+		if (parent != NULL_ENTITY_ID)
+		{
+			component_hierarchy_t& parent_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_component_hierarchy_table, parent);
+			if (parent_hierarchy.first_child == id)
+				parent_hierarchy.first_child = next_sibling;
+
+			remove_parent = parent_hierarchy.parent == NULL_ENTITY_ID && parent_hierarchy.first_child == NULL_ENTITY_ID;
+		}
+
+		if (prev_sibling != NULL_ENTITY_ID)
+		{
+			component_hierarchy_t& prev_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_component_hierarchy_table, prev_sibling);
+			prev_hierarchy.next_sibling			  = next_sibling;
+		}
+
+		if (next_sibling != NULL_ENTITY_ID)
+		{
+			component_hierarchy_t& next_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_component_hierarchy_table, next_sibling);
+			next_hierarchy.prev_sibling			  = prev_sibling;
+		}
+
+		hierarchy->parent		= NULL_ENTITY_ID;
+		hierarchy->next_sibling = NULL_ENTITY_ID;
+		hierarchy->prev_sibling = NULL_ENTITY_ID;
+
+		if (first_child == NULL_ENTITY_ID)
+			ecs_t::table_remove(*_component_hierarchy_table, id);
+
+		if (remove_parent)
+			ecs_t::table_remove(*_component_hierarchy_table, parent);
+	}
+
+	world_component_table_t& world_t::add_component_table(const ecs_component_type_desc_t& desc)
+	{
+		SFG_ASSERT(find_component_table(desc.type_id) == nullptr);
+		SFG_ASSERT(_component_alive_table == nullptr || _component_tables.size() < _component_tables.capacity());
+
+		world_component_table_t& table = _component_tables.emplace_back();
+		table.type_desc				   = desc;
+		ecs_t::table_init(table.table, desc);
+		return table;
+	}
+
+	const world_component_table_t* world_t::find_component_table(sid_t type_id) const
+	{
+		for (const world_component_table_t& table : _component_tables)
+		{
+			if (table.type_desc.type_id == type_id)
+				return &table;
+		}
+
+		return nullptr;
+	}
+
+	world_component_table_t* world_t::find_component_table(sid_t type_id)
+	{
+		for (world_component_table_t& table : _component_tables)
+		{
+			if (table.type_desc.type_id == type_id)
+				return &table;
+		}
+
+		return nullptr;
+	}
+
+	world_component_table_t* world_t::get_component_table(sid_t type_id)
+	{
+		world_component_table_t* table = find_component_table(type_id);
+		SFG_ASSERT(table);
+		return table;
+	}
+
+	bool world_t::is_alive(entity_id_t id) const
+	{
+		return ecs_t::table_has(*_component_alive_table, id);
 	}
 }

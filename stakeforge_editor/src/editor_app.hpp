@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common_editor.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_payload_controller.hpp"
+#include "ui/panels/editor_panel_types.hpp"
 #include "editor_renderer.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
@@ -38,6 +39,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class editor_panel_t;
+
 	class editor_app_t
 	{
 	public:
@@ -65,6 +68,9 @@ namespace sfg
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
+		editor_panel_t*	  find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		void			  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		void			  set_main_world_to_panel();
 		editor_surface_t& get_main_surface();
 
 		inline bool is_debug_mode_enabled() const

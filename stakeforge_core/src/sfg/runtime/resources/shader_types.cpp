@@ -8,7 +8,17 @@ namespace sfg
 	{
 		const string_t s = j.get<string_t>();
 
-		if (s == "editor_ui_default")
+		if (s == "opaque_shader")
+			t = shader_type_e::opaque_shader;
+		else if (s == "transparent_shader")
+			t = shader_type_e::transparent_shader;
+		else if (s == "post_process_shader")
+			t = shader_type_e::post_process_shader;
+		else if (s == "ui_shader")
+			t = shader_type_e::ui_shader;
+		else if (s == "ui_text_shader")
+			t = shader_type_e::ui_text_shader;
+		else if (s == "editor_ui_default")
 			t = shader_type_e::editor_ui_default;
 		else if (s == "editor_ui_lcd_text")
 			t = shader_type_e::editor_ui_lcd_text;

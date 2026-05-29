@@ -87,6 +87,8 @@ namespace sfg
 			return _asset_descriptors;
 		}
 
+		const editor_asset_descriptor_t* find_asset_descriptor(const string_t& extension) const;
+
 		inline editor_asset_node_handle_t get_root_node() const
 		{
 			return _root_node;

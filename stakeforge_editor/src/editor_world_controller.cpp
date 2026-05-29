@@ -26,10 +26,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_world_controller.hpp"
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_snapshot_producer.hpp>
 
 namespace sfg
 {
@@ -50,39 +55,94 @@ namespace sfg
 		_alpha			  = 0.0f;
 	}
 
-	world_handle_t editor_world_controller_t::create_world()
+	world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
 	{
 		SFG_ASSERT(_runtime != nullptr);
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
 		const world_handle_t handle = _runtime->create_world();
-		_worlds.push_back(handle);
+
+		world_container_t& container = _worlds.emplace_back();
+		container.handle			 = handle;
+		container.render_context.init(render_resolution);
 		return handle;
 	}
 
 	void editor_world_controller_t::destroy_world(world_handle_t handle)
 	{
 		SFG_ASSERT(_runtime != nullptr);
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
 		for (auto it = _worlds.begin(); it != _worlds.end(); ++it)
 		{
-			if (*it == handle)
+			if (it->handle == handle)
 			{
+				it->render_context.uninit();
+				_runtime->destroy_world(handle);
 				_worlds.erase(it);
-				break;
+				if (_main_world == handle)
+					_main_world = {};
+				return;
 			}
 		}
 
-		if (_main_world == handle)
-			_main_world = {};
-
-		_runtime->destroy_world(handle);
+		SFG_ASSERT(false);
 	}
 
 	void editor_world_controller_t::destroy_worlds()
 	{
 		SFG_ASSERT(_runtime != nullptr);
-		for (world_handle_t handle : _worlds)
-			_runtime->destroy_world(handle);
-		_worlds.clear();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		for (world_container_t& container : _worlds)
+		{
+			container.render_context.uninit();
+			_runtime->destroy_world(container.handle);
+		}
+		_worlds.resize(0);
 		_main_world = {};
+	}
+
+	void editor_world_controller_t::resize_world(world_handle_t handle, vec2u16_t render_resolution)
+	{
+		SFG_ASSERT(_runtime != nullptr);
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		for (world_container_t& container : _worlds)
+		{
+			if (container.handle == handle)
+			{
+				container.render_context.resize(render_resolution);
+				return;
+			}
+		}
+
+		SFG_ASSERT(false);
+	}
+
+	bool editor_world_controller_t::render_worlds(gfx_queue_handle queue, gfx_semaphore_handle signal, u64 signal_value, u8 frame_index)
+	{
+		SFG_ASSERT(_runtime != nullptr);
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+
+		if (_worlds.empty())
+			return false;
+
+		frame_vector_t<gfx_command_buffer_handle> command_buffers;
+		command_buffers.reserve(_worlds.size());
+
+		for (world_container_t& container : _worlds)
+		{
+			world_snapshot_producer_t::produce(_runtime->get_world(container.handle), container.snapshot);
+			world_rendering_t::render_world(container.render_context, container.snapshot, frame_index);
+			command_buffers.push_back(container.render_context.get_command_buffer(frame_index));
+		}
+
+		gfx_backend& backend = gfx_backend::get();
+		backend.submit_commands(queue, command_buffers.data(), static_cast<u8>(command_buffers.size()));
+		backend.queue_signal(queue, &signal, &signal_value, 1);
+		return true;
 	}
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
@@ -108,8 +168,8 @@ namespace sfg
 		while (_accumulator_us >= fixed_us && steps < max_sim_steps)
 		{
 			_accumulator_us -= fixed_us;
-			for (world_handle_t handle : _worlds)
-				_runtime->get_world(handle).tick(dt_seconds);
+			for (const world_container_t& container : _worlds)
+				_runtime->get_world(container.handle).tick(dt_seconds);
 			++steps;
 		}
 
@@ -123,6 +183,18 @@ namespace sfg
 	void editor_world_controller_t::set_main_world(world_handle_t handle)
 	{
 		_main_world = handle;
+	}
+
+	const world_render_context_t& editor_world_controller_t::get_world_render_context(world_handle_t handle) const
+	{
+		for (const world_container_t& container : _worlds)
+		{
+			if (container.handle == handle)
+				return container.render_context;
+		}
+
+		SFG_ASSERT(false);
+		return _worlds.front().render_context;
 	}
 
 	world_handle_t editor_world_controller_t::get_main_world() const

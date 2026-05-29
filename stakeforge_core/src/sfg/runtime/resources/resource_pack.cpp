@@ -17,7 +17,6 @@
 #include "font_cook.hpp"
 #include "glb_cook.hpp"
 #include "material_cook.hpp"
-#include "particle_properties_cook.hpp"
 #include "physical_material_cook.hpp"
 #include "prefab_cook.hpp"
 #include "resource_manifest.hpp"
@@ -57,10 +56,6 @@ namespace sfg
 			if (schema == "sfg.schema.material")
 			{
 				return material_cooker::cook_from_file(full_path, stream);
-			}
-			if (schema == "sfg.schema.particle_properties")
-			{
-				return particle_properties_cooker::cook_from_file(full_path, stream);
 			}
 			if (schema == "sfg.schema.texture_sampler")
 			{

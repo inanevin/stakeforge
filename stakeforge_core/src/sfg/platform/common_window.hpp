@@ -113,6 +113,7 @@ namespace sfg
 		close_requested		 = 1 << 1,
 		high_frequency_input = 1 << 2,
 		minimized			 = 1 << 3,
+		maximized			 = 1 << 4,
 	};
 
 	struct window_runtime_t

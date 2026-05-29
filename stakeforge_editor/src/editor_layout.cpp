@@ -37,6 +37,7 @@ namespace sfg
 		j["pos"]						 = nlohmann::json::array_t({window.pos.x, window.pos.y});
 		j["size"]						 = window.size;
 		j["is_primary"]					 = window.is_primary;
+		j["maximized"]					 = window.maximized;
 		j["dock_layout"]				 = dock_layout.is_object() ? dock_layout : nlohmann::json::object();
 	}
 
@@ -48,6 +49,7 @@ namespace sfg
 
 		window.size		  = j.value("size", vec2u16_t{1920, 1080});
 		window.is_primary = j.value("is_primary", false);
+		window.maximized  = j.value("maximized", false);
 
 		const nlohmann::json dock_layout = j.value("dock_layout", nlohmann::json::object());
 		window.dock_layout				 = dock_layout.is_object() ? string_t(dock_layout.dump()) : string_t("{}");

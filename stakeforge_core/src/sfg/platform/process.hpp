@@ -103,6 +103,8 @@ namespace sfg
 		static void set_window_style(void* window, const vec2u16_t& size, window_style_e style);
 		static void minimize_window(void* window);
 		static void toggle_maximize_window(void* window);
+		static void set_window_maximized(void* window, bool maximized);
+		static void bring_to_front(void* window);
 		static void set_cursor_confinement(void* window_handle, window_cursor_confinement_e conf);
 		static void set_cursor_state(window_cursor_state_e state);
 		static void set_cursor_visible(bool visible);

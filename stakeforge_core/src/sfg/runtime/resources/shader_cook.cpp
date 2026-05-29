@@ -33,6 +33,26 @@ namespace sfg
 
 		switch (cfg.type)
 		{
+		case shader_type_e::opaque_shader:
+			if (!shader_cook_variants_t::cook_opaque_shader(source, include_paths, compiles, psos))
+				return false;
+			break;
+		case shader_type_e::transparent_shader:
+			if (!shader_cook_variants_t::cook_transparent_shader(source, include_paths, compiles, psos))
+				return false;
+			break;
+		case shader_type_e::post_process_shader:
+			if (!shader_cook_variants_t::cook_post_process_shader(source, include_paths, compiles, psos))
+				return false;
+			break;
+		case shader_type_e::ui_shader:
+			if (!shader_cook_variants_t::cook_ui_shader(source, include_paths, compiles, psos))
+				return false;
+			break;
+		case shader_type_e::ui_text_shader:
+			if (!shader_cook_variants_t::cook_ui_text_shader(source, include_paths, compiles, psos))
+				return false;
+			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(source, include_paths, compiles, psos))
 				return false;

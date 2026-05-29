@@ -42,6 +42,7 @@ namespace sfg::ui
 
 namespace sfg
 {
+	enum class editor_panel_type_e : u8;
 	struct editor_payload_t;
 	struct window_runtime_t;
 
@@ -92,6 +93,8 @@ namespace sfg
 		{
 			return _root;
 		}
+		editor_panel_t* find_panel(editor_panel_type_e type) const;
+		bool			select_panel(editor_panel_t* panel);
 
 	private:
 		static constexpr u32 DOCK_POOL_INITIAL_CAPACITY = 32;

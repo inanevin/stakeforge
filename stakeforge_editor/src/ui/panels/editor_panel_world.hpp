@@ -30,6 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class world_render_context_t;
+
 	class editor_panel_world_t final : public editor_panel_t
 	{
 	public:
@@ -37,5 +39,14 @@ namespace sfg
 		~editor_panel_world_t() override							 = default;
 		editor_panel_world_t(const editor_panel_world_t&)			 = delete;
 		editor_panel_world_t& operator=(const editor_panel_world_t&) = delete;
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+		void set_world(const world_render_context_t& world);
+		void clear_world();
+
+	private:
+		ui::widget_id_t _world_view	 = NULL_WIDGET;
+		ui::widget_id_t _empty_label = NULL_WIDGET;
 	};
 }

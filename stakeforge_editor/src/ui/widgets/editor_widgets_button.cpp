@@ -47,7 +47,7 @@ namespace sfg
 			rect.rounding_segs			= 4;
 			paint.set_rect(id, rect);
 			paint.set_hover_color(id, theme.color_panel);
-			paint.set_press_color(id, theme.color_frame_light);
+			paint.set_press_color(id, theme.color_frame);
 			paint.set_focus_color(id, theme.color_accent0);
 		}
 

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_renderer.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
+#include "editor_world_controller.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/unique.hpp>
@@ -69,6 +70,7 @@ namespace sfg
 			per_frame_data_t& pfd	   = _pfd[i];
 			pfd.semaphore_frame.sem	   = backend.create_semaphore();
 			pfd.semaphore_transfer.sem = backend.create_semaphore();
+			pfd.semaphore_world.sem	   = backend.create_semaphore();
 			pfd.cmd_gfx				   = backend.create_command_buffer({
 							   .type	   = command_type::graphics,
 							   .debug_name = "editor_gfx",
@@ -117,6 +119,7 @@ namespace sfg
 			backend.destroy_command_buffer(pfd.cmd_transfer);
 			backend.destroy_semaphore(pfd.semaphore_frame.sem);
 			backend.destroy_semaphore(pfd.semaphore_transfer.sem);
+			backend.destroy_semaphore(pfd.semaphore_world.sem);
 			pfd = {};
 		}
 
@@ -215,7 +218,7 @@ namespace sfg
 		it->visible = visible;
 	}
 
-	void editor_renderer_t::render()
+	void editor_renderer_t::render(editor_world_controller_t& world_controller)
 	{
 		render_resources_t::get().drain_requests();
 		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
@@ -270,6 +273,9 @@ namespace sfg
 		const gfx_command_buffer_handle cmd			   = pfd.cmd_gfx;
 		const gfx_command_buffer_handle cmd_prepare	   = pfd.cmd_gfx_prepare;
 		const gfx_command_buffer_handle cmd_transfer   = pfd.cmd_transfer;
+
+		pfd.semaphore_world.value++;
+		const bool world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index);
 
 		/* flush uploads, begin graphics & transits */
 
@@ -354,6 +360,8 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 		if (transfer_submitted)
 			backend.queue_wait(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
+		if (world_submitted)
+			backend.queue_wait(queue_gfx, &pfd.semaphore_world.sem, &pfd.semaphore_world.value, 1);
 
 		backend.submit_commands(queue_gfx, &cmd, 1);
 		backend.present(present_list.data(), static_cast<u8>(present_list.size()));
@@ -363,11 +371,12 @@ namespace sfg
 		_frame_counter++;
 	}
 
-	void editor_renderer_t::ensure_render()
+	void editor_renderer_t::ensure_render(editor_world_controller_t& world_controller)
 	{
 		if (_render_thread_active.load())
 			return;
 
+		_world_controller	  = &world_controller;
 		_render_thread_active = true;
 		_render_thread		  = std::thread(&editor_renderer_t::render_loop, this);
 	}
@@ -383,6 +392,7 @@ namespace sfg
 			_render_thread.join();
 
 		join();
+		_world_controller = nullptr;
 	}
 
 	void editor_renderer_t::render_loop()
@@ -393,7 +403,8 @@ namespace sfg
 		while (_render_thread_active.load())
 		{
 			frame_allocator_tls_t::reset();
-			render();
+			SFG_ASSERT(_world_controller != nullptr);
+			render(*_world_controller);
 			time_t::yield_thread();
 		}
 

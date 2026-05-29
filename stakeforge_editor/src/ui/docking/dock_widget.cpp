@@ -228,6 +228,39 @@ namespace sfg
 		return !_root_node.is_null();
 	}
 
+	editor_panel_t* dock_widget_t::find_panel(editor_panel_type_e type) const
+	{
+		for (const dock_node_t& node : _dock_nodes)
+		{
+			for (editor_panel_t* panel : node.panels)
+			{
+				if (panel->get_type() == type)
+					return panel;
+			}
+		}
+		return nullptr;
+	}
+
+	bool dock_widget_t::select_panel(editor_panel_t* panel)
+	{
+		SFG_ASSERT(panel != nullptr);
+		for (dock_node_t& node : _dock_nodes)
+		{
+			if (node.node_type != dock_node_type_e::leaf)
+				continue;
+
+			for (editor_panel_t* candidate : node.panels)
+			{
+				if (candidate == panel)
+				{
+					node.tab_area.select_tab(TO_SID(panel->get_title()));
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	void dock_widget_t::dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel)
 	{
 		dock_node_add_panel(_dock_nodes.get(handle), panel);

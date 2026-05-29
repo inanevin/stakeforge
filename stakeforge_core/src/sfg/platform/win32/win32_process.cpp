@@ -419,11 +419,14 @@ namespace
 				static_cast<u16>(HIWORD(l_param)),
 			};
 			const bool minimized		 = w_param == SIZE_MINIMIZED;
+			const bool maximized		 = w_param == SIZE_MAXIMIZED;
 			const bool minimized_changed = runtime->has_flag(sfg::window_runtime_flags_e::minimized) != minimized;
+			const bool maximized_changed = runtime->has_flag(sfg::window_runtime_flags_e::maximized) != maximized;
 
 			runtime->set_flag(sfg::window_runtime_flags_e::minimized, minimized);
+			runtime->set_flag(sfg::window_runtime_flags_e::maximized, maximized);
 
-			if (runtime->size.x == size.x && runtime->size.y == size.y && !minimized_changed)
+			if (runtime->size.x == size.x && runtime->size.y == size.y && !minimized_changed && !maximized_changed)
 				return 0;
 
 			runtime->size	   = size;
@@ -774,11 +777,11 @@ namespace sfg
 			dialog->SetOptions(options | FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_ALLOWMULTISELECT);
 		}
 
-		// Extension filter (expects e.g. "png" or ".png")
 		COMDLG_FILTERSPEC filter[1] = {};
 		std::wstring	  extW;
 		std::wstring	  patternW;
 		std::wstring	  labelW;
+		std::wstring	  defaultExtW;
 
 		if (extension && extension[0] != '\0')
 		{
@@ -792,14 +795,46 @@ namespace sfg
 				extW.resize((size_t)extLenW - 1);
 				MultiByteToWideChar(CP_UTF8, 0, ext, -1, extW.data(), extLenW);
 
-				labelW	 = L"*." + extW;
-				patternW = L"*." + extW;
+				size_t start = 0;
+				while (start < extW.size())
+				{
+					while (start < extW.size() && (extW[start] == L'.' || extW[start] == L';' || extW[start] == L',' || extW[start] == L' '))
+						++start;
 
-				filter[0].pszName = labelW.c_str();
-				filter[0].pszSpec = patternW.c_str();
-				dialog->SetFileTypes(1, filter);
-				dialog->SetFileTypeIndex(1);
-				dialog->SetDefaultExtension(extW.c_str());
+					size_t end = start;
+					while (end < extW.size() && extW[end] != L';' && extW[end] != L',' && extW[end] != L' ')
+						++end;
+
+					if (end > start)
+					{
+						if (!patternW.empty())
+							patternW += L';';
+
+						if (extW[start] == L'*')
+						{
+							patternW.append(extW.c_str() + start, end - start);
+						}
+						else
+						{
+							if (defaultExtW.empty())
+								defaultExtW = extW.substr(start, end - start);
+							patternW += L"*." + extW.substr(start, end - start);
+						}
+					}
+
+					start = end;
+				}
+
+				if (!patternW.empty())
+				{
+					labelW			  = patternW.find(L';') == std::wstring::npos ? patternW : L"Supported Files";
+					filter[0].pszName = labelW.c_str();
+					filter[0].pszSpec = patternW.c_str();
+					dialog->SetFileTypes(1, filter);
+					dialog->SetFileTypeIndex(1);
+					if (!defaultExtW.empty())
+						dialog->SetDefaultExtension(defaultExtW.c_str());
+				}
 			}
 		}
 
@@ -829,6 +864,7 @@ namespace sfg
 									string_t path;
 									path.resize((size_t)needed - 1);
 									WideCharToMultiByte(CP_UTF8, 0, pathW, -1, path.data(), needed, nullptr, nullptr);
+									file_system_t::fix_path(path);
 									out_files.push_back(std::move(path));
 								}
 								CoTaskMemFree(pathW);
@@ -1372,6 +1408,25 @@ namespace sfg
 		HWND hwnd = static_cast<HWND>(window);
 		SFG_ASSERT(hwnd != nullptr);
 		ShowWindow(hwnd, IsZoomed(hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+	}
+
+	void process::set_window_maximized(void* window, bool maximized)
+	{
+		HWND hwnd = static_cast<HWND>(window);
+		SFG_ASSERT(hwnd != nullptr);
+		const bool is_maximized = IsZoomed(hwnd) != FALSE;
+		if (is_maximized != maximized)
+			ShowWindow(hwnd, maximized ? SW_MAXIMIZE : SW_RESTORE);
+	}
+
+	void process::bring_to_front(void* window)
+	{
+		HWND hwnd = static_cast<HWND>(window);
+		SFG_ASSERT(hwnd != nullptr);
+		if (IsIconic(hwnd))
+			ShowWindow(hwnd, SW_RESTORE);
+		SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		SetForegroundWindow(hwnd);
 	}
 
 	void process::set_cursor_confinement(void* window_handle, window_cursor_confinement_e conf)

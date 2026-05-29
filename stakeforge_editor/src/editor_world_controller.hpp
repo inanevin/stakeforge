@@ -30,6 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
+#include <sfg/runtime/render/world_render_context.hpp>
+#include <sfg/runtime/render/world_snapshot.hpp>
 
 namespace sfg
 {
@@ -52,9 +54,11 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
-		world_handle_t create_world();
+		world_handle_t create_world(vec2u16_t render_resolution);
 		void		   destroy_world(world_handle_t handle);
 		void		   destroy_worlds();
+		void		   resize_world(world_handle_t handle, vec2u16_t render_resolution);
+		bool		   render_worlds(gfx_queue_handle queue, gfx_semaphore_handle signal, u64 signal_value, u8 frame_index);
 		void		   tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
 		void		   install_default_world(world_handle_t handle);
 		void		   set_main_world(world_handle_t handle);
@@ -62,16 +66,24 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
-		world_handle_t get_main_world() const;
-		f32			   get_alpha() const;
+		const world_render_context_t& get_world_render_context(world_handle_t handle) const;
+		world_handle_t				  get_main_world() const;
+		f32							  get_alpha() const;
 
 	private:
-		engine_runtime_t*		 _runtime = nullptr;
-		vector_t<world_handle_t> _worlds;
-		world_handle_t			 _main_world		 = {};
-		i64						 _previous_time_us	 = 0;
-		i64						 _accumulator_us	 = 0;
-		f32						 _alpha				 = 0.0f;
-		u32						 _world_physics_rate = 100;
+		struct world_container_t
+		{
+			world_snapshot_t	   snapshot		  = {};
+			world_render_context_t render_context = {};
+			world_handle_t		   handle		  = {};
+		};
+
+		engine_runtime_t*			_runtime = nullptr;
+		vector_t<world_container_t> _worlds;
+		world_handle_t				_main_world			= {};
+		i64							_previous_time_us	= 0;
+		i64							_accumulator_us		= 0;
+		f32							_alpha				= 0.0f;
+		u32							_world_physics_rate = 100;
 	};
 }

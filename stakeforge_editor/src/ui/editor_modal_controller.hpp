@@ -56,7 +56,8 @@ namespace sfg
 	class editor_modal_controller_t final
 	{
 	public:
-		static constexpr u32 MAX_CONTROLLERS = 16;
+		static constexpr u32 MAX_CONTROLLERS		  = 16;
+		static constexpr u32 MAX_SUB_DESCRIPTION_ROWS = 16;
 
 		editor_modal_controller_t()												   = default;
 		~editor_modal_controller_t()											   = default;
@@ -77,6 +78,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity = editor_modal_severity_e::normal);
+		void request_modal(
+			const char* title, const char* description, const char* const* sub_description_rows, u16 sub_description_row_count, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity = editor_modal_severity_e::normal);
 		void start_loading_bar(const char* title, const char* description, f32 progress = 0.0f);
 		void progress_loading_bar(f32 progress);
 		void end_loading_bar();
@@ -112,22 +115,24 @@ namespace sfg
 		u32			find_button_index(ui::widget_id_t id) const;
 
 	private:
-		ui::ui_context*			   _ui						   = nullptr;
-		ui::widget_id_t			   _foreground				   = NULL_WIDGET;
-		ui::widget_id_t			   _dimmer					   = NULL_WIDGET;
-		ui::widget_id_t			   _window					   = NULL_WIDGET;
-		ui::widget_id_t			   _title					   = NULL_WIDGET;
-		ui::widget_id_t			   _description				   = NULL_WIDGET;
-		ui::widget_id_t			   _loading_bar				   = NULL_WIDGET;
-		ui::widget_id_t			   _loading_bar_fill		   = NULL_WIDGET;
-		ui::widget_id_t			   _loading_bar_label		   = NULL_WIDGET;
-		ui::widget_id_t			   _button_row				   = NULL_WIDGET;
-		ui::widget_id_t			   _button_frames[MAX_BUTTONS] = {};
-		ui::widget_id_t			   _button_labels[MAX_BUTTONS] = {};
-		editor_modal_button_desc_t _buttons[MAX_BUTTONS]	   = {};
-		f32						   _loading_bar_progress	   = 0.0f;
-		u16						   _button_count			   = 0;
-		modal_mode_e			   _mode					   = modal_mode_e::none;
-		bool					   _visible					   = false;
+		ui::ui_context*			   _ui											   = nullptr;
+		ui::widget_id_t			   _foreground									   = NULL_WIDGET;
+		ui::widget_id_t			   _dimmer										   = NULL_WIDGET;
+		ui::widget_id_t			   _window										   = NULL_WIDGET;
+		ui::widget_id_t			   _title										   = NULL_WIDGET;
+		ui::widget_id_t			   _description									   = NULL_WIDGET;
+		ui::widget_id_t			   _loading_bar									   = NULL_WIDGET;
+		ui::widget_id_t			   _loading_bar_fill							   = NULL_WIDGET;
+		ui::widget_id_t			   _loading_bar_label							   = NULL_WIDGET;
+		ui::widget_id_t			   _button_row									   = NULL_WIDGET;
+		ui::widget_id_t			   _sub_description_rows[MAX_SUB_DESCRIPTION_ROWS] = {};
+		ui::widget_id_t			   _button_frames[MAX_BUTTONS]					   = {};
+		ui::widget_id_t			   _button_labels[MAX_BUTTONS]					   = {};
+		editor_modal_button_desc_t _buttons[MAX_BUTTONS]						   = {};
+		f32						   _loading_bar_progress						   = 0.0f;
+		u16						   _sub_description_row_count					   = 0;
+		u16						   _button_count								   = 0;
+		modal_mode_e			   _mode										   = modal_mode_e::none;
+		bool					   _visible										   = false;
 	};
 }

@@ -1,0 +1,165 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+#include "engine_components.hpp"
+
+#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/world/world.hpp>
+
+#include <cstddef>
+#include <type_traits>
+
+namespace sfg
+{
+	namespace
+	{
+		template <typename T> constexpr ecs_component_type_desc_t make_component_desc()
+		{
+			static_assert(std::is_trivially_copyable_v<T>);
+			static_assert(std::is_standard_layout_v<T>);
+
+			return {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)};
+		}
+
+		template <typename T> constexpr ecs_component_type_desc_t make_tag_component_desc()
+		{
+			static_assert(std::is_trivially_copyable_v<T>);
+			static_assert(std::is_standard_layout_v<T>);
+
+			return {.type_id = T::TYPE_ID, .size = 0, .alignment = 1, .flags = ecs_component_type_flags_tag};
+		}
+
+		template <typename T> void add_table_if_missing(world_t& w, const ecs_component_type_desc_t& desc)
+		{
+			if (w.find_component_table(desc.type_id) == nullptr)
+				w.add_component_table(desc);
+		}
+
+		void register_type_if_missing(const reflected_type_desc_t& desc)
+		{
+			reflection_registry_t& registry = reflection_registry_t::get();
+			if (registry.find_type(desc.type_id) == nullptr)
+				registry.register_type(desc);
+		}
+
+		void register_component_hierarchy_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "first_child", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, first_child), .size = sizeof(entity_id_t)},
+				{.name = "parent", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, parent), .size = sizeof(entity_id_t)},
+				{.name = "next_sibling", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, next_sibling), .size = sizeof(entity_id_t)},
+				{.name = "prev_sibling", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, prev_sibling), .size = sizeof(entity_id_t)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_hierarchy",
+				.category  = "component",
+				.type_id   = component_hierarchy_t::TYPE_ID,
+				.size	   = sizeof(component_hierarchy_t),
+				.alignment = alignof(component_hierarchy_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
+		void register_component_transform_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "pos", .type = reflected_value_type_e::vec3, .offset = offsetof(component_transform_t, pos), .size = sizeof(vec3f_t)},
+				{.name = "rot", .type = reflected_value_type_e::quat, .offset = offsetof(component_transform_t, rot), .size = sizeof(quat_t)},
+				{.name = "scale", .type = reflected_value_type_e::vec3, .offset = offsetof(component_transform_t, scale), .size = sizeof(vec3f_t)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_transform",
+				.category  = "component",
+				.type_id   = component_transform_t::TYPE_ID,
+				.size	   = sizeof(component_transform_t),
+				.alignment = alignof(component_transform_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
+		void register_component_mesh_renderer_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "mesh", .type = reflected_value_type_e::sid, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(sid_t)},
+				{.name = "material", .type = reflected_value_type_e::sid, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(sid_t)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_mesh_renderer",
+				.category  = "component",
+				.type_id   = component_mesh_renderer_t::TYPE_ID,
+				.size	   = sizeof(component_mesh_renderer_t),
+				.alignment = alignof(component_mesh_renderer_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
+		void register_component_disabled_reflection()
+		{
+			register_type_if_missing({
+				.name	   = "component_disabled",
+				.category  = "component",
+				.type_id   = component_disabled_t::TYPE_ID,
+				.size	   = 0,
+				.alignment = 1,
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
+		void register_component_alive_reflection()
+		{
+			register_type_if_missing({
+				.name	   = "component_alive",
+				.category  = "component",
+				.type_id   = component_alive_t::TYPE_ID,
+				.size	   = 0,
+				.alignment = 1,
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+	}
+
+	void engine_components_util_t::register_engine_components(world_t& w)
+	{
+		register_component_hierarchy_reflection();
+		register_component_transform_reflection();
+		register_component_mesh_renderer_reflection();
+		register_component_alive_reflection();
+		register_component_disabled_reflection();
+
+		add_table_if_missing<component_hierarchy_t>(w, make_component_desc<component_hierarchy_t>());
+		add_table_if_missing<component_transform_t>(w, make_component_desc<component_transform_t>());
+		add_table_if_missing<component_mesh_renderer_t>(w, make_component_desc<component_mesh_renderer_t>());
+		add_table_if_missing<component_alive_t>(w, make_tag_component_desc<component_alive_t>());
+		add_table_if_missing<component_disabled_t>(w, make_tag_component_desc<component_disabled_t>());
+	}
+}

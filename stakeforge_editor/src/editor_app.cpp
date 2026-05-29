@@ -35,9 +35,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
+#include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/panels/editor_panel_world.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -72,6 +74,24 @@ namespace sfg
 			if (b == static_cast<u16>(input_code::mouse_middle))
 				return ui::mouse_button_e::middle;
 			return ui::mouse_button_e::left;
+		}
+
+		editor_panel_t* find_panel_in_surface(editor_surface_t& surface, editor_panel_type_e type)
+		{
+			if (surface.type == editor_surface_type_e::primary)
+				return surface.primary->get_dock_widget().find_panel(type);
+			if (surface.type == editor_surface_type_e::secondary)
+				return surface.secondary->get_dock_widget().find_panel(type);
+			return nullptr;
+		}
+
+		bool select_panel_in_surface(editor_surface_t& surface, editor_panel_t* panel)
+		{
+			if (surface.type == editor_surface_type_e::primary)
+				return surface.primary->get_dock_widget().select_panel(panel);
+			if (surface.type == editor_surface_type_e::secondary)
+				return surface.secondary->get_dock_widget().select_panel(panel);
+			return false;
 		}
 
 	}
@@ -197,6 +217,7 @@ namespace sfg
 			const surface_handle_t		 handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
 			if (handle.is_null())
 				return false;
+			process::set_window_maximized(_surfaces.get(handle).runtime->window_handle, window.maximized);
 			editor_layout_t::load_surface_default_layout(_surfaces.get(handle));
 		}
 		else
@@ -216,6 +237,7 @@ namespace sfg
 				return false;
 
 			const surface_handle_t primary_handle = create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_type_e::primary);
+			process::set_window_maximized(_surfaces.get(primary_handle).runtime->window_handle, primary_window->maximized);
 			load_surface_dock_layout(_surfaces.get(primary_handle), primary_window->dock_layout);
 
 			for (const editor_layout_window_t& window : layout.windows)
@@ -224,6 +246,7 @@ namespace sfg
 					continue;
 
 				const surface_handle_t secondary_handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::secondary);
+				process::set_window_maximized(_surfaces.get(secondary_handle).runtime->window_handle, window.maximized);
 				load_surface_dock_layout(_surfaces.get(secondary_handle), window.dock_layout);
 			}
 		}
@@ -248,6 +271,10 @@ namespace sfg
 		{
 			get_main_surface().primary->prompt_no_project_modal();
 		}
+
+		const world_handle_t main_world = _world_controller.create_world(get_main_surface().swapchain_size);
+		_world_controller.set_main_world(main_world);
+		set_main_world_to_panel();
 
 		_close = false;
 
@@ -331,8 +358,10 @@ namespace sfg
 
 	void editor_app_t::unload_current_project()
 	{
+		_renderer.end_render();
 		_asset_manager.clear();
 		_world_controller.destroy_worlds();
+		set_main_world_to_panel();
 	}
 
 	bool editor_app_t::create_project(const char* path)
@@ -383,6 +412,7 @@ namespace sfg
 			window.pos					  = surface.runtime->pos;
 			window.size					  = surface.runtime->size;
 			window.is_primary			  = surface.type == editor_surface_type_e::primary;
+			window.maximized			  = surface.runtime->has_flag(window_runtime_flags_e::maximized);
 			if (surface.type == editor_surface_type_e::primary)
 				window.dock_layout = string_t(surface.primary->get_dock_widget().to_json().dump());
 			else if (surface.type == editor_surface_type_e::secondary)
@@ -417,6 +447,106 @@ namespace sfg
 
 		editor_layout_t::load_surface_default_layout(get_main_surface());
 		save_layout();
+	}
+
+	editor_panel_t* editor_app_t::find_panel(editor_panel_type_e type, surface_handle_t surface_handle)
+	{
+		if (!surface_handle.is_null())
+		{
+			editor_panel_t* panel = find_panel_in_surface(_surfaces.get(surface_handle), type);
+			if (panel != nullptr)
+				return panel;
+
+			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
+			{
+				const surface_handle_t handle = *it;
+				if (handle == surface_handle)
+					continue;
+
+				panel = find_panel_in_surface(_surfaces.get(handle), type);
+				if (panel != nullptr)
+					return panel;
+			}
+			return nullptr;
+		}
+
+		surface_handle_t main_surface = {};
+		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
+		{
+			const surface_handle_t handle  = *it;
+			editor_surface_t&	   surface = _surfaces.get(handle);
+			if (surface.type != editor_surface_type_e::primary)
+				continue;
+
+			main_surface		  = handle;
+			editor_panel_t* panel = find_panel_in_surface(surface, type);
+			if (panel != nullptr)
+				return panel;
+			break;
+		}
+
+		SFG_ASSERT(!main_surface.is_null());
+		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
+		{
+			const surface_handle_t handle = *it;
+			if (handle == main_surface)
+				continue;
+
+			editor_panel_t* panel = find_panel_in_surface(_surfaces.get(handle), type);
+			if (panel != nullptr)
+				return panel;
+		}
+		return nullptr;
+	}
+
+	void editor_app_t::show_panel(editor_panel_type_e type, surface_handle_t surface_handle)
+	{
+		editor_panel_t* panel = find_panel(type, surface_handle);
+		if (panel != nullptr)
+		{
+			for (editor_surface_t& surface : _surfaces)
+			{
+				if (!select_panel_in_surface(surface, panel))
+					continue;
+
+				process::bring_to_front(surface.runtime->window_handle);
+				return;
+			}
+			SFG_ASSERT(false);
+			return;
+		}
+
+		const editor_surface_t& main_surface = get_main_surface();
+		const vec2i16_t			pos			 = {static_cast<i16>(main_surface.runtime->pos.x + 64), static_cast<i16>(main_surface.runtime->pos.y + 64)};
+		const vec2u16_t			size		 = {640, 480};
+		const surface_handle_t	new_surface	 = create_surface(pos, size, editor_surface_type_e::secondary);
+		if (new_surface.is_null())
+			return;
+
+		panel							 = editor_panel_factory_t::create_panel(type);
+		editor_surface_t&		 surface = _surfaces.get(new_surface);
+		dock_widget_t&			 dock	 = surface.secondary->get_dock_widget();
+		const dock_node_handle_t leaf	 = dock.create_leaf_node(dock.get_root());
+		dock.set_root_node(leaf);
+		dock.dock_node_add_panel(leaf, panel);
+		process::bring_to_front(surface.runtime->window_handle);
+	}
+
+	void editor_app_t::set_main_world_to_panel()
+	{
+		editor_panel_t* panel = find_panel(editor_panel_type_e::world);
+		if (panel == nullptr)
+			return;
+
+		editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
+		const world_handle_t  main_world  = _world_controller.get_main_world();
+		if (main_world.is_null())
+		{
+			world_panel->clear_world();
+			return;
+		}
+
+		world_panel->set_world(_world_controller.get_world_render_context(main_world));
 	}
 
 	editor_surface_t& editor_app_t::get_main_surface()
@@ -523,7 +653,7 @@ namespace sfg
 				break;
 			}
 
-			_renderer.ensure_render();
+			_renderer.ensure_render(_world_controller);
 		}
 
 		_renderer.end_render();

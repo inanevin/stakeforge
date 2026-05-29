@@ -133,8 +133,9 @@ namespace sfg::ui
 
 	void ui_renderer_t::render(gfx_command_buffer_handle cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)
 	{
-		gfx_backend&	  backend = gfx_backend::get();
-		per_frame_data_t& pfd	  = _pfd[frame_index % BACK_BUFFER_COUNT];
+		gfx_backend&	  backend	 = gfx_backend::get();
+		const u8		  frame_slot = frame_index % BACK_BUFFER_COUNT;
+		per_frame_data_t& pfd		 = _pfd[frame_slot];
 
 		const vg_draw_snapshot_t* snap = ctx.acquire_render_snapshot();
 		if (snap == nullptr || snap->draw_buffer_count == 0)
@@ -186,7 +187,13 @@ namespace sfg::ui
 			command_bind_constants_t bc_mat0		  = {.data = mat_constants, .offset = constant_mat0, .count = 2, .param_index = 0};
 			backend.cmd_bind_constants(cmd, bc_mat0);
 
-			command_bind_constants_t bc_obj = {.data = const_cast<gpu_index_t*>(db.resolved.constants), .offset = constant_obj0, .count = 4, .param_index = 0};
+			gpu_index_t obj_constants[4] = {};
+			for (u8 j = 0; j < 4; ++j)
+			{
+				obj_constants[j] = db.resolved.constant_types[j] == ui_resource_type_e::gpu_index_fof ? db.resolved.constant_frames[j][frame_slot] : db.resolved.constants[j];
+			}
+
+			command_bind_constants_t bc_obj = {.data = obj_constants, .offset = constant_obj0, .count = 4, .param_index = 0};
 			backend.cmd_bind_constants(cmd, bc_obj);
 
 			SFG_MEMCPY(pfd.mapped_vtx + vtx_offset, snap->vertices + db.vertex_offset, vtx_size);

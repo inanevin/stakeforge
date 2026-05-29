@@ -31,10 +31,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_type.hpp"
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
+	class ostream_t;
+
 	enum class editor_asset_source_type_e : u8
 	{
 		none,
@@ -46,23 +49,24 @@ namespace sfg
 	{
 		static constexpr u32 VERSION = 0;
 
-		nlohmann::json			   source_relative_path = "";
-		nlohmann::json			   embedded_source		= nlohmann::json::object();
-		nlohmann::json			   cook_options			= nlohmann::json::object();
-		u32						   version				= 0;
-		sid_t					   guid					= 0;
-		editor_asset_type_e		   asset_type			= editor_asset_type_e::invalid;
-		editor_asset_source_type_e source_type			= editor_asset_source_type_e::file;
+		nlohmann::json		embedded_source = nlohmann::json::object();
+		nlohmann::json		cook_options	= nlohmann::json::object();
+		u32					version			= 0;
+		sid_t				guid			= 0;
+		editor_asset_type_e asset_type		= editor_asset_type_e::invalid;
+		u8					sub_type		= 0;
 	};
 
-	using editor_asset_create_default_fn = bool (*)(editor_asset_t& asset, const char* directory, const char* file_name);
-	using editor_asset_cook_fn			 = bool (*)(const editor_asset_t& asset, const char* cache_dir);
+	using editor_asset_create_default_fn = bool (*)(editor_asset_t& asset, const char* directory, const char* file_name, u8 sub_type);
+	using editor_asset_cook_fn			 = bool (*)(const editor_asset_t& asset, ostream_t& stream);
 
 	struct editor_asset_descriptor_t
 	{
 		editor_asset_create_default_fn create_default = nullptr;
 		editor_asset_cook_fn		   cook			  = nullptr;
+		string_t					   extension	  = {};
 		editor_asset_type_e			   asset_type	  = editor_asset_type_e::invalid;
+		editor_asset_source_type_e	   source_type	  = editor_asset_source_type_e::file;
 	};
 
 	struct editor_asset_loader_audio_t
@@ -90,21 +94,15 @@ namespace sfg
 		static void register_type();
 	};
 
-	struct editor_asset_loader_particle_properties_t
-	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name);
-		static void register_type();
-	};
-
 	struct editor_asset_loader_material_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name);
+		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, u8 sub_type);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_shader_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name);
+		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, u8 sub_type);
 		static void register_type();
 	};
 
@@ -115,14 +113,14 @@ namespace sfg
 
 	struct editor_asset_loader_texture_sampler_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name);
-		static bool cook(const editor_asset_t& asset, const char* cache_dir);
+		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, u8 sub_type);
+		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_physical_material_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name);
+		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, u8 sub_type);
 		static void register_type();
 	};
 
@@ -133,7 +131,7 @@ namespace sfg
 
 	struct editor_asset_loader_animation_state_machine_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name);
+		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, u8 sub_type);
 		static void register_type();
 	};
 

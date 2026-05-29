@@ -40,7 +40,6 @@ namespace sfg
 		mesh,
 		skeleton,
 		animation,
-		particle_properties,
 		material,
 		shader,
 		texture,

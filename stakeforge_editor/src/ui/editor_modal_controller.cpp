@@ -42,7 +42,6 @@ namespace sfg
 	namespace
 	{
 		constexpr u32 MODAL_DRAW_ORDER = 60000u;
-		constexpr f32 MODAL_WIDTH	   = 480.0f;
 
 		editor_modal_controller_t* s_controllers[editor_modal_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
@@ -122,9 +121,8 @@ namespace sfg
 		window_in.pos_value		   = {0.5f, 0.5f};
 		window_in.anchor_x		   = ui::anchor_e::center;
 		window_in.anchor_y		   = ui::anchor_e::center;
-		window_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		window_in.size_mode_x	   = ui::axis_mode_e::max_children;
 		window_in.size_mode_y	   = ui::axis_mode_e::sum_children;
-		window_in.size_value	   = {MODAL_WIDTH, 0.0f};
 		window_in.flow			   = ui::flow_e::column;
 		window_in.child_spacing	   = theme.margin_vertical * 2.0f;
 		window_in.child_margins	   = {theme.margin_vertical * 4.0f, theme.margin_horizontal * 3.0f, theme.margin_vertical * 3.0f, theme.margin_horizontal * 3.0f};
@@ -142,6 +140,15 @@ namespace sfg
 		tree.attach(_window, _description);
 		tree.draw_order(_description) = MODAL_DRAW_ORDER + 3;
 		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		for (u32 i = 0; i < MAX_SUB_DESCRIPTION_ROWS; ++i)
+		{
+			_sub_description_rows[i] = ui.allocate_widget();
+			ui.set_widget_debug_name(_sub_description_rows[i], "modal_sub_description_row");
+			tree.attach(_window, _sub_description_rows[i]);
+			tree.draw_order(_sub_description_rows[i]) = MODAL_DRAW_ORDER + 3;
+			paint.set_text(_sub_description_rows[i], nullptr, 0, {.font = theme.font_default_mono, .color = theme.color_text1, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		}
 
 		_loading_bar = ui.allocate_widget();
 		ui.set_widget_debug_name(_loading_bar, "modal_loading_bar");
@@ -259,20 +266,23 @@ namespace sfg
 			}
 		}
 
-		_ui					  = nullptr;
-		_foreground			  = NULL_WIDGET;
-		_dimmer				  = NULL_WIDGET;
-		_window				  = NULL_WIDGET;
-		_title				  = NULL_WIDGET;
-		_description		  = NULL_WIDGET;
-		_loading_bar		  = NULL_WIDGET;
-		_loading_bar_fill	  = NULL_WIDGET;
-		_loading_bar_label	  = NULL_WIDGET;
-		_button_row			  = NULL_WIDGET;
-		_button_count		  = 0;
-		_loading_bar_progress = 0.0f;
-		_mode				  = modal_mode_e::none;
-		_visible			  = false;
+		_ui						   = nullptr;
+		_foreground				   = NULL_WIDGET;
+		_dimmer					   = NULL_WIDGET;
+		_window					   = NULL_WIDGET;
+		_title					   = NULL_WIDGET;
+		_description			   = NULL_WIDGET;
+		_loading_bar			   = NULL_WIDGET;
+		_loading_bar_fill		   = NULL_WIDGET;
+		_loading_bar_label		   = NULL_WIDGET;
+		_button_row				   = NULL_WIDGET;
+		_button_count			   = 0;
+		_sub_description_row_count = 0;
+		_loading_bar_progress	   = 0.0f;
+		_mode					   = modal_mode_e::none;
+		_visible				   = false;
+		for (ui::widget_id_t& row : _sub_description_rows)
+			row = NULL_WIDGET;
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			_button_frames[i] = NULL_WIDGET;
@@ -283,17 +293,34 @@ namespace sfg
 
 	void editor_modal_controller_t::request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity)
 	{
+		request_modal(title, description, nullptr, 0, buttons, button_count, severity);
+	}
+
+	void editor_modal_controller_t::request_modal(const char* title, const char* description, const char* const* sub_description_rows, u16 sub_description_row_count, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity)
+	{
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(button_count <= MAX_BUTTONS);
+		SFG_ASSERT(sub_description_row_count <= MAX_SUB_DESCRIPTION_ROWS);
 
-		_button_count = button_count;
-		_mode		  = modal_mode_e::buttons;
+		_button_count			   = button_count;
+		_sub_description_row_count = sub_description_row_count;
+		_mode					   = modal_mode_e::buttons;
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 			_buttons[i] = i < button_count ? buttons[i] : editor_modal_button_desc_t{};
 
 		_ui->set_widget_text(_title, title);
 		_ui->set_widget_text(_description, description);
 		_ui->get_paint().def(_title).text.color = get_title_color(severity);
+
+		for (u32 i = 0; i < MAX_SUB_DESCRIPTION_ROWS; ++i)
+		{
+			const bool visible = i < sub_description_row_count;
+			set_widget_visible(_ui->get_tree(), _sub_description_rows[i], visible, false);
+			if (visible)
+				_ui->set_widget_text(_sub_description_rows[i], sub_description_rows[i]);
+			else
+				_ui->clear_widget_text(_sub_description_rows[i]);
+		}
 
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
@@ -313,8 +340,9 @@ namespace sfg
 	{
 		SFG_ASSERT(_ui != nullptr);
 
-		_button_count = 0;
-		_mode		  = modal_mode_e::loading_bar;
+		_button_count			   = 0;
+		_sub_description_row_count = 0;
+		_mode					   = modal_mode_e::loading_bar;
 		for (editor_modal_button_desc_t& button : _buttons)
 			button = {};
 
@@ -345,9 +373,10 @@ namespace sfg
 		if (!_visible)
 			return;
 		set_visible(false);
-		_button_count		  = 0;
-		_loading_bar_progress = 0.0f;
-		_mode				  = modal_mode_e::none;
+		_button_count			   = 0;
+		_sub_description_row_count = 0;
+		_loading_bar_progress	   = 0.0f;
+		_mode					   = modal_mode_e::none;
 		for (editor_modal_button_desc_t& button : _buttons)
 			button = {};
 	}
@@ -377,6 +406,8 @@ namespace sfg
 		set_widget_visible(tree, _window, visible, false);
 		set_widget_visible(tree, _title, visible, false);
 		set_widget_visible(tree, _description, visible, false);
+		for (u32 i = 0; i < MAX_SUB_DESCRIPTION_ROWS; ++i)
+			set_widget_visible(tree, _sub_description_rows[i], visible && i < _sub_description_row_count, false);
 		const bool loading_visible = visible && _mode == modal_mode_e::loading_bar;
 		set_widget_visible(tree, _loading_bar, loading_visible, false);
 		set_widget_visible(tree, _loading_bar_fill, loading_visible, false);

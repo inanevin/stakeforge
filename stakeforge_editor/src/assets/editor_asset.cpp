@@ -29,14 +29,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 
-#include <sfg/data/span.hpp>
-#include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
-#include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <cstdio>
 
@@ -44,119 +42,118 @@ namespace sfg
 {
 	void editor_asset_loader_audio_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::audio});
+		editor_asset_manager_t::get().register_descriptor({.extension = "mp3", .asset_type = editor_asset_type_e::audio, .source_type = editor_asset_source_type_e::file});
 	}
 
 	void editor_asset_loader_font_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::font});
+		editor_asset_manager_t::get().register_descriptor({.extension = "ttf", .asset_type = editor_asset_type_e::font, .source_type = editor_asset_source_type_e::file});
 	}
 
 	void editor_asset_loader_mesh_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::mesh});
+		editor_asset_manager_t::get().register_descriptor({.extension = "glb", .asset_type = editor_asset_type_e::mesh, .source_type = editor_asset_source_type_e::file});
 	}
 
 	void editor_asset_loader_skeleton_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::skeleton});
+		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::skeleton, .source_type = editor_asset_source_type_e::file});
 	}
 
 	void editor_asset_loader_animation_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::animation});
+		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::animation, .source_type = editor_asset_source_type_e::file});
 	}
 
-	bool editor_asset_loader_particle_properties_t::create_default(editor_asset_t&, const char*, const char*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_particle_properties_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::particle_properties});
-	}
-
-	bool editor_asset_loader_material_t::create_default(editor_asset_t&, const char*, const char*)
+	bool editor_asset_loader_material_t::create_default(editor_asset_t&, const char*, const char*, u8)
 	{
 		return true;
 	}
 
 	void editor_asset_loader_material_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::material});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::material, .source_type = editor_asset_source_type_e::none});
 	}
 
-	bool editor_asset_loader_shader_t::create_default(editor_asset_t&, const char*, const char*)
+	bool editor_asset_loader_shader_t::create_default(editor_asset_t& asset, const char*, const char*, u8 sub_type)
 	{
+		const shader_type_e shader_type = static_cast<shader_type_e>(sub_type);
+		asset.cook_options["schema"]	= "sfg.schema.shader";
+		switch (shader_type)
+		{
+		case shader_type_e::opaque_shader:
+			asset.cook_options["type"] = "opaque_shader";
+			break;
+		case shader_type_e::transparent_shader:
+			asset.cook_options["type"] = "transparent_shader";
+			break;
+		case shader_type_e::post_process_shader:
+			asset.cook_options["type"] = "post_process_shader";
+			break;
+		case shader_type_e::ui_shader:
+			asset.cook_options["type"] = "ui_shader";
+			break;
+		case shader_type_e::ui_text_shader:
+			asset.cook_options["type"] = "ui_text_shader";
+			break;
+		default:
+			asset.cook_options["type"] = "opaque_shader";
+			break;
+		}
 		return true;
 	}
 
 	void editor_asset_loader_shader_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::shader});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::shader, .source_type = editor_asset_source_type_e::none});
 	}
 
 	void editor_asset_loader_texture_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::texture});
+		editor_asset_manager_t::get().register_descriptor({.extension = "png;jpg;jpeg", .asset_type = editor_asset_type_e::texture, .source_type = editor_asset_source_type_e::file});
 	}
 
-	bool editor_asset_loader_texture_sampler_t::create_default(editor_asset_t& asset, const char*, const char*)
+	bool editor_asset_loader_texture_sampler_t::create_default(editor_asset_t& asset, const char*, const char*, u8)
 	{
 		const sampler_desc_t sampler_desc = {};
 		const nlohmann::json json_data	  = sampler_desc;
-		asset.source_type				  = editor_asset_source_type_e::embedded;
 		asset.embedded_source			  = json_data;
 		return true;
 	}
 
-	bool editor_asset_loader_texture_sampler_t::cook(const editor_asset_t& asset, const char* cache_dir)
+	bool editor_asset_loader_texture_sampler_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
-		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
-
-		ostream_t stream;
-		if (!texture_sampler_cooker::cook_from_json(asset.embedded_source, stream))
-			return false;
-
-		string_t path = cache_dir;
-		file_system_t::fix_path(path);
-		file_system_t::fix_path_end_slash(path);
-
-		char file_name[32] = {};
-		snprintf(file_name, sizeof(file_name), "%llu.sfg_bin", static_cast<unsigned long long>(asset.guid));
-		path += file_name;
-		return serializer_t::save_to_file(path.c_str(), stream);
+		return texture_sampler_cooker::cook_from_json(asset.embedded_source, stream);
 	}
 
 	void editor_asset_loader_texture_sampler_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .cook = cook, .asset_type = editor_asset_type_e::texture_sampler});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .cook = cook, .asset_type = editor_asset_type_e::texture_sampler, .source_type = editor_asset_source_type_e::embedded});
 	}
 
-	bool editor_asset_loader_physical_material_t::create_default(editor_asset_t&, const char*, const char*)
+	bool editor_asset_loader_physical_material_t::create_default(editor_asset_t&, const char*, const char*, u8)
 	{
 		return true;
 	}
 
 	void editor_asset_loader_physical_material_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::physical_material});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::physical_material, .source_type = editor_asset_source_type_e::none});
 	}
 
 	void editor_asset_loader_prefab_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::prefab});
+		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::prefab, .source_type = editor_asset_source_type_e::file});
 	}
 
-	bool editor_asset_loader_animation_state_machine_t::create_default(editor_asset_t&, const char*, const char*)
+	bool editor_asset_loader_animation_state_machine_t::create_default(editor_asset_t&, const char*, const char*, u8)
 	{
 		return true;
 	}
 
 	void editor_asset_loader_animation_state_machine_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::animation_state_machine});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::animation_state_machine, .source_type = editor_asset_source_type_e::none});
 	}
 
 	void to_json(nlohmann::json& j, const editor_asset_type_e& t)
@@ -177,9 +174,6 @@ namespace sfg
 			break;
 		case editor_asset_type_e::animation:
 			j = "animation";
-			break;
-		case editor_asset_type_e::particle_properties:
-			j = "particle_properties";
 			break;
 		case editor_asset_type_e::material:
 			j = "material";
@@ -222,8 +216,6 @@ namespace sfg
 			t = editor_asset_type_e::skeleton;
 		else if (s == "animation")
 			t = editor_asset_type_e::animation;
-		else if (s == "particle_properties")
-			t = editor_asset_type_e::particle_properties;
 		else if (s == "material")
 			t = editor_asset_type_e::material;
 		else if (s == "shader")
@@ -272,23 +264,21 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const editor_asset_t& asset)
 	{
-		j["version"]			  = asset.version;
-		j["guid"]				  = asset.guid;
-		j["asset_type"]			  = asset.asset_type;
-		j["source_type"]		  = asset.source_type;
-		j["source_relative_path"] = asset.source_relative_path;
-		j["embedded_source"]	  = asset.embedded_source;
-		j["cook_options"]		  = asset.cook_options;
+		j["version"]		 = asset.version;
+		j["guid"]			 = asset.guid;
+		j["asset_type"]		 = asset.asset_type;
+		j["sub_type"]		 = asset.sub_type;
+		j["embedded_source"] = asset.embedded_source;
+		j["cook_options"]	 = asset.cook_options;
 	}
 
 	void from_json(const nlohmann::json& j, editor_asset_t& asset)
 	{
-		asset.version			   = j.value<u32>("version", editor_asset_t::VERSION);
-		asset.guid				   = j.value<sid_t>("guid", 0);
-		asset.asset_type		   = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
-		asset.source_type		   = j.value<editor_asset_source_type_e>("source_type", editor_asset_source_type_e::none);
-		asset.source_relative_path = j.value<nlohmann::json>("source_relative_path", "");
-		asset.embedded_source	   = j.value<nlohmann::json>("embedded_source", nlohmann::json::object());
-		asset.cook_options		   = j.value<nlohmann::json>("cook_options", nlohmann::json::object());
+		asset.version		  = j.value<u32>("version", editor_asset_t::VERSION);
+		asset.guid			  = j.value<sid_t>("guid", 0);
+		asset.asset_type	  = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
+		asset.sub_type		  = j.value<u8>("sub_type", 0);
+		asset.embedded_source = j.value<nlohmann::json>("embedded_source", nlohmann::json::object());
+		asset.cook_options	  = j.value<nlohmann::json>("cook_options", nlohmann::json::object());
 	}
 }

@@ -32,16 +32,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 
-#include <sfg/job/job_system.hpp>
-#include <sfg/data/string_util.hpp>
 #include <sfg/data/frame_string.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/job/job_system.hpp>
+#include <sfg/runtime/resources/resource_cache.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <utility>
 
 #include <sfg/platform/time.hpp>
+#include <string>
 
 namespace sfg
 {
@@ -61,7 +64,6 @@ namespace sfg
 		editor_asset_loader_mesh_t::register_type();
 		editor_asset_loader_skeleton_t::register_type();
 		editor_asset_loader_animation_t::register_type();
-		editor_asset_loader_particle_properties_t::register_type();
 		editor_asset_loader_material_t::register_type();
 		editor_asset_loader_shader_t::register_type();
 		editor_asset_loader_texture_t::register_type();
@@ -194,6 +196,44 @@ namespace sfg
 		_asset_descriptors[desc.asset_type] = desc;
 	}
 
+	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const
+	{
+		if (extension.empty())
+			return nullptr;
+
+		string_t target = extension;
+		if (!target.empty() && target[0] == '.')
+			target.erase(target.begin());
+		string_util::to_lower(target);
+
+		for (const auto& asset_descriptor : _asset_descriptors)
+		{
+			const editor_asset_descriptor_t& descriptor = asset_descriptor.second;
+			size_t							 start		= 0;
+			while (start < descriptor.extension.size())
+			{
+				while (start < descriptor.extension.size() && (descriptor.extension[start] == '.' || descriptor.extension[start] == ';' || descriptor.extension[start] == ',' || descriptor.extension[start] == ' '))
+					++start;
+
+				size_t end = start;
+				while (end < descriptor.extension.size() && descriptor.extension[end] != ';' && descriptor.extension[end] != ',' && descriptor.extension[end] != ' ')
+					++end;
+
+				if (end > start)
+				{
+					string_t current = descriptor.extension.substr(start, end - start);
+					string_util::to_lower(current);
+					if (current == target)
+						return &descriptor;
+				}
+
+				start = end;
+			}
+		}
+
+		return nullptr;
+	}
+
 	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u8 size)
 	{
 		SFG_ASSERT(!_cook_in_progress);
@@ -220,8 +260,13 @@ namespace sfg
 			{
 				const auto descriptor_it = _asset_descriptors.find(asset.asset_type);
 				SFG_ASSERT(descriptor_it != _asset_descriptors.end());
-				if (descriptor_it->second.cook != nullptr && !descriptor_it->second.cook(asset, cache_dir.c_str()))
-					SFG_ERR("failed cooking asset {0}", asset.guid);
+				if (descriptor_it->second.cook != nullptr)
+				{
+					ostream_t	   stream;
+					const string_t cache_name = std::to_string(asset.guid);
+					if (!descriptor_it->second.cook(asset, stream) || !resource_cache_t::save(cache_dir.c_str(), cache_name.c_str(), stream))
+						SFG_ERR("failed cooking asset {0}", asset.guid);
+				}
 				_cooked_count.fetch_add(1, std::memory_order_relaxed);
 			}
 			_cook_finished.store(true, std::memory_order_release);

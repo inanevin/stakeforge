@@ -41,6 +41,7 @@ namespace sfg
 		vec2i16_t pos		 = {64, 64};
 		vec2u16_t size		 = {1920, 1080};
 		bool	  is_primary = false;
+		bool	  maximized	 = false;
 		string_t  dock_layout;
 	};
 

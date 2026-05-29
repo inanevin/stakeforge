@@ -15,7 +15,6 @@
 #include "font.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
-#include "particle_properties.hpp"
 #include "physical_material.hpp"
 #include "prefab.hpp"
 #include "shader.hpp"
@@ -55,9 +54,6 @@ namespace sfg
 			break;
 		case resource_type_e::animation:
 			j = "animation";
-			break;
-		case resource_type_e::particle_properties:
-			j = "particle_properties";
 			break;
 		case resource_type_e::material:
 			j = "material";
@@ -100,8 +96,6 @@ namespace sfg
 			t = resource_type_e::skeleton;
 		else if (s == "animation")
 			t = resource_type_e::animation;
-		else if (s == "particle_properties")
-			t = resource_type_e::particle_properties;
 		else if (s == "material")
 			t = resource_type_e::material;
 		else if (s == "shader")
@@ -127,7 +121,6 @@ namespace sfg
 		&mesh_resource_desc,
 		&skeleton_resource_desc,
 		&animation_resource_desc,
-		&particle_properties_resource_desc,
 		&material_resource_desc,
 		&shader_resource_desc,
 		&texture_resource_desc,

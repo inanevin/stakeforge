@@ -13,6 +13,11 @@ namespace sfg
 		editor_ui_lcd_text,
 		editor_ui_sdf,
 		editor_ui_text_grayscale,
+		opaque_shader,
+		transparent_shader,
+		post_process_shader,
+		ui_shader,
+		ui_text_shader,
 		count,
 	};
 

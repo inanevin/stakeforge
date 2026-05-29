@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_modal_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -42,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/serialization/serialization.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -60,6 +62,7 @@ namespace sfg
 #define ASSETS_INITIAL_ROW_CAPACITY		   64
 #define ASSETS_FILTER_ID_ALL			   0
 #define ASSETS_FILTER_ID_FAVOURITES		   1
+#define ASSETS_CREATE_DESC_MAX			   255
 
 	namespace
 	{
@@ -72,11 +75,20 @@ namespace sfg
 			assets_action_menu_open_directory				  = 5,
 			assets_action_menu_rename						  = 6,
 			assets_action_menu_create_animation_state_machine = 7,
-			assets_action_menu_create_shader				  = 8,
-			assets_action_menu_create_texture_sampler		  = 9,
-			assets_action_menu_create_material				  = 10,
-			assets_action_menu_create_particle_properties	  = 11,
-			assets_action_menu_create_physical_material		  = 12,
+			assets_action_menu_create_opaque_shader			  = 8,
+			assets_action_menu_create_transparent_shader	  = 9,
+			assets_action_menu_create_post_process_shader	  = 10,
+			assets_action_menu_create_ui_shader				  = 11,
+			assets_action_menu_create_ui_text_shader		  = 12,
+			assets_action_menu_create_texture_sampler		  = 13,
+			assets_action_menu_create_material				  = 14,
+			assets_action_menu_create_physical_material		  = 15,
+		};
+
+		struct create_asset_command_t
+		{
+			editor_asset_type_e asset_type = editor_asset_type_e::invalid;
+			u8					sub_type   = 0;
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ANIMATION_ROWS[] = {
@@ -84,10 +96,13 @@ namespace sfg
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {
-			{.text = "Shader", .command = assets_action_menu_create_shader},
+			{.text = "Opaque Shader", .command = assets_action_menu_create_opaque_shader},
+			{.text = "Transparent Shader", .command = assets_action_menu_create_transparent_shader},
+			{.text = "Post Process Shader", .command = assets_action_menu_create_post_process_shader},
+			{.text = "UI Shader", .command = assets_action_menu_create_ui_shader},
+			{.text = "UI Text Shader", .command = assets_action_menu_create_ui_text_shader},
 			{.text = "Texture Sampler", .command = assets_action_menu_create_texture_sampler},
 			{.text = "Material", .command = assets_action_menu_create_material},
-			{.text = "Particle Properties", .command = assets_action_menu_create_particle_properties},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {
@@ -128,24 +143,30 @@ namespace sfg
 			tree.in(id).flags = flags;
 		}
 
-		editor_asset_type_e asset_type_from_create_command(u16 command)
+		create_asset_command_t asset_type_from_create_command(u16 command)
 		{
 			switch (command)
 			{
 			case assets_action_menu_create_animation_state_machine:
-				return editor_asset_type_e::animation_state_machine;
-			case assets_action_menu_create_shader:
-				return editor_asset_type_e::shader;
+				return {.asset_type = editor_asset_type_e::animation_state_machine};
+			case assets_action_menu_create_opaque_shader:
+				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::opaque_shader)};
+			case assets_action_menu_create_transparent_shader:
+				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::transparent_shader)};
+			case assets_action_menu_create_post_process_shader:
+				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::post_process_shader)};
+			case assets_action_menu_create_ui_shader:
+				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::ui_shader)};
+			case assets_action_menu_create_ui_text_shader:
+				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::ui_text_shader)};
 			case assets_action_menu_create_texture_sampler:
-				return editor_asset_type_e::texture_sampler;
+				return {.asset_type = editor_asset_type_e::texture_sampler};
 			case assets_action_menu_create_material:
-				return editor_asset_type_e::material;
-			case assets_action_menu_create_particle_properties:
-				return editor_asset_type_e::particle_properties;
+				return {.asset_type = editor_asset_type_e::material};
 			case assets_action_menu_create_physical_material:
-				return editor_asset_type_e::physical_material;
+				return {.asset_type = editor_asset_type_e::physical_material};
 			default:
-				return editor_asset_type_e::invalid;
+				return {};
 			}
 		}
 	}
@@ -210,10 +231,17 @@ namespace sfg
 		_filter_button.init(ui, _assets_left_pane_top_row, filter_button_config);
 
 		editor_icon_button_config_t refresh_button_config = filter_button_config;
-		refresh_button_config.icon						  = ICON_ROTATE;
-		refresh_button_config.toggled_icon				  = ICON_ROTATE;
-		refresh_button_config.tooltip					  = "Refresh";
-		refresh_button_config.on_clicked				  = on_refresh_button_pressed;
+		refresh_button_config.icon						  = ICON_IMPORT;
+		refresh_button_config.toggled_icon				  = ICON_IMPORT;
+		refresh_button_config.tooltip					  = "Import";
+		refresh_button_config.on_clicked				  = on_import_button_pressed;
+		_import_button.init(ui, _assets_left_pane_top_row, refresh_button_config);
+
+		refresh_button_config			   = filter_button_config;
+		refresh_button_config.icon		   = ICON_ROTATE;
+		refresh_button_config.toggled_icon = ICON_ROTATE;
+		refresh_button_config.tooltip	   = "Refresh";
+		refresh_button_config.on_clicked   = on_refresh_button_pressed;
 		_refresh_button.init(ui, _assets_left_pane_top_row, refresh_button_config);
 
 		editor_input_field_config_t search_config = {};
@@ -339,6 +367,7 @@ namespace sfg
 	{
 		_search_input.uninit();
 		_filter_button.uninit();
+		_import_button.uninit();
 		_refresh_button.uninit();
 		_thumbnail_slider.uninit();
 		_split_border.uninit();
@@ -354,6 +383,8 @@ namespace sfg
 		_folder_rows.clear();
 		_expanded_folder_hashes.clear();
 		_favourite_folder_hashes.clear();
+		_pending_import_create_descs.clear();
+		_pending_import_directory.clear();
 
 		editor_panel_t::uninit();
 	}
@@ -440,6 +471,92 @@ namespace sfg
 		desc.closed_fn				   = on_action_menu_closed;
 		desc.closed_user_data		   = this;
 		menu->request_action_menu(desc);
+	}
+
+	void editor_panel_assets_t::import_assets(const vector_t<string_t>& paths)
+	{
+		const editor_asset_manager_t&  asset_manager = editor_asset_manager_t::get();
+		frame_vector_t<editor_asset_t> imported_assets;
+		imported_assets.reserve(paths.size());
+		frame_vector_t<string_t> imported_names;
+		imported_names.reserve(paths.size());
+
+		for (const string_t& path : paths)
+		{
+			if (imported_assets.size() == ASSETS_CREATE_DESC_MAX)
+				break;
+
+			const string_t					 extension	= file_system_t::get_file_extension(path);
+			const editor_asset_descriptor_t* descriptor = asset_manager.find_asset_descriptor(extension);
+			if (descriptor == nullptr)
+				continue;
+
+			imported_assets.push_back({
+				.asset_type = descriptor->asset_type,
+			});
+			imported_names.push_back(file_system_t::get_filename_from_path(path));
+		}
+
+		frame_vector_t<editor_asset_create_desc_t> create_descs;
+		create_descs.reserve(imported_assets.size());
+		for (size_t i = 0; i < imported_assets.size(); ++i)
+		{
+			const editor_asset_t& asset = imported_assets[i];
+			create_descs.push_back({
+				.name		= imported_names[i],
+				.asset_type = asset.asset_type,
+				.sub_type	= asset.sub_type,
+			});
+		}
+
+		if (create_descs.empty())
+			return;
+
+		string_t parent_path = get_action_menu_target_folder_path();
+		if (parent_path.empty())
+			return;
+		if (parent_path.back() != '/')
+			parent_path += '/';
+
+		frame_vector_t<string_t> overwrite_paths;
+		overwrite_paths.reserve(create_descs.size());
+		for (const editor_asset_create_desc_t& desc : create_descs)
+		{
+			string_t asset_name = desc.name;
+			if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+				continue;
+
+			const string_t asset_path = parent_path + asset_name + ".sfg_asset";
+			if (file_system_t::exists(asset_path.c_str()))
+				overwrite_paths.push_back(asset_path);
+		}
+
+		if (overwrite_paths.empty())
+		{
+			create_assets(parent_path.c_str(), create_descs.data(), static_cast<u8>(create_descs.size()));
+			return;
+		}
+
+		_pending_import_directory = parent_path;
+		_pending_import_create_descs.resize(0);
+		_pending_import_create_descs.reserve(create_descs.size());
+		for (const editor_asset_create_desc_t& desc : create_descs)
+			_pending_import_create_descs.push_back(desc);
+
+		frame_vector_t<const char*> row_texts;
+		row_texts.reserve(editor_modal_controller_t::MAX_SUB_DESCRIPTION_ROWS);
+		for (size_t i = 0; i < overwrite_paths.size() && i < editor_modal_controller_t::MAX_SUB_DESCRIPTION_ROWS; ++i)
+			row_texts.push_back(overwrite_paths[i].c_str());
+
+		editor_modal_button_desc_t buttons[] = {
+			{.text = "YES", .callback = on_import_overwrite_confirmed, .user_data = this},
+			{.text = "NO", .callback = on_import_overwrite_cancelled, .user_data = this},
+		};
+
+		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
+		SFG_ASSERT(modal != nullptr);
+		modal->request_modal(
+			"Import Assets", "These assets will be overridden with your import. Continue?", row_texts.data(), static_cast<u16>(row_texts.size()), buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
 	}
 
 	void editor_panel_assets_t::refresh_folder_rows()
@@ -734,7 +851,7 @@ namespace sfg
 		refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::open_create_popup(editor_asset_type_e asset_type)
+	void editor_panel_assets_t::open_create_popup(editor_asset_type_e asset_type, u8 sub_type)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
@@ -746,6 +863,7 @@ namespace sfg
 		desc.pos					   = _action_menu_pos;
 		desc.width					   = editor_theme_t::get().item_width;
 		_create_popup_asset_type	   = asset_type;
+		_create_popup_sub_type		   = sub_type;
 		popup->request_input_popup(desc);
 	}
 
@@ -774,14 +892,11 @@ namespace sfg
 		refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::create_asset(editor_asset_type_e asset_type, const char* directory, const char* name)
+	void editor_panel_assets_t::create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count)
 	{
-		SFG_ASSERT(asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(asset_type != editor_asset_type_e::count);
-
-		string_t asset_name = name != nullptr ? name : "";
-		if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+		if (desc_count == 0)
 			return;
+		SFG_ASSERT(descs != nullptr);
 
 		string_t parent_path = directory != nullptr ? directory : "";
 		if (parent_path.empty())
@@ -789,32 +904,51 @@ namespace sfg
 		if (parent_path.back() != '/')
 			parent_path += '/';
 
-		const string_t asset_path = parent_path + asset_name + ".sfg_asset";
-		if (file_system_t::exists(asset_path.c_str()))
-			return;
-
-		editor_asset_t asset = {};
-		asset.version		 = editor_asset_t::VERSION;
-		asset.guid			 = hashing_t::generate_guid64();
-		asset.asset_type	 = asset_type;
-		asset.source_type	 = editor_asset_source_type_e::none;
+		frame_vector_t<editor_asset_t> created_assets;
+		created_assets.reserve(desc_count);
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const auto&				descriptors	  = asset_manager.get_asset_descriptors();
-		const auto				descriptor_it = descriptors.find(asset_type);
-		SFG_ASSERT(descriptor_it != descriptors.end());
-		if (descriptor_it->second.create_default != nullptr)
+		for (u8 i = 0; i < desc_count; ++i)
 		{
-			if (!descriptor_it->second.create_default(asset, parent_path.c_str(), asset_name.c_str()))
-				return;
+			const editor_asset_create_desc_t& desc = descs[i];
+			SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
+			SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
+
+			string_t asset_name = desc.name;
+			if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+				continue;
+
+			const string_t asset_path = parent_path + asset_name + ".sfg_asset";
+			if (!_allow_asset_overwrite && file_system_t::exists(asset_path.c_str()))
+				continue;
+
+			editor_asset_t asset = {};
+			asset.version		 = editor_asset_t::VERSION;
+			asset.guid			 = hashing_t::generate_guid64();
+			asset.asset_type	 = desc.asset_type;
+			asset.sub_type		 = desc.sub_type;
+
+			const auto descriptor_it = descriptors.find(desc.asset_type);
+			SFG_ASSERT(descriptor_it != descriptors.end());
+			if (descriptor_it->second.create_default != nullptr)
+			{
+				if (!descriptor_it->second.create_default(asset, parent_path.c_str(), asset_name.c_str(), desc.sub_type))
+					continue;
+			}
+
+			const nlohmann::json json_data = asset;
+			const string_t		 data	   = json_data.dump(4);
+			if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), asset_path.c_str()))
+				continue;
+
+			created_assets.push_back(asset);
 		}
 
-		const nlohmann::json json_data = asset;
-		const string_t		 data	   = json_data.dump(4);
-		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), asset_path.c_str()))
+		if (created_assets.empty())
 			return;
 
-		asset_manager.cook_assets(&asset, 1);
+		asset_manager.cook_assets(created_assets.data(), static_cast<u8>(created_assets.size()));
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
 	}
@@ -1046,20 +1180,30 @@ namespace sfg
 		panel.open_filter_popup();
 	}
 
+	void editor_panel_assets_t::on_import_button_pressed(bool, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		vector_t<string_t>	   paths;
+		process::select_files("Import Assets", "glb;png;jpg;jpeg;mp3;ttf", paths);
+		if (!paths.empty())
+			panel.import_assets(paths);
+	}
+
 	void editor_panel_assets_t::on_refresh_button_pressed(bool, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.name);
+		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
 		panel.refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)
 	{
-		editor_panel_assets_t&	  panel		 = *static_cast<editor_panel_assets_t*>(user_data);
-		const editor_asset_type_e asset_type = asset_type_from_create_command(command);
-		if (asset_type != editor_asset_type_e::invalid)
+		editor_panel_assets_t&		 panel			= *static_cast<editor_panel_assets_t*>(user_data);
+		const create_asset_command_t create_command = asset_type_from_create_command(command);
+		if (create_command.asset_type != editor_asset_type_e::invalid)
 		{
-			panel._create_popup_asset_type = asset_type;
+			panel._create_popup_asset_type = create_command.asset_type;
+			panel._create_popup_sub_type   = create_command.sub_type;
 			panel._create_popup_pending	   = true;
 			return;
 		}
@@ -1068,6 +1212,7 @@ namespace sfg
 		{
 		case assets_action_menu_create_folder:
 			panel._create_popup_asset_type = editor_asset_type_e::invalid;
+			panel._create_popup_sub_type   = 0;
 			panel._create_popup_pending	   = true;
 			return;
 		case assets_action_menu_delete:
@@ -1100,8 +1245,9 @@ namespace sfg
 		if (panel._create_popup_pending)
 		{
 			const editor_asset_type_e asset_type = panel._create_popup_asset_type;
+			const u8				  sub_type	 = panel._create_popup_sub_type;
 			panel._create_popup_pending			 = false;
-			panel.open_create_popup(asset_type);
+			panel.open_create_popup(asset_type, sub_type);
 			return;
 		}
 
@@ -1116,20 +1262,44 @@ namespace sfg
 	{
 		editor_panel_assets_t&	  panel		 = *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_type_e asset_type = panel._create_popup_asset_type;
+		const u8				  sub_type	 = panel._create_popup_sub_type;
 		panel._create_popup_asset_type		 = editor_asset_type_e::invalid;
+		panel._create_popup_sub_type		 = 0;
 		if (asset_type == editor_asset_type_e::invalid)
 		{
 			panel.create_folder(value);
 			return;
 		}
 
-		const string_t directory = panel.get_action_menu_target_folder_path();
-		panel.create_asset(asset_type, directory.c_str(), value);
+		const string_t					 directory = panel.get_action_menu_target_folder_path();
+		const editor_asset_create_desc_t desc	   = {
+				 .name		 = value != nullptr ? value : "",
+				 .asset_type = asset_type,
+				 .sub_type	 = sub_type,
+		 };
+		panel.create_assets(directory.c_str(), &desc, 1);
 	}
 
 	void editor_panel_assets_t::on_rename_popup_closed(const char* value, void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->rename_folder(value);
+	}
+
+	void editor_panel_assets_t::on_import_overwrite_confirmed(void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel._allow_asset_overwrite = true;
+		panel.create_assets(panel._pending_import_directory.c_str(), panel._pending_import_create_descs.data(), static_cast<u8>(panel._pending_import_create_descs.size()));
+		panel._allow_asset_overwrite = false;
+		panel._pending_import_create_descs.resize(0);
+		panel._pending_import_directory.clear();
+	}
+
+	void editor_panel_assets_t::on_import_overwrite_cancelled(void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel._pending_import_create_descs.resize(0);
+		panel._pending_import_directory.clear();
 	}
 
 	void editor_panel_assets_t::on_search_changed(const char* value, void* user_data)

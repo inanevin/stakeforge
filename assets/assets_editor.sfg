@@ -46,6 +46,15 @@
             }
         },
         {
+            "name": "ui_texture",
+            "path": "editor/shaders/editor_ui_texture.hlsl",
+            "type": "shader",
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": "editor_ui_default"
+            }
+        },
+        {
             "name": "ui_glitch_rect",
             "path": "editor/shaders/editor_ui_glitch_rect.hlsl",
             "type": "shader",
@@ -100,15 +109,6 @@
             "type": "font",
             "config": {
                 "schema": "sfg.schema.font"
-            }
-        },
-        {
-            "name": "test",
-            "path": "editor/textures/test.jpg",
-            "type": "texture",
-            "config": {
-                "schema": "sfg.schema.texture",
-                "generate_mipmaps": true
             }
         }
     ]

@@ -78,6 +78,13 @@ namespace sfg
 			bool					   is_favourite = false;
 		};
 
+		struct editor_asset_create_desc_t
+		{
+			string_t			name	   = {};
+			editor_asset_type_e asset_type = editor_asset_type_e::invalid;
+			u8					sub_type   = 0;
+		};
+
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
@@ -85,6 +92,7 @@ namespace sfg
 		void apply_pane_split();
 		void open_filter_popup();
 		void open_action_menu(const vec2f_t& pos, editor_asset_node_handle_t folder, u64 folder_hash);
+		void import_assets(const vector_t<string_t>& paths);
 		void refresh_folder_rows();
 		bool append_folder_rows(editor_asset_node_handle_t node, u16 depth, frame_string_t<char>& current_path);
 
@@ -97,9 +105,9 @@ namespace sfg
 		void select_folder_row(u64 path_hash);
 		void toggle_folder_fold(u64 path_hash);
 		void toggle_folder_favourite(u64 path_hash);
-		void open_create_popup(editor_asset_type_e asset_type);
+		void open_create_popup(editor_asset_type_e asset_type, u8 sub_type);
 		void create_folder(const char* name);
-		void create_asset(editor_asset_type_e asset_type, const char* directory, const char* name);
+		void create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count);
 		void delete_folder();
 		void duplicate_folder();
 		void open_rename_popup();
@@ -120,11 +128,14 @@ namespace sfg
 
 		static void on_filter_popup_pressed(u16 value, void* user_data);
 		static void on_filter_button_pressed(bool toggled, void* user_data);
+		static void on_import_button_pressed(bool toggled, void* user_data);
 		static void on_refresh_button_pressed(bool toggled, void* user_data);
 		static void on_action_menu_command(u16 command, void* user_data);
 		static void on_action_menu_closed(void* user_data);
 		static void on_create_popup_closed(const char* value, void* user_data);
 		static void on_rename_popup_closed(const char* value, void* user_data);
+		static void on_import_overwrite_confirmed(void* user_data);
+		static void on_import_overwrite_cancelled(void* user_data);
 		static void on_search_changed(const char* value, void* user_data);
 		static void on_thumbnail_slider_changed(f32 value, void* user_data);
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -136,35 +147,40 @@ namespace sfg
 		static void on_folder_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		editor_icon_button_t	   _filter_button			 = {};
-		editor_icon_button_t	   _refresh_button			 = {};
-		editor_input_field_t	   _search_input			 = {};
-		editor_slider_t			   _thumbnail_slider		 = {};
-		editor_split_border_t	   _split_border			 = {};
-		editor_scrollbar_t		   _left_scrollbar			 = {};
-		vector_t<folder_row_t>	   _folder_rows				 = {};
-		vector_t<u64>			   _expanded_folder_hashes	 = {};
-		vector_t<u64>			   _favourite_folder_hashes	 = {};
-		string_t				   _search_str				 = {};
-		string_t				   _search_str_lower		 = {};
-		vec2f_t					   _action_menu_pos			 = {};
-		u64						   _action_menu_folder_hash	 = 0;
-		u64						   _selected_folder_hash	 = 0;
-		editor_asset_node_handle_t _action_menu_folder		 = {};
-		ui::widget_id_t			   _assets_left_pane		 = NULL_WIDGET;
-		ui::widget_id_t			   _assets_left_pane_top_row = NULL_WIDGET;
-		ui::widget_id_t			   _assets_left_pane_body	 = NULL_WIDGET;
-		ui::widget_id_t			   _assets_body_pane		 = NULL_WIDGET;
-		ui::widget_id_t			   _assets_body_pane_top	 = NULL_WIDGET;
-		ui::widget_id_t			   _assets_body_pane_divider = NULL_WIDGET;
-		ui::widget_id_t			   _assets_body_pane_bottom	 = NULL_WIDGET;
-		u32						   _asset_tree_generation	 = 0;
-		u32						   _visible_folder_row_count = 0;
-		f32						   _thumbnail_slider_value	 = 1.0f;
-		f32						   _pane_split				 = 0.3f;
-		editor_asset_type_e		   _create_popup_asset_type	 = editor_asset_type_e::invalid;
-		bool					   _favourites_only			 = false;
-		bool					   _create_popup_pending	 = false;
-		bool					   _rename_popup_pending	 = false;
+		editor_icon_button_t				 _filter_button				  = {};
+		editor_icon_button_t				 _import_button				  = {};
+		editor_icon_button_t				 _refresh_button			  = {};
+		editor_input_field_t				 _search_input				  = {};
+		editor_slider_t						 _thumbnail_slider			  = {};
+		editor_split_border_t				 _split_border				  = {};
+		editor_scrollbar_t					 _left_scrollbar			  = {};
+		vector_t<folder_row_t>				 _folder_rows				  = {};
+		vector_t<u64>						 _expanded_folder_hashes	  = {};
+		vector_t<u64>						 _favourite_folder_hashes	  = {};
+		vector_t<editor_asset_create_desc_t> _pending_import_create_descs = {};
+		string_t							 _pending_import_directory	  = {};
+		string_t							 _search_str				  = {};
+		string_t							 _search_str_lower			  = {};
+		vec2f_t								 _action_menu_pos			  = {};
+		u64									 _action_menu_folder_hash	  = 0;
+		u64									 _selected_folder_hash		  = 0;
+		editor_asset_node_handle_t			 _action_menu_folder		  = {};
+		ui::widget_id_t						 _assets_left_pane			  = NULL_WIDGET;
+		ui::widget_id_t						 _assets_left_pane_top_row	  = NULL_WIDGET;
+		ui::widget_id_t						 _assets_left_pane_body		  = NULL_WIDGET;
+		ui::widget_id_t						 _assets_body_pane			  = NULL_WIDGET;
+		ui::widget_id_t						 _assets_body_pane_top		  = NULL_WIDGET;
+		ui::widget_id_t						 _assets_body_pane_divider	  = NULL_WIDGET;
+		ui::widget_id_t						 _assets_body_pane_bottom	  = NULL_WIDGET;
+		u32									 _asset_tree_generation		  = 0;
+		u32									 _visible_folder_row_count	  = 0;
+		f32									 _thumbnail_slider_value	  = 1.0f;
+		f32									 _pane_split				  = 0.3f;
+		editor_asset_type_e					 _create_popup_asset_type	  = editor_asset_type_e::invalid;
+		u8									 _create_popup_sub_type		  = 0;
+		bool								 _favourites_only			  = false;
+		bool								 _create_popup_pending		  = false;
+		bool								 _rename_popup_pending		  = false;
+		bool								 _allow_asset_overwrite		  = false;
 	};
 }

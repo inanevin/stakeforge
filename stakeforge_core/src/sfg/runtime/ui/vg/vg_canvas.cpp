@@ -352,8 +352,19 @@ namespace sfg::ui
 
 			for (u8 i = 0; i < 4; ++i)
 			{
-				const ui_resource_ref_t& ref = db.state.constants[i];
-				if (ref.type == ui_resource_type_e::texture)
+				const ui_resource_ref_t& ref  = db.state.constants[i];
+				db.resolved.constant_types[i] = ref.type;
+				if (ref.type == ui_resource_type_e::gpu_index)
+				{
+					db.resolved.constants[i] = ref.gpu_indices[0];
+				}
+				else if (ref.type == ui_resource_type_e::gpu_index_fof)
+				{
+					db.resolved.constants[i] = ref.gpu_indices[0];
+					for (u8 j = 0; j < BACK_BUFFER_COUNT; ++j)
+						db.resolved.constant_frames[i][j] = ref.gpu_indices[j];
+				}
+				else if (ref.type == ui_resource_type_e::texture)
 				{
 					const gpu_index_t idx = resolve_texture_index(ref.handle);
 					SFG_ASSERT(idx != NULL_GPU_INDEX);
@@ -508,7 +519,7 @@ namespace sfg::ui
 			}
 		}
 
-		u32 outline_outer_base = INVALID_ID_U32;
+		u32 outline_outer_base = UINT32_MAX;
 		if (out)
 		{
 			outline_outer_base = db->vertex_count;
