@@ -2,6 +2,7 @@
 
 #include "texture_cook.hpp"
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
 #include <sfg/gfx/util/image_util.hpp>
 #include <sfg/io/file_system.hpp>
@@ -61,8 +62,49 @@ namespace sfg
 		return true;
 	}
 
+	void to_json(nlohmann::json& j, const texture_cook_payload_type_e& e)
+	{
+		switch (e)
+		{
+		case texture_cook_payload_type_e::uncompressed:
+			j = "uncompressed";
+			return;
+		case texture_cook_payload_type_e::ktx2_uastc:
+			j = "ktx2_uastc";
+			return;
+		}
+
+		j = "uncompressed";
+	}
+
+	void from_json(const nlohmann::json& j, texture_cook_payload_type_e& e)
+	{
+		const string_t str = j.get<string_t>();
+
+		if (str.compare("uncompressed") == 0)
+		{
+			e = texture_cook_payload_type_e::uncompressed;
+			return;
+		}
+		if (str.compare("ktx2_uastc") == 0)
+		{
+			e = texture_cook_payload_type_e::ktx2_uastc;
+			return;
+		}
+
+		e = texture_cook_payload_type_e::uncompressed;
+	}
+
+	void to_json(nlohmann::json& j, const texture_cook_config_t& c)
+	{
+		j["payload_type"]	  = c.payload_type;
+		j["generate_mipmaps"] = c.generate_mipmaps;
+		j["is_linear"]		  = c.is_linear;
+	}
+
 	void from_json(const nlohmann::json& j, texture_cook_config_t& c)
 	{
+		c.payload_type	   = j.value<texture_cook_payload_type_e>("payload_type", texture_cook_payload_type_e::uncompressed);
 		c.generate_mipmaps = j.value<bool>("generate_mipmaps", false);
 		c.is_linear		   = j.value<bool>("is_linear", false);
 	}
