@@ -85,6 +85,7 @@ namespace sfg
 		{
 		case format_e::b8g8r8a8_srgb:
 		case format_e::bc3_block_srgb:
+		case format_e::bc7_block_srgb:
 		case format_e::r8g8b8a8_srgb:
 			return false;
 		default:
@@ -134,6 +135,18 @@ namespace sfg
 			return;
 		case format_e::r32_sfloat:
 			j = "r32_sfloat";
+			return;
+		case format_e::bc3_block_srgb:
+			j = "bc3_block_srgb";
+			return;
+		case format_e::bc3_block_unorm:
+			j = "bc3_block_unorm";
+			return;
+		case format_e::bc7_block_srgb:
+			j = "bc7_block_srgb";
+			return;
+		case format_e::bc7_block_unorm:
+			j = "bc7_block_unorm";
 			return;
 		}
 
@@ -205,6 +218,26 @@ namespace sfg
 		if (str.compare("r32_sfloat") == 0)
 		{
 			f = format_e::r32_sfloat;
+			return;
+		}
+		if (str.compare("bc3_block_srgb") == 0)
+		{
+			f = format_e::bc3_block_srgb;
+			return;
+		}
+		if (str.compare("bc3_block_unorm") == 0)
+		{
+			f = format_e::bc3_block_unorm;
+			return;
+		}
+		if (str.compare("bc7_block_srgb") == 0)
+		{
+			f = format_e::bc7_block_srgb;
+			return;
+		}
+		if (str.compare("bc7_block_unorm") == 0)
+		{
+			f = format_e::bc7_block_unorm;
 			return;
 		}
 

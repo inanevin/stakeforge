@@ -102,6 +102,8 @@ namespace sfg
 		r10g0b10a2_unorm,
 		bc3_block_srgb,
 		bc3_block_unorm,
+		bc7_block_srgb,
+		bc7_block_unorm,
 		format_max,
 	};
 

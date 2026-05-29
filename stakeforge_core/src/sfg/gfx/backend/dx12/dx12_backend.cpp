@@ -284,6 +284,10 @@ namespace sfg
 				return DXGI_FORMAT_BC3_UNORM_SRGB;
 			case format_e::bc3_block_unorm:
 				return DXGI_FORMAT_BC3_UNORM;
+			case format_e::bc7_block_srgb:
+				return DXGI_FORMAT_BC7_UNORM_SRGB;
+			case format_e::bc7_block_unorm:
+				return DXGI_FORMAT_BC7_UNORM;
 
 			default:
 				return DXGI_FORMAT_UNKNOWN;
