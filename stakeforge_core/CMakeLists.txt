@@ -53,6 +53,23 @@ set_target_properties(freetype PROPERTIES FOLDER "stakeforge/dependencies")
 add_subdirectory(deps/tracy-0.13.0)
 set_target_properties(TracyClient PROPERTIES FOLDER "stakeforge/dependencies")
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JNI OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_PY OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_LOADTEST_APPS OFF CACHE STRING "" FORCE)
+set(KTX_FEATURE_KTX1 OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_KTX2 ON CACHE BOOL "" FORCE)
+set(KTX_FEATURE_VK_UPLOAD OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_GL_UPLOAD OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_ETC_UNPACK OFF CACHE BOOL "" FORCE)
+add_subdirectory(deps/KTX-Software-4.4.2)
+set_target_properties(ktx PROPERTIES FOLDER "stakeforge/dependencies")
+set_target_properties(ktx_read PROPERTIES FOLDER "stakeforge/dependencies")
+
 if(MSVC)
     target_compile_options(Jolt PRIVATE /wd4865 /wd5045)
 endif()
@@ -216,6 +233,7 @@ if(WIN32)
 endif()
 
 target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4 freetype)
+target_link_libraries(${SFG_CORE_TARGET} PRIVATE ktx)
 
 target_precompile_headers(${SFG_CORE_TARGET} PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/pch.hpp>"
