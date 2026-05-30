@@ -50,7 +50,7 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "editor_slider_base");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
+		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -66,7 +66,7 @@ namespace sfg
 		_slider = ui.allocate_widget();
 		ui.set_widget_debug_name(_slider, "editor_slider_slider");
 		tree.attach(_root, _slider);
-		tree.draw_order(_slider) = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_slider) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& slider_in = tree.in(_slider);
 		slider_in.flags			   = ui::wf_visible | ui::wf_input;
@@ -86,7 +86,7 @@ namespace sfg
 		_bg = ui.allocate_widget();
 		ui.set_widget_debug_name(_bg, "editor_slider_bg");
 		tree.attach(_slider, _bg);
-		tree.draw_order(_bg) = tree.draw_order_const(_slider) + 1;
+		tree.draw_order(_bg) = tree.draw_order_const(_slider);
 
 		ui::layout_in_t& bg_in = tree.in(_bg);
 		bg_in.flags			   = ui::wf_visible;
@@ -106,7 +106,7 @@ namespace sfg
 		_icon = ui.allocate_widget();
 		ui.set_widget_debug_name(_icon, "editor_slider_icon");
 		tree.attach(_slider, _icon);
-		tree.draw_order(_icon) = tree.draw_order_const(_slider) + 2;
+		tree.draw_order(_icon) = tree.draw_order_const(_slider);
 
 		ui::layout_in_t& icon_in = tree.in(_icon);
 		icon_in.flags			 = ui::wf_visible;
@@ -128,7 +128,7 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "editor_slider_label");
 		tree.attach(_root, _label);
-		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_label) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.flags			  = config.display_label ? ui::wf_visible : 0;

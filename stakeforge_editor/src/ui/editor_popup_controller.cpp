@@ -40,7 +40,8 @@ namespace sfg
 {
 	namespace
 	{
-		constexpr u32 POPUP_DRAW_ORDER = 50000u;
+		constexpr u32 POPUP_FG_DRAW_ORDER = 50000u;
+		constexpr u32 POPUP_DRAW_ORDER	  = 50001u;
 
 		editor_popup_controller_t* s_controllers[editor_popup_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
@@ -65,7 +66,7 @@ namespace sfg
 		_foreground = ui.allocate_widget();
 		ui.set_widget_debug_name(_foreground, "popup_foreground");
 		tree.attach(ui.get_root(), _foreground);
-		tree.draw_order(_foreground) = POPUP_DRAW_ORDER;
+		tree.draw_order(_foreground) = POPUP_FG_DRAW_ORDER;
 
 		ui::layout_in_t& foreground_in = tree.in(_foreground);
 		foreground_in.flags			   = 0;
@@ -76,7 +77,7 @@ namespace sfg
 		_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_frame, "popup_frame");
 		tree.attach(_foreground, _frame);
-		tree.draw_order(_frame) = POPUP_DRAW_ORDER + 1;
+		tree.draw_order(_frame) = POPUP_DRAW_ORDER;
 
 		ui::layout_in_t& frame_in = tree.in(_frame);
 		frame_in.flags			  = 0;
@@ -104,7 +105,7 @@ namespace sfg
 			_row_frames[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_frames[i], "popup_item");
 			tree.attach(_frame, _row_frames[i]);
-			tree.draw_order(_row_frames[i]) = POPUP_DRAW_ORDER + 2;
+			tree.draw_order(_row_frames[i]) = POPUP_DRAW_ORDER;
 
 			ui::layout_in_t& row_in = tree.in(_row_frames[i]);
 			row_in.flags			= 0;
@@ -126,7 +127,7 @@ namespace sfg
 			_row_markers[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_markers[i], "popup_selected_marker");
 			tree.attach(_row_frames[i], _row_markers[i]);
-			tree.draw_order(_row_markers[i]) = POPUP_DRAW_ORDER + 3;
+			tree.draw_order(_row_markers[i]) = POPUP_DRAW_ORDER;
 
 			ui::layout_in_t& marker_in = tree.in(_row_markers[i]);
 			marker_in.flags			   = 0;
@@ -137,7 +138,7 @@ namespace sfg
 			_row_marker_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_marker_labels[i], "popup_selected_marker_icon");
 			tree.attach(_row_markers[i], _row_marker_labels[i]);
-			tree.draw_order(_row_marker_labels[i]) = POPUP_DRAW_ORDER + 4;
+			tree.draw_order(_row_marker_labels[i]) = POPUP_DRAW_ORDER;
 
 			ui::layout_in_t& marker_label_in = tree.in(_row_marker_labels[i]);
 			marker_label_in.flags			 = 0;
@@ -155,7 +156,7 @@ namespace sfg
 			_row_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_labels[i], "popup_item_label");
 			tree.attach(_row_frames[i], _row_labels[i]);
-			tree.draw_order(_row_labels[i]) = POPUP_DRAW_ORDER + 3;
+			tree.draw_order(_row_labels[i]) = POPUP_DRAW_ORDER;
 
 			ui::layout_in_t& label_in = tree.in(_row_labels[i]);
 			label_in.flags			  = 0;
@@ -169,7 +170,7 @@ namespace sfg
 		input_config.on_submitted				 = on_input_submitted;
 		input_config.user_data					 = this;
 		_input.init(ui, _foreground, input_config);
-		tree.draw_order(_input.get_root()) = POPUP_DRAW_ORDER + 2;
+		tree.draw_order(_input.get_root()) = POPUP_DRAW_ORDER;
 
 		s_controllers[s_controller_count++] = this;
 		set_visible(false);

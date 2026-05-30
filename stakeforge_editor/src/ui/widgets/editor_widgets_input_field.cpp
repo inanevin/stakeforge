@@ -68,7 +68,7 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "input_field");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
+		tree.draw_order(_root) = tree.draw_order_const(parent);
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);

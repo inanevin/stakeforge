@@ -691,7 +691,7 @@ namespace sfg
 		row.icon = ui.allocate_widget();
 		ui.set_widget_debug_name(row.icon, "asset_folder_row_icon_wrapper");
 		tree.attach(row.root, row.icon);
-		tree.draw_order(row.icon) = tree.draw_order_const(row.root) + 1;
+		tree.draw_order(row.icon) = tree.draw_order_const(row.root);
 
 		ui::layout_in_t& icon_in = tree.in(row.icon);
 		icon_in.flags			 = ui::wf_visible;
@@ -710,7 +710,7 @@ namespace sfg
 		row.icon_text = ui.allocate_widget();
 		ui.set_widget_debug_name(row.icon_text, "asset_folder_row_icon");
 		tree.attach(row.icon, row.icon_text);
-		tree.draw_order(row.icon_text) = tree.draw_order_const(row.icon) + 1;
+		tree.draw_order(row.icon_text) = tree.draw_order_const(row.icon);
 
 		ui::layout_in_t& icon_text_in = tree.in(row.icon_text);
 		icon_text_in.flags			  = ui::wf_visible;
@@ -725,7 +725,7 @@ namespace sfg
 		row.star_text = ui.allocate_widget();
 		ui.set_widget_debug_name(row.star_text, "asset_folder_row_star");
 		tree.attach(row.root, row.star_text);
-		tree.draw_order(row.star_text) = tree.draw_order_const(row.root) + 2;
+		tree.draw_order(row.star_text) = tree.draw_order_const(row.root);
 
 		ui::layout_in_t& star_in = tree.in(row.star_text);
 		star_in.flags			 = 0;
@@ -747,7 +747,7 @@ namespace sfg
 		row.label = ui.allocate_widget();
 		ui.set_widget_debug_name(row.label, "asset_folder_row_label");
 		tree.attach(row.root, row.label);
-		tree.draw_order(row.label) = tree.draw_order_const(row.root) + 1;
+		tree.draw_order(row.label) = tree.draw_order_const(row.root);
 
 		ui::layout_in_t& label_in = tree.in(row.label);
 		label_in.flags			  = ui::wf_visible;

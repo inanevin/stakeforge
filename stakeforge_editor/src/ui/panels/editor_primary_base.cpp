@@ -668,7 +668,6 @@ namespace sfg
 			_project_label = ui.allocate_widget();
 			ui.set_widget_debug_name(_project_label, "project_label");
 			tree.attach(label_wrap, _project_label);
-			tree.draw_order(_project_label) = tree.draw_order_const(top_row_right) + 1;
 
 			ui::layout_in_t& project_in = tree.in(_project_label);
 			project_in.flags			= ui::wf_visible;

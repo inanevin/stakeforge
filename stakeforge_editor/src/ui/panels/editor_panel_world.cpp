@@ -87,7 +87,7 @@ namespace sfg
 		_empty_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_empty_label, "empty_label");
 		tree.attach(_root, _empty_label);
-		tree.draw_order(_empty_label) = tree.draw_order_const(_world_view) + 1;
+		tree.draw_order(_empty_label) = tree.draw_order_const(_world_view);
 
 		ui::layout_in_t& label_in = tree.in(_empty_label);
 		label_in.flags			  = ui::wf_visible;
@@ -101,7 +101,7 @@ namespace sfg
 		paint.set_text(_empty_label,
 					   ui.widget_text(_empty_label),
 					   ui.widget_text_len(_empty_label),
-					   {.font = theme.font_title_bold, .color = theme.color_text2, .point_size = theme.text_big_px_size , .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_title_bold, .color = theme.color_text2, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
 	void editor_panel_world_t::uninit()

@@ -61,7 +61,7 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "color_field");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
+		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -90,7 +90,7 @@ namespace sfg
 		_swatch = ui.allocate_widget();
 		ui.set_widget_debug_name(_swatch, "color_field_swatch");
 		tree.attach(_root, _swatch);
-		tree.draw_order(_swatch) = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_swatch) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& swatch_in = tree.in(_swatch);
 		swatch_in.flags			   = ui::wf_visible;
