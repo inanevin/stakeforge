@@ -386,7 +386,7 @@ namespace sfg::ui
 
 	void vg_canvas_t::frame_end()
 	{
-		std::sort(_draw_buffers.begin(), _draw_buffers.end(), [](const vg_draw_buffer_t& a, const vg_draw_buffer_t& b) { return a.draw_order < b.draw_order; });
+		std::stable_sort(_draw_buffers.begin(), _draw_buffers.end(), [](const vg_draw_buffer_t& a, const vg_draw_buffer_t& b) { return a.draw_order < b.draw_order; });
 	}
 
 	void vg_canvas_t::push_clip(const vec4f_t& rect)
