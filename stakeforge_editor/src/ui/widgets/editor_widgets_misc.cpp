@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_widgets_misc.hpp"
+#include "ui/editor_text_rasterization.hpp"
+#include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -63,6 +65,82 @@ namespace sfg
 
 			return id;
 		}
+	}
+
+	editor_property_row_t editor_misc_widgets_t::make_property_row(ui::ui_context& ui, ui::widget_id_t parent)
+	{
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		editor_property_row_t row = {};
+
+		row.row = ui.allocate_widget();
+		ui.set_widget_debug_name(row.row, "property_row");
+		tree.attach(parent, row.row);
+		tree.draw_order(row.row) = tree.draw_order_const(parent) + 1;
+
+		ui::layout_in_t& row_in = tree.in(row.row);
+		row_in.flags			= ui::wf_visible;
+		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		row_in.size_mode_y		= ui::axis_mode_e::fixed;
+		row_in.size_value		= {1.0f, theme.item_area_height};
+		row_in.flow				= ui::flow_e::row;
+
+		row.left = ui.allocate_widget();
+		ui.set_widget_debug_name(row.left, "property_row_left");
+		tree.attach(row.row, row.left);
+		tree.draw_order(row.left) = tree.draw_order_const(row.row) + 1;
+
+		ui::layout_in_t& left_in = tree.in(row.left);
+		left_in.flags			 = ui::wf_visible;
+		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
+		left_in.size_value		 = {0.4f, 1.0f};
+		left_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		left_in.flow			 = ui::flow_e::row;
+
+		row.right = ui.allocate_widget();
+		ui.set_widget_debug_name(row.right, "property_row_right");
+		tree.attach(row.row, row.right);
+		tree.draw_order(row.right) = tree.draw_order_const(row.row) + 1;
+
+		ui::layout_in_t& right_in = tree.in(row.right);
+		right_in.flags			  = ui::wf_visible;
+		right_in.size_mode_x	  = ui::axis_mode_e::fill;
+		right_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		right_in.size_value		  = {1.0f, 1.0f};
+		right_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		right_in.flow			  = ui::flow_e::row;
+
+		return row;
+	}
+
+	editor_property_row_t editor_misc_widgets_t::make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label)
+	{
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+		ui::paint_layer_t&	  paint = ui.get_paint();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		const editor_property_row_t row = make_property_row(ui, parent);
+
+		const ui::widget_id_t label_id = ui.allocate_widget();
+		ui.set_widget_debug_name(label_id, "property_row_label");
+		tree.attach(row.left, label_id);
+		tree.draw_order(label_id) = tree.draw_order_const(row.left) + 1;
+
+		ui::layout_in_t& label_in = tree.in(label_id);
+		label_in.flags			  = ui::wf_visible;
+		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_value.y	  = 0.5f;
+		label_in.anchor_y		  = ui::anchor_e::center;
+
+		ui.set_widget_text(label_id, label != nullptr ? label : "");
+		paint.set_text(label_id,
+					   ui.widget_text(label_id),
+					   ui.widget_text_len(label_id),
+					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		return row;
 	}
 
 	ui::widget_id_t editor_misc_widgets_t::add_spacer(ui::ui_context& ui, ui::widget_id_t parent, const vec2f_t& size)

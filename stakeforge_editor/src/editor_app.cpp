@@ -685,9 +685,15 @@ namespace sfg
 
 		surface.ui = make_unique<ui::ui_context>();
 		surface.ui->init({
+			.canvas =
+				{
+					.vertex_buffer_bytes = 1 << 25,
+					.index_buffer_bytes	 = 1 << 25,
+					.buffer_count		 = 72,
+				},
 			.user_ui_scale = 1.0f,
 			.dpi_scale	   = surface.runtime->monitor_info.dpi_scale,
-			.max_widgets   = 2048,
+			.max_widgets   = 4096,
 		});
 		surface.ui->get_paint().set_pipelines({
 			.default_pipeline		 = "editor/shaders/ui_default.hlsl"_hs,

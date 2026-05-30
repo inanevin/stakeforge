@@ -35,6 +35,13 @@ namespace sfg::ui
 
 namespace sfg
 {
+	struct editor_property_row_t
+	{
+		ui::widget_id_t row	  = NULL_WIDGET;
+		ui::widget_id_t left  = NULL_WIDGET;
+		ui::widget_id_t right = NULL_WIDGET;
+	};
+
 	struct editor_window_buttons_t
 	{
 		ui::widget_id_t minimize_frame = NULL_WIDGET;
@@ -49,6 +56,8 @@ namespace sfg
 	{
 	public:
 		static ui::widget_id_t		   add_spacer(ui::ui_context& ui, ui::widget_id_t parent, const vec2f_t& size);
+		static editor_property_row_t   make_property_row(ui::ui_context& ui, ui::widget_id_t parent);
+		static editor_property_row_t   make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label);
 		static editor_window_buttons_t add_window_buttons(
 			ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& frame_color, const vec4f_t& alternative_frame_color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& icon_color, f32 icon_point_size);
 	};

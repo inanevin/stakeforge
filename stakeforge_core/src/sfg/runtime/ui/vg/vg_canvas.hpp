@@ -78,7 +78,7 @@ namespace sfg::ui
 	{
 		u64 vertex_buffer_bytes		= 1u << 24; // 16 MB
 		u64 index_buffer_bytes		= 1u << 24; // 16 MB
-		u32 buffer_count			= 48;
+		u32 buffer_count			= 64;
 		u32 text_cache_vertex_bytes = 1u << 22;
 		u32 text_cache_index_bytes	= 1u << 22;
 		u32 clip_stack_capacity		= 64;

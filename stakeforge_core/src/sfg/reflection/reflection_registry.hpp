@@ -48,15 +48,11 @@ namespace sfg
 		vec3,
 		vec4,
 		color,
-		sid,
 		resource,
-		entity,
 		entity_id,
 		string,
 		quat,
-		enum8,
 		enum32,
-		struct_value,
 		array,
 	};
 

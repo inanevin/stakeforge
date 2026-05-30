@@ -107,6 +107,7 @@ namespace sfg
 		for (surface_render_target_t& t : _render_targets)
 		{
 			t.ui_renderer->uninit();
+			t.ui_renderer.reset();
 			backend.destroy_swapchain(t.swapchain);
 		}
 
@@ -200,6 +201,8 @@ namespace sfg
 		SFG_ASSERT(it != _render_targets.end());
 
 		it->ui_renderer->uninit();
+		it->ui_renderer.reset();
+
 		backend.destroy_swapchain(swapchain);
 		_render_targets.erase(it);
 	}

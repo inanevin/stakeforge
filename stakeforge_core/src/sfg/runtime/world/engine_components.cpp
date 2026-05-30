@@ -108,8 +108,8 @@ namespace sfg
 		void register_component_mesh_renderer_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "mesh", .type = reflected_value_type_e::sid, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(sid_t)},
-				{.name = "material", .type = reflected_value_type_e::sid, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(sid_t)},
+				{.name = "mesh", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(sid_t)},
+				{.name = "material", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(sid_t)},
 			};
 
 			register_type_if_missing({

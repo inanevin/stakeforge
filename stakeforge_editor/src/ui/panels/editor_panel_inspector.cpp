@@ -26,11 +26,84 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/common/hashing.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
+#include <cstddef>
+#include <type_traits>
+
 namespace sfg
 {
+	namespace
+	{
+		enum class dummy_enum_e : u32
+		{
+			first,
+			second,
+			third,
+		};
+
+		struct dummy_struct_t
+		{
+			static inline constexpr sid_t TYPE_ID = "editor_inspector_dummy_struct"_hs;
+
+			vec4f_t		 dummy_color	  = {0.8f, 0.2f, 0.6f, 1.0f};
+			quat_t		 dummy_quat		  = quat_t::identity;
+			char		 dummy_string[64] = "Stakeforge";
+			vec4f_t		 dummy_vec4		  = {1.0f, 2.0f, 3.0f, 4.0f};
+			vec3f_t		 dummy_vec3		  = {1.0f, 2.0f, 3.0f};
+			vec2f_t		 dummy_vec2		  = {1.0f, 2.0f};
+			f32			 dummy_f32		  = 12.5f;
+			u32			 dummy_u32		  = 42;
+			i32			 dummy_i32		  = -7;
+			dummy_enum_e dummy_enum		  = dummy_enum_e::second;
+			u8			 dummy_u8		  = 3;
+		};
+
+		void register_dummy_struct_reflection()
+		{
+			static_assert(std::is_standard_layout_v<dummy_struct_t>);
+
+			static const reflected_enum_value_desc_t enum_values[] = {
+				{.name = "first", .display_name = "First", .value = static_cast<i64>(dummy_enum_e::first)},
+				{.name = "second", .display_name = "Second", .value = static_cast<i64>(dummy_enum_e::second)},
+				{.name = "third", .display_name = "Third", .value = static_cast<i64>(dummy_enum_e::third)},
+			};
+
+			static const reflected_field_desc_t fields[] = {
+				{.name = "dummy_f32", .display_name = "Float", .type = reflected_value_type_e::f32, .offset = offsetof(dummy_struct_t, dummy_f32), .size = sizeof(f32), .min = 0.0f, .max = 100.0f, .flags = reflected_field_flags_clamped},
+				{.name = "dummy_u32", .display_name = "U32", .type = reflected_value_type_e::u32, .offset = offsetof(dummy_struct_t, dummy_u32), .size = sizeof(u32)},
+				{.name = "dummy_i32", .display_name = "I32", .type = reflected_value_type_e::i32, .offset = offsetof(dummy_struct_t, dummy_i32), .size = sizeof(i32)},
+				{.name = "dummy_u8", .display_name = "U8", .type = reflected_value_type_e::u8, .offset = offsetof(dummy_struct_t, dummy_u8), .size = sizeof(u8)},
+				{.name = "dummy_vec2", .display_name = "Vec2", .type = reflected_value_type_e::vec2, .offset = offsetof(dummy_struct_t, dummy_vec2), .size = sizeof(vec2f_t)},
+				{.name = "dummy_vec3", .display_name = "Vec3", .type = reflected_value_type_e::vec3, .offset = offsetof(dummy_struct_t, dummy_vec3), .size = sizeof(vec3f_t)},
+				{.name = "dummy_vec4", .display_name = "Vec4", .type = reflected_value_type_e::vec4, .offset = offsetof(dummy_struct_t, dummy_vec4), .size = sizeof(vec4f_t)},
+				{.name = "dummy_color", .display_name = "Color", .type = reflected_value_type_e::color, .offset = offsetof(dummy_struct_t, dummy_color), .size = sizeof(vec4f_t)},
+				{.name = "dummy_quat", .display_name = "Quat", .type = reflected_value_type_e::quat, .offset = offsetof(dummy_struct_t, dummy_quat), .size = sizeof(quat_t)},
+				{.name = "dummy_string", .display_name = "String", .type = reflected_value_type_e::string, .offset = offsetof(dummy_struct_t, dummy_string), .size = sizeof(dummy_struct_t::dummy_string)},
+				{.enum_values = {.data = enum_values, .size = std::size(enum_values)}, .name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
+			};
+
+			reflection_registry_t& registry = reflection_registry_t::get();
+			if (registry.find_type(dummy_struct_t::TYPE_ID) != nullptr)
+				return;
+
+			registry.register_type({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "editor_inspector_dummy_struct",
+				.category  = "editor",
+				.type_id   = dummy_struct_t::TYPE_ID,
+				.size	   = sizeof(dummy_struct_t),
+				.alignment = alignof(dummy_struct_t),
+			});
+		}
+
+		dummy_struct_t g_dummy_struct = {};
+	}
+
 	editor_panel_inspector_t::editor_panel_inspector_t()
 	{
 		set_type(editor_panel_type_e::inspector);
@@ -56,8 +129,8 @@ namespace sfg
 		ui::layout_in_t& column_in = tree.in(_column);
 		column_in.flags			   = ui::wf_visible;
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
-		column_in.size_mode_y	   = ui::axis_mode_e::sum_children;
-		column_in.size_value	   = {1.0f, 0.0f};
+		column_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+		column_in.size_value	   = {1.0f, 1.0f};
 		column_in.flow			   = ui::flow_e::column;
 		column_in.child_spacing	   = theme.item_spacing;
 
@@ -147,10 +220,15 @@ namespace sfg
 		vec4_config.on_changed				   = on_vec4_changed;
 		vec4_config.user_data				   = &_vec4_value;
 		_vec4_field.init(ui, _column, vec4_config);
+
+		_reflect_type.init(ui, _column);
+		register_dummy_struct_reflection();
+		_reflect_type.set_reflected_obj(&g_dummy_struct, dummy_struct_t::TYPE_ID);
 	}
 
 	void editor_panel_inspector_t::uninit()
 	{
+		_reflect_type.uninit();
 		_vec4_field.uninit();
 		_vec3_field.uninit();
 		_vec2_field.uninit();
