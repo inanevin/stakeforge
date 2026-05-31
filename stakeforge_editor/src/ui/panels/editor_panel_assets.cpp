@@ -545,9 +545,10 @@ namespace sfg
 			_pending_import_create_descs.push_back(desc);
 
 		frame_vector_t<const char*> row_texts;
-		row_texts.reserve(editor_modal_controller_t::MAX_SUB_DESCRIPTION_ROWS);
-		for (size_t i = 0; i < overwrite_paths.size() && i < editor_modal_controller_t::MAX_SUB_DESCRIPTION_ROWS; ++i)
+		row_texts.reserve(overwrite_paths.size());
+		for (size_t i = 0; i < overwrite_paths.size(); ++i)
 			row_texts.push_back(overwrite_paths[i].c_str());
+		_assets_override_modal.set_rows(row_texts.data(), static_cast<u16>(row_texts.size()));
 
 		editor_modal_button_desc_t buttons[] = {
 			{.text = "YES", .callback = on_import_overwrite_confirmed, .user_data = this},
@@ -556,8 +557,8 @@ namespace sfg
 
 		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
 		SFG_ASSERT(modal != nullptr);
-		modal->request_modal(
-			"Import Assets", "These assets will be overridden with your import. Continue?", row_texts.data(), static_cast<u16>(row_texts.size()), buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
+		editor_modal_content_desc_t override_content = _assets_override_modal.get_content_desc();
+		modal->request_modal("Import Assets", "These assets will be overridden with your import. Continue?", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &override_content, editor_modal_severity_e::warning);
 	}
 
 	void editor_panel_assets_t::refresh_folder_rows()

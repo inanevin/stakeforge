@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common_editor.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_payload_controller.hpp"
+#include "ui/editor_modal_progress_bar.hpp"
 #include "ui/panels/editor_panel_types.hpp"
 #include "editor_renderer.hpp"
 #include "editor_surface.hpp"
@@ -97,7 +98,9 @@ namespace sfg
 		editor_asset_manager_t											_asset_manager;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		editor_payload_controller_t										_payload_controller;
+		editor_modal_progress_bar_t										_debug_progress_modal;
 		i64																_last_tick_us			 = 0;
+		f32																_debug_modal_progress	 = 0.0f;
 		u8																_atlas_upload_frame_slot = 0;
 		bool															_debug_mode				 = false;
 		bool															_close					 = false;

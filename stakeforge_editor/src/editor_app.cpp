@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/memory/frame_allocator.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
@@ -126,6 +127,26 @@ namespace sfg
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
 			if (ev.button == static_cast<u16>(input_code::key_f4) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().create_payload("Debug payload", editor_payload_type_e::resource, nullptr);
+			if (ev.button == static_cast<u16>(input_code::key_f5) && ev.sub_type == window_event_sub_type_e::press)
+			{
+				editor_app_t& app		  = editor_app_t::get();
+				app._debug_modal_progress = 0.0f;
+				app._debug_progress_modal.set_progress(app._debug_modal_progress);
+				editor_modal_content_desc_t progress_content = app._debug_progress_modal.get_content_desc();
+				app.get_main_surface().modal_controller->request_modal("Debug Loading", "Debug modal progress.", false, nullptr, 0, &progress_content);
+			}
+			if (ev.button == static_cast<u16>(input_code::key_f6) && ev.sub_type == window_event_sub_type_e::press)
+			{
+				editor_app_t& app		  = editor_app_t::get();
+				app._debug_modal_progress = math::min(app._debug_modal_progress + 0.1f, 1.0f);
+				app._debug_progress_modal.set_progress(app._debug_modal_progress);
+			}
+			if (ev.button == static_cast<u16>(input_code::key_f7) && ev.sub_type == window_event_sub_type_e::press)
+			{
+				editor_app_t& app		  = editor_app_t::get();
+				app._debug_modal_progress = 0.0f;
+				app.get_main_surface().modal_controller->close_modal();
+			}
 
 			ui::key_event_t k = {};
 			k.key			  = ev.button;

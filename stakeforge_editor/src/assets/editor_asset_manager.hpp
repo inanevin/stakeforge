@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_node.hpp"
+#include "ui/editor_modal_progress_bar.hpp"
 
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
@@ -117,8 +118,9 @@ namespace sfg
 		hash_map_t<u64, editor_asset_t>							   _assets;
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
 		vector_t<editor_asset_t>								   _cook_assets;
-		atomic_t<u32>											   _cooked_count  = 0;
-		atomic_t<bool>											   _cook_finished = false;
+		editor_modal_progress_bar_t								   _cook_progress_modal = {};
+		atomic_t<u32>											   _cooked_count		= 0;
+		atomic_t<bool>											   _cook_finished		= false;
 		editor_asset_node_handle_t								   _root_node;
 		u32														   _generation		 = 0;
 		u32														   _total_cook_count = 0;

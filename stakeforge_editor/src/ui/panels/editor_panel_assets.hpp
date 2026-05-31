@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset_manager.hpp"
+#include "ui/editor_modal_assets_override.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
@@ -158,6 +159,7 @@ namespace sfg
 		vector_t<u64>						 _expanded_folder_hashes	  = {};
 		vector_t<u64>						 _favourite_folder_hashes	  = {};
 		vector_t<editor_asset_create_desc_t> _pending_import_create_descs = {};
+		editor_modal_assets_override_t		 _assets_override_modal		  = {};
 		string_t							 _pending_import_directory	  = {};
 		string_t							 _search_str				  = {};
 		string_t							 _search_str_lower			  = {};

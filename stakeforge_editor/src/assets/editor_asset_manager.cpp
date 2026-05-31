@@ -98,12 +98,12 @@ namespace sfg
 		const u32				   cooked	= _cooked_count.load(std::memory_order_relaxed);
 		const f32				   progress = _total_cook_count != 0 ? static_cast<f32>(cooked) / static_cast<f32>(_total_cook_count) : 1.0f;
 		editor_modal_controller_t& modal	= *editor_app_t::get().get_main_surface().modal_controller;
-		modal.progress_loading_bar(progress);
+		_cook_progress_modal.set_progress(progress);
 
 		if (cooked != _total_cook_count || !_cook_finished.load(std::memory_order_acquire))
 			return;
 
-		modal.end_loading_bar();
+		modal.close_modal();
 		_cook_assets.resize(0);
 		_total_cook_count = 0;
 		_cook_in_progress = false;
@@ -252,7 +252,9 @@ namespace sfg
 		_cook_in_progress = true;
 
 		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
-		modal.start_loading_bar("Cooking Assets", "Preparing asset cache.", 0.0f);
+		_cook_progress_modal.set_progress(0.0f);
+		editor_modal_content_desc_t progress_content = _cook_progress_modal.get_content_desc();
+		modal.request_modal("Cooking Assets", "Preparing asset cache.", false, nullptr, 0, &progress_content);
 
 		const string_t cache_dir = editor_project_t::get()._runtime.cache_path;
 		job_system_t::get().silent_async([this, cache_dir]() {
