@@ -114,7 +114,7 @@ namespace sfg
 			axis->thumb = ui.allocate_widget();
 			ui.set_widget_debug_name(axis->thumb, axis->axis == axis_e::x ? "scrollbar_thumb_x" : "scrollbar_thumb_y");
 			tree.attach(axis->track, axis->thumb);
-			tree.draw_order(axis->thumb) = tree.draw_order_const(axis->track);
+			tree.draw_order(axis->thumb) = tree.draw_order_const(axis->track) + 1;
 
 			ui::layout_in_t& thumb_in = tree.in(axis->thumb);
 			thumb_in.flags			  = 0;

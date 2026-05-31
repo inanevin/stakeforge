@@ -131,7 +131,7 @@ namespace sfg
 			}
 			return theme.color_text0;
 		}
-	
+
 	}
 
 	editor_panel_log_t::editor_panel_log_t()
@@ -262,7 +262,8 @@ namespace sfg
 		tree.attach(_root, _body);
 
 		ui::layout_in_t& body_in = tree.in(_body);
-		body_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_clip_children | ui::wf_scroll_x | ui::wf_scroll_y;
+		body_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_scroll_x | ui::wf_scroll_y;
+		body_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
 		body_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		body_in.size_mode_y		 = ui::axis_mode_e::fill;
 		body_in.size_value		 = {1.0f, 1.0f};
@@ -460,7 +461,7 @@ namespace sfg
 		row.root = ui.allocate_widget();
 		ui.set_widget_debug_name(row.root, "log_row");
 		tree.attach(_body, row.root);
-		tree.draw_order(row.root) = tree.draw_order_const(_body) ;
+		tree.draw_order(row.root) = tree.draw_order_const(_body);
 
 		ui::layout_in_t& row_in = tree.in(row.root);
 		row_in.flags			= ui::wf_visible;
@@ -473,7 +474,7 @@ namespace sfg
 		row.icon = ui.allocate_widget();
 		ui.set_widget_debug_name(row.icon, "log_row_icon");
 		tree.attach(row.root, row.icon);
-		tree.draw_order(row.icon) = tree.draw_order_const(row.root) ;
+		tree.draw_order(row.icon) = tree.draw_order_const(row.root);
 
 		ui::layout_in_t& icon_in = tree.in(row.icon);
 		icon_in.flags			 = ui::wf_visible;

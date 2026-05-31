@@ -43,6 +43,8 @@ namespace sfg::ui
 
 namespace sfg
 {
+	struct reflected_field_desc_t;
+
 	class editor_widget_reflect_type_t final
 	{
 	public:
@@ -67,11 +69,27 @@ namespace sfg
 			editor_dropdown_t*				 dropdown = nullptr;
 		};
 
+		struct reflected_control_t
+		{
+			editor_widget_reflect_type_t* owner = nullptr;
+			const reflected_field_desc_t* field = nullptr;
+		};
+
 	private:
-		void clear_reflected_controls();
+		void		clear_reflected_controls();
+		static void on_number_changed(f32 value, void* user_data);
+		static void on_text_changed(const char* value, void* user_data);
+		static void on_checkbox_changed(bool checked, void* user_data);
+		static void on_color_changed(const vec4f_t& value, void* user_data);
+		static void on_vec2_changed(const vec2f_t& value, void* user_data);
+		static void on_vec3_changed(const vec3f_t& value, void* user_data);
+		static void on_vec4_changed(const vec4f_t& value, void* user_data);
+		static u16	on_enum_selected(void* user_data);
+		static void on_enum_pressed(u16 value, void* user_data);
 
 	private:
 		vector_t<editor_property_row_t> _rows		  = {};
+		vector_t<reflected_control_t>	_controls	  = {};
 		vector_t<editor_input_field_t*> _input_fields = {};
 		vector_t<editor_checkbox_t*>	_checkboxes	  = {};
 		vector_t<editor_color_field_t*> _color_fields = {};

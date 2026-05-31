@@ -239,7 +239,7 @@ namespace sfg
 			p.gradient					= ui::vg_gradient_e::vertical;
 			p.aa_thickness				= theme.aa_thickness;
 
-			canvas.push_clip({out.pos.x, out.pos.y, out.size.x, out.size.y});
+			canvas.push_clip({out.pos.x, out.pos.y, out.size.x, out.size.y}, ui::clip_mode_e::scissor_rect);
 
 			const f32 width = out.size.x * 0.25f;
 			const f32 lean	= 0.35f;
@@ -258,7 +258,7 @@ namespace sfg
 				editor_custom_draws_t::add_leaned_convex_rect(canvas, {x_start, y_start}, {width, y_end - y_start}, lean, p, state, ui.get_tree().draw_order_const(id));
 			}
 
-			canvas.pop_clip();
+			canvas.pop_clip(ui::clip_mode_e::scissor_rect);
 		}
 
 		void on_minimize_window(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void*)

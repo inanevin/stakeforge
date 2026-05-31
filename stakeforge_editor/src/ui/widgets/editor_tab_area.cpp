@@ -150,12 +150,12 @@ namespace sfg
 
 			ui::layout_in_t& in				  = tree.in(tab.widget);
 			in.pos_value					  = {tab.pos_x * inv_scale, tab.pos_y * inv_scale};
-			//tree.draw_order(tab.widget)		  = dragging ? 1000u : 0u;
-			//tree.draw_order(tab.marker)		  = dragging ? 1000u : 0u;
-			//tree.draw_order(tab.marker_inner) = dragging ? 1000u : 0u;
-			//tree.draw_order(tab.label)		  = dragging ? 1000u : 0u;
-			//if (tab.close_button != NULL_WIDGET)
-			//	tree.draw_order(tab.close_button) = dragging ? 1001u : 1u;
+			tree.draw_order(tab.widget)		  = dragging ? 1000u : 0u;
+			tree.draw_order(tab.marker)		  = dragging ? 1000u : 0u;
+			tree.draw_order(tab.marker_inner) = dragging ? 1000u : 0u;
+			tree.draw_order(tab.label)		  = dragging ? 1000u : 0u;
+			if (tab.close_button != NULL_WIDGET)
+				tree.draw_order(tab.close_button) = dragging ? 1001u : 1u;
 		}
 	}
 

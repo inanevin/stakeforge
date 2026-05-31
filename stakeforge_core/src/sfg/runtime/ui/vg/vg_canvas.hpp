@@ -76,9 +76,9 @@ namespace sfg::ui
 
 	struct vg_canvas_config_t
 	{
-		u64 vertex_buffer_bytes		= 1u << 24; // 16 MB
-		u64 index_buffer_bytes		= 1u << 24; // 16 MB
-		u32 buffer_count			= 64;
+		u64 vertex_buffer_bytes		= 1u << 21; // 2 MB
+		u64 index_buffer_bytes		= 1u << 21; // 2 MB
+		u32 buffer_count			= 16;
 		u32 text_cache_vertex_bytes = 1u << 22;
 		u32 text_cache_index_bytes	= 1u << 22;
 		u32 clip_stack_capacity		= 64;
@@ -105,9 +105,10 @@ namespace sfg::ui
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void		   push_clip(const vec4f_t& rect);
-		void		   pop_clip();
-		vec4f_t		   current_clip() const;
+		void		   push_clip(const vec4f_t& rect, clip_mode_e mode);
+		void		   pop_clip(clip_mode_e mode);
+		vec4f_t		   current_scissor_clip() const;
+		vec4f_t		   current_cpu_clip() const;
 		void		   clear_text_cache();
 		static vec2f_t measure_text(const char* text, size_t len, const vg_text_paint_t& paint);
 
@@ -152,7 +153,10 @@ namespace sfg::ui
 		}
 
 	private:
+		bool	has_cpu_clip() const;
 		vec4f_t intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
+		bool	clip_rect_to_cpu(vec2f_t& min, vec2f_t& max) const;
+		bool	clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const;
 
 	private:
 		struct text_cache_entry_t
@@ -170,7 +174,8 @@ namespace sfg::ui
 		};
 
 		vector_t<vg_draw_buffer_t>	 _draw_buffers;
-		vector_t<clip_entry_t>		 _clip_stack;
+		vector_t<clip_entry_t>		 _scissor_clip_stack;
+		vector_t<clip_entry_t>		 _cpu_clip_stack;
 		vector_t<text_cache_entry_t> _text_cache;
 		vector_t<vec2f_t>			 _path0;
 		vector_t<vec2f_t>			 _path1;

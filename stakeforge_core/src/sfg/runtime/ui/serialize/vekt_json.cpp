@@ -48,24 +48,31 @@ namespace sfg::ui
 			j["anchor_y"]	 = static_cast<u8>(in.anchor_y);
 			j["flow"]		 = static_cast<u8>(in.flow);
 			j["flags"]		 = in.flags;
+			j["clip_mode"]	 = static_cast<u8>(in.child_clip_mode);
 			return j;
 		}
 
 		void layout_in_from_json(const nlohmann::json& j, layout_in_t& in)
 		{
-			in.size_value	 = j.value("size", vec2f_t{0, 0});
-			in.pos_value	 = j.value("pos", vec2f_t{0, 0});
-			in.child_margins = j.value("margins", vec4f_t{0, 0, 0, 0});
-			in.child_spacing = j.value("spacing", 0.0f);
-			in.scroll_offset = j.value("scroll", vec2f_t{0, 0});
-			in.size_mode_x	 = static_cast<axis_mode_e>(j.value("size_mode_x", static_cast<u8>(axis_mode_e::fixed)));
-			in.size_mode_y	 = static_cast<axis_mode_e>(j.value("size_mode_y", static_cast<u8>(axis_mode_e::fixed)));
-			in.pos_mode_x	 = static_cast<pos_mode_e>(j.value("pos_mode_x", static_cast<u8>(pos_mode_e::flow)));
-			in.pos_mode_y	 = static_cast<pos_mode_e>(j.value("pos_mode_y", static_cast<u8>(pos_mode_e::flow)));
-			in.anchor_x		 = static_cast<anchor_e>(j.value("anchor_x", static_cast<u8>(anchor_e::start)));
-			in.anchor_y		 = static_cast<anchor_e>(j.value("anchor_y", static_cast<u8>(anchor_e::start)));
-			in.flow			 = static_cast<flow_e>(j.value("flow", static_cast<u8>(flow_e::none)));
-			in.flags		 = j.value("flags", static_cast<u16>(wf_visible));
+			in.size_value	   = j.value("size", vec2f_t{0, 0});
+			in.pos_value	   = j.value("pos", vec2f_t{0, 0});
+			in.child_margins   = j.value("margins", vec4f_t{0, 0, 0, 0});
+			in.child_spacing   = j.value("spacing", 0.0f);
+			in.scroll_offset   = j.value("scroll", vec2f_t{0, 0});
+			in.size_mode_x	   = static_cast<axis_mode_e>(j.value("size_mode_x", static_cast<u8>(axis_mode_e::fixed)));
+			in.size_mode_y	   = static_cast<axis_mode_e>(j.value("size_mode_y", static_cast<u8>(axis_mode_e::fixed)));
+			in.pos_mode_x	   = static_cast<pos_mode_e>(j.value("pos_mode_x", static_cast<u8>(pos_mode_e::flow)));
+			in.pos_mode_y	   = static_cast<pos_mode_e>(j.value("pos_mode_y", static_cast<u8>(pos_mode_e::flow)));
+			in.anchor_x		   = static_cast<anchor_e>(j.value("anchor_x", static_cast<u8>(anchor_e::start)));
+			in.anchor_y		   = static_cast<anchor_e>(j.value("anchor_y", static_cast<u8>(anchor_e::start)));
+			in.flow			   = static_cast<flow_e>(j.value("flow", static_cast<u8>(flow_e::none)));
+			in.flags		   = j.value("flags", static_cast<u16>(wf_visible));
+			in.child_clip_mode = static_cast<clip_mode_e>(j.value("clip_mode", static_cast<u8>(clip_mode_e::none)));
+			if ((in.flags & static_cast<u16>(1 << 1)) != 0)
+			{
+				in.child_clip_mode = clip_mode_e::scissor_rect;
+				in.flags &= ~static_cast<u16>(1 << 1);
+			}
 		}
 
 		nlohmann::json rect_paint_to_json(const vg_rect_paint_t& p)

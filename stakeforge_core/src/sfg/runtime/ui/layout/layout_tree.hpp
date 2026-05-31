@@ -69,32 +69,32 @@ namespace sfg::ui
 
 	enum widget_flag_e : u16
 	{
-		wf_visible		 = 1 << 0,
-		wf_clip_children = 1 << 1,
-		wf_overlay		 = 1 << 2,
-		wf_focusable	 = 1 << 3,
-		wf_input		 = 1 << 4,
-		wf_scroll_x		 = 1 << 5,
-		wf_scroll_y		 = 1 << 6,
-		wf_custom_solve	 = 1 << 7,
-		wf_disabled		 = 1 << 8,
+		wf_visible		= 1 << 0,
+		wf_overlay		= 1 << 2,
+		wf_focusable	= 1 << 3,
+		wf_input		= 1 << 4,
+		wf_scroll_x		= 1 << 5,
+		wf_scroll_y		= 1 << 6,
+		wf_custom_solve = 1 << 7,
+		wf_disabled		= 1 << 8,
 	};
 
 	struct layout_in_t
 	{
-		vec2f_t		size_value	  = {0.0f, 0.0f};
-		vec2f_t		pos_value	  = {0.0f, 0.0f};
-		vec4f_t		child_margins = {0.0f, 0.0f, 0.0f, 0.0f}; // top, right, bottom, left
-		vec2f_t		scroll_offset = {0.0f, 0.0f};
-		f32			child_spacing = 0.0f;
-		axis_mode_e size_mode_x	  = axis_mode_e::fixed;
-		axis_mode_e size_mode_y	  = axis_mode_e::fixed;
-		pos_mode_e	pos_mode_x	  = pos_mode_e::flow;
-		pos_mode_e	pos_mode_y	  = pos_mode_e::flow;
-		anchor_e	anchor_x	  = anchor_e::start;
-		anchor_e	anchor_y	  = anchor_e::start;
-		flow_e		flow		  = flow_e::none;
-		u16			flags		  = 0;
+		vec2f_t		size_value		= {0.0f, 0.0f};
+		vec2f_t		pos_value		= {0.0f, 0.0f};
+		vec4f_t		child_margins	= {0.0f, 0.0f, 0.0f, 0.0f}; // top, right, bottom, left
+		vec2f_t		scroll_offset	= {0.0f, 0.0f};
+		f32			child_spacing	= 0.0f;
+		axis_mode_e size_mode_x		= axis_mode_e::fixed;
+		axis_mode_e size_mode_y		= axis_mode_e::fixed;
+		pos_mode_e	pos_mode_x		= pos_mode_e::flow;
+		pos_mode_e	pos_mode_y		= pos_mode_e::flow;
+		anchor_e	anchor_x		= anchor_e::start;
+		anchor_e	anchor_y		= anchor_e::start;
+		flow_e		flow			= flow_e::none;
+		u16			flags			= 0;
+		clip_mode_e child_clip_mode = clip_mode_e::none;
 	};
 
 	struct layout_out_t

@@ -72,7 +72,8 @@ namespace sfg
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_clip_children;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
+		root_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {1.0f, theme.item_height};
@@ -177,7 +178,7 @@ namespace sfg
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 
-		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0) | ui::wf_focusable | ui::wf_clip_children) : 0;
+		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0) | ui::wf_focusable) : 0;
 		tree.in(_slider).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
 		tree.in(_label).flags	= visible ? static_cast<u16>(ui::wf_visible) : 0;
 		tree.in(_overlay).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;

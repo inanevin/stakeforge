@@ -134,8 +134,14 @@ namespace sfg::ui
 		}
 
 	private:
-		fixed_vector_t<paint_def_t> _defs;
-		fixed_vector_t<u8>			_clip_stack;
-		paint_pipelines_t			_pipelines = {};
+		struct clip_stack_entry_t
+		{
+			clip_mode_e mode  = clip_mode_e::none;
+			u8			depth = 0;
+		};
+
+		fixed_vector_t<paint_def_t>		   _defs;
+		fixed_vector_t<clip_stack_entry_t> _clip_stack;
+		paint_pipelines_t				   _pipelines = {};
 	};
 }

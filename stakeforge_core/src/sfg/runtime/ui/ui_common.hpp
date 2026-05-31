@@ -57,6 +57,13 @@ namespace sfg::ui
 		texture,
 	};
 
+	enum class clip_mode_e : u8
+	{
+		none,
+		cpu_rect,
+		scissor_rect,
+	};
+
 	struct ui_resource_ref_t
 	{
 		gpu_index_t		   gpu_indices[BACK_BUFFER_COUNT] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};

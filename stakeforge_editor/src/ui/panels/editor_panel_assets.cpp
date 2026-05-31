@@ -268,7 +268,8 @@ namespace sfg
 		tree.attach(_assets_left_pane, _assets_left_pane_body);
 
 		ui::layout_in_t& left_body_in = tree.in(_assets_left_pane_body);
-		left_body_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_clip_children | ui::wf_scroll_y;
+		left_body_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
+		left_body_in.child_clip_mode  = ui::clip_mode_e::scissor_rect;
 		left_body_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		left_body_in.size_mode_y	  = ui::axis_mode_e::fill;
 		left_body_in.size_value		  = {1.0f, 1.0f};

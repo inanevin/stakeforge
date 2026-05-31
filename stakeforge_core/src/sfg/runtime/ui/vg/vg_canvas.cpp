@@ -285,7 +285,8 @@ namespace sfg::ui
 		SFG_MEMTRACE_ALLOC(_vertex_pool, total_bytes);
 
 		_draw_buffers.reserve(cfg.buffer_count);
-		_clip_stack.reserve(cfg.clip_stack_capacity);
+		_scissor_clip_stack.reserve(cfg.clip_stack_capacity);
+		_cpu_clip_stack.reserve(cfg.clip_stack_capacity);
 		_text_cache.reserve(256);
 		_path0.reserve(512);
 		_path1.reserve(512);
@@ -310,7 +311,8 @@ namespace sfg::ui
 		_text_cache_index_buffer  = nullptr;
 
 		_draw_buffers.resize(0);
-		_clip_stack.resize(0);
+		_scissor_clip_stack.resize(0);
+		_cpu_clip_stack.resize(0);
 		_text_cache.resize(0);
 		_path0.resize(0);
 		_path1.resize(0);
@@ -379,9 +381,11 @@ namespace sfg::ui
 	void vg_canvas_t::frame_begin(const vec4f_t& screen_clip)
 	{
 		_draw_buffers.resize(0);
-		_clip_stack.resize(0);
+		_scissor_clip_stack.resize(0);
+		_cpu_clip_stack.resize(0);
 		_buffer_counter = 0;
-		_clip_stack.push_back({screen_clip});
+		_scissor_clip_stack.push_back({screen_clip});
+		_cpu_clip_stack.push_back({screen_clip});
 	}
 
 	void vg_canvas_t::frame_end()
@@ -389,22 +393,49 @@ namespace sfg::ui
 		std::stable_sort(_draw_buffers.begin(), _draw_buffers.end(), [](const vg_draw_buffer_t& a, const vg_draw_buffer_t& b) { return a.draw_order < b.draw_order; });
 	}
 
-	void vg_canvas_t::push_clip(const vec4f_t& rect)
+	void vg_canvas_t::push_clip(const vec4f_t& rect, clip_mode_e mode)
 	{
-		const vec4f_t base = current_clip();
-		_clip_stack.push_back({intersect_clip(base, rect)});
+		if (mode == clip_mode_e::cpu_rect)
+		{
+			const vec4f_t base = current_cpu_clip();
+			_cpu_clip_stack.push_back({intersect_clip(base, rect)});
+		}
+		else if (mode == clip_mode_e::scissor_rect)
+		{
+			const vec4f_t base = current_scissor_clip();
+			_scissor_clip_stack.push_back({intersect_clip(base, rect)});
+		}
 	}
 
-	void vg_canvas_t::pop_clip()
+	void vg_canvas_t::pop_clip(clip_mode_e mode)
 	{
-		SFG_ASSERT(!_clip_stack.empty());
-		_clip_stack.pop_back();
+		if (mode == clip_mode_e::cpu_rect)
+		{
+			SFG_ASSERT(_cpu_clip_stack.size() > 1);
+			_cpu_clip_stack.pop_back();
+		}
+		else if (mode == clip_mode_e::scissor_rect)
+		{
+			SFG_ASSERT(_scissor_clip_stack.size() > 1);
+			_scissor_clip_stack.pop_back();
+		}
 	}
 
-	vec4f_t vg_canvas_t::current_clip() const
+	vec4f_t vg_canvas_t::current_scissor_clip() const
 	{
-		SFG_ASSERT(!_clip_stack.empty());
-		return _clip_stack.back().rect;
+		SFG_ASSERT(!_scissor_clip_stack.empty());
+		return _scissor_clip_stack.back().rect;
+	}
+
+	vec4f_t vg_canvas_t::current_cpu_clip() const
+	{
+		SFG_ASSERT(!_cpu_clip_stack.empty());
+		return _cpu_clip_stack.back().rect;
+	}
+
+	bool vg_canvas_t::has_cpu_clip() const
+	{
+		return _cpu_clip_stack.size() > 1;
 	}
 
 	vec4f_t vg_canvas_t::intersect_clip(const vec4f_t& a, const vec4f_t& b) const
@@ -418,9 +449,73 @@ namespace sfg::ui
 		return {x, y, r - x, t - y};
 	}
 
+	bool vg_canvas_t::clip_rect_to_cpu(vec2f_t& min, vec2f_t& max) const
+	{
+		if (!has_cpu_clip())
+			return true;
+
+		const vec4f_t clip = current_cpu_clip();
+		min.x			   = math::max(min.x, clip.x);
+		min.y			   = math::max(min.y, clip.y);
+		max.x			   = math::min(max.x, clip.x + clip.z);
+		max.y			   = math::min(max.y, clip.y + clip.w);
+		return max.x > min.x && max.y > min.y;
+	}
+
+	bool vg_canvas_t::clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const
+	{
+		if (!has_cpu_clip())
+			return true;
+
+		const vec4f_t clip	 = current_cpu_clip();
+		const vec2f_t bb_min = {math::min(p0.x, p1.x) - thickness, math::min(p0.y, p1.y) - thickness};
+		const vec2f_t bb_max = {math::max(p0.x, p1.x) + thickness, math::max(p0.y, p1.y) + thickness};
+		if (bb_max.x <= clip.x || bb_max.y <= clip.y || bb_min.x >= clip.x + clip.z || bb_min.y >= clip.y + clip.w)
+			return false;
+
+		const vec2f_t delta = p1 - p0;
+		f32			  t0	= 0.0f;
+		f32			  t1	= 1.0f;
+
+		const auto clip_axis = [&](f32 p, f32 q) {
+			if (p == 0.0f)
+				return q >= 0.0f;
+			const f32 r = q / p;
+			if (p < 0.0f)
+			{
+				if (r > t1)
+					return false;
+				if (r > t0)
+					t0 = r;
+			}
+			else
+			{
+				if (r < t0)
+					return false;
+				if (r < t1)
+					t1 = r;
+			}
+			return true;
+		};
+
+		if (!clip_axis(-delta.x, p0.x - clip.x))
+			return false;
+		if (!clip_axis(delta.x, clip.x + clip.z - p0.x))
+			return false;
+		if (!clip_axis(-delta.y, p0.y - clip.y))
+			return false;
+		if (!clip_axis(delta.y, clip.y + clip.w - p0.y))
+			return false;
+
+		const vec2f_t original_p0 = p0;
+		p0						  = original_p0 + delta * t0;
+		p1						  = original_p0 + delta * t1;
+		return true;
+	}
+
 	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, const ui_render_state_t& state)
 	{
-		const vec4f_t clip = current_clip();
+		const vec4f_t clip = current_scissor_clip();
 
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
@@ -453,8 +548,6 @@ namespace sfg::ui
 
 	void vg_canvas_t::add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
-
 		const bool round = paint.rounding > 0.0f;
 		const bool out	 = paint.outline_thickness > 0.0f;
 		const bool aa	 = paint.aa_thickness > 0.0f;
@@ -466,6 +559,26 @@ namespace sfg::ui
 			return;
 
 		snap_rect_px(min, max, draw_min, draw_max);
+
+		vec2f_t clipped_min = draw_min;
+		vec2f_t clipped_max = draw_max;
+		if (!clip_rect_to_cpu(clipped_min, clipped_max))
+			return;
+
+		if (!round && !out && !aa)
+		{
+			vg_draw_buffer_t* db	   = get_draw_buffer(draw_order, state);
+			const u32		  vtx_base = db->vertex_count;
+			vec2f_t			  path[4]  = {{clipped_min.x, clipped_min.y}, {clipped_max.x, clipped_min.y}, {clipped_max.x, clipped_max.y}, {clipped_min.x, clipped_max.y}};
+			if (grad)
+				emit_path_grad(db, {path, 4}, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
+			else
+				emit_path_solid(db, {path, 4}, paint.fill_color_a, draw_min, draw_max);
+			emit_quad_indices(db, vtx_base);
+			return;
+		}
+
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		if (round)
 			vg_path_rounded_rect(_path0, draw_min, draw_max, snap_size_px(paint.rounding), paint.rounding_segs);
@@ -553,22 +666,27 @@ namespace sfg::ui
 
 	void vg_canvas_t::add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
+		vec2f_t clipped_p0 = p0;
+		vec2f_t clipped_p1 = p1;
+		if (!clip_line_to_cpu(clipped_p0, clipped_p1, paint.thickness))
+			return;
+
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
-		const vec2f_t dir = (p1 - p0).normalized();
+		const vec2f_t dir = (clipped_p1 - clipped_p0).normalized();
 		const vec2f_t n	  = {-dir.y, dir.x};
 		const f32	  ht  = paint.thickness * 0.5f;
 		const vec2f_t off = {n.x * ht, n.y * ht};
 
-		const vec2f_t bb_min = {math::min(p0.x, p1.x) - paint.thickness, math::min(p0.y, p1.y) - paint.thickness};
-		const vec2f_t bb_max = {math::max(p0.x, p1.x) + paint.thickness, math::max(p0.y, p1.y) + paint.thickness};
+		const vec2f_t bb_min = {math::min(clipped_p0.x, clipped_p1.x) - paint.thickness, math::min(clipped_p0.y, clipped_p1.y) - paint.thickness};
+		const vec2f_t bb_max = {math::max(clipped_p0.x, clipped_p1.x) + paint.thickness, math::max(clipped_p0.y, clipped_p1.y) + paint.thickness};
 
 		const u32 base = db->vertex_count;
 		_path0.resize(4);
-		_path0[0] = {p0.x - off.x, p0.y - off.y};
-		_path0[1] = {p1.x - off.x, p1.y - off.y};
-		_path0[2] = {p1.x + off.x, p1.y + off.y};
-		_path0[3] = {p0.x + off.x, p0.y + off.y};
+		_path0[0] = {clipped_p0.x - off.x, clipped_p0.y - off.y};
+		_path0[1] = {clipped_p1.x - off.x, clipped_p1.y - off.y};
+		_path0[2] = {clipped_p1.x + off.x, clipped_p1.y + off.y};
+		_path0[3] = {clipped_p0.x + off.x, clipped_p0.y + off.y};
 
 		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
 		emit_quad_indices(db, base);
@@ -584,10 +702,14 @@ namespace sfg::ui
 
 	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
+		const vec2f_t bb_min	  = {center.x - radius - paint.thickness, center.y - radius - paint.thickness};
+		const vec2f_t bb_max	  = {center.x + radius + paint.thickness, center.y + radius + paint.thickness};
+		vec2f_t		  clipped_min = bb_min;
+		vec2f_t		  clipped_max = bb_max;
+		if (!clip_rect_to_cpu(clipped_min, clipped_max))
+			return;
 
-		const vec2f_t bb_min = {center.x - radius - paint.thickness, center.y - radius - paint.thickness};
-		const vec2f_t bb_max = {center.x + radius + paint.thickness, center.y + radius + paint.thickness};
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		vg_path_circle(_path0, center, radius, paint.segments);
 
@@ -630,8 +752,6 @@ namespace sfg::ui
 		if (path.size < 3)
 			return;
 
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
-
 		vec2f_t bb_min = path.data[0];
 		vec2f_t bb_max = path.data[0];
 		for (size_t i = 1; i < path.size; ++i)
@@ -639,6 +759,13 @@ namespace sfg::ui
 			bb_min = vec2f_t::min(bb_min, path.data[i]);
 			bb_max = vec2f_t::max(bb_max, path.data[i]);
 		}
+
+		vec2f_t clipped_min = bb_min;
+		vec2f_t clipped_max = bb_max;
+		if (!clip_rect_to_cpu(clipped_min, clipped_max))
+			return;
+
+		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		const u32 base = db->vertex_count;
 		if (paint.gradient != vg_gradient_e::none)
@@ -692,6 +819,10 @@ namespace sfg::ui
 		if (len == 0)
 			return;
 
+		const bool cpu_clip = has_cpu_clip();
+		if (cpu_clip)
+			use_cache = false;
+
 		vg_draw_buffer_t* db		 = get_draw_buffer(draw_order, state);
 		const vec2f_t	  draw_pos	 = {snap_px(pos.x), snap_px(pos.y)};
 		u64				  cache_hash = 0;
@@ -730,6 +861,7 @@ namespace sfg::ui
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
+		const u32 idx_base	 = db->index_count;
 
 		vg_vertex_t* verts	 = take_vertices(db, char_count * 4);
 		vg_index_t*	 indices = take_indices(db, char_count * 6);
@@ -753,40 +885,60 @@ namespace sfg::ui
 			const f32 quad_right  = quad_left + static_cast<f32>(g->width) * scale;
 			const f32 quad_bottom = quad_top + static_cast<f32>(g->height) * scale;
 
+			vec2f_t clipped_min = {quad_left, quad_top};
+			vec2f_t clipped_max = {quad_right, quad_bottom};
+
+			const f32 ux	= g->uv_x;
+			const f32 uy	= g->uv_y;
+			const f32 uw	= g->uv_w;
+			const f32 uh	= g->uv_h;
+			f32		  u0	= ux;
+			f32		  u1	= ux + uw;
+			f32		  uv_v0 = paint.flip_uv ? uy + uh : uy;
+			f32		  uv_v1 = paint.flip_uv ? uy : uy + uh;
+
+			if (cpu_clip && !clip_rect_to_cpu(clipped_min, clipped_max))
+			{
+				pen.x += g->advance_x * scale + spacing;
+				prev = c;
+				continue;
+			}
+
+			if (cpu_clip)
+			{
+				const f32 inv_w	 = (quad_right - quad_left) > 0.0f ? 1.0f / (quad_right - quad_left) : 0.0f;
+				const f32 inv_h	 = (quad_bottom - quad_top) > 0.0f ? 1.0f / (quad_bottom - quad_top) : 0.0f;
+				const f32 tx0	 = (clipped_min.x - quad_left) * inv_w;
+				const f32 tx1	 = (clipped_max.x - quad_left) * inv_w;
+				const f32 ty0	 = (clipped_min.y - quad_top) * inv_h;
+				const f32 ty1	 = (clipped_max.y - quad_top) * inv_h;
+				const f32 old_u0 = u0;
+				const f32 old_v0 = uv_v0;
+				u0				 = math::lerp(old_u0, u1, tx0);
+				u1				 = math::lerp(old_u0, u1, tx1);
+				uv_v0			 = math::lerp(old_v0, uv_v1, ty0);
+				uv_v1			 = math::lerp(old_v0, uv_v1, ty1);
+			}
+
 			vg_vertex_t& v0 = verts[emitted_chars * 4 + 0];
 			vg_vertex_t& v1 = verts[emitted_chars * 4 + 1];
 			vg_vertex_t& v2 = verts[emitted_chars * 4 + 2];
 			vg_vertex_t& v3 = verts[emitted_chars * 4 + 3];
 
-			v0.pos = {quad_left, quad_top};
-			v1.pos = {quad_right, quad_top};
-			v2.pos = {quad_right, quad_bottom};
-			v3.pos = {quad_left, quad_bottom};
+			v0.pos = {clipped_min.x, clipped_min.y};
+			v1.pos = {clipped_max.x, clipped_min.y};
+			v2.pos = {clipped_max.x, clipped_max.y};
+			v3.pos = {clipped_min.x, clipped_max.y};
 
 			v0.color = paint.color;
 			v1.color = paint.color;
 			v2.color = paint.color;
 			v3.color = paint.color;
 
-			const f32 ux = g->uv_x;
-			const f32 uy = g->uv_y;
-			const f32 uw = g->uv_w;
-			const f32 uh = g->uv_h;
-
-			if (paint.flip_uv)
-			{
-				v0.uv = {ux, uy + uh};
-				v1.uv = {ux + uw, uy + uh};
-				v2.uv = {ux + uw, uy};
-				v3.uv = {ux, uy};
-			}
-			else
-			{
-				v0.uv = {ux, uy};
-				v1.uv = {ux + uw, uy};
-				v2.uv = {ux + uw, uy + uh};
-				v3.uv = {ux, uy + uh};
-			}
+			v0.uv = {u0, uv_v0};
+			v1.uv = {u1, uv_v0};
+			v2.uv = {u1, uv_v1};
+			v3.uv = {u0, uv_v1};
 
 			const u32 base				   = vtx_base + emitted_chars * 4;
 			indices[emitted_chars * 6 + 0] = static_cast<vg_index_t>(base + 0);
@@ -830,6 +982,11 @@ namespace sfg::ui
 				verts[i].pos.x += draw_pos.x;
 				verts[i].pos.y += draw_pos.y;
 			}
+		}
+		else if (emitted_chars != char_count)
+		{
+			db->vertex_count = vtx_base + emitted_chars * 4;
+			db->index_count	 = idx_base + emitted_chars * 6;
 		}
 	}
 

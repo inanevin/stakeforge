@@ -215,10 +215,11 @@ namespace sfg::ui
 			const widget_id_t id = dfs.data[i];
 			const u8		  d	 = tree.node(id).depth;
 
-			while (!_clip_stack.empty() && _clip_stack.back() >= d)
+			while (!_clip_stack.empty() && _clip_stack.back().depth >= d)
 			{
+				const clip_mode_e mode = _clip_stack.back().mode;
 				_clip_stack.pop_back();
-				canvas.pop_clip();
+				canvas.pop_clip(mode);
 			}
 
 			const layout_in_t&	in = tree.in_const(id);
@@ -226,10 +227,10 @@ namespace sfg::ui
 
 			if (id == tree.get_root())
 			{
-				if (in.flags & wf_clip_children)
+				if (in.child_clip_mode != clip_mode_e::none)
 				{
-					canvas.push_clip({o.pos.x, o.pos.y, o.size.x, o.size.y});
-					_clip_stack.push_back(d);
+					canvas.push_clip({o.pos.x, o.pos.y, o.size.x, o.size.y}, in.child_clip_mode);
+					_clip_stack.push_back({in.child_clip_mode, d});
 				}
 				continue;
 			}
@@ -300,17 +301,18 @@ namespace sfg::ui
 				pd.custom_fn(*this, id, canvas, pd.custom_ud);
 			}
 
-			if (in.flags & wf_clip_children)
+			if (in.child_clip_mode != clip_mode_e::none)
 			{
-				canvas.push_clip({o.pos.x, o.pos.y, o.size.x, o.size.y});
-				_clip_stack.push_back(d);
+				canvas.push_clip({o.pos.x, o.pos.y, o.size.x, o.size.y}, in.child_clip_mode);
+				_clip_stack.push_back({in.child_clip_mode, d});
 			}
 		}
 
 		while (!_clip_stack.empty())
 		{
+			const clip_mode_e mode = _clip_stack.back().mode;
 			_clip_stack.pop_back();
-			canvas.pop_clip();
+			canvas.pop_clip(mode);
 		}
 	}
 }
