@@ -41,11 +41,13 @@ namespace sfg
 			return instance;
 		}
 
-		vec4f_t color_frame		  = color_t::from255(14, 14, 14, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_frame_light = color_t::from255(20, 20, 20, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_panel		  = color_t::from255(28, 28, 28, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_panel_light = color_t::from255(38.0f, 38.0f, 38.0f, 255.0f).srgb_to_linear().to_vector();
-		vec4f_t color_light		  = color_t::from255(48.0f, 48.0f, 48.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_frame		   = color_t::from255(14, 14, 14, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_frame_light  = color_t::from255(20, 20, 20, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_panel		   = color_t::from255(28, 28, 28, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_panel_light  = color_t::from255(38.0f, 38.0f, 38.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_panel_light1 = color_t::from255(55.0f, 55.0f, 55.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_panel_light2 = color_t::from255(80.0f, 80.0f, 80.0f, 255.0f).srgb_to_linear().to_vector();
+		vec4f_t color_light		   = color_t::from255(48.0f, 48.0f, 48.0f, 255.0f).srgb_to_linear().to_vector();
 
 		vec4f_t color_text2			= color_t::from255(107.0f, 107.0f, 107.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_text1			= color_t::from255(143.0f, 143.0f, 143.0f, 255.0f).srgb_to_linear().to_vector();

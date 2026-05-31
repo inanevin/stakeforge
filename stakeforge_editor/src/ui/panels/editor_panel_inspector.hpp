@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_color_field.hpp"
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
+#include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widget_reflect_type.hpp"
 
 namespace sfg
@@ -68,6 +69,7 @@ namespace sfg
 		editor_vec2_field_t			 _vec2_field;
 		editor_vec3_field_t			 _vec3_field;
 		editor_vec4_field_t			 _vec4_field;
+		editor_widget_fold_t		 _reflect_fold;
 		editor_widget_reflect_type_t _reflect_type;
 		ui::widget_id_t				 _column		   = NULL_WIDGET;
 		f32							 _float_value	   = 12.5f;

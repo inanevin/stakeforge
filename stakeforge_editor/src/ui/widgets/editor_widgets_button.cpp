@@ -39,15 +39,15 @@ namespace sfg
 		{
 			const editor_theme_t& theme = editor_theme_t::get();
 			ui::vg_rect_paint_t	  rect	= {};
-			rect.fill_color_a			= theme.color_panel_light;
+			rect.fill_color_a			= theme.color_panel_light1;
 			rect.fill_color_b			= theme.color_panel_light;
 			rect.outline_color			= theme.color_outline_light;
 			rect.outline_thickness		= theme.outline_thickness;
 			rect.rounding				= theme.item_rounding;
 			rect.rounding_segs			= 4;
 			paint.set_rect(id, rect);
-			paint.set_hover_color(id, theme.color_panel);
-			paint.set_press_color(id, theme.color_frame);
+			paint.set_hover_color(id, theme.color_panel_light2);
+			paint.set_press_color(id, theme.color_panel);
 			paint.set_focus_color(id, theme.color_accent0);
 		}
 

@@ -241,7 +241,9 @@ namespace sfg
 		vec4_config.user_data				   = &_vec4_value;
 		_vec4_field.init(ui, _column, vec4_config);
 
-		_reflect_type.init(ui, _column);
+		_reflect_fold.init(ui, _column, {.label = "test fold reflection"});
+		_reflect_type.init(ui, _reflect_fold.get_body());
+		tree.in(_reflect_type.get_root()).size_mode_y = ui::axis_mode_e::sum_children;
 		register_dummy_struct_reflection();
 		_reflect_type.set_reflected_obj(&g_dummy_struct, dummy_struct_t::TYPE_ID);
 	}
@@ -249,6 +251,7 @@ namespace sfg
 	void editor_panel_inspector_t::uninit()
 	{
 		_reflect_type.uninit();
+		_reflect_fold.uninit();
 		_vec4_field.uninit();
 		_vec3_field.uninit();
 		_vec2_field.uninit();
