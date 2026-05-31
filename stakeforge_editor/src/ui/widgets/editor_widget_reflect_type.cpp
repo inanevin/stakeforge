@@ -37,6 +37,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <cstdio>
 #include <cstring>
+#include <memory>
+#include <utility>
 
 namespace sfg
 {
@@ -76,9 +78,11 @@ namespace sfg
 		void center_property_row_control(ui::ui_context& ui, ui::widget_id_t id)
 		{
 			ui::layout_in_t& in = ui.get_tree().in(id);
-			in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
-			in.pos_value.y		= 0.5f;
-			in.anchor_y			= ui::anchor_e::center;
+			if (in.size_mode_x == ui::axis_mode_e::parent_relative)
+				in.size_mode_x = ui::axis_mode_e::fill;
+			in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+			in.pos_value.y = 0.5f;
+			in.anchor_y	   = ui::anchor_e::center;
 		}
 
 		const void* get_reflected_field_ptr(const void* object, const reflected_field_desc_t& field)
@@ -222,6 +226,11 @@ namespace sfg
 			write_reflected_value(object, field, static_cast<u32>(value));
 		}
 
+		bool is_vector_field(const reflected_field_desc_t& field)
+		{
+			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::static_vector;
+		}
+
 		bool read_string_value(const void* object, const reflected_field_desc_t&, void* out_value, void*)
 		{
 			*static_cast<const char**>(out_value) = static_cast<const string_t*>(object)->c_str();
@@ -265,6 +274,65 @@ namespace sfg
 		{
 			return *static_cast<const vector_t<T>*>(get_reflected_field_ptr(object, field));
 		}
+
+		template <typename T> size_t get_static_vector_head_offset(const reflected_field_desc_t& field)
+		{
+			const size_t data_size = sizeof(T) * field.capacity;
+			const size_t alignment = alignof(size_t);
+			return (data_size + alignment - 1) & ~(alignment - 1);
+		}
+
+		template <typename T> T* get_reflected_static_vector_data(void* object, const reflected_field_desc_t& field)
+		{
+			return std::launder(reinterpret_cast<T*>(get_reflected_field_ptr(object, field)));
+		}
+
+		template <typename T> const T* get_reflected_static_vector_data(const void* object, const reflected_field_desc_t& field)
+		{
+			return std::launder(reinterpret_cast<const T*>(get_reflected_field_ptr(object, field)));
+		}
+
+		template <typename T> size_t& get_reflected_static_vector_size(void* object, const reflected_field_desc_t& field)
+		{
+			return *reinterpret_cast<size_t*>(static_cast<u8*>(get_reflected_field_ptr(object, field)) + get_static_vector_head_offset<T>(field));
+		}
+
+		template <typename T> const size_t& get_reflected_static_vector_size(const void* object, const reflected_field_desc_t& field)
+		{
+			return *reinterpret_cast<const size_t*>(static_cast<const u8*>(get_reflected_field_ptr(object, field)) + get_static_vector_head_offset<T>(field));
+		}
+
+		template <typename T> void clear_reflected_static_vector(void* object, const reflected_field_desc_t& field)
+		{
+			T*		data = get_reflected_static_vector_data<T>(object, field);
+			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			while (size > 0)
+			{
+				--size;
+				std::destroy_at(data + size);
+			}
+		}
+
+		template <typename T> void add_reflected_static_vector_item(void* object, const reflected_field_desc_t& field)
+		{
+			T*		data = get_reflected_static_vector_data<T>(object, field);
+			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			if (size == field.capacity)
+				return;
+			std::construct_at(data + size);
+			++size;
+		}
+
+		template <typename T> void remove_reflected_static_vector_item(void* object, const reflected_field_desc_t& field, u32 index)
+		{
+			T*		data = get_reflected_static_vector_data<T>(object, field);
+			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			SFG_ASSERT(index < size);
+			for (size_t i = index; i < size - 1; ++i)
+				data[i] = std::move(data[i + 1]);
+			--size;
+			std::destroy_at(data + size);
+		}
 	}
 
 	void editor_widget_reflect_type_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -284,7 +352,7 @@ namespace sfg
 		root_in.pos_mode_y		 = ui::pos_mode_e::flow;
 		root_in.pos_value		 = {0.0f, 0.0f};
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		root_in.size_mode_y		 = ui::axis_mode_e::fill;
+		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
 	}
@@ -321,17 +389,18 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if (field.type == reflected_value_type_e::vector && is_vector_unfolded(field.id))
+			if (is_vector_field(field) && is_vector_unfolded(field.id))
 				control_count += get_vector_item_count(field);
 		}
 
 		_controls.reserve(control_count);
 		_vector_controls.reserve(type->fields.size);
+		_vector_item_controls.reserve(control_count);
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
 			const char*					  label = field.display_name != nullptr ? field.display_name : field.name;
-			if (field.type == reflected_value_type_e::vector)
+			if (is_vector_field(field))
 			{
 				install_vector_field(field, label);
 				continue;
@@ -500,13 +569,19 @@ namespace sfg
 
 		if (field.sub_type_id == "f32"_hs)
 		{
-			vector_t<f32>& values = get_reflected_vector<f32>(_object, field);
-			for (u32 i = 0; i < values.size(); ++i)
+			const u32 item_count = get_vector_item_count(field);
+			f32*	  values	 = field.type == reflected_value_type_e::static_vector ? get_reflected_static_vector_data<f32>(_object, field) : get_reflected_vector<f32>(_object, field).data();
+			for (u32 i = 0; i < item_count; ++i)
 			{
 				char item_label[32] = {};
 				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
-				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true);
+				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
 				_rows.push_back(row);
+				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
+				ui::listener_bundle_t remove_listener = {};
+				remove_listener.user_data			  = &_vector_item_controls.back();
+				remove_listener.on_click			  = on_vector_item_remove_click;
+				_ui->get_input().set_listener(row.remove_button, remove_listener);
 				install_reflected_control(row.right, get_f32_item_field(), &values[i]);
 			}
 			return;
@@ -514,13 +589,19 @@ namespace sfg
 
 		if (field.sub_type_id == "string"_hs)
 		{
-			vector_t<string_t>& values = get_reflected_vector<string_t>(_object, field);
-			for (u32 i = 0; i < values.size(); ++i)
+			const u32 item_count = get_vector_item_count(field);
+			string_t* values	 = field.type == reflected_value_type_e::static_vector ? get_reflected_static_vector_data<string_t>(_object, field) : get_reflected_vector<string_t>(_object, field).data();
+			for (u32 i = 0; i < item_count; ++i)
 			{
 				char item_label[32] = {};
 				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
-				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true);
+				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
 				_rows.push_back(row);
+				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
+				ui::listener_bundle_t remove_listener = {};
+				remove_listener.user_data			  = &_vector_item_controls.back();
+				remove_listener.on_click			  = on_vector_item_remove_click;
+				_ui->get_input().set_listener(row.remove_button, remove_listener);
 				install_reflected_control(row.right, get_string_item_field(), &values[i]);
 			}
 		}
@@ -529,9 +610,17 @@ namespace sfg
 	u32 editor_widget_reflect_type_t::get_vector_item_count(const reflected_field_desc_t& field) const
 	{
 		if (field.sub_type_id == "f32"_hs)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+				return static_cast<u32>(get_reflected_static_vector_size<f32>(_object, field));
 			return static_cast<u32>(get_reflected_vector<f32>(_object, field).size());
+		}
 		if (field.sub_type_id == "string"_hs)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+				return static_cast<u32>(get_reflected_static_vector_size<string_t>(_object, field));
 			return static_cast<u32>(get_reflected_vector<string_t>(_object, field).size());
+		}
 		return 0;
 	}
 
@@ -568,14 +657,20 @@ namespace sfg
 
 		if (field.sub_type_id == "f32"_hs)
 		{
-			get_reflected_vector<f32>(_object, field).resize(0);
+			if (field.type == reflected_value_type_e::static_vector)
+				clear_reflected_static_vector<f32>(_object, field);
+			else
+				get_reflected_vector<f32>(_object, field).resize(0);
 			rebuild_reflected_controls();
 			return;
 		}
 
 		if (field.sub_type_id == "string"_hs)
 		{
-			get_reflected_vector<string_t>(_object, field).resize(0);
+			if (field.type == reflected_value_type_e::static_vector)
+				clear_reflected_static_vector<string_t>(_object, field);
+			else
+				get_reflected_vector<string_t>(_object, field).resize(0);
 			rebuild_reflected_controls();
 		}
 	}
@@ -587,14 +682,55 @@ namespace sfg
 
 		if (field.sub_type_id == "f32"_hs)
 		{
-			get_reflected_vector<f32>(_object, field).push_back(0.0f);
+			if (field.type == reflected_value_type_e::static_vector)
+				add_reflected_static_vector_item<f32>(_object, field);
+			else
+				get_reflected_vector<f32>(_object, field).push_back(0.0f);
 			rebuild_reflected_controls();
 			return;
 		}
 
 		if (field.sub_type_id == "string"_hs)
 		{
-			get_reflected_vector<string_t>(_object, field).push_back(string_t{});
+			if (field.type == reflected_value_type_e::static_vector)
+				add_reflected_static_vector_item<string_t>(_object, field);
+			else
+				get_reflected_vector<string_t>(_object, field).push_back(string_t{});
+			rebuild_reflected_controls();
+		}
+	}
+
+	void editor_widget_reflect_type_t::remove_vector_item(const reflected_field_desc_t& field, u32 index)
+	{
+		if ((field.flags & reflected_field_flags_read_only) != 0)
+			return;
+
+		if (field.sub_type_id == "f32"_hs)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+			{
+				remove_reflected_static_vector_item<f32>(_object, field, index);
+			}
+			else
+			{
+				vector_t<f32>& values = get_reflected_vector<f32>(_object, field);
+				values.erase(values.begin() + index);
+			}
+			rebuild_reflected_controls();
+			return;
+		}
+
+		if (field.sub_type_id == "string"_hs)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+			{
+				remove_reflected_static_vector_item<string_t>(_object, field, index);
+			}
+			else
+			{
+				vector_t<string_t>& values = get_reflected_vector<string_t>(_object, field);
+				values.erase(values.begin() + index);
+			}
 			rebuild_reflected_controls();
 		}
 	}
@@ -687,6 +823,15 @@ namespace sfg
 		control.owner->add_vector_item(*control.field);
 	}
 
+	void editor_widget_reflect_type_t::on_vector_item_remove_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		vector_item_control_t& control = *static_cast<vector_item_control_t*>(user_data);
+		control.owner->remove_vector_item(*control.field, control.index);
+	}
+
 	void editor_widget_reflect_type_t::clear_reflected_controls()
 	{
 		for (size_t i = _dropdowns.size(); i > 0; --i)
@@ -744,5 +889,6 @@ namespace sfg
 		_rows.resize(0);
 		_controls.resize(0);
 		_vector_controls.resize(0);
+		_vector_item_controls.resize(0);
 	}
 }

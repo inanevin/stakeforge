@@ -54,6 +54,7 @@ namespace sfg
 		quat,
 		enum32,
 		vector,
+		static_vector,
 	};
 
 	enum reflected_field_flags_e : u32
@@ -101,6 +102,7 @@ namespace sfg
 		u32										  offset		= 0;
 		u32										  size			= 0;
 		u32										  stride		= 0;
+		u32										  capacity		= 0;
 		f32										  min			= 0.0f;
 		f32										  max			= 0.0f;
 		u32										  flags			= reflected_field_flags_none;

@@ -130,19 +130,20 @@ namespace sfg
 		right_in.size_mode_x	  = ui::axis_mode_e::fill;
 		right_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		right_in.size_value		  = {1.0f, 1.0f};
+		right_in.child_spacing	  = theme.item_spacing;
 		right_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 		right_in.flow			  = ui::flow_e::row;
 
 		return row;
 	}
 
-	editor_property_row_t editor_misc_widgets_t::make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, bool sub_item)
+	editor_property_row_t editor_misc_widgets_t::make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, bool sub_item, bool remove_button)
 	{
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		const editor_property_row_t row = make_property_row(ui, parent);
+		editor_property_row_t row = make_property_row(ui, parent);
 		if (sub_item)
 		{
 			tree.in(row.left).child_spacing = theme.item_spacing * 0.5f;
@@ -177,6 +178,18 @@ namespace sfg
 					   ui.widget_text(label_id),
 					   ui.widget_text_len(label_id),
 					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		if (remove_button)
+		{
+			row.remove_button = editor_icon_widgets_t::add_naked_icon_button(ui, row.right, ICON_MINUS, theme.item_height * 0.75f, theme.color_text1, theme.color_text0, theme.color_accent1, theme.color_text_disabled);
+
+			ui::layout_in_t& remove_in = tree.in(row.remove_button);
+			remove_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+			remove_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+			remove_in.pos_value		   = {1.0f, 0.5f};
+			remove_in.anchor_x		   = ui::anchor_e::end;
+			remove_in.anchor_y		   = ui::anchor_e::center;
+		}
 
 		return row;
 	}

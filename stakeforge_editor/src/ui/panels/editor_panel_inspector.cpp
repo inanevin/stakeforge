@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/static_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
@@ -51,19 +52,21 @@ namespace sfg
 		{
 			static inline constexpr sid_t TYPE_ID = "editor_inspector_dummy_struct"_hs;
 
-			vector_t<string_t> dummy_string_vector = {"Alpha", "Beta", "Gamma"};
-			vector_t<f32>	   dummy_f32_vector	   = {1.0f, 2.0f, 3.0f};
-			vec4f_t			   dummy_color		   = {0.8f, 0.2f, 0.6f, 1.0f};
-			quat_t			   dummy_quat		   = quat_t::identity;
-			char			   dummy_string[64]	   = "Stakeforge";
-			vec4f_t			   dummy_vec4		   = {1.0f, 2.0f, 3.0f, 4.0f};
-			vec3f_t			   dummy_vec3		   = {1.0f, 2.0f, 3.0f};
-			vec2f_t			   dummy_vec2		   = {1.0f, 2.0f};
-			f32				   dummy_f32		   = 12.5f;
-			u32				   dummy_u32		   = 42;
-			i32				   dummy_i32		   = -7;
-			dummy_enum_e	   dummy_enum		   = dummy_enum_e::second;
-			u8				   dummy_u8			   = 3;
+			vector_t<string_t>			 dummy_string_vector		= {"Alpha", "Beta", "Gamma"};
+			vector_t<f32>				 dummy_f32_vector			= {1.0f, 2.0f, 3.0f};
+			static_vector_t<string_t, 4> dummy_static_string_vector = {"North", "East"};
+			static_vector_t<f32, 4>		 dummy_static_f32_vector	= {4.0f, 5.0f};
+			vec4f_t						 dummy_color				= {0.8f, 0.2f, 0.6f, 1.0f};
+			quat_t						 dummy_quat					= quat_t::identity;
+			char						 dummy_string[64]			= "Stakeforge";
+			vec4f_t						 dummy_vec4					= {1.0f, 2.0f, 3.0f, 4.0f};
+			vec3f_t						 dummy_vec3					= {1.0f, 2.0f, 3.0f};
+			vec2f_t						 dummy_vec2					= {1.0f, 2.0f};
+			f32							 dummy_f32					= 12.5f;
+			u32							 dummy_u32					= 42;
+			i32							 dummy_i32					= -7;
+			dummy_enum_e				 dummy_enum					= dummy_enum_e::second;
+			u8							 dummy_u8					= 3;
 		};
 
 		void register_dummy_struct_reflection()
@@ -88,6 +91,20 @@ namespace sfg
 				{.enum_values = {.data = enum_values, .size = std::size(enum_values)}, .name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
 				{.name = "dummy_f32_vector", .display_name = "Float Vector", .type = reflected_value_type_e::vector, .sub_type_id = "f32"_hs, .offset = offsetof(dummy_struct_t, dummy_f32_vector), .size = sizeof(vector_t<f32>)},
 				{.name = "dummy_string_vector", .display_name = "String Vector", .type = reflected_value_type_e::vector, .sub_type_id = "string"_hs, .offset = offsetof(dummy_struct_t, dummy_string_vector), .size = sizeof(vector_t<string_t>)},
+				{.name		   = "dummy_static_f32_vector",
+				 .display_name = "Static Float Vector",
+				 .type		   = reflected_value_type_e::static_vector,
+				 .sub_type_id  = "f32"_hs,
+				 .offset	   = offsetof(dummy_struct_t, dummy_static_f32_vector),
+				 .size		   = sizeof(static_vector_t<f32, 4>),
+				 .capacity	   = 4},
+				{.name		   = "dummy_static_string_vector",
+				 .display_name = "Static String Vector",
+				 .type		   = reflected_value_type_e::static_vector,
+				 .sub_type_id  = "string"_hs,
+				 .offset	   = offsetof(dummy_struct_t, dummy_static_string_vector),
+				 .size		   = sizeof(static_vector_t<string_t, 4>),
+				 .capacity	   = 4},
 			};
 
 			reflection_registry_t& registry = reflection_registry_t::get();

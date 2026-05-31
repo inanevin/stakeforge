@@ -90,6 +90,13 @@ namespace sfg
 			const reflected_field_desc_t* field = nullptr;
 		};
 
+		struct vector_item_control_t
+		{
+			editor_widget_reflect_type_t* owner = nullptr;
+			const reflected_field_desc_t* field = nullptr;
+			u32							  index = 0;
+		};
+
 	private:
 		void		clear_reflected_controls();
 		void		rebuild_reflected_controls();
@@ -100,6 +107,7 @@ namespace sfg
 		void		toggle_vector_unfolded(sid_t field_id);
 		void		reset_vector_field(const reflected_field_desc_t& field);
 		void		add_vector_item(const reflected_field_desc_t& field);
+		void		remove_vector_item(const reflected_field_desc_t& field, u32 index);
 		static void on_number_changed(f32 value, void* user_data);
 		static void on_text_changed(const char* value, void* user_data);
 		static void on_checkbox_changed(bool checked, void* user_data);
@@ -112,22 +120,24 @@ namespace sfg
 		static void on_vector_header_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_vector_reset_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_vector_add_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_vector_item_remove_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		vector_t<editor_property_row_t> _rows			 = {};
-		vector_t<reflected_control_t>	_controls		 = {};
-		vector_t<vector_fold_state_t>	_vector_states	 = {};
-		vector_t<vector_control_t>		_vector_controls = {};
-		vector_t<editor_input_field_t*> _input_fields	 = {};
-		vector_t<editor_checkbox_t*>	_checkboxes		 = {};
-		vector_t<editor_color_field_t*> _color_fields	 = {};
-		vector_t<editor_vec2_field_t*>	_vec2_fields	 = {};
-		vector_t<editor_vec3_field_t*>	_vec3_fields	 = {};
-		vector_t<editor_vec4_field_t*>	_vec4_fields	 = {};
-		vector_t<enum_control_t>		_dropdowns		 = {};
-		ui::ui_context*					_ui				 = nullptr;
-		void*							_object			 = nullptr;
-		sid_t							_type_id		 = 0;
-		ui::widget_id_t					_root			 = NULL_WIDGET;
+		vector_t<editor_property_row_t> _rows				  = {};
+		vector_t<reflected_control_t>	_controls			  = {};
+		vector_t<vector_fold_state_t>	_vector_states		  = {};
+		vector_t<vector_control_t>		_vector_controls	  = {};
+		vector_t<vector_item_control_t> _vector_item_controls = {};
+		vector_t<editor_input_field_t*> _input_fields		  = {};
+		vector_t<editor_checkbox_t*>	_checkboxes			  = {};
+		vector_t<editor_color_field_t*> _color_fields		  = {};
+		vector_t<editor_vec2_field_t*>	_vec2_fields		  = {};
+		vector_t<editor_vec3_field_t*>	_vec3_fields		  = {};
+		vector_t<editor_vec4_field_t*>	_vec4_fields		  = {};
+		vector_t<enum_control_t>		_dropdowns			  = {};
+		ui::ui_context*					_ui					  = nullptr;
+		void*							_object				  = nullptr;
+		sid_t							_type_id			  = 0;
+		ui::widget_id_t					_root				  = NULL_WIDGET;
 	};
 }
