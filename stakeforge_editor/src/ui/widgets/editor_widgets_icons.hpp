@@ -52,7 +52,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ICON_CUBES			 "\u003F"
 #define ICON_MOVE			 "\u0022"
 #define ICON_SCALE			 "\u0023"
+#define ICON_L				 "\u0075"
 #define ICON_ROTATE			 "\u002B"
+#define ICON_RESET			 ICON_ROTATE
+#define ICON_PLUS			 "\u0069"
 #define ICON_WORLD			 "\u005A"
 #define ICON_L				 "\u0075"
 #define ICON_GLASSES		 "\u005E"

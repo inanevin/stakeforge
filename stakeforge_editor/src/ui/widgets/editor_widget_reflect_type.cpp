@@ -27,11 +27,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_reflect_type.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <cstdio>
 #include <cstring>
 
 namespace sfg
@@ -67,6 +71,14 @@ namespace sfg
 			config.max_value = field.max;
 			config.increment = integer ? 1.0f : 0.1f;
 			config.integer	 = integer;
+		}
+
+		void center_property_row_control(ui::ui_context& ui, ui::widget_id_t id)
+		{
+			ui::layout_in_t& in = ui.get_tree().in(id);
+			in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+			in.pos_value.y		= 0.5f;
+			in.anchor_y			= ui::anchor_e::center;
 		}
 
 		const void* get_reflected_field_ptr(const void* object, const reflected_field_desc_t& field)
@@ -209,6 +221,50 @@ namespace sfg
 		{
 			write_reflected_value(object, field, static_cast<u32>(value));
 		}
+
+		bool read_string_value(const void* object, const reflected_field_desc_t&, void* out_value, void*)
+		{
+			*static_cast<const char**>(out_value) = static_cast<const string_t*>(object)->c_str();
+			return true;
+		}
+
+		bool write_string_value(void* object, const reflected_field_desc_t&, const void* value, void*)
+		{
+			*static_cast<string_t*>(object) = static_cast<const char*>(value);
+			return true;
+		}
+
+		const reflected_field_desc_t& get_f32_item_field()
+		{
+			static const reflected_field_desc_t field = {
+				.name = "value",
+				.type = reflected_value_type_e::f32,
+				.size = sizeof(f32),
+			};
+			return field;
+		}
+
+		const reflected_field_desc_t& get_string_item_field()
+		{
+			static const reflected_field_desc_t field = {
+				.get  = read_string_value,
+				.set  = write_string_value,
+				.name = "value",
+				.type = reflected_value_type_e::string,
+				.size = sizeof(string_t),
+			};
+			return field;
+		}
+
+		template <typename T> vector_t<T>& get_reflected_vector(void* object, const reflected_field_desc_t& field)
+		{
+			return *static_cast<vector_t<T>*>(get_reflected_field_ptr(object, field));
+		}
+
+		template <typename T> const vector_t<T>& get_reflected_vector(const void* object, const reflected_field_desc_t& field)
+		{
+			return *static_cast<const vector_t<T>*>(get_reflected_field_ptr(object, field));
+		}
 	}
 
 	void editor_widget_reflect_type_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -242,191 +298,353 @@ namespace sfg
 		_object	 = nullptr;
 		_type_id = 0;
 		_root	 = NULL_WIDGET;
+		_vector_states.resize(0);
 	}
 
 	void editor_widget_reflect_type_t::set_reflected_obj(void* object, sid_t type_id)
 	{
 		_object	 = object;
 		_type_id = type_id;
+		_vector_states.resize(0);
+		rebuild_reflected_controls();
+	}
 
+	void editor_widget_reflect_type_t::rebuild_reflected_controls()
+	{
 		clear_reflected_controls();
 
-		const reflected_type_desc_t* type = reflection_registry_t::get().find_type(type_id);
+		const reflected_type_desc_t* type = reflection_registry_t::get().find_type(_type_id);
 		if (type == nullptr)
 			return;
 
-		_controls.reserve(type->fields.size);
+		u32 control_count = static_cast<u32>(type->fields.size);
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			const editor_property_row_t	  row	= editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, field.display_name != nullptr ? field.display_name : field.name);
-			_rows.push_back(row);
-			_controls.push_back({.owner = this, .field = &field});
-			reflected_control_t* control = &_controls.back();
+			if (field.type == reflected_value_type_e::vector && is_vector_unfolded(field.id))
+				control_count += get_vector_item_count(field);
+		}
 
-			switch (field.type)
+		_controls.reserve(control_count);
+		_vector_controls.reserve(type->fields.size);
+		for (u32 i = 0; i < type->fields.size; ++i)
+		{
+			const reflected_field_desc_t& field = type->fields.data[i];
+			const char*					  label = field.display_name != nullptr ? field.display_name : field.name;
+			if (field.type == reflected_value_type_e::vector)
 			{
-			case reflected_value_type_e::f32: {
-				editor_input_field_t*		input  = new editor_input_field_t();
-				editor_input_field_config_t config = {};
-				apply_reflected_number_config(config, field, false);
-				config.number_value		 = read_reflected_number(_object, field);
-				config.on_number_changed = on_number_changed;
-				config.user_data		 = control;
-				input->init(*_ui, row.right, config);
-				_input_fields.push_back(input);
-				break;
+				install_vector_field(field, label);
+				continue;
 			}
-			case reflected_value_type_e::i32:
-			case reflected_value_type_e::u32:
-			case reflected_value_type_e::u8: {
-				editor_input_field_t*		input  = new editor_input_field_t();
-				editor_input_field_config_t config = {};
-				apply_reflected_number_config(config, field, true);
-				config.number_value		 = read_reflected_number(_object, field);
-				config.on_number_changed = on_number_changed;
-				config.user_data		 = control;
-				input->init(*_ui, row.right, config);
-				_input_fields.push_back(input);
-				break;
-			}
-			case reflected_value_type_e::bool8: {
-				editor_checkbox_t*		 checkbox = new editor_checkbox_t();
-				editor_checkbox_config_t config	  = {};
-				config.checked					  = read_reflected_bool(_object, field);
-				config.on_changed				  = on_checkbox_changed;
-				config.user_data				  = control;
-				checkbox->init(*_ui, row.right, config);
-				_checkboxes.push_back(checkbox);
-				break;
-			}
-			case reflected_value_type_e::vec2: {
-				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
-				editor_vec2_field_config_t config = {};
-				config.value					  = read_reflected_value<vec2f_t>(_object, field);
-				config.on_changed				  = on_vec2_changed;
-				config.user_data				  = control;
-				vec->init(*_ui, row.right, config);
-				_vec2_fields.push_back(vec);
-				break;
-			}
-			case reflected_value_type_e::vec3: {
-				editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
-				editor_vec3_field_config_t config = {};
-				config.value					  = read_reflected_value<vec3f_t>(_object, field);
-				config.on_changed				  = on_vec3_changed;
-				config.user_data				  = control;
-				vec->init(*_ui, row.right, config);
-				_vec3_fields.push_back(vec);
-				break;
-			}
-			case reflected_value_type_e::vec4: {
-				editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
-				editor_vec4_field_config_t config = {};
-				config.value					  = read_reflected_value<vec4f_t>(_object, field);
-				config.on_changed				  = on_vec4_changed;
-				config.user_data				  = control;
-				vec->init(*_ui, row.right, config);
-				_vec4_fields.push_back(vec);
-				break;
-			}
-			case reflected_value_type_e::color: {
-				editor_color_field_t*		color  = new editor_color_field_t();
-				editor_color_field_config_t config = {};
-				config.color					   = read_reflected_value<vec4f_t>(_object, field);
-				config.on_changed				   = on_color_changed;
-				config.user_data				   = control;
-				color->init(*_ui, row.right, config);
-				_color_fields.push_back(color);
-				break;
-			}
-			case reflected_value_type_e::string: {
-				editor_input_field_t*		input  = new editor_input_field_t();
-				editor_input_field_config_t config = {};
-				config.type						   = editor_input_field_type_e::text;
-				config.text_value				   = read_reflected_text(_object, field);
-				config.on_text_changed			   = on_text_changed;
-				config.user_data				   = control;
-				input->init(*_ui, row.right, config);
-				_input_fields.push_back(input);
-				break;
-			}
-			case reflected_value_type_e::enum32: {
-				_dropdowns.push_back({});
-				enum_control_t& enum_control = _dropdowns.back();
-				enum_control.items.reserve(field.enum_values.size);
-				for (u32 enum_index = 0; enum_index < field.enum_values.size; ++enum_index)
-				{
-					const reflected_enum_value_desc_t& value = field.enum_values.data[enum_index];
-					enum_control.items.push_back({.text = value.display_name != nullptr ? value.display_name : value.name, .value = static_cast<u16>(enum_index)});
-				}
 
-				enum_control.dropdown			= new editor_dropdown_t();
-				editor_dropdown_config_t config = {};
-				config.items					= enum_control.items.data();
-				config.item_count				= static_cast<u16>(enum_control.items.size());
-				config.width					= editor_dropdown_width_e::parent_relative;
-				config.title_from_selection		= true;
-				config.selected					= on_enum_selected;
-				config.pressed					= on_enum_pressed;
-				config.user_data				= control;
-				enum_control.dropdown->init(*_ui, row.right, config);
-				break;
+			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label);
+			_rows.push_back(row);
+			install_reflected_control(row.right, field, _object);
+		}
+	}
+
+	void editor_widget_reflect_type_t::install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object)
+	{
+		_controls.push_back({.owner = this, .field = &field, .object = object});
+		reflected_control_t* control = &_controls.back();
+
+		switch (field.type)
+		{
+		case reflected_value_type_e::f32: {
+			editor_input_field_t*		input  = new editor_input_field_t();
+			editor_input_field_config_t config = {};
+			apply_reflected_number_config(config, field, false);
+			config.number_value		 = read_reflected_number(object, field);
+			config.on_number_changed = on_number_changed;
+			config.user_data		 = control;
+			input->init(*_ui, parent, config);
+			center_property_row_control(*_ui, input->get_root());
+			_input_fields.push_back(input);
+			break;
+		}
+		case reflected_value_type_e::i32:
+		case reflected_value_type_e::u32:
+		case reflected_value_type_e::u8: {
+			editor_input_field_t*		input  = new editor_input_field_t();
+			editor_input_field_config_t config = {};
+			apply_reflected_number_config(config, field, true);
+			config.number_value		 = read_reflected_number(object, field);
+			config.on_number_changed = on_number_changed;
+			config.user_data		 = control;
+			input->init(*_ui, parent, config);
+			center_property_row_control(*_ui, input->get_root());
+			_input_fields.push_back(input);
+			break;
+		}
+		case reflected_value_type_e::bool8: {
+			editor_checkbox_t*		 checkbox = new editor_checkbox_t();
+			editor_checkbox_config_t config	  = {};
+			config.checked					  = read_reflected_bool(object, field);
+			config.on_changed				  = on_checkbox_changed;
+			config.user_data				  = control;
+			checkbox->init(*_ui, parent, config);
+			center_property_row_control(*_ui, checkbox->get_root());
+			_checkboxes.push_back(checkbox);
+			break;
+		}
+		case reflected_value_type_e::vec2: {
+			editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
+			editor_vec2_field_config_t config = {};
+			config.value					  = read_reflected_value<vec2f_t>(object, field);
+			config.on_changed				  = on_vec2_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec2_fields.push_back(vec);
+			break;
+		}
+		case reflected_value_type_e::vec3: {
+			editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
+			editor_vec3_field_config_t config = {};
+			config.value					  = read_reflected_value<vec3f_t>(object, field);
+			config.on_changed				  = on_vec3_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec3_fields.push_back(vec);
+			break;
+		}
+		case reflected_value_type_e::vec4: {
+			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
+			editor_vec4_field_config_t config = {};
+			config.value					  = read_reflected_value<vec4f_t>(object, field);
+			config.on_changed				  = on_vec4_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec4_fields.push_back(vec);
+			break;
+		}
+		case reflected_value_type_e::color: {
+			editor_color_field_t*		color  = new editor_color_field_t();
+			editor_color_field_config_t config = {};
+			config.color					   = read_reflected_value<vec4f_t>(object, field);
+			config.on_changed				   = on_color_changed;
+			config.user_data				   = control;
+			color->init(*_ui, parent, config);
+			center_property_row_control(*_ui, color->get_root());
+			_color_fields.push_back(color);
+			break;
+		}
+		case reflected_value_type_e::string: {
+			editor_input_field_t*		input  = new editor_input_field_t();
+			editor_input_field_config_t config = {};
+			config.type						   = editor_input_field_type_e::text;
+			config.text_value				   = read_reflected_text(object, field);
+			config.on_text_changed			   = on_text_changed;
+			config.user_data				   = control;
+			input->init(*_ui, parent, config);
+			center_property_row_control(*_ui, input->get_root());
+			_input_fields.push_back(input);
+			break;
+		}
+		case reflected_value_type_e::enum32: {
+			_dropdowns.push_back({});
+			enum_control_t& enum_control = _dropdowns.back();
+			enum_control.items.reserve(field.enum_values.size);
+			for (u32 enum_index = 0; enum_index < field.enum_values.size; ++enum_index)
+			{
+				const reflected_enum_value_desc_t& value = field.enum_values.data[enum_index];
+				enum_control.items.push_back({.text = value.display_name != nullptr ? value.display_name : value.name, .value = static_cast<u16>(enum_index)});
 			}
-			default: {
-				add_unknown_label(*_ui, row.right);
-				break;
+
+			enum_control.dropdown			= new editor_dropdown_t();
+			editor_dropdown_config_t config = {};
+			config.items					= enum_control.items.data();
+			config.item_count				= static_cast<u16>(enum_control.items.size());
+			config.width					= editor_dropdown_width_e::parent_relative;
+			config.title_from_selection		= true;
+			config.selected					= on_enum_selected;
+			config.pressed					= on_enum_pressed;
+			config.user_data				= control;
+			enum_control.dropdown->init(*_ui, parent, config);
+			center_property_row_control(*_ui, enum_control.dropdown->get_root());
+			break;
+		}
+		default: {
+			add_unknown_label(*_ui, parent);
+			break;
+		}
+		}
+	}
+
+	void editor_widget_reflect_type_t::install_vector_field(const reflected_field_desc_t& field, const char* label)
+	{
+		const bool						   unfolded	  = is_vector_unfolded(field.id);
+		const u32						   item_count = get_vector_item_count(field);
+		const editor_vector_property_row_t vector_row = editor_misc_widgets_t::make_vector_property_row_with_label(*_ui, _root, label, item_count, unfolded);
+		_rows.push_back(vector_row.row);
+
+		_vector_controls.push_back({.owner = this, .field = &field});
+		vector_control_t* control = &_vector_controls.back();
+
+		ui::listener_bundle_t listener = {};
+		listener.user_data			   = control;
+		listener.on_click			   = on_vector_header_click;
+		_ui->get_input().set_listener(vector_row.dropdown_button, listener);
+		_ui->get_input().set_listener(vector_row.label, listener);
+
+		listener.on_click = on_vector_reset_click;
+		_ui->get_input().set_listener(vector_row.reset_button, listener);
+
+		listener.on_click = on_vector_add_click;
+		_ui->get_input().set_listener(vector_row.add_button, listener);
+
+		if (!unfolded)
+			return;
+
+		if (field.sub_type_id == "f32"_hs)
+		{
+			vector_t<f32>& values = get_reflected_vector<f32>(_object, field);
+			for (u32 i = 0; i < values.size(); ++i)
+			{
+				char item_label[32] = {};
+				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
+				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true);
+				_rows.push_back(row);
+				install_reflected_control(row.right, get_f32_item_field(), &values[i]);
 			}
+			return;
+		}
+
+		if (field.sub_type_id == "string"_hs)
+		{
+			vector_t<string_t>& values = get_reflected_vector<string_t>(_object, field);
+			for (u32 i = 0; i < values.size(); ++i)
+			{
+				char item_label[32] = {};
+				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
+				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true);
+				_rows.push_back(row);
+				install_reflected_control(row.right, get_string_item_field(), &values[i]);
 			}
+		}
+	}
+
+	u32 editor_widget_reflect_type_t::get_vector_item_count(const reflected_field_desc_t& field) const
+	{
+		if (field.sub_type_id == "f32"_hs)
+			return static_cast<u32>(get_reflected_vector<f32>(_object, field).size());
+		if (field.sub_type_id == "string"_hs)
+			return static_cast<u32>(get_reflected_vector<string_t>(_object, field).size());
+		return 0;
+	}
+
+	bool editor_widget_reflect_type_t::is_vector_unfolded(sid_t field_id) const
+	{
+		for (const vector_fold_state_t& state : _vector_states)
+		{
+			if (state.field_id == field_id)
+				return state.unfolded;
+		}
+		return false;
+	}
+
+	void editor_widget_reflect_type_t::toggle_vector_unfolded(sid_t field_id)
+	{
+		for (vector_fold_state_t& state : _vector_states)
+		{
+			if (state.field_id == field_id)
+			{
+				state.unfolded = !state.unfolded;
+				rebuild_reflected_controls();
+				return;
+			}
+		}
+
+		_vector_states.push_back({.field_id = field_id, .unfolded = true});
+		rebuild_reflected_controls();
+	}
+
+	void editor_widget_reflect_type_t::reset_vector_field(const reflected_field_desc_t& field)
+	{
+		if ((field.flags & reflected_field_flags_read_only) != 0)
+			return;
+
+		if (field.sub_type_id == "f32"_hs)
+		{
+			get_reflected_vector<f32>(_object, field).resize(0);
+			rebuild_reflected_controls();
+			return;
+		}
+
+		if (field.sub_type_id == "string"_hs)
+		{
+			get_reflected_vector<string_t>(_object, field).resize(0);
+			rebuild_reflected_controls();
+		}
+	}
+
+	void editor_widget_reflect_type_t::add_vector_item(const reflected_field_desc_t& field)
+	{
+		if ((field.flags & reflected_field_flags_read_only) != 0)
+			return;
+
+		if (field.sub_type_id == "f32"_hs)
+		{
+			get_reflected_vector<f32>(_object, field).push_back(0.0f);
+			rebuild_reflected_controls();
+			return;
+		}
+
+		if (field.sub_type_id == "string"_hs)
+		{
+			get_reflected_vector<string_t>(_object, field).push_back(string_t{});
+			rebuild_reflected_controls();
 		}
 	}
 
 	void editor_widget_reflect_type_t::on_number_changed(f32 value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_number(control.owner->_object, *control.field, value);
+		write_reflected_number(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_text_changed(const char* value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_text(control.owner->_object, *control.field, value);
+		write_reflected_text(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_checkbox_changed(bool checked, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_bool(control.owner->_object, *control.field, checked);
+		write_reflected_bool(control.object, *control.field, checked);
 	}
 
 	void editor_widget_reflect_type_t::on_color_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.owner->_object, *control.field, value);
+		write_reflected_value(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec2_changed(const vec2f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.owner->_object, *control.field, value);
+		write_reflected_value(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec3_changed(const vec3f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.owner->_object, *control.field, value);
+		write_reflected_value(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec4_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.owner->_object, *control.field, value);
+		write_reflected_value(control.object, *control.field, value);
 	}
 
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		const i64			 value	 = read_reflected_enum(control.owner->_object, *control.field);
+		const i64			 value	 = read_reflected_enum(control.object, *control.field);
 		for (u16 i = 0; i < control.field->enum_values.size; ++i)
 		{
 			if (control.field->enum_values.data[i].value == value)
@@ -439,7 +657,34 @@ namespace sfg
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		SFG_ASSERT(value < control.field->enum_values.size);
-		write_reflected_enum(control.owner->_object, *control.field, control.field->enum_values.data[value].value);
+		write_reflected_enum(control.object, *control.field, control.field->enum_values.data[value].value);
+	}
+
+	void editor_widget_reflect_type_t::on_vector_header_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		vector_control_t& control = *static_cast<vector_control_t*>(user_data);
+		control.owner->toggle_vector_unfolded(control.field->id);
+	}
+
+	void editor_widget_reflect_type_t::on_vector_reset_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		vector_control_t& control = *static_cast<vector_control_t*>(user_data);
+		control.owner->reset_vector_field(*control.field);
+	}
+
+	void editor_widget_reflect_type_t::on_vector_add_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		vector_control_t& control = *static_cast<vector_control_t*>(user_data);
+		control.owner->add_vector_item(*control.field);
 	}
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()
@@ -498,5 +743,6 @@ namespace sfg
 			_ui->deallocate_widget(_rows[i - 1].row);
 		_rows.resize(0);
 		_controls.resize(0);
+		_vector_controls.resize(0);
 	}
 }

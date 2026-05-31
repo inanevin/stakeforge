@@ -53,7 +53,7 @@ namespace sfg
 		string,
 		quat,
 		enum32,
-		array,
+		vector,
 	};
 
 	enum reflected_field_flags_e : u32

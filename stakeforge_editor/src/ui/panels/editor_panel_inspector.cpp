@@ -27,13 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 #include <cstddef>
-#include <type_traits>
 
 namespace sfg
 {
@@ -50,23 +51,23 @@ namespace sfg
 		{
 			static inline constexpr sid_t TYPE_ID = "editor_inspector_dummy_struct"_hs;
 
-			vec4f_t		 dummy_color	  = {0.8f, 0.2f, 0.6f, 1.0f};
-			quat_t		 dummy_quat		  = quat_t::identity;
-			char		 dummy_string[64] = "Stakeforge";
-			vec4f_t		 dummy_vec4		  = {1.0f, 2.0f, 3.0f, 4.0f};
-			vec3f_t		 dummy_vec3		  = {1.0f, 2.0f, 3.0f};
-			vec2f_t		 dummy_vec2		  = {1.0f, 2.0f};
-			f32			 dummy_f32		  = 12.5f;
-			u32			 dummy_u32		  = 42;
-			i32			 dummy_i32		  = -7;
-			dummy_enum_e dummy_enum		  = dummy_enum_e::second;
-			u8			 dummy_u8		  = 3;
+			vector_t<string_t> dummy_string_vector = {"Alpha", "Beta", "Gamma"};
+			vector_t<f32>	   dummy_f32_vector	   = {1.0f, 2.0f, 3.0f};
+			vec4f_t			   dummy_color		   = {0.8f, 0.2f, 0.6f, 1.0f};
+			quat_t			   dummy_quat		   = quat_t::identity;
+			char			   dummy_string[64]	   = "Stakeforge";
+			vec4f_t			   dummy_vec4		   = {1.0f, 2.0f, 3.0f, 4.0f};
+			vec3f_t			   dummy_vec3		   = {1.0f, 2.0f, 3.0f};
+			vec2f_t			   dummy_vec2		   = {1.0f, 2.0f};
+			f32				   dummy_f32		   = 12.5f;
+			u32				   dummy_u32		   = 42;
+			i32				   dummy_i32		   = -7;
+			dummy_enum_e	   dummy_enum		   = dummy_enum_e::second;
+			u8				   dummy_u8			   = 3;
 		};
 
 		void register_dummy_struct_reflection()
 		{
-			static_assert(std::is_standard_layout_v<dummy_struct_t>);
-
 			static const reflected_enum_value_desc_t enum_values[] = {
 				{.name = "first", .display_name = "First", .value = static_cast<i64>(dummy_enum_e::first)},
 				{.name = "second", .display_name = "Second", .value = static_cast<i64>(dummy_enum_e::second)},
@@ -85,6 +86,8 @@ namespace sfg
 				{.name = "dummy_quat", .display_name = "Quat", .type = reflected_value_type_e::quat, .offset = offsetof(dummy_struct_t, dummy_quat), .size = sizeof(quat_t)},
 				{.name = "dummy_string", .display_name = "String", .type = reflected_value_type_e::string, .offset = offsetof(dummy_struct_t, dummy_string), .size = sizeof(dummy_struct_t::dummy_string)},
 				{.enum_values = {.data = enum_values, .size = std::size(enum_values)}, .name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
+				{.name = "dummy_f32_vector", .display_name = "Float Vector", .type = reflected_value_type_e::vector, .sub_type_id = "f32"_hs, .offset = offsetof(dummy_struct_t, dummy_f32_vector), .size = sizeof(vector_t<f32>)},
+				{.name = "dummy_string_vector", .display_name = "String Vector", .type = reflected_value_type_e::vector, .sub_type_id = "string"_hs, .offset = offsetof(dummy_struct_t, dummy_string_vector), .size = sizeof(vector_t<string_t>)},
 			};
 
 			reflection_registry_t& registry = reflection_registry_t::get();
