@@ -211,7 +211,33 @@ namespace sfg
 
 		i64 read_reflected_enum(const void* object, const reflected_field_desc_t& field)
 		{
-			const u32 raw = read_reflected_value<u32>(object, field);
+			u64 raw = 0;
+			if (field.get != nullptr)
+			{
+				u32 value = 0;
+				field.get(object, field, &value, field.user_data);
+				raw = value;
+			}
+			else
+			{
+				const void* ptr = get_reflected_field_ptr(object, field);
+				switch (field.size)
+				{
+				case sizeof(u8):
+					raw = *static_cast<const u8*>(ptr);
+					break;
+				case sizeof(u16):
+					raw = *static_cast<const u16*>(ptr);
+					break;
+				case sizeof(u64):
+					raw = *static_cast<const u64*>(ptr);
+					break;
+				default:
+					raw = *static_cast<const u32*>(ptr);
+					break;
+				}
+			}
+
 			for (u32 i = 0; i < field.enum_values.size; ++i)
 			{
 				const i64 value = field.enum_values.data[i].value;
@@ -223,7 +249,31 @@ namespace sfg
 
 		void write_reflected_enum(void* object, const reflected_field_desc_t& field, i64 value)
 		{
-			write_reflected_value(object, field, static_cast<u32>(value));
+			if ((field.flags & reflected_field_flags_read_only) != 0)
+				return;
+			if (field.set != nullptr)
+			{
+				const u32 raw = static_cast<u32>(value);
+				field.set(object, field, &raw, field.user_data);
+				return;
+			}
+
+			void* ptr = get_reflected_field_ptr(object, field);
+			switch (field.size)
+			{
+			case sizeof(u8):
+				*static_cast<u8*>(ptr) = static_cast<u8>(value);
+				break;
+			case sizeof(u16):
+				*static_cast<u16*>(ptr) = static_cast<u16>(value);
+				break;
+			case sizeof(u64):
+				*static_cast<u64*>(ptr) = static_cast<u64>(value);
+				break;
+			default:
+				*static_cast<u32*>(ptr) = static_cast<u32>(value);
+				break;
+			}
 		}
 
 		bool is_vector_field(const reflected_field_desc_t& field)

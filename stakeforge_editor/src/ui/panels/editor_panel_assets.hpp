@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_modal_assets_override.hpp"
+#include "ui/editor_modal_cook_options.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
@@ -86,13 +87,19 @@ namespace sfg
 			u8					sub_type   = 0;
 		};
 
+		struct pending_cook_config_t
+		{
+			editor_asset_cook_config_desc_t config	   = {};
+			editor_asset_type_e				asset_type = editor_asset_type_e::invalid;
+		};
+
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
 		void apply_pane_split();
 		void open_filter_popup();
-		void open_action_menu(const vec2f_t& pos, editor_asset_node_handle_t folder, u64 folder_hash);
+		void open_action_menu(const vec2f_t& pos);
 		void import_assets(const vector_t<string_t>& paths);
 		void refresh_folder_rows();
 		bool append_folder_rows(editor_asset_node_handle_t node, u16 depth, frame_string_t<char>& current_path);
@@ -108,7 +115,12 @@ namespace sfg
 		void toggle_folder_favourite(u64 path_hash);
 		void open_create_popup(editor_asset_type_e asset_type, u8 sub_type);
 		void create_folder(const char* name);
+		void request_create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count, bool allow_overwrite);
+		void submit_create_assets();
 		void create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count);
+		void collect_pending_cook_configs();
+		void clear_pending_cook_configs();
+		void clear_pending_create_assets();
 		void delete_folder();
 		void duplicate_folder();
 		void open_rename_popup();
@@ -121,6 +133,7 @@ namespace sfg
 		string_t			get_action_menu_target_folder_path() const;
 		string_t			get_folder_absolute_path(editor_asset_node_handle_t node) const;
 		u64					get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const;
+		const folder_row_t* find_row_by_hash(u64 path_hash) const;
 		const folder_row_t* find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
 
 		// -----------------------------------------------------------------------------
@@ -137,6 +150,8 @@ namespace sfg
 		static void on_rename_popup_closed(const char* value, void* user_data);
 		static void on_import_overwrite_confirmed(void* user_data);
 		static void on_import_overwrite_cancelled(void* user_data);
+		static void on_cook_options_imported(void* user_data);
+		static void on_cook_options_cancelled(void* user_data);
 		static void on_search_changed(const char* value, void* user_data);
 		static void on_thumbnail_slider_changed(f32 value, void* user_data);
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -159,14 +174,14 @@ namespace sfg
 		vector_t<u64>						 _expanded_folder_hashes	  = {};
 		vector_t<u64>						 _favourite_folder_hashes	  = {};
 		vector_t<editor_asset_create_desc_t> _pending_import_create_descs = {};
+		vector_t<pending_cook_config_t>		 _pending_cook_configs		  = {};
 		editor_modal_assets_override_t		 _assets_override_modal		  = {};
+		editor_modal_cook_options_t			 _cook_options_modal		  = {};
 		string_t							 _pending_import_directory	  = {};
 		string_t							 _search_str				  = {};
 		string_t							 _search_str_lower			  = {};
 		vec2f_t								 _action_menu_pos			  = {};
-		u64									 _action_menu_folder_hash	  = 0;
 		u64									 _selected_folder_hash		  = 0;
-		editor_asset_node_handle_t			 _action_menu_folder		  = {};
 		ui::widget_id_t						 _assets_left_pane			  = NULL_WIDGET;
 		ui::widget_id_t						 _assets_left_pane_top_row	  = NULL_WIDGET;
 		ui::widget_id_t						 _assets_left_pane_body		  = NULL_WIDGET;

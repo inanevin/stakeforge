@@ -27,9 +27,21 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/editor_modal_controller.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
 
 namespace sfg
 {
+	class editor_widget_fold_t;
+	class editor_widget_reflect_type_t;
+
+	struct editor_modal_cook_option_desc_t
+	{
+		void*		object	= nullptr;
+		const char* title	= nullptr;
+		sid_t		type_id = 0;
+	};
+
 	class editor_modal_cook_options_t final
 	{
 	public:
@@ -42,6 +54,7 @@ namespace sfg
 
 		void						init(ui::ui_context& ui, ui::widget_id_t parent);
 		void						uninit();
+		void						set_options(const editor_modal_cook_option_desc_t* options, u16 count);
 		editor_modal_content_desc_t get_content_desc();
 
 	private:
@@ -49,7 +62,10 @@ namespace sfg
 		static void uninit_content(void* user_data);
 
 	private:
-		ui::ui_context* _ui	  = nullptr;
-		ui::widget_id_t _root = NULL_WIDGET;
+		vector_t<editor_modal_cook_option_desc_t> _options		 = {};
+		vector_t<editor_widget_fold_t*>			  _folds		 = {};
+		vector_t<editor_widget_reflect_type_t*>	  _reflect_types = {};
+		ui::ui_context*							  _ui			 = nullptr;
+		ui::widget_id_t							  _root			 = NULL_WIDGET;
 	};
 }

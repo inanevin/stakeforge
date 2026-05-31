@@ -193,6 +193,7 @@ namespace sfg
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
+		SFG_ASSERT(desc.create_default != nullptr);
 		_asset_descriptors[desc.asset_type] = desc;
 	}
 

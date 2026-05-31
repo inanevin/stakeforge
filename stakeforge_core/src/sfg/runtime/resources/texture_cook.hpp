@@ -36,8 +36,8 @@ namespace sfg
 
 	enum class texture_cook_payload_type_e : u8
 	{
-		uncompressed,
 		ktx2_uastc,
+		uncompressed,
 	};
 
 	struct texture_cook_config_t

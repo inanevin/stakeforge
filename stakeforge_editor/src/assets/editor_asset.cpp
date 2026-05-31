@@ -29,43 +29,115 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <cstddef>
 #include <cstdio>
+#include <iterator>
 
 namespace sfg
 {
+	namespace
+	{
+#define TEXTURE_COOK_CONFIG_TYPE_ID "texture_cook_config"_hs
+
+		void destroy_texture_cook_config(void* object)
+		{
+			delete static_cast<texture_cook_config_t*>(object);
+		}
+
+		void register_texture_cook_config_reflection()
+		{
+			reflection_registry_t& registry = reflection_registry_t::get();
+			if (registry.find_type(TEXTURE_COOK_CONFIG_TYPE_ID) != nullptr)
+				return;
+
+			static const reflected_enum_value_desc_t payload_type_values[] = {
+				{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_cook_payload_type_e::uncompressed)},
+				{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_cook_payload_type_e::ktx2_uastc)},
+			};
+
+			static const reflected_field_desc_t fields[] = {
+				{.enum_values  = {.data = payload_type_values, .size = std::size(payload_type_values)},
+				 .name		   = "payload_type",
+				 .display_name = "Payload Type",
+				 .type		   = reflected_value_type_e::enum32,
+				 .offset	   = offsetof(texture_cook_config_t, payload_type),
+				 .size		   = sizeof(texture_cook_payload_type_e)},
+				{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
+				{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
+			};
+
+			registry.register_type({
+				.fields		  = {.data = fields, .size = std::size(fields)},
+				.name		  = "texture_cook_config",
+				.display_name = "Texture Cook Config",
+				.type_id	  = TEXTURE_COOK_CONFIG_TYPE_ID,
+				.size		  = sizeof(texture_cook_config_t),
+				.alignment	  = alignof(texture_cook_config_t),
+			});
+		}
+	}
+
+	bool editor_asset_loader_audio_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	{
+		return true;
+	}
+
 	void editor_asset_loader_audio_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.extension = "mp3", .asset_type = editor_asset_type_e::audio, .source_type = editor_asset_source_type_e::file});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extension = "mp3", .asset_type = editor_asset_type_e::audio, .source_type = editor_asset_source_type_e::file});
+	}
+
+	bool editor_asset_loader_font_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	{
+		return true;
 	}
 
 	void editor_asset_loader_font_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.extension = "ttf", .asset_type = editor_asset_type_e::font, .source_type = editor_asset_source_type_e::file});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extension = "ttf", .asset_type = editor_asset_type_e::font, .source_type = editor_asset_source_type_e::file});
+	}
+
+	bool editor_asset_loader_mesh_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	{
+		return true;
 	}
 
 	void editor_asset_loader_mesh_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.extension = "glb", .asset_type = editor_asset_type_e::mesh, .source_type = editor_asset_source_type_e::file});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extension = "glb", .asset_type = editor_asset_type_e::mesh, .source_type = editor_asset_source_type_e::file});
+	}
+
+	bool editor_asset_loader_skeleton_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	{
+		return true;
 	}
 
 	void editor_asset_loader_skeleton_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::skeleton, .source_type = editor_asset_source_type_e::file});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::skeleton, .source_type = editor_asset_source_type_e::file});
+	}
+
+	bool editor_asset_loader_animation_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	{
+		return true;
 	}
 
 	void editor_asset_loader_animation_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::animation, .source_type = editor_asset_source_type_e::file});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::animation, .source_type = editor_asset_source_type_e::file});
 	}
 
-	bool editor_asset_loader_material_t::create_default(editor_asset_t&, const char*, const char*, u8)
+	bool editor_asset_loader_material_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
 	{
 		return true;
 	}
@@ -75,7 +147,7 @@ namespace sfg
 		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::material, .source_type = editor_asset_source_type_e::none});
 	}
 
-	bool editor_asset_loader_shader_t::create_default(editor_asset_t& asset, const char*, const char*, u8 sub_type)
+	bool editor_asset_loader_shader_t::create_default(editor_asset_t& asset, const char*, const char*, u8 sub_type, void*)
 	{
 		const shader_type_e shader_type = static_cast<shader_type_e>(sub_type);
 		asset.cook_options["schema"]	= "sfg.schema.shader";
@@ -108,12 +180,26 @@ namespace sfg
 		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::shader, .source_type = editor_asset_source_type_e::none});
 	}
 
-	void editor_asset_loader_texture_t::register_type()
+	bool editor_asset_loader_texture_t::create_default(editor_asset_t& asset, const char*, const char*, u8, void* cook_config)
 	{
-		editor_asset_manager_t::get().register_descriptor({.extension = "png;jpg;jpeg", .asset_type = editor_asset_type_e::texture, .source_type = editor_asset_source_type_e::file});
+		const texture_cook_config_t texture_config = cook_config != nullptr ? *reinterpret_cast<const texture_cook_config_t*>(cook_config) : texture_cook_config_t{};
+		const nlohmann::json		json_data	   = texture_config;
+		asset.cook_options						   = json_data;
+		return true;
 	}
 
-	bool editor_asset_loader_texture_sampler_t::create_default(editor_asset_t& asset, const char*, const char*, u8)
+	editor_asset_cook_config_desc_t editor_asset_loader_texture_t::create_cook_config()
+	{
+		return {.object = new texture_cook_config_t(), .title = "Texture", .destroy = destroy_texture_cook_config, .type_id = TEXTURE_COOK_CONFIG_TYPE_ID};
+	}
+
+	void editor_asset_loader_texture_t::register_type()
+	{
+		register_texture_cook_config_reflection();
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .create_cook_config = create_cook_config, .extension = "png;jpg;jpeg", .asset_type = editor_asset_type_e::texture, .source_type = editor_asset_source_type_e::file});
+	}
+
+	bool editor_asset_loader_texture_sampler_t::create_default(editor_asset_t& asset, const char*, const char*, u8, void*)
 	{
 		const sampler_desc_t sampler_desc = {};
 		const nlohmann::json json_data	  = sampler_desc;
@@ -131,7 +217,7 @@ namespace sfg
 		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .cook = cook, .asset_type = editor_asset_type_e::texture_sampler, .source_type = editor_asset_source_type_e::embedded});
 	}
 
-	bool editor_asset_loader_physical_material_t::create_default(editor_asset_t&, const char*, const char*, u8)
+	bool editor_asset_loader_physical_material_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
 	{
 		return true;
 	}
@@ -141,12 +227,17 @@ namespace sfg
 		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::physical_material, .source_type = editor_asset_source_type_e::none});
 	}
 
-	void editor_asset_loader_prefab_t::register_type()
+	bool editor_asset_loader_prefab_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
 	{
-		editor_asset_manager_t::get().register_descriptor({.asset_type = editor_asset_type_e::prefab, .source_type = editor_asset_source_type_e::file});
+		return true;
 	}
 
-	bool editor_asset_loader_animation_state_machine_t::create_default(editor_asset_t&, const char*, const char*, u8)
+	void editor_asset_loader_prefab_t::register_type()
+	{
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::prefab, .source_type = editor_asset_source_type_e::file});
+	}
+
+	bool editor_asset_loader_animation_state_machine_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
 	{
 		return true;
 	}

@@ -25,10 +25,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/editor_modal_cook_options.hpp"
-#include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_fold.hpp"
+#include "ui/widgets/editor_widget_reflect_type.hpp"
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -37,7 +37,6 @@ namespace sfg
 	{
 		_ui							= &ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
-		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
@@ -47,17 +46,52 @@ namespace sfg
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
+		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
+		root_in.size_value.x	 = theme.item_width * 4.0f;
+		root_in.flow			 = ui::flow_e::column;
+		root_in.child_spacing	 = theme.item_spacing;
 
-		ui.set_widget_text(_root, "Cook options");
-		paint.set_text(
-			_root, ui.widget_text(_root), ui.widget_text_len(_root), {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		_folds.reserve(_options.size());
+		_reflect_types.reserve(_options.size());
+		for (const editor_modal_cook_option_desc_t& option : _options)
+		{
+			editor_widget_fold_t* fold = new editor_widget_fold_t();
+			fold->init(ui, _root, {.label = option.title, .folded = false});
+			_folds.push_back(fold);
+
+			editor_widget_reflect_type_t* reflect_type = new editor_widget_reflect_type_t();
+			reflect_type->init(ui, fold->get_body());
+			reflect_type->set_reflected_obj(option.object, option.type_id);
+			_reflect_types.push_back(reflect_type);
+		}
 	}
 
 	void editor_modal_cook_options_t::uninit()
 	{
+		for (editor_widget_reflect_type_t* reflect_type : _reflect_types)
+		{
+			reflect_type->uninit();
+			delete reflect_type;
+		}
+		for (editor_widget_fold_t* fold : _folds)
+		{
+			fold->uninit();
+			delete fold;
+		}
+		_reflect_types.resize(0);
+		_folds.resize(0);
 		_ui->deallocate_widget(_root);
 		_ui	  = nullptr;
 		_root = NULL_WIDGET;
+	}
+
+	void editor_modal_cook_options_t::set_options(const editor_modal_cook_option_desc_t* options, u16 count)
+	{
+		_options.resize(0);
+		_options.reserve(count);
+		for (u16 i = 0; i < count; ++i)
+			_options.push_back(options[i]);
 	}
 
 	editor_modal_content_desc_t editor_modal_cook_options_t::get_content_desc()

@@ -40,8 +40,8 @@ namespace sfg
 {
 	namespace
 	{
-		constexpr u32 POPUP_FG_DRAW_ORDER = 50000u;
-		constexpr u32 POPUP_DRAW_ORDER	  = 50001u;
+		constexpr u32 POPUP_FG_DRAW_ORDER = 61000u;
+		constexpr u32 POPUP_DRAW_ORDER	  = 61001u;
 
 		editor_popup_controller_t* s_controllers[editor_popup_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
