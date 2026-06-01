@@ -147,6 +147,33 @@ namespace sfg
 		return !get_source_relative(assets_path, source_full_path).empty();
 	}
 
+	void editor_asset_util_t::fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies)
+	{
+		const auto push_dependency = [&](sid_t dependency) {
+			if (dependency != NULL_SID)
+				out_dependencies.push_back(dependency);
+		};
+
+		switch (asset.asset_type)
+		{
+		case editor_asset_type_e::mesh:
+		case editor_asset_type_e::material: {
+			if (!asset.embedded_source.is_object())
+				break;
+
+			push_dependency(asset.embedded_source.value<sid_t>("shader", NULL_SID));
+			push_dependency(asset.embedded_source.value<sid_t>("sampler", NULL_SID));
+			const vector_t<sid_t> textures = asset.embedded_source.value<vector_t<sid_t>>("textures", {});
+			out_dependencies.reserve(out_dependencies.size() + textures.size());
+			for (const sid_t texture : textures)
+				push_dependency(texture);
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
 	sid_t editor_asset_util_t::try_read_existing_guid(const char* path)
 	{
 		editor_asset_t asset = {};
@@ -282,10 +309,11 @@ namespace sfg
 		asset.guid			  = j.value<sid_t>("guid", NULL_SID);
 		asset.asset_type	  = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
 		asset.sub_type		  = j.value<u8>("sub_type", 0);
-		asset.embedded_source = j.value<nlohmann::json>("embedded_source", nlohmann::json::object());
+		asset.embedded_source = j.value<nlohmann::json>("embedded_source", nlohmann::json());
 		asset.cook_options	  = j.value<nlohmann::json>("cook_options", nlohmann::json::object());
 		asset.source_relative = j.value<string_t>("source_relative", {});
 		asset.source_type	  = j.value<editor_asset_source_type_e>("source_type", editor_asset_source_type_e::file);
+		asset.status		  = editor_asset_status_e::ok;
 		asset._transient_data = {};
 	}
 }

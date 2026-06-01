@@ -237,6 +237,7 @@ namespace sfg
 		for (auto& found : found_assets)
 			_assets[found.first] = std::move(found.second);
 
+		ensure_integrity();
 		_generation++;
 	}
 
@@ -391,6 +392,60 @@ namespace sfg
 		}
 	}
 
+	void editor_asset_manager_t::ensure_integrity()
+	{
+		const string_t&								assets_path = editor_project_t::get()._runtime.assets_path;
+		hash_map_t<u64, const editor_asset_node_t*> asset_nodes;
+		asset_nodes.reserve(_assets.size());
+		for (auto it = _asset_tree.begin_handle(); it != _asset_tree.end_handle(); ++it)
+		{
+			const editor_asset_node_t& node = _asset_tree.value(*it);
+			if (node.type == editor_asset_node_type_e::asset)
+				asset_nodes[node.asset_id] = &node;
+		}
+
+		for (auto& asset_pair : _assets)
+		{
+			editor_asset_t& asset	 = asset_pair.second;
+			asset.status			 = editor_asset_status_e::ok;
+			const auto asset_node_it = asset_nodes.find(asset.guid);
+			SFG_ASSERT(asset_node_it != asset_nodes.end());
+			const editor_asset_node_t* asset_node	  = asset_node_it->second;
+			const auto				   descriptor_it  = _asset_descriptors.find(asset.asset_type);
+			const char*				   asset_type_str = descriptor_it != _asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
+
+			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.is_null())
+			{
+				asset.status = editor_asset_status_e::missing_embedded_data;
+				SFG_ERR("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+			}
+			else if (asset.source_type == editor_asset_source_type_e::file)
+			{
+				string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
+				file_system_t::fix_path_end_slash(source_path);
+				source_path += asset.source_relative;
+				file_system_t::fix_path(source_path);
+				if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
+				{
+					asset.status = editor_asset_status_e::missing_file_source;
+					SFG_ERR("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
+				}
+			}
+
+			frame_vector_t<sid_t> dependencies;
+			editor_asset_util_t::fetch_dependencies(asset, dependencies);
+			for (const sid_t dependency : dependencies)
+			{
+				if (_assets.find(dependency) != _assets.end())
+					continue;
+
+				if (asset.status == editor_asset_status_e::ok)
+					asset.status = editor_asset_status_e::missing_dependency;
+				SFG_ERR("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency);
+			}
+		}
+	}
+
 	void editor_asset_manager_t::ensure_cook()
 	{
 		SFG_ASSERT(!_cook_in_progress);
@@ -402,6 +457,8 @@ namespace sfg
 			editor_asset_t& asset		  = asset_pair.second;
 			const auto		descriptor_it = _asset_descriptors.find(asset.asset_type);
 			SFG_ASSERT(descriptor_it != _asset_descriptors.end());
+			if (asset.status != editor_asset_status_e::ok)
+				continue;
 			if (descriptor_it->second.cook == nullptr)
 				continue;
 

@@ -68,6 +68,7 @@ namespace sfg
 
 		void register_descriptor(const editor_asset_descriptor_t& desc);
 		void ensure_default_assets(const char* default_assets_dir);
+		void ensure_integrity();
 		void ensure_cook();
 		void cook_assets(editor_asset_t* assets, u32 size);
 

@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_type.hpp"
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -62,11 +63,19 @@ namespace sfg
 		data,
 	};
 
+	enum class editor_asset_status_e : u8
+	{
+		ok,
+		missing_dependency,
+		missing_embedded_data,
+		missing_file_source,
+	};
+
 	struct editor_asset_t
 	{
 		static constexpr u32 VERSION = 0;
 
-		nlohmann::json			   embedded_source = nlohmann::json::object();
+		nlohmann::json			   embedded_source = nlohmann::json();
 		nlohmann::json			   cook_options	   = nlohmann::json::object();
 		string_t				   source_relative = {};
 		span_t<u8>				   _transient_data = {};
@@ -74,6 +83,7 @@ namespace sfg
 		sid_t					   guid			   = NULL_SID;
 		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
 		editor_asset_source_type_e source_type	   = editor_asset_source_type_e::file;
+		editor_asset_status_e	   status		   = editor_asset_status_e::ok;
 		u8						   sub_type		   = 0;
 	};
 
@@ -119,6 +129,7 @@ namespace sfg
 		static string_t get_source_full_path(const char* assets_path, const editor_asset_t& asset);
 		static string_t get_source_relative(const char* assets_path, const char* source_full_path);
 		static bool		is_source_inside_assets(const char* assets_path, const char* source_full_path);
+		static void		fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies);
 		static sid_t	try_read_existing_guid(const char* path);
 	};
 

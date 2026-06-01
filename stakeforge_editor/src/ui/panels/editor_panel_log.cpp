@@ -319,8 +319,11 @@ namespace sfg
 
 	void editor_panel_log_t::make_visible(bool visible)
 	{
+		_is_visible = visible;
 		editor_panel_t::make_visible(visible);
-		if (!visible)
+		if (visible)
+			refresh_log_filter_visibility();
+		else
 			_source_dropdown.close();
 	}
 
@@ -449,7 +452,7 @@ namespace sfg
 				update_log_row_text(row);
 				move_log_row_to_bottom(i);
 				log_row_t& moved = _rows.back();
-				set_log_row_visible(moved, is_log_row_visible(moved));
+				set_log_row_visible(moved, _is_visible && is_log_row_visible(moved));
 				return;
 			}
 		}
@@ -502,7 +505,7 @@ namespace sfg
 		_rows.push_back(std::move(row));
 		log_row_t& stored = _rows.back();
 		update_log_row_text(stored);
-		set_log_row_visible(stored, is_log_row_visible(stored));
+		set_log_row_visible(stored, _is_visible && is_log_row_visible(stored));
 		trim_log_rows();
 	}
 
@@ -568,7 +571,7 @@ namespace sfg
 		for (log_row_t& row : _rows)
 		{
 			update_log_row_text(row);
-			set_log_row_visible(row, is_log_row_visible(row));
+			set_log_row_visible(row, _is_visible && is_log_row_visible(row));
 		}
 	}
 
@@ -596,7 +599,7 @@ namespace sfg
 	void editor_panel_log_t::refresh_log_filter_visibility()
 	{
 		for (const log_row_t& row : _rows)
-			set_log_row_visible(row, is_log_row_visible(row));
+			set_log_row_visible(row, _is_visible && is_log_row_visible(row));
 	}
 
 	void editor_panel_log_t::set_log_row_visible(const log_row_t& row, bool visible)

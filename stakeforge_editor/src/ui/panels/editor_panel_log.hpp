@@ -159,6 +159,7 @@ namespace sfg
 		log_source_type_e		 _source_type		 = log_source_type_e::all;
 		u8						 _log_filter_flags	 = log_level_filter_all;
 		bool					 _is_collapsed		 = false;
+		bool					 _is_visible		 = true;
 
 		static vector_t<log_record_t> _stored_logs;
 		static vector_t<log_record_t> _pending_logs;
