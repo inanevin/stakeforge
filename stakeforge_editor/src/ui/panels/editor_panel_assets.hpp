@@ -98,6 +98,7 @@ namespace sfg
 			ui::widget_id_t			   color_frame	   = NULL_WIDGET;
 			ui::widget_id_t			   label		   = NULL_WIDGET;
 			ui::widget_id_t			   type_label	   = NULL_WIDGET;
+			ui::widget_id_t			   status_text	   = NULL_WIDGET;
 			ui::widget_id_t			   star_text	   = NULL_WIDGET;
 		};
 

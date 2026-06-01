@@ -941,6 +941,7 @@ namespace sfg
 		}
 		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : "File";
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
+		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
 
 		asset_grid_item_t item = {};
 		item.node			   = node;
@@ -989,6 +990,28 @@ namespace sfg
 		thumbnail_rect.rounding			   = theme.item_rounding;
 		thumbnail_rect.rounding_segs	   = 4;
 		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+
+		item.status_text = ui.allocate_widget();
+		ui.set_widget_debug_name(item.status_text, "asset_grid_item_status");
+		tree.attach(item.thumbnail_frame, item.status_text);
+		tree.draw_order(item.status_text) = tree.draw_order_const(item.thumbnail_frame);
+
+		ui::layout_in_t& status_in = tree.in(item.status_text);
+		status_in.flags			   = has_status ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		status_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		status_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		status_in.pos_value		   = {0.0f, 1.0f};
+		status_in.anchor_x		   = ui::anchor_e::start;
+		status_in.anchor_y		   = ui::anchor_e::end;
+		status_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		status_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		status_in.size_value	   = {theme.item_height, theme.item_height};
+
+		ui.set_widget_text(item.status_text, ICON_WARN);
+		paint.set_text(item.status_text,
+					   ui.widget_text(item.status_text),
+					   ui.widget_text_len(item.status_text),
+					   {.font = theme.font_icons, .color = theme.color_accent_warn, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		item.star_text = ui.allocate_widget();
 		ui.set_widget_debug_name(item.star_text, "asset_grid_item_star");
@@ -1110,6 +1133,7 @@ namespace sfg
 			descriptor				  = descriptor_it != descriptors.end() ? &descriptor_it->second : nullptr;
 		}
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
+		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
 
 		asset_grid_item_t item = {};
 		item.node			   = node;
@@ -1126,7 +1150,7 @@ namespace sfg
 		root_in.size_value		 = {1.0f, theme.item_height};
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = theme.item_spacing * 0.5f;
-		root_in.child_margins	 = {0.0f, theme.item_height, 0.0f, 0.0f};
+		root_in.child_margins	 = {0.0f, theme.item_height * 2.0f, 0.0f, 0.0f};
 
 		const bool			selected  = _selected_asset_node == item.node;
 		ui::vg_rect_paint_t root_rect = {};
@@ -1198,6 +1222,31 @@ namespace sfg
 					   ui.widget_text(item.label),
 					   ui.widget_text_len(item.label),
 					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		item.status_text = ui.allocate_widget();
+		ui.set_widget_debug_name(item.status_text, "asset_list_item_status");
+		tree.attach(item.root, item.status_text);
+		tree.draw_order(item.status_text) = tree.draw_order_const(item.root);
+
+		ui::layout_in_t& status_in = tree.in(item.status_text);
+		status_in.flags			   = has_status ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		status_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		status_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		status_in.pos_value		   = {1.0f, 0.5f};
+		status_in.anchor_x		   = ui::anchor_e::end;
+		status_in.anchor_y		   = ui::anchor_e::center;
+		status_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		status_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		status_in.size_value	   = {theme.item_height, theme.item_height};
+		const f32 root_w		   = _ui->get_tree().out(_assets_body_pane_top).size.x;
+		if (root_w > 0.0f)
+			status_in.pos_value.x = 1.0f - theme.item_height / root_w;
+
+		ui.set_widget_text(item.status_text, ICON_WARN);
+		paint.set_text(item.status_text,
+					   ui.widget_text(item.status_text),
+					   ui.widget_text_len(item.status_text),
+					   {.font = theme.font_icons, .color = theme.color_accent_warn, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		item.star_text = ui.allocate_widget();
 		ui.set_widget_debug_name(item.star_text, "asset_list_item_star");

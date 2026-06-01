@@ -84,11 +84,11 @@ namespace sfg
 		f32 text_small_px_size		 = 10.0f;
 		f32 text_med_title_px_size	 = 14.0f;
 		f32 text_small_title_px_size = 10.0f;
-		f32 icon_default_px_size	 = 10.0f;
+		f32 icon_default_px_size	 = 12.0f;
 		f32 item_area_height		 = 28.0f;
 		f32 item_height				 = 20.0f;
 		f32 item_width				 = item_height * 5.0f;
-		f32 item_spacing			 = 8.0f;
+		f32 item_spacing			 = 6.0f;
 		f32 item_rounding			 = 2.0f;
 		f32 indent_horizontal		 = 8.0f;
 		f32 margin_horizontal		 = 8.0f;
