@@ -59,8 +59,8 @@ namespace sfg
 	{
 		static inline constexpr sid_t TYPE_ID = "component_mesh_renderer"_hs;
 
-		sid_t mesh	   = 0;
-		sid_t material = 0;
+		sid_t mesh	   = NULL_SID;
+		sid_t material = NULL_SID;
 	};
 
 	struct component_alive_t

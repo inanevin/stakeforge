@@ -8,27 +8,13 @@
         "pass_flags": [
             "gbuffer"
         ],
-        "shader": {
-            "path": "_sfg_assets/shader_gbuffer.sfg_asset",
-            "guid": 1000
-        },
+        "shader": 1000,
+        "sampler": 1009,
         "textures": [
-            {
-                "path": "_sfg_assets/texture_albedo.sfg_asset",
-                "guid": 1002
-            },
-            {
-                "path": "_sfg_assets/texture_normal.sfg_asset",
-                "guid": 1004
-            },
-            {
-                "path": "_sfg_assets/texture_orm.sfg_asset",
-                "guid": 1003
-            },
-            {
-                "path": "_sfg_assets/texture_emissive.sfg_asset",
-                "guid": 1005
-            }
+            1002,
+            1004,
+            1003,
+            1005
         ],
         "parameters": [
             {
@@ -61,8 +47,7 @@
             }
         ],
         "double_sided": false,
-        "use_alpha_cutoff": false,
-        "sampler_definition": {}
+        "use_alpha_cutoff": false
     },
     "cook_options": {},
     "source_relative": "",

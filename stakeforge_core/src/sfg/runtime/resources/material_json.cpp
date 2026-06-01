@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -49,12 +50,14 @@ namespace sfg
 
 	void material_json_t::serialize(ostream_t& stream) const
 	{
+		SFG_ASSERT(textures.empty() || sampler != NULL_SID);
 		stream << static_cast<u32>(pass_flags);
-		shader.serialize(stream);
+		stream << shader;
+		stream << sampler;
 
 		stream << static_cast<u32>(textures.size());
-		for (const resource_json_ref_t& texture : textures)
-			texture.serialize(stream);
+		for (const sid_t texture : textures)
+			stream << texture;
 
 		stream << static_cast<u32>(parameters.size());
 		for (const material_parameter_t& parameter : parameters)
@@ -62,7 +65,6 @@ namespace sfg
 
 		stream << double_sided;
 		stream << use_alpha_cutoff;
-		sampler_definition.serialize(stream);
 	}
 
 	void material_json_t::deserialize(istream_t& stream)
@@ -70,13 +72,14 @@ namespace sfg
 		u32 flags = 0;
 		stream >> flags;
 		pass_flags = static_cast<world_pass_flags>(flags);
-		shader.deserialize(stream);
+		stream >> shader;
+		stream >> sampler;
 
 		u32 texture_count = 0;
 		stream >> texture_count;
 		textures.resize(texture_count);
-		for (resource_json_ref_t& texture : textures)
-			texture.deserialize(stream);
+		for (sid_t& texture : textures)
+			stream >> texture;
 
 		u32 parameter_count = 0;
 		stream >> parameter_count;
@@ -86,7 +89,7 @@ namespace sfg
 
 		stream >> double_sided;
 		stream >> use_alpha_cutoff;
-		sampler_definition.deserialize(stream);
+		SFG_ASSERT(textures.empty() || sampler != NULL_SID);
 	}
 
 	void to_json(nlohmann::json& j, const material_parameter_type_e& t)
@@ -152,24 +155,25 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const material_json_t& m)
 	{
-		j["schema"]				= "sfg.schema.material";
-		j["pass_flags"]			= m.pass_flags;
-		j["shader"]				= m.shader;
-		j["textures"]			= m.textures;
-		j["parameters"]			= m.parameters;
-		j["double_sided"]		= m.double_sided;
-		j["use_alpha_cutoff"]	= m.use_alpha_cutoff;
-		j["sampler_definition"] = m.sampler_definition;
+		j["schema"]			  = "sfg.schema.material";
+		j["pass_flags"]		  = m.pass_flags;
+		j["shader"]			  = m.shader;
+		j["sampler"]		  = m.sampler;
+		j["textures"]		  = m.textures;
+		j["parameters"]		  = m.parameters;
+		j["double_sided"]	  = m.double_sided;
+		j["use_alpha_cutoff"] = m.use_alpha_cutoff;
 	}
 
 	void from_json(const nlohmann::json& j, material_json_t& m)
 	{
-		m.pass_flags		 = j.value<world_pass_flags>("pass_flags", wpf_none);
-		m.shader			 = j.value<resource_json_ref_t>("shader", {});
-		m.textures			 = j.value<vector_t<resource_json_ref_t>>("textures", {});
-		m.parameters		 = j.value<vector_t<material_parameter_t>>("parameters", {});
-		m.double_sided		 = j.value<bool>("double_sided", false);
-		m.use_alpha_cutoff	 = j.value<bool>("use_alpha_cutoff", false);
-		m.sampler_definition = j.value<sampler_desc_t>("sampler_definition", {});
+		m.pass_flags	   = j.value<world_pass_flags>("pass_flags", wpf_none);
+		m.shader		   = j.value<sid_t>("shader", NULL_SID);
+		m.sampler		   = j.value<sid_t>("sampler", NULL_SID);
+		m.textures		   = j.value<vector_t<sid_t>>("textures", {});
+		m.parameters	   = j.value<vector_t<material_parameter_t>>("parameters", {});
+		m.double_sided	   = j.value<bool>("double_sided", false);
+		m.use_alpha_cutoff = j.value<bool>("use_alpha_cutoff", false);
+		SFG_ASSERT(m.textures.empty() || m.sampler != NULL_SID);
 	}
 }

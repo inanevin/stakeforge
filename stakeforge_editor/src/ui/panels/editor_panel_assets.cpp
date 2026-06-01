@@ -91,6 +91,7 @@ namespace sfg
 			assets_item_action_menu_duplicate				  = 18,
 			assets_item_action_menu_delete					  = 19,
 			assets_item_action_menu_open_directory			  = 20,
+			assets_item_action_menu_toggle_favourite		  = 21,
 		};
 
 		struct create_asset_command_t
@@ -145,6 +146,7 @@ namespace sfg
 			{.text = "Duplicate", .command = assets_item_action_menu_duplicate},
 			{.text = "Delete", .command = assets_item_action_menu_delete},
 			{.text = "Open in OS", .command = assets_item_action_menu_open_directory},
+			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_item_action_menu_toggle_favourite, .has_icon_color = true},
 		};
 
 		editor_dropdown_item_t ASSETS_ITEM_STYLE_ITEMS[] = {
@@ -466,6 +468,7 @@ namespace sfg
 		_asset_grid_items.reserve(ASSETS_INITIAL_GRID_ITEM_CAPACITY);
 		_expanded_folder_hashes.reserve(256);
 		_favourite_folder_hashes.reserve(256);
+		_favourite_asset_guids.reserve(256);
 		apply_pane_split();
 		refresh_folder_rows();
 	}
@@ -498,6 +501,7 @@ namespace sfg
 		_asset_grid_items.clear();
 		_expanded_folder_hashes.clear();
 		_favourite_folder_hashes.clear();
+		_favourite_asset_guids.clear();
 		clear_pending_create_assets();
 
 		editor_panel_t::uninit();
@@ -511,6 +515,7 @@ namespace sfg
 		j["search_str"]		  = _search_str;
 		j["asset_search_str"] = _asset_search_str;
 		j["favourites"]		  = _favourite_folder_hashes;
+		j["asset_favourites"] = _favourite_asset_guids;
 		switch (_asset_item_style)
 		{
 		case asset_item_style_e::grid:
@@ -529,6 +534,7 @@ namespace sfg
 		_search_str				  = j.value<string_t>("search_str", {});
 		_asset_search_str		  = j.value<string_t>("asset_search_str", {});
 		_favourite_folder_hashes  = j.value<vector_t<u64>>("favourites", {});
+		_favourite_asset_guids	  = j.value<vector_t<sid_t>>("asset_favourites", {});
 		const string_t item_style = j.value<string_t>("item_style", "grid");
 		if (item_style == "list")
 			_asset_item_style = asset_item_style_e::list;
@@ -605,6 +611,8 @@ namespace sfg
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
+
+		ASSETS_ITEM_ACTION_MENU_ROWS[4].icon_color = editor_theme_t::get().color_accent1;
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ASSETS_ITEM_ACTION_MENU_ROWS;
@@ -730,7 +738,7 @@ namespace sfg
 		const bool search_active = !_search_str_lower.empty();
 		const bool promoted		 = (asset_node.flags & editor_asset_node_flag_promoted) != 0;
 		const bool favourite	 = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), path_hash) != _favourite_folder_hashes.end();
-		const bool passes_filter = !_favourites_only || favourite;
+		const bool passes_filter = !_favourites_only || favourite || has_favourite_asset_descendant(node);
 
 		bool self_matches_search = !search_active;
 		if (search_active)
@@ -982,6 +990,28 @@ namespace sfg
 		thumbnail_rect.rounding_segs	   = 4;
 		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
 
+		item.star_text = ui.allocate_widget();
+		ui.set_widget_debug_name(item.star_text, "asset_grid_item_star");
+		tree.attach(item.thumbnail_frame, item.star_text);
+		tree.draw_order(item.star_text) = tree.draw_order_const(item.thumbnail_frame);
+
+		ui::layout_in_t& star_in = tree.in(item.star_text);
+		star_in.flags			 = is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		star_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+		star_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		star_in.pos_value		 = {1.0f, 1.0f};
+		star_in.anchor_x		 = ui::anchor_e::end;
+		star_in.anchor_y		 = ui::anchor_e::end;
+		star_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		star_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		star_in.size_value		 = {theme.item_height, theme.item_height};
+
+		ui.set_widget_text(item.star_text, ICON_STAR);
+		paint.set_text(item.star_text,
+					   ui.widget_text(item.star_text),
+					   ui.widget_text_len(item.star_text),
+					   {.font = theme.font_icons, .color = theme.color_accent1, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
 		item.info_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(item.info_frame, "asset_grid_item_info");
 		tree.attach(item.root, item.info_frame);
@@ -1096,14 +1126,15 @@ namespace sfg
 		root_in.size_value		 = {1.0f, theme.item_height};
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = theme.item_spacing * 0.5f;
+		root_in.child_margins	 = {0.0f, theme.item_height, 0.0f, 0.0f};
 
 		const bool			selected  = _selected_asset_node == item.node;
 		ui::vg_rect_paint_t root_rect = {};
-		root_rect.fill_color_a		  = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		root_rect.fill_color_b		  = selected ? theme.color_accent0_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		root_rect.fill_color_a		  = selected ? theme.color_accent0_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		root_rect.fill_color_b		  = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
 		root_rect.gradient			  = selected ? ui::vg_gradient_e::vertical : ui::vg_gradient_e::none;
 		paint.set_rect(item.root, root_rect);
-		paint.set_hover_color(item.root, selected ? theme.color_accent0_light : theme.color_panel_light);
+		paint.set_hover_color(item.root, selected ? theme.color_accent0 : theme.color_panel_light);
 		paint.set_press_color(item.root, theme.color_light);
 
 		ui::listener_bundle_t listener = {};
@@ -1167,6 +1198,28 @@ namespace sfg
 					   ui.widget_text(item.label),
 					   ui.widget_text_len(item.label),
 					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		item.star_text = ui.allocate_widget();
+		ui.set_widget_debug_name(item.star_text, "asset_list_item_star");
+		tree.attach(item.root, item.star_text);
+		tree.draw_order(item.star_text) = tree.draw_order_const(item.root);
+
+		ui::layout_in_t& star_in = tree.in(item.star_text);
+		star_in.flags			 = is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		star_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+		star_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		star_in.pos_value		 = {1.0f, 0.5f};
+		star_in.anchor_x		 = ui::anchor_e::end;
+		star_in.anchor_y		 = ui::anchor_e::center;
+		star_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		star_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		star_in.size_value		 = {theme.item_height, theme.item_height};
+
+		ui.set_widget_text(item.star_text, ICON_STAR);
+		paint.set_text(item.star_text,
+					   ui.widget_text(item.star_text),
+					   ui.widget_text_len(item.star_text),
+					   {.font = theme.font_icons, .color = theme.color_accent1, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_asset_grid_rows.push_back(item.root);
 		_asset_grid_items.push_back(item);
@@ -1382,7 +1435,7 @@ namespace sfg
 			{
 				info_rect.fill_color_a = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
 				info_rect.fill_color_b = selected ? theme.color_accent0_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-				_ui->get_paint().set_hover_color(item.root, selected ? theme.color_accent0_light : theme.color_panel_light);
+				_ui->get_paint().set_hover_color(item.root, selected ? theme.color_accent0 : theme.color_panel_light);
 			}
 			else
 			{
@@ -1391,6 +1444,16 @@ namespace sfg
 			}
 			info_rect.gradient = selected ? ui::vg_gradient_e::vertical : ui::vg_gradient_e::none;
 			_ui->get_paint().set_rect(item.info_frame, info_rect);
+		}
+	}
+
+	void editor_panel_assets_t::refresh_asset_favourite_icons()
+	{
+		ui::layout_tree_t& tree = _ui->get_tree();
+		for (const asset_grid_item_t& item : _asset_grid_items)
+		{
+			const bool favourite		  = is_asset_favourite(get_asset_guid(item.node));
+			tree.in(item.star_text).flags = favourite ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
 		}
 	}
 
@@ -1412,6 +1475,16 @@ namespace sfg
 		else
 			_favourite_folder_hashes.push_back(path_hash);
 		refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::toggle_asset_favourite(sid_t guid)
+	{
+		auto it = std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid);
+		if (it != _favourite_asset_guids.end())
+			_favourite_asset_guids.erase(it);
+		else
+			_favourite_asset_guids.push_back(guid);
+		refresh_asset_favourite_icons();
 	}
 
 	void editor_panel_assets_t::open_create_popup(editor_asset_type_e asset_type, u8 sub_type)
@@ -1539,7 +1612,7 @@ namespace sfg
 
 			editor_asset_t asset = {};
 			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != 0 ? desc.guid : hashing_t::generate_guid64();
+			asset.guid			 = desc.guid != NULL_SID ? desc.guid : hashing_t::generate_guid64();
 			asset.asset_type	 = desc.asset_type;
 			asset.sub_type		 = desc.sub_type;
 			if (!desc.source_full_path.empty())
@@ -1798,6 +1871,45 @@ namespace sfg
 		return {};
 	}
 
+	sid_t editor_panel_assets_t::get_asset_guid(editor_asset_node_handle_t node) const
+	{
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t&	  asset_tree	= asset_manager.get_asset_tree();
+		if (node.is_null() || !asset_tree.is_valid(node))
+			return NULL_SID;
+
+		const editor_asset_node_t& asset_node = asset_tree.value(node);
+		if (asset_node.type != editor_asset_node_type_e::asset)
+			return NULL_SID;
+
+		const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+		return asset != nullptr ? asset->guid : NULL_SID;
+	}
+
+	bool editor_panel_assets_t::is_asset_favourite(sid_t guid) const
+	{
+		return guid != NULL_SID && std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid) != _favourite_asset_guids.end();
+	}
+
+	bool editor_panel_assets_t::has_favourite_asset_descendant(editor_asset_node_handle_t node) const
+	{
+		const editor_asset_tree_t& tree	 = editor_asset_manager_t::get().get_asset_tree();
+		editor_asset_node_handle_t child = tree.first_child(node);
+		while (!child.is_null())
+		{
+			const editor_asset_node_t& child_node = tree.value(child);
+			if ((child_node.flags & editor_asset_node_flag_hidden) == 0)
+			{
+				if (child_node.type == editor_asset_node_type_e::asset && is_asset_favourite(get_asset_guid(child)))
+					return true;
+				if (child_node.type == editor_asset_node_type_e::folder && has_favourite_asset_descendant(child))
+					return true;
+			}
+			child = tree.next_sibling(child);
+		}
+		return false;
+	}
+
 	const editor_panel_assets_t::folder_row_t* editor_panel_assets_t::find_row_by_hash(u64 path_hash) const
 	{
 		for (u32 i = 0; i < _visible_folder_row_count && i < _folder_rows.size(); ++i)
@@ -1906,8 +2018,15 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_assets_t::on_asset_action_menu_command(u16, void*)
+	void editor_panel_assets_t::on_asset_action_menu_command(u16 command, void* user_data)
 	{
+		if (command != assets_item_action_menu_toggle_favourite)
+			return;
+
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		const sid_t			   guid	 = panel.get_asset_guid(panel._selected_asset_node);
+		if (guid != NULL_SID)
+			panel.toggle_asset_favourite(guid);
 	}
 
 	void editor_panel_assets_t::on_action_menu_closed(void* user_data)
@@ -1944,10 +2063,10 @@ namespace sfg
 
 		const string_t					 directory = panel.get_action_menu_target_folder_path();
 		const editor_asset_create_desc_t desc	   = {
-			.name		= value != nullptr ? value : "",
-			.asset_type = asset_type,
-			.sub_type	= sub_type,
-		};
+				 .name		 = value != nullptr ? value : "",
+				 .asset_type = asset_type,
+				 .sub_type	 = sub_type,
+		 };
 		panel.request_create_assets(directory.c_str(), &desc, 1, false);
 	}
 

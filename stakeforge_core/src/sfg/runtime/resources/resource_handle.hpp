@@ -32,5 +32,5 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	typedef sid_t resource_handle_t;
-#define NULL_RESOURCE_HANDLE UINT64_MAX
+#define NULL_RESOURCE_HANDLE NULL_SID
 }

@@ -8,15 +8,10 @@
         "pass_flags": [
             "forward"
         ],
-        "shader": {
-            "path": "_sfg_assets/shader_forward.sfg_asset",
-            "guid": 1001
-        },
+        "shader": 1001,
+        "sampler": 1009,
         "textures": [
-            {
-                "path": "_sfg_assets/texture_albedo.sfg_asset",
-                "guid": 1002
-            }
+            1002
         ],
         "parameters": [
             {
@@ -29,8 +24,7 @@
             }
         ],
         "double_sided": false,
-        "use_alpha_cutoff": false,
-        "sampler_definition": {}
+        "use_alpha_cutoff": false
     },
     "cook_options": {},
     "source_relative": "",

@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -42,11 +43,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/resource_cache.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <algorithm>
+#include <iterator>
 #include <utility>
 
 #include <sfg/platform/time.hpp>
@@ -76,6 +79,7 @@ namespace sfg
 
 		struct default_scaffold_asset_desc_t
 		{
+			const char* source_dir;
 			const char* source_name;
 		};
 
@@ -199,7 +203,7 @@ namespace sfg
 					continue;
 
 				const u64 asset_id = asset.guid;
-				if (asset_id == 0)
+				if (asset_id == NULL_SID)
 				{
 					SFG_ERR("asset {0} has an invalid guid", entry.path.c_str());
 					continue;
@@ -281,9 +285,14 @@ namespace sfg
 			{.asset_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID, .color = {0, 0, 0, 255}, .is_linear = false},
 		};
 		const default_scaffold_asset_desc_t default_material_assets[] = {
-			{.source_name = "material_gbuffer.sfg_asset"},
-			{.source_name = "material_forward.sfg_asset"},
-			{.source_name = "physical_material.sfg_asset"},
+			{.source_dir = "materials", .source_name = "material_gbuffer.sfg_asset"},
+			{.source_dir = "materials", .source_name = "material_forward.sfg_asset"},
+			{.source_dir = "materials", .source_name = "physical_material.sfg_asset"},
+		};
+		const default_scaffold_asset_desc_t default_sampler_assets[] = {
+			{.source_dir = "samplers", .source_name = "sampler_linear.sfg_asset"},
+			{.source_dir = "samplers", .source_name = "sampler_nearest.sfg_asset"},
+			{.source_dir = "samplers", .source_name = "sampler_anisotropic.sfg_asset"},
 		};
 
 		for (const default_asset_desc_t& desc : default_shader_assets)
@@ -344,22 +353,30 @@ namespace sfg
 				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
 		}
 
-		for (const default_scaffold_asset_desc_t& desc : default_material_assets)
-		{
-			const string_t		 running_directory = file_system_t::get_running_directory();
-			frame_string_t<char> scaffold_path;
-			scaffold_path.assign(running_directory.c_str(), running_directory.size());
-			scaffold_path += "editor_scaffold/materials/";
-			scaffold_path += desc.source_name;
-			SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
+		auto copy_default_scaffold_assets = [&](const default_scaffold_asset_desc_t* descs, size_t desc_count) {
+			for (size_t i = 0; i < desc_count; ++i)
+			{
+				const default_scaffold_asset_desc_t& desc			   = descs[i];
+				const string_t						 running_directory = file_system_t::get_running_directory();
+				frame_string_t<char>				 scaffold_path;
+				scaffold_path.assign(running_directory.c_str(), running_directory.size());
+				scaffold_path += "editor_scaffold/";
+				scaffold_path += desc.source_dir;
+				scaffold_path += "/";
+				scaffold_path += desc.source_name;
+				SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
 
-			frame_string_t<char> target_path;
-			target_path.assign(default_assets_path.c_str(), default_assets_path.size());
-			target_path += desc.source_name;
-			if (!file_system_t::copy_file(scaffold_path.c_str(), target_path.c_str()))
-				SFG_ERR("failed to copy default asset {0}", target_path.c_str());
-			SFG_ASSERT(file_system_t::exists(target_path.c_str()));
-		}
+				frame_string_t<char> target_path;
+				target_path.assign(default_assets_path.c_str(), default_assets_path.size());
+				target_path += desc.source_name;
+				if (!file_system_t::copy_file(scaffold_path.c_str(), target_path.c_str()))
+					SFG_ERR("failed to copy default asset {0}", target_path.c_str());
+				SFG_ASSERT(file_system_t::exists(target_path.c_str()));
+			}
+		};
+
+		copy_default_scaffold_assets(default_material_assets, std::size(default_material_assets));
+		copy_default_scaffold_assets(default_sampler_assets, std::size(default_sampler_assets));
 
 		rescan(assets_path);
 
@@ -390,6 +407,25 @@ namespace sfg
 
 			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
 			if (!file_system_t::exists(cache_path.c_str()))
+			{
+				missing_assets.push_back(asset);
+				asset._transient_data = {};
+				continue;
+			}
+
+			istream_t					stream		  = serializer_t::load_from_file(cache_path.c_str());
+			const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
+			SFG_ASSERT(resource_desc != nullptr);
+			if (stream.empty())
+			{
+				missing_assets.push_back(asset);
+				asset._transient_data = {};
+				continue;
+			}
+
+			resource_header_t header = {};
+			header.deserialize(stream);
+			if (header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
 			{
 				missing_assets.push_back(asset);
 				asset._transient_data = {};

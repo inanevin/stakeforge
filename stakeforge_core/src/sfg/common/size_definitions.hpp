@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef SFG_PLATFORM_OSX
 #include <stddef.h>
 #endif
+#include <stdint.h>
 
 typedef signed char		   i8;
 typedef short			   i16;
@@ -44,3 +45,5 @@ namespace sfg
 {
 	using sid_t = u64;
 }
+
+#define NULL_SID UINT64_MAX

@@ -39,15 +39,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define DEFAULT_GBUFFER_SHADER_ASSET_GUID	 1000
-#define DEFAULT_FORWARD_SHADER_ASSET_GUID	 1001
-#define DEFAULT_ALBEDO_TEXTURE_ASSET_GUID	 1002
-#define DEFAULT_ORM_TEXTURE_ASSET_GUID		 1003
-#define DEFAULT_NORMAL_TEXTURE_ASSET_GUID	 1004
-#define DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID	 1005
-#define DEFAULT_GBUFFER_MATERIAL_ASSET_GUID	 1006
-#define DEFAULT_FORWARD_MATERIAL_ASSET_GUID	 1007
-#define DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID 1008
+#define DEFAULT_GBUFFER_SHADER_ASSET_GUID	   1000
+#define DEFAULT_FORWARD_SHADER_ASSET_GUID	   1001
+#define DEFAULT_ALBEDO_TEXTURE_ASSET_GUID	   1002
+#define DEFAULT_ORM_TEXTURE_ASSET_GUID		   1003
+#define DEFAULT_NORMAL_TEXTURE_ASSET_GUID	   1004
+#define DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID	   1005
+#define DEFAULT_GBUFFER_MATERIAL_ASSET_GUID	   1006
+#define DEFAULT_FORWARD_MATERIAL_ASSET_GUID	   1007
+#define DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID   1008
+#define DEFAULT_LINEAR_SAMPLER_ASSET_GUID	   1009
+#define DEFAULT_NEAREST_SAMPLER_ASSET_GUID	   1010
+#define DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID 1011
 
 	class ostream_t;
 
@@ -68,7 +71,7 @@ namespace sfg
 		string_t				   source_relative = {};
 		span_t<u8>				   _transient_data = {};
 		u32						   version		   = 0;
-		sid_t					   guid			   = 0;
+		sid_t					   guid			   = NULL_SID;
 		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
 		editor_asset_source_type_e source_type	   = editor_asset_source_type_e::file;
 		u8						   sub_type		   = 0;

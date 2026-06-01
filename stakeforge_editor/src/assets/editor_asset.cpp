@@ -150,7 +150,7 @@ namespace sfg
 	sid_t editor_asset_util_t::try_read_existing_guid(const char* path)
 	{
 		editor_asset_t asset = {};
-		return read_asset(path, asset) ? asset.guid : 0;
+		return read_asset(path, asset) ? asset.guid : NULL_SID;
 	}
 
 	void to_json(nlohmann::json& j, const editor_asset_type_e& t)
@@ -279,7 +279,7 @@ namespace sfg
 	void from_json(const nlohmann::json& j, editor_asset_t& asset)
 	{
 		asset.version		  = j.value<u32>("version", editor_asset_t::VERSION);
-		asset.guid			  = j.value<sid_t>("guid", 0);
+		asset.guid			  = j.value<sid_t>("guid", NULL_SID);
 		asset.asset_type	  = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
 		asset.sub_type		  = j.value<u8>("sub_type", 0);
 		asset.embedded_source = j.value<nlohmann::json>("embedded_source", nlohmann::json::object());

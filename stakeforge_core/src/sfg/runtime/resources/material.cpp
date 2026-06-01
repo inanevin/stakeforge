@@ -5,6 +5,7 @@
 #include "material_json.hpp"
 #include "resource_manager.hpp"
 #include "texture.hpp"
+#include "texture_sampler.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/io/assert.hpp>
@@ -102,13 +103,14 @@ namespace sfg
 		material_json_t material = {};
 		material.deserialize(stream);
 
-		runtime->pass_flags			= material.pass_flags;
-		runtime->shader_guid		= material.shader.guid;
-		runtime->sampler_definition = material.sampler_definition;
-		runtime->double_sided		= material.double_sided ? 1 : 0;
-		runtime->use_alpha_cutoff	= material.use_alpha_cutoff ? 1 : 0;
-		runtime->parameter_count	= static_cast<u32>(material.parameters.size());
-		runtime->texture_count		= static_cast<u32>(material.textures.size());
+		runtime->pass_flags		  = material.pass_flags;
+		runtime->shader_guid	  = material.shader;
+		runtime->sampler_guid	  = material.sampler;
+		runtime->double_sided	  = material.double_sided ? 1 : 0;
+		runtime->use_alpha_cutoff = material.use_alpha_cutoff ? 1 : 0;
+		runtime->parameter_count  = static_cast<u32>(material.parameters.size());
+		runtime->texture_count	  = static_cast<u32>(material.textures.size());
+		SFG_ASSERT(runtime->texture_count == 0 || runtime->sampler_guid != NULL_SID);
 
 		if (runtime->parameter_count != 0)
 		{
@@ -126,7 +128,7 @@ namespace sfg
 			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(sid_t);
 			runtime->texture_guids	   = static_cast<sid_t*>(SFG_MALLOC(texture_bytes));
 			for (u32 i = 0; i < runtime->texture_count; ++i)
-				runtime->texture_guids[i] = material.textures[i].guid;
+				runtime->texture_guids[i] = material.textures[i];
 		}
 
 		return true;
@@ -149,8 +151,16 @@ namespace sfg
 			internals->pending_count++;
 		}
 
+		if (runtime->sampler_guid != NULL_SID)
+		{
+			const texture_sampler_internals_t* sampler = ctx.resource_manager.find_internals<texture_sampler_internals_t>(runtime->sampler_guid);
+			SFG_ASSERT(sampler != nullptr);
+			internals->sampler_index = sampler->gpu_index;
+		}
+
 		if (runtime->texture_count != 0)
 		{
+			SFG_ASSERT(internals->sampler_index != NULL_GPU_INDEX);
 			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(gpu_index_t);
 			runtime->texture_indices   = static_cast<gpu_index_t*>(SFG_MALLOC(texture_bytes));
 			for (u32 i = 0; i < runtime->texture_count; ++i)

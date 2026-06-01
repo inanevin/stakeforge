@@ -84,7 +84,7 @@ namespace sfg
 		{
 			string_t			source_full_path = {};
 			string_t			name			 = {};
-			sid_t				guid			 = 0;
+			sid_t				guid			 = NULL_SID;
 			editor_asset_type_e asset_type		 = editor_asset_type_e::invalid;
 			u8					sub_type		 = 0;
 		};
@@ -98,6 +98,7 @@ namespace sfg
 			ui::widget_id_t			   color_frame	   = NULL_WIDGET;
 			ui::widget_id_t			   label		   = NULL_WIDGET;
 			ui::widget_id_t			   type_label	   = NULL_WIDGET;
+			ui::widget_id_t			   star_text	   = NULL_WIDGET;
 		};
 
 		struct pending_cook_config_t
@@ -139,8 +140,10 @@ namespace sfg
 		void select_asset_grid_item(editor_asset_node_handle_t node);
 		void clear_asset_grid_selection();
 		void refresh_asset_grid_item_backgrounds();
+		void refresh_asset_favourite_icons();
 		void toggle_folder_fold(u64 path_hash);
 		void toggle_folder_favourite(u64 path_hash);
+		void toggle_asset_favourite(sid_t guid);
 		void open_create_popup(editor_asset_type_e asset_type, u8 sub_type);
 		void create_folder(const char* name);
 		void request_create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count, bool allow_overwrite);
@@ -161,6 +164,9 @@ namespace sfg
 		string_t				   get_action_menu_target_folder_path() const;
 		u64						   get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const;
 		editor_asset_node_handle_t get_selected_folder_node() const;
+		sid_t					   get_asset_guid(editor_asset_node_handle_t node) const;
+		bool					   is_asset_favourite(sid_t guid) const;
+		bool					   has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
 		const folder_row_t*		   find_row_by_hash(u64 path_hash) const;
 		const folder_row_t*		   find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
 		const asset_grid_item_t*   find_asset_grid_item_by_widget(ui::widget_id_t id) const;
@@ -211,6 +217,7 @@ namespace sfg
 		vector_t<asset_grid_item_t>			 _asset_grid_items				  = {};
 		vector_t<u64>						 _expanded_folder_hashes		  = {};
 		vector_t<u64>						 _favourite_folder_hashes		  = {};
+		vector_t<sid_t>						 _favourite_asset_guids			  = {};
 		vector_t<editor_asset_create_desc_t> _pending_import_create_descs	  = {};
 		vector_t<pending_cook_config_t>		 _pending_cook_configs			  = {};
 		editor_modal_assets_override_t		 _assets_override_modal			  = {};

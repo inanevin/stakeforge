@@ -27,9 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "resource_json_ref.hpp"
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -60,13 +59,13 @@ namespace sfg
 
 	struct material_json_t
 	{
-		vector_t<resource_json_ref_t>  textures			  = {};
-		vector_t<material_parameter_t> parameters		  = {};
-		sampler_desc_t				   sampler_definition = {};
-		resource_json_ref_t			   shader			  = {};
-		world_pass_flags			   pass_flags		  = wpf_none;
-		bool						   double_sided		  = false;
-		bool						   use_alpha_cutoff	  = false;
+		vector_t<sid_t>				   textures			= {};
+		vector_t<material_parameter_t> parameters		= {};
+		sid_t						   shader			= NULL_SID;
+		sid_t						   sampler			= NULL_SID;
+		world_pass_flags			   pass_flags		= wpf_none;
+		bool						   double_sided		= false;
+		bool						   use_alpha_cutoff = false;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);

@@ -15,8 +15,8 @@ namespace sfg
 		u8*				 parameter_values	 = nullptr;
 		sid_t*			 texture_guids		 = nullptr;
 		gpu_index_t*	 texture_indices	 = nullptr;
-		sampler_desc_t	 sampler_definition	 = {};
-		sid_t			 shader_guid		 = 0;
+		sid_t			 shader_guid		 = NULL_SID;
+		sid_t			 sampler_guid		 = NULL_SID;
 		u32				 parameter_data_size = 0;
 		u32				 parameter_count	 = 0;
 		u32				 texture_count		 = 0;
@@ -31,6 +31,7 @@ namespace sfg
 		gfx_resource_handle texture_buffer	 = {};
 		gpu_index_t			parameter_index	 = NULL_GPU_INDEX;
 		gpu_index_t			texture_index	 = NULL_GPU_INDEX;
+		gpu_index_t			sampler_index	 = NULL_GPU_INDEX;
 		u8					pending_count	 = 0;
 		u8					had_failure		 = 0;
 	};
@@ -39,7 +40,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = 0x53464D54;
-		static constexpr u32 WIRE_VERSION = 1;
+		static constexpr u32 WIRE_VERSION = 2;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

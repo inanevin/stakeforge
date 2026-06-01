@@ -1,0 +1,23 @@
+{
+    "version": 0,
+    "guid": 1010,
+    "asset_type": "texture_sampler",
+    "sub_type": 0,
+    "embedded_source": {
+        "schema": "sfg.schema.texture_sampler",
+        "anisotropy": 0,
+        "min_lod": 0.0,
+        "max_lod": 10.0,
+        "lod_bias": 0.0,
+        "min": "nearest",
+        "mag": "nearest",
+        "mip": "nearest",
+        "address_u": "clamp",
+        "address_v": "clamp",
+        "address_w": "clamp",
+        "border": "transparent"
+    },
+    "cook_options": {},
+    "source_relative": "",
+    "source_type": "embedded"
+}
