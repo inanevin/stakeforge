@@ -70,7 +70,7 @@ namespace sfg
 	namespace
 	{
 		constexpr u32 ACTION_MENU_FG_DRAW_ORDER = 51000u;
-		constexpr u32 ACTION_MENU_DRAW_ORDER = 51001u;
+		constexpr u32 ACTION_MENU_DRAW_ORDER	= 51001u;
 
 		editor_action_menu_controller_t* s_controllers[editor_action_menu_controller_t::MAX_CONTROLLERS] = {};
 		u32								 s_controller_count												 = 0;

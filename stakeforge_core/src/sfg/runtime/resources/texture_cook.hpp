@@ -28,6 +28,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "texture.hpp"
+#include <sfg/data/span.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
@@ -36,6 +38,7 @@ namespace sfg
 
 	struct texture_cook_config_t
 	{
+		vec2u16_t			   size				= vec2u16_t::zero;
 		texture_payload_type_e payload_type		= texture_payload_type_e::ktx2_uastc;
 		bool				   generate_mipmaps = false;
 		bool				   is_linear		= false;
@@ -45,6 +48,7 @@ namespace sfg
 	{
 	public:
 		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, ostream_t& stream);
+		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, ostream_t& stream);
 	};
 
 	void to_json(nlohmann::json& j, const texture_payload_type_e& e);

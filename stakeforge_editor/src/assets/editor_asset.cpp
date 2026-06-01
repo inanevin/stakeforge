@@ -27,6 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 
+#include "editor_project.hpp"
+
+#include <sfg/data/char_util.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -89,6 +92,22 @@ namespace sfg
 			insert_position += 7;
 		}
 
+		return result;
+	}
+
+	string_t editor_asset_util_t::get_cache_path_for_asset(const editor_asset_t& asset)
+	{
+		string_t result = editor_project_t::get()._runtime.cache_path;
+		file_system_t::fix_path(result);
+		file_system_t::fix_path_end_slash(result);
+
+		char  guid_text[32] = {};
+		char* guid_text_cur = guid_text;
+		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), asset.guid))
+			SFG_ASSERT(false);
+
+		result += guid_text;
+		result += ".sfg_bin";
 		return result;
 	}
 
@@ -222,6 +241,9 @@ namespace sfg
 		case editor_asset_source_type_e::embedded:
 			j = "embedded";
 			break;
+		case editor_asset_source_type_e::data:
+			j = "data";
+			break;
 		default:
 			j = "file";
 			break;
@@ -236,6 +258,8 @@ namespace sfg
 			t = editor_asset_source_type_e::none;
 		else if (s == "embedded")
 			t = editor_asset_source_type_e::embedded;
+		else if (s == "data")
+			t = editor_asset_source_type_e::data;
 		else
 			t = editor_asset_source_type_e::file;
 	}
@@ -249,6 +273,7 @@ namespace sfg
 		j["embedded_source"] = asset.embedded_source;
 		j["cook_options"]	 = asset.cook_options;
 		j["source_relative"] = asset.source_relative;
+		j["source_type"]	 = asset.source_type;
 	}
 
 	void from_json(const nlohmann::json& j, editor_asset_t& asset)
@@ -260,5 +285,7 @@ namespace sfg
 		asset.embedded_source = j.value<nlohmann::json>("embedded_source", nlohmann::json::object());
 		asset.cook_options	  = j.value<nlohmann::json>("cook_options", nlohmann::json::object());
 		asset.source_relative = j.value<string_t>("source_relative", {});
+		asset.source_type	  = j.value<editor_asset_source_type_e>("source_type", editor_asset_source_type_e::file);
+		asset._transient_data = {};
 	}
 }

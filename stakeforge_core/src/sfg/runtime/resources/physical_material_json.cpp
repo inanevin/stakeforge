@@ -25,32 +25,44 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "physical_material_json.hpp"
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/string.hpp>
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
+	void physical_material_json_t::serialize(ostream_t& stream) const
 	{
-		folder,
-		file,
-		asset,
-	};
+		stream << restitution;
+		stream << friction;
+		stream << angular_damping;
+		stream << linear_damping;
+	}
 
-	enum editor_asset_node_flags_e : u8
+	void physical_material_json_t::deserialize(istream_t& stream)
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+		stream >> restitution;
+		stream >> friction;
+		stream >> angular_damping;
+		stream >> linear_damping;
+	}
 
-	struct editor_asset_node_t
+	void to_json(nlohmann::json& j, const physical_material_json_t& m)
 	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
-	};
+		j["schema"]			 = "sfg.schema.physical_material";
+		j["restitution"]	 = m.restitution;
+		j["friction"]		 = m.friction;
+		j["angular_damping"] = m.angular_damping;
+		j["linear_damping"]	 = m.linear_damping;
+	}
+
+	void from_json(const nlohmann::json& j, physical_material_json_t& m)
+	{
+		m.restitution	  = j.value<f32>("restitution", 0.0f);
+		m.friction		  = j.value<f32>("friction", 0.2f);
+		m.angular_damping = j.value<f32>("angular_damping", j.value<f32>("angular_damp", 0.05f));
+		m.linear_damping  = j.value<f32>("linear_damping", j.value<f32>("linear_damp", 0.05f));
+	}
 }

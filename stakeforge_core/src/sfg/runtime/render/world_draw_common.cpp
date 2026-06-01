@@ -25,32 +25,59 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "world_draw_common.hpp"
 
-#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
+	namespace
 	{
-		folder,
-		file,
-		asset,
-	};
+		world_pass_flags world_pass_flag_from_string(const string_t& value)
+		{
+			if (value == "gbuffer" || value == "wpf_gbuffer")
+				return wpf_gbuffer;
+			if (value == "forward" || value == "wpf_forward")
+				return wpf_forward;
+			if (value == "depth" || value == "wpf_depth")
+				return wpf_depth;
+			if (value == "shadow" || value == "wpf_shadow" || value == "wfp_shadow")
+				return wpf_shadow;
+			return wpf_none;
+		}
+	}
 
-	enum editor_asset_node_flags_e : u8
+	void to_json(nlohmann::json& j, const world_pass_flags& f)
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+		j				= nlohmann::json::array();
+		const u32 flags = static_cast<u32>(f);
+		if ((flags & wpf_gbuffer) != 0)
+			j.push_back("gbuffer");
+		if ((flags & wpf_forward) != 0)
+			j.push_back("forward");
+		if ((flags & wpf_depth) != 0)
+			j.push_back("depth");
+		if ((flags & wpf_shadow) != 0)
+			j.push_back("shadow");
+	}
 
-	struct editor_asset_node_t
+	void from_json(const nlohmann::json& j, world_pass_flags& f)
 	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
-	};
+		u32 flags = wpf_none;
+		if (j.is_number_unsigned())
+		{
+			flags = j.get<u32>();
+		}
+		else if (j.is_string())
+		{
+			flags = static_cast<u32>(world_pass_flag_from_string(j.get<string_t>()));
+		}
+		else if (j.is_array())
+		{
+			for (const nlohmann::json& item : j)
+				flags |= static_cast<u32>(world_pass_flag_from_string(item.get<string_t>()));
+		}
+		f = static_cast<world_pass_flags>(flags);
+	}
 }

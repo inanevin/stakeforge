@@ -92,12 +92,19 @@ add_custom_command(
     TARGET ${SFG_EDITOR_TARGET}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/layout_defines.hlsl"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/layout_defines.hlsl"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/world"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
+    COMMAND ${CMAKE_COMMAND} -E rm -f
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials/gbuffer_material.sfg_asset"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials/forward_material.sfg_asset"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/materials"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials"
 )
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)

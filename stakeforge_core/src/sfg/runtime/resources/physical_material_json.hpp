@@ -28,29 +28,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/string.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
+	class istream_t;
+	class ostream_t;
+
+	struct physical_material_json_t
 	{
-		folder,
-		file,
-		asset,
+		f32 restitution		= 0.0f;
+		f32 friction		= 0.2f;
+		f32 angular_damping = 0.05f;
+		f32 linear_damping	= 0.05f;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
-	enum editor_asset_node_flags_e : u8
-	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
-
-	struct editor_asset_node_t
-	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
-	};
+	void to_json(nlohmann::json& j, const physical_material_json_t& m);
+	void from_json(const nlohmann::json& j, physical_material_json_t& m);
 }

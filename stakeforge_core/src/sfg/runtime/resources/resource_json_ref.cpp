@@ -25,32 +25,35 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "resource_json_ref.hpp"
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/string.hpp>
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
+	void resource_json_ref_t::serialize(ostream_t& stream) const
 	{
-		folder,
-		file,
-		asset,
-	};
+		stream << path;
+		stream << guid;
+	}
 
-	enum editor_asset_node_flags_e : u8
+	void resource_json_ref_t::deserialize(istream_t& stream)
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+		stream >> path;
+		stream >> guid;
+	}
 
-	struct editor_asset_node_t
+	void to_json(nlohmann::json& j, const resource_json_ref_t& r)
 	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
-	};
+		j["path"] = r.path;
+		j["guid"] = r.guid;
+	}
+
+	void from_json(const nlohmann::json& j, resource_json_ref_t& r)
+	{
+		r.path = j.value<string_t>("path", j.value<string_t>("relative_path", {}));
+		r.guid = j.value<sid_t>("guid", 0);
+	}
 }

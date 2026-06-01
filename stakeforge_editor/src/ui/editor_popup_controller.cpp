@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/data/string.hpp>
+#include <sfg/data/frame_string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -257,7 +257,7 @@ namespace sfg
 		const bool						   notify			= notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
 		const editor_popup_input_closed_fn closed			= _input_desc.closed;
 		void*							   closed_user_data = _input_desc.user_data;
-		const string_t					   input_value		= _input.get_text();
+		const frame_string_t<char>		   input_value		= _input.get_text();
 
 		set_visible(false);
 		_ui->get_input().clear_popup_scope();

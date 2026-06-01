@@ -368,9 +368,10 @@ namespace sfg
 
 	bool editor_panel_log_t::is_log_row_visible(const log_row_t& row) const
 	{
-		string_t lower_case_raw = row.raw_text;
+		frame_string_t<char> lower_case_raw;
+		lower_case_raw.assign(row.raw_text.c_str(), row.raw_text.size());
 		string_util::to_lower(lower_case_raw);
-		return (_log_filter_flags & row.flag) != 0 && lower_case_raw.find(_search_text_lower) != string_t::npos;
+		return (_log_filter_flags & row.flag) != 0 && lower_case_raw.find(_search_text_lower.c_str()) != frame_string_t<char>::npos;
 	}
 
 	bool editor_panel_log_t::is_scrolled_to_end() const
@@ -509,7 +510,9 @@ namespace sfg
 	{
 		frame_string_t<char> display_text;
 		const string_t		 tag = file_system_t::get_system_time_tag_str(row.count);
-		display_text			 = tag + " " + row.raw_text;
+		display_text.assign(tag.c_str(), tag.size());
+		display_text += ' ';
+		display_text.append(row.raw_text.c_str(), row.raw_text.size());
 		_ui->set_widget_text(row.text, display_text.c_str());
 	}
 

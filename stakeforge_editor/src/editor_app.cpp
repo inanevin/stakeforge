@@ -223,6 +223,8 @@ namespace sfg
 			return false;
 		}
 
+		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
+
 		/* payload window & layout/surface initing */
 
 		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
@@ -284,8 +286,6 @@ namespace sfg
 		}
 
 		_last_tick_us = time_t::get_cpu_microseconds();
-
-		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 
 		const string_t& last_project = editor_settings_t::get().last_project_path;
 		if (!file_system_t::exists(last_project.c_str()) || !load_project(last_project.c_str()))
@@ -711,7 +711,7 @@ namespace sfg
 				{
 					.vertex_buffer_bytes = 1 << 22,
 					.index_buffer_bytes	 = 1 << 22,
-					.buffer_count		 = 16,
+					.buffer_count		 = 32,
 				},
 			.user_ui_scale = 1.0f,
 			.dpi_scale	   = surface.runtime->monitor_info.dpi_scale,

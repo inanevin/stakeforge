@@ -2,6 +2,9 @@
 #pragma once
 
 #include "common_resources.hpp"
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/runtime/render/world_draw_common.hpp>
 
 namespace sfg
 {
@@ -9,19 +12,38 @@ namespace sfg
 
 	struct material_runtime_t
 	{
-		u32 reserved = 0;
+		u8*				 parameter_values	 = nullptr;
+		sid_t*			 texture_guids		 = nullptr;
+		gpu_index_t*	 texture_indices	 = nullptr;
+		sampler_desc_t	 sampler_definition	 = {};
+		sid_t			 shader_guid		 = 0;
+		u32				 parameter_data_size = 0;
+		u32				 parameter_count	 = 0;
+		u32				 texture_count		 = 0;
+		world_pass_flags pass_flags			 = wpf_none;
+		u8				 double_sided		 = 0;
+		u8				 use_alpha_cutoff	 = 0;
 	};
 
 	struct material_internals_t
 	{
-		u32 reserved = 0;
+		gfx_resource_handle parameter_buffer = {};
+		gfx_resource_handle texture_buffer	 = {};
+		gpu_index_t			parameter_index	 = NULL_GPU_INDEX;
+		gpu_index_t			texture_index	 = NULL_GPU_INDEX;
+		u8					pending_count	 = 0;
+		u8					had_failure		 = 0;
 	};
 
 	class material_loader_t
 	{
 	public:
+		static constexpr u32 WIRE_MAGIC	  = 0x53464D54;
+		static constexpr u32 WIRE_VERSION = 1;
+
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static resource_ready_result_e	 resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
 		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

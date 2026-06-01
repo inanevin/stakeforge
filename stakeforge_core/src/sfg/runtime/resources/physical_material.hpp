@@ -9,7 +9,10 @@ namespace sfg
 
 	struct physical_material_runtime_t
 	{
-		u32 reserved = 0;
+		f32 restitution		= 0.0f;
+		f32 friction		= 0.2f;
+		f32 angular_damping = 0.05f;
+		f32 linear_damping	= 0.05f;
 	};
 
 	struct physical_material_internals_t
@@ -20,6 +23,9 @@ namespace sfg
 	class physical_material_loader_t
 	{
 	public:
+		static constexpr u32 WIRE_MAGIC	  = 0x5346504D;
+		static constexpr u32 WIRE_VERSION = 1;
+
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
 		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);

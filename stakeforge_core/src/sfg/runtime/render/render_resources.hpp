@@ -46,7 +46,7 @@ namespace sfg
 		// creation
 		// -----------------------------------------------------------------------------
 
-		void enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc);
+		void enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data = 0);
 		void enqueue_create_texture(sid_t hash, const texture_desc_t& desc);
 		void enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
 		void enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout = {});
@@ -66,6 +66,7 @@ namespace sfg
 
 		void enqueue_texture_upload(const texture_upload_desc_t& desc);
 		void enqueue_texture_region_upload(const texture_region_upload_desc_t& desc);
+		void enqueue_data_upload(gfx_resource_handle resource, const void* data, u32 data_size);
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -88,9 +89,10 @@ namespace sfg
 
 		struct create_resource_request_t
 		{
-			sid_t			hash = 0;
-			resource_type_e type = resource_type_e::invalid;
-			resource_desc_t desc = {};
+			sid_t			hash	  = 0;
+			resource_type_e type	  = resource_type_e::invalid;
+			u32				user_data = 0;
+			resource_desc_t desc	  = {};
 		};
 
 		struct create_texture_request_t
@@ -125,11 +127,19 @@ namespace sfg
 			texture_data_ownership_e									 ownership	   = texture_data_ownership_e::none;
 		};
 
+		struct data_upload_request_t
+		{
+			gfx_resource_handle resource  = {};
+			u8*					data	  = nullptr;
+			u32					data_size = 0;
+		};
+
 		moodycamel::ReaderWriterQueue<create_resource_request_t>	_create_resource_q;
 		moodycamel::ReaderWriterQueue<create_texture_request_t>		_create_texture_q;
 		moodycamel::ReaderWriterQueue<create_sampler_request_t>		_create_sampler_q;
 		moodycamel::ReaderWriterQueue<create_shader_request_t>		_create_shader_q;
 		moodycamel::ReaderWriterQueue<texture_upload_request_t>		_texture_upload_q;
+		moodycamel::ReaderWriterQueue<data_upload_request_t>		_data_upload_q;
 		moodycamel::ReaderWriterQueue<texture_region_upload_desc_t> _texture_region_upload_q;
 		moodycamel::ReaderWriterQueue<gfx_resource_handle>			_destroy_resource_q;
 		moodycamel::ReaderWriterQueue<gfx_texture_handle>			_destroy_texture_q;

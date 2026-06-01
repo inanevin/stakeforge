@@ -27,30 +27,55 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/string.hpp>
+#include "resource_json_ref.hpp"
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/runtime/render/world_draw_common.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
+	class istream_t;
+	class ostream_t;
+
+	enum class material_parameter_type_e : u8
 	{
-		folder,
-		file,
-		asset,
+		u32,
+		uint2,
+		uint4,
+		i32,
+		f32,
+		vec2f,
+		vec4f,
 	};
 
-	enum editor_asset_node_flags_e : u8
+	struct material_parameter_t
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
+		f32						  values[4] = {};
+		material_parameter_type_e type		= material_parameter_type_e::f32;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
-	struct editor_asset_node_t
+	struct material_json_t
 	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
+		vector_t<resource_json_ref_t>  textures			  = {};
+		vector_t<material_parameter_t> parameters		  = {};
+		sampler_desc_t				   sampler_definition = {};
+		resource_json_ref_t			   shader			  = {};
+		world_pass_flags			   pass_flags		  = wpf_none;
+		bool						   double_sided		  = false;
+		bool						   use_alpha_cutoff	  = false;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
+
+	void to_json(nlohmann::json& j, const material_parameter_type_e& t);
+	void from_json(const nlohmann::json& j, material_parameter_type_e& t);
+	void to_json(nlohmann::json& j, const material_parameter_t& p);
+	void from_json(const nlohmann::json& j, material_parameter_t& p);
+	void to_json(nlohmann::json& j, const material_json_t& m);
+	void from_json(const nlohmann::json& j, material_json_t& m);
 }

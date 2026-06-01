@@ -27,15 +27,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+
 namespace sfg
 {
 	enum world_pass_flags
 	{
-		wpf_none = 0,
+		wpf_none	= 0,
+		wpf_gbuffer = 1 << 0,
+		wpf_forward = 1 << 1,
+		wpf_depth	= 1 << 2,
+		wpf_shadow	= 1 << 3,
 	};
 
 	enum world_draw_flags
 	{
 		wdf_none = 0,
 	};
+
+	void to_json(nlohmann::json& j, const world_pass_flags& f);
+	void from_json(const nlohmann::json& j, world_pass_flags& f);
 }

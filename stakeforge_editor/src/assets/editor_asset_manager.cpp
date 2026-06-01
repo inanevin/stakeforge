@@ -34,18 +34,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_modal_controller.hpp"
 
 #include <sfg/data/frame_string.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/resource_cache.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
+#include <sfg/serialization/serialization.hpp>
+#include <algorithm>
 #include <utility>
 
 #include <sfg/platform/time.hpp>
-#include <string>
 
 namespace sfg
 {
@@ -57,9 +61,30 @@ namespace sfg
 		{
 			const char*	  asset_name;
 			const char*	  source_name;
+			const char*	  source_base_name;
 			sid_t		  guid;
 			shader_type_e shader_type;
 		};
+
+		struct default_texture_asset_desc_t
+		{
+			const char* asset_name;
+			sid_t		guid;
+			u8			color[4];
+			bool		is_linear;
+		};
+
+		struct default_scaffold_asset_desc_t
+		{
+			const char* source_name;
+		};
+
+		span_t<u8> make_default_texture_data(const u8 color[4])
+		{
+			u8* data = static_cast<u8*>(SFG_MALLOC(4));
+			SFG_MEMCPY(data, color, 4);
+			return {.data = data, .size = 4};
+		}
 	}
 
 	bool editor_asset_manager_t::init()
@@ -147,7 +172,10 @@ namespace sfg
 		found_assets.reserve(entries.size());
 
 		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
-		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .type = editor_asset_node_type_e::folder, .flags = editor_asset_node_flag_promoted});
+		string_t	   root_path = assets_dir;
+		file_system_t::fix_path(root_path);
+		file_system_t::fix_path_end_slash(root_path);
+		_root_node = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
 
 		vector_t<string_t> parts;
 		for (const file_system_entry_t& entry : entries)
@@ -185,12 +213,12 @@ namespace sfg
 				found_assets.emplace(asset_id, std::move(asset));
 
 				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
-				const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset_id = asset_id, .name = name, .type = editor_asset_node_type_e::asset});
+				const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = entry.path, .type = editor_asset_node_type_e::asset});
 				_asset_tree.attach(parent, asset_node);
 			}
 			else
 			{
-				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.name = parts.back(), .type = editor_asset_node_type_e::file});
+				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = editor_asset_node_type_e::file});
 				_asset_tree.attach(parent, file_node);
 			}
 		}
@@ -218,40 +246,12 @@ namespace sfg
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const
 	{
-		if (extension.empty())
-			return nullptr;
-
-		string_t target = extension;
-		if (!target.empty() && target[0] == '.')
-			target.erase(target.begin());
-		string_util::to_lower(target);
-
-		for (const auto& asset_descriptor : _asset_descriptors)
-		{
-			const editor_asset_descriptor_t& descriptor = asset_descriptor.second;
-			size_t							 start		= 0;
-			while (start < descriptor.extension.size())
-			{
-				while (start < descriptor.extension.size() && (descriptor.extension[start] == '.' || descriptor.extension[start] == ';' || descriptor.extension[start] == ',' || descriptor.extension[start] == ' '))
-					++start;
-
-				size_t end = start;
-				while (end < descriptor.extension.size() && descriptor.extension[end] != ';' && descriptor.extension[end] != ',' && descriptor.extension[end] != ' ')
-					++end;
-
-				if (end > start)
-				{
-					string_t current = descriptor.extension.substr(start, end - start);
-					string_util::to_lower(current);
-					if (current == target)
-						return &descriptor;
-				}
-
-				start = end;
-			}
-		}
-
-		return nullptr;
+		const auto descriptor_it = std::find_if(_asset_descriptors.begin(), _asset_descriptors.end(), [&](const auto& asset_descriptor) {
+			const editor_asset_descriptor_t& descriptor	  = asset_descriptor.second;
+			const auto						 extension_it = std::find_if(descriptor.extensions.begin(), descriptor.extensions.end(), [&](const string_t& descriptor_extension) { return descriptor_extension == extension; });
+			return extension_it != descriptor.extensions.end();
+		});
+		return descriptor_it != _asset_descriptors.end() ? &descriptor_it->second : nullptr;
 	}
 
 	void editor_asset_manager_t::ensure_default_assets(const char* default_assets_dir)
@@ -259,24 +259,37 @@ namespace sfg
 		SFG_ASSERT(default_assets_dir != nullptr);
 		SFG_ASSERT(default_assets_dir[0] != '\0');
 
-		string_t default_assets_path = editor_asset_util_t::normalize_directory(default_assets_dir);
+		frame_string_t<char> default_assets_path = default_assets_dir;
+
 		if (!file_system_t::exists(default_assets_path.c_str()))
 			file_system_t::create_directory(default_assets_path.c_str());
 
-		const auto descriptor_it = _asset_descriptors.find(editor_asset_type_e::shader);
-		SFG_ASSERT(descriptor_it != _asset_descriptors.end());
-		const editor_asset_descriptor_t& shader_descriptor = descriptor_it->second;
+		const auto shader_descriptor_it = _asset_descriptors.find(editor_asset_type_e::shader);
+		SFG_ASSERT(shader_descriptor_it != _asset_descriptors.end());
+		const editor_asset_descriptor_t& shader_descriptor = shader_descriptor_it->second;
 		SFG_ASSERT(shader_descriptor.create_default != nullptr);
 
-		const string_t			   assets_path		= editor_project_t::get()._runtime.assets_path;
-		const default_asset_desc_t default_assets[] = {
-			{.asset_name = "gbuffer", .source_name = "gbuffer.hlsl", .guid = editor_asset_t::DEFAULT_GBUFFER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
-			{.asset_name = "forward", .source_name = "forward.hlsl", .guid = editor_asset_t::DEFAULT_FORWARD_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+		const string_t&			   assets_path			   = editor_project_t::get()._runtime.assets_path;
+		const default_asset_desc_t default_shader_assets[] = {
+			{.asset_name = "shader_gbuffer", .source_name = "gbuffer.hlsl", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
+			{.asset_name = "shader_forward", .source_name = "forward.hlsl", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+		};
+		const default_texture_asset_desc_t default_texture_assets[] = {
+			{.asset_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID, .color = {255, 255, 255, 255}, .is_linear = false},
+			{.asset_name = "texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID, .color = {255, 255, 0, 255}, .is_linear = true},
+			{.asset_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID, .color = {128, 128, 128, 255}, .is_linear = true},
+			{.asset_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID, .color = {0, 0, 0, 255}, .is_linear = false},
+		};
+		const default_scaffold_asset_desc_t default_material_assets[] = {
+			{.source_name = "material_gbuffer.sfg_asset"},
+			{.source_name = "material_forward.sfg_asset"},
+			{.source_name = "physical_material.sfg_asset"},
 		};
 
-		for (const default_asset_desc_t& desc : default_assets)
+		for (const default_asset_desc_t& desc : default_shader_assets)
 		{
-			string_t source_path = default_assets_path;
+			frame_string_t<char> source_path;
+			source_path.assign(default_assets_path.c_str(), default_assets_path.size());
 			source_path += desc.source_name;
 
 			editor_asset_t asset = {};
@@ -290,39 +303,97 @@ namespace sfg
 				SFG_ASSERT(!asset.source_relative.empty());
 			}
 
-			if (!shader_descriptor.create_default(asset, default_assets_path.c_str(), desc.asset_name, nullptr))
+			if (!shader_descriptor.create_default(asset, default_assets_path.c_str(), desc.source_base_name, nullptr))
 				continue;
 			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
 
-			const string_t asset_path = editor_asset_util_t::make_asset_path(default_assets_path.c_str(), desc.asset_name);
+			frame_string_t<char> asset_path;
+			asset_path.assign(default_assets_path.c_str(), default_assets_path.size());
+			asset_path += desc.asset_name;
+			asset_path += ".sfg_asset";
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
 		}
 
+		const auto texture_descriptor_it = _asset_descriptors.find(editor_asset_type_e::texture);
+		SFG_ASSERT(texture_descriptor_it != _asset_descriptors.end());
+		const editor_asset_descriptor_t& texture_descriptor = texture_descriptor_it->second;
+		SFG_ASSERT(texture_descriptor.create_default != nullptr);
+		for (const default_texture_asset_desc_t& desc : default_texture_assets)
+		{
+			texture_cook_config_t texture_config = {
+				.size			  = {.x = 1, .y = 1},
+				.payload_type	  = texture_payload_type_e::ktx2_uastc,
+				.generate_mipmaps = false,
+				.is_linear		  = desc.is_linear,
+			};
+			editor_asset_t asset = {};
+			asset.version		 = editor_asset_t::VERSION;
+			asset.guid			 = desc.guid;
+			asset.asset_type	 = editor_asset_type_e::texture;
+			asset.source_type	 = editor_asset_source_type_e::data;
+
+			if (!texture_descriptor.create_default(asset, default_assets_path.c_str(), desc.asset_name, &texture_config))
+				continue;
+
+			frame_string_t<char> asset_path;
+			asset_path.assign(default_assets_path.c_str(), default_assets_path.size());
+			asset_path += desc.asset_name;
+			asset_path += ".sfg_asset";
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
+		}
+
+		for (const default_scaffold_asset_desc_t& desc : default_material_assets)
+		{
+			const string_t		 running_directory = file_system_t::get_running_directory();
+			frame_string_t<char> scaffold_path;
+			scaffold_path.assign(running_directory.c_str(), running_directory.size());
+			scaffold_path += "editor_scaffold/materials/";
+			scaffold_path += desc.source_name;
+			SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
+
+			frame_string_t<char> target_path;
+			target_path.assign(default_assets_path.c_str(), default_assets_path.size());
+			target_path += desc.source_name;
+			if (!file_system_t::copy_file(scaffold_path.c_str(), target_path.c_str()))
+				SFG_ERR("failed to copy default asset {0}", target_path.c_str());
+			SFG_ASSERT(file_system_t::exists(target_path.c_str()));
+		}
+
 		rescan(assets_path);
+
+		for (const default_texture_asset_desc_t& desc : default_texture_assets)
+		{
+			auto asset_it = _assets.find(desc.guid);
+			SFG_ASSERT(asset_it != _assets.end());
+			if (file_system_t::exists(editor_asset_util_t::get_cache_path_for_asset(asset_it->second).c_str()))
+				continue;
+
+			asset_it->second._transient_data = make_default_texture_data(desc.color);
+		}
 	}
 
 	void editor_asset_manager_t::ensure_cook()
 	{
 		SFG_ASSERT(!_cook_in_progress);
 
-		const string_t			 cache_dir = editor_project_t::get()._runtime.cache_path;
-		vector_t<editor_asset_t> missing_assets;
+		frame_vector_t<editor_asset_t> missing_assets;
 		missing_assets.reserve(_assets.size());
-		for (const auto& asset_pair : _assets)
+		for (auto& asset_pair : _assets)
 		{
-			const editor_asset_t& asset			= asset_pair.second;
-			const auto			  descriptor_it = _asset_descriptors.find(asset.asset_type);
+			editor_asset_t& asset		  = asset_pair.second;
+			const auto		descriptor_it = _asset_descriptors.find(asset.asset_type);
 			SFG_ASSERT(descriptor_it != _asset_descriptors.end());
 			if (descriptor_it->second.cook == nullptr)
 				continue;
 
-			string_t cache_path = cache_dir;
-			file_system_t::fix_path_end_slash(cache_path);
-			cache_path += std::to_string(asset.guid);
-			cache_path += ".sfg_bin";
+			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
 			if (!file_system_t::exists(cache_path.c_str()))
+			{
 				missing_assets.push_back(asset);
+				asset._transient_data = {};
+			}
 		}
 
 		if (!missing_assets.empty())
@@ -332,9 +403,7 @@ namespace sfg
 	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u32 size)
 	{
 		SFG_ASSERT(!_cook_in_progress);
-
-		if (size == 0)
-			return;
+		SFG_ASSERT(size != 0);
 		SFG_ASSERT(assets != nullptr);
 
 		_cook_assets.resize(0);
@@ -344,6 +413,7 @@ namespace sfg
 		for (u32 i = 0; i < size; ++i)
 		{
 			_cook_assets.push_back(assets[i]);
+			assets[i]._transient_data = {};
 			_cook_status_texts.push_back(assets[i].source_relative.empty() ? "cooking" : assets[i].source_relative);
 		}
 
@@ -368,8 +438,9 @@ namespace sfg
 				if (descriptor_it->second.cook != nullptr)
 				{
 					ostream_t	   stream;
-					const string_t cache_name = std::to_string(asset.guid);
-					if (!descriptor_it->second.cook(asset, stream) || !resource_cache_t::save(cache_dir.c_str(), cache_name.c_str(), stream))
+					const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+
+					if (!descriptor_it->second.cook(asset, stream) || !resource_cache_t::ensure_directory(cache_dir.c_str()) || !serializer_t::save_to_file(cache_path.c_str(), stream))
 						SFG_ERR("failed cooking asset {0}", asset.guid);
 				}
 				_cooked_count.fetch_add(1, std::memory_order_relaxed);
@@ -404,8 +475,9 @@ namespace sfg
 		if (!existing.is_null())
 			return existing;
 
-		const u8						 flags	= !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
-		const editor_asset_node_handle_t folder = _asset_tree.emplace(editor_asset_node_t{.name = name, .type = editor_asset_node_type_e::folder, .flags = flags});
+		const u8						 flags	   = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
+		const string_t					 full_path = _asset_tree.value(parent).full_path + name;
+		const editor_asset_node_handle_t folder	   = _asset_tree.emplace(editor_asset_node_t{.name = name, .full_path = full_path, .type = editor_asset_node_type_e::folder, .flags = flags});
 		_asset_tree.attach(parent, folder);
 		return folder;
 	}

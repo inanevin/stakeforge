@@ -4,6 +4,7 @@
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 
@@ -15,10 +16,10 @@ namespace sfg
 		return instance;
 	}
 
-	void render_resources_t::enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc)
+	void render_resources_t::enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_create_resource_q.enqueue({.hash = hash, .type = type, .desc = desc});
+		_create_resource_q.enqueue({.hash = hash, .type = type, .user_data = user_data, .desc = desc});
 	}
 
 	void render_resources_t::enqueue_create_texture(sid_t hash, const texture_desc_t& desc)
@@ -101,6 +102,18 @@ namespace sfg
 		_texture_region_upload_q.enqueue(desc);
 	}
 
+	void render_resources_t::enqueue_data_upload(gfx_resource_handle resource, const void* data, u32 data_size)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(!resource.is_null());
+		SFG_ASSERT(data != nullptr);
+		SFG_ASSERT(data_size != 0);
+
+		u8* copy = static_cast<u8*>(SFG_MALLOC(data_size));
+		SFG_MEMCPY(copy, data, data_size);
+		_data_upload_q.enqueue({.resource = resource, .data = copy, .data_size = data_size});
+	}
+
 	bool render_resources_t::drain_completion(render_resource_completion_t& out_completion)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
@@ -138,6 +151,7 @@ namespace sfg
 				.type	   = resource_req.type,
 				.kind	   = render_resource_kind_e::resource,
 				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
+				.user_data = resource_req.user_data,
 				.resource  = handle,
 				.gpu_index = backend.get_resource_gpu_index(handle),
 			});
@@ -202,5 +216,15 @@ namespace sfg
 		texture_region_upload_desc_t texture_region_upload_req = {};
 		while (_texture_region_upload_q.try_dequeue(texture_region_upload_req))
 			_texture_upload_queue.add_region(texture_region_upload_req);
+
+		data_upload_request_t data_upload_req = {};
+		while (_data_upload_q.try_dequeue(data_upload_req))
+		{
+			u8* mapped = nullptr;
+			backend.map_resource(data_upload_req.resource, mapped);
+			SFG_MEMCPY(mapped, data_upload_req.data, data_upload_req.data_size);
+			backend.unmap_resource(data_upload_req.resource);
+			SFG_FREE(data_upload_req.data);
+		}
 	}
 }

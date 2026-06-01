@@ -256,12 +256,14 @@ namespace sfg
 	{
 		try
 		{
-			auto path = std::filesystem::current_path();
-			return path.string();
+			auto	 path = std::filesystem::current_path();
+			string_t s	  = path.string();
+			fix_path(s);
+			fix_path_end_slash(s);
+			return s;
 		}
 		catch (std::exception e)
 		{
-			int a = 5;
 			return "";
 		}
 	}

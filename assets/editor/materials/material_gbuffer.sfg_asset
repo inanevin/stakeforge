@@ -1,0 +1,70 @@
+{
+    "version": 0,
+    "guid": 1006,
+    "asset_type": "material",
+    "sub_type": 0,
+    "embedded_source": {
+        "schema": "sfg.schema.material",
+        "pass_flags": [
+            "gbuffer"
+        ],
+        "shader": {
+            "path": "_sfg_assets/shader_gbuffer.sfg_asset",
+            "guid": 1000
+        },
+        "textures": [
+            {
+                "path": "_sfg_assets/texture_albedo.sfg_asset",
+                "guid": 1002
+            },
+            {
+                "path": "_sfg_assets/texture_normal.sfg_asset",
+                "guid": 1004
+            },
+            {
+                "path": "_sfg_assets/texture_orm.sfg_asset",
+                "guid": 1003
+            },
+            {
+                "path": "_sfg_assets/texture_emissive.sfg_asset",
+                "guid": 1005
+            }
+        ],
+        "parameters": [
+            {
+                "type": "vec4f",
+                "values": [1.0, 1.0, 1.0, 1.0]
+            },
+            {
+                "type": "vec4f",
+                "values": [1.0, 1.0, 1.0, 0.0]
+            },
+            {
+                "type": "vec4f",
+                "values": [1.0, 1.0, 0.5, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            }
+        ],
+        "double_sided": false,
+        "use_alpha_cutoff": false,
+        "sampler_definition": {}
+    },
+    "cook_options": {},
+    "source_relative": "",
+    "source_type": "embedded"
+}
