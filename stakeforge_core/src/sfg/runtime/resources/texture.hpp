@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_resources.hpp"
+#include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
 
@@ -35,12 +36,18 @@ namespace sfg
 {
 	class istream_t;
 
+	enum class texture_payload_type_e : u8
+	{
+		ktx2_uastc,
+		uncompressed,
+	};
+
 	class texture_loader_t
 	{
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = 0x53465458;
-		static constexpr u32 WIRE_VERSION = 3;
+		static constexpr u32 WIRE_VERSION = 4;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
@@ -50,10 +57,13 @@ namespace sfg
 
 	struct texture_runtime_t
 	{
-		u8				 channels						  = 0;
-		u8				 mip_count						  = 0;
-		u8				 is_linear						  = 0;
-		texture_buffer_t mips[texture_loader_t::MAX_MIPS] = {};
+		texture_buffer_t	   mips[texture_loader_t::MAX_MIPS] = {};
+		format_e			   texture_format					= format_e::undefined;
+		texture_payload_type_e payload_type						= texture_payload_type_e::ktx2_uastc;
+		u8					   channels							= 0;
+		u8					   mip_count						= 0;
+		u8					   is_linear						= 0;
+		u8					   owns_mips						= 0;
 	};
 
 	struct texture_internals_t

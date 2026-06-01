@@ -67,7 +67,9 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void register_descriptor(const editor_asset_descriptor_t& desc);
-		void cook_assets(editor_asset_t* assets, u8 size);
+		void ensure_default_assets(const char* default_assets_dir);
+		void ensure_cook();
+		void cook_assets(editor_asset_t* assets, u32 size);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -109,7 +111,6 @@ namespace sfg
 		static editor_asset_manager_t& get();
 
 	private:
-		bool					   read_asset(const char* path, editor_asset_t& out_asset) const;
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
@@ -118,12 +119,14 @@ namespace sfg
 		hash_map_t<u64, editor_asset_t>							   _assets;
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
 		vector_t<editor_asset_t>								   _cook_assets;
+		vector_t<string_t>										   _cook_status_texts;
 		editor_modal_progress_bar_t								   _cook_progress_modal = {};
 		atomic_t<u32>											   _cooked_count		= 0;
 		atomic_t<bool>											   _cook_finished		= false;
 		editor_asset_node_handle_t								   _root_node;
-		u32														   _generation		 = 0;
-		u32														   _total_cook_count = 0;
-		bool													   _cook_in_progress = false;
+		u32														   _generation			   = 0;
+		u32														   _total_cook_count	   = 0;
+		u32														   _last_cook_status_index = 0;
+		bool													   _cook_in_progress	   = false;
 	};
 }

@@ -27,224 +27,111 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 
-#include "assets/editor_asset_manager.hpp"
-
-#include <sfg/common/hashing.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/runtime/resources/texture_sampler_cook.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
-#include <cstddef>
-#include <cstdio>
-#include <iterator>
+#include <sfg/io/log.hpp>
+#include <sfg/serialization/serialization.hpp>
 
 namespace sfg
 {
-	namespace
+	bool editor_asset_util_t::read_asset(const char* path, editor_asset_t& out_asset)
 	{
-#define TEXTURE_COOK_CONFIG_TYPE_ID "texture_cook_config"_hs
-
-		void destroy_texture_cook_config(void* object)
+		const string_t		 json_text = file_system_t::read_file_as_string(path);
+		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
+		if (doc.is_discarded())
 		{
-			delete static_cast<texture_cook_config_t*>(object);
+			SFG_ERR("failed to parse asset {0}", path);
+			return false;
 		}
 
-		void register_texture_cook_config_reflection()
+		doc.get_to(out_asset);
+		return true;
+	}
+
+	bool editor_asset_util_t::write_asset(const char* path, const editor_asset_t& asset)
+	{
+		const nlohmann::json json_data = asset;
+		const string_t		 data	   = json_data.dump(4);
+		return serializer_t::write_to_file(string_view_t(data.data(), data.size()), path);
+	}
+
+	string_t editor_asset_util_t::normalize_directory(const char* directory)
+	{
+		string_t result = directory != nullptr ? directory : "";
+		if (!result.empty() && result.back() != '/')
+			result += '/';
+		return result;
+	}
+
+	string_t editor_asset_util_t::make_asset_path(const char* directory, const char* asset_name)
+	{
+		string_t result = normalize_directory(directory);
+		result += asset_name != nullptr ? asset_name : "";
+		result += ".sfg_asset";
+		return result;
+	}
+
+	string_t editor_asset_util_t::make_unique_source_path(const char* directory, const char* file_name, const char* extension)
+	{
+		string_t base = normalize_directory(directory);
+		base += file_name != nullptr ? file_name : "";
+
+		string_t ext = extension != nullptr ? extension : "";
+		if (!ext.empty() && ext[0] != '.')
+			ext.insert(ext.begin(), '.');
+
+		string_t result			 = base + ext;
+		size_t	 insert_position = base.size();
+		while (file_system_t::exists(result.c_str()))
 		{
-			reflection_registry_t& registry = reflection_registry_t::get();
-			if (registry.find_type(TEXTURE_COOK_CONFIG_TYPE_ID) != nullptr)
-				return;
-
-			static const reflected_enum_value_desc_t payload_type_values[] = {
-				{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_cook_payload_type_e::uncompressed)},
-				{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_cook_payload_type_e::ktx2_uastc)},
-			};
-
-			static const reflected_field_desc_t fields[] = {
-				{.enum_values  = {.data = payload_type_values, .size = std::size(payload_type_values)},
-				 .name		   = "payload_type",
-				 .display_name = "Payload Type",
-				 .type		   = reflected_value_type_e::enum32,
-				 .offset	   = offsetof(texture_cook_config_t, payload_type),
-				 .size		   = sizeof(texture_cook_payload_type_e)},
-				{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
-				{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
-			};
-
-			registry.register_type({
-				.fields		  = {.data = fields, .size = std::size(fields)},
-				.name		  = "texture_cook_config",
-				.display_name = "Texture Cook Config",
-				.type_id	  = TEXTURE_COOK_CONFIG_TYPE_ID,
-				.size		  = sizeof(texture_cook_config_t),
-				.alignment	  = alignof(texture_cook_config_t),
-			});
+			result.insert(insert_position, " (Copy)");
+			insert_position += 7;
 		}
+
+		return result;
 	}
 
-	bool editor_asset_loader_audio_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	string_t editor_asset_util_t::get_source_full_path(const char* assets_path, const editor_asset_t& asset)
 	{
-		return true;
+		SFG_ASSERT(!asset.source_relative.empty());
+
+		string_t result = file_system_t::get_absolute_path(assets_path);
+		file_system_t::fix_path_end_slash(result);
+		result += asset.source_relative;
+		file_system_t::fix_path(result);
+		SFG_ASSERT(file_system_t::exists(result.c_str()));
+		return result;
 	}
 
-	void editor_asset_loader_audio_t::register_type()
+	string_t editor_asset_util_t::get_source_relative(const char* assets_path, const char* source_full_path)
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extension = "mp3", .asset_type = editor_asset_type_e::audio, .source_type = editor_asset_source_type_e::file});
+		if (source_full_path == nullptr || source_full_path[0] == '\0')
+			return {};
+
+		string_t normalized_assets_path = file_system_t::get_absolute_path(assets_path);
+		file_system_t::fix_path_end_slash(normalized_assets_path);
+		string_t normalized_assets_path_lower = normalized_assets_path;
+		string_util::to_lower(normalized_assets_path_lower);
+
+		const string_t normalized_source_path		= file_system_t::get_absolute_path(source_full_path);
+		string_t	   normalized_source_path_lower = normalized_source_path;
+		string_util::to_lower(normalized_source_path_lower);
+		if (normalized_source_path_lower.rfind(normalized_assets_path_lower, 0) != 0)
+			return {};
+
+		return file_system_t::get_relative(normalized_assets_path.c_str(), normalized_source_path.c_str());
 	}
 
-	bool editor_asset_loader_font_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
+	bool editor_asset_util_t::is_source_inside_assets(const char* assets_path, const char* source_full_path)
 	{
-		return true;
+		return !get_source_relative(assets_path, source_full_path).empty();
 	}
 
-	void editor_asset_loader_font_t::register_type()
+	sid_t editor_asset_util_t::try_read_existing_guid(const char* path)
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extension = "ttf", .asset_type = editor_asset_type_e::font, .source_type = editor_asset_source_type_e::file});
-	}
-
-	bool editor_asset_loader_mesh_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_mesh_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extension = "glb", .asset_type = editor_asset_type_e::mesh, .source_type = editor_asset_source_type_e::file});
-	}
-
-	bool editor_asset_loader_skeleton_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_skeleton_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::skeleton, .source_type = editor_asset_source_type_e::file});
-	}
-
-	bool editor_asset_loader_animation_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_animation_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::animation, .source_type = editor_asset_source_type_e::file});
-	}
-
-	bool editor_asset_loader_material_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_material_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::material, .source_type = editor_asset_source_type_e::none});
-	}
-
-	bool editor_asset_loader_shader_t::create_default(editor_asset_t& asset, const char*, const char*, u8 sub_type, void*)
-	{
-		const shader_type_e shader_type = static_cast<shader_type_e>(sub_type);
-		asset.cook_options["schema"]	= "sfg.schema.shader";
-		switch (shader_type)
-		{
-		case shader_type_e::opaque_shader:
-			asset.cook_options["type"] = "opaque_shader";
-			break;
-		case shader_type_e::transparent_shader:
-			asset.cook_options["type"] = "transparent_shader";
-			break;
-		case shader_type_e::post_process_shader:
-			asset.cook_options["type"] = "post_process_shader";
-			break;
-		case shader_type_e::ui_shader:
-			asset.cook_options["type"] = "ui_shader";
-			break;
-		case shader_type_e::ui_text_shader:
-			asset.cook_options["type"] = "ui_text_shader";
-			break;
-		default:
-			asset.cook_options["type"] = "opaque_shader";
-			break;
-		}
-		return true;
-	}
-
-	void editor_asset_loader_shader_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::shader, .source_type = editor_asset_source_type_e::none});
-	}
-
-	bool editor_asset_loader_texture_t::create_default(editor_asset_t& asset, const char*, const char*, u8, void* cook_config)
-	{
-		const texture_cook_config_t texture_config = cook_config != nullptr ? *reinterpret_cast<const texture_cook_config_t*>(cook_config) : texture_cook_config_t{};
-		const nlohmann::json		json_data	   = texture_config;
-		asset.cook_options						   = json_data;
-		return true;
-	}
-
-	editor_asset_cook_config_desc_t editor_asset_loader_texture_t::create_cook_config()
-	{
-		return {.object = new texture_cook_config_t(), .title = "Texture", .destroy = destroy_texture_cook_config, .type_id = TEXTURE_COOK_CONFIG_TYPE_ID};
-	}
-
-	void editor_asset_loader_texture_t::register_type()
-	{
-		register_texture_cook_config_reflection();
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .create_cook_config = create_cook_config, .extension = "png;jpg;jpeg", .asset_type = editor_asset_type_e::texture, .source_type = editor_asset_source_type_e::file});
-	}
-
-	bool editor_asset_loader_texture_sampler_t::create_default(editor_asset_t& asset, const char*, const char*, u8, void*)
-	{
-		const sampler_desc_t sampler_desc = {};
-		const nlohmann::json json_data	  = sampler_desc;
-		asset.embedded_source			  = json_data;
-		return true;
-	}
-
-	bool editor_asset_loader_texture_sampler_t::cook(const editor_asset_t& asset, ostream_t& stream)
-	{
-		return texture_sampler_cooker::cook_from_json(asset.embedded_source, stream);
-	}
-
-	void editor_asset_loader_texture_sampler_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .cook = cook, .asset_type = editor_asset_type_e::texture_sampler, .source_type = editor_asset_source_type_e::embedded});
-	}
-
-	bool editor_asset_loader_physical_material_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_physical_material_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::physical_material, .source_type = editor_asset_source_type_e::none});
-	}
-
-	bool editor_asset_loader_prefab_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_prefab_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::prefab, .source_type = editor_asset_source_type_e::file});
-	}
-
-	bool editor_asset_loader_animation_state_machine_t::create_default(editor_asset_t&, const char*, const char*, u8, void*)
-	{
-		return true;
-	}
-
-	void editor_asset_loader_animation_state_machine_t::register_type()
-	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .asset_type = editor_asset_type_e::animation_state_machine, .source_type = editor_asset_source_type_e::none});
+		editor_asset_t asset = {};
+		return read_asset(path, asset) ? asset.guid : 0;
 	}
 
 	void to_json(nlohmann::json& j, const editor_asset_type_e& t)
@@ -361,6 +248,7 @@ namespace sfg
 		j["sub_type"]		 = asset.sub_type;
 		j["embedded_source"] = asset.embedded_source;
 		j["cook_options"]	 = asset.cook_options;
+		j["source_relative"] = asset.source_relative;
 	}
 
 	void from_json(const nlohmann::json& j, editor_asset_t& asset)
@@ -371,5 +259,6 @@ namespace sfg
 		asset.sub_type		  = j.value<u8>("sub_type", 0);
 		asset.embedded_source = j.value<nlohmann::json>("embedded_source", nlohmann::json::object());
 		asset.cook_options	  = j.value<nlohmann::json>("cook_options", nlohmann::json::object());
+		asset.source_relative = j.value<string_t>("source_relative", {});
 	}
 }

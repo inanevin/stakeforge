@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widget_reflect_type.hpp"
+#include "ui/widgets/editor_widget_spinner.hpp"
 
 namespace sfg
 {
@@ -71,7 +72,9 @@ namespace sfg
 		editor_vec4_field_t			 _vec4_field;
 		editor_widget_fold_t		 _reflect_fold;
 		editor_widget_reflect_type_t _reflect_type;
+		editor_widget_spinner_t		 _spinner;
 		ui::widget_id_t				 _column		   = NULL_WIDGET;
+		ui::widget_id_t				 _spinner_holder   = NULL_WIDGET;
 		f32							 _float_value	   = 12.5f;
 		f32							 _int_value		   = 7.0f;
 		f32							 _slider_value	   = 0.35f;

@@ -10,6 +10,43 @@
 
 namespace sfg
 {
+	namespace
+	{
+		void append_include_dir(const string_t& include_dir, vector_t<string_t>& out)
+		{
+			if (include_dir.empty())
+				return;
+
+			string_t path = include_dir;
+			file_system_t::fix_path(path);
+
+			if (!file_system_t::is_absolute_path(path.c_str()))
+			{
+				string_t running_dir = file_system_t::get_running_directory();
+				file_system_t::fix_path(running_dir);
+				file_system_t::fix_path_end_slash(running_dir);
+				path = running_dir + path;
+			}
+
+			file_system_t::fix_path(path);
+			file_system_t::fix_path_end_slash(path);
+			out.push_back(path);
+		}
+
+		void build_include_paths(const shader_cook_config_t& cfg, const char* full_path, vector_t<string_t>& out)
+		{
+			string_t directory = file_system_t::get_directory_of_file(full_path);
+			file_system_t::fix_path(directory);
+			file_system_t::fix_path_end_slash(directory);
+			if (!directory.empty())
+				out.push_back(directory);
+
+			out.reserve(out.size() + cfg.include_dirs.size());
+			for (const string_t& include_dir : cfg.include_dirs)
+				append_include_dir(include_dir, out);
+		}
+	}
+
 	bool shader_cooker::cook_from_file(const shader_cook_config_t& cfg, const char* full_path, ostream_t& stream)
 	{
 		if (cfg.type == shader_type_e::invalid)
@@ -25,8 +62,8 @@ namespace sfg
 			return false;
 		}
 
-		const string_t			 directory	   = file_system_t::get_directory_of_file(full_path);
-		const vector_t<string_t> include_paths = directory.empty() ? vector_t<string_t>{} : vector_t<string_t>{directory};
+		vector_t<string_t> include_paths;
+		build_include_paths(cfg, full_path, include_paths);
 
 		vector_t<cook_compile_variant_t> compiles;
 		vector_t<cook_pso_variant_t>	 psos;
@@ -92,7 +129,7 @@ namespace sfg
 			.magic	 = shader_loader_t::WIRE_MAGIC,
 			.version = shader_loader_t::WIRE_VERSION,
 		};
-		collect_source_ticks(full_path, header.source_ticks);
+		collect_source_ticks(cfg, full_path, header.source_ticks);
 
 		header.serialize(stream);
 
@@ -133,16 +170,21 @@ namespace sfg
 
 	void shader_cooker::collect_source_ticks(const char* full_path, vector_t<u64>& out)
 	{
+		const shader_cook_config_t cfg = {};
+		collect_source_ticks(cfg, full_path, out);
+	}
+
+	void shader_cooker::collect_source_ticks(const shader_cook_config_t& cfg, const char* full_path, vector_t<u64>& out)
+	{
 		out.push_back(file_system_t::get_last_modified_ticks(full_path));
 
-		string_t directory = file_system_t::get_directory_of_file(full_path);
-		if (!directory.empty() && directory.back() != '/')
-			directory += '/';
+		vector_t<string_t> include_paths;
+		build_include_paths(cfg, full_path, include_paths);
 
 		vector_t<string_t> include_lines;
 		file_system_t::find_lines_with_keyword(full_path, "#include", include_lines);
 
-		out.reserve(out.size() + include_lines.size());
+		out.reserve(out.size() + include_lines.size() * include_paths.size());
 		for (const string_t& line : include_lines)
 		{
 			const size_t open_quote = line.find('"');
@@ -153,13 +195,33 @@ namespace sfg
 				continue;
 
 			const string_t rel_path = line.substr(open_quote + 1, close_quote - open_quote - 1);
-			const string_t resolved = directory + rel_path;
-			out.push_back(file_system_t::get_last_modified_ticks(resolved.c_str()));
+			if (file_system_t::is_absolute_path(rel_path.c_str()))
+			{
+				out.push_back(file_system_t::get_last_modified_ticks(rel_path.c_str()));
+				continue;
+			}
+
+			for (const string_t& include_path : include_paths)
+			{
+				const string_t resolved = include_path + rel_path;
+				if (file_system_t::exists(resolved.c_str()))
+				{
+					out.push_back(file_system_t::get_last_modified_ticks(resolved.c_str()));
+					break;
+				}
+			}
 		}
+	}
+
+	void to_json(nlohmann::json& j, const shader_cook_config_t& c)
+	{
+		j["type"]		  = c.type;
+		j["include_dirs"] = c.include_dirs;
 	}
 
 	void from_json(const nlohmann::json& j, shader_cook_config_t& c)
 	{
-		c.type = j.value<shader_type_e>("type", shader_type_e::invalid);
+		c.type		   = j.value<shader_type_e>("type", shader_type_e::invalid);
+		c.include_dirs = j.value<vector_t<string_t>>("include_dirs", {});
 	}
 }

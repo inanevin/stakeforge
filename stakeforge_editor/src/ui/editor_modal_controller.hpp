@@ -60,6 +60,7 @@ namespace sfg
 		editor_modal_content_init_fn   init		 = nullptr;
 		editor_modal_content_uninit_fn uninit	 = nullptr;
 		void*						   user_data = nullptr;
+		bool						   fill_x	 = false;
 	};
 
 	class editor_modal_controller_t final
@@ -88,6 +89,7 @@ namespace sfg
 		void request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity = editor_modal_severity_e::normal);
 		void request_modal(
 			const char* title, const char* description, bool show_buttons, const editor_modal_button_desc_t* buttons, u16 button_count, const editor_modal_content_desc_t* content = nullptr, editor_modal_severity_e severity = editor_modal_severity_e::normal);
+		void set_body_text(const char* text);
 		void close_modal();
 
 		static editor_modal_controller_t* find(ui::ui_context& ui);

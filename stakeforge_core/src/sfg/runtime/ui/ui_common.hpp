@@ -130,6 +130,14 @@ namespace sfg::ui
 		bool	filled		 = true;
 	};
 
+	struct vg_arc_paint_t
+	{
+		vec4f_t color		 = {1, 1, 1, 1};
+		f32		thickness	 = 1.0f;
+		f32		aa_thickness = 0.0f;
+		u32		segments	 = 32;
+	};
+
 	struct vg_convex_paint_t
 	{
 		vec4f_t		  fill_color_a = {1, 1, 1, 1};

@@ -109,7 +109,11 @@ namespace sfg
 
 	u8	 format_get_bpp(format_e fmt);
 	u8	 format_get_channels(format_e fmt);
+	bool format_is_block_compressed(format_e fmt);
 	bool format_is_linear(format_e fmt);
+	u32	 format_get_row_pitch(format_e fmt, u16 width);
+	u32	 format_get_row_count(format_e fmt, u16 height);
+	u32	 format_get_data_size(format_e fmt, u16 width, u16 height);
 
 	void to_json(nlohmann::json& j, const format_e& f);
 	void from_json(const nlohmann::json& j, format_e& f);

@@ -42,7 +42,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/platform/process.hpp>
-#include <sfg/serialization/serialization.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -473,15 +472,14 @@ namespace sfg
 
 	void editor_panel_assets_t::import_assets(const vector_t<string_t>& paths)
 	{
-		const editor_asset_manager_t&  asset_manager = editor_asset_manager_t::get();
-		frame_vector_t<editor_asset_t> imported_assets;
-		imported_assets.reserve(paths.size());
-		frame_vector_t<string_t> imported_names;
-		imported_names.reserve(paths.size());
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+
+		frame_vector_t<editor_asset_create_desc_t> create_descs;
+		create_descs.reserve(paths.size());
 
 		for (const string_t& path : paths)
 		{
-			if (imported_assets.size() == ASSETS_CREATE_DESC_MAX)
+			if (create_descs.size() == ASSETS_CREATE_DESC_MAX)
 				break;
 
 			const string_t					 extension	= file_system_t::get_file_extension(path);
@@ -489,44 +487,34 @@ namespace sfg
 			if (descriptor == nullptr)
 				continue;
 
-			imported_assets.push_back({
-				.asset_type = descriptor->asset_type,
-			});
-			imported_names.push_back(file_system_t::get_filename_from_path(path));
-		}
-
-		frame_vector_t<editor_asset_create_desc_t> create_descs;
-		create_descs.reserve(imported_assets.size());
-		for (size_t i = 0; i < imported_assets.size(); ++i)
-		{
-			const editor_asset_t& asset = imported_assets[i];
 			create_descs.push_back({
-				.name		= imported_names[i],
-				.asset_type = asset.asset_type,
-				.sub_type	= asset.sub_type,
+				.source_full_path = file_system_t::get_absolute_path(path.c_str()),
+				.name			  = file_system_t::get_filename_from_path(path),
+				.asset_type		  = descriptor->asset_type,
 			});
 		}
 
 		if (create_descs.empty())
 			return;
 
-		string_t parent_path = get_action_menu_target_folder_path();
+		string_t parent_path = editor_asset_util_t::normalize_directory(get_action_menu_target_folder_path().c_str());
 		if (parent_path.empty())
 			return;
-		if (parent_path.back() != '/')
-			parent_path += '/';
 
 		frame_vector_t<string_t> overwrite_paths;
 		overwrite_paths.reserve(create_descs.size());
-		for (const editor_asset_create_desc_t& desc : create_descs)
+		for (editor_asset_create_desc_t& desc : create_descs)
 		{
 			string_t asset_name = desc.name;
 			if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
 				continue;
 
-			const string_t asset_path = parent_path + asset_name + ".sfg_asset";
+			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_path.c_str(), asset_name.c_str());
 			if (file_system_t::exists(asset_path.c_str()))
+			{
+				desc.guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 				overwrite_paths.push_back(asset_path);
+			}
 		}
 
 		if (overwrite_paths.empty())
@@ -894,6 +882,8 @@ namespace sfg
 
 	void editor_panel_assets_t::request_create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count, bool allow_overwrite)
 	{
+		const string_t directory_copy = directory != nullptr ? directory : "";
+
 		frame_vector_t<editor_asset_create_desc_t> desc_copy;
 		desc_copy.reserve(desc_count);
 		for (u8 i = 0; i < desc_count; ++i)
@@ -901,7 +891,7 @@ namespace sfg
 
 		clear_pending_create_assets();
 
-		_pending_import_directory = directory != nullptr ? directory : "";
+		_pending_import_directory = directory_copy;
 		_pending_import_create_descs.reserve(desc_copy.size());
 		for (const editor_asset_create_desc_t& desc : desc_copy)
 			_pending_import_create_descs.push_back(desc);
@@ -949,17 +939,16 @@ namespace sfg
 			return;
 		SFG_ASSERT(descs != nullptr);
 
-		string_t parent_path = directory != nullptr ? directory : "";
+		string_t parent_path = editor_asset_util_t::normalize_directory(directory);
 		if (parent_path.empty())
 			return;
-		if (parent_path.back() != '/')
-			parent_path += '/';
 
 		frame_vector_t<editor_asset_t> created_assets;
 		created_assets.reserve(desc_count);
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const auto&				descriptors	  = asset_manager.get_asset_descriptors();
+		const string_t			assets_path	  = editor_project_t::get()._runtime.assets_path;
 		for (u8 i = 0; i < desc_count; ++i)
 		{
 			const editor_asset_create_desc_t& desc = descs[i];
@@ -970,15 +959,32 @@ namespace sfg
 			if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
 				continue;
 
-			const string_t asset_path = parent_path + asset_name + ".sfg_asset";
+			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_path.c_str(), asset_name.c_str());
 			if (!_allow_asset_overwrite && file_system_t::exists(asset_path.c_str()))
 				continue;
 
 			editor_asset_t asset = {};
 			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = hashing_t::generate_guid64();
+			asset.guid			 = desc.guid != 0 ? desc.guid : hashing_t::generate_guid64();
 			asset.asset_type	 = desc.asset_type;
 			asset.sub_type		 = desc.sub_type;
+			if (!desc.source_full_path.empty())
+			{
+				const string_t source_full_path = file_system_t::get_absolute_path(desc.source_full_path.c_str());
+				SFG_ASSERT(file_system_t::exists(source_full_path.c_str()));
+				asset.source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), source_full_path.c_str());
+				if (asset.source_relative.empty())
+				{
+					const string_t source_extension	  = file_system_t::get_file_extension(source_full_path);
+					const string_t target_source_path = editor_asset_util_t::make_unique_source_path(parent_path.c_str(), asset_name.c_str(), source_extension.c_str());
+					if (!file_system_t::copy_file(source_full_path.c_str(), target_source_path.c_str()))
+						continue;
+
+					SFG_ASSERT(file_system_t::exists(target_source_path.c_str()));
+					asset.source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), target_source_path.c_str());
+					SFG_ASSERT(!asset.source_relative.empty());
+				}
+			}
 
 			const auto descriptor_it = descriptors.find(desc.asset_type);
 			SFG_ASSERT(descriptor_it != descriptors.end());
@@ -987,12 +993,10 @@ namespace sfg
 
 			auto  config_it	  = std::find_if(_pending_cook_configs.begin(), _pending_cook_configs.end(), [&](const pending_cook_config_t& pending_config) { return pending_config.asset_type == desc.asset_type; });
 			void* cook_config = config_it != _pending_cook_configs.end() ? config_it->config.object : nullptr;
-			if (!descriptor.create_default(asset, parent_path.c_str(), asset_name.c_str(), desc.sub_type, cook_config))
+			if (!descriptor.create_default(asset, parent_path.c_str(), asset_name.c_str(), cook_config))
 				continue;
 
-			const nlohmann::json json_data = asset;
-			const string_t		 data	   = json_data.dump(4);
-			if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), asset_path.c_str()))
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				continue;
 
 			created_assets.push_back(asset);
@@ -1001,7 +1005,7 @@ namespace sfg
 		if (created_assets.empty())
 			return;
 
-		asset_manager.cook_assets(created_assets.data(), static_cast<u8>(created_assets.size()));
+		asset_manager.cook_assets(created_assets.data(), static_cast<u32>(created_assets.size()));
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
 	}

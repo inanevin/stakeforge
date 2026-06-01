@@ -505,6 +505,30 @@ namespace sfg
 		}
 	}
 
+	bool file_system_t::copy_file(const char* file, const char* target_file)
+	{
+		try
+		{
+			const std::filesystem::path src_file		 = file;
+			const std::filesystem::path destination_file = target_file;
+
+			if (!std::filesystem::exists(src_file) || !std::filesystem::is_regular_file(src_file))
+			{
+				SFG_ERR("Source file does not exist or is not a valid file. {0}", file);
+				return false;
+			}
+
+			std::filesystem::copy_file(src_file, destination_file, std::filesystem::copy_options::overwrite_existing);
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			SFG_ERR("Could not copy file {0} to {1}: {2}", file, target_file, e.what());
+			return false;
+		}
+
+		return true;
+	}
+
 	void file_system_t::copy_file_to_directory(const char* file, const char* targetParentFolder)
 	{
 		try

@@ -152,4 +152,19 @@ namespace sfg::ui
 			out_path[i] = {center.x + math::cos(a) * radius, center.y + math::sin(a) * radius};
 		}
 	}
+
+	void vg_path_arc(vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, f32 start, f32 end, u32 segments)
+	{
+		if (segments < 1)
+			segments = 1;
+
+		out_path.resize(segments + 1);
+
+		for (u32 i = 0; i <= segments; ++i)
+		{
+			const f32 t = static_cast<f32>(i) / static_cast<f32>(segments);
+			const f32 a = math::lerp(start, end, t);
+			out_path[i] = {center.x + math::cos(a) * radius, center.y + math::sin(a) * radius};
+		}
+	}
 }

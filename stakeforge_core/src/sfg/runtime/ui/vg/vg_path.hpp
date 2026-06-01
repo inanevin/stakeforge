@@ -37,4 +37,5 @@ namespace sfg::ui
 	void vg_path_inset_rect_4(vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 amount);
 	void vg_path_expand(vector_t<vec2f_t>& out_path, const vector_t<vec2f_t>& base_path, f32 expand);
 	void vg_path_circle(vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, u32 segments);
+	void vg_path_arc(vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, f32 start, f32 end, u32 segments);
 }

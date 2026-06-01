@@ -125,6 +125,7 @@ namespace sfg::ui
 		void add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
 		void add_line(const vec2f_t& p0, const vec2f_t& p1, const vg_line_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
 		void add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
+		void add_arc(const vec2f_t& center, f32 radius, f32 start, f32 end, const vg_arc_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
 		void add_convex(span_t<const vec2f_t> path, const vg_convex_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
 		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0, bool use_cache = true);
 
@@ -153,10 +154,11 @@ namespace sfg::ui
 		}
 
 	private:
-		bool	has_cpu_clip() const;
-		vec4f_t intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
-		bool	clip_rect_to_cpu(vec2f_t& min, vec2f_t& max) const;
-		bool	clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const;
+		bool		has_cpu_clip() const;
+		vec4f_t		intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
+		bool		clip_rect_to_cpu(vec2f_t& min, vec2f_t& max) const;
+		bool		clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const;
+		static void emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
 
 	private:
 		struct text_cache_entry_t

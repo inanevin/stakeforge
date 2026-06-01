@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 
+#include "assets/editor_asset_types.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -40,7 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/runtime/resources/resource_cache.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
 #include <utility>
 
 #include <sfg/platform/time.hpp>
@@ -51,6 +52,14 @@ namespace sfg
 	namespace
 	{
 		editor_asset_manager_t* s_instance = nullptr;
+
+		struct default_asset_desc_t
+		{
+			const char*	  asset_name;
+			const char*	  source_name;
+			sid_t		  guid;
+			shader_type_e shader_type;
+		};
 	}
 
 	bool editor_asset_manager_t::init()
@@ -82,12 +91,14 @@ namespace sfg
 			job_system_t::get().wait_for_all();
 		clear();
 		_cook_assets.clear();
+		_cook_status_texts.clear();
 		_asset_descriptors.clear();
 		_cooked_count.store(0, std::memory_order_relaxed);
 		_cook_finished.store(false, std::memory_order_relaxed);
-		_total_cook_count = 0;
-		_cook_in_progress = false;
-		s_instance		  = nullptr;
+		_total_cook_count		= 0;
+		_last_cook_status_index = 0;
+		_cook_in_progress		= false;
+		s_instance				= nullptr;
 	}
 
 	void editor_asset_manager_t::tick()
@@ -99,14 +110,22 @@ namespace sfg
 		const f32				   progress = _total_cook_count != 0 ? static_cast<f32>(cooked) / static_cast<f32>(_total_cook_count) : 1.0f;
 		editor_modal_controller_t& modal	= *editor_app_t::get().get_main_surface().modal_controller;
 		_cook_progress_modal.set_progress(progress);
+		const u32 status_index = cooked < _total_cook_count ? cooked : _total_cook_count - 1;
+		if (status_index != _last_cook_status_index)
+		{
+			_last_cook_status_index = status_index;
+			modal.set_body_text(_cook_status_texts[status_index].c_str());
+		}
 
 		if (cooked != _total_cook_count || !_cook_finished.load(std::memory_order_acquire))
 			return;
 
 		modal.close_modal();
 		_cook_assets.resize(0);
-		_total_cook_count = 0;
-		_cook_in_progress = false;
+		_cook_status_texts.resize(0);
+		_total_cook_count		= 0;
+		_last_cook_status_index = 0;
+		_cook_in_progress		= false;
 	}
 
 	void editor_asset_manager_t::clear()
@@ -148,7 +167,7 @@ namespace sfg
 			editor_asset_t asset = {};
 			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
 			{
-				if (!read_asset(entry.path.c_str(), asset))
+				if (!editor_asset_util_t::read_asset(entry.path.c_str(), asset))
 					continue;
 
 				const u64 asset_id = asset.guid;
@@ -235,33 +254,116 @@ namespace sfg
 		return nullptr;
 	}
 
-	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u8 size)
+	void editor_asset_manager_t::ensure_default_assets(const char* default_assets_dir)
+	{
+		SFG_ASSERT(default_assets_dir != nullptr);
+		SFG_ASSERT(default_assets_dir[0] != '\0');
+
+		string_t default_assets_path = editor_asset_util_t::normalize_directory(default_assets_dir);
+		if (!file_system_t::exists(default_assets_path.c_str()))
+			file_system_t::create_directory(default_assets_path.c_str());
+
+		const auto descriptor_it = _asset_descriptors.find(editor_asset_type_e::shader);
+		SFG_ASSERT(descriptor_it != _asset_descriptors.end());
+		const editor_asset_descriptor_t& shader_descriptor = descriptor_it->second;
+		SFG_ASSERT(shader_descriptor.create_default != nullptr);
+
+		const string_t			   assets_path		= editor_project_t::get()._runtime.assets_path;
+		const default_asset_desc_t default_assets[] = {
+			{.asset_name = "gbuffer", .source_name = "gbuffer.hlsl", .guid = editor_asset_t::DEFAULT_GBUFFER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
+			{.asset_name = "forward", .source_name = "forward.hlsl", .guid = editor_asset_t::DEFAULT_FORWARD_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+		};
+
+		for (const default_asset_desc_t& desc : default_assets)
+		{
+			string_t source_path = default_assets_path;
+			source_path += desc.source_name;
+
+			editor_asset_t asset = {};
+			asset.version		 = editor_asset_t::VERSION;
+			asset.guid			 = desc.guid;
+			asset.asset_type	 = editor_asset_type_e::shader;
+			asset.sub_type		 = static_cast<u8>(desc.shader_type);
+			if (file_system_t::exists(source_path.c_str()))
+			{
+				asset.source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), source_path.c_str());
+				SFG_ASSERT(!asset.source_relative.empty());
+			}
+
+			if (!shader_descriptor.create_default(asset, default_assets_path.c_str(), desc.asset_name, nullptr))
+				continue;
+			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
+
+			const string_t asset_path = editor_asset_util_t::make_asset_path(default_assets_path.c_str(), desc.asset_name);
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
+		}
+
+		rescan(assets_path);
+	}
+
+	void editor_asset_manager_t::ensure_cook()
+	{
+		SFG_ASSERT(!_cook_in_progress);
+
+		const string_t			 cache_dir = editor_project_t::get()._runtime.cache_path;
+		vector_t<editor_asset_t> missing_assets;
+		missing_assets.reserve(_assets.size());
+		for (const auto& asset_pair : _assets)
+		{
+			const editor_asset_t& asset			= asset_pair.second;
+			const auto			  descriptor_it = _asset_descriptors.find(asset.asset_type);
+			SFG_ASSERT(descriptor_it != _asset_descriptors.end());
+			if (descriptor_it->second.cook == nullptr)
+				continue;
+
+			string_t cache_path = cache_dir;
+			file_system_t::fix_path_end_slash(cache_path);
+			cache_path += std::to_string(asset.guid);
+			cache_path += ".sfg_bin";
+			if (!file_system_t::exists(cache_path.c_str()))
+				missing_assets.push_back(asset);
+		}
+
+		if (!missing_assets.empty())
+			cook_assets(missing_assets.data(), static_cast<u32>(missing_assets.size()));
+	}
+
+	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u32 size)
 	{
 		SFG_ASSERT(!_cook_in_progress);
 
 		if (size == 0)
 			return;
+		SFG_ASSERT(assets != nullptr);
 
 		_cook_assets.resize(0);
 		_cook_assets.reserve(size);
-		for (u8 i = 0; i < size; ++i)
+		_cook_status_texts.resize(0);
+		_cook_status_texts.reserve(size);
+		for (u32 i = 0; i < size; ++i)
+		{
 			_cook_assets.push_back(assets[i]);
+			_cook_status_texts.push_back(assets[i].source_relative.empty() ? "cooking" : assets[i].source_relative);
+		}
 
 		_cooked_count.store(0, std::memory_order_relaxed);
 		_cook_finished.store(false, std::memory_order_relaxed);
-		_total_cook_count = size;
-		_cook_in_progress = true;
+		_total_cook_count		= size;
+		_last_cook_status_index = 0;
+		_cook_in_progress		= true;
 
 		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
 		_cook_progress_modal.set_progress(0.0f);
 		editor_modal_content_desc_t progress_content = _cook_progress_modal.get_content_desc();
-		modal.request_modal("Cooking Assets", "Preparing asset cache.", false, nullptr, 0, &progress_content);
+		modal.request_modal("Cooking Assets", _cook_status_texts[0].c_str(), false, nullptr, 0, &progress_content);
 
 		const string_t cache_dir = editor_project_t::get()._runtime.cache_path;
 		job_system_t::get().silent_async([this, cache_dir]() {
-			for (const editor_asset_t& asset : _cook_assets)
+			for (size_t i = 0; i < _cook_assets.size(); ++i)
 			{
-				const auto descriptor_it = _asset_descriptors.find(asset.asset_type);
+				const editor_asset_t& asset			= _cook_assets[i];
+				const auto			  descriptor_it = _asset_descriptors.find(asset.asset_type);
 				SFG_ASSERT(descriptor_it != _asset_descriptors.end());
 				if (descriptor_it->second.cook != nullptr)
 				{
@@ -274,20 +376,6 @@ namespace sfg
 			}
 			_cook_finished.store(true, std::memory_order_release);
 		});
-	}
-
-	bool editor_asset_manager_t::read_asset(const char* path, editor_asset_t& out_asset) const
-	{
-		const string_t		 json_text = file_system_t::read_file_as_string(path);
-		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
-		if (doc.is_discarded())
-		{
-			SFG_ERR("failed to parse asset {0}", path);
-			return false;
-		}
-
-		doc.get_to(out_asset);
-		return true;
 	}
 
 	editor_asset_manager_t& editor_asset_manager_t::get()

@@ -22,50 +22,53 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include "ui/editor_modal_controller.hpp"
-#include "ui/widgets/editor_widget_spinner.hpp"
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg::ui
+{
+	class ui_context;
+	class paint_layer_t;
+	class vg_canvas_t;
+}
 
 namespace sfg
 {
-	class editor_modal_progress_bar_t final
+	struct editor_widget_spinner_config_t
+	{
+		vec4f_t outer_color = {1.0f, 1.0f, 1.0f, 1.0f};
+		vec4f_t inner_color = {1.0f, 1.0f, 1.0f, 1.0f};
+	};
+
+	class editor_widget_spinner_t final
 	{
 	public:
-		editor_modal_progress_bar_t()												   = default;
-		~editor_modal_progress_bar_t()												   = default;
-		editor_modal_progress_bar_t(const editor_modal_progress_bar_t&)				   = delete;
-		editor_modal_progress_bar_t& operator=(const editor_modal_progress_bar_t&)	   = delete;
-		editor_modal_progress_bar_t(editor_modal_progress_bar_t&&) noexcept			   = default;
-		editor_modal_progress_bar_t& operator=(editor_modal_progress_bar_t&&) noexcept = default;
+		editor_widget_spinner_t()										   = default;
+		~editor_widget_spinner_t()										   = default;
+		editor_widget_spinner_t(const editor_widget_spinner_t&)			   = delete;
+		editor_widget_spinner_t& operator=(const editor_widget_spinner_t&) = delete;
 
-		void						init(ui::ui_context& ui, ui::widget_id_t parent);
-		void						uninit();
-		void						set_progress(f32 progress);
-		editor_modal_content_desc_t get_content_desc();
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_spinner_config_t& config);
+		void uninit();
 
-		inline f32 get_progress() const
+		inline ui::widget_id_t get_root() const
 		{
-			return _progress;
+			return _root;
 		}
 
 	private:
-		void refresh();
-
-		static void init_content(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
-		static void uninit_content(void* user_data);
+		static void draw(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
-		ui::ui_context*			_ui				= nullptr;
-		ui::widget_id_t			_root			= NULL_WIDGET;
-		ui::widget_id_t			_bar			= NULL_WIDGET;
-		ui::widget_id_t			_fill			= NULL_WIDGET;
-		ui::widget_id_t			_label			= NULL_WIDGET;
-		ui::widget_id_t			_spinner_row	= NULL_WIDGET;
-		ui::widget_id_t			_spinner_holder = NULL_WIDGET;
-		editor_widget_spinner_t _spinner		= {};
-		f32						_progress		= 0.0f;
+		ui::ui_context* _ui			 = nullptr;
+		ui::widget_id_t _root		 = NULL_WIDGET;
+		vec4f_t			_outer_color = {};
+		vec4f_t			_inner_color = {};
 	};
 }

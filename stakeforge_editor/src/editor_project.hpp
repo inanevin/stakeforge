@@ -37,6 +37,7 @@ namespace sfg
 		string_t path;
 		string_t assets_path;
 		string_t cache_path;
+		string_t default_assets_path;
 		string_t name;
 	};
 

@@ -2,7 +2,7 @@
     "resources": [
         {
             "name": "ui_default",
-            "path": "editor/shaders/ui_default.hlsl",
+            "path": "editor/shaders/editor_ui_default.hlsl",
             "type": "shader",
             "config": {
                 "schema": "sfg.schema.shader",
@@ -38,7 +38,7 @@
         },
         {
             "name": "ui_sdf",
-            "path": "editor/shaders/ui_sdf.hlsl",
+            "path": "editor/shaders/editor_ui_sdf.hlsl",
             "type": "shader",
             "config": {
                 "schema": "sfg.schema.shader",

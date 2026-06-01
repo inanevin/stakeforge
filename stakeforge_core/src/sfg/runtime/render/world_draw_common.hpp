@@ -38,9 +38,4 @@ namespace sfg
 	{
 		wdf_none = 0,
 	};
-
-	enum world_shader_flags
-	{
-		wsf_none = 0,
-	};
 }

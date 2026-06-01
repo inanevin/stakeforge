@@ -88,6 +88,17 @@ target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_core)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})
+add_custom_command(
+    TARGET ${SFG_EDITOR_TARGET}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/layout_defines.hlsl"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/layout_defines.hlsl"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/world"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
+)
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_EDITOR_TARGET})

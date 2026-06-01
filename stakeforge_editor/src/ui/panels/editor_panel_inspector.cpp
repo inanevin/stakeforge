@@ -154,6 +154,22 @@ namespace sfg
 		column_in.flow			   = ui::flow_e::column;
 		column_in.child_spacing	   = theme.item_spacing;
 
+		_spinner_holder = ui.allocate_widget();
+		ui.set_widget_debug_name(_spinner_holder, "inspector_spinner_holder");
+		tree.attach(_column, _spinner_holder);
+
+		ui::layout_in_t& spinner_holder_in = tree.in(_spinner_holder);
+		spinner_holder_in.flags			   = ui::wf_visible;
+		spinner_holder_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		spinner_holder_in.pos_mode_y	   = ui::pos_mode_e::flow;
+		spinner_holder_in.pos_value.x	   = 0.5f;
+		spinner_holder_in.anchor_x		   = ui::anchor_e::center;
+		spinner_holder_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		spinner_holder_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		spinner_holder_in.size_value	   = {theme.item_height * 4.0f, theme.item_height * 4.0f};
+
+		_spinner.init(ui, _spinner_holder, {.outer_color = theme.color_accent0, .inner_color = theme.color_accent1});
+
 		editor_input_field_config_t input_config = {};
 		input_config.placeholder				 = "Text field";
 		input_config.text_value					 = "Stakeforge";
@@ -252,6 +268,7 @@ namespace sfg
 	{
 		_reflect_type.uninit();
 		_reflect_fold.uninit();
+		_spinner.uninit();
 		_vec4_field.uninit();
 		_vec3_field.uninit();
 		_vec2_field.uninit();
@@ -265,7 +282,8 @@ namespace sfg
 		_text_input.uninit();
 		editor_panel_t::uninit();
 
-		_column = NULL_WIDGET;
+		_column			= NULL_WIDGET;
+		_spinner_holder = NULL_WIDGET;
 	}
 
 	void editor_panel_inspector_t::on_text_changed(const char*, void*)

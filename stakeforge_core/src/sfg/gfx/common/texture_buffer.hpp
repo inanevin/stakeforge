@@ -35,9 +35,11 @@ namespace sfg
 
 	struct texture_buffer_t
 	{
-		u8*		  pixels = nullptr;
-		vec2u16_t size	 = vec2u16_t::zero;
-		u8		  bpp	 = 0;
+		u8*		  pixels	= nullptr;
+		u32		  data_size = 0;
+		u32		  row_pitch = 0;
+		vec2u16_t size		= vec2u16_t::zero;
+		u8		  bpp		= 0;
 	};
 
 }

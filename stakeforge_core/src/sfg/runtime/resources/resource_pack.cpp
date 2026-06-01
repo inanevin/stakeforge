@@ -190,7 +190,10 @@ namespace sfg
 								.version = desc != nullptr ? desc->wire_version : 0,
 			};
 			if (entry.type == resource_type_e::shader)
-				shader_cooker::collect_source_ticks(source_path.c_str(), expected.source_ticks);
+			{
+				const shader_cook_config_t cfg = entry.config;
+				shader_cooker::collect_source_ticks(cfg, source_path.c_str(), expected.source_ticks);
+			}
 			else if (entry.type == resource_type_e::texture_sampler)
 			{
 				const string_t config_data = entry.config.dump();

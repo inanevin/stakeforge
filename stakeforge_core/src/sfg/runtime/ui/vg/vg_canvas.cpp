@@ -143,6 +143,7 @@ namespace sfg::ui
 			db->index_count += count;
 			return p;
 		}
+
 	}
 
 	void vg_canvas_t::emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
@@ -245,6 +246,28 @@ namespace sfg::ui
 			const u32 o1   = outer_base + ((i + 1) % ring_size);
 			const u32 in0  = inner_base + i;
 			const u32 in1  = inner_base + ((i + 1) % ring_size);
+			const u32 base = i * 6;
+			idx[base + 0]  = static_cast<vg_index_t>(o0);
+			idx[base + 1]  = static_cast<vg_index_t>(o1);
+			idx[base + 2]  = static_cast<vg_index_t>(in0);
+			idx[base + 3]  = static_cast<vg_index_t>(o1);
+			idx[base + 4]  = static_cast<vg_index_t>(in1);
+			idx[base + 5]  = static_cast<vg_index_t>(in0);
+		}
+	}
+
+	void vg_canvas_t::emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
+	{
+		if (ring_size < 2)
+			return;
+
+		vg_index_t* idx = take_indices(db, (ring_size - 1) * 6);
+		for (u32 i = 0; i < ring_size - 1; ++i)
+		{
+			const u32 o0   = outer_base + i;
+			const u32 o1   = outer_base + i + 1;
+			const u32 in0  = inner_base + i;
+			const u32 in1  = inner_base + i + 1;
 			const u32 base = i * 6;
 			idx[base + 0]  = static_cast<vg_index_t>(o0);
 			idx[base + 1]  = static_cast<vg_index_t>(o1);
@@ -745,6 +768,59 @@ namespace sfg::ui
 				emit_strip_indices(db, aa_base, base, paint.segments);
 			}
 		}
+	}
+
+	void vg_canvas_t::add_arc(const vec2f_t& center, f32 radius, f32 start, f32 end, const vg_arc_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
+	{
+		if (radius <= 0.0f || paint.thickness <= 0.0f)
+			return;
+
+		const f32 half_thickness  = paint.thickness * 0.5f;
+		const f32 outer_radius	  = radius + half_thickness;
+		const f32 inner_radius	  = math::max(0.0f, radius - half_thickness);
+		const f32 outer_aa_radius = outer_radius + paint.aa_thickness;
+		const f32 inner_aa_radius = math::max(0.0f, inner_radius - paint.aa_thickness);
+
+		const vec2f_t bb_min	  = {center.x - outer_aa_radius, center.y - outer_aa_radius};
+		const vec2f_t bb_max	  = {center.x + outer_aa_radius, center.y + outer_aa_radius};
+		vec2f_t		  clipped_min = bb_min;
+		vec2f_t		  clipped_max = bb_max;
+		if (!clip_rect_to_cpu(clipped_min, clipped_max))
+			return;
+
+		vg_path_arc(_path0, center, outer_radius, start, end, paint.segments);
+		vg_path_arc(_path1, center, inner_radius, start, end, paint.segments);
+
+		vg_draw_buffer_t* db		 = get_draw_buffer(draw_order, state);
+		const u32		  outer_base = db->vertex_count;
+		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
+		const u32 inner_base = db->vertex_count;
+		emit_path_solid(db, {_path1.data(), _path1.size()}, paint.color, bb_min, bb_max);
+		emit_open_strip_indices(db, outer_base, inner_base, static_cast<u32>(_path0.size()));
+
+		const vec2f_t cap_start = _path0.front() + (_path1.front() - _path0.front()) * 0.5f;
+		const vec2f_t cap_end	= _path0.back() + (_path1.back() - _path0.back()) * 0.5f;
+
+		if (paint.aa_thickness > 0.0f)
+		{
+			vg_path_arc(_path2, center, outer_aa_radius, start, end, paint.segments);
+			const u32 outer_aa_base = db->vertex_count;
+			emit_path_alpha(db, {_path2.data(), _path2.size()}, outer_base, 0.0f, bb_min, bb_max);
+			emit_open_strip_indices(db, outer_aa_base, outer_base, static_cast<u32>(_path0.size()));
+
+			vg_path_arc(_path2, center, inner_aa_radius, start, end, paint.segments);
+			const u32 inner_aa_base = db->vertex_count;
+			emit_path_alpha(db, {_path2.data(), _path2.size()}, inner_base, 0.0f, bb_min, bb_max);
+			emit_open_strip_indices(db, inner_base, inner_aa_base, static_cast<u32>(_path1.size()));
+		}
+
+		vg_circle_paint_t cap = {};
+		cap.color			  = paint.color;
+		cap.filled			  = true;
+		cap.segments		  = 24;
+		cap.aa_thickness	  = paint.aa_thickness;
+		add_circle(cap_start, half_thickness, cap, state, draw_order);
+		add_circle(cap_end, half_thickness, cap, state, draw_order);
 	}
 
 	void vg_canvas_t::add_convex(span_t<const vec2f_t> path, const vg_convex_paint_t& paint, const ui_render_state_t& state, u32 draw_order)

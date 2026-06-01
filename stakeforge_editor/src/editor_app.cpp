@@ -411,7 +411,8 @@ namespace sfg
 			return false;
 		}
 
-		_asset_manager.rescan(proj._runtime.assets_path);
+		_asset_manager.ensure_default_assets(proj._runtime.default_assets_path.c_str());
+		_asset_manager.ensure_cook();
 		editor_settings_t::get().last_project_path = path;
 		editor_settings_t::get().save();
 		get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
@@ -717,10 +718,10 @@ namespace sfg
 			.max_widgets   = 4096,
 		});
 		surface.ui->get_paint().set_pipelines({
-			.default_pipeline		 = "editor/shaders/ui_default.hlsl"_hs,
+			.default_pipeline		 = "editor/shaders/editor_ui_default.hlsl"_hs,
 			.text_pipeline			 = "editor/shaders/editor_ui_text_lcd.hlsl"_hs,
 			.grayscale_text_pipeline = "editor/shaders/editor_ui_text_grayscale.hlsl"_hs,
-			.sdf_pipeline			 = "editor/shaders/ui_sdf.hlsl"_hs,
+			.sdf_pipeline			 = "editor/shaders/editor_ui_sdf.hlsl"_hs,
 		});
 		surface.ui->set_debug_draw(_debug_mode);
 

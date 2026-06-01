@@ -82,9 +82,11 @@ namespace sfg
 
 		struct editor_asset_create_desc_t
 		{
-			string_t			name	   = {};
-			editor_asset_type_e asset_type = editor_asset_type_e::invalid;
-			u8					sub_type   = 0;
+			string_t			source_full_path = {};
+			string_t			name			 = {};
+			sid_t				guid			 = 0;
+			editor_asset_type_e asset_type		 = editor_asset_type_e::invalid;
+			u8					sub_type		 = 0;
 		};
 
 		struct pending_cook_config_t

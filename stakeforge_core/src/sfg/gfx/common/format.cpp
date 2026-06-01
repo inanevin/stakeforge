@@ -79,6 +79,20 @@ namespace sfg
 		return 0;
 	}
 
+	bool format_is_block_compressed(format_e fmt)
+	{
+		switch (fmt)
+		{
+		case format_e::bc3_block_srgb:
+		case format_e::bc3_block_unorm:
+		case format_e::bc7_block_srgb:
+		case format_e::bc7_block_unorm:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	bool format_is_linear(format_e fmt)
 	{
 		switch (fmt)
@@ -94,6 +108,27 @@ namespace sfg
 
 		SFG_ASSERT(false);
 		return true;
+	}
+
+	u32 format_get_row_pitch(format_e fmt, u16 width)
+	{
+		if (format_is_block_compressed(fmt))
+			return static_cast<u32>((width + 3) / 4) * 16;
+
+		return static_cast<u32>(width) * static_cast<u32>(format_get_bpp(fmt));
+	}
+
+	u32 format_get_row_count(format_e fmt, u16 height)
+	{
+		if (format_is_block_compressed(fmt))
+			return static_cast<u32>((height + 3) / 4);
+
+		return height;
+	}
+
+	u32 format_get_data_size(format_e fmt, u16 width, u16 height)
+	{
+		return format_get_row_pitch(fmt, width) * format_get_row_count(fmt, height);
 	}
 
 	void to_json(nlohmann::json& j, const format_e& f)

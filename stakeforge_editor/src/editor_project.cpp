@@ -73,14 +73,18 @@ namespace sfg
 		_runtime.name	   = file_system_t::get_filename_from_path(path);
 		const string_t dir = file_system_t::get_directory_of_file(_runtime.path.c_str());
 
-		_runtime.assets_path = dir + "assets/";
-		_runtime.cache_path	 = _runtime.assets_path + "_cache/";
+		_runtime.assets_path		 = dir + "assets/";
+		_runtime.cache_path			 = _runtime.assets_path + "_cache/";
+		_runtime.default_assets_path = _runtime.assets_path + "_sfg_assets/";
 
 		if (!file_system_t::exists(_runtime.assets_path.c_str()))
 			file_system_t::create_directory(_runtime.assets_path.c_str());
 
 		if (!file_system_t::exists(_runtime.cache_path.c_str()))
 			file_system_t::create_directory(_runtime.cache_path.c_str());
+
+		if (!file_system_t::exists(_runtime.default_assets_path.c_str()))
+			file_system_t::create_directory(_runtime.default_assets_path.c_str());
 	}
 
 	void to_json(nlohmann::json& j, const editor_project_t& project)

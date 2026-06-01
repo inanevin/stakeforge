@@ -3133,13 +3133,13 @@ namespace sfg
 		for (u8 i = 0; i < cmd.mip_levels; i++)
 		{
 			const texture_buffer_t& tb		  = cmd.textures[i];
-			const LONG_PTR			row_pitch = tb.size.x * tb.bpp;
-			// static_cast<LONG_PTR>((tb.size.x * tb.bpp + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
+			const LONG_PTR			row_pitch = tb.row_pitch == 0 ? tb.size.x * tb.bpp : tb.row_pitch;
+			const LONG_PTR			data_size = tb.data_size == 0 ? row_pitch * static_cast<LONG_PTR>(tb.size.y) : tb.data_size;
 
 			const D3D12_SUBRESOURCE_DATA texture_data = {
 				.pData		= tb.pixels,
 				.RowPitch	= row_pitch,
-				.SlicePitch = row_pitch * static_cast<LONG_PTR>(tb.size.y),
+				.SlicePitch = data_size,
 			};
 
 			subresource_data.push_back(texture_data);

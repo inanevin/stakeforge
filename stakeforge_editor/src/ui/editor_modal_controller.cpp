@@ -152,6 +152,7 @@ namespace sfg
 		container_in.pos_value.x	  = 0.0f;
 		container_in.size_mode_x	  = ui::axis_mode_e::max_children;
 		container_in.size_mode_y	  = ui::axis_mode_e::sum_children;
+		container_in.size_value.x	  = 1.0f;
 		container_in.flow			  = ui::flow_e::column;
 		container_in.child_spacing	  = theme.item_spacing;
 
@@ -266,12 +267,19 @@ namespace sfg
 
 		if (content != nullptr && content->init != nullptr)
 		{
-			_content		= *content;
-			_content_active = true;
+			_content								   = *content;
+			_content_active							   = true;
+			_ui->get_tree().in(_container).size_mode_x = _content.fill_x ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
 			_content.init(*_ui, _container, _content.user_data);
 		}
 
 		set_visible(true);
+	}
+
+	void editor_modal_controller_t::set_body_text(const char* text)
+	{
+		SFG_ASSERT(_ui != nullptr);
+		_ui->set_widget_text(_description, text != nullptr ? text : "");
 	}
 
 	void editor_modal_controller_t::close_modal()
@@ -326,7 +334,10 @@ namespace sfg
 		_content		= {};
 		_content_active = false;
 		if (_ui != nullptr && _container != NULL_WIDGET)
+		{
+			_ui->get_tree().in(_container).size_mode_x = ui::axis_mode_e::max_children;
 			set_widget_visible(_ui->get_tree(), _container, false, false);
+		}
 	}
 
 	void editor_modal_controller_t::on_button_click(ui::widget_id_t id, ui::mouse_button_e btn)
