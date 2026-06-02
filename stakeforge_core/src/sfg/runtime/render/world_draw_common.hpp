@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -46,6 +45,4 @@ namespace sfg
 		wdf_none = 0,
 	};
 
-	void to_json(nlohmann::json& j, const world_pass_flags& f);
-	void from_json(const nlohmann::json& j, world_pass_flags& f);
 }

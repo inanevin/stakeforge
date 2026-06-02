@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vec2u16.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -45,16 +44,4 @@ namespace sfg
 		in >> x >> y;
 	}
 
-	void to_json(nlohmann::json& j, const vec2u16_t& v)
-	{
-		j = nlohmann::json::array_t({v.x, v.y});
-	}
-
-	void from_json(const nlohmann::json& j, vec2u16_t& v)
-	{
-		if (!j.is_array() || j.size() < 2)
-			throw std::runtime_error("vec2u16 json err");
-		v.x = j.at(0).get<u16>();
-		v.y = j.at(1).get<u16>();
-	}
 }

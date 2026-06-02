@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "math_common.hpp"
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -83,6 +82,4 @@ namespace sfg
 		}
 	};
 
-	void to_json(nlohmann::json& j, const rectf_t& v);
-	void from_json(const nlohmann::json& j, rectf_t& v);
 }

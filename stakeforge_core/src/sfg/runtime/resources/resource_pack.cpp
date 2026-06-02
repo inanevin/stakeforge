@@ -20,9 +20,15 @@
 #include "physical_material_cook.hpp"
 #include "prefab_cook.hpp"
 #include "resource_manifest.hpp"
+#include "resource_manifest_reflection.hpp"
 #include "shader_cook.hpp"
+#include "shader_cook_reflection.hpp"
 #include "texture_cook.hpp"
+#include "texture_cook_reflection.hpp"
 #include "texture_sampler_cook.hpp"
+#include "audio_cook_reflection.hpp"
+#include "font_cook_reflection.hpp"
+#include "glb_cook_reflection.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
 #endif
 

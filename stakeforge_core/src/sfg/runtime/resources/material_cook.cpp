@@ -3,6 +3,7 @@
 #include "material_cook.hpp"
 
 #include "material_json.hpp"
+#include "material_json_reflection.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>

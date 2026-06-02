@@ -3,6 +3,7 @@
 #include "physical_material_cook.hpp"
 
 #include "physical_material_json.hpp"
+#include "physical_material_json_reflection.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>

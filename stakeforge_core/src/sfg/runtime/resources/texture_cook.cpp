@@ -37,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <ktx.h>
@@ -206,55 +205,6 @@ namespace sfg
 		const bool result = cook_from_buffers(cfg, buffers, cfg.size, hashing_t::hash_u64(data.data, data.size), "raw texture data", stream);
 		free_texture_buffers(buffers, get_texture_cook_level_count(cfg, cfg.size), false);
 		return result;
-	}
-
-	void to_json(nlohmann::json& j, const texture_payload_type_e& e)
-	{
-		switch (e)
-		{
-		case texture_payload_type_e::uncompressed:
-			j = "uncompressed";
-			return;
-		case texture_payload_type_e::ktx2_uastc:
-			j = "ktx2_uastc";
-			return;
-		}
-
-		j = "uncompressed";
-	}
-
-	void from_json(const nlohmann::json& j, texture_payload_type_e& e)
-	{
-		const string_t str = j.get<string_t>();
-
-		if (str.compare("uncompressed") == 0)
-		{
-			e = texture_payload_type_e::uncompressed;
-			return;
-		}
-		if (str.compare("ktx2_uastc") == 0)
-		{
-			e = texture_payload_type_e::ktx2_uastc;
-			return;
-		}
-
-		e = texture_payload_type_e::uncompressed;
-	}
-
-	void to_json(nlohmann::json& j, const texture_cook_config_t& c)
-	{
-		j["payload_type"]	  = c.payload_type;
-		j["generate_mipmaps"] = c.generate_mipmaps;
-		j["is_linear"]		  = c.is_linear;
-		j["size"]			  = c.size;
-	}
-
-	void from_json(const nlohmann::json& j, texture_cook_config_t& c)
-	{
-		c.payload_type	   = j.value<texture_payload_type_e>("payload_type", texture_payload_type_e::uncompressed);
-		c.generate_mipmaps = j.value<bool>("generate_mipmaps", false);
-		c.is_linear		   = j.value<bool>("is_linear", false);
-		c.size			   = j.value<vec2u16_t>("size", vec2u16_t::zero);
 	}
 
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM

@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -92,88 +91,4 @@ namespace sfg
 		SFG_ASSERT(textures.empty() || sampler != NULL_SID);
 	}
 
-	void to_json(nlohmann::json& j, const material_parameter_type_e& t)
-	{
-		switch (t)
-		{
-		case material_parameter_type_e::u32:
-			j = "u32";
-			break;
-		case material_parameter_type_e::uint2:
-			j = "uint2";
-			break;
-		case material_parameter_type_e::uint4:
-			j = "uint4";
-			break;
-		case material_parameter_type_e::i32:
-			j = "i32";
-			break;
-		case material_parameter_type_e::vec2f:
-			j = "vec2f";
-			break;
-		case material_parameter_type_e::vec4f:
-			j = "vec4f";
-			break;
-		default:
-			j = "f32";
-			break;
-		}
-	}
-
-	void from_json(const nlohmann::json& j, material_parameter_type_e& t)
-	{
-		const string_t s = j.get<string_t>();
-		if (s == "u32")
-			t = material_parameter_type_e::u32;
-		else if (s == "uint2")
-			t = material_parameter_type_e::uint2;
-		else if (s == "uint4")
-			t = material_parameter_type_e::uint4;
-		else if (s == "i32")
-			t = material_parameter_type_e::i32;
-		else if (s == "vec2f")
-			t = material_parameter_type_e::vec2f;
-		else if (s == "vec4f")
-			t = material_parameter_type_e::vec4f;
-		else
-			t = material_parameter_type_e::f32;
-	}
-
-	void to_json(nlohmann::json& j, const material_parameter_t& p)
-	{
-		j["type"]	= p.type;
-		j["values"] = {p.values[0], p.values[1], p.values[2], p.values[3]};
-	}
-
-	void from_json(const nlohmann::json& j, material_parameter_t& p)
-	{
-		p.type					   = j.value<material_parameter_type_e>("type", material_parameter_type_e::f32);
-		const vector_t<f32> values = j.value<vector_t<f32>>("values", {});
-		for (u8 i = 0; i < 4 && i < values.size(); ++i)
-			p.values[i] = values[i];
-	}
-
-	void to_json(nlohmann::json& j, const material_json_t& m)
-	{
-		j["schema"]			  = "sfg.schema.material";
-		j["pass_flags"]		  = m.pass_flags;
-		j["shader"]			  = m.shader;
-		j["sampler"]		  = m.sampler;
-		j["textures"]		  = m.textures;
-		j["parameters"]		  = m.parameters;
-		j["double_sided"]	  = m.double_sided;
-		j["use_alpha_cutoff"] = m.use_alpha_cutoff;
-	}
-
-	void from_json(const nlohmann::json& j, material_json_t& m)
-	{
-		m.pass_flags	   = j.value<world_pass_flags>("pass_flags", wpf_none);
-		m.shader		   = j.value<sid_t>("shader", NULL_SID);
-		m.sampler		   = j.value<sid_t>("sampler", NULL_SID);
-		m.textures		   = j.value<vector_t<sid_t>>("textures", {});
-		m.parameters	   = j.value<vector_t<material_parameter_t>>("parameters", {});
-		m.double_sided	   = j.value<bool>("double_sided", false);
-		m.use_alpha_cutoff = j.value<bool>("use_alpha_cutoff", false);
-		SFG_ASSERT(m.textures.empty() || m.sampler != NULL_SID);
-	}
 }

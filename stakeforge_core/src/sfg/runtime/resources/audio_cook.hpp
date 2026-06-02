@@ -2,7 +2,6 @@
 #pragma once
 
 #include "audio.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -18,5 +17,4 @@ namespace sfg
 		static bool cook_from_file(const audio_cook_config_t& cfg, const char* full_path, ostream_t& stream);
 	};
 
-	void from_json(const nlohmann::json& j, audio_cook_config_t& c);
 }

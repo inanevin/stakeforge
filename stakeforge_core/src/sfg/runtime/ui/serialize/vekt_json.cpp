@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vekt_json.hpp"
+#include <sfg/math/vec2f_reflection.hpp>
+#include <sfg/math/vec4f_reflection.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 

@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -49,20 +48,4 @@ namespace sfg
 		stream >> linear_damping;
 	}
 
-	void to_json(nlohmann::json& j, const physical_material_json_t& m)
-	{
-		j["schema"]			 = "sfg.schema.physical_material";
-		j["restitution"]	 = m.restitution;
-		j["friction"]		 = m.friction;
-		j["angular_damping"] = m.angular_damping;
-		j["linear_damping"]	 = m.linear_damping;
-	}
-
-	void from_json(const nlohmann::json& j, physical_material_json_t& m)
-	{
-		m.restitution	  = j.value<f32>("restitution", 0.0f);
-		m.friction		  = j.value<f32>("friction", 0.2f);
-		m.angular_damping = j.value<f32>("angular_damping", j.value<f32>("angular_damp", 0.05f));
-		m.linear_damping  = j.value<f32>("linear_damping", j.value<f32>("linear_damp", 0.05f));
-	}
 }

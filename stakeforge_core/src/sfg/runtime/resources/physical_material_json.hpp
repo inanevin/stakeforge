@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -46,6 +45,4 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-	void to_json(nlohmann::json& j, const physical_material_json_t& m);
-	void from_json(const nlohmann::json& j, physical_material_json_t& m);
 }

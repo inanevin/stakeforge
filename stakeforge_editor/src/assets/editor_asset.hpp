@@ -133,8 +133,4 @@ namespace sfg
 		static sid_t	try_read_existing_guid(const char* path);
 	};
 
-	void to_json(nlohmann::json& j, const editor_asset_source_type_e& t);
-	void from_json(const nlohmann::json& j, editor_asset_source_type_e& t);
-	void to_json(nlohmann::json& j, const editor_asset_t& asset);
-	void from_json(const nlohmann::json& j, editor_asset_t& asset);
 }

@@ -6,7 +6,6 @@
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -213,15 +212,4 @@ namespace sfg
 		}
 	}
 
-	void to_json(nlohmann::json& j, const shader_cook_config_t& c)
-	{
-		j["type"]		  = c.type;
-		j["include_dirs"] = c.include_dirs;
-	}
-
-	void from_json(const nlohmann::json& j, shader_cook_config_t& c)
-	{
-		c.type		   = j.value<shader_type_e>("type", shader_type_e::invalid);
-		c.include_dirs = j.value<vector_t<string_t>>("include_dirs", {});
-	}
 }

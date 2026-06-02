@@ -29,8 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
 
-#include <sfg/vendor/nhlohmann/json.hpp>
-
 namespace sfg
 {
 	const quat_t quat_t::identity(0.0f, 0.0f, 0.0f, 1.0f);
@@ -319,21 +317,6 @@ namespace sfg
 	void quat_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
-	}
-
-	void to_json(nlohmann::json& j, const quat_t& q)
-	{
-		j = nlohmann::json::array_t({q.x, q.y, q.z, q.w});
-	}
-
-	void from_json(const nlohmann::json& j, quat_t& q)
-	{
-		if (!j.is_array() || j.size() < 4)
-			throw std::runtime_error("quat json err");
-		q.x = j.at(0).get<f32>();
-		q.y = j.at(1).get<f32>();
-		q.z = j.at(2).get<f32>();
-		q.w = j.at(3).get<f32>();
 	}
 
 }

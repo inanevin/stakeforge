@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/descriptions_reflection.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/math/color.hpp>
@@ -40,8 +41,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
+#include <sfg/runtime/resources/shader_cook_reflection.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
+#include <sfg/runtime/resources/texture_cook_reflection.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <cstddef>
 #include <iterator>

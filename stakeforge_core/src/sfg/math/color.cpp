@@ -29,9 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 
-#include <sfg/vendor/nhlohmann/json.hpp>
-using json = nlohmann::json;
-
 namespace sfg
 {
 	color_t color_t::red	= color_t(1, 0, 0, 1);
@@ -105,21 +102,6 @@ namespace sfg
 	vec4f_t color_t::to_vector() const
 	{
 		return vec4f_t(x, y, z, w);
-	}
-
-	void to_json(nlohmann::json& j, const color_t& c)
-	{
-		j = nlohmann::json::array_t({c.x, c.y, c.z, c.w});
-	}
-
-	void from_json(const nlohmann::json& j, color_t& c)
-	{
-		if (!j.is_array() || j.size() < 4)
-			throw std::runtime_error("color json err");
-		c.x = j.at(0).get<f32>();
-		c.y = j.at(1).get<f32>();
-		c.z = j.at(2).get<f32>();
-		c.w = j.at(3).get<f32>();
 	}
 
 } // namespace sfg

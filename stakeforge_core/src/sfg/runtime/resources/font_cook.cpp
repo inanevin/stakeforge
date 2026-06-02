@@ -5,7 +5,6 @@
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -35,8 +34,4 @@ namespace sfg
 		return true;
 	}
 
-	void from_json(const nlohmann::json&, font_cook_config_t& c)
-	{
-		c.reserved = 0;
-	}
 }

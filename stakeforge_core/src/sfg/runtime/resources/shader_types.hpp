@@ -2,7 +2,6 @@
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -26,6 +25,4 @@ namespace sfg
 		svf_none = 1 << 0,
 	};
 
-	void to_json(nlohmann::json& j, const shader_type_e& t);
-	void from_json(const nlohmann::json& j, shader_type_e& t);
 }

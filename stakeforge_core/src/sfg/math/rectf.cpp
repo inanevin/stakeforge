@@ -30,8 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 
-#include <sfg/vendor/nhlohmann/json.hpp>
-
 namespace sfg
 {
 	const rectf_t rectf_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -147,16 +145,4 @@ namespace sfg
 		stream >> x >> y >> w >> h;
 	}
 
-	void to_json(nlohmann::json& j, const rectf_t& v)
-	{
-		j = nlohmann::json::array_t({v.x, v.y, v.w, v.h});
-	}
-
-	void from_json(const nlohmann::json& j, rectf_t& v)
-	{
-		v.x = j.at(0).get<f32>();
-		v.y = j.at(1).get<f32>();
-		v.w = j.at(2).get<f32>();
-		v.h = j.at(3).get<f32>();
-	}
 }

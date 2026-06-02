@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 
-#include <sfg/vendor/nhlohmann/json.hpp>
 namespace sfg
 {
 	const vec4f_t vec4f_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -149,21 +148,6 @@ namespace sfg
 	void vec4f_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y >> z >> w;
-	}
-
-	void to_json(nlohmann::json& j, const vec4f_t& v)
-	{
-		j = nlohmann::json::array_t({v.x, v.y, v.z, v.w});
-	}
-
-	void from_json(const nlohmann::json& j, vec4f_t& v)
-	{
-		if (!j.is_array() || j.size() < 4)
-			throw std::runtime_error("vec4f json err");
-		v.x = j.at(0).get<f32>();
-		v.y = j.at(1).get<f32>();
-		v.z = j.at(2).get<f32>();
-		v.w = j.at(3).get<f32>();
 	}
 
 }

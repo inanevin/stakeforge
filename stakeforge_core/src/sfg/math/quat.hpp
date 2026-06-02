@@ -28,8 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec3f.hpp"
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
 namespace sfg
 {
 	class ostrem;
@@ -144,8 +142,5 @@ namespace sfg
 	{
 		return q * scalar;
 	}
-
-	void to_json(nlohmann::json& j, const quat_t& q);
-	void from_json(const nlohmann::json& j, quat_t& v);
 
 }

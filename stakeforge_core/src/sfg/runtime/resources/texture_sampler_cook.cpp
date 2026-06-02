@@ -7,6 +7,7 @@
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/common/descriptions_reflection.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg

@@ -27,11 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "math_common.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #undef min
 #undef max
-
 
 namespace sfg
 {
@@ -154,8 +152,5 @@ namespace sfg
 	{
 		return vector * scalar;
 	}
-
-	void to_json(nlohmann::json& j, const vec4f_t& v);
-	void from_json(const nlohmann::json& j, vec4f_t& v);
 
 }

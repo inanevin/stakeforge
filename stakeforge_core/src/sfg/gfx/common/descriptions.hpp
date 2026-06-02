@@ -36,7 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -314,6 +313,4 @@ namespace sfg
 		char		 debug_name[16] = {"CmdBuffer"};
 	};
 
-	void to_json(nlohmann::json& j, const sampler_desc_t& s);
-	void from_json(const nlohmann::json& j, sampler_desc_t& s);
 }

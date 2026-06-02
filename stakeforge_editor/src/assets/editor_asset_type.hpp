@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -50,6 +49,4 @@ namespace sfg
 		count,
 	};
 
-	void to_json(nlohmann::json& j, const editor_asset_type_e& t);
-	void from_json(const nlohmann::json& j, editor_asset_type_e& t);
 }

@@ -31,8 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <limits>
 
-#include <sfg/vendor/nhlohmann/json.hpp>
-
 namespace sfg
 {
 	vec2f_t vec2f_t::zero = {0.f, 0.f};
@@ -130,19 +128,6 @@ namespace sfg
 	void vec2f_t::deserialize(istream_t& stream)
 	{
 		stream >> x >> y;
-	}
-
-	void to_json(nlohmann::json& j, const vec2f_t& v)
-	{
-		j = nlohmann::json::array_t({v.x, v.y});
-	}
-
-	void from_json(const nlohmann::json& j, vec2f_t& v)
-	{
-		if (!j.is_array() || j.size() < 2)
-			throw std::runtime_error("vec2f json err");
-		v.x = j.at(0).get<f32>();
-		v.y = j.at(1).get<f32>();
 	}
 
 }

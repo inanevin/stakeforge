@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "math_common.hpp"
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #undef min
 #undef max
@@ -174,8 +173,5 @@ namespace sfg
 	{
 		return vector_t * scalar;
 	}
-
-	void to_json(nlohmann::json& j, const vec3f_t& v);
-	void from_json(const nlohmann::json& j, vec3f_t& v);
 
 }

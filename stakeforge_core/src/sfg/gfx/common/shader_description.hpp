@@ -300,49 +300,4 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-	void to_json(nlohmann::json& j, const vertex_input_t& s);
-	void from_json(const nlohmann::json& j, vertex_input_t& s);
-
-	void to_json(nlohmann::json& j, const shader_desc_t& s);
-	void from_json(const nlohmann::json& j, shader_desc_t& s);
-
-	void to_json(nlohmann::json& j, const cull_mode& c);
-	void from_json(const nlohmann::json& j, cull_mode& c);
-
-	void to_json(nlohmann::json& j, const fill_mode& c);
-	void from_json(const nlohmann::json& j, fill_mode& c);
-
-	void to_json(nlohmann::json& j, const front_face& f);
-	void from_json(const nlohmann::json& j, front_face& f);
-
-	void to_json(nlohmann::json& j, const blend_factor& f);
-	void from_json(const nlohmann::json& j, blend_factor& f);
-
-	void to_json(nlohmann::json& j, const blend_op& op);
-	void from_json(const nlohmann::json& j, blend_op& op);
-
-	void to_json(nlohmann::json& j, const stencil_op& op);
-	void from_json(const nlohmann::json& j, stencil_op& op);
-
-	void to_json(nlohmann::json& j, const compare_op& op);
-	void from_json(const nlohmann::json& j, compare_op& op);
-
-	void to_json(nlohmann::json& j, const store_op& op);
-	void from_json(const nlohmann::json& j, store_op& op);
-
-	void to_json(nlohmann::json& j, const load_op& op);
-	void from_json(const nlohmann::json& j, load_op& op);
-
-	void to_json(nlohmann::json& j, const color_blend_attachment_t& att);
-	void from_json(const nlohmann::json& j, color_blend_attachment_t& att);
-
-	void to_json(nlohmann::json& j, const shader_color_attachment_t& att);
-	void from_json(const nlohmann::json& j, shader_color_attachment_t& att);
-
-	void to_json(nlohmann::json& j, const stencil_state_t& ss);
-	void from_json(const nlohmann::json& j, stencil_state_t& ss);
-
-	void to_json(nlohmann::json& j, const shader_depth_stencil_desc_t& att);
-	void from_json(const nlohmann::json& j, shader_depth_stencil_desc_t& att);
-
 }

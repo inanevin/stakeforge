@@ -32,8 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #undef min
 #undef max
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
 namespace sfg
 {
 	class istream_t;
@@ -134,8 +132,5 @@ namespace sfg
 			return !(*this == other);
 		}
 	};
-
-	void to_json(nlohmann::json& j, const vec2f_t& v);
-	void from_json(const nlohmann::json& j, vec2f_t& v);
 
 }

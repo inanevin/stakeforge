@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -71,10 +70,4 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-	void to_json(nlohmann::json& j, const material_parameter_type_e& t);
-	void from_json(const nlohmann::json& j, material_parameter_type_e& t);
-	void to_json(nlohmann::json& j, const material_parameter_t& p);
-	void from_json(const nlohmann::json& j, material_parameter_t& p);
-	void to_json(nlohmann::json& j, const material_json_t& m);
-	void from_json(const nlohmann::json& j, material_json_t& m);
 }

@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
 #include "editor_project.hpp"
+#include "editor_project_reflection.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include "ui/editor_popup_controller.hpp"

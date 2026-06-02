@@ -5,7 +5,6 @@
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -59,6 +58,4 @@ namespace sfg
 		entity_id_t						  _entity_head					 = 0;
 	};
 
-	void to_json(nlohmann::json& j, const world_t& world);
-	void from_json(const nlohmann::json& j, world_t& world);
 }

@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 #include "vec4f.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -104,8 +103,5 @@ namespace sfg
 
 		f32 x, y, z, w = 1.0f;
 	};
-
-	void to_json(nlohmann::json& j, const color_t& c);
-	void from_json(const nlohmann::json& j, color_t& c);
 
 } // namespace sfg
