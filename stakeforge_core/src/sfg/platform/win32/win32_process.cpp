@@ -939,34 +939,64 @@ namespace sfg
 			dialog->SetOptions(options | FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST);
 		}
 
-		// Extension filter (expects e.g. "png" or ".png")
 		COMDLG_FILTERSPEC filter[1] = {};
 		std::wstring	  extW;
 		std::wstring	  patternW;
 		std::wstring	  labelW;
+		std::wstring	  defaultExtW;
 
 		if (extension && extension[0] != '\0')
 		{
-			// normalize to "png" (no dot)
 			const char* ext = extension;
 			if (ext[0] == '.')
 				++ext;
 
-			// UTF-8 -> UTF-16
 			int extLenW = MultiByteToWideChar(CP_UTF8, 0, ext, -1, nullptr, 0);
 			if (extLenW > 0)
 			{
 				extW.resize((size_t)extLenW - 1);
 				MultiByteToWideChar(CP_UTF8, 0, ext, -1, extW.data(), extLenW);
 
-				labelW	 = L"*." + extW;
-				patternW = L"*." + extW;
+				size_t start = 0;
+				while (start < extW.size())
+				{
+					while (start < extW.size() && (extW[start] == L'.' || extW[start] == L';' || extW[start] == L',' || extW[start] == L' '))
+						++start;
 
-				filter[0].pszName = labelW.c_str();	  // shown in UI
-				filter[0].pszSpec = patternW.c_str(); // actual filter
-				dialog->SetFileTypes(1, filter);
-				dialog->SetFileTypeIndex(1);
-				dialog->SetDefaultExtension(extW.c_str());
+					size_t end = start;
+					while (end < extW.size() && extW[end] != L';' && extW[end] != L',' && extW[end] != L' ')
+						++end;
+
+					if (end > start)
+					{
+						if (!patternW.empty())
+							patternW += L';';
+
+						if (extW[start] == L'*')
+						{
+							patternW.append(extW.c_str() + start, end - start);
+						}
+						else
+						{
+							if (defaultExtW.empty())
+								defaultExtW = extW.substr(start, end - start);
+							patternW += L"*." + extW.substr(start, end - start);
+						}
+					}
+
+					start = end;
+				}
+
+				if (!patternW.empty())
+				{
+					labelW			  = patternW.find(L';') == std::wstring::npos ? patternW : L"Supported Files";
+					filter[0].pszName = labelW.c_str();
+					filter[0].pszSpec = patternW.c_str();
+					dialog->SetFileTypes(1, filter);
+					dialog->SetFileTypeIndex(1);
+					if (!defaultExtW.empty())
+						dialog->SetDefaultExtension(defaultExtW.c_str());
+				}
 			}
 		}
 

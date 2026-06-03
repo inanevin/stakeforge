@@ -159,6 +159,7 @@ namespace sfg
 		void duplicate_folder();
 		void delete_asset();
 		void duplicate_asset();
+		void fix_asset_integrity();
 		void open_rename_popup();
 		void rename_folder(const char* name);
 		void open_asset_rename_popup();

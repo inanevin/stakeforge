@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
@@ -55,18 +56,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define ASSETS_PANE_SPLIT_MIN			   0.15f
-#define ASSETS_PANE_SPLIT_MAX			   0.35f
-#define ASSETS_SPLIT_BORDER_THICKNESS_MULT 2.0f
-#define ASSETS_FOLDER_INDENT_MULT		   2.0f
-#define ASSETS_SCROLL_WHEEL_STEP		   32.0f
-#define ASSETS_INITIAL_ROW_CAPACITY		   64
-#define ASSETS_INITIAL_GRID_ITEM_CAPACITY  128
-#define ASSETS_FILTER_ID_ALL			   0
-#define ASSETS_FILTER_ID_FAVOURITES		   1
-#define ASSETS_ITEM_STYLE_ID_GRID		   0
-#define ASSETS_ITEM_STYLE_ID_LIST		   1
-#define ASSETS_CREATE_DESC_MAX			   255
+#define ASSETS_PANE_SPLIT_MIN				 0.15f
+#define ASSETS_PANE_SPLIT_MAX				 0.35f
+#define ASSETS_SPLIT_BORDER_THICKNESS_MULT	 2.0f
+#define ASSETS_FOLDER_INDENT_MULT			 2.0f
+#define ASSETS_SCROLL_WHEEL_STEP			 32.0f
+#define ASSETS_INITIAL_ROW_CAPACITY			 64
+#define ASSETS_INITIAL_GRID_ITEM_CAPACITY	 128
+#define ASSETS_FILTER_ID_ALL				 0
+#define ASSETS_FILTER_ID_FAVOURITES			 1
+#define ASSETS_ITEM_STYLE_ID_GRID			 0
+#define ASSETS_ITEM_STYLE_ID_LIST			 1
+#define ASSETS_CREATE_DESC_MAX				 255
+#define ASSETS_IMPORT_FILE_EXTENSIONS		 "glb;png;jpg;jpeg;mp3;ttf"
+#define ASSETS_FIX_INTEGRITY_FILE_EXTENSIONS "glb;png;jpg;jpeg;mp3;ttf;hlsl"
 
 	namespace
 	{
@@ -94,6 +97,7 @@ namespace sfg
 			assets_item_action_menu_open_directory			  = 20,
 			assets_item_action_menu_toggle_favourite		  = 21,
 			assets_action_menu_import						  = 22,
+			assets_item_action_menu_fix_integrity			  = 23,
 		};
 
 		struct create_asset_command_t
@@ -145,6 +149,7 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ASSETS_ITEM_ACTION_MENU_ROWS[] = {
 			{.text = "Rename", .command = assets_item_action_menu_rename},
+			{.text = "Fix Integrity", .command = assets_item_action_menu_fix_integrity},
 			{.text = "Duplicate", .command = assets_item_action_menu_duplicate},
 			{.text = "Delete", .command = assets_item_action_menu_delete},
 			{.text = "Show in OS", .command = assets_item_action_menu_open_directory},
@@ -615,8 +620,10 @@ namespace sfg
 
 		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
 		const bool				   is_asset_node   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
-		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = !is_asset_node;
-		ASSETS_ITEM_ACTION_MENU_ROWS[4].icon_color = editor_theme_t::get().color_accent1;
+		const editor_asset_t*	   selected_asset  = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
+		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = selected_asset == nullptr || selected_asset->status == editor_asset_status_e::ok;
+		ASSETS_ITEM_ACTION_MENU_ROWS[2].disabled   = !is_asset_node;
+		ASSETS_ITEM_ACTION_MENU_ROWS[5].icon_color = editor_theme_t::get().color_accent1;
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ASSETS_ITEM_ACTION_MENU_ROWS;
@@ -1847,6 +1854,46 @@ namespace sfg
 		refresh_folder_rows();
 	}
 
+	void editor_panel_assets_t::fix_asset_integrity()
+	{
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+		if (_selected_asset_node.is_null() || !tree.is_valid(_selected_asset_node))
+			return;
+
+		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
+		if (asset_node.type != editor_asset_node_type_e::asset)
+			return;
+
+		const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+		if (asset == nullptr || asset->status == editor_asset_status_e::ok)
+			return;
+
+		if (asset->status != editor_asset_status_e::missing_file_source)
+			return;
+
+		const string_t selected_file = process::select_file("Fix Integrity", ASSETS_FIX_INTEGRITY_FILE_EXTENSIONS);
+		if (selected_file.empty())
+			return;
+
+		const string_t assets_path	   = editor_project_t::get()._runtime.assets_path;
+		const string_t source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), selected_file.c_str());
+		if (source_relative.empty())
+		{
+			SFG_ERR("selected source file is not relative to assets directory {0}", selected_file.c_str());
+			return;
+		}
+
+		editor_asset_t fixed_asset	= *asset;
+		fixed_asset.source_relative = source_relative;
+		if (!editor_asset_util_t::write_asset(asset_node.full_path.c_str(), fixed_asset))
+			return;
+
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		asset_manager.ensure_integrity();
+		refresh_folder_rows();
+	}
+
 	void editor_panel_assets_t::open_rename_popup()
 	{
 		SFG_ASSERT(!_selected_folder_node.is_null());
@@ -2158,7 +2205,7 @@ namespace sfg
 
 		panel.clear_asset_grid_selection();
 		vector_t<string_t> paths;
-		process::select_files("Import Assets", "glb;png;jpg;jpeg;mp3;ttf", paths);
+		process::select_files("Import Assets", ASSETS_IMPORT_FILE_EXTENSIONS, paths);
 		if (!paths.empty())
 			panel.import_assets(paths);
 	}
@@ -2226,6 +2273,9 @@ namespace sfg
 		{
 		case assets_item_action_menu_rename:
 			panel._asset_rename_popup_pending = true;
+			return;
+		case assets_item_action_menu_fix_integrity:
+			panel.fix_asset_integrity();
 			return;
 		case assets_item_action_menu_duplicate:
 			panel.duplicate_asset();
