@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -46,8 +46,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_cook_reflection.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
-#include <cstddef>
-#include <iterator>
 
 namespace sfg
 {
@@ -55,43 +53,9 @@ namespace sfg
 
 	namespace
 	{
-#define TEXTURE_COOK_CONFIG_TYPE_ID "texture_cook_config"_hs
-
 		void destroy_texture_cook_config(void* object)
 		{
 			delete static_cast<texture_cook_config_t*>(object);
-		}
-
-		void register_texture_cook_config_reflection()
-		{
-			reflection_registry_t& registry = reflection_registry_t::get();
-			if (registry.find_type(TEXTURE_COOK_CONFIG_TYPE_ID) != nullptr)
-				return;
-
-			static const reflected_enum_value_desc_t payload_type_values[] = {
-				{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_payload_type_e::uncompressed)},
-				{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_payload_type_e::ktx2_uastc)},
-			};
-
-			static const reflected_field_desc_t fields[] = {
-				{.enum_values  = {.data = payload_type_values, .size = std::size(payload_type_values)},
-				 .name		   = "payload_type",
-				 .display_name = "Payload Type",
-				 .type		   = reflected_value_type_e::enum32,
-				 .offset	   = offsetof(texture_cook_config_t, payload_type),
-				 .size		   = sizeof(texture_payload_type_e)},
-				{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
-				{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
-			};
-
-			registry.register_type({
-				.fields		  = {.data = fields, .size = std::size(fields)},
-				.name		  = "texture_cook_config",
-				.display_name = "Texture Cook Config",
-				.type_id	  = TEXTURE_COOK_CONFIG_TYPE_ID,
-				.size		  = sizeof(texture_cook_config_t),
-				.alignment	  = alignof(texture_cook_config_t),
-			});
 		}
 
 		const char* get_shader_scaffold_relative(shader_type_e type)
@@ -254,8 +218,10 @@ namespace sfg
 
 	bool editor_asset_loader_shader_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
-		const string_t			   source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-		const shader_cook_config_t config			= asset.cook_options;
+		const string_t		 source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		shader_cook_config_t config			  = {};
+		if (!reflection_registry_t::get().deserialize_from_json(shader_cook_config_reflection_t::TYPE_ID, &config, asset.cook_options))
+			return false;
 		return shader_cooker::cook_from_file(config, source_full_path.c_str(), stream);
 	}
 
@@ -267,19 +233,22 @@ namespace sfg
 	bool editor_asset_loader_texture_t::create_default(editor_asset_t& asset, const char*, const char*, void* cook_config)
 	{
 		const texture_cook_config_t texture_config = cook_config != nullptr ? *reinterpret_cast<const texture_cook_config_t*>(cook_config) : texture_cook_config_t{};
-		const nlohmann::json		json_data	   = texture_config;
-		asset.cook_options						   = json_data;
+		nlohmann::json				json_data	   = nlohmann::json::object();
+		SFG_ASSERT(reflection_registry_t::get().serialize_to_json(texture_cook_config_reflection_t::TYPE_ID, &texture_config, json_data));
+		asset.cook_options = json_data;
 		return true;
 	}
 
 	editor_asset_cook_config_desc_t editor_asset_loader_texture_t::create_cook_config()
 	{
-		return {.object = new texture_cook_config_t(), .title = "Texture", .destroy = destroy_texture_cook_config, .type_id = TEXTURE_COOK_CONFIG_TYPE_ID};
+		return {.object = new texture_cook_config_t(), .title = "Texture", .destroy = destroy_texture_cook_config, .type_id = texture_cook_config_reflection_t::TYPE_ID};
 	}
 
 	bool editor_asset_loader_texture_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
-		const texture_cook_config_t config = asset.cook_options;
+		texture_cook_config_t config = {};
+		if (!reflection_registry_t::get().deserialize_from_json(texture_cook_config_reflection_t::TYPE_ID, &config, asset.cook_options))
+			return false;
 		if (asset.source_type == editor_asset_source_type_e::data)
 		{
 			SFG_ASSERT(asset._transient_data.data != nullptr);
@@ -295,7 +264,6 @@ namespace sfg
 
 	void editor_asset_loader_texture_t::register_type()
 	{
-		register_texture_cook_config_reflection();
 		editor_asset_manager_t::get().register_descriptor({.create_default	   = create_default,
 														   .create_cook_config = create_cook_config,
 														   .cook			   = cook,
@@ -308,9 +276,10 @@ namespace sfg
 	bool editor_asset_loader_texture_sampler_t::create_default(editor_asset_t& asset, const char*, const char*, void*)
 	{
 		const sampler_desc_t sampler_desc = {};
-		const nlohmann::json json_data	  = sampler_desc;
-		asset.source_type				  = editor_asset_source_type_e::embedded;
-		asset.embedded_source			  = json_data;
+		nlohmann::json		 json_data	  = nlohmann::json::object();
+		SFG_ASSERT(reflection_registry_t::get().serialize_to_json(sampler_desc_reflection_t::TYPE_ID, &sampler_desc, json_data));
+		asset.source_type	  = editor_asset_source_type_e::embedded;
+		asset.embedded_source = json_data;
 		return true;
 	}
 

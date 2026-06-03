@@ -13,7 +13,6 @@
 #include <sfg/runtime/engine/freetype_runtime.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
@@ -25,12 +24,10 @@ namespace sfg
 		process::init();
 		freetype_runtime_t::init();
 		resource_manager_t::get().init(resource_manager_memory);
-		reflection_registry_t::get().init({});
 	}
 
 	void engine_runtime_t::uninit_globals()
 	{
-		reflection_registry_t::get().uninit();
 		resource_manager_t::get().uninit();
 		freetype_runtime_t::uninit();
 		job_system_t::get().uninit();

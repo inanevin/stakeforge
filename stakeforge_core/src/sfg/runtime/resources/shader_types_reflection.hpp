@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "shader_types.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const shader_type_e& t);
-	void from_json(const nlohmann::json& j, shader_type_e& t);
+	struct shader_type_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "shader_type_e"_hs;
+
+		shader_type_reflection_t();
+	};
+
+	inline shader_type_reflection_t g_reflect_shader_type;
 }

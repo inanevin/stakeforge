@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,87 +26,44 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "common_resources_reflection.hpp"
-#include <sfg/data/string.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const resource_type_e& t)
+	namespace
 	{
-		switch (t)
-		{
-		case resource_type_e::audio:
-			j = "audio";
-			break;
-		case resource_type_e::font:
-			j = "font";
-			break;
-		case resource_type_e::mesh:
-			j = "mesh";
-			break;
-		case resource_type_e::skeleton:
-			j = "skeleton";
-			break;
-		case resource_type_e::animation:
-			j = "animation";
-			break;
-		case resource_type_e::material:
-			j = "material";
-			break;
-		case resource_type_e::shader:
-			j = "shader";
-			break;
-		case resource_type_e::texture:
-			j = "texture";
-			break;
-		case resource_type_e::texture_sampler:
-			j = "texture_sampler";
-			break;
-		case resource_type_e::physical_material:
-			j = "physical_material";
-			break;
-		case resource_type_e::prefab:
-			j = "prefab";
-			break;
-		case resource_type_e::animation_state_machine:
-			j = "animation_state_machine";
-			break;
-		default:
-			j = "invalid";
-			break;
-		}
+		static const reflected_enum_value_desc_t resource_type_values[] = {
+			{.name = "invalid", .display_name = "Invalid", .value = static_cast<i64>(resource_type_e::invalid)},
+			{.name = "audio", .display_name = "Audio", .value = static_cast<i64>(resource_type_e::audio)},
+			{.name = "font", .display_name = "Font", .value = static_cast<i64>(resource_type_e::font)},
+			{.name = "mesh", .display_name = "Mesh", .value = static_cast<i64>(resource_type_e::mesh)},
+			{.name = "skeleton", .display_name = "Skeleton", .value = static_cast<i64>(resource_type_e::skeleton)},
+			{.name = "animation", .display_name = "Animation", .value = static_cast<i64>(resource_type_e::animation)},
+			{.name = "material", .display_name = "Material", .value = static_cast<i64>(resource_type_e::material)},
+			{.name = "shader", .display_name = "Shader", .value = static_cast<i64>(resource_type_e::shader)},
+			{.name = "texture", .display_name = "Texture", .value = static_cast<i64>(resource_type_e::texture)},
+			{.name = "texture_sampler", .display_name = "Texture Sampler", .value = static_cast<i64>(resource_type_e::texture_sampler)},
+			{.name = "physical_material", .display_name = "Physical Material", .value = static_cast<i64>(resource_type_e::physical_material)},
+			{.name = "prefab", .display_name = "Prefab", .value = static_cast<i64>(resource_type_e::prefab)},
+			{.name = "animation_state_machine", .display_name = "Animation State Machine", .value = static_cast<i64>(resource_type_e::animation_state_machine)},
+		};
 	}
 
-	void from_json(const nlohmann::json& j, resource_type_e& t)
+	resource_type_reflection_t::resource_type_reflection_t()
 	{
-		const string_t s = j.get<string_t>();
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-		if (s == "audio")
-			t = resource_type_e::audio;
-		else if (s == "font")
-			t = resource_type_e::font;
-		else if (s == "mesh")
-			t = resource_type_e::mesh;
-		else if (s == "skeleton")
-			t = resource_type_e::skeleton;
-		else if (s == "animation")
-			t = resource_type_e::animation;
-		else if (s == "material")
-			t = resource_type_e::material;
-		else if (s == "shader")
-			t = resource_type_e::shader;
-		else if (s == "texture")
-			t = resource_type_e::texture;
-		else if (s == "texture_sampler")
-			t = resource_type_e::texture_sampler;
-		else if (s == "physical_material")
-			t = resource_type_e::physical_material;
-		else if (s == "prefab")
-			t = resource_type_e::prefab;
-		else if (s == "animation_state_machine")
-			t = resource_type_e::animation_state_machine;
-		else
-			t = resource_type_e::invalid;
+		registry.register_type({
+			.enum_values = {.data = resource_type_values, .size = std::size(resource_type_values)},
+			.name		 = "resource_type_e",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(resource_type_e),
+			.alignment	 = alignof(resource_type_e),
+		});
 	}
-
 }

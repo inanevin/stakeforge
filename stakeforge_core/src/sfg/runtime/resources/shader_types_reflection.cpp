@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,72 +26,41 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "shader_types_reflection.hpp"
-#include <sfg/data/string.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const shader_type_e& t)
+	namespace
 	{
-		switch (t)
-		{
-		case shader_type_e::opaque_shader:
-			j = "opaque_shader";
-			break;
-		case shader_type_e::transparent_shader:
-			j = "transparent_shader";
-			break;
-		case shader_type_e::post_process_shader:
-			j = "post_process_shader";
-			break;
-		case shader_type_e::ui_shader:
-			j = "ui_shader";
-			break;
-		case shader_type_e::ui_text_shader:
-			j = "ui_text_shader";
-			break;
-		case shader_type_e::editor_ui_default:
-			j = "editor_ui_default";
-			break;
-		case shader_type_e::editor_ui_lcd_text:
-			j = "editor_ui_lcd_text";
-			break;
-		case shader_type_e::editor_ui_text_grayscale:
-			j = "editor_ui_text_grayscale";
-			break;
-		case shader_type_e::editor_ui_sdf:
-			j = "editor_ui_sdf";
-			break;
-		default:
-			j = "invalid";
-			break;
-		}
+		static const reflected_enum_value_desc_t shader_type_values[] = {
+			{.name = "invalid", .display_name = "Invalid", .value = static_cast<i64>(shader_type_e::invalid)},
+			{.name = "editor_ui_default", .display_name = "Editor UI Default", .value = static_cast<i64>(shader_type_e::editor_ui_default)},
+			{.name = "editor_ui_lcd_text", .display_name = "Editor UI LCD Text", .value = static_cast<i64>(shader_type_e::editor_ui_lcd_text)},
+			{.name = "editor_ui_sdf", .display_name = "Editor UI SDF", .value = static_cast<i64>(shader_type_e::editor_ui_sdf)},
+			{.name = "editor_ui_text_grayscale", .display_name = "Editor UI Text Grayscale", .value = static_cast<i64>(shader_type_e::editor_ui_text_grayscale)},
+			{.name = "opaque_shader", .display_name = "Opaque Shader", .value = static_cast<i64>(shader_type_e::opaque_shader)},
+			{.name = "transparent_shader", .display_name = "Transparent Shader", .value = static_cast<i64>(shader_type_e::transparent_shader)},
+			{.name = "post_process_shader", .display_name = "Post Process Shader", .value = static_cast<i64>(shader_type_e::post_process_shader)},
+			{.name = "ui_shader", .display_name = "UI Shader", .value = static_cast<i64>(shader_type_e::ui_shader)},
+			{.name = "ui_text_shader", .display_name = "UI Text Shader", .value = static_cast<i64>(shader_type_e::ui_text_shader)},
+		};
 	}
 
-	void from_json(const nlohmann::json& j, shader_type_e& t)
+	shader_type_reflection_t::shader_type_reflection_t()
 	{
-		const string_t s = j.get<string_t>();
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-		if (s == "opaque_shader")
-			t = shader_type_e::opaque_shader;
-		else if (s == "transparent_shader")
-			t = shader_type_e::transparent_shader;
-		else if (s == "post_process_shader")
-			t = shader_type_e::post_process_shader;
-		else if (s == "ui_shader")
-			t = shader_type_e::ui_shader;
-		else if (s == "ui_text_shader")
-			t = shader_type_e::ui_text_shader;
-		else if (s == "editor_ui_default")
-			t = shader_type_e::editor_ui_default;
-		else if (s == "editor_ui_lcd_text")
-			t = shader_type_e::editor_ui_lcd_text;
-		else if (s == "editor_ui_text_grayscale")
-			t = shader_type_e::editor_ui_text_grayscale;
-		else if (s == "editor_ui_sdf")
-			t = shader_type_e::editor_ui_sdf;
-		else
-			t = shader_type_e::invalid;
+		registry.register_type({
+			.enum_values = {.data = shader_type_values, .size = std::size(shader_type_values)},
+			.name		 = "shader_type_e",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(shader_type_e),
+			.alignment	 = alignof(shader_type_e),
+		});
 	}
-
 }

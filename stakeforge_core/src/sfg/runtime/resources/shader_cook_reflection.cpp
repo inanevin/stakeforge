@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -27,20 +27,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "shader_cook_reflection.hpp"
 #include "shader_types_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const shader_cook_config_t& c)
+	shader_cook_config_reflection_t::shader_cook_config_reflection_t()
 	{
-		j["type"]		  = c.type;
-		j["include_dirs"] = c.include_dirs;
-	}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-	void from_json(const nlohmann::json& j, shader_cook_config_t& c)
-	{
-		c.type		   = j.value<shader_type_e>("type", shader_type_e::invalid);
-		c.include_dirs = j.value<vector_t<string_t>>("include_dirs", {});
-	}
+		static const reflected_field_desc_t fields[] = {
+			{.name = "include_dirs", .display_name = "Include Directories", .type = reflected_value_type_e::vector, .sub_type_id = "string"_hs, .offset = offsetof(shader_cook_config_t, include_dirs), .size = sizeof(vector_t<string_t>)},
+			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .value_type_id = shader_type_reflection_t::TYPE_ID, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e)},
+		};
 
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "shader_cook_config_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(shader_cook_config_t),
+			.alignment = alignof(shader_cook_config_t),
+		});
+	}
 }

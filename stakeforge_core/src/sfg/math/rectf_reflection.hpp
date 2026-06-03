@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "rectf.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const rectf_t& v);
-	void from_json(const nlohmann::json& j, rectf_t& v);
+	struct rectf_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "rectf_t"_hs;
+
+		rectf_reflection_t();
+	};
+
+	inline rectf_reflection_t g_reflect_rectf;
 }

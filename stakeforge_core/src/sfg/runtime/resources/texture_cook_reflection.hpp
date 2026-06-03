@@ -28,12 +28,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "texture_cook.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const texture_payload_type_e& e);
-	void from_json(const nlohmann::json& j, texture_payload_type_e& e);
-	void to_json(nlohmann::json& j, const texture_cook_config_t& c);
-	void from_json(const nlohmann::json& j, texture_cook_config_t& c);
+	struct texture_payload_type_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "texture_payload_type_e"_hs;
+
+		texture_payload_type_reflection_t();
+	};
+
+	struct texture_cook_config_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "texture_cook_config_t"_hs;
+
+		texture_cook_config_reflection_t();
+	};
+
+	inline texture_payload_type_reflection_t g_reflect_texture_payload_type;
+	inline texture_cook_config_reflection_t	 g_reflect_texture_cook_config;
 }

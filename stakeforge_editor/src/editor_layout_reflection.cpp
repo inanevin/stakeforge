@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,16 +26,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_layout_reflection.hpp"
-#include <sfg/math/vec2u16_reflection.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		nlohmann::json vec2u16_to_json(const vec2u16_t& value)
+		{
+			return nlohmann::json::array_t({value.x, value.y});
+		}
+
+		vec2u16_t vec2u16_from_json(const nlohmann::json& j, const vec2u16_t& fallback)
+		{
+			if (!j.is_array() || j.size() < 2)
+				return fallback;
+
+			return {j.at(0).get<u16>(), j.at(1).get<u16>()};
+		}
+	}
+
 	void to_json(nlohmann::json& j, const editor_layout_window_t& window)
 	{
 		const nlohmann::json dock_layout = nlohmann::json::parse(window.dock_layout, nullptr, false);
 		j["pos"]						 = nlohmann::json::array_t({window.pos.x, window.pos.y});
-		j["size"]						 = window.size;
+		j["size"]						 = vec2u16_to_json(window.size);
 		j["is_primary"]					 = window.is_primary;
 		j["maximized"]					 = window.maximized;
 		j["dock_layout"]				 = dock_layout.is_object() ? dock_layout : nlohmann::json::object();
@@ -52,7 +67,7 @@ namespace sfg
 		if (pos.is_array() && pos.size() >= 2)
 			window.pos = {pos.at(0).get<i16>(), pos.at(1).get<i16>()};
 
-		window.size		  = j.value("size", vec2u16_t{1920, 1080});
+		window.size		  = vec2u16_from_json(j.value("size", nlohmann::json::array()), vec2u16_t{1920, 1080});
 		window.is_primary = j.value("is_primary", false);
 		window.maximized  = j.value("maximized", false);
 

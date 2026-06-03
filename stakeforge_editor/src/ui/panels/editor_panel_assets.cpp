@@ -1582,9 +1582,11 @@ namespace sfg
 		for (u8 i = 0; i < desc_count; ++i)
 			desc_copy.push_back(descs[i]);
 
+		frame_string_t dir_copy = directory;
+
 		clear_pending_create_assets();
 
-		_pending_import_directory = directory != nullptr ? directory : "";
+		_pending_import_directory = dir_copy;
 		_pending_import_create_descs.reserve(desc_copy.size());
 		for (const editor_asset_create_desc_t& desc : desc_copy)
 			_pending_import_create_descs.push_back(desc);
@@ -2112,10 +2114,10 @@ namespace sfg
 
 		const string_t					 directory = panel.get_action_menu_target_folder_path();
 		const editor_asset_create_desc_t desc	   = {
-				 .name		 = value != nullptr ? value : "",
-				 .asset_type = asset_type,
-				 .sub_type	 = sub_type,
-		 };
+			.name		= value != nullptr ? value : "",
+			.asset_type = asset_type,
+			.sub_type	= sub_type,
+		};
 		panel.request_create_assets(directory.c_str(), &desc, 1, false);
 	}
 

@@ -28,9 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "audio_cook.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void from_json(const nlohmann::json& j, audio_cook_config_t& c);
+	struct audio_cook_config_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "audio_cook_config_t"_hs;
+
+		audio_cook_config_reflection_t();
+	};
+
+	inline audio_cook_config_reflection_t g_reflect_audio_cook_config;
 }

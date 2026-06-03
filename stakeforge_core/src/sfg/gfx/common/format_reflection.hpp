@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "format.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const format_e& f);
-	void from_json(const nlohmann::json& j, format_e& f);
+	struct format_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "format_e"_hs;
+
+		format_reflection_t();
+	};
+
+	inline format_reflection_t g_reflect_format;
 }

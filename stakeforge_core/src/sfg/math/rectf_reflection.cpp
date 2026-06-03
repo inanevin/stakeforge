@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,21 +26,33 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "rectf_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const rectf_t& v)
+	rectf_reflection_t::rectf_reflection_t()
 	{
-		j = nlohmann::json::array_t({v.x, v.y, v.w, v.h});
-	}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-	void from_json(const nlohmann::json& j, rectf_t& v)
-	{
-		v.x = j.at(0).get<f32>();
-		v.y = j.at(1).get<f32>();
-		v.w = j.at(2).get<f32>();
-		v.h = j.at(3).get<f32>();
-	}
+		static const reflected_field_desc_t fields[] = {
+			{.name = "x", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, x), .size = sizeof(f32)},
+			{.name = "y", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, y), .size = sizeof(f32)},
+			{.name = "w", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, w), .size = sizeof(f32)},
+			{.name = "h", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, h), .size = sizeof(f32)},
+		};
 
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "rectf_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(rectf_t),
+			.alignment = alignof(rectf_t),
+		});
+	}
 }

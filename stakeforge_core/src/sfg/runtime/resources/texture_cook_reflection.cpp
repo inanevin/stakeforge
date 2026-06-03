@@ -26,59 +26,84 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture_cook_reflection.hpp"
-#include <sfg/math/vec2u16_reflection.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/math/vec2u.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const texture_payload_type_e& e)
+	namespace
 	{
-		switch (e)
+		static const reflected_enum_value_desc_t texture_payload_type_values[] = {
+			{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_payload_type_e::uncompressed)},
+			{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_payload_type_e::ktx2_uastc)},
+		};
+
+		bool get_texture_cook_size(const void* object, const reflected_field_desc_t&, void* out_value, void*)
 		{
-		case texture_payload_type_e::uncompressed:
-			j = "uncompressed";
-			return;
-		case texture_payload_type_e::ktx2_uastc:
-			j = "ktx2_uastc";
-			return;
+			const vec2u16_t& size			  = static_cast<const texture_cook_config_t*>(object)->size;
+			*static_cast<vec2u_t*>(out_value) = {size.x, size.y};
+			return true;
 		}
 
-		j = "uncompressed";
-	}
-
-	void to_json(nlohmann::json& j, const texture_cook_config_t& c)
-	{
-		j["payload_type"]	  = c.payload_type;
-		j["generate_mipmaps"] = c.generate_mipmaps;
-		j["is_linear"]		  = c.is_linear;
-		j["size"]			  = c.size;
-	}
-
-	void from_json(const nlohmann::json& j, texture_payload_type_e& e)
-	{
-		const string_t str = j.get<string_t>();
-
-		if (str.compare("uncompressed") == 0)
+		bool set_texture_cook_size(void* object, const reflected_field_desc_t&, const void* value, void*)
 		{
-			e = texture_payload_type_e::uncompressed;
-			return;
+			const vec2u_t& size								  = *static_cast<const vec2u_t*>(value);
+			static_cast<texture_cook_config_t*>(object)->size = {static_cast<u16>(size.x), static_cast<u16>(size.y)};
+			return true;
 		}
-		if (str.compare("ktx2_uastc") == 0)
-		{
-			e = texture_payload_type_e::ktx2_uastc;
-			return;
-		}
-
-		e = texture_payload_type_e::uncompressed;
 	}
 
-	void from_json(const nlohmann::json& j, texture_cook_config_t& c)
+	texture_payload_type_reflection_t::texture_payload_type_reflection_t()
 	{
-		c.payload_type	   = j.value<texture_payload_type_e>("payload_type", texture_payload_type_e::uncompressed);
-		c.generate_mipmaps = j.value<bool>("generate_mipmaps", false);
-		c.is_linear		   = j.value<bool>("is_linear", false);
-		c.size			   = j.value<vec2u16_t>("size", vec2u16_t::zero);
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = texture_payload_type_values, .size = std::size(texture_payload_type_values)},
+			.name		 = "texture_payload_type_e",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(texture_payload_type_e),
+			.alignment	 = alignof(texture_payload_type_e),
+		});
 	}
 
+	texture_cook_config_reflection_t::texture_cook_config_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.get		   = get_texture_cook_size,
+			 .set		   = set_texture_cook_size,
+			 .name		   = "size",
+			 .display_name = "Size",
+			 .type		   = reflected_value_type_e::vec2u,
+			 .offset	   = offsetof(texture_cook_config_t, size),
+			 .size		   = sizeof(vec2u16_t),
+			 .flags		   = reflected_field_flags_no_ui},
+			{.name			= "payload_type",
+			 .display_name	= "Payload Type",
+			 .type			= reflected_value_type_e::enum8,
+			 .value_type_id = texture_payload_type_reflection_t::TYPE_ID,
+			 .offset		= offsetof(texture_cook_config_t, payload_type),
+			 .size			= sizeof(texture_payload_type_e)},
+			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
+			{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
+		};
+
+		registry.register_type({
+			.fields		  = {.data = fields, .size = std::size(fields)},
+			.name		  = "texture_cook_config_t",
+			.display_name = "Texture Cook Config",
+			.type_id	  = TYPE_ID,
+			.size		  = sizeof(texture_cook_config_t),
+			.alignment	  = alignof(texture_cook_config_t),
+		});
+	}
 }

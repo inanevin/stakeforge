@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "shader_cook.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const shader_cook_config_t& c);
-	void from_json(const nlohmann::json& j, shader_cook_config_t& c);
+	struct shader_cook_config_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "shader_cook_config_t"_hs;
+
+		shader_cook_config_reflection_t();
+	};
+
+	inline shader_cook_config_reflection_t g_reflect_shader_cook_config;
 }

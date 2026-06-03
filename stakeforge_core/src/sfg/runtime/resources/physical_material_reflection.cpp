@@ -25,13 +25,34 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "physical_material_reflection.hpp"
 
-#include "physical_material_json.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const physical_material_json_t& m);
-	void from_json(const nlohmann::json& j, physical_material_json_t& m);
+	physical_material_reflection_t::physical_material_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "restitution", .display_name = "Restitution", .type = reflected_value_type_e::f32, .offset = offsetof(physical_material_json_t, restitution), .size = sizeof(f32)},
+			{.name = "friction", .display_name = "Friction", .type = reflected_value_type_e::f32, .offset = offsetof(physical_material_json_t, friction), .size = sizeof(f32)},
+			{.name = "angular_damping", .display_name = "Angular Damping", .type = reflected_value_type_e::f32, .offset = offsetof(physical_material_json_t, angular_damping), .size = sizeof(f32)},
+			{.name = "linear_damping", .display_name = "Linear Damping", .type = reflected_value_type_e::f32, .offset = offsetof(physical_material_json_t, linear_damping), .size = sizeof(f32)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "physical_material_json_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(physical_material_json_t),
+			.alignment = alignof(physical_material_json_t),
+		});
+	}
 }

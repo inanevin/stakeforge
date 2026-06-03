@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "color.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const color_t& c);
-	void from_json(const nlohmann::json& j, color_t& c);
+	struct color_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "color_t"_hs;
+
+		color_reflection_t();
+	};
+
+	inline color_reflection_t g_reflect_color;
 }

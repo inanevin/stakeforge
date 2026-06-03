@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "quat.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const quat_t& q);
-	void from_json(const nlohmann::json& j, quat_t& v);
+	struct quat_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "quat_t"_hs;
+
+		quat_reflection_t();
+	};
+
+	inline quat_reflection_t g_reflect_quat;
 }

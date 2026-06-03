@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -58,6 +58,7 @@ namespace sfg
 		resource,
 		entity_id,
 		string,
+		json,
 		quat,
 		enum8,
 		enum32,
@@ -118,23 +119,16 @@ namespace sfg
 
 	struct reflected_type_desc_t
 	{
-		span_t<const reflected_field_desc_t> fields		  = {};
-		void*								 user_data	  = nullptr;
-		const char*							 name		  = nullptr;
-		const char*							 display_name = nullptr;
-		const char*							 category	  = nullptr;
-		sid_t								 type_id	  = 0;
-		u32									 size		  = 0;
-		u32									 alignment	  = 0;
-		u32									 flags		  = reflected_type_flags_none;
-	};
-
-	struct reflection_registry_config_t
-	{
-		u32 max_types		= 512;
-		u32 max_fields		= 4096;
-		u32 max_enum_values = 1024;
-		u32 text_bytes		= 1024 * 128;
+		span_t<const reflected_field_desc_t>	  fields	   = {};
+		span_t<const reflected_enum_value_desc_t> enum_values  = {};
+		void*									  user_data	   = nullptr;
+		const char*								  name		   = nullptr;
+		const char*								  display_name = nullptr;
+		const char*								  category	   = nullptr;
+		sid_t									  type_id	   = 0;
+		u32										  size		   = 0;
+		u32										  alignment	   = 0;
+		u32										  flags		   = reflected_type_flags_none;
 	};
 
 	class reflection_registry_t final
@@ -151,7 +145,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const reflection_registry_config_t& config = {});
+		void init();
 		void uninit();
 		void reset();
 
@@ -193,7 +187,6 @@ namespace sfg
 		vector_t<reflected_type_desc_t>		  _types;
 		vector_t<reflected_field_desc_t>	  _fields;
 		vector_t<reflected_enum_value_desc_t> _enum_values;
-		reflection_registry_config_t		  _config	   = {};
 		bool								  _initialized = false;
 	};
 }

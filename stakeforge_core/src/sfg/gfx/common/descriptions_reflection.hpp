@@ -28,16 +28,40 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "descriptions.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const sampler_filter_e& f);
-	void from_json(const nlohmann::json& j, sampler_filter_e& f);
-	void to_json(nlohmann::json& j, const sampler_border_e& b);
-	void from_json(const nlohmann::json& j, sampler_border_e& b);
-	void to_json(nlohmann::json& j, const address_mode& a);
-	void from_json(const nlohmann::json& j, address_mode& a);
-	void to_json(nlohmann::json& j, const sampler_desc_t& s);
-	void from_json(const nlohmann::json& j, sampler_desc_t& s);
+	struct sampler_filter_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "sampler_filter_e"_hs;
+
+		sampler_filter_reflection_t();
+	};
+
+	struct sampler_border_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "sampler_border_e"_hs;
+
+		sampler_border_reflection_t();
+	};
+
+	struct address_mode_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "address_mode"_hs;
+
+		address_mode_reflection_t();
+	};
+
+	struct sampler_desc_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "sampler_desc_t"_hs;
+
+		sampler_desc_reflection_t();
+	};
+
+	inline sampler_filter_reflection_t g_reflect_sampler_filter;
+	inline sampler_border_reflection_t g_reflect_sampler_border;
+	inline address_mode_reflection_t   g_reflect_address_mode;
+	inline sampler_desc_reflection_t   g_reflect_sampler_desc;
 }

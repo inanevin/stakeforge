@@ -28,9 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "font_cook.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void from_json(const nlohmann::json& j, font_cook_config_t& c);
+	struct font_cook_config_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "font_cook_config_t"_hs;
+
+		font_cook_config_reflection_t();
+	};
+
+	inline font_cook_config_reflection_t g_reflect_font_cook_config;
 }

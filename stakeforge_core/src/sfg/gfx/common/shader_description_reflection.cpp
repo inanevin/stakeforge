@@ -27,548 +27,291 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "shader_description_reflection.hpp"
 #include "format_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const vertex_input_t& s)
+	namespace
 	{
-		j["name"]	  = s.name;
-		j["location"] = s.location;
-		j["index"]	  = s.index;
-		j["offset"]	  = s.offset;
-		j["size"]	  = s.size;
-		j["format"]	  = s.format;
-	}
+		static const reflected_enum_value_desc_t cull_mode_values[] = {
+			{.name = "none", .display_name = "None", .value = static_cast<i64>(cull_mode::none)},
+			{.name = "front", .display_name = "Front", .value = static_cast<i64>(cull_mode::front)},
+			{.name = "back", .display_name = "Back", .value = static_cast<i64>(cull_mode::back)},
+		};
 
-	void to_json(nlohmann::json& j, const cull_mode& c)
-	{
-		switch (c)
+		static const reflected_enum_value_desc_t fill_mode_values[] = {
+			{.name = "solid", .display_name = "Solid", .value = static_cast<i64>(fill_mode::solid)},
+			{.name = "wireframe", .display_name = "Wireframe", .value = static_cast<i64>(fill_mode::wireframe)},
+		};
+
+		static const reflected_enum_value_desc_t front_face_values[] = {
+			{.name = "ccw", .display_name = "Counter Clockwise", .value = static_cast<i64>(front_face::ccw)},
+			{.name = "cw", .display_name = "Clockwise", .value = static_cast<i64>(front_face::cw)},
+		};
+
+		static const reflected_enum_value_desc_t blend_factor_values[] = {
+			{.name = "zero", .display_name = "Zero", .value = static_cast<i64>(blend_factor::zero)},
+			{.name = "one", .display_name = "One", .value = static_cast<i64>(blend_factor::one)},
+			{.name = "src_color", .display_name = "Src Color", .value = static_cast<i64>(blend_factor::src_color)},
+			{.name = "one_minus_src_color", .display_name = "One Minus Src Color", .value = static_cast<i64>(blend_factor::one_minus_src_color)},
+			{.name = "dst_color", .display_name = "Dst Color", .value = static_cast<i64>(blend_factor::dst_color)},
+			{.name = "one_minus_dst_color", .display_name = "One Minus Dst Color", .value = static_cast<i64>(blend_factor::one_minus_dst_color)},
+			{.name = "src_alpha", .display_name = "Src Alpha", .value = static_cast<i64>(blend_factor::src_alpha)},
+			{.name = "one_minus_src_alpha", .display_name = "One Minus Src Alpha", .value = static_cast<i64>(blend_factor::one_minus_src_alpha)},
+			{.name = "dst_alpha", .display_name = "Dst Alpha", .value = static_cast<i64>(blend_factor::dst_alpha)},
+			{.name = "one_minus_dst_alpha", .display_name = "One Minus Dst Alpha", .value = static_cast<i64>(blend_factor::one_minus_dst_alpha)},
+		};
+
+		static const reflected_enum_value_desc_t blend_op_values[] = {
+			{.name = "add", .display_name = "Add", .value = static_cast<i64>(blend_op::add)},
+			{.name = "subtract", .display_name = "Subtract", .value = static_cast<i64>(blend_op::subtract)},
+			{.name = "reverse_subtract", .display_name = "Reverse Subtract", .value = static_cast<i64>(blend_op::reverse_subtract)},
+			{.name = "min", .display_name = "Min", .value = static_cast<i64>(blend_op::min)},
+			{.name = "max", .display_name = "Max", .value = static_cast<i64>(blend_op::max)},
+		};
+
+		static const reflected_enum_value_desc_t stencil_op_values[] = {
+			{.name = "keep", .display_name = "Keep", .value = static_cast<i64>(stencil_op::keep)},
+			{.name = "zero", .display_name = "Zero", .value = static_cast<i64>(stencil_op::zero)},
+			{.name = "replace", .display_name = "Replace", .value = static_cast<i64>(stencil_op::replace)},
+			{.name = "increment_clamp", .display_name = "Increment Clamp", .value = static_cast<i64>(stencil_op::increment_clamp)},
+			{.name = "decrement_clamp", .display_name = "Decrement Clamp", .value = static_cast<i64>(stencil_op::decrement_clamp)},
+			{.name = "invert", .display_name = "Invert", .value = static_cast<i64>(stencil_op::invert)},
+			{.name = "increment_wrap", .display_name = "Increment Wrap", .value = static_cast<i64>(stencil_op::increment_wrap)},
+			{.name = "decrement_wrap", .display_name = "Decrement Wrap", .value = static_cast<i64>(stencil_op::decrement_wrap)},
+		};
+
+		static const reflected_enum_value_desc_t compare_op_values[] = {
+			{.name = "never", .display_name = "Never", .value = static_cast<i64>(compare_op::never)},
+			{.name = "less", .display_name = "Less", .value = static_cast<i64>(compare_op::less)},
+			{.name = "equal", .display_name = "Equal", .value = static_cast<i64>(compare_op::equal)},
+			{.name = "lequal", .display_name = "Less Equal", .value = static_cast<i64>(compare_op::lequal)},
+			{.name = "greater", .display_name = "Greater", .value = static_cast<i64>(compare_op::greater)},
+			{.name = "nequal", .display_name = "Not Equal", .value = static_cast<i64>(compare_op::nequal)},
+			{.name = "gequal", .display_name = "Greater Equal", .value = static_cast<i64>(compare_op::gequal)},
+			{.name = "always", .display_name = "Always", .value = static_cast<i64>(compare_op::always)},
+		};
+
+		static const reflected_enum_value_desc_t store_op_values[] = {
+			{.name = "store", .display_name = "Store", .value = static_cast<i64>(store_op::store)},
+			{.name = "dont_care", .display_name = "Dont Care", .value = static_cast<i64>(store_op::dont_care)},
+			{.name = "none", .display_name = "None", .value = static_cast<i64>(store_op::none)},
+		};
+
+		static const reflected_enum_value_desc_t load_op_values[] = {
+			{.name = "load", .display_name = "Load", .value = static_cast<i64>(load_op::load)},
+			{.name = "clear", .display_name = "Clear", .value = static_cast<i64>(load_op::clear)},
+			{.name = "dont_care", .display_name = "Dont Care", .value = static_cast<i64>(load_op::dont_care)},
+			{.name = "none", .display_name = "None", .value = static_cast<i64>(load_op::none)},
+		};
+
+		bool get_vertex_input_offset(const void* object, const reflected_field_desc_t&, void* out_value, void*)
 		{
-		case cull_mode::none:
-			j = "none";
-			break;
-		case cull_mode::front:
-			j = "front";
-			break;
-		case cull_mode::back:
-			j = "back";
-			break;
+			*static_cast<u32*>(out_value) = static_cast<u32>(static_cast<const vertex_input_t*>(object)->offset);
+			return true;
 		}
-	}
 
-	void to_json(nlohmann::json& j, const fill_mode& c)
-	{
-		switch (c)
+		bool set_vertex_input_offset(void* object, const reflected_field_desc_t&, const void* value, void*)
 		{
-		case fill_mode::solid:
-			j = "solid";
-			break;
-		case fill_mode::wireframe:
-			j = "wireframe";
-			break;
+			static_cast<vertex_input_t*>(object)->offset = static_cast<size_t>(*static_cast<const u32*>(value));
+			return true;
 		}
-	}
 
-	void to_json(nlohmann::json& j, const front_face& f)
-	{
-		switch (f)
+		bool get_vertex_input_size(const void* object, const reflected_field_desc_t&, void* out_value, void*)
 		{
-		case front_face::ccw:
-			j = "ccw";
-			break;
-		case front_face::cw:
-			j = "cw";
-			break;
+			*static_cast<u32*>(out_value) = static_cast<u32>(static_cast<const vertex_input_t*>(object)->size);
+			return true;
 		}
-	}
 
-	void to_json(nlohmann::json& j, const blend_factor& f)
-	{
-		switch (f)
+		bool set_vertex_input_size(void* object, const reflected_field_desc_t&, const void* value, void*)
 		{
-		case blend_factor::zero:
-			j = "zero";
-			break;
-		case blend_factor::one:
-			j = "one";
-			break;
-		case blend_factor::src_color:
-			j = "src_color";
-			break;
-		case blend_factor::one_minus_src_color:
-			j = "one_minus_src_color";
-			break;
-		case blend_factor::dst_color:
-			j = "dst_color";
-			break;
-		case blend_factor::one_minus_dst_color:
-			j = "one_minus_dst_color";
-			break;
-		case blend_factor::src_alpha:
-			j = "src_alpha";
-			break;
-		case blend_factor::one_minus_src_alpha:
-			j = "one_minus_src_alpha";
-			break;
-		case blend_factor::dst_alpha:
-			j = "dst_alpha";
-			break;
-		case blend_factor::one_minus_dst_alpha:
-			j = "one_minus_dst_alpha";
-			break;
-		}
-	}
-
-	void to_json(nlohmann::json& j, const blend_op& op)
-	{
-		switch (op)
-		{
-		case blend_op::add:
-			j = "add";
-			break;
-		case blend_op::subtract:
-			j = "subtract";
-			break;
-		case blend_op::reverse_subtract:
-			j = "reverse_subtract";
-			break;
-		case blend_op::min:
-			j = "min";
-			break;
-		case blend_op::max:
-			j = "max";
-			break;
+			static_cast<vertex_input_t*>(object)->size = static_cast<size_t>(*static_cast<const u32*>(value));
+			return true;
 		}
 	}
 
-	void to_json(nlohmann::json& j, const stencil_op& op)
+	vertex_input_reflection_t::vertex_input_reflection_t()
 	{
-		switch (op)
-		{
-		case stencil_op::keep:
-			j = "keep";
-			break;
-		case stencil_op::zero:
-			j = "zero";
-			break;
-		case stencil_op::replace:
-			j = "replace";
-			break;
-		case stencil_op::increment_clamp:
-			j = "increment_clamp";
-			break;
-		case stencil_op::decrement_clamp:
-			j = "decrement_clamp";
-			break;
-		case stencil_op::invert:
-			j = "invert";
-			break;
-		case stencil_op::increment_wrap:
-			j = "increment_wrap";
-			break;
-		case stencil_op::decrement_wrap:
-			j = "decrement_wrap";
-			break;
-		}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(vertex_input_t, name), .size = sizeof(vertex_input_t::name)},
+			{.get = get_vertex_input_offset, .set = set_vertex_input_offset, .name = "offset", .display_name = "Offset", .type = reflected_value_type_e::u32, .offset = offsetof(vertex_input_t, offset), .size = sizeof(size_t)},
+			{.get = get_vertex_input_size, .set = set_vertex_input_size, .name = "size", .display_name = "Size", .type = reflected_value_type_e::u32, .offset = offsetof(vertex_input_t, size), .size = sizeof(size_t)},
+			{.name = "format", .display_name = "Format", .type = reflected_value_type_e::enum8, .value_type_id = format_reflection_t::TYPE_ID, .offset = offsetof(vertex_input_t, format), .size = sizeof(format_e)},
+			{.name = "location", .display_name = "Location", .type = reflected_value_type_e::u8, .offset = offsetof(vertex_input_t, location), .size = sizeof(u8)},
+			{.name = "index", .display_name = "Index", .type = reflected_value_type_e::u8, .offset = offsetof(vertex_input_t, index), .size = sizeof(u8)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "vertex_input_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(vertex_input_t),
+			.alignment = alignof(vertex_input_t),
+		});
 	}
 
-	void to_json(nlohmann::json& j, const load_op& op)
+	cull_mode_reflection_t::cull_mode_reflection_t()
 	{
-		switch (op)
-		{
-		case load_op::load:
-			j = "load";
-			break;
-		case load_op::clear:
-			j = "clear";
-			break;
-		case load_op::dont_care:
-			j = "dont_care";
-			break;
-		case load_op::none:
-			j = "none";
-			break;
-		}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = cull_mode_values, .size = std::size(cull_mode_values)},
+			.name		 = "cull_mode",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(cull_mode),
+			.alignment	 = alignof(cull_mode),
+		});
 	}
 
-	void to_json(nlohmann::json& j, const compare_op& op)
+	fill_mode_reflection_t::fill_mode_reflection_t()
 	{
-		switch (op)
-		{
-		case compare_op::never:
-			j = "never";
-			break;
-		case compare_op::less:
-			j = "less";
-			break;
-		case compare_op::equal:
-			j = "equal";
-			break;
-		case compare_op::lequal:
-			j = "lequal";
-			break;
-		case compare_op::greater:
-			j = "greater";
-			break;
-		case compare_op::nequal:
-			j = "nequal";
-			break;
-		case compare_op::gequal:
-			j = "gequal";
-			break;
-		case compare_op::always:
-			j = "always";
-			break;
-		}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = fill_mode_values, .size = std::size(fill_mode_values)},
+			.name		 = "fill_mode",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(fill_mode),
+			.alignment	 = alignof(fill_mode),
+		});
 	}
 
-	void to_json(nlohmann::json& j, const store_op& op)
+	front_face_reflection_t::front_face_reflection_t()
 	{
-		switch (op)
-		{
-		case store_op::store:
-			j = "store";
-			break;
-		case store_op::dont_care:
-			j = "dont_care";
-			break;
-		case store_op::none:
-			j = "none";
-			break;
-		}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = front_face_values, .size = std::size(front_face_values)},
+			.name		 = "front_face",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(front_face),
+			.alignment	 = alignof(front_face),
+		});
 	}
 
-	void to_json(nlohmann::json& j, const stencil_state_t& ss)
+	blend_factor_reflection_t::blend_factor_reflection_t()
 	{
-		j["compare_op"]	   = ss.compare_op;
-		j["depth_fail_op"] = ss.depth_fail_op;
-		j["fail_op"]	   = ss.fail_op;
-		j["pass_op"]	   = ss.pass_op;
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = blend_factor_values, .size = std::size(blend_factor_values)},
+			.name		 = "blend_factor",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(blend_factor),
+			.alignment	 = alignof(blend_factor),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, vertex_input_t& s)
+	blend_op_reflection_t::blend_op_reflection_t()
 	{
-		const string_t name = j.value<string_t>("name", "");
-		s.set_name(name.c_str());
-		s.location = j.value<u8>("location", 0);
-		s.index	   = j.value<u8>("index", 0);
-		s.offset   = j.value<u8>("offset", 0);
-		s.size	   = j.value<u32>("size", 0);
-		s.format   = j.value<format_e>("format", format_e::undefined);
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = blend_op_values, .size = std::size(blend_op_values)},
+			.name		 = "blend_op",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(blend_op),
+			.alignment	 = alignof(blend_op),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, cull_mode& c)
+	stencil_op_reflection_t::stencil_op_reflection_t()
 	{
-		const string_t& str = j.get<string_t>();
-		if (str.compare("none") == 0)
-		{
-			c = cull_mode::none;
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
 			return;
-		}
 
-		if (str.compare("back") == 0)
-		{
-			c = cull_mode::back;
-			return;
-		}
-		if (str.compare("front") == 0)
-		{
-			c = cull_mode::front;
-			return;
-		}
-
-		SFG_ASSERT(false);
+		registry.register_type({
+			.enum_values = {.data = stencil_op_values, .size = std::size(stencil_op_values)},
+			.name		 = "stencil_op",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(stencil_op),
+			.alignment	 = alignof(stencil_op),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, front_face& f)
+	compare_op_reflection_t::compare_op_reflection_t()
 	{
-		const string_t& str = j.get<string_t>();
-		if (str.compare("cw") == 0)
-		{
-			f = front_face::cw;
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
 			return;
-		}
 
-		if (str.compare("ccw") == 0)
-		{
-			f = front_face::ccw;
-			return;
-		}
-
-		SFG_ASSERT(false);
+		registry.register_type({
+			.enum_values = {.data = compare_op_values, .size = std::size(compare_op_values)},
+			.name		 = "compare_op",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(compare_op),
+			.alignment	 = alignof(compare_op),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, blend_op& op)
+	store_op_reflection_t::store_op_reflection_t()
 	{
-		const string_t& str = j.get<string_t>();
-
-		if (str.compare("add") == 0)
-		{
-			op = blend_op::add;
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
 			return;
-		}
 
-		if (str.compare("subtract") == 0)
-		{
-			op = blend_op::subtract;
-			return;
-		}
-
-		if (str.compare("reverse_subtract") == 0)
-		{
-			op = blend_op::reverse_subtract;
-			return;
-		}
-
-		if (str.compare("min") == 0)
-		{
-			op = blend_op::min;
-			return;
-		}
-
-		if (str.compare("max") == 0)
-		{
-			op = blend_op::max;
-			return;
-		}
-
-		SFG_ASSERT(false);
+		registry.register_type({
+			.enum_values = {.data = store_op_values, .size = std::size(store_op_values)},
+			.name		 = "store_op",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(store_op),
+			.alignment	 = alignof(store_op),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, stencil_op& op)
+	load_op_reflection_t::load_op_reflection_t()
 	{
-		const std::string& str = j.get<std::string>();
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-		if (str.compare("keep") == 0)
-		{
-			op = stencil_op::keep;
-			return;
-		}
-		if (str.compare("zero") == 0)
-		{
-			op = stencil_op::zero;
-			return;
-		}
-		if (str.compare("replace") == 0)
-		{
-			op = stencil_op::replace;
-			return;
-		}
-		if (str.compare("increment_clamp") == 0)
-		{
-			op = stencil_op::increment_clamp;
-			return;
-		}
-		if (str.compare("decrement_clamp") == 0)
-		{
-			op = stencil_op::decrement_clamp;
-			return;
-		}
-		if (str.compare("invert") == 0)
-		{
-			op = stencil_op::invert;
-			return;
-		}
-		if (str.compare("increment_wrap") == 0)
-		{
-			op = stencil_op::increment_wrap;
-			return;
-		}
-		if (str.compare("decrement_wrap") == 0)
-		{
-			op = stencil_op::decrement_wrap;
-			return;
-		}
-
-		SFG_ASSERT(false);
+		registry.register_type({
+			.enum_values = {.data = load_op_values, .size = std::size(load_op_values)},
+			.name		 = "load_op",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(load_op),
+			.alignment	 = alignof(load_op),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, load_op& op)
+	stencil_state_reflection_t::stencil_state_reflection_t()
 	{
-		const std::string& str = j.get<std::string>();
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-		if (str.compare("load") == 0)
-		{
-			op = load_op::load;
-			return;
-		}
-		if (str.compare("clear") == 0)
-		{
-			op = load_op::clear;
-			return;
-		}
-		if (str.compare("dont_care") == 0)
-		{
-			op = load_op::dont_care;
-			return;
-		}
-		if (str.compare("none") == 0)
-		{
-			op = load_op::none;
-			return;
-		}
+		static const reflected_field_desc_t fields[] = {
+			{.name = "fail_op", .display_name = "Fail Op", .type = reflected_value_type_e::enum8, .value_type_id = stencil_op_reflection_t::TYPE_ID, .offset = offsetof(stencil_state_t, fail_op), .size = sizeof(stencil_op)},
+			{.name = "pass_op", .display_name = "Pass Op", .type = reflected_value_type_e::enum8, .value_type_id = stencil_op_reflection_t::TYPE_ID, .offset = offsetof(stencil_state_t, pass_op), .size = sizeof(stencil_op)},
+			{.name = "depth_fail_op", .display_name = "Depth Fail Op", .type = reflected_value_type_e::enum8, .value_type_id = stencil_op_reflection_t::TYPE_ID, .offset = offsetof(stencil_state_t, depth_fail_op), .size = sizeof(stencil_op)},
+			{.name = "compare_op", .display_name = "Compare Op", .type = reflected_value_type_e::enum8, .value_type_id = compare_op_reflection_t::TYPE_ID, .offset = offsetof(stencil_state_t, compare_op), .size = sizeof(compare_op)},
+		};
 
-		SFG_ASSERT(false);
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "stencil_state_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(stencil_state_t),
+			.alignment = alignof(stencil_state_t),
+		});
 	}
-
-	void from_json(const nlohmann::json& j, compare_op& op)
-	{
-		const std::string& str = j.get<std::string>();
-
-		if (str.compare("never") == 0)
-		{
-			op = compare_op::never;
-			return;
-		}
-		if (str.compare("less") == 0)
-		{
-			op = compare_op::less;
-			return;
-		}
-		if (str.compare("equal") == 0)
-		{
-			op = compare_op::equal;
-			return;
-		}
-		if (str.compare("lequal") == 0)
-		{
-			op = compare_op::lequal;
-			return;
-		}
-		if (str.compare("greater") == 0)
-		{
-			op = compare_op::greater;
-			return;
-		}
-		if (str.compare("nequal") == 0)
-		{
-			op = compare_op::nequal;
-			return;
-		}
-		if (str.compare("gequal") == 0)
-		{
-			op = compare_op::gequal;
-			return;
-		}
-		if (str.compare("always") == 0)
-		{
-			op = compare_op::always;
-			return;
-		}
-
-		SFG_ASSERT(false);
-	}
-
-	void from_json(const nlohmann::json& j, store_op& op)
-	{
-		const std::string& str = j.get<std::string>();
-
-		if (str.compare("store") == 0)
-		{
-			op = store_op::store;
-			return;
-		}
-		if (str.compare("dont_care") == 0)
-		{
-			op = store_op::dont_care;
-			return;
-		}
-		if (str.compare("none") == 0)
-		{
-			op = store_op::none;
-			return;
-		}
-
-		SFG_ASSERT(false);
-	}
-
-	void from_json(const nlohmann::json& j, fill_mode& c)
-	{
-		const string_t& str = j.get<string_t>();
-
-		if (str.compare("wireframe") == 0)
-		{
-			c = fill_mode::wireframe;
-			return;
-		}
-
-		c = fill_mode::solid;
-	}
-
-	void from_json(const nlohmann::json& j, blend_factor& f)
-	{
-		const string_t& str = j.get<string_t>();
-
-		if (str.compare("zero") == 0)
-		{
-			f = blend_factor::zero;
-			return;
-		}
-
-		if (str.compare("one") == 0)
-		{
-			f = blend_factor::one;
-			return;
-		}
-
-		if (str.compare("src_color") == 0)
-		{
-			f = blend_factor::src_color;
-			return;
-		}
-
-		if (str.compare("one_minus_src_color") == 0)
-		{
-			f = blend_factor::one_minus_src_color;
-			return;
-		}
-
-		if (str.compare("dst_color") == 0)
-		{
-			f = blend_factor::dst_color;
-			return;
-		}
-
-		if (str.compare("one_minus_dst_color") == 0)
-		{
-			f = blend_factor::one_minus_dst_color;
-			return;
-		}
-
-		if (str.compare("src_alpha") == 0)
-		{
-			f = blend_factor::src_alpha;
-			return;
-		}
-
-		if (str.compare("one_minus_src_alpha") == 0)
-		{
-			f = blend_factor::one_minus_src_alpha;
-			return;
-		}
-
-		if (str.compare("dst_alpha") == 0)
-		{
-			f = blend_factor::dst_alpha;
-			return;
-		}
-
-		if (str.compare("one_minus_dst_alpha") == 0)
-		{
-			f = blend_factor::one_minus_dst_alpha;
-			return;
-		}
-
-		SFG_ASSERT(false);
-	}
-
-	void from_json(const nlohmann::json& j, stencil_state_t& ss)
-	{
-		ss.compare_op	 = j.value("compare_op", compare_op::always);
-		ss.depth_fail_op = j.value("depth_fail_op", stencil_op::keep);
-		ss.fail_op		 = j.value("fail_op", stencil_op::keep);
-		ss.pass_op		 = j.value("pass_op", stencil_op::keep);
-	}
-
 }

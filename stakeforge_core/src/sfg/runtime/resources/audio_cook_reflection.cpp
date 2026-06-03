@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,12 +26,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "audio_cook_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
-	void from_json(const nlohmann::json&, audio_cook_config_t&)
+	audio_cook_config_reflection_t::audio_cook_config_reflection_t()
 	{
-	}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
+		registry.register_type({
+			.name	   = "audio_cook_config_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(audio_cook_config_t),
+			.alignment = alignof(audio_cook_config_t),
+		});
+	}
 }

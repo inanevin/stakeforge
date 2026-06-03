@@ -10,6 +10,7 @@
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #if !defined(SFG_EMBED_ASSETS)
 #include "animation_state_machine_cook.hpp"
@@ -30,6 +31,7 @@
 #include "font_cook_reflection.hpp"
 #include "glb_cook_reflection.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <utility>
 #endif
 
 namespace sfg
@@ -41,22 +43,30 @@ namespace sfg
 		{
 			if (schema == "sfg.schema.texture")
 			{
-				const texture_cook_config_t cfg = config;
+				texture_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(texture_cook_config_reflection_t::TYPE_ID, &cfg, config))
+					return false;
 				return texture_cooker::cook_from_file(cfg, full_path, stream);
 			}
 			if (schema == "sfg.schema.shader")
 			{
-				const shader_cook_config_t cfg = config;
+				shader_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(shader_cook_config_reflection_t::TYPE_ID, &cfg, config))
+					return false;
 				return shader_cooker::cook_from_file(cfg, full_path, stream);
 			}
 			if (schema == "sfg.schema.audio")
 			{
-				const audio_cook_config_t cfg = config;
+				audio_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(audio_cook_config_reflection_t::TYPE_ID, &cfg, config))
+					return false;
 				return audio_cooker::cook_from_file(cfg, full_path, stream);
 			}
 			if (schema == "sfg.schema.font")
 			{
-				const font_cook_config_t cfg = config;
+				font_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(font_cook_config_reflection_t::TYPE_ID, &cfg, config))
+					return false;
 				return font_cooker::cook_from_file(cfg, full_path, stream);
 			}
 			if (schema == "sfg.schema.material")
@@ -81,7 +91,9 @@ namespace sfg
 			}
 			if (schema == "sfg.schema.model")
 			{
-				const glb_cook_config_t cfg = config;
+				glb_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(glb_cook_config_reflection_t::TYPE_ID, &cfg, config))
+					return false;
 				return glb_cooker::cook_from_file(cfg, full_path, stream);
 			}
 
@@ -166,7 +178,27 @@ namespace sfg
 			return false;
 		}
 
-		const resource_manifest_t manifest = doc;
+		resource_manifest_t	 manifest  = {};
+		const nlohmann::json resources = doc.value("resources", nlohmann::json::array());
+		if (!resources.is_array())
+		{
+			SFG_ERR("resource_pack: invalid manifest resources at {0}", params.manifest_path.c_str());
+			return false;
+		}
+
+		manifest.resources.reserve(resources.size());
+		for (const nlohmann::json& item : resources)
+		{
+			resource_manifest_entry_t entry = {};
+			entry.config					= nlohmann::json::object();
+			if (!reflection_registry_t::get().deserialize_from_json(resource_manifest_entry_reflection_t::TYPE_ID, &entry, item))
+			{
+				SFG_ERR("resource_pack: invalid manifest entry at {0}", params.manifest_path.c_str());
+				return false;
+			}
+			manifest.resources.push_back(std::move(entry));
+		}
+
 		resource_cache_t::ensure_directory(_cache_dir.c_str());
 
 		_loaded.reserve(manifest.resources.size());
@@ -197,7 +229,9 @@ namespace sfg
 			};
 			if (entry.type == resource_type_e::shader)
 			{
-				const shader_cook_config_t cfg = entry.config;
+				shader_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(shader_cook_config_reflection_t::TYPE_ID, &cfg, entry.config))
+					return false;
 				shader_cooker::collect_source_ticks(cfg, source_path.c_str(), expected.source_ticks);
 			}
 			else if (entry.type == resource_type_e::material || entry.type == resource_type_e::texture_sampler)

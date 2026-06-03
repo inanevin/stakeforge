@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,23 +26,33 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "color_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const color_t& c)
+	color_reflection_t::color_reflection_t()
 	{
-		j = nlohmann::json::array_t({c.x, c.y, c.z, c.w});
-	}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-	void from_json(const nlohmann::json& j, color_t& c)
-	{
-		if (!j.is_array() || j.size() < 4)
-			throw std::runtime_error("color json err");
-		c.x = j.at(0).get<f32>();
-		c.y = j.at(1).get<f32>();
-		c.z = j.at(2).get<f32>();
-		c.w = j.at(3).get<f32>();
-	}
+		static const reflected_field_desc_t fields[] = {
+			{.name = "x", .type = reflected_value_type_e::f32, .offset = offsetof(color_t, x), .size = sizeof(f32)},
+			{.name = "y", .type = reflected_value_type_e::f32, .offset = offsetof(color_t, y), .size = sizeof(f32)},
+			{.name = "z", .type = reflected_value_type_e::f32, .offset = offsetof(color_t, z), .size = sizeof(f32)},
+			{.name = "w", .type = reflected_value_type_e::f32, .offset = offsetof(color_t, w), .size = sizeof(f32)},
+		};
 
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "color_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(color_t),
+			.alignment = alignof(color_t),
+		});
+	}
 }

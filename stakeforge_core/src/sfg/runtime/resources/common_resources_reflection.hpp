@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_resources.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const resource_type_e& t);
-	void from_json(const nlohmann::json& j, resource_type_e& t);
+	struct resource_type_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "resource_type_e"_hs;
+
+		resource_type_reflection_t();
+	};
+
+	inline resource_type_reflection_t g_reflect_resource_type;
 }

@@ -3,27 +3,41 @@
 #include "physical_material_cook.hpp"
 
 #include "physical_material_json.hpp"
-#include "physical_material_json_reflection.hpp"
+#include "physical_material_reflection.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
 	namespace
 	{
+		bool deserialize_physical_material(const nlohmann::json& json_data, physical_material_json_t& material)
+		{
+			if (!reflection_registry_t::get().deserialize_from_json(physical_material_reflection_t::TYPE_ID, &material, json_data))
+				return false;
+
+			material.angular_damping = json_data.value<f32>("angular_damp", material.angular_damping);
+			material.linear_damping	 = json_data.value<f32>("linear_damp", material.linear_damping);
+			return true;
+		}
+
 		bool cook_physical_material(const nlohmann::json& json_data, const vector_t<u64>& source_ticks, ostream_t& stream)
 		{
-			const physical_material_json_t material = json_data.get<physical_material_json_t>();
-			const resource_header_t		   header	= {
-						 .magic		   = physical_material_loader_t::WIRE_MAGIC,
-						 .version	   = physical_material_loader_t::WIRE_VERSION,
-						 .source_ticks = source_ticks,
-			 };
+			physical_material_json_t material = {};
+			if (!deserialize_physical_material(json_data, material))
+				return false;
+
+			const resource_header_t header = {
+				.magic		  = physical_material_loader_t::WIRE_MAGIC,
+				.version	  = physical_material_loader_t::WIRE_VERSION,
+				.source_ticks = source_ticks,
+			};
 
 			header.serialize(stream);
 			material.serialize(stream);

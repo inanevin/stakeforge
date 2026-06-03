@@ -26,13 +26,30 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "font_cook_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void from_json(const nlohmann::json&, font_cook_config_t& c)
-		{
-			c.reserved = 0;
-		}
+	font_cook_config_reflection_t::font_cook_config_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
+		static const reflected_field_desc_t fields[] = {
+			{.name = "reserved", .display_name = "Reserved", .type = reflected_value_type_e::u32, .offset = offsetof(font_cook_config_t, reserved), .size = sizeof(u32), .flags = reflected_field_flags_no_ui},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "font_cook_config_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(font_cook_config_t),
+			.alignment = alignof(font_cook_config_t),
+		});
+	}
 }

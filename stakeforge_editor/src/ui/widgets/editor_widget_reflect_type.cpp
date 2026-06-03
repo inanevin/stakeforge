@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -247,6 +247,8 @@ namespace sfg
 			dst[len] = '\0';
 		}
 
+		span_t<const reflected_enum_value_desc_t> get_reflected_enum_values(const reflected_field_desc_t& field);
+
 		i64 read_reflected_enum(const void* object, const reflected_field_desc_t& field)
 		{
 			u64 raw = 0;
@@ -285,13 +287,25 @@ namespace sfg
 				}
 			}
 
-			for (u32 i = 0; i < field.enum_values.size; ++i)
+			const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_enum_values(field);
+			for (u32 i = 0; i < enum_values.size; ++i)
 			{
-				const i64 value = field.enum_values.data[i].value;
+				const i64 value = enum_values.data[i].value;
 				if (value == static_cast<i64>(raw) || value == static_cast<i64>(static_cast<i32>(raw)))
 					return value;
 			}
 			return static_cast<i64>(raw);
+		}
+
+		span_t<const reflected_enum_value_desc_t> get_reflected_enum_values(const reflected_field_desc_t& field)
+		{
+			if (field.enum_values.size != 0)
+				return field.enum_values;
+			if (field.value_type_id == 0)
+				return {};
+
+			const reflected_type_desc_t* type = reflection_registry_t::get().find_type(field.value_type_id);
+			return type != nullptr ? type->enum_values : span_t<const reflected_enum_value_desc_t>{};
 		}
 
 		void write_reflected_enum(void* object, const reflected_field_desc_t& field, i64 value)
@@ -494,6 +508,8 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
+			if ((field.flags & reflected_field_flags_no_ui) != 0)
+				continue;
 			if (is_vector_field(field) && is_vector_unfolded(field.id))
 				control_count += get_vector_item_count(field);
 		}
@@ -504,7 +520,9 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			const char*					  label = field.display_name != nullptr ? field.display_name : field.name;
+			if ((field.flags & reflected_field_flags_no_ui) != 0)
+				continue;
+			const char* label = field.display_name != nullptr ? field.display_name : field.name;
 			if (is_vector_field(field))
 			{
 				install_vector_field(field, label);
@@ -658,12 +676,19 @@ namespace sfg
 		}
 		case reflected_value_type_e::enum8:
 		case reflected_value_type_e::enum32: {
+			const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_enum_values(field);
+			if (enum_values.size == 0)
+			{
+				add_unknown_label(*_ui, parent);
+				break;
+			}
+
 			_dropdowns.push_back({});
 			enum_control_t& enum_control = _dropdowns.back();
-			enum_control.items.reserve(field.enum_values.size);
-			for (u32 enum_index = 0; enum_index < field.enum_values.size; ++enum_index)
+			enum_control.items.reserve(enum_values.size);
+			for (u32 enum_index = 0; enum_index < enum_values.size; ++enum_index)
 			{
-				const reflected_enum_value_desc_t& value = field.enum_values.data[enum_index];
+				const reflected_enum_value_desc_t& value = enum_values.data[enum_index];
 				enum_control.items.push_back({.text = value.display_name != nullptr ? value.display_name : value.name, .value = static_cast<u16>(enum_index)});
 			}
 
@@ -933,11 +958,12 @@ namespace sfg
 
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)
 	{
-		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		const i64			 value	 = read_reflected_enum(control.object, *control.field);
-		for (u16 i = 0; i < control.field->enum_values.size; ++i)
+		reflected_control_t&							control		= *static_cast<reflected_control_t*>(user_data);
+		const i64										value		= read_reflected_enum(control.object, *control.field);
+		const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_enum_values(*control.field);
+		for (u16 i = 0; i < enum_values.size; ++i)
 		{
-			if (control.field->enum_values.data[i].value == value)
+			if (enum_values.data[i].value == value)
 				return i;
 		}
 		return 0;
@@ -945,9 +971,10 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::on_enum_pressed(u16 value, void* user_data)
 	{
-		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		SFG_ASSERT(value < control.field->enum_values.size);
-		write_reflected_enum(control.object, *control.field, control.field->enum_values.data[value].value);
+		reflected_control_t&							control		= *static_cast<reflected_control_t*>(user_data);
+		const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_enum_values(*control.field);
+		SFG_ASSERT(value < enum_values.size);
+		write_reflected_enum(control.object, *control.field, enum_values.data[value].value);
 	}
 
 	void editor_widget_reflect_type_t::on_vector_header_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

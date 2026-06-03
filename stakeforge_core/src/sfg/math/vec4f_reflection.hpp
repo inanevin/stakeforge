@@ -28,10 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "vec4f.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const vec4f_t& v);
-	void from_json(const nlohmann::json& j, vec4f_t& v);
+	struct vec4f_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "vec4f_t"_hs;
+
+		vec4f_reflection_t();
+	};
+
+	inline vec4f_reflection_t g_reflect_vec4f;
 }

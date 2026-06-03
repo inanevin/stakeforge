@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -47,6 +47,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define REFLECTION_REGISTRY_MAX_TYPES		512
+#define REFLECTION_REGISTRY_MAX_FIELDS		4096
+#define REFLECTION_REGISTRY_MAX_ENUM_VALUES 1024
+#define REFLECTION_REGISTRY_TEXT_BYTES		(1024 * 128)
+
 	namespace
 	{
 		const void* get_reflected_field_ptr(const void* object, const reflected_field_desc_t& field)
@@ -203,6 +208,86 @@ namespace sfg
 			return true;
 		}
 
+		i64 read_reflected_enum_value(const void* object, u32 size)
+		{
+			switch (size)
+			{
+			case sizeof(u8):
+				return static_cast<i64>(*static_cast<const u8*>(object));
+			case sizeof(u16):
+				return static_cast<i64>(*static_cast<const u16*>(object));
+			case sizeof(u64):
+				return static_cast<i64>(*static_cast<const u64*>(object));
+			default:
+				return static_cast<i64>(*static_cast<const u32*>(object));
+			}
+		}
+
+		void write_reflected_enum_value(void* object, u32 size, i64 value)
+		{
+			switch (size)
+			{
+			case sizeof(u8):
+				*static_cast<u8*>(object) = static_cast<u8>(value);
+				break;
+			case sizeof(u16):
+				*static_cast<u16*>(object) = static_cast<u16>(value);
+				break;
+			case sizeof(u64):
+				*static_cast<u64*>(object) = static_cast<u64>(value);
+				break;
+			default:
+				*static_cast<u32*>(object) = static_cast<u32>(value);
+				break;
+			}
+		}
+
+		void stream_reflected_enum_value(ostream_t& stream, u32 size, i64 value)
+		{
+			switch (size)
+			{
+			case sizeof(u8):
+				stream << static_cast<u8>(value);
+				break;
+			case sizeof(u16):
+				stream << static_cast<u16>(value);
+				break;
+			case sizeof(u64):
+				stream << static_cast<u64>(value);
+				break;
+			default:
+				stream << static_cast<u32>(value);
+				break;
+			}
+		}
+
+		i64 stream_read_reflected_enum_value(istream_t& stream, u32 size)
+		{
+			switch (size)
+			{
+			case sizeof(u8): {
+				u8 value = 0;
+				stream >> value;
+				return static_cast<i64>(value);
+			}
+			case sizeof(u16): {
+				u16 value = 0;
+				stream >> value;
+				return static_cast<i64>(value);
+			}
+			case sizeof(u64): {
+				u64 value = 0;
+				stream >> value;
+				return static_cast<i64>(value);
+			}
+			default: {
+				u32 value = 0;
+				stream >> value;
+				return static_cast<i64>(value);
+			}
+			}
+		}
+
 		template <typename T> vector_t<T>& get_reflected_vector(void* object, const reflected_field_desc_t& field)
 		{
 			return *static_cast<vector_t<T>*>(get_reflected_field_ptr(object, field));
@@ -263,21 +348,21 @@ namespace sfg
 			}
 		}
 
-		const char* find_enum_name(const reflected_field_desc_t& field, i64 value)
+		const char* find_enum_name(span_t<const reflected_enum_value_desc_t> enum_values, i64 value)
 		{
-			for (u32 i = 0; i < field.enum_values.size; ++i)
+			for (u32 i = 0; i < enum_values.size; ++i)
 			{
-				if (field.enum_values.data[i].value == value)
-					return field.enum_values.data[i].name;
+				if (enum_values.data[i].value == value)
+					return enum_values.data[i].name;
 			}
 			return nullptr;
 		}
 
-		bool find_enum_value(const reflected_field_desc_t& field, const char* name, i64& out_value)
+		bool find_enum_value(span_t<const reflected_enum_value_desc_t> enum_values, const char* name, i64& out_value)
 		{
-			for (u32 i = 0; i < field.enum_values.size; ++i)
+			for (u32 i = 0; i < enum_values.size; ++i)
 			{
-				const reflected_enum_value_desc_t& value = field.enum_values.data[i];
+				const reflected_enum_value_desc_t& value = enum_values.data[i];
 				if ((value.name != nullptr && std::strcmp(value.name, name) == 0) || (value.display_name != nullptr && std::strcmp(value.display_name, name) == 0))
 				{
 					out_value = value.value;
@@ -285,6 +370,27 @@ namespace sfg
 				}
 			}
 			return false;
+		}
+
+		span_t<const reflected_enum_value_desc_t> get_reflected_field_enum_values(const reflected_field_desc_t& field)
+		{
+			if (field.enum_values.size != 0)
+				return field.enum_values;
+			if (field.value_type_id == 0)
+				return {};
+
+			const reflected_type_desc_t* type = reflection_registry_t::get().find_type(field.value_type_id);
+			return type != nullptr ? type->enum_values : span_t<const reflected_enum_value_desc_t>{};
+		}
+
+		const char* find_enum_name(const reflected_field_desc_t& field, i64 value)
+		{
+			return find_enum_name(get_reflected_field_enum_values(field), value);
+		}
+
+		bool find_enum_value(const reflected_field_desc_t& field, const char* name, i64& out_value)
+		{
+			return find_enum_value(get_reflected_field_enum_values(field), name, out_value);
 		}
 
 		nlohmann::json vec2_to_json(const vec2f_t& value)
@@ -554,6 +660,13 @@ namespace sfg
 				j = value != nullptr ? value : "";
 				return true;
 			}
+			case reflected_value_type_e::json: {
+				nlohmann::json value = {};
+				if (!read_reflected_value(object, field, value))
+					return false;
+				j = value;
+				return true;
+			}
 			case reflected_value_type_e::quat: {
 				quat_t value = {};
 				if (!read_reflected_value(object, field, value))
@@ -638,6 +751,8 @@ namespace sfg
 				const string_t value = j.get<string_t>();
 				return write_reflected_text(object, field, value.c_str());
 			}
+			case reflected_value_type_e::json:
+				return write_reflected_value(object, field, j);
 			case reflected_value_type_e::quat: {
 				vec4f_t value = {};
 				if (!json_to_vec4(j, value))
@@ -779,6 +894,13 @@ namespace sfg
 				stream << string_t(value != nullptr ? value : "");
 				return true;
 			}
+			case reflected_value_type_e::json: {
+				nlohmann::json value = {};
+				if (!read_reflected_value(object, field, value))
+					return false;
+				stream << string_t(value.dump().c_str());
+				return true;
+			}
 			case reflected_value_type_e::quat: {
 				quat_t value = {};
 				if (!read_reflected_value(object, field, value))
@@ -896,6 +1018,14 @@ namespace sfg
 				stream >> value;
 				return write_reflected_text(object, field, value.c_str());
 			}
+			case reflected_value_type_e::json: {
+				string_t value;
+				stream >> value;
+				const nlohmann::json j = nlohmann::json::parse(value, nullptr, false);
+				if (j.is_discarded())
+					return false;
+				return write_reflected_value(object, field, j);
+			}
 			case reflected_value_type_e::quat: {
 				quat_t value;
 				stream >> value.x >> value.y >> value.z >> value.w;
@@ -947,16 +1077,15 @@ namespace sfg
 		uninit();
 	}
 
-	void reflection_registry_t::init(const reflection_registry_config_t& config)
+	void reflection_registry_t::init()
 	{
 		if (_initialized)
 			uninit();
 
-		_config = config;
-		_text.init(_config.text_bytes);
-		_types.reserve(_config.max_types);
-		_fields.reserve(_config.max_fields);
-		_enum_values.reserve(_config.max_enum_values);
+		_text.init(REFLECTION_REGISTRY_TEXT_BYTES);
+		_types.reserve(REFLECTION_REGISTRY_MAX_TYPES);
+		_fields.reserve(REFLECTION_REGISTRY_MAX_FIELDS);
+		_enum_values.reserve(REFLECTION_REGISTRY_MAX_ENUM_VALUES);
 		_initialized = true;
 	}
 
@@ -1007,7 +1136,13 @@ namespace sfg
 			return false;
 		}
 
-		u32 enum_count = 0;
+		if (desc.enum_values.size != 0 && desc.enum_values.data == nullptr)
+		{
+			SFG_ERR("reflected type has enum value count but no enum value data");
+			return false;
+		}
+
+		u32 enum_count = static_cast<u32>(desc.enum_values.size);
 		for (u32 i = 0; i < field_count; ++i)
 		{
 			if (desc.fields.data[i].enum_values.size != 0 && desc.fields.data[i].enum_values.data == nullptr)
@@ -1056,6 +1191,14 @@ namespace sfg
 		if (type == nullptr)
 			return false;
 
+		if (type->fields.size == 0 && type->enum_values.size != 0)
+		{
+			const i64	value = read_reflected_enum_value(obj, type->size);
+			const char* name  = find_enum_name(type->enum_values, value);
+			j				  = name != nullptr ? nlohmann::json(name) : nlohmann::json(value);
+			return true;
+		}
+
 		j = nlohmann::json::object();
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
@@ -1082,6 +1225,12 @@ namespace sfg
 		if (type == nullptr)
 			return false;
 
+		if (type->fields.size == 0 && type->enum_values.size != 0)
+		{
+			stream_reflected_enum_value(stream, type->size, read_reflected_enum_value(obj, type->size));
+			return true;
+		}
+
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
@@ -1099,7 +1248,28 @@ namespace sfg
 		SFG_ASSERT(obj != nullptr);
 
 		const reflected_type_desc_t* type = find_type(type_id);
-		if (type == nullptr || !j.is_object())
+		if (type == nullptr)
+			return false;
+
+		if (type->fields.size == 0 && type->enum_values.size != 0)
+		{
+			i64 value = 0;
+			if (j.is_string())
+			{
+				const string_t name = j.get<string_t>();
+				if (!find_enum_value(type->enum_values, name.c_str(), value))
+					return false;
+			}
+			else
+			{
+				value = j.get<i64>();
+			}
+
+			write_reflected_enum_value(obj, type->size, value);
+			return true;
+		}
+
+		if (!j.is_object())
 			return false;
 
 		for (u32 i = 0; i < type->fields.size; ++i)
@@ -1125,6 +1295,12 @@ namespace sfg
 		const reflected_type_desc_t* type = find_type(type_id);
 		if (type == nullptr)
 			return false;
+
+		if (type->fields.size == 0 && type->enum_values.size != 0)
+		{
+			write_reflected_enum_value(obj, type->size, stream_read_reflected_enum_value(stream, type->size));
+			return true;
+		}
 
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
@@ -1237,9 +1413,16 @@ namespace sfg
 
 	reflected_type_desc_t reflection_registry_t::copy_type(const reflected_type_desc_t& desc, u32 field_start, u32 field_count)
 	{
+		const u32 enum_value_start = static_cast<u32>(_enum_values.size());
+		const u32 enum_value_count = static_cast<u32>(desc.enum_values.size);
+
+		for (u32 i = 0; i < enum_value_count; ++i)
+			_enum_values.push_back(copy_enum_value(desc.enum_values.data[i]));
+
 		const char*			  name	 = copy_text(desc.name);
 		reflected_type_desc_t copied = desc;
 		copied.fields				 = field_count != 0 ? span_t<const reflected_field_desc_t>{.data = _fields.data() + field_start, .size = field_count} : span_t<const reflected_field_desc_t>{};
+		copied.enum_values			 = enum_value_count != 0 ? span_t<const reflected_enum_value_desc_t>{.data = _enum_values.data() + enum_value_start, .size = enum_value_count} : span_t<const reflected_enum_value_desc_t>{};
 		copied.name					 = name;
 		copied.display_name			 = copy_text(desc.display_name != nullptr ? desc.display_name : desc.name);
 		copied.category				 = copy_text(desc.category);
