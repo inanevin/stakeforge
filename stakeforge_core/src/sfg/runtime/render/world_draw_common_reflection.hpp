@@ -32,6 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const world_pass_flags& f);
-	void from_json(const nlohmann::json& j, world_pass_flags& f);
+	void to_json(nlohmann::json& j, const world_pass_flags_e& f);
+	void from_json(const nlohmann::json& j, world_pass_flags_e& f);
 }

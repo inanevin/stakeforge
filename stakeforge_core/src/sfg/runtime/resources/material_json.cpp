@@ -70,7 +70,7 @@ namespace sfg
 	{
 		u32 flags = 0;
 		stream >> flags;
-		pass_flags = static_cast<world_pass_flags>(flags);
+		pass_flags = static_cast<world_pass_flags_e>(flags);
 		stream >> shader;
 		stream >> sampler;
 

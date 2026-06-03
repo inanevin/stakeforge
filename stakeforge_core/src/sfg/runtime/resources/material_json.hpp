@@ -62,7 +62,7 @@ namespace sfg
 		vector_t<material_parameter_t> parameters		= {};
 		sid_t						   shader			= NULL_SID;
 		sid_t						   sampler			= NULL_SID;
-		world_pass_flags			   pass_flags		= wpf_none;
+		world_pass_flags_e			   pass_flags		= wpf_none;
 		bool						   double_sided		= false;
 		bool						   use_alpha_cutoff = false;
 

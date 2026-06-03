@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -33,20 +33,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	void to_json(nlohmann::json& j, const physical_material_json_t& m)
-		{
-			j["schema"]			 = "sfg.schema.physical_material";
-			j["restitution"]	 = m.restitution;
-			j["friction"]		 = m.friction;
-			j["angular_damping"] = m.angular_damping;
-			j["linear_damping"]	 = m.linear_damping;
-		}
+	{
+		j["schema"]			 = "sfg.schema.physical_material";
+		j["restitution"]	 = m.restitution;
+		j["friction"]		 = m.friction;
+		j["angular_damping"] = m.angular_damping;
+		j["linear_damping"]	 = m.linear_damping;
+	}
 
 	void from_json(const nlohmann::json& j, physical_material_json_t& m)
-		{
-			m.restitution	  = j.value<f32>("restitution", 0.0f);
-			m.friction		  = j.value<f32>("friction", 0.2f);
-			m.angular_damping = j.value<f32>("angular_damping", j.value<f32>("angular_damp", 0.05f));
-			m.linear_damping  = j.value<f32>("linear_damping", j.value<f32>("linear_damp", 0.05f));
-		}
+	{
+		m.restitution	  = j.value<f32>("restitution", 0.0f);
+		m.friction		  = j.value<f32>("friction", 0.2f);
+		m.angular_damping = j.value<f32>("angular_damping", j.value<f32>("angular_damp", 0.05f));
+		m.linear_damping  = j.value<f32>("linear_damping", j.value<f32>("linear_damp", 0.05f));
+	}
 
 }

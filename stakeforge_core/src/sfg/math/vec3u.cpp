@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -22,25 +22,12 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
 
-#include "rectf_reflection.hpp"
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include "vec3u.hpp"
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const rectf_t& v)
-	{
-		j = nlohmann::json::array_t({v.x, v.y, v.w, v.h});
-	}
-
-	void from_json(const nlohmann::json& j, rectf_t& v)
-	{
-		v.x = j.at(0).get<f32>();
-		v.y = j.at(1).get<f32>();
-		v.w = j.at(2).get<f32>();
-		v.h = j.at(3).get<f32>();
-	}
-
+	vec3u_t vec3u_t::zero = {0, 0, 0};
+	vec3u_t vec3u_t::one  = {1, 1, 1};
 }

@@ -61,8 +61,8 @@ namespace sfg
 
 	bool sampler_desc_t::operator==(const sampler_desc_t& other) const
 	{
-		return other.anisotropy == anisotropy && other.flags == flags && other.address_u == address_u && other.address_v == address_v && other.address_w == address_w && other.compare == compare && math::almost_equal(min_lod, other.min_lod) &&
-			   math::almost_equal(max_lod, other.max_lod) && math::almost_equal(lod_bias, other.lod_bias);
+		return other.anisotropy == anisotropy && other.address_u == address_u && other.address_v == address_v && other.address_w == address_w && other.min_filter == min_filter && other.mag_filter == mag_filter && other.mip_filter == mip_filter &&
+			   other.border == border && other.compare == compare && other.use_compare == use_compare && math::almost_equal(min_lod, other.min_lod) && math::almost_equal(max_lod, other.max_lod) && math::almost_equal(lod_bias, other.lod_bias);
 	}
 
 	void sampler_desc_t::set_name(const char* name)
@@ -76,30 +76,48 @@ namespace sfg
 		stream << lod_bias;
 		stream << min_lod;
 		stream << max_lod;
-		stream << flags.value();
 		stream << address_u;
 		stream << address_v;
 		stream << address_w;
+		stream << min_filter;
+		stream << mag_filter;
+		stream << mip_filter;
+		stream << border;
+		stream << compare;
+		stream << use_compare;
 	}
 
 	void sampler_desc_t::deserialize(istream_t& stream)
 	{
-		u16 val	   = 0;
-		u8	addr_u = 0;
-		u8	addr_v = 0;
-		u8	addr_w = 0;
+		u8 addr_u	  = 0;
+		u8 addr_v	  = 0;
+		u8 addr_w	  = 0;
+		u8 min		  = 0;
+		u8 mag		  = 0;
+		u8 mip		  = 0;
+		u8 border_val = 0;
+		u8 compare_op = 0;
 		stream >> anisotropy;
 		stream >> lod_bias;
 		stream >> min_lod;
 		stream >> max_lod;
-		stream >> val;
 		stream >> addr_u;
 		stream >> addr_v;
 		stream >> addr_w;
-		flags	  = val;
-		address_u = static_cast<address_mode>(addr_u);
-		address_v = static_cast<address_mode>(addr_v);
-		address_w = static_cast<address_mode>(addr_w);
+		stream >> min;
+		stream >> mag;
+		stream >> mip;
+		stream >> border_val;
+		stream >> compare_op;
+		stream >> use_compare;
+		address_u  = static_cast<address_mode>(addr_u);
+		address_v  = static_cast<address_mode>(addr_v);
+		address_w  = static_cast<address_mode>(addr_w);
+		min_filter = static_cast<sampler_filter_e>(min);
+		mag_filter = static_cast<sampler_filter_e>(mag);
+		mip_filter = static_cast<sampler_filter_e>(mip);
+		border	   = static_cast<sampler_border_e>(border_val);
+		compare	   = static_cast<sfg::compare_op>(compare_op);
 	}
 
 }

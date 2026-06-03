@@ -9,13 +9,14 @@
         "min_lod": 0.0,
         "max_lod": 10.0,
         "lod_bias": 0.0,
-        "min": "nearest",
-        "mag": "nearest",
-        "mip": "nearest",
+        "min_filter": "nearest",
+        "mag_filter": "nearest",
+        "mip_filter": "nearest",
         "address_u": "clamp",
         "address_v": "clamp",
         "address_w": "clamp",
-        "border": "transparent"
+        "border": "transparent",
+        "use_compare": false
     },
     "cook_options": {},
     "source_relative": "",

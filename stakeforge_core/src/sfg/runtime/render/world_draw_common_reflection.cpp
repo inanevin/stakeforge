@@ -33,7 +33,7 @@ namespace sfg
 {
 	namespace
 	{
-		world_pass_flags world_pass_flag_from_string(const string_t& value)
+		world_pass_flags_e world_pass_flag_from_string(const string_t& value)
 		{
 			if (value == "gbuffer" || value == "wpf_gbuffer")
 				return wpf_gbuffer;
@@ -47,7 +47,7 @@ namespace sfg
 		}
 	}
 
-	void to_json(nlohmann::json& j, const world_pass_flags& f)
+	void to_json(nlohmann::json& j, const world_pass_flags_e& f)
 		{
 			j				= nlohmann::json::array();
 			const u32 flags = static_cast<u32>(f);
@@ -61,7 +61,7 @@ namespace sfg
 				j.push_back("shadow");
 		}
 
-	void from_json(const nlohmann::json& j, world_pass_flags& f)
+	void from_json(const nlohmann::json& j, world_pass_flags_e& f)
 		{
 			u32 flags = wpf_none;
 			if (j.is_number_unsigned())
@@ -77,7 +77,7 @@ namespace sfg
 				for (const nlohmann::json& item : j)
 					flags |= static_cast<u32>(world_pass_flag_from_string(item.get<string_t>()));
 			}
-			f = static_cast<world_pass_flags>(flags);
+			f = static_cast<world_pass_flags_e>(flags);
 		}
 
 }

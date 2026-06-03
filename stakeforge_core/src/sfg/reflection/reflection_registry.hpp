@@ -31,11 +31,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/text_allocator.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #include <cstddef>
 
 namespace sfg
 {
+	class istream_t;
+	class ostream_t;
+
 	enum class reflected_value_type_e : u8
 	{
 		invalid = 0,
@@ -47,11 +51,15 @@ namespace sfg
 		vec2,
 		vec3,
 		vec4,
+		vec2u,
+		vec3u,
+		vec4u,
 		color,
 		resource,
 		entity_id,
 		string,
 		quat,
+		enum8,
 		enum32,
 		vector,
 		static_vector,
@@ -152,6 +160,10 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		bool register_type(const reflected_type_desc_t& desc);
+		bool serialize_to_json(sid_t type_id, const void* obj, nlohmann::json& j) const;
+		bool serialize_to_stream(sid_t type_id, const void* obj, ostream_t& stream) const;
+		bool deserialize_from_json(sid_t type_id, void* obj, const nlohmann::json& j) const;
+		bool deserialize_from_stream(sid_t type_id, void* obj, istream_t& stream) const;
 
 		// -----------------------------------------------------------------------------
 		// queries

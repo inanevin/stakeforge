@@ -20,7 +20,7 @@ namespace sfg
 		u32				 parameter_data_size = 0;
 		u32				 parameter_count	 = 0;
 		u32				 texture_count		 = 0;
-		world_pass_flags pass_flags			 = wpf_none;
+		world_pass_flags_e pass_flags			 = wpf_none;
 		u8				 double_sided		 = 0;
 		u8				 use_alpha_cutoff	 = 0;
 	};

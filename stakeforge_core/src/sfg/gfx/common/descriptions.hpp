@@ -127,19 +127,17 @@ namespace sfg
 		tf_gpu_write				= 1 << 15,
 	};
 
-	enum sampler_flags
+	enum class sampler_filter_e : u8
 	{
-		saf_min_anisotropic	   = 1 << 0,
-		saf_min_nearest		   = 1 << 1,
-		saf_min_linear		   = 1 << 2,
-		saf_mag_anisotropic	   = 1 << 3,
-		saf_mag_nearest		   = 1 << 4,
-		saf_mag_linear		   = 1 << 5,
-		saf_mip_nearest		   = 1 << 6,
-		saf_mip_linear		   = 1 << 7,
-		saf_border_transparent = 1 << 8,
-		saf_border_white	   = 1 << 9,
-		saf_compare			   = 1 << 10,
+		anisotropic,
+		nearest,
+		linear,
+	};
+
+	enum class sampler_border_e : u8
+	{
+		transparent,
+		white,
 	};
 
 	enum class address_mode : u8
@@ -226,16 +224,20 @@ namespace sfg
 	{
 		static constexpr size_t MAX_DEBUG_NAME = 64;
 
-		char		   debug_name[MAX_DEBUG_NAME] = {"sampler"};
-		u32			   anisotropy				  = 0;
-		f32			   min_lod					  = 0.0f;
-		f32			   max_lod					  = 1.0f;
-		f32			   lod_bias					  = 0.0f;
-		bitmask_t<u16> flags					  = 0;
-		address_mode   address_u				  = address_mode::clamp;
-		address_mode   address_v				  = address_mode::clamp;
-		address_mode   address_w				  = address_mode::clamp;
-		compare_op	   compare					  = {};
+		char			 debug_name[MAX_DEBUG_NAME] = {"sampler"};
+		u32				 anisotropy					= 0;
+		f32				 min_lod					= 0.0f;
+		f32				 max_lod					= 1.0f;
+		f32				 lod_bias					= 0.0f;
+		address_mode	 address_u					= address_mode::clamp;
+		address_mode	 address_v					= address_mode::clamp;
+		address_mode	 address_w					= address_mode::clamp;
+		sampler_filter_e min_filter					= sampler_filter_e::anisotropic;
+		sampler_filter_e mag_filter					= sampler_filter_e::anisotropic;
+		sampler_filter_e mip_filter					= sampler_filter_e::linear;
+		sampler_border_e border						= sampler_border_e::transparent;
+		compare_op		 compare					= compare_op::less;
+		bool			 use_compare				= false;
 
 		bool operator==(const sampler_desc_t& other) const;
 

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -32,15 +32,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)
-		{
-			j["layout"]		  = settings.layout;
-			j["project_path"] = settings.last_project_path;
-		}
+	{
+		j["layout"]		  = settings.layout;
+		j["project_path"] = settings.last_project_path;
+	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
-		{
-			settings.layout			   = j.value("layout", editor_layout_t{});
-			settings.last_project_path = j.value<string_t>("project_path", {});
-		}
+	{
+		settings.layout			   = j.value("layout", editor_layout_t{});
+		settings.last_project_path = j.value<string_t>("project_path", {});
+	}
 
 }

@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	enum world_pass_flags
+	enum world_pass_flags_e
 	{
 		wpf_none	= 0,
 		wpf_gbuffer = 1 << 0,

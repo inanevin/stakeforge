@@ -111,38 +111,48 @@ namespace sfg
 			return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		}
 
-		D3D12_FILTER get_filter(bitmask_t<u16> sampler_flags)
+		D3D12_FILTER get_filter(const sampler_desc_t& desc)
 		{
-			const bool compare = sampler_flags.is_set(sampler_flags::saf_compare);
+			const bool compare = desc.use_compare;
 
-			if (sampler_flags.is_set(saf_min_anisotropic) && sampler_flags.is_set(saf_mag_anisotropic))
+			if (desc.min_filter == sampler_filter_e::anisotropic || desc.mag_filter == sampler_filter_e::anisotropic)
+			{
+				SFG_ASSERT(desc.min_filter == sampler_filter_e::anisotropic && desc.mag_filter == sampler_filter_e::anisotropic);
 				return compare ? D3D12_FILTER_COMPARISON_ANISOTROPIC : D3D12_FILTER_ANISOTROPIC;
-			else if (sampler_flags.is_set(saf_mip_linear) && sampler_flags.is_set(saf_min_linear) && sampler_flags.is_set(saf_mag_linear))
+			}
+			else if (desc.mip_filter == sampler_filter_e::linear && desc.min_filter == sampler_filter_e::linear && desc.mag_filter == sampler_filter_e::linear)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-			else if (sampler_flags.is_set(saf_mip_nearest) && sampler_flags.is_set(saf_min_linear) && sampler_flags.is_set(saf_mag_linear))
+			else if (desc.mip_filter == sampler_filter_e::nearest && desc.min_filter == sampler_filter_e::linear && desc.mag_filter == sampler_filter_e::linear)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT : D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-			else if (sampler_flags.is_set(saf_mip_linear) && sampler_flags.is_set(saf_min_linear) && sampler_flags.is_set(saf_mag_nearest))
+			else if (desc.mip_filter == sampler_filter_e::linear && desc.min_filter == sampler_filter_e::linear && desc.mag_filter == sampler_filter_e::nearest)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR : D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
-			else if (sampler_flags.is_set(saf_mip_nearest) && sampler_flags.is_set(saf_min_linear) && sampler_flags.is_set(saf_mag_nearest))
+			else if (desc.mip_filter == sampler_filter_e::nearest && desc.min_filter == sampler_filter_e::linear && desc.mag_filter == sampler_filter_e::nearest)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT : D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
-			else if (sampler_flags.is_set(saf_mip_linear) && sampler_flags.is_set(saf_min_nearest) && sampler_flags.is_set(saf_mag_linear))
+			else if (desc.mip_filter == sampler_filter_e::linear && desc.min_filter == sampler_filter_e::nearest && desc.mag_filter == sampler_filter_e::linear)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR : D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
-			else if (sampler_flags.is_set(saf_mip_nearest) && sampler_flags.is_set(saf_min_nearest) && sampler_flags.is_set(saf_mag_linear))
+			else if (desc.mip_filter == sampler_filter_e::nearest && desc.min_filter == sampler_filter_e::nearest && desc.mag_filter == sampler_filter_e::linear)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT : D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
-			else if (sampler_flags.is_set(saf_mip_linear) && sampler_flags.is_set(saf_min_nearest) && sampler_flags.is_set(saf_mag_nearest))
+			else if (desc.mip_filter == sampler_filter_e::linear && desc.min_filter == sampler_filter_e::nearest && desc.mag_filter == sampler_filter_e::nearest)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR : D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
-			else if (sampler_flags.is_set(saf_mip_nearest) && sampler_flags.is_set(saf_min_nearest) && sampler_flags.is_set(saf_mag_nearest))
+			else if (desc.mip_filter == sampler_filter_e::nearest && desc.min_filter == sampler_filter_e::nearest && desc.mag_filter == sampler_filter_e::nearest)
 				return compare ? D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D12_FILTER_MIN_MAG_MIP_POINT;
 
 			return compare ? D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 		}
 
-		void border_color(bitmask_t<u16> flags, float* color_t)
+		void border_color(sampler_border_e border, float* color_t)
 		{
-			if (flags.is_set(saf_border_transparent))
+			if (border == sampler_border_e::transparent)
 				color_t[0] = color_t[1] = color_t[2] = color_t[3] = 0.0f;
 			else
 				color_t[0] = color_t[1] = color_t[2] = color_t[3] = 1.0f;
+		}
+
+		D3D12_STATIC_BORDER_COLOR get_static_border_color(sampler_border_e border)
+		{
+			if (border == sampler_border_e::transparent)
+				return D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+			return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 		}
 
 		D3D12_COMMAND_LIST_TYPE get_command_type(command_type type)
@@ -1462,17 +1472,17 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING() || SFG_IS_RENDER_THREAD());
 
 		D3D12_SAMPLER_DESC samplerDesc = {
-			.Filter			= get_filter(desc.flags),
+			.Filter			= get_filter(desc),
 			.AddressU		= get_address_mode(desc.address_u),
 			.AddressV		= get_address_mode(desc.address_v),
 			.AddressW		= get_address_mode(desc.address_w),
 			.MipLODBias		= static_cast<FLOAT>(desc.lod_bias),
 			.MaxAnisotropy	= desc.anisotropy,
-			.ComparisonFunc = desc.flags.is_set(sampler_flags::saf_compare) ? get_compare_op(desc.compare) : D3D12_COMPARISON_FUNC_NONE,
+			.ComparisonFunc = desc.use_compare ? get_compare_op(desc.compare) : D3D12_COMPARISON_FUNC_NONE,
 			.MinLOD			= desc.min_lod,
 			.MaxLOD			= desc.max_lod,
 		};
-		border_color(desc.flags, samplerDesc.BorderColor);
+		border_color(desc.border, samplerDesc.BorderColor);
 
 		const gfx_sampler_handle id	 = _samplers.add();
 		sampler_t&				 smp = _samplers.get(id);
@@ -2641,13 +2651,14 @@ namespace sfg
 		const D3D12_SHADER_VISIBILITY visibility = get_visibility(static_cast<shader_stage_e>(vis));
 
 		_reuse_static_samplers.push_back({
-			.Filter			  = get_filter(desc.flags),
+			.Filter			  = get_filter(desc),
 			.AddressU		  = get_address_mode(desc.address_u),
 			.AddressV		  = get_address_mode(desc.address_v),
 			.AddressW		  = get_address_mode(desc.address_w),
 			.MipLODBias		  = static_cast<FLOAT>(desc.lod_bias),
 			.MaxAnisotropy	  = desc.anisotropy,
-			.ComparisonFunc	  = desc.flags.is_set(sampler_flags::saf_compare) ? get_compare_op(desc.compare) : D3D12_COMPARISON_FUNC_NONE,
+			.ComparisonFunc	  = desc.use_compare ? get_compare_op(desc.compare) : D3D12_COMPARISON_FUNC_NONE,
+			.BorderColor	  = get_static_border_color(desc.border),
 			.MinLOD			  = desc.min_lod,
 			.MaxLOD			  = desc.max_lod,
 			.ShaderRegister	  = binding_t,

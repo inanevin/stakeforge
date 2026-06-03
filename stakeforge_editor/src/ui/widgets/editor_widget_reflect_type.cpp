@@ -29,8 +29,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/vec2u.hpp>
+#include <sfg/math/vec3u.hpp>
+#include <sfg/math/vec4u.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -156,6 +159,41 @@ namespace sfg
 			}
 		}
 
+		u32 to_reflected_u32(f32 value)
+		{
+			return static_cast<u32>(value < 0.0f ? 0.0f : value);
+		}
+
+		vec2f_t to_vec2f(const vec2u_t& value)
+		{
+			return {static_cast<f32>(value.x), static_cast<f32>(value.y)};
+		}
+
+		vec3f_t to_vec3f(const vec3u_t& value)
+		{
+			return {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z)};
+		}
+
+		vec4f_t to_vec4f(const vec4u_t& value)
+		{
+			return {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z), static_cast<f32>(value.w)};
+		}
+
+		vec2u_t to_vec2u(const vec2f_t& value)
+		{
+			return {to_reflected_u32(value.x), to_reflected_u32(value.y)};
+		}
+
+		vec3u_t to_vec3u(const vec3f_t& value)
+		{
+			return {to_reflected_u32(value.x), to_reflected_u32(value.y), to_reflected_u32(value.z)};
+		}
+
+		vec4u_t to_vec4u(const vec4f_t& value)
+		{
+			return {to_reflected_u32(value.x), to_reflected_u32(value.y), to_reflected_u32(value.z), to_reflected_u32(value.w)};
+		}
+
 		bool read_reflected_bool(const void* object, const reflected_field_desc_t& field)
 		{
 			bool value = false;
@@ -214,9 +252,18 @@ namespace sfg
 			u64 raw = 0;
 			if (field.get != nullptr)
 			{
-				u32 value = 0;
-				field.get(object, field, &value, field.user_data);
-				raw = value;
+				if (field.type == reflected_value_type_e::enum8)
+				{
+					u8 value = 0;
+					field.get(object, field, &value, field.user_data);
+					raw = value;
+				}
+				else
+				{
+					u32 value = 0;
+					field.get(object, field, &value, field.user_data);
+					raw = value;
+				}
 			}
 			else
 			{
@@ -253,8 +300,16 @@ namespace sfg
 				return;
 			if (field.set != nullptr)
 			{
-				const u32 raw = static_cast<u32>(value);
-				field.set(object, field, &raw, field.user_data);
+				if (field.type == reflected_value_type_e::enum8)
+				{
+					const u8 raw = static_cast<u8>(value);
+					field.set(object, field, &raw, field.user_data);
+				}
+				else
+				{
+					const u32 raw = static_cast<u32>(value);
+					field.set(object, field, &raw, field.user_data);
+				}
 				return;
 			}
 
@@ -517,6 +572,19 @@ namespace sfg
 			_vec2_fields.push_back(vec);
 			break;
 		}
+		case reflected_value_type_e::vec2u: {
+			editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
+			editor_vec2_field_config_t config = {};
+			config.value					  = to_vec2f(read_reflected_value<vec2u_t>(object, field));
+			config.increment				  = 1.0f;
+			config.integer					  = true;
+			config.on_changed				  = on_vec2_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec2_fields.push_back(vec);
+			break;
+		}
 		case reflected_value_type_e::vec3: {
 			editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
 			editor_vec3_field_config_t config = {};
@@ -528,10 +596,36 @@ namespace sfg
 			_vec3_fields.push_back(vec);
 			break;
 		}
+		case reflected_value_type_e::vec3u: {
+			editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
+			editor_vec3_field_config_t config = {};
+			config.value					  = to_vec3f(read_reflected_value<vec3u_t>(object, field));
+			config.increment				  = 1.0f;
+			config.integer					  = true;
+			config.on_changed				  = on_vec3_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec3_fields.push_back(vec);
+			break;
+		}
 		case reflected_value_type_e::vec4: {
 			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
 			editor_vec4_field_config_t config = {};
 			config.value					  = read_reflected_value<vec4f_t>(object, field);
+			config.on_changed				  = on_vec4_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec4_fields.push_back(vec);
+			break;
+		}
+		case reflected_value_type_e::vec4u: {
+			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
+			editor_vec4_field_config_t config = {};
+			config.value					  = to_vec4f(read_reflected_value<vec4u_t>(object, field));
+			config.increment				  = 1.0f;
+			config.integer					  = true;
 			config.on_changed				  = on_vec4_changed;
 			config.user_data				  = control;
 			vec->init(*_ui, parent, config);
@@ -562,6 +656,7 @@ namespace sfg
 			_input_fields.push_back(input);
 			break;
 		}
+		case reflected_value_type_e::enum8:
 		case reflected_value_type_e::enum32: {
 			_dropdowns.push_back({});
 			enum_control_t& enum_control = _dropdowns.back();
@@ -812,19 +907,28 @@ namespace sfg
 	void editor_widget_reflect_type_t::on_vec2_changed(const vec2f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.object, *control.field, value);
+		if (control.field->type == reflected_value_type_e::vec2u)
+			write_reflected_value(control.object, *control.field, to_vec2u(value));
+		else
+			write_reflected_value(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec3_changed(const vec3f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.object, *control.field, value);
+		if (control.field->type == reflected_value_type_e::vec3u)
+			write_reflected_value(control.object, *control.field, to_vec3u(value));
+		else
+			write_reflected_value(control.object, *control.field, value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec4_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.object, *control.field, value);
+		if (control.field->type == reflected_value_type_e::vec4u)
+			write_reflected_value(control.object, *control.field, to_vec4u(value));
+		else
+			write_reflected_value(control.object, *control.field, value);
 	}
 
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,16 +31,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	void to_json(nlohmann::json& j, const vec2f_t& v)
-		{
-			j = nlohmann::json::array_t({v.x, v.y});
-		}
+	{
+		j = nlohmann::json::array_t({v.x, v.y});
+	}
 
 	void from_json(const nlohmann::json& j, vec2f_t& v)
-		{
-			if (!j.is_array() || j.size() < 2)
-				throw std::runtime_error("vec2f json err");
-			v.x = j.at(0).get<f32>();
-			v.y = j.at(1).get<f32>();
-		}
+	{
+		if (!j.is_array() || j.size() < 2)
+			throw std::runtime_error("vec2f json err");
+		v.x = j.at(0).get<f32>();
+		v.y = j.at(1).get<f32>();
+	}
 
 }

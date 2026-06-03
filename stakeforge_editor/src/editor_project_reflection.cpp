@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,19 +31,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	void to_json(nlohmann::json& j, const editor_project_t& project)
-		{
-			j["last_world"]			= project.last_world_path;
-			j["world_tick_rate"]	= project.world_tick_rate;
-			j["world_physics_rate"] = project.world_physics_rate;
-			j["max_sim_steps"]		= project.max_sim_steps;
-		}
+	{
+		j["last_world"]			= project.last_world_path;
+		j["world_tick_rate"]	= project.world_tick_rate;
+		j["world_physics_rate"] = project.world_physics_rate;
+		j["max_sim_steps"]		= project.max_sim_steps;
+	}
 
 	void from_json(const nlohmann::json& j, editor_project_t& project)
-		{
-			project.last_world_path	   = j.value<string_t>("last_world", "");
-			project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
-			project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
-			project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);
-		}
+	{
+		project.last_world_path	   = j.value<string_t>("last_world", "");
+		project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
+		project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
+		project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);
+	}
 
 }

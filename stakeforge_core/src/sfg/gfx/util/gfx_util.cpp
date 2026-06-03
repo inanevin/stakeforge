@@ -65,9 +65,12 @@ namespace sfg
 			.min_lod	= 0.0f,
 			.max_lod	= 10.0f,
 			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_anisotropic | sampler_flags::saf_mag_anisotropic | sampler_flags::saf_mip_linear | sampler_flags::saf_border_transparent,
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
+			.min_filter = sampler_filter_e::anisotropic,
+			.mag_filter = sampler_filter_e::anisotropic,
+			.mip_filter = sampler_filter_e::linear,
+			.border		= sampler_border_e::transparent,
 		};
 	}
 
@@ -78,9 +81,12 @@ namespace sfg
 			.min_lod	= 0.0f,
 			.max_lod	= 10.0f,
 			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_anisotropic | sampler_flags::saf_mag_anisotropic | sampler_flags::saf_mip_linear | sampler_flags::saf_border_transparent,
 			.address_u	= address_mode::repeat,
 			.address_v	= address_mode::repeat,
+			.min_filter = sampler_filter_e::anisotropic,
+			.mag_filter = sampler_filter_e::anisotropic,
+			.mip_filter = sampler_filter_e::linear,
+			.border		= sampler_border_e::transparent,
 		};
 	}
 	sampler_desc_t gfx_util_t::get_sampler_desc_linear()
@@ -90,9 +96,12 @@ namespace sfg
 			.min_lod	= 0.0f,
 			.max_lod	= 10.0f,
 			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_linear | sampler_flags::saf_border_transparent,
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
+			.min_filter = sampler_filter_e::linear,
+			.mag_filter = sampler_filter_e::linear,
+			.mip_filter = sampler_filter_e::linear,
+			.border		= sampler_border_e::transparent,
 		};
 	}
 
@@ -103,9 +112,12 @@ namespace sfg
 			.min_lod	= 0.0f,
 			.max_lod	= 10.0f,
 			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_linear | sampler_flags::saf_border_transparent,
 			.address_u	= address_mode::repeat,
 			.address_v	= address_mode::repeat,
+			.min_filter = sampler_filter_e::linear,
+			.mag_filter = sampler_filter_e::linear,
+			.mip_filter = sampler_filter_e::linear,
+			.border		= sampler_border_e::transparent,
 		};
 	}
 
@@ -116,9 +128,12 @@ namespace sfg
 			.min_lod	= 0.0f,
 			.max_lod	= 10.0f,
 			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_nearest | sampler_flags::saf_mag_nearest | sampler_flags::saf_mip_nearest | sampler_flags::saf_border_transparent,
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
+			.min_filter = sampler_filter_e::nearest,
+			.mag_filter = sampler_filter_e::nearest,
+			.mip_filter = sampler_filter_e::nearest,
+			.border		= sampler_border_e::transparent,
 		};
 	}
 
@@ -129,37 +144,48 @@ namespace sfg
 			.min_lod	= 0.0f,
 			.max_lod	= 10.0f,
 			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_min_nearest | sampler_flags::saf_mag_nearest | sampler_flags::saf_mip_nearest | sampler_flags::saf_border_transparent,
 			.address_u	= address_mode::repeat,
 			.address_v	= address_mode::repeat,
+			.min_filter = sampler_filter_e::nearest,
+			.mag_filter = sampler_filter_e::nearest,
+			.mip_filter = sampler_filter_e::nearest,
+			.border		= sampler_border_e::transparent,
 		};
 	}
 
 	sampler_desc_t gfx_util_t::get_sampler_desc_shadow_2d()
 	{
 		return {
-			.anisotropy = 0,
-			.min_lod	= 0.0f,
-			.max_lod	= 0.0f,
-			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_compare | sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_nearest | sampler_flags::saf_border_white,
-			.address_u	= address_mode::clamp,
-			.address_v	= address_mode::clamp,
-			.compare	= compare_op::lequal,
+			.anisotropy	 = 0,
+			.min_lod	 = 0.0f,
+			.max_lod	 = 0.0f,
+			.lod_bias	 = 0.0f,
+			.address_u	 = address_mode::clamp,
+			.address_v	 = address_mode::clamp,
+			.min_filter	 = sampler_filter_e::linear,
+			.mag_filter	 = sampler_filter_e::linear,
+			.mip_filter	 = sampler_filter_e::nearest,
+			.border		 = sampler_border_e::white,
+			.compare	 = compare_op::lequal,
+			.use_compare = true,
 		};
 	}
 
 	sampler_desc_t gfx_util_t::get_sampler_desc_shadow_cube()
 	{
 		return {
-			.anisotropy = 0,
-			.min_lod	= 0.0f,
-			.max_lod	= 0.0f,
-			.lod_bias	= 0.0f,
-			.flags		= sampler_flags::saf_compare | sampler_flags::saf_min_linear | sampler_flags::saf_mag_linear | sampler_flags::saf_mip_nearest | sampler_flags::saf_border_white,
-			.address_u	= address_mode::clamp,
-			.address_v	= address_mode::clamp,
-			.compare	= compare_op::lequal,
+			.anisotropy	 = 0,
+			.min_lod	 = 0.0f,
+			.max_lod	 = 0.0f,
+			.lod_bias	 = 0.0f,
+			.address_u	 = address_mode::clamp,
+			.address_v	 = address_mode::clamp,
+			.min_filter	 = sampler_filter_e::linear,
+			.mag_filter	 = sampler_filter_e::linear,
+			.mip_filter	 = sampler_filter_e::nearest,
+			.border		 = sampler_border_e::white,
+			.compare	 = compare_op::lequal,
+			.use_compare = true,
 		};
 	}
 

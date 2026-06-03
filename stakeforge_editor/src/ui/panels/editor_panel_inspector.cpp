@@ -31,6 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
+#include <sfg/math/vec2u.hpp>
+#include <sfg/math/vec3u.hpp>
+#include <sfg/math/vec4u.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -42,6 +45,13 @@ namespace sfg
 	namespace
 	{
 		enum class dummy_enum_e : u32
+		{
+			first,
+			second,
+			third,
+		};
+
+		enum class dummy_enum8_e : u8
 		{
 			first,
 			second,
@@ -60,12 +70,16 @@ namespace sfg
 			quat_t						 dummy_quat					= quat_t::identity;
 			char						 dummy_string[64]			= "Stakeforge";
 			vec4f_t						 dummy_vec4					= {1.0f, 2.0f, 3.0f, 4.0f};
+			vec4u_t						 dummy_vec4u				= {1, 2, 3, 4};
 			vec3f_t						 dummy_vec3					= {1.0f, 2.0f, 3.0f};
+			vec3u_t						 dummy_vec3u				= {1, 2, 3};
 			vec2f_t						 dummy_vec2					= {1.0f, 2.0f};
+			vec2u_t						 dummy_vec2u				= {1, 2};
 			f32							 dummy_f32					= 12.5f;
 			u32							 dummy_u32					= 42;
 			i32							 dummy_i32					= -7;
 			dummy_enum_e				 dummy_enum					= dummy_enum_e::second;
+			dummy_enum8_e				 dummy_enum8				= dummy_enum8_e::second;
 			u8							 dummy_u8					= 3;
 		};
 
@@ -77,6 +91,12 @@ namespace sfg
 				{.name = "third", .display_name = "Third", .value = static_cast<i64>(dummy_enum_e::third)},
 			};
 
+			static const reflected_enum_value_desc_t enum8_values[] = {
+				{.name = "first", .display_name = "First", .value = static_cast<i64>(dummy_enum8_e::first)},
+				{.name = "second", .display_name = "Second", .value = static_cast<i64>(dummy_enum8_e::second)},
+				{.name = "third", .display_name = "Third", .value = static_cast<i64>(dummy_enum8_e::third)},
+			};
+
 			static const reflected_field_desc_t fields[] = {
 				{.name = "dummy_f32", .display_name = "Float", .type = reflected_value_type_e::f32, .offset = offsetof(dummy_struct_t, dummy_f32), .size = sizeof(f32), .min = 0.0f, .max = 100.0f, .flags = reflected_field_flags_clamped},
 				{.name = "dummy_u32", .display_name = "U32", .type = reflected_value_type_e::u32, .offset = offsetof(dummy_struct_t, dummy_u32), .size = sizeof(u32)},
@@ -85,10 +105,14 @@ namespace sfg
 				{.name = "dummy_vec2", .display_name = "Vec2", .type = reflected_value_type_e::vec2, .offset = offsetof(dummy_struct_t, dummy_vec2), .size = sizeof(vec2f_t)},
 				{.name = "dummy_vec3", .display_name = "Vec3", .type = reflected_value_type_e::vec3, .offset = offsetof(dummy_struct_t, dummy_vec3), .size = sizeof(vec3f_t)},
 				{.name = "dummy_vec4", .display_name = "Vec4", .type = reflected_value_type_e::vec4, .offset = offsetof(dummy_struct_t, dummy_vec4), .size = sizeof(vec4f_t)},
+				{.name = "dummy_vec2u", .display_name = "Vec2U", .type = reflected_value_type_e::vec2u, .offset = offsetof(dummy_struct_t, dummy_vec2u), .size = sizeof(vec2u_t)},
+				{.name = "dummy_vec3u", .display_name = "Vec3U", .type = reflected_value_type_e::vec3u, .offset = offsetof(dummy_struct_t, dummy_vec3u), .size = sizeof(vec3u_t)},
+				{.name = "dummy_vec4u", .display_name = "Vec4U", .type = reflected_value_type_e::vec4u, .offset = offsetof(dummy_struct_t, dummy_vec4u), .size = sizeof(vec4u_t)},
 				{.name = "dummy_color", .display_name = "Color", .type = reflected_value_type_e::color, .offset = offsetof(dummy_struct_t, dummy_color), .size = sizeof(vec4f_t)},
 				{.name = "dummy_quat", .display_name = "Quat", .type = reflected_value_type_e::quat, .offset = offsetof(dummy_struct_t, dummy_quat), .size = sizeof(quat_t)},
 				{.name = "dummy_string", .display_name = "String", .type = reflected_value_type_e::string, .offset = offsetof(dummy_struct_t, dummy_string), .size = sizeof(dummy_struct_t::dummy_string)},
 				{.enum_values = {.data = enum_values, .size = std::size(enum_values)}, .name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
+				{.enum_values = {.data = enum8_values, .size = std::size(enum8_values)}, .name = "dummy_enum8", .display_name = "Enum8", .type = reflected_value_type_e::enum8, .offset = offsetof(dummy_struct_t, dummy_enum8), .size = sizeof(dummy_enum8_e)},
 				{.name = "dummy_f32_vector", .display_name = "Float Vector", .type = reflected_value_type_e::vector, .sub_type_id = "f32"_hs, .offset = offsetof(dummy_struct_t, dummy_f32_vector), .size = sizeof(vector_t<f32>)},
 				{.name = "dummy_string_vector", .display_name = "String Vector", .type = reflected_value_type_e::vector, .sub_type_id = "string"_hs, .offset = offsetof(dummy_struct_t, dummy_string_vector), .size = sizeof(vector_t<string_t>)},
 				{.name		   = "dummy_static_f32_vector",
