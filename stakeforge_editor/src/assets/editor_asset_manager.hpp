@@ -41,8 +41,7 @@ namespace sfg
 {
 	struct editor_project_t;
 
-	using editor_asset_tree_t		 = tree_t<editor_asset_node_t>;
-	using editor_asset_node_handle_t = editor_asset_tree_t::handle_t;
+	using editor_asset_tree_t = tree_t<editor_asset_node_t>;
 
 	class editor_asset_manager_t final
 	{

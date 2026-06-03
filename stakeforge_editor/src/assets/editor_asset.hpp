@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "assets/editor_asset_node.hpp"
 #include "assets/editor_asset_type.hpp"
 
 #include <sfg/common/size_definitions.hpp>
@@ -131,6 +132,11 @@ namespace sfg
 		static bool		is_source_inside_assets(const char* assets_path, const char* source_full_path);
 		static void		fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies);
 		static sid_t	try_read_existing_guid(const char* path);
+		static bool		delete_folder(editor_asset_node_handle_t folder_node);
+		static bool		duplicate_folder(editor_asset_node_handle_t folder_node);
+		static bool		delete_file(editor_asset_node_handle_t file_node);
+		static bool		delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
+		static bool		duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
 	};
 
 }

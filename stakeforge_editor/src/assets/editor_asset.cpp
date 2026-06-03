@@ -27,18 +27,78 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 
+#include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_reflection.hpp"
 #include "editor_project.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/serialization/serialization.hpp>
+#include <algorithm>
 
 namespace sfg
 {
+	namespace
+	{
+		string_t normalize_directory_path(const char* path)
+		{
+			string_t result = file_system_t::get_absolute_path(path);
+			file_system_t::fix_path_end_slash(result);
+			return result;
+		}
+
+		bool path_in_directory(const string_t& path, const string_t& directory)
+		{
+			string_t normalized_path	  = path;
+			string_t normalized_directory = directory;
+			string_util::to_lower(normalized_path);
+			string_util::to_lower(normalized_directory);
+			return normalized_path.rfind(normalized_directory, 0) == 0;
+		}
+
+		sid_t generate_unique_asset_guid(const vector_t<sid_t>& pending_guids)
+		{
+			sid_t guid = NULL_SID;
+			do
+			{
+				guid = hashing_t::generate_guid64();
+			} while (guid == NULL_SID || editor_asset_manager_t::get().find_asset(guid) != nullptr || std::find(pending_guids.begin(), pending_guids.end(), guid) != pending_guids.end());
+			return guid;
+		}
+
+		bool duplicate_cooked_asset(const editor_asset_t& source_asset, const editor_asset_t& duplicated_asset)
+		{
+			const string_t source_cache_path = editor_asset_util_t::get_cache_path_for_asset(source_asset);
+			if (!file_system_t::exists(source_cache_path.c_str()))
+				return true;
+
+			const string_t duplicated_cache_path = editor_asset_util_t::get_cache_path_for_asset(duplicated_asset);
+			return file_system_t::copy_file(source_cache_path.c_str(), duplicated_cache_path.c_str());
+		}
+
+		void remap_source_relative(editor_asset_t& asset, const string_t& assets_path, const string_t& source_folder_path, const string_t& duplicated_folder_path)
+		{
+			if (asset.source_relative.empty())
+				return;
+
+			string_t source_full_path = assets_path;
+			source_full_path += asset.source_relative;
+			file_system_t::fix_path(source_full_path);
+			source_full_path = file_system_t::get_absolute_path(source_full_path.c_str());
+			if (!path_in_directory(source_full_path, source_folder_path))
+				return;
+
+			string_t duplicated_source_path = duplicated_folder_path;
+			duplicated_source_path += source_full_path.substr(source_folder_path.size());
+			if (file_system_t::exists(duplicated_source_path.c_str()))
+				asset.source_relative = file_system_t::get_relative(assets_path.c_str(), duplicated_source_path.c_str());
+		}
+	}
+
 	bool editor_asset_util_t::read_asset(const char* path, editor_asset_t& out_asset)
 	{
 		const string_t		 json_text = file_system_t::read_file_as_string(path);
@@ -179,6 +239,116 @@ namespace sfg
 	{
 		editor_asset_t asset = {};
 		return read_asset(path, asset) ? asset.guid : NULL_SID;
+	}
+
+	bool editor_asset_util_t::delete_folder(editor_asset_node_handle_t folder_node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!folder_node.is_null());
+		SFG_ASSERT(tree.is_valid(folder_node));
+
+		const editor_asset_node_t& node = tree.value(folder_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!node.full_path.empty());
+		return file_system_t::delete_directory(node.full_path.c_str());
+	}
+
+	bool editor_asset_util_t::duplicate_folder(editor_asset_node_handle_t folder_node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!folder_node.is_null());
+		SFG_ASSERT(tree.is_valid(folder_node));
+
+		const editor_asset_node_t& node = tree.value(folder_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!node.full_path.empty());
+
+		const string_t duplicated_folder = file_system_t::duplicate(node.full_path.c_str());
+		if (duplicated_folder.empty())
+			return false;
+
+		const string_t source_folder_path	  = normalize_directory_path(node.full_path.c_str());
+		const string_t duplicated_folder_path = normalize_directory_path(duplicated_folder.c_str());
+		const string_t assets_path			  = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
+
+		vector_t<file_system_entry_t> entries;
+		file_system_t::get_entries_recursive(duplicated_folder_path.c_str(), entries);
+
+		vector_t<sid_t> duplicated_guids;
+		duplicated_guids.reserve(entries.size());
+
+		for (const file_system_entry_t& entry : entries)
+		{
+			if (entry.type != file_system_entry_type_e::file || file_system_t::get_file_extension(entry.path) != "sfg_asset")
+				continue;
+
+			editor_asset_t duplicated_asset = {};
+			if (!read_asset(entry.path.c_str(), duplicated_asset))
+				return false;
+
+			editor_asset_t source_asset = duplicated_asset;
+			duplicated_asset.guid		= generate_unique_asset_guid(duplicated_guids);
+			duplicated_guids.push_back(duplicated_asset.guid);
+			remap_source_relative(duplicated_asset, assets_path, source_folder_path, duplicated_folder_path);
+
+			if (!write_asset(entry.path.c_str(), duplicated_asset))
+				return false;
+
+			if (!duplicate_cooked_asset(source_asset, duplicated_asset))
+				return false;
+		}
+
+		return true;
+	}
+
+	bool editor_asset_util_t::delete_file(editor_asset_node_handle_t file_node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!file_node.is_null());
+		SFG_ASSERT(tree.is_valid(file_node));
+
+		const editor_asset_node_t& node = tree.value(file_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::file);
+		SFG_ASSERT(!node.full_path.empty());
+		return !file_system_t::delete_file(node.full_path.c_str());
+	}
+
+	bool editor_asset_util_t::delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!asset_node.is_null());
+		SFG_ASSERT(tree.is_valid(asset_node));
+
+		const editor_asset_node_t& node = tree.value(asset_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
+		SFG_ASSERT(node.asset_id == asset.guid);
+		SFG_ASSERT(!node.full_path.empty());
+		return !file_system_t::delete_file(node.full_path.c_str());
+	}
+
+	bool editor_asset_util_t::duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!asset_node.is_null());
+		SFG_ASSERT(tree.is_valid(asset_node));
+
+		const editor_asset_node_t& node = tree.value(asset_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
+		SFG_ASSERT(node.asset_id == asset.guid);
+		SFG_ASSERT(!node.full_path.empty());
+
+		const string_t duplicated_path = file_system_t::duplicate(node.full_path.c_str());
+		if (duplicated_path.empty())
+			return false;
+
+		vector_t<sid_t> pending_guids;
+		editor_asset_t	duplicated_asset = asset;
+		duplicated_asset.guid			 = generate_unique_asset_guid(pending_guids);
+
+		if (!write_asset(duplicated_path.c_str(), duplicated_asset))
+			return false;
+
+		return duplicate_cooked_asset(asset, duplicated_asset);
 	}
 
 }

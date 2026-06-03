@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec3u.hpp>
 #include <sfg/math/vec4f.hpp>
@@ -413,6 +414,11 @@ namespace sfg
 			return nlohmann::json::array_t({value.x, value.y});
 		}
 
+		nlohmann::json vec2u16_to_json(const vec2u16_t& value)
+		{
+			return nlohmann::json::array_t({value.x, value.y});
+		}
+
 		nlohmann::json vec3u_to_json(const vec3u_t& value)
 		{
 			return nlohmann::json::array_t({value.x, value.y, value.z});
@@ -452,6 +458,14 @@ namespace sfg
 			if (!j.is_array() || j.size() < 2)
 				return false;
 			value = {j.at(0).get<u32>(), j.at(1).get<u32>()};
+			return true;
+		}
+
+		bool json_to_vec2u16(const nlohmann::json& j, vec2u16_t& value)
+		{
+			if (!j.is_array() || j.size() < 2)
+				return false;
+			value = {j.at(0).get<u16>(), j.at(1).get<u16>()};
 			return true;
 		}
 
@@ -625,6 +639,13 @@ namespace sfg
 				j = vec2u_to_json(value);
 				return true;
 			}
+			case reflected_value_type_e::vec2u16: {
+				vec2u16_t value = {};
+				if (!read_reflected_value(object, field, value))
+					return false;
+				j = vec2u16_to_json(value);
+				return true;
+			}
 			case reflected_value_type_e::vec3u: {
 				vec3u_t value = {};
 				if (!read_reflected_value(object, field, value))
@@ -734,6 +755,10 @@ namespace sfg
 			case reflected_value_type_e::vec2u: {
 				vec2u_t value = {};
 				return json_to_vec2u(j, value) && write_reflected_value(object, field, value);
+			}
+			case reflected_value_type_e::vec2u16: {
+				vec2u16_t value = {};
+				return json_to_vec2u16(j, value) && write_reflected_value(object, field, value);
 			}
 			case reflected_value_type_e::vec3u: {
 				vec3u_t value = {};
@@ -854,6 +879,13 @@ namespace sfg
 			}
 			case reflected_value_type_e::vec2u: {
 				vec2u_t value = {};
+				if (!read_reflected_value(object, field, value))
+					return false;
+				stream << value.x << value.y;
+				return true;
+			}
+			case reflected_value_type_e::vec2u16: {
+				vec2u16_t value = {};
 				if (!read_reflected_value(object, field, value))
 					return false;
 				stream << value.x << value.y;
@@ -990,6 +1022,11 @@ namespace sfg
 			}
 			case reflected_value_type_e::vec2u: {
 				vec2u_t value = {};
+				stream >> value.x >> value.y;
+				return write_reflected_value(object, field, value);
+			}
+			case reflected_value_type_e::vec2u16: {
+				vec2u16_t value = {};
 				stream >> value.x >> value.y;
 				return write_reflected_value(object, field, value);
 			}

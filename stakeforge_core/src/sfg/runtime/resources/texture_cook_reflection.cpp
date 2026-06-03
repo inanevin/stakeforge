@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "texture_cook_reflection.hpp"
 
-#include <sfg/math/vec2u.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
@@ -41,20 +40,6 @@ namespace sfg
 			{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_payload_type_e::uncompressed)},
 			{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_payload_type_e::ktx2_uastc)},
 		};
-
-		bool get_texture_cook_size(const void* object, const reflected_field_desc_t&, void* out_value, void*)
-		{
-			const vec2u16_t& size			  = static_cast<const texture_cook_config_t*>(object)->size;
-			*static_cast<vec2u_t*>(out_value) = {size.x, size.y};
-			return true;
-		}
-
-		bool set_texture_cook_size(void* object, const reflected_field_desc_t&, const void* value, void*)
-		{
-			const vec2u_t& size								  = *static_cast<const vec2u_t*>(value);
-			static_cast<texture_cook_config_t*>(object)->size = {static_cast<u16>(size.x), static_cast<u16>(size.y)};
-			return true;
-		}
 	}
 
 	texture_payload_type_reflection_t::texture_payload_type_reflection_t()
@@ -79,14 +64,7 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.get		   = get_texture_cook_size,
-			 .set		   = set_texture_cook_size,
-			 .name		   = "size",
-			 .display_name = "Size",
-			 .type		   = reflected_value_type_e::vec2u,
-			 .offset	   = offsetof(texture_cook_config_t, size),
-			 .size		   = sizeof(vec2u16_t),
-			 .flags		   = reflected_field_flags_no_ui},
+			{.name = "size", .display_name = "Size", .type = reflected_value_type_e::vec2u16, .offset = offsetof(texture_cook_config_t, size), .size = sizeof(vec2u16_t), .flags = reflected_field_flags_no_ui},
 			{.name			= "payload_type",
 			 .display_name	= "Payload Type",
 			 .type			= reflected_value_type_e::enum8,

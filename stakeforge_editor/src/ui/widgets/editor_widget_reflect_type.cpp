@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/vec2u.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3u.hpp>
 #include <sfg/math/vec4u.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -169,6 +170,11 @@ namespace sfg
 			return {static_cast<f32>(value.x), static_cast<f32>(value.y)};
 		}
 
+		vec2f_t to_vec2f(const vec2u16_t& value)
+		{
+			return {static_cast<f32>(value.x), static_cast<f32>(value.y)};
+		}
+
 		vec3f_t to_vec3f(const vec3u_t& value)
 		{
 			return {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z)};
@@ -182,6 +188,11 @@ namespace sfg
 		vec2u_t to_vec2u(const vec2f_t& value)
 		{
 			return {to_reflected_u32(value.x), to_reflected_u32(value.y)};
+		}
+
+		vec2u16_t to_vec2u16(const vec2f_t& value)
+		{
+			return {static_cast<u16>(value.x < 0.0f ? 0.0f : (value.x > 65535.0f ? 65535.0f : value.x)), static_cast<u16>(value.y < 0.0f ? 0.0f : (value.y > 65535.0f ? 65535.0f : value.y))};
 		}
 
 		vec3u_t to_vec3u(const vec3f_t& value)
@@ -603,6 +614,19 @@ namespace sfg
 			_vec2_fields.push_back(vec);
 			break;
 		}
+		case reflected_value_type_e::vec2u16: {
+			editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
+			editor_vec2_field_config_t config = {};
+			config.value					  = to_vec2f(read_reflected_value<vec2u16_t>(object, field));
+			config.increment				  = 1.0f;
+			config.integer					  = true;
+			config.on_changed				  = on_vec2_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec2_fields.push_back(vec);
+			break;
+		}
 		case reflected_value_type_e::vec3: {
 			editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
 			editor_vec3_field_config_t config = {};
@@ -934,6 +958,8 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		if (control.field->type == reflected_value_type_e::vec2u)
 			write_reflected_value(control.object, *control.field, to_vec2u(value));
+		else if (control.field->type == reflected_value_type_e::vec2u16)
+			write_reflected_value(control.object, *control.field, to_vec2u16(value));
 		else
 			write_reflected_value(control.object, *control.field, value);
 	}

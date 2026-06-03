@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+      list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -37,9 +37,10 @@ namespace sfg
 {
 	void editor_icon_button_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_icon_button_config_t& config)
 	{
-		_ui		 = &ui;
-		_config	 = config;
-		_toggled = config.toggled;
+		_ui		  = &ui;
+		_config	  = config;
+		_toggled  = config.toggled;
+		_disabled = false;
 
 		ui::layout_tree_t& tree = ui.get_tree();
 
@@ -92,16 +93,30 @@ namespace sfg
 
 		_ui->deallocate_widget(_root);
 
-		_ui		 = nullptr;
-		_root	 = NULL_WIDGET;
-		_icon	 = NULL_WIDGET;
-		_config	 = {};
-		_toggled = false;
+		_ui		  = nullptr;
+		_root	  = NULL_WIDGET;
+		_icon	  = NULL_WIDGET;
+		_config	  = {};
+		_toggled  = false;
+		_disabled = false;
 	}
 
 	void editor_icon_button_t::set_toggled(bool toggled)
 	{
 		_toggled = toggled;
+		refresh();
+	}
+
+	void editor_icon_button_t::set_disabled(bool disabled)
+	{
+		_disabled = disabled;
+
+		ui::layout_in_t& root_in = _ui->get_tree().in(_root);
+		if (_disabled)
+			root_in.flags |= ui::wf_disabled;
+		else
+			root_in.flags &= ~ui::wf_disabled;
+
 		refresh();
 	}
 
@@ -124,6 +139,8 @@ namespace sfg
 
 		_ui->set_widget_text(_icon, get_icon());
 		paint.set_text(_icon, _ui->widget_text(_icon), _ui->widget_text_len(_icon), {.font = theme.font_icons, .color = _config.icon_color, .point_size = _config.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_disabled_color(_icon, _config.disabled_color);
+		paint.set_state_source(_icon, _root);
 	}
 
 	const char* editor_icon_button_t::get_icon() const
@@ -139,6 +156,9 @@ namespace sfg
 			return;
 
 		editor_icon_button_t& button = *static_cast<editor_icon_button_t*>(user_data);
+		if (button._disabled)
+			return;
+
 		if (button._config.toggle_enabled)
 		{
 			button._toggled = !button._toggled;

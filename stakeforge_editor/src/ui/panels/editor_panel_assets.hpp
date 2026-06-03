@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg::ui
 {
 	class input_router_t;
+	struct key_event_t;
 	enum class mouse_button_e : u8;
 }
 
@@ -130,6 +131,7 @@ namespace sfg
 		void append_asset_grid_item(ui::widget_id_t row, editor_asset_node_handle_t node, const vec2f_t& item_size);
 		void append_asset_list_item(editor_asset_node_handle_t node);
 		void update_current_directory_label();
+		void update_import_button_state();
 
 		folder_row_t& get_or_create_folder_row(size_t index);
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
@@ -137,7 +139,7 @@ namespace sfg
 		void		  refresh_folder_row_backgrounds();
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
 
-		void select_folder_row(u64 path_hash);
+		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash);
 		void select_asset_grid_item(editor_asset_node_handle_t node);
 		void clear_asset_grid_selection();
 		void refresh_asset_grid_item_backgrounds();
@@ -155,6 +157,8 @@ namespace sfg
 		void clear_pending_create_assets();
 		void delete_folder();
 		void duplicate_folder();
+		void delete_asset();
+		void duplicate_asset();
 		void open_rename_popup();
 		void rename_folder(const char* name);
 
@@ -162,15 +166,15 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		string_t				   get_action_menu_target_folder_path() const;
-		u64						   get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const;
-		editor_asset_node_handle_t get_selected_folder_node() const;
-		sid_t					   get_asset_guid(editor_asset_node_handle_t node) const;
-		bool					   is_asset_favourite(sid_t guid) const;
-		bool					   has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
-		const folder_row_t*		   find_row_by_hash(u64 path_hash) const;
-		const folder_row_t*		   find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
-		const asset_grid_item_t*   find_asset_grid_item_by_widget(ui::widget_id_t id) const;
+		string_t				 get_action_menu_target_folder_path() const;
+		u64						 get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const;
+		const char*				 get_selected_folder_path() const;
+		sid_t					 get_asset_guid(editor_asset_node_handle_t node) const;
+		bool					 is_asset_favourite(sid_t guid) const;
+		bool					 has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
+		const folder_row_t*		 find_row_by_hash(u64 path_hash) const;
+		const folder_row_t*		 find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
+		const asset_grid_item_t* find_asset_grid_item_by_widget(ui::widget_id_t id) const;
 
 		// -----------------------------------------------------------------------------
 		// handlers
@@ -193,6 +197,7 @@ namespace sfg
 		static void on_asset_search_changed(const char* value, void* user_data);
 		static u16	get_selected_item_style(void* user_data);
 		static void on_item_style_pressed(u16 value, void* user_data);
+		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
@@ -229,8 +234,9 @@ namespace sfg
 		string_t							 _asset_search_str				  = {};
 		string_t							 _asset_search_str_lower		  = {};
 		vec2f_t								 _action_menu_pos				  = {};
-		u64									 _selected_folder_hash			  = 0;
-		u64									 _asset_grid_folder_hash		  = 0;
+		u64									 _selected_folder_hash			  = UINT64_MAX;
+		u64									 _asset_grid_folder_hash		  = UINT64_MAX;
+		editor_asset_node_handle_t			 _selected_folder_node			  = {};
 		editor_asset_node_handle_t			 _selected_asset_node			  = {};
 		ui::widget_id_t						 _assets_left_pane				  = NULL_WIDGET;
 		ui::widget_id_t						 _assets_left_pane_top_row		  = NULL_WIDGET;

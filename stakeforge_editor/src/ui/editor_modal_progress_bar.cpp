@@ -35,6 +35,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define MODAL_PROGRESS_BAR_FRAME_WIDTH_X 0.3f
+
 	void editor_modal_progress_bar_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		_ui							= &ui;
@@ -164,7 +166,7 @@ namespace sfg
 
 	editor_modal_content_desc_t editor_modal_progress_bar_t::get_content_desc()
 	{
-		return {.init = init_content, .uninit = uninit_content, .user_data = this, .fill_x = true};
+		return {.init = init_content, .uninit = uninit_content, .user_data = this, .frame_width_x = MODAL_PROGRESS_BAR_FRAME_WIDTH_X, .fill_x = true};
 	}
 
 	void editor_modal_progress_bar_t::refresh()

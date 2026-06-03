@@ -57,10 +57,11 @@ namespace sfg
 
 	struct editor_modal_content_desc_t
 	{
-		editor_modal_content_init_fn   init		 = nullptr;
-		editor_modal_content_uninit_fn uninit	 = nullptr;
-		void*						   user_data = nullptr;
-		bool						   fill_x	 = false;
+		editor_modal_content_init_fn   init			 = nullptr;
+		editor_modal_content_uninit_fn uninit		 = nullptr;
+		void*						   user_data	 = nullptr;
+		f32							   frame_width_x = 0.0f;
+		bool						   fill_x		 = false;
 	};
 
 	class editor_modal_controller_t final

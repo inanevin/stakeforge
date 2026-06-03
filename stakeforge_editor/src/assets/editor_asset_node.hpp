@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
@@ -53,4 +54,6 @@ namespace sfg
 		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
 		u8						 flags = 0;
 	};
+
+	using editor_asset_node_handle_t = pool_handle_t<u32, editor_asset_node_t>;
 }

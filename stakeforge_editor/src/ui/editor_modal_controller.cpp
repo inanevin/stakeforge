@@ -267,9 +267,13 @@ namespace sfg
 
 		if (content != nullptr && content->init != nullptr)
 		{
-			_content								   = *content;
-			_content_active							   = true;
-			_ui->get_tree().in(_container).size_mode_x = _content.fill_x ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
+			_content						= *content;
+			_content_active					= true;
+			ui::layout_tree_t& tree			= _ui->get_tree();
+			ui::layout_in_t&   window_in	= tree.in(_window);
+			window_in.size_mode_x			= _content.frame_width_x > 0.0f ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
+			window_in.size_value.x			= _content.frame_width_x;
+			tree.in(_container).size_mode_x = _content.fill_x ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
 			_content.init(*_ui, _container, _content.user_data);
 		}
 
@@ -335,8 +339,11 @@ namespace sfg
 		_content_active = false;
 		if (_ui != nullptr && _container != NULL_WIDGET)
 		{
-			_ui->get_tree().in(_container).size_mode_x = ui::axis_mode_e::max_children;
-			set_widget_visible(_ui->get_tree(), _container, false, false);
+			ui::layout_tree_t& tree			= _ui->get_tree();
+			tree.in(_window).size_mode_x	= ui::axis_mode_e::max_children;
+			tree.in(_window).size_value.x	= 0.0f;
+			tree.in(_container).size_mode_x = ui::axis_mode_e::max_children;
+			set_widget_visible(tree, _container, false, false);
 		}
 	}
 

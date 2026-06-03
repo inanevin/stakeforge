@@ -52,6 +52,7 @@ namespace sfg
 		vec3,
 		vec4,
 		vec2u,
+		vec2u16,
 		vec3u,
 		vec4u,
 		color,
