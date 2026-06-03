@@ -49,7 +49,6 @@ namespace sfg
 
 			const ui::widget_id_t id = ui.allocate_widget();
 			tree.attach(parent, id);
-			tree.draw_order(id) = tree.draw_order_const(parent);
 
 			ui::layout_in_t& in = tree.in(id);
 			in.flags			= ui::wf_visible | ui::wf_input;
@@ -79,7 +78,6 @@ namespace sfg
 		row.row = ui.allocate_widget();
 		ui.set_widget_debug_name(row.row, "property_row");
 		tree.attach(parent, row.row);
-		tree.draw_order(row.row) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& row_in = tree.in(row.row);
 		row_in.flags			= ui::wf_visible;
@@ -91,7 +89,6 @@ namespace sfg
 		row.left = ui.allocate_widget();
 		ui.set_widget_debug_name(row.left, "property_row_left");
 		tree.attach(row.row, row.left);
-		tree.draw_order(row.left) = tree.draw_order_const(row.row);
 
 		ui::layout_in_t& left_in = tree.in(row.left);
 		left_in.flags			 = ui::wf_visible;
@@ -104,7 +101,6 @@ namespace sfg
 		row.divider = ui.allocate_widget();
 		ui.set_widget_debug_name(row.divider, "property_row_divider");
 		tree.attach(row.row, row.divider);
-		tree.draw_order(row.divider) = tree.draw_order_const(row.row);
 
 		ui::layout_in_t& divider_in = tree.in(row.divider);
 		divider_in.flags			= ui::wf_visible;
@@ -123,7 +119,6 @@ namespace sfg
 		row.right = ui.allocate_widget();
 		ui.set_widget_debug_name(row.right, "property_row_right");
 		tree.attach(row.row, row.right);
-		tree.draw_order(row.right) = tree.draw_order_const(row.row);
 
 		ui::layout_in_t& right_in = tree.in(row.right);
 		right_in.flags			  = ui::wf_visible;
@@ -151,7 +146,6 @@ namespace sfg
 			const ui::widget_id_t icon_frame = ui.allocate_widget();
 			ui.set_widget_debug_name(icon_frame, "property_row_sub_item_icon_frame");
 			tree.attach(row.left, icon_frame);
-			tree.draw_order(icon_frame) = tree.draw_order_const(row.left);
 
 			ui::layout_in_t& icon_frame_in = tree.in(icon_frame);
 			icon_frame_in.flags			   = ui::wf_visible;
@@ -165,7 +159,6 @@ namespace sfg
 		const ui::widget_id_t label_id = ui.allocate_widget();
 		ui.set_widget_debug_name(label_id, "property_row_label");
 		tree.attach(row.left, label_id);
-		tree.draw_order(label_id) = tree.draw_order_const(row.left);
 
 		ui::layout_in_t& label_in = tree.in(label_id);
 		label_in.flags			  = ui::wf_visible;
@@ -207,7 +200,6 @@ namespace sfg
 		vector_row.dropdown_button = ui.allocate_widget();
 		ui.set_widget_debug_name(vector_row.dropdown_button, "property_row_vector_dropdown");
 		tree.attach(vector_row.row.left, vector_row.dropdown_button);
-		tree.draw_order(vector_row.dropdown_button) = tree.draw_order_const(vector_row.row.left);
 
 		ui::layout_in_t& icon_frame_in = tree.in(vector_row.dropdown_button);
 		icon_frame_in.flags			   = ui::wf_visible | ui::wf_input;
@@ -220,7 +212,6 @@ namespace sfg
 		vector_row.label = ui.allocate_widget();
 		ui.set_widget_debug_name(vector_row.label, "property_row_vector_label");
 		tree.attach(vector_row.row.left, vector_row.label);
-		tree.draw_order(vector_row.label) = tree.draw_order_const(vector_row.row.left);
 
 		ui::layout_in_t& label_in = tree.in(vector_row.label);
 		label_in.flags			  = ui::wf_visible | ui::wf_input;
@@ -242,7 +233,6 @@ namespace sfg
 		const ui::widget_id_t filler = ui.allocate_widget();
 		ui.set_widget_debug_name(filler, "property_row_vector_controls_filler");
 		tree.attach(vector_row.row.right, filler);
-		tree.draw_order(filler) = tree.draw_order_const(vector_row.row.right);
 
 		ui::layout_in_t& filler_in = tree.in(filler);
 		filler_in.flags			   = ui::wf_visible;
@@ -256,7 +246,6 @@ namespace sfg
 		vector_row.count_label = ui.allocate_widget();
 		ui.set_widget_debug_name(vector_row.count_label, "property_row_vector_count");
 		tree.attach(vector_row.row.right, vector_row.count_label);
-		tree.draw_order(vector_row.count_label) = tree.draw_order_const(vector_row.row.right);
 
 		ui::layout_in_t& count_label_in = tree.in(vector_row.count_label);
 		count_label_in.flags			= ui::wf_visible;

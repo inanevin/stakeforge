@@ -78,7 +78,6 @@ namespace sfg
 		_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_frame, "tooltip_frame");
 		tree.attach(_foreground, _frame);
-		tree.draw_order(_frame) = TOOLTIP_DRAW_ORDER;
 
 		ui::layout_in_t& frame_in = tree.in(_frame);
 		frame_in.flags			  = 0;
@@ -100,7 +99,6 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "tooltip_label");
 		tree.attach(_frame, _label);
-		tree.draw_order(_label) = TOOLTIP_DRAW_ORDER;
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.flags			  = 0;

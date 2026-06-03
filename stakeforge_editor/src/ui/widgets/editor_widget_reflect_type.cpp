@@ -57,7 +57,6 @@ namespace sfg
 			const ui::widget_id_t label = ui.allocate_widget();
 			ui.set_widget_debug_name(label, "reflect_type_unknown");
 			tree.attach(parent, label);
-			tree.draw_order(label) = tree.draw_order_const(parent);
 
 			ui::layout_in_t& label_in = tree.in(label);
 			label_in.flags			  = ui::wf_visible;
@@ -474,7 +473,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "reflect_type");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;

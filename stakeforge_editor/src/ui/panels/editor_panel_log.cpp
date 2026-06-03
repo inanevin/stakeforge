@@ -465,7 +465,6 @@ namespace sfg
 		row.root = ui.allocate_widget();
 		ui.set_widget_debug_name(row.root, "log_row");
 		tree.attach(_body, row.root);
-		tree.draw_order(row.root) = tree.draw_order_const(_body);
 
 		ui::layout_in_t& row_in = tree.in(row.root);
 		row_in.flags			= ui::wf_visible;
@@ -478,7 +477,6 @@ namespace sfg
 		row.icon = ui.allocate_widget();
 		ui.set_widget_debug_name(row.icon, "log_row_icon");
 		tree.attach(row.root, row.icon);
-		tree.draw_order(row.icon) = tree.draw_order_const(row.root);
 
 		ui::layout_in_t& icon_in = tree.in(row.icon);
 		icon_in.flags			 = ui::wf_visible;
@@ -495,7 +493,6 @@ namespace sfg
 		row.text = ui.allocate_widget();
 		ui.set_widget_debug_name(row.text, "log_row_text");
 		tree.attach(row.root, row.text);
-		tree.draw_order(row.text) = tree.draw_order_const(row.root);
 
 		ui::layout_in_t& text_in = tree.in(row.text);
 		text_in.flags			 = ui::wf_visible;

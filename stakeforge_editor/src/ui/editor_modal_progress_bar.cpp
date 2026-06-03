@@ -47,7 +47,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "modal_progress_content");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -60,7 +59,6 @@ namespace sfg
 		_bar = ui.allocate_widget();
 		ui.set_widget_debug_name(_bar, "modal_progress_bar");
 		tree.attach(_root, _bar);
-		tree.draw_order(_bar) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& bar_in = tree.in(_bar);
 		bar_in.flags			= ui::wf_visible;
@@ -81,7 +79,6 @@ namespace sfg
 		_fill = ui.allocate_widget();
 		ui.set_widget_debug_name(_fill, "modal_progress_bar_fill");
 		tree.attach(_bar, _fill);
-		tree.draw_order(_fill) = tree.draw_order_const(_bar);
 
 		ui::layout_in_t& fill_in = tree.in(_fill);
 		fill_in.flags			 = ui::wf_visible;
@@ -101,7 +98,6 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "modal_progress_bar_label");
 		tree.attach(_bar, _label);
-		tree.draw_order(_label) = tree.draw_order_const(_bar);
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.flags			  = ui::wf_visible;
@@ -115,7 +111,6 @@ namespace sfg
 		_spinner_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_spinner_row, "modal_progress_spinner_row");
 		tree.attach(_root, _spinner_row);
-		tree.draw_order(_spinner_row) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& spinner_row_in = tree.in(_spinner_row);
 		spinner_row_in.flags			= ui::wf_visible;
@@ -127,7 +122,6 @@ namespace sfg
 		_spinner_holder = ui.allocate_widget();
 		ui.set_widget_debug_name(_spinner_holder, "modal_progress_spinner_holder");
 		tree.attach(_spinner_row, _spinner_holder);
-		tree.draw_order(_spinner_holder) = tree.draw_order_const(_spinner_row);
 
 		ui::layout_in_t& spinner_holder_in = tree.in(_spinner_holder);
 		spinner_holder_in.flags			   = ui::wf_visible;

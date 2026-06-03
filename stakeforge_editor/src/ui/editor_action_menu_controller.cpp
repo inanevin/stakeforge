@@ -218,7 +218,6 @@ namespace sfg
 				_row_labels[d][r] = ui.allocate_widget();
 				ui.set_widget_debug_name(_row_labels[d][r], "action_menu_label");
 				tree.attach(_row_frames[d][r], _row_labels[d][r]);
-				tree.draw_order(_row_labels[d][r]) = tree.draw_order_const(_row_frames[d][r]);
 
 				ui::layout_in_t& label_in = tree.in(_row_labels[d][r]);
 				label_in.flags			  = 0;
@@ -230,7 +229,6 @@ namespace sfg
 				_row_shortcuts[d][r] = ui.allocate_widget();
 				ui.set_widget_debug_name(_row_shortcuts[d][r], "action_menu_shortcut");
 				tree.attach(_row_frames[d][r], _row_shortcuts[d][r]);
-				tree.draw_order(_row_shortcuts[d][r]) = tree.draw_order_const(_row_frames[d][r]);
 
 				ui::layout_in_t& shortcut_in = tree.in(_row_shortcuts[d][r]);
 				shortcut_in.flags			 = 0;
@@ -243,7 +241,6 @@ namespace sfg
 				_row_icons[d][r] = ui.allocate_widget();
 				ui.set_widget_debug_name(_row_icons[d][r], "action_menu_icon");
 				tree.attach(_row_frames[d][r], _row_icons[d][r]);
-				tree.draw_order(_row_icons[d][r]) = tree.draw_order_const(_row_frames[d][r]);
 
 				ui::layout_in_t& icon_in = tree.in(_row_icons[d][r]);
 				icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
@@ -256,7 +253,6 @@ namespace sfg
 				_row_icon_labels[d][r] = ui.allocate_widget();
 				ui.set_widget_debug_name(_row_icon_labels[d][r], "action_menu_icon_label");
 				tree.attach(_row_icons[d][r], _row_icon_labels[d][r]);
-				tree.draw_order(_row_icon_labels[d][r]) = tree.draw_order_const(_row_icons[d][r]);
 
 				ui::layout_in_t& icon_label_in = tree.in(_row_icon_labels[d][r]);
 				icon_label_in.flags			   = 0;
@@ -270,7 +266,6 @@ namespace sfg
 				_row_title_lines[d][r] = ui.allocate_widget();
 				ui.set_widget_debug_name(_row_title_lines[d][r], "action_menu_title_line");
 				tree.attach(_row_frames[d][r], _row_title_lines[d][r]);
-				tree.draw_order(_row_title_lines[d][r]) = tree.draw_order_const(_row_frames[d][r]);
 
 				ui::layout_in_t& title_line_in = tree.in(_row_title_lines[d][r]);
 				title_line_in.flags			   = 0;

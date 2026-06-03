@@ -142,6 +142,7 @@ namespace sfg::ui
 		c.parent	   = parent;
 		c.prev_sibling = p.last_child;
 		c.next_sibling = NULL_WIDGET;
+		c.draw_order   = p.draw_order;
 
 		if (p.last_child != NULL_WIDGET)
 			_nodes[p.last_child].next_sibling = child;

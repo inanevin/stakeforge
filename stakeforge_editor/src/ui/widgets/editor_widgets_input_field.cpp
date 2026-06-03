@@ -68,7 +68,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "input_field");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
@@ -205,6 +204,15 @@ namespace sfg
 			_number_value = static_cast<f32>(static_cast<i32>(_number_value + (_number_value >= 0.0f ? 0.5f : -0.5f)));
 		format_number();
 		refresh_text();
+	}
+
+	void editor_input_field_t::set_draw_order(u32 draw_order)
+	{
+		ui::layout_tree_t& tree	  = _ui->get_tree();
+		tree.draw_order(_root)	  = draw_order;
+		tree.draw_order(_slider)  = draw_order + 1;
+		tree.draw_order(_label)	  = draw_order + 2;
+		tree.draw_order(_overlay) = draw_order + 3;
 	}
 
 	void editor_input_field_t::select_all()

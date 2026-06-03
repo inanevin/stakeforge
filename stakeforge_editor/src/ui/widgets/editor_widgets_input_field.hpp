@@ -81,6 +81,7 @@ namespace sfg
 		void set_text(const char* value);
 		void set_placeholder(const char* value);
 		void set_number(f32 value);
+		void set_draw_order(u32 draw_order);
 		void select_all();
 
 		inline ui::widget_id_t get_root() const

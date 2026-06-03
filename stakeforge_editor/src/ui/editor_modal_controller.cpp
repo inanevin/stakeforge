@@ -111,7 +111,6 @@ namespace sfg
 		_window = ui.allocate_widget();
 		ui.set_widget_debug_name(_window, "modal_window");
 		tree.attach(_foreground, _window);
-		tree.draw_order(_window) = MODAL_DRAW_ORDER;
 
 		ui::layout_in_t& window_in = tree.in(_window);
 		window_in.flags			   = 0;
@@ -137,13 +136,11 @@ namespace sfg
 		_description = ui.allocate_widget();
 		ui.set_widget_debug_name(_description, "modal_description");
 		tree.attach(_window, _description);
-		tree.draw_order(_description) = MODAL_DRAW_ORDER;
 		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_container = ui.allocate_widget();
 		ui.set_widget_debug_name(_container, "modal_container");
 		tree.attach(_window, _container);
-		tree.draw_order(_container) = MODAL_DRAW_ORDER;
 
 		ui::layout_in_t& container_in = tree.in(_container);
 		container_in.flags			  = 0;
@@ -159,7 +156,6 @@ namespace sfg
 		_button_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_button_row, "modal_button_row");
 		tree.attach(_window, _button_row);
-		tree.draw_order(_button_row) = MODAL_DRAW_ORDER;
 
 		ui::layout_in_t& button_row_in = tree.in(_button_row);
 		button_row_in.flags			   = 0;
@@ -178,12 +174,10 @@ namespace sfg
 			_button_frames[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_button_frames[i], "modal_button");
 			tree.attach(_button_row, _button_frames[i]);
-			tree.draw_order(_button_frames[i]) = MODAL_DRAW_ORDER;
 
 			_button_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_button_labels[i], "modal_button_label");
 			tree.attach(_button_frames[i], _button_labels[i]);
-			tree.draw_order(_button_labels[i]) = MODAL_DRAW_ORDER;
 
 			editor_widgets_buttons_t::make_button_modal(ui, _button_frames[i], _button_labels[i]);
 			ui.get_input().set_listener(_button_frames[i], button_listener);

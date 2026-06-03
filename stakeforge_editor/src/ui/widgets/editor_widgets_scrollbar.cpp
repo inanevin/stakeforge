@@ -82,7 +82,6 @@ namespace sfg
 			axis->track = ui.allocate_widget();
 			ui.set_widget_debug_name(axis->track, axis->axis == axis_e::x ? "scrollbar_track_x" : "scrollbar_track_y");
 			tree.attach(_root, axis->track);
-			tree.draw_order(axis->track) = tree.draw_order_const(_root);
 
 			ui::layout_in_t& track_in = tree.in(axis->track);
 			track_in.flags			  = 0;

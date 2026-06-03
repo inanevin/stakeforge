@@ -48,7 +48,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "checkbox");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible | ui::wf_input;
@@ -76,7 +75,6 @@ namespace sfg
 		_check = ui.allocate_widget();
 		ui.set_widget_debug_name(_check, "checkbox_check");
 		tree.attach(_root, _check);
-		tree.draw_order(_check) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& check_in = tree.in(_check);
 		check_in.flags			  = 0;

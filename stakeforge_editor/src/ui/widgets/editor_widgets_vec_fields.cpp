@@ -78,7 +78,6 @@ namespace sfg
 		_root					= ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "vec2_field");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 		make_root_row(ui, _root, config.width);
 
 		const char* names[2] = {"X", "Y"};
@@ -128,7 +127,6 @@ namespace sfg
 		_root					= ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "vec3_field");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 		make_root_row(ui, _root, config.width);
 
 		const char* names[3] = {"X", "Y", "Z"};
@@ -178,7 +176,6 @@ namespace sfg
 		_root					= ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "vec4_field");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 		make_root_row(ui, _root, config.width);
 
 		const char* names[4] = {"X", "Y", "Z", "W"};

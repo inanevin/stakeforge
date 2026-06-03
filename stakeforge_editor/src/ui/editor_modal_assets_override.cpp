@@ -51,7 +51,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "modal_assets_override");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -67,7 +66,6 @@ namespace sfg
 			const ui::widget_id_t label = ui.allocate_widget();
 			ui.set_widget_debug_name(label, "modal_assets_override_row");
 			tree.attach(_root, label);
-			tree.draw_order(label) = tree.draw_order_const(_root);
 
 			ui::layout_in_t& label_in = tree.in(label);
 			label_in.flags			  = ui::wf_visible;

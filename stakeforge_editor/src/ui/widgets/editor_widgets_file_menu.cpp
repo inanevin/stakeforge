@@ -71,7 +71,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "file_menu");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent) ;
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -92,7 +91,6 @@ namespace sfg
 			_top_frames[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_top_frames[i], "file_menu_top_item");
 			tree.attach(_root, _top_frames[i]);
-			tree.draw_order(_top_frames[i]) = tree.draw_order_const(_root);
 
 			ui::layout_in_t& in = tree.in(_top_frames[i]);
 			in.flags			= ui::wf_visible | ui::wf_input;
@@ -111,7 +109,6 @@ namespace sfg
 			_top_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_top_labels[i], "file_menu_top_label");
 			tree.attach(_top_frames[i], _top_labels[i]);
-			tree.draw_order(_top_labels[i]) = tree.draw_order_const(_top_frames[i]);
 
 			ui::layout_in_t& label_in = tree.in(_top_labels[i]);
 			label_in.flags			  = ui::wf_visible;

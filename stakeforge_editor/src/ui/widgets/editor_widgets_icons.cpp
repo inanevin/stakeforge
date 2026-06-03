@@ -41,7 +41,6 @@ namespace sfg
 
 		const ui::widget_id_t id = ui.allocate_widget();
 		tree.attach(parent, id);
-		tree.draw_order(id) = tree.draw_order_const(parent);
 		ui.set_widget_debug_name(id, "icon");
 
 		ui::layout_in_t& in = tree.in(id);
@@ -65,7 +64,6 @@ namespace sfg
 
 		const ui::widget_id_t wrapper = ui.allocate_widget();
 		tree.attach(parent, wrapper);
-		tree.draw_order(wrapper) = tree.draw_order_const(parent);
 		ui.set_widget_debug_name(wrapper, "icon_button_wrapper");
 
 		ui::layout_in_t& in = tree.in(wrapper);

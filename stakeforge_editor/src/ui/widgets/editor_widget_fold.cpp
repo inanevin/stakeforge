@@ -47,7 +47,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "fold");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -62,7 +61,6 @@ namespace sfg
 		_header = ui.allocate_widget();
 		ui.set_widget_debug_name(_header, "fold_header");
 		tree.attach(_root, _header);
-		tree.draw_order(_header) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& header_in = tree.in(_header);
 		header_in.flags			   = ui::wf_visible | ui::wf_input;
@@ -95,7 +93,6 @@ namespace sfg
 		const ui::widget_id_t icon_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(icon_frame, "fold_icon_frame");
 		tree.attach(_header, icon_frame);
-		tree.draw_order(icon_frame) = tree.draw_order_const(_header);
 
 		ui::layout_in_t& icon_frame_in = tree.in(icon_frame);
 		icon_frame_in.flags			   = ui::wf_visible;
@@ -108,7 +105,6 @@ namespace sfg
 		const ui::widget_id_t label = ui.allocate_widget();
 		ui.set_widget_debug_name(label, "fold_label");
 		tree.attach(_header, label);
-		tree.draw_order(label) = tree.draw_order_const(_header);
 
 		ui::layout_in_t& label_in = tree.in(label);
 		label_in.flags			  = ui::wf_visible;
@@ -138,7 +134,6 @@ namespace sfg
 		_body = ui.allocate_widget();
 		ui.set_widget_debug_name(_body, "fold_body");
 		tree.attach(_root, _body);
-		tree.draw_order(_body) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& body_in = tree.in(_body);
 		body_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
