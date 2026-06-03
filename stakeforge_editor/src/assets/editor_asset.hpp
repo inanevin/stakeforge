@@ -134,9 +134,12 @@ namespace sfg
 		static sid_t	try_read_existing_guid(const char* path);
 		static bool		delete_folder(editor_asset_node_handle_t folder_node);
 		static bool		duplicate_folder(editor_asset_node_handle_t folder_node);
+		static bool		rename_folder(editor_asset_node_handle_t folder_node, const char* new_path);
 		static bool		delete_file(editor_asset_node_handle_t file_node);
+		static bool		rename_file(editor_asset_node_handle_t file_node, const char* new_path);
 		static bool		delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
 		static bool		duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
+		static bool		rename_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, const char* new_path);
 	};
 
 }

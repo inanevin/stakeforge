@@ -93,6 +93,7 @@ namespace sfg
 			assets_item_action_menu_delete					  = 19,
 			assets_item_action_menu_open_directory			  = 20,
 			assets_item_action_menu_toggle_favourite		  = 21,
+			assets_action_menu_import						  = 22,
 		};
 
 		struct create_asset_command_t
@@ -134,7 +135,7 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ROWS[] = {
 			{.text = "Create", .children = ASSETS_ACTION_MENU_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_CREATE_ROWS) / sizeof(ASSETS_ACTION_MENU_CREATE_ROWS[0]))},
-			{.text = "Import"},
+			{.text = "Import", .command = assets_action_menu_import},
 			{.text = "Delete", .command = assets_action_menu_delete},
 			{.text = "Duplicate", .command = assets_action_menu_duplicate},
 			{.text = "Rename", .command = assets_action_menu_rename},
@@ -146,7 +147,7 @@ namespace sfg
 			{.text = "Rename", .command = assets_item_action_menu_rename},
 			{.text = "Duplicate", .command = assets_item_action_menu_duplicate},
 			{.text = "Delete", .command = assets_item_action_menu_delete},
-			{.text = "Open in OS", .command = assets_item_action_menu_open_directory},
+			{.text = "Show in OS", .command = assets_item_action_menu_open_directory},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_item_action_menu_toggle_favourite, .has_icon_color = true},
 		};
 
@@ -215,12 +216,6 @@ namespace sfg
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = 0.0f;
 		root_in.child_margins	 = {0.0f, 0.0f, theme.margin_vertical, 0.0f};
-		root_in.flags |= ui::wf_input | ui::wf_focusable;
-
-		ui::listener_bundle_t root_listener = {};
-		root_listener.user_data				= this;
-		root_listener.on_key				= on_root_key;
-		ui.get_input().set_listener(_root, root_listener);
 
 		_assets_left_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_left_pane, "assets_left_pane");
@@ -325,6 +320,7 @@ namespace sfg
 		body_listener.user_data				= this;
 		body_listener.on_click				= on_assets_body_clicked;
 		body_listener.on_wheel				= on_assets_body_wheel;
+		body_listener.on_key				= on_asset_tree_key;
 		ui.get_input().set_listener(_assets_left_pane_body, body_listener);
 
 		ui.set_pre_layout_tick(_assets_left_pane_body, on_asset_tree_tick, this);
@@ -593,6 +589,7 @@ namespace sfg
 		const editor_asset_node_handle_t root_handle	= asset_manager.get_root_node();
 		const bool						 folder_context = _selected_folder_hash != 0 && !_selected_folder_node.is_null() && tree.is_valid(_selected_folder_node) && !(_selected_folder_node == root_handle);
 
+		ASSETS_ACTION_MENU_ROWS[1].disabled	  = _selected_folder_node.is_null();
 		ASSETS_ACTION_MENU_ROWS[2].disabled	  = !folder_context;
 		ASSETS_ACTION_MENU_ROWS[3].disabled	  = !folder_context;
 		ASSETS_ACTION_MENU_ROWS[4].disabled	  = !folder_context;
@@ -628,6 +625,8 @@ namespace sfg
 		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
 		desc.command_fn				   = on_asset_action_menu_command;
 		desc.command_user_data		   = this;
+		desc.closed_fn				   = on_action_menu_closed;
+		desc.closed_user_data		   = this;
 		menu->request_action_menu(desc);
 	}
 
@@ -1898,7 +1897,7 @@ namespace sfg
 
 		const u64 old_hash = _selected_folder_hash;
 		const u64 new_hash = get_folder_hash_after_rename(_selected_folder_node, new_name);
-		if (!file_system_t::change_directory_name(old_path.c_str(), new_path.c_str()))
+		if (!editor_asset_util_t::rename_folder(_selected_folder_node, new_path.c_str()))
 			return;
 
 		_selected_folder_hash = new_hash;
@@ -1916,6 +1915,93 @@ namespace sfg
 		}
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::open_asset_rename_popup()
+	{
+		SFG_ASSERT(!_selected_asset_node.is_null());
+
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(tree.is_valid(_selected_asset_node));
+		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
+		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset || asset_node.type == editor_asset_node_type_e::file);
+
+		const auto item_it = std::find_if(_asset_grid_items.begin(), _asset_grid_items.end(), [&](const asset_grid_item_t& item) { return item.node == _selected_asset_node; });
+		SFG_ASSERT(item_it != _asset_grid_items.end());
+
+		const ui::layout_out_t& item_out = _ui->get_tree().out(item_it->root);
+		const f32				scale	 = ui::get_valid_scale(_ui->get_ui_scale());
+
+		editor_input_popup_desc_t desc = {};
+		desc.closed					   = on_asset_rename_popup_closed;
+		desc.user_data				   = this;
+		const string_t file_name_stem  = asset_node.type == editor_asset_node_type_e::file ? file_system_t::remove_extensions_from_path(asset_node.name) : "";
+		desc.text					   = asset_node.type == editor_asset_node_type_e::file ? file_name_stem.c_str() : asset_node.name.c_str();
+		desc.pos					   = item_out.pos;
+		desc.width					   = math::max(item_out.size.x / scale, editor_theme_t::get().item_width);
+		popup->request_input_popup(desc);
+	}
+
+	void editor_panel_assets_t::rename_asset_item(const char* name)
+	{
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+		if (_selected_asset_node.is_null() || !tree.is_valid(_selected_asset_node))
+			return;
+
+		string_t new_name = name != nullptr ? name : "";
+		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
+			return;
+
+		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
+		if (asset_node.type != editor_asset_node_type_e::asset && asset_node.type != editor_asset_node_type_e::file)
+			return;
+
+		const string_t old_file_extension = asset_node.type == editor_asset_node_type_e::file ? file_system_t::get_file_extension(asset_node.name) : "";
+		if (asset_node.type == editor_asset_node_type_e::file)
+		{
+			new_name = file_system_t::remove_extensions_from_path(new_name);
+			if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
+				return;
+		}
+
+		if (new_name == asset_node.name)
+			return;
+
+		const string_t& old_path = asset_node.full_path;
+		SFG_ASSERT(!old_path.empty());
+		const string_t parent_path = file_system_t::get_directory_of_file(old_path.c_str());
+		SFG_ASSERT(!parent_path.empty());
+
+		string_t new_path = parent_path + new_name;
+		if (asset_node.type == editor_asset_node_type_e::asset)
+			new_path += ".sfg_asset";
+		else if (!old_file_extension.empty())
+		{
+			new_path += ".";
+			new_path += old_file_extension;
+		}
+		if (file_system_t::exists(new_path.c_str()))
+			return;
+
+		if (asset_node.type == editor_asset_node_type_e::asset)
+		{
+			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+			if (asset == nullptr)
+				return;
+
+			if (!editor_asset_util_t::rename_asset(*asset, _selected_asset_node, new_path.c_str()))
+				return;
+		}
+		else if (!editor_asset_util_t::rename_file(_selected_asset_node, new_path.c_str()))
+			return;
+
+		_selected_asset_node = {};
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
 	}
@@ -2105,6 +2191,9 @@ namespace sfg
 			panel._create_popup_sub_type   = 0;
 			panel._create_popup_pending	   = true;
 			return;
+		case assets_action_menu_import:
+			on_import_button_pressed(false, &panel);
+			return;
 		case assets_action_menu_delete:
 			panel.delete_folder();
 			return;
@@ -2135,12 +2224,29 @@ namespace sfg
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		switch (command)
 		{
+		case assets_item_action_menu_rename:
+			panel._asset_rename_popup_pending = true;
+			return;
 		case assets_item_action_menu_duplicate:
 			panel.duplicate_asset();
 			return;
 		case assets_item_action_menu_delete:
 			panel.delete_asset();
 			return;
+		case assets_item_action_menu_open_directory: {
+			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+			if (panel._selected_asset_node.is_null() || !tree.is_valid(panel._selected_asset_node))
+				return;
+
+			const editor_asset_node_t& asset_node = tree.value(panel._selected_asset_node);
+			if (asset_node.full_path.empty())
+				return;
+
+			const string_t directory = file_system_t::get_directory_of_file(asset_node.full_path.c_str());
+			if (!directory.empty())
+				process::open_directory(directory.c_str());
+			return;
+		}
 		case assets_item_action_menu_toggle_favourite: {
 			const sid_t guid = panel.get_asset_guid(panel._selected_asset_node);
 			if (guid != NULL_SID)
@@ -2164,11 +2270,18 @@ namespace sfg
 			return;
 		}
 
-		if (!panel._rename_popup_pending)
+		if (panel._rename_popup_pending)
+		{
+			panel._rename_popup_pending = false;
+			panel.open_rename_popup();
 			return;
+		}
 
-		panel._rename_popup_pending = false;
-		panel.open_rename_popup();
+		if (panel._asset_rename_popup_pending)
+		{
+			panel._asset_rename_popup_pending = false;
+			panel.open_asset_rename_popup();
+		}
 	}
 
 	void editor_panel_assets_t::on_create_popup_closed(const char* value, void* user_data)
@@ -2196,6 +2309,11 @@ namespace sfg
 	void editor_panel_assets_t::on_rename_popup_closed(const char* value, void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->rename_folder(value);
+	}
+
+	void editor_panel_assets_t::on_asset_rename_popup_closed(const char* value, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->rename_asset_item(value);
 	}
 
 	void editor_panel_assets_t::on_import_overwrite_confirmed(void* user_data)
@@ -2256,9 +2374,9 @@ namespace sfg
 		panel.refresh_asset_grid(true);
 	}
 
-	void editor_panel_assets_t::on_root_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void*)
+	void editor_panel_assets_t::on_asset_tree_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void*)
 	{
-		[[maybe_unused]] const bool is_ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		const bool is_ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 
 		switch (ev.key)
 		{

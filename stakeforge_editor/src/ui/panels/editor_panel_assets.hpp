@@ -161,6 +161,8 @@ namespace sfg
 		void duplicate_asset();
 		void open_rename_popup();
 		void rename_folder(const char* name);
+		void open_asset_rename_popup();
+		void rename_asset_item(const char* name);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -189,6 +191,7 @@ namespace sfg
 		static void on_action_menu_closed(void* user_data);
 		static void on_create_popup_closed(const char* value, void* user_data);
 		static void on_rename_popup_closed(const char* value, void* user_data);
+		static void on_asset_rename_popup_closed(const char* value, void* user_data);
 		static void on_import_overwrite_confirmed(void* user_data);
 		static void on_import_overwrite_cancelled(void* user_data);
 		static void on_cook_options_imported(void* user_data);
@@ -197,7 +200,7 @@ namespace sfg
 		static void on_asset_search_changed(const char* value, void* user_data);
 		static u16	get_selected_item_style(void* user_data);
 		static void on_item_style_pressed(u16 value, void* user_data);
-		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
+		static void on_asset_tree_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
@@ -258,6 +261,7 @@ namespace sfg
 		bool								 _favourites_only				  = false;
 		bool								 _create_popup_pending			  = false;
 		bool								 _rename_popup_pending			  = false;
+		bool								 _asset_rename_popup_pending	  = false;
 		bool								 _allow_asset_overwrite			  = false;
 	};
 }
