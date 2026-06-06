@@ -1349,7 +1349,7 @@ namespace sfg
 				return true;
 			}
 			case reflected_value_type_e::object:
-				return reflection_registry_t::get().serialize_to_json(field.value_type_id, object, j);
+				return reflection_registry_t::get().serialize_to_json(field.value_type_id, get_reflected_field_ptr(object, field), j);
 			case reflected_value_type_e::vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_to_json(object, field, j);
@@ -1456,7 +1456,7 @@ namespace sfg
 				return write_reflected_enum(object, field, value);
 			}
 			case reflected_value_type_e::object:
-				return reflection_registry_t::get().deserialize_from_json(field.value_type_id, object, j);
+				return reflection_registry_t::get().deserialize_from_json(field.value_type_id, get_reflected_field_ptr(object, field), j);
 			case reflected_value_type_e::vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_from_json(object, field, j);
@@ -1609,7 +1609,7 @@ namespace sfg
 				return true;
 			}
 			case reflected_value_type_e::object:
-				return reflection_registry_t::get().serialize_to_stream(field.value_type_id, object, stream);
+				return reflection_registry_t::get().serialize_to_stream(field.value_type_id, get_reflected_field_ptr(object, field), stream);
 			case reflected_value_type_e::vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_to_stream(object, field, stream);
@@ -1727,7 +1727,7 @@ namespace sfg
 				return write_reflected_enum(object, field, static_cast<i64>(value));
 			}
 			case reflected_value_type_e::object:
-				return reflection_registry_t::get().deserialize_from_stream(field.value_type_id, object, stream);
+				return reflection_registry_t::get().deserialize_from_stream(field.value_type_id, get_reflected_field_ptr(object, field), stream);
 			case reflected_value_type_e::vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_from_stream(object, field, stream);

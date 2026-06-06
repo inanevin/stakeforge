@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/static_vector.hpp>
 #include <sfg/data/vector.hpp>
@@ -62,4 +64,26 @@ namespace sfg
 		bool						   use_alpha_cutoff = false;
 	};
 
+	SFG_DEFINE_TYPE_ID(material_parameter_type_e);
+	SFG_DEFINE_TYPE_ID(material_parameter_t);
+	SFG_DEFINE_TYPE_ID(material_def_t);
+
+	struct material_parameter_type_reflection_t
+	{
+		material_parameter_type_reflection_t();
+	};
+
+	struct material_parameter_reflection_t
+	{
+		material_parameter_reflection_t();
+	};
+
+	struct material_def_reflection_t
+	{
+		material_def_reflection_t();
+	};
+
+	inline material_parameter_type_reflection_t g_reflect_material_parameter_type;
+	inline material_parameter_reflection_t		g_reflect_material_parameter;
+	inline material_def_reflection_t			g_reflect_material_def;
 }

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -27,17 +27,41 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "vec4f.hpp"
-#include <sfg/common/hashing.hpp>
+#include <sfg/common/type_id.hpp>
+
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/math/mat4x3.hpp>
 
 namespace sfg
 {
-	struct vec4f_reflection_t
-	{
-		static constexpr sid_t TYPE_ID = "vec4f_t"_hs;
+#define SKELETON_JOINT_NO_PARENT UINT32_MAX
 
-		vec4f_reflection_t();
+	struct skeleton_joint_t
+	{
+		mat4x3_t inverse_bind = mat4x3_t::identity;
+		sid_t	 name_hash	  = NULL_SID;
+		u32		 parent_index = SKELETON_JOINT_NO_PARENT;
 	};
 
-	inline vec4f_reflection_t g_reflect_vec4f;
+	struct skeleton_def_t
+	{
+		vector_t<skeleton_joint_t> joints = {};
+	};
+
+	SFG_DEFINE_TYPE_ID(skeleton_joint_t);
+	SFG_DEFINE_TYPE_ID(skeleton_def_t);
+
+	struct skeleton_joint_reflection_t
+	{
+		skeleton_joint_reflection_t();
+	};
+
+	struct skeleton_def_reflection_t
+	{
+		skeleton_def_reflection_t();
+	};
+
+	inline skeleton_joint_reflection_t g_reflect_skeleton_joint;
+	inline skeleton_def_reflection_t   g_reflect_skeleton_def;
 }

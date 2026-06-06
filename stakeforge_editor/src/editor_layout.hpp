@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec2i16.hpp>
@@ -51,4 +53,8 @@ namespace sfg
 		static void load_surface_default_layout(editor_surface_t& surface);
 	};
 
+	void to_json(nlohmann::json& j, const editor_layout_window_t& window);
+	void from_json(const nlohmann::json& j, editor_layout_window_t& window);
+	void to_json(nlohmann::json& j, const editor_layout_t& layout);
+	void from_json(const nlohmann::json& j, editor_layout_t& layout);
 }

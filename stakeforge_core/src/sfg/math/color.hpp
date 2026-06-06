@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
+
+#include <sfg/common/type_id.hpp>
 #include "vec4f.hpp"
 
 namespace sfg
@@ -104,4 +106,12 @@ namespace sfg
 		f32 x, y, z, w = 1.0f;
 	};
 
+	SFG_DEFINE_TYPE_ID(color_t);
+
+	struct color_reflection_t
+	{
+		color_reflection_t();
+	};
+
+	inline color_reflection_t g_reflect_color;
 } // namespace sfg

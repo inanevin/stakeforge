@@ -26,7 +26,85 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world_draw_common.hpp"
+#include <iterator>
+#include <cstddef>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
+}
+
+namespace sfg
+{
+	namespace
+	{
+		static const reflected_enum_value_desc_t world_pass_flags_values[] = {
+			{.name = "none", .display_name = "None", .value = wpf_none},
+			{.name = "gbuffer", .display_name = "GBuffer", .value = wpf_gbuffer},
+			{.name = "forward", .display_name = "Forward", .value = wpf_forward},
+			{.name = "depth", .display_name = "Depth", .value = wpf_depth},
+			{.name = "shadow", .display_name = "Shadow", .value = wpf_shadow},
+		};
+
+		world_pass_flags_e world_pass_flag_from_string(const string_t& value)
+		{
+			if (value == "gbuffer" || value == "wpf_gbuffer")
+				return wpf_gbuffer;
+			if (value == "forward" || value == "wpf_forward")
+				return wpf_forward;
+			if (value == "depth" || value == "wpf_depth")
+				return wpf_depth;
+			if (value == "shadow" || value == "wpf_shadow" || value == "wfp_shadow")
+				return wpf_shadow;
+			return wpf_none;
+		}
+	}
+
+	world_pass_flags_reflection_t::world_pass_flags_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<world_pass_flags_e>::value) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = world_pass_flags_values, .size = std::size(world_pass_flags_values)},
+			.name		 = "world_pass_flags_e",
+			.type_id	 = type_id_t<world_pass_flags_e>::value,
+			.size		 = sizeof(world_pass_flags_e),
+			.alignment	 = alignof(world_pass_flags_e),
+		});
+	}
+
+	void to_json(nlohmann::json& j, const world_pass_flags_e& f)
+	{
+		j				= nlohmann::json::array();
+		const u32 flags = static_cast<u32>(f);
+		if ((flags & wpf_gbuffer) != 0)
+			j.push_back("gbuffer");
+		if ((flags & wpf_forward) != 0)
+			j.push_back("forward");
+		if ((flags & wpf_depth) != 0)
+			j.push_back("depth");
+		if ((flags & wpf_shadow) != 0)
+			j.push_back("shadow");
+	}
+
+	void from_json(const nlohmann::json& j, world_pass_flags_e& f)
+	{
+		u32 flags = wpf_none;
+		if (j.is_number_unsigned())
+		{
+			flags = j.get<u32>();
+		}
+		else if (j.is_string())
+		{
+			flags = static_cast<u32>(world_pass_flag_from_string(j.get<string_t>()));
+		}
+		else if (j.is_array())
+		{
+			for (const nlohmann::json& item : j)
+				flags |= static_cast<u32>(world_pass_flag_from_string(item.get<string_t>()));
+		}
+		f = static_cast<world_pass_flags_e>(flags);
+	}
 }

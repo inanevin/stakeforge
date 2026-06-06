@@ -1,6 +1,9 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader_cook.hpp"
+#include <iterator>
+#include <cstddef>
+#include <sfg/reflection/reflection_registry.hpp>
 #include "shader_cook_variants.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
@@ -208,4 +211,33 @@ namespace sfg
 		}
 	}
 
+}
+
+namespace sfg
+{
+	shader_cook_config_reflection_t::shader_cook_config_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<shader_cook_config_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name			= "include_dirs",
+			 .display_name	= "Include Directories",
+			 .type			= reflected_value_type_e::vector,
+			 .sub_type_id	= "string"_hs,
+			 .container_ops = reflected_vector_ops<string_t>(),
+			 .offset		= offsetof(shader_cook_config_t, include_dirs),
+			 .size			= sizeof(vector_t<string_t>)},
+			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = type_id_t<shader_type_e>::value, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "shader_cook_config_t",
+			.type_id   = type_id_t<shader_cook_config_t>::value,
+			.size	   = sizeof(shader_cook_config_t),
+			.alignment = alignof(shader_cook_config_t),
+		});
+	}
 }

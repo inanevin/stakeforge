@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -114,4 +116,12 @@ namespace sfg
 	u32	 format_get_row_count(format_e fmt, u16 height);
 	u32	 format_get_data_size(format_e fmt, u16 width, u16 height);
 
+	SFG_DEFINE_TYPE_ID(format_e);
+
+	struct format_reflection_t
+	{
+		format_reflection_t();
+	};
+
+	inline format_reflection_t g_reflect_format;
 }

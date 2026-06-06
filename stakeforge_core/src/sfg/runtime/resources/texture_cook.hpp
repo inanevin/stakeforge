@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "texture_payload_type.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -50,4 +52,12 @@ namespace sfg
 		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, ostream_t& stream);
 	};
 
+	SFG_DEFINE_TYPE_ID(texture_cook_config_t);
+
+	struct texture_cook_config_reflection_t
+	{
+		texture_cook_config_reflection_t();
+	};
+
+	inline texture_cook_config_reflection_t g_reflect_texture_cook_config;
 }

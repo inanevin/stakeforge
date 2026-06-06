@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "format.hpp"
 #include "gfx_constants.hpp"
 #include "shader_description.hpp"
@@ -246,6 +248,11 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
+	SFG_DEFINE_TYPE_ID(sampler_filter_e);
+	SFG_DEFINE_TYPE_ID(sampler_border_e);
+	SFG_DEFINE_TYPE_ID(address_mode);
+	SFG_DEFINE_TYPE_ID(sampler_desc_t);
+
 	struct layout_entry_t
 	{
 		binding_type_e type					  = binding_type_e::constant;
@@ -315,4 +322,28 @@ namespace sfg
 		char		 debug_name[16] = {"CmdBuffer"};
 	};
 
+	struct sampler_filter_reflection_t
+	{
+		sampler_filter_reflection_t();
+	};
+
+	struct sampler_border_reflection_t
+	{
+		sampler_border_reflection_t();
+	};
+
+	struct address_mode_reflection_t
+	{
+		address_mode_reflection_t();
+	};
+
+	struct sampler_desc_reflection_t
+	{
+		sampler_desc_reflection_t();
+	};
+
+	inline sampler_filter_reflection_t g_reflect_sampler_filter;
+	inline sampler_border_reflection_t g_reflect_sampler_border;
+	inline address_mode_reflection_t   g_reflect_address_mode;
+	inline sampler_desc_reflection_t   g_reflect_sampler_desc;
 }

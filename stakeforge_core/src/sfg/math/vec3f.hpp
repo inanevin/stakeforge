@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "math_common.hpp"
 #include <sfg/common/size_definitions.hpp>
 
@@ -174,4 +176,12 @@ namespace sfg
 		return vector_t * scalar;
 	}
 
+	SFG_DEFINE_TYPE_ID(vec3f_t);
+
+	struct vec3f_reflection_t
+	{
+		vec3f_reflection_t();
+	};
+
+	inline vec3f_reflection_t g_reflect_vec3f;
 }

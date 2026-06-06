@@ -35,8 +35,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/resources/audio_cook_reflection.hpp>
-#include <sfg/runtime/resources/texture_cook_reflection.hpp>
+#include <sfg/runtime/resources/audio_cook.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg
 {
@@ -154,7 +154,7 @@ namespace sfg
 		{
 		case editor_asset_import_type_e::texture: {
 			const texture_cook_config_t& texture_config = import_options->texture_cook_config;
-			if (!reflection_registry_t::get().serialize_to_json(texture_cook_config_reflection_t::TYPE_ID, &texture_config, asset.cook_options))
+			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
 				return false;
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::texture, editor_asset_source_type_e::file, source_path.c_str()))
 				return false;
@@ -162,7 +162,7 @@ namespace sfg
 		}
 		case editor_asset_import_type_e::audio: {
 			const audio_cook_config_t& audio_config = import_options->audio_cook_config;
-			if (!reflection_registry_t::get().serialize_to_json(audio_cook_config_reflection_t::TYPE_ID, &audio_config, asset.cook_options))
+			if (!reflection_registry_t::get().serialize_to_json(type_id_t<audio_cook_config_t>::value, &audio_config, asset.cook_options))
 				return false;
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::audio, editor_asset_source_type_e::file, source_path.c_str()))
 				return false;

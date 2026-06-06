@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -35,5 +37,12 @@ namespace sfg
 	{
 		ktx2_uastc,
 		uncompressed,
+	};
+
+	SFG_DEFINE_TYPE_ID(texture_payload_type_e);
+
+	struct texture_payload_type_reflection_t
+	{
+		texture_payload_type_reflection_t();
 	};
 }

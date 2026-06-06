@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "physical_material.hpp"
 #include "physical_material_def.hpp"
-#include "physical_material_reflection.hpp"
+#include "physical_material_def.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -43,7 +43,7 @@ namespace sfg
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
 		physical_material_def_t material = {};
-		reflection_registry_t::get().deserialize_from_stream(physical_material_reflection_t::TYPE_ID, &material, stream);
+		reflection_registry_t::get().deserialize_from_stream(type_id_t<physical_material_def_t>::value, &material, stream);
 
 		runtime->restitution	 = material.restitution;
 		runtime->friction		 = material.friction;

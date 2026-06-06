@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vec4f.hpp"
 #include "vec3f.hpp"
 #include "mat3x3.hpp"
+#include <sfg/common/type_id.hpp>
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -139,4 +140,13 @@ namespace sfg
 			return *this;
 		}
 	};
+
+	SFG_DEFINE_TYPE_ID(mat4x3_t);
+
+	struct mat4x3_reflection_t
+	{
+		mat4x3_reflection_t();
+	};
+
+	inline mat4x3_reflection_t g_reflect_mat4x3;
 }

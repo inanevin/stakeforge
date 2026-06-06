@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+
 #include "editor_layout.hpp"
 
 namespace sfg
@@ -45,4 +47,6 @@ namespace sfg
 		string_t		last_project_path = "";
 	};
 
+	void to_json(nlohmann::json& j, const editor_settings_t& settings);
+	void from_json(const nlohmann::json& j, editor_settings_t& settings);
 }

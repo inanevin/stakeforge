@@ -25,6 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vec2f.hpp"
+#include <iterator>
+#include <cstddef>
+#include <sfg/reflection/reflection_registry.hpp>
 #include "vec2u16.hpp"
 #include "math.hpp"
 #include <sfg/data/istream.hpp>
@@ -130,4 +133,27 @@ namespace sfg
 		stream >> x >> y;
 	}
 
+}
+
+namespace sfg
+{
+	vec2f_reflection_t::vec2f_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<vec2f_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "x", .type = reflected_value_type_e::f32, .offset = offsetof(vec2f_t, x), .size = sizeof(f32)},
+			{.name = "y", .type = reflected_value_type_e::f32, .offset = offsetof(vec2f_t, y), .size = sizeof(f32)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "vec2f_t",
+			.type_id   = type_id_t<vec2f_t>::value,
+			.size	   = sizeof(vec2f_t),
+			.alignment = alignof(vec2f_t),
+		});
+	}
 }

@@ -1,6 +1,9 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "common_resources.hpp"
+#include <iterator>
+#include <cstddef>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/istream_vector.hpp>
 #include <sfg/data/ostream.hpp>
@@ -50,4 +53,41 @@ namespace sfg
 		&prefab_resource_desc,
 		&animation_state_machine_resource_desc,
 	};
+}
+
+namespace sfg
+{
+	namespace
+	{
+		static const reflected_enum_value_desc_t resource_type_values[] = {
+			{.name = "invalid", .display_name = "Invalid", .value = static_cast<i64>(resource_type_e::invalid)},
+			{.name = "audio", .display_name = "Audio", .value = static_cast<i64>(resource_type_e::audio)},
+			{.name = "font", .display_name = "Font", .value = static_cast<i64>(resource_type_e::font)},
+			{.name = "mesh", .display_name = "Mesh", .value = static_cast<i64>(resource_type_e::mesh)},
+			{.name = "skeleton", .display_name = "Skeleton", .value = static_cast<i64>(resource_type_e::skeleton)},
+			{.name = "animation", .display_name = "Animation", .value = static_cast<i64>(resource_type_e::animation)},
+			{.name = "material", .display_name = "Material", .value = static_cast<i64>(resource_type_e::material)},
+			{.name = "shader", .display_name = "Shader", .value = static_cast<i64>(resource_type_e::shader)},
+			{.name = "texture", .display_name = "Texture", .value = static_cast<i64>(resource_type_e::texture)},
+			{.name = "texture_sampler", .display_name = "Texture Sampler", .value = static_cast<i64>(resource_type_e::texture_sampler)},
+			{.name = "physical_material", .display_name = "Physical Material", .value = static_cast<i64>(resource_type_e::physical_material)},
+			{.name = "prefab", .display_name = "Prefab", .value = static_cast<i64>(resource_type_e::prefab)},
+			{.name = "animation_state_machine", .display_name = "Animation State Machine", .value = static_cast<i64>(resource_type_e::animation_state_machine)},
+		};
+	}
+
+	resource_type_reflection_t::resource_type_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<resource_type_e>::value) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = resource_type_values, .size = std::size(resource_type_values)},
+			.name		 = "resource_type_e",
+			.type_id	 = type_id_t<resource_type_e>::value,
+			.size		 = sizeof(resource_type_e),
+			.alignment	 = alignof(resource_type_e),
+		});
+	}
 }

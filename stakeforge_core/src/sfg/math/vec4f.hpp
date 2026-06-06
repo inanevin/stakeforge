@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "math_common.hpp"
 
 #undef min
@@ -153,4 +155,12 @@ namespace sfg
 		return vector * scalar;
 	}
 
+	SFG_DEFINE_TYPE_ID(vec4f_t);
+
+	struct vec4f_reflection_t
+	{
+		vec4f_reflection_t();
+	};
+
+	inline vec4f_reflection_t g_reflect_vec4f;
 }

@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 
@@ -60,4 +62,6 @@ namespace sfg
 		static editor_project_t make_default_project(const char* path);
 	};
 
+	void to_json(nlohmann::json& j, const editor_project_t& project);
+	void from_json(const nlohmann::json& j, editor_project_t& project);
 }

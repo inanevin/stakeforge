@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "vec3f.hpp"
 
 namespace sfg
@@ -143,4 +145,12 @@ namespace sfg
 		return q * scalar;
 	}
 
+	SFG_DEFINE_TYPE_ID(quat_t);
+
+	struct quat_reflection_t
+	{
+		quat_reflection_t();
+	};
+
+	inline quat_reflection_t g_reflect_quat;
 }

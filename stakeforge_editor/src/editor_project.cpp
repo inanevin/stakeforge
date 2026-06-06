@@ -25,7 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_project.hpp"
-#include "editor_project_reflection.hpp"
+#include <iterator>
+#include <cstddef>
+#include <sfg/reflection/reflection_registry.hpp>
+#include "editor_project.hpp"
 #include <sfg/io/file_system.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -88,4 +91,23 @@ namespace sfg
 			file_system_t::create_directory(_runtime.default_assets_path.c_str());
 	}
 
+}
+
+namespace sfg
+{
+	void to_json(nlohmann::json& j, const editor_project_t& project)
+	{
+		j["last_world"]			= project.last_world_path;
+		j["world_tick_rate"]	= project.world_tick_rate;
+		j["world_physics_rate"] = project.world_physics_rate;
+		j["max_sim_steps"]		= project.max_sim_steps;
+	}
+
+	void from_json(const nlohmann::json& j, editor_project_t& project)
+	{
+		project.last_world_path	   = j.value<string_t>("last_world", "");
+		project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
+		project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
+		project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);
+	}
 }

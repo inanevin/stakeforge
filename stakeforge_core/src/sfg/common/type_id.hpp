@@ -32,3 +32,9 @@ namespace sfg
 {
 	template <typename T> struct type_id_t;
 }
+
+#define SFG_DEFINE_TYPE_ID(Type)                                                                                                                                                                                                                                   \
+	template <> struct type_id_t<Type>                                                                                                                                                                                                                             \
+	{                                                                                                                                                                                                                                                              \
+		static inline constexpr sid_t value = hashing_t::to_sid(#Type);                                                                                                                                                                                            \
+	}

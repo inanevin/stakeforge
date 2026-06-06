@@ -30,6 +30,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "quat.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
@@ -254,5 +258,35 @@ namespace sfg
 	{
 		for (int i = 0; i < 12; ++i)
 			stream >> m[i];
+	}
+
+	mat4x3_reflection_t::mat4x3_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<mat4x3_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "m00", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 0, .size = sizeof(f32)},
+			{.name = "m10", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 1, .size = sizeof(f32)},
+			{.name = "m20", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 2, .size = sizeof(f32)},
+			{.name = "m01", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 3, .size = sizeof(f32)},
+			{.name = "m11", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 4, .size = sizeof(f32)},
+			{.name = "m21", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 5, .size = sizeof(f32)},
+			{.name = "m02", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 6, .size = sizeof(f32)},
+			{.name = "m12", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 7, .size = sizeof(f32)},
+			{.name = "m22", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 8, .size = sizeof(f32)},
+			{.name = "m03", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 9, .size = sizeof(f32)},
+			{.name = "m13", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 10, .size = sizeof(f32)},
+			{.name = "m23", .type = reflected_value_type_e::f32, .offset = offsetof(mat4x3_t, m) + sizeof(f32) * 11, .size = sizeof(f32)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "mat4x3_t",
+			.type_id   = type_id_t<mat4x3_t>::value,
+			.size	   = sizeof(mat4x3_t),
+			.alignment = alignof(mat4x3_t),
+		});
 	}
 }

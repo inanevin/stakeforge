@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "shader.hpp"
 #include "shader_types.hpp"
 #include <sfg/data/string.hpp>
@@ -24,4 +26,12 @@ namespace sfg
 		static void collect_source_ticks(const char* full_path, vector_t<u64>& out);
 	};
 
+	SFG_DEFINE_TYPE_ID(shader_cook_config_t);
+
+	struct shader_cook_config_reflection_t
+	{
+		shader_cook_config_reflection_t();
+	};
+
+	inline shader_cook_config_reflection_t g_reflect_shader_cook_config;
 }

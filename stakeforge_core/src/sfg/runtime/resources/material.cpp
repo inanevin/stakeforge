@@ -2,7 +2,7 @@
 
 #include "material.hpp"
 
-#include "material_def_reflection.hpp"
+#include "material_def.hpp"
 #include "resource_manager.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
@@ -102,7 +102,7 @@ namespace sfg
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
 		material_def_t material = {};
-		if (!reflection_registry_t::get().deserialize_from_stream(material_def_reflection_t::TYPE_ID, &material, stream))
+		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<material_def_t>::value, &material, stream))
 			return false;
 
 		runtime->pass_flags		  = material.pass_flags;

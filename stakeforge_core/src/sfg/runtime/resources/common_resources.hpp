@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "resource_handle.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
@@ -116,4 +118,13 @@ namespace sfg
 			return nullptr;
 		return g_resource_type_descs[t];
 	}
+
+	SFG_DEFINE_TYPE_ID(resource_type_e);
+
+	struct resource_type_reflection_t
+	{
+		resource_type_reflection_t();
+	};
+
+	inline resource_type_reflection_t g_reflect_resource_type;
 }

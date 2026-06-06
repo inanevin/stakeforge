@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -25,4 +27,12 @@ namespace sfg
 		svf_none = 1 << 0,
 	};
 
+	SFG_DEFINE_TYPE_ID(shader_type_e);
+
+	struct shader_type_reflection_t
+	{
+		shader_type_reflection_t();
+	};
+
+	inline shader_type_reflection_t g_reflect_shader_type;
 }

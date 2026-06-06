@@ -3,7 +3,7 @@
 #include "material_cook.hpp"
 
 #include "material_def.hpp"
-#include "material_def_reflection.hpp"
+#include "material_def.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
@@ -25,7 +25,7 @@ namespace sfg
 	bool material_cooker::cook_from_json(const nlohmann::json& json_data, ostream_t& stream)
 	{
 		material_def_t material = {};
-		if (!reflection_registry_t::get().deserialize_from_json(material_def_reflection_t::TYPE_ID, &material, json_data))
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &material, json_data))
 			return false;
 		SFG_ASSERT(material.textures.empty() || material.sampler != NULL_SID);
 		normalize_material_parameters(material);
@@ -38,6 +38,6 @@ namespace sfg
 		};
 
 		header.serialize(stream);
-		return reflection_registry_t::get().serialize_to_stream(material_def_reflection_t::TYPE_ID, &material, stream);
+		return reflection_registry_t::get().serialize_to_stream(type_id_t<material_def_t>::value, &material, stream);
 	}
 }

@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "physical_material_cook.hpp"
 #include "physical_material_def.hpp"
 #include "physical_material.hpp"
-#include "physical_material_reflection.hpp"
+#include "physical_material_def.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -38,7 +38,7 @@ namespace sfg
 	bool physical_material_cooker::cook_from_def(const physical_material_def_t& def, ostream_t& stream)
 	{
 		ostream_t def_stream;
-		reflection_registry_t::get().serialize_to_stream(physical_material_reflection_t::TYPE_ID, &def, stream);
+		reflection_registry_t::get().serialize_to_stream(type_id_t<physical_material_def_t>::value, &def, stream);
 
 		const resource_header_t header = {
 			.magic		  = physical_material_loader_t::WIRE_MAGIC,

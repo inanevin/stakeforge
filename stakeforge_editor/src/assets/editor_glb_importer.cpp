@@ -37,9 +37,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/resources/material_def_reflection.hpp>
+#include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/runtime/resources/texture_cook_reflection.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
 
 #define TINYGLTF3_IMPLEMENTATION
@@ -241,7 +241,7 @@ namespace sfg
 			texture_cook_config_t texture_config = texture_config_base;
 
 			editor_asset_t asset = {};
-			if (!reflection_registry_t::get().serialize_to_json(texture_cook_config_reflection_t::TYPE_ID, &texture_config, asset.cook_options))
+			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
 				return false;
 
 			string_t asset_name;
@@ -346,7 +346,7 @@ namespace sfg
 			asset.asset_type  = editor_asset_type_e::material;
 			asset.source_type = editor_asset_source_type_e::embedded;
 			asset.sub_type	  = static_cast<u8>(editor_material_type_e::gbuffer);
-			if (!reflection_registry_t::get().serialize_to_json(material_def_reflection_t::TYPE_ID, &material_def, asset.embedded_source))
+			if (!reflection_registry_t::get().serialize_to_json(type_id_t<material_def_t>::value, &material_def, asset.embedded_source))
 				return false;
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))

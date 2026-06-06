@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "material_def_reflection.hpp"
+#include "material_def.hpp"
 
 #include <sfg/reflection/reflection_registry.hpp>
 
@@ -50,13 +50,13 @@ namespace sfg
 	material_parameter_type_reflection_t::material_parameter_type_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(TYPE_ID) != nullptr)
+		if (registry.find_type(type_id_t<material_parameter_type_e>::value) != nullptr)
 			return;
 
 		registry.register_type({
 			.enum_values = {.data = material_parameter_type_values, .size = std::size(material_parameter_type_values)},
 			.name		 = "material_parameter_type_e",
-			.type_id	 = TYPE_ID,
+			.type_id	 = type_id_t<material_parameter_type_e>::value,
 			.size		 = sizeof(material_parameter_type_e),
 			.alignment	 = alignof(material_parameter_type_e),
 		});
@@ -65,11 +65,11 @@ namespace sfg
 	material_parameter_reflection_t::material_parameter_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(TYPE_ID) != nullptr)
+		if (registry.find_type(type_id_t<material_parameter_t>::value) != nullptr)
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = material_parameter_type_reflection_t::TYPE_ID, .offset = offsetof(material_parameter_t, type), .size = sizeof(material_parameter_type_e)},
+			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = type_id_t<material_parameter_type_e>::value, .offset = offsetof(material_parameter_t, type), .size = sizeof(material_parameter_type_e)},
 			{.name			= "values",
 			 .display_name	= "Values",
 			 .type			= reflected_value_type_e::static_vector,
@@ -83,7 +83,7 @@ namespace sfg
 		registry.register_type({
 			.fields	   = {.data = fields, .size = std::size(fields)},
 			.name	   = "material_parameter_t",
-			.type_id   = TYPE_ID,
+			.type_id   = type_id_t<material_parameter_t>::value,
 			.size	   = sizeof(material_parameter_t),
 			.alignment = alignof(material_parameter_t),
 		});
@@ -92,14 +92,14 @@ namespace sfg
 	material_def_reflection_t::material_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(TYPE_ID) != nullptr)
+		if (registry.find_type(type_id_t<material_def_t>::value) != nullptr)
 			return;
 
 		static const reflected_field_desc_t fields[] = {
 			{.name		   = "pass_flags",
 			 .display_name = "Pass Flags",
 			 .type		   = reflected_value_type_e::enum32,
-			 .sub_type_id  = world_pass_flags_reflection_t::TYPE_ID,
+			 .sub_type_id  = type_id_t<world_pass_flags_e>::value,
 			 .offset	   = offsetof(material_def_t, pass_flags),
 			 .size		   = sizeof(world_pass_flags_e),
 			 .flags		   = reflected_field_flags_bitmask},
@@ -109,7 +109,7 @@ namespace sfg
 			{.name			= "parameters",
 			 .display_name	= "Parameters",
 			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= material_parameter_reflection_t::TYPE_ID,
+			 .sub_type_id	= type_id_t<material_parameter_t>::value,
 			 .container_ops = reflected_vector_ops<material_parameter_t>(),
 			 .offset		= offsetof(material_def_t, parameters),
 			 .size			= sizeof(vector_t<material_parameter_t>)},
@@ -120,7 +120,7 @@ namespace sfg
 		registry.register_type({
 			.fields	   = {.data = fields, .size = std::size(fields)},
 			.name	   = "material_def_t",
-			.type_id   = TYPE_ID,
+			.type_id   = type_id_t<material_def_t>::value,
 			.size	   = sizeof(material_def_t),
 			.alignment = alignof(material_def_t),
 		});

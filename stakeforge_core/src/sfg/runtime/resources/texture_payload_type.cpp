@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -25,34 +25,35 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "rectf_reflection.hpp"
+#include "texture_payload_type.hpp"
+#include <cstddef>
 
 #include <sfg/reflection/reflection_registry.hpp>
 
-#include <cstddef>
 #include <iterator>
 
 namespace sfg
 {
-	rectf_reflection_t::rectf_reflection_t()
+	namespace
+	{
+		static const reflected_enum_value_desc_t texture_payload_type_values[] = {
+			{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_payload_type_e::uncompressed)},
+			{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_payload_type_e::ktx2_uastc)},
+		};
+	}
+
+	texture_payload_type_reflection_t::texture_payload_type_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(TYPE_ID) != nullptr)
+		if (registry.find_type(type_id_t<texture_payload_type_e>::value) != nullptr)
 			return;
 
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, x), .size = sizeof(f32)},
-			{.name = "y", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, y), .size = sizeof(f32)},
-			{.name = "w", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, w), .size = sizeof(f32)},
-			{.name = "h", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, h), .size = sizeof(f32)},
-		};
-
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "rectf_t",
-			.type_id   = TYPE_ID,
-			.size	   = sizeof(rectf_t),
-			.alignment = alignof(rectf_t),
+			.enum_values = {.data = texture_payload_type_values, .size = std::size(texture_payload_type_values)},
+			.name		 = "texture_payload_type_e",
+			.type_id	 = type_id_t<texture_payload_type_e>::value,
+			.size		 = sizeof(texture_payload_type_e),
+			.alignment	 = alignof(texture_payload_type_e),
 		});
 	}
 }

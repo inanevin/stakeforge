@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include "gfx_constants.hpp"
 #include "format.hpp"
 #include <sfg/data/bitmask.hpp>
@@ -281,6 +283,18 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
+	SFG_DEFINE_TYPE_ID(vertex_input_t);
+	SFG_DEFINE_TYPE_ID(cull_mode);
+	SFG_DEFINE_TYPE_ID(fill_mode);
+	SFG_DEFINE_TYPE_ID(front_face);
+	SFG_DEFINE_TYPE_ID(blend_factor);
+	SFG_DEFINE_TYPE_ID(blend_op);
+	SFG_DEFINE_TYPE_ID(stencil_op);
+	SFG_DEFINE_TYPE_ID(compare_op);
+	SFG_DEFINE_TYPE_ID(store_op);
+	SFG_DEFINE_TYPE_ID(load_op);
+	SFG_DEFINE_TYPE_ID(stencil_state_t);
+
 	struct compile_variant_t
 	{
 		vector_t<shader_blob_t> blobs;
@@ -300,4 +314,70 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
+	struct vertex_input_reflection_t
+	{
+		vertex_input_reflection_t();
+	};
+
+	struct cull_mode_reflection_t
+	{
+		cull_mode_reflection_t();
+	};
+
+	struct fill_mode_reflection_t
+	{
+		fill_mode_reflection_t();
+	};
+
+	struct front_face_reflection_t
+	{
+		front_face_reflection_t();
+	};
+
+	struct blend_factor_reflection_t
+	{
+		blend_factor_reflection_t();
+	};
+
+	struct blend_op_reflection_t
+	{
+		blend_op_reflection_t();
+	};
+
+	struct stencil_op_reflection_t
+	{
+		stencil_op_reflection_t();
+	};
+
+	struct compare_op_reflection_t
+	{
+		compare_op_reflection_t();
+	};
+
+	struct store_op_reflection_t
+	{
+		store_op_reflection_t();
+	};
+
+	struct load_op_reflection_t
+	{
+		load_op_reflection_t();
+	};
+
+	struct stencil_state_reflection_t
+	{
+		stencil_state_reflection_t();
+	};
+
+	inline vertex_input_reflection_t  g_reflect_vertex_input;
+	inline cull_mode_reflection_t	  g_reflect_cull_mode;
+	inline fill_mode_reflection_t	  g_reflect_fill_mode;
+	inline front_face_reflection_t	  g_reflect_front_face;
+	inline blend_factor_reflection_t  g_reflect_blend_factor;
+	inline blend_op_reflection_t	  g_reflect_blend_op;
+	inline stencil_op_reflection_t	  g_reflect_stencil_op;
+	inline compare_op_reflection_t	  g_reflect_compare_op;
+	inline store_op_reflection_t	  g_reflect_store_op;
+	inline load_op_reflection_t		  g_reflect_load_op;
+	inline stencil_state_reflection_t g_reflect_stencil_state;
 }

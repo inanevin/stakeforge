@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -42,4 +44,12 @@ namespace sfg
 		f32 linear_damping	= 0.05f;
 	};
 
+	SFG_DEFINE_TYPE_ID(physical_material_def_t);
+
+	struct physical_material_reflection_t
+	{
+		physical_material_reflection_t();
+	};
+
+	inline physical_material_reflection_t g_reflect_physical_material;
 }

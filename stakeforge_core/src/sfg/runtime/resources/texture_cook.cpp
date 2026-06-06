@@ -26,6 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture_cook.hpp"
+#include <iterator>
+#include <cstddef>
+#include <sfg/reflection/reflection_registry.hpp>
 #include "texture.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
@@ -210,4 +213,35 @@ namespace sfg
 
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB
+}
+
+namespace sfg
+{
+	texture_cook_config_reflection_t::texture_cook_config_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<texture_cook_config_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "size", .display_name = "Size", .type = reflected_value_type_e::vec2u16, .offset = offsetof(texture_cook_config_t, size), .size = sizeof(vec2u16_t), .flags = reflected_field_flags_no_ui},
+			{.name		   = "payload_type",
+			 .display_name = "Payload Type",
+			 .type		   = reflected_value_type_e::enum8,
+			 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
+			 .offset	   = offsetof(texture_cook_config_t, payload_type),
+			 .size		   = sizeof(texture_payload_type_e)},
+			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
+			{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
+		};
+
+		registry.register_type({
+			.fields		  = {.data = fields, .size = std::size(fields)},
+			.name		  = "texture_cook_config_t",
+			.display_name = "Texture Cook Config",
+			.type_id	  = type_id_t<texture_cook_config_t>::value,
+			.size		  = sizeof(texture_cook_config_t),
+			.alignment	  = alignof(texture_cook_config_t),
+		});
+	}
 }

@@ -25,8 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "shader_cook_reflection.hpp"
-#include "shader_types_reflection.hpp"
+#include "skeleton_def.hpp"
 
 #include <sfg/reflection/reflection_registry.hpp>
 
@@ -35,29 +34,49 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	shader_cook_config_reflection_t::shader_cook_config_reflection_t()
+	skeleton_joint_reflection_t::skeleton_joint_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(TYPE_ID) != nullptr)
+		if (registry.find_type(type_id_t<skeleton_joint_t>::value) != nullptr)
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name			= "include_dirs",
-			 .display_name	= "Include Directories",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= "string"_hs,
-			 .container_ops = reflected_vector_ops<string_t>(),
-			 .offset		= offsetof(shader_cook_config_t, include_dirs),
-			 .size			= sizeof(vector_t<string_t>)},
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = shader_type_reflection_t::TYPE_ID, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e)},
+			{.name = "name_hash", .display_name = "Name Hash", .type = reflected_value_type_e::resource, .offset = offsetof(skeleton_joint_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flags_no_ui},
+			{.name = "parent_index", .display_name = "Parent Index", .type = reflected_value_type_e::u32, .offset = offsetof(skeleton_joint_t, parent_index), .size = sizeof(u32)},
+			{.name = "inverse_bind", .display_name = "Inverse Bind", .type = reflected_value_type_e::object, .value_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_joint_t, inverse_bind), .size = sizeof(mat4x3_t)},
 		};
 
 		registry.register_type({
 			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "shader_cook_config_t",
-			.type_id   = TYPE_ID,
-			.size	   = sizeof(shader_cook_config_t),
-			.alignment = alignof(shader_cook_config_t),
+			.name	   = "skeleton_joint_t",
+			.type_id   = type_id_t<skeleton_joint_t>::value,
+			.size	   = sizeof(skeleton_joint_t),
+			.alignment = alignof(skeleton_joint_t),
+		});
+	}
+
+	skeleton_def_reflection_t::skeleton_def_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<skeleton_def_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name			= "joints",
+			 .display_name	= "Joints",
+			 .type			= reflected_value_type_e::vector,
+			 .sub_type_id	= type_id_t<skeleton_joint_t>::value,
+			 .container_ops = reflected_vector_ops<skeleton_joint_t>(),
+			 .offset		= offsetof(skeleton_def_t, joints),
+			 .size			= sizeof(vector_t<skeleton_joint_t>)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "skeleton_def_t",
+			.type_id   = type_id_t<skeleton_def_t>::value,
+			.size	   = sizeof(skeleton_def_t),
+			.alignment = alignof(skeleton_def_t),
 		});
 	}
 }

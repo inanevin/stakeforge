@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -45,4 +47,15 @@ namespace sfg
 		wdf_none = 0,
 	};
 
+	SFG_DEFINE_TYPE_ID(world_pass_flags_e);
+
+	struct world_pass_flags_reflection_t
+	{
+		world_pass_flags_reflection_t();
+	};
+
+	void to_json(nlohmann::json& j, const world_pass_flags_e& f);
+	void from_json(const nlohmann::json& j, world_pass_flags_e& f);
+
+	inline world_pass_flags_reflection_t g_reflect_world_pass_flags;
 }

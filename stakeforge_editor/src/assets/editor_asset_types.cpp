@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -38,11 +38,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
-#include <sfg/runtime/resources/physical_material_reflection.hpp>
+#include <sfg/runtime/resources/physical_material_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
-#include <sfg/runtime/resources/shader_cook_reflection.hpp>
+#include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/runtime/resources/texture_cook_reflection.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 
 namespace sfg
@@ -135,7 +135,7 @@ namespace sfg
 	{
 		const string_t		 source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		shader_cook_config_t config			  = {};
-		if (!reflection_registry_t::get().deserialize_from_json(shader_cook_config_reflection_t::TYPE_ID, &config, asset.cook_options))
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &config, asset.cook_options))
 			return false;
 		return shader_cooker::cook_from_file(config, source_full_path.c_str(), stream);
 	}
@@ -149,20 +149,20 @@ namespace sfg
 	{
 		const texture_cook_config_t texture_config = cook_config != nullptr ? *reinterpret_cast<const texture_cook_config_t*>(cook_config) : texture_cook_config_t{};
 		nlohmann::json				json_data	   = nlohmann::json::object();
-		SFG_ASSERT(reflection_registry_t::get().serialize_to_json(texture_cook_config_reflection_t::TYPE_ID, &texture_config, json_data));
+		SFG_ASSERT(reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, json_data));
 		asset.cook_options = json_data;
 		return true;
 	}
 
 	editor_asset_cook_config_desc_t editor_asset_loader_texture_t::create_cook_config()
 	{
-		return {.object = new texture_cook_config_t(), .title = "Texture", .destroy = destroy_texture_cook_config, .type_id = texture_cook_config_reflection_t::TYPE_ID};
+		return {.object = new texture_cook_config_t(), .title = "Texture", .destroy = destroy_texture_cook_config, .type_id = type_id_t<texture_cook_config_t>::value};
 	}
 
 	bool editor_asset_loader_texture_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
 		texture_cook_config_t config = {};
-		if (!reflection_registry_t::get().deserialize_from_json(texture_cook_config_reflection_t::TYPE_ID, &config, asset.cook_options))
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<texture_cook_config_t>::value, &config, asset.cook_options))
 			return false;
 		if (asset.source_type == editor_asset_source_type_e::data)
 		{
@@ -213,7 +213,7 @@ namespace sfg
 	bool editor_asset_loader_physical_material_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
 		physical_material_def_t def = {};
-		if (!reflection_registry_t::get().deserialize_from_json(physical_material_reflection_t::TYPE_ID, &def, asset.embedded_source))
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<physical_material_def_t>::value, &def, asset.embedded_source))
 			return false;
 		return physical_material_cooker::cook_from_def(def, stream);
 	}
