@@ -1332,6 +1332,18 @@ namespace sfg
 				i64 value = 0;
 				if (!read_reflected_enum(object, field, value))
 					return false;
+				if ((field.flags & reflected_field_flags_bitmask) != 0)
+				{
+					j															= nlohmann::json::array();
+					const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_field_enum_values(field);
+					for (u32 i = 0; i < enum_values.size; ++i)
+					{
+						const reflected_enum_value_desc_t& enum_value = enum_values.data[i];
+						if (enum_value.value != 0 && (value & enum_value.value) != 0)
+							j.push_back(enum_value.name);
+					}
+					return true;
+				}
 				const char* name = find_enum_name(field, value);
 				j				 = name != nullptr ? nlohmann::json(name) : nlohmann::json(value);
 				return true;
@@ -1413,7 +1425,25 @@ namespace sfg
 			case reflected_value_type_e::enum8:
 			case reflected_value_type_e::enum32: {
 				i64 value = 0;
-				if (j.is_string())
+				if ((field.flags & reflected_field_flags_bitmask) != 0 && j.is_array())
+				{
+					for (const nlohmann::json& item : j)
+					{
+						i64 flag = 0;
+						if (item.is_string())
+						{
+							const string_t name = item.get<string_t>();
+							if (!find_enum_value(field, name.c_str(), flag))
+								return false;
+						}
+						else
+						{
+							flag = item.get<i64>();
+						}
+						value |= flag;
+					}
+				}
+				else if (j.is_string())
 				{
 					const string_t name = j.get<string_t>();
 					if (!find_enum_value(field, name.c_str(), value))

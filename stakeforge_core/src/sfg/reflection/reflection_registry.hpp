@@ -80,6 +80,7 @@ namespace sfg
 		reflected_field_flags_no_ui		= 1 << 1,
 		reflected_field_flags_clamped	= 1 << 2,
 		reflected_field_flags_transient = 1 << 3,
+		reflected_field_flags_bitmask	= 1 << 4,
 	};
 
 	enum reflected_type_flags_e : u32

@@ -28,14 +28,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/static_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 
 namespace sfg
 {
-	class istream_t;
-	class ostream_t;
-
 	enum class material_parameter_type_e : u8
 	{
 		u32,
@@ -49,11 +47,8 @@ namespace sfg
 
 	struct material_parameter_t
 	{
-		f32						  values[4] = {};
-		material_parameter_type_e type		= material_parameter_type_e::f32;
-
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
+		static_vector_t<f32, 4>	  values = {};
+		material_parameter_type_e type	 = material_parameter_type_e::f32;
 	};
 
 	struct material_def_t
@@ -65,9 +60,6 @@ namespace sfg
 		world_pass_flags_e			   pass_flags		= wpf_none;
 		bool						   double_sided		= false;
 		bool						   use_alpha_cutoff = false;
-
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
 	};
 
 }

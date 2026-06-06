@@ -26,96 +26,103 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "material_def_reflection.hpp"
-#include <sfg/runtime/render/world_draw_common_reflection.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const material_parameter_type_e& t)
+	namespace
 	{
-		switch (t)
-		{
-		case material_parameter_type_e::u32:
-			j = "u32";
-			break;
-		case material_parameter_type_e::uint2:
-			j = "uint2";
-			break;
-		case material_parameter_type_e::uint4:
-			j = "uint4";
-			break;
-		case material_parameter_type_e::i32:
-			j = "i32";
-			break;
-		case material_parameter_type_e::vec2f:
-			j = "vec2f";
-			break;
-		case material_parameter_type_e::vec4f:
-			j = "vec4f";
-			break;
-		default:
-			j = "f32";
-			break;
-		}
+		static const reflected_enum_value_desc_t material_parameter_type_values[] = {
+			{.name = "u32", .display_name = "U32", .value = static_cast<i64>(material_parameter_type_e::u32)},
+			{.name = "uint2", .display_name = "UInt2", .value = static_cast<i64>(material_parameter_type_e::uint2)},
+			{.name = "uint4", .display_name = "UInt4", .value = static_cast<i64>(material_parameter_type_e::uint4)},
+			{.name = "i32", .display_name = "I32", .value = static_cast<i64>(material_parameter_type_e::i32)},
+			{.name = "f32", .display_name = "F32", .value = static_cast<i64>(material_parameter_type_e::f32)},
+			{.name = "vec2f", .display_name = "Vec2F", .value = static_cast<i64>(material_parameter_type_e::vec2f)},
+			{.name = "vec4f", .display_name = "Vec4F", .value = static_cast<i64>(material_parameter_type_e::vec4f)},
+		};
 	}
 
-	void to_json(nlohmann::json& j, const material_parameter_t& p)
+	material_parameter_type_reflection_t::material_parameter_type_reflection_t()
 	{
-		j["type"]	= p.type;
-		j["values"] = {p.values[0], p.values[1], p.values[2], p.values[3]};
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		registry.register_type({
+			.enum_values = {.data = material_parameter_type_values, .size = std::size(material_parameter_type_values)},
+			.name		 = "material_parameter_type_e",
+			.type_id	 = TYPE_ID,
+			.size		 = sizeof(material_parameter_type_e),
+			.alignment	 = alignof(material_parameter_type_e),
+		});
 	}
 
-	void to_json(nlohmann::json& j, const material_def_t& m)
+	material_parameter_reflection_t::material_parameter_reflection_t()
 	{
-		j["schema"]			  = "sfg.schema.material";
-		j["pass_flags"]		  = m.pass_flags;
-		j["shader"]			  = m.shader;
-		j["sampler"]		  = m.sampler;
-		j["textures"]		  = m.textures;
-		j["parameters"]		  = m.parameters;
-		j["double_sided"]	  = m.double_sided;
-		j["use_alpha_cutoff"] = m.use_alpha_cutoff;
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = material_parameter_type_reflection_t::TYPE_ID, .offset = offsetof(material_parameter_t, type), .size = sizeof(material_parameter_type_e)},
+			{.name			= "values",
+			 .display_name	= "Values",
+			 .type			= reflected_value_type_e::static_vector,
+			 .sub_type_id	= "f32"_hs,
+			 .container_ops = reflected_static_vector_ops<f32, 4>(),
+			 .offset		= offsetof(material_parameter_t, values),
+			 .size			= sizeof(static_vector_t<f32, 4>),
+			 .capacity		= 4},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "material_parameter_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(material_parameter_t),
+			.alignment = alignof(material_parameter_t),
+		});
 	}
 
-	void from_json(const nlohmann::json& j, material_parameter_type_e& t)
+	material_def_reflection_t::material_def_reflection_t()
 	{
-		const string_t s = j.get<string_t>();
-		if (s == "u32")
-			t = material_parameter_type_e::u32;
-		else if (s == "uint2")
-			t = material_parameter_type_e::uint2;
-		else if (s == "uint4")
-			t = material_parameter_type_e::uint4;
-		else if (s == "i32")
-			t = material_parameter_type_e::i32;
-		else if (s == "vec2f")
-			t = material_parameter_type_e::vec2f;
-		else if (s == "vec4f")
-			t = material_parameter_type_e::vec4f;
-		else
-			t = material_parameter_type_e::f32;
-	}
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(TYPE_ID) != nullptr)
+			return;
 
-	void from_json(const nlohmann::json& j, material_def_t& m)
-	{
-		m.pass_flags	   = j.value<world_pass_flags_e>("pass_flags", wpf_none);
-		m.shader		   = j.value<sid_t>("shader", NULL_SID);
-		m.sampler		   = j.value<sid_t>("sampler", NULL_SID);
-		m.textures		   = j.value<vector_t<sid_t>>("textures", {});
-		m.parameters	   = j.value<vector_t<material_parameter_t>>("parameters", {});
-		m.double_sided	   = j.value<bool>("double_sided", false);
-		m.use_alpha_cutoff = j.value<bool>("use_alpha_cutoff", false);
-		SFG_ASSERT(m.textures.empty() || m.sampler != NULL_SID);
-	}
+		static const reflected_field_desc_t fields[] = {
+			{.name		   = "pass_flags",
+			 .display_name = "Pass Flags",
+			 .type		   = reflected_value_type_e::enum32,
+			 .sub_type_id  = world_pass_flags_reflection_t::TYPE_ID,
+			 .offset	   = offsetof(material_def_t, pass_flags),
+			 .size		   = sizeof(world_pass_flags_e),
+			 .flags		   = reflected_field_flags_bitmask},
+			{.name = "shader", .display_name = "Shader", .type = reflected_value_type_e::resource, .offset = offsetof(material_def_t, shader), .size = sizeof(sid_t)},
+			{.name = "sampler", .display_name = "Sampler", .type = reflected_value_type_e::resource, .offset = offsetof(material_def_t, sampler), .size = sizeof(sid_t)},
+			{.name = "textures", .display_name = "Textures", .type = reflected_value_type_e::vector, .sub_type_id = "resource"_hs, .container_ops = reflected_vector_ops<sid_t>(), .offset = offsetof(material_def_t, textures), .size = sizeof(vector_t<sid_t>)},
+			{.name			= "parameters",
+			 .display_name	= "Parameters",
+			 .type			= reflected_value_type_e::vector,
+			 .sub_type_id	= material_parameter_reflection_t::TYPE_ID,
+			 .container_ops = reflected_vector_ops<material_parameter_t>(),
+			 .offset		= offsetof(material_def_t, parameters),
+			 .size			= sizeof(vector_t<material_parameter_t>)},
+			{.name = "double_sided", .display_name = "Double Sided", .type = reflected_value_type_e::bool8, .offset = offsetof(material_def_t, double_sided), .size = sizeof(bool)},
+			{.name = "use_alpha_cutoff", .display_name = "Use Alpha Cutoff", .type = reflected_value_type_e::bool8, .offset = offsetof(material_def_t, use_alpha_cutoff), .size = sizeof(bool)},
+		};
 
-	void from_json(const nlohmann::json& j, material_parameter_t& p)
-	{
-		p.type					   = j.value<material_parameter_type_e>("type", material_parameter_type_e::f32);
-		const vector_t<f32> values = j.value<vector_t<f32>>("values", {});
-		for (u8 i = 0; i < 4 && i < values.size(); ++i)
-			p.values[i] = values[i];
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "material_def_t",
+			.type_id   = TYPE_ID,
+			.size	   = sizeof(material_def_t),
+			.alignment = alignof(material_def_t),
+		});
 	}
-
 }

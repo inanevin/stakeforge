@@ -28,14 +28,33 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "material_def.hpp"
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/hashing.hpp>
+#include <sfg/runtime/render/world_draw_common_reflection.hpp>
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const material_parameter_type_e& t);
-	void from_json(const nlohmann::json& j, material_parameter_type_e& t);
-	void to_json(nlohmann::json& j, const material_parameter_t& p);
-	void from_json(const nlohmann::json& j, material_parameter_t& p);
-	void to_json(nlohmann::json& j, const material_def_t& m);
-	void from_json(const nlohmann::json& j, material_def_t& m);
+	struct material_parameter_type_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "material_parameter_type_e"_hs;
+
+		material_parameter_type_reflection_t();
+	};
+
+	struct material_parameter_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "material_parameter_t"_hs;
+
+		material_parameter_reflection_t();
+	};
+
+	struct material_def_reflection_t
+	{
+		static constexpr sid_t TYPE_ID = "material_def_t"_hs;
+
+		material_def_reflection_t();
+	};
+
+	inline material_parameter_type_reflection_t g_reflect_material_parameter_type;
+	inline material_parameter_reflection_t		g_reflect_material_parameter;
+	inline material_def_reflection_t			g_reflect_material_def;
 }

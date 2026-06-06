@@ -2,7 +2,7 @@
 
 #include "material.hpp"
 
-#include "material_def.hpp"
+#include "material_def_reflection.hpp"
 #include "resource_manager.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
@@ -10,6 +10,7 @@
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 
 namespace sfg
@@ -66,15 +67,15 @@ namespace sfg
 				break;
 			}
 			case material_parameter_type_e::vec2f:
-				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 2);
+				SFG_MEMCPY(dst, parameter.values.data(), sizeof(f32) * 2);
 				dst += sizeof(f32) * 2;
 				break;
 			case material_parameter_type_e::vec4f:
-				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 4);
+				SFG_MEMCPY(dst, parameter.values.data(), sizeof(f32) * 4);
 				dst += sizeof(f32) * 4;
 				break;
 			default:
-				SFG_MEMCPY(dst, parameter.values, sizeof(f32));
+				SFG_MEMCPY(dst, parameter.values.data(), sizeof(f32));
 				dst += sizeof(f32);
 				break;
 			}
@@ -101,7 +102,8 @@ namespace sfg
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
 		material_def_t material = {};
-		material.deserialize(stream);
+		if (!reflection_registry_t::get().deserialize_from_stream(material_def_reflection_t::TYPE_ID, &material, stream))
+			return false;
 
 		runtime->pass_flags		  = material.pass_flags;
 		runtime->shader_guid	  = material.shader;

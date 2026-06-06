@@ -341,12 +341,13 @@ namespace sfg
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 
-			asset.version		  = editor_asset_t::VERSION;
-			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	  = editor_asset_type_e::material;
-			asset.source_type	  = editor_asset_source_type_e::embedded;
-			asset.sub_type		  = static_cast<u8>(editor_material_type_e::gbuffer);
-			asset.embedded_source = material_def;
+			asset.version	  = editor_asset_t::VERSION;
+			asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type  = editor_asset_type_e::material;
+			asset.source_type = editor_asset_source_type_e::embedded;
+			asset.sub_type	  = static_cast<u8>(editor_material_type_e::gbuffer);
+			if (!reflection_registry_t::get().serialize_to_json(material_def_reflection_t::TYPE_ID, &material_def, asset.embedded_source))
+				return false;
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				return false;
