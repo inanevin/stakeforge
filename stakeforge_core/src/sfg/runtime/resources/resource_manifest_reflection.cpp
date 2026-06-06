@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,7 +44,7 @@ namespace sfg
 		static const reflected_field_desc_t fields[] = {
 			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(resource_manifest_entry_t, name), .size = sizeof(string_t)},
 			{.name = "path", .display_name = "Path", .type = reflected_value_type_e::string, .offset = offsetof(resource_manifest_entry_t, path), .size = sizeof(string_t)},
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .value_type_id = resource_type_reflection_t::TYPE_ID, .offset = offsetof(resource_manifest_entry_t, type), .size = sizeof(resource_type_e)},
+			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = resource_type_reflection_t::TYPE_ID, .offset = offsetof(resource_manifest_entry_t, type), .size = sizeof(resource_type_e)},
 			{.name = "config", .display_name = "Config", .type = reflected_value_type_e::json, .offset = offsetof(resource_manifest_entry_t, config), .size = sizeof(nlohmann::json), .flags = reflected_field_flags_no_ui},
 		};
 

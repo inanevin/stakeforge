@@ -43,12 +43,12 @@ namespace sfg
 
 		static const reflected_field_desc_t fields[] = {
 			{.name = "combine_meshes", .display_name = "Combine Meshes", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, combine_meshes), .size = sizeof(bool)},
-			{.name			= "texture_payload_type",
-			 .display_name	= "Texture Payload Type",
-			 .type			= reflected_value_type_e::enum8,
-			 .value_type_id = texture_payload_type_reflection_t::TYPE_ID,
-			 .offset		= offsetof(glb_cook_config_t, texture_payload_type),
-			 .size			= sizeof(texture_payload_type_e)},
+			{.name		   = "texture_payload_type",
+			 .display_name = "Texture Payload Type",
+			 .type		   = reflected_value_type_e::enum8,
+			 .sub_type_id  = texture_payload_type_reflection_t::TYPE_ID,
+			 .offset	   = offsetof(glb_cook_config_t, texture_payload_type),
+			 .size		   = sizeof(texture_payload_type_e)},
 			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
 		};
 

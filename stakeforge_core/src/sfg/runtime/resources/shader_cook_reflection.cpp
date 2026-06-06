@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -42,8 +42,14 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "include_dirs", .display_name = "Include Directories", .type = reflected_value_type_e::vector, .sub_type_id = "string"_hs, .offset = offsetof(shader_cook_config_t, include_dirs), .size = sizeof(vector_t<string_t>)},
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .value_type_id = shader_type_reflection_t::TYPE_ID, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e)},
+			{.name			= "include_dirs",
+			 .display_name	= "Include Directories",
+			 .type			= reflected_value_type_e::vector,
+			 .sub_type_id	= "string"_hs,
+			 .container_ops = reflected_vector_ops<string_t>(),
+			 .offset		= offsetof(shader_cook_config_t, include_dirs),
+			 .size			= sizeof(vector_t<string_t>)},
+			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = shader_type_reflection_t::TYPE_ID, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e)},
 		};
 
 		registry.register_type({

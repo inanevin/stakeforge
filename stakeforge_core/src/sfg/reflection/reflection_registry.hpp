@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -29,11 +29,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
+#include <sfg/data/static_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #include <cstddef>
+#include <utility>
 
 namespace sfg
 {
@@ -63,9 +65,13 @@ namespace sfg
 		quat,
 		enum8,
 		enum32,
+		object,
 		vector,
 		static_vector,
 	};
+
+	reflected_value_type_e reflected_value_type_from_sub_type_id(sid_t sub_type_id);
+	u32					   reflected_value_type_size(reflected_value_type_e type);
 
 	enum reflected_field_flags_e : u32
 	{
@@ -86,8 +92,26 @@ namespace sfg
 
 	struct reflected_field_desc_t;
 
-	using reflected_get_fn = bool (*)(const void* object, const reflected_field_desc_t& field, void* out_value, void* user_data);
-	using reflected_set_fn = bool (*)(void* object, const reflected_field_desc_t& field, const void* value, void* user_data);
+	using reflected_get_fn						= bool (*)(const void* object, const reflected_field_desc_t& field, void* out_value, void* user_data);
+	using reflected_set_fn						= bool (*)(void* object, const reflected_field_desc_t& field, const void* value, void* user_data);
+	using reflected_container_get_count_fn		= u32 (*)(const void* object, const reflected_field_desc_t& field);
+	using reflected_container_get_item_fn		= void* (*)(void* object, const reflected_field_desc_t& field, u32 index);
+	using reflected_container_get_const_item_fn = const void* (*)(const void* object, const reflected_field_desc_t& field, u32 index);
+	using reflected_container_clear_fn			= void (*)(void* object, const reflected_field_desc_t& field);
+	using reflected_container_resize_fn			= bool (*)(void* object, const reflected_field_desc_t& field, u32 size);
+	using reflected_container_add_fn			= bool (*)(void* object, const reflected_field_desc_t& field);
+	using reflected_container_remove_fn			= bool (*)(void* object, const reflected_field_desc_t& field, u32 index);
+
+	struct reflected_container_ops_t
+	{
+		reflected_container_get_count_fn	  get_count		 = nullptr;
+		reflected_container_get_item_fn		  get_item		 = nullptr;
+		reflected_container_get_const_item_fn get_const_item = nullptr;
+		reflected_container_clear_fn		  clear			 = nullptr;
+		reflected_container_resize_fn		  resize		 = nullptr;
+		reflected_container_add_fn			  add			 = nullptr;
+		reflected_container_remove_fn		  remove		 = nullptr;
+	};
 
 	struct reflected_enum_value_desc_t
 	{
@@ -109,6 +133,7 @@ namespace sfg
 		sid_t									  id			= 0;
 		sid_t									  value_type_id = 0;
 		sid_t									  sub_type_id	= 0;
+		reflected_container_ops_t				  container_ops = {};
 		u32										  offset		= 0;
 		u32										  size			= 0;
 		u32										  stride		= 0;
@@ -190,4 +215,153 @@ namespace sfg
 		vector_t<reflected_enum_value_desc_t> _enum_values;
 		bool								  _initialized = false;
 	};
+
+	inline const void* get_reflected_field_data_ptr(const void* object, const reflected_field_desc_t& field)
+	{
+		return static_cast<const u8*>(object) + field.offset;
+	}
+
+	inline void* get_reflected_field_data_ptr(void* object, const reflected_field_desc_t& field)
+	{
+		return static_cast<u8*>(object) + field.offset;
+	}
+
+	template <typename T> vector_t<T>& get_reflected_vector_field(void* object, const reflected_field_desc_t& field)
+	{
+		return *static_cast<vector_t<T>*>(get_reflected_field_data_ptr(object, field));
+	}
+
+	template <typename T> const vector_t<T>& get_reflected_vector_field(const void* object, const reflected_field_desc_t& field)
+	{
+		return *static_cast<const vector_t<T>*>(get_reflected_field_data_ptr(object, field));
+	}
+
+	template <typename T> u32 reflected_vector_get_count(const void* object, const reflected_field_desc_t& field)
+	{
+		return static_cast<u32>(get_reflected_vector_field<T>(object, field).size());
+	}
+
+	template <typename T> void* reflected_vector_get_item(void* object, const reflected_field_desc_t& field, u32 index)
+	{
+		vector_t<T>& values = get_reflected_vector_field<T>(object, field);
+		return values.data() + index;
+	}
+
+	template <typename T> const void* reflected_vector_get_const_item(const void* object, const reflected_field_desc_t& field, u32 index)
+	{
+		const vector_t<T>& values = get_reflected_vector_field<T>(object, field);
+		return values.data() + index;
+	}
+
+	template <typename T> void reflected_vector_clear(void* object, const reflected_field_desc_t& field)
+	{
+		get_reflected_vector_field<T>(object, field).resize(0);
+	}
+
+	template <typename T> bool reflected_vector_resize(void* object, const reflected_field_desc_t& field, u32 size)
+	{
+		get_reflected_vector_field<T>(object, field).resize(size);
+		return true;
+	}
+
+	template <typename T> bool reflected_vector_add(void* object, const reflected_field_desc_t& field)
+	{
+		get_reflected_vector_field<T>(object, field).push_back(T{});
+		return true;
+	}
+
+	template <typename T> bool reflected_vector_remove(void* object, const reflected_field_desc_t& field, u32 index)
+	{
+		vector_t<T>& values = get_reflected_vector_field<T>(object, field);
+		if (index >= values.size())
+			return false;
+		values.erase(values.begin() + index);
+		return true;
+	}
+
+	template <typename T> reflected_container_ops_t reflected_vector_ops()
+	{
+		return {
+			.get_count		= reflected_vector_get_count<T>,
+			.get_item		= reflected_vector_get_item<T>,
+			.get_const_item = reflected_vector_get_const_item<T>,
+			.clear			= reflected_vector_clear<T>,
+			.resize			= reflected_vector_resize<T>,
+			.add			= reflected_vector_add<T>,
+			.remove			= reflected_vector_remove<T>,
+		};
+	}
+
+	template <typename T, int N> static_vector_t<T, N>& get_reflected_static_vector_field(void* object, const reflected_field_desc_t& field)
+	{
+		return *static_cast<static_vector_t<T, N>*>(get_reflected_field_data_ptr(object, field));
+	}
+
+	template <typename T, int N> const static_vector_t<T, N>& get_reflected_static_vector_field(const void* object, const reflected_field_desc_t& field)
+	{
+		return *static_cast<const static_vector_t<T, N>*>(get_reflected_field_data_ptr(object, field));
+	}
+
+	template <typename T, int N> u32 reflected_static_vector_get_count(const void* object, const reflected_field_desc_t& field)
+	{
+		return static_cast<u32>(get_reflected_static_vector_field<T, N>(object, field).size());
+	}
+
+	template <typename T, int N> void* reflected_static_vector_get_item(void* object, const reflected_field_desc_t& field, u32 index)
+	{
+		static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		return values.data() + index;
+	}
+
+	template <typename T, int N> const void* reflected_static_vector_get_const_item(const void* object, const reflected_field_desc_t& field, u32 index)
+	{
+		const static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		return values.data() + index;
+	}
+
+	template <typename T, int N> void reflected_static_vector_clear(void* object, const reflected_field_desc_t& field)
+	{
+		get_reflected_static_vector_field<T, N>(object, field).clear();
+	}
+
+	template <typename T, int N> bool reflected_static_vector_resize(void* object, const reflected_field_desc_t& field, u32 size)
+	{
+		if (size > N)
+			return false;
+		get_reflected_static_vector_field<T, N>(object, field).resize(size);
+		return true;
+	}
+
+	template <typename T, int N> bool reflected_static_vector_add(void* object, const reflected_field_desc_t& field)
+	{
+		static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		if (values.full())
+			return false;
+		values.emplace_back();
+		return true;
+	}
+
+	template <typename T, int N> bool reflected_static_vector_remove(void* object, const reflected_field_desc_t& field, u32 index)
+	{
+		static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		if (index >= values.size())
+			return false;
+		for (size_t i = index; i + 1 < values.size(); ++i)
+			values[i] = std::move(values[i + 1]);
+		values.pop_back();
+		return true;
+	}
+
+	template <typename T, int N> reflected_container_ops_t reflected_static_vector_ops()
+	{
+		return {
+			.get_count		= reflected_static_vector_get_count<T, N>,
+			.get_item		= reflected_static_vector_get_item<T, N>,
+			.get_const_item = reflected_static_vector_get_const_item<T, N>,
+			.clear			= reflected_static_vector_clear<T, N>,
+			.resize			= reflected_static_vector_resize<T, N>,
+			.add			= reflected_static_vector_add<T, N>,
+			.remove			= reflected_static_vector_remove<T, N>,
+		};
+	}
 }

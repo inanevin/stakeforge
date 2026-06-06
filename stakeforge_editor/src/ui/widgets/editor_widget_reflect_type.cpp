@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/quat.hpp>
 #include <sfg/math/vec2u.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3u.hpp>
@@ -39,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -235,6 +237,8 @@ namespace sfg
 				field.get(object, field, &value, field.user_data);
 				return value != nullptr ? value : "";
 			}
+			if (field.size == sizeof(string_t))
+				return static_cast<const string_t*>(get_reflected_field_ptr(object, field))->c_str();
 			return static_cast<const char*>(get_reflected_field_ptr(object, field));
 		}
 
@@ -245,6 +249,12 @@ namespace sfg
 			if (field.set != nullptr)
 			{
 				field.set(object, field, value, field.user_data);
+				return;
+			}
+
+			if (field.size == sizeof(string_t))
+			{
+				*static_cast<string_t*>(get_reflected_field_ptr(object, field)) = value != nullptr ? value : "";
 				return;
 			}
 
@@ -311,10 +321,14 @@ namespace sfg
 		{
 			if (field.enum_values.size != 0)
 				return field.enum_values;
-			if (field.value_type_id == 0)
+
+			sid_t type_id = field.sub_type_id;
+			if (type_id == 0 || reflected_value_type_from_sub_type_id(type_id) != reflected_value_type_e::invalid)
+				type_id = field.value_type_id;
+			if (type_id == 0)
 				return {};
 
-			const reflected_type_desc_t* type = reflection_registry_t::get().find_type(field.value_type_id);
+			const reflected_type_desc_t* type = reflection_registry_t::get().find_type(type_id);
 			return type != nullptr ? type->enum_values : span_t<const reflected_enum_value_desc_t>{};
 		}
 
@@ -360,38 +374,54 @@ namespace sfg
 			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::static_vector;
 		}
 
-		bool read_string_value(const void* object, const reflected_field_desc_t&, void* out_value, void*)
+		reflected_field_desc_t get_vector_item_field(const reflected_field_desc_t& field)
 		{
-			*static_cast<const char**>(out_value) = static_cast<const string_t*>(object)->c_str();
-			return true;
-		}
+			const reflected_value_type_e type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (type != reflected_value_type_e::invalid)
+			{
+				return {
+					.name		   = "value",
+					.display_name  = "Value",
+					.type		   = type,
+					.value_type_id = field.value_type_id,
+					.size		   = reflected_value_type_size(type),
+					.min		   = field.min,
+					.max		   = field.max,
+					.flags		   = field.flags & (reflected_field_flags_read_only | reflected_field_flags_clamped),
+				};
+			}
 
-		bool write_string_value(void* object, const reflected_field_desc_t&, const void* value, void*)
-		{
-			*static_cast<string_t*>(object) = static_cast<const char*>(value);
-			return true;
-		}
+			const reflected_type_desc_t* sub_type = reflection_registry_t::get().find_type(field.sub_type_id);
+			if (sub_type != nullptr && sub_type->fields.size == 0 && sub_type->enum_values.size != 0)
+			{
+				return {
+					.name		   = "value",
+					.display_name  = "Value",
+					.type		   = sub_type->size == sizeof(u8) ? reflected_value_type_e::enum8 : reflected_value_type_e::enum32,
+					.value_type_id = sub_type->type_id,
+					.sub_type_id   = sub_type->type_id,
+					.size		   = sub_type->size,
+					.min		   = field.min,
+					.max		   = field.max,
+					.flags		   = field.flags & (reflected_field_flags_read_only | reflected_field_flags_clamped),
+				};
+			}
 
-		const reflected_field_desc_t& get_f32_item_field()
-		{
-			static const reflected_field_desc_t field = {
-				.name = "value",
-				.type = reflected_value_type_e::f32,
-				.size = sizeof(f32),
+			return {
+				.name		   = "value",
+				.display_name  = "Value",
+				.type		   = sub_type != nullptr ? reflected_value_type_e::object : reflected_value_type_e::invalid,
+				.value_type_id = sub_type != nullptr ? sub_type->type_id : 0,
+				.size		   = sub_type != nullptr ? sub_type->size : 0,
+				.min		   = field.min,
+				.max		   = field.max,
+				.flags		   = field.flags & (reflected_field_flags_read_only | reflected_field_flags_clamped),
 			};
-			return field;
 		}
 
-		const reflected_field_desc_t& get_string_item_field()
+		bool is_reflected_container_ops_valid(const reflected_container_ops_t& ops)
 		{
-			static const reflected_field_desc_t field = {
-				.get  = read_string_value,
-				.set  = write_string_value,
-				.name = "value",
-				.type = reflected_value_type_e::string,
-				.size = sizeof(string_t),
-			};
-			return field;
+			return ops.get_count != nullptr && ops.get_item != nullptr && ops.get_const_item != nullptr && ops.clear != nullptr && ops.resize != nullptr && ops.add != nullptr && ops.remove != nullptr;
 		}
 
 		template <typename T> vector_t<T>& get_reflected_vector(void* object, const reflected_field_desc_t& field)
@@ -462,6 +492,49 @@ namespace sfg
 			--size;
 			std::destroy_at(data + size);
 		}
+
+		template <typename T> T* get_reflected_container_data(void* object, const reflected_field_desc_t& field)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+				return get_reflected_static_vector_data<T>(object, field);
+			return get_reflected_vector<T>(object, field).data();
+		}
+
+		template <typename T> u32 get_reflected_container_item_count(void* object, const reflected_field_desc_t& field)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+				return static_cast<u32>(get_reflected_static_vector_size<T>(object, field));
+			return static_cast<u32>(get_reflected_vector<T>(object, field).size());
+		}
+
+		template <typename T> void clear_reflected_container(void* object, const reflected_field_desc_t& field)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+				clear_reflected_static_vector<T>(object, field);
+			else
+				get_reflected_vector<T>(object, field).resize(0);
+		}
+
+		template <typename T> void add_reflected_container_item(void* object, const reflected_field_desc_t& field)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+				add_reflected_static_vector_item<T>(object, field);
+			else
+				get_reflected_vector<T>(object, field).push_back(T{});
+		}
+
+		template <typename T> void remove_reflected_container_item(void* object, const reflected_field_desc_t& field, u32 index)
+		{
+			if (field.type == reflected_value_type_e::static_vector)
+			{
+				remove_reflected_static_vector_item<T>(object, field, index);
+			}
+			else
+			{
+				vector_t<T>& values = get_reflected_vector<T>(object, field);
+				values.erase(values.begin() + index);
+			}
+		}
 	}
 
 	void editor_widget_reflect_type_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -526,6 +599,7 @@ namespace sfg
 		_controls.reserve(control_count);
 		_vector_controls.reserve(type->fields.size);
 		_vector_item_controls.reserve(control_count);
+		_vector_item_fields.reserve(control_count);
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
@@ -673,6 +747,18 @@ namespace sfg
 			_vec4_fields.push_back(vec);
 			break;
 		}
+		case reflected_value_type_e::quat: {
+			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
+			editor_vec4_field_config_t config = {};
+			const quat_t			   value  = read_reflected_value<quat_t>(object, field);
+			config.value					  = {value.x, value.y, value.z, value.w};
+			config.on_changed				  = on_vec4_changed;
+			config.user_data				  = control;
+			vec->init(*_ui, parent, config);
+			center_property_row_control(*_ui, vec->get_root());
+			_vec4_fields.push_back(vec);
+			break;
+		}
 		case reflected_value_type_e::color: {
 			editor_color_field_t*		color  = new editor_color_field_t();
 			editor_color_field_config_t config = {};
@@ -759,61 +845,156 @@ namespace sfg
 		if (!unfolded)
 			return;
 
-		if (field.sub_type_id == "f32"_hs)
+		if (is_reflected_container_ops_valid(field.container_ops))
 		{
-			const u32 item_count = get_vector_item_count(field);
-			f32*	  values	 = field.type == reflected_value_type_e::static_vector ? get_reflected_static_vector_data<f32>(_object, field) : get_reflected_vector<f32>(_object, field).data();
+			const reflected_field_desc_t item_field = get_vector_item_field(field);
+			if (item_field.type == reflected_value_type_e::invalid)
+				return;
+
+			const u32 item_count = field.container_ops.get_count(_object, field);
 			for (u32 i = 0; i < item_count; ++i)
 			{
 				char item_label[32] = {};
 				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
 				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
 				_rows.push_back(row);
+				_vector_item_fields.push_back(item_field);
 				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
 				ui::listener_bundle_t remove_listener = {};
 				remove_listener.user_data			  = &_vector_item_controls.back();
 				remove_listener.on_click			  = on_vector_item_remove_click;
 				_ui->get_input().set_listener(row.remove_button, remove_listener);
-				install_reflected_control(row.right, get_f32_item_field(), &values[i]);
+				install_reflected_control(row.right, _vector_item_fields.back(), field.container_ops.get_item(_object, field, i));
 			}
 			return;
 		}
 
-		if (field.sub_type_id == "string"_hs)
-		{
-			const u32 item_count = get_vector_item_count(field);
-			string_t* values	 = field.type == reflected_value_type_e::static_vector ? get_reflected_static_vector_data<string_t>(_object, field) : get_reflected_vector<string_t>(_object, field).data();
+		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+		const reflected_field_desc_t item_field = get_vector_item_field(field);
+
+		auto install_items = [&]<typename T>() {
+			const u32 item_count = get_reflected_container_item_count<T>(_object, field);
+			T*		  values	 = get_reflected_container_data<T>(_object, field);
 			for (u32 i = 0; i < item_count; ++i)
 			{
 				char item_label[32] = {};
 				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
 				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
 				_rows.push_back(row);
+				_vector_item_fields.push_back(item_field);
 				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
 				ui::listener_bundle_t remove_listener = {};
 				remove_listener.user_data			  = &_vector_item_controls.back();
 				remove_listener.on_click			  = on_vector_item_remove_click;
 				_ui->get_input().set_listener(row.remove_button, remove_listener);
-				install_reflected_control(row.right, get_string_item_field(), &values[i]);
+				install_reflected_control(row.right, _vector_item_fields.back(), &values[i]);
 			}
+		};
+
+		switch (value_type)
+		{
+		case reflected_value_type_e::f32:
+			install_items.template operator()<f32>();
+			break;
+		case reflected_value_type_e::i32:
+			install_items.template operator()<i32>();
+			break;
+		case reflected_value_type_e::u32:
+		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::enum32:
+			install_items.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u8:
+		case reflected_value_type_e::bool8:
+		case reflected_value_type_e::enum8:
+			install_items.template operator()<u8>();
+			break;
+		case reflected_value_type_e::vec2:
+			install_items.template operator()<vec2f_t>();
+			break;
+		case reflected_value_type_e::vec3:
+			install_items.template operator()<vec3f_t>();
+			break;
+		case reflected_value_type_e::vec4:
+		case reflected_value_type_e::color:
+			install_items.template operator()<vec4f_t>();
+			break;
+		case reflected_value_type_e::vec2u:
+			install_items.template operator()<vec2u_t>();
+			break;
+		case reflected_value_type_e::vec2u16:
+			install_items.template operator()<vec2u16_t>();
+			break;
+		case reflected_value_type_e::vec3u:
+			install_items.template operator()<vec3u_t>();
+			break;
+		case reflected_value_type_e::vec4u:
+			install_items.template operator()<vec4u_t>();
+			break;
+		case reflected_value_type_e::resource:
+			install_items.template operator()<sid_t>();
+			break;
+		case reflected_value_type_e::string:
+			install_items.template operator()<string_t>();
+			break;
+		case reflected_value_type_e::json:
+			install_items.template operator()<nlohmann::json>();
+			break;
+		case reflected_value_type_e::quat:
+			install_items.template operator()<quat_t>();
+			break;
+		default:
+			break;
 		}
 	}
 
 	u32 editor_widget_reflect_type_t::get_vector_item_count(const reflected_field_desc_t& field) const
 	{
-		if (field.sub_type_id == "f32"_hs)
+		if (is_reflected_container_ops_valid(field.container_ops))
+			return field.container_ops.get_count(_object, field);
+
+		auto get_count = [&]<typename T>() { return get_reflected_container_item_count<T>(_object, field); };
+
+		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				return static_cast<u32>(get_reflected_static_vector_size<f32>(_object, field));
-			return static_cast<u32>(get_reflected_vector<f32>(_object, field).size());
+		case reflected_value_type_e::f32:
+			return get_count.template operator()<f32>();
+		case reflected_value_type_e::i32:
+			return get_count.template operator()<i32>();
+		case reflected_value_type_e::u32:
+		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::enum32:
+			return get_count.template operator()<u32>();
+		case reflected_value_type_e::u8:
+		case reflected_value_type_e::bool8:
+		case reflected_value_type_e::enum8:
+			return get_count.template operator()<u8>();
+		case reflected_value_type_e::vec2:
+			return get_count.template operator()<vec2f_t>();
+		case reflected_value_type_e::vec3:
+			return get_count.template operator()<vec3f_t>();
+		case reflected_value_type_e::vec4:
+		case reflected_value_type_e::color:
+			return get_count.template operator()<vec4f_t>();
+		case reflected_value_type_e::vec2u:
+			return get_count.template operator()<vec2u_t>();
+		case reflected_value_type_e::vec2u16:
+			return get_count.template operator()<vec2u16_t>();
+		case reflected_value_type_e::vec3u:
+			return get_count.template operator()<vec3u_t>();
+		case reflected_value_type_e::vec4u:
+			return get_count.template operator()<vec4u_t>();
+		case reflected_value_type_e::resource:
+			return get_count.template operator()<sid_t>();
+		case reflected_value_type_e::string:
+			return get_count.template operator()<string_t>();
+		case reflected_value_type_e::json:
+			return get_count.template operator()<nlohmann::json>();
+		case reflected_value_type_e::quat:
+			return get_count.template operator()<quat_t>();
+		default:
+			return 0;
 		}
-		if (field.sub_type_id == "string"_hs)
-		{
-			if (field.type == reflected_value_type_e::static_vector)
-				return static_cast<u32>(get_reflected_static_vector_size<string_t>(_object, field));
-			return static_cast<u32>(get_reflected_vector<string_t>(_object, field).size());
-		}
-		return 0;
 	}
 
 	bool editor_widget_reflect_type_t::is_vector_unfolded(sid_t field_id) const
@@ -847,23 +1028,72 @@ namespace sfg
 		if ((field.flags & reflected_field_flags_read_only) != 0)
 			return;
 
-		if (field.sub_type_id == "f32"_hs)
+		if (is_reflected_container_ops_valid(field.container_ops))
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				clear_reflected_static_vector<f32>(_object, field);
-			else
-				get_reflected_vector<f32>(_object, field).resize(0);
+			field.container_ops.clear(_object, field);
 			rebuild_reflected_controls();
 			return;
 		}
 
-		if (field.sub_type_id == "string"_hs)
-		{
-			if (field.type == reflected_value_type_e::static_vector)
-				clear_reflected_static_vector<string_t>(_object, field);
-			else
-				get_reflected_vector<string_t>(_object, field).resize(0);
+		auto clear_items = [&]<typename T>() {
+			clear_reflected_container<T>(_object, field);
 			rebuild_reflected_controls();
+		};
+
+		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		{
+		case reflected_value_type_e::f32:
+			clear_items.template operator()<f32>();
+			break;
+		case reflected_value_type_e::i32:
+			clear_items.template operator()<i32>();
+			break;
+		case reflected_value_type_e::u32:
+		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::enum32:
+			clear_items.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u8:
+		case reflected_value_type_e::bool8:
+		case reflected_value_type_e::enum8:
+			clear_items.template operator()<u8>();
+			break;
+		case reflected_value_type_e::vec2:
+			clear_items.template operator()<vec2f_t>();
+			break;
+		case reflected_value_type_e::vec3:
+			clear_items.template operator()<vec3f_t>();
+			break;
+		case reflected_value_type_e::vec4:
+		case reflected_value_type_e::color:
+			clear_items.template operator()<vec4f_t>();
+			break;
+		case reflected_value_type_e::vec2u:
+			clear_items.template operator()<vec2u_t>();
+			break;
+		case reflected_value_type_e::vec2u16:
+			clear_items.template operator()<vec2u16_t>();
+			break;
+		case reflected_value_type_e::vec3u:
+			clear_items.template operator()<vec3u_t>();
+			break;
+		case reflected_value_type_e::vec4u:
+			clear_items.template operator()<vec4u_t>();
+			break;
+		case reflected_value_type_e::resource:
+			clear_items.template operator()<sid_t>();
+			break;
+		case reflected_value_type_e::string:
+			clear_items.template operator()<string_t>();
+			break;
+		case reflected_value_type_e::json:
+			clear_items.template operator()<nlohmann::json>();
+			break;
+		case reflected_value_type_e::quat:
+			clear_items.template operator()<quat_t>();
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -872,23 +1102,72 @@ namespace sfg
 		if ((field.flags & reflected_field_flags_read_only) != 0)
 			return;
 
-		if (field.sub_type_id == "f32"_hs)
+		if (is_reflected_container_ops_valid(field.container_ops))
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				add_reflected_static_vector_item<f32>(_object, field);
-			else
-				get_reflected_vector<f32>(_object, field).push_back(0.0f);
+			field.container_ops.add(_object, field);
 			rebuild_reflected_controls();
 			return;
 		}
 
-		if (field.sub_type_id == "string"_hs)
-		{
-			if (field.type == reflected_value_type_e::static_vector)
-				add_reflected_static_vector_item<string_t>(_object, field);
-			else
-				get_reflected_vector<string_t>(_object, field).push_back(string_t{});
+		auto add_item = [&]<typename T>() {
+			add_reflected_container_item<T>(_object, field);
 			rebuild_reflected_controls();
+		};
+
+		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		{
+		case reflected_value_type_e::f32:
+			add_item.template operator()<f32>();
+			break;
+		case reflected_value_type_e::i32:
+			add_item.template operator()<i32>();
+			break;
+		case reflected_value_type_e::u32:
+		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::enum32:
+			add_item.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u8:
+		case reflected_value_type_e::bool8:
+		case reflected_value_type_e::enum8:
+			add_item.template operator()<u8>();
+			break;
+		case reflected_value_type_e::vec2:
+			add_item.template operator()<vec2f_t>();
+			break;
+		case reflected_value_type_e::vec3:
+			add_item.template operator()<vec3f_t>();
+			break;
+		case reflected_value_type_e::vec4:
+		case reflected_value_type_e::color:
+			add_item.template operator()<vec4f_t>();
+			break;
+		case reflected_value_type_e::vec2u:
+			add_item.template operator()<vec2u_t>();
+			break;
+		case reflected_value_type_e::vec2u16:
+			add_item.template operator()<vec2u16_t>();
+			break;
+		case reflected_value_type_e::vec3u:
+			add_item.template operator()<vec3u_t>();
+			break;
+		case reflected_value_type_e::vec4u:
+			add_item.template operator()<vec4u_t>();
+			break;
+		case reflected_value_type_e::resource:
+			add_item.template operator()<sid_t>();
+			break;
+		case reflected_value_type_e::string:
+			add_item.template operator()<string_t>();
+			break;
+		case reflected_value_type_e::json:
+			add_item.template operator()<nlohmann::json>();
+			break;
+		case reflected_value_type_e::quat:
+			add_item.template operator()<quat_t>();
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -897,33 +1176,72 @@ namespace sfg
 		if ((field.flags & reflected_field_flags_read_only) != 0)
 			return;
 
-		if (field.sub_type_id == "f32"_hs)
+		if (is_reflected_container_ops_valid(field.container_ops))
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-			{
-				remove_reflected_static_vector_item<f32>(_object, field, index);
-			}
-			else
-			{
-				vector_t<f32>& values = get_reflected_vector<f32>(_object, field);
-				values.erase(values.begin() + index);
-			}
+			field.container_ops.remove(_object, field, index);
 			rebuild_reflected_controls();
 			return;
 		}
 
-		if (field.sub_type_id == "string"_hs)
-		{
-			if (field.type == reflected_value_type_e::static_vector)
-			{
-				remove_reflected_static_vector_item<string_t>(_object, field, index);
-			}
-			else
-			{
-				vector_t<string_t>& values = get_reflected_vector<string_t>(_object, field);
-				values.erase(values.begin() + index);
-			}
+		auto remove_item = [&]<typename T>() {
+			remove_reflected_container_item<T>(_object, field, index);
 			rebuild_reflected_controls();
+		};
+
+		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		{
+		case reflected_value_type_e::f32:
+			remove_item.template operator()<f32>();
+			break;
+		case reflected_value_type_e::i32:
+			remove_item.template operator()<i32>();
+			break;
+		case reflected_value_type_e::u32:
+		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::enum32:
+			remove_item.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u8:
+		case reflected_value_type_e::bool8:
+		case reflected_value_type_e::enum8:
+			remove_item.template operator()<u8>();
+			break;
+		case reflected_value_type_e::vec2:
+			remove_item.template operator()<vec2f_t>();
+			break;
+		case reflected_value_type_e::vec3:
+			remove_item.template operator()<vec3f_t>();
+			break;
+		case reflected_value_type_e::vec4:
+		case reflected_value_type_e::color:
+			remove_item.template operator()<vec4f_t>();
+			break;
+		case reflected_value_type_e::vec2u:
+			remove_item.template operator()<vec2u_t>();
+			break;
+		case reflected_value_type_e::vec2u16:
+			remove_item.template operator()<vec2u16_t>();
+			break;
+		case reflected_value_type_e::vec3u:
+			remove_item.template operator()<vec3u_t>();
+			break;
+		case reflected_value_type_e::vec4u:
+			remove_item.template operator()<vec4u_t>();
+			break;
+		case reflected_value_type_e::resource:
+			remove_item.template operator()<sid_t>();
+			break;
+		case reflected_value_type_e::string:
+			remove_item.template operator()<string_t>();
+			break;
+		case reflected_value_type_e::json:
+			remove_item.template operator()<nlohmann::json>();
+			break;
+		case reflected_value_type_e::quat:
+			remove_item.template operator()<quat_t>();
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -976,6 +1294,8 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		if (control.field->type == reflected_value_type_e::vec4u)
 			write_reflected_value(control.object, *control.field, to_vec4u(value));
+		else if (control.field->type == reflected_value_type_e::quat)
+			write_reflected_value(control.object, *control.field, quat_t{value.x, value.y, value.z, value.w});
 		else
 			write_reflected_value(control.object, *control.field, value);
 	}
@@ -1095,5 +1415,6 @@ namespace sfg
 		_controls.resize(0);
 		_vector_controls.resize(0);
 		_vector_item_controls.resize(0);
+		_vector_item_fields.resize(0);
 	}
 }

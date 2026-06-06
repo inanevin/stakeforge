@@ -42,6 +42,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define EDITOR_INSPECTOR_DUMMY_ENUM_TYPE_ID	 "editor_inspector_dummy_enum"_hs
+#define EDITOR_INSPECTOR_DUMMY_ENUM8_TYPE_ID "editor_inspector_dummy_enum8"_hs
+
 	namespace
 	{
 		enum class dummy_enum_e : u32
@@ -64,8 +67,13 @@ namespace sfg
 
 			vector_t<string_t>			 dummy_string_vector		= {"Alpha", "Beta", "Gamma"};
 			vector_t<f32>				 dummy_f32_vector			= {1.0f, 2.0f, 3.0f};
+			vector_t<vec3f_t>			 dummy_vec3_vector			= {{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}};
+			vector_t<u32>				 dummy_u32_vector			= {7, 8, 9};
+			vector_t<u8>				 dummy_bool_vector			= {1, 0, 1};
 			static_vector_t<string_t, 4> dummy_static_string_vector = {"North", "East"};
 			static_vector_t<f32, 4>		 dummy_static_f32_vector	= {4.0f, 5.0f};
+			static_vector_t<vec4f_t, 4>	 dummy_static_vec4_vector	= {{1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}};
+			static_vector_t<u32, 4>		 dummy_static_enum_vector	= {0, 2};
 			vec4f_t						 dummy_color				= {0.8f, 0.2f, 0.6f, 1.0f};
 			quat_t						 dummy_quat					= quat_t::identity;
 			char						 dummy_string[64]			= "Stakeforge";
@@ -111,29 +119,96 @@ namespace sfg
 				{.name = "dummy_color", .display_name = "Color", .type = reflected_value_type_e::color, .offset = offsetof(dummy_struct_t, dummy_color), .size = sizeof(vec4f_t)},
 				{.name = "dummy_quat", .display_name = "Quat", .type = reflected_value_type_e::quat, .offset = offsetof(dummy_struct_t, dummy_quat), .size = sizeof(quat_t)},
 				{.name = "dummy_string", .display_name = "String", .type = reflected_value_type_e::string, .offset = offsetof(dummy_struct_t, dummy_string), .size = sizeof(dummy_struct_t::dummy_string)},
-				{.enum_values = {.data = enum_values, .size = std::size(enum_values)}, .name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
-				{.enum_values = {.data = enum8_values, .size = std::size(enum8_values)}, .name = "dummy_enum8", .display_name = "Enum8", .type = reflected_value_type_e::enum8, .offset = offsetof(dummy_struct_t, dummy_enum8), .size = sizeof(dummy_enum8_e)},
-				{.name = "dummy_f32_vector", .display_name = "Float Vector", .type = reflected_value_type_e::vector, .sub_type_id = "f32"_hs, .offset = offsetof(dummy_struct_t, dummy_f32_vector), .size = sizeof(vector_t<f32>)},
-				{.name = "dummy_string_vector", .display_name = "String Vector", .type = reflected_value_type_e::vector, .sub_type_id = "string"_hs, .offset = offsetof(dummy_struct_t, dummy_string_vector), .size = sizeof(vector_t<string_t>)},
-				{.name		   = "dummy_static_f32_vector",
-				 .display_name = "Static Float Vector",
-				 .type		   = reflected_value_type_e::static_vector,
-				 .sub_type_id  = "f32"_hs,
-				 .offset	   = offsetof(dummy_struct_t, dummy_static_f32_vector),
-				 .size		   = sizeof(static_vector_t<f32, 4>),
-				 .capacity	   = 4},
-				{.name		   = "dummy_static_string_vector",
-				 .display_name = "Static String Vector",
-				 .type		   = reflected_value_type_e::static_vector,
-				 .sub_type_id  = "string"_hs,
-				 .offset	   = offsetof(dummy_struct_t, dummy_static_string_vector),
-				 .size		   = sizeof(static_vector_t<string_t, 4>),
-				 .capacity	   = 4},
+				{.name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .sub_type_id = EDITOR_INSPECTOR_DUMMY_ENUM_TYPE_ID, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
+				{.name = "dummy_enum8", .display_name = "Enum8", .type = reflected_value_type_e::enum8, .sub_type_id = EDITOR_INSPECTOR_DUMMY_ENUM8_TYPE_ID, .offset = offsetof(dummy_struct_t, dummy_enum8), .size = sizeof(dummy_enum8_e)},
+				{.name			= "dummy_f32_vector",
+				 .display_name	= "Float Vector",
+				 .type			= reflected_value_type_e::vector,
+				 .sub_type_id	= "f32"_hs,
+				 .container_ops = reflected_vector_ops<f32>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_f32_vector),
+				 .size			= sizeof(vector_t<f32>)},
+				{.name			= "dummy_string_vector",
+				 .display_name	= "String Vector",
+				 .type			= reflected_value_type_e::vector,
+				 .sub_type_id	= "string"_hs,
+				 .container_ops = reflected_vector_ops<string_t>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_string_vector),
+				 .size			= sizeof(vector_t<string_t>)},
+				{.name			= "dummy_vec3_vector",
+				 .display_name	= "Vec3 Vector",
+				 .type			= reflected_value_type_e::vector,
+				 .sub_type_id	= "vec3"_hs,
+				 .container_ops = reflected_vector_ops<vec3f_t>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_vec3_vector),
+				 .size			= sizeof(vector_t<vec3f_t>)},
+				{.name			= "dummy_u32_vector",
+				 .display_name	= "U32 Vector",
+				 .type			= reflected_value_type_e::vector,
+				 .sub_type_id	= "u32"_hs,
+				 .container_ops = reflected_vector_ops<u32>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_u32_vector),
+				 .size			= sizeof(vector_t<u32>)},
+				{.name			= "dummy_bool_vector",
+				 .display_name	= "Bool Vector",
+				 .type			= reflected_value_type_e::vector,
+				 .sub_type_id	= "bool8"_hs,
+				 .container_ops = reflected_vector_ops<u8>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_bool_vector),
+				 .size			= sizeof(vector_t<u8>)},
+				{.name			= "dummy_static_f32_vector",
+				 .display_name	= "Static Float Vector",
+				 .type			= reflected_value_type_e::static_vector,
+				 .sub_type_id	= "f32"_hs,
+				 .container_ops = reflected_static_vector_ops<f32, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_static_f32_vector),
+				 .size			= sizeof(static_vector_t<f32, 4>),
+				 .capacity		= 4},
+				{.name			= "dummy_static_string_vector",
+				 .display_name	= "Static String Vector",
+				 .type			= reflected_value_type_e::static_vector,
+				 .sub_type_id	= "string"_hs,
+				 .container_ops = reflected_static_vector_ops<string_t, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_static_string_vector),
+				 .size			= sizeof(static_vector_t<string_t, 4>),
+				 .capacity		= 4},
+				{.name			= "dummy_static_vec4_vector",
+				 .display_name	= "Static Vec4 Vector",
+				 .type			= reflected_value_type_e::static_vector,
+				 .sub_type_id	= "vec4"_hs,
+				 .container_ops = reflected_static_vector_ops<vec4f_t, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_static_vec4_vector),
+				 .size			= sizeof(static_vector_t<vec4f_t, 4>),
+				 .capacity		= 4},
+				{.name			= "dummy_static_enum_vector",
+				 .display_name	= "Static Enum Vector",
+				 .type			= reflected_value_type_e::static_vector,
+				 .sub_type_id	= EDITOR_INSPECTOR_DUMMY_ENUM_TYPE_ID,
+				 .container_ops = reflected_static_vector_ops<u32, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_static_enum_vector),
+				 .size			= sizeof(static_vector_t<u32, 4>),
+				 .capacity		= 4},
 			};
 
 			reflection_registry_t& registry = reflection_registry_t::get();
 			if (registry.find_type(dummy_struct_t::TYPE_ID) != nullptr)
 				return;
+
+			registry.register_type({
+				.enum_values = {.data = enum_values, .size = std::size(enum_values)},
+				.name		 = "editor_inspector_dummy_enum",
+				.type_id	 = EDITOR_INSPECTOR_DUMMY_ENUM_TYPE_ID,
+				.size		 = sizeof(dummy_enum_e),
+				.alignment	 = alignof(dummy_enum_e),
+			});
+
+			registry.register_type({
+				.enum_values = {.data = enum8_values, .size = std::size(enum8_values)},
+				.name		 = "editor_inspector_dummy_enum8",
+				.type_id	 = EDITOR_INSPECTOR_DUMMY_ENUM8_TYPE_ID,
+				.size		 = sizeof(dummy_enum8_e),
+				.alignment	 = alignof(dummy_enum8_e),
+			});
 
 			registry.register_type({
 				.fields	   = {.data = fields, .size = std::size(fields)},

@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -52,6 +52,98 @@ namespace sfg
 #define REFLECTION_REGISTRY_MAX_FIELDS		4096
 #define REFLECTION_REGISTRY_MAX_ENUM_VALUES 1024
 #define REFLECTION_REGISTRY_TEXT_BYTES		(1024 * 128)
+
+	reflected_value_type_e reflected_value_type_from_sub_type_id(sid_t sub_type_id)
+	{
+		if (sub_type_id == "f32"_hs)
+			return reflected_value_type_e::f32;
+		if (sub_type_id == "i32"_hs)
+			return reflected_value_type_e::i32;
+		if (sub_type_id == "u32"_hs)
+			return reflected_value_type_e::u32;
+		if (sub_type_id == "u8"_hs)
+			return reflected_value_type_e::u8;
+		if (sub_type_id == "bool"_hs || sub_type_id == "bool8"_hs)
+			return reflected_value_type_e::bool8;
+		if (sub_type_id == "vec2"_hs)
+			return reflected_value_type_e::vec2;
+		if (sub_type_id == "vec3"_hs)
+			return reflected_value_type_e::vec3;
+		if (sub_type_id == "vec4"_hs)
+			return reflected_value_type_e::vec4;
+		if (sub_type_id == "vec2u"_hs)
+			return reflected_value_type_e::vec2u;
+		if (sub_type_id == "vec2u16"_hs)
+			return reflected_value_type_e::vec2u16;
+		if (sub_type_id == "vec3u"_hs)
+			return reflected_value_type_e::vec3u;
+		if (sub_type_id == "vec4u"_hs)
+			return reflected_value_type_e::vec4u;
+		if (sub_type_id == "color"_hs)
+			return reflected_value_type_e::color;
+		if (sub_type_id == "resource"_hs)
+			return reflected_value_type_e::resource;
+		if (sub_type_id == "entity_id"_hs)
+			return reflected_value_type_e::entity_id;
+		if (sub_type_id == "string"_hs)
+			return reflected_value_type_e::string;
+		if (sub_type_id == "json"_hs)
+			return reflected_value_type_e::json;
+		if (sub_type_id == "quat"_hs)
+			return reflected_value_type_e::quat;
+		if (sub_type_id == "enum8"_hs)
+			return reflected_value_type_e::enum8;
+		if (sub_type_id == "enum32"_hs || sub_type_id == "enum"_hs)
+			return reflected_value_type_e::enum32;
+		return reflected_value_type_e::invalid;
+	}
+
+	u32 reflected_value_type_size(reflected_value_type_e type)
+	{
+		switch (type)
+		{
+		case reflected_value_type_e::f32:
+			return sizeof(f32);
+		case reflected_value_type_e::i32:
+			return sizeof(i32);
+		case reflected_value_type_e::u32:
+			return sizeof(u32);
+		case reflected_value_type_e::u8:
+		case reflected_value_type_e::bool8:
+		case reflected_value_type_e::enum8:
+			return sizeof(u8);
+		case reflected_value_type_e::vec2:
+			return sizeof(vec2f_t);
+		case reflected_value_type_e::vec3:
+			return sizeof(vec3f_t);
+		case reflected_value_type_e::vec4:
+		case reflected_value_type_e::color:
+			return sizeof(vec4f_t);
+		case reflected_value_type_e::vec2u:
+			return sizeof(vec2u_t);
+		case reflected_value_type_e::vec2u16:
+			return sizeof(vec2u16_t);
+		case reflected_value_type_e::vec3u:
+			return sizeof(vec3u_t);
+		case reflected_value_type_e::vec4u:
+			return sizeof(vec4u_t);
+		case reflected_value_type_e::resource:
+			return sizeof(sid_t);
+		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::enum32:
+			return sizeof(u32);
+		case reflected_value_type_e::string:
+			return sizeof(string_t);
+		case reflected_value_type_e::json:
+			return sizeof(nlohmann::json);
+		case reflected_value_type_e::quat:
+			return sizeof(quat_t);
+		case reflected_value_type_e::object:
+			return 0;
+		default:
+			return 0;
+		}
+	}
 
 	namespace
 	{
@@ -377,10 +469,14 @@ namespace sfg
 		{
 			if (field.enum_values.size != 0)
 				return field.enum_values;
-			if (field.value_type_id == 0)
+
+			sid_t type_id = field.sub_type_id;
+			if (type_id == 0 || reflected_value_type_from_sub_type_id(type_id) != reflected_value_type_e::invalid)
+				type_id = field.value_type_id;
+			if (type_id == 0)
 				return {};
 
-			const reflected_type_desc_t* type = reflection_registry_t::get().find_type(field.value_type_id);
+			const reflected_type_desc_t* type = reflection_registry_t::get().find_type(type_id);
 			return type != nullptr ? type->enum_values : span_t<const reflected_enum_value_desc_t>{};
 		}
 
@@ -485,22 +581,89 @@ namespace sfg
 			return true;
 		}
 
-		template <typename T> nlohmann::json reflected_vector_to_json(const vector_t<T>& values)
+		reflected_field_desc_t reflected_container_item_field(const reflected_field_desc_t& field)
 		{
-			nlohmann::json out = nlohmann::json::array();
-			for (const T& value : values)
-				out.push_back(value);
-			return out;
+			const reflected_value_type_e type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (type != reflected_value_type_e::invalid)
+			{
+				return {
+					.name		   = "value",
+					.display_name  = "Value",
+					.type		   = type,
+					.value_type_id = field.value_type_id,
+					.size		   = reflected_value_type_size(type),
+					.min		   = field.min,
+					.max		   = field.max,
+					.flags		   = field.flags & reflected_field_flags_clamped,
+				};
+			}
+
+			const reflected_type_desc_t* sub_type = reflection_registry_t::get().find_type(field.sub_type_id);
+			if (sub_type != nullptr && sub_type->fields.size == 0 && sub_type->enum_values.size != 0)
+			{
+				return {
+					.name		   = "value",
+					.display_name  = "Value",
+					.type		   = sub_type->size == sizeof(u8) ? reflected_value_type_e::enum8 : reflected_value_type_e::enum32,
+					.value_type_id = sub_type->type_id,
+					.sub_type_id   = sub_type->type_id,
+					.size		   = sub_type->size,
+					.min		   = field.min,
+					.max		   = field.max,
+					.flags		   = field.flags & reflected_field_flags_clamped,
+				};
+			}
+
+			return {
+				.name		   = "value",
+				.display_name  = "Value",
+				.type		   = sub_type != nullptr ? reflected_value_type_e::object : reflected_value_type_e::invalid,
+				.value_type_id = sub_type != nullptr ? sub_type->type_id : 0,
+				.size		   = sub_type != nullptr ? sub_type->size : 0,
+				.min		   = field.min,
+				.max		   = field.max,
+				.flags		   = field.flags & reflected_field_flags_clamped,
+			};
 		}
 
-		template <typename T> nlohmann::json reflected_static_vector_to_json(const void* object, const reflected_field_desc_t& field)
+		bool is_reflected_container_ops_valid(const reflected_container_ops_t& ops)
 		{
-			nlohmann::json out	= nlohmann::json::array();
-			const T*	   data = get_reflected_static_vector_data<T>(object, field);
-			const size_t   size = get_reflected_static_vector_size<T>(object, field);
+			return ops.get_count != nullptr && ops.get_item != nullptr && ops.get_const_item != nullptr && ops.clear != nullptr && ops.resize != nullptr && ops.add != nullptr && ops.remove != nullptr;
+		}
+
+		bool reflected_field_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& j);
+		bool reflected_field_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j);
+		bool reflected_field_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream);
+		bool reflected_field_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream);
+
+		template <typename T> bool reflected_vector_to_json(const vector_t<T>& values, const reflected_field_desc_t& field, nlohmann::json& out)
+		{
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			out										= nlohmann::json::array();
+			for (const T& value : values)
+			{
+				nlohmann::json item = {};
+				if (!reflected_field_to_json(&value, item_field, item))
+					return false;
+				out.push_back(item);
+			}
+			return true;
+		}
+
+		template <typename T> bool reflected_static_vector_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& out)
+		{
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			out										= nlohmann::json::array();
+			const T*	 data						= get_reflected_static_vector_data<T>(object, field);
+			const size_t size						= get_reflected_static_vector_size<T>(object, field);
 			for (size_t i = 0; i < size; ++i)
-				out.push_back(data[i]);
-			return out;
+			{
+				nlohmann::json item = {};
+				if (!reflected_field_to_json(data + i, item_field, item))
+					return false;
+				out.push_back(item);
+			}
+			return true;
 		}
 
 		template <typename T> bool reflected_vector_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
@@ -508,11 +671,17 @@ namespace sfg
 			if (!j.is_array())
 				return true;
 
-			vector_t<T>& values = get_reflected_vector<T>(object, field);
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			vector_t<T>&				 values		= get_reflected_vector<T>(object, field);
 			values.resize(0);
 			values.reserve(j.size());
 			for (const nlohmann::json& item : j)
-				values.push_back(item.get<T>());
+			{
+				T value = {};
+				if (!reflected_field_from_json(&value, item_field, item))
+					return false;
+				values.push_back(value);
+			}
 			return true;
 		}
 
@@ -523,38 +692,57 @@ namespace sfg
 			if (j.size() > field.capacity)
 				return false;
 
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
 			resize_reflected_static_vector<T>(object, field, static_cast<u32>(j.size()));
 			T* data = get_reflected_static_vector_data<T>(object, field);
 			for (u32 i = 0; i < j.size(); ++i)
-				data[i] = j.at(i).get<T>();
+			{
+				if (!reflected_field_from_json(data + i, item_field, j.at(i)))
+					return false;
+			}
 			return true;
 		}
 
-		template <typename T> void reflected_vector_to_stream(const vector_t<T>& values, ostream_t& stream)
+		template <typename T> bool reflected_vector_to_stream(const vector_t<T>& values, const reflected_field_desc_t& field, ostream_t& stream)
 		{
-			const u32 size = static_cast<u32>(values.size());
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			const u32					 size		= static_cast<u32>(values.size());
 			stream << size;
 			for (const T& value : values)
-				stream << value;
+			{
+				if (!reflected_field_to_stream(&value, item_field, stream))
+					return false;
+			}
+			return true;
 		}
 
-		template <typename T> void reflected_static_vector_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		template <typename T> bool reflected_static_vector_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
-			const T*	 data = get_reflected_static_vector_data<T>(object, field);
-			const size_t size = get_reflected_static_vector_size<T>(object, field);
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			const T*					 data		= get_reflected_static_vector_data<T>(object, field);
+			const size_t				 size		= get_reflected_static_vector_size<T>(object, field);
 			stream << static_cast<u32>(size);
 			for (size_t i = 0; i < size; ++i)
-				stream << data[i];
+			{
+				if (!reflected_field_to_stream(data + i, item_field, stream))
+					return false;
+			}
+			return true;
 		}
 
-		template <typename T> void reflected_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		template <typename T> bool reflected_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
 			u32 size = 0;
 			stream >> size;
-			vector_t<T>& values = get_reflected_vector<T>(object, field);
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			vector_t<T>&				 values		= get_reflected_vector<T>(object, field);
 			values.resize(size);
 			for (T& value : values)
-				stream >> value;
+			{
+				if (!reflected_field_from_stream(&value, item_field, stream))
+					return false;
+			}
+			return true;
 		}
 
 		template <typename T> bool reflected_static_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
@@ -564,11 +752,455 @@ namespace sfg
 			if (size > field.capacity)
 				return false;
 
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
 			resize_reflected_static_vector<T>(object, field, size);
 			T* data = get_reflected_static_vector_data<T>(object, field);
 			for (u32 i = 0; i < size; ++i)
-				stream >> data[i];
+			{
+				if (!reflected_field_from_stream(data + i, item_field, stream))
+					return false;
+			}
 			return true;
+		}
+
+		bool reflected_container_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& out)
+		{
+			const reflected_container_ops_t& ops = field.container_ops;
+			if (!is_reflected_container_ops_valid(ops))
+				return false;
+
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			if (item_field.type == reflected_value_type_e::invalid)
+				return false;
+
+			out			   = nlohmann::json::array();
+			const u32 size = ops.get_count(object, field);
+			for (u32 i = 0; i < size; ++i)
+			{
+				nlohmann::json item = {};
+				if (!reflected_field_to_json(ops.get_const_item(object, field, i), item_field, item))
+					return false;
+				out.push_back(item);
+			}
+			return true;
+		}
+
+		bool reflected_container_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
+		{
+			if (!j.is_array())
+				return true;
+
+			const reflected_container_ops_t& ops = field.container_ops;
+			if (!is_reflected_container_ops_valid(ops))
+				return false;
+
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			if (item_field.type == reflected_value_type_e::invalid)
+				return false;
+			if (!ops.resize(object, field, static_cast<u32>(j.size())))
+				return false;
+
+			for (u32 i = 0; i < j.size(); ++i)
+			{
+				if (!reflected_field_from_json(ops.get_item(object, field, i), item_field, j.at(i)))
+					return false;
+			}
+			return true;
+		}
+
+		bool reflected_container_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		{
+			const reflected_container_ops_t& ops = field.container_ops;
+			if (!is_reflected_container_ops_valid(ops))
+				return false;
+
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			if (item_field.type == reflected_value_type_e::invalid)
+				return false;
+
+			const u32 size = ops.get_count(object, field);
+			stream << size;
+			for (u32 i = 0; i < size; ++i)
+			{
+				if (!reflected_field_to_stream(ops.get_const_item(object, field, i), item_field, stream))
+					return false;
+			}
+			return true;
+		}
+
+		bool reflected_container_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		{
+			u32 size = 0;
+			stream >> size;
+
+			const reflected_container_ops_t& ops = field.container_ops;
+			if (!is_reflected_container_ops_valid(ops))
+				return false;
+
+			const reflected_field_desc_t item_field = reflected_container_item_field(field);
+			if (item_field.type == reflected_value_type_e::invalid)
+				return false;
+			if (!ops.resize(object, field, size))
+				return false;
+
+			for (u32 i = 0; i < size; ++i)
+			{
+				if (!reflected_field_from_stream(ops.get_item(object, field, i), item_field, stream))
+					return false;
+			}
+			return true;
+		}
+
+		bool reflected_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_vector_to_json(get_reflected_vector<f32>(object, field), field, j);
+			case reflected_value_type_e::i32:
+				return reflected_vector_to_json(get_reflected_vector<i32>(object, field), field, j);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_vector_to_json(get_reflected_vector<u32>(object, field), field, j);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_vector_to_json(get_reflected_vector<u8>(object, field), field, j);
+			case reflected_value_type_e::vec2:
+				return reflected_vector_to_json(get_reflected_vector<vec2f_t>(object, field), field, j);
+			case reflected_value_type_e::vec3:
+				return reflected_vector_to_json(get_reflected_vector<vec3f_t>(object, field), field, j);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_vector_to_json(get_reflected_vector<vec4f_t>(object, field), field, j);
+			case reflected_value_type_e::vec2u:
+				return reflected_vector_to_json(get_reflected_vector<vec2u_t>(object, field), field, j);
+			case reflected_value_type_e::vec2u16:
+				return reflected_vector_to_json(get_reflected_vector<vec2u16_t>(object, field), field, j);
+			case reflected_value_type_e::vec3u:
+				return reflected_vector_to_json(get_reflected_vector<vec3u_t>(object, field), field, j);
+			case reflected_value_type_e::vec4u:
+				return reflected_vector_to_json(get_reflected_vector<vec4u_t>(object, field), field, j);
+			case reflected_value_type_e::resource:
+				return reflected_vector_to_json(get_reflected_vector<sid_t>(object, field), field, j);
+			case reflected_value_type_e::string:
+				return reflected_vector_to_json(get_reflected_vector<string_t>(object, field), field, j);
+			case reflected_value_type_e::json:
+				return reflected_vector_to_json(get_reflected_vector<nlohmann::json>(object, field), field, j);
+			case reflected_value_type_e::quat:
+				return reflected_vector_to_json(get_reflected_vector<quat_t>(object, field), field, j);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_static_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_static_vector_to_json<f32>(object, field, j);
+			case reflected_value_type_e::i32:
+				return reflected_static_vector_to_json<i32>(object, field, j);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_static_vector_to_json<u32>(object, field, j);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_static_vector_to_json<u8>(object, field, j);
+			case reflected_value_type_e::vec2:
+				return reflected_static_vector_to_json<vec2f_t>(object, field, j);
+			case reflected_value_type_e::vec3:
+				return reflected_static_vector_to_json<vec3f_t>(object, field, j);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_static_vector_to_json<vec4f_t>(object, field, j);
+			case reflected_value_type_e::vec2u:
+				return reflected_static_vector_to_json<vec2u_t>(object, field, j);
+			case reflected_value_type_e::vec2u16:
+				return reflected_static_vector_to_json<vec2u16_t>(object, field, j);
+			case reflected_value_type_e::vec3u:
+				return reflected_static_vector_to_json<vec3u_t>(object, field, j);
+			case reflected_value_type_e::vec4u:
+				return reflected_static_vector_to_json<vec4u_t>(object, field, j);
+			case reflected_value_type_e::resource:
+				return reflected_static_vector_to_json<sid_t>(object, field, j);
+			case reflected_value_type_e::string:
+				return reflected_static_vector_to_json<string_t>(object, field, j);
+			case reflected_value_type_e::json:
+				return reflected_static_vector_to_json<nlohmann::json>(object, field, j);
+			case reflected_value_type_e::quat:
+				return reflected_static_vector_to_json<quat_t>(object, field, j);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_vector_from_json_by_type(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_vector_from_json<f32>(object, field, j);
+			case reflected_value_type_e::i32:
+				return reflected_vector_from_json<i32>(object, field, j);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_vector_from_json<u32>(object, field, j);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_vector_from_json<u8>(object, field, j);
+			case reflected_value_type_e::vec2:
+				return reflected_vector_from_json<vec2f_t>(object, field, j);
+			case reflected_value_type_e::vec3:
+				return reflected_vector_from_json<vec3f_t>(object, field, j);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_vector_from_json<vec4f_t>(object, field, j);
+			case reflected_value_type_e::vec2u:
+				return reflected_vector_from_json<vec2u_t>(object, field, j);
+			case reflected_value_type_e::vec2u16:
+				return reflected_vector_from_json<vec2u16_t>(object, field, j);
+			case reflected_value_type_e::vec3u:
+				return reflected_vector_from_json<vec3u_t>(object, field, j);
+			case reflected_value_type_e::vec4u:
+				return reflected_vector_from_json<vec4u_t>(object, field, j);
+			case reflected_value_type_e::resource:
+				return reflected_vector_from_json<sid_t>(object, field, j);
+			case reflected_value_type_e::string:
+				return reflected_vector_from_json<string_t>(object, field, j);
+			case reflected_value_type_e::json:
+				return reflected_vector_from_json<nlohmann::json>(object, field, j);
+			case reflected_value_type_e::quat:
+				return reflected_vector_from_json<quat_t>(object, field, j);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_static_vector_from_json_by_type(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_static_vector_from_json<f32>(object, field, j);
+			case reflected_value_type_e::i32:
+				return reflected_static_vector_from_json<i32>(object, field, j);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_static_vector_from_json<u32>(object, field, j);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_static_vector_from_json<u8>(object, field, j);
+			case reflected_value_type_e::vec2:
+				return reflected_static_vector_from_json<vec2f_t>(object, field, j);
+			case reflected_value_type_e::vec3:
+				return reflected_static_vector_from_json<vec3f_t>(object, field, j);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_static_vector_from_json<vec4f_t>(object, field, j);
+			case reflected_value_type_e::vec2u:
+				return reflected_static_vector_from_json<vec2u_t>(object, field, j);
+			case reflected_value_type_e::vec2u16:
+				return reflected_static_vector_from_json<vec2u16_t>(object, field, j);
+			case reflected_value_type_e::vec3u:
+				return reflected_static_vector_from_json<vec3u_t>(object, field, j);
+			case reflected_value_type_e::vec4u:
+				return reflected_static_vector_from_json<vec4u_t>(object, field, j);
+			case reflected_value_type_e::resource:
+				return reflected_static_vector_from_json<sid_t>(object, field, j);
+			case reflected_value_type_e::string:
+				return reflected_static_vector_from_json<string_t>(object, field, j);
+			case reflected_value_type_e::json:
+				return reflected_static_vector_from_json<nlohmann::json>(object, field, j);
+			case reflected_value_type_e::quat:
+				return reflected_static_vector_from_json<quat_t>(object, field, j);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_vector_to_stream_by_type(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_vector_to_stream(get_reflected_vector<f32>(object, field), field, stream);
+			case reflected_value_type_e::i32:
+				return reflected_vector_to_stream(get_reflected_vector<i32>(object, field), field, stream);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_vector_to_stream(get_reflected_vector<u32>(object, field), field, stream);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_vector_to_stream(get_reflected_vector<u8>(object, field), field, stream);
+			case reflected_value_type_e::vec2:
+				return reflected_vector_to_stream(get_reflected_vector<vec2f_t>(object, field), field, stream);
+			case reflected_value_type_e::vec3:
+				return reflected_vector_to_stream(get_reflected_vector<vec3f_t>(object, field), field, stream);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_vector_to_stream(get_reflected_vector<vec4f_t>(object, field), field, stream);
+			case reflected_value_type_e::vec2u:
+				return reflected_vector_to_stream(get_reflected_vector<vec2u_t>(object, field), field, stream);
+			case reflected_value_type_e::vec2u16:
+				return reflected_vector_to_stream(get_reflected_vector<vec2u16_t>(object, field), field, stream);
+			case reflected_value_type_e::vec3u:
+				return reflected_vector_to_stream(get_reflected_vector<vec3u_t>(object, field), field, stream);
+			case reflected_value_type_e::vec4u:
+				return reflected_vector_to_stream(get_reflected_vector<vec4u_t>(object, field), field, stream);
+			case reflected_value_type_e::resource:
+				return reflected_vector_to_stream(get_reflected_vector<sid_t>(object, field), field, stream);
+			case reflected_value_type_e::string:
+				return reflected_vector_to_stream(get_reflected_vector<string_t>(object, field), field, stream);
+			case reflected_value_type_e::json:
+				return reflected_vector_to_stream(get_reflected_vector<nlohmann::json>(object, field), field, stream);
+			case reflected_value_type_e::quat:
+				return reflected_vector_to_stream(get_reflected_vector<quat_t>(object, field), field, stream);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_static_vector_to_stream_by_type(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_static_vector_to_stream<f32>(object, field, stream);
+			case reflected_value_type_e::i32:
+				return reflected_static_vector_to_stream<i32>(object, field, stream);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_static_vector_to_stream<u32>(object, field, stream);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_static_vector_to_stream<u8>(object, field, stream);
+			case reflected_value_type_e::vec2:
+				return reflected_static_vector_to_stream<vec2f_t>(object, field, stream);
+			case reflected_value_type_e::vec3:
+				return reflected_static_vector_to_stream<vec3f_t>(object, field, stream);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_static_vector_to_stream<vec4f_t>(object, field, stream);
+			case reflected_value_type_e::vec2u:
+				return reflected_static_vector_to_stream<vec2u_t>(object, field, stream);
+			case reflected_value_type_e::vec2u16:
+				return reflected_static_vector_to_stream<vec2u16_t>(object, field, stream);
+			case reflected_value_type_e::vec3u:
+				return reflected_static_vector_to_stream<vec3u_t>(object, field, stream);
+			case reflected_value_type_e::vec4u:
+				return reflected_static_vector_to_stream<vec4u_t>(object, field, stream);
+			case reflected_value_type_e::resource:
+				return reflected_static_vector_to_stream<sid_t>(object, field, stream);
+			case reflected_value_type_e::string:
+				return reflected_static_vector_to_stream<string_t>(object, field, stream);
+			case reflected_value_type_e::json:
+				return reflected_static_vector_to_stream<nlohmann::json>(object, field, stream);
+			case reflected_value_type_e::quat:
+				return reflected_static_vector_to_stream<quat_t>(object, field, stream);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_vector_from_stream_by_type(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_vector_from_stream<f32>(object, field, stream);
+			case reflected_value_type_e::i32:
+				return reflected_vector_from_stream<i32>(object, field, stream);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_vector_from_stream<u32>(object, field, stream);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_vector_from_stream<u8>(object, field, stream);
+			case reflected_value_type_e::vec2:
+				return reflected_vector_from_stream<vec2f_t>(object, field, stream);
+			case reflected_value_type_e::vec3:
+				return reflected_vector_from_stream<vec3f_t>(object, field, stream);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_vector_from_stream<vec4f_t>(object, field, stream);
+			case reflected_value_type_e::vec2u:
+				return reflected_vector_from_stream<vec2u_t>(object, field, stream);
+			case reflected_value_type_e::vec2u16:
+				return reflected_vector_from_stream<vec2u16_t>(object, field, stream);
+			case reflected_value_type_e::vec3u:
+				return reflected_vector_from_stream<vec3u_t>(object, field, stream);
+			case reflected_value_type_e::vec4u:
+				return reflected_vector_from_stream<vec4u_t>(object, field, stream);
+			case reflected_value_type_e::resource:
+				return reflected_vector_from_stream<sid_t>(object, field, stream);
+			case reflected_value_type_e::string:
+				return reflected_vector_from_stream<string_t>(object, field, stream);
+			case reflected_value_type_e::json:
+				return reflected_vector_from_stream<nlohmann::json>(object, field, stream);
+			case reflected_value_type_e::quat:
+				return reflected_vector_from_stream<quat_t>(object, field, stream);
+			default:
+				return false;
+			}
+		}
+
+		bool reflected_static_vector_from_stream_by_type(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		{
+			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			{
+			case reflected_value_type_e::f32:
+				return reflected_static_vector_from_stream<f32>(object, field, stream);
+			case reflected_value_type_e::i32:
+				return reflected_static_vector_from_stream<i32>(object, field, stream);
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::enum32:
+				return reflected_static_vector_from_stream<u32>(object, field, stream);
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::bool8:
+			case reflected_value_type_e::enum8:
+				return reflected_static_vector_from_stream<u8>(object, field, stream);
+			case reflected_value_type_e::vec2:
+				return reflected_static_vector_from_stream<vec2f_t>(object, field, stream);
+			case reflected_value_type_e::vec3:
+				return reflected_static_vector_from_stream<vec3f_t>(object, field, stream);
+			case reflected_value_type_e::vec4:
+			case reflected_value_type_e::color:
+				return reflected_static_vector_from_stream<vec4f_t>(object, field, stream);
+			case reflected_value_type_e::vec2u:
+				return reflected_static_vector_from_stream<vec2u_t>(object, field, stream);
+			case reflected_value_type_e::vec2u16:
+				return reflected_static_vector_from_stream<vec2u16_t>(object, field, stream);
+			case reflected_value_type_e::vec3u:
+				return reflected_static_vector_from_stream<vec3u_t>(object, field, stream);
+			case reflected_value_type_e::vec4u:
+				return reflected_static_vector_from_stream<vec4u_t>(object, field, stream);
+			case reflected_value_type_e::resource:
+				return reflected_static_vector_from_stream<sid_t>(object, field, stream);
+			case reflected_value_type_e::string:
+				return reflected_static_vector_from_stream<string_t>(object, field, stream);
+			case reflected_value_type_e::json:
+				return reflected_static_vector_from_stream<nlohmann::json>(object, field, stream);
+			case reflected_value_type_e::quat:
+				return reflected_static_vector_from_stream<quat_t>(object, field, stream);
+			default:
+				return false;
+			}
 		}
 
 		bool reflected_field_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
@@ -704,22 +1336,16 @@ namespace sfg
 				j				 = name != nullptr ? nlohmann::json(name) : nlohmann::json(value);
 				return true;
 			}
+			case reflected_value_type_e::object:
+				return reflection_registry_t::get().serialize_to_json(field.value_type_id, object, j);
 			case reflected_value_type_e::vector:
-				if (field.sub_type_id == "f32"_hs)
-					j = reflected_vector_to_json(get_reflected_vector<f32>(object, field));
-				else if (field.sub_type_id == "string"_hs)
-					j = reflected_vector_to_json(get_reflected_vector<string_t>(object, field));
-				else
-					return false;
-				return true;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_to_json(object, field, j);
+				return reflected_vector_to_json_by_type(object, field, j);
 			case reflected_value_type_e::static_vector:
-				if (field.sub_type_id == "f32"_hs)
-					j = reflected_static_vector_to_json<f32>(object, field);
-				else if (field.sub_type_id == "string"_hs)
-					j = reflected_static_vector_to_json<string_t>(object, field);
-				else
-					return false;
-				return true;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_to_json(object, field, j);
+				return reflected_static_vector_to_json_by_type(object, field, j);
 			default:
 				return false;
 			}
@@ -799,18 +1425,16 @@ namespace sfg
 				}
 				return write_reflected_enum(object, field, value);
 			}
+			case reflected_value_type_e::object:
+				return reflection_registry_t::get().deserialize_from_json(field.value_type_id, object, j);
 			case reflected_value_type_e::vector:
-				if (field.sub_type_id == "f32"_hs)
-					return reflected_vector_from_json<f32>(object, field, j);
-				if (field.sub_type_id == "string"_hs)
-					return reflected_vector_from_json<string_t>(object, field, j);
-				return false;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_from_json(object, field, j);
+				return reflected_vector_from_json_by_type(object, field, j);
 			case reflected_value_type_e::static_vector:
-				if (field.sub_type_id == "f32"_hs)
-					return reflected_static_vector_from_json<f32>(object, field, j);
-				if (field.sub_type_id == "string"_hs)
-					return reflected_static_vector_from_json<string_t>(object, field, j);
-				return false;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_from_json(object, field, j);
+				return reflected_static_vector_from_json_by_type(object, field, j);
 			default:
 				return false;
 			}
@@ -954,22 +1578,16 @@ namespace sfg
 				stream << static_cast<u32>(value);
 				return true;
 			}
+			case reflected_value_type_e::object:
+				return reflection_registry_t::get().serialize_to_stream(field.value_type_id, object, stream);
 			case reflected_value_type_e::vector:
-				if (field.sub_type_id == "f32"_hs)
-					reflected_vector_to_stream(get_reflected_vector<f32>(object, field), stream);
-				else if (field.sub_type_id == "string"_hs)
-					reflected_vector_to_stream(get_reflected_vector<string_t>(object, field), stream);
-				else
-					return false;
-				return true;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_to_stream(object, field, stream);
+				return reflected_vector_to_stream_by_type(object, field, stream);
 			case reflected_value_type_e::static_vector:
-				if (field.sub_type_id == "f32"_hs)
-					reflected_static_vector_to_stream<f32>(object, field, stream);
-				else if (field.sub_type_id == "string"_hs)
-					reflected_static_vector_to_stream<string_t>(object, field, stream);
-				else
-					return false;
-				return true;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_to_stream(object, field, stream);
+				return reflected_static_vector_to_stream_by_type(object, field, stream);
 			default:
 				return false;
 			}
@@ -1078,20 +1696,16 @@ namespace sfg
 				stream >> value;
 				return write_reflected_enum(object, field, static_cast<i64>(value));
 			}
+			case reflected_value_type_e::object:
+				return reflection_registry_t::get().deserialize_from_stream(field.value_type_id, object, stream);
 			case reflected_value_type_e::vector:
-				if (field.sub_type_id == "f32"_hs)
-					reflected_vector_from_stream<f32>(object, field, stream);
-				else if (field.sub_type_id == "string"_hs)
-					reflected_vector_from_stream<string_t>(object, field, stream);
-				else
-					return false;
-				return true;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_from_stream(object, field, stream);
+				return reflected_vector_from_stream_by_type(object, field, stream);
 			case reflected_value_type_e::static_vector:
-				if (field.sub_type_id == "f32"_hs)
-					return reflected_static_vector_from_stream<f32>(object, field, stream);
-				if (field.sub_type_id == "string"_hs)
-					return reflected_static_vector_from_stream<string_t>(object, field, stream);
-				return false;
+				if (is_reflected_container_ops_valid(field.container_ops))
+					return reflected_container_from_stream(object, field, stream);
+				return reflected_static_vector_from_stream_by_type(object, field, stream);
 			default:
 				return false;
 			}

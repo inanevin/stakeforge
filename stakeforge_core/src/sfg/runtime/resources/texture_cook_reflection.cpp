@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -65,12 +65,12 @@ namespace sfg
 
 		static const reflected_field_desc_t fields[] = {
 			{.name = "size", .display_name = "Size", .type = reflected_value_type_e::vec2u16, .offset = offsetof(texture_cook_config_t, size), .size = sizeof(vec2u16_t), .flags = reflected_field_flags_no_ui},
-			{.name			= "payload_type",
-			 .display_name	= "Payload Type",
-			 .type			= reflected_value_type_e::enum8,
-			 .value_type_id = texture_payload_type_reflection_t::TYPE_ID,
-			 .offset		= offsetof(texture_cook_config_t, payload_type),
-			 .size			= sizeof(texture_payload_type_e)},
+			{.name		   = "payload_type",
+			 .display_name = "Payload Type",
+			 .type		   = reflected_value_type_e::enum8,
+			 .sub_type_id  = texture_payload_type_reflection_t::TYPE_ID,
+			 .offset	   = offsetof(texture_cook_config_t, payload_type),
+			 .size		   = sizeof(texture_payload_type_e)},
 			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
 			{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
 		};
