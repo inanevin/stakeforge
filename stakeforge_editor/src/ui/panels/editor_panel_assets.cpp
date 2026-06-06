@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_assets.hpp"
+#include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_types.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -1441,12 +1442,6 @@ namespace sfg
 		_ui->get_paint().set_press_color(row.root, selected ? theme.color_accent0 : theme.color_light);
 	}
 
-	void editor_panel_assets_t::refresh_folder_row_backgrounds()
-	{
-		for (const folder_row_t& row : _folder_rows)
-			update_folder_row_background(row);
-	}
-
 	void editor_panel_assets_t::set_folder_row_visible(const folder_row_t& row, bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
@@ -1462,7 +1457,10 @@ namespace sfg
 		_selected_folder_hash = path_hash;
 		_selected_folder_node = node;
 		clear_asset_grid_selection();
-		refresh_folder_row_backgrounds();
+
+		for (const folder_row_t& row : _folder_rows)
+			update_folder_row_background(row);
+
 		update_current_directory_label();
 		update_import_button_state();
 		refresh_asset_grid(true);
@@ -2347,13 +2345,14 @@ namespace sfg
 			return;
 		}
 
-		const string_t					 directory = panel.get_action_menu_target_folder_path();
-		const editor_asset_create_desc_t desc	   = {
-				 .name		 = value != nullptr ? value : "",
-				 .asset_type = asset_type,
-				 .sub_type	 = sub_type,
-		 };
-		panel.request_create_assets(directory.c_str(), &desc, 1, false);
+		editor_asset_t created_asset = {};
+		if (editor_asset_creator_t::create_asset({.parent_node = panel._selected_folder_node, .name = value, .asset_type = asset_type, .sub_type = sub_type}, &created_asset))
+		{
+			editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+			asset_manager.cook_assets(&created_asset, 1);
+			asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+			panel.refresh_folder_rows();
+		}
 	}
 
 	void editor_panel_assets_t::on_rename_popup_closed(const char* value, void* user_data)

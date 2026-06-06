@@ -27,47 +27,43 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/vector.hpp>
-#include <sfg/runtime/render/world_draw_common.hpp>
+#include "assets/editor_asset.hpp"
+
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/runtime/resources/audio_cook.hpp>
+#include <sfg/runtime/resources/glb_cook.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg
 {
-	class istream_t;
-	class ostream_t;
-
-	enum class material_parameter_type_e : u8
+	enum class editor_asset_import_type_e : u8
 	{
-		u32,
-		uint2,
-		uint4,
-		i32,
-		f32,
-		vec2f,
-		vec4f,
+		invalid,
+		audio,
+		texture,
+		model,
 	};
 
-	struct material_parameter_t
+	struct editor_asset_import_options_t
 	{
-		f32						  values[4] = {};
-		material_parameter_type_e type		= material_parameter_type_e::f32;
-
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
+		texture_cook_config_t	   texture_cook_config = {};
+		audio_cook_config_t		   audio_cook_config   = {};
+		glb_cook_config_t		   glb_cook_config	   = {};
+		editor_asset_import_type_e type				   = editor_asset_import_type_e::invalid;
 	};
 
-	struct material_json_t
+	class editor_asset_importer_t final
 	{
-		vector_t<sid_t>				   textures			= {};
-		vector_t<material_parameter_t> parameters		= {};
-		sid_t						   shader			= NULL_SID;
-		sid_t						   sampler			= NULL_SID;
-		world_pass_flags_e			   pass_flags		= wpf_none;
-		bool						   double_sided		= false;
-		bool						   use_alpha_cutoff = false;
+	public:
+		editor_asset_importer_t()										   = delete;
+		~editor_asset_importer_t()										   = delete;
+		editor_asset_importer_t(const editor_asset_importer_t&)			   = delete;
+		editor_asset_importer_t& operator=(const editor_asset_importer_t&) = delete;
 
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
+		static bool import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, const frame_vector_t<editor_asset_import_options_t>& options, frame_vector_t<editor_asset_t>& out_assets);
+
+	private:
+		static bool make_import_options(editor_asset_import_options_t& out_options, const char* asset_name);
+		static bool make_asset(editor_asset_node_handle_t directory_node, const char* asset_name, editor_asset_t& asset, editor_asset_type_e asset_type, editor_asset_source_type_e source_type, const char* source_full_path = nullptr);
 	};
-
 }

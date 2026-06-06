@@ -21,14 +21,10 @@ namespace sfg
 
 			if (!file_system_t::is_absolute_path(path.c_str()))
 			{
-				string_t running_dir = file_system_t::get_running_directory();
-				file_system_t::fix_path(running_dir);
-				file_system_t::fix_path_end_slash(running_dir);
-				path = running_dir + path;
+				const string_t running_dir = file_system_t::get_running_directory();
+				path					   = running_dir + path;
 			}
 
-			file_system_t::fix_path(path);
-			file_system_t::fix_path_end_slash(path);
 			out.push_back(path);
 		}
 

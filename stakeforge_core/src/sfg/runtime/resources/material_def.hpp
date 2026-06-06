@@ -25,27 +25,49 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "physical_material_json.hpp"
+#pragma once
 
-#include <sfg/data/istream.hpp>
-#include <sfg/data/ostream.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/runtime/render/world_draw_common.hpp>
 
 namespace sfg
 {
-	void physical_material_json_t::serialize(ostream_t& stream) const
-	{
-		stream << restitution;
-		stream << friction;
-		stream << angular_damping;
-		stream << linear_damping;
-	}
+	class istream_t;
+	class ostream_t;
 
-	void physical_material_json_t::deserialize(istream_t& stream)
+	enum class material_parameter_type_e : u8
 	{
-		stream >> restitution;
-		stream >> friction;
-		stream >> angular_damping;
-		stream >> linear_damping;
-	}
+		u32,
+		uint2,
+		uint4,
+		i32,
+		f32,
+		vec2f,
+		vec4f,
+	};
+
+	struct material_parameter_t
+	{
+		f32						  values[4] = {};
+		material_parameter_type_e type		= material_parameter_type_e::f32;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
+	};
+
+	struct material_def_t
+	{
+		vector_t<sid_t>				   textures			= {};
+		vector_t<material_parameter_t> parameters		= {};
+		sid_t						   shader			= NULL_SID;
+		sid_t						   sampler			= NULL_SID;
+		world_pass_flags_e			   pass_flags		= wpf_none;
+		bool						   double_sided		= false;
+		bool						   use_alpha_cutoff = false;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
+	};
 
 }

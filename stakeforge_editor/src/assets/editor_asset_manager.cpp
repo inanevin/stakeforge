@@ -176,9 +176,7 @@ namespace sfg
 		found_assets.reserve(entries.size());
 
 		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
-		string_t	   root_path = assets_dir;
-		file_system_t::fix_path(root_path);
-		file_system_t::fix_path_end_slash(root_path);
+		const string_t	   root_path = assets_dir;
 		_root_node = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
 
 		vector_t<string_t> parts;
@@ -422,9 +420,7 @@ namespace sfg
 			else if (asset.source_type == editor_asset_source_type_e::file)
 			{
 				string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
-				file_system_t::fix_path_end_slash(source_path);
 				source_path += asset.source_relative;
-				file_system_t::fix_path(source_path);
 				if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
 				{
 					asset.status = editor_asset_status_e::missing_file_source;

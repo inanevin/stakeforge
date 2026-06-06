@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "material_json.hpp"
+#include "material_def.hpp"
 
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -47,7 +47,7 @@ namespace sfg
 			stream >> values[i];
 	}
 
-	void material_json_t::serialize(ostream_t& stream) const
+	void material_def_t::serialize(ostream_t& stream) const
 	{
 		SFG_ASSERT(textures.empty() || sampler != NULL_SID);
 		stream << static_cast<u32>(pass_flags);
@@ -66,7 +66,7 @@ namespace sfg
 		stream << use_alpha_cutoff;
 	}
 
-	void material_json_t::deserialize(istream_t& stream)
+	void material_def_t::deserialize(istream_t& stream)
 	{
 		u32 flags = 0;
 		stream >> flags;

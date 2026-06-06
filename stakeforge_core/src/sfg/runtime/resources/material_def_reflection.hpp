@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "material_json.hpp"
+#include "material_def.hpp"
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
@@ -36,6 +36,6 @@ namespace sfg
 	void from_json(const nlohmann::json& j, material_parameter_type_e& t);
 	void to_json(nlohmann::json& j, const material_parameter_t& p);
 	void from_json(const nlohmann::json& j, material_parameter_t& p);
-	void to_json(nlohmann::json& j, const material_json_t& m);
-	void from_json(const nlohmann::json& j, material_json_t& m);
+	void to_json(nlohmann::json& j, const material_def_t& m);
+	void from_json(const nlohmann::json& j, material_def_t& m);
 }

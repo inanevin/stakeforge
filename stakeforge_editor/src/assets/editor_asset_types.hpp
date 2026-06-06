@@ -31,12 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	enum class editor_material_type_e : u8
-	{
-		gbuffer,
-		forward,
-	};
-
 	struct editor_asset_loader_audio_t
 	{
 		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);

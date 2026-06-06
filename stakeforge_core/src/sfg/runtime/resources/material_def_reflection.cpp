@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "material_json_reflection.hpp"
+#include "material_def_reflection.hpp"
 #include <sfg/runtime/render/world_draw_common_reflection.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
@@ -67,7 +67,7 @@ namespace sfg
 		j["values"] = {p.values[0], p.values[1], p.values[2], p.values[3]};
 	}
 
-	void to_json(nlohmann::json& j, const material_json_t& m)
+	void to_json(nlohmann::json& j, const material_def_t& m)
 	{
 		j["schema"]			  = "sfg.schema.material";
 		j["pass_flags"]		  = m.pass_flags;
@@ -98,7 +98,7 @@ namespace sfg
 			t = material_parameter_type_e::f32;
 	}
 
-	void from_json(const nlohmann::json& j, material_json_t& m)
+	void from_json(const nlohmann::json& j, material_def_t& m)
 	{
 		m.pass_flags	   = j.value<world_pass_flags_e>("pass_flags", wpf_none);
 		m.shader		   = j.value<sid_t>("shader", NULL_SID);

@@ -27,22 +27,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
+#include "assets/editor_asset.hpp"
+
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/runtime/resources/glb_cook.hpp>
 
 namespace sfg
 {
-	class istream_t;
-	class ostream_t;
-
-	struct physical_material_json_t
+	class editor_glb_importer_t final
 	{
-		f32 restitution		= 0.0f;
-		f32 friction		= 0.2f;
-		f32 angular_damping = 0.05f;
-		f32 linear_damping	= 0.05f;
+	public:
+		editor_glb_importer_t()										   = delete;
+		~editor_glb_importer_t()									   = delete;
+		editor_glb_importer_t(const editor_glb_importer_t&)			   = delete;
+		editor_glb_importer_t& operator=(const editor_glb_importer_t&) = delete;
 
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
+		static bool import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, frame_vector_t<editor_asset_t>& out_assets);
 	};
-
 }

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_resources.hpp"
+#include "texture_payload_type.hpp"
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
@@ -35,12 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class istream_t;
-
-	enum class texture_payload_type_e : u8
-	{
-		ktx2_uastc,
-		uncompressed,
-	};
 
 	class texture_loader_t
 	{

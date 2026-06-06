@@ -46,8 +46,7 @@ namespace sfg
 	{
 		string_t normalize_directory_path(const char* path)
 		{
-			string_t result = file_system_t::get_absolute_path(path);
-			file_system_t::fix_path_end_slash(result);
+			const string_t result = file_system_t::get_absolute_path(path);
 			return result;
 		}
 
@@ -67,16 +66,6 @@ namespace sfg
 			string_util::to_lower(normalized_lhs);
 			string_util::to_lower(normalized_rhs);
 			return normalized_lhs == normalized_rhs;
-		}
-
-		sid_t generate_unique_asset_guid(const vector_t<sid_t>& pending_guids)
-		{
-			sid_t guid = NULL_SID;
-			do
-			{
-				guid = hashing_t::generate_guid64();
-			} while (guid == NULL_SID || editor_asset_manager_t::get().find_asset(guid) != nullptr || std::find(pending_guids.begin(), pending_guids.end(), guid) != pending_guids.end());
-			return guid;
 		}
 
 		bool duplicate_cooked_asset(const editor_asset_t& source_asset, const editor_asset_t& duplicated_asset)
@@ -221,8 +210,6 @@ namespace sfg
 	string_t editor_asset_util_t::get_cache_path_for_asset(const editor_asset_t& asset)
 	{
 		string_t result = editor_project_t::get()._runtime.cache_path;
-		file_system_t::fix_path(result);
-		file_system_t::fix_path_end_slash(result);
 
 		char  guid_text[32] = {};
 		char* guid_text_cur = guid_text;
@@ -237,11 +224,8 @@ namespace sfg
 	string_t editor_asset_util_t::get_source_full_path(const char* assets_path, const editor_asset_t& asset)
 	{
 		SFG_ASSERT(!asset.source_relative.empty());
-
 		string_t result = file_system_t::get_absolute_path(assets_path);
-		file_system_t::fix_path_end_slash(result);
 		result += asset.source_relative;
-		file_system_t::fix_path(result);
 		SFG_ASSERT(file_system_t::exists(result.c_str()));
 		return result;
 	}
@@ -251,8 +235,7 @@ namespace sfg
 		if (source_full_path == nullptr || source_full_path[0] == '\0')
 			return {};
 
-		string_t normalized_assets_path = file_system_t::get_absolute_path(assets_path);
-		file_system_t::fix_path_end_slash(normalized_assets_path);
+		string_t normalized_assets_path		  = file_system_t::get_absolute_path(assets_path);
 		string_t normalized_assets_path_lower = normalized_assets_path;
 		string_util::to_lower(normalized_assets_path_lower);
 
@@ -263,6 +246,34 @@ namespace sfg
 			return {};
 
 		return file_system_t::get_relative(normalized_assets_path.c_str(), normalized_source_path.c_str());
+	}
+
+	bool editor_asset_util_t::set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path)
+	{
+		SFG_ASSERT(asset_directory != nullptr);
+		SFG_ASSERT(asset_directory[0] != '\0');
+		SFG_ASSERT(asset_name != nullptr);
+		SFG_ASSERT(asset_name[0] != '\0');
+		SFG_ASSERT(source_full_path != nullptr);
+		SFG_ASSERT(source_full_path[0] != '\0');
+
+		const string_t source_path = file_system_t::get_absolute_path(source_full_path);
+		SFG_ASSERT(file_system_t::exists(source_path.c_str()));
+
+		const string_t assets_path = editor_project_t::get()._runtime.assets_path;
+		asset.source_relative	   = get_source_relative(assets_path.c_str(), source_path.c_str());
+		if (!asset.source_relative.empty())
+			return true;
+
+		const string_t source_extension	  = file_system_t::get_file_extension(source_path);
+		const string_t target_source_path = make_unique_source_path(asset_directory, asset_name, source_extension.c_str());
+		if (!file_system_t::copy_file(source_path.c_str(), target_source_path.c_str()))
+			return false;
+
+		SFG_ASSERT(file_system_t::exists(target_source_path.c_str()));
+		asset.source_relative = get_source_relative(assets_path.c_str(), target_source_path.c_str());
+		SFG_ASSERT(!asset.source_relative.empty());
+		return true;
 	}
 
 	bool editor_asset_util_t::is_source_inside_assets(const char* assets_path, const char* source_full_path)
@@ -295,6 +306,26 @@ namespace sfg
 		default:
 			break;
 		}
+	}
+
+	sid_t editor_asset_util_t::generate_unique_asset_guid(span_t<const sid_t> pending_guids)
+	{
+		sid_t guid			= NULL_SID;
+		bool  found_pending = false;
+		do
+		{
+			guid		  = hashing_t::generate_guid64();
+			found_pending = false;
+			for (size_t i = 0; i < pending_guids.size; ++i)
+			{
+				if (pending_guids.data[i] == guid)
+				{
+					found_pending = true;
+					break;
+				}
+			}
+		} while (guid == NULL_SID || editor_asset_manager_t::get().find_asset(guid) != nullptr || found_pending);
+		return guid;
 	}
 
 	sid_t editor_asset_util_t::try_read_existing_guid(const char* path)
@@ -349,7 +380,7 @@ namespace sfg
 				return false;
 
 			editor_asset_t source_asset = duplicated_asset;
-			duplicated_asset.guid		= generate_unique_asset_guid(duplicated_guids);
+			duplicated_asset.guid		= generate_unique_asset_guid({.data = duplicated_guids.data(), .size = duplicated_guids.size()});
 			duplicated_guids.push_back(duplicated_asset.guid);
 			remap_source_relative(duplicated_asset, assets_path, source_folder_path, duplicated_folder_path);
 
@@ -377,7 +408,6 @@ namespace sfg
 
 		const string_t old_folder_path = normalize_directory_path(node.full_path.c_str());
 		string_t	   renamed_path	   = new_path;
-		file_system_t::fix_path(renamed_path);
 		if (!file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str()))
 			return false;
 
@@ -412,7 +442,6 @@ namespace sfg
 
 		const string_t old_source_path = file_system_t::get_absolute_path(node.full_path.c_str());
 		string_t	   renamed_path	   = new_path;
-		file_system_t::fix_path(renamed_path);
 		if (!file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str()))
 			return false;
 
@@ -449,9 +478,8 @@ namespace sfg
 		if (duplicated_path.empty())
 			return false;
 
-		vector_t<sid_t> pending_guids;
-		editor_asset_t	duplicated_asset = asset;
-		duplicated_asset.guid			 = generate_unique_asset_guid(pending_guids);
+		editor_asset_t duplicated_asset = asset;
+		duplicated_asset.guid			= generate_unique_asset_guid();
 
 		if (!write_asset(duplicated_path.c_str(), duplicated_asset))
 			return false;
@@ -472,8 +500,7 @@ namespace sfg
 		SFG_ASSERT(node.asset_id == asset.guid);
 		SFG_ASSERT(!node.full_path.empty());
 
-		string_t renamed_path = new_path;
-		file_system_t::fix_path(renamed_path);
+		const string_t renamed_path = new_path;
 		return file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str());
 	}
 

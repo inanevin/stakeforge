@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "paint.hpp"
 #include <sfg/io/assert.hpp>
-#include <sfg/runtime/resources/atlas.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>

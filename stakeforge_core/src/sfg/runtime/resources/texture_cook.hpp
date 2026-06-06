@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "texture.hpp"
+#include "texture_payload_type.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/math/vec2u16.hpp>
 

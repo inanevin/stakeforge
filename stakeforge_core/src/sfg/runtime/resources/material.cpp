@@ -2,7 +2,7 @@
 
 #include "material.hpp"
 
-#include "material_json.hpp"
+#include "material_def.hpp"
 #include "resource_manager.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
@@ -100,7 +100,7 @@ namespace sfg
 		istream_t stream;
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
-		material_json_t material = {};
+		material_def_t material = {};
 		material.deserialize(stream);
 
 		runtime->pass_flags		  = material.pass_flags;

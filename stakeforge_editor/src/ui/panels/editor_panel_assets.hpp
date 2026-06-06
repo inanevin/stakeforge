@@ -136,7 +136,6 @@ namespace sfg
 		folder_row_t& get_or_create_folder_row(size_t index);
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
-		void		  refresh_folder_row_backgrounds();
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash);

@@ -37,7 +37,7 @@ namespace sfg
 {
 	bool serializer_t::write_to_file(string_view_t file_input, const char* target_file)
 	{
-		std::ofstream outFile(target_file);
+		std::ofstream outFile(target_file, std::ios::out | std::ios::binary);
 
 		if (outFile.is_open())
 		{

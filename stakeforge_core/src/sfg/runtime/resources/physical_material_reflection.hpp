@@ -27,14 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "physical_material_json.hpp"
+#include "physical_material_def.hpp"
 #include <sfg/common/hashing.hpp>
 
 namespace sfg
 {
 	struct physical_material_reflection_t
 	{
-		static constexpr sid_t TYPE_ID = "physical_material_json_t"_hs;
+		static constexpr sid_t TYPE_ID = "physical_material_def_t"_hs;
 
 		physical_material_reflection_t();
 	};

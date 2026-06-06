@@ -1,7 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "atlas_manager.hpp"
 #include "common_resources.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>

@@ -129,8 +129,10 @@ namespace sfg
 		static string_t get_cache_path_for_asset(const editor_asset_t& asset);
 		static string_t get_source_full_path(const char* assets_path, const editor_asset_t& asset);
 		static string_t get_source_relative(const char* assets_path, const char* source_full_path);
+		static bool		set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path);
 		static bool		is_source_inside_assets(const char* assets_path, const char* source_full_path);
 		static void		fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies);
+		static sid_t	generate_unique_asset_guid(span_t<const sid_t> pending_guids = {});
 		static sid_t	try_read_existing_guid(const char* path);
 		static bool		delete_folder(editor_asset_node_handle_t folder_node);
 		static bool		duplicate_folder(editor_asset_node_handle_t folder_node);

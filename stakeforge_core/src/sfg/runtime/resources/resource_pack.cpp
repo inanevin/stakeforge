@@ -77,10 +77,6 @@ namespace sfg
 			{
 				return texture_sampler_cooker::cook_from_json(config, stream);
 			}
-			if (schema == "sfg.schema.physical_material")
-			{
-				return physical_material_cooker::cook_from_file(full_path, stream);
-			}
 			if (schema == "sfg.schema.animation_state_machine")
 			{
 				return animation_state_machine_cooker::cook_from_file(full_path, stream);
