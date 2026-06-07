@@ -2,16 +2,53 @@
 
 #include "skeleton.hpp"
 
+#include "resource_manager.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+
 namespace sfg
 {
-	bool skeleton_loader_t::load(resource_entry_t&, resource_context_t&)
+	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		return false;
+		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
+		skeleton_runtime_t* runtime = mem.get<skeleton_runtime_t>(entry.runtime);
+		*runtime					= {};
+
+		istream_t stream;
+		stream.open(entry.after_header_data.data, entry.after_header_data.size);
+
+		skeleton_def_t skeleton = {};
+		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, stream))
+			return false;
+
+		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
+		SFG_ASSERT(joint_count <= MAX_JOINTS);
+		if (joint_count > MAX_JOINTS)
+		{
+			SFG_ERR("Skeleton has too many joints: {0}", joint_count);
+			return false;
+		}
+
+		runtime->joint_count	  = joint_count;
+		runtime->root_joint_index = skeleton.root_joint_index;
+		for (u32 i = 0; i < joint_count; ++i)
+		{
+			const skeleton_joint_def_t& joint = skeleton.joints[i];
+			runtime->joints[i]				  = {
+							   .inverse_bind = joint.inverse_bind,
+							   .name_hash	 = joint.name_hash,
+							   .parent_index = joint.parent_index,
+			   };
+		}
+
+		return true;
 	}
 
 	create_internals_result_e skeleton_loader_t::create_internals(resource_entry_t&, resource_context_t&)
 	{
-		return create_internals_result_e::failed;
+		return create_internals_result_e::ready;
 	}
 
 	void skeleton_loader_t::destroy_internals(resource_entry_t&, resource_context_t&)
@@ -24,6 +61,8 @@ namespace sfg
 		.runtime_alignment	 = alignof(skeleton_runtime_t),
 		.internals_size		 = sizeof(skeleton_internals_t),
 		.internals_alignment = alignof(skeleton_internals_t),
+		.wire_magic			 = skeleton_loader_t::WIRE_MAGIC,
+		.wire_version		 = skeleton_loader_t::WIRE_VERSION,
 		.load				 = skeleton_loader_t::load,
 		.create_internals	 = skeleton_loader_t::create_internals,
 		.destroy_internals	 = skeleton_loader_t::destroy_internals,

@@ -5,29 +5,25 @@
 #include "texture_sampler.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	bool texture_sampler_cooker::cook_from_json(const nlohmann::json& json_data, ostream_t& stream)
+	bool texture_sampler_cooker::cook_from_desc(const sampler_desc_t& desc, ostream_t& stream)
 	{
-		sampler_desc_t sampler = {};
-		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &sampler, json_data))
+		ostream_t sampler_stream;
+		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, sampler_stream))
 			return false;
 
-		const string_t			data   = json_data.dump();
 		const resource_header_t header = {
 			.magic		  = texture_sampler_loader_t::WIRE_MAGIC,
 			.version	  = texture_sampler_loader_t::WIRE_VERSION,
-			.source_ticks = {hashing_t::hash_u64(data.data(), data.size())},
+			.source_ticks = {hashing_t::hash_u64(sampler_stream.get_raw(), sampler_stream.get_size())},
 		};
 
 		header.serialize(stream);
-		sampler.serialize(stream);
+		stream.write_raw(sampler_stream.get_raw(), sampler_stream.get_size());
 		return true;
 	}
 }

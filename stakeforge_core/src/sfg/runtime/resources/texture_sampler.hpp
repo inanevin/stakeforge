@@ -23,7 +23,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = 0x53504D53;
-		static constexpr u32 WIRE_VERSION = 2;
+		static constexpr u32 WIRE_VERSION = 3;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

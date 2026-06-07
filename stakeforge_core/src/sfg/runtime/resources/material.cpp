@@ -9,6 +9,7 @@
 #include <sfg/data/istream.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
@@ -38,7 +39,7 @@ namespace sfg
 			}
 		}
 
-		void write_material_parameter(u8*& dst, const material_parameter_t& parameter)
+		void write_material_parameter(u8*& dst, const material_runtime_parameter_t& parameter)
 		{
 			switch (parameter.type)
 			{
@@ -67,28 +68,18 @@ namespace sfg
 				break;
 			}
 			case material_parameter_type_e::vec2f:
-				SFG_MEMCPY(dst, parameter.values.data(), sizeof(f32) * 2);
+				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 2);
 				dst += sizeof(f32) * 2;
 				break;
 			case material_parameter_type_e::vec4f:
-				SFG_MEMCPY(dst, parameter.values.data(), sizeof(f32) * 4);
+				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 4);
 				dst += sizeof(f32) * 4;
 				break;
 			default:
-				SFG_MEMCPY(dst, parameter.values.data(), sizeof(f32));
+				SFG_MEMCPY(dst, parameter.values, sizeof(f32));
 				dst += sizeof(f32);
 				break;
 			}
-		}
-
-		void free_material_upload_data(material_runtime_t& runtime)
-		{
-			SFG_FREE(runtime.parameter_values);
-			SFG_FREE(runtime.texture_guids);
-			SFG_FREE(runtime.texture_indices);
-			runtime.parameter_values = nullptr;
-			runtime.texture_guids	 = nullptr;
-			runtime.texture_indices	 = nullptr;
 		}
 	}
 
@@ -105,6 +96,18 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<material_def_t>::value, &material, stream))
 			return false;
 
+		if (material.parameters.size() > MATERIAL_MAX_PARAMETERS)
+		{
+			SFG_ERR("material has too many parameters: {0} / {1}", material.parameters.size(), MATERIAL_MAX_PARAMETERS);
+			return false;
+		}
+
+		if (material.textures.size() > MATERIAL_MAX_TEXTURES)
+		{
+			SFG_ERR("material has too many textures: {0} / {1}", material.textures.size(), MATERIAL_MAX_TEXTURES);
+			return false;
+		}
+
 		runtime->pass_flags		  = material.pass_flags;
 		runtime->shader_guid	  = material.shader;
 		runtime->sampler_guid	  = material.sampler;
@@ -116,19 +119,17 @@ namespace sfg
 
 		if (runtime->parameter_count != 0)
 		{
-			for (const material_parameter_t& parameter : material.parameters)
-				runtime->parameter_data_size += get_material_parameter_size(parameter.type);
-
-			runtime->parameter_values = static_cast<u8*>(SFG_MALLOC(runtime->parameter_data_size));
-			u8* dst					  = runtime->parameter_values;
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
-				write_material_parameter(dst, material.parameters[i]);
+			{
+				SFG_ASSERT(material.parameters[i].values.size() == 4);
+				runtime->parameters[i].type = material.parameters[i].type;
+				SFG_MEMCPY(runtime->parameters[i].values, material.parameters[i].values.data(), sizeof(runtime->parameters[i].values));
+				runtime->parameter_data_size += get_material_parameter_size(runtime->parameters[i].type);
+			}
 		}
 
 		if (runtime->texture_count != 0)
 		{
-			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(sid_t);
-			runtime->texture_guids	   = static_cast<sid_t*>(SFG_MALLOC(texture_bytes));
 			for (u32 i = 0; i < runtime->texture_count; ++i)
 				runtime->texture_guids[i] = material.textures[i];
 		}
@@ -164,7 +165,6 @@ namespace sfg
 		{
 			SFG_ASSERT(internals->sampler_index != NULL_GPU_INDEX);
 			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(gpu_index_t);
-			runtime->texture_indices   = static_cast<gpu_index_t*>(SFG_MALLOC(texture_bytes));
 			for (u32 i = 0; i < runtime->texture_count; ++i)
 			{
 				const texture_internals_t* texture = ctx.resource_manager.find_internals<texture_internals_t>(runtime->texture_guids[i]);
@@ -182,7 +182,6 @@ namespace sfg
 
 		if (internals->pending_count == 0)
 		{
-			free_material_upload_data(*runtime);
 			return create_internals_result_e::ready;
 		}
 
@@ -204,9 +203,15 @@ namespace sfg
 		}
 		else if (completion.user_data == material_resource_user_data_parameters)
 		{
+			SFG_ASSERT(runtime->parameter_data_size <= MATERIAL_MAX_PARAMETER_DATA_SIZE);
+			u8	parameter_values[MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
+			u8* dst												   = parameter_values;
+			for (u32 i = 0; i < runtime->parameter_count; ++i)
+				write_material_parameter(dst, runtime->parameters[i]);
+
 			internals->parameter_buffer = completion.resource;
 			internals->parameter_index	= completion.gpu_index;
-			render_resources_t::get().enqueue_data_upload(internals->parameter_buffer, runtime->parameter_values, runtime->parameter_data_size);
+			render_resources_t::get().enqueue_data_upload(internals->parameter_buffer, parameter_values, runtime->parameter_data_size);
 		}
 		else
 		{
@@ -220,7 +225,6 @@ namespace sfg
 		if (internals->pending_count != 0)
 			return resource_ready_result_e::pending;
 
-		free_material_upload_data(*runtime);
 		if (internals->had_failure)
 		{
 			render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffer);
@@ -235,9 +239,7 @@ namespace sfg
 	void material_loader_t::destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
-		material_runtime_t*	  runtime	= mem.get<material_runtime_t>(entry.runtime);
 		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
-		free_material_upload_data(*runtime);
 		render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffer);
 		render_resources_t::get().enqueue_destroy_resource(internals->texture_buffer);
 		*internals = {};

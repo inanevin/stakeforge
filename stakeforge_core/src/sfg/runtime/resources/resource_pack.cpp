@@ -7,6 +7,7 @@
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
@@ -18,6 +19,7 @@
 #include "font_cook.hpp"
 #include "glb_cook.hpp"
 #include "material_cook.hpp"
+#include "material_def.hpp"
 #include "physical_material_cook.hpp"
 #include "prefab_cook.hpp"
 #include "resource_manifest.hpp"
@@ -71,11 +73,17 @@ namespace sfg
 			}
 			if (schema == "sfg.schema.material")
 			{
-				return material_cooker::cook_from_json(config, stream);
+				material_def_t def = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, config))
+					return false;
+				return material_cooker::cook_from_def(def, stream);
 			}
 			if (schema == "sfg.schema.texture_sampler")
 			{
-				return texture_sampler_cooker::cook_from_json(config, stream);
+				sampler_desc_t desc = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, config))
+					return false;
+				return texture_sampler_cooker::cook_from_desc(desc, stream);
 			}
 			if (schema == "sfg.schema.animation_state_machine")
 			{
@@ -230,10 +238,25 @@ namespace sfg
 					return false;
 				shader_cooker::collect_source_ticks(cfg, source_path.c_str(), expected.source_ticks);
 			}
-			else if (entry.type == resource_type_e::material || entry.type == resource_type_e::texture_sampler)
+			else if (entry.type == resource_type_e::material)
 			{
-				const string_t config_data = entry.config.dump();
-				expected.source_ticks.push_back(hashing_t::hash_u64(config_data.data(), config_data.size()));
+				material_def_t def = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, entry.config))
+					return false;
+				if (!material_cooker::collect_source_ticks(def, expected.source_ticks))
+					return false;
+			}
+			else if (entry.type == resource_type_e::texture_sampler)
+			{
+				sampler_desc_t desc = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, entry.config))
+					return false;
+
+				ostream_t desc_stream;
+				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, desc_stream))
+					return false;
+
+				expected.source_ticks.push_back(hashing_t::hash_u64(desc_stream.get_raw(), desc_stream.get_size()));
 			}
 			else
 				expected.source_ticks.push_back(file_system_t::get_last_modified_ticks(source_path.c_str()));

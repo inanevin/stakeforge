@@ -35,12 +35,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/color.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/runtime/resources/material_cook.hpp>
+#include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
+#include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
@@ -88,14 +93,40 @@ namespace sfg
 		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .extensions = {"glb"}, .display_name = "Mesh", .color = EDITOR_ASSET_COLOR(158.0f, 120.0f, 255.0f), .asset_type = editor_asset_type_e::mesh});
 	}
 
-	bool editor_asset_loader_skeleton_t::create_default(editor_asset_t&, const char*, const char*, void*)
+	bool editor_asset_loader_skeleton_t::create_default(editor_asset_t& asset, const char*, const char* file_name, void*)
 	{
+		skeleton_def_t def = {};
+		if (file_name != nullptr)
+			def.name = file_name;
+
+		asset.source_type = editor_asset_source_type_e::embedded;
+		return reflection_registry_t::get().serialize_to_json(type_id_t<skeleton_def_t>::value, &def, asset.embedded_source);
+	}
+
+	bool editor_asset_loader_skeleton_t::cook(const editor_asset_t& asset, ostream_t& stream)
+	{
+		skeleton_def_t def = {};
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<skeleton_def_t>::value, &def, asset.embedded_source))
+			return false;
+
+		ostream_t skeleton_stream;
+		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<skeleton_def_t>::value, &def, skeleton_stream))
+			return false;
+
+		const resource_header_t header = {
+			.magic		  = skeleton_loader_t::WIRE_MAGIC,
+			.version	  = skeleton_loader_t::WIRE_VERSION,
+			.source_ticks = {hashing_t::hash_u64(skeleton_stream.get_raw(), skeleton_stream.get_size())},
+		};
+
+		header.serialize(stream);
+		stream.write_raw(skeleton_stream.get_raw(), skeleton_stream.get_size());
 		return true;
 	}
 
 	void editor_asset_loader_skeleton_t::register_type()
 	{
-		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .display_name = "Skeleton", .color = EDITOR_ASSET_COLOR(184.0f, 155.0f, 255.0f), .asset_type = editor_asset_type_e::skeleton});
+		editor_asset_manager_t::get().register_descriptor({.create_default = create_default, .cook = cook, .display_name = "Skeleton", .color = EDITOR_ASSET_COLOR(184.0f, 155.0f, 255.0f), .asset_type = editor_asset_type_e::skeleton});
 	}
 
 	bool editor_asset_loader_animation_t::create_default(editor_asset_t&, const char*, const char*, void*)
@@ -118,7 +149,10 @@ namespace sfg
 
 	bool editor_asset_loader_material_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
-		return material_cooker::cook_from_json(asset.embedded_source, stream);
+		material_def_t def = {};
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, asset.embedded_source))
+			return false;
+		return material_cooker::cook_from_def(def, stream);
 	}
 
 	void editor_asset_loader_material_t::register_type()
@@ -196,7 +230,10 @@ namespace sfg
 
 	bool editor_asset_loader_texture_sampler_t::cook(const editor_asset_t& asset, ostream_t& stream)
 	{
-		return texture_sampler_cooker::cook_from_json(asset.embedded_source, stream);
+		sampler_desc_t desc = {};
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, asset.embedded_source))
+			return false;
+		return texture_sampler_cooker::cook_from_desc(desc, stream);
 	}
 
 	void editor_asset_loader_texture_sampler_t::register_type()

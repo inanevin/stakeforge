@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
+#include <sfg/common/type_id.hpp>
+
 #include "vec3f.hpp"
 
 namespace sfg
@@ -63,4 +65,13 @@ namespace sfg
 			bounds_half_extent = (bounds_max - bounds_min) / 2.0f;
 		}
 	};
+
+	SFG_DEFINE_TYPE_ID(aabb_t);
+
+	struct aabb_reflection_t
+	{
+		aabb_reflection_t();
+	};
+
+	inline aabb_reflection_t g_reflect_aabb;
 }

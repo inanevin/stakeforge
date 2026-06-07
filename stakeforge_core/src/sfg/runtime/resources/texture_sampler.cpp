@@ -5,6 +5,7 @@
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 
 namespace sfg
@@ -17,8 +18,7 @@ namespace sfg
 
 		istream_t stream;
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
-		runtime->desc.deserialize(stream);
-		return true;
+		return reflection_registry_t::get().deserialize_from_stream(type_id_t<sampler_desc_t>::value, &runtime->desc, stream);
 	}
 
 	create_internals_result_e texture_sampler_loader_t::create_internals(resource_entry_t& entry, resource_context_t& ctx)

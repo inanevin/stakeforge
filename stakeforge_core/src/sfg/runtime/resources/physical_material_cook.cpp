@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "physical_material_cook.hpp"
 #include "physical_material_def.hpp"
 #include "physical_material.hpp"
-#include "physical_material_def.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>

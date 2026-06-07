@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/static_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2u.hpp>
 #include <sfg/math/vec3u.hpp>
@@ -74,7 +75,7 @@ namespace sfg
 			static_vector_t<f32, 4>		 dummy_static_f32_vector	= {4.0f, 5.0f};
 			static_vector_t<vec4f_t, 4>	 dummy_static_vec4_vector	= {{1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}};
 			static_vector_t<u32, 4>		 dummy_static_enum_vector	= {0, 2};
-			vec4f_t						 dummy_color				= {0.8f, 0.2f, 0.6f, 1.0f};
+			color_t						 dummy_color				= {0.8f, 0.2f, 0.6f, 1.0f};
 			quat_t						 dummy_quat					= quat_t::identity;
 			char						 dummy_string[64]			= "Stakeforge";
 			vec4f_t						 dummy_vec4					= {1.0f, 2.0f, 3.0f, 4.0f};
@@ -110,13 +111,13 @@ namespace sfg
 				{.name = "dummy_u32", .display_name = "U32", .type = reflected_value_type_e::u32, .offset = offsetof(dummy_struct_t, dummy_u32), .size = sizeof(u32)},
 				{.name = "dummy_i32", .display_name = "I32", .type = reflected_value_type_e::i32, .offset = offsetof(dummy_struct_t, dummy_i32), .size = sizeof(i32)},
 				{.name = "dummy_u8", .display_name = "U8", .type = reflected_value_type_e::u8, .offset = offsetof(dummy_struct_t, dummy_u8), .size = sizeof(u8)},
-				{.name = "dummy_vec2", .display_name = "Vec2", .type = reflected_value_type_e::vec2, .offset = offsetof(dummy_struct_t, dummy_vec2), .size = sizeof(vec2f_t)},
-				{.name = "dummy_vec3", .display_name = "Vec3", .type = reflected_value_type_e::vec3, .offset = offsetof(dummy_struct_t, dummy_vec3), .size = sizeof(vec3f_t)},
-				{.name = "dummy_vec4", .display_name = "Vec4", .type = reflected_value_type_e::vec4, .offset = offsetof(dummy_struct_t, dummy_vec4), .size = sizeof(vec4f_t)},
-				{.name = "dummy_vec2u", .display_name = "Vec2U", .type = reflected_value_type_e::vec2u, .offset = offsetof(dummy_struct_t, dummy_vec2u), .size = sizeof(vec2u_t)},
-				{.name = "dummy_vec3u", .display_name = "Vec3U", .type = reflected_value_type_e::vec3u, .offset = offsetof(dummy_struct_t, dummy_vec3u), .size = sizeof(vec3u_t)},
-				{.name = "dummy_vec4u", .display_name = "Vec4U", .type = reflected_value_type_e::vec4u, .offset = offsetof(dummy_struct_t, dummy_vec4u), .size = sizeof(vec4u_t)},
-				{.name = "dummy_color", .display_name = "Color", .type = reflected_value_type_e::color, .offset = offsetof(dummy_struct_t, dummy_color), .size = sizeof(vec4f_t)},
+				{.name = "dummy_vec2", .display_name = "Vec2", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec2f_t>::value, .offset = offsetof(dummy_struct_t, dummy_vec2), .size = sizeof(vec2f_t)},
+				{.name = "dummy_vec3", .display_name = "Vec3", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(dummy_struct_t, dummy_vec3), .size = sizeof(vec3f_t)},
+				{.name = "dummy_vec4", .display_name = "Vec4", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(dummy_struct_t, dummy_vec4), .size = sizeof(vec4f_t)},
+				{.name = "dummy_vec2u", .display_name = "Vec2U", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec2u_t>::value, .offset = offsetof(dummy_struct_t, dummy_vec2u), .size = sizeof(vec2u_t)},
+				{.name = "dummy_vec3u", .display_name = "Vec3U", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3u_t>::value, .offset = offsetof(dummy_struct_t, dummy_vec3u), .size = sizeof(vec3u_t)},
+				{.name = "dummy_vec4u", .display_name = "Vec4U", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec4u_t>::value, .offset = offsetof(dummy_struct_t, dummy_vec4u), .size = sizeof(vec4u_t)},
+				{.name = "dummy_color", .display_name = "Color", .type = reflected_value_type_e::object, .value_type_id = type_id_t<color_t>::value, .offset = offsetof(dummy_struct_t, dummy_color), .size = sizeof(color_t)},
 				{.name = "dummy_quat", .display_name = "Quat", .type = reflected_value_type_e::quat, .offset = offsetof(dummy_struct_t, dummy_quat), .size = sizeof(quat_t)},
 				{.name = "dummy_string", .display_name = "String", .type = reflected_value_type_e::string, .offset = offsetof(dummy_struct_t, dummy_string), .size = sizeof(dummy_struct_t::dummy_string)},
 				{.name = "dummy_enum", .display_name = "Enum", .type = reflected_value_type_e::enum32, .sub_type_id = EDITOR_INSPECTOR_DUMMY_ENUM_TYPE_ID, .offset = offsetof(dummy_struct_t, dummy_enum), .size = sizeof(dummy_enum_e)},
@@ -138,7 +139,7 @@ namespace sfg
 				{.name			= "dummy_vec3_vector",
 				 .display_name	= "Vec3 Vector",
 				 .type			= reflected_value_type_e::vector,
-				 .sub_type_id	= "vec3"_hs,
+				 .sub_type_id	= type_id_t<vec3f_t>::value,
 				 .container_ops = reflected_vector_ops<vec3f_t>(),
 				 .offset		= offsetof(dummy_struct_t, dummy_vec3_vector),
 				 .size			= sizeof(vector_t<vec3f_t>)},
@@ -175,7 +176,7 @@ namespace sfg
 				{.name			= "dummy_static_vec4_vector",
 				 .display_name	= "Static Vec4 Vector",
 				 .type			= reflected_value_type_e::static_vector,
-				 .sub_type_id	= "vec4"_hs,
+				 .sub_type_id	= type_id_t<vec4f_t>::value,
 				 .container_ops = reflected_static_vector_ops<vec4f_t, 4>(),
 				 .offset		= offsetof(dummy_struct_t, dummy_static_vec4_vector),
 				 .size			= sizeof(static_vector_t<vec4f_t, 4>),

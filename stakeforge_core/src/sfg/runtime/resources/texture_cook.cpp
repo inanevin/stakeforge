@@ -224,7 +224,7 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "size", .display_name = "Size", .type = reflected_value_type_e::vec2u16, .offset = offsetof(texture_cook_config_t, size), .size = sizeof(vec2u16_t), .flags = reflected_field_flags_no_ui},
+			{.name = "size", .display_name = "Size", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(texture_cook_config_t, size), .size = sizeof(vec2u16_t), .flags = reflected_field_flags_no_ui},
 			{.name		   = "payload_type",
 			 .display_name = "Payload Type",
 			 .type		   = reflected_value_type_e::enum8,

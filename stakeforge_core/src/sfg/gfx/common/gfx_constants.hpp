@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #define NOMINMAX
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
@@ -38,7 +39,7 @@ namespace sfg
 #define GPU_DEVICE 0
 
 	typedef unsigned short gfx_id_t;
-	typedef unsigned short primitive_index;
+	typedef u32			   primitive_index;
 	typedef unsigned int   gpu_index_t;
 
 	struct gfx_resource_handle_tag

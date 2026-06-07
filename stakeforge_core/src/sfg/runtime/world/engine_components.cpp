@@ -89,9 +89,9 @@ namespace sfg
 		void register_component_transform_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "pos", .type = reflected_value_type_e::vec3, .offset = offsetof(component_transform_t, pos), .size = sizeof(vec3f_t)},
+				{.name = "pos", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_transform_t, pos), .size = sizeof(vec3f_t)},
 				{.name = "rot", .type = reflected_value_type_e::quat, .offset = offsetof(component_transform_t, rot), .size = sizeof(quat_t)},
-				{.name = "scale", .type = reflected_value_type_e::vec3, .offset = offsetof(component_transform_t, scale), .size = sizeof(vec3f_t)},
+				{.name = "scale", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_transform_t, scale), .size = sizeof(vec3f_t)},
 			};
 
 			register_type_if_missing({

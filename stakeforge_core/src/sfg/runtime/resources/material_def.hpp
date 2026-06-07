@@ -27,11 +27,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "material_limits.hpp"
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/static_vector.hpp>
-#include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 
 namespace sfg
@@ -55,13 +55,13 @@ namespace sfg
 
 	struct material_def_t
 	{
-		vector_t<sid_t>				   textures			= {};
-		vector_t<material_parameter_t> parameters		= {};
-		sid_t						   shader			= NULL_SID;
-		sid_t						   sampler			= NULL_SID;
-		world_pass_flags_e			   pass_flags		= wpf_none;
-		bool						   double_sided		= false;
-		bool						   use_alpha_cutoff = false;
+		static_vector_t<sid_t, MATERIAL_MAX_TEXTURES>				   textures			= {};
+		static_vector_t<material_parameter_t, MATERIAL_MAX_PARAMETERS> parameters		= {};
+		sid_t														   shader			= NULL_SID;
+		sid_t														   sampler			= NULL_SID;
+		world_pass_flags_e											   pass_flags		= wpf_none;
+		bool														   double_sided		= false;
+		bool														   use_alpha_cutoff = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(material_parameter_type_e);

@@ -22,37 +22,16 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#include "vec2u.hpp"
-#include "vec2i.hpp"
-#include <sfg/reflection/reflection_registry.hpp>
+#pragma once
 
-#include <cstddef>
-#include <iterator>
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
-	vec2u_t vec2u_t::zero = {0, 0};
-	vec2u_t vec2u_t::one  = {1, 1};
-
-	vec2u_reflection_t::vec2u_reflection_t()
-	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<vec2u_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, x), .size = sizeof(u32)},
-			{.name = "y", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, y), .size = sizeof(u32)},
-		};
-
-		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "vec2u_t",
-			.type_id   = type_id_t<vec2u_t>::value,
-			.size	   = sizeof(vec2u_t),
-			.alignment = alignof(vec2u_t),
-		});
-	}
+	static inline constexpr u32 MATERIAL_MAX_PARAMETERS			 = 12;
+	static inline constexpr u32 MATERIAL_MAX_TEXTURES			 = 8;
+	static inline constexpr u32 MATERIAL_MAX_PARAMETER_DATA_SIZE = MATERIAL_MAX_PARAMETERS * sizeof(f32) * 4;
 }

@@ -52,6 +52,7 @@ namespace sfg
 	struct editor_asset_loader_skeleton_t
 	{
 		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
+		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 

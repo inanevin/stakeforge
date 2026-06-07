@@ -26,8 +26,34 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec3u.hpp"
 
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
+
 namespace sfg
 {
 	vec3u_t vec3u_t::zero = {0, 0, 0};
 	vec3u_t vec3u_t::one  = {1, 1, 1};
+
+	vec3u_reflection_t::vec3u_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<vec3u_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "x", .type = reflected_value_type_e::u32, .offset = offsetof(vec3u_t, x), .size = sizeof(u32)},
+			{.name = "y", .type = reflected_value_type_e::u32, .offset = offsetof(vec3u_t, y), .size = sizeof(u32)},
+			{.name = "z", .type = reflected_value_type_e::u32, .offset = offsetof(vec3u_t, z), .size = sizeof(u32)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "vec3u_t",
+			.type_id   = type_id_t<vec3u_t>::value,
+			.size	   = sizeof(vec3u_t),
+			.alignment = alignof(vec3u_t),
+		});
+	}
 }

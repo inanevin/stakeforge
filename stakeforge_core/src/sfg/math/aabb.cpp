@@ -26,9 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "aabb.hpp"
 #include "plane.hpp"
-#include <sfg/math/math.hpp>
-#include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+
+#include <cstddef>
+#include <iterator>
 
 namespace sfg
 {
@@ -84,5 +88,26 @@ namespace sfg
 		stream >> bounds_min;
 		stream >> bounds_max;
 		update_half_extents();
+	}
+
+	aabb_reflection_t::aabb_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<aabb_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "bounds_min", .display_name = "Min", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_min), .size = sizeof(vec3f_t)},
+			{.name = "bounds_max", .display_name = "Max", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_max), .size = sizeof(vec3f_t)},
+			{.name = "bounds_half_extent", .display_name = "Half Extent", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_half_extent), .size = sizeof(vec3f_t)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "aabb_t",
+			.type_id   = type_id_t<aabb_t>::value,
+			.size	   = sizeof(aabb_t),
+			.alignment = alignof(aabb_t),
+		});
 	}
 }

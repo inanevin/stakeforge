@@ -65,22 +65,6 @@ namespace sfg
 			return reflected_value_type_e::u8;
 		if (sub_type_id == "bool"_hs || sub_type_id == "bool8"_hs)
 			return reflected_value_type_e::bool8;
-		if (sub_type_id == "vec2"_hs)
-			return reflected_value_type_e::vec2;
-		if (sub_type_id == "vec3"_hs)
-			return reflected_value_type_e::vec3;
-		if (sub_type_id == "vec4"_hs)
-			return reflected_value_type_e::vec4;
-		if (sub_type_id == "vec2u"_hs)
-			return reflected_value_type_e::vec2u;
-		if (sub_type_id == "vec2u16"_hs)
-			return reflected_value_type_e::vec2u16;
-		if (sub_type_id == "vec3u"_hs)
-			return reflected_value_type_e::vec3u;
-		if (sub_type_id == "vec4u"_hs)
-			return reflected_value_type_e::vec4u;
-		if (sub_type_id == "color"_hs)
-			return reflected_value_type_e::color;
 		if (sub_type_id == "resource"_hs)
 			return reflected_value_type_e::resource;
 		if (sub_type_id == "entity_id"_hs)
@@ -112,21 +96,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			return sizeof(u8);
-		case reflected_value_type_e::vec2:
-			return sizeof(vec2f_t);
-		case reflected_value_type_e::vec3:
-			return sizeof(vec3f_t);
-		case reflected_value_type_e::vec4:
-		case reflected_value_type_e::color:
-			return sizeof(vec4f_t);
-		case reflected_value_type_e::vec2u:
-			return sizeof(vec2u_t);
-		case reflected_value_type_e::vec2u16:
-			return sizeof(vec2u16_t);
-		case reflected_value_type_e::vec3u:
-			return sizeof(vec3u_t);
-		case reflected_value_type_e::vec4u:
-			return sizeof(vec4u_t);
 		case reflected_value_type_e::resource:
 			return sizeof(sid_t);
 		case reflected_value_type_e::entity_id:
@@ -867,21 +836,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_to_json(get_reflected_vector<u8>(object, field), field, j);
-			case reflected_value_type_e::vec2:
-				return reflected_vector_to_json(get_reflected_vector<vec2f_t>(object, field), field, j);
-			case reflected_value_type_e::vec3:
-				return reflected_vector_to_json(get_reflected_vector<vec3f_t>(object, field), field, j);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_vector_to_json(get_reflected_vector<vec4f_t>(object, field), field, j);
-			case reflected_value_type_e::vec2u:
-				return reflected_vector_to_json(get_reflected_vector<vec2u_t>(object, field), field, j);
-			case reflected_value_type_e::vec2u16:
-				return reflected_vector_to_json(get_reflected_vector<vec2u16_t>(object, field), field, j);
-			case reflected_value_type_e::vec3u:
-				return reflected_vector_to_json(get_reflected_vector<vec3u_t>(object, field), field, j);
-			case reflected_value_type_e::vec4u:
-				return reflected_vector_to_json(get_reflected_vector<vec4u_t>(object, field), field, j);
 			case reflected_value_type_e::resource:
 				return reflected_vector_to_json(get_reflected_vector<sid_t>(object, field), field, j);
 			case reflected_value_type_e::string:
@@ -911,21 +865,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_static_vector_to_json<u8>(object, field, j);
-			case reflected_value_type_e::vec2:
-				return reflected_static_vector_to_json<vec2f_t>(object, field, j);
-			case reflected_value_type_e::vec3:
-				return reflected_static_vector_to_json<vec3f_t>(object, field, j);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_static_vector_to_json<vec4f_t>(object, field, j);
-			case reflected_value_type_e::vec2u:
-				return reflected_static_vector_to_json<vec2u_t>(object, field, j);
-			case reflected_value_type_e::vec2u16:
-				return reflected_static_vector_to_json<vec2u16_t>(object, field, j);
-			case reflected_value_type_e::vec3u:
-				return reflected_static_vector_to_json<vec3u_t>(object, field, j);
-			case reflected_value_type_e::vec4u:
-				return reflected_static_vector_to_json<vec4u_t>(object, field, j);
 			case reflected_value_type_e::resource:
 				return reflected_static_vector_to_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
@@ -955,21 +894,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_from_json<u8>(object, field, j);
-			case reflected_value_type_e::vec2:
-				return reflected_vector_from_json<vec2f_t>(object, field, j);
-			case reflected_value_type_e::vec3:
-				return reflected_vector_from_json<vec3f_t>(object, field, j);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_vector_from_json<vec4f_t>(object, field, j);
-			case reflected_value_type_e::vec2u:
-				return reflected_vector_from_json<vec2u_t>(object, field, j);
-			case reflected_value_type_e::vec2u16:
-				return reflected_vector_from_json<vec2u16_t>(object, field, j);
-			case reflected_value_type_e::vec3u:
-				return reflected_vector_from_json<vec3u_t>(object, field, j);
-			case reflected_value_type_e::vec4u:
-				return reflected_vector_from_json<vec4u_t>(object, field, j);
 			case reflected_value_type_e::resource:
 				return reflected_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
@@ -999,21 +923,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_static_vector_from_json<u8>(object, field, j);
-			case reflected_value_type_e::vec2:
-				return reflected_static_vector_from_json<vec2f_t>(object, field, j);
-			case reflected_value_type_e::vec3:
-				return reflected_static_vector_from_json<vec3f_t>(object, field, j);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_static_vector_from_json<vec4f_t>(object, field, j);
-			case reflected_value_type_e::vec2u:
-				return reflected_static_vector_from_json<vec2u_t>(object, field, j);
-			case reflected_value_type_e::vec2u16:
-				return reflected_static_vector_from_json<vec2u16_t>(object, field, j);
-			case reflected_value_type_e::vec3u:
-				return reflected_static_vector_from_json<vec3u_t>(object, field, j);
-			case reflected_value_type_e::vec4u:
-				return reflected_static_vector_from_json<vec4u_t>(object, field, j);
 			case reflected_value_type_e::resource:
 				return reflected_static_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
@@ -1043,21 +952,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_to_stream(get_reflected_vector<u8>(object, field), field, stream);
-			case reflected_value_type_e::vec2:
-				return reflected_vector_to_stream(get_reflected_vector<vec2f_t>(object, field), field, stream);
-			case reflected_value_type_e::vec3:
-				return reflected_vector_to_stream(get_reflected_vector<vec3f_t>(object, field), field, stream);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_vector_to_stream(get_reflected_vector<vec4f_t>(object, field), field, stream);
-			case reflected_value_type_e::vec2u:
-				return reflected_vector_to_stream(get_reflected_vector<vec2u_t>(object, field), field, stream);
-			case reflected_value_type_e::vec2u16:
-				return reflected_vector_to_stream(get_reflected_vector<vec2u16_t>(object, field), field, stream);
-			case reflected_value_type_e::vec3u:
-				return reflected_vector_to_stream(get_reflected_vector<vec3u_t>(object, field), field, stream);
-			case reflected_value_type_e::vec4u:
-				return reflected_vector_to_stream(get_reflected_vector<vec4u_t>(object, field), field, stream);
 			case reflected_value_type_e::resource:
 				return reflected_vector_to_stream(get_reflected_vector<sid_t>(object, field), field, stream);
 			case reflected_value_type_e::string:
@@ -1087,21 +981,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_static_vector_to_stream<u8>(object, field, stream);
-			case reflected_value_type_e::vec2:
-				return reflected_static_vector_to_stream<vec2f_t>(object, field, stream);
-			case reflected_value_type_e::vec3:
-				return reflected_static_vector_to_stream<vec3f_t>(object, field, stream);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_static_vector_to_stream<vec4f_t>(object, field, stream);
-			case reflected_value_type_e::vec2u:
-				return reflected_static_vector_to_stream<vec2u_t>(object, field, stream);
-			case reflected_value_type_e::vec2u16:
-				return reflected_static_vector_to_stream<vec2u16_t>(object, field, stream);
-			case reflected_value_type_e::vec3u:
-				return reflected_static_vector_to_stream<vec3u_t>(object, field, stream);
-			case reflected_value_type_e::vec4u:
-				return reflected_static_vector_to_stream<vec4u_t>(object, field, stream);
 			case reflected_value_type_e::resource:
 				return reflected_static_vector_to_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
@@ -1131,21 +1010,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_from_stream<u8>(object, field, stream);
-			case reflected_value_type_e::vec2:
-				return reflected_vector_from_stream<vec2f_t>(object, field, stream);
-			case reflected_value_type_e::vec3:
-				return reflected_vector_from_stream<vec3f_t>(object, field, stream);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_vector_from_stream<vec4f_t>(object, field, stream);
-			case reflected_value_type_e::vec2u:
-				return reflected_vector_from_stream<vec2u_t>(object, field, stream);
-			case reflected_value_type_e::vec2u16:
-				return reflected_vector_from_stream<vec2u16_t>(object, field, stream);
-			case reflected_value_type_e::vec3u:
-				return reflected_vector_from_stream<vec3u_t>(object, field, stream);
-			case reflected_value_type_e::vec4u:
-				return reflected_vector_from_stream<vec4u_t>(object, field, stream);
 			case reflected_value_type_e::resource:
 				return reflected_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
@@ -1175,21 +1039,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_static_vector_from_stream<u8>(object, field, stream);
-			case reflected_value_type_e::vec2:
-				return reflected_static_vector_from_stream<vec2f_t>(object, field, stream);
-			case reflected_value_type_e::vec3:
-				return reflected_static_vector_from_stream<vec3f_t>(object, field, stream);
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color:
-				return reflected_static_vector_from_stream<vec4f_t>(object, field, stream);
-			case reflected_value_type_e::vec2u:
-				return reflected_static_vector_from_stream<vec2u_t>(object, field, stream);
-			case reflected_value_type_e::vec2u16:
-				return reflected_static_vector_from_stream<vec2u16_t>(object, field, stream);
-			case reflected_value_type_e::vec3u:
-				return reflected_static_vector_from_stream<vec3u_t>(object, field, stream);
-			case reflected_value_type_e::vec4u:
-				return reflected_static_vector_from_stream<vec4u_t>(object, field, stream);
 			case reflected_value_type_e::resource:
 				return reflected_static_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
@@ -1240,56 +1089,6 @@ namespace sfg
 				if (!read_reflected_bool(object, field, value))
 					return false;
 				j = value;
-				return true;
-			}
-			case reflected_value_type_e::vec2: {
-				vec2f_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec2_to_json(value);
-				return true;
-			}
-			case reflected_value_type_e::vec3: {
-				vec3f_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec3_to_json(value);
-				return true;
-			}
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color: {
-				vec4f_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec4_to_json(value);
-				return true;
-			}
-			case reflected_value_type_e::vec2u: {
-				vec2u_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec2u_to_json(value);
-				return true;
-			}
-			case reflected_value_type_e::vec2u16: {
-				vec2u16_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec2u16_to_json(value);
-				return true;
-			}
-			case reflected_value_type_e::vec3u: {
-				vec3u_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec3u_to_json(value);
-				return true;
-			}
-			case reflected_value_type_e::vec4u: {
-				vec4u_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				j = vec4u_to_json(value);
 				return true;
 			}
 			case reflected_value_type_e::resource: {
@@ -1377,35 +1176,6 @@ namespace sfg
 				return write_reflected_value(object, field, j.get<u8>());
 			case reflected_value_type_e::bool8:
 				return write_reflected_bool(object, field, j.get<bool>());
-			case reflected_value_type_e::vec2: {
-				vec2f_t value = {};
-				return json_to_vec2(j, value) && write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec3: {
-				vec3f_t value = {};
-				return json_to_vec3(j, value) && write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color: {
-				vec4f_t value = {};
-				return json_to_vec4(j, value) && write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec2u: {
-				vec2u_t value = {};
-				return json_to_vec2u(j, value) && write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec2u16: {
-				vec2u16_t value = {};
-				return json_to_vec2u16(j, value) && write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec3u: {
-				vec3u_t value = {};
-				return json_to_vec3u(j, value) && write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec4u: {
-				vec4u_t value = {};
-				return json_to_vec4u(j, value) && write_reflected_value(object, field, value);
-			}
 			case reflected_value_type_e::resource:
 				return write_reflected_value(object, field, j.get<sid_t>());
 			case reflected_value_type_e::entity_id:
@@ -1509,56 +1279,6 @@ namespace sfg
 				stream << static_cast<u8>(value ? 1 : 0);
 				return true;
 			}
-			case reflected_value_type_e::vec2: {
-				vec2f_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y;
-				return true;
-			}
-			case reflected_value_type_e::vec3: {
-				vec3f_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y << value.z;
-				return true;
-			}
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color: {
-				vec4f_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y << value.z << value.w;
-				return true;
-			}
-			case reflected_value_type_e::vec2u: {
-				vec2u_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y;
-				return true;
-			}
-			case reflected_value_type_e::vec2u16: {
-				vec2u16_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y;
-				return true;
-			}
-			case reflected_value_type_e::vec3u: {
-				vec3u_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y << value.z;
-				return true;
-			}
-			case reflected_value_type_e::vec4u: {
-				vec4u_t value = {};
-				if (!read_reflected_value(object, field, value))
-					return false;
-				stream << value.x << value.y << value.z << value.w;
-				return true;
-			}
 			case reflected_value_type_e::resource: {
 				sid_t value = 0;
 				if (!read_reflected_value(object, field, value))
@@ -1651,42 +1371,6 @@ namespace sfg
 				u8 value = 0;
 				stream >> value;
 				return write_reflected_bool(object, field, value != 0);
-			}
-			case reflected_value_type_e::vec2: {
-				vec2f_t value = {};
-				stream >> value.x >> value.y;
-				return write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec3: {
-				vec3f_t value = {};
-				stream >> value.x >> value.y >> value.z;
-				return write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec4:
-			case reflected_value_type_e::color: {
-				vec4f_t value = {};
-				stream >> value.x >> value.y >> value.z >> value.w;
-				return write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec2u: {
-				vec2u_t value = {};
-				stream >> value.x >> value.y;
-				return write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec2u16: {
-				vec2u16_t value = {};
-				stream >> value.x >> value.y;
-				return write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec3u: {
-				vec3u_t value = {};
-				stream >> value.x >> value.y >> value.z;
-				return write_reflected_value(object, field, value);
-			}
-			case reflected_value_type_e::vec4u: {
-				vec4u_t value = {};
-				stream >> value.x >> value.y >> value.z >> value.w;
-				return write_reflected_value(object, field, value);
 			}
 			case reflected_value_type_e::resource: {
 				sid_t value = 0;

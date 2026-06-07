@@ -22,37 +22,64 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#include "vec2u.hpp"
-#include "vec2i.hpp"
-#include <sfg/reflection/reflection_registry.hpp>
+#pragma once
 
-#include <cstddef>
-#include <iterator>
+#include "vertex.hpp"
+
+#include <sfg/common/type_id.hpp>
+
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/aabb.hpp>
 
 namespace sfg
 {
-	vec2u_t vec2u_t::zero = {0, 0};
-	vec2u_t vec2u_t::one  = {1, 1};
-
-	vec2u_reflection_t::vec2u_reflection_t()
+	struct primitive_static_def_t
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<vec2u_t>::value) != nullptr)
-			return;
+		vector_t<vertex_static_t> vertices	  = {};
+		vector_t<primitive_index> indices	  = {};
+		sid_t					  material_id = NULL_SID;
+	};
 
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, x), .size = sizeof(u32)},
-			{.name = "y", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, y), .size = sizeof(u32)},
-		};
+	struct primitive_skinned_def_t
+	{
+		vector_t<vertex_skinned_t> vertices	   = {};
+		vector_t<primitive_index>  indices	   = {};
+		sid_t					   material_id = NULL_SID;
+	};
 
-		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "vec2u_t",
-			.type_id   = type_id_t<vec2u_t>::value,
-			.size	   = sizeof(vec2u_t),
-			.alignment = alignof(vec2u_t),
-		});
-	}
+	struct mesh_def_t
+	{
+		aabb_t							  local_bounds		 = {};
+		string_t						  name				 = {};
+		vector_t<primitive_static_def_t>  static_primitives	 = {};
+		vector_t<primitive_skinned_def_t> skinned_primitives = {};
+	};
+
+	SFG_DEFINE_TYPE_ID(primitive_static_def_t);
+	SFG_DEFINE_TYPE_ID(primitive_skinned_def_t);
+	SFG_DEFINE_TYPE_ID(mesh_def_t);
+
+	struct primitive_static_def_reflection_t
+	{
+		primitive_static_def_reflection_t();
+	};
+
+	struct primitive_skinned_def_reflection_t
+	{
+		primitive_skinned_def_reflection_t();
+	};
+
+	struct mesh_def_reflection_t
+	{
+		mesh_def_reflection_t();
+	};
+
+	inline primitive_static_def_reflection_t  g_reflect_primitive_static_def;
+	inline primitive_skinned_def_reflection_t g_reflect_primitive_skinned_def;
+	inline mesh_def_reflection_t			  g_reflect_mesh_def;
 }

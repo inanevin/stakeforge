@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "editor_directories.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/common/packing.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/string_util.hpp>
@@ -38,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
+#include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -45,6 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TINYGLTF3_IMPLEMENTATION
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
 
+#include <cstring>
 #include <limits>
 
 namespace sfg
@@ -91,6 +94,11 @@ namespace sfg
 			}
 
 			return result;
+		}
+
+		string_t get_glb_name(const tg3_str& name)
+		{
+			return name.data != nullptr && name.len != 0 ? string_t(name.data, name.len) : string_t();
 		}
 
 		bool is_glb_string(const tg3_str& str, const char* value)
@@ -208,6 +216,49 @@ namespace sfg
 				.values = {static_cast<f32>(x), static_cast<f32>(y), 0.0f, 0.0f},
 				.type	= material_parameter_type_e::uint2,
 			};
+		}
+
+		mat4x3_t make_mat4x3_from_glb_matrix(const f32* matrix)
+		{
+			return mat4x3_t(matrix[0], matrix[1], matrix[2], matrix[4], matrix[5], matrix[6], matrix[8], matrix[9], matrix[10], matrix[12], matrix[13], matrix[14]);
+		}
+
+		bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, u32 joint_index, mat4x3_t& out_matrix)
+		{
+			out_matrix = mat4x3_t::identity;
+			if (skin.inverse_bind_matrices < 0)
+				return true;
+
+			if (static_cast<u32>(skin.inverse_bind_matrices) >= model.accessors_count)
+				return false;
+
+			const tg3_accessor& accessor = model.accessors[skin.inverse_bind_matrices];
+			if (accessor.component_type != TG3_COMPONENT_TYPE_FLOAT || accessor.type != TG3_TYPE_MAT4 || accessor.count <= joint_index || accessor.buffer_view < 0 || accessor.sparse.is_sparse != 0)
+				return false;
+
+			if (static_cast<u32>(accessor.buffer_view) >= model.buffer_views_count)
+				return false;
+
+			const tg3_buffer_view& buffer_view = model.buffer_views[accessor.buffer_view];
+			if (buffer_view.buffer < 0 || static_cast<u32>(buffer_view.buffer) >= model.buffers_count)
+				return false;
+
+			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
+			if (buffer.data.data == nullptr)
+				return false;
+
+			const i32 stride = tg3_accessor_byte_stride(&accessor, &buffer_view);
+			if (stride < static_cast<i32>(sizeof(f32) * 16))
+				return false;
+
+			const u64 matrix_offset = buffer_view.byte_offset + accessor.byte_offset + static_cast<u64>(stride) * joint_index;
+			if (matrix_offset > buffer.data.count || sizeof(f32) * 16 > buffer.data.count - matrix_offset)
+				return false;
+
+			f32 matrix[16] = {};
+			std::memcpy(matrix, buffer.data.data + matrix_offset, sizeof(matrix));
+			out_matrix = make_mat4x3_from_glb_matrix(matrix);
+			return true;
 		}
 
 		bool import_texture(const editor_asset_node_t&		parent_node,
@@ -355,6 +406,107 @@ namespace sfg
 			out_assets.push_back(asset);
 			return true;
 		}
+
+		bool import_skeleton(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, frame_vector_t<editor_asset_t>& out_assets)
+		{
+			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
+				return false;
+
+			string_t asset_name = get_asset_name(skin.name);
+			if (asset_name.empty())
+			{
+				asset_name = file_system_t::get_filename_from_path(source_full_path);
+				asset_name += "_skeleton_";
+				asset_name += std::to_string(skin_index);
+			}
+
+			vector_t<u32> node_to_joint_index;
+			node_to_joint_index.resize(model.nodes_count);
+			for (u32& index : node_to_joint_index)
+				index = SKELETON_JOINT_NO_PARENT;
+
+			skeleton_def_t skeleton = {
+				.name = asset_name,
+			};
+			skeleton.joints.resize(skin.joints_count);
+
+			for (u32 i = 0; i < skin.joints_count; ++i)
+			{
+				const i32 node_index = skin.joints[i];
+				if (node_index < 0 || static_cast<u32>(node_index) >= model.nodes_count)
+					return false;
+
+				const u32 node_index_u32 = static_cast<u32>(node_index);
+				if (node_to_joint_index[node_index_u32] != SKELETON_JOINT_NO_PARENT)
+					return false;
+
+				node_to_joint_index[node_index_u32] = i;
+
+				const tg3_node& node = model.nodes[node_index_u32];
+				string_t		name = get_glb_name(node.name);
+				if (name.empty())
+				{
+					name = "joint_";
+					name += std::to_string(i);
+				}
+
+				skeleton_joint_def_t& joint = skeleton.joints[i];
+				joint.name					= name;
+				joint.name_hash				= hashing_t::to_sid(name);
+				if (!read_inverse_bind_matrix(model, skin, i, joint.inverse_bind))
+					return false;
+			}
+
+			for (u32 i = 0; i < skin.joints_count; ++i)
+			{
+				const tg3_node& node = model.nodes[skin.joints[i]];
+				for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+				{
+					const i32 child_node_index = node.children[child_i];
+					if (child_node_index < 0 || static_cast<u32>(child_node_index) >= model.nodes_count)
+						return false;
+
+					const u32 child_joint_index = node_to_joint_index[child_node_index];
+					if (child_joint_index != SKELETON_JOINT_NO_PARENT)
+						skeleton.joints[child_joint_index].parent_index = i;
+				}
+			}
+
+			if (skin.skeleton >= 0 && static_cast<u32>(skin.skeleton) < model.nodes_count)
+				skeleton.root_joint_index = node_to_joint_index[skin.skeleton];
+
+			if (skeleton.root_joint_index == SKELETON_JOINT_NO_PARENT)
+			{
+				for (u32 i = 0; i < skin.joints_count; ++i)
+				{
+					if (skeleton.joints[i].parent_index == SKELETON_JOINT_NO_PARENT)
+					{
+						skeleton.root_joint_index = i;
+						break;
+					}
+				}
+			}
+
+			if (skin.joints_count != 0 && skeleton.root_joint_index == SKELETON_JOINT_NO_PARENT)
+				return false;
+
+			editor_asset_t asset		 = {};
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+
+			asset.version	  = editor_asset_t::VERSION;
+			asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type  = editor_asset_type_e::skeleton;
+			asset.source_type = editor_asset_source_type_e::embedded;
+			if (!reflection_registry_t::get().serialize_to_json(type_id_t<skeleton_def_t>::value, &skeleton, asset.embedded_source))
+				return false;
+
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+				return false;
+
+			out_assets.push_back(asset);
+			return true;
+		}
 	}
 
 	bool editor_glb_importer_t::import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, frame_vector_t<editor_asset_t>& out_assets)
@@ -396,13 +548,25 @@ namespace sfg
 			hash_map_t<u32, sid_t> texture_guid_map;
 			texture_guid_map.reserve(model.textures_count);
 
-			out_assets.reserve(out_assets.size() + model.textures_count + model.materials_count);
+			out_assets.reserve(out_assets.size() + model.textures_count + model.skins_count + model.materials_count);
 			for (u32 i = 0; i < model.textures_count; ++i)
 			{
 				if (!import_texture(parent_node, source_full_path, model, model.textures[i], texture_config, i, texture_guid_map, out_assets))
 				{
 					result = false;
 					break;
+				}
+			}
+
+			if (result)
+			{
+				for (u32 i = 0; i < model.skins_count; ++i)
+				{
+					if (!import_skeleton(parent_node, source_full_path, model, model.skins[i], i, out_assets))
+					{
+						result = false;
+						break;
+					}
 				}
 			}
 

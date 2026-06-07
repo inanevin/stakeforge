@@ -30,10 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec3u.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/math/vec4u.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -374,6 +378,11 @@ namespace sfg
 			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::static_vector;
 		}
 
+		sid_t get_object_type_id(const reflected_field_desc_t& field)
+		{
+			return field.value_type_id != 0 ? field.value_type_id : field.sub_type_id;
+		}
+
 		reflected_field_desc_t get_vector_item_field(const reflected_field_desc_t& field)
 		{
 			const reflected_value_type_e type = reflected_value_type_from_sub_type_id(field.sub_type_id);
@@ -662,91 +671,6 @@ namespace sfg
 			_checkboxes.push_back(checkbox);
 			break;
 		}
-		case reflected_value_type_e::vec2: {
-			editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
-			editor_vec2_field_config_t config = {};
-			config.value					  = read_reflected_value<vec2f_t>(object, field);
-			config.on_changed				  = on_vec2_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec2_fields.push_back(vec);
-			break;
-		}
-		case reflected_value_type_e::vec2u: {
-			editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
-			editor_vec2_field_config_t config = {};
-			config.value					  = to_vec2f(read_reflected_value<vec2u_t>(object, field));
-			config.increment				  = 1.0f;
-			config.integer					  = true;
-			config.on_changed				  = on_vec2_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec2_fields.push_back(vec);
-			break;
-		}
-		case reflected_value_type_e::vec2u16: {
-			editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
-			editor_vec2_field_config_t config = {};
-			config.value					  = to_vec2f(read_reflected_value<vec2u16_t>(object, field));
-			config.increment				  = 1.0f;
-			config.integer					  = true;
-			config.on_changed				  = on_vec2_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec2_fields.push_back(vec);
-			break;
-		}
-		case reflected_value_type_e::vec3: {
-			editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
-			editor_vec3_field_config_t config = {};
-			config.value					  = read_reflected_value<vec3f_t>(object, field);
-			config.on_changed				  = on_vec3_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec3_fields.push_back(vec);
-			break;
-		}
-		case reflected_value_type_e::vec3u: {
-			editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
-			editor_vec3_field_config_t config = {};
-			config.value					  = to_vec3f(read_reflected_value<vec3u_t>(object, field));
-			config.increment				  = 1.0f;
-			config.integer					  = true;
-			config.on_changed				  = on_vec3_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec3_fields.push_back(vec);
-			break;
-		}
-		case reflected_value_type_e::vec4: {
-			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
-			editor_vec4_field_config_t config = {};
-			config.value					  = read_reflected_value<vec4f_t>(object, field);
-			config.on_changed				  = on_vec4_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec4_fields.push_back(vec);
-			break;
-		}
-		case reflected_value_type_e::vec4u: {
-			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
-			editor_vec4_field_config_t config = {};
-			config.value					  = to_vec4f(read_reflected_value<vec4u_t>(object, field));
-			config.increment				  = 1.0f;
-			config.integer					  = true;
-			config.on_changed				  = on_vec4_changed;
-			config.user_data				  = control;
-			vec->init(*_ui, parent, config);
-			center_property_row_control(*_ui, vec->get_root());
-			_vec4_fields.push_back(vec);
-			break;
-		}
 		case reflected_value_type_e::quat: {
 			editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
 			editor_vec4_field_config_t config = {};
@@ -759,15 +683,114 @@ namespace sfg
 			_vec4_fields.push_back(vec);
 			break;
 		}
-		case reflected_value_type_e::color: {
-			editor_color_field_t*		color  = new editor_color_field_t();
-			editor_color_field_config_t config = {};
-			config.color					   = read_reflected_value<vec4f_t>(object, field);
-			config.on_changed				   = on_color_changed;
-			config.user_data				   = control;
-			color->init(*_ui, parent, config);
-			center_property_row_control(*_ui, color->get_root());
-			_color_fields.push_back(color);
+		case reflected_value_type_e::object: {
+			const sid_t type_id = get_object_type_id(field);
+			if (type_id == type_id_t<vec2f_t>::value)
+			{
+				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
+				editor_vec2_field_config_t config = {};
+				config.value					  = read_reflected_value<vec2f_t>(object, field);
+				config.on_changed				  = on_vec2_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec2_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<vec2u_t>::value)
+			{
+				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
+				editor_vec2_field_config_t config = {};
+				config.value					  = to_vec2f(read_reflected_value<vec2u_t>(object, field));
+				config.increment				  = 1.0f;
+				config.integer					  = true;
+				config.on_changed				  = on_vec2_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec2_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<vec2u16_t>::value)
+			{
+				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
+				editor_vec2_field_config_t config = {};
+				config.value					  = to_vec2f(read_reflected_value<vec2u16_t>(object, field));
+				config.increment				  = 1.0f;
+				config.integer					  = true;
+				config.on_changed				  = on_vec2_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec2_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<vec3f_t>::value)
+			{
+				editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
+				editor_vec3_field_config_t config = {};
+				config.value					  = read_reflected_value<vec3f_t>(object, field);
+				config.on_changed				  = on_vec3_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec3_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<vec3u_t>::value)
+			{
+				editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
+				editor_vec3_field_config_t config = {};
+				config.value					  = to_vec3f(read_reflected_value<vec3u_t>(object, field));
+				config.increment				  = 1.0f;
+				config.integer					  = true;
+				config.on_changed				  = on_vec3_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec3_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<vec4f_t>::value)
+			{
+				editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
+				editor_vec4_field_config_t config = {};
+				config.value					  = read_reflected_value<vec4f_t>(object, field);
+				config.on_changed				  = on_vec4_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec4_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<vec4u_t>::value)
+			{
+				editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
+				editor_vec4_field_config_t config = {};
+				config.value					  = to_vec4f(read_reflected_value<vec4u_t>(object, field));
+				config.increment				  = 1.0f;
+				config.integer					  = true;
+				config.on_changed				  = on_vec4_changed;
+				config.user_data				  = control;
+				vec->init(*_ui, parent, config);
+				center_property_row_control(*_ui, vec->get_root());
+				_vec4_fields.push_back(vec);
+				break;
+			}
+			if (type_id == type_id_t<color_t>::value)
+			{
+				editor_color_field_t*		color  = new editor_color_field_t();
+				editor_color_field_config_t config = {};
+				config.color					   = read_reflected_value<color_t>(object, field).to_vector();
+				config.on_changed				   = on_color_changed;
+				config.user_data				   = control;
+				color->init(*_ui, parent, config);
+				center_property_row_control(*_ui, color->get_root());
+				_color_fields.push_back(color);
+				break;
+			}
+
+			add_unknown_label(*_ui, parent);
 			break;
 		}
 		case reflected_value_type_e::string: {
@@ -909,28 +932,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			install_items.template operator()<u8>();
 			break;
-		case reflected_value_type_e::vec2:
-			install_items.template operator()<vec2f_t>();
-			break;
-		case reflected_value_type_e::vec3:
-			install_items.template operator()<vec3f_t>();
-			break;
-		case reflected_value_type_e::vec4:
-		case reflected_value_type_e::color:
-			install_items.template operator()<vec4f_t>();
-			break;
-		case reflected_value_type_e::vec2u:
-			install_items.template operator()<vec2u_t>();
-			break;
-		case reflected_value_type_e::vec2u16:
-			install_items.template operator()<vec2u16_t>();
-			break;
-		case reflected_value_type_e::vec3u:
-			install_items.template operator()<vec3u_t>();
-			break;
-		case reflected_value_type_e::vec4u:
-			install_items.template operator()<vec4u_t>();
-			break;
 		case reflected_value_type_e::resource:
 			install_items.template operator()<sid_t>();
 			break;
@@ -969,21 +970,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			return get_count.template operator()<u8>();
-		case reflected_value_type_e::vec2:
-			return get_count.template operator()<vec2f_t>();
-		case reflected_value_type_e::vec3:
-			return get_count.template operator()<vec3f_t>();
-		case reflected_value_type_e::vec4:
-		case reflected_value_type_e::color:
-			return get_count.template operator()<vec4f_t>();
-		case reflected_value_type_e::vec2u:
-			return get_count.template operator()<vec2u_t>();
-		case reflected_value_type_e::vec2u16:
-			return get_count.template operator()<vec2u16_t>();
-		case reflected_value_type_e::vec3u:
-			return get_count.template operator()<vec3u_t>();
-		case reflected_value_type_e::vec4u:
-			return get_count.template operator()<vec4u_t>();
 		case reflected_value_type_e::resource:
 			return get_count.template operator()<sid_t>();
 		case reflected_value_type_e::string:
@@ -1058,28 +1044,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			clear_items.template operator()<u8>();
 			break;
-		case reflected_value_type_e::vec2:
-			clear_items.template operator()<vec2f_t>();
-			break;
-		case reflected_value_type_e::vec3:
-			clear_items.template operator()<vec3f_t>();
-			break;
-		case reflected_value_type_e::vec4:
-		case reflected_value_type_e::color:
-			clear_items.template operator()<vec4f_t>();
-			break;
-		case reflected_value_type_e::vec2u:
-			clear_items.template operator()<vec2u_t>();
-			break;
-		case reflected_value_type_e::vec2u16:
-			clear_items.template operator()<vec2u16_t>();
-			break;
-		case reflected_value_type_e::vec3u:
-			clear_items.template operator()<vec3u_t>();
-			break;
-		case reflected_value_type_e::vec4u:
-			clear_items.template operator()<vec4u_t>();
-			break;
 		case reflected_value_type_e::resource:
 			clear_items.template operator()<sid_t>();
 			break;
@@ -1131,28 +1095,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			add_item.template operator()<u8>();
-			break;
-		case reflected_value_type_e::vec2:
-			add_item.template operator()<vec2f_t>();
-			break;
-		case reflected_value_type_e::vec3:
-			add_item.template operator()<vec3f_t>();
-			break;
-		case reflected_value_type_e::vec4:
-		case reflected_value_type_e::color:
-			add_item.template operator()<vec4f_t>();
-			break;
-		case reflected_value_type_e::vec2u:
-			add_item.template operator()<vec2u_t>();
-			break;
-		case reflected_value_type_e::vec2u16:
-			add_item.template operator()<vec2u16_t>();
-			break;
-		case reflected_value_type_e::vec3u:
-			add_item.template operator()<vec3u_t>();
-			break;
-		case reflected_value_type_e::vec4u:
-			add_item.template operator()<vec4u_t>();
 			break;
 		case reflected_value_type_e::resource:
 			add_item.template operator()<sid_t>();
@@ -1206,28 +1148,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			remove_item.template operator()<u8>();
 			break;
-		case reflected_value_type_e::vec2:
-			remove_item.template operator()<vec2f_t>();
-			break;
-		case reflected_value_type_e::vec3:
-			remove_item.template operator()<vec3f_t>();
-			break;
-		case reflected_value_type_e::vec4:
-		case reflected_value_type_e::color:
-			remove_item.template operator()<vec4f_t>();
-			break;
-		case reflected_value_type_e::vec2u:
-			remove_item.template operator()<vec2u_t>();
-			break;
-		case reflected_value_type_e::vec2u16:
-			remove_item.template operator()<vec2u16_t>();
-			break;
-		case reflected_value_type_e::vec3u:
-			remove_item.template operator()<vec3u_t>();
-			break;
-		case reflected_value_type_e::vec4u:
-			remove_item.template operator()<vec4u_t>();
-			break;
 		case reflected_value_type_e::resource:
 			remove_item.template operator()<sid_t>();
 			break;
@@ -1266,15 +1186,17 @@ namespace sfg
 	void editor_widget_reflect_type_t::on_color_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		write_reflected_value(control.object, *control.field, value);
+		if (get_object_type_id(*control.field) == type_id_t<color_t>::value)
+			write_reflected_value(control.object, *control.field, color_t{value.x, value.y, value.z, value.w});
 	}
 
 	void editor_widget_reflect_type_t::on_vec2_changed(const vec2f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		if (control.field->type == reflected_value_type_e::vec2u)
+		const sid_t			 type_id = get_object_type_id(*control.field);
+		if (type_id == type_id_t<vec2u_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec2u(value));
-		else if (control.field->type == reflected_value_type_e::vec2u16)
+		else if (type_id == type_id_t<vec2u16_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec2u16(value));
 		else
 			write_reflected_value(control.object, *control.field, value);
@@ -1283,7 +1205,7 @@ namespace sfg
 	void editor_widget_reflect_type_t::on_vec3_changed(const vec3f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		if (control.field->type == reflected_value_type_e::vec3u)
+		if (get_object_type_id(*control.field) == type_id_t<vec3u_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec3u(value));
 		else
 			write_reflected_value(control.object, *control.field, value);
@@ -1292,7 +1214,8 @@ namespace sfg
 	void editor_widget_reflect_type_t::on_vec4_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		if (control.field->type == reflected_value_type_e::vec4u)
+		const sid_t			 type_id = get_object_type_id(*control.field);
+		if (type_id == type_id_t<vec4u_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec4u(value));
 		else if (control.field->type == reflected_value_type_e::quat)
 			write_reflected_value(control.object, *control.field, quat_t{value.x, value.y, value.z, value.w});

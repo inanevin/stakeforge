@@ -22,37 +22,51 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#include "vec2u.hpp"
-#include "vec2i.hpp"
-#include <sfg/reflection/reflection_registry.hpp>
+#pragma once
 
-#include <cstddef>
-#include <iterator>
+#include <sfg/common/type_id.hpp>
+
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec3f.hpp>
+#include <sfg/math/vec4f.hpp>
+#include <sfg/math/vec4u.hpp>
 
 namespace sfg
 {
-	vec2u_t vec2u_t::zero = {0, 0};
-	vec2u_t vec2u_t::one  = {1, 1};
-
-	vec2u_reflection_t::vec2u_reflection_t()
+	struct vertex_static_t
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<vec2u_t>::value) != nullptr)
-			return;
+		vec3f_t pos		= vec3f_t::zero;
+		vec3f_t normal	= vec3f_t::zero;
+		vec4f_t tangent = vec4f_t::zero;
+		vec2f_t uv		= vec2f_t::zero;
+	};
 
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, x), .size = sizeof(u32)},
-			{.name = "y", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, y), .size = sizeof(u32)},
-		};
+	struct vertex_skinned_t
+	{
+		vec3f_t pos			 = vec3f_t::zero;
+		vec3f_t normal		 = vec3f_t::zero;
+		vec4f_t tangent		 = vec4f_t::zero;
+		vec2f_t uv			 = vec2f_t::zero;
+		vec4f_t bone_weights = vec4f_t::zero;
+		vec4u_t bone_indices = vec4u_t::zero;
+	};
 
-		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "vec2u_t",
-			.type_id   = type_id_t<vec2u_t>::value,
-			.size	   = sizeof(vec2u_t),
-			.alignment = alignof(vec2u_t),
-		});
-	}
+	SFG_DEFINE_TYPE_ID(vertex_static_t);
+	SFG_DEFINE_TYPE_ID(vertex_skinned_t);
+
+	struct vertex_static_reflection_t
+	{
+		vertex_static_reflection_t();
+	};
+
+	struct vertex_skinned_reflection_t
+	{
+		vertex_skinned_reflection_t();
+	};
+
+	inline vertex_static_reflection_t  g_reflect_vertex_static;
+	inline vertex_skinned_reflection_t g_reflect_vertex_skinned;
 }

@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/type_id.hpp>
-
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg

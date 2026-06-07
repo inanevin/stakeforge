@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/common/type_id.hpp>
 
 namespace sfg
 {
@@ -39,5 +40,14 @@ namespace sfg
 		u32 x;
 		u32 y;
 	};
+
+	SFG_DEFINE_TYPE_ID(vec2u_t);
+
+	struct vec2u_reflection_t
+	{
+		vec2u_reflection_t();
+	};
+
+	inline vec2u_reflection_t g_reflect_vec2u;
 
 }
