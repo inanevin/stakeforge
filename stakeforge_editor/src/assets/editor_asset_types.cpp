@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/runtime/resources/material_cook.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
@@ -204,6 +205,19 @@ namespace sfg
 			SFG_ASSERT(asset._transient_data.size != 0);
 			const bool result = texture_cooker::cook_from_data(config, asset._transient_data, stream);
 			SFG_FREE(asset._transient_data.data);
+			return result;
+		}
+		if (asset.source_type == editor_asset_source_type_e::file_blob)
+		{
+			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+			char*		   blob_data		= nullptr;
+			size_t		   blob_size		= 0;
+			file_system_t::read_file(source_full_path.c_str(), blob_data, blob_size);
+			if (blob_data == nullptr || blob_size == 0)
+				return false;
+
+			const bool result = texture_cooker::cook_from_data(config, {.data = reinterpret_cast<u8*>(blob_data), .size = blob_size}, stream);
+			delete[] blob_data;
 			return result;
 		}
 

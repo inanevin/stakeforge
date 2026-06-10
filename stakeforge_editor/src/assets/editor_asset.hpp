@@ -62,6 +62,7 @@ namespace sfg
 	{
 		none,
 		file,
+		file_blob,
 		embedded,
 		data,
 	};
@@ -127,6 +128,7 @@ namespace sfg
 		static bool		write_asset(const char* path, const editor_asset_t& asset);
 		static string_t normalize_directory(const char* directory);
 		static string_t make_asset_path(const char* directory, const char* asset_name);
+		static string_t make_blob_path(const char* directory, const char* asset_name);
 		static string_t make_unique_source_path(const char* directory, const char* file_name, const char* extension);
 		static string_t get_cache_path_for_asset(const editor_asset_t& asset);
 		static string_t get_source_full_path(const char* assets_path, const editor_asset_t& asset);

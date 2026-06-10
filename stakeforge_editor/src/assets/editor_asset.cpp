@@ -190,6 +190,14 @@ namespace sfg
 		return result;
 	}
 
+	string_t editor_asset_util_t::make_blob_path(const char* directory, const char* asset_name)
+	{
+		string_t result = normalize_directory(directory);
+		result += asset_name != nullptr ? asset_name : "";
+		result += ".sfg_bin";
+		return result;
+	}
+
 	string_t editor_asset_util_t::make_unique_source_path(const char* directory, const char* file_name, const char* extension)
 	{
 		string_t base = normalize_directory(directory);
@@ -517,6 +525,8 @@ namespace sfg
 
 		if (s == "none")
 			t = editor_asset_source_type_e::none;
+		else if (s == "file_blob")
+			t = editor_asset_source_type_e::file_blob;
 		else if (s == "embedded")
 			t = editor_asset_source_type_e::embedded;
 		else if (s == "data")
@@ -545,6 +555,9 @@ namespace sfg
 		{
 		case editor_asset_source_type_e::none:
 			j = "none";
+			break;
+		case editor_asset_source_type_e::file_blob:
+			j = "file_blob";
 			break;
 		case editor_asset_source_type_e::embedded:
 			j = "embedded";

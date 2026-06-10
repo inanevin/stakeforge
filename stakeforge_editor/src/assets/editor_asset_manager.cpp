@@ -416,7 +416,7 @@ namespace sfg
 				asset.status = editor_asset_status_e::missing_embedded_data;
 				SFG_ERR("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
 			}
-			else if (asset.source_type == editor_asset_source_type_e::file)
+			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 			{
 				string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
 				source_path += asset.source_relative;

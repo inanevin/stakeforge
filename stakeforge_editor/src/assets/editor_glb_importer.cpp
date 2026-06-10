@@ -31,10 +31,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_directories.hpp"
+#include "editor_project.hpp"
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/common/packing.hpp>
 #include <sfg/data/hash_map.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/data/string_view.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -46,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
+#include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 
 #define TINYGLTF3_IMPLEMENTATION
@@ -182,6 +185,15 @@ namespace sfg
 
 			const auto it = texture_guid_map.find(static_cast<u32>(texture_index));
 			return it != texture_guid_map.end() ? it->second : default_guid;
+		}
+
+		bool write_blob(const char* path, const u8* data, size_t size)
+		{
+			SFG_ASSERT(path != nullptr);
+			SFG_ASSERT(path[0] != '\0');
+			SFG_ASSERT(data != nullptr);
+			SFG_ASSERT(size != 0);
+			return serializer_t::write_to_file(string_view_t(reinterpret_cast<const char*>(data), size), path);
 		}
 
 		sid_t get_sampler_guid(const tg3_model& model, const tg3_material& material)
@@ -614,28 +626,28 @@ namespace sfg
 			}
 
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t blob_path	 = editor_asset_util_t::make_blob_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-
-			asset.version		  = editor_asset_t::VERSION;
-			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	  = editor_asset_type_e::texture;
-			asset.source_type	  = editor_asset_source_type_e::data;
-			asset._transient_data = {.data = texture_data, .size = decoded_size};
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			if (!write_blob(blob_path.c_str(), texture_data, decoded_size))
 			{
 				SFG_FREE(texture_data);
 				return false;
 			}
 
-			if (!editor_asset_cooker_t::cook_texture(asset))
-			{
-				asset._transient_data = {};
+			SFG_FREE(texture_data);
+			asset.version		  = editor_asset_t::VERSION;
+			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type	  = editor_asset_type_e::texture;
+			asset.source_type	  = editor_asset_source_type_e::file_blob;
+			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), blob_path.c_str());
+
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				return false;
-			}
+
+			if (!editor_asset_cooker_t::cook_texture(asset))
+				return false;
 
 			out_texture_guid_map[texture_index] = asset.guid;
-			asset._transient_data				= {};
 			out_assets.push_back(asset);
 			return true;
 		}
@@ -923,24 +935,26 @@ namespace sfg
 
 			editor_asset_t asset		 = {};
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t blob_path	 = editor_asset_util_t::make_blob_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+			ostream_t	   mesh_def_stream;
+			if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, &mesh_def, mesh_def_stream))
+				return false;
+			if (!write_blob(blob_path.c_str(), mesh_def_stream.get_raw(), mesh_def_stream.get_size()))
+				return false;
 
 			asset.version		  = editor_asset_t::VERSION;
 			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
 			asset.asset_type	  = editor_asset_type_e::mesh;
-			asset.source_type	  = editor_asset_source_type_e::data;
-			asset._transient_data = {.data = reinterpret_cast<u8*>(&mesh_def), .size = sizeof(mesh_def_t)};
+			asset.source_type	  = editor_asset_source_type_e::file_blob;
+			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), blob_path.c_str());
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				return false;
 
 			if (!editor_asset_cooker_t::cook_mesh(asset))
-			{
-				asset._transient_data = {};
 				return false;
-			}
 
-			asset._transient_data = {};
 			out_assets.push_back(asset);
 			return true;
 		}
