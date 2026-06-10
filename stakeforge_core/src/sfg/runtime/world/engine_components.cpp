@@ -108,8 +108,8 @@ namespace sfg
 		void register_component_mesh_renderer_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "mesh", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(sid_t)},
-				{.name = "material", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(sid_t)},
+				{.name = "mesh", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(resource_handle_t)},
+				{.name = "material", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(resource_handle_t)},
 			};
 
 			register_type_if_missing({
@@ -148,18 +148,21 @@ namespace sfg
 		}
 	}
 
-	void engine_components_util_t::register_engine_components(world_t& w)
+	void engine_components_util_t::add_engine_components_to_world(world_t& w)
+	{
+		add_table_if_missing<component_hierarchy_t>(w, make_component_desc<component_hierarchy_t>());
+		add_table_if_missing<component_transform_t>(w, make_component_desc<component_transform_t>());
+		add_table_if_missing<component_mesh_renderer_t>(w, make_component_desc<component_mesh_renderer_t>());
+		add_table_if_missing<component_alive_t>(w, make_tag_component_desc<component_alive_t>());
+		add_table_if_missing<component_disabled_t>(w, make_tag_component_desc<component_disabled_t>());
+	}
+
+	engine_component_reflection_t::engine_component_reflection_t()
 	{
 		register_component_hierarchy_reflection();
 		register_component_transform_reflection();
 		register_component_mesh_renderer_reflection();
 		register_component_alive_reflection();
 		register_component_disabled_reflection();
-
-		add_table_if_missing<component_hierarchy_t>(w, make_component_desc<component_hierarchy_t>());
-		add_table_if_missing<component_transform_t>(w, make_component_desc<component_transform_t>());
-		add_table_if_missing<component_mesh_renderer_t>(w, make_component_desc<component_mesh_renderer_t>());
-		add_table_if_missing<component_alive_t>(w, make_tag_component_desc<component_alive_t>());
-		add_table_if_missing<component_disabled_t>(w, make_tag_component_desc<component_disabled_t>());
 	}
 }

@@ -27,61 +27,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "resource_handle.hpp"
-#include "vertex.hpp"
-
-#include <sfg/common/type_id.hpp>
-
-#include <sfg/data/string.hpp>
-#include <sfg/data/vector.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/aabb.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/hash_map.hpp>
 
 namespace sfg
 {
-	struct primitive_static_def_t
+	struct animation_def_t;
+
+	class animation_storage_t final
 	{
-		vector_t<vertex_static_t> vertices		 = {};
-		vector_t<primitive_index> indices		 = {};
-		u32						  material_index = UINT32_MAX;
+	public:
+		animation_storage_t()									   = default;
+		~animation_storage_t()									   = default;
+		animation_storage_t(const animation_storage_t&)			   = delete;
+		animation_storage_t& operator=(const animation_storage_t&) = delete;
+
+		void init();
+		void uninit();
+
+		void				   add_animation(sid_t hash, const animation_def_t& def);
+		void				   remove_animation(sid_t hash);
+		const animation_def_t* find_animation(sid_t hash) const;
+
+	private:
+		hash_map_t<sid_t, const animation_def_t*> _animations;
 	};
-
-	struct primitive_skinned_def_t
-	{
-		vector_t<vertex_skinned_t> vertices		  = {};
-		vector_t<primitive_index>  indices		  = {};
-		u32						   material_index = UINT32_MAX;
-	};
-
-	struct mesh_def_t
-	{
-		aabb_t							  local_bounds		 = {};
-		string_t						  name				 = {};
-		vector_t<resource_handle_t>		  materials			 = {};
-		vector_t<primitive_static_def_t>  static_primitives	 = {};
-		vector_t<primitive_skinned_def_t> skinned_primitives = {};
-	};
-
-	SFG_DEFINE_TYPE_ID(primitive_static_def_t);
-	SFG_DEFINE_TYPE_ID(primitive_skinned_def_t);
-	SFG_DEFINE_TYPE_ID(mesh_def_t);
-
-	struct primitive_static_def_reflection_t
-	{
-		primitive_static_def_reflection_t();
-	};
-
-	struct primitive_skinned_def_reflection_t
-	{
-		primitive_skinned_def_reflection_t();
-	};
-
-	struct mesh_def_reflection_t
-	{
-		mesh_def_reflection_t();
-	};
-
-	inline primitive_static_def_reflection_t  g_reflect_primitive_static_def;
-	inline primitive_skinned_def_reflection_t g_reflect_primitive_skinned_def;
-	inline mesh_def_reflection_t			  g_reflect_mesh_def;
 }

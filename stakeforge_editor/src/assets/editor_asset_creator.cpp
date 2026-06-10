@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_creator.hpp"
 
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -227,22 +228,34 @@ namespace sfg
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 	{
+		editor_asset_t asset  = {};
+		bool		   result = false;
+
 		switch (desc.asset_type)
 		{
 		case editor_asset_type_e::shader:
-			return create_shader_asset(desc, out_asset);
+			result = create_shader_asset(desc, &asset) && editor_asset_cooker_t::cook_shader(asset);
+			break;
 		case editor_asset_type_e::material:
-			return create_embedded_asset(desc, editor_asset_type_e::material, scaffold_material_embedded_source_by_sub_type, out_asset);
+			result = create_embedded_asset(desc, editor_asset_type_e::material, scaffold_material_embedded_source_by_sub_type, &asset) && editor_asset_cooker_t::cook_material(asset);
+			break;
 		case editor_asset_type_e::texture_sampler:
-			return create_embedded_asset(desc, editor_asset_type_e::texture_sampler, scaffold_texture_sampler_embedded_source_by_sub_type, out_asset);
+			result = create_embedded_asset(desc, editor_asset_type_e::texture_sampler, scaffold_texture_sampler_embedded_source_by_sub_type, &asset) && editor_asset_cooker_t::cook_texture_sampler(asset);
+			break;
 		case editor_asset_type_e::physical_material:
-			return create_embedded_asset(desc, editor_asset_type_e::physical_material, scaffold_physical_material_embedded_source_by_sub_type, out_asset);
+			result = create_embedded_asset(desc, editor_asset_type_e::physical_material, scaffold_physical_material_embedded_source_by_sub_type, &asset) && editor_asset_cooker_t::cook_physical_material(asset);
+			break;
 		case editor_asset_type_e::animation_state_machine:
-			return create_none_source_asset(desc, editor_asset_type_e::animation_state_machine, out_asset);
+			result = create_none_source_asset(desc, editor_asset_type_e::animation_state_machine, &asset) && editor_asset_cooker_t::cook_animation_state_machine(asset);
+			break;
 		default:
 			SFG_ASSERT(false);
 			return false;
 		}
+
+		if (result && out_asset != nullptr)
+			*out_asset = asset;
+		return result;
 	}
 
 	bool editor_asset_creator_t::scaffold_material_embedded_source(editor_material_type_e material_type, nlohmann::json& out_embedded_source)

@@ -10,20 +10,20 @@ namespace sfg
 {
 	struct mesh_static_primitive_t
 	{
-		sid_t material_id  = NULL_SID;
-		u32	  vertex_start = 0;
-		u32	  index_start  = 0;
-		u32	  vertex_count = 0;
-		u32	  index_count  = 0;
+		resource_handle_t material	   = NULL_RESOURCE_HANDLE;
+		u32				  vertex_start = 0;
+		u32				  index_start  = 0;
+		u32				  vertex_count = 0;
+		u32				  index_count  = 0;
 	};
 
 	struct mesh_skinned_primitive_t
 	{
-		sid_t material_id  = NULL_SID;
-		u32	  vertex_start = 0;
-		u32	  index_start  = 0;
-		u32	  vertex_count = 0;
-		u32	  index_count  = 0;
+		resource_handle_t material	   = NULL_RESOURCE_HANDLE;
+		u32				  vertex_start = 0;
+		u32				  index_start  = 0;
+		u32				  vertex_count = 0;
+		u32				  index_count  = 0;
 	};
 
 	struct mesh_runtime_t
@@ -60,7 +60,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = 0x53464D48;
-		static constexpr u32 WIRE_VERSION = 1;
+		static constexpr u32 WIRE_VERSION = 2;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

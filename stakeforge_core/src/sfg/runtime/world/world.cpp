@@ -39,7 +39,6 @@ namespace sfg
 	{
 		_component_tables.reserve(64);
 		_entity_free_list.reserve(1024);
-		engine_components_util_t::register_engine_components(*this);
 
 		_component_hierarchy_table	   = &get_component_table(component_hierarchy_t::TYPE_ID)->table;
 		_component_transform_table	   = &get_component_table(component_transform_t::TYPE_ID)->table;

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_importer.hpp"
 
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_glb_importer.hpp"
 #include "editor_directories.hpp"
@@ -158,6 +159,8 @@ namespace sfg
 				return false;
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::texture, editor_asset_source_type_e::file, source_path.c_str()))
 				return false;
+			if (!editor_asset_cooker_t::cook_texture(asset))
+				return false;
 			break;
 		}
 		case editor_asset_import_type_e::audio: {
@@ -165,6 +168,8 @@ namespace sfg
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<audio_cook_config_t>::value, &audio_config, asset.cook_options))
 				return false;
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::audio, editor_asset_source_type_e::file, source_path.c_str()))
+				return false;
+			if (!editor_asset_cooker_t::cook_audio(asset))
 				return false;
 			break;
 		}

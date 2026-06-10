@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include "animation_storage.hpp"
 #include "common_resources.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
@@ -89,6 +90,16 @@ namespace sfg
 			return _memory;
 		}
 
+		inline animation_storage_t& get_animation_storage()
+		{
+			return _animation_storage;
+		}
+
+		inline const animation_storage_t& get_animation_storage() const
+		{
+			return _animation_storage;
+		}
+
 		inline ui::glyph_atlas_t& get_glyph_atlas()
 		{
 			return _glyph_atlas;
@@ -122,6 +133,7 @@ namespace sfg
 
 	private:
 		moodycamel::ConcurrentQueue<load_request_t> _completed;
+		animation_storage_t							_animation_storage;
 		chunk_allocator_t							_memory;
 		hash_map_t<sid_t, resource_entry_t>			_entries;
 		ui::glyph_atlas_t							_glyph_atlas;

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_types.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
@@ -36,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>
-#include <sfg/data/ostream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -44,7 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
-#include <sfg/runtime/resources/resource_cache.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -176,8 +175,8 @@ namespace sfg
 		found_assets.reserve(entries.size());
 
 		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
-		const string_t	   root_path = assets_dir;
-		_root_node = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
+		const string_t root_path = assets_dir;
+		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
 
 		vector_t<string_t> parts;
 		for (const file_system_entry_t& entry : entries)
@@ -450,12 +449,11 @@ namespace sfg
 		missing_assets.reserve(_assets.size());
 		for (auto& asset_pair : _assets)
 		{
-			editor_asset_t& asset		  = asset_pair.second;
-			const auto		descriptor_it = _asset_descriptors.find(asset.asset_type);
-			SFG_ASSERT(descriptor_it != _asset_descriptors.end());
+			editor_asset_t& asset = asset_pair.second;
+			SFG_ASSERT(_asset_descriptors.find(asset.asset_type) != _asset_descriptors.end());
 			if (asset.status != editor_asset_status_e::ok)
 				continue;
-			if (descriptor_it->second.cook == nullptr)
+			if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
 				continue;
 
 			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
@@ -517,21 +515,12 @@ namespace sfg
 		editor_modal_content_desc_t progress_content = _cook_progress_modal.get_content_desc();
 		modal.request_modal("Cooking Assets", _cook_status_texts[0].c_str(), false, nullptr, 0, &progress_content);
 
-		const string_t cache_dir = editor_project_t::get()._runtime.cache_path;
-		job_system_t::get().silent_async([this, cache_dir]() {
+		job_system_t::get().silent_async([this]() {
 			for (size_t i = 0; i < _cook_assets.size(); ++i)
 			{
-				const editor_asset_t& asset			= _cook_assets[i];
-				const auto			  descriptor_it = _asset_descriptors.find(asset.asset_type);
-				SFG_ASSERT(descriptor_it != _asset_descriptors.end());
-				if (descriptor_it->second.cook != nullptr)
-				{
-					ostream_t	   stream;
-					const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
-
-					if (!descriptor_it->second.cook(asset, stream) || !resource_cache_t::ensure_directory(cache_dir.c_str()) || !serializer_t::save_to_file(cache_path.c_str(), stream))
-						SFG_ERR("failed cooking asset {0}", asset.guid);
-				}
+				const editor_asset_t& asset = _cook_assets[i];
+				if (!editor_asset_cooker_t::cook_asset(asset))
+					SFG_ERR("failed cooking asset {0}", asset.guid);
 				_cooked_count.fetch_add(1, std::memory_order_relaxed);
 			}
 			_cook_finished.store(true, std::memory_order_release);

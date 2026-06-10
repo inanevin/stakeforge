@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
@@ -59,8 +60,8 @@ namespace sfg
 	{
 		static inline constexpr sid_t TYPE_ID = "component_mesh_renderer"_hs;
 
-		sid_t mesh	   = NULL_SID;
-		sid_t material = NULL_SID;
+		resource_handle_t mesh	   = NULL_RESOURCE_HANDLE;
+		resource_handle_t material = NULL_RESOURCE_HANDLE;
 	};
 
 	struct component_alive_t
@@ -73,6 +74,13 @@ namespace sfg
 		static inline constexpr sid_t TYPE_ID = "component_disabled"_hs;
 	};
 
+	struct engine_component_reflection_t
+	{
+		engine_component_reflection_t();
+	};
+
+	inline engine_component_reflection_t g_reflect_engine_component;
+
 	class engine_components_util_t final
 	{
 	public:
@@ -82,6 +90,6 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static void register_engine_components(world_t& w);
+		static void add_engine_components_to_world(world_t& w);
 	};
 }

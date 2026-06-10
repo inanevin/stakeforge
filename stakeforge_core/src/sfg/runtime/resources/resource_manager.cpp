@@ -27,6 +27,7 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
 		_memory.init(resource_memory_size);
+		_animation_storage.init();
 		_entries.reserve(256);
 		_loads.reserve(256);
 		_unloads.reserve(256);
@@ -62,6 +63,7 @@ namespace sfg
 		_entries.clear();
 		if (_glyph_atlas.is_initialized())
 			_glyph_atlas.uninit();
+		_animation_storage.uninit();
 		_memory.uninit();
 	}
 

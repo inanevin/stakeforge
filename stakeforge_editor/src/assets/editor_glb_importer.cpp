@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_glb_importer.hpp"
 
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_directories.hpp"
@@ -34,21 +35,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/common/packing.hpp>
 #include <sfg/data/hash_map.hpp>
+#include <sfg/data/string_view.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
+#include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/stb/stb_image.h>
 
 #define TINYGLTF3_IMPLEMENTATION
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
 
 #include <cstring>
 #include <limits>
+#include <utility>
 
 namespace sfg
 {
@@ -261,6 +266,270 @@ namespace sfg
 			return true;
 		}
 
+		i32 find_attribute(const tg3_primitive& primitive, const char* name)
+		{
+			for (u32 i = 0; i < primitive.attributes_count; ++i)
+			{
+				const tg3_str_int_pair& attr = primitive.attributes[i];
+				if (attr.key.data != nullptr && string_view_t(attr.key.data, attr.key.len) == name)
+					return attr.value;
+			}
+			return -1;
+		}
+
+		const u8* get_accessor_data(const tg3_model& model, const tg3_accessor& accessor, const tg3_buffer_view*& out_buffer_view)
+		{
+			if (accessor.buffer_view < 0 || static_cast<u32>(accessor.buffer_view) >= model.buffer_views_count || accessor.sparse.is_sparse != 0)
+				return nullptr;
+
+			const tg3_buffer_view& buffer_view = model.buffer_views[accessor.buffer_view];
+			if (buffer_view.buffer < 0 || static_cast<u32>(buffer_view.buffer) >= model.buffers_count)
+				return nullptr;
+
+			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
+			const u64		  offset = buffer_view.byte_offset + accessor.byte_offset;
+			if (buffer.data.data == nullptr || offset > buffer.data.count)
+				return nullptr;
+
+			out_buffer_view = &buffer_view;
+			return buffer.data.data + offset;
+		}
+
+		const tg3_accessor* get_accessor(const tg3_model& model, i32 accessor_index)
+		{
+			if (accessor_index < 0 || static_cast<u32>(accessor_index) >= model.accessors_count)
+				return nullptr;
+
+			return &model.accessors[accessor_index];
+		}
+
+		bool read_float_attribute(const tg3_model& model, i32 accessor_index, i32 type, u32 expected_count, vector_t<f32>& out)
+		{
+			const tg3_accessor* accessor = get_accessor(model, accessor_index);
+			if (accessor == nullptr || accessor->component_type != TG3_COMPONENT_TYPE_FLOAT || accessor->type != type || accessor->count != expected_count)
+				return false;
+
+			const tg3_buffer_view* buffer_view = nullptr;
+			const u8*			   data		   = get_accessor_data(model, *accessor, buffer_view);
+			if (data == nullptr)
+				return false;
+
+			const i32 components = tg3_num_components(type);
+			const i32 stride	 = tg3_accessor_byte_stride(accessor, buffer_view);
+			if (components <= 0 || stride < components * static_cast<i32>(sizeof(f32)))
+				return false;
+
+			out.resize(static_cast<size_t>(expected_count) * static_cast<size_t>(components));
+			for (u32 i = 0; i < expected_count; ++i)
+				SFG_MEMCPY(out.data() + static_cast<size_t>(i) * components, data + static_cast<size_t>(i) * stride, static_cast<size_t>(components) * sizeof(f32));
+
+			return true;
+		}
+
+		bool read_indices(const tg3_model& model, i32 accessor_index, u32 vertex_count, vector_t<primitive_index>& out)
+		{
+			if (accessor_index < 0)
+			{
+				out.resize(vertex_count);
+				for (u32 i = 0; i < vertex_count; ++i)
+					out[i] = i;
+				return true;
+			}
+
+			const tg3_accessor* accessor = get_accessor(model, accessor_index);
+			if (accessor == nullptr || accessor->type != TG3_TYPE_SCALAR || accessor->count > std::numeric_limits<u32>::max())
+				return false;
+
+			const tg3_buffer_view* buffer_view = nullptr;
+			const u8*			   data		   = get_accessor_data(model, *accessor, buffer_view);
+			if (data == nullptr)
+				return false;
+
+			const i32 component_size = tg3_component_size(accessor->component_type);
+			const i32 stride		 = tg3_accessor_byte_stride(accessor, buffer_view);
+			if (component_size <= 0 || stride < component_size)
+				return false;
+
+			const u32 count = static_cast<u32>(accessor->count);
+			out.resize(count);
+			for (u32 i = 0; i < count; ++i)
+			{
+				const u8* src = data + static_cast<size_t>(i) * stride;
+				switch (accessor->component_type)
+				{
+				case TG3_COMPONENT_TYPE_UNSIGNED_BYTE:
+					out[i] = *src;
+					break;
+				case TG3_COMPONENT_TYPE_UNSIGNED_SHORT:
+					out[i] = *reinterpret_cast<const u16*>(src);
+					break;
+				case TG3_COMPONENT_TYPE_UNSIGNED_INT:
+					out[i] = *reinterpret_cast<const u32*>(src);
+					break;
+				default:
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool read_joint_attribute(const tg3_model& model, i32 accessor_index, u32 vertex_count, vector_t<vec4u_t>& out)
+		{
+			const tg3_accessor* accessor = get_accessor(model, accessor_index);
+			if (accessor == nullptr || accessor->type != TG3_TYPE_VEC4 || accessor->count != vertex_count)
+				return false;
+
+			const tg3_buffer_view* buffer_view = nullptr;
+			const u8*			   data		   = get_accessor_data(model, *accessor, buffer_view);
+			if (data == nullptr)
+				return false;
+
+			const i32 component_size = tg3_component_size(accessor->component_type);
+			const i32 stride		 = tg3_accessor_byte_stride(accessor, buffer_view);
+			if (component_size <= 0 || stride < component_size * 4)
+				return false;
+
+			out.resize(vertex_count);
+			for (u32 i = 0; i < vertex_count; ++i)
+			{
+				const u8* src = data + static_cast<size_t>(i) * stride;
+				switch (accessor->component_type)
+				{
+				case TG3_COMPONENT_TYPE_UNSIGNED_BYTE:
+					out[i] = {src[0], src[1], src[2], src[3]};
+					break;
+				case TG3_COMPONENT_TYPE_UNSIGNED_SHORT: {
+					const u16* joints = reinterpret_cast<const u16*>(src);
+					out[i]			  = {joints[0], joints[1], joints[2], joints[3]};
+					break;
+				}
+				case TG3_COMPONENT_TYPE_UNSIGNED_INT: {
+					const u32* joints = reinterpret_cast<const u32*>(src);
+					out[i]			  = {joints[0], joints[1], joints[2], joints[3]};
+					break;
+				}
+				default:
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		u32 get_primitive_vertex_count(const tg3_model& model, const tg3_primitive& primitive)
+		{
+			const tg3_accessor* accessor = get_accessor(model, find_attribute(primitive, "POSITION"));
+			if (accessor == nullptr || accessor->count > std::numeric_limits<u32>::max())
+				return 0;
+
+			return static_cast<u32>(accessor->count);
+		}
+
+		bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_static_def_t& out)
+		{
+			if (primitive.mode != TG3_MODE_TRIANGLES)
+				return false;
+
+			const u32 vertex_count = get_primitive_vertex_count(model, primitive);
+			if (vertex_count == 0)
+				return false;
+
+			vector_t<f32> positions;
+			if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
+				return false;
+
+			vector_t<f32> normals;
+			const i32	  normal_accessor = find_attribute(primitive, "NORMAL");
+			if (normal_accessor >= 0 && !read_float_attribute(model, normal_accessor, TG3_TYPE_VEC3, vertex_count, normals))
+				return false;
+
+			vector_t<f32> tangents;
+			const i32	  tangent_accessor = find_attribute(primitive, "TANGENT");
+			if (tangent_accessor >= 0 && !read_float_attribute(model, tangent_accessor, TG3_TYPE_VEC4, vertex_count, tangents))
+				return false;
+
+			vector_t<f32> uvs;
+			const i32	  uv_accessor = find_attribute(primitive, "TEXCOORD_0");
+			if (uv_accessor >= 0 && !read_float_attribute(model, uv_accessor, TG3_TYPE_VEC2, vertex_count, uvs))
+				return false;
+
+			out.vertices.resize(vertex_count);
+			out.material_index = material_index;
+			for (u32 i = 0; i < vertex_count; ++i)
+			{
+				vertex_static_t& vertex = out.vertices[i];
+				vertex.pos				= {positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]};
+				if (!normals.empty())
+					vertex.normal = {normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]};
+				if (!tangents.empty())
+					vertex.tangent = {tangents[i * 4], tangents[i * 4 + 1], tangents[i * 4 + 2], tangents[i * 4 + 3]};
+				if (!uvs.empty())
+					vertex.uv = {uvs[i * 2], uvs[i * 2 + 1]};
+			}
+
+			return read_indices(model, primitive.indices, vertex_count, out.indices);
+		}
+
+		bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_skinned_def_t& out)
+		{
+			if (primitive.mode != TG3_MODE_TRIANGLES)
+				return false;
+
+			const u32 vertex_count = get_primitive_vertex_count(model, primitive);
+			if (vertex_count == 0)
+				return false;
+
+			vector_t<f32> positions;
+			if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
+				return false;
+
+			vector_t<f32> normals;
+			const i32	  normal_accessor = find_attribute(primitive, "NORMAL");
+			if (normal_accessor >= 0 && !read_float_attribute(model, normal_accessor, TG3_TYPE_VEC3, vertex_count, normals))
+				return false;
+
+			vector_t<f32> tangents;
+			const i32	  tangent_accessor = find_attribute(primitive, "TANGENT");
+			if (tangent_accessor >= 0 && !read_float_attribute(model, tangent_accessor, TG3_TYPE_VEC4, vertex_count, tangents))
+				return false;
+
+			vector_t<f32> uvs;
+			const i32	  uv_accessor = find_attribute(primitive, "TEXCOORD_0");
+			if (uv_accessor >= 0 && !read_float_attribute(model, uv_accessor, TG3_TYPE_VEC2, vertex_count, uvs))
+				return false;
+
+			vector_t<f32> weights;
+			const i32	  weights_accessor = find_attribute(primitive, "WEIGHTS_0");
+			if (weights_accessor >= 0 && !read_float_attribute(model, weights_accessor, TG3_TYPE_VEC4, vertex_count, weights))
+				return false;
+
+			vector_t<vec4u_t> joints;
+			const i32		  joints_accessor = find_attribute(primitive, "JOINTS_0");
+			if (joints_accessor >= 0 && !read_joint_attribute(model, joints_accessor, vertex_count, joints))
+				return false;
+
+			out.vertices.resize(vertex_count);
+			out.material_index = material_index;
+			for (u32 i = 0; i < vertex_count; ++i)
+			{
+				vertex_skinned_t& vertex = out.vertices[i];
+				vertex.pos				 = {positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]};
+				if (!normals.empty())
+					vertex.normal = {normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]};
+				if (!tangents.empty())
+					vertex.tangent = {tangents[i * 4], tangents[i * 4 + 1], tangents[i * 4 + 2], tangents[i * 4 + 3]};
+				if (!uvs.empty())
+					vertex.uv = {uvs[i * 2], uvs[i * 2 + 1]};
+				if (!weights.empty())
+					vertex.bone_weights = {weights[i * 4], weights[i * 4 + 1], weights[i * 4 + 2], weights[i * 4 + 3]};
+				if (!joints.empty())
+					vertex.bone_indices = joints[i];
+			}
+
+			return read_indices(model, primitive.indices, vertex_count, out.indices);
+		}
+
 		bool import_texture(const editor_asset_node_t&		parent_node,
 							const char*						source_full_path,
 							const tg3_model&				model,
@@ -282,7 +551,7 @@ namespace sfg
 				return false;
 
 			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
-			if (buffer.data.data == nullptr || buffer_view.byte_offset > buffer.data.count || buffer_view.byte_length > buffer.data.count - buffer_view.byte_offset || buffer_view.byte_length > static_cast<u64>(std::numeric_limits<size_t>::max()))
+			if (buffer.data.data == nullptr || buffer_view.byte_offset > buffer.data.count || buffer_view.byte_length > buffer.data.count - buffer_view.byte_offset || buffer_view.byte_length > static_cast<u64>(std::numeric_limits<int>::max()))
 				return false;
 
 			const string_t extension = get_image_extension(image);
@@ -291,9 +560,37 @@ namespace sfg
 
 			texture_cook_config_t texture_config = texture_config_base;
 
+			int		   decoded_width	= 0;
+			int		   decoded_height	= 0;
+			int		   decoded_channels = 0;
+			stbi_uc*   decoded			= stbi_load_from_memory(buffer.data.data + buffer_view.byte_offset, static_cast<int>(buffer_view.byte_length), &decoded_width, &decoded_height, &decoded_channels, 4);
+			const bool decoded_valid	= decoded != nullptr && decoded_width > 0 && decoded_height > 0 && decoded_width <= UINT16_MAX && decoded_height <= UINT16_MAX;
+			if (!decoded_valid)
+			{
+				if (decoded != nullptr)
+					stbi_image_free(decoded);
+				return false;
+			}
+
+			const size_t decoded_size = static_cast<size_t>(decoded_width) * static_cast<size_t>(decoded_height) * 4;
+			u8*			 texture_data = static_cast<u8*>(SFG_MALLOC(decoded_size));
+			if (texture_data == nullptr)
+			{
+				stbi_image_free(decoded);
+				return false;
+			}
+
+			SFG_MEMCPY(texture_data, decoded, decoded_size);
+			stbi_image_free(decoded);
+
+			texture_config.size = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
+
 			editor_asset_t asset = {};
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
+			{
+				SFG_FREE(texture_data);
 				return false;
+			}
 
 			string_t asset_name;
 			asset_name = get_asset_name(texture.name);
@@ -316,31 +613,41 @@ namespace sfg
 				asset_name += std::to_string(texture_index);
 			}
 
-			const string_t source_path = editor_asset_util_t::make_unique_source_path(parent_node.full_path.c_str(), asset_name.c_str(), extension.c_str());
-			if (!serializer_t::write_to_file(string_view_t(reinterpret_cast<const char*>(buffer.data.data + buffer_view.byte_offset), static_cast<size_t>(buffer_view.byte_length)), source_path.c_str()))
-				return false;
-
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 
-			asset.version	  = editor_asset_t::VERSION;
-			asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type  = editor_asset_type_e::texture;
-			asset.source_type = editor_asset_source_type_e::file;
-
-			if (!editor_asset_util_t::set_source_relative_or_copy(asset, parent_node.full_path.c_str(), asset_name.c_str(), source_path.c_str()))
-				return false;
+			asset.version		  = editor_asset_t::VERSION;
+			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type	  = editor_asset_type_e::texture;
+			asset.source_type	  = editor_asset_source_type_e::data;
+			asset._transient_data = {.data = texture_data, .size = decoded_size};
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_FREE(texture_data);
 				return false;
+			}
+
+			if (!editor_asset_cooker_t::cook_texture(asset))
+			{
+				asset._transient_data = {};
+				return false;
+			}
 
 			out_texture_guid_map[texture_index] = asset.guid;
+			asset._transient_data				= {};
 			out_assets.push_back(asset);
 			return true;
 		}
 
-		bool import_material(
-			const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_material& material, u32 material_index, const hash_map_t<u32, sid_t>& texture_guid_map, frame_vector_t<editor_asset_t>& out_assets)
+		bool import_material(const editor_asset_node_t&		 parent_node,
+							 const char*					 source_full_path,
+							 const tg3_model&				 model,
+							 const tg3_material&			 material,
+							 u32							 material_index,
+							 const hash_map_t<u32, sid_t>&	 texture_guid_map,
+							 hash_map_t<u32, sid_t>&		 material_guid_map,
+							 frame_vector_t<editor_asset_t>& out_assets)
 		{
 			string_t asset_name = get_asset_name(material.name);
 			if (asset_name.empty())
@@ -403,6 +710,10 @@ namespace sfg
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				return false;
 
+			if (!editor_asset_cooker_t::cook_material(asset))
+				return false;
+
+			material_guid_map[material_index] = asset.guid;
 			out_assets.push_back(asset);
 			return true;
 		}
@@ -504,6 +815,132 @@ namespace sfg
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				return false;
 
+			if (!editor_asset_cooker_t::cook_skeleton(asset))
+				return false;
+
+			out_assets.push_back(asset);
+			return true;
+		}
+
+		bool build_mesh_def(const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, const char* name, mesh_def_t& out)
+		{
+			out.name = name;
+			out.materials.reserve(model.materials_count);
+			for (u32 i = 0; i < model.materials_count; ++i)
+			{
+				const auto it = material_guid_map.find(i);
+				out.materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+			}
+
+			bool is_skinned = false;
+			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
+			{
+				const tg3_mesh& mesh = meshes[mesh_i];
+				for (u32 primitive_i = 0; primitive_i < mesh.primitives_count; ++primitive_i)
+				{
+					const tg3_primitive& primitive = mesh.primitives[primitive_i];
+					is_skinned					   = is_skinned || find_attribute(primitive, "JOINTS_0") >= 0 || find_attribute(primitive, "WEIGHTS_0") >= 0;
+				}
+			}
+
+			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
+			{
+				const tg3_mesh& mesh = meshes[mesh_i];
+				for (u32 primitive_i = 0; primitive_i < mesh.primitives_count; ++primitive_i)
+				{
+					const tg3_primitive& primitive		= mesh.primitives[primitive_i];
+					const u32			 material_index = primitive.material >= 0 && static_cast<u32>(primitive.material) < out.materials.size() ? static_cast<u32>(primitive.material) : UINT32_MAX;
+					if (is_skinned)
+					{
+						primitive_skinned_def_t primitive_def = {};
+						if (!import_skinned_primitive(model, primitive, material_index, primitive_def))
+							return false;
+						out.skinned_primitives.push_back(std::move(primitive_def));
+					}
+					else
+					{
+						primitive_static_def_t primitive_def = {};
+						if (!import_static_primitive(model, primitive, material_index, primitive_def))
+							return false;
+						out.static_primitives.push_back(std::move(primitive_def));
+					}
+				}
+			}
+
+			vec3f_t bounds_min = {std::numeric_limits<f32>::max(), std::numeric_limits<f32>::max(), std::numeric_limits<f32>::max()};
+			vec3f_t bounds_max = {std::numeric_limits<f32>::lowest(), std::numeric_limits<f32>::lowest(), std::numeric_limits<f32>::lowest()};
+			bool	has_bounds = false;
+			for (const primitive_static_def_t& primitive : out.static_primitives)
+			{
+				for (const vertex_static_t& vertex : primitive.vertices)
+				{
+					bounds_min = vec3f_t::min(bounds_min, vertex.pos);
+					bounds_max = vec3f_t::max(bounds_max, vertex.pos);
+					has_bounds = true;
+				}
+			}
+			for (const primitive_skinned_def_t& primitive : out.skinned_primitives)
+			{
+				for (const vertex_skinned_t& vertex : primitive.vertices)
+				{
+					bounds_min = vec3f_t::min(bounds_min, vertex.pos);
+					bounds_max = vec3f_t::max(bounds_max, vertex.pos);
+					has_bounds = true;
+				}
+			}
+
+			if (!has_bounds)
+				return false;
+
+			out.local_bounds = aabb_t(bounds_min, bounds_max);
+			return true;
+		}
+
+		bool import_mesh(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, frame_vector_t<editor_asset_t>& out_assets)
+		{
+			SFG_ASSERT(meshes != nullptr);
+			SFG_ASSERT(mesh_count != 0);
+
+			string_t asset_name;
+			if (mesh_count == 1)
+				asset_name = get_asset_name(meshes[0].name);
+
+			if (asset_name.empty())
+			{
+				asset_name = file_system_t::get_filename_from_path(source_full_path);
+				asset_name += "_mesh";
+				if (mesh_count == 1)
+				{
+					const u32 mesh_index = static_cast<u32>(meshes - model.meshes);
+					asset_name += "_";
+					asset_name += std::to_string(mesh_index);
+				}
+			}
+
+			mesh_def_t mesh_def = {};
+			if (!build_mesh_def(model, meshes, mesh_count, material_guid_map, asset_name.c_str(), mesh_def))
+				return false;
+
+			editor_asset_t asset		 = {};
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+
+			asset.version		  = editor_asset_t::VERSION;
+			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type	  = editor_asset_type_e::mesh;
+			asset.source_type	  = editor_asset_source_type_e::data;
+			asset._transient_data = {.data = reinterpret_cast<u8*>(&mesh_def), .size = sizeof(mesh_def_t)};
+
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+				return false;
+
+			if (!editor_asset_cooker_t::cook_mesh(asset))
+			{
+				asset._transient_data = {};
+				return false;
+			}
+
+			asset._transient_data = {};
 			out_assets.push_back(asset);
 			return true;
 		}
@@ -548,13 +985,27 @@ namespace sfg
 			hash_map_t<u32, sid_t> texture_guid_map;
 			texture_guid_map.reserve(model.textures_count);
 
-			out_assets.reserve(out_assets.size() + model.textures_count + model.skins_count + model.materials_count);
+			out_assets.reserve(out_assets.size() + model.textures_count + model.skins_count + model.materials_count + (cook_config.combine_meshes ? 1 : model.meshes_count));
 			for (u32 i = 0; i < model.textures_count; ++i)
 			{
 				if (!import_texture(parent_node, source_full_path, model, model.textures[i], texture_config, i, texture_guid_map, out_assets))
 				{
 					result = false;
 					break;
+				}
+			}
+
+			hash_map_t<u32, sid_t> material_guid_map;
+			material_guid_map.reserve(model.materials_count);
+			if (result)
+			{
+				for (u32 i = 0; i < model.materials_count; ++i)
+				{
+					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_guid_map, material_guid_map, out_assets))
+					{
+						result = false;
+						break;
+					}
 				}
 			}
 
@@ -570,14 +1021,21 @@ namespace sfg
 				}
 			}
 
-			if (result)
+			if (result && model.meshes_count != 0)
 			{
-				for (u32 i = 0; i < model.materials_count; ++i)
+				if (cook_config.combine_meshes)
 				{
-					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_guid_map, out_assets))
+					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, out_assets);
+				}
+				else
+				{
+					for (u32 i = 0; i < model.meshes_count; ++i)
 					{
-						result = false;
-						break;
+						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, out_assets))
+						{
+							result = false;
+							break;
+						}
 					}
 				}
 			}
