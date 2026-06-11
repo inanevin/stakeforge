@@ -108,8 +108,11 @@ namespace sfg
 		stream >> blob_size;
 
 		ktxTexture2*   ktx_texture = nullptr;
-		KTX_error_code ktx_result  = ktxTexture2_CreateFromMemory(stream.get_data_current(), blob_size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktx_texture);
+		KTX_error_code ktx_result  = ktxTexture2_CreateFromMemory(stream.get_data_current(), blob_size, 0, &ktx_texture);
 		stream.skip_by(blob_size);
+
+		if (ktx_result == KTX_SUCCESS)
+			ktx_result = ktxTexture2_LoadImageData(ktx_texture, nullptr, 0);
 
 		if (ktx_result == KTX_SUCCESS && ktxTexture2_NeedsTranscoding(ktx_texture))
 			ktx_result = ktxTexture2_TranscodeBasis(ktx_texture, KTX_TTF_BC7_RGBA, KTX_TF_HIGH_QUALITY);

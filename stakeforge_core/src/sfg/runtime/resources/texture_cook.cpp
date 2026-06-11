@@ -49,6 +49,7 @@ namespace sfg
 {
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM 37
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	 43
+#define SFG_KTX_ZSTD_COMPRESSION_LEVEL	 3
 
 	namespace
 	{
@@ -137,9 +138,12 @@ namespace sfg
 					basis_params.structSize		= sizeof(basis_params);
 					basis_params.uastc			= KTX_TRUE;
 					basis_params.uastcFlags		= KTX_PACK_UASTC_LEVEL_DEFAULT | KTX_PACK_UASTC_FAVOR_BC7_ERROR;
-					basis_params.threadCount	= 3;
+					basis_params.threadCount	= 4;
 					ktx_result					= ktxTexture2_CompressBasisEx(ktx_texture, &basis_params);
 				}
+
+				if (ktx_result == KTX_SUCCESS)
+					ktx_result = ktxTexture2_DeflateZstd(ktx_texture, SFG_KTX_ZSTD_COMPRESSION_LEVEL);
 
 				ktx_uint8_t* ktx_bytes = nullptr;
 				ktx_size_t	 ktx_size  = 0;
@@ -212,6 +216,7 @@ namespace sfg
 
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB
+#undef SFG_KTX_ZSTD_COMPRESSION_LEVEL
 }
 
 namespace sfg
