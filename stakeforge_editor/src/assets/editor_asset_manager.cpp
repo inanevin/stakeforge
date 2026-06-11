@@ -426,7 +426,7 @@ namespace sfg
 			}
 			else
 			{
-				istream_t					stream		  = serializer_t::load_from_file(cache_path.c_str());
+				istream_t					stream		  = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
 				const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
 				SFG_ASSERT(resource_desc != nullptr);
 				if (stream.empty())
