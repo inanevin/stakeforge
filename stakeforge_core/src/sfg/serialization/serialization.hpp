@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string_view.hpp>
 
 namespace sfg
@@ -40,6 +41,7 @@ namespace sfg
 		static bool		 save_to_file(const char* path, const ostream_t& stream);
 		static bool		 save_to_file_compressed(const char* path, const ostream_t& stream);
 		static istream_t load_from_file(const char* path);
+		static istream_t load_from_file_slice(const char* path, u64 offset, u64 size);
 		static istream_t load_from_file_compressed(const char* path);
 	};
 

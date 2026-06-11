@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <fstream>
 #include <filesystem>
+#include <limits>
 
 namespace sfg
 {
@@ -109,6 +110,66 @@ namespace sfg
 		// Create
 		istream_t read_stream;
 		read_stream.create(nullptr, size);
+		read_stream.read_from_ifstream(rf);
+		rf.close();
+
+		if (!rf.good())
+		{
+			SFG_ERR("error occured while reading the file! {0}", path);
+			read_stream.destroy();
+			return {};
+		}
+
+		return read_stream;
+	}
+
+	istream_t serializer_t::load_from_file_slice(const char* path, u64 offset, u64 size)
+	{
+		if (!file_system_t::exists(path))
+		{
+			SFG_ERR("file doesn't exists: {0}", path);
+			return {};
+		}
+
+		const u64 file_size = static_cast<u64>(std::filesystem::file_size(path));
+		if (offset > file_size || size > file_size - offset)
+		{
+			SFG_ERR("file slice out of range: {0}", path);
+			return {};
+		}
+
+		if (offset > static_cast<u64>((std::numeric_limits<std::streamoff>::max)()))
+		{
+			SFG_ERR("file slice offset is too large: {0}", path);
+			return {};
+		}
+
+		if (size > static_cast<u64>((std::numeric_limits<size_t>::max)()))
+		{
+			SFG_ERR("file slice size is too large: {0}", path);
+			return {};
+		}
+
+		if (size == 0)
+			return {};
+
+		std::ifstream rf(path, std::ios::in | std::ios::binary);
+
+		if (!rf)
+		{
+			SFG_ERR("could not open file for reading! {0}", path);
+			return istream_t();
+		}
+
+		rf.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
+		if (!rf.good())
+		{
+			SFG_ERR("error occured while seeking the file! {0}", path);
+			return {};
+		}
+
+		istream_t read_stream;
+		read_stream.create(nullptr, static_cast<size_t>(size));
 		read_stream.read_from_ifstream(rf);
 		rf.close();
 
