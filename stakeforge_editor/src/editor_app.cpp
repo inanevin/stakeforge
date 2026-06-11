@@ -62,6 +62,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define EDITOR_RAW_WHEEL_DELTA 120.0f
+
 	namespace
 	{
 		vec2u16_t get_layout_window_size(const editor_layout_window_t& window)
@@ -120,9 +122,11 @@ namespace sfg
 			}
 			break;
 		}
-		case window_event_type_e::wheel:
-			ui.on_wheel(static_cast<f32>(ev.value.y));
+		case window_event_type_e::wheel: {
+			const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
+			ui.on_wheel(delta);
 			break;
+		}
 		case window_event_type_e::key: {
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);

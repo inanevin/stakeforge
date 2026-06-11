@@ -61,6 +61,7 @@ namespace sfg
 		void init(ui::ui_context& ui, const editor_scrollbar_config_t& config);
 		void uninit();
 		void scroll_to_end_y();
+		void scroll_y(f32 delta);
 
 	private:
 		enum class axis_e : u8
@@ -79,6 +80,8 @@ namespace sfg
 
 		void update_axis(axis_state_t& axis);
 		void set_scroll(axis_e axis, f32 value);
+		void set_scroll_immediate(axis_e axis, f32 value);
+		void update_wheel_scroll(f32 dt_seconds);
 		void scroll_track_to(axis_state_t& axis, const vec2f_t& pos);
 
 		static void on_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
@@ -87,11 +90,14 @@ namespace sfg
 		static void on_thumb_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
-		ui::ui_context*			  _ui	   = nullptr;
-		ui::widget_id_t			  _root	   = NULL_WIDGET;
-		editor_scrollbar_config_t _config  = {};
-		axis_state_t			  _x	   = {};
-		axis_state_t			  _y	   = {};
-		bool					  _stick_y = false;
+		ui::ui_context*			  _ui					  = nullptr;
+		ui::widget_id_t			  _root					  = NULL_WIDGET;
+		editor_scrollbar_config_t _config				  = {};
+		axis_state_t			  _x					  = {};
+		axis_state_t			  _y					  = {};
+		f32						  _scroll_target_y		  = 0.0f;
+		f32						  _scroll_velocity_y	  = 0.0f;
+		bool					  _stick_y				  = false;
+		bool					  _scroll_target_y_active = false;
 	};
 }

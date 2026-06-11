@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/math/easing.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -34,9 +35,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_SCROLLBAR_THICKNESS	6.0f
-#define EDITOR_SCROLLBAR_MIN_THUMB	20.0f
-#define EDITOR_SCROLLBAR_WHEEL_STEP 32.0f
+#define EDITOR_SCROLLBAR_THICKNESS		   6.0f
+#define EDITOR_SCROLLBAR_MIN_THUMB		   20.0f
+#define EDITOR_SCROLLBAR_WHEEL_STEP		   32.0f
+#define EDITOR_SCROLLBAR_WHEEL_SMOOTH_TIME 0.08f
+#define EDITOR_SCROLLBAR_WHEEL_MAX_SPEED   6000.0f
+#define EDITOR_SCROLLBAR_WHEEL_SNAP_EPS	   0.05f
 
 	namespace
 	{
@@ -140,17 +144,39 @@ namespace sfg
 		_ui->get_input().clear_listener(_config.target);
 		_ui->deallocate_widget(_root);
 
-		_ui		 = nullptr;
-		_root	 = NULL_WIDGET;
-		_config	 = {};
-		_x		 = {};
-		_y		 = {};
-		_stick_y = false;
+		_ui						= nullptr;
+		_root					= NULL_WIDGET;
+		_config					= {};
+		_x						= {};
+		_y						= {};
+		_scroll_target_y		= 0.0f;
+		_scroll_velocity_y		= 0.0f;
+		_stick_y				= false;
+		_scroll_target_y_active = false;
 	}
 
 	void editor_scrollbar_t::scroll_to_end_y()
 	{
-		_stick_y = true;
+		_stick_y				= true;
+		_scroll_target_y_active = false;
+		_scroll_velocity_y		= 0.0f;
+	}
+
+	void editor_scrollbar_t::scroll_y(f32 delta)
+	{
+		if ((_config.axes & editor_scrollbar_axis_y) == 0)
+			return;
+
+		ui::layout_tree_t&		tree = _ui->get_tree();
+		ui::layout_in_t&		in	 = tree.in(_config.target);
+		const ui::layout_out_t& out	 = tree.out(_config.target);
+		if (out.max_scroll.y <= 0.0f)
+			return;
+
+		const f32 base			= _scroll_target_y_active ? _scroll_target_y : in.scroll_offset.y;
+		_scroll_target_y		= math::clamp(base + delta * EDITOR_SCROLLBAR_WHEEL_STEP, -out.max_scroll.y, 0.0f);
+		_scroll_target_y_active = true;
+		_stick_y				= false;
 	}
 
 	void editor_scrollbar_t::update_axis(axis_state_t& axis)
@@ -214,6 +240,45 @@ namespace sfg
 			in.scroll_offset.y = math::clamp(value, -out.max_scroll.y, 0.0f);
 	}
 
+	void editor_scrollbar_t::set_scroll_immediate(axis_e axis, f32 value)
+	{
+		set_scroll(axis, value);
+		if (axis == axis_e::y)
+		{
+			const ui::layout_in_t& in = _ui->get_tree().in_const(_config.target);
+			_scroll_target_y		  = in.scroll_offset.y;
+			_scroll_velocity_y		  = 0.0f;
+			_scroll_target_y_active	  = false;
+		}
+	}
+
+	void editor_scrollbar_t::update_wheel_scroll(f32 dt_seconds)
+	{
+		if (!_scroll_target_y_active)
+			return;
+
+		ui::layout_tree_t&		tree = _ui->get_tree();
+		ui::layout_in_t&		in	 = tree.in(_config.target);
+		const ui::layout_out_t& out	 = tree.out(_config.target);
+		if (out.max_scroll.y <= 0.0f)
+		{
+			set_scroll_immediate(axis_e::y, 0.0f);
+			return;
+		}
+
+		_scroll_target_y = math::clamp(_scroll_target_y, -out.max_scroll.y, 0.0f);
+
+		const f32 dt   = math::max(dt_seconds, 0.0001f);
+		const f32 next = easing_t::smooth_damp(in.scroll_offset.y, _scroll_target_y, &_scroll_velocity_y, EDITOR_SCROLLBAR_WHEEL_SMOOTH_TIME, EDITOR_SCROLLBAR_WHEEL_MAX_SPEED, dt);
+		if (math::abs(next - _scroll_target_y) <= EDITOR_SCROLLBAR_WHEEL_SNAP_EPS && math::abs(_scroll_velocity_y) <= EDITOR_SCROLLBAR_WHEEL_SNAP_EPS)
+		{
+			set_scroll_immediate(axis_e::y, _scroll_target_y);
+			return;
+		}
+
+		set_scroll(axis_e::y, next);
+	}
+
 	void editor_scrollbar_t::scroll_track_to(axis_state_t& axis, const vec2f_t& pos)
 	{
 		ui::layout_tree_t&		tree	   = _ui->get_tree();
@@ -227,10 +292,10 @@ namespace sfg
 		const f32				mouse_pos  = axis.axis == axis_e::x ? pos.x : pos.y;
 		const f32				range	   = math::max(1.0f, track_size - thumb_size);
 		const f32				ratio	   = math::clamp((mouse_pos - track_pos - thumb_size * 0.5f) / range, 0.0f, 1.0f);
-		set_scroll(axis.axis, -ratio * max_scroll);
+		set_scroll_immediate(axis.axis, -ratio * max_scroll);
 	}
 
-	void editor_scrollbar_t::on_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_scrollbar_t::on_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
 	{
 		editor_scrollbar_t&		scrollbar  = *static_cast<editor_scrollbar_t*>(user_data);
 		ui::layout_tree_t&		tree	   = scrollbar._ui->get_tree();
@@ -241,7 +306,9 @@ namespace sfg
 		root_in.size_value				   = target_out.size / ui_scale;
 
 		if (scrollbar._stick_y)
-			scrollbar.set_scroll(axis_e::y, -target_out.max_scroll.y);
+			scrollbar.set_scroll_immediate(axis_e::y, -target_out.max_scroll.y);
+		else
+			scrollbar.update_wheel_scroll(dt_seconds);
 		scrollbar.update_axis(scrollbar._x);
 		scrollbar.update_axis(scrollbar._y);
 		if (scrollbar._stick_y)
@@ -251,11 +318,7 @@ namespace sfg
 	void editor_scrollbar_t::on_target_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)
 	{
 		editor_scrollbar_t& scrollbar = *static_cast<editor_scrollbar_t*>(user_data);
-		ui::layout_tree_t&	tree	  = scrollbar._ui->get_tree();
-		ui::layout_in_t&	in		  = tree.in(scrollbar._config.target);
-		const f32			current	  = in.scroll_offset.y;
-		scrollbar.set_scroll(axis_e::y, current + delta * EDITOR_SCROLLBAR_WHEEL_STEP);
-		scrollbar._stick_y = false;
+		scrollbar.scroll_y(delta);
 	}
 
 	void editor_scrollbar_t::on_track_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -282,7 +345,7 @@ namespace sfg
 		const f32				d		   = axis.axis == axis_e::x ? delta.x : delta.y;
 		ui::layout_in_t&		in		   = tree.in(axis.owner->_config.target);
 		const f32				current	   = axis.axis == axis_e::x ? in.scroll_offset.x : in.scroll_offset.y;
-		axis.owner->set_scroll(axis.axis, current - d * max_scroll / range);
+		axis.owner->set_scroll_immediate(axis.axis, current - d * max_scroll / range);
 		axis.owner->_stick_y = false;
 	}
 }

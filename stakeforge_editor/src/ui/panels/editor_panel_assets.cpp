@@ -61,7 +61,6 @@ namespace sfg
 #define ASSETS_PANE_SPLIT_MAX				 0.35f
 #define ASSETS_SPLIT_BORDER_THICKNESS_MULT	 2.0f
 #define ASSETS_FOLDER_INDENT_MULT			 2.0f
-#define ASSETS_SCROLL_WHEEL_STEP			 32.0f
 #define ASSETS_INITIAL_ROW_CAPACITY			 64
 #define ASSETS_INITIAL_GRID_ITEM_CAPACITY	 128
 #define ASSETS_FILTER_ID_ALL				 0
@@ -2301,12 +2300,11 @@ namespace sfg
 
 	void editor_panel_assets_t::on_assets_body_wheel(ui::input_router_t&, ui::widget_id_t id, f32 delta, void* user_data)
 	{
-		editor_panel_assets_t&	panel  = *static_cast<editor_panel_assets_t*>(user_data);
-		ui::layout_tree_t&		tree   = panel._ui->get_tree();
-		const ui::widget_id_t	target = id == panel._assets_body_pane_top ? panel._assets_body_pane_top : panel._assets_left_pane_body;
-		ui::layout_in_t&		in	   = tree.in(target);
-		const ui::layout_out_t& out	   = tree.out(target);
-		in.scroll_offset.y			   = math::clamp(in.scroll_offset.y + delta * ASSETS_SCROLL_WHEEL_STEP, -out.max_scroll.y, 0.0f);
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		if (id == panel._assets_body_pane_top)
+			panel._right_scrollbar.scroll_y(delta);
+		else
+			panel._left_scrollbar.scroll_y(delta);
 	}
 
 	void editor_panel_assets_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)
