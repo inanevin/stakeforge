@@ -1065,15 +1065,36 @@ namespace sfg
 
 			hash_map_t<u32, sid_t> texture_guid_map;
 			texture_guid_map.reserve(model.textures_count);
+			hash_map_t<u64, sid_t> imported_texture_guid_map;
+			imported_texture_guid_map.reserve(model.textures_count);
 
 			out_assets.reserve(out_assets.size() + model.textures_count + model.skins_count + model.materials_count + (cook_config.combine_meshes ? 1 : model.meshes_count));
 			for (u32 i = 0; i < model.textures_count; ++i)
 			{
-				if (!import_texture(parent_node, source_full_path, model, model.textures[i], texture_config, i, texture_guid_map, context, out_assets))
+				const tg3_texture& texture = model.textures[i];
+				if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
 				{
 					result = false;
 					break;
 				}
+
+				const u64  texture_import_key  = (static_cast<u64>(static_cast<u32>(texture.source)) << 32) | static_cast<u32>(texture.sampler);
+				const auto imported_texture_it = imported_texture_guid_map.find(texture_import_key);
+				if (imported_texture_it != imported_texture_guid_map.end())
+				{
+					texture_guid_map[i] = imported_texture_it->second;
+					continue;
+				}
+
+				if (!import_texture(parent_node, source_full_path, model, texture, texture_config, i, texture_guid_map, context, out_assets))
+				{
+					result = false;
+					break;
+				}
+
+				const auto texture_guid_it = texture_guid_map.find(i);
+				SFG_ASSERT(texture_guid_it != texture_guid_map.end());
+				imported_texture_guid_map[texture_import_key] = texture_guid_it->second;
 			}
 
 			hash_map_t<u32, sid_t> material_guid_map;
