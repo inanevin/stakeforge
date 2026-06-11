@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_assets.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_importer.hpp"
-#include "assets/editor_asset_types.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_action_menu_controller.hpp"
@@ -1494,21 +1493,18 @@ namespace sfg
 
 	void editor_panel_assets_t::submit_pending_import()
 	{
-		frame_vector_t<editor_asset_t> imported_assets;
-		imported_assets.reserve(_pending_import_paths.size());
-		const span_t<const editor_asset_import_options_t> import_options = {
-			.data = _pending_import_options.data(),
-			.size = _pending_import_options.size(),
-		};
-
+		frame_vector_t<string_t> import_paths;
+		import_paths.reserve(_pending_import_paths.size());
 		for (const string_t& path : _pending_import_paths)
-			editor_asset_importer_t::import_asset(_selected_folder_node, path.c_str(), import_options, imported_assets);
+			import_paths.push_back(path);
 
+		frame_vector_t<editor_asset_import_options_t> import_options;
+		import_options.reserve(_pending_import_options.size());
+		for (const editor_asset_import_options_t& option : _pending_import_options)
+			import_options.push_back(option);
+
+		editor_asset_manager_t::get().cook_assets(_selected_folder_node, import_paths, import_options);
 		clear_pending_import();
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
-		asset_manager.ensure_integrity();
-		refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::clear_pending_import()

@@ -193,7 +193,9 @@ namespace sfg
 			SFG_ASSERT(path[0] != '\0');
 			SFG_ASSERT(data != nullptr);
 			SFG_ASSERT(size != 0);
-			return serializer_t::write_to_file(string_view_t(reinterpret_cast<const char*>(data), size), path);
+			ostream_t stream;
+			stream.write_raw(data, size);
+			return serializer_t::save_to_file_compressed(path, stream);
 		}
 
 		sid_t get_sampler_guid(const tg3_model& model, const tg3_material& material)
@@ -542,14 +544,14 @@ namespace sfg
 			return read_indices(model, primitive.indices, vertex_count, out.indices);
 		}
 
-		bool import_texture(const editor_asset_node_t&		parent_node,
-							const char*						source_full_path,
-							const tg3_model&				model,
-							const tg3_texture&				texture,
-							const texture_cook_config_t&	texture_config_base,
-							u32								texture_index,
-							hash_map_t<u32, sid_t>&			out_texture_guid_map,
-							frame_vector_t<editor_asset_t>& out_assets)
+		bool import_texture(const editor_asset_node_t&	 parent_node,
+							const char*					 source_full_path,
+							const tg3_model&			 model,
+							const tg3_texture&			 texture,
+							const texture_cook_config_t& texture_config_base,
+							u32							 texture_index,
+							hash_map_t<u32, sid_t>&		 out_texture_guid_map,
+							vector_t<editor_asset_t>&	 out_assets)
 		{
 			if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
 				return false;
@@ -652,14 +654,14 @@ namespace sfg
 			return true;
 		}
 
-		bool import_material(const editor_asset_node_t&		 parent_node,
-							 const char*					 source_full_path,
-							 const tg3_model&				 model,
-							 const tg3_material&			 material,
-							 u32							 material_index,
-							 const hash_map_t<u32, sid_t>&	 texture_guid_map,
-							 hash_map_t<u32, sid_t>&		 material_guid_map,
-							 frame_vector_t<editor_asset_t>& out_assets)
+		bool import_material(const editor_asset_node_t&	   parent_node,
+							 const char*				   source_full_path,
+							 const tg3_model&			   model,
+							 const tg3_material&		   material,
+							 u32						   material_index,
+							 const hash_map_t<u32, sid_t>& texture_guid_map,
+							 hash_map_t<u32, sid_t>&	   material_guid_map,
+							 vector_t<editor_asset_t>&	   out_assets)
 		{
 			string_t asset_name = get_asset_name(material.name);
 			if (asset_name.empty())
@@ -730,7 +732,7 @@ namespace sfg
 			return true;
 		}
 
-		bool import_skeleton(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, frame_vector_t<editor_asset_t>& out_assets)
+		bool import_skeleton(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, vector_t<editor_asset_t>& out_assets)
 		{
 			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
 				return false;
@@ -908,7 +910,7 @@ namespace sfg
 			return true;
 		}
 
-		bool import_mesh(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, frame_vector_t<editor_asset_t>& out_assets)
+		bool import_mesh(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, vector_t<editor_asset_t>& out_assets)
 		{
 			SFG_ASSERT(meshes != nullptr);
 			SFG_ASSERT(mesh_count != 0);
@@ -960,7 +962,7 @@ namespace sfg
 		}
 	}
 
-	bool editor_glb_importer_t::import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, frame_vector_t<editor_asset_t>& out_assets)
+	bool editor_glb_importer_t::import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, vector_t<editor_asset_t>& out_assets)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(!directory_node.is_null());

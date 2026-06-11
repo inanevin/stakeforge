@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_creator.hpp"
-#include "assets/editor_asset_types.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -43,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
@@ -57,6 +57,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define EDITOR_ASSET_COLOR(R, G, B) color_t::from255(R, G, B, 255.0f).srgb_to_linear().to_vector()
+
 	namespace
 	{
 		editor_asset_manager_t* s_instance = nullptr;
@@ -99,18 +101,18 @@ namespace sfg
 		s_instance = this;
 		_asset_descriptors.clear();
 		_asset_descriptors.reserve(static_cast<size_t>(editor_asset_type_e::count) - 1);
-		editor_asset_loader_audio_t::register_type();
-		editor_asset_loader_font_t::register_type();
-		editor_asset_loader_mesh_t::register_type();
-		editor_asset_loader_skeleton_t::register_type();
-		editor_asset_loader_animation_t::register_type();
-		editor_asset_loader_material_t::register_type();
-		editor_asset_loader_shader_t::register_type();
-		editor_asset_loader_texture_t::register_type();
-		editor_asset_loader_texture_sampler_t::register_type();
-		editor_asset_loader_physical_material_t::register_type();
-		editor_asset_loader_prefab_t::register_type();
-		editor_asset_loader_animation_state_machine_t::register_type();
+		register_descriptor({.extensions = {"mp3"}, .display_name = "Audio", .color = EDITOR_ASSET_COLOR(64.0f, 177.0f, 255.0f), .asset_type = editor_asset_type_e::audio});
+		register_descriptor({.extensions = {"ttf"}, .display_name = "Font", .color = EDITOR_ASSET_COLOR(245.0f, 194.0f, 82.0f), .asset_type = editor_asset_type_e::font});
+		register_descriptor({.extensions = {"glb"}, .display_name = "Mesh", .color = EDITOR_ASSET_COLOR(158.0f, 120.0f, 255.0f), .asset_type = editor_asset_type_e::mesh});
+		register_descriptor({.display_name = "Skeleton", .color = EDITOR_ASSET_COLOR(184.0f, 155.0f, 255.0f), .asset_type = editor_asset_type_e::skeleton});
+		register_descriptor({.display_name = "Animation", .color = EDITOR_ASSET_COLOR(255.0f, 129.0f, 80.0f), .asset_type = editor_asset_type_e::animation});
+		register_descriptor({.display_name = "Material", .color = EDITOR_ASSET_COLOR(255.0f, 102.0f, 0.0f), .asset_type = editor_asset_type_e::material});
+		register_descriptor({.extensions = {"hlsl"}, .display_name = "Shader", .color = EDITOR_ASSET_COLOR(90.0f, 190.0f, 255.0f), .asset_type = editor_asset_type_e::shader});
+		register_descriptor({.extensions = {"png", "jpg", "jpeg"}, .display_name = "Texture", .color = EDITOR_ASSET_COLOR(151.0f, 0.0f, 119.0f), .asset_type = editor_asset_type_e::texture});
+		register_descriptor({.display_name = "Texture Sampler", .color = EDITOR_ASSET_COLOR(180.0f, 0.0f, 119.0f), .asset_type = editor_asset_type_e::texture_sampler});
+		register_descriptor({.display_name = "Physical Material", .color = EDITOR_ASSET_COLOR(214.0f, 65.0f, 57.0f), .asset_type = editor_asset_type_e::physical_material});
+		register_descriptor({.display_name = "Prefab", .color = EDITOR_ASSET_COLOR(107.0f, 210.0f, 132.0f), .asset_type = editor_asset_type_e::prefab});
+		register_descriptor({.display_name = "State Machine", .color = EDITOR_ASSET_COLOR(245.0f, 118.0f, 182.0f), .asset_type = editor_asset_type_e::animation_state_machine});
 		clear();
 		return true;
 	}
@@ -121,7 +123,8 @@ namespace sfg
 		if (_cook_in_progress)
 			job_system_t::get().wait_for_all();
 		clear();
-		_cook_assets.clear();
+		_import_paths.clear();
+		_import_options.clear();
 		_cook_status_texts.clear();
 		_asset_descriptors.clear();
 		_cooked_count.store(0, std::memory_order_relaxed);
@@ -152,8 +155,11 @@ namespace sfg
 			return;
 
 		modal.close_modal();
-		_cook_assets.resize(0);
+		rescan(editor_project_t::get()._runtime.assets_path);
+		_import_paths.resize(0);
+		_import_options.resize(0);
 		_cook_status_texts.resize(0);
+		_import_directory_node	= {};
 		_total_cook_count		= 0;
 		_last_cook_status_index = 0;
 		_cook_in_progress		= false;
@@ -441,26 +447,32 @@ namespace sfg
 		}
 	}
 
-	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u32 size)
+	void editor_asset_manager_t::cook_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
 	{
 		SFG_ASSERT(!_cook_in_progress);
-		SFG_ASSERT(size != 0);
-		SFG_ASSERT(assets != nullptr);
+		SFG_ASSERT(!directory_node.is_null());
+		SFG_ASSERT(_asset_tree.is_valid(directory_node));
+		SFG_ASSERT(!paths.empty());
+		SFG_ASSERT(!import_options.empty());
 
-		_cook_assets.resize(0);
-		_cook_assets.reserve(size);
+		_import_directory_node = directory_node;
+		_import_paths.resize(0);
+		_import_paths.reserve(paths.size());
+		_import_options.resize(0);
+		_import_options.reserve(import_options.size());
 		_cook_status_texts.resize(0);
-		_cook_status_texts.reserve(size);
-		for (u32 i = 0; i < size; ++i)
+		_cook_status_texts.reserve(paths.size());
+		for (const string_t& path : paths)
 		{
-			_cook_assets.push_back(assets[i]);
-			assets[i]._transient_data = {};
-			_cook_status_texts.push_back(assets[i].source_relative.empty() ? "cooking" : assets[i].source_relative);
+			_import_paths.push_back(path);
+			_cook_status_texts.push_back(path);
 		}
+		for (const editor_asset_import_options_t& option : import_options)
+			_import_options.push_back(option);
 
 		_cooked_count.store(0, std::memory_order_relaxed);
 		_cook_finished.store(false, std::memory_order_relaxed);
-		_total_cook_count		= size;
+		_total_cook_count		= static_cast<u32>(_import_paths.size());
 		_last_cook_status_index = 0;
 		_cook_in_progress		= true;
 
@@ -470,11 +482,15 @@ namespace sfg
 		modal.request_modal("Cooking Assets", _cook_status_texts[0].c_str(), false, nullptr, 0, &progress_content);
 
 		job_system_t::get().silent_async([this]() {
-			for (size_t i = 0; i < _cook_assets.size(); ++i)
+			vector_t<editor_asset_t>					  imported_assets;
+			const span_t<const editor_asset_import_options_t> options = {
+				.data = _import_options.data(),
+				.size = _import_options.size(),
+			};
+			for (const string_t& path : _import_paths)
 			{
-				const editor_asset_t& asset = _cook_assets[i];
-				if (!editor_asset_cooker_t::cook_asset(asset))
-					SFG_ERR("failed cooking asset {0}", asset.guid);
+				if (!editor_asset_importer_t::import_asset(_import_directory_node, path.c_str(), options, imported_assets))
+					SFG_ERR("failed importing asset {0}", path.c_str());
 				_cooked_count.fetch_add(1, std::memory_order_relaxed);
 			}
 			_cook_finished.store(true, std::memory_order_release);

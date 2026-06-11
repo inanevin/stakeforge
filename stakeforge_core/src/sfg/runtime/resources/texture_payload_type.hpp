@@ -45,4 +45,6 @@ namespace sfg
 	{
 		texture_payload_type_reflection_t();
 	};
+
+	inline texture_payload_type_reflection_t g_reflect_texture_payload_type;
 }

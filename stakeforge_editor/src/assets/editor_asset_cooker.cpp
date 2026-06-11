@@ -71,13 +71,6 @@ namespace sfg
 			ostream_t stream = make_resource_stream(header, compressed);
 			return serializer_t::save_to_file(cache_path.c_str(), stream);
 		}
-
-		bool read_source_blob(const editor_asset_t& asset, char*& out_data, size_t& out_size)
-		{
-			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-			file_system_t::read_file(source_full_path.c_str(), out_data, out_size);
-			return out_data != nullptr && out_size != 0;
-		}
 	}
 
 	bool editor_asset_cooker_t::cook_asset(const editor_asset_t& asset)
@@ -235,13 +228,12 @@ namespace sfg
 		}
 		else if (asset.source_type == editor_asset_source_type_e::file_blob)
 		{
-			char*  blob_data = nullptr;
-			size_t blob_size = 0;
-			if (!read_source_blob(asset, blob_data, blob_size))
+			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+			istream_t	   blob_stream		= serializer_t::load_from_file_compressed(source_full_path.c_str());
+			if (blob_stream.empty())
 				return false;
 
-			cooked = texture_cooker::cook_from_data(config, {.data = reinterpret_cast<u8*>(blob_data), .size = blob_size}, header, stream);
-			delete[] blob_data;
+			cooked = texture_cooker::cook_from_data(config, {.data = blob_stream.get_raw(), .size = blob_stream.get_size()}, header, stream);
 		}
 		else
 		{
@@ -279,40 +271,20 @@ namespace sfg
 	bool editor_asset_cooker_t::cook_mesh(const editor_asset_t& asset)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::mesh);
-		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob || asset.source_type == editor_asset_source_type_e::data);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
 
-		mesh_def_t		  def		= {};
-		const bool		  file_blob = asset.source_type == editor_asset_source_type_e::file_blob;
-		char*			  blob_data = nullptr;
-		size_t			  blob_size = 0;
-		const mesh_def_t* def_ptr	= nullptr;
-		if (file_blob)
-		{
-			if (!read_source_blob(asset, blob_data, blob_size))
-				return false;
+		const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		istream_t	   mesh_def_stream	= serializer_t::load_from_file_compressed(source_full_path.c_str());
+		if (mesh_def_stream.empty())
+			return false;
 
-			istream_t mesh_def_stream(reinterpret_cast<u8*>(blob_data), blob_size);
-			if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &def, mesh_def_stream))
-			{
-				delete[] blob_data;
-				return false;
-			}
-
-			def_ptr = &def;
-		}
-		else
-		{
-			SFG_ASSERT(asset._transient_data.data != nullptr);
-			SFG_ASSERT(asset._transient_data.size == sizeof(mesh_def_t));
-			def_ptr = reinterpret_cast<const mesh_def_t*>(asset._transient_data.data);
-		}
+		mesh_def_t def = {};
+		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &def, mesh_def_stream))
+			return false;
 
 		ostream_t mesh_stream;
-		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, def_ptr, mesh_stream))
-		{
-			delete[] blob_data;
+		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, &def, mesh_stream))
 			return false;
-		}
 
 		const resource_header_t header = {
 			.magic		 = mesh_loader_t::WIRE_MAGIC,
@@ -320,8 +292,6 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(mesh_stream.get_raw(), mesh_stream.get_size()),
 		};
 
-		const bool result = save_cooked_asset(asset, header, mesh_stream);
-		delete[] blob_data;
-		return result;
+		return save_cooked_asset(asset, header, mesh_stream);
 	}
 }
