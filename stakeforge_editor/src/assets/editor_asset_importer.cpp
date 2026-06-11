@@ -67,6 +67,12 @@ namespace sfg
 		}
 	}
 
+	void editor_asset_import_context_t::report_status(const char* text) const
+	{
+		if (set_status != nullptr)
+			set_status(user_data, text);
+	}
+
 	bool editor_asset_importer_t::make_import_options(editor_asset_import_options_t& out_options, const char* asset_name)
 	{
 		SFG_ASSERT(asset_name != nullptr);
@@ -119,7 +125,7 @@ namespace sfg
 		return editor_asset_util_t::write_asset(asset_path.c_str(), asset);
 	}
 
-	bool editor_asset_importer_t::import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, vector_t<editor_asset_t>& out_assets)
+	bool editor_asset_importer_t::import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(!directory_node.is_null());
@@ -145,7 +151,7 @@ namespace sfg
 			return false;
 
 		if (import_type == editor_asset_import_type_e::model)
-			return editor_glb_importer_t::import_glb(directory_node, source_path.c_str(), import_options->glb_cook_config, out_assets);
+			return editor_glb_importer_t::import_glb(directory_node, source_path.c_str(), import_options->glb_cook_config, context, out_assets);
 
 		const string_t asset_name = file_system_t::get_filename_from_path(source_path);
 		if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
@@ -155,6 +161,9 @@ namespace sfg
 		switch (import_type)
 		{
 		case editor_asset_import_type_e::texture: {
+			string_t status = "Importing texture ";
+			status += asset_name;
+			context.report_status(status.c_str());
 			const texture_cook_config_t& texture_config = import_options->texture_cook_config;
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
 				return false;
@@ -165,6 +174,9 @@ namespace sfg
 			break;
 		}
 		case editor_asset_import_type_e::audio: {
+			string_t status = "Importing audio ";
+			status += asset_name;
+			context.report_status(status.c_str());
 			const audio_cook_config_t& audio_config = import_options->audio_cook_config;
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<audio_cook_config_t>::value, &audio_config, asset.cook_options))
 				return false;

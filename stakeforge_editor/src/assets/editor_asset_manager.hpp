@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
+#include <sfg/data/mutex.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/tree.hpp>
 #include <sfg/data/vector.hpp>
@@ -71,6 +72,7 @@ namespace sfg
 		void ensure_integrity();
 		void ensure_cook();
 		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
+		void set_import_status(const char* text);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -121,15 +123,17 @@ namespace sfg
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
 		vector_t<string_t>										   _import_paths;
 		vector_t<editor_asset_import_options_t>					   _import_options;
-		vector_t<string_t>										   import_status_texts;
-		editor_modal_progress_bar_t								   _cook_progress_modal = {};
+		string_t												   _import_status_pending;
+		string_t												   _import_status_visible;
+		editor_modal_progress_bar_t								   _import_progress_modal = {};
+		mutex_t													   _import_status_mtx;
 		atomic_t<u32>											   _imported_count		= 0;
 		atomic_t<bool>											   _import_finished		= false;
+		atomic_t<bool>											   _import_status_dirty = false;
 		editor_asset_node_handle_t								   _import_directory_node;
 		editor_asset_node_handle_t								   _root_node;
-		u32														   _generation			   = 0;
-		u32														   _total_import_count	   = 0;
-		u32														   _last_import_status_index = 0;
-		bool													   _import_in_progress	   = false;
+		u32														   _generation		   = 0;
+		u32														   _total_import_count = 0;
+		bool													   _import_in_progress = false;
 	};
 }

@@ -34,6 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct editor_asset_import_context_t;
+
 	class editor_glb_importer_t final
 	{
 	public:
@@ -42,6 +44,6 @@ namespace sfg
 		editor_glb_importer_t(const editor_glb_importer_t&)			   = delete;
 		editor_glb_importer_t& operator=(const editor_glb_importer_t&) = delete;
 
-		static bool import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, vector_t<editor_asset_t>& out_assets);
+		static bool import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets);
 	};
 }

@@ -52,6 +52,14 @@ namespace sfg
 		editor_asset_import_type_e type				   = editor_asset_import_type_e::invalid;
 	};
 
+	struct editor_asset_import_context_t
+	{
+		void* user_data									 = nullptr;
+		void (*set_status)(void* user_data, const char*) = nullptr;
+
+		void report_status(const char* text) const;
+	};
+
 	class editor_asset_importer_t final
 	{
 	public:
@@ -61,7 +69,7 @@ namespace sfg
 		editor_asset_importer_t& operator=(const editor_asset_importer_t&) = delete;
 
 		static bool make_import_options(editor_asset_import_options_t& out_options, const char* asset_name);
-		static bool import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, vector_t<editor_asset_t>& out_assets);
+		static bool import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets);
 
 	private:
 		static bool make_asset(editor_asset_node_handle_t directory_node, const char* asset_name, editor_asset_t& asset, editor_asset_type_e asset_type, editor_asset_source_type_e source_type, const char* source_full_path = nullptr);
