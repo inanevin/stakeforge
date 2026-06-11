@@ -178,6 +178,8 @@ namespace sfg
 		static void on_cook_options_cancelled(void* user_data);
 		static void on_search_changed(const char* value, void* user_data);
 		static void on_asset_search_changed(const char* value, void* user_data);
+		static void on_show_file_assets_pressed(bool toggled, void* user_data);
+		static void on_asset_favourites_only_pressed(bool toggled, void* user_data);
 		static u16	get_selected_item_style(void* user_data);
 		static void on_item_style_pressed(u16 value, void* user_data);
 		static void on_asset_tree_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
@@ -195,6 +197,8 @@ namespace sfg
 		editor_icon_button_t					_filter_button					 = {};
 		editor_icon_button_t					_import_button					 = {};
 		editor_icon_button_t					_refresh_button					 = {};
+		editor_icon_button_t					_show_file_assets_button		 = {};
+		editor_icon_button_t					_asset_favourites_only_button	 = {};
 		editor_input_field_t					_search_input					 = {};
 		editor_input_field_t					_asset_search_input				 = {};
 		editor_dropdown_t						_item_style_dropdown			 = {};
@@ -236,6 +240,8 @@ namespace sfg
 		f32										_pane_split						 = 0.3f;
 		asset_item_style_e						_asset_item_style				 = asset_item_style_e::grid;
 		bool									_favourites_only				 = false;
+		bool									_show_file_assets				 = false;
+		bool									_asset_favourites_only			 = false;
 		bool									_rename_popup_pending			 = false;
 		bool									_asset_rename_popup_pending		 = false;
 	};

@@ -391,12 +391,31 @@ namespace sfg
 		controls_in.anchor_y		 = ui::anchor_e::center;
 		controls_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		controls_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		controls_in.size_value		 = {theme.item_width * 2.0f + theme.item_spacing, theme.item_height};
 		controls_in.flow			 = ui::flow_e::row;
 		controls_in.child_spacing	 = theme.item_spacing;
 		controls_in.anchor_x		 = ui::anchor_e::end;
 		controls_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		controls_in.pos_value.x		 = 1.0f;
+		controls_in.size_value		 = {theme.item_width * 2.0f + theme.item_height * 2.0f + theme.item_spacing * 3.0f, theme.item_height};
+
+		editor_icon_button_config_t show_file_assets_config = filter_button_config;
+		show_file_assets_config.icon						= ICON_FILE;
+		show_file_assets_config.toggled_icon				= ICON_FILE;
+		show_file_assets_config.tooltip						= "Show File Assets";
+		show_file_assets_config.toggle_enabled				= true;
+		show_file_assets_config.toggled						= _show_file_assets;
+		show_file_assets_config.on_clicked					= on_show_file_assets_pressed;
+		_show_file_assets_button.init(ui, _assets_body_pane_controls, show_file_assets_config);
+
+		editor_icon_button_config_t asset_favourites_only_config = filter_button_config;
+		asset_favourites_only_config.icon						 = ICON_STAR;
+		asset_favourites_only_config.toggled_icon				 = ICON_STAR;
+		asset_favourites_only_config.icon_color					 = theme.color_accent1;
+		asset_favourites_only_config.tooltip					 = "Show Only Favourites";
+		asset_favourites_only_config.toggle_enabled				 = true;
+		asset_favourites_only_config.toggled					 = _asset_favourites_only;
+		asset_favourites_only_config.on_clicked					 = on_asset_favourites_only_pressed;
+		_asset_favourites_only_button.init(ui, _assets_body_pane_controls, asset_favourites_only_config);
 
 		editor_input_field_config_t asset_search_config = {};
 		asset_search_config.placeholder					= "Search";
@@ -454,6 +473,8 @@ namespace sfg
 		_filter_button.uninit();
 		_import_button.uninit();
 		_refresh_button.uninit();
+		_show_file_assets_button.uninit();
+		_asset_favourites_only_button.uninit();
 		_asset_search_input.uninit();
 		_item_style_dropdown.uninit();
 		_split_border.uninit();
@@ -476,13 +497,15 @@ namespace sfg
 
 	void editor_panel_assets_t::serialize(nlohmann::json& j) const
 	{
-		j					  = nlohmann::json::object();
-		j["pane_split"]		  = _pane_split;
-		j["favourites_only"]  = _favourites_only;
-		j["search_str"]		  = _search_str;
-		j["asset_search_str"] = _asset_search_str;
-		j["favourites"]		  = _favourite_folder_hashes;
-		j["asset_favourites"] = _favourite_asset_guids;
+		j						   = nlohmann::json::object();
+		j["pane_split"]			   = _pane_split;
+		j["favourites_only"]	   = _favourites_only;
+		j["show_file_assets"]	   = _show_file_assets;
+		j["asset_favourites_only"] = _asset_favourites_only;
+		j["search_str"]			   = _search_str;
+		j["asset_search_str"]	   = _asset_search_str;
+		j["favourites"]			   = _favourite_folder_hashes;
+		j["asset_favourites"]	   = _favourite_asset_guids;
 		switch (_asset_item_style)
 		{
 		case asset_item_style_e::grid:
@@ -498,6 +521,8 @@ namespace sfg
 	{
 		_pane_split				  = math::clamp(j.value<f32>("pane_split", _pane_split), ASSETS_PANE_SPLIT_MIN, ASSETS_PANE_SPLIT_MAX);
 		_favourites_only		  = j.value<bool>("favourites_only", false);
+		_show_file_assets		  = j.value<bool>("show_file_assets", false);
+		_asset_favourites_only	  = j.value<bool>("asset_favourites_only", false);
 		_search_str				  = j.value<string_t>("search_str", {});
 		_asset_search_str		  = j.value<string_t>("asset_search_str", {});
 		_favourite_folder_hashes  = j.value<vector_t<u64>>("favourites", {});
@@ -587,9 +612,11 @@ namespace sfg
 		_create_asset_popup_command				   = 0;
 		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
 		const bool				   is_asset_node   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
+		const bool				   is_file_node	   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::file;
 		const editor_asset_t*	   selected_asset  = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
 		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = selected_asset == nullptr || selected_asset->status == editor_asset_status_e::ok;
 		ASSETS_ITEM_ACTION_MENU_ROWS[2].disabled   = !is_asset_node;
+		ASSETS_ITEM_ACTION_MENU_ROWS[5].disabled   = is_file_node;
 		ASSETS_ITEM_ACTION_MENU_ROWS[5].icon_color = editor_theme_t::get().color_accent1;
 
 		editor_action_menu_desc_t desc = {};
@@ -782,6 +809,18 @@ namespace sfg
 			const editor_asset_node_t& child_node = asset_tree.value(child);
 			if (child_node.type != editor_asset_node_type_e::folder && (child_node.flags & editor_asset_node_flag_hidden) == 0)
 			{
+				if (!_show_file_assets && child_node.type == editor_asset_node_type_e::file)
+				{
+					child = asset_tree.next_sibling(child);
+					continue;
+				}
+
+				if (_asset_favourites_only && !is_asset_favourite(get_asset_guid(child)))
+				{
+					child = asset_tree.next_sibling(child);
+					continue;
+				}
+
 				if (!_asset_search_str_lower.empty())
 				{
 					frame_string_t<char> name_lower;
@@ -1467,6 +1506,8 @@ namespace sfg
 			_favourite_asset_guids.erase(it);
 		else
 			_favourite_asset_guids.push_back(guid);
+		if (_asset_favourites_only)
+			refresh_asset_grid(true);
 		refresh_asset_favourite_icons();
 	}
 
@@ -2243,6 +2284,22 @@ namespace sfg
 		panel._asset_search_str		  = value != nullptr ? value : "";
 		panel._asset_search_str_lower = panel._asset_search_str;
 		string_util::to_lower(panel._asset_search_str_lower);
+		panel.refresh_asset_grid(true);
+	}
+
+	void editor_panel_assets_t::on_show_file_assets_pressed(bool toggled, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.clear_asset_grid_selection();
+		panel._show_file_assets = toggled;
+		panel.refresh_asset_grid(true);
+	}
+
+	void editor_panel_assets_t::on_asset_favourites_only_pressed(bool toggled, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.clear_asset_grid_selection();
+		panel._asset_favourites_only = toggled;
 		panel.refresh_asset_grid(true);
 	}
 
