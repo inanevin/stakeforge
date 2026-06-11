@@ -12,8 +12,8 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 MAX_JOINTS	  = 96;
-		static constexpr u32 WIRE_MAGIC	  = 0x5346534B;
-		static constexpr u32 WIRE_VERSION = 2;
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'K', 'E', 'L');
+		static constexpr u32 WIRE_VERSION = 3;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

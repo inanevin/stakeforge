@@ -70,6 +70,13 @@ namespace sfg
 		return true;
 	}
 
+	bool file_system_t::ensure_directory(const char* path)
+	{
+		if (is_directory(path))
+			return true;
+		return create_directory(path);
+	}
+
 	bool file_system_t::delete_directory(const char* path)
 	{
 		try

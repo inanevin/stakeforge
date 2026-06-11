@@ -57,6 +57,7 @@ namespace sfg
 	public:
 		static bool		delete_file(const char* path);
 		static bool		create_directory(const char* path);
+		static bool		ensure_directory(const char* path);
 		static bool		delete_directory(const char* path);
 		static bool		is_directory(const char* path);
 		static bool		change_directory_name(const char* oldPath, const char* new_path);

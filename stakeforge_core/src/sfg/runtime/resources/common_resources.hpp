@@ -6,7 +6,6 @@
 #include "resource_handle.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
-#include <sfg/data/vector.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
 
@@ -17,15 +16,26 @@ namespace sfg
 	class ostream_t;
 	struct render_resource_completion_t;
 
+	inline constexpr u32 make_resource_wire_magic(char c0, char c1, char c2, char c3)
+	{
+		const u32 b0 = static_cast<u32>(static_cast<u8>(c0)) << 24;
+		const u32 b1 = static_cast<u32>(static_cast<u8>(c1)) << 16;
+		const u32 b2 = static_cast<u32>(static_cast<u8>(c2)) << 8;
+		const u32 b3 = static_cast<u32>(static_cast<u8>(c3));
+		return b0 | b1 | b2 | b3;
+	}
+
 	struct resource_header_t
 	{
-		u32			  magic		   = 0;
-		u32			  version	   = 0;
-		vector_t<u64> source_ticks = {};
+		u32 magic		= 0;
+		u32 version		= 0;
+		u64 source_tick = 0;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 	};
+
+	ostream_t make_resource_stream(const resource_header_t& header, const ostream_t& payload);
 
 	enum class resource_type_e : u8
 	{

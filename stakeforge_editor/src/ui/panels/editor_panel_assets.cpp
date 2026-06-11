@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_assets.hpp"
 #include "assets/editor_asset_creator.hpp"
+#include "assets/editor_asset_importer.hpp"
 #include "assets/editor_asset_types.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -68,7 +69,7 @@ namespace sfg
 #define ASSETS_FILTER_ID_FAVOURITES			 1
 #define ASSETS_ITEM_STYLE_ID_GRID			 0
 #define ASSETS_ITEM_STYLE_ID_LIST			 1
-#define ASSETS_CREATE_DESC_MAX				 255
+#define ASSETS_IMPORT_FILE_MAX				 255
 #define ASSETS_IMPORT_FILE_EXTENSIONS		 "glb;png;jpg;jpeg;mp3;ttf"
 #define ASSETS_FIX_INTEGRITY_FILE_EXTENSIONS "glb;png;jpg;jpeg;mp3;ttf;hlsl"
 
@@ -99,12 +100,6 @@ namespace sfg
 			assets_item_action_menu_toggle_favourite		  = 21,
 			assets_action_menu_import						  = 22,
 			assets_item_action_menu_fix_integrity			  = 23,
-		};
-
-		struct create_asset_command_t
-		{
-			editor_asset_type_e asset_type = editor_asset_type_e::invalid;
-			u8					sub_type   = 0;
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ANIMATION_ROWS[] = {
@@ -172,35 +167,6 @@ namespace sfg
 					flags |= ui::wf_input;
 			}
 			tree.in(id).flags = flags;
-		}
-
-		create_asset_command_t asset_type_from_create_command(u16 command)
-		{
-			switch (command)
-			{
-			case assets_action_menu_create_animation_state_machine:
-				return {.asset_type = editor_asset_type_e::animation_state_machine};
-			case assets_action_menu_create_opaque_shader:
-				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::opaque_shader)};
-			case assets_action_menu_create_transparent_shader:
-				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::transparent_shader)};
-			case assets_action_menu_create_post_process_shader:
-				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::post_process_shader)};
-			case assets_action_menu_create_ui_shader:
-				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::ui_shader)};
-			case assets_action_menu_create_ui_text_shader:
-				return {.asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(shader_type_e::ui_text_shader)};
-			case assets_action_menu_create_texture_sampler:
-				return {.asset_type = editor_asset_type_e::texture_sampler};
-			case assets_action_menu_create_gbuffer_material:
-				return {.asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::gbuffer)};
-			case assets_action_menu_create_forward_material:
-				return {.asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::forward)};
-			case assets_action_menu_create_physical_material:
-				return {.asset_type = editor_asset_type_e::physical_material};
-			default:
-				return {};
-			}
 		}
 	}
 
@@ -505,7 +471,7 @@ namespace sfg
 		_expanded_folder_hashes.clear();
 		_favourite_folder_hashes.clear();
 		_favourite_asset_guids.clear();
-		clear_pending_create_assets();
+		clear_pending_import();
 
 		editor_panel_t::uninit();
 	}
@@ -589,6 +555,7 @@ namespace sfg
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
 
+		_create_asset_popup_command						= 0;
 		_action_menu_pos								= pos;
 		const editor_asset_manager_t&	 asset_manager	= editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 tree			= asset_manager.get_asset_tree();
@@ -619,6 +586,7 @@ namespace sfg
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
 
+		_create_asset_popup_command				   = 0;
 		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
 		const bool				   is_asset_node   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
 		const editor_asset_t*	   selected_asset  = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
@@ -640,82 +608,41 @@ namespace sfg
 
 	void editor_panel_assets_t::import_assets(const vector_t<string_t>& paths)
 	{
-		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-
-		frame_vector_t<editor_asset_create_desc_t> create_descs;
-		create_descs.reserve(paths.size());
-
-		for (const string_t& path : paths)
-		{
-			if (create_descs.size() == ASSETS_CREATE_DESC_MAX)
-				break;
-
-			const string_t					 extension	= file_system_t::get_file_extension(path);
-			const editor_asset_descriptor_t* descriptor = asset_manager.find_asset_descriptor(extension);
-			if (descriptor == nullptr)
-				continue;
-
-			create_descs.push_back({
-				.source_full_path = file_system_t::get_absolute_path(path.c_str()),
-				.name			  = file_system_t::get_filename_from_path(path),
-				.asset_type		  = descriptor->asset_type,
-			});
-		}
-
-		if (create_descs.empty())
+		clear_pending_import();
+		collect_pending_import_options(paths);
+		if (_pending_import_options.empty())
 			return;
 
-		const string_t target_path = get_action_menu_target_folder_path();
-		const string_t parent_path = editor_asset_util_t::normalize_directory(target_path.c_str());
-		if (parent_path.empty())
-			return;
-
-		frame_vector_t<frame_string_t<char>> overwrite_paths;
-		overwrite_paths.reserve(create_descs.size());
-		for (editor_asset_create_desc_t& desc : create_descs)
+		frame_vector_t<editor_modal_cook_option_desc_t> modal_options;
+		modal_options.reserve(_pending_import_options.size());
+		for (editor_asset_import_options_t& option : _pending_import_options)
 		{
-			const string_t& asset_name = desc.name;
-			if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
-				continue;
-
-			frame_string_t<char> asset_path;
-			asset_path.assign(parent_path.c_str(), parent_path.size());
-			asset_path.append(asset_name.c_str(), asset_name.size());
-			asset_path += ".sfg_asset";
-			if (file_system_t::exists(asset_path.c_str()))
+			switch (option.type)
 			{
-				desc.guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-				overwrite_paths.push_back(asset_path);
+			case editor_asset_import_type_e::texture:
+				modal_options.push_back({.object = &option.texture_cook_config, .title = "Texture", .type_id = type_id_t<texture_cook_config_t>::value});
+				break;
+			case editor_asset_import_type_e::audio:
+				modal_options.push_back({.object = &option.audio_cook_config, .title = "Audio", .type_id = type_id_t<audio_cook_config_t>::value});
+				break;
+			case editor_asset_import_type_e::model:
+				modal_options.push_back({.object = &option.glb_cook_config, .title = "Model", .type_id = type_id_t<glb_cook_config_t>::value});
+				break;
+			default:
+				break;
 			}
 		}
-
-		if (overwrite_paths.empty())
-		{
-			request_create_assets(parent_path.c_str(), create_descs.data(), static_cast<u8>(create_descs.size()), false);
-			return;
-		}
-
-		_pending_import_directory.assign(parent_path.c_str(), parent_path.size());
-		_pending_import_create_descs.resize(0);
-		_pending_import_create_descs.reserve(create_descs.size());
-		for (const editor_asset_create_desc_t& desc : create_descs)
-			_pending_import_create_descs.push_back(desc);
-
-		frame_vector_t<const char*> row_texts;
-		row_texts.reserve(overwrite_paths.size());
-		for (size_t i = 0; i < overwrite_paths.size(); ++i)
-			row_texts.push_back(overwrite_paths[i].c_str());
-		_assets_override_modal.set_rows(row_texts.data(), static_cast<u16>(row_texts.size()));
+		_cook_options_modal.set_options(modal_options.data(), static_cast<u16>(modal_options.size()));
 
 		editor_modal_button_desc_t buttons[] = {
-			{.text = "YES", .callback = on_import_overwrite_confirmed, .user_data = this},
-			{.text = "NO", .callback = on_import_overwrite_cancelled, .user_data = this},
+			{.text = "Cancel", .callback = on_cook_options_cancelled, .user_data = this},
+			{.text = "Import", .callback = on_cook_options_imported, .user_data = this},
 		};
 
 		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
 		SFG_ASSERT(modal != nullptr);
-		editor_modal_content_desc_t override_content = _assets_override_modal.get_content_desc();
-		modal->request_modal("Import Assets", "These assets will be overridden with your import. Continue?", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &override_content, editor_modal_severity_e::warning);
+		editor_modal_content_desc_t cook_options_content = _cook_options_modal.get_content_desc();
+		modal->request_modal("Cook Options", "Configure cook options for the imported assets.", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &cook_options_content);
 	}
 
 	void editor_panel_assets_t::refresh_folder_rows()
@@ -1545,217 +1472,49 @@ namespace sfg
 		refresh_asset_favourite_icons();
 	}
 
-	void editor_panel_assets_t::open_create_popup(editor_asset_type_e asset_type, u8 sub_type)
+	void editor_panel_assets_t::collect_pending_import_options(const vector_t<string_t>& paths)
 	{
-		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
+		_pending_import_paths.reserve(paths.size());
+		_pending_import_options.reserve(3);
+		for (const string_t& path : paths)
+		{
+			if (_pending_import_paths.size() == ASSETS_IMPORT_FILE_MAX)
+				break;
 
-		editor_input_popup_desc_t desc = {};
-		desc.closed					   = on_create_popup_closed;
-		desc.user_data				   = this;
-		desc.placeholder			   = "Name";
-		desc.pos					   = _action_menu_pos;
-		desc.width					   = editor_theme_t::get().item_width;
-		_create_popup_asset_type	   = asset_type;
-		_create_popup_sub_type		   = sub_type;
-		popup->request_input_popup(desc);
+			editor_asset_import_options_t option = {};
+			if (!editor_asset_importer_t::make_import_options(option, path.c_str()))
+				continue;
+
+			_pending_import_paths.push_back(path);
+			const auto option_it = std::find_if(_pending_import_options.begin(), _pending_import_options.end(), [&](const editor_asset_import_options_t& pending_option) { return pending_option.type == option.type; });
+			if (option_it == _pending_import_options.end())
+				_pending_import_options.push_back(option);
+		}
 	}
 
-	void editor_panel_assets_t::create_folder(const char* name)
+	void editor_panel_assets_t::submit_pending_import()
 	{
-		frame_string_t<char> folder_name = name != nullptr ? name : "";
-		if (!editor_directories_t::is_valid_asset_name(folder_name.c_str()))
-			return;
-
-		const string_t parent_path = get_action_menu_target_folder_path();
-		SFG_ASSERT(!parent_path.empty());
-
-		frame_string_t<char> new_folder_path;
-		new_folder_path.assign(parent_path.c_str(), parent_path.size());
-		new_folder_path.append(folder_name.c_str(), folder_name.size());
-		if (file_system_t::exists(new_folder_path.c_str()))
-			return;
-
-		if (!file_system_t::create_directory(new_folder_path.c_str()))
-			return;
-
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
-		refresh_folder_rows();
-	}
-
-	void editor_panel_assets_t::request_create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count, bool allow_overwrite)
-	{
-		frame_vector_t<editor_asset_create_desc_t> desc_copy;
-		desc_copy.reserve(desc_count);
-		for (u8 i = 0; i < desc_count; ++i)
-			desc_copy.push_back(descs[i]);
-
-		frame_string_t dir_copy = directory;
-
-		clear_pending_create_assets();
-
-		_pending_import_directory = dir_copy;
-		_pending_import_create_descs.reserve(desc_copy.size());
-		for (const editor_asset_create_desc_t& desc : desc_copy)
-			_pending_import_create_descs.push_back(desc);
-		_allow_asset_overwrite = allow_overwrite;
-
-		collect_pending_cook_configs();
-		if (_pending_cook_configs.empty())
-		{
-			submit_create_assets();
-			return;
-		}
-
-		frame_vector_t<editor_modal_cook_option_desc_t> options;
-		options.reserve(_pending_cook_configs.size());
-		for (const pending_cook_config_t& pending_config : _pending_cook_configs)
-		{
-			options.push_back({
-				.object	 = pending_config.config.object,
-				.title	 = pending_config.config.title,
-				.type_id = pending_config.config.type_id,
-			});
-		}
-		_cook_options_modal.set_options(options.data(), static_cast<u16>(options.size()));
-
-		editor_modal_button_desc_t buttons[] = {
-			{.text = "Cancel", .callback = on_cook_options_cancelled, .user_data = this},
-			{.text = "Import", .callback = on_cook_options_imported, .user_data = this},
+		frame_vector_t<editor_asset_t> imported_assets;
+		imported_assets.reserve(_pending_import_paths.size());
+		const span_t<const editor_asset_import_options_t> import_options = {
+			.data = _pending_import_options.data(),
+			.size = _pending_import_options.size(),
 		};
 
-		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
-		SFG_ASSERT(modal != nullptr);
-		editor_modal_content_desc_t cook_options_content = _cook_options_modal.get_content_desc();
-		modal->request_modal("Cook Options", "Configure cook options for the imported assets.", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &cook_options_content);
-	}
+		for (const string_t& path : _pending_import_paths)
+			editor_asset_importer_t::import_asset(_selected_folder_node, path.c_str(), import_options, imported_assets);
 
-	void editor_panel_assets_t::submit_create_assets()
-	{
-		create_assets(_pending_import_directory.c_str(), _pending_import_create_descs.data(), static_cast<u8>(_pending_import_create_descs.size()));
-		clear_pending_create_assets();
-	}
-
-	void editor_panel_assets_t::create_assets(const char* directory, const editor_asset_create_desc_t* descs, u8 desc_count)
-	{
-		if (desc_count == 0)
-			return;
-		SFG_ASSERT(descs != nullptr);
-
-		string_t parent_path = editor_asset_util_t::normalize_directory(directory);
-		if (parent_path.empty())
-			return;
-
-		frame_vector_t<editor_asset_t> created_assets;
-		created_assets.reserve(desc_count);
-
+		clear_pending_import();
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		const auto&				descriptors	  = asset_manager.get_asset_descriptors();
-		const string_t&			assets_path	  = editor_project_t::get()._runtime.assets_path;
-		for (u8 i = 0; i < desc_count; ++i)
-		{
-			const editor_asset_create_desc_t& desc = descs[i];
-			SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-			SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-
-			const string_t& asset_name = desc.name;
-			if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
-				continue;
-
-			frame_string_t<char> asset_path;
-			asset_path.assign(parent_path.c_str(), parent_path.size());
-			asset_path.append(asset_name.c_str(), asset_name.size());
-			asset_path += ".sfg_asset";
-			if (!_allow_asset_overwrite && file_system_t::exists(asset_path.c_str()))
-				continue;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != NULL_SID ? desc.guid : hashing_t::generate_guid64();
-			asset.asset_type	 = desc.asset_type;
-			asset.sub_type		 = desc.sub_type;
-			if (!desc.source_full_path.empty())
-			{
-				asset.source_type				= editor_asset_source_type_e::file;
-				const string_t source_full_path = file_system_t::get_absolute_path(desc.source_full_path.c_str());
-				SFG_ASSERT(file_system_t::exists(source_full_path.c_str()));
-				asset.source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), source_full_path.c_str());
-				if (asset.source_relative.empty())
-				{
-					const string_t source_extension	  = file_system_t::get_file_extension(source_full_path);
-					const string_t target_source_path = editor_asset_util_t::make_unique_source_path(parent_path.c_str(), asset_name.c_str(), source_extension.c_str());
-					if (!file_system_t::copy_file(source_full_path.c_str(), target_source_path.c_str()))
-						continue;
-
-					SFG_ASSERT(file_system_t::exists(target_source_path.c_str()));
-					asset.source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), target_source_path.c_str());
-					SFG_ASSERT(!asset.source_relative.empty());
-				}
-			}
-
-			const auto descriptor_it = descriptors.find(desc.asset_type);
-			SFG_ASSERT(descriptor_it != descriptors.end());
-			const editor_asset_descriptor_t& descriptor = descriptor_it->second;
-			SFG_ASSERT(descriptor.create_default != nullptr);
-
-			auto  config_it	  = std::find_if(_pending_cook_configs.begin(), _pending_cook_configs.end(), [&](const pending_cook_config_t& pending_config) { return pending_config.asset_type == desc.asset_type; });
-			void* cook_config = config_it != _pending_cook_configs.end() ? config_it->config.object : nullptr;
-			if (!descriptor.create_default(asset, parent_path.c_str(), asset_name.c_str(), cook_config))
-				continue;
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				continue;
-
-			created_assets.push_back(asset);
-		}
-
-		if (created_assets.empty())
-			return;
-
-		asset_manager.cook_assets(created_assets.data(), static_cast<u32>(created_assets.size()));
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		asset_manager.ensure_integrity();
 		refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::collect_pending_cook_configs()
+	void editor_panel_assets_t::clear_pending_import()
 	{
-		const auto& descriptors = editor_asset_manager_t::get().get_asset_descriptors();
-		for (const editor_asset_create_desc_t& desc : _pending_import_create_descs)
-		{
-			const auto descriptor_it = descriptors.find(desc.asset_type);
-			SFG_ASSERT(descriptor_it != descriptors.end());
-			const editor_asset_descriptor_t& descriptor = descriptor_it->second;
-			if (descriptor.create_cook_config == nullptr)
-				continue;
-
-			const auto config_it = std::find_if(_pending_cook_configs.begin(), _pending_cook_configs.end(), [&](const pending_cook_config_t& pending_config) { return pending_config.asset_type == desc.asset_type; });
-			if (config_it != _pending_cook_configs.end())
-				continue;
-
-			editor_asset_cook_config_desc_t config = descriptor.create_cook_config();
-			SFG_ASSERT(config.object != nullptr);
-			SFG_ASSERT(config.type_id != 0);
-			_pending_cook_configs.push_back({.config = config, .asset_type = desc.asset_type});
-		}
-	}
-
-	void editor_panel_assets_t::clear_pending_cook_configs()
-	{
-		for (pending_cook_config_t& pending_config : _pending_cook_configs)
-		{
-			if (pending_config.config.destroy != nullptr)
-				pending_config.config.destroy(pending_config.config.object);
-		}
-		_pending_cook_configs.resize(0);
-	}
-
-	void editor_panel_assets_t::clear_pending_create_assets()
-	{
-		clear_pending_cook_configs();
-		_pending_import_create_descs.resize(0);
-		_pending_import_directory.clear();
-		_allow_asset_overwrite = false;
+		_pending_import_paths.resize(0);
+		_pending_import_options.resize(0);
 	}
 
 	void editor_panel_assets_t::delete_folder()
@@ -1889,6 +1648,120 @@ namespace sfg
 
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		asset_manager.ensure_integrity();
+		refresh_folder_rows();
+	}
+
+	void editor_panel_assets_t::open_create_asset_popup(u16 command)
+	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		const char* text = "";
+		switch (command)
+		{
+		case assets_action_menu_create_animation_state_machine:
+			text = "animation_state_machine";
+			break;
+		case assets_action_menu_create_opaque_shader:
+			text = "opaque_shader";
+			break;
+		case assets_action_menu_create_transparent_shader:
+			text = "transparent_shader";
+			break;
+		case assets_action_menu_create_post_process_shader:
+			text = "post_process_shader";
+			break;
+		case assets_action_menu_create_ui_shader:
+			text = "ui_shader";
+			break;
+		case assets_action_menu_create_ui_text_shader:
+			text = "ui_text_shader";
+			break;
+		case assets_action_menu_create_texture_sampler:
+			text = "texture_sampler";
+			break;
+		case assets_action_menu_create_gbuffer_material:
+			text = "gbuffer_material";
+			break;
+		case assets_action_menu_create_forward_material:
+			text = "forward_material";
+			break;
+		case assets_action_menu_create_physical_material:
+			text = "physical_material";
+			break;
+		default:
+			SFG_ASSERT(false);
+			return;
+		}
+
+		editor_input_popup_desc_t desc = {};
+		desc.closed					   = on_create_asset_popup_closed;
+		desc.user_data				   = this;
+		desc.text					   = text;
+		desc.placeholder			   = "Asset Name";
+		desc.pos					   = _action_menu_pos;
+		desc.width					   = editor_theme_t::get().item_width;
+		popup->request_input_popup(desc);
+	}
+
+	void editor_panel_assets_t::create_asset_item(u16 command, const char* name)
+	{
+		string_t asset_name = name != nullptr ? name : "";
+
+		editor_asset_create_desc_t desc = {
+			.parent_node = _selected_folder_node,
+			.name		 = asset_name.c_str(),
+		};
+
+		switch (command)
+		{
+		case assets_action_menu_create_animation_state_machine:
+			desc.asset_type = editor_asset_type_e::animation_state_machine;
+			break;
+		case assets_action_menu_create_opaque_shader:
+			desc.asset_type = editor_asset_type_e::shader;
+			desc.sub_type	= static_cast<u8>(shader_type_e::opaque_shader);
+			break;
+		case assets_action_menu_create_transparent_shader:
+			desc.asset_type = editor_asset_type_e::shader;
+			desc.sub_type	= static_cast<u8>(shader_type_e::transparent_shader);
+			break;
+		case assets_action_menu_create_post_process_shader:
+			desc.asset_type = editor_asset_type_e::shader;
+			desc.sub_type	= static_cast<u8>(shader_type_e::post_process_shader);
+			break;
+		case assets_action_menu_create_ui_shader:
+			desc.asset_type = editor_asset_type_e::shader;
+			desc.sub_type	= static_cast<u8>(shader_type_e::ui_shader);
+			break;
+		case assets_action_menu_create_ui_text_shader:
+			desc.asset_type = editor_asset_type_e::shader;
+			desc.sub_type	= static_cast<u8>(shader_type_e::ui_text_shader);
+			break;
+		case assets_action_menu_create_texture_sampler:
+			desc.asset_type = editor_asset_type_e::texture_sampler;
+			break;
+		case assets_action_menu_create_gbuffer_material:
+			desc.asset_type = editor_asset_type_e::material;
+			desc.sub_type	= static_cast<u8>(editor_material_type_e::gbuffer);
+			break;
+		case assets_action_menu_create_forward_material:
+			desc.asset_type = editor_asset_type_e::material;
+			desc.sub_type	= static_cast<u8>(editor_material_type_e::forward);
+			break;
+		case assets_action_menu_create_physical_material:
+			desc.asset_type = editor_asset_type_e::physical_material;
+			break;
+		default:
+			SFG_ASSERT(false);
+			return;
+		}
+
+		if (!editor_asset_creator_t::create_asset(desc))
+			return;
+
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
 	}
 
@@ -2219,22 +2092,23 @@ namespace sfg
 
 	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)
 	{
-		editor_panel_assets_t&		 panel			= *static_cast<editor_panel_assets_t*>(user_data);
-		const create_asset_command_t create_command = asset_type_from_create_command(command);
-		if (create_command.asset_type != editor_asset_type_e::invalid)
-		{
-			panel._create_popup_asset_type = create_command.asset_type;
-			panel._create_popup_sub_type   = create_command.sub_type;
-			panel._create_popup_pending	   = true;
-			return;
-		}
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 
 		switch (command)
 		{
 		case assets_action_menu_create_folder:
-			panel._create_popup_asset_type = editor_asset_type_e::invalid;
-			panel._create_popup_sub_type   = 0;
-			panel._create_popup_pending	   = true;
+			return;
+		case assets_action_menu_create_animation_state_machine:
+		case assets_action_menu_create_opaque_shader:
+		case assets_action_menu_create_transparent_shader:
+		case assets_action_menu_create_post_process_shader:
+		case assets_action_menu_create_ui_shader:
+		case assets_action_menu_create_ui_text_shader:
+		case assets_action_menu_create_texture_sampler:
+		case assets_action_menu_create_gbuffer_material:
+		case assets_action_menu_create_forward_material:
+		case assets_action_menu_create_physical_material:
+			panel._create_asset_popup_command = command;
 			return;
 		case assets_action_menu_import:
 			on_import_button_pressed(false, &panel);
@@ -2309,12 +2183,9 @@ namespace sfg
 	void editor_panel_assets_t::on_action_menu_closed(void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (panel._create_popup_pending)
+		if (panel._create_asset_popup_command != 0)
 		{
-			const editor_asset_type_e asset_type = panel._create_popup_asset_type;
-			const u8				  sub_type	 = panel._create_popup_sub_type;
-			panel._create_popup_pending			 = false;
-			panel.open_create_popup(asset_type, sub_type);
+			panel.open_create_asset_popup(panel._create_asset_popup_command);
 			return;
 		}
 
@@ -2332,27 +2203,12 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_assets_t::on_create_popup_closed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_create_asset_popup_closed(const char* value, void* user_data)
 	{
-		editor_panel_assets_t&	  panel		 = *static_cast<editor_panel_assets_t*>(user_data);
-		const editor_asset_type_e asset_type = panel._create_popup_asset_type;
-		const u8				  sub_type	 = panel._create_popup_sub_type;
-		panel._create_popup_asset_type		 = editor_asset_type_e::invalid;
-		panel._create_popup_sub_type		 = 0;
-		if (asset_type == editor_asset_type_e::invalid)
-		{
-			panel.create_folder(value);
-			return;
-		}
-
-		editor_asset_t created_asset = {};
-		if (editor_asset_creator_t::create_asset({.parent_node = panel._selected_folder_node, .name = value, .asset_type = asset_type, .sub_type = sub_type}, &created_asset))
-		{
-			editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-			asset_manager.cook_assets(&created_asset, 1);
-			asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
-			panel.refresh_folder_rows();
-		}
+		editor_panel_assets_t& panel	  = *static_cast<editor_panel_assets_t*>(user_data);
+		const u16			   command	  = panel._create_asset_popup_command;
+		panel._create_asset_popup_command = 0;
+		panel.create_asset_item(command, value);
 	}
 
 	void editor_panel_assets_t::on_rename_popup_closed(const char* value, void* user_data)
@@ -2365,25 +2221,14 @@ namespace sfg
 		static_cast<editor_panel_assets_t*>(user_data)->rename_asset_item(value);
 	}
 
-	void editor_panel_assets_t::on_import_overwrite_confirmed(void* user_data)
-	{
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		panel.request_create_assets(panel._pending_import_directory.c_str(), panel._pending_import_create_descs.data(), static_cast<u8>(panel._pending_import_create_descs.size()), true);
-	}
-
-	void editor_panel_assets_t::on_import_overwrite_cancelled(void* user_data)
-	{
-		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_create_assets();
-	}
-
 	void editor_panel_assets_t::on_cook_options_imported(void* user_data)
 	{
-		static_cast<editor_panel_assets_t*>(user_data)->submit_create_assets();
+		static_cast<editor_panel_assets_t*>(user_data)->submit_pending_import();
 	}
 
 	void editor_panel_assets_t::on_cook_options_cancelled(void* user_data)
 	{
-		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_create_assets();
+		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_import();
 	}
 
 	void editor_panel_assets_t::on_search_changed(const char* value, void* user_data)

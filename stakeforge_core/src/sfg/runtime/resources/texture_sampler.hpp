@@ -22,8 +22,8 @@ namespace sfg
 	class texture_sampler_loader_t
 	{
 	public:
-		static constexpr u32 WIRE_MAGIC	  = 0x53504D53;
-		static constexpr u32 WIRE_VERSION = 3;
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'A', 'M', 'P');
+		static constexpr u32 WIRE_VERSION = 4;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

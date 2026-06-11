@@ -31,10 +31,11 @@ namespace sfg
 {
 	class ostream_t;
 	struct physical_material_def_t;
+	struct resource_header_t;
 
 	class physical_material_cooker
 	{
 	public:
-		static bool cook_from_def(const physical_material_def_t& def, ostream_t& stream);
+		static bool cook_from_def(const physical_material_def_t& def, resource_header_t& out_header, ostream_t& stream);
 	};
 }

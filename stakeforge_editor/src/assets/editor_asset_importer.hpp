@@ -60,10 +60,10 @@ namespace sfg
 		editor_asset_importer_t(const editor_asset_importer_t&)			   = delete;
 		editor_asset_importer_t& operator=(const editor_asset_importer_t&) = delete;
 
-		static bool import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, const frame_vector_t<editor_asset_import_options_t>& options, frame_vector_t<editor_asset_t>& out_assets);
+		static bool make_import_options(editor_asset_import_options_t& out_options, const char* asset_name);
+		static bool import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, frame_vector_t<editor_asset_t>& out_assets);
 
 	private:
-		static bool make_import_options(editor_asset_import_options_t& out_options, const char* asset_name);
 		static bool make_asset(editor_asset_node_handle_t directory_node, const char* asset_name, editor_asset_t& asset, editor_asset_type_e asset_type, editor_asset_source_type_e source_type, const char* source_full_path = nullptr);
 	};
 }

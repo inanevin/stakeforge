@@ -49,8 +49,8 @@ namespace sfg
 	class physical_material_loader_t
 	{
 	public:
-		static constexpr u32 WIRE_MAGIC	  = 0x5346504D;
-		static constexpr u32 WIRE_VERSION = 1;
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('P', 'M', 'A', 'T');
+		static constexpr u32 WIRE_VERSION = 2;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

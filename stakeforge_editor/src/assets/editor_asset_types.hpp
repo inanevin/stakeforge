@@ -33,80 +33,61 @@ namespace sfg
 {
 	struct editor_asset_loader_audio_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_font_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_mesh_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_skeleton_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_animation_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_material_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_shader_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_texture_t
 	{
-		static bool							   create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-		static editor_asset_cook_config_desc_t create_cook_config();
-		static bool							   cook(const editor_asset_t& asset, ostream_t& stream);
-		static void							   register_type();
+		static void register_type();
 	};
 
 	struct editor_asset_loader_texture_sampler_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_physical_material_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-		static bool cook(const editor_asset_t& asset, ostream_t& stream);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_prefab_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
 		static void register_type();
 	};
 
 	struct editor_asset_loader_animation_state_machine_t
 	{
-		static bool create_default(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
 		static void register_type();
 	};
 }

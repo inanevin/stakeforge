@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_types.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
@@ -43,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
@@ -62,7 +64,6 @@ namespace sfg
 		struct default_asset_desc_t
 		{
 			const char*	  asset_name;
-			const char*	  source_name;
 			const char*	  source_base_name;
 			sid_t		  guid;
 			shader_type_e shader_type;
@@ -76,10 +77,12 @@ namespace sfg
 			bool		is_linear;
 		};
 
-		struct default_scaffold_asset_desc_t
+		struct default_create_asset_desc_t
 		{
-			const char* source_dir;
-			const char* source_name;
+			const char*			asset_name;
+			sid_t				guid;
+			editor_asset_type_e asset_type;
+			u8					sub_type;
 		};
 
 		span_t<u8> make_default_texture_data(const u8 color[4])
@@ -242,7 +245,6 @@ namespace sfg
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-		SFG_ASSERT(desc.create_default != nullptr);
 		_asset_descriptors[desc.asset_type] = desc;
 	}
 
@@ -266,15 +268,15 @@ namespace sfg
 		if (!file_system_t::exists(default_assets_path.c_str()))
 			file_system_t::create_directory(default_assets_path.c_str());
 
-		const auto shader_descriptor_it = _asset_descriptors.find(editor_asset_type_e::shader);
-		SFG_ASSERT(shader_descriptor_it != _asset_descriptors.end());
-		const editor_asset_descriptor_t& shader_descriptor = shader_descriptor_it->second;
-		SFG_ASSERT(shader_descriptor.create_default != nullptr);
+		const string_t& assets_path = editor_project_t::get()._runtime.assets_path;
+		rescan(assets_path);
+		const string_t					 default_folder_name = file_system_t::get_last_folder_from_path(default_assets_path.c_str());
+		const editor_asset_node_handle_t default_assets_node = find_child_folder(_root_node, default_folder_name);
+		SFG_ASSERT(!default_assets_node.is_null());
 
-		const string_t&			   assets_path			   = editor_project_t::get()._runtime.assets_path;
 		const default_asset_desc_t default_shader_assets[] = {
-			{.asset_name = "shader_gbuffer", .source_name = "gbuffer.hlsl", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
-			{.asset_name = "shader_forward", .source_name = "forward.hlsl", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+			{.asset_name = "shader_gbuffer", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
+			{.asset_name = "shader_forward", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
 		};
 		const default_texture_asset_desc_t default_texture_assets[] = {
 			{.asset_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID, .color = {255, 255, 255, 255}, .is_linear = false},
@@ -282,50 +284,21 @@ namespace sfg
 			{.asset_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID, .color = {128, 128, 128, 255}, .is_linear = true},
 			{.asset_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID, .color = {0, 0, 0, 255}, .is_linear = false},
 		};
-		const default_scaffold_asset_desc_t default_material_assets[] = {
-			{.source_dir = "materials", .source_name = "material_gbuffer.sfg_asset"},
-			{.source_dir = "materials", .source_name = "material_forward.sfg_asset"},
-			{.source_dir = "materials", .source_name = "physical_material.sfg_asset"},
-		};
-		const default_scaffold_asset_desc_t default_sampler_assets[] = {
-			{.source_dir = "samplers", .source_name = "sampler_linear.sfg_asset"},
-			{.source_dir = "samplers", .source_name = "sampler_nearest.sfg_asset"},
-			{.source_dir = "samplers", .source_name = "sampler_anisotropic.sfg_asset"},
+		const default_create_asset_desc_t default_created_assets[] = {
+			{.asset_name = "material_gbuffer", .guid = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::gbuffer)},
+			{.asset_name = "material_forward", .guid = DEFAULT_FORWARD_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::forward)},
+			{.asset_name = "physical_material", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
+			{.asset_name = "sampler_linear", .guid = DEFAULT_LINEAR_SAMPLER_ASSET_GUID, .asset_type = editor_asset_type_e::texture_sampler, .sub_type = static_cast<u8>(editor_texture_sampler_type_e::linear)},
+			{.asset_name = "sampler_nearest", .guid = DEFAULT_NEAREST_SAMPLER_ASSET_GUID, .asset_type = editor_asset_type_e::texture_sampler, .sub_type = static_cast<u8>(editor_texture_sampler_type_e::nearest)},
+			{.asset_name = "sampler_anisotropic", .guid = DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID, .asset_type = editor_asset_type_e::texture_sampler, .sub_type = static_cast<u8>(editor_texture_sampler_type_e::anisotropic)},
 		};
 
 		for (const default_asset_desc_t& desc : default_shader_assets)
 		{
-			frame_string_t<char> source_path;
-			source_path.assign(default_assets_path.c_str(), default_assets_path.size());
-			source_path += desc.source_name;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid;
-			asset.asset_type	 = editor_asset_type_e::shader;
-			asset.sub_type		 = static_cast<u8>(desc.shader_type);
-			if (file_system_t::exists(source_path.c_str()))
-			{
-				asset.source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), source_path.c_str());
-				SFG_ASSERT(!asset.source_relative.empty());
-			}
-
-			if (!shader_descriptor.create_default(asset, default_assets_path.c_str(), desc.source_base_name, nullptr))
-				continue;
-			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
-
-			frame_string_t<char> asset_path;
-			asset_path.assign(default_assets_path.c_str(), default_assets_path.size());
-			asset_path += desc.asset_name;
-			asset_path += ".sfg_asset";
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
+			editor_asset_creator_t::create_asset(
+				{.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(desc.shader_type), .allow_overwrite = true});
 		}
 
-		const auto texture_descriptor_it = _asset_descriptors.find(editor_asset_type_e::texture);
-		SFG_ASSERT(texture_descriptor_it != _asset_descriptors.end());
-		const editor_asset_descriptor_t& texture_descriptor = texture_descriptor_it->second;
-		SFG_ASSERT(texture_descriptor.create_default != nullptr);
 		for (const default_texture_asset_desc_t& desc : default_texture_assets)
 		{
 			texture_cook_config_t texture_config = {
@@ -340,8 +313,9 @@ namespace sfg
 			asset.asset_type	 = editor_asset_type_e::texture;
 			asset.source_type	 = editor_asset_source_type_e::data;
 
-			if (!texture_descriptor.create_default(asset, default_assets_path.c_str(), desc.asset_name, &texture_config))
-				continue;
+			nlohmann::json json_data = nlohmann::json::object();
+			SFG_ASSERT(reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, json_data));
+			asset.cook_options = json_data;
 
 			frame_string_t<char> asset_path;
 			asset_path.assign(default_assets_path.c_str(), default_assets_path.size());
@@ -351,30 +325,10 @@ namespace sfg
 				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
 		}
 
-		auto copy_default_scaffold_assets = [&](const default_scaffold_asset_desc_t* descs, size_t desc_count) {
-			for (size_t i = 0; i < desc_count; ++i)
-			{
-				const default_scaffold_asset_desc_t& desc			   = descs[i];
-				const string_t						 running_directory = file_system_t::get_running_directory();
-				frame_string_t<char>				 scaffold_path;
-				scaffold_path.assign(running_directory.c_str(), running_directory.size());
-				scaffold_path += "editor_scaffold/";
-				scaffold_path += desc.source_dir;
-				scaffold_path += "/";
-				scaffold_path += desc.source_name;
-				SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-				frame_string_t<char> target_path;
-				target_path.assign(default_assets_path.c_str(), default_assets_path.size());
-				target_path += desc.source_name;
-				if (!file_system_t::copy_file(scaffold_path.c_str(), target_path.c_str()))
-					SFG_ERR("failed to copy default asset {0}", target_path.c_str());
-				SFG_ASSERT(file_system_t::exists(target_path.c_str()));
-			}
-		};
-
-		copy_default_scaffold_assets(default_material_assets, std::size(default_material_assets));
-		copy_default_scaffold_assets(default_sampler_assets, std::size(default_sampler_assets));
+		for (const default_create_asset_desc_t& desc : default_created_assets)
+		{
+			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .guid = desc.guid, .asset_type = desc.asset_type, .sub_type = desc.sub_type, .allow_overwrite = true});
+		}
 
 		rescan(assets_path);
 
@@ -445,8 +399,6 @@ namespace sfg
 	{
 		SFG_ASSERT(!_cook_in_progress);
 
-		frame_vector_t<editor_asset_t> missing_assets;
-		missing_assets.reserve(_assets.size());
 		for (auto& asset_pair : _assets)
 		{
 			editor_asset_t& asset = asset_pair.second;
@@ -456,35 +408,37 @@ namespace sfg
 			if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
 				continue;
 
-			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+			bool		   requires_cook = false;
+			const string_t cache_path	 = editor_asset_util_t::get_cache_path_for_asset(asset);
 			if (!file_system_t::exists(cache_path.c_str()))
 			{
-				missing_assets.push_back(asset);
-				asset._transient_data = {};
-				continue;
+				requires_cook = true;
+			}
+			else
+			{
+				istream_t					stream		  = serializer_t::load_from_file(cache_path.c_str());
+				const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
+				SFG_ASSERT(resource_desc != nullptr);
+				if (stream.empty())
+				{
+					requires_cook = true;
+				}
+				else
+				{
+					resource_header_t header = {};
+					header.deserialize(stream);
+					requires_cook = header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version;
+				}
 			}
 
-			istream_t					stream		  = serializer_t::load_from_file(cache_path.c_str());
-			const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
-			SFG_ASSERT(resource_desc != nullptr);
-			if (stream.empty())
-			{
-				missing_assets.push_back(asset);
-				asset._transient_data = {};
+			if (!requires_cook)
 				continue;
-			}
 
-			resource_header_t header = {};
-			header.deserialize(stream);
-			if (header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
-			{
-				missing_assets.push_back(asset);
-				asset._transient_data = {};
-			}
+			const editor_asset_t asset_to_cook = asset;
+			asset._transient_data			   = {};
+			if (!editor_asset_cooker_t::cook_asset(asset_to_cook))
+				SFG_ERR("failed cooking asset {0}", asset.guid);
 		}
-
-		if (!missing_assets.empty())
-			cook_assets(missing_assets.data(), static_cast<u32>(missing_assets.size()));
 	}
 
 	void editor_asset_manager_t::cook_assets(editor_asset_t* assets, u32 size)

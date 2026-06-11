@@ -81,9 +81,10 @@ namespace sfg
 			return editor_asset_creator_t::scaffold_physical_material_embedded_source(out_embedded_source);
 		}
 
-		bool scaffold_texture_sampler_embedded_source_by_sub_type(u8, nlohmann::json& out_embedded_source)
+		bool scaffold_texture_sampler_embedded_source_by_sub_type(u8 sub_type, nlohmann::json& out_embedded_source)
 		{
-			return editor_asset_creator_t::scaffold_texture_sampler_embedded_source(out_embedded_source);
+			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(sub_type);
+			return editor_asset_creator_t::scaffold_texture_sampler_embedded_source(sampler_type, out_embedded_source);
 		}
 
 		bool create_embedded_asset(const editor_asset_create_desc_t& desc, editor_asset_type_e asset_type, scaffold_embedded_source_fn scaffold_fn, editor_asset_t* out_asset)
@@ -104,7 +105,7 @@ namespace sfg
 
 			editor_asset_t asset = {};
 			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = editor_asset_util_t::generate_unique_asset_guid();
+			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
 			asset.asset_type	 = asset_type;
 			asset.source_type	 = editor_asset_source_type_e::embedded;
 			asset.sub_type		 = desc.sub_type;
@@ -138,12 +139,22 @@ namespace sfg
 
 			editor_asset_t asset = {};
 			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = editor_asset_util_t::generate_unique_asset_guid();
+			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
 			asset.asset_type	 = editor_asset_type_e::shader;
 			asset.source_type	 = editor_asset_source_type_e::file;
 			asset.sub_type		 = desc.sub_type;
 
-			if (!editor_asset_creator_t::scaffold_shader_source(asset, parent_node.full_path.c_str(), desc.name))
+			const char* source_name = desc.source_name != nullptr ? desc.source_name : desc.name;
+			if (desc.source_name != nullptr)
+			{
+				string_t source_path = editor_asset_util_t::normalize_directory(parent_node.full_path.c_str());
+				source_path += desc.source_name;
+				source_path += ".hlsl";
+				if (file_system_t::exists(source_path.c_str()))
+					asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
+			}
+
+			if (!editor_asset_creator_t::scaffold_shader_source(asset, parent_node.full_path.c_str(), source_name))
 				return false;
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
@@ -172,7 +183,7 @@ namespace sfg
 
 			editor_asset_t asset = {};
 			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = editor_asset_util_t::generate_unique_asset_guid();
+			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
 			asset.asset_type	 = asset_type;
 			asset.source_type	 = editor_asset_source_type_e::none;
 			asset.sub_type		 = desc.sub_type;
@@ -221,9 +232,17 @@ namespace sfg
 		}
 	}
 
-	const char* editor_asset_creator_t::get_texture_sampler_scaffold_relative()
+	const char* editor_asset_creator_t::get_texture_sampler_scaffold_relative(editor_texture_sampler_type_e sampler_type)
 	{
-		return "editor_scaffold/samplers/sampler_linear.sfg_asset";
+		switch (sampler_type)
+		{
+		case editor_texture_sampler_type_e::nearest:
+			return "editor_scaffold/samplers/sampler_nearest.sfg_asset";
+		case editor_texture_sampler_type_e::anisotropic:
+			return "editor_scaffold/samplers/sampler_anisotropic.sfg_asset";
+		default:
+			return "editor_scaffold/samplers/sampler_linear.sfg_asset";
+		}
 	}
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
@@ -290,10 +309,10 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_asset_creator_t::scaffold_texture_sampler_embedded_source(nlohmann::json& out_embedded_source)
+	bool editor_asset_creator_t::scaffold_texture_sampler_embedded_source(editor_texture_sampler_type_e sampler_type, nlohmann::json& out_embedded_source)
 	{
 		string_t scaffold_path = file_system_t::get_running_directory();
-		scaffold_path += get_texture_sampler_scaffold_relative();
+		scaffold_path += get_texture_sampler_scaffold_relative(sampler_type);
 		SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
 
 		editor_asset_t scaffold_asset = {};
@@ -304,6 +323,11 @@ namespace sfg
 
 		out_embedded_source = scaffold_asset.embedded_source;
 		return true;
+	}
+
+	bool editor_asset_creator_t::scaffold_texture_sampler_embedded_source(nlohmann::json& out_embedded_source)
+	{
+		return scaffold_texture_sampler_embedded_source(editor_texture_sampler_type_e::linear, out_embedded_source);
 	}
 
 	bool editor_asset_creator_t::scaffold_shader_source(editor_asset_t& asset, const char* directory, const char* file_name)

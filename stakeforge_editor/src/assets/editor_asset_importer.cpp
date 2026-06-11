@@ -55,10 +55,11 @@ namespace sfg
 			return editor_asset_import_type_e::invalid;
 		}
 
-		const editor_asset_import_options_t* find_import_options(const frame_vector_t<editor_asset_import_options_t>& options, editor_asset_import_type_e import_type)
+		const editor_asset_import_options_t* find_import_options(span_t<const editor_asset_import_options_t> options, editor_asset_import_type_e import_type)
 		{
-			for (const editor_asset_import_options_t& option : options)
+			for (size_t i = 0; i < options.size; ++i)
 			{
+				const editor_asset_import_options_t& option = options.data[i];
 				if (option.type == import_type)
 					return &option;
 			}
@@ -118,7 +119,7 @@ namespace sfg
 		return editor_asset_util_t::write_asset(asset_path.c_str(), asset);
 	}
 
-	bool editor_asset_importer_t::import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, const frame_vector_t<editor_asset_import_options_t>& options, frame_vector_t<editor_asset_t>& out_assets)
+	bool editor_asset_importer_t::import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, frame_vector_t<editor_asset_t>& out_assets)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(!directory_node.is_null());

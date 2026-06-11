@@ -10,19 +10,18 @@
 
 namespace sfg
 {
-	bool texture_sampler_cooker::cook_from_desc(const sampler_desc_t& desc, ostream_t& stream)
+	bool texture_sampler_cooker::cook_from_desc(const sampler_desc_t& desc, resource_header_t& out_header, ostream_t& stream)
 	{
 		ostream_t sampler_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, sampler_stream))
 			return false;
 
-		const resource_header_t header = {
-			.magic		  = texture_sampler_loader_t::WIRE_MAGIC,
-			.version	  = texture_sampler_loader_t::WIRE_VERSION,
-			.source_ticks = {hashing_t::hash_u64(sampler_stream.get_raw(), sampler_stream.get_size())},
+		out_header = {
+			.magic		 = texture_sampler_loader_t::WIRE_MAGIC,
+			.version	 = texture_sampler_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(sampler_stream.get_raw(), sampler_stream.get_size()),
 		};
 
-		header.serialize(stream);
 		stream.write_raw(sampler_stream.get_raw(), sampler_stream.get_size());
 		return true;
 	}

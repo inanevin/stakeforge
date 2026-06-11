@@ -49,7 +49,7 @@ namespace sfg
 	class animation_loader_t
 	{
 	public:
-		static constexpr u32 WIRE_MAGIC	  = 0x5346414E;
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'N', 'I', 'M');
 		static constexpr u32 WIRE_VERSION = 1;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);

@@ -56,8 +56,6 @@ namespace sfg
 #define DEFAULT_NEAREST_SAMPLER_ASSET_GUID	   1010
 #define DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID 1011
 
-	class ostream_t;
-
 	enum class editor_asset_source_type_e : u8
 	{
 		none,
@@ -91,29 +89,12 @@ namespace sfg
 		u8						   sub_type		   = 0;
 	};
 
-	using editor_asset_create_default_fn	  = bool (*)(editor_asset_t& asset, const char* directory, const char* file_name, void* cook_config);
-	using editor_asset_cook_fn				  = bool (*)(const editor_asset_t& asset, ostream_t& stream);
-	using editor_asset_destroy_cook_config_fn = void (*)(void* object);
-
-	struct editor_asset_cook_config_desc_t
-	{
-		void*								object	= nullptr;
-		const char*							title	= nullptr;
-		editor_asset_destroy_cook_config_fn destroy = nullptr;
-		sid_t								type_id = 0;
-	};
-
-	using editor_asset_create_cook_config_fn = editor_asset_cook_config_desc_t (*)();
-
 	struct editor_asset_descriptor_t
 	{
-		editor_asset_create_default_fn	   create_default	  = nullptr;
-		editor_asset_create_cook_config_fn create_cook_config = nullptr;
-		editor_asset_cook_fn			   cook				  = nullptr;
-		vector_t<string_t>				   extensions		  = {};
-		string_t						   display_name		  = {};
-		vec4f_t							   color			  = {};
-		editor_asset_type_e				   asset_type		  = editor_asset_type_e::invalid;
+		vector_t<string_t>	extensions	 = {};
+		string_t			display_name = {};
+		vec4f_t				color		 = {};
+		editor_asset_type_e asset_type	 = editor_asset_type_e::invalid;
 	};
 
 	class editor_asset_util_t final

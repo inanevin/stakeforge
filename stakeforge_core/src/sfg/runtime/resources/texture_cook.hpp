@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class ostream_t;
+	struct resource_header_t;
 
 	struct texture_cook_config_t
 	{
@@ -48,8 +49,8 @@ namespace sfg
 	class texture_cooker
 	{
 	public:
-		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, ostream_t& stream);
-		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, ostream_t& stream);
+		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
+		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, resource_header_t& out_header, ostream_t& stream);
 	};
 
 	SFG_DEFINE_TYPE_ID(texture_cook_config_t);

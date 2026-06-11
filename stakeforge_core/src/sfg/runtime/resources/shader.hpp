@@ -16,8 +16,8 @@ namespace sfg
 		static constexpr u8	 MAX_COMPILE_VARIANTS  = 16;
 		static constexpr u8	 MAX_PSO_VARIANTS	   = 32;
 		static constexpr u8	 MAX_STAGE_PER_VARIANT = 4;
-		static constexpr u32 WIRE_MAGIC			   = 0x52444853;
-		static constexpr u32 WIRE_VERSION		   = 5;
+		static constexpr u32 WIRE_MAGIC			   = make_resource_wire_magic('S', 'H', 'D', 'R');
+		static constexpr u32 WIRE_VERSION		   = 6;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

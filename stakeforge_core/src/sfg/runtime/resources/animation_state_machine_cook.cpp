@@ -4,7 +4,7 @@
 
 namespace sfg
 {
-	bool animation_state_machine_cooker::cook_from_file(const char*, ostream_t&)
+	bool animation_state_machine_cooker::cook_from_file(const char*, resource_header_t&, ostream_t&)
 	{
 		return false;
 	}

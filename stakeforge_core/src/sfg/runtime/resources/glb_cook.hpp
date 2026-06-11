@@ -8,6 +8,7 @@
 namespace sfg
 {
 	class ostream_t;
+	struct resource_header_t;
 
 	struct glb_cook_config_t
 	{
@@ -19,7 +20,7 @@ namespace sfg
 	class glb_cooker
 	{
 	public:
-		static bool cook_from_file(const glb_cook_config_t& cfg, const char* full_path, ostream_t& stream);
+		static bool cook_from_file(const glb_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
 	};
 
 	SFG_DEFINE_TYPE_ID(glb_cook_config_t);

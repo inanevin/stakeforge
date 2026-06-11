@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <sfg/reflection/reflection_registry.hpp>
 #include "shader_cook_variants.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/file_system.hpp>
@@ -45,7 +46,7 @@ namespace sfg
 		}
 	}
 
-	bool shader_cooker::cook_from_file(const shader_cook_config_t& cfg, const char* full_path, ostream_t& stream)
+	bool shader_cooker::cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		if (cfg.type == shader_type_e::invalid)
 		{
@@ -123,13 +124,11 @@ namespace sfg
 			return false;
 		}
 
-		resource_header_t header = {
-			.magic	 = shader_loader_t::WIRE_MAGIC,
-			.version = shader_loader_t::WIRE_VERSION,
+		out_header = {
+			.magic		 = shader_loader_t::WIRE_MAGIC,
+			.version	 = shader_loader_t::WIRE_VERSION,
+			.source_tick = collect_source_tick(cfg, full_path),
 		};
-		collect_source_ticks(cfg, full_path, header.source_ticks);
-
-		header.serialize(stream);
 
 		stream << cfg.type;
 		stream << compile_variant_count;
@@ -166,15 +165,15 @@ namespace sfg
 		return true;
 	}
 
-	void shader_cooker::collect_source_ticks(const char* full_path, vector_t<u64>& out)
+	u64 shader_cooker::collect_source_tick(const char* full_path)
 	{
 		const shader_cook_config_t cfg = {};
-		collect_source_ticks(cfg, full_path, out);
+		return collect_source_tick(cfg, full_path);
 	}
 
-	void shader_cooker::collect_source_ticks(const shader_cook_config_t& cfg, const char* full_path, vector_t<u64>& out)
+	u64 shader_cooker::collect_source_tick(const shader_cook_config_t& cfg, const char* full_path)
 	{
-		out.push_back(file_system_t::get_last_modified_ticks(full_path));
+		u64 source_tick = file_system_t::get_last_modified_ticks(full_path);
 
 		vector_t<string_t> include_paths;
 		build_include_paths(cfg, full_path, include_paths);
@@ -182,7 +181,6 @@ namespace sfg
 		vector_t<string_t> include_lines;
 		file_system_t::find_lines_with_keyword(full_path, "#include", include_lines);
 
-		out.reserve(out.size() + include_lines.size() * include_paths.size());
 		for (const string_t& line : include_lines)
 		{
 			const size_t open_quote = line.find('"');
@@ -195,7 +193,7 @@ namespace sfg
 			const string_t rel_path = line.substr(open_quote + 1, close_quote - open_quote - 1);
 			if (file_system_t::is_absolute_path(rel_path.c_str()))
 			{
-				out.push_back(file_system_t::get_last_modified_ticks(rel_path.c_str()));
+				source_tick = hashing_t::hash_u64_combine(source_tick, file_system_t::get_last_modified_ticks(rel_path.c_str()));
 				continue;
 			}
 
@@ -204,11 +202,13 @@ namespace sfg
 				const string_t resolved = include_path + rel_path;
 				if (file_system_t::exists(resolved.c_str()))
 				{
-					out.push_back(file_system_t::get_last_modified_ticks(resolved.c_str()));
+					source_tick = hashing_t::hash_u64_combine(source_tick, file_system_t::get_last_modified_ticks(resolved.c_str()));
 					break;
 				}
 			}
 		}
+
+		return source_tick;
 	}
 
 }

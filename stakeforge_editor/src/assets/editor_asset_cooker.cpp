@@ -46,22 +46,30 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
-#include <sfg/runtime/resources/resource_cache.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
+#include <sfg/serialization/compression.hpp>
 #include <sfg/serialization/serialization.hpp>
 
 namespace sfg
 {
 	namespace
 	{
-		bool save_cooked_asset(const editor_asset_t& asset, const ostream_t& stream)
+		bool save_cooked_asset(const editor_asset_t& asset, const resource_header_t& header, const ostream_t& payload)
 		{
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
 			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
-			return resource_cache_t::ensure_directory(cache_dir.c_str()) && serializer_t::save_to_file(cache_path.c_str(), stream);
+			if (!file_system_t::ensure_directory(cache_dir.c_str()))
+				return false;
+
+			ostream_t compressed = compressor_t::compress(payload);
+			if (compressed.get_size() == 0)
+				return false;
+
+			ostream_t stream = make_resource_stream(header, compressed);
+			return serializer_t::save_to_file(cache_path.c_str(), stream);
 		}
 
 		bool read_source_blob(const editor_asset_t& asset, char*& out_data, size_t& out_size)
@@ -125,9 +133,12 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<audio_cook_config_t>::value, &config, asset.cook_options))
 			return false;
 
-		ostream_t	   stream;
-		const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-		return audio_cooker::cook_from_file(config, source_full_path.c_str(), stream) && save_cooked_asset(asset, stream);
+		resource_header_t header = {};
+		ostream_t		  stream;
+		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		if (!audio_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 
 	bool editor_asset_cooker_t::cook_shader(const editor_asset_t& asset)
@@ -139,9 +150,12 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &config, asset.cook_options))
 			return false;
 
-		ostream_t	   stream;
-		const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-		return shader_cooker::cook_from_file(config, source_full_path.c_str(), stream) && save_cooked_asset(asset, stream);
+		resource_header_t header = {};
+		ostream_t		  stream;
+		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		if (!shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 
 	bool editor_asset_cooker_t::cook_material(const editor_asset_t& asset)
@@ -153,8 +167,11 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, asset.embedded_source))
 			return false;
 
-		ostream_t stream;
-		return material_cooker::cook_from_def(def, stream) && save_cooked_asset(asset, stream);
+		resource_header_t header = {};
+		ostream_t		  stream;
+		if (!material_cooker::cook_from_def(def, header, stream))
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 
 	bool editor_asset_cooker_t::cook_texture_sampler(const editor_asset_t& asset)
@@ -166,8 +183,11 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, asset.embedded_source))
 			return false;
 
-		ostream_t stream;
-		return texture_sampler_cooker::cook_from_desc(desc, stream) && save_cooked_asset(asset, stream);
+		resource_header_t header = {};
+		ostream_t		  stream;
+		if (!texture_sampler_cooker::cook_from_desc(desc, header, stream))
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 
 	bool editor_asset_cooker_t::cook_physical_material(const editor_asset_t& asset)
@@ -179,8 +199,11 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<physical_material_def_t>::value, &def, asset.embedded_source))
 			return false;
 
-		ostream_t stream;
-		return physical_material_cooker::cook_from_def(def, stream) && save_cooked_asset(asset, stream);
+		resource_header_t header = {};
+		ostream_t		  stream;
+		if (!physical_material_cooker::cook_from_def(def, header, stream))
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 
 	bool editor_asset_cooker_t::cook_animation_state_machine(const editor_asset_t& asset)
@@ -200,13 +223,14 @@ namespace sfg
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<texture_cook_config_t>::value, &config, asset.cook_options))
 			return false;
 
-		ostream_t stream;
-		bool	  cooked = false;
+		resource_header_t header = {};
+		ostream_t		  stream;
+		bool			  cooked = false;
 		if (asset.source_type == editor_asset_source_type_e::data)
 		{
 			SFG_ASSERT(asset._transient_data.data != nullptr);
 			SFG_ASSERT(asset._transient_data.size != 0);
-			cooked = texture_cooker::cook_from_data(config, asset._transient_data, stream);
+			cooked = texture_cooker::cook_from_data(config, asset._transient_data, header, stream);
 			SFG_FREE(asset._transient_data.data);
 		}
 		else if (asset.source_type == editor_asset_source_type_e::file_blob)
@@ -216,16 +240,18 @@ namespace sfg
 			if (!read_source_blob(asset, blob_data, blob_size))
 				return false;
 
-			cooked = texture_cooker::cook_from_data(config, {.data = reinterpret_cast<u8*>(blob_data), .size = blob_size}, stream);
+			cooked = texture_cooker::cook_from_data(config, {.data = reinterpret_cast<u8*>(blob_data), .size = blob_size}, header, stream);
 			delete[] blob_data;
 		}
 		else
 		{
 			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-			cooked							= texture_cooker::cook_from_file(config, source_full_path.c_str(), stream);
+			cooked							= texture_cooker::cook_from_file(config, source_full_path.c_str(), header, stream);
 		}
 
-		return cooked && save_cooked_asset(asset, stream);
+		if (!cooked)
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 
 	bool editor_asset_cooker_t::cook_skeleton(const editor_asset_t& asset)
@@ -242,15 +268,12 @@ namespace sfg
 			return false;
 
 		const resource_header_t header = {
-			.magic		  = skeleton_loader_t::WIRE_MAGIC,
-			.version	  = skeleton_loader_t::WIRE_VERSION,
-			.source_ticks = {hashing_t::hash_u64(skeleton_stream.get_raw(), skeleton_stream.get_size())},
+			.magic		 = skeleton_loader_t::WIRE_MAGIC,
+			.version	 = skeleton_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(skeleton_stream.get_raw(), skeleton_stream.get_size()),
 		};
 
-		ostream_t stream;
-		header.serialize(stream);
-		stream.write_raw(skeleton_stream.get_raw(), skeleton_stream.get_size());
-		return save_cooked_asset(asset, stream);
+		return save_cooked_asset(asset, header, skeleton_stream);
 	}
 
 	bool editor_asset_cooker_t::cook_mesh(const editor_asset_t& asset)
@@ -292,15 +315,12 @@ namespace sfg
 		}
 
 		const resource_header_t header = {
-			.magic		  = mesh_loader_t::WIRE_MAGIC,
-			.version	  = mesh_loader_t::WIRE_VERSION,
-			.source_ticks = {hashing_t::hash_u64(mesh_stream.get_raw(), mesh_stream.get_size())},
+			.magic		 = mesh_loader_t::WIRE_MAGIC,
+			.version	 = mesh_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(mesh_stream.get_raw(), mesh_stream.get_size()),
 		};
 
-		ostream_t stream;
-		header.serialize(stream);
-		stream.write_raw(mesh_stream.get_raw(), mesh_stream.get_size());
-		const bool result = save_cooked_asset(asset, stream);
+		const bool result = save_cooked_asset(asset, header, mesh_stream);
 		delete[] blob_data;
 		return result;
 	}

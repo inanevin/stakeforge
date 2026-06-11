@@ -34,18 +34,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool physical_material_cooker::cook_from_def(const physical_material_def_t& def, ostream_t& stream)
+	bool physical_material_cooker::cook_from_def(const physical_material_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
 		ostream_t def_stream;
-		reflection_registry_t::get().serialize_to_stream(type_id_t<physical_material_def_t>::value, &def, stream);
+		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<physical_material_def_t>::value, &def, def_stream))
+			return false;
 
-		const resource_header_t header = {
-			.magic		  = physical_material_loader_t::WIRE_MAGIC,
-			.version	  = physical_material_loader_t::WIRE_VERSION,
-			.source_ticks = {hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size())},
+		out_header = {
+			.magic		 = physical_material_loader_t::WIRE_MAGIC,
+			.version	 = physical_material_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size()),
 		};
 
-		header.serialize(stream);
 		stream.write_raw(def_stream.get_raw(), def_stream.get_size());
 		return true;
 	}

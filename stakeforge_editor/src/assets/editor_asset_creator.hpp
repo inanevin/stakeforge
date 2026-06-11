@@ -39,10 +39,19 @@ namespace sfg
 		forward,
 	};
 
+	enum class editor_texture_sampler_type_e : u8
+	{
+		linear,
+		nearest,
+		anisotropic,
+	};
+
 	struct editor_asset_create_desc_t
 	{
 		editor_asset_node_handle_t parent_node	   = {};
 		const char*				   name			   = nullptr;
+		const char*				   source_name	   = nullptr;
+		sid_t					   guid			   = NULL_SID;
 		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
 		u8						   sub_type		   = 0;
 		bool					   allow_overwrite = false;
@@ -60,9 +69,10 @@ namespace sfg
 		static const char* get_material_scaffold_relative(editor_material_type_e material_type);
 		static const char* get_physical_material_scaffold_relative();
 		static const char* get_shader_scaffold_relative(shader_type_e shader_type);
-		static const char* get_texture_sampler_scaffold_relative();
+		static const char* get_texture_sampler_scaffold_relative(editor_texture_sampler_type_e sampler_type = editor_texture_sampler_type_e::linear);
 		static bool		   scaffold_material_embedded_source(editor_material_type_e material_type, nlohmann::json& out_embedded_source);
 		static bool		   scaffold_physical_material_embedded_source(nlohmann::json& out_embedded_source);
+		static bool		   scaffold_texture_sampler_embedded_source(editor_texture_sampler_type_e sampler_type, nlohmann::json& out_embedded_source);
 		static bool		   scaffold_texture_sampler_embedded_source(nlohmann::json& out_embedded_source);
 		static bool		   scaffold_shader_source(editor_asset_t& asset, const char* directory, const char* file_name);
 	};

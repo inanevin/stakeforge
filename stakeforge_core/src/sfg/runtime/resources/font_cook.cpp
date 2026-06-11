@@ -11,7 +11,7 @@
 
 namespace sfg
 {
-	bool font_cooker::cook_from_file(const font_cook_config_t&, const char* full_path, ostream_t& stream)
+	bool font_cooker::cook_from_file(const font_cook_config_t&, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		char*  ttf_data = nullptr;
 		size_t ttf_size = 0;
@@ -22,13 +22,11 @@ namespace sfg
 			return false;
 		}
 
-		const size_t	  header_pos = stream.get_size();
-		resource_header_t header	 = {
-				.magic		  = font_loader_t::WIRE_MAGIC,
-				.version	  = font_loader_t::WIRE_VERSION,
-				.source_ticks = {file_system_t::get_last_modified_ticks(full_path)},
+		out_header = {
+			.magic		 = font_loader_t::WIRE_MAGIC,
+			.version	 = font_loader_t::WIRE_VERSION,
+			.source_tick = file_system_t::get_last_modified_ticks(full_path),
 		};
-		header.serialize(stream);
 
 		stream << static_cast<u32>(ttf_size);
 		stream.write_raw(reinterpret_cast<const u8*>(ttf_data), ttf_size);

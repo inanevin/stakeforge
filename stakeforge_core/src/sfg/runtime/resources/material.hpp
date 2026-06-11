@@ -15,8 +15,8 @@ namespace sfg
 	class material_loader_t
 	{
 	public:
-		static constexpr u32 WIRE_MAGIC	  = 0x53464D54;
-		static constexpr u32 WIRE_VERSION = 2;
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'A', 'T', 'L');
+		static constexpr u32 WIRE_VERSION = 3;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);

@@ -74,21 +74,20 @@ namespace sfg
 			return levels;
 		}
 
-		bool cook_from_buffers(const texture_cook_config_t& cfg, texture_buffer_t* buffers, const vec2u16_t& size, u64 source_tick, const char* source_name, ostream_t& stream)
+		bool cook_from_buffers(const texture_cook_config_t& cfg, texture_buffer_t* buffers, const vec2u16_t& size, u64 source_tick, const char* source_name, resource_header_t& out_header, ostream_t& stream)
 		{
 			const u8 levels = get_texture_cook_level_count(cfg, size);
 			if (levels > 1)
 				image_util_t::generate_mips(buffers, levels, image_util_t::mip_gen_filter::def, 4, cfg.is_linear, false);
 
-			const u8		  is_linear_u8 = cfg.is_linear ? 1 : 0;
-			const u8		  channels	   = 4;
-			const format_e	  raw_format   = cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
-			resource_header_t header	   = {
-					  .magic		= texture_loader_t::WIRE_MAGIC,
-					  .version		= texture_loader_t::WIRE_VERSION,
-					  .source_ticks = {source_tick},
-			  };
-			header.serialize(stream);
+			const u8	   is_linear_u8 = cfg.is_linear ? 1 : 0;
+			const u8	   channels		= 4;
+			const format_e raw_format	= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
+			out_header					= {
+								 .magic		  = texture_loader_t::WIRE_MAGIC,
+								 .version	  = texture_loader_t::WIRE_VERSION,
+								 .source_tick = source_tick,
+			 };
 
 			stream << cfg.payload_type << channels << is_linear_u8;
 
@@ -168,7 +167,7 @@ namespace sfg
 		}
 	}
 
-	bool texture_cooker::cook_from_file(const texture_cook_config_t& cfg, const char* full_path, ostream_t& stream)
+	bool texture_cooker::cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		vec2u16_t size		= {};
 		void*	  raw_image = image_util_t::load_from_file_ch(full_path, size, 4);
@@ -182,12 +181,12 @@ namespace sfg
 		buffers[0].row_pitch								 = static_cast<u32>(size.x) * 4;
 		buffers[0].data_size								 = buffers[0].row_pitch * size.y;
 
-		const bool result = cook_from_buffers(cfg, buffers, size, file_system_t::get_last_modified_ticks(full_path), full_path, stream);
+		const bool result = cook_from_buffers(cfg, buffers, size, file_system_t::get_last_modified_ticks(full_path), full_path, out_header, stream);
 		free_texture_buffers(buffers, get_texture_cook_level_count(cfg, size), true);
 		return result;
 	}
 
-	bool texture_cooker::cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, ostream_t& stream)
+	bool texture_cooker::cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, resource_header_t& out_header, ostream_t& stream)
 	{
 		SFG_ASSERT(cfg.size.x != 0);
 		SFG_ASSERT(cfg.size.y != 0);
@@ -206,7 +205,7 @@ namespace sfg
 		buffers[0].row_pitch								 = static_cast<u32>(cfg.size.x) * 4;
 		buffers[0].data_size								 = static_cast<u32>(expected_size);
 
-		const bool result = cook_from_buffers(cfg, buffers, cfg.size, hashing_t::hash_u64(data.data, data.size), "raw texture data", stream);
+		const bool result = cook_from_buffers(cfg, buffers, cfg.size, hashing_t::hash_u64(data.data, data.size), "raw texture data", out_header, stream);
 		free_texture_buffers(buffers, get_texture_cook_level_count(cfg, cfg.size), false);
 		return result;
 	}

@@ -4,7 +4,7 @@
 
 namespace sfg
 {
-	bool prefab_cooker::cook_from_file(const char*, ostream_t&)
+	bool prefab_cooker::cook_from_file(const char*, resource_header_t&, ostream_t&)
 	{
 		return false;
 	}

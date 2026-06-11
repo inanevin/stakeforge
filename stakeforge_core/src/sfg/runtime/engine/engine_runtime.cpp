@@ -10,6 +10,7 @@
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/engine/freetype_runtime.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
@@ -94,6 +95,7 @@ namespace sfg
 	{
 		const world_handle_t handle = _worlds.add();
 		world_t&			 world	= _worlds.get(handle);
+		engine_components_util_t::add_engine_components_to_world(world);
 		world.init();
 		return handle;
 	}

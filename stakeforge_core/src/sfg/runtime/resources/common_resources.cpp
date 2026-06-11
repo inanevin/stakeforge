@@ -5,9 +5,7 @@
 #include <cstddef>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/data/istream.hpp>
-#include <sfg/data/istream_vector.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/data/ostream_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/memory/memory.hpp>
 
@@ -29,13 +27,22 @@ namespace sfg
 	void resource_header_t::serialize(ostream_t& stream) const
 	{
 		stream << magic << version;
-		stream << source_ticks;
+		stream << source_tick;
 	}
 
 	void resource_header_t::deserialize(istream_t& stream)
 	{
 		stream >> magic >> version;
-		stream >> source_ticks;
+		stream >> source_tick;
+	}
+
+	ostream_t make_resource_stream(const resource_header_t& header, const ostream_t& payload)
+	{
+		ostream_t stream;
+		stream.create(sizeof(header.magic) + sizeof(header.version) + sizeof(header.source_tick) + payload.get_size());
+		header.serialize(stream);
+		stream.write_raw(payload.get_raw(), payload.get_size());
+		return stream;
 	}
 
 	const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX] = {

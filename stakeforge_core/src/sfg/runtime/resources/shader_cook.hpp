@@ -11,6 +11,7 @@
 namespace sfg
 {
 	class ostream_t;
+	struct resource_header_t;
 
 	struct shader_cook_config_t
 	{
@@ -21,9 +22,9 @@ namespace sfg
 	class shader_cooker
 	{
 	public:
-		static bool cook_from_file(const shader_cook_config_t& cfg, const char* full_path, ostream_t& stream);
-		static void collect_source_ticks(const shader_cook_config_t& cfg, const char* full_path, vector_t<u64>& out);
-		static void collect_source_ticks(const char* full_path, vector_t<u64>& out);
+		static bool cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
+		static u64	collect_source_tick(const shader_cook_config_t& cfg, const char* full_path);
+		static u64	collect_source_tick(const char* full_path);
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_cook_config_t);

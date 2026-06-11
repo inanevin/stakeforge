@@ -7,7 +7,7 @@
 
 namespace sfg
 {
-	bool glb_cooker::cook_from_file(const glb_cook_config_t&, const char*, ostream_t&)
+	bool glb_cooker::cook_from_file(const glb_cook_config_t&, const char*, resource_header_t&, ostream_t&)
 	{
 		return false;
 	}

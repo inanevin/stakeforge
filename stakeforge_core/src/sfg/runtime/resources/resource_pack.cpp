@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "resource_pack.hpp"
-#include "resource_cache.hpp"
+#include "common_resources.hpp"
 #include "resource_manager.hpp"
 
 #include <sfg/common/hashing.hpp>
@@ -12,6 +12,8 @@
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/serialization/compression.hpp>
+#include <sfg/serialization/serialization.hpp>
 
 #if !defined(SFG_EMBED_ASSETS)
 #include "animation_state_machine_cook.hpp"
@@ -23,15 +25,9 @@
 #include "physical_material_cook.hpp"
 #include "prefab_cook.hpp"
 #include "resource_manifest.hpp"
-#include "resource_manifest.hpp"
 #include "shader_cook.hpp"
-#include "shader_cook.hpp"
-#include "texture_cook.hpp"
 #include "texture_cook.hpp"
 #include "texture_sampler_cook.hpp"
-#include "audio_cook.hpp"
-#include "font_cook.hpp"
-#include "glb_cook.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <utility>
 #endif
@@ -41,64 +37,120 @@ namespace sfg
 #if !defined(SFG_EMBED_ASSETS)
 	namespace
 	{
-		bool cook_for_schema(const string_t& schema, const nlohmann::json& config, const char* full_path, ostream_t& stream)
+		string_t cache_path(const char* dir, const char* name)
+		{
+			string_t p = dir;
+			file_system_t::fix_path(p);
+			file_system_t::fix_path_end_slash(p);
+			p += name;
+			p += ".sfg_bin";
+			return p;
+		}
+
+		bool save_cache(const char* cache_dir, const char* name, const ostream_t& cooked)
+		{
+			if (!file_system_t::ensure_directory(cache_dir))
+			{
+				SFG_ERR("failed to create directory {0}", cache_dir);
+				return false;
+			}
+
+			const string_t path = cache_path(cache_dir, name);
+			if (!serializer_t::save_to_file(path.c_str(), cooked))
+			{
+				SFG_ERR("failed to write cache {0}", path.c_str());
+				return false;
+			}
+
+			return true;
+		}
+
+		istream_t try_load_cache(const char* cache_dir, const char* name, const resource_header_t& expected)
+		{
+			const string_t path = cache_path(cache_dir, name);
+			if (!file_system_t::exists(path.c_str()))
+				return {};
+
+			istream_t stream = serializer_t::load_from_file(path.c_str());
+			if (stream.empty())
+				return {};
+
+			resource_header_t header = {};
+			header.deserialize(stream);
+			if (header.magic != expected.magic || header.version != expected.version)
+				return {};
+			if (header.source_tick != expected.source_tick)
+				return {};
+
+			istream_t decompressed_payload = compressor_t::decompress(stream);
+			if (decompressed_payload.empty())
+				return {};
+
+			ostream_t payload;
+			payload.write_raw(decompressed_payload.get_raw(), decompressed_payload.get_size());
+			ostream_t  resource_stream = make_resource_stream(header, payload);
+			span_t<u8> data			   = resource_stream.evict();
+			return istream_t(data.data, data.size);
+		}
+
+		bool cook_for_schema(const string_t& schema, const nlohmann::json& config, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 		{
 			if (schema == "sfg.schema.texture")
 			{
 				texture_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<texture_cook_config_t>::value, &cfg, config))
 					return false;
-				return texture_cooker::cook_from_file(cfg, full_path, stream);
+				return texture_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.shader")
 			{
 				shader_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &cfg, config))
 					return false;
-				return shader_cooker::cook_from_file(cfg, full_path, stream);
+				return shader_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.audio")
 			{
 				audio_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<audio_cook_config_t>::value, &cfg, config))
 					return false;
-				return audio_cooker::cook_from_file(cfg, full_path, stream);
+				return audio_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.font")
 			{
 				font_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<font_cook_config_t>::value, &cfg, config))
 					return false;
-				return font_cooker::cook_from_file(cfg, full_path, stream);
+				return font_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.material")
 			{
 				material_def_t def = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, config))
 					return false;
-				return material_cooker::cook_from_def(def, stream);
+				return material_cooker::cook_from_def(def, out_header, stream);
 			}
 			if (schema == "sfg.schema.texture_sampler")
 			{
 				sampler_desc_t desc = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, config))
 					return false;
-				return texture_sampler_cooker::cook_from_desc(desc, stream);
+				return texture_sampler_cooker::cook_from_desc(desc, out_header, stream);
 			}
 			if (schema == "sfg.schema.animation_state_machine")
 			{
-				return animation_state_machine_cooker::cook_from_file(full_path, stream);
+				return animation_state_machine_cooker::cook_from_file(full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.prefab")
 			{
-				return prefab_cooker::cook_from_file(full_path, stream);
+				return prefab_cooker::cook_from_file(full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.model")
 			{
 				glb_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<glb_cook_config_t>::value, &cfg, config))
 					return false;
-				return glb_cooker::cook_from_file(cfg, full_path, stream);
+				return glb_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 
 			SFG_ERR("unknown cook schema: {0}", schema.c_str());
@@ -107,18 +159,25 @@ namespace sfg
 
 		bool cook_and_cache(const string_t& source_path, const string_t& name, const nlohmann::json& config, const string_t& cache_dir, span_t<u8>& out_data)
 		{
-			const string_t schema = config.value<string_t>("schema", "");
-			ostream_t	   stream;
-			if (!cook_for_schema(schema, config, source_path.c_str(), stream))
+			const string_t	  schema = config.value<string_t>("schema", "");
+			resource_header_t header = {};
+			ostream_t		  payload;
+			if (!cook_for_schema(schema, config, source_path.c_str(), header, payload))
 			{
 				SFG_ERR("resource_pack: cook failed for {0}", source_path.c_str());
 				return false;
 			}
 
-			if (!resource_cache_t::save(cache_dir.c_str(), name.c_str(), stream))
+			ostream_t compressed_payload = compressor_t::compress(payload);
+			if (compressed_payload.get_size() == 0)
+				return false;
+
+			ostream_t cached_stream = make_resource_stream(header, compressed_payload);
+			if (!save_cache(cache_dir.c_str(), name.c_str(), cached_stream))
 				SFG_WARN("resource_pack: cache save failed for {0}", name.c_str());
 
-			out_data = stream.evict();
+			ostream_t stream = make_resource_stream(header, payload);
+			out_data		 = stream.evict();
 			return true;
 		}
 	}
@@ -203,7 +262,7 @@ namespace sfg
 			manifest.resources.push_back(std::move(entry));
 		}
 
-		resource_cache_t::ensure_directory(_cache_dir.c_str());
+		file_system_t::ensure_directory(_cache_dir.c_str());
 
 		_loaded.reserve(manifest.resources.size());
 		_watched.reserve(manifest.resources.size());
@@ -236,14 +295,14 @@ namespace sfg
 				shader_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &cfg, entry.config))
 					return false;
-				shader_cooker::collect_source_ticks(cfg, source_path.c_str(), expected.source_ticks);
+				expected.source_tick = shader_cooker::collect_source_tick(cfg, source_path.c_str());
 			}
 			else if (entry.type == resource_type_e::material)
 			{
 				material_def_t def = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, entry.config))
 					return false;
-				if (!material_cooker::collect_source_ticks(def, expected.source_ticks))
+				if (!material_cooker::collect_source_tick(def, expected.source_tick))
 					return false;
 			}
 			else if (entry.type == resource_type_e::texture_sampler)
@@ -256,13 +315,13 @@ namespace sfg
 				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, desc_stream))
 					return false;
 
-				expected.source_ticks.push_back(hashing_t::hash_u64(desc_stream.get_raw(), desc_stream.get_size()));
+				expected.source_tick = hashing_t::hash_u64(desc_stream.get_raw(), desc_stream.get_size());
 			}
 			else
-				expected.source_ticks.push_back(file_system_t::get_last_modified_ticks(source_path.c_str()));
+				expected.source_tick = file_system_t::get_last_modified_ticks(source_path.c_str());
 
 			span_t<u8> data	  = {};
-			istream_t  cached = resource_cache_t::try_load(_cache_dir.c_str(), entry.name.c_str(), expected);
+			istream_t  cached = try_load_cache(_cache_dir.c_str(), entry.name.c_str(), expected);
 			if (!cached.empty())
 				data = cached.evict();
 			else if (!cook_and_cache(source_path, entry.name, entry.config, _cache_dir, data))

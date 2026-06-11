@@ -25,11 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "serialization.hpp"
+
 #include "compression.hpp"
-#include <sfg/io/log.hpp>
-#include <sfg/io/file_system.hpp>
-#include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <fstream>
 #include <filesystem>
 
@@ -66,8 +67,7 @@ namespace sfg
 			return false;
 		}
 
-		ostream_t compressed = compressor_t::compress(stream);
-		compressed.write_to_ofstream(wf);
+		wf.write(reinterpret_cast<const char*>(stream.get_raw()), stream.get_size());
 		wf.close();
 
 		if (!wf.good())
@@ -77,6 +77,15 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	bool serializer_t::save_to_file_compressed(const char* path, const ostream_t& stream)
+	{
+		ostream_t compressed = compressor_t::compress(stream);
+		if (compressed.get_size() == 0)
+			return false;
+
+		return save_to_file(path, compressed);
 	}
 
 	istream_t serializer_t::load_from_file(const char* path)
@@ -110,8 +119,16 @@ namespace sfg
 			return {};
 		}
 
-		istream_t decompressedStream = compressor_t::decompress(read_stream);
-		return decompressedStream;
+		return read_stream;
+	}
+
+	istream_t serializer_t::load_from_file_compressed(const char* path)
+	{
+		istream_t read_stream = load_from_file(path);
+		if (read_stream.empty())
+			return {};
+
+		return compressor_t::decompress(read_stream);
 	}
 
 }
