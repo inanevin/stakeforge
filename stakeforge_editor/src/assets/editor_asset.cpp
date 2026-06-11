@@ -198,17 +198,26 @@ namespace sfg
 		return result;
 	}
 
-	string_t editor_asset_util_t::make_unique_source_path(const char* directory, const char* file_name, const char* extension)
+	string_t editor_asset_util_t::make_source_path(const char* directory, const char* file_name, const char* extension)
 	{
-		string_t base = normalize_directory(directory);
-		base += file_name != nullptr ? file_name : "";
+		string_t result = normalize_directory(directory);
+		result += file_name != nullptr ? file_name : "";
 
 		string_t ext = extension != nullptr ? extension : "";
 		if (!ext.empty() && ext[0] != '.')
 			ext.insert(ext.begin(), '.');
 
-		string_t result			 = base + ext;
-		size_t	 insert_position = base.size();
+		result += ext;
+		return result;
+	}
+
+	string_t editor_asset_util_t::make_unique_source_path(const char* directory, const char* file_name, const char* extension)
+	{
+		string_t	   result		   = make_source_path(directory, file_name, extension);
+		size_t		   insert_position = result.size();
+		const string_t ext			   = extension != nullptr ? extension : "";
+		if (!ext.empty())
+			insert_position -= ext[0] == '.' ? ext.size() : ext.size() + 1;
 		while (file_system_t::exists(result.c_str()))
 		{
 			result.insert(insert_position, " (Copy)");
@@ -277,7 +286,7 @@ namespace sfg
 			return true;
 
 		const string_t source_extension	  = file_system_t::get_file_extension(source_path);
-		const string_t target_source_path = make_unique_source_path(asset_directory, asset_name, source_extension.c_str());
+		const string_t target_source_path = make_source_path(asset_directory, asset_name, source_extension.c_str());
 		if (!file_system_t::copy_file(source_path.c_str(), target_source_path.c_str()))
 			return false;
 
@@ -342,6 +351,8 @@ namespace sfg
 	sid_t editor_asset_util_t::try_read_existing_guid(const char* path)
 	{
 		editor_asset_t asset = {};
+		if (!file_system_t::exists(path))
+			return NULL_SID;
 		return read_asset(path, asset) ? asset.guid : NULL_SID;
 	}
 

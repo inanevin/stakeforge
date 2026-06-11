@@ -70,7 +70,7 @@ namespace sfg
 		void ensure_default_assets(const char* default_assets_dir);
 		void ensure_integrity();
 		void ensure_cook();
-		void cook_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
+		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -121,15 +121,15 @@ namespace sfg
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
 		vector_t<string_t>										   _import_paths;
 		vector_t<editor_asset_import_options_t>					   _import_options;
-		vector_t<string_t>										   _cook_status_texts;
+		vector_t<string_t>										   import_status_texts;
 		editor_modal_progress_bar_t								   _cook_progress_modal = {};
-		atomic_t<u32>											   _cooked_count		= 0;
-		atomic_t<bool>											   _cook_finished		= false;
+		atomic_t<u32>											   _imported_count		= 0;
+		atomic_t<bool>											   _import_finished		= false;
 		editor_asset_node_handle_t								   _import_directory_node;
 		editor_asset_node_handle_t								   _root_node;
 		u32														   _generation			   = 0;
-		u32														   _total_cook_count	   = 0;
-		u32														   _last_cook_status_index = 0;
-		bool													   _cook_in_progress	   = false;
+		u32														   _total_import_count	   = 0;
+		u32														   _last_import_status_index = 0;
+		bool													   _import_in_progress	   = false;
 	};
 }

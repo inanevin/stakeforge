@@ -973,6 +973,11 @@ namespace sfg
 		SFG_ASSERT(source_full_path != nullptr);
 		SFG_ASSERT(source_full_path[0] != '\0');
 
+		editor_asset_t glb_source_asset = {};
+		const string_t glb_asset_name	= file_system_t::get_filename_from_path(source_full_path);
+		if (!editor_asset_util_t::set_source_relative_or_copy(glb_source_asset, parent_node.full_path.c_str(), glb_asset_name.c_str(), source_full_path))
+			return false;
+
 		char*  glb_data = nullptr;
 		size_t glb_size = 0;
 		file_system_t::read_file(source_full_path, glb_data, glb_size);

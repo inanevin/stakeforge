@@ -120,49 +120,49 @@ namespace sfg
 	void editor_asset_manager_t::uninit()
 	{
 		SFG_ASSERT(s_instance == this);
-		if (_cook_in_progress)
+		if (_import_in_progress)
 			job_system_t::get().wait_for_all();
 		clear();
 		_import_paths.clear();
 		_import_options.clear();
-		_cook_status_texts.clear();
+		import_status_texts.clear();
 		_asset_descriptors.clear();
-		_cooked_count.store(0, std::memory_order_relaxed);
-		_cook_finished.store(false, std::memory_order_relaxed);
-		_total_cook_count		= 0;
-		_last_cook_status_index = 0;
-		_cook_in_progress		= false;
-		s_instance				= nullptr;
+		_imported_count.store(0, std::memory_order_relaxed);
+		_import_finished.store(false, std::memory_order_relaxed);
+		_total_import_count		  = 0;
+		_last_import_status_index = 0;
+		_import_in_progress		  = false;
+		s_instance				  = nullptr;
 	}
 
 	void editor_asset_manager_t::tick()
 	{
-		if (!_cook_in_progress)
+		if (!_import_in_progress)
 			return;
 
-		const u32				   cooked	= _cooked_count.load(std::memory_order_relaxed);
-		const f32				   progress = _total_cook_count != 0 ? static_cast<f32>(cooked) / static_cast<f32>(_total_cook_count) : 1.0f;
+		const u32				   cooked	= _imported_count.load(std::memory_order_relaxed);
+		const f32				   progress = _total_import_count != 0 ? static_cast<f32>(cooked) / static_cast<f32>(_total_import_count) : 1.0f;
 		editor_modal_controller_t& modal	= *editor_app_t::get().get_main_surface().modal_controller;
 		_cook_progress_modal.set_progress(progress);
-		const u32 status_index = cooked < _total_cook_count ? cooked : _total_cook_count - 1;
-		if (status_index != _last_cook_status_index)
+		const u32 status_index = cooked < _total_import_count ? cooked : _total_import_count - 1;
+		if (status_index != _last_import_status_index)
 		{
-			_last_cook_status_index = status_index;
-			modal.set_body_text(_cook_status_texts[status_index].c_str());
+			_last_import_status_index = status_index;
+			modal.set_body_text(import_status_texts[status_index].c_str());
 		}
 
-		if (cooked != _total_cook_count || !_cook_finished.load(std::memory_order_acquire))
+		if (cooked != _total_import_count || !_import_finished.load(std::memory_order_acquire))
 			return;
 
 		modal.close_modal();
 		rescan(editor_project_t::get()._runtime.assets_path);
 		_import_paths.resize(0);
 		_import_options.resize(0);
-		_cook_status_texts.resize(0);
-		_import_directory_node	= {};
-		_total_cook_count		= 0;
-		_last_cook_status_index = 0;
-		_cook_in_progress		= false;
+		import_status_texts.resize(0);
+		_import_directory_node	  = {};
+		_total_import_count		  = 0;
+		_last_import_status_index = 0;
+		_import_in_progress		  = false;
 	}
 
 	void editor_asset_manager_t::clear()
@@ -403,7 +403,7 @@ namespace sfg
 
 	void editor_asset_manager_t::ensure_cook()
 	{
-		SFG_ASSERT(!_cook_in_progress);
+		SFG_ASSERT(!_import_in_progress);
 
 		for (auto& asset_pair : _assets)
 		{
@@ -447,9 +447,9 @@ namespace sfg
 		}
 	}
 
-	void editor_asset_manager_t::cook_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
+	void editor_asset_manager_t::import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
 	{
-		SFG_ASSERT(!_cook_in_progress);
+		SFG_ASSERT(!_import_in_progress);
 		SFG_ASSERT(!directory_node.is_null());
 		SFG_ASSERT(_asset_tree.is_valid(directory_node));
 		SFG_ASSERT(!paths.empty());
@@ -460,29 +460,29 @@ namespace sfg
 		_import_paths.reserve(paths.size());
 		_import_options.resize(0);
 		_import_options.reserve(import_options.size());
-		_cook_status_texts.resize(0);
-		_cook_status_texts.reserve(paths.size());
+		import_status_texts.resize(0);
+		import_status_texts.reserve(paths.size());
 		for (const string_t& path : paths)
 		{
 			_import_paths.push_back(path);
-			_cook_status_texts.push_back(path);
+			import_status_texts.push_back(path);
 		}
 		for (const editor_asset_import_options_t& option : import_options)
 			_import_options.push_back(option);
 
-		_cooked_count.store(0, std::memory_order_relaxed);
-		_cook_finished.store(false, std::memory_order_relaxed);
-		_total_cook_count		= static_cast<u32>(_import_paths.size());
-		_last_cook_status_index = 0;
-		_cook_in_progress		= true;
+		_imported_count.store(0, std::memory_order_relaxed);
+		_import_finished.store(false, std::memory_order_relaxed);
+		_total_import_count		  = static_cast<u32>(_import_paths.size());
+		_last_import_status_index = 0;
+		_import_in_progress		  = true;
 
 		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
 		_cook_progress_modal.set_progress(0.0f);
 		editor_modal_content_desc_t progress_content = _cook_progress_modal.get_content_desc();
-		modal.request_modal("Cooking Assets", _cook_status_texts[0].c_str(), false, nullptr, 0, &progress_content);
+		modal.request_modal("Cooking Assets", import_status_texts[0].c_str(), false, nullptr, 0, &progress_content);
 
 		job_system_t::get().silent_async([this]() {
-			vector_t<editor_asset_t>					  imported_assets;
+			vector_t<editor_asset_t>						  imported_assets;
 			const span_t<const editor_asset_import_options_t> options = {
 				.data = _import_options.data(),
 				.size = _import_options.size(),
@@ -491,9 +491,9 @@ namespace sfg
 			{
 				if (!editor_asset_importer_t::import_asset(_import_directory_node, path.c_str(), options, imported_assets))
 					SFG_ERR("failed importing asset {0}", path.c_str());
-				_cooked_count.fetch_add(1, std::memory_order_relaxed);
+				_imported_count.fetch_add(1, std::memory_order_relaxed);
 			}
-			_cook_finished.store(true, std::memory_order_release);
+			_import_finished.store(true, std::memory_order_release);
 		});
 	}
 

@@ -1503,7 +1503,7 @@ namespace sfg
 		for (const editor_asset_import_options_t& option : _pending_import_options)
 			import_options.push_back(option);
 
-		editor_asset_manager_t::get().cook_assets(_selected_folder_node, import_paths, import_options);
+		editor_asset_manager_t::get().import_assets(_selected_folder_node, import_paths, import_options);
 		clear_pending_import();
 	}
 
