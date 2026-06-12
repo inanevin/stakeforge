@@ -72,7 +72,7 @@ namespace sfg
 
 	void world_t::tick(f32)
 	{
-		update_world_transforms();
+		
 	}
 
 	entity_id_t world_t::create_entity()
