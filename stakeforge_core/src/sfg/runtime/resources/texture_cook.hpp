@@ -40,10 +40,11 @@ namespace sfg
 
 	struct texture_cook_config_t
 	{
-		vec2u16_t			   size				= vec2u16_t::zero;
-		texture_payload_type_e payload_type		= texture_payload_type_e::ktx2_uastc;
-		bool				   generate_mipmaps = false;
-		bool				   is_linear		= false;
+		vec2u16_t				   size				= vec2u16_t::zero;
+		texture_payload_type_e	   payload_type		= texture_payload_type_e::ktx2_uastc;
+		texture_ktx2_compression_e ktx2_compression = texture_ktx2_compression_e::faster;
+		bool					   generate_mipmaps = false;
+		bool					   is_linear		= false;
 	};
 
 	class texture_cooker

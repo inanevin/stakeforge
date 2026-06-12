@@ -60,6 +60,7 @@ namespace sfg
 		object,
 		vector,
 		static_vector,
+		i8,
 	};
 
 	reflected_value_type_e reflected_value_type_from_sub_type_id(sid_t sub_type_id);

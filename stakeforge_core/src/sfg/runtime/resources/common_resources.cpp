@@ -19,6 +19,7 @@
 #include "prefab.hpp"
 #include "shader.hpp"
 #include "skeleton.hpp"
+#include "skybox_hdr.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
 
@@ -59,6 +60,7 @@ namespace sfg
 		&physical_material_resource_desc,
 		&prefab_resource_desc,
 		&animation_state_machine_resource_desc,
+		&skybox_hdr_resource_desc,
 	};
 }
 
@@ -80,6 +82,7 @@ namespace sfg
 			{.name = "physical_material", .display_name = "Physical Material", .value = static_cast<i64>(resource_type_e::physical_material)},
 			{.name = "prefab", .display_name = "Prefab", .value = static_cast<i64>(resource_type_e::prefab)},
 			{.name = "animation_state_machine", .display_name = "Animation State Machine", .value = static_cast<i64>(resource_type_e::animation_state_machine)},
+			{.name = "hdr_skybox", .display_name = "HDR Skybox", .value = static_cast<i64>(resource_type_e::hdr_skybox)},
 		};
 	}
 

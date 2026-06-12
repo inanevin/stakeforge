@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 
@@ -47,14 +48,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/stb/stb_image.h>
+#include <sfg/vendor/stb/stb_image_write.h>
+#include <sfg/vendor/taskflow/taskflow.hpp>
 
 #define TINYGLTF3_IMPLEMENTATION
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
 
+#include <atomic>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <utility>
 
@@ -68,28 +72,17 @@ namespace sfg
 			u32 offset = 0;
 		};
 
-		string_t get_image_extension(const tg3_image& image)
+		struct glb_texture_import_t
 		{
-			if (image.uri.data != nullptr && image.uri.len != 0)
-			{
-				const string_t image_uri(image.uri.data, image.uri.len);
-				string_t	   extension = file_system_t::get_file_extension(image_uri);
-				string_util::to_lower(extension);
-				if (extension == "png" || extension == "jpg" || extension == "jpeg")
-					return extension;
-			}
+			u32 texture_index = 0;
+		};
 
-			if (image.mime_type.data != nullptr && image.mime_type.len != 0)
-			{
-				const string_t mime_type(image.mime_type.data, image.mime_type.len);
-				if (mime_type == "image/png")
-					return "png";
-				if (mime_type == "image/jpeg")
-					return "jpg";
-			}
-
-			return {};
-		}
+		struct glb_texture_import_result_t
+		{
+			editor_asset_t asset;
+			sid_t		   guid	   = NULL_SID;
+			bool		   success = false;
+		};
 
 		string_t get_asset_name(const tg3_str& name)
 		{
@@ -550,9 +543,8 @@ namespace sfg
 							const tg3_texture&					 texture,
 							const texture_cook_config_t&		 texture_config_base,
 							u32									 texture_index,
-							hash_map_t<u32, sid_t>&				 out_texture_guid_map,
 							const editor_asset_import_context_t& context,
-							vector_t<editor_asset_t>&			 out_assets)
+							editor_asset_t&						 out_asset)
 		{
 			if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
 				return false;
@@ -567,10 +559,6 @@ namespace sfg
 
 			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
 			if (buffer.data.data == nullptr || buffer_view.byte_offset > buffer.data.count || buffer_view.byte_length > buffer.data.count - buffer_view.byte_offset || buffer_view.byte_length > static_cast<u64>(std::numeric_limits<int>::max()))
-				return false;
-
-			const string_t extension = get_image_extension(image);
-			if (extension.empty())
 				return false;
 
 			string_t asset_name;
@@ -617,41 +605,30 @@ namespace sfg
 				return false;
 			}
 
-			const size_t decoded_size = static_cast<size_t>(decoded_width) * static_cast<size_t>(decoded_height) * 4;
-			u8*			 texture_data = static_cast<u8*>(SFG_MALLOC(decoded_size));
-			if (texture_data == nullptr)
-			{
-				stbi_image_free(decoded);
-				return false;
-			}
-
-			SFG_MEMCPY(texture_data, decoded, decoded_size);
-			stbi_image_free(decoded);
-
 			texture_config.size = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
 
 			editor_asset_t asset = {};
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
 			{
-				SFG_FREE(texture_data);
+				stbi_image_free(decoded);
 				return false;
 			}
 
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
-			const string_t blob_path	 = editor_asset_util_t::make_blob_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t source_path	 = editor_asset_util_t::make_source_path(parent_node.full_path.c_str(), asset_name.c_str(), "png");
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-			if (!write_blob(blob_path.c_str(), texture_data, decoded_size))
+			if (stbi_write_png(source_path.c_str(), decoded_width, decoded_height, 4, decoded, decoded_width * 4) == 0)
 			{
-				SFG_FREE(texture_data);
+				stbi_image_free(decoded);
 				return false;
 			}
 
-			SFG_FREE(texture_data);
+			stbi_image_free(decoded);
 			asset.version		  = editor_asset_t::VERSION;
 			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
 			asset.asset_type	  = editor_asset_type_e::texture;
-			asset.source_type	  = editor_asset_source_type_e::file_blob;
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), blob_path.c_str());
+			asset.source_type	  = editor_asset_source_type_e::file;
+			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 				return false;
@@ -659,8 +636,7 @@ namespace sfg
 			if (!editor_asset_cooker_t::cook_texture(asset))
 				return false;
 
-			out_texture_guid_map[texture_index] = asset.guid;
-			out_assets.push_back(asset);
+			out_asset = std::move(asset);
 			return true;
 		}
 
@@ -1058,48 +1034,113 @@ namespace sfg
 		bool result = parse_result == TG3_OK;
 		if (result)
 		{
-			texture_cook_config_t texture_config = {
+			const texture_cook_config_t texture_config = {
 				.payload_type	  = cook_config.texture_payload_type,
+				.ktx2_compression = cook_config.ktx2_compression,
 				.generate_mipmaps = cook_config.generate_mipmaps,
 			};
 
 			hash_map_t<u32, sid_t> texture_guid_map;
 			texture_guid_map.reserve(model.textures_count);
-			hash_map_t<u64, sid_t> imported_texture_guid_map;
-			imported_texture_guid_map.reserve(model.textures_count);
+			hash_map_t<u64, u32> imported_texture_indices;
+			imported_texture_indices.reserve(model.textures_count);
+			vector_t<glb_texture_import_t> texture_imports;
+			texture_imports.reserve(model.textures_count);
+			vector_t<u32> texture_import_indices;
+			texture_import_indices.resize(model.textures_count);
 
-			out_assets.reserve(out_assets.size() + model.textures_count + model.skins_count + model.materials_count + (cook_config.combine_meshes ? 1 : model.meshes_count));
-			for (u32 i = 0; i < model.textures_count; ++i)
+			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count : 0;
+			const u32 reserve_animation_count = cook_config.import_animations ? model.skins_count : 0;
+			const u32 reserve_material_count  = cook_config.import_materials ? model.materials_count : 0;
+			const u32 reserve_mesh_count	  = cook_config.import_meshes ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
+			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count);
+			if (cook_config.import_textures)
 			{
-				const tg3_texture& texture = model.textures[i];
-				if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
+				for (u32 i = 0; i < model.textures_count; ++i)
 				{
-					result = false;
-					break;
+					const tg3_texture& texture = model.textures[i];
+					if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
+					{
+						result = false;
+						break;
+					}
+
+					const u64  texture_import_key  = (static_cast<u64>(static_cast<u32>(texture.source)) << 32) | static_cast<u32>(texture.sampler);
+					const auto imported_texture_it = imported_texture_indices.find(texture_import_key);
+					if (imported_texture_it != imported_texture_indices.end())
+					{
+						texture_import_indices[i] = imported_texture_it->second;
+						continue;
+					}
+
+					const u32 import_index						 = static_cast<u32>(texture_imports.size());
+					imported_texture_indices[texture_import_key] = import_index;
+					texture_import_indices[i]					 = import_index;
+					texture_imports.push_back({.texture_index = i});
+				}
+			}
+
+			if (result && !texture_imports.empty())
+			{
+				string_t status = "Importing textures 0/";
+				status += std::to_string(texture_imports.size());
+				context.report_status(status.c_str());
+
+				vector_t<glb_texture_import_result_t> texture_import_results;
+				texture_import_results.resize(texture_imports.size());
+				std::atomic<u32> textures_finished = 0;
+
+				tf::Taskflow texture_import_flow;
+				for (u32 import_index = 0; import_index < texture_imports.size(); ++import_index)
+				{
+					texture_import_flow.emplace([&, import_index]() {
+						const glb_texture_import_t&			texture_import	= texture_imports[import_index];
+						glb_texture_import_result_t&		import_result	= texture_import_results[import_index];
+						const tg3_texture&					texture			= model.textures[texture_import.texture_index];
+						const editor_asset_import_context_t texture_context = {};
+
+						import_result.success = import_texture(parent_node, source_full_path, model, texture, texture_config, texture_import.texture_index, texture_context, import_result.asset);
+						if (import_result.success)
+							import_result.guid = import_result.asset.guid;
+
+						const u32 finished		 = textures_finished.fetch_add(1, std::memory_order_relaxed) + 1;
+						string_t  texture_status = "Importing textures ";
+						texture_status += std::to_string(finished);
+						texture_status += "/";
+						texture_status += std::to_string(texture_imports.size());
+						context.report_status(texture_status.c_str());
+					});
 				}
 
-				const u64  texture_import_key  = (static_cast<u64>(static_cast<u32>(texture.source)) << 32) | static_cast<u32>(texture.sampler);
-				const auto imported_texture_it = imported_texture_guid_map.find(texture_import_key);
-				if (imported_texture_it != imported_texture_guid_map.end())
-				{
-					texture_guid_map[i] = imported_texture_it->second;
-					continue;
-				}
+				tf::Executor& editor_work_executor = editor_app_t::get().get_editor_work_executor();
+				if (editor_work_executor.this_worker() != nullptr)
+					editor_work_executor.corun(texture_import_flow);
+				else
+					editor_work_executor.run(texture_import_flow).wait();
 
-				if (!import_texture(parent_node, source_full_path, model, texture, texture_config, i, texture_guid_map, context, out_assets))
-				{
-					result = false;
-					break;
-				}
+				for (const glb_texture_import_result_t& import_result : texture_import_results)
+					result = import_result.success && result;
 
-				const auto texture_guid_it = texture_guid_map.find(i);
-				SFG_ASSERT(texture_guid_it != texture_guid_map.end());
-				imported_texture_guid_map[texture_import_key] = texture_guid_it->second;
+				if (result)
+				{
+					for (u32 i = 0; i < model.textures_count; ++i)
+					{
+						const u32 import_index = texture_import_indices[i];
+						SFG_ASSERT(import_index < texture_import_results.size());
+						texture_guid_map[i] = texture_import_results[import_index].guid;
+					}
+
+					for (glb_texture_import_result_t& import_result : texture_import_results)
+					{
+						SFG_ASSERT(import_result.success);
+						out_assets.push_back(std::move(import_result.asset));
+					}
+				}
 			}
 
 			hash_map_t<u32, sid_t> material_guid_map;
 			material_guid_map.reserve(model.materials_count);
-			if (result)
+			if (result && cook_config.import_materials)
 			{
 				for (u32 i = 0; i < model.materials_count; ++i)
 				{
@@ -1111,7 +1152,7 @@ namespace sfg
 				}
 			}
 
-			if (result)
+			if (result && cook_config.import_animations)
 			{
 				for (u32 i = 0; i < model.skins_count; ++i)
 				{
@@ -1123,7 +1164,7 @@ namespace sfg
 				}
 			}
 
-			if (result && model.meshes_count != 0)
+			if (result && cook_config.import_meshes && model.meshes_count != 0)
 			{
 				if (cook_config.combine_meshes)
 				{
@@ -1146,5 +1187,41 @@ namespace sfg
 		tg3_model_free(&model);
 		tg3_error_stack_free(&errors);
 		return result;
+	}
+
+	glb_cook_config_reflection_t::glb_cook_config_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(type_id_t<glb_cook_config_t>::value) != nullptr)
+			return;
+
+		static const reflected_field_desc_t fields[] = {
+			{.name = "import_textures", .display_name = "Import Textures", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_textures), .size = sizeof(bool)},
+			{.name = "import_materials", .display_name = "Import Materials", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_materials), .size = sizeof(bool)},
+			{.name = "import_animations", .display_name = "Import Animations", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_animations), .size = sizeof(bool)},
+			{.name = "import_meshes", .display_name = "Import Meshes", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_meshes), .size = sizeof(bool)},
+			{.name		   = "texture_payload_type",
+			 .display_name = "Texture Payload Type",
+			 .type		   = reflected_value_type_e::enum8,
+			 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
+			 .offset	   = offsetof(glb_cook_config_t, texture_payload_type),
+			 .size		   = sizeof(texture_payload_type_e)},
+			{.name		   = "ktx2_compression",
+			 .display_name = "KTX2 Compression",
+			 .type		   = reflected_value_type_e::enum8,
+			 .sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
+			 .offset	   = offsetof(glb_cook_config_t, ktx2_compression),
+			 .size		   = sizeof(texture_ktx2_compression_e)},
+			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
+			{.name = "combine_meshes", .display_name = "Combine Meshes", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, combine_meshes), .size = sizeof(bool)},
+		};
+
+		registry.register_type({
+			.fields	   = {.data = fields, .size = std::size(fields)},
+			.name	   = "glb_cook_config_t",
+			.type_id   = type_id_t<glb_cook_config_t>::value,
+			.size	   = sizeof(glb_cook_config_t),
+			.alignment = alignof(glb_cook_config_t),
+		});
 	}
 }

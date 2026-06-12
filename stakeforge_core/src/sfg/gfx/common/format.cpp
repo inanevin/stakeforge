@@ -52,6 +52,8 @@ namespace sfg
 			return 4;
 		case format_e::r8g8_unorm:
 			return 2;
+		case format_e::r16g16_sfloat:
+			return 4;
 		case format_e::r32_uint:
 			return 4;
 		default:
@@ -71,6 +73,8 @@ namespace sfg
 		case format_e::r8g8b8a8_unorm:
 		case format_e::r8g8b8a8_srgb:
 			return 4;
+		case format_e::r16g16_sfloat:
+			return 2;
 		case format_e::r16g16b16a16_sfloat:
 			return 4;
 		default:

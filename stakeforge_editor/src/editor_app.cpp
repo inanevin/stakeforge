@@ -59,10 +59,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/vendor/taskflow/taskflow.hpp>
 
 namespace sfg
 {
-#define EDITOR_RAW_WHEEL_DELTA 120.0f
+#define EDITOR_RAW_WHEEL_DELTA		 120.0f
+#define EDITOR_WORK_EXECUTOR_THREADS 4
 
 	namespace
 	{
@@ -99,6 +101,9 @@ namespace sfg
 		}
 
 	}
+
+	editor_app_t::editor_app_t()  = default;
+	editor_app_t::~editor_app_t() = default;
 
 	void editor_app_t::on_window_event(void*, const window_event_t& ev, void* user_data)
 	{
@@ -292,6 +297,8 @@ namespace sfg
 
 		_last_tick_us = time_t::get_cpu_microseconds();
 
+		_editor_work_executor = make_unique<tf::Executor>(EDITOR_WORK_EXECUTOR_THREADS);
+
 		const string_t& last_project = editor_settings_t::get().last_project_path;
 		if (!file_system_t::exists(last_project.c_str()) || !load_project(last_project.c_str()))
 		{
@@ -317,6 +324,8 @@ namespace sfg
 		_renderer.uninit();
 		_resource_pack.uninit();
 		_asset_manager.uninit();
+		_editor_work_executor->wait_for_all();
+		_editor_work_executor.reset();
 		_surfaces.resize_zero();
 		_world_controller.uninit();
 		_runtime.uninit();
@@ -417,6 +426,7 @@ namespace sfg
 		}
 
 		_asset_manager.ensure_default_assets(proj._runtime.default_assets_path.c_str());
+		_asset_manager.clean_cache();
 		_asset_manager.ensure_cook();
 		editor_settings_t::get().last_project_path = path;
 		editor_settings_t::get().save();
@@ -474,6 +484,7 @@ namespace sfg
 
 		editor_layout_t::load_surface_default_layout(get_main_surface());
 		save_layout();
+		set_main_world_to_panel();
 	}
 
 	editor_panel_t* editor_app_t::find_panel(editor_panel_type_e type, surface_handle_t surface_handle)
@@ -586,6 +597,12 @@ namespace sfg
 		}
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
+	}
+
+	tf::Executor& editor_app_t::get_editor_work_executor()
+	{
+		SFG_ASSERT(_editor_work_executor != nullptr);
+		return *_editor_work_executor;
 	}
 
 	editor_surface_t& editor_app_t::get_surface_by_runtime(window_runtime_t& runtime)

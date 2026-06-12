@@ -36,7 +36,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/vendor/stb/stb_image.h>
 #include <cstdint>
+#include <limits>
 #include <ktx.h>
 
 namespace sfg
@@ -81,7 +83,7 @@ namespace sfg
 		istream_t stream;
 		stream.open(entry.after_header_data.data, entry.after_header_data.size);
 
-		stream >> runtime->payload_type >> runtime->channels >> runtime->is_linear;
+		stream >> runtime->payload_type >> runtime->channels >> runtime->is_linear >> runtime->ktx2_compression;
 
 		if (runtime->payload_type == texture_payload_type_e::uncompressed)
 		{
@@ -104,12 +106,64 @@ namespace sfg
 			return true;
 		}
 
+		if (runtime->payload_type == texture_payload_type_e::png)
+		{
+			stream >> runtime->texture_format >> runtime->mip_count;
+
+			SFG_ASSERT(runtime->mip_count <= MAX_MIPS);
+
+			runtime->owns_mips = 1;
+			for (u8 i = 0; i < runtime->mip_count; ++i)
+			{
+				u32 blob_size = 0;
+				stream >> blob_size;
+				if (blob_size > static_cast<u32>(std::numeric_limits<int>::max()))
+				{
+					for (u8 j = 0; j < i; ++j)
+						SFG_FREE(runtime->mips[j].pixels);
+					runtime->owns_mips = 0;
+					return false;
+				}
+
+				int		 decoded_width	  = 0;
+				int		 decoded_height	  = 0;
+				int		 decoded_channels = 0;
+				stbi_uc* decoded		  = stbi_load_from_memory(stream.get_data_current(), static_cast<int>(blob_size), &decoded_width, &decoded_height, &decoded_channels, 4);
+				stream.skip_by(blob_size);
+
+				const bool decoded_valid = decoded != nullptr && decoded_width > 0 && decoded_height > 0 && decoded_width <= UINT16_MAX && decoded_height <= UINT16_MAX;
+				if (!decoded_valid)
+				{
+					if (decoded != nullptr)
+						stbi_image_free(decoded);
+					for (u8 j = 0; j < i; ++j)
+						SFG_FREE(runtime->mips[j].pixels);
+					runtime->owns_mips = 0;
+					return false;
+				}
+
+				texture_buffer_t& buf = runtime->mips[i];
+				buf.bpp				  = 4;
+				buf.size			  = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
+				buf.row_pitch		  = static_cast<u32>(decoded_width) * 4;
+				buf.data_size		  = buf.row_pitch * static_cast<u32>(decoded_height);
+				buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+				SFG_MEMCPY(buf.pixels, decoded, buf.data_size);
+				stbi_image_free(decoded);
+			}
+
+			return true;
+		}
+
 		u32 blob_size = 0;
 		stream >> blob_size;
 
 		ktxTexture2*   ktx_texture = nullptr;
 		KTX_error_code ktx_result  = ktxTexture2_CreateFromMemory(stream.get_data_current(), blob_size, 0, &ktx_texture);
 		stream.skip_by(blob_size);
+
+		if (ktx_result == KTX_SUCCESS && runtime->ktx2_compression == texture_ktx2_compression_e::fastest)
+			SFG_ASSERT(ktx_texture->supercompressionScheme != KTX_SS_ZSTD);
 
 		if (ktx_result == KTX_SUCCESS)
 			ktx_result = ktxTexture2_LoadImageData(ktx_texture, nullptr, 0);
@@ -276,11 +330,12 @@ namespace sfg
 		runtime->owns_mips = 0;
 
 		const texture_upload_desc_t upload = {
-			.texture	   = internals->texture,
-			.staging	   = internals->staging,
-			.mips		   = {.data = upload_mips, .size = runtime->mip_count},
-			.target_states = resource_state_ps_resource,
-			.ownership	   = texture_data_ownership_e::c_free,
+			.texture		   = internals->texture,
+			.staging		   = internals->staging,
+			.mips			   = {.data = upload_mips, .size = runtime->mip_count},
+			.target_states	   = resource_state_ps_resource,
+			.destination_slice = 0,
+			.ownership		   = texture_data_ownership_e::c_free,
 		};
 		render_resources_t::get().enqueue_texture_upload(upload);
 

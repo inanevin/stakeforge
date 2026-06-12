@@ -37,7 +37,7 @@ namespace sfg
 {
 	using entity_id_t = u32;
 
-	static inline constexpr entity_id_t NULL_ENTITY_ID			  = std::numeric_limits<entity_id_t>::max();
+	#define NULL_ENTITY_ID			std::numeric_limits<entity_id_t>::max()
 	static inline constexpr entity_id_t ECS_MAX_ENTITIES		  = 256000;
 	static inline constexpr u32			ECS_L0_SPAN				  = 4096;
 	static inline constexpr u32			ECS_L1_SPAN				  = 64;

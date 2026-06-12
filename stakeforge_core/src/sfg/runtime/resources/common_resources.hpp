@@ -52,6 +52,7 @@ namespace sfg
 		physical_material,
 		prefab,
 		animation_state_machine,
+		hdr_skybox,
 		count,
 	};
 

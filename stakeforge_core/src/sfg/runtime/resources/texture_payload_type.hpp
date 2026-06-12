@@ -37,14 +37,30 @@ namespace sfg
 	{
 		ktx2_uastc,
 		uncompressed,
+		png,
+	};
+
+	enum class texture_ktx2_compression_e : u8
+	{
+		fastest,
+		faster,
+		default_quality,
+		high_quality,
 	};
 
 	SFG_DEFINE_TYPE_ID(texture_payload_type_e);
+	SFG_DEFINE_TYPE_ID(texture_ktx2_compression_e);
 
 	struct texture_payload_type_reflection_t
 	{
 		texture_payload_type_reflection_t();
 	};
 
-	inline texture_payload_type_reflection_t g_reflect_texture_payload_type;
+	struct texture_ktx2_compression_reflection_t
+	{
+		texture_ktx2_compression_reflection_t();
+	};
+
+	inline texture_payload_type_reflection_t	 g_reflect_texture_payload_type;
+	inline texture_ktx2_compression_reflection_t g_reflect_texture_ktx2_compression;
 }

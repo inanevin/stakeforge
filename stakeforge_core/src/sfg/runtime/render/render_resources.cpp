@@ -22,10 +22,10 @@ namespace sfg
 		_create_resource_q.enqueue({.hash = hash, .type = type, .user_data = user_data, .desc = desc});
 	}
 
-	void render_resources_t::enqueue_create_texture(sid_t hash, const texture_desc_t& desc)
+	void render_resources_t::enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e type, u32 user_data)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_create_texture_q.enqueue({.hash = hash, .desc = desc});
+		_create_texture_q.enqueue({.hash = hash, .type = type, .user_data = user_data, .desc = desc});
 	}
 
 	void render_resources_t::enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc)
@@ -89,6 +89,7 @@ namespace sfg
 		req.texture					 = desc.texture;
 		req.staging					 = desc.staging;
 		req.target_states			 = desc.target_states;
+		req.destination_slice		 = desc.destination_slice;
 		req.ownership				 = desc.ownership;
 		for (size_t i = 0; i < desc.mips.size; ++i)
 			req.mips.push_back(desc.mips.data[i]);
@@ -163,9 +164,10 @@ namespace sfg
 			const gfx_texture_handle handle = backend.create_texture(req.desc);
 			_completed_q.enqueue({
 				.hash	   = req.hash,
-				.type	   = resource_type_e::texture,
+				.type	   = req.type,
 				.kind	   = render_resource_kind_e::texture,
 				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
+				.user_data = req.user_data,
 				.texture   = handle,
 				.gpu_index = backend.get_texture_gpu_index(handle, 0),
 			});
@@ -204,11 +206,12 @@ namespace sfg
 		while (_texture_upload_q.try_dequeue(texture_upload_req))
 		{
 			const texture_upload_desc_t desc = {
-				.texture	   = texture_upload_req.texture,
-				.staging	   = texture_upload_req.staging,
-				.mips		   = {.data = texture_upload_req.mips.data(), .size = texture_upload_req.mips.size()},
-				.target_states = texture_upload_req.target_states,
-				.ownership	   = texture_upload_req.ownership,
+				.texture		   = texture_upload_req.texture,
+				.staging		   = texture_upload_req.staging,
+				.mips			   = {.data = texture_upload_req.mips.data(), .size = texture_upload_req.mips.size()},
+				.target_states	   = texture_upload_req.target_states,
+				.destination_slice = texture_upload_req.destination_slice,
+				.ownership		   = texture_upload_req.ownership,
 			};
 			_texture_upload_queue.add(desc);
 		}

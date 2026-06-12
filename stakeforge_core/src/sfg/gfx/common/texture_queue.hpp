@@ -44,11 +44,12 @@ namespace sfg
 
 	struct texture_upload_desc_t
 	{
-		gfx_texture_handle			   texture		 = {};
-		gfx_resource_handle			   staging		 = {};
-		span_t<const texture_buffer_t> mips			 = {};
-		u32							   target_states = 0;
-		texture_data_ownership_e	   ownership	 = texture_data_ownership_e::none;
+		gfx_texture_handle			   texture			 = {};
+		gfx_resource_handle			   staging			 = {};
+		span_t<const texture_buffer_t> mips				 = {};
+		u32							   target_states	 = 0;
+		u8							   destination_slice = 0;
+		texture_data_ownership_e	   ownership		 = texture_data_ownership_e::none;
 	};
 
 	struct texture_region_upload_desc_t
@@ -109,11 +110,12 @@ namespace sfg
 	private:
 		struct entry_t
 		{
-			gfx_texture_handle							texture		  = {};
-			gfx_resource_handle							staging		  = {};
-			static_vector_t<texture_buffer_t, MAX_MIPS> mips		  = {};
-			u32											target_states = 0;
-			texture_data_ownership_e					ownership	  = texture_data_ownership_e::none;
+			gfx_texture_handle							texture			  = {};
+			gfx_resource_handle							staging			  = {};
+			static_vector_t<texture_buffer_t, MAX_MIPS> mips			  = {};
+			u32											target_states	  = 0;
+			u8											destination_slice = 0;
+			texture_data_ownership_e					ownership		  = texture_data_ownership_e::none;
 		};
 
 		struct region_entry_t

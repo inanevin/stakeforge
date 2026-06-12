@@ -19,13 +19,13 @@
 #include "animation_state_machine_cook.hpp"
 #include "audio_cook.hpp"
 #include "font_cook.hpp"
-#include "glb_cook.hpp"
 #include "material_cook.hpp"
 #include "material_def.hpp"
 #include "physical_material_cook.hpp"
 #include "prefab_cook.hpp"
 #include "resource_manifest.hpp"
 #include "shader_cook.hpp"
+#include "skybox_hdr_cook.hpp"
 #include "texture_cook.hpp"
 #include "texture_sampler_cook.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -137,6 +137,13 @@ namespace sfg
 					return false;
 				return texture_sampler_cooker::cook_from_desc(desc, out_header, stream);
 			}
+			if (schema == "sfg.schema.hdr_skybox")
+			{
+				skybox_hdr_cook_config_t cfg = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &cfg, config))
+					return false;
+				return skybox_hdr_cooker::cook_from_file(cfg, full_path, out_header, stream);
+			}
 			if (schema == "sfg.schema.animation_state_machine")
 			{
 				return animation_state_machine_cooker::cook_from_file(full_path, out_header, stream);
@@ -145,14 +152,6 @@ namespace sfg
 			{
 				return prefab_cooker::cook_from_file(full_path, out_header, stream);
 			}
-			if (schema == "sfg.schema.model")
-			{
-				glb_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<glb_cook_config_t>::value, &cfg, config))
-					return false;
-				return glb_cooker::cook_from_file(cfg, full_path, out_header, stream);
-			}
-
 			SFG_ERR("unknown cook schema: {0}", schema.c_str());
 			return false;
 		}

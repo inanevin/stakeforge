@@ -165,6 +165,50 @@ namespace sfg
 			return true;
 		}
 
+		bool create_texture_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		{
+			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+			SFG_ASSERT(!desc.parent_node.is_null());
+			SFG_ASSERT(tree.is_valid(desc.parent_node));
+			const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
+			SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
+			SFG_ASSERT(!parent_node.full_path.empty());
+
+			if (!editor_directories_t::is_valid_asset_name(desc.name))
+				return false;
+
+			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
+			if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
+				return false;
+
+			editor_asset_t asset = {};
+			asset.version		 = editor_asset_t::VERSION;
+			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type	 = editor_asset_type_e::texture;
+			asset.source_type	 = editor_asset_source_type_e::file;
+			asset.sub_type		 = desc.sub_type;
+
+			const char* source_name = desc.source_name != nullptr ? desc.source_name : desc.name;
+			if (desc.source_name != nullptr)
+			{
+				string_t source_path = editor_asset_util_t::normalize_directory(parent_node.full_path.c_str());
+				source_path += desc.source_name;
+				source_path += ".png";
+				if (file_system_t::exists(source_path.c_str()))
+					asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
+			}
+
+			if (!editor_asset_creator_t::scaffold_texture_source(asset, parent_node.full_path.c_str(), source_name))
+				return false;
+
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+				return false;
+
+			if (out_asset != nullptr)
+				*out_asset = asset;
+			return true;
+		}
+
 		bool create_none_source_asset(const editor_asset_create_desc_t& desc, editor_asset_type_e asset_type, editor_asset_t* out_asset)
 		{
 			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
@@ -245,6 +289,14 @@ namespace sfg
 		}
 	}
 
+	string_t editor_asset_creator_t::get_texture_scaffold_relative(const char* texture_name)
+	{
+		string_t result = "editor_scaffold/textures/";
+		result += texture_name != nullptr ? texture_name : "";
+		result += ".sfg_asset";
+		return result;
+	}
+
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 	{
 		editor_asset_t asset  = {};
@@ -254,6 +306,9 @@ namespace sfg
 		{
 		case editor_asset_type_e::shader:
 			result = create_shader_asset(desc, &asset) && editor_asset_cooker_t::cook_shader(asset);
+			break;
+		case editor_asset_type_e::texture:
+			result = create_texture_asset(desc, &asset) && editor_asset_cooker_t::cook_texture(asset);
 			break;
 		case editor_asset_type_e::material:
 			result = create_embedded_asset(desc, editor_asset_type_e::material, scaffold_material_embedded_source_by_sub_type, &asset) && editor_asset_cooker_t::cook_material(asset);
@@ -354,6 +409,45 @@ namespace sfg
 			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
 			SFG_ASSERT(!asset.source_relative.empty());
 		}
+		return true;
+	}
+
+	bool editor_asset_creator_t::scaffold_texture_source(editor_asset_t& asset, const char* directory, const char* file_name)
+	{
+		SFG_ASSERT(directory != nullptr);
+		SFG_ASSERT(directory[0] != '\0');
+		SFG_ASSERT(file_name != nullptr);
+		SFG_ASSERT(file_name[0] != '\0');
+
+		string_t scaffold_asset_path = file_system_t::get_running_directory();
+		scaffold_asset_path += get_texture_scaffold_relative(file_name);
+		SFG_ASSERT(file_system_t::exists(scaffold_asset_path.c_str()));
+
+		editor_asset_t scaffold_asset = {};
+		const bool	   read_result	  = editor_asset_util_t::read_asset(scaffold_asset_path.c_str(), scaffold_asset);
+		SFG_ASSERT(read_result);
+		if (!read_result)
+			return false;
+
+		asset.cook_options = scaffold_asset.cook_options;
+
+		if (asset.source_relative.empty())
+		{
+			string_t scaffold_path = file_system_t::get_running_directory();
+			scaffold_path += "editor_scaffold/textures/";
+			scaffold_path += file_name;
+			scaffold_path += ".png";
+			SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
+
+			const string_t source_path = editor_asset_util_t::make_unique_source_path(directory, file_name, "png");
+			if (!file_system_t::copy_file(scaffold_path.c_str(), source_path.c_str()))
+				return false;
+
+			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
+			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
+			SFG_ASSERT(!asset.source_relative.empty());
+		}
+
 		return true;
 	}
 }

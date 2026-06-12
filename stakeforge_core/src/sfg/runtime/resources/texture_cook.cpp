@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/vendor/stb/stb_image_write.h>
 #include <cstdint>
 #include <cstdlib>
 #include <ktx.h>
@@ -49,7 +50,9 @@ namespace sfg
 {
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM 37
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	 43
-#define SFG_KTX_ZSTD_COMPRESSION_LEVEL	 3
+#define SFG_KTX_ZSTD_COMPRESSION_FASTER	 1
+#define SFG_KTX_ZSTD_COMPRESSION_DEFAULT 3
+#define SFG_KTX_ZSTD_COMPRESSION_HIGH	 5
 
 	namespace
 	{
@@ -62,6 +65,11 @@ namespace sfg
 
 			for (u8 i = 1; i < levels; ++i)
 				SFG_FREE(buffers[i].pixels);
+		}
+
+		void write_png_data(void* context, void* data, int size)
+		{
+			static_cast<ostream_t*>(context)->write_raw(static_cast<const u8*>(data), static_cast<size_t>(size));
 		}
 
 		u8 get_texture_cook_level_count(const texture_cook_config_t& cfg, const vec2u16_t& size)
@@ -90,7 +98,7 @@ namespace sfg
 								 .source_tick = source_tick,
 			 };
 
-			stream << cfg.payload_type << channels << is_linear_u8;
+			stream << cfg.payload_type << channels << is_linear_u8 << cfg.ktx2_compression;
 
 			if (cfg.payload_type == texture_payload_type_e::uncompressed)
 			{
@@ -105,6 +113,26 @@ namespace sfg
 					stream << buf.data_size;
 					if (buf.pixels != nullptr && buf.data_size != 0)
 						stream.write_raw(buf.pixels, buf.data_size);
+				}
+			}
+			else if (cfg.payload_type == texture_payload_type_e::png)
+			{
+				stream << raw_format << levels;
+
+				for (u8 i = 0; i < levels; i++)
+				{
+					const texture_buffer_t& buf = buffers[i];
+					ostream_t				png_stream;
+					if (stbi_write_png_to_func(write_png_data, &png_stream, buf.size.x, buf.size.y, 4, buf.pixels, buf.row_pitch) == 0 || png_stream.get_size() == 0)
+					{
+						SFG_ERR("PNG encoding failed for {0}", source_name);
+						return false;
+					}
+
+					SFG_ASSERT(png_stream.get_size() <= UINT32_MAX);
+					const u32 blob_size = static_cast<u32>(png_stream.get_size());
+					stream << blob_size;
+					stream.write_raw(png_stream.get_raw(), blob_size);
 				}
 			}
 			else
@@ -134,16 +162,51 @@ namespace sfg
 
 				if (ktx_result == KTX_SUCCESS)
 				{
+					ktx_pack_uastc_flags uastc_flags = KTX_PACK_UASTC_LEVEL_DEFAULT;
+					switch (cfg.ktx2_compression)
+					{
+					case texture_ktx2_compression_e::fastest:
+						uastc_flags = KTX_PACK_UASTC_LEVEL_FASTEST;
+						break;
+					case texture_ktx2_compression_e::faster:
+						uastc_flags = KTX_PACK_UASTC_LEVEL_FASTER;
+						break;
+					case texture_ktx2_compression_e::default_quality:
+						uastc_flags = KTX_PACK_UASTC_LEVEL_DEFAULT;
+						break;
+					case texture_ktx2_compression_e::high_quality:
+						uastc_flags = KTX_PACK_UASTC_LEVEL_SLOWER;
+						break;
+					}
+
 					ktxBasisParams basis_params = {};
 					basis_params.structSize		= sizeof(basis_params);
 					basis_params.uastc			= KTX_TRUE;
-					basis_params.uastcFlags		= KTX_PACK_UASTC_LEVEL_DEFAULT | KTX_PACK_UASTC_FAVOR_BC7_ERROR;
+					basis_params.uastcFlags		= uastc_flags | KTX_PACK_UASTC_FAVOR_BC7_ERROR;
 					basis_params.threadCount	= 4;
 					ktx_result					= ktxTexture2_CompressBasisEx(ktx_texture, &basis_params);
 				}
 
-				if (ktx_result == KTX_SUCCESS)
-					ktx_result = ktxTexture2_DeflateZstd(ktx_texture, SFG_KTX_ZSTD_COMPRESSION_LEVEL);
+				if (ktx_result == KTX_SUCCESS && cfg.ktx2_compression != texture_ktx2_compression_e::fastest)
+				{
+					u32 zstd_level = SFG_KTX_ZSTD_COMPRESSION_DEFAULT;
+					switch (cfg.ktx2_compression)
+					{
+					case texture_ktx2_compression_e::fastest:
+						break;
+					case texture_ktx2_compression_e::faster:
+						zstd_level = SFG_KTX_ZSTD_COMPRESSION_FASTER;
+						break;
+					case texture_ktx2_compression_e::default_quality:
+						zstd_level = SFG_KTX_ZSTD_COMPRESSION_DEFAULT;
+						break;
+					case texture_ktx2_compression_e::high_quality:
+						zstd_level = SFG_KTX_ZSTD_COMPRESSION_HIGH;
+						break;
+					}
+
+					ktx_result = ktxTexture2_DeflateZstd(ktx_texture, zstd_level);
+				}
 
 				ktx_uint8_t* ktx_bytes = nullptr;
 				ktx_size_t	 ktx_size  = 0;
@@ -216,7 +279,9 @@ namespace sfg
 
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM
 #undef SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB
-#undef SFG_KTX_ZSTD_COMPRESSION_LEVEL
+#undef SFG_KTX_ZSTD_COMPRESSION_FASTER
+#undef SFG_KTX_ZSTD_COMPRESSION_DEFAULT
+#undef SFG_KTX_ZSTD_COMPRESSION_HIGH
 }
 
 namespace sfg
@@ -235,6 +300,12 @@ namespace sfg
 			 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
 			 .offset	   = offsetof(texture_cook_config_t, payload_type),
 			 .size		   = sizeof(texture_payload_type_e)},
+			{.name		   = "ktx2_compression",
+			 .display_name = "KTX2 Compression",
+			 .type		   = reflected_value_type_e::enum8,
+			 .sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
+			 .offset	   = offsetof(texture_cook_config_t, ktx2_compression),
+			 .size		   = sizeof(texture_ktx2_compression_e)},
 			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
 			{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
 		};

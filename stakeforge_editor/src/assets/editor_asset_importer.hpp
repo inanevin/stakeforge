@@ -28,10 +28,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset.hpp"
+#include "assets/editor_glb_importer.hpp"
 
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
-#include <sfg/runtime/resources/glb_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg

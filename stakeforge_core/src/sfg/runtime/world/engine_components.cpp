@@ -28,37 +28,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine_components.hpp"
 
 #include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/world/world.hpp>
 
 #include <cstddef>
-#include <type_traits>
+#include <iterator>
 
 namespace sfg
 {
 	namespace
 	{
-		template <typename T> constexpr ecs_component_type_desc_t make_component_desc()
-		{
-			static_assert(std::is_trivially_copyable_v<T>);
-			static_assert(std::is_standard_layout_v<T>);
-
-			return {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)};
-		}
-
-		template <typename T> constexpr ecs_component_type_desc_t make_tag_component_desc()
-		{
-			static_assert(std::is_trivially_copyable_v<T>);
-			static_assert(std::is_standard_layout_v<T>);
-
-			return {.type_id = T::TYPE_ID, .size = 0, .alignment = 1, .flags = ecs_component_type_flags_tag};
-		}
-
-		template <typename T> void add_table_if_missing(world_t& w, const ecs_component_type_desc_t& desc)
-		{
-			if (w.find_component_table(desc.type_id) == nullptr)
-				w.add_component_table(desc);
-		}
-
 		void register_type_if_missing(const reflected_type_desc_t& desc)
 		{
 			reflection_registry_t& registry = reflection_registry_t::get();
@@ -123,6 +100,26 @@ namespace sfg
 			});
 		}
 
+		void register_component_camera_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "fov_degrees", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, fov_degrees), .size = sizeof(f32)},
+				{.name = "near_plane", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, near_plane), .size = sizeof(f32)},
+				{.name = "far_plane", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, far_plane), .size = sizeof(f32)},
+				{.name = "priority", .type = reflected_value_type_e::i8, .offset = offsetof(component_camera_t, priority), .size = sizeof(i8)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_camera",
+				.category  = "component",
+				.type_id   = component_camera_t::TYPE_ID,
+				.size	   = sizeof(component_camera_t),
+				.alignment = alignof(component_camera_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
 		void register_component_disabled_reflection()
 		{
 			register_type_if_missing({
@@ -148,20 +145,12 @@ namespace sfg
 		}
 	}
 
-	void engine_components_util_t::add_engine_components_to_world(world_t& w)
-	{
-		add_table_if_missing<component_hierarchy_t>(w, make_component_desc<component_hierarchy_t>());
-		add_table_if_missing<component_transform_t>(w, make_component_desc<component_transform_t>());
-		add_table_if_missing<component_mesh_renderer_t>(w, make_component_desc<component_mesh_renderer_t>());
-		add_table_if_missing<component_alive_t>(w, make_tag_component_desc<component_alive_t>());
-		add_table_if_missing<component_disabled_t>(w, make_tag_component_desc<component_disabled_t>());
-	}
-
 	engine_component_reflection_t::engine_component_reflection_t()
 	{
 		register_component_hierarchy_reflection();
 		register_component_transform_reflection();
 		register_component_mesh_renderer_reflection();
+		register_component_camera_reflection();
 		register_component_alive_reflection();
 		register_component_disabled_reflection();
 	}

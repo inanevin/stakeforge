@@ -30,6 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 
+#include <type_traits>
+
 namespace sfg
 {
 	class ecs_helpers_t final
@@ -44,6 +46,22 @@ namespace sfg
 		template <typename T> static void table_init(ecs_component_table_t& table)
 		{
 			ecs_t::table_init(table, {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)});
+		}
+
+		template <typename T> static constexpr ecs_component_type_desc_t make_component_desc()
+		{
+			static_assert(std::is_trivially_copyable_v<T>);
+			static_assert(std::is_standard_layout_v<T>);
+
+			return {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)};
+		}
+
+		template <typename T> static constexpr ecs_component_type_desc_t make_tag_component_desc()
+		{
+			static_assert(std::is_trivially_copyable_v<T>);
+			static_assert(std::is_standard_layout_v<T>);
+
+			return {.type_id = T::TYPE_ID, .size = 0, .alignment = 1, .flags = ecs_component_type_flags_tag};
 		}
 
 		static void table_init_tag(ecs_component_table_t& table, sid_t type_id)

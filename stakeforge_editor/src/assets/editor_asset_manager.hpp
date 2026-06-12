@@ -70,7 +70,9 @@ namespace sfg
 		void register_descriptor(const editor_asset_descriptor_t& desc);
 		void ensure_default_assets(const char* default_assets_dir);
 		void ensure_integrity();
+		void clean_cache();
 		void ensure_cook();
+		void cook_assets(span_t<editor_asset_t*> assets);
 		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
 		void set_import_status(const char* text);
 
@@ -123,6 +125,7 @@ namespace sfg
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
 		vector_t<string_t>										   _import_paths;
 		vector_t<editor_asset_import_options_t>					   _import_options;
+		vector_t<editor_asset_t>								   _cook_assets;
 		string_t												   _import_status_pending;
 		string_t												   _import_status_visible;
 		editor_modal_progress_bar_t								   _import_progress_modal = {};

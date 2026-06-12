@@ -210,7 +210,7 @@ namespace sfg
 	bool editor_asset_cooker_t::cook_texture(const editor_asset_t& asset)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::texture);
-		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob || asset.source_type == editor_asset_source_type_e::data);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
 		texture_cook_config_t config = {};
 		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<texture_cook_config_t>::value, &config, asset.cook_options))
@@ -218,30 +218,10 @@ namespace sfg
 
 		resource_header_t header = {};
 		ostream_t		  stream;
-		bool			  cooked = false;
-		if (asset.source_type == editor_asset_source_type_e::data)
-		{
-			SFG_ASSERT(asset._transient_data.data != nullptr);
-			SFG_ASSERT(asset._transient_data.size != 0);
-			cooked = texture_cooker::cook_from_data(config, asset._transient_data, header, stream);
-			SFG_FREE(asset._transient_data.data);
-		}
-		else if (asset.source_type == editor_asset_source_type_e::file_blob)
-		{
-			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-			istream_t	   blob_stream		= serializer_t::load_from_file_compressed(source_full_path.c_str());
-			if (blob_stream.empty())
-				return false;
 
-			cooked = texture_cooker::cook_from_data(config, {.data = blob_stream.get_raw(), .size = blob_stream.get_size()}, header, stream);
-		}
-		else
-		{
-			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-			cooked							= texture_cooker::cook_from_file(config, source_full_path.c_str(), header, stream);
-		}
+		const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 
-		if (!cooked)
+		if (!texture_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 			return false;
 		return save_cooked_asset(asset, header, stream);
 	}

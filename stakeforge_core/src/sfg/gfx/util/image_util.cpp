@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory_tracer.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include <sfg/vendor/stb/stb_image.h>
 #include <sfg/vendor/stb/stb_image_write.h>

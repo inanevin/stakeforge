@@ -78,10 +78,11 @@ namespace sfg
 		SFG_ASSERT(desc.mips.size <= MAX_MIPS);
 
 		entry_t entry;
-		entry.texture		= desc.texture;
-		entry.staging		= desc.staging;
-		entry.target_states = desc.target_states;
-		entry.ownership		= desc.ownership;
+		entry.texture			= desc.texture;
+		entry.staging			= desc.staging;
+		entry.target_states		= desc.target_states;
+		entry.destination_slice = desc.destination_slice;
+		entry.ownership			= desc.ownership;
 		for (size_t i = 0; i < desc.mips.size; i++)
 			entry.mips.push_back(desc.mips.data[i]);
 
@@ -170,7 +171,7 @@ namespace sfg
 			cp.destination_texture				= e.texture;
 			cp.intermediate_buffer				= e.staging;
 			cp.mip_levels						= static_cast<u8>(e.mips.size());
-			cp.destination_slice				= 0;
+			cp.destination_slice				= e.destination_slice;
 			backend.cmd_copy_buffer_to_texture(cmd, cp);
 
 			if (e.target_states != 0)

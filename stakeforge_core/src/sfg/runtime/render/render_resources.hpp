@@ -47,7 +47,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data = 0);
-		void enqueue_create_texture(sid_t hash, const texture_desc_t& desc);
+		void enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e type = resource_type_e::texture, u32 user_data = 0);
 		void enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
 		void enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout = {});
 
@@ -97,8 +97,10 @@ namespace sfg
 
 		struct create_texture_request_t
 		{
-			sid_t		   hash = 0;
-			texture_desc_t desc = {};
+			sid_t			hash	  = 0;
+			resource_type_e type	  = resource_type_e::texture;
+			u32				user_data = 0;
+			texture_desc_t	desc	  = {};
 		};
 
 		struct create_sampler_request_t
@@ -120,11 +122,12 @@ namespace sfg
 
 		struct texture_upload_request_t
 		{
-			gfx_texture_handle											 texture	   = {};
-			gfx_resource_handle											 staging	   = {};
-			static_vector_t<texture_buffer_t, texture_queue_t::MAX_MIPS> mips		   = {};
-			u32															 target_states = 0;
-			texture_data_ownership_e									 ownership	   = texture_data_ownership_e::none;
+			gfx_texture_handle											 texture		   = {};
+			gfx_resource_handle											 staging		   = {};
+			static_vector_t<texture_buffer_t, texture_queue_t::MAX_MIPS> mips			   = {};
+			u32															 target_states	   = 0;
+			u8															 destination_slice = 0;
+			texture_data_ownership_e									 ownership		   = texture_data_ownership_e::none;
 		};
 
 		struct data_upload_request_t

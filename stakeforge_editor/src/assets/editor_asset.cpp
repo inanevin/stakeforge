@@ -540,8 +540,6 @@ namespace sfg
 			t = editor_asset_source_type_e::file_blob;
 		else if (s == "embedded")
 			t = editor_asset_source_type_e::embedded;
-		else if (s == "data")
-			t = editor_asset_source_type_e::data;
 		else
 			t = editor_asset_source_type_e::file;
 	}
@@ -557,7 +555,6 @@ namespace sfg
 		asset.source_relative = j.value<string_t>("source_relative", {});
 		asset.source_type	  = j.value<editor_asset_source_type_e>("source_type", editor_asset_source_type_e::file);
 		asset.status		  = editor_asset_status_e::ok;
-		asset._transient_data = {};
 	}
 
 	void to_json(nlohmann::json& j, const editor_asset_source_type_e& t)
@@ -572,9 +569,6 @@ namespace sfg
 			break;
 		case editor_asset_source_type_e::embedded:
 			j = "embedded";
-			break;
-		case editor_asset_source_type_e::data:
-			j = "data";
 			break;
 		default:
 			j = "file";

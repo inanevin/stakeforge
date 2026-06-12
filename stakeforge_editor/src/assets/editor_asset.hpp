@@ -62,7 +62,6 @@ namespace sfg
 		file,
 		file_blob,
 		embedded,
-		data,
 	};
 
 	enum class editor_asset_status_e : u8

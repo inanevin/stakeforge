@@ -135,6 +135,8 @@ namespace sfg
 				return read_reflected_value<f32>(object, field);
 			case reflected_value_type_e::i32:
 				return static_cast<f32>(read_reflected_value<i32>(object, field));
+			case reflected_value_type_e::i8:
+				return static_cast<f32>(read_reflected_value<i8>(object, field));
 			case reflected_value_type_e::u32:
 				return static_cast<f32>(read_reflected_value<u32>(object, field));
 			case reflected_value_type_e::u8:
@@ -153,6 +155,9 @@ namespace sfg
 				break;
 			case reflected_value_type_e::i32:
 				write_reflected_value(object, field, static_cast<i32>(value));
+				break;
+			case reflected_value_type_e::i8:
+				write_reflected_value(object, field, static_cast<i8>(value < -128.0f ? -128.0f : (value > 127.0f ? 127.0f : value)));
 				break;
 			case reflected_value_type_e::u32:
 				write_reflected_value(object, field, static_cast<u32>(value < 0.0f ? 0.0f : value));
@@ -647,6 +652,7 @@ namespace sfg
 			break;
 		}
 		case reflected_value_type_e::i32:
+		case reflected_value_type_e::i8:
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::u8: {
 			editor_input_field_t*		input  = new editor_input_field_t();
@@ -922,6 +928,9 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			install_items.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i8:
+			install_items.template operator()<i8>();
+			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
@@ -962,6 +971,8 @@ namespace sfg
 			return get_count.template operator()<f32>();
 		case reflected_value_type_e::i32:
 			return get_count.template operator()<i32>();
+		case reflected_value_type_e::i8:
+			return get_count.template operator()<i8>();
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
@@ -1034,6 +1045,9 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			clear_items.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i8:
+			clear_items.template operator()<i8>();
+			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
@@ -1086,6 +1100,9 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			add_item.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i8:
+			add_item.template operator()<i8>();
+			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
@@ -1137,6 +1154,9 @@ namespace sfg
 			break;
 		case reflected_value_type_e::i32:
 			remove_item.template operator()<i32>();
+			break;
+		case reflected_value_type_e::i8:
+			remove_item.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::entity_id:

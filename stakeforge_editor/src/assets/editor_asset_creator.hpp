@@ -70,10 +70,12 @@ namespace sfg
 		static const char* get_physical_material_scaffold_relative();
 		static const char* get_shader_scaffold_relative(shader_type_e shader_type);
 		static const char* get_texture_sampler_scaffold_relative(editor_texture_sampler_type_e sampler_type = editor_texture_sampler_type_e::linear);
+		static string_t	   get_texture_scaffold_relative(const char* texture_name);
 		static bool		   scaffold_material_embedded_source(editor_material_type_e material_type, nlohmann::json& out_embedded_source);
 		static bool		   scaffold_physical_material_embedded_source(nlohmann::json& out_embedded_source);
 		static bool		   scaffold_texture_sampler_embedded_source(editor_texture_sampler_type_e sampler_type, nlohmann::json& out_embedded_source);
 		static bool		   scaffold_texture_sampler_embedded_source(nlohmann::json& out_embedded_source);
 		static bool		   scaffold_shader_source(editor_asset_t& asset, const char* directory, const char* file_name);
+		static bool		   scaffold_texture_source(editor_asset_t& asset, const char* directory, const char* file_name);
 	};
 }

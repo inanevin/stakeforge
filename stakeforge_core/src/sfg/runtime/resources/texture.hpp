@@ -42,7 +42,7 @@ namespace sfg
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('T', 'E', 'X', 'R');
-		static constexpr u32 WIRE_VERSION = 6;
+		static constexpr u32 WIRE_VERSION = 9;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
@@ -52,13 +52,14 @@ namespace sfg
 
 	struct texture_runtime_t
 	{
-		texture_buffer_t	   mips[texture_loader_t::MAX_MIPS] = {};
-		format_e			   texture_format					= format_e::undefined;
-		texture_payload_type_e payload_type						= texture_payload_type_e::ktx2_uastc;
-		u8					   channels							= 0;
-		u8					   mip_count						= 0;
-		u8					   is_linear						= 0;
-		u8					   owns_mips						= 0;
+		texture_buffer_t		   mips[texture_loader_t::MAX_MIPS] = {};
+		format_e				   texture_format					= format_e::undefined;
+		texture_payload_type_e	   payload_type						= texture_payload_type_e::ktx2_uastc;
+		texture_ktx2_compression_e ktx2_compression					= texture_ktx2_compression_e::default_quality;
+		u8						   channels							= 0;
+		u8						   mip_count						= 0;
+		u8						   is_linear						= 0;
+		u8						   owns_mips						= 0;
 	};
 
 	struct texture_internals_t

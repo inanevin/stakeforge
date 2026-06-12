@@ -219,6 +219,7 @@ namespace sfg
 		string_t								_asset_search_str				 = {};
 		string_t								_asset_search_str_lower			 = {};
 		vec2f_t									_action_menu_pos				 = {};
+		vec2f_t									_asset_grid_body_size			 = {};
 		u64										_selected_folder_hash			 = UINT64_MAX;
 		u64										_asset_grid_folder_hash			 = UINT64_MAX;
 		editor_asset_node_handle_t				_selected_folder_node			 = {};
@@ -244,5 +245,7 @@ namespace sfg
 		bool									_asset_favourites_only			 = false;
 		bool									_rename_popup_pending			 = false;
 		bool									_asset_rename_popup_pending		 = false;
+		bool									_asset_grid_body_size_valid		 = false;
+		bool									_asset_grid_rebuild_pending		 = false;
 	};
 }

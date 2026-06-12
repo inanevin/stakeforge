@@ -41,16 +41,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/job/job_system.hpp>
 #include <sfg/math/color.hpp>
-#include <sfg/memory/memory.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/taskflow/taskflow.hpp>
 #include <algorithm>
+#include <charconv>
 #include <iterator>
+#include <system_error>
 #include <utility>
 
 #include <sfg/platform/time.hpp>
@@ -74,9 +73,8 @@ namespace sfg
 		struct default_texture_asset_desc_t
 		{
 			const char* asset_name;
+			const char* source_base_name;
 			sid_t		guid;
-			u8			color[4];
-			bool		is_linear;
 		};
 
 		struct default_create_asset_desc_t
@@ -87,12 +85,6 @@ namespace sfg
 			u8					sub_type;
 		};
 
-		span_t<u8> make_default_texture_data(const u8 color[4])
-		{
-			u8* data = static_cast<u8*>(SFG_MALLOC(4));
-			SFG_MEMCPY(data, color, 4);
-			return {.data = data, .size = 4};
-		}
 	}
 
 	bool editor_asset_manager_t::init()
@@ -121,10 +113,11 @@ namespace sfg
 	{
 		SFG_ASSERT(s_instance == this);
 		if (_import_in_progress)
-			job_system_t::get().wait_for_all();
+			editor_app_t::get().get_editor_work_executor().wait_for_all();
 		clear();
 		_import_paths.clear();
 		_import_options.clear();
+		_cook_assets.clear();
 		_import_status_pending.clear();
 		_import_status_visible.clear();
 		_asset_descriptors.clear();
@@ -161,6 +154,7 @@ namespace sfg
 		rescan(editor_project_t::get()._runtime.assets_path);
 		_import_paths.resize(0);
 		_import_options.resize(0);
+		_cook_assets.resize(0);
 		_import_status_pending.resize(0);
 		_import_status_visible.resize(0);
 		_import_status_dirty.store(false, std::memory_order_relaxed);
@@ -289,10 +283,10 @@ namespace sfg
 			{.asset_name = "shader_forward", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
 		};
 		const default_texture_asset_desc_t default_texture_assets[] = {
-			{.asset_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID, .color = {255, 255, 255, 255}, .is_linear = false},
-			{.asset_name = "texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID, .color = {255, 255, 0, 255}, .is_linear = true},
-			{.asset_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID, .color = {128, 128, 128, 255}, .is_linear = true},
-			{.asset_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID, .color = {0, 0, 0, 255}, .is_linear = false},
+			{.asset_name = "texture_albedo", .source_base_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
+			{.asset_name = "texture_orm", .source_base_name = "texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
+			{.asset_name = "texture_normal", .source_base_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
+			{.asset_name = "texture_emissive", .source_base_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
 		};
 		const default_create_asset_desc_t default_created_assets[] = {
 			{.asset_name = "material_gbuffer", .guid = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::gbuffer)},
@@ -311,28 +305,7 @@ namespace sfg
 
 		for (const default_texture_asset_desc_t& desc : default_texture_assets)
 		{
-			texture_cook_config_t texture_config = {
-				.size			  = {.x = 1, .y = 1},
-				.payload_type	  = texture_payload_type_e::ktx2_uastc,
-				.generate_mipmaps = false,
-				.is_linear		  = desc.is_linear,
-			};
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid;
-			asset.asset_type	 = editor_asset_type_e::texture;
-			asset.source_type	 = editor_asset_source_type_e::data;
-
-			nlohmann::json json_data = nlohmann::json::object();
-			SFG_ASSERT(reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, json_data));
-			asset.cook_options = json_data;
-
-			frame_string_t<char> asset_path;
-			asset_path.assign(default_assets_path.c_str(), default_assets_path.size());
-			asset_path += desc.asset_name;
-			asset_path += ".sfg_asset";
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				SFG_ERR("failed to write default asset {0}", asset_path.c_str());
+			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::texture, .allow_overwrite = true});
 		}
 
 		for (const default_create_asset_desc_t& desc : default_created_assets)
@@ -341,16 +314,6 @@ namespace sfg
 		}
 
 		rescan(assets_path);
-
-		for (const default_texture_asset_desc_t& desc : default_texture_assets)
-		{
-			auto asset_it = _assets.find(desc.guid);
-			SFG_ASSERT(asset_it != _assets.end());
-			if (file_system_t::exists(editor_asset_util_t::get_cache_path_for_asset(asset_it->second).c_str()))
-				continue;
-
-			asset_it->second._transient_data = make_default_texture_data(desc.color);
-		}
 	}
 
 	void editor_asset_manager_t::ensure_integrity()
@@ -405,10 +368,40 @@ namespace sfg
 		}
 	}
 
+	void editor_asset_manager_t::clean_cache()
+	{
+		const string_t& cache_path = editor_project_t::get()._runtime.cache_path;
+		SFG_ASSERT(!cache_path.empty());
+
+		vector_t<file_system_entry_t> entries;
+		file_system_t::get_entries_recursive(cache_path.c_str(), entries);
+		for (const file_system_entry_t& entry : entries)
+		{
+			if (entry.type != file_system_entry_type_e::file)
+				continue;
+
+			const string_t guid_text = file_system_t::get_filename_from_path(entry.path);
+			u64			   guid		 = 0;
+			const char*	   begin	 = guid_text.data();
+			const char*	   end		 = begin + guid_text.size();
+			const auto	   result	 = std::from_chars(begin, end, guid);
+			if (result.ec != std::errc() || result.ptr != end)
+				continue;
+
+			if (find_asset(guid) != nullptr)
+				continue;
+
+			if (file_system_t::delete_file(entry.path.c_str()))
+				SFG_ERR("failed deleting orphaned cache file {0}", entry.path.c_str());
+		}
+	}
+
 	void editor_asset_manager_t::ensure_cook()
 	{
 		SFG_ASSERT(!_import_in_progress);
 
+		frame_vector_t<editor_asset_t*> assets_to_cook;
+		assets_to_cook.reserve(_assets.size());
 		for (auto& asset_pair : _assets)
 		{
 			editor_asset_t& asset = asset_pair.second;
@@ -444,11 +437,56 @@ namespace sfg
 			if (!requires_cook)
 				continue;
 
-			const editor_asset_t asset_to_cook = asset;
-			asset._transient_data			   = {};
-			if (!editor_asset_cooker_t::cook_asset(asset_to_cook))
-				SFG_ERR("failed cooking asset {0}", asset.guid);
+			assets_to_cook.push_back(&asset);
 		}
+
+		if (!assets_to_cook.empty())
+			cook_assets({.data = assets_to_cook.data(), .size = assets_to_cook.size()});
+	}
+
+	void editor_asset_manager_t::cook_assets(span_t<editor_asset_t*> assets)
+	{
+		SFG_ASSERT(!_import_in_progress);
+		SFG_ASSERT(assets.data != nullptr);
+		SFG_ASSERT(assets.size != 0);
+
+		_import_paths.resize(0);
+		_import_options.resize(0);
+		_cook_assets.resize(0);
+		_cook_assets.reserve(assets.size);
+		for (size_t i = 0; i < assets.size; ++i)
+		{
+			editor_asset_t* asset = assets.data[i];
+			SFG_ASSERT(asset != nullptr);
+			_cook_assets.push_back(*asset);
+		}
+
+		_import_status_pending = editor_asset_util_t::get_cache_path_for_asset(_cook_assets[0]);
+		_import_status_visible = _import_status_pending;
+		_imported_count.store(0, std::memory_order_relaxed);
+		_import_finished.store(false, std::memory_order_relaxed);
+		_import_status_dirty.store(false, std::memory_order_relaxed);
+		_total_import_count = static_cast<u32>(_cook_assets.size());
+		_import_in_progress = true;
+
+		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
+		_import_progress_modal.set_progress(0.0f);
+		editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
+		modal.request_modal("Cooking Assets", _import_status_visible.c_str(), false, nullptr, 0, &progress_content);
+
+		tf::Taskflow cook_flow;
+		for (size_t i = 0; i < _cook_assets.size(); ++i)
+		{
+			cook_flow.emplace([this, i]() {
+				const editor_asset_t& asset		 = _cook_assets[i];
+				const string_t		  cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+				set_import_status(cache_path.c_str());
+				if (!editor_asset_cooker_t::cook_asset(asset))
+					SFG_ERR("failed cooking asset {0}", asset.guid);
+				_imported_count.fetch_add(1, std::memory_order_relaxed);
+			});
+		}
+		editor_app_t::get().get_editor_work_executor().run(std::move(cook_flow), [this]() { _import_finished.store(true, std::memory_order_release); });
 	}
 
 	void editor_asset_manager_t::import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
@@ -464,6 +502,7 @@ namespace sfg
 		_import_paths.reserve(paths.size());
 		_import_options.resize(0);
 		_import_options.reserve(import_options.size());
+		_cook_assets.resize(0);
 		for (const string_t& path : paths)
 			_import_paths.push_back(path);
 		for (const editor_asset_import_options_t& option : import_options)
@@ -482,25 +521,28 @@ namespace sfg
 		editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
 		modal.request_modal("Importing Assets", _import_status_visible.c_str(), false, nullptr, 0, &progress_content);
 
-		job_system_t::get().silent_async([this]() {
-			vector_t<editor_asset_t>						  imported_assets;
-			const span_t<const editor_asset_import_options_t> options = {
-				.data = _import_options.data(),
-				.size = _import_options.size(),
-			};
-			const editor_asset_import_context_t context = {
-				.user_data	= this,
-				.set_status = [](void* user_data, const char* text) { static_cast<editor_asset_manager_t*>(user_data)->set_import_status(text); },
-			};
-			for (const string_t& path : _import_paths)
-			{
+		const span_t<const editor_asset_import_options_t> options = {
+			.data = _import_options.data(),
+			.size = _import_options.size(),
+		};
+		const editor_asset_import_context_t context = {
+			.user_data	= this,
+			.set_status = [](void* user_data, const char* text) { static_cast<editor_asset_manager_t*>(user_data)->set_import_status(text); },
+		};
+
+		tf::Taskflow import_flow;
+		for (size_t i = 0; i < _import_paths.size(); ++i)
+		{
+			import_flow.emplace([this, i, options, context]() {
+				vector_t<editor_asset_t> imported_assets;
+				const string_t&			 path = _import_paths[i];
 				set_import_status(path.c_str());
 				if (!editor_asset_importer_t::import_asset(_import_directory_node, path.c_str(), options, context, imported_assets))
 					SFG_ERR("failed importing asset {0}", path.c_str());
 				_imported_count.fetch_add(1, std::memory_order_relaxed);
-			}
-			_import_finished.store(true, std::memory_order_release);
-		});
+			});
+		}
+		editor_app_t::get().get_editor_work_executor().run(std::move(import_flow), [this]() { _import_finished.store(true, std::memory_order_release); });
 	}
 
 	void editor_asset_manager_t::set_import_status(const char* text)

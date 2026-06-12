@@ -34,9 +34,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_renderer.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
+#include <sfg/data/unique.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
+#include <sfg/vendor/taskflow/core/declarations.hpp>
 
 namespace sfg
 {
@@ -45,8 +47,8 @@ namespace sfg
 	class editor_app_t
 	{
 	public:
-		editor_app_t()								 = default;
-		~editor_app_t()								 = default;
+		editor_app_t();
+		~editor_app_t();
 		editor_app_t(const editor_app_t&)			 = delete;
 		editor_app_t& operator=(const editor_app_t&) = delete;
 
@@ -73,6 +75,7 @@ namespace sfg
 		void			  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
 		void			  set_main_world_to_panel();
 		editor_surface_t& get_main_surface();
+		tf::Executor&	  get_editor_work_executor();
 
 		inline bool is_debug_mode_enabled() const
 		{
@@ -97,6 +100,7 @@ namespace sfg
 		resource_pack_t													_resource_pack;
 		editor_asset_manager_t											_asset_manager;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
+		unique_t<tf::Executor>											_editor_work_executor;
 		editor_payload_controller_t										_payload_controller;
 		editor_modal_progress_bar_t										_debug_progress_modal;
 		i64																_last_tick_us			 = 0;

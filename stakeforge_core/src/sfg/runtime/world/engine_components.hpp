@@ -35,8 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class world_t;
-
 	struct component_hierarchy_t
 	{
 		static inline constexpr sid_t TYPE_ID = "component_hierarchy"_hs;
@@ -64,6 +62,16 @@ namespace sfg
 		resource_handle_t material = NULL_RESOURCE_HANDLE;
 	};
 
+	struct component_camera_t
+	{
+		static inline constexpr sid_t TYPE_ID = "component_camera"_hs;
+
+		f32 fov_degrees = 60.0f;
+		f32 near_plane	= 0.1f;
+		f32 far_plane	= 1000.0f;
+		i8	priority	= 0;
+	};
+
 	struct component_alive_t
 	{
 		static inline constexpr sid_t TYPE_ID = "component_alive"_hs;
@@ -80,16 +88,4 @@ namespace sfg
 	};
 
 	inline engine_component_reflection_t g_reflect_engine_component;
-
-	class engine_components_util_t final
-	{
-	public:
-		engine_components_util_t() = delete;
-
-		// -----------------------------------------------------------------------------
-		// impl
-		// -----------------------------------------------------------------------------
-
-		static void add_engine_components_to_world(world_t& w);
-	};
 }

@@ -29,12 +29,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 
+#include <sfg/common/type_id.hpp>
 #include <sfg/data/frame_vector.hpp>
-#include <sfg/runtime/resources/glb_cook.hpp>
+#include <sfg/runtime/resources/texture_payload_type.hpp>
 
 namespace sfg
 {
 	struct editor_asset_import_context_t;
+
+	struct glb_cook_config_t
+	{
+		texture_payload_type_e	   texture_payload_type = texture_payload_type_e::ktx2_uastc;
+		texture_ktx2_compression_e ktx2_compression		= texture_ktx2_compression_e::default_quality;
+		bool					   import_textures		= true;
+		bool					   import_materials		= true;
+		bool					   import_animations	= true;
+		bool					   import_meshes		= true;
+		bool					   combine_meshes		= false;
+		bool					   generate_mipmaps		= false;
+	};
 
 	class editor_glb_importer_t final
 	{
@@ -46,4 +59,13 @@ namespace sfg
 
 		static bool import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets);
 	};
+
+	SFG_DEFINE_TYPE_ID(glb_cook_config_t);
+
+	struct glb_cook_config_reflection_t
+	{
+		glb_cook_config_reflection_t();
+	};
+
+	inline glb_cook_config_reflection_t g_reflect_glb_cook_config;
 }

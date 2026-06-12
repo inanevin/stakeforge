@@ -463,6 +463,8 @@ namespace sfg
 		_expanded_folder_hashes.reserve(256);
 		_favourite_folder_hashes.reserve(256);
 		_favourite_asset_guids.reserve(256);
+		_asset_grid_body_size_valid = false;
+		_asset_grid_rebuild_pending = false;
 		apply_pane_split();
 		refresh_folder_rows();
 	}
@@ -2382,11 +2384,30 @@ namespace sfg
 			panel.refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::on_asset_grid_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_panel_assets_t::on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32, void* user_data)
 	{
 		editor_panel_assets_t&		  panel			= *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		if (panel._asset_grid_generation != asset_manager.get_generation())
+
+		const bool rebuild_pending		  = panel._asset_grid_rebuild_pending;
+		panel._asset_grid_rebuild_pending = false;
+
+		const vec2f_t body_size = ui.get_tree().out(id).size;
+		if (body_size.x > 0.0f && body_size.y > 0.0f)
+		{
+			if (!panel._asset_grid_body_size_valid)
+			{
+				panel._asset_grid_body_size_valid = true;
+				panel._asset_grid_rebuild_pending = true;
+			}
+			else if (body_size != panel._asset_grid_body_size)
+				panel._asset_grid_rebuild_pending = true;
+			panel._asset_grid_body_size = body_size;
+		}
+
+		if (rebuild_pending)
+			panel.refresh_asset_grid(true);
+		else if (panel._asset_grid_generation != asset_manager.get_generation())
 			panel.refresh_asset_grid(false);
 	}
 
