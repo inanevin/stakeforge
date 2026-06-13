@@ -1,9 +1,0 @@
-{
-   "pass": "gbuffer",
-   "shader": "assets/engine/shaders/world/gbuffer_lit.stkshader",
-   "textures": [],
-   "double_sided": 0,
-   "use_alpha_cutoff": 0,
-   "sampler_definition": {},
-   "priority": 0
-}

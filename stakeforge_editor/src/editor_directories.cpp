@@ -39,6 +39,8 @@ namespace sfg
 	string_t editor_directories_t::s_editor_assets		   = "";
 	string_t editor_directories_t::s_editor_resource_cache = "";
 	string_t editor_directories_t::s_editor_manifest	   = "";
+	string_t editor_directories_t::s_engine_resource_cache = "";
+	string_t editor_directories_t::s_engine_manifest	   = "";
 
 	bool editor_directories_t::is_valid_asset_name(const char* name)
 	{
@@ -71,7 +73,9 @@ namespace sfg
 		// editor res cache
 		s_editor_resource_cache = s_user_directory + "editor/resource_cache/";
 
-		// manifest
+		s_engine_resource_cache = s_user_directory + "engine/resource_cache/";
+
 		s_editor_manifest = string_t(SFG_ROOT_DIRECTORY) + "assets/assets_editor.sfg";
+		s_engine_manifest = string_t(SFG_ROOT_DIRECTORY) + "assets/assets_engine.sfg";
 	}
 }

@@ -98,8 +98,10 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/layout_defines.hlsl"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/layout_defines.hlsl"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/world"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/engine/world"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
     COMMAND ${CMAKE_COMMAND} -E rm -f
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials/gbuffer_material.sfg_asset"

@@ -1,8 +1,0 @@
-{
-   "pass": "forward",
-   "shader": "assets/engine/shaders/gizmo/gizmo.stkshader",
-   "priority": 65000,
-   "parameters": [
-      { "name": "color", "value": { "x":0.0, "y":0.9, "z":0.0, "w":1.0 } }
-   ]
-}

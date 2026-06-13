@@ -97,7 +97,8 @@ namespace sfg
 		editor_renderer_t												_renderer;
 		engine_runtime_t												_runtime;
 		editor_world_controller_t										_world_controller;
-		resource_pack_t													_resource_pack;
+		resource_pack_t													_editor_resource_pack;
+		resource_pack_t													_engine_resource_pack;
 		editor_asset_manager_t											_asset_manager;
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
 		unique_t<tf::Executor>											_editor_work_executor;

@@ -209,12 +209,28 @@ namespace sfg
 
 		/* resources & renderers init */
 
-		resource_pack_t::init_params_t pack_params;
-		pack_params.manifest_path = editor_directories_t::get_editor_manifest();
-		pack_params.assets_dir	  = editor_directories_t::get_editor_assets();
-		pack_params.cache_dir	  = editor_directories_t::get_editor_resource_cache();
-		if (!_resource_pack.init(resource_manager_t::get(), pack_params))
+		const resource_pack_t::init_params_t engine_pack_params{
+			.manifest_path = editor_directories_t::get_engine_manifest(),
+			.assets_dir	   = editor_directories_t::get_editor_assets(),
+			.cache_dir	   = editor_directories_t::get_engine_resource_cache(),
+		};
+		if (!_engine_resource_pack.init(resource_manager_t::get(), engine_pack_params))
 		{
+			_world_controller.uninit();
+			_runtime.uninit();
+			engine_runtime_t::uninit_globals();
+			engine_runtime_t::uninit_backend();
+			return false;
+		}
+
+		const resource_pack_t::init_params_t editor_pack_params{
+			.manifest_path = editor_directories_t::get_editor_manifest(),
+			.assets_dir	   = editor_directories_t::get_editor_assets(),
+			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
+		};
+		if (!_editor_resource_pack.init(resource_manager_t::get(), editor_pack_params))
+		{
+			_engine_resource_pack.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -225,7 +241,8 @@ namespace sfg
 
 		if (!_renderer.init())
 		{
-			_resource_pack.uninit();
+			_editor_resource_pack.uninit();
+			_engine_resource_pack.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -287,7 +304,8 @@ namespace sfg
 		if (_surfaces.empty())
 		{
 			_renderer.uninit();
-			_resource_pack.uninit();
+			_editor_resource_pack.uninit();
+			_engine_resource_pack.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -322,7 +340,8 @@ namespace sfg
 		_renderer.end_render();
 		resource_manager_t::get().flush();
 		_renderer.uninit();
-		_resource_pack.uninit();
+		_editor_resource_pack.uninit();
+		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
@@ -628,7 +647,8 @@ namespace sfg
 
 			process::pump_os_messages();
 
-			_resource_pack.tick();
+			_engine_resource_pack.tick();
+			_editor_resource_pack.tick();
 			resource_manager_t::get().flush();
 			_asset_manager.tick();
 

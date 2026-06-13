@@ -1,8 +1,0 @@
-{
-   "pass": "gui",
-   "shader": "assets/engine/shaders/world/gui_sdf.stkshader",
-   "parameters": [
-      { "name": "sdf_thickness", "value": 0.5 },
-      { "name": "sdf_softness", "value": 0.02 }
-   ]
-}
