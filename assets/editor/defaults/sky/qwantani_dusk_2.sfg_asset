@@ -5,7 +5,6 @@
     "sub_type": 0,
     "embedded_source": null,
     "cook_options": {
-        "schema": "sfg.schema.hdr_skybox",
         "radiance_size": [512, 512],
         "irradiance_size": [32, 32],
         "prefilter_size": [128, 128],

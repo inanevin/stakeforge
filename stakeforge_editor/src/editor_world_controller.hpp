@@ -63,6 +63,7 @@ namespace sfg
 		bool		   render_worlds(gfx_queue_handle queue, gfx_semaphore_handle signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_bind_layout_handle global_layout);
 		void		   tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
 		void		   install_default_world(world_handle_t handle);
+		void		   load_all_world_resources(world_handle_t handle);
 		void		   set_main_world(world_handle_t handle);
 
 		// -----------------------------------------------------------------------------
@@ -87,6 +88,7 @@ namespace sfg
 
 			world_render_snapshot_t snapshot_slots[3] = {};
 			world_render_context_t	render_context	  = {};
+			vector_t<u64>			world_resources	  = {};
 			atomic_t<u8>			snapshot_mailbox  = {};
 			world_handle_t			handle			  = {};
 			u8						producer_slot	  = 0;

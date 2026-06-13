@@ -82,15 +82,11 @@ namespace sfg
 			if (header.source_tick != expected.source_tick)
 				return {};
 
-			istream_t decompressed_payload = compressor_t::decompress(stream);
-			if (decompressed_payload.empty())
+			istream_t payload = compressor_t::decompress(stream);
+			if (payload.empty())
 				return {};
 
-			ostream_t payload;
-			payload.write_raw(decompressed_payload.get_raw(), decompressed_payload.get_size());
-			ostream_t  resource_stream = make_resource_stream(header, payload);
-			span_t<u8> data			   = resource_stream.evict();
-			return istream_t(data.data, data.size);
+			return payload;
 		}
 
 		bool cook_for_schema(const string_t& schema, const nlohmann::json& config, const char* full_path, resource_header_t& out_header, ostream_t& stream)
@@ -175,8 +171,7 @@ namespace sfg
 			if (!save_cache(cache_dir.c_str(), name.c_str(), cached_stream))
 				SFG_WARN("resource_pack: cache save failed for {0}", name.c_str());
 
-			ostream_t stream = make_resource_stream(header, payload);
-			out_data		 = stream.evict();
+			out_data = payload.evict();
 			return true;
 		}
 	}
@@ -205,7 +200,7 @@ namespace sfg
 
 			const sid_t		 sid  = TO_SID(e.path);
 			const span_t<u8> data = {const_cast<u8*>(e.data), e.size};
-			const auto		 st	  = mgr.load_resource(sid, data, e.type);
+			const auto		 st	  = mgr.load_resource(sid, e.path, data, e.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("resource_pack: load_resource failed for embedded {0}", e.path);

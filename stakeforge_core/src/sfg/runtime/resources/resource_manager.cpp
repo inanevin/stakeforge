@@ -131,24 +131,9 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		/* Span data layout should be: resource_header_t + any (or no) data for runtime metadata + payload */
-
-		istream_t peek;
-		peek.open(data.data, data.size);
-		resource_header_t header = {};
-		header.deserialize(peek);
-
-		if (header.magic != desc->wire_magic || header.version != desc->wire_version)
+		if (data.data == nullptr || data.size == 0)
 		{
-			SFG_ERR("invalid cooked resource, magic or version does not match! [magic-desc_magic]: {0} - {1}, [version-desc_version]: {2} - {3}", header.magic, desc->wire_magic, header.version, desc->wire_version);
-			return resource_state_e::failed;
-		}
-
-		const size_t header_size = peek.tellg();
-
-		if (data.size == header_size)
-		{
-			SFG_ERR("resource data only has header and no payload!");
+			SFG_ERR("resource payload is empty!");
 			return resource_state_e::failed;
 		}
 
@@ -157,7 +142,7 @@ namespace sfg
 		entry.ref_count			= 1;
 		entry.hash				= hash;
 		entry.full_load_data	= data;
-		entry.after_header_data = {data.data + header_size, data.size - header_size};
+		entry.after_header_data = data;
 		entry.runtime			= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
 		entry.internals			= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
 		entry.state				= resource_state_e::queued;

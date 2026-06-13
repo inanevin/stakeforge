@@ -26,18 +26,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_world_controller.hpp"
+#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
+#include <sfg/serialization/compression.hpp>
+#include <sfg/serialization/serialization.hpp>
 
 namespace sfg
 {
@@ -50,13 +57,15 @@ namespace sfg
 		for (u32 i = 0; i < WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 			snapshot_slots[i] = static_cast<world_render_snapshot_t&&>(other.snapshot_slots[i]);
 
-		render_context = static_cast<world_render_context_t&&>(other.render_context);
+		render_context	= static_cast<world_render_context_t&&>(other.render_context);
+		world_resources = static_cast<vector_t<u64>&&>(other.world_resources);
 		snapshot_mailbox.store(other.snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
 		handle		  = other.handle;
 		producer_slot = other.producer_slot;
 		consumer_slot = other.consumer_slot;
 
 		other.snapshot_mailbox.store(0, std::memory_order_relaxed);
+		other.world_resources.resize(0);
 		other.handle		= {};
 		other.producer_slot = 0;
 		other.consumer_slot = 0;
@@ -238,8 +247,90 @@ namespace sfg
 		world_t& world = _runtime->get_world(handle);
 		install_editor_camera(world);
 
-		const entity_id_t environment = world.create_entity("environment");
-		ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(component_skybox_t::TYPE_ID)->table, environment);
+		const entity_id_t	environment = world.create_entity("environment");
+		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(component_skybox_t::TYPE_ID)->table, environment);
+		skybox.skybox_asset				= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
+
+		for (world_container_t& container : _worlds)
+		{
+			if (container.handle == handle)
+			{
+				container.world_resources.push_back(DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
+				load_all_world_resources(handle);
+				return;
+			}
+		}
+
+		SFG_ASSERT(false);
+	}
+
+	void editor_world_controller_t::load_all_world_resources(world_handle_t handle)
+	{
+		SFG_ASSERT(_runtime != nullptr);
+
+		world_container_t* world_container = nullptr;
+		for (world_container_t& container : _worlds)
+		{
+			if (container.handle == handle)
+			{
+				world_container = &container;
+				break;
+			}
+		}
+		SFG_ASSERT(world_container != nullptr);
+
+		editor_asset_manager_t& asset_manager	 = editor_asset_manager_t::get();
+		resource_manager_t&		resource_manager = resource_manager_t::get();
+		for (const u64 guid : world_container->world_resources)
+		{
+			const editor_asset_t* asset = asset_manager.find_asset(guid);
+			if (asset == nullptr)
+			{
+				SFG_WARN("world resource asset not found: {0}", guid);
+				continue;
+			}
+
+			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(*asset);
+			if (!file_system_t::exists(cache_path.c_str()))
+			{
+				SFG_WARN("world resource cooked binary not found: {0}", cache_path.c_str());
+				continue;
+			}
+
+			istream_t stream = serializer_t::load_from_file(cache_path.c_str());
+			if (stream.empty())
+			{
+				SFG_WARN("world resource cooked binary could not be read: {0}", cache_path.c_str());
+				continue;
+			}
+
+			const resource_type_e			  resource_type = static_cast<resource_type_e>(asset->asset_type);
+			const resource_type_desc_t* const resource_desc = find_resource_type_desc(resource_type);
+			if (resource_desc == nullptr)
+			{
+				SFG_WARN("world resource type description not found: {0}", static_cast<u8>(resource_type));
+				continue;
+			}
+
+			resource_header_t header = {};
+			header.deserialize(stream);
+			if (header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
+			{
+				SFG_WARN("world resource cooked binary is incompatible: {0}", cache_path.c_str());
+				continue;
+			}
+
+			istream_t payload = compressor_t::decompress(stream);
+			if (payload.empty())
+			{
+				SFG_WARN("world resource cooked binary payload could not be decompressed: {0}", cache_path.c_str());
+				continue;
+			}
+
+			span_t<u8> data = payload.evict();
+			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), data, resource_type) == resource_state_e::failed)
+				SFG_WARN("world resource failed to load: {0}", guid);
+		}
 	}
 
 	void editor_world_controller_t::set_main_world(world_handle_t handle)
@@ -313,5 +404,6 @@ namespace sfg
 		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(component_camera_t::TYPE_ID)->table, camera_entity);
 		camera.priority					  = -1;
 		ecs_t::table_add(world.get_component_table(component_no_serialize_t::TYPE_ID)->table, camera_entity);
+		ecs_t::table_add(world.get_component_table(component_render_object_t::TYPE_ID)->table, camera_entity);
 	}
 }

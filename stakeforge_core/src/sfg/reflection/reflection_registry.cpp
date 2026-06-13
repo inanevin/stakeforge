@@ -554,6 +554,65 @@ namespace sfg
 			return true;
 		}
 
+		bool reflected_math_type_to_json(sid_t type_id, const void* obj, nlohmann::json& j)
+		{
+			if (type_id == type_id_t<vec2f_t>::value)
+			{
+				j = vec2_to_json(*static_cast<const vec2f_t*>(obj));
+				return true;
+			}
+			if (type_id == type_id_t<vec3f_t>::value)
+			{
+				j = vec3_to_json(*static_cast<const vec3f_t*>(obj));
+				return true;
+			}
+			if (type_id == type_id_t<vec4f_t>::value)
+			{
+				j = vec4_to_json(*static_cast<const vec4f_t*>(obj));
+				return true;
+			}
+			if (type_id == type_id_t<vec2u_t>::value)
+			{
+				j = vec2u_to_json(*static_cast<const vec2u_t*>(obj));
+				return true;
+			}
+			if (type_id == type_id_t<vec2u16_t>::value)
+			{
+				j = vec2u16_to_json(*static_cast<const vec2u16_t*>(obj));
+				return true;
+			}
+			if (type_id == type_id_t<vec3u_t>::value)
+			{
+				j = vec3u_to_json(*static_cast<const vec3u_t*>(obj));
+				return true;
+			}
+			if (type_id == type_id_t<vec4u_t>::value)
+			{
+				j = vec4u_to_json(*static_cast<const vec4u_t*>(obj));
+				return true;
+			}
+			return false;
+		}
+
+		bool reflected_math_type_from_json(sid_t type_id, void* obj, const nlohmann::json& j)
+		{
+			if (type_id == type_id_t<vec2f_t>::value)
+				return json_to_vec2(j, *static_cast<vec2f_t*>(obj));
+			if (type_id == type_id_t<vec3f_t>::value)
+				return json_to_vec3(j, *static_cast<vec3f_t*>(obj));
+			if (type_id == type_id_t<vec4f_t>::value)
+				return json_to_vec4(j, *static_cast<vec4f_t*>(obj));
+			if (type_id == type_id_t<vec2u_t>::value)
+				return json_to_vec2u(j, *static_cast<vec2u_t*>(obj));
+			if (type_id == type_id_t<vec2u16_t>::value)
+				return json_to_vec2u16(j, *static_cast<vec2u16_t*>(obj));
+			if (type_id == type_id_t<vec3u_t>::value)
+				return json_to_vec3u(j, *static_cast<vec3u_t*>(obj));
+			if (type_id == type_id_t<vec4u_t>::value)
+				return json_to_vec4u(j, *static_cast<vec4u_t*>(obj));
+			return false;
+		}
+
 		reflected_field_desc_t reflected_container_item_field(const reflected_field_desc_t& field)
 		{
 			const reflected_value_type_e type = reflected_value_type_from_sub_type_id(field.sub_type_id);
@@ -1605,6 +1664,9 @@ namespace sfg
 			return true;
 		}
 
+		if (reflected_math_type_to_json(type_id, obj, j))
+			return true;
+
 		j = nlohmann::json::object();
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
@@ -1674,6 +1736,9 @@ namespace sfg
 			write_reflected_enum_value(obj, type->size, value);
 			return true;
 		}
+
+		if (reflected_math_type_from_json(type_id, obj, j))
+			return true;
 
 		if (!j.is_object())
 			return false;

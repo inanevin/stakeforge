@@ -38,7 +38,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		// transfers data ownership to resource manager.
+		// Transfers uncompressed resource payload ownership to resource manager.
 		resource_state_e		load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
