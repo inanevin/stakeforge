@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/inplace_vector.hpp>
+#include <sfg/data/bitmask.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 
@@ -60,7 +61,7 @@ namespace sfg
 		inplace_vector_t<material_parameter_t, MATERIAL_MAX_PARAMETERS> parameters		 = {};
 		resource_handle_t												shader			 = NULL_RESOURCE_HANDLE;
 		resource_handle_t												sampler			 = NULL_RESOURCE_HANDLE;
-		world_pass_flags_e												pass_flags		 = wpf_none;
+		bitmask_t<u32>													pass_flags		 = wpf_none;
 		bool															double_sided	 = false;
 		bool															use_alpha_cutoff = false;
 	};

@@ -6,7 +6,7 @@
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
-
+#include <sfg/data/bitmask.hpp>
 namespace sfg
 {
 	class istream_t;
@@ -40,7 +40,7 @@ namespace sfg
 		u32							 parameter_data_size					= 0;
 		u32							 parameter_count						= 0;
 		u32							 texture_count							= 0;
-		world_pass_flags_e			 pass_flags								= wpf_none;
+		bitmask_t<u32>				 pass_flags								= 0;
 		u8							 double_sided							= 0;
 		u8							 use_alpha_cutoff						= 0;
 	};

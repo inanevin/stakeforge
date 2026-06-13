@@ -32,42 +32,149 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/gfx/common/commands.hpp>
+#include <sfg/gfx/util/gfx_util.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/job/job_system.hpp>
+#include <sfg/memory/memory.hpp>
 
 namespace sfg
 {
-	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
+	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_bind_layout_handle global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_command_buffer_handle cmd			  = ctx.get_command_buffer(frame_index);
-		const gfx_texture_handle		color_texture = ctx.get_world_texture(frame_index);
-		const gfx_texture_handle		depth_texture = ctx.get_depth_texture(frame_index);
-		render_view_t					main_view	  = {};
-		main_view.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+		// entity buffer.
+		{
+			SFG_ASSERT(snapshot.entities.size() <= WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
+			gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
+			for (size_t i = 0; i < snapshot.entities.size(); ++i)
+			{
+				const world_entity_t& entity  = snapshot.entities[i];
+				const vec3f_t		  pos	  = vec3f_t::lerp(entity.prev_pos, entity.pos, interpolation_alpha);
+				const quat_t		  rot	  = quat_t::slerp(entity.prev_rot, entity.rot, interpolation_alpha);
+				const vec3f_t		  scale	  = vec3f_t::lerp(entity.prev_scale, entity.scale, interpolation_alpha);
+				const mat4x4_t		  model	  = mat4x4_t::transform(pos, rot, scale);
+				const vec3f_t		  forward = rot.get_forward();
 
-		backend.reset_command_buffer(cmd);
+				entity_buffer[i] = {
+					.model		   = model,
+					.normal_matrix = model.get_normal_matrix(),
+					.position	   = vec4f_t(pos.x, pos.y, pos.z, static_cast<f32>(entity.render_id)),
+					.forward	   = vec4f_t(forward.x, forward.y, forward.z, 0.0f),
+				};
+			}
+		}
 
-		barrier_t begin_barriers[2] = {};
+		// main camera view.
+		render_view_t main_camera_view_t = {};
+		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+		const render_pass_data_opaque_gpu_t render_pass_data = {.view_proj = main_camera_view_t.view_proj};
+		SFG_MEMCPY(ctx.get_mapped_opaque_render_pass_data(frame_index), &render_pass_data, sizeof(render_pass_data_opaque_gpu_t));
+
+		job_graph_t render_graph;
+		render_graph.emplace([&ctx, &snapshot, frame_index, global_cbv_index, global_layout]() {
+			gfx_backend&					backend = gfx_backend::get();
+			const gfx_command_buffer_handle cmd		= ctx.get_command_buffer_gfx0(frame_index);
+			backend.reset_command_buffer(cmd);
+			backend.cmd_bind_layout(cmd, {.layout = global_layout});
+			gpu_index_t global_constants[1] = {global_cbv_index};
+			backend.cmd_bind_constants(cmd, {.data = global_constants, .offset = constant_global0, .count = 1, .param_index = 0});
+			render_depth_prepass(ctx, snapshot, frame_index);
+			render_gbuffer(ctx, snapshot, frame_index);
+			backend.close_command_buffer(cmd);
+		});
+		render_graph.emplace([&ctx, &snapshot, frame_index, global_cbv_index, global_layout]() {
+			gfx_backend&					backend = gfx_backend::get();
+			const gfx_command_buffer_handle cmd		= ctx.get_command_buffer_gfx1(frame_index);
+			backend.reset_command_buffer(cmd);
+			backend.cmd_bind_layout(cmd, {.layout = global_layout});
+			gpu_index_t global_constants[1] = {global_cbv_index};
+			backend.cmd_bind_constants(cmd, {.data = global_constants, .offset = constant_global0, .count = 1, .param_index = 0});
+			render_lighting(ctx, snapshot, frame_index);
+			render_post_process(ctx, snapshot, frame_index);
+			backend.close_command_buffer(cmd);
+		});
+
+		tf::Executor& executor = job_system_t::get().get_executor();
+		executor.run(render_graph).wait();
+
+		const gfx_command_buffer_handle cmd_gfx0  = ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_command_buffer_handle cmd_gfx1  = ctx.get_command_buffer_gfx1(frame_index);
+		const gfx_queue_handle			queue_gfx = backend.get_queue_gfx();
+		const gfx_semaphore_handle		semaphore = ctx.get_gfx0_done_semaphore(frame_index);
+		const u64						value	  = ctx.next_gfx0_done_semaphore_value(frame_index);
+
+		backend.submit_commands(queue_gfx, &cmd_gfx0, 1);
+		backend.queue_signal(queue_gfx, &semaphore, &value, 1);
+		backend.queue_wait(queue_gfx, &semaphore, &value, 1);
+		backend.submit_commands(queue_gfx, &cmd_gfx1, 1);
+	}
+
+	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_snapshot_t&, u8 frame_index)
+	{
+		gfx_backend& backend = gfx_backend::get();
+
+		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_texture_handle		depth_texture	 = ctx.get_depth_texture(frame_index);
+		const gfx_texture_handle		gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_texture_handle		gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_texture_handle		gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_texture_handle		gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+
+		barrier_t begin_barriers[5] = {};
 		u16		  begin_count		= 0;
 
-		const u32 color_state = backend.get_texture_state(color_texture);
-		if (color_state != resource_state_render_target)
+		u32 state = backend.get_texture_state(depth_texture);
+		if (state != resource_state_depth_write)
 		{
 			begin_barriers[begin_count++] = {
-				.from_states = color_state,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = color_texture,
+				.from_states = state,
+				.to_states	 = resource_state_depth_write,
+				.texture_t	 = depth_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 		}
 
-		const u32 depth_state = backend.get_texture_state(depth_texture);
-		if (depth_state != resource_state_depth_write)
+		state = backend.get_texture_state(gbuffer_albedo);
+		if (state != resource_state_render_target)
 		{
 			begin_barriers[begin_count++] = {
-				.from_states = depth_state,
-				.to_states	 = resource_state_depth_write,
-				.texture_t	 = depth_texture,
+				.from_states = state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_albedo,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		state = backend.get_texture_state(gbuffer_normal);
+		if (state != resource_state_render_target)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_normal,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		state = backend.get_texture_state(gbuffer_orm);
+		if (state != resource_state_render_target)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_orm,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		state = backend.get_texture_state(gbuffer_emissive);
+		if (state != resource_state_render_target)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_emissive,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 		}
@@ -75,31 +182,229 @@ namespace sfg
 		if (begin_count > 0)
 			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
 
-		render_pass_color_attachment_t color_attachment = {
+		backend.cmd_begin_render_pass_depth_only(cmd,
+												 {
+													 .depth_stencil_attachment =
+														 {
+															 .texture		 = depth_texture,
+															 .clear_stencil	 = 0,
+															 .clear_depth	 = 0.0f,
+															 .depth_load_op	 = load_op::clear,
+															 .depth_store_op = store_op::store,
+															 .view_index	 = 0,
+														 },
+												 });
+
+		const vec2u16_t size = ctx.get_size();
+		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+
+		gpu_index_t rp_constants[2] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index)};
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+
+		backend.cmd_end_render_pass(cmd, {});
+	}
+
+	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_snapshot_t&, u8 frame_index)
+	{
+		gfx_backend& backend = gfx_backend::get();
+
+		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_texture_handle		depth_texture	 = ctx.get_depth_texture(frame_index);
+		const gfx_texture_handle		gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_texture_handle		gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_texture_handle		gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_texture_handle		gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+
+		const u32 depth_state = backend.get_texture_state(depth_texture);
+		if (depth_state != resource_state_depth_read)
+		{
+			const barrier_t barrier = {
+				.from_states = depth_state,
+				.to_states	 = resource_state_depth_read,
+				.texture_t	 = depth_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+			backend.cmd_barrier(cmd, {.barriers = &barrier, .barrier_count = 1});
+		}
+
+		const render_pass_color_attachment_t color_attachments[4] = {
+			{
+				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+				.texture	 = gbuffer_albedo,
+				.load_op	 = load_op::clear,
+				.store_op	 = store_op::store,
+				.view_index	 = 0,
+			},
+			{
+				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+				.texture	 = gbuffer_normal,
+				.load_op	 = load_op::clear,
+				.store_op	 = store_op::store,
+				.view_index	 = 0,
+			},
+			{
+				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+				.texture	 = gbuffer_orm,
+				.load_op	 = load_op::clear,
+				.store_op	 = store_op::store,
+				.view_index	 = 0,
+			},
+			{
+				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+				.texture	 = gbuffer_emissive,
+				.load_op	 = load_op::clear,
+				.store_op	 = store_op::store,
+				.view_index	 = 0,
+			},
+		};
+
+		backend.cmd_begin_render_pass_depth_read_only(cmd,
+													  {
+														  .color_attachments = color_attachments,
+														  .depth_stencil_attachment =
+															  {
+																  .texture			= depth_texture,
+																  .clear_stencil	= 0,
+																  .clear_depth		= 0.0f,
+																  .depth_load_op	= load_op::load,
+																  .stencil_load_op	= load_op::none,
+																  .depth_store_op	= store_op::store,
+																  .stencil_store_op = store_op::none,
+																  .view_index		= 1,
+															  },
+														  .color_attachment_count = 4,
+													  });
+
+		const vec2u16_t size = ctx.get_size();
+		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+
+		gpu_index_t rp_constants[2] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index)};
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+
+		backend.cmd_end_render_pass(cmd, {});
+
+		const barrier_t end_barriers[5] = {
+			{
+				.from_states = resource_state_render_target,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = gbuffer_albedo,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_render_target,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = gbuffer_normal,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_render_target,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = gbuffer_orm,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_render_target,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = gbuffer_emissive,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_depth_read,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = depth_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+		};
+		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 5});
+	}
+
+	void world_rendering_t::render_lighting(const world_render_context_t& ctx, const world_snapshot_t& snapshot, u8 frame_index)
+	{
+		gfx_backend& backend = gfx_backend::get();
+
+		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx1(frame_index);
+		const gfx_texture_handle		lighting_texture = ctx.get_lighting_texture(frame_index);
+
+		const u32 lighting_state = backend.get_texture_state(lighting_texture);
+		if (lighting_state != resource_state_render_target)
+		{
+			const barrier_t barrier = {
+				.from_states = lighting_state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = lighting_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+			backend.cmd_barrier(cmd, {.barriers = &barrier, .barrier_count = 1});
+		}
+
+		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
-			.texture_t	 = color_texture,
+			.texture	 = lighting_texture,
 			.load_op	 = load_op::clear,
 			.store_op	 = store_op::store,
 			.view_index	 = 1,
 		};
+		backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 
-		render_pass_depth_stencil_attachment_t depth_attachment = {
-			.texture_t		  = depth_texture,
-			.clear_stencil	  = 0,
-			.clear_depth	  = 0.0f,
-			.depth_load_op	  = load_op::clear,
-			.stencil_load_op  = load_op::none,
-			.depth_store_op	  = store_op::store,
-			.stencil_store_op = store_op::none,
-			.view_index		  = 0,
+		const vec2u16_t size = ctx.get_size();
+		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+
+		render_forward(ctx, snapshot, frame_index);
+
+		backend.cmd_end_render_pass(cmd, {});
+	}
+
+	void world_rendering_t::render_forward(const world_render_context_t&, const world_snapshot_t&, u8)
+	{
+	}
+
+	void world_rendering_t::render_post_process(const world_render_context_t& ctx, const world_snapshot_t&, u8 frame_index)
+	{
+		gfx_backend& backend = gfx_backend::get();
+
+		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx1(frame_index);
+		const gfx_texture_handle		lighting_texture = ctx.get_lighting_texture(frame_index);
+		const gfx_texture_handle		world_texture	 = ctx.get_world_texture(frame_index);
+
+		barrier_t begin_barriers[2] = {};
+		u16		  begin_count		= 0;
+
+		u32 state = backend.get_texture_state(lighting_texture);
+		if (state != resource_state_ps_resource)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = lighting_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		state = backend.get_texture_state(world_texture);
+		if (state != resource_state_render_target)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = world_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		if (begin_count > 0)
+			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+
+		const render_pass_color_attachment_t color_attachment = {
+			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+			.texture	 = world_texture,
+			.load_op	 = load_op::clear,
+			.store_op	 = store_op::store,
+			.view_index	 = 1,
 		};
-
-		backend.cmd_begin_render_pass_depth(cmd,
-											{
-												.color_attachments		  = &color_attachment,
-												.depth_stencil_attachment = depth_attachment,
-												.color_attachment_count	  = 1,
-											});
+		backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 
 		const vec2u16_t size = ctx.get_size();
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
@@ -107,21 +412,12 @@ namespace sfg
 
 		backend.cmd_end_render_pass(cmd, {});
 
-		const barrier_t end_barriers[2] = {
-			{
-				.from_states = resource_state_render_target,
-				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = color_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			},
-			{
-				.from_states = resource_state_depth_write,
-				.to_states	 = resource_state_depth_read,
-				.texture_t	 = depth_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			},
+		const barrier_t end_barrier = {
+			.from_states = resource_state_render_target,
+			.to_states	 = resource_state_ps_resource,
+			.texture_t	 = world_texture,
+			.flags		 = barrier_flags::baf_is_texture,
 		};
-		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 2});
-		backend.close_command_buffer(cmd);
+		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 	}
 }

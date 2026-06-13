@@ -29,10 +29,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/math/vec4f.hpp>
 
 namespace sfg
 {
+#define WORLD_RENDER_ENTITY_BUFFER_CAPACITY 8000
+
+	struct render_pass_data_opaque_gpu_t
+	{
+		mat4x4_t view_proj = mat4x4_t::identity;
+	};
+
+	struct gpu_entity_t
+	{
+		mat4x4_t model		   = mat4x4_t::identity;
+		mat4x4_t normal_matrix = mat4x4_t::identity;
+		vec4f_t	 position	   = vec4f_t::zero;
+		vec4f_t	 forward	   = vec4f_t::zero;
+	};
+
 	class world_render_context_t final
 	{
 	public:
@@ -54,9 +71,23 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 		gfx_command_buffer_handle get_command_buffer(u8 frame_index) const;
+		gfx_command_buffer_handle get_command_buffer_gfx0(u8 frame_index) const;
+		gfx_command_buffer_handle get_command_buffer_gfx1(u8 frame_index) const;
 		gfx_texture_handle		  get_world_texture(u8 frame_index) const;
+		gfx_texture_handle		  get_lighting_texture(u8 frame_index) const;
 		gfx_texture_handle		  get_depth_texture(u8 frame_index) const;
+		gfx_texture_handle		  get_post_process_texture(u8 frame_index) const;
+		gfx_texture_handle		  get_gbuffer_albedo_texture(u8 frame_index) const;
+		gfx_texture_handle		  get_gbuffer_normal_texture(u8 frame_index) const;
+		gfx_texture_handle		  get_gbuffer_orm_texture(u8 frame_index) const;
+		gfx_texture_handle		  get_gbuffer_emissive_texture(u8 frame_index) const;
+		gfx_semaphore_handle	  get_gfx0_done_semaphore(u8 frame_index) const;
+		u64						  next_gfx0_done_semaphore_value(u8 frame_index) const;
 		gpu_index_t				  get_world_texture_index(u8 frame_index) const;
+		gpu_index_t				  get_opaque_render_pass_data_index(u8 frame_index) const;
+		gpu_index_t				  get_entity_buffer_index(u8 frame_index) const;
+		u8*						  get_mapped_opaque_render_pass_data(u8 frame_index) const;
+		u8*						  get_mapped_entity_buffer(u8 frame_index) const;
 		vec2u16_t				  get_size() const;
 
 	private:
@@ -65,22 +96,40 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
-			gfx_command_buffer_handle command_buffer		 = {};
-			gfx_texture_handle		  world_texture			 = {};
-			gfx_texture_handle		  depth_texture			 = {};
-			gfx_texture_handle		  gbuffer_albedo		 = {};
-			gfx_texture_handle		  gbuffer_normal		 = {};
-			gfx_texture_handle		  gbuffer_orm			 = {};
-			gfx_texture_handle		  gbuffer_emissive		 = {};
-			gpu_index_t				  world_texture_index	 = NULL_GPU_INDEX;
-			gpu_index_t				  depth_texture_index	 = NULL_GPU_INDEX;
-			gpu_index_t				  gbuffer_albedo_index	 = NULL_GPU_INDEX;
-			gpu_index_t				  gbuffer_normal_index	 = NULL_GPU_INDEX;
-			gpu_index_t				  gbuffer_orm_index		 = NULL_GPU_INDEX;
-			gpu_index_t				  gbuffer_emissive_index = NULL_GPU_INDEX;
+			u8*						  mapped_opaque_render_pass_data = nullptr;
+			u8*						  mapped_entity_buffer			 = nullptr;
+			gfx_command_buffer_handle cmd_gfx0						 = {};
+			gfx_command_buffer_handle cmd_gfx1						 = {};
+			gfx_resource_handle		  opaque_render_pass_data		 = {};
+			gfx_resource_handle		  entity_buffer					 = {};
+			gfx_texture_handle		  lighting_texture				 = {};
+			gfx_texture_handle		  post_process_texture			 = {};
+			gfx_texture_handle		  depth_texture					 = {};
+			gfx_texture_handle		  gbuffer_albedo				 = {};
+			gfx_texture_handle		  gbuffer_normal				 = {};
+			gfx_texture_handle		  gbuffer_orm					 = {};
+			gfx_texture_handle		  gbuffer_emissive				 = {};
+			gfx_semaphore_handle	  gfx0_done_semaphore			 = {};
+			mutable u64				  gfx0_done_value				 = 0;
+			gpu_index_t				  lighting_texture_index		 = NULL_GPU_INDEX;
+			gpu_index_t				  post_process_texture_index	 = NULL_GPU_INDEX;
+			gpu_index_t				  depth_texture_index			 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_albedo_index			 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_normal_index			 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_orm_index				 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_emissive_index		 = NULL_GPU_INDEX;
+			gpu_index_t				  opaque_render_pass_data_index	 = NULL_GPU_INDEX;
+			gpu_index_t				  entity_buffer_index			 = NULL_GPU_INDEX;
 		};
 
+		struct shaders_t
+		{
+			gfx_shader_handle lighting = {};
+		};
+
+	private:
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
+		shaders_t		 _shaders				 = {};
 		vec2u16_t		 _size					 = vec2u16_t::zero;
 	};
 }

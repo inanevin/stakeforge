@@ -101,7 +101,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E rm -rf
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/engine/world"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/engine/shaders/world"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
     COMMAND ${CMAKE_COMMAND} -E rm -f
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials/gbuffer_material.sfg_asset"

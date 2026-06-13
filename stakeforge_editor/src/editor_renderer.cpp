@@ -278,7 +278,7 @@ namespace sfg
 		const gfx_command_buffer_handle cmd_transfer   = pfd.cmd_transfer;
 
 		pfd.semaphore_world.value++;
-		const bool world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index);
+		const bool world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
 
 		/* flush uploads, begin graphics & transits */
 
@@ -330,7 +330,7 @@ namespace sfg
 
 			render_pass_swapchain_attachment_t attachment = {
 				.clear_color = vec4f_t(0, 0, 0, 1.0f),
-				.swapchain_t = t.swapchain,
+				.swapchain	 = t.swapchain,
 				.load_op	 = load_op::clear,
 				.store_op	 = store_op::store,
 				.view_index	 = 0,

@@ -53,9 +53,5 @@ namespace sfg
 	{
 		world_pass_flags_reflection_t();
 	};
-
-	void to_json(nlohmann::json& j, const world_pass_flags_e& f);
-	void from_json(const nlohmann::json& j, world_pass_flags_e& f);
-
 	inline world_pass_flags_reflection_t g_reflect_world_pass_flags;
 }

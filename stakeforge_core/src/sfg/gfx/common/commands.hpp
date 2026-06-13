@@ -80,7 +80,7 @@ namespace sfg
 	struct render_pass_color_attachment_t
 	{
 		vec4f_t			   clear_color = vec4f_t(0, 0, 0, 1);
-		gfx_texture_handle texture_t   = {};
+		gfx_texture_handle texture	   = {};
 		load_op			   load_op	   = load_op::clear;
 		store_op		   store_op	   = store_op::store;
 		u8				   view_index  = 0;
@@ -89,7 +89,7 @@ namespace sfg
 	struct render_pass_swapchain_attachment_t
 	{
 		vec4f_t				 clear_color = vec4f_t(0, 0, 0, 1);
-		gfx_swapchain_handle swapchain_t = {};
+		gfx_swapchain_handle swapchain	 = {};
 		load_op				 load_op	 = load_op::clear;
 		store_op			 store_op	 = store_op::store;
 		u8					 view_index	 = 0;
@@ -97,7 +97,7 @@ namespace sfg
 
 	struct render_pass_depth_stencil_attachment_t
 	{
-		gfx_texture_handle texture_t		= {};
+		gfx_texture_handle texture			= {};
 		u8				   clear_stencil	= 0;
 		f32				   clear_depth		= 1.0f;
 		load_op			   depth_load_op	= load_op::clear;

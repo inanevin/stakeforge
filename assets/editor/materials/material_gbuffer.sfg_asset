@@ -6,7 +6,8 @@
     "embedded_source": {
         "schema": "sfg.schema.material",
         "pass_flags": [
-            "gbuffer"
+            "gbuffer",
+            "depth"
         ],
         "shader": 1000,
         "sampler": 1009,

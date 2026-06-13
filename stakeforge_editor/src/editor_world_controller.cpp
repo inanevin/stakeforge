@@ -154,7 +154,7 @@ namespace sfg
 		SFG_ASSERT(false);
 	}
 
-	bool editor_world_controller_t::render_worlds(gfx_queue_handle queue, gfx_semaphore_handle signal, u64 signal_value, u8 frame_index)
+	bool editor_world_controller_t::render_worlds(gfx_queue_handle queue, gfx_semaphore_handle signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_bind_layout_handle global_layout)
 	{
 		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
@@ -170,13 +170,14 @@ namespace sfg
 		for (world_container_t& container : _worlds)
 		{
 			const world_snapshot_t& snapshot = acquire_render_snapshot(container);
-			world_rendering_t::render_world(container.render_context, snapshot, interpolation_alpha, frame_index);
+			world_rendering_t::render_world(container.render_context, snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 			command_buffers.push_back(container.render_context.get_command_buffer(frame_index));
 		}
 
 		gfx_backend& backend = gfx_backend::get();
-		backend.submit_commands(queue, command_buffers.data(), static_cast<u8>(command_buffers.size()));
-		backend.queue_signal(queue, &signal, &signal_value, 1);
+
+		if (!_worlds.empty())
+			backend.queue_signal(queue, &signal, &signal_value, 1);
 		return true;
 	}
 

@@ -85,6 +85,32 @@ namespace sfg
 			u8					sub_type;
 		};
 
+		bool is_asset_cooked(const editor_asset_t& asset)
+		{
+			if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
+				return false;
+
+			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+			if (!file_system_t::exists(cache_path.c_str()))
+				return false;
+
+			istream_t					stream		  = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
+			const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
+			SFG_ASSERT(resource_desc != nullptr);
+			if (stream.empty())
+				return false;
+
+			resource_header_t header = {};
+			header.deserialize(stream);
+			return header.magic == resource_desc->wire_magic && header.version == resource_desc->wire_version;
+		}
+
+		bool is_default_asset_ready(sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
+		{
+			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(guid);
+			return asset != nullptr && asset->status == editor_asset_status_e::ok && asset->asset_type == asset_type && asset->sub_type == sub_type && is_asset_cooked(*asset);
+		}
+
 	}
 
 	bool editor_asset_manager_t::init()
@@ -299,17 +325,26 @@ namespace sfg
 
 		for (const default_asset_desc_t& desc : default_shader_assets)
 		{
+			if (is_default_asset_ready(desc.guid, editor_asset_type_e::shader, static_cast<u8>(desc.shader_type)))
+				continue;
+
 			editor_asset_creator_t::create_asset(
 				{.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(desc.shader_type), .allow_overwrite = true});
 		}
 
 		for (const default_texture_asset_desc_t& desc : default_texture_assets)
 		{
+			if (is_default_asset_ready(desc.guid, editor_asset_type_e::texture, 0))
+				continue;
+
 			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::texture, .allow_overwrite = true});
 		}
 
 		for (const default_create_asset_desc_t& desc : default_created_assets)
 		{
+			if (is_default_asset_ready(desc.guid, desc.asset_type, desc.sub_type))
+				continue;
+
 			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .guid = desc.guid, .asset_type = desc.asset_type, .sub_type = desc.sub_type, .allow_overwrite = true});
 		}
 
@@ -411,30 +446,7 @@ namespace sfg
 			if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
 				continue;
 
-			bool		   requires_cook = false;
-			const string_t cache_path	 = editor_asset_util_t::get_cache_path_for_asset(asset);
-			if (!file_system_t::exists(cache_path.c_str()))
-			{
-				requires_cook = true;
-			}
-			else
-			{
-				istream_t					stream		  = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
-				const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
-				SFG_ASSERT(resource_desc != nullptr);
-				if (stream.empty())
-				{
-					requires_cook = true;
-				}
-				else
-				{
-					resource_header_t header = {};
-					header.deserialize(stream);
-					requires_cook = header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version;
-				}
-			}
-
-			if (!requires_cook)
+			if (is_asset_cooked(asset))
 				continue;
 
 			assets_to_cook.push_back(&asset);

@@ -2762,7 +2762,7 @@ namespace sfg
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
 			const render_pass_color_attachment_t& att = cmd.color_attachments[i];
-			const texture_t&					  txt = _textures.get(att.texture_t);
+			const texture_t&					  txt = _textures.get(att.texture);
 
 			const texture_view_t& view = txt.views[att.view_index];
 			SFG_ASSERT(view.type == static_cast<u8>(view_type::render_target));
@@ -2793,7 +2793,7 @@ namespace sfg
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
 			const render_pass_color_attachment_t& att = cmd.color_attachments[i];
-			const texture_t&					  txt = _textures.get(att.texture_t);
+			const texture_t&					  txt = _textures.get(att.texture);
 
 			const texture_view_t& view = txt.views[att.view_index];
 			SFG_ASSERT(view.type == static_cast<u8>(view_type::render_target));
@@ -2811,7 +2811,7 @@ namespace sfg
 			color_attachments[i] = {dh.cpu, color_begin, color_end};
 		}
 
-		const texture_t& depth_txt = _textures.get(cmd.depth_stencil_attachment.texture_t);
+		const texture_t& depth_txt = _textures.get(cmd.depth_stencil_attachment.texture);
 
 		const texture_view_t& depth_view = depth_txt.views[cmd.depth_stencil_attachment.view_index];
 		SFG_ASSERT(depth_view.type == static_cast<u8>(view_type::depth_stencil));
@@ -2836,7 +2836,7 @@ namespace sfg
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
 			const render_pass_color_attachment_t& att = cmd.color_attachments[i];
-			const texture_t&					  txt = _textures.get(att.texture_t);
+			const texture_t&					  txt = _textures.get(att.texture);
 			const descriptor_handle_t&			  dh  = _descriptors.get(txt.views[att.view_index].handle);
 
 			CD3DX12_CLEAR_VALUE cv;
@@ -2852,7 +2852,7 @@ namespace sfg
 		}
 
 		D3D12_RENDER_PASS_FLAGS flags	   = D3D12_RENDER_PASS_FLAG_NONE;
-		const texture_t&		depth_txt  = _textures.get(cmd.depth_stencil_attachment.texture_t);
+		const texture_t&		depth_txt  = _textures.get(cmd.depth_stencil_attachment.texture);
 		const texture_view_t&	depth_view = depth_txt.views[cmd.depth_stencil_attachment.view_index];
 		SFG_ASSERT(depth_view.type == static_cast<u8>(view_type::depth_stencil));
 		const descriptor_handle_t& depth_dh = _descriptors.get(depth_view.handle);
@@ -2871,7 +2871,7 @@ namespace sfg
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 
-		const texture_t&	  depth_txt	 = _textures.get(cmd.depth_stencil_attachment.texture_t);
+		const texture_t&	  depth_txt	 = _textures.get(cmd.depth_stencil_attachment.texture);
 		const texture_view_t& depth_view = depth_txt.views[cmd.depth_stencil_attachment.view_index];
 		SFG_ASSERT(depth_view.type == static_cast<u8>(view_type::depth_stencil));
 		const descriptor_handle_t& depth_dh = _descriptors.get(depth_view.handle);
@@ -2896,7 +2896,7 @@ namespace sfg
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
 			const render_pass_swapchain_attachment_t& att = cmd.color_attachments[i];
-			const swapchain_t&						  swp = _swapchains.get(att.swapchain_t);
+			const swapchain_t&						  swp = _swapchains.get(att.swapchain);
 			const descriptor_handle_t&				  dh  = _descriptors.get(swp.rtv_indices[swp.image_index]);
 
 			CD3DX12_CLEAR_VALUE cv;
@@ -2925,7 +2925,7 @@ namespace sfg
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
 		{
 			const render_pass_swapchain_attachment_t& att = cmd.color_attachments[i];
-			const swapchain_t&						  swp = _swapchains.get(att.swapchain_t);
+			const swapchain_t&						  swp = _swapchains.get(att.swapchain);
 			const descriptor_handle_t&				  dh  = _descriptors.get(swp.rtv_indices[swp.image_index]);
 
 			CD3DX12_CLEAR_VALUE cv;
@@ -2940,7 +2940,7 @@ namespace sfg
 			color_attachments[i] = {dh.cpu, color_begin, color_end};
 		}
 
-		const texture_t&	  depth_txt	 = _textures.get(cmd.depth_stencil_attachment.texture_t);
+		const texture_t&	  depth_txt	 = _textures.get(cmd.depth_stencil_attachment.texture);
 		const texture_view_t& depth_view = depth_txt.views[cmd.depth_stencil_attachment.view_index];
 		SFG_ASSERT(depth_view.type == static_cast<u8>(view_type::depth_stencil));
 		const descriptor_handle_t& depth_dh = _descriptors.get(depth_view.handle);
