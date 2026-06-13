@@ -1,0 +1,34 @@
+{
+    "version": 0,
+    "guid": 1012,
+    "asset_type": "hdr_skybox",
+    "sub_type": 0,
+    "embedded_source": null,
+    "cook_options": {
+        "schema": "sfg.schema.hdr_skybox",
+        "radiance_size": {
+            "x": 512,
+            "y": 512
+        },
+        "irradiance_size": {
+            "x": 32,
+            "y": 32
+        },
+        "prefilter_size": {
+            "x": 128,
+            "y": 128
+        },
+        "brdf_lut_size": {
+            "x": 256,
+            "y": 256
+        },
+        "irradiance_sample_count": 512,
+        "prefilter_sample_count": 128,
+        "brdf_lut_sample_count": 512,
+        "intensity": 1.0,
+        "rotation": 0.0,
+        "prefilter_mips": 8
+    },
+    "source_relative": "",
+    "source_type": "file"
+}

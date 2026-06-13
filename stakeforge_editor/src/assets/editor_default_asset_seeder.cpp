@@ -132,6 +132,14 @@ namespace sfg
 			return result;
 		}
 
+		string_t get_skybox_default_asset_relative(const char* skybox_name)
+		{
+			string_t result = EDITOR_DEFAULT_SKY;
+			result += skybox_name != nullptr ? skybox_name : "";
+			result += ".sfg_asset";
+			return result;
+		}
+
 		void ensure_shader_assets(editor_asset_node_handle_t default_assets_node)
 		{
 			const default_shader_asset_desc_t default_shader_assets[] = {
@@ -222,7 +230,12 @@ namespace sfg
 					continue;
 
 				nlohmann::json cook_options;
-				cook_options["schema"]								 = "sfg.schema.hdr_skybox";
+				const string_t skybox_asset_relative = get_skybox_default_asset_relative(desc.source_base_name);
+				const bool	   read_cook_options	 = editor_asset_writer_t::read_cook_options(skybox_asset_relative.c_str(), cook_options);
+				SFG_ASSERT(read_cook_options);
+				if (!read_cook_options)
+					continue;
+
 				const string_t						 source_relative = get_skybox_default_source_relative(desc.source_base_name);
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
