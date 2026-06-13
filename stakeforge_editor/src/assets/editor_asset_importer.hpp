@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
+#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg
@@ -42,12 +43,14 @@ namespace sfg
 		audio,
 		texture,
 		model,
+		hdr_skybox,
 	};
 
 	struct editor_asset_import_options_t
 	{
 		texture_cook_config_t	   texture_cook_config = {};
 		audio_cook_config_t		   audio_cook_config   = {};
+		skybox_hdr_cook_config_t   skybox_cook_config  = {};
 		glb_cook_config_t		   glb_cook_config	   = {};
 		editor_asset_import_type_e type				   = editor_asset_import_type_e::invalid;
 	};

@@ -6,22 +6,10 @@
     "embedded_source": null,
     "cook_options": {
         "schema": "sfg.schema.hdr_skybox",
-        "radiance_size": {
-            "x": 512,
-            "y": 512
-        },
-        "irradiance_size": {
-            "x": 32,
-            "y": 32
-        },
-        "prefilter_size": {
-            "x": 128,
-            "y": 128
-        },
-        "brdf_lut_size": {
-            "x": 256,
-            "y": 256
-        },
+        "radiance_size": [512, 512],
+        "irradiance_size": [32, 32],
+        "prefilter_size": [128, 128],
+        "brdf_lut_size": [256, 256],
         "irradiance_sample_count": 512,
         "prefilter_sample_count": 128,
         "brdf_lut_sample_count": 512,

@@ -68,8 +68,8 @@ namespace sfg
 #define ASSETS_ITEM_STYLE_ID_GRID			 0
 #define ASSETS_ITEM_STYLE_ID_LIST			 1
 #define ASSETS_IMPORT_FILE_MAX				 255
-#define ASSETS_IMPORT_FILE_EXTENSIONS		 "glb;png;jpg;jpeg;mp3;ttf"
-#define ASSETS_FIX_INTEGRITY_FILE_EXTENSIONS "glb;png;jpg;jpeg;mp3;ttf;hlsl"
+#define ASSETS_IMPORT_FILE_EXTENSIONS		 "glb;png;jpg;jpeg;hdr;mp3;ttf"
+#define ASSETS_FIX_INTEGRITY_FILE_EXTENSIONS "glb;png;jpg;jpeg;hdr;mp3;ttf;hlsl"
 
 	namespace
 	{
@@ -656,6 +656,9 @@ namespace sfg
 				break;
 			case editor_asset_import_type_e::model:
 				modal_options.push_back({.object = &option.glb_cook_config, .title = "Model", .type_id = type_id_t<glb_cook_config_t>::value});
+				break;
+			case editor_asset_import_type_e::hdr_skybox:
+				modal_options.push_back({.object = &option.skybox_cook_config, .title = "HDR Skybox", .type_id = type_id_t<skybox_hdr_cook_config_t>::value});
 				break;
 			default:
 				break;
@@ -1518,7 +1521,7 @@ namespace sfg
 	void editor_panel_assets_t::collect_pending_import_options(const vector_t<string_t>& paths)
 	{
 		_pending_import_paths.reserve(paths.size());
-		_pending_import_options.reserve(3);
+		_pending_import_options.reserve(4);
 		for (const string_t& path : paths)
 		{
 			if (_pending_import_paths.size() == ASSETS_IMPORT_FILE_MAX)

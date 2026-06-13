@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
+#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg
@@ -52,6 +53,8 @@ namespace sfg
 				return editor_asset_import_type_e::texture;
 			if (extension == "glb")
 				return editor_asset_import_type_e::model;
+			if (extension == "hdr")
+				return editor_asset_import_type_e::hdr_skybox;
 			return editor_asset_import_type_e::invalid;
 		}
 
@@ -91,6 +94,9 @@ namespace sfg
 			return true;
 		case editor_asset_import_type_e::model:
 			out_options.glb_cook_config = {};
+			return true;
+		case editor_asset_import_type_e::hdr_skybox:
+			out_options.skybox_cook_config = {};
 			return true;
 		default:
 			return false;
@@ -183,6 +189,19 @@ namespace sfg
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::audio, editor_asset_source_type_e::file, source_path.c_str()))
 				return false;
 			if (!editor_asset_cooker_t::cook_audio(asset))
+				return false;
+			break;
+		}
+		case editor_asset_import_type_e::hdr_skybox: {
+			string_t status = "Importing HDR skybox ";
+			status += asset_name;
+			context.report_status(status.c_str());
+			const skybox_hdr_cook_config_t& skybox_config = import_options->skybox_cook_config;
+			if (!reflection_registry_t::get().serialize_to_json(type_id_t<skybox_hdr_cook_config_t>::value, &skybox_config, asset.cook_options))
+				return false;
+			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::hdr_skybox, editor_asset_source_type_e::file, source_path.c_str()))
+				return false;
+			if (!editor_asset_cooker_t::cook_hdr_skybox(asset))
 				return false;
 			break;
 		}
