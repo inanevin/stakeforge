@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	struct world_material_t
+	struct world_render_material_t
 	{
 		gpu_index_t pso			 = NULL_GPU_INDEX;
 		gpu_index_t constants[6] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};

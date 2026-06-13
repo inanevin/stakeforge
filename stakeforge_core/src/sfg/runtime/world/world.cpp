@@ -35,17 +35,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define WORLD_TEXT_BYTES			  (64 * 1024)
+#define WORLD_TEXT_ALLOCATION_RESERVE 1024
 
 	void world_t::init()
 	{
 		_component_tables.reserve(64);
 		_entity_free_list.reserve(1024);
+		_text_allocations.reserve(WORLD_TEXT_ALLOCATION_RESERVE);
+		_text_allocation_free_list.reserve(WORLD_TEXT_ALLOCATION_RESERVE);
+		_text_allocator.init(WORLD_TEXT_BYTES);
 
 		add_component_table(ecs_helpers_t::make_component_desc<component_hierarchy_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_transform_t>());
+		add_component_table(ecs_helpers_t::make_component_desc<component_name_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_mesh_renderer_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_render_object_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_camera_t>());
+		add_component_table(ecs_helpers_t::make_component_desc<component_skybox_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_alive_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_disabled_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_no_serialize_t>());
@@ -53,9 +60,11 @@ namespace sfg
 
 		_engine_components.hierarchy_table	   = &get_component_table(component_hierarchy_t::TYPE_ID)->table;
 		_engine_components.transform_table	   = &get_component_table(component_transform_t::TYPE_ID)->table;
+		_engine_components.name_table		   = &get_component_table(component_name_t::TYPE_ID)->table;
 		_engine_components.mesh_renderer_table = &get_component_table(component_mesh_renderer_t::TYPE_ID)->table;
 		_engine_components.render_object_table = &get_component_table(component_render_object_t::TYPE_ID)->table;
 		_engine_components.camera_table		   = &get_component_table(component_camera_t::TYPE_ID)->table;
+		_engine_components.skybox_table		   = &get_component_table(component_skybox_t::TYPE_ID)->table;
 		_engine_components.alive_table		   = &get_component_table(component_alive_t::TYPE_ID)->table;
 		_engine_components.disabled_table	   = &get_component_table(component_disabled_t::TYPE_ID)->table;
 		_engine_components.no_serialize_table  = &get_component_table(component_no_serialize_t::TYPE_ID)->table;
@@ -69,6 +78,9 @@ namespace sfg
 
 		_component_tables.resize(0);
 		_entity_free_list.resize(0);
+		_text_allocations.resize(0);
+		_text_allocation_free_list.resize(0);
+		_text_allocator.uninit();
 		_engine_components = {};
 		_system_components = {};
 		_entity_head	   = 0;
@@ -78,7 +90,7 @@ namespace sfg
 	{
 	}
 
-	entity_id_t world_t::create_entity()
+	entity_id_t world_t::create_entity(const char* name)
 	{
 		entity_id_t id = NULL_ENTITY_ID;
 		if (!_entity_free_list.empty())
@@ -96,6 +108,9 @@ namespace sfg
 		ecs_t::table_add(*_engine_components.alive_table, id);
 		ecs_helpers_t::table_add_or_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		ecs_helpers_t::table_add_or_get_as<component_transform_t>(*_engine_components.transform_table, id);
+		component_name_t& name_component = ecs_helpers_t::table_add_or_get_as<component_name_t>(*_engine_components.name_table, id);
+		if (name != nullptr)
+			name_component.text_index = allocate_text(name);
 		component_system_transform_t& system_transform = ecs_helpers_t::table_add_or_get_as<component_system_transform_t>(*_system_components.transform_table, id);
 		system_transform.snap_interpolation			   = true;
 
@@ -111,10 +126,15 @@ namespace sfg
 
 		detach(id);
 
+		const component_name_t& name = ecs_helpers_t::table_get_as<component_name_t>(*_engine_components.name_table, id);
+		release_text(name.text_index);
+
 		ecs_t::table_remove(*_engine_components.alive_table, id);
 		ecs_t::table_remove(*_engine_components.hierarchy_table, id);
 		ecs_t::table_remove(*_engine_components.transform_table, id);
+		ecs_t::table_remove(*_engine_components.name_table, id);
 		ecs_t::table_remove(*_engine_components.render_object_table, id);
+		ecs_t::table_remove(*_engine_components.skybox_table, id);
 		ecs_t::table_remove(*_engine_components.disabled_table, id);
 		ecs_t::table_remove(*_engine_components.no_serialize_table, id);
 		ecs_t::table_remove(*_system_components.transform_table, id);
@@ -429,8 +449,50 @@ namespace sfg
 		return table;
 	}
 
+	const char* world_t::get_text(u32 text_index) const
+	{
+		if (text_index == ECS_INVALID_INDEX)
+			return nullptr;
+
+		SFG_ASSERT(text_index < _text_allocations.size());
+		return _text_allocations[text_index].allocated;
+	}
+
 	bool world_t::is_alive(entity_id_t id) const
 	{
 		return ecs_t::table_has(*_engine_components.alive_table, id);
+	}
+
+	u32 world_t::allocate_text(const char* text)
+	{
+		const char* allocated = _text_allocator.allocate(text);
+		SFG_ASSERT(allocated != nullptr);
+		if (allocated == nullptr)
+			return ECS_INVALID_INDEX;
+
+		if (!_text_allocation_free_list.empty())
+		{
+			const u32 text_index = _text_allocation_free_list.back();
+			_text_allocation_free_list.pop_back();
+			_text_allocations[text_index].allocated = allocated;
+			return text_index;
+		}
+
+		SFG_ASSERT(_text_allocations.size() < ECS_INVALID_INDEX);
+		const u32 text_index = static_cast<u32>(_text_allocations.size());
+		_text_allocations.push_back({.allocated = allocated});
+		return text_index;
+	}
+
+	void world_t::release_text(u32 text_index)
+	{
+		if (text_index == ECS_INVALID_INDEX)
+			return;
+
+		SFG_ASSERT(text_index < _text_allocations.size());
+		world_text_allocation_t& allocation = _text_allocations[text_index];
+		_text_allocator.deallocate(allocation.allocated);
+		allocation.allocated = nullptr;
+		_text_allocation_free_list.push_back(text_index);
 	}
 }

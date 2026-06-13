@@ -324,6 +324,7 @@ namespace sfg
 		}
 
 		const world_handle_t main_world = _world_controller.create_world(get_main_surface().swapchain_size);
+		_world_controller.install_default_world(main_world);
 		_world_controller.set_main_world(main_world);
 		set_main_world_to_panel();
 

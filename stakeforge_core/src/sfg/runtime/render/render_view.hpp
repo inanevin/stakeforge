@@ -34,12 +34,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	struct vec2u16_t;
-	struct world_view_t;
+	struct world_render_view_t;
 
 	struct render_view_t
 	{
 		frustum_t frustum		= {};
 		mat4x4_t  view			= {};
+		mat4x4_t  inv_view		= {};
 		mat4x4_t  proj			= {};
 		mat4x4_t  inv_proj		= {};
 		mat4x4_t  view_proj		= {};
@@ -49,6 +50,6 @@ namespace sfg
 		f32		  far_plane		= 0.0f;
 		f32		  fov_rads		= 0.0f;
 
-		void calculate(const world_view_t& world_view, const vec2u16_t& resolution, f32 interpolation_alpha);
+		void calculate(const world_render_view_t& world_view, const vec2u16_t& resolution, f32 interpolation_alpha);
 	};
 }

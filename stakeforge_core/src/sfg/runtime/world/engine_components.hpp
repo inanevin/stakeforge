@@ -54,6 +54,13 @@ namespace sfg
 		vec3f_t scale = vec3f_t::one;
 	};
 
+	struct component_name_t
+	{
+		static inline constexpr sid_t TYPE_ID = "component_name"_hs;
+
+		u32 text_index = ECS_INVALID_INDEX;
+	};
+
 	struct component_mesh_renderer_t
 	{
 		static inline constexpr sid_t TYPE_ID = "component_mesh_renderer"_hs;
@@ -77,6 +84,15 @@ namespace sfg
 		f32 near_plane	= 0.1f;
 		f32 far_plane	= 1000.0f;
 		i8	priority	= 0;
+	};
+
+	struct component_skybox_t
+	{
+		static inline constexpr sid_t TYPE_ID = "component_skybox"_hs;
+
+		resource_handle_t skybox_asset = NULL_RESOURCE_HANDLE;
+		f32				  intensity	   = 1.0f;
+		f32				  exposure	   = 1.0f;
 	};
 
 	struct component_alive_t

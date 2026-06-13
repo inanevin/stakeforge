@@ -8,6 +8,15 @@
                 "schema": "sfg.schema.shader",
                 "type": "deferred_lighting"
             }
+        },
+        {
+            "name": "post_combiner",
+            "path": "engine/shaders/world/post_combiner.hlsl",
+            "type": "shader",
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": "post_combiner"
+            }
         }
     ]
 }

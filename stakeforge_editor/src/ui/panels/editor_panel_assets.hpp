@@ -139,6 +139,8 @@ namespace sfg
 		void delete_asset();
 		void duplicate_asset();
 		void fix_asset_integrity();
+		void open_create_folder_popup();
+		void create_folder(const char* name);
 		void open_create_asset_popup(u16 command);
 		void create_asset_item(u16 command, const char* name);
 		void open_rename_popup();
@@ -171,6 +173,7 @@ namespace sfg
 		static void on_action_menu_command(u16 command, void* user_data);
 		static void on_asset_action_menu_command(u16 command, void* user_data);
 		static void on_action_menu_closed(void* user_data);
+		static void on_create_folder_popup_closed(const char* value, void* user_data);
 		static void on_create_asset_popup_closed(const char* value, void* user_data);
 		static void on_rename_popup_closed(const char* value, void* user_data);
 		static void on_asset_rename_popup_closed(const char* value, void* user_data);
@@ -243,6 +246,7 @@ namespace sfg
 		bool									_favourites_only				 = false;
 		bool									_show_file_assets				 = false;
 		bool									_asset_favourites_only			 = false;
+		bool									_create_folder_popup_pending	 = false;
 		bool									_rename_popup_pending			 = false;
 		bool									_asset_rename_popup_pending		 = false;
 		bool									_asset_grid_body_size_valid		 = false;

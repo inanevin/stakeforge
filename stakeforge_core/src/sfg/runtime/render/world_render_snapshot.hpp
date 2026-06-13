@@ -27,19 +27,36 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/math/vec3f.hpp>
-#include <sfg/math/quat.hpp>
+#include "world_draw.hpp"
+#include "world_render_entity.hpp"
+#include "world_render_material.hpp"
+#include "world_render_view.hpp"
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 
 namespace sfg
 {
-	struct world_view_t
+	struct world_render_skybox_t
 	{
-		vec3f_t pos			= vec3f_t::zero;
-		quat_t	rot			= quat_t::identity;
-		vec3f_t prev_pos	= vec3f_t::zero;
-		quat_t	prev_rot	= quat_t::identity;
-		f32		near_plane	= 0.0f;
-		f32		far_plane	= 0.0f;
-		f32		fov_degrees = 0.0f;
+		gpu_index_t radiance   = NULL_GPU_INDEX;
+		gpu_index_t irradiance = NULL_GPU_INDEX;
+		gpu_index_t prefilter  = NULL_GPU_INDEX;
+		gpu_index_t brdf_lut   = NULL_GPU_INDEX;
+		f32			intensity  = 1.0f;
+		f32			exposure   = 1.0f;
+	};
+
+	struct world_render_snapshot_t
+	{
+		world_render_view_t				  main_view = {};
+		world_render_skybox_t			  skybox	= {};
+		vector_t<world_render_material_t> materials = {};
+		vector_t<world_render_entity_t>	  entities	= {};
+		vector_t<world_draw_t>			  draws		= {};
+
+		inline void reserve(size_t entity_count)
+		{
+			entities.reserve(entity_count);
+		}
 	};
 }

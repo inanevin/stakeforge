@@ -581,6 +581,7 @@ namespace sfg
 		SFG_ASSERT(menu != nullptr);
 
 		_create_asset_popup_command						= 0;
+		_create_folder_popup_pending					= false;
 		_action_menu_pos								= pos;
 		const editor_asset_manager_t&	 asset_manager	= editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 tree			= asset_manager.get_asset_tree();
@@ -612,6 +613,7 @@ namespace sfg
 		SFG_ASSERT(menu != nullptr);
 
 		_create_asset_popup_command				   = 0;
+		_create_folder_popup_pending			   = false;
 		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
 		const bool				   is_asset_node   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
 		const bool				   is_file_node	   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::file;
@@ -1689,6 +1691,44 @@ namespace sfg
 		refresh_folder_rows();
 	}
 
+	void editor_panel_assets_t::open_create_folder_popup()
+	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		editor_input_popup_desc_t desc = {};
+		desc.closed					   = on_create_folder_popup_closed;
+		desc.user_data				   = this;
+		desc.text					   = "folder";
+		desc.placeholder			   = "Folder Name";
+		desc.pos					   = _action_menu_pos;
+		desc.width					   = editor_theme_t::get().item_width;
+		popup->request_input_popup(desc);
+	}
+
+	void editor_panel_assets_t::create_folder(const char* name)
+	{
+		string_t folder_name = name != nullptr ? name : "";
+		if (!editor_directories_t::is_valid_asset_name(folder_name.c_str()))
+			return;
+
+		const string_t parent_path = get_action_menu_target_folder_path();
+		if (parent_path.empty())
+			return;
+
+		string_t folder_path = editor_asset_util_t::normalize_directory(parent_path.c_str());
+		folder_path += folder_name;
+		if (file_system_t::exists(folder_path.c_str()))
+			return;
+
+		if (!file_system_t::create_directory(folder_path.c_str()))
+			return;
+
+		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		refresh_folder_rows();
+	}
+
 	void editor_panel_assets_t::open_create_asset_popup(u16 command)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
@@ -1964,10 +2004,12 @@ namespace sfg
 
 	string_t editor_panel_assets_t::get_action_menu_target_folder_path() const
 	{
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		if (!_selected_folder_node.is_null() && tree.is_valid(_selected_folder_node))
+		const editor_asset_manager_t&	 asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t&		 tree		   = asset_manager.get_asset_tree();
+		const editor_asset_node_handle_t target		   = !_selected_folder_node.is_null() ? _selected_folder_node : _selected_folder_hash == 0 ? asset_manager.get_root_node() : editor_asset_node_handle_t{};
+		if (!target.is_null() && tree.is_valid(target))
 		{
-			const string_t& path = tree.value(_selected_folder_node).full_path;
+			const string_t& path = tree.value(target).full_path;
 			if (!path.empty())
 				return path;
 		}
@@ -2135,6 +2177,7 @@ namespace sfg
 		switch (command)
 		{
 		case assets_action_menu_create_folder:
+			panel._create_folder_popup_pending = true;
 			return;
 		case assets_action_menu_create_animation_state_machine:
 		case assets_action_menu_create_opaque_shader:
@@ -2227,6 +2270,13 @@ namespace sfg
 			return;
 		}
 
+		if (panel._create_folder_popup_pending)
+		{
+			panel._create_folder_popup_pending = false;
+			panel.open_create_folder_popup();
+			return;
+		}
+
 		if (panel._rename_popup_pending)
 		{
 			panel._rename_popup_pending = false;
@@ -2239,6 +2289,11 @@ namespace sfg
 			panel._asset_rename_popup_pending = false;
 			panel.open_asset_rename_popup();
 		}
+	}
+
+	void editor_panel_assets_t::on_create_folder_popup_closed(const char* value, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->create_folder(value);
 	}
 
 	void editor_panel_assets_t::on_create_asset_popup_closed(const char* value, void* user_data)

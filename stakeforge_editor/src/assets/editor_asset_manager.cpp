@@ -131,6 +131,7 @@ namespace sfg
 		register_descriptor({.display_name = "Physical Material", .color = EDITOR_ASSET_COLOR(214.0f, 65.0f, 57.0f), .asset_type = editor_asset_type_e::physical_material});
 		register_descriptor({.display_name = "Prefab", .color = EDITOR_ASSET_COLOR(107.0f, 210.0f, 132.0f), .asset_type = editor_asset_type_e::prefab});
 		register_descriptor({.display_name = "State Machine", .color = EDITOR_ASSET_COLOR(245.0f, 118.0f, 182.0f), .asset_type = editor_asset_type_e::animation_state_machine});
+		register_descriptor({.extensions = {"hdr"}, .display_name = "HDR Skybox", .color = EDITOR_ASSET_COLOR(87.0f, 175.0f, 142.0f), .asset_type = editor_asset_type_e::hdr_skybox});
 		clear();
 		return true;
 	}
@@ -314,6 +315,9 @@ namespace sfg
 			{.asset_name = "texture_normal", .source_base_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
 			{.asset_name = "texture_emissive", .source_base_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
 		};
+		const default_texture_asset_desc_t default_hdr_skybox_assets[] = {
+			{.asset_name = "qwantani_dusk_2", .source_base_name = "qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
+		};
 		const default_create_asset_desc_t default_created_assets[] = {
 			{.asset_name = "material_gbuffer", .guid = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::gbuffer)},
 			{.asset_name = "material_forward", .guid = DEFAULT_FORWARD_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::forward)},
@@ -338,6 +342,14 @@ namespace sfg
 				continue;
 
 			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::texture, .allow_overwrite = true});
+		}
+
+		for (const default_texture_asset_desc_t& desc : default_hdr_skybox_assets)
+		{
+			if (is_default_asset_ready(desc.guid, editor_asset_type_e::hdr_skybox, 0))
+				continue;
+
+			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::hdr_skybox, .allow_overwrite = true});
 		}
 
 		for (const default_create_asset_desc_t& desc : default_created_assets)

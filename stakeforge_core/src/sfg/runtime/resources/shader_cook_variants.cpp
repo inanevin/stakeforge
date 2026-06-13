@@ -270,6 +270,27 @@ namespace sfg
 		return true;
 	}
 
+	bool shader_cook_variants_t::cook_post_combiner_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.push_back({});
+		if (!add_compile_variant_vs_ps(out_compiles.back(), source, {}, include_paths))
+			return false;
+
+		shader_desc_t desc						  = {};
+		desc.topo								  = topology::triangle_list;
+		desc.cull								  = cull_mode::none;
+		desc.front								  = front_face::ccw;
+		desc.fill								  = fill_mode::solid;
+		desc.poly_mode							  = polygon_mode::fill;
+		desc.samples							  = 1;
+		desc.depth_stencil_desc.attachment_format = format_e::undefined;
+		desc.depth_stencil_desc.flags			  = 0;
+		add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_none());
+
+		out_psos.push_back({.desc = desc, .variant_flags = 0, .compile_variant_index = 0});
+		return true;
+	}
+
 	bool shader_cook_variants_t::cook_editor_ui_default(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
 		return cook_editor_ui_with_blend(source, include_paths, blend_attachments_t::get_alpha_blend(), out_compiles, out_psos);

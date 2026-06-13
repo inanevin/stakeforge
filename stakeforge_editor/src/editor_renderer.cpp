@@ -336,6 +336,7 @@ namespace sfg
 				.view_index	 = 0,
 			};
 
+			BEGIN_DEBUG_EVENT((&backend), cmd, "editor_swapchain");
 			backend.cmd_begin_render_pass_swapchain(cmd,
 													{
 														.color_attachments		= &attachment,
@@ -349,6 +350,7 @@ namespace sfg
 				t.ui_renderer->render(cmd, *t.ui, _frame_index, t.size);
 
 			backend.cmd_end_render_pass(cmd, {});
+			END_DEBUG_EVENT((&backend), cmd);
 
 			barrier = {
 				.from_states = resource_state_render_target,

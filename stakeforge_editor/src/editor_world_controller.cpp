@@ -34,6 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
 
@@ -46,7 +48,7 @@ namespace sfg
 	editor_world_controller_t::world_container_t& editor_world_controller_t::world_container_t::operator=(world_container_t&& other) noexcept
 	{
 		for (u32 i = 0; i < WORLD_SNAPSHOT_SLOT_COUNT; ++i)
-			snapshot_slots[i] = static_cast<world_snapshot_t&&>(other.snapshot_slots[i]);
+			snapshot_slots[i] = static_cast<world_render_snapshot_t&&>(other.snapshot_slots[i]);
 
 		render_context = static_cast<world_render_context_t&&>(other.render_context);
 		snapshot_mailbox.store(other.snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
@@ -169,7 +171,7 @@ namespace sfg
 		const f32 interpolation_alpha = calculate_render_alpha();
 		for (world_container_t& container : _worlds)
 		{
-			const world_snapshot_t& snapshot = acquire_render_snapshot(container);
+			const world_render_snapshot_t& snapshot = acquire_render_snapshot(container);
 			world_rendering_t::render_world(container.render_context, snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 			command_buffers.push_back(container.render_context.get_command_buffer(frame_index));
 		}
@@ -229,8 +231,15 @@ namespace sfg
 		}
 	}
 
-	void editor_world_controller_t::install_default_world(world_handle_t)
+	void editor_world_controller_t::install_default_world(world_handle_t handle)
 	{
+		SFG_ASSERT(_runtime != nullptr);
+
+		world_t& world = _runtime->get_world(handle);
+		install_editor_camera(world);
+
+		const entity_id_t environment = world.create_entity("environment");
+		ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(component_skybox_t::TYPE_ID)->table, environment);
 	}
 
 	void editor_world_controller_t::set_main_world(world_handle_t handle)
@@ -266,7 +275,7 @@ namespace sfg
 		container.producer_slot = static_cast<u8>((prev & WORLD_SNAPSHOT_SLOT_MASK) % WORLD_SNAPSHOT_SLOT_COUNT);
 	}
 
-	const world_snapshot_t& editor_world_controller_t::acquire_render_snapshot(world_container_t& container)
+	const world_render_snapshot_t& editor_world_controller_t::acquire_render_snapshot(world_container_t& container)
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
@@ -296,5 +305,13 @@ namespace sfg
 		if (alpha > 1.0f)
 			return 1.0f;
 		return alpha;
+	}
+
+	void editor_world_controller_t::install_editor_camera(world_t& world)
+	{
+		const entity_id_t	camera_entity = world.create_entity("editor camera");
+		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(component_camera_t::TYPE_ID)->table, camera_entity);
+		camera.priority					  = -1;
+		ecs_t::table_add(world.get_component_table(component_no_serialize_t::TYPE_ID)->table, camera_entity);
 	}
 }

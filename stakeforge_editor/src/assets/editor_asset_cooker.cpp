@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/physical_material_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
+#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <sfg/serialization/compression.hpp>
@@ -93,6 +94,8 @@ namespace sfg
 			return cook_texture_sampler(asset);
 		case editor_asset_type_e::physical_material:
 			return cook_physical_material(asset);
+		case editor_asset_type_e::hdr_skybox:
+			return cook_hdr_skybox(asset);
 		default:
 			SFG_ASSERT(false);
 			return false;
@@ -111,6 +114,7 @@ namespace sfg
 		case editor_asset_type_e::texture:
 		case editor_asset_type_e::texture_sampler:
 		case editor_asset_type_e::physical_material:
+		case editor_asset_type_e::hdr_skybox:
 			return true;
 		default:
 			return false;
@@ -273,5 +277,22 @@ namespace sfg
 		};
 
 		return save_cooked_asset(asset, header, mesh_stream);
+	}
+
+	bool editor_asset_cooker_t::cook_hdr_skybox(const editor_asset_t& asset)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::hdr_skybox);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
+
+		skybox_hdr_cook_config_t config = {};
+		if (!reflection_registry_t::get().deserialize_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &config, asset.cook_options))
+			return false;
+
+		resource_header_t header = {};
+		ostream_t		  stream;
+		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		if (!skybox_hdr_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
+			return false;
+		return save_cooked_asset(asset, header, stream);
 	}
 }

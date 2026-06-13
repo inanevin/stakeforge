@@ -20,6 +20,7 @@ namespace sfg
 		ui_shader,
 		ui_text_shader,
 		deferred_lighting,
+		post_combiner,
 		count,
 	};
 

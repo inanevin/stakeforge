@@ -77,5 +77,6 @@ namespace sfg
 		static bool		   scaffold_texture_sampler_embedded_source(nlohmann::json& out_embedded_source);
 		static bool		   scaffold_shader_source(editor_asset_t& asset, const char* directory, const char* file_name);
 		static bool		   scaffold_texture_source(editor_asset_t& asset, const char* directory, const char* file_name);
+		static bool		   scaffold_hdr_skybox_source(editor_asset_t& asset, const char* directory, const char* file_name);
 	};
 }

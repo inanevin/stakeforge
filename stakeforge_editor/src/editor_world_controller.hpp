@@ -32,11 +32,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
-#include <sfg/runtime/render/world_snapshot.hpp>
+#include <sfg/runtime/render/world_render_snapshot.hpp>
 
 namespace sfg
 {
 	class engine_runtime_t;
+	class world_t;
 
 	class editor_world_controller_t final
 	{
@@ -84,17 +85,18 @@ namespace sfg
 			}
 			world_container_t& operator=(world_container_t&& other) noexcept;
 
-			world_snapshot_t	   snapshot_slots[3] = {};
-			world_render_context_t render_context	 = {};
-			atomic_t<u8>		   snapshot_mailbox	 = {};
-			world_handle_t		   handle			 = {};
-			u8					   producer_slot	 = 0;
-			u8					   consumer_slot	 = 0;
+			world_render_snapshot_t snapshot_slots[3] = {};
+			world_render_context_t	render_context	  = {};
+			atomic_t<u8>			snapshot_mailbox  = {};
+			world_handle_t			handle			  = {};
+			u8						producer_slot	  = 0;
+			u8						consumer_slot	  = 0;
 		};
 
-		void					publish_world_snapshot(world_container_t& container);
-		const world_snapshot_t& acquire_render_snapshot(world_container_t& container);
-		f32						calculate_render_alpha() const;
+		void						   publish_world_snapshot(world_container_t& container);
+		const world_render_snapshot_t& acquire_render_snapshot(world_container_t& container);
+		f32							   calculate_render_alpha() const;
+		void						   install_editor_camera(world_t& world);
 
 		engine_runtime_t*			_runtime = nullptr;
 		vector_t<world_container_t> _worlds;

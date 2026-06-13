@@ -53,5 +53,6 @@ namespace sfg
 		static bool cook_texture(const editor_asset_t& asset);
 		static bool cook_skeleton(const editor_asset_t& asset);
 		static bool cook_mesh(const editor_asset_t& asset);
+		static bool cook_hdr_skybox(const editor_asset_t& asset);
 	};
 }

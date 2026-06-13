@@ -95,6 +95,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/samplers"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/textures"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/sky"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/layout_defines.hlsl"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/layout_defines.hlsl"
@@ -122,6 +123,9 @@ add_custom_command(
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_emissive.sfg_asset"
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_emissive.png"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/textures"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/sky/qwantani_dusk_2.hdr"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/sky"
 )
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)

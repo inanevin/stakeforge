@@ -5,6 +5,7 @@
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -39,7 +40,7 @@ namespace sfg
 		// entity
 		// -----------------------------------------------------------------------------
 
-		entity_id_t create_entity();
+		entity_id_t create_entity(const char* name = nullptr);
 		void		destroy_entity(entity_id_t id);
 		void		attach_to(entity_id_t id, entity_id_t parent);
 		void		detach(entity_id_t id);
@@ -70,16 +71,24 @@ namespace sfg
 		const world_component_table_t* find_component_table(sid_t type_id) const;
 		world_component_table_t*	   find_component_table(sid_t type_id);
 		world_component_table_t*	   get_component_table(sid_t type_id);
+		const char*					   get_text(u32 text_index) const;
 		bool						   is_alive(entity_id_t id) const;
 
 	private:
+		struct world_text_allocation_t
+		{
+			const char* allocated = nullptr;
+		};
+
 		struct engine_components_t
 		{
 			ecs_component_table_t* hierarchy_table	   = nullptr;
 			ecs_component_table_t* transform_table	   = nullptr;
+			ecs_component_table_t* name_table		   = nullptr;
 			ecs_component_table_t* mesh_renderer_table = nullptr;
 			ecs_component_table_t* render_object_table = nullptr;
 			ecs_component_table_t* camera_table		   = nullptr;
+			ecs_component_table_t* skybox_table		   = nullptr;
 			ecs_component_table_t* alive_table		   = nullptr;
 			ecs_component_table_t* disabled_table	   = nullptr;
 			ecs_component_table_t* no_serialize_table  = nullptr;
@@ -93,9 +102,14 @@ namespace sfg
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
+		u32		 allocate_text(const char* text);
+		void	 release_text(u32 text_index);
 
 		vector_t<world_component_table_t> _component_tables;
+		vector_t<world_text_allocation_t> _text_allocations;
+		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
+		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;
 		entity_id_t						  _entity_head = 0;

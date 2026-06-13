@@ -93,6 +93,10 @@ namespace sfg
 			if (!shader_cook_variants_t::cook_deferred_lighting_shader(source, include_paths, compiles, psos))
 				return false;
 			break;
+		case shader_type_e::post_combiner:
+			if (!shader_cook_variants_t::cook_post_combiner_shader(source, include_paths, compiles, psos))
+				return false;
+			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(source, include_paths, compiles, psos))
 				return false;

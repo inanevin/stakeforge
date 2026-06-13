@@ -25,4 +25,4 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "world_snapshot.hpp"
+#include "world_render_snapshot.hpp"

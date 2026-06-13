@@ -82,6 +82,23 @@ namespace sfg
 			});
 		}
 
+		void register_component_name_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "text_index", .type = reflected_value_type_e::u32, .offset = offsetof(component_name_t, text_index), .size = sizeof(u32)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_name",
+				.category  = "component",
+				.type_id   = component_name_t::TYPE_ID,
+				.size	   = sizeof(component_name_t),
+				.alignment = alignof(component_name_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
 		void register_component_mesh_renderer_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
@@ -137,6 +154,25 @@ namespace sfg
 			});
 		}
 
+		void register_component_skybox_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "skybox_asset", .type = reflected_value_type_e::resource, .offset = offsetof(component_skybox_t, skybox_asset), .size = sizeof(resource_handle_t)},
+				{.name = "intensity", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, intensity), .size = sizeof(f32)},
+				{.name = "exposure", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, exposure), .size = sizeof(f32)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_skybox",
+				.category  = "component",
+				.type_id   = component_skybox_t::TYPE_ID,
+				.size	   = sizeof(component_skybox_t),
+				.alignment = alignof(component_skybox_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
 		void register_component_disabled_reflection()
 		{
 			register_type_if_missing({
@@ -178,9 +214,11 @@ namespace sfg
 	{
 		register_component_hierarchy_reflection();
 		register_component_transform_reflection();
+		register_component_name_reflection();
 		register_component_mesh_renderer_reflection();
 		register_component_render_object_reflection();
 		register_component_camera_reflection();
+		register_component_skybox_reflection();
 		register_component_alive_reflection();
 		register_component_disabled_reflection();
 		register_component_no_serialize_reflection();

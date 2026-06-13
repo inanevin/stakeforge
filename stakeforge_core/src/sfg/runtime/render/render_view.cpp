@@ -26,18 +26,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "render_view.hpp"
-#include "world_view.hpp"
+#include "world_render_view.hpp"
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2u16.hpp>
 
 namespace sfg
 {
-	void render_view_t::calculate(const world_view_t& world_view, const vec2u16_t& resolution, f32 interpolation_alpha)
+	void render_view_t::calculate(const world_render_view_t& world_view, const vec2u16_t& resolution, f32 interpolation_alpha)
 	{
 		const vec3f_t p	  = vec3f_t::lerp(world_view.prev_pos, world_view.pos, interpolation_alpha);
 		const quat_t  rot = quat_t::slerp(world_view.prev_rot, world_view.rot, interpolation_alpha);
 
 		view		  = mat4x4_t::view(rot, p);
+		inv_view	  = view.inverse();
 		proj		  = mat4x4_t::perspective_reverse_z(world_view.fov_degrees, static_cast<f32>(resolution.x) / static_cast<f32>(resolution.y), world_view.near_plane, world_view.far_plane);
 		view_proj	  = proj * view;
 		frustum		  = frustum_t::extract(view_proj);

@@ -63,6 +63,16 @@ namespace sfg
 		opaque_render_pass_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		opaque_render_pass_data_desc.set_name("world_opaque_render_pass_data");
 
+		resource_desc_t lighting_render_pass_data_desc = {};
+		lighting_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_lighting_gpu_t));
+		lighting_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		lighting_render_pass_data_desc.set_name("world_lighting_render_pass_data");
+
+		resource_desc_t post_process_render_pass_data_desc = {};
+		post_process_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_post_process_gpu_t));
+		post_process_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		post_process_render_pass_data_desc.set_name("world_post_process_render_pass_data");
+
 		resource_desc_t entity_buffer_desc = {};
 		entity_buffer_desc.size			   = static_cast<u32>(sizeof(gpu_entity_t) * WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
 		entity_buffer_desc.structure_size  = static_cast<u32>(sizeof(gpu_entity_t));
@@ -82,28 +92,39 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_emissive.is_null());
+			SFG_ASSERT(_pfd[i].ao_texture.is_null());
 			SFG_ASSERT(_pfd[i].gfx0_done_semaphore.is_null());
 			SFG_ASSERT(_pfd[i].opaque_render_pass_data.is_null());
+			SFG_ASSERT(_pfd[i].lighting_render_pass_data.is_null());
+			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 
-			_pfd[i].cmd_gfx0				= backend.create_command_buffer({
-							   .type	   = command_type::graphics,
-							   .debug_name = "world_gfx0",
-			   });
-			_pfd[i].cmd_gfx1				= backend.create_command_buffer({
-							   .type	   = command_type::graphics,
-							   .debug_name = "world_gfx1",
-			   });
-			_pfd[i].gfx0_done_semaphore		= backend.create_semaphore();
-			_pfd[i].opaque_render_pass_data = backend.create_resource(opaque_render_pass_data_desc);
-			_pfd[i].entity_buffer			= backend.create_resource(entity_buffer_desc);
+			_pfd[i].cmd_gfx0					  = backend.create_command_buffer({
+									 .type		 = command_type::graphics,
+									 .debug_name = "world_gfx0",
+			 });
+			_pfd[i].cmd_gfx1					  = backend.create_command_buffer({
+									 .type		 = command_type::graphics,
+									 .debug_name = "world_gfx1",
+			 });
+			_pfd[i].gfx0_done_semaphore			  = backend.create_semaphore();
+			_pfd[i].opaque_render_pass_data		  = backend.create_resource(opaque_render_pass_data_desc);
+			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
+			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
+			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
 			backend.map_resource(_pfd[i].opaque_render_pass_data, _pfd[i].mapped_opaque_render_pass_data);
+			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
+			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
-			_pfd[i].opaque_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
-			_pfd[i].entity_buffer_index			  = backend.get_resource_gpu_index(_pfd[i].entity_buffer);
+			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
+			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
+			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
+			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
 		}
 		const shader_internals_t* sh = resource_manager_t::get().find_internals<shader_internals_t>("engine/shaders/world/deferred_lighting.hlsl"_hs);
 		_shaders.lighting			 = sh->psos[0];
+		sh							 = resource_manager_t::get().find_internals<shader_internals_t>("engine/shaders/world/post_combiner.hlsl"_hs);
+		_shaders.post_combiner		 = sh->psos[0];
 
 		create_texture(size);
 	}
@@ -120,22 +141,32 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].cmd_gfx1.is_null());
 			SFG_ASSERT(!_pfd[i].gfx0_done_semaphore.is_null());
 			SFG_ASSERT(!_pfd[i].opaque_render_pass_data.is_null());
+			SFG_ASSERT(!_pfd[i].lighting_render_pass_data.is_null());
+			SFG_ASSERT(!_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].entity_buffer.is_null());
 			backend.destroy_resource(_pfd[i].opaque_render_pass_data);
+			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
+			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx0);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx1);
 			backend.destroy_semaphore(_pfd[i].gfx0_done_semaphore);
-			_pfd[i].cmd_gfx0					   = {};
-			_pfd[i].cmd_gfx1					   = {};
-			_pfd[i].gfx0_done_semaphore			   = {};
-			_pfd[i].gfx0_done_value				   = 0;
-			_pfd[i].opaque_render_pass_data		   = {};
-			_pfd[i].entity_buffer				   = {};
-			_pfd[i].mapped_opaque_render_pass_data = nullptr;
-			_pfd[i].mapped_entity_buffer		   = nullptr;
-			_pfd[i].opaque_render_pass_data_index  = NULL_GPU_INDEX;
-			_pfd[i].entity_buffer_index			   = NULL_GPU_INDEX;
+			_pfd[i].cmd_gfx0							 = {};
+			_pfd[i].cmd_gfx1							 = {};
+			_pfd[i].gfx0_done_semaphore					 = {};
+			_pfd[i].gfx0_done_value						 = 0;
+			_pfd[i].opaque_render_pass_data				 = {};
+			_pfd[i].lighting_render_pass_data			 = {};
+			_pfd[i].post_process_render_pass_data		 = {};
+			_pfd[i].entity_buffer						 = {};
+			_pfd[i].mapped_opaque_render_pass_data		 = nullptr;
+			_pfd[i].mapped_lighting_render_pass_data	 = nullptr;
+			_pfd[i].mapped_post_process_render_pass_data = nullptr;
+			_pfd[i].mapped_entity_buffer				 = nullptr;
+			_pfd[i].opaque_render_pass_data_index		 = NULL_GPU_INDEX;
+			_pfd[i].lighting_render_pass_data_index		 = NULL_GPU_INDEX;
+			_pfd[i].post_process_render_pass_data_index	 = NULL_GPU_INDEX;
+			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;
 		}
 	}
 
@@ -213,6 +244,12 @@ namespace sfg
 		return _pfd[frame_index].gbuffer_emissive;
 	}
 
+	gfx_texture_handle world_render_context_t::get_ao_texture(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].ao_texture;
+	}
+
 	gfx_semaphore_handle world_render_context_t::get_gfx0_done_semaphore(u8 frame_index) const
 	{
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
@@ -231,10 +268,28 @@ namespace sfg
 		return _pfd[frame_index].post_process_texture_index;
 	}
 
+	gpu_index_t world_render_context_t::get_lighting_texture_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].lighting_texture_index;
+	}
+
 	gpu_index_t world_render_context_t::get_opaque_render_pass_data_index(u8 frame_index) const
 	{
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 		return _pfd[frame_index].opaque_render_pass_data_index;
+	}
+
+	gpu_index_t world_render_context_t::get_lighting_render_pass_data_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].lighting_render_pass_data_index;
+	}
+
+	gpu_index_t world_render_context_t::get_post_process_render_pass_data_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].post_process_render_pass_data_index;
 	}
 
 	gpu_index_t world_render_context_t::get_entity_buffer_index(u8 frame_index) const
@@ -243,10 +298,68 @@ namespace sfg
 		return _pfd[frame_index].entity_buffer_index;
 	}
 
+	gpu_index_t world_render_context_t::get_gbuffer_albedo_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].gbuffer_albedo_index;
+	}
+
+	gpu_index_t world_render_context_t::get_gbuffer_normal_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].gbuffer_normal_index;
+	}
+
+	gpu_index_t world_render_context_t::get_gbuffer_orm_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].gbuffer_orm_index;
+	}
+
+	gpu_index_t world_render_context_t::get_gbuffer_emissive_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].gbuffer_emissive_index;
+	}
+
+	gpu_index_t world_render_context_t::get_depth_texture_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].depth_texture_index;
+	}
+
+	gpu_index_t world_render_context_t::get_ao_texture_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].ao_texture_index;
+	}
+
+	gfx_shader_handle world_render_context_t::get_lighting_shader() const
+	{
+		return _shaders.lighting;
+	}
+
+	gfx_shader_handle world_render_context_t::get_post_combiner_shader() const
+	{
+		return _shaders.post_combiner;
+	}
+
 	u8* world_render_context_t::get_mapped_opaque_render_pass_data(u8 frame_index) const
 	{
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 		return _pfd[frame_index].mapped_opaque_render_pass_data;
+	}
+
+	u8* world_render_context_t::get_mapped_lighting_render_pass_data(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].mapped_lighting_render_pass_data;
+	}
+
+	u8* world_render_context_t::get_mapped_post_process_render_pass_data(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].mapped_post_process_render_pass_data;
 	}
 
 	u8* world_render_context_t::get_mapped_entity_buffer(u8 frame_index) const
@@ -263,7 +376,7 @@ namespace sfg
 	void world_render_context_t::create_texture(vec2u16_t size)
 	{
 		texture_desc_t lighting_desc = {};
-		lighting_desc.texture_format = format_e::r8g8b8a8_unorm;
+		lighting_desc.texture_format = format_e::r16g16b16a16_sfloat;
 		lighting_desc.size			 = size;
 		lighting_desc.flags			 = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		lighting_desc.view_count	 = 2;
@@ -322,6 +435,16 @@ namespace sfg
 		gbuffer_emissive_desc.views[1]		 = {.type = view_type::sampled};
 		gbuffer_emissive_desc.set_name("gbuffer_emissive");
 
+		texture_desc_t ao_desc	= {};
+		ao_desc.texture_format	= format_e::r8_unorm;
+		ao_desc.size			= size;
+		ao_desc.flags			= texture_flags::tf_sampled | texture_flags::tf_gpu_write | texture_flags::tf_is_2d;
+		ao_desc.view_count		= 2;
+		ao_desc.views[0]		= {.type = view_type::sampled};
+		ao_desc.views[1]		= {.type = view_type::gpu_write};
+		ao_desc.clear_values[0] = 1.0f;
+		ao_desc.set_name("world_ao");
+
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -332,6 +455,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_emissive.is_null());
+			SFG_ASSERT(_pfd[i].ao_texture.is_null());
 
 			_pfd[i].lighting_texture		   = backend.create_texture(lighting_desc);
 			_pfd[i].post_process_texture	   = backend.create_texture(post_process_desc);
@@ -340,6 +464,7 @@ namespace sfg
 			_pfd[i].gbuffer_normal			   = backend.create_texture(gbuffer_normal_desc);
 			_pfd[i].gbuffer_orm				   = backend.create_texture(gbuffer_orm_desc);
 			_pfd[i].gbuffer_emissive		   = backend.create_texture(gbuffer_emissive_desc);
+			_pfd[i].ao_texture				   = backend.create_texture(ao_desc);
 			_pfd[i].lighting_texture_index	   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
 			_pfd[i].post_process_texture_index = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
 			_pfd[i].depth_texture_index		   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
@@ -347,6 +472,7 @@ namespace sfg
 			_pfd[i].gbuffer_normal_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
 			_pfd[i].gbuffer_orm_index		   = backend.get_texture_gpu_index(_pfd[i].gbuffer_orm, 1);
 			_pfd[i].gbuffer_emissive_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
+			_pfd[i].ao_texture_index		   = backend.get_texture_gpu_index(_pfd[i].ao_texture, 0);
 		}
 		_size = size;
 	}
@@ -363,6 +489,7 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].gbuffer_normal.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_orm.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_emissive.is_null());
+			SFG_ASSERT(!_pfd[i].ao_texture.is_null());
 
 			backend.destroy_texture(_pfd[i].lighting_texture);
 			backend.destroy_texture(_pfd[i].post_process_texture);
@@ -371,6 +498,7 @@ namespace sfg
 			backend.destroy_texture(_pfd[i].gbuffer_normal);
 			backend.destroy_texture(_pfd[i].gbuffer_orm);
 			backend.destroy_texture(_pfd[i].gbuffer_emissive);
+			backend.destroy_texture(_pfd[i].ao_texture);
 			_pfd[i].lighting_texture		   = {};
 			_pfd[i].post_process_texture	   = {};
 			_pfd[i].depth_texture			   = {};
@@ -378,6 +506,7 @@ namespace sfg
 			_pfd[i].gbuffer_normal			   = {};
 			_pfd[i].gbuffer_orm				   = {};
 			_pfd[i].gbuffer_emissive		   = {};
+			_pfd[i].ao_texture				   = {};
 			_pfd[i].lighting_texture_index	   = NULL_GPU_INDEX;
 			_pfd[i].post_process_texture_index = NULL_GPU_INDEX;
 			_pfd[i].depth_texture_index		   = NULL_GPU_INDEX;
@@ -385,6 +514,7 @@ namespace sfg
 			_pfd[i].gbuffer_normal_index	   = NULL_GPU_INDEX;
 			_pfd[i].gbuffer_orm_index		   = NULL_GPU_INDEX;
 			_pfd[i].gbuffer_emissive_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_index		   = NULL_GPU_INDEX;
 		}
 		_size = vec2u16_t::zero;
 	}
