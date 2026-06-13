@@ -24,6 +24,7 @@ namespace sfg
 			{.name = "post_process_shader", .display_name = "Post Process Shader", .value = static_cast<i64>(shader_type_e::post_process_shader)},
 			{.name = "ui_shader", .display_name = "UI Shader", .value = static_cast<i64>(shader_type_e::ui_shader)},
 			{.name = "ui_text_shader", .display_name = "UI Text Shader", .value = static_cast<i64>(shader_type_e::ui_text_shader)},
+			{.name = "deferred_lighting", .display_name = "Deferred Lighting", .value = static_cast<i64>(shader_type_e::deferred_lighting)},
 		};
 	}
 

@@ -28,7 +28,7 @@
 //  OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#include "../layout_defines.hlsl"
+#include "layout_defines.hlsl"
 #include "packing_utils.hlsl"
 #include "entity.hlsl"
 #include "normal.hlsl"

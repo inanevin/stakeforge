@@ -167,7 +167,6 @@ namespace sfg
 		command_buffers.reserve(_worlds.size());
 
 		const f32 interpolation_alpha = calculate_render_alpha();
-		SFG_TRACE("alpha {0}", interpolation_alpha);
 		for (world_container_t& container : _worlds)
 		{
 			const world_snapshot_t& snapshot = acquire_render_snapshot(container);

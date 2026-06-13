@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader_cook_variants.hpp"
+#include "shader_types.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/blend_attachments.hpp>
 #include <sfg/gfx/common/vertex_inputs.hpp>
@@ -26,17 +27,28 @@ namespace sfg
 			return true;
 		}
 
-		bool add_compile_variant_vs_ps(cook_compile_variant_t& cv, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& include_paths)
+		bool add_compile_variant_vs_ps(cook_compile_variant_t& cv, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& include_paths, bool compile_ps = true)
 		{
 			cv.stages.push_back({});
 			if (!compile_stage(static_cast<u8>(shader_stage_e::vertex), source, defines, include_paths, "VSMain", cv.stages.back()))
 				return false;
 
-			cv.stages.push_back({});
-			if (!compile_stage(static_cast<u8>(shader_stage_e::fragment), source, defines, include_paths, "PSMain", cv.stages.back()))
-				return false;
+			if (compile_ps)
+			{
+				cv.stages.push_back({});
+				if (!compile_stage(static_cast<u8>(shader_stage_e::fragment), source, defines, include_paths, "PSMain", cv.stages.back()))
+					return false;
+			}
 
 			return true;
+		}
+
+		void add_attachment(shader_desc_t& desc, format_e format, const color_blend_attachment_t& blend)
+		{
+			desc.add_attachment({
+				.format			  = format,
+				.blend_attachment = blend,
+			});
 		}
 
 		bool cook_editor_ui_with_blend(const string_t& source, const vector_t<string_t>& include_paths, const color_blend_attachment_t& blend, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
@@ -96,11 +108,125 @@ namespace sfg
 			out_psos.push_back({.desc = desc, .variant_flags = 0, .compile_variant_index = 0});
 			return true;
 		}
+
+		bool add_compile_variant(vector_t<cook_compile_variant_t>& out_compiles, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& include_paths, bool compile_ps)
+		{
+			out_compiles.push_back({});
+			if (!add_compile_variant_vs_ps(out_compiles.back(), source, defines, include_paths, compile_ps))
+				return false;
+			return true;
+		}
+
+		void add_gbuffer_pso(vector_t<cook_pso_variant_t>& out_psos, u8 compile_variant_index, u32 variant_flags)
+		{
+			const bitmask_t<u32> flags = variant_flags;
+			shader_desc_t		 desc  = {};
+			desc.topo				   = topology::triangle_list;
+			desc.cull				   = flags.is_set(svf_double_sided) ? cull_mode::none : cull_mode::back;
+			desc.front				   = front_face::ccw;
+			desc.fill				   = fill_mode::solid;
+			desc.poly_mode			   = polygon_mode::fill;
+			desc.samples			   = 1;
+
+			if (flags.is_set(svf_id_write))
+			{
+				add_attachment(desc, format_e::r32_uint, blend_attachments_t::get_none());
+			}
+			else
+			{
+				add_attachment(desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_none());
+				add_attachment(desc, format_e::r10g0b10a2_unorm, blend_attachments_t::get_none());
+				add_attachment(desc, format_e::r8g8b8a8_unorm, blend_attachments_t::get_none());
+				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_none());
+			}
+
+			if (flags.is_set(svf_skinned))
+				vertex_inputs_t::get_pos_normal_tangent_uv_skinned(desc);
+			else
+				vertex_inputs_t::get_pos_normal_tangent_uv(desc);
+
+			bitmask_t<u8> depth_flags = dsf_depth_test;
+			depth_flags.set(dsf_depth_write, flags.is_set(svf_z_prepass));
+			desc.depth_stencil_desc = {
+				.attachment_format = format_e::d32_sfloat,
+				.depth_compare	   = flags.is_set(svf_shadow_rendering) ? compare_op::lequal : compare_op::gequal,
+				.flags			   = depth_flags,
+			};
+
+			if (flags.is_set(svf_shadow_rendering))
+			{
+				desc.depth_bias_slope	 = 2.0f;
+				desc.depth_bias_constant = 0.0f;
+				desc.depth_bias_clamp	 = 0.0f;
+			}
+
+			out_psos.push_back({.desc = desc, .variant_flags = variant_flags, .compile_variant_index = compile_variant_index});
+		}
 	}
 
 	bool shader_cook_variants_t::cook_opaque_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
-		return cook_shader_with_blend(source, include_paths, blend_attachments_t::get_none(), dsf_depth_write | dsf_depth_test, true, out_compiles, out_psos);
+		out_compiles.reserve(12);
+		out_psos.reserve(32);
+
+		if (!add_compile_variant(out_compiles, source, {}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SKINNING"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_ALPHA_CUTOFF"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_ZPREPASS"}, include_paths, false))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SKINNING", "USE_ALPHA_CUTOFF"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SKINNING", "USE_ZPREPASS"}, include_paths, false))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_ALPHA_CUTOFF", "USE_ZPREPASS"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SKINNING", "USE_ALPHA_CUTOFF", "USE_ZPREPASS"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID", "USE_ALPHA_CUTOFF"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID", "USE_ALPHA_CUTOFF", "USE_SKINNING"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID", "USE_SKINNING"}, include_paths, true))
+			return false;
+
+		add_gbuffer_pso(out_psos, 0, svf_none);
+		add_gbuffer_pso(out_psos, 1, svf_skinned);
+		add_gbuffer_pso(out_psos, 2, svf_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 3, svf_z_prepass);
+		add_gbuffer_pso(out_psos, 3, svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 4, svf_skinned | svf_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 5, svf_skinned | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 5, svf_skinned | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 6, svf_alpha_cutoff | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 6, svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 7, svf_skinned | svf_alpha_cutoff | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 7, svf_skinned | svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 0, svf_double_sided);
+		add_gbuffer_pso(out_psos, 1, svf_double_sided | svf_skinned);
+		add_gbuffer_pso(out_psos, 2, svf_double_sided | svf_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 3, svf_double_sided | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 3, svf_double_sided | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 4, svf_double_sided | svf_skinned | svf_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 5, svf_double_sided | svf_skinned | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 5, svf_double_sided | svf_skinned | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 6, svf_double_sided | svf_alpha_cutoff | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 6, svf_double_sided | svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 7, svf_double_sided | svf_skinned | svf_alpha_cutoff | svf_z_prepass);
+		add_gbuffer_pso(out_psos, 7, svf_double_sided | svf_skinned | svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
+		add_gbuffer_pso(out_psos, 8, svf_id_write);
+		add_gbuffer_pso(out_psos, 9, svf_id_write | svf_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 9, svf_id_write | svf_alpha_cutoff | svf_double_sided);
+		add_gbuffer_pso(out_psos, 10, svf_id_write | svf_alpha_cutoff | svf_skinned);
+		add_gbuffer_pso(out_psos, 10, svf_id_write | svf_alpha_cutoff | svf_double_sided | svf_skinned);
+		add_gbuffer_pso(out_psos, 8, svf_id_write | svf_double_sided);
+		add_gbuffer_pso(out_psos, 11, svf_id_write | svf_double_sided | svf_skinned);
+		add_gbuffer_pso(out_psos, 11, svf_id_write | svf_skinned);
+		return true;
 	}
 
 	bool shader_cook_variants_t::cook_transparent_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
@@ -121,6 +247,27 @@ namespace sfg
 	bool shader_cook_variants_t::cook_ui_text_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
 		return cook_editor_ui_with_blend(source, include_paths, blend_attachments_t::get_alpha_blend(), out_compiles, out_psos);
+	}
+
+	bool shader_cook_variants_t::cook_deferred_lighting_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.push_back({});
+		if (!add_compile_variant_vs_ps(out_compiles.back(), source, {}, include_paths))
+			return false;
+
+		shader_desc_t desc						  = {};
+		desc.topo								  = topology::triangle_list;
+		desc.cull								  = cull_mode::none;
+		desc.front								  = front_face::ccw;
+		desc.fill								  = fill_mode::solid;
+		desc.poly_mode							  = polygon_mode::fill;
+		desc.samples							  = 1;
+		desc.depth_stencil_desc.attachment_format = format_e::undefined;
+		desc.depth_stencil_desc.flags			  = 0;
+		add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_none());
+
+		out_psos.push_back({.desc = desc, .variant_flags = 0, .compile_variant_index = 0});
+		return true;
 	}
 
 	bool shader_cook_variants_t::cook_editor_ui_default(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)

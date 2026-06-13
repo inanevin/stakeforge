@@ -1,3 +1,13 @@
 {
-    "resources": []
+    "resources": [
+        {
+            "name": "deferred_lighting",
+            "path": "engine/world/deferred_lighting.hlsl",
+            "type": "shader",
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": "deferred_lighting"
+            }
+        }
+    ]
 }
