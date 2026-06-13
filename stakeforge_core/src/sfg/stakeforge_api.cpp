@@ -40,24 +40,6 @@ sfg_api_result_t sfg_engine_uninit(void)
 	return sfg_api_result_success;
 }
 
-sfg_api_result_t sfg_engine_simulate(f32 delta_time)
-{
-	if (g_engine == nullptr)
-		return sfg_api_result_engine_not_initialized;
-
-	g_engine->simulate(delta_time);
-	return sfg_api_result_success;
-}
-
-sfg_api_result_t sfg_engine_render(void)
-{
-	if (g_engine == nullptr)
-		return sfg_api_result_engine_not_initialized;
-
-	g_engine->render();
-	return sfg_api_result_success;
-}
-
 sfg_api_result_t sfg_world_create(sfg::world_handle_t* out_world)
 {
 	if (g_engine == nullptr)

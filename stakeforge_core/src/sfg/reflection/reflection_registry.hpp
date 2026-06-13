@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
@@ -59,7 +59,7 @@ namespace sfg
 		enum32,
 		object,
 		vector,
-		static_vector,
+		inplace_vector,
 		i8,
 	};
 
@@ -286,58 +286,58 @@ namespace sfg
 		};
 	}
 
-	template <typename T, int N> static_vector_t<T, N>& get_reflected_static_vector_field(void* object, const reflected_field_desc_t& field)
+	template <typename T, int N> inplace_vector_t<T, N>& get_reflected_inplace_vector_field(void* object, const reflected_field_desc_t& field)
 	{
-		return *static_cast<static_vector_t<T, N>*>(get_reflected_field_data_ptr(object, field));
+		return *static_cast<inplace_vector_t<T, N>*>(get_reflected_field_data_ptr(object, field));
 	}
 
-	template <typename T, int N> const static_vector_t<T, N>& get_reflected_static_vector_field(const void* object, const reflected_field_desc_t& field)
+	template <typename T, int N> const inplace_vector_t<T, N>& get_reflected_inplace_vector_field(const void* object, const reflected_field_desc_t& field)
 	{
-		return *static_cast<const static_vector_t<T, N>*>(get_reflected_field_data_ptr(object, field));
+		return *static_cast<const inplace_vector_t<T, N>*>(get_reflected_field_data_ptr(object, field));
 	}
 
-	template <typename T, int N> u32 reflected_static_vector_get_count(const void* object, const reflected_field_desc_t& field)
+	template <typename T, int N> u32 reflected_inplace_vector_get_count(const void* object, const reflected_field_desc_t& field)
 	{
-		return static_cast<u32>(get_reflected_static_vector_field<T, N>(object, field).size());
+		return static_cast<u32>(get_reflected_inplace_vector_field<T, N>(object, field).size());
 	}
 
-	template <typename T, int N> void* reflected_static_vector_get_item(void* object, const reflected_field_desc_t& field, u32 index)
+	template <typename T, int N> void* reflected_inplace_vector_get_item(void* object, const reflected_field_desc_t& field, u32 index)
 	{
-		static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		inplace_vector_t<T, N>& values = get_reflected_inplace_vector_field<T, N>(object, field);
 		return values.data() + index;
 	}
 
-	template <typename T, int N> const void* reflected_static_vector_get_const_item(const void* object, const reflected_field_desc_t& field, u32 index)
+	template <typename T, int N> const void* reflected_inplace_vector_get_const_item(const void* object, const reflected_field_desc_t& field, u32 index)
 	{
-		const static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		const inplace_vector_t<T, N>& values = get_reflected_inplace_vector_field<T, N>(object, field);
 		return values.data() + index;
 	}
 
-	template <typename T, int N> void reflected_static_vector_clear(void* object, const reflected_field_desc_t& field)
+	template <typename T, int N> void reflected_inplace_vector_clear(void* object, const reflected_field_desc_t& field)
 	{
-		get_reflected_static_vector_field<T, N>(object, field).clear();
+		get_reflected_inplace_vector_field<T, N>(object, field).clear();
 	}
 
-	template <typename T, int N> bool reflected_static_vector_resize(void* object, const reflected_field_desc_t& field, u32 size)
+	template <typename T, int N> bool reflected_inplace_vector_resize(void* object, const reflected_field_desc_t& field, u32 size)
 	{
 		if (size > N)
 			return false;
-		get_reflected_static_vector_field<T, N>(object, field).resize(size);
+		get_reflected_inplace_vector_field<T, N>(object, field).resize(size);
 		return true;
 	}
 
-	template <typename T, int N> bool reflected_static_vector_add(void* object, const reflected_field_desc_t& field)
+	template <typename T, int N> bool reflected_inplace_vector_add(void* object, const reflected_field_desc_t& field)
 	{
-		static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		inplace_vector_t<T, N>& values = get_reflected_inplace_vector_field<T, N>(object, field);
 		if (values.full())
 			return false;
 		values.emplace_back();
 		return true;
 	}
 
-	template <typename T, int N> bool reflected_static_vector_remove(void* object, const reflected_field_desc_t& field, u32 index)
+	template <typename T, int N> bool reflected_inplace_vector_remove(void* object, const reflected_field_desc_t& field, u32 index)
 	{
-		static_vector_t<T, N>& values = get_reflected_static_vector_field<T, N>(object, field);
+		inplace_vector_t<T, N>& values = get_reflected_inplace_vector_field<T, N>(object, field);
 		if (index >= values.size())
 			return false;
 		for (size_t i = index; i + 1 < values.size(); ++i)
@@ -346,16 +346,16 @@ namespace sfg
 		return true;
 	}
 
-	template <typename T, int N> reflected_container_ops_t reflected_static_vector_ops()
+	template <typename T, int N> reflected_container_ops_t reflected_inplace_vector_ops()
 	{
 		return {
-			.get_count		= reflected_static_vector_get_count<T, N>,
-			.get_item		= reflected_static_vector_get_item<T, N>,
-			.get_const_item = reflected_static_vector_get_const_item<T, N>,
-			.clear			= reflected_static_vector_clear<T, N>,
-			.resize			= reflected_static_vector_resize<T, N>,
-			.add			= reflected_static_vector_add<T, N>,
-			.remove			= reflected_static_vector_remove<T, N>,
+			.get_count		= reflected_inplace_vector_get_count<T, N>,
+			.get_item		= reflected_inplace_vector_get_item<T, N>,
+			.get_const_item = reflected_inplace_vector_get_const_item<T, N>,
+			.clear			= reflected_inplace_vector_clear<T, N>,
+			.resize			= reflected_inplace_vector_resize<T, N>,
+			.add			= reflected_inplace_vector_add<T, N>,
+			.remove			= reflected_inplace_vector_remove<T, N>,
 		};
 	}
 }

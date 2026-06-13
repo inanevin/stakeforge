@@ -380,7 +380,7 @@ namespace sfg
 
 		bool is_vector_field(const reflected_field_desc_t& field)
 		{
-			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::static_vector;
+			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector;
 		}
 
 		sid_t get_object_type_id(const reflected_field_desc_t& field)
@@ -448,37 +448,37 @@ namespace sfg
 			return *static_cast<const vector_t<T>*>(get_reflected_field_ptr(object, field));
 		}
 
-		template <typename T> size_t get_static_vector_head_offset(const reflected_field_desc_t& field)
+		template <typename T> size_t get_inplace_vector_head_offset(const reflected_field_desc_t& field)
 		{
 			const size_t data_size = sizeof(T) * field.capacity;
 			const size_t alignment = alignof(size_t);
 			return (data_size + alignment - 1) & ~(alignment - 1);
 		}
 
-		template <typename T> T* get_reflected_static_vector_data(void* object, const reflected_field_desc_t& field)
+		template <typename T> T* get_reflected_inplace_vector_data(void* object, const reflected_field_desc_t& field)
 		{
 			return std::launder(reinterpret_cast<T*>(get_reflected_field_ptr(object, field)));
 		}
 
-		template <typename T> const T* get_reflected_static_vector_data(const void* object, const reflected_field_desc_t& field)
+		template <typename T> const T* get_reflected_inplace_vector_data(const void* object, const reflected_field_desc_t& field)
 		{
 			return std::launder(reinterpret_cast<const T*>(get_reflected_field_ptr(object, field)));
 		}
 
-		template <typename T> size_t& get_reflected_static_vector_size(void* object, const reflected_field_desc_t& field)
+		template <typename T> size_t& get_reflected_inplace_vector_size(void* object, const reflected_field_desc_t& field)
 		{
-			return *reinterpret_cast<size_t*>(static_cast<u8*>(get_reflected_field_ptr(object, field)) + get_static_vector_head_offset<T>(field));
+			return *reinterpret_cast<size_t*>(static_cast<u8*>(get_reflected_field_ptr(object, field)) + get_inplace_vector_head_offset<T>(field));
 		}
 
-		template <typename T> const size_t& get_reflected_static_vector_size(const void* object, const reflected_field_desc_t& field)
+		template <typename T> const size_t& get_reflected_inplace_vector_size(const void* object, const reflected_field_desc_t& field)
 		{
-			return *reinterpret_cast<const size_t*>(static_cast<const u8*>(get_reflected_field_ptr(object, field)) + get_static_vector_head_offset<T>(field));
+			return *reinterpret_cast<const size_t*>(static_cast<const u8*>(get_reflected_field_ptr(object, field)) + get_inplace_vector_head_offset<T>(field));
 		}
 
-		template <typename T> void clear_reflected_static_vector(void* object, const reflected_field_desc_t& field)
+		template <typename T> void clear_reflected_inplace_vector(void* object, const reflected_field_desc_t& field)
 		{
-			T*		data = get_reflected_static_vector_data<T>(object, field);
-			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			T*		data = get_reflected_inplace_vector_data<T>(object, field);
+			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
 			while (size > 0)
 			{
 				--size;
@@ -486,20 +486,20 @@ namespace sfg
 			}
 		}
 
-		template <typename T> void add_reflected_static_vector_item(void* object, const reflected_field_desc_t& field)
+		template <typename T> void add_reflected_inplace_vector_item(void* object, const reflected_field_desc_t& field)
 		{
-			T*		data = get_reflected_static_vector_data<T>(object, field);
-			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			T*		data = get_reflected_inplace_vector_data<T>(object, field);
+			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
 			if (size == field.capacity)
 				return;
 			std::construct_at(data + size);
 			++size;
 		}
 
-		template <typename T> void remove_reflected_static_vector_item(void* object, const reflected_field_desc_t& field, u32 index)
+		template <typename T> void remove_reflected_inplace_vector_item(void* object, const reflected_field_desc_t& field, u32 index)
 		{
-			T*		data = get_reflected_static_vector_data<T>(object, field);
-			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			T*		data = get_reflected_inplace_vector_data<T>(object, field);
+			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
 			SFG_ASSERT(index < size);
 			for (size_t i = index; i < size - 1; ++i)
 				data[i] = std::move(data[i + 1]);
@@ -509,39 +509,39 @@ namespace sfg
 
 		template <typename T> T* get_reflected_container_data(void* object, const reflected_field_desc_t& field)
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				return get_reflected_static_vector_data<T>(object, field);
+			if (field.type == reflected_value_type_e::inplace_vector)
+				return get_reflected_inplace_vector_data<T>(object, field);
 			return get_reflected_vector<T>(object, field).data();
 		}
 
 		template <typename T> u32 get_reflected_container_item_count(void* object, const reflected_field_desc_t& field)
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				return static_cast<u32>(get_reflected_static_vector_size<T>(object, field));
+			if (field.type == reflected_value_type_e::inplace_vector)
+				return static_cast<u32>(get_reflected_inplace_vector_size<T>(object, field));
 			return static_cast<u32>(get_reflected_vector<T>(object, field).size());
 		}
 
 		template <typename T> void clear_reflected_container(void* object, const reflected_field_desc_t& field)
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				clear_reflected_static_vector<T>(object, field);
+			if (field.type == reflected_value_type_e::inplace_vector)
+				clear_reflected_inplace_vector<T>(object, field);
 			else
 				get_reflected_vector<T>(object, field).resize(0);
 		}
 
 		template <typename T> void add_reflected_container_item(void* object, const reflected_field_desc_t& field)
 		{
-			if (field.type == reflected_value_type_e::static_vector)
-				add_reflected_static_vector_item<T>(object, field);
+			if (field.type == reflected_value_type_e::inplace_vector)
+				add_reflected_inplace_vector_item<T>(object, field);
 			else
 				get_reflected_vector<T>(object, field).push_back(T{});
 		}
 
 		template <typename T> void remove_reflected_container_item(void* object, const reflected_field_desc_t& field, u32 index)
 		{
-			if (field.type == reflected_value_type_e::static_vector)
+			if (field.type == reflected_value_type_e::inplace_vector)
 			{
-				remove_reflected_static_vector_item<T>(object, field, index);
+				remove_reflected_inplace_vector_item<T>(object, field, index);
 			}
 			else
 			{

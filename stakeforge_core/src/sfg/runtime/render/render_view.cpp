@@ -25,28 +25,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
-
-#include <sfg/common/hashing.hpp>
-#include <sfg/math/mat4x3.hpp>
+#include "render_view.hpp"
+#include "world_view.hpp"
 #include <sfg/math/quat.hpp>
-#include <sfg/math/vec3f.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/math/vec2u16.hpp>
 
 namespace sfg
 {
-	struct component_system_transform_t
+	void render_view_t::calculate(const world_view_t& world_view, const vec2u16_t& resolution, f32 interpolation_alpha)
 	{
-		static inline constexpr sid_t TYPE_ID = "component_system_transform"_hs;
+		const vec3f_t p	  = vec3f_t::lerp(world_view.prev_pos, world_view.pos, interpolation_alpha);
+		const quat_t  rot = quat_t::slerp(world_view.prev_rot, world_view.rot, interpolation_alpha);
 
-		mat4x3_t prev_abs_mat		= mat4x3_t::identity;
-		mat4x3_t abs_mat			= mat4x3_t::identity;
-		quat_t	 prev_abs_rot		= quat_t::identity;
-		quat_t	 abs_rot			= quat_t::identity;
-		vec3f_t	 prev_abs_pos		= vec3f_t::zero;
-		vec3f_t	 prev_abs_scale		= vec3f_t::one;
-		vec3f_t	 abs_pos			= vec3f_t::zero;
-		vec3f_t	 abs_scale			= vec3f_t::one;
-		bool	 snap_interpolation = false;
-	};
+		view		  = mat4x4_t::view(rot, p);
+		proj		  = mat4x4_t::perspective_reverse_z(world_view.fov_degrees, static_cast<f32>(resolution.x) / static_cast<f32>(resolution.y), world_view.near_plane, world_view.far_plane);
+		view_proj	  = proj * view;
+		frustum		  = frustum_t::extract(view_proj);
+		inv_proj	  = proj.inverse();
+		inv_view_proj = view_proj.inverse();
+		pos			  = p;
+		near_plane	  = world_view.near_plane;
+		far_plane	  = world_view.far_plane;
+		fov_rads	  = world_view.fov_degrees * DEG_2_RAD;
+	}
 }

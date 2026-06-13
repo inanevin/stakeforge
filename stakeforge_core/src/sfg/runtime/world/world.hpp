@@ -51,6 +51,8 @@ namespace sfg
 		void		   set_entity_pos_local(entity_id_t id, const vec3f_t& pos);
 		void		   set_entity_rot_local(entity_id_t id, const quat_t& rot);
 		void		   set_entity_scale_local(entity_id_t id, const vec3f_t& scale);
+		void		   teleport_entity(entity_id_t id, const vec3f_t& pos, const quat_t& rot, const vec3f_t& scale);
+		void		   mark_entity_teleported(entity_id_t id);
 		const vec3f_t& get_entity_pos_local(entity_id_t id) const;
 		const quat_t&  get_entity_rot_local(entity_id_t id) const;
 		const vec3f_t& get_entity_scale_local(entity_id_t id) const;
@@ -58,7 +60,7 @@ namespace sfg
 		quat_t		   abs_rot_to_local(entity_id_t id, const quat_t& rot);
 		vec3f_t		   abs_scale_to_local(entity_id_t id, const vec3f_t& scale);
 		mat4x3_t	   calculate_transform_direct(entity_id_t id);
-		void		   update_world_transforms();
+		void		   update_world_transforms(bool advance_interpolation = true);
 
 		// -----------------------------------------------------------------------------
 		// tables
@@ -76,9 +78,11 @@ namespace sfg
 			ecs_component_table_t* hierarchy_table	   = nullptr;
 			ecs_component_table_t* transform_table	   = nullptr;
 			ecs_component_table_t* mesh_renderer_table = nullptr;
+			ecs_component_table_t* render_object_table = nullptr;
 			ecs_component_table_t* camera_table		   = nullptr;
 			ecs_component_table_t* alive_table		   = nullptr;
 			ecs_component_table_t* disabled_table	   = nullptr;
+			ecs_component_table_t* no_serialize_table  = nullptr;
 		};
 
 		struct system_components_t
@@ -86,7 +90,8 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 		};
 
-		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat);
+		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
+		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
 
 		vector_t<world_component_table_t> _component_tables;

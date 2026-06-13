@@ -3,7 +3,7 @@
 #include "shader.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -83,7 +83,7 @@ namespace sfg
 			const shader_runtime_compile_variant_t& cv = data->compile_variants[pv.compile_variant_index];
 
 			SFG_ASSERT(cv.stage_count <= MAX_STAGE_PER_VARIANT);
-			static_vector_t<shader_blob_t, MAX_STAGE_PER_VARIANT> blobs;
+			inplace_vector_t<shader_blob_t, MAX_STAGE_PER_VARIANT> blobs;
 			for (u8 j = 0; j < cv.stage_count; ++j)
 			{
 				const shader_runtime_stage_entry_t& s = cv.stages[j];

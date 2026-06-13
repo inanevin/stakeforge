@@ -60,6 +60,10 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].command_buffer.is_null());
 			SFG_ASSERT(_pfd[i].world_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_emissive.is_null());
 
 			_pfd[i].command_buffer = gfx_backend::get().create_command_buffer({
 				.type		= command_type::graphics,
@@ -132,24 +136,75 @@ namespace sfg
 		color_desc.set_name("world_texture");
 
 		texture_desc_t depth_desc		= {};
-		depth_desc.texture_format		= format_e::d32_sfloat;
+		depth_desc.texture_format		= format_e::r32_sfloat;
 		depth_desc.depth_stencil_format = format_e::d32_sfloat;
 		depth_desc.size					= size;
-		depth_desc.flags				= texture_flags::tf_depth_texture | texture_flags::tf_is_2d;
-		depth_desc.view_count			= 1;
+		depth_desc.flags				= texture_flags::tf_depth_texture | texture_flags::tf_typeless | texture_flags::tf_is_2d | texture_flags::tf_sampled;
+		depth_desc.view_count			= 3;
 		depth_desc.views[0]				= {.type = view_type::depth_stencil};
+		depth_desc.views[1]				= {.type = view_type::depth_stencil, .read_only = 1};
+		depth_desc.views[2]				= {.type = view_type::sampled};
 		depth_desc.clear_values[0]		= 0.0f;
 		depth_desc.set_name("world_depth");
+
+		texture_desc_t gbuffer_albedo_desc = {};
+		gbuffer_albedo_desc.texture_format = format_e::r8g8b8a8_srgb;
+		gbuffer_albedo_desc.size		   = size;
+		gbuffer_albedo_desc.flags		   = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
+		gbuffer_albedo_desc.view_count	   = 2;
+		gbuffer_albedo_desc.views[0]	   = {.type = view_type::render_target};
+		gbuffer_albedo_desc.views[1]	   = {.type = view_type::sampled};
+		gbuffer_albedo_desc.set_name("gbuffer_albedo");
+
+		texture_desc_t gbuffer_normal_desc = {};
+		gbuffer_normal_desc.texture_format = format_e::r10g0b10a2_unorm;
+		gbuffer_normal_desc.size		   = size;
+		gbuffer_normal_desc.flags		   = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
+		gbuffer_normal_desc.view_count	   = 2;
+		gbuffer_normal_desc.views[0]	   = {.type = view_type::render_target};
+		gbuffer_normal_desc.views[1]	   = {.type = view_type::sampled};
+		gbuffer_normal_desc.set_name("gbuffer_normal");
+
+		texture_desc_t gbuffer_orm_desc = {};
+		gbuffer_orm_desc.texture_format = format_e::r8g8b8a8_unorm;
+		gbuffer_orm_desc.size			= size;
+		gbuffer_orm_desc.flags			= texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
+		gbuffer_orm_desc.view_count		= 2;
+		gbuffer_orm_desc.views[0]		= {.type = view_type::render_target};
+		gbuffer_orm_desc.views[1]		= {.type = view_type::sampled};
+		gbuffer_orm_desc.set_name("gbuffer_orm");
+
+		texture_desc_t gbuffer_emissive_desc = {};
+		gbuffer_emissive_desc.texture_format = format_e::r16g16b16a16_sfloat;
+		gbuffer_emissive_desc.size			 = size;
+		gbuffer_emissive_desc.flags			 = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
+		gbuffer_emissive_desc.view_count	 = 2;
+		gbuffer_emissive_desc.views[0]		 = {.type = view_type::render_target};
+		gbuffer_emissive_desc.views[1]		 = {.type = view_type::sampled};
+		gbuffer_emissive_desc.set_name("gbuffer_emissive");
 
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(_pfd[i].world_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
+			SFG_ASSERT(_pfd[i].gbuffer_emissive.is_null());
 
-			_pfd[i].world_texture		= backend.create_texture(color_desc);
-			_pfd[i].depth_texture		= backend.create_texture(depth_desc);
-			_pfd[i].world_texture_index = backend.get_texture_gpu_index(_pfd[i].world_texture, 0);
+			_pfd[i].world_texture		   = backend.create_texture(color_desc);
+			_pfd[i].depth_texture		   = backend.create_texture(depth_desc);
+			_pfd[i].gbuffer_albedo		   = backend.create_texture(gbuffer_albedo_desc);
+			_pfd[i].gbuffer_normal		   = backend.create_texture(gbuffer_normal_desc);
+			_pfd[i].gbuffer_orm			   = backend.create_texture(gbuffer_orm_desc);
+			_pfd[i].gbuffer_emissive	   = backend.create_texture(gbuffer_emissive_desc);
+			_pfd[i].world_texture_index	   = backend.get_texture_gpu_index(_pfd[i].world_texture, 0);
+			_pfd[i].depth_texture_index	   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
+			_pfd[i].gbuffer_albedo_index   = backend.get_texture_gpu_index(_pfd[i].gbuffer_albedo, 1);
+			_pfd[i].gbuffer_normal_index   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
+			_pfd[i].gbuffer_orm_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_orm, 1);
+			_pfd[i].gbuffer_emissive_index = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
 		}
 		_size = size;
 	}
@@ -161,12 +216,29 @@ namespace sfg
 		{
 			SFG_ASSERT(!_pfd[i].world_texture.is_null());
 			SFG_ASSERT(!_pfd[i].depth_texture.is_null());
+			SFG_ASSERT(!_pfd[i].gbuffer_albedo.is_null());
+			SFG_ASSERT(!_pfd[i].gbuffer_normal.is_null());
+			SFG_ASSERT(!_pfd[i].gbuffer_orm.is_null());
+			SFG_ASSERT(!_pfd[i].gbuffer_emissive.is_null());
 
 			backend.destroy_texture(_pfd[i].world_texture);
 			backend.destroy_texture(_pfd[i].depth_texture);
-			_pfd[i].world_texture		= {};
-			_pfd[i].depth_texture		= {};
-			_pfd[i].world_texture_index = NULL_GPU_INDEX;
+			backend.destroy_texture(_pfd[i].gbuffer_albedo);
+			backend.destroy_texture(_pfd[i].gbuffer_normal);
+			backend.destroy_texture(_pfd[i].gbuffer_orm);
+			backend.destroy_texture(_pfd[i].gbuffer_emissive);
+			_pfd[i].world_texture		   = {};
+			_pfd[i].depth_texture		   = {};
+			_pfd[i].gbuffer_albedo		   = {};
+			_pfd[i].gbuffer_normal		   = {};
+			_pfd[i].gbuffer_orm			   = {};
+			_pfd[i].gbuffer_emissive	   = {};
+			_pfd[i].world_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].depth_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_albedo_index   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_normal_index   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_orm_index	   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_emissive_index = NULL_GPU_INDEX;
 		}
 		_size = vec2u16_t::zero;
 	}

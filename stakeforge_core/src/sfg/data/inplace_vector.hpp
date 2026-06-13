@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	template <typename T, int N> class static_vector_t
+	template <typename T, int N> class inplace_vector_t
 	{
 		static_assert(N >= 0);
 
@@ -45,17 +45,17 @@ namespace sfg
 
 		static constexpr size_type capacity = N;
 
-		static_vector_t() : _head(0)
+		inplace_vector_t() : _head(0)
 		{
 		}
 
-		static_vector_t(value_type v) : _head(0)
+		inplace_vector_t(value_type v) : _head(0)
 		{
 			for (int i = 0; i < capacity; i++)
 				emplace_back(v);
 		}
 
-		static_vector_t(std::initializer_list<T> ilist)
+		inplace_vector_t(std::initializer_list<T> ilist)
 		{
 			_head = 0;
 			SFG_ASSERT(ilist.size() <= N && "initializer list too big");
@@ -63,13 +63,13 @@ namespace sfg
 				emplace_back(e);
 		}
 
-		static_vector_t(const static_vector_t& other) : _head(0)
+		inplace_vector_t(const inplace_vector_t& other) : _head(0)
 		{
 			for (const T& value : other)
 				emplace_back(value);
 		}
 
-		static_vector_t& operator=(const static_vector_t& other)
+		inplace_vector_t& operator=(const inplace_vector_t& other)
 		{
 			if (this == &other)
 				return *this;
@@ -80,14 +80,14 @@ namespace sfg
 			return *this;
 		}
 
-		static_vector_t(static_vector_t&& other) noexcept(std::is_nothrow_move_constructible_v<T>) : _head(0)
+		inplace_vector_t(inplace_vector_t&& other) noexcept(std::is_nothrow_move_constructible_v<T>) : _head(0)
 		{
 			for (T& value : other)
 				emplace_back(std::move(value));
 			other.clear();
 		}
 
-		static_vector_t& operator=(static_vector_t&& other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>)
+		inplace_vector_t& operator=(inplace_vector_t&& other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>)
 		{
 			if (this == &other)
 				return *this;
@@ -99,7 +99,7 @@ namespace sfg
 			return *this;
 		}
 
-		~static_vector_t()
+		~inplace_vector_t()
 		{
 			clear();
 		}

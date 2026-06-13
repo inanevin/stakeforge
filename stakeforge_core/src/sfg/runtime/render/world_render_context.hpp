@@ -65,10 +65,19 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
-			gpu_index_t				  world_texture_index = NULL_GPU_INDEX;
-			gfx_command_buffer_handle command_buffer	  = {};
-			gfx_texture_handle		  world_texture		  = {};
-			gfx_texture_handle		  depth_texture		  = {};
+			gfx_command_buffer_handle command_buffer		 = {};
+			gfx_texture_handle		  world_texture			 = {};
+			gfx_texture_handle		  depth_texture			 = {};
+			gfx_texture_handle		  gbuffer_albedo		 = {};
+			gfx_texture_handle		  gbuffer_normal		 = {};
+			gfx_texture_handle		  gbuffer_orm			 = {};
+			gfx_texture_handle		  gbuffer_emissive		 = {};
+			gpu_index_t				  world_texture_index	 = NULL_GPU_INDEX;
+			gpu_index_t				  depth_texture_index	 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_albedo_index	 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_normal_index	 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_orm_index		 = NULL_GPU_INDEX;
+			gpu_index_t				  gbuffer_emissive_index = NULL_GPU_INDEX;
 		};
 
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};

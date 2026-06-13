@@ -100,6 +100,23 @@ namespace sfg
 			});
 		}
 
+		void register_component_render_object_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "render_id", .type = reflected_value_type_e::u32, .offset = offsetof(component_render_object_t, render_id), .size = sizeof(u32)},
+			};
+
+			register_type_if_missing({
+				.fields	   = {.data = fields, .size = std::size(fields)},
+				.name	   = "component_render_object",
+				.category  = "component",
+				.type_id   = component_render_object_t::TYPE_ID,
+				.size	   = sizeof(component_render_object_t),
+				.alignment = alignof(component_render_object_t),
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
 		void register_component_camera_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
@@ -132,6 +149,18 @@ namespace sfg
 			});
 		}
 
+		void register_component_no_serialize_reflection()
+		{
+			register_type_if_missing({
+				.name	   = "component_no_serialize",
+				.category  = "component",
+				.type_id   = component_no_serialize_t::TYPE_ID,
+				.size	   = 0,
+				.alignment = 1,
+				.flags	   = reflected_type_flags_component,
+			});
+		}
+
 		void register_component_alive_reflection()
 		{
 			register_type_if_missing({
@@ -150,8 +179,10 @@ namespace sfg
 		register_component_hierarchy_reflection();
 		register_component_transform_reflection();
 		register_component_mesh_renderer_reflection();
+		register_component_render_object_reflection();
 		register_component_camera_reflection();
 		register_component_alive_reflection();
 		register_component_disabled_reflection();
+		register_component_no_serialize_reflection();
 	}
 }

@@ -22,8 +22,6 @@ namespace sfg
 
 		bool init();
 		void uninit();
-		void simulate(f32 delta_time);
-		void render();
 
 		world_handle_t create_world();
 		bool		   destroy_world(world_handle_t handle);

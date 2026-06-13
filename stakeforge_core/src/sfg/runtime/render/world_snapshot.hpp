@@ -41,5 +41,10 @@ namespace sfg
 		vector_t<world_material_t> materials = {};
 		vector_t<world_entity_t>   entities	 = {};
 		vector_t<world_draw_t>	   draws	 = {};
+
+		inline void reserve(size_t entity_count)
+		{
+			entities.reserve(entity_count);
+		}
 	};
 }

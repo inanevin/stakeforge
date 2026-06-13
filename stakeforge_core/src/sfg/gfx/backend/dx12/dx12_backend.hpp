@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/descriptor_handle.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/bitmask.hpp>

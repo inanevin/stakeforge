@@ -364,37 +364,37 @@ namespace sfg
 			return *static_cast<const vector_t<T>*>(get_reflected_field_ptr(object, field));
 		}
 
-		template <typename T> size_t get_static_vector_head_offset(const reflected_field_desc_t& field)
+		template <typename T> size_t get_inplace_vector_head_offset(const reflected_field_desc_t& field)
 		{
 			const size_t data_size = sizeof(T) * field.capacity;
 			const size_t alignment = alignof(size_t);
 			return (data_size + alignment - 1) & ~(alignment - 1);
 		}
 
-		template <typename T> T* get_reflected_static_vector_data(void* object, const reflected_field_desc_t& field)
+		template <typename T> T* get_reflected_inplace_vector_data(void* object, const reflected_field_desc_t& field)
 		{
 			return std::launder(reinterpret_cast<T*>(get_reflected_field_ptr(object, field)));
 		}
 
-		template <typename T> const T* get_reflected_static_vector_data(const void* object, const reflected_field_desc_t& field)
+		template <typename T> const T* get_reflected_inplace_vector_data(const void* object, const reflected_field_desc_t& field)
 		{
 			return std::launder(reinterpret_cast<const T*>(get_reflected_field_ptr(object, field)));
 		}
 
-		template <typename T> size_t& get_reflected_static_vector_size(void* object, const reflected_field_desc_t& field)
+		template <typename T> size_t& get_reflected_inplace_vector_size(void* object, const reflected_field_desc_t& field)
 		{
-			return *reinterpret_cast<size_t*>(static_cast<u8*>(get_reflected_field_ptr(object, field)) + get_static_vector_head_offset<T>(field));
+			return *reinterpret_cast<size_t*>(static_cast<u8*>(get_reflected_field_ptr(object, field)) + get_inplace_vector_head_offset<T>(field));
 		}
 
-		template <typename T> const size_t& get_reflected_static_vector_size(const void* object, const reflected_field_desc_t& field)
+		template <typename T> const size_t& get_reflected_inplace_vector_size(const void* object, const reflected_field_desc_t& field)
 		{
-			return *reinterpret_cast<const size_t*>(static_cast<const u8*>(get_reflected_field_ptr(object, field)) + get_static_vector_head_offset<T>(field));
+			return *reinterpret_cast<const size_t*>(static_cast<const u8*>(get_reflected_field_ptr(object, field)) + get_inplace_vector_head_offset<T>(field));
 		}
 
-		template <typename T> void clear_reflected_static_vector(void* object, const reflected_field_desc_t& field)
+		template <typename T> void clear_reflected_inplace_vector(void* object, const reflected_field_desc_t& field)
 		{
-			T*		data = get_reflected_static_vector_data<T>(object, field);
-			size_t& size = get_reflected_static_vector_size<T>(object, field);
+			T*		data = get_reflected_inplace_vector_data<T>(object, field);
+			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
 			while (size > 0)
 			{
 				--size;
@@ -402,11 +402,11 @@ namespace sfg
 			}
 		}
 
-		template <typename T> void resize_reflected_static_vector(void* object, const reflected_field_desc_t& field, u32 size)
+		template <typename T> void resize_reflected_inplace_vector(void* object, const reflected_field_desc_t& field, u32 size)
 		{
-			clear_reflected_static_vector<T>(object, field);
-			T*		data = get_reflected_static_vector_data<T>(object, field);
-			size_t& head = get_reflected_static_vector_size<T>(object, field);
+			clear_reflected_inplace_vector<T>(object, field);
+			T*		data = get_reflected_inplace_vector_data<T>(object, field);
+			size_t& head = get_reflected_inplace_vector_size<T>(object, field);
 			for (u32 i = 0; i < size; ++i)
 			{
 				std::construct_at(data + i);
@@ -623,12 +623,12 @@ namespace sfg
 			return true;
 		}
 
-		template <typename T> bool reflected_static_vector_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& out)
+		template <typename T> bool reflected_inplace_vector_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& out)
 		{
 			const reflected_field_desc_t item_field = reflected_container_item_field(field);
 			out										= nlohmann::json::array();
-			const T*	 data						= get_reflected_static_vector_data<T>(object, field);
-			const size_t size						= get_reflected_static_vector_size<T>(object, field);
+			const T*	 data						= get_reflected_inplace_vector_data<T>(object, field);
+			const size_t size						= get_reflected_inplace_vector_size<T>(object, field);
 			for (size_t i = 0; i < size; ++i)
 			{
 				nlohmann::json item = {};
@@ -658,7 +658,7 @@ namespace sfg
 			return true;
 		}
 
-		template <typename T> bool reflected_static_vector_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
+		template <typename T> bool reflected_inplace_vector_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
 		{
 			if (!j.is_array())
 				return true;
@@ -666,8 +666,8 @@ namespace sfg
 				return false;
 
 			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			resize_reflected_static_vector<T>(object, field, static_cast<u32>(j.size()));
-			T* data = get_reflected_static_vector_data<T>(object, field);
+			resize_reflected_inplace_vector<T>(object, field, static_cast<u32>(j.size()));
+			T* data = get_reflected_inplace_vector_data<T>(object, field);
 			for (u32 i = 0; i < j.size(); ++i)
 			{
 				if (!reflected_field_from_json(data + i, item_field, j.at(i)))
@@ -689,11 +689,11 @@ namespace sfg
 			return true;
 		}
 
-		template <typename T> bool reflected_static_vector_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		template <typename T> bool reflected_inplace_vector_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
 			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			const T*					 data		= get_reflected_static_vector_data<T>(object, field);
-			const size_t				 size		= get_reflected_static_vector_size<T>(object, field);
+			const T*					 data		= get_reflected_inplace_vector_data<T>(object, field);
+			const size_t				 size		= get_reflected_inplace_vector_size<T>(object, field);
 			stream << static_cast<u32>(size);
 			for (size_t i = 0; i < size; ++i)
 			{
@@ -718,7 +718,7 @@ namespace sfg
 			return true;
 		}
 
-		template <typename T> bool reflected_static_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		template <typename T> bool reflected_inplace_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
 			u32 size = 0;
 			stream >> size;
@@ -726,8 +726,8 @@ namespace sfg
 				return false;
 
 			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			resize_reflected_static_vector<T>(object, field, size);
-			T* data = get_reflected_static_vector_data<T>(object, field);
+			resize_reflected_inplace_vector<T>(object, field, size);
+			T* data = get_reflected_inplace_vector_data<T>(object, field);
 			for (u32 i = 0; i < size; ++i)
 			{
 				if (!reflected_field_from_stream(data + i, item_field, stream))
@@ -855,32 +855,32 @@ namespace sfg
 			}
 		}
 
-		bool reflected_static_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
+		bool reflected_inplace_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
 			case reflected_value_type_e::f32:
-				return reflected_static_vector_to_json<f32>(object, field, j);
+				return reflected_inplace_vector_to_json<f32>(object, field, j);
 			case reflected_value_type_e::i32:
-				return reflected_static_vector_to_json<i32>(object, field, j);
+				return reflected_inplace_vector_to_json<i32>(object, field, j);
 			case reflected_value_type_e::i8:
-				return reflected_static_vector_to_json<i8>(object, field, j);
+				return reflected_inplace_vector_to_json<i8>(object, field, j);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
 			case reflected_value_type_e::enum32:
-				return reflected_static_vector_to_json<u32>(object, field, j);
+				return reflected_inplace_vector_to_json<u32>(object, field, j);
 			case reflected_value_type_e::u8:
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
-				return reflected_static_vector_to_json<u8>(object, field, j);
+				return reflected_inplace_vector_to_json<u8>(object, field, j);
 			case reflected_value_type_e::resource:
-				return reflected_static_vector_to_json<sid_t>(object, field, j);
+				return reflected_inplace_vector_to_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
-				return reflected_static_vector_to_json<string_t>(object, field, j);
+				return reflected_inplace_vector_to_json<string_t>(object, field, j);
 			case reflected_value_type_e::json:
-				return reflected_static_vector_to_json<nlohmann::json>(object, field, j);
+				return reflected_inplace_vector_to_json<nlohmann::json>(object, field, j);
 			case reflected_value_type_e::quat:
-				return reflected_static_vector_to_json<quat_t>(object, field, j);
+				return reflected_inplace_vector_to_json<quat_t>(object, field, j);
 			default:
 				return false;
 			}
@@ -917,32 +917,32 @@ namespace sfg
 			}
 		}
 
-		bool reflected_static_vector_from_json_by_type(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
+		bool reflected_inplace_vector_from_json_by_type(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
 			case reflected_value_type_e::f32:
-				return reflected_static_vector_from_json<f32>(object, field, j);
+				return reflected_inplace_vector_from_json<f32>(object, field, j);
 			case reflected_value_type_e::i32:
-				return reflected_static_vector_from_json<i32>(object, field, j);
+				return reflected_inplace_vector_from_json<i32>(object, field, j);
 			case reflected_value_type_e::i8:
-				return reflected_static_vector_from_json<i8>(object, field, j);
+				return reflected_inplace_vector_from_json<i8>(object, field, j);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
 			case reflected_value_type_e::enum32:
-				return reflected_static_vector_from_json<u32>(object, field, j);
+				return reflected_inplace_vector_from_json<u32>(object, field, j);
 			case reflected_value_type_e::u8:
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
-				return reflected_static_vector_from_json<u8>(object, field, j);
+				return reflected_inplace_vector_from_json<u8>(object, field, j);
 			case reflected_value_type_e::resource:
-				return reflected_static_vector_from_json<sid_t>(object, field, j);
+				return reflected_inplace_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
-				return reflected_static_vector_from_json<string_t>(object, field, j);
+				return reflected_inplace_vector_from_json<string_t>(object, field, j);
 			case reflected_value_type_e::json:
-				return reflected_static_vector_from_json<nlohmann::json>(object, field, j);
+				return reflected_inplace_vector_from_json<nlohmann::json>(object, field, j);
 			case reflected_value_type_e::quat:
-				return reflected_static_vector_from_json<quat_t>(object, field, j);
+				return reflected_inplace_vector_from_json<quat_t>(object, field, j);
 			default:
 				return false;
 			}
@@ -979,32 +979,32 @@ namespace sfg
 			}
 		}
 
-		bool reflected_static_vector_to_stream_by_type(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		bool reflected_inplace_vector_to_stream_by_type(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
 			case reflected_value_type_e::f32:
-				return reflected_static_vector_to_stream<f32>(object, field, stream);
+				return reflected_inplace_vector_to_stream<f32>(object, field, stream);
 			case reflected_value_type_e::i32:
-				return reflected_static_vector_to_stream<i32>(object, field, stream);
+				return reflected_inplace_vector_to_stream<i32>(object, field, stream);
 			case reflected_value_type_e::i8:
-				return reflected_static_vector_to_stream<i8>(object, field, stream);
+				return reflected_inplace_vector_to_stream<i8>(object, field, stream);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
 			case reflected_value_type_e::enum32:
-				return reflected_static_vector_to_stream<u32>(object, field, stream);
+				return reflected_inplace_vector_to_stream<u32>(object, field, stream);
 			case reflected_value_type_e::u8:
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
-				return reflected_static_vector_to_stream<u8>(object, field, stream);
+				return reflected_inplace_vector_to_stream<u8>(object, field, stream);
 			case reflected_value_type_e::resource:
-				return reflected_static_vector_to_stream<sid_t>(object, field, stream);
+				return reflected_inplace_vector_to_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
-				return reflected_static_vector_to_stream<string_t>(object, field, stream);
+				return reflected_inplace_vector_to_stream<string_t>(object, field, stream);
 			case reflected_value_type_e::json:
-				return reflected_static_vector_to_stream<nlohmann::json>(object, field, stream);
+				return reflected_inplace_vector_to_stream<nlohmann::json>(object, field, stream);
 			case reflected_value_type_e::quat:
-				return reflected_static_vector_to_stream<quat_t>(object, field, stream);
+				return reflected_inplace_vector_to_stream<quat_t>(object, field, stream);
 			default:
 				return false;
 			}
@@ -1041,32 +1041,32 @@ namespace sfg
 			}
 		}
 
-		bool reflected_static_vector_from_stream_by_type(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		bool reflected_inplace_vector_from_stream_by_type(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
 			case reflected_value_type_e::f32:
-				return reflected_static_vector_from_stream<f32>(object, field, stream);
+				return reflected_inplace_vector_from_stream<f32>(object, field, stream);
 			case reflected_value_type_e::i32:
-				return reflected_static_vector_from_stream<i32>(object, field, stream);
+				return reflected_inplace_vector_from_stream<i32>(object, field, stream);
 			case reflected_value_type_e::i8:
-				return reflected_static_vector_from_stream<i8>(object, field, stream);
+				return reflected_inplace_vector_from_stream<i8>(object, field, stream);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
 			case reflected_value_type_e::enum32:
-				return reflected_static_vector_from_stream<u32>(object, field, stream);
+				return reflected_inplace_vector_from_stream<u32>(object, field, stream);
 			case reflected_value_type_e::u8:
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
-				return reflected_static_vector_from_stream<u8>(object, field, stream);
+				return reflected_inplace_vector_from_stream<u8>(object, field, stream);
 			case reflected_value_type_e::resource:
-				return reflected_static_vector_from_stream<sid_t>(object, field, stream);
+				return reflected_inplace_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
-				return reflected_static_vector_from_stream<string_t>(object, field, stream);
+				return reflected_inplace_vector_from_stream<string_t>(object, field, stream);
 			case reflected_value_type_e::json:
-				return reflected_static_vector_from_stream<nlohmann::json>(object, field, stream);
+				return reflected_inplace_vector_from_stream<nlohmann::json>(object, field, stream);
 			case reflected_value_type_e::quat:
-				return reflected_static_vector_from_stream<quat_t>(object, field, stream);
+				return reflected_inplace_vector_from_stream<quat_t>(object, field, stream);
 			default:
 				return false;
 			}
@@ -1180,10 +1180,10 @@ namespace sfg
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_to_json(object, field, j);
 				return reflected_vector_to_json_by_type(object, field, j);
-			case reflected_value_type_e::static_vector:
+			case reflected_value_type_e::inplace_vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_to_json(object, field, j);
-				return reflected_static_vector_to_json_by_type(object, field, j);
+				return reflected_inplace_vector_to_json_by_type(object, field, j);
 			default:
 				return false;
 			}
@@ -1260,10 +1260,10 @@ namespace sfg
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_from_json(object, field, j);
 				return reflected_vector_from_json_by_type(object, field, j);
-			case reflected_value_type_e::static_vector:
+			case reflected_value_type_e::inplace_vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_from_json(object, field, j);
-				return reflected_static_vector_from_json_by_type(object, field, j);
+				return reflected_inplace_vector_from_json_by_type(object, field, j);
 			default:
 				return false;
 			}
@@ -1370,10 +1370,10 @@ namespace sfg
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_to_stream(object, field, stream);
 				return reflected_vector_to_stream_by_type(object, field, stream);
-			case reflected_value_type_e::static_vector:
+			case reflected_value_type_e::inplace_vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_to_stream(object, field, stream);
-				return reflected_static_vector_to_stream_by_type(object, field, stream);
+				return reflected_inplace_vector_to_stream_by_type(object, field, stream);
 			default:
 				return false;
 			}
@@ -1457,10 +1457,10 @@ namespace sfg
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_from_stream(object, field, stream);
 				return reflected_vector_from_stream_by_type(object, field, stream);
-			case reflected_value_type_e::static_vector:
+			case reflected_value_type_e::inplace_vector:
 				if (is_reflected_container_ops_valid(field.container_ops))
 					return reflected_container_from_stream(object, field, stream);
-				return reflected_static_vector_from_stream_by_type(object, field, stream);
+				return reflected_inplace_vector_from_stream_by_type(object, field, stream);
 			default:
 				return false;
 			}

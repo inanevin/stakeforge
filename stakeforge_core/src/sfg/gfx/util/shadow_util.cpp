@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void shadow_util_t::get_world_space_ndc(const mat4x4_t& inv_view_proj, static_vector_t<vec4f_t, 8>& out_world_space, vec3f_t& out_center)
+	void shadow_util_t::get_world_space_ndc(const mat4x4_t& inv_view_proj, inplace_vector_t<vec4f_t, 8>& out_world_space, vec3f_t& out_center)
 	{
 		for (u8 x = 0; x < 2; x++)
 		{
@@ -55,7 +55,7 @@ namespace sfg
 		out_center /= static_cast<f32>(out_world_space.size());
 	}
 
-	void shadow_util_t::get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const static_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size)
+	void shadow_util_t::get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const inplace_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size)
 	{
 		{
 

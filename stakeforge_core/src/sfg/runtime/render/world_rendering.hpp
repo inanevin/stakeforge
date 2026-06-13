@@ -38,6 +38,6 @@ namespace sfg
 	class world_rendering_t final
 	{
 	public:
-		static void render_world(const world_render_context_t& ctx, const world_snapshot_t& snapshot, u8 frame_index);
+		static void render_world(const world_render_context_t& ctx, const world_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index);
 	};
 }

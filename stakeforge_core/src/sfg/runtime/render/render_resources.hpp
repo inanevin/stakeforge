@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_queue.hpp>
@@ -112,22 +112,22 @@ namespace sfg
 
 		struct create_shader_request_t
 		{
-			sid_t											  hash			  = 0;
-			resource_type_e									  type			  = resource_type_e::invalid;
-			u32												  user_data		  = 0;
-			shader_desc_t									  desc			  = {};
-			static_vector_t<shader_blob_t, MAX_SHADER_STAGES> blobs			  = {};
-			gfx_bind_layout_handle							  existing_layout = {};
+			sid_t											   hash			   = 0;
+			resource_type_e									   type			   = resource_type_e::invalid;
+			u32												   user_data	   = 0;
+			shader_desc_t									   desc			   = {};
+			inplace_vector_t<shader_blob_t, MAX_SHADER_STAGES> blobs		   = {};
+			gfx_bind_layout_handle							   existing_layout = {};
 		};
 
 		struct texture_upload_request_t
 		{
-			gfx_texture_handle											 texture		   = {};
-			gfx_resource_handle											 staging		   = {};
-			static_vector_t<texture_buffer_t, texture_queue_t::MAX_MIPS> mips			   = {};
-			u32															 target_states	   = 0;
-			u8															 destination_slice = 0;
-			texture_data_ownership_e									 ownership		   = texture_data_ownership_e::none;
+			gfx_texture_handle											  texture			= {};
+			gfx_resource_handle											  staging			= {};
+			inplace_vector_t<texture_buffer_t, texture_queue_t::MAX_MIPS> mips				= {};
+			u32															  target_states		= 0;
+			u8															  destination_slice = 0;
+			texture_data_ownership_e									  ownership			= texture_data_ownership_e::none;
 		};
 
 		struct data_upload_request_t

@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/math/vec4f.hpp>
 
 namespace sfg
@@ -38,7 +38,7 @@ namespace sfg
 
 	namespace shadow_util_t
 	{
-		void get_world_space_ndc(const mat4x4_t& inv_view_proj, static_vector_t<vec4f_t, 8>& out_world_space, vec3f_t& out_center);
-		void get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const static_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size);
+		void get_world_space_ndc(const mat4x4_t& inv_view_proj, inplace_vector_t<vec4f_t, 8>& out_world_space, vec3f_t& out_center);
+		void get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const inplace_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size);
 	}
 }

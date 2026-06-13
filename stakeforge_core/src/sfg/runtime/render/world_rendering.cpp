@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world_rendering.hpp"
+#include "render_view.hpp"
 #include "world_render_context.hpp"
 #include "world_snapshot.hpp"
 #include <sfg/gfx/backend/backend.hpp>
@@ -34,13 +35,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_snapshot_t&, u8 frame_index)
+	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
 		const gfx_command_buffer_handle cmd			  = ctx.get_command_buffer(frame_index);
 		const gfx_texture_handle		color_texture = ctx.get_world_texture(frame_index);
 		const gfx_texture_handle		depth_texture = ctx.get_depth_texture(frame_index);
+		render_view_t					main_view	  = {};
+		main_view.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
 
 		backend.reset_command_buffer(cmd);
 

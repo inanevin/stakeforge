@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
@@ -110,12 +110,12 @@ namespace sfg
 	private:
 		struct entry_t
 		{
-			gfx_texture_handle							texture			  = {};
-			gfx_resource_handle							staging			  = {};
-			static_vector_t<texture_buffer_t, MAX_MIPS> mips			  = {};
-			u32											target_states	  = 0;
-			u8											destination_slice = 0;
-			texture_data_ownership_e					ownership		  = texture_data_ownership_e::none;
+			gfx_texture_handle							 texture		   = {};
+			gfx_resource_handle							 staging		   = {};
+			inplace_vector_t<texture_buffer_t, MAX_MIPS> mips			   = {};
+			u32											 target_states	   = 0;
+			u8											 destination_slice = 0;
+			texture_data_ownership_e					 ownership		   = texture_data_ownership_e::none;
 		};
 
 		struct region_entry_t

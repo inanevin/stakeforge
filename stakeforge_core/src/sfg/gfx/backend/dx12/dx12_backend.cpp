@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dx12_common.hpp"
 
 // data
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/string_util.hpp>
 
 // gfx
@@ -866,8 +866,8 @@ namespace sfg
 
 	void dx12_backend_t::submit_commands(gfx_queue_handle queue_id, const gfx_command_buffer_handle* commands, u8 commands_count)
 	{
-		queue_t&								q = _queues.get(queue_id);
-		static_vector_t<ID3D12CommandList*, 32> lists;
+		queue_t&								 q = _queues.get(queue_id);
+		inplace_vector_t<ID3D12CommandList*, 32> lists;
 		lists.resize(0);
 
 		for (u8 i = 0; i < commands_count; i++)
@@ -2756,7 +2756,7 @@ namespace sfg
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 
-		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		inplace_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 		color_attachments.resize(cmd.color_attachment_count);
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
@@ -2785,9 +2785,9 @@ namespace sfg
 
 	void dx12_backend_t::cmd_begin_render_pass_depth(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_depth_t& cmd)
 	{
-		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
-		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer_t&										  buffer_t = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								  cmd_list = buffer_t.ptr.Get();
+		inplace_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 		color_attachments.resize(cmd.color_attachment_count);
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
@@ -2828,9 +2828,9 @@ namespace sfg
 
 	void dx12_backend_t::cmd_begin_render_pass_depth_read_only(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_depth_t& cmd)
 	{
-		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
-		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer_t&										  buffer_t = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								  cmd_list = buffer_t.ptr.Get();
+		inplace_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 		color_attachments.resize(cmd.color_attachment_count);
 
 		for (u32 i = 0; i < cmd.color_attachment_count; i++)
@@ -2887,9 +2887,9 @@ namespace sfg
 
 	void dx12_backend_t::cmd_begin_render_pass_swapchain(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_swapchain_t& cmd)
 	{
-		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
-		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer_t&										  buffer_t = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								  cmd_list = buffer_t.ptr.Get();
+		inplace_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 
 		color_attachments.resize(cmd.color_attachment_count);
 
@@ -2916,9 +2916,9 @@ namespace sfg
 
 	void dx12_backend_t::cmd_begin_render_pass_swapchain_depth(gfx_command_buffer_handle cmd_id, const command_begin_render_pass_swapchain_depth_t& cmd)
 	{
-		command_buffer_t&										 buffer_t = _command_buffers.get(cmd_id);
-		ID3D12GraphicsCommandList4*								 cmd_list = buffer_t.ptr.Get();
-		static_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
+		command_buffer_t&										  buffer_t = _command_buffers.get(cmd_id);
+		ID3D12GraphicsCommandList4*								  cmd_list = buffer_t.ptr.Get();
+		inplace_vector_t<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> color_attachments;
 
 		color_attachments.resize(cmd.color_attachment_count);
 
@@ -3139,7 +3139,7 @@ namespace sfg
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 
-		static_vector_t<D3D12_SUBRESOURCE_DATA, 16> subresource_data;
+		inplace_vector_t<D3D12_SUBRESOURCE_DATA, 16> subresource_data;
 
 		for (u8 i = 0; i < cmd.mip_levels; i++)
 		{
@@ -3344,7 +3344,7 @@ namespace sfg
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
 
-		static_vector_t<CD3DX12_RESOURCE_BARRIER, 256> barriers;
+		inplace_vector_t<CD3DX12_RESOURCE_BARRIER, 256> barriers;
 
 		for (u16 i = 0; i < cmd.barrier_count; i++)
 		{

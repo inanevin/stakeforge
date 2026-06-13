@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 
@@ -50,19 +50,19 @@ namespace sfg
 
 	struct material_parameter_t
 	{
-		static_vector_t<f32, 4>	  values = {};
+		inplace_vector_t<f32, 4>  values = {};
 		material_parameter_type_e type	 = material_parameter_type_e::f32;
 	};
 
 	struct material_def_t
 	{
-		static_vector_t<resource_handle_t, MATERIAL_MAX_TEXTURES>	   textures			= {};
-		static_vector_t<material_parameter_t, MATERIAL_MAX_PARAMETERS> parameters		= {};
-		resource_handle_t											   shader			= NULL_RESOURCE_HANDLE;
-		resource_handle_t											   sampler			= NULL_RESOURCE_HANDLE;
-		world_pass_flags_e											   pass_flags		= wpf_none;
-		bool														   double_sided		= false;
-		bool														   use_alpha_cutoff = false;
+		inplace_vector_t<resource_handle_t, MATERIAL_MAX_TEXTURES>		textures		 = {};
+		inplace_vector_t<material_parameter_t, MATERIAL_MAX_PARAMETERS> parameters		 = {};
+		resource_handle_t												shader			 = NULL_RESOURCE_HANDLE;
+		resource_handle_t												sampler			 = NULL_RESOURCE_HANDLE;
+		world_pass_flags_e												pass_flags		 = wpf_none;
+		bool															double_sided	 = false;
+		bool															use_alpha_cutoff = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(material_parameter_type_e);

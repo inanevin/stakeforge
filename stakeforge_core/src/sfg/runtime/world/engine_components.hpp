@@ -62,6 +62,13 @@ namespace sfg
 		resource_handle_t material = NULL_RESOURCE_HANDLE;
 	};
 
+	struct component_render_object_t
+	{
+		static inline constexpr sid_t TYPE_ID = "component_render_object"_hs;
+
+		u32 render_id = 0;
+	};
+
 	struct component_camera_t
 	{
 		static inline constexpr sid_t TYPE_ID = "component_camera"_hs;
@@ -80,6 +87,11 @@ namespace sfg
 	struct component_disabled_t
 	{
 		static inline constexpr sid_t TYPE_ID = "component_disabled"_hs;
+	};
+
+	struct component_no_serialize_t
+	{
+		static inline constexpr sid_t TYPE_ID = "component_no_serialize"_hs;
 	};
 
 	struct engine_component_reflection_t

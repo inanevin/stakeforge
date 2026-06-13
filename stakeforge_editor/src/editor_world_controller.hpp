@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/atomic.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
@@ -73,17 +74,35 @@ namespace sfg
 	private:
 		struct world_container_t
 		{
-			world_snapshot_t	   snapshot		  = {};
-			world_render_context_t render_context = {};
-			world_handle_t		   handle		  = {};
+			world_container_t()									   = default;
+			~world_container_t()								   = default;
+			world_container_t(const world_container_t&)			   = delete;
+			world_container_t& operator=(const world_container_t&) = delete;
+			world_container_t(world_container_t&& other) noexcept
+			{
+				*this = static_cast<world_container_t&&>(other);
+			}
+			world_container_t& operator=(world_container_t&& other) noexcept;
+
+			world_snapshot_t	   snapshot_slots[3] = {};
+			world_render_context_t render_context	 = {};
+			atomic_t<u8>		   snapshot_mailbox	 = {};
+			world_handle_t		   handle			 = {};
+			u8					   producer_slot	 = 0;
+			u8					   consumer_slot	 = 0;
 		};
+
+		void					publish_world_snapshot(world_container_t& container);
+		const world_snapshot_t& acquire_render_snapshot(world_container_t& container);
+		f32						calculate_render_alpha() const;
 
 		engine_runtime_t*			_runtime = nullptr;
 		vector_t<world_container_t> _worlds;
 		world_handle_t				_main_world			= {};
 		i64							_previous_time_us	= 0;
 		i64							_accumulator_us		= 0;
-		f32							_alpha				= 0.0f;
+		atomic_t<i64>				_last_fixed_step_us = 0;
+		atomic_t<i64>				_fixed_step_us		= 0;
 		u32							_world_physics_rate = 100;
 	};
 }

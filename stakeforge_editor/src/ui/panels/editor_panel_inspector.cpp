@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
-#include <sfg/data/static_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/color.hpp>
@@ -66,30 +66,30 @@ namespace sfg
 		{
 			static inline constexpr sid_t TYPE_ID = "editor_inspector_dummy_struct"_hs;
 
-			vector_t<string_t>			 dummy_string_vector		= {"Alpha", "Beta", "Gamma"};
-			vector_t<f32>				 dummy_f32_vector			= {1.0f, 2.0f, 3.0f};
-			vector_t<vec3f_t>			 dummy_vec3_vector			= {{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}};
-			vector_t<u32>				 dummy_u32_vector			= {7, 8, 9};
-			vector_t<u8>				 dummy_bool_vector			= {1, 0, 1};
-			static_vector_t<string_t, 4> dummy_static_string_vector = {"North", "East"};
-			static_vector_t<f32, 4>		 dummy_static_f32_vector	= {4.0f, 5.0f};
-			static_vector_t<vec4f_t, 4>	 dummy_static_vec4_vector	= {{1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}};
-			static_vector_t<u32, 4>		 dummy_static_enum_vector	= {0, 2};
-			color_t						 dummy_color				= {0.8f, 0.2f, 0.6f, 1.0f};
-			quat_t						 dummy_quat					= quat_t::identity;
-			char						 dummy_string[64]			= "Stakeforge";
-			vec4f_t						 dummy_vec4					= {1.0f, 2.0f, 3.0f, 4.0f};
-			vec4u_t						 dummy_vec4u				= {1, 2, 3, 4};
-			vec3f_t						 dummy_vec3					= {1.0f, 2.0f, 3.0f};
-			vec3u_t						 dummy_vec3u				= {1, 2, 3};
-			vec2f_t						 dummy_vec2					= {1.0f, 2.0f};
-			vec2u_t						 dummy_vec2u				= {1, 2};
-			f32							 dummy_f32					= 12.5f;
-			u32							 dummy_u32					= 42;
-			i32							 dummy_i32					= -7;
-			dummy_enum_e				 dummy_enum					= dummy_enum_e::second;
-			dummy_enum8_e				 dummy_enum8				= dummy_enum8_e::second;
-			u8							 dummy_u8					= 3;
+			vector_t<string_t>			  dummy_string_vector		  = {"Alpha", "Beta", "Gamma"};
+			vector_t<f32>				  dummy_f32_vector			  = {1.0f, 2.0f, 3.0f};
+			vector_t<vec3f_t>			  dummy_vec3_vector			  = {{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}};
+			vector_t<u32>				  dummy_u32_vector			  = {7, 8, 9};
+			vector_t<u8>				  dummy_bool_vector			  = {1, 0, 1};
+			inplace_vector_t<string_t, 4> dummy_inplace_string_vector = {"North", "East"};
+			inplace_vector_t<f32, 4>	  dummy_inplace_f32_vector	  = {4.0f, 5.0f};
+			inplace_vector_t<vec4f_t, 4>  dummy_inplace_vec4_vector	  = {{1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}};
+			inplace_vector_t<u32, 4>	  dummy_inplace_enum_vector	  = {0, 2};
+			color_t						  dummy_color				  = {0.8f, 0.2f, 0.6f, 1.0f};
+			quat_t						  dummy_quat				  = quat_t::identity;
+			char						  dummy_string[64]			  = "Stakeforge";
+			vec4f_t						  dummy_vec4				  = {1.0f, 2.0f, 3.0f, 4.0f};
+			vec4u_t						  dummy_vec4u				  = {1, 2, 3, 4};
+			vec3f_t						  dummy_vec3				  = {1.0f, 2.0f, 3.0f};
+			vec3u_t						  dummy_vec3u				  = {1, 2, 3};
+			vec2f_t						  dummy_vec2				  = {1.0f, 2.0f};
+			vec2u_t						  dummy_vec2u				  = {1, 2};
+			f32							  dummy_f32					  = 12.5f;
+			u32							  dummy_u32					  = 42;
+			i32							  dummy_i32					  = -7;
+			dummy_enum_e				  dummy_enum				  = dummy_enum_e::second;
+			dummy_enum8_e				  dummy_enum8				  = dummy_enum8_e::second;
+			u8							  dummy_u8					  = 3;
 		};
 
 		void register_dummy_struct_reflection()
@@ -157,37 +157,37 @@ namespace sfg
 				 .container_ops = reflected_vector_ops<u8>(),
 				 .offset		= offsetof(dummy_struct_t, dummy_bool_vector),
 				 .size			= sizeof(vector_t<u8>)},
-				{.name			= "dummy_static_f32_vector",
+				{.name			= "dummy_inplace_f32_vector",
 				 .display_name	= "Static Float Vector",
-				 .type			= reflected_value_type_e::static_vector,
+				 .type			= reflected_value_type_e::inplace_vector,
 				 .sub_type_id	= "f32"_hs,
-				 .container_ops = reflected_static_vector_ops<f32, 4>(),
-				 .offset		= offsetof(dummy_struct_t, dummy_static_f32_vector),
-				 .size			= sizeof(static_vector_t<f32, 4>),
+				 .container_ops = reflected_inplace_vector_ops<f32, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_inplace_f32_vector),
+				 .size			= sizeof(inplace_vector_t<f32, 4>),
 				 .capacity		= 4},
-				{.name			= "dummy_static_string_vector",
+				{.name			= "dummy_inplace_string_vector",
 				 .display_name	= "Static String Vector",
-				 .type			= reflected_value_type_e::static_vector,
+				 .type			= reflected_value_type_e::inplace_vector,
 				 .sub_type_id	= "string"_hs,
-				 .container_ops = reflected_static_vector_ops<string_t, 4>(),
-				 .offset		= offsetof(dummy_struct_t, dummy_static_string_vector),
-				 .size			= sizeof(static_vector_t<string_t, 4>),
+				 .container_ops = reflected_inplace_vector_ops<string_t, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_inplace_string_vector),
+				 .size			= sizeof(inplace_vector_t<string_t, 4>),
 				 .capacity		= 4},
-				{.name			= "dummy_static_vec4_vector",
+				{.name			= "dummy_inplace_vec4_vector",
 				 .display_name	= "Static Vec4 Vector",
-				 .type			= reflected_value_type_e::static_vector,
+				 .type			= reflected_value_type_e::inplace_vector,
 				 .sub_type_id	= type_id_t<vec4f_t>::value,
-				 .container_ops = reflected_static_vector_ops<vec4f_t, 4>(),
-				 .offset		= offsetof(dummy_struct_t, dummy_static_vec4_vector),
-				 .size			= sizeof(static_vector_t<vec4f_t, 4>),
+				 .container_ops = reflected_inplace_vector_ops<vec4f_t, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_inplace_vec4_vector),
+				 .size			= sizeof(inplace_vector_t<vec4f_t, 4>),
 				 .capacity		= 4},
-				{.name			= "dummy_static_enum_vector",
+				{.name			= "dummy_inplace_enum_vector",
 				 .display_name	= "Static Enum Vector",
-				 .type			= reflected_value_type_e::static_vector,
+				 .type			= reflected_value_type_e::inplace_vector,
 				 .sub_type_id	= EDITOR_INSPECTOR_DUMMY_ENUM_TYPE_ID,
-				 .container_ops = reflected_static_vector_ops<u32, 4>(),
-				 .offset		= offsetof(dummy_struct_t, dummy_static_enum_vector),
-				 .size			= sizeof(static_vector_t<u32, 4>),
+				 .container_ops = reflected_inplace_vector_ops<u32, 4>(),
+				 .offset		= offsetof(dummy_struct_t, dummy_inplace_enum_vector),
+				 .size			= sizeof(inplace_vector_t<u32, 4>),
 				 .capacity		= 4},
 			};
 

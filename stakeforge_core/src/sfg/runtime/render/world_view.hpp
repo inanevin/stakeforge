@@ -27,9 +27,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/math/vec3f.hpp>
+#include <sfg/math/quat.hpp>
+
 namespace sfg
 {
 	struct world_view_t
 	{
+		vec3f_t pos			= vec3f_t::zero;
+		quat_t	rot			= quat_t::identity;
+		vec3f_t prev_pos	= vec3f_t::zero;
+		quat_t	prev_rot	= quat_t::identity;
+		f32		near_plane	= 0.0f;
+		f32		far_plane	= 0.0f;
+		f32		fov_degrees = 0.0f;
 	};
 }

@@ -27,9 +27,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/mat4x3.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/math/vec3f.hpp>
+
 namespace sfg
 {
 	struct world_entity_t
 	{
+		mat4x3_t prev_transform = mat4x3_t::identity;
+		mat4x3_t transform		= mat4x3_t::identity;
+		quat_t	 prev_rot		= quat_t::identity;
+		quat_t	 rot			= quat_t::identity;
+		vec3f_t	 prev_pos		= vec3f_t::zero;
+		vec3f_t	 prev_scale		= vec3f_t::one;
+		vec3f_t	 pos			= vec3f_t::zero;
+		vec3f_t	 scale			= vec3f_t::one;
+		u32		 render_id		= 0;
 	};
 }

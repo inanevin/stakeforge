@@ -27,26 +27,28 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/hashing.hpp>
-#include <sfg/math/mat4x3.hpp>
-#include <sfg/math/quat.hpp>
+#include <sfg/math/frustum.hpp>
+#include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec3f.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
-	struct component_system_transform_t
-	{
-		static inline constexpr sid_t TYPE_ID = "component_system_transform"_hs;
+	struct vec2u16_t;
+	struct world_view_t;
 
-		mat4x3_t prev_abs_mat		= mat4x3_t::identity;
-		mat4x3_t abs_mat			= mat4x3_t::identity;
-		quat_t	 prev_abs_rot		= quat_t::identity;
-		quat_t	 abs_rot			= quat_t::identity;
-		vec3f_t	 prev_abs_pos		= vec3f_t::zero;
-		vec3f_t	 prev_abs_scale		= vec3f_t::one;
-		vec3f_t	 abs_pos			= vec3f_t::zero;
-		vec3f_t	 abs_scale			= vec3f_t::one;
-		bool	 snap_interpolation = false;
+	struct render_view_t
+	{
+		frustum_t frustum		= {};
+		mat4x4_t  view			= {};
+		mat4x4_t  proj			= {};
+		mat4x4_t  inv_proj		= {};
+		mat4x4_t  view_proj		= {};
+		mat4x4_t  inv_view_proj = {};
+		vec3f_t	  pos			= vec3f_t::zero;
+		f32		  near_plane	= 0.0f;
+		f32		  far_plane		= 0.0f;
+		f32		  fov_rads		= 0.0f;
+
+		void calculate(const world_view_t& world_view, const vec2u16_t& resolution, f32 interpolation_alpha);
 	};
 }

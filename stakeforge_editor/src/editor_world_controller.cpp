@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -38,12 +39,35 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define WORLD_SNAPSHOT_SLOT_COUNT 3
+#define WORLD_SNAPSHOT_SLOT_MASK  0x3
+#define WORLD_SNAPSHOT_FRESH_FLAG 0x80
+
+	editor_world_controller_t::world_container_t& editor_world_controller_t::world_container_t::operator=(world_container_t&& other) noexcept
+	{
+		for (u32 i = 0; i < WORLD_SNAPSHOT_SLOT_COUNT; ++i)
+			snapshot_slots[i] = static_cast<world_snapshot_t&&>(other.snapshot_slots[i]);
+
+		render_context = static_cast<world_render_context_t&&>(other.render_context);
+		snapshot_mailbox.store(other.snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
+		handle		  = other.handle;
+		producer_slot = other.producer_slot;
+		consumer_slot = other.consumer_slot;
+
+		other.snapshot_mailbox.store(0, std::memory_order_relaxed);
+		other.handle		= {};
+		other.producer_slot = 0;
+		other.consumer_slot = 0;
+		return *this;
+	}
+
 	void editor_world_controller_t::init(engine_runtime_t& runtime)
 	{
 		_runtime		  = &runtime;
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
-		_alpha			  = 0.0f;
+		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
+		_fixed_step_us.store(0, std::memory_order_relaxed);
 	}
 
 	void editor_world_controller_t::uninit()
@@ -52,7 +76,8 @@ namespace sfg
 		_runtime		  = nullptr;
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
-		_alpha			  = 0.0f;
+		_last_fixed_step_us.store(0, std::memory_order_relaxed);
+		_fixed_step_us.store(0, std::memory_order_relaxed);
 	}
 
 	world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
@@ -64,7 +89,16 @@ namespace sfg
 
 		world_container_t& container = _worlds.emplace_back();
 		container.handle			 = handle;
+		container.producer_slot		 = 0;
+		container.consumer_slot		 = 1;
+		container.snapshot_mailbox.store(2, std::memory_order_relaxed);
 		container.render_context.init(render_resolution);
+
+		for (u32 i = 0; i < 3; i++)
+		{
+			container.snapshot_slots[i].reserve(8000);
+		}
+
 		return handle;
 	}
 
@@ -132,10 +166,12 @@ namespace sfg
 		frame_vector_t<gfx_command_buffer_handle> command_buffers;
 		command_buffers.reserve(_worlds.size());
 
+		const f32 interpolation_alpha = calculate_render_alpha();
+		SFG_TRACE("alpha {0}", interpolation_alpha);
 		for (world_container_t& container : _worlds)
 		{
-			world_snapshot_producer_t::produce(_runtime->get_world(container.handle), container.snapshot);
-			world_rendering_t::render_world(container.render_context, container.snapshot, frame_index);
+			const world_snapshot_t& snapshot = acquire_render_snapshot(container);
+			world_rendering_t::render_world(container.render_context, snapshot, interpolation_alpha, frame_index);
 			command_buffers.push_back(container.render_context.get_command_buffer(frame_index));
 		}
 
@@ -154,26 +190,43 @@ namespace sfg
 		const i64 delta_us = now - _previous_time_us;
 		_previous_time_us  = now;
 
-		if (world_tick_rate == 0)
-			return;
-
-		const i64 fixed_us = 1000000 / static_cast<i64>(world_tick_rate);
-		if (fixed_us == 0)
-			return;
-
-		_accumulator_us += delta_us;
-
-		const f32 dt_seconds = 1.0f / static_cast<f32>(world_tick_rate);
-		u32		  steps		 = 0;
-		while (_accumulator_us >= fixed_us && steps < max_sim_steps)
+		u32		  steps	   = 0;
+		const i64 fixed_us = world_tick_rate == 0 ? 0 : 1000000 / static_cast<i64>(world_tick_rate);
+		if (fixed_us > 0)
 		{
-			_accumulator_us -= fixed_us;
-			for (const world_container_t& container : _worlds)
-				_runtime->get_world(container.handle).tick(dt_seconds);
-			++steps;
+			_accumulator_us += delta_us;
+
+			const f32 dt_seconds = 1.0f / static_cast<f32>(world_tick_rate);
+			while (_accumulator_us >= fixed_us && steps < max_sim_steps)
+			{
+				_accumulator_us -= fixed_us;
+				for (const world_container_t& container : _worlds)
+				{
+					world_t& world = _runtime->get_world(container.handle);
+					world.tick(dt_seconds);
+					world.update_world_transforms(true);
+				}
+				++steps;
+			}
+
+			_fixed_step_us.store(fixed_us, std::memory_order_relaxed);
+			_last_fixed_step_us.store(now - _accumulator_us, std::memory_order_release);
+		}
+		else
+		{
+			_accumulator_us = 0;
+			_fixed_step_us.store(0, std::memory_order_relaxed);
+			_last_fixed_step_us.store(now, std::memory_order_release);
 		}
 
-		_alpha = static_cast<f32>(static_cast<double>(_accumulator_us) / static_cast<double>(fixed_us));
+		for (world_container_t& container : _worlds)
+		{
+			world_t& world = _runtime->get_world(container.handle);
+			if (steps == 0)
+				world.update_world_transforms(false);
+			world_snapshot_producer_t::produce(world, container.snapshot_slots[container.producer_slot]);
+			publish_world_snapshot(container);
+		}
 	}
 
 	void editor_world_controller_t::install_default_world(world_handle_t)
@@ -204,6 +257,44 @@ namespace sfg
 
 	f32 editor_world_controller_t::get_alpha() const
 	{
-		return _alpha;
+		return calculate_render_alpha();
+	}
+
+	void editor_world_controller_t::publish_world_snapshot(world_container_t& container)
+	{
+		const u8 prev			= container.snapshot_mailbox.exchange(container.producer_slot | WORLD_SNAPSHOT_FRESH_FLAG, std::memory_order_release);
+		container.producer_slot = static_cast<u8>((prev & WORLD_SNAPSHOT_SLOT_MASK) % WORLD_SNAPSHOT_SLOT_COUNT);
+	}
+
+	const world_snapshot_t& editor_world_controller_t::acquire_render_snapshot(world_container_t& container)
+	{
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+
+		u8 cur = container.snapshot_mailbox.load(std::memory_order_acquire);
+		while (cur & WORLD_SNAPSHOT_FRESH_FLAG)
+		{
+			if (container.snapshot_mailbox.compare_exchange_weak(cur, container.consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
+			{
+				container.consumer_slot = static_cast<u8>((cur & WORLD_SNAPSHOT_SLOT_MASK) % WORLD_SNAPSHOT_SLOT_COUNT);
+				break;
+			}
+		}
+		return container.snapshot_slots[container.consumer_slot];
+	}
+
+	f32 editor_world_controller_t::calculate_render_alpha() const
+	{
+		const i64 fixed_us = _fixed_step_us.load(std::memory_order_relaxed);
+		if (fixed_us <= 0)
+			return 0.0f;
+
+		const i64 last_fixed_step_us = _last_fixed_step_us.load(std::memory_order_acquire);
+		const i64 now				 = time_t::get_cpu_microseconds();
+		const f32 alpha				 = static_cast<f32>(static_cast<double>(now - last_fixed_step_us) / static_cast<double>(fixed_us));
+		if (alpha < 0.0f)
+			return 0.0f;
+		if (alpha > 1.0f)
+			return 1.0f;
+		return alpha;
 	}
 }

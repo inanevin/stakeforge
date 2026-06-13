@@ -80,16 +80,6 @@ namespace sfg
 		}
 	}
 
-	void engine_runtime_t::simulate(f32 delta_time)
-	{
-		for (world_t& world : _worlds)
-			world.tick(delta_time);
-	}
-
-	void engine_runtime_t::render()
-	{
-	}
-
 	world_handle_t engine_runtime_t::create_world()
 	{
 		const world_handle_t handle = _worlds.add();
