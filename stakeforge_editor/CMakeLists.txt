@@ -91,41 +91,40 @@ sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})
 add_custom_command(
     TARGET ${SFG_EDITOR_TARGET}
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/samplers"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/textures"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/sky"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/shaders/layout_defines.hlsl"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/layout_defines.hlsl"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor/resource_pack"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/engine/shaders/world"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/shaders/world"
-    COMMAND ${CMAKE_COMMAND} -E rm -f
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials/gbuffer_material.sfg_asset"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials/forward_material.sfg_asset"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/shaders"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/shaders"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/materials"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/materials"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/materials"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/materials"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/samplers"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/samplers"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_albedo.sfg_asset"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_albedo.png"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_orm.sfg_asset"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_orm.png"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_normal.sfg_asset"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_normal.png"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_emissive.sfg_asset"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/textures/texture_emissive.png"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/textures"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/sky/qwantani_dusk_2.hdr"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold/sky"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/samplers"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/samplers"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/textures"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/textures"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/sky"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/sky"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/shaders"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/materials"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/materials"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/samplers"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/samplers"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/resource_pack"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor/resource_pack"
 )
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)

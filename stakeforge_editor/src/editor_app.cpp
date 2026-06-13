@@ -761,10 +761,10 @@ namespace sfg
 			.max_widgets   = 4096,
 		});
 		surface.ui->get_paint().set_pipelines({
-			.default_pipeline		 = "editor/shaders/editor_ui_default.hlsl"_hs,
-			.text_pipeline			 = "editor/shaders/editor_ui_text_lcd.hlsl"_hs,
-			.grayscale_text_pipeline = "editor/shaders/editor_ui_text_grayscale.hlsl"_hs,
-			.sdf_pipeline			 = "editor/shaders/editor_ui_sdf.hlsl"_hs,
+			.default_pipeline		 = "editor/resource_pack/shaders/editor_ui_default.hlsl"_hs,
+			.text_pipeline			 = "editor/resource_pack/shaders/editor_ui_text_lcd.hlsl"_hs,
+			.grayscale_text_pipeline = "editor/resource_pack/shaders/editor_ui_text_grayscale.hlsl"_hs,
+			.sdf_pipeline			 = "editor/resource_pack/shaders/editor_ui_sdf.hlsl"_hs,
 		});
 		surface.ui->set_debug_draw(_debug_mode);
 

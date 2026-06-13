@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_glb_importer.hpp"
 
 #include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_creator.hpp"
+#include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"

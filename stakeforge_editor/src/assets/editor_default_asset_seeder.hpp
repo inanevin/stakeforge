@@ -28,31 +28,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset.hpp"
-#include "assets/editor_asset_builtin_types.hpp"
 
 namespace sfg
 {
-	enum class shader_type_e : u8;
-
-	struct editor_asset_create_desc_t
-	{
-		editor_asset_node_handle_t parent_node	   = {};
-		const char*				   name			   = nullptr;
-		const char*				   source_name	   = nullptr;
-		sid_t					   guid			   = NULL_SID;
-		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
-		u8						   sub_type		   = 0;
-		bool					   allow_overwrite = false;
-	};
-
-	class editor_asset_creator_t final
+	class editor_default_asset_seeder_t final
 	{
 	public:
-		editor_asset_creator_t()										 = delete;
-		~editor_asset_creator_t()										 = delete;
-		editor_asset_creator_t(const editor_asset_creator_t&)			 = delete;
-		editor_asset_creator_t& operator=(const editor_asset_creator_t&) = delete;
+		editor_default_asset_seeder_t()												   = delete;
+		~editor_default_asset_seeder_t()											   = delete;
+		editor_default_asset_seeder_t(const editor_default_asset_seeder_t&)			   = delete;
+		editor_default_asset_seeder_t& operator=(const editor_default_asset_seeder_t&) = delete;
 
-		static bool create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset = nullptr);
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static void ensure(editor_asset_node_handle_t default_assets_node);
 	};
 }

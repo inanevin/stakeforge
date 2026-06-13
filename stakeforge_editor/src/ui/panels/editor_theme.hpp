@@ -69,14 +69,14 @@ namespace sfg
 		vec4f_t color_outline		= color_t::from255(14.0f, 14.0f, 14.0f, 255.0f).srgb_to_linear().to_vector();
 		vec4f_t color_outline_light = color_t::from255(45.f, 45.f, 45.f, 255.0f).srgb_to_linear().to_vector();
 
-		sid_t font_default		 = "editor/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs;
-		sid_t font_default_mono	 = "editor/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf"_hs;
-		sid_t font_sfg			 = "editor/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
-		sid_t font_title		 = "editor/fonts/Play/Play-Regular.ttf"_hs;
-		sid_t font_title_bold	 = "editor/fonts/Play/Play-Bold.ttf"_hs;
-		sid_t font_icons		 = "editor/fonts/icons.ttf"_hs;
-		sid_t shader_glitch_lcd	 = "editor/shaders/editor_ui_text_lcd_glitch.hlsl"_hs;
-		sid_t shader_glitch_rect = "editor/shaders/editor_ui_glitch_rect.hlsl"_hs;
+		sid_t font_default		 = "editor/resource_pack/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs;
+		sid_t font_default_mono	 = "editor/resource_pack/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf"_hs;
+		sid_t font_sfg			 = "editor/resource_pack/fonts/Orbitron/static/Orbitron-Bold.ttf"_hs;
+		sid_t font_title		 = "editor/resource_pack/fonts/Play/Play-Regular.ttf"_hs;
+		sid_t font_title_bold	 = "editor/resource_pack/fonts/Play/Play-Bold.ttf"_hs;
+		sid_t font_icons		 = "editor/resource_pack/fonts/icons.ttf"_hs;
+		sid_t shader_glitch_lcd	 = "editor/resource_pack/shaders/editor_ui_text_lcd_glitch.hlsl"_hs;
+		sid_t shader_glitch_rect = "editor/resource_pack/shaders/editor_ui_glitch_rect.hlsl"_hs;
 
 		f32 aa_thickness			 = 2.0f;
 		f32 text_big_px_size		 = 15.0f;

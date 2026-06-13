@@ -79,7 +79,7 @@ namespace sfg
 		rect.filled				 = true;
 
 		ui::ui_render_state_t state = {};
-		state.pipeline				= "editor/shaders/editor_ui_texture.hlsl"_hs;
+		state.pipeline				= "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		state.constants[0]			= make_null_world_texture_ref();
 
 		paint.set_rect(_world_view, rect, state);
@@ -125,7 +125,7 @@ namespace sfg
 			texture_ref.gpu_indices[i] = world.get_world_texture_index(i);
 
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
-		def.render_state.pipeline	  = "editor/shaders/editor_ui_texture.hlsl"_hs;
+		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		def.render_state.constants[0] = texture_ref;
 
 		ui::layout_tree_t& tree = _ui->get_tree();
@@ -139,7 +139,7 @@ namespace sfg
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
-		def.render_state.pipeline	  = "editor/shaders/editor_ui_texture.hlsl"_hs;
+		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		def.render_state.constants[0] = make_null_world_texture_ref();
 
 		ui::layout_tree_t& tree = _ui->get_tree();

@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 
 #include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_creator.hpp"
+#include "assets/editor_default_asset_seeder.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -36,15 +36,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/frame_vector.hpp>
-#include <sfg/data/istream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/color.hpp>
-#include <sfg/runtime/resources/common_resources.hpp>
-#include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <algorithm>
 #include <charconv>
@@ -61,56 +57,6 @@ namespace sfg
 	namespace
 	{
 		editor_asset_manager_t* s_instance = nullptr;
-
-		struct default_asset_desc_t
-		{
-			const char*	  asset_name;
-			const char*	  source_base_name;
-			sid_t		  guid;
-			shader_type_e shader_type;
-		};
-
-		struct default_texture_asset_desc_t
-		{
-			const char* asset_name;
-			const char* source_base_name;
-			sid_t		guid;
-		};
-
-		struct default_create_asset_desc_t
-		{
-			const char*			asset_name;
-			sid_t				guid;
-			editor_asset_type_e asset_type;
-			u8					sub_type;
-		};
-
-		bool is_asset_cooked(const editor_asset_t& asset)
-		{
-			if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
-				return false;
-
-			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
-			if (!file_system_t::exists(cache_path.c_str()))
-				return false;
-
-			istream_t					stream		  = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
-			const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
-			SFG_ASSERT(resource_desc != nullptr);
-			if (stream.empty())
-				return false;
-
-			resource_header_t header = {};
-			header.deserialize(stream);
-			return header.magic == resource_desc->wire_magic && header.version == resource_desc->wire_version;
-		}
-
-		bool is_default_asset_ready(sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
-		{
-			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(guid);
-			return asset != nullptr && asset->status == editor_asset_status_e::ok && asset->asset_type == asset_type && asset->sub_type == sub_type && is_asset_cooked(*asset);
-		}
-
 	}
 
 	bool editor_asset_manager_t::init()
@@ -305,60 +251,7 @@ namespace sfg
 		const editor_asset_node_handle_t default_assets_node = find_child_folder(_root_node, default_folder_name);
 		SFG_ASSERT(!default_assets_node.is_null());
 
-		const default_asset_desc_t default_shader_assets[] = {
-			{.asset_name = "shader_gbuffer", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
-			{.asset_name = "shader_forward", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
-		};
-		const default_texture_asset_desc_t default_texture_assets[] = {
-			{.asset_name = "texture_albedo", .source_base_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
-			{.asset_name = "texture_orm", .source_base_name = "texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
-			{.asset_name = "texture_normal", .source_base_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
-			{.asset_name = "texture_emissive", .source_base_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
-		};
-		const default_texture_asset_desc_t default_hdr_skybox_assets[] = {
-			{.asset_name = "qwantani_dusk_2", .source_base_name = "qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
-		};
-		const default_create_asset_desc_t default_created_assets[] = {
-			{.asset_name = "material_gbuffer", .guid = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::gbuffer)},
-			{.asset_name = "material_forward", .guid = DEFAULT_FORWARD_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::material, .sub_type = static_cast<u8>(editor_material_type_e::forward)},
-			{.asset_name = "physical_material", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
-			{.asset_name = "sampler_linear", .guid = DEFAULT_LINEAR_SAMPLER_ASSET_GUID, .asset_type = editor_asset_type_e::texture_sampler, .sub_type = static_cast<u8>(editor_texture_sampler_type_e::linear)},
-			{.asset_name = "sampler_nearest", .guid = DEFAULT_NEAREST_SAMPLER_ASSET_GUID, .asset_type = editor_asset_type_e::texture_sampler, .sub_type = static_cast<u8>(editor_texture_sampler_type_e::nearest)},
-			{.asset_name = "sampler_anisotropic", .guid = DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID, .asset_type = editor_asset_type_e::texture_sampler, .sub_type = static_cast<u8>(editor_texture_sampler_type_e::anisotropic)},
-		};
-
-		for (const default_asset_desc_t& desc : default_shader_assets)
-		{
-			if (is_default_asset_ready(desc.guid, editor_asset_type_e::shader, static_cast<u8>(desc.shader_type)))
-				continue;
-
-			editor_asset_creator_t::create_asset(
-				{.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::shader, .sub_type = static_cast<u8>(desc.shader_type), .allow_overwrite = true});
-		}
-
-		for (const default_texture_asset_desc_t& desc : default_texture_assets)
-		{
-			if (is_default_asset_ready(desc.guid, editor_asset_type_e::texture, 0))
-				continue;
-
-			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::texture, .allow_overwrite = true});
-		}
-
-		for (const default_texture_asset_desc_t& desc : default_hdr_skybox_assets)
-		{
-			if (is_default_asset_ready(desc.guid, editor_asset_type_e::hdr_skybox, 0))
-				continue;
-
-			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .source_name = desc.source_base_name, .guid = desc.guid, .asset_type = editor_asset_type_e::hdr_skybox, .allow_overwrite = true});
-		}
-
-		for (const default_create_asset_desc_t& desc : default_created_assets)
-		{
-			if (is_default_asset_ready(desc.guid, desc.asset_type, desc.sub_type))
-				continue;
-
-			editor_asset_creator_t::create_asset({.parent_node = default_assets_node, .name = desc.asset_name, .guid = desc.guid, .asset_type = desc.asset_type, .sub_type = desc.sub_type, .allow_overwrite = true});
-		}
+		editor_default_asset_seeder_t::ensure(default_assets_node);
 
 		rescan(assets_path);
 	}
@@ -458,7 +351,7 @@ namespace sfg
 			if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
 				continue;
 
-			if (is_asset_cooked(asset))
+			if (editor_asset_cooker_t::is_asset_cooked(asset))
 				continue;
 
 			assets_to_cook.push_back(&asset);

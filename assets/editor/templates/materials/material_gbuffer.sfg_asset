@@ -1,0 +1,56 @@
+{
+    "version": 0,
+    "guid": 1006,
+    "asset_type": "material",
+    "sub_type": 0,
+    "embedded_source": {
+        "schema": "sfg.schema.material",
+        "pass_flags": [
+            "gbuffer",
+            "depth"
+        ],
+        "shader": 1000,
+        "sampler": 1009,
+        "textures": [
+            1002,
+            1004,
+            1003,
+            1005
+        ],
+        "parameters": [
+            {
+                "type": "vec4f",
+                "values": [1.0, 1.0, 1.0, 1.0]
+            },
+            {
+                "type": "vec4f",
+                "values": [1.0, 1.0, 1.0, 0.0]
+            },
+            {
+                "type": "vec4f",
+                "values": [1.0, 1.0, 0.5, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            },
+            {
+                "type": "uint2",
+                "values": [1006648320.0, 0.0, 0.0, 0.0]
+            }
+        ],
+        "double_sided": false,
+        "use_alpha_cutoff": false
+    },
+    "cook_options": {},
+    "source_relative": "",
+    "source_type": "embedded"
+}

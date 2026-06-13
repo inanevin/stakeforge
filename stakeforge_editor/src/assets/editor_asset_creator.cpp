@@ -28,317 +28,182 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_creator.hpp"
 
 #include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_manager.hpp"
-#include "editor_directories.hpp"
-#include "editor_project.hpp"
+#include "assets/editor_asset_writer.hpp"
 
 #include <sfg/io/assert.hpp>
-#include <sfg/io/file_system.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 
 namespace sfg
 {
+#define EDITOR_TEMPLATE_SHADERS	  "editor_templates/shaders/"
+#define EDITOR_TEMPLATE_MATERIALS "editor_templates/materials/"
+#define EDITOR_TEMPLATE_SAMPLERS  "editor_templates/samplers/"
+
 	namespace
 	{
-		using scaffold_embedded_source_fn = bool (*)(u8 sub_type, nlohmann::json& out_embedded_source);
-
-		void scaffold_shader_cook_options(editor_asset_t& asset)
+		void build_shader_template_cook_options(shader_type_e shader_type, nlohmann::json& out)
 		{
-			const shader_type_e shader_type	   = static_cast<shader_type_e>(asset.sub_type);
-			asset.cook_options["schema"]	   = "sfg.schema.shader";
-			asset.cook_options["include_dirs"] = {"editor_scaffold/shaders", "editor_scaffold/shaders/world"};
+			out["schema"]		= "sfg.schema.shader";
+			out["include_dirs"] = {EDITOR_TEMPLATE_SHADERS, EDITOR_TEMPLATE_SHADERS "world"};
 			switch (shader_type)
 			{
 			case shader_type_e::opaque_shader:
-				asset.cook_options["type"] = "opaque_shader";
+				out["type"] = "opaque_shader";
 				break;
 			case shader_type_e::transparent_shader:
-				asset.cook_options["type"] = "transparent_shader";
+				out["type"] = "transparent_shader";
 				break;
 			case shader_type_e::post_process_shader:
-				asset.cook_options["type"] = "post_process_shader";
+				out["type"] = "post_process_shader";
 				break;
 			case shader_type_e::ui_shader:
-				asset.cook_options["type"] = "ui_shader";
+				out["type"] = "ui_shader";
 				break;
 			case shader_type_e::ui_text_shader:
-				asset.cook_options["type"] = "ui_text_shader";
+				out["type"] = "ui_text_shader";
 				break;
 			default:
-				asset.cook_options["type"] = "opaque_shader";
+				out["type"] = "opaque_shader";
 				break;
 			}
 		}
 
-		bool scaffold_material_embedded_source_by_sub_type(u8 sub_type, nlohmann::json& out_embedded_source)
+		const char* get_material_template_relative(editor_material_type_e material_type)
 		{
-			const editor_material_type_e material_type = static_cast<editor_material_type_e>(sub_type);
-			return editor_asset_creator_t::scaffold_material_embedded_source(material_type, out_embedded_source);
+			switch (material_type)
+			{
+			case editor_material_type_e::forward:
+				return EDITOR_TEMPLATE_MATERIALS "material_forward.sfg_asset";
+			default:
+				return EDITOR_TEMPLATE_MATERIALS "material_gbuffer.sfg_asset";
+			}
 		}
 
-		bool scaffold_physical_material_embedded_source_by_sub_type(u8, nlohmann::json& out_embedded_source)
+		const char* get_physical_material_template_relative()
 		{
-			return editor_asset_creator_t::scaffold_physical_material_embedded_source(out_embedded_source);
+			return EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
 		}
 
-		bool scaffold_texture_sampler_embedded_source_by_sub_type(u8 sub_type, nlohmann::json& out_embedded_source)
+		const char* get_shader_template_relative(shader_type_e shader_type)
 		{
-			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(sub_type);
-			return editor_asset_creator_t::scaffold_texture_sampler_embedded_source(sampler_type, out_embedded_source);
+			switch (shader_type)
+			{
+			case shader_type_e::opaque_shader:
+				return EDITOR_TEMPLATE_SHADERS "world/gbuffer_lit.hlsl";
+			case shader_type_e::transparent_shader:
+				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+			case shader_type_e::post_process_shader:
+				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+			case shader_type_e::ui_shader:
+				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+			case shader_type_e::ui_text_shader:
+				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+			default:
+				return EDITOR_TEMPLATE_SHADERS "world/gbuffer_lit.hlsl";
+			}
 		}
 
-		bool create_embedded_asset(const editor_asset_create_desc_t& desc, editor_asset_type_e asset_type, scaffold_embedded_source_fn scaffold_fn, editor_asset_t* out_asset)
+		const char* get_texture_sampler_template_relative(editor_texture_sampler_type_e sampler_type)
 		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			SFG_ASSERT(!desc.parent_node.is_null());
-			SFG_ASSERT(tree.is_valid(desc.parent_node));
-			const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-			SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-			SFG_ASSERT(!parent_node.full_path.empty());
-
-			if (!editor_directories_t::is_valid_asset_name(desc.name))
-				return false;
-
-			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
-			if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
-				return false;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	 = asset_type;
-			asset.source_type	 = editor_asset_source_type_e::embedded;
-			asset.sub_type		 = desc.sub_type;
-
-			if (!scaffold_fn(desc.sub_type, asset.embedded_source))
-				return false;
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				return false;
-
-			if (out_asset != nullptr)
-				*out_asset = asset;
-			return true;
+			switch (sampler_type)
+			{
+			case editor_texture_sampler_type_e::nearest:
+				return EDITOR_TEMPLATE_SAMPLERS "sampler_nearest.sfg_asset";
+			case editor_texture_sampler_type_e::anisotropic:
+				return EDITOR_TEMPLATE_SAMPLERS "sampler_anisotropic.sfg_asset";
+			default:
+				return EDITOR_TEMPLATE_SAMPLERS "sampler_linear.sfg_asset";
+			}
 		}
 
 		bool create_shader_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			SFG_ASSERT(!desc.parent_node.is_null());
-			SFG_ASSERT(tree.is_valid(desc.parent_node));
-			const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-			SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-			SFG_ASSERT(!parent_node.full_path.empty());
-
-			if (!editor_directories_t::is_valid_asset_name(desc.name))
-				return false;
-
-			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
-			if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
-				return false;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	 = editor_asset_type_e::shader;
-			asset.source_type	 = editor_asset_source_type_e::file;
-			asset.sub_type		 = desc.sub_type;
-
-			const char* source_name = desc.source_name != nullptr ? desc.source_name : desc.name;
-			if (desc.source_name != nullptr)
-			{
-				string_t source_path = editor_asset_util_t::normalize_directory(parent_node.full_path.c_str());
-				source_path += desc.source_name;
-				source_path += ".hlsl";
-				if (file_system_t::exists(source_path.c_str()))
-					asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-			}
-
-			if (!editor_asset_creator_t::scaffold_shader_source(asset, parent_node.full_path.c_str(), source_name))
-				return false;
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				return false;
-
-			if (out_asset != nullptr)
-				*out_asset = asset;
-			return true;
+			const shader_type_e shader_type = static_cast<shader_type_e>(desc.sub_type);
+			nlohmann::json		cook_options;
+			build_shader_template_cook_options(shader_type, cook_options);
+			const editor_asset_write_file_desc_t write_desc{
+				.cook_options			  = &cook_options,
+				.parent_node			  = desc.parent_node,
+				.name					  = desc.name,
+				.source_name			  = desc.source_name,
+				.source_extension		  = "hlsl",
+				.source_template_relative = get_shader_template_relative(shader_type),
+				.guid					  = desc.guid,
+				.asset_type				  = editor_asset_type_e::shader,
+				.sub_type				  = desc.sub_type,
+				.allow_overwrite		  = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_file_asset(write_desc, out_asset);
 		}
 
-		bool create_texture_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			SFG_ASSERT(!desc.parent_node.is_null());
-			SFG_ASSERT(tree.is_valid(desc.parent_node));
-			const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-			SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-			SFG_ASSERT(!parent_node.full_path.empty());
-
-			if (!editor_directories_t::is_valid_asset_name(desc.name))
+			const editor_material_type_e material_type = static_cast<editor_material_type_e>(desc.sub_type);
+			nlohmann::json				 embedded_source;
+			if (!editor_asset_writer_t::read_embedded_source(get_material_template_relative(material_type), embedded_source))
 				return false;
 
-			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
-			if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
-				return false;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	 = editor_asset_type_e::texture;
-			asset.source_type	 = editor_asset_source_type_e::file;
-			asset.sub_type		 = desc.sub_type;
-
-			const char* source_name = desc.source_name != nullptr ? desc.source_name : desc.name;
-			if (desc.source_name != nullptr)
-			{
-				string_t source_path = editor_asset_util_t::normalize_directory(parent_node.full_path.c_str());
-				source_path += desc.source_name;
-				source_path += ".png";
-				if (file_system_t::exists(source_path.c_str()))
-					asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-			}
-
-			if (!editor_asset_creator_t::scaffold_texture_source(asset, parent_node.full_path.c_str(), source_name))
-				return false;
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				return false;
-
-			if (out_asset != nullptr)
-				*out_asset = asset;
-			return true;
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_node	 = desc.parent_node,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::material,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
 		}
 
-		bool create_hdr_skybox_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			SFG_ASSERT(!desc.parent_node.is_null());
-			SFG_ASSERT(tree.is_valid(desc.parent_node));
-			const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-			SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-			SFG_ASSERT(!parent_node.full_path.empty());
-
-			if (!editor_directories_t::is_valid_asset_name(desc.name))
+			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(desc.sub_type);
+			nlohmann::json						embedded_source;
+			if (!editor_asset_writer_t::read_embedded_source(get_texture_sampler_template_relative(sampler_type), embedded_source))
 				return false;
 
-			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
-			if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
-				return false;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	 = editor_asset_type_e::hdr_skybox;
-			asset.source_type	 = editor_asset_source_type_e::file;
-			asset.sub_type		 = desc.sub_type;
-
-			const char* source_name = desc.source_name != nullptr ? desc.source_name : desc.name;
-			if (desc.source_name != nullptr)
-			{
-				string_t source_path = editor_asset_util_t::normalize_directory(parent_node.full_path.c_str());
-				source_path += desc.source_name;
-				source_path += ".hdr";
-				if (file_system_t::exists(source_path.c_str()))
-					asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-			}
-
-			if (!editor_asset_creator_t::scaffold_hdr_skybox_source(asset, parent_node.full_path.c_str(), source_name))
-				return false;
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				return false;
-
-			if (out_asset != nullptr)
-				*out_asset = asset;
-			return true;
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_node	 = desc.parent_node,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::texture_sampler,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
 		}
 
-		bool create_none_source_asset(const editor_asset_create_desc_t& desc, editor_asset_type_e asset_type, editor_asset_t* out_asset)
+		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			SFG_ASSERT(!desc.parent_node.is_null());
-			SFG_ASSERT(tree.is_valid(desc.parent_node));
-			const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-			SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-			SFG_ASSERT(!parent_node.full_path.empty());
-
-			if (!editor_directories_t::is_valid_asset_name(desc.name))
+			nlohmann::json embedded_source;
+			if (!editor_asset_writer_t::read_embedded_source(get_physical_material_template_relative(), embedded_source))
 				return false;
 
-			const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
-			if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
-				return false;
-
-			editor_asset_t asset = {};
-			asset.version		 = editor_asset_t::VERSION;
-			asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	 = asset_type;
-			asset.source_type	 = editor_asset_source_type_e::none;
-			asset.sub_type		 = desc.sub_type;
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-				return false;
-
-			if (out_asset != nullptr)
-				*out_asset = asset;
-			return true;
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_node	 = desc.parent_node,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::physical_material,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
 		}
-	}
 
-	const char* editor_asset_creator_t::get_material_scaffold_relative(editor_material_type_e material_type)
-	{
-		switch (material_type)
+		bool create_animation_state_machine_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-		case editor_material_type_e::forward:
-			return "editor_scaffold/materials/material_forward.sfg_asset";
-		default:
-			return "editor_scaffold/materials/material_gbuffer.sfg_asset";
+			const editor_asset_write_none_desc_t write_desc{
+				.parent_node	 = desc.parent_node,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::animation_state_machine,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset);
 		}
-	}
-
-	const char* editor_asset_creator_t::get_physical_material_scaffold_relative()
-	{
-		return "editor_scaffold/materials/physical_material.sfg_asset";
-	}
-
-	const char* editor_asset_creator_t::get_shader_scaffold_relative(shader_type_e shader_type)
-	{
-		switch (shader_type)
-		{
-		case shader_type_e::opaque_shader:
-			return "editor_scaffold/shaders/world/gbuffer_lit.hlsl";
-		case shader_type_e::transparent_shader:
-			return "editor_scaffold/shaders/world/forward.hlsl";
-		case shader_type_e::post_process_shader:
-			return "editor_scaffold/shaders/world/forward.hlsl";
-		case shader_type_e::ui_shader:
-			return "editor_scaffold/shaders/world/forward.hlsl";
-		case shader_type_e::ui_text_shader:
-			return "editor_scaffold/shaders/world/forward.hlsl";
-		default:
-			return "editor_scaffold/shaders/world/gbuffer_lit.hlsl";
-		}
-	}
-
-	const char* editor_asset_creator_t::get_texture_sampler_scaffold_relative(editor_texture_sampler_type_e sampler_type)
-	{
-		switch (sampler_type)
-		{
-		case editor_texture_sampler_type_e::nearest:
-			return "editor_scaffold/samplers/sampler_nearest.sfg_asset";
-		case editor_texture_sampler_type_e::anisotropic:
-			return "editor_scaffold/samplers/sampler_anisotropic.sfg_asset";
-		default:
-			return "editor_scaffold/samplers/sampler_linear.sfg_asset";
-		}
-	}
-
-	string_t editor_asset_creator_t::get_texture_scaffold_relative(const char* texture_name)
-	{
-		string_t result = "editor_scaffold/textures/";
-		result += texture_name != nullptr ? texture_name : "";
-		result += ".sfg_asset";
-		return result;
 	}
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
@@ -353,35 +218,25 @@ namespace sfg
 			if (result)
 				result = editor_asset_cooker_t::cook_shader(asset);
 			break;
-		case editor_asset_type_e::texture:
-			result = create_texture_asset(desc, &asset);
-			if (result)
-				result = editor_asset_cooker_t::cook_texture(asset);
-			break;
 		case editor_asset_type_e::material:
-			result = create_embedded_asset(desc, editor_asset_type_e::material, scaffold_material_embedded_source_by_sub_type, &asset);
+			result = create_material_asset(desc, &asset);
 			if (result)
 				result = editor_asset_cooker_t::cook_material(asset);
 			break;
 		case editor_asset_type_e::texture_sampler:
-			result = create_embedded_asset(desc, editor_asset_type_e::texture_sampler, scaffold_texture_sampler_embedded_source_by_sub_type, &asset);
+			result = create_texture_sampler_asset(desc, &asset);
 			if (result)
 				result = editor_asset_cooker_t::cook_texture_sampler(asset);
 			break;
 		case editor_asset_type_e::physical_material:
-			result = create_embedded_asset(desc, editor_asset_type_e::physical_material, scaffold_physical_material_embedded_source_by_sub_type, &asset);
+			result = create_physical_material_asset(desc, &asset);
 			if (result)
 				result = editor_asset_cooker_t::cook_physical_material(asset);
 			break;
 		case editor_asset_type_e::animation_state_machine:
-			result = create_none_source_asset(desc, editor_asset_type_e::animation_state_machine, &asset);
+			result = create_animation_state_machine_asset(desc, &asset);
 			if (result)
 				result = editor_asset_cooker_t::cook_animation_state_machine(asset);
-			break;
-		case editor_asset_type_e::hdr_skybox:
-			result = create_hdr_skybox_asset(desc, &asset);
-			if (result)
-				result = editor_asset_cooker_t::cook_hdr_skybox(asset);
 			break;
 		default:
 			SFG_ASSERT(false);
@@ -391,153 +246,5 @@ namespace sfg
 		if (result && out_asset != nullptr)
 			*out_asset = asset;
 		return result;
-	}
-
-	bool editor_asset_creator_t::scaffold_material_embedded_source(editor_material_type_e material_type, nlohmann::json& out_embedded_source)
-	{
-		string_t scaffold_path = file_system_t::get_running_directory();
-		scaffold_path += get_material_scaffold_relative(material_type);
-		SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-		editor_asset_t scaffold_asset = {};
-		const bool	   read_result	  = editor_asset_util_t::read_asset(scaffold_path.c_str(), scaffold_asset);
-		SFG_ASSERT(read_result);
-		if (!read_result)
-			return false;
-
-		out_embedded_source = scaffold_asset.embedded_source;
-		return true;
-	}
-
-	bool editor_asset_creator_t::scaffold_physical_material_embedded_source(nlohmann::json& out_embedded_source)
-	{
-		string_t scaffold_path = file_system_t::get_running_directory();
-		scaffold_path += get_physical_material_scaffold_relative();
-		SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-		editor_asset_t scaffold_asset = {};
-		const bool	   read_result	  = editor_asset_util_t::read_asset(scaffold_path.c_str(), scaffold_asset);
-		SFG_ASSERT(read_result);
-		if (!read_result)
-			return false;
-
-		out_embedded_source = scaffold_asset.embedded_source;
-		return true;
-	}
-
-	bool editor_asset_creator_t::scaffold_texture_sampler_embedded_source(editor_texture_sampler_type_e sampler_type, nlohmann::json& out_embedded_source)
-	{
-		string_t scaffold_path = file_system_t::get_running_directory();
-		scaffold_path += get_texture_sampler_scaffold_relative(sampler_type);
-		SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-		editor_asset_t scaffold_asset = {};
-		const bool	   read_result	  = editor_asset_util_t::read_asset(scaffold_path.c_str(), scaffold_asset);
-		SFG_ASSERT(read_result);
-		if (!read_result)
-			return false;
-
-		out_embedded_source = scaffold_asset.embedded_source;
-		return true;
-	}
-
-	bool editor_asset_creator_t::scaffold_texture_sampler_embedded_source(nlohmann::json& out_embedded_source)
-	{
-		return scaffold_texture_sampler_embedded_source(editor_texture_sampler_type_e::linear, out_embedded_source);
-	}
-
-	bool editor_asset_creator_t::scaffold_shader_source(editor_asset_t& asset, const char* directory, const char* file_name)
-	{
-		const shader_type_e shader_type = static_cast<shader_type_e>(asset.sub_type);
-		scaffold_shader_cook_options(asset);
-
-		if (asset.source_relative.empty())
-		{
-			SFG_ASSERT(directory != nullptr);
-			SFG_ASSERT(directory[0] != '\0');
-			SFG_ASSERT(file_name != nullptr);
-			SFG_ASSERT(file_name[0] != '\0');
-
-			string_t scaffold_path = file_system_t::get_running_directory();
-			scaffold_path += get_shader_scaffold_relative(shader_type);
-			SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-			const string_t source_path = editor_asset_util_t::make_unique_source_path(directory, file_name, "hlsl");
-			if (!file_system_t::copy_file(scaffold_path.c_str(), source_path.c_str()))
-				return false;
-
-			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-			SFG_ASSERT(!asset.source_relative.empty());
-		}
-		return true;
-	}
-
-	bool editor_asset_creator_t::scaffold_texture_source(editor_asset_t& asset, const char* directory, const char* file_name)
-	{
-		SFG_ASSERT(directory != nullptr);
-		SFG_ASSERT(directory[0] != '\0');
-		SFG_ASSERT(file_name != nullptr);
-		SFG_ASSERT(file_name[0] != '\0');
-
-		string_t scaffold_asset_path = file_system_t::get_running_directory();
-		scaffold_asset_path += get_texture_scaffold_relative(file_name);
-		SFG_ASSERT(file_system_t::exists(scaffold_asset_path.c_str()));
-
-		editor_asset_t scaffold_asset = {};
-		const bool	   read_result	  = editor_asset_util_t::read_asset(scaffold_asset_path.c_str(), scaffold_asset);
-		SFG_ASSERT(read_result);
-		if (!read_result)
-			return false;
-
-		asset.cook_options = scaffold_asset.cook_options;
-
-		if (asset.source_relative.empty())
-		{
-			string_t scaffold_path = file_system_t::get_running_directory();
-			scaffold_path += "editor_scaffold/textures/";
-			scaffold_path += file_name;
-			scaffold_path += ".png";
-			SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-			const string_t source_path = editor_asset_util_t::make_unique_source_path(directory, file_name, "png");
-			if (!file_system_t::copy_file(scaffold_path.c_str(), source_path.c_str()))
-				return false;
-
-			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-			SFG_ASSERT(!asset.source_relative.empty());
-		}
-
-		return true;
-	}
-
-	bool editor_asset_creator_t::scaffold_hdr_skybox_source(editor_asset_t& asset, const char* directory, const char* file_name)
-	{
-		SFG_ASSERT(directory != nullptr);
-		SFG_ASSERT(directory[0] != '\0');
-		SFG_ASSERT(file_name != nullptr);
-		SFG_ASSERT(file_name[0] != '\0');
-
-		asset.cook_options["schema"] = "sfg.schema.hdr_skybox";
-
-		if (asset.source_relative.empty())
-		{
-			string_t scaffold_path = file_system_t::get_running_directory();
-			scaffold_path += "editor_scaffold/sky/";
-			scaffold_path += file_name;
-			scaffold_path += ".hdr";
-			SFG_ASSERT(file_system_t::exists(scaffold_path.c_str()));
-
-			const string_t source_path = editor_asset_util_t::make_unique_source_path(directory, file_name, "hdr");
-			if (!file_system_t::copy_file(scaffold_path.c_str(), source_path.c_str()))
-				return false;
-
-			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-			SFG_ASSERT(!asset.source_relative.empty());
-		}
-
-		return true;
 	}
 }

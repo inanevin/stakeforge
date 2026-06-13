@@ -27,32 +27,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
-#include "assets/editor_asset_builtin_types.hpp"
+#include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
-	enum class shader_type_e : u8;
-
-	struct editor_asset_create_desc_t
+	enum class editor_material_type_e : u8
 	{
-		editor_asset_node_handle_t parent_node	   = {};
-		const char*				   name			   = nullptr;
-		const char*				   source_name	   = nullptr;
-		sid_t					   guid			   = NULL_SID;
-		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
-		u8						   sub_type		   = 0;
-		bool					   allow_overwrite = false;
+		gbuffer,
+		forward,
 	};
 
-	class editor_asset_creator_t final
+	enum class editor_texture_sampler_type_e : u8
 	{
-	public:
-		editor_asset_creator_t()										 = delete;
-		~editor_asset_creator_t()										 = delete;
-		editor_asset_creator_t(const editor_asset_creator_t&)			 = delete;
-		editor_asset_creator_t& operator=(const editor_asset_creator_t&) = delete;
-
-		static bool create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset = nullptr);
+		linear,
+		nearest,
+		anisotropic,
 	};
 }

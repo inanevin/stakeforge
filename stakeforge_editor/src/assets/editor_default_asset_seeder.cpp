@@ -1,0 +1,318 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+#include "assets/editor_default_asset_seeder.hpp"
+
+#include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_builtin_types.hpp"
+#include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_writer.hpp"
+
+#include <sfg/io/assert.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
+
+namespace sfg
+{
+#define EDITOR_DEFAULT_SHADERS	 "editor_defaults/shaders/"
+#define EDITOR_DEFAULT_MATERIALS "editor_defaults/materials/"
+#define EDITOR_DEFAULT_SAMPLERS	 "editor_defaults/samplers/"
+#define EDITOR_DEFAULT_TEXTURES	 "editor_defaults/textures/"
+#define EDITOR_DEFAULT_SKY		 "editor_defaults/sky/"
+
+	namespace
+	{
+		struct default_shader_asset_desc_t
+		{
+			const char*	  asset_name;
+			const char*	  source_base_name;
+			sid_t		  guid;
+			shader_type_e shader_type;
+		};
+
+		struct default_file_asset_desc_t
+		{
+			const char* asset_name;
+			const char* source_base_name;
+			sid_t		guid;
+		};
+
+		struct default_embedded_asset_desc_t
+		{
+			const char*			asset_name;
+			const char*			asset_relative_path;
+			sid_t				guid;
+			editor_asset_type_e asset_type;
+			u8					sub_type;
+		};
+
+		bool is_default_asset_ready(sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
+		{
+			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(guid);
+			return asset != nullptr && asset->status == editor_asset_status_e::ok && asset->asset_type == asset_type && asset->sub_type == sub_type && editor_asset_cooker_t::is_asset_cooked(*asset);
+		}
+
+		void build_shader_default_cook_options(shader_type_e shader_type, nlohmann::json& out)
+		{
+			out["schema"]		= "sfg.schema.shader";
+			out["include_dirs"] = {EDITOR_DEFAULT_SHADERS, EDITOR_DEFAULT_SHADERS "world"};
+			switch (shader_type)
+			{
+			case shader_type_e::opaque_shader:
+				out["type"] = "opaque_shader";
+				break;
+			case shader_type_e::transparent_shader:
+				out["type"] = "transparent_shader";
+				break;
+			default:
+				out["type"] = "opaque_shader";
+				break;
+			}
+		}
+
+		string_t get_shader_default_source_relative(shader_type_e shader_type)
+		{
+			string_t result = EDITOR_DEFAULT_SHADERS;
+			switch (shader_type)
+			{
+			case shader_type_e::transparent_shader:
+				result += "world/forward.hlsl";
+				break;
+			default:
+				result += "world/gbuffer_lit.hlsl";
+				break;
+			}
+			return result;
+		}
+
+		string_t get_texture_default_asset_relative(const char* texture_name)
+		{
+			string_t result = EDITOR_DEFAULT_TEXTURES;
+			result += texture_name != nullptr ? texture_name : "";
+			result += ".sfg_asset";
+			return result;
+		}
+
+		string_t get_texture_default_source_relative(const char* texture_name)
+		{
+			string_t result = EDITOR_DEFAULT_TEXTURES;
+			result += texture_name != nullptr ? texture_name : "";
+			result += ".png";
+			return result;
+		}
+
+		string_t get_skybox_default_source_relative(const char* skybox_name)
+		{
+			string_t result = EDITOR_DEFAULT_SKY;
+			result += skybox_name != nullptr ? skybox_name : "";
+			result += ".hdr";
+			return result;
+		}
+
+		void ensure_shader_assets(editor_asset_node_handle_t default_assets_node)
+		{
+			const default_shader_asset_desc_t default_shader_assets[] = {
+				{.asset_name = "shader_gbuffer", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
+				{.asset_name = "shader_forward", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+			};
+
+			for (const default_shader_asset_desc_t& desc : default_shader_assets)
+			{
+				const u8 sub_type = static_cast<u8>(desc.shader_type);
+				if (is_default_asset_ready(desc.guid, editor_asset_type_e::shader, sub_type))
+					continue;
+
+				nlohmann::json cook_options;
+				build_shader_default_cook_options(desc.shader_type, cook_options);
+				const string_t source_relative = get_shader_default_source_relative(desc.shader_type);
+
+				const editor_asset_write_file_desc_t write_desc{
+					.cook_options			  = &cook_options,
+					.parent_node			  = default_assets_node,
+					.name					  = desc.asset_name,
+					.source_name			  = desc.source_base_name,
+					.source_extension		  = "hlsl",
+					.source_template_relative = source_relative.c_str(),
+					.guid					  = desc.guid,
+					.asset_type				  = editor_asset_type_e::shader,
+					.sub_type				  = sub_type,
+					.allow_overwrite		  = true,
+				};
+				editor_asset_t asset   = {};
+				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset);
+				if (created)
+					created = editor_asset_cooker_t::cook_shader(asset);
+				SFG_ASSERT(created);
+			}
+		}
+
+		void ensure_texture_assets(editor_asset_node_handle_t default_assets_node)
+		{
+			const default_file_asset_desc_t default_texture_assets[] = {
+				{.asset_name = "texture_albedo", .source_base_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
+				{.asset_name = "texture_orm", .source_base_name = "texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
+				{.asset_name = "texture_normal", .source_base_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
+				{.asset_name = "texture_emissive", .source_base_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
+			};
+
+			for (const default_file_asset_desc_t& desc : default_texture_assets)
+			{
+				if (is_default_asset_ready(desc.guid, editor_asset_type_e::texture, 0))
+					continue;
+
+				nlohmann::json cook_options;
+				const string_t texture_asset_relative = get_texture_default_asset_relative(desc.source_base_name);
+				const bool	   read_cook_options	  = editor_asset_writer_t::read_cook_options(texture_asset_relative.c_str(), cook_options);
+				SFG_ASSERT(read_cook_options);
+				if (!read_cook_options)
+					continue;
+
+				const string_t						 texture_source_relative = get_texture_default_source_relative(desc.source_base_name);
+				const editor_asset_write_file_desc_t write_desc{
+					.cook_options			  = &cook_options,
+					.parent_node			  = default_assets_node,
+					.name					  = desc.asset_name,
+					.source_name			  = desc.source_base_name,
+					.source_extension		  = "png",
+					.source_template_relative = texture_source_relative.c_str(),
+					.guid					  = desc.guid,
+					.asset_type				  = editor_asset_type_e::texture,
+					.allow_overwrite		  = true,
+				};
+				editor_asset_t asset   = {};
+				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset);
+				if (created)
+					created = editor_asset_cooker_t::cook_texture(asset);
+				SFG_ASSERT(created);
+			}
+		}
+
+		void ensure_skybox_assets(editor_asset_node_handle_t default_assets_node)
+		{
+			const default_file_asset_desc_t default_skybox_assets[] = {
+				{.asset_name = "qwantani_dusk_2", .source_base_name = "qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
+			};
+
+			for (const default_file_asset_desc_t& desc : default_skybox_assets)
+			{
+				if (is_default_asset_ready(desc.guid, editor_asset_type_e::hdr_skybox, 0))
+					continue;
+
+				nlohmann::json cook_options;
+				cook_options["schema"]								 = "sfg.schema.hdr_skybox";
+				const string_t						 source_relative = get_skybox_default_source_relative(desc.source_base_name);
+				const editor_asset_write_file_desc_t write_desc{
+					.cook_options			  = &cook_options,
+					.parent_node			  = default_assets_node,
+					.name					  = desc.asset_name,
+					.source_name			  = desc.source_base_name,
+					.source_extension		  = "hdr",
+					.source_template_relative = source_relative.c_str(),
+					.guid					  = desc.guid,
+					.asset_type				  = editor_asset_type_e::hdr_skybox,
+					.allow_overwrite		  = true,
+				};
+				editor_asset_t asset   = {};
+				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset);
+				if (created)
+					created = editor_asset_cooker_t::cook_hdr_skybox(asset);
+				SFG_ASSERT(created);
+			}
+		}
+
+		void ensure_embedded_assets(editor_asset_node_handle_t default_assets_node)
+		{
+			const default_embedded_asset_desc_t default_embedded_assets[] = {
+				{.asset_name		  = "material_gbuffer",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "material_gbuffer.sfg_asset",
+				 .guid				  = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::gbuffer)},
+				{.asset_name		  = "material_forward",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "material_forward.sfg_asset",
+				 .guid				  = DEFAULT_FORWARD_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::forward)},
+				{.asset_name = "physical_material", .asset_relative_path = EDITOR_DEFAULT_MATERIALS "physical_material.sfg_asset", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
+				{.asset_name		  = "sampler_linear",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_linear.sfg_asset",
+				 .guid				  = DEFAULT_LINEAR_SAMPLER_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::texture_sampler,
+				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::linear)},
+				{.asset_name		  = "sampler_nearest",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_nearest.sfg_asset",
+				 .guid				  = DEFAULT_NEAREST_SAMPLER_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::texture_sampler,
+				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::nearest)},
+				{.asset_name		  = "sampler_anisotropic",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_anisotropic.sfg_asset",
+				 .guid				  = DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::texture_sampler,
+				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::anisotropic)},
+			};
+
+			for (const default_embedded_asset_desc_t& desc : default_embedded_assets)
+			{
+				if (is_default_asset_ready(desc.guid, desc.asset_type, desc.sub_type))
+					continue;
+
+				nlohmann::json embedded_source;
+				const bool	   read_embedded_source = editor_asset_writer_t::read_embedded_source(desc.asset_relative_path, embedded_source);
+				SFG_ASSERT(read_embedded_source);
+				if (!read_embedded_source)
+					continue;
+
+				const editor_asset_write_embedded_desc_t write_desc{
+					.embedded_source = &embedded_source,
+					.parent_node	 = default_assets_node,
+					.name			 = desc.asset_name,
+					.guid			 = desc.guid,
+					.asset_type		 = desc.asset_type,
+					.sub_type		 = desc.sub_type,
+					.allow_overwrite = true,
+				};
+				editor_asset_t asset   = {};
+				bool		   created = editor_asset_writer_t::write_embedded_asset(write_desc, &asset);
+				if (created && desc.asset_type == editor_asset_type_e::material)
+					created = editor_asset_cooker_t::cook_material(asset);
+				else if (created && desc.asset_type == editor_asset_type_e::physical_material)
+					created = editor_asset_cooker_t::cook_physical_material(asset);
+				else if (created && desc.asset_type == editor_asset_type_e::texture_sampler)
+					created = editor_asset_cooker_t::cook_texture_sampler(asset);
+				SFG_ASSERT(created);
+			}
+		}
+	}
+
+	void editor_default_asset_seeder_t::ensure(editor_asset_node_handle_t default_assets_node)
+	{
+		SFG_ASSERT(!default_assets_node.is_null());
+		ensure_shader_assets(default_assets_node);
+		ensure_texture_assets(default_assets_node);
+		ensure_skybox_assets(default_assets_node);
+		ensure_embedded_assets(default_assets_node);
+	}
+}

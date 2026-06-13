@@ -121,6 +121,26 @@ namespace sfg
 		}
 	}
 
+	bool editor_asset_cooker_t::is_asset_cooked(const editor_asset_t& asset)
+	{
+		if (!is_cookable(asset.asset_type))
+			return false;
+
+		const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+		if (!file_system_t::exists(cache_path.c_str()))
+			return false;
+
+		istream_t					stream		  = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
+		const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
+		SFG_ASSERT(resource_desc != nullptr);
+		if (stream.empty())
+			return false;
+
+		resource_header_t header = {};
+		header.deserialize(stream);
+		return header.magic == resource_desc->wire_magic && header.version == resource_desc->wire_version;
+	}
+
 	bool editor_asset_cooker_t::cook_audio(const editor_asset_t& asset)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::audio);
