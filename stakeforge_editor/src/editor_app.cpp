@@ -275,6 +275,8 @@ namespace sfg
 		_payload_controller.init(_surfaces.get(payload_surface));
 		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
 
+		editor_global_toolbar_t::get().init();
+
 		const editor_layout_t& layout = editor_settings_t::get().layout;
 		if (layout.windows.empty())
 		{
@@ -343,8 +345,6 @@ namespace sfg
 		_world_controller.install_default_world(main_world);
 		_world_controller.set_main_world(main_world);
 		set_main_world_to_panel();
-
-		editor_global_toolbar_t::get().init();
 
 		_close = false;
 

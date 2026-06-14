@@ -99,6 +99,7 @@ namespace sfg
 		u64						  next_gfx0_done_semaphore_value(u8 frame_index) const;
 		gpu_index_t				  get_world_texture_index(u8 frame_index) const;
 		gpu_index_t				  get_lighting_texture_index(u8 frame_index) const;
+		gpu_index_t				  get_post_process_texture_index(u8 frame_index) const;
 		gpu_index_t				  get_opaque_render_pass_data_index(u8 frame_index) const;
 		gpu_index_t				  get_lighting_render_pass_data_index(u8 frame_index) const;
 		gpu_index_t				  get_post_process_render_pass_data_index(u8 frame_index) const;

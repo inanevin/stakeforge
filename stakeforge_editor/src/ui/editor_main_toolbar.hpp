@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/editor_global_toolbar.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -37,18 +38,6 @@ namespace sfg::ui
 
 namespace sfg
 {
-	enum class editor_main_toolbar_world_view_e : u8
-	{
-		invalid,
-		final,
-		gbuffer_albedo,
-		gbuffer_orm,
-		gbuffer_normal,
-		gbuffer_emissive,
-		lighting,
-		post_process,
-	};
-
 	class editor_main_toolbar_t final
 	{
 	public:
@@ -83,7 +72,7 @@ namespace sfg
 
 		inline editor_main_toolbar_world_view_e get_world_view() const
 		{
-			return _world_view;
+			return editor_global_toolbar_t::get().get_world_view();
 		}
 
 	private:
@@ -91,11 +80,10 @@ namespace sfg
 		static void on_world_view_pressed(u16 value, void* user_data);
 
 	private:
-		ui::ui_context*					 _ui		  = nullptr;
-		ui::widget_id_t					 _root		  = NULL_WIDGET;
-		ui::widget_id_t					 _world_label = NULL_WIDGET;
-		editor_dropdown_t				 _world_view_dropdown;
-		editor_main_toolbar_world_view_e _world_view = editor_main_toolbar_world_view_e::final;
+		ui::ui_context*	  _ui		   = nullptr;
+		ui::widget_id_t	  _root		   = NULL_WIDGET;
+		ui::widget_id_t	  _world_label = NULL_WIDGET;
+		editor_dropdown_t _world_view_dropdown;
 	};
 
 	void to_json(nlohmann::json& j, const editor_main_toolbar_world_view_e& view);

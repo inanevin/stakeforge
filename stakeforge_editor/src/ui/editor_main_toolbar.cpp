@@ -117,20 +117,20 @@ namespace sfg
 		_ui			 = nullptr;
 		_root		 = NULL_WIDGET;
 		_world_label = NULL_WIDGET;
-		_world_view	 = editor_main_toolbar_world_view_e::final;
 	}
 
 	void editor_main_toolbar_t::serialize(nlohmann::json& j) const
 	{
 		j				= nlohmann::json::object();
-		j["world_view"] = _world_view;
+		j["world_view"] = editor_global_toolbar_t::get().get_world_view();
 	}
 
 	void editor_main_toolbar_t::deserialize(const nlohmann::json& j)
 	{
-		_world_view = j.value<editor_main_toolbar_world_view_e>("world_view", editor_main_toolbar_world_view_e::final);
-		if (_world_view == editor_main_toolbar_world_view_e::invalid)
-			_world_view = editor_main_toolbar_world_view_e::final;
+		editor_main_toolbar_world_view_e world_view = j.value<editor_main_toolbar_world_view_e>("world_view", editor_main_toolbar_world_view_e::final);
+		if (world_view == editor_main_toolbar_world_view_e::invalid)
+			world_view = editor_main_toolbar_world_view_e::final;
+		editor_global_toolbar_t::get().set_world_view(world_view);
 		if (_ui != nullptr)
 			_world_view_dropdown.refresh_title();
 	}
@@ -141,14 +141,14 @@ namespace sfg
 		return !(pos.x >= root.x && pos.x <= root.x + root.z && pos.y >= root.y && pos.y <= root.y + root.w);
 	}
 
-	u16 editor_main_toolbar_t::get_selected_world_view(void* user_data)
+	u16 editor_main_toolbar_t::get_selected_world_view(void*)
 	{
-		return static_cast<u16>(static_cast<editor_main_toolbar_t*>(user_data)->_world_view);
+		return static_cast<u16>(editor_global_toolbar_t::get().get_world_view());
 	}
 
-	void editor_main_toolbar_t::on_world_view_pressed(u16 value, void* user_data)
+	void editor_main_toolbar_t::on_world_view_pressed(u16 value, void*)
 	{
-		static_cast<editor_main_toolbar_t*>(user_data)->_world_view = static_cast<editor_main_toolbar_world_view_e>(value);
+		editor_global_toolbar_t::get().set_world_view(static_cast<editor_main_toolbar_world_view_e>(value));
 	}
 
 	void to_json(nlohmann::json& j, const editor_main_toolbar_world_view_e& view)

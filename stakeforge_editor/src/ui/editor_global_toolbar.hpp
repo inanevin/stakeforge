@@ -27,16 +27,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
+
 namespace sfg
 {
+	enum class editor_main_toolbar_world_view_e : u8
+	{
+		invalid,
+		final,
+		gbuffer_albedo,
+		gbuffer_orm,
+		gbuffer_normal,
+		gbuffer_emissive,
+		lighting,
+		post_process,
+	};
+
 	class editor_global_toolbar_t final
 	{
 	public:
-		editor_global_toolbar_t()										   = default;
-		~editor_global_toolbar_t()										   = default;
-		editor_global_toolbar_t(const editor_global_toolbar_t&)			   = delete;
-		editor_global_toolbar_t& operator=(const editor_global_toolbar_t&) = delete;
-
 		inline static editor_global_toolbar_t& get()
 		{
 			static editor_global_toolbar_t s_instance;
@@ -52,12 +61,28 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+		inline void set_world_view(editor_main_toolbar_world_view_e view)
+		{
+			_world_view = view;
+		}
+
+		inline editor_main_toolbar_world_view_e get_world_view() const
+		{
+			return _world_view;
+		}
+
 		inline bool is_inited() const
 		{
 			return _inited;
 		}
 
 	private:
-		bool _inited = false;
+		editor_global_toolbar_t()										   = default;
+		~editor_global_toolbar_t()										   = default;
+		editor_global_toolbar_t(const editor_global_toolbar_t&)			   = delete;
+		editor_global_toolbar_t& operator=(const editor_global_toolbar_t&) = delete;
+
+		editor_main_toolbar_world_view_e _world_view = editor_main_toolbar_world_view_e::final;
+		bool							 _inited	 = false;
 	};
 }

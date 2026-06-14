@@ -274,6 +274,12 @@ namespace sfg
 		return _pfd[frame_index].lighting_texture_index;
 	}
 
+	gpu_index_t world_render_context_t::get_post_process_texture_index(u8 frame_index) const
+	{
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+		return _pfd[frame_index].post_process_texture_index;
+	}
+
 	gpu_index_t world_render_context_t::get_opaque_render_pass_data_index(u8 frame_index) const
 	{
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);

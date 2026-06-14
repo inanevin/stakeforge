@@ -48,7 +48,13 @@ namespace sfg
 		vec4f_t get_world_view_bounds() const;
 
 	private:
-		ui::widget_id_t _world_view	 = NULL_WIDGET;
-		ui::widget_id_t _empty_label = NULL_WIDGET;
+		void refresh_world_texture();
+
+		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+
+	private:
+		const world_render_context_t* _world	   = nullptr;
+		ui::widget_id_t				  _world_view  = NULL_WIDGET;
+		ui::widget_id_t				  _empty_label = NULL_WIDGET;
 	};
 }

@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_world.hpp"
+#include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
@@ -47,6 +48,28 @@ namespace sfg
 			for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
 				ref.gpu_indices[i] = NULL_GPU_INDEX;
 			return ref;
+		}
+
+		gpu_index_t get_world_view_gpu_index(const world_render_context_t& world, editor_main_toolbar_world_view_e view, u8 frame_index)
+		{
+			switch (view)
+			{
+			case editor_main_toolbar_world_view_e::gbuffer_albedo:
+				return world.get_gbuffer_albedo_index(frame_index);
+			case editor_main_toolbar_world_view_e::gbuffer_orm:
+				return world.get_gbuffer_orm_index(frame_index);
+			case editor_main_toolbar_world_view_e::gbuffer_normal:
+				return world.get_gbuffer_normal_index(frame_index);
+			case editor_main_toolbar_world_view_e::gbuffer_emissive:
+				return world.get_gbuffer_emissive_index(frame_index);
+			case editor_main_toolbar_world_view_e::lighting:
+				return world.get_lighting_texture_index(frame_index);
+			case editor_main_toolbar_world_view_e::post_process:
+				return world.get_post_process_texture_index(frame_index);
+			case editor_main_toolbar_world_view_e::final:
+			default:
+				return world.get_world_texture_index(frame_index);
+			}
 		}
 	}
 
@@ -83,6 +106,7 @@ namespace sfg
 		state.constants[0]			= make_null_world_texture_ref();
 
 		paint.set_rect(_world_view, rect, state);
+		ui.set_pre_layout_tick(_world_view, on_world_view_tick, this);
 
 		_empty_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_empty_label, "empty_label");
@@ -107,6 +131,7 @@ namespace sfg
 	{
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
+		_world		 = nullptr;
 		_empty_label = NULL_WIDGET;
 		_world_view	 = NULL_WIDGET;
 		editor_panel_t::uninit();
@@ -117,16 +142,8 @@ namespace sfg
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 
-		ui::ui_resource_ref_t texture_ref = {
-			.handle = NULL_RESOURCE_HANDLE,
-			.type	= ui::ui_resource_type_e::gpu_index_fof,
-		};
-		for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
-			texture_ref.gpu_indices[i] = world.get_world_texture_index(i);
-
-		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
-		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-		def.render_state.constants[0] = texture_ref;
+		_world = &world;
+		refresh_world_texture();
 
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_world_view, true);
@@ -141,6 +158,7 @@ namespace sfg
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
 		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		def.render_state.constants[0] = make_null_world_texture_ref();
+		_world						  = nullptr;
 
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_world_view, false);
@@ -152,5 +170,31 @@ namespace sfg
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 		return _ui->get_tree().bounds(_world_view);
+	}
+
+	void editor_panel_world_t::refresh_world_texture()
+	{
+		SFG_ASSERT(_ui != nullptr);
+		SFG_ASSERT(_world_view != NULL_WIDGET);
+		SFG_ASSERT(_world != nullptr);
+
+		ui::ui_resource_ref_t texture_ref = {
+			.handle = NULL_RESOURCE_HANDLE,
+			.type	= ui::ui_resource_type_e::gpu_index_fof,
+		};
+		const editor_main_toolbar_world_view_e world_view = editor_global_toolbar_t::get().get_world_view();
+		for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
+			texture_ref.gpu_indices[i] = get_world_view_gpu_index(*_world, world_view, i);
+
+		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
+		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
+		def.render_state.constants[0] = texture_ref;
+	}
+
+	void editor_panel_world_t::on_world_view_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	{
+		editor_panel_world_t& panel = *static_cast<editor_panel_world_t*>(user_data);
+		if (panel._world != nullptr)
+			panel.refresh_world_texture();
 	}
 }
