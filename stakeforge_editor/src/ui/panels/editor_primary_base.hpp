@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/docking/dock_widget.hpp"
+#include "ui/editor_main_toolbar.hpp"
 #include "ui/widgets/editor_widgets_file_menu.hpp"
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -95,6 +96,14 @@ namespace sfg
 		{
 			return _dock_widget;
 		}
+		inline editor_main_toolbar_t& get_main_toolbar()
+		{
+			return _main_toolbar;
+		}
+		inline const editor_main_toolbar_t& get_main_toolbar() const
+		{
+			return _main_toolbar;
+		}
 
 	private:
 		ui::ui_context*				   _ui				= nullptr;
@@ -107,6 +116,7 @@ namespace sfg
 		ui::widget_id_t				   _label_wrap		= NULL_WIDGET;
 		dock_widget_t				   _dock_widget;
 		editor_file_menu_t			   _file_menu;
+		editor_main_toolbar_t		   _main_toolbar;
 		editor_project_prompt_action_e _pending_project_prompt_action = editor_project_prompt_action_e::none;
 
 		static void on_no_project_open(void* user_data);

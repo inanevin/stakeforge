@@ -605,6 +605,8 @@ namespace sfg
 			util_in.size_mode_x		 = ui::axis_mode_e::fill;
 			util_in.size_mode_y		 = ui::axis_mode_e::fill;
 			util_in.size_value		 = {1.0f, 1.0f};
+
+			_main_toolbar.init(ui, top_mid_util);
 		}
 
 		// top-right
@@ -716,6 +718,7 @@ namespace sfg
 	void editor_primary_base_t::uninit()
 	{
 		_dock_widget.uninit();
+		_main_toolbar.uninit();
 		_file_menu.uninit();
 
 		_ui->deallocate_widget(_base);
@@ -755,7 +758,7 @@ namespace sfg
 
 		const vec4f_t util = _ui->get_tree().bounds(_top_mid_util);
 		if (p.x >= util.x && p.x <= util.x + util.z && p.y >= util.y && p.y <= util.y + util.w)
-			return true;
+			return _main_toolbar.is_window_drag_region(p);
 
 		const vec4f_t label = _ui->get_tree().bounds(_label_wrap);
 		return p.x >= label.x && p.x <= label.x + label.z && p.y >= label.y && p.y <= label.y + label.w;

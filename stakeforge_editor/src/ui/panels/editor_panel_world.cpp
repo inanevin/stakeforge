@@ -146,4 +146,11 @@ namespace sfg
 		tree.set_visible(_world_view, false);
 		tree.set_visible(_empty_label, true);
 	}
+
+	vec4f_t editor_panel_world_t::get_world_view_bounds() const
+	{
+		SFG_ASSERT(_ui != nullptr);
+		SFG_ASSERT(_world_view != NULL_WIDGET);
+		return _ui->get_tree().bounds(_world_view);
+	}
 }

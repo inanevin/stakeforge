@@ -92,12 +92,14 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const editor_layout_window_t& window)
 	{
-		const nlohmann::json dock_layout = nlohmann::json::parse(window.dock_layout, nullptr, false);
-		j["pos"]						 = nlohmann::json::array_t({window.pos.x, window.pos.y});
-		j["size"]						 = vec2u16_to_json(window.size);
-		j["is_primary"]					 = window.is_primary;
-		j["maximized"]					 = window.maximized;
-		j["dock_layout"]				 = dock_layout.is_object() ? dock_layout : nlohmann::json::object();
+		const nlohmann::json dock_layout  = nlohmann::json::parse(window.dock_layout, nullptr, false);
+		const nlohmann::json main_toolbar = nlohmann::json::parse(window.main_toolbar, nullptr, false);
+		j["pos"]						  = nlohmann::json::array_t({window.pos.x, window.pos.y});
+		j["size"]						  = vec2u16_to_json(window.size);
+		j["is_primary"]					  = window.is_primary;
+		j["maximized"]					  = window.maximized;
+		j["dock_layout"]				  = dock_layout.is_object() ? dock_layout : nlohmann::json::object();
+		j["main_toolbar"]				  = main_toolbar.is_object() ? main_toolbar : nlohmann::json::object();
 	}
 
 	void to_json(nlohmann::json& j, const editor_layout_t& layout)
@@ -117,6 +119,9 @@ namespace sfg
 
 		const nlohmann::json dock_layout = j.value("dock_layout", nlohmann::json::object());
 		window.dock_layout				 = dock_layout.is_object() ? string_t(dock_layout.dump()) : string_t("{}");
+
+		const nlohmann::json main_toolbar = j.value("main_toolbar", nlohmann::json::object());
+		window.main_toolbar				  = main_toolbar.is_object() ? string_t(main_toolbar.dump()) : string_t("{}");
 	}
 
 	void from_json(const nlohmann::json& j, editor_layout_t& layout)

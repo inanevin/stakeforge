@@ -27,17 +27,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "common_editor.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
 	class engine_runtime_t;
 	class world_t;
+	struct window_event_t;
+	struct window_runtime_t;
 
 	class editor_world_controller_t final
 	{
@@ -65,6 +71,7 @@ namespace sfg
 		void		   install_default_world(world_handle_t handle);
 		void		   load_all_world_resources(world_handle_t handle);
 		void		   set_main_world(world_handle_t handle);
+		bool		   on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -72,6 +79,7 @@ namespace sfg
 		const world_render_context_t& get_world_render_context(world_handle_t handle) const;
 		world_handle_t				  get_main_world() const;
 		f32							  get_alpha() const;
+		bool						  is_world_panel_focused() const;
 
 	private:
 		struct world_container_t
@@ -99,14 +107,24 @@ namespace sfg
 		const world_render_snapshot_t& acquire_render_snapshot(world_container_t& container);
 		f32							   calculate_render_alpha() const;
 		void						   install_editor_camera(world_t& world);
+		void						   reset_camera_input();
+		void						   tick_editor_camera(f32 dt_seconds);
 
 		engine_runtime_t*			_runtime = nullptr;
 		vector_t<world_container_t> _worlds;
-		world_handle_t				_main_world			= {};
-		i64							_previous_time_us	= 0;
-		i64							_accumulator_us		= 0;
-		atomic_t<i64>				_last_fixed_step_us = 0;
-		atomic_t<i64>				_fixed_step_us		= 0;
-		u32							_world_physics_rate = 100;
+		vec3f_t						_direction_input	  = vec3f_t::zero;
+		vec2f_t						_mouse_delta		  = vec2f_t::zero;
+		world_handle_t				_main_world			  = {};
+		entity_id_t					_main_camera_entity	  = NULL_ENTITY_ID;
+		i64							_previous_time_us	  = 0;
+		i64							_accumulator_us		  = 0;
+		atomic_t<i64>				_last_fixed_step_us	  = 0;
+		atomic_t<i64>				_fixed_step_us		  = 0;
+		f32							_camera_yaw_degrees	  = 0.0f;
+		f32							_camera_pitch_degrees = 0.0f;
+		f32							_current_move_speed	  = 12.0f;
+		u32							_world_physics_rate	  = 100;
+		bool						_world_panel_focused  = false;
+		bool						_is_looking			  = false;
 	};
 }

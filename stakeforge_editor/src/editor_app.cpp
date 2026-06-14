@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -107,14 +108,19 @@ namespace sfg
 
 	void editor_app_t::on_window_event(void*, const window_event_t& ev, void* user_data)
 	{
-		window_runtime_t& runtime = *static_cast<window_runtime_t*>(user_data);
-		editor_surface_t& surface = editor_app_t::get().get_surface_by_runtime(runtime);
-		ui::ui_context&	  ui	  = *surface.ui;
+		window_runtime_t&	   runtime		  = *static_cast<window_runtime_t*>(user_data);
+		editor_app_t&		   app			  = editor_app_t::get();
+		const surface_handle_t surface_handle = app.get_surface_handle_by_runtime(runtime);
+		editor_surface_t&	   surface		  = app._surfaces.get(surface_handle);
+		ui::ui_context&		   ui			  = *surface.ui;
 
 		switch (ev.type)
 		{
 		case window_event_type_e::delta:
 		case window_event_type_e::mouse: {
+			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+				return;
+
 			const vec2i16_t mp = runtime.mouse_position;
 			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
 
@@ -128,11 +134,17 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::wheel: {
+			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+				return;
+
 			const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
 			ui.on_wheel(delta);
 			break;
 		}
 		case window_event_type_e::key: {
+			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+				return;
+
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
 			if (ev.button == static_cast<u16>(input_code::key_f4) && ev.sub_type == window_event_sub_type_e::press)
@@ -165,6 +177,9 @@ namespace sfg
 			ui.on_key(k);
 			break;
 		}
+		case window_event_type_e::focus:
+			app._world_controller.on_window_event(surface_handle, runtime, ev);
+			break;
 		default:
 			break;
 		}
@@ -289,6 +304,7 @@ namespace sfg
 			const surface_handle_t primary_handle = create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_type_e::primary);
 			process::set_window_maximized(_surfaces.get(primary_handle).runtime->window_handle, primary_window->maximized);
 			load_surface_dock_layout(_surfaces.get(primary_handle), primary_window->dock_layout);
+			load_primary_main_toolbar(_surfaces.get(primary_handle), primary_window->main_toolbar);
 
 			for (const editor_layout_window_t& window : layout.windows)
 			{
@@ -328,6 +344,8 @@ namespace sfg
 		_world_controller.set_main_world(main_world);
 		set_main_world_to_panel();
 
+		editor_global_toolbar_t::get().init();
+
 		_close = false;
 
 		tick();
@@ -344,6 +362,7 @@ namespace sfg
 		_editor_resource_pack.uninit();
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
+		editor_global_toolbar_t::get().uninit();
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
 		_surfaces.resize_zero();
@@ -364,6 +383,17 @@ namespace sfg
 			surface.primary->get_dock_widget().from_json(doc);
 		else if (surface.type == editor_surface_type_e::secondary)
 			surface.secondary->get_dock_widget().from_json(doc);
+	}
+
+	void editor_app_t::load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar)
+	{
+		SFG_ASSERT(surface.type == editor_surface_type_e::primary);
+
+		const nlohmann::json doc = nlohmann::json::parse(main_toolbar, nullptr, false);
+		if (doc.is_discarded() || !doc.is_object())
+			return;
+
+		surface.primary->get_main_toolbar().deserialize(doc);
 	}
 
 	void editor_app_t::set_debug_mode(bool enabled)
@@ -471,7 +501,12 @@ namespace sfg
 			window.is_primary			  = surface.type == editor_surface_type_e::primary;
 			window.maximized			  = surface.runtime->has_flag(window_runtime_flags_e::maximized);
 			if (surface.type == editor_surface_type_e::primary)
-				window.dock_layout = string_t(surface.primary->get_dock_widget().to_json().dump());
+			{
+				window.dock_layout			= string_t(surface.primary->get_dock_widget().to_json().dump());
+				nlohmann::json main_toolbar = {};
+				surface.primary->get_main_toolbar().serialize(main_toolbar);
+				window.main_toolbar = string_t(main_toolbar.dump());
+			}
 			else if (surface.type == editor_surface_type_e::secondary)
 				window.dock_layout = string_t(surface.secondary->get_dock_widget().to_json().dump());
 			if (window.is_primary)
@@ -557,6 +592,11 @@ namespace sfg
 		return nullptr;
 	}
 
+	editor_panel_t* editor_app_t::find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle)
+	{
+		return find_panel_in_surface(_surfaces.get(surface_handle), type);
+	}
+
 	void editor_app_t::show_panel(editor_panel_type_e type, surface_handle_t surface_handle)
 	{
 		editor_panel_t* panel = find_panel(type, surface_handle);
@@ -627,13 +667,20 @@ namespace sfg
 
 	editor_surface_t& editor_app_t::get_surface_by_runtime(window_runtime_t& runtime)
 	{
-		for (editor_surface_t& surface : _surfaces)
+		return _surfaces.get(get_surface_handle_by_runtime(runtime));
+	}
+
+	surface_handle_t editor_app_t::get_surface_handle_by_runtime(window_runtime_t& runtime)
+	{
+		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 		{
+			const surface_handle_t handle  = *it;
+			editor_surface_t&	   surface = _surfaces.get(handle);
 			if (surface.runtime.get() == &runtime)
-				return surface;
+				return handle;
 		}
 		SFG_ASSERT(false);
-		return *_surfaces.begin();
+		return _surfaces.begin_handle() != _surfaces.end_handle() ? *_surfaces.begin_handle() : surface_handle_t{};
 	}
 
 	void editor_app_t::tick()
@@ -747,6 +794,7 @@ namespace sfg
 			_surfaces.remove(handle);
 			return {};
 		}
+		surface.runtime->set_flag(window_runtime_flags_e::high_frequency_input);
 
 		surface.ui = make_unique<ui::ui_context>();
 		surface.ui->init({

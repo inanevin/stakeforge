@@ -44,6 +44,7 @@ namespace sfg
 		bool	  is_primary = false;
 		bool	  maximized	 = false;
 		string_t  dock_layout;
+		string_t  main_toolbar;
 	};
 
 	struct editor_layout_t

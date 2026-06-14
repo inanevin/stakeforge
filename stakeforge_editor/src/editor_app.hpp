@@ -72,6 +72,7 @@ namespace sfg
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
 		editor_panel_t*	  find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		editor_panel_t*	  find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
 		void			  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
 		void			  set_main_world_to_panel();
 		editor_surface_t& get_main_surface();
@@ -86,8 +87,10 @@ namespace sfg
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
 		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
+		void			  load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar);
 		void			  unload_current_project();
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
+		surface_handle_t  get_surface_handle_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);
 		static void		  on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
 		static bool		  on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void* user_data);
