@@ -118,14 +118,15 @@ namespace sfg
 		{
 		case window_event_type_e::delta:
 		case window_event_type_e::mouse: {
+			const vec2i16_t mp = runtime.mouse_position;
+			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
+
 			const bool modal_active = app.is_any_modal_active();
-			if (modal_active)
+			const bool popup_active = ui.get_input().is_popup_scope_active();
+			if (modal_active || popup_active)
 				app._world_controller.reset_input(runtime);
 			else if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
-
-			const vec2i16_t mp = runtime.mouse_position;
-			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
 
 			if (ev.type == window_event_type_e::mouse)
 			{
@@ -138,7 +139,8 @@ namespace sfg
 		}
 		case window_event_type_e::wheel: {
 			const bool modal_active = app.is_any_modal_active();
-			if (modal_active)
+			const bool popup_active = ui.get_input().is_popup_scope_active();
+			if (modal_active || popup_active)
 				app._world_controller.reset_input(runtime);
 			else if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
@@ -151,7 +153,10 @@ namespace sfg
 			if (app._command_system.on_window_event(ev))
 				return;
 
-			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+			const bool popup_active = ui.get_input().is_popup_scope_active();
+			if (popup_active)
+				app._world_controller.reset_input(runtime);
+			else if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
 
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
