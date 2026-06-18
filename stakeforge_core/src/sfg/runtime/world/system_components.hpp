@@ -37,7 +37,9 @@ namespace sfg
 {
 	struct component_system_transform_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_system_transform"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_system_transform"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_system_transform";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = true;
 
 		mat4x3_t prev_abs_mat		= mat4x3_t::identity;
 		mat4x3_t abs_mat			= mat4x3_t::identity;

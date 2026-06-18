@@ -56,17 +56,21 @@ namespace sfg
 	{
 		enum entity_action_menu_command_e : u16
 		{
-			entity_action_menu_create = 1,
+			entity_action_menu_create_empty = 1,
 			entity_action_menu_duplicate,
 			entity_action_menu_delete,
 		};
 
+		editor_action_menu_row_desc_t ENTITY_CREATE_ROWS[] = {
+			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
+		};
+
 		editor_action_menu_row_desc_t ENTITY_EMPTY_ACTION_MENU_ROWS[] = {
-			{.text = "Create Entity", .command = entity_action_menu_create},
+			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
 		};
 
 		editor_action_menu_row_desc_t ENTITY_ROW_ACTION_MENU_ROWS[] = {
-			{.text = "Create Entity", .command = entity_action_menu_create},
+			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
 			{.text = "Duplicate Entity", .command = entity_action_menu_duplicate},
 			{.text = "Delete Entity", .command = entity_action_menu_delete},
 		};
@@ -537,14 +541,14 @@ namespace sfg
 	void editor_panel_entities_t::on_empty_action_menu_command(u16 command, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		if (command == entity_action_menu_create)
+		if (command == entity_action_menu_create_empty)
 			panel.create_entity(NULL_ENTITY_ID);
 	}
 
 	void editor_panel_entities_t::on_entity_action_menu_command(u16 command, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		if (command == entity_action_menu_create)
+		if (command == entity_action_menu_create_empty)
 			panel.create_entity(panel._action_menu_entity);
 		else if (command == entity_action_menu_duplicate)
 			panel.duplicate_entity(panel._action_menu_entity);

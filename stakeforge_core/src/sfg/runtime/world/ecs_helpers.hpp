@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 
+#include <cstring>
 #include <type_traits>
 
 namespace sfg
@@ -45,7 +46,7 @@ namespace sfg
 
 		template <typename T> static void table_init(ecs_component_table_t& table)
 		{
-			ecs_t::table_init(table, {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)});
+			ecs_t::table_init(table, make_component_desc<T>());
 		}
 
 		template <typename T> static ecs_component_type_desc_t make_component_desc()
@@ -53,7 +54,7 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)};
+			return make_component_desc(T::TYPE_ID, sizeof(T), alignof(T), ecs_component_type_flags_none, T::IS_SYSTEM_COMPONENT, T::DEBUG_NAME);
 		}
 
 		template <typename T> static ecs_component_type_desc_t make_tag_component_desc()
@@ -61,12 +62,12 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return {.type_id = T::TYPE_ID, .size = 0, .alignment = 1, .flags = ecs_component_type_flags_tag};
+			return make_component_desc(T::TYPE_ID, 0, 1, ecs_component_type_flags_tag, T::IS_SYSTEM_COMPONENT, T::DEBUG_NAME);
 		}
 
-		static void table_init_tag(ecs_component_table_t& table, sid_t type_id)
+		static void table_init_tag(ecs_component_table_t& table, sid_t type_id, bool is_system_component, const char* debug_name)
 		{
-			ecs_t::table_init(table, {.type_id = type_id, .size = 0, .alignment = 1, .flags = ecs_component_type_flags_tag});
+			ecs_t::table_init(table, make_component_desc(type_id, 0, 1, ecs_component_type_flags_tag, is_system_component, debug_name));
 		}
 
 		template <typename T> static T& table_get_as(const ecs_component_table_t& table, entity_id_t id)
@@ -143,6 +144,24 @@ namespace sfg
 		{
 			T* ptr = reinterpret_cast<T*>(row.components[index]);
 			return *ptr;
+		}
+
+	private:
+		static ecs_component_type_desc_t make_component_desc(sid_t type_id, size_t size, size_t alignment, bitmask_t<u32> flags, bool is_system_component, const char* debug_name)
+		{
+			flags.set(ecs_component_type_flags_system, is_system_component);
+			ecs_component_type_desc_t desc{
+				.type_id   = type_id,
+				.size	   = static_cast<u32>(size),
+				.alignment = static_cast<u32>(alignment),
+				.flags	   = flags,
+			};
+
+			const size_t debug_name_len = std::strlen(debug_name);
+			const size_t debug_name_n	= debug_name_len < sizeof(desc.debug_name) - 1 ? debug_name_len : sizeof(desc.debug_name) - 1;
+			std::memcpy(desc.debug_name, debug_name, debug_name_n);
+			desc.debug_name[debug_name_n] = '\0';
+			return desc;
 		}
 	};
 }

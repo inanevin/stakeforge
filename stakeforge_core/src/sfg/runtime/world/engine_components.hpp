@@ -37,7 +37,9 @@ namespace sfg
 {
 	struct component_hierarchy_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_hierarchy"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_hierarchy"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_hierarchy";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		entity_id_t first_child	 = NULL_ENTITY_ID;
 		entity_id_t parent		 = NULL_ENTITY_ID;
@@ -47,7 +49,9 @@ namespace sfg
 
 	struct component_transform_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_transform"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_transform"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_transform";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		vec3f_t pos	  = vec3f_t::zero;
 		quat_t	rot	  = {};
@@ -56,14 +60,18 @@ namespace sfg
 
 	struct component_name_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_name"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_name"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_name";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		u32 text_index = ECS_INVALID_INDEX;
 	};
 
 	struct component_mesh_renderer_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_mesh_renderer"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_mesh_renderer"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_mesh_renderer";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		resource_handle_t mesh	   = NULL_RESOURCE_HANDLE;
 		resource_handle_t material = NULL_RESOURCE_HANDLE;
@@ -71,14 +79,18 @@ namespace sfg
 
 	struct component_render_object_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_render_object"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_render_object"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_render_object";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		u32 render_id = 0;
 	};
 
 	struct component_camera_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_camera"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_camera"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_camera";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		f32 fov_degrees = 60.0f;
 		f32 near_plane	= 0.1f;
@@ -88,7 +100,9 @@ namespace sfg
 
 	struct component_skybox_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_skybox"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_skybox"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_skybox";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 
 		resource_handle_t skybox_asset = NULL_RESOURCE_HANDLE;
 		f32				  intensity	   = 1.0f;
@@ -97,17 +111,23 @@ namespace sfg
 
 	struct component_alive_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_alive"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_alive"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_alive";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 	};
 
 	struct component_disabled_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_disabled"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_disabled"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_disabled";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 	};
 
 	struct component_no_serialize_t
 	{
-		static inline constexpr sid_t TYPE_ID = "component_no_serialize"_hs;
+		static inline constexpr sid_t		TYPE_ID				= "component_no_serialize"_hs;
+		static inline constexpr const char* DEBUG_NAME			= "component_no_serialize";
+		static inline constexpr bool		IS_SYSTEM_COMPONENT = false;
 	};
 
 	struct engine_component_reflection_t

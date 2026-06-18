@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world.hpp>
 
 #include <cstring>
+#include <limits>
 
 namespace sfg
 {
@@ -54,6 +55,47 @@ namespace sfg
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(stream.get_size(), alignof(u8));
 			SFG_MEMCPY(system.get_aux_data().get<u8>(handle), stream.get_raw(), stream.get_size());
 			return handle;
+		}
+
+		chunk_handle32_t copy_entities_to_aux(editor_command_system_t& system, const frame_vector_t<entity_id_t>& entities)
+		{
+			entity_id_t*		   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(entities.size(), dst);
+			SFG_MEMCPY(dst, entities.data(), sizeof(entity_id_t) * entities.size());
+			return handle;
+		}
+
+		chunk_handle32_t create_entity_array(editor_command_system_t& system, size_t count, entity_id_t value)
+		{
+			entity_id_t*		   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(count, dst);
+			for (size_t i = 0; i < count; ++i)
+				dst[i] = value;
+			return handle;
+		}
+
+		chunk_handle32_t create_stream_array(editor_command_system_t& system, size_t count)
+		{
+			SFG_ASSERT(count <= std::numeric_limits<size_t>::max() / sizeof(chunk_handle32_t));
+			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(sizeof(chunk_handle32_t) * count, alignof(chunk_handle32_t));
+			SFG_MEMSET(system.get_aux_data().get<chunk_handle32_t>(handle), 0, handle.size);
+			return handle;
+		}
+
+		void free_streams(editor_command_system_t& system, chunk_handle32_t streams_handle, u32 count)
+		{
+			if (!streams_handle)
+				return;
+
+			chunk_handle32_t* streams = system.get_aux_data().get<chunk_handle32_t>(streams_handle);
+			for (u32 i = 0; i < count; ++i)
+			{
+				if (streams[i])
+				{
+					system.get_aux_data().free(streams[i]);
+					streams[i] = {};
+				}
+			}
 		}
 
 		bool create_entity_undo(editor_command_system_t& system, editor_command_t& command)
@@ -78,59 +120,96 @@ namespace sfg
 
 		bool duplicate_entity_undo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_command_duplicate_entity_payload_t& payload = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-			world_t&								   world   = get_world(payload.world);
-			world.destroy_entity(payload.entity);
-			payload.entity = NULL_ENTITY_ID;
+			editor_command_duplicate_entity_payload_t& payload	= system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
+			world_t&								   world	= get_world(payload.world);
+			entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			for (u32 i = payload.count; i-- > 0;)
+			{
+				world.destroy_entity(entities[i]);
+				entities[i] = NULL_ENTITY_ID;
+			}
 			return true;
 		}
 
 		bool duplicate_entity_cleanup(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_duplicate_entity_payload_t& payload = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-			if (payload.stream)
+			free_streams(system, payload.streams, payload.count);
+			if (payload.streams)
 			{
-				system.get_aux_data().free(payload.stream);
-				payload.stream = {};
+				system.get_aux_data().free(payload.streams);
+				payload.streams = {};
+			}
+			if (payload.sources)
+			{
+				system.get_aux_data().free(payload.sources);
+				payload.sources = {};
+			}
+			if (payload.entities)
+			{
+				system.get_aux_data().free(payload.entities);
+				payload.entities = {};
 			}
 			return true;
 		}
 
 		bool duplicate_entity_redo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_command_duplicate_entity_payload_t& payload = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-			world_t&								   world   = get_world(payload.world);
-			if (!payload.stream)
+			editor_command_duplicate_entity_payload_t& payload	= system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
+			world_t&								   world	= get_world(payload.world);
+			const entity_id_t*						   sources	= system.get_aux_data().get<entity_id_t>(payload.sources);
+			entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			chunk_handle32_t*						   streams	= system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+
+			for (u32 i = 0; i < payload.count; ++i)
 			{
-				ostream_t stream;
-				world.entity_to_stream(payload.source, stream);
-				payload.stream = copy_stream_to_aux(system, stream);
+				if (!streams[i])
+				{
+					ostream_t stream;
+					world.entity_to_stream(sources[i], stream);
+					streams[i] = copy_stream_to_aux(system, stream);
+				}
+
+				if (!streams[i])
+				{
+					for (u32 j = i; j-- > 0;)
+					{
+						world.destroy_entity(entities[j]);
+						entities[j] = NULL_ENTITY_ID;
+					}
+					return false;
+				}
+
+				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
+				const entity_id_t entity = world.entity_from_stream(stream);
+				if (entity == NULL_ENTITY_ID)
+				{
+					for (u32 j = i; j-- > 0;)
+					{
+						world.destroy_entity(entities[j]);
+						entities[j] = NULL_ENTITY_ID;
+					}
+					return false;
+				}
+
+				entities[i] = entity;
 			}
-
-			if (!payload.stream)
-				return false;
-
-			istream_t		  stream(system.get_aux_data().get<u8>(payload.stream), payload.stream.size);
-			const entity_id_t entity = world.entity_from_stream(stream);
-			if (entity == NULL_ENTITY_ID)
-				return false;
-
-			payload.entity = entity;
 			return true;
 		}
 
 		bool destroy_entity_undo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_command_destroy_entity_payload_t& payload = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
-			world_t&								 world	 = get_world(payload.world);
-			istream_t								 stream;
-			if (payload.stream)
-				stream.open(system.get_aux_data().get<u8>(payload.stream), payload.stream.size);
-			world.entity_from_stream(stream);
-			if (payload.stream)
+			editor_command_destroy_entity_payload_t& payload  = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
+			world_t&								 world	  = get_world(payload.world);
+			entity_id_t*							 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+			for (u32 i = payload.count; i-- > 0;)
 			{
-				system.get_aux_data().free(payload.stream);
-				payload.stream = {};
+				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
+				const entity_id_t entity = world.entity_from_stream(stream);
+				system.get_aux_data().free(streams[i]);
+				streams[i]	= {};
+				entities[i] = entity;
 			}
 			return true;
 		}
@@ -138,22 +217,33 @@ namespace sfg
 		bool destroy_entity_cleanup(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_destroy_entity_payload_t& payload = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
-			if (payload.stream)
+			free_streams(system, payload.streams, payload.count);
+			if (payload.streams)
 			{
-				system.get_aux_data().free(payload.stream);
-				payload.stream = {};
+				system.get_aux_data().free(payload.streams);
+				payload.streams = {};
+			}
+			if (payload.entities)
+			{
+				system.get_aux_data().free(payload.entities);
+				payload.entities = {};
 			}
 			return true;
 		}
 
 		bool destroy_entity_redo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_command_destroy_entity_payload_t& payload = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
-			world_t&								 world	 = get_world(payload.world);
-			ostream_t								 stream;
-			world.entity_to_stream(payload.entity, stream);
-			payload.stream = copy_stream_to_aux(system, stream);
-			world.destroy_entity(payload.entity);
+			editor_command_destroy_entity_payload_t& payload  = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
+			world_t&								 world	  = get_world(payload.world);
+			const entity_id_t*						 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+			for (u32 i = 0; i < payload.count; ++i)
+			{
+				ostream_t stream;
+				world.entity_to_stream(entities[i], stream);
+				streams[i] = copy_stream_to_aux(system, stream);
+				world.destroy_entity(entities[i]);
+			}
 			return true;
 		}
 	}
@@ -189,13 +279,30 @@ namespace sfg
 
 	entity_id_t editor_commands_entity_t::duplicate(world_handle_t world, entity_id_t entity)
 	{
-		editor_command_duplicate_entity_payload_t payload = {};
-		payload.world									  = world;
-		payload.source									  = entity;
-		payload.entity									  = NULL_ENTITY_ID;
-		payload.stream									  = {};
+		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<entity_id_t> out_entities;
+		entities.push_back(entity);
+		if (!duplicate(world, entities, out_entities))
+			return NULL_ENTITY_ID;
+		return out_entities[0];
+	}
 
-		editor_command_system_t&		  command_system = editor_app_t::get().get_command_system();
+	bool editor_commands_entity_t::duplicate(world_handle_t world, const frame_vector_t<entity_id_t>& entities, frame_vector_t<entity_id_t>& out_entities)
+	{
+		out_entities.resize(0);
+		if (entities.empty())
+			return false;
+		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+
+		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+
+		editor_command_duplicate_entity_payload_t payload = {};
+		payload.streams									  = create_stream_array(command_system, entities.size());
+		payload.sources									  = copy_entities_to_aux(command_system, entities);
+		payload.entities								  = create_entity_array(command_system, entities.size(), NULL_ENTITY_ID);
+		payload.world									  = world;
+		payload.count									  = static_cast<u32>(entities.size());
+
 		const editor_command_issue_desc_t desc{
 			.undo		= duplicate_entity_undo,
 			.redo		= duplicate_entity_redo,
@@ -206,21 +313,38 @@ namespace sfg
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
 		if (handle.is_null())
-			return NULL_ENTITY_ID;
+			return false;
 
-		editor_command_t&						   command		  = command_system.get_command(handle);
-		editor_command_duplicate_entity_payload_t& stored_payload = command_system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-		return stored_payload.entity;
+		editor_command_t&						   command		   = command_system.get_command(handle);
+		editor_command_duplicate_entity_payload_t& stored_payload  = command_system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
+		const entity_id_t*						   stored_entities = command_system.get_aux_data().get<entity_id_t>(stored_payload.entities);
+		out_entities.reserve(stored_payload.count);
+		for (u32 i = 0; i < stored_payload.count; ++i)
+			out_entities.push_back(stored_entities[i]);
+		return true;
 	}
 
 	bool editor_commands_entity_t::destroy(world_handle_t world, entity_id_t entity)
 	{
-		editor_command_destroy_entity_payload_t payload = {};
-		payload.world									= world;
-		payload.entity									= entity;
-		payload.stream									= {};
+		frame_vector_t<entity_id_t> entities;
+		entities.push_back(entity);
+		return destroy(world, entities);
+	}
 
-		editor_command_system_t&		  command_system = editor_app_t::get().get_command_system();
+	bool editor_commands_entity_t::destroy(world_handle_t world, const frame_vector_t<entity_id_t>& entities)
+	{
+		if (entities.empty())
+			return false;
+		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+
+		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+
+		editor_command_destroy_entity_payload_t payload = {};
+		payload.streams									= create_stream_array(command_system, entities.size());
+		payload.entities								= copy_entities_to_aux(command_system, entities);
+		payload.world									= world;
+		payload.count									= static_cast<u32>(entities.size());
+
 		const editor_command_issue_desc_t desc{
 			.undo		= destroy_entity_undo,
 			.redo		= destroy_entity_redo,
