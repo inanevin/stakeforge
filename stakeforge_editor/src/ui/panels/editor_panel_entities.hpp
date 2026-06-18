@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
@@ -96,11 +97,16 @@ namespace sfg
 		void		  update_entity_row(entity_row_t& row, const entity_desc_t& entity, bool is_folded);
 		void		  update_entity_row_background(const entity_row_t& row);
 		void		  set_entity_row_visible(const entity_row_t& row, bool visible);
-		void		  select_entity_row(entity_id_t entity);
+		void		  select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
+		void		  clear_entity_selection();
+		void		  set_entity_selection(entity_id_t entity);
+		void		  add_entity_selection(entity_id_t entity);
+		void		  remove_entity_selection(entity_id_t entity);
+		void		  append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const;
 		void		  toggle_entity_fold(entity_id_t entity);
 		void		  create_entity(entity_id_t parent);
-		void		  duplicate_entity(entity_id_t entity);
-		void		  destroy_entity(entity_id_t entity);
+		void		  duplicate_selected_entities();
+		void		  destroy_selected_entities();
 		void		  open_empty_action_menu(const vec2f_t& pos);
 		void		  open_entity_action_menu(const vec2f_t& pos, entity_id_t entity);
 
@@ -108,8 +114,13 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		bool				is_entity_expanded(entity_id_t entity) const;
-		const entity_row_t* find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
+		bool				 is_entity_expanded(entity_id_t entity) const;
+		bool				 is_entity_selected(entity_id_t entity) const;
+		bool				 is_create_enabled() const;
+		bool				 has_selected_ancestor(entity_id_t entity) const;
+		size_t				 find_visible_entity_index(entity_id_t entity) const;
+		const entity_desc_t* find_entity_desc(entity_id_t entity) const;
+		const entity_row_t*	 find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
 
 		// -----------------------------------------------------------------------------
 		// handlers
@@ -136,7 +147,8 @@ namespace sfg
 		ui::widget_id_t			_entity_top_row		  = NULL_WIDGET;
 		ui::widget_id_t			_entity_list_area	  = NULL_WIDGET;
 		world_handle_t			_main_world			  = {};
-		entity_id_t				_selected_entity	  = NULL_ENTITY_ID;
+		vector_t<entity_id_t>	_selected_entities	  = {};
+		entity_id_t				_selection_anchor	  = NULL_ENTITY_ID;
 		entity_id_t				_action_menu_entity	  = NULL_ENTITY_ID;
 		u32						_command_generation	  = 0;
 		u32						_visible_entity_count = 0;

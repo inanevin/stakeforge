@@ -65,6 +65,15 @@ namespace sfg
 			return handle;
 		}
 
+		chunk_handle32_t copy_entity_parents_to_aux(editor_command_system_t& system, const world_t& world, const frame_vector_t<entity_id_t>& entities)
+		{
+			entity_id_t*		   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(entities.size(), dst);
+			for (size_t i = 0; i < entities.size(); ++i)
+				dst[i] = world.get_entity_parent(entities[i]);
+			return handle;
+		}
+
 		chunk_handle32_t create_entity_array(editor_command_system_t& system, size_t count, entity_id_t value)
 		{
 			entity_id_t*		   dst	  = nullptr;
@@ -102,7 +111,7 @@ namespace sfg
 		{
 			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
 			world_t&								world	= get_world(payload.world);
-			world.destroy_entity(payload.entity);
+			world.destroy_entity_tree(payload.entity);
 			payload.entity = NULL_ENTITY_ID;
 			return true;
 		}
@@ -125,7 +134,7 @@ namespace sfg
 			entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = payload.count; i-- > 0;)
 			{
-				world.destroy_entity(entities[i]);
+				world.destroy_entity_tree(entities[i]);
 				entities[i] = NULL_ENTITY_ID;
 			}
 			return true;
@@ -145,6 +154,11 @@ namespace sfg
 				system.get_aux_data().free(payload.sources);
 				payload.sources = {};
 			}
+			if (payload.parents)
+			{
+				system.get_aux_data().free(payload.parents);
+				payload.parents = {};
+			}
 			if (payload.entities)
 			{
 				system.get_aux_data().free(payload.entities);
@@ -158,6 +172,7 @@ namespace sfg
 			editor_command_duplicate_entity_payload_t& payload	= system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
 			world_t&								   world	= get_world(payload.world);
 			const entity_id_t*						   sources	= system.get_aux_data().get<entity_id_t>(payload.sources);
+			const entity_id_t*						   parents	= system.get_aux_data().get<entity_id_t>(payload.parents);
 			entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			chunk_handle32_t*						   streams	= system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 
@@ -174,7 +189,7 @@ namespace sfg
 				{
 					for (u32 j = i; j-- > 0;)
 					{
-						world.destroy_entity(entities[j]);
+						world.destroy_entity_tree(entities[j]);
 						entities[j] = NULL_ENTITY_ID;
 					}
 					return false;
@@ -186,13 +201,15 @@ namespace sfg
 				{
 					for (u32 j = i; j-- > 0;)
 					{
-						world.destroy_entity(entities[j]);
+						world.destroy_entity_tree(entities[j]);
 						entities[j] = NULL_ENTITY_ID;
 					}
 					return false;
 				}
 
 				entities[i] = entity;
+				if (parents[i] != NULL_ENTITY_ID)
+					world.attach_to(entity, parents[i]);
 			}
 			return true;
 		}
@@ -242,7 +259,7 @@ namespace sfg
 				ostream_t stream;
 				world.entity_to_stream(entities[i], stream);
 				streams[i] = copy_stream_to_aux(system, stream);
-				world.destroy_entity(entities[i]);
+				world.destroy_entity_tree(entities[i]);
 			}
 			return true;
 		}
@@ -299,6 +316,7 @@ namespace sfg
 		editor_command_duplicate_entity_payload_t payload = {};
 		payload.streams									  = create_stream_array(command_system, entities.size());
 		payload.sources									  = copy_entities_to_aux(command_system, entities);
+		payload.parents									  = copy_entity_parents_to_aux(command_system, get_world(world), entities);
 		payload.entities								  = create_entity_array(command_system, entities.size(), NULL_ENTITY_ID);
 		payload.world									  = world;
 		payload.count									  = static_cast<u32>(entities.size());

@@ -144,6 +144,22 @@ namespace sfg
 		_entity_free_list.push_back(id);
 	}
 
+	void world_t::destroy_entity_tree(entity_id_t id)
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+		{
+			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+			const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+			destroy_entity_tree(child);
+			child = next_child;
+		}
+
+		destroy_entity(id);
+	}
+
 	void world_t::entity_to_stream(entity_id_t id, ostream_t& stream) const
 	{
 		SFG_ASSERT(is_alive(id));
@@ -363,6 +379,13 @@ namespace sfg
 
 		sync_entity_hierarchy(root);
 		return root;
+	}
+
+	entity_id_t world_t::get_entity_parent(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		return hierarchy.parent;
 	}
 
 	void world_t::attach_to(entity_id_t id, entity_id_t parent)

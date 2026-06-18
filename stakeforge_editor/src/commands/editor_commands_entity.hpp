@@ -47,6 +47,7 @@ namespace sfg
 	{
 		chunk_handle32_t streams  = {};
 		chunk_handle32_t sources  = {};
+		chunk_handle32_t parents  = {};
 		chunk_handle32_t entities = {};
 		world_handle_t	 world	  = {};
 		u32				 count	  = 0;

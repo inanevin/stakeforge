@@ -32,7 +32,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/string_util.hpp>
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -85,6 +87,16 @@ namespace sfg
 					flags |= ui::wf_input;
 			}
 			tree.in(id).flags = flags;
+		}
+
+		bool is_shift_pressed()
+		{
+			return process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+		}
+
+		bool is_ctrl_pressed()
+		{
+			return process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 		}
 	}
 
@@ -174,6 +186,7 @@ namespace sfg
 		_entity_rows.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_entity_cache.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_expanded_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+		_selected_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		refresh_entities();
 	}
 
@@ -187,11 +200,12 @@ namespace sfg
 		_entity_rows.clear();
 		_entity_cache.clear();
 		_expanded_entities.clear();
+		_selected_entities.clear();
 
 		_entity_top_row		  = NULL_WIDGET;
 		_entity_list_area	  = NULL_WIDGET;
 		_main_world			  = {};
-		_selected_entity	  = NULL_ENTITY_ID;
+		_selection_anchor	  = NULL_ENTITY_ID;
 		_action_menu_entity	  = NULL_ENTITY_ID;
 		_command_generation	  = 0;
 		_visible_entity_count = 0;
@@ -408,7 +422,7 @@ namespace sfg
 	void editor_panel_entities_t::update_entity_row_background(const entity_row_t& row)
 	{
 		const editor_theme_t& theme	   = editor_theme_t::get();
-		const bool			  selected = row.entity != NULL_ENTITY_ID && row.entity == _selected_entity;
+		const bool			  selected = is_entity_selected(row.entity);
 
 		ui::vg_rect_paint_t row_rect = {};
 		row_rect.fill_color_a		 = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
@@ -430,11 +444,83 @@ namespace sfg
 		set_widget_visible(tree, row.label, visible, /*input=*/false);
 	}
 
-	void editor_panel_entities_t::select_entity_row(entity_id_t entity)
+	void editor_panel_entities_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
 	{
-		_selected_entity = entity;
+		if (entity == NULL_ENTITY_ID)
+		{
+			clear_entity_selection();
+		}
+		else if (range_select && _selection_anchor != NULL_ENTITY_ID)
+		{
+			if (!incremental_select)
+				_selected_entities.resize(0);
+
+			const size_t anchor_index = find_visible_entity_index(_selection_anchor);
+			const size_t entity_index = find_visible_entity_index(entity);
+			if (anchor_index != SIZE_MAX && entity_index != SIZE_MAX)
+			{
+				const size_t first = std::min(anchor_index, entity_index);
+				const size_t last  = std::max(anchor_index, entity_index);
+				for (size_t i = first; i <= last; ++i)
+					add_entity_selection(_entity_rows[i].entity);
+			}
+			else
+				set_entity_selection(entity);
+		}
+		else if (incremental_select)
+		{
+			if (is_entity_selected(entity))
+				remove_entity_selection(entity);
+			else
+				add_entity_selection(entity);
+			_selection_anchor = entity;
+		}
+		else
+			set_entity_selection(entity);
+
 		for (const entity_row_t& row : _entity_rows)
 			update_entity_row_background(row);
+	}
+
+	void editor_panel_entities_t::clear_entity_selection()
+	{
+		_selected_entities.resize(0);
+		_selection_anchor = NULL_ENTITY_ID;
+	}
+
+	void editor_panel_entities_t::set_entity_selection(entity_id_t entity)
+	{
+		_selected_entities.resize(0);
+		if (entity != NULL_ENTITY_ID)
+			_selected_entities.push_back(entity);
+		_selection_anchor = entity;
+	}
+
+	void editor_panel_entities_t::add_entity_selection(entity_id_t entity)
+	{
+		if (entity == NULL_ENTITY_ID || is_entity_selected(entity))
+			return;
+		_selected_entities.push_back(entity);
+	}
+
+	void editor_panel_entities_t::remove_entity_selection(entity_id_t entity)
+	{
+		auto it = std::find(_selected_entities.begin(), _selected_entities.end(), entity);
+		if (it != _selected_entities.end())
+			_selected_entities.erase(it);
+		if (_selection_anchor == entity)
+			_selection_anchor = _selected_entities.empty() ? NULL_ENTITY_ID : _selected_entities.back();
+	}
+
+	void editor_panel_entities_t::append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const
+	{
+		out_entities.resize(0);
+		out_entities.reserve(_selected_entities.size());
+		for (entity_id_t entity : _selected_entities)
+		{
+			if (!has_selected_ancestor(entity))
+				out_entities.push_back(entity);
+		}
 	}
 
 	void editor_panel_entities_t::toggle_entity_fold(entity_id_t entity)
@@ -455,27 +541,37 @@ namespace sfg
 		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent);
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 			_expanded_entities.push_back(parent);
-		select_entity_row(entity);
+		select_entity_row(entity, false, false);
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::duplicate_entity(entity_id_t entity)
+	void editor_panel_entities_t::duplicate_selected_entities()
 	{
 		const world_handle_t main_world = editor_app_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
+		SFG_ASSERT(!_selected_entities.empty());
 
-		const entity_id_t duplicate = editor_commands_entity_t::duplicate(main_world, entity);
-		select_entity_row(duplicate);
+		frame_vector_t<entity_id_t> entities;
+		append_selected_root_entities(entities);
+		frame_vector_t<entity_id_t> duplicates;
+		if (editor_commands_entity_t::duplicate(main_world, entities, duplicates))
+		{
+			_selected_entities.assign(duplicates.begin(), duplicates.end());
+			_selection_anchor = _selected_entities.empty() ? NULL_ENTITY_ID : _selected_entities.back();
+		}
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::destroy_entity(entity_id_t entity)
+	void editor_panel_entities_t::destroy_selected_entities()
 	{
 		const world_handle_t main_world = editor_app_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
+		SFG_ASSERT(!_selected_entities.empty());
 
-		if (editor_commands_entity_t::destroy(main_world, entity))
-			select_entity_row(NULL_ENTITY_ID);
+		frame_vector_t<entity_id_t> entities;
+		append_selected_root_entities(entities);
+		if (editor_commands_entity_t::destroy(main_world, entities))
+			clear_entity_selection();
 		refresh_entities();
 	}
 
@@ -501,7 +597,8 @@ namespace sfg
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
 
-		_action_menu_entity = entity;
+		_action_menu_entity						= entity;
+		ENTITY_ROW_ACTION_MENU_ROWS[0].disabled = !is_create_enabled();
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ENTITY_ROW_ACTION_MENU_ROWS;
@@ -516,6 +613,48 @@ namespace sfg
 	bool editor_panel_entities_t::is_entity_expanded(entity_id_t entity) const
 	{
 		return std::find(_expanded_entities.begin(), _expanded_entities.end(), entity) != _expanded_entities.end();
+	}
+
+	bool editor_panel_entities_t::is_entity_selected(entity_id_t entity) const
+	{
+		return entity != NULL_ENTITY_ID && std::find(_selected_entities.begin(), _selected_entities.end(), entity) != _selected_entities.end();
+	}
+
+	bool editor_panel_entities_t::is_create_enabled() const
+	{
+		return _selected_entities.size() <= 1;
+	}
+
+	bool editor_panel_entities_t::has_selected_ancestor(entity_id_t entity) const
+	{
+		const entity_desc_t* desc = find_entity_desc(entity);
+		while (desc != nullptr && desc->parent != NULL_ENTITY_ID)
+		{
+			if (is_entity_selected(desc->parent))
+				return true;
+			desc = find_entity_desc(desc->parent);
+		}
+		return false;
+	}
+
+	size_t editor_panel_entities_t::find_visible_entity_index(entity_id_t entity) const
+	{
+		for (size_t i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
+		{
+			if (_entity_rows[i].entity == entity)
+				return i;
+		}
+		return SIZE_MAX;
+	}
+
+	const editor_panel_entities_t::entity_desc_t* editor_panel_entities_t::find_entity_desc(entity_id_t entity) const
+	{
+		for (const entity_desc_t& desc : _entity_cache)
+		{
+			if (desc.id == entity)
+				return &desc;
+		}
+		return nullptr;
 	}
 
 	const editor_panel_entities_t::entity_row_t* editor_panel_entities_t::find_row_by_widget(ui::widget_id_t id, bool match_icon) const
@@ -549,11 +688,14 @@ namespace sfg
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
 		if (command == entity_action_menu_create_empty)
-			panel.create_entity(panel._action_menu_entity);
+		{
+			if (panel.is_create_enabled())
+				panel.create_entity(panel._action_menu_entity);
+		}
 		else if (command == entity_action_menu_duplicate)
-			panel.duplicate_entity(panel._action_menu_entity);
+			panel.duplicate_selected_entities();
 		else if (command == entity_action_menu_delete)
-			panel.destroy_entity(panel._action_menu_entity);
+			panel.destroy_selected_entities();
 	}
 
 	void editor_panel_entities_t::on_entities_body_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -563,7 +705,7 @@ namespace sfg
 
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
 		if (id == panel._entity_list_area)
-			panel.select_entity_row(NULL_ENTITY_ID);
+			panel.select_entity_row(NULL_ENTITY_ID, false, false);
 
 		if (btn == ui::mouse_button_e::right && id == panel._entity_list_area)
 			panel.open_empty_action_menu(pos);
@@ -594,7 +736,8 @@ namespace sfg
 
 		if (btn == ui::mouse_button_e::right)
 		{
-			panel.select_entity_row(row->entity);
+			if (!panel.is_entity_selected(row->entity))
+				panel.select_entity_row(row->entity, false, false);
 			panel.open_entity_action_menu(pos, row->entity);
 		}
 		else if (row->has_children)
@@ -611,9 +754,14 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
-		panel.select_entity_row(row->entity);
 		if (btn == ui::mouse_button_e::right)
+		{
+			if (!panel.is_entity_selected(row->entity))
+				panel.select_entity_row(row->entity, false, false);
 			panel.open_entity_action_menu(pos, row->entity);
+		}
+		else
+			panel.select_entity_row(row->entity, is_shift_pressed(), is_ctrl_pressed());
 	}
 
 	void editor_panel_entities_t::on_entity_row_double_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

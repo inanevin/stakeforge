@@ -44,8 +44,10 @@ namespace sfg
 
 		entity_id_t create_entity(const char* name = nullptr);
 		void		destroy_entity(entity_id_t id);
+		void		destroy_entity_tree(entity_id_t id);
 		void		entity_to_stream(entity_id_t id, ostream_t& stream) const;
 		entity_id_t entity_from_stream(istream_t& stream);
+		entity_id_t get_entity_parent(entity_id_t id) const;
 		void		attach_to(entity_id_t id, entity_id_t parent);
 		void		detach(entity_id_t id);
 
