@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
+#include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
@@ -671,6 +672,15 @@ namespace sfg
 		}
 
 		world_panel->set_world(_world_controller.get_world_render_context(main_world));
+	}
+
+	void editor_app_t::update_inspector_panel()
+	{
+		editor_panel_t* panel = find_panel(editor_panel_type_e::entities);
+		if (panel == nullptr)
+			return;
+
+		static_cast<editor_panel_entities_t*>(panel)->refresh_panel_inspector();
 	}
 
 	editor_surface_t& editor_app_t::get_main_surface()

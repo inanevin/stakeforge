@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_app.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/string_util.hpp>
@@ -210,6 +211,7 @@ namespace sfg
 		_command_generation	  = 0;
 		_visible_entity_count = 0;
 
+		refresh_panel_inspector();
 		editor_panel_t::uninit();
 	}
 
@@ -217,6 +219,7 @@ namespace sfg
 	{
 		_command_generation = editor_app_t::get().get_command_system().get_generation();
 		collect_entities();
+		prune_entity_selection();
 		_visible_entity_count = 0;
 
 		const bool search_active = !_search_str_lower.empty();
@@ -253,6 +256,28 @@ namespace sfg
 
 		for (size_t i = _visible_entity_count; i < _entity_rows.size(); ++i)
 			set_entity_row_visible(_entity_rows[i], false);
+
+		refresh_panel_inspector();
+	}
+
+	void editor_panel_entities_t::refresh_panel_inspector()
+	{
+		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::inspector);
+		if (panel == nullptr)
+			return;
+
+		editor_panel_inspector_t* inspector = static_cast<editor_panel_inspector_t*>(panel);
+		if (_main_world.is_null() || _selected_entities.empty())
+		{
+			inspector->set_display_none();
+			return;
+		}
+
+		world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		if (_selected_entities.size() == 1)
+			inspector->set_display_entity(world, _selected_entities.front());
+		else
+			inspector->set_display_entity(world, {.data = _selected_entities.data(), .size = _selected_entities.size()});
 	}
 
 	void editor_panel_entities_t::collect_entities()
@@ -480,6 +505,8 @@ namespace sfg
 
 		for (const entity_row_t& row : _entity_rows)
 			update_entity_row_background(row);
+
+		refresh_panel_inspector();
 	}
 
 	void editor_panel_entities_t::clear_entity_selection()
@@ -521,6 +548,19 @@ namespace sfg
 			if (!has_selected_ancestor(entity))
 				out_entities.push_back(entity);
 		}
+	}
+
+	void editor_panel_entities_t::prune_entity_selection()
+	{
+		for (size_t i = 0; i < _selected_entities.size();)
+		{
+			if (find_entity_desc(_selected_entities[i]) == nullptr)
+				_selected_entities.erase(_selected_entities.begin() + i);
+			else
+				++i;
+		}
+		if (_selection_anchor != NULL_ENTITY_ID && !is_entity_selected(_selection_anchor))
+			_selection_anchor = _selected_entities.empty() ? NULL_ENTITY_ID : _selected_entities.back();
 	}
 
 	void editor_panel_entities_t::toggle_entity_fold(entity_id_t entity)

@@ -700,6 +700,25 @@ namespace sfg
 		return table;
 	}
 
+	span_t<const world_component_table_t> world_t::get_component_tables() const
+	{
+		return {.data = _component_tables.data(), .size = _component_tables.size()};
+	}
+
+	const void* world_t::get_entity_component(entity_id_t id, sid_t type_id) const
+	{
+		const world_component_table_t* table = find_component_table(type_id);
+		SFG_ASSERT(table);
+		return ecs_t::table_get(table->table, id);
+	}
+
+	void* world_t::get_entity_component(entity_id_t id, sid_t type_id)
+	{
+		world_component_table_t* table = find_component_table(type_id);
+		SFG_ASSERT(table);
+		return ecs_t::table_get(table->table, id);
+	}
+
 	const char* world_t::get_text(u32 text_index) const
 	{
 		if (text_index == ECS_INVALID_INDEX)

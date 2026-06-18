@@ -65,6 +65,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void refresh_entities();
+		void refresh_panel_inspector();
 
 	private:
 		struct entity_row_t
@@ -103,6 +104,7 @@ namespace sfg
 		void		  add_entity_selection(entity_id_t entity);
 		void		  remove_entity_selection(entity_id_t entity);
 		void		  append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const;
+		void		  prune_entity_selection();
 		void		  toggle_entity_fold(entity_id_t entity);
 		void		  create_entity(entity_id_t parent);
 		void		  duplicate_selected_entities();

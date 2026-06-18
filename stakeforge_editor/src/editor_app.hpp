@@ -76,6 +76,7 @@ namespace sfg
 		editor_panel_t*			 find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
 		void					 show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
 		void					 set_main_world_to_panel();
+		void					 update_inspector_panel();
 		editor_surface_t&		 get_main_surface();
 		engine_runtime_t&		 get_runtime();
 		world_handle_t			 get_main_world() const;
