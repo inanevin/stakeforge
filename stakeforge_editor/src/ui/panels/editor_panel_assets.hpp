@@ -48,6 +48,8 @@ namespace sfg::ui
 
 namespace sfg
 {
+	struct editor_payload_t;
+
 	class editor_panel_assets_t final : public editor_panel_t
 	{
 	public:
@@ -125,6 +127,8 @@ namespace sfg
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash);
 		void select_asset_grid_item(editor_asset_node_handle_t node);
+		void start_folder_payload(editor_asset_node_handle_t node);
+		void start_asset_item_payload(editor_asset_node_handle_t node);
 		void clear_asset_grid_selection();
 		void refresh_asset_grid_item_backgrounds();
 		void refresh_asset_favourite_icons();
@@ -160,6 +164,7 @@ namespace sfg
 		bool					 has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
 		const folder_row_t*		 find_row_by_hash(u64 path_hash) const;
 		const folder_row_t*		 find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
+		const folder_row_t*		 find_row_by_pos(const vec2f_t& pos) const;
 		const asset_grid_item_t* find_asset_grid_item_by_widget(ui::widget_id_t id) const;
 
 		// -----------------------------------------------------------------------------
@@ -188,12 +193,15 @@ namespace sfg
 		static void on_asset_tree_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
+		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_asset_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_asset_grid_item_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_asset_grid_item_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_folder_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_folder_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_folder_row_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_folder_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
@@ -227,6 +235,8 @@ namespace sfg
 		u64										_asset_grid_folder_hash			 = UINT64_MAX;
 		editor_asset_node_handle_t				_selected_folder_node			 = {};
 		editor_asset_node_handle_t				_selected_asset_node			 = {};
+		editor_asset_node_handle_t				_payload_asset_node				 = {};
+		editor_asset_node_handle_t				_payload_folder_node			 = {};
 		ui::widget_id_t							_assets_left_pane				 = NULL_WIDGET;
 		ui::widget_id_t							_assets_left_pane_top_row		 = NULL_WIDGET;
 		ui::widget_id_t							_assets_left_pane_body			 = NULL_WIDGET;

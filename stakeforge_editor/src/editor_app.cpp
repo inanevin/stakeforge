@@ -118,7 +118,10 @@ namespace sfg
 		{
 		case window_event_type_e::delta:
 		case window_event_type_e::mouse: {
-			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+			const bool modal_active = app.is_any_modal_active();
+			if (modal_active)
+				app._world_controller.reset_input(runtime);
+			else if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
 
 			const vec2i16_t mp = runtime.mouse_position;
@@ -134,7 +137,10 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::wheel: {
-			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+			const bool modal_active = app.is_any_modal_active();
+			if (modal_active)
+				app._world_controller.reset_input(runtime);
+			else if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
 
 			const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
@@ -142,6 +148,9 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::key: {
+			if (app._command_system.on_window_event(ev))
+				return;
+
 			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
 
@@ -275,6 +284,7 @@ namespace sfg
 		_payload_controller.init(_surfaces.get(payload_surface));
 		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
 
+		_command_system.init();
 		editor_global_toolbar_t::get().init();
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
@@ -363,6 +373,7 @@ namespace sfg
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
 		editor_global_toolbar_t::get().uninit();
+		_command_system.uninit();
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
 		_surfaces.resize_zero();
@@ -447,6 +458,16 @@ namespace sfg
 		_asset_manager.clear();
 		_world_controller.destroy_worlds();
 		set_main_world_to_panel();
+	}
+
+	bool editor_app_t::is_any_modal_active() const
+	{
+		for (const editor_surface_t& surface : _surfaces)
+		{
+			if (surface.modal_controller->is_visible())
+				return true;
+		}
+		return false;
 	}
 
 	bool editor_app_t::create_project(const char* path)
@@ -657,6 +678,21 @@ namespace sfg
 		}
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
+	}
+
+	engine_runtime_t& editor_app_t::get_runtime()
+	{
+		return _runtime;
+	}
+
+	world_handle_t editor_app_t::get_main_world() const
+	{
+		return _world_controller.get_main_world();
+	}
+
+	editor_command_system_t& editor_app_t::get_command_system()
+	{
+		return _command_system;
 	}
 
 	tf::Executor& editor_app_t::get_editor_work_executor()

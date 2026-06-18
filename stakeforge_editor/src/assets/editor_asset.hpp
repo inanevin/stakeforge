@@ -123,11 +123,13 @@ namespace sfg
 		static bool		delete_folder(editor_asset_node_handle_t folder_node);
 		static bool		duplicate_folder(editor_asset_node_handle_t folder_node);
 		static bool		rename_folder(editor_asset_node_handle_t folder_node, const char* new_path);
+		static bool		move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node);
 		static bool		delete_file(editor_asset_node_handle_t file_node);
 		static bool		rename_file(editor_asset_node_handle_t file_node, const char* new_path);
 		static bool		delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
 		static bool		duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
 		static bool		rename_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, const char* new_path);
+		static bool		move_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, editor_asset_node_handle_t target_folder_node);
 	};
 
 	void to_json(nlohmann::json& j, const editor_asset_source_type_e& t);

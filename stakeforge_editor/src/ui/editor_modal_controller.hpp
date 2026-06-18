@@ -95,6 +95,12 @@ namespace sfg
 
 		static editor_modal_controller_t* find(ui::ui_context& ui);
 
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		bool is_visible() const;
+
 	private:
 		static constexpr u32 MAX_BUTTONS = 4;
 

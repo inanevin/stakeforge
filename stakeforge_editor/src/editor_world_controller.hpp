@@ -71,6 +71,7 @@ namespace sfg
 		void		   install_default_world(world_handle_t handle);
 		void		   load_all_world_resources(world_handle_t handle);
 		void		   set_main_world(world_handle_t handle);
+		void		   reset_input(window_runtime_t& runtime);
 		bool		   on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev);
 
 		// -----------------------------------------------------------------------------

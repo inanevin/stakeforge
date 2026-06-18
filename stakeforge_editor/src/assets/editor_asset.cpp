@@ -71,6 +71,33 @@ namespace sfg
 			return normalized_lhs == normalized_rhs;
 		}
 
+		string_t make_source_full_path(const string_t& assets_path, const string_t& source_relative)
+		{
+			string_t result = assets_path;
+			file_system_t::fix_path_end_slash(result);
+			result += source_relative;
+			file_system_t::fix_path(result);
+			return file_system_t::get_absolute_path(result.c_str());
+		}
+
+		struct source_file_move_t
+		{
+			string_t old_path;
+			string_t new_path;
+		};
+
+		bool is_same_or_descendant_folder(const editor_asset_tree_t& tree, editor_asset_node_handle_t node, editor_asset_node_handle_t ancestor)
+		{
+			editor_asset_node_handle_t current = node;
+			while (!current.is_null())
+			{
+				if (current == ancestor)
+					return true;
+				current = tree.parent(current);
+			}
+			return false;
+		}
+
 		bool duplicate_cooked_asset(const editor_asset_t& source_asset, const editor_asset_t& duplicated_asset)
 		{
 			const string_t source_cache_path = editor_asset_util_t::get_cache_path_for_asset(source_asset);
@@ -121,7 +148,7 @@ namespace sfg
 			return true;
 		}
 
-		bool remap_asset_source_file_references(const string_t& assets_path, const string_t& old_source_path, const string_t& new_source_path)
+		bool remap_asset_source_file_references(const string_t& assets_path, span_t<const source_file_move_t> moved_sources)
 		{
 			vector_t<file_system_entry_t> entries;
 			file_system_t::get_entries_recursive(assets_path.c_str(), entries);
@@ -137,14 +164,20 @@ namespace sfg
 				if (asset.source_relative.empty())
 					continue;
 
-				string_t source_full_path = assets_path;
-				source_full_path += asset.source_relative;
-				file_system_t::fix_path(source_full_path);
-				source_full_path = file_system_t::get_absolute_path(source_full_path.c_str());
-				if (!path_equals(source_full_path, old_source_path))
+				const string_t			  source_full_path = make_source_full_path(assets_path, asset.source_relative);
+				const source_file_move_t* move			   = nullptr;
+				for (size_t i = 0; i < moved_sources.size; ++i)
+				{
+					if (path_equals(source_full_path, moved_sources.data[i].old_path))
+					{
+						move = moved_sources.data + i;
+						break;
+					}
+				}
+				if (move == nullptr)
 					continue;
 
-				asset.source_relative = file_system_t::get_relative(assets_path.c_str(), new_source_path.c_str());
+				asset.source_relative = file_system_t::get_relative(assets_path.c_str(), move->new_path.c_str());
 				if (!editor_asset_util_t::write_asset(entry.path.c_str(), asset))
 					return false;
 			}
@@ -438,6 +471,70 @@ namespace sfg
 		return remap_asset_sources_in_folder(renamed_folder_path, assets_path, old_folder_path, renamed_folder_path);
 	}
 
+	bool editor_asset_util_t::move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node)
+	{
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t&	  tree			= asset_manager.get_asset_tree();
+		SFG_ASSERT(!folder_node.is_null());
+		SFG_ASSERT(!target_folder_node.is_null());
+		SFG_ASSERT(tree.is_valid(folder_node));
+		SFG_ASSERT(tree.is_valid(target_folder_node));
+
+		const editor_asset_node_t& node		   = tree.value(folder_node);
+		const editor_asset_node_t& target_node = tree.value(target_folder_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(target_node.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!node.full_path.empty());
+		SFG_ASSERT(!target_node.full_path.empty());
+
+		if (folder_node == asset_manager.get_root_node() || (node.flags & editor_asset_node_flag_promoted) != 0)
+			return false;
+		if (is_same_or_descendant_folder(tree, target_folder_node, folder_node))
+			return false;
+
+		const editor_asset_node_handle_t old_parent = tree.parent(folder_node);
+		if (old_parent == target_folder_node)
+			return true;
+
+		const string_t old_folder_path = normalize_directory_path(node.full_path.c_str());
+		string_t	   old_folder_dir  = old_folder_path;
+		file_system_t::fix_path_end_slash(old_folder_dir);
+		const string_t target_directory	   = normalize_directory_path(target_node.full_path.c_str());
+		string_t	   new_folder_path	   = normalize_directory(target_directory.c_str()) + node.name;
+		const string_t new_folder_abs_path = file_system_t::get_absolute_path(new_folder_path.c_str());
+		if (file_system_t::exists(new_folder_abs_path.c_str()))
+		{
+			SFG_ERR("folder move target already exists {0}", new_folder_abs_path.c_str());
+			return false;
+		}
+
+		string_t assets_path = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
+		file_system_t::fix_path_end_slash(assets_path);
+
+		vector_t<file_system_entry_t> entries;
+		file_system_t::get_entries_recursive(old_folder_dir.c_str(), entries);
+
+		vector_t<source_file_move_t> moved_sources;
+		moved_sources.reserve(entries.size());
+		string_t new_folder_dir = new_folder_abs_path;
+		file_system_t::fix_path_end_slash(new_folder_dir);
+		for (const file_system_entry_t& entry : entries)
+		{
+			if (entry.type != file_system_entry_type_e::file || file_system_t::get_file_extension(entry.path) == "sfg_asset")
+				continue;
+
+			const string_t old_source_path = file_system_t::get_absolute_path(entry.path.c_str());
+			string_t	   new_source_path = new_folder_dir;
+			new_source_path += old_source_path.substr(old_folder_dir.size());
+			moved_sources.push_back({.old_path = old_source_path, .new_path = new_source_path});
+		}
+
+		if (!file_system_t::change_directory_name(old_folder_path.c_str(), new_folder_abs_path.c_str()))
+			return false;
+
+		return remap_asset_source_file_references(assets_path, {.data = moved_sources.data(), .size = moved_sources.size()});
+	}
+
 	bool editor_asset_util_t::delete_file(editor_asset_node_handle_t file_node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
@@ -468,8 +565,10 @@ namespace sfg
 			return false;
 
 		const string_t new_source_path = file_system_t::get_absolute_path(renamed_path.c_str());
-		const string_t assets_path	   = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
-		return remap_asset_source_file_references(assets_path, old_source_path, new_source_path);
+		string_t	   assets_path	   = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
+		file_system_t::fix_path_end_slash(assets_path);
+		const source_file_move_t moved_source{.old_path = old_source_path, .new_path = new_source_path};
+		return remap_asset_source_file_references(assets_path, {.data = &moved_source, .size = 1});
 	}
 
 	bool editor_asset_util_t::delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node)
@@ -524,6 +623,73 @@ namespace sfg
 
 		const string_t renamed_path = new_path;
 		return file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str());
+	}
+
+	bool editor_asset_util_t::move_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, editor_asset_node_handle_t target_folder_node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!asset_node.is_null());
+		SFG_ASSERT(!target_folder_node.is_null());
+		SFG_ASSERT(tree.is_valid(asset_node));
+		SFG_ASSERT(tree.is_valid(target_folder_node));
+
+		const editor_asset_node_t& node		   = tree.value(asset_node);
+		const editor_asset_node_t& target_node = tree.value(target_folder_node);
+		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
+		SFG_ASSERT(target_node.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(node.asset_id == asset.guid);
+		SFG_ASSERT(!node.full_path.empty());
+		SFG_ASSERT(!target_node.full_path.empty());
+
+		const string_t old_asset_path		 = file_system_t::get_absolute_path(node.full_path.c_str());
+		const string_t old_asset_directory	 = normalize_directory_path(file_system_t::get_directory_of_file(old_asset_path.c_str()).c_str());
+		const string_t target_directory		 = normalize_directory_path(target_node.full_path.c_str());
+		const string_t asset_file_name		 = file_system_t::get_filename_and_extension_from_path(old_asset_path);
+		const string_t target_asset_path	 = normalize_directory(target_directory.c_str()) + asset_file_name;
+		const string_t target_asset_abs_path = file_system_t::get_absolute_path(target_asset_path.c_str());
+		if (path_equals(old_asset_directory, target_directory))
+			return true;
+
+		if (file_system_t::exists(target_asset_abs_path.c_str()))
+		{
+			SFG_ERR("asset move target already exists {0}", target_asset_abs_path.c_str());
+			return false;
+		}
+
+		editor_asset_t moved_asset = asset;
+		bool		   move_source = false;
+		string_t	   source_full_path;
+		string_t	   target_source_path;
+		if (!asset.source_relative.empty())
+		{
+			string_t assets_path = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
+			file_system_t::fix_path_end_slash(assets_path);
+			source_full_path = make_source_full_path(assets_path, asset.source_relative);
+			if (file_system_t::exists(source_full_path.c_str()))
+			{
+				const string_t source_directory = normalize_directory_path(file_system_t::get_directory_of_file(source_full_path.c_str()).c_str());
+				move_source						= path_equals(source_directory, old_asset_directory);
+				if (move_source)
+				{
+					const string_t source_file_name = file_system_t::get_filename_and_extension_from_path(source_full_path);
+					target_source_path				= normalize_directory(target_directory.c_str()) + source_file_name;
+					if (file_system_t::exists(target_source_path.c_str()))
+					{
+						SFG_ERR("asset source move target already exists {0}", target_source_path.c_str());
+						return false;
+					}
+					moved_asset.source_relative = file_system_t::get_relative(assets_path.c_str(), target_source_path.c_str());
+				}
+			}
+		}
+
+		if (move_source && !file_system_t::change_directory_name(source_full_path.c_str(), target_source_path.c_str()))
+			return false;
+
+		if (move_source && !write_asset(old_asset_path.c_str(), moved_asset))
+			return false;
+
+		return file_system_t::change_directory_name(old_asset_path.c_str(), target_asset_abs_path.c_str());
 	}
 
 }

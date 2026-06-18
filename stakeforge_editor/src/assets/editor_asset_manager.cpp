@@ -497,9 +497,10 @@ namespace sfg
 		if (!existing.is_null())
 			return existing;
 
-		const u8						 flags	   = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
-		const string_t					 full_path = _asset_tree.value(parent).full_path + name;
-		const editor_asset_node_handle_t folder	   = _asset_tree.emplace(editor_asset_node_t{.name = name, .full_path = full_path, .type = editor_asset_node_type_e::folder, .flags = flags});
+		const u8 flags	   = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
+		string_t full_path = editor_asset_util_t::normalize_directory(_asset_tree.value(parent).full_path.c_str());
+		full_path += name;
+		const editor_asset_node_handle_t folder = _asset_tree.emplace(editor_asset_node_t{.name = name, .full_path = full_path, .type = editor_asset_node_type_e::folder, .flags = flags});
 		_asset_tree.attach(parent, folder);
 		return folder;
 	}

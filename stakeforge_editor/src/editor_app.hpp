@@ -28,12 +28,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common_editor.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "ui/editor_payload_controller.hpp"
-#include "ui/editor_modal_progress_bar.hpp"
-#include "ui/panels/editor_panel_types.hpp"
+#include "editor_command_system.hpp"
 #include "editor_renderer.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
+#include "ui/editor_payload_controller.hpp"
+#include "ui/editor_modal_progress_bar.hpp"
+#include "ui/panels/editor_panel_types.hpp"
 #include <sfg/data/unique.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
@@ -71,12 +72,15 @@ namespace sfg
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
-		editor_panel_t*	  find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		editor_panel_t*	  find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
-		void			  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		void			  set_main_world_to_panel();
-		editor_surface_t& get_main_surface();
-		tf::Executor&	  get_editor_work_executor();
+		editor_panel_t*			 find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		editor_panel_t*			 find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
+		void					 show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		void					 set_main_world_to_panel();
+		editor_surface_t&		 get_main_surface();
+		engine_runtime_t&		 get_runtime();
+		world_handle_t			 get_main_world() const;
+		editor_command_system_t& get_command_system();
+		tf::Executor&			 get_editor_work_executor();
 
 		inline bool is_debug_mode_enabled() const
 		{
@@ -89,6 +93,7 @@ namespace sfg
 		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
 		void			  load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar);
 		void			  unload_current_project();
+		bool			  is_any_modal_active() const;
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  get_surface_handle_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);
@@ -100,6 +105,7 @@ namespace sfg
 		editor_renderer_t												_renderer;
 		engine_runtime_t												_runtime;
 		editor_world_controller_t										_world_controller;
+		editor_command_system_t											_command_system;
 		resource_pack_t													_editor_resource_pack;
 		resource_pack_t													_engine_resource_pack;
 		editor_asset_manager_t											_asset_manager;

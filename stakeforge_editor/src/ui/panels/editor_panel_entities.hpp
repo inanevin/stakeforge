@@ -27,9 +27,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel.hpp"
+#include "ui/widgets/editor_widgets_input_field.hpp"
+#include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
+
+namespace sfg::ui
+{
+	class input_router_t;
+	enum class mouse_button_e : u8;
+}
 
 namespace sfg
 {
+	class world_t;
+
 	class editor_panel_entities_t final : public editor_panel_t
 	{
 	public:
@@ -37,5 +51,94 @@ namespace sfg
 		~editor_panel_entities_t() override								   = default;
 		editor_panel_entities_t(const editor_panel_entities_t&)			   = delete;
 		editor_panel_entities_t& operator=(const editor_panel_entities_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void refresh_entities();
+
+	private:
+		struct entity_row_t
+		{
+			entity_id_t		entity		 = NULL_ENTITY_ID;
+			ui::widget_id_t root		 = NULL_WIDGET;
+			ui::widget_id_t icon		 = NULL_WIDGET;
+			ui::widget_id_t icon_text	 = NULL_WIDGET;
+			ui::widget_id_t label		 = NULL_WIDGET;
+			u16				depth		 = 0;
+			bool			has_children = false;
+		};
+
+		struct entity_desc_t
+		{
+			const char* name		 = nullptr;
+			entity_id_t id			 = NULL_ENTITY_ID;
+			entity_id_t parent		 = NULL_ENTITY_ID;
+			u16			depth		 = 0;
+			bool		has_children = false;
+		};
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void		  collect_entities();
+		void		  append_entity_desc(const world_t& world, const ecs_component_table_t& hierarchy_table, const ecs_component_table_t& name_table, entity_id_t id, u16 depth);
+		entity_row_t& get_or_create_entity_row(size_t index);
+		void		  update_entity_row(entity_row_t& row, const entity_desc_t& entity, bool is_folded);
+		void		  update_entity_row_background(const entity_row_t& row);
+		void		  set_entity_row_visible(const entity_row_t& row, bool visible);
+		void		  select_entity_row(entity_id_t entity);
+		void		  toggle_entity_fold(entity_id_t entity);
+		void		  create_entity(entity_id_t parent);
+		void		  duplicate_entity(entity_id_t entity);
+		void		  destroy_entity(entity_id_t entity);
+		void		  open_empty_action_menu(const vec2f_t& pos);
+		void		  open_entity_action_menu(const vec2f_t& pos, entity_id_t entity);
+
+		// -----------------------------------------------------------------------------
+		// queries
+		// -----------------------------------------------------------------------------
+
+		bool				is_entity_expanded(entity_id_t entity) const;
+		const entity_row_t* find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
+
+		// -----------------------------------------------------------------------------
+		// handlers
+		// -----------------------------------------------------------------------------
+
+		static void on_search_changed(const char* value, void* user_data);
+		static void on_empty_action_menu_command(u16 command, void* user_data);
+		static void on_entity_action_menu_command(u16 command, void* user_data);
+		static void on_entities_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_entities_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
+		static void on_entity_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_entity_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_entity_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_entity_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+
+	private:
+		editor_input_field_t	_search_input		  = {};
+		editor_scrollbar_t		_scrollbar			  = {};
+		vector_t<entity_row_t>	_entity_rows		  = {};
+		vector_t<entity_desc_t> _entity_cache		  = {};
+		vector_t<entity_id_t>	_expanded_entities	  = {};
+		string_t				_search_str			  = {};
+		string_t				_search_str_lower	  = {};
+		ui::widget_id_t			_entity_top_row		  = NULL_WIDGET;
+		ui::widget_id_t			_entity_list_area	  = NULL_WIDGET;
+		world_handle_t			_main_world			  = {};
+		entity_id_t				_selected_entity	  = NULL_ENTITY_ID;
+		entity_id_t				_action_menu_entity	  = NULL_ENTITY_ID;
+		u32						_command_generation	  = 0;
+		u32						_visible_entity_count = 0;
 	};
 }

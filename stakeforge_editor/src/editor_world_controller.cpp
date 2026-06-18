@@ -269,7 +269,7 @@ namespace sfg
 		const entity_id_t	environment = world.create_entity("environment");
 		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(component_skybox_t::TYPE_ID)->table, environment);
 		skybox.skybox_asset				= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		skybox.exposure = 0.25f;
+		skybox.exposure					= 0.25f;
 
 		for (world_container_t& container : _worlds)
 		{
@@ -356,6 +356,16 @@ namespace sfg
 	void editor_world_controller_t::set_main_world(world_handle_t handle)
 	{
 		_main_world = handle;
+	}
+
+	void editor_world_controller_t::reset_input(window_runtime_t& runtime)
+	{
+		if (_is_looking)
+		{
+			process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::none);
+			process::set_cursor_visible(true);
+		}
+		reset_camera_input();
 	}
 
 	bool editor_world_controller_t::on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev)

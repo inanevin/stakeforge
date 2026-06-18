@@ -12,6 +12,8 @@
 namespace sfg
 {
 	class mat4x3_t;
+	class istream_t;
+	class ostream_t;
 	class quat_t;
 	struct component_hierarchy_t;
 	struct vec3f_t;
@@ -42,6 +44,8 @@ namespace sfg
 
 		entity_id_t create_entity(const char* name = nullptr);
 		void		destroy_entity(entity_id_t id);
+		void		entity_to_stream(entity_id_t id, ostream_t& stream) const;
+		entity_id_t entity_from_stream(istream_t& stream);
 		void		attach_to(entity_id_t id, entity_id_t parent);
 		void		detach(entity_id_t id);
 
@@ -75,6 +79,15 @@ namespace sfg
 		bool						   is_alive(entity_id_t id) const;
 
 	private:
+		void sync_entity_hierarchy(entity_id_t id);
+
+		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
+		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
+		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
+		u32		 allocate_text(const char* text);
+		void	 release_text(u32 text_index);
+
+	private:
 		struct world_text_allocation_t
 		{
 			const char* allocated = nullptr;
@@ -99,12 +112,7 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 		};
 
-		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
-		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
-		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
-		u32		 allocate_text(const char* text);
-		void	 release_text(u32 text_index);
-
+	private:
 		vector_t<world_component_table_t> _component_tables;
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
@@ -115,6 +123,4 @@ namespace sfg
 		entity_id_t						  _entity_head = 0;
 	};
 
-	void to_json(nlohmann::json& j, const world_t& world);
-	void from_json(const nlohmann::json& j, world_t& world);
 }

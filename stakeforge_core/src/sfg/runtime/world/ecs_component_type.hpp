@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/bitmask.hpp>
 
 namespace sfg
 {
@@ -39,9 +40,9 @@ namespace sfg
 
 	struct ecs_component_type_desc_t
 	{
-		sid_t type_id	= 0;
-		u32	  size		= 0;
-		u32	  alignment = 1;
-		u32	  flags		= ecs_component_type_flags_none;
+		sid_t		   type_id	 = 0;
+		u32			   size		 = 0;
+		u32			   alignment = 1;
+		bitmask_t<u32> flags	 = ecs_component_type_flags_none;
 	};
 }

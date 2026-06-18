@@ -27,7 +27,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world.hpp"
 
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -139,6 +142,224 @@ namespace sfg
 		ecs_t::table_remove(*_engine_components.no_serialize_table, id);
 		ecs_t::table_remove(*_system_components.transform_table, id);
 		_entity_free_list.push_back(id);
+	}
+
+	void world_t::entity_to_stream(entity_id_t id, ostream_t& stream) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<u32>			entity_to_index;
+		entities.reserve(32);
+		entity_to_index.resize(_entity_head, ECS_INVALID_INDEX);
+
+		auto collect_entities = [&](auto&& self, entity_id_t entity) -> void {
+			if (ecs_t::table_has(*_engine_components.no_serialize_table, entity))
+				return;
+
+			const u32 index = static_cast<u32>(entities.size());
+			entities.push_back(entity);
+			entity_to_index[entity] = index;
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+				self(self, child);
+				child = next_child;
+			}
+		};
+
+		collect_entities(collect_entities, id);
+
+		const u32 entity_count = static_cast<u32>(entities.size());
+		stream << entity_count;
+
+		auto get_serialized_entity_index = [&](entity_id_t entity) -> u32 {
+			if (entity == NULL_ENTITY_ID)
+				return ECS_INVALID_INDEX;
+
+			SFG_ASSERT(entity < entity_to_index.size());
+			return entity_to_index[entity];
+		};
+
+		auto get_first_serialized_child_index = [&](entity_id_t entity) -> u32 {
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				const u32					 index			 = get_serialized_entity_index(child);
+				if (index != ECS_INVALID_INDEX)
+					return index;
+
+				child = child_hierarchy.next_sibling;
+			}
+
+			return ECS_INVALID_INDEX;
+		};
+
+		auto get_next_serialized_sibling_index = [&](entity_id_t entity) -> u32 {
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
+			for (entity_id_t sibling = hierarchy.next_sibling; sibling != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& sibling_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, sibling);
+				const u32					 index			   = get_serialized_entity_index(sibling);
+				if (index != ECS_INVALID_INDEX)
+					return index;
+
+				sibling = sibling_hierarchy.next_sibling;
+			}
+
+			return ECS_INVALID_INDEX;
+		};
+
+		auto get_prev_serialized_sibling_index = [&](entity_id_t entity) -> u32 {
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
+			for (entity_id_t sibling = hierarchy.prev_sibling; sibling != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& sibling_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, sibling);
+				const u32					 index			   = get_serialized_entity_index(sibling);
+				if (index != ECS_INVALID_INDEX)
+					return index;
+
+				sibling = sibling_hierarchy.prev_sibling;
+			}
+
+			return ECS_INVALID_INDEX;
+		};
+
+		auto should_serialize_component_table = [&](const world_component_table_t& table) -> bool {
+			const sid_t type_id = table.type_desc.type_id;
+			return type_id != component_hierarchy_t::TYPE_ID && type_id != component_name_t::TYPE_ID && type_id != component_alive_t::TYPE_ID;
+		};
+
+		for (u32 i = 0; i < entity_count; i++)
+		{
+			const entity_id_t			 entity		  = entities[i];
+			const component_hierarchy_t& hierarchy	  = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
+			const component_name_t&		 name		  = ecs_helpers_t::table_get_as_const<component_name_t>(*_engine_components.name_table, entity);
+			const char*					 text		  = get_text(name.text_index);
+			const u32					 parent		  = get_serialized_entity_index(hierarchy.parent);
+			const u32					 first_child  = get_first_serialized_child_index(entity);
+			const u32					 next_sibling = get_next_serialized_sibling_index(entity);
+			const u32					 prev_sibling = get_prev_serialized_sibling_index(entity);
+
+			stream << i;
+			stream << parent;
+			stream << first_child;
+			stream << next_sibling;
+			stream << prev_sibling;
+			stream << string_t(text != nullptr ? text : "");
+
+			u32 component_count = 0;
+			for (const world_component_table_t& table : _component_tables)
+			{
+				if (should_serialize_component_table(table) && ecs_t::table_has(table.table, entity))
+					component_count++;
+			}
+
+			stream << component_count;
+			for (const world_component_table_t& table : _component_tables)
+			{
+				if (!should_serialize_component_table(table) || !ecs_t::table_has(table.table, entity))
+					continue;
+
+				const sid_t type_id = table.type_desc.type_id;
+				stream << type_id;
+				if (!table.type_desc.flags.is_set(ecs_component_type_flags_tag))
+				{
+					const void* component  = ecs_t::table_get(table.table, entity);
+					const bool	serialized = reflection_registry_t::get().serialize_to_stream(type_id, component, stream);
+					if (!serialized)
+						SFG_ASSERT(false);
+				}
+			}
+		}
+	}
+
+	entity_id_t world_t::entity_from_stream(istream_t& stream)
+	{
+		struct stream_entity_t
+		{
+			u32 parent_index	   = ECS_INVALID_INDEX;
+			u32 first_child_index  = ECS_INVALID_INDEX;
+			u32 next_sibling_index = ECS_INVALID_INDEX;
+			u32 prev_sibling_index = ECS_INVALID_INDEX;
+		};
+
+		u32 entity_count = 0;
+		stream >> entity_count;
+		if (entity_count == 0)
+			return NULL_ENTITY_ID;
+
+		frame_vector_t<entity_id_t>		entities;
+		frame_vector_t<stream_entity_t> stream_entities;
+		entities.resize(entity_count, NULL_ENTITY_ID);
+		stream_entities.resize(entity_count);
+
+		entity_id_t root	   = NULL_ENTITY_ID;
+		u32			root_count = 0;
+
+		for (u32 i = 0; i < entity_count; i++)
+		{
+			u32		 index = ECS_INVALID_INDEX;
+			string_t name;
+			stream >> index;
+			SFG_ASSERT(index < entity_count);
+			SFG_ASSERT(entities[index] == NULL_ENTITY_ID);
+			stream >> stream_entities[index].parent_index;
+			stream >> stream_entities[index].first_child_index;
+			stream >> stream_entities[index].next_sibling_index;
+			stream >> stream_entities[index].prev_sibling_index;
+			stream >> name;
+
+			entities[index] = create_entity(name.empty() ? nullptr : name.c_str());
+
+			u32 component_count = 0;
+			stream >> component_count;
+			for (u32 component_index = 0; component_index < component_count; component_index++)
+			{
+				sid_t type_id = 0;
+				stream >> type_id;
+				world_component_table_t* table	   = get_component_table(type_id);
+				void*					 component = ecs_t::table_add(table->table, entities[index]);
+				if (!table->type_desc.flags.is_set(ecs_component_type_flags_tag))
+				{
+					const bool deserialized = reflection_registry_t::get().deserialize_from_stream(type_id, component, stream);
+					if (!deserialized)
+						SFG_ASSERT(false);
+				}
+			}
+
+			if (stream_entities[index].parent_index == ECS_INVALID_INDEX)
+			{
+				root = entities[index];
+				root_count++;
+			}
+		}
+		SFG_ASSERT(root_count == 1);
+
+		auto index_to_entity = [&](u32 index) -> entity_id_t {
+			if (index == ECS_INVALID_INDEX)
+				return NULL_ENTITY_ID;
+
+			SFG_ASSERT(index < entities.size());
+			SFG_ASSERT(entities[index] != NULL_ENTITY_ID);
+			return entities[index];
+		};
+
+		for (u32 i = 0; i < entity_count; i++)
+		{
+			component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, entities[i]);
+			hierarchy.parent				 = index_to_entity(stream_entities[i].parent_index);
+			hierarchy.first_child			 = index_to_entity(stream_entities[i].first_child_index);
+			hierarchy.next_sibling			 = index_to_entity(stream_entities[i].next_sibling_index);
+			hierarchy.prev_sibling			 = index_to_entity(stream_entities[i].prev_sibling_index);
+		}
+
+		sync_entity_hierarchy(root);
+		return root;
 	}
 
 	void world_t::attach_to(entity_id_t id, entity_id_t parent)
@@ -350,6 +571,10 @@ namespace sfg
 
 			update_entity_transform(row.id, hierarchy, vec3f_t::zero, quat_t::identity, vec3f_t::one, mat4x3_t::identity, advance_interpolation);
 		}
+	}
+
+	void world_t::sync_entity_hierarchy(entity_id_t id)
+	{
 	}
 
 	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)

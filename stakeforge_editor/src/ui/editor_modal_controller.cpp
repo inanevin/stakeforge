@@ -303,6 +303,11 @@ namespace sfg
 		return nullptr;
 	}
 
+	bool editor_modal_controller_t::is_visible() const
+	{
+		return _visible;
+	}
+
 	void editor_modal_controller_t::set_visible(bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();

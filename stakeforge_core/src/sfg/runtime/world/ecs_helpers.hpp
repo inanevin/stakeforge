@@ -48,7 +48,7 @@ namespace sfg
 			ecs_t::table_init(table, {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)});
 		}
 
-		template <typename T> static constexpr ecs_component_type_desc_t make_component_desc()
+		template <typename T> static ecs_component_type_desc_t make_component_desc()
 		{
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
@@ -56,7 +56,7 @@ namespace sfg
 			return {.type_id = T::TYPE_ID, .size = sizeof(T), .alignment = alignof(T)};
 		}
 
-		template <typename T> static constexpr ecs_component_type_desc_t make_tag_component_desc()
+		template <typename T> static ecs_component_type_desc_t make_tag_component_desc()
 		{
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
