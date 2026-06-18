@@ -45,6 +45,7 @@ namespace
 {
 	u8						   g_key_down_map[512] = {};
 	sfg::window_cursor_state_e g_cursor_state	   = sfg::window_cursor_state_e::arrow;
+	HWND					   g_raw_input_target  = nullptr;
 
 	void set_key_down(u32 key, bool down)
 	{
@@ -55,6 +56,25 @@ namespace
 	bool get_key_down(u32 key)
 	{
 		return key < static_cast<u32>(sizeof(g_key_down_map)) && g_key_down_map[key] != 0;
+	}
+
+	bool register_raw_input_target(HWND hwnd)
+	{
+		RAWINPUTDEVICE raw_devices[2] = {};
+		raw_devices[0].usUsagePage	  = HID_USAGE_PAGE_GENERIC;
+		raw_devices[0].usUsage		  = HID_USAGE_GENERIC_MOUSE;
+		raw_devices[0].dwFlags		  = RIDEV_INPUTSINK;
+		raw_devices[0].hwndTarget	  = hwnd;
+		raw_devices[1].usUsagePage	  = HID_USAGE_PAGE_GENERIC;
+		raw_devices[1].usUsage		  = HID_USAGE_GENERIC_KEYBOARD;
+		raw_devices[1].dwFlags		  = RIDEV_INPUTSINK;
+		raw_devices[1].hwndTarget	  = hwnd;
+
+		if (!RegisterRawInputDevices(raw_devices, 2, sizeof(raw_devices[0])))
+			return false;
+
+		g_raw_input_target = hwnd;
+		return true;
 	}
 
 	LPCTSTR cursor_id_from_state(sfg::window_cursor_state_e state)
@@ -391,6 +411,8 @@ namespace
 			return 0;
 		case WM_SETFOCUS:
 			runtime->set_flag(sfg::window_runtime_flags_e::has_focus);
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
+				register_raw_input_target(hwnd);
 			push_event(*runtime,
 					   {
 						   .value = sfg::vec2i16_t(1, 0),
@@ -569,7 +591,7 @@ namespace
 			return 0;
 		}
 		case WM_KEYDOWN: {
-			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target)
 				return 0;
 
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
@@ -594,7 +616,7 @@ namespace
 			return 0;
 		}
 		case WM_KEYUP: {
-			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target)
 				return 0;
 
 			const WORD scan_code = LOBYTE(HIWORD(l_param));
@@ -618,7 +640,7 @@ namespace
 			return 0;
 		}
 		case WM_MOUSEMOVE: {
-			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target)
 				return 0;
 
 			const sfg::vec2i16_t previous = runtime->mouse_position;
@@ -633,7 +655,7 @@ namespace
 			return 0;
 		}
 		case WM_MOUSEWHEEL:
-			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target)
 				return 0;
 
 			push_event(*runtime,
@@ -651,7 +673,7 @@ namespace
 		case WM_MBUTTONDOWN:
 		case WM_MBUTTONDBLCLK:
 		case WM_MBUTTONUP: {
-			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target)
 				return 0;
 
 			u16 button = static_cast<u16>(sfg::input_code::mouse_0);
@@ -1344,16 +1366,12 @@ namespace sfg
 		runtime.is_hidden		= false;
 		SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&runtime));
 
-		RAWINPUTDEVICE raw_devices[2] = {};
-		raw_devices[0].usUsagePage	  = HID_USAGE_PAGE_GENERIC;
-		raw_devices[0].usUsage		  = HID_USAGE_GENERIC_MOUSE;
-		raw_devices[0].dwFlags		  = RIDEV_INPUTSINK;
-		raw_devices[0].hwndTarget	  = hwnd;
-		raw_devices[1].usUsagePage	  = HID_USAGE_PAGE_GENERIC;
-		raw_devices[1].usUsage		  = HID_USAGE_GENERIC_KEYBOARD;
-		raw_devices[1].dwFlags		  = RIDEV_INPUTSINK;
-		raw_devices[1].hwndTarget	  = hwnd;
-		RegisterRawInputDevices(raw_devices, 2, sizeof(raw_devices[0]));
+		if (!register_raw_input_target(hwnd))
+		{
+			DestroyWindow(hwnd);
+			return false;
+		}
+
 		UINT window_pos_flags = SWP_NOMOVE | SWP_NOSIZE;
 		if (window_style == window_style_e::borderless)
 			window_pos_flags |= SWP_FRAMECHANGED;
@@ -1369,6 +1387,8 @@ namespace sfg
 	{
 		HWND hwnd = static_cast<HWND>(window_handle);
 		SFG_ASSERT(hwnd != nullptr);
+		if (g_raw_input_target == hwnd)
+			g_raw_input_target = nullptr;
 		DestroyWindow(hwnd);
 	}
 
