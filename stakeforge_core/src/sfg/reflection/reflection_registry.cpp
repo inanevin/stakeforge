@@ -71,6 +71,8 @@ namespace sfg
 			return reflected_value_type_e::resource;
 		if (sub_type_id == "entity_id"_hs)
 			return reflected_value_type_e::entity_id;
+		if (sub_type_id == "text_id"_hs)
+			return reflected_value_type_e::text_id;
 		if (sub_type_id == "string"_hs)
 			return reflected_value_type_e::string;
 		if (sub_type_id == "json"_hs)
@@ -103,6 +105,7 @@ namespace sfg
 		case reflected_value_type_e::resource:
 			return sizeof(sid_t);
 		case reflected_value_type_e::entity_id:
+		case reflected_value_type_e::text_id:
 		case reflected_value_type_e::enum32:
 			return sizeof(u32);
 		case reflected_value_type_e::string:
@@ -895,6 +898,7 @@ namespace sfg
 				return reflected_vector_to_json(get_reflected_vector<i8>(object, field), field, j);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_to_json(get_reflected_vector<u32>(object, field), field, j);
 			case reflected_value_type_e::u8:
@@ -926,6 +930,7 @@ namespace sfg
 				return reflected_inplace_vector_to_json<i8>(object, field, j);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_to_json<u32>(object, field, j);
 			case reflected_value_type_e::u8:
@@ -957,6 +962,7 @@ namespace sfg
 				return reflected_vector_from_json<i8>(object, field, j);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_from_json<u32>(object, field, j);
 			case reflected_value_type_e::u8:
@@ -988,6 +994,7 @@ namespace sfg
 				return reflected_inplace_vector_from_json<i8>(object, field, j);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_from_json<u32>(object, field, j);
 			case reflected_value_type_e::u8:
@@ -1019,6 +1026,7 @@ namespace sfg
 				return reflected_vector_to_stream(get_reflected_vector<i8>(object, field), field, stream);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_to_stream(get_reflected_vector<u32>(object, field), field, stream);
 			case reflected_value_type_e::u8:
@@ -1050,6 +1058,7 @@ namespace sfg
 				return reflected_inplace_vector_to_stream<i8>(object, field, stream);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_to_stream<u32>(object, field, stream);
 			case reflected_value_type_e::u8:
@@ -1081,6 +1090,7 @@ namespace sfg
 				return reflected_vector_from_stream<i8>(object, field, stream);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_from_stream<u32>(object, field, stream);
 			case reflected_value_type_e::u8:
@@ -1112,6 +1122,7 @@ namespace sfg
 				return reflected_inplace_vector_from_stream<i8>(object, field, stream);
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::entity_id:
+			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_from_stream<u32>(object, field, stream);
 			case reflected_value_type_e::u8:
@@ -1156,7 +1167,8 @@ namespace sfg
 				j = value;
 				return true;
 			}
-			case reflected_value_type_e::u32: {
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::text_id: {
 				u32 value = 0;
 				if (!read_reflected_value(object, field, value))
 					return false;
@@ -1259,6 +1271,7 @@ namespace sfg
 			case reflected_value_type_e::i8:
 				return write_reflected_value(object, field, j.get<i8>());
 			case reflected_value_type_e::u32:
+			case reflected_value_type_e::text_id:
 				return write_reflected_value(object, field, j.get<u32>());
 			case reflected_value_type_e::u8:
 				return write_reflected_value(object, field, j.get<u8>());
@@ -1353,7 +1366,8 @@ namespace sfg
 				stream << value;
 				return true;
 			}
-			case reflected_value_type_e::u32: {
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::text_id: {
 				u32 value = 0;
 				if (!read_reflected_value(object, field, value))
 					return false;
@@ -1457,7 +1471,8 @@ namespace sfg
 				stream >> value;
 				return write_reflected_value(object, field, value);
 			}
-			case reflected_value_type_e::u32: {
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::text_id: {
 				u32 value = 0;
 				stream >> value;
 				return write_reflected_value(object, field, value);

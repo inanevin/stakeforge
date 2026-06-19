@@ -246,8 +246,10 @@ namespace sfg
 		};
 
 		auto should_serialize_component_table = [&](const world_component_table_t& table) -> bool {
-			const sid_t type_id = table.type_desc.type_id;
-			return !table.type_desc.flags.is_set(ecs_component_type_flags_system) && type_id != component_hierarchy_t::TYPE_ID && type_id != component_name_t::TYPE_ID && type_id != component_alive_t::TYPE_ID;
+			const sid_t					 type_id		= table.type_desc.type_id;
+			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
+			const bool					 no_serialize	= reflected_type != nullptr && (reflected_type->flags & reflected_type_flags_no_serialize) != 0;
+			return !no_serialize && type_id != component_hierarchy_t::TYPE_ID && type_id != component_name_t::TYPE_ID && type_id != component_alive_t::TYPE_ID;
 		};
 
 		for (u32 i = 0; i < entity_count; i++)
@@ -338,8 +340,9 @@ namespace sfg
 			{
 				sid_t type_id = 0;
 				stream >> type_id;
-				world_component_table_t* table = get_component_table(type_id);
-				if (table->type_desc.flags.is_set(ecs_component_type_flags_system))
+				world_component_table_t*	 table			= get_component_table(type_id);
+				const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
+				if (reflected_type != nullptr && (reflected_type->flags & reflected_type_flags_no_serialize) != 0)
 					continue;
 
 				void* component = ecs_t::table_add(table->table, entities[index]);
@@ -700,23 +703,9 @@ namespace sfg
 		return table;
 	}
 
-	span_t<const world_component_table_t> world_t::get_component_tables() const
+	const vector_t<world_component_table_t>& world_t::get_component_tables() const
 	{
-		return {.data = _component_tables.data(), .size = _component_tables.size()};
-	}
-
-	const void* world_t::get_entity_component(entity_id_t id, sid_t type_id) const
-	{
-		const world_component_table_t* table = find_component_table(type_id);
-		SFG_ASSERT(table);
-		return ecs_t::table_get(table->table, id);
-	}
-
-	void* world_t::get_entity_component(entity_id_t id, sid_t type_id)
-	{
-		world_component_table_t* table = find_component_table(type_id);
-		SFG_ASSERT(table);
-		return ecs_t::table_get(table->table, id);
+		return _component_tables;
 	}
 
 	const char* world_t::get_text(u32 text_index) const

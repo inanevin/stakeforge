@@ -85,7 +85,7 @@ namespace sfg
 		void register_component_name_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "text_index", .type = reflected_value_type_e::u32, .offset = offsetof(component_name_t, text_index), .size = sizeof(u32)},
+				{.name = "text_index", .type = reflected_value_type_e::text_id, .offset = offsetof(component_name_t, text_index), .size = sizeof(u32)},
 			};
 
 			register_type_if_missing({
@@ -130,7 +130,7 @@ namespace sfg
 				.type_id   = component_render_object_t::TYPE_ID,
 				.size	   = sizeof(component_render_object_t),
 				.alignment = alignof(component_render_object_t),
-				.flags	   = reflected_type_flags_component,
+				.flags	   = reflected_type_flags_component | reflected_type_flags_no_ui,
 			});
 		}
 
@@ -193,7 +193,7 @@ namespace sfg
 				.type_id   = component_no_serialize_t::TYPE_ID,
 				.size	   = 0,
 				.alignment = 1,
-				.flags	   = reflected_type_flags_component,
+				.flags	   = reflected_type_flags_component | reflected_type_flags_no_ui,
 			});
 		}
 
@@ -205,7 +205,7 @@ namespace sfg
 				.type_id   = component_alive_t::TYPE_ID,
 				.size	   = 0,
 				.alignment = 1,
-				.flags	   = reflected_type_flags_component,
+				.flags	   = reflected_type_flags_component | reflected_type_flags_no_ui,
 			});
 		}
 	}

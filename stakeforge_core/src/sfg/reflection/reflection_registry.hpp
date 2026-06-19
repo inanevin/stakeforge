@@ -52,6 +52,7 @@ namespace sfg
 		bool8,
 		resource,
 		entity_id,
+		text_id,
 		string,
 		json,
 		quat,
@@ -78,10 +79,12 @@ namespace sfg
 
 	enum reflected_type_flags_e : u32
 	{
-		reflected_type_flags_none	   = 0,
-		reflected_type_flags_component = 1 << 0,
-		reflected_type_flags_resource  = 1 << 1,
-		reflected_type_flags_script	   = 1 << 2,
+		reflected_type_flags_none		  = 0,
+		reflected_type_flags_component	  = 1 << 0,
+		reflected_type_flags_resource	  = 1 << 1,
+		reflected_type_flags_script		  = 1 << 2,
+		reflected_type_flags_no_ui		  = 1 << 3,
+		reflected_type_flags_no_serialize = 1 << 4,
 	};
 
 	struct reflected_field_desc_t;

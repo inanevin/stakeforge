@@ -34,9 +34,8 @@ namespace sfg
 {
 	enum ecs_component_type_flags_e : u32
 	{
-		ecs_component_type_flags_none	= 0,
-		ecs_component_type_flags_tag	= 1 << 0,
-		ecs_component_type_flags_system = 1 << 1,
+		ecs_component_type_flags_none = 0,
+		ecs_component_type_flags_tag  = 1 << 0,
 	};
 
 	struct ecs_component_type_desc_t

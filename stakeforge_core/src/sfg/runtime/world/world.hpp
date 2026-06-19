@@ -4,7 +4,6 @@
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
@@ -74,15 +73,13 @@ namespace sfg
 		// tables
 		// -----------------------------------------------------------------------------
 
-		world_component_table_t&			  add_component_table(const ecs_component_type_desc_t& desc);
-		const world_component_table_t*		  find_component_table(sid_t type_id) const;
-		world_component_table_t*			  find_component_table(sid_t type_id);
-		world_component_table_t*			  get_component_table(sid_t type_id);
-		span_t<const world_component_table_t> get_component_tables() const;
-		const void*							  get_entity_component(entity_id_t id, sid_t type_id) const;
-		void*								  get_entity_component(entity_id_t id, sid_t type_id);
-		const char*							  get_text(u32 text_index) const;
-		bool								  is_alive(entity_id_t id) const;
+		world_component_table_t&				 add_component_table(const ecs_component_type_desc_t& desc);
+		const world_component_table_t*			 find_component_table(sid_t type_id) const;
+		world_component_table_t*				 find_component_table(sid_t type_id);
+		world_component_table_t*				 get_component_table(sid_t type_id);
+		const vector_t<world_component_table_t>& get_component_tables() const;
+		const char*								 get_text(u32 text_index) const;
+		bool									 is_alive(entity_id_t id) const;
 
 	private:
 		void sync_entity_hierarchy(entity_id_t id);

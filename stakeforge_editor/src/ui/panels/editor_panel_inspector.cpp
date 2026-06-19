@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
@@ -121,12 +122,14 @@ namespace sfg
 		if (_display_entities.empty())
 			return;
 
-		const entity_id_t							first_entity	 = _display_entities.front();
-		const span_t<const world_component_table_t> component_tables = _display_world->get_component_tables();
-		for (size_t table_index = 0; table_index < component_tables.size; ++table_index)
+		const entity_id_t first_entity = _display_entities.front();
+		for (const world_component_table_t& component_table : _display_world->get_component_tables())
 		{
-			const world_component_table_t& component_table = component_tables.data[table_index];
-			if (component_table.type_desc.flags.is_set(ecs_component_type_flags_system) || !ecs_t::table_has(component_table.table, first_entity))
+			if (!ecs_t::table_has(component_table.table, first_entity))
+				continue;
+
+			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+			if (reflected_type == nullptr || (reflected_type->flags & reflected_type_flags_no_ui) != 0)
 				continue;
 
 			bool common_component = true;
@@ -148,7 +151,7 @@ namespace sfg
 
 			display.fold->init(*_ui, _column, {.label = component_table.type_desc.debug_name});
 			display.reflect->init(*_ui, display.fold->get_body());
-			display.reflect->set_reflected_obj(_display_world->get_entity_component(first_entity, component_table.type_desc.type_id), component_table.type_desc.type_id);
+			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id);
 			_component_displays.push_back(display);
 		}
 	}
