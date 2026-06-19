@@ -44,6 +44,7 @@ namespace sfg
 		constexpr u32 POPUP_FG_DRAW_ORDER	   = 61000u;
 		constexpr u32 POPUP_DRAW_ORDER		   = 61001u;
 		constexpr u32 ASSET_POPUP_VISIBLE_ROWS = 8u;
+#define ASSET_POPUP_MAX_WIDTH 520.0f
 
 		editor_popup_controller_t* s_controllers[editor_popup_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
@@ -506,11 +507,16 @@ namespace sfg
 		}
 		else if (_mode == popup_mode_e::assets)
 		{
-			width				   = math::max(_asset_desc.width, theme.item_width * 2.0f);
+			width				   = theme.item_width * 2.0f;
 			const u32 visible_rows = math::min(ASSET_POPUP_VISIBLE_ROWS, static_cast<u32>(math::max<size_t>(1, _asset_items.size())));
 			height				   = static_cast<f32>(visible_rows) * theme.item_height + theme.margin_vertical * 2.0f;
 			for (const asset_row_t& row : _asset_rows)
 				width = math::max(width, theme.item_height + theme.item_spacing + theme.item_height + theme.item_spacing + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+
+			const f32 scale				= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
+			const f32 screen_width		= screen.clip.z / scale;
+			const f32 max_allowed_width = math::max(theme.item_width, math::min(ASSET_POPUP_MAX_WIDTH, screen_width - theme.margin_horizontal * 2.0f));
+			width						= math::min(width, max_allowed_width);
 		}
 
 		const f32 scale		= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
