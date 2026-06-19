@@ -65,6 +65,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void refresh_entities();
+		void refresh_entity_name(entity_id_t entity);
 		void refresh_panel_inspector();
 
 	private:

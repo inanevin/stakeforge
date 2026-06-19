@@ -262,6 +262,12 @@ namespace sfg
 		}
 	}
 
+	void editor_input_field_t::notify_submitted()
+	{
+		if (_config.on_submitted != nullptr)
+			_config.on_submitted(_text, _number_value, _config.user_data);
+	}
+
 	void editor_input_field_t::commit_number_text()
 	{
 		if (!is_number_type())
@@ -563,7 +569,9 @@ namespace sfg
 
 	void editor_input_field_t::on_focus_lose(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		static_cast<editor_input_field_t*>(user_data)->commit_number_text();
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
+		field.commit_number_text();
+		field.notify_submitted();
 	}
 
 	void editor_input_field_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
@@ -650,8 +658,7 @@ namespace sfg
 		if (ev.key == static_cast<u16>(input_code::key_return))
 		{
 			field.commit_number_text();
-			if (field._config.on_submitted != nullptr)
-				field._config.on_submitted(field._config.user_data);
+			field.notify_submitted();
 			return;
 		}
 

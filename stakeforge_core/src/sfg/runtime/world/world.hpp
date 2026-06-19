@@ -45,6 +45,7 @@ namespace sfg
 		entity_id_t create_entity(const char* name = nullptr);
 		void		destroy_entity(entity_id_t id);
 		void		destroy_entity_tree(entity_id_t id);
+		void		set_entity_name(entity_id_t id, const char* name);
 		void		entity_to_stream(entity_id_t id, ostream_t& stream) const;
 		entity_id_t entity_from_stream(istream_t& stream);
 		entity_id_t get_entity_parent(entity_id_t id) const;
@@ -78,6 +79,7 @@ namespace sfg
 		world_component_table_t*				 find_component_table(sid_t type_id);
 		world_component_table_t*				 get_component_table(sid_t type_id);
 		const vector_t<world_component_table_t>& get_component_tables() const;
+		const char*								 get_entity_name(entity_id_t id) const;
 		const char*								 get_text(u32 text_index) const;
 		bool									 is_alive(entity_id_t id) const;
 

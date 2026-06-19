@@ -260,6 +260,40 @@ namespace sfg
 		refresh_panel_inspector();
 	}
 
+	void editor_panel_entities_t::refresh_entity_name(entity_id_t entity)
+	{
+		if (!_search_str_lower.empty())
+		{
+			refresh_entities();
+			return;
+		}
+
+		world_t&	world = editor_app_t::get().get_runtime().get_world(_main_world);
+		const char* name  = world.get_entity_name(entity);
+		const char* text  = name != nullptr ? name : "Entity";
+
+		entity_desc_t* desc = nullptr;
+		for (entity_desc_t& cached_entity : _entity_cache)
+		{
+			if (cached_entity.id == entity)
+			{
+				cached_entity.name = text;
+				desc			   = &cached_entity;
+				break;
+			}
+		}
+
+		if (desc == nullptr)
+			return;
+
+		const size_t row_index = find_visible_entity_index(entity);
+		if (row_index == SIZE_MAX)
+			return;
+
+		const bool is_folded = desc->has_children && !is_entity_expanded(entity);
+		update_entity_row(_entity_rows[row_index], *desc, is_folded);
+	}
+
 	void editor_panel_entities_t::refresh_panel_inspector()
 	{
 		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::inspector);

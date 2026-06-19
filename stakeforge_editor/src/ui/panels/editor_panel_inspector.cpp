@@ -25,15 +25,36 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_inspector.hpp"
+#include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_entity_info.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		enum inspector_component_action_menu_command_e : u16
+		{
+			inspector_component_action_menu_copy = 1,
+			inspector_component_action_menu_reset,
+			inspector_component_action_menu_remove,
+		};
+
+		editor_action_menu_row_desc_t INSPECTOR_COMPONENT_ACTION_MENU_ROWS[] = {
+			{.text = "Copy", .command = inspector_component_action_menu_copy},
+			{.text = "Reset", .command = inspector_component_action_menu_reset},
+			{.text = "Remove", .command = inspector_component_action_menu_remove},
+		};
+	}
+
 	editor_panel_inspector_t::editor_panel_inspector_t()
 	{
 		set_type(editor_panel_type_e::inspector);
@@ -52,26 +73,45 @@ namespace sfg
 		root_in.child_spacing	 = 0.0f;
 		root_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 
+		_scroll_area = ui.allocate_widget();
+		ui.set_widget_debug_name(_scroll_area, "inspector_scroll_area");
+		tree.attach(_root, _scroll_area);
+
+		ui::layout_in_t& scroll_area_in = tree.in(_scroll_area);
+		scroll_area_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
+		scroll_area_in.child_clip_mode	= ui::clip_mode_e::scissor_rect;
+		scroll_area_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		scroll_area_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+		scroll_area_in.size_value		= {1.0f, 1.0f};
+
 		_column = ui.allocate_widget();
 		ui.set_widget_debug_name(_column, "inspector_column");
-		tree.attach(_root, _column);
+		tree.attach(_scroll_area, _column);
 
 		ui::layout_in_t& column_in = tree.in(_column);
 		column_in.flags			   = ui::wf_visible;
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
-		column_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+		column_in.size_mode_y	   = ui::axis_mode_e::sum_children;
 		column_in.size_value	   = {1.0f, 1.0f};
 		column_in.flow			   = ui::flow_e::column;
 		column_in.child_spacing	   = theme.item_spacing;
+
+		editor_scrollbar_config_t scrollbar_config = {};
+		scrollbar_config.target					   = _scroll_area;
+		scrollbar_config.axes					   = editor_scrollbar_axis_y;
+		_scrollbar.init(ui, scrollbar_config);
 	}
 
 	void editor_panel_inspector_t::uninit()
 	{
 		clear_display();
+		_scrollbar.uninit();
 		_display_entities.clear();
-		_display_world = nullptr;
-		_display_type  = editor_inspector_display_type_e::none;
-		_column		   = NULL_WIDGET;
+		_display_world		 = nullptr;
+		_display_type		 = editor_inspector_display_type_e::none;
+		_column				 = NULL_WIDGET;
+		_scroll_area		 = NULL_WIDGET;
+		_action_menu_type_id = 0;
 
 		editor_panel_t::uninit();
 	}
@@ -107,6 +147,13 @@ namespace sfg
 
 	void editor_panel_inspector_t::clear_display()
 	{
+		if (_entity_info != nullptr)
+		{
+			_entity_info->uninit();
+			delete _entity_info;
+			_entity_info = nullptr;
+		}
+
 		for (component_display_t& display : _component_displays)
 		{
 			display.reflect->uninit();
@@ -123,6 +170,10 @@ namespace sfg
 			return;
 
 		const entity_id_t first_entity = _display_entities.front();
+		_entity_info				   = new editor_widget_entity_info_t();
+		_entity_info->init(*_ui, _column);
+		_entity_info->set_entity(*_display_world, first_entity);
+
 		for (const world_component_table_t& component_table : _display_world->get_component_tables())
 		{
 			if (!ecs_t::table_has(component_table.table, first_entity))
@@ -148,11 +199,70 @@ namespace sfg
 			component_display_t display = {};
 			display.fold				= new editor_widget_fold_t();
 			display.reflect				= new editor_widget_reflect_type_t();
+			display.type_id				= component_table.type_desc.type_id;
 
-			display.fold->init(*_ui, _column, {.label = component_table.type_desc.debug_name});
+			display.fold->init(*_ui, _column, {.label = reflected_type->display_name, .settings_button = true});
 			display.reflect->init(*_ui, display.fold->get_body());
 			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id);
+
+			ui::listener_bundle_t settings_listener = {};
+			settings_listener.user_data				= this;
+			settings_listener.on_click				= on_component_settings_clicked;
+			_ui->get_input().set_listener(display.fold->get_settings_button(), settings_listener);
+
 			_component_displays.push_back(display);
+		}
+	}
+
+	void editor_panel_inspector_t::open_component_action_menu(const vec2f_t& pos, sid_t type_id)
+	{
+		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
+		SFG_ASSERT(menu != nullptr);
+
+		_action_menu_type_id							 = type_id;
+		INSPECTOR_COMPONENT_ACTION_MENU_ROWS[2].disabled = !is_component_removable(type_id);
+
+		editor_action_menu_desc_t desc = {};
+		desc.rows					   = INSPECTOR_COMPONENT_ACTION_MENU_ROWS;
+		desc.row_count				   = static_cast<u16>(sizeof(INSPECTOR_COMPONENT_ACTION_MENU_ROWS) / sizeof(INSPECTOR_COMPONENT_ACTION_MENU_ROWS[0]));
+		desc.pos					   = pos;
+		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
+		desc.command_fn				   = on_component_action_menu_command;
+		desc.command_user_data		   = this;
+		menu->request_action_menu(desc);
+	}
+
+	bool editor_panel_inspector_t::is_component_removable(sid_t type_id) const
+	{
+		return type_id != component_transform_t::TYPE_ID && type_id != component_name_t::TYPE_ID;
+	}
+
+	void editor_panel_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		for (const component_display_t& display : panel._component_displays)
+		{
+			if (display.fold->get_settings_button() == id)
+			{
+				panel.open_component_action_menu(pos, display.type_id);
+				return;
+			}
+		}
+	}
+
+	void editor_panel_inspector_t::on_component_action_menu_command(u16 command, void*)
+	{
+		switch (command)
+		{
+		case inspector_component_action_menu_copy:
+		case inspector_component_action_menu_reset:
+		case inspector_component_action_menu_remove:
+			break;
+		default:
+			break;
 		}
 	}
 }

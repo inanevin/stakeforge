@@ -394,7 +394,7 @@ namespace sfg
 			popup.close_popup(true);
 	}
 
-	void editor_popup_controller_t::on_input_submitted(void* user_data)
+	void editor_popup_controller_t::on_input_submitted(const char*, f32, void* user_data)
 	{
 		static_cast<editor_popup_controller_t*>(user_data)->close_popup(true);
 	}

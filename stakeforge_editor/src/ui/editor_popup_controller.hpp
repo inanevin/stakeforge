@@ -115,7 +115,7 @@ namespace sfg
 
 		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void on_input_submitted(void* user_data);
+		static void on_input_submitted(const char*, f32, void* user_data);
 
 	private:
 		ui::ui_context*			  _ui							= nullptr;

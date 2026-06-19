@@ -160,6 +160,15 @@ namespace sfg
 		destroy_entity(id);
 	}
 
+	void world_t::set_entity_name(entity_id_t id, const char* name)
+	{
+		SFG_ASSERT(is_alive(id));
+
+		component_name_t& name_component = ecs_helpers_t::table_get_as<component_name_t>(*_engine_components.name_table, id);
+		release_text(name_component.text_index);
+		name_component.text_index = allocate_text(name != nullptr ? name : "");
+	}
+
 	void world_t::entity_to_stream(entity_id_t id, ostream_t& stream) const
 	{
 		SFG_ASSERT(is_alive(id));
@@ -706,6 +715,14 @@ namespace sfg
 	const vector_t<world_component_table_t>& world_t::get_component_tables() const
 	{
 		return _component_tables;
+	}
+
+	const char* world_t::get_entity_name(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_name_t& name = ecs_helpers_t::table_get_as_const<component_name_t>(*_engine_components.name_table, id);
+		return get_text(name.text_index);
 	}
 
 	const char* world_t::get_text(u32 text_index) const

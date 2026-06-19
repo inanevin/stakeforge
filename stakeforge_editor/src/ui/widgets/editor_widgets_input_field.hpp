@@ -49,7 +49,7 @@ namespace sfg
 
 	using editor_input_field_text_fn   = void (*)(const char* value, void* user_data);
 	using editor_input_field_number_fn = void (*)(f32 value, void* user_data);
-	using editor_input_field_submit_fn = void (*)(void* user_data);
+	using editor_input_field_submit_fn = void (*)(const char* text_value, f32 number_value, void* user_data);
 
 	struct editor_input_field_config_t
 	{
@@ -104,6 +104,7 @@ namespace sfg
 
 		void refresh_text();
 		void notify_changed();
+		void notify_submitted();
 		void commit_number_text();
 		void update_number_from_text();
 		void set_text_raw(const char* value);

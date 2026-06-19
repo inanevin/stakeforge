@@ -47,6 +47,7 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "fold");
 		tree.attach(parent, _root);
+		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -100,11 +101,13 @@ namespace sfg
 		icon_frame_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		icon_frame_in.size_value	   = {theme.item_height, 1.0f};
 
-		_icon = editor_icon_widgets_t::add_icon(ui, icon_frame, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text0);
+		_icon				   = editor_icon_widgets_t::add_icon(ui, icon_frame, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text0);
+		tree.draw_order(_icon) = tree.draw_order_const(_icon) + 1;
 
 		const ui::widget_id_t label = ui.allocate_widget();
 		ui.set_widget_debug_name(label, "fold_label");
 		tree.attach(_header, label);
+		tree.draw_order(label) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(label);
 		label_in.flags			  = ui::wf_visible;
