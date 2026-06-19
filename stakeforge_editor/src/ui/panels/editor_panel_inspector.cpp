@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_inspector.hpp"
+#include "editor_app.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
@@ -203,7 +204,12 @@ namespace sfg
 
 			display.fold->init(*_ui, _column, {.label = reflected_type->display_name, .settings_button = true});
 			display.reflect->init(*_ui, display.fold->get_body());
-			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id);
+			editor_reflected_edit_target_t target = {};
+			target.world						  = editor_app_t::get().get_main_world();
+			target.entity						  = first_entity;
+			target.type_id						  = component_table.type_desc.type_id;
+			target.kind							  = editor_reflected_edit_target_kind_e::world_component;
+			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id, target);
 
 			ui::listener_bundle_t settings_listener = {};
 			settings_listener.user_data				= this;

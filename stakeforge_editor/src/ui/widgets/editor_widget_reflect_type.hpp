@@ -26,6 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "commands/editor_commands_reflection.hpp"
 #include "ui/widgets/editor_widgets_checkbox.hpp"
 #include "ui/widgets/editor_widgets_color_field.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
@@ -59,6 +60,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent);
 		void uninit();
 		void set_reflected_obj(void* object, sid_t type_id);
+		void set_reflected_obj(void* object, sid_t type_id, const editor_reflected_edit_target_t& target);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -74,9 +76,11 @@ namespace sfg
 
 		struct reflected_control_t
 		{
-			editor_widget_reflect_type_t* owner	 = nullptr;
-			const reflected_field_desc_t* field	 = nullptr;
-			void*						  object = nullptr;
+			editor_widget_reflect_type_t* owner			 = nullptr;
+			const reflected_field_desc_t* field			 = nullptr;
+			const reflected_field_desc_t* command_field	 = nullptr;
+			void*						  object		 = nullptr;
+			void*						  command_object = nullptr;
 		};
 
 		struct vector_fold_state_t
@@ -101,7 +105,7 @@ namespace sfg
 	private:
 		void		clear_reflected_controls();
 		void		rebuild_reflected_controls();
-		void		install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object);
+		void		install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object, const reflected_field_desc_t& command_field, void* command_object);
 		void		install_vector_field(const reflected_field_desc_t& field, const char* label);
 		u32			get_vector_item_count(const reflected_field_desc_t& field) const;
 		bool		is_vector_unfolded(sid_t field_id) const;
@@ -109,6 +113,9 @@ namespace sfg
 		void		reset_vector_field(const reflected_field_desc_t& field);
 		void		add_vector_item(const reflected_field_desc_t& field);
 		void		remove_vector_item(const reflected_field_desc_t& field, u32 index);
+		bool		begin_reflected_edit(const reflected_field_desc_t& field, void* object, ostream_t& old_value) const;
+		void		end_reflected_edit(const reflected_field_desc_t& field, void* object, ostream_t& old_value) const;
+		bool		matches_reflected_command(const editor_command_reflected_field_edit_payload_t& payload) const;
 		static void on_number_changed(f32 value, void* user_data);
 		static void on_text_changed(const char* value, void* user_data);
 		static void on_checkbox_changed(bool checked, void* user_data);
@@ -122,6 +129,7 @@ namespace sfg
 		static void on_vector_reset_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_vector_add_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_vector_item_remove_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_command_system_changed(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
 		vector_t<editor_property_row_t>	 _rows				   = {};
@@ -137,6 +145,8 @@ namespace sfg
 		vector_t<editor_vec3_field_t*>	 _vec3_fields		   = {};
 		vector_t<editor_vec4_field_t*>	 _vec4_fields		   = {};
 		vector_t<enum_control_t>		 _dropdowns			   = {};
+		editor_reflected_edit_target_t	 _target			   = {};
+		editor_command_listener_handle_t _command_listener	   = {};
 		ui::ui_context*					 _ui				   = nullptr;
 		void*							 _object			   = nullptr;
 		sid_t							 _type_id			   = 0;

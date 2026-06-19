@@ -37,10 +37,12 @@ namespace sfg
 	{
 		SFG_ASSERT(!_inited);
 		SFG_ASSERT(config.max_commands != 0);
+		SFG_ASSERT(config.max_listeners != 0);
 		SFG_ASSERT(config.aux_data_size != 0);
 
 		_config = config;
 		_commands.reserve(config.max_commands);
+		_listeners.reserve(config.max_listeners);
 		_history.reserve(config.max_commands);
 		_aux_data.init(config.aux_data_size);
 		_cursor		   = 0;
@@ -53,6 +55,7 @@ namespace sfg
 		SFG_ASSERT(_inited);
 		clear();
 		_commands.clear();
+		_listeners.clear();
 		_history.clear();
 		_aux_data.uninit();
 		_config		   = {};
@@ -129,6 +132,7 @@ namespace sfg
 		command.state = editor_command_state_e::undone;
 		--_cursor;
 		++_generation;
+		notify_listeners(command);
 		return true;
 	}
 
@@ -146,6 +150,7 @@ namespace sfg
 		command.state = editor_command_state_e::done;
 		++_cursor;
 		++_generation;
+		notify_listeners(command);
 		return true;
 	}
 
@@ -174,6 +179,24 @@ namespace sfg
 		}
 
 		return false;
+	}
+
+	editor_command_listener_handle_t editor_command_system_t::add_listener(editor_command_listener_fn fn, void* user_data)
+	{
+		SFG_ASSERT(_inited);
+		SFG_ASSERT(fn != nullptr);
+		const editor_command_listener_handle_t handle	= _listeners.emplace();
+		editor_command_listener_t&			   listener = _listeners.get(handle);
+		listener.fn										= fn;
+		listener.user_data								= user_data;
+		return handle;
+	}
+
+	void editor_command_system_t::remove_listener(editor_command_listener_handle_t handle)
+	{
+		SFG_ASSERT(_inited);
+		if (_listeners.is_valid(handle))
+			_listeners.remove(handle);
 	}
 
 	editor_command_t& editor_command_system_t::get_command(editor_command_handle_t handle)
@@ -252,6 +275,12 @@ namespace sfg
 		return _generation;
 	}
 
+	bool editor_command_system_t::is_listener_valid(editor_command_listener_handle_t handle) const
+	{
+		SFG_ASSERT(_inited);
+		return _listeners.is_valid(handle);
+	}
+
 	void editor_command_system_t::truncate_redo()
 	{
 		while (_history.size() > _cursor)
@@ -282,6 +311,17 @@ namespace sfg
 		if (command.payload.size != 0)
 			_aux_data.free(command.payload);
 		_commands.remove(handle);
+	}
+
+	void editor_command_system_t::notify_listeners(const editor_command_t& command)
+	{
+		for (auto it = _listeners.begin_handle(); it != _listeners.end_handle(); ++it)
+		{
+			const editor_command_listener_handle_t handle	= *it;
+			const editor_command_listener_t&	   listener = _listeners.get(handle);
+			if (listener.fn != nullptr)
+				listener.fn(*this, command, listener.user_data);
+		}
 	}
 
 	chunk_handle32_t editor_command_system_t::copy_payload(const editor_command_issue_desc_t& desc, const void* payload_data)

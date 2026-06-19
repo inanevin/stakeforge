@@ -1800,6 +1800,34 @@ namespace sfg
 		return true;
 	}
 
+	bool reflection_registry_t::serialize_field_to_stream(const void* obj, const reflected_field_desc_t& field, ostream_t& stream) const
+	{
+		SFG_ASSERT(obj != nullptr);
+		return reflected_field_to_stream(obj, field, stream);
+	}
+
+	bool reflection_registry_t::deserialize_field_from_stream(void* obj, const reflected_field_desc_t& field, istream_t& stream) const
+	{
+		SFG_ASSERT(obj != nullptr);
+		return reflected_field_from_stream(obj, field, stream);
+	}
+
+	bool reflection_registry_t::serialize_field_to_stream(sid_t type_id, sid_t field_id, const void* obj, ostream_t& stream) const
+	{
+		const reflected_field_desc_t* field = find_field(type_id, field_id);
+		if (field == nullptr)
+			return false;
+		return serialize_field_to_stream(obj, *field, stream);
+	}
+
+	bool reflection_registry_t::deserialize_field_from_stream(sid_t type_id, sid_t field_id, void* obj, istream_t& stream) const
+	{
+		const reflected_field_desc_t* field = find_field(type_id, field_id);
+		if (field == nullptr)
+			return false;
+		return deserialize_field_from_stream(obj, *field, stream);
+	}
+
 	const reflected_type_desc_t* reflection_registry_t::find_type(sid_t type_id) const
 	{
 		const u32 index = find_type_index(type_id);

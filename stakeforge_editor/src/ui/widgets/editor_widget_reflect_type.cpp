@@ -25,8 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_widget_reflect_type.hpp"
+#include "editor_app.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/data/ostream.hpp>
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
@@ -553,7 +555,8 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
-		_ui = &ui;
+		_ui				  = &ui;
+		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_changed, this);
 
 		ui::layout_tree_t& tree = ui.get_tree();
 
@@ -575,19 +578,33 @@ namespace sfg
 	void editor_widget_reflect_type_t::uninit()
 	{
 		clear_reflected_controls();
+		editor_app_t::get().get_command_system().remove_listener(_command_listener);
 		_ui->deallocate_widget(_root);
 
-		_ui		 = nullptr;
-		_object	 = nullptr;
-		_type_id = 0;
-		_root	 = NULL_WIDGET;
+		_ui				  = nullptr;
+		_object			  = nullptr;
+		_type_id		  = 0;
+		_root			  = NULL_WIDGET;
+		_target			  = {};
+		_command_listener = {};
 		_vector_states.resize(0);
 	}
 
 	void editor_widget_reflect_type_t::set_reflected_obj(void* object, sid_t type_id)
 	{
+		editor_reflected_edit_target_t target = {};
+		target.object						  = object;
+		target.required_listener			  = _command_listener;
+		target.type_id						  = type_id;
+		target.kind							  = editor_reflected_edit_target_kind_e::raw_object;
+		set_reflected_obj(object, type_id, target);
+	}
+
+	void editor_widget_reflect_type_t::set_reflected_obj(void* object, sid_t type_id, const editor_reflected_edit_target_t& target)
+	{
 		_object	 = object;
 		_type_id = type_id;
+		_target	 = target;
 		_vector_states.resize(0);
 		rebuild_reflected_controls();
 	}
@@ -628,13 +645,13 @@ namespace sfg
 
 			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label);
 			_rows.push_back(row);
-			install_reflected_control(row.right, field, _object);
+			install_reflected_control(row.right, field, _object, field, _object);
 		}
 	}
 
-	void editor_widget_reflect_type_t::install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object)
+	void editor_widget_reflect_type_t::install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object, const reflected_field_desc_t& command_field, void* command_object)
 	{
-		_controls.push_back({.owner = this, .field = &field, .object = object});
+		_controls.push_back({.owner = this, .field = &field, .command_field = &command_field, .object = object, .command_object = command_object});
 		reflected_control_t* control = &_controls.back();
 
 		switch (field.type)
@@ -893,7 +910,7 @@ namespace sfg
 				remove_listener.user_data			  = &_vector_item_controls.back();
 				remove_listener.on_click			  = on_vector_item_remove_click;
 				_ui->get_input().set_listener(row.remove_button, remove_listener);
-				install_reflected_control(row.right, _vector_item_fields.back(), field.container_ops.get_item(_object, field, i));
+				install_reflected_control(row.right, _vector_item_fields.back(), field.container_ops.get_item(_object, field, i), field, _object);
 			}
 			return;
 		}
@@ -916,7 +933,7 @@ namespace sfg
 				remove_listener.user_data			  = &_vector_item_controls.back();
 				remove_listener.on_click			  = on_vector_item_remove_click;
 				_ui->get_input().set_listener(row.remove_button, remove_listener);
-				install_reflected_control(row.right, _vector_item_fields.back(), &values[i]);
+				install_reflected_control(row.right, _vector_item_fields.back(), &values[i], field, _object);
 			}
 		};
 
@@ -1025,15 +1042,21 @@ namespace sfg
 		if ((field.flags & reflected_field_flags_read_only) != 0)
 			return;
 
+		ostream_t  old_value;
+		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
 		if (is_reflected_container_ops_valid(field.container_ops))
 		{
 			field.container_ops.clear(_object, field);
+			if (reflected_edit)
+				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
 			return;
 		}
 
 		auto clear_items = [&]<typename T>() {
 			clear_reflected_container<T>(_object, field);
+			if (reflected_edit)
+				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
 		};
 
@@ -1080,15 +1103,21 @@ namespace sfg
 		if ((field.flags & reflected_field_flags_read_only) != 0)
 			return;
 
+		ostream_t  old_value;
+		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
 		if (is_reflected_container_ops_valid(field.container_ops))
 		{
 			field.container_ops.add(_object, field);
+			if (reflected_edit)
+				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
 			return;
 		}
 
 		auto add_item = [&]<typename T>() {
 			add_reflected_container_item<T>(_object, field);
+			if (reflected_edit)
+				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
 		};
 
@@ -1135,15 +1164,21 @@ namespace sfg
 		if ((field.flags & reflected_field_flags_read_only) != 0)
 			return;
 
+		ostream_t  old_value;
+		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
 		if (is_reflected_container_ops_valid(field.container_ops))
 		{
 			field.container_ops.remove(_object, field, index);
+			if (reflected_edit)
+				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
 			return;
 		}
 
 		auto remove_item = [&]<typename T>() {
 			remove_reflected_container_item<T>(_object, field, index);
+			if (reflected_edit)
+				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
 		};
 
@@ -1185,62 +1220,132 @@ namespace sfg
 		}
 	}
 
+	bool editor_widget_reflect_type_t::begin_reflected_edit(const reflected_field_desc_t& field, void* object, ostream_t& old_value) const
+	{
+		if (_target.kind == editor_reflected_edit_target_kind_e::none)
+			return false;
+		return reflection_registry_t::get().serialize_field_to_stream(object, field, old_value);
+	}
+
+	void editor_widget_reflect_type_t::end_reflected_edit(const reflected_field_desc_t& field, void* object, ostream_t& old_value) const
+	{
+		if (_target.kind == editor_reflected_edit_target_kind_e::none)
+			return;
+
+		ostream_t new_value;
+		if (!reflection_registry_t::get().serialize_field_to_stream(object, field, new_value))
+			return;
+
+		editor_reflected_field_edit_desc_t desc = {};
+		desc.target								= _target;
+		desc.type_id							= _type_id;
+		desc.field_id							= field.id;
+		editor_commands_reflection_t::edit_field(desc, old_value, new_value);
+	}
+
+	bool editor_widget_reflect_type_t::matches_reflected_command(const editor_command_reflected_field_edit_payload_t& payload) const
+	{
+		if (payload.type_id != _type_id)
+			return false;
+
+		if (payload.target.kind != _target.kind)
+			return false;
+
+		switch (_target.kind)
+		{
+		case editor_reflected_edit_target_kind_e::raw_object:
+			return payload.target.object == _target.object;
+		case editor_reflected_edit_target_kind_e::world_component:
+			return payload.target.world == _target.world && payload.target.entity == _target.entity && payload.target.type_id == _target.type_id;
+		default:
+			return false;
+		}
+	}
+
 	void editor_widget_reflect_type_t::on_number_changed(f32 value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
 		write_reflected_number(control.object, *control.field, value);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_text_changed(const char* value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
 		write_reflected_text(control.object, *control.field, value);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_checkbox_changed(bool checked, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
 		write_reflected_bool(control.object, *control.field, checked);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_color_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
 		if (get_object_type_id(*control.field) == type_id_t<color_t>::value)
 			write_reflected_value(control.object, *control.field, color_t{value.x, value.y, value.z, value.w});
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec2_changed(const vec2f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		const sid_t			 type_id = get_object_type_id(*control.field);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
+		const sid_t			 type_id		= get_object_type_id(*control.field);
 		if (type_id == type_id_t<vec2u_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec2u(value));
 		else if (type_id == type_id_t<vec2u16_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec2u16(value));
 		else
 			write_reflected_value(control.object, *control.field, value);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec3_changed(const vec3f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
 		if (get_object_type_id(*control.field) == type_id_t<vec3u_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec3u(value));
 		else
 			write_reflected_value(control.object, *control.field, value);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_vec4_changed(const vec4f_t& value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		const sid_t			 type_id = get_object_type_id(*control.field);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
+		const sid_t			 type_id		= get_object_type_id(*control.field);
 		if (type_id == type_id_t<vec4u_t>::value)
 			write_reflected_value(control.object, *control.field, to_vec4u(value));
 		else if (control.field->type == reflected_value_type_e::quat)
 			write_reflected_value(control.object, *control.field, quat_t{value.x, value.y, value.z, value.w});
 		else
 			write_reflected_value(control.object, *control.field, value);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)
@@ -1261,7 +1366,11 @@ namespace sfg
 		reflected_control_t&							control		= *static_cast<reflected_control_t*>(user_data);
 		const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_enum_values(*control.field);
 		SFG_ASSERT(value < enum_values.size);
+		ostream_t  old_value;
+		const bool reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
 		write_reflected_enum(control.object, *control.field, enum_values.data[value].value);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_vector_header_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -1298,6 +1407,14 @@ namespace sfg
 
 		vector_item_control_t& control = *static_cast<vector_item_control_t*>(user_data);
 		control.owner->remove_vector_item(*control.field, control.index);
+	}
+
+	void editor_widget_reflect_type_t::on_command_system_changed(editor_command_system_t& system, const editor_command_t& command, void* user_data)
+	{
+		editor_widget_reflect_type_t&						 widget	 = *static_cast<editor_widget_reflect_type_t*>(user_data);
+		const editor_command_reflected_field_edit_payload_t* payload = editor_commands_reflection_t::get_payload(system, command);
+		if (payload != nullptr && widget.matches_reflected_command(*payload))
+			widget.rebuild_reflected_controls();
 	}
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()

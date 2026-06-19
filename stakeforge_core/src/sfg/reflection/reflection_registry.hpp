@@ -181,6 +181,10 @@ namespace sfg
 		bool serialize_to_stream(sid_t type_id, const void* obj, ostream_t& stream) const;
 		bool deserialize_from_json(sid_t type_id, void* obj, const nlohmann::json& j) const;
 		bool deserialize_from_stream(sid_t type_id, void* obj, istream_t& stream) const;
+		bool serialize_field_to_stream(const void* obj, const reflected_field_desc_t& field, ostream_t& stream) const;
+		bool deserialize_field_from_stream(void* obj, const reflected_field_desc_t& field, istream_t& stream) const;
+		bool serialize_field_to_stream(sid_t type_id, sid_t field_id, const void* obj, ostream_t& stream) const;
+		bool deserialize_field_from_stream(sid_t type_id, sid_t field_id, void* obj, istream_t& stream) const;
 
 		// -----------------------------------------------------------------------------
 		// queries
