@@ -112,7 +112,7 @@ namespace sfg
 			{.name			= "materials",
 			 .display_name	= "Materials",
 			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= "resource"_hs,
+			 .sub_type_id	= "material_handle"_hs,
 			 .container_ops = reflected_vector_ops<resource_handle_t>(),
 			 .offset		= offsetof(mesh_def_t, materials),
 			 .size			= sizeof(vector_t<resource_handle_t>)},

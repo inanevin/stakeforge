@@ -105,8 +105,8 @@ namespace sfg
 		void register_component_mesh_renderer_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "mesh", .display_name = "Mesh", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(resource_handle_t)},
-				{.name = "material", .display_name = "Material", .type = reflected_value_type_e::resource, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(resource_handle_t)},
+				{.name = "mesh", .display_name = "Mesh", .type = reflected_value_type_e::mesh_handle, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(resource_handle_t)},
+				{.name = "material", .display_name = "Material", .type = reflected_value_type_e::material_handle, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(resource_handle_t)},
 			};
 
 			register_type_if_missing({
@@ -163,7 +163,7 @@ namespace sfg
 		void register_component_skybox_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "skybox_asset", .display_name = "Skybox", .type = reflected_value_type_e::resource, .offset = offsetof(component_skybox_t, skybox_asset), .size = sizeof(resource_handle_t)},
+				{.name = "skybox_asset", .display_name = "Skybox", .type = reflected_value_type_e::hdr_skybox_handle, .offset = offsetof(component_skybox_t, skybox_asset), .size = sizeof(resource_handle_t)},
 				{.name = "intensity", .display_name = "Intensity", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, intensity), .size = sizeof(f32)},
 				{.name = "exposure", .display_name = "Exposure", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, exposure), .size = sizeof(f32)},
 			};

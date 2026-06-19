@@ -54,6 +54,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define EDITOR_REFLECTED_RESOURCE_HANDLE_CASES                                                                                                                                                                                                                     \
+	case reflected_value_type_e::audio_handle:                                                                                                                                                                                                                     \
+	case reflected_value_type_e::font_handle:                                                                                                                                                                                                                      \
+	case reflected_value_type_e::mesh_handle:                                                                                                                                                                                                                      \
+	case reflected_value_type_e::skeleton_handle:                                                                                                                                                                                                                  \
+	case reflected_value_type_e::animation_handle:                                                                                                                                                                                                                 \
+	case reflected_value_type_e::material_handle:                                                                                                                                                                                                                  \
+	case reflected_value_type_e::shader_handle:                                                                                                                                                                                                                    \
+	case reflected_value_type_e::texture_handle:                                                                                                                                                                                                                   \
+	case reflected_value_type_e::texture_sampler_handle:                                                                                                                                                                                                           \
+	case reflected_value_type_e::physical_material_handle:                                                                                                                                                                                                         \
+	case reflected_value_type_e::prefab_handle:                                                                                                                                                                                                                    \
+	case reflected_value_type_e::animation_state_machine_handle:                                                                                                                                                                                                   \
+	case reflected_value_type_e::hdr_skybox_handle:
+
 	namespace
 	{
 		void add_unknown_label(ui::ui_context& ui, ui::widget_id_t parent)
@@ -959,6 +974,7 @@ namespace sfg
 			install_items.template operator()<u8>();
 			break;
 		case reflected_value_type_e::resource:
+			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			install_items.template operator()<sid_t>();
 			break;
 		case reflected_value_type_e::string:
@@ -999,6 +1015,7 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			return get_count.template operator()<u8>();
 		case reflected_value_type_e::resource:
+			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			return get_count.template operator()<sid_t>();
 		case reflected_value_type_e::string:
 			return get_count.template operator()<string_t>();
@@ -1082,6 +1099,7 @@ namespace sfg
 			clear_items.template operator()<u8>();
 			break;
 		case reflected_value_type_e::resource:
+			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			clear_items.template operator()<sid_t>();
 			break;
 		case reflected_value_type_e::string:
@@ -1143,6 +1161,7 @@ namespace sfg
 			add_item.template operator()<u8>();
 			break;
 		case reflected_value_type_e::resource:
+			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			add_item.template operator()<sid_t>();
 			break;
 		case reflected_value_type_e::string:
@@ -1204,6 +1223,7 @@ namespace sfg
 			remove_item.template operator()<u8>();
 			break;
 		case reflected_value_type_e::resource:
+			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			remove_item.template operator()<sid_t>();
 			break;
 		case reflected_value_type_e::string:
