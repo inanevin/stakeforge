@@ -164,6 +164,7 @@ namespace sfg
 		{
 			static const reflected_field_desc_t fields[] = {
 				{.name = "skybox_asset", .display_name = "Skybox", .type = reflected_value_type_e::hdr_skybox_handle, .offset = offsetof(component_skybox_t, skybox_asset), .size = sizeof(resource_handle_t)},
+				{.name = "dummy_texture", .display_name = "Dummy Texture", .type = reflected_value_type_e::texture_handle, .offset = offsetof(component_skybox_t, dummy_texture), .size = sizeof(resource_handle_t)},
 				{.name = "intensity", .display_name = "Intensity", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, intensity), .size = sizeof(f32)},
 				{.name = "exposure", .display_name = "Exposure", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, exposure), .size = sizeof(f32)},
 			};

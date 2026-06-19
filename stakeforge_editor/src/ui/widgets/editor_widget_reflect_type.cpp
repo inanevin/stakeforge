@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_widget_reflect_type.hpp"
+#include "assets/editor_asset.hpp"
 #include "editor_app.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -400,6 +401,11 @@ namespace sfg
 			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector;
 		}
 
+		bool is_reflected_asset_handle(reflected_value_type_e type)
+		{
+			return editor_asset_util_t::reflected_value_type_to_asset_type(type) != editor_asset_type_e::invalid;
+		}
+
 		sid_t get_object_type_id(const reflected_field_desc_t& field)
 		{
 			return field.value_type_id != 0 ? field.value_type_id : field.sub_type_id;
@@ -668,6 +674,20 @@ namespace sfg
 	{
 		_controls.push_back({.owner = this, .field = &field, .command_field = &command_field, .object = object, .command_object = command_object});
 		reflected_control_t* control = &_controls.back();
+
+		if (is_reflected_asset_handle(field.type))
+		{
+			editor_widget_asset_reference_t*	   reference = new editor_widget_asset_reference_t();
+			editor_widget_asset_reference_config_t config	 = {};
+			config.asset_type								 = editor_asset_util_t::reflected_value_type_to_asset_type(field.type);
+			config.selected									 = on_asset_selected;
+			config.pressed									 = on_asset_pressed;
+			config.user_data								 = control;
+			reference->init(*_ui, parent, config);
+			center_property_row_control(*_ui, reference->get_root());
+			_asset_references.push_back(reference);
+			return;
+		}
 
 		switch (field.type)
 		{
@@ -1368,6 +1388,22 @@ namespace sfg
 			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
+	sid_t editor_widget_reflect_type_t::on_asset_selected(void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		return read_reflected_value<sid_t>(control.object, *control.field);
+	}
+
+	void editor_widget_reflect_type_t::on_asset_pressed(sid_t guid, void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
+		write_reflected_value(control.object, *control.field, guid);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
+	}
+
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)
 	{
 		reflected_control_t&							control		= *static_cast<reflected_control_t*>(user_data);
@@ -1439,6 +1475,13 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()
 	{
+		for (size_t i = _asset_references.size(); i > 0; --i)
+		{
+			_asset_references[i - 1]->uninit();
+			delete _asset_references[i - 1];
+		}
+		_asset_references.resize(0);
+
 		for (size_t i = _dropdowns.size(); i > 0; --i)
 		{
 			enum_control_t& control = _dropdowns[i - 1];

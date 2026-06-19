@@ -62,6 +62,12 @@ namespace sfg
 		void uninit();
 		void scroll_to_end_y();
 		void scroll_y(f32 delta);
+		void set_scroll_y_immediate(f32 value);
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
 
 	private:
 		enum class axis_e : u8

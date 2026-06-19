@@ -26,7 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "assets/editor_asset_type.hpp"
 #include "ui/widgets/editor_widgets_input_field.hpp"
+#include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -39,8 +43,9 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_popup_item_pressed_fn = void (*)(u16 id, void* user_data);
-	using editor_popup_input_closed_fn = void (*)(const char* value, void* user_data);
+	using editor_popup_item_pressed_fn	= void (*)(u16 id, void* user_data);
+	using editor_popup_asset_pressed_fn = void (*)(sid_t guid, void* user_data);
+	using editor_popup_input_closed_fn	= void (*)(const char* value, void* user_data);
 
 	struct editor_popup_item_desc_t
 	{
@@ -70,6 +75,17 @@ namespace sfg
 		f32							 width		 = 0.0f;
 	};
 
+	struct editor_asset_popup_desc_t
+	{
+		editor_popup_asset_pressed_fn pressed		   = nullptr;
+		void*						  user_data		   = nullptr;
+		vec2f_t						  pos			   = {};
+		f32							  width			   = 0.0f;
+		editor_asset_type_e			  asset_type	   = editor_asset_type_e::invalid;
+		sid_t						  selected		   = NULL_SID;
+		bool						  close_on_pressed = true;
+	};
+
 	class editor_popup_controller_t final
 	{
 	public:
@@ -96,6 +112,7 @@ namespace sfg
 
 		void request_popup(const editor_popup_desc_t& desc);
 		void request_input_popup(const editor_input_popup_desc_t& desc);
+		void request_asset_popup(const editor_asset_popup_desc_t& desc);
 		void close_popup(bool notify_input = false);
 
 		static editor_popup_controller_t* find(ui::ui_context& ui);
@@ -106,30 +123,61 @@ namespace sfg
 			none,
 			items,
 			input,
+			assets,
+		};
+
+		struct asset_popup_item_t
+		{
+			string_t name = {};
+			sid_t	 guid = NULL_SID;
+		};
+
+		struct asset_row_t
+		{
+			ui::widget_id_t root		= NULL_WIDGET;
+			ui::widget_id_t marker		= NULL_WIDGET;
+			ui::widget_id_t marker_icon = NULL_WIDGET;
+			ui::widget_id_t thumbnail	= NULL_WIDGET;
+			ui::widget_id_t label		= NULL_WIDGET;
+			sid_t			guid		= NULL_SID;
 		};
 
 		void set_visible(bool visible);
 		void refresh_rows();
+		void refresh_asset_rows();
 		void refresh_layout();
+		void collect_asset_items();
+		void destroy_asset_rows();
+		void begin_asset_scroll_to_selected();
 		u32	 find_row(ui::widget_id_t id) const;
+		u32	 find_asset_row(ui::widget_id_t id) const;
 
 		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_asset_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_input_submitted(const char*, f32, void* user_data);
+		static void on_asset_list_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		ui::ui_context*			  _ui							= nullptr;
-		ui::widget_id_t			  _foreground					= NULL_WIDGET;
-		ui::widget_id_t			  _frame						= NULL_WIDGET;
-		ui::widget_id_t			  _row_frames[MAX_ITEMS]		= {};
-		ui::widget_id_t			  _row_markers[MAX_ITEMS]		= {};
-		ui::widget_id_t			  _row_marker_labels[MAX_ITEMS] = {};
-		ui::widget_id_t			  _row_labels[MAX_ITEMS]		= {};
-		editor_popup_desc_t		  _desc							= {};
-		editor_input_popup_desc_t _input_desc					= {};
-		editor_input_field_t	  _input						= {};
-		editor_popup_item_desc_t  _items[MAX_ITEMS]				= {};
-		popup_mode_e			  _mode							= popup_mode_e::none;
-		bool					  _visible						= false;
+		ui::ui_context*				 _ui						   = nullptr;
+		ui::widget_id_t				 _foreground				   = NULL_WIDGET;
+		ui::widget_id_t				 _frame						   = NULL_WIDGET;
+		ui::widget_id_t				 _row_frames[MAX_ITEMS]		   = {};
+		ui::widget_id_t				 _row_markers[MAX_ITEMS]	   = {};
+		ui::widget_id_t				 _row_marker_labels[MAX_ITEMS] = {};
+		ui::widget_id_t				 _row_labels[MAX_ITEMS]		   = {};
+		ui::widget_id_t				 _asset_list_area			   = NULL_WIDGET;
+		editor_popup_desc_t			 _desc						   = {};
+		editor_input_popup_desc_t	 _input_desc				   = {};
+		editor_asset_popup_desc_t	 _asset_desc				   = {};
+		editor_input_field_t		 _input						   = {};
+		editor_scrollbar_t			 _asset_scrollbar			   = {};
+		editor_popup_item_desc_t	 _items[MAX_ITEMS]			   = {};
+		vector_t<asset_popup_item_t> _asset_items				   = {};
+		vector_t<asset_row_t>		 _asset_rows				   = {};
+		popup_mode_e				 _mode						   = popup_mode_e::none;
+		u32							 _asset_scroll_target		   = 0;
+		u8							 _asset_scroll_pending_frames  = 0;
+		bool						 _visible					   = false;
 	};
 }

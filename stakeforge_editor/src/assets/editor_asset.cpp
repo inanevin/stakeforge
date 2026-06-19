@@ -389,6 +389,56 @@ namespace sfg
 		return read_asset(path, asset) ? asset.guid : NULL_SID;
 	}
 
+	editor_asset_type_e editor_asset_util_t::reflected_value_type_to_asset_type(reflected_value_type_e type)
+	{
+		switch (type)
+		{
+		case reflected_value_type_e::audio_handle:
+			return editor_asset_type_e::audio;
+		case reflected_value_type_e::font_handle:
+			return editor_asset_type_e::font;
+		case reflected_value_type_e::mesh_handle:
+			return editor_asset_type_e::mesh;
+		case reflected_value_type_e::skeleton_handle:
+			return editor_asset_type_e::skeleton;
+		case reflected_value_type_e::animation_handle:
+			return editor_asset_type_e::animation;
+		case reflected_value_type_e::material_handle:
+			return editor_asset_type_e::material;
+		case reflected_value_type_e::shader_handle:
+			return editor_asset_type_e::shader;
+		case reflected_value_type_e::texture_handle:
+			return editor_asset_type_e::texture;
+		case reflected_value_type_e::texture_sampler_handle:
+			return editor_asset_type_e::texture_sampler;
+		case reflected_value_type_e::physical_material_handle:
+			return editor_asset_type_e::physical_material;
+		case reflected_value_type_e::prefab_handle:
+			return editor_asset_type_e::prefab;
+		case reflected_value_type_e::animation_state_machine_handle:
+			return editor_asset_type_e::animation_state_machine;
+		case reflected_value_type_e::hdr_skybox_handle:
+			return editor_asset_type_e::hdr_skybox;
+		default:
+			return editor_asset_type_e::invalid;
+		}
+	}
+
+	const char* editor_asset_util_t::find_asset_display_name(sid_t guid)
+	{
+		if (guid == NULL_SID)
+			return nullptr;
+
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		for (auto it = tree.begin_handle(); it != tree.end_handle(); ++it)
+		{
+			const editor_asset_node_t& node = tree.value(*it);
+			if (node.type == editor_asset_node_type_e::asset && node.asset_id == guid)
+				return node.name.c_str();
+		}
+		return nullptr;
+	}
+
 	bool editor_asset_util_t::delete_folder(editor_asset_node_handle_t folder_node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();

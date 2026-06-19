@@ -179,6 +179,15 @@ namespace sfg
 		_stick_y				= false;
 	}
 
+	void editor_scrollbar_t::set_scroll_y_immediate(f32 value)
+	{
+		if ((_config.axes & editor_scrollbar_axis_y) == 0)
+			return;
+
+		set_scroll_immediate(axis_e::y, value);
+		_stick_y = false;
+	}
+
 	void editor_scrollbar_t::update_axis(axis_state_t& axis)
 	{
 		const bool				enabled	   = axis.axis == axis_e::x ? ((_config.axes & editor_scrollbar_axis_x) != 0) : ((_config.axes & editor_scrollbar_axis_y) != 0);
