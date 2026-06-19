@@ -147,6 +147,7 @@ namespace sfg
 		void refresh_asset_rows();
 		void refresh_layout();
 		void collect_asset_items();
+		void filter_asset_items();
 		void destroy_asset_rows();
 		void begin_asset_scroll_to_selected();
 		u32	 find_row(ui::widget_id_t id) const;
@@ -156,6 +157,7 @@ namespace sfg
 		static void on_asset_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_input_submitted(const char*, f32, void* user_data);
+		static void on_asset_search_changed(const char* value, void* user_data);
 		static void on_asset_list_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
@@ -166,14 +168,19 @@ namespace sfg
 		ui::widget_id_t				 _row_markers[MAX_ITEMS]	   = {};
 		ui::widget_id_t				 _row_marker_labels[MAX_ITEMS] = {};
 		ui::widget_id_t				 _row_labels[MAX_ITEMS]		   = {};
-		ui::widget_id_t				 _asset_list_area			   = NULL_WIDGET;
+		ui::widget_id_t				 _asset_label_row			   = NULL_WIDGET;
+		ui::widget_id_t				 _asset_label				   = NULL_WIDGET;
+		ui::widget_id_t				 _asset_search_row			   = NULL_WIDGET;
+		ui::widget_id_t				 _assets_frame				   = NULL_WIDGET;
 		editor_popup_desc_t			 _desc						   = {};
 		editor_input_popup_desc_t	 _input_desc				   = {};
 		editor_asset_popup_desc_t	 _asset_desc				   = {};
 		editor_input_field_t		 _input						   = {};
+		editor_input_field_t		 _asset_search_input		   = {};
 		editor_scrollbar_t			 _asset_scrollbar			   = {};
 		editor_popup_item_desc_t	 _items[MAX_ITEMS]			   = {};
 		vector_t<asset_popup_item_t> _asset_items				   = {};
+		vector_t<asset_popup_item_t> _asset_filtered_items		   = {};
 		vector_t<asset_row_t>		 _asset_rows				   = {};
 		popup_mode_e				 _mode						   = popup_mode_e::none;
 		u32							 _asset_scroll_target		   = 0;

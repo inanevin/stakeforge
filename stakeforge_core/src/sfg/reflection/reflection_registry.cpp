@@ -1989,6 +1989,7 @@ namespace sfg
 		copied.enum_values			  = enum_value_count != 0 ? span_t<const reflected_enum_value_desc_t>{.data = _enum_values.data() + enum_value_start, .size = enum_value_count} : span_t<const reflected_enum_value_desc_t>{};
 		copied.name					  = name;
 		copied.display_name			  = copy_text(desc.display_name != nullptr ? desc.display_name : desc.name);
+		copied.tooltip				  = copy_text(desc.tooltip);
 		copied.id					  = resolve_id(desc.id, desc.name);
 		return copied;
 	}

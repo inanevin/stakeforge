@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "editor_app.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/common/hashing.hpp>
@@ -110,6 +111,20 @@ namespace sfg
 			in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
 			in.pos_value.y = 0.5f;
 			in.anchor_y	   = ui::anchor_e::center;
+		}
+
+		void set_field_tooltip(ui::ui_context& ui, ui::widget_id_t owner, const reflected_field_desc_t& field)
+		{
+			if (field.tooltip == nullptr || field.tooltip[0] == '\0')
+				return;
+
+			editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
+			if (tooltip_controller == nullptr)
+				return;
+
+			editor_tooltip_desc_t tooltip = {};
+			tooltip.text				  = field.tooltip;
+			tooltip_controller->set_tooltip(owner, tooltip);
 		}
 
 		const void* get_reflected_field_ptr(const void* object, const reflected_field_desc_t& field)
@@ -665,6 +680,7 @@ namespace sfg
 			}
 
 			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label);
+			set_field_tooltip(*_ui, row.label, field);
 			_rows.push_back(row);
 			install_reflected_control(row.right, field, _object, field, _object);
 		}
@@ -906,6 +922,7 @@ namespace sfg
 		const bool						   unfolded	  = is_vector_unfolded(field.id);
 		const u32						   item_count = get_vector_item_count(field);
 		const editor_vector_property_row_t vector_row = editor_misc_widgets_t::make_vector_property_row_with_label(*_ui, _root, label, item_count, unfolded);
+		set_field_tooltip(*_ui, vector_row.label, field);
 		_rows.push_back(vector_row.row);
 
 		_vector_controls.push_back({.owner = this, .field = &field});
@@ -938,6 +955,7 @@ namespace sfg
 				char item_label[32] = {};
 				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
 				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
+				set_field_tooltip(*_ui, row.label, field);
 				_rows.push_back(row);
 				_vector_item_fields.push_back(item_field);
 				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
@@ -961,6 +979,7 @@ namespace sfg
 				char item_label[32] = {};
 				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
 				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
+				set_field_tooltip(*_ui, row.label, field);
 				_rows.push_back(row);
 				_vector_item_fields.push_back(item_field);
 				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
@@ -1532,8 +1551,13 @@ namespace sfg
 		}
 		_input_fields.resize(0);
 
+		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
 		for (size_t i = _rows.size(); i > 0; --i)
+		{
+			if (tooltip_controller != nullptr && _rows[i - 1].label != NULL_WIDGET)
+				tooltip_controller->clear_tooltip(_rows[i - 1].label);
 			_ui->deallocate_widget(_rows[i - 1].row);
+		}
 		_rows.resize(0);
 		_controls.resize(0);
 		_vector_controls.resize(0);

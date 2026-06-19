@@ -41,6 +41,7 @@ namespace sfg
 		ui::widget_id_t left		  = NULL_WIDGET;
 		ui::widget_id_t divider		  = NULL_WIDGET;
 		ui::widget_id_t right		  = NULL_WIDGET;
+		ui::widget_id_t label		  = NULL_WIDGET;
 		ui::widget_id_t remove_button = NULL_WIDGET;
 	};
 

@@ -46,10 +46,15 @@ namespace sfg
 		void register_component_hierarchy_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "first_child", .display_name = "First Child", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, first_child), .size = sizeof(entity_id_t)},
-				{.name = "parent", .display_name = "Parent", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, parent), .size = sizeof(entity_id_t)},
-				{.name = "next_sibling", .display_name = "Next Sibling", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, next_sibling), .size = sizeof(entity_id_t)},
-				{.name = "prev_sibling", .display_name = "Previous Sibling", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, prev_sibling), .size = sizeof(entity_id_t)},
+				{.name		   = "first_child",
+				 .display_name = "First Child",
+				 .tooltip	   = "First child entity in the hierarchy linked list.",
+				 .type		   = reflected_value_type_e::entity_id,
+				 .offset	   = offsetof(component_hierarchy_t, first_child),
+				 .size		   = sizeof(entity_id_t)},
+				{.name = "parent", .display_name = "Parent", .tooltip = "Parent entity that owns this transform in the hierarchy.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, parent), .size = sizeof(entity_id_t)},
+				{.name = "next_sibling", .display_name = "Next Sibling", .tooltip = "Next entity under the same parent.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, next_sibling), .size = sizeof(entity_id_t)},
+				{.name = "prev_sibling", .display_name = "Previous Sibling", .tooltip = "Previous entity under the same parent.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, prev_sibling), .size = sizeof(entity_id_t)},
 			};
 
 			register_type_if_missing({
@@ -67,9 +72,21 @@ namespace sfg
 		void register_component_transform_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "pos", .display_name = "Position", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_transform_t, pos), .size = sizeof(vec3f_t)},
-				{.name = "rot", .display_name = "Rotation", .type = reflected_value_type_e::quat, .offset = offsetof(component_transform_t, rot), .size = sizeof(quat_t)},
-				{.name = "scale", .display_name = "Scale", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_transform_t, scale), .size = sizeof(vec3f_t)},
+				{.name			= "pos",
+				 .display_name	= "Position",
+				 .tooltip		= "Local position relative to the parent entity.",
+				 .type			= reflected_value_type_e::object,
+				 .value_type_id = type_id_t<vec3f_t>::value,
+				 .offset		= offsetof(component_transform_t, pos),
+				 .size			= sizeof(vec3f_t)},
+				{.name = "rot", .display_name = "Rotation", .tooltip = "Local rotation stored as a quaternion.", .type = reflected_value_type_e::quat, .offset = offsetof(component_transform_t, rot), .size = sizeof(quat_t)},
+				{.name			= "scale",
+				 .display_name	= "Scale",
+				 .tooltip		= "Local non-uniform scale relative to the parent entity.",
+				 .type			= reflected_value_type_e::object,
+				 .value_type_id = type_id_t<vec3f_t>::value,
+				 .offset		= offsetof(component_transform_t, scale),
+				 .size			= sizeof(vec3f_t)},
 			};
 
 			register_type_if_missing({
@@ -87,7 +104,7 @@ namespace sfg
 		void register_component_name_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "text_index", .display_name = "Name", .type = reflected_value_type_e::text_id, .offset = offsetof(component_name_t, text_index), .size = sizeof(u32)},
+				{.name = "text_index", .display_name = "Name", .tooltip = "Index into the world text table for this entity name.", .type = reflected_value_type_e::text_id, .offset = offsetof(component_name_t, text_index), .size = sizeof(u32)},
 			};
 
 			register_type_if_missing({
@@ -105,8 +122,13 @@ namespace sfg
 		void register_component_mesh_renderer_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "mesh", .display_name = "Mesh", .type = reflected_value_type_e::mesh_handle, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(resource_handle_t)},
-				{.name = "material", .display_name = "Material", .type = reflected_value_type_e::material_handle, .offset = offsetof(component_mesh_renderer_t, material), .size = sizeof(resource_handle_t)},
+				{.name = "mesh", .display_name = "Mesh", .tooltip = "Mesh resource rendered by this entity.", .type = reflected_value_type_e::mesh_handle, .offset = offsetof(component_mesh_renderer_t, mesh), .size = sizeof(resource_handle_t)},
+				{.name		   = "material",
+				 .display_name = "Material",
+				 .tooltip	   = "Material resource used when drawing the mesh.",
+				 .type		   = reflected_value_type_e::material_handle,
+				 .offset	   = offsetof(component_mesh_renderer_t, material),
+				 .size		   = sizeof(resource_handle_t)},
 			};
 
 			register_type_if_missing({
@@ -124,7 +146,7 @@ namespace sfg
 		void register_component_render_object_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "render_id", .display_name = "Render ID", .type = reflected_value_type_e::u32, .offset = offsetof(component_render_object_t, render_id), .size = sizeof(u32)},
+				{.name = "render_id", .display_name = "Render ID", .tooltip = "Renderer-owned object index for this entity.", .type = reflected_value_type_e::u32, .offset = offsetof(component_render_object_t, render_id), .size = sizeof(u32)},
 			};
 
 			register_type_if_missing({
@@ -142,10 +164,10 @@ namespace sfg
 		void register_component_camera_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "fov_degrees", .display_name = "Field of View", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, fov_degrees), .size = sizeof(f32)},
-				{.name = "near_plane", .display_name = "Near Plane", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, near_plane), .size = sizeof(f32)},
-				{.name = "far_plane", .display_name = "Far Plane", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, far_plane), .size = sizeof(f32)},
-				{.name = "priority", .display_name = "Priority", .type = reflected_value_type_e::i8, .offset = offsetof(component_camera_t, priority), .size = sizeof(i8)},
+				{.name = "fov_degrees", .display_name = "Field of View", .tooltip = "Vertical camera field of view in degrees.", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, fov_degrees), .size = sizeof(f32)},
+				{.name = "near_plane", .display_name = "Near Plane", .tooltip = "Nearest visible camera depth in world units.", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, near_plane), .size = sizeof(f32)},
+				{.name = "far_plane", .display_name = "Far Plane", .tooltip = "Farthest visible camera depth in world units.", .type = reflected_value_type_e::f32, .offset = offsetof(component_camera_t, far_plane), .size = sizeof(f32)},
+				{.name = "priority", .display_name = "Priority", .tooltip = "Camera selection priority when more than one camera is active.", .type = reflected_value_type_e::i8, .offset = offsetof(component_camera_t, priority), .size = sizeof(i8)},
 			};
 
 			register_type_if_missing({
@@ -163,10 +185,14 @@ namespace sfg
 		void register_component_skybox_reflection()
 		{
 			static const reflected_field_desc_t fields[] = {
-				{.name = "skybox_asset", .display_name = "Skybox", .type = reflected_value_type_e::hdr_skybox_handle, .offset = offsetof(component_skybox_t, skybox_asset), .size = sizeof(resource_handle_t)},
-				{.name = "dummy_texture", .display_name = "Dummy Texture", .type = reflected_value_type_e::texture_handle, .offset = offsetof(component_skybox_t, dummy_texture), .size = sizeof(resource_handle_t)},
-				{.name = "intensity", .display_name = "Intensity", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, intensity), .size = sizeof(f32)},
-				{.name = "exposure", .display_name = "Exposure", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, exposure), .size = sizeof(f32)},
+				{.name		   = "skybox_asset",
+				 .display_name = "Skybox",
+				 .tooltip	   = "HDR skybox resource used for the scene background and lighting.",
+				 .type		   = reflected_value_type_e::hdr_skybox_handle,
+				 .offset	   = offsetof(component_skybox_t, skybox_asset),
+				 .size		   = sizeof(resource_handle_t)},
+				{.name = "intensity", .display_name = "Intensity", .tooltip = "Multiplier applied to skybox lighting contribution.", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, intensity), .size = sizeof(f32)},
+				{.name = "exposure", .display_name = "Exposure", .tooltip = "Exposure multiplier applied when sampling the skybox.", .type = reflected_value_type_e::f32, .offset = offsetof(component_skybox_t, exposure), .size = sizeof(f32)},
 			};
 
 			register_type_if_missing({

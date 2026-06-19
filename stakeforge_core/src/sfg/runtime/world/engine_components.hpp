@@ -97,10 +97,9 @@ namespace sfg
 		static inline constexpr sid_t		TYPE_ID	   = "component_skybox"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_skybox";
 
-		resource_handle_t skybox_asset	= NULL_RESOURCE_HANDLE;
-		resource_handle_t dummy_texture = NULL_RESOURCE_HANDLE;
-		f32				  intensity		= 1.0f;
-		f32				  exposure		= 1.0f;
+		resource_handle_t skybox_asset = NULL_RESOURCE_HANDLE;
+		f32				  intensity	   = 1.0f;
+		f32				  exposure	   = 1.0f;
 	};
 
 	struct component_alive_t

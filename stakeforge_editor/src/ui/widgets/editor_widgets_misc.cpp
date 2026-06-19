@@ -156,20 +156,20 @@ namespace sfg
 			editor_icon_widgets_t::add_icon(ui, icon_frame, ICON_L, theme.item_height * 0.65f, theme.color_frame);
 		}
 
-		const ui::widget_id_t label_id = ui.allocate_widget();
-		ui.set_widget_debug_name(label_id, "property_row_label");
-		tree.attach(row.left, label_id);
+		row.label = ui.allocate_widget();
+		ui.set_widget_debug_name(row.label, "property_row_label");
+		tree.attach(row.left, row.label);
 
-		ui::layout_in_t& label_in = tree.in(label_id);
-		label_in.flags			  = ui::wf_visible;
+		ui::layout_in_t& label_in = tree.in(row.label);
+		label_in.flags			  = ui::wf_visible | ui::wf_input;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
 
-		ui.set_widget_text(label_id, label != nullptr ? label : "");
-		paint.set_text(label_id,
-					   ui.widget_text(label_id),
-					   ui.widget_text_len(label_id),
+		ui.set_widget_text(row.label, label != nullptr ? label : "");
+		paint.set_text(row.label,
+					   ui.widget_text(row.label),
+					   ui.widget_text_len(row.label),
 					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		if (remove_button)
@@ -209,7 +209,8 @@ namespace sfg
 
 		vector_row.dropdown_icon = editor_icon_widgets_t::add_icon(ui, vector_row.dropdown_button, unfolded ? ICON_DD_DOWN : ICON_DD_RIGHT, theme.icon_default_px_size, theme.color_text1);
 
-		vector_row.label = ui.allocate_widget();
+		vector_row.label	 = ui.allocate_widget();
+		vector_row.row.label = vector_row.label;
 		ui.set_widget_debug_name(vector_row.label, "property_row_vector_label");
 		tree.attach(vector_row.row.left, vector_row.label);
 

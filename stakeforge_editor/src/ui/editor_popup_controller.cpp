@@ -30,12 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/frame_string.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <cstring>
 
 namespace sfg
 {
@@ -174,22 +176,77 @@ namespace sfg
 			paint.set_text(_row_labels[i], nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
-		_asset_list_area = ui.allocate_widget();
-		ui.set_widget_debug_name(_asset_list_area, "asset_popup_list");
-		tree.attach(_frame, _asset_list_area);
+		_asset_label_row = ui.allocate_widget();
+		ui.set_widget_debug_name(_asset_label_row, "asset_popup_label_row");
+		tree.attach(_frame, _asset_label_row);
 
-		ui::layout_in_t& asset_list_in = tree.in(_asset_list_area);
-		asset_list_in.flags			   = 0;
-		asset_list_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
-		asset_list_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		asset_list_in.size_value	   = {1.0f, theme.item_height};
-		asset_list_in.flow			   = ui::flow_e::column;
-		asset_list_in.child_spacing	   = 0.0f;
-		asset_list_in.child_clip_mode  = ui::clip_mode_e::scissor_rect;
-		ui.set_pre_layout_tick(_asset_list_area, on_asset_list_tick, this);
+		ui::layout_in_t& asset_label_row_in = tree.in(_asset_label_row);
+		asset_label_row_in.flags			= 0;
+		asset_label_row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		asset_label_row_in.size_mode_y		= ui::axis_mode_e::fixed;
+		asset_label_row_in.size_value		= {1.0f, theme.item_area_height};
+		asset_label_row_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+
+		_asset_label = ui.allocate_widget();
+		ui.set_widget_debug_name(_asset_label, "asset_popup_label");
+		tree.attach(_asset_label_row, _asset_label);
+
+		ui::layout_in_t& asset_label_in = tree.in(_asset_label);
+		asset_label_in.flags			= 0;
+		asset_label_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+		asset_label_in.pos_value.y		= 0.5f;
+		asset_label_in.anchor_y			= ui::anchor_e::center;
+		ui.set_widget_text(_asset_label, "Select a resource");
+		paint.set_text(_asset_label,
+					   ui.widget_text(_asset_label),
+					   ui.widget_text_len(_asset_label),
+					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_asset_search_row = ui.allocate_widget();
+		ui.set_widget_debug_name(_asset_search_row, "asset_popup_search_row");
+		tree.attach(_frame, _asset_search_row);
+
+		ui::layout_in_t& asset_search_row_in = tree.in(_asset_search_row);
+		asset_search_row_in.flags			 = 0;
+		asset_search_row_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		asset_search_row_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		asset_search_row_in.size_value		 = {1.0f, theme.item_area_height};
+		asset_search_row_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+
+		editor_input_field_config_t asset_search_config = {};
+		asset_search_config.placeholder					= "Search";
+		asset_search_config.type						= editor_input_field_type_e::text;
+		asset_search_config.on_text_changed				= on_asset_search_changed;
+		asset_search_config.user_data					= this;
+		_asset_search_input.init(ui, _asset_search_row, asset_search_config);
+		_asset_search_input.set_draw_order(POPUP_DRAW_ORDER + 1);
+
+		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
+		asset_search_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+		asset_search_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		asset_search_in.pos_value		 = {0.5f, 0.5f};
+		asset_search_in.anchor_x		 = ui::anchor_e::center;
+		asset_search_in.anchor_y		 = ui::anchor_e::center;
+		asset_search_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		asset_search_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		asset_search_in.size_value		 = {1.0f, theme.item_height};
+
+		_assets_frame = ui.allocate_widget();
+		ui.set_widget_debug_name(_assets_frame, "asset_popup_assets_frame");
+		tree.attach(_frame, _assets_frame);
+
+		ui::layout_in_t& assets_frame_in = tree.in(_assets_frame);
+		assets_frame_in.flags			 = 0;
+		assets_frame_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		assets_frame_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		assets_frame_in.size_value		 = {1.0f, theme.item_height};
+		assets_frame_in.flow			 = ui::flow_e::column;
+		assets_frame_in.child_spacing	 = 0.0f;
+		assets_frame_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
+		ui.set_pre_layout_tick(_assets_frame, on_asset_list_tick, this);
 
 		editor_scrollbar_config_t scrollbar_config = {};
-		scrollbar_config.target					   = _asset_list_area;
+		scrollbar_config.target					   = _assets_frame;
 		scrollbar_config.axes					   = editor_scrollbar_axis_y;
 		_asset_scrollbar.init(ui, scrollbar_config);
 
@@ -208,6 +265,7 @@ namespace sfg
 		close_popup(false);
 		destroy_asset_rows();
 		_asset_scrollbar.uninit();
+		_asset_search_input.uninit();
 		_input.uninit();
 		_ui->deallocate_widget(_foreground);
 
@@ -222,15 +280,18 @@ namespace sfg
 			}
 		}
 
-		_ui				 = nullptr;
-		_foreground		 = NULL_WIDGET;
-		_frame			 = NULL_WIDGET;
-		_asset_list_area = NULL_WIDGET;
-		_desc			 = {};
-		_input_desc		 = {};
-		_asset_desc		 = {};
-		_mode			 = popup_mode_e::none;
-		_visible		 = false;
+		_ui				  = nullptr;
+		_foreground		  = NULL_WIDGET;
+		_frame			  = NULL_WIDGET;
+		_asset_label_row  = NULL_WIDGET;
+		_asset_label	  = NULL_WIDGET;
+		_asset_search_row = NULL_WIDGET;
+		_assets_frame	  = NULL_WIDGET;
+		_desc			  = {};
+		_input_desc		  = {};
+		_asset_desc		  = {};
+		_mode			  = popup_mode_e::none;
+		_visible		  = false;
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
 			_row_frames[i]		  = NULL_WIDGET;
@@ -240,6 +301,7 @@ namespace sfg
 			_items[i]			  = {};
 		}
 		_asset_items.resize(0);
+		_asset_filtered_items.resize(0);
 		_asset_rows.resize(0);
 	}
 
@@ -290,7 +352,9 @@ namespace sfg
 		close_popup(false);
 		_asset_desc = desc;
 		_mode		= popup_mode_e::assets;
+		_asset_search_input.set_text("");
 		collect_asset_items();
+		filter_asset_items();
 		refresh_asset_rows();
 		refresh_layout();
 		begin_asset_scroll_to_selected();
@@ -320,6 +384,7 @@ namespace sfg
 		for (editor_popup_item_desc_t& item : _items)
 			item = {};
 		_asset_items.resize(0);
+		_asset_filtered_items.resize(0);
 
 		if (notify)
 			closed(input_value.c_str(), closed_user_data);
@@ -350,12 +415,16 @@ namespace sfg
 			set_widget_visible(tree, _row_marker_labels[i], marker_visible, false);
 			set_widget_visible(tree, _row_labels[i], item_visible, false);
 		}
-		ui::layout_in_t& asset_list_in = tree.in(_asset_list_area);
-		asset_list_in.flags			   = visible && _mode == popup_mode_e::assets ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_scroll_y) : 0;
+		set_widget_visible(tree, _asset_label_row, visible && _mode == popup_mode_e::assets, false);
+		set_widget_visible(tree, _asset_label, visible && _mode == popup_mode_e::assets, false);
+		set_widget_visible(tree, _asset_search_row, visible && _mode == popup_mode_e::assets, false);
+		_asset_search_input.set_visible(visible && _mode == popup_mode_e::assets);
+		ui::layout_in_t& assets_frame_in = tree.in(_assets_frame);
+		assets_frame_in.flags			 = visible && _mode == popup_mode_e::assets ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_scroll_y) : 0;
 		for (size_t i = 0; i < _asset_rows.size(); ++i)
 		{
 			const asset_row_t& row		   = _asset_rows[i];
-			const bool		   row_visible = visible && _mode == popup_mode_e::assets && i < _asset_items.size();
+			const bool		   row_visible = visible && _mode == popup_mode_e::assets && i < _asset_filtered_items.size();
 			set_widget_visible(tree, row.root, row_visible, row_visible);
 			set_widget_visible(tree, row.marker, row_visible, false);
 			set_widget_visible(tree, row.marker_icon, row_visible, false);
@@ -391,18 +460,18 @@ namespace sfg
 		row_listener.user_data			   = this;
 		row_listener.on_click			   = on_asset_row_click;
 
-		_asset_rows.reserve(_asset_items.size());
-		for (size_t i = 0; i < _asset_items.size(); ++i)
+		_asset_rows.reserve(_asset_filtered_items.size());
+		for (size_t i = 0; i < _asset_filtered_items.size(); ++i)
 		{
-			const asset_popup_item_t& item = _asset_items[i];
+			const asset_popup_item_t& item = _asset_filtered_items[i];
 			if (i >= _asset_rows.size())
 			{
 				asset_row_t row = {};
 
 				row.root = _ui->allocate_widget();
 				_ui->set_widget_debug_name(row.root, "asset_popup_item");
-				tree.attach(_asset_list_area, row.root);
-				tree.draw_order(row.root) = tree.draw_order_const(_asset_list_area) + 1;
+				tree.attach(_assets_frame, row.root);
+				tree.draw_order(row.root) = tree.draw_order_const(_assets_frame) + 1;
 
 				ui::layout_in_t& row_in = tree.in(row.root);
 				row_in.flags			= 0;
@@ -483,7 +552,7 @@ namespace sfg
 						   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 
-		for (size_t i = _asset_items.size(); i < _asset_rows.size(); ++i)
+		for (size_t i = _asset_filtered_items.size(); i < _asset_rows.size(); ++i)
 			_asset_rows[i].guid = NULL_SID;
 	}
 
@@ -508,10 +577,14 @@ namespace sfg
 		else if (_mode == popup_mode_e::assets)
 		{
 			width				   = theme.item_width * 2.0f;
-			const u32 visible_rows = math::min(ASSET_POPUP_VISIBLE_ROWS, static_cast<u32>(math::max<size_t>(1, _asset_items.size())));
-			height				   = static_cast<f32>(visible_rows) * theme.item_height + theme.margin_vertical * 2.0f;
-			for (const asset_row_t& row : _asset_rows)
-				width = math::max(width, theme.item_height + theme.item_spacing + theme.item_height + theme.item_spacing + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+			const u32 visible_rows = math::min(ASSET_POPUP_VISIBLE_ROWS, static_cast<u32>(math::max<size_t>(1, _asset_filtered_items.size())));
+			height				   = theme.item_area_height * 2.0f + static_cast<f32>(visible_rows) * theme.item_height + theme.margin_vertical * 2.0f;
+			width				   = math::max(width, static_cast<f32>(_ui->widget_text_len(_asset_label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+			for (size_t i = 0; i < _asset_filtered_items.size(); ++i)
+			{
+				const asset_row_t& row = _asset_rows[i];
+				width				   = math::max(width, theme.item_height + theme.item_spacing + theme.item_height + theme.item_spacing + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+			}
 
 			const f32 scale				= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 			const f32 screen_width		= screen.clip.z / scale;
@@ -547,7 +620,7 @@ namespace sfg
 		frame_in.pos_value	= {x, y};
 		frame_in.size_value = {width, 0.0f};
 		if (_mode == popup_mode_e::assets)
-			tree.in(_asset_list_area).size_value.y = height - theme.margin_vertical * 2.0f;
+			tree.in(_assets_frame).size_value.y = height - theme.margin_vertical * 2.0f - theme.item_area_height * 2.0f;
 	}
 
 	void editor_popup_controller_t::collect_asset_items()
@@ -572,13 +645,39 @@ namespace sfg
 		}
 	}
 
+	void editor_popup_controller_t::filter_asset_items()
+	{
+		_asset_filtered_items.resize(0);
+		_asset_filtered_items.reserve(_asset_items.size());
+
+		const char* query = _asset_search_input.get_text();
+		if (query == nullptr || query[0] == '\0')
+		{
+			for (const asset_popup_item_t& item : _asset_items)
+				_asset_filtered_items.push_back(item);
+			return;
+		}
+
+		frame_string_t<char> query_lower;
+		query_lower.assign(query, std::strlen(query));
+		string_util::to_lower(query_lower);
+		for (const asset_popup_item_t& item : _asset_items)
+		{
+			frame_string_t<char> name_lower;
+			name_lower.assign(item.name.c_str(), item.name.size());
+			string_util::to_lower(name_lower);
+			if (name_lower.find(query_lower.c_str()) != frame_string_t<char>::npos)
+				_asset_filtered_items.push_back(item);
+		}
+	}
+
 	void editor_popup_controller_t::destroy_asset_rows()
 	{
 		for (size_t i = _asset_rows.size(); i > 0; --i)
 			_ui->deallocate_widget(_asset_rows[i - 1].root);
 		_asset_rows.resize(0);
-		if (_ui != nullptr && _asset_list_area != NULL_WIDGET)
-			_ui->get_tree().in(_asset_list_area).scroll_offset = {};
+		if (_ui != nullptr && _assets_frame != NULL_WIDGET)
+			_ui->get_tree().in(_assets_frame).scroll_offset = {};
 	}
 
 	void editor_popup_controller_t::begin_asset_scroll_to_selected()
@@ -586,9 +685,9 @@ namespace sfg
 		_asset_scroll_pending_frames = 0;
 		_asset_scroll_target		 = 0;
 		_asset_scrollbar.set_scroll_y_immediate(0.0f);
-		for (u32 i = 0; i < _asset_items.size(); ++i)
+		for (u32 i = 0; i < _asset_filtered_items.size(); ++i)
 		{
-			if (_asset_items[i].guid == _asset_desc.selected)
+			if (_asset_filtered_items[i].guid == _asset_desc.selected)
 			{
 				_asset_scroll_target		 = i;
 				_asset_scroll_pending_frames = 2;
@@ -665,6 +764,15 @@ namespace sfg
 		static_cast<editor_popup_controller_t*>(user_data)->close_popup(true);
 	}
 
+	void editor_popup_controller_t::on_asset_search_changed(const char*, void* user_data)
+	{
+		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
+		popup.filter_asset_items();
+		popup.refresh_asset_rows();
+		popup._asset_scrollbar.set_scroll_y_immediate(0.0f);
+		popup.set_visible(true);
+	}
+
 	void editor_popup_controller_t::on_asset_list_tick(ui::ui_context& ui, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
@@ -683,7 +791,7 @@ namespace sfg
 
 		const editor_theme_t&	 theme		= editor_theme_t::get();
 		const ui::layout_tree_t& tree		= ui.get_tree();
-		const ui::layout_out_t&	 list_out	= tree.out(popup._asset_list_area);
+		const ui::layout_out_t&	 list_out	= tree.out(popup._assets_frame);
 		const f32				 ui_scale	= ui.get_ui_scale() > 0.0f ? ui.get_ui_scale() : 1.0f;
 		const f32				 viewport	= list_out.size.y / ui_scale;
 		const f32				 row_center = (static_cast<f32>(popup._asset_scroll_target) + 0.5f) * theme.item_height;

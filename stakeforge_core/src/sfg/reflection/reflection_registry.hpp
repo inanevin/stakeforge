@@ -139,6 +139,7 @@ namespace sfg
 		void*									  user_data		= nullptr;
 		const char*								  name			= nullptr;
 		const char*								  display_name	= nullptr;
+		const char*								  tooltip		= nullptr;
 		reflected_value_type_e					  type			= reflected_value_type_e::invalid;
 		sid_t									  id			= 0;
 		sid_t									  value_type_id = 0;
