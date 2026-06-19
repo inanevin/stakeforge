@@ -30,8 +30,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
+
+#include <cstddef>
 
 namespace sfg
 {
@@ -100,6 +102,45 @@ namespace sfg
 		resource_handle_t skybox_asset = NULL_RESOURCE_HANDLE;
 		f32				  intensity	   = 1.0f;
 		f32				  exposure	   = 1.0f;
+	};
+
+	struct debug_widgets_inplace_vector_t
+	{
+		u32	   data[4] = {1, 2, 3, 0};
+		size_t size	   = 3;
+	};
+
+	struct component_debug_widgets_t
+	{
+		static inline constexpr sid_t		TYPE_ID	   = "debug_widgets_component"_hs;
+		static inline constexpr const char* DEBUG_NAME = "debug_widgets_component";
+
+		debug_widgets_inplace_vector_t inplace_vector_value					= {};
+		resource_handle_t			   resource_value						= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   audio_handle_value					= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   font_handle_value					= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   mesh_handle_value					= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   skeleton_handle_value				= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   animation_handle_value				= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   material_handle_value				= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   shader_handle_value					= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   texture_handle_value					= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   texture_sampler_handle_value			= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   physical_material_handle_value		= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   prefab_handle_value					= NULL_RESOURCE_HANDLE;
+		resource_handle_t			   animation_state_machine_handle_value = NULL_RESOURCE_HANDLE;
+		resource_handle_t			   hdr_skybox_handle_value				= NULL_RESOURCE_HANDLE;
+		quat_t						   quat_value							= {};
+		f32							   f32_value							= 1.0f;
+		i32							   i32_value							= -32;
+		u32							   u32_value							= 32;
+		entity_id_t					   entity_id_value						= NULL_ENTITY_ID;
+		u32							   text_id_value						= ECS_INVALID_INDEX;
+		u32							   enum32_value							= 1;
+		i8							   i8_value								= -8;
+		u8							   u8_value								= 8;
+		u8							   bool8_value							= 1;
+		u8							   enum8_value							= 1;
 	};
 
 	struct component_alive_t

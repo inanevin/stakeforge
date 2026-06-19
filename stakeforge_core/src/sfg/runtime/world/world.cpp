@@ -56,6 +56,7 @@ namespace sfg
 		add_component_table(ecs_helpers_t::make_component_desc<component_render_object_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_camera_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_skybox_t>());
+		add_component_table(ecs_helpers_t::make_component_desc<component_debug_widgets_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_alive_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_disabled_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_no_serialize_t>());
@@ -68,6 +69,7 @@ namespace sfg
 		_engine_components.render_object_table = &get_component_table(component_render_object_t::TYPE_ID)->table;
 		_engine_components.camera_table		   = &get_component_table(component_camera_t::TYPE_ID)->table;
 		_engine_components.skybox_table		   = &get_component_table(component_skybox_t::TYPE_ID)->table;
+		_engine_components.debug_widgets_table = &get_component_table(component_debug_widgets_t::TYPE_ID)->table;
 		_engine_components.alive_table		   = &get_component_table(component_alive_t::TYPE_ID)->table;
 		_engine_components.disabled_table	   = &get_component_table(component_disabled_t::TYPE_ID)->table;
 		_engine_components.no_serialize_table  = &get_component_table(component_no_serialize_t::TYPE_ID)->table;
@@ -138,6 +140,7 @@ namespace sfg
 		ecs_t::table_remove(*_engine_components.name_table, id);
 		ecs_t::table_remove(*_engine_components.render_object_table, id);
 		ecs_t::table_remove(*_engine_components.skybox_table, id);
+		ecs_t::table_remove(*_engine_components.debug_widgets_table, id);
 		ecs_t::table_remove(*_engine_components.disabled_table, id);
 		ecs_t::table_remove(*_engine_components.no_serialize_table, id);
 		ecs_t::table_remove(*_system_components.transform_table, id);

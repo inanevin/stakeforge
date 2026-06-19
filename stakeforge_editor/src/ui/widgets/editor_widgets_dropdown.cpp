@@ -90,6 +90,7 @@ namespace sfg
 		_title = ui.allocate_widget();
 		ui.set_widget_debug_name(_title, "dropdown_title");
 		tree.attach(_root, _title);
+		tree.draw_order(_title) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& title_in = tree.in(_title);
 		title_in.flags			  = ui::wf_visible;
@@ -115,6 +116,7 @@ namespace sfg
 		_icon_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_icon_frame, "dropdown_icon");
 		tree.attach(_root, _icon_frame);
+		tree.draw_order(_icon_frame) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& icon_in = tree.in(_icon_frame);
 		icon_in.flags			 = ui::wf_visible;

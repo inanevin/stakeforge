@@ -75,6 +75,7 @@ namespace sfg
 		_check = ui.allocate_widget();
 		ui.set_widget_debug_name(_check, "checkbox_check");
 		tree.attach(_root, _check);
+		tree.draw_order(_check) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& check_in = tree.in(_check);
 		check_in.flags			  = 0;

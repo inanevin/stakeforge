@@ -270,6 +270,7 @@ namespace sfg
 		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(component_skybox_t::TYPE_ID)->table, environment);
 		skybox.skybox_asset				= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
 		skybox.exposure					= 0.25f;
+		ecs_helpers_t::table_add_or_get_as<component_debug_widgets_t>(world.get_component_table(component_debug_widgets_t::TYPE_ID)->table, environment);
 
 		for (world_container_t& container : _worlds)
 		{

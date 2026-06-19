@@ -107,6 +107,7 @@ namespace sfg
 			ecs_component_table_t* render_object_table = nullptr;
 			ecs_component_table_t* camera_table		   = nullptr;
 			ecs_component_table_t* skybox_table		   = nullptr;
+			ecs_component_table_t* debug_widgets_table = nullptr;
 			ecs_component_table_t* alive_table		   = nullptr;
 			ecs_component_table_t* disabled_table	   = nullptr;
 			ecs_component_table_t* no_serialize_table  = nullptr;

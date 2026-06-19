@@ -139,9 +139,12 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		editor_property_row_t row = make_property_row(ui, parent);
+		ui::layout_in_t& row_layout = tree.in(row.left);
+		row_layout.child_clip_mode = ui::clip_mode_e::cpu_rect;
+
 		if (sub_item)
 		{
-			tree.in(row.left).child_spacing = theme.item_spacing * 0.5f;
+			row_layout.child_spacing = theme.item_spacing * 0.5f;
 
 			const ui::widget_id_t icon_frame = ui.allocate_widget();
 			ui.set_widget_debug_name(icon_frame, "property_row_sub_item_icon_frame");
