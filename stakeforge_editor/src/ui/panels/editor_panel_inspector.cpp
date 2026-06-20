@@ -109,11 +109,12 @@ namespace sfg
 		_scrollbar.uninit();
 		_component_states.clear();
 		_display_entities.clear();
-		_display_world		 = nullptr;
-		_display_type		 = editor_inspector_display_type_e::none;
-		_column				 = NULL_WIDGET;
-		_scroll_area		 = NULL_WIDGET;
-		_action_menu_type_id = 0;
+		_display_world		  = nullptr;
+		_display_world_handle = {};
+		_display_type		  = editor_inspector_display_type_e::none;
+		_column				  = NULL_WIDGET;
+		_scroll_area		  = NULL_WIDGET;
+		_action_menu_type_id  = 0;
 
 		editor_panel_t::uninit();
 	}
@@ -121,22 +122,24 @@ namespace sfg
 	void editor_panel_inspector_t::set_display_none()
 	{
 		save_display_state();
-		_display_type  = editor_inspector_display_type_e::none;
-		_display_world = nullptr;
+		_display_type		  = editor_inspector_display_type_e::none;
+		_display_world		  = nullptr;
+		_display_world_handle = {};
 		_display_entities.resize(0);
 		refresh_display();
 	}
 
-	void editor_panel_inspector_t::set_display_entity(world_t& world, entity_id_t entity)
+	void editor_panel_inspector_t::set_display_entity(world_handle_t world, entity_id_t entity)
 	{
 		const entity_id_t entities[] = {entity};
 		set_display_entity(world, {.data = entities, .size = 1});
 	}
 
-	void editor_panel_inspector_t::set_display_entity(world_t& world, span_t<const entity_id_t> entities)
+	void editor_panel_inspector_t::set_display_entity(world_handle_t world, span_t<const entity_id_t> entities)
 	{
-		_display_type  = editor_inspector_display_type_e::entity;
-		_display_world = &world;
+		_display_type		  = editor_inspector_display_type_e::entity;
+		_display_world_handle = world;
+		_display_world		  = &editor_app_t::get().get_runtime().get_world(world);
 		_display_entities.assign(entities.data, entities.data + entities.size);
 		refresh_display();
 	}
@@ -190,7 +193,7 @@ namespace sfg
 
 		const entity_id_t first_entity = _display_entities.front();
 		_entity_info				   = new editor_widget_entity_info_t();
-		_entity_info->init(*_ui, _column);
+		_entity_info->init(*_ui, _column, _display_world_handle);
 		_entity_info->set_entity(*_display_world, first_entity);
 
 		for (const world_component_table_t& component_table : _display_world->get_component_tables())
@@ -224,7 +227,7 @@ namespace sfg
 			display.fold->init(*_ui, _column, {.label = reflected_type->display_name, .folded = state != nullptr && state->folded, .settings_button = true});
 			display.reflect->init(*_ui, display.fold->get_body());
 			editor_reflected_edit_target_t target = {};
-			target.world						  = editor_app_t::get().get_main_world();
+			target.world						  = _display_world_handle;
 			target.entity						  = first_entity;
 			target.type_id						  = component_table.type_desc.type_id;
 			target.kind							  = editor_reflected_edit_target_kind_e::world_component;

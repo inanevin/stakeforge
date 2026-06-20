@@ -307,11 +307,10 @@ namespace sfg
 			return;
 		}
 
-		world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
 		if (_selected_entities.size() == 1)
-			inspector->set_display_entity(world, _selected_entities.front());
+			inspector->set_display_entity(_main_world, _selected_entities.front());
 		else
-			inspector->set_display_entity(world, {.data = _selected_entities.data(), .size = _selected_entities.size()});
+			inspector->set_display_entity(_main_world, {.data = _selected_entities.data(), .size = _selected_entities.size()});
 	}
 
 	void editor_panel_entities_t::collect_entities()

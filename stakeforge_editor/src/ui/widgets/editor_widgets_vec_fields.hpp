@@ -39,32 +39,35 @@ namespace sfg
 
 	struct editor_vec2_field_config_t
 	{
-		editor_vec2_field_changed_fn on_changed = nullptr;
-		void*						 user_data	= nullptr;
-		editor_widget_width_config_t width		= {};
-		vec2f_t						 value		= {0.0f, 0.0f};
-		f32							 increment	= 0.1f;
-		bool						 integer	= false;
+		editor_vec2_field_changed_fn on_changed	  = nullptr;
+		editor_vec2_field_changed_fn on_submitted = nullptr;
+		void*						 user_data	  = nullptr;
+		editor_widget_width_config_t width		  = {};
+		vec2f_t						 value		  = {0.0f, 0.0f};
+		f32							 increment	  = 0.1f;
+		bool						 integer	  = false;
 	};
 
 	struct editor_vec3_field_config_t
 	{
-		editor_vec3_field_changed_fn on_changed = nullptr;
-		void*						 user_data	= nullptr;
-		editor_widget_width_config_t width		= {};
-		vec3f_t						 value		= {0.0f, 0.0f, 0.0f};
-		f32							 increment	= 0.1f;
-		bool						 integer	= false;
+		editor_vec3_field_changed_fn on_changed	  = nullptr;
+		editor_vec3_field_changed_fn on_submitted = nullptr;
+		void*						 user_data	  = nullptr;
+		editor_widget_width_config_t width		  = {};
+		vec3f_t						 value		  = {0.0f, 0.0f, 0.0f};
+		f32							 increment	  = 0.1f;
+		bool						 integer	  = false;
 	};
 
 	struct editor_vec4_field_config_t
 	{
-		editor_vec4_field_changed_fn on_changed = nullptr;
-		void*						 user_data	= nullptr;
-		editor_widget_width_config_t width		= {};
-		vec4f_t						 value		= {0.0f, 0.0f, 0.0f, 0.0f};
-		f32							 increment	= 0.1f;
-		bool						 integer	= false;
+		editor_vec4_field_changed_fn on_changed	  = nullptr;
+		editor_vec4_field_changed_fn on_submitted = nullptr;
+		void*						 user_data	  = nullptr;
+		editor_widget_width_config_t width		  = {};
+		vec4f_t						 value		  = {0.0f, 0.0f, 0.0f, 0.0f};
+		f32							 increment	  = 0.1f;
+		bool						 integer	  = false;
 	};
 
 	class editor_vec2_field_t final
@@ -97,6 +100,7 @@ namespace sfg
 		};
 
 		static void on_component_changed(f32 value, void* user_data);
+		static void on_component_submitted(const char* text, f32 value, void* user_data);
 
 	private:
 		ui::ui_context*			   _ui			  = nullptr;
@@ -137,6 +141,7 @@ namespace sfg
 		};
 
 		static void on_component_changed(f32 value, void* user_data);
+		static void on_component_submitted(const char* text, f32 value, void* user_data);
 
 	private:
 		ui::ui_context*			   _ui			  = nullptr;
@@ -177,6 +182,7 @@ namespace sfg
 		};
 
 		static void on_component_changed(f32 value, void* user_data);
+		static void on_component_submitted(const char* text, f32 value, void* user_data);
 
 	private:
 		ui::ui_context*			   _ui			  = nullptr;

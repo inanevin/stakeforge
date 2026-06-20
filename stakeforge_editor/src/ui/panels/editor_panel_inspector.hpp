@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -71,8 +72,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_display_none();
-		void set_display_entity(world_t& world, entity_id_t entity);
-		void set_display_entity(world_t& world, span_t<const entity_id_t> entities);
+		void set_display_entity(world_handle_t world, entity_id_t entity);
+		void set_display_entity(world_handle_t world, span_t<const entity_id_t> entities);
 		void refresh_display();
 
 	private:
@@ -102,15 +103,16 @@ namespace sfg
 		static void on_component_action_menu_command(u16 command, void* user_data);
 
 	private:
-		vector_t<component_display_state_t> _component_states	 = {};
-		vector_t<component_display_t>		_component_displays	 = {};
-		vector_t<entity_id_t>				_display_entities	 = {};
-		editor_scrollbar_t					_scrollbar			 = {};
-		editor_widget_entity_info_t*		_entity_info		 = nullptr;
-		world_t*							_display_world		 = nullptr;
-		ui::widget_id_t						_scroll_area		 = NULL_WIDGET;
-		ui::widget_id_t						_column				 = NULL_WIDGET;
-		sid_t								_action_menu_type_id = 0;
-		editor_inspector_display_type_e		_display_type		 = editor_inspector_display_type_e::none;
+		vector_t<component_display_state_t> _component_states	  = {};
+		vector_t<component_display_t>		_component_displays	  = {};
+		vector_t<entity_id_t>				_display_entities	  = {};
+		editor_scrollbar_t					_scrollbar			  = {};
+		editor_widget_entity_info_t*		_entity_info		  = nullptr;
+		world_t*							_display_world		  = nullptr;
+		world_handle_t						_display_world_handle = {};
+		ui::widget_id_t						_scroll_area		  = NULL_WIDGET;
+		ui::widget_id_t						_column				  = NULL_WIDGET;
+		sid_t								_action_menu_type_id  = 0;
+		editor_inspector_display_type_e		_display_type		  = editor_inspector_display_type_e::none;
 	};
 }

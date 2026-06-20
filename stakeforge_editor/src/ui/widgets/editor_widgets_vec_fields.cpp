@@ -53,7 +53,8 @@ namespace sfg
 			in.size_value		= {1.0f, 1.0f};
 		}
 
-		void init_number_input(ui::ui_context& ui, ui::widget_id_t parent, editor_input_field_t& input, const char* placeholder, f32 value, f32 increment, bool integer, editor_input_field_number_fn callback, void* user_data)
+		void init_number_input(
+			ui::ui_context& ui, ui::widget_id_t parent, editor_input_field_t& input, const char* placeholder, f32 value, f32 increment, bool integer, editor_input_field_number_fn changed, editor_input_field_submit_fn submitted, void* user_data)
 		{
 			editor_input_field_config_t input_config = {};
 			input_config.placeholder				 = placeholder;
@@ -61,7 +62,8 @@ namespace sfg
 			input_config.number_value				 = value;
 			input_config.increment					 = increment;
 			input_config.integer					 = integer;
-			input_config.on_number_changed			 = callback;
+			input_config.on_number_changed			 = changed;
+			input_config.on_submitted				 = submitted;
 			input_config.user_data					 = user_data;
 			input.init(ui, parent, input_config);
 			set_input_fill(ui, input.get_root());
@@ -84,7 +86,7 @@ namespace sfg
 		for (u8 i = 0; i < 2; ++i)
 		{
 			_components[i] = {this, i};
-			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, &_components[i]);
+			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, on_component_submitted, &_components[i]);
 		}
 	}
 
@@ -117,6 +119,13 @@ namespace sfg
 			component.owner->_config.on_changed(component.owner->_value, component.owner->_config.user_data);
 	}
 
+	void editor_vec2_field_t::on_component_submitted(const char*, f32, void* user_data)
+	{
+		component_t& component = *static_cast<component_t*>(user_data);
+		if (component.owner->_config.on_submitted != nullptr)
+			component.owner->_config.on_submitted(component.owner->_value, component.owner->_config.user_data);
+	}
+
 	void editor_vec3_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec3_field_config_t& config)
 	{
 		_ui		= &ui;
@@ -133,7 +142,7 @@ namespace sfg
 		for (u8 i = 0; i < 3; ++i)
 		{
 			_components[i] = {this, i};
-			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, &_components[i]);
+			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, on_component_submitted, &_components[i]);
 		}
 	}
 
@@ -166,6 +175,13 @@ namespace sfg
 			component.owner->_config.on_changed(component.owner->_value, component.owner->_config.user_data);
 	}
 
+	void editor_vec3_field_t::on_component_submitted(const char*, f32, void* user_data)
+	{
+		component_t& component = *static_cast<component_t*>(user_data);
+		if (component.owner->_config.on_submitted != nullptr)
+			component.owner->_config.on_submitted(component.owner->_value, component.owner->_config.user_data);
+	}
+
 	void editor_vec4_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec4_field_config_t& config)
 	{
 		_ui		= &ui;
@@ -182,7 +198,7 @@ namespace sfg
 		for (u8 i = 0; i < 4; ++i)
 		{
 			_components[i] = {this, i};
-			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, &_components[i]);
+			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, on_component_submitted, &_components[i]);
 		}
 	}
 
@@ -213,5 +229,12 @@ namespace sfg
 		(&component.owner->_value.x)[component.index] = value;
 		if (component.owner->_config.on_changed != nullptr)
 			component.owner->_config.on_changed(component.owner->_value, component.owner->_config.user_data);
+	}
+
+	void editor_vec4_field_t::on_component_submitted(const char*, f32, void* user_data)
+	{
+		component_t& component = *static_cast<component_t*>(user_data);
+		if (component.owner->_config.on_submitted != nullptr)
+			component.owner->_config.on_submitted(component.owner->_value, component.owner->_config.user_data);
 	}
 }
