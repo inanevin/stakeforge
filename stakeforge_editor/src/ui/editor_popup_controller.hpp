@@ -32,7 +32,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec2f.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg::ui
 {
@@ -43,9 +45,10 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_popup_item_pressed_fn	= void (*)(u16 id, void* user_data);
-	using editor_popup_asset_pressed_fn = void (*)(sid_t guid, void* user_data);
-	using editor_popup_input_closed_fn	= void (*)(const char* value, void* user_data);
+	using editor_popup_item_pressed_fn	 = void (*)(u16 id, void* user_data);
+	using editor_popup_asset_pressed_fn	 = void (*)(sid_t guid, void* user_data);
+	using editor_popup_entity_pressed_fn = void (*)(entity_id_t entity, void* user_data);
+	using editor_popup_input_closed_fn	 = void (*)(const char* value, void* user_data);
 
 	struct editor_popup_item_desc_t
 	{
@@ -86,6 +89,17 @@ namespace sfg
 		bool						  close_on_pressed = true;
 	};
 
+	struct editor_entity_popup_desc_t
+	{
+		editor_popup_entity_pressed_fn pressed			= nullptr;
+		void*						   user_data		= nullptr;
+		vec2f_t						   pos				= {};
+		f32							   width			= 0.0f;
+		world_handle_t				   world			= {};
+		entity_id_t					   selected			= NULL_ENTITY_ID;
+		bool						   close_on_pressed = true;
+	};
+
 	class editor_popup_controller_t final
 	{
 	public:
@@ -113,6 +127,7 @@ namespace sfg
 		void request_popup(const editor_popup_desc_t& desc);
 		void request_input_popup(const editor_input_popup_desc_t& desc);
 		void request_asset_popup(const editor_asset_popup_desc_t& desc);
+		void request_entity_popup(const editor_entity_popup_desc_t& desc);
 		void close_popup(bool notify_input = false);
 
 		static editor_popup_controller_t* find(ui::ui_context& ui);
@@ -124,6 +139,7 @@ namespace sfg
 			items,
 			input,
 			assets,
+			entities,
 		};
 
 		struct asset_popup_item_t
@@ -142,16 +158,18 @@ namespace sfg
 			sid_t			guid		= NULL_SID;
 		};
 
-		void set_visible(bool visible);
-		void refresh_rows();
-		void refresh_asset_rows();
-		void refresh_layout();
-		void collect_asset_items();
-		void filter_asset_items();
-		void destroy_asset_rows();
-		void begin_asset_scroll_to_selected();
-		u32	 find_row(ui::widget_id_t id) const;
-		u32	 find_asset_row(ui::widget_id_t id) const;
+		void  set_visible(bool visible);
+		void  refresh_rows();
+		void  refresh_asset_rows();
+		void  refresh_layout();
+		void  collect_asset_items();
+		void  collect_entity_items();
+		void  filter_asset_items();
+		void  destroy_asset_rows();
+		void  begin_asset_scroll_to_selected();
+		sid_t get_search_selected_value() const;
+		u32	  find_row(ui::widget_id_t id) const;
+		u32	  find_asset_row(ui::widget_id_t id) const;
 
 		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_asset_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -175,6 +193,7 @@ namespace sfg
 		editor_popup_desc_t			 _desc						   = {};
 		editor_input_popup_desc_t	 _input_desc				   = {};
 		editor_asset_popup_desc_t	 _asset_desc				   = {};
+		editor_entity_popup_desc_t	 _entity_desc				   = {};
 		editor_input_field_t		 _input						   = {};
 		editor_input_field_t		 _asset_search_input		   = {};
 		editor_scrollbar_t			 _asset_scrollbar			   = {};

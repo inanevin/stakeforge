@@ -594,7 +594,8 @@ namespace sfg
 		_ui				  = &ui;
 		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_changed, this);
 
-		ui::layout_tree_t& tree = ui.get_tree();
+		ui::layout_tree_t& tree	 = ui.get_tree();
+		editor_theme_t&	   theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "reflect_type");
@@ -609,6 +610,7 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
+		root_in.child_margins = { 0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal };
 	}
 
 	void editor_widget_reflect_type_t::uninit()
@@ -638,10 +640,19 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::set_reflected_obj(void* object, sid_t type_id, const editor_reflected_edit_target_t& target)
 	{
+		const bool same_target = _object == object && _type_id == type_id && _target.object == target.object && _target.world == target.world && _target.entity == target.entity && _target.type_id == target.type_id && _target.kind == target.kind;
+
 		_object	 = object;
 		_type_id = type_id;
 		_target	 = target;
-		_vector_states.resize(0);
+		if (!same_target)
+			_vector_states.resize(0);
+		rebuild_reflected_controls();
+	}
+
+	void editor_widget_reflect_type_t::set_vector_fold_states(const vector_t<vector_fold_state_t>& states)
+	{
+		_vector_states = states;
 		rebuild_reflected_controls();
 	}
 
@@ -705,6 +716,20 @@ namespace sfg
 			return;
 		}
 
+		if (field.type == reflected_value_type_e::entity_id)
+		{
+			editor_widget_entity_reference_t*		reference = new editor_widget_entity_reference_t();
+			editor_widget_entity_reference_config_t config	  = {};
+			config.world									  = _target.world.is_null() ? editor_app_t::get().get_main_world() : _target.world;
+			config.selected									  = on_entity_selected;
+			config.pressed									  = on_entity_pressed;
+			config.user_data								  = control;
+			reference->init(*_ui, parent, config);
+			center_property_row_control(*_ui, reference->get_root());
+			_entity_references.push_back(reference);
+			return;
+		}
+
 		switch (field.type)
 		{
 		case reflected_value_type_e::f32: {
@@ -713,6 +738,7 @@ namespace sfg
 			apply_reflected_number_config(config, field, false);
 			config.number_value		 = read_reflected_number(object, field);
 			config.on_number_changed = on_number_changed;
+			config.on_submitted		 = on_input_submitted;
 			config.user_data		 = control;
 			input->init(*_ui, parent, config);
 			center_property_row_control(*_ui, input->get_root());
@@ -728,6 +754,7 @@ namespace sfg
 			apply_reflected_number_config(config, field, true);
 			config.number_value		 = read_reflected_number(object, field);
 			config.on_number_changed = on_number_changed;
+			config.on_submitted		 = on_input_submitted;
 			config.user_data		 = control;
 			input->init(*_ui, parent, config);
 			center_property_row_control(*_ui, input->get_root());
@@ -873,6 +900,7 @@ namespace sfg
 			config.type						   = editor_input_field_type_e::text;
 			config.text_value				   = read_reflected_text(object, field);
 			config.on_text_changed			   = on_text_changed;
+			config.on_submitted				   = on_input_submitted;
 			config.user_data				   = control;
 			input->init(*_ui, parent, config);
 			center_property_row_control(*_ui, input->get_root());
@@ -1302,6 +1330,29 @@ namespace sfg
 		editor_commands_reflection_t::edit_field(desc, old_value, new_value);
 	}
 
+	void editor_widget_reflect_type_t::begin_live_reflected_edit(reflected_control_t& control) const
+	{
+		if (control.edit_active)
+			return;
+		control.edit_old_value = new ostream_t();
+		control.edit_active	   = begin_reflected_edit(*control.command_field, control.command_object, *control.edit_old_value);
+		if (!control.edit_active)
+		{
+			delete control.edit_old_value;
+			control.edit_old_value = nullptr;
+		}
+	}
+
+	void editor_widget_reflect_type_t::submit_live_reflected_edit(reflected_control_t& control) const
+	{
+		if (!control.edit_active)
+			return;
+		end_reflected_edit(*control.command_field, control.command_object, *control.edit_old_value);
+		delete control.edit_old_value;
+		control.edit_old_value = nullptr;
+		control.edit_active	   = false;
+	}
+
 	bool editor_widget_reflect_type_t::matches_reflected_command(const editor_command_reflected_field_edit_payload_t& payload) const
 	{
 		if (payload.type_id != _type_id)
@@ -1324,21 +1375,25 @@ namespace sfg
 	void editor_widget_reflect_type_t::on_number_changed(f32 value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		ostream_t			 old_value;
-		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
+		control.owner->begin_live_reflected_edit(control);
 		write_reflected_number(control.object, *control.field, value);
-		if (reflected_edit)
-			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
 	void editor_widget_reflect_type_t::on_text_changed(const char* value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		ostream_t			 old_value;
-		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
+		control.owner->begin_live_reflected_edit(control);
 		write_reflected_text(control.object, *control.field, value);
-		if (reflected_edit)
-			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
+	}
+
+	void editor_widget_reflect_type_t::on_input_submitted(const char* text_value, f32 number_value, void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		if (control.field->type == reflected_value_type_e::string)
+			write_reflected_text(control.object, *control.field, text_value);
+		else
+			write_reflected_number(control.object, *control.field, number_value);
+		control.owner->submit_live_reflected_edit(control);
 	}
 
 	void editor_widget_reflect_type_t::on_checkbox_changed(bool checked, void* user_data)
@@ -1423,6 +1478,22 @@ namespace sfg
 			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
+	entity_id_t editor_widget_reflect_type_t::on_entity_selected(void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		return read_reflected_value<entity_id_t>(control.object, *control.field);
+	}
+
+	void editor_widget_reflect_type_t::on_entity_pressed(entity_id_t entity, void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		ostream_t			 old_value;
+		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
+		write_reflected_value(control.object, *control.field, entity);
+		if (reflected_edit)
+			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
+	}
+
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)
 	{
 		reflected_control_t&							control		= *static_cast<reflected_control_t*>(user_data);
@@ -1494,6 +1565,13 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()
 	{
+		for (size_t i = _entity_references.size(); i > 0; --i)
+		{
+			_entity_references[i - 1]->uninit();
+			delete _entity_references[i - 1];
+		}
+		_entity_references.resize(0);
+
 		for (size_t i = _asset_references.size(); i > 0; --i)
 		{
 			_asset_references[i - 1]->uninit();
@@ -1559,6 +1637,12 @@ namespace sfg
 			_ui->deallocate_widget(_rows[i - 1].row);
 		}
 		_rows.resize(0);
+		for (reflected_control_t& control : _controls)
+		{
+			delete control.edit_old_value;
+			control.edit_old_value = nullptr;
+			control.edit_active	   = false;
+		}
 		_controls.resize(0);
 		_vector_controls.resize(0);
 		_vector_item_controls.resize(0);

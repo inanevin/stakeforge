@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/editor_popup_controller.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "editor_app.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
@@ -37,6 +38,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/world.hpp>
 #include <cstring>
 
 namespace sfg
@@ -290,6 +295,7 @@ namespace sfg
 		_desc			  = {};
 		_input_desc		  = {};
 		_asset_desc		  = {};
+		_entity_desc	  = {};
 		_mode			  = popup_mode_e::none;
 		_visible		  = false;
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
@@ -352,8 +358,40 @@ namespace sfg
 		close_popup(false);
 		_asset_desc = desc;
 		_mode		= popup_mode_e::assets;
+		_ui->set_widget_text(_asset_label, "Select a resource");
+		const editor_theme_t& theme = editor_theme_t::get();
+		_ui->get_paint().set_text(_asset_label,
+								  _ui->widget_text(_asset_label),
+								  _ui->widget_text_len(_asset_label),
+								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		_asset_search_input.set_text("");
 		collect_asset_items();
+		filter_asset_items();
+		refresh_asset_rows();
+		refresh_layout();
+		begin_asset_scroll_to_selected();
+		set_visible(true);
+
+		ui::widget_id_t popup_roots[] = {_frame, _asset_scrollbar.get_root()};
+		_ui->get_input().set_popup_scope(_frame, popup_roots, 2, on_popup_outside, this);
+	}
+
+	void editor_popup_controller_t::request_entity_popup(const editor_entity_popup_desc_t& desc)
+	{
+		SFG_ASSERT(_ui != nullptr);
+		SFG_ASSERT(!desc.world.is_null());
+
+		close_popup(false);
+		_entity_desc = desc;
+		_mode		 = popup_mode_e::entities;
+		_ui->set_widget_text(_asset_label, "Select an entity");
+		const editor_theme_t& theme = editor_theme_t::get();
+		_ui->get_paint().set_text(_asset_label,
+								  _ui->widget_text(_asset_label),
+								  _ui->widget_text_len(_asset_label),
+								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		_asset_search_input.set_text("");
+		collect_entity_items();
 		filter_asset_items();
 		refresh_asset_rows();
 		refresh_layout();
@@ -379,6 +417,7 @@ namespace sfg
 		_desc						 = {};
 		_input_desc					 = {};
 		_asset_desc					 = {};
+		_entity_desc				 = {};
 		_mode						 = popup_mode_e::none;
 		_asset_scroll_pending_frames = 0;
 		for (editor_popup_item_desc_t& item : _items)
@@ -405,7 +444,7 @@ namespace sfg
 		_visible				= visible;
 		ui::layout_tree_t& tree = _ui->get_tree();
 		set_widget_visible(tree, _foreground, visible, false);
-		set_widget_visible(tree, _frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets), false);
+		set_widget_visible(tree, _frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets || _mode == popup_mode_e::entities), false);
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
 			const bool item_visible	  = visible && _mode == popup_mode_e::items && i < _desc.item_count;
@@ -415,20 +454,21 @@ namespace sfg
 			set_widget_visible(tree, _row_marker_labels[i], marker_visible, false);
 			set_widget_visible(tree, _row_labels[i], item_visible, false);
 		}
-		set_widget_visible(tree, _asset_label_row, visible && _mode == popup_mode_e::assets, false);
-		set_widget_visible(tree, _asset_label, visible && _mode == popup_mode_e::assets, false);
-		set_widget_visible(tree, _asset_search_row, visible && _mode == popup_mode_e::assets, false);
-		_asset_search_input.set_visible(visible && _mode == popup_mode_e::assets);
+		const bool search_popup_visible = visible && (_mode == popup_mode_e::assets || _mode == popup_mode_e::entities);
+		set_widget_visible(tree, _asset_label_row, search_popup_visible, false);
+		set_widget_visible(tree, _asset_label, search_popup_visible, false);
+		set_widget_visible(tree, _asset_search_row, search_popup_visible, false);
+		_asset_search_input.set_visible(search_popup_visible);
 		ui::layout_in_t& assets_frame_in = tree.in(_assets_frame);
-		assets_frame_in.flags			 = visible && _mode == popup_mode_e::assets ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_scroll_y) : 0;
+		assets_frame_in.flags			 = search_popup_visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_scroll_y) : 0;
 		for (size_t i = 0; i < _asset_rows.size(); ++i)
 		{
 			const asset_row_t& row		   = _asset_rows[i];
-			const bool		   row_visible = visible && _mode == popup_mode_e::assets && i < _asset_filtered_items.size();
+			const bool		   row_visible = search_popup_visible && i < _asset_filtered_items.size();
 			set_widget_visible(tree, row.root, row_visible, row_visible);
 			set_widget_visible(tree, row.marker, row_visible, false);
 			set_widget_visible(tree, row.marker_icon, row_visible, false);
-			set_widget_visible(tree, row.thumbnail, row_visible, false);
+			set_widget_visible(tree, row.thumbnail, row_visible && _mode == popup_mode_e::assets, false);
 			set_widget_visible(tree, row.label, row_visible, false);
 		}
 		_input.set_visible(visible && _mode == popup_mode_e::input);
@@ -543,7 +583,7 @@ namespace sfg
 
 			asset_row_t& row					  = _asset_rows[i];
 			row.guid							  = item.guid;
-			paint.def(row.marker_icon).text.color = item.guid == _asset_desc.selected ? theme.color_accent0 : vec4f_t{};
+			paint.def(row.marker_icon).text.color = item.guid == get_search_selected_value() ? theme.color_accent0 : vec4f_t{};
 
 			_ui->set_widget_text(row.label, item.name.c_str());
 			paint.set_text(row.label,
@@ -574,7 +614,7 @@ namespace sfg
 			width  = math::max(_input_desc.width, theme.item_width);
 			height = theme.item_height + theme.margin_vertical * 2.0f;
 		}
-		else if (_mode == popup_mode_e::assets)
+		else if (_mode == popup_mode_e::assets || _mode == popup_mode_e::entities)
 		{
 			width				   = theme.item_width * 2.0f;
 			const u32 visible_rows = math::min(ASSET_POPUP_VISIBLE_ROWS, static_cast<u32>(math::max<size_t>(1, _asset_filtered_items.size())));
@@ -582,8 +622,9 @@ namespace sfg
 			width				   = math::max(width, static_cast<f32>(_ui->widget_text_len(_asset_label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
 			for (size_t i = 0; i < _asset_filtered_items.size(); ++i)
 			{
-				const asset_row_t& row = _asset_rows[i];
-				width				   = math::max(width, theme.item_height + theme.item_spacing + theme.item_height + theme.item_spacing + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+				const asset_row_t& row			   = _asset_rows[i];
+				const f32		   thumbnail_width = _mode == popup_mode_e::assets ? theme.item_height + theme.item_spacing : 0.0f;
+				width							   = math::max(width, theme.item_height + theme.item_spacing + thumbnail_width + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
 			}
 
 			const f32 scale				= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
@@ -595,12 +636,12 @@ namespace sfg
 		const f32 scale		= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 		const f32 width_px	= width * scale;
 		const f32 height_px = height * scale;
-		f32		  x			= _mode == popup_mode_e::input ? _input_desc.pos.x : _mode == popup_mode_e::assets ? _asset_desc.pos.x : _desc.pos.x;
-		f32		  y			= _mode == popup_mode_e::input ? _input_desc.pos.y : _mode == popup_mode_e::assets ? _asset_desc.pos.y : _desc.pos.y;
+		f32		  x			= _mode == popup_mode_e::input ? _input_desc.pos.x : _mode == popup_mode_e::assets ? _asset_desc.pos.x : _mode == popup_mode_e::entities ? _entity_desc.pos.x : _desc.pos.x;
+		f32		  y			= _mode == popup_mode_e::input ? _input_desc.pos.y : _mode == popup_mode_e::assets ? _asset_desc.pos.y : _mode == popup_mode_e::entities ? _entity_desc.pos.y : _desc.pos.y;
 		if (x + width_px > screen.clip.x + screen.clip.z)
 			x = screen.clip.x + screen.clip.z - width_px;
 		if (y + height_px > screen.clip.y + screen.clip.w)
-			y = (_mode == popup_mode_e::input ? _input_desc.pos.y : _mode == popup_mode_e::assets ? _asset_desc.pos.y : _desc.pos.y) - height_px;
+			y = (_mode == popup_mode_e::input ? _input_desc.pos.y : _mode == popup_mode_e::assets ? _asset_desc.pos.y : _mode == popup_mode_e::entities ? _entity_desc.pos.y : _desc.pos.y) - height_px;
 		x = math::clamp(x, screen.clip.x, math::max(screen.clip.x, screen.clip.x + screen.clip.z - width_px));
 		y = math::clamp(y, screen.clip.y, math::max(screen.clip.y, screen.clip.y + screen.clip.w - height_px));
 
@@ -619,7 +660,7 @@ namespace sfg
 
 		frame_in.pos_value	= {x, y};
 		frame_in.size_value = {width, 0.0f};
-		if (_mode == popup_mode_e::assets)
+		if (_mode == popup_mode_e::assets || _mode == popup_mode_e::entities)
 			tree.in(_assets_frame).size_value.y = height - theme.margin_vertical * 2.0f - theme.item_area_height * 2.0f;
 	}
 
@@ -642,6 +683,29 @@ namespace sfg
 				continue;
 
 			_asset_items.push_back({.name = node.name, .guid = asset->guid});
+		}
+	}
+
+	void editor_popup_controller_t::collect_entity_items()
+	{
+		_asset_items.resize(0);
+
+		const world_t&				   world	   = editor_app_t::get().get_runtime().get_world(_entity_desc.world);
+		const world_component_table_t* alive_table = world.find_component_table(component_alive_t::TYPE_ID);
+		const world_component_table_t* name_table  = world.find_component_table(component_name_t::TYPE_ID);
+		SFG_ASSERT(alive_table != nullptr);
+		SFG_ASSERT(name_table != nullptr);
+
+		const ecs_component_table_ref_t table_refs[] = {
+			alive_table->table.ref(),
+			name_table->table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = 2}))
+		{
+			const component_name_t& name = ecs_helpers_t::row_get<component_name_t>(row, 1);
+			const char*				text = world.get_text(name.text_index);
+			_asset_items.push_back({.name = text != nullptr ? text : "Entity", .guid = static_cast<sid_t>(row.id)});
 		}
 	}
 
@@ -685,15 +749,21 @@ namespace sfg
 		_asset_scroll_pending_frames = 0;
 		_asset_scroll_target		 = 0;
 		_asset_scrollbar.set_scroll_y_immediate(0.0f);
+		const sid_t selected = get_search_selected_value();
 		for (u32 i = 0; i < _asset_filtered_items.size(); ++i)
 		{
-			if (_asset_filtered_items[i].guid == _asset_desc.selected)
+			if (_asset_filtered_items[i].guid == selected)
 			{
 				_asset_scroll_target		 = i;
 				_asset_scroll_pending_frames = 2;
 				return;
 			}
 		}
+	}
+
+	sid_t editor_popup_controller_t::get_search_selected_value() const
+	{
+		return _mode == popup_mode_e::entities ? static_cast<sid_t>(_entity_desc.selected) : _asset_desc.selected;
 	}
 
 	u32 editor_popup_controller_t::find_row(ui::widget_id_t id) const
@@ -740,16 +810,23 @@ namespace sfg
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		editor_popup_controller_t&			popup			  = *static_cast<editor_popup_controller_t*>(user_data);
-		const u32							row				  = popup.find_asset_row(id);
-		const sid_t							value			  = popup._asset_rows[row].guid;
-		const editor_popup_asset_pressed_fn pressed			  = popup._asset_desc.pressed;
-		void*								pressed_user_data = popup._asset_desc.user_data;
-		const bool							close_on_pressed  = popup._asset_desc.close_on_pressed;
+		editor_popup_controller_t&			 popup			   = *static_cast<editor_popup_controller_t*>(user_data);
+		const u32							 row			   = popup.find_asset_row(id);
+		const sid_t							 value			   = popup._asset_rows[row].guid;
+		const bool							 entity_popup	   = popup._mode == popup_mode_e::entities;
+		const editor_popup_asset_pressed_fn	 asset_pressed	   = popup._asset_desc.pressed;
+		const editor_popup_entity_pressed_fn entity_pressed	   = popup._entity_desc.pressed;
+		void*								 pressed_user_data = entity_popup ? popup._entity_desc.user_data : popup._asset_desc.user_data;
+		const bool							 close_on_pressed  = entity_popup ? popup._entity_desc.close_on_pressed : popup._asset_desc.close_on_pressed;
 		if (close_on_pressed)
 			popup.close_popup();
-		if (pressed != nullptr)
-			pressed(value, pressed_user_data);
+		if (entity_popup)
+		{
+			if (entity_pressed != nullptr)
+				entity_pressed(static_cast<entity_id_t>(value), pressed_user_data);
+		}
+		else if (asset_pressed != nullptr)
+			asset_pressed(value, pressed_user_data);
 	}
 
 	void editor_popup_controller_t::on_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -778,7 +855,7 @@ namespace sfg
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
 		if (popup._asset_scroll_pending_frames == 0)
 			return;
-		if (!popup._visible || popup._mode != popup_mode_e::assets)
+		if (!popup._visible || (popup._mode != popup_mode_e::assets && popup._mode != popup_mode_e::entities))
 		{
 			popup._asset_scroll_pending_frames = 0;
 			return;

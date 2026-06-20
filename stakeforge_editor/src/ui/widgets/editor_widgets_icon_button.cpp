@@ -65,6 +65,7 @@ namespace sfg
 		_icon = ui.allocate_widget();
 		ui.set_widget_debug_name(_icon, "icon_button_icon");
 		tree.attach(_root, _icon);
+		tree.draw_order(_icon) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& icon_in = tree.in(_icon);
 		icon_in.flags			 = ui::wf_visible;

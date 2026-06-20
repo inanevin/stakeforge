@@ -72,7 +72,7 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = 0.0f;
-		root_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+		root_in.child_margins	 = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
 
 		_scroll_area = ui.allocate_widget();
 		ui.set_widget_debug_name(_scroll_area, "inspector_scroll_area");
@@ -107,6 +107,7 @@ namespace sfg
 	{
 		clear_display();
 		_scrollbar.uninit();
+		_component_states.clear();
 		_display_entities.clear();
 		_display_world		 = nullptr;
 		_display_type		 = editor_inspector_display_type_e::none;
@@ -119,6 +120,7 @@ namespace sfg
 
 	void editor_panel_inspector_t::set_display_none()
 	{
+		save_display_state();
 		_display_type  = editor_inspector_display_type_e::none;
 		_display_world = nullptr;
 		_display_entities.resize(0);
@@ -141,9 +143,25 @@ namespace sfg
 
 	void editor_panel_inspector_t::refresh_display()
 	{
+		save_display_state();
 		clear_display();
 		if (_display_type == editor_inspector_display_type_e::entity)
 			create_entity_display();
+	}
+
+	void editor_panel_inspector_t::save_display_state()
+	{
+		for (const component_display_t& display : _component_displays)
+		{
+			component_display_state_t* state = find_component_display_state(display.type_id);
+			if (state == nullptr)
+			{
+				_component_states.push_back({.type_id = display.type_id});
+				state = &_component_states.back();
+			}
+			state->folded			  = display.fold->is_folded();
+			state->vector_fold_states = display.reflect->get_vector_fold_states();
+		}
 	}
 
 	void editor_panel_inspector_t::clear_display()
@@ -202,7 +220,8 @@ namespace sfg
 			display.reflect				= new editor_widget_reflect_type_t();
 			display.type_id				= component_table.type_desc.type_id;
 
-			display.fold->init(*_ui, _column, {.label = reflected_type->display_name, .settings_button = true});
+			component_display_state_t* state = find_component_display_state(display.type_id);
+			display.fold->init(*_ui, _column, {.label = reflected_type->display_name, .folded = state != nullptr && state->folded, .settings_button = true});
 			display.reflect->init(*_ui, display.fold->get_body());
 			editor_reflected_edit_target_t target = {};
 			target.world						  = editor_app_t::get().get_main_world();
@@ -210,6 +229,8 @@ namespace sfg
 			target.type_id						  = component_table.type_desc.type_id;
 			target.kind							  = editor_reflected_edit_target_kind_e::world_component;
 			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id, target);
+			if (state != nullptr)
+				display.reflect->set_vector_fold_states(state->vector_fold_states);
 
 			ui::listener_bundle_t settings_listener = {};
 			settings_listener.user_data				= this;
@@ -218,6 +239,16 @@ namespace sfg
 
 			_component_displays.push_back(display);
 		}
+	}
+
+	editor_panel_inspector_t::component_display_state_t* editor_panel_inspector_t::find_component_display_state(sid_t type_id)
+	{
+		for (component_display_state_t& state : _component_states)
+		{
+			if (state.type_id == type_id)
+				return &state;
+		}
+		return nullptr;
 	}
 
 	void editor_panel_inspector_t::open_component_action_menu(const vec2f_t& pos, sid_t type_id)
