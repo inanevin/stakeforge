@@ -57,8 +57,10 @@ namespace sfg
 		chunk_handle32_t			   old_value = {};
 		chunk_handle32_t			   new_value = {};
 		editor_reflected_edit_target_t target	 = {};
+		world_handle_t				   world	 = {};
 		sid_t						   type_id	 = 0;
 		sid_t						   field_id	 = 0;
+		bool						   text_id	 = false;
 	};
 
 	struct editor_reflected_field_edit_desc_t
@@ -74,6 +76,7 @@ namespace sfg
 		editor_commands_reflection_t() = delete;
 
 		static bool													edit_field(const editor_reflected_field_edit_desc_t& desc, const ostream_t& old_value, const ostream_t& new_value);
+		static bool													edit_text_id_field(const editor_reflected_field_edit_desc_t& desc, world_handle_t world, const char* old_value, const char* new_value);
 		static const editor_command_reflected_field_edit_payload_t* get_payload(const editor_command_system_t& system, const editor_command_t& command);
 	};
 }

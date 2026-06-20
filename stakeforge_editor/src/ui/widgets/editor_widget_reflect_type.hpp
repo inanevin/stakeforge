@@ -34,6 +34,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
+#include "ui/widgets/editor_widget_text_id.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
@@ -140,6 +141,8 @@ namespace sfg
 		static void		   on_asset_pressed(sid_t guid, void* user_data);
 		static entity_id_t on_entity_selected(void* user_data);
 		static void		   on_entity_pressed(entity_id_t entity, void* user_data);
+		static u32		   on_text_id_selected(void* user_data);
+		static void		   on_text_id_submitted(const char* text, void* user_data);
 		static u16		   on_enum_selected(void* user_data);
 		static void		   on_enum_pressed(u16 value, void* user_data);
 		static void		   on_vector_header_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -163,6 +166,7 @@ namespace sfg
 		vector_t<editor_vec4_field_t*>				_vec4_fields		  = {};
 		vector_t<editor_widget_asset_reference_t*>	_asset_references	  = {};
 		vector_t<editor_widget_entity_reference_t*> _entity_references	  = {};
+		vector_t<editor_widget_text_id_t*>			_text_ids			  = {};
 		vector_t<enum_control_t>					_dropdowns			  = {};
 		editor_reflected_edit_target_t				_target				  = {};
 		editor_command_listener_handle_t			_command_listener	  = {};

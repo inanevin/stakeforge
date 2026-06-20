@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <cstdio>
 #include <cstring>
@@ -610,7 +611,7 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
-		root_in.child_margins = { 0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal };
+		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 	}
 
 	void editor_widget_reflect_type_t::uninit()
@@ -727,6 +728,20 @@ namespace sfg
 			reference->init(*_ui, parent, config);
 			center_property_row_control(*_ui, reference->get_root());
 			_entity_references.push_back(reference);
+			return;
+		}
+
+		if (field.type == reflected_value_type_e::text_id && command_field.type == reflected_value_type_e::text_id)
+		{
+			editor_widget_text_id_t*	   text_id = new editor_widget_text_id_t();
+			editor_widget_text_id_config_t config  = {};
+			config.world						   = _target.world.is_null() ? editor_app_t::get().get_main_world() : _target.world;
+			config.selected						   = on_text_id_selected;
+			config.submitted					   = on_text_id_submitted;
+			config.user_data					   = control;
+			text_id->init(*_ui, parent, config);
+			center_property_row_control(*_ui, text_id->get_root());
+			_text_ids.push_back(text_id);
 			return;
 		}
 
@@ -1494,6 +1509,32 @@ namespace sfg
 			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
+	u32 editor_widget_reflect_type_t::on_text_id_selected(void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		return read_reflected_value<u32>(control.object, *control.field);
+	}
+
+	void editor_widget_reflect_type_t::on_text_id_submitted(const char* text, void* user_data)
+	{
+		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		if (control.owner->_target.kind == editor_reflected_edit_target_kind_e::none)
+			return;
+		if ((control.command_field->flags & reflected_field_flags_read_only) != 0)
+			return;
+
+		editor_reflected_field_edit_desc_t desc = {};
+		desc.target								= control.owner->_target;
+		desc.type_id							= control.owner->_type_id;
+		desc.field_id							= control.command_field->id;
+
+		const world_handle_t world_handle = control.owner->_target.world.is_null() ? editor_app_t::get().get_main_world() : control.owner->_target.world;
+		world_t&			 world		  = editor_app_t::get().get_runtime().get_world(world_handle);
+		const u32			 old_text_id  = read_reflected_value<u32>(control.command_object, *control.command_field);
+		const char*			 old_text	  = world.get_text(old_text_id);
+		editor_commands_reflection_t::edit_text_id_field(desc, world_handle, old_text != nullptr ? old_text : "", text != nullptr ? text : "");
+	}
+
 	u16 editor_widget_reflect_type_t::on_enum_selected(void* user_data)
 	{
 		reflected_control_t&							control		= *static_cast<reflected_control_t*>(user_data);
@@ -1565,6 +1606,13 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()
 	{
+		for (size_t i = _text_ids.size(); i > 0; --i)
+		{
+			_text_ids[i - 1]->uninit();
+			delete _text_ids[i - 1];
+		}
+		_text_ids.resize(0);
+
 		for (size_t i = _entity_references.size(); i > 0; --i)
 		{
 			_entity_references[i - 1]->uninit();

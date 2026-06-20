@@ -81,6 +81,8 @@ namespace sfg
 		const vector_t<world_component_table_t>& get_component_tables() const;
 		const char*								 get_entity_name(entity_id_t id) const;
 		const char*								 get_text(u32 text_index) const;
+		u32										 allocate_text(const char* text);
+		void									 release_text(u32 text_index);
 		bool									 is_alive(entity_id_t id) const;
 
 	private:
@@ -89,8 +91,6 @@ namespace sfg
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
-		u32		 allocate_text(const char* text);
-		void	 release_text(u32 text_index);
 
 	private:
 		struct world_text_allocation_t

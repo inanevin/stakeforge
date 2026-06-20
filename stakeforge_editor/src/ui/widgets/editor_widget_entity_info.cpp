@@ -70,7 +70,7 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
-		root_in.child_spacing	 = theme.item_spacing * 0.5f;
+		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		const editor_property_row_t name_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Name");
 		editor_input_field_config_t name_config = {};

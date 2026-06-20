@@ -51,6 +51,15 @@ namespace sfg
 			return handle;
 		}
 
+		chunk_handle32_t copy_text_to_aux(editor_command_system_t& system, const char* text)
+		{
+			const char*			   src		 = text != nullptr ? text : "";
+			const size_t		   text_size = std::strlen(src) + 1;
+			const chunk_handle32_t handle	 = system.get_aux_data().allocate_bytes(text_size, alignof(char));
+			SFG_MEMCPY(system.get_aux_data().get<char>(handle), src, text_size);
+			return handle;
+		}
+
 		void* resolve_target_object(editor_command_system_t& system, const editor_command_reflected_field_edit_payload_t& payload)
 		{
 			switch (payload.target.kind)
@@ -71,8 +80,47 @@ namespace sfg
 			}
 		}
 
+		bool read_text_id_field(const editor_command_reflected_field_edit_payload_t& payload, void* object, u32& out_text_id)
+		{
+			ostream_t stream;
+			if (!reflection_registry_t::get().serialize_field_to_stream(payload.type_id, payload.field_id, object, stream))
+				return false;
+			istream_t input(stream.get_raw(), stream.get_size());
+			input >> out_text_id;
+			return true;
+		}
+
+		bool write_text_id_field(const editor_command_reflected_field_edit_payload_t& payload, void* object, u32 text_id)
+		{
+			ostream_t stream;
+			stream << text_id;
+			istream_t input(stream.get_raw(), stream.get_size());
+			return reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, input);
+		}
+
+		bool apply_text_id_value(editor_command_system_t& system, editor_command_reflected_field_edit_payload_t& payload, chunk_handle32_t value)
+		{
+			void* object = resolve_target_object(system, payload);
+			if (object == nullptr)
+				return true;
+
+			world_t& world = editor_app_t::get().get_runtime().get_world(payload.world);
+
+			u32 current_text_id = ECS_INVALID_INDEX;
+			if (!read_text_id_field(payload, object, current_text_id))
+				return false;
+
+			world.release_text(current_text_id);
+			const char* text		= system.get_aux_data().get<char>(value);
+			const u32	new_text_id = world.allocate_text(text != nullptr ? text : "");
+			return write_text_id_field(payload, object, new_text_id);
+		}
+
 		bool apply_value(editor_command_system_t& system, editor_command_reflected_field_edit_payload_t& payload, chunk_handle32_t value)
 		{
+			if (payload.text_id)
+				return apply_text_id_value(system, payload, value);
+
 			void* object = resolve_target_object(system, payload);
 			if (object == nullptr)
 				return true;
@@ -131,6 +179,36 @@ namespace sfg
 			.debug_name = "Edit Reflected Field",
 			.type		= editor_command_type_e::reflected_field_edit,
 			.run_redo	= false,
+		};
+
+		return !command_system.issue_command(issue_desc, payload).is_null();
+	}
+
+	bool editor_commands_reflection_t::edit_text_id_field(const editor_reflected_field_edit_desc_t& desc, world_handle_t world, const char* old_value, const char* new_value)
+	{
+		const char* old_text = old_value != nullptr ? old_value : "";
+		const char* new_text = new_value != nullptr ? new_value : "";
+		if (std::strcmp(old_text, new_text) == 0)
+			return true;
+
+		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+
+		editor_command_reflected_field_edit_payload_t payload = {};
+		payload.old_value									  = copy_text_to_aux(command_system, old_text);
+		payload.new_value									  = copy_text_to_aux(command_system, new_text);
+		payload.target										  = desc.target;
+		payload.world										  = world;
+		payload.type_id										  = desc.type_id;
+		payload.field_id									  = desc.field_id;
+		payload.text_id										  = true;
+
+		const editor_command_issue_desc_t issue_desc{
+			.undo		= reflected_field_edit_undo,
+			.redo		= reflected_field_edit_redo,
+			.cleanup	= reflected_field_edit_cleanup,
+			.debug_name = "Edit Reflected Text",
+			.type		= editor_command_type_e::reflected_field_edit,
+			.run_redo	= true,
 		};
 
 		return !command_system.issue_command(issue_desc, payload).is_null();
