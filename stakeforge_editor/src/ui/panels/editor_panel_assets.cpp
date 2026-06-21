@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
@@ -342,7 +343,7 @@ namespace sfg
 		body_top_rect.fill_color_b		  = theme.color_panel;
 		paint.set_rect(_assets_body_pane_top, body_top_rect);
 
-		_assets_body_pane_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.divider_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		_assets_body_pane_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		ui.set_widget_debug_name(_assets_body_pane_divider, "assets_body_pane_divider");
 
 		_assets_body_pane_bottom = ui.allocate_widget();
@@ -443,7 +444,7 @@ namespace sfg
 		item_style_config.fixed_width			   = theme.item_width;
 		_item_style_dropdown.init(ui, _assets_body_pane_controls, item_style_config);
 
-		_assets_body_pane_bottom_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.divider_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		_assets_body_pane_bottom_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		ui.set_widget_debug_name(_assets_body_pane_bottom_divider, "assets_body_pane_bottom_divider");
 
 		editor_scrollbar_config_t right_scrollbar_config = {};
@@ -878,6 +879,13 @@ namespace sfg
 
 	void editor_panel_assets_t::clear_asset_grid()
 	{
+		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
+		if (tooltip_controller != nullptr)
+		{
+			for (const asset_grid_item_t& item : _asset_grid_items)
+				tooltip_controller->clear_tooltip(item.root);
+		}
+
 		for (ui::widget_id_t row : _asset_grid_rows)
 			_ui->deallocate_widget(row);
 		_asset_grid_rows.resize(0);
@@ -976,6 +984,14 @@ namespace sfg
 		listener.on_drag_begin		   = on_asset_grid_item_drag_begin;
 		ui.get_input().set_listener(item.root, listener);
 
+		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
+		if (tooltip_controller != nullptr)
+		{
+			editor_tooltip_desc_t tooltip = {};
+			tooltip.text				  = asset_node.name.c_str();
+			tooltip_controller->set_tooltip(item.root, tooltip);
+		}
+
 		item.thumbnail_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(item.thumbnail_frame, "asset_grid_item_thumbnail");
 		tree.attach(item.root, item.thumbnail_frame);
@@ -1045,7 +1061,7 @@ namespace sfg
 		info_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		info_in.size_mode_y		 = ui::axis_mode_e::fill;
 		info_in.size_value		 = {1.0f, 0.0f};
-		info_in.child_margins = { theme.margin_vertical , theme.margin_horizontal * 0.5f, theme.margin_vertical , theme.margin_horizontal * 0.5f};
+		info_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal * 0.5f, theme.margin_vertical, theme.margin_horizontal * 0.5f};
 
 		const bool			selected		   = _selected_asset_node == item.node;
 		ui::vg_rect_paint_t info_rect		   = {};
@@ -1157,6 +1173,14 @@ namespace sfg
 		listener.on_click			   = on_asset_grid_item_clicked;
 		listener.on_drag_begin		   = on_asset_grid_item_drag_begin;
 		ui.get_input().set_listener(item.root, listener);
+
+		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
+		if (tooltip_controller != nullptr)
+		{
+			editor_tooltip_desc_t tooltip = {};
+			tooltip.text				  = asset_node.name.c_str();
+			tooltip_controller->set_tooltip(item.root, tooltip);
+		}
 
 		item.info_frame = item.root;
 

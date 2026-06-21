@@ -162,8 +162,6 @@ namespace sfg
 
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
-			if (ev.button == static_cast<u16>(input_code::key_f4) && ev.sub_type == window_event_sub_type_e::press)
-				editor_app_t::get().create_payload("Debug payload", editor_payload_type_e::resource, nullptr);
 			if (ev.button == static_cast<u16>(input_code::key_f5) && ev.sub_type == window_event_sub_type_e::press)
 			{
 				editor_app_t& app		  = editor_app_t::get();

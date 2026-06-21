@@ -33,7 +33,6 @@ namespace sfg
 	enum class editor_payload_type_e : u8
 	{
 		panel,
-		resource,
 		asset,
 		folder,
 	};

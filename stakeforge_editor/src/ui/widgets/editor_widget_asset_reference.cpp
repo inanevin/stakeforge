@@ -26,10 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/editor_widget_asset_reference.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_manager.hpp"
+#include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/io/assert.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -76,7 +79,7 @@ namespace sfg
 		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 		root_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
 
-		set_rect(paint, _root, theme.color_frame, theme.item_rounding, theme.color_panel_light, theme.outline_thickness);
+		refresh_frame();
 		paint.set_hover_color(_root, theme.color_panel);
 		paint.set_press_color(_root, theme.color_frame_light);
 
@@ -84,6 +87,7 @@ namespace sfg
 		root_listener.user_data				= this;
 		root_listener.on_click				= on_root_click;
 		ui.get_input().set_listener(_root, root_listener);
+		editor_payload_controller_t::get().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 
 		_thumbnail = ui.allocate_widget();
 		ui.set_widget_debug_name(_thumbnail, "asset_reference_thumbnail");
@@ -119,13 +123,15 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
 		popup->close_popup();
+		editor_payload_controller_t::get().unregister_listener(this);
 
 		_ui->deallocate_widget(_root);
-		_ui		   = nullptr;
-		_root	   = NULL_WIDGET;
-		_thumbnail = NULL_WIDGET;
-		_label	   = NULL_WIDGET;
-		_config	   = {};
+		_ui				   = nullptr;
+		_root			   = NULL_WIDGET;
+		_thumbnail		   = NULL_WIDGET;
+		_label			   = NULL_WIDGET;
+		_config			   = {};
+		_accepting_payload = false;
 	}
 
 	void editor_widget_asset_reference_t::refresh_title()
@@ -162,6 +168,51 @@ namespace sfg
 		return _config.selected != nullptr ? _config.selected(_config.user_data) : NULL_SID;
 	}
 
+	sid_t editor_widget_asset_reference_t::get_payload_asset_guid(const editor_payload_t& payload) const
+	{
+		if (payload.type != editor_payload_type_e::asset)
+			return NULL_SID;
+		SFG_ASSERT(payload.user_ptr != nullptr);
+
+		const editor_asset_node_handle_t payload_node = *static_cast<editor_asset_node_handle_t*>(payload.user_ptr);
+		const editor_asset_tree_t&		 tree		  = editor_asset_manager_t::get().get_asset_tree();
+		if (payload_node.is_null() || !tree.is_valid(payload_node))
+			return NULL_SID;
+
+		const editor_asset_node_t& node = tree.value(payload_node);
+		if (node.type != editor_asset_node_type_e::asset)
+			return NULL_SID;
+
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(node.asset_id);
+		if (asset == nullptr || asset->asset_type != _config.asset_type)
+			return NULL_SID;
+
+		return asset->guid;
+	}
+
+	bool editor_widget_asset_reference_t::can_accept_payload(const editor_payload_t& payload, sid_t* out_guid) const
+	{
+		const sid_t guid = get_payload_asset_guid(payload);
+		if (out_guid != nullptr)
+			*out_guid = guid;
+		return guid != NULL_SID;
+	}
+
+	void editor_widget_asset_reference_t::set_accepting_payload(bool accepting)
+	{
+		if (_accepting_payload == accepting)
+			return;
+
+		_accepting_payload = accepting;
+		refresh_frame();
+	}
+
+	void editor_widget_asset_reference_t::refresh_frame()
+	{
+		const editor_theme_t& theme = editor_theme_t::get();
+		set_rect(_ui->get_paint(), _root, theme.color_frame, theme.item_rounding, _accepting_payload ? theme.color_accent1 : theme.color_panel_light, theme.outline_thickness);
+	}
+
 	void editor_widget_asset_reference_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
@@ -189,5 +240,33 @@ namespace sfg
 		if (reference._config.pressed != nullptr)
 			reference._config.pressed(guid, reference._config.user_data);
 		reference.refresh_title();
+	}
+
+	bool editor_widget_asset_reference_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
+	{
+		editor_widget_asset_reference_t& reference = *static_cast<editor_widget_asset_reference_t*>(user_data);
+		const ui::layout_out_t&			 out	   = reference._ui->get_tree().out(reference._root);
+		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(reference._ui->get_input().get_mouse_position()))
+			return false;
+
+		sid_t guid = NULL_SID;
+		if (!reference.can_accept_payload(payload, &guid))
+			return false;
+
+		if (reference._config.pressed != nullptr)
+			reference._config.pressed(guid, reference._config.user_data);
+		reference.refresh_title();
+		return true;
+	}
+
+	void editor_widget_asset_reference_t::on_payload_tick(const editor_payload_t& payload, const vec2i16_t&, void* user_data)
+	{
+		editor_widget_asset_reference_t& reference = *static_cast<editor_widget_asset_reference_t*>(user_data);
+		reference.set_accepting_payload(reference.can_accept_payload(payload));
+	}
+
+	void editor_widget_asset_reference_t::on_payload_end(const editor_payload_t&, void* user_data)
+	{
+		static_cast<editor_widget_asset_reference_t*>(user_data)->set_accepting_payload(false);
 	}
 }

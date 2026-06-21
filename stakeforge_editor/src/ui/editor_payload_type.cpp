@@ -34,8 +34,6 @@ namespace sfg
 		{
 		case editor_payload_type_e::panel:
 			return "panel";
-		case editor_payload_type_e::resource:
-			return "resource";
 		case editor_payload_type_e::asset:
 			return "asset";
 		case editor_payload_type_e::folder:
