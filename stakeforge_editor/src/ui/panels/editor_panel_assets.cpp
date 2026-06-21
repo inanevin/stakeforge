@@ -1050,7 +1050,7 @@ namespace sfg
 		ui::vg_rect_paint_t info_rect = {};
 		info_rect.fill_color_a		  = selected ? theme.color_accent0 : theme.color_frame;
 		info_rect.fill_color_b		  = selected ? theme.color_accent0_dim : theme.color_frame;
-		info_rect.gradient			  = selected ? ui::vg_gradient_e::vertical : ui::vg_gradient_e::none;
+		info_rect.gradient			  = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
 		paint.set_rect(item.info_frame, info_rect);
 
 		item.color_frame = ui.allocate_widget();

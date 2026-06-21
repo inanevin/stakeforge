@@ -670,7 +670,8 @@ namespace sfg
 
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&	  tree			= asset_manager.get_asset_tree();
-		_asset_items.reserve(asset_manager.get_assets().size());
+		_asset_items.reserve(asset_manager.get_assets().size() + 1);
+		_asset_items.push_back({.name = "None", .guid = NULL_SID});
 
 		for (auto it = tree.begin_handle(); it != tree.end_handle(); ++it)
 		{

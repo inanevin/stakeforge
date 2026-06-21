@@ -485,7 +485,7 @@ namespace sfg
 		ui::vg_rect_paint_t row_rect = {};
 		row_rect.fill_color_a		 = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
 		row_rect.fill_color_b		 = selected ? theme.color_accent0_dim : row_rect.fill_color_a;
-		row_rect.gradient			 = ui::vg_gradient_e::vertical;
+		row_rect.gradient			 = ui::vg_gradient_e::horizontal;
 		row_rect.rounding			 = theme.item_rounding;
 		row_rect.rounding_segs		 = 4;
 		_ui->get_paint().set_rect(row.root, row_rect);
