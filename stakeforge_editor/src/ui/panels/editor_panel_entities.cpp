@@ -564,6 +564,18 @@ namespace sfg
 		_selection_anchor = NULL_ENTITY_ID;
 	}
 
+	void editor_panel_entities_t::select_all_visible_entities()
+	{
+		_selected_entities.resize(0);
+		_selected_entities.reserve(_visible_entity_count);
+		for (u32 i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
+			_selected_entities.push_back(_entity_rows[i].entity);
+		_selection_anchor = _selected_entities.empty() ? NULL_ENTITY_ID : _selected_entities.back();
+		for (const entity_row_t& row : _entity_rows)
+			update_entity_row_background(row);
+		refresh_panel_inspector();
+	}
+
 	void editor_panel_entities_t::set_entity_selection(entity_id_t entity)
 	{
 		_selected_entities.resize(0);
@@ -813,7 +825,9 @@ namespace sfg
 			return;
 
 		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-		if (ev.key == static_cast<u16>(input_code::key_delete))
+		if (ev.key == static_cast<u16>(input_code::key_a) && ctrl_pressed)
+			panel.select_all_visible_entities();
+		else if (ev.key == static_cast<u16>(input_code::key_delete))
 			panel.destroy_selected_entities();
 		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
 			panel.duplicate_selected_entities();

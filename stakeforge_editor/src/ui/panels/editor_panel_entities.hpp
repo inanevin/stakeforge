@@ -113,6 +113,7 @@ namespace sfg
 		void		  set_focus_state(bool focused);
 		void		  select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
 		void		  clear_entity_selection();
+		void		  select_all_visible_entities();
 		void		  set_entity_selection(entity_id_t entity);
 		void		  add_entity_selection(entity_id_t entity);
 		void		  remove_entity_selection(entity_id_t entity);

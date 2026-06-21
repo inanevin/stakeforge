@@ -126,11 +126,14 @@ namespace sfg
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
 		void		  set_focus_state(bool focused);
 
-		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash);
-		void select_asset_grid_item(editor_asset_node_handle_t node);
+		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select = false, bool incremental_select = false);
+		void select_asset_grid_item(editor_asset_node_handle_t node, bool range_select = false, bool incremental_select = false);
+		void clear_folder_selection();
 		void start_folder_payload(editor_asset_node_handle_t node);
 		void start_asset_item_payload(editor_asset_node_handle_t node);
 		void clear_asset_grid_selection();
+		void select_all_visible_folders();
+		void select_all_visible_assets();
 		void refresh_asset_grid_item_backgrounds();
 		void refresh_asset_favourite_icons();
 		void toggle_folder_fold(u64 path_hash);
@@ -162,6 +165,12 @@ namespace sfg
 		const char*				 get_selected_folder_path() const;
 		sid_t					 get_asset_guid(editor_asset_node_handle_t node) const;
 		bool					 is_asset_favourite(sid_t guid) const;
+		bool					 is_folder_selected(u64 path_hash) const;
+		bool					 is_asset_selected(editor_asset_node_handle_t node) const;
+		size_t					 find_visible_folder_index(u64 path_hash) const;
+		size_t					 find_visible_asset_index(editor_asset_node_handle_t node) const;
+		bool					 is_focus_in_folder_pane() const;
+		bool					 is_focus_in_asset_items() const;
 		bool					 has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
 		const folder_row_t*		 find_row_by_hash(u64 path_hash) const;
 		const folder_row_t*		 find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
@@ -229,6 +238,8 @@ namespace sfg
 		vector_t<u64>							_expanded_folder_hashes			 = {};
 		vector_t<u64>							_favourite_folder_hashes		 = {};
 		vector_t<sid_t>							_favourite_asset_guids			 = {};
+		vector_t<u64>							_selected_folder_hashes			 = {};
+		vector_t<editor_asset_node_handle_t>	_selected_asset_nodes			 = {};
 		vector_t<string_t>						_pending_import_paths			 = {};
 		vector_t<editor_asset_import_options_t> _pending_import_options			 = {};
 		editor_modal_cook_options_t				_cook_options_modal				 = {};
@@ -239,9 +250,11 @@ namespace sfg
 		vec2f_t									_action_menu_pos				 = {};
 		vec2f_t									_asset_grid_body_size			 = {};
 		u64										_selected_folder_hash			 = UINT64_MAX;
+		u64										_folder_selection_anchor		 = 0;
 		u64										_asset_grid_folder_hash			 = UINT64_MAX;
 		editor_asset_node_handle_t				_selected_folder_node			 = {};
 		editor_asset_node_handle_t				_selected_asset_node			 = {};
+		editor_asset_node_handle_t				_asset_selection_anchor			 = {};
 		editor_asset_node_handle_t				_payload_asset_node				 = {};
 		editor_asset_node_handle_t				_payload_folder_node			 = {};
 		ui::widget_id_t							_assets_left_pane				 = NULL_WIDGET;
