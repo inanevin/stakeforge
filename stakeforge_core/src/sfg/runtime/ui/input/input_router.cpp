@@ -473,37 +473,61 @@ namespace sfg::ui
 	{
 		if (_focus_order.empty())
 			return;
-		size_t idx = 0;
+		size_t idx	 = 0;
+		bool   found = false;
 		if (_focused != NULL_WIDGET)
 		{
 			for (size_t i = 0; i < _focus_order.size(); ++i)
 			{
 				if (_focus_order[i] == _focused)
 				{
-					idx = (i + 1) % _focus_order.size();
+					idx	  = (i + 1) % _focus_order.size();
+					found = true;
 					break;
 				}
 			}
 		}
-		set_focus(_focus_order[idx], true);
+
+		const size_t start = found ? idx : 0;
+		for (size_t i = 0; i < _focus_order.size(); ++i)
+		{
+			const widget_id_t candidate = _focus_order[(start + i) % _focus_order.size()];
+			if (!_popup_scope.active || is_in_popup_scope(candidate))
+			{
+				set_focus(candidate, true);
+				return;
+			}
+		}
 	}
 
 	void input_router_t::prev_focus()
 	{
 		if (_focus_order.empty())
 			return;
-		size_t idx = _focus_order.size() - 1;
+		size_t idx	 = _focus_order.size() - 1;
+		bool   found = false;
 		if (_focused != NULL_WIDGET)
 		{
 			for (size_t i = 0; i < _focus_order.size(); ++i)
 			{
 				if (_focus_order[i] == _focused)
 				{
-					idx = (i + _focus_order.size() - 1) % _focus_order.size();
+					idx	  = (i + _focus_order.size() - 1) % _focus_order.size();
+					found = true;
 					break;
 				}
 			}
 		}
-		set_focus(_focus_order[idx], true);
+
+		const size_t start = found ? idx : _focus_order.size() - 1;
+		for (size_t i = 0; i < _focus_order.size(); ++i)
+		{
+			const widget_id_t candidate = _focus_order[(start + _focus_order.size() - i) % _focus_order.size()];
+			if (!_popup_scope.active || is_in_popup_scope(candidate))
+			{
+				set_focus(candidate, true);
+				return;
+			}
+		}
 	}
 }

@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string_util.hpp>
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -60,6 +61,12 @@ namespace sfg
 		{
 			ui::layout_in_t& in = tree.in(id);
 			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
+		}
+
+		void set_focusable_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
+		{
+			ui::layout_in_t& in = tree.in(id);
+			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0) | ui::wf_focusable) : 0;
 		}
 
 		void set_rect(ui::paint_layer_t& paint, ui::widget_id_t id, const vec4f_t& fill, f32 rounding = 0.0f)
@@ -118,6 +125,7 @@ namespace sfg
 		ui::listener_bundle_t row_listener = {};
 		row_listener.user_data			   = this;
 		row_listener.on_click			   = on_row_click;
+		row_listener.on_key				   = on_row_key;
 
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
@@ -140,6 +148,7 @@ namespace sfg
 			paint.set_rect(_row_frames[i], row_rect);
 			paint.set_hover_color(_row_frames[i], theme.color_panel);
 			paint.set_press_color(_row_frames[i], theme.color_frame_light);
+			paint.set_focus_color(_row_frames[i], theme.color_accent0);
 			ui.get_input().set_listener(_row_frames[i], row_listener);
 
 			_row_markers[i] = ui.allocate_widget();
@@ -449,7 +458,7 @@ namespace sfg
 		{
 			const bool item_visible	  = visible && _mode == popup_mode_e::items && i < _desc.item_count;
 			const bool marker_visible = item_visible && _items[i].selected;
-			set_widget_visible(tree, _row_frames[i], item_visible, item_visible);
+			set_focusable_widget_visible(tree, _row_frames[i], item_visible, item_visible);
 			set_widget_visible(tree, _row_markers[i], item_visible, false);
 			set_widget_visible(tree, _row_marker_labels[i], marker_visible, false);
 			set_widget_visible(tree, _row_labels[i], item_visible, false);
@@ -465,7 +474,7 @@ namespace sfg
 		{
 			const asset_row_t& row		   = _asset_rows[i];
 			const bool		   row_visible = search_popup_visible && i < _asset_filtered_items.size();
-			set_widget_visible(tree, row.root, row_visible, row_visible);
+			set_focusable_widget_visible(tree, row.root, row_visible, row_visible);
 			set_widget_visible(tree, row.marker, row_visible, false);
 			set_widget_visible(tree, row.marker_icon, row_visible, false);
 			set_widget_visible(tree, row.thumbnail, row_visible && _mode == popup_mode_e::assets, false);
@@ -499,6 +508,7 @@ namespace sfg
 		ui::listener_bundle_t row_listener = {};
 		row_listener.user_data			   = this;
 		row_listener.on_click			   = on_asset_row_click;
+		row_listener.on_key				   = on_asset_row_key;
 
 		_asset_rows.reserve(_asset_filtered_items.size());
 		for (size_t i = 0; i < _asset_filtered_items.size(); ++i)
@@ -525,6 +535,7 @@ namespace sfg
 				set_rect(paint, row.root, {0.0f, 0.0f, 0.0f, 0.0f});
 				paint.set_hover_color(row.root, theme.color_panel);
 				paint.set_press_color(row.root, theme.color_frame_light);
+				paint.set_focus_color(row.root, theme.color_accent0);
 				_ui->get_input().set_listener(row.root, row_listener);
 
 				row.marker = _ui->allocate_widget();
@@ -618,13 +629,13 @@ namespace sfg
 		{
 			width				   = theme.item_width * 2.0f;
 			const u32 visible_rows = math::min(ASSET_POPUP_VISIBLE_ROWS, static_cast<u32>(math::max<size_t>(1, _asset_filtered_items.size())));
-			height				   = theme.item_area_height * 2.0f + static_cast<f32>(visible_rows) * theme.item_height + theme.margin_vertical * 2.0f;
+			height				   = theme.item_area_height * 2.0f + static_cast<f32>(visible_rows) * theme.item_height + theme.outline_thickness * 2.0f + theme.margin_vertical * 2.0f;
 			width				   = math::max(width, static_cast<f32>(_ui->widget_text_len(_asset_label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
 			for (size_t i = 0; i < _asset_filtered_items.size(); ++i)
 			{
 				const asset_row_t& row			   = _asset_rows[i];
 				const f32		   thumbnail_width = _mode == popup_mode_e::assets ? theme.item_height + theme.item_spacing : 0.0f;
-				width							   = math::max(width, theme.item_height + theme.item_spacing + thumbnail_width + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+				width = math::max(width, theme.item_height + theme.item_spacing + thumbnail_width + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f + theme.outline_thickness * 2.0f);
 			}
 
 			const f32 scale				= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
@@ -789,38 +800,28 @@ namespace sfg
 		return 0;
 	}
 
-	void editor_popup_controller_t::on_row_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_popup_controller_t::activate_row(u32 row)
 	{
-		if (btn != ui::mouse_button_e::left)
-			return;
-
-		editor_popup_controller_t&		   popup			 = *static_cast<editor_popup_controller_t*>(user_data);
-		const u32						   row				 = popup.find_row(id);
-		const u16						   value			 = popup._items[row].id;
-		const editor_popup_item_pressed_fn pressed			 = popup._desc.pressed;
-		void*							   pressed_user_data = popup._desc.user_data;
-		const bool						   close_on_pressed	 = popup._desc.close_on_pressed;
+		const u16						   value			 = _items[row].id;
+		const editor_popup_item_pressed_fn pressed			 = _desc.pressed;
+		void*							   pressed_user_data = _desc.user_data;
+		const bool						   close_on_pressed	 = _desc.close_on_pressed;
 		if (close_on_pressed)
-			popup.close_popup();
+			close_popup();
 		if (pressed != nullptr)
 			pressed(value, pressed_user_data);
 	}
 
-	void editor_popup_controller_t::on_asset_row_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_popup_controller_t::activate_asset_row(u32 row)
 	{
-		if (btn != ui::mouse_button_e::left)
-			return;
-
-		editor_popup_controller_t&			 popup			   = *static_cast<editor_popup_controller_t*>(user_data);
-		const u32							 row			   = popup.find_asset_row(id);
-		const sid_t							 value			   = popup._asset_rows[row].guid;
-		const bool							 entity_popup	   = popup._mode == popup_mode_e::entities;
-		const editor_popup_asset_pressed_fn	 asset_pressed	   = popup._asset_desc.pressed;
-		const editor_popup_entity_pressed_fn entity_pressed	   = popup._entity_desc.pressed;
-		void*								 pressed_user_data = entity_popup ? popup._entity_desc.user_data : popup._asset_desc.user_data;
-		const bool							 close_on_pressed  = entity_popup ? popup._entity_desc.close_on_pressed : popup._asset_desc.close_on_pressed;
+		const sid_t							 value			   = _asset_rows[row].guid;
+		const bool							 entity_popup	   = _mode == popup_mode_e::entities;
+		const editor_popup_asset_pressed_fn	 asset_pressed	   = _asset_desc.pressed;
+		const editor_popup_entity_pressed_fn entity_pressed	   = _entity_desc.pressed;
+		void*								 pressed_user_data = entity_popup ? _entity_desc.user_data : _asset_desc.user_data;
+		const bool							 close_on_pressed  = entity_popup ? _entity_desc.close_on_pressed : _asset_desc.close_on_pressed;
 		if (close_on_pressed)
-			popup.close_popup();
+			close_popup();
 		if (entity_popup)
 		{
 			if (entity_pressed != nullptr)
@@ -828,6 +829,42 @@ namespace sfg
 		}
 		else if (asset_pressed != nullptr)
 			asset_pressed(value, pressed_user_data);
+	}
+
+	void editor_popup_controller_t::on_row_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
+		popup.activate_row(popup.find_row(id));
+	}
+
+	void editor_popup_controller_t::on_row_key(ui::input_router_t&, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data)
+	{
+		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
+			return;
+
+		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
+		popup.activate_row(popup.find_row(id));
+	}
+
+	void editor_popup_controller_t::on_asset_row_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
+		popup.activate_asset_row(popup.find_asset_row(id));
+	}
+
+	void editor_popup_controller_t::on_asset_row_key(ui::input_router_t&, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data)
+	{
+		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
+			return;
+
+		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
+		popup.activate_asset_row(popup.find_asset_row(id));
 	}
 
 	void editor_popup_controller_t::on_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

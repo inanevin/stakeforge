@@ -40,6 +40,7 @@ namespace sfg::ui
 {
 	class input_router_t;
 	class ui_context;
+	struct key_event_t;
 	enum class mouse_button_e : u8;
 }
 
@@ -170,9 +171,13 @@ namespace sfg
 		sid_t get_search_selected_value() const;
 		u32	  find_row(ui::widget_id_t id) const;
 		u32	  find_asset_row(ui::widget_id_t id) const;
+		void  activate_row(u32 row);
+		void  activate_asset_row(u32 row);
 
 		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_row_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_asset_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_asset_row_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_input_submitted(const char*, f32, void* user_data);
 		static void on_asset_search_changed(const char* value, void* user_data);
