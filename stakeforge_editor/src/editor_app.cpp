@@ -198,7 +198,7 @@ namespace sfg
 			return false;
 
 		/* engine globals, init backend & engine & editor managers */
-		engine_runtime_t::init_globals(64ull * 1024ull * 1024ull);
+		engine_runtime_t::init_globals(_runtime.get_resource_file_system(), 64ull * 1024ull * 1024ull);
 
 		if (!engine_runtime_t::init_backend({}))
 		{
@@ -481,6 +481,7 @@ namespace sfg
 			return false;
 		}
 
+		_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str());
 		_asset_manager.ensure_default_assets(proj._runtime.default_assets_path.c_str());
 		_asset_manager.clean_cache();
 		_asset_manager.ensure_cook();

@@ -16,14 +16,24 @@
 
 namespace sfg
 {
+	namespace
+	{
+		resource_file_system_t g_default_resource_file_system;
+	}
+
 	void engine_runtime_t::init_globals(size_t resource_manager_memory)
+	{
+		init_globals(g_default_resource_file_system, resource_manager_memory);
+	}
+
+	void engine_runtime_t::init_globals(resource_file_system_t& resource_file_system, size_t resource_manager_memory)
 	{
 		g_engine_thread_ids.main_thread_id = SFG_THIS_THREAD_ID();
 		job_system_t::get().init();
 		time_t::init();
 		process::init();
 		freetype_runtime_t::init();
-		resource_manager_t::get().init(resource_manager_memory);
+		resource_manager_t::get().init(resource_file_system, resource_manager_memory);
 	}
 
 	void engine_runtime_t::uninit_globals()
@@ -112,5 +122,10 @@ namespace sfg
 	const world_t& engine_runtime_t::get_world(world_handle_t handle) const
 	{
 		return _worlds.get(handle);
+	}
+
+	resource_file_system_t& engine_runtime_t::get_resource_file_system()
+	{
+		return _resource_file_system;
 	}
 }

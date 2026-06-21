@@ -5,6 +5,7 @@
 #include "common_resources.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 #include <sfg/vendor/moodycamel/concurrentqueue.h>
@@ -12,6 +13,7 @@
 namespace sfg
 {
 	class istream_t;
+	class resource_file_system_t;
 
 	class resource_manager_t final
 	{
@@ -27,7 +29,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(size_t resource_memory_size);
+		void init(resource_file_system_t& resource_file_system, size_t resource_memory_size);
 		void init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config = {});
 		void uninit();
 		void flush();
@@ -115,6 +117,12 @@ namespace sfg
 			return _pending.load(std::memory_order_acquire);
 		}
 
+		inline resource_file_system_t& get_resource_file_system()
+		{
+			SFG_ASSERT(_resource_file_system != nullptr);
+			return *_resource_file_system;
+		}
+
 	private:
 		struct load_request_t
 		{
@@ -139,6 +147,7 @@ namespace sfg
 		ui::glyph_atlas_t							_glyph_atlas;
 		vector_t<load_request_t>					_loads;
 		vector_t<u64>								_unloads;
-		atomic_t<u32>								_pending = 0;
+		resource_file_system_t*						_resource_file_system = nullptr;
+		atomic_t<u32>								_pending			  = 0;
 	};
 }

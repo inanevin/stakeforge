@@ -4,6 +4,7 @@
 #include <sfg/io/assert.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/runtime/resources/resource_file_system.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
@@ -21,11 +22,12 @@ namespace sfg
 		return instance;
 	}
 
-	void resource_manager_t::init(size_t resource_memory_size)
+	void resource_manager_t::init(resource_file_system_t& resource_file_system, size_t resource_memory_size)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
+		_resource_file_system = &resource_file_system;
 		_memory.init(resource_memory_size);
 		_animation_storage.init();
 		_entries.reserve(256);
@@ -65,6 +67,7 @@ namespace sfg
 			_glyph_atlas.uninit();
 		_animation_storage.uninit();
 		_memory.uninit();
+		_resource_file_system = nullptr;
 	}
 
 	void resource_manager_t::flush()
@@ -137,14 +140,14 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		resource_entry_t entry	= {};
-		entry.type				= type;
-		entry.ref_count			= 1;
-		entry.hash				= hash;
-		entry.load_data = data;
-		entry.runtime			= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
-		entry.internals			= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state				= resource_state_e::queued;
+		resource_entry_t entry = {};
+		entry.type			   = type;
+		entry.ref_count		   = 1;
+		entry.hash			   = hash;
+		entry.load_data		   = data;
+		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
+		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
+		entry.state			   = resource_state_e::queued;
 
 		const size_t name_sz = strlen(debug_name);
 		if (name_sz != 0)
