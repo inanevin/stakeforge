@@ -1855,16 +1855,19 @@ namespace sfg
 		SFG_ASSERT(!_selected_folder_hashes.empty());
 
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		string_t				   last_duplicate_path;
 		for (u64 folder_hash : _selected_folder_hashes)
 		{
 			const folder_row_t* row = find_row_by_hash(folder_hash);
 			if (row != nullptr && !row->node.is_null() && tree.is_valid(row->node))
-				editor_asset_util_t::duplicate_folder(row->node);
+				editor_asset_util_t::duplicate_folder(row->node, &last_duplicate_path);
 		}
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
+		if (!last_duplicate_path.empty())
+			select_folder_by_full_path(last_duplicate_path.c_str());
 	}
 
 	void editor_panel_assets_t::delete_asset()
@@ -1874,6 +1877,7 @@ namespace sfg
 		if (_selected_asset_nodes.empty())
 			return;
 
+		string_t last_duplicate_path;
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
@@ -1911,6 +1915,7 @@ namespace sfg
 		if (_selected_asset_nodes.empty())
 			return;
 
+		string_t last_duplicate_path;
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
@@ -1920,7 +1925,7 @@ namespace sfg
 				continue;
 			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
 			if (asset != nullptr)
-				editor_asset_util_t::duplicate_asset(*asset, node);
+				editor_asset_util_t::duplicate_asset(*asset, node, &last_duplicate_path);
 		}
 
 		_selected_asset_node = {};
@@ -1928,6 +1933,8 @@ namespace sfg
 		_asset_selection_anchor = {};
 		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
 		refresh_folder_rows();
+		if (!last_duplicate_path.empty())
+			select_asset_by_full_path(last_duplicate_path.c_str());
 	}
 
 	void editor_panel_assets_t::fix_asset_integrity()
@@ -2413,6 +2420,35 @@ namespace sfg
 			if (cur == _assets_body_pane_top)
 				return true;
 			cur = tree.node(cur).parent;
+		}
+		return false;
+	}
+
+	bool editor_panel_assets_t::select_folder_by_full_path(const char* path)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		for (u32 i = 0; i < _visible_folder_row_count && i < _folder_rows.size(); ++i)
+		{
+			const folder_row_t& row = _folder_rows[i];
+			if (!row.node.is_null() && tree.is_valid(row.node) && tree.value(row.node).full_path == path)
+			{
+				select_folder_row(row.node, row.path_hash, false, false);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool editor_panel_assets_t::select_asset_by_full_path(const char* path)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		for (const asset_grid_item_t& item : _asset_grid_items)
+		{
+			if (!item.node.is_null() && tree.is_valid(item.node) && tree.value(item.node).full_path == path)
+			{
+				select_asset_grid_item(item.node, false, false);
+				return true;
+			}
 		}
 		return false;
 	}

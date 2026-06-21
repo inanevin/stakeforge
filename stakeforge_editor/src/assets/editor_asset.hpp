@@ -125,13 +125,13 @@ namespace sfg
 		static editor_asset_type_e reflected_value_type_to_asset_type(reflected_value_type_e type);
 		static const char*		   find_asset_display_name(sid_t guid);
 		static bool				   delete_folder(editor_asset_node_handle_t folder_node);
-		static bool				   duplicate_folder(editor_asset_node_handle_t folder_node);
+		static bool				   duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path = nullptr);
 		static bool				   rename_folder(editor_asset_node_handle_t folder_node, const char* new_path);
 		static bool				   move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node);
 		static bool				   delete_file(editor_asset_node_handle_t file_node);
 		static bool				   rename_file(editor_asset_node_handle_t file_node, const char* new_path);
 		static bool				   delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
-		static bool				   duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
+		static bool				   duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, string_t* out_duplicated_path = nullptr);
 		static bool				   rename_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, const char* new_path);
 		static bool				   move_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, editor_asset_node_handle_t target_folder_node);
 	};

@@ -451,7 +451,7 @@ namespace sfg
 		return file_system_t::delete_directory(node.full_path.c_str());
 	}
 
-	bool editor_asset_util_t::duplicate_folder(editor_asset_node_handle_t folder_node)
+	bool editor_asset_util_t::duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(!folder_node.is_null());
@@ -496,6 +496,8 @@ namespace sfg
 				return false;
 		}
 
+		if (out_duplicated_path != nullptr)
+			*out_duplicated_path = duplicated_folder;
 		return true;
 	}
 
@@ -634,7 +636,7 @@ namespace sfg
 		return !file_system_t::delete_file(node.full_path.c_str());
 	}
 
-	bool editor_asset_util_t::duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node)
+	bool editor_asset_util_t::duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, string_t* out_duplicated_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(!asset_node.is_null());
@@ -655,7 +657,11 @@ namespace sfg
 		if (!write_asset(duplicated_path.c_str(), duplicated_asset))
 			return false;
 
-		return duplicate_cooked_asset(asset, duplicated_asset);
+		if (!duplicate_cooked_asset(asset, duplicated_asset))
+			return false;
+		if (out_duplicated_path != nullptr)
+			*out_duplicated_path = duplicated_path;
+		return true;
 	}
 
 	bool editor_asset_util_t::rename_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, const char* new_path)

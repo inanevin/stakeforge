@@ -171,6 +171,8 @@ namespace sfg
 		size_t					 find_visible_asset_index(editor_asset_node_handle_t node) const;
 		bool					 is_focus_in_folder_pane() const;
 		bool					 is_focus_in_asset_items() const;
+		bool					 select_folder_by_full_path(const char* path);
+		bool					 select_asset_by_full_path(const char* path);
 		bool					 has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
 		const folder_row_t*		 find_row_by_hash(u64 path_hash) const;
 		const folder_row_t*		 find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
