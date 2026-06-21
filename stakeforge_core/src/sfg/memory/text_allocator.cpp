@@ -26,8 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "text_allocator.hpp"
 #include "memory.hpp"
-#include <sfg/io/assert.hpp>
 #include <sfg/data/vector_util.hpp>
+#include <sfg/io/assert.hpp>
+#include <algorithm>
 #include <cstring>
 #include <limits>
 
@@ -39,13 +40,13 @@ namespace sfg
 
 		void write_block_size(char* ptr, u32 size)
 		{
-			std::memcpy(ptr, &size, sizeof(size));
+			SFG_MEMCPY(ptr, &size, sizeof(size));
 		}
 
 		u32 read_block_size(const char* ptr)
 		{
 			u32 size = 0;
-			std::memcpy(&size, ptr, sizeof(size));
+			SFG_MEMCPY(&size, ptr, sizeof(size));
 			return size;
 		}
 
@@ -177,7 +178,7 @@ namespace sfg
 
 		char* header = const_cast<char*>(header_from_payload(ptr));
 		SFG_ASSERT(header >= _raw && header < _raw + _capacity);
-		_free_list.push_back({
+		insert_free_allocation_sorted({
 			.ptr  = header,
 			.size = read_block_size(header),
 		});
@@ -190,10 +191,38 @@ namespace sfg
 
 		const char* header = header_from_payload(ptr);
 		SFG_ASSERT(header >= _raw && header < _raw + _capacity);
-		_free_list.push_back({
+		insert_free_allocation_sorted({
 			.ptr  = const_cast<char*>(header),
 			.size = read_block_size(header),
 		});
+	}
+
+	void text_allocator_t::insert_free_allocation_sorted(allocation_t allocation)
+	{
+		auto it = std::lower_bound(_free_list.begin(), _free_list.end(), allocation, [](const allocation_t& a, const allocation_t& b) { return a.ptr < b.ptr; });
+
+		it = _free_list.insert(it, allocation);
+
+		if (it != _free_list.begin())
+		{
+			auto prev = it - 1;
+			if (prev->ptr + prev->size == it->ptr)
+			{
+				prev->size += it->size;
+				it = _free_list.erase(it);
+				it = prev;
+			}
+		}
+
+		if (it + 1 != _free_list.end())
+		{
+			auto next = it + 1;
+			if (it->ptr + it->size == next->ptr)
+			{
+				it->size += next->size;
+				_free_list.erase(next);
+			}
+		}
 	}
 
 }

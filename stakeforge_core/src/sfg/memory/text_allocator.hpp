@@ -42,7 +42,7 @@ namespace sfg
 		};
 
 	public:
-		text_allocator_t() : _head(0){};
+		text_allocator_t() : _head(0) {};
 
 		// -----------------------------------------------------------------------------
 		// lifecycle
@@ -86,6 +86,8 @@ namespace sfg
 		}
 
 	private:
+		void insert_free_allocation_sorted(allocation_t allocation);
+
 		vector_t<allocation_t> _free_list;
 		char*				   _raw		 = nullptr;
 		u32					   _head	 = 0;

@@ -476,7 +476,8 @@ namespace sfg::ui
 			_text_pool.deallocate(e.ptr);
 		const u32 len = static_cast<u32>(strlen(text));
 		e.ptr		  = _text_pool.allocate(text, len);
-		e.len		  = len;
+		SFG_ASSERT(e.ptr != nullptr);
+		e.len = len;
 
 		paint_def_t& pd = _paint.def(id);
 		if (pd.kind == paint_kind_e::text)
@@ -526,7 +527,8 @@ namespace sfg::ui
 			_text_pool.deallocate(e.ptr);
 		const u32 len = static_cast<u32>(strlen(text));
 		e.ptr		  = _text_pool.allocate(text, len);
-		e.len		  = len;
+		SFG_ASSERT(e.ptr != nullptr);
+		e.len = len;
 	}
 
 	void ui_context::clear_widget_debug_name(widget_id_t id)
