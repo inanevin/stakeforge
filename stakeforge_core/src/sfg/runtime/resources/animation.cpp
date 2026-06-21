@@ -17,7 +17,7 @@ namespace sfg
 		std::construct_at(runtime);
 
 		istream_t stream;
-		stream.open(entry.after_header_data.data, entry.after_header_data.size);
+		stream.open(entry.load_data.data, entry.load_data.size);
 
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<animation_def_t>::value, &runtime->def, stream))
 		{

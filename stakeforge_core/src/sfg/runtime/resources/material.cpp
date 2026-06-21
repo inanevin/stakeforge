@@ -90,7 +90,7 @@ namespace sfg
 		*runtime					= {};
 
 		istream_t stream;
-		stream.open(entry.after_header_data.data, entry.after_header_data.size);
+		stream.open(entry.load_data.data, entry.load_data.size);
 
 		material_def_t material = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<material_def_t>::value, &material, stream))

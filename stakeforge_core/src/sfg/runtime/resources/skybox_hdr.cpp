@@ -200,7 +200,7 @@ namespace sfg
 		*runtime					  = {};
 
 		istream_t stream;
-		stream.open(entry.after_header_data.data, entry.after_header_data.size);
+		stream.open(entry.load_data.data, entry.load_data.size);
 		stream >> runtime->radiance_size;
 		stream >> runtime->irradiance_size;
 		stream >> runtime->prefilter_size;

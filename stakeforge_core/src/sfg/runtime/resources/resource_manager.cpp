@@ -141,8 +141,7 @@ namespace sfg
 		entry.type				= type;
 		entry.ref_count			= 1;
 		entry.hash				= hash;
-		entry.full_load_data	= data;
-		entry.after_header_data = data;
+		entry.load_data = data;
 		entry.runtime			= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
 		entry.internals			= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
 		entry.state				= resource_state_e::queued;
@@ -371,12 +370,10 @@ namespace sfg
 
 	void resource_manager_t::free_entry_load_data(resource_entry_t& entry)
 	{
-		if (entry.full_load_data.data != nullptr)
-		{
-			delete[] entry.full_load_data.data;
-			entry.full_load_data = {};
-		}
-		entry.after_header_data = {};
+		if (entry.load_data.data != nullptr)
+			delete[] entry.load_data.data;
+
+		entry.load_data = {};
 	}
 
 	resource_entry_t* resource_manager_t::find_entry(u64 hash)

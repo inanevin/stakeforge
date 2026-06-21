@@ -19,7 +19,7 @@ namespace sfg
 		*runtime				   = {};
 
 		istream_t stream;
-		stream.open(entry.after_header_data.data, entry.after_header_data.size);
+		stream.open(entry.load_data.data, entry.load_data.size);
 
 		stream >> runtime->ttf_size;
 		runtime->ttf_data = stream.get_data_current();
