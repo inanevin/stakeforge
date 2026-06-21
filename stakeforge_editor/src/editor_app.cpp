@@ -855,9 +855,10 @@ namespace sfg
 					.index_buffer_bytes	 = 1 << 23,
 					.buffer_count		 = 32,
 				},
-			.user_ui_scale = 1.0f,
-			.dpi_scale	   = surface.runtime->monitor_info.dpi_scale,
-			.max_widgets   = 4096,
+			.user_ui_scale		= 1.0f,
+			.dpi_scale			= surface.runtime->monitor_info.dpi_scale,
+			.max_widgets		= 4096,
+			.text_pool_capacity = 1024 * 256,
 		});
 		surface.ui->get_paint().set_pipelines({
 			.default_pipeline		 = "editor/resource_pack/shaders/editor_ui_default.hlsl"_hs,
