@@ -50,4 +50,12 @@ namespace sfg
 		vec3f_t	 abs_scale			= vec3f_t::one;
 		bool	 snap_interpolation = false;
 	};
+
+	struct system_component_reflection_t
+	{
+		system_component_reflection_t();
+	};
+
+	inline system_component_reflection_t g_reflect_system_component;
+
 }

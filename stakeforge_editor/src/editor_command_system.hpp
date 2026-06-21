@@ -71,15 +71,16 @@ namespace sfg
 	{
 		using fn_t = bool (*)(editor_command_system_t& system, editor_command_t& command);
 
-		chunk_handle32_t	   payload	  = {};
-		void*				   user_data  = nullptr;
-		const char*			   debug_name = nullptr;
-		fn_t				   undo		  = nullptr;
-		fn_t				   redo		  = nullptr;
-		fn_t				   cleanup	  = nullptr;
-		u32					   sequence	  = 0;
-		editor_command_type_e  type		  = editor_command_type_e::invalid;
-		editor_command_state_e state	  = editor_command_state_e::invalid;
+		chunk_handle32_t	   payload			 = {};
+		void*				   user_data		 = nullptr;
+		const char*			   debug_name		 = nullptr;
+		fn_t				   undo				 = nullptr;
+		fn_t				   redo				 = nullptr;
+		fn_t				   cleanup			 = nullptr;
+		u32					   sequence			 = 0;
+		editor_command_type_e  type				 = editor_command_type_e::invalid;
+		editor_command_state_e state			 = editor_command_state_e::invalid;
+		bool				   entity_generation = false;
 	};
 
 	struct editor_command_system_config_t
@@ -108,6 +109,7 @@ namespace sfg
 		size_t				   payload_alignment = alignof(std::max_align_t);
 		editor_command_type_e  type				 = editor_command_type_e::custom;
 		bool				   run_redo			 = true;
+		bool				   entity_generation = false;
 	};
 
 	class editor_command_system_t final
@@ -167,6 +169,7 @@ namespace sfg
 		u32						 get_history_size() const;
 		u32						 get_history_cursor() const;
 		u32						 get_generation() const;
+		u32						 get_entity_generation() const;
 		bool					 is_listener_valid(editor_command_listener_handle_t handle) const;
 
 		template <typename T> T& get_payload_as(editor_command_t& command)
@@ -187,6 +190,7 @@ namespace sfg
 		void			 truncate_redo();
 		void			 trim_history_for_new_command();
 		void			 destroy_command(editor_command_handle_t handle);
+		void			 bump_generation(const editor_command_t& command);
 		void			 notify_listeners(const editor_command_t& command);
 		chunk_handle32_t copy_payload(const editor_command_issue_desc_t& desc, const void* payload_data);
 
@@ -194,10 +198,11 @@ namespace sfg
 		dynamic_gen_pool_t<editor_command_listener_t, u32, editor_command_listener_tag_t> _listeners;
 		vector_t<editor_command_handle_t>												  _history;
 		chunk_allocator_t																  _aux_data;
-		editor_command_system_config_t													  _config		 = {};
-		u32																				  _cursor		 = 0;
-		u32																				  _next_sequence = 1;
-		u32																				  _generation	 = 0;
-		bool																			  _inited		 = false;
+		editor_command_system_config_t													  _config			 = {};
+		u32																				  _cursor			 = 0;
+		u32																				  _next_sequence	 = 1;
+		u32																				  _generation		 = 0;
+		u32																				  _entity_generation = 0;
+		bool																			  _inited			 = false;
 	};
 }

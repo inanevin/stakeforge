@@ -81,6 +81,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec2_field_config_t& config);
 		void uninit();
 		void set_value(const vec2f_t& value);
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -122,6 +123,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec3_field_config_t& config);
 		void uninit();
 		void set_value(const vec3f_t& value);
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -163,6 +165,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec4_field_config_t& config);
 		void uninit();
 		void set_value(const vec4f_t& value);
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{

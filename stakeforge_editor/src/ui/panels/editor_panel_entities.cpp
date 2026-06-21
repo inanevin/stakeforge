@@ -208,7 +208,7 @@ namespace sfg
 		_main_world			  = {};
 		_selection_anchor	  = NULL_ENTITY_ID;
 		_action_menu_entity	  = NULL_ENTITY_ID;
-		_command_generation	  = 0;
+		_entity_generation	  = 0;
 		_visible_entity_count = 0;
 
 		refresh_panel_inspector();
@@ -217,7 +217,7 @@ namespace sfg
 
 	void editor_panel_entities_t::refresh_entities()
 	{
-		_command_generation = editor_app_t::get().get_command_system().get_generation();
+		_entity_generation = editor_app_t::get().get_command_system().get_entity_generation();
 		collect_entities();
 		prune_entity_selection();
 		_visible_entity_count = 0;
@@ -793,7 +793,7 @@ namespace sfg
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		if (!(editor_app_t::get().get_main_world() == panel._main_world) || panel._command_generation != editor_app_t::get().get_command_system().get_generation())
+		if (!(editor_app_t::get().get_main_world() == panel._main_world) || panel._entity_generation != editor_app_t::get().get_command_system().get_entity_generation())
 			panel.refresh_entities();
 	}
 

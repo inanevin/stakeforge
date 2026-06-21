@@ -100,17 +100,31 @@ namespace sfg
 		_check	 = NULL_WIDGET;
 		_config	 = {};
 		_checked = false;
+		_mixed	 = false;
 	}
 
 	void editor_checkbox_t::set_checked(bool checked)
 	{
 		_checked = checked;
+		_mixed	 = false;
+		refresh();
+	}
+
+	void editor_checkbox_t::set_mixed(bool mixed)
+	{
+		_mixed = mixed;
 		refresh();
 	}
 
 	void editor_checkbox_t::refresh()
 	{
-		_ui->get_tree().in(_check).flags = _checked ? ui::wf_visible : 0;
+		const editor_theme_t& theme = editor_theme_t::get();
+		_ui->set_widget_text(_check, _mixed ? ICON_CROSS : ICON_CHECK);
+		_ui->get_paint().set_text(_check,
+								  _ui->widget_text(_check),
+								  _ui->widget_text_len(_check),
+								  {.font = theme.font_icons, .color = _mixed ? theme.color_accent_warn : theme.color_accent0, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		_ui->get_tree().in(_check).flags = (_checked || _mixed) ? ui::wf_visible : 0;
 	}
 
 	void editor_checkbox_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <cstring>
 
 namespace sfg
 {
@@ -165,13 +166,14 @@ namespace sfg
 	{
 		SFG_ASSERT(_ui != nullptr);
 		_ui->set_widget_text(_title, get_selected_text());
-		ui::layout_in_t& title_in = _ui->get_tree().in(_title);
-		title_in.size_value.x	  = static_cast<f32>(_ui->widget_text_len(_title)) * editor_theme_t::get().text_default_px_size * 0.7f;
-		_ui->get_paint().set_text(
-			_title,
-			_ui->widget_text(_title),
-			_ui->widget_text_len(_title),
-			{.font = editor_theme_t::get().font_default, .color = editor_theme_t::get().color_text0, .point_size = editor_theme_t::get().text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		const editor_theme_t& theme	   = editor_theme_t::get();
+		const bool			  mixed	   = !_config.title_from_selection && _config.title != nullptr && std::strcmp(_config.title, "Mixed") == 0;
+		ui::layout_in_t&	  title_in = _ui->get_tree().in(_title);
+		title_in.size_value.x		   = static_cast<f32>(_ui->widget_text_len(_title)) * theme.text_default_px_size * 0.7f;
+		_ui->get_paint().set_text(_title,
+								  _ui->widget_text(_title),
+								  _ui->widget_text_len(_title),
+								  {.font = theme.font_default, .color = mixed ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
 	u16 editor_dropdown_t::get_selected() const

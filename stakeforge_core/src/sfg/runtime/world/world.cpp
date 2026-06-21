@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -360,6 +361,11 @@ namespace sfg
 				void* component = ecs_t::table_add(table->table, entities[index]);
 				if (!table->type_desc.flags.is_set(ecs_component_type_flags_tag))
 				{
+					if (table->type_desc.default_init != nullptr)
+						table->type_desc.default_init(component);
+					else if (table->type_desc.size != 0)
+						SFG_MEMSET(component, 0, table->type_desc.size);
+
 					const bool deserialized = reflection_registry_t::get().deserialize_from_stream(type_id, component, stream);
 					if (!deserialized)
 						SFG_ASSERT(false);

@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <cstdio>
@@ -641,7 +642,8 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::set_reflected_obj(void* object, sid_t type_id, const editor_reflected_edit_target_t& target)
 	{
-		const bool same_target = _object == object && _type_id == type_id && _target.object == target.object && _target.world == target.world && _target.entity == target.entity && _target.type_id == target.type_id && _target.kind == target.kind;
+		const bool same_target = _object == object && _type_id == type_id && _target.object == target.object && _target.entities == target.entities && _target.world == target.world && _target.entity == target.entity && _target.type_id == target.type_id &&
+								 _target.entity_count == target.entity_count && _target.kind == target.kind;
 
 		_object	 = object;
 		_type_id = type_id;
@@ -700,7 +702,7 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object, const reflected_field_desc_t& command_field, void* command_object)
 	{
-		_controls.push_back({.owner = this, .field = &field, .command_field = &command_field, .object = object, .command_object = command_object});
+		_controls.push_back({.owner = this, .field = &field, .command_field = &command_field, .object = object, .command_object = command_object, .mixed = is_field_mixed(command_field, command_object)});
 		reflected_control_t* control = &_controls.back();
 
 		if (is_reflected_asset_handle(field.type))
@@ -712,6 +714,7 @@ namespace sfg
 			config.pressed									 = on_asset_pressed;
 			config.user_data								 = control;
 			reference->init(*_ui, parent, config);
+			reference->set_mixed(control->mixed);
 			center_property_row_control(*_ui, reference->get_root());
 			_asset_references.push_back(reference);
 			return;
@@ -726,6 +729,7 @@ namespace sfg
 			config.pressed									  = on_entity_pressed;
 			config.user_data								  = control;
 			reference->init(*_ui, parent, config);
+			reference->set_mixed(control->mixed);
 			center_property_row_control(*_ui, reference->get_root());
 			_entity_references.push_back(reference);
 			return;
@@ -740,6 +744,7 @@ namespace sfg
 			config.submitted					   = on_text_id_submitted;
 			config.user_data					   = control;
 			text_id->init(*_ui, parent, config);
+			text_id->set_mixed(control->mixed);
 			center_property_row_control(*_ui, text_id->get_root());
 			_text_ids.push_back(text_id);
 			return;
@@ -751,11 +756,14 @@ namespace sfg
 			editor_input_field_t*		input  = new editor_input_field_t();
 			editor_input_field_config_t config = {};
 			apply_reflected_number_config(config, field, false);
+			config.placeholder		 = control->mixed ? "Mixed" : nullptr;
 			config.number_value		 = read_reflected_number(object, field);
 			config.on_number_changed = on_number_changed;
 			config.on_submitted		 = on_input_submitted;
 			config.user_data		 = control;
 			input->init(*_ui, parent, config);
+			if (control->mixed)
+				input->set_text("");
 			center_property_row_control(*_ui, input->get_root());
 			_input_fields.push_back(input);
 			break;
@@ -767,11 +775,14 @@ namespace sfg
 			editor_input_field_t*		input  = new editor_input_field_t();
 			editor_input_field_config_t config = {};
 			apply_reflected_number_config(config, field, true);
+			config.placeholder		 = control->mixed ? "Mixed" : nullptr;
 			config.number_value		 = read_reflected_number(object, field);
 			config.on_number_changed = on_number_changed;
 			config.on_submitted		 = on_input_submitted;
 			config.user_data		 = control;
 			input->init(*_ui, parent, config);
+			if (control->mixed)
+				input->set_text("");
 			center_property_row_control(*_ui, input->get_root());
 			_input_fields.push_back(input);
 			break;
@@ -783,6 +794,7 @@ namespace sfg
 			config.on_changed				  = on_checkbox_changed;
 			config.user_data				  = control;
 			checkbox->init(*_ui, parent, config);
+			checkbox->set_mixed(control->mixed);
 			center_property_row_control(*_ui, checkbox->get_root());
 			_checkboxes.push_back(checkbox);
 			break;
@@ -795,6 +807,7 @@ namespace sfg
 			config.on_changed				  = on_vec4_changed;
 			config.user_data				  = control;
 			vec->init(*_ui, parent, config);
+			vec->set_mixed(control->mixed);
 			center_property_row_control(*_ui, vec->get_root());
 			_vec4_fields.push_back(vec);
 			break;
@@ -809,6 +822,7 @@ namespace sfg
 				config.on_changed				  = on_vec2_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec2_fields.push_back(vec);
 				break;
@@ -823,6 +837,7 @@ namespace sfg
 				config.on_changed				  = on_vec2_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec2_fields.push_back(vec);
 				break;
@@ -837,6 +852,7 @@ namespace sfg
 				config.on_changed				  = on_vec2_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec2_fields.push_back(vec);
 				break;
@@ -849,6 +865,7 @@ namespace sfg
 				config.on_changed				  = on_vec3_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec3_fields.push_back(vec);
 				break;
@@ -863,6 +880,7 @@ namespace sfg
 				config.on_changed				  = on_vec3_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec3_fields.push_back(vec);
 				break;
@@ -875,6 +893,7 @@ namespace sfg
 				config.on_changed				  = on_vec4_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec4_fields.push_back(vec);
 				break;
@@ -889,6 +908,7 @@ namespace sfg
 				config.on_changed				  = on_vec4_changed;
 				config.user_data				  = control;
 				vec->init(*_ui, parent, config);
+				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
 				_vec4_fields.push_back(vec);
 				break;
@@ -913,7 +933,8 @@ namespace sfg
 			editor_input_field_t*		input  = new editor_input_field_t();
 			editor_input_field_config_t config = {};
 			config.type						   = editor_input_field_type_e::text;
-			config.text_value				   = read_reflected_text(object, field);
+			config.placeholder				   = control->mixed ? "Mixed" : nullptr;
+			config.text_value				   = control->mixed ? "" : read_reflected_text(object, field);
 			config.on_text_changed			   = on_text_changed;
 			config.on_submitted				   = on_input_submitted;
 			config.user_data				   = control;
@@ -945,7 +966,8 @@ namespace sfg
 			config.items					= enum_control.items.data();
 			config.item_count				= static_cast<u16>(enum_control.items.size());
 			config.width					= editor_dropdown_width_e::parent_relative;
-			config.title_from_selection		= true;
+			config.title					= control->mixed ? "Mixed" : nullptr;
+			config.title_from_selection		= !control->mixed;
 			config.selected					= on_enum_selected;
 			config.pressed					= on_enum_pressed;
 			config.user_data				= control;
@@ -1368,6 +1390,33 @@ namespace sfg
 		control.edit_active	   = false;
 	}
 
+	bool editor_widget_reflect_type_t::is_field_mixed(const reflected_field_desc_t& field, void* object) const
+	{
+		if (_target.kind != editor_reflected_edit_target_kind_e::world_components || _target.entity_count <= 1)
+			return false;
+
+		ostream_t first_value;
+		if (!reflection_registry_t::get().serialize_field_to_stream(_type_id, field.id, object, first_value))
+			return false;
+
+		world_t&				 world = editor_app_t::get().get_runtime().get_world(_target.world);
+		world_component_table_t* table = world.find_component_table(_target.type_id);
+		SFG_ASSERT(table != nullptr);
+		for (u32 i = 1; i < _target.entity_count; ++i)
+		{
+			SFG_ASSERT(ecs_t::table_has(table->table, _target.entities[i]));
+			void*	  object_to_compare = ecs_t::table_get(table->table, _target.entities[i]);
+			ostream_t value;
+			if (!reflection_registry_t::get().serialize_field_to_stream(_type_id, field.id, object_to_compare, value))
+				return false;
+			if (value.get_size() != first_value.get_size())
+				return true;
+			if (value.get_size() != 0 && std::memcmp(value.get_raw(), first_value.get_raw(), value.get_size()) != 0)
+				return true;
+		}
+		return false;
+	}
+
 	bool editor_widget_reflect_type_t::matches_reflected_command(const editor_command_reflected_field_edit_payload_t& payload) const
 	{
 		if (payload.type_id != _type_id)
@@ -1382,6 +1431,8 @@ namespace sfg
 			return payload.target.object == _target.object;
 		case editor_reflected_edit_target_kind_e::world_component:
 			return payload.target.world == _target.world && payload.target.entity == _target.entity && payload.target.type_id == _target.type_id;
+		case editor_reflected_edit_target_kind_e::world_components:
+			return payload.target.world == _target.world && payload.target.type_id == _target.type_id;
 		default:
 			return false;
 		}
@@ -1404,6 +1455,8 @@ namespace sfg
 	void editor_widget_reflect_type_t::on_input_submitted(const char* text_value, f32 number_value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
+		if (control.mixed && !control.edit_active)
+			return;
 		if (control.field->type == reflected_value_type_e::string)
 			write_reflected_text(control.object, *control.field, text_value);
 		else

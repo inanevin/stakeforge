@@ -279,10 +279,11 @@ namespace sfg
 
 		editor_command_system_t&		  command_system = editor_app_t::get().get_command_system();
 		const editor_command_issue_desc_t desc{
-			.undo		= create_entity_undo,
-			.redo		= create_entity_redo,
-			.debug_name = "Create Entity",
-			.type		= editor_command_type_e::entity_create,
+			.undo			   = create_entity_undo,
+			.redo			   = create_entity_redo,
+			.debug_name		   = "Create Entity",
+			.type			   = editor_command_type_e::entity_create,
+			.entity_generation = true,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
@@ -322,11 +323,12 @@ namespace sfg
 		payload.count									  = static_cast<u32>(entities.size());
 
 		const editor_command_issue_desc_t desc{
-			.undo		= duplicate_entity_undo,
-			.redo		= duplicate_entity_redo,
-			.cleanup	= duplicate_entity_cleanup,
-			.debug_name = "Duplicate Entity",
-			.type		= editor_command_type_e::entity_duplicate,
+			.undo			   = duplicate_entity_undo,
+			.redo			   = duplicate_entity_redo,
+			.cleanup		   = duplicate_entity_cleanup,
+			.debug_name		   = "Duplicate Entity",
+			.type			   = editor_command_type_e::entity_duplicate,
+			.entity_generation = true,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
@@ -364,11 +366,12 @@ namespace sfg
 		payload.count									= static_cast<u32>(entities.size());
 
 		const editor_command_issue_desc_t desc{
-			.undo		= destroy_entity_undo,
-			.redo		= destroy_entity_redo,
-			.cleanup	= destroy_entity_cleanup,
-			.debug_name = "Destroy Entity",
-			.type		= editor_command_type_e::entity_destroy,
+			.undo			   = destroy_entity_undo,
+			.redo			   = destroy_entity_redo,
+			.cleanup		   = destroy_entity_cleanup,
+			.debug_name		   = "Destroy Entity",
+			.type			   = editor_command_type_e::entity_destroy,
+			.entity_generation = true,
 		};
 
 		return !command_system.issue_command(desc, payload).is_null();

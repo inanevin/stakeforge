@@ -27,8 +27,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "editor_command_system.hpp"
 #include "ui/widgets/editor_widget_text_id.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
+#include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -47,6 +50,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, world_handle_t world);
 		void uninit();
 		void set_entity(world_t& world, entity_id_t entity);
+		void set_entities(world_t& world, span_t<const entity_id_t> entities);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -62,20 +66,28 @@ namespace sfg
 		static void on_rotation_submitted(const vec3f_t& value, void* user_data);
 		static void on_scale_changed(const vec3f_t& value, void* user_data);
 		static void on_scale_submitted(const vec3f_t& value, void* user_data);
+		static void on_command_system_changed(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+
+		void refresh_controls();
+		bool matches_reflected_command(editor_command_system_t& system, const editor_command_t& command) const;
+		bool matches_entity_info_command(editor_command_system_t& system, const editor_command_t& command) const;
+		void refresh_entity_panel_names() const;
 
 	private:
-		editor_widget_text_id_t _name_input		= {};
-		editor_vec3_field_t		_position_field = {};
-		editor_vec3_field_t		_rotation_field = {};
-		editor_vec3_field_t		_scale_field	= {};
-		ui::ui_context*			_ui				= nullptr;
-		world_t*				_world			= nullptr;
-		ui::widget_id_t			_root			= NULL_WIDGET;
-		world_handle_t			_world_handle	= {};
-		quat_t					_command_rot	= {};
-		vec3f_t					_command_pos	= vec3f_t::zero;
-		vec3f_t					_command_scale	= vec3f_t::one;
-		entity_id_t				_entity			= NULL_ENTITY_ID;
-		bool					_refreshing		= false;
+		editor_widget_text_id_t			 _name_input	   = {};
+		editor_vec3_field_t				 _position_field   = {};
+		editor_vec3_field_t				 _rotation_field   = {};
+		editor_vec3_field_t				 _scale_field	   = {};
+		vector_t<entity_id_t>			 _entities		   = {};
+		ui::ui_context*					 _ui			   = nullptr;
+		world_t*						 _world			   = nullptr;
+		ui::widget_id_t					 _root			   = NULL_WIDGET;
+		world_handle_t					 _world_handle	   = {};
+		editor_command_listener_handle_t _command_listener = {};
+		quat_t							 _command_rot	   = {};
+		vec3f_t							 _command_pos	   = vec3f_t::zero;
+		vec3f_t							 _command_scale	   = vec3f_t::one;
+		entity_id_t						 _entity		   = NULL_ENTITY_ID;
+		bool							 _refreshing	   = false;
 	};
 }

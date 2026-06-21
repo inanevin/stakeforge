@@ -111,6 +111,16 @@ namespace sfg
 			_inputs[i].set_number((&_value.x)[i]);
 	}
 
+	void editor_vec2_field_t::set_mixed(bool mixed)
+	{
+		for (u8 i = 0; i < 2; ++i)
+		{
+			_inputs[i].set_placeholder(mixed ? "Mixed" : (i == 0 ? "X" : "Y"));
+			if (mixed)
+				_inputs[i].set_text("");
+		}
+	}
+
 	void editor_vec2_field_t::on_component_changed(f32 value, void* user_data)
 	{
 		component_t& component						  = *static_cast<component_t*>(user_data);
@@ -167,6 +177,17 @@ namespace sfg
 			_inputs[i].set_number((&_value.x)[i]);
 	}
 
+	void editor_vec3_field_t::set_mixed(bool mixed)
+	{
+		const char* names[3] = {"X", "Y", "Z"};
+		for (u8 i = 0; i < 3; ++i)
+		{
+			_inputs[i].set_placeholder(mixed ? "Mixed" : names[i]);
+			if (mixed)
+				_inputs[i].set_text("");
+		}
+	}
+
 	void editor_vec3_field_t::on_component_changed(f32 value, void* user_data)
 	{
 		component_t& component						  = *static_cast<component_t*>(user_data);
@@ -221,6 +242,17 @@ namespace sfg
 		_value = value;
 		for (u8 i = 0; i < 4; ++i)
 			_inputs[i].set_number((&_value.x)[i]);
+	}
+
+	void editor_vec4_field_t::set_mixed(bool mixed)
+	{
+		const char* names[4] = {"X", "Y", "Z", "W"};
+		for (u8 i = 0; i < 4; ++i)
+		{
+			_inputs[i].set_placeholder(mixed ? "Mixed" : names[i]);
+			if (mixed)
+				_inputs[i].set_text("");
+		}
 	}
 
 	void editor_vec4_field_t::on_component_changed(f32 value, void* user_data)

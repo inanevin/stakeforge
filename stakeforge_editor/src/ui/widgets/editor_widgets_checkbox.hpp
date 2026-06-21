@@ -57,6 +57,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_checkbox_config_t& config);
 		void uninit();
 		void set_checked(bool checked);
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -79,5 +80,6 @@ namespace sfg
 		ui::widget_id_t			 _check	  = NULL_WIDGET;
 		editor_checkbox_config_t _config  = {};
 		bool					 _checked = false;
+		bool					 _mixed	  = false;
 	};
 }

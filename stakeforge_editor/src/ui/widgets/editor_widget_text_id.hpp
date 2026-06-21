@@ -53,6 +53,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_text_id_config_t& config);
 		void uninit();
 		void refresh_text();
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -62,10 +63,13 @@ namespace sfg
 	private:
 		u32 get_selected() const;
 
+		static void on_text_changed(const char* text, void* user_data);
 		static void on_submitted(const char* text, f32 number, void* user_data);
 
 	private:
 		editor_input_field_t		   _input  = {};
 		editor_widget_text_id_config_t _config = {};
+		bool						   _mixed  = false;
+		bool						   _dirty  = false;
 	};
 }

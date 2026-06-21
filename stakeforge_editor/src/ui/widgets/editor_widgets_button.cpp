@@ -83,6 +83,7 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "button_label");
 		tree.attach(_root, _label);
+		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.flags			  = ui::wf_visible;

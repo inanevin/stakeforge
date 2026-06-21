@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <cstring>
 
 namespace sfg
 {
@@ -222,6 +223,13 @@ namespace sfg
 			_entity_info_fold = nullptr;
 		}
 
+		if (_add_component_button != nullptr)
+		{
+			_add_component_button->uninit();
+			delete _add_component_button;
+			_add_component_button = nullptr;
+		}
+
 		for (component_display_t& display : _component_displays)
 		{
 			display.reflect->uninit();
@@ -242,7 +250,7 @@ namespace sfg
 		_entity_info_fold			   = new editor_widget_fold_t();
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = true});
 		_entity_info->init(*_ui, _entity_info_fold->get_body(), _display_world_handle);
-		_entity_info->set_entity(*_display_world, first_entity);
+		_entity_info->set_entities(*_display_world, {.data = _display_entities.data(), .size = _display_entities.size()});
 
 		ui::listener_bundle_t entity_info_settings_listener = {};
 		entity_info_settings_listener.user_data				= this;
@@ -281,9 +289,11 @@ namespace sfg
 			display.reflect->init(*_ui, display.fold->get_body());
 			editor_reflected_edit_target_t target = {};
 			target.world						  = _display_world_handle;
+			target.entities						  = _display_entities.data();
 			target.entity						  = first_entity;
 			target.type_id						  = component_table.type_desc.type_id;
-			target.kind							  = editor_reflected_edit_target_kind_e::world_component;
+			target.entity_count					  = static_cast<u32>(_display_entities.size());
+			target.kind							  = _display_entities.size() > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
 			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id, target);
 			if (state != nullptr)
 				display.reflect->set_vector_fold_states(state->vector_fold_states);
@@ -295,6 +305,8 @@ namespace sfg
 
 			_component_displays.push_back(display);
 		}
+
+		create_add_component_button();
 	}
 
 	editor_panel_inspector_t::component_display_state_t* editor_panel_inspector_t::find_component_display_state(sid_t type_id)
@@ -341,6 +353,87 @@ namespace sfg
 		desc.command_fn				   = on_component_action_menu_command;
 		desc.command_user_data		   = this;
 		menu->request_action_menu(desc);
+	}
+
+	void editor_panel_inspector_t::open_add_component_action_menu(const vec2f_t& pos)
+	{
+		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
+		SFG_ASSERT(menu != nullptr);
+		SFG_ASSERT(_display_world != nullptr);
+
+		_add_component_categories.resize(0);
+		_add_component_root_rows.resize(0);
+		_add_component_types.resize(0);
+
+		const vector_t<world_component_table_t>& component_tables = _display_world->get_component_tables();
+		_add_component_categories.reserve(component_tables.size());
+		_add_component_types.reserve(component_tables.size());
+
+		for (const world_component_table_t& component_table : component_tables)
+		{
+			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+			if (reflected_type == nullptr || (reflected_type->flags & reflected_type_flags_no_ui) != 0)
+				continue;
+
+			const char*					   category			= reflected_type->category != nullptr ? reflected_type->category : "Component";
+			add_component_menu_category_t* category_storage = nullptr;
+			for (add_component_menu_category_t& candidate : _add_component_categories)
+			{
+				if (std::strcmp(candidate.category, category) == 0)
+				{
+					category_storage = &candidate;
+					break;
+				}
+			}
+			if (category_storage == nullptr)
+			{
+				_add_component_categories.push_back({.category = category});
+				category_storage = &_add_component_categories.back();
+			}
+
+			_add_component_types.push_back(component_table.type_desc.type_id);
+			category_storage->rows.push_back({.text = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .command = static_cast<u16>(_add_component_types.size())});
+		}
+
+		_add_component_root_rows.reserve(_add_component_categories.size());
+		for (add_component_menu_category_t& category : _add_component_categories)
+		{
+			if (category.rows.empty())
+				continue;
+			_add_component_root_rows.push_back({.text = category.category, .children = category.rows.data(), .child_count = static_cast<u16>(category.rows.size())});
+		}
+		if (_add_component_root_rows.empty())
+			return;
+
+		editor_action_menu_desc_t desc = {};
+		desc.rows					   = _add_component_root_rows.data();
+		desc.row_count				   = static_cast<u16>(_add_component_root_rows.size());
+		desc.pos					   = pos;
+		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
+		desc.command_fn				   = on_add_component_action_menu_command;
+		desc.command_user_data		   = this;
+		menu->request_action_menu(desc);
+	}
+
+	void editor_panel_inspector_t::create_add_component_button()
+	{
+		const editor_theme_t& theme	  = editor_theme_t::get();
+		_add_component_button		  = new editor_button_t();
+		editor_button_config_t config = {};
+		config.text					  = "Add Component";
+		config.width				  = {.mode = editor_widget_width_e::fixed, .value = theme.item_width * 1.5f};
+		_add_component_button->init(*_ui, _column, config);
+
+		ui::layout_in_t& button_in									  = _ui->get_tree().in(_add_component_button->get_root());
+		button_in.pos_mode_x										  = ui::pos_mode_e::relative_in_parent;
+		button_in.pos_value.x										  = 0.5f;
+		button_in.anchor_x											  = ui::anchor_e::center;
+		_ui->get_tree().draw_order(_add_component_button->get_root()) = _ui->get_tree().draw_order_const(_column) + 1;
+
+		ui::listener_bundle_t listener = {};
+		listener.user_data			   = this;
+		listener.on_click			   = on_add_component_clicked;
+		_ui->get_input().set_listener(_add_component_button->get_root(), listener);
 	}
 
 	bool editor_panel_inspector_t::is_component_removable(sid_t type_id) const
@@ -463,5 +556,25 @@ namespace sfg
 		default:
 			break;
 		}
+	}
+
+	void editor_panel_inspector_t::on_add_component_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		static_cast<editor_panel_inspector_t*>(user_data)->open_add_component_action_menu(pos);
+	}
+
+	void editor_panel_inspector_t::on_add_component_action_menu_command(u16 command, void* user_data)
+	{
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		if (command == 0 || command > panel._add_component_types.size())
+			return;
+
+		frame_vector_t<entity_id_t> entities;
+		world_handle_t				world = {};
+		if (get_selected_entities_from_panel(entities, world) && editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]))
+			panel.refresh_display();
 	}
 }

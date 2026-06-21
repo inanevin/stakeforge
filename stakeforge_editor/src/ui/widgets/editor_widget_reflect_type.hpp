@@ -97,6 +97,7 @@ namespace sfg
 			void*						  object		 = nullptr;
 			void*						  command_object = nullptr;
 			ostream_t*					  edit_old_value = nullptr;
+			bool						  mixed			 = false;
 			bool						  edit_active	 = false;
 		};
 
@@ -128,6 +129,7 @@ namespace sfg
 		void			   end_reflected_edit(const reflected_field_desc_t& field, void* object, ostream_t& old_value) const;
 		void			   begin_live_reflected_edit(reflected_control_t& control) const;
 		void			   submit_live_reflected_edit(reflected_control_t& control) const;
+		bool			   is_field_mixed(const reflected_field_desc_t& field, void* object) const;
 		bool			   matches_reflected_command(const editor_command_reflected_field_edit_payload_t& payload) const;
 		static void		   on_number_changed(f32 value, void* user_data);
 		static void		   on_text_changed(const char* value, void* user_data);

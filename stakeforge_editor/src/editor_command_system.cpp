@@ -45,9 +45,11 @@ namespace sfg
 		_listeners.reserve(config.max_listeners);
 		_history.reserve(config.max_commands);
 		_aux_data.init(config.aux_data_size);
-		_cursor		   = 0;
-		_next_sequence = 1;
-		_inited		   = true;
+		_cursor			   = 0;
+		_next_sequence	   = 1;
+		_generation		   = 0;
+		_entity_generation = 0;
+		_inited			   = true;
 	}
 
 	void editor_command_system_t::uninit()
@@ -58,10 +60,12 @@ namespace sfg
 		_listeners.clear();
 		_history.clear();
 		_aux_data.uninit();
-		_config		   = {};
-		_cursor		   = 0;
-		_next_sequence = 1;
-		_inited		   = false;
+		_config			   = {};
+		_cursor			   = 0;
+		_next_sequence	   = 1;
+		_generation		   = 0;
+		_entity_generation = 0;
+		_inited			   = false;
 	}
 
 	void editor_command_system_t::clear()
@@ -105,6 +109,7 @@ namespace sfg
 		command.sequence					  = _next_sequence++;
 		command.type						  = desc.type;
 		command.state						  = editor_command_state_e::done;
+		command.entity_generation			  = desc.entity_generation;
 
 		if (desc.run_redo && !command.redo(*this, command))
 		{
@@ -114,7 +119,7 @@ namespace sfg
 
 		_history.push_back(handle);
 		_cursor = static_cast<u32>(_history.size());
-		++_generation;
+		bump_generation(command);
 		return handle;
 	}
 
@@ -131,7 +136,7 @@ namespace sfg
 
 		command.state = editor_command_state_e::undone;
 		--_cursor;
-		++_generation;
+		bump_generation(command);
 		notify_listeners(command);
 		return true;
 	}
@@ -149,7 +154,7 @@ namespace sfg
 
 		command.state = editor_command_state_e::done;
 		++_cursor;
-		++_generation;
+		bump_generation(command);
 		notify_listeners(command);
 		return true;
 	}
@@ -275,6 +280,12 @@ namespace sfg
 		return _generation;
 	}
 
+	u32 editor_command_system_t::get_entity_generation() const
+	{
+		SFG_ASSERT(_inited);
+		return _entity_generation;
+	}
+
 	bool editor_command_system_t::is_listener_valid(editor_command_listener_handle_t handle) const
 	{
 		SFG_ASSERT(_inited);
@@ -311,6 +322,13 @@ namespace sfg
 		if (command.payload.size != 0)
 			_aux_data.free(command.payload);
 		_commands.remove(handle);
+	}
+
+	void editor_command_system_t::bump_generation(const editor_command_t& command)
+	{
+		++_generation;
+		if (command.entity_generation)
+			++_entity_generation;
 	}
 
 	void editor_command_system_t::notify_listeners(const editor_command_t& command)

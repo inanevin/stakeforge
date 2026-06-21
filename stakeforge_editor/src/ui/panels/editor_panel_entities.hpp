@@ -164,7 +164,7 @@ namespace sfg
 		vector_t<entity_id_t>	_selected_entities	  = {};
 		entity_id_t				_selection_anchor	  = NULL_ENTITY_ID;
 		entity_id_t				_action_menu_entity	  = NULL_ENTITY_ID;
-		u32						_command_generation	  = 0;
+		u32						_entity_generation	  = 0;
 		u32						_visible_entity_count = 0;
 	};
 }

@@ -141,6 +141,22 @@ namespace sfg
 			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
+	void editor_widget_asset_reference_t::set_mixed(bool mixed)
+	{
+		if (!mixed)
+		{
+			refresh_title();
+			return;
+		}
+
+		const editor_theme_t& theme = editor_theme_t::get();
+		_ui->set_widget_text(_label, "Mixed");
+		_ui->get_paint().set_text(_label,
+								  _ui->widget_text(_label),
+								  _ui->widget_text_len(_label),
+								  {.font = theme.font_default, .color = theme.color_accent_warn, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+	}
+
 	sid_t editor_widget_asset_reference_t::get_selected() const
 	{
 		return _config.selected != nullptr ? _config.selected(_config.user_data) : NULL_SID;

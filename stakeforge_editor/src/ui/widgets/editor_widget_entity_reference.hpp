@@ -61,6 +61,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_reference_config_t& config);
 		void uninit();
 		void refresh_title();
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{

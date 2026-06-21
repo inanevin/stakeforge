@@ -232,7 +232,7 @@ namespace sfg
 		_ui->set_widget_text(_label, text != nullptr ? text : "");
 
 		ui::paint_def_t& label_paint = _ui->get_paint().def(_label);
-		label_paint.text.color		 = placeholder ? theme.color_text2 : theme.color_text0;
+		label_paint.text.color		 = placeholder ? (std::strcmp(_config.placeholder, "Mixed") == 0 ? theme.color_accent_warn : theme.color_text2) : theme.color_text0;
 
 		ui::layout_in_t& label_in = _ui->get_tree().in(_label);
 		if (_config.type == editor_input_field_type_e::number_slider)

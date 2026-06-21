@@ -40,6 +40,7 @@ namespace sfg
 
 		editor_input_field_config_t input_config = {};
 		input_config.type						 = editor_input_field_type_e::text;
+		input_config.on_text_changed			 = on_text_changed;
 		input_config.on_submitted				 = on_submitted;
 		input_config.user_data					 = this;
 		_input.init(ui, parent, input_config);
@@ -50,6 +51,8 @@ namespace sfg
 	{
 		_input.uninit();
 		_config = {};
+		_mixed	= false;
+		_dirty	= false;
 	}
 
 	void editor_widget_text_id_t::refresh_text()
@@ -58,6 +61,23 @@ namespace sfg
 		const world_t& world   = editor_app_t::get().get_runtime().get_world(_config.world);
 		const char*	   text	   = world.get_text(text_id);
 		_input.set_text(text != nullptr ? text : "");
+		_mixed = false;
+		_dirty = false;
+	}
+
+	void editor_widget_text_id_t::set_mixed(bool mixed)
+	{
+		if (!mixed)
+		{
+			_input.set_placeholder("");
+			refresh_text();
+			return;
+		}
+
+		_mixed = true;
+		_dirty = false;
+		_input.set_placeholder("Mixed");
+		_input.set_text("");
 	}
 
 	u32 editor_widget_text_id_t::get_selected() const
@@ -65,9 +85,17 @@ namespace sfg
 		return _config.selected != nullptr ? _config.selected(_config.user_data) : ECS_INVALID_INDEX;
 	}
 
+	void editor_widget_text_id_t::on_text_changed(const char*, void* user_data)
+	{
+		editor_widget_text_id_t& widget = *static_cast<editor_widget_text_id_t*>(user_data);
+		widget._dirty					= true;
+	}
+
 	void editor_widget_text_id_t::on_submitted(const char* text, f32, void* user_data)
 	{
 		editor_widget_text_id_t& widget = *static_cast<editor_widget_text_id_t*>(user_data);
+		if (widget._mixed && !widget._dirty)
+			return;
 		if (widget._config.submitted != nullptr)
 			widget._config.submitted(text, widget._config.user_data);
 		widget.refresh_text();

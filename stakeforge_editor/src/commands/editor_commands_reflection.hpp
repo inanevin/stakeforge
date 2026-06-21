@@ -40,27 +40,33 @@ namespace sfg
 		none,
 		raw_object,
 		world_component,
+		world_components,
 	};
 
 	struct editor_reflected_edit_target_t
 	{
 		void*								object			  = nullptr;
+		const entity_id_t*					entities		  = nullptr;
 		editor_command_listener_handle_t	required_listener = {};
 		world_handle_t						world			  = {};
 		entity_id_t							entity			  = NULL_ENTITY_ID;
 		sid_t								type_id			  = 0;
+		u32									entity_count	  = 0;
 		editor_reflected_edit_target_kind_e kind			  = editor_reflected_edit_target_kind_e::none;
 	};
 
 	struct editor_command_reflected_field_edit_payload_t
 	{
-		chunk_handle32_t			   old_value = {};
-		chunk_handle32_t			   new_value = {};
-		editor_reflected_edit_target_t target	 = {};
-		world_handle_t				   world	 = {};
-		sid_t						   type_id	 = 0;
-		sid_t						   field_id	 = 0;
-		bool						   text_id	 = false;
+		chunk_handle32_t			   old_value	= {};
+		chunk_handle32_t			   new_value	= {};
+		chunk_handle32_t			   old_values	= {};
+		chunk_handle32_t			   entities		= {};
+		editor_reflected_edit_target_t target		= {};
+		world_handle_t				   world		= {};
+		sid_t						   type_id		= 0;
+		sid_t						   field_id		= 0;
+		u32							   entity_count = 0;
+		bool						   text_id		= false;
 	};
 
 	struct editor_reflected_field_edit_desc_t

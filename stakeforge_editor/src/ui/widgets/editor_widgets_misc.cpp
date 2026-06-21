@@ -138,9 +138,9 @@ namespace sfg
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		editor_property_row_t row = make_property_row(ui, parent);
-		ui::layout_in_t& row_layout = tree.in(row.left);
-		row_layout.child_clip_mode = ui::clip_mode_e::cpu_rect;
+		editor_property_row_t row		 = make_property_row(ui, parent);
+		ui::layout_in_t&	  row_layout = tree.in(row.left);
+		row_layout.child_clip_mode		 = ui::clip_mode_e::cpu_rect;
 
 		if (sub_item)
 		{
@@ -162,6 +162,7 @@ namespace sfg
 		row.label = ui.allocate_widget();
 		ui.set_widget_debug_name(row.label, "property_row_label");
 		tree.attach(row.left, row.label);
+		tree.draw_order(row.label) = tree.draw_order_const(row.left) + 1;
 
 		ui::layout_in_t& label_in = tree.in(row.label);
 		label_in.flags			  = ui::wf_visible | ui::wf_input;

@@ -84,7 +84,7 @@ namespace sfg
 
 	private:
 		static constexpr u32 MAX_DEPTH = 4;
-		static constexpr u32 MAX_ROWS  = 16;
+		static constexpr u32 MAX_ROWS  = 64;
 
 		void show_panel(u32 depth, const editor_action_menu_row_desc_t* rows, u16 row_count, const vec4f_t& anchor);
 		void hide_panels_from(u32 depth);

@@ -30,27 +30,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	namespace
+	system_component_reflection_t::system_component_reflection_t()
 	{
-		struct system_component_reflection_t
-		{
-			system_component_reflection_t()
-			{
-				reflection_registry_t& registry = reflection_registry_t::get();
-				if (registry.find_type(component_system_transform_t::TYPE_ID) != nullptr)
-					return;
+		reflection_registry_t& registry = reflection_registry_t::get();
+		if (registry.find_type(component_system_transform_t::TYPE_ID) != nullptr)
+			return;
 
-				registry.register_type({
-					.name	   = "component_system_transform",
-					.category  = "component",
-					.type_id   = component_system_transform_t::TYPE_ID,
-					.size	   = sizeof(component_system_transform_t),
-					.alignment = alignof(component_system_transform_t),
-					.flags	   = reflected_type_flags_component | reflected_type_flags_no_ui | reflected_type_flags_no_serialize,
-				});
-			}
-		};
-
-		system_component_reflection_t g_reflect_system_component;
+		registry.register_type({
+			.name	   = "component_system_transform",
+			.category  = "component",
+			.type_id   = component_system_transform_t::TYPE_ID,
+			.size	   = sizeof(component_system_transform_t),
+			.alignment = alignof(component_system_transform_t),
+			.flags	   = reflected_type_flags_component | reflected_type_flags_no_ui | reflected_type_flags_no_serialize,
+		});
 	}
 }
