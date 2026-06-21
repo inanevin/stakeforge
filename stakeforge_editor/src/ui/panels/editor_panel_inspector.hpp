@@ -26,10 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "commands/editor_commands_entity_info.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widget_reflect_type.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include <sfg/data/ostream.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
@@ -96,23 +98,34 @@ namespace sfg
 		void					   clear_display();
 		void					   create_entity_display();
 		component_display_state_t* find_component_display_state(sid_t type_id);
+		void					   open_entity_info_action_menu(const vec2f_t& pos);
 		void					   open_component_action_menu(const vec2f_t& pos, sid_t type_id);
+		void					   copy_entity_info();
+		void					   copy_component(sid_t type_id);
 		bool					   is_component_removable(sid_t type_id) const;
+		bool					   is_component_paste_enabled(sid_t type_id) const;
 
+		static void on_entity_info_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_entity_info_action_menu_command(u16 command, void* user_data);
 		static void on_component_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_component_action_menu_command(u16 command, void* user_data);
 
 	private:
-		vector_t<component_display_state_t> _component_states	  = {};
-		vector_t<component_display_t>		_component_displays	  = {};
-		vector_t<entity_id_t>				_display_entities	  = {};
-		editor_scrollbar_t					_scrollbar			  = {};
-		editor_widget_entity_info_t*		_entity_info		  = nullptr;
-		world_t*							_display_world		  = nullptr;
-		world_handle_t						_display_world_handle = {};
-		ui::widget_id_t						_scroll_area		  = NULL_WIDGET;
-		ui::widget_id_t						_column				  = NULL_WIDGET;
-		sid_t								_action_menu_type_id  = 0;
-		editor_inspector_display_type_e		_display_type		  = editor_inspector_display_type_e::none;
+		vector_t<component_display_state_t> _component_states		  = {};
+		vector_t<component_display_t>		_component_displays		  = {};
+		vector_t<entity_id_t>				_display_entities		  = {};
+		editor_scrollbar_t					_scrollbar				  = {};
+		editor_widget_fold_t*				_entity_info_fold		  = nullptr;
+		editor_widget_entity_info_t*		_entity_info			  = nullptr;
+		world_t*							_display_world			  = nullptr;
+		world_handle_t						_display_world_handle	  = {};
+		ui::widget_id_t						_scroll_area			  = NULL_WIDGET;
+		ui::widget_id_t						_column					  = NULL_WIDGET;
+		ostream_t							_copied_component_stream  = {};
+		editor_entity_info_data_t			_copied_entity_info		  = {};
+		sid_t								_copied_component_type	  = 0;
+		sid_t								_action_menu_type_id	  = 0;
+		editor_inspector_display_type_e		_display_type			  = editor_inspector_display_type_e::none;
+		bool								_copied_entity_info_valid = false;
 	};
 }

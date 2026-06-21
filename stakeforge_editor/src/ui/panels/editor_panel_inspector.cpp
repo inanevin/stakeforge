@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "commands/editor_commands_component.hpp"
+#include "commands/editor_commands_entity_info.hpp"
 #include "editor_app.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
@@ -48,14 +49,27 @@ namespace sfg
 		enum inspector_component_action_menu_command_e : u16
 		{
 			inspector_component_action_menu_copy = 1,
+			inspector_component_action_menu_paste,
 			inspector_component_action_menu_reset,
 			inspector_component_action_menu_remove,
 		};
 
+		enum inspector_entity_info_action_menu_command_e : u16
+		{
+			inspector_entity_info_action_menu_copy = 1,
+			inspector_entity_info_action_menu_paste,
+		};
+
 		editor_action_menu_row_desc_t INSPECTOR_COMPONENT_ACTION_MENU_ROWS[] = {
 			{.text = "Copy", .command = inspector_component_action_menu_copy},
+			{.text = "Paste", .command = inspector_component_action_menu_paste},
 			{.text = "Reset", .command = inspector_component_action_menu_reset},
 			{.text = "Remove", .command = inspector_component_action_menu_remove},
+		};
+
+		editor_action_menu_row_desc_t INSPECTOR_ENTITY_INFO_ACTION_MENU_ROWS[] = {
+			{.text = "Copy", .command = inspector_entity_info_action_menu_copy},
+			{.text = "Paste", .command = inspector_entity_info_action_menu_paste},
 		};
 
 		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
@@ -135,7 +149,11 @@ namespace sfg
 		_display_type		  = editor_inspector_display_type_e::none;
 		_column				  = NULL_WIDGET;
 		_scroll_area		  = NULL_WIDGET;
-		_action_menu_type_id  = 0;
+		_copied_component_stream.destroy();
+		_copied_entity_info		  = {};
+		_copied_component_type	  = 0;
+		_action_menu_type_id	  = 0;
+		_copied_entity_info_valid = false;
 
 		editor_panel_t::uninit();
 	}
@@ -197,6 +215,13 @@ namespace sfg
 			_entity_info = nullptr;
 		}
 
+		if (_entity_info_fold != nullptr)
+		{
+			_entity_info_fold->uninit();
+			delete _entity_info_fold;
+			_entity_info_fold = nullptr;
+		}
+
 		for (component_display_t& display : _component_displays)
 		{
 			display.reflect->uninit();
@@ -214,8 +239,15 @@ namespace sfg
 
 		const entity_id_t first_entity = _display_entities.front();
 		_entity_info				   = new editor_widget_entity_info_t();
-		_entity_info->init(*_ui, _column, _display_world_handle);
+		_entity_info_fold			   = new editor_widget_fold_t();
+		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = true});
+		_entity_info->init(*_ui, _entity_info_fold->get_body(), _display_world_handle);
 		_entity_info->set_entity(*_display_world, first_entity);
+
+		ui::listener_bundle_t entity_info_settings_listener = {};
+		entity_info_settings_listener.user_data				= this;
+		entity_info_settings_listener.on_click				= on_entity_info_settings_clicked;
+		_ui->get_input().set_listener(_entity_info_fold->get_settings_button(), entity_info_settings_listener);
 
 		for (const world_component_table_t& component_table : _display_world->get_component_tables())
 		{
@@ -275,13 +307,31 @@ namespace sfg
 		return nullptr;
 	}
 
+	void editor_panel_inspector_t::open_entity_info_action_menu(const vec2f_t& pos)
+	{
+		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
+		SFG_ASSERT(menu != nullptr);
+
+		INSPECTOR_ENTITY_INFO_ACTION_MENU_ROWS[1].disabled = !_copied_entity_info_valid;
+
+		editor_action_menu_desc_t desc = {};
+		desc.rows					   = INSPECTOR_ENTITY_INFO_ACTION_MENU_ROWS;
+		desc.row_count				   = static_cast<u16>(sizeof(INSPECTOR_ENTITY_INFO_ACTION_MENU_ROWS) / sizeof(INSPECTOR_ENTITY_INFO_ACTION_MENU_ROWS[0]));
+		desc.pos					   = pos;
+		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
+		desc.command_fn				   = on_entity_info_action_menu_command;
+		desc.command_user_data		   = this;
+		menu->request_action_menu(desc);
+	}
+
 	void editor_panel_inspector_t::open_component_action_menu(const vec2f_t& pos, sid_t type_id)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
 
 		_action_menu_type_id							 = type_id;
-		INSPECTOR_COMPONENT_ACTION_MENU_ROWS[2].disabled = !is_component_removable(type_id);
+		INSPECTOR_COMPONENT_ACTION_MENU_ROWS[1].disabled = !is_component_paste_enabled(type_id);
+		INSPECTOR_COMPONENT_ACTION_MENU_ROWS[3].disabled = !is_component_removable(type_id);
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = INSPECTOR_COMPONENT_ACTION_MENU_ROWS;
@@ -296,6 +346,73 @@ namespace sfg
 	bool editor_panel_inspector_t::is_component_removable(sid_t type_id) const
 	{
 		return type_id != component_transform_t::TYPE_ID && type_id != component_name_t::TYPE_ID;
+	}
+
+	bool editor_panel_inspector_t::is_component_paste_enabled(sid_t type_id) const
+	{
+		return _copied_component_stream.get_size() != 0 && _copied_component_type == type_id;
+	}
+
+	void editor_panel_inspector_t::copy_entity_info()
+	{
+		_copied_entity_info		  = {};
+		_copied_entity_info_valid = false;
+
+		if (_display_world == nullptr || _display_entities.empty())
+			return;
+
+		_copied_entity_info		  = editor_commands_entity_info_t::read(*_display_world, _display_entities.front());
+		_copied_entity_info_valid = true;
+	}
+
+	void editor_panel_inspector_t::copy_component(sid_t type_id)
+	{
+		_copied_component_stream.destroy();
+		_copied_component_type = 0;
+
+		if (_display_world == nullptr || _display_entities.empty())
+			return;
+
+		world_component_table_t* table = _display_world->find_component_table(type_id);
+		if (table == nullptr || !ecs_t::table_has(table->table, _display_entities.front()))
+			return;
+
+		const void* component = ecs_t::table_get(table->table, _display_entities.front());
+		if (!reflection_registry_t::get().serialize_to_stream(type_id, component, _copied_component_stream))
+		{
+			_copied_component_stream.destroy();
+			return;
+		}
+
+		_copied_component_type = type_id;
+	}
+
+	void editor_panel_inspector_t::on_entity_info_settings_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		static_cast<editor_panel_inspector_t*>(user_data)->open_entity_info_action_menu(pos);
+	}
+
+	void editor_panel_inspector_t::on_entity_info_action_menu_command(u16 command, void* user_data)
+	{
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		switch (command)
+		{
+		case inspector_entity_info_action_menu_copy:
+			panel.copy_entity_info();
+			break;
+		case inspector_entity_info_action_menu_paste: {
+			frame_vector_t<entity_id_t> entities;
+			world_handle_t				world = {};
+			if (get_selected_entities_from_panel(entities, world) && panel._copied_entity_info_valid)
+				editor_commands_entity_info_t::paste(world, entities, panel._copied_entity_info);
+			break;
+		}
+		default:
+			break;
+		}
 	}
 
 	void editor_panel_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -320,7 +437,15 @@ namespace sfg
 		switch (command)
 		{
 		case inspector_component_action_menu_copy:
+			panel.copy_component(panel._action_menu_type_id);
 			break;
+		case inspector_component_action_menu_paste: {
+			frame_vector_t<entity_id_t> entities;
+			world_handle_t				world = {};
+			if (get_selected_entities_from_panel(entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
+				editor_commands_component_t::paste(world, entities, panel._action_menu_type_id, panel._copied_component_stream.get_raw(), panel._copied_component_stream.get_size());
+			break;
+		}
 		case inspector_component_action_menu_reset: {
 			frame_vector_t<entity_id_t> entities;
 			world_handle_t				world = {};

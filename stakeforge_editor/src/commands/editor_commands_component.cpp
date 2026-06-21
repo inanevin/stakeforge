@@ -65,6 +65,17 @@ namespace sfg
 			return handle;
 		}
 
+		chunk_handle32_t copy_data_to_aux(editor_command_system_t& system, const u8* data, size_t data_size)
+		{
+			if (data_size == 0)
+				return {};
+
+			SFG_ASSERT(data != nullptr);
+			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(data_size, alignof(u8));
+			SFG_MEMCPY(system.get_aux_data().get<u8>(handle), data, data_size);
+			return handle;
+		}
+
 		void initialize_component_data(world_component_table_t& table, void* component)
 		{
 			if (component == nullptr || table.type_desc.size == 0)
@@ -97,6 +108,19 @@ namespace sfg
 
 			initialize_component_data(table, component);
 			istream_t stream(stream_handle ? aux_data.get<u8>(stream_handle) : nullptr, stream_handle.size);
+			return reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream);
+		}
+
+		bool paste_component_data(world_component_table_t& table, entity_id_t entity, chunk_allocator_t& aux_data, chunk_handle32_t stream_handle)
+		{
+			if (!ecs_t::table_has(table.table, entity))
+				return true;
+			if (table.type_desc.size == 0)
+				return true;
+
+			void* component = ecs_t::table_get(table.table, entity);
+			initialize_component_data(table, component);
+			istream_t stream(aux_data.get<u8>(stream_handle), stream_handle.size);
 			return reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream);
 		}
 
@@ -264,6 +288,60 @@ namespace sfg
 			return true;
 		}
 
+		bool paste_component_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
+			world_component_table_t&				  table	   = get_component_table(get_world(payload.world), payload.component_type);
+			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.old_streams);
+			for (u32 i = 0; i < payload.count; ++i)
+			{
+				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
+					return false;
+			}
+			return true;
+		}
+
+		bool paste_component_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
+			world_component_table_t&				  table	   = get_component_table(get_world(payload.world), payload.component_type);
+			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			for (u32 i = 0; i < payload.count; ++i)
+			{
+				if (!paste_component_data(table, entities[i], system.get_aux_data(), payload.paste_stream))
+					return false;
+			}
+			return true;
+		}
+
+		void free_paste_component_payload(editor_command_system_t& system, editor_command_paste_component_payload_t& payload)
+		{
+			free_streams(system, payload.old_streams, payload.count);
+			if (payload.old_streams)
+			{
+				system.get_aux_data().free(payload.old_streams);
+				payload.old_streams = {};
+			}
+			if (payload.paste_stream)
+			{
+				system.get_aux_data().free(payload.paste_stream);
+				payload.paste_stream = {};
+			}
+			if (payload.entities)
+			{
+				system.get_aux_data().free(payload.entities);
+				payload.entities = {};
+			}
+		}
+
+		bool paste_component_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_paste_component_payload_t& payload = system.get_payload_as<editor_command_paste_component_payload_t>(command);
+			free_paste_component_payload(system, payload);
+			return true;
+		}
+
 		bool serialize_removed_components(editor_command_system_t& system, const world_component_table_t& table, const frame_vector_t<entity_id_t>& entities, chunk_handle32_t streams_handle)
 		{
 			if (table.type_desc.size == 0)
@@ -423,6 +501,61 @@ namespace sfg
 			.cleanup	= reset_component_cleanup,
 			.debug_name = "Reset Component",
 			.type		= editor_command_type_e::component_reset,
+		};
+
+		return !command_system.issue_command(desc, payload).is_null();
+	}
+
+	bool editor_commands_component_t::paste(world_handle_t world, entity_id_t entity, sid_t component_type, const u8* data, size_t data_size)
+	{
+		frame_vector_t<entity_id_t> entities;
+		entities.push_back(entity);
+		return paste(world, entities, component_type, data, data_size);
+	}
+
+	bool editor_commands_component_t::paste(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type, const u8* data, size_t data_size)
+	{
+		if (entities.empty() || data_size == 0)
+			return false;
+		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(data != nullptr);
+
+		world_component_table_t& table = get_component_table(get_world(world), component_type);
+		if (table.type_desc.size == 0)
+			return true;
+
+		frame_vector_t<entity_id_t> affected;
+		affected.reserve(entities.size());
+		for (entity_id_t entity : entities)
+		{
+			if (ecs_t::table_has(table.table, entity))
+				affected.push_back(entity);
+		}
+		if (affected.empty())
+			return true;
+
+		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+
+		editor_command_paste_component_payload_t payload = {};
+		payload.old_streams								 = create_stream_array(command_system, affected.size());
+		payload.paste_stream							 = copy_data_to_aux(command_system, data, data_size);
+		payload.entities								 = create_entity_array(command_system, affected);
+		payload.world									 = world;
+		payload.component_type							 = component_type;
+		payload.count									 = static_cast<u32>(affected.size());
+
+		if (!serialize_removed_components(command_system, table, affected, payload.old_streams))
+		{
+			free_paste_component_payload(command_system, payload);
+			return false;
+		}
+
+		const editor_command_issue_desc_t desc{
+			.undo		= paste_component_undo,
+			.redo		= paste_component_redo,
+			.cleanup	= paste_component_cleanup,
+			.debug_name = "Paste Component",
+			.type		= editor_command_type_e::component_paste,
 		};
 
 		return !command_system.issue_command(desc, payload).is_null();

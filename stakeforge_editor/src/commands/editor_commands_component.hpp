@@ -59,6 +59,16 @@ namespace sfg
 		u32				 count			= 0;
 	};
 
+	struct editor_command_paste_component_payload_t
+	{
+		chunk_handle32_t old_streams	= {};
+		chunk_handle32_t paste_stream	= {};
+		chunk_handle32_t entities		= {};
+		world_handle_t	 world			= {};
+		sid_t			 component_type = 0;
+		u32				 count			= 0;
+	};
+
 	class editor_commands_component_t final
 	{
 	public:
@@ -70,5 +80,7 @@ namespace sfg
 		static bool remove(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type);
 		static bool reset(world_handle_t world, entity_id_t entity, sid_t component_type);
 		static bool reset(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type);
+		static bool paste(world_handle_t world, entity_id_t entity, sid_t component_type, const u8* data, size_t data_size);
+		static bool paste(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type, const u8* data, size_t data_size);
 	};
 }

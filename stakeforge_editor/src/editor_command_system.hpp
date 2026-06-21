@@ -47,9 +47,11 @@ namespace sfg
 		entity_create,
 		entity_duplicate,
 		entity_destroy,
+		entity_info_paste,
 		component_add,
 		component_remove,
 		component_reset,
+		component_paste,
 		reflected_field_edit,
 	};
 
