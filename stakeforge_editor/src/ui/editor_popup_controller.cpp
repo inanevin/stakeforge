@@ -129,6 +129,8 @@ namespace sfg
 
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
+			const f32 row_margin = theme.outline_thickness;
+
 			_row_frames[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_frames[i], "popup_item");
 			tree.attach(_frame, _row_frames[i]);
@@ -137,23 +139,39 @@ namespace sfg
 			row_in.flags			= 0;
 			row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			row_in.size_mode_y		= ui::axis_mode_e::fixed;
-			row_in.size_value		= {1.0f, theme.item_height};
-			row_in.flow				= ui::flow_e::row;
+			row_in.size_value		= {1.0f, theme.item_height + row_margin * 2.0f};
+			row_in.flow				= ui::flow_e::none;
 			row_in.child_spacing	= 0.0f;
-			row_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, 0.0f};
+			row_in.child_margins	= {row_margin, row_margin, row_margin, row_margin};
 
 			ui::vg_rect_paint_t row_rect = {};
 			row_rect.fill_color_a		 = {0.0f, 0.0f, 0.0f, 0.0f};
 			row_rect.fill_color_b		 = {0.0f, 0.0f, 0.0f, 0.0f};
 			paint.set_rect(_row_frames[i], row_rect);
-			paint.set_hover_color(_row_frames[i], theme.color_panel);
-			paint.set_press_color(_row_frames[i], theme.color_frame_light);
-			paint.set_focus_color(_row_frames[i], theme.color_accent0);
 			ui.get_input().set_listener(_row_frames[i], row_listener);
+
+			_row_inner_frames[i] = ui.allocate_widget();
+			ui.set_widget_debug_name(_row_inner_frames[i], "popup_item_inner");
+			tree.attach(_row_frames[i], _row_inner_frames[i]);
+
+			ui::layout_in_t& inner_in = tree.in(_row_inner_frames[i]);
+			inner_in.flags			  = 0;
+			inner_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+			inner_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+			inner_in.size_value		  = {1.0f, 1.0f};
+			inner_in.flow			  = ui::flow_e::row;
+			inner_in.child_spacing	  = 0.0f;
+			inner_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, 0.0f};
+
+			paint.set_rect(_row_inner_frames[i], row_rect);
+			paint.set_hover_color(_row_inner_frames[i], theme.color_panel);
+			paint.set_press_color(_row_inner_frames[i], theme.color_frame_light);
+			paint.set_focus_color(_row_inner_frames[i], theme.color_accent0);
+			paint.set_state_source(_row_inner_frames[i], _row_frames[i]);
 
 			_row_markers[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_markers[i], "popup_selected_marker");
-			tree.attach(_row_frames[i], _row_markers[i]);
+			tree.attach(_row_inner_frames[i], _row_markers[i]);
 
 			ui::layout_in_t& marker_in = tree.in(_row_markers[i]);
 			marker_in.flags			   = 0;
@@ -180,7 +198,7 @@ namespace sfg
 
 			_row_labels[i] = ui.allocate_widget();
 			ui.set_widget_debug_name(_row_labels[i], "popup_item_label");
-			tree.attach(_row_frames[i], _row_labels[i]);
+			tree.attach(_row_inner_frames[i], _row_labels[i]);
 
 			ui::layout_in_t& label_in = tree.in(_row_labels[i]);
 			label_in.flags			  = 0;
@@ -310,6 +328,7 @@ namespace sfg
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
 			_row_frames[i]		  = NULL_WIDGET;
+			_row_inner_frames[i]  = NULL_WIDGET;
 			_row_markers[i]		  = NULL_WIDGET;
 			_row_marker_labels[i] = NULL_WIDGET;
 			_row_labels[i]		  = NULL_WIDGET;
@@ -459,6 +478,7 @@ namespace sfg
 			const bool item_visible	  = visible && _mode == popup_mode_e::items && i < _desc.item_count;
 			const bool marker_visible = item_visible && _items[i].selected;
 			set_focusable_widget_visible(tree, _row_frames[i], item_visible, item_visible);
+			set_widget_visible(tree, _row_inner_frames[i], item_visible, false);
 			set_widget_visible(tree, _row_markers[i], item_visible, false);
 			set_widget_visible(tree, _row_marker_labels[i], marker_visible, false);
 			set_widget_visible(tree, _row_labels[i], item_visible, false);
@@ -475,6 +495,7 @@ namespace sfg
 			const asset_row_t& row		   = _asset_rows[i];
 			const bool		   row_visible = search_popup_visible && i < _asset_filtered_items.size();
 			set_focusable_widget_visible(tree, row.root, row_visible, row_visible);
+			set_widget_visible(tree, row.inner, row_visible, false);
 			set_widget_visible(tree, row.marker, row_visible, false);
 			set_widget_visible(tree, row.marker_icon, row_visible, false);
 			set_widget_visible(tree, row.thumbnail, row_visible && _mode == popup_mode_e::assets, false);
@@ -516,6 +537,8 @@ namespace sfg
 			const asset_popup_item_t& item = _asset_filtered_items[i];
 			if (i >= _asset_rows.size())
 			{
+				const f32 row_margin = theme.outline_thickness;
+
 				asset_row_t row = {};
 
 				row.root = _ui->allocate_widget();
@@ -527,20 +550,36 @@ namespace sfg
 				row_in.flags			= 0;
 				row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 				row_in.size_mode_y		= ui::axis_mode_e::fixed;
-				row_in.size_value		= {1.0f, theme.item_height};
-				row_in.flow				= ui::flow_e::row;
-				row_in.child_spacing	= theme.item_spacing;
-				row_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+				row_in.size_value		= {1.0f, theme.item_height + row_margin * 2.0f};
+				row_in.flow				= ui::flow_e::none;
+				row_in.child_spacing	= 0.0f;
+				row_in.child_margins	= {row_margin, row_margin, row_margin, row_margin};
 
 				set_rect(paint, row.root, {0.0f, 0.0f, 0.0f, 0.0f});
-				paint.set_hover_color(row.root, theme.color_panel);
-				paint.set_press_color(row.root, theme.color_frame_light);
-				paint.set_focus_color(row.root, theme.color_accent0);
 				_ui->get_input().set_listener(row.root, row_listener);
+
+				row.inner = _ui->allocate_widget();
+				_ui->set_widget_debug_name(row.inner, "asset_popup_item_inner");
+				tree.attach(row.root, row.inner);
+
+				ui::layout_in_t& inner_in = tree.in(row.inner);
+				inner_in.flags			  = 0;
+				inner_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+				inner_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+				inner_in.size_value		  = {1.0f, 1.0f};
+				inner_in.flow			  = ui::flow_e::row;
+				inner_in.child_spacing	  = theme.item_spacing;
+				inner_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+
+				set_rect(paint, row.inner, {0.0f, 0.0f, 0.0f, 0.0f});
+				paint.set_hover_color(row.inner, theme.color_panel);
+				paint.set_press_color(row.inner, theme.color_frame_light);
+				paint.set_focus_color(row.inner, theme.color_accent0);
+				paint.set_state_source(row.inner, row.root);
 
 				row.marker = _ui->allocate_widget();
 				_ui->set_widget_debug_name(row.marker, "asset_popup_item_selected_marker");
-				tree.attach(row.root, row.marker);
+				tree.attach(row.inner, row.marker);
 
 				ui::layout_in_t& marker_in = tree.in(row.marker);
 				marker_in.flags			   = 0;
@@ -567,7 +606,7 @@ namespace sfg
 
 				row.thumbnail = _ui->allocate_widget();
 				_ui->set_widget_debug_name(row.thumbnail, "asset_popup_item_thumbnail");
-				tree.attach(row.root, row.thumbnail);
+				tree.attach(row.inner, row.thumbnail);
 
 				ui::layout_in_t& thumbnail_in = tree.in(row.thumbnail);
 				thumbnail_in.flags			  = 0;
@@ -581,7 +620,7 @@ namespace sfg
 
 				row.label = _ui->allocate_widget();
 				_ui->set_widget_debug_name(row.label, "asset_popup_item_label");
-				tree.attach(row.root, row.label);
+				tree.attach(row.inner, row.label);
 
 				ui::layout_in_t& label_in = tree.in(row.label);
 				label_in.flags			  = 0;
@@ -609,16 +648,18 @@ namespace sfg
 
 	void editor_popup_controller_t::refresh_layout()
 	{
-		ui::layout_tree_t&		tree   = _ui->get_tree();
-		const editor_theme_t&	theme  = editor_theme_t::get();
-		const ui::layout_out_t& screen = tree.out(tree.get_root());
+		ui::layout_tree_t&		tree	   = _ui->get_tree();
+		const editor_theme_t&	theme	   = editor_theme_t::get();
+		const ui::layout_out_t& screen	   = tree.out(tree.get_root());
+		const f32				row_margin = theme.outline_thickness;
+		const f32				row_height = theme.item_height + row_margin * 2.0f;
 
 		f32 width  = _desc.width;
-		f32 height = static_cast<f32>(_desc.item_count) * theme.item_height + theme.margin_vertical * 2.0f;
+		f32 height = static_cast<f32>(_desc.item_count) * row_height + theme.margin_vertical * 2.0f;
 		if (_mode == popup_mode_e::items)
 		{
 			for (u32 i = 0; i < _desc.item_count; ++i)
-				width = math::max(width, theme.item_height + static_cast<f32>(_ui->widget_text_len(_row_labels[i])) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
+				width = math::max(width, theme.item_height + static_cast<f32>(_ui->widget_text_len(_row_labels[i])) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f + row_margin * 2.0f);
 		}
 		else if (_mode == popup_mode_e::input)
 		{
@@ -629,13 +670,13 @@ namespace sfg
 		{
 			width				   = theme.item_width * 2.0f;
 			const u32 visible_rows = math::min(ASSET_POPUP_VISIBLE_ROWS, static_cast<u32>(math::max<size_t>(1, _asset_filtered_items.size())));
-			height				   = theme.item_area_height * 2.0f + static_cast<f32>(visible_rows) * theme.item_height + theme.outline_thickness * 2.0f + theme.margin_vertical * 2.0f;
+			height				   = theme.item_area_height * 2.0f + static_cast<f32>(visible_rows) * row_height + theme.margin_vertical * 2.0f;
 			width				   = math::max(width, static_cast<f32>(_ui->widget_text_len(_asset_label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f);
 			for (size_t i = 0; i < _asset_filtered_items.size(); ++i)
 			{
 				const asset_row_t& row			   = _asset_rows[i];
 				const f32		   thumbnail_width = _mode == popup_mode_e::assets ? theme.item_height + theme.item_spacing : 0.0f;
-				width = math::max(width, theme.item_height + theme.item_spacing + thumbnail_width + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f + theme.outline_thickness * 2.0f);
+				width = math::max(width, theme.item_height + theme.item_spacing + thumbnail_width + static_cast<f32>(_ui->widget_text_len(row.label)) * theme.text_default_px_size * 0.7f + theme.margin_horizontal * 2.0f + row_margin * 2.0f);
 			}
 
 			const f32 scale				= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
@@ -908,7 +949,8 @@ namespace sfg
 		const ui::layout_out_t&	 list_out	= tree.out(popup._assets_frame);
 		const f32				 ui_scale	= ui.get_ui_scale() > 0.0f ? ui.get_ui_scale() : 1.0f;
 		const f32				 viewport	= list_out.size.y / ui_scale;
-		const f32				 row_center = (static_cast<f32>(popup._asset_scroll_target) + 0.5f) * theme.item_height;
+		const f32				 row_height = theme.item_height + theme.outline_thickness * 2.0f;
+		const f32				 row_center = (static_cast<f32>(popup._asset_scroll_target) + 0.5f) * row_height;
 		const f32				 target		= math::clamp(row_center - viewport * 0.5f, 0.0f, list_out.max_scroll.y);
 		popup._asset_scrollbar.set_scroll_y_immediate(-target);
 		popup._asset_scroll_pending_frames = 0;

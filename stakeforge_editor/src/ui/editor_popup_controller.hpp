@@ -152,6 +152,7 @@ namespace sfg
 		struct asset_row_t
 		{
 			ui::widget_id_t root		= NULL_WIDGET;
+			ui::widget_id_t inner		= NULL_WIDGET;
 			ui::widget_id_t marker		= NULL_WIDGET;
 			ui::widget_id_t marker_icon = NULL_WIDGET;
 			ui::widget_id_t thumbnail	= NULL_WIDGET;
@@ -188,6 +189,7 @@ namespace sfg
 		ui::widget_id_t				 _foreground				   = NULL_WIDGET;
 		ui::widget_id_t				 _frame						   = NULL_WIDGET;
 		ui::widget_id_t				 _row_frames[MAX_ITEMS]		   = {};
+		ui::widget_id_t				 _row_inner_frames[MAX_ITEMS]  = {};
 		ui::widget_id_t				 _row_markers[MAX_ITEMS]	   = {};
 		ui::widget_id_t				 _row_marker_labels[MAX_ITEMS] = {};
 		ui::widget_id_t				 _row_labels[MAX_ITEMS]		   = {};
