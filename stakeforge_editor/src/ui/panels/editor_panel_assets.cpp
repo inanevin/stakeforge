@@ -330,7 +330,7 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
-		body_top_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
+		body_top_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
 		body_top_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
 		body_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		body_top_in.size_mode_y		 = ui::axis_mode_e::fill;
@@ -1153,6 +1153,7 @@ namespace sfg
 		item.root = ui.allocate_widget();
 		ui.set_widget_debug_name(item.root, "asset_list_item");
 		tree.attach(_assets_body_pane_top, item.root);
+		tree.draw_order(item.root) = tree.draw_order_const(_assets_body_pane_top) + 1;
 
 		ui::layout_in_t& root_in = tree.in(item.root);
 		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
@@ -1172,7 +1173,6 @@ namespace sfg
 		root_rect.gradient					   = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
 		paint.set_rect(item.root, root_rect);
 		paint.set_hover_color(item.root, selected ? selected_color : theme.color_panel_light);
-		paint.set_press_color(item.root, theme.color_light);
 
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;

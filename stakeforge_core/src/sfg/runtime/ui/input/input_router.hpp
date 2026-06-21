@@ -187,6 +187,7 @@ namespace sfg::ui
 		{
 			widget_id_t				  owner_root						 = NULL_WIDGET;
 			widget_id_t				  popup_roots[POPUP_SCOPE_MAX_ROOTS] = {};
+			widget_id_t				  previous_focus					 = NULL_WIDGET;
 			u32						  popup_root_count					 = 0;
 			on_popup_outside_press_fn on_outside_press					 = nullptr;
 			void*					  user_data							 = nullptr;

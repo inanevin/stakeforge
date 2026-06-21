@@ -116,6 +116,7 @@ namespace sfg::ui
 		SFG_ASSERT(popup_root_count <= POPUP_SCOPE_MAX_ROOTS);
 
 		_popup_scope.owner_root		  = owner_root;
+		_popup_scope.previous_focus	  = _focused;
 		_popup_scope.popup_root_count = popup_root_count;
 		_popup_scope.on_outside_press = on_outside_press;
 		_popup_scope.user_data		  = user_data;
@@ -130,6 +131,22 @@ namespace sfg::ui
 
 	void input_router_t::clear_popup_scope()
 	{
+		const popup_scope_t scope = _popup_scope;
+		if (scope.active && _focused != NULL_WIDGET && is_in_popup_scope(_focused))
+		{
+			_popup_scope = {};
+			if (scope.previous_focus != NULL_WIDGET && _tree != nullptr && _tree->is_alive(scope.previous_focus))
+			{
+				const layout_in_t& in = _tree->in_const(scope.previous_focus);
+				if ((in.flags & wf_visible) != 0 && (in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0 && (in.flags & wf_disabled) == 0)
+				{
+					set_focus(scope.previous_focus, false);
+					return;
+				}
+			}
+			set_focus(NULL_WIDGET, false);
+			return;
+		}
 		_popup_scope = {};
 	}
 
@@ -327,8 +344,10 @@ namespace sfg::ui
 				{
 					if (_popup_scope.on_outside_press)
 						_popup_scope.on_outside_press(*this, _mouse, btn, _popup_scope.user_data);
-					target = NULL_WIDGET;
+					_pressed[b]		  = NULL_WIDGET;
+					_pressed_state[b] = {};
 					fire_hover_change(hit_test(_mouse));
+					return;
 				}
 			}
 
