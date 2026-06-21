@@ -458,7 +458,6 @@ namespace sfg
 
 	void editor_action_menu_controller_t::handle_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
-		if (btn == ui::mouse_button_e::left)
 			static_cast<editor_action_menu_controller_t*>(user_data)->close_action_menu();
 	}
 

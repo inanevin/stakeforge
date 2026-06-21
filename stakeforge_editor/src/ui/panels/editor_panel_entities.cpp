@@ -74,8 +74,8 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ENTITY_ROW_ACTION_MENU_ROWS[] = {
 			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
-			{.text = "Duplicate Entity", .command = entity_action_menu_duplicate},
-			{.text = "Delete Entity", .command = entity_action_menu_delete},
+			{.text = "Duplicate Entity", .shortcut = "CTRL+D", .command = entity_action_menu_duplicate},
+			{.text = "Delete Entity", .shortcut = "DEL", .command = entity_action_menu_delete},
 		};
 
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
@@ -157,7 +157,7 @@ namespace sfg
 		tree.attach(_root, _entity_list_area);
 
 		ui::layout_in_t& list_in = tree.in(_entity_list_area);
-		list_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
+		list_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
 		list_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
 		list_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		list_in.size_mode_y		 = ui::axis_mode_e::fill;
@@ -180,6 +180,7 @@ namespace sfg
 		body_listener.user_data				= this;
 		body_listener.on_click				= on_entities_body_clicked;
 		body_listener.on_wheel				= on_entities_body_wheel;
+		body_listener.on_key				= on_entities_key;
 		ui.get_input().set_listener(_entity_list_area, body_listener);
 
 		ui.set_pre_layout_tick(_entity_list_area, on_entity_tree_tick, this);
@@ -815,6 +816,22 @@ namespace sfg
 		panel._scrollbar.scroll_y(delta);
 	}
 
+	void editor_panel_entities_t::on_entities_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	{
+		if (ev.action != ui::key_action_e::press)
+			return;
+
+		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
+		if (panel._selected_entities.empty())
+			return;
+
+		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		if (ev.key == static_cast<u16>(input_code::key_delete))
+			panel.destroy_selected_entities();
+		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
+			panel.duplicate_selected_entities();
+	}
+
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
@@ -833,6 +850,7 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._entity_list_area, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			if (!panel.is_entity_selected(row->entity))
@@ -853,6 +871,7 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._entity_list_area, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			if (!panel.is_entity_selected(row->entity))

@@ -833,8 +833,7 @@ namespace sfg
 	void editor_popup_controller_t::on_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
-		if (btn == ui::mouse_button_e::left)
-			popup.close_popup(true);
+		popup.close_popup(true);
 	}
 
 	void editor_popup_controller_t::on_input_submitted(const char*, f32, void* user_data)

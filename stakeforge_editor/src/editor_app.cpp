@@ -151,37 +151,17 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::key: {
-			if (app._command_system.on_window_event(ev))
+			if (app._world_controller.on_window_event(surface_handle, runtime, ev))
 				return;
 
-			const bool popup_active = ui.get_input().is_popup_scope_active();
-			if (popup_active)
-				app._world_controller.reset_input(runtime);
-			else if (app._world_controller.on_window_event(surface_handle, runtime, ev))
+			if (!runtime.has_flag(window_runtime_flags_e::has_focus))
+				return;
+
+			if (app._command_system.on_window_event(ev))
 				return;
 
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
-			if (ev.button == static_cast<u16>(input_code::key_f5) && ev.sub_type == window_event_sub_type_e::press)
-			{
-				editor_app_t& app		  = editor_app_t::get();
-				app._debug_modal_progress = 0.0f;
-				app._debug_progress_modal.set_progress(app._debug_modal_progress);
-				editor_modal_content_desc_t progress_content = app._debug_progress_modal.get_content_desc();
-				app.get_main_surface().modal_controller->request_modal("Debug Loading", "Debug modal progress.", false, nullptr, 0, &progress_content);
-			}
-			if (ev.button == static_cast<u16>(input_code::key_f6) && ev.sub_type == window_event_sub_type_e::press)
-			{
-				editor_app_t& app		  = editor_app_t::get();
-				app._debug_modal_progress = math::min(app._debug_modal_progress + 0.1f, 1.0f);
-				app._debug_progress_modal.set_progress(app._debug_modal_progress);
-			}
-			if (ev.button == static_cast<u16>(input_code::key_f7) && ev.sub_type == window_event_sub_type_e::press)
-			{
-				editor_app_t& app		  = editor_app_t::get();
-				app._debug_modal_progress = 0.0f;
-				app.get_main_surface().modal_controller->close_modal();
-			}
 
 			ui::key_event_t k = {};
 			k.key			  = ev.button;

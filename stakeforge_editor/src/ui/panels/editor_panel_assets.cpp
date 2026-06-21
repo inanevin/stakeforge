@@ -137,18 +137,18 @@ namespace sfg
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ROWS[] = {
 			{.text = "Create", .children = ASSETS_ACTION_MENU_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_CREATE_ROWS) / sizeof(ASSETS_ACTION_MENU_CREATE_ROWS[0]))},
 			{.text = "Import", .command = assets_action_menu_import},
-			{.text = "Delete", .command = assets_action_menu_delete},
-			{.text = "Duplicate", .command = assets_action_menu_duplicate},
-			{.text = "Rename", .command = assets_action_menu_rename},
+			{.text = "Delete", .shortcut = "DEL", .command = assets_action_menu_delete},
+			{.text = "Duplicate", .shortcut = "CTRL+D", .command = assets_action_menu_duplicate},
+			{.text = "Rename", .shortcut = "F2", .command = assets_action_menu_rename},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_action_menu_toggle_favourite, .has_icon_color = true},
 			{.text = "Open In OS", .command = assets_action_menu_open_directory},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ITEM_ACTION_MENU_ROWS[] = {
-			{.text = "Rename", .command = assets_item_action_menu_rename},
+			{.text = "Rename", .shortcut = "F2", .command = assets_item_action_menu_rename},
 			{.text = "Fix Integrity", .command = assets_item_action_menu_fix_integrity},
-			{.text = "Duplicate", .command = assets_item_action_menu_duplicate},
-			{.text = "Delete", .command = assets_item_action_menu_delete},
+			{.text = "Duplicate", .shortcut = "CTRL+D", .command = assets_item_action_menu_duplicate},
+			{.text = "Delete", .shortcut = "DEL", .command = assets_item_action_menu_delete},
 			{.text = "Show in OS", .command = assets_item_action_menu_open_directory},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_item_action_menu_toggle_favourite, .has_icon_color = true},
 		};
@@ -270,7 +270,7 @@ namespace sfg
 		tree.attach(_assets_left_pane, _assets_left_pane_body);
 
 		ui::layout_in_t& left_body_in = tree.in(_assets_left_pane_body);
-		left_body_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
+		left_body_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
 		left_body_in.child_clip_mode  = ui::clip_mode_e::scissor_rect;
 		left_body_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		left_body_in.size_mode_y	  = ui::axis_mode_e::fill;
@@ -329,7 +329,7 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
-		body_top_in.flags			 = ui::wf_visible | ui::wf_scroll_y;
+		body_top_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
 		body_top_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
 		body_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		body_top_in.size_mode_y		 = ui::axis_mode_e::fill;
@@ -456,6 +456,7 @@ namespace sfg
 		body_top_listener.user_data				= this;
 		body_top_listener.on_click				= on_assets_body_clicked;
 		body_top_listener.on_wheel				= on_assets_body_wheel;
+		body_top_listener.on_key				= on_asset_tree_key;
 		ui.get_input().set_listener(_assets_body_pane_top, body_top_listener);
 
 		ui.set_pre_layout_tick(_assets_body_pane_top, on_asset_grid_tick, this);
@@ -2491,20 +2492,37 @@ namespace sfg
 		panel.refresh_asset_grid(true);
 	}
 
-	void editor_panel_assets_t::on_asset_tree_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void*)
+	void editor_panel_assets_t::on_asset_tree_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
 	{
-		const bool is_ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		if (ev.action != ui::key_action_e::press)
+			return;
 
-		switch (ev.key)
+		editor_panel_assets_t&	   panel		   = *static_cast<editor_panel_assets_t*>(user_data);
+		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
+		const bool				   asset_selected  = !panel._selected_asset_node.is_null() && tree.is_valid(panel._selected_asset_node);
+		const bool				   folder_selected = !panel._selected_folder_node.is_null() && panel._selected_folder_hash != 0 && tree.is_valid(panel._selected_folder_node) && !(panel._selected_folder_node == editor_asset_manager_t::get().get_root_node());
+		const bool				   ctrl_pressed	   = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		if (ev.key == static_cast<u16>(input_code::key_delete))
 		{
-		case static_cast<u16>(input_code::key_c):
-			break;
-		case static_cast<u16>(input_code::key_d):
-			break;
-		case static_cast<u16>(input_code::key_delete):
-			break;
-		default:
-			break;
+			if (asset_selected)
+				panel.delete_asset();
+			else if (folder_selected)
+				panel.delete_folder();
+		}
+		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
+		{
+			if (asset_selected)
+				panel.duplicate_asset();
+			else if (folder_selected)
+				panel.duplicate_folder();
+		}
+		else if (ev.key == static_cast<u16>(input_code::key_f2))
+		{
+			if (asset_selected)
+				panel.open_asset_rename_popup();
+			else if (folder_selected)
+				panel.open_rename_popup();
 		}
 	}
 
@@ -2628,6 +2646,7 @@ namespace sfg
 		if (item == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._assets_body_pane_top, false);
 		panel.select_asset_grid_item(item->node);
 		if (btn == ui::mouse_button_e::right)
 			panel.open_asset_action_menu(pos);
@@ -2643,6 +2662,7 @@ namespace sfg
 		if (item == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._assets_body_pane_top, false);
 		panel.select_asset_grid_item(item->node);
 		panel.start_asset_item_payload(item->node);
 	}
@@ -2658,6 +2678,7 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._assets_left_pane_body, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			panel.select_folder_row(row->node, row->path_hash);
@@ -2678,6 +2699,7 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._assets_left_pane_body, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			panel.select_folder_row(row->node, row->path_hash);
@@ -2698,6 +2720,7 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
+		panel._ui->get_input().set_focus(panel._assets_left_pane_body, false);
 		panel.select_folder_row(row->node, row->path_hash);
 		panel.start_folder_payload(row->node);
 	}
