@@ -47,6 +47,9 @@ namespace sfg
 		entity_create,
 		entity_duplicate,
 		entity_destroy,
+		component_add,
+		component_remove,
+		component_reset,
 		reflected_field_edit,
 	};
 

@@ -25,10 +25,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_inspector.hpp"
+#include "commands/editor_commands_component.hpp"
 #include "editor_app.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -54,6 +57,24 @@ namespace sfg
 			{.text = "Reset", .command = inspector_component_action_menu_reset},
 			{.text = "Remove", .command = inspector_component_action_menu_remove},
 		};
+
+		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
+		{
+			editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
+			if (panel == nullptr)
+				return false;
+
+			editor_panel_entities_t*		entities_panel = static_cast<editor_panel_entities_t*>(panel);
+			const span_t<const entity_id_t> selected	   = entities_panel->get_selected_entities();
+			if (selected.size == 0)
+				return false;
+
+			world = entities_panel->get_world();
+			entities.reserve(selected.size);
+			for (size_t i = 0; i < selected.size; ++i)
+				entities.push_back(selected.data[i]);
+			return !world.is_null();
+		}
 	}
 
 	editor_panel_inspector_t::editor_panel_inspector_t()
@@ -293,14 +314,27 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::on_component_action_menu_command(u16 command, void*)
+	void editor_panel_inspector_t::on_component_action_menu_command(u16 command, void* user_data)
 	{
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
 		switch (command)
 		{
 		case inspector_component_action_menu_copy:
-		case inspector_component_action_menu_reset:
-		case inspector_component_action_menu_remove:
 			break;
+		case inspector_component_action_menu_reset: {
+			frame_vector_t<entity_id_t> entities;
+			world_handle_t				world = {};
+			if (get_selected_entities_from_panel(entities, world))
+				editor_commands_component_t::reset(world, entities, panel._action_menu_type_id);
+			break;
+		}
+		case inspector_component_action_menu_remove: {
+			frame_vector_t<entity_id_t> entities;
+			world_handle_t				world = {};
+			if (get_selected_entities_from_panel(entities, world))
+				editor_commands_component_t::remove(world, entities, panel._action_menu_type_id);
+			break;
+		}
 		default:
 			break;
 		}

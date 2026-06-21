@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs.hpp>
 
 #include <cstring>
+#include <memory>
 #include <type_traits>
 
 namespace sfg
@@ -54,7 +55,7 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return make_component_desc(T::TYPE_ID, sizeof(T), alignof(T), ecs_component_type_flags_none, T::DEBUG_NAME);
+			return make_component_desc(T::TYPE_ID, sizeof(T), alignof(T), ecs_component_type_flags_none, T::DEBUG_NAME, [](void* ptr) { std::construct_at(static_cast<T*>(ptr), T{}); });
 		}
 
 		template <typename T> static ecs_component_type_desc_t make_tag_component_desc()
@@ -62,12 +63,12 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return make_component_desc(T::TYPE_ID, 0, 1, ecs_component_type_flags_tag, T::DEBUG_NAME);
+			return make_component_desc(T::TYPE_ID, 0, 1, ecs_component_type_flags_tag, T::DEBUG_NAME, nullptr);
 		}
 
 		static void table_init_tag(ecs_component_table_t& table, sid_t type_id, const char* debug_name)
 		{
-			ecs_t::table_init(table, make_component_desc(type_id, 0, 1, ecs_component_type_flags_tag, debug_name));
+			ecs_t::table_init(table, make_component_desc(type_id, 0, 1, ecs_component_type_flags_tag, debug_name, nullptr));
 		}
 
 		template <typename T> static T& table_get_as(const ecs_component_table_t& table, entity_id_t id)
@@ -147,13 +148,14 @@ namespace sfg
 		}
 
 	private:
-		static ecs_component_type_desc_t make_component_desc(sid_t type_id, size_t size, size_t alignment, bitmask_t<u32> flags, const char* debug_name)
+		static ecs_component_type_desc_t make_component_desc(sid_t type_id, size_t size, size_t alignment, bitmask_t<u32> flags, const char* debug_name, ecs_component_default_init_fn default_init)
 		{
 			ecs_component_type_desc_t desc{
-				.type_id   = type_id,
-				.size	   = static_cast<u32>(size),
-				.alignment = static_cast<u32>(alignment),
-				.flags	   = flags,
+				.default_init = default_init,
+				.type_id	  = type_id,
+				.size		  = static_cast<u32>(size),
+				.alignment	  = static_cast<u32>(alignment),
+				.flags		  = flags,
 			};
 
 			const size_t debug_name_len = std::strlen(debug_name);

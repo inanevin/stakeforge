@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
@@ -67,6 +68,16 @@ namespace sfg
 		void refresh_entities();
 		void refresh_entity_name(entity_id_t entity);
 		void refresh_panel_inspector();
+
+		inline span_t<const entity_id_t> get_selected_entities() const
+		{
+			return {.data = _selected_entities.data(), .size = _selected_entities.size()};
+		}
+
+		inline world_handle_t get_world() const
+		{
+			return _main_world;
+		}
 
 	private:
 		struct entity_row_t

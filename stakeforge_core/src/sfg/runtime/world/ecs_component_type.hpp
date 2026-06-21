@@ -38,12 +38,15 @@ namespace sfg
 		ecs_component_type_flags_tag  = 1 << 0,
 	};
 
+	using ecs_component_default_init_fn = void (*)(void* ptr);
+
 	struct ecs_component_type_desc_t
 	{
-		sid_t		   type_id		  = 0;
-		u32			   size			  = 0;
-		u32			   alignment	  = 1;
-		bitmask_t<u32> flags		  = ecs_component_type_flags_none;
-		char		   debug_name[64] = {};
+		ecs_component_default_init_fn default_init	 = nullptr;
+		sid_t						  type_id		 = 0;
+		u32							  size			 = 0;
+		u32							  alignment		 = 1;
+		bitmask_t<u32>				  flags			 = ecs_component_type_flags_none;
+		char						  debug_name[64] = {};
 	};
 }

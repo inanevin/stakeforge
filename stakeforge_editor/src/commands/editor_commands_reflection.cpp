@@ -210,7 +210,7 @@ namespace sfg
 			.type		= editor_command_type_e::reflected_field_edit,
 			.run_redo	= true,
 		};
-
+		              
 		return !command_system.issue_command(issue_desc, payload).is_null();
 	}
 
