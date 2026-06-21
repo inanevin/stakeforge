@@ -34,6 +34,7 @@ namespace sfg::ui
 {
 	class input_router_t;
 	class ui_context;
+	struct key_event_t;
 	enum class mouse_button_e : u8;
 }
 
@@ -76,8 +77,10 @@ namespace sfg
 		bool  can_accept_payload(const editor_payload_t& payload, sid_t* out_guid = nullptr) const;
 		void  set_accepting_payload(bool accepting);
 		void  refresh_frame();
+		void  open_popup();
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_popup_asset_pressed(sid_t guid, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static void on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data);

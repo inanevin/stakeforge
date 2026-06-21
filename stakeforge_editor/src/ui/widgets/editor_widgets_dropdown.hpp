@@ -32,6 +32,7 @@ namespace sfg::ui
 {
 	class input_router_t;
 	class ui_context;
+	struct key_event_t;
 	enum class mouse_button_e : u8;
 }
 
@@ -94,8 +95,10 @@ namespace sfg
 	private:
 		u16			get_selected() const;
 		const char* get_selected_text() const;
+		void		open_popup();
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_popup_item_pressed(u16 value, void* user_data);
 
 	private:

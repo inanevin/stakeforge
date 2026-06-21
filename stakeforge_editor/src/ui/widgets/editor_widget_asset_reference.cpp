@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -70,7 +71,7 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {1.0f, theme.item_height};
@@ -82,10 +83,12 @@ namespace sfg
 		refresh_frame();
 		paint.set_hover_color(_root, theme.color_panel);
 		paint.set_press_color(_root, theme.color_frame_light);
+		paint.set_focus_color(_root, theme.color_accent0);
 
 		ui::listener_bundle_t root_listener = {};
 		root_listener.user_data				= this;
 		root_listener.on_click				= on_root_click;
+		root_listener.on_key				= on_root_key;
 		ui.get_input().set_listener(_root, root_listener);
 		editor_payload_controller_t::get().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 
@@ -213,25 +216,37 @@ namespace sfg
 		set_rect(_ui->get_paint(), _root, theme.color_frame, theme.item_rounding, _accepting_payload ? theme.color_accent1 : theme.color_panel_light, theme.outline_thickness);
 	}
 
+	void editor_widget_asset_reference_t::open_popup()
+	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		const editor_theme_t&	  theme	   = editor_theme_t::get();
+		const ui::layout_out_t&	  root_out = _ui->get_tree().out(_root);
+		editor_asset_popup_desc_t desc	   = {};
+		desc.asset_type					   = _config.asset_type;
+		desc.pos						   = {root_out.pos.x, root_out.pos.y + root_out.size.y + theme.item_spacing};
+		desc.width						   = root_out.size.x;
+		desc.pressed					   = on_popup_asset_pressed;
+		desc.user_data					   = this;
+		desc.selected					   = get_selected();
+		popup->request_asset_popup(desc);
+	}
+
 	void editor_widget_asset_reference_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		editor_widget_asset_reference_t& reference = *static_cast<editor_widget_asset_reference_t*>(user_data);
-		editor_popup_controller_t*		 popup	   = editor_popup_controller_t::find(*reference._ui);
-		SFG_ASSERT(popup != nullptr);
+		static_cast<editor_widget_asset_reference_t*>(user_data)->open_popup();
+	}
 
-		const editor_theme_t&	  theme	   = editor_theme_t::get();
-		const ui::layout_out_t&	  root_out = reference._ui->get_tree().out(reference._root);
-		editor_asset_popup_desc_t desc	   = {};
-		desc.asset_type					   = reference._config.asset_type;
-		desc.pos						   = {root_out.pos.x, root_out.pos.y + root_out.size.y + theme.item_spacing};
-		desc.width						   = root_out.size.x;
-		desc.pressed					   = on_popup_asset_pressed;
-		desc.user_data					   = &reference;
-		desc.selected					   = reference.get_selected();
-		popup->request_asset_popup(desc);
+	void editor_widget_asset_reference_t::on_root_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	{
+		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
+			return;
+
+		static_cast<editor_widget_asset_reference_t*>(user_data)->open_popup();
 	}
 
 	void editor_widget_asset_reference_t::on_popup_asset_pressed(sid_t guid, void* user_data)

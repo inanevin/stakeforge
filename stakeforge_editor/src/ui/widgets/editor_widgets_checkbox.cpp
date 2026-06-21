@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -50,7 +51,7 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {theme.item_height, theme.item_height};
@@ -70,6 +71,7 @@ namespace sfg
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;
 		listener.on_press			   = on_press;
+		listener.on_key				   = on_key;
 		ui.get_input().set_listener(_root, listener);
 
 		_check = ui.allocate_widget();
@@ -127,14 +129,27 @@ namespace sfg
 		_ui->get_tree().in(_check).flags = (_checked || _mixed) ? ui::wf_visible : 0;
 	}
 
+	void editor_checkbox_t::toggle()
+	{
+		set_checked(!_checked);
+		if (_config.on_changed != nullptr)
+			_config.on_changed(_checked, _config.user_data);
+	}
+
 	void editor_checkbox_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
 		editor_checkbox_t& checkbox = *static_cast<editor_checkbox_t*>(user_data);
-		checkbox.set_checked(!checkbox._checked);
-		if (checkbox._config.on_changed != nullptr)
-			checkbox._config.on_changed(checkbox._checked, checkbox._config.user_data);
+		checkbox.toggle();
+	}
+
+	void editor_checkbox_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	{
+		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
+			return;
+
+		static_cast<editor_checkbox_t*>(user_data)->toggle();
 	}
 }

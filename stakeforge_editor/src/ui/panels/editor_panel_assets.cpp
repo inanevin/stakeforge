@@ -293,6 +293,8 @@ namespace sfg
 		body_listener.on_click				= on_assets_body_clicked;
 		body_listener.on_wheel				= on_assets_body_wheel;
 		body_listener.on_key				= on_asset_tree_key;
+		body_listener.on_focus_gain			= on_assets_focus_gain;
+		body_listener.on_focus_lose			= on_assets_focus_lost;
 		ui.get_input().set_listener(_assets_left_pane_body, body_listener);
 
 		ui.set_pre_layout_tick(_assets_left_pane_body, on_asset_tree_tick, this);
@@ -456,6 +458,8 @@ namespace sfg
 		body_top_listener.on_click				= on_assets_body_clicked;
 		body_top_listener.on_wheel				= on_assets_body_wheel;
 		body_top_listener.on_key				= on_asset_tree_key;
+		body_top_listener.on_focus_gain			= on_assets_focus_gain;
+		body_top_listener.on_focus_lose			= on_assets_focus_lost;
 		ui.get_input().set_listener(_assets_body_pane_top, body_top_listener);
 
 		ui.set_pre_layout_tick(_assets_body_pane_top, on_asset_grid_tick, this);
@@ -962,7 +966,7 @@ namespace sfg
 		tree.attach(row, item.root);
 
 		ui::layout_in_t& root_in = tree.in(item.root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = item_size;
@@ -982,6 +986,8 @@ namespace sfg
 		listener.user_data			   = this;
 		listener.on_click			   = on_asset_grid_item_clicked;
 		listener.on_drag_begin		   = on_asset_grid_item_drag_begin;
+		listener.on_focus_gain		   = on_asset_item_focus_gain;
+		listener.on_focus_lose		   = on_asset_item_focus_lost;
 		ui.get_input().set_listener(item.root, listener);
 
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
@@ -1149,7 +1155,7 @@ namespace sfg
 		tree.attach(_assets_body_pane_top, item.root);
 
 		ui::layout_in_t& root_in = tree.in(item.root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {1.0f, theme.item_height};
@@ -1172,6 +1178,8 @@ namespace sfg
 		listener.user_data			   = this;
 		listener.on_click			   = on_asset_grid_item_clicked;
 		listener.on_drag_begin		   = on_asset_grid_item_drag_begin;
+		listener.on_focus_gain		   = on_asset_item_focus_gain;
+		listener.on_focus_lose		   = on_asset_item_focus_lost;
 		ui.get_input().set_listener(item.root, listener);
 
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
@@ -1303,7 +1311,7 @@ namespace sfg
 		tree.draw_order(row.root) = tree.draw_order_const(_assets_left_pane_body) + 1;
 
 		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.flags			= ui::wf_visible | ui::wf_input;
+		row_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value		= {1.0f, theme.item_height};
@@ -1320,6 +1328,8 @@ namespace sfg
 		listener.on_click			   = on_folder_row_clicked;
 		listener.on_double_click	   = on_folder_row_double_clicked;
 		listener.on_drag_begin		   = on_folder_row_drag_begin;
+		listener.on_focus_gain		   = on_folder_row_focus_gain;
+		listener.on_focus_lose		   = on_folder_row_focus_lost;
 		ui.get_input().set_listener(row.root, listener);
 
 		row.icon = ui.allocate_widget();
@@ -1445,16 +1455,15 @@ namespace sfg
 	void editor_panel_assets_t::set_folder_row_visible(const folder_row_t& row, bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
-		set_widget_visible(tree, row.root, visible, /*input=*/true);
+		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
 		set_widget_visible(tree, row.icon, visible, /*input=*/false);
 		set_widget_visible(tree, row.icon_text, visible, /*input=*/false);
 		set_widget_visible(tree, row.star_text, visible && row.is_favourite, /*input=*/false);
 		set_widget_visible(tree, row.label, visible, /*input=*/false);
 	}
 
-	void editor_panel_assets_t::update_focus_state()
+	void editor_panel_assets_t::set_focus_state(bool focused)
 	{
-		const bool focused = is_focus_inside();
 		if (_focused == focused)
 			return;
 
@@ -1466,8 +1475,6 @@ namespace sfg
 
 	void editor_panel_assets_t::select_folder_row(editor_asset_node_handle_t node, u64 path_hash)
 	{
-		update_focus_state();
-
 		_selected_folder_hash = path_hash;
 		_selected_folder_node = node;
 		clear_asset_grid_selection();
@@ -1482,8 +1489,6 @@ namespace sfg
 
 	void editor_panel_assets_t::select_asset_grid_item(editor_asset_node_handle_t node)
 	{
-		update_focus_state();
-
 		_selected_asset_node = node;
 		refresh_asset_grid_item_backgrounds();
 	}
@@ -2165,19 +2170,6 @@ namespace sfg
 		return asset != nullptr ? asset->guid : NULL_SID;
 	}
 
-	bool editor_panel_assets_t::is_focus_inside() const
-	{
-		const ui::layout_tree_t& tree = _ui->get_tree();
-		ui::widget_id_t			 cur  = _ui->get_input().get_focused();
-		while (cur != NULL_WIDGET && tree.is_alive(cur))
-		{
-			if (cur == _root)
-				return true;
-			cur = tree.node(cur).parent;
-		}
-		return false;
-	}
-
 	bool editor_panel_assets_t::is_asset_favourite(sid_t guid) const
 	{
 		return guid != NULL_SID && std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid) != _favourite_asset_guids.end();
@@ -2525,6 +2517,50 @@ namespace sfg
 		}
 	}
 
+	void editor_panel_assets_t::on_assets_focus_gain(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->set_focus_state(true);
+	}
+
+	void editor_panel_assets_t::on_assets_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->set_focus_state(false);
+	}
+
+	void editor_panel_assets_t::on_asset_item_focus_gain(ui::input_router_t&, ui::widget_id_t id, bool from_nav, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.set_focus_state(true);
+		if (from_nav)
+		{
+			const asset_grid_item_t* const item = panel.find_asset_grid_item_by_widget(id);
+			if (item != nullptr)
+				panel.select_asset_grid_item(item->node);
+		}
+	}
+
+	void editor_panel_assets_t::on_asset_item_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->set_focus_state(false);
+	}
+
+	void editor_panel_assets_t::on_folder_row_focus_gain(ui::input_router_t&, ui::widget_id_t id, bool from_nav, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.set_focus_state(true);
+		if (from_nav)
+		{
+			const folder_row_t* const row = panel.find_row_by_widget(id, /*match_icon=*/false);
+			if (row != nullptr)
+				panel.select_folder_row(row->node, row->path_hash);
+		}
+	}
+
+	void editor_panel_assets_t::on_folder_row_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->set_focus_state(false);
+	}
+
 	void editor_panel_assets_t::on_assets_body_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)
@@ -2602,7 +2638,6 @@ namespace sfg
 	{
 		editor_panel_assets_t&		  panel			= *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		panel.update_focus_state();
 		if (panel._asset_tree_generation != asset_manager.get_generation())
 			panel.refresh_folder_rows();
 	}
@@ -2611,7 +2646,6 @@ namespace sfg
 	{
 		editor_panel_assets_t&		  panel			= *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		panel.update_focus_state();
 
 		const bool rebuild_pending		  = panel._asset_grid_rebuild_pending;
 		panel._asset_grid_rebuild_pending = false;
@@ -2645,7 +2679,6 @@ namespace sfg
 		if (item == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._assets_body_pane_top, false);
 		panel.select_asset_grid_item(item->node);
 		if (btn == ui::mouse_button_e::right)
 			panel.open_asset_action_menu(pos);
@@ -2661,7 +2694,6 @@ namespace sfg
 		if (item == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._assets_body_pane_top, false);
 		panel.select_asset_grid_item(item->node);
 		panel.start_asset_item_payload(item->node);
 	}
@@ -2677,7 +2709,6 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._assets_left_pane_body, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			panel.select_folder_row(row->node, row->path_hash);
@@ -2698,7 +2729,6 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._assets_left_pane_body, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			panel.select_folder_row(row->node, row->path_hash);
@@ -2719,7 +2749,6 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._assets_left_pane_body, false);
 		panel.select_folder_row(row->node, row->path_hash);
 		panel.start_folder_payload(row->node);
 	}

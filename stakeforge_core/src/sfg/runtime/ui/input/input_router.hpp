@@ -54,6 +54,7 @@ namespace sfg::ui
 		u16			 key	   = 0;
 		u16			 scan_code = 0;
 		key_action_e action	   = key_action_e::press;
+		bool		 shift	   = false;
 	};
 
 	struct input_router_t;
@@ -160,6 +161,7 @@ namespace sfg::ui
 		void		rebuild_hit_test(const layout_tree_t& tree);
 		widget_id_t raw_hit_test(const vec2f_t& pos) const;
 		widget_id_t hit_test(const vec2f_t& pos) const;
+		widget_id_t find_focus_target(widget_id_t id) const;
 		bool		is_in_popup_scope(widget_id_t id) const;
 		bool		is_in_subtree(widget_id_t id, widget_id_t root) const;
 		void		fire_hover_change(widget_id_t new_hover);

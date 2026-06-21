@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -55,7 +56,7 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		root_in.size_mode_x		 = ui::axis_mode_e::sum_children;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {1.0f, theme.item_height};
@@ -82,10 +83,12 @@ namespace sfg
 		paint.set_rect(_root, rect);
 		paint.set_hover_color(_root, theme.color_panel);
 		paint.set_press_color(_root, theme.color_frame_light);
+		paint.set_focus_color(_root, theme.color_accent0);
 
 		ui::listener_bundle_t root_listener = {};
 		root_listener.user_data				= this;
 		root_listener.on_click				= on_root_click;
+		root_listener.on_key				= on_root_key;
 		ui.get_input().set_listener(_root, root_listener);
 
 		_title = ui.allocate_widget();
@@ -195,35 +198,47 @@ namespace sfg
 		return _config.item_count > 0 ? _config.items[0].text : "";
 	}
 
+	void editor_dropdown_t::open_popup()
+	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		editor_popup_item_desc_t items[editor_popup_controller_t::MAX_ITEMS] = {};
+		SFG_ASSERT(_config.item_count <= editor_popup_controller_t::MAX_ITEMS);
+		const u16 selected = get_selected();
+		for (u32 i = 0; i < _config.item_count; ++i)
+		{
+			items[i].text	  = _config.items[i].text;
+			items[i].id		  = _config.items[i].value;
+			items[i].selected = _config.items[i].value == selected;
+		}
+
+		const editor_theme_t&	theme	 = editor_theme_t::get();
+		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
+		editor_popup_desc_t		desc	 = {};
+		desc.items						 = items;
+		desc.item_count					 = _config.item_count;
+		desc.pos						 = {root_out.pos.x, root_out.pos.y + root_out.size.y + theme.item_spacing};
+		desc.width						 = root_out.size.x;
+		desc.pressed					 = on_popup_item_pressed;
+		desc.user_data					 = this;
+		popup->request_popup(desc);
+	}
+
 	void editor_dropdown_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		editor_dropdown_t&		   dropdown = *static_cast<editor_dropdown_t*>(user_data);
-		editor_popup_controller_t* popup	= editor_popup_controller_t::find(*dropdown._ui);
-		SFG_ASSERT(popup != nullptr);
+		static_cast<editor_dropdown_t*>(user_data)->open_popup();
+	}
 
-		editor_popup_item_desc_t items[editor_popup_controller_t::MAX_ITEMS] = {};
-		SFG_ASSERT(dropdown._config.item_count <= editor_popup_controller_t::MAX_ITEMS);
-		const u16 selected = dropdown.get_selected();
-		for (u32 i = 0; i < dropdown._config.item_count; ++i)
-		{
-			items[i].text	  = dropdown._config.items[i].text;
-			items[i].id		  = dropdown._config.items[i].value;
-			items[i].selected = dropdown._config.items[i].value == selected;
-		}
+	void editor_dropdown_t::on_root_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	{
+		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
+			return;
 
-		const editor_theme_t&	theme	 = editor_theme_t::get();
-		const ui::layout_out_t& root_out = dropdown._ui->get_tree().out(dropdown._root);
-		editor_popup_desc_t		desc	 = {};
-		desc.items						 = items;
-		desc.item_count					 = dropdown._config.item_count;
-		desc.pos						 = {root_out.pos.x, root_out.pos.y + root_out.size.y + theme.item_spacing};
-		desc.width						 = root_out.size.x;
-		desc.pressed					 = on_popup_item_pressed;
-		desc.user_data					 = &dropdown;
-		popup->request_popup(desc);
+		static_cast<editor_dropdown_t*>(user_data)->open_popup();
 	}
 
 	void editor_dropdown_t::on_popup_item_pressed(u16 value, void* user_data)

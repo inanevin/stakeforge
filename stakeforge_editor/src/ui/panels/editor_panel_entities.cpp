@@ -35,7 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -383,7 +382,7 @@ namespace sfg
 		tree.draw_order(row.root) = tree.draw_order_const(_entity_list_area) + 1;
 
 		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.flags			= ui::wf_visible | ui::wf_input;
+		row_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value		= {1.0f, theme.item_height};
@@ -399,6 +398,8 @@ namespace sfg
 		listener.user_data			   = this;
 		listener.on_click			   = on_entity_row_clicked;
 		listener.on_double_click	   = on_entity_row_double_clicked;
+		listener.on_focus_gain		   = on_entity_row_focus_gain;
+		listener.on_focus_lose		   = on_entity_row_focus_lost;
 		ui.get_input().set_listener(row.root, listener);
 
 		row.icon = ui.allocate_widget();
@@ -501,15 +502,14 @@ namespace sfg
 	void editor_panel_entities_t::set_entity_row_visible(const entity_row_t& row, bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
-		set_widget_visible(tree, row.root, visible, /*input=*/true);
+		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
 		set_widget_visible(tree, row.icon, visible, /*input=*/false);
 		set_widget_visible(tree, row.icon_text, visible, /*input=*/false);
 		set_widget_visible(tree, row.label, visible, /*input=*/false);
 	}
 
-	void editor_panel_entities_t::update_focus_state()
+	void editor_panel_entities_t::set_focus_state(bool focused)
 	{
-		const bool focused = is_focus_inside();
 		if (_focused == focused)
 			return;
 
@@ -520,8 +520,6 @@ namespace sfg
 
 	void editor_panel_entities_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
 	{
-		update_focus_state();
-
 		if (entity == NULL_ENTITY_ID)
 		{
 			clear_entity_selection();
@@ -716,19 +714,6 @@ namespace sfg
 		return _selected_entities.size() <= 1;
 	}
 
-	bool editor_panel_entities_t::is_focus_inside() const
-	{
-		const ui::layout_tree_t& tree = _ui->get_tree();
-		ui::widget_id_t			 cur  = _ui->get_input().get_focused();
-		while (cur != NULL_WIDGET && tree.is_alive(cur))
-		{
-			if (cur == _root)
-				return true;
-			cur = tree.node(cur).parent;
-		}
-		return false;
-	}
-
 	bool editor_panel_entities_t::has_selected_ancestor(entity_id_t entity) const
 	{
 		const entity_desc_t* desc = find_entity_desc(entity);
@@ -834,20 +819,36 @@ namespace sfg
 			panel.duplicate_selected_entities();
 	}
 
-	void editor_panel_entities_t::on_entities_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data)
+	void editor_panel_entities_t::on_entities_focus_gain(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		SFG_TRACE("gain");
+		static_cast<editor_panel_entities_t*>(user_data)->set_focus_state(true);
 	}
 
-	void editor_panel_entities_t::on_entities_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data)
+	void editor_panel_entities_t::on_entities_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		SFG_TRACE("lose");
+		static_cast<editor_panel_entities_t*>(user_data)->set_focus_state(false);
+	}
+
+	void editor_panel_entities_t::on_entity_row_focus_gain(ui::input_router_t&, ui::widget_id_t id, bool from_nav, void* user_data)
+	{
+		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
+		panel.set_focus_state(true);
+		if (from_nav)
+		{
+			const entity_row_t* const row = panel.find_row_by_widget(id, /*match_icon=*/false);
+			if (row != nullptr)
+				panel.select_entity_row(row->entity, false, false);
+		}
+	}
+
+	void editor_panel_entities_t::on_entity_row_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	{
+		static_cast<editor_panel_entities_t*>(user_data)->set_focus_state(false);
 	}
 
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		panel.update_focus_state();
 		if (!(editor_app_t::get().get_main_world() == panel._main_world) || panel._entity_generation != editor_app_t::get().get_command_system().get_entity_generation())
 			panel.refresh_entities();
 	}
@@ -862,7 +863,6 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._entity_list_area, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			if (!panel.is_entity_selected(row->entity))
@@ -883,7 +883,6 @@ namespace sfg
 		if (row == nullptr)
 			return;
 
-		panel._ui->get_input().set_focus(panel._entity_list_area, false);
 		if (btn == ui::mouse_button_e::right)
 		{
 			if (!panel.is_entity_selected(row->entity))

@@ -32,6 +32,7 @@ namespace sfg::ui
 {
 	class input_router_t;
 	class ui_context;
+	struct key_event_t;
 	enum class mouse_button_e : u8;
 }
 
@@ -71,8 +72,10 @@ namespace sfg
 
 	private:
 		void refresh();
+		void toggle();
 
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 
 	private:
 		ui::ui_context*			 _ui	  = nullptr;

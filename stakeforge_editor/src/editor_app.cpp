@@ -167,6 +167,7 @@ namespace sfg
 			k.key			  = ev.button;
 			k.scan_code		  = static_cast<u16>(ev.value.x);
 			k.action		  = ev.sub_type == window_event_sub_type_e::press ? ui::key_action_e::press : (ev.sub_type == window_event_sub_type_e::release ? ui::key_action_e::release : ui::key_action_e::repeat);
+			k.shift			  = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
 			ui.on_key(k);
 			break;
 		}

@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "input_router.hpp"
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
@@ -148,10 +149,11 @@ namespace sfg::ui
 			const layout_in_t& in = tree.in_const(id);
 			if (in.flags & wf_visible)
 			{
-				const bool disabled = (in.flags & wf_disabled) != 0;
+				const layout_out_t& out		 = tree.out(id);
+				const bool			disabled = (in.flags & wf_disabled) != 0;
 				if (in.flags & wf_input)
 					_hit_order.push_back(id);
-				if ((in.flags & wf_focusable) && !disabled)
+				if ((in.flags & wf_input) && (in.flags & wf_focusable) && !disabled && out.clip.z > 0.0f && out.clip.w > 0.0f)
 					_focus_order.push_back(id);
 			}
 		}
@@ -190,6 +192,22 @@ namespace sfg::ui
 			cur = _tree->node(cur).parent;
 		}
 		return false;
+	}
+
+	widget_id_t input_router_t::find_focus_target(widget_id_t id) const
+	{
+		if (_tree == nullptr)
+			return NULL_WIDGET;
+
+		widget_id_t cur = id;
+		while (cur != NULL_WIDGET)
+		{
+			const layout_in_t& in = _tree->in_const(cur);
+			if ((in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0 && (in.flags & wf_disabled) == 0)
+				return cur;
+			cur = _tree->node(cur).parent;
+		}
+		return NULL_WIDGET;
 	}
 
 	bool input_router_t::is_in_popup_scope(widget_id_t id) const
@@ -314,22 +332,7 @@ namespace sfg::ui
 				}
 			}
 
-			if (_focused != target)
-			{
-				if (_focused != NULL_WIDGET)
-				{
-					auto it = _listeners.find(_focused);
-					if (it != _listeners.end() && it->second.on_focus_lose)
-						it->second.on_focus_lose(*this, _focused, false, it->second.user_data);
-				}
-				_focused = target;
-				if (_focused != NULL_WIDGET)
-				{
-					auto it = _listeners.find(_focused);
-					if (it != _listeners.end() && it->second.on_focus_gain)
-						it->second.on_focus_gain(*this, _focused, false, it->second.user_data);
-				}
-			}
+			set_focus(find_focus_target(target), false);
 
 			_pressed[b]		  = target;
 			_pressed_state[b] = {target, _mouse, 0.0f, false};
@@ -407,11 +410,44 @@ namespace sfg::ui
 
 	void input_router_t::on_key(const key_event_t& ev)
 	{
+		if (ev.action == key_action_e::press || ev.action == key_action_e::repeat)
+		{
+			if (ev.key == static_cast<u16>(input_code::key_tab))
+			{
+				if (ev.shift)
+					prev_focus();
+				else
+					next_focus();
+				return;
+			}
+			if (ev.key == static_cast<u16>(input_code::key_down))
+			{
+				next_focus();
+				return;
+			}
+			if (ev.key == static_cast<u16>(input_code::key_up))
+			{
+				prev_focus();
+				return;
+			}
+		}
+
 		if (_focused == NULL_WIDGET)
 			return;
-		auto it = _listeners.find(_focused);
-		if (it != _listeners.end() && it->second.on_key)
-			it->second.on_key(*this, _focused, ev, it->second.user_data);
+
+		widget_id_t cur = _focused;
+		while (cur != NULL_WIDGET)
+		{
+			auto it = _listeners.find(cur);
+			if (it != _listeners.end() && it->second.on_key)
+			{
+				it->second.on_key(*this, cur, ev, it->second.user_data);
+				return;
+			}
+			if (_tree == nullptr)
+				return;
+			cur = _tree->node(cur).parent;
+		}
 	}
 
 	void input_router_t::set_focus(widget_id_t id, bool from_nav)

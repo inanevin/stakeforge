@@ -110,7 +110,7 @@ namespace sfg
 		void		  update_entity_row(entity_row_t& row, const entity_desc_t& entity, bool is_folded);
 		void		  update_entity_row_background(const entity_row_t& row);
 		void		  set_entity_row_visible(const entity_row_t& row, bool visible);
-		void		  update_focus_state();
+		void		  set_focus_state(bool focused);
 		void		  select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
 		void		  clear_entity_selection();
 		void		  set_entity_selection(entity_id_t entity);
@@ -132,7 +132,6 @@ namespace sfg
 		bool				 is_entity_expanded(entity_id_t entity) const;
 		bool				 is_entity_selected(entity_id_t entity) const;
 		bool				 is_create_enabled() const;
-		bool				 is_focus_inside() const;
 		bool				 has_selected_ancestor(entity_id_t entity) const;
 		size_t				 find_visible_entity_index(entity_id_t entity) const;
 		const entity_desc_t* find_entity_desc(entity_id_t entity) const;
@@ -150,6 +149,8 @@ namespace sfg
 		static void on_entities_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_entities_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static void on_entities_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_entity_row_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_entity_row_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static void on_entity_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_entity_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);

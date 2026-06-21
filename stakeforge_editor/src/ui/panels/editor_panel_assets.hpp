@@ -124,7 +124,7 @@ namespace sfg
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
-		void		  update_focus_state();
+		void		  set_focus_state(bool focused);
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash);
 		void select_asset_grid_item(editor_asset_node_handle_t node);
@@ -161,7 +161,6 @@ namespace sfg
 		u64						 get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const;
 		const char*				 get_selected_folder_path() const;
 		sid_t					 get_asset_guid(editor_asset_node_handle_t node) const;
-		bool					 is_focus_inside() const;
 		bool					 is_asset_favourite(sid_t guid) const;
 		bool					 has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
 		const folder_row_t*		 find_row_by_hash(u64 path_hash) const;
@@ -193,6 +192,12 @@ namespace sfg
 		static u16	get_selected_item_style(void* user_data);
 		static void on_item_style_pressed(u16 value, void* user_data);
 		static void on_asset_tree_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
+		static void on_assets_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_assets_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_asset_item_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_asset_item_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_folder_row_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_folder_row_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
