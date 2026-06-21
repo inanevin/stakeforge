@@ -40,7 +40,7 @@ namespace sfg
 #define EDITOR_SCROLLBAR_WHEEL_STEP		   32.0f
 #define EDITOR_SCROLLBAR_WHEEL_SMOOTH_TIME 0.08f
 #define EDITOR_SCROLLBAR_WHEEL_MAX_SPEED   6000.0f
-#define EDITOR_SCROLLBAR_WHEEL_SNAP_EPS	   0.05f
+#define EDITOR_SCROLLBAR_WHEEL_SNAP_EPS	   0.25f
 
 	namespace
 	{
@@ -149,6 +149,7 @@ namespace sfg
 		_config					= {};
 		_x						= {};
 		_y						= {};
+		_scroll_value_y			= 0.0f;
 		_scroll_target_y		= 0.0f;
 		_scroll_velocity_y		= 0.0f;
 		_stick_y				= false;
@@ -173,8 +174,11 @@ namespace sfg
 		if (out.max_scroll.y <= 0.0f)
 			return;
 
-		const f32 base			= _scroll_target_y_active ? _scroll_target_y : in.scroll_offset.y;
-		_scroll_target_y		= math::clamp(base + delta * EDITOR_SCROLLBAR_WHEEL_STEP, -out.max_scroll.y, 0.0f);
+		if (!_scroll_target_y_active)
+			_scroll_value_y = in.scroll_offset.y;
+
+		const f32 base			= _scroll_target_y_active ? _scroll_target_y : _scroll_value_y;
+		_scroll_target_y		= math::clamp(align_scroll_value(base + delta * EDITOR_SCROLLBAR_WHEEL_STEP), -out.max_scroll.y, 0.0f);
 		_scroll_target_y_active = true;
 		_stick_y				= false;
 	}
@@ -240,13 +244,20 @@ namespace sfg
 
 	void editor_scrollbar_t::set_scroll(axis_e axis, f32 value)
 	{
-		ui::layout_tree_t&		tree = _ui->get_tree();
-		ui::layout_in_t&		in	 = tree.in(_config.target);
-		const ui::layout_out_t& out	 = tree.out(_config.target);
+		ui::layout_tree_t&		tree	= _ui->get_tree();
+		ui::layout_in_t&		in		= tree.in(_config.target);
+		const ui::layout_out_t& out		= tree.out(_config.target);
+		const f32				aligned = align_scroll_value(value);
 		if (axis == axis_e::x)
-			in.scroll_offset.x = math::clamp(value, -out.max_scroll.x, 0.0f);
+			in.scroll_offset.x = math::clamp(aligned, -out.max_scroll.x, 0.0f);
 		else
-			in.scroll_offset.y = math::clamp(value, -out.max_scroll.y, 0.0f);
+			in.scroll_offset.y = math::clamp(aligned, -out.max_scroll.y, 0.0f);
+	}
+
+	f32 editor_scrollbar_t::align_scroll_value(f32 value) const
+	{
+		const f32 ui_scale = _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
+		return math::round(value * ui_scale) / ui_scale;
 	}
 
 	void editor_scrollbar_t::set_scroll_immediate(axis_e axis, f32 value)
@@ -256,6 +267,7 @@ namespace sfg
 		{
 			const ui::layout_in_t& in = _ui->get_tree().in_const(_config.target);
 			_scroll_target_y		  = in.scroll_offset.y;
+			_scroll_value_y			  = in.scroll_offset.y;
 			_scroll_velocity_y		  = 0.0f;
 			_scroll_target_y_active	  = false;
 		}
@@ -275,16 +287,20 @@ namespace sfg
 			return;
 		}
 
-		_scroll_target_y = math::clamp(_scroll_target_y, -out.max_scroll.y, 0.0f);
+		_scroll_target_y = math::clamp(align_scroll_value(_scroll_target_y), -out.max_scroll.y, 0.0f);
 
-		const f32 dt   = math::max(dt_seconds, 0.0001f);
-		const f32 next = easing_t::smooth_damp(in.scroll_offset.y, _scroll_target_y, &_scroll_velocity_y, EDITOR_SCROLLBAR_WHEEL_SMOOTH_TIME, EDITOR_SCROLLBAR_WHEEL_MAX_SPEED, dt);
-		if (math::abs(next - _scroll_target_y) <= EDITOR_SCROLLBAR_WHEEL_SNAP_EPS && math::abs(_scroll_velocity_y) <= EDITOR_SCROLLBAR_WHEEL_SNAP_EPS)
+		const f32 ui_scale	= _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
+		const f32 dt		= math::max(dt_seconds, 0.0001f);
+		const f32 next		= easing_t::smooth_damp(_scroll_value_y, _scroll_target_y, &_scroll_velocity_y, EDITOR_SCROLLBAR_WHEEL_SMOOTH_TIME, EDITOR_SCROLLBAR_WHEEL_MAX_SPEED, dt);
+		const f32 pixel_eps = EDITOR_SCROLLBAR_WHEEL_SNAP_EPS / ui_scale;
+		if (math::abs(next - _scroll_target_y) <= pixel_eps && math::abs(_scroll_velocity_y) <= pixel_eps)
 		{
+			_scroll_value_y = _scroll_target_y;
 			set_scroll_immediate(axis_e::y, _scroll_target_y);
 			return;
 		}
 
+		_scroll_value_y = next;
 		set_scroll(axis_e::y, next);
 	}
 

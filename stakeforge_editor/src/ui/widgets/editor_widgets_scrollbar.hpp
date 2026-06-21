@@ -85,6 +85,7 @@ namespace sfg
 		};
 
 		void update_axis(axis_state_t& axis);
+		f32	 align_scroll_value(f32 value) const;
 		void set_scroll(axis_e axis, f32 value);
 		void set_scroll_immediate(axis_e axis, f32 value);
 		void update_wheel_scroll(f32 dt_seconds);
@@ -101,6 +102,7 @@ namespace sfg
 		editor_scrollbar_config_t _config				  = {};
 		axis_state_t			  _x					  = {};
 		axis_state_t			  _y					  = {};
+		f32						  _scroll_value_y		  = 0.0f;
 		f32						  _scroll_target_y		  = 0.0f;
 		f32						  _scroll_velocity_y	  = 0.0f;
 		bool					  _stick_y				  = false;
