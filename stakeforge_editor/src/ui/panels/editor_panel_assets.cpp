@@ -808,7 +808,7 @@ namespace sfg
 		const f32			  scale			= ui::get_valid_scale(_ui->get_ui_scale());
 		const f32			  body_width	= body_out.size.x / scale;
 		const f32			  content_width = math::max(0.0f, body_width - theme.margin_horizontal * 2.0f);
-		const vec2f_t		  item_size		= {theme.item_height * 3.5f, theme.item_height * 5.25f};
+		const vec2f_t		  item_size		= {theme.item_height * 4.5f, theme.item_height * 6.5f};
 		const f32			  slot_width	= item_size.x + theme.item_spacing;
 		const u32			  column_count	= math::max(1u, static_cast<u32>((content_width + theme.item_spacing) / slot_width));
 
@@ -1043,8 +1043,9 @@ namespace sfg
 		info_in.flags			 = ui::wf_visible;
 		info_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
 		info_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		info_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		info_in.size_value		 = {1.0f, item_size.y / 3.5f};
+		info_in.size_mode_y		 = ui::axis_mode_e::fill;
+		info_in.size_value		 = {1.0f, 0.0f};
+		info_in.child_margins = { theme.margin_vertical , theme.margin_horizontal * 0.5f, theme.margin_vertical , theme.margin_horizontal * 0.5f};
 
 		const bool			selected		   = _selected_asset_node == item.node;
 		ui::vg_rect_paint_t info_rect		   = {};
@@ -1052,7 +1053,7 @@ namespace sfg
 		const vec4f_t		selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
 		info_rect.fill_color_a				   = selected ? selected_color : theme.color_frame;
 		info_rect.fill_color_b				   = selected ? selected_color_dim : theme.color_frame;
-		info_rect.gradient					   = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
+		info_rect.gradient					   = selected ? ui::vg_gradient_e::vertical : ui::vg_gradient_e::none;
 		paint.set_rect(item.info_frame, info_rect);
 
 		item.color_frame = ui.allocate_widget();
@@ -1062,8 +1063,8 @@ namespace sfg
 		ui::layout_in_t& color_in = tree.in(item.color_frame);
 		color_in.flags			  = ui::wf_visible;
 		color_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-		color_in.size_mode_y	  = ui::axis_mode_e::fill;
-		color_in.size_value		  = {1.0f, 1.0f};
+		color_in.size_mode_y	  = ui::axis_mode_e::fixed;
+		color_in.size_value		  = {1.0f, theme.border_thickness};
 
 		ui::vg_rect_paint_t color_rect = {};
 		color_rect.fill_color_a		   = item_color;
@@ -1077,13 +1078,7 @@ namespace sfg
 		ui::layout_in_t& label_in = tree.in(item.label);
 		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_value		  = {0.5f, 0.38f};
-		label_in.anchor_x		  = ui::anchor_e::center;
-		label_in.anchor_y		  = ui::anchor_e::center;
-		label_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-		label_in.size_mode_y	  = ui::axis_mode_e::fixed;
-		label_in.size_value		  = {1.0f, theme.text_default_px_size};
+		label_in.pos_mode_y		  = ui::pos_mode_e::flow;
 
 		ui.set_widget_text(item.label, asset_node.name.c_str());
 		paint.set_text(item.label,
@@ -1099,12 +1094,9 @@ namespace sfg
 		type_label_in.flags			   = ui::wf_visible;
 		type_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		type_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
-		type_label_in.pos_value		   = {0.5f, 0.70f};
+		type_label_in.pos_value		   = {0.5f, 1.0f};
 		type_label_in.anchor_x		   = ui::anchor_e::center;
-		type_label_in.anchor_y		   = ui::anchor_e::center;
-		type_label_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
-		type_label_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		type_label_in.size_value	   = {1.0f, theme.text_small_title_px_size};
+		type_label_in.anchor_y		   = ui::anchor_e::end;
 
 		ui.set_widget_text(item.type_label, type_text);
 		paint.set_text(item.type_label,

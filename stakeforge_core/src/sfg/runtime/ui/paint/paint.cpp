@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
+#include <sfg/math/math.hpp>
 
 namespace sfg::ui
 {
@@ -205,9 +206,25 @@ namespace sfg::ui
 
 		_clip_stack.resize(0);
 
-		const widget_id_t get_hovered = input.get_hovered();
-		const widget_id_t get_focused = input.get_focused();
-		const widget_id_t pressed_l	  = input.is_pressed(mouse_button_e::left);
+		const widget_id_t get_hovered	  = input.get_hovered();
+		const widget_id_t get_focused	  = input.get_focused();
+		const widget_id_t pressed_l		  = input.is_pressed(mouse_button_e::left);
+		const auto		  push_child_clip = [&](const layout_in_t& in, const layout_out_t& o, u8 depth) {
+			   const vec4f_t margins = {
+				   in.child_margins.x * scale,
+				   in.child_margins.y * scale,
+				   in.child_margins.z * scale,
+				   in.child_margins.w * scale,
+			   };
+			   const vec4f_t clip = {
+				   o.pos.x + margins.w,
+				   o.pos.y + margins.x,
+				   math::max(0.0f, o.size.x - margins.w - margins.y),
+				   math::max(0.0f, o.size.y - margins.x - margins.z),
+			   };
+			   canvas.push_clip(clip, in.child_clip_mode);
+			   _clip_stack.push_back({in.child_clip_mode, depth});
+		};
 
 		for (size_t i = 0; i < dfs.size; ++i)
 		{
@@ -227,10 +244,7 @@ namespace sfg::ui
 			if (id == tree.get_root())
 			{
 				if (in.child_clip_mode != clip_mode_e::none)
-				{
-					canvas.push_clip({o.pos.x, o.pos.y, o.size.x, o.size.y}, in.child_clip_mode);
-					_clip_stack.push_back({in.child_clip_mode, d});
-				}
+					push_child_clip(in, o, d);
 				continue;
 			}
 
@@ -301,10 +315,7 @@ namespace sfg::ui
 			}
 
 			if (in.child_clip_mode != clip_mode_e::none)
-			{
-				canvas.push_clip({o.pos.x, o.pos.y, o.size.x, o.size.y}, in.child_clip_mode);
-				_clip_stack.push_back({in.child_clip_mode, d});
-			}
+				push_child_clip(in, o, d);
 		}
 
 		while (!_clip_stack.empty())
