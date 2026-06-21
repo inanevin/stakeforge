@@ -89,6 +89,21 @@ namespace sfg
 			editor_dropdown_t*				 dropdown = nullptr;
 		};
 
+		enum class reflected_control_widget_e : u8
+		{
+			none,
+			input,
+			checkbox,
+			color,
+			vec2,
+			vec3,
+			vec4,
+			asset_reference,
+			entity_reference,
+			text_id,
+			dropdown,
+		};
+
 		struct reflected_control_t
 		{
 			editor_widget_reflect_type_t* owner			 = nullptr;
@@ -97,6 +112,8 @@ namespace sfg
 			void*						  object		 = nullptr;
 			void*						  command_object = nullptr;
 			ostream_t*					  edit_old_value = nullptr;
+			void*						  widget		 = nullptr;
+			reflected_control_widget_e	  widget_type	 = reflected_control_widget_e::none;
 			bool						  mixed			 = false;
 			bool						  edit_active	 = false;
 		};
@@ -131,6 +148,8 @@ namespace sfg
 		void			   submit_live_reflected_edit(reflected_control_t& control) const;
 		bool			   is_field_mixed(const reflected_field_desc_t& field, void* object) const;
 		bool			   matches_reflected_command(const editor_command_reflected_field_edit_payload_t& payload) const;
+		bool			   refresh_reflected_field(sid_t field_id);
+		bool			   refresh_reflected_control(reflected_control_t& control);
 		static void		   on_number_changed(f32 value, void* user_data);
 		static void		   on_text_changed(const char* value, void* user_data);
 		static void		   on_input_submitted(const char* text_value, f32 number_value, void* user_data);

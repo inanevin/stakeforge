@@ -86,6 +86,7 @@ namespace sfg
 		void uninit();
 		void close();
 		void refresh_title();
+		void set_mixed(bool mixed);
 
 		inline ui::widget_id_t get_root() const
 		{

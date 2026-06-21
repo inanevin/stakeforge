@@ -176,7 +176,7 @@ namespace sfg::ui
 		p.child_count--;
 
 		c.parent		= NULL_WIDGET;
-		c.prev_sibling	= NULL_WIDGET;
+		c.prev_sibling	= NULL_WIDGET;                 
 		c.next_sibling	= NULL_WIDGET;
 		_topology_dirty = true;
 		_layout_dirty	= true;

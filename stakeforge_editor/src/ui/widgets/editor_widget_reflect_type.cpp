@@ -716,6 +716,8 @@ namespace sfg
 			reference->init(*_ui, parent, config);
 			reference->set_mixed(control->mixed);
 			center_property_row_control(*_ui, reference->get_root());
+			control->widget		 = reference;
+			control->widget_type = reflected_control_widget_e::asset_reference;
 			_asset_references.push_back(reference);
 			return;
 		}
@@ -731,6 +733,8 @@ namespace sfg
 			reference->init(*_ui, parent, config);
 			reference->set_mixed(control->mixed);
 			center_property_row_control(*_ui, reference->get_root());
+			control->widget		 = reference;
+			control->widget_type = reflected_control_widget_e::entity_reference;
 			_entity_references.push_back(reference);
 			return;
 		}
@@ -746,6 +750,8 @@ namespace sfg
 			text_id->init(*_ui, parent, config);
 			text_id->set_mixed(control->mixed);
 			center_property_row_control(*_ui, text_id->get_root());
+			control->widget		 = text_id;
+			control->widget_type = reflected_control_widget_e::text_id;
 			_text_ids.push_back(text_id);
 			return;
 		}
@@ -765,6 +771,8 @@ namespace sfg
 			if (control->mixed)
 				input->set_text("");
 			center_property_row_control(*_ui, input->get_root());
+			control->widget		 = input;
+			control->widget_type = reflected_control_widget_e::input;
 			_input_fields.push_back(input);
 			break;
 		}
@@ -784,6 +792,8 @@ namespace sfg
 			if (control->mixed)
 				input->set_text("");
 			center_property_row_control(*_ui, input->get_root());
+			control->widget		 = input;
+			control->widget_type = reflected_control_widget_e::input;
 			_input_fields.push_back(input);
 			break;
 		}
@@ -796,6 +806,8 @@ namespace sfg
 			checkbox->init(*_ui, parent, config);
 			checkbox->set_mixed(control->mixed);
 			center_property_row_control(*_ui, checkbox->get_root());
+			control->widget		 = checkbox;
+			control->widget_type = reflected_control_widget_e::checkbox;
 			_checkboxes.push_back(checkbox);
 			break;
 		}
@@ -809,6 +821,8 @@ namespace sfg
 			vec->init(*_ui, parent, config);
 			vec->set_mixed(control->mixed);
 			center_property_row_control(*_ui, vec->get_root());
+			control->widget		 = vec;
+			control->widget_type = reflected_control_widget_e::vec4;
 			_vec4_fields.push_back(vec);
 			break;
 		}
@@ -824,6 +838,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec2;
 				_vec2_fields.push_back(vec);
 				break;
 			}
@@ -839,6 +855,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec2;
 				_vec2_fields.push_back(vec);
 				break;
 			}
@@ -854,6 +872,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec2;
 				_vec2_fields.push_back(vec);
 				break;
 			}
@@ -867,6 +887,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec3;
 				_vec3_fields.push_back(vec);
 				break;
 			}
@@ -882,6 +904,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec3;
 				_vec3_fields.push_back(vec);
 				break;
 			}
@@ -895,6 +919,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec4;
 				_vec4_fields.push_back(vec);
 				break;
 			}
@@ -910,6 +936,8 @@ namespace sfg
 				vec->init(*_ui, parent, config);
 				vec->set_mixed(control->mixed);
 				center_property_row_control(*_ui, vec->get_root());
+				control->widget		 = vec;
+				control->widget_type = reflected_control_widget_e::vec4;
 				_vec4_fields.push_back(vec);
 				break;
 			}
@@ -922,6 +950,8 @@ namespace sfg
 				config.user_data				   = control;
 				color->init(*_ui, parent, config);
 				center_property_row_control(*_ui, color->get_root());
+				control->widget		 = color;
+				control->widget_type = reflected_control_widget_e::color;
 				_color_fields.push_back(color);
 				break;
 			}
@@ -940,6 +970,8 @@ namespace sfg
 			config.user_data				   = control;
 			input->init(*_ui, parent, config);
 			center_property_row_control(*_ui, input->get_root());
+			control->widget		 = input;
+			control->widget_type = reflected_control_widget_e::input;
 			_input_fields.push_back(input);
 			break;
 		}
@@ -973,6 +1005,8 @@ namespace sfg
 			config.user_data				= control;
 			enum_control.dropdown->init(*_ui, parent, config);
 			center_property_row_control(*_ui, enum_control.dropdown->get_root());
+			control->widget		 = enum_control.dropdown;
+			control->widget_type = reflected_control_widget_e::dropdown;
 			break;
 		}
 		default: {
@@ -1438,6 +1472,128 @@ namespace sfg
 		}
 	}
 
+	bool editor_widget_reflect_type_t::refresh_reflected_field(sid_t field_id)
+	{
+		for (vector_control_t& control : _vector_controls)
+		{
+			if (control.field->id == field_id)
+				return false;
+		}
+
+		for (reflected_control_t& control : _controls)
+		{
+			if (control.command_field->id == field_id)
+				return refresh_reflected_control(control);
+		}
+
+		return false;
+	}
+
+	bool editor_widget_reflect_type_t::refresh_reflected_control(reflected_control_t& control)
+	{
+		if (is_vector_field(*control.command_field))
+			return false;
+
+		control.mixed = is_field_mixed(*control.command_field, control.command_object);
+
+		switch (control.widget_type)
+		{
+		case reflected_control_widget_e::input: {
+			editor_input_field_t& input = *static_cast<editor_input_field_t*>(control.widget);
+			input.set_placeholder(control.mixed ? "Mixed" : nullptr);
+			if (control.mixed)
+			{
+				input.set_text("");
+				return true;
+			}
+			if (control.field->type == reflected_value_type_e::string)
+				input.set_text(read_reflected_text(control.object, *control.field));
+			else
+				input.set_number(read_reflected_number(control.object, *control.field));
+			return true;
+		}
+		case reflected_control_widget_e::checkbox: {
+			editor_checkbox_t& checkbox = *static_cast<editor_checkbox_t*>(control.widget);
+			if (control.mixed)
+				checkbox.set_mixed(true);
+			else
+				checkbox.set_checked(read_reflected_bool(control.object, *control.field));
+			return true;
+		}
+		case reflected_control_widget_e::color: {
+			if (control.mixed)
+				return false;
+			editor_color_field_t& color = *static_cast<editor_color_field_t*>(control.widget);
+			color.set_color(read_reflected_value<color_t>(control.object, *control.field).to_vector());
+			return true;
+		}
+		case reflected_control_widget_e::vec2: {
+			editor_vec2_field_t& vec = *static_cast<editor_vec2_field_t*>(control.widget);
+			vec.set_mixed(control.mixed);
+			if (control.mixed)
+				return true;
+			const sid_t type_id = get_object_type_id(*control.field);
+			if (type_id == type_id_t<vec2u_t>::value)
+				vec.set_value(to_vec2f(read_reflected_value<vec2u_t>(control.object, *control.field)));
+			else if (type_id == type_id_t<vec2u16_t>::value)
+				vec.set_value(to_vec2f(read_reflected_value<vec2u16_t>(control.object, *control.field)));
+			else
+				vec.set_value(read_reflected_value<vec2f_t>(control.object, *control.field));
+			return true;
+		}
+		case reflected_control_widget_e::vec3: {
+			editor_vec3_field_t& vec = *static_cast<editor_vec3_field_t*>(control.widget);
+			vec.set_mixed(control.mixed);
+			if (control.mixed)
+				return true;
+			if (get_object_type_id(*control.field) == type_id_t<vec3u_t>::value)
+				vec.set_value(to_vec3f(read_reflected_value<vec3u_t>(control.object, *control.field)));
+			else
+				vec.set_value(read_reflected_value<vec3f_t>(control.object, *control.field));
+			return true;
+		}
+		case reflected_control_widget_e::vec4: {
+			editor_vec4_field_t& vec = *static_cast<editor_vec4_field_t*>(control.widget);
+			vec.set_mixed(control.mixed);
+			if (control.mixed)
+				return true;
+			const sid_t type_id = get_object_type_id(*control.field);
+			if (type_id == type_id_t<vec4u_t>::value)
+				vec.set_value(to_vec4f(read_reflected_value<vec4u_t>(control.object, *control.field)));
+			else if (control.field->type == reflected_value_type_e::quat)
+			{
+				const quat_t value = read_reflected_value<quat_t>(control.object, *control.field);
+				vec.set_value({value.x, value.y, value.z, value.w});
+			}
+			else
+				vec.set_value(read_reflected_value<vec4f_t>(control.object, *control.field));
+			return true;
+		}
+		case reflected_control_widget_e::asset_reference: {
+			editor_widget_asset_reference_t& reference = *static_cast<editor_widget_asset_reference_t*>(control.widget);
+			reference.set_mixed(control.mixed);
+			return true;
+		}
+		case reflected_control_widget_e::entity_reference: {
+			editor_widget_entity_reference_t& reference = *static_cast<editor_widget_entity_reference_t*>(control.widget);
+			reference.set_mixed(control.mixed);
+			return true;
+		}
+		case reflected_control_widget_e::text_id: {
+			editor_widget_text_id_t& text_id = *static_cast<editor_widget_text_id_t*>(control.widget);
+			text_id.set_mixed(control.mixed);
+			return true;
+		}
+		case reflected_control_widget_e::dropdown: {
+			editor_dropdown_t& dropdown = *static_cast<editor_dropdown_t*>(control.widget);
+			dropdown.set_mixed(control.mixed);
+			return true;
+		}
+		default:
+			return false;
+		}
+	}
+
 	void editor_widget_reflect_type_t::on_number_changed(f32 value, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
@@ -1654,7 +1810,10 @@ namespace sfg
 		editor_widget_reflect_type_t&						 widget	 = *static_cast<editor_widget_reflect_type_t*>(user_data);
 		const editor_command_reflected_field_edit_payload_t* payload = editor_commands_reflection_t::get_payload(system, command);
 		if (payload != nullptr && widget.matches_reflected_command(*payload))
-			widget.rebuild_reflected_controls();
+		{
+			if (!widget.refresh_reflected_field(payload->field_id))
+				widget.rebuild_reflected_controls();
+		}
 	}
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()

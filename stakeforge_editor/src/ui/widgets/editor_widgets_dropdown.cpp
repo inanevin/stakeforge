@@ -179,6 +179,13 @@ namespace sfg
 								  {.font = theme.font_default, .color = mixed ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
+	void editor_dropdown_t::set_mixed(bool mixed)
+	{
+		_config.title				 = mixed ? "Mixed" : nullptr;
+		_config.title_from_selection = !mixed;
+		refresh_title();
+	}
+
 	u16 editor_dropdown_t::get_selected() const
 	{
 		return _config.selected != nullptr ? _config.selected(_config.user_data) : (_config.item_count > 0 ? _config.items[0].value : 0);
