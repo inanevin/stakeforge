@@ -1046,11 +1046,13 @@ namespace sfg
 		info_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		info_in.size_value		 = {1.0f, item_size.y / 3.5f};
 
-		const bool			selected  = _selected_asset_node == item.node;
-		ui::vg_rect_paint_t info_rect = {};
-		info_rect.fill_color_a		  = selected ? theme.color_accent0 : theme.color_frame;
-		info_rect.fill_color_b		  = selected ? theme.color_accent0_dim : theme.color_frame;
-		info_rect.gradient			  = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
+		const bool			selected		   = _selected_asset_node == item.node;
+		ui::vg_rect_paint_t info_rect		   = {};
+		const vec4f_t		selected_color	   = _focused ? theme.color_accent0 : theme.color_outline_light;
+		const vec4f_t		selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
+		info_rect.fill_color_a				   = selected ? selected_color : theme.color_frame;
+		info_rect.fill_color_b				   = selected ? selected_color_dim : theme.color_frame;
+		info_rect.gradient					   = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
 		paint.set_rect(item.info_frame, info_rect);
 
 		item.color_frame = ui.allocate_widget();
@@ -1147,13 +1149,15 @@ namespace sfg
 		root_in.child_spacing	 = theme.item_spacing * 0.5f;
 		root_in.child_margins	 = {0.0f, theme.item_height * 2.0f, 0.0f, 0.0f};
 
-		const bool			selected  = _selected_asset_node == item.node;
-		ui::vg_rect_paint_t root_rect = {};
-		root_rect.fill_color_a		  = selected ? theme.color_accent0_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		root_rect.fill_color_b		  = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		root_rect.gradient			  = selected ? ui::vg_gradient_e::vertical : ui::vg_gradient_e::none;
+		const bool			selected		   = _selected_asset_node == item.node;
+		ui::vg_rect_paint_t root_rect		   = {};
+		const vec4f_t		selected_color	   = _focused ? theme.color_accent0 : theme.color_outline_light;
+		const vec4f_t		selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
+		root_rect.fill_color_a				   = selected ? selected_color_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		root_rect.fill_color_b				   = selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		root_rect.gradient					   = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
 		paint.set_rect(item.root, root_rect);
-		paint.set_hover_color(item.root, selected ? theme.color_accent0 : theme.color_panel_light);
+		paint.set_hover_color(item.root, selected ? selected_color : theme.color_panel_light);
 		paint.set_press_color(item.root, theme.color_light);
 
 		ui::listener_bundle_t listener = {};
@@ -1406,18 +1410,20 @@ namespace sfg
 
 	void editor_panel_assets_t::update_folder_row_background(const folder_row_t& row)
 	{
-		const editor_theme_t& theme	   = editor_theme_t::get();
-		const bool			  selected = _selected_folder_hash != 0 && row.path_hash == _selected_folder_hash;
+		const editor_theme_t& theme				 = editor_theme_t::get();
+		const bool			  selected			 = _selected_folder_hash != 0 && row.path_hash == _selected_folder_hash;
+		const vec4f_t		  selected_color	 = _focused ? theme.color_accent0 : theme.color_outline_light;
+		const vec4f_t		  selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
 
 		ui::vg_rect_paint_t row_rect = {};
-		row_rect.fill_color_a		 = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		row_rect.fill_color_b		 = selected ? theme.color_accent0_dim : row_rect.fill_color_a;
+		row_rect.fill_color_a		 = selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		row_rect.fill_color_b		 = selected ? selected_color_dim : row_rect.fill_color_a;
 		row_rect.gradient			 = ui::vg_gradient_e::horizontal;
 		row_rect.rounding			 = theme.item_rounding;
 		row_rect.rounding_segs		 = 4;
 		_ui->get_paint().set_rect(row.root, row_rect);
-		_ui->get_paint().set_hover_color(row.root, selected ? theme.color_accent0 : theme.color_panel_light);
-		_ui->get_paint().set_press_color(row.root, selected ? theme.color_accent0 : theme.color_light);
+		_ui->get_paint().set_hover_color(row.root, selected ? selected_color : theme.color_panel_light);
+		_ui->get_paint().set_press_color(row.root, selected ? selected_color : theme.color_light);
 	}
 
 	void editor_panel_assets_t::set_folder_row_visible(const folder_row_t& row, bool visible)
@@ -1430,8 +1436,22 @@ namespace sfg
 		set_widget_visible(tree, row.label, visible, /*input=*/false);
 	}
 
+	void editor_panel_assets_t::update_focus_state()
+	{
+		const bool focused = is_focus_inside();
+		if (_focused == focused)
+			return;
+
+		_focused = focused;
+		for (const folder_row_t& row : _folder_rows)
+			update_folder_row_background(row);
+		refresh_asset_grid_item_backgrounds();
+	}
+
 	void editor_panel_assets_t::select_folder_row(editor_asset_node_handle_t node, u64 path_hash)
 	{
+		update_focus_state();
+
 		_selected_folder_hash = path_hash;
 		_selected_folder_node = node;
 		clear_asset_grid_selection();
@@ -1446,6 +1466,8 @@ namespace sfg
 
 	void editor_panel_assets_t::select_asset_grid_item(editor_asset_node_handle_t node)
 	{
+		update_focus_state();
+
 		_selected_asset_node = node;
 		refresh_asset_grid_item_backgrounds();
 	}
@@ -1502,21 +1524,23 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 		for (const asset_grid_item_t& item : _asset_grid_items)
 		{
-			const bool selected = _selected_asset_node == item.node;
+			const bool	  selected			 = _selected_asset_node == item.node;
+			const vec4f_t selected_color	 = _focused ? theme.color_accent0 : theme.color_outline_light;
+			const vec4f_t selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
 
 			ui::vg_rect_paint_t info_rect = {};
 			if (_asset_item_style == asset_item_style_e::list)
 			{
-				info_rect.fill_color_a = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-				info_rect.fill_color_b = selected ? theme.color_accent0_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-				_ui->get_paint().set_hover_color(item.root, selected ? theme.color_accent0 : theme.color_panel_light);
+				info_rect.fill_color_a = selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+				info_rect.fill_color_b = selected ? selected_color_dim : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+				_ui->get_paint().set_hover_color(item.root, selected ? selected_color : theme.color_panel_light);
 			}
 			else
 			{
-				info_rect.fill_color_a = selected ? theme.color_accent0 : theme.color_frame;
-				info_rect.fill_color_b = selected ? theme.color_accent0_dim : theme.color_frame;
+				info_rect.fill_color_a = selected ? selected_color : theme.color_frame;
+				info_rect.fill_color_b = selected ? selected_color_dim : theme.color_frame;
 			}
-			info_rect.gradient = selected ? ui::vg_gradient_e::vertical : ui::vg_gradient_e::none;
+			info_rect.gradient = selected ? ui::vg_gradient_e::horizontal : ui::vg_gradient_e::none;
 			_ui->get_paint().set_rect(item.info_frame, info_rect);
 		}
 	}
@@ -2125,6 +2149,19 @@ namespace sfg
 		return asset != nullptr ? asset->guid : NULL_SID;
 	}
 
+	bool editor_panel_assets_t::is_focus_inside() const
+	{
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		ui::widget_id_t			 cur  = _ui->get_input().get_focused();
+		while (cur != NULL_WIDGET && tree.is_alive(cur))
+		{
+			if (cur == _root)
+				return true;
+			cur = tree.node(cur).parent;
+		}
+		return false;
+	}
+
 	bool editor_panel_assets_t::is_asset_favourite(sid_t guid) const
 	{
 		return guid != NULL_SID && std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid) != _favourite_asset_guids.end();
@@ -2461,15 +2498,7 @@ namespace sfg
 			return;
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (id == panel._assets_left_pane_body)
-			panel.select_folder_row({}, 0);
-		else
-			panel.clear_asset_grid_selection();
-
-		if (btn != ui::mouse_button_e::right)
-			return;
-
-		if (id == panel._assets_left_pane_body)
+		if (btn == ui::mouse_button_e::right && id == panel._assets_left_pane_body)
 			panel.open_action_menu(pos);
 	}
 
@@ -2540,6 +2569,7 @@ namespace sfg
 	{
 		editor_panel_assets_t&		  panel			= *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		panel.update_focus_state();
 		if (panel._asset_tree_generation != asset_manager.get_generation())
 			panel.refresh_folder_rows();
 	}
@@ -2548,6 +2578,7 @@ namespace sfg
 	{
 		editor_panel_assets_t&		  panel			= *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		panel.update_focus_state();
 
 		const bool rebuild_pending		  = panel._asset_grid_rebuild_pending;
 		panel._asset_grid_rebuild_pending = false;

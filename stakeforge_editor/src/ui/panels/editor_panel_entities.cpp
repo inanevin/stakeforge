@@ -479,18 +479,20 @@ namespace sfg
 
 	void editor_panel_entities_t::update_entity_row_background(const entity_row_t& row)
 	{
-		const editor_theme_t& theme	   = editor_theme_t::get();
-		const bool			  selected = is_entity_selected(row.entity);
+		const editor_theme_t& theme				 = editor_theme_t::get();
+		const bool			  selected			 = is_entity_selected(row.entity);
+		const vec4f_t		  selected_color	 = _focused ? theme.color_accent0 : theme.color_outline_light;
+		const vec4f_t		  selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
 
 		ui::vg_rect_paint_t row_rect = {};
-		row_rect.fill_color_a		 = selected ? theme.color_accent0 : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		row_rect.fill_color_b		 = selected ? theme.color_accent0_dim : row_rect.fill_color_a;
+		row_rect.fill_color_a		 = selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		row_rect.fill_color_b		 = selected ? selected_color_dim : row_rect.fill_color_a;
 		row_rect.gradient			 = ui::vg_gradient_e::horizontal;
 		row_rect.rounding			 = theme.item_rounding;
 		row_rect.rounding_segs		 = 4;
 		_ui->get_paint().set_rect(row.root, row_rect);
-		_ui->get_paint().set_hover_color(row.root, selected ? theme.color_accent0 : theme.color_panel_light);
-		_ui->get_paint().set_press_color(row.root, selected ? theme.color_accent0 : theme.color_light);
+		_ui->get_paint().set_hover_color(row.root, selected ? selected_color : theme.color_panel_light);
+		_ui->get_paint().set_press_color(row.root, selected ? selected_color : theme.color_light);
 	}
 
 	void editor_panel_entities_t::set_entity_row_visible(const entity_row_t& row, bool visible)
@@ -502,8 +504,21 @@ namespace sfg
 		set_widget_visible(tree, row.label, visible, /*input=*/false);
 	}
 
+	void editor_panel_entities_t::update_focus_state()
+	{
+		const bool focused = is_focus_inside();
+		if (_focused == focused)
+			return;
+
+		_focused = focused;
+		for (const entity_row_t& row : _entity_rows)
+			update_entity_row_background(row);
+	}
+
 	void editor_panel_entities_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
 	{
+		update_focus_state();
+
 		if (entity == NULL_ENTITY_ID)
 		{
 			clear_entity_selection();
@@ -698,6 +713,19 @@ namespace sfg
 		return _selected_entities.size() <= 1;
 	}
 
+	bool editor_panel_entities_t::is_focus_inside() const
+	{
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		ui::widget_id_t			 cur  = _ui->get_input().get_focused();
+		while (cur != NULL_WIDGET && tree.is_alive(cur))
+		{
+			if (cur == _root)
+				return true;
+			cur = tree.node(cur).parent;
+		}
+		return false;
+	}
+
 	bool editor_panel_entities_t::has_selected_ancestor(entity_id_t entity) const
 	{
 		const entity_desc_t* desc = find_entity_desc(entity);
@@ -777,9 +805,6 @@ namespace sfg
 			return;
 
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		if (id == panel._entity_list_area)
-			panel.select_entity_row(NULL_ENTITY_ID, false, false);
-
 		if (btn == ui::mouse_button_e::right && id == panel._entity_list_area)
 			panel.open_empty_action_menu(pos);
 	}
@@ -793,6 +818,7 @@ namespace sfg
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
+		panel.update_focus_state();
 		if (!(editor_app_t::get().get_main_world() == panel._main_world) || panel._entity_generation != editor_app_t::get().get_command_system().get_entity_generation())
 			panel.refresh_entities();
 	}

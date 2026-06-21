@@ -124,6 +124,7 @@ namespace sfg
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
+		void		  update_focus_state();
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash);
 		void select_asset_grid_item(editor_asset_node_handle_t node);
@@ -160,6 +161,7 @@ namespace sfg
 		u64						 get_folder_hash_after_rename(editor_asset_node_handle_t node, const string_t& name) const;
 		const char*				 get_selected_folder_path() const;
 		sid_t					 get_asset_guid(editor_asset_node_handle_t node) const;
+		bool					 is_focus_inside() const;
 		bool					 is_asset_favourite(sid_t guid) const;
 		bool					 has_favourite_asset_descendant(editor_asset_node_handle_t node) const;
 		const folder_row_t*		 find_row_by_hash(u64 path_hash) const;
@@ -261,5 +263,6 @@ namespace sfg
 		bool									_asset_rename_popup_pending		 = false;
 		bool									_asset_grid_body_size_valid		 = false;
 		bool									_asset_grid_rebuild_pending		 = false;
+		bool									_focused						 = false;
 	};
 }
