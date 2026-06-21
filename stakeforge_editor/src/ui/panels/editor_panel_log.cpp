@@ -247,15 +247,14 @@ namespace sfg
 		_search_input.init(ui, _top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
-		search_in.flags |= ui::wf_visible | ui::wf_overlay;
-		search_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
-		search_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
-		search_in.pos_value	  = {1.0f, 0.5f};
-		search_in.anchor_x	  = ui::anchor_e::end;
-		search_in.anchor_y	  = ui::anchor_e::center;
-		search_in.size_mode_x = ui::axis_mode_e::fixed;
-		search_in.size_mode_y = ui::axis_mode_e::fixed;
-		search_in.size_value  = {theme.item_width * 2.0f, theme.item_height};
+		search_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		search_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		search_in.pos_value		   = {1.0f, 0.5f};
+		search_in.anchor_x		   = ui::anchor_e::end;
+		search_in.anchor_y		   = ui::anchor_e::center;
+		search_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		search_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		search_in.size_value	   = {theme.item_width * 2.0f, theme.item_height};
 
 		_body = ui.allocate_widget();
 		ui.set_widget_debug_name(_body, "log_body");

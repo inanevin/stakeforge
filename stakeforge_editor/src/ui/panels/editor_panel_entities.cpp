@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -142,15 +143,14 @@ namespace sfg
 		_search_input.init(ui, _entity_top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
-		search_in.flags |= ui::wf_visible | ui::wf_overlay;
-		search_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
-		search_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
-		search_in.pos_value	  = {1.0f, 0.5f};
-		search_in.anchor_x	  = ui::anchor_e::end;
-		search_in.anchor_y	  = ui::anchor_e::center;
-		search_in.size_mode_x = ui::axis_mode_e::fixed;
-		search_in.size_mode_y = ui::axis_mode_e::fixed;
-		search_in.size_value  = {theme.item_width, theme.item_height};
+		search_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		search_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		search_in.pos_value		   = {1.0f, 0.5f};
+		search_in.anchor_x		   = ui::anchor_e::end;
+		search_in.anchor_y		   = ui::anchor_e::center;
+		search_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		search_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		search_in.size_value	   = {theme.item_width, theme.item_height};
 
 		_entity_list_area = ui.allocate_widget();
 		ui.set_widget_debug_name(_entity_list_area, "entity_list_area");
@@ -181,6 +181,8 @@ namespace sfg
 		body_listener.on_click				= on_entities_body_clicked;
 		body_listener.on_wheel				= on_entities_body_wheel;
 		body_listener.on_key				= on_entities_key;
+		body_listener.on_focus_gain			= on_entities_focus_gain;
+		body_listener.on_focus_lose			= on_entities_focus_lost;
 		ui.get_input().set_listener(_entity_list_area, body_listener);
 
 		ui.set_pre_layout_tick(_entity_list_area, on_entity_tree_tick, this);
@@ -830,6 +832,16 @@ namespace sfg
 			panel.destroy_selected_entities();
 		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
 			panel.duplicate_selected_entities();
+	}
+
+	void editor_panel_entities_t::on_entities_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data)
+	{
+		SFG_TRACE("gain");
+	}
+
+	void editor_panel_entities_t::on_entities_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data)
+	{
+		SFG_TRACE("lose");
 	}
 
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
