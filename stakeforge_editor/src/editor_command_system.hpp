@@ -45,6 +45,7 @@ namespace sfg
 		invalid,
 		custom,
 		entity_create,
+		entity_selection,
 		entity_duplicate,
 		entity_destroy,
 		entity_info_paste,

@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/memory/pool_handle.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -44,7 +45,10 @@ namespace sfg::ui
 
 namespace sfg
 {
+	class editor_command_system_t;
 	class world_t;
+	struct editor_command_listener_tag_t;
+	struct editor_command_t;
 
 	class editor_panel_entities_t final : public editor_panel_t
 	{
@@ -112,11 +116,10 @@ namespace sfg
 		void		  set_entity_row_visible(const entity_row_t& row, bool visible);
 		void		  set_focus_state(bool focused);
 		void		  select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
+		void		  issue_entity_selection_command(span_t<const entity_id_t> entities, entity_id_t anchor);
+		void		  apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
 		void		  clear_entity_selection();
 		void		  select_all_visible_entities();
-		void		  set_entity_selection(entity_id_t entity);
-		void		  add_entity_selection(entity_id_t entity);
-		void		  remove_entity_selection(entity_id_t entity);
 		void		  append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const;
 		void		  prune_entity_selection();
 		void		  toggle_entity_fold(entity_id_t entity);
@@ -156,23 +159,28 @@ namespace sfg
 		static void on_entity_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static bool on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command);
+		static bool on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command);
+		static bool on_entity_selection_cleanup(editor_command_system_t& system, editor_command_t& command);
+		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
-		editor_input_field_t	_search_input		  = {};
-		editor_scrollbar_t		_scrollbar			  = {};
-		vector_t<entity_row_t>	_entity_rows		  = {};
-		vector_t<entity_desc_t> _entity_cache		  = {};
-		vector_t<entity_id_t>	_expanded_entities	  = {};
-		string_t				_search_str			  = {};
-		string_t				_search_str_lower	  = {};
-		ui::widget_id_t			_entity_top_row		  = NULL_WIDGET;
-		ui::widget_id_t			_entity_list_area	  = NULL_WIDGET;
-		world_handle_t			_main_world			  = {};
-		vector_t<entity_id_t>	_selected_entities	  = {};
-		entity_id_t				_selection_anchor	  = NULL_ENTITY_ID;
-		entity_id_t				_action_menu_entity	  = NULL_ENTITY_ID;
-		u32						_entity_generation	  = 0;
-		u32						_visible_entity_count = 0;
-		bool					_focused			  = false;
+		editor_input_field_t							  _search_input			= {};
+		editor_scrollbar_t								  _scrollbar			= {};
+		vector_t<entity_row_t>							  _entity_rows			= {};
+		vector_t<entity_desc_t>							  _entity_cache			= {};
+		vector_t<entity_id_t>							  _expanded_entities	= {};
+		string_t										  _search_str			= {};
+		string_t										  _search_str_lower		= {};
+		ui::widget_id_t									  _entity_top_row		= NULL_WIDGET;
+		ui::widget_id_t									  _entity_list_area		= NULL_WIDGET;
+		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener		= {};
+		world_handle_t									  _main_world			= {};
+		vector_t<entity_id_t>							  _selected_entities	= {};
+		entity_id_t										  _selection_anchor		= NULL_ENTITY_ID;
+		entity_id_t										  _action_menu_entity	= NULL_ENTITY_ID;
+		u32												  _entity_generation	= 0;
+		u32												  _visible_entity_count = 0;
+		bool											  _focused				= false;
 	};
 }
