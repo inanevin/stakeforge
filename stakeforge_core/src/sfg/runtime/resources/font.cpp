@@ -12,6 +12,11 @@
 
 namespace sfg
 {
+	bool font_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 	bool font_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t& mem	   = ctx.resource_manager.get_memory();
@@ -76,7 +81,12 @@ namespace sfg
 		.internals_alignment = alignof(font_internals_t),
 		.wire_magic			 = font_loader_t::WIRE_MAGIC,
 		.wire_version		 = font_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = font_loader_t::load,
+		.load_v2			 = font_loader_t::load,
 		.create_internals	 = font_loader_t::create_internals,
 		.destroy_internals	 = font_loader_t::destroy_internals,
 	};

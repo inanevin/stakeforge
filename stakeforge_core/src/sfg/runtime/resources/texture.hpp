@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
+#include <cstddef>
 
 namespace sfg
 {
@@ -45,9 +46,27 @@ namespace sfg
 		static constexpr u32 WIRE_VERSION = 9;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
+		static bool						 load_async(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
 		static resource_ready_result_e	 resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
 		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	struct texture_mip_header_t
+	{
+		size_t	  byte_offset = 0;
+		vec2u16_t size		  = vec2u16_t::zero;
+		u8		  bpp		  = 0;
+	};
+
+	struct texture_header_t
+	{
+		texture_mip_header_t mips[texture_loader_t::MAX_MIPS] = {};
+		vec2u16_t			 size							  = vec2u16_t::zero;
+		u8					 bpp							  = 0;
+		u8					 mip_count						  = 0;
+		u8					 is_linear						  = 0;
 	};
 
 	struct texture_runtime_t

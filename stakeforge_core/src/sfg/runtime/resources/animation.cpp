@@ -11,6 +11,11 @@
 
 namespace sfg
 {
+	bool animation_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
@@ -51,7 +56,12 @@ namespace sfg
 		.internals_alignment = alignof(animation_internals_t),
 		.wire_magic			 = animation_loader_t::WIRE_MAGIC,
 		.wire_version		 = animation_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = animation_loader_t::load,
+		.load_v2			 = animation_loader_t::load,
 		.create_internals	 = animation_loader_t::create_internals,
 		.destroy_internals	 = animation_loader_t::destroy_internals,
 	};

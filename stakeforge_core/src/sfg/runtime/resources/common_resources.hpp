@@ -8,6 +8,7 @@
 #include <sfg/data/span.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
+#include <cstddef>
 
 namespace sfg
 {
@@ -67,16 +68,24 @@ namespace sfg
 		failed,
 	};
 
+	enum class resource_state_v2_e : u8
+	{
+		failed,
+		ready,
+		ready_preview,
+	};
+
 	struct resource_entry_t
 	{
-		sid_t			 hash		= 0;
-		chunk_handle32_t runtime	= {};
-		chunk_handle32_t internals	= {};
-		chunk_handle32_t debug_name = {};
-		span_t<u8>		 load_data	= {};
-		u32				 ref_count	= 0;
-		resource_state_e state		= resource_state_e::cpu_ready;
-		resource_type_e	 type		= resource_type_e::invalid;
+		sid_t				hash	   = 0;
+		chunk_handle32_t	runtime	   = {};
+		chunk_handle32_t	internals  = {};
+		chunk_handle32_t	debug_name = {};
+		span_t<u8>			load_data  = {};
+		u32					ref_count  = 0;
+		resource_state_e	state	   = resource_state_e::cpu_ready;
+		resource_state_v2_e state_v2   = resource_state_v2_e::failed;
+		resource_type_e		type	   = resource_type_e::invalid;
 	};
 
 	struct resource_context_t
@@ -101,6 +110,7 @@ namespace sfg
 	struct resource_type_desc_t
 	{
 		using load_fn_t				 = bool (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using load_v2_fn_t			 = bool (*)(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
 		using create_internals_fn_t	 = create_internals_result_e (*)(resource_entry_t& entry, resource_context_t& ctx);
 		using resource_ready_fn		 = resource_ready_result_e (*)(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
 		using destroy_internals_fn_t = void (*)(resource_entry_t& entry, resource_context_t& ctx);
@@ -112,8 +122,13 @@ namespace sfg
 		u32				internals_alignment = 0;
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
+		size_t			initial_load_offset = 0;
+		size_t			initial_load_size	= 0;
+		size_t			async_load_offset	= 0;
+		bool			async_load			= false;
 
 		load_fn_t			   load				 = nullptr;
+		load_v2_fn_t		   load_v2			 = nullptr;
 		create_internals_fn_t  create_internals	 = nullptr;
 		resource_ready_fn	   resource_ready	 = nullptr;
 		destroy_internals_fn_t destroy_internals = nullptr;

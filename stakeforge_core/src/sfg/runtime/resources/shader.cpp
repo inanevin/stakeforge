@@ -12,6 +12,11 @@
 
 namespace sfg
 {
+	bool shader_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 	bool shader_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t& mem	 = ctx.resource_manager.get_memory();
@@ -182,7 +187,12 @@ namespace sfg
 		.internals_alignment = alignof(shader_internals_t),
 		.wire_magic			 = shader_loader_t::WIRE_MAGIC,
 		.wire_version		 = shader_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = shader_loader_t::load,
+		.load_v2			 = shader_loader_t::load,
 		.create_internals	 = shader_loader_t::create_internals,
 		.resource_ready		 = shader_loader_t::resource_ready,
 		.destroy_internals	 = shader_loader_t::destroy_internals,

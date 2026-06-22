@@ -3,6 +3,7 @@
 #include "resource_manager.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 #include <sfg/job/job_system.hpp>
@@ -162,6 +163,68 @@ namespace sfg
 		});
 
 		return entry.state;
+	}
+
+	resource_state_e resource_manager_t::load_resource_v2(u64 hash, const char* debug_name, resource_type_e type)
+	{
+		auto it = _entries.find(hash);
+		if (it != _entries.end())
+		{
+			it->second.ref_count++;
+			return it->second.state;
+		}
+
+		const resource_type_desc_t* desc = find_resource_type_desc(type);
+		if (desc == nullptr)
+		{
+			SFG_ERR("failed loading resource, type description not found! {0}", static_cast<u8>(type));
+			return resource_state_e::failed;
+		}
+
+		if (desc->load_v2 == nullptr)
+		{
+			SFG_ERR("failed loading resource, load_v2 not found! {0}", static_cast<u8>(type));
+			return resource_state_e::failed;
+		}
+
+		resource_entry_t entry = {};
+		entry.type			   = type;
+		entry.ref_count		   = 1;
+		entry.hash			   = hash;
+		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
+		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
+		entry.state			   = resource_state_e::queued;
+
+		const size_t name_sz = strlen(debug_name);
+		if (name_sz != 0)
+			entry.debug_name = _memory.allocate_text(debug_name);
+
+		ostream_t initial_stream;
+		if (!_resource_file_system->read_resource(hash, desc->initial_load_offset, desc->initial_load_size, initial_stream))
+		{
+			SFG_ERR("failed reading resource: {0} {1}", debug_name, hash);
+			free_entry(entry);
+			return resource_state_e::failed;
+		}
+
+		resource_context_t ctx{*this};
+		if (!desc->load_v2(entry, ctx, initial_stream))
+		{
+			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
+			free_entry(entry);
+			return resource_state_e::failed;
+		}
+
+		auto [inserted, _]	  = _entries.emplace(hash, entry);
+		resource_entry_t& res = inserted->second;
+		res.state			  = resource_state_e::cpu_ready;
+		res.state_v2		  = desc->async_load ? resource_state_v2_e::ready_preview : resource_state_v2_e::ready;
+
+		if (desc->async_load)
+			return res.state;
+
+		SFG_TRACE("loaded resource and internals: {0}", _memory.get_text(res.debug_name), res.hash);
+		return res.state;
 	}
 
 	void resource_manager_t::unload_resource(sid_t hash)

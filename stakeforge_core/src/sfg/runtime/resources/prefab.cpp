@@ -4,6 +4,11 @@
 
 namespace sfg
 {
+	bool prefab_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 	bool prefab_loader_t::load(resource_entry_t&, resource_context_t&)
 	{
 		return false;
@@ -24,7 +29,12 @@ namespace sfg
 		.runtime_alignment	 = alignof(prefab_runtime_t),
 		.internals_size		 = sizeof(prefab_internals_t),
 		.internals_alignment = alignof(prefab_internals_t),
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = prefab_loader_t::load,
+		.load_v2			 = prefab_loader_t::load,
 		.create_internals	 = prefab_loader_t::create_internals,
 		.destroy_internals	 = prefab_loader_t::destroy_internals,
 	};

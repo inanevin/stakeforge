@@ -15,6 +15,11 @@
 
 namespace sfg
 {
+	bool mesh_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 #define MESH_RESOURCE_USER_DATA_VERTEX_BUFFER 1
 #define MESH_RESOURCE_USER_DATA_INDEX_BUFFER  2
 
@@ -273,7 +278,12 @@ namespace sfg
 		.internals_alignment = alignof(mesh_internals_t),
 		.wire_magic			 = mesh_loader_t::WIRE_MAGIC,
 		.wire_version		 = mesh_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = mesh_loader_t::load,
+		.load_v2			 = mesh_loader_t::load,
 		.create_internals	 = mesh_loader_t::create_internals,
 		.resource_ready		 = mesh_loader_t::resource_ready,
 		.destroy_internals	 = mesh_loader_t::destroy_internals,

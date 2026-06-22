@@ -13,6 +13,7 @@ namespace sfg
 		static constexpr u32 WIRE_VERSION = 6;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
 		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
 	};

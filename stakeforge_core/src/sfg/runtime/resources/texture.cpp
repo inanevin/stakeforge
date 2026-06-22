@@ -43,6 +43,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	bool texture_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
+	bool texture_loader_t::load_async(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM  37
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	  43
 #define SFG_KTX_VK_FORMAT_BC7_UNORM_BLOCK 145
@@ -366,7 +376,12 @@ namespace sfg
 		.internals_alignment = alignof(texture_internals_t),
 		.wire_magic			 = texture_loader_t::WIRE_MAGIC,
 		.wire_version		 = texture_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = sizeof(texture_header_t),
+		.async_load_offset	 = sizeof(texture_header_t),
+		.async_load			 = true,
 		.load				 = texture_loader_t::load,
+		.load_v2			 = texture_loader_t::load,
 		.create_internals	 = texture_loader_t::create_internals,
 		.resource_ready		 = texture_loader_t::resource_ready,
 		.destroy_internals	 = texture_loader_t::destroy_internals,

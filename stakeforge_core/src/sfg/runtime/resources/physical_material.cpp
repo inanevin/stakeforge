@@ -33,6 +33,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 namespace sfg
 {
+	bool physical_material_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 	bool physical_material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t&			 mem	 = ctx.resource_manager.get_memory();
@@ -69,7 +74,12 @@ namespace sfg
 		.internals_alignment = alignof(physical_material_internals_t),
 		.wire_magic			 = physical_material_loader_t::WIRE_MAGIC,
 		.wire_version		 = physical_material_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = physical_material_loader_t::load,
+		.load_v2			 = physical_material_loader_t::load,
 		.create_internals	 = physical_material_loader_t::create_internals,
 		.destroy_internals	 = physical_material_loader_t::destroy_internals,
 	};

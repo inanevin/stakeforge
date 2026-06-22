@@ -39,6 +39,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	bool skybox_hdr_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 #define SFG_SKYBOX_HDR_TEX_RADIANCE	  0
 #define SFG_SKYBOX_HDR_TEX_IRRADIANCE 1
 #define SFG_SKYBOX_HDR_TEX_PREFILTER  2
@@ -321,7 +326,12 @@ namespace sfg
 		.internals_alignment = alignof(skybox_hdr_internals_t),
 		.wire_magic			 = skybox_hdr_loader_t::WIRE_MAGIC,
 		.wire_version		 = skybox_hdr_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = skybox_hdr_loader_t::load,
+		.load_v2			 = skybox_hdr_loader_t::load,
 		.create_internals	 = skybox_hdr_loader_t::create_internals,
 		.resource_ready		 = skybox_hdr_loader_t::resource_ready,
 		.destroy_internals	 = skybox_hdr_loader_t::destroy_internals,

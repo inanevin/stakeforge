@@ -63,6 +63,7 @@ namespace sfg
 		static constexpr u32 WIRE_VERSION = 3;
 
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
 		static resource_ready_result_e	 resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
 		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);

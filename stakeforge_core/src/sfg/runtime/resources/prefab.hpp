@@ -21,6 +21,7 @@ namespace sfg
 	{
 	public:
 		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
+		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
 		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
 		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
 	};

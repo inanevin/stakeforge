@@ -42,6 +42,7 @@ namespace sfg
 
 		// Transfers uncompressed resource payload ownership to resource manager.
 		resource_state_e		load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type);
+		resource_state_e		load_resource_v2(u64 hash, const char* debug_name, resource_type_e type);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
 		void					drain_atlases(u8 frame_slot);

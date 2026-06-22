@@ -16,6 +16,11 @@
 
 namespace sfg
 {
+	bool material_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	{
+		return false;
+	}
+
 	namespace
 	{
 		enum material_resource_user_data_e : u32
@@ -253,7 +258,12 @@ namespace sfg
 		.internals_alignment = alignof(material_internals_t),
 		.wire_magic			 = material_loader_t::WIRE_MAGIC,
 		.wire_version		 = material_loader_t::WIRE_VERSION,
+		.initial_load_offset = 0,
+		.initial_load_size	 = 0,
+		.async_load_offset	 = 0,
+		.async_load			 = false,
 		.load				 = material_loader_t::load,
+		.load_v2			 = material_loader_t::load,
 		.create_internals	 = material_loader_t::create_internals,
 		.resource_ready		 = material_loader_t::resource_ready,
 		.destroy_internals	 = material_loader_t::destroy_internals,
