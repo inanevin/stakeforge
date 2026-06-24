@@ -61,12 +61,12 @@ namespace sfg
 
 	struct barrier_t
 	{
-		u32					 from_states = 0;
-		u32					 to_states	 = 0;
-		gfx_resource_handle	 resource_t	 = {};
-		gfx_texture_handle	 texture_t	 = {};
-		gfx_swapchain_handle swapchain_t = {};
-		bitmask_t<u8>		 flags		 = 0;
+		u32			  from_states = 0;
+		u32			  to_states	  = 0;
+		gfx_handle_t	  resource_t  = {};
+		gfx_handle_t	  texture_t	  = {};
+		gfx_handle_t	  swapchain_t = {};
+		bitmask_t<u8> flags		  = 0;
 	};
 
 }

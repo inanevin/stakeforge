@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/memory/memory_tracer.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/texture.hpp>
@@ -343,14 +344,14 @@ namespace sfg::ui
 
 	namespace
 	{
-		gfx_shader_handle resolve_shader(resource_handle_t handle)
+		gfx_handle_t resolve_shader(resource_handle_t handle)
 		{
 			if (handle == 0)
 				return {};
 			const shader_internals_t* internals = resource_manager_t::get().find_internals<shader_internals_t>(handle);
 			if (internals == nullptr)
 				return {};
-			return internals->find_pso(0);
+			return render_resources_t::get().get_shader(internals->find_pso(0));
 		}
 
 		gpu_index_t resolve_texture_index(resource_handle_t handle)
@@ -360,7 +361,7 @@ namespace sfg::ui
 			const texture_internals_t* internals = resource_manager_t::get().find_internals<texture_internals_t>(handle);
 			if (internals == nullptr || internals->texture.is_null())
 				return NULL_GPU_INDEX;
-			return gfx_backend::get().get_texture_gpu_index(internals->texture, 0);
+			return render_resources_t::get().get_texture_gpu_index(internals->texture, 0);
 		}
 
 	}
@@ -370,7 +371,7 @@ namespace sfg::ui
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
 			SFG_ASSERT(db.state.pipeline != NULL_RESOURCE_HANDLE);
-			const gfx_shader_handle p = resolve_shader(db.state.pipeline);
+			const gfx_handle_t p = resolve_shader(db.state.pipeline);
 			SFG_ASSERT(!p.is_null());
 			db.resolved.pipeline = p;
 

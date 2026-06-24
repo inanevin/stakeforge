@@ -12,10 +12,8 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('F', 'O', 'N', 'T');
 		static constexpr u32 WIRE_VERSION = 6;
 
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
-		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
-		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
 	struct font_runtime_t

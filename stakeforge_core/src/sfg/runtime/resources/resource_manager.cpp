@@ -1,22 +1,18 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "resource_manager.hpp"
-#include <sfg/io/assert.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/runtime/resources/resource_file_system.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/resources/resource_file_system.hpp>
+
+#include <cstring>
 
 namespace sfg
 {
-
-	// -----------------------------------------------------------------------------
-	// PUBLIC API
-	// -----------------------------------------------------------------------------
-
 	resource_manager_t& resource_manager_t::get()
 	{
 		static resource_manager_t instance;
@@ -32,7 +28,6 @@ namespace sfg
 		_memory.init(resource_memory_size);
 		_animation_storage.init();
 		_entries.reserve(256);
-		_loads.reserve(256);
 		_unloads.reserve(256);
 	}
 
@@ -48,22 +43,14 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		wait_for_all_complete();
+		flush_completed_loads();
+		SFG_ASSERT(_pending.load(std::memory_order_acquire) == 0);
 
 		for (auto& pair : _entries)
-		{
-			resource_entry_t&			e	 = pair.second;
-			const resource_type_desc_t* desc = find_resource_type_desc(e.type);
-
-			resource_context_t ctx{*this};
-			if (e.state == resource_state_e::ready || e.state == resource_state_e::cpu_ready)
-			{
-				if (desc->destroy_internals != nullptr)
-					desc->destroy_internals(e, ctx);
-			}
-			free_entry(e);
-		}
+			unload_entry(pair.second);
 		_entries.clear();
+		_unloads.resize(0);
+
 		if (_glyph_atlas.is_initialized())
 			_glyph_atlas.uninit();
 		_animation_storage.uninit();
@@ -75,52 +62,14 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		flush_completed_resources();
-		flush_completed_render_resources();
-		fire_loads(false);
+		flush_completed_loads();
 		flush_unloads();
 	}
 
-	void resource_manager_t::wait_for_all()
+	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, resource_type_e type)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		fire_loads(true);
-		flush_completed_resources();
-		flush_completed_render_resources();
-		flush_unloads();
-	}
 
-	void resource_manager_t::wait_for_all_complete()
-	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		fire_loads(true);
-		flush_completed_resources();
-
-		while (true)
-		{
-			bool any_pending = false;
-			for (auto& kv : _entries)
-			{
-				if (kv.second.state == resource_state_e::internals_queued)
-				{
-					any_pending = true;
-					break;
-				}
-			}
-			if (!any_pending)
-				break;
-
-			render_resources_t::get().drain_requests();
-			flush_completed_render_resources();
-		}
-
-		flush_unloads();
-	}
-
-	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, span_t<u8> data, resource_type_e type)
-	{
 		auto it = _entries.find(hash);
 		if (it != _entries.end())
 		{
@@ -135,57 +84,14 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		if (data.data == nullptr || data.size == 0)
+		if (desc->load == nullptr)
 		{
-			SFG_ERR("resource payload is empty!");
+			SFG_ERR("failed loading resource, load not found! {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
-		resource_entry_t entry = {};
-		entry.type			   = type;
-		entry.ref_count		   = 1;
-		entry.hash			   = hash;
-		entry.load_data		   = data;
-		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
-		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::queued;
-
-		const size_t name_sz = strlen(debug_name);
-		if (name_sz != 0)
-			entry.debug_name = _memory.allocate_text(debug_name);
-
-		_entries.emplace(hash, entry);
-
-		_loads.push_back({
-			.hash		= hash,
-			.copy_entry = entry,
-			.success	= false,
-		});
-
-		return entry.state;
-	}
-
-	resource_state_e resource_manager_t::load_resource_v2(u64 hash, const char* debug_name, resource_type_e type)
-	{
-		auto it = _entries.find(hash);
-		if (it != _entries.end())
-		{
-			it->second.ref_count++;
-			return it->second.state;
-		}
-
-		const resource_type_desc_t* desc = find_resource_type_desc(type);
-		if (desc == nullptr)
-		{
-			SFG_ERR("failed loading resource, type description not found! {0}", static_cast<u8>(type));
-			return resource_state_e::failed;
-		}
-
-		if (desc->load_v2 == nullptr)
-		{
-			SFG_ERR("failed loading resource, load_v2 not found! {0}", static_cast<u8>(type));
-			return resource_state_e::failed;
-		}
+		if (desc->use_async_load)
+			SFG_ASSERT(desc->async_load != nullptr);
 
 		resource_entry_t entry = {};
 		entry.type			   = type;
@@ -193,52 +99,129 @@ namespace sfg
 		entry.hash			   = hash;
 		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
 		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::queued;
+		entry.state			   = resource_state_e::failed;
 
 		const size_t name_sz = strlen(debug_name);
 		if (name_sz != 0)
 			entry.debug_name = _memory.allocate_text(debug_name);
 
-		ostream_t initial_stream;
-		if (!_resource_file_system->read_resource(hash, desc->initial_load_offset, desc->initial_load_size, initial_stream))
+		ostream_t file_stream;
+		if (!_resource_file_system->read_resource(hash, desc->initial_load_offset, desc->initial_load_size, file_stream))
 		{
 			SFG_ERR("failed reading resource: {0} {1}", debug_name, hash);
 			free_entry(entry);
 			return resource_state_e::failed;
 		}
 
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+
 		resource_context_t ctx{*this};
-		if (!desc->load_v2(entry, ctx, initial_stream))
+		if (!desc->load(entry, ctx, stream))
 		{
 			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
 			free_entry(entry);
 			return resource_state_e::failed;
 		}
 
-		auto [inserted, _]	  = _entries.emplace(hash, entry);
-		resource_entry_t& res = inserted->second;
-		res.state			  = resource_state_e::cpu_ready;
-		res.state_v2		  = desc->async_load ? resource_state_v2_e::ready_preview : resource_state_v2_e::ready;
+		entry.state = desc->use_async_load ? resource_state_e::ready_preview : resource_state_e::ready;
+		_entries.emplace(hash, entry);
+		if (desc->use_async_load)
+			enqueue_async_load(entry, *desc);
+		else
+			SFG_TRACE("loaded resource: {0}", debug_name);
+		return entry.state;
+	}
 
-		if (desc->async_load)
-			return res.state;
+	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, istream_t& stream, resource_type_e type)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		SFG_TRACE("loaded resource and internals: {0}", _memory.get_text(res.debug_name), res.hash);
-		return res.state;
+		auto it = _entries.find(hash);
+		if (it != _entries.end())
+		{
+			it->second.ref_count++;
+			return it->second.state;
+		}
+
+		const resource_type_desc_t* desc = find_resource_type_desc(type);
+		if (desc == nullptr)
+		{
+			SFG_ERR("failed loading resource, type description not found! {0}", static_cast<u8>(type));
+			return resource_state_e::failed;
+		}
+
+		if (desc->load == nullptr)
+		{
+			SFG_ERR("failed loading resource, load not found! {0}", static_cast<u8>(type));
+			return resource_state_e::failed;
+		}
+
+		if (desc->use_async_load)
+			SFG_ASSERT(desc->async_load != nullptr);
+
+		resource_entry_t entry = {};
+		entry.type			   = type;
+		entry.ref_count		   = 1;
+		entry.hash			   = hash;
+		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
+		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
+		entry.state			   = resource_state_e::failed;
+
+		const size_t name_sz = strlen(debug_name);
+		if (name_sz != 0)
+			entry.debug_name = _memory.allocate_text(debug_name);
+
+		resource_context_t ctx{*this};
+		if (!desc->load(entry, ctx, stream))
+		{
+			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
+			free_entry(entry);
+			return resource_state_e::failed;
+		}
+
+		if (desc->use_async_load)
+		{
+			if (!desc->async_load(entry, ctx, stream))
+			{
+				SFG_ERR("failed loading async resource: {0} {1}", debug_name, hash);
+				if (desc->unload != nullptr)
+					desc->unload(entry, ctx);
+				free_entry(entry);
+				return resource_state_e::failed;
+			}
+		}
+
+		entry.state = resource_state_e::ready;
+		_entries.emplace(hash, entry);
+
+		SFG_TRACE("loaded resource: {0}", _memory.get_text(entry.debug_name));
+		return entry.state;
 	}
 
 	void resource_manager_t::unload_resource(sid_t hash)
 	{
-		resource_entry_t* entry = find_entry(hash);
-		SFG_ASSERT(entry);
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		if (entry->ref_count == 0)
+		auto it = _entries.find(hash);
+		SFG_ASSERT(it != _entries.end());
+
+		resource_entry_t& entry = it->second;
+		if (entry.ref_count == 0)
 			return;
 
-		entry->ref_count--;
+		entry.ref_count--;
+		if (entry.ref_count != 0)
+			return;
 
-		if (entry->ref_count == 0)
+		if (entry.state == resource_state_e::ready_preview)
+		{
 			_unloads.push_back(hash);
+			return;
+		}
+
+		unload_entry(entry);
+		_entries.erase(it);
 	}
 
 	const resource_entry_t* resource_manager_t::find_entry(u64 hash) const
@@ -256,162 +239,94 @@ namespace sfg
 		_glyph_atlas.drain_uploads(frame_slot);
 	}
 
-	// -----------------------------------------------------------------------------
-	// PRIVATE API
-	// -----------------------------------------------------------------------------
-
-	void resource_manager_t::fire_loads(bool wait)
+	void resource_manager_t::enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc)
 	{
-		if (_loads.empty())
-			return;
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(job_system_t::get().is_initialized());
+		SFG_ASSERT(desc.use_async_load);
+		SFG_ASSERT(desc.async_load != nullptr);
 
-		const u32 n = static_cast<u32>(_loads.size());
-		_pending.fetch_add(n, std::memory_order_relaxed);
-
-		for (load_request_t& req : _loads)
-		{
-			job_system_t::get().silent_async([this, req]() mutable {
-				const resource_type_desc_t* desc = find_resource_type_desc(req.copy_entry.type);
-
+		_pending.fetch_add(1, std::memory_order_release);
+		job_system_t::get().silent_async([this, entry, offset = desc.async_load_offset, async_load = desc.async_load]() mutable {
+			ostream_t	   file_stream;
+			load_request_t request = {};
+			request.hash		   = entry.hash;
+			request.success		   = _resource_file_system->read_resource(entry.hash, offset, 0, file_stream);
+			if (request.success)
+			{
+				istream_t stream;
+				stream.open(file_stream.get_raw(), file_stream.get_size());
 				resource_context_t ctx{*this};
-				req.success = desc->load(req.copy_entry, ctx);
-
-				_completed.enqueue(req);
-				_pending.fetch_sub(1, std::memory_order_release);
-			});
-		}
-
-		_loads.resize(0);
-
-		if (wait)
-		{
-			tf::Executor& ex = job_system_t::get().get_executor();
-			if (ex.this_worker_id() >= 0)
-			{
-				ex.corun_until([this] { return _pending.load(std::memory_order_acquire) == 0; });
+				request.success = async_load(entry, ctx, stream);
 			}
-			else
-			{
-				while (_pending.load(std::memory_order_acquire) != 0)
-					std::this_thread::yield();
-			}
-		}
+			_completed.enqueue(std::move(request));
+		});
 	}
 
-	void resource_manager_t::flush_completed_resources()
+	void resource_manager_t::flush_completed_loads()
 	{
-		load_request_t req = {};
-		while (_completed.try_dequeue(req))
+		load_request_t request = {};
+		while (_completed.try_dequeue(request))
 		{
-			resource_entry_t* entry = find_entry(req.hash);
-			SFG_ASSERT(entry);
-			SFG_ASSERT(entry->state == resource_state_e::queued);
+			_pending.fetch_sub(1, std::memory_order_release);
 
-			if (!req.success)
+			auto it = _entries.find(request.hash);
+			if (it == _entries.end())
+				continue;
+
+			resource_entry_t&			entry = it->second;
+			const resource_type_desc_t* desc  = find_resource_type_desc(entry.type);
+			SFG_ASSERT(desc != nullptr);
+
+			if (!request.success)
 			{
-				entry->state = resource_state_e::failed;
-				SFG_ERR("failed loading resource: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
-				free_entry(*entry);
+				entry.state = resource_state_e::failed;
+				SFG_ERR("failed loading async resource: {0}", entry.hash);
 				continue;
 			}
 
-			entry->state					 = resource_state_e::cpu_ready;
-			const resource_type_desc_t* desc = find_resource_type_desc(entry->type);
-
-			if (desc->create_internals == nullptr)
-			{
-				entry->state = resource_state_e::ready;
-				SFG_TRACE("loaded resource: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
-				free_entry_load_data(*entry);
-				continue;
-			}
-
-			resource_context_t				ctx{*this};
-			const create_internals_result_e r = desc->create_internals(*entry, ctx);
-			if (r == create_internals_result_e::failed)
-			{
-				entry->state = resource_state_e::failed;
-				SFG_ERR("failed creating internals for resource: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
-				free_entry(*entry);
-			}
-			else if (r == create_internals_result_e::queued)
-			{
-				SFG_ASSERT(desc->resource_ready != nullptr);
-				entry->state = resource_state_e::internals_queued;
-				SFG_TRACE("loaded resource and queued internals: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
-			}
-			else
-			{
-				entry->state = resource_state_e::ready;
-				free_entry_load_data(*entry);
-				SFG_TRACE("loaded resource and internals: {0}", _memory.get_text(entry->debug_name), entry->hash);
-			}
-		}
-	}
-
-	void resource_manager_t::flush_completed_render_resources()
-	{
-		render_resource_completion_t completion = {};
-		while (render_resources_t::get().drain_completion(completion))
-		{
-			resource_entry_t* entry = find_entry(completion.hash);
-			SFG_ASSERT(entry);
-			SFG_ASSERT(entry->type == completion.type);
-			SFG_ASSERT(entry->state == resource_state_e::internals_queued);
-
-			const resource_type_desc_t* desc = find_resource_type_desc(entry->type);
-			SFG_ASSERT(desc->resource_ready != nullptr);
-
-			resource_context_t			  ctx{*this};
-			const resource_ready_result_e r = desc->resource_ready(*entry, ctx, completion);
-			if (r == resource_ready_result_e::ready)
-			{
-				entry->state = resource_state_e::ready;
-				SFG_TRACE("loaded resource internals: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
-				free_entry_load_data(*entry);
-			}
-			else if (r == resource_ready_result_e::failed)
-			{
-				entry->state = resource_state_e::failed;
-				SFG_TRACE("failed loading resource internals: {0} {1}", _memory.get_text(entry->debug_name), entry->hash);
-				free_entry(*entry);
-			}
+			entry.state = resource_state_e::ready;
+			SFG_TRACE("loaded async resource: {0}", _memory.get_text(entry.debug_name));
 		}
 	}
 
 	void resource_manager_t::flush_unloads()
 	{
-		if (_unloads.empty())
-			return;
-
 		auto it = _unloads.begin();
 		while (it != _unloads.end())
 		{
-			const u64 hash = *it;
+			auto entry_it = _entries.find(*it);
+			if (entry_it == _entries.end())
+			{
+				it = _unloads.erase(it);
+				continue;
+			}
 
-			auto ite = _entries.find(hash);
-			SFG_ASSERT(ite != _entries.end());
-
-			resource_entry_t&			e	 = ite->second;
-			const resource_type_desc_t* desc = find_resource_type_desc(e.type);
-
-			if (e.state == resource_state_e::queued || e.state == resource_state_e::internals_queued)
+			resource_entry_t& entry = entry_it->second;
+			if (entry.state == resource_state_e::ready_preview)
 			{
 				++it;
 				continue;
 			}
 
-			resource_context_t ctx{*this};
-			if (e.state == resource_state_e::ready || e.state == resource_state_e::cpu_ready)
-			{
-				if (desc->destroy_internals != nullptr)
-					desc->destroy_internals(e, ctx);
-			}
-
-			free_entry(e);
-			_entries.erase(ite);
+			unload_entry(entry);
+			_entries.erase(entry_it);
 			it = _unloads.erase(it);
 		}
+	}
+
+	void resource_manager_t::unload_entry(resource_entry_t& entry)
+	{
+		const resource_type_desc_t* desc = find_resource_type_desc(entry.type);
+		SFG_ASSERT(desc != nullptr);
+
+		if (desc->unload != nullptr)
+		{
+			resource_context_t ctx{*this};
+			desc->unload(entry, ctx);
+		}
+
+		free_entry(entry);
 	}
 
 	void resource_manager_t::free_entry(resource_entry_t& entry)
@@ -431,15 +346,6 @@ namespace sfg
 			_memory.free(entry.debug_name);
 			entry.debug_name = {};
 		}
-		free_entry_load_data(entry);
-	}
-
-	void resource_manager_t::free_entry_load_data(resource_entry_t& entry)
-	{
-		if (entry.load_data.data != nullptr)
-			delete[] entry.load_data.data;
-
-		entry.load_data = {};
 	}
 
 	resource_entry_t* resource_manager_t::find_entry(u64 hash)
@@ -450,5 +356,4 @@ namespace sfg
 
 		return &it->second;
 	}
-
 }

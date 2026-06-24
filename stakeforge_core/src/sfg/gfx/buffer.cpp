@@ -75,29 +75,29 @@ namespace sfg
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_t::copy(gfx_command_buffer_handle cmd_buffer)
+	void buffer_t::copy(gfx_handle_t cmd_buffer)
 	{
 		gfx_backend& backend = gfx_backend::get();
 		backend.cmd_copy_resource(cmd_buffer,
-								   {
-									   .source		= _hw_staging,
-									   .destination = _hw_gpu,
-								   });
+								  {
+									  .source	   = _hw_staging,
+									  .destination = _hw_gpu,
+								  });
 	}
 
-	void buffer_t::copy_region(gfx_command_buffer_handle cmd_buffer, size_t padding, size_t size)
+	void buffer_t::copy_region(gfx_handle_t cmd_buffer, size_t padding, size_t size)
 	{
 		SFG_ASSERT(size != 0);
 
 		gfx_backend& backend = gfx_backend::get();
 		backend.cmd_copy_resource_region(cmd_buffer,
-										  {
-											  .source	   = _hw_staging,
-											  .destination = _hw_gpu,
-											  .dst_offset  = padding,
-											  .src_offset  = padding,
-											  .size		   = size,
-										  });
+										 {
+											 .source	  = _hw_staging,
+											 .destination = _hw_gpu,
+											 .dst_offset  = padding,
+											 .src_offset  = padding,
+											 .size		  = size,
+										 });
 	}
 
 	void buffer_gpu_t::create(const resource_desc_t& desc)
@@ -168,17 +168,17 @@ namespace sfg
 		SFG_MEMCPY(_mapped + padding, data, size);
 	}
 
-	void buffer_cpu_gpu_t::copy(gfx_command_buffer_handle cmd_buffer)
+	void buffer_cpu_gpu_t::copy(gfx_handle_t cmd_buffer)
 	{
 		gfx_backend& backend = gfx_backend::get();
 		backend.cmd_copy_resource(cmd_buffer,
-								   {
-									   .source		= _hw_staging,
-									   .destination = _hw_gpu,
-								   });
+								  {
+									  .source	   = _hw_staging,
+									  .destination = _hw_gpu,
+								  });
 	}
 
-	void buffer_cpu_gpu_t::copy_region(gfx_command_buffer_handle cmd_buffer, size_t padding, size_t size)
+	void buffer_cpu_gpu_t::copy_region(gfx_handle_t cmd_buffer, size_t padding, size_t size)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -187,13 +187,13 @@ namespace sfg
 #endif
 
 		backend.cmd_copy_resource_region(cmd_buffer,
-										  {
-											  .source	   = _hw_staging,
-											  .destination = _hw_gpu,
-											  .dst_offset  = padding,
-											  .src_offset  = padding,
-											  .size		   = size,
-										  });
+										 {
+											 .source	  = _hw_staging,
+											 .destination = _hw_gpu,
+											 .dst_offset  = padding,
+											 .src_offset  = padding,
+											 .size		  = size,
+										 });
 	}
 
 }

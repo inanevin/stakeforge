@@ -4,6 +4,7 @@
 
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -15,14 +16,6 @@
 
 namespace sfg
 {
-	bool mesh_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
-	{
-		return false;
-	}
-
-#define MESH_RESOURCE_USER_DATA_VERTEX_BUFFER 1
-#define MESH_RESOURCE_USER_DATA_INDEX_BUFFER  2
-
 	namespace
 	{
 		void free_mesh_runtime_cpu_data(mesh_runtime_t& runtime)
@@ -130,16 +123,13 @@ namespace sfg
 		}
 	}
 
-	bool mesh_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
+	bool mesh_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
 	{
 		chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
 		mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
 		mesh_internals_t*  internals = mem.get<mesh_internals_t>(entry.internals);
 		*runtime					 = {};
 		*internals					 = {};
-
-		istream_t stream;
-		stream.open(entry.load_data.data, entry.load_data.size);
 
 		mesh_def_t mesh = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &mesh, stream))
@@ -172,15 +162,6 @@ namespace sfg
 			return false;
 		}
 
-		return true;
-	}
-
-	create_internals_result_e mesh_loader_t::create_internals(resource_entry_t& entry, resource_context_t& ctx)
-	{
-		chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
-		mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
-		mesh_internals_t*  internals = mem.get<mesh_internals_t>(entry.internals);
-
 		if (runtime->vertex_data_size != 0)
 		{
 			resource_desc_t desc = {};
@@ -189,8 +170,8 @@ namespace sfg
 			desc.structure_count = runtime->vertex_count;
 			desc.flags			 = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
-			render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc, MESH_RESOURCE_USER_DATA_VERTEX_BUFFER);
-			internals->pending_count++;
+			internals->vertex_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
+			render_resources_t::get().enqueue_data_upload({.data = runtime->vertex_data, .resource = internals->vertex_buffer, .data_size = runtime->vertex_data_size});
 		}
 
 		if (runtime->index_data_size != 0)
@@ -201,64 +182,15 @@ namespace sfg
 			desc.structure_count = runtime->index_count;
 			desc.flags			 = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
-			render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc, MESH_RESOURCE_USER_DATA_INDEX_BUFFER);
-			internals->pending_count++;
+			internals->index_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
+			render_resources_t::get().enqueue_data_upload({.data = runtime->index_data, .resource = internals->index_buffer, .data_size = runtime->index_data_size});
 		}
-
-		if (internals->pending_count == 0)
-		{
-			free_mesh_runtime_cpu_data(*runtime);
-			return create_internals_result_e::ready;
-		}
-
-		return create_internals_result_e::queued;
-	}
-
-	resource_ready_result_e mesh_loader_t::resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion)
-	{
-		chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
-		mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
-		mesh_internals_t*  internals = mem.get<mesh_internals_t>(entry.internals);
-
-		SFG_ASSERT(completion.kind == render_resource_kind_e::resource);
-		SFG_ASSERT(internals->pending_count > 0);
-
-		if (completion.state == resource_state_e::failed)
-		{
-			internals->had_failure = 1;
-		}
-		else if (completion.user_data == MESH_RESOURCE_USER_DATA_VERTEX_BUFFER)
-		{
-			internals->vertex_buffer	   = completion.resource;
-			internals->vertex_buffer_index = completion.gpu_index;
-			render_resources_t::get().enqueue_data_upload(internals->vertex_buffer, runtime->vertex_data, runtime->vertex_data_size);
-		}
-		else
-		{
-			SFG_ASSERT(completion.user_data == MESH_RESOURCE_USER_DATA_INDEX_BUFFER);
-			internals->index_buffer		  = completion.resource;
-			internals->index_buffer_index = completion.gpu_index;
-			render_resources_t::get().enqueue_data_upload(internals->index_buffer, runtime->index_data, runtime->index_data_size);
-		}
-
-		internals->pending_count--;
-		if (internals->pending_count != 0)
-			return resource_ready_result_e::pending;
 
 		free_mesh_runtime_cpu_data(*runtime);
-		if (internals->had_failure)
-		{
-			render_resources_t::get().enqueue_destroy_resource(internals->vertex_buffer);
-			render_resources_t::get().enqueue_destroy_resource(internals->index_buffer);
-			free_mesh_internals_cpu_data(*internals);
-			*internals = {};
-			return resource_ready_result_e::failed;
-		}
-
-		return resource_ready_result_e::ready;
+		return true;
 	}
 
-	void mesh_loader_t::destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
+	void mesh_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
 		mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
@@ -281,11 +213,8 @@ namespace sfg
 		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
-		.async_load			 = false,
+		.use_async_load		 = false,
 		.load				 = mesh_loader_t::load,
-		.load_v2			 = mesh_loader_t::load,
-		.create_internals	 = mesh_loader_t::create_internals,
-		.resource_ready		 = mesh_loader_t::resource_ready,
-		.destroy_internals	 = mesh_loader_t::destroy_internals,
+		.unload				 = mesh_loader_t::unload,
 	};
 }

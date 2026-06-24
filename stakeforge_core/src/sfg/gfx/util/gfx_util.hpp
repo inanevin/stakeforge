@@ -86,14 +86,14 @@ namespace sfg
 	class gfx_util_t
 	{
 	public:
-		static gfx_bind_layout_handle create_bind_layout_global(bool is_compute);
-		static sampler_desc_t		  get_sampler_desc_anisotropic();
-		static sampler_desc_t		  get_sampler_desc_anisotropic_repeat();
-		static sampler_desc_t		  get_sampler_desc_linear();
-		static sampler_desc_t		  get_sampler_desc_linear_repeat();
-		static sampler_desc_t		  get_sampler_desc_nearest();
-		static sampler_desc_t		  get_sampler_desc_nearest_repeat();
-		static sampler_desc_t		  get_sampler_desc_shadow_2d();
-		static sampler_desc_t		  get_sampler_desc_shadow_cube();
+		static gfx_handle_t	  create_bind_layout_global(bool is_compute);
+		static sampler_desc_t get_sampler_desc_anisotropic();
+		static sampler_desc_t get_sampler_desc_anisotropic_repeat();
+		static sampler_desc_t get_sampler_desc_linear();
+		static sampler_desc_t get_sampler_desc_linear_repeat();
+		static sampler_desc_t get_sampler_desc_nearest();
+		static sampler_desc_t get_sampler_desc_nearest_repeat();
+		static sampler_desc_t get_sampler_desc_shadow_2d();
+		static sampler_desc_t get_sampler_desc_shadow_cube();
 	};
 }

@@ -4,25 +4,18 @@
 
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
-	bool skeleton_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
-	{
-		return false;
-	}
-
-	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
+	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
 	{
 		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
 		skeleton_runtime_t* runtime = mem.get<skeleton_runtime_t>(entry.runtime);
 		*runtime					= {};
-
-		istream_t stream;
-		stream.open(entry.load_data.data, entry.load_data.size);
 
 		skeleton_def_t skeleton = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, stream))
@@ -51,12 +44,7 @@ namespace sfg
 		return true;
 	}
 
-	create_internals_result_e skeleton_loader_t::create_internals(resource_entry_t&, resource_context_t&)
-	{
-		return create_internals_result_e::ready;
-	}
-
-	void skeleton_loader_t::destroy_internals(resource_entry_t&, resource_context_t&)
+	void skeleton_loader_t::unload(resource_entry_t&, resource_context_t&)
 	{
 	}
 
@@ -71,10 +59,8 @@ namespace sfg
 		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
-		.async_load			 = false,
+		.use_async_load		 = false,
 		.load				 = skeleton_loader_t::load,
-		.load_v2			 = skeleton_loader_t::load,
-		.create_internals	 = skeleton_loader_t::create_internals,
-		.destroy_internals	 = skeleton_loader_t::destroy_internals,
+		.unload				 = skeleton_loader_t::unload,
 	};
 }

@@ -5,24 +5,17 @@
 #include "resource_manager.hpp"
 
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 #include <new>
 
 namespace sfg
 {
-	bool animation_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
-	{
-		return false;
-	}
-
-	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
+	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
 	{
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
 		std::construct_at(runtime);
-
-		istream_t stream;
-		stream.open(entry.load_data.data, entry.load_data.size);
 
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<animation_def_t>::value, &runtime->def, stream))
 		{
@@ -31,17 +24,11 @@ namespace sfg
 		}
 
 		runtime->duration = runtime->def.duration;
+		ctx.resource_manager.get_animation_storage().add_animation(entry.hash, runtime->def);
 		return true;
 	}
 
-	create_internals_result_e animation_loader_t::create_internals(resource_entry_t& entry, resource_context_t& ctx)
-	{
-		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
-		ctx.resource_manager.get_animation_storage().add_animation(entry.hash, runtime->def);
-		return create_internals_result_e::ready;
-	}
-
-	void animation_loader_t::destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
+	void animation_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		ctx.resource_manager.get_animation_storage().remove_animation(entry.hash);
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
@@ -59,10 +46,8 @@ namespace sfg
 		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
-		.async_load			 = false,
+		.use_async_load		 = false,
 		.load				 = animation_loader_t::load,
-		.load_v2			 = animation_loader_t::load,
-		.create_internals	 = animation_loader_t::create_internals,
-		.destroy_internals	 = animation_loader_t::destroy_internals,
+		.unload				 = animation_loader_t::unload,
 	};
 }

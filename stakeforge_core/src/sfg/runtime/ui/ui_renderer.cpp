@@ -131,7 +131,7 @@ namespace sfg::ui
 		_idx_capacity	  = 0;
 	}
 
-	void ui_renderer_t::render(gfx_command_buffer_handle cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)
+	void ui_renderer_t::render(gfx_handle_t cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)
 	{
 		gfx_backend&	  backend	 = gfx_backend::get();
 		const u8		  frame_slot = frame_index % BACK_BUFFER_COUNT;
@@ -150,7 +150,7 @@ namespace sfg::ui
 		u32 vtx_offset = 0;
 		u32 idx_offset = 0;
 
-		gfx_shader_handle current_pipeline = {};
+		gfx_handle_t current_pipeline = {};
 
 		for (u32 i = 0; i < snap->draw_buffer_count; ++i)
 		{
@@ -168,7 +168,7 @@ namespace sfg::ui
 				continue;
 			}
 
-			const gfx_shader_handle pipeline = db.resolved.pipeline;
+			const gfx_handle_t pipeline = db.resolved.pipeline;
 
 			if (pipeline.is_null())
 				continue;

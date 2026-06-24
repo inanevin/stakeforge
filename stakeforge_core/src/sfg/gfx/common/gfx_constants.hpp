@@ -42,63 +42,11 @@ namespace sfg
 	typedef u32			   primitive_index;
 	typedef unsigned int   gpu_index_t;
 
-	struct gfx_resource_handle_tag
-	{
-	};
-	struct gfx_texture_handle_tag
-	{
-	};
-	struct gfx_texture_shared_handle_tag
-	{
-	};
-	struct gfx_sampler_handle_tag
-	{
-	};
-	struct gfx_swapchain_handle_tag
-	{
-	};
-	struct gfx_semaphore_handle_tag
-	{
-	};
-	struct gfx_shader_handle_tag
-	{
-	};
-	struct gfx_bind_group_handle_tag
-	{
-	};
-	struct gfx_command_buffer_handle_tag
-	{
-	};
-	struct gfx_command_allocator_handle_tag
-	{
-	};
-	struct gfx_queue_handle_tag
-	{
-	};
-	struct gfx_indirect_signature_handle_tag
-	{
-	};
-	struct gfx_descriptor_handle_tag
-	{
-	};
-	struct gfx_bind_layout_handle_tag
+	struct gfx_handle_tag
 	{
 	};
 
-	typedef pool_handle_t<gfx_id_t, gfx_resource_handle_tag>		   gfx_resource_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_texture_handle_tag>			   gfx_texture_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_texture_shared_handle_tag>	   gfx_texture_shared_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_sampler_handle_tag>			   gfx_sampler_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_swapchain_handle_tag>		   gfx_swapchain_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_semaphore_handle_tag>		   gfx_semaphore_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_shader_handle_tag>			   gfx_shader_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_bind_group_handle_tag>		   gfx_bind_group_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_command_buffer_handle_tag>	   gfx_command_buffer_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_command_allocator_handle_tag>  gfx_command_allocator_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_queue_handle_tag>			   gfx_queue_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_indirect_signature_handle_tag> gfx_indirect_signature_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_descriptor_handle_tag>		   gfx_descriptor_handle;
-	typedef pool_handle_t<gfx_id_t, gfx_bind_layout_handle_tag>		   gfx_bind_layout_handle;
+	typedef pool_handle_t<gfx_id_t, gfx_handle_tag> gfx_handle_t;
 
 #define NULL_GFX_ID	   (unsigned short)0xFFFF
 #define NULL_GPU_INDEX (unsigned int)0xFFFFFFFF

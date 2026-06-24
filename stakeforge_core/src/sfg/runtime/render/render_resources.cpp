@@ -16,109 +16,202 @@ namespace sfg
 		return instance;
 	}
 
-	void render_resources_t::enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data)
+	void render_resources_t::set_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_create_resource_q.enqueue({.hash = hash, .type = type, .user_data = user_data, .desc = desc});
+		if (resources.size() <= render_handle.index)
+			resources.resize(static_cast<size_t>(render_handle.index) + 1);
+
+		resources[render_handle.index] = {.render_handle = render_handle, .hw_handle = hw_handle};
 	}
 
-	void render_resources_t::enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e type, u32 user_data)
+	gfx_handle_t render_resources_t::get_render_thread_resource(const vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_create_texture_q.enqueue({.hash = hash, .type = type, .user_data = user_data, .desc = desc});
+		SFG_ASSERT(render_handle.index < resources.size());
+		const render_thread_resource_t& resource = resources[render_handle.index];
+		SFG_ASSERT(resource.render_handle == render_handle);
+		SFG_ASSERT(!resource.hw_handle.is_null());
+		return resource.hw_handle;
 	}
 
-	void render_resources_t::enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc)
+	gfx_handle_t render_resources_t::remove_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_create_sampler_q.enqueue({.hash = hash, .type = type, .desc = desc});
+		SFG_ASSERT(render_handle.index < resources.size());
+		render_thread_resource_t& resource = resources[render_handle.index];
+		SFG_ASSERT(resource.render_handle == render_handle);
+		const gfx_handle_t hw_handle = resource.hw_handle;
+		resource					 = {};
+		return hw_handle;
 	}
 
-	void render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout)
+	render_resource_handle_t render_resources_t::enqueue_create_resource(sid_t, resource_type_e, const resource_desc_t& desc, u32)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		const render_resource_handle_t handle = _resources.add();
+		_request_q.enqueue({.kind = request_kind_e::create_resource, .resource_desc = desc, .render_handle = handle});
+		return handle;
+	}
+
+	render_resource_handle_t render_resources_t::enqueue_create_texture(sid_t, const texture_desc_t& desc, resource_type_e, u32)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		const render_resource_handle_t handle = _textures.add();
+		_request_q.enqueue({.kind = request_kind_e::create_texture, .texture_desc = desc, .render_handle = handle});
+		return handle;
+	}
+
+	render_resource_handle_t render_resources_t::enqueue_create_sampler(sid_t, resource_type_e, const sampler_desc_t& desc)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		const render_resource_handle_t handle = _samplers.add();
+		_request_q.enqueue({.kind = request_kind_e::create_sampler, .sampler_desc = desc, .render_handle = handle});
+		return handle;
+	}
+
+	render_resource_handle_t render_resources_t::enqueue_create_shader(sid_t, resource_type_e, u32, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(blobs.size <= MAX_SHADER_STAGES);
-		create_shader_request_t req = {};
-		req.hash					= hash;
-		req.type					= type;
-		req.user_data				= user_data;
-		req.desc					= desc;
-		req.existing_layout			= existing_layout;
+		const render_resource_handle_t handle = _shaders.add();
+		request_t					   req	  = {};
+		req.kind							  = request_kind_e::create_shader;
+		req.shader_desc						  = desc;
+		req.existing_layout					  = existing_layout;
+		req.render_handle					  = handle;
 		for (size_t i = 0; i < blobs.size; ++i)
 			req.blobs.push_back(blobs.data[i]);
-		_create_shader_q.enqueue(std::move(req));
+		_request_q.enqueue(std::move(req));
+		return handle;
 	}
 
-	void render_resources_t::enqueue_destroy_resource(gfx_resource_handle handle)
+	void render_resources_t::enqueue_destroy_resource(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
-		_destroy_resource_q.enqueue(handle);
+		_request_q.enqueue({.kind = request_kind_e::destroy_resource, .render_handle = handle});
+		_resources.remove(handle);
 	}
 
-	void render_resources_t::enqueue_destroy_texture(gfx_texture_handle handle)
+	void render_resources_t::enqueue_destroy_texture(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
-		_destroy_texture_q.enqueue(handle);
+		_request_q.enqueue({.kind = request_kind_e::destroy_texture, .render_handle = handle});
+		_textures.remove(handle);
 	}
 
-	void render_resources_t::enqueue_destroy_sampler(gfx_sampler_handle handle)
+	void render_resources_t::enqueue_destroy_sampler(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
-		_destroy_sampler_q.enqueue(handle);
+		_request_q.enqueue({.kind = request_kind_e::destroy_sampler, .render_handle = handle});
+		_samplers.remove(handle);
 	}
 
-	void render_resources_t::enqueue_destroy_shader(gfx_shader_handle handle)
+	void render_resources_t::enqueue_destroy_shader(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
-		_destroy_shader_q.enqueue(handle);
+		_request_q.enqueue({.kind = request_kind_e::destroy_shader, .render_handle = handle});
+		_shaders.remove(handle);
 	}
 
-	void render_resources_t::enqueue_texture_upload(const texture_upload_desc_t& desc)
+	void render_resources_t::enqueue_texture_upload(const render_texture_upload_desc_t& desc)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(!desc.texture.is_null());
+		SFG_ASSERT(!desc.staging.is_null());
+		SFG_ASSERT(desc.mips.size > 0);
+		SFG_ASSERT(desc.mips.size <= texture_queue_t::MAX_MIPS);
 
-		texture_upload_request_t req = {};
-		req.texture					 = desc.texture;
-		req.staging					 = desc.staging;
-		req.target_states			 = desc.target_states;
-		req.destination_slice		 = desc.destination_slice;
-		req.ownership				 = desc.ownership;
+		request_t req		  = {};
+		req.kind			  = request_kind_e::texture_upload;
+		req.texture			  = desc.texture;
+		req.staging			  = desc.staging;
+		req.target_states	  = desc.target_states;
+		req.destination_slice = desc.destination_slice;
+		req.ownership		  = desc.ownership;
 		for (size_t i = 0; i < desc.mips.size; ++i)
 			req.mips.push_back(desc.mips.data[i]);
 
-		_texture_upload_q.enqueue(std::move(req));
+		_request_q.enqueue(std::move(req));
 	}
 
-	void render_resources_t::enqueue_texture_region_upload(const texture_region_upload_desc_t& desc)
+	void render_resources_t::enqueue_texture_region_upload(const render_texture_region_upload_desc_t& desc)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_texture_region_upload_q.enqueue(desc);
+		SFG_ASSERT(!desc.dst_texture.is_null());
+		SFG_ASSERT(!desc.src_buffer.is_null());
+		SFG_ASSERT(desc.width > 0 && desc.height > 0);
+		SFG_ASSERT(desc.bpp > 0);
+		_request_q.enqueue({
+			.kind		   = request_kind_e::texture_region_upload,
+			.dst_texture   = desc.dst_texture,
+			.src_buffer	   = desc.src_buffer,
+			.src_offset	   = desc.src_offset,
+			.src_row_pitch = desc.src_row_pitch,
+			.target_states = desc.target_states,
+			.dst_x		   = desc.dst_x,
+			.dst_y		   = desc.dst_y,
+			.width		   = desc.width,
+			.height		   = desc.height,
+			.bpp		   = desc.bpp,
+			.dst_mip	   = desc.dst_mip,
+		});
 	}
 
-	void render_resources_t::enqueue_data_upload(gfx_resource_handle resource, const void* data, u32 data_size)
+	void render_resources_t::enqueue_data_upload(const render_data_upload_desc_t& desc)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(!resource.is_null());
-		SFG_ASSERT(data != nullptr);
-		SFG_ASSERT(data_size != 0);
+		SFG_ASSERT(!desc.resource.is_null());
+		SFG_ASSERT(desc.data != nullptr);
+		SFG_ASSERT(desc.data_size != 0);
 
-		u8* copy = static_cast<u8*>(SFG_MALLOC(data_size));
-		SFG_MEMCPY(copy, data, data_size);
-		_data_upload_q.enqueue({.resource = resource, .data = copy, .data_size = data_size});
+		u8* copy = static_cast<u8*>(SFG_MALLOC(desc.data_size));
+		SFG_MEMCPY(copy, desc.data, desc.data_size);
+		_request_q.enqueue({.kind = request_kind_e::data_upload, .resource = desc.resource, .data = copy, .data_size = desc.data_size});
 	}
 
-	bool render_resources_t::drain_completion(render_resource_completion_t& out_completion)
+	gfx_handle_t render_resources_t::get_resource(render_resource_handle_t handle) const
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		return _completed_q.try_dequeue(out_completion);
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+		return get_render_thread_resource(_rt_resources, handle);
+	}
+
+	gfx_handle_t render_resources_t::get_texture(render_resource_handle_t handle) const
+	{
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+		return get_render_thread_resource(_rt_textures, handle);
+	}
+
+	gfx_handle_t render_resources_t::get_sampler(render_resource_handle_t handle) const
+	{
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+		return get_render_thread_resource(_rt_samplers, handle);
+	}
+
+	gfx_handle_t render_resources_t::get_shader(render_resource_handle_t handle) const
+	{
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+		return get_render_thread_resource(_rt_shaders, handle);
+	}
+
+	gpu_index_t render_resources_t::get_resource_gpu_index(render_resource_handle_t handle) const
+	{
+		return gfx_backend::get().get_resource_gpu_index(get_resource(handle));
+	}
+
+	gpu_index_t render_resources_t::get_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const
+	{
+		return gfx_backend::get().get_texture_gpu_index(get_texture(handle), view_index);
+	}
+
+	gpu_index_t render_resources_t::get_sampler_gpu_index(render_resource_handle_t handle) const
+	{
+		return gfx_backend::get().get_sampler_gpu_index(get_sampler(handle));
 	}
 
 	void render_resources_t::drain_requests()
@@ -127,107 +220,95 @@ namespace sfg
 
 		gfx_backend& backend = gfx_backend::get();
 
-		gfx_resource_handle resource_to_destroy = {};
-		while (_destroy_resource_q.try_dequeue(resource_to_destroy))
-			backend.destroy_resource(resource_to_destroy);
-
-		gfx_texture_handle to_destroy = {};
-		while (_destroy_texture_q.try_dequeue(to_destroy))
-			backend.destroy_texture(to_destroy);
-
-		gfx_sampler_handle sampler_to_destroy = {};
-		while (_destroy_sampler_q.try_dequeue(sampler_to_destroy))
-			backend.destroy_sampler(sampler_to_destroy);
-
-		gfx_shader_handle shader_to_destroy = {};
-		while (_destroy_shader_q.try_dequeue(shader_to_destroy))
-			backend.destroy_shader(shader_to_destroy);
-
-		create_resource_request_t resource_req = {};
-		while (_create_resource_q.try_dequeue(resource_req))
+		request_t req = {};
+		while (_request_q.try_dequeue(req))
 		{
-			const gfx_resource_handle handle = backend.create_resource(resource_req.desc);
-			_completed_q.enqueue({
-				.hash	   = resource_req.hash,
-				.type	   = resource_req.type,
-				.kind	   = render_resource_kind_e::resource,
-				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.user_data = resource_req.user_data,
-				.resource  = handle,
-				.gpu_index = backend.get_resource_gpu_index(handle),
-			});
-		}
-
-		create_texture_request_t req = {};
-		while (_create_texture_q.try_dequeue(req))
-		{
-			const gfx_texture_handle handle = backend.create_texture(req.desc);
-			_completed_q.enqueue({
-				.hash	   = req.hash,
-				.type	   = req.type,
-				.kind	   = render_resource_kind_e::texture,
-				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.user_data = req.user_data,
-				.texture   = handle,
-				.gpu_index = backend.get_texture_gpu_index(handle, 0),
-			});
-		}
-
-		create_sampler_request_t sampler_req = {};
-		while (_create_sampler_q.try_dequeue(sampler_req))
-		{
-			const gfx_sampler_handle handle = backend.create_sampler(sampler_req.desc);
-			_completed_q.enqueue({
-				.hash	   = sampler_req.hash,
-				.type	   = sampler_req.type,
-				.kind	   = render_resource_kind_e::sampler,
-				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.sampler   = handle,
-				.gpu_index = backend.get_sampler_gpu_index(handle),
-			});
-		}
-
-		create_shader_request_t shader_req = {};
-		while (_create_shader_q.try_dequeue(shader_req))
-		{
-			const span_t<const shader_blob_t> blobs	 = {.data = shader_req.blobs.data(), .size = shader_req.blobs.size()};
-			const gfx_shader_handle			  handle = backend.create_shader(shader_req.desc, blobs, shader_req.existing_layout);
-			_completed_q.enqueue({
-				.hash	   = shader_req.hash,
-				.type	   = shader_req.type,
-				.kind	   = render_resource_kind_e::shader,
-				.state	   = handle.is_null() ? resource_state_e::failed : resource_state_e::ready,
-				.user_data = shader_req.user_data,
-				.shader	   = handle,
-			});
-		}
-
-		texture_upload_request_t texture_upload_req = {};
-		while (_texture_upload_q.try_dequeue(texture_upload_req))
-		{
-			const texture_upload_desc_t desc = {
-				.texture		   = texture_upload_req.texture,
-				.staging		   = texture_upload_req.staging,
-				.mips			   = {.data = texture_upload_req.mips.data(), .size = texture_upload_req.mips.size()},
-				.target_states	   = texture_upload_req.target_states,
-				.destination_slice = texture_upload_req.destination_slice,
-				.ownership		   = texture_upload_req.ownership,
-			};
-			_texture_upload_queue.add(desc);
-		}
-
-		texture_region_upload_desc_t texture_region_upload_req = {};
-		while (_texture_region_upload_q.try_dequeue(texture_region_upload_req))
-			_texture_upload_queue.add_region(texture_region_upload_req);
-
-		data_upload_request_t data_upload_req = {};
-		while (_data_upload_q.try_dequeue(data_upload_req))
-		{
-			u8* mapped = nullptr;
-			backend.map_resource(data_upload_req.resource, mapped);
-			SFG_MEMCPY(mapped, data_upload_req.data, data_upload_req.data_size);
-			backend.unmap_resource(data_upload_req.resource);
-			SFG_FREE(data_upload_req.data);
+			switch (req.kind)
+			{
+			case request_kind_e::create_resource: {
+				const gfx_handle_t handle = backend.create_resource(req.resource_desc);
+				set_render_thread_resource(_rt_resources, req.render_handle, handle);
+				break;
+			}
+			case request_kind_e::create_texture: {
+				const gfx_handle_t handle = backend.create_texture(req.texture_desc);
+				set_render_thread_resource(_rt_textures, req.render_handle, handle);
+				break;
+			}
+			case request_kind_e::create_sampler: {
+				const gfx_handle_t handle = backend.create_sampler(req.sampler_desc);
+				set_render_thread_resource(_rt_samplers, req.render_handle, handle);
+				break;
+			}
+			case request_kind_e::create_shader: {
+				const span_t<const shader_blob_t> blobs	 = {.data = req.blobs.data(), .size = req.blobs.size()};
+				const gfx_handle_t				  handle = backend.create_shader(req.shader_desc, blobs, req.existing_layout);
+				set_render_thread_resource(_rt_shaders, req.render_handle, handle);
+				break;
+			}
+			case request_kind_e::texture_upload: {
+				const texture_upload_desc_t desc = {
+					.texture		   = get_render_thread_resource(_rt_textures, req.texture),
+					.staging		   = get_render_thread_resource(_rt_resources, req.staging),
+					.mips			   = {.data = req.mips.data(), .size = req.mips.size()},
+					.target_states	   = req.target_states,
+					.destination_slice = req.destination_slice,
+					.ownership		   = req.ownership,
+				};
+				_texture_upload_queue.add(desc);
+				break;
+			}
+			case request_kind_e::texture_region_upload: {
+				const texture_region_upload_desc_t desc = {
+					.dst_texture   = get_render_thread_resource(_rt_textures, req.dst_texture),
+					.src_buffer	   = get_render_thread_resource(_rt_resources, req.src_buffer),
+					.src_offset	   = req.src_offset,
+					.src_row_pitch = req.src_row_pitch,
+					.dst_x		   = req.dst_x,
+					.dst_y		   = req.dst_y,
+					.width		   = req.width,
+					.height		   = req.height,
+					.bpp		   = req.bpp,
+					.dst_mip	   = req.dst_mip,
+					.target_states = req.target_states,
+				};
+				_texture_upload_queue.add_region(desc);
+				break;
+			}
+			case request_kind_e::data_upload: {
+				u8*				   mapped	= nullptr;
+				const gfx_handle_t resource = get_render_thread_resource(_rt_resources, req.resource);
+				backend.map_resource(resource, mapped);
+				SFG_MEMCPY(mapped, req.data, req.data_size);
+				backend.unmap_resource(resource);
+				SFG_FREE(req.data);
+				break;
+			}
+			case request_kind_e::destroy_resource: {
+				const gfx_handle_t handle = remove_render_thread_resource(_rt_resources, req.render_handle);
+				if (!handle.is_null())
+					backend.destroy_resource(handle);
+				break;
+			}
+			case request_kind_e::destroy_texture: {
+				const gfx_handle_t handle = remove_render_thread_resource(_rt_textures, req.render_handle);
+				if (!handle.is_null())
+					backend.destroy_texture(handle);
+				break;
+			}
+			case request_kind_e::destroy_sampler: {
+				const gfx_handle_t handle = remove_render_thread_resource(_rt_samplers, req.render_handle);
+				if (!handle.is_null())
+					backend.destroy_sampler(handle);
+				break;
+			}
+			case request_kind_e::destroy_shader: {
+				const gfx_handle_t handle = remove_render_thread_resource(_rt_shaders, req.render_handle);
+				if (!handle.is_null())
+					backend.destroy_shader(handle);
+				break;
+			}
+			}
 		}
 	}
 }

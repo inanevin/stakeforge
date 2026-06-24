@@ -4,7 +4,7 @@
 #include "common_resources.hpp"
 #include "shader_types.hpp"
 #include <sfg/data/bitmask.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
 {
@@ -19,11 +19,8 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC			   = make_resource_wire_magic('S', 'H', 'D', 'R');
 		static constexpr u32 WIRE_VERSION		   = 7;
 
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
-		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
-		static resource_ready_result_e	 resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
-		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
 	struct shader_runtime_stage_entry_t
@@ -56,13 +53,11 @@ namespace sfg
 
 	struct shader_internals_t
 	{
-		gfx_shader_handle psos[shader_loader_t::MAX_PSO_VARIANTS]	   = {};
-		bitmask_t<u32>	  pso_flags[shader_loader_t::MAX_PSO_VARIANTS] = {};
-		u8				  pso_count									   = 0;
-		u8				  pending_count								   = 0;
-		bool			  had_failure								   = false;
+		render_resource_handle_t psos[shader_loader_t::MAX_PSO_VARIANTS]	  = {};
+		bitmask_t<u32>			 pso_flags[shader_loader_t::MAX_PSO_VARIANTS] = {};
+		u8						 pso_count									  = 0;
 
-		gfx_shader_handle find_pso(bitmask_t<u32> flags) const;
+		render_resource_handle_t find_pso(bitmask_t<u32> flags) const;
 	};
 
 	extern const resource_type_desc_t shader_resource_desc;

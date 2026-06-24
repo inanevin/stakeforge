@@ -142,12 +142,12 @@ namespace sfg
 				const skybox_hdr_internals_t* internals = resource_manager.get_memory().get<skybox_hdr_internals_t>(entry->internals);
 				const skybox_hdr_runtime_t*	  runtime	= resource_manager.get_memory().get<skybox_hdr_runtime_t>(entry->runtime);
 				snapshot.skybox							= {
-											.radiance	= internals->radiance_index,
-											.irradiance = internals->irradiance_index,
-											.prefilter	= internals->prefilter_index,
-											.brdf_lut	= internals->brdf_lut_index,
-											.intensity	= runtime->intensity * skybox.intensity,
-											.exposure	= skybox.exposure,
+					.radiance	= internals->radiance_texture,
+					.irradiance = internals->irradiance_texture,
+					.prefilter	= internals->prefilter_texture,
+					.brdf_lut	= internals->brdf_lut_texture,
+					.intensity	= runtime->intensity * skybox.intensity,
+					.exposure	= skybox.exposure,
 				};
 				break;
 			}

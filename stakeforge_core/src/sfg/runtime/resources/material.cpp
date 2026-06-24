@@ -7,7 +7,7 @@
 #include "texture.hpp"
 #include "texture_sampler.hpp"
 #include <sfg/data/istream.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
@@ -16,19 +16,8 @@
 
 namespace sfg
 {
-	bool material_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
-	{
-		return false;
-	}
-
 	namespace
 	{
-		enum material_resource_user_data_e : u32
-		{
-			material_resource_user_data_parameters = 1,
-			material_resource_user_data_textures   = 2,
-		};
-
 		u32 get_material_parameter_size(material_parameter_type_e type)
 		{
 			switch (type)
@@ -88,14 +77,13 @@ namespace sfg
 		}
 	}
 
-	bool material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
+	bool material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
 	{
-		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
-		material_runtime_t* runtime = mem.get<material_runtime_t>(entry.runtime);
-		*runtime					= {};
-
-		istream_t stream;
-		stream.open(entry.load_data.data, entry.load_data.size);
+		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
+		material_runtime_t*	  runtime	= mem.get<material_runtime_t>(entry.runtime);
+		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
+		*runtime						= {};
+		*internals						= {};
 
 		material_def_t material = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<material_def_t>::value, &material, stream))
@@ -139,109 +127,53 @@ namespace sfg
 				runtime->texture_guids[i] = material.textures[i];
 		}
 
-		return true;
-	}
-
-	create_internals_result_e material_loader_t::create_internals(resource_entry_t& entry, resource_context_t& ctx)
-	{
-		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
-		material_runtime_t*	  runtime	= mem.get<material_runtime_t>(entry.runtime);
-		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
-		*internals						= {};
-
 		if (runtime->parameter_count != 0)
 		{
 			resource_desc_t desc = {};
 			desc.size			 = runtime->parameter_data_size;
 			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
-			render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc, material_resource_user_data_parameters);
-			internals->pending_count++;
-		}
+			internals->parameter_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
 
-		if (runtime->sampler_guid != NULL_SID)
-		{
-			const texture_sampler_internals_t* sampler = ctx.resource_manager.find_internals<texture_sampler_internals_t>(runtime->sampler_guid);
-			SFG_ASSERT(sampler != nullptr);
-			internals->sampler_index = sampler->gpu_index;
-		}
-
-		if (runtime->texture_count != 0)
-		{
-			SFG_ASSERT(internals->sampler_index != NULL_GPU_INDEX);
-			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(gpu_index_t);
-			for (u32 i = 0; i < runtime->texture_count; ++i)
-			{
-				const texture_internals_t* texture = ctx.resource_manager.find_internals<texture_internals_t>(runtime->texture_guids[i]);
-				SFG_ASSERT(texture != nullptr);
-				runtime->texture_indices[i] = texture->gpu_index;
-			}
-
-			resource_desc_t desc = {};
-			desc.size			 = static_cast<u32>(texture_bytes);
-			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-			desc.set_name(mem.get_text(entry.debug_name));
-			render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc, material_resource_user_data_textures);
-			internals->pending_count++;
-		}
-
-		if (internals->pending_count == 0)
-		{
-			return create_internals_result_e::ready;
-		}
-
-		return create_internals_result_e::queued;
-	}
-
-	resource_ready_result_e material_loader_t::resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion)
-	{
-		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
-		material_runtime_t*	  runtime	= mem.get<material_runtime_t>(entry.runtime);
-		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
-
-		SFG_ASSERT(completion.kind == render_resource_kind_e::resource);
-		SFG_ASSERT(internals->pending_count > 0);
-
-		if (completion.state == resource_state_e::failed)
-		{
-			internals->had_failure = 1;
-		}
-		else if (completion.user_data == material_resource_user_data_parameters)
-		{
 			SFG_ASSERT(runtime->parameter_data_size <= MATERIAL_MAX_PARAMETER_DATA_SIZE);
 			u8	parameter_values[MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
 			u8* dst												   = parameter_values;
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
 				write_material_parameter(dst, runtime->parameters[i]);
 
-			internals->parameter_buffer = completion.resource;
-			internals->parameter_index	= completion.gpu_index;
-			render_resources_t::get().enqueue_data_upload(internals->parameter_buffer, parameter_values, runtime->parameter_data_size);
+			render_resources_t::get().enqueue_data_upload({.data = parameter_values, .resource = internals->parameter_buffer, .data_size = runtime->parameter_data_size});
 		}
-		else
+
+		if (runtime->sampler_guid != NULL_SID)
 		{
-			SFG_ASSERT(completion.user_data == material_resource_user_data_textures);
-			internals->texture_buffer = completion.resource;
-			internals->texture_index  = completion.gpu_index;
-			render_resources_t::get().enqueue_data_upload(internals->texture_buffer, runtime->texture_indices, runtime->texture_count * sizeof(gpu_index_t));
+			const texture_sampler_internals_t* sampler = ctx.resource_manager.find_internals<texture_sampler_internals_t>(runtime->sampler_guid);
+			SFG_ASSERT(sampler != nullptr);
+			internals->sampler = sampler->sampler;
 		}
 
-		internals->pending_count--;
-		if (internals->pending_count != 0)
-			return resource_ready_result_e::pending;
-
-		if (internals->had_failure)
+		if (runtime->texture_count != 0)
 		{
-			render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffer);
-			render_resources_t::get().enqueue_destroy_resource(internals->texture_buffer);
-			*internals = {};
-			return resource_ready_result_e::failed;
+			SFG_ASSERT(!internals->sampler.is_null());
+			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(render_resource_handle_t);
+			for (u32 i = 0; i < runtime->texture_count; ++i)
+			{
+				const texture_internals_t* texture = ctx.resource_manager.find_internals<texture_internals_t>(runtime->texture_guids[i]);
+				SFG_ASSERT(texture != nullptr);
+				// runtime->texture_handles[i] = texture->texture;
+			}
+
+			resource_desc_t desc = {};
+			desc.size			 = static_cast<u32>(texture_bytes);
+			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+			desc.set_name(mem.get_text(entry.debug_name));
+			internals->texture_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
+			render_resources_t::get().enqueue_data_upload({.data = runtime->texture_handles, .resource = internals->texture_buffer, .data_size = static_cast<u32>(texture_bytes)});
 		}
 
-		return resource_ready_result_e::ready;
+		return true;
 	}
 
-	void material_loader_t::destroy_internals(resource_entry_t& entry, resource_context_t& ctx)
+	void material_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
 		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
@@ -261,11 +193,8 @@ namespace sfg
 		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
-		.async_load			 = false,
+		.use_async_load		 = false,
 		.load				 = material_loader_t::load,
-		.load_v2			 = material_loader_t::load,
-		.create_internals	 = material_loader_t::create_internals,
-		.resource_ready		 = material_loader_t::resource_ready,
-		.destroy_internals	 = material_loader_t::destroy_internals,
+		.unload				 = material_loader_t::unload,
 	};
 }

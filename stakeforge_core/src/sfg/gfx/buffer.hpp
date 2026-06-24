@@ -41,7 +41,7 @@ namespace sfg
 		void destroy();
 		void buffer_data(size_t padding, const void* data, size_t size);
 
-		inline gfx_resource_handle get_gpu() const
+		inline gfx_handle_t get_gpu() const
 		{
 			return _hw;
 		}
@@ -59,7 +59,7 @@ namespace sfg
 		u32 _total_size = 0;
 #endif
 
-		gfx_resource_handle _hw = {};
+		gfx_handle_t _hw = {};
 	};
 
 	class buffer_cpu_gpu_t
@@ -68,15 +68,15 @@ namespace sfg
 		void create(const resource_desc_t& desc_cpu, const resource_desc_t& desc_gpu);
 		void destroy();
 		void buffer_data(size_t padding, const void* data, size_t size);
-		void copy(gfx_command_buffer_handle cmd_buffer);
-		void copy_region(gfx_command_buffer_handle cmd_buffer, size_t padding, size_t size);
+		void copy(gfx_handle_t cmd_buffer);
+		void copy_region(gfx_handle_t cmd_buffer, size_t padding, size_t size);
 
-		inline gfx_resource_handle get_staging() const
+		inline gfx_handle_t get_staging() const
 		{
 			return _hw_staging;
 		}
 
-		inline gfx_resource_handle get_gpu() const
+		inline gfx_handle_t get_gpu() const
 		{
 			return _hw_gpu;
 		}
@@ -92,8 +92,8 @@ namespace sfg
 #ifdef SFG_DEBUG
 		u32 _total_size = 0;
 #endif
-		gfx_resource_handle _hw_staging = {};
-		gfx_resource_handle _hw_gpu		= {};
+		gfx_handle_t _hw_staging = {};
+		gfx_handle_t _hw_gpu	   = {};
 	};
 
 	class buffer_t
@@ -102,14 +102,14 @@ namespace sfg
 		void create(const resource_desc_t& staging, const resource_desc_t& hw);
 		void destroy();
 		void buffer_data(size_t padding, const void* data, size_t size);
-		void copy(gfx_command_buffer_handle cmd_buffer);
-		void copy_region(gfx_command_buffer_handle cmd_buffer, size_t padding, size_t size);
+		void copy(gfx_handle_t cmd_buffer);
+		void copy_region(gfx_handle_t cmd_buffer, size_t padding, size_t size);
 
-		inline gfx_resource_handle get_staging() const
+		inline gfx_handle_t get_staging() const
 		{
 			return _hw_staging;
 		}
-		inline gfx_resource_handle get_gpu() const
+		inline gfx_handle_t get_gpu() const
 		{
 			return _hw_gpu;
 		}
@@ -139,8 +139,8 @@ namespace sfg
 		gpu_index_t _index			 = NULL_GPU_INDEX;
 		gpu_index_t _index_secondary = NULL_GPU_INDEX;
 
-		gfx_resource_handle _hw_staging = {};
-		gfx_resource_handle _hw_gpu		= {};
+		gfx_handle_t _hw_staging = {};
+		gfx_handle_t _hw_gpu	   = {};
 	};
 
 }

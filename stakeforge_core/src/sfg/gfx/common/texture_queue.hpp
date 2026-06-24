@@ -44,8 +44,8 @@ namespace sfg
 
 	struct texture_upload_desc_t
 	{
-		gfx_texture_handle			   texture			 = {};
-		gfx_resource_handle			   staging			 = {};
+		gfx_handle_t				   texture			 = {};
+		gfx_handle_t				   staging			 = {};
 		span_t<const texture_buffer_t> mips				 = {};
 		u32							   target_states	 = 0;
 		u8							   destination_slice = 0;
@@ -54,18 +54,18 @@ namespace sfg
 
 	struct texture_region_upload_desc_t
 	{
-		gfx_texture_handle	src_texture	  = {};
-		gfx_texture_handle	dst_texture	  = {};
-		gfx_resource_handle src_buffer	  = {};
-		u64					src_offset	  = 0;
-		u32					src_row_pitch = 0;
-		u16					dst_x		  = 0;
-		u16					dst_y		  = 0;
-		u16					width		  = 0;
-		u16					height		  = 0;
-		u8					bpp			  = 0;
-		u8					dst_mip		  = 0;
-		u32					target_states = 0;
+		gfx_handle_t src_texture   = {};
+		gfx_handle_t dst_texture   = {};
+		gfx_handle_t src_buffer	   = {};
+		u64			 src_offset	   = 0;
+		u32			 src_row_pitch = 0;
+		u16			 dst_x		   = 0;
+		u16			 dst_y		   = 0;
+		u16			 width		   = 0;
+		u16			 height		   = 0;
+		u8			 bpp		   = 0;
+		u8			 dst_mip	   = 0;
+		u32			 target_states = 0;
 	};
 
 	class texture_queue_t
@@ -92,13 +92,13 @@ namespace sfg
 		void add(const texture_upload_desc_t& desc);
 		void add_region(const texture_region_upload_desc_t& desc);
 
-		bool prepare(gfx_command_buffer_handle cmd);
+		bool prepare(gfx_handle_t cmd);
 
 		// flush issues copies on the (transfer) command buffer; returns true if anything was emitted.
-		bool flush(gfx_command_buffer_handle cmd);
+		bool flush(gfx_handle_t cmd);
 
 		// transit issues post-upload barriers on the (graphics) command buffer.
-		void transit(gfx_command_buffer_handle cmd);
+		void transit(gfx_handle_t cmd);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -110,8 +110,8 @@ namespace sfg
 	private:
 		struct entry_t
 		{
-			gfx_texture_handle							 texture		   = {};
-			gfx_resource_handle							 staging		   = {};
+			gfx_handle_t								 texture		   = {};
+			gfx_handle_t								 staging		   = {};
 			inplace_vector_t<texture_buffer_t, MAX_MIPS> mips			   = {};
 			u32											 target_states	   = 0;
 			u8											 destination_slice = 0;
@@ -120,23 +120,23 @@ namespace sfg
 
 		struct region_entry_t
 		{
-			gfx_texture_handle	dst_texture	  = {};
-			gfx_resource_handle src_buffer	  = {};
-			u64					src_offset	  = 0;
-			u32					src_row_pitch = 0;
-			u16					dst_x		  = 0;
-			u16					dst_y		  = 0;
-			u16					width		  = 0;
-			u16					height		  = 0;
-			u8					bpp			  = 0;
-			u8					dst_mip		  = 0;
-			u32					target_states = 0;
+			gfx_handle_t dst_texture   = {};
+			gfx_handle_t src_buffer	   = {};
+			u64			 src_offset	   = 0;
+			u32			 src_row_pitch = 0;
+			u16			 dst_x		   = 0;
+			u16			 dst_y		   = 0;
+			u16			 width		   = 0;
+			u16			 height		   = 0;
+			u8			 bpp		   = 0;
+			u8			 dst_mip	   = 0;
+			u32			 target_states = 0;
 		};
 
 		struct transit_entry_t
 		{
-			gfx_texture_handle texture		 = {};
-			u32				   target_states = 0;
+			gfx_handle_t texture	   = {};
+			u32			 target_states = 0;
 		};
 
 		static void release_entry(entry_t& entry);

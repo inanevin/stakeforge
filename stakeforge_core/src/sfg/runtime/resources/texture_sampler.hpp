@@ -3,6 +3,7 @@
 
 #include "common_resources.hpp"
 #include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
 {
@@ -15,8 +16,7 @@ namespace sfg
 
 	struct texture_sampler_internals_t
 	{
-		gfx_sampler_handle sampler	 = {};
-		gpu_index_t		   gpu_index = NULL_GPU_INDEX;
+		render_resource_handle_t sampler = {};
 	};
 
 	class texture_sampler_loader_t
@@ -25,11 +25,8 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'A', 'M', 'P');
 		static constexpr u32 WIRE_VERSION = 4;
 
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
-		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
-		static resource_ready_result_e	 resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
-		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
 	extern const resource_type_desc_t texture_sampler_resource_desc;

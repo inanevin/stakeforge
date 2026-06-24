@@ -69,7 +69,7 @@ namespace sfg
 		unique_t<editor_tooltip_controller_t>	  tooltip_controller;
 		unique_t<window_runtime_t>				  runtime;
 		unique_t<ui::ui_context>				  ui;
-		gfx_swapchain_handle					  swapchain		 = {};
+		gfx_handle_t								  swapchain		 = {};
 		vec2u16_t								  swapchain_size = {};
 		ui::widget_id_t							  payload_root	 = NULL_WIDGET;
 		ui::widget_id_t							  payload_text	 = NULL_WIDGET;

@@ -140,14 +140,14 @@ namespace sfg
 		}
 	}
 
-	gfx_swapchain_handle editor_renderer_t::create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size, ui::ui_context* ui)
+	gfx_handle_t editor_renderer_t::create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size, ui::ui_context* ui)
 	{
 		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(window_handle != nullptr);
 
 		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
 
-		const gfx_swapchain_handle swapchain = backend.create_swapchain({
+		const gfx_handle_t swapchain = backend.create_swapchain({
 			.window_t  = window_handle,
 			.os_handle = platform_handle,
 			.scaling   = dpi_scale == 0.0f ? 1.0f : dpi_scale,
@@ -172,7 +172,7 @@ namespace sfg
 		return swapchain;
 	}
 
-	void editor_renderer_t::resize_swapchain(gfx_swapchain_handle swapchain, vec2u16_t size, f32 dpi_scale)
+	void editor_renderer_t::resize_swapchain(gfx_handle_t swapchain, vec2u16_t size, f32 dpi_scale)
 	{
 		gfx_backend& backend = gfx_backend::get();
 		SFG_ASSERT(!swapchain.is_null());
@@ -191,7 +191,7 @@ namespace sfg
 		});
 	}
 
-	void editor_renderer_t::destroy_swapchain(gfx_swapchain_handle swapchain)
+	void editor_renderer_t::destroy_swapchain(gfx_handle_t swapchain)
 	{
 		gfx_backend& backend = gfx_backend::get();
 		if (swapchain.is_null())
@@ -207,14 +207,14 @@ namespace sfg
 		_render_targets.erase(it);
 	}
 
-	void editor_renderer_t::set_swapchain_minimized(gfx_swapchain_handle handle, bool is_minimized)
+	void editor_renderer_t::set_swapchain_minimized(gfx_handle_t handle, bool is_minimized)
 	{
 		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
 		SFG_ASSERT(it != _render_targets.end());
 		it->minimized = is_minimized;
 	}
 
-	void editor_renderer_t::set_swapchain_visible(gfx_swapchain_handle handle, bool visible)
+	void editor_renderer_t::set_swapchain_visible(gfx_handle_t handle, bool visible)
 	{
 		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
 		SFG_ASSERT(it != _render_targets.end());
@@ -230,14 +230,14 @@ namespace sfg
 		/* figure out swapchain list */
 		struct rt_t
 		{
-			gfx_swapchain_handle swapchain;
-			ui::ui_context*		 ui;
-			ui::ui_renderer_t*	 ui_renderer;
-			vec2u16_t			 size;
+			gfx_handle_t		   swapchain;
+			ui::ui_context*	   ui;
+			ui::ui_renderer_t* ui_renderer;
+			vec2u16_t		   size;
 		};
 
-		frame_vector_t<rt_t>				 render_targets;
-		frame_vector_t<gfx_swapchain_handle> present_list;
+		frame_vector_t<rt_t>	   render_targets;
+		frame_vector_t<gfx_handle_t> present_list;
 		for (const surface_render_target_t& t : _render_targets)
 		{
 			if (t.minimized || !t.visible)
@@ -271,11 +271,11 @@ namespace sfg
 
 		/* graphics & transfer */
 
-		const gfx_queue_handle			queue_gfx	   = backend.get_queue_gfx();
-		const gfx_queue_handle			queue_transfer = backend.get_queue_transfer();
-		const gfx_command_buffer_handle cmd			   = pfd.cmd_gfx;
-		const gfx_command_buffer_handle cmd_prepare	   = pfd.cmd_gfx_prepare;
-		const gfx_command_buffer_handle cmd_transfer   = pfd.cmd_transfer;
+		const gfx_handle_t queue_gfx		= backend.get_queue_gfx();
+		const gfx_handle_t queue_transfer = backend.get_queue_transfer();
+		const gfx_handle_t cmd			= pfd.cmd_gfx;
+		const gfx_handle_t cmd_prepare	= pfd.cmd_gfx_prepare;
+		const gfx_handle_t cmd_transfer	= pfd.cmd_transfer;
 
 		pfd.semaphore_world.value++;
 		const bool world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());

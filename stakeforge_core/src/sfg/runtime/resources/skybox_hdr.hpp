@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
 {
@@ -44,11 +45,8 @@ namespace sfg
 		static constexpr u8	 MAX_MIPS		  = 16;
 		static constexpr u8	 MAX_SUBRESOURCES = MAX_FACES * MAX_MIPS;
 
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
-		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
-		static resource_ready_result_e	 resource_ready(resource_entry_t& entry, resource_context_t& ctx, const render_resource_completion_t& completion);
-		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
 	struct skybox_hdr_texture_block_t
@@ -77,20 +75,14 @@ namespace sfg
 
 	struct skybox_hdr_internals_t
 	{
-		gfx_resource_handle radiance_staging[skybox_hdr_loader_t::MAX_FACES]   = {};
-		gfx_resource_handle irradiance_staging[skybox_hdr_loader_t::MAX_FACES] = {};
-		gfx_resource_handle prefilter_staging[skybox_hdr_loader_t::MAX_FACES]  = {};
-		gfx_resource_handle brdf_lut_staging								   = {};
-		gfx_texture_handle	radiance_texture								   = {};
-		gfx_texture_handle	irradiance_texture								   = {};
-		gfx_texture_handle	prefilter_texture								   = {};
-		gfx_texture_handle	brdf_lut_texture								   = {};
-		gpu_index_t			radiance_index									   = NULL_GPU_INDEX;
-		gpu_index_t			irradiance_index								   = NULL_GPU_INDEX;
-		gpu_index_t			prefilter_index									   = NULL_GPU_INDEX;
-		gpu_index_t			brdf_lut_index									   = NULL_GPU_INDEX;
-		u8					pending_count									   = 0;
-		u8					had_failure										   = 0;
+		render_resource_handle_t radiance_staging[skybox_hdr_loader_t::MAX_FACES]	= {};
+		render_resource_handle_t irradiance_staging[skybox_hdr_loader_t::MAX_FACES] = {};
+		render_resource_handle_t prefilter_staging[skybox_hdr_loader_t::MAX_FACES]	= {};
+		render_resource_handle_t brdf_lut_staging									= {};
+		render_resource_handle_t radiance_texture									= {};
+		render_resource_handle_t irradiance_texture									= {};
+		render_resource_handle_t prefilter_texture									= {};
+		render_resource_handle_t brdf_lut_texture									= {};
 	};
 
 	extern const resource_type_desc_t skybox_hdr_resource_desc;

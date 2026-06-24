@@ -31,11 +31,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	gfx_bind_layout_handle gfx_util_t::create_bind_layout_global(bool is_compute)
+	gfx_handle_t gfx_util_t::create_bind_layout_global(bool is_compute)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		gfx_bind_layout_handle layout = backend.create_empty_bind_layout();
+		gfx_handle_t layout = backend.create_empty_bind_layout();
 		backend.bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage_e::all);
 
 		const shader_stage_e stg = is_compute ? shader_stage_e::compute : shader_stage_e::fragment;

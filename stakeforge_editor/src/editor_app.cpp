@@ -59,6 +59,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
@@ -246,8 +247,8 @@ namespace sfg
 			engine_runtime_t::uninit_backend();
 			return false;
 		}
-		resource_manager_t::get().wait_for_all_complete();
 
+		render_resources_t::get().drain_requests();
 		if (!_renderer.init())
 		{
 			_editor_resource_pack.uninit();

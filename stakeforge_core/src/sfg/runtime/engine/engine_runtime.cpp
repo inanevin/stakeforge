@@ -38,6 +38,7 @@ namespace sfg
 
 	void engine_runtime_t::uninit_globals()
 	{
+		job_system_t::get().wait_for_all();
 		resource_manager_t::get().uninit();
 		freetype_runtime_t::uninit();
 		job_system_t::get().uninit();

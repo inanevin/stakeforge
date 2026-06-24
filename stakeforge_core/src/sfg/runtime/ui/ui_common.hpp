@@ -79,7 +79,7 @@ namespace sfg::ui
 
 	struct ui_resolved_state_t
 	{
-		gfx_shader_handle  pipeline								 = {};
+		gfx_handle_t		   pipeline								 = {};
 		gpu_index_t		   constants[4]							 = {};
 		gpu_index_t		   constant_frames[4][BACK_BUFFER_COUNT] = {};
 		ui_resource_type_e constant_types[4]					 = {};

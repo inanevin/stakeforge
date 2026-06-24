@@ -2,34 +2,51 @@
 #pragma once
 
 #include <sfg/data/inplace_vector.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/texture_queue.hpp>
+#include <sfg/memory/dynamic_gen_pool.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/vendor/moodycamel/readerwriterqueue.h>
 
 namespace sfg
 {
-	enum class render_resource_kind_e : u8
+	struct render_resource_t
 	{
-		resource,
-		texture,
-		sampler,
-		shader,
 	};
 
-	struct render_resource_completion_t
+	struct render_texture_upload_desc_t
 	{
-		sid_t				   hash		 = 0;
-		resource_type_e		   type		 = resource_type_e::invalid;
-		render_resource_kind_e kind		 = render_resource_kind_e::resource;
-		resource_state_e	   state	 = resource_state_e::failed;
-		u32					   user_data = 0;
-		gfx_resource_handle	   resource	 = {};
-		gfx_texture_handle	   texture	 = {};
-		gfx_sampler_handle	   sampler	 = {};
-		gfx_shader_handle	   shader	 = {};
-		gpu_index_t			   gpu_index = NULL_GPU_INDEX;
+		span_t<const texture_buffer_t> mips				 = {};
+		render_resource_handle_t	   texture			 = {};
+		render_resource_handle_t	   staging			 = {};
+		u32							   target_states	 = 0;
+		u8							   destination_slice = 0;
+		texture_data_ownership_e	   ownership		 = texture_data_ownership_e::none;
+	};
+
+	struct render_texture_region_upload_desc_t
+	{
+		u64						 src_offset	   = 0;
+		render_resource_handle_t dst_texture   = {};
+		render_resource_handle_t src_buffer	   = {};
+		u32						 src_row_pitch = 0;
+		u32						 target_states = 0;
+		u16						 dst_x		   = 0;
+		u16						 dst_y		   = 0;
+		u16						 width		   = 0;
+		u16						 height		   = 0;
+		u8						 bpp		   = 0;
+		u8						 dst_mip	   = 0;
+	};
+
+	struct render_data_upload_desc_t
+	{
+		const void*				 data	   = nullptr;
+		render_resource_handle_t resource  = {};
+		u32						 data_size = 0;
 	};
 
 	class render_resources_t
@@ -46,38 +63,45 @@ namespace sfg
 		// creation
 		// -----------------------------------------------------------------------------
 
-		void enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data = 0);
-		void enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e type = resource_type_e::texture, u32 user_data = 0);
-		void enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
-		void enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_bind_layout_handle existing_layout = {});
+		render_resource_handle_t enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data = 0);
+		render_resource_handle_t enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e type = resource_type_e::texture, u32 user_data = 0);
+		render_resource_handle_t enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
+		render_resource_handle_t enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout = {});
 
 		// -----------------------------------------------------------------------------
 		// destroy
 		// -----------------------------------------------------------------------------
 
-		void enqueue_destroy_resource(gfx_resource_handle handle);
-		void enqueue_destroy_texture(gfx_texture_handle handle);
-		void enqueue_destroy_sampler(gfx_sampler_handle handle);
-		void enqueue_destroy_shader(gfx_shader_handle handle);
+		void enqueue_destroy_resource(render_resource_handle_t handle);
+		void enqueue_destroy_texture(render_resource_handle_t handle);
+		void enqueue_destroy_sampler(render_resource_handle_t handle);
+		void enqueue_destroy_shader(render_resource_handle_t handle);
 
 		// -----------------------------------------------------------------------------
 		// upload
 		// -----------------------------------------------------------------------------
 
-		void enqueue_texture_upload(const texture_upload_desc_t& desc);
-		void enqueue_texture_region_upload(const texture_region_upload_desc_t& desc);
-		void enqueue_data_upload(gfx_resource_handle resource, const void* data, u32 data_size);
+		void enqueue_texture_upload(const render_texture_upload_desc_t& desc);
+		void enqueue_texture_region_upload(const render_texture_region_upload_desc_t& desc);
+		void enqueue_data_upload(const render_data_upload_desc_t& desc);
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		bool drain_completion(render_resource_completion_t& out_completion);
 		void drain_requests();
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+
+		gfx_handle_t get_resource(render_resource_handle_t handle) const;
+		gfx_handle_t get_texture(render_resource_handle_t handle) const;
+		gfx_handle_t get_sampler(render_resource_handle_t handle) const;
+		gfx_handle_t get_shader(render_resource_handle_t handle) const;
+		gpu_index_t	 get_resource_gpu_index(render_resource_handle_t handle) const;
+		gpu_index_t	 get_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const;
+		gpu_index_t	 get_sampler_gpu_index(render_resource_handle_t handle) const;
 
 		inline texture_queue_t& get_texture_upload_queue()
 		{
@@ -87,68 +111,73 @@ namespace sfg
 	private:
 		static constexpr u8 MAX_SHADER_STAGES = 4;
 
-		struct create_resource_request_t
+		enum class request_kind_e : u8
 		{
-			sid_t			hash	  = 0;
-			resource_type_e type	  = resource_type_e::invalid;
-			u32				user_data = 0;
-			resource_desc_t desc	  = {};
+			create_resource,
+			create_texture,
+			create_sampler,
+			create_shader,
+			texture_upload,
+			texture_region_upload,
+			data_upload,
+			destroy_resource,
+			destroy_texture,
+			destroy_sampler,
+			destroy_shader,
 		};
 
-		struct create_texture_request_t
+		struct request_t
 		{
-			sid_t			hash	  = 0;
-			resource_type_e type	  = resource_type_e::texture;
-			u32				user_data = 0;
-			texture_desc_t	desc	  = {};
-		};
-
-		struct create_sampler_request_t
-		{
-			sid_t			hash = 0;
-			resource_type_e type = resource_type_e::invalid;
-			sampler_desc_t	desc = {};
-		};
-
-		struct create_shader_request_t
-		{
-			sid_t											   hash			   = 0;
-			resource_type_e									   type			   = resource_type_e::invalid;
-			u32												   user_data	   = 0;
-			shader_desc_t									   desc			   = {};
-			inplace_vector_t<shader_blob_t, MAX_SHADER_STAGES> blobs		   = {};
-			gfx_bind_layout_handle							   existing_layout = {};
-		};
-
-		struct texture_upload_request_t
-		{
-			gfx_texture_handle											  texture			= {};
-			gfx_resource_handle											  staging			= {};
+			request_kind_e												  kind				= request_kind_e::create_resource;
+			resource_desc_t												  resource_desc		= {};
+			texture_desc_t												  texture_desc		= {};
+			sampler_desc_t												  sampler_desc		= {};
+			shader_desc_t												  shader_desc		= {};
+			inplace_vector_t<shader_blob_t, MAX_SHADER_STAGES>			  blobs				= {};
+			gfx_handle_t												  existing_layout	= {};
+			render_resource_handle_t									  render_handle		= {};
+			render_resource_handle_t									  texture			= {};
+			render_resource_handle_t									  staging			= {};
+			render_resource_handle_t									  dst_texture		= {};
+			render_resource_handle_t									  src_buffer		= {};
+			render_resource_handle_t									  resource			= {};
 			inplace_vector_t<texture_buffer_t, texture_queue_t::MAX_MIPS> mips				= {};
+			u8*															  data				= nullptr;
+			u64															  src_offset		= 0;
+			u32															  src_row_pitch		= 0;
 			u32															  target_states		= 0;
+			u32															  data_size			= 0;
+			u16															  dst_x				= 0;
+			u16															  dst_y				= 0;
+			u16															  width				= 0;
+			u16															  height			= 0;
+			u8															  bpp				= 0;
+			u8															  dst_mip			= 0;
 			u8															  destination_slice = 0;
 			texture_data_ownership_e									  ownership			= texture_data_ownership_e::none;
 		};
 
-		struct data_upload_request_t
+		struct render_thread_resource_t
 		{
-			gfx_resource_handle resource  = {};
-			u8*					data	  = nullptr;
-			u32					data_size = 0;
+			render_resource_handle_t render_handle = {};
+			gfx_handle_t			 hw_handle	   = {};
 		};
 
-		moodycamel::ReaderWriterQueue<create_resource_request_t>	_create_resource_q;
-		moodycamel::ReaderWriterQueue<create_texture_request_t>		_create_texture_q;
-		moodycamel::ReaderWriterQueue<create_sampler_request_t>		_create_sampler_q;
-		moodycamel::ReaderWriterQueue<create_shader_request_t>		_create_shader_q;
-		moodycamel::ReaderWriterQueue<texture_upload_request_t>		_texture_upload_q;
-		moodycamel::ReaderWriterQueue<data_upload_request_t>		_data_upload_q;
-		moodycamel::ReaderWriterQueue<texture_region_upload_desc_t> _texture_region_upload_q;
-		moodycamel::ReaderWriterQueue<gfx_resource_handle>			_destroy_resource_q;
-		moodycamel::ReaderWriterQueue<gfx_texture_handle>			_destroy_texture_q;
-		moodycamel::ReaderWriterQueue<gfx_sampler_handle>			_destroy_sampler_q;
-		moodycamel::ReaderWriterQueue<gfx_shader_handle>			_destroy_shader_q;
-		moodycamel::ReaderWriterQueue<render_resource_completion_t> _completed_q;
-		texture_queue_t												_texture_upload_queue = {};
+		static void			set_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle);
+		static gfx_handle_t get_render_thread_resource(const vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
+		static gfx_handle_t remove_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
+
+		moodycamel::ReaderWriterQueue<request_t> _request_q;
+		texture_queue_t							 _texture_upload_queue = {};
+
+		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
+		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;
+		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _samplers;
+		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _shaders;
+
+		vector_t<render_thread_resource_t> _rt_resources;
+		vector_t<render_thread_resource_t> _rt_textures;
+		vector_t<render_thread_resource_t> _rt_samplers;
+		vector_t<render_thread_resource_t> _rt_shaders;
 	};
 }

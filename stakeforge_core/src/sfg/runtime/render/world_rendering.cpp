@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_rendering.hpp"
 #include "render_view.hpp"
+#include "render_resources.hpp"
 #include "world_render_context.hpp"
 #include "world_render_snapshot.hpp"
 #include <sfg/gfx/backend/backend.hpp>
@@ -39,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_bind_layout_handle global_layout)
+	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -79,8 +80,8 @@ namespace sfg
 
 		job_graph_t render_graph;
 		render_graph.emplace([&ctx, &snapshot, frame_index, global_cbv_index, global_layout]() {
-			gfx_backend&					backend = gfx_backend::get();
-			const gfx_command_buffer_handle cmd		= ctx.get_command_buffer_gfx0(frame_index);
+			gfx_backend&	   backend = gfx_backend::get();
+			const gfx_handle_t cmd	   = ctx.get_command_buffer_gfx0(frame_index);
 			backend.reset_command_buffer(cmd);
 			backend.cmd_bind_layout(cmd, {.layout = global_layout});
 			gpu_index_t global_constants[1] = {global_cbv_index};
@@ -90,8 +91,8 @@ namespace sfg
 			backend.close_command_buffer(cmd);
 		});
 		render_graph.emplace([&ctx, &snapshot, frame_index, global_cbv_index, global_layout]() {
-			gfx_backend&					backend = gfx_backend::get();
-			const gfx_command_buffer_handle cmd		= ctx.get_command_buffer_gfx1(frame_index);
+			gfx_backend&	   backend = gfx_backend::get();
+			const gfx_handle_t cmd	   = ctx.get_command_buffer_gfx1(frame_index);
 			backend.reset_command_buffer(cmd);
 			backend.cmd_bind_layout(cmd, {.layout = global_layout});
 			gpu_index_t global_constants[1] = {global_cbv_index};
@@ -104,11 +105,11 @@ namespace sfg
 		tf::Executor& executor = job_system_t::get().get_executor();
 		executor.run(render_graph).wait();
 
-		const gfx_command_buffer_handle cmd_gfx0  = ctx.get_command_buffer_gfx0(frame_index);
-		const gfx_command_buffer_handle cmd_gfx1  = ctx.get_command_buffer_gfx1(frame_index);
-		const gfx_queue_handle			queue_gfx = backend.get_queue_gfx();
-		const gfx_semaphore_handle		semaphore = ctx.get_gfx0_done_semaphore(frame_index);
-		const u64						value	  = ctx.next_gfx0_done_semaphore_value(frame_index);
+		const gfx_handle_t cmd_gfx0	 = ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_handle_t cmd_gfx1	 = ctx.get_command_buffer_gfx1(frame_index);
+		const gfx_handle_t queue_gfx = backend.get_queue_gfx();
+		const gfx_handle_t semaphore = ctx.get_gfx0_done_semaphore(frame_index);
+		const u64		   value	 = ctx.next_gfx0_done_semaphore_value(frame_index);
 
 		backend.submit_commands(queue_gfx, &cmd_gfx0, 1);
 		backend.queue_signal(queue_gfx, &semaphore, &value, 1);
@@ -120,12 +121,12 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx0(frame_index);
-		const gfx_texture_handle		depth_texture	 = ctx.get_depth_texture(frame_index);
-		const gfx_texture_handle		gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
-		const gfx_texture_handle		gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
-		const gfx_texture_handle		gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
-		const gfx_texture_handle		gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+		const gfx_handle_t cmd				= ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_handle_t depth_texture	= ctx.get_depth_texture(frame_index);
+		const gfx_handle_t gbuffer_albedo	= ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_handle_t gbuffer_normal	= ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_handle_t gbuffer_orm		= ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_handle_t gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
 
 		barrier_t begin_barriers[5] = {};
 		u16		  begin_count		= 0;
@@ -217,12 +218,12 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx0(frame_index);
-		const gfx_texture_handle		depth_texture	 = ctx.get_depth_texture(frame_index);
-		const gfx_texture_handle		gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
-		const gfx_texture_handle		gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
-		const gfx_texture_handle		gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
-		const gfx_texture_handle		gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+		const gfx_handle_t cmd				= ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_handle_t depth_texture	= ctx.get_depth_texture(frame_index);
+		const gfx_handle_t gbuffer_albedo	= ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_handle_t gbuffer_normal	= ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_handle_t gbuffer_orm		= ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_handle_t gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
 
 		const u32 depth_state = backend.get_texture_state(depth_texture);
 		if (depth_state != resource_state_depth_read)
@@ -334,9 +335,9 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx1(frame_index);
-		const gfx_texture_handle		lighting_texture = ctx.get_lighting_texture(frame_index);
-		const gfx_texture_handle		ao_texture		 = ctx.get_ao_texture(frame_index);
+		const gfx_handle_t cmd				= ctx.get_command_buffer_gfx1(frame_index);
+		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
+		const gfx_handle_t ao_texture		= ctx.get_ao_texture(frame_index);
 
 		barrier_t begin_barriers[2] = {};
 		u16		  begin_count		= 0;
@@ -380,19 +381,20 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[11] = {
-			ctx.get_lighting_render_pass_data_index(frame_index),
-			ctx.get_gbuffer_albedo_index(frame_index),
-			ctx.get_gbuffer_normal_index(frame_index),
-			ctx.get_gbuffer_orm_index(frame_index),
-			ctx.get_gbuffer_emissive_index(frame_index),
-			ctx.get_depth_texture_index(frame_index),
-			ctx.get_ao_texture_index(frame_index),
-			snapshot.skybox.radiance,
-			snapshot.skybox.irradiance,
-			snapshot.skybox.prefilter,
-			snapshot.skybox.brdf_lut,
-		};
+		const render_resources_t& render_resources = render_resources_t::get();
+		gpu_index_t				  rp_constants[11] = {
+			  ctx.get_lighting_render_pass_data_index(frame_index),
+			  ctx.get_gbuffer_albedo_index(frame_index),
+			  ctx.get_gbuffer_normal_index(frame_index),
+			  ctx.get_gbuffer_orm_index(frame_index),
+			  ctx.get_gbuffer_emissive_index(frame_index),
+			  ctx.get_depth_texture_index(frame_index),
+			  ctx.get_ao_texture_index(frame_index),
+			  snapshot.skybox.radiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.radiance, 0),
+			  snapshot.skybox.irradiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.irradiance, 0),
+			  snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
+			  snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
+		  };
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 11, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
@@ -412,9 +414,9 @@ namespace sfg
 		const render_pass_data_post_process_gpu_t post_process_render_pass_data = {};
 		SFG_MEMCPY(ctx.get_mapped_post_process_render_pass_data(frame_index), &post_process_render_pass_data, sizeof(render_pass_data_post_process_gpu_t));
 
-		const gfx_command_buffer_handle cmd				 = ctx.get_command_buffer_gfx1(frame_index);
-		const gfx_texture_handle		lighting_texture = ctx.get_lighting_texture(frame_index);
-		const gfx_texture_handle		world_texture	 = ctx.get_world_texture(frame_index);
+		const gfx_handle_t cmd				= ctx.get_command_buffer_gfx1(frame_index);
+		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
+		const gfx_handle_t world_texture	= ctx.get_world_texture(frame_index);
 
 		barrier_t begin_barriers[2] = {};
 		u16		  begin_count		= 0;

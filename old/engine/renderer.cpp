@@ -113,9 +113,9 @@ namespace sfg
 
 	void renderer_t::render()
 	{
-		gfx_backend*															backend	   = gfx_backend::get();
-		const gfx_queue_handle													queue_gfx  = backend->get_queue_gfx();
-		vector_t<gfx_swapchain_handle, frame_allocator_t<gfx_swapchain_handle>> swapchains = {};
+		gfx_backend*										backend	   = gfx_backend::get();
+		const gfx_handle									queue_gfx  = backend->get_queue_gfx();
+		vector_t<gfx_handle, frame_allocator_t<gfx_handle>> swapchains = {};
 
 		_frame_index = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 
@@ -140,13 +140,13 @@ namespace sfg
 		_frame_counter++;
 	}
 
-	gfx_swapchain_handle renderer_t::create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle)
+	gfx_handle renderer_t::create_swapchain(const vec2u16_t& size, format_t format, void* window_handle, void* platform_handle)
 	{
 		SFG_ASSERT(size.x != 0 && size.y != 0);
 
 		gfx_backend* backend = gfx_backend::get();
 
-		const gfx_swapchain_handle id = backend->create_swapchain({
+		const gfx_handle id = backend->create_swapchain({
 			.window_t  = window_handle,
 			.os_handle = platform_handle,
 			.scaling   = 1.0f,
@@ -166,7 +166,7 @@ namespace sfg
 		return id;
 	}
 
-	void renderer_t::destroy_swapchain(gfx_swapchain_handle id)
+	void renderer_t::destroy_swapchain(gfx_handle id)
 	{
 		renderer_swapchain_t* swp = nullptr;
 		u32					  idx = 0;
@@ -188,7 +188,7 @@ namespace sfg
 		_swapchains.remove_index_swap(idx);
 	}
 
-	void renderer_t::resize_swapchain(gfx_swapchain_handle id, const vec2u16_t& size)
+	void renderer_t::resize_swapchain(gfx_handle id, const vec2u16_t& size)
 	{
 		renderer_swapchain_t* swp = nullptr;
 		for (renderer_swapchain_t& current : _swapchains)
@@ -228,7 +228,7 @@ namespace sfg
 		swp->presentable = true;
 	}
 
-	gfx_texture_handle renderer_t::create_render_target(const vec2u16_t& size, format_t format)
+	gfx_handle renderer_t::create_render_target(const vec2u16_t& size, format_t format)
 	{
 		gfx_backend* backend = gfx_backend::get();
 
@@ -242,7 +242,7 @@ namespace sfg
 		});
 	}
 
-	void renderer_t::destroy_render_target(gfx_texture_handle id)
+	void renderer_t::destroy_render_target(gfx_handle id)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		backend->destroy_texture(id);

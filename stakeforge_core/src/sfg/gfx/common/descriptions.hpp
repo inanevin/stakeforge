@@ -164,10 +164,10 @@ namespace sfg
 
 	struct swapchain_recreate_desc_t
 	{
-		vec2u16_t			 size		 = vec2u16_t::zero;
-		gfx_swapchain_handle swapchain_t = {};
-		f32					 scaling	 = 1.0f;
-		bitmask_t<u8>		 flags		 = 0;
+		vec2u16_t	  size		  = vec2u16_t::zero;
+		gfx_handle_t	  swapchain_t = {};
+		f32			  scaling	  = 1.0f;
+		bitmask_t<u8> flags		  = 0;
 	};
 
 	struct resource_desc_t
@@ -279,12 +279,12 @@ namespace sfg
 
 	struct bind_group_pointer_t
 	{
-		gfx_resource_handle resource_t	  = {};
-		gfx_texture_handle	texture_t	  = {};
-		gfx_sampler_handle	sampler_t	  = {};
-		u8					view		  = 0;
-		u8					pointer_index = 0;
-		binding_type_e		type		  = binding_type_e::ubo;
+		gfx_handle_t	   resource_t	 = {};
+		gfx_handle_t	   texture_t	 = {};
+		gfx_handle_t	   sampler_t	 = {};
+		u8			   view			 = 0;
+		u8			   pointer_index = 0;
+		binding_type_e type			 = binding_type_e::ubo;
 	};
 
 	struct bind_group_binding_t
@@ -297,12 +297,12 @@ namespace sfg
 
 	struct binding_update_t
 	{
-		u32							  binding_index	 = 0;
-		vector_t<binding_type_e>	  resource_types = {};
-		vector_t<gfx_resource_handle> resources		 = {};
-		vector_t<gfx_texture_handle>  textures		 = {};
-		vector_t<gfx_sampler_handle>  samplers		 = {};
-		vector_t<u32>				  resource_views = {};
+		u32						 binding_index	= 0;
+		vector_t<binding_type_e> resource_types = {};
+		vector_t<gfx_handle_t>	 resources		= {};
+		vector_t<gfx_handle_t>	 textures		= {};
+		vector_t<gfx_handle_t>	 samplers		= {};
+		vector_t<u32>			 resource_views = {};
 	};
 
 	struct bind_group_update_desc_t

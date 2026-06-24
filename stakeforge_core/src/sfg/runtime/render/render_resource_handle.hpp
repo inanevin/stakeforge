@@ -22,42 +22,19 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
 
 #pragma once
 
-#include "world_draw.hpp"
-#include "world_render_entity.hpp"
-#include "world_render_material.hpp"
-#include "world_render_view.hpp"
-#include <sfg/data/vector.hpp>
-#include <sfg/runtime/render/render_resource_handle.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
-	struct world_render_skybox_t
+	struct render_resource_tag_t
 	{
-		render_resource_handle_t radiance	= {};
-		render_resource_handle_t irradiance = {};
-		render_resource_handle_t prefilter	= {};
-		render_resource_handle_t brdf_lut	= {};
-		f32						 intensity	= 1.0f;
-		f32						 exposure	= 1.0f;
 	};
 
-	struct world_render_snapshot_t
-	{
-		world_render_view_t				  main_view = {};
-		world_render_skybox_t			  skybox	= {};
-		vector_t<world_render_material_t> materials = {};
-		vector_t<world_render_entity_t>	  entities	= {};
-		vector_t<world_draw_t>			  draws		= {};
+	typedef pool_handle_t<u32, render_resource_tag_t> render_resource_handle_t;
 
-		inline void reserve(size_t entity_count)
-		{
-			entities.reserve(entity_count);
-		}
-	};
 }

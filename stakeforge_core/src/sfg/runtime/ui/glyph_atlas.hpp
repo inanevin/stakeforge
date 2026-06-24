@@ -63,11 +63,11 @@ namespace sfg::ui
 		void tick(u32 frame_index);
 		void drain_uploads(u8 frame_slot);
 
-		gfx_texture_handle get_texture() const;
-		gpu_index_t		   get_gpu_index() const;
-		u32				   get_width() const;
-		u32				   get_height() const;
-		bool			   is_initialized() const;
+		gfx_handle_t	get_texture() const;
+		gpu_index_t get_gpu_index() const;
+		u32			get_width() const;
+		u32			get_height() const;
+		bool		is_initialized() const;
 
 	private:
 		struct shelf_t
@@ -88,9 +88,9 @@ namespace sfg::ui
 
 		struct staging_slot_t
 		{
-			gfx_resource_handle buffer	 = {};
-			u8*					mapped	 = nullptr;
-			u32					capacity = 0;
+			gfx_handle_t buffer	= {};
+			u8*		   mapped	= nullptr;
+			u32		   capacity = 0;
 		};
 
 		bool allocate_slot(i32 w, i32 h, i16& out_x, i16& out_y);
@@ -101,7 +101,7 @@ namespace sfg::ui
 		vector_t<shelf_t>				_shelves;
 		vector_t<pending_upload_t>		_pending;
 		staging_slot_t					_staging[BACK_BUFFER_COUNT] = {};
-		gfx_texture_handle				_texture					= {};
+		gfx_handle_t						_texture					= {};
 		gpu_index_t						_gpu_index					= 0;
 		u32								_width						= 0;
 		u32								_height						= 0;

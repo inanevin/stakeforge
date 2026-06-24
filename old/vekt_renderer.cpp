@@ -214,7 +214,7 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	{
 		gfx_backend* backend = gfx_backend::get();
 
-		auto make_pipe = [&](const char* src, const char* name, gfx_shader_handle& out_handle) -> bool {
+		auto make_pipe = [&](const char* src, const char* name, gfx_handle& out_handle) -> bool {
 			span_t<u8> vs_blob = {};
 			span_t<u8> ps_blob = {};
 			if (!compile_pair(backend, src, vs_blob, ps_blob))
@@ -288,7 +288,7 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 		_pfd[_frame_index].const_offset = 0;
 	}
 
-	vekt_renderer_t::atlas_gpu_t& vekt_renderer_t::sync_one_atlas(gfx_command_buffer_handle cmd, vekt::vg_atlas_t* atlas)
+	vekt_renderer_t::atlas_gpu_t& vekt_renderer_t::sync_one_atlas(gfx_handle cmd, vekt::vg_atlas_t* atlas)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		auto&		 entry	 = _atlases[atlas];
@@ -351,13 +351,13 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 		return entry;
 	}
 
-	void vekt_renderer_t::sync_atlases(gfx_command_buffer_handle cmd, vekt::vg_font_manager_t& fonts)
+	void vekt_renderer_t::sync_atlases(gfx_handle cmd, vekt::vg_font_manager_t& fonts)
 	{
 		for (vekt::vg_atlas_t* atlas : fonts.atlases())
 			sync_one_atlas(cmd, atlas);
 	}
 
-	void vekt_renderer_t::draw(gfx_command_buffer_handle cmd, vekt::vg_canvas_t& canvas, vekt::vg_font_manager_t& fonts, const vec2u16_t& fb_size)
+	void vekt_renderer_t::draw(gfx_handle cmd, vekt::vg_canvas_t& canvas, vekt::vg_font_manager_t& fonts, const vec2u16_t& fb_size)
 	{
 		gfx_backend* backend = gfx_backend::get();
 		pfd_t&		 p		 = _pfd[_frame_index];
@@ -386,7 +386,7 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 		command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = fb_size.x, .height = fb_size.y};
 		backend->cmd_set_viewport(cmd, vp);
 
-		gfx_shader_handle current_pipeline = {};
+		gfx_handle current_pipeline = {};
 
 		for (const vekt::vg_draw_buffer_t& db : draw_buffers)
 		{
@@ -405,7 +405,7 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 			std::memcpy(p.mapped_vtx + p.vtx_offset, db.vertex_start, vtx_size);
 			std::memcpy(p.mapped_idx + p.idx_offset, db.index_start, idx_size);
 
-			gfx_shader_handle pipe;
+			gfx_handle pipe;
 			if (db.font_id == 0xFFFFFFFFu)
 				pipe = _shader_default;
 			else if (db.font_kind == vekt::vg_font_kind_e::sdf)

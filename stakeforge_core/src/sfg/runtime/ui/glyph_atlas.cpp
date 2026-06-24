@@ -130,7 +130,7 @@ namespace sfg::ui
 		_shelves.clear();
 	}
 
-	gfx_texture_handle glyph_atlas_t::get_texture() const
+	gfx_handle_t glyph_atlas_t::get_texture() const
 	{
 		return _texture;
 	}
@@ -466,7 +466,7 @@ namespace sfg::ui
 			desc.bpp						  = ATLAS_BPP;
 			desc.dst_mip					  = 0;
 			desc.target_states				  = resource_state_ps_resource;
-			render_resources_t::get().enqueue_texture_region_upload(desc);
+			render_resources_t::get().get_texture_upload_queue().add_region(desc);
 
 			SFG_FREE(p.rgba);
 			cursor = placed_offset + needed;

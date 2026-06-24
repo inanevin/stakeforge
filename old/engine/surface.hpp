@@ -43,9 +43,9 @@ namespace sfg
 
 	struct surface_runtime_t
 	{
-		gfx_texture_handle rt	  = {};
-		vec2u16_t		   size	  = vec2u16_t::zero;
-		format_t		   format = format_t::undefined;
+		gfx_handle rt	  = {};
+		vec2u16_t  size	  = vec2u16_t::zero;
+		format_t   format = format_t::undefined;
 	};
 
 	struct surface_t

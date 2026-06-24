@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_world.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
@@ -182,7 +183,7 @@ namespace sfg
 		SFG_ASSERT(false);
 	}
 
-	bool editor_world_controller_t::render_worlds(gfx_queue_handle queue, gfx_semaphore_handle signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_bind_layout_handle global_layout)
+	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
@@ -191,7 +192,7 @@ namespace sfg
 		if (_worlds.empty())
 			return false;
 
-		frame_vector_t<gfx_command_buffer_handle> command_buffers;
+		frame_vector_t<gfx_handle_t> command_buffers;
 		command_buffers.reserve(_worlds.size());
 
 		const f32 interpolation_alpha = calculate_render_alpha();
@@ -348,8 +349,7 @@ namespace sfg
 				continue;
 			}
 
-			span_t<u8> data = payload.evict();
-			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), data, resource_type) == resource_state_e::failed)
+			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), payload, resource_type) == resource_state_e::failed)
 				SFG_WARN("world resource failed to load: {0}", guid);
 		}
 	}

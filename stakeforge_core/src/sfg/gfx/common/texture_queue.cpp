@@ -112,7 +112,7 @@ namespace sfg
 		_regions.push_back(r);
 	}
 
-	bool texture_queue_t::prepare(gfx_command_buffer_handle cmd)
+	bool texture_queue_t::prepare(gfx_handle_t cmd)
 	{
 		if (_uploads.empty() && _regions.empty())
 			return false;
@@ -155,7 +155,7 @@ namespace sfg
 		return emitted;
 	}
 
-	bool texture_queue_t::flush(gfx_command_buffer_handle cmd)
+	bool texture_queue_t::flush(gfx_handle_t cmd)
 	{
 		if (_uploads.empty() && _regions.empty())
 			return false;
@@ -206,7 +206,7 @@ namespace sfg
 		return true;
 	}
 
-	void texture_queue_t::transit(gfx_command_buffer_handle cmd)
+	void texture_queue_t::transit(gfx_handle_t cmd)
 	{
 		if (_transits.empty())
 			return;

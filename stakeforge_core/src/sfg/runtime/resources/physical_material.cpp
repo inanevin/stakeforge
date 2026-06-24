@@ -30,22 +30,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "physical_material_def.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 namespace sfg
 {
-	bool physical_material_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
-	{
-		return false;
-	}
-
-	bool physical_material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx)
+	bool physical_material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
 	{
 		chunk_allocator_t&			 mem	 = ctx.resource_manager.get_memory();
 		physical_material_runtime_t* runtime = mem.get<physical_material_runtime_t>(entry.runtime);
 		*runtime							 = {};
-
-		istream_t stream;
-		stream.open(entry.load_data.data, entry.load_data.size);
 
 		physical_material_def_t material = {};
 		reflection_registry_t::get().deserialize_from_stream(type_id_t<physical_material_def_t>::value, &material, stream);
@@ -57,12 +50,7 @@ namespace sfg
 		return true;
 	}
 
-	create_internals_result_e physical_material_loader_t::create_internals(resource_entry_t&, resource_context_t&)
-	{
-		return create_internals_result_e::ready;
-	}
-
-	void physical_material_loader_t::destroy_internals(resource_entry_t&, resource_context_t&)
+	void physical_material_loader_t::unload(resource_entry_t&, resource_context_t&)
 	{
 	}
 
@@ -77,10 +65,8 @@ namespace sfg
 		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
-		.async_load			 = false,
+		.use_async_load		 = false,
 		.load				 = physical_material_loader_t::load,
-		.load_v2			 = physical_material_loader_t::load,
-		.create_internals	 = physical_material_loader_t::create_internals,
-		.destroy_internals	 = physical_material_loader_t::destroy_internals,
+		.unload				 = physical_material_loader_t::unload,
 	};
 }

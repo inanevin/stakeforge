@@ -79,32 +79,32 @@ namespace sfg
 
 	struct render_pass_color_attachment_t
 	{
-		vec4f_t			   clear_color = vec4f_t(0, 0, 0, 1);
-		gfx_texture_handle texture	   = {};
-		load_op			   load_op	   = load_op::clear;
-		store_op		   store_op	   = store_op::store;
-		u8				   view_index  = 0;
+		vec4f_t	   clear_color = vec4f_t(0, 0, 0, 1);
+		gfx_handle_t texture	   = {};
+		load_op	   load_op	   = load_op::clear;
+		store_op   store_op	   = store_op::store;
+		u8		   view_index  = 0;
 	};
 
 	struct render_pass_swapchain_attachment_t
 	{
-		vec4f_t				 clear_color = vec4f_t(0, 0, 0, 1);
-		gfx_swapchain_handle swapchain	 = {};
-		load_op				 load_op	 = load_op::clear;
-		store_op			 store_op	 = store_op::store;
-		u8					 view_index	 = 0;
+		vec4f_t	   clear_color = vec4f_t(0, 0, 0, 1);
+		gfx_handle_t swapchain   = {};
+		load_op	   load_op	   = load_op::clear;
+		store_op   store_op	   = store_op::store;
+		u8		   view_index  = 0;
 	};
 
 	struct render_pass_depth_stencil_attachment_t
 	{
-		gfx_texture_handle texture			= {};
-		u8				   clear_stencil	= 0;
-		f32				   clear_depth		= 1.0f;
-		load_op			   depth_load_op	= load_op::clear;
-		load_op			   stencil_load_op	= load_op::none;
-		store_op		   depth_store_op	= store_op::dont_care;
-		store_op		   stencil_store_op = store_op::none;
-		u8				   view_index		= 0;
+		gfx_handle_t texture			= {};
+		u8		   clear_stencil	= 0;
+		f32		   clear_depth		= 1.0f;
+		load_op	   depth_load_op	= load_op::clear;
+		load_op	   stencil_load_op	= load_op::none;
+		store_op   depth_store_op	= store_op::dont_care;
+		store_op   stencil_store_op = store_op::none;
+		u8		   view_index		= 0;
 	};
 
 	struct command_begin_render_pass_t
@@ -146,7 +146,7 @@ namespace sfg
 	{
 		static constexpr u8 TID = 4;
 
-		gfx_shader_handle pipeline = {};
+		gfx_handle_t pipeline = {};
 	};
 
 	struct command_draw_instanced_t
@@ -174,107 +174,107 @@ namespace sfg
 	{
 		static constexpr u8 TID = 7;
 
-		gfx_resource_handle			  indirect_buffer		 = {};
-		u32							  indirect_buffer_offset = 0;
-		u16							  count					 = 0;
-		gfx_indirect_signature_handle indirect_signature_t	 = {};
+		gfx_handle_t indirect_buffer		  = {};
+		u32		   indirect_buffer_offset = 0;
+		u16		   count				  = 0;
+		gfx_handle_t indirect_signature_t	  = {};
 	};
 
 	struct command_draw_indirect_t
 	{
 		static constexpr u8 TID = 8;
 
-		gfx_resource_handle			  indirect_buffer		 = {};
-		u32							  indirect_buffer_offset = 0;
-		u16							  count					 = 0;
-		gfx_indirect_signature_handle indirect_signature_t	 = {};
+		gfx_handle_t indirect_buffer		  = {};
+		u32		   indirect_buffer_offset = 0;
+		u16		   count				  = 0;
+		gfx_handle_t indirect_signature_t	  = {};
 	};
 
 	struct command_copy_resource_t
 	{
 		static constexpr u8 TID = 9;
 
-		gfx_resource_handle source		= {};
-		gfx_resource_handle destination = {};
+		gfx_handle_t source	   = {};
+		gfx_handle_t destination = {};
 	};
 
 	struct command_copy_texture_to_buffer_t
 	{
 		static constexpr u8 TID = 10;
 
-		gfx_resource_handle dest_buffer = {};
-		gfx_texture_handle	src_texture = {};
-		u32					src_layer	= 0;
-		u32					src_mip		= 0;
-		vec2u_t				size		= vec2u_t::zero;
-		u8					bpp			= 0;
+		gfx_handle_t dest_buffer = {};
+		gfx_handle_t src_texture = {};
+		u32		   src_layer   = 0;
+		u32		   src_mip	   = 0;
+		vec2u_t	   size		   = vec2u_t::zero;
+		u8		   bpp		   = 0;
 	};
 
 	struct command_copy_buffer_to_texture_t
 	{
 		static constexpr u8 TID = 11;
 
-		texture_buffer_t*	textures			= nullptr;
-		gfx_texture_handle	destination_texture = {};
-		gfx_resource_handle intermediate_buffer = {};
-		u8					mip_levels			= 0;
-		u8					destination_slice	= 0;
+		texture_buffer_t* textures			  = nullptr;
+		gfx_handle_t		  destination_texture = {};
+		gfx_handle_t		  intermediate_buffer = {};
+		u8				  mip_levels		  = 0;
+		u8				  destination_slice	  = 0;
 	};
 
 	struct command_copy_buffer_region_to_texture_t
 	{
 		static constexpr u8 TID = 27;
 
-		gfx_resource_handle src_buffer	  = {};
-		gfx_texture_handle	dst_texture	  = {};
-		u64					src_offset	  = 0;
-		u32					src_row_pitch = 0;
-		u16					dst_x		  = 0;
-		u16					dst_y		  = 0;
-		u16					width		  = 0;
-		u16					height		  = 0;
-		u8					dst_mip		  = 0;
-		u8					bpp			  = 0;
+		gfx_handle_t src_buffer	 = {};
+		gfx_handle_t dst_texture	 = {};
+		u64		   src_offset	 = 0;
+		u32		   src_row_pitch = 0;
+		u16		   dst_x		 = 0;
+		u16		   dst_y		 = 0;
+		u16		   width		 = 0;
+		u16		   height		 = 0;
+		u8		   dst_mip		 = 0;
+		u8		   bpp			 = 0;
 	};
 
 	struct command_copy_texture_to_texture_t
 	{
 		static constexpr u8 TID = 12;
 
-		gfx_texture_handle source				  = {};
-		gfx_texture_handle destination			  = {};
-		u8				   source_layer			  = 0;
-		u8				   destination_layer	  = 0;
-		u8				   source_mip			  = 0;
-		u8				   source_total_mips	  = 0;
-		u8				   destination_mip		  = 0;
-		u8				   destination_total_mips = 0;
+		gfx_handle_t source				  = {};
+		gfx_handle_t destination			  = {};
+		u8		   source_layer			  = 0;
+		u8		   destination_layer	  = 0;
+		u8		   source_mip			  = 0;
+		u8		   source_total_mips	  = 0;
+		u8		   destination_mip		  = 0;
+		u8		   destination_total_mips = 0;
 	};
 
 	struct command_bind_vertex_buffers_t
 	{
 		static constexpr u8 TID = 13;
 
-		gfx_resource_handle buffer_t	= {};
-		u8					slot		= 0;
-		u16					vertex_size = 0;
-		u64					offset		= 0;
+		gfx_handle_t buffer_t	   = {};
+		u8		   slot		   = 0;
+		u16		   vertex_size = 0;
+		u64		   offset	   = 0;
 	};
 
 	struct command_bind_index_buffers_t
 	{
 		static constexpr u8 TID = 14;
 
-		gfx_resource_handle buffer_t   = {};
-		u64					offset	   = 0;
-		u8					index_size = 0;
+		gfx_handle_t buffer_t	  = {};
+		u64		   offset	  = 0;
+		u8		   index_size = 0;
 	};
 
 	struct command_bind_group_t
 	{
 		static constexpr u8 TID = 15;
 
-		gfx_bind_group_handle group = {};
+		gfx_handle_t group = {};
 	};
 
 	struct command_bind_constants_t
@@ -334,32 +334,32 @@ namespace sfg
 	{
 		static constexpr u8 TID = 22;
 
-		gfx_shader_handle pipeline = {};
+		gfx_handle_t pipeline = {};
 	};
 
 	struct command_bind_layout_t
 	{
 		static constexpr u8 TID = 23;
 
-		gfx_bind_layout_handle layout = {};
+		gfx_handle_t layout = {};
 	};
 
 	struct command_bind_layout_compute_t
 	{
 		static constexpr u8 TID = 24;
 
-		gfx_bind_layout_handle layout = {};
+		gfx_handle_t layout = {};
 	};
 
 	struct command_copy_resource_region_t
 	{
 		static constexpr u8 TID = 25;
 
-		gfx_resource_handle source		= {};
-		gfx_resource_handle destination = {};
-		size_t				dst_offset	= 0;
-		size_t				src_offset	= 0;
-		size_t				size		= 0;
+		gfx_handle_t source	   = {};
+		gfx_handle_t destination = {};
+		size_t	   dst_offset  = 0;
+		size_t	   src_offset  = 0;
+		size_t	   size		   = 0;
 	};
 
 	struct command_begin_render_pass_depth_only_t

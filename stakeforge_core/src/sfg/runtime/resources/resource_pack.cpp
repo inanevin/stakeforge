@@ -152,7 +152,7 @@ namespace sfg
 			return false;
 		}
 
-		bool cook_and_cache(const string_t& source_path, const string_t& name, const nlohmann::json& config, const string_t& cache_dir, span_t<u8>& out_data)
+		bool cook_and_cache(const string_t& source_path, const string_t& name, const nlohmann::json& config, const string_t& cache_dir, ostream_t& out_data)
 		{
 			const string_t	  schema = config.value<string_t>("schema", "");
 			resource_header_t header = {};
@@ -171,7 +171,7 @@ namespace sfg
 			if (!save_cache(cache_dir.c_str(), name.c_str(), cached_stream))
 				SFG_WARN("resource_pack: cache save failed for {0}", name.c_str());
 
-			out_data = payload.evict();
+			out_data = std::move(payload);
 			return true;
 		}
 	}
@@ -198,9 +198,12 @@ namespace sfg
 				continue;
 			}
 
-			const sid_t		 sid  = TO_SID(e.path);
-			const span_t<u8> data = {const_cast<u8*>(e.data), e.size};
-			const auto		 st	  = mgr.load_resource(sid, e.path, data, e.type);
+			const sid_t sid = TO_SID(e.path);
+			ostream_t	data;
+			data.write_raw(e.data, e.size);
+			istream_t stream;
+			stream.open(data.get_raw(), data.get_size());
+			const auto st = mgr.load_resource(sid, e.path, stream, e.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("resource_pack: load_resource failed for embedded {0}", e.path);
@@ -314,14 +317,16 @@ namespace sfg
 			else
 				expected.source_tick = file_system_t::get_last_modified_ticks(source_path.c_str());
 
-			span_t<u8> data	  = {};
-			istream_t  cached = try_load_cache(_cache_dir.c_str(), entry.name.c_str(), expected);
+			ostream_t data;
+			istream_t cached = try_load_cache(_cache_dir.c_str(), entry.name.c_str(), expected);
 			if (!cached.empty())
-				data = cached.evict();
+				data.write_raw(cached.get_raw(), cached.get_size());
 			else if (!cook_and_cache(source_path, entry.name, entry.config, _cache_dir, data))
 				return false;
 
-			const auto st = mgr.load_resource(sid, entry.path.c_str(), data, entry.type);
+			istream_t stream;
+			stream.open(data.get_raw(), data.get_size());
+			const auto st = mgr.load_resource(sid, entry.path.c_str(), stream, entry.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("resource_pack: load_resource failed for {0}", source_path.c_str());
@@ -363,7 +368,7 @@ namespace sfg
 			return;
 		}
 
-		span_t<u8> data = {};
+		ostream_t data;
 		if (!cook_and_cache(e.source_path, e.name, config, _cache_dir, data))
 			return;
 

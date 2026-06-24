@@ -4,22 +4,12 @@
 
 namespace sfg
 {
-	bool animation_state_machine_loader_t::load(resource_entry_t&, resource_context_t&, ostream_t&)
+	bool animation_state_machine_loader_t::load(resource_entry_t&, resource_context_t&, istream_t&)
 	{
 		return false;
 	}
 
-	bool animation_state_machine_loader_t::load(resource_entry_t&, resource_context_t&)
-	{
-		return false;
-	}
-
-	create_internals_result_e animation_state_machine_loader_t::create_internals(resource_entry_t&, resource_context_t&)
-	{
-		return create_internals_result_e::failed;
-	}
-
-	void animation_state_machine_loader_t::destroy_internals(resource_entry_t&, resource_context_t&)
+	void animation_state_machine_loader_t::unload(resource_entry_t&, resource_context_t&)
 	{
 	}
 
@@ -32,10 +22,8 @@ namespace sfg
 		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
-		.async_load			 = false,
+		.use_async_load		 = false,
 		.load				 = animation_state_machine_loader_t::load,
-		.load_v2			 = animation_state_machine_loader_t::load,
-		.create_internals	 = animation_state_machine_loader_t::create_internals,
-		.destroy_internals	 = animation_state_machine_loader_t::destroy_internals,
+		.unload				 = animation_state_machine_loader_t::unload,
 	};
 }

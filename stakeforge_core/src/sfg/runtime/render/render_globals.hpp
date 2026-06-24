@@ -10,11 +10,11 @@ namespace sfg
 	class render_globals_t
 	{
 	public:
-		static gfx_bind_layout_handle get_global_bind_layout();
+		static gfx_handle_t get_global_bind_layout();
 
 	private:
 		friend class engine_runtime_t;
 
-		static gfx_bind_layout_handle s_global_bind_layout;
+		static gfx_handle_t s_global_bind_layout;
 	};
 }

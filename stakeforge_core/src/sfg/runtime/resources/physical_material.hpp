@@ -52,10 +52,8 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('P', 'M', 'A', 'T');
 		static constexpr u32 WIRE_VERSION = 2;
 
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx);
-		static bool						 load(resource_entry_t& entry, resource_context_t& ctx, ostream_t& stream);
-		static create_internals_result_e create_internals(resource_entry_t& entry, resource_context_t& ctx);
-		static void						 destroy_internals(resource_entry_t& entry, resource_context_t& ctx);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
 	extern const resource_type_desc_t physical_material_resource_desc;
