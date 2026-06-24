@@ -38,6 +38,14 @@ namespace sfg
 		_glyph_atlas.init(glyph_atlas_config);
 	}
 
+	void resource_manager_t::uninit_atlases()
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		if (_glyph_atlas.is_initialized())
+			_glyph_atlas.uninit();
+	}
+
 	void resource_manager_t::uninit()
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
@@ -51,8 +59,7 @@ namespace sfg
 		_entries.clear();
 		_unloads.resize(0);
 
-		if (_glyph_atlas.is_initialized())
-			_glyph_atlas.uninit();
+		uninit_atlases();
 		_animation_storage.uninit();
 		_memory.uninit();
 		_resource_file_system = nullptr;

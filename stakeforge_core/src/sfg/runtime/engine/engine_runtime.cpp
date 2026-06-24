@@ -44,7 +44,6 @@ namespace sfg
 		job_system_t::get().uninit();
 		time_t::uninit();
 		process::uninit();
-		g_engine_thread_ids.main_thread_id = 0;
 	}
 
 	bool engine_runtime_t::init_backend(const ui::glyph_atlas_config_t& glyph_atlas_config = {})
@@ -61,6 +60,7 @@ namespace sfg
 
 	void engine_runtime_t::uninit_backend()
 	{
+		resource_manager_t::get().uninit_atlases();
 		render_resources_t::get().drain_requests();
 		render_resources_t::get().get_texture_upload_queue().uninit();
 		gfx_backend& backend = gfx_backend::get();
@@ -70,6 +70,7 @@ namespace sfg
 			render_globals_t::s_global_bind_layout = {};
 		}
 		backend.uninit();
+		g_engine_thread_ids.main_thread_id = 0;
 	}
 
 	bool engine_runtime_t::init()

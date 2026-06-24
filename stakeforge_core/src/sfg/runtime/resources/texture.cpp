@@ -76,11 +76,10 @@ namespace sfg
 
 		void free_texture_runtime_mips(texture_runtime_t& runtime)
 		{
-			if (runtime.owns_mips)
+			for (u8 i = 0; i < runtime.mip_count; ++i)
 			{
-				for (u8 i = 0; i < runtime.mip_count; ++i)
-					SFG_FREE(runtime.mips[i].pixels);
-				runtime.owns_mips = 0;
+				SFG_FREE(runtime.mips[i].pixels);
+				runtime.mips[i].pixels = nullptr;
 			}
 		}
 
@@ -111,25 +110,21 @@ namespace sfg
 			staging_desc.flags			 = resource_flags::rf_cpu_visible;
 			staging_desc.set_name("texture_upload_staging");
 
-			internals.texture = render_resources_t::get().enqueue_create_texture(entry.hash, desc);
-			internals.staging = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, staging_desc);
-
 			texture_buffer_t upload_mips[texture_loader_t::MAX_MIPS] = {};
 			for (u8 i = 0; i < runtime.mip_count; ++i)
 			{
 				texture_buffer_t& b = runtime.mips[i];
 				upload_mips[i]		= b;
-
-				if (!runtime.owns_mips)
-				{
-					u8* pixels = static_cast<u8*>(SFG_MALLOC(b.data_size));
-					SFG_MEMCPY(pixels, b.pixels, b.data_size);
-					upload_mips[i].pixels = pixels;
-				}
-
-				b.pixels = nullptr;
 			}
-			runtime.owns_mips = 0;
+
+			internals.texture = render_resources_t::get().enqueue_create_texture(entry.hash, desc);
+			internals.staging = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, staging_desc);
+
+			for (u8 i = 0; i < runtime.mip_count; ++i)
+			{
+				texture_buffer_t& b = runtime.mips[i];
+				b.pixels			= nullptr;
+			}
 
 			render_resources_t::get().enqueue_texture_upload({
 				.mips			   = {.data = upload_mips, .size = runtime.mip_count},
@@ -168,7 +163,13 @@ namespace sfg
 				stream >> buf.row_pitch;
 				stream >> buf.data_size;
 
-				buf.pixels = stream.get_data_current();
+				buf.pixels = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+				if (buf.pixels == nullptr)
+				{
+					free_texture_runtime_mips(*runtime);
+					return false;
+				}
+				SFG_MEMCPY(buf.pixels, stream.get_data_current(), buf.data_size);
 				stream.skip_by(buf.data_size);
 			}
 
@@ -181,16 +182,13 @@ namespace sfg
 
 			SFG_ASSERT(runtime->mip_count <= MAX_MIPS);
 
-			runtime->owns_mips = 1;
 			for (u8 i = 0; i < runtime->mip_count; ++i)
 			{
 				u32 blob_size = 0;
 				stream >> blob_size;
 				if (blob_size > static_cast<u32>(std::numeric_limits<int>::max()))
 				{
-					for (u8 j = 0; j < i; ++j)
-						SFG_FREE(runtime->mips[j].pixels);
-					runtime->owns_mips = 0;
+					free_texture_runtime_mips(*runtime);
 					return false;
 				}
 
@@ -205,9 +203,7 @@ namespace sfg
 				{
 					if (decoded != nullptr)
 						stbi_image_free(decoded);
-					for (u8 j = 0; j < i; ++j)
-						SFG_FREE(runtime->mips[j].pixels);
-					runtime->owns_mips = 0;
+					free_texture_runtime_mips(*runtime);
 					return false;
 				}
 
@@ -217,6 +213,12 @@ namespace sfg
 				buf.row_pitch		  = static_cast<u32>(decoded_width) * 4;
 				buf.data_size		  = buf.row_pitch * static_cast<u32>(decoded_height);
 				buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+				if (buf.pixels == nullptr)
+				{
+					stbi_image_free(decoded);
+					free_texture_runtime_mips(*runtime);
+					return false;
+				}
 				SFG_MEMCPY(buf.pixels, decoded, buf.data_size);
 				stbi_image_free(decoded);
 			}
@@ -264,15 +266,13 @@ namespace sfg
 			return false;
 		}
 
-		runtime->owns_mips = 1;
 		for (u8 i = 0; i < runtime->mip_count; ++i)
 		{
 			ktx_size_t offset = 0;
 			ktx_result		  = ktxTexture_GetImageOffset(ktxTexture(ktx_texture), i, 0, 0, &offset);
 			if (ktx_result != KTX_SUCCESS)
 			{
-				for (u8 j = 0; j < i; ++j)
-					SFG_FREE(runtime->mips[j].pixels);
+				free_texture_runtime_mips(*runtime);
 				ktxTexture2_Destroy(ktx_texture);
 				return false;
 			}
@@ -280,8 +280,7 @@ namespace sfg
 			const ktx_size_t image_size = ktxTexture_GetImageSize(ktxTexture(ktx_texture), i);
 			if (image_size > UINT32_MAX)
 			{
-				for (u8 j = 0; j < i; ++j)
-					SFG_FREE(runtime->mips[j].pixels);
+				free_texture_runtime_mips(*runtime);
 				ktxTexture2_Destroy(ktx_texture);
 				return false;
 			}
@@ -292,6 +291,12 @@ namespace sfg
 			buf.size			  = vec2u16_t(get_mip_size(ktx_texture->baseWidth, i), get_mip_size(ktx_texture->baseHeight, i));
 			buf.bpp				  = format_is_block_compressed(runtime->texture_format) ? 16 : format_get_bpp(runtime->texture_format);
 			buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+			if (buf.pixels == nullptr)
+			{
+				free_texture_runtime_mips(*runtime);
+				ktxTexture2_Destroy(ktx_texture);
+				return false;
+			}
 			SFG_MEMCPY(buf.pixels, ktxTexture_GetData(ktxTexture(ktx_texture)) + offset, buf.data_size);
 		}
 

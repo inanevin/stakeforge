@@ -74,7 +74,6 @@ namespace sfg
 		u8						   channels							= 0;
 		u8						   mip_count						= 0;
 		u8						   is_linear						= 0;
-		u8						   owns_mips						= 0;
 	};
 
 	struct texture_internals_t

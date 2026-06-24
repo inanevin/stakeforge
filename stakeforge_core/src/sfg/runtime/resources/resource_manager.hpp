@@ -32,6 +32,7 @@ namespace sfg
 
 		void init(resource_file_system_t& resource_file_system, size_t resource_memory_size);
 		void init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config = {});
+		void uninit_atlases();
 		void uninit();
 		void flush();
 

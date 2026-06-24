@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
@@ -77,12 +78,17 @@ namespace sfg::ui
 		ui_resource_ref_t constants[4] = {};
 	};
 
+	struct ui_resolved_resource_ref_t
+	{
+		gpu_index_t				 gpu_indices[BACK_BUFFER_COUNT] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};
+		render_resource_handle_t texture						= {};
+		ui_resource_type_e		 type							= ui_resource_type_e::none;
+	};
+
 	struct ui_resolved_state_t
 	{
-		gfx_handle_t		   pipeline								 = {};
-		gpu_index_t		   constants[4]							 = {};
-		gpu_index_t		   constant_frames[4][BACK_BUFFER_COUNT] = {};
-		ui_resource_type_e constant_types[4]					 = {};
+		render_resource_handle_t   pipeline		= {};
+		ui_resolved_resource_ref_t constants[4] = {};
 	};
 
 	struct vg_vertex_t

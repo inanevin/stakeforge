@@ -1,7 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "glyph_atlas.hpp"
-#include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
@@ -61,7 +60,7 @@ namespace sfg::ui
 		SFG_ASSERT(_texture.is_null());
 		SFG_ASSERT(cfg.width > 0 && cfg.height > 0);
 
-		gfx_backend& backend = gfx_backend::get();
+		render_resources_t& render_resources = render_resources_t::get();
 
 		_width	= cfg.width;
 		_height = cfg.height;
@@ -75,8 +74,7 @@ namespace sfg::ui
 		tdesc.array_length	 = 1;
 		tdesc.samples		 = 1;
 		tdesc.set_name("ui_glyph_atlas");
-		_texture   = backend.create_texture(tdesc);
-		_gpu_index = backend.get_texture_gpu_index(_texture, 0);
+		_texture = render_resources.enqueue_create_texture(0, tdesc);
 
 		const u32 staging_bytes = align_up(cfg.staging_bytes, PLACEMENT_ALIGNMENT);
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
@@ -85,9 +83,8 @@ namespace sfg::ui
 			sdesc.size			  = staging_bytes;
 			sdesc.flags			  = resource_flags::rf_cpu_visible;
 			sdesc.set_name("ui_glyph_staging");
-			_staging[i].buffer	 = backend.create_resource(sdesc);
+			_staging[i].buffer	 = render_resources.enqueue_create_resource(0, resource_type_e::texture, sdesc);
 			_staging[i].capacity = staging_bytes;
-			backend.map_resource(_staging[i].buffer, _staging[i].mapped);
 		}
 
 		_entries.reserve(1024);
@@ -102,7 +99,7 @@ namespace sfg::ui
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		gfx_backend& backend = gfx_backend::get();
+		render_resources_t& render_resources = render_resources_t::get();
 
 		for (pending_upload_t& p : _pending)
 		{
@@ -113,14 +110,13 @@ namespace sfg::ui
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			if (!_staging[i].buffer.is_null())
-				backend.destroy_resource(_staging[i].buffer);
+				render_resources.enqueue_destroy_resource(_staging[i].buffer);
 			_staging[i] = {};
 		}
 
 		if (!_texture.is_null())
-			backend.destroy_texture(_texture);
+			render_resources.enqueue_destroy_texture(_texture);
 		_texture	  = {};
-		_gpu_index	  = 0;
 		_width		  = 0;
 		_height		  = 0;
 		_frame		  = 0;
@@ -130,14 +126,9 @@ namespace sfg::ui
 		_shelves.clear();
 	}
 
-	gfx_handle_t glyph_atlas_t::get_texture() const
+	render_resource_handle_t glyph_atlas_t::get_texture() const
 	{
 		return _texture;
-	}
-
-	gpu_index_t glyph_atlas_t::get_gpu_index() const
-	{
-		return _gpu_index;
 	}
 
 	u32 glyph_atlas_t::get_width() const
@@ -435,7 +426,7 @@ namespace sfg::ui
 
 		SFG_ASSERT(frame_slot < BACK_BUFFER_COUNT);
 		staging_slot_t& slot = _staging[frame_slot];
-		SFG_ASSERT(slot.mapped != nullptr);
+		SFG_ASSERT(!slot.buffer.is_null());
 
 		u32 cursor = 0;
 		for (pending_upload_t& p : _pending)
@@ -446,27 +437,37 @@ namespace sfg::ui
 
 			SFG_ASSERT(placed_offset + needed <= slot.capacity);
 
-			u8* dst = slot.mapped + placed_offset;
+			u8* upload = static_cast<u8*>(SFG_MALLOC(needed));
+			SFG_ASSERT(upload != nullptr);
+			SFG_MEMSET(upload, 0, needed);
 			for (i32 y = 0; y < p.height; ++y)
 			{
 				const u8* src_row = p.rgba + static_cast<size_t>(y) * static_cast<size_t>(p.width) * ATLAS_BPP;
-				u8*		  dst_row = dst + static_cast<size_t>(y) * static_cast<size_t>(row_pitch);
+				u8*		  dst_row = upload + static_cast<size_t>(y) * static_cast<size_t>(row_pitch);
 				SFG_MEMCPY(dst_row, src_row, static_cast<size_t>(p.width) * ATLAS_BPP);
 			}
 
-			texture_region_upload_desc_t desc = {};
-			desc.dst_texture				  = _texture;
-			desc.src_buffer					  = slot.buffer;
-			desc.src_offset					  = placed_offset;
-			desc.src_row_pitch				  = row_pitch;
-			desc.dst_x						  = static_cast<u16>(p.atlas_x);
-			desc.dst_y						  = static_cast<u16>(p.atlas_y);
-			desc.width						  = static_cast<u16>(p.width);
-			desc.height						  = static_cast<u16>(p.height);
-			desc.bpp						  = ATLAS_BPP;
-			desc.dst_mip					  = 0;
-			desc.target_states				  = resource_state_ps_resource;
-			render_resources_t::get().get_texture_upload_queue().add_region(desc);
+			render_resources_t::get().enqueue_data_upload({
+				.data		= upload,
+				.resource	= slot.buffer,
+				.dst_offset = placed_offset,
+				.data_size	= needed,
+			});
+			SFG_FREE(upload);
+
+			render_texture_region_upload_desc_t desc = {};
+			desc.dst_texture						 = _texture;
+			desc.src_buffer							 = slot.buffer;
+			desc.src_offset							 = placed_offset;
+			desc.src_row_pitch						 = row_pitch;
+			desc.dst_x								 = static_cast<u16>(p.atlas_x);
+			desc.dst_y								 = static_cast<u16>(p.atlas_y);
+			desc.width								 = static_cast<u16>(p.width);
+			desc.height								 = static_cast<u16>(p.height);
+			desc.bpp								 = ATLAS_BPP;
+			desc.dst_mip							 = 0;
+			desc.target_states						 = resource_state_ps_resource;
+			render_resources_t::get().enqueue_texture_region_upload(desc);
 
 			SFG_FREE(p.rgba);
 			cursor = placed_offset + needed;

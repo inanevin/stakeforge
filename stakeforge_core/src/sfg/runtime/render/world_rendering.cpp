@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
 
 namespace sfg
 {
@@ -80,8 +81,9 @@ namespace sfg
 
 		job_graph_t render_graph;
 		render_graph.emplace([&ctx, &snapshot, frame_index, global_cbv_index, global_layout]() {
-			gfx_backend&	   backend = gfx_backend::get();
-			const gfx_handle_t cmd	   = ctx.get_command_buffer_gfx0(frame_index);
+			render_access_scope_t scope;
+			gfx_backend&		  backend = gfx_backend::get();
+			const gfx_handle_t	  cmd	  = ctx.get_command_buffer_gfx0(frame_index);
 			backend.reset_command_buffer(cmd);
 			backend.cmd_bind_layout(cmd, {.layout = global_layout});
 			gpu_index_t global_constants[1] = {global_cbv_index};
@@ -91,8 +93,9 @@ namespace sfg
 			backend.close_command_buffer(cmd);
 		});
 		render_graph.emplace([&ctx, &snapshot, frame_index, global_cbv_index, global_layout]() {
-			gfx_backend&	   backend = gfx_backend::get();
-			const gfx_handle_t cmd	   = ctx.get_command_buffer_gfx1(frame_index);
+			render_access_scope_t scope;
+			gfx_backend&		  backend = gfx_backend::get();
+			const gfx_handle_t	  cmd	  = ctx.get_command_buffer_gfx1(frame_index);
 			backend.reset_command_buffer(cmd);
 			backend.cmd_bind_layout(cmd, {.layout = global_layout});
 			gpu_index_t global_constants[1] = {global_cbv_index};
@@ -383,18 +386,18 @@ namespace sfg
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		gpu_index_t				  rp_constants[11] = {
-			  ctx.get_lighting_render_pass_data_index(frame_index),
-			  ctx.get_gbuffer_albedo_index(frame_index),
-			  ctx.get_gbuffer_normal_index(frame_index),
-			  ctx.get_gbuffer_orm_index(frame_index),
-			  ctx.get_gbuffer_emissive_index(frame_index),
-			  ctx.get_depth_texture_index(frame_index),
-			  ctx.get_ao_texture_index(frame_index),
-			  snapshot.skybox.radiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.radiance, 0),
-			  snapshot.skybox.irradiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.irradiance, 0),
-			  snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
-			  snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
-		  };
+			ctx.get_lighting_render_pass_data_index(frame_index),
+			ctx.get_gbuffer_albedo_index(frame_index),
+			ctx.get_gbuffer_normal_index(frame_index),
+			ctx.get_gbuffer_orm_index(frame_index),
+			ctx.get_gbuffer_emissive_index(frame_index),
+			ctx.get_depth_texture_index(frame_index),
+			ctx.get_ao_texture_index(frame_index),
+			snapshot.skybox.radiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.radiance, 0),
+			snapshot.skybox.irradiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.irradiance, 0),
+			snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
+			snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
+		};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 11, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});

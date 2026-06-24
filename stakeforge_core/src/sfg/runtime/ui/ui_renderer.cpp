@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/mat4x4.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg::ui
@@ -59,6 +60,17 @@ namespace sfg::ui
 			const f32 min_px = math::max(0.0f, math::floor(min_v));
 			const f32 max_px = math::max(min_px, math::ceil(min_v + size_v));
 			return static_cast<u16>(max_px - min_px);
+		}
+
+		gpu_index_t resolve_constant(const ui_resolved_resource_ref_t& ref, u8 frame_slot)
+		{
+			if (ref.type == ui_resource_type_e::gpu_index)
+				return ref.gpu_indices[0];
+			if (ref.type == ui_resource_type_e::gpu_index_fof)
+				return ref.gpu_indices[frame_slot];
+			if (ref.type == ui_resource_type_e::texture)
+				return render_resources_t::get().get_texture_gpu_index(ref.texture, 0);
+			return NULL_GPU_INDEX;
 		}
 	}
 
@@ -168,10 +180,10 @@ namespace sfg::ui
 				continue;
 			}
 
-			const gfx_handle_t pipeline = db.resolved.pipeline;
-
-			if (pipeline.is_null())
+			if (db.resolved.pipeline.is_null())
 				continue;
+
+			const gfx_handle_t pipeline = render_resources_t::get().get_shader_hw(db.resolved.pipeline);
 
 			if (pipeline != current_pipeline)
 			{
@@ -181,16 +193,16 @@ namespace sfg::ui
 			}
 
 			glyph_atlas_t&	  glyph_atlas = resource_manager_t::get().get_glyph_atlas();
-			const gpu_index_t atlas_index = glyph_atlas.get_gpu_index();
+			const gpu_index_t atlas_index = render_resources_t::get().get_texture_gpu_index(glyph_atlas.get_texture(), 0);
 
-			gpu_index_t				 mat_constants[2] = {glyph_atlas.get_gpu_index(), _sdf_params_index};
+			gpu_index_t				 mat_constants[2] = {atlas_index, _sdf_params_index};
 			command_bind_constants_t bc_mat0		  = {.data = mat_constants, .offset = constant_mat0, .count = 2, .param_index = 0};
 			backend.cmd_bind_constants(cmd, bc_mat0);
 
 			gpu_index_t obj_constants[4] = {};
 			for (u8 j = 0; j < 4; ++j)
 			{
-				obj_constants[j] = db.resolved.constant_types[j] == ui_resource_type_e::gpu_index_fof ? db.resolved.constant_frames[j][frame_slot] : db.resolved.constants[j];
+				obj_constants[j] = resolve_constant(db.resolved.constants[j], frame_slot);
 			}
 
 			command_bind_constants_t bc_obj = {.data = obj_constants, .offset = constant_obj0, .count = 4, .param_index = 0};

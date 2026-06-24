@@ -33,7 +33,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/memory/memory_tracer.hpp>
-#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/texture.hpp>
@@ -344,24 +343,24 @@ namespace sfg::ui
 
 	namespace
 	{
-		gfx_handle_t resolve_shader(resource_handle_t handle)
+		render_resource_handle_t resolve_shader(resource_handle_t handle)
 		{
 			if (handle == 0)
 				return {};
 			const shader_internals_t* internals = resource_manager_t::get().find_internals<shader_internals_t>(handle);
 			if (internals == nullptr)
 				return {};
-			return render_resources_t::get().get_shader(internals->find_pso(0));
+			return internals->find_pso(0);
 		}
 
-		gpu_index_t resolve_texture_index(resource_handle_t handle)
+		render_resource_handle_t resolve_texture(resource_handle_t handle)
 		{
 			if (handle == NULL_RESOURCE_HANDLE)
-				return NULL_GPU_INDEX;
+				return {};
 			const texture_internals_t* internals = resource_manager_t::get().find_internals<texture_internals_t>(handle);
 			if (internals == nullptr || internals->texture.is_null())
-				return NULL_GPU_INDEX;
-			return render_resources_t::get().get_texture_gpu_index(internals->texture, 0);
+				return {};
+			return internals->texture;
 		}
 
 	}
@@ -371,32 +370,34 @@ namespace sfg::ui
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
 			SFG_ASSERT(db.state.pipeline != NULL_RESOURCE_HANDLE);
-			const gfx_handle_t p = resolve_shader(db.state.pipeline);
-			SFG_ASSERT(!p.is_null());
-			db.resolved.pipeline = p;
+			db.resolved.pipeline = resolve_shader(db.state.pipeline);
+			SFG_ASSERT(!db.resolved.pipeline.is_null());
 
 			for (u8 i = 0; i < 4; ++i)
 			{
-				const ui_resource_ref_t& ref  = db.state.constants[i];
-				db.resolved.constant_types[i] = ref.type;
+				const ui_resource_ref_t&	ref = db.state.constants[i];
+				ui_resolved_resource_ref_t& dst = db.resolved.constants[i];
+				dst.type						= ref.type;
 				if (ref.type == ui_resource_type_e::gpu_index)
 				{
-					db.resolved.constants[i] = ref.gpu_indices[0];
+					dst.gpu_indices[0] = ref.gpu_indices[0];
 				}
 				else if (ref.type == ui_resource_type_e::gpu_index_fof)
 				{
-					db.resolved.constants[i] = ref.gpu_indices[0];
 					for (u8 j = 0; j < BACK_BUFFER_COUNT; ++j)
-						db.resolved.constant_frames[i][j] = ref.gpu_indices[j];
+						dst.gpu_indices[j] = ref.gpu_indices[j];
 				}
 				else if (ref.type == ui_resource_type_e::texture)
 				{
-					const gpu_index_t idx = resolve_texture_index(ref.handle);
-					SFG_ASSERT(idx != NULL_GPU_INDEX);
-					db.resolved.constants[i] = idx;
+					dst.texture = resolve_texture(ref.handle);
+					SFG_ASSERT(!dst.texture.is_null());
 				}
 				else
-					db.resolved.constants[i] = NULL_GPU_INDEX;
+				{
+					for (u8 j = 0; j < BACK_BUFFER_COUNT; ++j)
+						dst.gpu_indices[j] = NULL_GPU_INDEX;
+					dst.texture = {};
+				}
 			}
 		}
 	}

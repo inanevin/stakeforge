@@ -16,6 +16,17 @@ namespace sfg
 	};
 
 	extern engine_thread_ids_t g_engine_thread_ids;
+
+	class render_access_scope_t final
+	{
+	public:
+		render_access_scope_t();
+		~render_access_scope_t();
+		render_access_scope_t(const render_access_scope_t&)			   = delete;
+		render_access_scope_t& operator=(const render_access_scope_t&) = delete;
+	};
+
+	bool is_render_access_thread();
 }
 
 #define SFG_THIS_THREAD_ID()	static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))
