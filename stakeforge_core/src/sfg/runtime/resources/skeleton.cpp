@@ -56,7 +56,6 @@ namespace sfg
 		.internals_alignment = alignof(skeleton_internals_t),
 		.wire_magic			 = skeleton_loader_t::WIRE_MAGIC,
 		.wire_version		 = skeleton_loader_t::WIRE_VERSION,
-		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
 		.use_async_load		 = false,

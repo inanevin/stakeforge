@@ -92,7 +92,6 @@ namespace sfg
 		u32				internals_alignment = 0;
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
-		size_t			initial_load_offset = 0;
 		size_t			initial_load_size	= 0;
 		size_t			async_load_offset	= 0;
 		bool			use_async_load		= false;

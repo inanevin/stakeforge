@@ -210,7 +210,6 @@ namespace sfg
 		.internals_alignment = alignof(mesh_internals_t),
 		.wire_magic			 = mesh_loader_t::WIRE_MAGIC,
 		.wire_version		 = mesh_loader_t::WIRE_VERSION,
-		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
 		.use_async_load		 = false,

@@ -226,7 +226,6 @@ namespace sfg
 		.internals_alignment = alignof(skybox_hdr_internals_t),
 		.wire_magic			 = skybox_hdr_loader_t::WIRE_MAGIC,
 		.wire_version		 = skybox_hdr_loader_t::WIRE_VERSION,
-		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
 		.use_async_load		 = false,

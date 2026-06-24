@@ -19,7 +19,6 @@ namespace sfg
 		.runtime_alignment	 = alignof(audio_runtime_t),
 		.internals_size		 = sizeof(audio_internals_t),
 		.internals_alignment = alignof(audio_internals_t),
-		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
 		.use_async_load		 = false,

@@ -113,7 +113,7 @@ namespace sfg
 			entry.debug_name = _memory.allocate_text(debug_name);
 
 		ostream_t file_stream;
-		if (!_resource_file_system->read_resource(hash, desc->initial_load_offset, desc->initial_load_size, file_stream))
+		if (!_resource_file_system->read_resource(hash, sizeof(resource_header_t), desc->initial_load_size, file_stream))
 		{
 			SFG_ERR("failed reading resource: {0} {1}", debug_name, hash);
 			free_entry(entry);

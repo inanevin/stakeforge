@@ -43,7 +43,6 @@ namespace sfg
 		.internals_alignment = alignof(texture_sampler_internals_t),
 		.wire_magic			 = texture_sampler_loader_t::WIRE_MAGIC,
 		.wire_version		 = texture_sampler_loader_t::WIRE_VERSION,
-		.initial_load_offset = 0,
 		.initial_load_size	 = 0,
 		.async_load_offset	 = 0,
 		.use_async_load		 = false,
