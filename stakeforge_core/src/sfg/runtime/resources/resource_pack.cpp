@@ -12,7 +12,6 @@
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/serialization/compression.hpp>
 #include <sfg/serialization/serialization.hpp>
 
 #if !defined(SFG_EMBED_ASSETS)
@@ -82,10 +81,8 @@ namespace sfg
 			if (header.source_tick != expected.source_tick)
 				return {};
 
-			istream_t payload = compressor_t::decompress(stream);
-			if (payload.empty())
-				return {};
-
+			istream_t payload;
+			payload.create(stream.get_data_current(), stream.get_size() - stream.tellg());
 			return payload;
 		}
 
@@ -163,11 +160,7 @@ namespace sfg
 				return false;
 			}
 
-			ostream_t compressed_payload = compressor_t::compress(payload);
-			if (compressed_payload.get_size() == 0)
-				return false;
-
-			ostream_t cached_stream = make_resource_stream(header, compressed_payload);
+			ostream_t cached_stream = make_resource_stream(header, payload);
 			if (!save_cache(cache_dir.c_str(), name.c_str(), cached_stream))
 				SFG_WARN("resource_pack: cache save failed for {0}", name.c_str());
 

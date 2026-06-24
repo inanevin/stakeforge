@@ -51,7 +51,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
-#include <sfg/serialization/compression.hpp>
 #include <sfg/serialization/serialization.hpp>
 
 namespace sfg
@@ -65,11 +64,7 @@ namespace sfg
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))
 				return false;
 
-			ostream_t compressed = compressor_t::compress(payload);
-			if (compressed.get_size() == 0)
-				return false;
-
-			ostream_t stream = make_resource_stream(header, compressed);
+			ostream_t stream = make_resource_stream(header, payload);
 			return serializer_t::save_to_file(cache_path.c_str(), stream);
 		}
 	}

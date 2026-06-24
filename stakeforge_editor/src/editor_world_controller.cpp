@@ -342,14 +342,7 @@ namespace sfg
 				continue;
 			}
 
-			istream_t payload = compressor_t::decompress(stream);
-			if (payload.empty())
-			{
-				SFG_WARN("world resource cooked binary payload could not be decompressed: {0}", cache_path.c_str());
-				continue;
-			}
-
-			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), payload, resource_type) == resource_state_e::failed)
+			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), stream, resource_type) == resource_state_e::failed)
 				SFG_WARN("world resource failed to load: {0}", guid);
 		}
 	}
