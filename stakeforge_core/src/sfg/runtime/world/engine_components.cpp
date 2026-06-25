@@ -207,6 +207,24 @@ namespace sfg
 			});
 		}
 
+		void register_component_prefab_reference_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "prefab", .display_name = "Prefab", .type = reflected_value_type_e::prefab_handle, .offset = offsetof(component_prefab_reference_t, prefab), .size = sizeof(resource_handle_t)},
+			};
+
+			register_type_if_missing({
+				.fields		  = {.data = fields, .size = std::size(fields)},
+				.name		  = "component_prefab_reference",
+				.display_name = "Prefab Reference",
+				.category	  = "component",
+				.type_id	  = component_prefab_reference_t::TYPE_ID,
+				.size		  = sizeof(component_prefab_reference_t),
+				.alignment	  = alignof(component_prefab_reference_t),
+				.flags		  = reflected_type_flags_component,
+			});
+		}
+
 		void register_component_debug_widgets_reflection()
 		{
 			static const reflected_enum_value_desc_t enum8_values[] = {
@@ -399,6 +417,7 @@ namespace sfg
 		register_component_render_object_reflection();
 		register_component_camera_reflection();
 		register_component_skybox_reflection();
+		register_component_prefab_reference_reflection();
 		register_component_debug_widgets_reflection();
 		register_component_alive_reflection();
 		register_component_disabled_reflection();

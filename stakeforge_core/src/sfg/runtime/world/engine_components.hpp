@@ -104,6 +104,14 @@ namespace sfg
 		f32				  exposure	   = 1.0f;
 	};
 
+	struct component_prefab_reference_t
+	{
+		static inline constexpr sid_t		TYPE_ID	   = "component_prefab_reference"_hs;
+		static inline constexpr const char* DEBUG_NAME = "component_prefab_reference";
+
+		resource_handle_t prefab = NULL_RESOURCE_HANDLE;
+	};
+
 	struct debug_widgets_inplace_vector_t
 	{
 		u32	   data[4] = {1, 2, 3, 0};
