@@ -139,15 +139,23 @@ namespace sfg
 
 	void editor_widget_asset_reference_t::refresh_title()
 	{
-		const sid_t selected = get_selected();
-		const char* label	 = editor_asset_util_t::find_asset_display_name(selected);
-		if (label == nullptr)
-			label = "None";
+		const editor_theme_t& theme		 = editor_theme_t::get();
+		const sid_t			  selected	 = get_selected();
+		const char*			  label		 = "None";
+		vec4f_t				  text_color = theme.color_text0;
+		if (selected != NULL_SID)
+		{
+			label = editor_asset_util_t::find_asset_display_name(selected);
+			if (label == nullptr)
+			{
+				label	   = "Missing";
+				text_color = theme.color_accent_err;
+			}
+		}
 
-		const editor_theme_t& theme = editor_theme_t::get();
 		_ui->set_widget_text(_label, label);
 		_ui->get_paint().set_text(
-			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = text_color, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
 	void editor_widget_asset_reference_t::set_mixed(bool mixed)

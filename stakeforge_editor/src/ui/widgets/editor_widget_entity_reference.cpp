@@ -119,8 +119,10 @@ namespace sfg
 
 	void editor_widget_entity_reference_t::refresh_title()
 	{
-		const entity_id_t selected = get_selected();
-		const char*		  label	   = "None";
+		const editor_theme_t& theme		 = editor_theme_t::get();
+		const entity_id_t	  selected	 = get_selected();
+		const char*			  label		 = "None";
+		vec4f_t				  text_color = theme.color_text0;
 		if (selected != NULL_ENTITY_ID)
 		{
 			const world_t& world = editor_app_t::get().get_runtime().get_world(_config.world);
@@ -129,12 +131,16 @@ namespace sfg
 				const char* name = world.get_entity_name(selected);
 				label			 = name != nullptr ? name : "Entity";
 			}
+			else
+			{
+				label	   = "Missing";
+				text_color = theme.color_accent_err;
+			}
 		}
 
-		const editor_theme_t& theme = editor_theme_t::get();
 		_ui->set_widget_text(_label, label);
 		_ui->get_paint().set_text(
-			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = text_color, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
 	void editor_widget_entity_reference_t::set_mixed(bool mixed)
