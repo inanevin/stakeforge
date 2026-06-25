@@ -61,10 +61,8 @@ namespace sfg
 	{
 		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
 		font_runtime_t*	   font = mem.get<font_runtime_t>(entry.runtime);
-		if (font->face != nullptr)
-			FT_Done_Face(static_cast<FT_Face>(font->face));
-		if (font->ttf_chunk)
-			mem.free(font->ttf_chunk);
+		FT_Done_Face(static_cast<FT_Face>(font->face));
+		mem.free(font->ttf_chunk);
 		*font = {};
 	}
 

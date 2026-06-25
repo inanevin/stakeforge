@@ -403,11 +403,8 @@ namespace sfg
 				for (u8 mip = 0; mip < block.mip_count; ++mip)
 				{
 					texture_buffer_t& buffer = block.buffers[get_subresource_index(face, mip)];
-					if (buffer.pixels != nullptr)
-					{
-						SFG_FREE(buffer.pixels);
-						buffer.pixels = nullptr;
-					}
+					SFG_FREE(buffer.pixels);
+					buffer.pixels = nullptr;
 				}
 			}
 		}

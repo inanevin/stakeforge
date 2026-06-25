@@ -43,7 +43,7 @@ namespace sfg
 	static inline constexpr u32			ECS_L1_SPAN				  = 64;
 	static inline constexpr u32			ECS_L0_SIZE				  = (ECS_MAX_ENTITIES + ECS_L0_SPAN - 1) / ECS_L0_SPAN;
 	static inline constexpr u32			ECS_INNER_JOIN_MAX_TABLES = 16;
-	static inline constexpr u32			ECS_INVALID_INDEX		  = std::numeric_limits<u32>::max();
+	static inline constexpr u32			ECS_INVALID_INDEX		  = UINT32_MAX;
 
 	struct ecs_node_t
 	{

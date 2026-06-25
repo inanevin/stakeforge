@@ -371,7 +371,7 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		world_component_table_t&	table = get_component_table(get_world(world), component_type);
 		frame_vector_t<entity_id_t> affected;
@@ -414,7 +414,7 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		world_component_table_t&	table = get_component_table(get_world(world), component_type);
 		frame_vector_t<entity_id_t> affected;
@@ -464,7 +464,7 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		world_component_table_t& table = get_component_table(get_world(world), component_type);
 		if (table.type_desc.size == 0)
@@ -517,7 +517,7 @@ namespace sfg
 	{
 		if (entities.empty() || data_size == 0)
 			return false;
-		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(entities.size() <= UINT32_MAX);
 		SFG_ASSERT(data != nullptr);
 
 		world_component_table_t& table = get_component_table(get_world(world), component_type);

@@ -62,7 +62,7 @@ namespace sfg
 				bool success = std::filesystem::create_directory(current_path.c_str());
 				if (!success)
 				{
-					SFG_ERR("Could not create directory: {0}", current_path);
+					SFG_ERR("could not create directory: {0}", current_path);
 					return false;
 				}
 			}
@@ -85,7 +85,7 @@ namespace sfg
 		}
 		catch (const std::exception& err)
 		{
-			SFG_ERR("Could not delete directory: {0}, {1}", path, err.what());
+			SFG_ERR("could not delete directory: {0}, {1}", path, err.what());
 			return false;
 		}
 
@@ -101,7 +101,7 @@ namespace sfg
 	{
 		if (std::rename(old_path, new_path) != 0)
 		{
-			SFG_ERR("Failed to rename directory! Old Name: {0}, New Name: {1}", old_path, new_path);
+			SFG_ERR("failed to rename directory! Old Name: {0}, New Name: {1}", old_path, new_path);
 			return false;
 		}
 
@@ -510,7 +510,7 @@ namespace sfg
 		}
 		catch (const std::exception& ex)
 		{
-			SFG_ERR("Error while copying directory {0}", ex.what());
+			SFG_ERR("error while copying directory {0}", ex.what());
 		}
 	}
 
@@ -523,7 +523,7 @@ namespace sfg
 
 			if (!std::filesystem::exists(src_file) || !std::filesystem::is_regular_file(src_file))
 			{
-				SFG_ERR("Source file does not exist or is not a valid file. {0}", file);
+				SFG_ERR("source file does not exist or is not a valid file. {0}", file);
 				return false;
 			}
 
@@ -531,7 +531,7 @@ namespace sfg
 		}
 		catch (const std::filesystem::filesystem_error& e)
 		{
-			SFG_ERR("Could not copy file {0} to {1}: {2}", file, target_file, e.what());
+			SFG_ERR("could not copy file {0} to {1}: {2}", file, target_file, e.what());
 			return false;
 		}
 
@@ -547,19 +547,19 @@ namespace sfg
 
 			if (!std::filesystem::exists(src_file) || !std::filesystem::is_regular_file(src_file))
 			{
-				SFG_ERR("Error: Source file does not exist or is not a valid file. {0} {1}", file, targetParentFolder);
+				SFG_ERR("source file does not exist or is not a valid file. {0} {1}", file, targetParentFolder);
 				return;
 			}
 
 			if (!std::filesystem::exists(dest_dir))
 			{
-				SFG_ERR("Error: Target directory does not exist. {0} {1}", file, targetParentFolder);
+				SFG_ERR("target directory does not exist. {0} {1}", file, targetParentFolder);
 				return;
 			}
 
 			if (!std::filesystem::is_directory(dest_dir))
 			{
-				SFG_ERR("Error: Target path is not a directory. {0} {1}", file, targetParentFolder);
+				SFG_ERR("target path is not a directory. {0} {1}", file, targetParentFolder);
 				return;
 			}
 
@@ -612,7 +612,7 @@ namespace sfg
 		}
 		catch (const std::exception& ex)
 		{
-			SFG_ERR("Error while reading directory recursively {0} {1}", directory, ex.what());
+			SFG_ERR("error while reading directory recursively {0} {1}", directory, ex.what());
 		}
 	}
 }

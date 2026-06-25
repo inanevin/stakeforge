@@ -61,8 +61,8 @@ namespace sfg
 
 			const size_t item_alignment	  = alignof(T);
 			const size_t padded_item_size = ALIGN_UP(sizeof(T), item_alignment);
-			SFG_ASSERT(padded_item_size <= std::numeric_limits<u32>::max());
-			SFG_ASSERT(count <= std::numeric_limits<u32>::max() / padded_item_size);
+			SFG_ASSERT(padded_item_size <= UINT32_MAX);
+			SFG_ASSERT(count <= UINT32_MAX / padded_item_size);
 
 			const chunk_handle32_t ret = allocate_bytes(padded_item_size * count, item_alignment);
 			T*					   ptr = reinterpret_cast<T*>(_raw + ret.head);

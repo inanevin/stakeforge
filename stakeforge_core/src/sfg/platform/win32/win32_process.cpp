@@ -1342,7 +1342,7 @@ namespace sfg
 
 			if (!RegisterClassA(&wc))
 			{
-				SFG_ERR("Failed registering window class!");
+				SFG_ERR("failed registering window class!");
 				return false;
 			}
 		}
@@ -1353,7 +1353,10 @@ namespace sfg
 
 		HWND hwnd = CreateWindowExA(ex_style, title, title, stylew, pos.x, pos.y, outer_size.x, outer_size.y, nullptr, nullptr, instance, nullptr);
 		if (hwnd == nullptr)
+		{
+			SFG_ERR("CreateWindowExA failed!");
 			return false;
+		}
 		if (window_style == window_style_e::alpha)
 			configure_alpha_window(hwnd, window_alpha);
 

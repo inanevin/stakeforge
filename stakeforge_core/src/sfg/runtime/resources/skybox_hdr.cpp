@@ -52,19 +52,12 @@ namespace sfg
 			return static_cast<u8>(face * skybox_hdr_loader_t::MAX_MIPS + mip);
 		}
 
-		bool load_texture_block(istream_t& stream, skybox_hdr_texture_block_t& block)
+		void load_texture_block(istream_t& stream, skybox_hdr_texture_block_t& block)
 		{
 			stream >> block.format;
 			stream >> block.size;
 			stream >> block.face_count;
 			stream >> block.mip_count;
-
-			if (block.format == format_e::undefined || block.size.x == 0 || block.size.y == 0)
-				return false;
-			if (block.face_count == 0 || block.face_count > skybox_hdr_loader_t::MAX_FACES)
-				return false;
-			if (block.mip_count == 0 || block.mip_count > skybox_hdr_loader_t::MAX_MIPS)
-				return false;
 
 			for (u8 face = 0; face < block.face_count; ++face)
 			{
@@ -74,15 +67,11 @@ namespace sfg
 					stream >> buffer.size;
 					stream >> buffer.row_pitch;
 					stream >> buffer.data_size;
-					buffer.bpp = format_get_bpp(block.format);
-					if (buffer.size.x == 0 || buffer.size.y == 0 || buffer.row_pitch == 0 || buffer.data_size == 0)
-						return false;
+					buffer.bpp	  = format_get_bpp(block.format);
 					buffer.pixels = stream.get_data_current();
 					stream.skip_by(buffer.data_size);
 				}
 			}
-
-			return true;
 		}
 
 		u32 get_face_staging_size(const skybox_hdr_texture_block_t& block)
@@ -190,8 +179,10 @@ namespace sfg
 		payload >> runtime->rotation;
 		payload >> runtime->prefilter_mips;
 
-		if (!load_texture_block(payload, runtime->radiance) || !load_texture_block(payload, runtime->irradiance) || !load_texture_block(payload, runtime->prefilter) || !load_texture_block(payload, runtime->brdf_lut))
-			return false;
+		load_texture_block(payload, runtime->radiance);
+		load_texture_block(payload, runtime->irradiance);
+		load_texture_block(payload, runtime->prefilter);
+		load_texture_block(payload, runtime->brdf_lut);
 
 		skybox_hdr_internals_t* internals = mem.get<skybox_hdr_internals_t>(entry.internals);
 		*internals						  = {};

@@ -344,7 +344,7 @@ namespace sfg
 			}
 
 			const tg3_accessor* accessor = get_accessor(model, accessor_index);
-			if (accessor == nullptr || accessor->type != TG3_TYPE_SCALAR || accessor->count > std::numeric_limits<u32>::max())
+			if (accessor == nullptr || accessor->type != TG3_TYPE_SCALAR || accessor->count > UINT32_MAX)
 				return false;
 
 			const tg3_buffer_view* buffer_view = nullptr;
@@ -427,7 +427,7 @@ namespace sfg
 		u32 get_primitive_vertex_count(const tg3_model& model, const tg3_primitive& primitive)
 		{
 			const tg3_accessor* accessor = get_accessor(model, find_attribute(primitive, "POSITION"));
-			if (accessor == nullptr || accessor->count > std::numeric_limits<u32>::max())
+			if (accessor == nullptr || accessor->count > UINT32_MAX)
 				return 0;
 
 			return static_cast<u32>(accessor->count);

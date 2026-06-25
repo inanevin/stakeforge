@@ -45,7 +45,7 @@ namespace sfg
 
 		const size_t alignment = alignof(std::max_align_t);
 		const size_t mem_size  = ALIGN_UP(size, alignment);
-		SFG_ASSERT(mem_size <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(mem_size <= UINT32_MAX);
 
 		_raw		= reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, mem_size));
 		_total_size = static_cast<u32>(mem_size);
@@ -82,7 +82,8 @@ namespace sfg
 		SFG_ASSERT(alignment != 0);
 		SFG_ASSERT((alignment & (alignment - 1)) == 0);
 		SFG_ASSERT(alignment <= alignof(std::max_align_t));
-		SFG_ASSERT(size <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(size <= UINT32_MAX);
+		SFG_ASSERT(static_cast<size_t>(_head) + size < UINT32_MAX);
 
 		const u32 requested_size = static_cast<u32>(size);
 

@@ -137,7 +137,7 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
 		world_t&				 target_world	= get_world(world);

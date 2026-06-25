@@ -41,7 +41,7 @@ namespace sfg
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('T', 'E', 'X', 'R');
-		static constexpr u32 WIRE_VERSION = 10;
+		static constexpr u32 WIRE_VERSION = 12;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -49,29 +49,35 @@ namespace sfg
 
 	struct texture_mip_header_t
 	{
-		size_t	  byte_offset = 0;
+		u32		  byte_offset = 0;
+		u32		  data_size	  = 0;
+		u32		  row_pitch	  = 0;
 		vec2u16_t size		  = vec2u16_t::zero;
 		u8		  bpp		  = 0;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
 	struct texture_header_t
 	{
-		texture_mip_header_t mips[texture_loader_t::MAX_MIPS] = {};
-		vec2u16_t			 size							  = vec2u16_t::zero;
-		u8					 bpp							  = 0;
-		u8					 mip_count						  = 0;
-		u8					 is_linear						  = 0;
+		texture_mip_header_t	   mips[texture_loader_t::MAX_MIPS] = {};
+		format_e				   texture_format					= format_e::undefined;
+		texture_payload_type_e	   payload_type						= texture_payload_type_e::ktx2_uastc;
+		texture_ktx2_compression_e ktx2_compression					= texture_ktx2_compression_e::default_quality;
+		vec2u16_t				   size								= vec2u16_t::zero;
+		u8						   bpp								= 0;
+		u8						   mip_count						= 0;
+		u8						   is_linear						= 0;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
 	struct texture_runtime_t
 	{
-		texture_buffer_t		   mips[texture_loader_t::MAX_MIPS] = {};
-		format_e				   texture_format					= format_e::undefined;
-		texture_payload_type_e	   payload_type						= texture_payload_type_e::ktx2_uastc;
-		texture_ktx2_compression_e ktx2_compression					= texture_ktx2_compression_e::default_quality;
-		u8						   channels							= 0;
-		u8						   mip_count						= 0;
-		u8						   is_linear						= 0;
+		texture_buffer_t mips[texture_loader_t::MAX_MIPS] = {};
+		texture_header_t header							  = {};
 	};
 
 	struct texture_internals_t

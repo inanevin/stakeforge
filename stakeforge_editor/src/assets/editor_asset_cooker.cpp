@@ -96,6 +96,8 @@ namespace sfg
 			return cook_physical_material(asset);
 		case editor_asset_type_e::hdr_skybox:
 			return cook_hdr_skybox(asset);
+		case editor_asset_type_e::font:
+			return cook_font(asset);
 		default:
 			SFG_ASSERT(false);
 			return false;

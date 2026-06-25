@@ -38,9 +38,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 #include <cstdint>
-#include <limits>
 #include <ktx.h>
 
 namespace sfg
@@ -49,6 +49,30 @@ namespace sfg
 #define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	  43
 #define SFG_KTX_VK_FORMAT_BC7_UNORM_BLOCK 145
 #define SFG_KTX_VK_FORMAT_BC7_SRGB_BLOCK  146
+
+	void texture_mip_header_t::serialize(ostream_t& stream) const
+	{
+		stream << byte_offset << data_size << row_pitch << size << bpp;
+	}
+
+	void texture_mip_header_t::deserialize(istream_t& stream)
+	{
+		stream >> byte_offset >> data_size >> row_pitch >> size >> bpp;
+	}
+
+	void texture_header_t::serialize(ostream_t& stream) const
+	{
+		stream << texture_format << payload_type << ktx2_compression << size << bpp << mip_count << is_linear;
+		for (u8 i = 0; i < texture_loader_t::MAX_MIPS; ++i)
+			stream << mips[i];
+	}
+
+	void texture_header_t::deserialize(istream_t& stream)
+	{
+		stream >> texture_format >> payload_type >> ktx2_compression >> size >> bpp >> mip_count >> is_linear;
+		for (u8 i = 0; i < texture_loader_t::MAX_MIPS; ++i)
+			stream >> mips[i];
+	}
 
 	namespace
 	{
@@ -77,32 +101,79 @@ namespace sfg
 
 		void free_texture_runtime_mips(texture_runtime_t& runtime)
 		{
-			for (u8 i = 0; i < runtime.mip_count; ++i)
+			for (u8 i = 0; i < runtime.header.mip_count; ++i)
 			{
 				SFG_FREE(runtime.mips[i].pixels);
 				runtime.mips[i].pixels = nullptr;
 			}
 		}
 
+		bool copy_texture_mip_to_rgba(texture_buffer_t& buf, const u8* src, u8 src_bpp)
+		{
+			const u32 pixel_count = static_cast<u32>(buf.size.x) * static_cast<u32>(buf.size.y);
+			buf.bpp				  = 4;
+			buf.row_pitch		  = static_cast<u32>(buf.size.x) * 4;
+			buf.data_size		  = pixel_count * 4;
+			buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+			if (buf.pixels == nullptr)
+				return false;
+
+			if (src_bpp == 4)
+			{
+				SFG_MEMCPY(buf.pixels, src, buf.data_size);
+				return true;
+			}
+
+			u8* dst = buf.pixels;
+			for (u32 i = 0; i < pixel_count; ++i)
+			{
+				const u8* p = src + static_cast<size_t>(i) * src_bpp;
+				if (src_bpp == 1)
+				{
+					dst[0] = p[0];
+					dst[1] = p[0];
+					dst[2] = p[0];
+					dst[3] = 255;
+				}
+				else if (src_bpp == 2)
+				{
+					dst[0] = p[0];
+					dst[1] = p[0];
+					dst[2] = p[0];
+					dst[3] = p[1];
+				}
+				else
+				{
+					dst[0] = p[0];
+					dst[1] = p[1];
+					dst[2] = p[2];
+					dst[3] = 255;
+				}
+				dst += 4;
+			}
+
+			return true;
+		}
+
 		bool enqueue_texture_create_and_upload(resource_entry_t& entry, chunk_allocator_t& mem, texture_runtime_t& runtime, texture_internals_t& internals)
 		{
-			SFG_ASSERT(runtime.mip_count > 0);
+			SFG_ASSERT(runtime.header.mip_count > 0);
 
 			texture_desc_t desc = {};
-			desc.texture_format = runtime.texture_format;
-			desc.size			= runtime.mips[0].size;
+			desc.texture_format = runtime.header.texture_format;
+			desc.size			= runtime.header.size;
 			desc.flags			= texture_flags::tf_sampled | texture_flags::tf_transfer_dest | texture_flags::tf_is_2d;
-			desc.mip_levels		= runtime.mip_count;
+			desc.mip_levels		= runtime.header.mip_count;
 			desc.array_length	= 1;
 			desc.samples		= 1;
 			desc.set_name(mem.get_text(entry.debug_name));
 
 			u32 staging_size = 0;
-			for (u8 i = 0; i < runtime.mip_count; ++i)
+			for (u8 i = 0; i < runtime.header.mip_count; ++i)
 			{
 				const texture_buffer_t& b = runtime.mips[i];
 				staging_size			  = gfx_backend::align_texture_size(staging_size);
-				staging_size += gfx_backend::align_texture_size_pitch(b.row_pitch) * format_get_row_count(runtime.texture_format, b.size.y);
+				staging_size += gfx_backend::align_texture_size_pitch(b.row_pitch) * format_get_row_count(runtime.header.texture_format, b.size.y);
 			}
 			staging_size = gfx_backend::align_texture_size(staging_size);
 
@@ -112,7 +183,7 @@ namespace sfg
 			staging_desc.set_name("texture_upload_staging");
 
 			texture_buffer_t upload_mips[texture_loader_t::MAX_MIPS] = {};
-			for (u8 i = 0; i < runtime.mip_count; ++i)
+			for (u8 i = 0; i < runtime.header.mip_count; ++i)
 			{
 				texture_buffer_t& b = runtime.mips[i];
 				upload_mips[i]		= b;
@@ -121,14 +192,14 @@ namespace sfg
 			internals.texture = render_resources_t::get().enqueue_create_texture(entry.hash, desc);
 			internals.staging = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, staging_desc);
 
-			for (u8 i = 0; i < runtime.mip_count; ++i)
+			for (u8 i = 0; i < runtime.header.mip_count; ++i)
 			{
 				texture_buffer_t& b = runtime.mips[i];
 				b.pixels			= nullptr;
 			}
 
 			render_resources_t::get().enqueue_texture_upload({
-				.mips			   = {.data = upload_mips, .size = runtime.mip_count},
+				.mips			   = {.data = upload_mips, .size = runtime.header.mip_count},
 				.texture		   = internals.texture,
 				.staging		   = internals.staging,
 				.target_states	   = resource_state_ps_resource,
@@ -155,71 +226,67 @@ namespace sfg
 		*runtime					   = {};
 		*internals					   = {};
 
-		stream >> runtime->payload_type >> runtime->channels >> runtime->is_linear >> runtime->ktx2_compression;
+		stream >> runtime->header;
+		SFG_ASSERT(runtime->header.mip_count <= MAX_MIPS);
 
-		if (runtime->payload_type == texture_payload_type_e::uncompressed)
+		if (runtime->header.payload_type == texture_payload_type_e::uncompressed)
 		{
-			stream >> runtime->texture_format >> runtime->mip_count;
+			u32 blob_size = 0;
+			stream >> blob_size;
+			istream_t compressed;
+			compressed.open(stream.get_data_current(), blob_size);
+			istream_t payload = compressor_t::decompress(compressed);
+			stream.skip_by(blob_size);
+			if (payload.empty())
+				return false;
 
-			SFG_ASSERT(runtime->mip_count <= MAX_MIPS);
-
-			for (u8 i = 0; i < runtime->mip_count; ++i)
+			for (u8 i = 0; i < runtime->header.mip_count; ++i)
 			{
-				texture_buffer_t& buf = runtime->mips[i];
-				stream >> buf.bpp;
-				stream >> buf.size;
-				stream >> buf.row_pitch;
-				stream >> buf.data_size;
+				const texture_mip_header_t& mip = runtime->header.mips[i];
+				texture_buffer_t&			buf = runtime->mips[i];
+				buf.size						= mip.size;
 
-				buf.pixels = static_cast<u8*>(SFG_MALLOC(buf.data_size));
-				if (buf.pixels == nullptr)
+				if (!copy_texture_mip_to_rgba(buf, payload.get_raw() + mip.byte_offset, mip.bpp))
 				{
 					free_texture_runtime_mips(*runtime);
 					return false;
 				}
-				SFG_MEMCPY(buf.pixels, stream.get_data_current(), buf.data_size);
-				stream.skip_by(buf.data_size);
+				runtime->header.mips[i] = {
+					.byte_offset = 0,
+					.data_size	 = buf.data_size,
+					.row_pitch	 = buf.row_pitch,
+					.size		 = buf.size,
+					.bpp		 = buf.bpp,
+				};
 			}
+			runtime->header.bpp = 4;
 
 			return enqueue_texture_create_and_upload(entry, mem, *runtime, *internals);
 		}
 
-		if (runtime->payload_type == texture_payload_type_e::png)
+		if (runtime->header.payload_type == texture_payload_type_e::png)
 		{
-			stream >> runtime->texture_format >> runtime->mip_count;
-
-			SFG_ASSERT(runtime->mip_count <= MAX_MIPS);
-
-			for (u8 i = 0; i < runtime->mip_count; ++i)
+			const size_t payload_offset = stream.tellg();
+			for (u8 i = 0; i < runtime->header.mip_count; ++i)
 			{
-				u32 blob_size = 0;
-				stream >> blob_size;
-				if (blob_size > static_cast<u32>(std::numeric_limits<int>::max()))
-				{
-					free_texture_runtime_mips(*runtime);
-					return false;
-				}
+				const texture_mip_header_t& mip = runtime->header.mips[i];
 
 				int		 decoded_width	  = 0;
 				int		 decoded_height	  = 0;
 				int		 decoded_channels = 0;
-				stbi_uc* decoded		  = stbi_load_from_memory(stream.get_data_current(), static_cast<int>(blob_size), &decoded_width, &decoded_height, &decoded_channels, 4);
-				stream.skip_by(blob_size);
+				stbi_uc* decoded		  = stbi_load_from_memory(file_stream.get_raw() + payload_offset + mip.byte_offset, static_cast<int>(mip.data_size), &decoded_width, &decoded_height, &decoded_channels, 4);
 
-				const bool decoded_valid = decoded != nullptr && decoded_width > 0 && decoded_height > 0 && decoded_width <= UINT16_MAX && decoded_height <= UINT16_MAX;
-				if (!decoded_valid)
+				if (decoded == nullptr)
 				{
-					if (decoded != nullptr)
-						stbi_image_free(decoded);
 					free_texture_runtime_mips(*runtime);
 					return false;
 				}
 
 				texture_buffer_t& buf = runtime->mips[i];
 				buf.bpp				  = 4;
-				buf.size			  = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
-				buf.row_pitch		  = static_cast<u32>(decoded_width) * 4;
-				buf.data_size		  = buf.row_pitch * static_cast<u32>(decoded_height);
+				buf.size			  = mip.size;
+				buf.row_pitch		  = static_cast<u32>(mip.size.x) * 4;
+				buf.data_size		  = buf.row_pitch * static_cast<u32>(mip.size.y);
 				buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
 				if (buf.pixels == nullptr)
 				{
@@ -229,19 +296,25 @@ namespace sfg
 				}
 				SFG_MEMCPY(buf.pixels, decoded, buf.data_size);
 				stbi_image_free(decoded);
+				runtime->header.mips[i] = {
+					.byte_offset = 0,
+					.data_size	 = buf.data_size,
+					.row_pitch	 = buf.row_pitch,
+					.size		 = buf.size,
+					.bpp		 = buf.bpp,
+				};
 			}
+			runtime->header.bpp = 4;
 
 			return enqueue_texture_create_and_upload(entry, mem, *runtime, *internals);
 		}
 
-		u32 blob_size = 0;
-		stream >> blob_size;
+		const texture_mip_header_t& ktx_mip		   = runtime->header.mips[0];
+		const size_t				payload_offset = stream.tellg();
+		ktxTexture2*				ktx_texture	   = nullptr;
+		KTX_error_code				ktx_result	   = ktxTexture2_CreateFromMemory(file_stream.get_raw() + payload_offset + ktx_mip.byte_offset, ktx_mip.data_size, 0, &ktx_texture);
 
-		ktxTexture2*   ktx_texture = nullptr;
-		KTX_error_code ktx_result  = ktxTexture2_CreateFromMemory(stream.get_data_current(), blob_size, 0, &ktx_texture);
-		stream.skip_by(blob_size);
-
-		if (ktx_result == KTX_SUCCESS && runtime->ktx2_compression == texture_ktx2_compression_e::fastest)
+		if (ktx_result == KTX_SUCCESS && runtime->header.ktx2_compression == texture_ktx2_compression_e::fastest)
 			SFG_ASSERT(ktx_texture->supercompressionScheme != KTX_SS_ZSTD);
 
 		if (ktx_result == KTX_SUCCESS)
@@ -258,23 +331,25 @@ namespace sfg
 			return false;
 		}
 
-		runtime->texture_format = get_format_from_ktx(ktx_texture->vkFormat);
-		if (runtime->texture_format == format_e::undefined)
+		runtime->header.texture_format = get_format_from_ktx(ktx_texture->vkFormat);
+		if (runtime->header.texture_format == format_e::undefined)
 		{
 			SFG_ERR("Unsupported KTX2 transcode format");
 			ktxTexture2_Destroy(ktx_texture);
 			return false;
 		}
 
-		runtime->mip_count = static_cast<u8>(ktx_texture->numLevels);
-		if (runtime->mip_count > MAX_MIPS)
+		runtime->header.mip_count = static_cast<u8>(ktx_texture->numLevels);
+		if (runtime->header.mip_count > MAX_MIPS)
 		{
 			SFG_ERR("KTX2 texture has too many mip levels");
 			ktxTexture2_Destroy(ktx_texture);
 			return false;
 		}
+		runtime->header.size = vec2u16_t(static_cast<u16>(ktx_texture->baseWidth), static_cast<u16>(ktx_texture->baseHeight));
+		runtime->header.bpp	 = format_is_block_compressed(runtime->header.texture_format) ? 16 : format_get_bpp(runtime->header.texture_format);
 
-		for (u8 i = 0; i < runtime->mip_count; ++i)
+		for (u8 i = 0; i < runtime->header.mip_count; ++i)
 		{
 			ktx_size_t offset = 0;
 			ktx_result		  = ktxTexture_GetImageOffset(ktxTexture(ktx_texture), i, 0, 0, &offset);
@@ -297,7 +372,7 @@ namespace sfg
 			buf.data_size		  = static_cast<u32>(image_size);
 			buf.row_pitch		  = ktxTexture_GetRowPitch(ktxTexture(ktx_texture), i);
 			buf.size			  = vec2u16_t(get_mip_size(ktx_texture->baseWidth, i), get_mip_size(ktx_texture->baseHeight, i));
-			buf.bpp				  = format_is_block_compressed(runtime->texture_format) ? 16 : format_get_bpp(runtime->texture_format);
+			buf.bpp				  = runtime->header.bpp;
 			buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
 			if (buf.pixels == nullptr)
 			{
@@ -306,6 +381,13 @@ namespace sfg
 				return false;
 			}
 			SFG_MEMCPY(buf.pixels, ktxTexture_GetData(ktxTexture(ktx_texture)) + offset, buf.data_size);
+			runtime->header.mips[i] = {
+				.byte_offset = static_cast<u32>(offset),
+				.data_size	 = buf.data_size,
+				.row_pitch	 = buf.row_pitch,
+				.size		 = buf.size,
+				.bpp		 = buf.bpp,
+			};
 		}
 
 		ktxTexture2_Destroy(ktx_texture);

@@ -83,7 +83,7 @@ namespace sfg
 	{
 		const size_t payload_need = len + 1;
 		const size_t block_need	  = ALLOCATION_HEADER_SIZE + payload_need;
-		SFG_ASSERT(block_need <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(block_need <= UINT32_MAX);
 
 		auto it = vector_util::find_if(_free_list, [block_need](const allocation_t& alloc) { return alloc.size >= block_need; });
 
@@ -130,7 +130,7 @@ namespace sfg
 		const size_t txt_sz		  = std::strlen(text) + 1;
 		const size_t payload_need = txt_sz > len ? txt_sz : len;
 		const size_t block_need	  = ALLOCATION_HEADER_SIZE + payload_need;
-		SFG_ASSERT(block_need <= std::numeric_limits<u32>::max());
+		SFG_ASSERT(block_need <= UINT32_MAX);
 
 		auto it = vector_util::find_if(_free_list, [block_need](const allocation_t& alloc) { return alloc.size >= block_need; });
 

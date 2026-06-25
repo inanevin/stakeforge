@@ -7,7 +7,6 @@
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -31,11 +30,6 @@ namespace sfg
 
 		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
 		SFG_ASSERT(joint_count <= MAX_JOINTS);
-		if (joint_count > MAX_JOINTS)
-		{
-			SFG_ERR("Skeleton has too many joints: {0}", joint_count);
-			return false;
-		}
 
 		runtime->joint_count	  = joint_count;
 		runtime->root_joint_index = skeleton.root_joint_index;

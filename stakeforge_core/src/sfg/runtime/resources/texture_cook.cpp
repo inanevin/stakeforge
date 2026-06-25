@@ -32,9 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "texture.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/data/istream.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/data/string_util.hpp>
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
 #include <sfg/gfx/util/image_util.hpp>
@@ -43,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/serialization/serialization.hpp>
+#include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image_write.h>
 #include <cstdint>
 #include <cstdlib>
@@ -104,18 +101,27 @@ namespace sfg
 
 			if (cfg.payload_type == texture_payload_type_e::uncompressed)
 			{
-				stream << raw_format << levels;
+				ostream_t raw_stream;
+				raw_stream << raw_format << levels;
 
 				for (u8 i = 0; i < levels; i++)
 				{
 					const texture_buffer_t& buf = buffers[i];
-					stream << buf.bpp;
-					stream << buf.size;
-					stream << buf.row_pitch;
-					stream << buf.data_size;
-					if (buf.pixels != nullptr && buf.data_size != 0)
-						stream.write_raw(buf.pixels, buf.data_size);
+					raw_stream << buf.bpp;
+					raw_stream << buf.size;
+					raw_stream << buf.row_pitch;
+					raw_stream << buf.data_size;
+					raw_stream.write_raw(buf.pixels, buf.data_size);
 				}
+
+				ostream_t compressed = compressor_t::compress(raw_stream);
+				if (compressed.get_size() == 0)
+					return false;
+
+				SFG_ASSERT(compressed.get_size() <= UINT32_MAX);
+				const u32 blob_size = static_cast<u32>(compressed.get_size());
+				stream << blob_size;
+				stream.write_raw(compressed.get_raw(), blob_size);
 			}
 			else if (cfg.payload_type == texture_payload_type_e::png)
 			{
@@ -228,7 +234,7 @@ namespace sfg
 				stream << blob_size;
 				stream.write_raw(ktx_bytes, blob_size);
 
-				std::free(ktx_bytes);
+				SFG_FREE(ktx_bytes);
 				ktxTexture2_Destroy(ktx_texture);
 			}
 
@@ -239,44 +245,9 @@ namespace sfg
 	bool texture_cooker::cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		const u64 source_tick = file_system_t::get_last_modified_ticks(full_path);
-		string_t  extension	  = file_system_t::get_file_extension(full_path);
-		string_util::to_lower(extension);
-		if (cfg.payload_type == texture_payload_type_e::png && !cfg.generate_mipmaps && !cfg.force_4_channels && extension == "png")
-		{
-			istream_t png_stream = serializer_t::load_from_file(full_path);
-			if (png_stream.empty())
-				return false;
-
-			u8		   channels	 = 0;
-			vec2u16_t  size		 = {};
-			void*	   raw_image = image_util_t::load_from_file(full_path, size, channels);
-			const bool valid	 = raw_image != nullptr;
-			if (raw_image != nullptr)
-				image_util_t::free(raw_image);
-			if (!valid)
-				return false;
-
-			out_header = {
-				.magic		 = texture_loader_t::WIRE_MAGIC,
-				.version	 = texture_loader_t::WIRE_VERSION,
-				.source_tick = source_tick,
-			};
-
-			const u8	   is_linear_u8 = cfg.is_linear ? 1 : 0;
-			const format_e raw_format	= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
-			stream << cfg.payload_type << channels << is_linear_u8 << cfg.ktx2_compression;
-			stream << raw_format << static_cast<u8>(1);
-
-			SFG_ASSERT(png_stream.get_size() <= UINT32_MAX);
-			const u32 blob_size = static_cast<u32>(png_stream.get_size());
-			stream << blob_size;
-			stream.write_raw(png_stream.get_raw(), blob_size);
-			return true;
-		}
-
-		vec2u16_t size		= {};
-		u8		  channels	= 4;
-		void*	  raw_image = cfg.payload_type == texture_payload_type_e::png && !cfg.force_4_channels ? image_util_t::load_from_file(full_path, size, channels) : image_util_t::load_from_file_ch(full_path, size, 4);
+		vec2u16_t size		  = {};
+		u8		  channels	  = 4;
+		void*	  raw_image	  = cfg.payload_type != texture_payload_type_e::ktx2_uastc && !cfg.force_4_channels ? image_util_t::load_from_file(full_path, size, channels) : image_util_t::load_from_file_ch(full_path, size, 4);
 		if (raw_image == nullptr)
 			return false;
 
