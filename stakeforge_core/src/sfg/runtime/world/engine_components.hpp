@@ -42,10 +42,18 @@ namespace sfg
 		static inline constexpr sid_t		TYPE_ID	   = "component_hierarchy"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_hierarchy";
 
-		entity_id_t first_child	 = NULL_ENTITY_ID;
-		entity_id_t parent		 = NULL_ENTITY_ID;
-		entity_id_t next_sibling = NULL_ENTITY_ID;
-		entity_id_t prev_sibling = NULL_ENTITY_ID;
+		entity_guid_t first_child  = NULL_ENTITY_GUID;
+		entity_guid_t parent	   = NULL_ENTITY_GUID;
+		entity_guid_t next_sibling = NULL_ENTITY_GUID;
+		entity_guid_t prev_sibling = NULL_ENTITY_GUID;
+	};
+
+	struct component_guid_t
+	{
+		static inline constexpr sid_t		TYPE_ID	   = "component_guid"_hs;
+		static inline constexpr const char* DEBUG_NAME = "component_guid";
+
+		entity_guid_t guid = NULL_ENTITY_GUID;
 	};
 
 	struct component_transform_t
@@ -138,11 +146,11 @@ namespace sfg
 		resource_handle_t			   prefab_handle_value					= NULL_RESOURCE_HANDLE;
 		resource_handle_t			   animation_state_machine_handle_value = NULL_RESOURCE_HANDLE;
 		resource_handle_t			   hdr_skybox_handle_value				= NULL_RESOURCE_HANDLE;
+		entity_guid_t				   entity_guid_value					= NULL_ENTITY_GUID;
 		quat_t						   quat_value							= {};
 		f32							   f32_value							= 1.0f;
 		i32							   i32_value							= -32;
 		u32							   u32_value							= 32;
-		entity_id_t					   entity_id_value						= NULL_ENTITY_ID;
 		u32							   text_id_value						= ECS_INVALID_INDEX;
 		u32							   enum32_value							= 1;
 		i8							   i8_value								= -8;

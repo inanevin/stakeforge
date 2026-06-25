@@ -49,12 +49,17 @@ namespace sfg
 				{.name		   = "first_child",
 				 .display_name = "First Child",
 				 .tooltip	   = "First child entity in the hierarchy linked list.",
-				 .type		   = reflected_value_type_e::entity_id,
+				 .type		   = reflected_value_type_e::entity_guid,
 				 .offset	   = offsetof(component_hierarchy_t, first_child),
-				 .size		   = sizeof(entity_id_t)},
-				{.name = "parent", .display_name = "Parent", .tooltip = "Parent entity that owns this transform in the hierarchy.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, parent), .size = sizeof(entity_id_t)},
-				{.name = "next_sibling", .display_name = "Next Sibling", .tooltip = "Next entity under the same parent.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, next_sibling), .size = sizeof(entity_id_t)},
-				{.name = "prev_sibling", .display_name = "Previous Sibling", .tooltip = "Previous entity under the same parent.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_hierarchy_t, prev_sibling), .size = sizeof(entity_id_t)},
+				 .size		   = sizeof(entity_guid_t)},
+				{.name = "parent", .display_name = "Parent", .tooltip = "Parent entity that owns this transform in the hierarchy.", .type = reflected_value_type_e::entity_guid, .offset = offsetof(component_hierarchy_t, parent), .size = sizeof(entity_guid_t)},
+				{.name = "next_sibling", .display_name = "Next Sibling", .tooltip = "Next entity under the same parent.", .type = reflected_value_type_e::entity_guid, .offset = offsetof(component_hierarchy_t, next_sibling), .size = sizeof(entity_guid_t)},
+				{.name		   = "prev_sibling",
+				 .display_name = "Previous Sibling",
+				 .tooltip	   = "Previous entity under the same parent.",
+				 .type		   = reflected_value_type_e::entity_guid,
+				 .offset	   = offsetof(component_hierarchy_t, prev_sibling),
+				 .size		   = sizeof(entity_guid_t)},
 			};
 
 			register_type_if_missing({
@@ -66,6 +71,24 @@ namespace sfg
 				.size		  = sizeof(component_hierarchy_t),
 				.alignment	  = alignof(component_hierarchy_t),
 				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui,
+			});
+		}
+
+		void register_component_guid_reflection()
+		{
+			static const reflected_field_desc_t fields[] = {
+				{.name = "guid", .display_name = "GUID", .tooltip = "Persistent entity GUID.", .type = reflected_value_type_e::entity_guid, .offset = offsetof(component_guid_t, guid), .size = sizeof(entity_guid_t), .flags = reflected_field_flags_read_only},
+			};
+
+			register_type_if_missing({
+				.fields		  = {.data = fields, .size = std::size(fields)},
+				.name		  = "component_guid",
+				.display_name = "GUID",
+				.category	  = "component",
+				.type_id	  = component_guid_t::TYPE_ID,
+				.size		  = sizeof(component_guid_t),
+				.alignment	  = alignof(component_guid_t),
+				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui | reflected_type_flags_no_serialize,
 			});
 		}
 
@@ -327,7 +350,12 @@ namespace sfg
 				 .type		   = reflected_value_type_e::hdr_skybox_handle,
 				 .offset	   = offsetof(component_debug_widgets_t, hdr_skybox_handle_value),
 				 .size		   = sizeof(resource_handle_t)},
-				{.name = "entity_id_value", .display_name = "Entity ID", .tooltip = "Debug reflected entity id value.", .type = reflected_value_type_e::entity_id, .offset = offsetof(component_debug_widgets_t, entity_id_value), .size = sizeof(entity_id_t)},
+				{.name		   = "entity_guid_value",
+				 .display_name = "Entity GUID",
+				 .tooltip	   = "Debug reflected entity guid value.",
+				 .type		   = reflected_value_type_e::entity_guid,
+				 .offset	   = offsetof(component_debug_widgets_t, entity_guid_value),
+				 .size		   = sizeof(entity_guid_t)},
 				{.name = "text_id_value", .display_name = "Text ID", .tooltip = "Debug reflected text id value.", .type = reflected_value_type_e::text_id, .offset = offsetof(component_debug_widgets_t, text_id_value), .size = sizeof(u32)},
 				{.name = "quat_value", .display_name = "Quat", .tooltip = "Debug reflected quaternion value.", .type = reflected_value_type_e::quat, .offset = offsetof(component_debug_widgets_t, quat_value), .size = sizeof(quat_t)},
 				{.enum_values  = {.data = enum8_values, .size = std::size(enum8_values)},
@@ -411,6 +439,7 @@ namespace sfg
 	engine_component_reflection_t::engine_component_reflection_t()
 	{
 		register_component_hierarchy_reflection();
+		register_component_guid_reflection();
 		register_component_transform_reflection();
 		register_component_name_reflection();
 		register_component_mesh_renderer_reflection();

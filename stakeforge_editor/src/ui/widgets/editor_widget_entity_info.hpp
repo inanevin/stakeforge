@@ -82,6 +82,7 @@ namespace sfg
 		ui::ui_context*					 _ui			   = nullptr;
 		world_t*						 _world			   = nullptr;
 		ui::widget_id_t					 _root			   = NULL_WIDGET;
+		ui::widget_id_t					 _guid_label	   = NULL_WIDGET;
 		world_handle_t					 _world_handle	   = {};
 		editor_command_listener_handle_t _command_listener = {};
 		quat_t							 _command_rot	   = {};

@@ -357,7 +357,7 @@ namespace sfg
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
-			if (hierarchy.parent == NULL_ENTITY_ID)
+			if (hierarchy.parent == NULL_ENTITY_GUID)
 				append_entity_desc(world, hierarchy_table->table, name_table->table, row.id, 0);
 		}
 	}
@@ -367,15 +367,17 @@ namespace sfg
 		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, id);
 		const component_name_t&		 name	   = ecs_helpers_t::table_get_as_const<component_name_t>(name_table, id);
 		const char*					 text	   = world.get_text(name.text_index);
+		const entity_id_t			 parent	   = world.get_entity_from_guid(hierarchy.parent);
 
-		_entity_cache.push_back({.name = text == nullptr ? "Entity" : text, .id = id, .parent = hierarchy.parent, .depth = depth, .has_children = hierarchy.first_child != NULL_ENTITY_ID});
+		_entity_cache.push_back({.name = text == nullptr ? "Entity" : text, .id = id, .parent = parent, .depth = depth, .has_children = hierarchy.first_child != NULL_ENTITY_GUID});
 
-		entity_id_t child = hierarchy.first_child;
-		while (child != NULL_ENTITY_ID)
+		entity_guid_t child_guid = hierarchy.first_child;
+		while (child_guid != NULL_ENTITY_GUID)
 		{
+			const entity_id_t			 child			 = world.get_entity_from_guid(child_guid);
 			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
 			append_entity_desc(world, hierarchy_table, name_table, child, static_cast<u16>(depth + 1));
-			child = child_hierarchy.next_sibling;
+			child_guid = child_hierarchy.next_sibling;
 		}
 	}
 

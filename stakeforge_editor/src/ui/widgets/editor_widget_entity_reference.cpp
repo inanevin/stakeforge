@@ -53,7 +53,7 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_entity_reference_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_reference_config_t& config)
+	void editor_widget_entity_guid_reference_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_guid_reference_config_t& config)
 	{
 		SFG_ASSERT(!config.world.is_null());
 
@@ -65,7 +65,7 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
-		ui.set_widget_debug_name(_root, "entity_reference");
+		ui.set_widget_debug_name(_root, "entity_guid_reference");
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
@@ -90,7 +90,7 @@ namespace sfg
 		ui.get_input().set_listener(_root, root_listener);
 
 		_label = ui.allocate_widget();
-		ui.set_widget_debug_name(_label, "entity_reference_label");
+		ui.set_widget_debug_name(_label, "entity_guid_reference_label");
 		tree.attach(_root, _label);
 
 		ui::layout_in_t& label_in = tree.in(_label);
@@ -104,7 +104,7 @@ namespace sfg
 		refresh_title();
 	}
 
-	void editor_widget_entity_reference_t::uninit()
+	void editor_widget_entity_guid_reference_t::uninit()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
@@ -117,18 +117,19 @@ namespace sfg
 		_config = {};
 	}
 
-	void editor_widget_entity_reference_t::refresh_title()
+	void editor_widget_entity_guid_reference_t::refresh_title()
 	{
 		const editor_theme_t& theme		 = editor_theme_t::get();
-		const entity_id_t	  selected	 = get_selected();
+		const entity_guid_t	  selected	 = get_selected();
 		const char*			  label		 = "None";
 		vec4f_t				  text_color = theme.color_text0;
-		if (selected != NULL_ENTITY_ID)
+		if (selected != NULL_ENTITY_GUID)
 		{
-			const world_t& world = editor_app_t::get().get_runtime().get_world(_config.world);
-			if (world.is_alive(selected))
+			const world_t&	  world	 = editor_app_t::get().get_runtime().get_world(_config.world);
+			const entity_id_t entity = world.get_entity_from_guid(selected);
+			if (entity != NULL_ENTITY_ID && world.is_alive(entity))
 			{
-				const char* name = world.get_entity_name(selected);
+				const char* name = world.get_entity_name(entity);
 				label			 = name != nullptr ? name : "Entity";
 			}
 			else
@@ -143,7 +144,7 @@ namespace sfg
 			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = text_color, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
-	void editor_widget_entity_reference_t::set_mixed(bool mixed)
+	void editor_widget_entity_guid_reference_t::set_mixed(bool mixed)
 	{
 		if (!mixed)
 		{
@@ -159,12 +160,12 @@ namespace sfg
 								  {.font = theme.font_default, .color = theme.color_accent_warn, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
-	entity_id_t editor_widget_entity_reference_t::get_selected() const
+	entity_guid_t editor_widget_entity_guid_reference_t::get_selected() const
 	{
-		return _config.selected != nullptr ? _config.selected(_config.user_data) : NULL_ENTITY_ID;
+		return _config.selected != nullptr ? _config.selected(_config.user_data) : NULL_ENTITY_GUID;
 	}
 
-	void editor_widget_entity_reference_t::open_popup()
+	void editor_widget_entity_guid_reference_t::open_popup()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
@@ -181,27 +182,27 @@ namespace sfg
 		popup->request_entity_popup(desc);
 	}
 
-	void editor_widget_entity_reference_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_entity_guid_reference_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		static_cast<editor_widget_entity_reference_t*>(user_data)->open_popup();
+		static_cast<editor_widget_entity_guid_reference_t*>(user_data)->open_popup();
 	}
 
-	void editor_widget_entity_reference_t::on_root_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	void editor_widget_entity_guid_reference_t::on_root_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
 	{
 		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
 			return;
 
-		static_cast<editor_widget_entity_reference_t*>(user_data)->open_popup();
+		static_cast<editor_widget_entity_guid_reference_t*>(user_data)->open_popup();
 	}
 
-	void editor_widget_entity_reference_t::on_popup_entity_pressed(entity_id_t entity, void* user_data)
+	void editor_widget_entity_guid_reference_t::on_popup_entity_pressed(entity_guid_t guid, void* user_data)
 	{
-		editor_widget_entity_reference_t& reference = *static_cast<editor_widget_entity_reference_t*>(user_data);
+		editor_widget_entity_guid_reference_t& reference = *static_cast<editor_widget_entity_guid_reference_t*>(user_data);
 		if (reference._config.pressed != nullptr)
-			reference._config.pressed(entity, reference._config.user_data);
+			reference._config.pressed(guid, reference._config.user_data);
 		reference.refresh_title();
 	}
 }

@@ -42,15 +42,17 @@ namespace sfg
 		// entity
 		// -----------------------------------------------------------------------------
 
-		entity_id_t create_entity(const char* name = nullptr);
-		void		destroy_entity(entity_id_t id);
-		void		destroy_entity_tree(entity_id_t id);
-		void		set_entity_name(entity_id_t id, const char* name);
-		void		entity_to_stream(entity_id_t id, ostream_t& stream) const;
-		entity_id_t entity_from_stream(istream_t& stream);
-		entity_id_t get_entity_parent(entity_id_t id) const;
-		void		attach_to(entity_id_t id, entity_id_t parent);
-		void		detach(entity_id_t id);
+		entity_id_t	  create_entity(const char* name = nullptr, entity_guid_t guid = NULL_ENTITY_GUID);
+		void		  destroy_entity(entity_id_t id);
+		void		  destroy_entity_tree(entity_id_t id);
+		void		  set_entity_name(entity_id_t id, const char* name);
+		void		  entity_to_stream(entity_id_t id, ostream_t& stream) const;
+		entity_id_t	  entity_from_stream(istream_t& stream, bool preserve_guids = true);
+		entity_id_t	  get_entity_parent(entity_id_t id) const;
+		entity_guid_t get_entity_guid(entity_id_t id) const;
+		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;
+		void		  attach_to(entity_id_t id, entity_id_t parent);
+		void		  detach(entity_id_t id);
 
 		// -----------------------------------------------------------------------------
 		// transformation
@@ -98,9 +100,16 @@ namespace sfg
 			const char* allocated = nullptr;
 		};
 
+		struct entity_guid_lookup_t
+		{
+			entity_guid_t guid	 = NULL_ENTITY_GUID;
+			entity_id_t	  entity = NULL_ENTITY_ID;
+		};
+
 		struct engine_components_t
 		{
 			ecs_component_table_t* hierarchy_table		  = nullptr;
+			ecs_component_table_t* guid_table			  = nullptr;
 			ecs_component_table_t* transform_table		  = nullptr;
 			ecs_component_table_t* name_table			  = nullptr;
 			ecs_component_table_t* mesh_renderer_table	  = nullptr;
@@ -124,6 +133,7 @@ namespace sfg
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
+		vector_t<entity_guid_lookup_t>	  _entity_guid_lookup;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

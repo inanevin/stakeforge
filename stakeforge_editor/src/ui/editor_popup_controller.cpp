@@ -44,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <cstring>
+#include <iterator>
 
 namespace sfg
 {
@@ -745,20 +746,24 @@ namespace sfg
 
 		const world_t&				   world	   = editor_app_t::get().get_runtime().get_world(_entity_desc.world);
 		const world_component_table_t* alive_table = world.find_component_table(component_alive_t::TYPE_ID);
+		const world_component_table_t* guid_table  = world.find_component_table(component_guid_t::TYPE_ID);
 		const world_component_table_t* name_table  = world.find_component_table(component_name_t::TYPE_ID);
 		SFG_ASSERT(alive_table != nullptr);
+		SFG_ASSERT(guid_table != nullptr);
 		SFG_ASSERT(name_table != nullptr);
 
 		const ecs_component_table_ref_t table_refs[] = {
 			alive_table->table.ref(),
+			guid_table->table.ref(),
 			name_table->table.ref(),
 		};
 
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = 2}))
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const component_name_t& name = ecs_helpers_t::row_get<component_name_t>(row, 1);
+			const component_guid_t& guid = ecs_helpers_t::row_get<component_guid_t>(row, 1);
+			const component_name_t& name = ecs_helpers_t::row_get<component_name_t>(row, 2);
 			const char*				text = world.get_text(name.text_index);
-			_asset_items.push_back({.name = text != nullptr ? text : "Entity", .guid = static_cast<sid_t>(row.id)});
+			_asset_items.push_back({.name = text != nullptr ? text : "Entity", .guid = static_cast<sid_t>(guid.guid)});
 		}
 	}
 
@@ -866,7 +871,7 @@ namespace sfg
 		if (entity_popup)
 		{
 			if (entity_pressed != nullptr)
-				entity_pressed(static_cast<entity_id_t>(value), pressed_user_data);
+				entity_pressed(static_cast<entity_guid_t>(value), pressed_user_data);
 		}
 		else if (asset_pressed != nullptr)
 			asset_pressed(value, pressed_user_data);

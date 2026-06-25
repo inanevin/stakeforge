@@ -48,7 +48,7 @@ namespace sfg
 {
 	using editor_popup_item_pressed_fn	 = void (*)(u16 id, void* user_data);
 	using editor_popup_asset_pressed_fn	 = void (*)(sid_t guid, void* user_data);
-	using editor_popup_entity_pressed_fn = void (*)(entity_id_t entity, void* user_data);
+	using editor_popup_entity_pressed_fn = void (*)(entity_guid_t guid, void* user_data);
 	using editor_popup_input_closed_fn	 = void (*)(const char* value, void* user_data);
 
 	struct editor_popup_item_desc_t
@@ -97,7 +97,7 @@ namespace sfg
 		vec2f_t						   pos				= {};
 		f32							   width			= 0.0f;
 		world_handle_t				   world			= {};
-		entity_id_t					   selected			= NULL_ENTITY_ID;
+		entity_guid_t				   selected			= NULL_ENTITY_GUID;
 		bool						   close_on_pressed = true;
 	};
 

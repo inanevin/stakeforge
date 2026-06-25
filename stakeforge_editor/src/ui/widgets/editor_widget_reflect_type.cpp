@@ -722,19 +722,19 @@ namespace sfg
 			return;
 		}
 
-		if (field.type == reflected_value_type_e::entity_id)
+		if (field.type == reflected_value_type_e::entity_guid)
 		{
-			editor_widget_entity_reference_t*		reference = new editor_widget_entity_reference_t();
-			editor_widget_entity_reference_config_t config	  = {};
-			config.world									  = _target.world.is_null() ? editor_app_t::get().get_main_world() : _target.world;
-			config.selected									  = on_entity_selected;
-			config.pressed									  = on_entity_pressed;
-			config.user_data								  = control;
+			editor_widget_entity_guid_reference_t*		 reference = new editor_widget_entity_guid_reference_t();
+			editor_widget_entity_guid_reference_config_t config	   = {};
+			config.world										   = _target.world.is_null() ? editor_app_t::get().get_main_world() : _target.world;
+			config.selected										   = on_entity_selected;
+			config.pressed										   = on_entity_pressed;
+			config.user_data									   = control;
 			reference->init(*_ui, parent, config);
 			reference->set_mixed(control->mixed);
 			center_property_row_control(*_ui, reference->get_root());
 			control->widget		 = reference;
-			control->widget_type = reflected_control_widget_e::entity_reference;
+			control->widget_type = reflected_control_widget_e::entity_guid_reference;
 			_entity_references.push_back(reference);
 			return;
 		}
@@ -1102,9 +1102,11 @@ namespace sfg
 			install_items.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
-		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
 			install_items.template operator()<u32>();
+			break;
+		case reflected_value_type_e::entity_guid:
+			install_items.template operator()<entity_guid_t>();
 			break;
 		case reflected_value_type_e::u8:
 		case reflected_value_type_e::bool8:
@@ -1145,9 +1147,10 @@ namespace sfg
 		case reflected_value_type_e::i8:
 			return get_count.template operator()<i8>();
 		case reflected_value_type_e::u32:
-		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
 			return get_count.template operator()<u32>();
+		case reflected_value_type_e::entity_guid:
+			return get_count.template operator()<entity_guid_t>();
 		case reflected_value_type_e::u8:
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
@@ -1227,9 +1230,11 @@ namespace sfg
 			clear_items.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
-		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
 			clear_items.template operator()<u32>();
+			break;
+		case reflected_value_type_e::entity_guid:
+			clear_items.template operator()<entity_guid_t>();
 			break;
 		case reflected_value_type_e::u8:
 		case reflected_value_type_e::bool8:
@@ -1289,9 +1294,11 @@ namespace sfg
 			add_item.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
-		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
 			add_item.template operator()<u32>();
+			break;
+		case reflected_value_type_e::entity_guid:
+			add_item.template operator()<entity_guid_t>();
 			break;
 		case reflected_value_type_e::u8:
 		case reflected_value_type_e::bool8:
@@ -1351,9 +1358,11 @@ namespace sfg
 			remove_item.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
-		case reflected_value_type_e::entity_id:
 		case reflected_value_type_e::enum32:
 			remove_item.template operator()<u32>();
+			break;
+		case reflected_value_type_e::entity_guid:
+			remove_item.template operator()<entity_guid_t>();
 			break;
 		case reflected_value_type_e::u8:
 		case reflected_value_type_e::bool8:
@@ -1574,8 +1583,8 @@ namespace sfg
 			reference.set_mixed(control.mixed);
 			return true;
 		}
-		case reflected_control_widget_e::entity_reference: {
-			editor_widget_entity_reference_t& reference = *static_cast<editor_widget_entity_reference_t*>(control.widget);
+		case reflected_control_widget_e::entity_guid_reference: {
+			editor_widget_entity_guid_reference_t& reference = *static_cast<editor_widget_entity_guid_reference_t*>(control.widget);
 			reference.set_mixed(control.mixed);
 			return true;
 		}
@@ -1702,18 +1711,18 @@ namespace sfg
 			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}
 
-	entity_id_t editor_widget_reflect_type_t::on_entity_selected(void* user_data)
+	entity_guid_t editor_widget_reflect_type_t::on_entity_selected(void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
-		return read_reflected_value<entity_id_t>(control.object, *control.field);
+		return read_reflected_value<entity_guid_t>(control.object, *control.field);
 	}
 
-	void editor_widget_reflect_type_t::on_entity_pressed(entity_id_t entity, void* user_data)
+	void editor_widget_reflect_type_t::on_entity_pressed(entity_guid_t guid, void* user_data)
 	{
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		ostream_t			 old_value;
 		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
-		write_reflected_value(control.object, *control.field, entity);
+		write_reflected_value(control.object, *control.field, guid);
 		if (reflected_edit)
 			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
 	}

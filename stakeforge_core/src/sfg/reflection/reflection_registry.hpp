@@ -64,7 +64,7 @@ namespace sfg
 		prefab_handle,
 		animation_state_machine_handle,
 		hdr_skybox_handle,
-		entity_id,
+		entity_guid,
 		text_id,
 		string,
 		json,

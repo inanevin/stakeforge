@@ -29,6 +29,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_commands_entity_info.hpp"
 #include "commands/editor_commands_reflection.hpp"
 #include "editor_app.hpp"
+#include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -40,6 +41,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <cstdio>
 #include <cstring>
 
 namespace sfg
@@ -181,6 +183,26 @@ namespace sfg
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
 
+		const editor_property_row_t guid_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "GUID");
+		_guid_label							 = ui.allocate_widget();
+		ui.set_widget_debug_name(_guid_label, "entity_info_guid_label");
+		tree.attach(guid_row.right, _guid_label);
+
+		ui::layout_in_t& guid_label_in = tree.in(_guid_label);
+		guid_label_in.flags			   = ui::wf_visible;
+		guid_label_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		guid_label_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		guid_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		guid_label_in.anchor_y		   = ui::anchor_e::center;
+		guid_label_in.pos_value.y	   = 0.5f;
+		guid_label_in.size_value	   = {1.0f, theme.item_height};
+
+		ui.set_widget_text(_guid_label, "");
+		ui.get_paint().set_text(_guid_label,
+								ui.widget_text(_guid_label),
+								ui.widget_text_len(_guid_label),
+								{.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
 		const editor_property_row_t position_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Position");
 		editor_vec3_field_config_t	position_config = {};
 		position_config.on_changed					= on_position_changed;
@@ -219,6 +241,7 @@ namespace sfg
 		_ui				  = nullptr;
 		_world			  = nullptr;
 		_root			  = NULL_WIDGET;
+		_guid_label		  = NULL_WIDGET;
 		_world_handle	  = {};
 		_command_listener = {};
 		_command_rot	  = {};
@@ -252,6 +275,21 @@ namespace sfg
 		_command_scale = _world->get_entity_scale_local(_entity);
 
 		_name_input.refresh_text();
+		if (_entities.size() > 1)
+		{
+			_ui->set_widget_text(_guid_label, "Mixed");
+		}
+		else
+		{
+			char text[32] = {};
+			std::snprintf(text, sizeof(text), "0x%016llX", static_cast<unsigned long long>(_world->get_entity_guid(_entity)));
+			_ui->set_widget_text(_guid_label, text);
+		}
+		const editor_theme_t& theme = editor_theme_t::get();
+		_ui->get_paint().set_text(_guid_label,
+								  _ui->widget_text(_guid_label),
+								  _ui->widget_text_len(_guid_label),
+								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		_position_field.set_value(_command_pos);
 		_rotation_field.set_value(quat_t::to_euler(_command_rot));
 		_scale_field.set_value(_command_scale);

@@ -121,9 +121,10 @@ namespace sfg
 		{
 			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
 			world_t&								world	= get_world(payload.world);
-			const entity_id_t						entity	= world.create_entity(payload.name);
+			const entity_id_t						entity	= world.create_entity(payload.name, payload.guid);
 			if (payload.parent != NULL_ENTITY_ID)
 				world.attach_to(entity, payload.parent);
+			payload.guid   = world.get_entity_guid(entity);
 			payload.entity = entity;
 			return true;
 		}
@@ -198,7 +199,7 @@ namespace sfg
 				}
 
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world.entity_from_stream(stream);
+				const entity_id_t entity = world.entity_from_stream(stream, false);
 				if (entity == NULL_ENTITY_ID)
 				{
 					SFG_ERR("failed to recreate duplicated entity from stream");

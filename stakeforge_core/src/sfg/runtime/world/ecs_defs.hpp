@@ -35,9 +35,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	using entity_id_t = u32;
+	using entity_id_t	= u32;
+	using entity_guid_t = u64;
 
-	#define NULL_ENTITY_ID			std::numeric_limits<entity_id_t>::max()
+#define NULL_ENTITY_ID	 std::numeric_limits<entity_id_t>::max()
+#define NULL_ENTITY_GUID std::numeric_limits<entity_guid_t>::max()
 	static inline constexpr entity_id_t ECS_MAX_ENTITIES		  = 256000;
 	static inline constexpr u32			ECS_L0_SPAN				  = 4096;
 	static inline constexpr u32			ECS_L1_SPAN				  = 64;

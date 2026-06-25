@@ -40,6 +40,7 @@ namespace sfg
 		world_handle_t world								 = {};
 		entity_id_t	   parent								 = NULL_ENTITY_ID;
 		entity_id_t	   entity								 = NULL_ENTITY_ID;
+		entity_guid_t  guid									 = NULL_ENTITY_GUID;
 		char		   name[EDITOR_ENTITY_COMMAND_NAME_SIZE] = {};
 	};
 

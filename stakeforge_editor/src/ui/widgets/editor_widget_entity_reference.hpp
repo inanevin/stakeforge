@@ -40,26 +40,26 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_widget_entity_reference_selected_fn = entity_id_t (*)(void* user_data);
-	using editor_widget_entity_reference_pressed_fn	 = void (*)(entity_id_t entity, void* user_data);
+	using editor_widget_entity_guid_reference_selected_fn = entity_guid_t (*)(void* user_data);
+	using editor_widget_entity_guid_reference_pressed_fn  = void (*)(entity_guid_t guid, void* user_data);
 
-	struct editor_widget_entity_reference_config_t
+	struct editor_widget_entity_guid_reference_config_t
 	{
-		editor_widget_entity_reference_selected_fn selected	 = nullptr;
-		editor_widget_entity_reference_pressed_fn  pressed	 = nullptr;
-		void*									   user_data = nullptr;
-		world_handle_t							   world	 = {};
+		editor_widget_entity_guid_reference_selected_fn selected  = nullptr;
+		editor_widget_entity_guid_reference_pressed_fn	pressed	  = nullptr;
+		void*											user_data = nullptr;
+		world_handle_t									world	  = {};
 	};
 
-	class editor_widget_entity_reference_t final
+	class editor_widget_entity_guid_reference_t final
 	{
 	public:
-		editor_widget_entity_reference_t()													 = default;
-		~editor_widget_entity_reference_t()													 = default;
-		editor_widget_entity_reference_t(const editor_widget_entity_reference_t&)			 = delete;
-		editor_widget_entity_reference_t& operator=(const editor_widget_entity_reference_t&) = delete;
+		editor_widget_entity_guid_reference_t()														   = default;
+		~editor_widget_entity_guid_reference_t()													   = default;
+		editor_widget_entity_guid_reference_t(const editor_widget_entity_guid_reference_t&)			   = delete;
+		editor_widget_entity_guid_reference_t& operator=(const editor_widget_entity_guid_reference_t&) = delete;
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_reference_config_t& config);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_guid_reference_config_t& config);
 		void uninit();
 		void refresh_title();
 		void set_mixed(bool mixed);
@@ -70,17 +70,17 @@ namespace sfg
 		}
 
 	private:
-		entity_id_t get_selected() const;
-		void		open_popup();
+		entity_guid_t get_selected() const;
+		void		  open_popup();
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
-		static void on_popup_entity_pressed(entity_id_t entity, void* user_data);
+		static void on_popup_entity_pressed(entity_guid_t guid, void* user_data);
 
 	private:
-		ui::ui_context*							_ui		= nullptr;
-		ui::widget_id_t							_root	= NULL_WIDGET;
-		ui::widget_id_t							_label	= NULL_WIDGET;
-		editor_widget_entity_reference_config_t _config = {};
+		ui::ui_context*								 _ui	 = nullptr;
+		ui::widget_id_t								 _root	 = NULL_WIDGET;
+		ui::widget_id_t								 _label	 = NULL_WIDGET;
+		editor_widget_entity_guid_reference_config_t _config = {};
 	};
 }
