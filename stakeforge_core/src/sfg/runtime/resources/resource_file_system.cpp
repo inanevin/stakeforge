@@ -36,13 +36,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void resource_file_system_t::set_mode_directory(const char* directory_path)
+	void resource_file_system_t::set_mode_directory(const char* directory_path, const char* engine_cache)
 	{
 		SFG_ASSERT(directory_path != nullptr);
+		SFG_ASSERT(engine_cache != nullptr);
 
 		_directory_path = directory_path;
 		file_system_t::fix_path(_directory_path);
 		file_system_t::fix_path_end_slash(_directory_path);
+		_engine_cache = engine_cache;
+		file_system_t::fix_path(_engine_cache);
+		file_system_t::fix_path_end_slash(_engine_cache);
 		_file_pack_path.clear();
 		_resource_map.clear();
 		_mode = mode_e::directory;
@@ -55,6 +59,7 @@ namespace sfg
 		_file_pack_path = path_to_file_pack;
 		file_system_t::fix_path(_file_pack_path);
 		_directory_path.clear();
+		_engine_cache.clear();
 		_resource_map = resource_map;
 		_mode		  = mode_e::filepack;
 	}
@@ -63,8 +68,28 @@ namespace sfg
 	{
 		if (_mode == mode_e::directory)
 		{
-			const string_t path = _directory_path + std::to_string(hash) + ".sfg_bin";
-			return read_file_range(path.c_str(), offset, size, out);
+			const string_t filename = std::to_string(hash) + ".sfg_bin";
+			if (!_engine_cache.empty())
+			{
+				const string_t path = _engine_cache + filename;
+				if (file_system_t::exists(path.c_str()))
+					return read_file_range(path.c_str(), offset, size, out);
+			}
+
+			if (!_directory_path.empty())
+			{
+				const string_t path = _directory_path + filename;
+				return read_file_range(path.c_str(), offset, size, out);
+			}
+
+			if (!_engine_cache.empty())
+			{
+				const string_t path = _engine_cache + filename;
+				return read_file_range(path.c_str(), offset, size, out);
+			}
+
+			SFG_ERR("resource directory cache is not set: {0}", hash);
+			return false;
 		}
 
 		if (_mode == mode_e::filepack)

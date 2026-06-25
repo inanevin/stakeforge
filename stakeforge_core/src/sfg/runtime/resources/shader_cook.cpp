@@ -10,6 +10,7 @@
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
@@ -138,37 +139,42 @@ namespace sfg
 			.source_tick = collect_source_tick(cfg, full_path),
 		};
 
-		stream << cfg.type;
-		stream << compile_variant_count;
+		ostream_t payload;
+		payload << cfg.type;
+		payload << compile_variant_count;
 
 		for (const cook_compile_variant_t& v : compiles)
 		{
 			const u8 stages_count = static_cast<u8>(v.stages.size());
 			SFG_ASSERT(stages_count < shader_loader_t::MAX_STAGE_PER_VARIANT);
-			stream << stages_count;
+			payload << stages_count;
 
 			for (const cook_stage_blob_t& b : v.stages)
 			{
-				stream << b.stage;
-				stream << static_cast<u32>(b.bytes.size());
-				stream.write_raw(b.bytes.data(), b.bytes.size());
+				payload << b.stage;
+				payload << static_cast<u32>(b.bytes.size());
+				payload.write_raw(b.bytes.data(), b.bytes.size());
 			}
 		}
 
-		stream << pso_variant_count;
+		payload << pso_variant_count;
 
 		for (const cook_pso_variant_t& v : psos)
 		{
-			stream << v.compile_variant_index;
-			stream << v.variant_flags;
+			payload << v.compile_variant_index;
+			payload << v.variant_flags;
 
-			const size_t size = stream.get_size();
-			stream << 0;
+			const size_t size = payload.get_size();
+			payload << 0;
 
-			v.desc.serialize(stream);
-			u32 total = static_cast<u32>(stream.get_size() - size - sizeof(u32));
-			SFG_MEMCPY(stream.get_raw() + size, &total, sizeof(u32));
+			v.desc.serialize(payload);
+			u32 total = static_cast<u32>(payload.get_size() - size - sizeof(u32));
+			SFG_MEMCPY(payload.get_raw() + size, &total, sizeof(u32));
 		}
+
+		stream = compressor_t::compress(payload);
+		if (stream.get_size() == 0)
+			return false;
 
 		return true;
 	}

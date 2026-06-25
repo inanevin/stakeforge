@@ -2,6 +2,7 @@
 
 #include "skeleton.hpp"
 
+#include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -11,8 +12,15 @@
 
 namespace sfg
 {
-	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+			return false;
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+
 		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
 		skeleton_runtime_t* runtime = mem.get<skeleton_runtime_t>(entry.runtime);
 		*runtime					= {};
@@ -56,8 +64,6 @@ namespace sfg
 		.internals_alignment = alignof(skeleton_internals_t),
 		.wire_magic			 = skeleton_loader_t::WIRE_MAGIC,
 		.wire_version		 = skeleton_loader_t::WIRE_VERSION,
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = skeleton_loader_t::load,
 		.unload				 = skeleton_loader_t::unload,

@@ -73,7 +73,7 @@ namespace sfg
 		flush_unloads();
 	}
 
-	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, resource_type_e type)
+	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, resource_type_e type, bool bypass_async)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
@@ -100,6 +100,18 @@ namespace sfg
 		if (desc->use_async_load)
 			SFG_ASSERT(desc->async_load != nullptr);
 
+		ostream_t header_stream;
+		if (!_resource_file_system->read_resource(hash, 0, sizeof(resource_header_t), header_stream))
+		{
+			SFG_ERR("failed reading resource header: {0} {1}", debug_name, hash);
+			return resource_state_e::failed;
+		}
+
+		istream_t		  header_data;
+		resource_header_t header = {};
+		header_data.open(header_stream.get_raw(), header_stream.get_size());
+		header.deserialize(header_data);
+
 		resource_entry_t entry = {};
 		entry.type			   = type;
 		entry.ref_count		   = 1;
@@ -112,19 +124,8 @@ namespace sfg
 		if (name_sz != 0)
 			entry.debug_name = _memory.allocate_text(debug_name);
 
-		ostream_t file_stream;
-		if (!_resource_file_system->read_resource(hash, sizeof(resource_header_t), desc->initial_load_size, file_stream))
-		{
-			SFG_ERR("failed reading resource: {0} {1}", debug_name, hash);
-			free_entry(entry);
-			return resource_state_e::failed;
-		}
-
-		istream_t stream;
-		stream.open(file_stream.get_raw(), file_stream.get_size());
-
 		resource_context_t ctx{*this};
-		if (!desc->load(entry, ctx, stream))
+		if (!desc->load(entry, ctx, *_resource_file_system))
 		{
 			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
 			free_entry(entry);
@@ -134,76 +135,31 @@ namespace sfg
 		entry.state = desc->use_async_load ? resource_state_e::ready_preview : resource_state_e::ready;
 		_entries.emplace(hash, entry);
 		if (desc->use_async_load)
-			enqueue_async_load(entry, *desc);
-		else
-			SFG_TRACE("loaded resource: {0}", debug_name);
-		return entry.state;
-	}
-
-	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, istream_t& stream, resource_type_e type)
-	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-
-		auto it = _entries.find(hash);
-		if (it != _entries.end())
 		{
-			it->second.ref_count++;
-			return it->second.state;
-		}
-
-		const resource_type_desc_t* desc = find_resource_type_desc(type);
-		if (desc == nullptr)
-		{
-			SFG_ERR("failed loading resource, type description not found! {0}", static_cast<u8>(type));
-			return resource_state_e::failed;
-		}
-
-		if (desc->load == nullptr)
-		{
-			SFG_ERR("failed loading resource, load not found! {0}", static_cast<u8>(type));
-			return resource_state_e::failed;
-		}
-
-		if (desc->use_async_load)
-			SFG_ASSERT(desc->async_load != nullptr);
-
-		resource_entry_t entry = {};
-		entry.type			   = type;
-		entry.ref_count		   = 1;
-		entry.hash			   = hash;
-		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
-		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::failed;
-
-		const size_t name_sz = strlen(debug_name);
-		if (name_sz != 0)
-			entry.debug_name = _memory.allocate_text(debug_name);
-
-		resource_context_t ctx{*this};
-		if (!desc->load(entry, ctx, stream))
-		{
-			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
-			free_entry(entry);
-			return resource_state_e::failed;
-		}
-
-		if (desc->use_async_load)
-		{
-			if (!desc->async_load(entry, ctx, stream))
+			if (bypass_async)
 			{
-				SFG_ERR("failed loading async resource: {0} {1}", debug_name, hash);
-				if (desc->unload != nullptr)
-					desc->unload(entry, ctx);
-				free_entry(entry);
-				return resource_state_e::failed;
+				load_request_t request	= run_async_load(entry, *desc);
+				auto		   entry_it = _entries.find(hash);
+				SFG_ASSERT(entry_it != _entries.end());
+				if (!request.success)
+				{
+					entry_it->second.state = resource_state_e::failed;
+					SFG_ERR("failed loading async resource: {0}", entry.hash);
+				}
+				else
+				{
+					entry_it->second.state = resource_state_e::ready;
+					SFG_TRACE("loaded async resource: {0}", debug_name);
+				}
+			}
+			else
+			{
+				enqueue_async_load(entry, *desc);
 			}
 		}
-
-		entry.state = resource_state_e::ready;
-		_entries.emplace(hash, entry);
-
-		SFG_TRACE("loaded resource: {0}", _memory.get_text(entry.debug_name));
-		return entry.state;
+		else
+			SFG_TRACE("loaded resource: {0}", debug_name);
+		return _entries.find(hash)->second.state;
 	}
 
 	void resource_manager_t::unload_resource(sid_t hash)
@@ -254,20 +210,22 @@ namespace sfg
 		SFG_ASSERT(desc.async_load != nullptr);
 
 		_pending.fetch_add(1, std::memory_order_release);
-		job_system_t::get().silent_async([this, entry, offset = desc.async_load_offset, async_load = desc.async_load]() mutable {
-			ostream_t	   file_stream;
-			load_request_t request = {};
-			request.hash		   = entry.hash;
-			request.success		   = _resource_file_system->read_resource(entry.hash, offset, 0, file_stream);
-			if (request.success)
-			{
-				istream_t stream;
-				stream.open(file_stream.get_raw(), file_stream.get_size());
-				resource_context_t ctx{*this};
-				request.success = async_load(entry, ctx, stream);
-			}
-			_completed.enqueue(std::move(request));
-		});
+		const resource_type_desc_t* desc_ptr = &desc;
+		job_system_t::get().silent_async([this, entry, desc_ptr]() mutable { _completed.enqueue(run_async_load(entry, *desc_ptr)); });
+	}
+
+	resource_manager_t::load_request_t resource_manager_t::run_async_load(resource_entry_t entry, const resource_type_desc_t& desc)
+	{
+		SFG_ASSERT(desc.use_async_load);
+		SFG_ASSERT(desc.async_load != nullptr);
+		SFG_ASSERT(_resource_file_system != nullptr);
+
+		load_request_t request = {};
+		request.hash		   = entry.hash;
+
+		resource_context_t ctx{*this};
+		request.success = desc.async_load(entry, ctx, *_resource_file_system);
+		return request;
 	}
 
 	void resource_manager_t::flush_completed_loads()

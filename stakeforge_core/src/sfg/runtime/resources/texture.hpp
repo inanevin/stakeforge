@@ -36,16 +36,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class istream_t;
-
 	class texture_loader_t
 	{
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('T', 'E', 'X', 'R');
-		static constexpr u32 WIRE_VERSION = 9;
+		static constexpr u32 WIRE_VERSION = 10;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

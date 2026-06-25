@@ -4,7 +4,7 @@
 
 namespace sfg
 {
-	bool animation_state_machine_loader_t::load(resource_entry_t&, resource_context_t&, istream_t&)
+	bool animation_state_machine_loader_t::load(resource_entry_t&, resource_context_t&, resource_file_system_t&)
 	{
 		return false;
 	}
@@ -19,8 +19,6 @@ namespace sfg
 		.runtime_alignment	 = alignof(animation_state_machine_runtime_t),
 		.internals_size		 = sizeof(animation_state_machine_internals_t),
 		.internals_alignment = alignof(animation_state_machine_internals_t),
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = animation_state_machine_loader_t::load,
 		.unload				 = animation_state_machine_loader_t::unload,

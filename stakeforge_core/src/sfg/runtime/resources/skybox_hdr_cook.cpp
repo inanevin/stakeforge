@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 
 namespace sfg
@@ -446,24 +447,28 @@ namespace sfg
 			.source_tick = file_system_t::get_last_modified_ticks(full_path),
 		};
 
-		stream << cfg.radiance_size;
-		stream << cfg.irradiance_size;
-		stream << cfg.prefilter_size;
-		stream << cfg.brdf_lut_size;
-		stream << cfg.intensity;
-		stream << cfg.rotation;
-		stream << prefilter.mip_count;
-		write_texture_block(radiance, stream);
-		write_texture_block(irradiance, stream);
-		write_texture_block(prefilter, stream);
-		write_texture_block(brdf_lut, stream);
+		ostream_t payload;
+		payload << cfg.radiance_size;
+		payload << cfg.irradiance_size;
+		payload << cfg.prefilter_size;
+		payload << cfg.brdf_lut_size;
+		payload << cfg.intensity;
+		payload << cfg.rotation;
+		payload << prefilter.mip_count;
+		write_texture_block(radiance, payload);
+		write_texture_block(irradiance, payload);
+		write_texture_block(prefilter, payload);
+		write_texture_block(brdf_lut, payload);
+
+		stream			  = compressor_t::compress(payload);
+		const bool result = stream.get_size() != 0;
 
 		free_texture_block(radiance);
 		free_texture_block(irradiance);
 		free_texture_block(prefilter);
 		free_texture_block(brdf_lut);
 		stbi_image_free(pixels);
-		return true;
+		return result;
 	}
 }
 

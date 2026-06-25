@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
+#include <sfg/runtime/resources/font_cook.hpp>
 
 namespace sfg
 {
@@ -41,6 +42,7 @@ namespace sfg
 	{
 		invalid,
 		audio,
+		font,
 		texture,
 		model,
 		hdr_skybox,

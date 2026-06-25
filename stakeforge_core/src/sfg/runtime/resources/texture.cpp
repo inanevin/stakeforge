@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture.hpp"
+#include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -139,8 +140,15 @@ namespace sfg
 		}
 	}
 
-	bool texture_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	bool texture_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+			return false;
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+
 		chunk_allocator_t&	 mem	   = ctx.resource_manager.get_memory();
 		texture_runtime_t*	 runtime   = mem.get<texture_runtime_t>(entry.runtime);
 		texture_internals_t* internals = mem.get<texture_internals_t>(entry.internals);
@@ -324,8 +332,6 @@ namespace sfg
 		.internals_alignment = alignof(texture_internals_t),
 		.wire_magic			 = texture_loader_t::WIRE_MAGIC,
 		.wire_version		 = texture_loader_t::WIRE_VERSION,
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = texture_loader_t::load,
 		.unload				 = texture_loader_t::unload,

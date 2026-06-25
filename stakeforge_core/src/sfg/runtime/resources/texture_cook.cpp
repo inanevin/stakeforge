@@ -32,7 +32,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "texture.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
 #include <sfg/gfx/util/image_util.hpp>
@@ -41,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/stb/stb_image_write.h>
 #include <cstdint>
 #include <cstdlib>
@@ -83,14 +86,13 @@ namespace sfg
 			return levels;
 		}
 
-		bool cook_from_buffers(const texture_cook_config_t& cfg, texture_buffer_t* buffers, const vec2u16_t& size, u64 source_tick, const char* source_name, resource_header_t& out_header, ostream_t& stream)
+		bool cook_from_buffers(const texture_cook_config_t& cfg, texture_buffer_t* buffers, const vec2u16_t& size, u8 channels, u64 source_tick, const char* source_name, resource_header_t& out_header, ostream_t& stream)
 		{
 			const u8 levels = get_texture_cook_level_count(cfg, size);
 			if (levels > 1)
-				image_util_t::generate_mips(buffers, levels, image_util_t::mip_gen_filter::def, 4, cfg.is_linear, false);
+				image_util_t::generate_mips(buffers, levels, image_util_t::mip_gen_filter::def, channels, cfg.is_linear, false);
 
 			const u8	   is_linear_u8 = cfg.is_linear ? 1 : 0;
-			const u8	   channels		= 4;
 			const format_e raw_format	= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
 			out_header					= {
 								 .magic		  = texture_loader_t::WIRE_MAGIC,
@@ -123,7 +125,7 @@ namespace sfg
 				{
 					const texture_buffer_t& buf = buffers[i];
 					ostream_t				png_stream;
-					if (stbi_write_png_to_func(write_png_data, &png_stream, buf.size.x, buf.size.y, 4, buf.pixels, buf.row_pitch) == 0 || png_stream.get_size() == 0)
+					if (stbi_write_png_to_func(write_png_data, &png_stream, buf.size.x, buf.size.y, channels, buf.pixels, buf.row_pitch) == 0 || png_stream.get_size() == 0)
 					{
 						SFG_ERR("PNG encoding failed for {0}", source_name);
 						return false;
@@ -236,19 +238,56 @@ namespace sfg
 
 	bool texture_cooker::cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
+		const u64 source_tick = file_system_t::get_last_modified_ticks(full_path);
+		string_t  extension	  = file_system_t::get_file_extension(full_path);
+		string_util::to_lower(extension);
+		if (cfg.payload_type == texture_payload_type_e::png && !cfg.generate_mipmaps && !cfg.force_4_channels && extension == "png")
+		{
+			istream_t png_stream = serializer_t::load_from_file(full_path);
+			if (png_stream.empty())
+				return false;
+
+			u8		   channels	 = 0;
+			vec2u16_t  size		 = {};
+			void*	   raw_image = image_util_t::load_from_file(full_path, size, channels);
+			const bool valid	 = raw_image != nullptr;
+			if (raw_image != nullptr)
+				image_util_t::free(raw_image);
+			if (!valid)
+				return false;
+
+			out_header = {
+				.magic		 = texture_loader_t::WIRE_MAGIC,
+				.version	 = texture_loader_t::WIRE_VERSION,
+				.source_tick = source_tick,
+			};
+
+			const u8	   is_linear_u8 = cfg.is_linear ? 1 : 0;
+			const format_e raw_format	= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
+			stream << cfg.payload_type << channels << is_linear_u8 << cfg.ktx2_compression;
+			stream << raw_format << static_cast<u8>(1);
+
+			SFG_ASSERT(png_stream.get_size() <= UINT32_MAX);
+			const u32 blob_size = static_cast<u32>(png_stream.get_size());
+			stream << blob_size;
+			stream.write_raw(png_stream.get_raw(), blob_size);
+			return true;
+		}
+
 		vec2u16_t size		= {};
-		void*	  raw_image = image_util_t::load_from_file_ch(full_path, size, 4);
+		u8		  channels	= 4;
+		void*	  raw_image = cfg.payload_type == texture_payload_type_e::png && !cfg.force_4_channels ? image_util_t::load_from_file(full_path, size, channels) : image_util_t::load_from_file_ch(full_path, size, 4);
 		if (raw_image == nullptr)
 			return false;
 
 		texture_buffer_t buffers[texture_loader_t::MAX_MIPS] = {};
 		buffers[0].pixels									 = static_cast<u8*>(raw_image);
 		buffers[0].size										 = size;
-		buffers[0].bpp										 = 4;
-		buffers[0].row_pitch								 = static_cast<u32>(size.x) * 4;
+		buffers[0].bpp										 = channels;
+		buffers[0].row_pitch								 = static_cast<u32>(size.x) * channels;
 		buffers[0].data_size								 = buffers[0].row_pitch * size.y;
 
-		const bool result = cook_from_buffers(cfg, buffers, size, file_system_t::get_last_modified_ticks(full_path), full_path, out_header, stream);
+		const bool result = cook_from_buffers(cfg, buffers, size, channels, source_tick, full_path, out_header, stream);
 		free_texture_buffers(buffers, get_texture_cook_level_count(cfg, size), true);
 		return result;
 	}
@@ -272,7 +311,7 @@ namespace sfg
 		buffers[0].row_pitch								 = static_cast<u32>(cfg.size.x) * 4;
 		buffers[0].data_size								 = static_cast<u32>(expected_size);
 
-		const bool result = cook_from_buffers(cfg, buffers, cfg.size, hashing_t::hash_u64(data.data, data.size), "raw texture data", out_header, stream);
+		const bool result = cook_from_buffers(cfg, buffers, cfg.size, 4, hashing_t::hash_u64(data.data, data.size), "raw texture data", out_header, stream);
 		free_texture_buffers(buffers, get_texture_cook_level_count(cfg, cfg.size), false);
 		return result;
 	}
@@ -308,6 +347,7 @@ namespace sfg
 			 .size		   = sizeof(texture_ktx2_compression_e)},
 			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
 			{.name = "is_linear", .display_name = "Linear", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool)},
+			{.name = "force_4_channels", .display_name = "Force 4 Channels", .type = reflected_value_type_e::bool8, .offset = offsetof(texture_cook_config_t, force_4_channels), .size = sizeof(bool)},
 		};
 
 		registry.register_type({

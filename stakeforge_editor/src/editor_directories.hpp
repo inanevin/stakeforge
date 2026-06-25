@@ -50,11 +50,6 @@ namespace sfg
 			return s_engine_manifest;
 		}
 
-		static inline const string_t& get_engine_resource_cache()
-		{
-			return s_engine_resource_cache;
-		}
-
 		static inline const string_t& get_user_directory()
 		{
 			return s_user_directory;
@@ -80,7 +75,6 @@ namespace sfg
 		static string_t s_editor_assets;
 		static string_t s_editor_resource_cache;
 		static string_t s_editor_manifest;
-		static string_t s_engine_resource_cache;
 		static string_t s_engine_manifest;
 
 		static void init_paths();

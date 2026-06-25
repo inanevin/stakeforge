@@ -4,7 +4,7 @@
 
 namespace sfg
 {
-	bool prefab_loader_t::load(resource_entry_t&, resource_context_t&, istream_t&)
+	bool prefab_loader_t::load(resource_entry_t&, resource_context_t&, resource_file_system_t&)
 	{
 		return false;
 	}
@@ -19,8 +19,6 @@ namespace sfg
 		.runtime_alignment	 = alignof(prefab_runtime_t),
 		.internals_size		 = sizeof(prefab_internals_t),
 		.internals_alignment = alignof(prefab_internals_t),
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = prefab_loader_t::load,
 		.unload				 = prefab_loader_t::unload,

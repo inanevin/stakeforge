@@ -219,10 +219,12 @@ namespace sfg
 
 		/* resources & renderers init */
 
+		_runtime.get_resource_file_system().set_mode_directory("", editor_directories_t::get_editor_resource_cache().c_str());
+
 		const resource_pack_t::init_params_t engine_pack_params{
 			.manifest_path = editor_directories_t::get_engine_manifest(),
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
-			.cache_dir	   = editor_directories_t::get_engine_resource_cache(),
+			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
 		};
 		if (!_engine_resource_pack.init(resource_manager_t::get(), engine_pack_params))
 		{
@@ -482,7 +484,7 @@ namespace sfg
 			return false;
 		}
 
-		_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str());
+		_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 		_asset_manager.ensure_default_assets(proj._runtime.default_assets_path.c_str());
 		_asset_manager.clean_cache();
 		_asset_manager.ensure_cook();

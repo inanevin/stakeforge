@@ -40,8 +40,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		resource_state_e		load_resource(sid_t hash, const char* debug_name, resource_type_e type);
-		resource_state_e		load_resource(sid_t hash, const char* debug_name, istream_t& stream, resource_type_e type);
+		resource_state_e		load_resource(sid_t hash, const char* debug_name, resource_type_e type, bool bypass_async = false);
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
 		void					drain_atlases(u8 frame_slot);
@@ -132,6 +131,7 @@ namespace sfg
 
 		resource_entry_t* find_entry(u64 hash);
 		void			  enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
+		load_request_t	  run_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
 		void			  flush_completed_loads();
 		void			  flush_unloads();
 		void			  unload_entry(resource_entry_t& entry);

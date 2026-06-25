@@ -7,8 +7,6 @@
 
 namespace sfg
 {
-	class istream_t;
-
 	struct texture_sampler_runtime_t
 	{
 		sampler_desc_t desc = {};
@@ -25,7 +23,7 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'A', 'M', 'P');
 		static constexpr u32 WIRE_VERSION = 4;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

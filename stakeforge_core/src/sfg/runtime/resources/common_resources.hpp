@@ -14,6 +14,7 @@ namespace sfg
 	class resource_manager_t;
 	class istream_t;
 	class ostream_t;
+	class resource_file_system_t;
 
 	inline constexpr u32 make_resource_wire_magic(char c0, char c1, char c2, char c3)
 	{
@@ -82,7 +83,7 @@ namespace sfg
 
 	struct resource_type_desc_t
 	{
-		using load_fn_t	  = bool (*)(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		using load_fn_t	  = bool (*)(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		using unload_fn_t = void (*)(resource_entry_t& entry, resource_context_t& ctx);
 
 		resource_type_e type				= resource_type_e::invalid;
@@ -92,8 +93,6 @@ namespace sfg
 		u32				internals_alignment = 0;
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
-		size_t			initial_load_size	= 0;
-		size_t			async_load_offset	= 0;
 		bool			use_async_load		= false;
 
 		load_fn_t	load	   = nullptr;

@@ -8,6 +8,7 @@
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
@@ -28,10 +29,16 @@ namespace sfg
 			.source_tick = file_system_t::get_last_modified_ticks(full_path),
 		};
 
-		stream << static_cast<u32>(ttf_size);
-		stream.write_raw(reinterpret_cast<const u8*>(ttf_data), ttf_size);
+		ostream_t payload;
+		payload << static_cast<u32>(ttf_size);
+		payload.write_raw(reinterpret_cast<const u8*>(ttf_data), ttf_size);
 
 		delete[] ttf_data;
+
+		stream = compressor_t::compress(payload);
+		if (stream.get_size() == 0)
+			return false;
+
 		return true;
 	}
 

@@ -5,8 +5,6 @@
 
 namespace sfg
 {
-	class istream_t;
-
 	struct prefab_runtime_t
 	{
 		u32 reserved = 0;
@@ -20,7 +18,7 @@ namespace sfg
 	class prefab_loader_t
 	{
 	public:
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

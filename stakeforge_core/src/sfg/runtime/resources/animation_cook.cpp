@@ -25,42 +25,33 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "animation_cook.hpp"
 
-#include <sfg/common/type_id.hpp>
-
-#include "texture_payload_type.hpp"
-#include <sfg/data/span.hpp>
-#include <sfg/math/vec2u16.hpp>
+#include "animation.hpp"
+#include "animation_def.hpp"
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
-	class ostream_t;
-	struct resource_header_t;
-
-	struct texture_cook_config_t
+	bool animation_cooker::cook_from_def(const animation_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
-		vec2u16_t				   size				= vec2u16_t::zero;
-		texture_payload_type_e	   payload_type		= texture_payload_type_e::ktx2_uastc;
-		texture_ktx2_compression_e ktx2_compression = texture_ktx2_compression_e::faster;
-		bool					   generate_mipmaps = false;
-		bool					   is_linear		= false;
-		bool					   force_4_channels = false;
-	};
+		ostream_t animation_stream;
+		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<animation_def_t>::value, &def, animation_stream))
+			return false;
 
-	class texture_cooker
-	{
-	public:
-		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
-		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, resource_header_t& out_header, ostream_t& stream);
-	};
+		out_header = {
+			.magic		 = animation_loader_t::WIRE_MAGIC,
+			.version	 = animation_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(animation_stream.get_raw(), animation_stream.get_size()),
+		};
 
-	SFG_DEFINE_TYPE_ID(texture_cook_config_t);
+		stream = compressor_t::compress(animation_stream);
+		if (stream.get_size() == 0)
+			return false;
 
-	struct texture_cook_config_reflection_t
-	{
-		texture_cook_config_reflection_t();
-	};
-
-	inline texture_cook_config_reflection_t g_reflect_texture_cook_config;
+		return true;
+	}
 }

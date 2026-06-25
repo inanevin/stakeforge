@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader.hpp"
+#include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/inplace_vector.hpp>
@@ -10,48 +11,59 @@
 #include <sfg/io/log.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
-	bool shader_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	bool shader_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+			return false;
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+		istream_t payload = compressor_t::decompress(stream);
+		if (payload.empty())
+			return false;
+
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		shader_runtime_t*	runtime	  = mem.get<shader_runtime_t>(entry.runtime);
 		shader_internals_t* internals = mem.get<shader_internals_t>(entry.internals);
 		*runtime					  = {};
 		*internals					  = {};
 
-		stream >> runtime->type;
-		stream >> runtime->compile_variant_count;
+		payload >> runtime->type;
+		payload >> runtime->compile_variant_count;
 
 		for (u8 i = 0; i < runtime->compile_variant_count; i++)
 		{
 			shader_runtime_compile_variant_t& v = runtime->compile_variants[i];
-			stream >> v.stage_count;
+			payload >> v.stage_count;
 
 			for (u8 j = 0; j < v.stage_count; j++)
 			{
 				shader_runtime_stage_entry_t& s = v.stages[j];
-				stream >> s.stage;
+				payload >> s.stage;
 				u32 size = 0;
-				stream >> size;
-				s.data = {stream.get_data_current(), static_cast<size_t>(size)};
-				stream.skip_by(s.data.size);
+				payload >> size;
+				s.data = {payload.get_data_current(), static_cast<size_t>(size)};
+				payload.skip_by(s.data.size);
 			}
 		}
 
-		stream >> runtime->pso_variant_count;
+		payload >> runtime->pso_variant_count;
 
 		for (u8 i = 0; i < runtime->pso_variant_count; i++)
 		{
 			shader_runtime_pso_variant_t& v = runtime->pso_variants[i];
-			stream >> v.compile_variant_index;
-			stream >> v.variant_flags;
+			payload >> v.compile_variant_index;
+			payload >> v.variant_flags;
 			u32 sz = 0;
-			stream >> sz;
+			payload >> sz;
 
-			v.desc_stream = {stream.get_data_current(), static_cast<size_t>(sz)};
-			stream.skip_by(v.desc_stream.size);
+			v.desc_stream = {payload.get_data_current(), static_cast<size_t>(sz)};
+			payload.skip_by(v.desc_stream.size);
 		}
 
 		internals->pso_count = runtime->pso_variant_count;
@@ -125,8 +137,6 @@ namespace sfg
 		.internals_alignment = alignof(shader_internals_t),
 		.wire_magic			 = shader_loader_t::WIRE_MAGIC,
 		.wire_version		 = shader_loader_t::WIRE_VERSION,
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = shader_loader_t::load,
 		.unload				 = shader_loader_t::unload,

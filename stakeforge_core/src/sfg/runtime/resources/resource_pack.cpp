@@ -15,6 +15,8 @@
 #include <sfg/serialization/serialization.hpp>
 
 #if !defined(SFG_EMBED_ASSETS)
+#include "animation_cook.hpp"
+#include "animation_def.hpp"
 #include "animation_state_machine_cook.hpp"
 #include "audio_cook.hpp"
 #include "font_cook.hpp"
@@ -36,17 +38,17 @@ namespace sfg
 #if !defined(SFG_EMBED_ASSETS)
 	namespace
 	{
-		string_t cache_path(const char* dir, const char* name)
+		string_t cache_path(const char* dir, sid_t sid)
 		{
 			string_t p = dir;
 			file_system_t::fix_path(p);
 			file_system_t::fix_path_end_slash(p);
-			p += name;
+			p += std::to_string(sid);
 			p += ".sfg_bin";
 			return p;
 		}
 
-		bool save_cache(const char* cache_dir, const char* name, const ostream_t& cooked)
+		bool save_cache(const char* cache_dir, sid_t sid, const ostream_t& cooked)
 		{
 			if (!file_system_t::ensure_directory(cache_dir))
 			{
@@ -54,7 +56,7 @@ namespace sfg
 				return false;
 			}
 
-			const string_t path = cache_path(cache_dir, name);
+			const string_t path = cache_path(cache_dir, sid);
 			if (!serializer_t::save_to_file(path.c_str(), cooked))
 			{
 				SFG_ERR("failed to write cache {0}", path.c_str());
@@ -64,26 +66,24 @@ namespace sfg
 			return true;
 		}
 
-		istream_t try_load_cache(const char* cache_dir, const char* name, const resource_header_t& expected)
+		bool is_cached_file_ok(const char* cache_dir, sid_t sid, const resource_header_t& expected)
 		{
-			const string_t path = cache_path(cache_dir, name);
+			const string_t path = cache_path(cache_dir, sid);
 			if (!file_system_t::exists(path.c_str()))
-				return {};
+				return false;
 
-			istream_t stream = serializer_t::load_from_file(path.c_str());
+			istream_t stream = serializer_t::load_from_file_slice(path.c_str(), 0, sizeof(resource_header_t));
 			if (stream.empty())
-				return {};
+				return false;
 
 			resource_header_t header = {};
 			header.deserialize(stream);
 			if (header.magic != expected.magic || header.version != expected.version)
-				return {};
+				return false;
 			if (header.source_tick != expected.source_tick)
-				return {};
+				return false;
 
-			istream_t payload;
-			payload.create(stream.get_data_current(), stream.get_size() - stream.tellg());
-			return payload;
+			return true;
 		}
 
 		bool cook_for_schema(const string_t& schema, const nlohmann::json& config, const char* full_path, resource_header_t& out_header, ostream_t& stream)
@@ -123,6 +123,13 @@ namespace sfg
 					return false;
 				return material_cooker::cook_from_def(def, out_header, stream);
 			}
+			if (schema == "sfg.schema.animation")
+			{
+				animation_def_t def = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<animation_def_t>::value, &def, config))
+					return false;
+				return animation_cooker::cook_from_def(def, out_header, stream);
+			}
 			if (schema == "sfg.schema.texture_sampler")
 			{
 				sampler_desc_t desc = {};
@@ -149,22 +156,21 @@ namespace sfg
 			return false;
 		}
 
-		bool cook_and_cache(const string_t& source_path, const string_t& name, const nlohmann::json& config, const string_t& cache_dir, ostream_t& out_data)
+		bool cook_and_cache(const string_t& source_path, sid_t sid, const nlohmann::json& config, const string_t& cache_dir)
 		{
 			const string_t	  schema = config.value<string_t>("schema", "");
-			resource_header_t header = {};
 			ostream_t		  payload;
-			if (!cook_for_schema(schema, config, source_path.c_str(), header, payload))
+			resource_header_t out_header = {};
+			if (!cook_for_schema(schema, config, source_path.c_str(), out_header, payload))
 			{
 				SFG_ERR("resource_pack: cook failed for {0}", source_path.c_str());
 				return false;
 			}
 
-			ostream_t cached_stream = make_resource_stream(header, payload);
-			if (!save_cache(cache_dir.c_str(), name.c_str(), cached_stream))
-				SFG_WARN("resource_pack: cache save failed for {0}", name.c_str());
+			ostream_t cached_stream = make_resource_stream(out_header, payload);
+			if (!save_cache(cache_dir.c_str(), sid, cached_stream))
+				SFG_WARN("resource_pack: cache save failed for {0}", sid);
 
-			out_data = std::move(payload);
 			return true;
 		}
 	}
@@ -196,7 +202,8 @@ namespace sfg
 			data.write_raw(e.data, e.size);
 			istream_t stream;
 			stream.open(data.get_raw(), data.get_size());
-			const auto st = mgr.load_resource(sid, e.path, stream, e.type);
+			const resource_header_t header = {};
+			const auto				st	   = mgr.load_resource(sid, e.path, header, stream, e.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("resource_pack: load_resource failed for embedded {0}", e.path);
@@ -295,6 +302,18 @@ namespace sfg
 				if (!material_cooker::collect_source_tick(def, expected.source_tick))
 					return false;
 			}
+			else if (entry.type == resource_type_e::animation)
+			{
+				animation_def_t def = {};
+				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<animation_def_t>::value, &def, entry.config))
+					return false;
+
+				ostream_t def_stream;
+				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<animation_def_t>::value, &def, def_stream))
+					return false;
+
+				expected.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size());
+			}
 			else if (entry.type == resource_type_e::texture_sampler)
 			{
 				sampler_desc_t desc = {};
@@ -310,26 +329,25 @@ namespace sfg
 			else
 				expected.source_tick = file_system_t::get_last_modified_ticks(source_path.c_str());
 
-			ostream_t data;
-			istream_t cached = try_load_cache(_cache_dir.c_str(), entry.name.c_str(), expected);
-			if (!cached.empty())
-				data.write_raw(cached.get_raw(), cached.get_size());
-			else if (!cook_and_cache(source_path, entry.name, entry.config, _cache_dir, data))
-				return false;
+			const bool cache_ok = is_cached_file_ok(_cache_dir.c_str(), sid, expected);
 
-			istream_t stream;
-			stream.open(data.get_raw(), data.get_size());
-			const auto st = mgr.load_resource(sid, entry.path.c_str(), stream, entry.type);
+			if (!cache_ok && !cook_and_cache(source_path, sid, entry.config, _cache_dir))
+			{
+				SFG_ERR("cook & cache failed for {0}", source_path.c_str());
+				return false;
+			}
+
+			const auto st = mgr.load_resource(sid, entry.path.c_str(), entry.type, true);
 			if (st == resource_state_e::failed)
 			{
-				SFG_ERR("resource_pack: load_resource failed for {0}", source_path.c_str());
+				SFG_ERR("load_resource failed for {0}", source_path.c_str());
 				return false;
 			}
 
 			_loaded.push_back(sid);
 
 			const u16 id = static_cast<u16>(_watched.size());
-			_watched.push_back({.source_path = source_path, .name = entry.name, .config_json = entry.config.dump(), .type = entry.type, .sid = sid});
+			_watched.push_back({.source_path = source_path, .config_json = entry.config.dump(), .type = entry.type, .sid = sid});
 			_watcher.add_path(source_path.c_str(), id);
 		}
 
@@ -361,8 +379,7 @@ namespace sfg
 			return;
 		}
 
-		ostream_t data;
-		if (!cook_and_cache(e.source_path, e.name, config, _cache_dir, data))
+		if (!cook_and_cache(e.source_path, e.sid, config, _cache_dir))
 			return;
 
 		SFG_INFO("resource_pack: recooked {0}", e.source_path.c_str());

@@ -52,7 +52,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void set_mode_directory(const char* directory_path);
+		void set_mode_directory(const char* directory_path, const char* engine_cache);
 		void set_mode_filepack(const char* path_to_file_pack, const hash_map_t<u64, resource_map_info_t>& resource_map);
 		bool read_resource(u64 hash, size_t offset, size_t size, ostream_t& out);
 
@@ -69,6 +69,7 @@ namespace sfg
 	private:
 		hash_map_t<u64, resource_map_info_t> _resource_map;
 		string_t							 _directory_path;
+		string_t							 _engine_cache;
 		string_t							 _file_pack_path;
 		mode_e								 _mode = mode_e::none;
 	};

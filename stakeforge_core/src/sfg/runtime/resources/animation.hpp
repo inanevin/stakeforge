@@ -7,8 +7,6 @@
 
 namespace sfg
 {
-	class istream_t;
-
 	struct animation_channel_v3_runtime_t
 	{
 		const animation_keyframe_v3_t*		  keyframes		   = nullptr;
@@ -50,9 +48,9 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'N', 'I', 'M');
-		static constexpr u32 WIRE_VERSION = 1;
+		static constexpr u32 WIRE_VERSION = 2;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

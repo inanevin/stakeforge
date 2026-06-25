@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/serialization/compression.hpp>
 #include <sfg/serialization/serialization.hpp>
 
 namespace sfg
@@ -62,7 +63,10 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(mesh_stream.get_raw(), mesh_stream.get_size()),
 		};
 
-		stream.write_raw(mesh_stream.get_raw(), mesh_stream.get_size());
+		stream = compressor_t::compress(mesh_stream);
+		if (stream.get_size() == 0)
+			return false;
+
 		return true;
 	}
 }

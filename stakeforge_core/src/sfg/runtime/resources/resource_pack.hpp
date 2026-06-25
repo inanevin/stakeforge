@@ -42,7 +42,6 @@ namespace sfg
 		struct watched_entry_t
 		{
 			string_t		source_path;
-			string_t		name;
 			string_t		config_json;
 			resource_type_e type = resource_type_e::invalid;
 			sid_t			sid	 = 0;

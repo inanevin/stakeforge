@@ -31,8 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class istream_t;
-
 	struct physical_material_runtime_t
 	{
 		f32 restitution		= 0.0f;
@@ -52,7 +50,7 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('P', 'M', 'A', 'T');
 		static constexpr u32 WIRE_VERSION = 2;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

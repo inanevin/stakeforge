@@ -6,8 +6,6 @@
 
 namespace sfg
 {
-	class istream_t;
-
 	class skeleton_loader_t
 	{
 	public:
@@ -15,7 +13,7 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'K', 'E', 'L');
 		static constexpr u32 WIRE_VERSION = 3;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

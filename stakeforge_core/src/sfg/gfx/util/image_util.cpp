@@ -135,11 +135,11 @@ namespace sfg
 
 			int ret = 0;
 
-			const u32 alpha_ch = mip.bpp == 1 ? 0 : 3;
+			const i32 alpha_ch = channels == 4 ? 3 : STBIR_ALPHA_CHANNEL_NONE;
 
 			u32 flags = premultiplied_alpha ? STBIR_FLAG_ALPHA_PREMULTIPLIED : 0;
 
-			if (mip.bpp == 4 || mip.bpp == 1)
+			if (mip.bpp <= 4)
 				ret = stbir_resize_uint8_generic(last_pixels, last_w, last_h, 0, mip.pixels, w, h, 0, channels, alpha_ch, flags, stbir_edge::STBIR_EDGE_CLAMP, static_cast<stbir_filter>(filter), cs, 0);
 			else
 				ret = stbir_resize_uint16_generic((u16*)last_pixels, last_w, last_h, 0, (u16*)mip.pixels, w, h, 0, channels, alpha_ch, flags, stbir_edge::STBIR_EDGE_CLAMP, static_cast<stbir_filter>(filter), cs, 0);

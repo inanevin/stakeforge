@@ -55,6 +55,8 @@ namespace sfg
 				return editor_asset_import_type_e::model;
 			if (extension == "hdr")
 				return editor_asset_import_type_e::hdr_skybox;
+			if (extension == "ttf")
+				return editor_asset_import_type_e::font;
 			return editor_asset_import_type_e::invalid;
 		}
 
@@ -97,6 +99,8 @@ namespace sfg
 			return true;
 		case editor_asset_import_type_e::hdr_skybox:
 			out_options.skybox_cook_config = {};
+			return true;
+		case editor_asset_import_type_e::font:
 			return true;
 		default:
 			return false;
@@ -167,7 +171,7 @@ namespace sfg
 		switch (import_type)
 		{
 		case editor_asset_import_type_e::texture: {
-			string_t status = "Importing texture ";
+			string_t status = "Importing texture: ";
 			status += asset_name;
 			context.report_status(status.c_str());
 			const texture_cook_config_t& texture_config = import_options->texture_cook_config;
@@ -179,8 +183,18 @@ namespace sfg
 				return false;
 			break;
 		}
+		case editor_asset_import_type_e::font: {
+			string_t status = "Importing font: ";
+			status += asset_name;
+			context.report_status(status.c_str());
+			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::font, editor_asset_source_type_e::file, source_path.c_str()))
+				return false;
+			if (!editor_asset_cooker_t::cook_font(asset))
+				return false;
+			break;
+		}
 		case editor_asset_import_type_e::audio: {
-			string_t status = "Importing audio ";
+			string_t status = "Importing audio: ";
 			status += asset_name;
 			context.report_status(status.c_str());
 			const audio_cook_config_t& audio_config = import_options->audio_cook_config;
@@ -193,7 +207,7 @@ namespace sfg
 			break;
 		}
 		case editor_asset_import_type_e::hdr_skybox: {
-			string_t status = "Importing HDR skybox ";
+			string_t status = "Importing HDR skybox: ";
 			status += asset_name;
 			context.report_status(status.c_str());
 			const skybox_hdr_cook_config_t& skybox_config = import_options->skybox_cook_config;

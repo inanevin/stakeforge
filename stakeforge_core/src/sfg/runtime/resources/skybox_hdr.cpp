@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "skybox_hdr.hpp"
 
+#include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -35,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
@@ -164,21 +166,31 @@ namespace sfg
 		}
 	}
 
-	bool skybox_hdr_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	bool skybox_hdr_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+			return false;
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+		istream_t payload = compressor_t::decompress(stream);
+		if (payload.empty())
+			return false;
+
 		chunk_allocator_t&	  mem	  = ctx.resource_manager.get_memory();
 		skybox_hdr_runtime_t* runtime = mem.get<skybox_hdr_runtime_t>(entry.runtime);
 		*runtime					  = {};
 
-		stream >> runtime->radiance_size;
-		stream >> runtime->irradiance_size;
-		stream >> runtime->prefilter_size;
-		stream >> runtime->brdf_lut_size;
-		stream >> runtime->intensity;
-		stream >> runtime->rotation;
-		stream >> runtime->prefilter_mips;
+		payload >> runtime->radiance_size;
+		payload >> runtime->irradiance_size;
+		payload >> runtime->prefilter_size;
+		payload >> runtime->brdf_lut_size;
+		payload >> runtime->intensity;
+		payload >> runtime->rotation;
+		payload >> runtime->prefilter_mips;
 
-		if (!load_texture_block(stream, runtime->radiance) || !load_texture_block(stream, runtime->irradiance) || !load_texture_block(stream, runtime->prefilter) || !load_texture_block(stream, runtime->brdf_lut))
+		if (!load_texture_block(payload, runtime->radiance) || !load_texture_block(payload, runtime->irradiance) || !load_texture_block(payload, runtime->prefilter) || !load_texture_block(payload, runtime->brdf_lut))
 			return false;
 
 		skybox_hdr_internals_t* internals = mem.get<skybox_hdr_internals_t>(entry.internals);
@@ -226,8 +238,6 @@ namespace sfg
 		.internals_alignment = alignof(skybox_hdr_internals_t),
 		.wire_magic			 = skybox_hdr_loader_t::WIRE_MAGIC,
 		.wire_version		 = skybox_hdr_loader_t::WIRE_VERSION,
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = skybox_hdr_loader_t::load,
 		.unload				 = skybox_hdr_loader_t::unload,

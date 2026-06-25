@@ -2,22 +2,34 @@
 
 #include "animation.hpp"
 
+#include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/serialization/compression.hpp>
 
 #include <new>
 
 namespace sfg
 {
-	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+			return false;
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+		istream_t payload = compressor_t::decompress(stream);
+		if (payload.empty())
+			return false;
+
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
 		std::construct_at(runtime);
 
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<animation_def_t>::value, &runtime->def, stream))
+		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<animation_def_t>::value, &runtime->def, payload))
 		{
 			std::destroy_at(runtime);
 			return false;
@@ -43,8 +55,6 @@ namespace sfg
 		.internals_alignment = alignof(animation_internals_t),
 		.wire_magic			 = animation_loader_t::WIRE_MAGIC,
 		.wire_version		 = animation_loader_t::WIRE_VERSION,
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = animation_loader_t::load,
 		.unload				 = animation_loader_t::unload,

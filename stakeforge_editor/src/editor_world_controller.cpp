@@ -319,18 +319,18 @@ namespace sfg
 				continue;
 			}
 
-			istream_t stream = serializer_t::load_from_file(cache_path.c_str());
-			if (stream.empty())
-			{
-				SFG_WARN("world resource cooked binary could not be read: {0}", cache_path.c_str());
-				continue;
-			}
-
 			const resource_type_e			  resource_type = static_cast<resource_type_e>(asset->asset_type);
 			const resource_type_desc_t* const resource_desc = find_resource_type_desc(resource_type);
 			if (resource_desc == nullptr)
 			{
 				SFG_WARN("world resource type description not found: {0}", static_cast<u8>(resource_type));
+				continue;
+			}
+
+			istream_t stream = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
+			if (stream.empty())
+			{
+				SFG_WARN("world resource cooked binary could not be read: {0}", cache_path.c_str());
 				continue;
 			}
 
@@ -342,7 +342,7 @@ namespace sfg
 				continue;
 			}
 
-			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), stream, resource_type) == resource_state_e::failed)
+			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), resource_type) == resource_state_e::failed)
 				SFG_WARN("world resource failed to load: {0}", guid);
 		}
 	}

@@ -28,14 +28,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "physical_material.hpp"
 #include "physical_material_def.hpp"
 #include "physical_material_def.hpp"
+#include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 namespace sfg
 {
-	bool physical_material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	bool physical_material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+			return false;
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+
 		chunk_allocator_t&			 mem	 = ctx.resource_manager.get_memory();
 		physical_material_runtime_t* runtime = mem.get<physical_material_runtime_t>(entry.runtime);
 		*runtime							 = {};
@@ -62,8 +70,6 @@ namespace sfg
 		.internals_alignment = alignof(physical_material_internals_t),
 		.wire_magic			 = physical_material_loader_t::WIRE_MAGIC,
 		.wire_version		 = physical_material_loader_t::WIRE_VERSION,
-		.initial_load_size	 = 0,
-		.async_load_offset	 = 0,
 		.use_async_load		 = false,
 		.load				 = physical_material_loader_t::load,
 		.unload				 = physical_material_loader_t::unload,

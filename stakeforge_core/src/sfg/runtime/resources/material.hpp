@@ -9,7 +9,6 @@
 #include <sfg/data/bitmask.hpp>
 namespace sfg
 {
-	class istream_t;
 	enum class material_parameter_type_e : u8;
 
 	class material_loader_t
@@ -18,7 +17,7 @@ namespace sfg
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'A', 'T', 'L');
 		static constexpr u32 WIRE_VERSION = 3;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
