@@ -1093,7 +1093,7 @@ namespace sfg
 		ui::ui_render_state_t state = {};
 		state.pipeline				= theme.shader_glitch_rect;
 
-		const u32 draw_order = dock_widget._ui->get_tree().draw_order_const(id) + 1;
+		const u32 draw_order = dock_widget._ui->get_tree().draw_order_const(id) + 100;
 		for (u32 i = 0; i < DOCK_PREVIEW_COUNT; ++i)
 		{
 			rectf_t preview = node->preview_rects[i];

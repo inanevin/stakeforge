@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_writer.hpp"
 
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 
 namespace sfg
@@ -141,7 +142,10 @@ namespace sfg
 			const editor_material_type_e material_type = static_cast<editor_material_type_e>(desc.sub_type);
 			nlohmann::json				 embedded_source;
 			if (!editor_asset_writer_t::read_embedded_source(get_material_template_relative(material_type), embedded_source))
+			{
+				SFG_ERR("failed to read material asset template {0}", get_material_template_relative(material_type));
 				return false;
+			}
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
@@ -160,7 +164,10 @@ namespace sfg
 			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(desc.sub_type);
 			nlohmann::json						embedded_source;
 			if (!editor_asset_writer_t::read_embedded_source(get_texture_sampler_template_relative(sampler_type), embedded_source))
+			{
+				SFG_ERR("failed to read texture sampler asset template {0}", get_texture_sampler_template_relative(sampler_type));
 				return false;
+			}
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
@@ -178,7 +185,10 @@ namespace sfg
 		{
 			nlohmann::json embedded_source;
 			if (!editor_asset_writer_t::read_embedded_source(get_physical_material_template_relative(), embedded_source))
+			{
+				SFG_ERR("failed to read physical material asset template {0}", get_physical_material_template_relative());
 				return false;
+			}
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,

@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "bump_allocator.hpp"
 #include "memory.hpp"
-#include "memory_tracer.hpp"
 
 namespace sfg
 {
@@ -36,7 +35,6 @@ namespace sfg
 		_size = sz;
 		_raw  = SFG_ALIGNED_MALLOC(alignment, sz);
 		_owns = 1;
-		SFG_MEMTRACE_ALLOC(_raw, sz);
 	}
 
 	void bump_allocator_t::init(u8* existing, size_t sz)
@@ -50,7 +48,6 @@ namespace sfg
 	{
 		if (_owns)
 		{
-			SFG_MEMTRACE_DEALLOC(_raw);
 			SFG_ALIGNED_FREE(_raw);
 		}
 		_raw = nullptr;

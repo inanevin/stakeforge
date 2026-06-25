@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/platform/common_window.hpp>
+#include <tracy/Tracy.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -741,6 +742,7 @@ namespace sfg
 
 	void process::pump_os_messages()
 	{
+		ZoneScoped;
 		MSG msg	   = {0};
 		msg.wParam = 0;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))

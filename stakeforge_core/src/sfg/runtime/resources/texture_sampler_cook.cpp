@@ -6,6 +6,7 @@
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -14,7 +15,10 @@ namespace sfg
 	{
 		ostream_t sampler_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, sampler_stream))
+		{
+			SFG_ERR("failed to serialize texture sampler description");
 			return false;
+		}
 
 		out_header = {
 			.magic		 = texture_sampler_loader_t::WIRE_MAGIC,

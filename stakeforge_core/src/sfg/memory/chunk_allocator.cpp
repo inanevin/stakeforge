@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "chunk_allocator.hpp"
-#include "memory_tracer.hpp"
 #include <sfg/math/math_common.hpp>
 
 namespace sfg
@@ -50,18 +49,10 @@ namespace sfg
 		_raw		= reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, mem_size));
 		_total_size = static_cast<u32>(mem_size);
 		SFG_ASSERT(_raw != nullptr);
-
-#ifdef SFG_ENABLE_MEMORY_TRACER
-		memory_tracer_t::get().on_allocation(_raw, mem_size);
-#endif
 	}
 
 	void chunk_allocator_t::uninit()
 	{
-#ifdef SFG_ENABLE_MEMORY_TRACER
-		memory_tracer_t::get().on_free(_raw);
-#endif
-
 		SFG_ASSERT(_raw != nullptr);
 		SFG_ALIGNED_FREE(_raw);
 		_raw		= nullptr;

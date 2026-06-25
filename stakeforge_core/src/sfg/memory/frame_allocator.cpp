@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "frame_allocator.hpp"
 #include "memory.hpp"
-#include "memory_tracer.hpp"
 #include <sfg/math/math_common.hpp>
 
 namespace sfg
@@ -49,7 +48,6 @@ namespace sfg
 		g_frame_allocator_state._head			= 0;
 		g_frame_allocator_state._raw			= raw;
 		g_frame_allocator_state._owns			= 1;
-		SFG_MEMTRACE_ALLOC(raw, allocated_size);
 	}
 
 	void frame_allocator_tls_t::init(u8* existing, size_t size)
@@ -69,7 +67,6 @@ namespace sfg
 	{
 		if (g_frame_allocator_state._owns)
 		{
-			SFG_MEMTRACE_DEALLOC(g_frame_allocator_state._raw);
 			SFG_ALIGNED_FREE(g_frame_allocator_state._raw);
 		}
 

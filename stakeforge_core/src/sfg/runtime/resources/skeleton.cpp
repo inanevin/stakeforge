@@ -7,6 +7,7 @@
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -15,7 +16,10 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read skeleton resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
@@ -26,7 +30,10 @@ namespace sfg
 
 		skeleton_def_t skeleton = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, stream))
+		{
+			SFG_ERR("failed to deserialize skeleton definition: {0}", entry.hash);
 			return false;
+		}
 
 		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
 		SFG_ASSERT(joint_count <= MAX_JOINTS);

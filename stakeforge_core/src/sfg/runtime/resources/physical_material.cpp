@@ -27,11 +27,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "physical_material.hpp"
 #include "physical_material_def.hpp"
-#include "physical_material_def.hpp"
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 namespace sfg
 {
@@ -39,7 +39,10 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read physical material resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
@@ -49,7 +52,11 @@ namespace sfg
 		*runtime							 = {};
 
 		physical_material_def_t material = {};
-		reflection_registry_t::get().deserialize_from_stream(type_id_t<physical_material_def_t>::value, &material, stream);
+		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<physical_material_def_t>::value, &material, stream))
+		{
+			SFG_ERR("failed to deserialize physical material definition: {0}", entry.hash);
+			return false;
+		}
 
 		runtime->restitution	 = material.restitution;
 		runtime->friction		 = material.friction;

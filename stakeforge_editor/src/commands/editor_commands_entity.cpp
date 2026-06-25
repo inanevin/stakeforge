@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -187,6 +188,7 @@ namespace sfg
 
 				if (!streams[i])
 				{
+					SFG_ERR("failed to serialize entity for duplicate command: {0}", sources[i]);
 					for (u32 j = i; j-- > 0;)
 					{
 						world.destroy_entity_tree(entities[j]);
@@ -199,6 +201,7 @@ namespace sfg
 				const entity_id_t entity = world.entity_from_stream(stream);
 				if (entity == NULL_ENTITY_ID)
 				{
+					SFG_ERR("failed to recreate duplicated entity from stream");
 					for (u32 j = i; j-- > 0;)
 					{
 						world.destroy_entity_tree(entities[j]);
@@ -288,7 +291,10 @@ namespace sfg
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
 		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue create entity command");
 			return NULL_ENTITY_ID;
+		}
 
 		editor_command_t&						command		   = command_system.get_command(handle);
 		editor_command_create_entity_payload_t& stored_payload = command_system.get_payload_as<editor_command_create_entity_payload_t>(command);
@@ -333,7 +339,10 @@ namespace sfg
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
 		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue duplicate entity command");
 			return false;
+		}
 
 		editor_command_t&						   command		   = command_system.get_command(handle);
 		editor_command_duplicate_entity_payload_t& stored_payload  = command_system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
@@ -374,6 +383,13 @@ namespace sfg
 			.entity_generation = true,
 		};
 
-		return !command_system.issue_command(desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue destroy entity command");
+			return false;
+		}
+
+		return true;
 	}
 }

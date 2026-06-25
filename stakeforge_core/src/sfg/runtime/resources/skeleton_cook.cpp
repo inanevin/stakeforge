@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "skeleton_def.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -39,7 +40,10 @@ namespace sfg
 	{
 		ostream_t skeleton_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<skeleton_def_t>::value, &def, skeleton_stream))
+		{
+			SFG_ERR("failed to serialize skeleton definition");
 			return false;
+		}
 
 		out_header = {
 			.magic		 = skeleton_loader_t::WIRE_MAGIC,

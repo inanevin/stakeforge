@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg::ui
 {
@@ -145,6 +146,8 @@ namespace sfg::ui
 
 	void ui_renderer_t::render(gfx_handle_t cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)
 	{
+		ZoneScopedN("ui_renderer_render");
+
 		gfx_backend&	  backend	 = gfx_backend::get();
 		const u8		  frame_slot = frame_index % BACK_BUFFER_COUNT;
 		per_frame_data_t& pfd		 = _pfd[frame_slot];

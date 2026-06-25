@@ -92,56 +92,80 @@ namespace sfg
 			{
 				texture_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<texture_cook_config_t>::value, &cfg, config))
+				{
+					SFG_ERR("failed to deserialize texture cook config");
 					return false;
+				}
 				return texture_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.shader")
 			{
 				shader_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &cfg, config))
+				{
+					SFG_ERR("failed to deserialize shader cook config");
 					return false;
+				}
 				return shader_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.audio")
 			{
 				audio_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<audio_cook_config_t>::value, &cfg, config))
+				{
+					SFG_ERR("failed to deserialize audio cook config");
 					return false;
+				}
 				return audio_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.font")
 			{
 				font_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<font_cook_config_t>::value, &cfg, config))
+				{
+					SFG_ERR("failed to deserialize font cook config");
 					return false;
+				}
 				return font_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.material")
 			{
 				material_def_t def = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, config))
+				{
+					SFG_ERR("failed to deserialize material definition");
 					return false;
+				}
 				return material_cooker::cook_from_def(def, out_header, stream);
 			}
 			if (schema == "sfg.schema.animation")
 			{
 				animation_def_t def = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<animation_def_t>::value, &def, config))
+				{
+					SFG_ERR("failed to deserialize animation definition");
 					return false;
+				}
 				return animation_cooker::cook_from_def(def, out_header, stream);
 			}
 			if (schema == "sfg.schema.texture_sampler")
 			{
 				sampler_desc_t desc = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, config))
+				{
+					SFG_ERR("failed to deserialize texture sampler description");
 					return false;
+				}
 				return texture_sampler_cooker::cook_from_desc(desc, out_header, stream);
 			}
 			if (schema == "sfg.schema.hdr_skybox")
 			{
 				skybox_hdr_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &cfg, config))
+				{
+					SFG_ERR("failed to deserialize HDR skybox cook config");
 					return false;
+				}
 				return skybox_hdr_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 			if (schema == "sfg.schema.animation_state_machine")
@@ -163,13 +187,13 @@ namespace sfg
 			resource_header_t out_header = {};
 			if (!cook_for_schema(schema, config, source_path.c_str(), out_header, payload))
 			{
-				SFG_ERR("resource_pack: cook failed for {0}", source_path.c_str());
+				SFG_ERR("cook failed for {0}", source_path.c_str());
 				return false;
 			}
 
 			ostream_t cached_stream = make_resource_stream(out_header, payload);
 			if (!save_cache(cache_dir.c_str(), sid, cached_stream))
-				SFG_WARN("resource_pack: cache save failed for {0}", sid);
+				SFG_WARN("cache save failed for {0}", sid);
 
 			return true;
 		}
@@ -193,7 +217,7 @@ namespace sfg
 			const embedded_resource_t& e = params.embedded_entries[i];
 			if (e.path == nullptr || e.data == nullptr || e.size == 0 || e.type == resource_type_e::invalid)
 			{
-				SFG_ERR("resource_pack: invalid embedded entry at index {0}", i);
+				SFG_ERR("invalid embedded entry at index {0}", i);
 				continue;
 			}
 
@@ -206,7 +230,7 @@ namespace sfg
 			const auto				st	   = mgr.load_resource(sid, e.path, header, stream, e.type);
 			if (st == resource_state_e::failed)
 			{
-				SFG_ERR("resource_pack: load_resource failed for embedded {0}", e.path);
+				SFG_ERR("load_resource failed for embedded {0}", e.path);
 				continue;
 			}
 			_loaded.push_back(sid);
@@ -234,7 +258,7 @@ namespace sfg
 		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
 		if (doc.is_discarded())
 		{
-			SFG_ERR("resource_pack: failed to parse manifest at {0}", params.manifest_path.c_str());
+			SFG_ERR("failed to parse manifest at {0}", params.manifest_path.c_str());
 			return false;
 		}
 
@@ -242,7 +266,7 @@ namespace sfg
 		const nlohmann::json resources = doc.value("resources", nlohmann::json::array());
 		if (!resources.is_array())
 		{
-			SFG_ERR("resource_pack: invalid manifest resources at {0}", params.manifest_path.c_str());
+			SFG_ERR("invalid manifest resources at {0}", params.manifest_path.c_str());
 			return false;
 		}
 
@@ -253,7 +277,7 @@ namespace sfg
 			entry.config					= nlohmann::json::object();
 			if (!reflection_registry_t::get().deserialize_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, item))
 			{
-				SFG_ERR("resource_pack: invalid manifest entry at {0}", params.manifest_path.c_str());
+				SFG_ERR("invalid manifest entry at {0}", params.manifest_path.c_str());
 				return false;
 			}
 			manifest.resources.push_back(std::move(entry));
@@ -269,7 +293,7 @@ namespace sfg
 		{
 			if (entry.type == resource_type_e::invalid)
 			{
-				SFG_ERR("resource_pack: invalid type for {0}", entry.path.c_str());
+				SFG_ERR("invalid resource type for {0}", entry.path.c_str());
 				return false;
 			}
 
@@ -278,7 +302,7 @@ namespace sfg
 
 			if (!file_system_t::exists(source_path.c_str()))
 			{
-				SFG_ERR("resource_pack: source missing: {0}", source_path.c_str());
+				SFG_ERR("resource source missing: {0}", source_path.c_str());
 				return false;
 			}
 
@@ -291,26 +315,41 @@ namespace sfg
 			{
 				shader_cook_config_t cfg = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &cfg, entry.config))
+				{
+					SFG_ERR("failed to deserialize shader cook config for {0}", entry.path.c_str());
 					return false;
+				}
 				expected.source_tick = shader_cooker::collect_source_tick(cfg, source_path.c_str());
 			}
 			else if (entry.type == resource_type_e::material)
 			{
 				material_def_t def = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, entry.config))
+				{
+					SFG_ERR("failed to deserialize material definition for {0}", entry.path.c_str());
 					return false;
+				}
 				if (!material_cooker::collect_source_tick(def, expected.source_tick))
+				{
+					SFG_ERR("failed to collect material source tick for {0}", entry.path.c_str());
 					return false;
+				}
 			}
 			else if (entry.type == resource_type_e::animation)
 			{
 				animation_def_t def = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<animation_def_t>::value, &def, entry.config))
+				{
+					SFG_ERR("failed to deserialize animation definition for {0}", entry.path.c_str());
 					return false;
+				}
 
 				ostream_t def_stream;
 				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<animation_def_t>::value, &def, def_stream))
+				{
+					SFG_ERR("failed to serialize animation definition for {0}", entry.path.c_str());
 					return false;
+				}
 
 				expected.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size());
 			}
@@ -318,11 +357,17 @@ namespace sfg
 			{
 				sampler_desc_t desc = {};
 				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, entry.config))
+				{
+					SFG_ERR("failed to deserialize texture sampler description for {0}", entry.path.c_str());
 					return false;
+				}
 
 				ostream_t desc_stream;
 				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, desc_stream))
+				{
+					SFG_ERR("failed to serialize texture sampler description for {0}", entry.path.c_str());
 					return false;
+				}
 
 				expected.source_tick = hashing_t::hash_u64(desc_stream.get_raw(), desc_stream.get_size());
 			}
@@ -375,7 +420,7 @@ namespace sfg
 		const nlohmann::json config = nlohmann::json::parse(e.config_json, nullptr, false);
 		if (config.is_discarded())
 		{
-			SFG_ERR("resource_pack: failed to re-parse config for {0}", e.source_path.c_str());
+			SFG_ERR("failed to re-parse config for {0}", e.source_path.c_str());
 			return;
 		}
 

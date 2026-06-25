@@ -50,7 +50,9 @@ set(FT_DISABLE_BROTLI TRUE CACHE BOOL "" FORCE)
 add_subdirectory(deps/freetype-2.14.3)
 set_target_properties(freetype PROPERTIES FOLDER "stakeforge/dependencies")
 
-add_subdirectory(deps/tracy-0.13.0)
+set(TRACY_ENABLE OFF CACHE BOOL "" FORCE)
+add_subdirectory(deps/tracy-0.13.1)
+target_compile_definitions(TracyClient PUBLIC $<$<CONFIG:Profile>:TRACY_ENABLE>)
 set_target_properties(TracyClient PROPERTIES FOLDER "stakeforge/dependencies")
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -217,7 +219,6 @@ target_sources(${SFG_CORE_TARGET} PRIVATE
 
 target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/phmap/include)
-target_include_directories(${SFG_CORE_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/deps/tracy-0.13.0/public)
 
 if(WIN32)
     include(${CMAKE_CURRENT_SOURCE_DIR}/deps/dxc/link.cmake)
@@ -237,6 +238,7 @@ if(WIN32)
 endif()
 
 target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4 freetype)
+target_link_libraries(${SFG_CORE_TARGET} PUBLIC Tracy::TracyClient)
 target_link_libraries(${SFG_CORE_TARGET} PRIVATE ktx)
 
 target_precompile_headers(${SFG_CORE_TARGET} PRIVATE

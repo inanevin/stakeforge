@@ -82,7 +82,10 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read material resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
@@ -95,7 +98,10 @@ namespace sfg
 
 		material_def_t material = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<material_def_t>::value, &material, stream))
+		{
+			SFG_ERR("failed to deserialize material definition: {0}", entry.hash);
 			return false;
+		}
 
 		if (material.parameters.size() > MATERIAL_MAX_PARAMETERS)
 		{

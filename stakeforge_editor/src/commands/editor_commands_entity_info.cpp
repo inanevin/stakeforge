@@ -27,6 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_commands_entity_info.hpp"
 #include "editor_app.hpp"
 #include "editor_command_system.hpp"
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -157,6 +158,13 @@ namespace sfg
 			.type		= editor_command_type_e::entity_info_paste,
 		};
 
-		return !command_system.issue_command(desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue paste entity info command");
+			return false;
+		}
+
+		return true;
 	}
 }

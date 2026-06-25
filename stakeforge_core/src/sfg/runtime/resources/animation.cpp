@@ -7,6 +7,7 @@
 
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
 
@@ -18,19 +19,26 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read animation resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
 		if (payload.empty())
+		{
+			SFG_ERR("failed to decompress animation payload: {0}", entry.hash);
 			return false;
+		}
 
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
 		std::construct_at(runtime);
 
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<animation_def_t>::value, &runtime->def, payload))
 		{
+			SFG_ERR("failed to deserialize animation definition: {0}", entry.hash);
 			std::destroy_at(runtime);
 			return false;
 		}

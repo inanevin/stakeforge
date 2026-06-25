@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/memory/memory_tracer.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/texture.hpp>
@@ -303,9 +302,6 @@ namespace sfg::ui
 		_text_cache_vertex_capacity = static_cast<u32>(cache_vtx);
 		_text_cache_index_capacity	= static_cast<u32>(cache_idx);
 
-		const size_t total_bytes = sizeof(vg_vertex_t) * vtx_count + sizeof(vg_index_t) * idx_count + sizeof(vg_vertex_t) * cache_vtx + sizeof(vg_index_t) * cache_idx;
-		SFG_MEMTRACE_ALLOC(_vertex_pool, total_bytes);
-
 		_draw_buffers.reserve(cfg.buffer_count);
 		_scissor_clip_stack.reserve(cfg.clip_stack_capacity);
 		_cpu_clip_stack.reserve(cfg.clip_stack_capacity);
@@ -317,7 +313,6 @@ namespace sfg::ui
 
 	void vg_canvas_t::uninit()
 	{
-		SFG_MEMTRACE_DEALLOC(_vertex_pool);
 		if (_vertex_pool)
 			SFG_FREE(_vertex_pool);
 		if (_index_pool)

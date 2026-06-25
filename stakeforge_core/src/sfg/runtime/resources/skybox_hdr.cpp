@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/common/format.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/serialization/compression.hpp>
@@ -159,13 +160,19 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read HDR skybox resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
 		if (payload.empty())
+		{
+			SFG_ERR("failed to decompress HDR skybox payload: {0}", entry.hash);
 			return false;
+		}
 
 		chunk_allocator_t&	  mem	  = ctx.resource_manager.get_memory();
 		skybox_hdr_runtime_t* runtime = mem.get<skybox_hdr_runtime_t>(entry.runtime);

@@ -84,9 +84,15 @@ set_target_properties(${SFG_TESTS_TARGET} PROPERTIES
 target_compile_definitions(${SFG_TESTS_TARGET} PRIVATE
     $<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=1>
     $<$<CONFIG:Debug>:SFG_DEBUG>
+    $<$<CONFIG:Debug>:SFG_ENABLE_MEMORY_TRACER>
     $<$<CONFIG:Debug>:SFG_DUMP_LOG_TRACE>
     $<$<CONFIG:Release>:_ITERATOR_DEBUG_LEVEL=0>
     $<$<CONFIG:Release>:NDEBUG>
+    $<$<CONFIG:Profile>:_ITERATOR_DEBUG_LEVEL=0>
+    $<$<CONFIG:Profile>:NDEBUG>
+    $<$<CONFIG:Profile>:SFG_DUMP_LOG_TRACE>
+    $<$<CONFIG:Profile>:TRACY_ENABLE>
+    $<$<CONFIG:Profile>:SFG_ENABLE_MEMORY_TRACER>
 )
 
 if(WIN32)

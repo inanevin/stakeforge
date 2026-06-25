@@ -63,6 +63,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -720,26 +721,50 @@ namespace sfg
 	void editor_app_t::tick()
 	{
 		bool tick = true;
+#ifdef TRACY_ENABLE
+		tracy::SetThreadName("main");
+#endif
 
 		while (tick)
 		{
 			editor_project_t& project = editor_project_t::get();
 
 			frame_allocator_tls_t::reset();
-
 			process::pump_os_messages();
 
-			_engine_resource_pack.tick();
-			_editor_resource_pack.tick();
-			resource_manager_t::get().flush();
-			_asset_manager.tick();
+			{
+				ZoneScopedN("engine_resource_pack_tick");
+				_engine_resource_pack.tick();
+			}
+
+			{
+				ZoneScopedN("editor_resource_pack_tick");
+				_editor_resource_pack.tick();
+			}
+
+			{
+				ZoneScopedN("resource_manager_flush");
+				resource_manager_t::get().flush();
+			}
+
+			{
+				ZoneScopedN("asset_manager_tick");
+				_asset_manager.tick();
+			}
+
+			{
+				ZoneScopedN("payload_controller_tick");
+				_payload_controller.tick();
+			}
 
 			const i64 now = time_t::get_cpu_microseconds();
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
 
-			_payload_controller.tick();
-			_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
+			{
+				ZoneScopedN("world_controller_tick");
+				_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
+			}
 
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{
@@ -785,12 +810,18 @@ namespace sfg
 				{
 					const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 					const f32	  dpi_scale = surface.runtime->monitor_info.dpi_scale > 0.0f ? surface.runtime->monitor_info.dpi_scale : 1.0f;
-					surface.ui->tick(screen, dpi_scale, dt);
+					{
+						ZoneScopedN("ui_context_tick");
+						surface.ui->tick(screen, dpi_scale, dt);
+					}
 					surface.ui->publish_frame();
 				}
 			}
 
-			resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
+			{
+				ZoneScopedN("resource_manager_drain_atlases");
+				resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
+			}
 			_atlas_upload_frame_slot = static_cast<u8>((_atlas_upload_frame_slot + 1) % BACK_BUFFER_COUNT);
 
 			if (_surfaces.empty())
@@ -800,6 +831,7 @@ namespace sfg
 			}
 
 			_renderer.ensure_render(_world_controller);
+			FrameMarkNamed("main");
 		}
 
 		_renderer.end_render();

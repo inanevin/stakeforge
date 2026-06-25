@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
@@ -130,9 +131,18 @@ namespace sfg
 		asset.source_type = source_type;
 
 		if (source_full_path != nullptr && source_full_path[0] != '\0' && !editor_asset_util_t::set_source_relative_or_copy(asset, parent_node.full_path.c_str(), asset_name, source_full_path))
+		{
+			SFG_ERR("failed to set source for imported asset {0}", asset_name);
 			return false;
+		}
 
-		return editor_asset_util_t::write_asset(asset_path.c_str(), asset);
+		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		{
+			SFG_ERR("failed to write imported asset {0}", asset_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_importer_t::import_asset(editor_asset_node_handle_t directory_node, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
@@ -149,23 +159,35 @@ namespace sfg
 
 		const string_t source_path = file_system_t::get_absolute_path(source_full_path);
 		if (!file_system_t::exists(source_path.c_str()))
+		{
+			SFG_ERR("import source does not exist: {0}", source_path.c_str());
 			return false;
+		}
 
 		const string_t					 extension	 = file_system_t::get_file_extension(source_path);
 		const editor_asset_import_type_e import_type = get_import_type_from_extension(extension);
 		if (import_type == editor_asset_import_type_e::invalid)
+		{
+			SFG_ERR("unsupported import extension: {0}", extension.c_str());
 			return false;
+		}
 
 		const editor_asset_import_options_t* import_options = find_import_options(options, import_type);
 		if (import_options == nullptr)
+		{
+			SFG_ERR("missing import options for {0}", source_path.c_str());
 			return false;
+		}
 
 		if (import_type == editor_asset_import_type_e::model)
 			return editor_glb_importer_t::import_glb(directory_node, source_path.c_str(), import_options->glb_cook_config, context, out_assets);
 
 		const string_t asset_name = file_system_t::get_filename_from_path(source_path);
 		if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+		{
+			SFG_ERR("invalid imported asset name: {0}", asset_name.c_str());
 			return false;
+		}
 
 		editor_asset_t asset = {};
 		switch (import_type)
@@ -176,11 +198,20 @@ namespace sfg
 			context.report_status(status.c_str());
 			const texture_cook_config_t& texture_config = import_options->texture_cook_config;
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
+			{
+				SFG_ERR("failed to serialize texture import options for {0}", source_path.c_str());
 				return false;
+			}
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::texture, editor_asset_source_type_e::file, source_path.c_str()))
+			{
+				SFG_ERR("failed to create imported texture asset {0}", asset_name.c_str());
 				return false;
+			}
 			if (!editor_asset_cooker_t::cook_texture(asset))
+			{
+				SFG_ERR("failed to cook imported texture asset {0}", asset.guid);
 				return false;
+			}
 			break;
 		}
 		case editor_asset_import_type_e::font: {
@@ -188,9 +219,15 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::font, editor_asset_source_type_e::file, source_path.c_str()))
+			{
+				SFG_ERR("failed to create imported font asset {0}", asset_name.c_str());
 				return false;
+			}
 			if (!editor_asset_cooker_t::cook_font(asset))
+			{
+				SFG_ERR("failed to cook imported font asset {0}", asset.guid);
 				return false;
+			}
 			break;
 		}
 		case editor_asset_import_type_e::audio: {
@@ -199,11 +236,20 @@ namespace sfg
 			context.report_status(status.c_str());
 			const audio_cook_config_t& audio_config = import_options->audio_cook_config;
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<audio_cook_config_t>::value, &audio_config, asset.cook_options))
+			{
+				SFG_ERR("failed to serialize audio import options for {0}", source_path.c_str());
 				return false;
+			}
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::audio, editor_asset_source_type_e::file, source_path.c_str()))
+			{
+				SFG_ERR("failed to create imported audio asset {0}", asset_name.c_str());
 				return false;
+			}
 			if (!editor_asset_cooker_t::cook_audio(asset))
+			{
+				SFG_ERR("failed to cook imported audio asset {0}", asset.guid);
 				return false;
+			}
 			break;
 		}
 		case editor_asset_import_type_e::hdr_skybox: {
@@ -212,14 +258,24 @@ namespace sfg
 			context.report_status(status.c_str());
 			const skybox_hdr_cook_config_t& skybox_config = import_options->skybox_cook_config;
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<skybox_hdr_cook_config_t>::value, &skybox_config, asset.cook_options))
+			{
+				SFG_ERR("failed to serialize HDR skybox import options for {0}", source_path.c_str());
 				return false;
+			}
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::hdr_skybox, editor_asset_source_type_e::file, source_path.c_str()))
+			{
+				SFG_ERR("failed to create imported HDR skybox asset {0}", asset_name.c_str());
 				return false;
+			}
 			if (!editor_asset_cooker_t::cook_hdr_skybox(asset))
+			{
+				SFG_ERR("failed to cook imported HDR skybox asset {0}", asset.guid);
 				return false;
+			}
 			break;
 		}
 		default:
+			SFG_ERR("unsupported import type: {0}", static_cast<u8>(import_type));
 			return false;
 		}
 

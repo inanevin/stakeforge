@@ -105,7 +105,13 @@ namespace sfg
 				return true;
 
 			const string_t duplicated_cache_path = editor_asset_util_t::get_cache_path_for_asset(duplicated_asset);
-			return file_system_t::copy_file(source_cache_path.c_str(), duplicated_cache_path.c_str());
+			if (!file_system_t::copy_file(source_cache_path.c_str(), duplicated_cache_path.c_str()))
+			{
+				SFG_ERR("failed to duplicate cooked asset {0} to {1}", source_asset.guid, duplicated_asset.guid);
+				return false;
+			}
+
+			return true;
 		}
 
 		void remap_source_relative(editor_asset_t& asset, const string_t& assets_path, const string_t& source_folder_path, const string_t& duplicated_folder_path)
@@ -463,7 +469,10 @@ namespace sfg
 
 		const string_t duplicated_folder = file_system_t::duplicate(node.full_path.c_str());
 		if (duplicated_folder.empty())
+		{
+			SFG_ERR("failed to duplicate folder {0}", node.full_path.c_str());
 			return false;
+		}
 
 		const string_t source_folder_path	  = normalize_directory_path(node.full_path.c_str());
 		const string_t duplicated_folder_path = normalize_directory_path(duplicated_folder.c_str());
@@ -516,11 +525,20 @@ namespace sfg
 		const string_t old_folder_path = normalize_directory_path(node.full_path.c_str());
 		string_t	   renamed_path	   = new_path;
 		if (!file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str()))
+		{
+			SFG_ERR("failed to rename folder {0} to {1}", node.full_path.c_str(), renamed_path.c_str());
 			return false;
+		}
 
 		const string_t renamed_folder_path = normalize_directory_path(renamed_path.c_str());
 		const string_t assets_path		   = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
-		return remap_asset_sources_in_folder(renamed_folder_path, assets_path, old_folder_path, renamed_folder_path);
+		if (!remap_asset_sources_in_folder(renamed_folder_path, assets_path, old_folder_path, renamed_folder_path))
+		{
+			SFG_ERR("failed to remap asset sources in renamed folder {0}", renamed_folder_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_util_t::move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node)
@@ -582,9 +600,18 @@ namespace sfg
 		}
 
 		if (!file_system_t::change_directory_name(old_folder_path.c_str(), new_folder_abs_path.c_str()))
+		{
+			SFG_ERR("failed to move folder {0} to {1}", old_folder_path.c_str(), new_folder_abs_path.c_str());
 			return false;
+		}
 
-		return remap_asset_source_file_references(assets_path, {.data = moved_sources.data(), .size = moved_sources.size()});
+		if (!remap_asset_source_file_references(assets_path, {.data = moved_sources.data(), .size = moved_sources.size()}))
+		{
+			SFG_ERR("failed to remap asset source references after moving folder {0}", new_folder_abs_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_util_t::delete_file(editor_asset_node_handle_t file_node)
@@ -596,7 +623,10 @@ namespace sfg
 		const editor_asset_node_t& node = tree.value(file_node);
 		SFG_ASSERT(node.type == editor_asset_node_type_e::file);
 		SFG_ASSERT(!node.full_path.empty());
-		return !file_system_t::delete_file(node.full_path.c_str());
+		const bool deleted = !file_system_t::delete_file(node.full_path.c_str());
+		if (!deleted)
+			SFG_ERR("failed to delete file {0}", node.full_path.c_str());
+		return deleted;
 	}
 
 	bool editor_asset_util_t::rename_file(editor_asset_node_handle_t file_node, const char* new_path)
@@ -614,13 +644,22 @@ namespace sfg
 		const string_t old_source_path = file_system_t::get_absolute_path(node.full_path.c_str());
 		string_t	   renamed_path	   = new_path;
 		if (!file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str()))
+		{
+			SFG_ERR("failed to rename file {0} to {1}", node.full_path.c_str(), renamed_path.c_str());
 			return false;
+		}
 
 		const string_t new_source_path = file_system_t::get_absolute_path(renamed_path.c_str());
 		string_t	   assets_path	   = normalize_directory_path(editor_project_t::get()._runtime.assets_path.c_str());
 		file_system_t::fix_path_end_slash(assets_path);
 		const source_file_move_t moved_source{.old_path = old_source_path, .new_path = new_source_path};
-		return remap_asset_source_file_references(assets_path, {.data = &moved_source, .size = 1});
+		if (!remap_asset_source_file_references(assets_path, {.data = &moved_source, .size = 1}))
+		{
+			SFG_ERR("failed to remap asset source references after renaming file {0}", new_source_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_util_t::delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node)
@@ -633,7 +672,10 @@ namespace sfg
 		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
 		SFG_ASSERT(node.asset_id == asset.guid);
 		SFG_ASSERT(!node.full_path.empty());
-		return !file_system_t::delete_file(node.full_path.c_str());
+		const bool deleted = !file_system_t::delete_file(node.full_path.c_str());
+		if (!deleted)
+			SFG_ERR("failed to delete asset {0}", node.full_path.c_str());
+		return deleted;
 	}
 
 	bool editor_asset_util_t::duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, string_t* out_duplicated_path)
@@ -649,7 +691,10 @@ namespace sfg
 
 		const string_t duplicated_path = file_system_t::duplicate(node.full_path.c_str());
 		if (duplicated_path.empty())
+		{
+			SFG_ERR("failed to duplicate asset {0}", node.full_path.c_str());
 			return false;
+		}
 
 		editor_asset_t duplicated_asset = asset;
 		duplicated_asset.guid			= generate_unique_asset_guid();
@@ -678,7 +723,13 @@ namespace sfg
 		SFG_ASSERT(!node.full_path.empty());
 
 		const string_t renamed_path = new_path;
-		return file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str());
+		if (!file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str()))
+		{
+			SFG_ERR("failed to rename asset {0} to {1}", node.full_path.c_str(), renamed_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_util_t::move_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, editor_asset_node_handle_t target_folder_node)
@@ -740,12 +791,24 @@ namespace sfg
 		}
 
 		if (move_source && !file_system_t::change_directory_name(source_full_path.c_str(), target_source_path.c_str()))
+		{
+			SFG_ERR("failed to move asset source {0} to {1}", source_full_path.c_str(), target_source_path.c_str());
 			return false;
+		}
 
 		if (move_source && !write_asset(old_asset_path.c_str(), moved_asset))
+		{
+			SFG_ERR("failed to update moved asset source reference {0}", old_asset_path.c_str());
 			return false;
+		}
 
-		return file_system_t::change_directory_name(old_asset_path.c_str(), target_asset_abs_path.c_str());
+		if (!file_system_t::change_directory_name(old_asset_path.c_str(), target_asset_abs_path.c_str()))
+		{
+			SFG_ERR("failed to move asset {0} to {1}", old_asset_path.c_str(), target_asset_abs_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 }

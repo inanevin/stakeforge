@@ -5,6 +5,7 @@
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/blend_attachments.hpp>
 #include <sfg/gfx/common/vertex_inputs.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 
 namespace sfg
@@ -18,7 +19,10 @@ namespace sfg
 			span_t<u8>	 dummy	 = {};
 
 			if (!backend.compile_shader_vertex_pixel(stage_u8, source, defines, include_paths, entry, blob, false, dummy))
+			{
+				SFG_ERR("failed to compile shader stage {0} entry {1}", stage_u8, entry);
 				return false;
+			}
 
 			out.stage = stage_u8;
 			out.bytes.resize(blob.size);

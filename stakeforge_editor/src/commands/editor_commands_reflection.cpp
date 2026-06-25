@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
@@ -105,7 +106,10 @@ namespace sfg
 		{
 			ostream_t stream;
 			if (!reflection_registry_t::get().serialize_field_to_stream(payload.type_id, payload.field_id, object, stream))
+			{
+				SFG_ERR("failed to serialize reflected text field {0}", payload.field_id);
 				return false;
+			}
 			istream_t input(stream.get_raw(), stream.get_size());
 			input >> out_text_id;
 			return true;
@@ -123,12 +127,21 @@ namespace sfg
 		{
 			u32 current_text_id = ECS_INVALID_INDEX;
 			if (!read_text_id_field(payload, object, current_text_id))
+			{
+				SFG_ERR("failed to read reflected text id field {0}", payload.field_id);
 				return false;
+			}
 
 			world.release_text(current_text_id);
 			const char* text		= system.get_aux_data().get<char>(value);
 			const u32	new_text_id = world.allocate_text(text != nullptr ? text : "");
-			return write_text_id_field(payload, object, new_text_id);
+			if (!write_text_id_field(payload, object, new_text_id))
+			{
+				SFG_ERR("failed to write reflected text id field {0}", payload.field_id);
+				return false;
+			}
+
+			return true;
 		}
 
 		bool apply_text_id_value(editor_command_system_t& system, editor_command_reflected_field_edit_payload_t& payload, chunk_handle32_t value, bool multi_old_value)
@@ -144,7 +157,10 @@ namespace sfg
 					if (object == nullptr)
 						continue;
 					if (!apply_text_id_to_object(system, payload, world, object, multi_old_value ? old_values[i] : value))
+					{
+						SFG_ERR("failed to apply reflected text id field {0} to entity {1}", payload.field_id, entities[i]);
 						return false;
+					}
 				}
 				return true;
 			}
@@ -174,7 +190,10 @@ namespace sfg
 					const chunk_handle32_t entity_value = undo ? old_values[i] : value;
 					istream_t			   stream(system.get_aux_data().get<u8>(entity_value), entity_value.size);
 					if (!reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream))
+					{
+						SFG_ERR("failed to apply reflected field {0} to entity {1}", payload.field_id, entities[i]);
 						return false;
+					}
 				}
 				return true;
 			}
@@ -184,7 +203,13 @@ namespace sfg
 				return true;
 
 			istream_t stream(system.get_aux_data().get<u8>(value), value.size);
-			return reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream);
+			if (!reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream))
+			{
+				SFG_ERR("failed to apply reflected field {0}", payload.field_id);
+				return false;
+			}
+
+			return true;
 		}
 
 		bool reflected_field_edit_undo(editor_command_system_t& system, editor_command_t& command)
@@ -266,6 +291,11 @@ namespace sfg
 				ostream_t  entity_old_value;
 				const bool serialized = reflection_registry_t::get().serialize_field_to_stream(desc.type_id, desc.field_id, object, entity_old_value);
 				SFG_ASSERT(serialized);
+				if (!serialized)
+				{
+					SFG_ERR("failed to serialize reflected field {0} for entity {1}", desc.field_id, desc.target.entities[i]);
+					return false;
+				}
 				old_values[i] = copy_stream_to_aux(command_system, entity_old_value);
 			}
 			run_redo = true;
@@ -280,7 +310,14 @@ namespace sfg
 			.run_redo	= run_redo,
 		};
 
-		return !command_system.issue_command(issue_desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(issue_desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue reflected field edit command");
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_commands_reflection_t::edit_text_id_field(const editor_reflected_field_edit_desc_t& desc, world_handle_t world, const char* old_value, const char* new_value)
@@ -319,6 +356,11 @@ namespace sfg
 				u32		   old_text_id = ECS_INVALID_INDEX;
 				const bool read		   = read_text_id_field(payload, object, old_text_id);
 				SFG_ASSERT(read);
+				if (!read)
+				{
+					SFG_ERR("failed to read reflected text id field {0} for entity {1}", desc.field_id, desc.target.entities[i]);
+					return false;
+				}
 				const char* entity_old_text = target_world.get_text(old_text_id);
 				old_values[i]				= copy_text_to_aux(command_system, entity_old_text != nullptr ? entity_old_text : "");
 			}
@@ -333,7 +375,14 @@ namespace sfg
 			.run_redo	= true,
 		};
 
-		return !command_system.issue_command(issue_desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(issue_desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue reflected text edit command");
+			return false;
+		}
+
+		return true;
 	}
 
 	const editor_command_reflected_field_edit_payload_t* editor_commands_reflection_t::get_payload(const editor_command_system_t& system, const editor_command_t& command)

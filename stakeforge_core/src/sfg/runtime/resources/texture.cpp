@@ -116,7 +116,10 @@ namespace sfg
 			buf.data_size		  = pixel_count * 4;
 			buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
 			if (buf.pixels == nullptr)
+			{
+				SFG_ERR("failed to allocate texture mip pixels");
 				return false;
+			}
 
 			if (src_bpp == 4)
 			{
@@ -215,7 +218,10 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read texture resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
@@ -238,7 +244,10 @@ namespace sfg
 			istream_t payload = compressor_t::decompress(compressed);
 			stream.skip_by(blob_size);
 			if (payload.empty())
+			{
+				SFG_ERR("failed to decompress texture payload: {0}", entry.hash);
 				return false;
+			}
 
 			for (u8 i = 0; i < runtime->header.mip_count; ++i)
 			{
@@ -248,6 +257,7 @@ namespace sfg
 
 				if (!copy_texture_mip_to_rgba(buf, payload.get_raw() + mip.byte_offset, mip.bpp))
 				{
+					SFG_ERR("failed to prepare uncompressed texture mip: {0}", entry.hash);
 					free_texture_runtime_mips(*runtime);
 					return false;
 				}
@@ -278,6 +288,7 @@ namespace sfg
 
 				if (decoded == nullptr)
 				{
+					SFG_ERR("failed to decode PNG texture mip: {0}", entry.hash);
 					free_texture_runtime_mips(*runtime);
 					return false;
 				}
@@ -290,6 +301,7 @@ namespace sfg
 				buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
 				if (buf.pixels == nullptr)
 				{
+					SFG_ERR("failed to allocate PNG texture mip pixels: {0}", entry.hash);
 					stbi_image_free(decoded);
 					free_texture_runtime_mips(*runtime);
 					return false;
@@ -325,7 +337,7 @@ namespace sfg
 
 		if (ktx_result != KTX_SUCCESS)
 		{
-			SFG_ERR("KTX2 texture transcode failed: {0}", ktxErrorString(ktx_result));
+			SFG_ERR("failed to transcode KTX2 texture: {0}", ktxErrorString(ktx_result));
 			if (ktx_texture != nullptr)
 				ktxTexture2_Destroy(ktx_texture);
 			return false;
@@ -334,7 +346,7 @@ namespace sfg
 		runtime->header.texture_format = get_format_from_ktx(ktx_texture->vkFormat);
 		if (runtime->header.texture_format == format_e::undefined)
 		{
-			SFG_ERR("Unsupported KTX2 transcode format");
+			SFG_ERR("unsupported KTX2 transcode format");
 			ktxTexture2_Destroy(ktx_texture);
 			return false;
 		}
@@ -342,7 +354,7 @@ namespace sfg
 		runtime->header.mip_count = static_cast<u8>(ktx_texture->numLevels);
 		if (runtime->header.mip_count > MAX_MIPS)
 		{
-			SFG_ERR("KTX2 texture has too many mip levels");
+			SFG_ERR("texture has too many KTX2 mip levels");
 			ktxTexture2_Destroy(ktx_texture);
 			return false;
 		}
@@ -355,6 +367,7 @@ namespace sfg
 			ktx_result		  = ktxTexture_GetImageOffset(ktxTexture(ktx_texture), i, 0, 0, &offset);
 			if (ktx_result != KTX_SUCCESS)
 			{
+				SFG_ERR("failed to get KTX2 texture image offset: {0}", ktxErrorString(ktx_result));
 				free_texture_runtime_mips(*runtime);
 				ktxTexture2_Destroy(ktx_texture);
 				return false;
@@ -363,6 +376,7 @@ namespace sfg
 			const ktx_size_t image_size = ktxTexture_GetImageSize(ktxTexture(ktx_texture), i);
 			if (image_size > UINT32_MAX)
 			{
+				SFG_ERR("texture KTX2 image is too large");
 				free_texture_runtime_mips(*runtime);
 				ktxTexture2_Destroy(ktx_texture);
 				return false;
@@ -376,6 +390,7 @@ namespace sfg
 			buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
 			if (buf.pixels == nullptr)
 			{
+				SFG_ERR("failed to allocate KTX2 texture mip pixels: {0}", entry.hash);
 				free_texture_runtime_mips(*runtime);
 				ktxTexture2_Destroy(ktx_texture);
 				return false;

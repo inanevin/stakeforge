@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "animation_def.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
 
@@ -40,7 +41,10 @@ namespace sfg
 	{
 		ostream_t animation_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<animation_def_t>::value, &def, animation_stream))
+		{
+			SFG_ERR("failed to serialize animation definition");
 			return false;
+		}
 
 		out_header = {
 			.magic		 = animation_loader_t::WIRE_MAGIC,
@@ -50,7 +54,10 @@ namespace sfg
 
 		stream = compressor_t::compress(animation_stream);
 		if (stream.get_size() == 0)
+		{
+			SFG_ERR("failed to compress animation payload");
 			return false;
+		}
 
 		return true;
 	}

@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -42,11 +43,17 @@ namespace sfg
 	{
 		istream_t mesh_def_stream = serializer_t::load_from_file_compressed(full_path);
 		if (mesh_def_stream.empty())
+		{
+			SFG_ERR("failed to read mesh definition file: {0}", full_path);
 			return false;
+		}
 
 		mesh_def_t def = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &def, mesh_def_stream))
+		{
+			SFG_ERR("failed to deserialize mesh definition file: {0}", full_path);
 			return false;
+		}
 
 		return cook_from_def(def, out_header, stream);
 	}
@@ -55,7 +62,10 @@ namespace sfg
 	{
 		ostream_t mesh_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, &def, mesh_stream))
+		{
+			SFG_ERR("failed to serialize mesh definition");
 			return false;
+		}
 
 		out_header = {
 			.magic		 = mesh_loader_t::WIRE_MAGIC,
@@ -65,7 +75,10 @@ namespace sfg
 
 		stream = compressor_t::compress(mesh_stream);
 		if (stream.get_size() == 0)
+		{
+			SFG_ERR("failed to compress mesh payload");
 			return false;
+		}
 
 		return true;
 	}

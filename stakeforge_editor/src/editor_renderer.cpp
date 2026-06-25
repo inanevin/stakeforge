@@ -47,6 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <tracy/Tracy.hpp>
 
 #include <utility>
 
@@ -223,20 +224,25 @@ namespace sfg
 
 	void editor_renderer_t::render(editor_world_controller_t& world_controller)
 	{
-		render_resources_t::get().drain_requests();
+		ZoneScoped;
+
+		{
+			ZoneScopedN("render_resources_drain");
+			render_resources_t::get().drain_requests();
+		}
 		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
 		gfx_backend&	 backend	   = gfx_backend::get();
 
 		/* figure out swapchain list */
 		struct rt_t
 		{
-			gfx_handle_t		   swapchain;
+			gfx_handle_t	   swapchain;
 			ui::ui_context*	   ui;
 			ui::ui_renderer_t* ui_renderer;
 			vec2u16_t		   size;
 		};
 
-		frame_vector_t<rt_t>	   render_targets;
+		frame_vector_t<rt_t>		 render_targets;
 		frame_vector_t<gfx_handle_t> present_list;
 		for (const surface_render_target_t& t : _render_targets)
 		{
@@ -271,14 +277,18 @@ namespace sfg
 
 		/* graphics & transfer */
 
-		const gfx_handle_t queue_gfx		= backend.get_queue_gfx();
+		const gfx_handle_t queue_gfx	  = backend.get_queue_gfx();
 		const gfx_handle_t queue_transfer = backend.get_queue_transfer();
-		const gfx_handle_t cmd			= pfd.cmd_gfx;
-		const gfx_handle_t cmd_prepare	= pfd.cmd_gfx_prepare;
-		const gfx_handle_t cmd_transfer	= pfd.cmd_transfer;
+		const gfx_handle_t cmd			  = pfd.cmd_gfx;
+		const gfx_handle_t cmd_prepare	  = pfd.cmd_gfx_prepare;
+		const gfx_handle_t cmd_transfer	  = pfd.cmd_transfer;
 
 		pfd.semaphore_world.value++;
-		const bool world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
+		bool world_submitted = false;
+		{
+			ZoneScopedN("world_controller_render_worlds");
+			world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
+		}
 
 		/* flush uploads, begin graphics & transits */
 
@@ -404,12 +414,16 @@ namespace sfg
 	{
 		frame_allocator_tls_t::init(RENDER_FRAME_ALLOC_SIZE);
 		g_engine_thread_ids.render_thread_id = SFG_THIS_THREAD_ID();
+#ifdef TRACY_ENABLE
+		tracy::SetThreadName("render");
+#endif
 
 		while (_render_thread_active.load())
 		{
 			frame_allocator_tls_t::reset();
 			SFG_ASSERT(_world_controller != nullptr);
 			render(*_world_controller);
+			FrameMarkNamed("render");
 			time_t::yield_thread();
 		}
 

@@ -72,47 +72,80 @@ namespace sfg
 		{
 		case shader_type_e::opaque_shader:
 			if (!shader_cook_variants_t::cook_opaque_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook opaque shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::transparent_shader:
 			if (!shader_cook_variants_t::cook_transparent_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook transparent shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::post_process_shader:
 			if (!shader_cook_variants_t::cook_post_process_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook post process shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::ui_shader:
 			if (!shader_cook_variants_t::cook_ui_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook UI shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::ui_text_shader:
 			if (!shader_cook_variants_t::cook_ui_text_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook UI text shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::deferred_lighting:
 			if (!shader_cook_variants_t::cook_deferred_lighting_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook deferred lighting shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::post_combiner:
 			if (!shader_cook_variants_t::cook_post_combiner_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook post combiner shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor UI default shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::editor_ui_lcd_text:
 			if (!shader_cook_variants_t::cook_editor_ui_lcd_text(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor UI lcd text shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::editor_ui_text_grayscale:
 			if (!shader_cook_variants_t::cook_editor_ui_text_grayscale(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor UI grayscale text shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		case shader_type_e::editor_ui_sdf:
 			if (!shader_cook_variants_t::cook_editor_ui_sdf(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor UI sdf shader variants: {0}", full_path);
 				return false;
+			}
 			break;
 		default:
 			SFG_ERR("unsupported shader type {0}", static_cast<u8>(cfg.type));
@@ -174,7 +207,10 @@ namespace sfg
 
 		stream = compressor_t::compress(payload);
 		if (stream.get_size() == 0)
+		{
+			SFG_ERR("failed to compress shader payload: {0}", full_path);
 			return false;
+		}
 
 		return true;
 	}

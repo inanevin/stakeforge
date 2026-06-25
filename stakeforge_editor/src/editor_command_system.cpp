@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
@@ -113,6 +114,7 @@ namespace sfg
 
 		if (desc.run_redo && !command.redo(*this, command))
 		{
+			SFG_ERR("failed to redo issued command {0}", command.debug_name != nullptr ? command.debug_name : "");
 			destroy_command(handle);
 			return {};
 		}
@@ -132,7 +134,10 @@ namespace sfg
 		const editor_command_handle_t handle  = _history[_cursor - 1];
 		editor_command_t&			  command = _commands.get(handle);
 		if (!command.undo(*this, command))
+		{
+			SFG_ERR("failed to undo command {0}", command.debug_name != nullptr ? command.debug_name : "");
 			return false;
+		}
 
 		command.state = editor_command_state_e::undone;
 		--_cursor;
@@ -150,7 +155,10 @@ namespace sfg
 		const editor_command_handle_t handle  = _history[_cursor];
 		editor_command_t&			  command = _commands.get(handle);
 		if (!command.redo(*this, command))
+		{
+			SFG_ERR("failed to redo command {0}", command.debug_name != nullptr ? command.debug_name : "");
 			return false;
+		}
 
 		command.state = editor_command_state_e::done;
 		++_cursor;

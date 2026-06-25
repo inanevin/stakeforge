@@ -19,13 +19,19 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read font resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
 		if (payload.empty())
+		{
+			SFG_ERR("failed to decompress font payload: {0}", entry.hash);
 			return false;
+		}
 
 		chunk_allocator_t& mem	= ctx.resource_manager.get_memory();
 		font_runtime_t*	   font = mem.get<font_runtime_t>(entry.runtime);
@@ -43,7 +49,7 @@ namespace sfg
 		FT_Library library = static_cast<FT_Library>(freetype_runtime_t::get_library());
 		if (FT_New_Memory_Face(library, font->ttf_data, static_cast<FT_Long>(font->ttf_size), 0, &face) != 0)
 		{
-			SFG_ERR("FT_New_Memory_Face failed");
+			SFG_ERR("failed to create font face: {0}", entry.hash);
 			mem.free(font->ttf_chunk);
 			*font = {};
 			return false;

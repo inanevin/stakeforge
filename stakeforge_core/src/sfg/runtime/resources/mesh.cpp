@@ -8,6 +8,7 @@
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
@@ -84,13 +85,19 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read mesh resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
 		if (payload.empty())
+		{
+			SFG_ERR("failed to decompress mesh payload: {0}", entry.hash);
 			return false;
+		}
 
 		chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
 		mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
@@ -100,7 +107,10 @@ namespace sfg
 
 		mesh_def_t mesh = {};
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &mesh, payload))
+		{
+			SFG_ERR("failed to deserialize mesh definition: {0}", entry.hash);
 			return false;
+		}
 
 		internals->local_bounds = mesh.local_bounds;
 		internals->local_bounds.update_half_extents();

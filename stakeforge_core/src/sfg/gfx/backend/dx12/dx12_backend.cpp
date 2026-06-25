@@ -767,9 +767,9 @@ namespace sfg
 			.debug_name = {"TransferQueue"},
 		});
 		_queue_compute	= create_queue({
-			 .type		 = command_type::compute,
-			 .debug_name = {"CmpQueue"},
-		 });
+			.type		= command_type::compute,
+			.debug_name = {"CmpQueue"},
+		});
 
 		const u32 size_cbv_srv_uav = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		const u32 size_dsv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -986,7 +986,7 @@ namespace sfg
 		}
 
 		{
-			SFG_MEMTRACE_SCOPE("GPUR");
+			SFG_MEMTRACE_SCOPE("GPU_RESOURCE");
 			SFG_MEMTRACE_ALLOC(res.ptr->GetResource(), desc.size);
 		}
 
@@ -1091,7 +1091,7 @@ namespace sfg
 		}
 
 		{
-			SFG_MEMTRACE_SCOPE("GPUR");
+			SFG_MEMTRACE_SCOPE("GPU_RESOURCE");
 			SFG_MEMTRACE_DEALLOC(res.ptr->GetResource());
 		}
 
@@ -1180,17 +1180,15 @@ namespace sfg
 		throw_if_failed(_allocator->CreateResource(&allocation_desc, &resource_desc_t, state, clear_value_ptr, &txt.ptr, IID_NULL, NULL));
 		NAME_DX12_OBJECT_CSTR(txt.ptr->GetResource(), desc.debug_name);
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
 		{
 			SFG_MEMTRACE_SCOPE("GPU");
 			SFG_MEMTRACE_ALLOC(txt.ptr, txt.ptr->GetSize());
 		}
 
 		{
-			SFG_MEMTRACE_SCOPE("GPUT");
+			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_ALLOC(txt.ptr->GetResource(), txt.ptr->GetSize());
 		}
-#endif
 
 		if (desc.flags.is_set(texture_flags::tf_shared))
 		{
@@ -1428,7 +1426,7 @@ namespace sfg
 		}
 
 		{
-			SFG_MEMTRACE_SCOPE("GPUT");
+			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_DEALLOC(txt.ptr->GetResource());
 		}
 
@@ -1569,7 +1567,7 @@ namespace sfg
 #ifdef SFG_ENABLE_MEMORY_TRACER
 		swp.size = desc.size.x * desc.size.y * 4;
 		{
-			SFG_MEMTRACE_SCOPE("Gfx");
+			SFG_MEMTRACE_SCOPE("GPU");
 			SFG_MEMTRACE_ALLOC(swp.ptr.Get(), swp.size);
 		}
 #endif
@@ -1603,7 +1601,7 @@ namespace sfg
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
 		{
-			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_ALLOC(swp.textures[0].Get(), swp.size);
 		}
 #endif
@@ -1645,12 +1643,12 @@ namespace sfg
 
 		const size_t new_size = desc.size.x * desc.size.y * 4;
 		{
-			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_DEALLOC(old_swapchain_texture);
 		}
 
 		{
-			SFG_MEMTRACE_SCOPE("Gfx");
+			SFG_MEMTRACE_SCOPE("GPU");
 			SFG_MEMTRACE_DEALLOC(swp.ptr.Get());
 			SFG_MEMTRACE_ALLOC(swp.ptr.Get(), new_size);
 		}
@@ -1694,7 +1692,7 @@ namespace sfg
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
 		{
-			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_ALLOC(swp.textures[0].Get(), new_size);
 		}
 		swp.size = static_cast<u32>(new_size);
@@ -1711,12 +1709,12 @@ namespace sfg
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
 		{
-			SFG_MEMTRACE_SCOPE("Gfx");
+			SFG_MEMTRACE_SCOPE("GPU");
 			SFG_MEMTRACE_DEALLOC(swp.ptr.Get());
 		}
 
 		{
-			SFG_MEMTRACE_SCOPE("GfxTxt");
+			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_DEALLOC(swp.textures[0].Get());
 		}
 #endif

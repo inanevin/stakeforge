@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
@@ -188,7 +189,13 @@ namespace sfg
 			SFG_ASSERT(size != 0);
 			ostream_t stream;
 			stream.write_raw(data, size);
-			return serializer_t::save_to_file_compressed(path, stream);
+			if (!serializer_t::save_to_file_compressed(path, stream))
+			{
+				SFG_ERR("failed to write compressed GLB asset blob {0}", path);
+				return false;
+			}
+
+			return true;
 		}
 
 		sid_t get_sampler_guid(const tg3_model& model, const tg3_material& material)
@@ -242,30 +249,51 @@ namespace sfg
 				return true;
 
 			if (static_cast<u32>(skin.inverse_bind_matrices) >= model.accessors_count)
+			{
+				SFG_ERR("glb inverse bind matrix accessor is out of range");
 				return false;
+			}
 
 			const tg3_accessor& accessor = model.accessors[skin.inverse_bind_matrices];
 			if (accessor.component_type != TG3_COMPONENT_TYPE_FLOAT || accessor.type != TG3_TYPE_MAT4 || accessor.count <= joint_index || accessor.buffer_view < 0 || accessor.sparse.is_sparse != 0)
+			{
+				SFG_ERR("glb inverse bind matrix accessor has unsupported layout");
 				return false;
+			}
 
 			if (static_cast<u32>(accessor.buffer_view) >= model.buffer_views_count)
+			{
+				SFG_ERR("glb inverse bind matrix buffer view is out of range");
 				return false;
+			}
 
 			const tg3_buffer_view& buffer_view = model.buffer_views[accessor.buffer_view];
 			if (buffer_view.buffer < 0 || static_cast<u32>(buffer_view.buffer) >= model.buffers_count)
+			{
+				SFG_ERR("glb inverse bind matrix buffer is out of range");
 				return false;
+			}
 
 			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
 			if (buffer.data.data == nullptr)
+			{
+				SFG_ERR("glb inverse bind matrix buffer has no data");
 				return false;
+			}
 
 			const i32 stride = tg3_accessor_byte_stride(&accessor, &buffer_view);
 			if (stride < static_cast<i32>(sizeof(f32) * 16))
+			{
+				SFG_ERR("glb inverse bind matrix stride is too small");
 				return false;
+			}
 
 			const u64 matrix_offset = buffer_view.byte_offset + accessor.byte_offset + static_cast<u64>(stride) * joint_index;
 			if (matrix_offset > buffer.data.count || sizeof(f32) * 16 > buffer.data.count - matrix_offset)
+			{
+				SFG_ERR("glb inverse bind matrix data is out of range");
 				return false;
+			}
 
 			f32 matrix[16] = {};
 			std::memcpy(matrix, buffer.data.data + matrix_offset, sizeof(matrix));
@@ -314,17 +342,26 @@ namespace sfg
 		{
 			const tg3_accessor* accessor = get_accessor(model, accessor_index);
 			if (accessor == nullptr || accessor->component_type != TG3_COMPONENT_TYPE_FLOAT || accessor->type != type || accessor->count != expected_count)
+			{
+				SFG_ERR("glb float attribute accessor is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const tg3_buffer_view* buffer_view = nullptr;
 			const u8*			   data		   = get_accessor_data(model, *accessor, buffer_view);
 			if (data == nullptr)
+			{
+				SFG_ERR("glb float attribute data is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const i32 components = tg3_num_components(type);
 			const i32 stride	 = tg3_accessor_byte_stride(accessor, buffer_view);
 			if (components <= 0 || stride < components * static_cast<i32>(sizeof(f32)))
+			{
+				SFG_ERR("glb float attribute stride is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			out.resize(static_cast<size_t>(expected_count) * static_cast<size_t>(components));
 			for (u32 i = 0; i < expected_count; ++i)
@@ -345,17 +382,26 @@ namespace sfg
 
 			const tg3_accessor* accessor = get_accessor(model, accessor_index);
 			if (accessor == nullptr || accessor->type != TG3_TYPE_SCALAR || accessor->count > UINT32_MAX)
+			{
+				SFG_ERR("glb index accessor is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const tg3_buffer_view* buffer_view = nullptr;
 			const u8*			   data		   = get_accessor_data(model, *accessor, buffer_view);
 			if (data == nullptr)
+			{
+				SFG_ERR("glb index data is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const i32 component_size = tg3_component_size(accessor->component_type);
 			const i32 stride		 = tg3_accessor_byte_stride(accessor, buffer_view);
 			if (component_size <= 0 || stride < component_size)
+			{
+				SFG_ERR("glb index stride is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const u32 count = static_cast<u32>(accessor->count);
 			out.resize(count);
@@ -374,6 +420,7 @@ namespace sfg
 					out[i] = *reinterpret_cast<const u32*>(src);
 					break;
 				default:
+					SFG_ERR("glb index component type is unsupported: {0}", accessor->component_type);
 					return false;
 				}
 			}
@@ -385,17 +432,26 @@ namespace sfg
 		{
 			const tg3_accessor* accessor = get_accessor(model, accessor_index);
 			if (accessor == nullptr || accessor->type != TG3_TYPE_VEC4 || accessor->count != vertex_count)
+			{
+				SFG_ERR("glb joint accessor is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const tg3_buffer_view* buffer_view = nullptr;
 			const u8*			   data		   = get_accessor_data(model, *accessor, buffer_view);
 			if (data == nullptr)
+			{
+				SFG_ERR("glb joint data is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			const i32 component_size = tg3_component_size(accessor->component_type);
 			const i32 stride		 = tg3_accessor_byte_stride(accessor, buffer_view);
 			if (component_size <= 0 || stride < component_size * 4)
+			{
+				SFG_ERR("glb joint stride is invalid: {0}", accessor_index);
 				return false;
+			}
 
 			out.resize(vertex_count);
 			for (u32 i = 0; i < vertex_count; ++i)
@@ -417,6 +473,7 @@ namespace sfg
 					break;
 				}
 				default:
+					SFG_ERR("glb joint component type is unsupported: {0}", accessor->component_type);
 					return false;
 				}
 			}
@@ -436,30 +493,48 @@ namespace sfg
 		bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_static_def_t& out)
 		{
 			if (primitive.mode != TG3_MODE_TRIANGLES)
+			{
+				SFG_ERR("glb primitive mode is unsupported: {0}", primitive.mode);
 				return false;
+			}
 
 			const u32 vertex_count = get_primitive_vertex_count(model, primitive);
 			if (vertex_count == 0)
+			{
+				SFG_ERR("glb primitive has no vertices");
 				return false;
+			}
 
 			vector_t<f32> positions;
 			if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
+			{
+				SFG_ERR("failed to read GLB POSITION attribute");
 				return false;
+			}
 
 			vector_t<f32> normals;
 			const i32	  normal_accessor = find_attribute(primitive, "NORMAL");
 			if (normal_accessor >= 0 && !read_float_attribute(model, normal_accessor, TG3_TYPE_VEC3, vertex_count, normals))
+			{
+				SFG_ERR("failed to read GLB NORMAL attribute");
 				return false;
+			}
 
 			vector_t<f32> tangents;
 			const i32	  tangent_accessor = find_attribute(primitive, "TANGENT");
 			if (tangent_accessor >= 0 && !read_float_attribute(model, tangent_accessor, TG3_TYPE_VEC4, vertex_count, tangents))
+			{
+				SFG_ERR("failed to read GLB TANGENT attribute");
 				return false;
+			}
 
 			vector_t<f32> uvs;
 			const i32	  uv_accessor = find_attribute(primitive, "TEXCOORD_0");
 			if (uv_accessor >= 0 && !read_float_attribute(model, uv_accessor, TG3_TYPE_VEC2, vertex_count, uvs))
+			{
+				SFG_ERR("failed to read GLB TEXCOORD_0 attribute");
 				return false;
+			}
 
 			out.vertices.resize(vertex_count);
 			out.material_index = material_index;
@@ -475,46 +550,76 @@ namespace sfg
 					vertex.uv = {uvs[i * 2], uvs[i * 2 + 1]};
 			}
 
-			return read_indices(model, primitive.indices, vertex_count, out.indices);
+			if (!read_indices(model, primitive.indices, vertex_count, out.indices))
+			{
+				SFG_ERR("failed to read GLB static primitive indices");
+				return false;
+			}
+
+			return true;
 		}
 
 		bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_skinned_def_t& out)
 		{
 			if (primitive.mode != TG3_MODE_TRIANGLES)
+			{
+				SFG_ERR("glb primitive mode is unsupported: {0}", primitive.mode);
 				return false;
+			}
 
 			const u32 vertex_count = get_primitive_vertex_count(model, primitive);
 			if (vertex_count == 0)
+			{
+				SFG_ERR("glb primitive has no vertices");
 				return false;
+			}
 
 			vector_t<f32> positions;
 			if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
+			{
+				SFG_ERR("failed to read GLB POSITION attribute");
 				return false;
+			}
 
 			vector_t<f32> normals;
 			const i32	  normal_accessor = find_attribute(primitive, "NORMAL");
 			if (normal_accessor >= 0 && !read_float_attribute(model, normal_accessor, TG3_TYPE_VEC3, vertex_count, normals))
+			{
+				SFG_ERR("failed to read GLB NORMAL attribute");
 				return false;
+			}
 
 			vector_t<f32> tangents;
 			const i32	  tangent_accessor = find_attribute(primitive, "TANGENT");
 			if (tangent_accessor >= 0 && !read_float_attribute(model, tangent_accessor, TG3_TYPE_VEC4, vertex_count, tangents))
+			{
+				SFG_ERR("failed to read GLB TANGENT attribute");
 				return false;
+			}
 
 			vector_t<f32> uvs;
 			const i32	  uv_accessor = find_attribute(primitive, "TEXCOORD_0");
 			if (uv_accessor >= 0 && !read_float_attribute(model, uv_accessor, TG3_TYPE_VEC2, vertex_count, uvs))
+			{
+				SFG_ERR("failed to read GLB TEXCOORD_0 attribute");
 				return false;
+			}
 
 			vector_t<f32> weights;
 			const i32	  weights_accessor = find_attribute(primitive, "WEIGHTS_0");
 			if (weights_accessor >= 0 && !read_float_attribute(model, weights_accessor, TG3_TYPE_VEC4, vertex_count, weights))
+			{
+				SFG_ERR("failed to read GLB WEIGHTS_0 attribute");
 				return false;
+			}
 
 			vector_t<vec4u_t> joints;
 			const i32		  joints_accessor = find_attribute(primitive, "JOINTS_0");
 			if (joints_accessor >= 0 && !read_joint_attribute(model, joints_accessor, vertex_count, joints))
+			{
+				SFG_ERR("failed to read GLB JOINTS_0 attribute");
 				return false;
+			}
 
 			out.vertices.resize(vertex_count);
 			out.material_index = material_index;
@@ -534,7 +639,13 @@ namespace sfg
 					vertex.bone_indices = joints[i];
 			}
 
-			return read_indices(model, primitive.indices, vertex_count, out.indices);
+			if (!read_indices(model, primitive.indices, vertex_count, out.indices))
+			{
+				SFG_ERR("failed to read GLB skinned primitive indices");
+				return false;
+			}
+
+			return true;
 		}
 
 		bool import_texture(const editor_asset_node_t&			 parent_node,
@@ -547,19 +658,31 @@ namespace sfg
 							editor_asset_t&						 out_asset)
 		{
 			if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
+			{
+				SFG_ERR("glb texture source is out of range: {0}", texture_index);
 				return false;
+			}
 
 			const tg3_image& image = model.images[texture.source];
 			if (image.buffer_view < 0 || static_cast<u32>(image.buffer_view) >= model.buffer_views_count)
+			{
+				SFG_ERR("glb texture image buffer view is out of range: {0}", texture_index);
 				return false;
+			}
 
 			const tg3_buffer_view& buffer_view = model.buffer_views[image.buffer_view];
 			if (buffer_view.buffer < 0 || static_cast<u32>(buffer_view.buffer) >= model.buffers_count)
+			{
+				SFG_ERR("glb texture image buffer is out of range: {0}", texture_index);
 				return false;
+			}
 
 			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
 			if (buffer.data.data == nullptr || buffer_view.byte_offset > buffer.data.count || buffer_view.byte_length > buffer.data.count - buffer_view.byte_offset || buffer_view.byte_length > static_cast<u64>(std::numeric_limits<int>::max()))
+			{
+				SFG_ERR("glb texture image data is invalid: {0}", texture_index);
 				return false;
+			}
 
 			string_t asset_name;
 			asset_name = get_asset_name(texture.name);
@@ -600,6 +723,7 @@ namespace sfg
 			const bool decoded_valid	= decoded != nullptr && decoded_width > 0 && decoded_height > 0 && decoded_width <= UINT16_MAX && decoded_height <= UINT16_MAX;
 			if (!decoded_valid)
 			{
+				SFG_ERR("failed to decode GLB texture image: {0}", texture_index);
 				if (decoded != nullptr)
 					stbi_image_free(decoded);
 				return false;
@@ -610,6 +734,7 @@ namespace sfg
 			editor_asset_t asset = {};
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
 			{
+				SFG_ERR("failed to serialize GLB texture cook options: {0}", texture_index);
 				stbi_image_free(decoded);
 				return false;
 			}
@@ -619,6 +744,7 @@ namespace sfg
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			if (stbi_write_png(source_path.c_str(), decoded_width, decoded_height, 4, decoded, decoded_width * 4) == 0)
 			{
+				SFG_ERR("failed to write GLB texture source {0}", source_path.c_str());
 				stbi_image_free(decoded);
 				return false;
 			}
@@ -631,10 +757,16 @@ namespace sfg
 			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_ERR("failed to write GLB texture asset {0}", asset_path.c_str());
 				return false;
+			}
 
 			if (!editor_asset_cooker_t::cook_texture(asset))
+			{
+				SFG_ERR("failed to cook GLB texture asset {0}", asset.guid);
 				return false;
+			}
 
 			out_asset = std::move(asset);
 			return true;
@@ -715,13 +847,22 @@ namespace sfg
 			asset.source_type = editor_asset_source_type_e::embedded;
 			asset.sub_type	  = static_cast<u8>(editor_material_type_e::gbuffer);
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<material_def_t>::value, &material_def, asset.embedded_source))
+			{
+				SFG_ERR("failed to serialize GLB material definition: {0}", material_index);
 				return false;
+			}
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_ERR("failed to write GLB material asset {0}", asset_path.c_str());
 				return false;
+			}
 
 			if (!editor_asset_cooker_t::cook_material(asset))
+			{
+				SFG_ERR("failed to cook GLB material asset {0}", asset.guid);
 				return false;
+			}
 
 			material_guid_map[material_index] = asset.guid;
 			out_assets.push_back(asset);
@@ -731,7 +872,10 @@ namespace sfg
 		bool import_skeleton(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
 		{
 			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
+			{
+				SFG_ERR("glb skeleton has too many joints: {0} / {1}", skin.joints_count, skeleton_loader_t::MAX_JOINTS);
 				return false;
+			}
 
 			string_t asset_name = get_asset_name(skin.name);
 			if (asset_name.empty())
@@ -764,11 +908,17 @@ namespace sfg
 			{
 				const i32 node_index = skin.joints[i];
 				if (node_index < 0 || static_cast<u32>(node_index) >= model.nodes_count)
+				{
+					SFG_ERR("glb skeleton joint node is out of range: {0}", node_index);
 					return false;
+				}
 
 				const u32 node_index_u32 = static_cast<u32>(node_index);
 				if (node_to_joint_index[node_index_u32] != SKELETON_JOINT_NO_PARENT)
+				{
+					SFG_ERR("glb skeleton contains duplicate joint node: {0}", node_index_u32);
 					return false;
+				}
 
 				node_to_joint_index[node_index_u32] = i;
 
@@ -784,7 +934,10 @@ namespace sfg
 				joint.name					= name;
 				joint.name_hash				= hashing_t::to_sid(name);
 				if (!read_inverse_bind_matrix(model, skin, i, joint.inverse_bind))
+				{
+					SFG_ERR("failed to read GLB inverse bind matrix for joint {0}", i);
 					return false;
+				}
 			}
 
 			for (u32 i = 0; i < skin.joints_count; ++i)
@@ -794,7 +947,10 @@ namespace sfg
 				{
 					const i32 child_node_index = node.children[child_i];
 					if (child_node_index < 0 || static_cast<u32>(child_node_index) >= model.nodes_count)
+					{
+						SFG_ERR("glb skeleton child node is out of range: {0}", child_node_index);
 						return false;
+					}
 
 					const u32 child_joint_index = node_to_joint_index[child_node_index];
 					if (child_joint_index != SKELETON_JOINT_NO_PARENT)
@@ -818,7 +974,10 @@ namespace sfg
 			}
 
 			if (skin.joints_count != 0 && skeleton.root_joint_index == SKELETON_JOINT_NO_PARENT)
+			{
+				SFG_ERR("glb skeleton has no root joint");
 				return false;
+			}
 
 			editor_asset_t asset		 = {};
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
@@ -829,13 +988,22 @@ namespace sfg
 			asset.asset_type  = editor_asset_type_e::skeleton;
 			asset.source_type = editor_asset_source_type_e::embedded;
 			if (!reflection_registry_t::get().serialize_to_json(type_id_t<skeleton_def_t>::value, &skeleton, asset.embedded_source))
+			{
+				SFG_ERR("failed to serialize GLB skeleton definition: {0}", skin_index);
 				return false;
+			}
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_ERR("failed to write GLB skeleton asset {0}", asset_path.c_str());
 				return false;
+			}
 
 			if (!editor_asset_cooker_t::cook_skeleton(asset))
+			{
+				SFG_ERR("failed to cook GLB skeleton asset {0}", asset.guid);
 				return false;
+			}
 
 			out_assets.push_back(asset);
 			return true;
@@ -873,14 +1041,20 @@ namespace sfg
 					{
 						primitive_skinned_def_t primitive_def = {};
 						if (!import_skinned_primitive(model, primitive, material_index, primitive_def))
+						{
+							SFG_ERR("failed to import GLB skinned primitive {0}", primitive_i);
 							return false;
+						}
 						out.skinned_primitives.push_back(std::move(primitive_def));
 					}
 					else
 					{
 						primitive_static_def_t primitive_def = {};
 						if (!import_static_primitive(model, primitive, material_index, primitive_def))
+						{
+							SFG_ERR("failed to import GLB static primitive {0}", primitive_i);
 							return false;
+						}
 						out.static_primitives.push_back(std::move(primitive_def));
 					}
 				}
@@ -909,7 +1083,10 @@ namespace sfg
 			}
 
 			if (!has_bounds)
+			{
+				SFG_ERR("glb mesh has no bounds");
 				return false;
+			}
 
 			out.local_bounds = aabb_t(bounds_min, bounds_max);
 			return true;
@@ -958,7 +1135,10 @@ namespace sfg
 
 			mesh_def_t mesh_def = {};
 			if (!build_mesh_def(model, meshes, mesh_count, material_guid_map, asset_name.c_str(), mesh_def))
+			{
+				SFG_ERR("failed to build GLB mesh definition {0}", asset_name.c_str());
 				return false;
+			}
 
 			editor_asset_t asset		 = {};
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
@@ -966,9 +1146,15 @@ namespace sfg
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			ostream_t	   mesh_def_stream;
 			if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, &mesh_def, mesh_def_stream))
+			{
+				SFG_ERR("failed to serialize GLB mesh definition {0}", asset_name.c_str());
 				return false;
+			}
 			if (!write_blob(blob_path.c_str(), mesh_def_stream.get_raw(), mesh_def_stream.get_size()))
+			{
+				SFG_ERR("failed to write GLB mesh blob {0}", blob_path.c_str());
 				return false;
+			}
 
 			asset.version		  = editor_asset_t::VERSION;
 			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
@@ -977,10 +1163,16 @@ namespace sfg
 			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), blob_path.c_str());
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_ERR("failed to write GLB mesh asset {0}", asset_path.c_str());
 				return false;
+			}
 
 			if (!editor_asset_cooker_t::cook_mesh(asset))
+			{
+				SFG_ERR("failed to cook GLB mesh asset {0}", asset.guid);
 				return false;
+			}
 
 			out_assets.push_back(asset);
 			return true;
@@ -1004,7 +1196,10 @@ namespace sfg
 		status += glb_asset_name;
 		context.report_status(status.c_str());
 		if (!editor_asset_util_t::set_source_relative_or_copy(glb_source_asset, parent_node.full_path.c_str(), glb_asset_name.c_str(), source_full_path))
+		{
+			SFG_ERR("failed to copy GLB source {0}", source_full_path);
 			return false;
+		}
 
 		status = "Reading GLB ";
 		status += glb_asset_name;
@@ -1014,7 +1209,10 @@ namespace sfg
 		size_t glb_size = 0;
 		file_system_t::read_file(source_full_path, glb_data, glb_size);
 		if (glb_data == nullptr || glb_size == 0)
+		{
+			SFG_ERR("failed to read GLB file {0}", source_full_path);
 			return false;
+		}
 
 		tg3_model		model  = {};
 		tg3_error_stack errors = {};
@@ -1032,6 +1230,8 @@ namespace sfg
 		delete[] glb_data;
 
 		bool result = parse_result == TG3_OK;
+		if (!result)
+			SFG_ERR("failed to parse GLB file {0}: {1}", source_full_path, static_cast<u32>(parse_result));
 		if (result)
 		{
 			const texture_cook_config_t texture_config = {
@@ -1061,6 +1261,7 @@ namespace sfg
 					const tg3_texture& texture = model.textures[i];
 					if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
 					{
+						SFG_ERR("glb texture source is out of range: {0}", i);
 						result = false;
 						break;
 					}
@@ -1120,6 +1321,8 @@ namespace sfg
 
 				for (const glb_texture_import_result_t& import_result : texture_import_results)
 					result = import_result.success && result;
+				if (!result)
+					SFG_ERR("failed to import GLB textures from {0}", source_full_path);
 
 				if (result)
 				{
@@ -1146,6 +1349,7 @@ namespace sfg
 				{
 					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_guid_map, material_guid_map, context, out_assets))
 					{
+						SFG_ERR("failed to import GLB material {0}", i);
 						result = false;
 						break;
 					}
@@ -1158,6 +1362,7 @@ namespace sfg
 				{
 					if (!import_skeleton(parent_node, source_full_path, model, model.skins[i], i, context, out_assets))
 					{
+						SFG_ERR("failed to import GLB skeleton {0}", i);
 						result = false;
 						break;
 					}
@@ -1169,6 +1374,8 @@ namespace sfg
 				if (cook_config.combine_meshes)
 				{
 					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, context, out_assets);
+					if (!result)
+						SFG_ERR("failed to import combined GLB mesh");
 				}
 				else
 				{
@@ -1176,6 +1383,7 @@ namespace sfg
 					{
 						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, context, out_assets))
 						{
+							SFG_ERR("failed to import GLB mesh {0}", i);
 							result = false;
 							break;
 						}

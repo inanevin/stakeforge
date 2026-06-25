@@ -116,7 +116,10 @@ namespace sfg
 
 				ostream_t compressed = compressor_t::compress(raw_stream);
 				if (compressed.get_size() == 0)
+				{
+					SFG_ERR("failed to compress texture payload for {0}", source_name);
 					return false;
+				}
 
 				SFG_ASSERT(compressed.get_size() <= UINT32_MAX);
 				const u32 blob_size = static_cast<u32>(compressed.get_size());
@@ -133,7 +136,7 @@ namespace sfg
 					ostream_t				png_stream;
 					if (stbi_write_png_to_func(write_png_data, &png_stream, buf.size.x, buf.size.y, channels, buf.pixels, buf.row_pitch) == 0 || png_stream.get_size() == 0)
 					{
-						SFG_ERR("PNG encoding failed for {0}", source_name);
+						SFG_ERR("failed to encode PNG texture for {0}", source_name);
 						return false;
 					}
 
@@ -223,7 +226,7 @@ namespace sfg
 
 				if (ktx_result != KTX_SUCCESS)
 				{
-					SFG_ERR("KTX2 UASTC encoding failed for {0}: {1}", source_name, ktxErrorString(ktx_result));
+					SFG_ERR("failed to encode KTX2 UASTC texture for {0}: {1}", source_name, ktxErrorString(ktx_result));
 					if (ktx_texture != nullptr)
 						ktxTexture2_Destroy(ktx_texture);
 					return false;
@@ -249,7 +252,10 @@ namespace sfg
 		u8		  channels	  = 4;
 		void*	  raw_image	  = cfg.payload_type != texture_payload_type_e::ktx2_uastc && !cfg.force_4_channels ? image_util_t::load_from_file(full_path, size, channels) : image_util_t::load_from_file_ch(full_path, size, 4);
 		if (raw_image == nullptr)
+		{
+			SFG_ERR("failed to load texture source: {0}", full_path);
 			return false;
+		}
 
 		texture_buffer_t buffers[texture_loader_t::MAX_MIPS] = {};
 		buffers[0].pixels									 = static_cast<u8*>(raw_image);

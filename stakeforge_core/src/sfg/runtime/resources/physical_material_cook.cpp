@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "physical_material.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -38,7 +39,10 @@ namespace sfg
 	{
 		ostream_t def_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<physical_material_def_t>::value, &def, def_stream))
+		{
+			SFG_ERR("failed to serialize physical material definition");
 			return false;
+		}
 
 		out_header = {
 			.magic		 = physical_material_loader_t::WIRE_MAGIC,

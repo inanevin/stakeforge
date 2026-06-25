@@ -7,6 +7,7 @@
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -20,7 +21,10 @@ namespace sfg
 
 		ostream_t material_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<material_def_t>::value, &material, material_stream))
+		{
+			SFG_ERR("failed to serialize material definition");
 			return false;
+		}
 
 		out_header = {
 			.magic		 = material_loader_t::WIRE_MAGIC,
@@ -41,7 +45,10 @@ namespace sfg
 
 		ostream_t material_stream;
 		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<material_def_t>::value, &material, material_stream))
+		{
+			SFG_ERR("failed to serialize material definition");
 			return false;
+		}
 		out = hashing_t::hash_u64(material_stream.get_raw(), material_stream.get_size());
 		return true;
 	}

@@ -113,6 +113,7 @@ namespace sfg
 
 		LOCK_GUARD(_category_mtx);
 
+		SFG_ASSERT(_allocations.find(ptr) == _allocations.end());
 		memory_track_t& track = _allocations[ptr];
 		track.ptr			  = ptr;
 		track.size			  = sz;
@@ -141,7 +142,7 @@ namespace sfg
 		auto it = _allocations.find(ptr);
 		if (it == _allocations.end())
 		{
-			TracyFree(ptr);
+			// TracyFree(ptr);
 			return;
 		}
 

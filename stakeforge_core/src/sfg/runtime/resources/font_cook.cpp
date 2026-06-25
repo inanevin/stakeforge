@@ -37,7 +37,10 @@ namespace sfg
 
 		stream = compressor_t::compress(payload);
 		if (stream.get_size() == 0)
+		{
+			SFG_ERR("failed to compress font payload: {0}", full_path);
 			return false;
+		}
 
 		return true;
 	}

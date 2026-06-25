@@ -19,13 +19,19 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read shader resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
 		if (payload.empty())
+		{
+			SFG_ERR("failed to decompress shader payload: {0}", entry.hash);
 			return false;
+		}
 
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		shader_runtime_t*	runtime	  = mem.get<shader_runtime_t>(entry.runtime);

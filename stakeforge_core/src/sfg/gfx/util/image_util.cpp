@@ -124,13 +124,12 @@ namespace sfg
 			if (h < 1)
 				h = 1;
 
-			texture_buffer_t mip = {};
-			mip.size			 = vec2u16_t(w, h);
-			mip.pixels			 = (u8*)SFG_MALLOC(w * h * buf.bpp);
-			mip.bpp				 = buf.bpp;
-			mip.row_pitch		 = static_cast<u32>(w) * static_cast<u32>(mip.bpp);
-			mip.data_size		 = mip.row_pitch * h;
-			SFG_MEMTRACE_ALLOC(mip.pixels, w * h * mip.bpp);
+			texture_buffer_t mip	  = {};
+			mip.size				  = vec2u16_t(w, h);
+			mip.pixels				  = (u8*)SFG_MALLOC(w * h * buf.bpp);
+			mip.bpp					  = buf.bpp;
+			mip.row_pitch			  = static_cast<u32>(w) * static_cast<u32>(mip.bpp);
+			mip.data_size			  = mip.row_pitch * h;
 			const stbir_colorspace cs = is_linear ? stbir_colorspace::STBIR_COLORSPACE_LINEAR : stbir_colorspace::STBIR_COLORSPACE_SRGB;
 
 			int ret = 0;

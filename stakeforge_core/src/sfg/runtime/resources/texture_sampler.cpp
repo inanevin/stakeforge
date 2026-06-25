@@ -6,6 +6,7 @@
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 
@@ -15,7 +16,10 @@ namespace sfg
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read texture sampler resource: {0}", entry.hash);
 			return false;
+		}
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
@@ -27,7 +31,10 @@ namespace sfg
 		*internals							   = {};
 
 		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<sampler_desc_t>::value, &runtime->desc, stream))
+		{
+			SFG_ERR("failed to deserialize texture sampler description: {0}", entry.hash);
 			return false;
+		}
 
 		sampler_desc_t desc = runtime->desc;
 		desc.set_name(mem.get_text(entry.debug_name));

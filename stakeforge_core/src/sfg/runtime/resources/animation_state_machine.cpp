@@ -2,10 +2,13 @@
 
 #include "animation_state_machine.hpp"
 
+#include <sfg/io/log.hpp>
+
 namespace sfg
 {
 	bool animation_state_machine_loader_t::load(resource_entry_t&, resource_context_t&, resource_file_system_t&)
 	{
+		SFG_ERR("animation state machine loading is not implemented");
 		return false;
 	}
 

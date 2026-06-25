@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 
 namespace sfg
 {
@@ -96,7 +97,10 @@ namespace sfg
 
 			const string_t source_path = editor_asset_util_t::make_unique_source_path(parent_node.full_path.c_str(), source_name, desc.source_extension);
 			if (!file_system_t::copy_file(template_path.c_str(), source_path.c_str()))
+			{
+				SFG_ERR("failed to copy asset source template {0} to {1}", template_path.c_str(), source_path.c_str());
 				return false;
+			}
 
 			SFG_ASSERT(file_system_t::exists(source_path.c_str()));
 			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
@@ -104,7 +108,10 @@ namespace sfg
 		}
 
 		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		{
+			SFG_ERR("failed to write file asset {0}", asset_path.c_str());
 			return false;
+		}
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
@@ -135,7 +142,10 @@ namespace sfg
 		asset.embedded_source = *desc.embedded_source;
 
 		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		{
+			SFG_ERR("failed to write embedded asset {0}", asset_path.c_str());
 			return false;
+		}
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
@@ -164,7 +174,10 @@ namespace sfg
 		asset.sub_type		 = desc.sub_type;
 
 		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		{
+			SFG_ERR("failed to write asset {0}", asset_path.c_str());
 			return false;
+		}
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
@@ -184,7 +197,10 @@ namespace sfg
 		const bool	   result = editor_asset_util_t::read_asset(path.c_str(), asset);
 		SFG_ASSERT(result);
 		if (!result)
+		{
+			SFG_ERR("failed to read embedded source template {0}", path.c_str());
 			return false;
+		}
 
 		out_embedded_source = asset.embedded_source;
 		return true;
@@ -203,7 +219,10 @@ namespace sfg
 		const bool	   result = editor_asset_util_t::read_asset(path.c_str(), asset);
 		SFG_ASSERT(result);
 		if (!result)
+		{
+			SFG_ERR("failed to read cook options template {0}", path.c_str());
 			return false;
+		}
 
 		out_cook_options = asset.cook_options;
 		return true;

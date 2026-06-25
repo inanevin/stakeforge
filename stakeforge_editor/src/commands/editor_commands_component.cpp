@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
@@ -108,7 +109,13 @@ namespace sfg
 
 			initialize_component_data(table, component);
 			istream_t stream(stream_handle ? aux_data.get<u8>(stream_handle) : nullptr, stream_handle.size);
-			return reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream);
+			if (!reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream))
+			{
+				SFG_ERR("failed to restore component {0} for entity {1}", table.type_desc.type_id, entity);
+				return false;
+			}
+
+			return true;
 		}
 
 		bool paste_component_data(world_component_table_t& table, entity_id_t entity, chunk_allocator_t& aux_data, chunk_handle32_t stream_handle)
@@ -121,7 +128,13 @@ namespace sfg
 			void* component = ecs_t::table_get(table.table, entity);
 			initialize_component_data(table, component);
 			istream_t stream(aux_data.get<u8>(stream_handle), stream_handle.size);
-			return reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream);
+			if (!reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream))
+			{
+				SFG_ERR("failed to paste component {0} for entity {1}", table.type_desc.type_id, entity);
+				return false;
+			}
+
+			return true;
 		}
 
 		chunk_handle32_t create_entity_array(editor_command_system_t& system, const frame_vector_t<entity_id_t>& entities)
@@ -199,7 +212,10 @@ namespace sfg
 			for (u32 i = 0; i < payload.count; ++i)
 			{
 				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
+				{
+					SFG_ERR("failed to undo remove component command for entity {0}", entities[i]);
 					return false;
+				}
 			}
 			return true;
 		}
@@ -248,7 +264,10 @@ namespace sfg
 			for (u32 i = 0; i < payload.count; ++i)
 			{
 				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
+				{
+					SFG_ERR("failed to undo reset component command for entity {0}", entities[i]);
 					return false;
+				}
 			}
 			return true;
 		}
@@ -297,7 +316,10 @@ namespace sfg
 			for (u32 i = 0; i < payload.count; ++i)
 			{
 				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
+				{
+					SFG_ERR("failed to undo paste component command for entity {0}", entities[i]);
 					return false;
+				}
 			}
 			return true;
 		}
@@ -310,7 +332,10 @@ namespace sfg
 			for (u32 i = 0; i < payload.count; ++i)
 			{
 				if (!paste_component_data(table, entities[i], system.get_aux_data(), payload.paste_stream))
+				{
+					SFG_ERR("failed to redo paste component command for entity {0}", entities[i]);
 					return false;
+				}
 			}
 			return true;
 		}
@@ -353,7 +378,10 @@ namespace sfg
 				ostream_t	stream;
 				const void* component = ecs_t::table_get(table.table, entities[i]);
 				if (!reflection_registry_t::get().serialize_to_stream(table.type_desc.type_id, component, stream))
+				{
+					SFG_ERR("failed to serialize component {0} for entity {1}", table.type_desc.type_id, entities[i]);
 					return false;
+				}
 				streams[i] = copy_stream_to_aux(system, stream);
 			}
 			return true;
@@ -400,7 +428,14 @@ namespace sfg
 			.type		= editor_command_type_e::component_add,
 		};
 
-		return !command_system.issue_command(desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue add component command");
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_commands_component_t::remove(world_handle_t world, entity_id_t entity, sid_t component_type)
@@ -438,6 +473,7 @@ namespace sfg
 
 		if (!serialize_removed_components(command_system, table, affected, payload.streams))
 		{
+			SFG_ERR("failed to serialize components for remove command");
 			free_remove_component_payload(command_system, payload);
 			return false;
 		}
@@ -450,7 +486,14 @@ namespace sfg
 			.type		= editor_command_type_e::component_remove,
 		};
 
-		return !command_system.issue_command(desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue remove component command");
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_commands_component_t::reset(world_handle_t world, entity_id_t entity, sid_t component_type)
@@ -491,6 +534,7 @@ namespace sfg
 
 		if (!serialize_removed_components(command_system, table, affected, payload.streams))
 		{
+			SFG_ERR("failed to serialize components for reset command");
 			free_reset_component_payload(command_system, payload);
 			return false;
 		}
@@ -503,7 +547,14 @@ namespace sfg
 			.type		= editor_command_type_e::component_reset,
 		};
 
-		return !command_system.issue_command(desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue reset component command");
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_commands_component_t::paste(world_handle_t world, entity_id_t entity, sid_t component_type, const u8* data, size_t data_size)
@@ -546,6 +597,7 @@ namespace sfg
 
 		if (!serialize_removed_components(command_system, table, affected, payload.old_streams))
 		{
+			SFG_ERR("failed to serialize components for paste command");
 			free_paste_component_payload(command_system, payload);
 			return false;
 		}
@@ -558,6 +610,13 @@ namespace sfg
 			.type		= editor_command_type_e::component_paste,
 		};
 
-		return !command_system.issue_command(desc, payload).is_null();
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue paste component command");
+			return false;
+		}
+
+		return true;
 	}
 }

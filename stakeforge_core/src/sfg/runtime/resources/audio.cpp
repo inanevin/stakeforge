@@ -2,10 +2,13 @@
 
 #include "audio.hpp"
 
+#include <sfg/io/log.hpp>
+
 namespace sfg
 {
 	bool audio_loader_t::load(resource_entry_t&, resource_context_t&, resource_file_system_t&)
 	{
+		SFG_ERR("audio loading is not implemented");
 		return false;
 	}
 

@@ -459,6 +459,8 @@ namespace sfg
 
 		stream			  = compressor_t::compress(payload);
 		const bool result = stream.get_size() != 0;
+		if (!result)
+			SFG_ERR("failed to compress HDR skybox payload: {0}", full_path);
 
 		free_texture_block(radiance);
 		free_texture_block(irradiance);

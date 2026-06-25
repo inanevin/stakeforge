@@ -3,12 +3,14 @@
 #include "audio_cook.hpp"
 #include <iterator>
 #include <cstddef>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
 	bool audio_cooker::cook_from_file(const audio_cook_config_t&, const char*, resource_header_t&, ostream_t&)
 	{
+		SFG_ERR("audio cooking is not implemented");
 		return false;
 	}
 

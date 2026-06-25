@@ -72,6 +72,7 @@ namespace sfg
 			if (!_engine_cache.empty())
 			{
 				const string_t path = _engine_cache + filename;
+
 				if (file_system_t::exists(path.c_str()))
 					return read_file_range(path.c_str(), offset, size, out);
 			}
@@ -79,12 +80,6 @@ namespace sfg
 			if (!_directory_path.empty())
 			{
 				const string_t path = _directory_path + filename;
-				return read_file_range(path.c_str(), offset, size, out);
-			}
-
-			if (!_engine_cache.empty())
-			{
-				const string_t path = _engine_cache + filename;
 				return read_file_range(path.c_str(), offset, size, out);
 			}
 
@@ -101,26 +96,8 @@ namespace sfg
 				return false;
 			}
 
-			const resource_map_info_t& info = it->second;
-			if (offset > info.size)
-			{
-				SFG_ERR("resource file pack offset out of range: {0}", hash);
-				return false;
-			}
-
-			const size_t read_size = size == 0 ? info.size : size;
-			if (read_size > info.size - offset)
-			{
-				SFG_ERR("resource file pack read size out of range: {0}", hash);
-				return false;
-			}
-
-			if (offset > (std::numeric_limits<size_t>::max)() - info.offset)
-			{
-				SFG_ERR("resource file pack offset overflow: {0}", hash);
-				return false;
-			}
-
+			const resource_map_info_t& info		 = it->second;
+			const size_t			   read_size = size == 0 ? info.size : size;
 			return read_file_range(_file_pack_path.c_str(), info.offset + offset, read_size, out);
 		}
 
@@ -162,7 +139,10 @@ namespace sfg
 
 		istream_t stream = serializer_t::load_from_file_slice(path, offset, read_size);
 		if (stream.empty())
+		{
+			SFG_ERR("failed to read resource file slice: {0}", path);
 			return false;
+		}
 
 		out.write_raw(stream.get_raw(), stream.get_size());
 		return true;
