@@ -102,15 +102,6 @@ namespace sfg
 			tree.in(id).flags = flags;
 		}
 
-		bool is_shift_pressed()
-		{
-			return process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
-		}
-
-		bool is_ctrl_pressed()
-		{
-			return process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-		}
 	}
 
 	editor_panel_entities_t::editor_panel_entities_t()
@@ -968,7 +959,11 @@ namespace sfg
 			panel.open_entity_action_menu(pos, row->entity);
 		}
 		else
-			panel.select_entity_row(row->entity, is_shift_pressed(), is_ctrl_pressed());
+		{
+			const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+			const bool ctrl_pressed	 = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			panel.select_entity_row(row->entity, shift_pressed, ctrl_pressed);
+		}
 	}
 
 	void editor_panel_entities_t::on_entity_row_double_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

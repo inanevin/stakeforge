@@ -80,11 +80,6 @@ namespace sfg
 			}
 		}
 
-		const char* get_physical_material_template_relative()
-		{
-			return EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
-		}
-
 		const char* get_shader_template_relative(shader_type_e shader_type)
 		{
 			switch (shader_type)
@@ -183,10 +178,11 @@ namespace sfg
 
 		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
+			const char*	   template_relative = EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
 			nlohmann::json embedded_source;
-			if (!editor_asset_writer_t::read_embedded_source(get_physical_material_template_relative(), embedded_source))
+			if (!editor_asset_writer_t::read_embedded_source(template_relative, embedded_source))
 			{
-				SFG_ERR("failed to read physical material asset template {0}", get_physical_material_template_relative());
+				SFG_ERR("failed to read physical material asset template {0}", template_relative);
 				return false;
 			}
 

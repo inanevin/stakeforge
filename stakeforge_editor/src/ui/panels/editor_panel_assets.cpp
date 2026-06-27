@@ -170,15 +170,6 @@ namespace sfg
 			tree.in(id).flags = flags;
 		}
 
-		bool is_shift_pressed()
-		{
-			return process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
-		}
-
-		bool is_ctrl_pressed()
-		{
-			return process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-		}
 	}
 
 	editor_panel_assets_t::editor_panel_assets_t()
@@ -2997,7 +2988,11 @@ namespace sfg
 			panel.open_asset_action_menu(pos);
 		}
 		else
-			panel.select_asset_grid_item(item->node, is_shift_pressed(), is_ctrl_pressed());
+		{
+			const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+			const bool ctrl_pressed	 = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			panel.select_asset_grid_item(item->node, shift_pressed, ctrl_pressed);
+		}
 	}
 
 	void editor_panel_assets_t::on_asset_grid_item_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t&, const vec2f_t&, void* user_data)
@@ -3054,7 +3049,11 @@ namespace sfg
 			panel.open_action_menu(pos);
 		}
 		else
-			panel.select_folder_row(row->node, row->path_hash, is_shift_pressed(), is_ctrl_pressed());
+		{
+			const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+			const bool ctrl_pressed	 = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			panel.select_folder_row(row->node, row->path_hash, shift_pressed, ctrl_pressed);
+		}
 	}
 
 	void editor_panel_assets_t::on_folder_row_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t&, const vec2f_t&, void* user_data)

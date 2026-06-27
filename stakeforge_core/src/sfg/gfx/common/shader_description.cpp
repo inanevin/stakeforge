@@ -422,29 +422,6 @@ namespace sfg
 			{.name = "none", .display_name = "None", .value = static_cast<i64>(load_op::none)},
 		};
 
-		bool get_vertex_input_offset(const void* object, const reflected_field_desc_t&, void* out_value, void*)
-		{
-			*static_cast<u32*>(out_value) = static_cast<u32>(static_cast<const vertex_input_t*>(object)->offset);
-			return true;
-		}
-
-		bool set_vertex_input_offset(void* object, const reflected_field_desc_t&, const void* value, void*)
-		{
-			static_cast<vertex_input_t*>(object)->offset = static_cast<size_t>(*static_cast<const u32*>(value));
-			return true;
-		}
-
-		bool get_vertex_input_size(const void* object, const reflected_field_desc_t&, void* out_value, void*)
-		{
-			*static_cast<u32*>(out_value) = static_cast<u32>(static_cast<const vertex_input_t*>(object)->size);
-			return true;
-		}
-
-		bool set_vertex_input_size(void* object, const reflected_field_desc_t&, const void* value, void*)
-		{
-			static_cast<vertex_input_t*>(object)->size = static_cast<size_t>(*static_cast<const u32*>(value));
-			return true;
-		}
 	}
 
 	vertex_input_reflection_t::vertex_input_reflection_t()
@@ -454,12 +431,49 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(vertex_input_t, name), .size = sizeof(vertex_input_t::name)},
-			{.get = get_vertex_input_offset, .set = set_vertex_input_offset, .name = "offset", .display_name = "Offset", .type = reflected_value_type_e::u32, .offset = offsetof(vertex_input_t, offset), .size = sizeof(size_t)},
-			{.get = get_vertex_input_size, .set = set_vertex_input_size, .name = "size", .display_name = "Size", .type = reflected_value_type_e::u32, .offset = offsetof(vertex_input_t, size), .size = sizeof(size_t)},
-			{.name = "format", .display_name = "Format", .type = reflected_value_type_e::enum8, .value_type_id = type_id_t<format_e>::value, .offset = offsetof(vertex_input_t, format), .size = sizeof(format_e)},
-			{.name = "location", .display_name = "Location", .type = reflected_value_type_e::u8, .offset = offsetof(vertex_input_t, location), .size = sizeof(u8)},
-			{.name = "index", .display_name = "Index", .type = reflected_value_type_e::u8, .offset = offsetof(vertex_input_t, index), .size = sizeof(u8)},
+			{
+				.name		  = "name",
+				.display_name = "Name",
+				.type		  = reflected_value_type_e::string,
+				.offset		  = offsetof(vertex_input_t, name),
+				.size		  = sizeof(vertex_input_t::name),
+			},
+			{
+				.name		  = "offset",
+				.display_name = "Offset",
+				.type		  = reflected_value_type_e::size_t,
+				.offset		  = offsetof(vertex_input_t, offset),
+				.size		  = sizeof(size_t),
+			},
+			{
+				.name		  = "size",
+				.display_name = "Size",
+				.type		  = reflected_value_type_e::size_t,
+				.offset		  = offsetof(vertex_input_t, size),
+				.size		  = sizeof(size_t),
+			},
+			{
+				.name		   = "format",
+				.display_name  = "Format",
+				.type		   = reflected_value_type_e::enum8,
+				.value_type_id = type_id_t<format_e>::value,
+				.offset		   = offsetof(vertex_input_t, format),
+				.size		   = sizeof(format_e),
+			},
+			{
+				.name		  = "location",
+				.display_name = "Location",
+				.type		  = reflected_value_type_e::u8,
+				.offset		  = offsetof(vertex_input_t, location),
+				.size		  = sizeof(u8),
+			},
+			{
+				.name		  = "index",
+				.display_name = "Index",
+				.type		  = reflected_value_type_e::u8,
+				.offset		  = offsetof(vertex_input_t, index),
+				.size		  = sizeof(u8),
+			},
 		};
 
 		registry.register_type({

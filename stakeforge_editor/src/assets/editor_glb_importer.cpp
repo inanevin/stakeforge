@@ -98,16 +98,6 @@ namespace sfg
 			return result;
 		}
 
-		string_t get_glb_name(const tg3_str& name)
-		{
-			return name.data != nullptr && name.len != 0 ? string_t(name.data, name.len) : string_t();
-		}
-
-		bool is_glb_string(const tg3_str& str, const char* value)
-		{
-			return str.data != nullptr && string_view_t(str.data, str.len) == value;
-		}
-
 		const tg3_value* find_object_value(const tg3_value& value, const char* key)
 		{
 			if (value.type != TG3_VALUE_OBJECT)
@@ -237,11 +227,6 @@ namespace sfg
 			};
 		}
 
-		mat4x3_t make_mat4x3_from_glb_matrix(const f32* matrix)
-		{
-			return mat4x3_t(matrix[0], matrix[1], matrix[2], matrix[4], matrix[5], matrix[6], matrix[8], matrix[9], matrix[10], matrix[12], matrix[13], matrix[14]);
-		}
-
 		bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, u32 joint_index, mat4x3_t& out_matrix)
 		{
 			out_matrix = mat4x3_t::identity;
@@ -297,7 +282,7 @@ namespace sfg
 
 			f32 matrix[16] = {};
 			std::memcpy(matrix, buffer.data.data + matrix_offset, sizeof(matrix));
-			out_matrix = make_mat4x3_from_glb_matrix(matrix);
+			out_matrix = mat4x3_t(matrix[0], matrix[1], matrix[2], matrix[4], matrix[5], matrix[6], matrix[8], matrix[9], matrix[10], matrix[12], matrix[13], matrix[14]);
 			return true;
 		}
 
@@ -834,7 +819,7 @@ namespace sfg
 				.sampler		  = get_sampler_guid(model, material),
 				.pass_flags		  = wpf_gbuffer,
 				.double_sided	  = material.double_sided != 0,
-				.use_alpha_cutoff = is_glb_string(material.alpha_mode, "MASK"),
+				.use_alpha_cutoff = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK",
 			};
 
 			editor_asset_t asset		 = {};
@@ -923,7 +908,7 @@ namespace sfg
 				node_to_joint_index[node_index_u32] = i;
 
 				const tg3_node& node = model.nodes[node_index_u32];
-				string_t		name = get_glb_name(node.name);
+				string_t		name = node.name.data != nullptr && node.name.len != 0 ? string_t(node.name.data, node.name.len) : string_t();
 				if (name.empty())
 				{
 					name = "joint_";

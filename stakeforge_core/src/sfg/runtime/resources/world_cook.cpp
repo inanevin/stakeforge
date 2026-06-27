@@ -124,12 +124,6 @@ namespace sfg
 
 		resource_handle_t read_resource_handle(const void* object, const reflected_field_desc_t& field)
 		{
-			resource_handle_t handle = NULL_RESOURCE_HANDLE;
-			if (field.get != nullptr)
-			{
-				field.get(object, field, &handle, field.user_data);
-				return handle;
-			}
 			return *static_cast<const resource_handle_t*>(get_reflected_field_ptr(object, field));
 		}
 
@@ -144,9 +138,6 @@ namespace sfg
 
 		void collect_resource_handles_from_field(const void* object, const reflected_field_desc_t& field, frame_vector_t<resource_handle_t>& out_resources)
 		{
-			if (field.flags.is_set(reflected_field_flags_transient))
-				return;
-
 			if (is_resource_type(field.type))
 			{
 				add_unique_resource_handle(out_resources, read_resource_handle(object, field));

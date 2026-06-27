@@ -72,11 +72,6 @@ namespace sfg
 
 	namespace
 	{
-		vec2u16_t get_layout_window_size(const editor_layout_window_t& window)
-		{
-			return (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
-		}
-
 		ui::mouse_button_e map_button(u16 b)
 		{
 			if (b == static_cast<u16>(input_code::mouse_right))
@@ -280,7 +275,8 @@ namespace sfg
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
-			const surface_handle_t		 handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::primary);
+			const vec2u16_t				 size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
+			const surface_handle_t		 handle = create_surface(window.pos, size, editor_surface_type_e::primary);
 			if (handle.is_null())
 				return false;
 			process::set_window_maximized(_surfaces.get(handle).runtime->window_handle, window.maximized);
@@ -302,7 +298,8 @@ namespace sfg
 			if (primary_window == nullptr)
 				return false;
 
-			const surface_handle_t primary_handle = create_surface(primary_window->pos, get_layout_window_size(*primary_window), editor_surface_type_e::primary);
+			const vec2u16_t		   primary_size	  = (primary_window->size.x == 0 || primary_window->size.y == 0) ? vec2u16_t{1920, 1080} : primary_window->size;
+			const surface_handle_t primary_handle = create_surface(primary_window->pos, primary_size, editor_surface_type_e::primary);
 			process::set_window_maximized(_surfaces.get(primary_handle).runtime->window_handle, primary_window->maximized);
 			load_surface_dock_layout(_surfaces.get(primary_handle), primary_window->dock_layout);
 			load_primary_main_toolbar(_surfaces.get(primary_handle), primary_window->main_toolbar);
@@ -312,7 +309,8 @@ namespace sfg
 				if (&window == primary_window)
 					continue;
 
-				const surface_handle_t secondary_handle = create_surface(window.pos, get_layout_window_size(window), editor_surface_type_e::secondary);
+				const vec2u16_t		   secondary_size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
+				const surface_handle_t secondary_handle = create_surface(window.pos, secondary_size, editor_surface_type_e::secondary);
 				process::set_window_maximized(_surfaces.get(secondary_handle).runtime->window_handle, window.maximized);
 				load_surface_dock_layout(_surfaces.get(secondary_handle), window.dock_layout);
 			}

@@ -129,37 +129,16 @@ namespace sfg
 			tooltip_controller->set_tooltip(owner, tooltip);
 		}
 
-		const void* get_reflected_field_ptr(const void* object, const reflected_field_desc_t& field)
-		{
-			return static_cast<const u8*>(object) + field.offset;
-		}
-
-		void* get_reflected_field_ptr(void* object, const reflected_field_desc_t& field)
-		{
-			return static_cast<u8*>(object) + field.offset;
-		}
-
 		template <typename T> T read_reflected_value(const void* object, const reflected_field_desc_t& field)
 		{
-			T value = {};
-			if (field.get != nullptr)
-			{
-				field.get(object, field, &value, field.user_data);
-				return value;
-			}
-			return *static_cast<const T*>(get_reflected_field_ptr(object, field));
+			return *reinterpret_cast<const T*>(static_cast<const u8*>(object) + field.offset);
 		}
 
 		template <typename T> void write_reflected_value(void* object, const reflected_field_desc_t& field, const T& value)
 		{
 			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
-			if (field.set != nullptr)
-			{
-				field.set(object, field, &value, field.user_data);
-				return;
-			}
-			*static_cast<T*>(get_reflected_field_ptr(object, field)) = value;
+			*reinterpret_cast<T*>(static_cast<u8*>(object) + field.offset) = value;
 		}
 
 		f32 read_reflected_number(const void* object, const reflected_field_desc_t& field)
@@ -170,10 +149,16 @@ namespace sfg
 				return read_reflected_value<f32>(object, field);
 			case reflected_value_type_e::i32:
 				return static_cast<f32>(read_reflected_value<i32>(object, field));
+			case reflected_value_type_e::i16:
+				return static_cast<f32>(read_reflected_value<i16>(object, field));
 			case reflected_value_type_e::i8:
 				return static_cast<f32>(read_reflected_value<i8>(object, field));
 			case reflected_value_type_e::u32:
 				return static_cast<f32>(read_reflected_value<u32>(object, field));
+			case reflected_value_type_e::u16:
+				return static_cast<f32>(read_reflected_value<u16>(object, field));
+			case reflected_value_type_e::size_t:
+				return static_cast<f32>(read_reflected_value<size_t>(object, field));
 			case reflected_value_type_e::u8:
 				return static_cast<f32>(read_reflected_value<u8>(object, field));
 			default:
@@ -191,11 +176,20 @@ namespace sfg
 			case reflected_value_type_e::i32:
 				write_reflected_value(object, field, static_cast<i32>(value));
 				break;
+			case reflected_value_type_e::i16:
+				write_reflected_value(object, field, static_cast<i16>(value < -32768.0f ? -32768.0f : (value > 32767.0f ? 32767.0f : value)));
+				break;
 			case reflected_value_type_e::i8:
 				write_reflected_value(object, field, static_cast<i8>(value < -128.0f ? -128.0f : (value > 127.0f ? 127.0f : value)));
 				break;
 			case reflected_value_type_e::u32:
 				write_reflected_value(object, field, static_cast<u32>(value < 0.0f ? 0.0f : value));
+				break;
+			case reflected_value_type_e::u16:
+				write_reflected_value(object, field, static_cast<u16>(value < 0.0f ? 0.0f : (value > 65535.0f ? 65535.0f : value)));
+				break;
+			case reflected_value_type_e::size_t:
+				write_reflected_value(object, field, static_cast<size_t>(value < 0.0f ? 0.0f : value));
 				break;
 			case reflected_value_type_e::u8:
 				write_reflected_value(object, field, static_cast<u8>(value < 0.0f ? 0.0f : (value > 255.0f ? 255.0f : value)));
@@ -205,105 +199,38 @@ namespace sfg
 			}
 		}
 
-		u32 to_reflected_u32(f32 value)
-		{
-			return static_cast<u32>(value < 0.0f ? 0.0f : value);
-		}
-
-		vec2f_t to_vec2f(const vec2u_t& value)
-		{
-			return {static_cast<f32>(value.x), static_cast<f32>(value.y)};
-		}
-
-		vec2f_t to_vec2f(const vec2u16_t& value)
-		{
-			return {static_cast<f32>(value.x), static_cast<f32>(value.y)};
-		}
-
-		vec3f_t to_vec3f(const vec3u_t& value)
-		{
-			return {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z)};
-		}
-
-		vec4f_t to_vec4f(const vec4u_t& value)
-		{
-			return {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z), static_cast<f32>(value.w)};
-		}
-
-		vec2u_t to_vec2u(const vec2f_t& value)
-		{
-			return {to_reflected_u32(value.x), to_reflected_u32(value.y)};
-		}
-
-		vec2u16_t to_vec2u16(const vec2f_t& value)
-		{
-			return {static_cast<u16>(value.x < 0.0f ? 0.0f : (value.x > 65535.0f ? 65535.0f : value.x)), static_cast<u16>(value.y < 0.0f ? 0.0f : (value.y > 65535.0f ? 65535.0f : value.y))};
-		}
-
-		vec3u_t to_vec3u(const vec3f_t& value)
-		{
-			return {to_reflected_u32(value.x), to_reflected_u32(value.y), to_reflected_u32(value.z)};
-		}
-
-		vec4u_t to_vec4u(const vec4f_t& value)
-		{
-			return {to_reflected_u32(value.x), to_reflected_u32(value.y), to_reflected_u32(value.z), to_reflected_u32(value.w)};
-		}
-
 		bool read_reflected_bool(const void* object, const reflected_field_desc_t& field)
 		{
-			bool value = false;
-			if (field.get != nullptr)
-			{
-				field.get(object, field, &value, field.user_data);
-				return value;
-			}
-			return *static_cast<const u8*>(get_reflected_field_ptr(object, field)) != 0;
+			return *(static_cast<const u8*>(object) + field.offset) != 0;
 		}
 
 		void write_reflected_bool(void* object, const reflected_field_desc_t& field, bool value)
 		{
 			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
-			if (field.set != nullptr)
-			{
-				field.set(object, field, &value, field.user_data);
-				return;
-			}
-			*static_cast<u8*>(get_reflected_field_ptr(object, field)) = value ? 1 : 0;
+			*(static_cast<u8*>(object) + field.offset) = value ? 1 : 0;
 		}
 
 		const char* read_reflected_text(const void* object, const reflected_field_desc_t& field)
 		{
-			const char* value = nullptr;
-			if (field.get != nullptr)
-			{
-				field.get(object, field, &value, field.user_data);
-				return value != nullptr ? value : "";
-			}
 			if (field.size == sizeof(string_t))
-				return static_cast<const string_t*>(get_reflected_field_ptr(object, field))->c_str();
-			return static_cast<const char*>(get_reflected_field_ptr(object, field));
+				return reinterpret_cast<const string_t*>(static_cast<const u8*>(object) + field.offset)->c_str();
+			return reinterpret_cast<const char*>(static_cast<const u8*>(object) + field.offset);
 		}
 
 		void write_reflected_text(void* object, const reflected_field_desc_t& field, const char* value)
 		{
 			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
-			if (field.set != nullptr)
-			{
-				field.set(object, field, value, field.user_data);
-				return;
-			}
 
 			if (field.size == sizeof(string_t))
 			{
-				*static_cast<string_t*>(get_reflected_field_ptr(object, field)) = value != nullptr ? value : "";
+				*reinterpret_cast<string_t*>(static_cast<u8*>(object) + field.offset) = value != nullptr ? value : "";
 				return;
 			}
 
 			SFG_ASSERT(field.size > 0);
-			char*		 dst	 = static_cast<char*>(get_reflected_field_ptr(object, field));
+			char*		 dst	 = reinterpret_cast<char*>(static_cast<u8*>(object) + field.offset);
 			const char*	 src	 = value != nullptr ? value : "";
 			const size_t max_len = static_cast<size_t>(field.size - 1);
 			const size_t len	 = std::strlen(src) < max_len ? std::strlen(src) : max_len;
@@ -315,40 +242,22 @@ namespace sfg
 
 		i64 read_reflected_enum(const void* object, const reflected_field_desc_t& field)
 		{
-			u64 raw = 0;
-			if (field.get != nullptr)
+			u64			raw = 0;
+			const void* ptr = static_cast<const u8*>(object) + field.offset;
+			switch (field.size)
 			{
-				if (field.type == reflected_value_type_e::enum8)
-				{
-					u8 value = 0;
-					field.get(object, field, &value, field.user_data);
-					raw = value;
-				}
-				else
-				{
-					u32 value = 0;
-					field.get(object, field, &value, field.user_data);
-					raw = value;
-				}
-			}
-			else
-			{
-				const void* ptr = get_reflected_field_ptr(object, field);
-				switch (field.size)
-				{
-				case sizeof(u8):
-					raw = *static_cast<const u8*>(ptr);
-					break;
-				case sizeof(u16):
-					raw = *static_cast<const u16*>(ptr);
-					break;
-				case sizeof(u64):
-					raw = *static_cast<const u64*>(ptr);
-					break;
-				default:
-					raw = *static_cast<const u32*>(ptr);
-					break;
-				}
+			case sizeof(u8):
+				raw = *static_cast<const u8*>(ptr);
+				break;
+			case sizeof(u16):
+				raw = *static_cast<const u16*>(ptr);
+				break;
+			case sizeof(u64):
+				raw = *static_cast<const u64*>(ptr);
+				break;
+			default:
+				raw = *static_cast<const u32*>(ptr);
+				break;
 			}
 
 			const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_enum_values(field);
@@ -380,22 +289,8 @@ namespace sfg
 		{
 			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
-			if (field.set != nullptr)
-			{
-				if (field.type == reflected_value_type_e::enum8)
-				{
-					const u8 raw = static_cast<u8>(value);
-					field.set(object, field, &raw, field.user_data);
-				}
-				else
-				{
-					const u32 raw = static_cast<u32>(value);
-					field.set(object, field, &raw, field.user_data);
-				}
-				return;
-			}
 
-			void* ptr = get_reflected_field_ptr(object, field);
+			void* ptr = static_cast<u8*>(object) + field.offset;
 			switch (field.size)
 			{
 			case sizeof(u8):
@@ -411,21 +306,6 @@ namespace sfg
 				*static_cast<u32*>(ptr) = static_cast<u32>(value);
 				break;
 			}
-		}
-
-		bool is_vector_field(const reflected_field_desc_t& field)
-		{
-			return field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector;
-		}
-
-		bool is_reflected_asset_handle(reflected_value_type_e type)
-		{
-			return editor_asset_util_t::reflected_value_type_to_asset_type(type) != editor_asset_type_e::invalid;
-		}
-
-		sid_t get_object_type_id(const reflected_field_desc_t& field)
-		{
-			return field.value_type_id != 0 ? field.value_type_id : field.sub_type_id;
 		}
 
 		bitmask32 get_vector_item_field_flags(const reflected_field_desc_t& field)
@@ -481,21 +361,6 @@ namespace sfg
 			};
 		}
 
-		bool is_reflected_container_ops_valid(const reflected_container_ops_t& ops)
-		{
-			return ops.get_count != nullptr && ops.get_item != nullptr && ops.get_const_item != nullptr && ops.clear != nullptr && ops.resize != nullptr && ops.add != nullptr && ops.remove != nullptr;
-		}
-
-		template <typename T> vector_t<T>& get_reflected_vector(void* object, const reflected_field_desc_t& field)
-		{
-			return *static_cast<vector_t<T>*>(get_reflected_field_ptr(object, field));
-		}
-
-		template <typename T> const vector_t<T>& get_reflected_vector(const void* object, const reflected_field_desc_t& field)
-		{
-			return *static_cast<const vector_t<T>*>(get_reflected_field_ptr(object, field));
-		}
-
 		template <typename T> size_t get_inplace_vector_head_offset(const reflected_field_desc_t& field)
 		{
 			const size_t data_size = sizeof(T) * field.capacity;
@@ -503,30 +368,10 @@ namespace sfg
 			return (data_size + alignment - 1) & ~(alignment - 1);
 		}
 
-		template <typename T> T* get_reflected_inplace_vector_data(void* object, const reflected_field_desc_t& field)
-		{
-			return std::launder(reinterpret_cast<T*>(get_reflected_field_ptr(object, field)));
-		}
-
-		template <typename T> const T* get_reflected_inplace_vector_data(const void* object, const reflected_field_desc_t& field)
-		{
-			return std::launder(reinterpret_cast<const T*>(get_reflected_field_ptr(object, field)));
-		}
-
-		template <typename T> size_t& get_reflected_inplace_vector_size(void* object, const reflected_field_desc_t& field)
-		{
-			return *reinterpret_cast<size_t*>(static_cast<u8*>(get_reflected_field_ptr(object, field)) + get_inplace_vector_head_offset<T>(field));
-		}
-
-		template <typename T> const size_t& get_reflected_inplace_vector_size(const void* object, const reflected_field_desc_t& field)
-		{
-			return *reinterpret_cast<const size_t*>(static_cast<const u8*>(get_reflected_field_ptr(object, field)) + get_inplace_vector_head_offset<T>(field));
-		}
-
 		template <typename T> void clear_reflected_inplace_vector(void* object, const reflected_field_desc_t& field)
 		{
-			T*		data = get_reflected_inplace_vector_data<T>(object, field);
-			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
+			T*		data = std::launder(reinterpret_cast<T*>(static_cast<u8*>(object) + field.offset));
+			size_t& size = *reinterpret_cast<size_t*>(static_cast<u8*>(object) + field.offset + get_inplace_vector_head_offset<T>(field));
 			while (size > 0)
 			{
 				--size;
@@ -536,8 +381,8 @@ namespace sfg
 
 		template <typename T> void add_reflected_inplace_vector_item(void* object, const reflected_field_desc_t& field)
 		{
-			T*		data = get_reflected_inplace_vector_data<T>(object, field);
-			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
+			T*		data = std::launder(reinterpret_cast<T*>(static_cast<u8*>(object) + field.offset));
+			size_t& size = *reinterpret_cast<size_t*>(static_cast<u8*>(object) + field.offset + get_inplace_vector_head_offset<T>(field));
 			if (size == field.capacity)
 				return;
 			std::construct_at(data + size);
@@ -546,8 +391,8 @@ namespace sfg
 
 		template <typename T> void remove_reflected_inplace_vector_item(void* object, const reflected_field_desc_t& field, u32 index)
 		{
-			T*		data = get_reflected_inplace_vector_data<T>(object, field);
-			size_t& size = get_reflected_inplace_vector_size<T>(object, field);
+			T*		data = std::launder(reinterpret_cast<T*>(static_cast<u8*>(object) + field.offset));
+			size_t& size = *reinterpret_cast<size_t*>(static_cast<u8*>(object) + field.offset + get_inplace_vector_head_offset<T>(field));
 			SFG_ASSERT(index < size);
 			for (size_t i = index; i < size - 1; ++i)
 				data[i] = std::move(data[i + 1]);
@@ -558,15 +403,15 @@ namespace sfg
 		template <typename T> T* get_reflected_container_data(void* object, const reflected_field_desc_t& field)
 		{
 			if (field.type == reflected_value_type_e::inplace_vector)
-				return get_reflected_inplace_vector_data<T>(object, field);
-			return get_reflected_vector<T>(object, field).data();
+				return std::launder(reinterpret_cast<T*>(static_cast<u8*>(object) + field.offset));
+			return reinterpret_cast<vector_t<T>*>(static_cast<u8*>(object) + field.offset)->data();
 		}
 
 		template <typename T> u32 get_reflected_container_item_count(void* object, const reflected_field_desc_t& field)
 		{
 			if (field.type == reflected_value_type_e::inplace_vector)
-				return static_cast<u32>(get_reflected_inplace_vector_size<T>(object, field));
-			return static_cast<u32>(get_reflected_vector<T>(object, field).size());
+				return static_cast<u32>(*reinterpret_cast<size_t*>(static_cast<u8*>(object) + field.offset + get_inplace_vector_head_offset<T>(field)));
+			return static_cast<u32>(reinterpret_cast<vector_t<T>*>(static_cast<u8*>(object) + field.offset)->size());
 		}
 
 		template <typename T> void clear_reflected_container(void* object, const reflected_field_desc_t& field)
@@ -574,7 +419,7 @@ namespace sfg
 			if (field.type == reflected_value_type_e::inplace_vector)
 				clear_reflected_inplace_vector<T>(object, field);
 			else
-				get_reflected_vector<T>(object, field).resize(0);
+				reinterpret_cast<vector_t<T>*>(static_cast<u8*>(object) + field.offset)->resize(0);
 		}
 
 		template <typename T> void add_reflected_container_item(void* object, const reflected_field_desc_t& field)
@@ -582,7 +427,7 @@ namespace sfg
 			if (field.type == reflected_value_type_e::inplace_vector)
 				add_reflected_inplace_vector_item<T>(object, field);
 			else
-				get_reflected_vector<T>(object, field).push_back(T{});
+				reinterpret_cast<vector_t<T>*>(static_cast<u8*>(object) + field.offset)->push_back(T{});
 		}
 
 		template <typename T> void remove_reflected_container_item(void* object, const reflected_field_desc_t& field, u32 index)
@@ -593,7 +438,7 @@ namespace sfg
 			}
 			else
 			{
-				vector_t<T>& values = get_reflected_vector<T>(object, field);
+				vector_t<T>& values = *reinterpret_cast<vector_t<T>*>(static_cast<u8*>(object) + field.offset);
 				values.erase(values.begin() + index);
 			}
 		}
@@ -681,7 +526,7 @@ namespace sfg
 			const reflected_field_desc_t& field = type->fields.data[i];
 			if (field.flags.is_set(reflected_field_flags_no_ui))
 				continue;
-			if (is_vector_field(field) && is_vector_unfolded(field.id))
+			if ((field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector) && is_vector_unfolded(field.id))
 				control_count += get_vector_item_count(field);
 		}
 
@@ -695,7 +540,7 @@ namespace sfg
 			if (field.flags.is_set(reflected_field_flags_no_ui))
 				continue;
 			const char* label = field.display_name != nullptr ? field.display_name : field.name;
-			if (is_vector_field(field))
+			if (field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector)
 			{
 				install_vector_field(field, label);
 				continue;
@@ -713,7 +558,7 @@ namespace sfg
 		_controls.push_back({.owner = this, .field = &field, .command_field = &command_field, .object = object, .command_object = command_object, .mixed = is_field_mixed(command_field, command_object)});
 		reflected_control_t* control = &_controls.back();
 
-		if (is_reflected_asset_handle(field.type))
+		if (editor_asset_util_t::reflected_value_type_to_asset_type(field.type) != editor_asset_type_e::invalid)
 		{
 			editor_widget_asset_reference_t*	   reference = new editor_widget_asset_reference_t();
 			editor_widget_asset_reference_config_t config	 = {};
@@ -785,8 +630,11 @@ namespace sfg
 			break;
 		}
 		case reflected_value_type_e::i32:
+		case reflected_value_type_e::i16:
 		case reflected_value_type_e::i8:
 		case reflected_value_type_e::u32:
+		case reflected_value_type_e::u16:
+		case reflected_value_type_e::size_t:
 		case reflected_value_type_e::u8: {
 			editor_input_field_t*		input  = new editor_input_field_t();
 			editor_input_field_config_t config = {};
@@ -835,7 +683,7 @@ namespace sfg
 			break;
 		}
 		case reflected_value_type_e::object: {
-			const sid_t type_id = get_object_type_id(field);
+			const sid_t type_id = field.value_type_id != 0 ? field.value_type_id : field.sub_type_id;
 			if (type_id == type_id_t<vec2f_t>::value)
 			{
 				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
@@ -855,7 +703,8 @@ namespace sfg
 			{
 				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
 				editor_vec2_field_config_t config = {};
-				config.value					  = to_vec2f(read_reflected_value<vec2u_t>(object, field));
+				const vec2u_t			   value  = read_reflected_value<vec2u_t>(object, field);
+				config.value					  = {static_cast<f32>(value.x), static_cast<f32>(value.y)};
 				config.increment				  = 1.0f;
 				config.integer					  = true;
 				config.on_changed				  = on_vec2_changed;
@@ -872,7 +721,8 @@ namespace sfg
 			{
 				editor_vec2_field_t*	   vec	  = new editor_vec2_field_t();
 				editor_vec2_field_config_t config = {};
-				config.value					  = to_vec2f(read_reflected_value<vec2u16_t>(object, field));
+				const vec2u16_t			   value  = read_reflected_value<vec2u16_t>(object, field);
+				config.value					  = {static_cast<f32>(value.x), static_cast<f32>(value.y)};
 				config.increment				  = 1.0f;
 				config.integer					  = true;
 				config.on_changed				  = on_vec2_changed;
@@ -904,7 +754,8 @@ namespace sfg
 			{
 				editor_vec3_field_t*	   vec	  = new editor_vec3_field_t();
 				editor_vec3_field_config_t config = {};
-				config.value					  = to_vec3f(read_reflected_value<vec3u_t>(object, field));
+				const vec3u_t			   value  = read_reflected_value<vec3u_t>(object, field);
+				config.value					  = {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z)};
 				config.increment				  = 1.0f;
 				config.integer					  = true;
 				config.on_changed				  = on_vec3_changed;
@@ -936,7 +787,8 @@ namespace sfg
 			{
 				editor_vec4_field_t*	   vec	  = new editor_vec4_field_t();
 				editor_vec4_field_config_t config = {};
-				config.value					  = to_vec4f(read_reflected_value<vec4u_t>(object, field));
+				const vec4u_t			   value  = read_reflected_value<vec4u_t>(object, field);
+				config.value					  = {static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z), static_cast<f32>(value.w)};
 				config.increment				  = 1.0f;
 				config.integer					  = true;
 				config.on_changed				  = on_vec4_changed;
@@ -1050,13 +902,14 @@ namespace sfg
 		if (!unfolded)
 			return;
 
-		if (is_reflected_container_ops_valid(field.container_ops))
+		const reflected_container_ops_t& container_ops = field.container_ops;
+		if (container_ops.is_valid())
 		{
 			const reflected_field_desc_t item_field = get_vector_item_field(field);
 			if (item_field.type == reflected_value_type_e::invalid)
 				return;
 
-			const u32 item_count = field.container_ops.get_count(_object, field);
+			const u32 item_count = container_ops.get_count(_object, field);
 			for (u32 i = 0; i < item_count; ++i)
 			{
 				char item_label[32] = {};
@@ -1070,7 +923,7 @@ namespace sfg
 				remove_listener.user_data			  = &_vector_item_controls.back();
 				remove_listener.on_click			  = on_vector_item_remove_click;
 				_ui->get_input().set_listener(row.remove_button, remove_listener);
-				install_reflected_control(row.right, _vector_item_fields.back(), field.container_ops.get_item(_object, field, i), field, _object);
+				install_reflected_control(row.right, _vector_item_fields.back(), container_ops.get_item(_object, field, i), field, _object);
 			}
 			return;
 		}
@@ -1106,12 +959,21 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			install_items.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i16:
+			install_items.template operator()<i16>();
+			break;
 		case reflected_value_type_e::i8:
 			install_items.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::enum32:
 			install_items.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u16:
+			install_items.template operator()<u16>();
+			break;
+		case reflected_value_type_e::size_t:
+			install_items.template operator()<size_t>();
 			break;
 		case reflected_value_type_e::entity_guid:
 			install_items.template operator()<entity_guid_t>();
@@ -1141,8 +1003,9 @@ namespace sfg
 
 	u32 editor_widget_reflect_type_t::get_vector_item_count(const reflected_field_desc_t& field) const
 	{
-		if (is_reflected_container_ops_valid(field.container_ops))
-			return field.container_ops.get_count(_object, field);
+		const reflected_container_ops_t& container_ops = field.container_ops;
+		if (container_ops.is_valid())
+			return container_ops.get_count(_object, field);
 
 		auto get_count = [&]<typename T>() { return get_reflected_container_item_count<T>(_object, field); };
 
@@ -1152,11 +1015,17 @@ namespace sfg
 			return get_count.template operator()<f32>();
 		case reflected_value_type_e::i32:
 			return get_count.template operator()<i32>();
+		case reflected_value_type_e::i16:
+			return get_count.template operator()<i16>();
 		case reflected_value_type_e::i8:
 			return get_count.template operator()<i8>();
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::enum32:
 			return get_count.template operator()<u32>();
+		case reflected_value_type_e::u16:
+			return get_count.template operator()<u16>();
+		case reflected_value_type_e::size_t:
+			return get_count.template operator()<size_t>();
 		case reflected_value_type_e::entity_guid:
 			return get_count.template operator()<entity_guid_t>();
 		case reflected_value_type_e::u8:
@@ -1208,11 +1077,12 @@ namespace sfg
 		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
-		ostream_t  old_value;
-		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
-		if (is_reflected_container_ops_valid(field.container_ops))
+		ostream_t						 old_value;
+		const bool						 reflected_edit = begin_reflected_edit(field, _object, old_value);
+		const reflected_container_ops_t& container_ops	= field.container_ops;
+		if (container_ops.is_valid())
 		{
-			field.container_ops.clear(_object, field);
+			container_ops.clear(_object, field);
 			if (reflected_edit)
 				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
@@ -1234,12 +1104,21 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			clear_items.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i16:
+			clear_items.template operator()<i16>();
+			break;
 		case reflected_value_type_e::i8:
 			clear_items.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::enum32:
 			clear_items.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u16:
+			clear_items.template operator()<u16>();
+			break;
+		case reflected_value_type_e::size_t:
+			clear_items.template operator()<size_t>();
 			break;
 		case reflected_value_type_e::entity_guid:
 			clear_items.template operator()<entity_guid_t>();
@@ -1272,11 +1151,12 @@ namespace sfg
 		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
-		ostream_t  old_value;
-		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
-		if (is_reflected_container_ops_valid(field.container_ops))
+		ostream_t						 old_value;
+		const bool						 reflected_edit = begin_reflected_edit(field, _object, old_value);
+		const reflected_container_ops_t& container_ops	= field.container_ops;
+		if (container_ops.is_valid())
 		{
-			field.container_ops.add(_object, field);
+			container_ops.add(_object, field);
 			if (reflected_edit)
 				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
@@ -1298,12 +1178,21 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			add_item.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i16:
+			add_item.template operator()<i16>();
+			break;
 		case reflected_value_type_e::i8:
 			add_item.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::enum32:
 			add_item.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u16:
+			add_item.template operator()<u16>();
+			break;
+		case reflected_value_type_e::size_t:
+			add_item.template operator()<size_t>();
 			break;
 		case reflected_value_type_e::entity_guid:
 			add_item.template operator()<entity_guid_t>();
@@ -1336,11 +1225,12 @@ namespace sfg
 		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
-		ostream_t  old_value;
-		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
-		if (is_reflected_container_ops_valid(field.container_ops))
+		ostream_t						 old_value;
+		const bool						 reflected_edit = begin_reflected_edit(field, _object, old_value);
+		const reflected_container_ops_t& container_ops	= field.container_ops;
+		if (container_ops.is_valid())
 		{
-			field.container_ops.remove(_object, field, index);
+			container_ops.remove(_object, field, index);
 			if (reflected_edit)
 				end_reflected_edit(field, _object, old_value);
 			rebuild_reflected_controls();
@@ -1362,12 +1252,21 @@ namespace sfg
 		case reflected_value_type_e::i32:
 			remove_item.template operator()<i32>();
 			break;
+		case reflected_value_type_e::i16:
+			remove_item.template operator()<i16>();
+			break;
 		case reflected_value_type_e::i8:
 			remove_item.template operator()<i8>();
 			break;
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::enum32:
 			remove_item.template operator()<u32>();
+			break;
+		case reflected_value_type_e::u16:
+			remove_item.template operator()<u16>();
+			break;
+		case reflected_value_type_e::size_t:
+			remove_item.template operator()<size_t>();
 			break;
 		case reflected_value_type_e::entity_guid:
 			remove_item.template operator()<entity_guid_t>();
@@ -1508,7 +1407,7 @@ namespace sfg
 
 	bool editor_widget_reflect_type_t::refresh_reflected_control(reflected_control_t& control)
 	{
-		if (is_vector_field(*control.command_field))
+		if (control.command_field->type == reflected_value_type_e::vector || control.command_field->type == reflected_value_type_e::inplace_vector)
 			return false;
 
 		control.mixed = is_field_mixed(*control.command_field, control.command_object);
@@ -1549,11 +1448,17 @@ namespace sfg
 			vec.set_mixed(control.mixed);
 			if (control.mixed)
 				return true;
-			const sid_t type_id = get_object_type_id(*control.field);
+			const sid_t type_id = control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
 			if (type_id == type_id_t<vec2u_t>::value)
-				vec.set_value(to_vec2f(read_reflected_value<vec2u_t>(control.object, *control.field)));
+			{
+				const vec2u_t value = read_reflected_value<vec2u_t>(control.object, *control.field);
+				vec.set_value({static_cast<f32>(value.x), static_cast<f32>(value.y)});
+			}
 			else if (type_id == type_id_t<vec2u16_t>::value)
-				vec.set_value(to_vec2f(read_reflected_value<vec2u16_t>(control.object, *control.field)));
+			{
+				const vec2u16_t value = read_reflected_value<vec2u16_t>(control.object, *control.field);
+				vec.set_value({static_cast<f32>(value.x), static_cast<f32>(value.y)});
+			}
 			else
 				vec.set_value(read_reflected_value<vec2f_t>(control.object, *control.field));
 			return true;
@@ -1563,8 +1468,12 @@ namespace sfg
 			vec.set_mixed(control.mixed);
 			if (control.mixed)
 				return true;
-			if (get_object_type_id(*control.field) == type_id_t<vec3u_t>::value)
-				vec.set_value(to_vec3f(read_reflected_value<vec3u_t>(control.object, *control.field)));
+			const sid_t type_id = control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
+			if (type_id == type_id_t<vec3u_t>::value)
+			{
+				const vec3u_t value = read_reflected_value<vec3u_t>(control.object, *control.field);
+				vec.set_value({static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z)});
+			}
 			else
 				vec.set_value(read_reflected_value<vec3f_t>(control.object, *control.field));
 			return true;
@@ -1574,9 +1483,12 @@ namespace sfg
 			vec.set_mixed(control.mixed);
 			if (control.mixed)
 				return true;
-			const sid_t type_id = get_object_type_id(*control.field);
+			const sid_t type_id = control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
 			if (type_id == type_id_t<vec4u_t>::value)
-				vec.set_value(to_vec4f(read_reflected_value<vec4u_t>(control.object, *control.field)));
+			{
+				const vec4u_t value = read_reflected_value<vec4u_t>(control.object, *control.field);
+				vec.set_value({static_cast<f32>(value.x), static_cast<f32>(value.y), static_cast<f32>(value.z), static_cast<f32>(value.w)});
+			}
 			else if (control.field->type == reflected_value_type_e::quat)
 			{
 				const quat_t value = read_reflected_value<quat_t>(control.object, *control.field);
@@ -1652,7 +1564,8 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		ostream_t			 old_value;
 		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
-		if (get_object_type_id(*control.field) == type_id_t<color_t>::value)
+		const sid_t			 type_id		= control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
+		if (type_id == type_id_t<color_t>::value)
 			write_reflected_value(control.object, *control.field, color_t{value.x, value.y, value.z, value.w});
 		if (reflected_edit)
 			control.owner->end_reflected_edit(*control.command_field, control.command_object, old_value);
@@ -1663,11 +1576,11 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		ostream_t			 old_value;
 		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
-		const sid_t			 type_id		= get_object_type_id(*control.field);
+		const sid_t			 type_id		= control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
 		if (type_id == type_id_t<vec2u_t>::value)
-			write_reflected_value(control.object, *control.field, to_vec2u(value));
+			write_reflected_value(control.object, *control.field, vec2u_t{static_cast<u32>(value.x < 0.0f ? 0.0f : value.x), static_cast<u32>(value.y < 0.0f ? 0.0f : value.y)});
 		else if (type_id == type_id_t<vec2u16_t>::value)
-			write_reflected_value(control.object, *control.field, to_vec2u16(value));
+			write_reflected_value(control.object, *control.field, vec2u16_t{static_cast<u16>(value.x < 0.0f ? 0.0f : (value.x > 65535.0f ? 65535.0f : value.x)), static_cast<u16>(value.y < 0.0f ? 0.0f : (value.y > 65535.0f ? 65535.0f : value.y))});
 		else
 			write_reflected_value(control.object, *control.field, value);
 		if (reflected_edit)
@@ -1679,8 +1592,9 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		ostream_t			 old_value;
 		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
-		if (get_object_type_id(*control.field) == type_id_t<vec3u_t>::value)
-			write_reflected_value(control.object, *control.field, to_vec3u(value));
+		const sid_t			 type_id		= control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
+		if (type_id == type_id_t<vec3u_t>::value)
+			write_reflected_value(control.object, *control.field, vec3u_t{static_cast<u32>(value.x < 0.0f ? 0.0f : value.x), static_cast<u32>(value.y < 0.0f ? 0.0f : value.y), static_cast<u32>(value.z < 0.0f ? 0.0f : value.z)});
 		else
 			write_reflected_value(control.object, *control.field, value);
 		if (reflected_edit)
@@ -1692,9 +1606,11 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		ostream_t			 old_value;
 		const bool			 reflected_edit = control.owner->begin_reflected_edit(*control.command_field, control.command_object, old_value);
-		const sid_t			 type_id		= get_object_type_id(*control.field);
+		const sid_t			 type_id		= control.field->value_type_id != 0 ? control.field->value_type_id : control.field->sub_type_id;
 		if (type_id == type_id_t<vec4u_t>::value)
-			write_reflected_value(control.object, *control.field, to_vec4u(value));
+			write_reflected_value(control.object,
+								  *control.field,
+								  vec4u_t{static_cast<u32>(value.x < 0.0f ? 0.0f : value.x), static_cast<u32>(value.y < 0.0f ? 0.0f : value.y), static_cast<u32>(value.z < 0.0f ? 0.0f : value.z), static_cast<u32>(value.w < 0.0f ? 0.0f : value.w)});
 		else if (control.field->type == reflected_value_type_e::quat)
 			write_reflected_value(control.object, *control.field, quat_t{value.x, value.y, value.z, value.w});
 		else

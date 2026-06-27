@@ -76,11 +76,6 @@ namespace sfg
 {
 	namespace
 	{
-		nlohmann::json vec2u16_to_json(const vec2u16_t& value)
-		{
-			return nlohmann::json::array_t({value.x, value.y});
-		}
-
 		vec2u16_t vec2u16_from_json(const nlohmann::json& j, const vec2u16_t& fallback)
 		{
 			if (!j.is_array() || j.size() < 2)
@@ -95,7 +90,7 @@ namespace sfg
 		const nlohmann::json dock_layout  = nlohmann::json::parse(window.dock_layout, nullptr, false);
 		const nlohmann::json main_toolbar = nlohmann::json::parse(window.main_toolbar, nullptr, false);
 		j["pos"]						  = nlohmann::json::array_t({window.pos.x, window.pos.y});
-		j["size"]						  = vec2u16_to_json(window.size);
+		j["size"]						  = nlohmann::json::array_t({window.size.x, window.size.y});
 		j["is_primary"]					  = window.is_primary;
 		j["maximized"]					  = window.maximized;
 		j["dock_layout"]				  = dock_layout.is_object() ? dock_layout : nlohmann::json::object();

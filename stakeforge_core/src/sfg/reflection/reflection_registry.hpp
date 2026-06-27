@@ -76,6 +76,9 @@ namespace sfg
 		vector,
 		inplace_vector,
 		i8,
+		i16,
+		u16,
+		size_t,
 	};
 
 	reflected_value_type_e reflected_value_type_from_sub_type_id(sid_t sub_type_id);
@@ -103,8 +106,6 @@ namespace sfg
 
 	struct reflected_field_desc_t;
 
-	using reflected_get_fn						= bool (*)(const void* object, const reflected_field_desc_t& field, void* out_value, void* user_data);
-	using reflected_set_fn						= bool (*)(void* object, const reflected_field_desc_t& field, const void* value, void* user_data);
 	using reflected_container_get_count_fn		= u32 (*)(const void* object, const reflected_field_desc_t& field);
 	using reflected_container_get_item_fn		= void* (*)(void* object, const reflected_field_desc_t& field, u32 index);
 	using reflected_container_get_const_item_fn = const void* (*)(const void* object, const reflected_field_desc_t& field, u32 index);
@@ -122,6 +123,11 @@ namespace sfg
 		reflected_container_resize_fn		  resize		 = nullptr;
 		reflected_container_add_fn			  add			 = nullptr;
 		reflected_container_remove_fn		  remove		 = nullptr;
+
+		bool is_valid() const
+		{
+			return get_count != nullptr && get_item != nullptr && get_const_item != nullptr && clear != nullptr && resize != nullptr && add != nullptr && remove != nullptr;
+		}
 	};
 
 	struct reflected_enum_value_desc_t
@@ -135,9 +141,6 @@ namespace sfg
 	struct reflected_field_desc_t
 	{
 		span_t<const reflected_enum_value_desc_t> enum_values	= {};
-		reflected_get_fn						  get			= nullptr;
-		reflected_set_fn						  set			= nullptr;
-		void*									  user_data		= nullptr;
 		const char*								  name			= nullptr;
 		const char*								  display_name	= nullptr;
 		const char*								  tooltip		= nullptr;

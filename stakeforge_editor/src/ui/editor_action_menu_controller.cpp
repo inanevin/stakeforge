@@ -89,31 +89,6 @@ namespace sfg
 			def.rect.gradient	  = ui::vg_gradient_e::none;
 		}
 
-		u32 text_len(const char* text)
-		{
-			return text != nullptr ? static_cast<u32>(strlen(text)) : 0;
-		}
-
-		bool is_title_row(const editor_action_menu_row_desc_t& row)
-		{
-			return row.kind == editor_action_menu_row_kind_e::title;
-		}
-
-		bool is_toggle_row(const editor_action_menu_row_desc_t& row)
-		{
-			return row.kind == editor_action_menu_row_kind_e::toggle;
-		}
-
-		bool has_children(const editor_action_menu_row_desc_t& row)
-		{
-			return !row.disabled && row.child_count > 0;
-		}
-
-		bool has_icon_slot(const editor_action_menu_row_desc_t& row)
-		{
-			return row.icon != nullptr || has_children(row) || is_toggle_row(row);
-		}
-
 		bool is_toggled(const editor_action_menu_row_desc_t& row)
 		{
 			if (row.toggle_query != nullptr)
@@ -124,9 +99,9 @@ namespace sfg
 
 		const char* row_icon(const editor_action_menu_row_desc_t& row)
 		{
-			if (has_children(row))
+			if (!row.disabled && row.child_count > 0)
 				return ICON_DD_RIGHT;
-			if (is_toggle_row(row) && is_toggled(row))
+			if (row.kind == editor_action_menu_row_kind_e::toggle && is_toggled(row))
 				return ICON_CHECK;
 			return row.icon;
 		}
@@ -135,7 +110,7 @@ namespace sfg
 		{
 			if (row.disabled)
 				return style.disabled_text_color;
-			if (row.icon != nullptr && row.has_icon_color && !has_children(row) && !(is_toggle_row(row) && is_toggled(row)))
+			if (row.icon != nullptr && row.has_icon_color && (row.disabled || row.child_count == 0) && !(row.kind == editor_action_menu_row_kind_e::toggle && is_toggled(row)))
 				return row.icon_color;
 			return style.icon_color;
 		}
@@ -384,10 +359,10 @@ namespace sfg
 			return;
 
 		const editor_action_menu_row_desc_t& desc = menu._active_rows[depth][row];
-		if (is_title_row(desc) || desc.disabled)
+		if (desc.kind == editor_action_menu_row_kind_e::title || desc.disabled)
 			return;
 
-		if (is_toggle_row(desc))
+		if (desc.kind == editor_action_menu_row_kind_e::toggle)
 		{
 			SFG_ASSERT(desc.toggle_value != nullptr || desc.toggle_query != nullptr);
 			const bool toggled = !is_toggled(desc);
@@ -416,7 +391,7 @@ namespace sfg
 
 		if (desc.command != 0 && menu._desc.command_fn != nullptr)
 			menu._desc.command_fn(desc.command, menu._desc.command_user_data);
-		if (!has_children(desc))
+		if (desc.disabled || desc.child_count == 0)
 			menu.close_action_menu();
 	}
 
@@ -429,13 +404,13 @@ namespace sfg
 			return;
 
 		const editor_action_menu_row_desc_t& desc = menu._active_rows[depth][row];
-		if (is_title_row(desc) || desc.disabled)
+		if (desc.kind == editor_action_menu_row_kind_e::title || desc.disabled)
 		{
 			menu.hide_panels_from(depth + 1);
 			menu.refresh_popup_scope();
 			return;
 		}
-		if (has_children(desc))
+		if (!desc.disabled && desc.child_count > 0)
 			menu.show_panel(depth + 1, desc.children, desc.child_count, menu._ui->get_tree().bounds(id));
 		else
 			menu.hide_panels_from(depth + 1);
@@ -458,7 +433,7 @@ namespace sfg
 
 	void editor_action_menu_controller_t::handle_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
-			static_cast<editor_action_menu_controller_t*>(user_data)->close_action_menu();
+		static_cast<editor_action_menu_controller_t*>(user_data)->close_action_menu();
 	}
 
 	void editor_action_menu_controller_t::show_panel(u32 depth, const editor_action_menu_row_desc_t* rows, u16 row_count, const vec4f_t& anchor)
@@ -480,7 +455,7 @@ namespace sfg
 		f32 width = 0.0f;
 		for (u32 i = 0; i < row_count; ++i)
 		{
-			const bool is_title	  = is_title_row(rows[i]);
+			const bool is_title	  = rows[i].kind == editor_action_menu_row_kind_e::title;
 			const f32  label_w	  = measure_text_width(rows[i].text, is_title ? theme.font_title : theme.font_default, is_title ? style.title_size : style.text_size);
 			const f32  shortcut_w = is_title ? 0.0f : measure_text_width(rows[i].shortcut, theme.font_title_bold, style.shortcut_size);
 			f32		   row_w	  = style.padding_x * 2.0f + label_w;
@@ -488,7 +463,7 @@ namespace sfg
 				row_w += style.title_gap + style.shortcut_gap * 1.25f;
 			else if (shortcut_w > 0.0f)
 				row_w += style.shortcut_gap + shortcut_w;
-			if (!is_title && has_icon_slot(rows[i]))
+			if (!is_title && (rows[i].icon != nullptr || (!rows[i].disabled && rows[i].child_count > 0) || rows[i].kind == editor_action_menu_row_kind_e::toggle))
 				row_w += (shortcut_w > 0.0f ? style.padding_x : style.shortcut_gap) + style.icon_size;
 			width = math::max(width, row_w);
 		}
@@ -526,7 +501,7 @@ namespace sfg
 
 		for (u32 i = 0; i < row_count; ++i)
 		{
-			const bool is_title = is_title_row(rows[i]);
+			const bool is_title = rows[i].kind == editor_action_menu_row_kind_e::title;
 			const bool disabled = rows[i].disabled;
 			set_widget_visible(tree, _row_frames[depth][i], true, !is_title && !disabled);
 			tree.in(_row_frames[depth][i]).size_value.y = style.row_height;
@@ -560,13 +535,13 @@ namespace sfg
 							.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 			set_widget_visible(tree, _row_labels[depth][i], true, false);
 
-			if (!is_title && text_len(rows[i].shortcut) > 0)
+			if (!is_title && (rows[i].shortcut != nullptr ? static_cast<u32>(strlen(rows[i].shortcut)) : 0) > 0)
 			{
 				_ui->set_widget_text(_row_shortcuts[depth][i], rows[i].shortcut);
 				set_widget_visible(tree, _row_shortcuts[depth][i], true, false);
 				ui::layout_in_t& shortcut_in = tree.in(_row_shortcuts[depth][i]);
 				shortcut_in.pos_value		 = {1.0f - (style.padding_x / width), 0.5f};
-				if (has_icon_slot(rows[i]))
+				if (rows[i].icon != nullptr || (!rows[i].disabled && rows[i].child_count > 0) || rows[i].kind == editor_action_menu_row_kind_e::toggle)
 					shortcut_in.pos_value.x = 1.0f - ((style.padding_x * 2.0f + style.icon_size) / width);
 				paint.def(_row_shortcuts[depth][i]).text.color		= disabled ? style.disabled_text_color : style.shortcut_color;
 				paint.def(_row_shortcuts[depth][i]).text.point_size = style.shortcut_size;
@@ -674,7 +649,7 @@ namespace sfg
 
 	f32 editor_action_menu_controller_t::measure_text_width(const char* text, resource_handle_t font_handle, f32 point_size) const
 	{
-		const u32 len = text_len(text);
+		const u32 len = text != nullptr ? static_cast<u32>(strlen(text)) : 0;
 		if (len == 0)
 			return 0.0f;
 
