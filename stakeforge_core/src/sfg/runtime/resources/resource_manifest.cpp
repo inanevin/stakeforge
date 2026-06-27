@@ -18,10 +18,36 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(resource_manifest_entry_t, name), .size = sizeof(string_t)},
-			{.name = "path", .display_name = "Path", .type = reflected_value_type_e::string, .offset = offsetof(resource_manifest_entry_t, path), .size = sizeof(string_t)},
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = type_id_t<resource_type_e>::value, .offset = offsetof(resource_manifest_entry_t, type), .size = sizeof(resource_type_e)},
-			{.name = "config", .display_name = "Config", .type = reflected_value_type_e::json, .offset = offsetof(resource_manifest_entry_t, config), .size = sizeof(nlohmann::json), .flags = reflected_field_flags_no_ui},
+			{
+				.name		  = "name",
+				.display_name = "Name",
+				.type		  = reflected_value_type_e::string,
+				.offset		  = offsetof(resource_manifest_entry_t, name),
+				.size		  = sizeof(string_t),
+			},
+			{
+				.name		  = "path",
+				.display_name = "Path",
+				.type		  = reflected_value_type_e::string,
+				.offset		  = offsetof(resource_manifest_entry_t, path),
+				.size		  = sizeof(string_t),
+			},
+			{
+				.name		  = "type",
+				.display_name = "Type",
+				.type		  = reflected_value_type_e::enum8,
+				.sub_type_id  = type_id_t<resource_type_e>::value,
+				.offset		  = offsetof(resource_manifest_entry_t, type),
+				.size		  = sizeof(resource_type_e),
+			},
+			{
+				.name		  = "config",
+				.display_name = "Config",
+				.type		  = reflected_value_type_e::json,
+				.offset		  = offsetof(resource_manifest_entry_t, config),
+				.size		  = sizeof(nlohmann::json),
+				.flags		  = reflected_field_flags_no_ui,
+			},
 		};
 
 		registry.register_type({

@@ -272,14 +272,22 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name			= "include_dirs",
-			 .display_name	= "Include Directories",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= "string"_hs,
-			 .container_ops = reflected_vector_ops<string_t>(),
-			 .offset		= offsetof(shader_cook_config_t, include_dirs),
-			 .size			= sizeof(vector_t<string_t>)},
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = type_id_t<shader_type_e>::value, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e)},
+			{
+				.name		  = "include_dirs",
+				.display_name = "Include Directories",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = "string"_hs,
+				.offset		  = offsetof(shader_cook_config_t, include_dirs),
+				.size		  = sizeof(vector_t<string_t>),
+			},
+			{
+				.name		  = "type",
+				.display_name = "Type",
+				.type		  = reflected_value_type_e::enum8,
+				.sub_type_id  = type_id_t<shader_type_e>::value,
+				.offset		  = offsetof(shader_cook_config_t, type),
+				.size		  = sizeof(shader_type_e),
+			},
 		};
 
 		registry.register_type({

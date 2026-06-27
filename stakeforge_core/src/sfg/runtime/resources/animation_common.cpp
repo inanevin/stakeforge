@@ -41,9 +41,24 @@ namespace sfg
 			return;
 
 		static const reflected_enum_value_desc_t values[] = {
-			{.name = "linear", .display_name = "Linear", .id = "linear"_hs, .value = static_cast<i64>(animation_interpolation_e::linear)},
-			{.name = "step", .display_name = "Step", .id = "step"_hs, .value = static_cast<i64>(animation_interpolation_e::step)},
-			{.name = "cubic_spline", .display_name = "Cubic Spline", .id = "cubic_spline"_hs, .value = static_cast<i64>(animation_interpolation_e::cubic_spline)},
+			{
+				.name		  = "linear",
+				.display_name = "Linear",
+				.id			  = "linear"_hs,
+				.value		  = static_cast<i64>(animation_interpolation_e::linear),
+			},
+			{
+				.name		  = "step",
+				.display_name = "Step",
+				.id			  = "step"_hs,
+				.value		  = static_cast<i64>(animation_interpolation_e::step),
+			},
+			{
+				.name		  = "cubic_spline",
+				.display_name = "Cubic Spline",
+				.id			  = "cubic_spline"_hs,
+				.value		  = static_cast<i64>(animation_interpolation_e::cubic_spline),
+			},
 		};
 
 		registry.register_type({
@@ -62,8 +77,21 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "time", .display_name = "Time", .type = reflected_value_type_e::f32, .offset = offsetof(animation_keyframe_v3_t, time), .size = sizeof(f32)},
-			{.name = "value", .display_name = "Value", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_t, value), .size = sizeof(vec3f_t)},
+			{
+				.name		  = "time",
+				.display_name = "Time",
+				.type		  = reflected_value_type_e::f32,
+				.offset		  = offsetof(animation_keyframe_v3_t, time),
+				.size		  = sizeof(f32),
+			},
+			{
+				.name		   = "value",
+				.display_name  = "Value",
+				.type		   = reflected_value_type_e::object,
+				.value_type_id = type_id_t<vec3f_t>::value,
+				.offset		   = offsetof(animation_keyframe_v3_t, value),
+				.size		   = sizeof(vec3f_t),
+			},
 		};
 
 		registry.register_type({
@@ -82,10 +110,37 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "time", .display_name = "Time", .type = reflected_value_type_e::f32, .offset = offsetof(animation_keyframe_v3_spline_t, time), .size = sizeof(f32)},
-			{.name = "in_tangent", .display_name = "In Tangent", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, in_tangent), .size = sizeof(vec3f_t)},
-			{.name = "value", .display_name = "Value", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, value), .size = sizeof(vec3f_t)},
-			{.name = "out_tangent", .display_name = "Out Tangent", .type = reflected_value_type_e::object, .value_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, out_tangent), .size = sizeof(vec3f_t)},
+			{
+				.name		  = "time",
+				.display_name = "Time",
+				.type		  = reflected_value_type_e::f32,
+				.offset		  = offsetof(animation_keyframe_v3_spline_t, time),
+				.size		  = sizeof(f32),
+			},
+			{
+				.name		   = "in_tangent",
+				.display_name  = "In Tangent",
+				.type		   = reflected_value_type_e::object,
+				.value_type_id = type_id_t<vec3f_t>::value,
+				.offset		   = offsetof(animation_keyframe_v3_spline_t, in_tangent),
+				.size		   = sizeof(vec3f_t),
+			},
+			{
+				.name		   = "value",
+				.display_name  = "Value",
+				.type		   = reflected_value_type_e::object,
+				.value_type_id = type_id_t<vec3f_t>::value,
+				.offset		   = offsetof(animation_keyframe_v3_spline_t, value),
+				.size		   = sizeof(vec3f_t),
+			},
+			{
+				.name		   = "out_tangent",
+				.display_name  = "Out Tangent",
+				.type		   = reflected_value_type_e::object,
+				.value_type_id = type_id_t<vec3f_t>::value,
+				.offset		   = offsetof(animation_keyframe_v3_spline_t, out_tangent),
+				.size		   = sizeof(vec3f_t),
+			},
 		};
 
 		registry.register_type({
@@ -104,8 +159,20 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "time", .display_name = "Time", .type = reflected_value_type_e::f32, .offset = offsetof(animation_keyframe_q_t, time), .size = sizeof(f32)},
-			{.name = "value", .display_name = "Value", .type = reflected_value_type_e::quat, .offset = offsetof(animation_keyframe_q_t, value), .size = sizeof(quat_t)},
+			{
+				.name		  = "time",
+				.display_name = "Time",
+				.type		  = reflected_value_type_e::f32,
+				.offset		  = offsetof(animation_keyframe_q_t, time),
+				.size		  = sizeof(f32),
+			},
+			{
+				.name		  = "value",
+				.display_name = "Value",
+				.type		  = reflected_value_type_e::quat,
+				.offset		  = offsetof(animation_keyframe_q_t, value),
+				.size		  = sizeof(quat_t),
+			},
 		};
 
 		registry.register_type({
@@ -124,10 +191,34 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "time", .display_name = "Time", .type = reflected_value_type_e::f32, .offset = offsetof(animation_keyframe_q_spline_t, time), .size = sizeof(f32)},
-			{.name = "in_tangent", .display_name = "In Tangent", .type = reflected_value_type_e::quat, .offset = offsetof(animation_keyframe_q_spline_t, in_tangent), .size = sizeof(quat_t)},
-			{.name = "value", .display_name = "Value", .type = reflected_value_type_e::quat, .offset = offsetof(animation_keyframe_q_spline_t, value), .size = sizeof(quat_t)},
-			{.name = "out_tangent", .display_name = "Out Tangent", .type = reflected_value_type_e::quat, .offset = offsetof(animation_keyframe_q_spline_t, out_tangent), .size = sizeof(quat_t)},
+			{
+				.name		  = "time",
+				.display_name = "Time",
+				.type		  = reflected_value_type_e::f32,
+				.offset		  = offsetof(animation_keyframe_q_spline_t, time),
+				.size		  = sizeof(f32),
+			},
+			{
+				.name		  = "in_tangent",
+				.display_name = "In Tangent",
+				.type		  = reflected_value_type_e::quat,
+				.offset		  = offsetof(animation_keyframe_q_spline_t, in_tangent),
+				.size		  = sizeof(quat_t),
+			},
+			{
+				.name		  = "value",
+				.display_name = "Value",
+				.type		  = reflected_value_type_e::quat,
+				.offset		  = offsetof(animation_keyframe_q_spline_t, value),
+				.size		  = sizeof(quat_t),
+			},
+			{
+				.name		  = "out_tangent",
+				.display_name = "Out Tangent",
+				.type		  = reflected_value_type_e::quat,
+				.offset		  = offsetof(animation_keyframe_q_spline_t, out_tangent),
+				.size		  = sizeof(quat_t),
+			},
 		};
 
 		registry.register_type({

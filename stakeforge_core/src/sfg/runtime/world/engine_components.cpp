@@ -436,14 +436,6 @@ namespace sfg
 					.size		  = sizeof(u8),
 				},
 				{
-					.name		  = "resource_value",
-					.display_name = "Resource",
-					.tooltip	  = "Debug reflected generic resource handle.",
-					.type		  = reflected_value_type_e::resource,
-					.offset		  = offsetof(component_debug_widgets_t, resource_value),
-					.size		  = sizeof(resource_handle_t),
-				},
-				{
 					.name		  = "audio_handle_value",
 					.display_name = "Audio Handle",
 					.tooltip	  = "Debug reflected audio handle.",

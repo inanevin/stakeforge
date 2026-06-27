@@ -43,7 +43,6 @@ namespace sfg
 	namespace
 	{
 #define WORLD_COOK_RESOURCE_HANDLE_CASES                                                                                                                                                                                                                           \
-	case reflected_value_type_e::resource:                                                                                                                                                                                                                         \
 	case reflected_value_type_e::audio_handle:                                                                                                                                                                                                                     \
 	case reflected_value_type_e::font_handle:                                                                                                                                                                                                                      \
 	case reflected_value_type_e::mesh_handle:                                                                                                                                                                                                                      \
@@ -77,11 +76,6 @@ namespace sfg
 			default:
 				return false;
 			}
-		}
-
-		bool is_reflected_container_ops_valid(const reflected_container_ops_t& ops)
-		{
-			return ops.get_count != nullptr && ops.get_const_item != nullptr;
 		}
 
 		bool is_entity_no_serialize(const world_t& world, entity_id_t entity)
@@ -156,30 +150,12 @@ namespace sfg
 				return;
 
 			const reflected_value_type_e item_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
-			if (is_reflected_container_ops_valid(field.container_ops))
-			{
-				const u32 count = field.container_ops.get_count(object, field);
-				for (u32 i = 0; i < count; ++i)
-				{
-					const void* item = field.container_ops.get_const_item(object, field, i);
-					if (is_resource_type(item_type))
-						add_unique_resource_handle(out_resources, *static_cast<const resource_handle_t*>(item));
-					else if (item_type == reflected_value_type_e::invalid)
-					{
-						const reflected_type_desc_t* item_reflected_type = reflection_registry_t::get().find_type(field.sub_type_id);
-						if (item_reflected_type != nullptr)
-							collect_resource_handles_from_type(item, *item_reflected_type, out_resources);
-					}
-				}
-				return;
-			}
-
 			if (!is_resource_type(item_type))
 				return;
 
 			if (field.type == reflected_value_type_e::vector)
 			{
-				const vector_t<resource_handle_t>& handles = get_reflected_vector_field<resource_handle_t>(object, field);
+				const vector_t<resource_handle_t>& handles = *reinterpret_cast<const vector_t<resource_handle_t>*>(static_cast<const u8*>(object) + field.offset);
 				for (resource_handle_t handle : handles)
 					add_unique_resource_handle(out_resources, handle);
 				return;

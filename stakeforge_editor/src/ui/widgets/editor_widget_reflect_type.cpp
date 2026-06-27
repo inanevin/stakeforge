@@ -155,6 +155,8 @@ namespace sfg
 				return static_cast<f32>(read_reflected_value<i8>(object, field));
 			case reflected_value_type_e::u32:
 				return static_cast<f32>(read_reflected_value<u32>(object, field));
+			case reflected_value_type_e::u64:
+				return static_cast<f32>(read_reflected_value<u64>(object, field));
 			case reflected_value_type_e::u16:
 				return static_cast<f32>(read_reflected_value<u16>(object, field));
 			case reflected_value_type_e::size_t:
@@ -184,6 +186,9 @@ namespace sfg
 				break;
 			case reflected_value_type_e::u32:
 				write_reflected_value(object, field, static_cast<u32>(value < 0.0f ? 0.0f : value));
+				break;
+			case reflected_value_type_e::u64:
+				write_reflected_value(object, field, static_cast<u64>(value < 0.0f ? 0.0f : value));
 				break;
 			case reflected_value_type_e::u16:
 				write_reflected_value(object, field, static_cast<u16>(value < 0.0f ? 0.0f : (value > 65535.0f ? 65535.0f : value)));
@@ -633,6 +638,7 @@ namespace sfg
 		case reflected_value_type_e::i16:
 		case reflected_value_type_e::i8:
 		case reflected_value_type_e::u32:
+		case reflected_value_type_e::u64:
 		case reflected_value_type_e::u16:
 		case reflected_value_type_e::size_t:
 		case reflected_value_type_e::u8: {
@@ -902,32 +908,6 @@ namespace sfg
 		if (!unfolded)
 			return;
 
-		const reflected_container_ops_t& container_ops = field.container_ops;
-		if (container_ops.is_valid())
-		{
-			const reflected_field_desc_t item_field = get_vector_item_field(field);
-			if (item_field.type == reflected_value_type_e::invalid)
-				return;
-
-			const u32 item_count = container_ops.get_count(_object, field);
-			for (u32 i = 0; i < item_count; ++i)
-			{
-				char item_label[32] = {};
-				std::snprintf(item_label, sizeof(item_label), "[%u]", i);
-				const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, item_label, true, true);
-				set_field_tooltip(*_ui, row.label, field);
-				_rows.push_back(row);
-				_vector_item_fields.push_back(item_field);
-				_vector_item_controls.push_back({.owner = this, .field = &field, .index = i});
-				ui::listener_bundle_t remove_listener = {};
-				remove_listener.user_data			  = &_vector_item_controls.back();
-				remove_listener.on_click			  = on_vector_item_remove_click;
-				_ui->get_input().set_listener(row.remove_button, remove_listener);
-				install_reflected_control(row.right, _vector_item_fields.back(), container_ops.get_item(_object, field, i), field, _object);
-			}
-			return;
-		}
-
 		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
 		const reflected_field_desc_t item_field = get_vector_item_field(field);
 
@@ -969,6 +949,9 @@ namespace sfg
 		case reflected_value_type_e::enum32:
 			install_items.template operator()<u32>();
 			break;
+		case reflected_value_type_e::u64:
+			install_items.template operator()<u64>();
+			break;
 		case reflected_value_type_e::u16:
 			install_items.template operator()<u16>();
 			break;
@@ -983,7 +966,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			install_items.template operator()<u8>();
 			break;
-		case reflected_value_type_e::resource:
 			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			install_items.template operator()<sid_t>();
 			break;
@@ -1003,10 +985,6 @@ namespace sfg
 
 	u32 editor_widget_reflect_type_t::get_vector_item_count(const reflected_field_desc_t& field) const
 	{
-		const reflected_container_ops_t& container_ops = field.container_ops;
-		if (container_ops.is_valid())
-			return container_ops.get_count(_object, field);
-
 		auto get_count = [&]<typename T>() { return get_reflected_container_item_count<T>(_object, field); };
 
 		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
@@ -1022,6 +1000,8 @@ namespace sfg
 		case reflected_value_type_e::u32:
 		case reflected_value_type_e::enum32:
 			return get_count.template operator()<u32>();
+		case reflected_value_type_e::u64:
+			return get_count.template operator()<u64>();
 		case reflected_value_type_e::u16:
 			return get_count.template operator()<u16>();
 		case reflected_value_type_e::size_t:
@@ -1032,7 +1012,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			return get_count.template operator()<u8>();
-		case reflected_value_type_e::resource:
 			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			return get_count.template operator()<sid_t>();
 		case reflected_value_type_e::string:
@@ -1077,17 +1056,8 @@ namespace sfg
 		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
-		ostream_t						 old_value;
-		const bool						 reflected_edit = begin_reflected_edit(field, _object, old_value);
-		const reflected_container_ops_t& container_ops	= field.container_ops;
-		if (container_ops.is_valid())
-		{
-			container_ops.clear(_object, field);
-			if (reflected_edit)
-				end_reflected_edit(field, _object, old_value);
-			rebuild_reflected_controls();
-			return;
-		}
+		ostream_t  old_value;
+		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
 
 		auto clear_items = [&]<typename T>() {
 			clear_reflected_container<T>(_object, field);
@@ -1114,6 +1084,9 @@ namespace sfg
 		case reflected_value_type_e::enum32:
 			clear_items.template operator()<u32>();
 			break;
+		case reflected_value_type_e::u64:
+			clear_items.template operator()<u64>();
+			break;
 		case reflected_value_type_e::u16:
 			clear_items.template operator()<u16>();
 			break;
@@ -1128,7 +1101,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			clear_items.template operator()<u8>();
 			break;
-		case reflected_value_type_e::resource:
 			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			clear_items.template operator()<sid_t>();
 			break;
@@ -1151,17 +1123,8 @@ namespace sfg
 		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
-		ostream_t						 old_value;
-		const bool						 reflected_edit = begin_reflected_edit(field, _object, old_value);
-		const reflected_container_ops_t& container_ops	= field.container_ops;
-		if (container_ops.is_valid())
-		{
-			container_ops.add(_object, field);
-			if (reflected_edit)
-				end_reflected_edit(field, _object, old_value);
-			rebuild_reflected_controls();
-			return;
-		}
+		ostream_t  old_value;
+		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
 
 		auto add_item = [&]<typename T>() {
 			add_reflected_container_item<T>(_object, field);
@@ -1188,6 +1151,9 @@ namespace sfg
 		case reflected_value_type_e::enum32:
 			add_item.template operator()<u32>();
 			break;
+		case reflected_value_type_e::u64:
+			add_item.template operator()<u64>();
+			break;
 		case reflected_value_type_e::u16:
 			add_item.template operator()<u16>();
 			break;
@@ -1202,7 +1168,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			add_item.template operator()<u8>();
 			break;
-		case reflected_value_type_e::resource:
 			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			add_item.template operator()<sid_t>();
 			break;
@@ -1225,17 +1190,8 @@ namespace sfg
 		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
-		ostream_t						 old_value;
-		const bool						 reflected_edit = begin_reflected_edit(field, _object, old_value);
-		const reflected_container_ops_t& container_ops	= field.container_ops;
-		if (container_ops.is_valid())
-		{
-			container_ops.remove(_object, field, index);
-			if (reflected_edit)
-				end_reflected_edit(field, _object, old_value);
-			rebuild_reflected_controls();
-			return;
-		}
+		ostream_t  old_value;
+		const bool reflected_edit = begin_reflected_edit(field, _object, old_value);
 
 		auto remove_item = [&]<typename T>() {
 			remove_reflected_container_item<T>(_object, field, index);
@@ -1262,6 +1218,9 @@ namespace sfg
 		case reflected_value_type_e::enum32:
 			remove_item.template operator()<u32>();
 			break;
+		case reflected_value_type_e::u64:
+			remove_item.template operator()<u64>();
+			break;
 		case reflected_value_type_e::u16:
 			remove_item.template operator()<u16>();
 			break;
@@ -1276,7 +1235,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			remove_item.template operator()<u8>();
 			break;
-		case reflected_value_type_e::resource:
 			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
 			remove_item.template operator()<sid_t>();
 			break;

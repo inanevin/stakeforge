@@ -41,10 +41,36 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(skeleton_joint_def_t, name), .size = sizeof(string_t)},
-			{.name = "name_hash", .display_name = "Name Hash", .type = reflected_value_type_e::resource, .offset = offsetof(skeleton_joint_def_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flags_no_ui},
-			{.name = "parent_index", .display_name = "Parent Index", .type = reflected_value_type_e::u32, .offset = offsetof(skeleton_joint_def_t, parent_index), .size = sizeof(u32)},
-			{.name = "inverse_bind", .display_name = "Inverse Bind", .type = reflected_value_type_e::object, .value_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_joint_def_t, inverse_bind), .size = sizeof(mat4x3_t)},
+			{
+				.name		  = "name",
+				.display_name = "Name",
+				.type		  = reflected_value_type_e::string,
+				.offset		  = offsetof(skeleton_joint_def_t, name),
+				.size		  = sizeof(string_t),
+			},
+			{
+				.name		  = "name_hash",
+				.display_name = "Name Hash",
+				.type		  = reflected_value_type_e::u64,
+				.offset		  = offsetof(skeleton_joint_def_t, name_hash),
+				.size		  = sizeof(sid_t),
+				.flags		  = reflected_field_flags_no_ui,
+			},
+			{
+				.name		  = "parent_index",
+				.display_name = "Parent Index",
+				.type		  = reflected_value_type_e::u32,
+				.offset		  = offsetof(skeleton_joint_def_t, parent_index),
+				.size		  = sizeof(u32),
+			},
+			{
+				.name		   = "inverse_bind",
+				.display_name  = "Inverse Bind",
+				.type		   = reflected_value_type_e::object,
+				.value_type_id = type_id_t<mat4x3_t>::value,
+				.offset		   = offsetof(skeleton_joint_def_t, inverse_bind),
+				.size		   = sizeof(mat4x3_t),
+			},
 		};
 
 		registry.register_type({
@@ -63,15 +89,28 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(skeleton_def_t, name), .size = sizeof(string_t)},
-			{.name			= "joints",
-			 .display_name	= "Joints",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= type_id_t<skeleton_joint_def_t>::value,
-			 .container_ops = reflected_vector_ops<skeleton_joint_def_t>(),
-			 .offset		= offsetof(skeleton_def_t, joints),
-			 .size			= sizeof(vector_t<skeleton_joint_def_t>)},
-			{.name = "root_index", .display_name = "Root Index", .type = reflected_value_type_e::u32, .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32)},
+			{
+				.name		  = "name",
+				.display_name = "Name",
+				.type		  = reflected_value_type_e::string,
+				.offset		  = offsetof(skeleton_def_t, name),
+				.size		  = sizeof(string_t),
+			},
+			{
+				.name		  = "joints",
+				.display_name = "Joints",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = type_id_t<skeleton_joint_def_t>::value,
+				.offset		  = offsetof(skeleton_def_t, joints),
+				.size		  = sizeof(vector_t<skeleton_joint_def_t>),
+			},
+			{
+				.name		  = "root_index",
+				.display_name = "Root Index",
+				.type		  = reflected_value_type_e::u32,
+				.offset		  = offsetof(skeleton_def_t, root_joint_index),
+				.size		  = sizeof(u32),
+			},
 		};
 
 		registry.register_type({

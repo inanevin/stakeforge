@@ -37,16 +37,44 @@ namespace sfg
 	namespace
 	{
 		static const reflected_enum_value_desc_t texture_payload_type_values[] = {
-			{.name = "uncompressed", .display_name = "Uncompressed", .value = static_cast<i64>(texture_payload_type_e::uncompressed)},
-			{.name = "png", .display_name = "PNG", .value = static_cast<i64>(texture_payload_type_e::png)},
-			{.name = "ktx2_uastc", .display_name = "KTX2 UASTC", .value = static_cast<i64>(texture_payload_type_e::ktx2_uastc)},
+			{
+				.name		  = "uncompressed",
+				.display_name = "Uncompressed",
+				.value		  = static_cast<i64>(texture_payload_type_e::uncompressed),
+			},
+			{
+				.name		  = "png",
+				.display_name = "PNG",
+				.value		  = static_cast<i64>(texture_payload_type_e::png),
+			},
+			{
+				.name		  = "ktx2_uastc",
+				.display_name = "KTX2 UASTC",
+				.value		  = static_cast<i64>(texture_payload_type_e::ktx2_uastc),
+			},
 		};
 
 		static const reflected_enum_value_desc_t texture_ktx2_compression_values[] = {
-			{.name = "fastest", .display_name = "Fastest", .value = static_cast<i64>(texture_ktx2_compression_e::fastest)},
-			{.name = "faster", .display_name = "Faster", .value = static_cast<i64>(texture_ktx2_compression_e::faster)},
-			{.name = "default_quality", .display_name = "Default Quality", .value = static_cast<i64>(texture_ktx2_compression_e::default_quality)},
-			{.name = "high_quality", .display_name = "High Quality", .value = static_cast<i64>(texture_ktx2_compression_e::high_quality)},
+			{
+				.name		  = "fastest",
+				.display_name = "Fastest",
+				.value		  = static_cast<i64>(texture_ktx2_compression_e::fastest),
+			},
+			{
+				.name		  = "faster",
+				.display_name = "Faster",
+				.value		  = static_cast<i64>(texture_ktx2_compression_e::faster),
+			},
+			{
+				.name		  = "default_quality",
+				.display_name = "Default Quality",
+				.value		  = static_cast<i64>(texture_ktx2_compression_e::default_quality),
+			},
+			{
+				.name		  = "high_quality",
+				.display_name = "High Quality",
+				.value		  = static_cast<i64>(texture_ktx2_compression_e::high_quality),
+			},
 		};
 	}
 

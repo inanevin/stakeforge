@@ -69,20 +69,76 @@ namespace sfg
 	namespace
 	{
 		static const reflected_enum_value_desc_t resource_type_values[] = {
-			{.name = "invalid", .display_name = "Invalid", .value = static_cast<i64>(resource_type_e::invalid)},
-			{.name = "audio", .display_name = "Audio", .value = static_cast<i64>(resource_type_e::audio)},
-			{.name = "font", .display_name = "Font", .value = static_cast<i64>(resource_type_e::font)},
-			{.name = "mesh", .display_name = "Mesh", .value = static_cast<i64>(resource_type_e::mesh)},
-			{.name = "skeleton", .display_name = "Skeleton", .value = static_cast<i64>(resource_type_e::skeleton)},
-			{.name = "animation", .display_name = "Animation", .value = static_cast<i64>(resource_type_e::animation)},
-			{.name = "material", .display_name = "Material", .value = static_cast<i64>(resource_type_e::material)},
-			{.name = "shader", .display_name = "Shader", .value = static_cast<i64>(resource_type_e::shader)},
-			{.name = "texture", .display_name = "Texture", .value = static_cast<i64>(resource_type_e::texture)},
-			{.name = "texture_sampler", .display_name = "Texture Sampler", .value = static_cast<i64>(resource_type_e::texture_sampler)},
-			{.name = "physical_material", .display_name = "Physical Material", .value = static_cast<i64>(resource_type_e::physical_material)},
-			{.name = "prefab", .display_name = "Prefab", .value = static_cast<i64>(resource_type_e::prefab)},
-			{.name = "animation_state_machine", .display_name = "Animation State Machine", .value = static_cast<i64>(resource_type_e::animation_state_machine)},
-			{.name = "hdr_skybox", .display_name = "HDR Skybox", .value = static_cast<i64>(resource_type_e::hdr_skybox)},
+			{
+				.name		  = "invalid",
+				.display_name = "Invalid",
+				.value		  = static_cast<i64>(resource_type_e::invalid),
+			},
+			{
+				.name		  = "audio",
+				.display_name = "Audio",
+				.value		  = static_cast<i64>(resource_type_e::audio),
+			},
+			{
+				.name		  = "font",
+				.display_name = "Font",
+				.value		  = static_cast<i64>(resource_type_e::font),
+			},
+			{
+				.name		  = "mesh",
+				.display_name = "Mesh",
+				.value		  = static_cast<i64>(resource_type_e::mesh),
+			},
+			{
+				.name		  = "skeleton",
+				.display_name = "Skeleton",
+				.value		  = static_cast<i64>(resource_type_e::skeleton),
+			},
+			{
+				.name		  = "animation",
+				.display_name = "Animation",
+				.value		  = static_cast<i64>(resource_type_e::animation),
+			},
+			{
+				.name		  = "material",
+				.display_name = "Material",
+				.value		  = static_cast<i64>(resource_type_e::material),
+			},
+			{
+				.name		  = "shader",
+				.display_name = "Shader",
+				.value		  = static_cast<i64>(resource_type_e::shader),
+			},
+			{
+				.name		  = "texture",
+				.display_name = "Texture",
+				.value		  = static_cast<i64>(resource_type_e::texture),
+			},
+			{
+				.name		  = "texture_sampler",
+				.display_name = "Texture Sampler",
+				.value		  = static_cast<i64>(resource_type_e::texture_sampler),
+			},
+			{
+				.name		  = "physical_material",
+				.display_name = "Physical Material",
+				.value		  = static_cast<i64>(resource_type_e::physical_material),
+			},
+			{
+				.name		  = "prefab",
+				.display_name = "Prefab",
+				.value		  = static_cast<i64>(resource_type_e::prefab),
+			},
+			{
+				.name		  = "animation_state_machine",
+				.display_name = "Animation State Machine",
+				.value		  = static_cast<i64>(resource_type_e::animation_state_machine),
+			},
+			{
+				.name		  = "hdr_skybox",
+				.display_name = "HDR Skybox",
+				.value		  = static_cast<i64>(resource_type_e::hdr_skybox),
+			},
 		};
 	}
 

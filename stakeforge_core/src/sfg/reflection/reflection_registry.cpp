@@ -79,6 +79,8 @@ namespace sfg
 			return reflected_value_type_e::i8;
 		if (sub_type_id == "u32"_hs)
 			return reflected_value_type_e::u32;
+		if (sub_type_id == "u64"_hs)
+			return reflected_value_type_e::u64;
 		if (sub_type_id == "u16"_hs)
 			return reflected_value_type_e::u16;
 		if (sub_type_id == "u8"_hs)
@@ -87,8 +89,6 @@ namespace sfg
 			return reflected_value_type_e::size_t;
 		if (sub_type_id == "bool"_hs || sub_type_id == "bool8"_hs)
 			return reflected_value_type_e::bool8;
-		if (sub_type_id == "resource"_hs)
-			return reflected_value_type_e::resource;
 		if (sub_type_id == "audio_handle"_hs)
 			return reflected_value_type_e::audio_handle;
 		if (sub_type_id == "font_handle"_hs)
@@ -146,6 +146,8 @@ namespace sfg
 			return sizeof(i8);
 		case reflected_value_type_e::u32:
 			return sizeof(u32);
+		case reflected_value_type_e::u64:
+			return sizeof(u64);
 		case reflected_value_type_e::u16:
 			return sizeof(u16);
 		case reflected_value_type_e::size_t:
@@ -154,7 +156,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			return sizeof(u8);
-		case reflected_value_type_e::resource:
 		case reflected_value_type_e::audio_handle:
 		case reflected_value_type_e::font_handle:
 		case reflected_value_type_e::mesh_handle:
@@ -716,94 +717,6 @@ namespace sfg
 			return true;
 		}
 
-		bool reflected_container_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& out)
-		{
-			const reflected_container_ops_t& ops = field.container_ops;
-			if (!ops.is_valid())
-				return false;
-
-			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			if (item_field.type == reflected_value_type_e::invalid)
-				return false;
-
-			out			   = nlohmann::json::array();
-			const u32 size = ops.get_count(object, field);
-			for (u32 i = 0; i < size; ++i)
-			{
-				nlohmann::json item = {};
-				if (!reflected_field_to_json(ops.get_const_item(object, field, i), item_field, item))
-					return false;
-				out.push_back(item);
-			}
-			return true;
-		}
-
-		bool reflected_container_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
-		{
-			if (!j.is_array())
-				return true;
-
-			const reflected_container_ops_t& ops = field.container_ops;
-			if (!ops.is_valid())
-				return false;
-
-			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			if (item_field.type == reflected_value_type_e::invalid)
-				return false;
-			if (!ops.resize(object, field, static_cast<u32>(j.size())))
-				return false;
-
-			for (u32 i = 0; i < j.size(); ++i)
-			{
-				if (!reflected_field_from_json(ops.get_item(object, field, i), item_field, j.at(i)))
-					return false;
-			}
-			return true;
-		}
-
-		bool reflected_container_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
-		{
-			const reflected_container_ops_t& ops = field.container_ops;
-			if (!ops.is_valid())
-				return false;
-
-			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			if (item_field.type == reflected_value_type_e::invalid)
-				return false;
-
-			const u32 size = ops.get_count(object, field);
-			stream << size;
-			for (u32 i = 0; i < size; ++i)
-			{
-				if (!reflected_field_to_stream(ops.get_const_item(object, field, i), item_field, stream))
-					return false;
-			}
-			return true;
-		}
-
-		bool reflected_container_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
-		{
-			u32 size = 0;
-			stream >> size;
-
-			const reflected_container_ops_t& ops = field.container_ops;
-			if (!ops.is_valid())
-				return false;
-
-			const reflected_field_desc_t item_field = reflected_container_item_field(field);
-			if (item_field.type == reflected_value_type_e::invalid)
-				return false;
-			if (!ops.resize(object, field, size))
-				return false;
-
-			for (u32 i = 0; i < size; ++i)
-			{
-				if (!reflected_field_from_stream(ops.get_item(object, field, i), item_field, stream))
-					return false;
-			}
-			return true;
-		}
-
 		bool reflected_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
@@ -820,6 +733,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<u32>*>(static_cast<const u8*>(object) + field.offset), field, j);
+			case reflected_value_type_e::u64:
+				return reflected_vector_to_json(*reinterpret_cast<const vector_t<u64>*>(static_cast<const u8*>(object) + field.offset), field, j);
 			case reflected_value_type_e::u16:
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<u16>*>(static_cast<const u8*>(object) + field.offset), field, j);
 			case reflected_value_type_e::size_t:
@@ -830,7 +745,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<u8>*>(static_cast<const u8*>(object) + field.offset), field, j);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<sid_t>*>(static_cast<const u8*>(object) + field.offset), field, j);
 			case reflected_value_type_e::string:
@@ -860,6 +774,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_to_json<u32>(object, field, j);
+			case reflected_value_type_e::u64:
+				return reflected_inplace_vector_to_json<u64>(object, field, j);
 			case reflected_value_type_e::u16:
 				return reflected_inplace_vector_to_json<u16>(object, field, j);
 			case reflected_value_type_e::size_t:
@@ -870,7 +786,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_to_json<u8>(object, field, j);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_inplace_vector_to_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
@@ -900,6 +815,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_from_json<u32>(object, field, j);
+			case reflected_value_type_e::u64:
+				return reflected_vector_from_json<u64>(object, field, j);
 			case reflected_value_type_e::u16:
 				return reflected_vector_from_json<u16>(object, field, j);
 			case reflected_value_type_e::size_t:
@@ -910,7 +827,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_from_json<u8>(object, field, j);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
@@ -940,6 +856,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_from_json<u32>(object, field, j);
+			case reflected_value_type_e::u64:
+				return reflected_inplace_vector_from_json<u64>(object, field, j);
 			case reflected_value_type_e::u16:
 				return reflected_inplace_vector_from_json<u16>(object, field, j);
 			case reflected_value_type_e::size_t:
@@ -950,7 +868,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_from_json<u8>(object, field, j);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_inplace_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
@@ -980,6 +897,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<u32>*>(static_cast<const u8*>(object) + field.offset), field, stream);
+			case reflected_value_type_e::u64:
+				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<u64>*>(static_cast<const u8*>(object) + field.offset), field, stream);
 			case reflected_value_type_e::u16:
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<u16>*>(static_cast<const u8*>(object) + field.offset), field, stream);
 			case reflected_value_type_e::size_t:
@@ -990,7 +909,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<u8>*>(static_cast<const u8*>(object) + field.offset), field, stream);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<sid_t>*>(static_cast<const u8*>(object) + field.offset), field, stream);
 			case reflected_value_type_e::string:
@@ -1020,6 +938,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_to_stream<u32>(object, field, stream);
+			case reflected_value_type_e::u64:
+				return reflected_inplace_vector_to_stream<u64>(object, field, stream);
 			case reflected_value_type_e::u16:
 				return reflected_inplace_vector_to_stream<u16>(object, field, stream);
 			case reflected_value_type_e::size_t:
@@ -1030,7 +950,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_to_stream<u8>(object, field, stream);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_inplace_vector_to_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
@@ -1060,6 +979,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_vector_from_stream<u32>(object, field, stream);
+			case reflected_value_type_e::u64:
+				return reflected_vector_from_stream<u64>(object, field, stream);
 			case reflected_value_type_e::u16:
 				return reflected_vector_from_stream<u16>(object, field, stream);
 			case reflected_value_type_e::size_t:
@@ -1070,7 +991,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_from_stream<u8>(object, field, stream);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
@@ -1100,6 +1020,8 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 			case reflected_value_type_e::enum32:
 				return reflected_inplace_vector_from_stream<u32>(object, field, stream);
+			case reflected_value_type_e::u64:
+				return reflected_inplace_vector_from_stream<u64>(object, field, stream);
 			case reflected_value_type_e::u16:
 				return reflected_inplace_vector_from_stream<u16>(object, field, stream);
 			case reflected_value_type_e::size_t:
@@ -1110,7 +1032,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_from_stream<u8>(object, field, stream);
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				return reflected_inplace_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
@@ -1155,6 +1076,11 @@ namespace sfg
 				j				= value;
 				return true;
 			}
+			case reflected_value_type_e::u64: {
+				const u64 value = *reinterpret_cast<const u64*>(field_ptr);
+				j				= value;
+				return true;
+			}
 			case reflected_value_type_e::u16: {
 				const u16 value = *reinterpret_cast<const u16*>(field_ptr);
 				j				= value;
@@ -1175,7 +1101,6 @@ namespace sfg
 				j				 = value;
 				return true;
 			}
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				{
 					const sid_t value = *reinterpret_cast<const sid_t*>(field_ptr);
@@ -1227,16 +1152,10 @@ namespace sfg
 			}
 			case reflected_value_type_e::object:
 				return reflection_registry_t::get().serialize_to_json(field.value_type_id, field_ptr, j);
-			case reflected_value_type_e::vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_to_json(object, field, j);
+			case reflected_value_type_e::vector:
 				return reflected_vector_to_json_by_type(object, field, j);
-			}
-			case reflected_value_type_e::inplace_vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_to_json(object, field, j);
+			case reflected_value_type_e::inplace_vector:
 				return reflected_inplace_vector_to_json_by_type(object, field, j);
-			}
 			default:
 				return false;
 			}
@@ -1263,6 +1182,9 @@ namespace sfg
 			case reflected_value_type_e::text_id:
 				*reinterpret_cast<u32*>(field_ptr) = j.get<u32>();
 				return true;
+			case reflected_value_type_e::u64:
+				*reinterpret_cast<u64*>(field_ptr) = j.get<u64>();
+				return true;
 			case reflected_value_type_e::u16:
 				*reinterpret_cast<u16*>(field_ptr) = j.get<u16>();
 				return true;
@@ -1275,7 +1197,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 				*field_ptr = j.get<bool>() ? 1 : 0;
 				return true;
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				*reinterpret_cast<sid_t*>(field_ptr) = j.get<sid_t>();
 				return true;
@@ -1331,16 +1252,10 @@ namespace sfg
 			}
 			case reflected_value_type_e::object:
 				return reflection_registry_t::get().deserialize_from_json(field.value_type_id, field_ptr, j);
-			case reflected_value_type_e::vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_from_json(object, field, j);
+			case reflected_value_type_e::vector:
 				return reflected_vector_from_json_by_type(object, field, j);
-			}
-			case reflected_value_type_e::inplace_vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_from_json(object, field, j);
+			case reflected_value_type_e::inplace_vector:
 				return reflected_inplace_vector_from_json_by_type(object, field, j);
-			}
 			default:
 				return false;
 			}
@@ -1377,6 +1292,11 @@ namespace sfg
 				stream << value;
 				return true;
 			}
+			case reflected_value_type_e::u64: {
+				const u64 value = *reinterpret_cast<const u64*>(field_ptr);
+				stream << value;
+				return true;
+			}
 			case reflected_value_type_e::u16: {
 				const u16 value = *reinterpret_cast<const u16*>(field_ptr);
 				stream << value;
@@ -1397,7 +1317,6 @@ namespace sfg
 				stream << static_cast<u8>(value ? 1 : 0);
 				return true;
 			}
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				{
 					const sid_t value = *reinterpret_cast<const sid_t*>(field_ptr);
@@ -1442,16 +1361,10 @@ namespace sfg
 			}
 			case reflected_value_type_e::object:
 				return reflection_registry_t::get().serialize_to_stream(field.value_type_id, field_ptr, stream);
-			case reflected_value_type_e::vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_to_stream(object, field, stream);
+			case reflected_value_type_e::vector:
 				return reflected_vector_to_stream_by_type(object, field, stream);
-			}
-			case reflected_value_type_e::inplace_vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_to_stream(object, field, stream);
+			case reflected_value_type_e::inplace_vector:
 				return reflected_inplace_vector_to_stream_by_type(object, field, stream);
-			}
 			default:
 				return false;
 			}
@@ -1493,6 +1406,12 @@ namespace sfg
 				*reinterpret_cast<u32*>(field_ptr) = value;
 				return true;
 			}
+			case reflected_value_type_e::u64: {
+				u64 value = 0;
+				stream >> value;
+				*reinterpret_cast<u64*>(field_ptr) = value;
+				return true;
+			}
 			case reflected_value_type_e::u16: {
 				u16 value = 0;
 				stream >> value;
@@ -1517,7 +1436,6 @@ namespace sfg
 				*field_ptr = value != 0 ? 1 : 0;
 				return true;
 			}
-			case reflected_value_type_e::resource:
 				REFLECTED_RESOURCE_HANDLE_CASES
 				{
 					sid_t value = 0;
@@ -1563,16 +1481,10 @@ namespace sfg
 			}
 			case reflected_value_type_e::object:
 				return reflection_registry_t::get().deserialize_from_stream(field.value_type_id, field_ptr, stream);
-			case reflected_value_type_e::vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_from_stream(object, field, stream);
+			case reflected_value_type_e::vector:
 				return reflected_vector_from_stream_by_type(object, field, stream);
-			}
-			case reflected_value_type_e::inplace_vector: {
-				if (field.container_ops.is_valid())
-					return reflected_container_from_stream(object, field, stream);
+			case reflected_value_type_e::inplace_vector:
 				return reflected_inplace_vector_from_stream_by_type(object, field, stream);
-			}
 			default:
 				return false;
 			}

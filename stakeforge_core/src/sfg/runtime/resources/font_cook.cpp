@@ -56,7 +56,14 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "reserved", .display_name = "Reserved", .type = reflected_value_type_e::u32, .offset = offsetof(font_cook_config_t, reserved), .size = sizeof(u32), .flags = reflected_field_flags_no_ui},
+			{
+				.name		  = "reserved",
+				.display_name = "Reserved",
+				.type		  = reflected_value_type_e::u32,
+				.offset		  = offsetof(font_cook_config_t, reserved),
+				.size		  = sizeof(u32),
+				.flags		  = reflected_field_flags_no_ui,
+			},
 		};
 
 		registry.register_type({

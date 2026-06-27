@@ -14,18 +14,66 @@ namespace sfg
 	namespace
 	{
 		static const reflected_enum_value_desc_t shader_type_values[] = {
-			{.name = "invalid", .display_name = "Invalid", .value = static_cast<i64>(shader_type_e::invalid)},
-			{.name = "editor_ui_default", .display_name = "Editor UI Default", .value = static_cast<i64>(shader_type_e::editor_ui_default)},
-			{.name = "editor_ui_lcd_text", .display_name = "Editor UI LCD Text", .value = static_cast<i64>(shader_type_e::editor_ui_lcd_text)},
-			{.name = "editor_ui_sdf", .display_name = "Editor UI SDF", .value = static_cast<i64>(shader_type_e::editor_ui_sdf)},
-			{.name = "editor_ui_text_grayscale", .display_name = "Editor UI Text Grayscale", .value = static_cast<i64>(shader_type_e::editor_ui_text_grayscale)},
-			{.name = "opaque_shader", .display_name = "Opaque Shader", .value = static_cast<i64>(shader_type_e::opaque_shader)},
-			{.name = "transparent_shader", .display_name = "Transparent Shader", .value = static_cast<i64>(shader_type_e::transparent_shader)},
-			{.name = "post_process_shader", .display_name = "Post Process Shader", .value = static_cast<i64>(shader_type_e::post_process_shader)},
-			{.name = "ui_shader", .display_name = "UI Shader", .value = static_cast<i64>(shader_type_e::ui_shader)},
-			{.name = "ui_text_shader", .display_name = "UI Text Shader", .value = static_cast<i64>(shader_type_e::ui_text_shader)},
-			{.name = "deferred_lighting", .display_name = "Deferred Lighting", .value = static_cast<i64>(shader_type_e::deferred_lighting)},
-			{.name = "post_combiner", .display_name = "Post Combiner", .value = static_cast<i64>(shader_type_e::post_combiner)},
+			{
+				.name		  = "invalid",
+				.display_name = "Invalid",
+				.value		  = static_cast<i64>(shader_type_e::invalid),
+			},
+			{
+				.name		  = "editor_ui_default",
+				.display_name = "Editor UI Default",
+				.value		  = static_cast<i64>(shader_type_e::editor_ui_default),
+			},
+			{
+				.name		  = "editor_ui_lcd_text",
+				.display_name = "Editor UI LCD Text",
+				.value		  = static_cast<i64>(shader_type_e::editor_ui_lcd_text),
+			},
+			{
+				.name		  = "editor_ui_sdf",
+				.display_name = "Editor UI SDF",
+				.value		  = static_cast<i64>(shader_type_e::editor_ui_sdf),
+			},
+			{
+				.name		  = "editor_ui_text_grayscale",
+				.display_name = "Editor UI Text Grayscale",
+				.value		  = static_cast<i64>(shader_type_e::editor_ui_text_grayscale),
+			},
+			{
+				.name		  = "opaque_shader",
+				.display_name = "Opaque Shader",
+				.value		  = static_cast<i64>(shader_type_e::opaque_shader),
+			},
+			{
+				.name		  = "transparent_shader",
+				.display_name = "Transparent Shader",
+				.value		  = static_cast<i64>(shader_type_e::transparent_shader),
+			},
+			{
+				.name		  = "post_process_shader",
+				.display_name = "Post Process Shader",
+				.value		  = static_cast<i64>(shader_type_e::post_process_shader),
+			},
+			{
+				.name		  = "ui_shader",
+				.display_name = "UI Shader",
+				.value		  = static_cast<i64>(shader_type_e::ui_shader),
+			},
+			{
+				.name		  = "ui_text_shader",
+				.display_name = "UI Text Shader",
+				.value		  = static_cast<i64>(shader_type_e::ui_text_shader),
+			},
+			{
+				.name		  = "deferred_lighting",
+				.display_name = "Deferred Lighting",
+				.value		  = static_cast<i64>(shader_type_e::deferred_lighting),
+			},
+			{
+				.name		  = "post_combiner",
+				.display_name = "Post Combiner",
+				.value		  = static_cast<i64>(shader_type_e::post_combiner),
+			},
 		};
 	}
 

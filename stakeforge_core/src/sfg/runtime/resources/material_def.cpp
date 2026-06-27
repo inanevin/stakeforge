@@ -37,13 +37,41 @@ namespace sfg
 	namespace
 	{
 		static const reflected_enum_value_desc_t material_parameter_type_values[] = {
-			{.name = "u32", .display_name = "U32", .value = static_cast<i64>(material_parameter_type_e::u32)},
-			{.name = "uint2", .display_name = "UInt2", .value = static_cast<i64>(material_parameter_type_e::uint2)},
-			{.name = "uint4", .display_name = "UInt4", .value = static_cast<i64>(material_parameter_type_e::uint4)},
-			{.name = "i32", .display_name = "I32", .value = static_cast<i64>(material_parameter_type_e::i32)},
-			{.name = "f32", .display_name = "F32", .value = static_cast<i64>(material_parameter_type_e::f32)},
-			{.name = "vec2f", .display_name = "Vec2F", .value = static_cast<i64>(material_parameter_type_e::vec2f)},
-			{.name = "vec4f", .display_name = "Vec4F", .value = static_cast<i64>(material_parameter_type_e::vec4f)},
+			{
+				.name		  = "u32",
+				.display_name = "U32",
+				.value		  = static_cast<i64>(material_parameter_type_e::u32),
+			},
+			{
+				.name		  = "uint2",
+				.display_name = "UInt2",
+				.value		  = static_cast<i64>(material_parameter_type_e::uint2),
+			},
+			{
+				.name		  = "uint4",
+				.display_name = "UInt4",
+				.value		  = static_cast<i64>(material_parameter_type_e::uint4),
+			},
+			{
+				.name		  = "i32",
+				.display_name = "I32",
+				.value		  = static_cast<i64>(material_parameter_type_e::i32),
+			},
+			{
+				.name		  = "f32",
+				.display_name = "F32",
+				.value		  = static_cast<i64>(material_parameter_type_e::f32),
+			},
+			{
+				.name		  = "vec2f",
+				.display_name = "Vec2F",
+				.value		  = static_cast<i64>(material_parameter_type_e::vec2f),
+			},
+			{
+				.name		  = "vec4f",
+				.display_name = "Vec4F",
+				.value		  = static_cast<i64>(material_parameter_type_e::vec4f),
+			},
 		};
 	}
 
@@ -69,15 +97,23 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "type", .display_name = "Type", .type = reflected_value_type_e::enum8, .sub_type_id = type_id_t<material_parameter_type_e>::value, .offset = offsetof(material_parameter_t, type), .size = sizeof(material_parameter_type_e)},
-			{.name			= "values",
-			 .display_name	= "Values",
-			 .type			= reflected_value_type_e::inplace_vector,
-			 .sub_type_id	= "f32"_hs,
-			 .container_ops = reflected_inplace_vector_ops<f32, 4>(),
-			 .offset		= offsetof(material_parameter_t, values),
-			 .size			= sizeof(inplace_vector_t<f32, 4>),
-			 .capacity		= 4},
+			{
+				.name		  = "type",
+				.display_name = "Type",
+				.type		  = reflected_value_type_e::enum8,
+				.sub_type_id  = type_id_t<material_parameter_type_e>::value,
+				.offset		  = offsetof(material_parameter_t, type),
+				.size		  = sizeof(material_parameter_type_e),
+			},
+			{
+				.name		  = "values",
+				.display_name = "Values",
+				.type		  = reflected_value_type_e::inplace_vector,
+				.sub_type_id  = "f32"_hs,
+				.offset		  = offsetof(material_parameter_t, values),
+				.size		  = sizeof(inplace_vector_t<f32, 4>),
+				.capacity	  = 4,
+			},
 		};
 
 		registry.register_type({
@@ -96,33 +132,61 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name		   = "pass_flags",
-			 .display_name = "Pass Flags",
-			 .type		   = reflected_value_type_e::enum32,
-			 .sub_type_id  = type_id_t<world_pass_flags_e>::value,
-			 .offset	   = offsetof(material_def_t, pass_flags),
-			 .size		   = sizeof(world_pass_flags_e),
-			 .flags		   = reflected_field_flags_bitmask},
-			{.name = "shader", .display_name = "Shader", .type = reflected_value_type_e::shader_handle, .offset = offsetof(material_def_t, shader), .size = sizeof(resource_handle_t)},
-			{.name = "sampler", .display_name = "Sampler", .type = reflected_value_type_e::texture_sampler_handle, .offset = offsetof(material_def_t, sampler), .size = sizeof(resource_handle_t)},
-			{.name			= "textures",
-			 .display_name	= "Textures",
-			 .type			= reflected_value_type_e::inplace_vector,
-			 .sub_type_id	= "texture_handle"_hs,
-			 .container_ops = reflected_inplace_vector_ops<resource_handle_t, MATERIAL_MAX_TEXTURES>(),
-			 .offset		= offsetof(material_def_t, textures),
-			 .size			= sizeof(inplace_vector_t<resource_handle_t, MATERIAL_MAX_TEXTURES>),
-			 .capacity		= MATERIAL_MAX_TEXTURES},
-			{.name			= "parameters",
-			 .display_name	= "Parameters",
-			 .type			= reflected_value_type_e::inplace_vector,
-			 .sub_type_id	= type_id_t<material_parameter_t>::value,
-			 .container_ops = reflected_inplace_vector_ops<material_parameter_t, MATERIAL_MAX_PARAMETERS>(),
-			 .offset		= offsetof(material_def_t, parameters),
-			 .size			= sizeof(inplace_vector_t<material_parameter_t, MATERIAL_MAX_PARAMETERS>),
-			 .capacity		= MATERIAL_MAX_PARAMETERS},
-			{.name = "double_sided", .display_name = "Double Sided", .type = reflected_value_type_e::bool8, .offset = offsetof(material_def_t, double_sided), .size = sizeof(bool)},
-			{.name = "use_alpha_cutoff", .display_name = "Use Alpha Cutoff", .type = reflected_value_type_e::bool8, .offset = offsetof(material_def_t, use_alpha_cutoff), .size = sizeof(bool)},
+			{
+				.name		  = "pass_flags",
+				.display_name = "Pass Flags",
+				.type		  = reflected_value_type_e::enum32,
+				.sub_type_id  = type_id_t<world_pass_flags_e>::value,
+				.offset		  = offsetof(material_def_t, pass_flags),
+				.size		  = sizeof(world_pass_flags_e),
+				.flags		  = reflected_field_flags_bitmask,
+			},
+			{
+				.name		  = "shader",
+				.display_name = "Shader",
+				.type		  = reflected_value_type_e::shader_handle,
+				.offset		  = offsetof(material_def_t, shader),
+				.size		  = sizeof(resource_handle_t),
+			},
+			{
+				.name		  = "sampler",
+				.display_name = "Sampler",
+				.type		  = reflected_value_type_e::texture_sampler_handle,
+				.offset		  = offsetof(material_def_t, sampler),
+				.size		  = sizeof(resource_handle_t),
+			},
+			{
+				.name		  = "textures",
+				.display_name = "Textures",
+				.type		  = reflected_value_type_e::inplace_vector,
+				.sub_type_id  = "texture_handle"_hs,
+				.offset		  = offsetof(material_def_t, textures),
+				.size		  = sizeof(inplace_vector_t<resource_handle_t, MATERIAL_MAX_TEXTURES>),
+				.capacity	  = MATERIAL_MAX_TEXTURES,
+			},
+			{
+				.name		  = "parameters",
+				.display_name = "Parameters",
+				.type		  = reflected_value_type_e::inplace_vector,
+				.sub_type_id  = type_id_t<material_parameter_t>::value,
+				.offset		  = offsetof(material_def_t, parameters),
+				.size		  = sizeof(inplace_vector_t<material_parameter_t, MATERIAL_MAX_PARAMETERS>),
+				.capacity	  = MATERIAL_MAX_PARAMETERS,
+			},
+			{
+				.name		  = "double_sided",
+				.display_name = "Double Sided",
+				.type		  = reflected_value_type_e::bool8,
+				.offset		  = offsetof(material_def_t, double_sided),
+				.size		  = sizeof(bool),
+			},
+			{
+				.name		  = "use_alpha_cutoff",
+				.display_name = "Use Alpha Cutoff",
+				.type		  = reflected_value_type_e::bool8,
+				.offset		  = offsetof(material_def_t, use_alpha_cutoff),
+				.size		  = sizeof(bool),
+			},
 		};
 
 		registry.register_type({

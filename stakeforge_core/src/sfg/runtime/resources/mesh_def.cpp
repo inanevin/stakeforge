@@ -41,21 +41,29 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name			= "vertices",
-			 .display_name	= "Vertices",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= type_id_t<vertex_static_t>::value,
-			 .container_ops = reflected_vector_ops<vertex_static_t>(),
-			 .offset		= offsetof(primitive_static_def_t, vertices),
-			 .size			= sizeof(vector_t<vertex_static_t>)},
-			{.name			= "indices",
-			 .display_name	= "Indices",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= "u32"_hs,
-			 .container_ops = reflected_vector_ops<primitive_index>(),
-			 .offset		= offsetof(primitive_static_def_t, indices),
-			 .size			= sizeof(vector_t<primitive_index>)},
-			{.name = "material_index", .display_name = "Material Index", .type = reflected_value_type_e::u32, .offset = offsetof(primitive_static_def_t, material_index), .size = sizeof(u32)},
+			{
+				.name		  = "vertices",
+				.display_name = "Vertices",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = type_id_t<vertex_static_t>::value,
+				.offset		  = offsetof(primitive_static_def_t, vertices),
+				.size		  = sizeof(vector_t<vertex_static_t>),
+			},
+			{
+				.name		  = "indices",
+				.display_name = "Indices",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = "u32"_hs,
+				.offset		  = offsetof(primitive_static_def_t, indices),
+				.size		  = sizeof(vector_t<primitive_index>),
+			},
+			{
+				.name		  = "material_index",
+				.display_name = "Material Index",
+				.type		  = reflected_value_type_e::u32,
+				.offset		  = offsetof(primitive_static_def_t, material_index),
+				.size		  = sizeof(u32),
+			},
 		};
 
 		registry.register_type({
@@ -74,21 +82,29 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name			= "vertices",
-			 .display_name	= "Vertices",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= type_id_t<vertex_skinned_t>::value,
-			 .container_ops = reflected_vector_ops<vertex_skinned_t>(),
-			 .offset		= offsetof(primitive_skinned_def_t, vertices),
-			 .size			= sizeof(vector_t<vertex_skinned_t>)},
-			{.name			= "indices",
-			 .display_name	= "Indices",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= "u32"_hs,
-			 .container_ops = reflected_vector_ops<primitive_index>(),
-			 .offset		= offsetof(primitive_skinned_def_t, indices),
-			 .size			= sizeof(vector_t<primitive_index>)},
-			{.name = "material_index", .display_name = "Material Index", .type = reflected_value_type_e::u32, .offset = offsetof(primitive_skinned_def_t, material_index), .size = sizeof(u32)},
+			{
+				.name		  = "vertices",
+				.display_name = "Vertices",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = type_id_t<vertex_skinned_t>::value,
+				.offset		  = offsetof(primitive_skinned_def_t, vertices),
+				.size		  = sizeof(vector_t<vertex_skinned_t>),
+			},
+			{
+				.name		  = "indices",
+				.display_name = "Indices",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = "u32"_hs,
+				.offset		  = offsetof(primitive_skinned_def_t, indices),
+				.size		  = sizeof(vector_t<primitive_index>),
+			},
+			{
+				.name		  = "material_index",
+				.display_name = "Material Index",
+				.type		  = reflected_value_type_e::u32,
+				.offset		  = offsetof(primitive_skinned_def_t, material_index),
+				.size		  = sizeof(u32),
+			},
 		};
 
 		registry.register_type({
@@ -107,29 +123,45 @@ namespace sfg
 			return;
 
 		static const reflected_field_desc_t fields[] = {
-			{.name = "name", .display_name = "Name", .type = reflected_value_type_e::string, .offset = offsetof(mesh_def_t, name), .size = sizeof(string_t)},
-			{.name = "local_bounds", .display_name = "Local Bounds", .type = reflected_value_type_e::object, .value_type_id = type_id_t<aabb_t>::value, .offset = offsetof(mesh_def_t, local_bounds), .size = sizeof(aabb_t)},
-			{.name			= "materials",
-			 .display_name	= "Materials",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= "material_handle"_hs,
-			 .container_ops = reflected_vector_ops<resource_handle_t>(),
-			 .offset		= offsetof(mesh_def_t, materials),
-			 .size			= sizeof(vector_t<resource_handle_t>)},
-			{.name			= "static_primitives",
-			 .display_name	= "Static Primitives",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= type_id_t<primitive_static_def_t>::value,
-			 .container_ops = reflected_vector_ops<primitive_static_def_t>(),
-			 .offset		= offsetof(mesh_def_t, static_primitives),
-			 .size			= sizeof(vector_t<primitive_static_def_t>)},
-			{.name			= "skinned_primitives",
-			 .display_name	= "Skinned Primitives",
-			 .type			= reflected_value_type_e::vector,
-			 .sub_type_id	= type_id_t<primitive_skinned_def_t>::value,
-			 .container_ops = reflected_vector_ops<primitive_skinned_def_t>(),
-			 .offset		= offsetof(mesh_def_t, skinned_primitives),
-			 .size			= sizeof(vector_t<primitive_skinned_def_t>)},
+			{
+				.name		  = "name",
+				.display_name = "Name",
+				.type		  = reflected_value_type_e::string,
+				.offset		  = offsetof(mesh_def_t, name),
+				.size		  = sizeof(string_t),
+			},
+			{
+				.name		   = "local_bounds",
+				.display_name  = "Local Bounds",
+				.type		   = reflected_value_type_e::object,
+				.value_type_id = type_id_t<aabb_t>::value,
+				.offset		   = offsetof(mesh_def_t, local_bounds),
+				.size		   = sizeof(aabb_t),
+			},
+			{
+				.name		  = "materials",
+				.display_name = "Materials",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = "material_handle"_hs,
+				.offset		  = offsetof(mesh_def_t, materials),
+				.size		  = sizeof(vector_t<resource_handle_t>),
+			},
+			{
+				.name		  = "static_primitives",
+				.display_name = "Static Primitives",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = type_id_t<primitive_static_def_t>::value,
+				.offset		  = offsetof(mesh_def_t, static_primitives),
+				.size		  = sizeof(vector_t<primitive_static_def_t>),
+			},
+			{
+				.name		  = "skinned_primitives",
+				.display_name = "Skinned Primitives",
+				.type		  = reflected_value_type_e::vector,
+				.sub_type_id  = type_id_t<primitive_skinned_def_t>::value,
+				.offset		  = offsetof(mesh_def_t, skinned_primitives),
+				.size		  = sizeof(vector_t<primitive_skinned_def_t>),
+			},
 		};
 
 		registry.register_type({
