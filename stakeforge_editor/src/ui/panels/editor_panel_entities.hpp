@@ -115,6 +115,9 @@ namespace sfg
 		void		  update_entity_row_background(const entity_row_t& row);
 		void		  set_entity_row_visible(const entity_row_t& row, bool visible);
 		void		  set_focus_state(bool focused);
+		bool		  can_mutate_ui_topology() const;
+		void		  request_refresh_entities();
+		void		  flush_pending_ui_mutations();
 		void		  select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
 		void		  issue_entity_selection_command(span_t<const entity_id_t> entities, entity_id_t anchor);
 		void		  apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
@@ -163,24 +166,26 @@ namespace sfg
 		static bool on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command);
 		static bool on_entity_selection_cleanup(editor_command_system_t& system, editor_command_t& command);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
-		editor_input_field_t							  _search_input			= {};
-		editor_scrollbar_t								  _scrollbar			= {};
-		vector_t<entity_row_t>							  _entity_rows			= {};
-		vector_t<entity_desc_t>							  _entity_cache			= {};
-		vector_t<entity_id_t>							  _expanded_entities	= {};
-		string_t										  _search_str			= {};
-		string_t										  _search_str_lower		= {};
-		ui::widget_id_t									  _entity_top_row		= NULL_WIDGET;
-		ui::widget_id_t									  _entity_list_area		= NULL_WIDGET;
-		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener		= {};
-		world_handle_t									  _main_world			= {};
-		vector_t<entity_id_t>							  _selected_entities	= {};
-		entity_id_t										  _selection_anchor		= NULL_ENTITY_ID;
-		entity_id_t										  _action_menu_entity	= NULL_ENTITY_ID;
-		u32												  _entity_generation	= 0;
-		u32												  _visible_entity_count = 0;
-		bool											  _focused				= false;
+		editor_input_field_t							  _search_input				= {};
+		editor_scrollbar_t								  _scrollbar				= {};
+		vector_t<entity_row_t>							  _entity_rows				= {};
+		vector_t<entity_desc_t>							  _entity_cache				= {};
+		vector_t<entity_id_t>							  _expanded_entities		= {};
+		string_t										  _search_str				= {};
+		string_t										  _search_str_lower			= {};
+		ui::widget_id_t									  _entity_top_row			= NULL_WIDGET;
+		ui::widget_id_t									  _entity_list_area			= NULL_WIDGET;
+		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			= {};
+		world_handle_t									  _main_world				= {};
+		vector_t<entity_id_t>							  _selected_entities		= {};
+		entity_id_t										  _selection_anchor			= NULL_ENTITY_ID;
+		entity_id_t										  _action_menu_entity		= NULL_ENTITY_ID;
+		u32												  _entity_generation		= 0;
+		u32												  _visible_entity_count		= 0;
+		bool											  _refresh_entities_pending = false;
+		bool											  _focused					= false;
 	};
 }

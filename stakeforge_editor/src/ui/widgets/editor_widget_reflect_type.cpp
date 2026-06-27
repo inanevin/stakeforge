@@ -460,6 +460,7 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::uninit()
 	{
+		_ui->cancel_mutations(this);
 		clear_reflected_controls();
 		editor_app_t::get().get_command_system().remove_listener(_command_listener);
 		_ui->deallocate_widget(_root);
@@ -504,6 +505,12 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::rebuild_reflected_controls()
 	{
+		if (!can_mutate_ui_topology())
+		{
+			request_rebuild_reflected_controls();
+			return;
+		}
+
 		clear_reflected_controls();
 
 		const reflected_type_desc_t* type = reflection_registry_t::get().find_type(_type_id);
@@ -541,6 +548,27 @@ namespace sfg
 			_rows.push_back(row);
 			install_reflected_control(row.right, field, _object, field, _object);
 		}
+	}
+
+	bool editor_widget_reflect_type_t::can_mutate_ui_topology() const
+	{
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
+	}
+
+	void editor_widget_reflect_type_t::request_rebuild_reflected_controls()
+	{
+		_rebuild_pending = true;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
+	void editor_widget_reflect_type_t::flush_pending_ui_mutations()
+	{
+		if (!_rebuild_pending)
+			return;
+
+		_rebuild_pending = false;
+		rebuild_reflected_controls();
 	}
 
 	void editor_widget_reflect_type_t::install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object, const reflected_field_desc_t& command_field, void* command_object)
@@ -1707,6 +1735,11 @@ namespace sfg
 			if (!widget.refresh_reflected_field(payload->field_id))
 				widget.rebuild_reflected_controls();
 		}
+	}
+
+	void editor_widget_reflect_type_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_widget_reflect_type_t*>(user_data)->flush_pending_ui_mutations();
 	}
 
 	void editor_widget_reflect_type_t::clear_reflected_controls()

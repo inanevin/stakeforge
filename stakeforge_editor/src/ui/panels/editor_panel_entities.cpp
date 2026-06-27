@@ -200,6 +200,7 @@ namespace sfg
 	void editor_panel_entities_t::uninit()
 	{
 		editor_app_t::get().get_command_system().remove_listener(_command_listener);
+		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
 		_ui->deallocate_widget(_entity_top_row);
@@ -225,6 +226,12 @@ namespace sfg
 
 	void editor_panel_entities_t::refresh_entities()
 	{
+		if (!can_mutate_ui_topology())
+		{
+			request_refresh_entities();
+			return;
+		}
+
 		_entity_generation = editor_app_t::get().get_command_system().get_entity_generation();
 		collect_entities();
 		prune_entity_selection();
@@ -524,6 +531,30 @@ namespace sfg
 		_focused = focused;
 		for (const entity_row_t& row : _entity_rows)
 			update_entity_row_background(row);
+	}
+
+	bool editor_panel_entities_t::can_mutate_ui_topology() const
+	{
+		if (_ui == nullptr)
+			return false;
+
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
+	}
+
+	void editor_panel_entities_t::request_refresh_entities()
+	{
+		_refresh_entities_pending = true;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
+	void editor_panel_entities_t::flush_pending_ui_mutations()
+	{
+		if (!_refresh_entities_pending)
+			return;
+
+		_refresh_entities_pending = false;
+		refresh_entities();
 	}
 
 	void editor_panel_entities_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
@@ -1028,5 +1059,10 @@ namespace sfg
 		const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 		const entity_id_t								 entity	  = entities[payload.count - 1];
 		panel.issue_entity_selection_command({.data = &entity, .size = 1}, entity);
+	}
+
+	void editor_panel_entities_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_panel_entities_t*>(user_data)->flush_pending_ui_mutations();
 	}
 }

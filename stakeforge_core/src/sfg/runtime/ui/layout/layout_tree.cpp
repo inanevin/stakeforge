@@ -91,6 +91,7 @@ namespace sfg::ui
 
 	widget_id_t layout_tree_t::allocate()
 	{
+		SFG_ASSERT(_topology_mutation_allowed);
 		SFG_ASSERT(!_free_list.empty());
 		const widget_id_t id = _free_list.back();
 		_free_list.pop_back();
@@ -107,6 +108,7 @@ namespace sfg::ui
 
 	void layout_tree_t::deallocate(widget_id_t id)
 	{
+		SFG_ASSERT(_topology_mutation_allowed);
 		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
 
 		widget_id_t c = _nodes[id].first_child;
@@ -129,6 +131,7 @@ namespace sfg::ui
 
 	void layout_tree_t::attach(widget_id_t parent, widget_id_t child)
 	{
+		SFG_ASSERT(_topology_mutation_allowed);
 		SFG_ASSERT(parent < _max_widgets && _nodes[parent].alive);
 		SFG_ASSERT(child < _max_widgets && _nodes[child].alive);
 		SFG_ASSERT(parent != child);
@@ -157,6 +160,7 @@ namespace sfg::ui
 
 	void layout_tree_t::detach(widget_id_t child)
 	{
+		SFG_ASSERT(_topology_mutation_allowed);
 		SFG_ASSERT(child < _max_widgets && _nodes[child].alive);
 		tree_node_t& c = _nodes[child];
 		if (c.parent == NULL_WIDGET)
@@ -176,7 +180,7 @@ namespace sfg::ui
 		p.child_count--;
 
 		c.parent		= NULL_WIDGET;
-		c.prev_sibling	= NULL_WIDGET;                 
+		c.prev_sibling	= NULL_WIDGET;
 		c.next_sibling	= NULL_WIDGET;
 		_topology_dirty = true;
 		_layout_dirty	= true;
@@ -236,6 +240,11 @@ namespace sfg::ui
 			in(id).flags |= wf_visible;
 		else
 			in(id).flags &= ~wf_visible;
+	}
+
+	void layout_tree_t::set_topology_mutation_allowed(bool allowed)
+	{
+		_topology_mutation_allowed = allowed;
 	}
 
 	vec4f_t layout_tree_t::bounds(widget_id_t id) const

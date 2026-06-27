@@ -62,6 +62,7 @@ namespace sfg::ui
 		_input.init(cfg.input, cfg.max_widgets);
 		_canvas.init(cfg.canvas);
 		_text_pool.init(cfg.text_pool_capacity);
+		_mutation_requests.init(cfg.max_widgets);
 		_pre_layout_tick_defs.init(cfg.max_widgets);
 		_pre_layout_tick_widgets.init(cfg.max_widgets);
 		_pre_layout_tick_defs.resize(cfg.max_widgets);
@@ -76,10 +77,12 @@ namespace sfg::ui
 		_producer_slot = 0;
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
+		set_phase(ui_phase_e::idle);
 	}
 
 	void ui_context::uninit()
 	{
+		set_phase(ui_phase_e::idle);
 		for (snapshot_slot_t& slot : _snapshot_slots)
 			free_snapshot_slot(slot);
 		_snapshot_mailbox.store(0, std::memory_order_relaxed);
@@ -91,6 +94,7 @@ namespace sfg::ui
 		_debug_hover_text = {};
 		_pre_layout_tick_widgets.uninit();
 		_pre_layout_tick_defs.uninit();
+		_mutation_requests.uninit();
 		_text_pool.uninit();
 		_canvas.uninit();
 		_input.uninit();
@@ -130,11 +134,18 @@ namespace sfg::ui
 	{
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
 		_ui_scale  = _dpi_scale * _user_ui_scale;
+		set_phase(ui_phase_e::mutation);
+		drain_mutations();
+		set_phase(ui_phase_e::pre_layout);
 		run_pre_layout_ticks(dt_seconds);
+		set_phase(ui_phase_e::text_layout);
 		_paint.update_text_layout(_tree, _ui_scale, _dpi_scale);
+		set_phase(ui_phase_e::layout);
 		_tree.solve(screen_rect, _ui_scale);
+		set_phase(ui_phase_e::input);
 		_input.tick(_tree, dt_seconds);
 
+		set_phase(ui_phase_e::paint);
 		_canvas.frame_begin(screen_rect);
 		_paint.paint_all(_tree, _input, _canvas, _ui_scale, _dpi_scale);
 		if (_debug_draw)
@@ -142,6 +153,7 @@ namespace sfg::ui
 		_canvas.frame_end();
 
 		_canvas.resolve();
+		set_phase(ui_phase_e::idle);
 	}
 
 	void ui_context::set_debug_draw(bool enabled)
@@ -156,11 +168,13 @@ namespace sfg::ui
 
 	widget_id_t ui_context::allocate_widget()
 	{
+		SFG_ASSERT(is_topology_mutation_allowed());
 		return _tree.allocate();
 	}
 
 	void ui_context::deallocate_widget(widget_id_t id)
 	{
+		SFG_ASSERT(is_topology_mutation_allowed());
 		SFG_ASSERT(id != _tree.get_root());
 		clear_widget_state_recursive(id);
 		_tree.deallocate(id);
@@ -197,6 +211,34 @@ namespace sfg::ui
 		}
 	}
 
+	void ui_context::request_mutation(ui_mutation_fn fn, void* user_data)
+	{
+		SFG_ASSERT(fn != nullptr);
+		_mutation_requests.push_back({.fn = fn, .user_data = user_data});
+	}
+
+	void ui_context::request_unique_mutation(ui_mutation_fn fn, void* user_data)
+	{
+		SFG_ASSERT(fn != nullptr);
+		for (const mutation_request_t& request : _mutation_requests)
+		{
+			if (request.fn == fn && request.user_data == user_data)
+				return;
+		}
+		_mutation_requests.push_back({.fn = fn, .user_data = user_data});
+	}
+
+	void ui_context::cancel_mutations(void* user_data)
+	{
+		for (size_t i = 0; i < _mutation_requests.size();)
+		{
+			if (_mutation_requests[i].user_data == user_data)
+				_mutation_requests.erase(_mutation_requests.begin() + i);
+			else
+				++i;
+		}
+	}
+
 	void ui_context::clear_widget_state_recursive(widget_id_t id)
 	{
 		widget_id_t child = _tree.node(id).first_child;
@@ -212,6 +254,17 @@ namespace sfg::ui
 		clear_widget_text(id);
 		clear_widget_debug_name(id);
 		_paint.clear(id);
+	}
+
+	void ui_context::drain_mutations()
+	{
+		for (size_t i = 0; i < _mutation_requests.size();)
+		{
+			const mutation_request_t request = _mutation_requests[i];
+			_mutation_requests.erase(_mutation_requests.begin() + i);
+			if (request.fn != nullptr)
+				request.fn(*this, request.user_data);
+		}
 	}
 
 	void ui_context::run_pre_layout_ticks(f32 dt_seconds)
@@ -238,6 +291,17 @@ namespace sfg::ui
 			if (i < _pre_layout_tick_widgets.size() && _pre_layout_tick_widgets[i] == id)
 				++i;
 		}
+	}
+
+	void ui_context::set_phase(ui_phase_e phase)
+	{
+		_phase = phase;
+		_tree.set_topology_mutation_allowed(is_topology_mutation_allowed());
+	}
+
+	bool ui_context::is_topology_mutation_allowed() const
+	{
+		return _phase == ui_phase_e::idle || _phase == ui_phase_e::mutation || _phase == ui_phase_e::pre_layout;
 	}
 
 	void ui_context::draw_debug_hovered_widget()

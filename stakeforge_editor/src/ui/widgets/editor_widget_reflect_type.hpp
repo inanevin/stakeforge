@@ -134,6 +134,9 @@ namespace sfg
 	private:
 		void				 clear_reflected_controls();
 		void				 rebuild_reflected_controls();
+		bool				 can_mutate_ui_topology() const;
+		void				 request_rebuild_reflected_controls();
+		void				 flush_pending_ui_mutations();
 		void				 install_reflected_control(ui::widget_id_t parent, const reflected_field_desc_t& field, void* object, const reflected_field_desc_t& command_field, void* command_object);
 		void				 install_vector_field(const reflected_field_desc_t& field, const char* label);
 		u32					 get_vector_item_count(const reflected_field_desc_t& field) const;
@@ -171,6 +174,7 @@ namespace sfg
 		static void			 on_vector_add_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void			 on_vector_item_remove_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void			 on_command_system_changed(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void			 on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		vector_t<editor_property_row_t>					 _rows				   = {};
@@ -195,5 +199,6 @@ namespace sfg
 		void*											 _object			   = nullptr;
 		sid_t											 _type_id			   = 0;
 		ui::widget_id_t									 _root				   = NULL_WIDGET;
+		bool											 _rebuild_pending	   = false;
 	};
 }

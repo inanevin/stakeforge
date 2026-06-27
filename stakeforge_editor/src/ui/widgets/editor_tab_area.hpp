@@ -131,6 +131,7 @@ namespace sfg
 		editor_tab_t& find_tab_by_widget(ui::widget_id_t widget);
 
 		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt, void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 		static void on_tab_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_tab_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);

@@ -141,6 +141,7 @@ namespace sfg
 
 	void editor_panel_inspector_t::uninit()
 	{
+		_ui->cancel_mutations(this);
 		clear_display();
 		_scrollbar.uninit();
 		_component_states.clear();
@@ -186,10 +187,37 @@ namespace sfg
 
 	void editor_panel_inspector_t::refresh_display()
 	{
+		if (!can_mutate_ui_topology())
+		{
+			request_refresh_display();
+			return;
+		}
+
 		save_display_state();
 		clear_display();
 		if (_display_type == editor_inspector_display_type_e::entity)
 			create_entity_display();
+	}
+
+	bool editor_panel_inspector_t::can_mutate_ui_topology() const
+	{
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
+	}
+
+	void editor_panel_inspector_t::request_refresh_display()
+	{
+		_refresh_display_pending = true;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
+	void editor_panel_inspector_t::flush_pending_ui_mutations()
+	{
+		if (!_refresh_display_pending)
+			return;
+
+		_refresh_display_pending = false;
+		refresh_display();
 	}
 
 	void editor_panel_inspector_t::save_display_state()
@@ -576,5 +604,10 @@ namespace sfg
 		world_handle_t				world = {};
 		if (get_selected_entities_from_panel(entities, world) && editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]))
 			panel.refresh_display();
+	}
+
+	void editor_panel_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_panel_inspector_t*>(user_data)->flush_pending_ui_mutations();
 	}
 }

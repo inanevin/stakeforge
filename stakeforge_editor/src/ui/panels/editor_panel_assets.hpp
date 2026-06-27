@@ -125,6 +125,9 @@ namespace sfg
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
 		void		  set_focus_state(bool focused);
+		bool		  can_mutate_ui_topology() const;
+		void		  request_ui_mutation();
+		void		  flush_pending_ui_mutations();
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select = false, bool incremental_select = false);
 		void select_asset_grid_item(editor_asset_node_handle_t node, bool range_select = false, bool incremental_select = false);
@@ -215,6 +218,7 @@ namespace sfg
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_asset_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void on_asset_grid_item_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_asset_grid_item_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_folder_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -281,6 +285,9 @@ namespace sfg
 		bool									_create_folder_popup_pending	 = false;
 		bool									_rename_popup_pending			 = false;
 		bool									_asset_rename_popup_pending		 = false;
+		bool									_folder_rows_refresh_pending	 = false;
+		bool									_asset_grid_refresh_pending		 = false;
+		bool									_asset_grid_refresh_force		 = false;
 		bool									_asset_grid_body_size_valid		 = false;
 		bool									_asset_grid_rebuild_pending		 = false;
 		bool									_focused						 = false;

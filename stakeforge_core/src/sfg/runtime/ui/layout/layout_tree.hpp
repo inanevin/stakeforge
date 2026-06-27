@@ -156,6 +156,7 @@ namespace sfg::ui
 		vec4f_t				bounds(widget_id_t id) const;
 		bool				is_alive(widget_id_t id) const;
 		void				set_visible(widget_id_t id, bool vis);
+		void				set_topology_mutation_allowed(bool allowed);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -208,10 +209,11 @@ namespace sfg::ui
 		fixed_vector_t<widget_id_t>	 _free_list;
 		fixed_vector_t<widget_id_t>	 _dfs;
 		fixed_vector_t<u32>			 _dfs_descendants;
-		widget_id_t					 _root			 = NULL_WIDGET;
-		u32							 _max_widgets	 = 0;
-		u32							 _alive_count	 = 0;
-		bool						 _topology_dirty = true;
-		bool						 _layout_dirty	 = true;
+		widget_id_t					 _root						= NULL_WIDGET;
+		u32							 _max_widgets				= 0;
+		u32							 _alive_count				= 0;
+		bool						 _topology_dirty			= true;
+		bool						 _layout_dirty				= true;
+		bool						 _topology_mutation_allowed = true;
 	};
 }

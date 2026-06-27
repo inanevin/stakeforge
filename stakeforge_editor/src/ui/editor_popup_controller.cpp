@@ -295,6 +295,7 @@ namespace sfg
 
 	void editor_popup_controller_t::uninit()
 	{
+		_ui->cancel_mutations(this);
 		close_popup(false);
 		destroy_asset_rows();
 		_asset_scrollbar.uninit();
@@ -346,6 +347,16 @@ namespace sfg
 		SFG_ASSERT(desc.items != nullptr);
 		SFG_ASSERT(desc.item_count <= MAX_ITEMS);
 
+		if (!can_mutate_ui_topology())
+		{
+			_pending_desc = desc;
+			for (u32 i = 0; i < MAX_ITEMS; ++i)
+				_pending_items[i] = i < desc.item_count ? desc.items[i] : editor_popup_item_desc_t{};
+			_pending_desc.items = _pending_items;
+			defer_request(pending_request_e::items);
+			return;
+		}
+
 		close_popup(false);
 		_desc = desc;
 		_mode = popup_mode_e::items;
@@ -363,6 +374,13 @@ namespace sfg
 	void editor_popup_controller_t::request_input_popup(const editor_input_popup_desc_t& desc)
 	{
 		SFG_ASSERT(_ui != nullptr);
+
+		if (!can_mutate_ui_topology())
+		{
+			_pending_input_desc = desc;
+			defer_request(pending_request_e::input);
+			return;
+		}
 
 		close_popup(false);
 		_input_desc = desc;
@@ -383,6 +401,13 @@ namespace sfg
 	{
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
+
+		if (!can_mutate_ui_topology())
+		{
+			_pending_asset_desc = desc;
+			defer_request(pending_request_e::assets);
+			return;
+		}
 
 		close_popup(false);
 		_asset_desc = desc;
@@ -410,6 +435,13 @@ namespace sfg
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(!desc.world.is_null());
 
+		if (!can_mutate_ui_topology())
+		{
+			_pending_entity_desc = desc;
+			defer_request(pending_request_e::entities);
+			return;
+		}
+
 		close_popup(false);
 		_entity_desc = desc;
 		_mode		 = popup_mode_e::entities;
@@ -435,6 +467,13 @@ namespace sfg
 	{
 		if (_ui == nullptr || !_visible)
 			return;
+
+		if (!can_mutate_ui_topology())
+		{
+			_pending_close_notify_input = notify_input;
+			defer_request(pending_request_e::close);
+			return;
+		}
 
 		const bool						   notify			= notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
 		const editor_popup_input_closed_fn closed			= _input_desc.closed;
@@ -819,6 +858,53 @@ namespace sfg
 		}
 	}
 
+	bool editor_popup_controller_t::can_mutate_ui_topology() const
+	{
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
+	}
+
+	bool editor_popup_controller_t::defer_request(pending_request_e request)
+	{
+		_pending_request = request;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+		return true;
+	}
+
+	void editor_popup_controller_t::flush_pending_request()
+	{
+		const pending_request_e request = _pending_request;
+		_pending_request				= pending_request_e::none;
+
+		switch (request)
+		{
+		case pending_request_e::close:
+			close_popup(_pending_close_notify_input);
+			_pending_close_notify_input = false;
+			return;
+		case pending_request_e::items:
+			request_popup(_pending_desc);
+			return;
+		case pending_request_e::input:
+			request_input_popup(_pending_input_desc);
+			return;
+		case pending_request_e::assets:
+			request_asset_popup(_pending_asset_desc);
+			return;
+		case pending_request_e::entities:
+			request_entity_popup(_pending_entity_desc);
+			return;
+		case pending_request_e::asset_rows:
+			refresh_asset_rows();
+			refresh_layout();
+			_asset_scrollbar.set_scroll_y_immediate(0.0f);
+			set_visible(true);
+			return;
+		default:
+			return;
+		}
+	}
+
 	sid_t editor_popup_controller_t::get_search_selected_value() const
 	{
 		return _mode == popup_mode_e::entities ? static_cast<sid_t>(_entity_desc.selected) : _asset_desc.selected;
@@ -928,6 +1014,11 @@ namespace sfg
 	{
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
 		popup.filter_asset_items();
+		if (!popup.can_mutate_ui_topology())
+		{
+			popup.defer_request(pending_request_e::asset_rows);
+			return;
+		}
 		popup.refresh_asset_rows();
 		popup._asset_scrollbar.set_scroll_y_immediate(0.0f);
 		popup.set_visible(true);
@@ -959,5 +1050,10 @@ namespace sfg
 		const f32				 target		= math::clamp(row_center - viewport * 0.5f, 0.0f, list_out.max_scroll.y);
 		popup._asset_scrollbar.set_scroll_y_immediate(-target);
 		popup._asset_scroll_pending_frames = 0;
+	}
+
+	void editor_popup_controller_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_popup_controller_t*>(user_data)->flush_pending_request();
 	}
 }

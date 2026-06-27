@@ -78,6 +78,12 @@ namespace sfg::ui
 	void input_router_t::clear_widget_state(widget_id_t id)
 	{
 		clear_listener(id);
+		auto hit_it = std::find(_hit_order.begin(), _hit_order.end(), id);
+		if (hit_it != _hit_order.end())
+			_hit_order.erase(hit_it);
+		auto focus_it = std::find(_focus_order.begin(), _focus_order.end(), id);
+		if (focus_it != _focus_order.end())
+			_focus_order.erase(focus_it);
 
 		if (_hovered == id)
 			_hovered = NULL_WIDGET;
@@ -201,9 +207,13 @@ namespace sfg::ui
 
 	bool input_router_t::is_in_subtree(widget_id_t id, widget_id_t root) const
 	{
+		if (!_tree->is_alive(root))
+			return false;
 		widget_id_t cur = id;
 		while (cur != NULL_WIDGET)
 		{
+			if (!_tree->is_alive(cur))
+				return false;
 			if (cur == root)
 				return true;
 			cur = _tree->node(cur).parent;
@@ -217,7 +227,7 @@ namespace sfg::ui
 			return NULL_WIDGET;
 
 		widget_id_t cur = id;
-		while (cur != NULL_WIDGET)
+		while (cur != NULL_WIDGET && _tree->is_alive(cur))
 		{
 			const layout_in_t& in = _tree->in_const(cur);
 			if ((in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0 && (in.flags & wf_disabled) == 0)
@@ -283,11 +293,50 @@ namespace sfg::ui
 		}
 	}
 
+	void input_router_t::sanitize_state(const layout_tree_t& tree)
+	{
+		if (_hovered != NULL_WIDGET && !tree.is_alive(_hovered))
+			_hovered = NULL_WIDGET;
+		if (_focused != NULL_WIDGET && !tree.is_alive(_focused))
+			_focused = NULL_WIDGET;
+
+		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
+		{
+			if (_pressed[i] != NULL_WIDGET && !tree.is_alive(_pressed[i]))
+			{
+				_pressed[i]		  = NULL_WIDGET;
+				_pressed_state[i] = {};
+			}
+			if (_last_click[i].target != NULL_WIDGET && !tree.is_alive(_last_click[i].target))
+				_last_click[i] = {};
+		}
+
+		if (_popup_scope.active)
+		{
+			if (_popup_scope.owner_root != NULL_WIDGET && !tree.is_alive(_popup_scope.owner_root))
+			{
+				clear_popup_scope();
+				return;
+			}
+
+			for (u32 i = 0; i < _popup_scope.popup_root_count; ++i)
+			{
+				const widget_id_t root = _popup_scope.popup_roots[i];
+				if (root != NULL_WIDGET && !tree.is_alive(root))
+				{
+					clear_popup_scope();
+					return;
+				}
+			}
+		}
+	}
+
 	void input_router_t::tick(const layout_tree_t& tree, f32 dt_seconds)
 	{
 		_tree = &tree;
 		_accum_time += dt_seconds;
 
+		sanitize_state(tree);
 		rebuild_hit_test(tree);
 
 		const widget_id_t target = hit_test(_mouse);

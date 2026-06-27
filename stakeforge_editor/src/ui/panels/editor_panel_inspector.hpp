@@ -105,6 +105,9 @@ namespace sfg
 		void					   save_display_state();
 		void					   clear_display();
 		void					   create_entity_display();
+		bool					   can_mutate_ui_topology() const;
+		void					   request_refresh_display();
+		void					   flush_pending_ui_mutations();
 		component_display_state_t* find_component_display_state(sid_t type_id);
 		void					   open_entity_info_action_menu(const vec2f_t& pos);
 		void					   open_component_action_menu(const vec2f_t& pos, sid_t type_id);
@@ -121,6 +124,7 @@ namespace sfg
 		static void on_component_action_menu_command(u16 command, void* user_data);
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_add_component_action_menu_command(u16 command, void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		vector_t<component_display_state_t>		_component_states		  = {};
@@ -142,6 +146,7 @@ namespace sfg
 		sid_t									_copied_component_type	  = 0;
 		sid_t									_action_menu_type_id	  = 0;
 		editor_inspector_display_type_e			_display_type			  = editor_inspector_display_type_e::none;
+		bool									_refresh_display_pending  = false;
 		bool									_copied_entity_info_valid = false;
 	};
 }

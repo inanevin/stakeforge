@@ -114,6 +114,10 @@ namespace sfg
 		void		collapse_existing_rows();
 		void		clear_log_rows();
 		void		clear_logs();
+		bool		can_mutate_ui_topology() const;
+		void		request_clear_logs();
+		void		request_collapse_rows();
+		void		flush_pending_ui_mutations();
 		void		refresh_log_filter_visibility();
 		void		set_log_row_visible(const log_row_t& row, bool visible);
 		void		trim_log_rows();
@@ -139,6 +143,7 @@ namespace sfg
 		static void on_search_changed(const char* value, void* user_data);
 		static void on_log(log_level level, const char* msg, void* user_data);
 		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		editor_dropdown_t		 _source_dropdown = {};
@@ -148,18 +153,20 @@ namespace sfg
 		editor_icon_button_t	 _collapse_button = {};
 		editor_icon_button_t	 _clear_button	  = {};
 		log_filter_button_data_t _filter_button_data[FILTER_BUTTON_COUNT];
-		vector_t<log_row_t>		 _rows				 = {};
-		vector_t<log_record_t>	 _drained_logs		 = {};
-		string_t				 _search_text		 = {};
-		string_t				 _search_text_lower	 = {};
-		ui::widget_id_t			 _top_row			 = NULL_WIDGET;
-		ui::widget_id_t			 _body				 = NULL_WIDGET;
-		u64						 _next_log_sequence	 = 0;
-		u32						 _storage_generation = 0;
-		log_source_type_e		 _source_type		 = log_source_type_e::all;
-		u8						 _log_filter_flags	 = log_level_filter_all;
-		bool					 _is_collapsed		 = false;
-		bool					 _is_visible		 = true;
+		vector_t<log_row_t>		 _rows					= {};
+		vector_t<log_record_t>	 _drained_logs			= {};
+		string_t				 _search_text			= {};
+		string_t				 _search_text_lower		= {};
+		ui::widget_id_t			 _top_row				= NULL_WIDGET;
+		ui::widget_id_t			 _body					= NULL_WIDGET;
+		u64						 _next_log_sequence		= 0;
+		u32						 _storage_generation	= 0;
+		log_source_type_e		 _source_type			= log_source_type_e::all;
+		u8						 _log_filter_flags		= log_level_filter_all;
+		bool					 _clear_logs_pending	= false;
+		bool					 _collapse_rows_pending = false;
+		bool					 _is_collapsed			= false;
+		bool					 _is_visible			= true;
 
 		static vector_t<log_record_t> _stored_logs;
 		static vector_t<log_record_t> _pending_logs;

@@ -41,6 +41,18 @@ namespace sfg::ui
 	class ui_context;
 
 	using ui_pre_layout_tick_fn = void (*)(ui_context& ui, widget_id_t id, f32 dt_seconds, void* user_data);
+	using ui_mutation_fn		= void (*)(ui_context& ui, void* user_data);
+
+	enum class ui_phase_e : u8
+	{
+		idle,
+		mutation,
+		pre_layout,
+		text_layout,
+		layout,
+		input,
+		paint,
+	};
 
 	struct ui_config_t
 	{
@@ -85,6 +97,9 @@ namespace sfg::ui
 		void		deallocate_widget(widget_id_t id);
 		void		set_pre_layout_tick(widget_id_t id, ui_pre_layout_tick_fn fn, void* user_data);
 		void		clear_pre_layout_tick(widget_id_t id);
+		void		request_mutation(ui_mutation_fn fn, void* user_data);
+		void		request_unique_mutation(ui_mutation_fn fn, void* user_data);
+		void		cancel_mutations(void* user_data);
 
 		// -----------------------------------------------------------------------------
 		// render-thread snapshot
@@ -169,6 +184,11 @@ namespace sfg::ui
 			return _tree.get_root();
 		}
 
+		inline ui_phase_e get_phase() const
+		{
+			return _phase;
+		}
+
 	private:
 		struct snapshot_slot_t
 		{
@@ -187,11 +207,20 @@ namespace sfg::ui
 			void*				  user_data = nullptr;
 		};
 
+		struct mutation_request_t
+		{
+			ui_mutation_fn fn		 = nullptr;
+			void*		   user_data = nullptr;
+		};
+
 		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity);
 		void free_snapshot_slot(snapshot_slot_t& slot);
 		void clear_widget_state_recursive(widget_id_t id);
+		void drain_mutations();
 		void run_pre_layout_ticks(f32 dt_seconds);
 		void draw_debug_hovered_widget();
+		void set_phase(ui_phase_e phase);
+		bool is_topology_mutation_allowed() const;
 
 	private:
 		vg_canvas_t								   _canvas;
@@ -199,6 +228,7 @@ namespace sfg::ui
 		layout_tree_t							   _tree;
 		snapshot_slot_t							   _snapshot_slots[3] = {};
 		paint_layer_t							   _paint;
+		fixed_vector_t<mutation_request_t>		   _mutation_requests;
 		fixed_vector_t<widget_id_t>				   _pre_layout_tick_widgets;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
@@ -211,6 +241,7 @@ namespace sfg::ui
 		f32										   _ui_scale		 = 1.0f;
 		f32										   _dpi_scale		 = 1.0f;
 		resource_handle_t						   _debug_font		 = NULL_RESOURCE_HANDLE;
+		ui_phase_e								   _phase			 = ui_phase_e::idle;
 		bool									   _debug_draw		 = false;
 		fixed_vector_t<pre_layout_tick_def_t>	   _pre_layout_tick_defs;
 	};

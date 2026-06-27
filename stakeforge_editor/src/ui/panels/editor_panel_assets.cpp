@@ -482,6 +482,7 @@ namespace sfg
 
 	void editor_panel_assets_t::uninit()
 	{
+		_ui->cancel_mutations(this);
 		editor_payload_controller_t::get().unregister_listener(this);
 		_search_input.uninit();
 		_filter_button.uninit();
@@ -699,6 +700,13 @@ namespace sfg
 
 	void editor_panel_assets_t::refresh_folder_rows()
 	{
+		if (!can_mutate_ui_topology())
+		{
+			_folder_rows_refresh_pending = true;
+			request_ui_mutation();
+			return;
+		}
+
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&	  asset_tree	= asset_manager.get_asset_tree();
 		_asset_tree_generation						= asset_manager.get_generation();
@@ -815,6 +823,14 @@ namespace sfg
 
 	void editor_panel_assets_t::refresh_asset_grid(bool force)
 	{
+		if (!can_mutate_ui_topology())
+		{
+			_asset_grid_refresh_pending = true;
+			_asset_grid_refresh_force |= force;
+			request_ui_mutation();
+			return;
+		}
+
 		const editor_asset_manager_t&	 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 asset_tree	   = asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t folder		   = _selected_folder_node;
@@ -1506,6 +1522,37 @@ namespace sfg
 		for (const folder_row_t& row : _folder_rows)
 			update_folder_row_background(row);
 		refresh_asset_grid_item_backgrounds();
+	}
+
+	bool editor_panel_assets_t::can_mutate_ui_topology() const
+	{
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
+	}
+
+	void editor_panel_assets_t::request_ui_mutation()
+	{
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
+	void editor_panel_assets_t::flush_pending_ui_mutations()
+	{
+		const bool refresh_folders = _folder_rows_refresh_pending;
+		const bool refresh_assets  = _asset_grid_refresh_pending;
+		const bool force_assets	   = _asset_grid_refresh_force;
+
+		_folder_rows_refresh_pending = false;
+		_asset_grid_refresh_pending	 = false;
+		_asset_grid_refresh_force	 = false;
+
+		if (refresh_folders)
+		{
+			refresh_folder_rows();
+			return;
+		}
+
+		if (refresh_assets)
+			refresh_asset_grid(force_assets);
 	}
 
 	void editor_panel_assets_t::select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select, bool incremental_select)
@@ -2969,6 +3016,11 @@ namespace sfg
 			panel.refresh_asset_grid(true);
 		else if (panel._asset_grid_generation != asset_manager.get_generation())
 			panel.refresh_asset_grid(false);
+	}
+
+	void editor_panel_assets_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->flush_pending_ui_mutations();
 	}
 
 	void editor_panel_assets_t::on_asset_grid_item_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
