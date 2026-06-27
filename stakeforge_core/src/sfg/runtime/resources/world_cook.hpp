@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -41,6 +43,6 @@ namespace sfg
 		static void world_to_stream(const world_t& world, ostream_t& out_stream);
 		static void world_to_json(const world_t& world, nlohmann::json& out_json);
 		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream);
-		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
+		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources);
 	};
 }

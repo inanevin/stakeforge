@@ -282,7 +282,7 @@ namespace sfg
 		else
 		{
 			char text[32] = {};
-			std::snprintf(text, sizeof(text), "0x%016llX", static_cast<unsigned long long>(_world->get_entity_guid(_entity)));
+			std::snprintf(text, sizeof(text), "%llu", static_cast<unsigned long long>(_world->get_entity_guid(_entity)));
 			_ui->set_widget_text(_guid_label, text);
 		}
 		const editor_theme_t& theme = editor_theme_t::get();
