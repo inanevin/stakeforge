@@ -52,20 +52,6 @@ namespace sfg
 #define REFLECTION_REGISTRY_MAX_FIELDS		4096
 #define REFLECTION_REGISTRY_MAX_ENUM_VALUES 1024
 #define REFLECTION_REGISTRY_TEXT_BYTES		(1024 * 128)
-#define REFLECTED_RESOURCE_HANDLE_CASES                                                                                                                                                                                                                            \
-	case reflected_value_type_e::audio_handle:                                                                                                                                                                                                                     \
-	case reflected_value_type_e::font_handle:                                                                                                                                                                                                                      \
-	case reflected_value_type_e::mesh_handle:                                                                                                                                                                                                                      \
-	case reflected_value_type_e::skeleton_handle:                                                                                                                                                                                                                  \
-	case reflected_value_type_e::animation_handle:                                                                                                                                                                                                                 \
-	case reflected_value_type_e::material_handle:                                                                                                                                                                                                                  \
-	case reflected_value_type_e::shader_handle:                                                                                                                                                                                                                    \
-	case reflected_value_type_e::texture_handle:                                                                                                                                                                                                                   \
-	case reflected_value_type_e::texture_sampler_handle:                                                                                                                                                                                                           \
-	case reflected_value_type_e::physical_material_handle:                                                                                                                                                                                                         \
-	case reflected_value_type_e::prefab_handle:                                                                                                                                                                                                                    \
-	case reflected_value_type_e::animation_state_machine_handle:                                                                                                                                                                                                   \
-	case reflected_value_type_e::hdr_skybox_handle:
 
 	reflected_value_type_e reflected_value_type_from_sub_type_id(sid_t sub_type_id)
 	{
@@ -134,6 +120,9 @@ namespace sfg
 
 	u32 reflected_value_type_size(reflected_value_type_e type)
 	{
+		if (reflection_registry_t::is_resource_type(type))
+			return sizeof(sid_t);
+
 		switch (type)
 		{
 		case reflected_value_type_e::f32:
@@ -156,20 +145,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			return sizeof(u8);
-		case reflected_value_type_e::audio_handle:
-		case reflected_value_type_e::font_handle:
-		case reflected_value_type_e::mesh_handle:
-		case reflected_value_type_e::skeleton_handle:
-		case reflected_value_type_e::animation_handle:
-		case reflected_value_type_e::material_handle:
-		case reflected_value_type_e::shader_handle:
-		case reflected_value_type_e::texture_handle:
-		case reflected_value_type_e::texture_sampler_handle:
-		case reflected_value_type_e::physical_material_handle:
-		case reflected_value_type_e::prefab_handle:
-		case reflected_value_type_e::animation_state_machine_handle:
-		case reflected_value_type_e::hdr_skybox_handle:
-			return sizeof(sid_t);
 		case reflected_value_type_e::entity_guid:
 			return sizeof(u64);
 		case reflected_value_type_e::text_id:
@@ -719,7 +694,11 @@ namespace sfg
 
 		bool reflected_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_vector_to_json(*reinterpret_cast<const vector_t<sid_t>*>(static_cast<const u8*>(object) + field.offset), field, j);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<f32>*>(static_cast<const u8*>(object) + field.offset), field, j);
@@ -745,8 +724,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<u8>*>(static_cast<const u8*>(object) + field.offset), field, j);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_vector_to_json(*reinterpret_cast<const vector_t<sid_t>*>(static_cast<const u8*>(object) + field.offset), field, j);
 			case reflected_value_type_e::string:
 				return reflected_vector_to_json(*reinterpret_cast<const vector_t<string_t>*>(static_cast<const u8*>(object) + field.offset), field, j);
 			case reflected_value_type_e::json:
@@ -760,7 +737,11 @@ namespace sfg
 
 		bool reflected_inplace_vector_to_json_by_type(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_inplace_vector_to_json<sid_t>(object, field, j);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_inplace_vector_to_json<f32>(object, field, j);
@@ -786,8 +767,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_to_json<u8>(object, field, j);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_inplace_vector_to_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
 				return reflected_inplace_vector_to_json<string_t>(object, field, j);
 			case reflected_value_type_e::json:
@@ -801,7 +780,11 @@ namespace sfg
 
 		bool reflected_vector_from_json_by_type(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_vector_from_json<sid_t>(object, field, j);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_vector_from_json<f32>(object, field, j);
@@ -827,8 +810,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_from_json<u8>(object, field, j);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
 				return reflected_vector_from_json<string_t>(object, field, j);
 			case reflected_value_type_e::json:
@@ -842,7 +823,11 @@ namespace sfg
 
 		bool reflected_inplace_vector_from_json_by_type(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_inplace_vector_from_json<sid_t>(object, field, j);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_inplace_vector_from_json<f32>(object, field, j);
@@ -868,8 +853,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_from_json<u8>(object, field, j);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_inplace_vector_from_json<sid_t>(object, field, j);
 			case reflected_value_type_e::string:
 				return reflected_inplace_vector_from_json<string_t>(object, field, j);
 			case reflected_value_type_e::json:
@@ -883,7 +866,11 @@ namespace sfg
 
 		bool reflected_vector_to_stream_by_type(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<sid_t>*>(static_cast<const u8*>(object) + field.offset), field, stream);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<f32>*>(static_cast<const u8*>(object) + field.offset), field, stream);
@@ -909,8 +896,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<u8>*>(static_cast<const u8*>(object) + field.offset), field, stream);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<sid_t>*>(static_cast<const u8*>(object) + field.offset), field, stream);
 			case reflected_value_type_e::string:
 				return reflected_vector_to_stream(*reinterpret_cast<const vector_t<string_t>*>(static_cast<const u8*>(object) + field.offset), field, stream);
 			case reflected_value_type_e::json:
@@ -924,7 +909,11 @@ namespace sfg
 
 		bool reflected_inplace_vector_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_inplace_vector_to_stream<sid_t>(object, field, stream);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_inplace_vector_to_stream<f32>(object, field, stream);
@@ -950,8 +939,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_to_stream<u8>(object, field, stream);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_inplace_vector_to_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
 				return reflected_inplace_vector_to_stream<string_t>(object, field, stream);
 			case reflected_value_type_e::json:
@@ -965,7 +952,11 @@ namespace sfg
 
 		bool reflected_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_vector_from_stream<sid_t>(object, field, stream);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_vector_from_stream<f32>(object, field, stream);
@@ -991,8 +982,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_vector_from_stream<u8>(object, field, stream);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
 				return reflected_vector_from_stream<string_t>(object, field, stream);
 			case reflected_value_type_e::json:
@@ -1006,7 +995,11 @@ namespace sfg
 
 		bool reflected_inplace_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
-			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+			const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (reflection_registry_t::is_resource_type(value_type))
+				return reflected_inplace_vector_from_stream<sid_t>(object, field, stream);
+
+			switch (value_type)
 			{
 			case reflected_value_type_e::f32:
 				return reflected_inplace_vector_from_stream<f32>(object, field, stream);
@@ -1032,8 +1025,6 @@ namespace sfg
 			case reflected_value_type_e::bool8:
 			case reflected_value_type_e::enum8:
 				return reflected_inplace_vector_from_stream<u8>(object, field, stream);
-				REFLECTED_RESOURCE_HANDLE_CASES
-				return reflected_inplace_vector_from_stream<sid_t>(object, field, stream);
 			case reflected_value_type_e::string:
 				return reflected_inplace_vector_from_stream<string_t>(object, field, stream);
 			case reflected_value_type_e::json:
@@ -1048,6 +1039,13 @@ namespace sfg
 		bool reflected_field_to_json(const void* object, const reflected_field_desc_t& field, nlohmann::json& j)
 		{
 			const u8* field_ptr = static_cast<const u8*>(object) + field.offset;
+			if (reflection_registry_t::is_resource_type(field.type))
+			{
+				const sid_t value = *reinterpret_cast<const sid_t*>(field_ptr);
+				j				  = value;
+				return true;
+			}
+
 			switch (field.type)
 			{
 			case reflected_value_type_e::f32: {
@@ -1101,12 +1099,6 @@ namespace sfg
 				j				 = value;
 				return true;
 			}
-				REFLECTED_RESOURCE_HANDLE_CASES
-				{
-					const sid_t value = *reinterpret_cast<const sid_t*>(field_ptr);
-					j				  = value;
-					return true;
-				}
 			case reflected_value_type_e::entity_guid: {
 				const u64 value = *reinterpret_cast<const u64*>(field_ptr);
 				j				= value;
@@ -1164,6 +1156,12 @@ namespace sfg
 		bool reflected_field_from_json(void* object, const reflected_field_desc_t& field, const nlohmann::json& j)
 		{
 			u8* field_ptr = static_cast<u8*>(object) + field.offset;
+			if (reflection_registry_t::is_resource_type(field.type))
+			{
+				*reinterpret_cast<sid_t*>(field_ptr) = j.get<sid_t>();
+				return true;
+			}
+
 			switch (field.type)
 			{
 			case reflected_value_type_e::f32:
@@ -1196,9 +1194,6 @@ namespace sfg
 				return true;
 			case reflected_value_type_e::bool8:
 				*field_ptr = j.get<bool>() ? 1 : 0;
-				return true;
-				REFLECTED_RESOURCE_HANDLE_CASES
-				*reinterpret_cast<sid_t*>(field_ptr) = j.get<sid_t>();
 				return true;
 			case reflected_value_type_e::entity_guid:
 				*reinterpret_cast<u64*>(field_ptr) = j.get<u64>();
@@ -1264,6 +1259,13 @@ namespace sfg
 		bool reflected_field_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
 			const u8* field_ptr = static_cast<const u8*>(object) + field.offset;
+			if (reflection_registry_t::is_resource_type(field.type))
+			{
+				const sid_t value = *reinterpret_cast<const sid_t*>(field_ptr);
+				stream << value;
+				return true;
+			}
+
 			switch (field.type)
 			{
 			case reflected_value_type_e::f32: {
@@ -1317,12 +1319,6 @@ namespace sfg
 				stream << static_cast<u8>(value ? 1 : 0);
 				return true;
 			}
-				REFLECTED_RESOURCE_HANDLE_CASES
-				{
-					const sid_t value = *reinterpret_cast<const sid_t*>(field_ptr);
-					stream << value;
-					return true;
-				}
 			case reflected_value_type_e::entity_guid: {
 				const u64 value = *reinterpret_cast<const u64*>(field_ptr);
 				stream << value;
@@ -1373,6 +1369,14 @@ namespace sfg
 		bool reflected_field_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
 			u8* field_ptr = static_cast<u8*>(object) + field.offset;
+			if (reflection_registry_t::is_resource_type(field.type))
+			{
+				sid_t value = 0;
+				stream >> value;
+				*reinterpret_cast<sid_t*>(field_ptr) = value;
+				return true;
+			}
+
 			switch (field.type)
 			{
 			case reflected_value_type_e::f32: {
@@ -1436,13 +1440,6 @@ namespace sfg
 				*field_ptr = value != 0 ? 1 : 0;
 				return true;
 			}
-				REFLECTED_RESOURCE_HANDLE_CASES
-				{
-					sid_t value = 0;
-					stream >> value;
-					*reinterpret_cast<sid_t*>(field_ptr) = value;
-					return true;
-				}
 			case reflected_value_type_e::entity_guid: {
 				u64 value = 0;
 				stream >> value;
@@ -1495,6 +1492,12 @@ namespace sfg
 	{
 		static reflection_registry_t registry;
 		return registry;
+	}
+
+	bool reflection_registry_t::is_resource_type(reflected_value_type_e type)
+	{
+		const u8 value = static_cast<u8>(type);
+		return value >= static_cast<u8>(reflected_value_type_e::audio_handle) && value <= static_cast<u8>(reflected_value_type_e::hdr_skybox_handle);
 	}
 
 	reflection_registry_t::reflection_registry_t()

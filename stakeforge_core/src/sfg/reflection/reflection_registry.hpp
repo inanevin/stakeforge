@@ -149,6 +149,7 @@ namespace sfg
 	{
 	public:
 		static reflection_registry_t& get();
+		static bool					  is_resource_type(reflected_value_type_e type);
 
 		reflection_registry_t();
 		~reflection_registry_t();

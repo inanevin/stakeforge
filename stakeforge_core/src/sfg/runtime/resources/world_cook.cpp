@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_cook.hpp"
 
+#include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/world/ecs.hpp>
@@ -42,21 +43,6 @@ namespace sfg
 {
 	namespace
 	{
-#define WORLD_COOK_RESOURCE_HANDLE_CASES                                                                                                                                                                                                                           \
-	case reflected_value_type_e::audio_handle:                                                                                                                                                                                                                     \
-	case reflected_value_type_e::font_handle:                                                                                                                                                                                                                      \
-	case reflected_value_type_e::mesh_handle:                                                                                                                                                                                                                      \
-	case reflected_value_type_e::skeleton_handle:                                                                                                                                                                                                                  \
-	case reflected_value_type_e::animation_handle:                                                                                                                                                                                                                 \
-	case reflected_value_type_e::material_handle:                                                                                                                                                                                                                  \
-	case reflected_value_type_e::shader_handle:                                                                                                                                                                                                                    \
-	case reflected_value_type_e::texture_handle:                                                                                                                                                                                                                   \
-	case reflected_value_type_e::texture_sampler_handle:                                                                                                                                                                                                           \
-	case reflected_value_type_e::physical_material_handle:                                                                                                                                                                                                         \
-	case reflected_value_type_e::prefab_handle:                                                                                                                                                                                                                    \
-	case reflected_value_type_e::animation_state_machine_handle:                                                                                                                                                                                                   \
-	case reflected_value_type_e::hdr_skybox_handle
-
 		void add_unique_resource_handle(frame_vector_t<resource_handle_t>& out_resources, resource_handle_t handle)
 		{
 			if (handle == NULL_RESOURCE_HANDLE)
@@ -67,15 +53,82 @@ namespace sfg
 				out_resources.push_back(handle);
 		}
 
-		bool is_resource_type(reflected_value_type_e type)
+		bool should_serialize_component_table(const world_component_table_t& table, bool prefab_reference_entity)
 		{
-			switch (type)
-			{
-			WORLD_COOK_RESOURCE_HANDLE_CASES:
-				return true;
-			default:
+			const sid_t type_id = table.type_desc.type_id;
+
+			if (type_id == component_alive_t::TYPE_ID || type_id == component_no_serialize_t::TYPE_ID)
 				return false;
+
+			const bool comps_ok_next_to_prefab =
+				type_id == component_hierarchy_t::TYPE_ID || type_id == component_guid_t::TYPE_ID || type_id == component_transform_t::TYPE_ID || type_id == component_name_t::TYPE_ID || type_id == component_prefab_reference_t::TYPE_ID;
+
+			if (prefab_reference_entity && !comps_ok_next_to_prefab)
+				return false;
+
+			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
+			if (reflected_type == nullptr)
+				return false;
+
+			if (reflected_type->flags.is_set(reflected_type_flags_no_serialize))
+				return false;
+
+			return true;
+		}
+
+		size_t get_inplace_vector_size_offset(const reflected_field_desc_t& field)
+		{
+			const size_t data_size = static_cast<size_t>(field.stride) * field.capacity;
+			const size_t alignment = alignof(size_t);
+			return (data_size + alignment - 1) & ~(alignment - 1);
+		}
+
+		void collect_resource_handles_from_type(const void* object, const reflected_type_desc_t& type, frame_vector_t<resource_handle_t>& out_resources);
+
+		void collect_resource_handles_from_field(const void* object, const reflected_field_desc_t& field, frame_vector_t<resource_handle_t>& out_resources)
+		{
+			if (reflection_registry_t::is_resource_type(field.type))
+			{
+				add_unique_resource_handle(out_resources, *reinterpret_cast<const resource_handle_t*>(static_cast<const u8*>(object) + field.offset));
+				return;
 			}
+
+			if (field.type == reflected_value_type_e::object)
+			{
+				const reflected_type_desc_t* type = reflection_registry_t::get().find_type(field.value_type_id);
+				if (type != nullptr)
+					collect_resource_handles_from_type(static_cast<const u8*>(object) + field.offset, *type, out_resources);
+				return;
+			}
+
+			if (field.type != reflected_value_type_e::vector && field.type != reflected_value_type_e::inplace_vector)
+				return;
+
+			const reflected_value_type_e item_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+			if (!reflection_registry_t::is_resource_type(item_type))
+				return;
+
+			if (field.type == reflected_value_type_e::vector)
+			{
+				const vector_t<resource_handle_t>& handles = *reinterpret_cast<const vector_t<resource_handle_t>*>(static_cast<const u8*>(object) + field.offset);
+				for (resource_handle_t handle : handles)
+					add_unique_resource_handle(out_resources, handle);
+				return;
+			}
+
+			const u8*	 data = static_cast<const u8*>(object) + field.offset;
+			const size_t size = *reinterpret_cast<const size_t*>(data + get_inplace_vector_size_offset(field));
+			for (size_t i = 0; i < size; ++i)
+			{
+				const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(data + (i * field.stride));
+				add_unique_resource_handle(out_resources, handle);
+			}
+		}
+
+		void collect_resource_handles_from_type(const void* object, const reflected_type_desc_t& type, frame_vector_t<resource_handle_t>& out_resources)
+		{
+			for (u32 i = 0; i < type.fields.size; ++i)
+				collect_resource_handles_from_field(object, type.fields.data[i], out_resources);
 		}
 
 		bool is_entity_no_serialize(const world_t& world, entity_id_t entity)
@@ -92,95 +145,29 @@ namespace sfg
 			return ecs_t::table_has(table->table, entity);
 		}
 
-		bool is_guaranteed_prefab_component(sid_t type_id)
+		u32 get_serialized_component_count(const world_t& world, entity_id_t entity, bool prefab_reference_entity)
 		{
-			return type_id == component_hierarchy_t::TYPE_ID || type_id == component_guid_t::TYPE_ID || type_id == component_transform_t::TYPE_ID || type_id == component_name_t::TYPE_ID || type_id == component_prefab_reference_t::TYPE_ID;
-		}
-
-		bool should_serialize_component_table(const world_component_table_t& table, bool prefab_reference_entity)
-		{
-			const sid_t type_id = table.type_desc.type_id;
-			if (type_id == component_alive_t::TYPE_ID || type_id == component_no_serialize_t::TYPE_ID)
-				return false;
-			if (prefab_reference_entity && !is_guaranteed_prefab_component(type_id))
-				return false;
-
-			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-			if (reflected_type != nullptr && reflected_type->flags.is_set(reflected_type_flags_no_serialize) && !is_guaranteed_prefab_component(type_id))
-				return false;
-			return true;
-		}
-
-		const void* get_reflected_field_ptr(const void* object, const reflected_field_desc_t& field)
-		{
-			return static_cast<const u8*>(object) + field.offset;
-		}
-
-		resource_handle_t read_resource_handle(const void* object, const reflected_field_desc_t& field)
-		{
-			return *static_cast<const resource_handle_t*>(get_reflected_field_ptr(object, field));
-		}
-
-		size_t get_inplace_vector_size_offset(const reflected_field_desc_t& field)
-		{
-			const size_t data_size = static_cast<size_t>(field.stride) * field.capacity;
-			const size_t alignment = alignof(size_t);
-			return (data_size + alignment - 1) & ~(alignment - 1);
-		}
-
-		void collect_resource_handles_from_type(const void* object, const reflected_type_desc_t& type, frame_vector_t<resource_handle_t>& out_resources);
-
-		void collect_resource_handles_from_field(const void* object, const reflected_field_desc_t& field, frame_vector_t<resource_handle_t>& out_resources)
-		{
-			if (is_resource_type(field.type))
+			u32 count = 0;
+			for (const world_component_table_t& table : world.get_component_tables())
 			{
-				add_unique_resource_handle(out_resources, read_resource_handle(object, field));
-				return;
+				if (should_serialize_component_table(table, prefab_reference_entity) && ecs_t::table_has(table.table, entity))
+					count++;
 			}
-
-			if (field.type == reflected_value_type_e::object)
-			{
-				const reflected_type_desc_t* type = reflection_registry_t::get().find_type(field.value_type_id);
-				if (type != nullptr)
-					collect_resource_handles_from_type(get_reflected_field_ptr(object, field), *type, out_resources);
-				return;
-			}
-
-			if (field.type != reflected_value_type_e::vector && field.type != reflected_value_type_e::inplace_vector)
-				return;
-
-			const reflected_value_type_e item_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
-			if (!is_resource_type(item_type))
-				return;
-
-			if (field.type == reflected_value_type_e::vector)
-			{
-				const vector_t<resource_handle_t>& handles = *reinterpret_cast<const vector_t<resource_handle_t>*>(static_cast<const u8*>(object) + field.offset);
-				for (resource_handle_t handle : handles)
-					add_unique_resource_handle(out_resources, handle);
-				return;
-			}
-
-			const u8*	 data = static_cast<const u8*>(get_reflected_field_ptr(object, field));
-			const size_t size = *reinterpret_cast<const size_t*>(data + get_inplace_vector_size_offset(field));
-			for (size_t i = 0; i < size; ++i)
-			{
-				const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(data + (i * field.stride));
-				add_unique_resource_handle(out_resources, handle);
-			}
+			return count;
 		}
 
-		void collect_resource_handles_from_type(const void* object, const reflected_type_desc_t& type, frame_vector_t<resource_handle_t>& out_resources)
+		u32 get_serialized_child_count(const world_t& world, const component_hierarchy_t& hierarchy, const world_component_table_t& hierarchy_table)
 		{
-			for (u32 i = 0; i < type.fields.size; ++i)
-				collect_resource_handles_from_field(object, type.fields.data[i], out_resources);
-		}
-
-		void collect_resource_handles_from_component(sid_t type_id, const void* component, frame_vector_t<resource_handle_t>& out_resources)
-		{
-			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-			if (reflected_type != nullptr)
-				collect_resource_handles_from_type(component, *reflected_type, out_resources);
+			u32 count = 0;
+			for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
+			{
+				const entity_id_t			 child			 = world.get_entity_from_guid(child_guid);
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table.table, child);
+				if (!is_entity_no_serialize(world, child))
+					count++;
+				child_guid = child_hierarchy.next_sibling;
+			}
+			return count;
 		}
 
 		bool entity_to_json_impl(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources)
@@ -210,7 +197,9 @@ namespace sfg
 					if (!reflection_registry_t::get().serialize_to_json(table.type_desc.type_id, component, component_json["data"]))
 						SFG_ASSERT(false);
 
-					collect_resource_handles_from_component(table.type_desc.type_id, component, out_resources);
+					const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(table.type_desc.type_id);
+					if (reflected_type != nullptr)
+						collect_resource_handles_from_type(component, *reflected_type, out_resources);
 				}
 				out_json["components"].push_back(component_json);
 			}
@@ -237,18 +226,127 @@ namespace sfg
 
 			return true;
 		}
+
+		bool entity_to_stream_impl(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources)
+		{
+			if (is_entity_no_serialize(world, entity))
+				return false;
+
+			const bool	prefab_reference_entity = is_prefab_reference_entity(world, entity);
+			const char* name					= world.get_entity_name(entity);
+
+			out_stream << world.get_entity_guid(entity);
+			out_stream << string_t(name != nullptr ? name : "");
+
+			out_stream << get_serialized_component_count(world, entity, prefab_reference_entity);
+			for (const world_component_table_t& table : world.get_component_tables())
+			{
+				if (!should_serialize_component_table(table, prefab_reference_entity) || !ecs_t::table_has(table.table, entity))
+					continue;
+
+				out_stream << table.type_desc.type_id;
+				if (!table.type_desc.flags.is_set(ecs_component_type_flags_tag))
+				{
+					const void* component = ecs_t::table_get(table.table, entity);
+					if (!reflection_registry_t::get().serialize_to_stream(table.type_desc.type_id, component, out_stream))
+						SFG_ASSERT(false);
+
+					const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(table.type_desc.type_id);
+					if (reflected_type != nullptr)
+						collect_resource_handles_from_type(component, *reflected_type, out_resources);
+				}
+			}
+
+			if (prefab_reference_entity)
+			{
+				out_stream << static_cast<u32>(0);
+				return true;
+			}
+
+			const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+			SFG_ASSERT(hierarchy_table != nullptr);
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, entity);
+			out_stream << get_serialized_child_count(world, hierarchy, *hierarchy_table);
+			for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
+			{
+				const entity_id_t			 child			 = world.get_entity_from_guid(child_guid);
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, child);
+				const entity_guid_t			 next_child_guid = child_hierarchy.next_sibling;
+
+				entity_to_stream_impl(world, child, out_stream, out_resources);
+				child_guid = next_child_guid;
+			}
+
+			return true;
+		}
 	}
 
-	void world_cooker_t::world_to_stream(const world_t&, ostream_t&)
+	void world_cooker_t::world_to_stream(const world_t& world, ostream_t& out_stream)
 	{
+		const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+		SFG_ASSERT(hierarchy_table != nullptr);
+
+		frame_vector_t<entity_id_t>		  roots;
+		frame_vector_t<resource_handle_t> resources;
+		roots.reserve(64);
+		resources.reserve(64);
+
+		const ecs_component_table_ref_t table_refs[] = {
+			hierarchy_table->table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = 1}))
+		{
+			const component_hierarchy_t& hierarchy = *static_cast<const component_hierarchy_t*>(row.components[0]);
+			if (hierarchy.parent == NULL_ENTITY_GUID && !is_entity_no_serialize(world, row.id))
+				roots.push_back(row.id);
+		}
+
+		out_stream << static_cast<u32>(roots.size());
+		for (entity_id_t root : roots)
+			entity_to_stream(world, root, out_stream, resources);
+
+		out_stream << static_cast<u32>(resources.size());
+		for (resource_handle_t resource : resources)
+			out_stream << resource;
 	}
 
-	void world_cooker_t::world_to_json(const world_t&, nlohmann::json&)
+	void world_cooker_t::world_to_json(const world_t& world, nlohmann::json& out_json)
 	{
+		const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+		SFG_ASSERT(hierarchy_table != nullptr);
+
+		frame_vector_t<resource_handle_t> resources;
+		resources.reserve(64);
+
+		out_json			  = nlohmann::json::object();
+		out_json["entities"]  = nlohmann::json::array();
+		out_json["resources"] = nlohmann::json::array();
+
+		const ecs_component_table_ref_t table_refs[] = {
+			hierarchy_table->table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = 1}))
+		{
+			const component_hierarchy_t& hierarchy = *static_cast<const component_hierarchy_t*>(row.components[0]);
+			if (hierarchy.parent != NULL_ENTITY_GUID)
+				continue;
+
+			nlohmann::json entity_json = {};
+			entity_to_json(world, row.id, entity_json, resources);
+			if (!entity_json.is_null())
+				out_json["entities"].push_back(entity_json);
+		}
+
+		for (resource_handle_t resource : resources)
+			out_json["resources"].push_back(resource);
 	}
 
-	void world_cooker_t::entity_to_stream(const world_t&, entity_id_t, ostream_t&)
+	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources)
 	{
+		entity_to_stream_impl(world, entity, out_stream, out_resources);
 	}
 
 	void world_cooker_t::entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources)

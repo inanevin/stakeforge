@@ -2852,7 +2852,7 @@ namespace sfg
 		panel.set_focus_state(true);
 		if (from_nav)
 		{
-			const folder_row_t* const row = panel.find_row_by_widget(id, /*match_icon=*/false);
+			const folder_row_t* const row = panel.find_row_by_widget(id, false);
 			if (row != nullptr)
 				panel.select_folder_row(row->node, row->path_hash, false, false);
 		}
@@ -3017,7 +3017,7 @@ namespace sfg
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
-		const folder_row_t* const row = panel.find_row_by_widget(id, /*match_icon=*/true);
+		const folder_row_t* const row = panel.find_row_by_widget(id, true);
 		if (row == nullptr)
 			return;
 
@@ -3038,7 +3038,7 @@ namespace sfg
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
-		const folder_row_t* const row = panel.find_row_by_widget(id, /*match_icon=*/false);
+		const folder_row_t* const row = panel.find_row_by_widget(id, false);
 		if (row == nullptr)
 			return;
 
@@ -3063,7 +3063,7 @@ namespace sfg
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
-		const folder_row_t* const row = panel.find_row_by_widget(id, /*match_icon=*/false);
+		const folder_row_t* const row = panel.find_row_by_widget(id, false);
 		if (row == nullptr)
 			return;
 
@@ -3078,7 +3078,7 @@ namespace sfg
 			return;
 
 		editor_panel_assets_t&	  panel = *static_cast<editor_panel_assets_t*>(user_data);
-		const folder_row_t* const row	= panel.find_row_by_widget(id, /*match_icon=*/false);
+		const folder_row_t* const row	= panel.find_row_by_widget(id, false);
 		if (row == nullptr || !row->has_children)
 			return;
 		panel.toggle_folder_fold(row->path_hash);

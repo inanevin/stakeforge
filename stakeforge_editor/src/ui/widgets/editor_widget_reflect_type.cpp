@@ -58,21 +58,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_REFLECTED_RESOURCE_HANDLE_CASES                                                                                                                                                                                                                     \
-	case reflected_value_type_e::audio_handle:                                                                                                                                                                                                                     \
-	case reflected_value_type_e::font_handle:                                                                                                                                                                                                                      \
-	case reflected_value_type_e::mesh_handle:                                                                                                                                                                                                                      \
-	case reflected_value_type_e::skeleton_handle:                                                                                                                                                                                                                  \
-	case reflected_value_type_e::animation_handle:                                                                                                                                                                                                                 \
-	case reflected_value_type_e::material_handle:                                                                                                                                                                                                                  \
-	case reflected_value_type_e::shader_handle:                                                                                                                                                                                                                    \
-	case reflected_value_type_e::texture_handle:                                                                                                                                                                                                                   \
-	case reflected_value_type_e::texture_sampler_handle:                                                                                                                                                                                                           \
-	case reflected_value_type_e::physical_material_handle:                                                                                                                                                                                                         \
-	case reflected_value_type_e::prefab_handle:                                                                                                                                                                                                                    \
-	case reflected_value_type_e::animation_state_machine_handle:                                                                                                                                                                                                   \
-	case reflected_value_type_e::hdr_skybox_handle:
-
 	namespace
 	{
 		void add_unknown_label(ui::ui_context& ui, ui::widget_id_t parent)
@@ -931,6 +916,12 @@ namespace sfg
 			}
 		};
 
+		if (reflection_registry_t::is_resource_type(value_type))
+		{
+			install_items.template operator()<sid_t>();
+			return;
+		}
+
 		switch (value_type)
 		{
 		case reflected_value_type_e::f32:
@@ -966,9 +957,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			install_items.template operator()<u8>();
 			break;
-			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
-			install_items.template operator()<sid_t>();
-			break;
 		case reflected_value_type_e::string:
 			install_items.template operator()<string_t>();
 			break;
@@ -987,7 +975,11 @@ namespace sfg
 	{
 		auto get_count = [&]<typename T>() { return get_reflected_container_item_count<T>(_object, field); };
 
-		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+		if (reflection_registry_t::is_resource_type(value_type))
+			return get_count.template operator()<sid_t>();
+
+		switch (value_type)
 		{
 		case reflected_value_type_e::f32:
 			return get_count.template operator()<f32>();
@@ -1012,8 +1004,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			return get_count.template operator()<u8>();
-			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
-			return get_count.template operator()<sid_t>();
 		case reflected_value_type_e::string:
 			return get_count.template operator()<string_t>();
 		case reflected_value_type_e::json:
@@ -1066,7 +1056,14 @@ namespace sfg
 			rebuild_reflected_controls();
 		};
 
-		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+		if (reflection_registry_t::is_resource_type(value_type))
+		{
+			clear_items.template operator()<sid_t>();
+			return;
+		}
+
+		switch (value_type)
 		{
 		case reflected_value_type_e::f32:
 			clear_items.template operator()<f32>();
@@ -1101,9 +1098,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			clear_items.template operator()<u8>();
 			break;
-			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
-			clear_items.template operator()<sid_t>();
-			break;
 		case reflected_value_type_e::string:
 			clear_items.template operator()<string_t>();
 			break;
@@ -1133,7 +1127,14 @@ namespace sfg
 			rebuild_reflected_controls();
 		};
 
-		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+		if (reflection_registry_t::is_resource_type(value_type))
+		{
+			add_item.template operator()<sid_t>();
+			return;
+		}
+
+		switch (value_type)
 		{
 		case reflected_value_type_e::f32:
 			add_item.template operator()<f32>();
@@ -1168,9 +1169,6 @@ namespace sfg
 		case reflected_value_type_e::enum8:
 			add_item.template operator()<u8>();
 			break;
-			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
-			add_item.template operator()<sid_t>();
-			break;
 		case reflected_value_type_e::string:
 			add_item.template operator()<string_t>();
 			break;
@@ -1200,7 +1198,14 @@ namespace sfg
 			rebuild_reflected_controls();
 		};
 
-		switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
+		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
+		if (reflection_registry_t::is_resource_type(value_type))
+		{
+			remove_item.template operator()<sid_t>();
+			return;
+		}
+
+		switch (value_type)
 		{
 		case reflected_value_type_e::f32:
 			remove_item.template operator()<f32>();
@@ -1234,9 +1239,6 @@ namespace sfg
 		case reflected_value_type_e::bool8:
 		case reflected_value_type_e::enum8:
 			remove_item.template operator()<u8>();
-			break;
-			EDITOR_REFLECTED_RESOURCE_HANDLE_CASES
-			remove_item.template operator()<sid_t>();
 			break;
 		case reflected_value_type_e::string:
 			remove_item.template operator()<string_t>();
