@@ -305,7 +305,7 @@ namespace sfg
 		auto should_serialize_component_table = [&](const world_component_table_t& table) -> bool {
 			const sid_t					 type_id		= table.type_desc.type_id;
 			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-			const bool					 no_serialize	= reflected_type != nullptr && (reflected_type->flags & reflected_type_flags_no_serialize) != 0;
+			const bool					 no_serialize	= reflected_type != nullptr && reflected_type->flags.is_set(reflected_type_flags_no_serialize);
 			return !no_serialize && type_id != component_hierarchy_t::TYPE_ID && type_id != component_guid_t::TYPE_ID && type_id != component_name_t::TYPE_ID && type_id != component_alive_t::TYPE_ID;
 		};
 
@@ -403,7 +403,7 @@ namespace sfg
 				stream >> type_id;
 				world_component_table_t*	 table			= get_component_table(type_id);
 				const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-				if (reflected_type != nullptr && (reflected_type->flags & reflected_type_flags_no_serialize) != 0)
+				if (reflected_type != nullptr && reflected_type->flags.is_set(reflected_type_flags_no_serialize))
 					continue;
 
 				void* component = ecs_t::table_add(table->table, entities[index]);

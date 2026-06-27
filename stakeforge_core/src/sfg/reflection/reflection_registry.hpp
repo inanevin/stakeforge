@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/bitmask.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
@@ -165,7 +166,7 @@ namespace sfg
 		sid_t									  type_id	   = 0;
 		u32										  size		   = 0;
 		u32										  alignment	   = 0;
-		u32										  flags		   = reflected_type_flags_none;
+		bitmask32								  flags		   = reflected_type_flags_none;
 	};
 
 	class reflection_registry_t final

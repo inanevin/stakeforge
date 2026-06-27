@@ -263,7 +263,7 @@ namespace sfg
 				continue;
 
 			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
-			if (reflected_type == nullptr || (reflected_type->flags & reflected_type_flags_no_ui) != 0)
+			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flags_no_ui))
 				continue;
 
 			bool common_component = true;
@@ -372,7 +372,7 @@ namespace sfg
 		for (const world_component_table_t& component_table : component_tables)
 		{
 			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
-			if (reflected_type == nullptr || (reflected_type->flags & reflected_type_flags_no_ui) != 0)
+			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flags_no_ui))
 				continue;
 
 			const char*					   category			= reflected_type->category != nullptr ? reflected_type->category : "Component";

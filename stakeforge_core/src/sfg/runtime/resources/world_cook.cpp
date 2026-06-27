@@ -112,7 +112,7 @@ namespace sfg
 				return false;
 
 			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-			if (reflected_type != nullptr && (reflected_type->flags & reflected_type_flags_no_serialize) != 0 && !is_guaranteed_prefab_component(type_id))
+			if (reflected_type != nullptr && reflected_type->flags.is_set(reflected_type_flags_no_serialize) && !is_guaranteed_prefab_component(type_id))
 				return false;
 			return true;
 		}
