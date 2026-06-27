@@ -152,7 +152,7 @@ namespace sfg
 		u32										  capacity		= 0;
 		f32										  min			= 0.0f;
 		f32										  max			= 0.0f;
-		u32										  flags			= reflected_field_flags_none;
+		bitmask32								  flags			= reflected_field_flags_none;
 	};
 
 	struct reflected_type_desc_t

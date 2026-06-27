@@ -670,6 +670,13 @@ namespace sfg
 			return false;
 		}
 
+		bitmask32 get_reflected_container_item_flags(const reflected_field_desc_t& field)
+		{
+			bitmask32 flags = reflected_field_flags_none;
+			flags.set(reflected_field_flags_clamped, field.flags.is_set(reflected_field_flags_clamped));
+			return flags;
+		}
+
 		reflected_field_desc_t reflected_container_item_field(const reflected_field_desc_t& field)
 		{
 			const reflected_value_type_e type = reflected_value_type_from_sub_type_id(field.sub_type_id);
@@ -683,7 +690,7 @@ namespace sfg
 					.size		   = reflected_value_type_size(type),
 					.min		   = field.min,
 					.max		   = field.max,
-					.flags		   = field.flags & reflected_field_flags_clamped,
+					.flags		   = get_reflected_container_item_flags(field),
 				};
 			}
 
@@ -699,7 +706,7 @@ namespace sfg
 					.size		   = sub_type->size,
 					.min		   = field.min,
 					.max		   = field.max,
-					.flags		   = field.flags & reflected_field_flags_clamped,
+					.flags		   = get_reflected_container_item_flags(field),
 				};
 			}
 
@@ -711,7 +718,7 @@ namespace sfg
 				.size		   = sub_type != nullptr ? sub_type->size : 0,
 				.min		   = field.min,
 				.max		   = field.max,
-				.flags		   = field.flags & reflected_field_flags_clamped,
+				.flags		   = get_reflected_container_item_flags(field),
 			};
 		}
 
@@ -1301,7 +1308,7 @@ namespace sfg
 				i64 value = 0;
 				if (!read_reflected_enum(object, field, value))
 					return false;
-				if ((field.flags & reflected_field_flags_bitmask) != 0)
+				if (field.flags.is_set(reflected_field_flags_bitmask))
 				{
 					j															= nlohmann::json::array();
 					const span_t<const reflected_enum_value_desc_t> enum_values = get_reflected_field_enum_values(field);
@@ -1369,7 +1376,7 @@ namespace sfg
 			case reflected_value_type_e::enum8:
 			case reflected_value_type_e::enum32: {
 				i64 value = 0;
-				if ((field.flags & reflected_field_flags_bitmask) != 0 && j.is_array())
+				if (field.flags.is_set(reflected_field_flags_bitmask) && j.is_array())
 				{
 					for (const nlohmann::json& item : j)
 					{
@@ -1763,7 +1770,7 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if ((field.flags & reflected_field_flags_transient) != 0)
+			if (field.flags.is_set(reflected_field_flags_transient))
 				continue;
 
 			SFG_ASSERT(field.name != nullptr);
@@ -1794,7 +1801,7 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if ((field.flags & reflected_field_flags_transient) != 0)
+			if (field.flags.is_set(reflected_field_flags_transient))
 				continue;
 			if (!reflected_field_to_stream(obj, field, stream))
 				return false;
@@ -1838,7 +1845,7 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if ((field.flags & reflected_field_flags_transient) != 0)
+			if (field.flags.is_set(reflected_field_flags_transient))
 				continue;
 
 			SFG_ASSERT(field.name != nullptr);
@@ -1868,7 +1875,7 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if ((field.flags & reflected_field_flags_transient) != 0)
+			if (field.flags.is_set(reflected_field_flags_transient))
 				continue;
 			if (!reflected_field_from_stream(obj, field, stream))
 				return false;

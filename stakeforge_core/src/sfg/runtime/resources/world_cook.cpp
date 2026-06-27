@@ -68,7 +68,7 @@ namespace sfg
 				out_resources.push_back(handle);
 		}
 
-		bool is_resource_reflected_type(reflected_value_type_e type)
+		bool is_resource_type(reflected_value_type_e type)
 		{
 			switch (type)
 			{
@@ -144,10 +144,10 @@ namespace sfg
 
 		void collect_resource_handles_from_field(const void* object, const reflected_field_desc_t& field, frame_vector_t<resource_handle_t>& out_resources)
 		{
-			if ((field.flags & reflected_field_flags_transient) != 0)
+			if (field.flags.is_set(reflected_field_flags_transient))
 				return;
 
-			if (is_resource_reflected_type(field.type))
+			if (is_resource_type(field.type))
 			{
 				add_unique_resource_handle(out_resources, read_resource_handle(object, field));
 				return;
@@ -171,7 +171,7 @@ namespace sfg
 				for (u32 i = 0; i < count; ++i)
 				{
 					const void* item = field.container_ops.get_const_item(object, field, i);
-					if (is_resource_reflected_type(item_type))
+					if (is_resource_type(item_type))
 						add_unique_resource_handle(out_resources, *static_cast<const resource_handle_t*>(item));
 					else if (item_type == reflected_value_type_e::invalid)
 					{
@@ -183,7 +183,7 @@ namespace sfg
 				return;
 			}
 
-			if (!is_resource_reflected_type(item_type))
+			if (!is_resource_type(item_type))
 				return;
 
 			if (field.type == reflected_value_type_e::vector)
@@ -221,13 +221,13 @@ namespace sfg
 			if (is_entity_no_serialize(world, entity))
 				return false;
 
-			const bool prefab_reference_entity = is_prefab_reference_entity(world, entity);
-			out_json						   = nlohmann::json::object();
-			out_json["guid"]				   = world.get_entity_guid(entity);
-			const char* name				   = world.get_entity_name(entity);
-			out_json["name"]				   = name != nullptr ? name : "";
-			out_json["components"]			   = nlohmann::json::array();
-			out_json["children"]			   = nlohmann::json::array();
+			const bool	prefab_reference_entity = is_prefab_reference_entity(world, entity);
+			const char* name					= world.get_entity_name(entity);
+			out_json							= nlohmann::json::object();
+			out_json["guid"]					= world.get_entity_guid(entity);
+			out_json["name"]					= name != nullptr ? name : "";
+			out_json["components"]				= nlohmann::json::array();
+			out_json["children"]				= nlohmann::json::array();
 
 			for (const world_component_table_t& table : world.get_component_tables())
 			{
@@ -242,6 +242,7 @@ namespace sfg
 					const void* component = ecs_t::table_get(table.table, entity);
 					if (!reflection_registry_t::get().serialize_to_json(table.type_desc.type_id, component, component_json["data"]))
 						SFG_ASSERT(false);
+
 					collect_resource_handles_from_component(table.type_desc.type_id, component, out_resources);
 				}
 				out_json["components"].push_back(component_json);
@@ -252,6 +253,7 @@ namespace sfg
 
 			const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
 			SFG_ASSERT(hierarchy_table != nullptr);
+
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, entity);
 			for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
 			{
@@ -259,8 +261,10 @@ namespace sfg
 				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, child);
 				const entity_guid_t			 next_child_guid = child_hierarchy.next_sibling;
 				nlohmann::json				 child_json		 = {};
+
 				if (entity_to_json_impl(world, child, child_json, out_resources))
 					out_json["children"].push_back(child_json);
+
 				child_guid = next_child_guid;
 			}
 

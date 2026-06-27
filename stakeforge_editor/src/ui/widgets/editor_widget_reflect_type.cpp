@@ -98,7 +98,7 @@ namespace sfg
 
 		void apply_reflected_number_config(editor_input_field_config_t& config, const reflected_field_desc_t& field, bool integer)
 		{
-			config.type		 = (field.flags & reflected_field_flags_clamped) != 0 ? editor_input_field_type_e::number_slider : editor_input_field_type_e::number;
+			config.type		 = field.flags.is_set(reflected_field_flags_clamped) ? editor_input_field_type_e::number_slider : editor_input_field_type_e::number;
 			config.min_value = field.min;
 			config.max_value = field.max;
 			config.increment = integer ? 1.0f : 0.1f;
@@ -152,7 +152,7 @@ namespace sfg
 
 		template <typename T> void write_reflected_value(void* object, const reflected_field_desc_t& field, const T& value)
 		{
-			if ((field.flags & reflected_field_flags_read_only) != 0)
+			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
 			if (field.set != nullptr)
 			{
@@ -263,7 +263,7 @@ namespace sfg
 
 		void write_reflected_bool(void* object, const reflected_field_desc_t& field, bool value)
 		{
-			if ((field.flags & reflected_field_flags_read_only) != 0)
+			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
 			if (field.set != nullptr)
 			{
@@ -288,7 +288,7 @@ namespace sfg
 
 		void write_reflected_text(void* object, const reflected_field_desc_t& field, const char* value)
 		{
-			if ((field.flags & reflected_field_flags_read_only) != 0)
+			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
 			if (field.set != nullptr)
 			{
@@ -378,7 +378,7 @@ namespace sfg
 
 		void write_reflected_enum(void* object, const reflected_field_desc_t& field, i64 value)
 		{
-			if ((field.flags & reflected_field_flags_read_only) != 0)
+			if (field.flags.is_set(reflected_field_flags_read_only))
 				return;
 			if (field.set != nullptr)
 			{
@@ -428,6 +428,14 @@ namespace sfg
 			return field.value_type_id != 0 ? field.value_type_id : field.sub_type_id;
 		}
 
+		bitmask32 get_vector_item_field_flags(const reflected_field_desc_t& field)
+		{
+			bitmask32 flags = reflected_field_flags_none;
+			flags.set(reflected_field_flags_read_only, field.flags.is_set(reflected_field_flags_read_only));
+			flags.set(reflected_field_flags_clamped, field.flags.is_set(reflected_field_flags_clamped));
+			return flags;
+		}
+
 		reflected_field_desc_t get_vector_item_field(const reflected_field_desc_t& field)
 		{
 			const reflected_value_type_e type = reflected_value_type_from_sub_type_id(field.sub_type_id);
@@ -441,7 +449,7 @@ namespace sfg
 					.size		   = reflected_value_type_size(type),
 					.min		   = field.min,
 					.max		   = field.max,
-					.flags		   = field.flags & (reflected_field_flags_read_only | reflected_field_flags_clamped),
+					.flags		   = get_vector_item_field_flags(field),
 				};
 			}
 
@@ -457,7 +465,7 @@ namespace sfg
 					.size		   = sub_type->size,
 					.min		   = field.min,
 					.max		   = field.max,
-					.flags		   = field.flags & (reflected_field_flags_read_only | reflected_field_flags_clamped),
+					.flags		   = get_vector_item_field_flags(field),
 				};
 			}
 
@@ -469,7 +477,7 @@ namespace sfg
 				.size		   = sub_type != nullptr ? sub_type->size : 0,
 				.min		   = field.min,
 				.max		   = field.max,
-				.flags		   = field.flags & (reflected_field_flags_read_only | reflected_field_flags_clamped),
+				.flags		   = get_vector_item_field_flags(field),
 			};
 		}
 
@@ -671,7 +679,7 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if ((field.flags & reflected_field_flags_no_ui) != 0)
+			if (field.flags.is_set(reflected_field_flags_no_ui))
 				continue;
 			if (is_vector_field(field) && is_vector_unfolded(field.id))
 				control_count += get_vector_item_count(field);
@@ -684,7 +692,7 @@ namespace sfg
 		for (u32 i = 0; i < type->fields.size; ++i)
 		{
 			const reflected_field_desc_t& field = type->fields.data[i];
-			if ((field.flags & reflected_field_flags_no_ui) != 0)
+			if (field.flags.is_set(reflected_field_flags_no_ui))
 				continue;
 			const char* label = field.display_name != nullptr ? field.display_name : field.name;
 			if (is_vector_field(field))
@@ -1197,7 +1205,7 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::reset_vector_field(const reflected_field_desc_t& field)
 	{
-		if ((field.flags & reflected_field_flags_read_only) != 0)
+		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
 		ostream_t  old_value;
@@ -1261,7 +1269,7 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::add_vector_item(const reflected_field_desc_t& field)
 	{
-		if ((field.flags & reflected_field_flags_read_only) != 0)
+		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
 		ostream_t  old_value;
@@ -1325,7 +1333,7 @@ namespace sfg
 
 	void editor_widget_reflect_type_t::remove_vector_item(const reflected_field_desc_t& field, u32 index)
 	{
-		if ((field.flags & reflected_field_flags_read_only) != 0)
+		if (field.flags.is_set(reflected_field_flags_read_only))
 			return;
 
 		ostream_t  old_value;
@@ -1738,7 +1746,7 @@ namespace sfg
 		reflected_control_t& control = *static_cast<reflected_control_t*>(user_data);
 		if (control.owner->_target.kind == editor_reflected_edit_target_kind_e::none)
 			return;
-		if ((control.command_field->flags & reflected_field_flags_read_only) != 0)
+		if (control.command_field->flags.is_set(reflected_field_flags_read_only))
 			return;
 
 		editor_reflected_field_edit_desc_t desc = {};
