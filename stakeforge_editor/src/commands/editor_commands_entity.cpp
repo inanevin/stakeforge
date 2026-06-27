@@ -267,6 +267,60 @@ namespace sfg
 			}
 			return true;
 		}
+
+		bool apply_entity_parents(editor_command_system_t& system, const editor_command_reparent_entity_payload_t& payload, chunk_handle32_t parents_handle)
+		{
+			world_t&		   world	= get_world(payload.world);
+			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			const entity_id_t* parents	= system.get_aux_data().get<entity_id_t>(parents_handle);
+
+			for (u32 i = 0; i < payload.count; ++i)
+			{
+				const entity_id_t entity = entities[i];
+				const entity_id_t parent = parents[i];
+				if (!world.is_alive(entity) || (parent != NULL_ENTITY_ID && !world.is_alive(parent)))
+					continue;
+
+				if (parent == NULL_ENTITY_ID)
+					world.detach(entity);
+				else
+					world.attach_to(entity, parent);
+			}
+			return true;
+		}
+
+		bool reparent_entity_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_reparent_entity_payload_t& payload = system.get_payload_as<editor_command_reparent_entity_payload_t>(command);
+			return apply_entity_parents(system, payload, payload.previous_parents);
+		}
+
+		bool reparent_entity_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_reparent_entity_payload_t& payload = system.get_payload_as<editor_command_reparent_entity_payload_t>(command);
+			return apply_entity_parents(system, payload, payload.next_parents);
+		}
+
+		bool reparent_entity_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_reparent_entity_payload_t& payload = system.get_payload_as<editor_command_reparent_entity_payload_t>(command);
+			if (payload.entities)
+			{
+				system.get_aux_data().free(payload.entities);
+				payload.entities = {};
+			}
+			if (payload.previous_parents)
+			{
+				system.get_aux_data().free(payload.previous_parents);
+				payload.previous_parents = {};
+			}
+			if (payload.next_parents)
+			{
+				system.get_aux_data().free(payload.next_parents);
+				payload.next_parents = {};
+			}
+			return true;
+		}
 	}
 
 	entity_id_t editor_commands_entity_t::create(world_handle_t world, entity_id_t parent)
@@ -388,6 +442,56 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue destroy entity command");
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_commands_entity_t::reparent(world_handle_t world, const frame_vector_t<entity_id_t>& entities, entity_id_t parent)
+	{
+		if (entities.empty())
+			return false;
+		SFG_ASSERT(entities.size() <= UINT32_MAX);
+
+		world_t& world_ref = get_world(world);
+		for (entity_id_t entity : entities)
+		{
+			if (!world_ref.is_alive(entity))
+				return false;
+			if (parent != NULL_ENTITY_ID && !world_ref.is_alive(parent))
+				return false;
+			if (entity == parent)
+				return false;
+			for (entity_id_t cur = parent; cur != NULL_ENTITY_ID; cur = world_ref.get_entity_parent(cur))
+			{
+				if (cur == entity)
+					return false;
+			}
+		}
+
+		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+
+		editor_command_reparent_entity_payload_t payload = {};
+		payload.entities								 = copy_entities_to_aux(command_system, entities);
+		payload.previous_parents						 = copy_entity_parents_to_aux(command_system, world_ref, entities);
+		payload.next_parents							 = create_entity_array(command_system, entities.size(), parent);
+		payload.world									 = world;
+		payload.count									 = static_cast<u32>(entities.size());
+
+		const editor_command_issue_desc_t desc{
+			.undo			   = reparent_entity_undo,
+			.redo			   = reparent_entity_redo,
+			.cleanup		   = reparent_entity_cleanup,
+			.debug_name		   = "Reparent Entity",
+			.type			   = editor_command_type_e::entity_reparent,
+			.entity_generation = true,
+		};
+
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue reparent entity command");
 			return false;
 		}
 

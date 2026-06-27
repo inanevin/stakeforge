@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/vec2i16.hpp>
 
 namespace sfg::ui
 {
@@ -124,6 +125,7 @@ namespace sfg
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
+		void		  set_folder_payload_highlight_active(bool active);
 		void		  set_focus_state(bool focused);
 		bool		  can_mutate_ui_topology() const;
 		void		  request_ui_mutation();
@@ -132,6 +134,10 @@ namespace sfg
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select = false, bool incremental_select = false);
 		void select_asset_grid_item(editor_asset_node_handle_t node, bool range_select = false, bool incremental_select = false);
 		void clear_folder_selection();
+		void collect_payload_folder_nodes(editor_asset_node_handle_t node);
+		void collect_payload_asset_nodes(editor_asset_node_handle_t node);
+		bool move_payload_folders(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node);
+		bool move_payload_assets(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node);
 		void start_folder_payload(editor_asset_node_handle_t node);
 		void start_asset_item_payload(editor_asset_node_handle_t node);
 		void clear_asset_grid_selection();
@@ -170,6 +176,8 @@ namespace sfg
 		bool					 is_asset_favourite(sid_t guid) const;
 		bool					 is_folder_selected(u64 path_hash) const;
 		bool					 is_asset_selected(editor_asset_node_handle_t node) const;
+		bool					 is_folder_payload_root(editor_asset_node_handle_t node) const;
+		bool					 is_folder_payload_target_valid(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node) const;
 		size_t					 find_visible_folder_index(u64 path_hash) const;
 		size_t					 find_visible_asset_index(editor_asset_node_handle_t node) const;
 		bool					 is_focus_in_folder_pane() const;
@@ -215,6 +223,8 @@ namespace sfg
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
+		static void on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data);
+		static void on_payload_end(const editor_payload_t& payload, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_asset_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
@@ -263,6 +273,8 @@ namespace sfg
 		editor_asset_node_handle_t				_asset_selection_anchor			 = {};
 		editor_asset_node_handle_t				_payload_asset_node				 = {};
 		editor_asset_node_handle_t				_payload_folder_node			 = {};
+		vector_t<editor_asset_node_handle_t>	_payload_asset_nodes			 = {};
+		vector_t<editor_asset_node_handle_t>	_payload_folder_nodes			 = {};
 		ui::widget_id_t							_assets_left_pane				 = NULL_WIDGET;
 		ui::widget_id_t							_assets_left_pane_top_row		 = NULL_WIDGET;
 		ui::widget_id_t							_assets_left_pane_body			 = NULL_WIDGET;
@@ -290,6 +302,7 @@ namespace sfg
 		bool									_asset_grid_refresh_force		 = false;
 		bool									_asset_grid_body_size_valid		 = false;
 		bool									_asset_grid_rebuild_pending		 = false;
+		bool									_folder_payload_highlight_active = false;
 		bool									_focused						 = false;
 	};
 }

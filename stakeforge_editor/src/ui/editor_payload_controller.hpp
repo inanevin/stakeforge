@@ -31,6 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg
@@ -49,6 +51,12 @@ namespace sfg
 		vec2i16_t			  pos		 = vec2i16_t::zero;
 		vec2u16_t			  size_value = {};
 		editor_payload_type_e type		 = editor_payload_type_e::panel;
+	};
+
+	struct editor_entity_payload_t
+	{
+		world_handle_t world  = {};
+		entity_id_t	   entity = NULL_ENTITY_ID;
 	};
 
 	using editor_payload_listener_fn  = bool (*)(const editor_payload_t& payload, void* user_data);

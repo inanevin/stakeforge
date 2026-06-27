@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -193,13 +194,16 @@ namespace sfg
 		_entity_cache.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_expanded_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_selected_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+		_payload_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
+		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 		refresh_entities();
 	}
 
 	void editor_panel_entities_t::uninit()
 	{
 		editor_app_t::get().get_command_system().remove_listener(_command_listener);
+		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
@@ -210,6 +214,7 @@ namespace sfg
 		_entity_cache.clear();
 		_expanded_entities.clear();
 		_selected_entities.clear();
+		_payload_entities.clear();
 
 		_entity_top_row		  = NULL_WIDGET;
 		_entity_list_area	  = NULL_WIDGET;
@@ -413,6 +418,7 @@ namespace sfg
 		listener.user_data			   = this;
 		listener.on_click			   = on_entity_row_clicked;
 		listener.on_double_click	   = on_entity_row_double_clicked;
+		listener.on_drag_begin		   = on_entity_row_drag_begin;
 		listener.on_focus_gain		   = on_entity_row_focus_gain;
 		listener.on_focus_lose		   = on_entity_row_focus_lost;
 		ui.get_input().set_listener(row.root, listener);
@@ -693,6 +699,30 @@ namespace sfg
 		}
 	}
 
+	void editor_panel_entities_t::collect_payload_entities(entity_id_t entity)
+	{
+		_payload_entities.resize(0);
+
+		const world_handle_t main_world = editor_app_t::get().get_main_world();
+		if (main_world.is_null())
+			return;
+
+		world_t& world = editor_app_t::get().get_runtime().get_world(main_world);
+		if (is_entity_selected(entity))
+		{
+			frame_vector_t<entity_id_t> root_entities;
+			append_selected_root_entities(root_entities);
+			for (entity_id_t selected_entity : root_entities)
+			{
+				if (selected_entity != NULL_ENTITY_ID && world.is_alive(selected_entity))
+					_payload_entities.push_back({.world = main_world, .entity = selected_entity});
+			}
+		}
+
+		if (_payload_entities.empty() && entity != NULL_ENTITY_ID && world.is_alive(entity))
+			_payload_entities.push_back({.world = main_world, .entity = entity});
+	}
+
 	void editor_panel_entities_t::prune_entity_selection()
 	{
 		for (size_t i = 0; i < _selected_entities.size();)
@@ -726,6 +756,50 @@ namespace sfg
 			_expanded_entities.push_back(parent);
 		issue_entity_selection_command({.data = &entity, .size = 1}, entity);
 		refresh_entities();
+	}
+
+	void editor_panel_entities_t::start_entity_payload(entity_id_t entity)
+	{
+		collect_payload_entities(entity);
+		if (_payload_entities.empty())
+			return;
+
+		editor_payload_controller_t& payload_controller = editor_payload_controller_t::get();
+		if (payload_controller.is_payload_active())
+			return;
+
+		if (_payload_entities.size() == 1)
+		{
+			_payload_entity		 = _payload_entities.front();
+			const world_t& world = editor_app_t::get().get_runtime().get_world(_payload_entity.world);
+			const char*	   name	 = world.get_entity_name(_payload_entity.entity);
+			payload_controller.create_payload(name != nullptr ? name : "Entity", editor_payload_type_e::entity, &_payload_entity);
+			return;
+		}
+
+		string_t text = std::to_string(_payload_entities.size());
+		text += " entities";
+		payload_controller.create_payload(text.c_str(), editor_payload_type_e::entity_multi, &_payload_entities);
+	}
+
+	bool editor_panel_entities_t::reparent_payload_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent)
+	{
+		if (!can_reparent_entities(entities, parent))
+			return false;
+
+		const world_handle_t		main_world = editor_app_t::get().get_main_world();
+		frame_vector_t<entity_id_t> moved_entities;
+		moved_entities.reserve(entities.size());
+		for (const editor_entity_payload_t& payload_entity : entities)
+			moved_entities.push_back(payload_entity.entity);
+
+		if (!editor_commands_entity_t::reparent(main_world, moved_entities, parent))
+			return false;
+
+		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
+			_expanded_entities.push_back(parent);
+		refresh_entities();
+		return true;
 	}
 
 	void editor_panel_entities_t::duplicate_selected_entities()
@@ -820,6 +894,35 @@ namespace sfg
 		return false;
 	}
 
+	bool editor_panel_entities_t::can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const
+	{
+		if (entities.empty())
+			return false;
+
+		const world_handle_t main_world = editor_app_t::get().get_main_world();
+		if (main_world.is_null())
+			return false;
+
+		world_t& world = editor_app_t::get().get_runtime().get_world(main_world);
+		if (parent != NULL_ENTITY_ID && !world.is_alive(parent))
+			return false;
+
+		for (const editor_entity_payload_t& payload_entity : entities)
+		{
+			if (!(payload_entity.world == main_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
+				return false;
+			if (payload_entity.entity == parent)
+				return false;
+
+			for (entity_id_t cur = parent; cur != NULL_ENTITY_ID; cur = world.get_entity_parent(cur))
+			{
+				if (cur == payload_entity.entity)
+					return false;
+			}
+		}
+		return true;
+	}
+
 	size_t editor_panel_entities_t::find_visible_entity_index(entity_id_t entity) const
 	{
 		for (size_t i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
@@ -846,6 +949,19 @@ namespace sfg
 		{
 			const entity_row_t& row = _entity_rows[i];
 			if (row.root == id || row.label == id || (match_icon && (row.icon == id || row.icon_text == id)))
+				return &row;
+		}
+		return nullptr;
+	}
+
+	const editor_panel_entities_t::entity_row_t* editor_panel_entities_t::find_row_by_pos(const vec2f_t& pos) const
+	{
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		for (u32 i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
+		{
+			const entity_row_t&		row = _entity_rows[i];
+			const ui::layout_out_t& out = tree.out(row.root);
+			if (rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(pos))
 				return &row;
 		}
 		return nullptr;
@@ -997,6 +1113,19 @@ namespace sfg
 		}
 	}
 
+	void editor_panel_entities_t::on_entity_row_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t&, const vec2f_t&, void* user_data)
+	{
+		if (router.is_pressed(ui::mouse_button_e::left) != id)
+			return;
+
+		editor_panel_entities_t&  panel = *static_cast<editor_panel_entities_t*>(user_data);
+		const entity_row_t* const row	= panel.find_row_by_widget(id, /*match_icon=*/false);
+		if (row == nullptr)
+			return;
+
+		panel.start_entity_payload(row->entity);
+	}
+
 	void editor_panel_entities_t::on_entity_row_double_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
@@ -1007,6 +1136,36 @@ namespace sfg
 		if (row == nullptr || !row->has_children)
 			return;
 		panel.toggle_entity_fold(row->entity);
+	}
+
+	bool editor_panel_entities_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
+	{
+		if (payload.type != editor_payload_type_e::entity && payload.type != editor_payload_type_e::entity_multi)
+			return false;
+		SFG_ASSERT(payload.user_ptr != nullptr);
+
+		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
+		const ui::layout_out_t&	 out   = panel._ui->get_tree().out(panel._entity_list_area);
+		const vec2f_t&			 mouse = panel._ui->get_input().get_mouse_position();
+		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(mouse))
+			return false;
+
+		const entity_row_t* const row	  = panel.find_row_by_pos(mouse);
+		const entity_id_t		  parent  = row != nullptr ? row->entity : NULL_ENTITY_ID;
+		bool					  changed = false;
+		if (payload.type == editor_payload_type_e::entity)
+		{
+			const editor_entity_payload_t& entity = *static_cast<const editor_entity_payload_t*>(payload.user_ptr);
+			panel._payload_entities.resize(0);
+			panel._payload_entities.push_back(entity);
+			changed = panel.reparent_payload_entities(panel._payload_entities, parent);
+		}
+		else
+		{
+			const vector_t<editor_entity_payload_t>& entities = *static_cast<const vector_t<editor_entity_payload_t>*>(payload.user_ptr);
+			changed											  = panel.reparent_payload_entities(entities, parent);
+		}
+		return changed;
 	}
 
 	bool editor_panel_entities_t::on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command)

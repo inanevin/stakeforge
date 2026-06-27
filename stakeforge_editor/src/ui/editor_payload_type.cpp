@@ -36,8 +36,16 @@ namespace sfg
 			return "panel";
 		case editor_payload_type_e::asset:
 			return "asset";
+		case editor_payload_type_e::asset_multi:
+			return "asset_multi";
 		case editor_payload_type_e::folder:
 			return "folder";
+		case editor_payload_type_e::folder_multi:
+			return "folder_multi";
+		case editor_payload_type_e::entity:
+			return "entity";
+		case editor_payload_type_e::entity_multi:
+			return "entity_multi";
 		default:
 			return "";
 		}

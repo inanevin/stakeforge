@@ -62,6 +62,15 @@ namespace sfg
 		u32				 count	  = 0;
 	};
 
+	struct editor_command_reparent_entity_payload_t
+	{
+		chunk_handle32_t entities		  = {};
+		chunk_handle32_t previous_parents = {};
+		chunk_handle32_t next_parents	  = {};
+		world_handle_t	 world			  = {};
+		u32				 count			  = 0;
+	};
+
 	class editor_commands_entity_t final
 	{
 	public:
@@ -72,5 +81,6 @@ namespace sfg
 		static bool		   duplicate(world_handle_t world, const frame_vector_t<entity_id_t>& entities, frame_vector_t<entity_id_t>& out_entities);
 		static bool		   destroy(world_handle_t world, entity_id_t entity);
 		static bool		   destroy(world_handle_t world, const frame_vector_t<entity_id_t>& entities);
+		static bool		   reparent(world_handle_t world, const frame_vector_t<entity_id_t>& entities, entity_id_t parent);
 	};
 }

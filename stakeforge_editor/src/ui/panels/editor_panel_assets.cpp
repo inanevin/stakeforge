@@ -473,9 +473,11 @@ namespace sfg
 		_favourite_asset_guids.reserve(256);
 		_selected_folder_hashes.reserve(ASSETS_INITIAL_ROW_CAPACITY);
 		_selected_asset_nodes.reserve(ASSETS_INITIAL_GRID_ITEM_CAPACITY);
+		_payload_folder_nodes.reserve(ASSETS_INITIAL_ROW_CAPACITY);
+		_payload_asset_nodes.reserve(ASSETS_INITIAL_GRID_ITEM_CAPACITY);
 		_asset_grid_body_size_valid = false;
 		_asset_grid_rebuild_pending = false;
-		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
+		editor_payload_controller_t::get().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 		apply_pane_split();
 		refresh_folder_rows();
 	}
@@ -484,6 +486,7 @@ namespace sfg
 	{
 		_ui->cancel_mutations(this);
 		editor_payload_controller_t::get().unregister_listener(this);
+		_folder_payload_highlight_active = false;
 		_search_input.uninit();
 		_filter_button.uninit();
 		_import_button.uninit();
@@ -507,6 +510,8 @@ namespace sfg
 		_favourite_asset_guids.clear();
 		_selected_folder_hashes.clear();
 		_selected_asset_nodes.clear();
+		_payload_folder_nodes.clear();
+		_payload_asset_nodes.clear();
 		clear_pending_import();
 
 		editor_panel_t::uninit();
@@ -1489,12 +1494,15 @@ namespace sfg
 	{
 		const editor_theme_t& theme				 = editor_theme_t::get();
 		const bool			  selected			 = is_folder_selected(row.path_hash);
+		const bool			  payload_target	 = _folder_payload_highlight_active;
 		const vec4f_t		  selected_color	 = _focused ? theme.color_accent0 : theme.color_outline_light;
 		const vec4f_t		  selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
+		vec4f_t				  payload_color		 = theme.color_accent1;
+		payload_color.w							 = 50.0f / 255.0f;
 
 		ui::vg_rect_paint_t row_rect = {};
-		row_rect.fill_color_a		 = selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		row_rect.fill_color_b		 = selected ? selected_color_dim : row_rect.fill_color_a;
+		row_rect.fill_color_a		 = payload_target ? payload_color : selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		row_rect.fill_color_b		 = payload_target ? payload_color : selected ? selected_color_dim : row_rect.fill_color_a;
 		row_rect.gradient			 = ui::vg_gradient_e::horizontal;
 		row_rect.rounding			 = theme.item_rounding;
 		row_rect.rounding_segs		 = 4;
@@ -1511,6 +1519,16 @@ namespace sfg
 		set_widget_visible(tree, row.icon_text, visible, /*input=*/false);
 		set_widget_visible(tree, row.star_text, visible && row.is_favourite, /*input=*/false);
 		set_widget_visible(tree, row.label, visible, /*input=*/false);
+	}
+
+	void editor_panel_assets_t::set_folder_payload_highlight_active(bool active)
+	{
+		if (_folder_payload_highlight_active == active)
+			return;
+
+		_folder_payload_highlight_active = active;
+		for (u32 i = 0; i < _visible_folder_row_count && i < _folder_rows.size(); ++i)
+			update_folder_row_background(_folder_rows[i]);
 	}
 
 	void editor_panel_assets_t::set_focus_state(bool focused)
@@ -1673,6 +1691,118 @@ namespace sfg
 		update_import_button_state();
 	}
 
+	void editor_panel_assets_t::collect_payload_folder_nodes(editor_asset_node_handle_t node)
+	{
+		_payload_folder_nodes.resize(0);
+
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t&	  tree			= asset_manager.get_asset_tree();
+		bool						  node_selected = false;
+		for (u64 folder_hash : _selected_folder_hashes)
+		{
+			const folder_row_t* row = find_row_by_hash(folder_hash);
+			if (row != nullptr && row->node == node)
+			{
+				node_selected = true;
+				break;
+			}
+		}
+
+		if (node_selected)
+		{
+			for (u64 folder_hash : _selected_folder_hashes)
+			{
+				const folder_row_t* row = find_row_by_hash(folder_hash);
+				if (row == nullptr || row->node.is_null() || !tree.is_valid(row->node))
+					continue;
+
+				const editor_asset_node_t& selected_node = tree.value(row->node);
+				if (selected_node.type != editor_asset_node_type_e::folder || row->node == asset_manager.get_root_node() || (selected_node.flags & editor_asset_node_flag_promoted) != 0)
+					continue;
+
+				if (is_folder_payload_root(row->node))
+					_payload_folder_nodes.push_back(row->node);
+			}
+		}
+
+		if (_payload_folder_nodes.empty() && !node.is_null() && tree.is_valid(node))
+		{
+			const editor_asset_node_t& selected_node = tree.value(node);
+			if (selected_node.type == editor_asset_node_type_e::folder && node != asset_manager.get_root_node() && (selected_node.flags & editor_asset_node_flag_promoted) == 0)
+				_payload_folder_nodes.push_back(node);
+		}
+	}
+
+	void editor_panel_assets_t::collect_payload_asset_nodes(editor_asset_node_handle_t node)
+	{
+		_payload_asset_nodes.resize(0);
+
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		if (is_asset_selected(node))
+		{
+			for (editor_asset_node_handle_t selected_node : _selected_asset_nodes)
+			{
+				if (selected_node.is_null() || !tree.is_valid(selected_node))
+					continue;
+
+				if (tree.value(selected_node).type == editor_asset_node_type_e::asset)
+					_payload_asset_nodes.push_back(selected_node);
+			}
+		}
+
+		if (_payload_asset_nodes.empty() && !node.is_null() && tree.is_valid(node) && tree.value(node).type == editor_asset_node_type_e::asset)
+			_payload_asset_nodes.push_back(node);
+	}
+
+	bool editor_panel_assets_t::move_payload_folders(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node)
+	{
+		if (nodes.empty() || !is_folder_payload_target_valid(nodes, target_folder_node))
+			return false;
+
+		const editor_asset_tree_t& tree	 = editor_asset_manager_t::get().get_asset_tree();
+		bool					   moved = false;
+		for (editor_asset_node_handle_t node : nodes)
+		{
+			if (node.is_null() || !tree.is_valid(node))
+				continue;
+
+			const editor_asset_node_t& folder_node = tree.value(node);
+			if (folder_node.type != editor_asset_node_type_e::folder)
+				continue;
+
+			if (editor_asset_util_t::move_folder(node, target_folder_node))
+				moved = true;
+		}
+		return moved;
+	}
+
+	bool editor_panel_assets_t::move_payload_assets(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node)
+	{
+		if (nodes.empty())
+			return false;
+
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+		bool					   moved		 = false;
+		for (editor_asset_node_handle_t node : nodes)
+		{
+			if (node.is_null() || !tree.is_valid(node))
+				continue;
+
+			const editor_asset_node_t& asset_node = tree.value(node);
+			if (asset_node.type != editor_asset_node_type_e::asset)
+				continue;
+
+			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+			if (asset == nullptr)
+				continue;
+
+			if (editor_asset_util_t::move_asset(*asset, node, target_folder_node))
+				moved = true;
+		}
+		return moved;
+	}
+
 	void editor_panel_assets_t::start_folder_payload(editor_asset_node_handle_t node)
 	{
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
@@ -1689,8 +1819,21 @@ namespace sfg
 		if (payload_controller.is_payload_active())
 			return;
 
-		_payload_folder_node = node;
-		payload_controller.create_payload(folder_node.name.c_str(), editor_payload_type_e::folder, &_payload_folder_node);
+		collect_payload_folder_nodes(node);
+		if (_payload_folder_nodes.empty())
+			return;
+
+		if (_payload_folder_nodes.size() == 1)
+		{
+			_payload_folder_node					= _payload_folder_nodes.front();
+			const editor_asset_node_t& payload_node = tree.value(_payload_folder_node);
+			payload_controller.create_payload(payload_node.name.c_str(), editor_payload_type_e::folder, &_payload_folder_node);
+			return;
+		}
+
+		string_t text = std::to_string(_payload_folder_nodes.size());
+		text += " folders";
+		payload_controller.create_payload(text.c_str(), editor_payload_type_e::folder_multi, &_payload_folder_nodes);
 	}
 
 	void editor_panel_assets_t::start_asset_item_payload(editor_asset_node_handle_t node)
@@ -1707,8 +1850,21 @@ namespace sfg
 		if (payload_controller.is_payload_active())
 			return;
 
-		_payload_asset_node = node;
-		payload_controller.create_payload(asset_node.name.c_str(), editor_payload_type_e::asset, &_payload_asset_node);
+		collect_payload_asset_nodes(node);
+		if (_payload_asset_nodes.empty())
+			return;
+
+		if (_payload_asset_nodes.size() == 1)
+		{
+			_payload_asset_node						= _payload_asset_nodes.front();
+			const editor_asset_node_t& payload_node = tree.value(_payload_asset_node);
+			payload_controller.create_payload(payload_node.name.c_str(), editor_payload_type_e::asset, &_payload_asset_node);
+			return;
+		}
+
+		string_t text = std::to_string(_payload_asset_nodes.size());
+		text += " assets";
+		payload_controller.create_payload(text.c_str(), editor_payload_type_e::asset_multi, &_payload_asset_nodes);
 	}
 
 	void editor_panel_assets_t::clear_asset_grid_selection()
@@ -2416,6 +2572,49 @@ namespace sfg
 		return !node.is_null() && std::find(_selected_asset_nodes.begin(), _selected_asset_nodes.end(), node) != _selected_asset_nodes.end();
 	}
 
+	bool editor_panel_assets_t::is_folder_payload_root(editor_asset_node_handle_t node) const
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!node.is_null());
+		SFG_ASSERT(tree.is_valid(node));
+
+		for (u64 folder_hash : _selected_folder_hashes)
+		{
+			const folder_row_t* row = find_row_by_hash(folder_hash);
+			if (row == nullptr || row->node.is_null() || row->node == node || !tree.is_valid(row->node))
+				continue;
+
+			if (tree.is_ancestor(row->node, node))
+				return false;
+		}
+		return true;
+	}
+
+	bool editor_panel_assets_t::is_folder_payload_target_valid(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node) const
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		if (target_folder_node.is_null() || !tree.is_valid(target_folder_node))
+			return false;
+
+		const editor_asset_node_t& target_node = tree.value(target_folder_node);
+		if (target_node.type != editor_asset_node_type_e::folder)
+			return false;
+
+		for (editor_asset_node_handle_t node : nodes)
+		{
+			if (node.is_null() || !tree.is_valid(node))
+				continue;
+
+			const editor_asset_node_t& folder_node = tree.value(node);
+			if (folder_node.type != editor_asset_node_type_e::folder)
+				continue;
+
+			if (node == target_folder_node || tree.is_ancestor(node, target_folder_node))
+				return false;
+		}
+		return true;
+	}
+
 	size_t editor_panel_assets_t::find_visible_folder_index(u64 path_hash) const
 	{
 		for (u32 i = 0; i < _visible_folder_row_count && i < _folder_rows.size(); ++i)
@@ -2931,46 +3130,76 @@ namespace sfg
 
 	bool editor_panel_assets_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
 	{
-		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::folder)
+		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi && payload.type != editor_payload_type_e::folder && payload.type != editor_payload_type_e::folder_multi)
 			return false;
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
-		editor_panel_assets_t&			 panel		  = *static_cast<editor_panel_assets_t*>(user_data);
-		const folder_row_t* const		 row		  = panel.find_row_by_pos(panel._ui->get_input().get_mouse_position());
-		const editor_asset_tree_t&		 tree		  = editor_asset_manager_t::get().get_asset_tree();
-		const editor_asset_node_handle_t payload_node = *static_cast<editor_asset_node_handle_t*>(payload.user_ptr);
-		if (row == nullptr || row->node.is_null() || payload_node.is_null() || !tree.is_valid(row->node) || !tree.is_valid(payload_node))
+		editor_panel_assets_t&	   panel = *static_cast<editor_panel_assets_t*>(user_data);
+		const folder_row_t* const  row	 = panel.find_row_by_pos(panel._ui->get_input().get_mouse_position());
+		const editor_asset_tree_t& tree	 = editor_asset_manager_t::get().get_asset_tree();
+		if (row == nullptr || row->node.is_null() || !tree.is_valid(row->node))
 			return false;
 
-		const editor_asset_node_t& node = tree.value(payload_node);
+		bool moved = false;
 		if (payload.type == editor_payload_type_e::folder)
 		{
+			const editor_asset_node_handle_t payload_node = *static_cast<editor_asset_node_handle_t*>(payload.user_ptr);
+			if (payload_node.is_null() || !tree.is_valid(payload_node))
+				return false;
+
+			const editor_asset_node_t& node = tree.value(payload_node);
 			if (node.type != editor_asset_node_type_e::folder)
 				return false;
 
-			if (!editor_asset_util_t::move_folder(payload_node, row->node))
+			panel._payload_folder_nodes.resize(0);
+			panel._payload_folder_nodes.push_back(payload_node);
+			moved = panel.move_payload_folders(panel._payload_folder_nodes, row->node);
+		}
+		else if (payload.type == editor_payload_type_e::folder_multi)
+		{
+			const vector_t<editor_asset_node_handle_t>& nodes = *static_cast<const vector_t<editor_asset_node_handle_t>*>(payload.user_ptr);
+			moved											  = panel.move_payload_folders(nodes, row->node);
+		}
+		else if (payload.type == editor_payload_type_e::asset)
+		{
+			const editor_asset_node_handle_t payload_node = *static_cast<editor_asset_node_handle_t*>(payload.user_ptr);
+			if (payload_node.is_null() || !tree.is_valid(payload_node))
 				return false;
 
-			panel.clear_asset_grid_selection();
-			editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
-			panel.refresh_folder_rows();
-			return true;
+			const editor_asset_node_t& node = tree.value(payload_node);
+			if (node.type != editor_asset_node_type_e::asset)
+				return false;
+
+			panel._payload_asset_nodes.resize(0);
+			panel._payload_asset_nodes.push_back(payload_node);
+			moved = panel.move_payload_assets(panel._payload_asset_nodes, row->node);
+		}
+		else
+		{
+			const vector_t<editor_asset_node_handle_t>& nodes = *static_cast<const vector_t<editor_asset_node_handle_t>*>(payload.user_ptr);
+			moved											  = panel.move_payload_assets(nodes, row->node);
 		}
 
-		if (node.type != editor_asset_node_type_e::asset)
-			return false;
-
-		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(node.asset_id);
-		if (asset == nullptr)
-			return false;
-
-		if (!editor_asset_util_t::move_asset(*asset, payload_node, row->node))
+		if (!moved)
 			return false;
 
 		panel.clear_asset_grid_selection();
 		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
 		panel.refresh_folder_rows();
 		return true;
+	}
+
+	void editor_panel_assets_t::on_payload_tick(const editor_payload_t& payload, const vec2i16_t&, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.set_folder_payload_highlight_active(payload.type == editor_payload_type_e::entity || payload.type == editor_payload_type_e::entity_multi || payload.type == editor_payload_type_e::folder || payload.type == editor_payload_type_e::folder_multi ||
+												  payload.type == editor_payload_type_e::asset || payload.type == editor_payload_type_e::asset_multi);
+	}
+
+	void editor_panel_assets_t::on_payload_end(const editor_payload_t&, void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.set_folder_payload_highlight_active(false);
 	}
 
 	void editor_panel_assets_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)
@@ -3057,8 +3286,6 @@ namespace sfg
 		if (item == nullptr)
 			return;
 
-		if (!panel.is_asset_selected(item->node))
-			panel.select_asset_grid_item(item->node, false, false);
 		panel.start_asset_item_payload(item->node);
 	}
 
@@ -3113,14 +3340,11 @@ namespace sfg
 		if (router.is_pressed(ui::mouse_button_e::left) != id)
 			return;
 
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		panel.clear_asset_grid_selection();
-		const folder_row_t* const row = panel.find_row_by_widget(id, false);
+		editor_panel_assets_t&	  panel = *static_cast<editor_panel_assets_t*>(user_data);
+		const folder_row_t* const row	= panel.find_row_by_widget(id, false);
 		if (row == nullptr)
 			return;
 
-		if (!panel.is_folder_selected(row->path_hash))
-			panel.select_folder_row(row->node, row->path_hash, false, false);
 		panel.start_folder_payload(row->node);
 	}
 

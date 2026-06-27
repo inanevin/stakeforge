@@ -34,7 +34,11 @@ namespace sfg
 	{
 		panel,
 		asset,
+		asset_multi,
 		folder,
+		folder_multi,
+		entity,
+		entity_multi,
 	};
 
 	const char* get_editor_payload_type_name(editor_payload_type_e type);

@@ -48,6 +48,7 @@ namespace sfg
 		entity_selection,
 		entity_duplicate,
 		entity_destroy,
+		entity_reparent,
 		entity_info_paste,
 		component_add,
 		component_remove,

@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/editor_payload_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
@@ -124,9 +125,12 @@ namespace sfg
 		void		  clear_entity_selection();
 		void		  select_all_visible_entities();
 		void		  append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const;
+		void		  collect_payload_entities(entity_id_t entity);
 		void		  prune_entity_selection();
 		void		  toggle_entity_fold(entity_id_t entity);
 		void		  create_entity(entity_id_t parent);
+		void		  start_entity_payload(entity_id_t entity);
+		bool		  reparent_payload_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent);
 		void		  duplicate_selected_entities();
 		void		  destroy_selected_entities();
 		void		  open_empty_action_menu(const vec2f_t& pos);
@@ -140,9 +144,11 @@ namespace sfg
 		bool				 is_entity_selected(entity_id_t entity) const;
 		bool				 is_create_enabled() const;
 		bool				 has_selected_ancestor(entity_id_t entity) const;
+		bool				 can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const;
 		size_t				 find_visible_entity_index(entity_id_t entity) const;
 		const entity_desc_t* find_entity_desc(entity_id_t entity) const;
 		const entity_row_t*	 find_row_by_widget(ui::widget_id_t id, bool match_icon) const;
+		const entity_row_t*	 find_row_by_pos(const vec2f_t& pos) const;
 
 		// -----------------------------------------------------------------------------
 		// handlers
@@ -161,7 +167,9 @@ namespace sfg
 		static void on_entity_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_entity_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_entity_row_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_entity_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static bool on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command);
 		static bool on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command);
 		static bool on_entity_selection_cleanup(editor_command_system_t& system, editor_command_t& command);
@@ -181,6 +189,8 @@ namespace sfg
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			= {};
 		world_handle_t									  _main_world				= {};
 		vector_t<entity_id_t>							  _selected_entities		= {};
+		vector_t<editor_entity_payload_t>				  _payload_entities			= {};
+		editor_entity_payload_t							  _payload_entity			= {};
 		entity_id_t										  _selection_anchor			= NULL_ENTITY_ID;
 		entity_id_t										  _action_menu_entity		= NULL_ENTITY_ID;
 		u32												  _entity_generation		= 0;
