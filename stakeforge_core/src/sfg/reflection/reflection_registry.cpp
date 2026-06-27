@@ -922,7 +922,7 @@ namespace sfg
 			}
 		}
 
-		bool reflected_inplace_vector_to_stream_by_type(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
+		bool reflected_inplace_vector_to_stream(const void* object, const reflected_field_desc_t& field, ostream_t& stream)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
@@ -963,7 +963,7 @@ namespace sfg
 			}
 		}
 
-		bool reflected_vector_from_stream_by_type(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		bool reflected_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
@@ -1004,7 +1004,7 @@ namespace sfg
 			}
 		}
 
-		bool reflected_inplace_vector_from_stream_by_type(void* object, const reflected_field_desc_t& field, istream_t& stream)
+		bool reflected_inplace_vector_from_stream(void* object, const reflected_field_desc_t& field, istream_t& stream)
 		{
 			switch (reflected_value_type_from_sub_type_id(field.sub_type_id))
 			{
@@ -1364,7 +1364,7 @@ namespace sfg
 			case reflected_value_type_e::vector:
 				return reflected_vector_to_stream_by_type(object, field, stream);
 			case reflected_value_type_e::inplace_vector:
-				return reflected_inplace_vector_to_stream_by_type(object, field, stream);
+				return reflected_inplace_vector_to_stream(object, field, stream);
 			default:
 				return false;
 			}
@@ -1482,9 +1482,9 @@ namespace sfg
 			case reflected_value_type_e::object:
 				return reflection_registry_t::get().deserialize_from_stream(field.value_type_id, field_ptr, stream);
 			case reflected_value_type_e::vector:
-				return reflected_vector_from_stream_by_type(object, field, stream);
+				return reflected_vector_from_stream(object, field, stream);
 			case reflected_value_type_e::inplace_vector:
-				return reflected_inplace_vector_from_stream_by_type(object, field, stream);
+				return reflected_inplace_vector_from_stream(object, field, stream);
 			default:
 				return false;
 			}
