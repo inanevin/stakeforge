@@ -22,6 +22,8 @@ namespace sfg
 		.runtime_alignment	 = alignof(prefab_runtime_t),
 		.internals_size		 = sizeof(prefab_internals_t),
 		.internals_alignment = alignof(prefab_internals_t),
+		.wire_magic			 = prefab_loader_t::WIRE_MAGIC,
+		.wire_version		 = prefab_loader_t::WIRE_VERSION,
 		.use_async_load		 = false,
 		.load				 = prefab_loader_t::load,
 		.unload				 = prefab_loader_t::unload,

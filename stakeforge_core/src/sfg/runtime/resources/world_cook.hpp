@@ -42,7 +42,7 @@ namespace sfg
 	public:
 		static void world_to_stream(const world_t& world, ostream_t& out_stream);
 		static void world_to_json(const world_t& world, nlohmann::json& out_json);
-		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources);
+		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources, bool write_resources = false);
+		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources, bool write_resources = false);
 	};
 }

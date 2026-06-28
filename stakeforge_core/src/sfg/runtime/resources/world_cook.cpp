@@ -305,7 +305,7 @@ namespace sfg
 
 		out_stream << static_cast<u32>(roots.size());
 		for (entity_id_t root : roots)
-			entity_to_stream(world, root, out_stream, resources);
+			entity_to_stream(world, root, out_stream, resources, false);
 
 		out_stream << static_cast<u32>(resources.size());
 		for (resource_handle_t resource : resources)
@@ -335,7 +335,7 @@ namespace sfg
 				continue;
 
 			nlohmann::json entity_json = {};
-			entity_to_json(world, row.id, entity_json, resources);
+			entity_to_json(world, row.id, entity_json, resources, false);
 			if (!entity_json.is_null())
 				out_json["entities"].push_back(entity_json);
 		}
@@ -344,14 +344,43 @@ namespace sfg
 			out_json["resources"].push_back(resource);
 	}
 
-	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources)
+	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources, bool write_resources)
 	{
-		entity_to_stream_impl(world, entity, out_stream, out_resources);
+		frame_vector_t<resource_handle_t> resources;
+		entity_to_stream_impl(world, entity, out_stream, resources);
+
+		for (resource_handle_t h : resources)
+			add_unique_resource_handle(out_resources, h);
+
+		if (write_resources)
+		{
+			const u32 sz = static_cast<u32>(resources.size());
+			out_stream << sz;
+			for (resource_handle_t h : resources)
+			{
+				out_stream << h;
+			}
+		}
 	}
 
-	void world_cooker_t::entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources)
+	void world_cooker_t::entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources, bool write_resources)
 	{
-		if (!entity_to_json_impl(world, entity, out_json, out_resources))
+		frame_vector_t<resource_handle_t> resources;
+
+		if (!entity_to_json_impl(world, entity, out_json, resources))
 			out_json = nullptr;
+
+		for (resource_handle_t h : resources)
+			add_unique_resource_handle(out_resources, h);
+
+		if (write_resources)
+		{
+			out_json["resources"] = nlohmann::json::array();
+
+			for (resource_handle_t h : resources)
+			{
+				out_json["resources"].push_back(h);
+			}
+		}
 	}
 }
