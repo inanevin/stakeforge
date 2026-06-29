@@ -49,6 +49,11 @@ namespace sfg
 			return std::copysignf(number, sign);
 		}
 
+		template <typename T> inline T round(T val)
+		{
+			return std::round(val);
+		}
+
 		template <typename T> inline T lround(T val)
 		{
 			return std::lround(val);

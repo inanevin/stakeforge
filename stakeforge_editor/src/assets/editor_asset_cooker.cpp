@@ -49,6 +49,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/font_cook.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
+#include <sfg/runtime/resources/prefab_cook.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton_cook.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
@@ -108,6 +109,8 @@ namespace sfg
 			return cook_hdr_skybox(asset);
 		case editor_asset_type_e::font:
 			return cook_font(asset);
+		case editor_asset_type_e::prefab:
+			return cook_prefab(asset);
 		default:
 			SFG_ASSERT(false);
 			return false;
@@ -129,6 +132,7 @@ namespace sfg
 		case editor_asset_type_e::physical_material:
 		case editor_asset_type_e::hdr_skybox:
 		case editor_asset_type_e::font:
+		case editor_asset_type_e::prefab:
 			return true;
 		default:
 			return false;
@@ -397,6 +401,21 @@ namespace sfg
 		if (!skybox_hdr_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
 			SFG_ERR("failed to cook HDR skybox asset {0}", asset.guid);
+			return false;
+		}
+		return save_cooked_asset(asset, header, stream);
+	}
+
+	bool editor_asset_cooker_t::cook_prefab(const editor_asset_t& asset)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::prefab);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
+
+		resource_header_t header = {};
+		ostream_t		  stream;
+		if (!prefab_cooker::cook_from_json(asset.embedded_source, header, stream))
+		{
+			SFG_ERR("failed to cook prefab asset {0}", asset.guid);
 			return false;
 		}
 		return save_cooked_asset(asset, header, stream);

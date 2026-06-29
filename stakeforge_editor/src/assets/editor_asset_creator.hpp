@@ -39,6 +39,7 @@ namespace sfg
 		editor_asset_node_handle_t parent_node	   = {};
 		const char*				   name			   = nullptr;
 		const char*				   source_name	   = nullptr;
+		const char*				   embedded_data   = nullptr;
 		sid_t					   guid			   = NULL_SID;
 		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
 		u8						   sub_type		   = 0;

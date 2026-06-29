@@ -27,23 +27,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
+	class istream_t;
 	class ostream_t;
-	class world_t;
 
-	class world_cooker_t
+	struct world_cook_entity_header_t
 	{
-	public:
-		static void world_to_stream(const world_t& world, ostream_t& out_stream);
-		static void world_to_json(const world_t& world, nlohmann::json& out_json);
-		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
+		entity_guid_t	  guid		  = NULL_ENTITY_GUID;
+		entity_guid_t	  parent_guid = NULL_ENTITY_GUID;
+		string_t		  name		  = {};
+		vec3f_t			  local_pos	  = vec3f_t::zero;
+		quat_t			  local_rot	  = {};
+		vec3f_t			  local_scale = vec3f_t::one;
+		resource_handle_t prefab	  = NULL_RESOURCE_HANDLE;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
+
+	void to_json(nlohmann::json& j, const world_cook_entity_header_t& header);
+	void from_json(const nlohmann::json& j, world_cook_entity_header_t& header);
 }

@@ -944,7 +944,7 @@ namespace sfg
 			}
 		};
 
-		if (reflection_registry_t::is_resource_type(value_type))
+		if (reflected_value_type_is_resource(value_type))
 		{
 			install_items.template operator()<sid_t>();
 			return;
@@ -1004,7 +1004,7 @@ namespace sfg
 		auto get_count = [&]<typename T>() { return get_reflected_container_item_count<T>(_object, field); };
 
 		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
-		if (reflection_registry_t::is_resource_type(value_type))
+		if (reflected_value_type_is_resource(value_type))
 			return get_count.template operator()<sid_t>();
 
 		switch (value_type)
@@ -1085,7 +1085,7 @@ namespace sfg
 		};
 
 		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
-		if (reflection_registry_t::is_resource_type(value_type))
+		if (reflected_value_type_is_resource(value_type))
 		{
 			clear_items.template operator()<sid_t>();
 			return;
@@ -1156,7 +1156,7 @@ namespace sfg
 		};
 
 		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
-		if (reflection_registry_t::is_resource_type(value_type))
+		if (reflected_value_type_is_resource(value_type))
 		{
 			add_item.template operator()<sid_t>();
 			return;
@@ -1227,7 +1227,7 @@ namespace sfg
 		};
 
 		const reflected_value_type_e value_type = reflected_value_type_from_sub_type_id(field.sub_type_id);
-		if (reflection_registry_t::is_resource_type(value_type))
+		if (reflected_value_type_is_resource(value_type))
 		{
 			remove_item.template operator()<sid_t>();
 			return;

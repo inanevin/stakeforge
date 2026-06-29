@@ -42,10 +42,10 @@ namespace sfg
 		static inline constexpr sid_t		TYPE_ID	   = "component_hierarchy"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_hierarchy";
 
-		entity_guid_t first_child  = NULL_ENTITY_GUID;
-		entity_guid_t parent	   = NULL_ENTITY_GUID;
-		entity_guid_t next_sibling = NULL_ENTITY_GUID;
-		entity_guid_t prev_sibling = NULL_ENTITY_GUID;
+		entity_id_t first_child	 = NULL_ENTITY_ID;
+		entity_id_t parent		 = NULL_ENTITY_ID;
+		entity_id_t next_sibling = NULL_ENTITY_ID;
+		entity_id_t prev_sibling = NULL_ENTITY_ID;
 	};
 
 	struct component_guid_t
@@ -124,6 +124,18 @@ namespace sfg
 	{
 		u32	   data[4] = {1, 2, 3, 0};
 		size_t size	   = 3;
+	};
+
+	enum class debug_widgets_enum : u8
+	{
+		debug_widgets_enum_a,
+		debug_widgets_enum_b,
+	};
+
+	enum class debug_widgets_enum2 : u32
+	{
+		debug_widgets_enum2_a,
+		debug_widgets_enum2_b,
 	};
 
 	struct component_debug_widgets_t

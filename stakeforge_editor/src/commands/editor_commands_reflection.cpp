@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
 #include <cstring>
@@ -102,10 +103,72 @@ namespace sfg
 			}
 		}
 
+		bool serialize_builtin_component_field_to_stream(sid_t type_id, sid_t field_id, const void* object, ostream_t& stream)
+		{
+			if (type_id == component_transform_t::TYPE_ID)
+			{
+				const component_transform_t& transform = *static_cast<const component_transform_t*>(object);
+				if (field_id == "pos"_hs)
+				{
+					stream << transform.pos;
+					return true;
+				}
+				if (field_id == "rot"_hs)
+				{
+					stream << transform.rot;
+					return true;
+				}
+				SFG_ASSERT(field_id == "scale"_hs);
+				stream << transform.scale;
+				return true;
+			}
+
+			if (type_id == component_name_t::TYPE_ID)
+			{
+				const component_name_t& name = *static_cast<const component_name_t*>(object);
+				SFG_ASSERT(field_id == "text_index"_hs);
+				stream << name.text_index;
+				return true;
+			}
+
+			return false;
+		}
+
+		bool deserialize_builtin_component_field_from_stream(sid_t type_id, sid_t field_id, void* object, istream_t& stream)
+		{
+			if (type_id == component_transform_t::TYPE_ID)
+			{
+				component_transform_t& transform = *static_cast<component_transform_t*>(object);
+				if (field_id == "pos"_hs)
+				{
+					stream >> transform.pos;
+					return true;
+				}
+				if (field_id == "rot"_hs)
+				{
+					stream >> transform.rot;
+					return true;
+				}
+				SFG_ASSERT(field_id == "scale"_hs);
+				stream >> transform.scale;
+				return true;
+			}
+
+			if (type_id == component_name_t::TYPE_ID)
+			{
+				component_name_t& name = *static_cast<component_name_t*>(object);
+				SFG_ASSERT(field_id == "text_index"_hs);
+				stream >> name.text_index;
+				return true;
+			}
+
+			return false;
+		}
+
 		bool read_text_id_field(const editor_command_reflected_field_edit_payload_t& payload, void* object, u32& out_text_id)
 		{
 			ostream_t stream;
-			if (!reflection_registry_t::get().serialize_field_to_stream(payload.type_id, payload.field_id, object, stream))
+			if (!serialize_builtin_component_field_to_stream(payload.type_id, payload.field_id, object, stream) && !reflection_registry_t::get().serialize_field_to_stream(payload.type_id, payload.field_id, object, stream))
 			{
 				SFG_ERR("failed to serialize reflected text field {0}", payload.field_id);
 				return false;
@@ -120,7 +183,7 @@ namespace sfg
 			ostream_t stream;
 			stream << text_id;
 			istream_t input(stream.get_raw(), stream.get_size());
-			return reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, input);
+			return deserialize_builtin_component_field_from_stream(payload.type_id, payload.field_id, object, input) || reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, input);
 		}
 
 		bool apply_text_id_to_object(editor_command_system_t& system, editor_command_reflected_field_edit_payload_t& payload, world_t& world, void* object, chunk_handle32_t value)
@@ -189,7 +252,7 @@ namespace sfg
 						continue;
 					const chunk_handle32_t entity_value = undo ? old_values[i] : value;
 					istream_t			   stream(system.get_aux_data().get<u8>(entity_value), entity_value.size);
-					if (!reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream))
+					if (!deserialize_builtin_component_field_from_stream(payload.type_id, payload.field_id, object, stream) && !reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream))
 					{
 						SFG_ERR("failed to apply reflected field {0} to entity {1}", payload.field_id, entities[i]);
 						return false;
@@ -203,7 +266,7 @@ namespace sfg
 				return true;
 
 			istream_t stream(system.get_aux_data().get<u8>(value), value.size);
-			if (!reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream))
+			if (!deserialize_builtin_component_field_from_stream(payload.type_id, payload.field_id, object, stream) && !reflection_registry_t::get().deserialize_field_from_stream(payload.type_id, payload.field_id, object, stream))
 			{
 				SFG_ERR("failed to apply reflected field {0}", payload.field_id);
 				return false;
@@ -289,7 +352,7 @@ namespace sfg
 				void* object = resolve_world_component_object(world, desc.target.type_id, desc.target.entities[i]);
 				SFG_ASSERT(object != nullptr);
 				ostream_t  entity_old_value;
-				const bool serialized = reflection_registry_t::get().serialize_field_to_stream(desc.type_id, desc.field_id, object, entity_old_value);
+				const bool serialized = serialize_builtin_component_field_to_stream(desc.type_id, desc.field_id, object, entity_old_value) || reflection_registry_t::get().serialize_field_to_stream(desc.type_id, desc.field_id, object, entity_old_value);
 				SFG_ASSERT(serialized);
 				if (!serialized)
 				{

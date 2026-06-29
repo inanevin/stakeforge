@@ -83,6 +83,7 @@ namespace sfg
 
 	reflected_value_type_e reflected_value_type_from_sub_type_id(sid_t sub_type_id);
 	u32					   reflected_value_type_size(reflected_value_type_e type);
+	bool				   reflected_value_type_is_resource(reflected_value_type_e type);
 
 	enum reflected_field_flags_e : u32
 	{
@@ -90,8 +91,7 @@ namespace sfg
 		reflected_field_flags_read_only = 1 << 0,
 		reflected_field_flags_no_ui		= 1 << 1,
 		reflected_field_flags_clamped	= 1 << 2,
-		reflected_field_flags_transient = 1 << 3,
-		reflected_field_flags_bitmask	= 1 << 4,
+		reflected_field_flags_bitmask	= 1 << 3,
 	};
 
 	enum reflected_type_flags_e : u32
@@ -149,7 +149,6 @@ namespace sfg
 	{
 	public:
 		static reflection_registry_t& get();
-		static bool					  is_resource_type(reflected_value_type_e type);
 
 		reflection_registry_t();
 		~reflection_registry_t();

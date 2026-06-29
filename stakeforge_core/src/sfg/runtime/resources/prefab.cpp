@@ -2,18 +2,50 @@
 
 #include "prefab.hpp"
 
+#include "resource_file_system.hpp"
+#include "resource_manager.hpp"
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
-	bool prefab_loader_t::load(resource_entry_t&, resource_context_t&, resource_file_system_t&)
+	bool prefab_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
-		SFG_ERR("prefab loading is not implemented");
-		return false;
+		ostream_t file_stream;
+		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		{
+			SFG_ERR("failed to read prefab resource: {0}", entry.hash);
+			return false;
+		}
+
+		istream_t stream;
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+		istream_t payload = compressor_t::decompress(stream);
+		if (payload.empty())
+		{
+			SFG_ERR("failed to decompress prefab payload: {0}", entry.hash);
+			return false;
+		}
+
+		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
+		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
+		*internals					  = {};
+		internals->size				  = static_cast<u32>(payload.get_size());
+		internals->data				  = mem.allocate_bytes(payload.get_size(), alignof(u8));
+		SFG_MEMCPY(mem.get<u8>(internals->data), payload.get_raw(), payload.get_size());
+		return true;
 	}
 
-	void prefab_loader_t::unload(resource_entry_t&, resource_context_t&)
+	void prefab_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
+		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
+		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
+		if (internals->data)
+			mem.free(internals->data);
+		*internals = {};
 	}
 
 	const resource_type_desc_t prefab_resource_desc = {

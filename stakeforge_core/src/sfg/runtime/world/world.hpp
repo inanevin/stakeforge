@@ -5,7 +5,10 @@
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/math/vec3f.hpp>
 #include <sfg/memory/text_allocator.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -13,15 +16,21 @@ namespace sfg
 {
 	class mat4x3_t;
 	class istream_t;
-	class ostream_t;
-	class quat_t;
 	struct component_hierarchy_t;
-	struct vec3f_t;
+	struct prefab_internals_t;
 
 	struct world_component_table_t
 	{
 		ecs_component_type_desc_t type_desc = {};
 		ecs_component_table_t	  table		= {};
+	};
+
+	struct prefab_spawn_params_t
+	{
+		entity_id_t parent		= NULL_ENTITY_ID;
+		vec3f_t		local_pos	= vec3f_t::zero;
+		quat_t		local_rot	= {};
+		vec3f_t		local_scale = vec3f_t::one;
 	};
 
 	class world_t
@@ -46,8 +55,9 @@ namespace sfg
 		void		  destroy_entity(entity_id_t id);
 		void		  destroy_entity_tree(entity_id_t id);
 		void		  set_entity_name(entity_id_t id, const char* name);
-		void		  entity_to_stream(entity_id_t id, ostream_t& stream) const;
-		entity_id_t	  entity_from_stream(istream_t& stream, bool preserve_guids = true);
+		entity_id_t	  entity_from_stream(istream_t& stream);
+		entity_id_t	  spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params);
+		entity_id_t	  spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
 		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;

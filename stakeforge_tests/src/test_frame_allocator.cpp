@@ -2,6 +2,8 @@
 
 #include "sfg/data/string.hpp"
 #include "sfg/data/vector.hpp"
+#include "sfg/data/frame_vector.hpp"
+#include "sfg/data/frame_string.hpp"
 #include "sfg/memory/frame_allocator.hpp"
 
 #include <thread>
@@ -84,7 +86,7 @@ namespace sfg
 				frame_allocator_tls_t::init(2048);
 
 				{
-					frame_string_t text;
+					frame_string_t text = "";
 					text.assign(128, 'a');
 
 					SFG_TEST_EXPECT(context, text.size() == 128);

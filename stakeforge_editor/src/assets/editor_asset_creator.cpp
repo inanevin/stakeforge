@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -210,6 +211,29 @@ namespace sfg
 			};
 			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset);
 		}
+
+		bool create_prefab_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		{
+			SFG_ASSERT(desc.embedded_data != nullptr);
+
+			const nlohmann::json embedded_source = nlohmann::json::parse(desc.embedded_data, nullptr, false);
+			if (embedded_source.is_discarded())
+			{
+				SFG_ERR("failed to parse prefab embedded data");
+				return false;
+			}
+
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_node	 = desc.parent_node,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::prefab,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+		}
 	}
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
@@ -243,6 +267,11 @@ namespace sfg
 			result = create_animation_state_machine_asset(desc, &asset);
 			if (result)
 				result = editor_asset_cooker_t::cook_animation_state_machine(asset);
+			break;
+		case editor_asset_type_e::prefab:
+			result = create_prefab_asset(desc, &asset);
+			if (result)
+				result = editor_asset_cooker_t::cook_prefab(asset);
 			break;
 		default:
 			SFG_ASSERT(false);

@@ -28,12 +28,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine_components.hpp"
 
 #include <sfg/reflection/reflection_registry.hpp>
+#define reflected_field_flags_e reflected_field_flags_e_v2_compat
+#define reflected_type_flags_e	reflected_type_flags_e_v2_compat
+#include <sfg/reflection/reflection_container_ops.hpp>
+#undef reflected_type_flags_e
+#undef reflected_field_flags_e
 
 #include <cstddef>
 #include <iterator>
 
 namespace sfg
 {
+	SFG_DEFINE_TYPE_ID(debug_widgets_enum);
+	SFG_DEFINE_TYPE_ID(debug_widgets_enum2);
+
 	namespace
 	{
 		void register_type_if_missing(const reflected_type_desc_t& desc)
@@ -43,147 +51,11 @@ namespace sfg
 				registry.register_type(desc);
 		}
 
-		void register_component_hierarchy_reflection()
+		void register_type_v2_if_missing(const reflected_type_descriptor_t& desc)
 		{
-			static const reflected_field_desc_t fields[] = {
-				{
-					.name		  = "first_child",
-					.display_name = "First Child",
-					.tooltip	  = "First child entity in the hierarchy linked list.",
-					.type		  = reflected_value_type_e::entity_guid,
-					.offset		  = offsetof(component_hierarchy_t, first_child),
-					.size		  = sizeof(entity_guid_t),
-				},
-				{
-					.name		  = "parent",
-					.display_name = "Parent",
-					.tooltip	  = "Parent entity that owns this transform in the hierarchy.",
-					.type		  = reflected_value_type_e::entity_guid,
-					.offset		  = offsetof(component_hierarchy_t, parent),
-					.size		  = sizeof(entity_guid_t),
-				},
-				{
-					.name		  = "next_sibling",
-					.display_name = "Next Sibling",
-					.tooltip	  = "Next entity under the same parent.",
-					.type		  = reflected_value_type_e::entity_guid,
-					.offset		  = offsetof(component_hierarchy_t, next_sibling),
-					.size		  = sizeof(entity_guid_t),
-				},
-				{
-					.name		  = "prev_sibling",
-					.display_name = "Previous Sibling",
-					.tooltip	  = "Previous entity under the same parent.",
-					.type		  = reflected_value_type_e::entity_guid,
-					.offset		  = offsetof(component_hierarchy_t, prev_sibling),
-					.size		  = sizeof(entity_guid_t),
-				},
-			};
-
-			register_type_if_missing({
-				.fields		  = {.data = fields, .size = std::size(fields)},
-				.name		  = "component_hierarchy",
-				.display_name = "Hierarchy",
-				.category	  = "component",
-				.type_id	  = component_hierarchy_t::TYPE_ID,
-				.size		  = sizeof(component_hierarchy_t),
-				.alignment	  = alignof(component_hierarchy_t),
-				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui,
-			});
-		}
-
-		void register_component_guid_reflection()
-		{
-			static const reflected_field_desc_t fields[] = {
-				{
-					.name		  = "guid",
-					.display_name = "GUID",
-					.tooltip	  = "Persistent entity GUID.",
-					.type		  = reflected_value_type_e::entity_guid,
-					.offset		  = offsetof(component_guid_t, guid),
-					.size		  = sizeof(entity_guid_t),
-					.flags		  = reflected_field_flags_read_only,
-				},
-			};
-
-			register_type_if_missing({
-				.fields		  = {.data = fields, .size = std::size(fields)},
-				.name		  = "component_guid",
-				.display_name = "GUID",
-				.category	  = "component",
-				.type_id	  = component_guid_t::TYPE_ID,
-				.size		  = sizeof(component_guid_t),
-				.alignment	  = alignof(component_guid_t),
-				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui | reflected_type_flags_no_serialize,
-			});
-		}
-
-		void register_component_transform_reflection()
-		{
-			static const reflected_field_desc_t fields[] = {
-				{
-					.name		   = "pos",
-					.display_name  = "Position",
-					.tooltip	   = "Local position relative to the parent entity.",
-					.type		   = reflected_value_type_e::object,
-					.value_type_id = type_id_t<vec3f_t>::value,
-					.offset		   = offsetof(component_transform_t, pos),
-					.size		   = sizeof(vec3f_t),
-				},
-				{
-					.name		  = "rot",
-					.display_name = "Rotation",
-					.tooltip	  = "Local rotation stored as a quaternion.",
-					.type		  = reflected_value_type_e::quat,
-					.offset		  = offsetof(component_transform_t, rot),
-					.size		  = sizeof(quat_t),
-				},
-				{
-					.name		   = "scale",
-					.display_name  = "Scale",
-					.tooltip	   = "Local non-uniform scale relative to the parent entity.",
-					.type		   = reflected_value_type_e::object,
-					.value_type_id = type_id_t<vec3f_t>::value,
-					.offset		   = offsetof(component_transform_t, scale),
-					.size		   = sizeof(vec3f_t),
-				},
-			};
-
-			register_type_if_missing({
-				.fields		  = {.data = fields, .size = std::size(fields)},
-				.name		  = "component_transform",
-				.display_name = "Transform",
-				.category	  = "component",
-				.type_id	  = component_transform_t::TYPE_ID,
-				.size		  = sizeof(component_transform_t),
-				.alignment	  = alignof(component_transform_t),
-				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui,
-			});
-		}
-
-		void register_component_name_reflection()
-		{
-			static const reflected_field_desc_t fields[] = {
-				{
-					.name		  = "text_index",
-					.display_name = "Name",
-					.tooltip	  = "Index into the world text table for this entity name.",
-					.type		  = reflected_value_type_e::text_id,
-					.offset		  = offsetof(component_name_t, text_index),
-					.size		  = sizeof(u32),
-				},
-			};
-
-			register_type_if_missing({
-				.fields		  = {.data = fields, .size = std::size(fields)},
-				.name		  = "component_name",
-				.display_name = "Name",
-				.category	  = "component",
-				.type_id	  = component_name_t::TYPE_ID,
-				.size		  = sizeof(component_name_t),
-				.alignment	  = alignof(component_name_t),
-				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui,
-			});
+			reflection_registry_v2& registry = reflection_registry_v2::get();
+			if (registry.find_type(desc.type_id) == nullptr)
+				registry.register_type(desc);
 		}
 
 		void register_component_mesh_renderer_reflection()
@@ -614,6 +486,232 @@ namespace sfg
 			});
 		}
 
+		void register_component_debug_widgets_reflection_v2()
+		{
+			register_type_v2_if_missing({
+				.name		  = "debug_widgets_enum",
+				.display_name = "Debug Widgets Enum",
+				.fields =
+					{
+						{.name = "debug_widgets_enum_a", .display_name = "Debug Widgets Enum A"},
+						{.name = "debug_widgets_enum_b", .display_name = "Debug Widgets Enum B"},
+					},
+				.type_id   = type_id_t<debug_widgets_enum>::value,
+				.size	   = sizeof(debug_widgets_enum),
+				.alignment = alignof(debug_widgets_enum),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			register_type_v2_if_missing({
+				.name		  = "debug_widgets_enum2",
+				.display_name = "Debug Widgets Enum2",
+				.fields =
+					{
+						{.name = "debug_widgets_enum2_a", .display_name = "Debug Widgets Enum2 A"},
+						{.name = "debug_widgets_enum2_b", .display_name = "Debug Widgets Enum2 B"},
+					},
+				.type_id   = type_id_t<debug_widgets_enum2>::value,
+				.size	   = sizeof(debug_widgets_enum2),
+				.alignment = alignof(debug_widgets_enum2),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			register_type_v2_if_missing({
+				.name = "quat_t",
+				.fields =
+					{
+						{.name = "x", .offset = offsetof(quat_t, x), .type = reflected_value_type_e_v2::f32},
+						{.name = "y", .offset = offsetof(quat_t, y), .type = reflected_value_type_e_v2::f32},
+						{.name = "z", .offset = offsetof(quat_t, z), .type = reflected_value_type_e_v2::f32},
+						{.name = "w", .offset = offsetof(quat_t, w), .type = reflected_value_type_e_v2::f32},
+					},
+				.type_id   = type_id_t<quat_t>::value,
+				.size	   = sizeof(quat_t),
+				.alignment = alignof(quat_t),
+			});
+
+			register_type_v2_if_missing({
+				.name		  = "debug_widgets_component",
+				.display_name = "Debug Widgets",
+				.fields =
+					{
+						{
+							.name	 = "f32_value",
+							.tooltip = "Debug reflected f32 value.",
+							.offset	 = offsetof(component_debug_widgets_t, f32_value),
+							.type	 = reflected_value_type_e_v2::f32,
+						},
+						{
+							.name	 = "i32_value",
+							.tooltip = "Debug reflected i32 value.",
+							.offset	 = offsetof(component_debug_widgets_t, i32_value),
+							.type	 = reflected_value_type_e_v2::i32,
+						},
+						{
+							.name	 = "u32_value",
+							.tooltip = "Debug reflected u32 value.",
+							.offset	 = offsetof(component_debug_widgets_t, u32_value),
+							.type	 = reflected_value_type_e_v2::u32,
+						},
+						{
+							.name	 = "u8_value",
+							.tooltip = "Debug reflected u8 value.",
+							.offset	 = offsetof(component_debug_widgets_t, u8_value),
+							.type	 = reflected_value_type_e_v2::u8,
+						},
+						{
+							.name	 = "bool8_value",
+							.tooltip = "Debug reflected bool8 value.",
+							.offset	 = offsetof(component_debug_widgets_t, bool8_value),
+							.type	 = reflected_value_type_e_v2::boolean,
+						},
+						{
+							.name		 = "audio_handle_value",
+							.tooltip	 = "Debug reflected audio handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, audio_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "font_handle_value",
+							.tooltip	 = "Debug reflected font handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, font_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "mesh_handle_value",
+							.tooltip	 = "Debug reflected mesh handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, mesh_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "skeleton_handle_value",
+							.tooltip	 = "Debug reflected skeleton handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, skeleton_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "animation_handle_value",
+							.tooltip	 = "Debug reflected animation handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, animation_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "material_handle_value",
+							.tooltip	 = "Debug reflected material handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, material_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "shader_handle_value",
+							.tooltip	 = "Debug reflected shader handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, shader_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "texture_handle_value",
+							.tooltip	 = "Debug reflected texture handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, texture_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "texture_sampler_handle_value",
+							.tooltip	 = "Debug reflected texture sampler handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, texture_sampler_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "physical_material_handle_value",
+							.tooltip	 = "Debug reflected physical material handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, physical_material_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "prefab_handle_value",
+							.tooltip	 = "Debug reflected prefab handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, prefab_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "animation_state_machine_handle_value",
+							.tooltip	 = "Debug reflected animation state machine handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, animation_state_machine_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "hdr_skybox_handle_value",
+							.tooltip	 = "Debug reflected HDR skybox handle.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, hdr_skybox_handle_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "entity_guid_value",
+							.tooltip	 = "Debug reflected entity guid value.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID,
+							.offset		 = offsetof(component_debug_widgets_t, entity_guid_value),
+							.type		 = reflected_value_type_e_v2::u64,
+						},
+						{
+							.name		 = "text_id_value",
+							.tooltip	 = "Debug reflected text id value.",
+							.sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_WORLD_TEXT_ID,
+							.offset		 = offsetof(component_debug_widgets_t, text_id_value),
+							.type		 = reflected_value_type_e_v2::u32,
+						},
+						{
+							.name		 = "quat_value",
+							.tooltip	 = "Debug reflected quaternion value.",
+							.sub_type_id = type_id_t<quat_t>::value,
+							.offset		 = offsetof(component_debug_widgets_t, quat_value),
+							.type		 = reflected_value_type_e_v2::object,
+						},
+						{
+							.name		 = "enum8_value",
+							.tooltip	 = "Debug reflected enum8 value.",
+							.sub_type_id = type_id_t<debug_widgets_enum>::value,
+							.offset		 = offsetof(component_debug_widgets_t, enum8_value),
+							.type		 = reflected_value_type_e_v2::u8,
+						},
+						{
+							.name		 = "enum32_value",
+							.tooltip	 = "Debug reflected enum32 value.",
+							.sub_type_id = type_id_t<debug_widgets_enum2>::value,
+							.offset		 = offsetof(component_debug_widgets_t, enum32_value),
+							.type		 = reflected_value_type_e_v2::u32,
+						},
+						{
+							.container_ops = reflection_container_ops_t::sized_array_ops<debug_widgets_inplace_vector_t, u32, 4, &debug_widgets_inplace_vector_t::data, &debug_widgets_inplace_vector_t::size>(reflected_value_type_e_v2::u32),
+							.name		   = "inplace_vector_value",
+							.tooltip	   = "Debug reflected inplace vector value.",
+							.offset		   = offsetof(component_debug_widgets_t, inplace_vector_value),
+							.type		   = reflected_value_type_e_v2::container,
+						},
+						{
+							.name	 = "i8_value",
+							.tooltip = "Debug reflected i8 value.",
+							.offset	 = offsetof(component_debug_widgets_t, i8_value),
+							.type	 = reflected_value_type_e_v2::i8,
+						},
+					},
+				.type_id   = component_debug_widgets_t::TYPE_ID,
+				.size	   = sizeof(component_debug_widgets_t),
+				.alignment = alignof(component_debug_widgets_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_disabled_reflection()
 		{
 			register_type_if_missing({
@@ -627,47 +725,17 @@ namespace sfg
 			});
 		}
 
-		void register_component_no_serialize_reflection()
-		{
-			register_type_if_missing({
-				.name		  = "component_no_serialize",
-				.display_name = "No Serialize",
-				.category	  = "component",
-				.type_id	  = component_no_serialize_t::TYPE_ID,
-				.size		  = 0,
-				.alignment	  = 1,
-				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui,
-			});
-		}
-
-		void register_component_alive_reflection()
-		{
-			register_type_if_missing({
-				.name		  = "component_alive",
-				.display_name = "Alive",
-				.category	  = "component",
-				.type_id	  = component_alive_t::TYPE_ID,
-				.size		  = 0,
-				.alignment	  = 1,
-				.flags		  = reflected_type_flags_component | reflected_type_flags_no_ui,
-			});
-		}
 	}
 
 	engine_component_reflection_t::engine_component_reflection_t()
 	{
-		register_component_hierarchy_reflection();
-		register_component_guid_reflection();
-		register_component_transform_reflection();
-		register_component_name_reflection();
 		register_component_mesh_renderer_reflection();
 		register_component_render_object_reflection();
 		register_component_camera_reflection();
 		register_component_skybox_reflection();
 		register_component_prefab_reference_reflection();
 		register_component_debug_widgets_reflection();
-		register_component_alive_reflection();
+		register_component_debug_widgets_reflection_v2();
 		register_component_disabled_reflection();
-		register_component_no_serialize_reflection();
 	}
 }

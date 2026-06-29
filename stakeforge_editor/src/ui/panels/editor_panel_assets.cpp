@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_assets.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset_importer.hpp"
+#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_action_menu_controller.hpp"
@@ -50,6 +51,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/rectf.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
+#include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -157,6 +160,60 @@ namespace sfg
 			{.text = "Grid", .value = ASSETS_ITEM_STYLE_ID_GRID},
 			{.text = "List", .value = ASSETS_ITEM_STYLE_ID_LIST},
 		};
+
+		string_t make_unique_prefab_asset_name(editor_asset_node_handle_t parent_node, const char* base_name)
+		{
+			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+			SFG_ASSERT(tree.is_valid(parent_node));
+			const editor_asset_node_t& parent = tree.value(parent_node);
+			SFG_ASSERT(parent.type == editor_asset_node_type_e::folder);
+
+			const char* name	  = base_name != nullptr && editor_directories_t::is_valid_asset_name(base_name) ? base_name : "prefab";
+			string_t	candidate = name;
+			if (!file_system_t::exists(editor_asset_util_t::make_asset_path(parent.full_path.c_str(), candidate.c_str()).c_str()))
+				return candidate;
+
+			for (u32 i = 1; i < 1024; ++i)
+			{
+				candidate = name;
+				candidate += "_";
+				candidate += std::to_string(i);
+				if (!file_system_t::exists(editor_asset_util_t::make_asset_path(parent.full_path.c_str(), candidate.c_str()).c_str()))
+					return candidate;
+			}
+
+			return {};
+		}
+
+		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node)
+		{
+			editor_app_t& app = editor_app_t::get();
+			if (!app.get_runtime().is_world_valid(entity_payload.world))
+				return false;
+
+			const world_t& world = app.get_runtime().get_world(entity_payload.world);
+			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
+				return false;
+
+			nlohmann::json prefab_json = {};
+			world_cooker_t::entity_to_prefab_json(world, entity_payload.entity, prefab_json);
+			if (prefab_json.is_null())
+				return false;
+
+			const string_t name = make_unique_prefab_asset_name(parent_node, world.get_entity_name(entity_payload.entity));
+			if (name.empty())
+				return false;
+
+			const string_t					 json_text = prefab_json.dump();
+			const editor_asset_create_desc_t desc{
+				.parent_node	 = parent_node,
+				.name			 = name.c_str(),
+				.embedded_data	 = json_text.c_str(),
+				.asset_type		 = editor_asset_type_e::prefab,
+				.allow_overwrite = false,
+			};
+			return editor_asset_creator_t::create_asset(desc);
+		}
 
 		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
@@ -2267,8 +2324,9 @@ namespace sfg
 		string_t asset_name = name != nullptr ? name : "";
 
 		editor_asset_create_desc_t desc = {
-			.parent_node = _selected_folder_node,
-			.name		 = asset_name.c_str(),
+			.parent_node	 = _selected_folder_node,
+			.name			 = asset_name.c_str(),
+			.allow_overwrite = true,
 		};
 
 		switch (command)
@@ -3130,7 +3188,8 @@ namespace sfg
 
 	bool editor_panel_assets_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
 	{
-		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi && payload.type != editor_payload_type_e::folder && payload.type != editor_payload_type_e::folder_multi)
+		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi && payload.type != editor_payload_type_e::folder && payload.type != editor_payload_type_e::folder_multi &&
+			payload.type != editor_payload_type_e::entity && payload.type != editor_payload_type_e::entity_multi)
 			return false;
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
@@ -3141,7 +3200,19 @@ namespace sfg
 			return false;
 
 		bool moved = false;
-		if (payload.type == editor_payload_type_e::folder)
+		if (payload.type == editor_payload_type_e::entity)
+		{
+			const editor_entity_payload_t& entity = *static_cast<const editor_entity_payload_t*>(payload.user_ptr);
+			moved								  = create_prefab_from_entity_payload(entity, row->node);
+		}
+		else if (payload.type == editor_payload_type_e::entity_multi)
+		{
+			const vector_t<editor_entity_payload_t>& entities = *static_cast<const vector_t<editor_entity_payload_t>*>(payload.user_ptr);
+			moved											  = true;
+			for (const editor_entity_payload_t& entity : entities)
+				moved = create_prefab_from_entity_payload(entity, row->node) && moved;
+		}
+		else if (payload.type == editor_payload_type_e::folder)
 		{
 			const editor_asset_node_handle_t payload_node = *static_cast<editor_asset_node_handle_t*>(payload.user_ptr);
 			if (payload_node.is_null() || !tree.is_valid(payload_node))

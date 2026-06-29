@@ -22,28 +22,22 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
 
 #pragma once
 
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/runtime/resources/resource_handle.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include "inplace_vector.hpp"
+#include "istream.hpp"
 
 namespace sfg
 {
-	class ostream_t;
-	class world_t;
-
-	class world_cooker_t
+	template <class T, int N> istream_t& operator>>(istream_t& stream, inplace_vector_t<T, N>& v)
 	{
-	public:
-		static void world_to_stream(const world_t& world, ostream_t& out_stream);
-		static void world_to_json(const world_t& world, nlohmann::json& out_json);
-		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
-	};
+		u32 sz = 0;
+		stream >> sz;
+		v.resize(static_cast<size_t>(sz));
+		for (auto& e : v)
+			stream >> e;
+		return stream;
+	}
 }

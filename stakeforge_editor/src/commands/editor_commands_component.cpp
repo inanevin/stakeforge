@@ -82,14 +82,7 @@ namespace sfg
 			if (component == nullptr || table.type_desc.size == 0)
 				return;
 
-			if (table.type_desc.default_init != nullptr)
-			{
-				table.type_desc.default_init(component);
-				return;
-			}
-
-			if (table.type_desc.size != 0)
-				SFG_MEMSET(component, 0, table.type_desc.size);
+			table.type_desc.default_init(component);
 		}
 
 		void add_empty_component(world_component_table_t& table, entity_id_t entity)

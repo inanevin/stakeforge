@@ -63,12 +63,12 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return make_component_desc(T::TYPE_ID, 0, 1, ecs_component_type_flags_tag, T::DEBUG_NAME, nullptr);
+			return make_component_desc(T::TYPE_ID, 0, 1, ecs_component_type_flags_tag, T::DEBUG_NAME, [](void*) {});
 		}
 
 		static void table_init_tag(ecs_component_table_t& table, sid_t type_id, const char* debug_name)
 		{
-			ecs_t::table_init(table, make_component_desc(type_id, 0, 1, ecs_component_type_flags_tag, debug_name, nullptr));
+			ecs_t::table_init(table, make_component_desc(type_id, 0, 1, ecs_component_type_flags_tag, debug_name, [](void*) {}));
 		}
 
 		template <typename T> static T& table_get_as(const ecs_component_table_t& table, entity_id_t id)
@@ -150,6 +150,8 @@ namespace sfg
 	private:
 		static ecs_component_type_desc_t make_component_desc(sid_t type_id, size_t size, size_t alignment, bitmask_t<u32> flags, const char* debug_name, ecs_component_default_init_fn default_init)
 		{
+			SFG_ASSERT(default_init != nullptr);
+
 			ecs_component_type_desc_t desc{
 				.default_init = default_init,
 				.type_id	  = type_id,
@@ -160,7 +162,7 @@ namespace sfg
 
 			const size_t debug_name_len = std::strlen(debug_name);
 			const size_t debug_name_n	= debug_name_len < sizeof(desc.debug_name) - 1 ? debug_name_len : sizeof(desc.debug_name) - 1;
-			std::memcpy(desc.debug_name, debug_name, debug_name_n);
+			SFG_MEMCPY(desc.debug_name, debug_name, debug_name_n);
 			desc.debug_name[debug_name_n] = '\0';
 			return desc;
 		}

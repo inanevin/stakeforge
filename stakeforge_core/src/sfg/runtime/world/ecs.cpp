@@ -442,6 +442,7 @@ namespace sfg
 	{
 		SFG_ASSERT(table.l0_nodes == nullptr);
 		SFG_ASSERT(type_desc.type_id != 0);
+		SFG_ASSERT(type_desc.default_init != nullptr);
 		SFG_ASSERT(type_desc.alignment != 0);
 
 		table.l0_nodes = reinterpret_cast<ecs_node_t*>(SFG_ALIGNED_MALLOC(alignof(ecs_node_t), sizeof(ecs_node_t) * ECS_L0_SIZE));

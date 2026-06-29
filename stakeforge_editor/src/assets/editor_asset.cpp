@@ -362,6 +362,16 @@ namespace sfg
 				push_dependency(texture);
 			break;
 		}
+		case editor_asset_type_e::prefab: {
+			if (!asset.embedded_source.is_object())
+				break;
+
+			const vector_t<sid_t> resources = asset.embedded_source.value<vector_t<sid_t>>("resources", {});
+			out_dependencies.reserve(out_dependencies.size() + resources.size());
+			for (const sid_t resource : resources)
+				push_dependency(resource);
+			break;
+		}
 		default:
 			break;
 		}

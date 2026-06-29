@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "string.hpp"
+#include "span.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/serialization/endianness.hpp>
 #include <sfg/memory/memory.hpp>

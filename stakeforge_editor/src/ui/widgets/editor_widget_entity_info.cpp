@@ -35,7 +35,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/math/quat.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -134,10 +133,22 @@ namespace sfg
 		{
 			ostream_t old_value;
 			ostream_t new_value;
-			if (!reflection_registry_t::get().serialize_field_to_stream(component_transform_t::TYPE_ID, field_id, &old_transform, old_value))
-				return;
-			if (!reflection_registry_t::get().serialize_field_to_stream(component_transform_t::TYPE_ID, field_id, &new_transform, new_value))
-				return;
+			if (field_id == "pos"_hs)
+			{
+				old_value << old_transform.pos;
+				new_value << new_transform.pos;
+			}
+			else if (field_id == "rot"_hs)
+			{
+				old_value << old_transform.rot;
+				new_value << new_transform.rot;
+			}
+			else
+			{
+				SFG_ASSERT(field_id == "scale"_hs);
+				old_value << old_transform.scale;
+				new_value << new_transform.scale;
+			}
 
 			editor_reflected_field_edit_desc_t desc = {};
 			desc.target.world						= world;

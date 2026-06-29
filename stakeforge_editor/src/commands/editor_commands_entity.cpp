@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world.hpp>
 
 #include <cstring>
@@ -182,8 +183,9 @@ namespace sfg
 			{
 				if (!streams[i])
 				{
-					ostream_t stream;
-					world.entity_to_stream(sources[i], stream);
+					ostream_t						  stream;
+					frame_vector_t<resource_handle_t> resources;
+					world_cooker_t::entity_to_stream(world, sources[i], stream, resources);
 					streams[i] = copy_stream_to_aux(system, stream);
 				}
 
@@ -199,7 +201,7 @@ namespace sfg
 				}
 
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world.entity_from_stream(stream, false);
+				const entity_id_t entity = world.entity_from_stream(stream);
 				if (entity == NULL_ENTITY_ID)
 				{
 					SFG_ERR("failed to recreate duplicated entity from stream");
@@ -260,8 +262,9 @@ namespace sfg
 			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
-				ostream_t stream;
-				world.entity_to_stream(entities[i], stream);
+				ostream_t						  stream;
+				frame_vector_t<resource_handle_t> resources;
+				world_cooker_t::entity_to_stream(world, entities[i], stream, resources);
 				streams[i] = copy_stream_to_aux(system, stream);
 				world.destroy_entity_tree(entities[i]);
 			}

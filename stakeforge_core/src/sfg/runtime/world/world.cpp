@@ -28,10 +28,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world.hpp"
 
 #include <sfg/data/istream.hpp>
-#include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/prefab.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/world_cook_entity_header.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -43,6 +45,96 @@ namespace sfg
 {
 #define WORLD_TEXT_BYTES			  (64 * 1024)
 #define WORLD_TEXT_ALLOCATION_RESERVE 1024
+
+	namespace
+	{
+		size_t get_inplace_vector_size_offset(const reflected_field_desc_t& field)
+		{
+			const size_t data_size = static_cast<size_t>(field.stride) * field.capacity;
+			const size_t alignment = alignof(size_t);
+			return (data_size + alignment - 1) & ~(alignment - 1);
+		}
+
+		bool reflected_type_has_text_id(const reflected_type_desc_t& type)
+		{
+			for (u32 i = 0; i < type.fields.size; i++)
+			{
+				const reflected_field_desc_t& field = type.fields.data[i];
+				if (field.type == reflected_value_type_e::text_id)
+					return true;
+				if ((field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector) && reflected_value_type_from_sub_type_id(field.sub_type_id) == reflected_value_type_e::text_id)
+					return true;
+				if (field.type == reflected_value_type_e::object)
+				{
+					const reflected_type_desc_t* field_type = reflection_registry_t::get().find_type(field.value_type_id);
+					if (field_type != nullptr && reflected_type_has_text_id(*field_type))
+						return true;
+				}
+			}
+			return false;
+		}
+
+		bool deserialize_reflected_type_from_stream_with_text_ids(world_t& world, const reflected_type_desc_t& type, void* data, istream_t& stream)
+		{
+			for (u32 i = 0; i < type.fields.size; i++)
+			{
+				const reflected_field_desc_t& field		= type.fields.data[i];
+				u8*							  field_ptr = static_cast<u8*>(data) + field.offset;
+
+				if (field.type == reflected_value_type_e::text_id)
+				{
+					string_t text;
+					stream >> text;
+					*reinterpret_cast<u32*>(field_ptr) = world.allocate_text(text.c_str());
+					continue;
+				}
+
+				if ((field.type == reflected_value_type_e::vector || field.type == reflected_value_type_e::inplace_vector) && reflected_value_type_from_sub_type_id(field.sub_type_id) == reflected_value_type_e::text_id)
+				{
+					u32 size = 0;
+					stream >> size;
+					if (field.type == reflected_value_type_e::vector)
+					{
+						vector_t<u32>& values = *reinterpret_cast<vector_t<u32>*>(field_ptr);
+						values.resize(size);
+						for (u32 value_index = 0; value_index < size; value_index++)
+						{
+							string_t text;
+							stream >> text;
+							values[value_index] = world.allocate_text(text.c_str());
+						}
+					}
+					else
+					{
+						SFG_ASSERT(size <= field.capacity);
+						*reinterpret_cast<size_t*>(field_ptr + get_inplace_vector_size_offset(field)) = size;
+						for (u32 value_index = 0; value_index < size; value_index++)
+						{
+							string_t text;
+							stream >> text;
+							*reinterpret_cast<u32*>(field_ptr + (value_index * field.stride)) = world.allocate_text(text.c_str());
+						}
+					}
+					continue;
+				}
+
+				if (field.type == reflected_value_type_e::object)
+				{
+					const reflected_type_desc_t* field_type = reflection_registry_t::get().find_type(field.value_type_id);
+					if (field_type != nullptr && reflected_type_has_text_id(*field_type))
+					{
+						if (!deserialize_reflected_type_from_stream_with_text_ids(world, *field_type, field_ptr, stream))
+							return false;
+						continue;
+					}
+				}
+
+				if (!reflection_registry_t::get().deserialize_field_from_stream(data, field, stream))
+					return false;
+			}
+			return true;
+		}
+	}
 
 	void world_t::init()
 	{
@@ -153,7 +245,7 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_GUID);
+		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);
 
 		detach(id);
 
@@ -185,13 +277,12 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
+		for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const entity_id_t			 child			 = get_entity_from_guid(child_guid);
 			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
-			const entity_guid_t			 next_child_guid = child_hierarchy.next_sibling;
+			const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
 			destroy_entity_tree(child);
-			child_guid = next_child_guid;
+			child = next_child;
 		}
 
 		destroy_entity(id);
@@ -206,194 +297,68 @@ namespace sfg
 		name_component.text_index = allocate_text(name != nullptr ? name : "");
 	}
 
-	void world_t::entity_to_stream(entity_id_t id, ostream_t& stream) const
+	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
 	{
-		SFG_ASSERT(is_alive(id));
-
-		frame_vector_t<entity_id_t> entities;
-		frame_vector_t<u32>			entity_to_index;
-		entities.reserve(32);
-		entity_to_index.resize(_entity_head, ECS_INVALID_INDEX);
-
-		auto collect_entities = [&](auto&& self, entity_id_t entity) -> void {
-			if (ecs_t::table_has(*_engine_components.no_serialize_table, entity))
-				return;
-
-			const u32 index = static_cast<u32>(entities.size());
-			entities.push_back(entity);
-			entity_to_index[entity] = index;
-
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
-			for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
-			{
-				const entity_id_t			 child			 = get_entity_from_guid(child_guid);
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
-				const entity_guid_t			 next_child_guid = child_hierarchy.next_sibling;
-				self(self, child);
-				child_guid = next_child_guid;
-			}
-		};
-
-		collect_entities(collect_entities, id);
-
-		const u32 entity_count = static_cast<u32>(entities.size());
-		stream << entity_count;
-
-		auto get_serialized_entity_index = [&](entity_id_t entity) -> u32 {
-			if (entity == NULL_ENTITY_ID)
-				return ECS_INVALID_INDEX;
-
-			SFG_ASSERT(entity < entity_to_index.size());
-			return entity_to_index[entity];
-		};
-
-		auto get_serialized_entity_index_from_guid = [&](entity_guid_t guid) -> u32 {
-			if (guid == NULL_ENTITY_GUID)
-				return ECS_INVALID_INDEX;
-
-			return get_serialized_entity_index(get_entity_from_guid(guid));
-		};
-
-		auto get_first_serialized_child_index = [&](entity_id_t entity) -> u32 {
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
-			for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
-			{
-				const entity_id_t			 child			 = get_entity_from_guid(child_guid);
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
-				const u32					 index			 = get_serialized_entity_index(child);
-				if (index != ECS_INVALID_INDEX)
-					return index;
-
-				child_guid = child_hierarchy.next_sibling;
-			}
-
-			return ECS_INVALID_INDEX;
-		};
-
-		auto get_next_serialized_sibling_index = [&](entity_id_t entity) -> u32 {
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
-			for (entity_guid_t sibling_guid = hierarchy.next_sibling; sibling_guid != NULL_ENTITY_GUID;)
-			{
-				const entity_id_t			 sibling		   = get_entity_from_guid(sibling_guid);
-				const component_hierarchy_t& sibling_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, sibling);
-				const u32					 index			   = get_serialized_entity_index(sibling);
-				if (index != ECS_INVALID_INDEX)
-					return index;
-
-				sibling_guid = sibling_hierarchy.next_sibling;
-			}
-
-			return ECS_INVALID_INDEX;
-		};
-
-		auto get_prev_serialized_sibling_index = [&](entity_id_t entity) -> u32 {
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
-			for (entity_guid_t sibling_guid = hierarchy.prev_sibling; sibling_guid != NULL_ENTITY_GUID;)
-			{
-				const entity_id_t			 sibling		   = get_entity_from_guid(sibling_guid);
-				const component_hierarchy_t& sibling_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, sibling);
-				const u32					 index			   = get_serialized_entity_index(sibling);
-				if (index != ECS_INVALID_INDEX)
-					return index;
-
-				sibling_guid = sibling_hierarchy.prev_sibling;
-			}
-
-			return ECS_INVALID_INDEX;
-		};
-
-		auto should_serialize_component_table = [&](const world_component_table_t& table) -> bool {
-			const sid_t					 type_id		= table.type_desc.type_id;
-			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-			const bool					 no_serialize	= reflected_type != nullptr && reflected_type->flags.is_set(reflected_type_flags_no_serialize);
-			return !no_serialize && type_id != component_hierarchy_t::TYPE_ID && type_id != component_guid_t::TYPE_ID && type_id != component_name_t::TYPE_ID && type_id != component_alive_t::TYPE_ID;
-		};
-
-		for (u32 i = 0; i < entity_count; i++)
-		{
-			const entity_id_t			 entity		  = entities[i];
-			const component_hierarchy_t& hierarchy	  = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, entity);
-			const component_name_t&		 name		  = ecs_helpers_t::table_get_as_const<component_name_t>(*_engine_components.name_table, entity);
-			const char*					 text		  = get_text(name.text_index);
-			const entity_guid_t			 guid		  = get_entity_guid(entity);
-			const u32					 parent		  = get_serialized_entity_index_from_guid(hierarchy.parent);
-			const u32					 first_child  = get_first_serialized_child_index(entity);
-			const u32					 next_sibling = get_next_serialized_sibling_index(entity);
-			const u32					 prev_sibling = get_prev_serialized_sibling_index(entity);
-
-			stream << i;
-			stream << guid;
-			stream << parent;
-			stream << first_child;
-			stream << next_sibling;
-			stream << prev_sibling;
-			stream << string_t(text != nullptr ? text : "");
-
-			u32 component_count = 0;
-			for (const world_component_table_t& table : _component_tables)
-			{
-				if (should_serialize_component_table(table) && ecs_t::table_has(table.table, entity))
-					component_count++;
-			}
-
-			stream << component_count;
-			for (const world_component_table_t& table : _component_tables)
-			{
-				if (!should_serialize_component_table(table) || !ecs_t::table_has(table.table, entity))
-					continue;
-
-				const sid_t type_id = table.type_desc.type_id;
-				stream << type_id;
-				if (!table.type_desc.flags.is_set(ecs_component_type_flags_tag))
-				{
-					const void* component  = ecs_t::table_get(table.table, entity);
-					const bool	serialized = reflection_registry_t::get().serialize_to_stream(type_id, component, stream);
-					if (!serialized)
-						SFG_ASSERT(false);
-				}
-			}
-		}
-	}
-
-	entity_id_t world_t::entity_from_stream(istream_t& stream, bool preserve_guids)
-	{
-		struct stream_entity_t
-		{
-			entity_guid_t guid				 = NULL_ENTITY_GUID;
-			u32			  parent_index		 = ECS_INVALID_INDEX;
-			u32			  first_child_index	 = ECS_INVALID_INDEX;
-			u32			  next_sibling_index = ECS_INVALID_INDEX;
-			u32			  prev_sibling_index = ECS_INVALID_INDEX;
-		};
-
-		u32 entity_count = 0;
-		stream >> entity_count;
-		if (entity_count == 0)
+		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
+		if (prefab_data == nullptr)
 			return NULL_ENTITY_ID;
 
-		frame_vector_t<entity_id_t>		entities;
-		frame_vector_t<stream_entity_t> stream_entities;
-		entities.resize(entity_count, NULL_ENTITY_ID);
-		stream_entities.resize(entity_count);
+		return spawn_prefab(*prefab_data, params);
+	}
 
-		entity_id_t root	   = NULL_ENTITY_ID;
-		u32			root_count = 0;
+	entity_id_t world_t::spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params)
+	{
+		istream_t stream;
+		stream.open(resource_manager_t::get().get_memory().get<u8>(prefab_data.data), prefab_data.size);
 
-		for (u32 i = 0; i < entity_count; i++)
+		u32 resource_count = 0;
+		stream >> resource_count;
+		for (u32 i = 0; i < resource_count; i++)
 		{
-			u32		 index = ECS_INVALID_INDEX;
-			string_t name;
-			stream >> index;
-			SFG_ASSERT(index < entity_count);
-			SFG_ASSERT(entities[index] == NULL_ENTITY_ID);
-			stream >> stream_entities[index].guid;
-			stream >> stream_entities[index].parent_index;
-			stream >> stream_entities[index].first_child_index;
-			stream >> stream_entities[index].next_sibling_index;
-			stream >> stream_entities[index].prev_sibling_index;
-			stream >> name;
+			resource_handle_t resource = NULL_RESOURCE_HANDLE;
+			stream >> resource;
+		}
 
-			entities[index] = create_entity(name.empty() ? nullptr : name.c_str(), preserve_guids ? stream_entities[index].guid : NULL_ENTITY_GUID);
+		const entity_id_t entity = entity_from_stream(stream);
+		if (entity == NULL_ENTITY_ID)
+			return NULL_ENTITY_ID;
+
+		if (params.parent != NULL_ENTITY_ID)
+			attach_to(entity, params.parent);
+
+		component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, entity);
+		transform.pos					 = params.local_pos;
+		transform.rot					 = params.local_rot;
+		transform.scale					 = params.local_scale;
+		set_entity_snap_interpolation_recursive(entity);
+		return entity;
+	}
+
+	entity_id_t world_t::entity_from_stream(istream_t& stream)
+	{
+		auto read_entity = [&](auto&& self, entity_id_t parent) -> entity_id_t {
+			world_cook_entity_header_t header;
+			stream >> header;
+
+			if (header.prefab != NULL_RESOURCE_HANDLE)
+			{
+				return spawn_prefab(header.prefab,
+									{
+										.parent		 = parent,
+										.local_pos	 = header.local_pos,
+										.local_rot	 = header.local_rot,
+										.local_scale = header.local_scale,
+									});
+			}
+
+			const entity_id_t entity = create_entity(header.name.empty() ? nullptr : header.name.c_str(), header.guid);
+			if (parent != NULL_ENTITY_ID)
+				attach_to(entity, parent);
+
+			component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, entity);
+			transform.pos					 = header.local_pos;
+			transform.rot					 = header.local_rot;
+			transform.scale					 = header.local_scale;
 
 			u32 component_count = 0;
 			stream >> component_count;
@@ -401,60 +366,40 @@ namespace sfg
 			{
 				sid_t type_id = 0;
 				stream >> type_id;
-				world_component_table_t*	 table			= get_component_table(type_id);
-				const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
-				if (reflected_type != nullptr && reflected_type->flags.is_set(reflected_type_flags_no_serialize))
-					continue;
 
-				void* component = ecs_t::table_add(table->table, entities[index]);
+				world_component_table_t* table	   = get_component_table(type_id);
+				const bool				 existed   = ecs_t::table_has(table->table, entity);
+				void*					 component = existed ? ecs_t::table_get(table->table, entity) : ecs_t::table_add(table->table, entity);
 				if (!table->type_desc.flags.is_set(ecs_component_type_flags_tag))
 				{
-					if (table->type_desc.default_init != nullptr)
+					if (!existed)
 						table->type_desc.default_init(component);
-					else if (table->type_desc.size != 0)
-						SFG_MEMSET(component, 0, table->type_desc.size);
 
-					const bool deserialized = reflection_registry_t::get().deserialize_from_stream(type_id, component, stream);
+					const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(type_id);
+					SFG_ASSERT(reflected_type != nullptr);
+					const bool deserialized =
+						reflected_type_has_text_id(*reflected_type) ? deserialize_reflected_type_from_stream_with_text_ids(*this, *reflected_type, component, stream) : reflection_registry_t::get().deserialize_from_stream(type_id, component, stream);
 					if (!deserialized)
 						SFG_ASSERT(false);
 				}
 			}
 
-			if (stream_entities[index].parent_index == ECS_INVALID_INDEX)
-			{
-				root = entities[index];
-				root_count++;
-			}
-		}
-		SFG_ASSERT(root_count == 1);
+			u32 child_count = 0;
+			stream >> child_count;
+			for (u32 child_index = 0; child_index < child_count; child_index++)
+				self(self, entity);
 
-		auto index_to_entity = [&](u32 index) -> entity_id_t {
-			if (index == ECS_INVALID_INDEX)
-				return NULL_ENTITY_ID;
-
-			SFG_ASSERT(index < entities.size());
-			SFG_ASSERT(entities[index] != NULL_ENTITY_ID);
-			return entities[index];
+			return entity;
 		};
 
-		for (u32 i = 0; i < entity_count; i++)
-		{
-			component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, entities[i]);
-			hierarchy.parent				 = get_entity_guid(index_to_entity(stream_entities[i].parent_index));
-			hierarchy.first_child			 = get_entity_guid(index_to_entity(stream_entities[i].first_child_index));
-			hierarchy.next_sibling			 = get_entity_guid(index_to_entity(stream_entities[i].next_sibling_index));
-			hierarchy.prev_sibling			 = get_entity_guid(index_to_entity(stream_entities[i].prev_sibling_index));
-		}
-
-		sync_entity_hierarchy(root);
-		return root;
+		return read_entity(read_entity, NULL_ENTITY_ID);
 	}
 
 	entity_id_t world_t::get_entity_parent(entity_id_t id) const
 	{
 		SFG_ASSERT(is_alive(id));
 		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		return get_entity_from_guid(hierarchy.parent);
+		return hierarchy.parent;
 	}
 
 	entity_guid_t world_t::get_entity_guid(entity_id_t id) const
@@ -489,13 +434,11 @@ namespace sfg
 		{
 			SFG_ASSERT(current != id);
 			const component_hierarchy_t& current_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
-			current										   = get_entity_from_guid(current_hierarchy.parent);
+			current										   = current_hierarchy.parent;
 		}
 
-		component_hierarchy_t& hierarchy   = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		const entity_guid_t	   id_guid	   = get_entity_guid(id);
-		const entity_guid_t	   parent_guid = get_entity_guid(parent);
-		if (hierarchy.parent == parent_guid)
+		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		if (hierarchy.parent == parent)
 			return;
 
 		detach(id);
@@ -503,28 +446,28 @@ namespace sfg
 		component_hierarchy_t& parent_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, parent);
 		component_hierarchy_t& child_hierarchy	= ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 
-		child_hierarchy.parent		 = parent_guid;
-		child_hierarchy.prev_sibling = NULL_ENTITY_GUID;
-		child_hierarchy.next_sibling = NULL_ENTITY_GUID;
+		child_hierarchy.parent		 = parent;
+		child_hierarchy.prev_sibling = NULL_ENTITY_ID;
+		child_hierarchy.next_sibling = NULL_ENTITY_ID;
 
-		if (parent_hierarchy.first_child == NULL_ENTITY_GUID)
+		if (parent_hierarchy.first_child == NULL_ENTITY_ID)
 		{
-			parent_hierarchy.first_child = id_guid;
+			parent_hierarchy.first_child = id;
 			return;
 		}
 
-		entity_id_t last_child = get_entity_from_guid(parent_hierarchy.first_child);
+		entity_id_t last_child = parent_hierarchy.first_child;
 		while (true)
 		{
 			component_hierarchy_t& last_child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, last_child);
-			if (last_child_hierarchy.next_sibling == NULL_ENTITY_GUID)
+			if (last_child_hierarchy.next_sibling == NULL_ENTITY_ID)
 			{
-				last_child_hierarchy.next_sibling = id_guid;
-				child_hierarchy.prev_sibling	  = get_entity_guid(last_child);
+				last_child_hierarchy.next_sibling = id;
+				child_hierarchy.prev_sibling	  = last_child;
 				break;
 			}
 
-			last_child = get_entity_from_guid(last_child_hierarchy.next_sibling);
+			last_child = last_child_hierarchy.next_sibling;
 		}
 	}
 
@@ -533,36 +476,32 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		component_hierarchy_t& hierarchy	= ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		const entity_guid_t	   id_guid		= get_entity_guid(id);
-		const entity_guid_t	   parent_guid	= hierarchy.parent;
-		const entity_guid_t	   next_guid	= hierarchy.next_sibling;
-		const entity_guid_t	   prev_guid	= hierarchy.prev_sibling;
-		const entity_id_t	   parent		= get_entity_from_guid(parent_guid);
-		const entity_id_t	   next_sibling = get_entity_from_guid(next_guid);
-		const entity_id_t	   prev_sibling = get_entity_from_guid(prev_guid);
+		const entity_id_t	   parent		= hierarchy.parent;
+		const entity_id_t	   next_sibling = hierarchy.next_sibling;
+		const entity_id_t	   prev_sibling = hierarchy.prev_sibling;
 
 		if (parent != NULL_ENTITY_ID)
 		{
 			component_hierarchy_t& parent_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, parent);
-			if (parent_hierarchy.first_child == id_guid)
-				parent_hierarchy.first_child = next_guid;
+			if (parent_hierarchy.first_child == id)
+				parent_hierarchy.first_child = next_sibling;
 		}
 
 		if (prev_sibling != NULL_ENTITY_ID)
 		{
 			component_hierarchy_t& prev_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, prev_sibling);
-			prev_hierarchy.next_sibling			  = next_guid;
+			prev_hierarchy.next_sibling			  = next_sibling;
 		}
 
 		if (next_sibling != NULL_ENTITY_ID)
 		{
 			component_hierarchy_t& next_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, next_sibling);
-			next_hierarchy.prev_sibling			  = prev_guid;
+			next_hierarchy.prev_sibling			  = prev_sibling;
 		}
 
-		hierarchy.parent	   = NULL_ENTITY_GUID;
-		hierarchy.next_sibling = NULL_ENTITY_GUID;
-		hierarchy.prev_sibling = NULL_ENTITY_GUID;
+		hierarchy.parent	   = NULL_ENTITY_ID;
+		hierarchy.next_sibling = NULL_ENTITY_ID;
+		hierarchy.prev_sibling = NULL_ENTITY_ID;
 	}
 
 	void world_t::set_entity_pos_local(entity_id_t id, const vec3f_t& pos)
@@ -689,7 +628,7 @@ namespace sfg
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
-			if (hierarchy.parent != NULL_ENTITY_GUID)
+			if (hierarchy.parent != NULL_ENTITY_ID)
 				continue;
 
 			update_entity_transform(row.id, hierarchy, vec3f_t::zero, quat_t::identity, vec3f_t::one, mat4x3_t::identity, advance_interpolation);
@@ -727,12 +666,11 @@ namespace sfg
 			system_transform.snap_interpolation = false;
 		}
 
-		for (entity_guid_t child_guid = own_hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
+		for (entity_id_t child = own_hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const entity_id_t			 child			 = get_entity_from_guid(child_guid);
 			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
 			update_entity_transform(child, child_hierarchy, system_transform.abs_pos, system_transform.abs_rot, system_transform.abs_scale, system_transform.abs_mat, advance_interpolation);
-			child_guid = child_hierarchy.next_sibling;
+			child = child_hierarchy.next_sibling;
 		}
 	}
 
@@ -742,22 +680,21 @@ namespace sfg
 		system_transform.snap_interpolation			   = true;
 
 		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		for (entity_guid_t child_guid = hierarchy.first_child; child_guid != NULL_ENTITY_GUID;)
+		for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const entity_id_t			 child			 = get_entity_from_guid(child_guid);
 			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
 			set_entity_snap_interpolation_recursive(child);
-			child_guid = child_hierarchy.next_sibling;
+			child = child_hierarchy.next_sibling;
 		}
 	}
 
 	mat4x3_t world_t::calculate_parent_transform_direct(entity_id_t id)
 	{
 		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
-		if (hierarchy.parent == NULL_ENTITY_GUID)
+		if (hierarchy.parent == NULL_ENTITY_ID)
 			return mat4x3_t::identity;
 
-		return calculate_transform_direct(get_entity_from_guid(hierarchy.parent));
+		return calculate_transform_direct(hierarchy.parent);
 	}
 
 	world_component_table_t& world_t::add_component_table(const ecs_component_type_desc_t& desc)
