@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg::ui
 {
@@ -132,6 +133,7 @@ namespace sfg::ui
 
 	void ui_context::tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds)
 	{
+		ZoneScoped;
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
 		_ui_scale  = _dpi_scale * _user_ui_scale;
 		set_phase(ui_phase_e::mutation);

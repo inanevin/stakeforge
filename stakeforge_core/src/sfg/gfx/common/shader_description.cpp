@@ -25,9 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "shader_description.hpp"
-#include <iterator>
 #include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
@@ -348,137 +347,59 @@ namespace sfg
 
 namespace sfg
 {
-	namespace
-	{
-		static const reflected_enum_value_desc_t cull_mode_values[] = {
-			{.name = "none", .display_name = "None", .value = static_cast<i64>(cull_mode::none)},
-			{.name = "front", .display_name = "Front", .value = static_cast<i64>(cull_mode::front)},
-			{.name = "back", .display_name = "Back", .value = static_cast<i64>(cull_mode::back)},
-		};
-
-		static const reflected_enum_value_desc_t fill_mode_values[] = {
-			{.name = "solid", .display_name = "Solid", .value = static_cast<i64>(fill_mode::solid)},
-			{.name = "wireframe", .display_name = "Wireframe", .value = static_cast<i64>(fill_mode::wireframe)},
-		};
-
-		static const reflected_enum_value_desc_t front_face_values[] = {
-			{.name = "ccw", .display_name = "Counter Clockwise", .value = static_cast<i64>(front_face::ccw)},
-			{.name = "cw", .display_name = "Clockwise", .value = static_cast<i64>(front_face::cw)},
-		};
-
-		static const reflected_enum_value_desc_t blend_factor_values[] = {
-			{.name = "zero", .display_name = "Zero", .value = static_cast<i64>(blend_factor::zero)},
-			{.name = "one", .display_name = "One", .value = static_cast<i64>(blend_factor::one)},
-			{.name = "src_color", .display_name = "Src Color", .value = static_cast<i64>(blend_factor::src_color)},
-			{.name = "one_minus_src_color", .display_name = "One Minus Src Color", .value = static_cast<i64>(blend_factor::one_minus_src_color)},
-			{.name = "dst_color", .display_name = "Dst Color", .value = static_cast<i64>(blend_factor::dst_color)},
-			{.name = "one_minus_dst_color", .display_name = "One Minus Dst Color", .value = static_cast<i64>(blend_factor::one_minus_dst_color)},
-			{.name = "src_alpha", .display_name = "Src Alpha", .value = static_cast<i64>(blend_factor::src_alpha)},
-			{.name = "one_minus_src_alpha", .display_name = "One Minus Src Alpha", .value = static_cast<i64>(blend_factor::one_minus_src_alpha)},
-			{.name = "dst_alpha", .display_name = "Dst Alpha", .value = static_cast<i64>(blend_factor::dst_alpha)},
-			{.name = "one_minus_dst_alpha", .display_name = "One Minus Dst Alpha", .value = static_cast<i64>(blend_factor::one_minus_dst_alpha)},
-		};
-
-		static const reflected_enum_value_desc_t blend_op_values[] = {
-			{.name = "add", .display_name = "Add", .value = static_cast<i64>(blend_op::add)},
-			{.name = "subtract", .display_name = "Subtract", .value = static_cast<i64>(blend_op::subtract)},
-			{.name = "reverse_subtract", .display_name = "Reverse Subtract", .value = static_cast<i64>(blend_op::reverse_subtract)},
-			{.name = "min", .display_name = "Min", .value = static_cast<i64>(blend_op::min)},
-			{.name = "max", .display_name = "Max", .value = static_cast<i64>(blend_op::max)},
-		};
-
-		static const reflected_enum_value_desc_t stencil_op_values[] = {
-			{.name = "keep", .display_name = "Keep", .value = static_cast<i64>(stencil_op::keep)},
-			{.name = "zero", .display_name = "Zero", .value = static_cast<i64>(stencil_op::zero)},
-			{.name = "replace", .display_name = "Replace", .value = static_cast<i64>(stencil_op::replace)},
-			{.name = "increment_clamp", .display_name = "Increment Clamp", .value = static_cast<i64>(stencil_op::increment_clamp)},
-			{.name = "decrement_clamp", .display_name = "Decrement Clamp", .value = static_cast<i64>(stencil_op::decrement_clamp)},
-			{.name = "invert", .display_name = "Invert", .value = static_cast<i64>(stencil_op::invert)},
-			{.name = "increment_wrap", .display_name = "Increment Wrap", .value = static_cast<i64>(stencil_op::increment_wrap)},
-			{.name = "decrement_wrap", .display_name = "Decrement Wrap", .value = static_cast<i64>(stencil_op::decrement_wrap)},
-		};
-
-		static const reflected_enum_value_desc_t compare_op_values[] = {
-			{.name = "never", .display_name = "Never", .value = static_cast<i64>(compare_op::never)},
-			{.name = "less", .display_name = "Less", .value = static_cast<i64>(compare_op::less)},
-			{.name = "equal", .display_name = "Equal", .value = static_cast<i64>(compare_op::equal)},
-			{.name = "lequal", .display_name = "Less Equal", .value = static_cast<i64>(compare_op::lequal)},
-			{.name = "greater", .display_name = "Greater", .value = static_cast<i64>(compare_op::greater)},
-			{.name = "nequal", .display_name = "Not Equal", .value = static_cast<i64>(compare_op::nequal)},
-			{.name = "gequal", .display_name = "Greater Equal", .value = static_cast<i64>(compare_op::gequal)},
-			{.name = "always", .display_name = "Always", .value = static_cast<i64>(compare_op::always)},
-		};
-
-		static const reflected_enum_value_desc_t store_op_values[] = {
-			{.name = "store", .display_name = "Store", .value = static_cast<i64>(store_op::store)},
-			{.name = "dont_care", .display_name = "Dont Care", .value = static_cast<i64>(store_op::dont_care)},
-			{.name = "none", .display_name = "None", .value = static_cast<i64>(store_op::none)},
-		};
-
-		static const reflected_enum_value_desc_t load_op_values[] = {
-			{.name = "load", .display_name = "Load", .value = static_cast<i64>(load_op::load)},
-			{.name = "clear", .display_name = "Clear", .value = static_cast<i64>(load_op::clear)},
-			{.name = "dont_care", .display_name = "Dont Care", .value = static_cast<i64>(load_op::dont_care)},
-			{.name = "none", .display_name = "None", .value = static_cast<i64>(load_op::none)},
-		};
-
-	}
-
 	vertex_input_reflection_t::vertex_input_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<vertex_input_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		  = "name",
-				.display_name = "Name",
-				.type		  = reflected_value_type_e::string,
-				.offset		  = offsetof(vertex_input_t, name),
-				.size		  = sizeof(vertex_input_t::name),
-			},
-			{
-				.name		  = "offset",
-				.display_name = "Offset",
-				.type		  = reflected_value_type_e::size_t,
-				.offset		  = offsetof(vertex_input_t, offset),
-				.size		  = sizeof(size_t),
-			},
-			{
-				.name		  = "size",
-				.display_name = "Size",
-				.type		  = reflected_value_type_e::size_t,
-				.offset		  = offsetof(vertex_input_t, size),
-				.size		  = sizeof(size_t),
-			},
-			{
-				.name		   = "format",
-				.display_name  = "Format",
-				.type		   = reflected_value_type_e::enum8,
-				.value_type_id = type_id_t<format_e>::value,
-				.offset		   = offsetof(vertex_input_t, format),
-				.size		   = sizeof(format_e),
-			},
-			{
-				.name		  = "location",
-				.display_name = "Location",
-				.type		  = reflected_value_type_e::u8,
-				.offset		  = offsetof(vertex_input_t, location),
-				.size		  = sizeof(u8),
-			},
-			{
-				.name		  = "index",
-				.display_name = "Index",
-				.type		  = reflected_value_type_e::u8,
-				.offset		  = offsetof(vertex_input_t, index),
-				.size		  = sizeof(u8),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "vertex_input_t",
+			.name		  = "vertex_input_t",
+			.display_name = "Vertex Input",
+			.fields =
+				{
+					{
+						.name		  = "name",
+						.display_name = "Name",
+						.offset		  = offsetof(vertex_input_t, name),
+						.size		  = sizeof(vertex_input_t::name),
+						.type		  = reflected_value_type_e_v2::char_array,
+					},
+					{
+						.name		  = "offset",
+						.display_name = "Offset",
+						.offset		  = offsetof(vertex_input_t, offset),
+						.size		  = sizeof(size_t),
+						.type		  = reflected_value_type_e_v2::u64,
+					},
+					{
+						.name		  = "size",
+						.display_name = "Size",
+						.offset		  = offsetof(vertex_input_t, size),
+						.size		  = sizeof(size_t),
+						.type		  = reflected_value_type_e_v2::u64,
+					},
+					{
+						.name		  = "format",
+						.display_name = "Format",
+						.sub_type_id  = type_id_t<format_e>::value,
+						.offset		  = offsetof(vertex_input_t, format),
+						.size		  = sizeof(format_e),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+					{
+						.name		  = "location",
+						.display_name = "Location",
+						.offset		  = offsetof(vertex_input_t, location),
+						.size		  = sizeof(u8),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+					{
+						.name		  = "index",
+						.display_name = "Index",
+						.offset		  = offsetof(vertex_input_t, index),
+						.size		  = sizeof(u8),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+				},
 			.type_id   = type_id_t<vertex_input_t>::value,
 			.size	   = sizeof(vertex_input_t),
 			.alignment = alignof(vertex_input_t),
@@ -487,155 +408,244 @@ namespace sfg
 
 	cull_mode_reflection_t::cull_mode_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<cull_mode>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = cull_mode_values, .size = std::size(cull_mode_values)},
-			.name		 = "cull_mode",
-			.type_id	 = type_id_t<cull_mode>::value,
-			.size		 = sizeof(cull_mode),
-			.alignment	 = alignof(cull_mode),
+			.name		  = "cull_mode",
+			.display_name = "Cull Mode",
+			.fields =
+				{
+					{.name = "none", .display_name = "None"},
+					{.name = "front", .display_name = "Front"},
+					{.name = "back", .display_name = "Back"},
+				},
+			.type_id   = type_id_t<cull_mode>::value,
+			.size	   = sizeof(cull_mode),
+			.alignment = alignof(cull_mode),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	fill_mode_reflection_t::fill_mode_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<fill_mode>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = fill_mode_values, .size = std::size(fill_mode_values)},
-			.name		 = "fill_mode",
-			.type_id	 = type_id_t<fill_mode>::value,
-			.size		 = sizeof(fill_mode),
-			.alignment	 = alignof(fill_mode),
+			.name		  = "fill_mode",
+			.display_name = "Fill Mode",
+			.fields =
+				{
+					{.name = "solid", .display_name = "Solid"},
+					{.name = "wireframe", .display_name = "Wireframe"},
+				},
+			.type_id   = type_id_t<fill_mode>::value,
+			.size	   = sizeof(fill_mode),
+			.alignment = alignof(fill_mode),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	front_face_reflection_t::front_face_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<front_face>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = front_face_values, .size = std::size(front_face_values)},
-			.name		 = "front_face",
-			.type_id	 = type_id_t<front_face>::value,
-			.size		 = sizeof(front_face),
-			.alignment	 = alignof(front_face),
+			.name		  = "front_face",
+			.display_name = "Front Face",
+			.fields =
+				{
+					{.name = "ccw", .display_name = "Counter Clockwise"},
+					{.name = "cw", .display_name = "Clockwise"},
+				},
+			.type_id   = type_id_t<front_face>::value,
+			.size	   = sizeof(front_face),
+			.alignment = alignof(front_face),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	blend_factor_reflection_t::blend_factor_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<blend_factor>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = blend_factor_values, .size = std::size(blend_factor_values)},
-			.name		 = "blend_factor",
-			.type_id	 = type_id_t<blend_factor>::value,
-			.size		 = sizeof(blend_factor),
-			.alignment	 = alignof(blend_factor),
+			.name		  = "blend_factor",
+			.display_name = "Blend Factor",
+			.fields =
+				{
+					{.name = "zero", .display_name = "Zero"},
+					{.name = "one", .display_name = "One"},
+					{.name = "src_color", .display_name = "Src Color"},
+					{.name = "one_minus_src_color", .display_name = "One Minus Src Color"},
+					{.name = "dst_color", .display_name = "Dst Color"},
+					{.name = "one_minus_dst_color", .display_name = "One Minus Dst Color"},
+					{.name = "src_alpha", .display_name = "Src Alpha"},
+					{.name = "one_minus_src_alpha", .display_name = "One Minus Src Alpha"},
+					{.name = "dst_alpha", .display_name = "Dst Alpha"},
+					{.name = "one_minus_dst_alpha", .display_name = "One Minus Dst Alpha"},
+				},
+			.type_id   = type_id_t<blend_factor>::value,
+			.size	   = sizeof(blend_factor),
+			.alignment = alignof(blend_factor),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	blend_op_reflection_t::blend_op_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<blend_op>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = blend_op_values, .size = std::size(blend_op_values)},
-			.name		 = "blend_op",
-			.type_id	 = type_id_t<blend_op>::value,
-			.size		 = sizeof(blend_op),
-			.alignment	 = alignof(blend_op),
+			.name		  = "blend_op",
+			.display_name = "Blend Op",
+			.fields =
+				{
+					{.name = "add", .display_name = "Add"},
+					{.name = "subtract", .display_name = "Subtract"},
+					{.name = "reverse_subtract", .display_name = "Reverse Subtract"},
+					{.name = "min", .display_name = "Min"},
+					{.name = "max", .display_name = "Max"},
+				},
+			.type_id   = type_id_t<blend_op>::value,
+			.size	   = sizeof(blend_op),
+			.alignment = alignof(blend_op),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	stencil_op_reflection_t::stencil_op_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<stencil_op>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = stencil_op_values, .size = std::size(stencil_op_values)},
-			.name		 = "stencil_op",
-			.type_id	 = type_id_t<stencil_op>::value,
-			.size		 = sizeof(stencil_op),
-			.alignment	 = alignof(stencil_op),
+			.name		  = "stencil_op",
+			.display_name = "Stencil Op",
+			.fields =
+				{
+					{.name = "keep", .display_name = "Keep"},
+					{.name = "zero", .display_name = "Zero"},
+					{.name = "replace", .display_name = "Replace"},
+					{.name = "increment_clamp", .display_name = "Increment Clamp"},
+					{.name = "decrement_clamp", .display_name = "Decrement Clamp"},
+					{.name = "invert", .display_name = "Invert"},
+					{.name = "increment_wrap", .display_name = "Increment Wrap"},
+					{.name = "decrement_wrap", .display_name = "Decrement Wrap"},
+				},
+			.type_id   = type_id_t<stencil_op>::value,
+			.size	   = sizeof(stencil_op),
+			.alignment = alignof(stencil_op),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	compare_op_reflection_t::compare_op_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<compare_op>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = compare_op_values, .size = std::size(compare_op_values)},
-			.name		 = "compare_op",
-			.type_id	 = type_id_t<compare_op>::value,
-			.size		 = sizeof(compare_op),
-			.alignment	 = alignof(compare_op),
+			.name		  = "compare_op",
+			.display_name = "Compare Op",
+			.fields =
+				{
+					{.name = "never", .display_name = "Never"},
+					{.name = "less", .display_name = "Less"},
+					{.name = "equal", .display_name = "Equal"},
+					{.name = "lequal", .display_name = "Less Equal"},
+					{.name = "greater", .display_name = "Greater"},
+					{.name = "nequal", .display_name = "Not Equal"},
+					{.name = "gequal", .display_name = "Greater Equal"},
+					{.name = "always", .display_name = "Always"},
+				},
+			.type_id   = type_id_t<compare_op>::value,
+			.size	   = sizeof(compare_op),
+			.alignment = alignof(compare_op),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	store_op_reflection_t::store_op_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<store_op>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = store_op_values, .size = std::size(store_op_values)},
-			.name		 = "store_op",
-			.type_id	 = type_id_t<store_op>::value,
-			.size		 = sizeof(store_op),
-			.alignment	 = alignof(store_op),
+			.name		  = "store_op",
+			.display_name = "Store Op",
+			.fields =
+				{
+					{.name = "store", .display_name = "Store"},
+					{.name = "dont_care", .display_name = "Dont Care"},
+					{.name = "none", .display_name = "None"},
+				},
+			.type_id   = type_id_t<store_op>::value,
+			.size	   = sizeof(store_op),
+			.alignment = alignof(store_op),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	load_op_reflection_t::load_op_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<load_op>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = load_op_values, .size = std::size(load_op_values)},
-			.name		 = "load_op",
-			.type_id	 = type_id_t<load_op>::value,
-			.size		 = sizeof(load_op),
-			.alignment	 = alignof(load_op),
+			.name		  = "load_op",
+			.display_name = "Load Op",
+			.fields =
+				{
+					{.name = "load", .display_name = "Load"},
+					{.name = "clear", .display_name = "Clear"},
+					{.name = "dont_care", .display_name = "Dont Care"},
+					{.name = "none", .display_name = "None"},
+				},
+			.type_id   = type_id_t<load_op>::value,
+			.size	   = sizeof(load_op),
+			.alignment = alignof(load_op),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	stencil_state_reflection_t::stencil_state_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<stencil_state_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{.name = "fail_op", .display_name = "Fail Op", .type = reflected_value_type_e::enum8, .value_type_id = type_id_t<stencil_op>::value, .offset = offsetof(stencil_state_t, fail_op), .size = sizeof(stencil_op)},
-			{.name = "pass_op", .display_name = "Pass Op", .type = reflected_value_type_e::enum8, .value_type_id = type_id_t<stencil_op>::value, .offset = offsetof(stencil_state_t, pass_op), .size = sizeof(stencil_op)},
-			{.name = "depth_fail_op", .display_name = "Depth Fail Op", .type = reflected_value_type_e::enum8, .value_type_id = type_id_t<stencil_op>::value, .offset = offsetof(stencil_state_t, depth_fail_op), .size = sizeof(stencil_op)},
-			{.name = "compare_op", .display_name = "Compare Op", .type = reflected_value_type_e::enum8, .value_type_id = type_id_t<compare_op>::value, .offset = offsetof(stencil_state_t, compare_op), .size = sizeof(compare_op)},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "stencil_state_t",
+			.name		  = "stencil_state_t",
+			.display_name = "Stencil State",
+			.fields =
+				{
+					{
+						.name		  = "fail_op",
+						.display_name = "Fail Op",
+						.sub_type_id  = type_id_t<stencil_op>::value,
+						.offset		  = offsetof(stencil_state_t, fail_op),
+						.size		  = sizeof(stencil_op),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+					{
+						.name		  = "pass_op",
+						.display_name = "Pass Op",
+						.sub_type_id  = type_id_t<stencil_op>::value,
+						.offset		  = offsetof(stencil_state_t, pass_op),
+						.size		  = sizeof(stencil_op),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+					{
+						.name		  = "depth_fail_op",
+						.display_name = "Depth Fail Op",
+						.sub_type_id  = type_id_t<stencil_op>::value,
+						.offset		  = offsetof(stencil_state_t, depth_fail_op),
+						.size		  = sizeof(stencil_op),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+					{
+						.name		  = "compare_op",
+						.display_name = "Compare Op",
+						.sub_type_id  = type_id_t<compare_op>::value,
+						.offset		  = offsetof(stencil_state_t, compare_op),
+						.size		  = sizeof(compare_op),
+						.type		  = reflected_value_type_e_v2::u8,
+					},
+				},
 			.type_id   = type_id_t<stencil_state_t>::value,
 			.size	   = sizeof(stencil_state_t),
 			.alignment = alignof(stencil_state_t),

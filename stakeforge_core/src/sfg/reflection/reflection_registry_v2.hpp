@@ -194,6 +194,9 @@ namespace sfg
 	class reflection_registry_v2
 	{
 	public:
+		// size_t reflected as u64 from most users atm.
+		static_assert(sizeof(size_t) == sizeof(u64));
+
 		static inline reflection_registry_v2& get()
 		{
 			static reflection_registry_v2 instance;
