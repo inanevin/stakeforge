@@ -41,30 +41,6 @@ namespace sfg
 
 	namespace
 	{
-		size_t size_from_field_type(reflected_value_type_e_v2 type)
-		{
-			switch (type)
-			{
-			case reflected_value_type_e_v2::boolean:
-				return sizeof(bool);
-			case reflected_value_type_e_v2::u64:
-			case reflected_value_type_e_v2::i64:
-				return sizeof(u64);
-			case reflected_value_type_e_v2::f32:
-				return sizeof(f32);
-			case reflected_value_type_e_v2::u32:
-			case reflected_value_type_e_v2::i32:
-				return sizeof(u32);
-			case reflected_value_type_e_v2::u16:
-			case reflected_value_type_e_v2::i16:
-				return sizeof(i16);
-			case reflected_value_type_e_v2::u8:
-			case reflected_value_type_e_v2::i8:
-				return sizeof(i8);
-			default:
-				return 0;
-			}
-		}
 
 		void field_to_stream(const reflected_field_t& field, void* obj, void* user_data, ostream_t& out_stream)
 		{
@@ -101,7 +77,7 @@ namespace sfg
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
 						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = size_from_field_type(field.container_ops.element_value_type),
+						.size		 = field.container_ops.element_value_size,
 						.value_type	 = field.container_ops.element_value_type,
 					};
 
@@ -163,7 +139,7 @@ namespace sfg
 
 					const reflected_field_t temp_field = {
 						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = size_from_field_type(field.container_ops.element_value_type),
+						.size		 = field.container_ops.element_value_size,
 						.value_type	 = field.container_ops.element_value_type,
 					};
 
@@ -222,7 +198,7 @@ namespace sfg
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
 						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = size_from_field_type(field.container_ops.element_value_type),
+						.size		 = field.container_ops.element_value_size,
 						.value_type	 = field.container_ops.element_value_type,
 					};
 
@@ -262,6 +238,12 @@ namespace sfg
 
 			switch (field.value_type)
 			{
+			case reflected_value_type_e_v2::char_array:
+				if (dismiss_name)
+					out_json = reinterpret_cast<const char*>(data);
+				else
+					out_json[field.name] = reinterpret_cast<const char*>(data);
+				break;
 			case reflected_value_type_e_v2::boolean:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const bool*>(data);
@@ -386,7 +368,7 @@ namespace sfg
 
 					const reflected_field_t temp_field = {
 						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = size_from_field_type(field.container_ops.element_value_type),
+						.size		 = field.container_ops.element_value_size,
 						.value_type	 = field.container_ops.element_value_type,
 					};
 					field_from_json(temp_field, element_data, user_data, container_json[i], true);
@@ -429,6 +411,21 @@ namespace sfg
 
 			switch (field.value_type)
 			{
+			case reflected_value_type_e_v2::char_array: {
+				string_t val = "";
+				if (dismiss_name)
+					val = in_json;
+				else
+					val = in_json.value<string_t>(field.name, "");
+				const size_t copy_size = val.size() > field.size ? field.size : val.size();
+				if (copy_size != 0)
+				{
+					SFG_MEMCPY(data, &val[0], copy_size);
+					if (copy_size < field.size)
+						reinterpret_cast<char*>(data)[copy_size] = '\0';
+				}
+				break;
+			}
 			case reflected_value_type_e_v2::boolean:
 				if (dismiss_name)
 					*reinterpret_cast<bool*>(data) = in_json;
@@ -836,7 +833,7 @@ namespace sfg
 			field.sub_type_id = field_desc.sub_type_id;
 			field.flags		  = field_desc.flags;
 			field.offset	  = field_desc.offset;
-			field.size		  = size_from_field_type(field_desc.type);
+			field.size		  = field_desc.size;
 
 			field.ui_definition		   = field_desc.ui_definition;
 			field.container_ops		   = field_desc.container_ops;

@@ -60,6 +60,7 @@ namespace sfg
 		string,
 		object,
 		container,
+		char_array,
 	};
 
 	enum reflected_field_flags_e
@@ -83,6 +84,7 @@ namespace sfg
 		fn_container_get_element_size get_element_size_fn = nullptr;
 		reflected_value_type_e_v2	  element_value_type  = reflected_value_type_e_v2::invalid;
 		sid_t						  element_sub_type_id = 0;
+		size_t						  element_value_size  = 0;
 	};
 
 	typedef void (*fn_field_custom_to_stream)(void* obj, void* user_data, ostream_t& out_stream);
@@ -139,6 +141,7 @@ namespace sfg
 		const char*							   tooltip				= "";
 		sid_t								   sub_type_id			= 0;
 		size_t								   offset				= 0;
+		size_t								   size					= 0;
 		bitmask32							   flags				= 0;
 		f32									   min_clamp			= 0.0f;
 		f32									   max_clamp			= 0.0f;
