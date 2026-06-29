@@ -26,10 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec2u.hpp"
 #include "vec2i.hpp"
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 #include <cstddef>
-#include <iterator>
 
 namespace sfg
 {
@@ -38,18 +37,15 @@ namespace sfg
 
 	vec2u_reflection_t::vec2u_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<vec2u_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, x), .size = sizeof(u32)},
-			{.name = "y", .type = reflected_value_type_e::u32, .offset = offsetof(vec2u_t, y), .size = sizeof(u32)},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "vec2u_t",
+			.name = "vec2u_t",
+			.fields =
+				{
+					{.name = "x", .offset = offsetof(vec2u_t, x), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "y", .offset = offsetof(vec2u_t, y), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+				},
 			.type_id   = type_id_t<vec2u_t>::value,
 			.size	   = sizeof(vec2u_t),
 			.alignment = alignof(vec2u_t),

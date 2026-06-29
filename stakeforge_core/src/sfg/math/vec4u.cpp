@@ -26,10 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec4u.hpp"
 
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 #include <cstddef>
-#include <iterator>
 
 namespace sfg
 {
@@ -38,20 +37,17 @@ namespace sfg
 
 	vec4u_reflection_t::vec4u_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<vec4u_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::u32, .offset = offsetof(vec4u_t, x), .size = sizeof(u32)},
-			{.name = "y", .type = reflected_value_type_e::u32, .offset = offsetof(vec4u_t, y), .size = sizeof(u32)},
-			{.name = "z", .type = reflected_value_type_e::u32, .offset = offsetof(vec4u_t, z), .size = sizeof(u32)},
-			{.name = "w", .type = reflected_value_type_e::u32, .offset = offsetof(vec4u_t, w), .size = sizeof(u32)},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "vec4u_t",
+			.name = "vec4u_t",
+			.fields =
+				{
+					{.name = "x", .offset = offsetof(vec4u_t, x), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "y", .offset = offsetof(vec4u_t, y), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "z", .offset = offsetof(vec4u_t, z), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "w", .offset = offsetof(vec4u_t, w), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+				},
 			.type_id   = type_id_t<vec4u_t>::value,
 			.size	   = sizeof(vec4u_t),
 			.alignment = alignof(vec4u_t),
