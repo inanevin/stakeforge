@@ -291,7 +291,7 @@ namespace sfg
 			if (!ecs_t::table_has(component_table.table, first_entity))
 				continue;
 
-			reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
@@ -392,7 +392,7 @@ namespace sfg
 
 		for (const world_component_table_t& component_table : component_tables)
 		{
-			reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 

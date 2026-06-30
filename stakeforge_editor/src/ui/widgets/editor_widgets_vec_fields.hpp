@@ -27,47 +27,50 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_width.hpp"
-#include "ui/widgets/editor_widgets_input_field.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
+#include <sfg/data/vector.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 
 namespace sfg
 {
-	using editor_vec2_field_changed_fn = void (*)(const vec2f_t& value, void* user_data);
-	using editor_vec3_field_changed_fn = void (*)(const vec3f_t& value, void* user_data);
-	using editor_vec4_field_changed_fn = void (*)(const vec4f_t& value, void* user_data);
+	struct editor_vec2_field_field_t
+	{
+		span_t<vec2f_t*> fields = {};
+	};
+
+	struct editor_vec3_field_field_t
+	{
+		span_t<vec3f_t*> fields = {};
+	};
+
+	struct editor_vec4_field_field_t
+	{
+		span_t<vec4f_t*> fields = {};
+	};
 
 	struct editor_vec2_field_config_t
 	{
-		editor_vec2_field_changed_fn on_changed	  = nullptr;
-		editor_vec2_field_changed_fn on_submitted = nullptr;
-		void*						 user_data	  = nullptr;
-		editor_widget_width_config_t width		  = {};
-		vec2f_t						 value		  = {0.0f, 0.0f};
-		f32							 increment	  = 0.1f;
-		bool						 integer	  = false;
+		editor_widget_width_config_t width	   = {};
+		editor_vec2_field_field_t	 field	   = {};
+		f32							 increment = 0.1f;
+		bool						 integer   = false;
 	};
 
 	struct editor_vec3_field_config_t
 	{
-		editor_vec3_field_changed_fn on_changed	  = nullptr;
-		editor_vec3_field_changed_fn on_submitted = nullptr;
-		void*						 user_data	  = nullptr;
-		editor_widget_width_config_t width		  = {};
-		vec3f_t						 value		  = {0.0f, 0.0f, 0.0f};
-		f32							 increment	  = 0.1f;
-		bool						 integer	  = false;
+		editor_widget_width_config_t width	   = {};
+		editor_vec3_field_field_t	 field	   = {};
+		f32							 increment = 0.1f;
+		bool						 integer   = false;
 	};
 
 	struct editor_vec4_field_config_t
 	{
-		editor_vec4_field_changed_fn on_changed	  = nullptr;
-		editor_vec4_field_changed_fn on_submitted = nullptr;
-		void*						 user_data	  = nullptr;
-		editor_widget_width_config_t width		  = {};
-		vec4f_t						 value		  = {0.0f, 0.0f, 0.0f, 0.0f};
-		f32							 increment	  = 0.1f;
-		bool						 integer	  = false;
+		editor_widget_width_config_t width	   = {};
+		editor_vec4_field_field_t	 field	   = {};
+		f32							 increment = 0.1f;
+		bool						 integer   = false;
 	};
 
 	class editor_vec2_field_t final
@@ -82,6 +85,8 @@ namespace sfg
 		void uninit();
 		void set_value(const vec2f_t& value);
 		void set_mixed(bool mixed);
+		void update_field_data(editor_vec2_field_field_t field);
+		void refresh_field_data();
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -94,22 +99,12 @@ namespace sfg
 		}
 
 	private:
-		struct component_t
-		{
-			editor_vec2_field_t* owner = nullptr;
-			u8					 index = 0;
-		};
-
-		static void on_component_changed(f32 value, void* user_data);
-		static void on_component_submitted(const char* text, f32 value, void* user_data);
-
-	private:
-		ui::ui_context*			   _ui			  = nullptr;
-		ui::widget_id_t			   _root		  = NULL_WIDGET;
-		editor_vec2_field_config_t _config		  = {};
-		editor_input_field_t	   _inputs[2]	  = {};
-		component_t				   _components[2] = {};
-		vec2f_t					   _value		  = {0.0f, 0.0f};
+		ui::ui_context*			   _ui		  = nullptr;
+		ui::widget_id_t			   _root	  = NULL_WIDGET;
+		editor_vec2_field_config_t _config	  = {};
+		editor_input_field_t	   _inputs[2] = {};
+		vector_t<u8*>			   _fields[2] = {};
+		vec2f_t					   _value	  = {0.0f, 0.0f};
 	};
 
 	class editor_vec3_field_t final
@@ -124,6 +119,8 @@ namespace sfg
 		void uninit();
 		void set_value(const vec3f_t& value);
 		void set_mixed(bool mixed);
+		void update_field_data(editor_vec3_field_field_t field);
+		void refresh_field_data();
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -136,22 +133,12 @@ namespace sfg
 		}
 
 	private:
-		struct component_t
-		{
-			editor_vec3_field_t* owner = nullptr;
-			u8					 index = 0;
-		};
-
-		static void on_component_changed(f32 value, void* user_data);
-		static void on_component_submitted(const char* text, f32 value, void* user_data);
-
-	private:
-		ui::ui_context*			   _ui			  = nullptr;
-		ui::widget_id_t			   _root		  = NULL_WIDGET;
-		editor_vec3_field_config_t _config		  = {};
-		editor_input_field_t	   _inputs[3]	  = {};
-		component_t				   _components[3] = {};
-		vec3f_t					   _value		  = {0.0f, 0.0f, 0.0f};
+		ui::ui_context*			   _ui		  = nullptr;
+		ui::widget_id_t			   _root	  = NULL_WIDGET;
+		editor_vec3_field_config_t _config	  = {};
+		editor_input_field_t	   _inputs[3] = {};
+		vector_t<u8*>			   _fields[3] = {};
+		vec3f_t					   _value	  = {0.0f, 0.0f, 0.0f};
 	};
 
 	class editor_vec4_field_t final
@@ -166,6 +153,8 @@ namespace sfg
 		void uninit();
 		void set_value(const vec4f_t& value);
 		void set_mixed(bool mixed);
+		void update_field_data(editor_vec4_field_field_t field);
+		void refresh_field_data();
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -178,21 +167,11 @@ namespace sfg
 		}
 
 	private:
-		struct component_t
-		{
-			editor_vec4_field_t* owner = nullptr;
-			u8					 index = 0;
-		};
-
-		static void on_component_changed(f32 value, void* user_data);
-		static void on_component_submitted(const char* text, f32 value, void* user_data);
-
-	private:
-		ui::ui_context*			   _ui			  = nullptr;
-		ui::widget_id_t			   _root		  = NULL_WIDGET;
-		editor_vec4_field_config_t _config		  = {};
-		editor_input_field_t	   _inputs[4]	  = {};
-		component_t				   _components[4] = {};
-		vec4f_t					   _value		  = {0.0f, 0.0f, 0.0f, 0.0f};
+		ui::ui_context*			   _ui		  = nullptr;
+		ui::widget_id_t			   _root	  = NULL_WIDGET;
+		editor_vec4_field_config_t _config	  = {};
+		editor_input_field_t	   _inputs[4] = {};
+		vector_t<u8*>			   _fields[4] = {};
+		vec4f_t					   _value	  = {0.0f, 0.0f, 0.0f, 0.0f};
 	};
 }

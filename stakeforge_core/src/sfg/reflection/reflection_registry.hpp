@@ -40,11 +40,10 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-#define REFLECTION_SUB_TYPE_IDENTIFIER_WORLD_TEXT_ID "reflection_subtype_world_text_id"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID	 "reflection_subtype_entity_guid"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID "reflection_subtype_resource_guid"_hs
 
-	enum class reflected_value_type_e_v2 : u8
+	enum class reflected_value_type_e : u8
 	{
 		invalid,
 		f32,
@@ -82,7 +81,7 @@ namespace sfg
 		fn_container_reset			  reset_fn			  = nullptr;
 		fn_container_get_element_ptr  get_element_ptr_fn  = nullptr;
 		fn_container_get_element_size get_element_size_fn = nullptr;
-		reflected_value_type_e_v2	  element_value_type  = reflected_value_type_e_v2::invalid;
+		reflected_value_type_e	  element_value_type  = reflected_value_type_e::invalid;
 		sid_t						  element_sub_type_id = 0;
 		size_t						  element_value_size  = 0;
 	};
@@ -128,7 +127,7 @@ namespace sfg
 		size_t								   offset				= 0;
 		size_t								   size					= 0;
 		bitmask32							   flags				= 0;
-		reflected_value_type_e_v2			   value_type			= reflected_value_type_e_v2::invalid;
+		reflected_value_type_e			   value_type			= reflected_value_type_e::invalid;
 	};
 
 	struct reflected_field_descriptor_t
@@ -146,8 +145,8 @@ namespace sfg
 		f32									   min_clamp			= 0.0f;
 		f32									   max_clamp			= 0.0f;
 		f32									   clamp_granularity	= 0.1f;
-		reflected_value_type_e_v2			   type					= reflected_value_type_e_v2::invalid;
-		reflected_value_type_e_v2			   sub_type				= reflected_value_type_e_v2::invalid;
+		reflected_value_type_e			   type					= reflected_value_type_e::invalid;
+		reflected_value_type_e			   sub_type				= reflected_value_type_e::invalid;
 	};
 
 	enum reflected_type_flags_e
@@ -169,7 +168,6 @@ namespace sfg
 	struct reflected_type_t
 	{
 		reflected_field_span_t fields		= {};
-		reflected_field_span_t enum_fields	= {};
 		const char*			   name			= nullptr;
 		const char*			   display_name = nullptr;
 		const char*			   tooltip		= nullptr;
@@ -217,7 +215,8 @@ namespace sfg
 		bool type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream);
 		bool type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json);
 
-		reflected_type_t* find_type(sid_t type_id);
+		const reflected_type_t*	 find_type(sid_t type_id) const;
+		const reflected_field_t* get_field(u32 index) const;
 
 		void register_type(const reflected_type_descriptor_t& descriptor);
 

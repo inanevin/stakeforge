@@ -27,9 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
-#include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/mutex.hpp>
 #include <sfg/data/string.hpp>
@@ -140,7 +140,7 @@ namespace sfg
 		static void on_filter_pressed(bool toggled, void* user_data);
 		static void on_collapse_pressed(bool toggled, void* user_data);
 		static void on_clear_pressed(bool toggled, void* user_data);
-		static void on_search_changed(const char* value, void* user_data);
+		static void on_search_changed(void* user_data);
 		static void on_log(log_level level, const char* msg, void* user_data);
 		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);

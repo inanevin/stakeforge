@@ -304,11 +304,11 @@ namespace sfg
 		refresh_button_config.on_clicked   = on_refresh_button_pressed;
 		_refresh_button.init(ui, _assets_left_pane_top_row, refresh_button_config);
 
+		u8*							search_field  = reinterpret_cast<u8*>(&_search_str);
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
-		search_config.text_value				  = _search_str.c_str();
-		search_config.type						  = editor_input_field_type_e::text;
-		search_config.on_text_changed			  = on_search_changed;
+		search_config.field						  = {.type = editor_input_field_field_type_e::string, .fields = {.data = &search_field, .size = 1}};
+		search_config.on_data_changed			  = on_search_changed;
 		search_config.user_data					  = this;
 		_search_input.init(ui, _assets_left_pane_top_row, search_config);
 
@@ -479,11 +479,11 @@ namespace sfg
 		asset_favourites_only_config.on_clicked					 = on_asset_favourites_only_pressed;
 		_asset_favourites_only_button.init(ui, _assets_body_pane_controls, asset_favourites_only_config);
 
+		u8*							asset_search_field	= reinterpret_cast<u8*>(&_asset_search_str);
 		editor_input_field_config_t asset_search_config = {};
 		asset_search_config.placeholder					= "Search";
-		asset_search_config.text_value					= _asset_search_str.c_str();
-		asset_search_config.type						= editor_input_field_type_e::text;
-		asset_search_config.on_text_changed				= on_asset_search_changed;
+		asset_search_config.field						= {.type = editor_input_field_field_type_e::string, .fields = {.data = &asset_search_field, .size = 1}};
+		asset_search_config.on_data_changed				= on_asset_search_changed;
 		asset_search_config.user_data					= this;
 		_asset_search_input.init(ui, _assets_body_pane_controls, asset_search_config);
 
@@ -3029,21 +3029,19 @@ namespace sfg
 		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_import();
 	}
 
-	void editor_panel_assets_t::on_search_changed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_search_changed(void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
-		panel._search_str		= value != nullptr ? value : "";
 		panel._search_str_lower = panel._search_str;
 		string_util::to_lower(panel._search_str_lower);
 		panel.refresh_folder_rows();
 	}
 
-	void editor_panel_assets_t::on_asset_search_changed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_asset_search_changed(void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
-		panel._asset_search_str		  = value != nullptr ? value : "";
 		panel._asset_search_str_lower = panel._asset_search_str;
 		string_util::to_lower(panel._asset_search_str_lower);
 		panel.refresh_asset_grid(true);

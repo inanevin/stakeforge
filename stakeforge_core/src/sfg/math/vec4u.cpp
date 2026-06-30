@@ -43,10 +43,10 @@ namespace sfg
 			.name = "vec4u_t",
 			.fields =
 				{
-					{.name = "x", .offset = offsetof(vec4u_t, x), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
-					{.name = "y", .offset = offsetof(vec4u_t, y), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
-					{.name = "z", .offset = offsetof(vec4u_t, z), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
-					{.name = "w", .offset = offsetof(vec4u_t, w), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "x", .offset = offsetof(vec4u_t, x), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "y", .offset = offsetof(vec4u_t, y), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "z", .offset = offsetof(vec4u_t, z), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "w", .offset = offsetof(vec4u_t, w), .size = sizeof(u32), .type = reflected_value_type_e::u32},
 				},
 			.type_id   = type_id_t<vec4u_t>::value,
 			.size	   = sizeof(vec4u_t),

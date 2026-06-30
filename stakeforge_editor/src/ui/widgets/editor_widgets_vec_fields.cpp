@@ -53,20 +53,20 @@ namespace sfg
 			in.size_value		= {1.0f, 1.0f};
 		}
 
-		void init_number_input(
-			ui::ui_context& ui, ui::widget_id_t parent, editor_input_field_t& input, const char* placeholder, f32 value, f32 increment, bool integer, editor_input_field_number_fn changed, editor_input_field_submit_fn submitted, void* user_data)
+		editor_input_field_config_t make_number_config(const char* placeholder, span_t<u8*> fields, f32 increment, bool integer)
 		{
-			editor_input_field_config_t input_config = {};
-			input_config.placeholder				 = placeholder;
-			input_config.type						 = editor_input_field_type_e::number;
-			input_config.number_value				 = value;
-			input_config.increment					 = increment;
-			input_config.integer					 = integer;
-			input_config.on_number_changed			 = changed;
-			input_config.on_submitted				 = submitted;
-			input_config.user_data					 = user_data;
-			input.init(ui, parent, input_config);
-			set_input_fill(ui, input.get_root());
+			return {
+				.placeholder = placeholder,
+				.field =
+					{
+						.type		= editor_input_field_field_type_e::pod_number,
+						.fields		= fields,
+						.field_size = sizeof(f32),
+					},
+				.increment = integer ? 1.0f : increment,
+				.min_value = integer ? -2147483648.0f : -1000000.0f,
+				.max_value = integer ? 2147483647.0f : 1000000.0f,
+			};
 		}
 	}
 
@@ -74,7 +74,6 @@ namespace sfg
 	{
 		_ui		= &ui;
 		_config = config;
-		_value	= config.value;
 
 		ui::layout_tree_t& tree = ui.get_tree();
 		_root					= ui.allocate_widget();
@@ -85,9 +84,13 @@ namespace sfg
 		const char* names[2] = {"X", "Y"};
 		for (u8 i = 0; i < 2; ++i)
 		{
-			_components[i] = {this, i};
-			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, on_component_submitted, &_components[i]);
+			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
+			_fields[i].push_back(reinterpret_cast<u8*>(&(&_value.x)[i]));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer));
+			set_input_fill(ui, _inputs[i].get_root());
 		}
+
+		update_field_data(config.field);
 	}
 
 	void editor_vec2_field_t::uninit()
@@ -100,47 +103,45 @@ namespace sfg
 		_root	= NULL_WIDGET;
 		_config = {};
 		_value	= {0.0f, 0.0f};
-		for (component_t& component : _components)
-			component = {};
+		for (vector_t<u8*>& fields : _fields)
+			fields.resize(0);
 	}
 
 	void editor_vec2_field_t::set_value(const vec2f_t& value)
 	{
 		_value = value;
-		for (u8 i = 0; i < 2; ++i)
-			_inputs[i].set_number((&_value.x)[i]);
+		refresh_field_data();
 	}
 
-	void editor_vec2_field_t::set_mixed(bool mixed)
+	void editor_vec2_field_t::set_mixed(bool)
 	{
-		for (u8 i = 0; i < 2; ++i)
+		refresh_field_data();
+	}
+
+	void editor_vec2_field_t::update_field_data(editor_vec2_field_field_t field)
+	{
+		_config.field					  = field;
+		vec2f_t*			   fallback[] = {&_value};
+		const span_t<vec2f_t*> fields	  = field.fields.size > 0 ? field.fields : span_t<vec2f_t*>{.data = fallback, .size = 1};
+		for (u8 component = 0; component < 2; ++component)
 		{
-			_inputs[i].set_placeholder(mixed ? "Mixed" : (i == 0 ? "X" : "Y"));
-			if (mixed)
-				_inputs[i].set_text("");
+			_fields[component].resize(0);
+			_fields[component].reserve(fields.size);
+			for (size_t i = 0; i < fields.size; ++i)
+				_fields[component].push_back(reinterpret_cast<u8*>(&(&fields.data[i]->x)[component]));
+			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
 		}
 	}
 
-	void editor_vec2_field_t::on_component_changed(f32 value, void* user_data)
+	void editor_vec2_field_t::refresh_field_data()
 	{
-		component_t& component						  = *static_cast<component_t*>(user_data);
-		(&component.owner->_value.x)[component.index] = value;
-		if (component.owner->_config.on_changed != nullptr)
-			component.owner->_config.on_changed(component.owner->_value, component.owner->_config.user_data);
-	}
-
-	void editor_vec2_field_t::on_component_submitted(const char*, f32, void* user_data)
-	{
-		component_t& component = *static_cast<component_t*>(user_data);
-		if (component.owner->_config.on_submitted != nullptr)
-			component.owner->_config.on_submitted(component.owner->_value, component.owner->_config.user_data);
+		update_field_data(_config.field);
 	}
 
 	void editor_vec3_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec3_field_config_t& config)
 	{
 		_ui		= &ui;
 		_config = config;
-		_value	= config.value;
 
 		ui::layout_tree_t& tree = ui.get_tree();
 		_root					= ui.allocate_widget();
@@ -151,9 +152,13 @@ namespace sfg
 		const char* names[3] = {"X", "Y", "Z"};
 		for (u8 i = 0; i < 3; ++i)
 		{
-			_components[i] = {this, i};
-			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, on_component_submitted, &_components[i]);
+			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
+			_fields[i].push_back(reinterpret_cast<u8*>(&(&_value.x)[i]));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer));
+			set_input_fill(ui, _inputs[i].get_root());
 		}
+
+		update_field_data(config.field);
 	}
 
 	void editor_vec3_field_t::uninit()
@@ -166,48 +171,45 @@ namespace sfg
 		_root	= NULL_WIDGET;
 		_config = {};
 		_value	= {0.0f, 0.0f, 0.0f};
-		for (component_t& component : _components)
-			component = {};
+		for (vector_t<u8*>& fields : _fields)
+			fields.resize(0);
 	}
 
 	void editor_vec3_field_t::set_value(const vec3f_t& value)
 	{
 		_value = value;
-		for (u8 i = 0; i < 3; ++i)
-			_inputs[i].set_number((&_value.x)[i]);
+		refresh_field_data();
 	}
 
-	void editor_vec3_field_t::set_mixed(bool mixed)
+	void editor_vec3_field_t::set_mixed(bool)
 	{
-		const char* names[3] = {"X", "Y", "Z"};
-		for (u8 i = 0; i < 3; ++i)
+		refresh_field_data();
+	}
+
+	void editor_vec3_field_t::update_field_data(editor_vec3_field_field_t field)
+	{
+		_config.field					  = field;
+		vec3f_t*			   fallback[] = {&_value};
+		const span_t<vec3f_t*> fields	  = field.fields.size > 0 ? field.fields : span_t<vec3f_t*>{.data = fallback, .size = 1};
+		for (u8 component = 0; component < 3; ++component)
 		{
-			_inputs[i].set_placeholder(mixed ? "Mixed" : names[i]);
-			if (mixed)
-				_inputs[i].set_text("");
+			_fields[component].resize(0);
+			_fields[component].reserve(fields.size);
+			for (size_t i = 0; i < fields.size; ++i)
+				_fields[component].push_back(reinterpret_cast<u8*>(&(&fields.data[i]->x)[component]));
+			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
 		}
 	}
 
-	void editor_vec3_field_t::on_component_changed(f32 value, void* user_data)
+	void editor_vec3_field_t::refresh_field_data()
 	{
-		component_t& component						  = *static_cast<component_t*>(user_data);
-		(&component.owner->_value.x)[component.index] = value;
-		if (component.owner->_config.on_changed != nullptr)
-			component.owner->_config.on_changed(component.owner->_value, component.owner->_config.user_data);
-	}
-
-	void editor_vec3_field_t::on_component_submitted(const char*, f32, void* user_data)
-	{
-		component_t& component = *static_cast<component_t*>(user_data);
-		if (component.owner->_config.on_submitted != nullptr)
-			component.owner->_config.on_submitted(component.owner->_value, component.owner->_config.user_data);
+		update_field_data(_config.field);
 	}
 
 	void editor_vec4_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec4_field_config_t& config)
 	{
 		_ui		= &ui;
 		_config = config;
-		_value	= config.value;
 
 		ui::layout_tree_t& tree = ui.get_tree();
 		_root					= ui.allocate_widget();
@@ -218,9 +220,13 @@ namespace sfg
 		const char* names[4] = {"X", "Y", "Z", "W"};
 		for (u8 i = 0; i < 4; ++i)
 		{
-			_components[i] = {this, i};
-			init_number_input(ui, _root, _inputs[i], names[i], (&_value.x)[i], config.increment, config.integer, on_component_changed, on_component_submitted, &_components[i]);
+			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
+			_fields[i].push_back(reinterpret_cast<u8*>(&(&_value.x)[i]));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer));
+			set_input_fill(ui, _inputs[i].get_root());
 		}
+
+		update_field_data(config.field);
 	}
 
 	void editor_vec4_field_t::uninit()
@@ -233,40 +239,38 @@ namespace sfg
 		_root	= NULL_WIDGET;
 		_config = {};
 		_value	= {0.0f, 0.0f, 0.0f, 0.0f};
-		for (component_t& component : _components)
-			component = {};
+		for (vector_t<u8*>& fields : _fields)
+			fields.resize(0);
 	}
 
 	void editor_vec4_field_t::set_value(const vec4f_t& value)
 	{
 		_value = value;
-		for (u8 i = 0; i < 4; ++i)
-			_inputs[i].set_number((&_value.x)[i]);
+		refresh_field_data();
 	}
 
-	void editor_vec4_field_t::set_mixed(bool mixed)
+	void editor_vec4_field_t::set_mixed(bool)
 	{
-		const char* names[4] = {"X", "Y", "Z", "W"};
-		for (u8 i = 0; i < 4; ++i)
+		refresh_field_data();
+	}
+
+	void editor_vec4_field_t::update_field_data(editor_vec4_field_field_t field)
+	{
+		_config.field					  = field;
+		vec4f_t*			   fallback[] = {&_value};
+		const span_t<vec4f_t*> fields	  = field.fields.size > 0 ? field.fields : span_t<vec4f_t*>{.data = fallback, .size = 1};
+		for (u8 component = 0; component < 4; ++component)
 		{
-			_inputs[i].set_placeholder(mixed ? "Mixed" : names[i]);
-			if (mixed)
-				_inputs[i].set_text("");
+			_fields[component].resize(0);
+			_fields[component].reserve(fields.size);
+			for (size_t i = 0; i < fields.size; ++i)
+				_fields[component].push_back(reinterpret_cast<u8*>(&(&fields.data[i]->x)[component]));
+			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
 		}
 	}
 
-	void editor_vec4_field_t::on_component_changed(f32 value, void* user_data)
+	void editor_vec4_field_t::refresh_field_data()
 	{
-		component_t& component						  = *static_cast<component_t*>(user_data);
-		(&component.owner->_value.x)[component.index] = value;
-		if (component.owner->_config.on_changed != nullptr)
-			component.owner->_config.on_changed(component.owner->_value, component.owner->_config.user_data);
-	}
-
-	void editor_vec4_field_t::on_component_submitted(const char*, f32, void* user_data)
-	{
-		component_t& component = *static_cast<component_t*>(user_data);
-		if (component.owner->_config.on_submitted != nullptr)
-			component.owner->_config.on_submitted(component.owner->_value, component.owner->_config.user_data);
+		update_field_data(_config.field);
 	}
 }

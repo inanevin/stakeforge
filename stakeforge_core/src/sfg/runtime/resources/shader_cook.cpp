@@ -274,13 +274,13 @@ namespace sfg
 			.display_name = "Shader Cook Config",
 			.fields =
 				{
-					{.container_ops = reflection_container_ops_t::vector_ops<string_t>(reflected_value_type_e_v2::string),
+					{.container_ops = reflection_container_ops_t::vector_ops<string_t>(reflected_value_type_e::string),
 					 .name			= "include_dirs",
 					 .display_name	= "Include Directories",
 					 .offset		= offsetof(shader_cook_config_t, include_dirs),
 					 .size			= sizeof(vector_t<string_t>),
-					 .type			= reflected_value_type_e_v2::container},
-					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<shader_type_e>::value, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e), .type = reflected_value_type_e_v2::u8},
+					 .type			= reflected_value_type_e::container},
+					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<shader_type_e>::value, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e), .type = reflected_value_type_e::u8},
 				},
 			.type_id   = type_id_t<shader_cook_config_t>::value,
 			.size	   = sizeof(shader_cook_config_t),

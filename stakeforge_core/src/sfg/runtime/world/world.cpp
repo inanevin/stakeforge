@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
+#include <cstring>
 
 namespace sfg
 {
@@ -129,8 +130,17 @@ namespace sfg
 
 		ecs_helpers_t::table_add_or_get_as<component_transform_t>(*_engine_components.transform_table, id);
 		component_name_t& name_component = ecs_helpers_t::table_add_or_get_as<component_name_t>(*_engine_components.name_table, id);
-		if (name != nullptr)
-			name_component.text_index = allocate_text(name);
+
+		if (name == nullptr)
+			name_component.text[0] = '\0';
+		else
+		{
+			const size_t name_len  = std::strlen(name);
+			const size_t text_size = sizeof(name_component.text);
+			const size_t copy_len  = name_len < text_size ? name_len : text_size - 1;
+			SFG_MEMCPY((void*)name_component.text, name, copy_len);
+			name_component.text[copy_len] = '\0';
+		}
 
 		component_system_transform_t& system_transform = ecs_helpers_t::table_add_or_get_as<component_system_transform_t>(*_system_components.transform_table, id);
 		system_transform.snap_interpolation			   = true;
@@ -146,9 +156,6 @@ namespace sfg
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);
 
 		detach(id);
-
-		const component_name_t& name = ecs_helpers_t::table_get_as<component_name_t>(*_engine_components.name_table, id);
-		release_text(name.text_index);
 
 		for (world_component_table_t& t : _component_tables)
 		{
@@ -179,8 +186,17 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		component_name_t& name_component = ecs_helpers_t::table_get_as<component_name_t>(*_engine_components.name_table, id);
-		release_text(name_component.text_index);
-		name_component.text_index = allocate_text(name != nullptr ? name : "");
+
+		if (name == nullptr)
+			name_component.text[0] = '\0';
+		else
+		{
+			const size_t name_len  = std::strlen(name);
+			const size_t text_size = sizeof(name_component.text);
+			const size_t copy_len  = name_len < text_size ? name_len : text_size - 1;
+			SFG_MEMCPY((void*)name_component.text, name, copy_len);
+			name_component.text[copy_len] = '\0';
+		}
 	}
 
 	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
@@ -584,7 +600,7 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		const component_name_t& name = ecs_helpers_t::table_get_as_const<component_name_t>(*_engine_components.name_table, id);
-		return get_text(name.text_index);
+		return name.text;
 	}
 
 	const char* world_t::get_text(u32 text_index) const

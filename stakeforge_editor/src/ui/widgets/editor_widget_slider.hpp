@@ -38,34 +38,34 @@ namespace sfg::ui
 
 namespace sfg
 {
-	struct editor_slider_v2_field_t
+	struct editor_slider_field_t
 	{
 		span_t<f32*> fields = {};
 	};
 
-	struct editor_slider_v2_config_t
+	struct editor_slider_config_t
 	{
-		editor_slider_v2_field_t field		   = {};
-		f32						 min_value	   = 0.0f;
-		f32						 max_value	   = 1.0f;
-		f32						 width		   = 0.0f;
-		u8						 decimal_count = 2;
-		bool					 fixed_width   = false;
-		bool					 display_label = true;
+		editor_slider_field_t field			= {};
+		f32					  min_value		= 0.0f;
+		f32					  max_value		= 1.0f;
+		f32					  width			= 0.0f;
+		u8					  decimal_count = 2;
+		bool				  fixed_width	= false;
+		bool				  display_label = true;
 	};
 
-	class editor_slider_v2_t final
+	class editor_slider_t final
 	{
 	public:
-		editor_slider_v2_t()									 = default;
-		~editor_slider_v2_t()									 = default;
-		editor_slider_v2_t(const editor_slider_v2_t&)			 = delete;
-		editor_slider_v2_t& operator=(const editor_slider_v2_t&) = delete;
+		editor_slider_t()								   = default;
+		~editor_slider_t()								   = default;
+		editor_slider_t(const editor_slider_t&)			   = delete;
+		editor_slider_t& operator=(const editor_slider_t&) = delete;
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_slider_v2_config_t& config);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_slider_config_t& config);
 		void uninit();
 		void set_value(f32 value);
-		void update_field_data(editor_slider_v2_field_t field);
+		void update_field_data(editor_slider_field_t field);
 		void refresh_field_data();
 
 		inline ui::widget_id_t get_root() const
@@ -88,15 +88,15 @@ namespace sfg
 		static void on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
-		ui::ui_context*			  _ui			  = nullptr;
-		ui::widget_id_t			  _root			  = NULL_WIDGET;
-		ui::widget_id_t			  _slider		  = NULL_WIDGET;
-		ui::widget_id_t			  _bg			  = NULL_WIDGET;
-		ui::widget_id_t			  _icon			  = NULL_WIDGET;
-		ui::widget_id_t			  _label		  = NULL_WIDGET;
-		editor_slider_v2_config_t _config		  = {};
-		char					  _label_text[32] = {};
-		f32						  _value		  = 0.0f;
-		bool					  _mixed		  = false;
+		ui::ui_context*		   _ui			   = nullptr;
+		ui::widget_id_t		   _root		   = NULL_WIDGET;
+		ui::widget_id_t		   _slider		   = NULL_WIDGET;
+		ui::widget_id_t		   _bg			   = NULL_WIDGET;
+		ui::widget_id_t		   _icon		   = NULL_WIDGET;
+		ui::widget_id_t		   _label		   = NULL_WIDGET;
+		editor_slider_config_t _config		   = {};
+		char				   _label_text[32] = {};
+		f32					   _value		   = 0.0f;
+		bool				   _mixed		   = false;
 	};
 }

@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset_type.hpp"
-#include "ui/widgets/editor_widgets_input_field.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -194,8 +194,8 @@ namespace sfg
 		static void on_asset_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_asset_row_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void on_input_submitted(const char*, f32, void* user_data);
-		static void on_asset_search_changed(const char* value, void* user_data);
+		static void on_input_submitted(void* user_data);
+		static void on_asset_search_changed(void* user_data);
 		static void on_asset_list_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
@@ -227,6 +227,8 @@ namespace sfg
 		vector_t<asset_popup_item_t> _asset_items				   = {};
 		vector_t<asset_popup_item_t> _asset_filtered_items		   = {};
 		vector_t<asset_row_t>		 _asset_rows				   = {};
+		string_t					 _input_text				   = {};
+		string_t					 _asset_search_text			   = {};
 		editor_popup_item_desc_t	 _pending_items[MAX_ITEMS]	   = {};
 		popup_mode_e				 _mode						   = popup_mode_e::none;
 		pending_request_e			 _pending_request			   = pending_request_e::none;

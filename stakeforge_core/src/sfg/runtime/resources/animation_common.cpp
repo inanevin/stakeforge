@@ -60,8 +60,8 @@ namespace sfg
 			.name = "animation_keyframe_v3_t",
 			.fields =
 				{
-					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_v3_t, time), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_t, value), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
+					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_v3_t, time), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_t, value), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<animation_keyframe_v3_t>::value,
 			.size	   = sizeof(animation_keyframe_v3_t),
@@ -77,10 +77,10 @@ namespace sfg
 			.name = "animation_keyframe_v3_spline_t",
 			.fields =
 				{
-					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_v3_spline_t, time), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "in_tangent", .display_name = "In Tangent", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, in_tangent), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, value), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "out_tangent", .display_name = "Out Tangent", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, out_tangent), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
+					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_v3_spline_t, time), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "in_tangent", .display_name = "In Tangent", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, in_tangent), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, value), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "out_tangent", .display_name = "Out Tangent", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(animation_keyframe_v3_spline_t, out_tangent), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<animation_keyframe_v3_spline_t>::value,
 			.size	   = sizeof(animation_keyframe_v3_spline_t),
@@ -96,8 +96,8 @@ namespace sfg
 			.name = "animation_keyframe_q_t",
 			.fields =
 				{
-					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_q_t, time), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_t, value), .size = sizeof(quat_t), .type = reflected_value_type_e_v2::object},
+					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_q_t, time), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_t, value), .size = sizeof(quat_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<animation_keyframe_q_t>::value,
 			.size	   = sizeof(animation_keyframe_q_t),
@@ -113,10 +113,10 @@ namespace sfg
 			.name = "animation_keyframe_q_spline_t",
 			.fields =
 				{
-					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_q_spline_t, time), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "in_tangent", .display_name = "In Tangent", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_spline_t, in_tangent), .size = sizeof(quat_t), .type = reflected_value_type_e_v2::object},
-					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_spline_t, value), .size = sizeof(quat_t), .type = reflected_value_type_e_v2::object},
-					{.name = "out_tangent", .display_name = "Out Tangent", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_spline_t, out_tangent), .size = sizeof(quat_t), .type = reflected_value_type_e_v2::object},
+					{.name = "time", .display_name = "Time", .offset = offsetof(animation_keyframe_q_spline_t, time), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "in_tangent", .display_name = "In Tangent", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_spline_t, in_tangent), .size = sizeof(quat_t), .type = reflected_value_type_e::object},
+					{.name = "value", .display_name = "Value", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_spline_t, value), .size = sizeof(quat_t), .type = reflected_value_type_e::object},
+					{.name = "out_tangent", .display_name = "Out Tangent", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(animation_keyframe_q_spline_t, out_tangent), .size = sizeof(quat_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<animation_keyframe_q_spline_t>::value,
 			.size	   = sizeof(animation_keyframe_q_spline_t),

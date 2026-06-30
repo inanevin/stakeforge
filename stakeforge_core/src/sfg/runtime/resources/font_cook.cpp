@@ -56,7 +56,7 @@ namespace sfg
 			.name = "font_cook_config_t",
 			.fields =
 				{
-					{.name = "reserved", .display_name = "Reserved", .offset = offsetof(font_cook_config_t, reserved), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e_v2::u32},
+					{.name = "reserved", .display_name = "Reserved", .offset = offsetof(font_cook_config_t, reserved), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 				},
 			.type_id   = type_id_t<font_cook_config_t>::value,
 			.size	   = sizeof(font_cook_config_t),

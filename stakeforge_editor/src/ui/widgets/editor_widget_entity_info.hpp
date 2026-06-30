@@ -27,11 +27,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "editor_command_system.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/math/quat.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 namespace sfg
@@ -57,36 +56,25 @@ namespace sfg
 		}
 
 	private:
-		static u32	on_name_selected(void* user_data);
-		static void on_name_submitted(const char* value, void* user_data);
-		static void on_position_changed(const vec3f_t& value, void* user_data);
-		static void on_position_submitted(const vec3f_t& value, void* user_data);
-		static void on_rotation_changed(const vec3f_t& value, void* user_data);
-		static void on_rotation_submitted(const vec3f_t& value, void* user_data);
-		static void on_scale_changed(const vec3f_t& value, void* user_data);
-		static void on_scale_submitted(const vec3f_t& value, void* user_data);
-		static void on_command_system_changed(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 		void refresh_controls();
-		bool matches_reflected_command(editor_command_system_t& system, const editor_command_t& command) const;
-		bool matches_entity_info_command(editor_command_system_t& system, const editor_command_t& command) const;
-		void refresh_entity_panel_names() const;
+		void apply_rotation_values();
 
 	private:
-		editor_vec3_field_t				 _position_field   = {};
-		editor_vec3_field_t				 _rotation_field   = {};
-		editor_vec3_field_t				 _scale_field	   = {};
-		vector_t<entity_id_t>			 _entities		   = {};
-		ui::ui_context*					 _ui			   = nullptr;
-		world_t*						 _world			   = nullptr;
-		ui::widget_id_t					 _root			   = NULL_WIDGET;
-		ui::widget_id_t					 _guid_label	   = NULL_WIDGET;
-		world_handle_t					 _world_handle	   = {};
-		editor_command_listener_handle_t _command_listener = {};
-		quat_t							 _command_rot	   = {};
-		vec3f_t							 _command_pos	   = vec3f_t::zero;
-		vec3f_t							 _command_scale	   = vec3f_t::one;
-		entity_id_t						 _entity		   = NULL_ENTITY_ID;
-		bool							 _refreshing	   = false;
+		editor_input_field_t  _name_input		   = {};
+		editor_vec3_field_t	  _position_field	   = {};
+		editor_vec3_field_t	  _rotation_field	   = {};
+		editor_vec3_field_t	  _scale_field		   = {};
+		vector_t<entity_id_t> _entities			   = {};
+		ui::ui_context*		  _ui				   = nullptr;
+		world_t*			  _world			   = nullptr;
+		ui::widget_id_t		  _root				   = NULL_WIDGET;
+		ui::widget_id_t		  _guid_label		   = NULL_WIDGET;
+		entity_id_t			  _entity			   = NULL_ENTITY_ID;
+		vec3f_t				  _rotation_value	   = vec3f_t::zero;
+		vec3f_t				  _last_rotation_value = vec3f_t::zero;
+		char				  _name_fallback[64]   = {};
+		bool				  _refreshing		   = false;
 	};
 }

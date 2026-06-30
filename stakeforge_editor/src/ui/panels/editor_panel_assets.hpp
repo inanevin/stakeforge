@@ -31,9 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_modal_cook_options.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
-#include "ui/widgets/editor_widgets_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string.hpp>
@@ -207,8 +207,8 @@ namespace sfg
 		static void on_asset_rename_popup_closed(const char* value, void* user_data);
 		static void on_cook_options_imported(void* user_data);
 		static void on_cook_options_cancelled(void* user_data);
-		static void on_search_changed(const char* value, void* user_data);
-		static void on_asset_search_changed(const char* value, void* user_data);
+		static void on_search_changed(void* user_data);
+		static void on_asset_search_changed(void* user_data);
 		static void on_show_file_assets_pressed(bool toggled, void* user_data);
 		static void on_asset_favourites_only_pressed(bool toggled, void* user_data);
 		static u16	get_selected_item_style(void* user_data);

@@ -239,10 +239,11 @@ namespace sfg
 		button_config.on_clicked	 = on_clear_pressed;
 		_clear_button.init(ui, _top_row, button_config);
 
+		u8*							search_field  = reinterpret_cast<u8*>(&_search_text);
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
-		search_config.type						  = editor_input_field_type_e::text;
-		search_config.on_text_changed			  = on_search_changed;
+		search_config.field						  = {.type = editor_input_field_field_type_e::string, .fields = {.data = &search_field, .size = 1}};
+		search_config.on_data_changed			  = on_search_changed;
 		search_config.user_data					  = this;
 		_search_input.init(ui, _top_row, search_config);
 
@@ -360,10 +361,9 @@ namespace sfg
 		static_cast<editor_panel_log_t*>(user_data)->request_clear_logs();
 	}
 
-	void editor_panel_log_t::on_search_changed(const char* value, void* user_data)
+	void editor_panel_log_t::on_search_changed(void* user_data)
 	{
 		editor_panel_log_t& panel = *static_cast<editor_panel_log_t*>(user_data);
-		panel._search_text		  = value != nullptr ? value : "";
 		panel._search_text_lower  = panel._search_text;
 		string_util::to_lower(panel._search_text_lower);
 		panel.refresh_log_filter_visibility();

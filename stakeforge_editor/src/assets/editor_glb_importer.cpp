@@ -184,8 +184,8 @@ namespace sfg
 
 		template <typename T> bool serialize_reflected_to_json(const T& value, nlohmann::json& out)
 		{
-			reflection_registry_t& registry = reflection_registry_t::get();
-			reflected_type_t*	 type	  = registry.find_type(type_id_t<T>::value);
+			reflection_registry_t&	registry = reflection_registry_t::get();
+			const reflected_type_t* type	 = registry.find_type(type_id_t<T>::value);
 			if (type == nullptr)
 				return false;
 
@@ -1407,24 +1407,24 @@ namespace sfg
 			.name = "glb_cook_config_t",
 			.fields =
 				{
-					{.name = "import_textures", .display_name = "Import Textures", .offset = offsetof(glb_cook_config_t, import_textures), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
-					{.name = "import_materials", .display_name = "Import Materials", .offset = offsetof(glb_cook_config_t, import_materials), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
-					{.name = "import_animations", .display_name = "Import Animations", .offset = offsetof(glb_cook_config_t, import_animations), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
-					{.name = "import_meshes", .display_name = "Import Meshes", .offset = offsetof(glb_cook_config_t, import_meshes), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "import_textures", .display_name = "Import Textures", .offset = offsetof(glb_cook_config_t, import_textures), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+					{.name = "import_materials", .display_name = "Import Materials", .offset = offsetof(glb_cook_config_t, import_materials), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+					{.name = "import_animations", .display_name = "Import Animations", .offset = offsetof(glb_cook_config_t, import_animations), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+					{.name = "import_meshes", .display_name = "Import Meshes", .offset = offsetof(glb_cook_config_t, import_meshes), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					{.name		   = "texture_payload_type",
 					 .display_name = "Texture Payload Type",
 					 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
 					 .offset	   = offsetof(glb_cook_config_t, texture_payload_type),
 					 .size		   = sizeof(texture_payload_type_e),
-					 .type		   = reflected_value_type_e_v2::u8},
+					 .type		   = reflected_value_type_e::u8},
 					{.name		   = "ktx2_compression",
 					 .display_name = "KTX2 Compression",
 					 .sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
 					 .offset	   = offsetof(glb_cook_config_t, ktx2_compression),
 					 .size		   = sizeof(texture_ktx2_compression_e),
-					 .type		   = reflected_value_type_e_v2::u8},
-					{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .offset = offsetof(glb_cook_config_t, generate_mipmaps), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
-					{.name = "combine_meshes", .display_name = "Combine Meshes", .offset = offsetof(glb_cook_config_t, combine_meshes), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					 .type		   = reflected_value_type_e::u8},
+					{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .offset = offsetof(glb_cook_config_t, generate_mipmaps), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+					{.name = "combine_meshes", .display_name = "Combine Meshes", .offset = offsetof(glb_cook_config_t, combine_meshes), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 				},
 			.type_id   = type_id_t<glb_cook_config_t>::value,
 			.size	   = sizeof(glb_cook_config_t),

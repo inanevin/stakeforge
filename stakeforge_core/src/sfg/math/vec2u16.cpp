@@ -58,8 +58,8 @@ namespace sfg
 			.name = "vec2u16_t",
 			.fields =
 				{
-					{.name = "x", .offset = offsetof(vec2u16_t, x), .size = sizeof(u16), .type = reflected_value_type_e_v2::u16},
-					{.name = "y", .offset = offsetof(vec2u16_t, y), .size = sizeof(u16), .type = reflected_value_type_e_v2::u16},
+					{.name = "x", .offset = offsetof(vec2u16_t, x), .size = sizeof(u16), .type = reflected_value_type_e::u16},
+					{.name = "y", .offset = offsetof(vec2u16_t, y), .size = sizeof(u16), .type = reflected_value_type_e::u16},
 				},
 			.type_id   = type_id_t<vec2u16_t>::value,
 			.size	   = sizeof(vec2u16_t),

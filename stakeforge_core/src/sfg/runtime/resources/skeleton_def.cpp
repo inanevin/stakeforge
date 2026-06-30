@@ -42,10 +42,10 @@ namespace sfg
 			.name = "skeleton_joint_def_t",
 			.fields =
 				{
-					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_joint_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e_v2::string},
-					{.name = "name_hash", .display_name = "Name Hash", .offset = offsetof(skeleton_joint_def_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e_v2::u64},
-					{.name = "parent_index", .display_name = "Parent Index", .offset = offsetof(skeleton_joint_def_t, parent_index), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
-					{.name = "inverse_bind", .display_name = "Inverse Bind", .sub_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_joint_def_t, inverse_bind), .size = sizeof(mat4x3_t), .type = reflected_value_type_e_v2::object},
+					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_joint_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
+					{.name = "name_hash", .display_name = "Name Hash", .offset = offsetof(skeleton_joint_def_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
+					{.name = "parent_index", .display_name = "Parent Index", .offset = offsetof(skeleton_joint_def_t, parent_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "inverse_bind", .display_name = "Inverse Bind", .sub_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_joint_def_t, inverse_bind), .size = sizeof(mat4x3_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<skeleton_joint_def_t>::value,
 			.size	   = sizeof(skeleton_joint_def_t),
@@ -61,14 +61,14 @@ namespace sfg
 			.name = "skeleton_def_t",
 			.fields =
 				{
-					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e_v2::string},
-					{.container_ops = reflection_container_ops_t::vector_ops<skeleton_joint_def_t>(reflected_value_type_e_v2::object, type_id_t<skeleton_joint_def_t>::value),
+					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
+					{.container_ops = reflection_container_ops_t::vector_ops<skeleton_joint_def_t>(reflected_value_type_e::object, type_id_t<skeleton_joint_def_t>::value),
 					 .name			= "joints",
 					 .display_name	= "Joints",
 					 .offset		= offsetof(skeleton_def_t, joints),
 					 .size			= sizeof(vector_t<skeleton_joint_def_t>),
-					 .type			= reflected_value_type_e_v2::container},
-					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					 .type			= reflected_value_type_e::container},
+					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
 				},
 			.type_id   = type_id_t<skeleton_def_t>::value,
 			.size	   = sizeof(skeleton_def_t),

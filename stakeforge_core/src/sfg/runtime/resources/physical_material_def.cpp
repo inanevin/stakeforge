@@ -44,10 +44,10 @@ namespace sfg
 			.name = "physical_material_def_t",
 			.fields =
 				{
-					{.name = "restitution", .display_name = "Restitution", .offset = offsetof(physical_material_def_t, restitution), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "friction", .display_name = "Friction", .offset = offsetof(physical_material_def_t, friction), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "angular_damping", .display_name = "Angular Damping", .offset = offsetof(physical_material_def_t, angular_damping), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "linear_damping", .display_name = "Linear Damping", .offset = offsetof(physical_material_def_t, linear_damping), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "restitution", .display_name = "Restitution", .offset = offsetof(physical_material_def_t, restitution), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "friction", .display_name = "Friction", .offset = offsetof(physical_material_def_t, friction), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "angular_damping", .display_name = "Angular Damping", .offset = offsetof(physical_material_def_t, angular_damping), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "linear_damping", .display_name = "Linear Damping", .offset = offsetof(physical_material_def_t, linear_damping), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 				},
 			.type_id   = type_id_t<physical_material_def_t>::value,
 			.size	   = sizeof(physical_material_def_t),

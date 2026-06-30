@@ -27,6 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -56,26 +57,33 @@ namespace sfg
 		bool							is_slider  = false;
 	};
 
-	struct editor_input_field_v2_config_t
+	using editor_input_field_data_changed_fn = void (*)(void* user_data);
+	using editor_input_field_submitted_fn	 = void (*)(void* user_data);
+
+	struct editor_input_field_config_t
 	{
-		const char*				   placeholder = nullptr;
-		editor_input_field_field_t field	   = {};
-		f32						   increment   = 0.1f;
-		f32						   min_value   = 0.0f;
-		f32						   max_value   = 1.0f;
+		const char*						   placeholder	   = nullptr;
+		editor_input_field_data_changed_fn on_data_changed = nullptr;
+		editor_input_field_submitted_fn	   on_submitted	   = nullptr;
+		void*							   user_data	   = nullptr;
+		editor_input_field_field_t		   field		   = {};
+		f32								   increment	   = 0.1f;
+		f32								   min_value	   = 0.0f;
+		f32								   max_value	   = 1.0f;
 	};
 
-	class editor_input_field_v2_t final
+	class editor_input_field_t final
 	{
 	public:
-		editor_input_field_v2_t()										   = default;
-		~editor_input_field_v2_t()										   = default;
-		editor_input_field_v2_t(const editor_input_field_v2_t&)			   = delete;
-		editor_input_field_v2_t& operator=(const editor_input_field_v2_t&) = delete;
+		editor_input_field_t()										 = default;
+		~editor_input_field_t()										 = default;
+		editor_input_field_t(const editor_input_field_t&)			 = delete;
+		editor_input_field_t& operator=(const editor_input_field_t&) = delete;
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_v2_config_t& config);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_config_t& config);
 		void uninit();
 		void select_all();
+		void set_visible(bool visible);
 		void update_field_data(editor_input_field_field_t field);
 		void refresh_field_data();
 
@@ -132,21 +140,22 @@ namespace sfg
 		static void draw_overlay(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
-		ui::ui_context*				   _ui							 = nullptr;
-		ui::widget_id_t				   _root						 = NULL_WIDGET;
-		ui::widget_id_t				   _slider						 = NULL_WIDGET;
-		ui::widget_id_t				   _label						 = NULL_WIDGET;
-		ui::widget_id_t				   _overlay						 = NULL_WIDGET;
-		editor_input_field_v2_config_t _config						 = {};
-		char						   _text[TEXT_CAPACITY]			 = {};
-		f32							   _text_advances[TEXT_CAPACITY] = {};
-		u32							   _text_len					 = 0;
-		u32							   _caret						 = 0;
-		u32							   _selection_anchor			 = 0;
-		f32							   _number_value				 = 0.0f;
-		f32							   _blink_seconds				 = 0.0f;
-		f32							   _text_advance_ui_scale		 = 0.0f;
-		f32							   _text_advance_dpi_scale		 = 0.0f;
-		bool						   _mixed						 = false;
+		ui::ui_context*				_ui							  = nullptr;
+		ui::widget_id_t				_root						  = NULL_WIDGET;
+		ui::widget_id_t				_slider						  = NULL_WIDGET;
+		ui::widget_id_t				_label						  = NULL_WIDGET;
+		ui::widget_id_t				_overlay					  = NULL_WIDGET;
+		vector_t<u8*>				_fields						  = {};
+		editor_input_field_config_t _config						  = {};
+		char						_text[TEXT_CAPACITY]		  = {};
+		f32							_text_advances[TEXT_CAPACITY] = {};
+		u32							_text_len					  = 0;
+		u32							_caret						  = 0;
+		u32							_selection_anchor			  = 0;
+		f32							_number_value				  = 0.0f;
+		f32							_blink_seconds				  = 0.0f;
+		f32							_text_advance_ui_scale		  = 0.0f;
+		f32							_text_advance_dpi_scale		  = 0.0f;
+		bool						_mixed						  = false;
 	};
 }

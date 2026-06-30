@@ -117,7 +117,7 @@ namespace sfg
 			values.*Size	   = 0;
 		}
 
-		template <typename T> static inline reflected_field_container_ops_t vector_ops(reflected_value_type_e_v2 value_type, sid_t sub_type_id = 0)
+		template <typename T> static inline reflected_field_container_ops_t vector_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
 				.add_element_ptr_fn	 = &vector_add_element_ptr<T>,
@@ -130,7 +130,7 @@ namespace sfg
 			};
 		}
 
-		template <typename T, int N> static inline reflected_field_container_ops_t inplace_vector_ops(reflected_value_type_e_v2 value_type, sid_t sub_type_id = 0)
+		template <typename T, int N> static inline reflected_field_container_ops_t inplace_vector_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
 				.add_element_ptr_fn	 = &inplace_vector_add_element_ptr<T, N>,
@@ -143,7 +143,7 @@ namespace sfg
 			};
 		}
 
-		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline reflected_field_container_ops_t sized_array_ops(reflected_value_type_e_v2 value_type, sid_t sub_type_id = 0)
+		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline reflected_field_container_ops_t sized_array_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
 				.add_element_ptr_fn	 = &sized_array_add_element_ptr<TContainer, T, N, Data, Size>,

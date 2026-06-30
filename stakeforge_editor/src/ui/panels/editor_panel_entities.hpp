@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
-#include "ui/widgets/editor_widgets_input_field.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
@@ -154,7 +154,7 @@ namespace sfg
 		// handlers
 		// -----------------------------------------------------------------------------
 
-		static void on_search_changed(const char* value, void* user_data);
+		static void on_search_changed(void* user_data);
 		static void on_empty_action_menu_command(u16 command, void* user_data);
 		static void on_entity_action_menu_command(u16 command, void* user_data);
 		static void on_entities_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);

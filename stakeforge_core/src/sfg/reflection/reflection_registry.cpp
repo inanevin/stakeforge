@@ -46,7 +46,7 @@ namespace sfg
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
-			if (field.value_type == reflected_value_type_e_v2::invalid)
+			if (field.value_type == reflected_value_type_e::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
 				return false;
@@ -58,12 +58,12 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::object)
+			if (field.value_type == reflected_value_type_e::object)
 			{
 				return reflection_registry_t::get().type_to_stream(field.sub_type_id, data, user_data, out_stream);
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::container)
+			if (field.value_type == reflected_value_type_e::container)
 			{
 				if (field.container_ops.get_element_ptr_fn == nullptr || field.container_ops.get_element_size_fn == nullptr)
 					return false;
@@ -75,10 +75,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						  .sub_type_id = field.container_ops.element_sub_type_id,
-						  .size		   = field.container_ops.element_value_size,
-						  .value_type  = field.container_ops.element_value_type,
-					  };
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
 
 					if (!field_to_stream(temp_field, element_data, user_data, out_stream))
 						return false;
@@ -87,7 +87,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::string)
+			if (field.value_type == reflected_value_type_e::string)
 			{
 				string_t* str = reinterpret_cast<string_t*>(data);
 				out_stream << *str;
@@ -104,7 +104,7 @@ namespace sfg
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
-			if (field.value_type == reflected_value_type_e_v2::invalid)
+			if (field.value_type == reflected_value_type_e::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
 				return false;
@@ -116,12 +116,12 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::object)
+			if (field.value_type == reflected_value_type_e::object)
 			{
 				return reflection_registry_t::get().type_from_stream(field.sub_type_id, data, user_data, in_stream);
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::container)
+			if (field.value_type == reflected_value_type_e::container)
 			{
 				u32 item_size = 0;
 				in_stream >> item_size;
@@ -150,7 +150,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::string)
+			if (field.value_type == reflected_value_type_e::string)
 			{
 				string_t& str = *reinterpret_cast<string_t*>(data);
 				in_stream >> str;
@@ -167,7 +167,7 @@ namespace sfg
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
-			if (field.value_type == reflected_value_type_e_v2::invalid)
+			if (field.value_type == reflected_value_type_e::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
 				return false;
@@ -186,7 +186,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::container)
+			if (field.value_type == reflected_value_type_e::container)
 			{
 				if (field.container_ops.get_element_ptr_fn == nullptr || field.container_ops.get_element_size_fn == nullptr)
 					return false;
@@ -199,10 +199,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						  .sub_type_id = field.container_ops.element_sub_type_id,
-						  .size		   = field.container_ops.element_value_size,
-						  .value_type  = field.container_ops.element_value_type,
-					  };
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
 
 					nlohmann::json elem_json = nlohmann::json::object();
 					if (!field_to_json(temp_field, element_data, user_data, elem_json, true))
@@ -215,7 +215,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::object)
+			if (field.value_type == reflected_value_type_e::object)
 			{
 				if (dismiss_name)
 					return reflection_registry_t::get().type_to_json(field.sub_type_id, data, user_data, out_json);
@@ -230,7 +230,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::string)
+			if (field.value_type == reflected_value_type_e::string)
 			{
 				string_t* str = reinterpret_cast<string_t*>(data);
 				if (dismiss_name)
@@ -242,19 +242,19 @@ namespace sfg
 
 			switch (field.value_type)
 			{
-			case reflected_value_type_e_v2::char_array:
+			case reflected_value_type_e::char_array:
 				if (dismiss_name)
 					out_json = reinterpret_cast<const char*>(data);
 				else
 					out_json[field.name] = reinterpret_cast<const char*>(data);
 				break;
-			case reflected_value_type_e_v2::boolean:
+			case reflected_value_type_e::boolean:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const bool*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const bool*>(data);
 				break;
-			case reflected_value_type_e_v2::f32: {
+			case reflected_value_type_e::f32: {
 				float v = *reinterpret_cast<const float*>(data);
 				v		= math::round(v * FLOAT_ROUND_PRECISION_JSON) / FLOAT_ROUND_PRECISION_JSON;
 				if (dismiss_name)
@@ -264,56 +264,56 @@ namespace sfg
 				break;
 			}
 
-			case reflected_value_type_e_v2::u64:
+			case reflected_value_type_e::u64:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const u64*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const u64*>(data);
 				break;
 
-			case reflected_value_type_e_v2::i64:
+			case reflected_value_type_e::i64:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const i64*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const i64*>(data);
 				break;
 
-			case reflected_value_type_e_v2::u32:
+			case reflected_value_type_e::u32:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const u32*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const u32*>(data);
 				break;
 
-			case reflected_value_type_e_v2::i32:
+			case reflected_value_type_e::i32:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const i32*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const i32*>(data);
 				break;
 
-			case reflected_value_type_e_v2::u16:
+			case reflected_value_type_e::u16:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const u16*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const u16*>(data);
 				break;
 
-			case reflected_value_type_e_v2::i16:
+			case reflected_value_type_e::i16:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const i16*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const i16*>(data);
 				break;
 
-			case reflected_value_type_e_v2::u8:
+			case reflected_value_type_e::u8:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const u8*>(data);
 				else
 					out_json[field.name] = *reinterpret_cast<const u8*>(data);
 				break;
 
-			case reflected_value_type_e_v2::i8:
+			case reflected_value_type_e::i8:
 				if (dismiss_name)
 					out_json = *reinterpret_cast<const i8*>(data);
 				else
@@ -331,7 +331,7 @@ namespace sfg
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
-			if (field.value_type == reflected_value_type_e_v2::invalid)
+			if (field.value_type == reflected_value_type_e::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
 				return false;
@@ -350,7 +350,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::container)
+			if (field.value_type == reflected_value_type_e::container)
 			{
 				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
 					return false;
@@ -383,7 +383,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::object)
+			if (field.value_type == reflected_value_type_e::object)
 			{
 				if (dismiss_name)
 					return reflection_registry_t::get().type_from_json(field.sub_type_id, data, user_data, in_json);
@@ -399,7 +399,7 @@ namespace sfg
 				return true;
 			}
 
-			if (field.value_type == reflected_value_type_e_v2::string)
+			if (field.value_type == reflected_value_type_e::string)
 			{
 				string_t& str = *reinterpret_cast<string_t*>(data);
 				if (dismiss_name)
@@ -418,7 +418,7 @@ namespace sfg
 
 			switch (field.value_type)
 			{
-			case reflected_value_type_e_v2::char_array: {
+			case reflected_value_type_e::char_array: {
 				string_t val = "";
 				if (dismiss_name)
 					val = in_json;
@@ -433,69 +433,69 @@ namespace sfg
 				}
 				break;
 			}
-			case reflected_value_type_e_v2::boolean:
+			case reflected_value_type_e::boolean:
 				if (dismiss_name)
 					*reinterpret_cast<bool*>(data) = in_json;
 				else
 					*reinterpret_cast<bool*>(data) = in_json.value<bool>(field.name, false);
 				break;
-			case reflected_value_type_e_v2::f32:
+			case reflected_value_type_e::f32:
 				if (dismiss_name)
 					*reinterpret_cast<f32*>(data) = in_json;
 				else
 					*reinterpret_cast<f32*>(data) = in_json.value<f32>(field.name, 0.0f);
 				break;
 
-			case reflected_value_type_e_v2::u64:
+			case reflected_value_type_e::u64:
 				if (dismiss_name)
 					*reinterpret_cast<u64*>(data) = in_json;
 				else
 					*reinterpret_cast<u64*>(data) = in_json.value<u64>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::i64:
+			case reflected_value_type_e::i64:
 				if (dismiss_name)
 					*reinterpret_cast<i64*>(data) = in_json;
 				else
 					*reinterpret_cast<i64*>(data) = in_json.value<i64>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::u32:
+			case reflected_value_type_e::u32:
 				if (dismiss_name)
 					*reinterpret_cast<u32*>(data) = in_json;
 				else
 					*reinterpret_cast<u32*>(data) = in_json.value<u32>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::i32:
+			case reflected_value_type_e::i32:
 				if (dismiss_name)
 					*reinterpret_cast<i32*>(data) = in_json;
 				else
 					*reinterpret_cast<i32*>(data) = in_json.value<i32>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::u16:
+			case reflected_value_type_e::u16:
 				if (dismiss_name)
 					*reinterpret_cast<u16*>(data) = in_json;
 				else
 					*reinterpret_cast<u16*>(data) = in_json.value<u16>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::i16:
+			case reflected_value_type_e::i16:
 				if (dismiss_name)
 					*reinterpret_cast<i16*>(data) = in_json;
 				else
 					*reinterpret_cast<i16*>(data) = in_json.value<i16>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::u8:
+			case reflected_value_type_e::u8:
 				if (dismiss_name)
 					*reinterpret_cast<u8*>(data) = in_json;
 				else
 					*reinterpret_cast<u8*>(data) = in_json.value<u8>(field.name, 0);
 				break;
 
-			case reflected_value_type_e_v2::i8:
+			case reflected_value_type_e::i8:
 				if (dismiss_name)
 					*reinterpret_cast<i8*>(data) = in_json;
 				else
@@ -536,7 +536,7 @@ namespace sfg
 
 	void reflection_registry_t::type_field_to_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, ostream_t& out_stream)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -561,7 +561,7 @@ namespace sfg
 
 	void reflection_registry_t::type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -586,7 +586,8 @@ namespace sfg
 
 	void reflection_registry_t::type_field_from_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, istream_t& in_stream)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
+		(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -610,7 +611,7 @@ namespace sfg
 
 	void reflection_registry_t::type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -635,7 +636,7 @@ namespace sfg
 
 	bool reflection_registry_t::type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -662,7 +663,7 @@ namespace sfg
 
 	bool reflection_registry_t::type_to_json(sid_t type_id, void* obj, void* user_data, nlohmann::json& out_json)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -709,7 +710,7 @@ namespace sfg
 
 	bool reflection_registry_t::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -737,7 +738,7 @@ namespace sfg
 
 	bool reflection_registry_t::type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json)
 	{
-		reflected_type_t* type = find_type(type_id);
+		const reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -778,12 +779,19 @@ namespace sfg
 		return true;
 	}
 
-	reflected_type_t* reflection_registry_t::find_type(sid_t type_id)
+	const reflected_type_t* reflection_registry_t::find_type(sid_t type_id) const
 	{
 		auto it = std::find_if(_types.begin(), _types.end(), [type_id](const reflected_type_t& t) -> bool { return t.type_id == type_id; });
 		if (it == _types.end())
 			return nullptr;
 		return &*it;
+	}
+
+	const reflected_field_t* reflection_registry_t::get_field(u32 index) const
+	{
+		if (index >= _fields.size())
+			return nullptr;
+		return &_fields[index];
 	}
 
 	void reflection_registry_t::register_type(const reflected_type_descriptor_t& descriptor)
@@ -792,7 +800,7 @@ namespace sfg
 		SFG_ASSERT(descriptor.type_id != 0);
 		SFG_ASSERT(descriptor.size != 0);
 
-		reflected_type_t* existing_type = find_type(descriptor.type_id);
+		const reflected_type_t* existing_type = find_type(descriptor.type_id);
 		if (existing_type != nullptr)
 		{
 			SFG_WARN("reflection type already exists! {0}", existing_type->name);
@@ -825,13 +833,13 @@ namespace sfg
 		{
 			reflected_field_t field = {};
 			SFG_ASSERT(field_desc.name != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::object || field_desc.sub_type_id != 0);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::container || field_desc.container_ops.get_element_ptr_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::container || field_desc.container_ops.get_element_size_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::container || field_desc.container_ops.add_element_ptr_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::container || field_desc.container_ops.reset_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::container || (field_desc.container_ops.element_value_type != reflected_value_type_e_v2::invalid && field_desc.container_ops.element_value_type != reflected_value_type_e_v2::container));
-			SFG_ASSERT(field_desc.type != reflected_value_type_e_v2::container || field_desc.container_ops.element_value_type != reflected_value_type_e_v2::object || field_desc.container_ops.element_sub_type_id != 0);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::object || field_desc.sub_type_id != 0);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_ptr_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_size_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.add_element_ptr_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.reset_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || (field_desc.container_ops.element_value_type != reflected_value_type_e::invalid && field_desc.container_ops.element_value_type != reflected_value_type_e::container));
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.element_value_type != reflected_value_type_e::object || field_desc.container_ops.element_sub_type_id != 0);
 
 			field.name			   = _text_allocator.allocate(field_desc.name);
 			field.field_identifier = TO_SID(field.name);

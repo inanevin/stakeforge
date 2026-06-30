@@ -73,7 +73,7 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_name";
 
-		u32 text_index = ECS_INVALID_INDEX;
+		char text[64];
 	};
 
 	SFG_DEFINE_TYPE_ID(component_name_t);

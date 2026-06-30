@@ -159,10 +159,10 @@ namespace sfg
 			.name = "rectf_t",
 			.fields =
 				{
-					{.name = "x", .offset = offsetof(rectf_t, x), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "y", .offset = offsetof(rectf_t, y), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "w", .offset = offsetof(rectf_t, w), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "h", .offset = offsetof(rectf_t, h), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "x", .offset = offsetof(rectf_t, x), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "y", .offset = offsetof(rectf_t, y), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "w", .offset = offsetof(rectf_t, w), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "h", .offset = offsetof(rectf_t, h), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 				},
 			.type_id   = type_id_t<rectf_t>::value,
 			.size	   = sizeof(rectf_t),

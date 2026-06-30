@@ -133,11 +133,11 @@ namespace sfg
 		top_row_in.child_spacing	= theme.item_spacing;
 		top_row_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
+		u8*							data		  = reinterpret_cast<u8*>(&_search_str);
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
-		search_config.text_value				  = _search_str.c_str();
-		search_config.type						  = editor_input_field_type_e::text;
-		search_config.on_text_changed			  = on_search_changed;
+		search_config.field						  = {.type = editor_input_field_field_type_e::string, .fields = {.data = &data, .size = 1}};
+		search_config.on_data_changed			  = on_search_changed;
 		search_config.user_data					  = this;
 		_search_input.init(ui, _entity_top_row, search_config);
 
@@ -365,10 +365,9 @@ namespace sfg
 	{
 		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, id);
 		const component_name_t&		 name	   = ecs_helpers_t::table_get_as_const<component_name_t>(name_table, id);
-		const char*					 text	   = world.get_text(name.text_index);
 		const entity_id_t			 parent	   = hierarchy.parent;
 
-		_entity_cache.push_back({.name = text == nullptr ? "Entity" : text, .id = id, .parent = parent, .depth = depth, .has_children = hierarchy.first_child != NULL_ENTITY_ID});
+		_entity_cache.push_back({.name = name.text, .id = id, .parent = parent, .depth = depth, .has_children = hierarchy.first_child != NULL_ENTITY_ID});
 
 		entity_id_t child = hierarchy.first_child;
 		while (child != NULL_ENTITY_ID)
@@ -962,11 +961,10 @@ namespace sfg
 		return nullptr;
 	}
 
-	void editor_panel_entities_t::on_search_changed(const char* value, void* user_data)
+	void editor_panel_entities_t::on_search_changed(void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		panel._search_str			   = value;
-		panel._search_str_lower		   = value;
+		panel._search_str_lower		   = panel._search_str;
 		string_util::to_lower(panel._search_str_lower);
 		panel.refresh_entities();
 	}

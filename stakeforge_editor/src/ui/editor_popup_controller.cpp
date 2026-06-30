@@ -244,13 +244,13 @@ namespace sfg
 		asset_search_row_in.size_value		 = {1.0f, theme.item_area_height};
 		asset_search_row_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
-		editor_input_field_config_t asset_search_config = {};
-		asset_search_config.placeholder					= "Search";
-		asset_search_config.type						= editor_input_field_type_e::text;
-		asset_search_config.on_text_changed				= on_asset_search_changed;
-		asset_search_config.user_data					= this;
+		u8*							asset_search_text_field = reinterpret_cast<u8*>(&_asset_search_text);
+		editor_input_field_config_t asset_search_config		= {};
+		asset_search_config.placeholder						= "Search";
+		asset_search_config.field							= {.type = editor_input_field_field_type_e::string, .fields = {.data = &asset_search_text_field, .size = 1}};
+		asset_search_config.on_data_changed					= on_asset_search_changed;
+		asset_search_config.user_data						= this;
 		_asset_search_input.init(ui, _asset_search_row, asset_search_config);
-		_asset_search_input.set_draw_order(POPUP_DRAW_ORDER + 1);
 
 		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
 		asset_search_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
@@ -281,11 +281,12 @@ namespace sfg
 		scrollbar_config.axes					   = editor_scrollbar_axis_y;
 		_asset_scrollbar.init(ui, scrollbar_config);
 
-		editor_input_field_config_t input_config = {};
-		input_config.on_submitted				 = on_input_submitted;
-		input_config.user_data					 = this;
+		u8*							input_text_field = reinterpret_cast<u8*>(&_input_text);
+		editor_input_field_config_t input_config	 = {};
+		input_config.field							 = {.type = editor_input_field_field_type_e::string, .fields = {.data = &input_text_field, .size = 1}};
+		input_config.on_submitted					 = on_input_submitted;
+		input_config.user_data						 = this;
 		_input.init(ui, _foreground, input_config);
-		_input.set_draw_order(POPUP_DRAW_ORDER);
 
 		s_controllers[s_controller_count++] = this;
 		set_visible(false);
@@ -337,6 +338,8 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_filtered_items.resize(0);
 		_asset_rows.resize(0);
+		_input_text.resize(0);
+		_asset_search_text.resize(0);
 	}
 
 	void editor_popup_controller_t::request_popup(const editor_popup_desc_t& desc)
@@ -383,8 +386,8 @@ namespace sfg
 		close_popup(false);
 		_input_desc = desc;
 		_mode		= popup_mode_e::input;
-		_input.set_placeholder(desc.placeholder);
-		_input.set_text(desc.text != nullptr ? desc.text : "");
+		_input_text = desc.text != nullptr ? desc.text : "";
+		_input.refresh_field_data();
 
 		refresh_layout();
 		set_visible(true);
@@ -416,7 +419,8 @@ namespace sfg
 								  _ui->widget_text(_asset_label),
 								  _ui->widget_text_len(_asset_label),
 								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-		_asset_search_input.set_text("");
+		_asset_search_text.resize(0);
+		_asset_search_input.refresh_field_data();
 		collect_asset_items();
 		filter_asset_items();
 		refresh_asset_rows();
@@ -449,7 +453,8 @@ namespace sfg
 								  _ui->widget_text(_asset_label),
 								  _ui->widget_text_len(_asset_label),
 								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-		_asset_search_input.set_text("");
+		_asset_search_text.resize(0);
+		_asset_search_input.refresh_field_data();
 		collect_entity_items();
 		filter_asset_items();
 		refresh_asset_rows();
@@ -476,7 +481,7 @@ namespace sfg
 		const bool						   notify			= notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
 		const editor_popup_input_closed_fn closed			= _input_desc.closed;
 		void*							   closed_user_data = _input_desc.user_data;
-		const frame_string_t<char>		   input_value		= _input.get_text();
+		const frame_string_t<char>		   input_value		= _input_text.c_str();
 
 		set_visible(false);
 		_ui->get_input().clear_popup_scope();
@@ -799,8 +804,7 @@ namespace sfg
 		{
 			const component_guid_t& guid = ecs_helpers_t::row_get<component_guid_t>(row, 1);
 			const component_name_t& name = ecs_helpers_t::row_get<component_name_t>(row, 2);
-			const char*				text = world.get_text(name.text_index);
-			_asset_items.push_back({.name = text != nullptr ? text : "Entity", .guid = static_cast<sid_t>(guid.guid)});
+			_asset_items.push_back({.name = name.text, .guid = static_cast<sid_t>(guid.guid)});
 		}
 	}
 
@@ -1003,12 +1007,12 @@ namespace sfg
 		popup.close_popup(true);
 	}
 
-	void editor_popup_controller_t::on_input_submitted(const char*, f32, void* user_data)
+	void editor_popup_controller_t::on_input_submitted(void* user_data)
 	{
 		static_cast<editor_popup_controller_t*>(user_data)->close_popup(true);
 	}
 
-	void editor_popup_controller_t::on_asset_search_changed(const char*, void* user_data)
+	void editor_popup_controller_t::on_asset_search_changed(void* user_data)
 	{
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
 		popup.filter_asset_items();

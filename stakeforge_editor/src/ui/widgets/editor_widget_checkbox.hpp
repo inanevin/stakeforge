@@ -26,6 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/data/span.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -38,13 +39,14 @@ namespace sfg::ui
 
 namespace sfg
 {
-	using editor_checkbox_changed_fn = void (*)(bool checked, void* user_data);
+	struct editor_checkbox_field_t
+	{
+		span_t<u8*> fields = {};
+	};
 
 	struct editor_checkbox_config_t
 	{
-		editor_checkbox_changed_fn on_changed = nullptr;
-		void*					   user_data  = nullptr;
-		bool					   checked	  = false;
+		editor_checkbox_field_t field = {};
 	};
 
 	class editor_checkbox_t final
@@ -57,8 +59,8 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_checkbox_config_t& config);
 		void uninit();
-		void set_checked(bool checked);
-		void set_mixed(bool mixed);
+		void update_field_data(editor_checkbox_field_t field);
+		void refresh_field_data();
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -73,6 +75,7 @@ namespace sfg
 	private:
 		void refresh();
 		void toggle();
+		void modify_field();
 
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);

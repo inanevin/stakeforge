@@ -27,8 +27,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_width.hpp"
-#include "ui/widgets/editor_widgets_input_field.hpp"
 #include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/ui/ui_common.hpp>
+
+namespace sfg::ui
+{
+	class ui_context;
+}
 
 namespace sfg
 {
@@ -66,17 +71,12 @@ namespace sfg
 
 	private:
 		void refresh_color();
-		void refresh_text();
-
-		static void on_text_changed(const char* value, void* user_data);
 
 	private:
-		ui::ui_context*				_ui			= nullptr;
-		ui::widget_id_t				_root		= NULL_WIDGET;
-		ui::widget_id_t				_swatch		= NULL_WIDGET;
-		editor_color_field_config_t _config		= {};
-		editor_input_field_t		_input		= {};
-		vec4f_t						_color		= {1.0f, 1.0f, 1.0f, 1.0f};
-		bool						_refreshing = false;
+		ui::ui_context*				_ui		= nullptr;
+		ui::widget_id_t				_root	= NULL_WIDGET;
+		ui::widget_id_t				_swatch = NULL_WIDGET;
+		editor_color_field_config_t _config = {};
+		vec4f_t						_color	= {1.0f, 1.0f, 1.0f, 1.0f};
 	};
 }

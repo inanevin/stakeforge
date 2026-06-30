@@ -24,7 +24,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widget_checkbox_v2.hpp"
+#include "ui/widgets/editor_widget_checkbox.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
@@ -37,7 +37,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_checkbox_v2_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_checkbox_v2_config_t& config)
+	void editor_checkbox_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_checkbox_config_t& config)
 	{
 		_ui		= &ui;
 		_config = config;
@@ -47,7 +47,7 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
-		ui.set_widget_debug_name(_root, "checkbox_v2");
+		ui.set_widget_debug_name(_root, "checkbox");
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
@@ -75,7 +75,7 @@ namespace sfg
 		ui.get_input().set_listener(_root, listener);
 
 		_check = ui.allocate_widget();
-		ui.set_widget_debug_name(_check, "checkbox_v2_check");
+		ui.set_widget_debug_name(_check, "checkbox_check");
 		tree.attach(_root, _check);
 		tree.draw_order(_check) = tree.draw_order_const(_root) + 1;
 
@@ -94,7 +94,7 @@ namespace sfg
 		update_field_data(config.field);
 	}
 
-	void editor_checkbox_v2_t::uninit()
+	void editor_checkbox_t::uninit()
 	{
 		_ui->deallocate_widget(_root);
 
@@ -106,7 +106,7 @@ namespace sfg
 		_mixed	 = false;
 	}
 
-	void editor_checkbox_v2_t::update_field_data(editor_checkbox_v2_field_t field)
+	void editor_checkbox_t::update_field_data(editor_checkbox_field_t field)
 	{
 		SFG_ASSERT(field.fields.size > 0);
 		SFG_ASSERT(field.fields.data != nullptr);
@@ -127,12 +127,12 @@ namespace sfg
 		refresh();
 	}
 
-	void editor_checkbox_v2_t::refresh_field_data()
+	void editor_checkbox_t::refresh_field_data()
 	{
 		update_field_data(_config.field);
 	}
 
-	void editor_checkbox_v2_t::refresh()
+	void editor_checkbox_t::refresh()
 	{
 		const editor_theme_t& theme = editor_theme_t::get();
 		_ui->set_widget_text(_check, _mixed ? ICON_CROSS : ICON_CHECK);
@@ -143,7 +143,7 @@ namespace sfg
 		_ui->get_tree().in(_check).flags = (_checked || _mixed) ? ui::wf_visible : 0;
 	}
 
-	void editor_checkbox_v2_t::toggle()
+	void editor_checkbox_t::toggle()
 	{
 		_checked = !_checked;
 		_mixed	 = false;
@@ -151,7 +151,7 @@ namespace sfg
 		refresh();
 	}
 
-	void editor_checkbox_v2_t::modify_field()
+	void editor_checkbox_t::modify_field()
 	{
 		SFG_ASSERT(_config.field.fields.size > 0);
 		SFG_ASSERT(_config.field.fields.data != nullptr);
@@ -159,19 +159,19 @@ namespace sfg
 			*_config.field.fields.data[i] = _checked ? 1 : 0;
 	}
 
-	void editor_checkbox_v2_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_checkbox_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		static_cast<editor_checkbox_v2_t*>(user_data)->toggle();
+		static_cast<editor_checkbox_t*>(user_data)->toggle();
 	}
 
-	void editor_checkbox_v2_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	void editor_checkbox_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
 	{
 		if (ev.action != ui::key_action_e::press || ev.key != static_cast<u16>(input_code::key_return))
 			return;
 
-		static_cast<editor_checkbox_v2_t*>(user_data)->toggle();
+		static_cast<editor_checkbox_t*>(user_data)->toggle();
 	}
 }

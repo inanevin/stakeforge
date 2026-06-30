@@ -98,9 +98,9 @@ namespace sfg
 			.name = "aabb_t",
 			.fields =
 				{
-					{.name = "bounds_min", .display_name = "Min", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_min), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "bounds_max", .display_name = "Max", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_max), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "bounds_half_extent", .display_name = "Half Extent", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_half_extent), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
+					{.name = "bounds_min", .display_name = "Min", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_min), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "bounds_max", .display_name = "Max", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_max), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "bounds_half_extent", .display_name = "Half Extent", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(aabb_t, bounds_half_extent), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<aabb_t>::value,
 			.size	   = sizeof(aabb_t),

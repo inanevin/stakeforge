@@ -24,7 +24,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widget_input_field_v2.hpp"
+#include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/string.hpp>
@@ -47,7 +47,7 @@ namespace sfg
 		constexpr f32 INPUT_CARET_BLINK_TIME  = 0.9f;
 	}
 
-	void editor_input_field_v2_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_v2_config_t& config)
+	void editor_input_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_config_t& config)
 	{
 		_ui		= &ui;
 		_config = config;
@@ -57,7 +57,7 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
-		ui.set_widget_debug_name(_root, "input_field_v2");
+		ui.set_widget_debug_name(_root, "input_field");
 		tree.attach(parent, _root);
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
@@ -92,7 +92,7 @@ namespace sfg
 		ui.get_input().set_listener(_root, listener);
 
 		_slider = ui.allocate_widget();
-		ui.set_widget_debug_name(_slider, "input_field_v2_slider");
+		ui.set_widget_debug_name(_slider, "input_field_slider");
 		tree.attach(_root, _slider);
 		tree.draw_order(_slider) = tree.draw_order_const(_root) + 1;
 
@@ -104,7 +104,7 @@ namespace sfg
 		paint.set_custom(_slider, draw_slider, this);
 
 		_label = ui.allocate_widget();
-		ui.set_widget_debug_name(_label, "input_field_v2_label");
+		ui.set_widget_debug_name(_label, "input_field_label");
 		tree.attach(_root, _label);
 		tree.draw_order(_label) = tree.draw_order_const(_root) + 2;
 
@@ -116,7 +116,7 @@ namespace sfg
 		paint.set_text(_label, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_overlay = ui.allocate_widget();
-		ui.set_widget_debug_name(_overlay, "input_field_v2_overlay");
+		ui.set_widget_debug_name(_overlay, "input_field_overlay");
 		tree.attach(_root, _overlay);
 		tree.draw_order(_overlay) = tree.draw_order_const(_root) + 3;
 
@@ -130,15 +130,16 @@ namespace sfg
 		update_field_data(config.field);
 	}
 
-	void editor_input_field_v2_t::uninit()
+	void editor_input_field_t::uninit()
 	{
 		_ui->deallocate_widget(_root);
 
-		_ui						= nullptr;
-		_root					= NULL_WIDGET;
-		_slider					= NULL_WIDGET;
-		_label					= NULL_WIDGET;
-		_overlay				= NULL_WIDGET;
+		_ui		 = nullptr;
+		_root	 = NULL_WIDGET;
+		_slider	 = NULL_WIDGET;
+		_label	 = NULL_WIDGET;
+		_overlay = NULL_WIDGET;
+		_fields.resize(0);
 		_config					= {};
 		_text[0]				= '\0';
 		_text_advances[0]		= 0.0f;
@@ -152,20 +153,32 @@ namespace sfg
 		_mixed					= false;
 	}
 
-	void editor_input_field_v2_t::select_all()
+	void editor_input_field_t::select_all()
 	{
 		_selection_anchor = 0;
 		_caret			  = _text_len;
 		reset_caret_blink();
 	}
 
-	void editor_input_field_v2_t::update_field_data(editor_input_field_field_t field)
+	void editor_input_field_t::set_visible(bool visible)
+	{
+		ui::layout_tree_t& tree = _ui->get_tree();
+		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
+		tree.in(_slider).flags	= visible ? ui::wf_visible : 0;
+		tree.in(_label).flags	= visible ? ui::wf_visible : 0;
+		tree.in(_overlay).flags = visible ? ui::wf_visible : 0;
+	}
+
+	void editor_input_field_t::update_field_data(editor_input_field_field_t field)
 	{
 		SFG_ASSERT(field.fields.size > 0);
 		SFG_ASSERT(field.fields.data != nullptr);
 		for (size_t i = 0; i < field.fields.size; ++i)
 			SFG_ASSERT(field.fields.data[i] != nullptr);
 
+		if (field.fields.data != _fields.data())
+			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 		_mixed		  = false;
 
@@ -226,12 +239,12 @@ namespace sfg
 		refresh_text();
 	}
 
-	void editor_input_field_v2_t::refresh_field_data()
+	void editor_input_field_t::refresh_field_data()
 	{
 		update_field_data(_config.field);
 	}
 
-	void editor_input_field_v2_t::refresh_text()
+	void editor_input_field_t::refresh_text()
 	{
 		rebuild_text_advances();
 
@@ -258,7 +271,7 @@ namespace sfg
 		}
 	}
 
-	void editor_input_field_v2_t::commit_number_text()
+	void editor_input_field_t::commit_number_text()
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return;
@@ -277,7 +290,7 @@ namespace sfg
 		refresh_text();
 	}
 
-	void editor_input_field_v2_t::update_number_from_text()
+	void editor_input_field_t::update_number_from_text()
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return;
@@ -292,7 +305,7 @@ namespace sfg
 		_number_value = value;
 	}
 
-	void editor_input_field_v2_t::modify_field()
+	void editor_input_field_t::modify_field()
 	{
 		SFG_ASSERT(_config.field.fields.size > 0);
 		SFG_ASSERT(_config.field.fields.data != nullptr);
@@ -318,9 +331,12 @@ namespace sfg
 				write_pod_number(_config.field.fields.data[i], _number_value);
 			break;
 		}
+
+		if (_config.on_data_changed != nullptr)
+			_config.on_data_changed(_config.user_data);
 	}
 
-	void editor_input_field_v2_t::set_text_raw(const char* value)
+	void editor_input_field_t::set_text_raw(const char* value)
 	{
 		const char* src = value != nullptr ? value : "";
 		_text_len		= static_cast<u32>(math::min(static_cast<size_t>(TEXT_CAPACITY - 1), std::strlen(src)));
@@ -330,7 +346,7 @@ namespace sfg
 		_selection_anchor = _caret;
 	}
 
-	void editor_input_field_v2_t::format_number()
+	void editor_input_field_t::format_number()
 	{
 		if (_config.increment >= 1.0f)
 			std::snprintf(_text, TEXT_CAPACITY, "%lld", static_cast<long long>(_number_value));
@@ -341,7 +357,7 @@ namespace sfg
 		_selection_anchor = _caret;
 	}
 
-	void editor_input_field_v2_t::insert_char(char c)
+	void editor_input_field_t::insert_char(char c)
 	{
 		_mixed = false;
 		if (!insert_char_data(c))
@@ -351,7 +367,7 @@ namespace sfg
 		refresh_text();
 	}
 
-	void editor_input_field_v2_t::insert_text(const char* text)
+	void editor_input_field_t::insert_text(const char* text)
 	{
 		SFG_ASSERT(text != nullptr);
 		_mixed	 = false;
@@ -365,7 +381,7 @@ namespace sfg
 		refresh_text();
 	}
 
-	bool editor_input_field_v2_t::insert_char_data(char c)
+	bool editor_input_field_t::insert_char_data(char c)
 	{
 		if (!accepts_char(c) || _text_len + 1 >= TEXT_CAPACITY)
 			return false;
@@ -377,14 +393,14 @@ namespace sfg
 		return true;
 	}
 
-	void editor_input_field_v2_t::erase_selection()
+	void editor_input_field_t::erase_selection()
 	{
 		if (_caret == _selection_anchor)
 			return;
 		erase_range(math::min(_caret, _selection_anchor), math::max(_caret, _selection_anchor));
 	}
 
-	void editor_input_field_v2_t::erase_range(u32 start, u32 end)
+	void editor_input_field_t::erase_range(u32 start, u32 end)
 	{
 		if (start >= end || start > _text_len || end > _text_len)
 			return;
@@ -393,20 +409,20 @@ namespace sfg
 		set_caret(start);
 	}
 
-	void editor_input_field_v2_t::set_caret(u32 index)
+	void editor_input_field_t::set_caret(u32 index)
 	{
 		_caret			  = math::min(index, _text_len);
 		_selection_anchor = _caret;
 		reset_caret_blink();
 	}
 
-	void editor_input_field_v2_t::update_drag_selection(const vec2f_t& pos)
+	void editor_input_field_t::update_drag_selection(const vec2f_t& pos)
 	{
 		_caret = index_from_pos(pos);
 		reset_caret_blink();
 	}
 
-	void editor_input_field_v2_t::apply_number_delta(f32 delta_x)
+	void editor_input_field_t::apply_number_delta(f32 delta_x)
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return;
@@ -421,7 +437,7 @@ namespace sfg
 		refresh_text();
 	}
 
-	void editor_input_field_v2_t::rebuild_text_advances()
+	void editor_input_field_t::rebuild_text_advances()
 	{
 		_text_advances[0]		= 0.0f;
 		const f32 ui_scale		= ui::get_valid_scale(_ui->get_ui_scale());
@@ -469,12 +485,12 @@ namespace sfg
 		}
 	}
 
-	void editor_input_field_v2_t::reset_caret_blink()
+	void editor_input_field_t::reset_caret_blink()
 	{
 		_blink_seconds = 0.0f;
 	}
 
-	u32 editor_input_field_v2_t::index_from_pos(const vec2f_t& pos) const
+	u32 editor_input_field_t::index_from_pos(const vec2f_t& pos) const
 	{
 		if (_text_len == 0)
 			return 0;
@@ -490,12 +506,12 @@ namespace sfg
 		return _text_len;
 	}
 
-	f32 editor_input_field_v2_t::text_width(u32 len) const
+	f32 editor_input_field_t::text_width(u32 len) const
 	{
 		return _text_advances[math::min(len, _text_len)];
 	}
 
-	bool editor_input_field_v2_t::accepts_char(char c) const
+	bool editor_input_field_t::accepts_char(char c) const
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return c >= 32;
@@ -531,7 +547,7 @@ namespace sfg
 		return false;
 	}
 
-	f32 editor_input_field_v2_t::read_pod_number(const u8* data) const
+	f32 editor_input_field_t::read_pod_number(const u8* data) const
 	{
 		if (_config.increment >= 1.0f)
 		{
@@ -551,7 +567,7 @@ namespace sfg
 		return 0.0f;
 	}
 
-	void editor_input_field_v2_t::write_pod_number(u8* data, f32 value)
+	void editor_input_field_t::write_pod_number(u8* data, f32 value)
 	{
 		if (_config.increment >= 1.0f)
 		{
@@ -592,9 +608,9 @@ namespace sfg
 			*reinterpret_cast<f32*>(data) = value;
 	}
 
-	void editor_input_field_v2_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_input_field_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
-		editor_input_field_v2_t& field = *static_cast<editor_input_field_v2_t*>(user_data);
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		if (btn == ui::mouse_button_e::left)
 		{
 			field._caret			= field.index_from_pos(pos);
@@ -605,48 +621,48 @@ namespace sfg
 			field.reset_caret_blink();
 	}
 
-	void editor_input_field_v2_t::on_double_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_input_field_t::on_double_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn == ui::mouse_button_e::left)
-			static_cast<editor_input_field_v2_t*>(user_data)->select_all();
+			static_cast<editor_input_field_t*>(user_data)->select_all();
 	}
 
-	void editor_input_field_v2_t::on_hover_enter(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, const vec2f_t&, void*)
+	void editor_input_field_t::on_hover_enter(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, const vec2f_t&, void*)
 	{
 		process::set_cursor_state(window_cursor_state_e::caret);
 	}
 
-	void editor_input_field_v2_t::on_hover_exit(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, const vec2f_t&, void*)
+	void editor_input_field_t::on_hover_exit(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, const vec2f_t&, void*)
 	{
 		process::set_cursor_state(window_cursor_state_e::arrow);
 	}
 
-	void editor_input_field_v2_t::on_focus_gain(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	void editor_input_field_t::on_focus_gain(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		static_cast<editor_input_field_v2_t*>(user_data)->reset_caret_blink();
+		static_cast<editor_input_field_t*>(user_data)->reset_caret_blink();
 	}
 
-	void editor_input_field_v2_t::on_drag(ui::input_router_t& router, ui::widget_id_t, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
+	void editor_input_field_t::on_drag(ui::input_router_t& router, ui::widget_id_t, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
 	{
-		editor_input_field_v2_t& field = *static_cast<editor_input_field_v2_t*>(user_data);
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		if (router.is_pressed(ui::mouse_button_e::middle) == field._root)
 			field.apply_number_delta(pos.x - (pos.x - delta.x));
 		else if (router.is_pressed(ui::mouse_button_e::left) == field._root)
 			field.update_drag_selection(pos);
 	}
 
-	void editor_input_field_v2_t::on_focus_lose(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	void editor_input_field_t::on_focus_lose(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		static_cast<editor_input_field_v2_t*>(user_data)->commit_number_text();
+		static_cast<editor_input_field_t*>(user_data)->commit_number_text();
 	}
 
-	void editor_input_field_v2_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	void editor_input_field_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
 	{
 		if (ev.action != ui::key_action_e::press && ev.action != ui::key_action_e::repeat)
 			return;
 
-		editor_input_field_v2_t& field = *static_cast<editor_input_field_v2_t*>(user_data);
-		const bool				 ctrl  = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
+		const bool			  ctrl	= process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 
 		if (ev.key == static_cast<u16>(input_code::key_left))
 		{
@@ -728,6 +744,8 @@ namespace sfg
 		if (ev.key == static_cast<u16>(input_code::key_return))
 		{
 			field.commit_number_text();
+			if (field._config.on_submitted != nullptr)
+				field._config.on_submitted(field._config.user_data);
 			return;
 		}
 
@@ -737,11 +755,11 @@ namespace sfg
 			field.insert_char(c == ',' ? '.' : c);
 	}
 
-	void editor_input_field_v2_t::on_pre_layout_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
+	void editor_input_field_t::on_pre_layout_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
 	{
-		editor_input_field_v2_t& field	   = *static_cast<editor_input_field_v2_t*>(user_data);
-		const f32				 ui_scale  = ui::get_valid_scale(field._ui->get_ui_scale());
-		const f32				 dpi_scale = ui::get_valid_scale(field._ui->get_dpi_scale());
+		editor_input_field_t& field		= *static_cast<editor_input_field_t*>(user_data);
+		const f32			  ui_scale	= ui::get_valid_scale(field._ui->get_ui_scale());
+		const f32			  dpi_scale = ui::get_valid_scale(field._ui->get_dpi_scale());
 		if (field._text_advance_ui_scale != ui_scale || field._text_advance_dpi_scale != dpi_scale)
 			field.rebuild_text_advances();
 
@@ -757,9 +775,9 @@ namespace sfg
 		}
 	}
 
-	void editor_input_field_v2_t::draw_slider(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
+	void editor_input_field_t::draw_slider(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
-		editor_input_field_v2_t& field = *static_cast<editor_input_field_v2_t*>(user_data);
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		if (!field._config.field.is_slider)
 			return;
 
@@ -782,9 +800,9 @@ namespace sfg
 		canvas.add_rect({out.pos.x, out.pos.y}, {out.pos.x + out.size.x * t, out.pos.y + out.size.y}, rect, state, field._ui->get_tree().draw_order_const(id));
 	}
 
-	void editor_input_field_v2_t::draw_overlay(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
+	void editor_input_field_t::draw_overlay(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
-		editor_input_field_v2_t& field = *static_cast<editor_input_field_v2_t*>(user_data);
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		if (field._ui->get_input().get_focused() != field._root)
 			return;
 

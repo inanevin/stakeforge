@@ -164,10 +164,10 @@ namespace sfg
 			.name = "vec4f_t",
 			.fields =
 				{
-					{.name = "x", .offset = offsetof(vec4f_t, x), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "y", .offset = offsetof(vec4f_t, y), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "z", .offset = offsetof(vec4f_t, z), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "w", .offset = offsetof(vec4f_t, w), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "x", .offset = offsetof(vec4f_t, x), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "y", .offset = offsetof(vec4f_t, y), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "z", .offset = offsetof(vec4f_t, z), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "w", .offset = offsetof(vec4f_t, w), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 				},
 			.type_id   = type_id_t<vec4f_t>::value,
 			.size	   = sizeof(vec4f_t),

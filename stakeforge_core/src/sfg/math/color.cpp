@@ -118,10 +118,10 @@ namespace sfg
 			.name = "color_t",
 			.fields =
 				{
-					{.name = "x", .offset = offsetof(color_t, x), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "y", .offset = offsetof(color_t, y), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "z", .offset = offsetof(color_t, z), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
-					{.name = "w", .offset = offsetof(color_t, w), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "x", .offset = offsetof(color_t, x), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "y", .offset = offsetof(color_t, y), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "z", .offset = offsetof(color_t, z), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "w", .offset = offsetof(color_t, w), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 				},
 			.type_id   = type_id_t<color_t>::value,
 			.size	   = sizeof(color_t),

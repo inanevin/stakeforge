@@ -41,10 +41,10 @@ namespace sfg
 			.name = "vertex_static_t",
 			.fields =
 				{
-					{.name = "pos", .display_name = "Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_static_t, pos), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "normal", .display_name = "Normal", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_static_t, normal), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "tangent", .display_name = "Tangent", .sub_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(vertex_static_t, tangent), .size = sizeof(vec4f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "uv", .display_name = "UV", .sub_type_id = type_id_t<vec2f_t>::value, .offset = offsetof(vertex_static_t, uv), .size = sizeof(vec2f_t), .type = reflected_value_type_e_v2::object},
+					{.name = "pos", .display_name = "Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_static_t, pos), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "normal", .display_name = "Normal", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_static_t, normal), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "tangent", .display_name = "Tangent", .sub_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(vertex_static_t, tangent), .size = sizeof(vec4f_t), .type = reflected_value_type_e::object},
+					{.name = "uv", .display_name = "UV", .sub_type_id = type_id_t<vec2f_t>::value, .offset = offsetof(vertex_static_t, uv), .size = sizeof(vec2f_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<vertex_static_t>::value,
 			.size	   = sizeof(vertex_static_t),
@@ -60,12 +60,12 @@ namespace sfg
 			.name = "vertex_skinned_t",
 			.fields =
 				{
-					{.name = "pos", .display_name = "Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_skinned_t, pos), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "normal", .display_name = "Normal", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_skinned_t, normal), .size = sizeof(vec3f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "tangent", .display_name = "Tangent", .sub_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(vertex_skinned_t, tangent), .size = sizeof(vec4f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "uv", .display_name = "UV", .sub_type_id = type_id_t<vec2f_t>::value, .offset = offsetof(vertex_skinned_t, uv), .size = sizeof(vec2f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "bone_weights", .display_name = "Bone Weights", .sub_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(vertex_skinned_t, bone_weights), .size = sizeof(vec4f_t), .type = reflected_value_type_e_v2::object},
-					{.name = "bone_indices", .display_name = "Bone Indices", .sub_type_id = type_id_t<vec4u_t>::value, .offset = offsetof(vertex_skinned_t, bone_indices), .size = sizeof(vec4u_t), .type = reflected_value_type_e_v2::object},
+					{.name = "pos", .display_name = "Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_skinned_t, pos), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "normal", .display_name = "Normal", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(vertex_skinned_t, normal), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "tangent", .display_name = "Tangent", .sub_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(vertex_skinned_t, tangent), .size = sizeof(vec4f_t), .type = reflected_value_type_e::object},
+					{.name = "uv", .display_name = "UV", .sub_type_id = type_id_t<vec2f_t>::value, .offset = offsetof(vertex_skinned_t, uv), .size = sizeof(vec2f_t), .type = reflected_value_type_e::object},
+					{.name = "bone_weights", .display_name = "Bone Weights", .sub_type_id = type_id_t<vec4f_t>::value, .offset = offsetof(vertex_skinned_t, bone_weights), .size = sizeof(vec4f_t), .type = reflected_value_type_e::object},
+					{.name = "bone_indices", .display_name = "Bone Indices", .sub_type_id = type_id_t<vec4u_t>::value, .offset = offsetof(vertex_skinned_t, bone_indices), .size = sizeof(vec4u_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<vertex_skinned_t>::value,
 			.size	   = sizeof(vertex_skinned_t),
