@@ -3,19 +3,19 @@
         {
             "name": "deferred_lighting",
             "path": "engine/shaders/world/deferred_lighting.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "deferred_lighting"
+                "type": 10
             }
         },
         {
             "name": "post_combiner",
             "path": "engine/shaders/world/post_combiner.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "post_combiner"
+                "type": 11
             }
         }
     ]

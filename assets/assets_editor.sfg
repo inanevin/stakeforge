@@ -3,70 +3,70 @@
         {
             "name": "ui_default",
             "path": "editor/resource_pack/shaders/editor_ui_default.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_default"
+                "type": 1
             }
         },
         {
             "name": "ui_text_lcd",
             "path": "editor/resource_pack/shaders/editor_ui_text_lcd.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_lcd_text"
+                "type": 2
             }
         },
         {
             "name": "ui_text_lcd_glitch",
             "path": "editor/resource_pack/shaders/editor_ui_text_lcd_glitch.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_lcd_text"
+                "type": 2
             }
         },
         {
             "name": "ui_text_grayscale",
             "path": "editor/resource_pack/shaders/editor_ui_text_grayscale.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_text_grayscale"
+                "type": 4
             }
         },
         {
             "name": "ui_sdf",
             "path": "editor/resource_pack/shaders/editor_ui_sdf.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_sdf"
+                "type": 3
             }
         },
         {
             "name": "ui_texture",
             "path": "editor/resource_pack/shaders/editor_ui_texture.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_default"
+                "type": 1
             }
         },
         {
             "name": "ui_glitch_rect",
             "path": "editor/resource_pack/shaders/editor_ui_glitch_rect.hlsl",
-            "type": "shader",
+            "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": "editor_ui_default"
+                "type": 1
             }
         },
         {
             "name": "font_ibm",
             "path": "editor/resource_pack/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf",
-            "type": "font",
+            "type": 2,
             "config": {
                 "schema": "sfg.schema.font"
             }
@@ -74,7 +74,7 @@
         {
             "name": "font_ibm_mono",
             "path": "editor/resource_pack/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf",
-            "type": "font",
+            "type": 2,
             "config": {
                 "schema": "sfg.schema.font"
             }
@@ -82,7 +82,7 @@
         {
             "name": "font_orbitron_bold",
             "path": "editor/resource_pack/fonts/Orbitron/static/Orbitron-Bold.ttf",
-            "type": "font",
+            "type": 2,
             "config": {
                 "schema": "sfg.schema.font"
             }
@@ -90,7 +90,7 @@
         {
             "name": "font_play",
             "path": "editor/resource_pack/fonts/Play/Play-Regular.ttf",
-            "type": "font",
+            "type": 2,
             "config": {
                 "schema": "sfg.schema.font"
             }
@@ -98,7 +98,7 @@
         {
             "name": "font_play_bold",
             "path": "editor/resource_pack/fonts/Play/Play-Bold.ttf",
-            "type": "font",
+            "type": 2,
             "config": {
                 "schema": "sfg.schema.font"
             }
@@ -106,7 +106,7 @@
         {
             "name": "font_icons",
             "path": "editor/resource_pack/fonts/icons.ttf",
-            "type": "font",
+            "type": 2,
             "config": {
                 "schema": "sfg.schema.font"
             }
