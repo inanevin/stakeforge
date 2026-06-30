@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 
 namespace sfg
 {
@@ -52,6 +53,7 @@ namespace sfg
 		count,
 	};
 
-	void to_json(nlohmann::json& j, const editor_asset_type_e& t);
-	void from_json(const nlohmann::json& j, editor_asset_type_e& t);
+	void				to_json(nlohmann::json& j, const editor_asset_type_e& t);
+	void				from_json(const nlohmann::json& j, editor_asset_type_e& t);
+	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type);
 }

@@ -114,4 +114,39 @@ namespace sfg
 		else
 			t = editor_asset_type_e::invalid;
 	}
+
+	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type)
+	{
+		switch (type)
+		{
+		case resource_type_e::audio:
+			return editor_asset_type_e::audio;
+		case resource_type_e::font:
+			return editor_asset_type_e::font;
+		case resource_type_e::mesh:
+			return editor_asset_type_e::mesh;
+		case resource_type_e::skeleton:
+			return editor_asset_type_e::skeleton;
+		case resource_type_e::animation:
+			return editor_asset_type_e::animation;
+		case resource_type_e::material:
+			return editor_asset_type_e::material;
+		case resource_type_e::shader:
+			return editor_asset_type_e::shader;
+		case resource_type_e::texture:
+			return editor_asset_type_e::texture;
+		case resource_type_e::texture_sampler:
+			return editor_asset_type_e::texture_sampler;
+		case resource_type_e::physical_material:
+			return editor_asset_type_e::physical_material;
+		case resource_type_e::prefab:
+			return editor_asset_type_e::prefab;
+		case resource_type_e::animation_state_machine:
+			return editor_asset_type_e::animation_state_machine;
+		case resource_type_e::hdr_skybox:
+			return editor_asset_type_e::hdr_skybox;
+		default:
+			return editor_asset_type_e::invalid;
+		}
+	}
 }

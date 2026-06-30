@@ -1,9 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include <sfg/common/type_id.hpp>
-
 #include "resource_handle.hpp"
+#include "resource_type.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
@@ -36,27 +35,6 @@ namespace sfg
 	};
 
 	ostream_t make_resource_stream(const resource_header_t& header, const ostream_t& payload);
-
-	enum class resource_type_e : u8
-	{
-		invalid,
-		audio,
-		font,
-		mesh,
-		skeleton,
-		animation,
-		material,
-		shader,
-		texture,
-		texture_sampler,
-		physical_material,
-		prefab,
-		animation_state_machine,
-		hdr_skybox,
-		count,
-	};
-
-	inline constexpr u8 RESOURCE_TYPE_MAX = static_cast<u8>(resource_type_e::count);
 
 	enum class resource_state_e : u8
 	{
@@ -109,8 +87,6 @@ namespace sfg
 			return nullptr;
 		return g_resource_type_descs[t];
 	}
-
-	SFG_DEFINE_TYPE_ID(resource_type_e);
 
 	struct resource_type_reflection_t
 	{

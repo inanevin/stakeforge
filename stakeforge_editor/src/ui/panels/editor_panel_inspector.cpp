@@ -320,7 +320,7 @@ namespace sfg
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
 			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = true});
-			display.reflect->init(*_ui, display.fold->get_body(), {.objects = {.data = display.objects.data(), .size = display.objects.size()}, .type_id = component_table.type_desc.type_id});
+			display.reflect->init(*_ui, display.fold->get_body(), {.objects = {.data = display.objects.data(), .size = display.objects.size()}, .type_id = component_table.type_desc.type_id, .world = _display_world_handle});
 
 			ui::listener_bundle_t settings_listener = {};
 			settings_listener.user_data				= this;

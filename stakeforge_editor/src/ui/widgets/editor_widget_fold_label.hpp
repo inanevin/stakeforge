@@ -19,62 +19,69 @@ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
 INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/span.hpp>
-#include <sfg/data/vector.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
 {
+	class input_router_t;
 	class ui_context;
+	enum class mouse_button_e : u8;
 }
 
 namespace sfg
 {
-	class editor_input_field_t;
-	class editor_widget_reference_t;
-
-	struct editor_widget_reflection_config_t
+	struct editor_widget_fold_label_config_t
 	{
-		span_t<void*>  objects = {};
-		sid_t		   type_id = 0;
-		world_handle_t world   = {};
+		const char* label  = nullptr;
+		bool		folded = false;
 	};
 
-	class editor_widget_reflection_t final
+	class editor_widget_fold_label_t final
 	{
 	public:
-		editor_widget_reflection_t()											 = default;
-		~editor_widget_reflection_t()											 = default;
-		editor_widget_reflection_t(const editor_widget_reflection_t&)			 = delete;
-		editor_widget_reflection_t& operator=(const editor_widget_reflection_t&) = delete;
+		editor_widget_fold_label_t()											 = default;
+		~editor_widget_fold_label_t()											 = default;
+		editor_widget_fold_label_t(const editor_widget_fold_label_t&)			 = delete;
+		editor_widget_fold_label_t& operator=(const editor_widget_fold_label_t&) = delete;
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_reflection_config_t& config);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_fold_label_config_t& config);
 		void uninit();
-		void set_reflection(const editor_widget_reflection_config_t& config);
+		void set_fold(bool folded);
 
 		inline ui::widget_id_t get_root() const
 		{
 			return _root;
 		}
 
-	private:
-		void clear_widgets();
+		inline ui::widget_id_t get_body() const
+		{
+			return _body;
+		}
+
+		inline bool is_folded() const
+		{
+			return _folded;
+		}
 
 	private:
-		ui::ui_context*						 _ui   = nullptr;
-		ui::widget_id_t						 _root = NULL_WIDGET;
-		vector_t<editor_input_field_t*>		 _inputs;
-		vector_t<editor_widget_reference_t*> _references;
-		vector_t<ui::widget_id_t>			 _rows;
+		void refresh();
+
+		static void on_header_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+
+	private:
+		ui::ui_context* _ui		= nullptr;
+		ui::widget_id_t _root	= NULL_WIDGET;
+		ui::widget_id_t _header = NULL_WIDGET;
+		ui::widget_id_t _icon	= NULL_WIDGET;
+		ui::widget_id_t _body	= NULL_WIDGET;
+		bool			_folded = false;
 	};
 }
