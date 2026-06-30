@@ -73,15 +73,7 @@ namespace sfg
 		_engine_components.guid_table			  = &get_component_table(type_id_t<component_guid_t>::value)->table;
 		_engine_components.transform_table		  = &get_component_table(type_id_t<component_transform_t>::value)->table;
 		_engine_components.name_table			  = &get_component_table(type_id_t<component_name_t>::value)->table;
-		_engine_components.mesh_renderer_table	  = &get_component_table(type_id_t<component_mesh_renderer_t>::value)->table;
-		_engine_components.render_object_table	  = &get_component_table(type_id_t<component_render_object_t>::value)->table;
-		_engine_components.camera_table			  = &get_component_table(type_id_t<component_camera_t>::value)->table;
-		_engine_components.skybox_table			  = &get_component_table(type_id_t<component_skybox_t>::value)->table;
-		_engine_components.prefab_reference_table = &get_component_table(type_id_t<component_prefab_reference_t>::value)->table;
-		_engine_components.debug_widgets_table	  = &get_component_table(type_id_t<component_debug_widgets_t>::value)->table;
 		_engine_components.alive_table			  = &get_component_table(type_id_t<component_alive_t>::value)->table;
-		_engine_components.disabled_table		  = &get_component_table(type_id_t<component_disabled_t>::value)->table;
-		_engine_components.no_serialize_table	  = &get_component_table(type_id_t<component_no_serialize_t>::value)->table;
 		_system_components.transform_table		  = &get_component_table(type_id_t<component_system_transform_t>::value)->table;
 	}
 
@@ -160,18 +152,11 @@ namespace sfg
 		const component_name_t& name = ecs_helpers_t::table_get_as<component_name_t>(*_engine_components.name_table, id);
 		release_text(name.text_index);
 
-		ecs_t::table_remove(*_engine_components.alive_table, id);
-		ecs_t::table_remove(*_engine_components.hierarchy_table, id);
-		ecs_t::table_remove(*_engine_components.guid_table, id);
-		ecs_t::table_remove(*_engine_components.transform_table, id);
-		ecs_t::table_remove(*_engine_components.name_table, id);
-		ecs_t::table_remove(*_engine_components.render_object_table, id);
-		ecs_t::table_remove(*_engine_components.skybox_table, id);
-		ecs_t::table_remove(*_engine_components.prefab_reference_table, id);
-		ecs_t::table_remove(*_engine_components.debug_widgets_table, id);
-		ecs_t::table_remove(*_engine_components.disabled_table, id);
-		ecs_t::table_remove(*_engine_components.no_serialize_table, id);
-		ecs_t::table_remove(*_system_components.transform_table, id);
+		for (world_component_table_t& t : _component_tables)
+		{
+			ecs_t::table_remove(t.table, id);
+		}
+
 		_entity_free_list.push_back(id);
 	}
 
