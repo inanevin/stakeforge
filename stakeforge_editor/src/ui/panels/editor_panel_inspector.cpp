@@ -35,15 +35,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -232,8 +232,7 @@ namespace sfg
 				_component_states.push_back({.type_id = display.type_id});
 				state = &_component_states.back();
 			}
-			state->folded			  = display.fold->is_folded();
-			state->vector_fold_states = display.reflect->get_vector_fold_states();
+			state->folded = display.fold->is_folded();
 		}
 	}
 
@@ -292,8 +291,8 @@ namespace sfg
 			if (!ecs_t::table_has(component_table.table, first_entity))
 				continue;
 
-			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
-			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flags_no_ui))
+			reflected_type_t* reflected_type = reflection_registry_v2::get().find_type(component_table.type_desc.type_id);
+			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
 			bool common_component = true;
@@ -309,31 +308,23 @@ namespace sfg
 			if (!common_component)
 				continue;
 
-			component_display_t display = {};
-			display.fold				= new editor_widget_fold_t();
-			display.reflect				= new editor_widget_reflect_type_t();
-			display.type_id				= component_table.type_desc.type_id;
+			_component_displays.push_back({});
+			component_display_t& display = _component_displays.back();
+			display.fold				 = new editor_widget_fold_t();
+			display.reflect				 = new editor_widget_reflection_t();
+			display.type_id				 = component_table.type_desc.type_id;
+			display.objects.reserve(_display_entities.size());
+			for (entity_id_t entity : _display_entities)
+				display.objects.push_back(ecs_t::table_get(component_table.table, entity));
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
-			display.fold->init(*_ui, _column, {.label = reflected_type->display_name, .folded = state != nullptr && state->folded, .settings_button = true});
-			display.reflect->init(*_ui, display.fold->get_body());
-			editor_reflected_edit_target_t target = {};
-			target.world						  = _display_world_handle;
-			target.entities						  = _display_entities.data();
-			target.entity						  = first_entity;
-			target.type_id						  = component_table.type_desc.type_id;
-			target.entity_count					  = static_cast<u32>(_display_entities.size());
-			target.kind							  = _display_entities.size() > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
-			display.reflect->set_reflected_obj(ecs_t::table_get(component_table.table, first_entity), component_table.type_desc.type_id, target);
-			if (state != nullptr)
-				display.reflect->set_vector_fold_states(state->vector_fold_states);
+			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = true});
+			display.reflect->init(*_ui, display.fold->get_body(), {.objects = {.data = display.objects.data(), .size = display.objects.size()}, .type_id = component_table.type_desc.type_id});
 
 			ui::listener_bundle_t settings_listener = {};
 			settings_listener.user_data				= this;
 			settings_listener.on_click				= on_component_settings_clicked;
 			_ui->get_input().set_listener(display.fold->get_settings_button(), settings_listener);
-
-			_component_displays.push_back(display);
 		}
 
 		create_add_component_button();
@@ -401,11 +392,11 @@ namespace sfg
 
 		for (const world_component_table_t& component_table : component_tables)
 		{
-			const reflected_type_desc_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
-			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flags_no_ui))
+			reflected_type_t* reflected_type = reflection_registry_v2::get().find_type(component_table.type_desc.type_id);
+			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
-			const char*					   category			= reflected_type->category != nullptr ? reflected_type->category : "Component";
+			const char*					   category			= "Component";
 			add_component_menu_category_t* category_storage = nullptr;
 			for (add_component_menu_category_t& candidate : _add_component_categories)
 			{
@@ -501,12 +492,10 @@ namespace sfg
 			return;
 
 		const void* component = ecs_t::table_get(table->table, _display_entities.front());
-		if (!reflection_registry_t::get().serialize_to_stream(type_id, component, _copied_component_stream))
-		{
-			_copied_component_stream.destroy();
+		if (reflection_registry_v2::get().find_type(type_id) == nullptr)
 			return;
-		}
 
+		reflection_registry_v2::get().type_to_stream(type_id, const_cast<void*>(component), nullptr, _copied_component_stream);
 		_copied_component_type = type_id;
 	}
 

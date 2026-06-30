@@ -76,10 +76,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = field.container_ops.element_value_size,
-						.value_type	 = field.container_ops.element_value_type,
-					};
+						  .sub_type_id = field.container_ops.element_sub_type_id,
+						  .size		   = field.container_ops.element_value_size,
+						  .value_type  = field.container_ops.element_value_type,
+					  };
 
 					field_to_stream(temp_field, element_data, user_data, out_stream);
 				}
@@ -197,10 +197,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = field.container_ops.element_value_size,
-						.value_type	 = field.container_ops.element_value_type,
-					};
+						  .sub_type_id = field.container_ops.element_sub_type_id,
+						  .size		   = field.container_ops.element_value_size,
+						  .value_type  = field.container_ops.element_value_type,
+					  };
 
 					nlohmann::json elem_json = nlohmann::json::object();
 					field_to_json(temp_field, element_data, user_data, elem_json, true);
@@ -666,15 +666,15 @@ namespace sfg
 		{
 			if (type->size == sizeof(u8))
 			{
-				out_json[type->name] = *reinterpret_cast<u8*>(obj);
+				out_json = *reinterpret_cast<u8*>(obj);
 			}
 			else if (type->size == sizeof(u16))
 			{
-				out_json[type->name] = *reinterpret_cast<u16*>(obj);
+				out_json = *reinterpret_cast<u16*>(obj);
 			}
 			else if (type->size == sizeof(u32))
 			{
-				out_json[type->name] = *reinterpret_cast<u32*>(obj);
+				out_json = *reinterpret_cast<u32*>(obj);
 			}
 			else
 			{
@@ -691,7 +691,7 @@ namespace sfg
 			field_to_json(field, obj, user_data, type_json);
 		}
 
-		out_json[type->name] = type_json;
+		out_json = type_json;
 	}
 
 	void reflection_registry_v2::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
@@ -732,22 +732,19 @@ namespace sfg
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
 			return;
 
-		if (!in_json.contains(type->name))
-			return;
-
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
 			if (type->size == sizeof(u8))
 			{
-				*reinterpret_cast<u8*>(obj) = in_json.value<u8>(type->name, 0);
+				*reinterpret_cast<u8*>(obj) = in_json;
 			}
 			else if (type->size == sizeof(u16))
 			{
-				*reinterpret_cast<u16*>(obj) = in_json.value<u16>(type->name, 0);
+				*reinterpret_cast<u16*>(obj) = in_json;
 			}
 			else if (type->size == sizeof(u32))
 			{
-				*reinterpret_cast<u32*>(obj) = in_json.value<u32>(type->name, 0);
+				*reinterpret_cast<u32*>(obj) = in_json;
 			}
 			else
 			{
@@ -756,12 +753,10 @@ namespace sfg
 			return;
 		}
 
-		nlohmann::json type_json = in_json.value<nlohmann::json>(type->name, {});
-
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
 			const reflected_field_t& field = _fields[i];
-			field_from_json(field, obj, user_data, type_json);
+			field_from_json(field, obj, user_data, in_json);
 		}
 	}
 

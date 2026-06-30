@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_action_menu_common.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
-#include "ui/widgets/editor_widget_reflect_type.hpp"
+#include "ui/widgets/editor_widget_reflection.hpp"
 #include "ui/widgets/editor_widgets_button.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/ostream.hpp>
@@ -81,16 +81,16 @@ namespace sfg
 	private:
 		struct component_display_t
 		{
-			editor_widget_fold_t*		  fold	  = nullptr;
-			editor_widget_reflect_type_t* reflect = nullptr;
-			sid_t						  type_id = 0;
+			vector_t<void*>				objects = {};
+			editor_widget_reflection_t* reflect = nullptr;
+			editor_widget_fold_t*		fold	= nullptr;
+			sid_t						type_id = 0;
 		};
 
 		struct component_display_state_t
 		{
-			vector_t<editor_widget_reflect_type_t::vector_fold_state_t> vector_fold_states = {};
-			sid_t														type_id			   = 0;
-			bool														folded			   = false;
+			sid_t type_id = 0;
+			bool  folded  = false;
 		};
 
 		struct add_component_menu_category_t
