@@ -39,7 +39,6 @@ namespace sfg
 		inspector,
 		animation,
 		profiling,
-		widget_test,
 		max,
 	};
 

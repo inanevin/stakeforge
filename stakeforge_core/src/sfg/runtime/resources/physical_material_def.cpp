@@ -26,9 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "physical_material_def.hpp"
-#include <iterator>
 #include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 namespace sfg
 {
@@ -39,44 +38,17 @@ namespace sfg
 {
 	physical_material_reflection_t::physical_material_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<physical_material_def_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		  = "restitution",
-				.display_name = "Restitution",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(physical_material_def_t, restitution),
-				.size		  = sizeof(f32),
-			},
-			{
-				.name		  = "friction",
-				.display_name = "Friction",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(physical_material_def_t, friction),
-				.size		  = sizeof(f32),
-			},
-			{
-				.name		  = "angular_damping",
-				.display_name = "Angular Damping",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(physical_material_def_t, angular_damping),
-				.size		  = sizeof(f32),
-			},
-			{
-				.name		  = "linear_damping",
-				.display_name = "Linear Damping",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(physical_material_def_t, linear_damping),
-				.size		  = sizeof(f32),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "physical_material_def_t",
+			.name = "physical_material_def_t",
+			.fields =
+				{
+					{.name = "restitution", .display_name = "Restitution", .offset = offsetof(physical_material_def_t, restitution), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "friction", .display_name = "Friction", .offset = offsetof(physical_material_def_t, friction), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "angular_damping", .display_name = "Angular Damping", .offset = offsetof(physical_material_def_t, angular_damping), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "linear_damping", .display_name = "Linear Damping", .offset = offsetof(physical_material_def_t, linear_damping), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+				},
 			.type_id   = type_id_t<physical_material_def_t>::value,
 			.size	   = sizeof(physical_material_def_t),
 			.alignment = alignof(physical_material_def_t),

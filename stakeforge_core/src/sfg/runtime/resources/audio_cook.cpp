@@ -1,10 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "audio_cook.hpp"
-#include <iterator>
-#include <cstddef>
 #include <sfg/io/log.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 namespace sfg
 {
@@ -20,9 +18,7 @@ namespace sfg
 {
 	audio_cook_config_reflection_t::audio_cook_config_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<audio_cook_config_t>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
 			.name	   = "audio_cook_config_t",

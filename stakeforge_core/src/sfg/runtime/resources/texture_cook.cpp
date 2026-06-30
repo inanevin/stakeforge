@@ -26,9 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture_cook.hpp"
-#include <iterator>
 #include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 #include "texture.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
@@ -304,66 +303,39 @@ namespace sfg
 {
 	texture_cook_config_reflection_t::texture_cook_config_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<texture_cook_config_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		   = "size",
-				.display_name  = "Size",
-				.type		   = reflected_value_type_e::object,
-				.value_type_id = type_id_t<vec2u16_t>::value,
-				.offset		   = offsetof(texture_cook_config_t, size),
-				.size		   = sizeof(vec2u16_t),
-				.flags		   = reflected_field_flags_no_ui,
-			},
-			{
-				.name		  = "payload_type",
-				.display_name = "Payload Type",
-				.type		  = reflected_value_type_e::enum8,
-				.sub_type_id  = type_id_t<texture_payload_type_e>::value,
-				.offset		  = offsetof(texture_cook_config_t, payload_type),
-				.size		  = sizeof(texture_payload_type_e),
-			},
-			{
-				.name		  = "ktx2_compression",
-				.display_name = "KTX2 Compression",
-				.type		  = reflected_value_type_e::enum8,
-				.sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
-				.offset		  = offsetof(texture_cook_config_t, ktx2_compression),
-				.size		  = sizeof(texture_ktx2_compression_e),
-			},
-			{
-				.name		  = "generate_mipmaps",
-				.display_name = "Generate Mipmaps",
-				.type		  = reflected_value_type_e::bool8,
-				.offset		  = offsetof(texture_cook_config_t, generate_mipmaps),
-				.size		  = sizeof(bool),
-			},
-			{
-				.name		  = "is_linear",
-				.display_name = "Linear",
-				.type		  = reflected_value_type_e::bool8,
-				.offset		  = offsetof(texture_cook_config_t, is_linear),
-				.size		  = sizeof(bool),
-			},
-			{
-				.name		  = "force_4_channels",
-				.display_name = "Force 4 Channels",
-				.type		  = reflected_value_type_e::bool8,
-				.offset		  = offsetof(texture_cook_config_t, force_4_channels),
-				.size		  = sizeof(bool),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields		  = {.data = fields, .size = std::size(fields)},
 			.name		  = "texture_cook_config_t",
 			.display_name = "Texture Cook Config",
-			.type_id	  = type_id_t<texture_cook_config_t>::value,
-			.size		  = sizeof(texture_cook_config_t),
-			.alignment	  = alignof(texture_cook_config_t),
+			.fields =
+				{
+					{.name		   = "size",
+					 .display_name = "Size",
+					 .sub_type_id  = type_id_t<vec2u16_t>::value,
+					 .offset	   = offsetof(texture_cook_config_t, size),
+					 .size		   = sizeof(vec2u16_t),
+					 .flags		   = reflected_field_flag_no_ui,
+					 .type		   = reflected_value_type_e_v2::object},
+					{.name		   = "payload_type",
+					 .display_name = "Payload Type",
+					 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
+					 .offset	   = offsetof(texture_cook_config_t, payload_type),
+					 .size		   = sizeof(texture_payload_type_e),
+					 .type		   = reflected_value_type_e_v2::u8},
+					{.name		   = "ktx2_compression",
+					 .display_name = "KTX2 Compression",
+					 .sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
+					 .offset	   = offsetof(texture_cook_config_t, ktx2_compression),
+					 .size		   = sizeof(texture_ktx2_compression_e),
+					 .type		   = reflected_value_type_e_v2::u8},
+					{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "is_linear", .display_name = "Linear", .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "force_4_channels", .display_name = "Force 4 Channels", .offset = offsetof(texture_cook_config_t, force_4_channels), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+				},
+			.type_id   = type_id_t<texture_cook_config_t>::value,
+			.size	   = sizeof(texture_cook_config_t),
+			.alignment = alignof(texture_cook_config_t),
 		});
 	}
 }

@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_panel_log.hpp"
 #include "ui/panels/editor_panel_profiling.hpp"
-#include "ui/panels/editor_panel_widget_test.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 
 namespace sfg
@@ -54,8 +53,6 @@ namespace sfg
 			return new editor_panel_animation_t();
 		case editor_panel_type_e::profiling:
 			return new editor_panel_profiling_t();
-		case editor_panel_type_e::widget_test:
-			return new editor_panel_widget_test_t();
 		default:
 			return nullptr;
 		}

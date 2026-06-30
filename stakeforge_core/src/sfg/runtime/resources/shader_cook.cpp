@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader_cook.hpp"
-#include <iterator>
 #include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_container_ops.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 #include "shader_cook_variants.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
@@ -267,32 +267,21 @@ namespace sfg
 {
 	shader_cook_config_reflection_t::shader_cook_config_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<shader_cook_config_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		  = "include_dirs",
-				.display_name = "Include Directories",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = "string"_hs,
-				.offset		  = offsetof(shader_cook_config_t, include_dirs),
-				.size		  = sizeof(vector_t<string_t>),
-			},
-			{
-				.name		  = "type",
-				.display_name = "Type",
-				.type		  = reflected_value_type_e::enum8,
-				.sub_type_id  = type_id_t<shader_type_e>::value,
-				.offset		  = offsetof(shader_cook_config_t, type),
-				.size		  = sizeof(shader_type_e),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "shader_cook_config_t",
+			.name		  = "shader_cook_config_t",
+			.display_name = "Shader Cook Config",
+			.fields =
+				{
+					{.container_ops = reflection_container_ops_t::vector_ops<string_t>(reflected_value_type_e_v2::string),
+					 .name			= "include_dirs",
+					 .display_name	= "Include Directories",
+					 .offset		= offsetof(shader_cook_config_t, include_dirs),
+					 .size			= sizeof(vector_t<string_t>),
+					 .type			= reflected_value_type_e_v2::container},
+					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<shader_type_e>::value, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e), .type = reflected_value_type_e_v2::u8},
+				},
 			.type_id   = type_id_t<shader_cook_config_t>::value,
 			.size	   = sizeof(shader_cook_config_t),
 			.alignment = alignof(shader_cook_config_t),

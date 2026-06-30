@@ -47,8 +47,6 @@ namespace sfg
 			return "Animation";
 		case editor_panel_type_e::profiling:
 			return "Profiling";
-		case editor_panel_type_e::widget_test:
-			return "Widget Test";
 		default:
 			return "";
 		}

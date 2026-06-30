@@ -26,9 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world_draw_common.hpp"
-#include <iterator>
-#include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 namespace sfg
 {
@@ -36,29 +34,24 @@ namespace sfg
 
 namespace sfg
 {
-	namespace
-	{
-		static const reflected_enum_value_desc_t world_pass_flags_values[] = {
-			{.name = "none", .display_name = "None", .value = wpf_none},
-			{.name = "gbuffer", .display_name = "GBuffer", .value = wpf_gbuffer},
-			{.name = "forward", .display_name = "Forward", .value = wpf_forward},
-			{.name = "depth", .display_name = "Depth", .value = wpf_depth},
-			{.name = "shadow", .display_name = "Shadow", .value = wpf_shadow},
-		};
-	}
-
 	world_pass_flags_reflection_t::world_pass_flags_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<world_pass_flags_e>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = world_pass_flags_values, .size = std::size(world_pass_flags_values)},
-			.name		 = "world_pass_flags_e",
-			.type_id	 = type_id_t<world_pass_flags_e>::value,
-			.size		 = sizeof(world_pass_flags_e),
-			.alignment	 = alignof(world_pass_flags_e),
+			.name = "world_pass_flags_e",
+			.fields =
+				{
+					{.name = "none", .display_name = "None"},
+					{.name = "gbuffer", .display_name = "GBuffer"},
+					{.name = "forward", .display_name = "Forward"},
+					{.name = "depth", .display_name = "Depth"},
+					{.name = "shadow", .display_name = "Shadow"},
+				},
+			.type_id   = type_id_t<world_pass_flags_e>::value,
+			.size	   = sizeof(world_pass_flags_e),
+			.alignment = alignof(world_pass_flags_e),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 

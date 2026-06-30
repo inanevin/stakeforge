@@ -26,23 +26,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "system_components.hpp"
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 namespace sfg
 {
+	template <> struct type_id_t<component_system_transform_t>
+	{
+		static inline constexpr sid_t value = "component_system_transform"_hs;
+	};
+
 	system_component_reflection_t::system_component_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(component_system_transform_t::TYPE_ID) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.name	   = "component_system_transform",
-			.category  = "component",
-			.type_id   = component_system_transform_t::TYPE_ID,
-			.size	   = sizeof(component_system_transform_t),
-			.alignment = alignof(component_system_transform_t),
-			.flags	   = reflected_type_flags_component | reflected_type_flags_no_ui | reflected_type_flags_no_serialize,
+			.name		  = "component_system_transform",
+			.display_name = "System Transform",
+			.type_id	  = type_id_t<component_system_transform_t>::value,
+			.size		  = sizeof(component_system_transform_t),
+			.alignment	  = alignof(component_system_transform_t),
+			.flags		  = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 		});
 	}
 }

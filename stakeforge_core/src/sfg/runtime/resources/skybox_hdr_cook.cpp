@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
-#include <iterator>
 #include <sfg/common/packing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/vector.hpp>
@@ -39,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 #include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 
@@ -475,94 +474,27 @@ namespace sfg
 {
 	skybox_hdr_cook_config_reflection_t::skybox_hdr_cook_config_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<skybox_hdr_cook_config_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		   = "radiance_size",
-				.display_name  = "Radiance Size",
-				.type		   = reflected_value_type_e::object,
-				.value_type_id = type_id_t<vec2u16_t>::value,
-				.offset		   = offsetof(skybox_hdr_cook_config_t, radiance_size),
-				.size		   = sizeof(vec2u16_t),
-			},
-			{
-				.name		   = "irradiance_size",
-				.display_name  = "Irradiance Size",
-				.type		   = reflected_value_type_e::object,
-				.value_type_id = type_id_t<vec2u16_t>::value,
-				.offset		   = offsetof(skybox_hdr_cook_config_t, irradiance_size),
-				.size		   = sizeof(vec2u16_t),
-			},
-			{
-				.name		   = "prefilter_size",
-				.display_name  = "Prefilter Size",
-				.type		   = reflected_value_type_e::object,
-				.value_type_id = type_id_t<vec2u16_t>::value,
-				.offset		   = offsetof(skybox_hdr_cook_config_t, prefilter_size),
-				.size		   = sizeof(vec2u16_t),
-			},
-			{
-				.name		   = "brdf_lut_size",
-				.display_name  = "BRDF LUT Size",
-				.type		   = reflected_value_type_e::object,
-				.value_type_id = type_id_t<vec2u16_t>::value,
-				.offset		   = offsetof(skybox_hdr_cook_config_t, brdf_lut_size),
-				.size		   = sizeof(vec2u16_t),
-			},
-			{
-				.name		  = "irradiance_sample_count",
-				.display_name = "Irradiance Samples",
-				.type		  = reflected_value_type_e::u32,
-				.offset		  = offsetof(skybox_hdr_cook_config_t, irradiance_sample_count),
-				.size		  = sizeof(u32),
-			},
-			{
-				.name		  = "prefilter_sample_count",
-				.display_name = "Prefilter Samples",
-				.type		  = reflected_value_type_e::u32,
-				.offset		  = offsetof(skybox_hdr_cook_config_t, prefilter_sample_count),
-				.size		  = sizeof(u32),
-			},
-			{
-				.name		  = "brdf_lut_sample_count",
-				.display_name = "BRDF LUT Samples",
-				.type		  = reflected_value_type_e::u32,
-				.offset		  = offsetof(skybox_hdr_cook_config_t, brdf_lut_sample_count),
-				.size		  = sizeof(u32),
-			},
-			{
-				.name		  = "intensity",
-				.display_name = "Intensity",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(skybox_hdr_cook_config_t, intensity),
-				.size		  = sizeof(f32),
-			},
-			{
-				.name		  = "rotation",
-				.display_name = "Rotation",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(skybox_hdr_cook_config_t, rotation),
-				.size		  = sizeof(f32),
-			},
-			{
-				.name		  = "prefilter_mips",
-				.display_name = "Prefilter Mips",
-				.type		  = reflected_value_type_e::u8,
-				.offset		  = offsetof(skybox_hdr_cook_config_t, prefilter_mips),
-				.size		  = sizeof(u8),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields		  = {.data = fields, .size = std::size(fields)},
 			.name		  = "skybox_hdr_cook_config_t",
 			.display_name = "HDR Skybox Cook Config",
-			.type_id	  = type_id_t<skybox_hdr_cook_config_t>::value,
-			.size		  = sizeof(skybox_hdr_cook_config_t),
-			.alignment	  = alignof(skybox_hdr_cook_config_t),
+			.fields =
+				{
+					{.name = "radiance_size", .display_name = "Radiance Size", .sub_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(skybox_hdr_cook_config_t, radiance_size), .size = sizeof(vec2u16_t), .type = reflected_value_type_e_v2::object},
+					{.name = "irradiance_size", .display_name = "Irradiance Size", .sub_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(skybox_hdr_cook_config_t, irradiance_size), .size = sizeof(vec2u16_t), .type = reflected_value_type_e_v2::object},
+					{.name = "prefilter_size", .display_name = "Prefilter Size", .sub_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(skybox_hdr_cook_config_t, prefilter_size), .size = sizeof(vec2u16_t), .type = reflected_value_type_e_v2::object},
+					{.name = "brdf_lut_size", .display_name = "BRDF LUT Size", .sub_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(skybox_hdr_cook_config_t, brdf_lut_size), .size = sizeof(vec2u16_t), .type = reflected_value_type_e_v2::object},
+					{.name = "irradiance_sample_count", .display_name = "Irradiance Samples", .offset = offsetof(skybox_hdr_cook_config_t, irradiance_sample_count), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "prefilter_sample_count", .display_name = "Prefilter Samples", .offset = offsetof(skybox_hdr_cook_config_t, prefilter_sample_count), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "brdf_lut_sample_count", .display_name = "BRDF LUT Samples", .offset = offsetof(skybox_hdr_cook_config_t, brdf_lut_sample_count), .size = sizeof(u32), .type = reflected_value_type_e_v2::u32},
+					{.name = "intensity", .display_name = "Intensity", .offset = offsetof(skybox_hdr_cook_config_t, intensity), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "rotation", .display_name = "Rotation", .offset = offsetof(skybox_hdr_cook_config_t, rotation), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "prefilter_mips", .display_name = "Prefilter Mips", .offset = offsetof(skybox_hdr_cook_config_t, prefilter_mips), .size = sizeof(u8), .type = reflected_value_type_e_v2::u8},
+				},
+			.type_id   = type_id_t<skybox_hdr_cook_config_t>::value,
+			.size	   = sizeof(skybox_hdr_cook_config_t),
+			.alignment = alignof(skybox_hdr_cook_config_t),
 		});
 	}
 }

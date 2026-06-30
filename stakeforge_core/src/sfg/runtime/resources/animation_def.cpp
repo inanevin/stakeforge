@@ -27,56 +27,41 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "animation_def.hpp"
 
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_container_ops.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 #include <cstddef>
-#include <iterator>
 
 namespace sfg
 {
 	animation_channel_v3_def_reflection_t::animation_channel_v3_def_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<animation_channel_v3_def_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		  = "interpolation",
-				.display_name = "Interpolation",
-				.type		  = reflected_value_type_e::enum8,
-				.sub_type_id  = type_id_t<animation_interpolation_e>::value,
-				.offset		  = offsetof(animation_channel_v3_def_t, interpolation),
-				.size		  = sizeof(animation_interpolation_e),
-			},
-			{
-				.name		  = "node_index",
-				.display_name = "Node Index",
-				.type		  = reflected_value_type_e::i32,
-				.offset		  = offsetof(animation_channel_v3_def_t, node_index),
-				.size		  = sizeof(i32),
-			},
-			{
-				.name		  = "keyframes",
-				.display_name = "Keyframes",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_keyframe_v3_t>::value,
-				.offset		  = offsetof(animation_channel_v3_def_t, keyframes),
-				.size		  = sizeof(vector_t<animation_keyframe_v3_t>),
-			},
-			{
-				.name		  = "keyframes_spline",
-				.display_name = "Spline Keyframes",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_keyframe_v3_spline_t>::value,
-				.offset		  = offsetof(animation_channel_v3_def_t, keyframes_spline),
-				.size		  = sizeof(vector_t<animation_keyframe_v3_spline_t>),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "animation_channel_v3_def_t",
+			.name = "animation_channel_v3_def_t",
+			.fields =
+				{
+					{.name		   = "interpolation",
+					 .display_name = "Interpolation",
+					 .sub_type_id  = type_id_t<animation_interpolation_e>::value,
+					 .offset	   = offsetof(animation_channel_v3_def_t, interpolation),
+					 .size		   = sizeof(animation_interpolation_e),
+					 .type		   = reflected_value_type_e_v2::u8},
+					{.name = "node_index", .display_name = "Node Index", .offset = offsetof(animation_channel_v3_def_t, node_index), .size = sizeof(i32), .type = reflected_value_type_e_v2::i32},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_keyframe_v3_t>(reflected_value_type_e_v2::object, type_id_t<animation_keyframe_v3_t>::value),
+					 .name			= "keyframes",
+					 .display_name	= "Keyframes",
+					 .offset		= offsetof(animation_channel_v3_def_t, keyframes),
+					 .size			= sizeof(vector_t<animation_keyframe_v3_t>),
+					 .type			= reflected_value_type_e_v2::container},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_keyframe_v3_spline_t>(reflected_value_type_e_v2::object, type_id_t<animation_keyframe_v3_spline_t>::value),
+					 .name			= "keyframes_spline",
+					 .display_name	= "Spline Keyframes",
+					 .offset		= offsetof(animation_channel_v3_def_t, keyframes_spline),
+					 .size			= sizeof(vector_t<animation_keyframe_v3_spline_t>),
+					 .type			= reflected_value_type_e_v2::container},
+				},
 			.type_id   = type_id_t<animation_channel_v3_def_t>::value,
 			.size	   = sizeof(animation_channel_v3_def_t),
 			.alignment = alignof(animation_channel_v3_def_t),
@@ -85,47 +70,32 @@ namespace sfg
 
 	animation_channel_q_def_reflection_t::animation_channel_q_def_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<animation_channel_q_def_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		  = "interpolation",
-				.display_name = "Interpolation",
-				.type		  = reflected_value_type_e::enum8,
-				.sub_type_id  = type_id_t<animation_interpolation_e>::value,
-				.offset		  = offsetof(animation_channel_q_def_t, interpolation),
-				.size		  = sizeof(animation_interpolation_e),
-			},
-			{
-				.name		  = "node_index",
-				.display_name = "Node Index",
-				.type		  = reflected_value_type_e::i32,
-				.offset		  = offsetof(animation_channel_q_def_t, node_index),
-				.size		  = sizeof(i32),
-			},
-			{
-				.name		  = "keyframes",
-				.display_name = "Keyframes",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_keyframe_q_t>::value,
-				.offset		  = offsetof(animation_channel_q_def_t, keyframes),
-				.size		  = sizeof(vector_t<animation_keyframe_q_t>),
-			},
-			{
-				.name		  = "keyframes_spline",
-				.display_name = "Spline Keyframes",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_keyframe_q_spline_t>::value,
-				.offset		  = offsetof(animation_channel_q_def_t, keyframes_spline),
-				.size		  = sizeof(vector_t<animation_keyframe_q_spline_t>),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "animation_channel_q_def_t",
+			.name = "animation_channel_q_def_t",
+			.fields =
+				{
+					{.name		   = "interpolation",
+					 .display_name = "Interpolation",
+					 .sub_type_id  = type_id_t<animation_interpolation_e>::value,
+					 .offset	   = offsetof(animation_channel_q_def_t, interpolation),
+					 .size		   = sizeof(animation_interpolation_e),
+					 .type		   = reflected_value_type_e_v2::u8},
+					{.name = "node_index", .display_name = "Node Index", .offset = offsetof(animation_channel_q_def_t, node_index), .size = sizeof(i32), .type = reflected_value_type_e_v2::i32},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_keyframe_q_t>(reflected_value_type_e_v2::object, type_id_t<animation_keyframe_q_t>::value),
+					 .name			= "keyframes",
+					 .display_name	= "Keyframes",
+					 .offset		= offsetof(animation_channel_q_def_t, keyframes),
+					 .size			= sizeof(vector_t<animation_keyframe_q_t>),
+					 .type			= reflected_value_type_e_v2::container},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_keyframe_q_spline_t>(reflected_value_type_e_v2::object, type_id_t<animation_keyframe_q_spline_t>::value),
+					 .name			= "keyframes_spline",
+					 .display_name	= "Spline Keyframes",
+					 .offset		= offsetof(animation_channel_q_def_t, keyframes_spline),
+					 .size			= sizeof(vector_t<animation_keyframe_q_spline_t>),
+					 .type			= reflected_value_type_e_v2::container},
+				},
 			.type_id   = type_id_t<animation_channel_q_def_t>::value,
 			.size	   = sizeof(animation_channel_q_def_t),
 			.alignment = alignof(animation_channel_q_def_t),
@@ -134,62 +104,34 @@ namespace sfg
 
 	animation_def_reflection_t::animation_def_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<animation_def_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{
-				.name		  = "name",
-				.display_name = "Name",
-				.type		  = reflected_value_type_e::string,
-				.offset		  = offsetof(animation_def_t, name),
-				.size		  = sizeof(string_t),
-			},
-			{
-				.name		  = "name_hash",
-				.display_name = "Name Hash",
-				.type		  = reflected_value_type_e::u64,
-				.offset		  = offsetof(animation_def_t, name_hash),
-				.size		  = sizeof(sid_t),
-				.flags		  = reflected_field_flags_no_ui,
-			},
-			{
-				.name		  = "duration",
-				.display_name = "Duration",
-				.type		  = reflected_value_type_e::f32,
-				.offset		  = offsetof(animation_def_t, duration),
-				.size		  = sizeof(f32),
-			},
-			{
-				.name		  = "position_channels",
-				.display_name = "Position Channels",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_channel_v3_def_t>::value,
-				.offset		  = offsetof(animation_def_t, position_channels),
-				.size		  = sizeof(vector_t<animation_channel_v3_def_t>),
-			},
-			{
-				.name		  = "rotation_channels",
-				.display_name = "Rotation Channels",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_channel_q_def_t>::value,
-				.offset		  = offsetof(animation_def_t, rotation_channels),
-				.size		  = sizeof(vector_t<animation_channel_q_def_t>),
-			},
-			{
-				.name		  = "scale_channels",
-				.display_name = "Scale Channels",
-				.type		  = reflected_value_type_e::vector,
-				.sub_type_id  = type_id_t<animation_channel_v3_def_t>::value,
-				.offset		  = offsetof(animation_def_t, scale_channels),
-				.size		  = sizeof(vector_t<animation_channel_v3_def_t>),
-			},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "animation_def_t",
+			.name = "animation_def_t",
+			.fields =
+				{
+					{.name = "name", .display_name = "Name", .offset = offsetof(animation_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e_v2::string},
+					{.name = "name_hash", .display_name = "Name Hash", .offset = offsetof(animation_def_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e_v2::u64},
+					{.name = "duration", .display_name = "Duration", .offset = offsetof(animation_def_t, duration), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_channel_v3_def_t>(reflected_value_type_e_v2::object, type_id_t<animation_channel_v3_def_t>::value),
+					 .name			= "position_channels",
+					 .display_name	= "Position Channels",
+					 .offset		= offsetof(animation_def_t, position_channels),
+					 .size			= sizeof(vector_t<animation_channel_v3_def_t>),
+					 .type			= reflected_value_type_e_v2::container},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_channel_q_def_t>(reflected_value_type_e_v2::object, type_id_t<animation_channel_q_def_t>::value),
+					 .name			= "rotation_channels",
+					 .display_name	= "Rotation Channels",
+					 .offset		= offsetof(animation_def_t, rotation_channels),
+					 .size			= sizeof(vector_t<animation_channel_q_def_t>),
+					 .type			= reflected_value_type_e_v2::container},
+					{.container_ops = reflection_container_ops_t::vector_ops<animation_channel_v3_def_t>(reflected_value_type_e_v2::object, type_id_t<animation_channel_v3_def_t>::value),
+					 .name			= "scale_channels",
+					 .display_name	= "Scale Channels",
+					 .offset		= offsetof(animation_def_t, scale_channels),
+					 .size			= sizeof(vector_t<animation_channel_v3_def_t>),
+					 .type			= reflected_value_type_e_v2::container},
+				},
 			.type_id   = type_id_t<animation_def_t>::value,
 			.size	   = sizeof(animation_def_t),
 			.alignment = alignof(animation_def_t),

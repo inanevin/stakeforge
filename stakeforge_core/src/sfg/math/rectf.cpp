@@ -25,9 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "rectf.hpp"
-#include <iterator>
 #include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 #include "math.hpp"
 #include "vec2f.hpp"
 #include <sfg/data/istream.hpp>
@@ -154,20 +153,17 @@ namespace sfg
 {
 	rectf_reflection_t::rectf_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<rectf_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{.name = "x", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, x), .size = sizeof(f32)},
-			{.name = "y", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, y), .size = sizeof(f32)},
-			{.name = "w", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, w), .size = sizeof(f32)},
-			{.name = "h", .type = reflected_value_type_e::f32, .offset = offsetof(rectf_t, h), .size = sizeof(f32)},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "rectf_t",
+			.name = "rectf_t",
+			.fields =
+				{
+					{.name = "x", .offset = offsetof(rectf_t, x), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "y", .offset = offsetof(rectf_t, y), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "w", .offset = offsetof(rectf_t, w), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+					{.name = "h", .offset = offsetof(rectf_t, h), .size = sizeof(f32), .type = reflected_value_type_e_v2::f32},
+				},
 			.type_id   = type_id_t<rectf_t>::value,
 			.size	   = sizeof(rectf_t),
 			.alignment = alignof(rectf_t),

@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
@@ -185,6 +185,29 @@ namespace sfg
 				return false;
 			}
 
+			return true;
+		}
+
+		template <typename T> bool serialize_reflected_to_json(const T& value, nlohmann::json& out)
+		{
+			reflection_registry_v2& registry = reflection_registry_v2::get();
+			reflected_type_t*		type	 = registry.find_type(type_id_t<T>::value);
+			if (type == nullptr)
+				return false;
+
+			nlohmann::json wrapped = nlohmann::json::object();
+			registry.type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, wrapped);
+			out = wrapped.value<nlohmann::json>(type->name, nlohmann::json::object());
+			return true;
+		}
+
+		template <typename T> bool serialize_reflected_to_stream(const T& value, ostream_t& out)
+		{
+			reflection_registry_v2& registry = reflection_registry_v2::get();
+			if (registry.find_type(type_id_t<T>::value) == nullptr)
+				return false;
+
+			registry.type_to_stream(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out);
 			return true;
 		}
 
@@ -717,7 +740,7 @@ namespace sfg
 			texture_config.size = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
 
 			editor_asset_t asset = {};
-			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
+			if (!serialize_reflected_to_json(texture_config, asset.cook_options))
 			{
 				SFG_ERR("failed to serialize GLB texture cook options: {0}", texture_index);
 				stbi_image_free(decoded);
@@ -831,7 +854,7 @@ namespace sfg
 			asset.asset_type  = editor_asset_type_e::material;
 			asset.source_type = editor_asset_source_type_e::embedded;
 			asset.sub_type	  = static_cast<u8>(editor_material_type_e::gbuffer);
-			if (!reflection_registry_t::get().serialize_to_json(type_id_t<material_def_t>::value, &material_def, asset.embedded_source))
+			if (!serialize_reflected_to_json(material_def, asset.embedded_source))
 			{
 				SFG_ERR("failed to serialize GLB material definition: {0}", material_index);
 				return false;
@@ -972,7 +995,7 @@ namespace sfg
 			asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
 			asset.asset_type  = editor_asset_type_e::skeleton;
 			asset.source_type = editor_asset_source_type_e::embedded;
-			if (!reflection_registry_t::get().serialize_to_json(type_id_t<skeleton_def_t>::value, &skeleton, asset.embedded_source))
+			if (!serialize_reflected_to_json(skeleton, asset.embedded_source))
 			{
 				SFG_ERR("failed to serialize GLB skeleton definition: {0}", skin_index);
 				return false;
@@ -1130,7 +1153,7 @@ namespace sfg
 			const string_t blob_path	 = editor_asset_util_t::make_blob_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			ostream_t	   mesh_def_stream;
-			if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, &mesh_def, mesh_def_stream))
+			if (!serialize_reflected_to_stream(mesh_def, mesh_def_stream))
 			{
 				SFG_ERR("failed to serialize GLB mesh definition {0}", asset_name.c_str());
 				return false;
@@ -1384,34 +1407,31 @@ namespace sfg
 
 	glb_cook_config_reflection_t::glb_cook_config_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<glb_cook_config_t>::value) != nullptr)
-			return;
-
-		static const reflected_field_desc_t fields[] = {
-			{.name = "import_textures", .display_name = "Import Textures", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_textures), .size = sizeof(bool)},
-			{.name = "import_materials", .display_name = "Import Materials", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_materials), .size = sizeof(bool)},
-			{.name = "import_animations", .display_name = "Import Animations", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_animations), .size = sizeof(bool)},
-			{.name = "import_meshes", .display_name = "Import Meshes", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, import_meshes), .size = sizeof(bool)},
-			{.name		   = "texture_payload_type",
-			 .display_name = "Texture Payload Type",
-			 .type		   = reflected_value_type_e::enum8,
-			 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
-			 .offset	   = offsetof(glb_cook_config_t, texture_payload_type),
-			 .size		   = sizeof(texture_payload_type_e)},
-			{.name		   = "ktx2_compression",
-			 .display_name = "KTX2 Compression",
-			 .type		   = reflected_value_type_e::enum8,
-			 .sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
-			 .offset	   = offsetof(glb_cook_config_t, ktx2_compression),
-			 .size		   = sizeof(texture_ktx2_compression_e)},
-			{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, generate_mipmaps), .size = sizeof(bool)},
-			{.name = "combine_meshes", .display_name = "Combine Meshes", .type = reflected_value_type_e::bool8, .offset = offsetof(glb_cook_config_t, combine_meshes), .size = sizeof(bool)},
-		};
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.fields	   = {.data = fields, .size = std::size(fields)},
-			.name	   = "glb_cook_config_t",
+			.name = "glb_cook_config_t",
+			.fields =
+				{
+					{.name = "import_textures", .display_name = "Import Textures", .offset = offsetof(glb_cook_config_t, import_textures), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "import_materials", .display_name = "Import Materials", .offset = offsetof(glb_cook_config_t, import_materials), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "import_animations", .display_name = "Import Animations", .offset = offsetof(glb_cook_config_t, import_animations), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "import_meshes", .display_name = "Import Meshes", .offset = offsetof(glb_cook_config_t, import_meshes), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name		   = "texture_payload_type",
+					 .display_name = "Texture Payload Type",
+					 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
+					 .offset	   = offsetof(glb_cook_config_t, texture_payload_type),
+					 .size		   = sizeof(texture_payload_type_e),
+					 .type		   = reflected_value_type_e_v2::u8},
+					{.name		   = "ktx2_compression",
+					 .display_name = "KTX2 Compression",
+					 .sub_type_id  = type_id_t<texture_ktx2_compression_e>::value,
+					 .offset	   = offsetof(glb_cook_config_t, ktx2_compression),
+					 .size		   = sizeof(texture_ktx2_compression_e),
+					 .type		   = reflected_value_type_e_v2::u8},
+					{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .offset = offsetof(glb_cook_config_t, generate_mipmaps), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+					{.name = "combine_meshes", .display_name = "Combine Meshes", .offset = offsetof(glb_cook_config_t, combine_meshes), .size = sizeof(bool), .type = reflected_value_type_e_v2::boolean},
+				},
 			.type_id   = type_id_t<glb_cook_config_t>::value,
 			.size	   = sizeof(glb_cook_config_t),
 			.alignment = alignof(glb_cook_config_t),

@@ -26,85 +26,47 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture_payload_type.hpp"
-#include <cstddef>
 
-#include <sfg/reflection/reflection_registry.hpp>
-
-#include <iterator>
+#include <sfg/reflection/reflection_registry_v2.hpp>
 
 namespace sfg
 {
-	namespace
-	{
-		static const reflected_enum_value_desc_t texture_payload_type_values[] = {
-			{
-				.name		  = "uncompressed",
-				.display_name = "Uncompressed",
-				.value		  = static_cast<i64>(texture_payload_type_e::uncompressed),
-			},
-			{
-				.name		  = "png",
-				.display_name = "PNG",
-				.value		  = static_cast<i64>(texture_payload_type_e::png),
-			},
-			{
-				.name		  = "ktx2_uastc",
-				.display_name = "KTX2 UASTC",
-				.value		  = static_cast<i64>(texture_payload_type_e::ktx2_uastc),
-			},
-		};
-
-		static const reflected_enum_value_desc_t texture_ktx2_compression_values[] = {
-			{
-				.name		  = "fastest",
-				.display_name = "Fastest",
-				.value		  = static_cast<i64>(texture_ktx2_compression_e::fastest),
-			},
-			{
-				.name		  = "faster",
-				.display_name = "Faster",
-				.value		  = static_cast<i64>(texture_ktx2_compression_e::faster),
-			},
-			{
-				.name		  = "default_quality",
-				.display_name = "Default Quality",
-				.value		  = static_cast<i64>(texture_ktx2_compression_e::default_quality),
-			},
-			{
-				.name		  = "high_quality",
-				.display_name = "High Quality",
-				.value		  = static_cast<i64>(texture_ktx2_compression_e::high_quality),
-			},
-		};
-	}
-
 	texture_payload_type_reflection_t::texture_payload_type_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<texture_payload_type_e>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = texture_payload_type_values, .size = std::size(texture_payload_type_values)},
-			.name		 = "texture_payload_type_e",
-			.type_id	 = type_id_t<texture_payload_type_e>::value,
-			.size		 = sizeof(texture_payload_type_e),
-			.alignment	 = alignof(texture_payload_type_e),
+			.name = "texture_payload_type_e",
+			.fields =
+				{
+					{.name = "ktx2_uastc", .display_name = "KTX2 UASTC"},
+					{.name = "uncompressed", .display_name = "Uncompressed"},
+					{.name = "png", .display_name = "PNG"},
+				},
+			.type_id   = type_id_t<texture_payload_type_e>::value,
+			.size	   = sizeof(texture_payload_type_e),
+			.alignment = alignof(texture_payload_type_e),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 
 	texture_ktx2_compression_reflection_t::texture_ktx2_compression_reflection_t()
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-		if (registry.find_type(type_id_t<texture_ktx2_compression_e>::value) != nullptr)
-			return;
+		reflection_registry_v2& registry = reflection_registry_v2::get();
 
 		registry.register_type({
-			.enum_values = {.data = texture_ktx2_compression_values, .size = std::size(texture_ktx2_compression_values)},
-			.name		 = "texture_ktx2_compression_e",
-			.type_id	 = type_id_t<texture_ktx2_compression_e>::value,
-			.size		 = sizeof(texture_ktx2_compression_e),
-			.alignment	 = alignof(texture_ktx2_compression_e),
+			.name = "texture_ktx2_compression_e",
+			.fields =
+				{
+					{.name = "fastest", .display_name = "Fastest"},
+					{.name = "faster", .display_name = "Faster"},
+					{.name = "default_quality", .display_name = "Default Quality"},
+					{.name = "high_quality", .display_name = "High Quality"},
+				},
+			.type_id   = type_id_t<texture_ktx2_compression_e>::value,
+			.size	   = sizeof(texture_ktx2_compression_e),
+			.alignment = alignof(texture_ktx2_compression_e),
+			.flags	   = reflected_type_flag_enum,
 		});
 	}
 }

@@ -126,6 +126,7 @@ namespace sfg
 				.get_element_size_fn = &vector_get_element_size<T>,
 				.element_value_type	 = value_type,
 				.element_sub_type_id = sub_type_id,
+				.element_value_size	 = sizeof(T),
 			};
 		}
 
@@ -138,6 +139,7 @@ namespace sfg
 				.get_element_size_fn = &inplace_vector_get_element_size<T, N>,
 				.element_value_type	 = value_type,
 				.element_sub_type_id = sub_type_id,
+				.element_value_size	 = sizeof(T),
 			};
 		}
 
@@ -150,6 +152,7 @@ namespace sfg
 				.get_element_size_fn = &sized_array_get_element_size<TContainer, T, N, Data, Size>,
 				.element_value_type	 = value_type,
 				.element_sub_type_id = sub_type_id,
+				.element_value_size	 = sizeof(T),
 			};
 		}
 	};
