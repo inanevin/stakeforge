@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {

@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "animation_common.hpp"
 
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -35,7 +35,7 @@ namespace sfg
 {
 	animation_interpolation_reflection_t::animation_interpolation_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_interpolation_e",
@@ -54,7 +54,7 @@ namespace sfg
 
 	animation_keyframe_v3_reflection_t::animation_keyframe_v3_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_keyframe_v3_t",
@@ -71,7 +71,7 @@ namespace sfg
 
 	animation_keyframe_v3_spline_reflection_t::animation_keyframe_v3_spline_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_keyframe_v3_spline_t",
@@ -90,7 +90,7 @@ namespace sfg
 
 	animation_keyframe_q_reflection_t::animation_keyframe_q_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_keyframe_q_t",
@@ -107,7 +107,7 @@ namespace sfg
 
 	animation_keyframe_q_spline_reflection_t::animation_keyframe_q_spline_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_keyframe_q_spline_t",

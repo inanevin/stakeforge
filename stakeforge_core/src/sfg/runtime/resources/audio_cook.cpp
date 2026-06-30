@@ -2,7 +2,7 @@
 
 #include "audio_cook.hpp"
 #include <sfg/io/log.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
@@ -18,7 +18,7 @@ namespace sfg
 {
 	audio_cook_config_reflection_t::audio_cook_config_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name	   = "audio_cook_config_t",

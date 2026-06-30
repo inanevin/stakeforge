@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
@@ -184,8 +184,8 @@ namespace sfg
 
 		template <typename T> bool serialize_reflected_to_json(const T& value, nlohmann::json& out)
 		{
-			reflection_registry_v2& registry = reflection_registry_v2::get();
-			reflected_type_t*		type	 = registry.find_type(type_id_t<T>::value);
+			reflection_registry_t& registry = reflection_registry_t::get();
+			reflected_type_t*	 type	  = registry.find_type(type_id_t<T>::value);
 			if (type == nullptr)
 				return false;
 
@@ -198,7 +198,7 @@ namespace sfg
 
 		template <typename T> bool serialize_reflected_to_stream(const T& value, ostream_t& out)
 		{
-			reflection_registry_v2& registry = reflection_registry_v2::get();
+			reflection_registry_t& registry = reflection_registry_t::get();
 			if (registry.find_type(type_id_t<T>::value) == nullptr)
 				return false;
 
@@ -1401,7 +1401,7 @@ namespace sfg
 
 	glb_cook_config_reflection_t::glb_cook_config_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "glb_cook_config_t",

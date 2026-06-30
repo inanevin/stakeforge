@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
@@ -44,7 +44,7 @@ namespace sfg
 
 	resource_manifest_entry_reflection_t::resource_manifest_entry_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "resource_manifest_entry_t",

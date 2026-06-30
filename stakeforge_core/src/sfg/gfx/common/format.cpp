@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "format.hpp"
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/io/assert.hpp>
 
 namespace sfg
@@ -139,7 +139,7 @@ namespace sfg
 {
 	format_reflection_t::format_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "format_e",

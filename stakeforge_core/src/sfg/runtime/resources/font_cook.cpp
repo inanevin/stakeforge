@@ -2,7 +2,7 @@
 
 #include "font_cook.hpp"
 #include <cstddef>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
@@ -50,7 +50,7 @@ namespace sfg
 {
 	font_cook_config_reflection_t::font_cook_config_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "font_cook_config_t",

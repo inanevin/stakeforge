@@ -30,7 +30,7 @@ namespace sfg
 		*runtime							   = {};
 		*internals							   = {};
 
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<sampler_desc_t>::value, &runtime->desc, stream))
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<sampler_desc_t>::value, &runtime->desc, nullptr, stream))
 		{
 			SFG_ERR("failed to deserialize texture sampler description: {0}", entry.hash);
 			return false;

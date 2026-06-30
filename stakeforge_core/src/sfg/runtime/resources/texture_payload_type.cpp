@@ -27,13 +27,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "texture_payload_type.hpp"
 
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
 	texture_payload_type_reflection_t::texture_payload_type_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "texture_payload_type_e",
@@ -52,7 +52,7 @@ namespace sfg
 
 	texture_ktx2_compression_reflection_t::texture_ktx2_compression_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "texture_ktx2_compression_e",

@@ -40,7 +40,7 @@ namespace sfg
 	bool animation_cooker::cook_from_def(const animation_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
 		ostream_t animation_stream;
-		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<animation_def_t>::value, &def, animation_stream))
+		if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_def_t>::value, const_cast<animation_def_t*>(&def), nullptr, animation_stream))
 		{
 			SFG_ERR("failed to serialize animation definition");
 			return false;

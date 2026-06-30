@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "material_def.hpp"
 
 #include <sfg/reflection/reflection_container_ops.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -36,7 +36,7 @@ namespace sfg
 {
 	material_parameter_type_reflection_t::material_parameter_type_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "material_parameter_type_e",
@@ -59,7 +59,7 @@ namespace sfg
 
 	material_parameter_reflection_t::material_parameter_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "material_parameter_t",
@@ -81,7 +81,7 @@ namespace sfg
 
 	material_def_reflection_t::material_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "material_def_t",

@@ -44,17 +44,15 @@ namespace sfg
 {
 	namespace
 	{
-	
+
 	}
 
 	void world_cooker_t::world_to_stream(const world_t& world, ostream_t& out_stream)
 	{
-		
 	}
 
 	void world_cooker_t::world_to_json(const world_t& world, nlohmann::json& out_json)
 	{
-	
 	}
 
 	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources)
@@ -63,11 +61,9 @@ namespace sfg
 
 	void world_cooker_t::entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources)
 	{
-		
 	}
 
 	void world_cooker_t::entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json)
 	{
-		
 	}
 }

@@ -39,8 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 
-#include <algorithm>
-
 namespace sfg
 {
 #define WORLD_TEXT_BYTES			  (64 * 1024)
@@ -69,12 +67,12 @@ namespace sfg
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_no_serialize_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_system_transform_t>());
 
-		_engine_components.hierarchy_table		  = &get_component_table(type_id_t<component_hierarchy_t>::value)->table;
-		_engine_components.guid_table			  = &get_component_table(type_id_t<component_guid_t>::value)->table;
-		_engine_components.transform_table		  = &get_component_table(type_id_t<component_transform_t>::value)->table;
-		_engine_components.name_table			  = &get_component_table(type_id_t<component_name_t>::value)->table;
-		_engine_components.alive_table			  = &get_component_table(type_id_t<component_alive_t>::value)->table;
-		_system_components.transform_table		  = &get_component_table(type_id_t<component_system_transform_t>::value)->table;
+		_engine_components.hierarchy_table = &get_component_table(type_id_t<component_hierarchy_t>::value)->table;
+		_engine_components.guid_table	   = &get_component_table(type_id_t<component_guid_t>::value)->table;
+		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value)->table;
+		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value)->table;
+		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value)->table;
+		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value)->table;
 	}
 
 	void world_t::uninit()

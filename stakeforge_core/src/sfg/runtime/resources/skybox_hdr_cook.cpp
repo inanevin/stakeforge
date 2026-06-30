@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 
@@ -474,7 +474,7 @@ namespace sfg
 {
 	skybox_hdr_cook_config_reflection_t::skybox_hdr_cook_config_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "skybox_hdr_cook_config_t",

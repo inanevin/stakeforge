@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mesh_def.hpp"
 
 #include <sfg/reflection/reflection_container_ops.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -36,7 +36,7 @@ namespace sfg
 {
 	primitive_static_def_reflection_t::primitive_static_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "primitive_static_def_t",
@@ -64,7 +64,7 @@ namespace sfg
 
 	primitive_skinned_def_reflection_t::primitive_skinned_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "primitive_skinned_def_t",
@@ -92,7 +92,7 @@ namespace sfg
 
 	mesh_def_reflection_t::mesh_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "mesh_def_t",

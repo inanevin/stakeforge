@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec2f.hpp"
 #include <cstddef>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include "vec2u16.hpp"
 #include "math.hpp"
 #include <sfg/data/istream.hpp>
@@ -138,7 +138,7 @@ namespace sfg
 {
 	vec2f_reflection_t::vec2f_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "vec2f_t",

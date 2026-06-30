@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "common_resources.hpp"
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
@@ -66,7 +66,7 @@ namespace sfg
 {
 	resource_type_reflection_t::resource_type_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "resource_type_e",

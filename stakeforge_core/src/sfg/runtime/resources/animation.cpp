@@ -34,7 +34,7 @@ namespace sfg
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
 		std::construct_at(runtime);
 
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<animation_def_t>::value, &runtime->def, payload))
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<animation_def_t>::value, &runtime->def, nullptr, payload))
 		{
 			SFG_ERR("failed to deserialize animation definition: {0}", entry.hash);
 			std::destroy_at(runtime);

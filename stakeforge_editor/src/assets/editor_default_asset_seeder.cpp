@@ -79,18 +79,7 @@ namespace sfg
 		{
 			out["schema"]		= "sfg.schema.shader";
 			out["include_dirs"] = {EDITOR_DEFAULT_SHADERS, EDITOR_DEFAULT_SHADERS "world"};
-			switch (shader_type)
-			{
-			case shader_type_e::opaque_shader:
-				out["type"] = "opaque_shader";
-				break;
-			case shader_type_e::transparent_shader:
-				out["type"] = "transparent_shader";
-				break;
-			default:
-				out["type"] = "opaque_shader";
-				break;
-			}
+			out["type"] = shader_type;
 		}
 
 		string_t get_shader_default_source_relative(shader_type_e shader_type)

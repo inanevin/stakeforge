@@ -20,7 +20,7 @@ namespace sfg
 			parameter.values.resize(4);
 
 		ostream_t material_stream;
-		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<material_def_t>::value, &material, material_stream))
+		if (!reflection_registry_t::get().type_to_stream(type_id_t<material_def_t>::value, &material, nullptr, material_stream))
 		{
 			SFG_ERR("failed to serialize material definition");
 			return false;
@@ -44,7 +44,7 @@ namespace sfg
 			parameter.values.resize(4);
 
 		ostream_t material_stream;
-		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<material_def_t>::value, &material, material_stream))
+		if (!reflection_registry_t::get().type_to_stream(type_id_t<material_def_t>::value, &material, nullptr, material_stream))
 		{
 			SFG_ERR("failed to serialize material definition");
 			return false;

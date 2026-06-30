@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vec2u.hpp"
 #include "vec2i.hpp"
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -37,7 +37,7 @@ namespace sfg
 
 	vec2u_reflection_t::vec2u_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "vec2u_t",

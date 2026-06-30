@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader_types.hpp"
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
@@ -11,7 +11,7 @@ namespace sfg
 {
 	shader_type_reflection_t::shader_type_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "shader_type_e",

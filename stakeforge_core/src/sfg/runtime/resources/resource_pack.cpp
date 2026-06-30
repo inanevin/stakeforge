@@ -91,7 +91,7 @@ namespace sfg
 			if (schema == "sfg.schema.texture")
 			{
 				texture_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<texture_cook_config_t>::value, &cfg, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<texture_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize texture cook config");
 					return false;
@@ -101,7 +101,7 @@ namespace sfg
 			if (schema == "sfg.schema.shader")
 			{
 				shader_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &cfg, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize shader cook config");
 					return false;
@@ -111,7 +111,7 @@ namespace sfg
 			if (schema == "sfg.schema.audio")
 			{
 				audio_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<audio_cook_config_t>::value, &cfg, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize audio cook config");
 					return false;
@@ -121,7 +121,7 @@ namespace sfg
 			if (schema == "sfg.schema.font")
 			{
 				font_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<font_cook_config_t>::value, &cfg, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<font_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize font cook config");
 					return false;
@@ -131,7 +131,7 @@ namespace sfg
 			if (schema == "sfg.schema.material")
 			{
 				material_def_t def = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize material definition");
 					return false;
@@ -141,7 +141,7 @@ namespace sfg
 			if (schema == "sfg.schema.animation")
 			{
 				animation_def_t def = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<animation_def_t>::value, &def, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize animation definition");
 					return false;
@@ -151,7 +151,7 @@ namespace sfg
 			if (schema == "sfg.schema.texture_sampler")
 			{
 				sampler_desc_t desc = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &desc, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize texture sampler description");
 					return false;
@@ -161,7 +161,7 @@ namespace sfg
 			if (schema == "sfg.schema.hdr_skybox")
 			{
 				skybox_hdr_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &cfg, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize HDR skybox cook config");
 					return false;
@@ -275,7 +275,7 @@ namespace sfg
 		{
 			resource_manifest_entry_t entry = {};
 			entry.config					= nlohmann::json::object();
-			if (!reflection_registry_t::get().deserialize_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, item))
+			if (!reflection_registry_t::get().type_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, nullptr, item))
 			{
 				SFG_ERR("invalid manifest entry at {0}", params.manifest_path.c_str());
 				return false;
@@ -314,7 +314,7 @@ namespace sfg
 			if (entry.type == resource_type_e::shader)
 			{
 				shader_cook_config_t cfg = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<shader_cook_config_t>::value, &cfg, entry.config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &cfg, nullptr, entry.config))
 				{
 					SFG_ERR("failed to deserialize shader cook config for {0}", entry.path.c_str());
 					return false;
@@ -324,7 +324,7 @@ namespace sfg
 			else if (entry.type == resource_type_e::material)
 			{
 				material_def_t def = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<material_def_t>::value, &def, entry.config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, entry.config))
 				{
 					SFG_ERR("failed to deserialize material definition for {0}", entry.path.c_str());
 					return false;
@@ -338,14 +338,14 @@ namespace sfg
 			else if (entry.type == resource_type_e::animation)
 			{
 				animation_def_t def = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<animation_def_t>::value, &def, entry.config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, entry.config))
 				{
 					SFG_ERR("failed to deserialize animation definition for {0}", entry.path.c_str());
 					return false;
 				}
 
 				ostream_t def_stream;
-				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<animation_def_t>::value, &def, def_stream))
+				if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_def_t>::value, &def, nullptr, def_stream))
 				{
 					SFG_ERR("failed to serialize animation definition for {0}", entry.path.c_str());
 					return false;
@@ -356,14 +356,14 @@ namespace sfg
 			else if (entry.type == resource_type_e::texture_sampler)
 			{
 				sampler_desc_t desc = {};
-				if (!reflection_registry_t::get().deserialize_from_json(type_id_t<sampler_desc_t>::value, &desc, entry.config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &desc, nullptr, entry.config))
 				{
 					SFG_ERR("failed to deserialize texture sampler description for {0}", entry.path.c_str());
 					return false;
 				}
 
 				ostream_t desc_stream;
-				if (!reflection_registry_t::get().serialize_to_stream(type_id_t<sampler_desc_t>::value, &desc, desc_stream))
+				if (!reflection_registry_t::get().type_to_stream(type_id_t<sampler_desc_t>::value, &desc, nullptr, desc_stream))
 				{
 					SFG_ERR("failed to serialize texture sampler description for {0}", entry.path.c_str());
 					return false;

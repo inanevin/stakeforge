@@ -49,7 +49,7 @@ namespace sfg
 		}
 
 		mesh_def_t def = {};
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &def, mesh_def_stream))
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &def, nullptr, mesh_def_stream))
 		{
 			SFG_ERR("failed to deserialize mesh definition file: {0}", full_path);
 			return false;
@@ -61,7 +61,7 @@ namespace sfg
 	bool mesh_cooker::cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
 		ostream_t mesh_stream;
-		if (!reflection_registry_t::get().serialize_to_stream(type_id_t<mesh_def_t>::value, &def, mesh_stream))
+		if (!reflection_registry_t::get().type_to_stream(type_id_t<mesh_def_t>::value, const_cast<mesh_def_t*>(&def), nullptr, mesh_stream))
 		{
 			SFG_ERR("failed to serialize mesh definition");
 			return false;

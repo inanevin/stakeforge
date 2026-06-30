@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "texture_cook.hpp"
 #include <cstddef>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include "texture.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
@@ -303,7 +303,7 @@ namespace sfg
 {
 	texture_cook_config_reflection_t::texture_cook_config_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "texture_cook_config_t",

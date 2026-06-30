@@ -31,7 +31,6 @@ namespace sfg
 
 	bool prefab_cooker::cook_from_json(const nlohmann::json& json, resource_header_t& out_header, ostream_t& stream)
 	{
-		
 
 		return true;
 	}

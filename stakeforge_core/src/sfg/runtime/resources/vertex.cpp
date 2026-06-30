@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vertex.hpp"
 
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -35,7 +35,7 @@ namespace sfg
 {
 	vertex_static_reflection_t::vertex_static_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "vertex_static_t",
@@ -54,7 +54,7 @@ namespace sfg
 
 	vertex_skinned_reflection_t::vertex_skinned_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "vertex_skinned_t",

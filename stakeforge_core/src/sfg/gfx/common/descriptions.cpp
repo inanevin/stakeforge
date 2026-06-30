@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "descriptions.hpp"
 #include <cstddef>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/math/math.hpp>
@@ -123,7 +123,7 @@ namespace sfg
 
 	sampler_filter_reflection_t::sampler_filter_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "sampler_filter_e",
@@ -143,7 +143,7 @@ namespace sfg
 
 	sampler_border_reflection_t::sampler_border_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "sampler_border_e",
@@ -162,7 +162,7 @@ namespace sfg
 
 	address_mode_reflection_t::address_mode_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "address_mode",
@@ -184,7 +184,7 @@ namespace sfg
 
 	sampler_desc_reflection_t::sampler_desc_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "compare_op",

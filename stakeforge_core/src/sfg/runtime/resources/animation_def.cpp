@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "animation_def.hpp"
 
 #include <sfg/reflection/reflection_container_ops.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -36,7 +36,7 @@ namespace sfg
 {
 	animation_channel_v3_def_reflection_t::animation_channel_v3_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_channel_v3_def_t",
@@ -70,7 +70,7 @@ namespace sfg
 
 	animation_channel_q_def_reflection_t::animation_channel_q_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_channel_q_def_t",
@@ -104,7 +104,7 @@ namespace sfg
 
 	animation_def_reflection_t::animation_def_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name = "animation_def_t",

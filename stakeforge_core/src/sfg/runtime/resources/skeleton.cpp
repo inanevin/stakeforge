@@ -29,7 +29,7 @@ namespace sfg
 		*runtime					= {};
 
 		skeleton_def_t skeleton = {};
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, stream))
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, stream))
 		{
 			SFG_ERR("failed to deserialize skeleton definition: {0}", entry.hash);
 			return false;

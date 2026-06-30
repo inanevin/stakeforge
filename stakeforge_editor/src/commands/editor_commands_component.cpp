@@ -102,7 +102,7 @@ namespace sfg
 
 			initialize_component_data(table, component);
 			istream_t stream(stream_handle ? aux_data.get<u8>(stream_handle) : nullptr, stream_handle.size);
-			if (!reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream))
+			if (!reflection_registry_t::get().type_from_stream(table.type_desc.type_id, component, nullptr, stream))
 			{
 				SFG_ERR("failed to restore component {0} for entity {1}", table.type_desc.type_id, entity);
 				return false;
@@ -121,7 +121,7 @@ namespace sfg
 			void* component = ecs_t::table_get(table.table, entity);
 			initialize_component_data(table, component);
 			istream_t stream(aux_data.get<u8>(stream_handle), stream_handle.size);
-			if (!reflection_registry_t::get().deserialize_from_stream(table.type_desc.type_id, component, stream))
+			if (!reflection_registry_t::get().type_from_stream(table.type_desc.type_id, component, nullptr, stream))
 			{
 				SFG_ERR("failed to paste component {0} for entity {1}", table.type_desc.type_id, entity);
 				return false;
@@ -370,7 +370,7 @@ namespace sfg
 			{
 				ostream_t	stream;
 				const void* component = ecs_t::table_get(table.table, entities[i]);
-				if (!reflection_registry_t::get().serialize_to_stream(table.type_desc.type_id, component, stream))
+				if (!reflection_registry_t::get().type_to_stream(table.type_desc.type_id, const_cast<void*>(component), nullptr, stream))
 				{
 					SFG_ERR("failed to serialize component {0} for entity {1}", table.type_desc.type_id, entities[i]);
 					return false;

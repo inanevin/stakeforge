@@ -26,13 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "system_components.hpp"
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
 	system_component_reflection_t::system_component_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "component_system_transform",

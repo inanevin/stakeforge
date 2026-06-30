@@ -52,7 +52,7 @@ namespace sfg
 		*runtime							 = {};
 
 		physical_material_def_t material = {};
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<physical_material_def_t>::value, &material, stream))
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<physical_material_def_t>::value, &material, nullptr, stream))
 		{
 			SFG_ERR("failed to deserialize physical material definition: {0}", entry.hash);
 			return false;

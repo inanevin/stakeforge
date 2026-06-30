@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "shader_description.hpp"
 #include <cstddef>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
@@ -348,7 +348,7 @@ namespace sfg
 {
 	vertex_input_reflection_t::vertex_input_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "vertex_input_t",
@@ -407,7 +407,7 @@ namespace sfg
 
 	cull_mode_reflection_t::cull_mode_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "cull_mode",
@@ -427,7 +427,7 @@ namespace sfg
 
 	fill_mode_reflection_t::fill_mode_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "fill_mode",
@@ -446,7 +446,7 @@ namespace sfg
 
 	front_face_reflection_t::front_face_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "front_face",
@@ -465,7 +465,7 @@ namespace sfg
 
 	blend_factor_reflection_t::blend_factor_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "blend_factor",
@@ -492,7 +492,7 @@ namespace sfg
 
 	blend_op_reflection_t::blend_op_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "blend_op",
@@ -514,7 +514,7 @@ namespace sfg
 
 	stencil_op_reflection_t::stencil_op_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "stencil_op",
@@ -539,7 +539,7 @@ namespace sfg
 
 	compare_op_reflection_t::compare_op_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "compare_op",
@@ -564,7 +564,7 @@ namespace sfg
 
 	store_op_reflection_t::store_op_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "store_op",
@@ -584,7 +584,7 @@ namespace sfg
 
 	load_op_reflection_t::load_op_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "load_op",
@@ -605,7 +605,7 @@ namespace sfg
 
 	stencil_state_reflection_t::stencil_state_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
 			.name		  = "stencil_state_t",

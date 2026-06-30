@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine_components.hpp"
 
 #include <sfg/reflection/reflection_container_ops.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 #include <cstddef>
 
@@ -39,7 +39,7 @@ namespace sfg
 
 	namespace
 	{
-		void register_component_hierarchy_reflection(reflection_registry_v2& registry)
+		void register_component_hierarchy_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_hierarchy",
@@ -58,7 +58,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_guid_reflection(reflection_registry_v2& registry)
+		void register_component_guid_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_guid",
@@ -80,7 +80,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_transform_reflection(reflection_registry_v2& registry)
+		void register_component_transform_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_transform",
@@ -98,7 +98,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_name_reflection(reflection_registry_v2& registry)
+		void register_component_name_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_name",
@@ -114,7 +114,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_mesh_renderer_reflection(reflection_registry_v2& registry)
+		void register_component_mesh_renderer_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_mesh_renderer",
@@ -143,7 +143,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_render_object_reflection(reflection_registry_v2& registry)
+		void register_component_render_object_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_render_object",
@@ -159,7 +159,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_camera_reflection(reflection_registry_v2& registry)
+		void register_component_camera_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_camera",
@@ -178,7 +178,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_skybox_reflection(reflection_registry_v2& registry)
+		void register_component_skybox_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_skybox",
@@ -202,7 +202,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_prefab_reference_reflection(reflection_registry_v2& registry)
+		void register_component_prefab_reference_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_prefab_reference",
@@ -223,7 +223,7 @@ namespace sfg
 			});
 		}
 
-		void register_debug_widgets_enum_reflection(reflection_registry_v2& registry)
+		void register_debug_widgets_enum_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "debug_widgets_enum",
@@ -254,7 +254,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_debug_widgets_reflection(reflection_registry_v2& registry)
+		void register_component_debug_widgets_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "debug_widgets_component",
@@ -415,7 +415,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_alive_reflection(reflection_registry_v2& registry)
+		void register_component_alive_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_alive",
@@ -427,7 +427,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_disabled_reflection(reflection_registry_v2& registry)
+		void register_component_disabled_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_disabled",
@@ -439,7 +439,7 @@ namespace sfg
 			});
 		}
 
-		void register_component_no_serialize_reflection(reflection_registry_v2& registry)
+		void register_component_no_serialize_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
 				.name		  = "component_no_serialize",
@@ -454,7 +454,7 @@ namespace sfg
 
 	engine_component_reflection_t::engine_component_reflection_t()
 	{
-		reflection_registry_v2& registry = reflection_registry_v2::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
 
 		register_component_hierarchy_reflection(registry);
 		register_component_guid_reflection(registry);

@@ -197,7 +197,7 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			const texture_cook_config_t& texture_config = import_options->texture_cook_config;
-			if (!reflection_registry_t::get().serialize_to_json(type_id_t<texture_cook_config_t>::value, &texture_config, asset.cook_options))
+			if (!reflection_registry_t::get().type_to_json(type_id_t<texture_cook_config_t>::value, const_cast<texture_cook_config_t*>(&texture_config), nullptr, asset.cook_options))
 			{
 				SFG_ERR("failed to serialize texture import options for {0}", source_path.c_str());
 				return false;
@@ -235,7 +235,7 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			const audio_cook_config_t& audio_config = import_options->audio_cook_config;
-			if (!reflection_registry_t::get().serialize_to_json(type_id_t<audio_cook_config_t>::value, &audio_config, asset.cook_options))
+			if (!reflection_registry_t::get().type_to_json(type_id_t<audio_cook_config_t>::value, const_cast<audio_cook_config_t*>(&audio_config), nullptr, asset.cook_options))
 			{
 				SFG_ERR("failed to serialize audio import options for {0}", source_path.c_str());
 				return false;
@@ -257,7 +257,7 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			const skybox_hdr_cook_config_t& skybox_config = import_options->skybox_cook_config;
-			if (!reflection_registry_t::get().serialize_to_json(type_id_t<skybox_hdr_cook_config_t>::value, &skybox_config, asset.cook_options))
+			if (!reflection_registry_t::get().type_to_json(type_id_t<skybox_hdr_cook_config_t>::value, const_cast<skybox_hdr_cook_config_t*>(&skybox_config), nullptr, asset.cook_options))
 			{
 				SFG_ERR("failed to serialize HDR skybox import options for {0}", source_path.c_str());
 				return false;

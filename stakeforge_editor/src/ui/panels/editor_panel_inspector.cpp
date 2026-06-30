@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/reflection/reflection_registry_v2.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -291,7 +291,7 @@ namespace sfg
 			if (!ecs_t::table_has(component_table.table, first_entity))
 				continue;
 
-			reflected_type_t* reflected_type = reflection_registry_v2::get().find_type(component_table.type_desc.type_id);
+			reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
@@ -392,7 +392,7 @@ namespace sfg
 
 		for (const world_component_table_t& component_table : component_tables)
 		{
-			reflected_type_t* reflected_type = reflection_registry_v2::get().find_type(component_table.type_desc.type_id);
+			reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
@@ -492,10 +492,10 @@ namespace sfg
 			return;
 
 		const void* component = ecs_t::table_get(table->table, _display_entities.front());
-		if (reflection_registry_v2::get().find_type(type_id) == nullptr)
+		if (reflection_registry_t::get().find_type(type_id) == nullptr)
 			return;
 
-		if (!reflection_registry_v2::get().type_to_stream(type_id, const_cast<void*>(component), nullptr, _copied_component_stream))
+		if (!reflection_registry_t::get().type_to_stream(type_id, const_cast<void*>(component), nullptr, _copied_component_stream))
 			return;
 		_copied_component_type = type_id;
 	}

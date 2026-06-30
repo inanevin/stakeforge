@@ -106,7 +106,7 @@ namespace sfg
 		*internals					 = {};
 
 		mesh_def_t mesh = {};
-		if (!reflection_registry_t::get().deserialize_from_stream(type_id_t<mesh_def_t>::value, &mesh, payload))
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &mesh, nullptr, payload))
 		{
 			SFG_ERR("failed to deserialize mesh definition: {0}", entry.hash);
 			return false;

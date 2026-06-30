@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 #include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
 
 #include "assets/editor_asset_manager.hpp"
 #include "editor_project.hpp"
@@ -401,41 +400,6 @@ namespace sfg
 		if (!file_system_t::exists(path))
 			return NULL_SID;
 		return read_asset(path, asset) ? asset.guid : NULL_SID;
-	}
-
-	editor_asset_type_e editor_asset_util_t::reflected_value_type_to_asset_type(reflected_value_type_e type)
-	{
-		switch (type)
-		{
-		case reflected_value_type_e::audio_handle:
-			return editor_asset_type_e::audio;
-		case reflected_value_type_e::font_handle:
-			return editor_asset_type_e::font;
-		case reflected_value_type_e::mesh_handle:
-			return editor_asset_type_e::mesh;
-		case reflected_value_type_e::skeleton_handle:
-			return editor_asset_type_e::skeleton;
-		case reflected_value_type_e::animation_handle:
-			return editor_asset_type_e::animation;
-		case reflected_value_type_e::material_handle:
-			return editor_asset_type_e::material;
-		case reflected_value_type_e::shader_handle:
-			return editor_asset_type_e::shader;
-		case reflected_value_type_e::texture_handle:
-			return editor_asset_type_e::texture;
-		case reflected_value_type_e::texture_sampler_handle:
-			return editor_asset_type_e::texture_sampler;
-		case reflected_value_type_e::physical_material_handle:
-			return editor_asset_type_e::physical_material;
-		case reflected_value_type_e::prefab_handle:
-			return editor_asset_type_e::prefab;
-		case reflected_value_type_e::animation_state_machine_handle:
-			return editor_asset_type_e::animation_state_machine;
-		case reflected_value_type_e::hdr_skybox_handle:
-			return editor_asset_type_e::hdr_skybox;
-		default:
-			return editor_asset_type_e::invalid;
-		}
 	}
 
 	const char* editor_asset_util_t::find_asset_display_name(sid_t guid)
