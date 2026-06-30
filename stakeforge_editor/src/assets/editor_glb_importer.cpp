@@ -57,7 +57,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TINYGLTF3_IMPLEMENTATION
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
 
-
 namespace sfg
 {
 	namespace
@@ -191,7 +190,8 @@ namespace sfg
 				return false;
 
 			nlohmann::json wrapped = nlohmann::json::object();
-			registry.type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, wrapped);
+			if (!registry.type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, wrapped))
+				return false;
 			out = wrapped.value<nlohmann::json>(type->name, nlohmann::json::object());
 			return true;
 		}
@@ -202,8 +202,7 @@ namespace sfg
 			if (registry.find_type(type_id_t<T>::value) == nullptr)
 				return false;
 
-			registry.type_to_stream(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out);
-			return true;
+			return registry.type_to_stream(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out);
 		}
 
 		sid_t get_sampler_guid(const tg3_model& model, const tg3_material& material)

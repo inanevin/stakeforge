@@ -1,8 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
@@ -98,8 +96,7 @@ namespace sfg
 		bool									 is_alive(entity_id_t id) const;
 
 	private:
-		void sync_entity_hierarchy(entity_id_t id);
-
+		void	 sync_entity_hierarchy(entity_id_t id);
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
@@ -108,12 +105,6 @@ namespace sfg
 		struct world_text_allocation_t
 		{
 			const char* allocated = nullptr;
-		};
-
-		struct entity_guid_lookup_t
-		{
-			entity_guid_t guid	 = NULL_ENTITY_GUID;
-			entity_id_t	  entity = NULL_ENTITY_ID;
 		};
 
 		struct engine_components_t
@@ -143,7 +134,6 @@ namespace sfg
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
-		vector_t<entity_guid_lookup_t>	  _entity_guid_lookup;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

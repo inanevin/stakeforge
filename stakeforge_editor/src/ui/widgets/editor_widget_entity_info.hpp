@@ -28,13 +28,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "editor_command_system.hpp"
-#include "ui/widgets/editor_widget_text_id.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
-
+#include <sfg/runtime/engine/common_engine.hpp>
 namespace sfg
 {
 	class world_t;
@@ -74,7 +73,6 @@ namespace sfg
 		void refresh_entity_panel_names() const;
 
 	private:
-		editor_widget_text_id_t			 _name_input	   = {};
 		editor_vec3_field_t				 _position_field   = {};
 		editor_vec3_field_t				 _rotation_field   = {};
 		editor_vec3_field_t				 _scale_field	   = {};

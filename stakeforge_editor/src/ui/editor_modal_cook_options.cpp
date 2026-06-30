@@ -27,7 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_modal_cook_options.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
-#include "ui/widgets/editor_widget_reflect_type.hpp"
+#include "ui/widgets/editor_widget_reflection.hpp"
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -52,33 +52,32 @@ namespace sfg
 		root_in.child_spacing	 = theme.item_spacing;
 
 		_folds.reserve(_options.size());
-		_reflect_types.reserve(_options.size());
-		for (const editor_modal_cook_option_desc_t& option : _options)
+		_reflections.reserve(_options.size());
+		for (editor_modal_cook_option_desc_t& option : _options)
 		{
 			editor_widget_fold_t* fold = new editor_widget_fold_t();
 			fold->init(ui, _root, {.label = option.title, .folded = false});
 			_folds.push_back(fold);
 
-			editor_widget_reflect_type_t* reflect_type = new editor_widget_reflect_type_t();
-			reflect_type->init(ui, fold->get_body());
-			reflect_type->set_reflected_obj(option.object, option.type_id);
-			_reflect_types.push_back(reflect_type);
+			editor_widget_reflection_t* reflection = new editor_widget_reflection_t();
+			reflection->init(ui, fold->get_body(), {.objects = {.data = &option.object, .size = 1}, .type_id = option.type_id});
+			_reflections.push_back(reflection);
 		}
 	}
 
 	void editor_modal_cook_options_t::uninit()
 	{
-		for (editor_widget_reflect_type_t* reflect_type : _reflect_types)
+		for (editor_widget_reflection_t* reflection : _reflections)
 		{
-			reflect_type->uninit();
-			delete reflect_type;
+			reflection->uninit();
+			delete reflection;
 		}
 		for (editor_widget_fold_t* fold : _folds)
 		{
 			fold->uninit();
 			delete fold;
 		}
-		_reflect_types.resize(0);
+		_reflections.resize(0);
 		_folds.resize(0);
 		_ui->deallocate_widget(_root);
 		_ui	  = nullptr;

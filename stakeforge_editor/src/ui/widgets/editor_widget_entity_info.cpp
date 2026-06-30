@@ -148,16 +148,16 @@ namespace sfg
 				new_value << new_transform.scale;
 			}
 
-			editor_reflected_field_edit_desc_t desc = {};
-			desc.target.world						= world;
-			desc.target.entities					= entities.data;
-			desc.target.entity						= entities.data[0];
-			desc.target.type_id						= type_id_t<component_transform_t>::value;
-			desc.target.entity_count				= static_cast<u32>(entities.size);
-			desc.target.kind						= entities.size > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
-			desc.type_id							= type_id_t<component_transform_t>::value;
-			desc.field_id							= field_id;
-			editor_commands_reflection_t::edit_field(desc, old_value, new_value);
+			//editor_reflected_field_edit_desc_t desc = {};
+			//desc.target.world						= world;
+			//desc.target.entities					= entities.data;
+			//desc.target.entity						= entities.data[0];
+			//desc.target.type_id						= type_id_t<component_transform_t>::value;
+			//desc.target.entity_count				= static_cast<u32>(entities.size);
+			//desc.target.kind						= entities.size > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
+			//desc.type_id							= type_id_t<component_transform_t>::value;
+			//desc.field_id							= field_id;
+			//editor_commands_reflection_t::edit_field(desc, old_value, new_value);
 		}
 	}
 
@@ -184,13 +184,13 @@ namespace sfg
 		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		const editor_property_row_t	   name_row	   = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Name");
-		editor_widget_text_id_config_t name_config = {};
-		name_config.world						   = world;
-		name_config.selected					   = on_name_selected;
-		name_config.submitted					   = on_name_submitted;
-		name_config.user_data					   = this;
-		_name_input.init(ui, name_row.right, name_config);
-		fit_control(ui, _name_input.get_root());
+		//editor_widget_text_id_config_t name_config = {};
+		//name_config.world						   = world;
+		//name_config.selected					   = on_name_selected;
+		//name_config.submitted					   = on_name_submitted;
+		//name_config.user_data					   = this;
+		//_name_input.init(ui, name_row.right, name_config);
+		// fit_control(ui, _name_input.get_root());
 
 		const editor_property_row_t guid_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "GUID");
 		_guid_label							 = ui.allocate_widget();
@@ -243,7 +243,7 @@ namespace sfg
 		_scale_field.uninit();
 		_rotation_field.uninit();
 		_position_field.uninit();
-		_name_input.uninit();
+		//_name_input.uninit();
 		editor_app_t::get().get_command_system().remove_listener(_command_listener);
 		_ui->deallocate_widget(_root);
 
@@ -283,7 +283,7 @@ namespace sfg
 		_command_rot   = _world->get_entity_rot_local(_entity);
 		_command_scale = _world->get_entity_scale_local(_entity);
 
-		_name_input.refresh_text();
+	//	_name_input.refresh_text();
 		if (_entities.size() > 1)
 		{
 			_ui->set_widget_text(_guid_label, "Mixed");
@@ -302,7 +302,7 @@ namespace sfg
 		_position_field.set_value(_command_pos);
 		_rotation_field.set_value(quat_t::to_euler(_command_rot));
 		_scale_field.set_value(_command_scale);
-		_name_input.set_mixed(!is_same_text(*_world, {.data = _entities.data(), .size = _entities.size()}));
+		//_name_input.set_mixed(!is_same_text(*_world, {.data = _entities.data(), .size = _entities.size()}));
 		_position_field.set_mixed(!is_same_pos(*_world, {.data = _entities.data(), .size = _entities.size()}));
 		_rotation_field.set_mixed(!is_same_rot(*_world, {.data = _entities.data(), .size = _entities.size()}));
 		_scale_field.set_mixed(!is_same_scale(*_world, {.data = _entities.data(), .size = _entities.size()}));
@@ -330,24 +330,24 @@ namespace sfg
 
 		const char* old_text = widget._world->get_entity_name(widget._entity);
 
-		editor_reflected_field_edit_desc_t desc = {};
-		desc.target.world						= widget._world_handle;
-		desc.target.entities					= widget._entities.data();
-		desc.target.entity						= widget._entity;
-		desc.target.type_id						= type_id_t<component_name_t>::value;
-		desc.target.entity_count				= static_cast<u32>(widget._entities.size());
-		desc.target.kind						= widget._entities.size() > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
-		desc.type_id							= type_id_t<component_name_t>::value;
-		desc.field_id							= "text_index"_hs;
-		editor_commands_reflection_t::edit_text_id_field(desc, widget._world_handle, old_text != nullptr ? old_text : "", value != nullptr ? value : "");
-
-		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
-		if (panel != nullptr)
-		{
-			editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
-			for (entity_id_t entity : widget._entities)
-				entities_panel->refresh_entity_name(entity);
-		}
+		//editor_reflected_field_edit_desc_t desc = {};
+		//desc.target.world						= widget._world_handle;
+		//desc.target.entities					= widget._entities.data();
+		//desc.target.entity						= widget._entity;
+		//desc.target.type_id						= type_id_t<component_name_t>::value;
+		//desc.target.entity_count				= static_cast<u32>(widget._entities.size());
+		//desc.target.kind						= widget._entities.size() > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
+		//desc.type_id							= type_id_t<component_name_t>::value;
+		//desc.field_id							= "text_index"_hs;
+		//editor_commands_reflection_t::edit_text_id_field(desc, widget._world_handle, old_text != nullptr ? old_text : "", value != nullptr ? value : "");
+		//
+		//editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
+		//if (panel != nullptr)
+		//{
+		//	editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
+		//	for (entity_id_t entity : widget._entities)
+		//		entities_panel->refresh_entity_name(entity);
+		//}
 	}
 
 	void editor_widget_entity_info_t::on_position_changed(const vec3f_t& value, void* user_data)
@@ -418,53 +418,54 @@ namespace sfg
 
 	void editor_widget_entity_info_t::on_command_system_changed(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
-		editor_widget_entity_info_t&						 widget			   = *static_cast<editor_widget_entity_info_t*>(user_data);
-		const editor_command_reflected_field_edit_payload_t* reflected_payload = editor_commands_reflection_t::get_payload(system, command);
-		const bool											 reflected_match   = reflected_payload != nullptr && widget.matches_reflected_command(system, command);
-		const bool											 entity_info_match = widget.matches_entity_info_command(system, command);
-		if (!reflected_match && !entity_info_match)
-			return;
-
-		widget.refresh_controls();
-		if (entity_info_match || reflected_payload->target.type_id == type_id_t<component_name_t>::value)
-			widget.refresh_entity_panel_names();
+		//editor_widget_entity_info_t&						 widget			   = *static_cast<editor_widget_entity_info_t*>(user_data);
+		//const editor_command_reflected_field_edit_payload_t* reflected_payload = editor_commands_reflection_t::get_payload(system, command);
+		//const bool											 reflected_match   = reflected_payload != nullptr && widget.matches_reflected_command(system, command);
+		//const bool											 entity_info_match = widget.matches_entity_info_command(system, command);
+		//if (!reflected_match && !entity_info_match)
+		//	return;
+		//
+		//widget.refresh_controls();
+		//if (entity_info_match || reflected_payload->target.type_id == type_id_t<component_name_t>::value)
+		//	widget.refresh_entity_panel_names();
 	}
 
 	bool editor_widget_entity_info_t::matches_reflected_command(editor_command_system_t& system, const editor_command_t& command) const
 	{
-		const editor_command_reflected_field_edit_payload_t* payload = editor_commands_reflection_t::get_payload(system, command);
-		if (payload == nullptr)
-			return false;
-		if (payload->target.world != _world_handle)
-			return false;
-		if (payload->target.type_id != type_id_t<component_name_t>::value && payload->target.type_id != type_id_t<component_transform_t>::value)
-			return false;
-
-		switch (payload->target.kind)
-		{
-		case editor_reflected_edit_target_kind_e::world_component:
-			for (entity_id_t entity : _entities)
-			{
-				if (entity == payload->target.entity)
-					return true;
-			}
-			return false;
-		case editor_reflected_edit_target_kind_e::world_components: {
-			SFG_ASSERT(payload->entities);
-			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload->entities);
-			for (u32 i = 0; i < payload->entity_count; ++i)
-			{
-				for (entity_id_t selected_entity : _entities)
-				{
-					if (selected_entity == entities[i])
-						return true;
-				}
-			}
-			return false;
-		}
-		default:
-			return false;
-		}
+		return false;
+		//const editor_command_reflected_field_edit_payload_t* payload = editor_commands_reflection_t::get_payload(system, command);
+		//if (payload == nullptr)
+		//	return false;
+		//if (payload->target.world != _world_handle)
+		//	return false;
+		//if (payload->target.type_id != type_id_t<component_name_t>::value && payload->target.type_id != type_id_t<component_transform_t>::value)
+		//	return false;
+		//
+		//switch (payload->target.kind)
+		//{
+		//case editor_reflected_edit_target_kind_e::world_component:
+		//	for (entity_id_t entity : _entities)
+		//	{
+		//		if (entity == payload->target.entity)
+		//			return true;
+		//	}
+		//	return false;
+		//case editor_reflected_edit_target_kind_e::world_components: {
+		//	SFG_ASSERT(payload->entities);
+		//	const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload->entities);
+		//	for (u32 i = 0; i < payload->entity_count; ++i)
+		//	{
+		//		for (entity_id_t selected_entity : _entities)
+		//		{
+		//			if (selected_entity == entities[i])
+		//				return true;
+		//		}
+		//	}
+		//	return false;
+		//}
+		//default:
+		//	return false;
+		//}
 	}
 
 	bool editor_widget_entity_info_t::matches_entity_info_command(editor_command_system_t& system, const editor_command_t& command) const

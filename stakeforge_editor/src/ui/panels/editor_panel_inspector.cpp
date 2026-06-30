@@ -495,7 +495,8 @@ namespace sfg
 		if (reflection_registry_v2::get().find_type(type_id) == nullptr)
 			return;
 
-		reflection_registry_v2::get().type_to_stream(type_id, const_cast<void*>(component), nullptr, _copied_component_stream);
+		if (!reflection_registry_v2::get().type_to_stream(type_id, const_cast<void*>(component), nullptr, _copied_component_stream))
+			return;
 		_copied_component_type = type_id;
 	}
 

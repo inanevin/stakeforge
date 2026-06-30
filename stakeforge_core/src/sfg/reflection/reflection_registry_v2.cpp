@@ -42,32 +42,31 @@ namespace sfg
 	namespace
 	{
 
-		void field_to_stream(const reflected_field_t& field, void* obj, void* user_data, ostream_t& out_stream)
+		bool field_to_stream(const reflected_field_t& field, void* obj, void* user_data, ostream_t& out_stream)
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
 			if (field.value_type == reflected_value_type_e_v2::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
-				return;
+				return false;
 			}
 
 			if (field.custom_serialization.to_stream_fn)
 			{
 				field.custom_serialization.to_stream_fn(data, user_data, out_stream);
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::object)
 			{
-				reflection_registry_v2::get().type_to_stream(field.sub_type_id, data, user_data, out_stream);
-				return;
+				return reflection_registry_v2::get().type_to_stream(field.sub_type_id, data, user_data, out_stream);
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::container)
 			{
 				if (field.container_ops.get_element_ptr_fn == nullptr || field.container_ops.get_element_size_fn == nullptr)
-					return;
+					return false;
 
 				const u32 item_size = static_cast<u32>(field.container_ops.get_element_size_fn(data));
 				out_stream << item_size;
@@ -81,44 +80,45 @@ namespace sfg
 						  .value_type  = field.container_ops.element_value_type,
 					  };
 
-					field_to_stream(temp_field, element_data, user_data, out_stream);
+					if (!field_to_stream(temp_field, element_data, user_data, out_stream))
+						return false;
 				}
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::string)
 			{
 				string_t* str = reinterpret_cast<string_t*>(data);
 				out_stream << *str;
-				return;
+				return true;
 			}
 
 			SFG_ASSERT(field.size != 0);
 			const size_t write_size = field.size;
 			out_stream.write_raw(data, write_size);
+			return true;
 		}
 
-		void field_from_stream(const reflected_field_t& field, void* obj, void* user_data, istream_t& in_stream)
+		bool field_from_stream(const reflected_field_t& field, void* obj, void* user_data, istream_t& in_stream)
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
 			if (field.value_type == reflected_value_type_e_v2::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
-				return;
+				return false;
 			}
 
 			if (field.custom_serialization.from_stream_fn)
 			{
 				field.custom_serialization.from_stream_fn(data, user_data, in_stream);
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::object)
 			{
-				reflection_registry_v2::get().type_from_stream(field.sub_type_id, data, user_data, in_stream);
-				return;
+				return reflection_registry_v2::get().type_from_stream(field.sub_type_id, data, user_data, in_stream);
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::container)
@@ -127,7 +127,7 @@ namespace sfg
 				in_stream >> item_size;
 
 				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
-					return;
+					return false;
 
 				field.container_ops.reset_fn(data);
 
@@ -135,7 +135,7 @@ namespace sfg
 				{
 					u8* element_data = field.container_ops.add_element_ptr_fn(data);
 					if (element_data == nullptr)
-						return;
+						return false;
 
 					const reflected_field_t temp_field = {
 						.sub_type_id = field.container_ops.element_sub_type_id,
@@ -143,32 +143,34 @@ namespace sfg
 						.value_type	 = field.container_ops.element_value_type,
 					};
 
-					field_from_stream(temp_field, element_data, user_data, in_stream);
+					if (!field_from_stream(temp_field, element_data, user_data, in_stream))
+						return false;
 				}
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::string)
 			{
 				string_t& str = *reinterpret_cast<string_t*>(data);
 				in_stream >> str;
-				return;
+				return true;
 			}
 
 			SFG_ASSERT(field.size != 0);
 			const size_t read_size = field.size;
 			in_stream.read_to_raw(data, read_size);
+			return true;
 		}
 
-		void field_to_json(const reflected_field_t& field, void* obj, void* user_data, nlohmann::json& out_json, bool dismiss_name = false)
+		bool field_to_json(const reflected_field_t& field, void* obj, void* user_data, nlohmann::json& out_json, bool dismiss_name = false)
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
 			if (field.value_type == reflected_value_type_e_v2::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
-				return;
+				return false;
 			}
 
 			if (field.custom_serialization.to_json_fn)
@@ -181,13 +183,13 @@ namespace sfg
 				else
 					out_json[field.name] = child_json;
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::container)
 			{
 				if (field.container_ops.get_element_ptr_fn == nullptr || field.container_ops.get_element_size_fn == nullptr)
-					return;
+					return false;
 
 				const size_t item_size = field.container_ops.get_element_size_fn(data);
 
@@ -203,27 +205,29 @@ namespace sfg
 					  };
 
 					nlohmann::json elem_json = nlohmann::json::object();
-					field_to_json(temp_field, element_data, user_data, elem_json, true);
+					if (!field_to_json(temp_field, element_data, user_data, elem_json, true))
+						return false;
 					container_json.push_back(elem_json);
 				}
 
 				out_json[field.name] = container_json;
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::object)
 			{
 				if (dismiss_name)
-					reflection_registry_v2::get().type_to_json(field.sub_type_id, data, user_data, out_json);
+					return reflection_registry_v2::get().type_to_json(field.sub_type_id, data, user_data, out_json);
 				else
 				{
 					nlohmann::json child_json = nlohmann::json::object();
-					reflection_registry_v2::get().type_to_json(field.sub_type_id, data, user_data, child_json);
+					if (!reflection_registry_v2::get().type_to_json(field.sub_type_id, data, user_data, child_json))
+						return false;
 					out_json[field.name] = child_json;
 				}
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::string)
@@ -233,7 +237,7 @@ namespace sfg
 					out_json = *str;
 				else
 					out_json[field.name] = *str;
-				return;
+				return true;
 			}
 
 			switch (field.value_type)
@@ -318,18 +322,19 @@ namespace sfg
 
 			default:
 				SFG_ERR("unsupported reflected value type");
-				break;
+				return false;
 			}
+			return true;
 		}
 
-		void field_from_json(const reflected_field_t& field, void* obj, void* user_data, const nlohmann::json& in_json, bool dismiss_name = false)
+		bool field_from_json(const reflected_field_t& field, void* obj, void* user_data, const nlohmann::json& in_json, bool dismiss_name = false)
 		{
 			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
 
 			if (field.value_type == reflected_value_type_e_v2::invalid)
 			{
 				SFG_ERR("can't write field to stream because value type is invalid!");
-				return;
+				return false;
 			}
 
 			if (field.custom_serialization.from_json_fn)
@@ -342,20 +347,20 @@ namespace sfg
 					field.custom_serialization.from_json_fn(data, user_data, child_json);
 				}
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::container)
 			{
 				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
-					return;
+					return false;
 
 				if (!in_json.contains(field.name))
-					return;
+					return true;
 
 				const nlohmann::json container_json = in_json.value<nlohmann::json>(field.name, nlohmann::json::array());
 				if (!container_json.is_array())
-					return;
+					return false;
 
 				const size_t sz = container_json.size();
 				field.container_ops.reset_fn(data);
@@ -364,32 +369,34 @@ namespace sfg
 				{
 					u8* element_data = field.container_ops.add_element_ptr_fn(data);
 					if (element_data == nullptr)
-						return;
+						return false;
 
 					const reflected_field_t temp_field = {
 						.sub_type_id = field.container_ops.element_sub_type_id,
 						.size		 = field.container_ops.element_value_size,
 						.value_type	 = field.container_ops.element_value_type,
 					};
-					field_from_json(temp_field, element_data, user_data, container_json[i], true);
+					if (!field_from_json(temp_field, element_data, user_data, container_json[i], true))
+						return false;
 				}
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::object)
 			{
 				if (dismiss_name)
-					reflection_registry_v2::get().type_from_json(field.sub_type_id, data, user_data, in_json);
+					return reflection_registry_v2::get().type_from_json(field.sub_type_id, data, user_data, in_json);
 				else
 				{
 					if (!in_json.contains(field.name))
-						return;
+						return true;
 					const nlohmann::json child_json = in_json.value<nlohmann::json>(field.name, {});
-					reflection_registry_v2::get().type_from_json(field.sub_type_id, data, user_data, child_json);
+					if (!reflection_registry_v2::get().type_from_json(field.sub_type_id, data, user_data, child_json))
+						return false;
 				}
 
-				return;
+				return true;
 			}
 
 			if (field.value_type == reflected_value_type_e_v2::string)
@@ -400,14 +407,14 @@ namespace sfg
 				else
 				{
 					if (!in_json.contains(field.name))
-						return;
+						return true;
 					str = in_json.value<string_t>(field.name, "");
 				}
-				return;
+				return true;
 			}
 
 			if (!dismiss_name && !in_json.contains(field.name))
-				return;
+				return true;
 
 			switch (field.value_type)
 			{
@@ -497,8 +504,9 @@ namespace sfg
 
 			default:
 				SFG_ERR("unsupported reflected value type");
-				break;
+				return false;
 			}
+			return true;
 		}
 	}
 
@@ -625,42 +633,44 @@ namespace sfg
 		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
 	}
 
-	void reflection_registry_v2::type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream)
+	bool reflection_registry_v2::type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream)
 	{
 		reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
-			return;
+			return false;
 		}
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return;
+			return true;
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
 			out_stream.write_raw(reinterpret_cast<u8*>(obj), type->size);
-			return;
+			return true;
 		}
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
 			const reflected_field_t& field = _fields[i];
-			field_to_stream(field, obj, user_data, out_stream);
+			if (!field_to_stream(field, obj, user_data, out_stream))
+				return false;
 		}
+		return true;
 	}
 
-	void reflection_registry_v2::type_to_json(sid_t type_id, void* obj, void* user_data, nlohmann::json& out_json)
+	bool reflection_registry_v2::type_to_json(sid_t type_id, void* obj, void* user_data, nlohmann::json& out_json)
 	{
 		reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
-			return;
+			return false;
 		}
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return;
+			return true;
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
@@ -679,8 +689,9 @@ namespace sfg
 			else
 			{
 				SFG_ERR("enum type size mismatch!");
+				return false;
 			}
-			return;
+			return true;
 		}
 
 		nlohmann::json type_json = nlohmann::json::object();
@@ -688,49 +699,53 @@ namespace sfg
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
 			const reflected_field_t& field = _fields[i];
-			field_to_json(field, obj, user_data, type_json);
+			if (!field_to_json(field, obj, user_data, type_json))
+				return false;
 		}
 
 		out_json = type_json;
+		return true;
 	}
 
-	void reflection_registry_v2::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
+	bool reflection_registry_v2::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
 	{
 		reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
-			return;
+			return false;
 		}
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return;
+			return true;
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
 			u8* ptr = reinterpret_cast<u8*>(obj);
 			in_stream.read_to_raw(ptr, type->size);
-			return;
+			return true;
 		}
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
 			const reflected_field_t& field = _fields[i];
-			field_from_stream(field, obj, user_data, in_stream);
+			if (!field_from_stream(field, obj, user_data, in_stream))
+				return false;
 		}
+		return true;
 	}
 
-	void reflection_registry_v2::type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json)
+	bool reflection_registry_v2::type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json)
 	{
 		reflected_type_t* type = find_type(type_id);
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
-			return;
+			return false;
 		}
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return;
+			return true;
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
@@ -749,15 +764,18 @@ namespace sfg
 			else
 			{
 				SFG_ERR("enum type size mismatch!");
+				return false;
 			}
-			return;
+			return true;
 		}
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
 			const reflected_field_t& field = _fields[i];
-			field_from_json(field, obj, user_data, in_json);
+			if (!field_from_json(field, obj, user_data, in_json))
+				return false;
 		}
+		return true;
 	}
 
 	reflected_type_t* reflection_registry_v2::find_type(sid_t type_id)

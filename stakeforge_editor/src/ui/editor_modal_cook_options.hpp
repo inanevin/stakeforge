@@ -33,7 +33,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class editor_widget_fold_t;
-	class editor_widget_reflect_type_t;
+	class editor_widget_reflection_t;
 
 	struct editor_modal_cook_option_desc_t
 	{
@@ -62,10 +62,10 @@ namespace sfg
 		static void uninit_content(void* user_data);
 
 	private:
-		vector_t<editor_modal_cook_option_desc_t> _options		 = {};
-		vector_t<editor_widget_fold_t*>			  _folds		 = {};
-		vector_t<editor_widget_reflect_type_t*>	  _reflect_types = {};
-		ui::ui_context*							  _ui			 = nullptr;
-		ui::widget_id_t							  _root			 = NULL_WIDGET;
+		vector_t<editor_modal_cook_option_desc_t> _options	   = {};
+		vector_t<editor_widget_fold_t*>			  _folds	   = {};
+		vector_t<editor_widget_reflection_t*>	  _reflections = {};
+		ui::ui_context*							  _ui		   = nullptr;
+		ui::widget_id_t							  _root		   = NULL_WIDGET;
 	};
 }

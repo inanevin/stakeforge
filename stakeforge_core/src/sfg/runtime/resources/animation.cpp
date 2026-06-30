@@ -1,10 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "animation.hpp"
-
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
-
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
