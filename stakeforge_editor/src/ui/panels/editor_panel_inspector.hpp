@@ -36,8 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {

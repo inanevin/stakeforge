@@ -268,10 +268,10 @@ namespace sfg
 		install_editor_camera(world);
 
 		const entity_id_t	environment = world.create_entity("environment");
-		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(component_skybox_t::TYPE_ID)->table, environment);
+		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value)->table, environment);
 		skybox.skybox_asset				= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
 		skybox.exposure					= 0.25f;
-		ecs_helpers_t::table_add_or_get_as<component_debug_widgets_t>(world.get_component_table(component_debug_widgets_t::TYPE_ID)->table, environment);
+		ecs_helpers_t::table_add_or_get_as<component_debug_widgets_t>(world.get_component_table(type_id_t<component_debug_widgets_t>::value)->table, environment);
 
 		for (world_container_t& container : _worlds)
 		{
@@ -542,10 +542,10 @@ namespace sfg
 	void editor_world_controller_t::install_editor_camera(world_t& world)
 	{
 		const entity_id_t	camera_entity = world.create_entity("editor camera");
-		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(component_camera_t::TYPE_ID)->table, camera_entity);
+		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value)->table, camera_entity);
 		camera.priority					  = -1;
-		ecs_t::table_add(world.get_component_table(component_no_serialize_t::TYPE_ID)->table, camera_entity);
-		ecs_t::table_add(world.get_component_table(component_render_object_t::TYPE_ID)->table, camera_entity);
+		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value)->table, camera_entity);
+		ecs_t::table_add(world.get_component_table(type_id_t<component_render_object_t>::value)->table, camera_entity);
 		_main_camera_entity	  = camera_entity;
 		const vec3f_t euler	  = quat_t::to_euler(world.get_entity_rot_local(camera_entity));
 		_camera_pitch_degrees = euler.x;

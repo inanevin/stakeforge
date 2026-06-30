@@ -19,15 +19,16 @@ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
 INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widgets_slider.hpp"
+#include "ui/widgets/editor_widget_slider_v2.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
@@ -36,7 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_slider_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_slider_config_t& config)
+	void editor_slider_v2_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_slider_v2_config_t& config)
 	{
 		_ui		= &ui;
 		_config = config;
@@ -46,7 +47,7 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
-		ui.set_widget_debug_name(_root, "editor_slider_base");
+		ui.set_widget_debug_name(_root, "editor_slider_v2_base");
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
@@ -61,7 +62,7 @@ namespace sfg
 		root_in.anchor_y		 = ui::anchor_e::center;
 
 		_slider = ui.allocate_widget();
-		ui.set_widget_debug_name(_slider, "editor_slider_slider");
+		ui.set_widget_debug_name(_slider, "editor_slider_v2_slider");
 		tree.attach(_root, _slider);
 
 		ui::layout_in_t& slider_in = tree.in(_slider);
@@ -80,7 +81,7 @@ namespace sfg
 		ui.get_input().set_listener(_slider, listener);
 
 		_bg = ui.allocate_widget();
-		ui.set_widget_debug_name(_bg, "editor_slider_bg");
+		ui.set_widget_debug_name(_bg, "editor_slider_v2_bg");
 		tree.attach(_slider, _bg);
 
 		ui::layout_in_t& bg_in = tree.in(_bg);
@@ -99,7 +100,7 @@ namespace sfg
 		paint.set_rect(_bg, bg_rect);
 
 		_icon = ui.allocate_widget();
-		ui.set_widget_debug_name(_icon, "editor_slider_icon");
+		ui.set_widget_debug_name(_icon, "editor_slider_v2_icon");
 		tree.attach(_slider, _icon);
 
 		ui::layout_in_t& icon_in = tree.in(_icon);
@@ -120,7 +121,7 @@ namespace sfg
 		paint.set_state_source(_icon, _slider);
 
 		_label = ui.allocate_widget();
-		ui.set_widget_debug_name(_label, "editor_slider_label");
+		ui.set_widget_debug_name(_label, "editor_slider_v2_label");
 		tree.attach(_root, _label);
 
 		ui::layout_in_t& label_in = tree.in(_label);
@@ -135,10 +136,10 @@ namespace sfg
 		paint.set_text(
 			_label, ui.widget_text(_label), ui.widget_text_len(_label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		set_value(config.value);
+		update_field_data(config.field);
 	}
 
-	void editor_slider_t::uninit()
+	void editor_slider_v2_t::uninit()
 	{
 		_ui->deallocate_widget(_root);
 
@@ -151,15 +152,44 @@ namespace sfg
 		_config		   = {};
 		_label_text[0] = '\0';
 		_value		   = 0.0f;
+		_mixed		   = false;
 	}
 
-	void editor_slider_t::set_value(f32 value)
+	void editor_slider_v2_t::set_value(f32 value)
 	{
 		_value = math::clamp(value, _config.min_value, _config.max_value);
+		_mixed = false;
+		modify_field();
 		refresh();
 	}
 
-	void editor_slider_t::refresh()
+	void editor_slider_v2_t::update_field_data(editor_slider_v2_field_t field)
+	{
+		SFG_ASSERT(field.fields.size > 0);
+		SFG_ASSERT(field.fields.data != nullptr);
+		for (size_t i = 0; i < field.fields.size; ++i)
+			SFG_ASSERT(field.fields.data[i] != nullptr);
+
+		_config.field = field;
+		_value		  = math::clamp(*field.fields.data[0], _config.min_value, _config.max_value);
+		_mixed		  = false;
+		for (size_t i = 1; i < field.fields.size; ++i)
+		{
+			if (*field.fields.data[i] != *field.fields.data[0])
+			{
+				_mixed = true;
+				break;
+			}
+		}
+		refresh();
+	}
+
+	void editor_slider_v2_t::refresh_field_data()
+	{
+		update_field_data(_config.field);
+	}
+
+	void editor_slider_v2_t::refresh()
 	{
 		const f32 range						  = _config.max_value - _config.min_value;
 		const f32 t							  = range > 0.0f ? math::clamp((_value - _config.min_value) / range, 0.0f, 1.0f) : 0.0f;
@@ -167,48 +197,58 @@ namespace sfg
 		refresh_label();
 	}
 
-	void editor_slider_t::refresh_label()
+	void editor_slider_v2_t::refresh_label()
 	{
 		if (!_config.display_label)
 			return;
 
-		char	  text[sizeof(_label_text)] = {};
-		const u32 decimals					= math::min(static_cast<u32>(_config.decimal_count), 6u);
-		snprintf(text, sizeof(text), "%.*f", static_cast<int>(decimals), _value);
+		char text[sizeof(_label_text)] = {};
+		if (_mixed)
+			snprintf(text, sizeof(text), "Mixed");
+		else
+		{
+			const u32 decimals = math::min(static_cast<u32>(_config.decimal_count), 6u);
+			snprintf(text, sizeof(text), "%.*f", static_cast<int>(decimals), _value);
+		}
+
 		if (strcmp(_label_text, text) == 0)
 			return;
 
 		memcpy(_label_text, text, sizeof(_label_text));
 		_ui->set_widget_text(_label, _label_text);
+
+		const editor_theme_t& theme				= editor_theme_t::get();
+		_ui->get_paint().def(_label).text.color = _mixed ? theme.color_accent_warn : theme.color_text0;
 	}
 
-	void editor_slider_t::set_value_from_pos(const vec2f_t& pos)
+	void editor_slider_v2_t::set_value_from_pos(const vec2f_t& pos)
 	{
 		const ui::layout_out_t& out = _ui->get_tree().out(_slider);
 		const f32				t	= out.size.x > 0.0f ? math::clamp((pos.x - out.pos.x) / out.size.x, 0.0f, 1.0f) : 0.0f;
-		const f32				old = _value;
 		_value						= _config.min_value + (_config.max_value - _config.min_value) * t;
+		_mixed						= false;
+		modify_field();
 		refresh();
-		if (_value != old)
-			notify_changed();
 	}
 
-	void editor_slider_t::notify_changed() const
+	void editor_slider_v2_t::modify_field()
 	{
-		if (_config.on_changed != nullptr)
-			_config.on_changed(_value, _config.user_data);
+		SFG_ASSERT(_config.field.fields.size > 0);
+		SFG_ASSERT(_config.field.fields.data != nullptr);
+		for (size_t i = 0; i < _config.field.fields.size; ++i)
+			*_config.field.fields.data[i] = _value;
 	}
 
-	void editor_slider_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_slider_v2_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		static_cast<editor_slider_t*>(user_data)->set_value_from_pos(pos);
+		static_cast<editor_slider_v2_t*>(user_data)->set_value_from_pos(pos);
 	}
 
-	void editor_slider_t::on_drag(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
+	void editor_slider_v2_t::on_drag(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
 	{
-		static_cast<editor_slider_t*>(user_data)->set_value_from_pos(pos);
+		static_cast<editor_slider_v2_t*>(user_data)->set_value_from_pos(pos);
 	}
 }

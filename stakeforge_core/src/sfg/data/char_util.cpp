@@ -27,10 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "char_util.hpp"
 #include <sfg/memory/memory.hpp>
 
-#include <cstring>
-#include <cstdio>
-#include <charconv>
-
 namespace sfg
 {
 	static inline size_t remaining_bytes(char* cur, char* end)

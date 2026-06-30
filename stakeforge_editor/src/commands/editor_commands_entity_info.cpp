@@ -32,9 +32,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/world/world.hpp>
 
-#include <cstring>
-#include <limits>
-
 namespace sfg
 {
 	namespace

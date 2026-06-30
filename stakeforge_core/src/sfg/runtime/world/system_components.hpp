@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/hashing.hpp>
+#include <sfg/common/type_id.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -37,7 +37,6 @@ namespace sfg
 {
 	struct component_system_transform_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_system_transform"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_system_transform";
 
 		mat4x3_t prev_abs_mat		= mat4x3_t::identity;
@@ -50,6 +49,8 @@ namespace sfg
 		vec3f_t	 abs_scale			= vec3f_t::one;
 		bool	 snap_interpolation = false;
 	};
+
+	SFG_DEFINE_TYPE_ID(component_system_transform_t);
 
 	struct system_component_reflection_t
 	{

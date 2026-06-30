@@ -30,11 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	template <> struct type_id_t<component_system_transform_t>
-	{
-		static inline constexpr sid_t value = "component_system_transform"_hs;
-	};
-
 	system_component_reflection_t::system_component_reflection_t()
 	{
 		reflection_registry_v2& registry = reflection_registry_v2::get();

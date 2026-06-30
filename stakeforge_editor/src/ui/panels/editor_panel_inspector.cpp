@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity_info.hpp"
+
 #include "editor_app.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
@@ -41,7 +42,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <cstring>
+#include <sfg/runtime/engine/common_engine.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -466,7 +468,7 @@ namespace sfg
 
 	bool editor_panel_inspector_t::is_component_removable(sid_t type_id) const
 	{
-		return type_id != component_transform_t::TYPE_ID && type_id != component_name_t::TYPE_ID;
+		return type_id != type_id_t<component_transform_t>::value && type_id != type_id_t<component_name_t>::value;
 	}
 
 	bool editor_panel_inspector_t::is_component_paste_enabled(sid_t type_id) const

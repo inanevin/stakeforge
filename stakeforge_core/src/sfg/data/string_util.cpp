@@ -29,11 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <charconv>
 #include <codecvt>
-#include <locale>
-#include <iostream>
-#include <cwchar>
-#include <cstring>
-#include <algorithm>
+
 
 #ifdef SFG_COMPILER_MSVC
 #pragma warning(push)

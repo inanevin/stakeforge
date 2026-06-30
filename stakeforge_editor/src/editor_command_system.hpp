@@ -71,15 +71,15 @@ namespace sfg
 
 	struct editor_command_t
 	{
-		using fn_t = bool (*)(editor_command_system_t& system, editor_command_t& command);
+		using fn_t								 = bool (*)(editor_command_system_t& system, editor_command_t& command);
 
-		chunk_handle32_t	   payload			 = {};
 		void*				   user_data		 = nullptr;
 		const char*			   debug_name		 = nullptr;
 		fn_t				   undo				 = nullptr;
 		fn_t				   redo				 = nullptr;
 		fn_t				   cleanup			 = nullptr;
 		u32					   sequence			 = 0;
+		chunk_handle32_t	   payload			 = {};
 		editor_command_type_e  type				 = editor_command_type_e::invalid;
 		editor_command_state_e state			 = editor_command_state_e::invalid;
 		bool				   entity_generation = false;

@@ -27,12 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-
-#include <cstring>
-#include <memory>
-#include <type_traits>
 
 namespace sfg
 {
@@ -55,7 +52,7 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return make_component_desc(T::TYPE_ID, sizeof(T), alignof(T), ecs_component_type_flags_none, T::DEBUG_NAME, [](void* ptr) { std::construct_at(static_cast<T*>(ptr), T{}); });
+			return make_component_desc(type_id_t<T>::value, sizeof(T), alignof(T), ecs_component_type_flags_none, T::DEBUG_NAME, [](void* ptr) { std::construct_at(static_cast<T*>(ptr), T{}); });
 		}
 
 		template <typename T> static ecs_component_type_desc_t make_tag_component_desc()
@@ -63,7 +60,7 @@ namespace sfg
 			static_assert(std::is_trivially_copyable_v<T>);
 			static_assert(std::is_standard_layout_v<T>);
 
-			return make_component_desc(T::TYPE_ID, 0, 1, ecs_component_type_flags_tag, T::DEBUG_NAME, [](void*) {});
+			return make_component_desc(type_id_t<T>::value, 0, 1, ecs_component_type_flags_tag, T::DEBUG_NAME, [](void*) {});
 		}
 
 		static void table_init_tag(ecs_component_table_t& table, sid_t type_id, const char* debug_name)
@@ -121,7 +118,7 @@ namespace sfg
 
 		template <typename T> static const T& row_get(const ecs_query_row_t& row)
 		{
-			const u32 idx = row_get_index(row, T::TYPE_ID);
+			const u32 idx = row_get_index(row, type_id_t<T>::value);
 			SFG_ASSERT(idx < ECS_INNER_JOIN_MAX_TABLES);
 			const T* ptr = reinterpret_cast<const T*>(row.components[idx]);
 			return *ptr;
@@ -135,7 +132,7 @@ namespace sfg
 
 		template <typename T> static T& row_get_mutable(const ecs_query_row_t& row)
 		{
-			const u32 idx = row_get_index(row, T::TYPE_ID);
+			const u32 idx = row_get_index(row, type_id_t<T>::value);
 			SFG_ASSERT(idx < ECS_INNER_JOIN_MAX_TABLES);
 			T* ptr = reinterpret_cast<T*>(row.components[idx]);
 			return *ptr;

@@ -47,12 +47,12 @@ namespace sfg
 		snapshot.draws.resize(0);
 		snapshot.skybox = {};
 
-		const world_component_table_t* transform_table = world.find_component_table(component_system_transform_t::TYPE_ID);
-		const world_component_table_t* alive_table	   = world.find_component_table(component_alive_t::TYPE_ID);
-		const world_component_table_t* render_table	   = world.find_component_table(component_render_object_t::TYPE_ID);
-		const world_component_table_t* camera_table	   = world.find_component_table(component_camera_t::TYPE_ID);
-		const world_component_table_t* skybox_table	   = world.find_component_table(component_skybox_t::TYPE_ID);
-		const world_component_table_t* disabled_table  = world.find_component_table(component_disabled_t::TYPE_ID);
+		const world_component_table_t* transform_table = world.find_component_table(type_id_t<component_system_transform_t>::value);
+		const world_component_table_t* alive_table	   = world.find_component_table(type_id_t<component_alive_t>::value);
+		const world_component_table_t* render_table	   = world.find_component_table(type_id_t<component_render_object_t>::value);
+		const world_component_table_t* camera_table	   = world.find_component_table(type_id_t<component_camera_t>::value);
+		const world_component_table_t* skybox_table	   = world.find_component_table(type_id_t<component_skybox_t>::value);
+		const world_component_table_t* disabled_table  = world.find_component_table(type_id_t<component_disabled_t>::value);
 		SFG_ASSERT(transform_table != nullptr);
 		SFG_ASSERT(alive_table != nullptr);
 		SFG_ASSERT(render_table != nullptr);
@@ -142,12 +142,12 @@ namespace sfg
 				const skybox_hdr_internals_t* internals = resource_manager.get_memory().get<skybox_hdr_internals_t>(entry->internals);
 				const skybox_hdr_runtime_t*	  runtime	= resource_manager.get_memory().get<skybox_hdr_runtime_t>(entry->runtime);
 				snapshot.skybox							= {
-					.radiance	= internals->radiance_texture,
-					.irradiance = internals->irradiance_texture,
-					.prefilter	= internals->prefilter_texture,
-					.brdf_lut	= internals->brdf_lut_texture,
-					.intensity	= runtime->intensity * skybox.intensity,
-					.exposure	= skybox.exposure,
+											.radiance	= internals->radiance_texture,
+											.irradiance = internals->irradiance_texture,
+											.prefilter	= internals->prefilter_texture,
+											.brdf_lut	= internals->brdf_lut_texture,
+											.intensity	= runtime->intensity * skybox.intensity,
+											.exposure	= skybox.exposure,
 				};
 				break;
 			}

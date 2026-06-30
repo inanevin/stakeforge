@@ -29,12 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "resource_handle.hpp"
 #include "vertex.hpp"
-
 #include <sfg/common/type_id.hpp>
-
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/aabb.hpp>
 
 namespace sfg

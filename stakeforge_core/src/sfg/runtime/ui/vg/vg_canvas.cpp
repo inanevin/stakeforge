@@ -37,9 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 
-#include <algorithm>
-#include <cstring>
-
 namespace sfg::ui
 {
 	namespace
@@ -54,25 +51,10 @@ namespace sfg::ui
 			bool valid	   = false;
 		};
 
-		inline f32 snap_px(f32 v)
-		{
-			return math::round(v);
-		}
-
-		inline f32 snap_size_px(f32 v)
-		{
-			return math::max(0.0f, math::round(v));
-		}
-
-		inline f32 snap_thickness_px(f32 v)
-		{
-			return v > 0.0f ? math::max(1.0f, math::round(v)) : 0.0f;
-		}
-
 		inline void snap_rect_px(const vec2f_t& in_min, const vec2f_t& in_max, vec2f_t& out_min, vec2f_t& out_max)
 		{
-			out_min = {snap_px(in_min.x), snap_px(in_min.y)};
-			out_max = {out_min.x + snap_size_px(in_max.x - in_min.x), out_min.y + snap_size_px(in_max.y - in_min.y)};
+			out_min = {math::round(in_min.x), math::round(in_min.y)};
+			out_max = {out_min.x + math::max(0.0f, math::round(in_max.x - in_min.x)), out_min.y + math::max(0.0f, math::round(in_max.y - in_min.y))};
 		}
 
 		text_bounds_t measure_text_bounds(const char* text, size_t len, glyph_atlas_t& atlas, const font_runtime_t* font, const size_metrics_t& metrics, u32 px, glyph_raster_mode_e raster_mode, f32 scale, f32 spacing)
@@ -600,13 +582,13 @@ namespace sfg::ui
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state);
 
 		if (round)
-			vg_path_rounded_rect(_path0, draw_min, draw_max, snap_size_px(paint.rounding), paint.rounding_segs);
+			vg_path_rounded_rect(_path0, draw_min, draw_max, math::max(0.0f, math::round(paint.rounding)), paint.rounding_segs);
 		else
 			vg_path_sharp_rect(_path0, draw_min, draw_max);
 
 		if (out)
 		{
-			f32 thickness = snap_thickness_px(paint.outline_thickness);
+			f32 thickness = paint.outline_thickness > 0.0f ? math::max(1.0f, math::round(paint.outline_thickness)) : 0.0f;
 			if (round)
 			{
 				const f32 dir = paint.filled ? 1.0f : -1.0f;
@@ -896,7 +878,7 @@ namespace sfg::ui
 			use_cache = false;
 
 		vg_draw_buffer_t* db		 = get_draw_buffer(draw_order, state);
-		const vec2f_t	  draw_pos	 = {snap_px(pos.x), snap_px(pos.y)};
+		const vec2f_t	  draw_pos	 = {math::round(pos.x), math::round(pos.y)};
 		u64				  cache_hash = 0;
 
 		if (use_cache)

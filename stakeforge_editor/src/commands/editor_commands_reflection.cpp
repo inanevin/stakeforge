@@ -37,8 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
-#include <cstring>
-
 namespace sfg
 {
 	namespace
@@ -105,7 +103,7 @@ namespace sfg
 
 		bool serialize_builtin_component_field_to_stream(sid_t type_id, sid_t field_id, const void* object, ostream_t& stream)
 		{
-			if (type_id == component_transform_t::TYPE_ID)
+			if (type_id == type_id_t<component_transform_t>::value)
 			{
 				const component_transform_t& transform = *static_cast<const component_transform_t*>(object);
 				if (field_id == "pos"_hs)
@@ -123,7 +121,7 @@ namespace sfg
 				return true;
 			}
 
-			if (type_id == component_name_t::TYPE_ID)
+			if (type_id == type_id_t<component_name_t>::value)
 			{
 				const component_name_t& name = *static_cast<const component_name_t*>(object);
 				SFG_ASSERT(field_id == "text_index"_hs);
@@ -136,7 +134,7 @@ namespace sfg
 
 		bool deserialize_builtin_component_field_from_stream(sid_t type_id, sid_t field_id, void* object, istream_t& stream)
 		{
-			if (type_id == component_transform_t::TYPE_ID)
+			if (type_id == type_id_t<component_transform_t>::value)
 			{
 				component_transform_t& transform = *static_cast<component_transform_t*>(object);
 				if (field_id == "pos"_hs)
@@ -154,7 +152,7 @@ namespace sfg
 				return true;
 			}
 
-			if (type_id == component_name_t::TYPE_ID)
+			if (type_id == type_id_t<component_name_t>::value)
 			{
 				component_name_t& name = *static_cast<component_name_t*>(object);
 				SFG_ASSERT(field_id == "text_index"_hs);

@@ -49,10 +49,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
-#include <algorithm>
-#include <cstring>
-#include <iterator>
-
 namespace sfg
 {
 #define ENTITIES_INITIAL_ROW_CAPACITY 64
@@ -344,9 +340,9 @@ namespace sfg
 			return;
 
 		const world_t&				   world		   = app.get_runtime().get_world(main_world);
-		const world_component_table_t* alive_table	   = world.find_component_table(component_alive_t::TYPE_ID);
-		const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
-		const world_component_table_t* name_table	   = world.find_component_table(component_name_t::TYPE_ID);
+		const world_component_table_t* alive_table	   = world.find_component_table(type_id_t<component_alive_t>::value);
+		const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const world_component_table_t* name_table	   = world.find_component_table(type_id_t<component_name_t>::value);
 		SFG_ASSERT(alive_table != nullptr);
 		SFG_ASSERT(hierarchy_table != nullptr);
 		SFG_ASSERT(name_table != nullptr);

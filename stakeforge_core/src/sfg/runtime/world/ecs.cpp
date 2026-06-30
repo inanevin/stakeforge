@@ -30,10 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 
-#include <algorithm>
-#include <bit>
-#include <cstring>
-
 namespace sfg
 {
 	ecs_query_range_t::ecs_query_range_t(span_t<const ecs_component_table_ref_t> in_table_refs)

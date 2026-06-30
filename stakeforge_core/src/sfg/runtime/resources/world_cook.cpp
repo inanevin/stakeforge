@@ -228,9 +228,9 @@ namespace sfg
 
 		world_cook_entity_header_t make_entity_header(const world_t& world, entity_id_t entity, bool ignore_prefab_reference = false)
 		{
-			const world_component_table_t* transform_table = world.find_component_table(component_transform_t::TYPE_ID);
+			const world_component_table_t* transform_table = world.find_component_table(type_id_t<component_transform_t>::value);
 			SFG_ASSERT(transform_table != nullptr);
-			const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+			const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
 			SFG_ASSERT(hierarchy_table != nullptr);
 
 			const component_transform_t& transform = ecs_helpers_t::table_get_as_const<component_transform_t>(transform_table->table, entity);
@@ -239,7 +239,7 @@ namespace sfg
 			resource_handle_t			 prefab	   = NULL_RESOURCE_HANDLE;
 			if (!ignore_prefab_reference)
 			{
-				const world_component_table_t* prefab_reference_table = world.find_component_table(component_prefab_reference_t::TYPE_ID);
+				const world_component_table_t* prefab_reference_table = world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 				SFG_ASSERT(prefab_reference_table != nullptr);
 				if (ecs_t::table_has(prefab_reference_table->table, entity))
 					prefab = ecs_helpers_t::table_get_as_const<component_prefab_reference_t>(prefab_reference_table->table, entity).prefab;
@@ -306,7 +306,7 @@ namespace sfg
 
 		bool is_entity_no_serialize(const world_t& world, entity_id_t entity)
 		{
-			const world_component_table_t* table = world.find_component_table(component_no_serialize_t::TYPE_ID);
+			const world_component_table_t* table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
 			SFG_ASSERT(table != nullptr);
 			return ecs_t::table_has(table->table, entity);
 		}
@@ -373,7 +373,7 @@ namespace sfg
 				out_json["components"].push_back(component_json);
 			}
 
-			const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+			const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
 			SFG_ASSERT(hierarchy_table != nullptr);
 
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, entity);
@@ -426,7 +426,7 @@ namespace sfg
 				}
 			}
 
-			const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+			const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
 			SFG_ASSERT(hierarchy_table != nullptr);
 
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, entity);
@@ -446,7 +446,7 @@ namespace sfg
 
 	void world_cooker_t::world_to_stream(const world_t& world, ostream_t& out_stream)
 	{
-		const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+		const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
 		SFG_ASSERT(hierarchy_table != nullptr);
 
 		frame_vector_t<entity_id_t>		  roots;
@@ -476,7 +476,7 @@ namespace sfg
 
 	void world_cooker_t::world_to_json(const world_t& world, nlohmann::json& out_json)
 	{
-		const world_component_table_t* hierarchy_table = world.find_component_table(component_hierarchy_t::TYPE_ID);
+		const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
 		SFG_ASSERT(hierarchy_table != nullptr);
 
 		frame_vector_t<resource_handle_t> resources;

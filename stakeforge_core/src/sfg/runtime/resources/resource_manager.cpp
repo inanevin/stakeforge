@@ -9,8 +9,6 @@
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 
-#include <cstring>
-
 namespace sfg
 {
 	resource_manager_t& resource_manager_t::get()

@@ -57,11 +57,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TINYGLTF3_IMPLEMENTATION
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
 
-#include <atomic>
-#include <cstring>
-#include <iterator>
-#include <limits>
-#include <utility>
 
 namespace sfg
 {

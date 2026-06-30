@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/hashing.hpp>
+#include <sfg/common/type_id.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -39,7 +39,6 @@ namespace sfg
 {
 	struct component_hierarchy_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_hierarchy"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_hierarchy";
 
 		entity_id_t first_child	 = NULL_ENTITY_ID;
@@ -48,17 +47,19 @@ namespace sfg
 		entity_id_t prev_sibling = NULL_ENTITY_ID;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_hierarchy_t);
+
 	struct component_guid_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_guid"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_guid";
 
 		entity_guid_t guid = NULL_ENTITY_GUID;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_guid_t);
+
 	struct component_transform_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_transform"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_transform";
 
 		vec3f_t pos	  = vec3f_t::zero;
@@ -66,34 +67,38 @@ namespace sfg
 		vec3f_t scale = vec3f_t::one;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_transform_t);
+
 	struct component_name_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_name"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_name";
 
 		u32 text_index = ECS_INVALID_INDEX;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_name_t);
+
 	struct component_mesh_renderer_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_mesh_renderer"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_mesh_renderer";
 
 		resource_handle_t mesh	   = NULL_RESOURCE_HANDLE;
 		resource_handle_t material = NULL_RESOURCE_HANDLE;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_mesh_renderer_t);
+
 	struct component_render_object_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_render_object"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_render_object";
 
 		u32 render_id = 0;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_render_object_t);
+
 	struct component_camera_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_camera"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_camera";
 
 		f32 fov_degrees = 60.0f;
@@ -102,9 +107,10 @@ namespace sfg
 		i8	priority	= 0;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_camera_t);
+
 	struct component_skybox_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_skybox"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_skybox";
 
 		resource_handle_t skybox_asset = NULL_RESOURCE_HANDLE;
@@ -112,13 +118,16 @@ namespace sfg
 		f32				  exposure	   = 1.0f;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_skybox_t);
+
 	struct component_prefab_reference_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_prefab_reference"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_prefab_reference";
 
 		resource_handle_t prefab = NULL_RESOURCE_HANDLE;
 	};
+
+	SFG_DEFINE_TYPE_ID(component_prefab_reference_t);
 
 	struct debug_widgets_inplace_vector_t
 	{
@@ -140,7 +149,6 @@ namespace sfg
 
 	struct component_debug_widgets_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "debug_widgets_component"_hs;
 		static inline constexpr const char* DEBUG_NAME = "debug_widgets_component";
 
 		debug_widgets_inplace_vector_t inplace_vector_value					= {};
@@ -171,23 +179,28 @@ namespace sfg
 		u8							   enum8_value							= 1;
 	};
 
+	SFG_DEFINE_TYPE_ID(component_debug_widgets_t);
+
 	struct component_alive_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_alive"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_alive";
 	};
 
+	SFG_DEFINE_TYPE_ID(component_alive_t);
+
 	struct component_disabled_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_disabled"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_disabled";
 	};
 
+	SFG_DEFINE_TYPE_ID(component_disabled_t);
+
 	struct component_no_serialize_t
 	{
-		static inline constexpr sid_t		TYPE_ID	   = "component_no_serialize"_hs;
 		static inline constexpr const char* DEBUG_NAME = "component_no_serialize";
 	};
+
+	SFG_DEFINE_TYPE_ID(component_no_serialize_t);
 
 	struct engine_component_reflection_t
 	{

@@ -36,9 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world.hpp>
 
-#include <cstring>
-#include <limits>
-
 namespace sfg
 {
 	namespace

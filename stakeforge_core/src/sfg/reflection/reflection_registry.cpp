@@ -43,8 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec4u.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
-#include <cstring>
-#include <memory>
 
 namespace sfg
 {

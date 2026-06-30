@@ -34,59 +34,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	template <> struct type_id_t<component_hierarchy_t>
-	{
-		static inline constexpr sid_t value = "component_hierarchy"_hs;
-	};
-	template <> struct type_id_t<component_guid_t>
-	{
-		static inline constexpr sid_t value = "component_guid"_hs;
-	};
-	template <> struct type_id_t<component_transform_t>
-	{
-		static inline constexpr sid_t value = "component_transform"_hs;
-	};
-	template <> struct type_id_t<component_name_t>
-	{
-		static inline constexpr sid_t value = "component_name"_hs;
-	};
-	template <> struct type_id_t<component_mesh_renderer_t>
-	{
-		static inline constexpr sid_t value = "component_mesh_renderer"_hs;
-	};
-	template <> struct type_id_t<component_render_object_t>
-	{
-		static inline constexpr sid_t value = "component_render_object"_hs;
-	};
-	template <> struct type_id_t<component_camera_t>
-	{
-		static inline constexpr sid_t value = "component_camera"_hs;
-	};
-	template <> struct type_id_t<component_skybox_t>
-	{
-		static inline constexpr sid_t value = "component_skybox"_hs;
-	};
-	template <> struct type_id_t<component_prefab_reference_t>
-	{
-		static inline constexpr sid_t value = "component_prefab_reference"_hs;
-	};
-	template <> struct type_id_t<component_debug_widgets_t>
-	{
-		static inline constexpr sid_t value = "debug_widgets_component"_hs;
-	};
-	template <> struct type_id_t<component_alive_t>
-	{
-		static inline constexpr sid_t value = "component_alive"_hs;
-	};
-	template <> struct type_id_t<component_disabled_t>
-	{
-		static inline constexpr sid_t value = "component_disabled"_hs;
-	};
-	template <> struct type_id_t<component_no_serialize_t>
-	{
-		static inline constexpr sid_t value = "component_no_serialize"_hs;
-	};
-
 	SFG_DEFINE_TYPE_ID(debug_widgets_enum);
 	SFG_DEFINE_TYPE_ID(debug_widgets_enum2);
 

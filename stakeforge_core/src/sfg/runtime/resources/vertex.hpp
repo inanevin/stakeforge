@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/type_id.hpp>
-
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>

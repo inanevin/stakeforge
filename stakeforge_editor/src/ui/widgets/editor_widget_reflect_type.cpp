@@ -51,10 +51,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
-#include <cstdio>
-#include <cstring>
-#include <memory>
-#include <utility>
 
 namespace sfg
 {

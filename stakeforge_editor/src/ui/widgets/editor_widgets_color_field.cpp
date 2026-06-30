@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <cstring>
 
 namespace sfg
 {
@@ -43,7 +42,7 @@ namespace sfg
 			const color_t  srgb = color_t{color.x, color.y, color.z, color.w}.linear_to_srgb();
 			const string_t hex	= color_utils_t::to_hex(srgb);
 			const size_t   len	= math::min(out_size - 1, hex.size());
-			std::memcpy(out, hex.c_str(), len);
+			SFG_MEMCPY(out, hex.c_str(), len);
 			out[len] = '\0';
 		}
 

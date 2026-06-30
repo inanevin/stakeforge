@@ -40,8 +40,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <cstdio>
-#include <cstring>
 
 namespace sfg
 {
@@ -62,7 +60,7 @@ namespace sfg
 
 		component_transform_t& get_transform_component(world_t& world, entity_id_t entity)
 		{
-			world_component_table_t* table = world.find_component_table(component_transform_t::TYPE_ID);
+			world_component_table_t* table = world.find_component_table(type_id_t<component_transform_t>::value);
 			SFG_ASSERT(table != nullptr);
 			return ecs_helpers_t::table_get_as<component_transform_t>(table->table, entity);
 		}
@@ -154,10 +152,10 @@ namespace sfg
 			desc.target.world						= world;
 			desc.target.entities					= entities.data;
 			desc.target.entity						= entities.data[0];
-			desc.target.type_id						= component_transform_t::TYPE_ID;
+			desc.target.type_id						= type_id_t<component_transform_t>::value;
 			desc.target.entity_count				= static_cast<u32>(entities.size);
 			desc.target.kind						= entities.size > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
-			desc.type_id							= component_transform_t::TYPE_ID;
+			desc.type_id							= type_id_t<component_transform_t>::value;
 			desc.field_id							= field_id;
 			editor_commands_reflection_t::edit_field(desc, old_value, new_value);
 		}
@@ -318,7 +316,7 @@ namespace sfg
 		if (widget._entity == NULL_ENTITY_ID)
 			return ECS_INVALID_INDEX;
 
-		const world_component_table_t* table = widget._world->find_component_table(component_name_t::TYPE_ID);
+		const world_component_table_t* table = widget._world->find_component_table(type_id_t<component_name_t>::value);
 		SFG_ASSERT(table != nullptr);
 		const component_name_t& name = ecs_helpers_t::table_get_as_const<component_name_t>(table->table, widget._entity);
 		return name.text_index;
@@ -336,10 +334,10 @@ namespace sfg
 		desc.target.world						= widget._world_handle;
 		desc.target.entities					= widget._entities.data();
 		desc.target.entity						= widget._entity;
-		desc.target.type_id						= component_name_t::TYPE_ID;
+		desc.target.type_id						= type_id_t<component_name_t>::value;
 		desc.target.entity_count				= static_cast<u32>(widget._entities.size());
 		desc.target.kind						= widget._entities.size() > 1 ? editor_reflected_edit_target_kind_e::world_components : editor_reflected_edit_target_kind_e::world_component;
-		desc.type_id							= component_name_t::TYPE_ID;
+		desc.type_id							= type_id_t<component_name_t>::value;
 		desc.field_id							= "text_index"_hs;
 		editor_commands_reflection_t::edit_text_id_field(desc, widget._world_handle, old_text != nullptr ? old_text : "", value != nullptr ? value : "");
 
@@ -428,7 +426,7 @@ namespace sfg
 			return;
 
 		widget.refresh_controls();
-		if (entity_info_match || reflected_payload->target.type_id == component_name_t::TYPE_ID)
+		if (entity_info_match || reflected_payload->target.type_id == type_id_t<component_name_t>::value)
 			widget.refresh_entity_panel_names();
 	}
 
@@ -439,7 +437,7 @@ namespace sfg
 			return false;
 		if (payload->target.world != _world_handle)
 			return false;
-		if (payload->target.type_id != component_name_t::TYPE_ID && payload->target.type_id != component_transform_t::TYPE_ID)
+		if (payload->target.type_id != type_id_t<component_name_t>::value && payload->target.type_id != type_id_t<component_transform_t>::value)
 			return false;
 
 		switch (payload->target.kind)

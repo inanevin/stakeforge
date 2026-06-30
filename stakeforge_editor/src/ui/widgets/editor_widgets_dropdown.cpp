@@ -36,7 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <cstring>
 
 namespace sfg
 {

@@ -28,9 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/data/char_util.hpp>
 
-#include <cstdarg>
-#include <cstring>
-
 namespace sfg
 {
 	bump_text_allocator_t::~bump_text_allocator_t()

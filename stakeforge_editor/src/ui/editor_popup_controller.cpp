@@ -43,8 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <cstring>
-#include <iterator>
 
 namespace sfg
 {
@@ -784,9 +782,9 @@ namespace sfg
 		_asset_items.resize(0);
 
 		const world_t&				   world	   = editor_app_t::get().get_runtime().get_world(_entity_desc.world);
-		const world_component_table_t* alive_table = world.find_component_table(component_alive_t::TYPE_ID);
-		const world_component_table_t* guid_table  = world.find_component_table(component_guid_t::TYPE_ID);
-		const world_component_table_t* name_table  = world.find_component_table(component_name_t::TYPE_ID);
+		const world_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
+		const world_component_table_t* guid_table  = world.find_component_table(type_id_t<component_guid_t>::value);
+		const world_component_table_t* name_table  = world.find_component_table(type_id_t<component_name_t>::value);
 		SFG_ASSERT(alive_table != nullptr);
 		SFG_ASSERT(guid_table != nullptr);
 		SFG_ASSERT(name_table != nullptr);

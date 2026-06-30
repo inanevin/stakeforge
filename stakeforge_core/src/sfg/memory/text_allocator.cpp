@@ -28,9 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.hpp"
 #include <sfg/data/vector_util.hpp>
 #include <sfg/io/assert.hpp>
-#include <algorithm>
-#include <cstring>
-#include <limits>
 
 namespace sfg
 {

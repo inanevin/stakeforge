@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/memory/memory.hpp>
-#include <cstring>
 
 namespace sfg
 {
