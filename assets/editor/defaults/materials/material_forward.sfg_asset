@@ -5,9 +5,7 @@
     "sub_type": 0,
     "embedded_source": {
         "schema": "sfg.schema.material",
-        "pass_flags": [
-            "forward"
-        ],
+        "pass_flags": 2,
         "shader": 1001,
         "sampler": 1009,
         "textures": [
@@ -15,11 +13,11 @@
         ],
         "parameters": [
             {
-                "type": "vec4f",
+                "type": 6,
                 "values": [1.0, 1.0, 1.0, 1.0]
             },
             {
-                "type": "uint2",
+                "type": 1,
                 "values": [1006648320.0, 0.0, 0.0, 0.0]
             }
         ],

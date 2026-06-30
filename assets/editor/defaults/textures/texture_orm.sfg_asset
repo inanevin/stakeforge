@@ -5,7 +5,7 @@
     "sub_type": 0,
     "embedded_source": null,
     "cook_options": {
-        "payload_type": "png",
+        "payload_type": 2,
         "generate_mipmaps": false,
         "is_linear": true
     },

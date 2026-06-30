@@ -186,7 +186,6 @@ namespace sfg
 				SFG_ASSERT(read_cook_options);
 				if (!read_cook_options)
 					continue;
-
 				const string_t						 texture_source_relative = get_texture_default_source_relative(desc.source_base_name);
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
