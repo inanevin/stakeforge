@@ -26,17 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "common_editor.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "editor_renderer.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_payload_controller.hpp"
-#include "ui/editor_modal_progress_bar.hpp"
 #include "ui/panels/editor_panel_types.hpp"
-#include <sfg/data/unique.hpp>
-#include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 #include <sfg/vendor/taskflow/core/declarations.hpp>

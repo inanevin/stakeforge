@@ -27,10 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_node.hpp"
+#include "assets/editor_asset_type.hpp"
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
+	struct editor_asset_t;
+
 	struct editor_asset_write_file_desc_t
 	{
 		const nlohmann::json*	   cook_options				= nullptr;

@@ -27,17 +27,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_node.hpp"
+#include "assets/editor_asset_type.hpp"
 #include "assets/editor_glb_importer.hpp"
 
-#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/runtime/resources/font_cook.hpp>
 
 namespace sfg
 {
+	struct editor_asset_t;
+	enum class editor_asset_source_type_e : u8;
+
 	enum class editor_asset_import_type_e : u8
 	{
 		invalid,

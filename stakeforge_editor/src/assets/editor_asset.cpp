@@ -26,12 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset.hpp"
-#include <iterator>
 #include <cstddef>
 #include <sfg/reflection/reflection_registry.hpp>
 
 #include "assets/editor_asset_manager.hpp"
-#include "assets/editor_asset.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/common/hashing.hpp>

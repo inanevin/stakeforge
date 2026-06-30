@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/memory/pool_handle.hpp>
 

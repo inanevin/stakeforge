@@ -29,15 +29,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_importer.hpp"
-#include "assets/editor_asset_node.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/mutex.hpp>
-#include <sfg/data/string.hpp>
 #include <sfg/data/tree.hpp>
-#include <sfg/data/vector.hpp>
 
 namespace sfg
 {

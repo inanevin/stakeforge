@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "editor_command_system.hpp"
-#include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 

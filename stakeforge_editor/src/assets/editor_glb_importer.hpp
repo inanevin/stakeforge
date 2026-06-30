@@ -27,14 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
-
+#include "assets/editor_asset_node.hpp"
 #include <sfg/common/type_id.hpp>
-#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/texture_payload_type.hpp>
 
 namespace sfg
 {
+	struct editor_asset_t;
 	struct editor_asset_import_context_t;
 
 	struct glb_cook_config_t

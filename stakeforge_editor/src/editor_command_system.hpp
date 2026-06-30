@@ -26,8 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
@@ -71,7 +69,7 @@ namespace sfg
 
 	struct editor_command_t
 	{
-		using fn_t								 = bool (*)(editor_command_system_t& system, editor_command_t& command);
+		using fn_t = bool (*)(editor_command_system_t& system, editor_command_t& command);
 
 		void*				   user_data		 = nullptr;
 		const char*			   debug_name		 = nullptr;

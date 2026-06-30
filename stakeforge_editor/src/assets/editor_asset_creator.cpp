@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_creator.hpp"
 
+#include "assets/editor_asset.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_writer.hpp"
 

@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_node.hpp"
 
 namespace sfg
 {

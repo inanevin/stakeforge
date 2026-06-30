@@ -27,12 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
+#include "assets/editor_asset_node.hpp"
+#include "assets/editor_asset_type.hpp"
 
 namespace sfg
 {
 	enum class shader_type_e : u8;
+	struct editor_asset_t;
 
 	struct editor_asset_create_desc_t
 	{

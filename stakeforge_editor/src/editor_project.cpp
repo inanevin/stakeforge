@@ -25,10 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_project.hpp"
-#include <iterator>
-#include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
-#include "editor_project.hpp"
 #include <sfg/io/file_system.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>

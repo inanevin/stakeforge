@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/math/quat.hpp>
-#include <sfg/math/vec3f.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>

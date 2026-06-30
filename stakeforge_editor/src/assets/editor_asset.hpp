@@ -28,16 +28,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
 #include "assets/editor_asset_node.hpp"
 #include "assets/editor_asset_type.hpp"
 
-#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/data/vector.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
