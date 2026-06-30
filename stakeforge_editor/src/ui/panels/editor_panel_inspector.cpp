@@ -279,6 +279,7 @@ namespace sfg
 		_entity_info_fold			   = new editor_widget_fold_t();
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = true});
 		_entity_info->init(*_ui, _entity_info_fold->get_body(), _display_world_handle);
+		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
 		_entity_info->set_entities(*_display_world, {.data = _display_entities.data(), .size = _display_entities.size()});
 
 		ui::listener_bundle_t entity_info_settings_listener = {};
@@ -526,6 +527,15 @@ namespace sfg
 		default:
 			break;
 		}
+	}
+
+	void editor_panel_inspector_t::on_entity_info_name_submitted(entity_id_t entity, void*)
+	{
+		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
+		if (panel == nullptr)
+			return;
+
+		static_cast<editor_panel_entities_t*>(panel)->refresh_entity_name(entity);
 	}
 
 	void editor_panel_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)

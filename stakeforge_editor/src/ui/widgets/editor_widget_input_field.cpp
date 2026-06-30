@@ -472,6 +472,9 @@ namespace sfg
 		const f32		   draw_scale = ui::get_text_paint_draw_scale(text_paint, px);
 		u32				   prev		  = 0;
 		f32				   pen		  = 0.0f;
+		f32				   min_x	  = 0.0f;
+		f32				   max_x	  = 0.0f;
+		bool			   valid	  = false;
 		for (u32 i = 0; i < _text_len; ++i)
 		{
 			const u32 c = static_cast<u8>(_text[i]);
@@ -479,9 +482,32 @@ namespace sfg
 				pen += atlas.get_kern_advance(font, prev, c, px) * draw_scale;
 
 			const ui::glyph_entry_t* g = atlas.request_glyph(font, c, px, text_style.raster_mode);
+			if (g->width > 0 && g->height > 0)
+			{
+				const f32 quad_left	 = pen + g->left_bearing * draw_scale;
+				const f32 quad_right = quad_left + static_cast<f32>(g->width) * draw_scale;
+				min_x				 = valid ? math::min(min_x, quad_left) : quad_left;
+				max_x				 = valid ? math::max(max_x, quad_right) : quad_right;
+				_text_advances[i]	 = quad_left;
+				valid				 = true;
+			}
+			else
+			{
+				_text_advances[i] = pen;
+			}
 			pen += g->advance_x * draw_scale + text_paint.spacing;
-			_text_advances[i + 1] = pen;
-			prev				  = c;
+			prev = c;
+		}
+		const f32 advance_x = pen - text_paint.spacing;
+		if (valid)
+		{
+			for (u32 i = 0; i < _text_len; ++i)
+				_text_advances[i] -= min_x;
+			_text_advances[_text_len] = math::max(max_x, advance_x) - min_x;
+		}
+		else
+		{
+			_text_advances[_text_len] = math::max(0.0f, advance_x);
 		}
 	}
 
@@ -496,7 +522,7 @@ namespace sfg
 			return 0;
 
 		const ui::layout_out_t& label_out = _ui->get_tree().out(_label);
-		const f32				x		  = pos.x - label_out.pos.x;
+		const f32				x		  = pos.x - math::round(label_out.pos.x);
 		for (u32 i = 0; i < _text_len; ++i)
 		{
 			const f32 midpoint = (_text_advances[i] + _text_advances[i + 1]) * 0.5f;
@@ -653,7 +679,10 @@ namespace sfg
 
 	void editor_input_field_t::on_focus_lose(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		static_cast<editor_input_field_t*>(user_data)->commit_number_text();
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
+		field.commit_number_text();
+		if (field._config.on_submitted != nullptr)
+			field._config.on_submitted(field._config.user_data);
 	}
 
 	void editor_input_field_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
@@ -817,18 +846,19 @@ namespace sfg
 
 		if (field._caret != field._selection_anchor)
 		{
-			const f32			x0	 = label_out.pos.x + field.text_width(math::min(field._caret, field._selection_anchor));
-			const f32			x1	 = label_out.pos.x + field.text_width(math::max(field._caret, field._selection_anchor));
-			ui::vg_rect_paint_t rect = {};
-			rect.fill_color_a		 = theme.color_accent1_dim;
-			rect.fill_color_b		 = theme.color_accent1_dim;
+			const f32			text_x = math::round(label_out.pos.x);
+			const f32			x0	   = text_x + field.text_width(math::min(field._caret, field._selection_anchor));
+			const f32			x1	   = text_x + field.text_width(math::max(field._caret, field._selection_anchor));
+			ui::vg_rect_paint_t rect   = {};
+			rect.fill_color_a		   = theme.color_accent1_dim;
+			rect.fill_color_b		   = theme.color_accent1_dim;
 			canvas.add_rect({x0, y0}, {x1, y1}, rect, state, draw_order);
 		}
 
 		if (field._blink_seconds >= INPUT_CARET_BLINK_TIME * 0.5f)
 			return;
 
-		const f32			x	 = label_out.pos.x + field.text_width(field._caret);
+		const f32			x	 = math::round(label_out.pos.x) + field.text_width(field._caret);
 		ui::vg_line_paint_t line = {};
 		line.color				 = theme.color_text0;
 		line.thickness			 = math::max(1.0f, INPUT_CARET_WIDTH * ui::get_valid_scale(field._ui->get_ui_scale()));

@@ -118,6 +118,7 @@ namespace sfg
 
 		static void on_entity_info_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_info_action_menu_command(u16 command, void* user_data);
+		static void on_entity_info_name_submitted(entity_id_t entity, void* user_data);
 		static void on_component_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_component_action_menu_command(u16 command, void* user_data);
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);

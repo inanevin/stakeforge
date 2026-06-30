@@ -82,6 +82,8 @@ namespace sfg
 		u8*							name_field	= reinterpret_cast<u8*>(_name_fallback);
 		editor_input_field_config_t name_config = {};
 		name_config.placeholder					= "Name";
+		name_config.on_submitted				= on_name_input_submitted;
+		name_config.user_data					= this;
 		name_config.field						= {.type = editor_input_field_field_type_e::char_array, .fields = {.data = &name_field, .size = 1}, .field_size = sizeof(component_name_t::text)};
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
@@ -130,14 +132,16 @@ namespace sfg
 		_name_input.uninit();
 		_ui->deallocate_widget(_root);
 
-		_ui					 = nullptr;
-		_world				 = nullptr;
-		_root				 = NULL_WIDGET;
-		_guid_label			 = NULL_WIDGET;
-		_entity				 = NULL_ENTITY_ID;
-		_rotation_value		 = vec3f_t::zero;
-		_last_rotation_value = vec3f_t::zero;
-		_name_fallback[0]	 = '\0';
+		_ui						  = nullptr;
+		_world					  = nullptr;
+		_root					  = NULL_WIDGET;
+		_guid_label				  = NULL_WIDGET;
+		_entity					  = NULL_ENTITY_ID;
+		_rotation_value			  = vec3f_t::zero;
+		_last_rotation_value	  = vec3f_t::zero;
+		_name_fallback[0]		  = '\0';
+		_name_submitted_callback  = nullptr;
+		_name_submitted_user_data = nullptr;
 		_entities.resize(0);
 		_refreshing = false;
 	}
@@ -154,6 +158,12 @@ namespace sfg
 		_entity = entities.data[0];
 		_entities.assign(entities.data, entities.data + entities.size);
 		refresh_controls();
+	}
+
+	void editor_widget_entity_info_t::set_name_submitted_callback(editor_widget_entity_info_name_submitted_fn callback, void* user_data)
+	{
+		_name_submitted_callback  = callback;
+		_name_submitted_user_data = user_data;
 	}
 
 	void editor_widget_entity_info_t::refresh_controls()
@@ -213,6 +223,11 @@ namespace sfg
 		static_cast<editor_widget_entity_info_t*>(user_data)->apply_rotation_values();
 	}
 
+	void editor_widget_entity_info_t::on_name_input_submitted(void* user_data)
+	{
+		static_cast<editor_widget_entity_info_t*>(user_data)->submit_names();
+	}
+
 	void editor_widget_entity_info_t::apply_rotation_values()
 	{
 		if (_refreshing || _entities.empty())
@@ -224,6 +239,15 @@ namespace sfg
 		for (entity_id_t entity : _entities)
 			_world->set_entity_rot_local(entity, quat_t::from_euler(_rotation_value.x, _rotation_value.y, _rotation_value.z));
 		_last_rotation_value = _rotation_value;
+	}
+
+	void editor_widget_entity_info_t::submit_names()
+	{
+		if (_name_submitted_callback == nullptr)
+			return;
+
+		for (entity_id_t entity : _entities)
+			_name_submitted_callback(entity, _name_submitted_user_data);
 	}
 
 }

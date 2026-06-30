@@ -37,6 +37,8 @@ namespace sfg
 {
 	class world_t;
 
+	using editor_widget_entity_info_name_submitted_fn = void (*)(entity_id_t entity, void* user_data);
+
 	class editor_widget_entity_info_t final
 	{
 	public:
@@ -49,6 +51,7 @@ namespace sfg
 		void uninit();
 		void set_entity(world_t& world, entity_id_t entity);
 		void set_entities(world_t& world, span_t<const entity_id_t> entities);
+		void set_name_submitted_callback(editor_widget_entity_info_name_submitted_fn callback, void* user_data);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -57,24 +60,28 @@ namespace sfg
 
 	private:
 		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_name_input_submitted(void* user_data);
 
 		void refresh_controls();
 		void apply_rotation_values();
+		void submit_names();
 
 	private:
-		editor_input_field_t  _name_input		   = {};
-		editor_vec3_field_t	  _position_field	   = {};
-		editor_vec3_field_t	  _rotation_field	   = {};
-		editor_vec3_field_t	  _scale_field		   = {};
-		vector_t<entity_id_t> _entities			   = {};
-		ui::ui_context*		  _ui				   = nullptr;
-		world_t*			  _world			   = nullptr;
-		ui::widget_id_t		  _root				   = NULL_WIDGET;
-		ui::widget_id_t		  _guid_label		   = NULL_WIDGET;
-		entity_id_t			  _entity			   = NULL_ENTITY_ID;
-		vec3f_t				  _rotation_value	   = vec3f_t::zero;
-		vec3f_t				  _last_rotation_value = vec3f_t::zero;
-		char				  _name_fallback[64]   = {};
-		bool				  _refreshing		   = false;
+		editor_input_field_t						_name_input				  = {};
+		editor_vec3_field_t							_position_field			  = {};
+		editor_vec3_field_t							_rotation_field			  = {};
+		editor_vec3_field_t							_scale_field			  = {};
+		vector_t<entity_id_t>						_entities				  = {};
+		ui::ui_context*								_ui						  = nullptr;
+		world_t*									_world					  = nullptr;
+		ui::widget_id_t								_root					  = NULL_WIDGET;
+		ui::widget_id_t								_guid_label				  = NULL_WIDGET;
+		entity_id_t									_entity					  = NULL_ENTITY_ID;
+		vec3f_t										_rotation_value			  = vec3f_t::zero;
+		vec3f_t										_last_rotation_value	  = vec3f_t::zero;
+		editor_widget_entity_info_name_submitted_fn _name_submitted_callback  = nullptr;
+		void*										_name_submitted_user_data = nullptr;
+		char										_name_fallback[64]		  = {};
+		bool										_refreshing				  = false;
 	};
 }
