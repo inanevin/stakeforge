@@ -76,19 +76,34 @@ namespace sfg
 		}
 
 	private:
-		void clear_widgets();
-		void fit_control(ui::widget_id_t widget);
-		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
-		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
-		void create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
-		bool create_reference(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
-		bool create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
-		void create_object(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
-		void create_container(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
-		void create_container_elements(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, f32 indentation);
-		void install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control = NULL_WIDGET);
-		void install_tooltip(ui::widget_id_t owner, const char* text);
-		void clear_tooltips();
+		struct container_user_data_t
+		{
+			const reflected_field_t*	field	   = nullptr;
+			editor_widget_reflection_t* reflection = nullptr;
+			editor_widget_fold_label_t* fold	   = nullptr;
+			vector_t<void*>				containers;
+			world_handle_t				world		= {};
+			f32							indentation = 0.0f;
+		};
+
+		void				   clear_widgets();
+		void				   fit_control(ui::widget_id_t widget);
+		void				   create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
+		void				   create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
+		void				   create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
+		bool				   create_reference(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		bool				   create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
+		void				   create_object(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		void				   create_container(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		void				   create_container_elements(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, f32 indentation);
+		container_user_data_t* create_container_user_data(const reflected_field_t* field, span_t<void*> containers, world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold);
+		void				   refresh_container(container_user_data_t& data);
+		void				   clear_container_widgets(ui::widget_id_t parent);
+		void				   clear_child_tooltips(ui::widget_id_t parent);
+		bool				   is_child_widget(ui::widget_id_t widget, ui::widget_id_t parent) const;
+		void				   install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control = NULL_WIDGET);
+		void				   install_tooltip(ui::widget_id_t owner, const char* text);
+		void				   clear_tooltips();
 
 		static void on_container_add(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_container_reset(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -103,6 +118,7 @@ namespace sfg
 		vector_t<editor_vec4_field_t*>		  _vec4_fields;
 		vector_t<editor_widget_fold_label_t*> _fold_labels;
 		vector_t<editor_widget_reference_t*>  _references;
+		vector_t<container_user_data_t*>	  _container_user_data;
 		vector_t<ui::widget_id_t>			  _dividers;
 		vector_t<ui::widget_id_t>			  _rows;
 		vector_t<ui::widget_id_t>			  _tooltip_owners;

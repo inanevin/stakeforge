@@ -65,6 +65,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_fold_label_config_t& config);
 		void uninit();
 		void set_fold(bool folded);
+		void clear_children();
 
 		inline ui::widget_id_t get_root() const
 		{

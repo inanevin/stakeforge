@@ -172,6 +172,19 @@ namespace sfg
 		refresh();
 	}
 
+	void editor_widget_fold_label_t::clear_children()
+	{
+		ui::layout_tree_t& tree	 = _ui->get_tree();
+		ui::widget_id_t	   child = tree.node(_body).first_child;
+		while (child != NULL_WIDGET)
+		{
+			const ui::widget_id_t next = tree.node(child).next_sibling;
+			_ui->deallocate_widget(child);
+			child = next;
+		}
+		refresh();
+	}
+
 	void editor_widget_fold_label_t::refresh()
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();

@@ -177,7 +177,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					container_fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_container(parent, field, {.data = container_fields.data(), .size = container_fields.size()}, world, sub_item, indentation);
+				create_container(parent, field, {.data = container_fields.data(), .size = container_fields.size()}, world, track_rows, sub_item, indentation);
 				break;
 			}
 			case reflected_value_type_e::f32:
@@ -409,7 +409,7 @@ namespace sfg
 		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false);
 	}
 
-	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool sub_item, f32 indentation)
+	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, const reflected_field_t*  field, span_t<void*> containers, world_handle_t world, bool, bool sub_item, f32 indentation)
 	{
 		const reflected_value_type_e element_value_type	 = field->container_ops.element_value_type;
 		const sid_t					 element_sub_type_id = field->container_ops.element_sub_type_id;
@@ -427,12 +427,15 @@ namespace sfg
 		install_tooltip(fold->get_root(), field->tooltip);
 		install_tooltip(fold->get_add_button(), "Add Element");
 		install_tooltip(fold->get_reset_button(), "Reset Container");
+		container_user_data_t* user_data = create_container_user_data(field, containers, world, indentation, fold);
 
 		ui::listener_bundle_t add_listener = {};
+		add_listener.user_data			   = user_data;
 		add_listener.on_click			   = on_container_add;
 		_ui->get_input().set_listener(fold->get_add_button(), add_listener);
 
 		ui::listener_bundle_t reset_listener = {};
+		reset_listener.user_data			 = user_data;
 		reset_listener.on_click				 = on_container_reset;
 		_ui->get_input().set_listener(fold->get_reset_button(), reset_listener);
 		_fold_labels.push_back(fold);
@@ -531,6 +534,143 @@ namespace sfg
 		}
 	}
 
+	editor_widget_reflection_t::container_user_data_t* editor_widget_reflection_t::create_container_user_data(const reflected_field_t* field, span_t<void*> containers, world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold)
+	{
+		container_user_data_t* data = new container_user_data_t();
+		data->field					= field;
+		data->reflection			= this;
+		data->fold					= fold;
+		data->world					= world;
+		data->indentation			= indentation;
+		data->containers.reserve(containers.size);
+		for (size_t i = 0; i < containers.size; ++i)
+			data->containers.push_back(containers.data[i]);
+		_container_user_data.push_back(data);
+		return data;
+	}
+
+	void editor_widget_reflection_t::refresh_container(container_user_data_t& data)
+	{
+		clear_container_widgets(data.fold->get_body());
+		data.fold->clear_children();
+		create_container_elements(data.fold->get_body(), data.field, {.data = data.containers.data(), .size = data.containers.size()}, data.world, data.indentation);
+	}
+
+	bool editor_widget_reflection_t::is_child_widget(ui::widget_id_t widget, ui::widget_id_t parent) const
+	{
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		if (!tree.is_alive(widget))
+			return false;
+
+		ui::widget_id_t cursor = widget;
+		while (cursor != NULL_WIDGET)
+		{
+			if (cursor == parent)
+				return true;
+			cursor = tree.node(cursor).parent;
+		}
+		return false;
+	}
+
+	void editor_widget_reflection_t::clear_child_tooltips(ui::widget_id_t parent)
+	{
+		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
+		for (size_t i = 0; i < _tooltip_owners.size();)
+		{
+			if (is_child_widget(_tooltip_owners[i], parent))
+			{
+				if (tooltip_controller != nullptr)
+					tooltip_controller->clear_tooltip(_tooltip_owners[i]);
+				_tooltip_owners.erase(_tooltip_owners.begin() + i);
+				continue;
+			}
+			++i;
+		}
+	}
+
+	void editor_widget_reflection_t::clear_container_widgets(ui::widget_id_t parent)
+	{
+		clear_child_tooltips(parent);
+
+		for (size_t i = 0; i < _inputs.size();)
+		{
+			if (is_child_widget(_inputs[i]->get_root(), parent))
+			{
+				_inputs[i]->uninit();
+				delete _inputs[i];
+				_inputs.erase(_inputs.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _checkboxes.size();)
+		{
+			if (is_child_widget(_checkboxes[i]->get_root(), parent))
+			{
+				_checkboxes[i]->uninit();
+				delete _checkboxes[i];
+				_checkboxes.erase(_checkboxes.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _vec2_fields.size();)
+		{
+			if (is_child_widget(_vec2_fields[i]->get_root(), parent))
+			{
+				_vec2_fields[i]->uninit();
+				delete _vec2_fields[i];
+				_vec2_fields.erase(_vec2_fields.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _vec3_fields.size();)
+		{
+			if (is_child_widget(_vec3_fields[i]->get_root(), parent))
+			{
+				_vec3_fields[i]->uninit();
+				delete _vec3_fields[i];
+				_vec3_fields.erase(_vec3_fields.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _vec4_fields.size();)
+		{
+			if (is_child_widget(_vec4_fields[i]->get_root(), parent))
+			{
+				_vec4_fields[i]->uninit();
+				delete _vec4_fields[i];
+				_vec4_fields.erase(_vec4_fields.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _references.size();)
+		{
+			if (is_child_widget(_references[i]->get_root(), parent))
+			{
+				_references[i]->uninit();
+				delete _references[i];
+				_references.erase(_references.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _fold_labels.size();)
+		{
+			if (is_child_widget(_fold_labels[i]->get_root(), parent))
+			{
+				_fold_labels[i]->uninit();
+				delete _fold_labels[i];
+				_fold_labels.erase(_fold_labels.begin() + i);
+				continue;
+			}
+			++i;
+		}
+	}
+
 	void editor_widget_reflection_t::install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control)
 	{
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
@@ -561,12 +701,26 @@ namespace sfg
 		install_tooltip(remove_button, "Remove Element");
 	}
 
-	void editor_widget_reflection_t::on_container_add(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e, void*)
+	void editor_widget_reflection_t::on_container_add(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
+		for (void* container : data.containers)
+			data.field->container_ops.add_element_ptr_fn(container);
+		data.reflection->refresh_container(data);
 	}
 
-	void editor_widget_reflection_t::on_container_reset(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e, void*)
+	void editor_widget_reflection_t::on_container_reset(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
+		for (void* container : data.containers)
+			data.field->container_ops.reset_fn(container);
+		data.reflection->refresh_container(data);
 	}
 
 	void editor_widget_reflection_t::install_tooltip(ui::widget_id_t owner, const char* text)
@@ -638,6 +792,8 @@ namespace sfg
 			_ui->deallocate_widget(row);
 		for (ui::widget_id_t divider : _dividers)
 			_ui->deallocate_widget(divider);
+		for (container_user_data_t* data : _container_user_data)
+			delete data;
 		_inputs.resize(0);
 		_checkboxes.resize(0);
 		_vec2_fields.resize(0);
@@ -645,6 +801,7 @@ namespace sfg
 		_vec4_fields.resize(0);
 		_fold_labels.resize(0);
 		_references.resize(0);
+		_container_user_data.resize(0);
 		_dividers.resize(0);
 		_rows.resize(0);
 		_tooltip_owners.resize(0);
