@@ -120,10 +120,11 @@ namespace sfg
 		editor_payload_controller_t::get().unregister_listener(this);
 
 		_ui->deallocate_widget(_root);
-		_ui				   = nullptr;
-		_root			   = NULL_WIDGET;
-		_thumbnail		   = NULL_WIDGET;
-		_label			   = NULL_WIDGET;
+		_ui		   = nullptr;
+		_root	   = NULL_WIDGET;
+		_thumbnail = NULL_WIDGET;
+		_label	   = NULL_WIDGET;
+		_fields.resize(0);
 		_config			   = {};
 		_accepting_payload = false;
 		_mixed			   = false;
@@ -138,8 +139,11 @@ namespace sfg
 		SFG_ASSERT(config.type != editor_widget_reference_type_e::asset || config.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(config.type != editor_widget_reference_type_e::entity || !config.world.is_null());
 
-		_config = config;
-		_mixed	= false;
+		if (config.fields.data != _fields.data())
+			_fields.assign(config.fields.data, config.fields.data + config.fields.size);
+		_config		   = config;
+		_config.fields = {.data = _fields.data(), .size = _fields.size()};
+		_mixed		   = false;
 
 		const u64 value = *_config.fields.data[0];
 		for (size_t i = 1; i < _config.fields.size; ++i)

@@ -62,11 +62,11 @@ namespace sfg
 
 	struct editor_input_field_config_t
 	{
+		editor_input_field_field_t		   field		   = {};
 		const char*						   placeholder	   = nullptr;
 		editor_input_field_data_changed_fn on_data_changed = nullptr;
 		editor_input_field_submitted_fn	   on_submitted	   = nullptr;
 		void*							   user_data	   = nullptr;
-		editor_input_field_field_t		   field		   = {};
 		f32								   increment	   = 0.1f;
 		f32								   min_value	   = 0.0f;
 		f32								   max_value	   = 1.0f;

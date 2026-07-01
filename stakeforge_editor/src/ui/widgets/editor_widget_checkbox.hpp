@@ -27,6 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -84,6 +85,7 @@ namespace sfg
 		ui::ui_context*			 _ui	  = nullptr;
 		ui::widget_id_t			 _root	  = NULL_WIDGET;
 		ui::widget_id_t			 _check	  = NULL_WIDGET;
+		vector_t<u8*>			 _fields  = {};
 		editor_checkbox_config_t _config  = {};
 		bool					 _checked = false;
 		bool					 _mixed	  = false;

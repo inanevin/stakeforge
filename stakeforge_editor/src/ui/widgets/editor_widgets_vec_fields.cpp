@@ -56,16 +56,16 @@ namespace sfg
 		editor_input_field_config_t make_number_config(const char* placeholder, span_t<u8*> fields, f32 increment, bool integer)
 		{
 			return {
-				.placeholder = placeholder,
 				.field =
 					{
 						.type		= editor_input_field_field_type_e::pod_number,
 						.fields		= fields,
 						.field_size = sizeof(f32),
 					},
-				.increment = integer ? 1.0f : increment,
-				.min_value = integer ? -2147483648.0f : -1000000.0f,
-				.max_value = integer ? 2147483647.0f : 1000000.0f,
+				.placeholder = placeholder,
+				.increment	 = integer ? 1.0f : increment,
+				.min_value	 = integer ? -2147483648.0f : -1000000.0f,
+				.max_value	 = integer ? 2147483647.0f : 1000000.0f,
 			};
 		}
 	}
@@ -103,6 +103,7 @@ namespace sfg
 		_root	= NULL_WIDGET;
 		_config = {};
 		_value	= {0.0f, 0.0f};
+		_field_values.resize(0);
 		for (vector_t<u8*>& fields : _fields)
 			fields.resize(0);
 	}
@@ -120,6 +121,16 @@ namespace sfg
 
 	void editor_vec2_field_t::update_field_data(editor_vec2_field_field_t field)
 	{
+		if (field.fields.size > 0)
+		{
+			if (field.fields.data != _field_values.data())
+				_field_values.assign(field.fields.data, field.fields.data + field.fields.size);
+			field.fields = {.data = _field_values.data(), .size = _field_values.size()};
+		}
+		else
+		{
+			_field_values.resize(0);
+		}
 		_config.field					  = field;
 		vec2f_t*			   fallback[] = {&_value};
 		const span_t<vec2f_t*> fields	  = field.fields.size > 0 ? field.fields : span_t<vec2f_t*>{.data = fallback, .size = 1};
@@ -171,6 +182,7 @@ namespace sfg
 		_root	= NULL_WIDGET;
 		_config = {};
 		_value	= {0.0f, 0.0f, 0.0f};
+		_field_values.resize(0);
 		for (vector_t<u8*>& fields : _fields)
 			fields.resize(0);
 	}
@@ -188,6 +200,16 @@ namespace sfg
 
 	void editor_vec3_field_t::update_field_data(editor_vec3_field_field_t field)
 	{
+		if (field.fields.size > 0)
+		{
+			if (field.fields.data != _field_values.data())
+				_field_values.assign(field.fields.data, field.fields.data + field.fields.size);
+			field.fields = {.data = _field_values.data(), .size = _field_values.size()};
+		}
+		else
+		{
+			_field_values.resize(0);
+		}
 		_config.field					  = field;
 		vec3f_t*			   fallback[] = {&_value};
 		const span_t<vec3f_t*> fields	  = field.fields.size > 0 ? field.fields : span_t<vec3f_t*>{.data = fallback, .size = 1};
@@ -239,6 +261,7 @@ namespace sfg
 		_root	= NULL_WIDGET;
 		_config = {};
 		_value	= {0.0f, 0.0f, 0.0f, 0.0f};
+		_field_values.resize(0);
 		for (vector_t<u8*>& fields : _fields)
 			fields.resize(0);
 	}
@@ -256,6 +279,16 @@ namespace sfg
 
 	void editor_vec4_field_t::update_field_data(editor_vec4_field_field_t field)
 	{
+		if (field.fields.size > 0)
+		{
+			if (field.fields.data != _field_values.data())
+				_field_values.assign(field.fields.data, field.fields.data + field.fields.size);
+			field.fields = {.data = _field_values.data(), .size = _field_values.size()};
+		}
+		else
+		{
+			_field_values.resize(0);
+		}
 		_config.field					  = field;
 		vec4f_t*			   fallback[] = {&_value};
 		const span_t<vec4f_t*> fields	  = field.fields.size > 0 ? field.fields : span_t<vec4f_t*>{.data = fallback, .size = 1};

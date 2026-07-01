@@ -67,7 +67,7 @@ namespace sfg
 		}
 	}
 
-	editor_property_row_t editor_misc_widgets_t::make_property_row(ui::ui_context& ui, ui::widget_id_t parent)
+	editor_property_row_t editor_misc_widgets_t::make_property_row(ui::ui_context& ui, ui::widget_id_t parent, f32 indentation)
 	{
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -95,7 +95,7 @@ namespace sfg
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		left_in.size_value		 = {0.4f, 1.0f};
-		left_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		left_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal + indentation};
 		left_in.flow			 = ui::flow_e::row;
 
 		row.divider = ui.allocate_widget();
@@ -107,7 +107,7 @@ namespace sfg
 		divider_in.size_mode_x		= ui::axis_mode_e::fixed;
 		divider_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		divider_in.size_mode_y		= ui::axis_mode_e::parent_relative;
-		divider_in.size_value		= {theme.divider_thickness * 2, 0.75f};
+		divider_in.size_value		= {theme.divider_thickness * 2, 1.0f};
 		divider_in.pos_value.y		= 0.5f;
 		divider_in.anchor_y			= ui::anchor_e::center;
 
@@ -132,31 +132,20 @@ namespace sfg
 		return row;
 	}
 
-	editor_property_row_t editor_misc_widgets_t::make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, bool sub_item, bool remove_button)
+	editor_property_row_t editor_misc_widgets_t::make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, bool sub_item, bool remove_button, f32 indentation)
 	{
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		editor_property_row_t row		 = make_property_row(ui, parent);
+		editor_property_row_t row		 = make_property_row(ui, parent, indentation);
 		ui::layout_in_t&	  row_layout = tree.in(row.left);
 		row_layout.child_clip_mode		 = ui::clip_mode_e::cpu_rect;
 
 		if (sub_item)
 		{
 			row_layout.child_spacing = theme.item_spacing * 0.5f;
-
-			const ui::widget_id_t icon_frame = ui.allocate_widget();
-			ui.set_widget_debug_name(icon_frame, "property_row_sub_item_icon_frame");
-			tree.attach(row.left, icon_frame);
-
-			ui::layout_in_t& icon_frame_in = tree.in(icon_frame);
-			icon_frame_in.flags			   = ui::wf_visible;
-			icon_frame_in.size_mode_x	   = ui::axis_mode_e::fixed;
-			icon_frame_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
-			icon_frame_in.size_value	   = {theme.item_height, 1.0f};
-
-			editor_icon_widgets_t::add_icon(ui, icon_frame, ICON_L, theme.item_height * 0.65f, theme.color_frame);
+			editor_icon_widgets_t::add_sub_item_icon(ui, row.left);
 		}
 
 		row.label = ui.allocate_widget();
@@ -191,15 +180,18 @@ namespace sfg
 		return row;
 	}
 
-	editor_vector_property_row_t editor_misc_widgets_t::make_vector_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, u32 item_count, bool unfolded)
+	editor_vector_property_row_t editor_misc_widgets_t::make_vector_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, u32 item_count, bool unfolded, bool sub_item, f32 indentation)
 	{
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		editor_vector_property_row_t vector_row	   = {};
-		vector_row.row							   = make_property_row(ui, parent);
+		vector_row.row							   = make_property_row(ui, parent, indentation);
 		tree.in(vector_row.row.left).child_spacing = theme.item_spacing * 0.5f;
+
+		if (sub_item)
+			editor_icon_widgets_t::add_sub_item_icon(ui, vector_row.row.left);
 
 		vector_row.dropdown_button = ui.allocate_widget();
 		ui.set_widget_debug_name(vector_row.dropdown_button, "property_row_vector_dropdown");

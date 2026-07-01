@@ -75,10 +75,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = field.container_ops.element_value_size,
-						.value_type	 = field.container_ops.element_value_type,
-					};
+						  .sub_type_id = field.container_ops.element_sub_type_id,
+						  .size		   = field.container_ops.element_value_size,
+						  .value_type  = field.container_ops.element_value_type,
+					  };
 
 					if (!field_to_stream(temp_field, element_data, user_data, out_stream))
 						return false;
@@ -199,10 +199,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						.sub_type_id = field.container_ops.element_sub_type_id,
-						.size		 = field.container_ops.element_value_size,
-						.value_type	 = field.container_ops.element_value_type,
-					};
+						  .sub_type_id = field.container_ops.element_sub_type_id,
+						  .size		   = field.container_ops.element_value_size,
+						  .value_type  = field.container_ops.element_value_type,
+					  };
 
 					nlohmann::json elem_json = nlohmann::json::object();
 					if (!field_to_json(temp_field, element_data, user_data, elem_json, true))
@@ -524,7 +524,7 @@ namespace sfg
 	{
 		_types.reserve(512);
 		_fields.reserve(1024);
-		_text_allocator.init(16 * 1024);
+		_text_allocator.init(64 * 1024);
 	}
 
 	void reflection_registry_t::uninit()
@@ -838,6 +838,7 @@ namespace sfg
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_size_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.add_element_ptr_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.reset_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.remove_index_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || (field_desc.container_ops.element_value_type != reflected_value_type_e::invalid && field_desc.container_ops.element_value_type != reflected_value_type_e::container));
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.element_value_type != reflected_value_type_e::object || field_desc.container_ops.element_sub_type_id != 0);
 

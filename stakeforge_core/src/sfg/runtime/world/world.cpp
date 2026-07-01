@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <cstring>
+#include <new>
 
 namespace sfg
 {
@@ -62,7 +63,14 @@ namespace sfg
 		add_component_table(ecs_helpers_t::make_component_desc<component_camera_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_skybox_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_prefab_reference_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_debug_widgets_t>());
+		add_component_table({
+			.default_init = [](void* ptr) { new (ptr) component_debug_widgets_t{}; },
+			.type_id	  = type_id_t<component_debug_widgets_t>::value,
+			.size		  = sizeof(component_debug_widgets_t),
+			.alignment	  = alignof(component_debug_widgets_t),
+			.flags		  = ecs_component_type_flags_none,
+			.debug_name	  = "debug_widgets_component",
+		});
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_alive_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_disabled_t>());
 		add_component_table(ecs_helpers_t::make_tag_component_desc<component_no_serialize_t>());

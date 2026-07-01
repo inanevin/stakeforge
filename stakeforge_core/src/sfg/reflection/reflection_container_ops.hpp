@@ -61,6 +61,12 @@ namespace sfg
 			values.resize(0);
 		}
 
+		template <typename T> static inline void vector_remove_index(void* obj, u32 index)
+		{
+			vector_t<T>& values = *reinterpret_cast<vector_t<T>*>(obj);
+			values.erase(values.begin() + index);
+		}
+
 		template <typename T, int N> static inline u8* inplace_vector_get_element_ptr(void* obj, u32 index)
 		{
 			inplace_vector_t<T, N>& values = *reinterpret_cast<inplace_vector_t<T, N>*>(obj);
@@ -87,6 +93,12 @@ namespace sfg
 		{
 			inplace_vector_t<T, N>& values = *reinterpret_cast<inplace_vector_t<T, N>*>(obj);
 			values.resize(0);
+		}
+
+		template <typename T, int N> static inline void inplace_vector_remove_index(void* obj, u32 index)
+		{
+			inplace_vector_t<T, N>& values = *reinterpret_cast<inplace_vector_t<T, N>*>(obj);
+			values.remove_index(index);
 		}
 
 		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline u8* sized_array_get_element_ptr(void* obj, u32 index)
@@ -117,11 +129,20 @@ namespace sfg
 			values.*Size	   = 0;
 		}
 
+		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline void sized_array_remove_index(void* obj, u32 index)
+		{
+			TContainer& values = *reinterpret_cast<TContainer*>(obj);
+			for (size_t i = index + 1; i < values.*Size; ++i)
+				(values.*Data)[i - 1] = (values.*Data)[i];
+			--(values.*Size);
+		}
+
 		template <typename T> static inline reflected_field_container_ops_t vector_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
 				.add_element_ptr_fn	 = &vector_add_element_ptr<T>,
 				.reset_fn			 = &vector_reset<T>,
+				.remove_index_fn	 = &vector_remove_index<T>,
 				.get_element_ptr_fn	 = &vector_get_element_ptr<T>,
 				.get_element_size_fn = &vector_get_element_size<T>,
 				.element_value_type	 = value_type,
@@ -135,6 +156,7 @@ namespace sfg
 			return {
 				.add_element_ptr_fn	 = &inplace_vector_add_element_ptr<T, N>,
 				.reset_fn			 = &inplace_vector_reset<T, N>,
+				.remove_index_fn	 = &inplace_vector_remove_index<T, N>,
 				.get_element_ptr_fn	 = &inplace_vector_get_element_ptr<T, N>,
 				.get_element_size_fn = &inplace_vector_get_element_size<T, N>,
 				.element_value_type	 = value_type,
@@ -148,6 +170,7 @@ namespace sfg
 			return {
 				.add_element_ptr_fn	 = &sized_array_add_element_ptr<TContainer, T, N, Data, Size>,
 				.reset_fn			 = &sized_array_reset<TContainer, T, N, Data, Size>,
+				.remove_index_fn	 = &sized_array_remove_index<TContainer, T, N, Data, Size>,
 				.get_element_ptr_fn	 = &sized_array_get_element_ptr<TContainer, T, N, Data, Size>,
 				.get_element_size_fn = &sized_array_get_element_size<TContainer, T, N, Data, Size>,
 				.element_value_type	 = value_type,

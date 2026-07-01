@@ -74,14 +74,16 @@ namespace sfg
 	typedef u8* (*fn_container_add_element_ptr)(void* obj);
 	typedef size_t (*fn_container_get_element_size)(void* obj);
 	typedef void (*fn_container_reset)(void* obj);
+	typedef void (*fn_container_remove_index)(void* obj, u32 index);
 
 	struct reflected_field_container_ops_t
 	{
 		fn_container_add_element_ptr  add_element_ptr_fn  = nullptr;
 		fn_container_reset			  reset_fn			  = nullptr;
+		fn_container_remove_index	  remove_index_fn	  = nullptr;
 		fn_container_get_element_ptr  get_element_ptr_fn  = nullptr;
 		fn_container_get_element_size get_element_size_fn = nullptr;
-		reflected_value_type_e	  element_value_type  = reflected_value_type_e::invalid;
+		reflected_value_type_e		  element_value_type  = reflected_value_type_e::invalid;
 		sid_t						  element_sub_type_id = 0;
 		size_t						  element_value_size  = 0;
 	};
@@ -127,7 +129,7 @@ namespace sfg
 		size_t								   offset				= 0;
 		size_t								   size					= 0;
 		bitmask32							   flags				= 0;
-		reflected_value_type_e			   value_type			= reflected_value_type_e::invalid;
+		reflected_value_type_e				   value_type			= reflected_value_type_e::invalid;
 	};
 
 	struct reflected_field_descriptor_t
@@ -145,8 +147,8 @@ namespace sfg
 		f32									   min_clamp			= 0.0f;
 		f32									   max_clamp			= 0.0f;
 		f32									   clamp_granularity	= 0.1f;
-		reflected_value_type_e			   type					= reflected_value_type_e::invalid;
-		reflected_value_type_e			   sub_type				= reflected_value_type_e::invalid;
+		reflected_value_type_e				   type					= reflected_value_type_e::invalid;
+		reflected_value_type_e				   sub_type				= reflected_value_type_e::invalid;
 	};
 
 	enum reflected_type_flags_e

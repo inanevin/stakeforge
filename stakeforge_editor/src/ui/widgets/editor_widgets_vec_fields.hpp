@@ -103,6 +103,7 @@ namespace sfg
 		ui::widget_id_t			   _root	  = NULL_WIDGET;
 		editor_vec2_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[2] = {};
+		vector_t<vec2f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[2] = {};
 		vec2f_t					   _value	  = {0.0f, 0.0f};
 	};
@@ -137,6 +138,7 @@ namespace sfg
 		ui::widget_id_t			   _root	  = NULL_WIDGET;
 		editor_vec3_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[3] = {};
+		vector_t<vec3f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[3] = {};
 		vec3f_t					   _value	  = {0.0f, 0.0f, 0.0f};
 	};
@@ -171,6 +173,7 @@ namespace sfg
 		ui::widget_id_t			   _root	  = NULL_WIDGET;
 		editor_vec4_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[4] = {};
+		vector_t<vec4f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[4] = {};
 		vec4f_t					   _value	  = {0.0f, 0.0f, 0.0f, 0.0f};
 	};

@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_type.hpp"
 #include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -103,6 +104,7 @@ namespace sfg
 		ui::widget_id_t					 _root				= NULL_WIDGET;
 		ui::widget_id_t					 _thumbnail			= NULL_WIDGET;
 		ui::widget_id_t					 _label				= NULL_WIDGET;
+		vector_t<u64*>					 _fields			= {};
 		editor_widget_reference_config_t _config			= {};
 		bool							 _accepting_payload = false;
 		bool							 _mixed				= false;

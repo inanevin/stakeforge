@@ -28,13 +28,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_reflection.hpp"
 #include "assets/editor_asset_type.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widget_input_field.hpp"
-#include "ui/widgets/editor_widget_reference.hpp"
-#include "ui/widgets/editor_widgets_misc.hpp"
+#include "editor_widget_checkbox.hpp"
+#include "editor_widget_fold_label.hpp"
+#include "editor_widget_input_field.hpp"
+#include "editor_widget_reference.hpp"
+#include "editor_widgets_misc.hpp"
+#include "editor_widgets_vec_fields.hpp"
+#include "editor_widgets_dividers.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec3f.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <cstdio>
 
 namespace sfg
 {
@@ -58,7 +67,7 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
-		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		//	root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		set_reflection(config);
 	}
@@ -72,15 +81,25 @@ namespace sfg
 		_root = NULL_WIDGET;
 	}
 
-	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& ab)
+	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& config)
 	{
 		clear_widgets();
 
-		const reflected_type_t* type = reflection_registry_t::get().find_type(ab.type_id);
+		const reflected_type_t* type = reflection_registry_t::get().find_type(config.type_id);
 		if (type == nullptr)
 			return;
 
-		if (ab.objects.size == 0)
+		if (config.objects.size == 0)
+			return;
+		editor_theme_t& theme = editor_theme_t::get();
+
+		create_fields(_root, config.objects, config.type_id, config.world, true, false, theme.margin_horizontal, true);
+	}
+
+	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider)
+	{
+		const reflected_type_t* type = reflection_registry_t::get().find_type(type_id);
+		if (type == nullptr)
 			return;
 
 		const u32 field_start = type->fields.start;
@@ -91,24 +110,45 @@ namespace sfg
 			if (field == nullptr || field->flags.is_set(reflected_field_flags_e::reflected_field_flag_no_ui))
 				continue;
 
-			/*
-					f32,
-		u64,
-		i64,
-		u32,
-		i32,
-		u16,
-		i16,
-		u8,
-		i8,
-		boolean,
-		string,
-		object,
-		container,
-		char_array,
-			*/
 			switch (field->value_type)
 			{
+			case reflected_value_type_e::boolean: {
+				frame_vector_t<u8*> fields;
+				fields.reserve(objects.size);
+				for (size_t idx = 0; idx < objects.size; ++idx)
+					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
+
+				create_checkbox(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, indentation);
+				break;
+			}
+			case reflected_value_type_e::string:
+			case reflected_value_type_e::char_array: {
+				frame_vector_t<u8*> fields;
+				fields.reserve(objects.size);
+				for (size_t idx = 0; idx < objects.size; ++idx)
+					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
+
+				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, indentation);
+				break;
+			}
+			case reflected_value_type_e::object: {
+				frame_vector_t<void*> object_fields;
+				object_fields.reserve(objects.size);
+				for (size_t idx = 0; idx < objects.size; ++idx)
+					object_fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
+
+				create_object(parent, field, {.data = object_fields.data(), .size = object_fields.size()}, world, track_rows, sub_item, indentation);
+				break;
+			}
+			case reflected_value_type_e::container: {
+				frame_vector_t<void*> container_fields;
+				container_fields.reserve(objects.size);
+				for (size_t idx = 0; idx < objects.size; ++idx)
+					container_fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
+
+				create_container(parent, field, {.data = container_fields.data(), .size = container_fields.size()}, world, track_rows, sub_item, indentation);
+				break;
+			}
 			case reflected_value_type_e::f32:
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::i32:
@@ -119,69 +159,293 @@ namespace sfg
 			case reflected_value_type_e::u64:
 			case reflected_value_type_e::i64: {
 
-				const editor_property_row_t row				 = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, field->display_name ? field->display_name : "missing_display_name");
-				const resource_type_e		resource_type	 = field->value_type == reflected_value_type_e::u64 ? resource_type_from_reflection_sub_type_id(field->sub_type_id) : resource_type_e::invalid;
-				const editor_asset_type_e	asset_type		 = editor_asset_type_from_resource_type(resource_type);
-				const bool					entity_reference = field->value_type == reflected_value_type_e::u64 && field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID;
-				if (entity_reference || asset_type != editor_asset_type_e::invalid)
+				if (field->value_type == reflected_value_type_e::u64)
 				{
-					frame_vector_t<u64*> fields;
-					fields.reserve(ab.objects.size);
-					for (size_t idx = 0; idx < ab.objects.size; ++idx)
-						fields.push_back(reinterpret_cast<u64*>(static_cast<u8*>(ab.objects.data[idx]) + field->offset));
+					frame_vector_t<u64*> reference_fields;
+					reference_fields.reserve(objects.size);
+					for (size_t idx = 0; idx < objects.size; ++idx)
+						reference_fields.push_back(reinterpret_cast<u64*>(static_cast<u8*>(objects.data[idx]) + field->offset));
 
-					editor_widget_reference_t* reference = new editor_widget_reference_t();
-					reference->init(*_ui,
-									row.right,
-									{
-										.fields		= {.data = fields.data(), .size = fields.size()},
-										.world		= ab.world,
-										.asset_type = asset_type,
-										.type		= entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
-									});
-					ui::layout_in_t& reference_in = _ui->get_tree().in(reference->get_root());
-					reference_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-					reference_in.size_mode_y	  = ui::axis_mode_e::fixed;
-					reference_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-					reference_in.anchor_y		  = ui::anchor_e::center;
-					reference_in.pos_value.y	  = 0.5f;
-					reference_in.size_value		  = {1.0f, editor_theme_t::get().item_height};
-					_references.push_back(reference);
-					_rows.push_back(row.row);
-					break;
+					if (create_reference(parent, field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, track_rows, sub_item, indentation))
+						break;
 				}
 
 				frame_vector_t<u8*> fields;
-				fields.reserve(ab.objects.size);
-				for (size_t idx = 0; idx < ab.objects.size; ++idx)
-					fields.push_back(static_cast<u8*>(ab.objects.data[idx]) + field->offset);
+				fields.reserve(objects.size);
+				for (size_t idx = 0; idx < objects.size; ++idx)
+					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				editor_input_field_t* input			= new editor_input_field_t();
-				const bool			  integer		= field->value_type != reflected_value_type_e::f32;
-				const bool			  signed_number = field->value_type == reflected_value_type_e::i64 || field->value_type == reflected_value_type_e::i32 || field->value_type == reflected_value_type_e::i16 || field->value_type == reflected_value_type_e::i8;
-				input->init(*_ui,
-							row.right,
+				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, indentation);
+				break;
+			}
+			}
+
+			if (add_divider && i != field_end - 1)
+				editor_dividers_t::add_divider_hor(*_ui, parent, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none);
+		}
+	}
+
+	void editor_widget_reflection_t::fit_control(ui::widget_id_t widget)
+	{
+		ui::layout_in_t& input_in = _ui->get_tree().in(widget);
+		input_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		input_in.size_mode_y	  = ui::axis_mode_e::fixed;
+		input_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		input_in.anchor_y		  = ui::anchor_e::center;
+		input_in.pos_value.y	  = 0.5f;
+		input_in.size_value		  = {1.0f, editor_theme_t::get().item_height};
+	}
+
+	void editor_widget_reflection_t::create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation)
+	{
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+
+		editor_checkbox_t* checkbox = new editor_checkbox_t();
+		checkbox->init(*_ui,
+					   row.right,
+					   {
+						   .field = {.fields = fields},
+					   });
+		ui::layout_in_t& checkbox_in = _ui->get_tree().in(checkbox->get_root());
+		checkbox_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		checkbox_in.anchor_y		 = ui::anchor_e::center;
+		checkbox_in.pos_value.y		 = 0.5f;
+		_checkboxes.push_back(checkbox);
+		if (track_row)
+			_rows.push_back(row.row);
+	}
+
+	void editor_widget_reflection_t::create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation)
+	{
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+
+		editor_input_field_field_type_e input_type = editor_input_field_field_type_e::pod_number;
+		if (field->value_type == reflected_value_type_e::string)
+			input_type = editor_input_field_field_type_e::string;
+		else if (field->value_type == reflected_value_type_e::char_array)
+			input_type = editor_input_field_field_type_e::char_array;
+
+		const bool is_slider	 = field->flags.is_set(reflected_field_flags_e::reflected_field_flag_clamped);
+		const bool integer		 = field->value_type != reflected_value_type_e::f32;
+		const bool signed_number = field->value_type == reflected_value_type_e::i64 || field->value_type == reflected_value_type_e::i32 || field->value_type == reflected_value_type_e::i16 || field->value_type == reflected_value_type_e::i8;
+
+		editor_input_field_t* input = new editor_input_field_t();
+		input->init(*_ui,
+					row.right,
+					{
+						.field =
 							{
-								.placeholder = field->name,
-								.field =
-									{
-										.type		= editor_input_field_field_type_e::pod_number,
-										.fields		= {.data = fields.data(), .size = fields.size()},
-										.field_size = field->size,
-									},
-								.increment = integer ? 1.0f : 0.1f,
-								.min_value = signed_number ? -1.0f : 0.0f,
-								.max_value = 1.0f,
-							});
-				ui::layout_in_t& input_in = _ui->get_tree().in(input->get_root());
-				input_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-				input_in.size_mode_y	  = ui::axis_mode_e::fixed;
-				input_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-				input_in.anchor_y		  = ui::anchor_e::center;
-				input_in.pos_value.y	  = 0.5f;
-				input_in.size_value		  = {1.0f, editor_theme_t::get().item_height};
-				_inputs.push_back(input);
+								.type		= input_type,
+								.fields		= fields,
+								.field_size = field->size,
+								.is_slider	= is_slider,
+							},
+						.placeholder = field->name,
+						.increment	 = integer ? 1.0f : 0.1f,
+						.min_value	 = signed_number ? -1.0f : 0.0f,
+						.max_value	 = 1.0f,
+					});
+		fit_control(input->get_root());
+		_inputs.push_back(input);
+		if (track_row)
+			_rows.push_back(row.row);
+	}
+
+	bool editor_widget_reflection_t::create_reference(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, f32 indentation)
+	{
+		const resource_type_e	  resource_type	   = resource_type_from_reflection_sub_type_id(field->sub_type_id);
+		const editor_asset_type_e asset_type	   = editor_asset_type_from_resource_type(resource_type);
+		const bool				  entity_reference = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID;
+		if (!entity_reference && asset_type == editor_asset_type_e::invalid)
+			return false;
+
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+
+		editor_widget_reference_t* reference = new editor_widget_reference_t();
+		reference->init(*_ui,
+						row.right,
+						{
+							.fields		= fields,
+							.world		= world,
+							.asset_type = asset_type,
+							.type		= entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
+						});
+		fit_control(reference->get_root());
+		_references.push_back(reference);
+		if (track_row)
+			_rows.push_back(row.row);
+		return true;
+	}
+
+	bool editor_widget_reflection_t::create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation)
+	{
+		if (field->sub_type_id == type_id_t<vec2f_t>::value)
+		{
+			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+
+			frame_vector_t<vec2f_t*> vector_fields;
+			vector_fields.reserve(fields.size);
+			for (size_t i = 0; i < fields.size; ++i)
+				vector_fields.push_back(reinterpret_cast<vec2f_t*>(fields.data[i]));
+
+			editor_vec2_field_t* vec = new editor_vec2_field_t();
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
+			fit_control(vec->get_root());
+			_vec2_fields.push_back(vec);
+			if (track_row)
 				_rows.push_back(row.row);
+			return true;
+		}
+		if (field->sub_type_id == type_id_t<vec3f_t>::value)
+		{
+			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+
+			frame_vector_t<vec3f_t*> vector_fields;
+			vector_fields.reserve(fields.size);
+			for (size_t i = 0; i < fields.size; ++i)
+				vector_fields.push_back(reinterpret_cast<vec3f_t*>(fields.data[i]));
+
+			editor_vec3_field_t* vec = new editor_vec3_field_t();
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
+			fit_control(vec->get_root());
+			_vec3_fields.push_back(vec);
+			if (track_row)
+				_rows.push_back(row.row);
+			return true;
+		}
+		if (field->sub_type_id == type_id_t<vec4f_t>::value || field->sub_type_id == type_id_t<quat_t>::value)
+		{
+			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+
+			frame_vector_t<vec4f_t*> vector_fields;
+			vector_fields.reserve(fields.size);
+			for (size_t i = 0; i < fields.size; ++i)
+				vector_fields.push_back(reinterpret_cast<vec4f_t*>(fields.data[i]));
+
+			editor_vec4_field_t* vec = new editor_vec4_field_t();
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
+			fit_control(vec->get_root());
+			_vec4_fields.push_back(vec);
+			if (track_row)
+				_rows.push_back(row.row);
+			return true;
+		}
+
+		return false;
+	}
+
+	void editor_widget_reflection_t::create_object(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, f32 indentation)
+	{
+		frame_vector_t<u8*> fields;
+		fields.reserve(objects.size);
+		for (size_t i = 0; i < objects.size; ++i)
+			fields.push_back(static_cast<u8*>(objects.data[i]));
+
+		if (create_vector_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, indentation))
+			return;
+
+		editor_widget_fold_label_t* fold = new editor_widget_fold_label_t();
+		fold->init(*_ui,
+				   parent,
+				   {
+					   .label		= field->display_name ? field->display_name : "missing_display_name",
+					   .indentation = indentation,
+					   .sub_item	= sub_item,
+				   });
+		_fold_labels.push_back(fold);
+		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false);
+	}
+
+	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool, bool sub_item, f32 indentation)
+	{
+		editor_widget_fold_label_t* fold = new editor_widget_fold_label_t();
+		fold->init(*_ui,
+				   parent,
+				   {
+					   .label					= field->display_name ? field->display_name : "missing_display_name",
+					   .indentation				= indentation,
+					   .install_control_buttons = true,
+					   .sub_item				= sub_item,
+				   });
+		_fold_labels.push_back(fold);
+
+		size_t element_count = field->container_ops.get_element_size_fn(containers.data[0]);
+		for (size_t i = 1; i < containers.size; ++i)
+		{
+			const size_t container_size = field->container_ops.get_element_size_fn(containers.data[i]);
+			if (container_size < element_count)
+				element_count = container_size;
+		}
+
+		for (u32 element_index = 0; element_index < element_count; ++element_index)
+		{
+			char element_label[32] = {};
+			std::snprintf(element_label, sizeof(element_label), "Element %u", element_index);
+
+			reflected_field_t element_field{
+				.name		  = "Element",
+				.display_name = element_label,
+				.sub_type_id  = field->container_ops.element_sub_type_id,
+				.size		  = field->container_ops.element_value_size,
+				.value_type	  = field->container_ops.element_value_type,
+			};
+
+			switch (element_field.value_type)
+			{
+			case reflected_value_type_e::boolean: {
+				frame_vector_t<u8*> element_fields;
+				element_fields.reserve(containers.size);
+				for (size_t i = 0; i < containers.size; ++i)
+					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
+
+				create_checkbox(fold->get_body(), &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				break;
+			}
+			case reflected_value_type_e::string:
+			case reflected_value_type_e::char_array: {
+				frame_vector_t<u8*> element_fields;
+				element_fields.reserve(containers.size);
+				for (size_t i = 0; i < containers.size; ++i)
+					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
+
+				create_input_field(fold->get_body(), &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				break;
+			}
+			case reflected_value_type_e::object: {
+				frame_vector_t<void*> element_fields;
+				element_fields.reserve(containers.size);
+				for (size_t i = 0; i < containers.size; ++i)
+					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
+
+				create_object(fold->get_body(), &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				break;
+			}
+			case reflected_value_type_e::f32:
+			case reflected_value_type_e::u32:
+			case reflected_value_type_e::i32:
+			case reflected_value_type_e::u16:
+			case reflected_value_type_e::i16:
+			case reflected_value_type_e::u8:
+			case reflected_value_type_e::i8:
+			case reflected_value_type_e::u64:
+			case reflected_value_type_e::i64: {
+				if (element_field.value_type == reflected_value_type_e::u64)
+				{
+					frame_vector_t<u64*> reference_fields;
+					reference_fields.reserve(containers.size);
+					for (size_t i = 0; i < containers.size; ++i)
+						reference_fields.push_back(reinterpret_cast<u64*>(field->container_ops.get_element_ptr_fn(containers.data[i], element_index)));
+
+					if (create_reference(fold->get_body(), &element_field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, false, true, indentation + editor_theme_t::get().margin_horizontal))
+						break;
+				}
+
+				frame_vector_t<u8*> element_fields;
+				element_fields.reserve(containers.size);
+				for (size_t i = 0; i < containers.size; ++i)
+					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
+
+				create_input_field(fold->get_body(), &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, indentation + editor_theme_t::get().margin_horizontal);
 				break;
 			}
 			}
@@ -195,14 +459,44 @@ namespace sfg
 			input->uninit();
 			delete input;
 		}
+		for (editor_checkbox_t* checkbox : _checkboxes)
+		{
+			checkbox->uninit();
+			delete checkbox;
+		}
+		for (editor_vec2_field_t* vec : _vec2_fields)
+		{
+			vec->uninit();
+			delete vec;
+		}
+		for (editor_vec3_field_t* vec : _vec3_fields)
+		{
+			vec->uninit();
+			delete vec;
+		}
+		for (editor_vec4_field_t* vec : _vec4_fields)
+		{
+			vec->uninit();
+			delete vec;
+		}
 		for (editor_widget_reference_t* reference : _references)
 		{
 			reference->uninit();
 			delete reference;
 		}
+		for (size_t i = _fold_labels.size(); i > 0; --i)
+		{
+			_fold_labels[i - 1]->uninit();
+			delete _fold_labels[i - 1];
+		}
 		for (ui::widget_id_t row : _rows)
 			_ui->deallocate_widget(row);
 		_inputs.resize(0);
+		_checkboxes.resize(0);
+		_vec2_fields.resize(0);
+		_vec3_fields.resize(0);
+		_vec4_fields.resize(0);
+		_fold_labels.resize(0);
 		_references.resize(0);
 		_rows.resize(0);
 	}

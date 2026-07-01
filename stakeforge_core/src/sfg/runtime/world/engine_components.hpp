@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/type_id.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -129,12 +130,6 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_prefab_reference_t);
 
-	struct debug_widgets_inplace_vector_t
-	{
-		u32	   data[4] = {1, 2, 3, 0};
-		size_t size	   = 3;
-	};
-
 	enum class debug_widgets_enum : u8
 	{
 		debug_widgets_enum_a,
@@ -147,36 +142,56 @@ namespace sfg
 		debug_widgets_enum2_b,
 	};
 
+	struct debug_struct2_t
+	{
+		f32 f32_value = 2.0f;
+		u32 u32_value = 20;
+	};
+
+	SFG_DEFINE_TYPE_ID(debug_struct2_t);
+
+	struct debug_struct_t
+	{
+		inplace_vector_t<debug_struct2_t, 4> nested_values = {{.f32_value = 3.0f, .u32_value = 30}, {.f32_value = 4.0f, .u32_value = 40}};
+		vec3f_t								 vec3_value	   = {1.0f, 2.0f, 3.0f};
+		f32									 f32_value	   = 1.0f;
+		debug_struct2_t						 test		   = {};
+	};
+
+	SFG_DEFINE_TYPE_ID(debug_struct_t);
+
 	struct component_debug_widgets_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "debug_widgets_component";
 
-		debug_widgets_inplace_vector_t inplace_vector_value					= {};
-		resource_handle_t			   resource_value						= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   audio_handle_value					= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   font_handle_value					= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   mesh_handle_value					= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   skeleton_handle_value				= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   animation_handle_value				= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   material_handle_value				= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   shader_handle_value					= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   texture_handle_value					= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   texture_sampler_handle_value			= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   physical_material_handle_value		= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   prefab_handle_value					= NULL_RESOURCE_HANDLE;
-		resource_handle_t			   animation_state_machine_handle_value = NULL_RESOURCE_HANDLE;
-		resource_handle_t			   hdr_skybox_handle_value				= NULL_RESOURCE_HANDLE;
-		entity_guid_t				   entity_guid_value					= NULL_ENTITY_GUID;
-		quat_t						   quat_value							= {};
-		f32							   f32_value							= 1.0f;
-		i32							   i32_value							= -32;
-		u32							   u32_value							= 32;
-		u32							   text_id_value						= ECS_INVALID_INDEX;
-		u32							   enum32_value							= 1;
-		i8							   i8_value								= -8;
-		u8							   u8_value								= 8;
-		u8							   bool8_value							= 1;
-		u8							   enum8_value							= 1;
+		inplace_vector_t<u32, 4> inplace_vector_value				  = {1, 2, 3};
+		debug_struct_t			 debug_struct_value					  = {};
+		debug_struct2_t			 debug_struct2_value				  = {};
+		resource_handle_t		 resource_value						  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 audio_handle_value					  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 font_handle_value					  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 mesh_handle_value					  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 skeleton_handle_value				  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 animation_handle_value				  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 material_handle_value				  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 shader_handle_value				  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 texture_handle_value				  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 texture_sampler_handle_value		  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 physical_material_handle_value		  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 prefab_handle_value				  = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 animation_state_machine_handle_value = NULL_RESOURCE_HANDLE;
+		resource_handle_t		 hdr_skybox_handle_value			  = NULL_RESOURCE_HANDLE;
+		entity_guid_t			 entity_guid_value					  = NULL_ENTITY_GUID;
+		quat_t					 quat_value							  = {};
+		f32						 f32_value							  = 1.0f;
+		i32						 i32_value							  = -32;
+		u32						 u32_value							  = 32;
+		u32						 text_id_value						  = ECS_INVALID_INDEX;
+		u32						 enum32_value						  = 1;
+		i8						 i8_value							  = -8;
+		u8						 u8_value							  = 8;
+		u8						 bool8_value						  = 1;
+		u8						 enum8_value						  = 1;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_debug_widgets_t);

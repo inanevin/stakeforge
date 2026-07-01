@@ -70,28 +70,28 @@ namespace sfg
 		header_in.pos_value.x	   = 0.0f;
 		header_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		header_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		header_in.size_value	   = {1.0f, theme.item_height};
+		header_in.size_value	   = {1.0f, theme.item_area_height};
 		header_in.flow			   = ui::flow_e::row;
 		header_in.child_spacing	   = theme.item_spacing * 0.5f;
-		header_in.child_margins	   = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		header_in.child_margins	   = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal + config.indentation};
 
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;
 		listener.on_click			   = on_header_click;
 		ui.get_input().set_listener(_header, listener);
 
-		const ui::widget_id_t icon_frame = ui.allocate_widget();
-		ui.set_widget_debug_name(icon_frame, "fold_label_icon_frame");
-		tree.attach(_header, icon_frame);
+		if (config.sub_item)
+			editor_icon_widgets_t::add_sub_item_icon(ui, _header);
 
-		ui::layout_in_t& icon_frame_in = tree.in(icon_frame);
-		icon_frame_in.flags			   = ui::wf_visible;
-		icon_frame_in.size_mode_x	   = ui::axis_mode_e::fixed;
-		icon_frame_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
-		icon_frame_in.size_value	   = {theme.item_height, 1.0f};
-
-		_icon				   = editor_icon_widgets_t::add_icon(ui, icon_frame, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text0);
-		tree.draw_order(_icon) = tree.draw_order_const(_icon) + 1;
+		_icon					 = editor_icon_widgets_t::add_icon(ui, _header, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text0);
+		ui::layout_in_t& icon_in = tree.in(_icon);
+		icon_in.flags			 = ui::wf_visible;
+		icon_in.pos_mode_x		 = ui::pos_mode_e::flow;
+		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		icon_in.pos_value		 = {0.0f, 0.5f};
+		icon_in.anchor_x		 = ui::anchor_e::start;
+		icon_in.anchor_y		 = ui::anchor_e::center;
+		tree.draw_order(_icon)	 = tree.draw_order_const(_icon) + 1;
 
 		const ui::widget_id_t label = ui.allocate_widget();
 		ui.set_widget_debug_name(label, "fold_label_text");
@@ -108,6 +108,22 @@ namespace sfg
 		paint.set_text(
 			label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
+		if (config.install_control_buttons)
+		{
+			const ui::widget_id_t filler = ui.allocate_widget();
+			ui.set_widget_debug_name(filler, "fold_label_controls_filler");
+			tree.attach(_header, filler);
+
+			ui::layout_in_t& filler_in = tree.in(filler);
+			filler_in.flags			   = ui::wf_visible;
+			filler_in.size_mode_x	   = ui::axis_mode_e::fill;
+			filler_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+			filler_in.size_value	   = {1.0f, 1.0f};
+
+			_add_button	  = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_PLUS, theme.item_height * 0.75f, theme.color_text1, theme.color_text0, theme.color_accent1, theme.color_text_disabled);
+			_reset_button = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_RESET, theme.item_height * 0.75f, theme.color_text1, theme.color_text0, theme.color_accent1, theme.color_text_disabled);
+		}
+
 		_body = ui.allocate_widget();
 		ui.set_widget_debug_name(_body, "fold_label_body");
 		tree.attach(_root, _body);
@@ -116,7 +132,6 @@ namespace sfg
 		body_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		body_in.size_value.x	 = 1.0f;
 		body_in.flow			 = ui::flow_e::column;
-		body_in.child_spacing	 = theme.item_spacing;
 
 		refresh();
 	}
@@ -125,12 +140,14 @@ namespace sfg
 	{
 		_ui->deallocate_widget(_root);
 
-		_ui		= nullptr;
-		_root	= NULL_WIDGET;
-		_header = NULL_WIDGET;
-		_icon	= NULL_WIDGET;
-		_body	= NULL_WIDGET;
-		_folded = false;
+		_ui			  = nullptr;
+		_root		  = NULL_WIDGET;
+		_header		  = NULL_WIDGET;
+		_icon		  = NULL_WIDGET;
+		_body		  = NULL_WIDGET;
+		_add_button	  = NULL_WIDGET;
+		_reset_button = NULL_WIDGET;
+		_folded		  = false;
 	}
 
 	void editor_widget_fold_label_t::set_fold(bool folded)

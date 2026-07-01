@@ -57,6 +57,25 @@ namespace sfg
 		return id;
 	}
 
+	ui::widget_id_t editor_icon_widgets_t::add_sub_item_icon(ui::ui_context& ui, ui::widget_id_t parent)
+	{
+		const editor_theme_t& theme = editor_theme_t::get();
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+
+		const ui::widget_id_t frame = ui.allocate_widget();
+		ui.set_widget_debug_name(frame, "sub_item_icon_frame");
+		tree.attach(parent, frame);
+
+		ui::layout_in_t& frame_in = tree.in(frame);
+		frame_in.flags			  = ui::wf_visible;
+		frame_in.size_mode_x	  = ui::axis_mode_e::fixed;
+		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		frame_in.size_value		  = {theme.item_height, 1.0f};
+
+		editor_icon_widgets_t::add_icon(ui, frame, ICON_L, theme.item_height * 0.65f, theme.color_frame);
+		return frame;
+	}
+
 	ui::widget_id_t editor_icon_widgets_t::add_naked_icon_button(ui::ui_context& ui, ui::widget_id_t parent, const char* icon, f32 size, const vec4f_t& color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& disabled_color)
 	{
 		ui::layout_tree_t& tree	 = ui.get_tree();

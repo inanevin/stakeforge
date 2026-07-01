@@ -98,9 +98,10 @@ namespace sfg
 	{
 		_ui->deallocate_widget(_root);
 
-		_ui		 = nullptr;
-		_root	 = NULL_WIDGET;
-		_check	 = NULL_WIDGET;
+		_ui	   = nullptr;
+		_root  = NULL_WIDGET;
+		_check = NULL_WIDGET;
+		_fields.resize(0);
 		_config	 = {};
 		_checked = false;
 		_mixed	 = false;
@@ -113,6 +114,9 @@ namespace sfg
 		for (size_t i = 0; i < field.fields.size; ++i)
 			SFG_ASSERT(field.fields.data[i] != nullptr);
 
+		if (field.fields.data != _fields.data())
+			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 		_checked	  = *field.fields.data[0] != 0;
 		_mixed		  = false;

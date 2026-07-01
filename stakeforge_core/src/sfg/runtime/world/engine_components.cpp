@@ -250,6 +250,61 @@ namespace sfg
 			});
 		}
 
+		void register_debug_struct_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "debug_struct2_t",
+				.display_name = "Debug Struct2",
+				.fields =
+					{
+						{.name = "f32_value", .display_name = "F32", .tooltip = "Debug reflected nested struct f32 value.", .offset = offsetof(debug_struct2_t, f32_value), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "u32_value", .display_name = "U32", .tooltip = "Debug reflected nested struct u32 value.", .offset = offsetof(debug_struct2_t, u32_value), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					},
+				.type_id   = type_id_t<debug_struct2_t>::value,
+				.size	   = sizeof(debug_struct2_t),
+				.alignment = alignof(debug_struct2_t),
+			});
+
+			registry.register_type({
+				.name		  = "debug_struct_t",
+				.display_name = "Debug Struct",
+				.fields		  = {{.container_ops = reflection_container_ops_t::inplace_vector_ops<debug_struct2_t, 4>(reflected_value_type_e::object, type_id_t<debug_struct2_t>::value),
+								  .name			 = "nested_values",
+								  .display_name	 = "Nested Values",
+								  .tooltip		 = "Debug reflected nested struct inplace vector.",
+								  .offset		 = offsetof(debug_struct_t, nested_values),
+								  .size			 = sizeof(inplace_vector_t<debug_struct2_t, 4>),
+								  .type			 = reflected_value_type_e::container},
+								 {.name			= "vec3_value",
+								  .display_name = "Vec3",
+								  .tooltip		= "Debug reflected struct vec3 value.",
+								  .sub_type_id	= type_id_t<vec3f_t>::value,
+								  .offset		= offsetof(debug_struct_t, vec3_value),
+								  .size			= sizeof(vec3f_t),
+								  .type			= reflected_value_type_e::object},
+								 {
+									 .name		   = "f32_value",
+									 .display_name = "F32",
+									 .tooltip	   = "Debug reflected struct f32 value.",
+									 .offset	   = offsetof(debug_struct_t, f32_value),
+									 .size		   = sizeof(f32),
+									 .type		   = reflected_value_type_e::f32,
+								 },
+								 {
+									 .name		   = "test",
+									 .display_name = "Test",
+									 .tooltip	   = "yeah",
+									 .sub_type_id  = type_id_t<debug_struct2_t>::value,
+									 .offset	   = offsetof(debug_struct_t, test),
+									 .size		   = sizeof(debug_struct2_t),
+									 .type		   = reflected_value_type_e::object,
+								 }},
+				.type_id	  = type_id_t<debug_struct_t>::value,
+				.size		  = sizeof(debug_struct_t),
+				.alignment	  = alignof(debug_struct_t),
+			});
+		}
+
 		void register_component_debug_widgets_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -389,13 +444,27 @@ namespace sfg
 						 .offset	   = offsetof(component_debug_widgets_t, enum32_value),
 						 .size		   = sizeof(u32),
 						 .type		   = reflected_value_type_e::u32},
-						{.container_ops = reflection_container_ops_t::sized_array_ops<debug_widgets_inplace_vector_t, u32, 4, &debug_widgets_inplace_vector_t::data, &debug_widgets_inplace_vector_t::size>(reflected_value_type_e::u32),
+						{.container_ops = reflection_container_ops_t::inplace_vector_ops<u32, 4>(reflected_value_type_e::u32),
 						 .name			= "inplace_vector_value",
 						 .display_name	= "Inplace Vector",
 						 .tooltip		= "Debug reflected inplace vector value.",
 						 .offset		= offsetof(component_debug_widgets_t, inplace_vector_value),
-						 .size			= sizeof(debug_widgets_inplace_vector_t),
+						 .size			= sizeof(inplace_vector_t<u32, 4>),
 						 .type			= reflected_value_type_e::container},
+						{.name		   = "debug_struct_value",
+						 .display_name = "Debug Struct",
+						 .tooltip	   = "Debug reflected object struct value.",
+						 .sub_type_id  = type_id_t<debug_struct_t>::value,
+						 .offset	   = offsetof(component_debug_widgets_t, debug_struct_value),
+						 .size		   = sizeof(debug_struct_t),
+						 .type		   = reflected_value_type_e::object},
+						{.name		   = "debug_struct2_value",
+						 .display_name = "Debug Struct2",
+						 .tooltip	   = "Debug reflected object struct2 value.",
+						 .sub_type_id  = type_id_t<debug_struct2_t>::value,
+						 .offset	   = offsetof(component_debug_widgets_t, debug_struct2_value),
+						 .size		   = sizeof(debug_struct2_t),
+						 .type		   = reflected_value_type_e::object},
 						{.name = "i8_value", .display_name = "I8", .tooltip = "Debug reflected i8 value.", .offset = offsetof(component_debug_widgets_t, i8_value), .size = sizeof(i8), .type = reflected_value_type_e::i8},
 					},
 				.type_id   = type_id_t<component_debug_widgets_t>::value,
@@ -456,6 +525,7 @@ namespace sfg
 		register_component_skybox_reflection(registry);
 		register_component_prefab_reference_reflection(registry);
 		register_debug_widgets_enum_reflection(registry);
+		register_debug_struct_reflection(registry);
 		register_component_debug_widgets_reflection(registry);
 		register_component_alive_reflection(registry);
 		register_component_disabled_reflection(registry);

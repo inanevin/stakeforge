@@ -40,8 +40,14 @@ namespace sfg::ui
 
 namespace sfg
 {
+	class editor_checkbox_t;
 	class editor_input_field_t;
+	class editor_vec2_field_t;
+	class editor_vec3_field_t;
+	class editor_vec4_field_t;
+	class editor_widget_fold_label_t;
 	class editor_widget_reference_t;
+	struct reflected_field_t;
 
 	struct editor_widget_reflection_config_t
 	{
@@ -69,12 +75,25 @@ namespace sfg
 
 	private:
 		void clear_widgets();
+		void fit_control(ui::widget_id_t widget);
+		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
+		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
+		void create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
+		bool create_reference(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		bool create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
+		void create_object(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		void create_container(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
 
 	private:
-		ui::ui_context*						 _ui   = nullptr;
-		ui::widget_id_t						 _root = NULL_WIDGET;
-		vector_t<editor_input_field_t*>		 _inputs;
-		vector_t<editor_widget_reference_t*> _references;
-		vector_t<ui::widget_id_t>			 _rows;
+		ui::ui_context*						  _ui	= nullptr;
+		ui::widget_id_t						  _root = NULL_WIDGET;
+		vector_t<editor_input_field_t*>		  _inputs;
+		vector_t<editor_checkbox_t*>		  _checkboxes;
+		vector_t<editor_vec2_field_t*>		  _vec2_fields;
+		vector_t<editor_vec3_field_t*>		  _vec3_fields;
+		vector_t<editor_vec4_field_t*>		  _vec4_fields;
+		vector_t<editor_widget_fold_label_t*> _fold_labels;
+		vector_t<editor_widget_reference_t*>  _references;
+		vector_t<ui::widget_id_t>			  _rows;
 	};
 }
