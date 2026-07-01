@@ -152,7 +152,6 @@ namespace sfg
 
 	struct debug_struct_t
 	{
-		inplace_vector_t<debug_struct2_t, 4> nested_values = {{.f32_value = 3.0f, .u32_value = 30}, {.f32_value = 4.0f, .u32_value = 40}};
 		vec3f_t								 vec3_value	   = {1.0f, 2.0f, 3.0f};
 		f32									 f32_value	   = 1.0f;
 		debug_struct2_t						 test		   = {};

@@ -268,13 +268,7 @@ namespace sfg
 			registry.register_type({
 				.name		  = "debug_struct_t",
 				.display_name = "Debug Struct",
-				.fields		  = {{.container_ops = reflection_container_ops_t::inplace_vector_ops<debug_struct2_t, 4>(reflected_value_type_e::object, type_id_t<debug_struct2_t>::value),
-								  .name			 = "nested_values",
-								  .display_name	 = "Nested Values",
-								  .tooltip		 = "Debug reflected nested struct inplace vector.",
-								  .offset		 = offsetof(debug_struct_t, nested_values),
-								  .size			 = sizeof(inplace_vector_t<debug_struct2_t, 4>),
-								  .type			 = reflected_value_type_e::container},
+				.fields		  = {
 								 {.name			= "vec3_value",
 								  .display_name = "Vec3",
 								  .tooltip		= "Debug reflected struct vec3 value.",

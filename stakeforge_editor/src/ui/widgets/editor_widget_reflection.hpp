@@ -35,7 +35,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	class input_router_t;
 	class ui_context;
+	enum class mouse_button_e : u8;
 }
 
 namespace sfg
@@ -83,6 +85,13 @@ namespace sfg
 		bool create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation);
 		void create_object(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
 		void create_container(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		void create_container_elements(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, f32 indentation);
+		void install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control = NULL_WIDGET);
+		void install_tooltip(ui::widget_id_t owner, const char* text);
+		void clear_tooltips();
+
+		static void on_container_add(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_container_reset(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
 		ui::ui_context*						  _ui	= nullptr;
@@ -94,6 +103,8 @@ namespace sfg
 		vector_t<editor_vec4_field_t*>		  _vec4_fields;
 		vector_t<editor_widget_fold_label_t*> _fold_labels;
 		vector_t<editor_widget_reference_t*>  _references;
+		vector_t<ui::widget_id_t>			  _dividers;
 		vector_t<ui::widget_id_t>			  _rows;
+		vector_t<ui::widget_id_t>			  _tooltip_owners;
 	};
 }

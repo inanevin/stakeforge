@@ -108,7 +108,7 @@ namespace sfg
 		paint.set_text(
 			label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		if (config.install_control_buttons)
+		if (config.button_style != editor_widget_fold_label_button_style_e::none)
 		{
 			const ui::widget_id_t filler = ui.allocate_widget();
 			ui.set_widget_debug_name(filler, "fold_label_controls_filler");
@@ -120,8 +120,23 @@ namespace sfg
 			filler_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 			filler_in.size_value	   = {1.0f, 1.0f};
 
-			_add_button	  = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_PLUS, theme.item_height * 0.75f, theme.color_text1, theme.color_text0, theme.color_accent1, theme.color_text_disabled);
-			_reset_button = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_RESET, theme.item_height * 0.75f, theme.color_text1, theme.color_text0, theme.color_accent1, theme.color_text_disabled);
+			if (config.button_style == editor_widget_fold_label_button_style_e::container_buttons)
+			{
+				_add_button	  = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_PLUS, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
+				_reset_button = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_RESET, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
+
+				tree.draw_order(_add_button)						  = tree.draw_order_const(_header) + 1;
+				tree.draw_order(tree.node(_add_button).first_child)	  = tree.draw_order_const(_add_button);
+				tree.draw_order(_reset_button)						  = tree.draw_order_const(_header) + 1;
+				tree.draw_order(tree.node(_reset_button).first_child) = tree.draw_order_const(_reset_button);
+			}
+			else if (config.button_style == editor_widget_fold_label_button_style_e::container_item_buttons)
+			{
+				_remove_button = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_CROSS, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
+
+				tree.draw_order(_remove_button)						   = tree.draw_order_const(_header) + 1;
+				tree.draw_order(tree.node(_remove_button).first_child) = tree.draw_order_const(_remove_button);
+			}
 		}
 
 		_body = ui.allocate_widget();
@@ -140,14 +155,15 @@ namespace sfg
 	{
 		_ui->deallocate_widget(_root);
 
-		_ui			  = nullptr;
-		_root		  = NULL_WIDGET;
-		_header		  = NULL_WIDGET;
-		_icon		  = NULL_WIDGET;
-		_body		  = NULL_WIDGET;
-		_add_button	  = NULL_WIDGET;
-		_reset_button = NULL_WIDGET;
-		_folded		  = false;
+		_ui			   = nullptr;
+		_root		   = NULL_WIDGET;
+		_header		   = NULL_WIDGET;
+		_icon		   = NULL_WIDGET;
+		_body		   = NULL_WIDGET;
+		_add_button	   = NULL_WIDGET;
+		_reset_button  = NULL_WIDGET;
+		_remove_button = NULL_WIDGET;
+		_folded		   = false;
 	}
 
 	void editor_widget_fold_label_t::set_fold(bool folded)

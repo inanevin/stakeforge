@@ -38,13 +38,20 @@ namespace sfg::ui
 
 namespace sfg
 {
+	enum class editor_widget_fold_label_button_style_e : u8
+	{
+		none,
+		container_buttons,
+		container_item_buttons,
+	};
+
 	struct editor_widget_fold_label_config_t
 	{
-		const char* label					= nullptr;
-		bool		folded					= false;
-		f32			indentation				= 0.0f;
-		bool		install_control_buttons = false;
-		bool		sub_item				= false;
+		const char*								label		 = nullptr;
+		editor_widget_fold_label_button_style_e button_style = editor_widget_fold_label_button_style_e::none;
+		bool									folded		 = false;
+		f32										indentation	 = 0.0f;
+		bool									sub_item	 = false;
 	};
 
 	class editor_widget_fold_label_t final
@@ -79,6 +86,11 @@ namespace sfg
 			return _reset_button;
 		}
 
+		inline ui::widget_id_t get_remove_button() const
+		{
+			return _remove_button;
+		}
+
 		inline bool is_folded() const
 		{
 			return _folded;
@@ -90,13 +102,14 @@ namespace sfg
 		static void on_header_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		ui::ui_context* _ui			  = nullptr;
-		ui::widget_id_t _root		  = NULL_WIDGET;
-		ui::widget_id_t _header		  = NULL_WIDGET;
-		ui::widget_id_t _icon		  = NULL_WIDGET;
-		ui::widget_id_t _body		  = NULL_WIDGET;
-		ui::widget_id_t _add_button	  = NULL_WIDGET;
-		ui::widget_id_t _reset_button = NULL_WIDGET;
-		bool			_folded		  = false;
+		ui::ui_context* _ui			   = nullptr;
+		ui::widget_id_t _root		   = NULL_WIDGET;
+		ui::widget_id_t _header		   = NULL_WIDGET;
+		ui::widget_id_t _icon		   = NULL_WIDGET;
+		ui::widget_id_t _body		   = NULL_WIDGET;
+		ui::widget_id_t _add_button	   = NULL_WIDGET;
+		ui::widget_id_t _reset_button  = NULL_WIDGET;
+		ui::widget_id_t _remove_button = NULL_WIDGET;
+		bool			_folded		   = false;
 	};
 }
