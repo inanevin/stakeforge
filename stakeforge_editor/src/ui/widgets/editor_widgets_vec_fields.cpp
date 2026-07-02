@@ -53,7 +53,7 @@ namespace sfg
 			in.size_value		= {1.0f, 1.0f};
 		}
 
-		editor_input_field_config_t make_number_config(const char* placeholder, span_t<u8*> fields, f32 increment, bool integer)
+		editor_input_field_config_t make_number_config(const char* placeholder, span_t<u8*> fields, f32 increment, bool integer, editor_input_field_data_changed_fn on_data_changed = nullptr, void* user_data = nullptr)
 		{
 			return {
 				.field =
@@ -62,10 +62,12 @@ namespace sfg
 						.fields		= fields,
 						.field_size = sizeof(f32),
 					},
-				.placeholder = placeholder,
-				.increment	 = integer ? 1.0f : increment,
-				.min_value	 = integer ? -2147483648.0f : -1000000.0f,
-				.max_value	 = integer ? 2147483647.0f : 1000000.0f,
+				.placeholder	 = placeholder,
+				.on_data_changed = on_data_changed,
+				.user_data		 = user_data,
+				.increment		 = integer ? 1.0f : increment,
+				.min_value		 = integer ? -2147483648.0f : -1000000.0f,
+				.max_value		 = integer ? 2147483647.0f : 1000000.0f,
 			};
 		}
 	}
@@ -305,5 +307,114 @@ namespace sfg
 	void editor_vec4_field_t::refresh_field_data()
 	{
 		update_field_data(_config.field);
+	}
+
+	void editor_quat_field_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_quat_field_config_t& config)
+	{
+		_ui		= &ui;
+		_config = config;
+		_euler_values.push_back(vec3f_t::zero);
+
+		ui::layout_tree_t& tree = ui.get_tree();
+		_root					= ui.allocate_widget();
+		ui.set_widget_debug_name(_root, "quat_field");
+		tree.attach(parent, _root);
+		make_root_row(ui, _root, config.width);
+
+		const char* names[3] = {"X", "Y", "Z"};
+		for (u8 i = 0; i < 3; ++i)
+		{
+			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
+			_fields[i].push_back(reinterpret_cast<u8*>(&(&_euler_values[0].x)[i]));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, false, on_euler_data_changed, this));
+			set_input_fill(ui, _inputs[i].get_root());
+		}
+
+		update_field_data(config.field);
+	}
+
+	void editor_quat_field_t::uninit()
+	{
+		for (u8 i = 0; i < 3; ++i)
+			_inputs[2 - i].uninit();
+		_ui->deallocate_widget(_root);
+
+		_ui		= nullptr;
+		_root	= NULL_WIDGET;
+		_config = {};
+		_field_values.resize(0);
+		_euler_values.resize(0);
+		_value = {};
+		for (vector_t<u8*>& fields : _fields)
+			fields.resize(0);
+	}
+
+	void editor_quat_field_t::set_value(const quat_t& value)
+	{
+		_value = value;
+		_field_values.resize(0);
+		_config.field = {};
+		if (_euler_values.empty())
+			_euler_values.push_back(quat_t::to_euler(_value));
+		else
+			_euler_values[0] = quat_t::to_euler(_value);
+		refresh_field_data();
+	}
+
+	void editor_quat_field_t::set_mixed(bool)
+	{
+		refresh_field_data();
+	}
+
+	void editor_quat_field_t::update_field_data(editor_quat_field_field_t field)
+	{
+		if (field.fields.size > 0)
+		{
+			if (field.fields.data != _field_values.data())
+				_field_values.assign(field.fields.data, field.fields.data + field.fields.size);
+			field.fields = {.data = _field_values.data(), .size = _field_values.size()};
+			_euler_values.resize(field.fields.size);
+			for (size_t i = 0; i < field.fields.size; ++i)
+				_euler_values[i] = quat_t::to_euler(*field.fields.data[i]);
+		}
+		else
+		{
+			_field_values.resize(0);
+			_field_values.push_back(&_value);
+			if (_euler_values.empty())
+				_euler_values.push_back(quat_t::to_euler(_value));
+			else
+				_euler_values[0] = quat_t::to_euler(_value);
+			_euler_values.resize(1);
+		}
+
+		_config.field = field;
+		for (u8 component = 0; component < 3; ++component)
+		{
+			_fields[component].resize(0);
+			_fields[component].reserve(_euler_values.size());
+			for (size_t i = 0; i < _euler_values.size(); ++i)
+				_fields[component].push_back(reinterpret_cast<u8*>(&(&_euler_values[i].x)[component]));
+			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
+		}
+	}
+
+	void editor_quat_field_t::refresh_field_data()
+	{
+		update_field_data(_config.field);
+	}
+
+	void editor_quat_field_t::modify_field()
+	{
+		for (size_t i = 0; i < _field_values.size(); ++i)
+			*_field_values[i] = quat_t::from_euler(_euler_values[i].x, _euler_values[i].y, _euler_values[i].z);
+
+		if (_config.on_data_changed != nullptr)
+			_config.on_data_changed(_config.user_data);
+	}
+
+	void editor_quat_field_t::on_euler_data_changed(void* user_data)
+	{
+		static_cast<editor_quat_field_t*>(user_data)->modify_field();
 	}
 }

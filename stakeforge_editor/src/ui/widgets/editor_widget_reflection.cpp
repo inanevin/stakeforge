@@ -381,6 +381,30 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_widget_reflection_t::create_quat_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+	{
+		if (field->sub_type_id != type_id_t<quat_t>::value)
+			return false;
+
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+		install_tooltip(row.label, field->tooltip);
+
+		frame_vector_t<quat_t*> quat_fields;
+		quat_fields.reserve(fields.size);
+		for (size_t i = 0; i < fields.size; ++i)
+			quat_fields.push_back(reinterpret_cast<quat_t*>(fields.data[i]));
+
+		editor_quat_field_t* quat = new editor_quat_field_t();
+		quat->init(*_ui, row.right, {.field = {.fields = {.data = quat_fields.data(), .size = quat_fields.size()}}});
+		fit_control(quat->get_root());
+		if (removable_item)
+			install_sub_item_button(row.right, quat->get_root(), container_data, element_index);
+		_quat_fields.push_back(quat);
+		if (track_row)
+			_rows.push_back(row.row);
+		return true;
+	}
+
 	bool editor_widget_reflection_t::create_vector_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		if (field->sub_type_id == type_id_t<vec2f_t>::value)
@@ -423,7 +447,7 @@ namespace sfg
 				_rows.push_back(row.row);
 			return true;
 		}
-		if (field->sub_type_id == type_id_t<vec4f_t>::value || field->sub_type_id == type_id_t<quat_t>::value)
+		if (field->sub_type_id == type_id_t<vec4f_t>::value)
 		{
 			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
 			install_tooltip(row.label, field->tooltip);
@@ -480,6 +504,9 @@ namespace sfg
 			fields.push_back(static_cast<u8*>(objects.data[i]));
 
 		if (create_vector_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, removable_item, indentation, container_data, element_index))
+			return;
+
+		if (create_quat_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, removable_item, indentation, container_data, element_index))
 			return;
 
 		if (create_color_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, removable_item, indentation, container_data, element_index))
@@ -805,6 +832,17 @@ namespace sfg
 			}
 			++i;
 		}
+		for (size_t i = 0; i < _quat_fields.size();)
+		{
+			if (is_child_widget(_quat_fields[i]->get_root(), parent))
+			{
+				_quat_fields[i]->uninit();
+				delete _quat_fields[i];
+				_quat_fields.erase(_quat_fields.begin() + i);
+				continue;
+			}
+			++i;
+		}
 		for (size_t i = 0; i < _vec3_fields.size();)
 		{
 			if (is_child_widget(_vec3_fields[i]->get_root(), parent))
@@ -1002,6 +1040,11 @@ namespace sfg
 			color->uninit();
 			delete color;
 		}
+		for (editor_quat_field_t* quat : _quat_fields)
+		{
+			quat->uninit();
+			delete quat;
+		}
 		for (editor_vec2_field_t* vec : _vec2_fields)
 		{
 			vec->uninit();
@@ -1045,6 +1088,7 @@ namespace sfg
 		_checkboxes.resize(0);
 		_dropdowns.resize(0);
 		_color_fields.resize(0);
+		_quat_fields.resize(0);
 		_vec2_fields.resize(0);
 		_vec3_fields.resize(0);
 		_vec4_fields.resize(0);

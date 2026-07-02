@@ -95,7 +95,7 @@ namespace sfg
 				.type_id   = type_id_t<component_transform_t>::value,
 				.size	   = sizeof(component_transform_t),
 				.alignment = alignof(component_transform_t),
-				.flags	   = reflected_type_flag_component,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
 			});
 		}
 
@@ -111,7 +111,7 @@ namespace sfg
 				.type_id   = type_id_t<component_name_t>::value,
 				.size	   = sizeof(component_name_t),
 				.alignment = alignof(component_name_t),
-				.flags	   = reflected_type_flag_component,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
 			});
 		}
 

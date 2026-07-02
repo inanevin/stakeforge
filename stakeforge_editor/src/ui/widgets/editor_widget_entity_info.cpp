@@ -68,7 +68,6 @@ namespace sfg
 		ui.set_widget_debug_name(_root, "entity_info");
 		tree.attach(parent, _root);
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
-		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible;
@@ -114,7 +113,9 @@ namespace sfg
 		fit_control(ui, _position_field.get_root());
 
 		const editor_property_row_t rotation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Rotation");
-		editor_vec3_field_config_t	rotation_config = {};
+		editor_quat_field_config_t	rotation_config = {};
+		rotation_config.on_data_changed				= on_rotation_changed;
+		rotation_config.user_data					= this;
 		_rotation_field.init(ui, rotation_row.right, rotation_config);
 		fit_control(ui, _rotation_field.get_root());
 
@@ -137,13 +138,10 @@ namespace sfg
 		_root					  = NULL_WIDGET;
 		_guid_label				  = NULL_WIDGET;
 		_entity					  = NULL_ENTITY_ID;
-		_rotation_value			  = vec3f_t::zero;
-		_last_rotation_value	  = vec3f_t::zero;
 		_name_fallback[0]		  = '\0';
 		_name_submitted_callback  = nullptr;
 		_name_submitted_user_data = nullptr;
 		_entities.resize(0);
-		_refreshing = false;
 	}
 
 	void editor_widget_entity_info_t::set_entity(world_t& world, entity_id_t entity)
@@ -168,8 +166,6 @@ namespace sfg
 
 	void editor_widget_entity_info_t::refresh_controls()
 	{
-		_refreshing = true;
-
 		if (_entities.size() > 1)
 		{
 			_ui->set_widget_text(_guid_label, "Mixed");
@@ -187,9 +183,11 @@ namespace sfg
 								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		frame_vector_t<u8*>		 name_values;
 		frame_vector_t<vec3f_t*> position_values;
+		frame_vector_t<quat_t*>	 rotation_values;
 		frame_vector_t<vec3f_t*> scale_values;
 		name_values.reserve(_entities.size());
 		position_values.reserve(_entities.size());
+		rotation_values.reserve(_entities.size());
 		scale_values.reserve(_entities.size());
 
 		world_component_table_t* name_table = _world->find_component_table(type_id_t<component_name_t>::value);
@@ -203,24 +201,14 @@ namespace sfg
 			component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(transform_table->table, entity);
 			name_values.push_back(reinterpret_cast<u8*>(name.text));
 			position_values.push_back(&transform.pos);
+			rotation_values.push_back(&transform.rot);
 			scale_values.push_back(&transform.scale);
 		}
 
-		_rotation_value			= quat_t::to_euler(_world->get_entity_rot_local(_entity));
-		_last_rotation_value	= _rotation_value;
-		vec3f_t* rotation_value = &_rotation_value;
-
 		_name_input.update_field_data({.type = editor_input_field_field_type_e::char_array, .fields = {.data = name_values.data(), .size = name_values.size()}, .field_size = sizeof(component_name_t::text)});
 		_position_field.update_field_data({.fields = {.data = position_values.data(), .size = position_values.size()}});
-		_rotation_field.update_field_data({.fields = {.data = &rotation_value, .size = 1}});
+		_rotation_field.update_field_data({.fields = {.data = rotation_values.data(), .size = rotation_values.size()}});
 		_scale_field.update_field_data({.fields = {.data = scale_values.data(), .size = scale_values.size()}});
-
-		_refreshing = false;
-	}
-
-	void editor_widget_entity_info_t::on_pre_layout_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
-	{
-		static_cast<editor_widget_entity_info_t*>(user_data)->apply_rotation_values();
 	}
 
 	void editor_widget_entity_info_t::on_name_input_submitted(void* user_data)
@@ -228,17 +216,23 @@ namespace sfg
 		static_cast<editor_widget_entity_info_t*>(user_data)->submit_names();
 	}
 
+	void editor_widget_entity_info_t::on_rotation_changed(void* user_data)
+	{
+		static_cast<editor_widget_entity_info_t*>(user_data)->apply_rotation_values();
+	}
+
 	void editor_widget_entity_info_t::apply_rotation_values()
 	{
-		if (_refreshing || _entities.empty())
+		if (_entities.empty())
 			return;
 
-		if (_rotation_value.x == _last_rotation_value.x && _rotation_value.y == _last_rotation_value.y && _rotation_value.z == _last_rotation_value.z)
-			return;
-
+		world_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
+		SFG_ASSERT(transform_table != nullptr);
 		for (entity_id_t entity : _entities)
-			_world->set_entity_rot_local(entity, quat_t::from_euler(_rotation_value.x, _rotation_value.y, _rotation_value.z));
-		_last_rotation_value = _rotation_value;
+		{
+			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(transform_table->table, entity);
+			_world->set_entity_rot_local(entity, transform.rot);
+		}
 	}
 
 	void editor_widget_entity_info_t::submit_names()

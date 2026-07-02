@@ -29,6 +29,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_width.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include <sfg/data/vector.hpp>
+#include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 
@@ -47,6 +48,11 @@ namespace sfg
 	struct editor_vec4_field_field_t
 	{
 		span_t<vec4f_t*> fields = {};
+	};
+
+	struct editor_quat_field_field_t
+	{
+		span_t<quat_t*> fields = {};
 	};
 
 	struct editor_vec2_field_config_t
@@ -71,6 +77,17 @@ namespace sfg
 		editor_vec4_field_field_t	 field	   = {};
 		f32							 increment = 0.1f;
 		bool						 integer   = false;
+	};
+
+	using editor_quat_field_data_changed_fn = void (*)(void* user_data);
+
+	struct editor_quat_field_config_t
+	{
+		editor_widget_width_config_t	  width			  = {};
+		editor_quat_field_field_t		  field			  = {};
+		editor_quat_field_data_changed_fn on_data_changed = nullptr;
+		void*							  user_data		  = nullptr;
+		f32								  increment		  = 0.1f;
 	};
 
 	class editor_vec2_field_t final
@@ -176,5 +193,46 @@ namespace sfg
 		vector_t<vec4f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[4] = {};
 		vec4f_t					   _value	  = {0.0f, 0.0f, 0.0f, 0.0f};
+	};
+
+	class editor_quat_field_t final
+	{
+	public:
+		editor_quat_field_t()									   = default;
+		~editor_quat_field_t()									   = default;
+		editor_quat_field_t(const editor_quat_field_t&)			   = delete;
+		editor_quat_field_t& operator=(const editor_quat_field_t&) = delete;
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_quat_field_config_t& config);
+		void uninit();
+		void set_value(const quat_t& value);
+		void set_mixed(bool mixed);
+		void update_field_data(editor_quat_field_field_t field);
+		void refresh_field_data();
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
+
+		inline const quat_t& get_value() const
+		{
+			return _value;
+		}
+
+	private:
+		void modify_field();
+
+		static void on_euler_data_changed(void* user_data);
+
+	private:
+		ui::ui_context*			   _ui		  = nullptr;
+		ui::widget_id_t			   _root	  = NULL_WIDGET;
+		editor_quat_field_config_t _config	  = {};
+		editor_input_field_t	   _inputs[3] = {};
+		vector_t<quat_t*>		   _field_values;
+		vector_t<vec3f_t>		   _euler_values;
+		vector_t<u8*>			   _fields[3] = {};
+		quat_t					   _value	  = {};
 	};
 }

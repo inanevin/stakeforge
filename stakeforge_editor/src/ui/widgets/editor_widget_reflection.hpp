@@ -46,6 +46,7 @@ namespace sfg
 	class editor_color_field_t;
 	class editor_dropdown_t;
 	class editor_input_field_t;
+	class editor_quat_field_t;
 	class editor_vec2_field_t;
 	class editor_vec3_field_t;
 	class editor_vec4_field_t;
@@ -119,6 +120,7 @@ namespace sfg
 		void create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_reference(
 			ui::widget_id_t parent, const reflected_field_t* const field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
+		bool create_quat_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_color_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		void create_object(ui::widget_id_t				  parent,
@@ -160,6 +162,7 @@ namespace sfg
 		vector_t<editor_checkbox_t*>					 _checkboxes;
 		vector_t<editor_dropdown_t*>					 _dropdowns;
 		vector_t<editor_color_field_t*>					 _color_fields;
+		vector_t<editor_quat_field_t*>					 _quat_fields;
 		vector_t<editor_vec2_field_t*>					 _vec2_fields;
 		vector_t<editor_vec3_field_t*>					 _vec3_fields;
 		vector_t<editor_vec4_field_t*>					 _vec4_fields;
