@@ -29,8 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math.hpp"
 #include "easing.hpp"
 #include <sfg/common/size_definitions.hpp>
-#include <iomanip>
-#include <sstream>
+#include <cstdio>
 
 namespace sfg
 {
@@ -59,12 +58,20 @@ namespace sfg
 
 	string_t color_utils_t::to_hex(const color_t& color_t)
 	{
-		const i32		  r = static_cast<i32>(color_t.x * 255);
-		const i32		  g = static_cast<i32>(color_t.y * 255);
-		const i32		  b = static_cast<i32>(color_t.z * 255);
-		std::stringstream ss;
-		ss << "#" << std::hex << std::setfill('0') << std::setw(2) << r << std::setw(2) << g << std::setw(2) << b;
-		return ss.str();
+		char out[8] = {};
+		to_hex(color_t, out, sizeof(out));
+		return out;
+	}
+
+	void color_utils_t::to_hex(const color_t& col, char* out, size_t capacity)
+	{
+		if (capacity == 0)
+			return;
+
+		const i32 r = static_cast<i32>(math::clamp(col.x, 0.0f, 1.0f) * 255.0f + 0.5f);
+		const i32 g = static_cast<i32>(math::clamp(col.y, 0.0f, 1.0f) * 255.0f + 0.5f);
+		const i32 b = static_cast<i32>(math::clamp(col.z, 0.0f, 1.0f) * 255.0f + 0.5f);
+		std::snprintf(out, capacity, "#%02X%02X%02X", r, g, b);
 	}
 
 	color_t color_utils_t::hs_to_srgb(const color_t& col)
@@ -82,39 +89,27 @@ namespace sfg
 	{
 		color_t hsv;
 
-		f32 minVal = math::min(col.x, math::min(col.y, col.z));
-		f32 maxVal = math::max(col.x, math::max(col.y, col.z));
-		f32 delta  = maxVal - minVal;
+		const f32 min_value = math::min(col.x, math::min(col.y, col.z));
+		const f32 max_value = math::max(col.x, math::max(col.y, col.z));
+		const f32 delta		= max_value - min_value;
 
-		// Hue calculation
-		if (delta == 0)
-		{
-			hsv.x = 0;
-		}
-		else if (maxVal == col.x)
+		if (delta == 0.0f)
+			hsv.x = 0.0f;
+		else if (max_value == col.x)
 		{
 			f32 integ = 0.0f;
-			hsv.x	  = 60 * math::modf(((col.y - col.z) / delta), &integ);
+			hsv.x	  = 60.0f * math::modf((col.y - col.z) / delta, &integ);
 		}
-		else if (maxVal == col.y)
-		{
-			hsv.x = 60 * (((col.z - col.x) / delta) + 2);
-		}
-		else if (maxVal == col.z)
-		{
-			hsv.x = 60 * (((col.x - col.y) / delta) + 4);
-		}
+		else if (max_value == col.y)
+			hsv.x = 60.0f * (((col.z - col.x) / delta) + 2.0f);
+		else if (max_value == col.z)
+			hsv.x = 60.0f * (((col.x - col.y) / delta) + 4.0f);
 
-		if (hsv.x < 0)
-		{
-			hsv.x += 360;
-		}
+		if (hsv.x < 0.0f)
+			hsv.x += 360.0f;
 
-		// Saturation calculation
-		hsv.y = (maxVal == 0) ? 0 : (delta / maxVal);
-
-		// Value calculation
-		hsv.z = maxVal;
+		hsv.y = max_value == 0.0f ? 0.0f : delta / max_value;
+		hsv.z = max_value;
 		hsv.w = col.w;
 
 		return hsv;

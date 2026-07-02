@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
@@ -45,8 +46,11 @@ namespace sfg
 		enum class mouse_button_e : u8;
 	}
 
+	class editor_command_system_t;
 	class world_t;
 	class editor_widget_entity_info_t;
+	struct editor_command_listener_tag_t;
+	struct editor_command_t;
 
 	enum class editor_inspector_display_type_e : u8
 	{
@@ -93,6 +97,12 @@ namespace sfg
 			bool  folded  = false;
 		};
 
+		struct entity_scroll_state_t
+		{
+			entity_id_t entity	 = {};
+			f32			scroll_y = 0.0f;
+		};
+
 		struct add_component_menu_category_t
 		{
 			vector_t<editor_action_menu_row_desc_t> rows	 = {};
@@ -101,12 +111,19 @@ namespace sfg
 
 	private:
 		void					   save_display_state();
+		void					   save_scroll_state();
+		void					   restore_scroll_state();
 		void					   clear_display();
 		void					   create_entity_display();
 		bool					   can_mutate_ui_topology() const;
 		void					   request_refresh_display();
+		void					   request_refresh_component_reflection(sid_t component_type);
 		void					   flush_pending_ui_mutations();
+		void					   refresh_component_reflection(sid_t component_type);
+		void					   apply_pending_scroll_restore();
+		component_display_t*	   find_component_display(sid_t type_id);
 		component_display_state_t* find_component_display_state(sid_t type_id);
+		entity_scroll_state_t*	   find_entity_scroll_state(entity_id_t entity);
 		void					   open_entity_info_action_menu(const vec2f_t& pos);
 		void					   open_component_action_menu(const vec2f_t& pos, sid_t type_id);
 		void					   open_add_component_action_menu(const vec2f_t& pos);
@@ -123,29 +140,40 @@ namespace sfg
 		static void on_component_action_menu_command(u16 command, void* user_data);
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_add_component_action_menu_command(u16 command, void* user_data);
+		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
+		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		vector_t<component_display_state_t>		_component_states		  = {};
-		vector_t<component_display_t>			_component_displays		  = {};
-		vector_t<add_component_menu_category_t> _add_component_categories = {};
-		vector_t<editor_action_menu_row_desc_t> _add_component_root_rows  = {};
-		vector_t<sid_t>							_add_component_types	  = {};
-		vector_t<entity_id_t>					_display_entities		  = {};
-		editor_scrollbar_t						_scrollbar				  = {};
-		editor_widget_fold_t*					_entity_info_fold		  = nullptr;
-		editor_widget_entity_info_t*			_entity_info			  = nullptr;
-		editor_button_t*						_add_component_button	  = nullptr;
-		world_t*								_display_world			  = nullptr;
-		world_handle_t							_display_world_handle	  = {};
-		ui::widget_id_t							_scroll_area			  = NULL_WIDGET;
-		ui::widget_id_t							_column					  = NULL_WIDGET;
-		ostream_t								_copied_component_stream  = {};
-		editor_entity_info_data_t				_copied_entity_info		  = {};
-		sid_t									_copied_component_type	  = 0;
-		sid_t									_action_menu_type_id	  = 0;
-		editor_inspector_display_type_e			_display_type			  = editor_inspector_display_type_e::none;
-		bool									_refresh_display_pending  = false;
-		bool									_copied_entity_info_valid = false;
+		vector_t<component_display_state_t>				  _component_states			 = {};
+		vector_t<editor_widget_reflection_fold_state_t>	  _field_states				 = {};
+		vector_t<entity_scroll_state_t>					  _entity_scroll_states		 = {};
+		vector_t<component_display_t>					  _component_displays		 = {};
+		vector_t<add_component_menu_category_t>			  _add_component_categories	 = {};
+		vector_t<editor_action_menu_row_desc_t>			  _add_component_root_rows	 = {};
+		vector_t<sid_t>									  _add_component_types		 = {};
+		vector_t<entity_id_t>							  _display_entities			 = {};
+		editor_scrollbar_t								  _scrollbar				 = {};
+		editor_widget_fold_t*							  _entity_info_fold			 = nullptr;
+		editor_widget_entity_info_t*					  _entity_info				 = nullptr;
+		editor_button_t*								  _add_component_button		 = nullptr;
+		world_t*										  _display_world			 = nullptr;
+		world_handle_t									  _display_world_handle		 = {};
+		ui::widget_id_t									  _scroll_area				 = NULL_WIDGET;
+		ui::widget_id_t									  _column					 = NULL_WIDGET;
+		ostream_t										  _copied_component_stream	 = {};
+		editor_entity_info_data_t						  _copied_entity_info		 = {};
+		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			 = {};
+		sid_t											  _copied_component_type	 = 0;
+		sid_t											  _action_menu_type_id		 = 0;
+		sid_t											  _pending_component_type	 = 0;
+		editor_inspector_display_type_e					  _display_type				 = editor_inspector_display_type_e::none;
+		f32												  _pending_scroll_y			 = 0.0f;
+		u8												  _scroll_restore_wait_ticks = 0;
+		bool											  _refresh_display_pending	 = false;
+		bool											  _refresh_component_pending = false;
+		bool											  _scroll_restore_pending	 = false;
+		bool											  _skip_scroll_state_save	 = false;
+		bool											  _copied_entity_info_valid	 = false;
 	};
 }

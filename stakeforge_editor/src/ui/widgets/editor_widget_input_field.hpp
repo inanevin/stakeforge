@@ -119,6 +119,7 @@ namespace sfg
 		void set_caret(u32 index);
 		void update_drag_selection(const vec2f_t& pos);
 		void apply_number_delta(f32 delta_x);
+		void apply_slider_position(const vec2f_t& pos);
 		void rebuild_text_advances();
 		void reset_caret_blink();
 		u32	 index_from_pos(const vec2f_t& pos) const;

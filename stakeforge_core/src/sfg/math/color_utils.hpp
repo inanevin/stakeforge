@@ -26,24 +26,28 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <cstddef>
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 
 namespace sfg
 {
 	class color_t;
 
-	namespace color_utils_t
+	class color_utils_t final
 	{
-		color_t	 lerp(const color_t& c1, const color_t& c2, f32 a);
-		color_t	 from_hex(const string_t& hex);
-		string_t to_hex(const color_t& color_t);
-		color_t	 hs_to_srgb(const color_t& color_t);
-		color_t	 srgb_to_hsv(const color_t& color_t);
-		color_t	 hsv_to_srgb(const color_t& color_t);
-		color_t	 srgb_to_linear(const color_t& color_t);
-		color_t	 linear_to_srgb(const color_t& color_t);
-		color_t	 brighten(const color_t& color_t, f32 amt);
-		color_t	 darken(const color_t& color_t, f32 amt);
-	}
+	public:
+		static color_t	lerp(const color_t& c1, const color_t& c2, f32 a);
+		static color_t	from_hex(const string_t& hex);
+		static string_t to_hex(const color_t& color_t);
+		static void		to_hex(const color_t& color_t, char* out, size_t capacity);
+		static color_t	hs_to_srgb(const color_t& color_t);
+		static color_t	srgb_to_hsv(const color_t& color_t);
+		static color_t	hsv_to_srgb(const color_t& color_t);
+		static color_t	srgb_to_linear(const color_t& color_t);
+		static color_t	linear_to_srgb(const color_t& color_t);
+		static color_t	brighten(const color_t& color_t, f32 amt);
+		static color_t	darken(const color_t& color_t, f32 amt);
+	};
 
 } // namespace sfg

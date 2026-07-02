@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/inplace_vector.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -152,9 +153,9 @@ namespace sfg
 
 	struct debug_struct_t
 	{
-		vec3f_t								 vec3_value	   = {1.0f, 2.0f, 3.0f};
-		f32									 f32_value	   = 1.0f;
-		debug_struct2_t						 test		   = {};
+		vec3f_t			vec3_value = {1.0f, 2.0f, 3.0f};
+		f32				f32_value  = 1.0f;
+		debug_struct2_t test	   = {};
 	};
 
 	SFG_DEFINE_TYPE_ID(debug_struct_t);
@@ -182,6 +183,7 @@ namespace sfg
 		resource_handle_t		 hdr_skybox_handle_value			  = NULL_RESOURCE_HANDLE;
 		entity_guid_t			 entity_guid_value					  = NULL_ENTITY_GUID;
 		quat_t					 quat_value							  = {};
+		color_t					 color_value						  = color_t::red;
 		f32						 f32_value							  = 1.0f;
 		i32						 i32_value							  = -32;
 		u32						 u32_value							  = 32;

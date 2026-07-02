@@ -40,8 +40,6 @@ namespace sfg
 	public:
 		color_t(f32 rv = 1.0f, f32 gv = 1.0f, f32 bv = 1.0f, f32 av = 1.0f) : x(rv), y(gv), z(bv), w(av) {};
 		static color_t from255(f32 r, f32 g, f32 b, f32 a);
-		color_t		   linear_to_srgb();
-		color_t		   srgb_to_linear();
 
 		vec4f_t to_vector() const;
 		void	round();

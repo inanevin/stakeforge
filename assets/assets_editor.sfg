@@ -64,6 +64,15 @@
             }
         },
         {
+            "name": "ui_color_wheel",
+            "path": "editor/resource_pack/shaders/editor_ui_color_wheel.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1
+            }
+        },
+        {
             "name": "font_ibm",
             "path": "editor/resource_pack/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf",
             "type": 2,

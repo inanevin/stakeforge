@@ -27,24 +27,29 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_width.hpp"
-#include <sfg/math/vec4f.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
 {
+	class input_router_t;
 	class ui_context;
+	enum class mouse_button_e : u8;
 }
 
 namespace sfg
 {
-	using editor_color_field_changed_fn = void (*)(const vec4f_t& color, void* user_data);
+	struct editor_color_field_field_t
+	{
+		span_t<color_t*> fields = {};
+	};
 
 	struct editor_color_field_config_t
 	{
-		editor_color_field_changed_fn on_changed = nullptr;
-		void*						  user_data	 = nullptr;
-		editor_widget_width_config_t  width		 = {};
-		vec4f_t						  color		 = {1.0f, 1.0f, 1.0f, 1.0f};
+		editor_color_field_field_t	 field = {};
+		editor_widget_width_config_t width = {};
 	};
 
 	class editor_color_field_t final
@@ -57,26 +62,35 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_color_field_config_t& config);
 		void uninit();
-		void set_color(const vec4f_t& color);
+		void set_color(const color_t& color);
+		void update_field_data(editor_color_field_field_t field);
+		void refresh_field_data();
 
 		inline ui::widget_id_t get_root() const
 		{
 			return _root;
 		}
 
-		inline const vec4f_t& get_color() const
+		inline const color_t& get_color() const
 		{
 			return _color;
 		}
 
 	private:
 		void refresh_color();
+		void modify_field();
+
+		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_color_wheel_data_changed(void* user_data);
 
 	private:
 		ui::ui_context*				_ui		= nullptr;
 		ui::widget_id_t				_root	= NULL_WIDGET;
 		ui::widget_id_t				_swatch = NULL_WIDGET;
+		ui::widget_id_t				_label	= NULL_WIDGET;
+		vector_t<color_t*>			_fields = {};
 		editor_color_field_config_t _config = {};
-		vec4f_t						_color	= {1.0f, 1.0f, 1.0f, 1.0f};
+		color_t						_color	= {};
+		bool						_mixed	= false;
 	};
 }

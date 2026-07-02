@@ -45,6 +45,10 @@ namespace sfg
 
 		_ui		= &ui;
 		_config = config;
+		_items.reserve(config.item_count);
+		for (u16 i = 0; i < config.item_count; ++i)
+			_items.push_back(config.items[i]);
+		_config.items = _items.data();
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -142,7 +146,10 @@ namespace sfg
 		}
 		editor_icon_widgets_t::add_icon(ui, _icon_frame, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text1);
 
-		refresh_title();
+		if (config.field.fields.size > 0)
+			update_field_data(config.field);
+		else
+			refresh_title();
 	}
 
 	void editor_dropdown_t::uninit()
@@ -155,6 +162,10 @@ namespace sfg
 		_title		= NULL_WIDGET;
 		_icon_frame = NULL_WIDGET;
 		_config		= {};
+		_items.resize(0);
+		_fields.resize(0);
+		_selected_value = 0;
+		_mixed			= false;
 	}
 
 	void editor_dropdown_t::close()
@@ -164,12 +175,55 @@ namespace sfg
 		popup->close_popup();
 	}
 
+	void editor_dropdown_t::update_field_data(editor_dropdown_field_t field)
+	{
+		SFG_ASSERT(field.fields.size > 0);
+		SFG_ASSERT(field.fields.data != nullptr);
+		SFG_ASSERT(field.field_size == sizeof(u8) || field.field_size == sizeof(u16) || field.field_size == sizeof(u32));
+
+		if (field.fields.data != _fields.data())
+		{
+			_fields.resize(0);
+			_fields.reserve(field.fields.size);
+			for (size_t i = 0; i < field.fields.size; ++i)
+			{
+				SFG_ASSERT(field.fields.data[i] != nullptr);
+				_fields.push_back(field.fields.data[i]);
+			}
+		}
+		else
+		{
+			SFG_ASSERT(field.fields.size == _fields.size());
+		}
+
+		_config.field.fields	 = {.data = _fields.data(), .size = _fields.size()};
+		_config.field.field_size = field.field_size;
+		refresh_field_data();
+	}
+
+	void editor_dropdown_t::refresh_field_data()
+	{
+		SFG_ASSERT(is_field_bound());
+
+		_selected_value = read_field_value(_fields[0]);
+		_mixed			= false;
+		for (size_t i = 1; i < _fields.size(); ++i)
+		{
+			if (read_field_value(_fields[i]) != _selected_value)
+			{
+				_mixed = true;
+				break;
+			}
+		}
+		refresh_title();
+	}
+
 	void editor_dropdown_t::refresh_title()
 	{
 		SFG_ASSERT(_ui != nullptr);
 		_ui->set_widget_text(_title, get_selected_text());
 		const editor_theme_t& theme	   = editor_theme_t::get();
-		const bool			  mixed	   = !_config.title_from_selection && _config.title != nullptr && std::strcmp(_config.title, "Mixed") == 0;
+		const bool			  mixed	   = _mixed || (!_config.title_from_selection && _config.title != nullptr && std::strcmp(_config.title, "Mixed") == 0);
 		ui::layout_in_t&	  title_in = _ui->get_tree().in(_title);
 		title_in.size_value.x		   = static_cast<f32>(_ui->widget_text_len(_title)) * theme.text_default_px_size * 0.7f;
 		_ui->get_paint().set_text(_title,
@@ -180,18 +234,72 @@ namespace sfg
 
 	void editor_dropdown_t::set_mixed(bool mixed)
 	{
+		_mixed						 = mixed;
 		_config.title				 = mixed ? "Mixed" : nullptr;
 		_config.title_from_selection = !mixed;
 		refresh_title();
 	}
 
+	bool editor_dropdown_t::is_field_bound() const
+	{
+		return _config.field.fields.size > 0;
+	}
+
+	u16 editor_dropdown_t::read_field_value(const u8* field) const
+	{
+		switch (_config.field.field_size)
+		{
+		case sizeof(u8):
+			return *reinterpret_cast<const u8*>(field);
+		case sizeof(u16):
+			return *reinterpret_cast<const u16*>(field);
+		case sizeof(u32):
+			return static_cast<u16>(*reinterpret_cast<const u32*>(field));
+		default:
+			SFG_ASSERT(false);
+			return 0;
+		}
+	}
+
+	void editor_dropdown_t::write_field_value(u8* field, u16 value) const
+	{
+		switch (_config.field.field_size)
+		{
+		case sizeof(u8):
+			*reinterpret_cast<u8*>(field) = static_cast<u8>(value);
+			break;
+		case sizeof(u16):
+			*reinterpret_cast<u16*>(field) = value;
+			break;
+		case sizeof(u32):
+			*reinterpret_cast<u32*>(field) = value;
+			break;
+		default:
+			SFG_ASSERT(false);
+			break;
+		}
+	}
+
+	void editor_dropdown_t::modify_field(u16 value)
+	{
+		SFG_ASSERT(is_field_bound());
+		for (u8* field : _fields)
+			write_field_value(field, value);
+		refresh_field_data();
+	}
+
 	u16 editor_dropdown_t::get_selected() const
 	{
+		if (is_field_bound())
+			return _selected_value;
 		return _config.selected != nullptr ? _config.selected(_config.user_data) : (_config.item_count > 0 ? _config.items[0].value : 0);
 	}
 
 	const char* editor_dropdown_t::get_selected_text() const
 	{
+		if (_mixed)
+			return "Mixed";
+
 		if (!_config.title_from_selection && _config.title != nullptr)
 			return _config.title;
 
@@ -250,7 +358,9 @@ namespace sfg
 	void editor_dropdown_t::on_popup_item_pressed(u16 value, void* user_data)
 	{
 		editor_dropdown_t& dropdown = *static_cast<editor_dropdown_t*>(user_data);
-		if (dropdown._config.pressed != nullptr)
+		if (dropdown.is_field_bound())
+			dropdown.modify_field(value);
+		else if (dropdown._config.pressed != nullptr)
 			dropdown._config.pressed(value, dropdown._config.user_data);
 		dropdown.refresh_title();
 	}

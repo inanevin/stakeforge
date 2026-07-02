@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset_type.hpp"
+#include "ui/widgets/editor_widget_color_wheel.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/string.hpp>
@@ -101,6 +102,14 @@ namespace sfg
 		bool						   close_on_pressed = true;
 	};
 
+	struct editor_color_wheel_popup_desc_t
+	{
+		span_t<color_t*>				   fields		   = {};
+		editor_color_wheel_data_changed_fn on_data_changed = nullptr;
+		void*							   user_data	   = nullptr;
+		vec2f_t							   pos			   = {};
+	};
+
 	class editor_popup_controller_t final
 	{
 	public:
@@ -129,6 +138,7 @@ namespace sfg
 		void request_input_popup(const editor_input_popup_desc_t& desc);
 		void request_asset_popup(const editor_asset_popup_desc_t& desc);
 		void request_entity_popup(const editor_entity_popup_desc_t& desc);
+		void request_color_wheel_popup(const editor_color_wheel_popup_desc_t& desc);
 		void close_popup(bool notify_input = false);
 
 		static editor_popup_controller_t* find(ui::ui_context& ui);
@@ -141,6 +151,7 @@ namespace sfg
 			input,
 			assets,
 			entities,
+			color_wheel,
 		};
 
 		enum class pending_request_e : u8
@@ -151,6 +162,7 @@ namespace sfg
 			input,
 			assets,
 			entities,
+			color_wheel,
 			asset_rows,
 		};
 
@@ -200,41 +212,46 @@ namespace sfg
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
-		ui::ui_context*				 _ui						   = nullptr;
-		ui::widget_id_t				 _foreground				   = NULL_WIDGET;
-		ui::widget_id_t				 _frame						   = NULL_WIDGET;
-		ui::widget_id_t				 _row_frames[MAX_ITEMS]		   = {};
-		ui::widget_id_t				 _row_inner_frames[MAX_ITEMS]  = {};
-		ui::widget_id_t				 _row_markers[MAX_ITEMS]	   = {};
-		ui::widget_id_t				 _row_marker_labels[MAX_ITEMS] = {};
-		ui::widget_id_t				 _row_labels[MAX_ITEMS]		   = {};
-		ui::widget_id_t				 _asset_label_row			   = NULL_WIDGET;
-		ui::widget_id_t				 _asset_label				   = NULL_WIDGET;
-		ui::widget_id_t				 _asset_search_row			   = NULL_WIDGET;
-		ui::widget_id_t				 _assets_frame				   = NULL_WIDGET;
-		editor_popup_desc_t			 _desc						   = {};
-		editor_input_popup_desc_t	 _input_desc				   = {};
-		editor_asset_popup_desc_t	 _asset_desc				   = {};
-		editor_entity_popup_desc_t	 _entity_desc				   = {};
-		editor_popup_desc_t			 _pending_desc				   = {};
-		editor_input_popup_desc_t	 _pending_input_desc		   = {};
-		editor_asset_popup_desc_t	 _pending_asset_desc		   = {};
-		editor_entity_popup_desc_t	 _pending_entity_desc		   = {};
-		editor_input_field_t		 _input						   = {};
-		editor_input_field_t		 _asset_search_input		   = {};
-		editor_scrollbar_t			 _asset_scrollbar			   = {};
-		editor_popup_item_desc_t	 _items[MAX_ITEMS]			   = {};
-		vector_t<asset_popup_item_t> _asset_items				   = {};
-		vector_t<asset_popup_item_t> _asset_filtered_items		   = {};
-		vector_t<asset_row_t>		 _asset_rows				   = {};
-		string_t					 _input_text				   = {};
-		string_t					 _asset_search_text			   = {};
-		editor_popup_item_desc_t	 _pending_items[MAX_ITEMS]	   = {};
-		popup_mode_e				 _mode						   = popup_mode_e::none;
-		pending_request_e			 _pending_request			   = pending_request_e::none;
-		u32							 _asset_scroll_target		   = 0;
-		u8							 _asset_scroll_pending_frames  = 0;
-		bool						 _pending_close_notify_input   = false;
-		bool						 _visible					   = false;
+		ui::ui_context*					_ui							  = nullptr;
+		ui::widget_id_t					_foreground					  = NULL_WIDGET;
+		ui::widget_id_t					_frame						  = NULL_WIDGET;
+		ui::widget_id_t					_row_frames[MAX_ITEMS]		  = {};
+		ui::widget_id_t					_row_inner_frames[MAX_ITEMS]  = {};
+		ui::widget_id_t					_row_markers[MAX_ITEMS]		  = {};
+		ui::widget_id_t					_row_marker_labels[MAX_ITEMS] = {};
+		ui::widget_id_t					_row_labels[MAX_ITEMS]		  = {};
+		ui::widget_id_t					_asset_label_row			  = NULL_WIDGET;
+		ui::widget_id_t					_asset_label				  = NULL_WIDGET;
+		ui::widget_id_t					_asset_search_row			  = NULL_WIDGET;
+		ui::widget_id_t					_assets_frame				  = NULL_WIDGET;
+		editor_popup_desc_t				_desc						  = {};
+		editor_input_popup_desc_t		_input_desc					  = {};
+		editor_asset_popup_desc_t		_asset_desc					  = {};
+		editor_entity_popup_desc_t		_entity_desc				  = {};
+		editor_color_wheel_popup_desc_t _color_wheel_desc			  = {};
+		editor_popup_desc_t				_pending_desc				  = {};
+		editor_input_popup_desc_t		_pending_input_desc			  = {};
+		editor_asset_popup_desc_t		_pending_asset_desc			  = {};
+		editor_entity_popup_desc_t		_pending_entity_desc		  = {};
+		editor_color_wheel_popup_desc_t _pending_color_wheel_desc	  = {};
+		editor_input_field_t			_input						  = {};
+		editor_input_field_t			_asset_search_input			  = {};
+		editor_widget_color_wheel_t		_color_wheel				  = {};
+		editor_scrollbar_t				_asset_scrollbar			  = {};
+		editor_popup_item_desc_t		_items[MAX_ITEMS]			  = {};
+		vector_t<asset_popup_item_t>	_asset_items				  = {};
+		vector_t<asset_popup_item_t>	_asset_filtered_items		  = {};
+		vector_t<asset_row_t>			_asset_rows					  = {};
+		string_t						_input_text					  = {};
+		string_t						_asset_search_text			  = {};
+		color_t							_color_wheel_dummy_color	  = {};
+		editor_popup_item_desc_t		_pending_items[MAX_ITEMS]	  = {};
+		popup_mode_e					_mode						  = popup_mode_e::none;
+		pending_request_e				_pending_request			  = pending_request_e::none;
+		vec2f_t							_color_wheel_size			  = {};
+		u32								_asset_scroll_target		  = 0;
+		u8								_asset_scroll_pending_frames  = 0;
+		bool							_pending_close_notify_input	  = false;
+		bool							_visible					  = false;
 	};
 }

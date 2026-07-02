@@ -33,11 +33,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_widget_fold_label.hpp"
 #include "editor_widget_input_field.hpp"
 #include "editor_widget_reference.hpp"
+#include "editor_widgets_color_field.hpp"
+#include "editor_widgets_dropdown.hpp"
 #include "editor_widgets_misc.hpp"
 #include "editor_widgets_vec_fields.hpp"
 #include "editor_widgets_dividers.hpp"
 #include "editor_widgets_icons.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -71,7 +74,7 @@ namespace sfg
 			case reflected_value_type_e::i64:
 				return true;
 			case reflected_value_type_e::object:
-				return sub_type_id == type_id_t<vec2f_t>::value || sub_type_id == type_id_t<vec3f_t>::value || sub_type_id == type_id_t<vec4f_t>::value || sub_type_id == type_id_t<quat_t>::value;
+				return sub_type_id == type_id_t<vec2f_t>::value || sub_type_id == type_id_t<vec3f_t>::value || sub_type_id == type_id_t<vec4f_t>::value || sub_type_id == type_id_t<quat_t>::value || sub_type_id == type_id_t<color_t>::value;
 			default:
 				return false;
 			}
@@ -115,6 +118,7 @@ namespace sfg
 	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& config)
 	{
 		clear_widgets();
+		_fold_states = config.fold_states;
 
 		const reflected_type_t* type = reflection_registry_t::get().find_type(config.type_id);
 		if (type == nullptr)
@@ -149,7 +153,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_checkbox(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, indentation);
+				create_checkbox(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation);
 				break;
 			}
 			case reflected_value_type_e::string:
@@ -159,7 +163,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, indentation);
+				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation);
 				break;
 			}
 			case reflected_value_type_e::object: {
@@ -168,7 +172,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					object_fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_object(parent, field, {.data = object_fields.data(), .size = object_fields.size()}, world, track_rows, sub_item, indentation);
+				create_object(parent, type_id, field, {.data = object_fields.data(), .size = object_fields.size()}, world, track_rows, sub_item, false, indentation);
 				break;
 			}
 			case reflected_value_type_e::container: {
@@ -177,7 +181,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					container_fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_container(parent, field, {.data = container_fields.data(), .size = container_fields.size()}, world, track_rows, sub_item, indentation);
+				create_container(parent, type_id, field, {.data = container_fields.data(), .size = container_fields.size()}, world, track_rows, sub_item, indentation);
 				break;
 			}
 			case reflected_value_type_e::f32:
@@ -197,7 +201,7 @@ namespace sfg
 					for (size_t idx = 0; idx < objects.size; ++idx)
 						reference_fields.push_back(reinterpret_cast<u64*>(static_cast<u8*>(objects.data[idx]) + field->offset));
 
-					if (create_reference(parent, field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, track_rows, sub_item, indentation))
+					if (create_reference(parent, field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, track_rows, sub_item, false, indentation))
 						break;
 				}
 
@@ -206,7 +210,10 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, indentation);
+				if (create_dropdown(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation))
+					break;
+
+				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation);
 				break;
 			}
 			}
@@ -227,7 +234,16 @@ namespace sfg
 		input_in.size_value		  = {1.0f, editor_theme_t::get().item_height};
 	}
 
-	void editor_widget_reflection_t::create_checkbox(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation)
+	void editor_widget_reflection_t::save_fold_states()
+	{
+		if (_fold_states == nullptr)
+			return;
+
+		for (const field_fold_t& field_fold : _field_folds)
+			set_fold_state(field_fold.type_id, field_fold.field_id, field_fold.fold->is_folded());
+	}
+
+	void editor_widget_reflection_t::create_checkbox(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
 		install_tooltip(row.label, field->tooltip);
@@ -242,14 +258,61 @@ namespace sfg
 		checkbox_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		checkbox_in.anchor_y		 = ui::anchor_e::center;
 		checkbox_in.pos_value.y		 = 0.5f;
-		if (sub_item)
-			install_sub_item_button(row.right);
+		if (removable_item)
+			install_sub_item_button(row.right, NULL_WIDGET, container_data, element_index);
 		_checkboxes.push_back(checkbox);
 		if (track_row)
 			_rows.push_back(row.row);
 	}
 
-	void editor_widget_reflection_t::create_input_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation)
+	bool editor_widget_reflection_t::create_dropdown(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+	{
+		if (field->value_type != reflected_value_type_e::u8 && field->value_type != reflected_value_type_e::u16 && field->value_type != reflected_value_type_e::u32)
+			return false;
+
+		const reflected_type_t* enum_type = reflection_registry_t::get().find_type(field->sub_type_id);
+		if (enum_type == nullptr || !enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+			return false;
+
+		SFG_ASSERT(field->size == enum_type->size);
+
+		const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
+		SFG_ASSERT(enum_item_count <= static_cast<u32>(static_cast<u16>(-1)));
+		frame_vector_t<editor_dropdown_item_t> items;
+		items.reserve(enum_item_count);
+		for (u32 i = 0; i < enum_item_count; ++i)
+		{
+			const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
+			SFG_ASSERT(enum_field != nullptr);
+			items.push_back({
+				.text  = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name,
+				.value = static_cast<u16>(i),
+			});
+		}
+
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+		install_tooltip(row.label, field->tooltip);
+
+		editor_dropdown_t* dropdown = new editor_dropdown_t();
+		dropdown->init(*_ui,
+					   row.right,
+					   {
+						   .items	   = items.data(),
+						   .field	   = {.fields = fields, .field_size = field->size},
+						   .item_count = static_cast<u16>(items.size()),
+						   .width	   = editor_dropdown_width_e::parent_relative,
+						   .pos_y	   = editor_dropdown_pos_y_e::center,
+					   });
+		fit_control(dropdown->get_root());
+		if (removable_item)
+			install_sub_item_button(row.right, dropdown->get_root(), container_data, element_index);
+		_dropdowns.push_back(dropdown);
+		if (track_row)
+			_rows.push_back(row.row);
+		return true;
+	}
+
+	void editor_widget_reflection_t::create_input_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
 		install_tooltip(row.label, field->tooltip);
@@ -281,14 +344,15 @@ namespace sfg
 						.max_value	 = 1.0f,
 					});
 		fit_control(input->get_root());
-		if (sub_item)
-			install_sub_item_button(row.right, input->get_root());
+		if (removable_item)
+			install_sub_item_button(row.right, input->get_root(), container_data, element_index);
 		_inputs.push_back(input);
 		if (track_row)
 			_rows.push_back(row.row);
 	}
 
-	bool editor_widget_reflection_t::create_reference(ui::widget_id_t parent, const reflected_field_t* field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, f32 indentation)
+	bool editor_widget_reflection_t::create_reference(
+		ui::widget_id_t parent, const reflected_field_t* field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		const resource_type_e	  resource_type	   = resource_type_from_reflection_sub_type_id(field->sub_type_id);
 		const editor_asset_type_e asset_type	   = editor_asset_type_from_resource_type(resource_type);
@@ -309,15 +373,15 @@ namespace sfg
 							.type		= entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
 						});
 		fit_control(reference->get_root());
-		if (sub_item)
-			install_sub_item_button(row.right, reference->get_root());
+		if (removable_item)
+			install_sub_item_button(row.right, reference->get_root(), container_data, element_index);
 		_references.push_back(reference);
 		if (track_row)
 			_rows.push_back(row.row);
 		return true;
 	}
 
-	bool editor_widget_reflection_t::create_vector_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, f32 indentation)
+	bool editor_widget_reflection_t::create_vector_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		if (field->sub_type_id == type_id_t<vec2f_t>::value)
 		{
@@ -332,8 +396,8 @@ namespace sfg
 			editor_vec2_field_t* vec = new editor_vec2_field_t();
 			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
 			fit_control(vec->get_root());
-			if (sub_item)
-				install_sub_item_button(row.right, vec->get_root());
+			if (removable_item)
+				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
 			_vec2_fields.push_back(vec);
 			if (track_row)
 				_rows.push_back(row.row);
@@ -352,8 +416,8 @@ namespace sfg
 			editor_vec3_field_t* vec = new editor_vec3_field_t();
 			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
 			fit_control(vec->get_root());
-			if (sub_item)
-				install_sub_item_button(row.right, vec->get_root());
+			if (removable_item)
+				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
 			_vec3_fields.push_back(vec);
 			if (track_row)
 				_rows.push_back(row.row);
@@ -372,8 +436,8 @@ namespace sfg
 			editor_vec4_field_t* vec = new editor_vec4_field_t();
 			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
 			fit_control(vec->get_root());
-			if (sub_item)
-				install_sub_item_button(row.right, vec->get_root());
+			if (removable_item)
+				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
 			_vec4_fields.push_back(vec);
 			if (track_row)
 				_rows.push_back(row.row);
@@ -383,37 +447,77 @@ namespace sfg
 		return false;
 	}
 
-	void editor_widget_reflection_t::create_object(ui::widget_id_t parent, const reflected_field_t* field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, f32 indentation)
+	bool editor_widget_reflection_t::create_color_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+	{
+		if (field->sub_type_id != type_id_t<color_t>::value)
+			return false;
+
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+		install_tooltip(row.label, field->tooltip);
+
+		frame_vector_t<color_t*> color_fields;
+		color_fields.reserve(fields.size);
+		for (size_t i = 0; i < fields.size; ++i)
+			color_fields.push_back(reinterpret_cast<color_t*>(fields.data[i]));
+
+		editor_color_field_t* color = new editor_color_field_t();
+		color->init(*_ui, row.right, {.field = {.fields = {.data = color_fields.data(), .size = color_fields.size()}}});
+		fit_control(color->get_root());
+		if (removable_item)
+			install_sub_item_button(row.right, color->get_root(), container_data, element_index);
+		_color_fields.push_back(color);
+		if (track_row)
+			_rows.push_back(row.row);
+		return true;
+	}
+
+	void editor_widget_reflection_t::create_object(
+		ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		frame_vector_t<u8*> fields;
 		fields.reserve(objects.size);
 		for (size_t i = 0; i < objects.size; ++i)
 			fields.push_back(static_cast<u8*>(objects.data[i]));
 
-		if (create_vector_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, indentation))
+		if (create_vector_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, removable_item, indentation, container_data, element_index))
 			return;
+
+		if (create_color_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_row, sub_item, removable_item, indentation, container_data, element_index))
+			return;
+
+		bool folded = false;
+		get_fold_state(type_id, field->field_identifier, folded);
 
 		editor_widget_fold_label_t* fold = new editor_widget_fold_label_t();
 		fold->init(*_ui,
 				   parent,
 				   {
 					   .label		 = field->display_name ? field->display_name : "missing_display_name",
-					   .button_style = sub_item ? editor_widget_fold_label_button_style_e::container_item_buttons : editor_widget_fold_label_button_style_e::none,
+					   .button_style = removable_item ? editor_widget_fold_label_button_style_e::container_item_buttons : editor_widget_fold_label_button_style_e::none,
+					   .folded		 = folded,
 					   .indentation	 = indentation,
 					   .sub_item	 = sub_item,
 				   });
 		install_tooltip(fold->get_root(), field->tooltip);
-		if (sub_item)
+		if (removable_item)
+		{
 			install_tooltip(fold->get_remove_button(), "Remove Element");
+			if (container_data != nullptr)
+				install_container_element_remove_listener(fold->get_remove_button(), container_data, element_index);
+		}
 		_fold_labels.push_back(fold);
+		_field_folds.push_back({.fold = fold, .type_id = type_id, .field_id = field->field_identifier});
 		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false);
 	}
 
-	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, const reflected_field_t*  field, span_t<void*> containers, world_handle_t world, bool, bool sub_item, f32 indentation)
+	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> containers, world_handle_t world, bool, bool sub_item, f32 indentation)
 	{
 		const reflected_value_type_e element_value_type	 = field->container_ops.element_value_type;
 		const sid_t					 element_sub_type_id = field->container_ops.element_sub_type_id;
 		SFG_ASSERT(is_container_type_allowed(element_value_type, element_sub_type_id));
+
+		bool folded = false;
+		get_fold_state(type_id, field->field_identifier, folded);
 
 		editor_widget_fold_label_t* fold = new editor_widget_fold_label_t();
 		fold->init(*_ui,
@@ -421,6 +525,7 @@ namespace sfg
 				   {
 					   .label		 = field->display_name ? field->display_name : "missing_display_name",
 					   .button_style = editor_widget_fold_label_button_style_e::container_buttons,
+					   .folded		 = folded,
 					   .indentation	 = indentation,
 					   .sub_item	 = sub_item,
 				   });
@@ -439,14 +544,19 @@ namespace sfg
 		reset_listener.on_click				 = on_container_reset;
 		_ui->get_input().set_listener(fold->get_reset_button(), reset_listener);
 		_fold_labels.push_back(fold);
+		_field_folds.push_back({.fold = fold, .type_id = type_id, .field_id = field->field_identifier});
 
-		create_container_elements(fold->get_body(), field, containers, world, indentation);
+		create_container_elements(fold->get_body(), user_data);
 	}
 
-	void editor_widget_reflection_t::create_container_elements(ui::widget_id_t parent, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, f32 indentation)
+	void editor_widget_reflection_t::create_container_elements(ui::widget_id_t parent, container_user_data_t* container_data)
 	{
-		const reflected_value_type_e element_value_type	 = field->container_ops.element_value_type;
-		const sid_t					 element_sub_type_id = field->container_ops.element_sub_type_id;
+		const reflected_field_t* const field			   = container_data->field;
+		span_t<void*>				   containers		   = {.data = container_data->containers.data(), .size = container_data->containers.size()};
+		const world_handle_t		   world			   = container_data->world;
+		const f32					   indentation		   = container_data->indentation;
+		const reflected_value_type_e   element_value_type  = field->container_ops.element_value_type;
+		const sid_t					   element_sub_type_id = field->container_ops.element_sub_type_id;
 
 		size_t element_count = field->container_ops.get_element_size_fn(containers.data[0]);
 		for (size_t i = 1; i < containers.size; ++i)
@@ -477,7 +587,7 @@ namespace sfg
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_checkbox(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				create_checkbox(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::string:
@@ -487,7 +597,7 @@ namespace sfg
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::object: {
@@ -496,7 +606,7 @@ namespace sfg
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_object(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				create_object(parent, 0, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::f32:
@@ -515,7 +625,7 @@ namespace sfg
 					for (size_t i = 0; i < containers.size; ++i)
 						reference_fields.push_back(reinterpret_cast<u64*>(field->container_ops.get_element_ptr_fn(containers.data[i], element_index)));
 
-					if (create_reference(parent, &element_field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, false, true, indentation + editor_theme_t::get().margin_horizontal))
+					if (create_reference(parent, &element_field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
 						break;
 				}
 
@@ -524,7 +634,10 @@ namespace sfg
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, indentation + editor_theme_t::get().margin_horizontal);
+				if (create_dropdown(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
+					break;
+
+				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			default:
@@ -549,11 +662,57 @@ namespace sfg
 		return data;
 	}
 
+	bool editor_widget_reflection_t::get_fold_state(sid_t type_id, sid_t field_id, bool& out_folded) const
+	{
+		if (_fold_states == nullptr)
+			return false;
+
+		for (const editor_widget_reflection_fold_state_t& state : *_fold_states)
+		{
+			if (state.type_id == type_id && state.field_id == field_id)
+			{
+				out_folded = state.folded;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void editor_widget_reflection_t::set_fold_state(sid_t type_id, sid_t field_id, bool folded)
+	{
+		SFG_ASSERT(_fold_states != nullptr);
+
+		for (editor_widget_reflection_fold_state_t& state : *_fold_states)
+		{
+			if (state.type_id == type_id && state.field_id == field_id)
+			{
+				state.folded = folded;
+				return;
+			}
+		}
+		_fold_states->push_back({.type_id = type_id, .field_id = field_id, .folded = folded});
+	}
+
+	editor_widget_reflection_t::container_element_user_data_t* editor_widget_reflection_t::create_container_element_user_data(container_user_data_t* container_data, u32 element_index, ui::widget_id_t button)
+	{
+		container_element_user_data_t* data = new container_element_user_data_t();
+		data->container_data				= container_data;
+		data->button						= button;
+		data->element_index					= element_index;
+		_container_element_user_data.push_back(data);
+		return data;
+	}
+
+	void editor_widget_reflection_t::request_container_refresh(container_user_data_t& data)
+	{
+		_ui->request_unique_mutation(on_container_refresh, &data);
+	}
+
 	void editor_widget_reflection_t::refresh_container(container_user_data_t& data)
 	{
 		clear_container_widgets(data.fold->get_body());
 		data.fold->clear_children();
-		create_container_elements(data.fold->get_body(), data.field, {.data = data.containers.data(), .size = data.containers.size()}, data.world, data.indentation);
+		create_container_elements(data.fold->get_body(), &data);
 	}
 
 	bool editor_widget_reflection_t::is_child_widget(ui::widget_id_t widget, ui::widget_id_t parent) const
@@ -592,6 +751,16 @@ namespace sfg
 	{
 		clear_child_tooltips(parent);
 
+		for (size_t i = 0; i < _container_element_user_data.size();)
+		{
+			if (is_child_widget(_container_element_user_data[i]->button, parent))
+			{
+				delete _container_element_user_data[i];
+				_container_element_user_data.erase(_container_element_user_data.begin() + i);
+				continue;
+			}
+			++i;
+		}
 		for (size_t i = 0; i < _inputs.size();)
 		{
 			if (is_child_widget(_inputs[i]->get_root(), parent))
@@ -610,6 +779,17 @@ namespace sfg
 				_checkboxes[i]->uninit();
 				delete _checkboxes[i];
 				_checkboxes.erase(_checkboxes.begin() + i);
+				continue;
+			}
+			++i;
+		}
+		for (size_t i = 0; i < _dropdowns.size();)
+		{
+			if (is_child_widget(_dropdowns[i]->get_root(), parent))
+			{
+				_dropdowns[i]->uninit();
+				delete _dropdowns[i];
+				_dropdowns.erase(_dropdowns.begin() + i);
 				continue;
 			}
 			++i;
@@ -647,6 +827,17 @@ namespace sfg
 			}
 			++i;
 		}
+		for (size_t i = 0; i < _color_fields.size();)
+		{
+			if (is_child_widget(_color_fields[i]->get_root(), parent))
+			{
+				_color_fields[i]->uninit();
+				delete _color_fields[i];
+				_color_fields.erase(_color_fields.begin() + i);
+				continue;
+			}
+			++i;
+		}
 		for (size_t i = 0; i < _references.size();)
 		{
 			if (is_child_widget(_references[i]->get_root(), parent))
@@ -662,6 +853,15 @@ namespace sfg
 		{
 			if (is_child_widget(_fold_labels[i]->get_root(), parent))
 			{
+				for (size_t field_fold_idx = 0; field_fold_idx < _field_folds.size();)
+				{
+					if (_field_folds[field_fold_idx].fold == _fold_labels[i])
+					{
+						_field_folds.erase(_field_folds.begin() + field_fold_idx);
+						continue;
+					}
+					++field_fold_idx;
+				}
 				_fold_labels[i]->uninit();
 				delete _fold_labels[i];
 				_fold_labels.erase(_fold_labels.begin() + i);
@@ -671,7 +871,7 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_reflection_t::install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control)
+	ui::widget_id_t editor_widget_reflection_t::install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control, container_user_data_t* container_data, u32 element_index)
 	{
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -699,6 +899,17 @@ namespace sfg
 		tree.draw_order(remove_button)						  = tree.draw_order_const(parent) + 1;
 		tree.draw_order(tree.node(remove_button).first_child) = tree.draw_order_const(remove_button);
 		install_tooltip(remove_button, "Remove Element");
+		if (container_data != nullptr)
+			install_container_element_remove_listener(remove_button, container_data, element_index);
+		return remove_button;
+	}
+
+	void editor_widget_reflection_t::install_container_element_remove_listener(ui::widget_id_t button, container_user_data_t* container_data, u32 element_index)
+	{
+		ui::listener_bundle_t remove_listener = {};
+		remove_listener.user_data			  = create_container_element_user_data(container_data, element_index, button);
+		remove_listener.on_click			  = on_container_element_remove;
+		_ui->get_input().set_listener(button, remove_listener);
 	}
 
 	void editor_widget_reflection_t::on_container_add(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -709,7 +920,7 @@ namespace sfg
 		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
 		for (void* container : data.containers)
 			data.field->container_ops.add_element_ptr_fn(container);
-		data.reflection->refresh_container(data);
+		data.reflection->request_container_refresh(data);
 	}
 
 	void editor_widget_reflection_t::on_container_reset(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -720,6 +931,24 @@ namespace sfg
 		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
 		for (void* container : data.containers)
 			data.field->container_ops.reset_fn(container);
+		data.reflection->request_container_refresh(data);
+	}
+
+	void editor_widget_reflection_t::on_container_element_remove(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		container_element_user_data_t& data			  = *static_cast<container_element_user_data_t*>(user_data);
+		container_user_data_t&		   container_data = *data.container_data;
+		for (void* container : container_data.containers)
+			container_data.field->container_ops.remove_index_fn(container, data.element_index);
+		container_data.reflection->request_container_refresh(container_data);
+	}
+
+	void editor_widget_reflection_t::on_container_refresh(ui::ui_context&, void* user_data)
+	{
+		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
 		data.reflection->refresh_container(data);
 	}
 
@@ -763,6 +992,16 @@ namespace sfg
 			checkbox->uninit();
 			delete checkbox;
 		}
+		for (editor_dropdown_t* dropdown : _dropdowns)
+		{
+			dropdown->uninit();
+			delete dropdown;
+		}
+		for (editor_color_field_t* color : _color_fields)
+		{
+			color->uninit();
+			delete color;
+		}
 		for (editor_vec2_field_t* vec : _vec2_fields)
 		{
 			vec->uninit();
@@ -788,22 +1027,35 @@ namespace sfg
 			_fold_labels[i - 1]->uninit();
 			delete _fold_labels[i - 1];
 		}
+
 		for (ui::widget_id_t row : _rows)
 			_ui->deallocate_widget(row);
 		for (ui::widget_id_t divider : _dividers)
 			_ui->deallocate_widget(divider);
+
 		for (container_user_data_t* data : _container_user_data)
+		{
+			_ui->cancel_mutations(data);
 			delete data;
+		}
+		for (container_element_user_data_t* data : _container_element_user_data)
+			delete data;
+
 		_inputs.resize(0);
 		_checkboxes.resize(0);
+		_dropdowns.resize(0);
+		_color_fields.resize(0);
 		_vec2_fields.resize(0);
 		_vec3_fields.resize(0);
 		_vec4_fields.resize(0);
 		_fold_labels.resize(0);
 		_references.resize(0);
 		_container_user_data.resize(0);
+		_container_element_user_data.resize(0);
+		_field_folds.resize(0);
 		_dividers.resize(0);
 		_rows.resize(0);
 		_tooltip_owners.resize(0);
+		_fold_states = nullptr;
 	}
 }

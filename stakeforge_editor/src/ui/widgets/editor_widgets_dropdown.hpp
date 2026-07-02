@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -60,6 +62,12 @@ namespace sfg
 	using editor_dropdown_selected_fn = u16 (*)(void* user_data);
 	using editor_dropdown_pressed_fn  = void (*)(u16 value, void* user_data);
 
+	struct editor_dropdown_field_t
+	{
+		span_t<u8*> fields	   = {};
+		size_t		field_size = 0;
+	};
+
 	struct editor_dropdown_config_t
 	{
 		const editor_dropdown_item_t* items				   = nullptr;
@@ -67,6 +75,7 @@ namespace sfg
 		editor_dropdown_selected_fn	  selected			   = nullptr;
 		editor_dropdown_pressed_fn	  pressed			   = nullptr;
 		void*						  user_data			   = nullptr;
+		editor_dropdown_field_t		  field				   = {};
 		u16							  item_count		   = 0;
 		editor_dropdown_width_e		  width				   = editor_dropdown_width_e::sum_children;
 		editor_dropdown_pos_y_e		  pos_y				   = editor_dropdown_pos_y_e::flow;
@@ -85,6 +94,8 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_dropdown_config_t& config);
 		void uninit();
 		void close();
+		void update_field_data(editor_dropdown_field_t field);
+		void refresh_field_data();
 		void refresh_title();
 		void set_mixed(bool mixed);
 
@@ -94,6 +105,10 @@ namespace sfg
 		}
 
 	private:
+		bool		is_field_bound() const;
+		u16			read_field_value(const u8* field) const;
+		void		write_field_value(u8* field, u16 value) const;
+		void		modify_field(u16 value);
 		u16			get_selected() const;
 		const char* get_selected_text() const;
 		void		open_popup();
@@ -103,10 +118,14 @@ namespace sfg
 		static void on_popup_item_pressed(u16 value, void* user_data);
 
 	private:
-		ui::ui_context*			 _ui		 = nullptr;
-		ui::widget_id_t			 _root		 = NULL_WIDGET;
-		ui::widget_id_t			 _title		 = NULL_WIDGET;
-		ui::widget_id_t			 _icon_frame = NULL_WIDGET;
-		editor_dropdown_config_t _config	 = {};
+		ui::ui_context*					 _ui		 = nullptr;
+		ui::widget_id_t					 _root		 = NULL_WIDGET;
+		ui::widget_id_t					 _title		 = NULL_WIDGET;
+		ui::widget_id_t					 _icon_frame = NULL_WIDGET;
+		editor_dropdown_config_t		 _config	 = {};
+		vector_t<editor_dropdown_item_t> _items;
+		vector_t<u8*>					 _fields;
+		u16								 _selected_value = 0;
+		bool							 _mixed			 = false;
 	};
 }

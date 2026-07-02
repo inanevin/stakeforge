@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/color.hpp>
+#include <sfg/math/color_utils.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <algorithm>
 #include <charconv>
@@ -49,7 +50,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_ASSET_COLOR(R, G, B) color_t::from255(R, G, B, 255.0f).srgb_to_linear().to_vector()
+#define EDITOR_ASSET_COLOR(R, G, B) color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
 
 	namespace
 	{

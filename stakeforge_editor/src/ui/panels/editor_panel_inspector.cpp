@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_commands_entity_info.hpp"
 
 #include "editor_app.hpp"
+#include "editor_command_system.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -139,14 +140,18 @@ namespace sfg
 		scrollbar_config.target					   = _scroll_area;
 		scrollbar_config.axes					   = editor_scrollbar_axis_y;
 		_scrollbar.init(ui, scrollbar_config);
+		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
 	}
 
 	void editor_panel_inspector_t::uninit()
 	{
+		editor_app_t::get().get_command_system().remove_listener(_command_listener);
 		_ui->cancel_mutations(this);
 		clear_display();
 		_scrollbar.uninit();
 		_component_states.clear();
+		_field_states.clear();
+		_entity_scroll_states.clear();
 		_display_entities.clear();
 		_display_world		  = nullptr;
 		_display_world_handle = {};
@@ -154,16 +159,24 @@ namespace sfg
 		_column				  = NULL_WIDGET;
 		_scroll_area		  = NULL_WIDGET;
 		_copied_component_stream.destroy();
-		_copied_entity_info		  = {};
-		_copied_component_type	  = 0;
-		_action_menu_type_id	  = 0;
-		_copied_entity_info_valid = false;
+		_copied_entity_info		   = {};
+		_command_listener		   = {};
+		_copied_component_type	   = 0;
+		_action_menu_type_id	   = 0;
+		_pending_component_type	   = 0;
+		_pending_scroll_y		   = 0.0f;
+		_scroll_restore_wait_ticks = 0;
+		_refresh_component_pending = false;
+		_scroll_restore_pending	   = false;
+		_skip_scroll_state_save	   = false;
+		_copied_entity_info_valid  = false;
 
 		editor_panel_t::uninit();
 	}
 
 	void editor_panel_inspector_t::set_display_none()
 	{
+		save_scroll_state();
 		save_display_state();
 		_display_type		  = editor_inspector_display_type_e::none;
 		_display_world		  = nullptr;
@@ -180,10 +193,12 @@ namespace sfg
 
 	void editor_panel_inspector_t::set_display_entity(world_handle_t world, span_t<const entity_id_t> entities)
 	{
+		save_scroll_state();
 		_display_type		  = editor_inspector_display_type_e::entity;
 		_display_world_handle = world;
 		_display_world		  = &editor_app_t::get().get_runtime().get_world(world);
 		_display_entities.assign(entities.data, entities.data + entities.size);
+		_skip_scroll_state_save = true;
 		refresh_display();
 	}
 
@@ -195,10 +210,15 @@ namespace sfg
 			return;
 		}
 
+		if (!_skip_scroll_state_save)
+			save_scroll_state();
+		_skip_scroll_state_save = false;
+
 		save_display_state();
 		clear_display();
 		if (_display_type == editor_inspector_display_type_e::entity)
 			create_entity_display();
+		restore_scroll_state();
 	}
 
 	bool editor_panel_inspector_t::can_mutate_ui_topology() const
@@ -213,19 +233,37 @@ namespace sfg
 		_ui->request_unique_mutation(on_ui_mutation, this);
 	}
 
+	void editor_panel_inspector_t::request_refresh_component_reflection(sid_t component_type)
+	{
+		_refresh_component_pending = true;
+		_pending_component_type	   = component_type;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
 	void editor_panel_inspector_t::flush_pending_ui_mutations()
 	{
-		if (!_refresh_display_pending)
+		if (_refresh_display_pending)
+		{
+			_refresh_display_pending   = false;
+			_refresh_component_pending = false;
+			refresh_display();
 			return;
+		}
 
-		_refresh_display_pending = false;
-		refresh_display();
+		if (_refresh_component_pending)
+		{
+			const sid_t component_type = _pending_component_type;
+			_refresh_component_pending = false;
+			_pending_component_type	   = 0;
+			refresh_component_reflection(component_type);
+		}
 	}
 
 	void editor_panel_inspector_t::save_display_state()
 	{
 		for (const component_display_t& display : _component_displays)
 		{
+			display.reflect->save_fold_states();
 			component_display_state_t* state = find_component_display_state(display.type_id);
 			if (state == nullptr)
 			{
@@ -234,6 +272,55 @@ namespace sfg
 			}
 			state->folded = display.fold->is_folded();
 		}
+	}
+
+	void editor_panel_inspector_t::save_scroll_state()
+	{
+		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
+			return;
+
+		entity_scroll_state_t* state = find_entity_scroll_state(_display_entities[0]);
+		if (state == nullptr)
+		{
+			_entity_scroll_states.push_back({.entity = _display_entities[0]});
+			state = &_entity_scroll_states.back();
+		}
+		state->scroll_y = _ui->get_tree().in_const(_scroll_area).scroll_offset.y;
+	}
+
+	void editor_panel_inspector_t::restore_scroll_state()
+	{
+		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
+		{
+			_scroll_restore_pending = false;
+			_ui->clear_pre_layout_tick(_scroll_area);
+			return;
+		}
+
+		const entity_scroll_state_t* state = find_entity_scroll_state(_display_entities[0]);
+		_pending_scroll_y				   = state != nullptr ? state->scroll_y : 0.0f;
+		_scroll_restore_wait_ticks		   = 1;
+		_scroll_restore_pending			   = true;
+		_ui->set_pre_layout_tick(_scroll_area, on_scroll_restore_tick, this);
+	}
+
+	void editor_panel_inspector_t::apply_pending_scroll_restore()
+	{
+		if (!_scroll_restore_pending)
+		{
+			_ui->clear_pre_layout_tick(_scroll_area);
+			return;
+		}
+
+		if (_scroll_restore_wait_ticks > 0)
+		{
+			--_scroll_restore_wait_ticks;
+			return;
+		}
+
+		_scrollbar.set_scroll_y_immediate(_pending_scroll_y);
+		_scroll_restore_pending = false;
+		_ui->clear_pre_layout_tick(_scroll_area);
 	}
 
 	void editor_panel_inspector_t::clear_display()
@@ -258,7 +345,6 @@ namespace sfg
 			delete _add_component_button;
 			_add_component_button = nullptr;
 		}
-
 		for (component_display_t& display : _component_displays)
 		{
 			display.reflect->uninit();
@@ -320,7 +406,14 @@ namespace sfg
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
 			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = true});
-			display.reflect->init(*_ui, display.fold->get_body(), {.objects = {.data = display.objects.data(), .size = display.objects.size()}, .type_id = component_table.type_desc.type_id, .world = _display_world_handle});
+			display.reflect->init(*_ui,
+								  display.fold->get_body(),
+								  {
+									  .objects	   = {.data = display.objects.data(), .size = display.objects.size()},
+									  .fold_states = &_field_states,
+									  .type_id	   = component_table.type_desc.type_id,
+									  .world	   = _display_world_handle,
+								  });
 
 			ui::listener_bundle_t settings_listener = {};
 			settings_listener.user_data				= this;
@@ -331,11 +424,58 @@ namespace sfg
 		create_add_component_button();
 	}
 
+	void editor_panel_inspector_t::refresh_component_reflection(sid_t component_type)
+	{
+		if (!can_mutate_ui_topology())
+		{
+			request_refresh_component_reflection(component_type);
+			return;
+		}
+
+		component_display_t* display = find_component_display(component_type);
+		if (display == nullptr)
+			return;
+
+		display->reflect->save_fold_states();
+		display->reflect->uninit();
+		delete display->reflect;
+
+		display->reflect = new editor_widget_reflection_t();
+		display->reflect->init(*_ui,
+							   display->fold->get_body(),
+							   {
+								   .objects		= {.data = display->objects.data(), .size = display->objects.size()},
+								   .fold_states = &_field_states,
+								   .type_id		= display->type_id,
+								   .world		= _display_world_handle,
+							   });
+	}
+
+	editor_panel_inspector_t::component_display_t* editor_panel_inspector_t::find_component_display(sid_t type_id)
+	{
+		for (component_display_t& display : _component_displays)
+		{
+			if (display.type_id == type_id)
+				return &display;
+		}
+		return nullptr;
+	}
+
 	editor_panel_inspector_t::component_display_state_t* editor_panel_inspector_t::find_component_display_state(sid_t type_id)
 	{
 		for (component_display_state_t& state : _component_states)
 		{
 			if (state.type_id == type_id)
+				return &state;
+		}
+		return nullptr;
+	}
+
+	editor_panel_inspector_t::entity_scroll_state_t* editor_panel_inspector_t::find_entity_scroll_state(entity_id_t entity)
+	{
+		for (entity_scroll_state_t& state : _entity_scroll_states)
+		{
+			if (state.entity == entity)
 				return &state;
 		}
 		return nullptr;
@@ -608,8 +748,26 @@ namespace sfg
 			panel.refresh_display();
 	}
 
+	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
+	{
+		if (command.type != editor_command_type_e::component_reset)
+			return;
+
+		editor_panel_inspector_t&						panel	= *static_cast<editor_panel_inspector_t*>(user_data);
+		const editor_command_reset_component_payload_t& payload = system.get_payload_as<editor_command_reset_component_payload_t>(command);
+		if (payload.world != panel._display_world_handle)
+			return;
+
+		panel.request_refresh_component_reflection(payload.component_type);
+	}
+
 	void editor_panel_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)
 	{
 		static_cast<editor_panel_inspector_t*>(user_data)->flush_pending_ui_mutations();
+	}
+
+	void editor_panel_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	{
+		static_cast<editor_panel_inspector_t*>(user_data)->apply_pending_scroll_restore();
 	}
 }

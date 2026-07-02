@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "color.hpp"
-#include <cstddef>
 #include <sfg/reflection/reflection_registry.hpp>
 #include "math.hpp"
 #include <sfg/data/istream.hpp>
@@ -45,38 +44,6 @@ namespace sfg
 	color_t color_t::beige	= color_t(0.96f, 0.96f, 0.862f);
 	color_t color_t::brown	= color_t(0.647f, 0.164f, 0.164f);
 	color_t color_t::gray	= color_t(0.5f, 0.5f, 0.5f);
-
-	color_t color_t::linear_to_srgb()
-	{
-		auto convert = [](f32 value) {
-			if (value <= 0.0031308f)
-			{
-				return value * 12.92f;
-			}
-			else
-			{
-				return 1.055f * math::pow(value, 1.0f / 2.4f) - 0.055f;
-			}
-		};
-
-		return color_t(convert(x), convert(y), convert(z), convert(w));
-	}
-
-	color_t color_t::srgb_to_linear()
-	{
-		auto convert = [](f32 value) {
-			if (value <= 0.04045f)
-			{
-				return value / 12.92f;
-			}
-			else
-			{
-				return math::pow((value + 0.055f) / 1.055f, 2.4f);
-			}
-		};
-
-		return color_t(convert(x), convert(y), convert(z), convert(w));
-	}
 
 	color_t color_t::from255(f32 r, f32 g, f32 b, f32 a)
 	{

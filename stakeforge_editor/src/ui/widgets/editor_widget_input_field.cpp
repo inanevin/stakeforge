@@ -183,7 +183,8 @@ namespace sfg
 		_mixed		  = false;
 
 		ui::layout_in_t& root_in = _ui->get_tree().in(_root);
-		root_in.child_margins	 = field.is_slider ? vec4f_t{} : vec4f_t{0.0f, editor_theme_t::get().margin_horizontal, 0.0f, editor_theme_t::get().margin_horizontal};
+		root_in.child_margins =
+			field.is_slider ? vec4f_t{editor_theme_t::get().outline_thickness * 2, 0.0f, editor_theme_t::get().outline_thickness * 2, 0.0f} : vec4f_t{0.0f, editor_theme_t::get().margin_horizontal, 0.0f, editor_theme_t::get().margin_horizontal};
 
 		switch (field.type)
 		{
@@ -437,6 +438,19 @@ namespace sfg
 		refresh_text();
 	}
 
+	void editor_input_field_t::apply_slider_position(const vec2f_t& pos)
+	{
+		if (_config.field.type != editor_input_field_field_type_e::pod_number || !_config.field.is_slider)
+			return;
+		const ui::layout_out_t& out = _ui->get_tree().out(_root);
+		const f32				t	= out.size.x > 0.0f ? math::clamp((pos.x - out.pos.x) / out.size.x, 0.0f, 1.0f) : 0.0f;
+		_mixed						= false;
+		_number_value				= _config.min_value + (_config.max_value - _config.min_value) * t;
+		format_number();
+		modify_field();
+		refresh_text();
+	}
+
 	void editor_input_field_t::rebuild_text_advances()
 	{
 		_text_advances[0]		= 0.0f;
@@ -672,7 +686,12 @@ namespace sfg
 	{
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		if (router.is_pressed(ui::mouse_button_e::middle) == field._root)
-			field.apply_number_delta(pos.x - (pos.x - delta.x));
+		{
+			if (field._config.field.is_slider)
+				field.apply_slider_position(pos);
+			else
+				field.apply_number_delta(pos.x - (pos.x - delta.x));
+		}
 		else if (router.is_pressed(ui::mouse_button_e::left) == field._root)
 			field.update_drag_selection(pos);
 	}

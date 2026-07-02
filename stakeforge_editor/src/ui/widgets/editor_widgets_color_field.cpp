@@ -25,7 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_widgets_color_field.hpp"
+#include "ui/editor_popup_controller.hpp"
+#include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -36,9 +40,9 @@ namespace sfg
 	{
 		_ui		= &ui;
 		_config = config;
-		_color	= {0.0f, 0.0f, 0.0f, 1.0f};
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
+		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
@@ -46,12 +50,16 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
+		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		apply_editor_widget_width(root_in, config.width);
 		root_in.size_mode_y	  = ui::axis_mode_e::fixed;
 		root_in.size_value.y  = theme.item_height;
-		root_in.flow		  = ui::flow_e::row;
-		root_in.child_spacing = theme.item_spacing;
+		root_in.child_margins = {theme.outline_thickness * 2.0f, 0.0f, theme.outline_thickness * 2.0f, 0.0f};
+
+		ui::listener_bundle_t listener = {};
+		listener.user_data			   = this;
+		listener.on_press			   = on_press;
+		ui.get_input().set_listener(_root, listener);
 
 		_swatch = ui.allocate_widget();
 		ui.set_widget_debug_name(_swatch, "color_field_swatch");
@@ -62,7 +70,30 @@ namespace sfg
 		swatch_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		swatch_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		swatch_in.size_value	   = {1.0f, 1.0f};
-		refresh_color();
+		paint.set_hover_color(_swatch, theme.color_panel);
+		paint.set_press_color(_swatch, theme.color_frame_light);
+		paint.set_focus_color(_swatch, theme.color_accent0);
+		paint.set_state_source(_swatch, _root);
+
+		_label = ui.allocate_widget();
+		ui.set_widget_debug_name(_label, "color_field_label");
+		tree.attach(_root, _label);
+		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
+
+		ui::layout_in_t& label_in = tree.in(_label);
+		label_in.flags			  = 0;
+		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_value		  = {0.5f, 0.5f};
+		label_in.anchor_x		  = ui::anchor_e::center;
+		label_in.anchor_y		  = ui::anchor_e::center;
+		ui.set_widget_text(_label, "Mixed");
+		paint.set_text(_label,
+					   ui.widget_text(_label),
+					   ui.widget_text_len(_label),
+					   {.font = theme.font_default, .color = theme.color_accent_warn, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		update_field_data(config.field);
 	}
 
 	void editor_color_field_t::uninit()
@@ -72,27 +103,91 @@ namespace sfg
 		_ui		= nullptr;
 		_root	= NULL_WIDGET;
 		_swatch = NULL_WIDGET;
+		_label	= NULL_WIDGET;
+		_fields.resize(0);
 		_config = {};
-		_color	= {1.0f, 1.0f, 1.0f, 1.0f};
+		_color	= {};
+		_mixed	= false;
 	}
 
-	void editor_color_field_t::set_color(const vec4f_t& color)
+	void editor_color_field_t::set_color(const color_t& color)
 	{
 		_color = color;
+		_mixed = false;
+		modify_field();
 		refresh_color();
+	}
+
+	void editor_color_field_t::update_field_data(editor_color_field_field_t field)
+	{
+		SFG_ASSERT(field.fields.size > 0);
+		SFG_ASSERT(field.fields.data != nullptr);
+		for (size_t i = 0; i < field.fields.size; ++i)
+			SFG_ASSERT(field.fields.data[i] != nullptr);
+
+		if (field.fields.data != _fields.data())
+			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+		field.fields  = {.data = _fields.data(), .size = _fields.size()};
+		_config.field = field;
+		_color		  = *field.fields.data[0];
+		_mixed		  = false;
+		for (size_t i = 1; i < field.fields.size; ++i)
+		{
+			if (*field.fields.data[i] != _color)
+			{
+				_mixed = true;
+				break;
+			}
+		}
+		refresh_color();
+	}
+
+	void editor_color_field_t::refresh_field_data()
+	{
+		update_field_data(_config.field);
 	}
 
 	void editor_color_field_t::refresh_color()
 	{
 		const editor_theme_t& theme = editor_theme_t::get();
 		ui::vg_rect_paint_t	  rect	= {};
-		rect.fill_color_a			= {0.0f, 0.0f, 0.0f, 1.0f};
-		rect.fill_color_b			= {0.0f, 0.0f, 0.0f, 1.0f};
+		rect.fill_color_a			= _mixed ? theme.color_frame : _color.to_vector();
+		rect.fill_color_b			= rect.fill_color_a;
 		rect.outline_color			= theme.color_outline_light;
 		rect.outline_thickness		= theme.outline_thickness;
 		rect.rounding				= theme.item_rounding;
 		rect.rounding_segs			= 4;
 		rect.aa_thickness			= theme.aa_thickness;
 		_ui->get_paint().set_rect(_swatch, rect);
+		_ui->get_tree().in(_label).flags = _mixed ? ui::wf_visible : 0;
+	}
+
+	void editor_color_field_t::modify_field()
+	{
+		SFG_ASSERT(_config.field.fields.size > 0);
+		SFG_ASSERT(_config.field.fields.data != nullptr);
+		for (size_t i = 0; i < _config.field.fields.size; ++i)
+			*_config.field.fields.data[i] = _color;
+	}
+
+	void editor_color_field_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_color_field_t&	   field = *static_cast<editor_color_field_t*>(user_data);
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*field._ui);
+		SFG_ASSERT(popup != nullptr);
+		popup->request_color_wheel_popup({
+			.fields			 = {.data = field._fields.data(), .size = field._fields.size()},
+			.on_data_changed = on_color_wheel_data_changed,
+			.user_data		 = &field,
+			.pos			 = pos,
+		});
+	}
+
+	void editor_color_field_t::on_color_wheel_data_changed(void* user_data)
+	{
+		static_cast<editor_color_field_t*>(user_data)->refresh_field_data();
 	}
 }
