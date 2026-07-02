@@ -341,7 +341,7 @@ namespace sfg
 	{
 		const char* src = value != nullptr ? value : "";
 		_text_len		= static_cast<u32>(math::min(static_cast<size_t>(TEXT_CAPACITY - 1), std::strlen(src)));
-		std::memcpy(_text, src, _text_len);
+		SFG_MEMCPY(_text, src, _text_len);
 		_text[_text_len]  = '\0';
 		_caret			  = _text_len;
 		_selection_anchor = _caret;
@@ -387,7 +387,7 @@ namespace sfg
 		if (!accepts_char(c) || _text_len + 1 >= TEXT_CAPACITY)
 			return false;
 		erase_selection();
-		std::memmove(_text + _caret + 1, _text + _caret, _text_len - _caret + 1);
+		SFG_MEMMOVE(_text + _caret + 1, _text + _caret, _text_len - _caret + 1);
 		_text[_caret] = c;
 		_text_len++;
 		set_caret(_caret + 1);
@@ -405,7 +405,7 @@ namespace sfg
 	{
 		if (start >= end || start > _text_len || end > _text_len)
 			return;
-		std::memmove(_text + start, _text + end, _text_len - end + 1);
+		SFG_MEMMOVE(_text + start, _text + end, _text_len - end + 1);
 		_text_len -= end - start;
 		set_caret(start);
 	}
@@ -736,7 +736,7 @@ namespace sfg
 				char	  clip[TEXT_CAPACITY] = {};
 				const u32 start				  = math::min(field._caret, field._selection_anchor);
 				const u32 count				  = math::max(field._caret, field._selection_anchor) - start;
-				std::memcpy(clip, field._text + start, count);
+				SFG_MEMCPY(clip, field._text + start, count);
 				clip[count] = '\0';
 				process::push_clipboard(clip);
 			}
@@ -749,7 +749,7 @@ namespace sfg
 				char	  clip[TEXT_CAPACITY] = {};
 				const u32 start				  = math::min(field._caret, field._selection_anchor);
 				const u32 count				  = math::max(field._caret, field._selection_anchor) - start;
-				std::memcpy(clip, field._text + start, count);
+				SFG_MEMCPY(clip, field._text + start, count);
 				clip[count] = '\0';
 				process::push_clipboard(clip);
 				field.erase_selection();

@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math.hpp"
 #include "easing.hpp"
 #include <sfg/common/size_definitions.hpp>
-#include <cstdio>
 
 namespace sfg
 {
