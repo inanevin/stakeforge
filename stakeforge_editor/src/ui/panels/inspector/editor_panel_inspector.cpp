@@ -93,12 +93,15 @@ namespace sfg
 		scrollbar_config.target					   = _scroll_area;
 		scrollbar_config.axes					   = editor_scrollbar_axis_y;
 		_scrollbar.init(ui, scrollbar_config);
-		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
+		_command_listener	= editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
+		_selection_listener = editor_app_t::get().get_selection_controller().add_listener(on_selection_changed, this);
+		refresh_from_selection();
 	}
 
 	void editor_panel_inspector_t::uninit()
 	{
 		editor_app_t::get().get_command_system().remove_listener(_command_listener);
+		editor_app_t::get().get_selection_controller().remove_listener(_selection_listener);
 		_ui->cancel_mutations(this);
 		clear_display();
 		_scrollbar.uninit();
@@ -114,6 +117,7 @@ namespace sfg
 		_copied_component_stream.destroy();
 		_copied_entity_info		   = {};
 		_command_listener		   = {};
+		_selection_listener		   = {};
 		_copied_component_type	   = 0;
 		_action_menu_type_id	   = 0;
 		_pending_component_type	   = 0;

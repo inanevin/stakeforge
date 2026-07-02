@@ -269,7 +269,6 @@ namespace sfg
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
 		for (const entity_row_t& row : panel._entity_rows)
 			panel.update_entity_row_background(row);
-		panel.refresh_panel_inspector();
 	}
 
 	void editor_panel_entities_t::on_ui_mutation(ui::ui_context&, void* user_data)

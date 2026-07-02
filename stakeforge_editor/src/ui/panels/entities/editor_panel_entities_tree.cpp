@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/string_util.hpp>
@@ -113,8 +112,6 @@ namespace sfg
 
 		for (size_t i = _visible_entity_count; i < _entity_rows.size(); ++i)
 			set_entity_row_visible(_entity_rows[i], false);
-
-		refresh_panel_inspector();
 	}
 
 	void editor_panel_entities_t::refresh_entity_name(entity_id_t entity)
@@ -149,28 +146,6 @@ namespace sfg
 
 		const bool is_folded = desc->has_children && !is_entity_expanded(entity);
 		update_entity_row(_entity_rows[row_index], *desc, is_folded);
-	}
-
-	void editor_panel_entities_t::refresh_panel_inspector()
-	{
-		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::inspector);
-		if (panel == nullptr)
-			return;
-
-		editor_panel_inspector_t*		inspector  = static_cast<editor_panel_inspector_t*>(panel);
-		editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
-		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
-		const world_handle_t			world	   = controller.get_world();
-		if (world.is_null() || selected.size == 0)
-		{
-			inspector->set_display_none();
-			return;
-		}
-
-		if (selected.size == 1)
-			inspector->set_display_entity(world, selected.data[0]);
-		else
-			inspector->set_display_entity(world, selected);
 	}
 
 	void editor_panel_entities_t::collect_entities()

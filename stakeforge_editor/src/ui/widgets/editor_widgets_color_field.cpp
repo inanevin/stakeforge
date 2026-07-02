@@ -88,10 +88,6 @@ namespace sfg
 		label_in.anchor_x		  = ui::anchor_e::center;
 		label_in.anchor_y		  = ui::anchor_e::center;
 		ui.set_widget_text(_label, "Mixed");
-		paint.set_text(_label,
-					   ui.widget_text(_label),
-					   ui.widget_text_len(_label),
-					   {.font = theme.font_default, .color = theme.color_accent_warn, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		update_field_data(config.field);
 	}
@@ -150,6 +146,8 @@ namespace sfg
 	void editor_color_field_t::refresh_color()
 	{
 		const editor_theme_t& theme = editor_theme_t::get();
+		ui::layout_tree_t&	  tree	= _ui->get_tree();
+		ui::paint_layer_t&	  paint = _ui->get_paint();
 		ui::vg_rect_paint_t	  rect	= {};
 		rect.fill_color_a			= _mixed ? theme.color_frame : _color.to_vector();
 		rect.fill_color_b			= rect.fill_color_a;
@@ -158,8 +156,20 @@ namespace sfg
 		rect.rounding				= theme.item_rounding;
 		rect.rounding_segs			= 4;
 		rect.aa_thickness			= theme.aa_thickness;
-		_ui->get_paint().set_rect(_swatch, rect);
-		_ui->get_tree().in(_label).flags = _mixed ? ui::wf_visible : 0;
+		paint.set_rect(_swatch, rect);
+		tree.in(_swatch).flags = ui::wf_visible;
+		tree.in(_label).flags  = _mixed ? ui::wf_visible : 0;
+		if (_mixed)
+		{
+			paint.set_text(_label,
+						   _ui->widget_text(_label),
+						   _ui->widget_text_len(_label),
+						   {.font = theme.font_default, .color = theme.color_accent_warn, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		}
+		else
+		{
+			paint.clear(_label);
+		}
 	}
 
 	void editor_color_field_t::modify_field()

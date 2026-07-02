@@ -187,15 +187,28 @@ namespace sfg
 
 	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
-		if (command.type != editor_command_type_e::component_reset)
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		if (command.type == editor_command_type_e::component_reset)
+		{
+			const editor_command_reset_component_payload_t& payload	 = system.get_payload_as<editor_command_reset_component_payload_t>(command);
+			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_component_reflection(payload.component_type);
 			return;
+		}
 
-		editor_panel_inspector_t&						panel	= *static_cast<editor_panel_inspector_t*>(user_data);
-		const editor_command_reset_component_payload_t& payload = system.get_payload_as<editor_command_reset_component_payload_t>(command);
-		if (payload.world != panel._display_world_handle)
-			return;
+		if (command.type == editor_command_type_e::component_paste)
+		{
+			const editor_command_paste_component_payload_t& payload	 = system.get_payload_as<editor_command_paste_component_payload_t>(command);
+			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_component_reflection(payload.component_type);
+		}
+	}
 
-		panel.request_refresh_component_reflection(payload.component_type);
+	void editor_panel_inspector_t::on_selection_changed(editor_selection_controller_t&, void* user_data)
+	{
+		static_cast<editor_panel_inspector_t*>(user_data)->refresh_from_selection();
 	}
 
 	void editor_panel_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)

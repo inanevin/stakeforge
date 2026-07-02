@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "commands/editor_commands_entity_info.hpp"
+#include "editor_selection_controller.hpp"
 #include "ui/editor_action_menu_common.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
@@ -81,6 +82,8 @@ namespace sfg
 		void set_display_entity(world_handle_t world, entity_id_t entity);
 		void set_display_entity(world_handle_t world, span_t<const entity_id_t> entities);
 		void refresh_display();
+		void refresh_from_selection();
+		void refresh_component_reflection(sid_t component_type);
 
 	private:
 		struct component_display_t
@@ -119,8 +122,8 @@ namespace sfg
 		void					   request_refresh_display();
 		void					   request_refresh_component_reflection(sid_t component_type);
 		void					   flush_pending_ui_mutations();
-		void					   refresh_component_reflection(sid_t component_type);
 		void					   apply_pending_scroll_restore();
+		bool					   is_displaying_any_entity(span_t<const entity_id_t> entities) const;
 		component_display_t*	   find_component_display(sid_t type_id);
 		component_display_state_t* find_component_display_state(sid_t type_id);
 		entity_scroll_state_t*	   find_entity_scroll_state(entity_id_t entity);
@@ -141,6 +144,7 @@ namespace sfg
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_add_component_action_menu_command(u16 command, void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void on_selection_changed(editor_selection_controller_t& controller, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
@@ -164,6 +168,7 @@ namespace sfg
 		ostream_t										  _copied_component_stream	 = {};
 		editor_entity_info_data_t						  _copied_entity_info		 = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			 = {};
+		editor_selection_listener_handle_t				  _selection_listener		 = {};
 		sid_t											  _copied_component_type	 = 0;
 		sid_t											  _action_menu_type_id		 = 0;
 		sid_t											  _pending_component_type	 = 0;

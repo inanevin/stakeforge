@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/panels/editor_panel_world.hpp"
+#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -661,11 +662,11 @@ namespace sfg
 
 	void editor_app_t::update_inspector_panel()
 	{
-		editor_panel_t* panel = find_panel(editor_panel_type_e::entities);
+		editor_panel_t* panel = find_panel(editor_panel_type_e::inspector);
 		if (panel == nullptr)
 			return;
 
-		static_cast<editor_panel_entities_t*>(panel)->refresh_panel_inspector();
+		static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
 	}
 
 	editor_surface_t& editor_app_t::get_main_surface()

@@ -46,6 +46,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
+#include <algorithm>
+
 namespace sfg
 {
 	void editor_panel_inspector_t::set_display_none()
@@ -93,6 +95,23 @@ namespace sfg
 		if (_display_type == editor_inspector_display_type_e::entity)
 			create_entity_display();
 		restore_scroll_state();
+	}
+
+	void editor_panel_inspector_t::refresh_from_selection()
+	{
+		editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
+		const world_handle_t			world	   = controller.get_world();
+		if (world.is_null() || selected.size == 0)
+		{
+			set_display_none();
+			return;
+		}
+
+		if (selected.size == 1)
+			set_display_entity(world, selected.data[0]);
+		else
+			set_display_entity(world, selected);
 	}
 
 	bool editor_panel_inspector_t::can_mutate_ui_topology() const
@@ -323,6 +342,19 @@ namespace sfg
 								   .type_id		= display->type_id,
 								   .world		= _display_world_handle,
 							   });
+	}
+
+	bool editor_panel_inspector_t::is_displaying_any_entity(span_t<const entity_id_t> entities) const
+	{
+		if (_display_type != editor_inspector_display_type_e::entity)
+			return false;
+
+		for (size_t i = 0; i < entities.size; ++i)
+		{
+			if (std::find(_display_entities.begin(), _display_entities.end(), entities.data[i]) != _display_entities.end())
+				return true;
+		}
+		return false;
 	}
 
 	editor_panel_inspector_t::component_display_t* editor_panel_inspector_t::find_component_display(sid_t type_id)

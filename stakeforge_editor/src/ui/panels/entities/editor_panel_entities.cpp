@@ -172,7 +172,6 @@ namespace sfg
 		_entity_generation	  = 0;
 		_visible_entity_count = 0;
 
-		refresh_panel_inspector();
 		editor_panel_t::uninit();
 	}
 
