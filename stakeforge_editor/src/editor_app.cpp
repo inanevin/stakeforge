@@ -268,6 +268,7 @@ namespace sfg
 		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
 
 		_command_system.init();
+		_selection_controller.init();
 		editor_global_toolbar_t::get().init();
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
@@ -359,6 +360,7 @@ namespace sfg
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
 		editor_global_toolbar_t::get().uninit();
+		_selection_controller.uninit();
 		_command_system.uninit();
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
@@ -441,6 +443,8 @@ namespace sfg
 	void editor_app_t::unload_current_project()
 	{
 		_renderer.end_render();
+		_selection_controller.clear();
+		_command_system.clear();
 		_asset_manager.clear();
 		_world_controller.destroy_worlds();
 		set_main_world_to_panel();
@@ -689,6 +693,11 @@ namespace sfg
 	editor_command_system_t& editor_app_t::get_command_system()
 	{
 		return _command_system;
+	}
+
+	editor_selection_controller_t& editor_app_t::get_selection_controller()
+	{
+		return _selection_controller;
 	}
 
 	tf::Executor& editor_app_t::get_editor_work_executor()

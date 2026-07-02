@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include "editor_selection_controller.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
@@ -74,16 +75,6 @@ namespace sfg
 		void refresh_entity_name(entity_id_t entity);
 		void refresh_panel_inspector();
 
-		inline span_t<const entity_id_t> get_selected_entities() const
-		{
-			return {.data = _selected_entities.data(), .size = _selected_entities.size()};
-		}
-
-		inline world_handle_t get_world() const
-		{
-			return _main_world;
-		}
-
 	private:
 		struct entity_row_t
 		{
@@ -120,9 +111,6 @@ namespace sfg
 		void		  request_refresh_entities();
 		void		  flush_pending_ui_mutations();
 		void		  select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
-		void		  issue_entity_selection_command(span_t<const entity_id_t> entities, entity_id_t anchor);
-		void		  apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
-		void		  clear_entity_selection();
 		void		  select_all_visible_entities();
 		void		  append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const;
 		void		  collect_payload_entities(entity_id_t entity);
@@ -170,10 +158,8 @@ namespace sfg
 		static void on_entity_row_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_entity_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
-		static bool on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command);
-		static bool on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command);
-		static bool on_entity_selection_cleanup(editor_command_system_t& system, editor_command_t& command);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void on_selection_changed(editor_selection_controller_t& controller, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
@@ -187,11 +173,10 @@ namespace sfg
 		ui::widget_id_t									  _entity_top_row			= NULL_WIDGET;
 		ui::widget_id_t									  _entity_list_area			= NULL_WIDGET;
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			= {};
+		editor_selection_listener_handle_t				  _selection_listener		= {};
 		world_handle_t									  _main_world				= {};
-		vector_t<entity_id_t>							  _selected_entities		= {};
 		vector_t<editor_entity_payload_t>				  _payload_entities			= {};
 		editor_entity_payload_t							  _payload_entity			= {};
-		entity_id_t										  _selection_anchor			= NULL_ENTITY_ID;
 		entity_id_t										  _action_menu_entity		= NULL_ENTITY_ID;
 		u32												  _entity_generation		= 0;
 		u32												  _visible_entity_count		= 0;

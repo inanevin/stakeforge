@@ -110,7 +110,7 @@ namespace sfg
 			return;
 		}
 
-		if (panel._selected_entities.empty())
+		if (editor_app_t::get().get_selection_controller().get_selected_entities().size == 0)
 			return;
 
 		if (ev.key == static_cast<u16>(input_code::key_delete))
@@ -252,46 +252,6 @@ namespace sfg
 		return changed;
 	}
 
-	bool editor_panel_entities_t::on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command)
-	{
-		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
-		if (panel == nullptr)
-			return true;
-
-		const editor_command_entity_selection_payload_t& payload  = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
-		const entity_id_t*								 entities = payload.previous_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_entities) : nullptr;
-		static_cast<editor_panel_entities_t*>(panel)->apply_entity_selection({.data = entities, .size = payload.previous_count}, payload.previous_anchor);
-		return true;
-	}
-
-	bool editor_panel_entities_t::on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command)
-	{
-		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
-		if (panel == nullptr)
-			return true;
-
-		const editor_command_entity_selection_payload_t& payload  = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
-		const entity_id_t*								 entities = payload.next_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.next_entities) : nullptr;
-		static_cast<editor_panel_entities_t*>(panel)->apply_entity_selection({.data = entities, .size = payload.next_count}, payload.next_anchor);
-		return true;
-	}
-
-	bool editor_panel_entities_t::on_entity_selection_cleanup(editor_command_system_t& system, editor_command_t& command)
-	{
-		editor_command_entity_selection_payload_t& payload = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
-		if (payload.previous_entities)
-		{
-			system.get_aux_data().free(payload.previous_entities);
-			payload.previous_entities = {};
-		}
-		if (payload.next_entities)
-		{
-			system.get_aux_data().free(payload.next_entities);
-			payload.next_entities = {};
-		}
-		return true;
-	}
-
 	void editor_panel_entities_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		if (command.type != editor_command_type_e::entity_duplicate || command.state != editor_command_state_e::done)
@@ -301,7 +261,15 @@ namespace sfg
 		const editor_command_duplicate_entity_payload_t& payload  = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
 		const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 		const entity_id_t								 entity	  = entities[payload.count - 1];
-		panel.issue_entity_selection_command({.data = &entity, .size = 1}, entity);
+		editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
+	}
+
+	void editor_panel_entities_t::on_selection_changed(editor_selection_controller_t&, void* user_data)
+	{
+		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
+		for (const entity_row_t& row : panel._entity_rows)
+			panel.update_entity_row_background(row);
+		panel.refresh_panel_inspector();
 	}
 
 	void editor_panel_entities_t::on_ui_mutation(ui::ui_context&, void* user_data)

@@ -54,23 +54,26 @@ namespace sfg
 {
 	void editor_panel_entities_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
 	{
-		frame_vector_t<entity_id_t> selection;
-		selection.reserve(_selected_entities.size() + _visible_entity_count);
-		for (entity_id_t selected : _selected_entities)
-			selection.push_back(selected);
+		editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 
-		entity_id_t anchor = _selection_anchor;
+		frame_vector_t<entity_id_t> selection;
+		selection.reserve(selected.size + _visible_entity_count);
+		for (size_t i = 0; i < selected.size; ++i)
+			selection.push_back(selected.data[i]);
+
+		entity_id_t anchor = controller.get_entity_anchor();
 		if (entity == NULL_ENTITY_ID)
 		{
 			selection.resize(0);
 			anchor = NULL_ENTITY_ID;
 		}
-		else if (range_select && _selection_anchor != NULL_ENTITY_ID)
+		else if (range_select && anchor != NULL_ENTITY_ID)
 		{
 			if (!incremental_select)
 				selection.resize(0);
 
-			const size_t anchor_index = find_visible_entity_index(_selection_anchor);
+			const size_t anchor_index = find_visible_entity_index(anchor);
 			const size_t entity_index = find_visible_entity_index(entity);
 			if (anchor_index != SIZE_MAX && entity_index != SIZE_MAX)
 			{
@@ -105,67 +108,7 @@ namespace sfg
 			anchor = entity;
 		}
 
-		issue_entity_selection_command({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : anchor);
-	}
-
-	void editor_panel_entities_t::issue_entity_selection_command(span_t<const entity_id_t> entities, entity_id_t anchor)
-	{
-		bool same_selection = _selected_entities.size() == entities.size;
-		for (size_t i = 0; same_selection && i < entities.size; ++i)
-			same_selection = _selected_entities[i] == entities.data[i];
-		if (same_selection && _selection_anchor == anchor)
-			return;
-
-		SFG_ASSERT(_selected_entities.size() <= UINT32_MAX);
-		SFG_ASSERT(entities.size <= UINT32_MAX);
-
-		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
-
-		editor_command_entity_selection_payload_t payload = {};
-		payload.previous_anchor							  = _selection_anchor;
-		payload.next_anchor								  = anchor;
-		payload.previous_count							  = static_cast<u32>(_selected_entities.size());
-		payload.next_count								  = static_cast<u32>(entities.size);
-
-		if (payload.previous_count != 0)
-		{
-			entity_id_t* previous	  = nullptr;
-			payload.previous_entities = command_system.get_aux_data().allocate<entity_id_t>(payload.previous_count, previous);
-			SFG_MEMCPY(previous, _selected_entities.data(), sizeof(entity_id_t) * payload.previous_count);
-		}
-
-		if (payload.next_count != 0)
-		{
-			entity_id_t* next	  = nullptr;
-			payload.next_entities = command_system.get_aux_data().allocate<entity_id_t>(payload.next_count, next);
-			SFG_MEMCPY(next, entities.data, sizeof(entity_id_t) * payload.next_count);
-		}
-
-		const editor_command_issue_desc_t desc{
-			.undo		= on_entity_selection_undo,
-			.redo		= on_entity_selection_redo,
-			.cleanup	= on_entity_selection_cleanup,
-			.debug_name = "Select Entities",
-			.type		= editor_command_type_e::entity_selection,
-		};
-		command_system.issue_command(desc, payload);
-	}
-
-	void editor_panel_entities_t::apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor)
-	{
-		_selected_entities.resize(0);
-		_selected_entities.reserve(entities.size);
-		for (size_t i = 0; i < entities.size; ++i)
-			_selected_entities.push_back(entities.data[i]);
-		_selection_anchor = anchor;
-		for (const entity_row_t& row : _entity_rows)
-			update_entity_row_background(row);
-		refresh_panel_inspector();
-	}
-
-	void editor_panel_entities_t::clear_entity_selection()
-	{
-		issue_entity_selection_command({}, NULL_ENTITY_ID);
+		controller.issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : anchor);
 	}
 
 	void editor_panel_entities_t::select_all_visible_entities()
@@ -174,15 +117,17 @@ namespace sfg
 		selection.reserve(_visible_entity_count);
 		for (u32 i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
 			selection.push_back(_entity_rows[i].entity);
-		issue_entity_selection_command({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : selection.back());
+		editor_app_t::get().get_selection_controller().issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : selection.back());
 	}
 
 	void editor_panel_entities_t::append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const
 	{
+		const span_t<const entity_id_t> selected = editor_app_t::get().get_selection_controller().get_selected_entities();
 		out_entities.resize(0);
-		out_entities.reserve(_selected_entities.size());
-		for (entity_id_t entity : _selected_entities)
+		out_entities.reserve(selected.size);
+		for (size_t i = 0; i < selected.size; ++i)
 		{
+			const entity_id_t entity = selected.data[i];
 			if (!has_selected_ancestor(entity))
 				out_entities.push_back(entity);
 		}
@@ -214,15 +159,27 @@ namespace sfg
 
 	void editor_panel_entities_t::prune_entity_selection()
 	{
-		for (size_t i = 0; i < _selected_entities.size();)
+		editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
+		frame_vector_t<entity_id_t>		selection;
+		selection.reserve(selected.size);
+		for (size_t i = 0; i < selected.size; ++i)
 		{
-			if (find_entity_desc(_selected_entities[i]) == nullptr)
-				_selected_entities.erase(_selected_entities.begin() + i);
-			else
-				++i;
+			if (find_entity_desc(selected.data[i]) != nullptr)
+				selection.push_back(selected.data[i]);
 		}
-		if (_selection_anchor != NULL_ENTITY_ID && !is_entity_selected(_selection_anchor))
-			_selection_anchor = _selected_entities.empty() ? NULL_ENTITY_ID : _selected_entities.back();
+
+		entity_id_t anchor = controller.get_entity_anchor();
+		if (anchor != NULL_ENTITY_ID && std::find(selection.begin(), selection.end(), anchor) == selection.end())
+			anchor = selection.empty() ? NULL_ENTITY_ID : selection.back();
+
+		bool same_selection = selected.size == selection.size();
+		for (size_t i = 0; same_selection && i < selected.size; ++i)
+			same_selection = selected.data[i] == selection[i];
+		if (same_selection && controller.get_entity_anchor() == anchor)
+			return;
+
+		controller.apply_entity_selection({.data = selection.data(), .size = selection.size()}, anchor);
 	}
 
 	void editor_panel_entities_t::toggle_entity_fold(entity_id_t entity)

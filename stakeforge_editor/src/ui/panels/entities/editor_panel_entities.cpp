@@ -140,9 +140,9 @@ namespace sfg
 		_entity_rows.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_entity_cache.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_expanded_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
-		_selected_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_payload_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
-		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
+		_command_listener	= editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
+		_selection_listener = editor_app_t::get().get_selection_controller().add_listener(on_selection_changed, this);
 		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 		refresh_entities();
 	}
@@ -150,6 +150,7 @@ namespace sfg
 	void editor_panel_entities_t::uninit()
 	{
 		editor_app_t::get().get_command_system().remove_listener(_command_listener);
+		editor_app_t::get().get_selection_controller().remove_listener(_selection_listener);
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
@@ -160,14 +161,13 @@ namespace sfg
 		_entity_rows.clear();
 		_entity_cache.clear();
 		_expanded_entities.clear();
-		_selected_entities.clear();
 		_payload_entities.clear();
 
 		_entity_top_row		  = NULL_WIDGET;
 		_entity_list_area	  = NULL_WIDGET;
 		_command_listener	  = {};
+		_selection_listener	  = {};
 		_main_world			  = {};
-		_selection_anchor	  = NULL_ENTITY_ID;
 		_action_menu_entity	  = NULL_ENTITY_ID;
 		_entity_generation	  = 0;
 		_visible_entity_count = 0;

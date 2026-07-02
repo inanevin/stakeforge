@@ -66,16 +66,12 @@ namespace sfg
 
 		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
 		{
-			editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
-			if (panel == nullptr)
-				return false;
-
-			editor_panel_entities_t*		entities_panel = static_cast<editor_panel_entities_t*>(panel);
-			const span_t<const entity_id_t> selected	   = entities_panel->get_selected_entities();
+			editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;
 
-			world = entities_panel->get_world();
+			world = controller.get_world();
 			entities.reserve(selected.size);
 			for (size_t i = 0; i < selected.size; ++i)
 				entities.push_back(selected.data[i]);

@@ -27,8 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/memory/chunk_handle.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -40,15 +38,5 @@ namespace sfg
 		entity_action_menu_create_empty = 1,
 		entity_action_menu_duplicate,
 		entity_action_menu_delete,
-	};
-
-	struct editor_command_entity_selection_payload_t
-	{
-		chunk_handle32_t previous_entities = {};
-		chunk_handle32_t next_entities	   = {};
-		entity_id_t		 previous_anchor   = NULL_ENTITY_ID;
-		entity_id_t		 next_anchor	   = NULL_ENTITY_ID;
-		u32				 previous_count	   = 0;
-		u32				 next_count		   = 0;
 	};
 }

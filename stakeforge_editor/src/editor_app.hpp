@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "editor_renderer.hpp"
+#include "editor_selection_controller.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_payload_controller.hpp"
@@ -68,16 +69,17 @@ namespace sfg
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
-		editor_panel_t*			 find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		editor_panel_t*			 find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
-		void					 show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		void					 set_main_world_to_panel();
-		void					 update_inspector_panel();
-		editor_surface_t&		 get_main_surface();
-		engine_runtime_t&		 get_runtime();
-		world_handle_t			 get_main_world() const;
-		editor_command_system_t& get_command_system();
-		tf::Executor&			 get_editor_work_executor();
+		editor_panel_t*				   find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		editor_panel_t*				   find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
+		void						   show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		void						   set_main_world_to_panel();
+		void						   update_inspector_panel();
+		editor_surface_t&			   get_main_surface();
+		engine_runtime_t&			   get_runtime();
+		world_handle_t				   get_main_world() const;
+		editor_command_system_t&	   get_command_system();
+		editor_selection_controller_t& get_selection_controller();
+		tf::Executor&				   get_editor_work_executor();
 
 		inline bool is_debug_mode_enabled() const
 		{
@@ -103,6 +105,7 @@ namespace sfg
 		engine_runtime_t												_runtime;
 		editor_world_controller_t										_world_controller;
 		editor_command_system_t											_command_system;
+		editor_selection_controller_t									_selection_controller;
 		resource_pack_t													_editor_resource_pack;
 		resource_pack_t													_engine_resource_pack;
 		editor_asset_manager_t											_asset_manager;

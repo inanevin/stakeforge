@@ -157,17 +157,20 @@ namespace sfg
 		if (panel == nullptr)
 			return;
 
-		editor_panel_inspector_t* inspector = static_cast<editor_panel_inspector_t*>(panel);
-		if (_main_world.is_null() || _selected_entities.empty())
+		editor_panel_inspector_t*		inspector  = static_cast<editor_panel_inspector_t*>(panel);
+		editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
+		const world_handle_t			world	   = controller.get_world();
+		if (world.is_null() || selected.size == 0)
 		{
 			inspector->set_display_none();
 			return;
 		}
 
-		if (_selected_entities.size() == 1)
-			inspector->set_display_entity(_main_world, _selected_entities.front());
+		if (selected.size == 1)
+			inspector->set_display_entity(world, selected.data[0]);
 		else
-			inspector->set_display_entity(_main_world, {.data = _selected_entities.data(), .size = _selected_entities.size()});
+			inspector->set_display_entity(world, selected);
 	}
 
 	void editor_panel_entities_t::collect_entities()
@@ -177,6 +180,7 @@ namespace sfg
 		editor_app_t&		 app		= editor_app_t::get();
 		const world_handle_t main_world = app.get_main_world();
 		_main_world						= main_world;
+		app.get_selection_controller().set_world(main_world);
 		if (main_world.is_null())
 			return;
 

@@ -76,7 +76,7 @@ namespace sfg
 		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent);
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 			_expanded_entities.push_back(parent);
-		issue_entity_selection_command({.data = &entity, .size = 1}, entity);
+		editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
 		refresh_entities();
 	}
 
@@ -128,7 +128,7 @@ namespace sfg
 	{
 		const world_handle_t main_world = editor_app_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
-		SFG_ASSERT(!_selected_entities.empty());
+		SFG_ASSERT(editor_app_t::get().get_selection_controller().get_selected_entities().size != 0);
 
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
@@ -136,7 +136,7 @@ namespace sfg
 		if (editor_commands_entity_t::duplicate(main_world, entities, duplicates))
 		{
 			const entity_id_t entity = duplicates.back();
-			issue_entity_selection_command({.data = &entity, .size = 1}, entity);
+			editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
 		}
 		refresh_entities();
 	}
@@ -145,11 +145,11 @@ namespace sfg
 	{
 		const world_handle_t main_world = editor_app_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
-		SFG_ASSERT(!_selected_entities.empty());
+		SFG_ASSERT(editor_app_t::get().get_selection_controller().get_selected_entities().size != 0);
 
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
-		clear_entity_selection();
+		editor_app_t::get().get_selection_controller().clear_entity_selection();
 		editor_commands_entity_t::destroy(main_world, entities);
 		refresh_entities();
 	}

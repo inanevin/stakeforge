@@ -59,12 +59,15 @@ namespace sfg
 
 	bool editor_panel_entities_t::is_entity_selected(entity_id_t entity) const
 	{
-		return entity != NULL_ENTITY_ID && std::find(_selected_entities.begin(), _selected_entities.end(), entity) != _selected_entities.end();
+		const span_t<const entity_id_t> selected = editor_app_t::get().get_selection_controller().get_selected_entities();
+		if (entity == NULL_ENTITY_ID || selected.size == 0)
+			return false;
+		return std::find(selected.data, selected.data + selected.size, entity) != selected.data + selected.size;
 	}
 
 	bool editor_panel_entities_t::is_create_enabled() const
 	{
-		return _selected_entities.size() <= 1;
+		return editor_app_t::get().get_selection_controller().get_selected_entities().size <= 1;
 	}
 
 	bool editor_panel_entities_t::has_selected_ancestor(entity_id_t entity) const
