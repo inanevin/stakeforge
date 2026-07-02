@@ -24,42 +24,31 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/editor_panel_factory.hpp"
-#include "ui/panels/editor_panel_animation.hpp"
-#include "ui/panels/assets/editor_panel_assets.hpp"
-#include "ui/panels/entities/editor_panel_entities.hpp"
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
-#include "ui/panels/log/editor_panel_log.hpp"
-#include "ui/panels/editor_panel_profiling.hpp"
-#include "ui/panels/editor_panel_world.hpp"
+#pragma once
+
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/memory/chunk_handle.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
-	editor_panel_t* editor_panel_factory_t::create_panel(editor_panel_type_e type)
-	{
-		switch (type)
-		{
-		case editor_panel_type_e::entities:
-			return new editor_panel_entities_t();
-		case editor_panel_type_e::assets:
-			return new editor_panel_assets_t();
-		case editor_panel_type_e::log:
-			return new editor_panel_log_t();
-		case editor_panel_type_e::world:
-			return new editor_panel_world_t();
-		case editor_panel_type_e::inspector:
-			return new editor_panel_inspector_t();
-		case editor_panel_type_e::animation:
-			return new editor_panel_animation_t();
-		case editor_panel_type_e::profiling:
-			return new editor_panel_profiling_t();
-		default:
-			return nullptr;
-		}
-	}
+#define ENTITIES_INITIAL_ROW_CAPACITY 64
+#define ENTITIES_INDENT_MULT		  2.0f
 
-	void editor_panel_factory_t::delete_panel(editor_panel_t* panel)
+	enum entity_action_menu_command_e : u16
 	{
-		delete panel;
-	}
+		entity_action_menu_create_empty = 1,
+		entity_action_menu_duplicate,
+		entity_action_menu_delete,
+	};
+
+	struct editor_command_entity_selection_payload_t
+	{
+		chunk_handle32_t previous_entities = {};
+		chunk_handle32_t next_entities	   = {};
+		entity_id_t		 previous_anchor   = NULL_ENTITY_ID;
+		entity_id_t		 next_anchor	   = NULL_ENTITY_ID;
+		u32				 previous_count	   = 0;
+		u32				 next_count		   = 0;
+	};
 }

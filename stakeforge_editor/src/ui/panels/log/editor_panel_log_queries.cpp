@@ -24,42 +24,41 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/editor_panel_factory.hpp"
-#include "ui/panels/editor_panel_animation.hpp"
-#include "ui/panels/assets/editor_panel_assets.hpp"
-#include "ui/panels/entities/editor_panel_entities.hpp"
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "ui/panels/log/editor_panel_log.hpp"
-#include "ui/panels/editor_panel_profiling.hpp"
-#include "ui/panels/editor_panel_world.hpp"
+#include "ui/panels/log/editor_panel_log_internal.hpp"
+#include "ui/editor_text_rasterization.hpp"
+#include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/frame_string.hpp>
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/string_util.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/layout/layout_tree.hpp>
+#include <sfg/runtime/ui/paint/paint.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
+#include <cctype>
 
 namespace sfg
 {
-	editor_panel_t* editor_panel_factory_t::create_panel(editor_panel_type_e type)
+	bool editor_panel_log_t::is_log_row_visible(const log_row_t& row) const
 	{
-		switch (type)
-		{
-		case editor_panel_type_e::entities:
-			return new editor_panel_entities_t();
-		case editor_panel_type_e::assets:
-			return new editor_panel_assets_t();
-		case editor_panel_type_e::log:
-			return new editor_panel_log_t();
-		case editor_panel_type_e::world:
-			return new editor_panel_world_t();
-		case editor_panel_type_e::inspector:
-			return new editor_panel_inspector_t();
-		case editor_panel_type_e::animation:
-			return new editor_panel_animation_t();
-		case editor_panel_type_e::profiling:
-			return new editor_panel_profiling_t();
-		default:
-			return nullptr;
-		}
+		frame_string_t<char> lower_case_raw;
+		lower_case_raw.assign(row.raw_text.c_str(), row.raw_text.size());
+		string_util::to_lower(lower_case_raw);
+		return (_log_filter_flags & row.flag) != 0 && lower_case_raw.find(_search_text_lower.c_str()) != frame_string_t<char>::npos;
 	}
 
-	void editor_panel_factory_t::delete_panel(editor_panel_t* panel)
+	bool editor_panel_log_t::is_scrolled_to_end() const
 	{
-		delete panel;
+		const ui::layout_in_t&	in	= _ui->get_tree().in_const(_body);
+		const ui::layout_out_t& out = _ui->get_tree().out(_body);
+		return out.max_scroll.y <= 0.0f || in.scroll_offset.y <= -out.max_scroll.y + EDITOR_LOG_PANEL_AUTO_SCROLL_SLOP;
 	}
+
 }

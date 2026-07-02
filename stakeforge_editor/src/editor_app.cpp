@@ -36,7 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
-#include "ui/panels/editor_panel_entities.hpp"
+#include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
