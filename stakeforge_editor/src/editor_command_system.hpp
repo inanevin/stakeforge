@@ -53,6 +53,11 @@ namespace sfg
 		component_reset,
 		component_paste,
 		component_edit,
+		world_metadata_create_folder,
+		world_metadata_rename_folder,
+		world_metadata_color_folder,
+		world_metadata_assign_folder,
+		world_metadata_assign_folder_parent,
 	};
 
 	enum class editor_command_state_e : u8

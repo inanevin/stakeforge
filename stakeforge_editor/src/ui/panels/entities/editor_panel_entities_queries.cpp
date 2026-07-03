@@ -54,7 +54,11 @@ namespace sfg
 {
 	bool editor_panel_entities_t::is_entity_expanded(entity_id_t entity) const
 	{
-		return std::find(_expanded_entities.begin(), _expanded_entities.end(), entity) != _expanded_entities.end();
+		if (entity == NULL_ENTITY_ID || _main_world.is_null())
+			return false;
+
+		const world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		return editor_app_t::get().get_world_metadata().is_entity_expanded(world.get_entity_guid(entity));
 	}
 
 	bool editor_panel_entities_t::is_entity_selected(entity_id_t entity) const
@@ -72,12 +76,14 @@ namespace sfg
 
 	bool editor_panel_entities_t::has_selected_ancestor(entity_id_t entity) const
 	{
-		const entity_desc_t* desc = find_entity_desc(entity);
-		while (desc != nullptr && desc->parent != NULL_ENTITY_ID)
+		if (_main_world.is_null())
+			return false;
+
+		const world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
 		{
-			if (is_entity_selected(desc->parent))
+			if (is_entity_selected(parent))
 				return true;
-			desc = find_entity_desc(desc->parent);
 		}
 		return false;
 	}
@@ -113,42 +119,46 @@ namespace sfg
 
 	size_t editor_panel_entities_t::find_visible_entity_index(entity_id_t entity) const
 	{
-		for (size_t i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
+		const vector_t<editor_outliner_row_t>& rows = editor_app_t::get().get_world_metadata().get_outliner_rows();
+		for (size_t i = 0; i < _visible_entity_count && i < rows.size(); ++i)
 		{
-			if (_entity_rows[i].entity == entity)
+			if (rows[i].type == editor_outliner_item_type_e::entity && rows[i].entity == entity)
 				return i;
 		}
 		return SIZE_MAX;
 	}
 
-	const editor_panel_entities_t::entity_desc_t* editor_panel_entities_t::find_entity_desc(entity_id_t entity) const
+	const editor_outliner_item_t* editor_panel_entities_t::find_outliner_item(entity_id_t entity) const
 	{
-		for (const entity_desc_t& desc : _entity_cache)
+		const span_t<editor_outliner_item_t> items = editor_app_t::get().get_world_metadata().get_outliner_items();
+		for (size_t i = 0; i < items.size; ++i)
 		{
-			if (desc.id == entity)
-				return &desc;
+			if (items.data[i].type == editor_outliner_item_type_e::entity && items.data[i].entity == entity)
+				return &items.data[i];
 		}
 		return nullptr;
 	}
 
-	const editor_panel_entities_t::entity_row_t* editor_panel_entities_t::find_row_by_widget(ui::widget_id_t id, bool match_icon) const
+	const editor_outliner_row_t* editor_panel_entities_t::find_row_by_widget(ui::widget_id_t id, bool match_fold_icon) const
 	{
-		for (u32 i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
+		const vector_t<editor_outliner_row_t>& rows = editor_app_t::get().get_world_metadata().get_outliner_rows();
+		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)
 		{
-			const entity_row_t& row = _entity_rows[i];
-			if (row.root == id || row.label == id || (match_icon && (row.icon == id || row.icon_text == id)))
+			const editor_outliner_row_t& row = rows[i];
+			if (row.root == id || row.label == id || row.type_icon == id || row.type_icon_text == id || row.disable_button == id || row.disable_icon == id || (match_fold_icon && (row.fold_icon == id || row.fold_icon_text == id)))
 				return &row;
 		}
 		return nullptr;
 	}
 
-	const editor_panel_entities_t::entity_row_t* editor_panel_entities_t::find_row_by_pos(const vec2f_t& pos) const
+	const editor_outliner_row_t* editor_panel_entities_t::find_row_by_pos(const vec2f_t& pos) const
 	{
-		const ui::layout_tree_t& tree = _ui->get_tree();
-		for (u32 i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
+		const ui::layout_tree_t&			   tree = _ui->get_tree();
+		const vector_t<editor_outliner_row_t>& rows = editor_app_t::get().get_world_metadata().get_outliner_rows();
+		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)
 		{
-			const entity_row_t&		row = _entity_rows[i];
-			const ui::layout_out_t& out = tree.out(row.root);
+			const editor_outliner_row_t& row = rows[i];
+			const ui::layout_out_t&		 out = tree.out(row.root);
 			if (rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(pos))
 				return &row;
 		}

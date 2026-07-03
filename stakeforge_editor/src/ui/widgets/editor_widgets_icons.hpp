@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #pragma once
 
+#define ICON_FOLDER			 "\u0061"
 #define ICON_ARROW_RIGHT	 "\u0071"
 #define ICON_DD_RIGHT		 "\u0046"
 #define ICON_DD_DOWN		 "\u0048"
@@ -32,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ICON_CROSS			 "\u0057"
 #define ICON_HAMMER			 "\u0035"
 #define ICON_EYE			 "\u0025"
+#define ICON_EYE_CROSS		 "\u0026"
 #define ICON_FILE			 "\u0067"
 #define ICON_PLAY			 "\u002C"
 #define ICON_INFO			 "\u004F"

@@ -73,16 +73,17 @@ namespace sfg
 			if (!incremental_select)
 				selection.resize(0);
 
-			const size_t anchor_index = find_visible_entity_index(anchor);
-			const size_t entity_index = find_visible_entity_index(entity);
+			const vector_t<editor_outliner_row_t>& rows			= editor_app_t::get().get_world_metadata().get_outliner_rows();
+			const size_t						   anchor_index = find_visible_entity_index(anchor);
+			const size_t						   entity_index = find_visible_entity_index(entity);
 			if (anchor_index != SIZE_MAX && entity_index != SIZE_MAX)
 			{
 				const size_t first = std::min(anchor_index, entity_index);
 				const size_t last  = std::max(anchor_index, entity_index);
 				for (size_t i = first; i <= last; ++i)
 				{
-					if (std::find(selection.begin(), selection.end(), _entity_rows[i].entity) == selection.end())
-						selection.push_back(_entity_rows[i].entity);
+					if (rows[i].type == editor_outliner_item_type_e::entity && std::find(selection.begin(), selection.end(), rows[i].entity) == selection.end())
+						selection.push_back(rows[i].entity);
 				}
 			}
 			else
@@ -115,8 +116,12 @@ namespace sfg
 	{
 		frame_vector_t<entity_id_t> selection;
 		selection.reserve(_visible_entity_count);
-		for (u32 i = 0; i < _visible_entity_count && i < _entity_rows.size(); ++i)
-			selection.push_back(_entity_rows[i].entity);
+		const vector_t<editor_outliner_row_t>& rows = editor_app_t::get().get_world_metadata().get_outliner_rows();
+		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)
+		{
+			if (rows[i].type == editor_outliner_item_type_e::entity)
+				selection.push_back(rows[i].entity);
+		}
 		editor_app_t::get().get_selection_controller().issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : selection.back());
 	}
 
@@ -165,7 +170,7 @@ namespace sfg
 		selection.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)
 		{
-			if (find_entity_desc(selected.data[i]) != nullptr)
+			if (find_outliner_item(selected.data[i]) != nullptr)
 				selection.push_back(selected.data[i]);
 		}
 
@@ -182,13 +187,46 @@ namespace sfg
 		controller.apply_entity_selection({.data = selection.data(), .size = selection.size()}, anchor);
 	}
 
+	bool editor_panel_entities_t::reveal_entity(entity_id_t entity)
+	{
+		if (entity == NULL_ENTITY_ID || _main_world.is_null())
+			return false;
+
+		world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		if (!world.is_alive(entity))
+			return false;
+
+		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		bool					 changed  = false;
+		entity_id_t				 root	  = entity;
+		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
+		{
+			const entity_guid_t guid = world.get_entity_guid(parent);
+			if (!metadata.is_entity_expanded(guid))
+			{
+				metadata.set_entity_folded(guid, false);
+				changed = true;
+			}
+			root = parent;
+		}
+
+		for (editor_world_folder_handle_t folder = metadata.get_entity_folder(world.get_entity_guid(root)); !folder.is_null(); folder = metadata.get_folder(folder).parent_handle)
+		{
+			if (metadata.get_folder(folder).folded)
+			{
+				metadata.set_folder_folded(folder, false);
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
 	void editor_panel_entities_t::toggle_entity_fold(entity_id_t entity)
 	{
-		auto it = std::find(_expanded_entities.begin(), _expanded_entities.end(), entity);
-		if (it == _expanded_entities.end())
-			_expanded_entities.push_back(entity);
-		else
-			_expanded_entities.erase(it);
+		world_t&				 world	  = editor_app_t::get().get_runtime().get_world(_main_world);
+		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		const entity_guid_t		 guid	  = world.get_entity_guid(entity);
+		metadata.set_entity_folded(guid, metadata.is_entity_expanded(guid));
 		refresh_entities();
 	}
 

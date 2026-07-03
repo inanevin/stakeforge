@@ -213,6 +213,7 @@ namespace sfg
 		}
 
 		_world_controller.init(_runtime);
+		_world_metadata.init();
 		_asset_manager.init();
 
 		/* resources & renderers init */
@@ -226,6 +227,7 @@ namespace sfg
 		};
 		if (!_engine_resource_pack.init(resource_manager_t::get(), engine_pack_params))
 		{
+			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -241,6 +243,7 @@ namespace sfg
 		if (!_editor_resource_pack.init(resource_manager_t::get(), editor_pack_params))
 		{
 			_engine_resource_pack.uninit();
+			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -253,6 +256,7 @@ namespace sfg
 		{
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
+			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -324,6 +328,7 @@ namespace sfg
 			_renderer.uninit();
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
+			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -344,6 +349,7 @@ namespace sfg
 		const world_handle_t main_world = _world_controller.create_world(get_main_surface().swapchain_size);
 		_world_controller.install_default_world(main_world);
 		_world_controller.set_main_world(main_world);
+		_world_metadata.set_world(main_world);
 		set_main_world_to_panel();
 
 		_close = false;
@@ -368,6 +374,7 @@ namespace sfg
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
 		_surfaces.resize_zero();
+		_world_metadata.uninit();
 		_world_controller.uninit();
 		_runtime.uninit();
 		engine_runtime_t::uninit_globals();
@@ -450,6 +457,7 @@ namespace sfg
 		_command_system.clear();
 		_asset_manager.clear();
 		_world_controller.destroy_worlds();
+		_world_metadata.set_world({});
 		set_main_world_to_panel();
 	}
 
@@ -647,12 +655,17 @@ namespace sfg
 
 	void editor_app_t::set_main_world_to_panel()
 	{
+		const world_handle_t main_world = _world_controller.get_main_world();
+		if (main_world.is_null())
+			_world_metadata.set_world({});
+		else if (!(_world_metadata.get_world() == main_world))
+			_world_metadata.set_world(main_world);
+
 		editor_panel_t* panel = find_panel(editor_panel_type_e::world);
 		if (panel == nullptr)
 			return;
 
 		editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
-		const world_handle_t  main_world  = _world_controller.get_main_world();
 		if (main_world.is_null())
 		{
 			world_panel->clear_world();
@@ -691,6 +704,11 @@ namespace sfg
 	world_handle_t editor_app_t::get_main_world() const
 	{
 		return _world_controller.get_main_world();
+	}
+
+	editor_world_metadata_t& editor_app_t::get_world_metadata()
+	{
+		return _world_metadata;
 	}
 
 	editor_command_system_t& editor_app_t::get_command_system()

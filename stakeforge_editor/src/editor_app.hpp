@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_selection_controller.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
+#include "editor_world_metadata.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/editor_panel_types.hpp"
 #include <sfg/runtime/engine/engine_runtime.hpp>
@@ -77,6 +78,7 @@ namespace sfg
 		editor_surface_t&			   get_main_surface();
 		engine_runtime_t&			   get_runtime();
 		world_handle_t				   get_main_world() const;
+		editor_world_metadata_t&	   get_world_metadata();
 		editor_command_system_t&	   get_command_system();
 		editor_selection_controller_t& get_selection_controller();
 		tf::Executor&				   get_editor_work_executor();
@@ -104,6 +106,7 @@ namespace sfg
 		editor_renderer_t												_renderer;
 		engine_runtime_t												_runtime;
 		editor_world_controller_t										_world_controller;
+		editor_world_metadata_t											_world_metadata;
 		editor_command_system_t											_command_system;
 		editor_selection_controller_t									_selection_controller;
 		resource_pack_t													_editor_resource_pack;

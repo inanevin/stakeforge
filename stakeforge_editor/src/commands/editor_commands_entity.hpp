@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "editor_world_metadata.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
@@ -41,6 +42,7 @@ namespace sfg
 		entity_id_t	   parent								 = NULL_ENTITY_ID;
 		entity_id_t	   entity								 = NULL_ENTITY_ID;
 		entity_guid_t  guid									 = NULL_ENTITY_GUID;
+		u64			   folder_guid							 = 0;
 		char		   name[EDITOR_ENTITY_COMMAND_NAME_SIZE] = {};
 	};
 
@@ -76,7 +78,7 @@ namespace sfg
 	public:
 		editor_commands_entity_t() = delete;
 
-		static entity_id_t create(world_handle_t world, entity_id_t parent);
+		static entity_id_t create(world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder = {});
 		static entity_id_t duplicate(world_handle_t world, entity_id_t entity);
 		static bool		   duplicate(world_handle_t world, const frame_vector_t<entity_id_t>& entities, frame_vector_t<entity_id_t>& out_entities);
 		static bool		   destroy(world_handle_t world, entity_id_t entity);

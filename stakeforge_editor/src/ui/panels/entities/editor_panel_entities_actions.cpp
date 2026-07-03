@@ -26,10 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
+#include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
+#include "commands/editor_commands_world_metadata.hpp"
 #include "editor_app.hpp"
 #include "editor_command_system.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -56,6 +59,12 @@ namespace sfg
 	{
 		editor_action_menu_row_desc_t ENTITY_CREATE_ROWS[] = {
 			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
+			{.text = "Folder", .command = entity_action_menu_create_folder},
+		};
+
+		editor_action_menu_row_desc_t ENTITY_CREATE_ENTITY_ROWS[] = {
+			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
+			{.text = "Folder", .command = entity_action_menu_create_folder, .disabled = true},
 		};
 
 		editor_action_menu_row_desc_t ENTITY_EMPTY_ACTION_MENU_ROWS[] = {
@@ -63,20 +72,125 @@ namespace sfg
 		};
 
 		editor_action_menu_row_desc_t ENTITY_ROW_ACTION_MENU_ROWS[] = {
-			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
+			{.text = "Create", .children = ENTITY_CREATE_ENTITY_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ENTITY_ROWS) / sizeof(ENTITY_CREATE_ENTITY_ROWS[0]))},
 			{.text = "Duplicate Entity", .shortcut = "CTRL+D", .command = entity_action_menu_duplicate},
 			{.text = "Delete Entity", .shortcut = "DEL", .command = entity_action_menu_delete},
 		};
+
+		editor_action_menu_row_desc_t FOLDER_ROW_ACTION_MENU_ROWS[] = {
+			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
+			{.text = "Rename", .shortcut = "F2", .command = entity_action_menu_rename_folder},
+			{.text = "Change Color", .command = entity_action_menu_change_folder_color},
+		};
 	}
-	void editor_panel_entities_t::create_entity(entity_id_t parent)
+	void editor_panel_entities_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
 	{
 		const world_handle_t main_world = editor_app_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 
-		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent);
+		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent, folder);
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
-			_expanded_entities.push_back(parent);
+		{
+			world_t& world = editor_app_t::get().get_runtime().get_world(main_world);
+			editor_app_t::get().get_world_metadata().set_entity_folded(world.get_entity_guid(parent), false);
+		}
+		if (!folder.is_null())
+			editor_app_t::get().get_world_metadata().set_folder_folded(folder, false);
 		editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
+		refresh_entities();
+	}
+
+	void editor_panel_entities_t::create_folder(editor_world_folder_handle_t parent)
+	{
+		const editor_world_folder_handle_t folder = editor_commands_world_metadata_t::create_folder("Folder", parent);
+		if (!parent.is_null())
+			editor_app_t::get().get_world_metadata().set_folder_folded(parent, false);
+		_focused_folder = folder;
+		refresh_entities();
+	}
+
+	bool editor_panel_entities_t::assign_payload_entities_to_folder(const vector_t<editor_entity_payload_t>& entities, editor_world_folder_handle_t folder)
+	{
+		if (entities.empty())
+			return false;
+
+		const world_handle_t		  main_world = editor_app_t::get().get_main_world();
+		world_t&					  world		 = editor_app_t::get().get_runtime().get_world(main_world);
+		frame_vector_t<entity_id_t>	  moved_entities;
+		frame_vector_t<entity_guid_t> moved_guids;
+		moved_entities.reserve(entities.size());
+		moved_guids.reserve(entities.size());
+		for (const editor_entity_payload_t& payload_entity : entities)
+		{
+			if (!(payload_entity.world == main_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
+				return false;
+			moved_entities.push_back(payload_entity.entity);
+			moved_guids.push_back(world.get_entity_guid(payload_entity.entity));
+		}
+
+		if (!editor_commands_entity_t::reparent(main_world, moved_entities, NULL_ENTITY_ID))
+			return false;
+
+		if (!editor_commands_world_metadata_t::assign_entities_to_folder(folder, {.data = moved_guids.data(), .size = moved_guids.size()}))
+			return false;
+
+		editor_app_t::get().get_world_metadata().set_folder_folded(folder, false);
+		refresh_entities();
+		return true;
+	}
+
+	bool editor_panel_entities_t::deassign_payload_entities_from_folder(const vector_t<editor_entity_payload_t>& entities)
+	{
+		if (entities.empty())
+			return false;
+
+		const world_handle_t		  main_world = editor_app_t::get().get_main_world();
+		world_t&					  world		 = editor_app_t::get().get_runtime().get_world(main_world);
+		frame_vector_t<entity_guid_t> moved_guids;
+		moved_guids.reserve(entities.size());
+		for (const editor_entity_payload_t& payload_entity : entities)
+		{
+			if (!(payload_entity.world == main_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
+				return false;
+			moved_guids.push_back(world.get_entity_guid(payload_entity.entity));
+		}
+
+		if (!editor_commands_world_metadata_t::deassign_entities_from_folder({.data = moved_guids.data(), .size = moved_guids.size()}))
+			return false;
+
+		refresh_entities();
+		return true;
+	}
+
+	bool editor_panel_entities_t::assign_payload_folder_to_folder(editor_world_folder_handle_t folder, editor_world_folder_handle_t parent)
+	{
+		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		if (!metadata.can_assign_folder(folder, parent))
+			return false;
+
+		if (!editor_commands_world_metadata_t::assign_folder_to_folder(folder, parent))
+			return false;
+
+		if (!parent.is_null())
+			metadata.set_folder_folded(parent, false);
+		refresh_entities();
+		return true;
+	}
+
+	void editor_panel_entities_t::toggle_entity_disabled(entity_id_t entity)
+	{
+		const world_handle_t main_world = editor_app_t::get().get_main_world();
+		SFG_ASSERT(!main_world.is_null());
+
+		world_t&				 world			= editor_app_t::get().get_runtime().get_world(main_world);
+		world_component_table_t* disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
+		SFG_ASSERT(disabled_table != nullptr);
+
+		const sid_t component_type = type_id_t<component_disabled_t>::value;
+		if (ecs_t::table_has(disabled_table->table, entity))
+			editor_commands_component_t::remove(main_world, entity, component_type);
+		else
+			editor_commands_component_t::add(main_world, entity, component_type);
 		refresh_entities();
 	}
 
@@ -104,6 +218,20 @@ namespace sfg
 		payload_controller.create_payload(text.c_str(), editor_payload_type_e::entity_multi, &_payload_entities);
 	}
 
+	void editor_panel_entities_t::start_folder_payload(editor_world_folder_handle_t folder)
+	{
+		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		if (!metadata.is_folder_valid(folder))
+			return;
+
+		editor_payload_controller_t& payload_controller = editor_payload_controller_t::get();
+		if (payload_controller.is_payload_active())
+			return;
+
+		_payload_folder = folder;
+		payload_controller.create_payload(metadata.get_folder(folder).name, editor_payload_type_e::folder, &_payload_folder);
+	}
+
 	bool editor_panel_entities_t::reparent_payload_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent)
 	{
 		if (!can_reparent_entities(entities, parent))
@@ -119,7 +247,10 @@ namespace sfg
 			return false;
 
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
-			_expanded_entities.push_back(parent);
+		{
+			world_t& world = editor_app_t::get().get_runtime().get_world(main_world);
+			editor_app_t::get().get_world_metadata().set_entity_folded(world.get_entity_guid(parent), false);
+		}
 		refresh_entities();
 		return true;
 	}
@@ -160,6 +291,7 @@ namespace sfg
 		SFG_ASSERT(menu != nullptr);
 
 		_action_menu_entity = NULL_ENTITY_ID;
+		_action_menu_folder = {};
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ENTITY_EMPTY_ACTION_MENU_ROWS;
@@ -169,6 +301,66 @@ namespace sfg
 		desc.command_fn				   = on_empty_action_menu_command;
 		desc.command_user_data		   = this;
 		menu->request_action_menu(desc);
+	}
+
+	void editor_panel_entities_t::open_folder_action_menu(const vec2f_t& pos, editor_world_folder_handle_t folder)
+	{
+		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
+		SFG_ASSERT(menu != nullptr);
+
+		_action_menu_entity = NULL_ENTITY_ID;
+		_action_menu_folder = folder;
+
+		editor_action_menu_desc_t desc = {};
+		desc.rows					   = FOLDER_ROW_ACTION_MENU_ROWS;
+		desc.row_count				   = static_cast<u16>(sizeof(FOLDER_ROW_ACTION_MENU_ROWS) / sizeof(FOLDER_ROW_ACTION_MENU_ROWS[0]));
+		desc.pos					   = pos;
+		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
+		desc.command_fn				   = on_folder_action_menu_command;
+		desc.command_user_data		   = this;
+		menu->request_action_menu(desc);
+	}
+
+	void editor_panel_entities_t::open_folder_rename_popup(const vec2f_t& pos, editor_world_folder_handle_t folder)
+	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		if (!metadata.is_folder_valid(folder))
+			return;
+
+		_edit_folder = folder;
+		popup->request_input_popup({
+			.closed		 = on_folder_rename_popup_closed,
+			.user_data	 = this,
+			.text		 = metadata.get_folder(folder).name,
+			.placeholder = "Folder",
+			.pos		 = pos,
+		});
+	}
+
+	void editor_panel_entities_t::open_folder_color_popup(const vec2f_t& pos, editor_world_folder_handle_t folder)
+	{
+		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
+		SFG_ASSERT(popup != nullptr);
+
+		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		if (!metadata.is_folder_valid(folder))
+			return;
+
+		_edit_folder				= folder;
+		_folder_edit_color			= metadata.get_folder(folder).color;
+		_folder_edit_original_color = _folder_edit_color;
+		color_t* color_fields		= &_folder_edit_color;
+		popup->request_color_wheel_popup({
+			.fields			 = {.data = &color_fields, .size = 1},
+			.edit_begin		 = on_folder_color_wheel_edit_begin,
+			.on_data_changed = on_folder_color_wheel_data_changed,
+			.closed			 = on_folder_color_wheel_popup_closed,
+			.user_data		 = this,
+			.pos			 = pos,
+		});
 	}
 
 	void editor_panel_entities_t::open_entity_action_menu(const vec2f_t& pos, entity_id_t entity)

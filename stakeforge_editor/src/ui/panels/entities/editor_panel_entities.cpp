@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
@@ -93,14 +94,12 @@ namespace sfg
 		_search_input.init(ui, _entity_top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
-		search_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		search_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
-		search_in.pos_value		   = {1.0f, 0.5f};
-		search_in.anchor_x		   = ui::anchor_e::end;
+		search_in.pos_value.y	   = 0.5f;
 		search_in.anchor_y		   = ui::anchor_e::center;
-		search_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		search_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		search_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		search_in.size_value	   = {theme.item_width, theme.item_height};
+		search_in.size_value	   = {1.0f, theme.item_height};
 
 		_entity_list_area = ui.allocate_widget();
 		ui.set_widget_debug_name(_entity_list_area, "entity_list_area");
@@ -137,9 +136,7 @@ namespace sfg
 
 		ui.set_pre_layout_tick(_entity_list_area, on_entity_tree_tick, this);
 
-		_entity_rows.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
-		_entity_cache.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
-		_expanded_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+		editor_app_t::get().get_world_metadata().get_outliner_rows().reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_payload_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_command_listener	= editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
 		_selection_listener = editor_app_t::get().get_selection_controller().add_listener(on_selection_changed, this);
@@ -155,12 +152,15 @@ namespace sfg
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
+		if (editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui))
+		{
+			for (const editor_outliner_row_t& row : editor_app_t::get().get_world_metadata().get_outliner_rows())
+				tooltip_controller->clear_tooltip(row.disable_button);
+		}
 		_ui->deallocate_widget(_entity_top_row);
 		_ui->deallocate_widget(_entity_list_area);
 
-		_entity_rows.clear();
-		_entity_cache.clear();
-		_expanded_entities.clear();
+		editor_app_t::get().get_world_metadata().get_outliner_rows().clear();
 		_payload_entities.clear();
 
 		_entity_top_row		  = NULL_WIDGET;
@@ -169,6 +169,9 @@ namespace sfg
 		_selection_listener	  = {};
 		_main_world			  = {};
 		_action_menu_entity	  = NULL_ENTITY_ID;
+		_action_menu_folder	  = {};
+		_focused_folder		  = {};
+		_edit_folder		  = {};
 		_entity_generation	  = 0;
 		_visible_entity_count = 0;
 

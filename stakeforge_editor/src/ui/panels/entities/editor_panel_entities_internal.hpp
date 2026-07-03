@@ -30,13 +30,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define ENTITIES_INITIAL_ROW_CAPACITY 64
-#define ENTITIES_INDENT_MULT		  2.0f
+#define ENTITIES_INITIAL_ROW_CAPACITY	  64
+#define ENTITIES_INDENT_MULT			  2.0f
+#define EDITOR_WORLD_METADATA_MAX_FOLDERS 1024
 
 	enum entity_action_menu_command_e : u16
 	{
 		entity_action_menu_create_empty = 1,
+		entity_action_menu_create_folder,
 		entity_action_menu_duplicate,
 		entity_action_menu_delete,
+		entity_action_menu_rename_folder,
+		entity_action_menu_change_folder_color,
 	};
 }

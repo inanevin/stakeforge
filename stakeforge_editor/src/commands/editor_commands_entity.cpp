@@ -110,6 +110,11 @@ namespace sfg
 		{
 			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
 			world_t&								world	= get_world(payload.world);
+			if (payload.folder_guid != 0 && payload.guid != NULL_ENTITY_GUID)
+			{
+				const entity_guid_t guid = payload.guid;
+				editor_app_t::get().get_world_metadata().deassign_entities_from_folder({.data = &guid, .size = 1});
+			}
 			world.destroy_entity_tree(payload.entity);
 			payload.entity = NULL_ENTITY_ID;
 			return true;
@@ -124,6 +129,13 @@ namespace sfg
 				world.attach_to(entity, payload.parent);
 			payload.guid   = world.get_entity_guid(entity);
 			payload.entity = entity;
+			if (payload.folder_guid != 0)
+			{
+				editor_world_metadata_t&		   metadata = editor_app_t::get().get_world_metadata();
+				const editor_world_folder_handle_t folder	= metadata.get_folder_handle(payload.folder_guid);
+				if (!folder.is_null())
+					metadata.assign_entities_to_folder(folder, {.data = &payload.guid, .size = 1});
+			}
 			return true;
 		}
 
@@ -323,12 +335,13 @@ namespace sfg
 		}
 	}
 
-	entity_id_t editor_commands_entity_t::create(world_handle_t world, entity_id_t parent)
+	entity_id_t editor_commands_entity_t::create(world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
 		editor_command_create_entity_payload_t payload = {};
 		payload.world								   = world;
 		payload.parent								   = parent;
 		payload.entity								   = NULL_ENTITY_ID;
+		payload.folder_guid							   = folder.is_null() ? 0 : editor_app_t::get().get_world_metadata().get_folder(folder).guid;
 		const char*	 entity_name					   = "Entity";
 		const size_t entity_len						   = std::strlen(entity_name);
 		const size_t entity_n						   = entity_len < EDITOR_ENTITY_COMMAND_NAME_SIZE - 1 ? entity_len : EDITOR_ENTITY_COMMAND_NAME_SIZE - 1;
