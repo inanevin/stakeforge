@@ -321,7 +321,7 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_panel_entities_t::open_folder_rename_popup(const vec2f_t& pos, editor_world_folder_handle_t folder)
+	void editor_panel_entities_t::open_folder_rename_popup(editor_world_folder_handle_t folder)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
@@ -330,13 +330,24 @@ namespace sfg
 		if (!metadata.is_folder_valid(folder))
 			return;
 
+		const editor_outliner_row_t* const row = find_row_by_folder(folder);
+		if (row == nullptr)
+			return;
+
+		const ui::layout_tree_t& tree = _ui->get_tree();
+
+		const ui::layout_out_t& row_out	  = tree.out(row->root);
+		const ui::layout_out_t& label_out = tree.out(row->label);
+		const f32				width	  = row_out.pos.x + row_out.size.x - label_out.pos.x;
+
 		_edit_folder = folder;
 		popup->request_input_popup({
 			.closed		 = on_folder_rename_popup_closed,
 			.user_data	 = this,
 			.text		 = metadata.get_folder(folder).name,
 			.placeholder = "Folder",
-			.pos		 = pos,
+			.pos		 = {label_out.pos.x, row_out.pos.y},
+			.width		 = width,
 		});
 	}
 

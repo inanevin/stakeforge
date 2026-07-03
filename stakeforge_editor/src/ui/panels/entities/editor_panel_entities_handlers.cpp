@@ -99,8 +99,7 @@ namespace sfg
 			editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*panel._ui);
 			SFG_ASSERT(menu != nullptr);
 			menu->close_action_menu();
-			const ui::layout_out_t& out = panel._ui->get_tree().out(panel._entity_list_area);
-			panel.open_folder_rename_popup({out.pos.x, out.pos.y}, panel._action_menu_folder);
+			panel.open_folder_rename_popup(panel._action_menu_folder);
 		}
 		else if (command == entity_action_menu_change_folder_color)
 		{
@@ -182,8 +181,7 @@ namespace sfg
 
 		if (ev.key == static_cast<u16>(input_code::key_f2) && !panel._focused_folder.is_null())
 		{
-			const ui::layout_out_t& out = panel._ui->get_tree().out(panel._entity_list_area);
-			panel.open_folder_rename_popup({out.pos.x, out.pos.y}, panel._focused_folder);
+			panel.open_folder_rename_popup(panel._focused_folder);
 			return;
 		}
 

@@ -165,4 +165,16 @@ namespace sfg
 		return nullptr;
 	}
 
+	const editor_outliner_row_t* editor_panel_entities_t::find_row_by_folder(editor_world_folder_handle_t folder) const
+	{
+		const vector_t<editor_outliner_row_t>& rows = editor_app_t::get().get_world_metadata().get_outliner_rows();
+		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)
+		{
+			const editor_outliner_row_t& row = rows[i];
+			if (row.type == editor_outliner_item_type_e::folder && row.folder_handle == folder)
+				return &row;
+		}
+		return nullptr;
+	}
+
 }

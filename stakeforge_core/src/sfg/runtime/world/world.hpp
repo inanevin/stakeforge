@@ -53,7 +53,6 @@ namespace sfg
 		void		  destroy_entity(entity_id_t id);
 		void		  destroy_entity_tree(entity_id_t id);
 		void		  set_entity_name(entity_id_t id, const char* name);
-		entity_id_t	  entity_from_stream(istream_t& stream);
 		entity_id_t	  spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params);
 		entity_id_t	  spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
@@ -61,6 +60,7 @@ namespace sfg
 		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;
 		void		  attach_to(entity_id_t id, entity_id_t parent);
 		void		  detach(entity_id_t id);
+		void		  sync_entity_hierarchy(entity_id_t id);
 
 		// -----------------------------------------------------------------------------
 		// transformation
@@ -96,7 +96,6 @@ namespace sfg
 		bool									 is_alive(entity_id_t id) const;
 
 	private:
-		void	 sync_entity_hierarchy(entity_id_t id);
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);

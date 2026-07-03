@@ -229,23 +229,6 @@ namespace sfg
 			stream >> resource;
 		}
 
-		const entity_id_t entity = entity_from_stream(stream);
-		if (entity == NULL_ENTITY_ID)
-			return NULL_ENTITY_ID;
-
-		if (params.parent != NULL_ENTITY_ID)
-			attach_to(entity, params.parent);
-
-		component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, entity);
-		transform.pos					 = params.local_pos;
-		transform.rot					 = params.local_rot;
-		transform.scale					 = params.local_scale;
-		set_entity_snap_interpolation_recursive(entity);
-		return entity;
-	}
-
-	entity_id_t world_t::entity_from_stream(istream_t& stream)
-	{
 		return {};
 	}
 

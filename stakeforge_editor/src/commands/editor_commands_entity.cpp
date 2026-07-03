@@ -210,7 +210,7 @@ namespace sfg
 				}
 
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world.entity_from_stream(stream);
+				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, true);
 				if (entity == NULL_ENTITY_ID)
 				{
 					SFG_ERR("failed to recreate duplicated entity from stream");
@@ -238,7 +238,7 @@ namespace sfg
 			for (u32 i = payload.count; i-- > 0;)
 			{
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world.entity_from_stream(stream);
+				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream);
 				system.get_aux_data().free(streams[i]);
 				streams[i]	= {};
 				entities[i] = entity;

@@ -34,16 +34,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class istream_t;
 	class ostream_t;
 	class world_t;
 
 	class world_cooker_t
 	{
 	public:
-		static void world_to_stream(const world_t& world, ostream_t& out_stream);
-		static void world_to_json(const world_t& world, nlohmann::json& out_json);
-		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources);
-		static void entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
+		static void		   world_to_stream(const world_t& world, ostream_t& out_stream);
+		static void		   world_to_json(const world_t& world, nlohmann::json& out_json);
+		static void		   entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources);
+		static entity_id_t entity_from_stream(world_t& world, istream_t& in_stream, bool generate_new_guids = false, bool sync_hierarchy = true);
+		static void		   entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources);
+		static void		   entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
 	};
 }

@@ -106,7 +106,7 @@ namespace sfg
 		void				   open_empty_action_menu(const vec2f_t& pos);
 		void				   open_entity_action_menu(const vec2f_t& pos, entity_id_t entity);
 		void				   open_folder_action_menu(const vec2f_t& pos, editor_world_folder_handle_t folder);
-		void				   open_folder_rename_popup(const vec2f_t& pos, editor_world_folder_handle_t folder);
+		void				   open_folder_rename_popup(editor_world_folder_handle_t folder);
 		void				   open_folder_color_popup(const vec2f_t& pos, editor_world_folder_handle_t folder);
 		bool				   assign_payload_entities_to_folder(const vector_t<editor_entity_payload_t>& entities, editor_world_folder_handle_t folder);
 		bool				   deassign_payload_entities_from_folder(const vector_t<editor_entity_payload_t>& entities);
@@ -126,6 +126,7 @@ namespace sfg
 		const editor_outliner_item_t* find_outliner_item(entity_id_t entity) const;
 		const editor_outliner_row_t*  find_row_by_widget(ui::widget_id_t id, bool match_fold_icon) const;
 		const editor_outliner_row_t*  find_row_by_pos(const vec2f_t& pos) const;
+		const editor_outliner_row_t*  find_row_by_folder(editor_world_folder_handle_t folder) const;
 
 		// -----------------------------------------------------------------------------
 		// handlers

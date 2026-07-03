@@ -55,7 +55,7 @@ namespace sfg
 				.type_id   = type_id_t<component_hierarchy_t>::value,
 				.size	   = sizeof(component_hierarchy_t),
 				.alignment = alignof(component_hierarchy_t),
-				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 
@@ -77,7 +77,7 @@ namespace sfg
 				.type_id   = type_id_t<component_guid_t>::value,
 				.size	   = sizeof(component_guid_t),
 				.alignment = alignof(component_guid_t),
-				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 
@@ -95,7 +95,7 @@ namespace sfg
 				.type_id   = type_id_t<component_transform_t>::value,
 				.size	   = sizeof(component_transform_t),
 				.alignment = alignof(component_transform_t),
-				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 
@@ -111,7 +111,7 @@ namespace sfg
 				.type_id   = type_id_t<component_name_t>::value,
 				.size	   = sizeof(component_name_t),
 				.alignment = alignof(component_name_t),
-				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 
@@ -485,7 +485,7 @@ namespace sfg
 				.type_id	  = type_id_t<component_alive_t>::value,
 				.size		  = sizeof(component_alive_t),
 				.alignment	  = alignof(component_alive_t),
-				.flags		  = reflected_type_flag_component | reflected_type_flag_no_ui,
+				.flags		  = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 
