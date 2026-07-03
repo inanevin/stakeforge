@@ -193,6 +193,7 @@ namespace sfg::ui
 
 	private:
 		void flatten();
+		void resolve_relative_sizes(f32 scale);
 
 	private:
 		struct custom_cb_t

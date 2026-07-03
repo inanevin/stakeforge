@@ -282,6 +282,36 @@ namespace sfg::ui
 		_topology_dirty = false;
 	}
 
+	void layout_tree_t::resolve_relative_sizes(f32 scale)
+	{
+		for (widget_id_t id : _dfs)
+		{
+			layout_in_t&	   in  = _layout_ins[id];
+			layout_out_t&	   out = _layout_outs[id];
+			const tree_node_t& n   = _nodes[id];
+			if (id == _root)
+				continue;
+			if (n.parent == NULL_WIDGET)
+				continue;
+
+			const layout_in_t&	pin			= _layout_ins[n.parent];
+			const layout_out_t& pout		= _layout_outs[n.parent];
+			const vec4f_t		pin_margins = scale_rect(pin.child_margins, scale);
+			const f32			pinner_w	= pout.size.x - pin_margins.w - pin_margins.y;
+			const f32			pinner_h	= pout.size.y - pin_margins.x - pin_margins.z;
+
+			if (in.size_mode_x == axis_mode_e::parent_relative)
+				out.size.x = pinner_w * in.size_value.x;
+			if (in.size_mode_y == axis_mode_e::parent_relative)
+				out.size.y = pinner_h * in.size_value.y;
+
+			if (in.size_mode_x == axis_mode_e::copy_other)
+				out.size.x = out.size.y;
+			if (in.size_mode_y == axis_mode_e::copy_other)
+				out.size.y = out.size.x;
+		}
+	}
+
 	void layout_tree_t::solve(const vec4f_t& screen_rect, f32 ui_scale)
 	{
 		if (_topology_dirty)
@@ -373,32 +403,7 @@ namespace sfg::ui
 				out.size.y = total_y + mh;
 		}
 
-		for (widget_id_t id : _dfs)
-		{
-			layout_in_t&	   in  = _layout_ins[id];
-			layout_out_t&	   out = _layout_outs[id];
-			const tree_node_t& n   = _nodes[id];
-			if (id == _root)
-				continue;
-			if (n.parent == NULL_WIDGET)
-				continue;
-
-			const layout_in_t&	pin			= _layout_ins[n.parent];
-			const layout_out_t& pout		= _layout_outs[n.parent];
-			const vec4f_t		pin_margins = scale_rect(pin.child_margins, scale);
-			const f32			pinner_w	= pout.size.x - pin_margins.w - pin_margins.y;
-			const f32			pinner_h	= pout.size.y - pin_margins.x - pin_margins.z;
-
-			if (in.size_mode_x == axis_mode_e::parent_relative)
-				out.size.x = pinner_w * in.size_value.x;
-			if (in.size_mode_y == axis_mode_e::parent_relative)
-				out.size.y = pinner_h * in.size_value.y;
-
-			if (in.size_mode_x == axis_mode_e::copy_other)
-				out.size.x = out.size.y;
-			if (in.size_mode_y == axis_mode_e::copy_other)
-				out.size.y = out.size.x;
-		}
+		resolve_relative_sizes(scale);
 
 		for (widget_id_t id : _dfs)
 		{
@@ -484,6 +489,8 @@ namespace sfg::ui
 				c = nxt;
 			}
 		}
+
+		resolve_relative_sizes(scale);
 
 		for (widget_id_t id : _dfs)
 		{
