@@ -960,9 +960,15 @@ namespace sfg
 			return;
 
 		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
+		if (data.reflection->_callbacks.edit_begin != nullptr)
+			data.reflection->_callbacks.edit_begin(data.reflection->_callbacks.user_data);
 		for (void* container : data.containers)
 			data.field->container_ops.add_element_ptr_fn(container);
+		if (data.reflection->_callbacks.edited != nullptr)
+			data.reflection->_callbacks.edited(data.reflection->_callbacks.user_data);
 		data.reflection->request_container_refresh(data);
+		if (data.reflection->_callbacks.edit_submitted != nullptr)
+			data.reflection->_callbacks.edit_submitted(data.reflection->_callbacks.user_data);
 	}
 
 	void editor_widget_reflection_t::on_container_reset(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -971,9 +977,15 @@ namespace sfg
 			return;
 
 		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
+		if (data.reflection->_callbacks.edit_begin != nullptr)
+			data.reflection->_callbacks.edit_begin(data.reflection->_callbacks.user_data);
 		for (void* container : data.containers)
 			data.field->container_ops.reset_fn(container);
+		if (data.reflection->_callbacks.edited != nullptr)
+			data.reflection->_callbacks.edited(data.reflection->_callbacks.user_data);
 		data.reflection->request_container_refresh(data);
+		if (data.reflection->_callbacks.edit_submitted != nullptr)
+			data.reflection->_callbacks.edit_submitted(data.reflection->_callbacks.user_data);
 	}
 
 	void editor_widget_reflection_t::on_container_element_remove(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -983,9 +995,15 @@ namespace sfg
 
 		container_element_user_data_t& data			  = *static_cast<container_element_user_data_t*>(user_data);
 		container_user_data_t&		   container_data = *data.container_data;
+		if (container_data.reflection->_callbacks.edit_begin != nullptr)
+			container_data.reflection->_callbacks.edit_begin(container_data.reflection->_callbacks.user_data);
 		for (void* container : container_data.containers)
 			container_data.field->container_ops.remove_index_fn(container, data.element_index);
+		if (container_data.reflection->_callbacks.edited != nullptr)
+			container_data.reflection->_callbacks.edited(container_data.reflection->_callbacks.user_data);
 		container_data.reflection->request_container_refresh(container_data);
+		if (container_data.reflection->_callbacks.edit_submitted != nullptr)
+			container_data.reflection->_callbacks.edit_submitted(container_data.reflection->_callbacks.user_data);
 	}
 
 	void editor_widget_reflection_t::on_container_refresh(ui::ui_context&, void* user_data)

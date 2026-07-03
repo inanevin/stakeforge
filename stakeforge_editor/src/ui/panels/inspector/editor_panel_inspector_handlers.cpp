@@ -241,6 +241,13 @@ namespace sfg
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
+		case editor_command_type_e::entity_info_paste: {
+			const editor_command_paste_entity_info_payload_t& payload  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
+			const entity_id_t*								  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_display();
+			break;
+		}
 		default:
 			break;
 		}
