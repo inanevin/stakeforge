@@ -154,7 +154,9 @@ namespace sfg
 			if (!runtime.has_flag(window_runtime_flags_e::has_focus))
 				return;
 
-			if (app._command_system.on_window_event(ev))
+			const bool modal_active = app.is_any_modal_active();
+			const bool popup_active = ui.get_input().is_popup_scope_active();
+			if (!modal_active && !popup_active && app._command_system.on_window_event(ev))
 				return;
 
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)

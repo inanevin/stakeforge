@@ -86,12 +86,19 @@ namespace sfg
 		void refresh_component_reflection(sid_t component_type);
 
 	private:
+		struct component_edit_callback_data_t
+		{
+			editor_panel_inspector_t* panel			 = nullptr;
+			sid_t					  component_type = 0;
+		};
+
 		struct component_display_t
 		{
-			vector_t<void*>				objects = {};
-			editor_widget_reflection_t* reflect = nullptr;
-			editor_widget_fold_t*		fold	= nullptr;
-			sid_t						type_id = 0;
+			vector_t<void*>					objects		   = {};
+			editor_widget_reflection_t*		reflect		   = nullptr;
+			editor_widget_fold_t*			fold		   = nullptr;
+			component_edit_callback_data_t* edit_user_data = nullptr;
+			sid_t							type_id		   = 0;
 		};
 
 		struct component_display_state_t
@@ -135,6 +142,10 @@ namespace sfg
 		void					   copy_component(sid_t type_id);
 		bool					   is_component_removable(sid_t type_id) const;
 		bool					   is_component_paste_enabled(sid_t type_id) const;
+		bool					   serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const;
+		void					   begin_component_edit(sid_t component_type);
+		void					   submit_component_edit(sid_t component_type);
+		void					   clear_component_edit();
 
 		static void on_entity_info_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_info_action_menu_command(u16 command, void* user_data);
@@ -143,42 +154,48 @@ namespace sfg
 		static void on_component_action_menu_command(u16 command, void* user_data);
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_add_component_action_menu_command(u16 command, void* user_data);
+		static void on_component_edit_begin(void* user_data);
+		static void on_component_edit_submitted(void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 		static void on_selection_changed(editor_selection_controller_t& controller, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		vector_t<component_display_state_t>				  _component_states			 = {};
-		vector_t<editor_widget_reflection_fold_state_t>	  _field_states				 = {};
-		vector_t<entity_scroll_state_t>					  _entity_scroll_states		 = {};
-		vector_t<component_display_t>					  _component_displays		 = {};
-		vector_t<add_component_menu_category_t>			  _add_component_categories	 = {};
-		vector_t<editor_action_menu_row_desc_t>			  _add_component_root_rows	 = {};
-		vector_t<sid_t>									  _add_component_types		 = {};
-		vector_t<entity_id_t>							  _display_entities			 = {};
-		editor_scrollbar_t								  _scrollbar				 = {};
-		editor_widget_fold_t*							  _entity_info_fold			 = nullptr;
-		editor_widget_entity_info_t*					  _entity_info				 = nullptr;
-		editor_button_t*								  _add_component_button		 = nullptr;
-		world_t*										  _display_world			 = nullptr;
-		world_handle_t									  _display_world_handle		 = {};
-		ui::widget_id_t									  _scroll_area				 = NULL_WIDGET;
-		ui::widget_id_t									  _column					 = NULL_WIDGET;
-		ostream_t										  _copied_component_stream	 = {};
-		editor_entity_info_data_t						  _copied_entity_info		 = {};
-		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			 = {};
-		editor_selection_listener_handle_t				  _selection_listener		 = {};
-		sid_t											  _copied_component_type	 = 0;
-		sid_t											  _action_menu_type_id		 = 0;
-		sid_t											  _pending_component_type	 = 0;
-		editor_inspector_display_type_e					  _display_type				 = editor_inspector_display_type_e::none;
-		f32												  _pending_scroll_y			 = 0.0f;
-		u8												  _scroll_restore_wait_ticks = 0;
-		bool											  _refresh_display_pending	 = false;
-		bool											  _refresh_component_pending = false;
-		bool											  _scroll_restore_pending	 = false;
-		bool											  _skip_scroll_state_save	 = false;
-		bool											  _copied_entity_info_valid	 = false;
+		vector_t<component_display_state_t>				  _component_states			   = {};
+		vector_t<editor_widget_reflection_fold_state_t>	  _field_states				   = {};
+		vector_t<entity_scroll_state_t>					  _entity_scroll_states		   = {};
+		vector_t<component_display_t>					  _component_displays		   = {};
+		vector_t<add_component_menu_category_t>			  _add_component_categories	   = {};
+		vector_t<editor_action_menu_row_desc_t>			  _add_component_root_rows	   = {};
+		vector_t<sid_t>									  _add_component_types		   = {};
+		vector_t<entity_id_t>							  _display_entities			   = {};
+		vector_t<entity_id_t>							  _component_edit_entities	   = {};
+		vector_t<ostream_t>								  _component_edit_prev_streams = {};
+		editor_scrollbar_t								  _scrollbar				   = {};
+		editor_widget_fold_t*							  _entity_info_fold			   = nullptr;
+		editor_widget_entity_info_t*					  _entity_info				   = nullptr;
+		editor_button_t*								  _add_component_button		   = nullptr;
+		world_t*										  _display_world			   = nullptr;
+		world_handle_t									  _display_world_handle		   = {};
+		ui::widget_id_t									  _scroll_area				   = NULL_WIDGET;
+		ui::widget_id_t									  _column					   = NULL_WIDGET;
+		ostream_t										  _copied_component_stream	   = {};
+		editor_entity_info_data_t						  _copied_entity_info		   = {};
+		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			   = {};
+		editor_selection_listener_handle_t				  _selection_listener		   = {};
+		sid_t											  _copied_component_type	   = 0;
+		sid_t											  _action_menu_type_id		   = 0;
+		sid_t											  _pending_component_type	   = 0;
+		sid_t											  _component_edit_type		   = 0;
+		editor_inspector_display_type_e					  _display_type				   = editor_inspector_display_type_e::none;
+		f32												  _pending_scroll_y			   = 0.0f;
+		u8												  _scroll_restore_wait_ticks   = 0;
+		bool											  _refresh_display_pending	   = false;
+		bool											  _refresh_component_pending   = false;
+		bool											  _scroll_restore_pending	   = false;
+		bool											  _skip_scroll_state_save	   = false;
+		bool											  _copied_entity_info_valid	   = false;
+		bool											  _component_edit_active	   = false;
 	};
 }

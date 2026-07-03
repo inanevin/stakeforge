@@ -45,6 +45,7 @@ namespace sfg::ui
 namespace sfg
 {
 	using editor_color_wheel_data_changed_fn = void (*)(void* user_data);
+	using editor_color_wheel_edit_begin_fn	 = void (*)(void* user_data);
 
 	struct editor_color_wheel_field_t
 	{
@@ -54,6 +55,7 @@ namespace sfg
 	struct editor_color_wheel_config_t
 	{
 		editor_color_wheel_field_t		   field		   = {};
+		editor_color_wheel_edit_begin_fn   edit_begin	   = nullptr;
 		editor_color_wheel_data_changed_fn on_data_changed = nullptr;
 		void*							   user_data	   = nullptr;
 	};

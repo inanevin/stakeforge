@@ -52,7 +52,7 @@ namespace sfg
 		component_remove,
 		component_reset,
 		component_paste,
-		reflected_field_edit,
+		component_edit,
 	};
 
 	enum class editor_command_state_e : u8
@@ -109,6 +109,7 @@ namespace sfg
 		size_t				   payload_alignment = alignof(std::max_align_t);
 		editor_command_type_e  type				 = editor_command_type_e::custom;
 		bool				   run_redo			 = true;
+		bool				   notify			 = true;
 		bool				   entity_generation = false;
 	};
 

@@ -142,6 +142,7 @@ namespace sfg
 
 	void editor_widget_color_wheel_t::update_config(const editor_color_wheel_config_t& config)
 	{
+		_config.edit_begin		= config.edit_begin;
 		_config.on_data_changed = config.on_data_changed;
 		_config.user_data		= config.user_data;
 		update_field_data(config.field);
@@ -432,6 +433,8 @@ namespace sfg
 	{
 		SFG_ASSERT(_config.field.fields.size > 0);
 		SFG_ASSERT(_config.field.fields.data != nullptr);
+		if (_config.edit_begin != nullptr)
+			_config.edit_begin(_config.user_data);
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _display_color;
 		if (_config.on_data_changed != nullptr)

@@ -109,6 +109,7 @@ namespace sfg
 	struct editor_color_wheel_popup_desc_t
 	{
 		span_t<color_t*>				   fields		   = {};
+		editor_color_wheel_edit_begin_fn   edit_begin	   = nullptr;
 		editor_color_wheel_data_changed_fn on_data_changed = nullptr;
 		editor_popup_closed_fn			   closed		   = nullptr;
 		void*							   user_data	   = nullptr;

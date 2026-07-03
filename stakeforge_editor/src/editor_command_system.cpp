@@ -122,7 +122,8 @@ namespace sfg
 		_history.push_back(handle);
 		_cursor = static_cast<u32>(_history.size());
 		bump_generation(command);
-		notify_listeners(command);
+		if (desc.notify)
+			notify_listeners(command);
 		return handle;
 	}
 

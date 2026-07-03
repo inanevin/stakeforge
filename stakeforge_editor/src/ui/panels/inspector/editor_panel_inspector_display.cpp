@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "commands/editor_command_component_edit.hpp"
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity_info.hpp"
 
@@ -47,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world.hpp>
 
 #include <algorithm>
+#include <utility>
 
 namespace sfg
 {
@@ -218,6 +220,8 @@ namespace sfg
 
 	void editor_panel_inspector_t::clear_display()
 	{
+		clear_component_edit();
+
 		if (_entity_info != nullptr)
 		{
 			_entity_info->uninit();
@@ -244,6 +248,7 @@ namespace sfg
 			display.fold->uninit();
 			delete display.reflect;
 			delete display.fold;
+			delete display.edit_user_data;
 		}
 		_component_displays.resize(0);
 	}
@@ -292,6 +297,7 @@ namespace sfg
 			component_display_t& display = _component_displays.back();
 			display.fold				 = new editor_widget_fold_t();
 			display.reflect				 = new editor_widget_reflection_t();
+			display.edit_user_data		 = new component_edit_callback_data_t{.panel = this, .component_type = component_table.type_desc.type_id};
 			display.type_id				 = component_table.type_desc.type_id;
 			display.objects.reserve(_display_entities.size());
 			for (entity_id_t entity : _display_entities)
@@ -304,8 +310,14 @@ namespace sfg
 								  {
 									  .objects	   = {.data = display.objects.data(), .size = display.objects.size()},
 									  .fold_states = &_field_states,
-									  .type_id	   = component_table.type_desc.type_id,
-									  .world	   = _display_world_handle,
+									  .callbacks =
+										  {
+											  .edit_begin	  = on_component_edit_begin,
+											  .edit_submitted = on_component_edit_submitted,
+											  .user_data	  = display.edit_user_data,
+										  },
+									  .type_id = component_table.type_desc.type_id,
+									  .world   = _display_world_handle,
 								  });
 
 			ui::listener_bundle_t settings_listener = {};
@@ -339,9 +351,83 @@ namespace sfg
 							   {
 								   .objects		= {.data = display->objects.data(), .size = display->objects.size()},
 								   .fold_states = &_field_states,
-								   .type_id		= display->type_id,
-								   .world		= _display_world_handle,
+								   .callbacks =
+									   {
+										   .edit_begin	   = on_component_edit_begin,
+										   .edit_submitted = on_component_edit_submitted,
+										   .user_data	   = display->edit_user_data,
+									   },
+								   .type_id = display->type_id,
+								   .world	= _display_world_handle,
 							   });
+	}
+
+	bool editor_panel_inspector_t::serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const
+	{
+		out_streams.resize(0);
+		if (_display_world == nullptr || entities.size == 0)
+			return false;
+
+		world_component_table_t* table = _display_world->get_component_table(component_type);
+		if (table == nullptr)
+			return false;
+
+		out_streams.reserve(entities.size);
+		for (size_t i = 0; i < entities.size; ++i)
+		{
+			if (!ecs_t::table_has(table->table, entities.data[i]))
+			{
+				out_streams.resize(0);
+				return false;
+			}
+
+			ostream_t stream;
+			if (!reflection_registry_t::get().type_to_stream(table->type_desc.type_id, ecs_t::table_get(table->table, entities.data[i]), nullptr, stream))
+			{
+				out_streams.resize(0);
+				return false;
+			}
+			out_streams.push_back(std::move(stream));
+		}
+		return true;
+	}
+
+	void editor_panel_inspector_t::begin_component_edit(sid_t component_type)
+	{
+		clear_component_edit();
+		_component_edit_entities.assign(_display_entities.begin(), _display_entities.end());
+		if (!serialize_component_streams(component_type, {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()}, _component_edit_prev_streams))
+		{
+			clear_component_edit();
+			return;
+		}
+		_component_edit_type   = component_type;
+		_component_edit_active = true;
+	}
+
+	void editor_panel_inspector_t::submit_component_edit(sid_t component_type)
+	{
+		if (!_component_edit_active || _component_edit_type != component_type)
+			return;
+
+		vector_t<ostream_t> post_streams;
+		if (serialize_component_streams(component_type, {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()}, post_streams))
+		{
+			editor_command_component_edit_t::edit(_display_world_handle,
+												  {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()},
+												  component_type,
+												  {.data = _component_edit_prev_streams.data(), .size = _component_edit_prev_streams.size()},
+												  {.data = post_streams.data(), .size = post_streams.size()});
+		}
+		clear_component_edit();
+	}
+
+	void editor_panel_inspector_t::clear_component_edit()
+	{
+		_component_edit_entities.resize(0);
+		_component_edit_prev_streams.resize(0);
+		_component_edit_type   = 0;
+		_component_edit_active = false;
 	}
 
 	bool editor_panel_inspector_t::is_displaying_any_entity(span_t<const entity_id_t> entities) const

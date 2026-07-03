@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "commands/editor_command_component_edit.hpp"
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity_info.hpp"
 
@@ -36,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
@@ -185,6 +187,20 @@ namespace sfg
 			editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]);
 	}
 
+	void editor_panel_inspector_t::on_component_edit_begin(void* user_data)
+	{
+		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
+		SFG_TRACE("component edit begin {0}", data.component_type);
+		data.panel->begin_component_edit(data.component_type);
+	}
+
+	void editor_panel_inspector_t::on_component_edit_submitted(void* user_data)
+	{
+		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
+		SFG_TRACE("component edit submitted {0}", data.component_type);
+		data.panel->submit_component_edit(data.component_type);
+	}
+
 	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
@@ -214,6 +230,13 @@ namespace sfg
 		case editor_command_type_e::component_paste: {
 			const editor_command_paste_component_payload_t& payload	 = system.get_payload_as<editor_command_paste_component_payload_t>(command);
 			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_component_reflection(payload.component_type);
+			break;
+		}
+		case editor_command_type_e::component_edit: {
+			const editor_command_component_edit_payload_t& payload	= system.get_payload_as<editor_command_component_edit_payload_t>(command);
+			const entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;

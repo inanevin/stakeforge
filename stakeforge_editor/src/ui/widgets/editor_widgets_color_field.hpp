@@ -85,6 +85,7 @@ namespace sfg
 		void submit_edit();
 
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_color_wheel_edit_begin(void* user_data);
 		static void on_color_wheel_data_changed(void* user_data);
 		static void on_color_wheel_popup_closed(void* user_data);
 

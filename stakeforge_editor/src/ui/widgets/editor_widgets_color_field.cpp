@@ -70,8 +70,6 @@ namespace sfg
 		swatch_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		swatch_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		swatch_in.size_value	   = {1.0f, 1.0f};
-		paint.set_hover_color(_swatch, theme.color_panel);
-		paint.set_press_color(_swatch, theme.color_frame_light);
 		paint.set_focus_color(_swatch, theme.color_accent0);
 		paint.set_state_source(_swatch, _root);
 
@@ -216,11 +214,17 @@ namespace sfg
 		SFG_ASSERT(popup != nullptr);
 		popup->request_color_wheel_popup({
 			.fields			 = {.data = field._fields.data(), .size = field._fields.size()},
+			.edit_begin		 = on_color_wheel_edit_begin,
 			.on_data_changed = on_color_wheel_data_changed,
 			.closed			 = on_color_wheel_popup_closed,
 			.user_data		 = &field,
 			.pos			 = pos,
 		});
+	}
+
+	void editor_color_field_t::on_color_wheel_edit_begin(void* user_data)
+	{
+		static_cast<editor_color_field_t*>(user_data)->begin_edit();
 	}
 
 	void editor_color_field_t::on_color_wheel_data_changed(void* user_data)
@@ -232,7 +236,6 @@ namespace sfg
 		if (!changed)
 			return;
 
-		field.begin_edit();
 		field.refresh_field_data();
 		field._edit_dirty = true;
 		if (field._config.callbacks.edited != nullptr)

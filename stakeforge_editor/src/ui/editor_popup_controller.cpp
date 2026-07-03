@@ -491,6 +491,7 @@ namespace sfg
 		{
 			_color_wheel.update_config({
 				.field			 = {.fields = desc.fields},
+				.edit_begin		 = desc.edit_begin,
 				.on_data_changed = desc.on_data_changed,
 				.user_data		 = desc.user_data,
 			});
@@ -500,6 +501,7 @@ namespace sfg
 			color_t* color_wheel_color = &_color_wheel_dummy_color;
 			_color_wheel.update_config({
 				.field			 = {.fields = {.data = &color_wheel_color, .size = 1}},
+				.edit_begin		 = desc.edit_begin,
 				.on_data_changed = desc.on_data_changed,
 				.user_data		 = desc.user_data,
 			});
