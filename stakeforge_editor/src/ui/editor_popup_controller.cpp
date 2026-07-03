@@ -249,8 +249,8 @@ namespace sfg
 		editor_input_field_config_t asset_search_config		= {};
 		asset_search_config.placeholder						= "Search";
 		asset_search_config.field							= {.type = editor_input_field_field_type_e::string, .fields = {.data = &asset_search_text_field, .size = 1}};
-		asset_search_config.on_data_changed					= on_asset_search_changed;
-		asset_search_config.user_data						= this;
+		asset_search_config.callbacks.edited				= on_asset_search_changed;
+		asset_search_config.callbacks.user_data				= this;
 		_asset_search_input.init(ui, _asset_search_row, asset_search_config);
 
 		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
@@ -285,8 +285,8 @@ namespace sfg
 		u8*							input_text_field = reinterpret_cast<u8*>(&_input_text);
 		editor_input_field_config_t input_config	 = {};
 		input_config.field							 = {.type = editor_input_field_field_type_e::string, .fields = {.data = &input_text_field, .size = 1}};
-		input_config.on_submitted					 = on_input_submitted;
-		input_config.user_data						 = this;
+		input_config.callbacks.edit_submitted		 = on_input_submitted;
+		input_config.callbacks.user_data			 = this;
 		_input.init(ui, _foreground, input_config);
 		color_t* color_wheel_color = &_color_wheel_dummy_color;
 		_color_wheel.init(ui, _frame, {.field = {.fields = {.data = &color_wheel_color, .size = 1}}});
@@ -532,10 +532,33 @@ namespace sfg
 			return;
 		}
 
-		const bool						   notify			= notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
-		const editor_popup_input_closed_fn closed			= _input_desc.closed;
-		void*							   closed_user_data = _input_desc.user_data;
-		const frame_string_t<char>		   input_value		= _input_text.c_str();
+		const bool						   notify_input_closed	  = notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
+		const editor_popup_input_closed_fn input_closed			  = _input_desc.closed;
+		void*							   input_closed_user_data = _input_desc.user_data;
+		const frame_string_t<char>		   input_value			  = _input_text.c_str();
+		editor_popup_closed_fn			   popup_closed			  = nullptr;
+		void*							   popup_closed_user_data = nullptr;
+		switch (_mode)
+		{
+		case popup_mode_e::items:
+			popup_closed		   = _desc.closed;
+			popup_closed_user_data = _desc.user_data;
+			break;
+		case popup_mode_e::assets:
+			popup_closed		   = _asset_desc.closed;
+			popup_closed_user_data = _asset_desc.user_data;
+			break;
+		case popup_mode_e::entities:
+			popup_closed		   = _entity_desc.closed;
+			popup_closed_user_data = _entity_desc.user_data;
+			break;
+		case popup_mode_e::color_wheel:
+			popup_closed		   = _color_wheel_desc.closed;
+			popup_closed_user_data = _color_wheel_desc.user_data;
+			break;
+		default:
+			break;
+		}
 
 		set_visible(false);
 		_ui->get_input().clear_popup_scope();
@@ -552,8 +575,10 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_filtered_items.resize(0);
 
-		if (notify)
-			closed(input_value.c_str(), closed_user_data);
+		if (notify_input_closed)
+			input_closed(input_value.c_str(), input_closed_user_data);
+		if (popup_closed != nullptr)
+			popup_closed(popup_closed_user_data);
 	}
 
 	editor_popup_controller_t* editor_popup_controller_t::find(ui::ui_context& ui)

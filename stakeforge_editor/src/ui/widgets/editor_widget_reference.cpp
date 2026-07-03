@@ -344,6 +344,8 @@ namespace sfg
 		else
 			_config.selected_entity = value;
 		refresh_title();
+		if (_config.callbacks.edited != nullptr)
+			_config.callbacks.edited(_config.callbacks.user_data);
 	}
 
 	void editor_widget_reference_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -364,12 +366,22 @@ namespace sfg
 
 	void editor_widget_reference_t::on_popup_asset_pressed(sid_t guid, void* user_data)
 	{
-		static_cast<editor_widget_reference_t*>(user_data)->modify_reference(guid);
+		editor_widget_reference_t& reference = *static_cast<editor_widget_reference_t*>(user_data);
+		if (reference._config.callbacks.edit_begin != nullptr)
+			reference._config.callbacks.edit_begin(reference._config.callbacks.user_data);
+		reference.modify_reference(guid);
+		if (reference._config.callbacks.edit_submitted != nullptr)
+			reference._config.callbacks.edit_submitted(reference._config.callbacks.user_data);
 	}
 
 	void editor_widget_reference_t::on_popup_entity_pressed(entity_guid_t guid, void* user_data)
 	{
-		static_cast<editor_widget_reference_t*>(user_data)->modify_reference(guid);
+		editor_widget_reference_t& reference = *static_cast<editor_widget_reference_t*>(user_data);
+		if (reference._config.callbacks.edit_begin != nullptr)
+			reference._config.callbacks.edit_begin(reference._config.callbacks.user_data);
+		reference.modify_reference(guid);
+		if (reference._config.callbacks.edit_submitted != nullptr)
+			reference._config.callbacks.edit_submitted(reference._config.callbacks.user_data);
 	}
 
 	bool editor_widget_reference_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
@@ -383,7 +395,11 @@ namespace sfg
 		if (!reference.can_accept_payload(payload, &value))
 			return false;
 
+		if (reference._config.callbacks.edit_begin != nullptr)
+			reference._config.callbacks.edit_begin(reference._config.callbacks.user_data);
 		reference.modify_reference(value);
+		if (reference._config.callbacks.edit_submitted != nullptr)
+			reference._config.callbacks.edit_submitted(reference._config.callbacks.user_data);
 		return true;
 	}
 

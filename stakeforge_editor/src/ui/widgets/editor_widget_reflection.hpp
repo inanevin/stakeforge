@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
@@ -65,6 +66,7 @@ namespace sfg
 	{
 		span_t<void*>									 objects	 = {};
 		vector_t<editor_widget_reflection_fold_state_t>* fold_states = nullptr;
+		editor_widget_callbacks_t						 callbacks	 = {};
 		sid_t											 type_id	 = 0;
 		world_handle_t									 world		 = {};
 	};
@@ -174,6 +176,7 @@ namespace sfg
 		vector_t<ui::widget_id_t>						 _dividers;
 		vector_t<ui::widget_id_t>						 _rows;
 		vector_t<ui::widget_id_t>						 _tooltip_owners;
+		editor_widget_callbacks_t						 _callbacks	  = {};
 		vector_t<editor_widget_reflection_fold_state_t>* _fold_states = nullptr;
 	};
 }

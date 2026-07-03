@@ -81,8 +81,8 @@ namespace sfg
 		u8*							name_field	= reinterpret_cast<u8*>(_name_fallback);
 		editor_input_field_config_t name_config = {};
 		name_config.placeholder					= "Name";
-		name_config.on_submitted				= on_name_input_submitted;
-		name_config.user_data					= this;
+		name_config.callbacks.edit_submitted	= on_name_input_submitted;
+		name_config.callbacks.user_data			= this;
 		name_config.field						= {.type = editor_input_field_field_type_e::char_array, .fields = {.data = &name_field, .size = 1}, .field_size = sizeof(component_name_t::text)};
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
@@ -114,8 +114,8 @@ namespace sfg
 
 		const editor_property_row_t rotation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Rotation");
 		editor_quat_field_config_t	rotation_config = {};
-		rotation_config.on_data_changed				= on_rotation_changed;
-		rotation_config.user_data					= this;
+		rotation_config.callbacks.edited			= on_rotation_changed;
+		rotation_config.callbacks.user_data			= this;
 		_rotation_field.init(ui, rotation_row.right, rotation_config);
 		fit_control(ui, _rotation_field.get_root());
 

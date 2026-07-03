@@ -53,7 +53,7 @@ namespace sfg
 			in.size_value		= {1.0f, 1.0f};
 		}
 
-		editor_input_field_config_t make_number_config(const char* placeholder, span_t<u8*> fields, f32 increment, bool integer, editor_input_field_data_changed_fn on_data_changed = nullptr, void* user_data = nullptr)
+		editor_input_field_config_t make_number_config(const char* placeholder, span_t<u8*> fields, f32 increment, bool integer, editor_widget_callbacks_t callbacks = {})
 		{
 			return {
 				.field =
@@ -62,12 +62,11 @@ namespace sfg
 						.fields		= fields,
 						.field_size = sizeof(f32),
 					},
-				.placeholder	 = placeholder,
-				.on_data_changed = on_data_changed,
-				.user_data		 = user_data,
-				.increment		 = integer ? 1.0f : increment,
-				.min_value		 = integer ? -2147483648.0f : -1000000.0f,
-				.max_value		 = integer ? 2147483647.0f : 1000000.0f,
+				.callbacks	 = callbacks,
+				.placeholder = placeholder,
+				.increment	 = integer ? 1.0f : increment,
+				.min_value	 = integer ? -2147483648.0f : -1000000.0f,
+				.max_value	 = integer ? 2147483647.0f : 1000000.0f,
 			};
 		}
 	}
@@ -88,7 +87,7 @@ namespace sfg
 		{
 			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
 			_fields[i].push_back(reinterpret_cast<u8*>(&(&_value.x)[i]));
-			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer, config.callbacks));
 			set_input_fill(ui, _inputs[i].get_root());
 		}
 
@@ -167,7 +166,7 @@ namespace sfg
 		{
 			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
 			_fields[i].push_back(reinterpret_cast<u8*>(&(&_value.x)[i]));
-			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer, config.callbacks));
 			set_input_fill(ui, _inputs[i].get_root());
 		}
 
@@ -246,7 +245,7 @@ namespace sfg
 		{
 			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
 			_fields[i].push_back(reinterpret_cast<u8*>(&(&_value.x)[i]));
-			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer));
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, config.integer, config.callbacks));
 			set_input_fill(ui, _inputs[i].get_root());
 		}
 
@@ -326,7 +325,12 @@ namespace sfg
 		{
 			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
 			_fields[i].push_back(reinterpret_cast<u8*>(&(&_euler_values[0].x)[i]));
-			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, false, on_euler_data_changed, this));
+			editor_widget_callbacks_t callbacks = config.callbacks;
+			callbacks.edit_begin				= on_euler_edit_begin;
+			callbacks.edited					= on_euler_data_changed;
+			callbacks.edit_submitted			= on_euler_edit_submitted;
+			callbacks.user_data					= this;
+			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, false, callbacks));
 			set_input_fill(ui, _inputs[i].get_root());
 		}
 
@@ -409,12 +413,26 @@ namespace sfg
 		for (size_t i = 0; i < _field_values.size(); ++i)
 			*_field_values[i] = quat_t::from_euler(_euler_values[i].x, _euler_values[i].y, _euler_values[i].z);
 
-		if (_config.on_data_changed != nullptr)
-			_config.on_data_changed(_config.user_data);
+		if (_config.callbacks.edited != nullptr)
+			_config.callbacks.edited(_config.callbacks.user_data);
+	}
+
+	void editor_quat_field_t::on_euler_edit_begin(void* user_data)
+	{
+		editor_quat_field_t& field = *static_cast<editor_quat_field_t*>(user_data);
+		if (field._config.callbacks.edit_begin != nullptr)
+			field._config.callbacks.edit_begin(field._config.callbacks.user_data);
 	}
 
 	void editor_quat_field_t::on_euler_data_changed(void* user_data)
 	{
 		static_cast<editor_quat_field_t*>(user_data)->modify_field();
+	}
+
+	void editor_quat_field_t::on_euler_edit_submitted(void* user_data)
+	{
+		editor_quat_field_t& field = *static_cast<editor_quat_field_t*>(user_data);
+		if (field._config.callbacks.edit_submitted != nullptr)
+			field._config.callbacks.edit_submitted(field._config.callbacks.user_data);
 	}
 }

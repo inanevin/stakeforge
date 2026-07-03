@@ -101,9 +101,11 @@ namespace sfg
 		_swatch = NULL_WIDGET;
 		_label	= NULL_WIDGET;
 		_fields.resize(0);
-		_config = {};
-		_color	= {};
-		_mixed	= false;
+		_config		 = {};
+		_color		 = {};
+		_mixed		 = false;
+		_edit_active = false;
+		_edit_dirty	 = false;
 	}
 
 	void editor_color_field_t::set_color(const color_t& color)
@@ -178,6 +180,30 @@ namespace sfg
 		SFG_ASSERT(_config.field.fields.data != nullptr);
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _color;
+		if (_config.callbacks.edited != nullptr)
+			_config.callbacks.edited(_config.callbacks.user_data);
+	}
+
+	void editor_color_field_t::begin_edit()
+	{
+		if (_edit_active)
+			return;
+		_edit_active = true;
+		if (_config.callbacks.edit_begin != nullptr)
+			_config.callbacks.edit_begin(_config.callbacks.user_data);
+	}
+
+	void editor_color_field_t::submit_edit()
+	{
+		if (!_edit_dirty)
+		{
+			_edit_active = false;
+			return;
+		}
+		if (_config.callbacks.edit_submitted != nullptr)
+			_config.callbacks.edit_submitted(_config.callbacks.user_data);
+		_edit_active = false;
+		_edit_dirty	 = false;
 	}
 
 	void editor_color_field_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -191,6 +217,7 @@ namespace sfg
 		popup->request_color_wheel_popup({
 			.fields			 = {.data = field._fields.data(), .size = field._fields.size()},
 			.on_data_changed = on_color_wheel_data_changed,
+			.closed			 = on_color_wheel_popup_closed,
 			.user_data		 = &field,
 			.pos			 = pos,
 		});
@@ -198,6 +225,22 @@ namespace sfg
 
 	void editor_color_field_t::on_color_wheel_data_changed(void* user_data)
 	{
-		static_cast<editor_color_field_t*>(user_data)->refresh_field_data();
+		editor_color_field_t& field	  = *static_cast<editor_color_field_t*>(user_data);
+		bool				  changed = field._mixed;
+		for (size_t i = 0; i < field._config.field.fields.size; ++i)
+			changed |= *field._config.field.fields.data[i] != field._color;
+		if (!changed)
+			return;
+
+		field.begin_edit();
+		field.refresh_field_data();
+		field._edit_dirty = true;
+		if (field._config.callbacks.edited != nullptr)
+			field._config.callbacks.edited(field._config.callbacks.user_data);
+	}
+
+	void editor_color_field_t::on_color_wheel_popup_closed(void* user_data)
+	{
+		static_cast<editor_color_field_t*>(user_data)->submit_edit();
 	}
 }

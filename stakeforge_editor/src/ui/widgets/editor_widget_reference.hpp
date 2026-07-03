@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "assets/editor_asset_type.hpp"
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec2i16.hpp>
@@ -56,6 +57,7 @@ namespace sfg
 	struct editor_widget_reference_config_t
 	{
 		span_t<u64*>				   fields		   = {};
+		editor_widget_callbacks_t	   callbacks	   = {};
 		sid_t						   selected_asset  = NULL_SID;
 		entity_guid_t				   selected_entity = NULL_ENTITY_GUID;
 		world_handle_t				   world		   = {};

@@ -26,6 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -57,19 +58,14 @@ namespace sfg
 		bool							is_slider  = false;
 	};
 
-	using editor_input_field_data_changed_fn = void (*)(void* user_data);
-	using editor_input_field_submitted_fn	 = void (*)(void* user_data);
-
 	struct editor_input_field_config_t
 	{
-		editor_input_field_field_t		   field		   = {};
-		const char*						   placeholder	   = nullptr;
-		editor_input_field_data_changed_fn on_data_changed = nullptr;
-		editor_input_field_submitted_fn	   on_submitted	   = nullptr;
-		void*							   user_data	   = nullptr;
-		f32								   increment	   = 0.1f;
-		f32								   min_value	   = 0.0f;
-		f32								   max_value	   = 1.0f;
+		editor_input_field_field_t field	   = {};
+		editor_widget_callbacks_t  callbacks   = {};
+		const char*				   placeholder = nullptr;
+		f32						   increment   = 0.1f;
+		f32						   min_value   = 0.0f;
+		f32						   max_value   = 1.0f;
 	};
 
 	class editor_input_field_t final
@@ -107,8 +103,11 @@ namespace sfg
 
 		void refresh_text();
 		void commit_number_text();
-		void update_number_from_text();
+		bool update_number_from_text();
+		void begin_edit();
+		void submit_edit();
 		void modify_field();
+		bool has_field_value_changed() const;
 		void set_text_raw(const char* value);
 		void format_number();
 		void insert_char(char c);
@@ -129,6 +128,7 @@ namespace sfg
 		void write_pod_number(u8* data, f32 value);
 
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_release(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_double_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_hover_enter(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_hover_exit(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
@@ -158,5 +158,7 @@ namespace sfg
 		f32							_text_advance_ui_scale		  = 0.0f;
 		f32							_text_advance_dpi_scale		  = 0.0f;
 		bool						_mixed						  = false;
+		bool						_edit_active				  = false;
+		bool						_edit_dirty					  = false;
 	};
 }

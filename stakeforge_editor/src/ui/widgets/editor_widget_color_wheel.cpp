@@ -352,8 +352,8 @@ namespace sfg
 		input_config.field.is_slider			 = true;
 		input_config.min_value					 = 0.0f;
 		input_config.max_value					 = 1.0f;
-		input_config.on_data_changed			 = field < 4 ? on_rgba_changed : on_hsv_changed;
-		input_config.user_data					 = this;
+		input_config.callbacks.edited			 = field < 4 ? on_rgba_changed : on_hsv_changed;
+		input_config.callbacks.user_data		 = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
 
 		ui::layout_in_t& input_in				 = tree.in(_inputs[row].get_root());
@@ -411,8 +411,8 @@ namespace sfg
 		u8*							input_field	 = reinterpret_cast<u8*>(_hex_value);
 		editor_input_field_config_t input_config = {};
 		input_config.field						 = {.type = editor_input_field_field_type_e::char_array, .fields = {.data = &input_field, .size = 1}, .field_size = HEX_TEXT_CAPACITY};
-		input_config.on_data_changed			 = on_hex_changed;
-		input_config.user_data					 = this;
+		input_config.callbacks.edited			 = on_hex_changed;
+		input_config.callbacks.user_data		 = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
 
 		ui::layout_in_t& input_in				 = tree.in(_inputs[row].get_root());

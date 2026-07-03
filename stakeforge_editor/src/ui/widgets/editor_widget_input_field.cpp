@@ -82,6 +82,7 @@ namespace sfg
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;
 		listener.on_press			   = on_press;
+		listener.on_release			   = on_release;
 		listener.on_double_click	   = on_double_click;
 		listener.on_hover_enter		   = on_hover_enter;
 		listener.on_hover_exit		   = on_hover_exit;
@@ -151,6 +152,8 @@ namespace sfg
 		_text_advance_ui_scale	= 0.0f;
 		_text_advance_dpi_scale = 0.0f;
 		_mixed					= false;
+		_edit_active			= false;
+		_edit_dirty				= false;
 	}
 
 	void editor_input_field_t::select_all()
@@ -181,6 +184,8 @@ namespace sfg
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 		_mixed		  = false;
+		_edit_active  = false;
+		_edit_dirty	  = false;
 
 		ui::layout_in_t& root_in = _ui->get_tree().in(_root);
 		root_in.child_margins =
@@ -277,6 +282,13 @@ namespace sfg
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return;
 
+		if (!_edit_dirty)
+		{
+			format_number();
+			refresh_text();
+			return;
+		}
+
 		char* end	= nullptr;
 		f32	  value = static_cast<f32>(std::strtod(_text, &end));
 		if (end == _text)
@@ -285,16 +297,22 @@ namespace sfg
 			value = math::clamp(value, _config.min_value, _config.max_value);
 		if (_config.increment >= 1.0f)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
+		if (value == _number_value)
+		{
+			format_number();
+			refresh_text();
+			return;
+		}
 		_number_value = value;
 		format_number();
 		modify_field();
 		refresh_text();
 	}
 
-	void editor_input_field_t::update_number_from_text()
+	bool editor_input_field_t::update_number_from_text()
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
-			return;
+			return true;
 		char* end	= nullptr;
 		f32	  value = static_cast<f32>(std::strtod(_text, &end));
 		if (end == _text)
@@ -303,13 +321,43 @@ namespace sfg
 			value = math::clamp(value, _config.min_value, _config.max_value);
 		if (_config.increment >= 1.0f)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
+		if (value == _number_value)
+			return false;
 		_number_value = value;
+		return true;
+	}
+
+	void editor_input_field_t::begin_edit()
+	{
+		if (_edit_active)
+			return;
+		_edit_active = true;
+		if (_config.callbacks.edit_begin != nullptr)
+			_config.callbacks.edit_begin(_config.callbacks.user_data);
+	}
+
+	void editor_input_field_t::submit_edit()
+	{
+		if (!_edit_dirty)
+		{
+			_edit_active = false;
+			return;
+		}
+		if (_config.callbacks.edit_submitted != nullptr)
+			_config.callbacks.edit_submitted(_config.callbacks.user_data);
+		_edit_active = false;
+		_edit_dirty	 = false;
 	}
 
 	void editor_input_field_t::modify_field()
 	{
 		SFG_ASSERT(_config.field.fields.size > 0);
 		SFG_ASSERT(_config.field.fields.data != nullptr);
+
+		if (!has_field_value_changed())
+			return;
+
+		begin_edit();
 
 		switch (_config.field.type)
 		{
@@ -333,8 +381,39 @@ namespace sfg
 			break;
 		}
 
-		if (_config.on_data_changed != nullptr)
-			_config.on_data_changed(_config.user_data);
+		_edit_dirty = true;
+		if (_config.callbacks.edited != nullptr)
+			_config.callbacks.edited(_config.callbacks.user_data);
+	}
+
+	bool editor_input_field_t::has_field_value_changed() const
+	{
+		switch (_config.field.type)
+		{
+		case editor_input_field_field_type_e::string:
+			for (size_t i = 0; i < _config.field.fields.size; ++i)
+			{
+				if (std::strcmp(reinterpret_cast<const string_t*>(_config.field.fields.data[i])->c_str(), _text) != 0)
+					return true;
+			}
+			return false;
+		case editor_input_field_field_type_e::char_array:
+			SFG_ASSERT(_config.field.field_size > 0);
+			for (size_t i = 0; i < _config.field.fields.size; ++i)
+			{
+				if (std::strcmp(reinterpret_cast<const char*>(_config.field.fields.data[i]), _text) != 0)
+					return true;
+			}
+			return false;
+		case editor_input_field_field_type_e::pod_number:
+			for (size_t i = 0; i < _config.field.fields.size; ++i)
+			{
+				if (read_pod_number(_config.field.fields.data[i]) != _number_value)
+					return true;
+			}
+			return false;
+		}
+		return false;
 	}
 
 	void editor_input_field_t::set_text_raw(const char* value)
@@ -363,8 +442,8 @@ namespace sfg
 		_mixed = false;
 		if (!insert_char_data(c))
 			return;
-		update_number_from_text();
-		modify_field();
+		if (update_number_from_text())
+			modify_field();
 		refresh_text();
 	}
 
@@ -377,8 +456,8 @@ namespace sfg
 			any |= insert_char_data(*c);
 		if (!any)
 			return;
-		update_number_from_text();
-		modify_field();
+		if (update_number_from_text())
+			modify_field();
 		refresh_text();
 	}
 
@@ -427,12 +506,15 @@ namespace sfg
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return;
-		_mixed = false;
-		_number_value += delta_x * _config.increment;
+		_mixed	  = false;
+		f32 value = _number_value + delta_x * _config.increment;
 		if (_config.field.is_slider)
-			_number_value = math::clamp(_number_value, _config.min_value, _config.max_value);
+			value = math::clamp(value, _config.min_value, _config.max_value);
 		if (_config.increment >= 1.0f)
-			_number_value = static_cast<f32>(static_cast<i64>(_number_value + (_number_value >= 0.0f ? 0.5f : -0.5f)));
+			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
+		if (value == _number_value)
+			return;
+		_number_value = value;
 		format_number();
 		modify_field();
 		refresh_text();
@@ -442,10 +524,13 @@ namespace sfg
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number || !_config.field.is_slider)
 			return;
-		const ui::layout_out_t& out = _ui->get_tree().out(_root);
-		const f32				t	= out.size.x > 0.0f ? math::clamp((pos.x - out.pos.x) / out.size.x, 0.0f, 1.0f) : 0.0f;
-		_mixed						= false;
-		_number_value				= _config.min_value + (_config.max_value - _config.min_value) * t;
+		const ui::layout_out_t& out	  = _ui->get_tree().out(_root);
+		const f32				t	  = out.size.x > 0.0f ? math::clamp((pos.x - out.pos.x) / out.size.x, 0.0f, 1.0f) : 0.0f;
+		const f32				value = _config.min_value + (_config.max_value - _config.min_value) * t;
+		if (value == _number_value)
+			return;
+		_mixed		  = false;
+		_number_value = value;
 		format_number();
 		modify_field();
 		refresh_text();
@@ -661,6 +746,14 @@ namespace sfg
 			field.reset_caret_blink();
 	}
 
+	void editor_input_field_t::on_release(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::middle)
+			return;
+
+		static_cast<editor_input_field_t*>(user_data)->submit_edit();
+	}
+
 	void editor_input_field_t::on_double_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn == ui::mouse_button_e::left)
@@ -679,7 +772,10 @@ namespace sfg
 
 	void editor_input_field_t::on_focus_gain(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		static_cast<editor_input_field_t*>(user_data)->reset_caret_blink();
+		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
+		field.reset_caret_blink();
+		field._edit_active = false;
+		field._edit_dirty  = false;
 	}
 
 	void editor_input_field_t::on_drag(ui::input_router_t& router, ui::widget_id_t, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
@@ -700,8 +796,7 @@ namespace sfg
 	{
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		field.commit_number_text();
-		if (field._config.on_submitted != nullptr)
-			field._config.on_submitted(field._config.user_data);
+		field.submit_edit();
 	}
 
 	void editor_input_field_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
@@ -753,8 +848,8 @@ namespace sfg
 				clip[count] = '\0';
 				process::push_clipboard(clip);
 				field.erase_selection();
-				field.update_number_from_text();
-				field.modify_field();
+				if (field.update_number_from_text())
+					field.modify_field();
 				field.refresh_text();
 			}
 			return;
@@ -772,8 +867,8 @@ namespace sfg
 				field.erase_selection();
 			else if (field._caret > 0)
 				field.erase_range(field._caret - 1, field._caret);
-			field.update_number_from_text();
-			field.modify_field();
+			if (field.update_number_from_text())
+				field.modify_field();
 			field.refresh_text();
 			return;
 		}
@@ -784,16 +879,15 @@ namespace sfg
 				field.erase_selection();
 			else if (field._caret < field._text_len)
 				field.erase_range(field._caret, field._caret + 1);
-			field.update_number_from_text();
-			field.modify_field();
+			if (field.update_number_from_text())
+				field.modify_field();
 			field.refresh_text();
 			return;
 		}
 		if (ev.key == static_cast<u16>(input_code::key_return))
 		{
 			field.commit_number_text();
-			if (field._config.on_submitted != nullptr)
-				field._config.on_submitted(field._config.user_data);
+			field.submit_edit();
 			return;
 		}
 

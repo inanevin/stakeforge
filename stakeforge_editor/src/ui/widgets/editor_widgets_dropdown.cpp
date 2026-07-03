@@ -286,6 +286,8 @@ namespace sfg
 		for (u8* field : _fields)
 			write_field_value(field, value);
 		refresh_field_data();
+		if (_config.callbacks.edited != nullptr)
+			_config.callbacks.edited(_config.callbacks.user_data);
 	}
 
 	u16 editor_dropdown_t::get_selected() const
@@ -359,7 +361,13 @@ namespace sfg
 	{
 		editor_dropdown_t& dropdown = *static_cast<editor_dropdown_t*>(user_data);
 		if (dropdown.is_field_bound())
+		{
+			if (dropdown._config.callbacks.edit_begin != nullptr)
+				dropdown._config.callbacks.edit_begin(dropdown._config.callbacks.user_data);
 			dropdown.modify_field(value);
+			if (dropdown._config.callbacks.edit_submitted != nullptr)
+				dropdown._config.callbacks.edit_submitted(dropdown._config.callbacks.user_data);
+		}
 		else if (dropdown._config.pressed != nullptr)
 			dropdown._config.pressed(value, dropdown._config.user_data);
 		dropdown.refresh_title();

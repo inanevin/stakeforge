@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -76,6 +77,7 @@ namespace sfg
 		editor_dropdown_pressed_fn	  pressed			   = nullptr;
 		void*						  user_data			   = nullptr;
 		editor_dropdown_field_t		  field				   = {};
+		editor_widget_callbacks_t	  callbacks			   = {};
 		u16							  item_count		   = 0;
 		editor_dropdown_width_e		  width				   = editor_dropdown_width_e::sum_children;
 		editor_dropdown_pos_y_e		  pos_y				   = editor_dropdown_pos_y_e::flow;

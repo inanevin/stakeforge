@@ -51,6 +51,7 @@ namespace sfg
 	using editor_popup_asset_pressed_fn	 = void (*)(sid_t guid, void* user_data);
 	using editor_popup_entity_pressed_fn = void (*)(entity_guid_t guid, void* user_data);
 	using editor_popup_input_closed_fn	 = void (*)(const char* value, void* user_data);
+	using editor_popup_closed_fn		 = void (*)(void* user_data);
 
 	struct editor_popup_item_desc_t
 	{
@@ -63,6 +64,7 @@ namespace sfg
 	{
 		const editor_popup_item_desc_t* items			 = nullptr;
 		editor_popup_item_pressed_fn	pressed			 = nullptr;
+		editor_popup_closed_fn			closed			 = nullptr;
 		void*							user_data		 = nullptr;
 		vec2f_t							pos				 = {};
 		f32								width			 = 0.0f;
@@ -83,6 +85,7 @@ namespace sfg
 	struct editor_asset_popup_desc_t
 	{
 		editor_popup_asset_pressed_fn pressed		   = nullptr;
+		editor_popup_closed_fn		  closed		   = nullptr;
 		void*						  user_data		   = nullptr;
 		vec2f_t						  pos			   = {};
 		f32							  width			   = 0.0f;
@@ -94,6 +97,7 @@ namespace sfg
 	struct editor_entity_popup_desc_t
 	{
 		editor_popup_entity_pressed_fn pressed			= nullptr;
+		editor_popup_closed_fn		   closed			= nullptr;
 		void*						   user_data		= nullptr;
 		vec2f_t						   pos				= {};
 		f32							   width			= 0.0f;
@@ -106,6 +110,7 @@ namespace sfg
 	{
 		span_t<color_t*>				   fields		   = {};
 		editor_color_wheel_data_changed_fn on_data_changed = nullptr;
+		editor_popup_closed_fn			   closed		   = nullptr;
 		void*							   user_data	   = nullptr;
 		vec2f_t							   pos			   = {};
 	};

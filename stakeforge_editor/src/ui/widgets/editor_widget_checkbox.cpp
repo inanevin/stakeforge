@@ -149,10 +149,14 @@ namespace sfg
 
 	void editor_checkbox_t::toggle()
 	{
+		if (_config.callbacks.edit_begin != nullptr)
+			_config.callbacks.edit_begin(_config.callbacks.user_data);
 		_checked = !_checked;
 		_mixed	 = false;
 		modify_field();
 		refresh();
+		if (_config.callbacks.edit_submitted != nullptr)
+			_config.callbacks.edit_submitted(_config.callbacks.user_data);
 	}
 
 	void editor_checkbox_t::modify_field()
@@ -161,6 +165,8 @@ namespace sfg
 		SFG_ASSERT(_config.field.fields.data != nullptr);
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _checked ? 1 : 0;
+		if (_config.callbacks.edited != nullptr)
+			_config.callbacks.edited(_config.callbacks.user_data);
 	}
 
 	void editor_checkbox_t::on_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

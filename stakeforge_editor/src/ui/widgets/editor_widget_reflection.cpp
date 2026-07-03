@@ -118,6 +118,7 @@ namespace sfg
 	{
 		clear_widgets();
 		_fold_states = config.fold_states;
+		_callbacks	 = config.callbacks;
 
 		const reflected_type_t* type = reflection_registry_t::get().find_type(config.type_id);
 		if (type == nullptr)
@@ -251,7 +252,8 @@ namespace sfg
 		checkbox->init(*_ui,
 					   row.right,
 					   {
-						   .field = {.fields = fields},
+						   .field	  = {.fields = fields},
+						   .callbacks = _callbacks,
 					   });
 		ui::layout_in_t& checkbox_in = _ui->get_tree().in(checkbox->get_root());
 		checkbox_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
@@ -298,6 +300,7 @@ namespace sfg
 					   {
 						   .items	   = items.data(),
 						   .field	   = {.fields = fields, .field_size = field->size},
+						   .callbacks  = _callbacks,
 						   .item_count = static_cast<u16>(items.size()),
 						   .width	   = editor_dropdown_width_e::parent_relative,
 						   .pos_y	   = editor_dropdown_pos_y_e::center,
@@ -337,6 +340,7 @@ namespace sfg
 								.field_size = field->size,
 								.is_slider	= is_slider,
 							},
+						.callbacks	 = _callbacks,
 						.placeholder = field->name,
 						.increment	 = integer ? 1.0f : 0.1f,
 						.min_value	 = signed_number ? -1.0f : 0.0f,
@@ -367,6 +371,7 @@ namespace sfg
 						row.right,
 						{
 							.fields		= fields,
+							.callbacks	= _callbacks,
 							.world		= world,
 							.asset_type = asset_type,
 							.type		= entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
@@ -394,7 +399,7 @@ namespace sfg
 			quat_fields.push_back(reinterpret_cast<quat_t*>(fields.data[i]));
 
 		editor_quat_field_t* quat = new editor_quat_field_t();
-		quat->init(*_ui, row.right, {.field = {.fields = {.data = quat_fields.data(), .size = quat_fields.size()}}});
+		quat->init(*_ui, row.right, {.field = {.fields = {.data = quat_fields.data(), .size = quat_fields.size()}}, .callbacks = _callbacks});
 		fit_control(quat->get_root());
 		if (removable_item)
 			install_sub_item_button(row.right, quat->get_root(), container_data, element_index);
@@ -417,7 +422,7 @@ namespace sfg
 				vector_fields.push_back(reinterpret_cast<vec2f_t*>(fields.data[i]));
 
 			editor_vec2_field_t* vec = new editor_vec2_field_t();
-			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _callbacks});
 			fit_control(vec->get_root());
 			if (removable_item)
 				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
@@ -437,7 +442,7 @@ namespace sfg
 				vector_fields.push_back(reinterpret_cast<vec3f_t*>(fields.data[i]));
 
 			editor_vec3_field_t* vec = new editor_vec3_field_t();
-			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _callbacks});
 			fit_control(vec->get_root());
 			if (removable_item)
 				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
@@ -457,7 +462,7 @@ namespace sfg
 				vector_fields.push_back(reinterpret_cast<vec4f_t*>(fields.data[i]));
 
 			editor_vec4_field_t* vec = new editor_vec4_field_t();
-			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}});
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _callbacks});
 			fit_control(vec->get_root());
 			if (removable_item)
 				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
@@ -484,7 +489,7 @@ namespace sfg
 			color_fields.push_back(reinterpret_cast<color_t*>(fields.data[i]));
 
 		editor_color_field_t* color = new editor_color_field_t();
-		color->init(*_ui, row.right, {.field = {.fields = {.data = color_fields.data(), .size = color_fields.size()}}});
+		color->init(*_ui, row.right, {.field = {.fields = {.data = color_fields.data(), .size = color_fields.size()}}, .callbacks = _callbacks});
 		fit_control(color->get_root());
 		if (removable_item)
 			install_sub_item_button(row.right, color->get_root(), container_data, element_index);
@@ -1099,6 +1104,7 @@ namespace sfg
 		_dividers.resize(0);
 		_rows.resize(0);
 		_tooltip_owners.resize(0);
+		_callbacks	 = {};
 		_fold_states = nullptr;
 	}
 }

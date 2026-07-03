@@ -155,8 +155,8 @@ namespace sfg
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
 		search_config.field						  = {.type = editor_input_field_field_type_e::string, .fields = {.data = &search_field, .size = 1}};
-		search_config.on_data_changed			  = on_search_changed;
-		search_config.user_data					  = this;
+		search_config.callbacks.edited			  = on_search_changed;
+		search_config.callbacks.user_data		  = this;
 		_search_input.init(ui, _top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());

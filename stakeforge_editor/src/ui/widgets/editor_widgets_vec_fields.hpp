@@ -28,6 +28,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/widgets/editor_widget_width.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -59,6 +60,7 @@ namespace sfg
 	{
 		editor_widget_width_config_t width	   = {};
 		editor_vec2_field_field_t	 field	   = {};
+		editor_widget_callbacks_t	 callbacks = {};
 		f32							 increment = 0.1f;
 		bool						 integer   = false;
 	};
@@ -67,6 +69,7 @@ namespace sfg
 	{
 		editor_widget_width_config_t width	   = {};
 		editor_vec3_field_field_t	 field	   = {};
+		editor_widget_callbacks_t	 callbacks = {};
 		f32							 increment = 0.1f;
 		bool						 integer   = false;
 	};
@@ -75,19 +78,17 @@ namespace sfg
 	{
 		editor_widget_width_config_t width	   = {};
 		editor_vec4_field_field_t	 field	   = {};
+		editor_widget_callbacks_t	 callbacks = {};
 		f32							 increment = 0.1f;
 		bool						 integer   = false;
 	};
 
-	using editor_quat_field_data_changed_fn = void (*)(void* user_data);
-
 	struct editor_quat_field_config_t
 	{
-		editor_widget_width_config_t	  width			  = {};
-		editor_quat_field_field_t		  field			  = {};
-		editor_quat_field_data_changed_fn on_data_changed = nullptr;
-		void*							  user_data		  = nullptr;
-		f32								  increment		  = 0.1f;
+		editor_widget_width_config_t width	   = {};
+		editor_quat_field_field_t	 field	   = {};
+		editor_widget_callbacks_t	 callbacks = {};
+		f32							 increment = 0.1f;
 	};
 
 	class editor_vec2_field_t final
@@ -223,7 +224,9 @@ namespace sfg
 	private:
 		void modify_field();
 
+		static void on_euler_edit_begin(void* user_data);
 		static void on_euler_data_changed(void* user_data);
+		static void on_euler_edit_submitted(void* user_data);
 
 	private:
 		ui::ui_context*			   _ui		  = nullptr;

@@ -27,6 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_width.hpp"
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/color.hpp>
@@ -48,8 +49,9 @@ namespace sfg
 
 	struct editor_color_field_config_t
 	{
-		editor_color_field_field_t	 field = {};
-		editor_widget_width_config_t width = {};
+		editor_color_field_field_t	 field	   = {};
+		editor_widget_width_config_t width	   = {};
+		editor_widget_callbacks_t	 callbacks = {};
 	};
 
 	class editor_color_field_t final
@@ -79,18 +81,23 @@ namespace sfg
 	private:
 		void refresh_color();
 		void modify_field();
+		void begin_edit();
+		void submit_edit();
 
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_color_wheel_data_changed(void* user_data);
+		static void on_color_wheel_popup_closed(void* user_data);
 
 	private:
-		ui::ui_context*				_ui		= nullptr;
-		ui::widget_id_t				_root	= NULL_WIDGET;
-		ui::widget_id_t				_swatch = NULL_WIDGET;
-		ui::widget_id_t				_label	= NULL_WIDGET;
-		vector_t<color_t*>			_fields = {};
-		editor_color_field_config_t _config = {};
-		color_t						_color	= {};
-		bool						_mixed	= false;
+		ui::ui_context*				_ui			 = nullptr;
+		ui::widget_id_t				_root		 = NULL_WIDGET;
+		ui::widget_id_t				_swatch		 = NULL_WIDGET;
+		ui::widget_id_t				_label		 = NULL_WIDGET;
+		vector_t<color_t*>			_fields		 = {};
+		editor_color_field_config_t _config		 = {};
+		color_t						_color		 = {};
+		bool						_mixed		 = false;
+		bool						_edit_active = false;
+		bool						_edit_dirty	 = false;
 	};
 }

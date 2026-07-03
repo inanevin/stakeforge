@@ -26,6 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -47,7 +48,8 @@ namespace sfg
 
 	struct editor_checkbox_config_t
 	{
-		editor_checkbox_field_t field = {};
+		editor_checkbox_field_t	  field		= {};
+		editor_widget_callbacks_t callbacks = {};
 	};
 
 	class editor_checkbox_t final
