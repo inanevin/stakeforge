@@ -125,7 +125,6 @@ namespace sfg
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
-		void		  set_folder_payload_highlight_active(bool active);
 		void		  set_focus_state(bool focused);
 		bool		  can_mutate_ui_topology() const;
 		void		  request_ui_mutation();
@@ -223,8 +222,6 @@ namespace sfg
 		static void on_assets_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_assets_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
-		static void on_payload_tick(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos, void* user_data);
-		static void on_payload_end(const editor_payload_t& payload, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_asset_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
@@ -302,7 +299,6 @@ namespace sfg
 		bool									_asset_grid_refresh_force		 = false;
 		bool									_asset_grid_body_size_valid		 = false;
 		bool									_asset_grid_rebuild_pending		 = false;
-		bool									_folder_payload_highlight_active = false;
 		bool									_focused						 = false;
 	};
 }

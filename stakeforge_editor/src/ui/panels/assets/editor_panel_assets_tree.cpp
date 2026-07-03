@@ -346,15 +346,12 @@ namespace sfg
 	{
 		const editor_theme_t& theme				 = editor_theme_t::get();
 		const bool			  selected			 = is_folder_selected(row.path_hash);
-		const bool			  payload_target	 = _folder_payload_highlight_active;
 		const vec4f_t		  selected_color	 = _focused ? theme.color_accent0 : theme.color_outline_light;
 		const vec4f_t		  selected_color_dim = _focused ? theme.color_accent0_dim : theme.color_outline_light;
-		vec4f_t				  payload_color		 = theme.color_accent1;
-		payload_color.w							 = 50.0f / 255.0f;
 
 		ui::vg_rect_paint_t row_rect = {};
-		row_rect.fill_color_a		 = payload_target ? payload_color : selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
-		row_rect.fill_color_b		 = payload_target ? payload_color : selected ? selected_color_dim : row_rect.fill_color_a;
+		row_rect.fill_color_a		 = selected ? selected_color : vec4f_t{0.0f, 0.0f, 0.0f, 0.0f};
+		row_rect.fill_color_b		 = selected ? selected_color_dim : row_rect.fill_color_a;
 		row_rect.gradient			 = ui::vg_gradient_e::horizontal;
 		row_rect.rounding			 = theme.item_rounding;
 		row_rect.rounding_segs		 = 4;
@@ -367,20 +364,10 @@ namespace sfg
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
-		set_widget_visible(tree, row.icon, visible, /*input=*/false);
-		set_widget_visible(tree, row.icon_text, visible, /*input=*/false);
-		set_widget_visible(tree, row.star_text, visible && row.is_favourite, /*input=*/false);
-		set_widget_visible(tree, row.label, visible, /*input=*/false);
-	}
-
-	void editor_panel_assets_t::set_folder_payload_highlight_active(bool active)
-	{
-		if (_folder_payload_highlight_active == active)
-			return;
-
-		_folder_payload_highlight_active = active;
-		for (u32 i = 0; i < _visible_folder_row_count && i < _folder_rows.size(); ++i)
-			update_folder_row_background(_folder_rows[i]);
+		set_widget_visible(tree, row.icon, visible, false);
+		set_widget_visible(tree, row.icon_text, visible, false);
+		set_widget_visible(tree, row.star_text, visible && row.is_favourite, false);
+		set_widget_visible(tree, row.label, visible, false);
 	}
 
 }

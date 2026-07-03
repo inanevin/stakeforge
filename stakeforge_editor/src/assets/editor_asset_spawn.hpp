@@ -22,41 +22,35 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include "ui/panels/editor_panel.hpp"
-#include <sfg/math/vec4f.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/runtime/engine/common_engine.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
 	struct editor_payload_t;
-	class world_render_context_t;
 
-	class editor_panel_world_t final : public editor_panel_t
+	struct editor_asset_spawn_desc_t
+	{
+		const editor_payload_t* payload	   = nullptr;
+		vec2f_t					screen_pos = vec2f_t::zero;
+		world_handle_t			world	   = {};
+		entity_id_t				parent	   = NULL_ENTITY_ID;
+	};
+
+	class editor_asset_spawn_t final
 	{
 	public:
-		editor_panel_world_t();
-		~editor_panel_world_t() override							 = default;
-		editor_panel_world_t(const editor_panel_world_t&)			 = delete;
-		editor_panel_world_t& operator=(const editor_panel_world_t&) = delete;
+		editor_asset_spawn_t()										 = delete;
+		~editor_asset_spawn_t()										 = delete;
+		editor_asset_spawn_t(const editor_asset_spawn_t&)			 = delete;
+		editor_asset_spawn_t& operator=(const editor_asset_spawn_t&) = delete;
 
-		void	init(ui::ui_context& ui, ui::widget_id_t parent) override;
-		void	uninit() override;
-		void	set_world(const world_render_context_t& world);
-		void	clear_world();
-		vec4f_t get_world_view_bounds() const;
-
-	private:
-		void refresh_world_texture();
-
-		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
-		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
-
-	private:
-		const world_render_context_t* _world	   = nullptr;
-		ui::widget_id_t				  _world_view  = NULL_WIDGET;
-		ui::widget_id_t				  _empty_label = NULL_WIDGET;
+		static bool spawn_from_payload(const editor_asset_spawn_desc_t& desc);
 	};
 }

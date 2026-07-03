@@ -322,11 +322,33 @@ namespace sfg
 
 	void editor_scrollbar_t::on_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
 	{
-		editor_scrollbar_t&		scrollbar  = *static_cast<editor_scrollbar_t*>(user_data);
-		ui::layout_tree_t&		tree	   = scrollbar._ui->get_tree();
-		ui::layout_in_t&		root_in	   = tree.in(scrollbar._root);
+		editor_scrollbar_t& scrollbar = *static_cast<editor_scrollbar_t*>(user_data);
+		ui::layout_tree_t&	tree	  = scrollbar._ui->get_tree();
+		ui::layout_in_t&	root_in	  = tree.in(scrollbar._root);
+		bool				visible	  = true;
+		ui::widget_id_t		id		  = scrollbar._config.target;
+		while (id != NULL_WIDGET)
+		{
+			if ((tree.in_const(id).flags & ui::wf_visible) == 0)
+			{
+				visible = false;
+				break;
+			}
+			id = tree.node(id).parent;
+		}
+		if (!visible)
+		{
+			root_in.flags					  = 0;
+			tree.in(scrollbar._x.track).flags = 0;
+			tree.in(scrollbar._x.thumb).flags = 0;
+			tree.in(scrollbar._y.track).flags = 0;
+			tree.in(scrollbar._y.thumb).flags = 0;
+			return;
+		}
+
 		const ui::layout_out_t& target_out = tree.out(scrollbar._config.target);
 		const f32				ui_scale   = scrollbar._ui->get_ui_scale() > 0.0f ? scrollbar._ui->get_ui_scale() : 1.0f;
+		root_in.flags					   = ui::wf_visible | ui::wf_overlay;
 		root_in.pos_value				   = target_out.pos;
 		root_in.size_value				   = target_out.size / ui_scale;
 

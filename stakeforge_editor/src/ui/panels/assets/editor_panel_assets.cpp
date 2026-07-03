@@ -354,7 +354,7 @@ namespace sfg
 		_payload_asset_nodes.reserve(ASSETS_INITIAL_GRID_ITEM_CAPACITY);
 		_asset_grid_body_size_valid = false;
 		_asset_grid_rebuild_pending = false;
-		editor_payload_controller_t::get().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
+		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 		apply_pane_split();
 		refresh_folder_rows();
 	}
@@ -363,7 +363,6 @@ namespace sfg
 	{
 		_ui->cancel_mutations(this);
 		editor_payload_controller_t::get().unregister_listener(this);
-		_folder_payload_highlight_active = false;
 		_search_input.uninit();
 		_filter_button.uninit();
 		_import_button.uninit();

@@ -99,8 +99,9 @@ namespace sfg
 			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 				return false;
 
-			nlohmann::json prefab_json = {};
-			world_cooker_t::entity_to_prefab_json(world, entity_payload.entity, prefab_json);
+			nlohmann::json		  prefab_json = {};
+			frame_vector_t<sid_t> out_res;
+			world_cooker_t::entity_to_json(world, entity_payload.entity, prefab_json, out_res);
 			if (prefab_json.is_null())
 				return false;
 
@@ -564,19 +565,6 @@ namespace sfg
 		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
 		panel.refresh_folder_rows();
 		return true;
-	}
-
-	void editor_panel_assets_t::on_payload_tick(const editor_payload_t& payload, const vec2i16_t&, void* user_data)
-	{
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		panel.set_folder_payload_highlight_active(payload.type == editor_payload_type_e::entity || payload.type == editor_payload_type_e::entity_multi || payload.type == editor_payload_type_e::folder || payload.type == editor_payload_type_e::folder_multi ||
-												  payload.type == editor_payload_type_e::asset || payload.type == editor_payload_type_e::asset_multi);
-	}
-
-	void editor_panel_assets_t::on_payload_end(const editor_payload_t&, void* user_data)
-	{
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		panel.set_folder_payload_highlight_active(false);
 	}
 
 	void editor_panel_assets_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)

@@ -25,11 +25,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_world.hpp"
+#include "assets/editor_asset_spawn.hpp"
+#include "editor_app.hpp"
 #include "ui/editor_global_toolbar.hpp"
+#include "ui/editor_payload_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
 #include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
@@ -125,10 +129,13 @@ namespace sfg
 					   ui.widget_text(_empty_label),
 					   ui.widget_text_len(_empty_label),
 					   {.font = theme.font_title_bold, .color = theme.color_text2, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 	}
 
 	void editor_panel_world_t::uninit()
 	{
+		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
 		_world		 = nullptr;
@@ -196,5 +203,29 @@ namespace sfg
 		editor_panel_world_t& panel = *static_cast<editor_panel_world_t*>(user_data);
 		if (panel._world != nullptr)
 			panel.refresh_world_texture();
+	}
+
+	bool editor_panel_world_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
+	{
+		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi)
+			return false;
+		SFG_ASSERT(payload.user_ptr != nullptr);
+
+		editor_panel_world_t& panel = *static_cast<editor_panel_world_t*>(user_data);
+		const world_handle_t  world = editor_app_t::get().get_main_world();
+		if (world.is_null())
+			return false;
+
+		const ui::layout_out_t& out	  = panel._ui->get_tree().out(panel._world_view);
+		const vec2f_t&			mouse = panel._ui->get_input().get_mouse_position();
+		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(mouse))
+			return false;
+
+		return editor_asset_spawn_t::spawn_from_payload({
+			.payload	= &payload,
+			.screen_pos = mouse,
+			.world		= world,
+			.parent		= NULL_ENTITY_ID,
+		});
 	}
 }

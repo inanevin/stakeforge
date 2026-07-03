@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
+#include "assets/editor_asset_spawn.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_entity_info.hpp"
@@ -347,7 +348,8 @@ namespace sfg
 
 	bool editor_panel_entities_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
 	{
-		if (payload.type != editor_payload_type_e::entity && payload.type != editor_payload_type_e::entity_multi && payload.type != editor_payload_type_e::folder)
+		if (payload.type != editor_payload_type_e::entity && payload.type != editor_payload_type_e::entity_multi && payload.type != editor_payload_type_e::folder && payload.type != editor_payload_type_e::asset &&
+			payload.type != editor_payload_type_e::asset_multi)
 			return false;
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
@@ -361,7 +363,16 @@ namespace sfg
 		const entity_id_t				   parent  = row != nullptr && row->type == editor_outliner_item_type_e::entity ? row->entity : NULL_ENTITY_ID;
 		const editor_world_folder_handle_t folder  = row != nullptr && row->type == editor_outliner_item_type_e::folder ? row->folder_handle : editor_world_folder_handle_t{};
 		bool							   changed = false;
-		if (payload.type == editor_payload_type_e::folder)
+		if (payload.type == editor_payload_type_e::asset || payload.type == editor_payload_type_e::asset_multi)
+		{
+			return editor_asset_spawn_t::spawn_from_payload({
+				.payload	= &payload,
+				.screen_pos = mouse,
+				.world		= panel._main_world,
+				.parent		= parent,
+			});
+		}
+		else if (payload.type == editor_payload_type_e::folder)
 		{
 			if (row != nullptr && row->type != editor_outliner_item_type_e::folder)
 				return false;
