@@ -15,6 +15,9 @@ namespace sfg
 	class ostream_t;
 	class resource_file_system_t;
 
+#define MAX_DEPENDENCIES	12
+#define MAX_DEBUG_NAME_SIZE 128
+
 	inline constexpr u32 make_resource_wire_magic(char c0, char c1, char c2, char c3)
 	{
 		const u32 b0 = static_cast<u32>(static_cast<u8>(c0)) << 24;
@@ -24,12 +27,25 @@ namespace sfg
 		return b0 | b1 | b2 | b3;
 	}
 
+#pragma pack(push, 1)
+	struct resource_dependency_t
+	{
+		resource_handle_t handle = NULL_RESOURCE_HANDLE;
+		resource_type_e	  type	 = resource_type_e::invalid;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
+	};
+#pragma pack(pop)
+
 	struct resource_header_t
 	{
-		char debug_name[128] = {};
-		u32	 magic			 = 0;
-		u32	 version		 = 0;
-		u64	 source_tick	 = 0;
+		char				  debug_name[MAX_DEBUG_NAME_SIZE] = {};
+		resource_dependency_t dependencies[MAX_DEPENDENCIES];
+		u32					  magic			   = 0;
+		u32					  version		   = 0;
+		u32					  dependency_count = 0;
+		u64					  source_tick	   = 0;
 
 		void	  set_debug_name(const char* full_path);
 		ostream_t make_stream(const ostream_t& payload) const;

@@ -28,9 +28,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "editor_app.hpp"
 #include "editor_command_system.hpp"
+#include "editor_selection_controller.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -38,12 +40,33 @@ namespace sfg
 {
 	namespace
 	{
+		chunk_handle32_t copy_selection_to_aux(editor_command_system_t& system, span_t<const entity_id_t> selection)
+		{
+			if (selection.size == 0)
+				return {};
+
+			entity_id_t*		   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(selection.size, dst);
+			SFG_MEMCPY(dst, selection.data, sizeof(entity_id_t) * selection.size);
+			return handle;
+		}
+
+		void apply_selection(world_handle_t world, span_t<const entity_id_t> entities, entity_id_t anchor)
+		{
+			editor_selection_controller_t& selection = editor_app_t::get().get_selection_controller();
+			if (!(selection.get_world() == world))
+				selection.set_world(world);
+			selection.apply_entity_selection(entities, anchor);
+		}
+
 		bool prefab_spawn_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
 			world_t&							   world   = editor_app_t::get().get_runtime().get_world(payload.world);
 			world.destroy_entity_tree(payload.root);
-			payload.root = NULL_ENTITY_ID;
+			payload.root						  = NULL_ENTITY_ID;
+			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
+			apply_selection(payload.previous_selection_world, {.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
 			return true;
 		}
 
@@ -52,23 +75,47 @@ namespace sfg
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
 			world_t&							   world   = editor_app_t::get().get_runtime().get_world(payload.world);
 			payload.root								   = world.spawn_prefab(payload.prefab, {.parent = payload.parent});
-			return payload.root != NULL_ENTITY_ID;
+			if (payload.root == NULL_ENTITY_ID)
+				return false;
+
+			apply_selection(payload.world, {.data = &payload.root, .size = 1}, payload.root);
+			return true;
+		}
+
+		bool prefab_spawn_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
+			if (payload.previous_selection)
+			{
+				system.get_aux_data().free(payload.previous_selection);
+				payload.previous_selection = {};
+			}
+			return true;
 		}
 	}
 
 	entity_id_t editor_command_prefab_spawn_t::spawn(world_handle_t world, resource_handle_t prefab, entity_id_t parent)
 	{
+		editor_command_system_t&		command_system		 = editor_app_t::get().get_command_system();
+		editor_selection_controller_t&	selection_controller = editor_app_t::get().get_selection_controller();
+		const span_t<const entity_id_t> selection			 = selection_controller.get_selected_entities();
+		SFG_ASSERT(selection.size <= UINT32_MAX);
+
 		editor_command_prefab_spawn_payload_t payload = {
-			.world	= world,
-			.prefab = prefab,
-			.parent = parent,
-			.root	= NULL_ENTITY_ID,
+			.world					  = world,
+			.previous_selection_world = selection_controller.get_world(),
+			.prefab					  = prefab,
+			.previous_selection		  = copy_selection_to_aux(command_system, selection),
+			.parent					  = parent,
+			.root					  = NULL_ENTITY_ID,
+			.previous_anchor		  = selection_controller.get_entity_anchor(),
+			.previous_selection_count = static_cast<u32>(selection.size),
 		};
 
-		editor_command_system_t&		  command_system = editor_app_t::get().get_command_system();
 		const editor_command_issue_desc_t desc{
 			.undo			   = prefab_spawn_undo,
 			.redo			   = prefab_spawn_redo,
+			.cleanup		   = prefab_spawn_cleanup,
 			.debug_name		   = "Spawn Prefab",
 			.type			   = editor_command_type_e::prefab_spawn,
 			.entity_generation = true,

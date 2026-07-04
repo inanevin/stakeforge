@@ -30,15 +30,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
 	struct editor_command_prefab_spawn_payload_t
 	{
-		world_handle_t	  world	 = {};
-		resource_handle_t prefab = NULL_RESOURCE_HANDLE;
-		entity_id_t		  parent = NULL_ENTITY_ID;
-		entity_id_t		  root	 = NULL_ENTITY_ID;
+		world_handle_t	  world					   = {};
+		world_handle_t	  previous_selection_world = {};
+		resource_handle_t prefab				   = NULL_RESOURCE_HANDLE;
+		chunk_handle32_t  previous_selection	   = {};
+		entity_id_t		  parent				   = NULL_ENTITY_ID;
+		entity_id_t		  root					   = NULL_ENTITY_ID;
+		entity_id_t		  previous_anchor		   = NULL_ENTITY_ID;
+		u32				  previous_selection_count = 0;
 	};
 
 	class editor_command_prefab_spawn_t final

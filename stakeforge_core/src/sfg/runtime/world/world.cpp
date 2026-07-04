@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <algorithm>
 #include <cstring>
 #include <new>
 
@@ -557,6 +558,23 @@ namespace sfg
 
 	void world_t::load_all_used_resources()
 	{
+		std::stable_sort(_used_resources.begin(), _used_resources.end(), [](const world_resource_t& a, const world_resource_t& b) {
+			const auto get_load_priority = [](resource_type_e type) -> u8 {
+				switch (type)
+				{
+				case resource_type_e::shader:
+					return 0;
+				case resource_type_e::texture:
+					return 1;
+				case resource_type_e::texture_sampler:
+					return 2;
+				default:
+					return 3;
+				}
+			};
+			return get_load_priority(a.type) < get_load_priority(b.type);
+		});
+
 		resource_manager_t& rm = resource_manager_t::get();
 		for (const world_resource_t& res : _used_resources)
 		{

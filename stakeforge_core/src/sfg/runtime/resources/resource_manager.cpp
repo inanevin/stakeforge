@@ -109,6 +109,10 @@ namespace sfg
 		resource_header_t header = {};
 		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
+
+		for (u32 i = 0; i < header.dependency_count; i++)
+			load_resource(header.dependencies[i].handle, header.dependencies[i].type, bypass_async);
+
 		const char* debug_name = header.debug_name;
 
 		resource_entry_t entry = {};

@@ -32,6 +32,9 @@ namespace sfg
 		stream.write_raw(reinterpret_cast<const u8*>(debug_name), sizeof(debug_name));
 		stream << magic << version;
 		stream << source_tick;
+		stream << dependency_count;
+		for (u32 i = 0; i < MAX_DEPENDENCIES; i++)
+			stream << dependencies[i];
 	}
 
 	void resource_header_t::deserialize(istream_t& stream)
@@ -39,6 +42,9 @@ namespace sfg
 		stream.read_to_raw(reinterpret_cast<u8*>(debug_name), sizeof(debug_name));
 		stream >> magic >> version;
 		stream >> source_tick;
+		stream >> dependency_count;
+		for (u32 i = 0; i < MAX_DEPENDENCIES; i++)
+			stream >> dependencies[i];
 	}
 
 	void resource_header_t::set_debug_name(const char* full_path)
@@ -59,7 +65,7 @@ namespace sfg
 	ostream_t resource_header_t::make_stream(const ostream_t& payload) const
 	{
 		ostream_t stream;
-		stream.create(sizeof(debug_name) + sizeof(magic) + sizeof(version) + sizeof(source_tick) + payload.get_size());
+		stream.create(sizeof(resource_header_t) + payload.get_size());
 		serialize(stream);
 		stream.write_raw(payload.get_raw(), payload.get_size());
 		return stream;
@@ -81,10 +87,19 @@ namespace sfg
 		&animation_state_machine_resource_desc,
 		&skybox_hdr_resource_desc,
 	};
-}
 
-namespace sfg
-{
+	void resource_dependency_t::serialize(ostream_t& stream) const
+	{
+		stream << type;
+		stream << handle;
+	}
+
+	void resource_dependency_t::deserialize(istream_t& stream)
+	{
+		stream >> type;
+		stream >> handle;
+	}
+
 	resource_type_reflection_t::resource_type_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

@@ -895,7 +895,7 @@ namespace sfg
 				{
 					.vertex_buffer_bytes = 1 << 23,
 					.index_buffer_bytes	 = 1 << 23,
-					.buffer_count		 = 32,
+					.buffer_count		 = 48,
 				},
 			.user_ui_scale		= 1.0f,
 			.dpi_scale			= surface.runtime->monitor_info.dpi_scale,
