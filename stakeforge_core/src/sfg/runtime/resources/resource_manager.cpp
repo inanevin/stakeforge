@@ -309,12 +309,4 @@ namespace sfg
 		}
 	}
 
-	resource_entry_t* resource_manager_t::find_entry(u64 hash)
-	{
-		auto it = _entries.find(hash);
-		if (it == _entries.end())
-			return nullptr;
-
-		return &it->second;
-	}
 }

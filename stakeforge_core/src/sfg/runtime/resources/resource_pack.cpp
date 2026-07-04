@@ -23,7 +23,7 @@
 #include "material_cook.hpp"
 #include "material_def.hpp"
 #include "physical_material_cook.hpp"
-#include "prefab_cook.hpp"
+#include "prefab.hpp"
 #include "resource_manifest.hpp"
 #include "shader_cook.hpp"
 #include "skybox_hdr_cook.hpp"
@@ -174,7 +174,14 @@ namespace sfg
 			}
 			if (schema == "sfg.schema.prefab")
 			{
-				return prefab_cooker::cook_from_file(full_path, out_header, stream);
+				const string_t prefab_source = file_system_t::read_file_as_string(full_path);
+				out_header					 = {
+									  .magic	   = prefab_loader_t::WIRE_MAGIC,
+									  .version	   = prefab_loader_t::WIRE_VERSION,
+									  .source_tick = file_system_t::get_last_modified_ticks(full_path),
+				  };
+				stream << prefab_source;
+				return true;
 			}
 			SFG_ERR("unknown cook schema: {0}", schema.c_str());
 			return false;

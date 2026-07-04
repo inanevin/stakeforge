@@ -40,12 +40,6 @@ namespace sfg
 {
 	namespace
 	{
-		world_t& get_world(world_handle_t handle)
-		{
-			SFG_ASSERT(!handle.is_null());
-			return editor_app_t::get().get_runtime().get_world(handle);
-		}
-
 		chunk_handle32_t copy_stream_to_aux(editor_command_system_t& system, const ostream_t& stream)
 		{
 			if (stream.get_size() == 0)
@@ -109,7 +103,7 @@ namespace sfg
 		bool create_entity_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
-			world_t&								world	= get_world(payload.world);
+			world_t&								world	= editor_app_t::get().get_runtime().get_world(payload.world);
 			if (payload.folder_guid != 0 && payload.guid != NULL_ENTITY_GUID)
 			{
 				const entity_guid_t guid = payload.guid;
@@ -123,7 +117,7 @@ namespace sfg
 		bool create_entity_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
-			world_t&								world	= get_world(payload.world);
+			world_t&								world	= editor_app_t::get().get_runtime().get_world(payload.world);
 			const entity_id_t						entity	= world.create_entity(payload.name, payload.guid);
 			if (payload.parent != NULL_ENTITY_ID)
 				world.attach_to(entity, payload.parent);
@@ -142,7 +136,7 @@ namespace sfg
 		bool duplicate_entity_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_duplicate_entity_payload_t& payload	= system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-			world_t&								   world	= get_world(payload.world);
+			world_t&								   world	= editor_app_t::get().get_runtime().get_world(payload.world);
 			entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = payload.count; i-- > 0;)
 			{
@@ -182,7 +176,7 @@ namespace sfg
 		bool duplicate_entity_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_duplicate_entity_payload_t& payload	= system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-			world_t&								   world	= get_world(payload.world);
+			world_t&								   world	= editor_app_t::get().get_runtime().get_world(payload.world);
 			const entity_id_t*						   sources	= system.get_aux_data().get<entity_id_t>(payload.sources);
 			const entity_id_t*						   parents	= system.get_aux_data().get<entity_id_t>(payload.parents);
 			entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
@@ -232,7 +226,7 @@ namespace sfg
 		bool destroy_entity_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_destroy_entity_payload_t& payload  = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
-			world_t&								 world	  = get_world(payload.world);
+			world_t&								 world	  = editor_app_t::get().get_runtime().get_world(payload.world);
 			entity_id_t*							 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 			for (u32 i = payload.count; i-- > 0;)
@@ -266,7 +260,7 @@ namespace sfg
 		bool destroy_entity_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_destroy_entity_payload_t& payload  = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
-			world_t&								 world	  = get_world(payload.world);
+			world_t&								 world	  = editor_app_t::get().get_runtime().get_world(payload.world);
 			const entity_id_t*						 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 			for (u32 i = 0; i < payload.count; ++i)
@@ -282,7 +276,7 @@ namespace sfg
 
 		bool apply_entity_parents(editor_command_system_t& system, const editor_command_reparent_entity_payload_t& payload, chunk_handle32_t parents_handle)
 		{
-			world_t&		   world	= get_world(payload.world);
+			world_t&		   world	= editor_app_t::get().get_runtime().get_world(payload.world);
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const entity_id_t* parents	= system.get_aux_data().get<entity_id_t>(parents_handle);
 
@@ -391,7 +385,7 @@ namespace sfg
 		editor_command_duplicate_entity_payload_t payload = {};
 		payload.streams									  = create_stream_array(command_system, entities.size());
 		payload.sources									  = copy_entities_to_aux(command_system, entities);
-		payload.parents									  = copy_entity_parents_to_aux(command_system, get_world(world), entities);
+		payload.parents									  = copy_entity_parents_to_aux(command_system, editor_app_t::get().get_runtime().get_world(world), entities);
 		payload.entities								  = create_entity_array(command_system, entities.size(), NULL_ENTITY_ID);
 		payload.world									  = world;
 		payload.count									  = static_cast<u32>(entities.size());
@@ -467,7 +461,7 @@ namespace sfg
 			return false;
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
-		world_t& world_ref = get_world(world);
+		world_t& world_ref = editor_app_t::get().get_runtime().get_world(world);
 		for (entity_id_t entity : entities)
 		{
 			if (!world_ref.is_alive(entity))

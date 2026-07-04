@@ -6,9 +6,8 @@
 #include "resource_manager.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/memory.hpp>
-#include <sfg/serialization/compression.hpp>
 
 namespace sfg
 {
@@ -23,19 +22,13 @@ namespace sfg
 
 		istream_t stream;
 		stream.open(file_stream.get_raw(), file_stream.get_size());
-		istream_t payload = compressor_t::decompress(stream);
-		if (payload.empty())
-		{
-			SFG_ERR("failed to decompress prefab payload: {0}", entry.hash);
-			return false;
-		}
+		string_t prefab_source;
+		stream >> prefab_source;
 
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
 		*internals					  = {};
-		internals->size				  = static_cast<u32>(payload.get_size());
-		internals->data				  = mem.allocate_bytes(payload.get_size(), alignof(u8));
-		SFG_MEMCPY(mem.get<u8>(internals->data), payload.get_raw(), payload.get_size());
+		internals->source			  = mem.allocate_text(prefab_source.c_str());
 		return true;
 	}
 
@@ -43,8 +36,7 @@ namespace sfg
 	{
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
-		if (internals->data)
-			mem.free(internals->data);
+		mem.free(internals->source);
 		*internals = {};
 	}
 

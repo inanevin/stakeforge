@@ -94,12 +94,10 @@ namespace sfg
 
 		frame_vector_t<written_entity_t> written_entities;
 
-		const world_component_table_t* hierarchy_world_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		SFG_ASSERT(hierarchy_world_table != nullptr);
+		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
 		const ecs_component_table_t&   hierarchy_table			= hierarchy_world_table->table;
 		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
-		SFG_ASSERT(no_serialize_world_table != nullptr);
-		const ecs_component_table_t& no_serialize_table = no_serialize_world_table->table;
+		const ecs_component_table_t&   no_serialize_table		= no_serialize_world_table->table;
 
 		const size_t count_offset = out_stream.get_size();
 		u32			 total_count  = 0;
@@ -344,11 +342,8 @@ namespace sfg
 
 		frame_vector_t<written_entity_t> written_entities;
 
-		const world_component_table_t* hierarchy_world_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		SFG_ASSERT(hierarchy_world_table != nullptr);
-
+		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
 		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
-		SFG_ASSERT(no_serialize_world_table != nullptr);
 
 		const ecs_component_table_t& hierarchy_table	= hierarchy_world_table->table;
 		const ecs_component_table_t& no_serialize_table = no_serialize_world_table->table;

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "assets/editor_asset_spawn.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
+#include "commands/editor_command_prefab_spawn.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_entity_info.hpp"
 #include "commands/editor_commands_world_metadata.hpp"
@@ -427,6 +428,14 @@ namespace sfg
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 				panel.refresh_entity_name(entities[i]);
+			break;
+		}
+		case editor_command_type_e::prefab_spawn: {
+			const editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
+			if (!(payload.world == panel._main_world))
+				return;
+
+			panel.refresh_entities();
 			break;
 		}
 		default:

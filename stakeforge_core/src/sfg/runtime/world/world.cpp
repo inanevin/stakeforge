@@ -27,17 +27,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world.hpp"
 
-#include <sfg/data/istream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/prefab.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/resources/world_cook_entity_header.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <cstring>
 #include <new>
 
@@ -53,6 +54,7 @@ namespace sfg
 		_text_allocations.reserve(WORLD_TEXT_ALLOCATION_RESERVE);
 		_text_allocation_free_list.reserve(WORLD_TEXT_ALLOCATION_RESERVE);
 		_text_allocator.init(WORLD_TEXT_BYTES);
+		_used_resources.reserve(512);
 
 		add_component_table(ecs_helpers_t::make_component_desc<component_hierarchy_t>());
 		add_component_table(ecs_helpers_t::make_component_desc<component_guid_t>());
@@ -89,6 +91,7 @@ namespace sfg
 		for (world_component_table_t& table : _component_tables)
 			ecs_t::table_uninit(table.table);
 
+		_used_resources.resize(0);
 		_component_tables.resize(0);
 		_entity_free_list.resize(0);
 		_text_allocations.resize(0);
@@ -209,6 +212,9 @@ namespace sfg
 
 	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
 	{
+		if (add_resource(resource_type_e::prefab, handle))
+			load_all_used_resources();
+
 		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
 		if (prefab_data == nullptr)
 			return NULL_ENTITY_ID;
@@ -218,18 +224,23 @@ namespace sfg
 
 	entity_id_t world_t::spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params)
 	{
-		istream_t stream;
-		stream.open(resource_manager_t::get().get_memory().get<u8>(prefab_data.data), prefab_data.size);
+		const char*			 prefab_source = resource_manager_t::get().get_memory().get_text(prefab_data.source);
+		const nlohmann::json prefab_json   = nlohmann::json::parse(prefab_source, nullptr, false);
+		if (prefab_json.is_discarded())
+			return NULL_ENTITY_ID;
 
-		u32 resource_count = 0;
-		stream >> resource_count;
-		for (u32 i = 0; i < resource_count; i++)
-		{
-			resource_handle_t resource = NULL_RESOURCE_HANDLE;
-			stream >> resource;
-		}
+		const entity_id_t root = world_cooker_t::entity_from_json(*this, prefab_json, true, false);
+		if (root == NULL_ENTITY_ID)
+			return NULL_ENTITY_ID;
 
-		return {};
+		if (params.parent != NULL_ENTITY_ID)
+			attach_to(root, params.parent);
+		set_entity_pos_local(root, params.local_pos);
+		set_entity_rot_local(root, params.local_rot);
+		set_entity_scale_local(root, params.local_scale);
+		sync_entity_hierarchy(root);
+		scan_for_resources(root);
+		return root;
 	}
 
 	entity_id_t world_t::get_entity_parent(entity_id_t id) const
@@ -484,12 +495,77 @@ namespace sfg
 	{
 	}
 
-	void world_t::add_resource(resource_handle_t res)
+	bool world_t::add_resource(resource_type_e type, resource_handle_t handle)
 	{
+		auto it = std::find_if(_used_resources.begin(), _used_resources.end(), [handle](const world_resource_t& r) -> bool { return r.handle == handle; });
+		if (it != _used_resources.end())
+			return false;
+		_used_resources.push_back({.type = type, .handle = handle});
+		return true;
+	}
+
+	void world_t::scan_for_resources(entity_id_t entity)
+	{
+		SFG_ASSERT(is_alive(entity));
+
+		bool	   added = false;
+		const auto scan	 = [&](const auto& self, entity_id_t current) -> void {
+			 reflection_registry_t& registry = reflection_registry_t::get();
+			 for (world_component_table_t& component_table : _component_tables)
+			 {
+				 if (!ecs_t::table_has(component_table.table, current))
+					 continue;
+
+				 const reflected_type_t* type = registry.find_type(component_table.table.component_type_id);
+				 if (type == nullptr || type->fields.start == type->fields.end)
+					 continue;
+
+				 void* component = ecs_t::table_get(component_table.table, current);
+				 SFG_ASSERT(component != nullptr);
+
+				 for (u32 i = type->fields.start; i < type->fields.end; ++i)
+				 {
+					 const reflected_field_t* field = registry.get_field(i);
+					 SFG_ASSERT(field != nullptr);
+					 if (field->value_type != reflected_value_type_e::u64)
+						 continue;
+
+					 const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->sub_type_id);
+					 if (resource_type == resource_type_e::invalid)
+						 continue;
+
+					 const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(static_cast<const u8*>(component) + field->offset);
+					 if (handle != NULL_RESOURCE_HANDLE)
+						 added = add_resource(resource_type, handle) || added;
+				 }
+			 }
+
+			 const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
+			 for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			 {
+				 const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				 const entity_id_t			  next_child	  = child_hierarchy.next_sibling;
+				 self(self, child);
+				 child = next_child;
+			 }
+		};
+		scan(scan, entity);
+
+		if (added)
+			load_all_used_resources();
 	}
 
 	void world_t::load_all_used_resources()
 	{
+		resource_manager_t& rm = resource_manager_t::get();
+		for (const world_resource_t& res : _used_resources)
+		{
+			const resource_entry_t* entry = rm.find_entry(res.handle);
+			if (entry != nullptr)
+				continue;
+
+			resource_manager_t::get().load_resource(res.handle, res.type);
+		}
 	}
 
 	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)

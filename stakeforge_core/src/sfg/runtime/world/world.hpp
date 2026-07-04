@@ -7,6 +7,7 @@
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -54,7 +55,6 @@ namespace sfg
 		void		  destroy_entity_tree(entity_id_t id);
 		void		  set_entity_name(entity_id_t id, const char* name);
 		entity_id_t	  spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params);
-		entity_id_t	  spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
 		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;
@@ -66,7 +66,8 @@ namespace sfg
 		// resource
 		// -----------------------------------------------------------------------------
 
-		void add_resource(resource_handle_t res);
+		bool add_resource(resource_type_e type, resource_handle_t handle);
+		void scan_for_resources(entity_id_t entity);
 		void load_all_used_resources();
 
 		// -----------------------------------------------------------------------------
@@ -103,9 +104,10 @@ namespace sfg
 		bool									 is_alive(entity_id_t id) const;
 
 	private:
-		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
-		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
-		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
+		entity_id_t spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
+		void		update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
+		void		set_entity_snap_interpolation_recursive(entity_id_t id);
+		mat4x3_t	calculate_parent_transform_direct(entity_id_t id);
 
 	private:
 		struct world_text_allocation_t
@@ -127,12 +129,18 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 		};
 
+		struct world_resource_t
+		{
+			resource_type_e	  type	 = resource_type_e::invalid;
+			resource_handle_t handle = NULL_RESOURCE_HANDLE;
+		};
+
 	private:
 		vector_t<world_component_table_t> _component_tables;
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
-		vector_t<resource_handle_t>		  _used_resources;
+		vector_t<world_resource_t>		  _used_resources;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

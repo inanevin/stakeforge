@@ -47,6 +47,7 @@ namespace sfg
 		entity_duplicate,
 		entity_destroy,
 		entity_reparent,
+		prefab_spawn,
 		entity_info_paste,
 		component_add,
 		component_remove,

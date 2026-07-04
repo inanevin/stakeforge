@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "editor_project.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
@@ -49,7 +50,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/font_cook.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
-#include <sfg/runtime/resources/prefab_cook.hpp>
+#include <sfg/runtime/resources/prefab.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton_cook.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
@@ -420,13 +421,14 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::prefab);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		resource_header_t header = {};
-		ostream_t		  stream;
-		if (!prefab_cooker::cook_from_json(asset.embedded_source, header, stream))
-		{
-			SFG_ERR("failed to cook prefab asset {0}", asset.guid);
-			return false;
-		}
+		const string_t	  prefab_source = asset.embedded_source.dump();
+		resource_header_t header		= {
+				   .magic		= prefab_loader_t::WIRE_MAGIC,
+				   .version		= prefab_loader_t::WIRE_VERSION,
+				   .source_tick = hashing_t::hash_u64(reinterpret_cast<const u8*>(prefab_source.data()), prefab_source.size()),
+		   };
+		ostream_t stream;
+		stream << prefab_source;
 		return save_cooked_asset(asset, header, stream);
 	}
 }

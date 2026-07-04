@@ -129,13 +129,12 @@ namespace sfg
 			bool success = false;
 		};
 
-		resource_entry_t* find_entry(u64 hash);
-		void			  enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
-		load_request_t	  run_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
-		void			  flush_completed_loads();
-		void			  flush_unloads();
-		void			  unload_entry(resource_entry_t& entry);
-		void			  free_entry(resource_entry_t& entry);
+		void		   enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
+		load_request_t run_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
+		void		   flush_completed_loads();
+		void		   flush_unloads();
+		void		   unload_entry(resource_entry_t& entry);
+		void		   free_entry(resource_entry_t& entry);
 
 	private:
 		moodycamel::ConcurrentQueue<load_request_t> _completed;

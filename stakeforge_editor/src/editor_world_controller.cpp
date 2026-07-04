@@ -281,74 +281,13 @@ namespace sfg
 		{
 			if (container.handle == handle)
 			{
-				container.world_resources.push_back(DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
-				load_all_world_resources(handle);
+				world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
+				world.load_all_used_resources();
 				return;
 			}
 		}
 
 		SFG_ASSERT(false);
-	}
-
-	void editor_world_controller_t::load_all_world_resources(world_handle_t handle)
-	{
-		SFG_ASSERT(_runtime != nullptr);
-
-		world_container_t* world_container = nullptr;
-		for (world_container_t& container : _worlds)
-		{
-			if (container.handle == handle)
-			{
-				world_container = &container;
-				break;
-			}
-		}
-		SFG_ASSERT(world_container != nullptr);
-
-		editor_asset_manager_t& asset_manager	 = editor_asset_manager_t::get();
-		resource_manager_t&		resource_manager = resource_manager_t::get();
-		for (const u64 guid : world_container->world_resources)
-		{
-			const editor_asset_t* asset = asset_manager.find_asset(guid);
-			if (asset == nullptr)
-			{
-				SFG_WARN("world resource asset not found: {0}", guid);
-				continue;
-			}
-
-			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(*asset);
-			if (!file_system_t::exists(cache_path.c_str()))
-			{
-				SFG_WARN("world resource cooked binary not found: {0}", cache_path.c_str());
-				continue;
-			}
-
-			const resource_type_e			  resource_type = static_cast<resource_type_e>(asset->asset_type);
-			const resource_type_desc_t* const resource_desc = find_resource_type_desc(resource_type);
-			if (resource_desc == nullptr)
-			{
-				SFG_WARN("world resource type description not found: {0}", static_cast<u8>(resource_type));
-				continue;
-			}
-
-			istream_t stream = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
-			if (stream.empty())
-			{
-				SFG_WARN("world resource cooked binary could not be read: {0}", cache_path.c_str());
-				continue;
-			}
-
-			resource_header_t header = {};
-			header.deserialize(stream);
-			if (header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
-			{
-				SFG_WARN("world resource cooked binary is incompatible: {0}", cache_path.c_str());
-				continue;
-			}
-
-			if (resource_manager.load_resource(asset->guid, resource_type) == resource_state_e::failed)
-				SFG_WARN("world resource failed to load: {0}", guid);
-		}
 	}
 
 	void editor_world_controller_t::set_main_world(world_handle_t handle)

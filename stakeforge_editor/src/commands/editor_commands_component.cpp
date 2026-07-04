@@ -43,12 +43,6 @@ namespace sfg
 {
 	namespace
 	{
-		world_t& get_world(world_handle_t handle)
-		{
-			SFG_ASSERT(!handle.is_null());
-			return editor_app_t::get().get_runtime().get_world(handle);
-		}
-
 		world_component_table_t& get_component_table(world_t& world, sid_t component_type)
 		{
 			world_component_table_t* table = world.get_component_table(component_type);
@@ -165,7 +159,7 @@ namespace sfg
 		bool add_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_add_component_payload_t& payload	 = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			world_component_table_t&				table	 = get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				table	 = get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -178,7 +172,7 @@ namespace sfg
 		bool add_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_add_component_payload_t& payload	 = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			world_component_table_t&				table	 = get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				table	 = get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 				add_empty_component(table, entities[i]);
@@ -199,7 +193,7 @@ namespace sfg
 		bool remove_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_remove_component_payload_t& payload	= system.get_payload_as<editor_command_remove_component_payload_t>(command);
-			world_component_table_t&				   table	= get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				   table	= get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const chunk_handle32_t*					   streams	= system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 			for (u32 i = 0; i < payload.count; ++i)
@@ -216,7 +210,7 @@ namespace sfg
 		bool remove_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_remove_component_payload_t& payload	= system.get_payload_as<editor_command_remove_component_payload_t>(command);
-			world_component_table_t&				   table	= get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				   table	= get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -251,7 +245,7 @@ namespace sfg
 		bool reset_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_reset_component_payload_t& payload  = system.get_payload_as<editor_command_reset_component_payload_t>(command);
-			world_component_table_t&				  table	   = get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				  table	   = get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 			for (u32 i = 0; i < payload.count; ++i)
@@ -268,7 +262,7 @@ namespace sfg
 		bool reset_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_reset_component_payload_t& payload  = system.get_payload_as<editor_command_reset_component_payload_t>(command);
-			world_component_table_t&				  table	   = get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				  table	   = get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -303,7 +297,7 @@ namespace sfg
 		bool paste_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
-			world_component_table_t&				  table	   = get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				  table	   = get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.old_streams);
 			for (u32 i = 0; i < payload.count; ++i)
@@ -320,7 +314,7 @@ namespace sfg
 		bool paste_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
-			world_component_table_t&				  table	   = get_component_table(get_world(payload.world), payload.component_type);
+			world_component_table_t&				  table	   = get_component_table(editor_app_t::get().get_runtime().get_world(payload.world), payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -394,7 +388,7 @@ namespace sfg
 			return false;
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
-		world_component_table_t&	table = get_component_table(get_world(world), component_type);
+		world_component_table_t&	table = get_component_table(editor_app_t::get().get_runtime().get_world(world), component_type);
 		frame_vector_t<entity_id_t> affected;
 		affected.reserve(entities.size());
 		for (entity_id_t entity : entities)
@@ -444,7 +438,7 @@ namespace sfg
 			return false;
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
-		world_component_table_t&	table = get_component_table(get_world(world), component_type);
+		world_component_table_t&	table = get_component_table(editor_app_t::get().get_runtime().get_world(world), component_type);
 		frame_vector_t<entity_id_t> affected;
 		affected.reserve(entities.size());
 		for (entity_id_t entity : entities)
@@ -502,7 +496,7 @@ namespace sfg
 			return false;
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
-		world_component_table_t& table = get_component_table(get_world(world), component_type);
+		world_component_table_t& table = get_component_table(editor_app_t::get().get_runtime().get_world(world), component_type);
 		if (table.type_desc.size == 0)
 			return true;
 
@@ -564,7 +558,7 @@ namespace sfg
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 		SFG_ASSERT(data != nullptr);
 
-		world_component_table_t& table = get_component_table(get_world(world), component_type);
+		world_component_table_t& table = get_component_table(editor_app_t::get().get_runtime().get_world(world), component_type);
 		if (table.type_desc.size == 0)
 			return true;
 

@@ -12,8 +12,7 @@ namespace sfg
 
 	struct prefab_internals_t
 	{
-		chunk_handle32_t data = {};
-		u32				 size = 0;
+		chunk_handle32_t source = {};
 	};
 
 	class prefab_loader_t
