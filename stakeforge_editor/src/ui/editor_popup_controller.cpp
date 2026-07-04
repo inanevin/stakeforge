@@ -881,6 +881,7 @@ namespace sfg
 	void editor_popup_controller_t::collect_entity_items()
 	{
 		_asset_items.resize(0);
+		_asset_items.push_back({.name = "None", .guid = static_cast<sid_t>(NULL_ENTITY_GUID)});
 
 		const world_t&				   world	   = editor_app_t::get().get_runtime().get_world(_entity_desc.world);
 		const world_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
