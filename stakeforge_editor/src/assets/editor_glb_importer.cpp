@@ -192,7 +192,7 @@ namespace sfg
 			nlohmann::json wrapped = nlohmann::json::object();
 			if (!registry.type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, wrapped))
 				return false;
-			out = wrapped.value<nlohmann::json>(type->name, nlohmann::json::object());
+			out = wrapped;
 			return true;
 		}
 
