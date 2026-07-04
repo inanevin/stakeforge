@@ -124,7 +124,7 @@ namespace sfg
 		bool apply_component_streams(editor_command_system_t& system, editor_command_component_edit_payload_t& payload, chunk_handle32_t streams_handle)
 		{
 			SFG_ASSERT(!payload.world.is_null());
-			world_t&				 world = editor_app_t::get().get_runtime().get_world(payload.world);
+			world_t&				 world = editor_app_t::get().get_world_controller().get_world(payload.world);
 			world_component_table_t* table = world.get_component_table(payload.component_type);
 			SFG_ASSERT(table != nullptr);
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);

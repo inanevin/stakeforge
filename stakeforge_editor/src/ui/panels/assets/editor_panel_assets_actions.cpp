@@ -345,6 +345,9 @@ namespace sfg
 		const char* text = "";
 		switch (command)
 		{
+		case assets_action_menu_create_world:
+			text = "world";
+			break;
 		case assets_action_menu_create_animation_state_machine:
 			text = "animation_state_machine";
 			break;
@@ -402,6 +405,9 @@ namespace sfg
 
 		switch (command)
 		{
+		case assets_action_menu_create_world:
+			desc.asset_type = editor_asset_type_e::world;
+			break;
 		case assets_action_menu_create_animation_state_machine:
 			desc.asset_type = editor_asset_type_e::animation_state_machine;
 			break;

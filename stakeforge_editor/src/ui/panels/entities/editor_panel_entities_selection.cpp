@@ -142,11 +142,11 @@ namespace sfg
 	{
 		_payload_entities.resize(0);
 
-		const world_handle_t main_world = editor_app_t::get().get_main_world();
+		const world_handle_t main_world = editor_app_t::get().get_world_controller().get_main_world();
 		if (main_world.is_null())
 			return;
 
-		world_t& world = editor_app_t::get().get_runtime().get_world(main_world);
+		world_t& world = editor_app_t::get().get_world_controller().get_world(main_world);
 		if (is_entity_selected(entity))
 		{
 			frame_vector_t<entity_id_t> root_entities;
@@ -192,7 +192,7 @@ namespace sfg
 		if (entity == NULL_ENTITY_ID || _main_world.is_null())
 			return false;
 
-		world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		world_t& world = editor_app_t::get().get_world_controller().get_world(_main_world);
 		if (!world.is_alive(entity))
 			return false;
 
@@ -223,7 +223,7 @@ namespace sfg
 
 	void editor_panel_entities_t::toggle_entity_fold(entity_id_t entity)
 	{
-		world_t&				 world	  = editor_app_t::get().get_runtime().get_world(_main_world);
+		world_t&				 world	  = editor_app_t::get().get_world_controller().get_world(_main_world);
 		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
 		const entity_guid_t		 guid	  = world.get_entity_guid(entity);
 		metadata.set_entity_folded(guid, metadata.is_entity_expanded(guid));

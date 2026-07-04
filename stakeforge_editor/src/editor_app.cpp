@@ -36,13 +36,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
-#include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "ui/panels/editor_panel_world.hpp"
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -212,7 +209,7 @@ namespace sfg
 			return false;
 		}
 
-		_world_controller.init(_runtime);
+		_world_controller.init();
 		_world_metadata.init();
 		_asset_manager.init();
 
@@ -349,8 +346,6 @@ namespace sfg
 		const world_handle_t main_world = _world_controller.create_world(get_main_surface().swapchain_size);
 		_world_controller.install_default_world(main_world);
 		_world_controller.set_main_world(main_world);
-		_world_metadata.set_world(main_world);
-		set_main_world_to_panel();
 
 		_close = false;
 
@@ -457,8 +452,6 @@ namespace sfg
 		_command_system.clear();
 		_asset_manager.clear();
 		_world_controller.destroy_worlds();
-		_world_metadata.set_world({});
-		set_main_world_to_panel();
 	}
 
 	bool editor_app_t::is_any_modal_active() const
@@ -562,7 +555,6 @@ namespace sfg
 
 		editor_layout_t::load_surface_default_layout(get_main_surface());
 		save_layout();
-		set_main_world_to_panel();
 	}
 
 	editor_panel_t* editor_app_t::find_panel(editor_panel_type_e type, surface_handle_t surface_handle)
@@ -653,37 +645,6 @@ namespace sfg
 		process::bring_to_front(surface.runtime->window_handle);
 	}
 
-	void editor_app_t::set_main_world_to_panel()
-	{
-		const world_handle_t main_world = _world_controller.get_main_world();
-		if (main_world.is_null())
-			_world_metadata.set_world({});
-		else if (!(_world_metadata.get_world() == main_world))
-			_world_metadata.set_world(main_world);
-
-		editor_panel_t* panel = find_panel(editor_panel_type_e::world);
-		if (panel == nullptr)
-			return;
-
-		editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
-		if (main_world.is_null())
-		{
-			world_panel->clear_world();
-			return;
-		}
-
-		world_panel->set_world(_world_controller.get_world_render_context(main_world));
-	}
-
-	void editor_app_t::update_inspector_panel()
-	{
-		editor_panel_t* panel = find_panel(editor_panel_type_e::inspector);
-		if (panel == nullptr)
-			return;
-
-		static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
-	}
-
 	editor_surface_t& editor_app_t::get_main_surface()
 	{
 		SFG_ASSERT(!_surfaces.empty());
@@ -694,37 +655,6 @@ namespace sfg
 		}
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
-	}
-
-	engine_runtime_t& editor_app_t::get_runtime()
-	{
-		return _runtime;
-	}
-
-	world_handle_t editor_app_t::get_main_world() const
-	{
-		return _world_controller.get_main_world();
-	}
-
-	editor_world_metadata_t& editor_app_t::get_world_metadata()
-	{
-		return _world_metadata;
-	}
-
-	editor_command_system_t& editor_app_t::get_command_system()
-	{
-		return _command_system;
-	}
-
-	editor_selection_controller_t& editor_app_t::get_selection_controller()
-	{
-		return _selection_controller;
-	}
-
-	tf::Executor& editor_app_t::get_editor_work_executor()
-	{
-		SFG_ASSERT(_editor_work_executor != nullptr);
-		return *_editor_work_executor;
 	}
 
 	editor_surface_t& editor_app_t::get_surface_by_runtime(window_runtime_t& runtime)

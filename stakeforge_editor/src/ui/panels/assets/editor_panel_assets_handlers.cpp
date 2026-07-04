@@ -68,10 +68,10 @@ namespace sfg
 		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node)
 		{
 			editor_app_t& app = editor_app_t::get();
-			if (!app.get_runtime().is_world_valid(entity_payload.world))
+			if (!app.get_world_controller().is_world_valid(entity_payload.world))
 				return false;
 
-			const world_t& world = app.get_runtime().get_world(entity_payload.world);
+			const world_t& world = app.get_world_controller().get_world(entity_payload.world);
 			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 				return false;
 
@@ -141,6 +141,7 @@ namespace sfg
 		case assets_action_menu_create_folder:
 			panel._create_folder_popup_pending = true;
 			return;
+		case assets_action_menu_create_world:
 		case assets_action_menu_create_animation_state_machine:
 		case assets_action_menu_create_opaque_shader:
 		case assets_action_menu_create_transparent_shader:

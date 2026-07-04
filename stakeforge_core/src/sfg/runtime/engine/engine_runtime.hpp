@@ -1,10 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "common_engine.hpp"
-#include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
-#include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {
@@ -25,15 +22,9 @@ namespace sfg
 		bool init();
 		void uninit();
 
-		world_handle_t			create_world();
-		bool					destroy_world(world_handle_t handle);
-		bool					is_world_valid(world_handle_t handle) const;
-		world_t&				get_world(world_handle_t handle);
-		const world_t&			get_world(world_handle_t handle) const;
 		resource_file_system_t& get_resource_file_system();
 
 	private:
-		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;
-		resource_file_system_t							   _resource_file_system;
+		resource_file_system_t _resource_file_system;
 	};
 }

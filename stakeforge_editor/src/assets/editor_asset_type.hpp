@@ -50,6 +50,7 @@ namespace sfg
 		prefab,
 		animation_state_machine,
 		hdr_skybox,
+		world,
 		count,
 	};
 

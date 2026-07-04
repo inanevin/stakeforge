@@ -29,6 +29,3 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 sfg_api_result_t sfg_engine_init(void);
 sfg_api_result_t sfg_engine_uninit(void);
-
-sfg_api_result_t sfg_world_create(sfg::world_handle_t* out_world);
-sfg_api_result_t sfg_world_destroy(sfg::world_handle_t world);

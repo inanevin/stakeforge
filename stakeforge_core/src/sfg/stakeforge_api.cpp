@@ -39,26 +39,3 @@ sfg_api_result_t sfg_engine_uninit(void)
 	g_engine = nullptr;
 	return sfg_api_result_success;
 }
-
-sfg_api_result_t sfg_world_create(sfg::world_handle_t* out_world)
-{
-	if (g_engine == nullptr)
-		return sfg_api_result_engine_not_initialized;
-
-	if (out_world == nullptr)
-		return sfg_api_result_invalid_argument;
-
-	*out_world = g_engine->create_world();
-	return sfg_api_result_success;
-}
-
-sfg_api_result_t sfg_world_destroy(sfg::world_handle_t world)
-{
-	if (g_engine == nullptr)
-		return sfg_api_result_engine_not_initialized;
-
-	if (!g_engine->destroy_world(world))
-		return sfg_api_result_invalid_world_handle;
-
-	return sfg_api_result_success;
-}

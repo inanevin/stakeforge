@@ -29,7 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_app.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
+#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -42,7 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/time.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -82,9 +83,8 @@ namespace sfg
 		return *this;
 	}
 
-	void editor_world_controller_t::init(engine_runtime_t& runtime)
+	void editor_world_controller_t::init()
 	{
-		_runtime		  = &runtime;
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
@@ -95,8 +95,7 @@ namespace sfg
 
 	void editor_world_controller_t::uninit()
 	{
-		destroy_worlds();
-		_runtime		  = nullptr;
+		destroy_worlds_internal(false);
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
@@ -107,12 +106,13 @@ namespace sfg
 
 	world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
 	{
-		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		const world_handle_t handle = _runtime->create_world();
+		const world_handle_t handle = _worlds.add();
+		world_t&			 world	= _worlds.get(handle);
+		world.init();
 
-		world_container_t& container = _worlds.emplace_back();
+		world_container_t& container = _world_containers.emplace_back();
 		container.handle			 = handle;
 		container.producer_slot		 = 0;
 		container.consumer_slot		 = 1;
@@ -129,20 +129,25 @@ namespace sfg
 
 	void editor_world_controller_t::destroy_world(world_handle_t handle)
 	{
-		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		for (auto it = _worlds.begin(); it != _worlds.end(); ++it)
+		for (auto it = _world_containers.begin(); it != _world_containers.end(); ++it)
 		{
 			if (it->handle == handle)
 			{
+				const bool was_main_world = _main_world == handle;
+
 				it->render_context.uninit();
-				_runtime->destroy_world(handle);
-				_worlds.erase(it);
-				if (_main_world == handle)
-					_main_world = {};
-				if (_main_world.is_null())
+				world_t& world = _worlds.get(handle);
+				world.uninit();
+				_worlds.remove(handle);
+				_world_containers.erase(it);
+
+				if (was_main_world)
+				{
+					set_main_world({});
 					_main_camera_entity = NULL_ENTITY_ID;
+				}
 				return;
 			}
 		}
@@ -152,26 +157,34 @@ namespace sfg
 
 	void editor_world_controller_t::destroy_worlds()
 	{
-		SFG_ASSERT(_runtime != nullptr);
+		destroy_worlds_internal(true);
+	}
+
+	void editor_world_controller_t::destroy_worlds_internal(bool notify_panels)
+	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		for (world_container_t& container : _worlds)
+		for (world_container_t& container : _world_containers)
 		{
 			container.render_context.uninit();
-			_runtime->destroy_world(container.handle);
+			world_t& world = _worlds.get(container.handle);
+			world.uninit();
+			_worlds.remove(container.handle);
 		}
-		_worlds.resize(0);
-		_main_world			= {};
+		_world_containers.resize(0);
 		_main_camera_entity = NULL_ENTITY_ID;
 		reset_camera_input();
+		if (notify_panels)
+			set_main_world({});
+		else
+			_main_world = {};
 	}
 
 	void editor_world_controller_t::resize_world(world_handle_t handle, vec2u16_t render_resolution)
 	{
-		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		for (world_container_t& container : _worlds)
+		for (world_container_t& container : _world_containers)
 		{
 			if (container.handle == handle)
 			{
@@ -185,18 +198,17 @@ namespace sfg
 
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 
-		if (_worlds.empty())
+		if (_world_containers.empty())
 			return false;
 
 		frame_vector_t<gfx_handle_t> command_buffers;
-		command_buffers.reserve(_worlds.size());
+		command_buffers.reserve(_world_containers.size());
 
 		const f32 interpolation_alpha = calculate_render_alpha();
-		for (world_container_t& container : _worlds)
+		for (world_container_t& container : _world_containers)
 		{
 			const world_render_snapshot_t& snapshot = acquire_render_snapshot(container);
 			world_rendering_t::render_world(container.render_context, snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
@@ -205,14 +217,13 @@ namespace sfg
 
 		gfx_backend& backend = gfx_backend::get();
 
-		if (!_worlds.empty())
+		if (!_world_containers.empty())
 			backend.queue_signal(queue, &signal, &signal_value, 1);
 		return true;
 	}
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
 	{
-		SFG_ASSERT(_runtime != nullptr);
 		_world_physics_rate = world_physics_rate;
 
 		const i64 now	   = time_t::get_cpu_microseconds();
@@ -229,9 +240,9 @@ namespace sfg
 			while (_accumulator_us >= fixed_us && steps < max_sim_steps)
 			{
 				_accumulator_us -= fixed_us;
-				for (const world_container_t& container : _worlds)
+				for (const world_container_t& container : _world_containers)
 				{
-					world_t& world = _runtime->get_world(container.handle);
+					world_t& world = _worlds.get(container.handle);
 					if (container.handle == _main_world)
 						tick_editor_camera(dt_seconds);
 					world.tick(dt_seconds);
@@ -250,9 +261,9 @@ namespace sfg
 			_last_fixed_step_us.store(now, std::memory_order_release);
 		}
 
-		for (world_container_t& container : _worlds)
+		for (world_container_t& container : _world_containers)
 		{
-			world_t& world = _runtime->get_world(container.handle);
+			world_t& world = _worlds.get(container.handle);
 			if (steps == 0)
 				world.update_world_transforms(false);
 			world_snapshot_producer_t::produce(world, container.snapshot_slots[container.producer_slot]);
@@ -262,9 +273,7 @@ namespace sfg
 
 	void editor_world_controller_t::install_default_world(world_handle_t handle)
 	{
-		SFG_ASSERT(_runtime != nullptr);
-
-		world_t& world = _runtime->get_world(handle);
+		world_t& world = _worlds.get(handle);
 		install_editor_camera(world);
 
 		const entity_id_t	environment				  = world.create_entity("environment");
@@ -277,7 +286,7 @@ namespace sfg
 		if (!debug_widgets_exists)
 			debug_widgets_table.type_desc.default_init(debug_widgets);
 
-		for (world_container_t& container : _worlds)
+		for (world_container_t& container : _world_containers)
 		{
 			if (container.handle == handle)
 			{
@@ -292,7 +301,34 @@ namespace sfg
 
 	void editor_world_controller_t::set_main_world(world_handle_t handle)
 	{
+		if (_main_world == handle)
+			return;
+
+		editor_app_t::get().get_command_system().clear();
 		_main_world = handle;
+		notify_main_world_changed();
+	}
+
+	void editor_world_controller_t::notify_main_world_changed()
+	{
+		editor_app_t& app = editor_app_t::get();
+		app.get_world_metadata().set_world(_main_world);
+		app.get_selection_controller().set_world(_main_world);
+
+		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
+		{
+			editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
+			if (_main_world.is_null())
+				world_panel->clear_world();
+			else
+				world_panel->set_world(get_world_render_context(_main_world));
+		}
+
+		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::entities))
+			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
+
+		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::inspector))
+			static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
 	}
 
 	void editor_world_controller_t::reset_input(window_runtime_t& runtime)
@@ -419,29 +455,14 @@ namespace sfg
 
 	const world_render_context_t& editor_world_controller_t::get_world_render_context(world_handle_t handle) const
 	{
-		for (const world_container_t& container : _worlds)
+		for (const world_container_t& container : _world_containers)
 		{
 			if (container.handle == handle)
 				return container.render_context;
 		}
 
 		SFG_ASSERT(false);
-		return _worlds.front().render_context;
-	}
-
-	world_handle_t editor_world_controller_t::get_main_world() const
-	{
-		return _main_world;
-	}
-
-	f32 editor_world_controller_t::get_alpha() const
-	{
-		return calculate_render_alpha();
-	}
-
-	bool editor_world_controller_t::is_world_panel_focused() const
-	{
-		return _world_panel_focused;
+		return _world_containers.front().render_context;
 	}
 
 	void editor_world_controller_t::publish_world_snapshot(world_container_t& container)
@@ -509,7 +530,7 @@ namespace sfg
 		if (_main_camera_entity == NULL_ENTITY_ID || !_world_panel_focused)
 			return;
 
-		world_t& world = _runtime->get_world(_main_world);
+		world_t& world = _worlds.get(_main_world);
 
 		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_CAMERA_MOUSE_SENSITIVITY;
 		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_CAMERA_MOUSE_SENSITIVITY;

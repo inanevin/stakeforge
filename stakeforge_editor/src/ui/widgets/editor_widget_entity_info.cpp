@@ -60,7 +60,7 @@ namespace sfg
 	void editor_widget_entity_info_t::init(ui::ui_context& ui, ui::widget_id_t parent, world_handle_t world)
 	{
 		_ui							= &ui;
-		_world						= &editor_app_t::get().get_runtime().get_world(world);
+		_world						= &editor_app_t::get().get_world_controller().get_world(world);
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
 

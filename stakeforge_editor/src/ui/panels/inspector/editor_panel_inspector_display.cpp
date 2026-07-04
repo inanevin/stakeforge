@@ -74,7 +74,7 @@ namespace sfg
 		save_scroll_state();
 		_display_type		  = editor_inspector_display_type_e::entity;
 		_display_world_handle = world;
-		_display_world		  = &editor_app_t::get().get_runtime().get_world(world);
+		_display_world		  = &editor_app_t::get().get_world_controller().get_world(world);
 		_display_entities.assign(entities.data, entities.data + entities.size);
 		_skip_scroll_state_save = true;
 		refresh_display();

@@ -69,5 +69,6 @@ namespace sfg
 		assets_item_action_menu_toggle_favourite		  = 21,
 		assets_action_menu_import						  = 22,
 		assets_item_action_menu_fix_integrity			  = 23,
+		assets_action_menu_create_world					  = 24,
 	};
 }

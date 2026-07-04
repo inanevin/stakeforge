@@ -226,7 +226,7 @@ namespace sfg
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		if (!(editor_app_t::get().get_main_world() == panel._main_world) || panel._entity_generation != editor_app_t::get().get_command_system().get_entity_generation())
+		if (!(editor_app_t::get().get_world_controller().get_main_world() == panel._main_world) || panel._entity_generation != editor_app_t::get().get_command_system().get_entity_generation())
 			panel.refresh_entities();
 	}
 

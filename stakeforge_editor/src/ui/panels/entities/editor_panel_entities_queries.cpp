@@ -57,7 +57,7 @@ namespace sfg
 		if (entity == NULL_ENTITY_ID || _main_world.is_null())
 			return false;
 
-		const world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		const world_t& world = editor_app_t::get().get_world_controller().get_world(_main_world);
 		return editor_app_t::get().get_world_metadata().is_entity_expanded(world.get_entity_guid(entity));
 	}
 
@@ -79,7 +79,7 @@ namespace sfg
 		if (_main_world.is_null())
 			return false;
 
-		const world_t& world = editor_app_t::get().get_runtime().get_world(_main_world);
+		const world_t& world = editor_app_t::get().get_world_controller().get_world(_main_world);
 		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
 		{
 			if (is_entity_selected(parent))
@@ -93,11 +93,11 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const world_handle_t main_world = editor_app_t::get().get_main_world();
+		const world_handle_t main_world = editor_app_t::get().get_world_controller().get_main_world();
 		if (main_world.is_null())
 			return false;
 
-		world_t& world = editor_app_t::get().get_runtime().get_world(main_world);
+		world_t& world = editor_app_t::get().get_world_controller().get_world(main_world);
 		if (parent != NULL_ENTITY_ID && !world.is_alive(parent))
 			return false;
 

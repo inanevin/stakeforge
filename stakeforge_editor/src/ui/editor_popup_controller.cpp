@@ -883,7 +883,7 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_items.push_back({.name = "None", .guid = static_cast<sid_t>(NULL_ENTITY_GUID)});
 
-		const world_t&				   world	   = editor_app_t::get().get_runtime().get_world(_entity_desc.world);
+		const world_t&				   world	   = editor_app_t::get().get_world_controller().get_world(_entity_desc.world);
 		const world_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
 		const world_component_table_t* guid_table  = world.find_component_table(type_id_t<component_guid_t>::value);
 		const world_component_table_t* name_table  = world.find_component_table(type_id_t<component_name_t>::value);

@@ -90,6 +90,7 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_CREATE_ROWS[] = {
 			{.text = "Folder", .command = assets_action_menu_create_folder},
+			{.text = "World", .command = assets_action_menu_create_world},
 			{.text = "Animation", .children = ASSETS_ACTION_MENU_ANIMATION_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS) / sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS[0]))},
 			{.text = "Graphics", .children = ASSETS_ACTION_MENU_GRAPHICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS) / sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS[0]))},
 			{.text = "Gameplay", .children = ASSETS_ACTION_MENU_GAMEPLAY_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GAMEPLAY_ROWS) / sizeof(ASSETS_ACTION_MENU_GAMEPLAY_ROWS[0]))},

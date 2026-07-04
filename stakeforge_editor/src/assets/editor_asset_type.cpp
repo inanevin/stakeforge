@@ -75,6 +75,9 @@ namespace sfg
 		case editor_asset_type_e::hdr_skybox:
 			j = "hdr_skybox";
 			break;
+		case editor_asset_type_e::world:
+			j = "world";
+			break;
 		default:
 			j = "invalid";
 			break;
@@ -111,6 +114,8 @@ namespace sfg
 			t = editor_asset_type_e::animation_state_machine;
 		else if (s == "hdr_skybox")
 			t = editor_asset_type_e::hdr_skybox;
+		else if (s == "world")
+			t = editor_asset_type_e::world;
 		else
 			t = editor_asset_type_e::invalid;
 	}

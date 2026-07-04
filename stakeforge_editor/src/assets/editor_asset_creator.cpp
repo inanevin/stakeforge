@@ -235,6 +235,25 @@ namespace sfg
 			};
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
 		}
+
+		bool create_world_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		{
+			const nlohmann::json embedded_source = {
+				{"schema", "sfg.schema.world"},
+				{"local_entities", nlohmann::json::array()},
+				{"components", nlohmann::json::array()},
+			};
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_node	 = desc.parent_node,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::world,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+		}
 	}
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
@@ -273,6 +292,9 @@ namespace sfg
 			result = create_prefab_asset(desc, &asset);
 			if (result)
 				result = editor_asset_cooker_t::cook_prefab(asset);
+			break;
+		case editor_asset_type_e::world:
+			result = create_world_asset(desc, &asset);
 			break;
 		default:
 			SFG_ASSERT(false);

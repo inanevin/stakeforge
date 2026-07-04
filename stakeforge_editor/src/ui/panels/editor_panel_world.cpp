@@ -131,6 +131,13 @@ namespace sfg
 					   {.font = theme.font_title_bold, .color = theme.color_text2, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
+
+		editor_world_controller_t& controller = editor_app_t::get().get_world_controller();
+		const world_handle_t	   main_world = controller.get_main_world();
+		if (main_world.is_null())
+			clear_world();
+		else
+			set_world(controller.get_world_render_context(main_world));
 	}
 
 	void editor_panel_world_t::uninit()
@@ -212,7 +219,7 @@ namespace sfg
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_panel_world_t& panel = *static_cast<editor_panel_world_t*>(user_data);
-		const world_handle_t  world = editor_app_t::get().get_main_world();
+		const world_handle_t  world = editor_app_t::get().get_world_controller().get_main_world();
 		if (world.is_null())
 			return false;
 

@@ -81,49 +81,6 @@ namespace sfg
 
 	void engine_runtime_t::uninit()
 	{
-		for (auto it = _worlds.begin_handle(); it != _worlds.end_handle();)
-		{
-			const world_handle_t handle = *it;
-			++it;
-
-			world_t& world = _worlds.get(handle);
-			world.uninit();
-			_worlds.remove(handle);
-		}
-	}
-
-	world_handle_t engine_runtime_t::create_world()
-	{
-		const world_handle_t handle = _worlds.add();
-		world_t&			 world	= _worlds.get(handle);
-		world.init();
-		return handle;
-	}
-
-	bool engine_runtime_t::destroy_world(world_handle_t handle)
-	{
-		if (!_worlds.is_valid(handle))
-			return false;
-
-		world_t& world = _worlds.get(handle);
-		world.uninit();
-		_worlds.remove(handle);
-		return true;
-	}
-
-	bool engine_runtime_t::is_world_valid(world_handle_t handle) const
-	{
-		return _worlds.is_valid(handle);
-	}
-
-	world_t& engine_runtime_t::get_world(world_handle_t handle)
-	{
-		return _worlds.get(handle);
-	}
-
-	const world_t& engine_runtime_t::get_world(world_handle_t handle) const
-	{
-		return _worlds.get(handle);
 	}
 
 	resource_file_system_t& engine_runtime_t::get_resource_file_system()

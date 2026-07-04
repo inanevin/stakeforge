@@ -353,10 +353,6 @@ namespace sfg
 			{
 				const editor_panel_type_e type = static_cast<editor_panel_type_e>(command - PANEL_MENU_COMMAND_BASE);
 				editor_app_t::get().show_panel(type);
-				if (type == editor_panel_type_e::world)
-					editor_app_t::get().set_main_world_to_panel();
-				else if (type == editor_panel_type_e::inspector)
-					editor_app_t::get().update_inspector_panel();
 				return;
 			}
 

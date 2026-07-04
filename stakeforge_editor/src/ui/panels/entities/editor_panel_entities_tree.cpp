@@ -147,7 +147,7 @@ namespace sfg
 			return;
 		}
 
-		world_t&	world = editor_app_t::get().get_runtime().get_world(_main_world);
+		world_t&	world = editor_app_t::get().get_world_controller().get_world(_main_world);
 		const char* name  = world.get_entity_name(entity);
 		const char* text  = name != nullptr ? name : "Entity";
 
@@ -179,13 +179,13 @@ namespace sfg
 	void editor_panel_entities_t::collect_entities()
 	{
 		editor_app_t&		 app		= editor_app_t::get();
-		const world_handle_t main_world = app.get_main_world();
+		const world_handle_t main_world = app.get_world_controller().get_main_world();
 		_main_world						= main_world;
 		app.get_selection_controller().set_world(main_world);
 		if (main_world.is_null())
 			return;
 
-		const world_t& world = app.get_runtime().get_world(main_world);
+		const world_t& world = app.get_world_controller().get_world(main_world);
 		app.get_world_metadata().collect_outliner_items(world);
 	}
 

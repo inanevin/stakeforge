@@ -2,7 +2,6 @@
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 
 typedef enum sfg_api_result_t
 {
@@ -13,5 +12,4 @@ typedef enum sfg_api_result_t
 	sfg_api_result_engine_init_failed,
 	sfg_api_result_renderer_already_initialized,
 	sfg_api_result_backend_failed,
-	sfg_api_result_invalid_world_handle,
 } sfg_api_result_t;

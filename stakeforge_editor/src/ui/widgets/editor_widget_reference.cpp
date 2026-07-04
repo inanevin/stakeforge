@@ -208,7 +208,7 @@ namespace sfg
 		if (!(entity_payload.world == _config.world))
 			return NULL_ENTITY_GUID;
 
-		const world_t& world = editor_app_t::get().get_runtime().get_world(_config.world);
+		const world_t& world = editor_app_t::get().get_world_controller().get_world(_config.world);
 		if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 			return NULL_ENTITY_GUID;
 
@@ -269,7 +269,7 @@ namespace sfg
 			const entity_guid_t selected = get_selected_value();
 			if (selected != NULL_ENTITY_GUID)
 			{
-				const world_t&	  world	 = editor_app_t::get().get_runtime().get_world(_config.world);
+				const world_t&	  world	 = editor_app_t::get().get_world_controller().get_world(_config.world);
 				const entity_id_t entity = world.get_entity_from_guid(selected);
 				if (entity != NULL_ENTITY_ID && world.is_alive(entity))
 				{
