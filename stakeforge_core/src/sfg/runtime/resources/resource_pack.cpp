@@ -191,7 +191,9 @@ namespace sfg
 				return false;
 			}
 
-			ostream_t cached_stream = make_resource_stream(out_header, payload);
+			out_header.set_debug_name(source_path.c_str());
+
+			ostream_t cached_stream = out_header.make_stream(payload);
 			if (!save_cache(cache_dir.c_str(), sid, cached_stream))
 				SFG_WARN("cache save failed for {0}", sid);
 
@@ -201,7 +203,7 @@ namespace sfg
 #endif
 
 #if defined(SFG_EMBED_ASSETS)
-	bool resource_pack_t::init(resource_manager_t& mgr, const init_params_t& pa rams)
+	bool resource_pack_t::init(resource_manager_t& mgr, const init_params_t& params)
 	{
 		_mgr = &mgr;
 
@@ -222,12 +224,7 @@ namespace sfg
 			}
 
 			const sid_t sid = TO_SID(e.path);
-			ostream_t	data;
-			data.write_raw(e.data, e.size);
-			istream_t stream;
-			stream.open(data.get_raw(), data.get_size());
-			const resource_header_t header = {};
-			const auto				st	   = mgr.load_resource(sid, e.path, header, stream, e.type);
+			const auto	st	= mgr.load_resource(sid, e.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("load_resource failed for embedded {0}", e.path);
@@ -382,7 +379,7 @@ namespace sfg
 				return false;
 			}
 
-			const auto st = mgr.load_resource(sid, entry.path.c_str(), entry.type, true);
+			const auto st = mgr.load_resource(sid, entry.type, true);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("load_resource failed for {0}", source_path.c_str());

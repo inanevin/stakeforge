@@ -346,7 +346,7 @@ namespace sfg
 				continue;
 			}
 
-			if (resource_manager.load_resource(asset->guid, cache_path.c_str(), resource_type) == resource_state_e::failed)
+			if (resource_manager.load_resource(asset->guid, resource_type) == resource_state_e::failed)
 				SFG_WARN("world resource failed to load: {0}", guid);
 		}
 	}

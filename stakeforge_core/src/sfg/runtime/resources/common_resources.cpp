@@ -5,7 +5,11 @@
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/memory/memory.hpp>
+#include <algorithm>
+#include <cstring>
 
 #include "animation.hpp"
 #include "animation_state_machine.hpp"
@@ -25,21 +29,38 @@ namespace sfg
 {
 	void resource_header_t::serialize(ostream_t& stream) const
 	{
+		stream.write_raw(reinterpret_cast<const u8*>(debug_name), sizeof(debug_name));
 		stream << magic << version;
 		stream << source_tick;
 	}
 
 	void resource_header_t::deserialize(istream_t& stream)
 	{
+		stream.read_to_raw(reinterpret_cast<u8*>(debug_name), sizeof(debug_name));
 		stream >> magic >> version;
 		stream >> source_tick;
 	}
 
-	ostream_t make_resource_stream(const resource_header_t& header, const ostream_t& payload)
+	void resource_header_t::set_debug_name(const char* full_path)
+	{
+		SFG_ASSERT(full_path != nullptr);
+
+		string_t path = full_path;
+		file_system_t::fix_path(path);
+
+		const string_t file_name  = file_system_t::get_filename_and_extension_from_path(path);
+		const char*	   debug_name = !file_name.empty() ? file_name.c_str() : path.c_str();
+		const size_t   copy_size  = std::min(std::strlen(debug_name), sizeof(this->debug_name) - 1);
+
+		SFG_MEMSET(this->debug_name, 0, sizeof(this->debug_name));
+		SFG_MEMCPY(this->debug_name, debug_name, copy_size);
+	}
+
+	ostream_t resource_header_t::make_stream(const ostream_t& payload) const
 	{
 		ostream_t stream;
-		stream.create(sizeof(header.magic) + sizeof(header.version) + sizeof(header.source_tick) + payload.get_size());
-		header.serialize(stream);
+		stream.create(sizeof(debug_name) + sizeof(magic) + sizeof(version) + sizeof(source_tick) + payload.get_size());
+		serialize(stream);
 		stream.write_raw(payload.get_raw(), payload.get_size());
 		return stream;
 	}

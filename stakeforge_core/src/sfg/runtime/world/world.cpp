@@ -484,6 +484,14 @@ namespace sfg
 	{
 	}
 
+	void world_t::add_resource(resource_handle_t res)
+	{
+	}
+
+	void world_t::load_all_used_resources()
+	{
+	}
+
 	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)
 	{
 		const component_transform_t&  transform		   = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);

@@ -71,7 +71,7 @@ namespace sfg
 		flush_unloads();
 	}
 
-	resource_state_e resource_manager_t::load_resource(sid_t hash, const char* debug_name, resource_type_e type, bool bypass_async)
+	resource_state_e resource_manager_t::load_resource(sid_t hash, resource_type_e type, bool bypass_async)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
@@ -101,7 +101,7 @@ namespace sfg
 		ostream_t header_stream;
 		if (!_resource_file_system->read_resource(hash, 0, sizeof(resource_header_t), header_stream))
 		{
-			SFG_ERR("failed reading resource header: {0} {1}", debug_name, hash);
+			SFG_ERR("failed reading resource header: {0}", hash);
 			return resource_state_e::failed;
 		}
 
@@ -109,6 +109,7 @@ namespace sfg
 		resource_header_t header = {};
 		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
+		const char* debug_name = header.debug_name;
 
 		resource_entry_t entry = {};
 		entry.type			   = type;
@@ -117,10 +118,7 @@ namespace sfg
 		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
 		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
 		entry.state			   = resource_state_e::failed;
-
-		const size_t name_sz = strlen(debug_name);
-		if (name_sz != 0)
-			entry.debug_name = _memory.allocate_text(debug_name);
+		entry.debug_name	   = _memory.allocate_text(debug_name);
 
 		resource_context_t ctx{*this};
 		if (!desc->load(entry, ctx, *_resource_file_system))

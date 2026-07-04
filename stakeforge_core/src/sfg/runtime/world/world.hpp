@@ -63,6 +63,13 @@ namespace sfg
 		void		  sync_entity_hierarchy(entity_id_t id);
 
 		// -----------------------------------------------------------------------------
+		// resource
+		// -----------------------------------------------------------------------------
+
+		void add_resource(resource_handle_t res);
+		void load_all_used_resources();
+
+		// -----------------------------------------------------------------------------
 		// transformation
 		// -----------------------------------------------------------------------------
 
@@ -125,6 +132,7 @@ namespace sfg
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
+		vector_t<resource_handle_t>		  _used_resources;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

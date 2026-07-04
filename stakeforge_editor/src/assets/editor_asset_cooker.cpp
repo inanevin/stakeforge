@@ -62,7 +62,7 @@ namespace sfg
 {
 	namespace
 	{
-		bool save_cooked_asset(const editor_asset_t& asset, const resource_header_t& header, const ostream_t& payload)
+		bool save_cooked_asset(const editor_asset_t& asset, resource_header_t header, const ostream_t& payload)
 		{
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
 			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
@@ -72,7 +72,16 @@ namespace sfg
 				return false;
 			}
 
-			ostream_t stream = make_resource_stream(header, payload);
+			string_t debug_path;
+			if (!asset.source_relative.empty())
+				debug_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+			else if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr)
+				debug_path = display_name;
+			else
+				debug_path = cache_path;
+			header.set_debug_name(debug_path.c_str());
+
+			ostream_t stream = header.make_stream(payload);
 			if (!serializer_t::save_to_file(cache_path.c_str(), stream))
 			{
 				SFG_ERR("failed to save cooked asset {0}", cache_path.c_str());

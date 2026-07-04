@@ -26,15 +26,16 @@ namespace sfg
 
 	struct resource_header_t
 	{
-		u32 magic		= 0;
-		u32 version		= 0;
-		u64 source_tick = 0;
+		char debug_name[128] = {};
+		u32	 magic			 = 0;
+		u32	 version		 = 0;
+		u64	 source_tick	 = 0;
 
-		void serialize(ostream_t& stream) const;
-		void deserialize(istream_t& stream);
+		void	  set_debug_name(const char* full_path);
+		ostream_t make_stream(const ostream_t& payload) const;
+		void	  serialize(ostream_t& stream) const;
+		void	  deserialize(istream_t& stream);
 	};
-
-	ostream_t make_resource_stream(const resource_header_t& header, const ostream_t& payload);
 
 	enum class resource_state_e : u8
 	{
