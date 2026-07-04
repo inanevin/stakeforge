@@ -65,30 +65,6 @@ namespace sfg
 {
 	namespace
 	{
-		string_t make_unique_prefab_asset_name(editor_asset_node_handle_t parent_node, const char* base_name)
-		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			SFG_ASSERT(tree.is_valid(parent_node));
-			const editor_asset_node_t& parent = tree.value(parent_node);
-			SFG_ASSERT(parent.type == editor_asset_node_type_e::folder);
-
-			const char* name	  = base_name != nullptr && editor_directories_t::is_valid_asset_name(base_name) ? base_name : "prefab";
-			string_t	candidate = name;
-			if (!file_system_t::exists(editor_asset_util_t::make_asset_path(parent.full_path.c_str(), candidate.c_str()).c_str()))
-				return candidate;
-
-			for (u32 i = 1; i < 1024; ++i)
-			{
-				candidate = name;
-				candidate += "_";
-				candidate += std::to_string(i);
-				if (!file_system_t::exists(editor_asset_util_t::make_asset_path(parent.full_path.c_str(), candidate.c_str()).c_str()))
-					return candidate;
-			}
-
-			return {};
-		}
-
 		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node)
 		{
 			editor_app_t& app = editor_app_t::get();
@@ -105,17 +81,15 @@ namespace sfg
 			if (prefab_json.is_null())
 				return false;
 
-			const string_t name = make_unique_prefab_asset_name(parent_node, world.get_entity_name(entity_payload.entity));
-			if (name.empty())
-				return false;
-
-			const string_t					 json_text = prefab_json.dump();
+			const char* const				 entity_name = world.get_entity_name(entity_payload.entity);
+			const string_t					 name		 = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
+			const string_t					 json_text	 = prefab_json.dump();
 			const editor_asset_create_desc_t desc{
 				.parent_node	 = parent_node,
 				.name			 = name.c_str(),
 				.embedded_data	 = json_text.c_str(),
 				.asset_type		 = editor_asset_type_e::prefab,
-				.allow_overwrite = false,
+				.allow_overwrite = true,
 			};
 			return editor_asset_creator_t::create_asset(desc);
 		}

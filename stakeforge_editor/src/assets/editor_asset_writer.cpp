@@ -70,9 +70,15 @@ namespace sfg
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
+		sid_t guid = desc.guid;
+		if (guid == NULL_SID && desc.allow_overwrite)
+			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+		if (guid == NULL_SID)
+			guid = editor_asset_util_t::generate_unique_asset_guid();
+
 		editor_asset_t asset = {};
 		asset.version		 = editor_asset_t::VERSION;
-		asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
+		asset.guid			 = guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::file;
 		asset.sub_type		 = desc.sub_type;
@@ -133,9 +139,15 @@ namespace sfg
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
+		sid_t guid = desc.guid;
+		if (guid == NULL_SID && desc.allow_overwrite)
+			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+		if (guid == NULL_SID)
+			guid = editor_asset_util_t::generate_unique_asset_guid();
+
 		editor_asset_t asset  = {};
 		asset.version		  = editor_asset_t::VERSION;
-		asset.guid			  = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
+		asset.guid			  = guid;
 		asset.asset_type	  = desc.asset_type;
 		asset.source_type	  = editor_asset_source_type_e::embedded;
 		asset.sub_type		  = desc.sub_type;
@@ -166,9 +178,15 @@ namespace sfg
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
+		sid_t guid = desc.guid;
+		if (guid == NULL_SID && desc.allow_overwrite)
+			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+		if (guid == NULL_SID)
+			guid = editor_asset_util_t::generate_unique_asset_guid();
+
 		editor_asset_t asset = {};
 		asset.version		 = editor_asset_t::VERSION;
-		asset.guid			 = desc.guid != NULL_SID ? desc.guid : editor_asset_util_t::generate_unique_asset_guid();
+		asset.guid			 = guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::none;
 		asset.sub_type		 = desc.sub_type;

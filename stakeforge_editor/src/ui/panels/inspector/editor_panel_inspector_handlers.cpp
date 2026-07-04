@@ -190,14 +190,12 @@ namespace sfg
 	void editor_panel_inspector_t::on_component_edit_begin(void* user_data)
 	{
 		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
-		SFG_TRACE("component edit begin {0}", data.component_type);
 		data.panel->begin_component_edit(data.component_type);
 	}
 
 	void editor_panel_inspector_t::on_component_edit_submitted(void* user_data)
 	{
 		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
-		SFG_TRACE("component edit submitted {0}", data.component_type);
 		data.panel->submit_component_edit(data.component_type);
 	}
 
