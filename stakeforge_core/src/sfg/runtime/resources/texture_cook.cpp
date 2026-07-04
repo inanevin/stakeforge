@@ -88,28 +88,39 @@ namespace sfg
 			if (levels > 1)
 				image_util_t::generate_mips(buffers, levels, image_util_t::mip_gen_filter::def, channels, cfg.is_linear, false);
 
-			const u8	   is_linear_u8 = cfg.is_linear ? 1 : 0;
-			const format_e raw_format	= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
-			out_header					= {
-								 .magic		  = texture_loader_t::WIRE_MAGIC,
-								 .version	  = texture_loader_t::WIRE_VERSION,
-								 .source_tick = source_tick,
-			 };
+			const u8		 is_linear_u8	= cfg.is_linear ? 1 : 0;
+			const format_e	 raw_format		= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
+			texture_header_t texture_header = {};
+			texture_header.texture_format	= raw_format;
+			texture_header.payload_type		= cfg.payload_type;
+			texture_header.ktx2_compression = cfg.ktx2_compression;
+			texture_header.size				= size;
+			texture_header.bpp				= channels;
+			texture_header.mip_count		= levels;
+			texture_header.is_linear		= is_linear_u8;
 
-			stream << cfg.payload_type << channels << is_linear_u8 << cfg.ktx2_compression;
+			out_header = {
+				.magic		 = texture_loader_t::WIRE_MAGIC,
+				.version	 = texture_loader_t::WIRE_VERSION,
+				.source_tick = source_tick,
+			};
 
 			if (cfg.payload_type == texture_payload_type_e::uncompressed)
 			{
 				ostream_t raw_stream;
-				raw_stream << raw_format << levels;
+				u32		  byte_offset = 0;
 
 				for (u8 i = 0; i < levels; i++)
 				{
 					const texture_buffer_t& buf = buffers[i];
-					raw_stream << buf.bpp;
-					raw_stream << buf.size;
-					raw_stream << buf.row_pitch;
-					raw_stream << buf.data_size;
+					texture_header.mips[i]		= {
+							 .byte_offset = byte_offset,
+							 .data_size	  = buf.data_size,
+							 .row_pitch	  = buf.row_pitch,
+							 .size		  = buf.size,
+							 .bpp		  = buf.bpp,
+					 };
+					byte_offset += buf.data_size;
 					raw_stream.write_raw(buf.pixels, buf.data_size);
 				}
 
@@ -122,17 +133,19 @@ namespace sfg
 
 				SFG_ASSERT(compressed.get_size() <= UINT32_MAX);
 				const u32 blob_size = static_cast<u32>(compressed.get_size());
+				stream << texture_header;
 				stream << blob_size;
 				stream.write_raw(compressed.get_raw(), blob_size);
 			}
 			else if (cfg.payload_type == texture_payload_type_e::png)
 			{
-				stream << raw_format << levels;
+				ostream_t png_streams[texture_loader_t::MAX_MIPS] = {};
+				u32		  byte_offset							  = 0;
 
 				for (u8 i = 0; i < levels; i++)
 				{
-					const texture_buffer_t& buf = buffers[i];
-					ostream_t				png_stream;
+					const texture_buffer_t& buf		   = buffers[i];
+					ostream_t&				png_stream = png_streams[i];
 					if (stbi_write_png_to_func(write_png_data, &png_stream, buf.size.x, buf.size.y, channels, buf.pixels, buf.row_pitch) == 0 || png_stream.get_size() == 0)
 					{
 						SFG_ERR("failed to encode PNG texture for {0}", source_name);
@@ -140,9 +153,22 @@ namespace sfg
 					}
 
 					SFG_ASSERT(png_stream.get_size() <= UINT32_MAX);
-					const u32 blob_size = static_cast<u32>(png_stream.get_size());
-					stream << blob_size;
-					stream.write_raw(png_stream.get_raw(), blob_size);
+					const u32 blob_size	   = static_cast<u32>(png_stream.get_size());
+					texture_header.mips[i] = {
+						.byte_offset = byte_offset,
+						.data_size	 = blob_size,
+						.row_pitch	 = buf.row_pitch,
+						.size		 = buf.size,
+						.bpp		 = buf.bpp,
+					};
+					byte_offset += blob_size;
+				}
+
+				stream << texture_header;
+				for (u8 i = 0; i < levels; i++)
+				{
+					const ostream_t& png_stream = png_streams[i];
+					stream.write_raw(png_stream.get_raw(), png_stream.get_size());
 				}
 			}
 			else
@@ -232,8 +258,15 @@ namespace sfg
 				}
 
 				SFG_ASSERT(ktx_size <= UINT32_MAX);
-				const u32 blob_size = static_cast<u32>(ktx_size);
-				stream << blob_size;
+				const u32 blob_size	   = static_cast<u32>(ktx_size);
+				texture_header.mips[0] = {
+					.byte_offset = 0,
+					.data_size	 = blob_size,
+					.row_pitch	 = buffers[0].row_pitch,
+					.size		 = buffers[0].size,
+					.bpp		 = buffers[0].bpp,
+				};
+				stream << texture_header;
 				stream.write_raw(ktx_bytes, blob_size);
 
 				SFG_FREE(ktx_bytes);
@@ -310,13 +343,7 @@ namespace sfg
 			.display_name = "Texture Cook Config",
 			.fields =
 				{
-					{.name		   = "size",
-					 .display_name = "Size",
-					 .sub_type_id  = type_id_t<vec2u16_t>::value,
-					 .offset	   = offsetof(texture_cook_config_t, size),
-					 .size		   = sizeof(vec2u16_t),
-					 .flags		   = reflected_field_flag_no_ui,
-					 .type		   = reflected_value_type_e::object},
+					{.name = "size", .display_name = "Size", .sub_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(texture_cook_config_t, size), .size = sizeof(vec2u16_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::object},
 					{.name		   = "payload_type",
 					 .display_name = "Payload Type",
 					 .sub_type_id  = type_id_t<texture_payload_type_e>::value,
