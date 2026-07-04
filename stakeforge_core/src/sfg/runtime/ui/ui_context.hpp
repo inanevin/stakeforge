@@ -40,8 +40,9 @@ namespace sfg::ui
 {
 	class ui_context;
 
-	using ui_pre_layout_tick_fn = void (*)(ui_context& ui, widget_id_t id, f32 dt_seconds, void* user_data);
-	using ui_mutation_fn		= void (*)(ui_context& ui, void* user_data);
+	using ui_pre_layout_tick_fn	 = void (*)(ui_context& ui, widget_id_t id, f32 dt_seconds, void* user_data);
+	using ui_post_layout_tick_fn = void (*)(ui_context& ui, widget_id_t id, f32 dt_seconds, void* user_data);
+	using ui_mutation_fn		 = void (*)(ui_context& ui, void* user_data);
 
 	enum class ui_phase_e : u8
 	{
@@ -50,6 +51,7 @@ namespace sfg::ui
 		pre_layout,
 		text_layout,
 		layout,
+		post_layout,
 		input,
 		paint,
 	};
@@ -97,6 +99,8 @@ namespace sfg::ui
 		void		deallocate_widget(widget_id_t id);
 		void		set_pre_layout_tick(widget_id_t id, ui_pre_layout_tick_fn fn, void* user_data);
 		void		clear_pre_layout_tick(widget_id_t id);
+		void		set_post_layout_tick(widget_id_t id, ui_post_layout_tick_fn fn, void* user_data);
+		void		clear_post_layout_tick(widget_id_t id);
 		void		request_mutation(ui_mutation_fn fn, void* user_data);
 		void		request_unique_mutation(ui_mutation_fn fn, void* user_data);
 		void		cancel_mutations(void* user_data);
@@ -207,6 +211,12 @@ namespace sfg::ui
 			void*				  user_data = nullptr;
 		};
 
+		struct post_layout_tick_def_t
+		{
+			ui_post_layout_tick_fn fn		 = nullptr;
+			void*				   user_data = nullptr;
+		};
+
 		struct mutation_request_t
 		{
 			ui_mutation_fn fn		 = nullptr;
@@ -218,6 +228,7 @@ namespace sfg::ui
 		void clear_widget_state_recursive(widget_id_t id);
 		void drain_mutations();
 		void run_pre_layout_ticks(f32 dt_seconds);
+		void run_post_layout_ticks(f32 dt_seconds);
 		void draw_debug_hovered_widget();
 		void set_phase(ui_phase_e phase);
 		bool is_topology_mutation_allowed() const;
@@ -230,6 +241,7 @@ namespace sfg::ui
 		paint_layer_t							   _paint;
 		fixed_vector_t<mutation_request_t>		   _mutation_requests;
 		fixed_vector_t<widget_id_t>				   _pre_layout_tick_widgets;
+		fixed_vector_t<widget_id_t>				   _post_layout_tick_widgets;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_texts;
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
 		text_allocator_t						   _text_pool;
@@ -244,5 +256,6 @@ namespace sfg::ui
 		ui_phase_e								   _phase			 = ui_phase_e::idle;
 		bool									   _debug_draw		 = false;
 		fixed_vector_t<pre_layout_tick_def_t>	   _pre_layout_tick_defs;
+		fixed_vector_t<post_layout_tick_def_t>	   _post_layout_tick_defs;
 	};
 }

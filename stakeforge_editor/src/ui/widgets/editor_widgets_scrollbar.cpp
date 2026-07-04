@@ -41,6 +41,7 @@ namespace sfg
 #define EDITOR_SCROLLBAR_WHEEL_SMOOTH_TIME 0.08f
 #define EDITOR_SCROLLBAR_WHEEL_MAX_SPEED   6000.0f
 #define EDITOR_SCROLLBAR_WHEEL_SNAP_EPS	   0.25f
+#define EDITOR_SCROLLBAR_SHOW_EPS		   1.0f
 
 	namespace
 	{
@@ -68,7 +69,8 @@ namespace sfg
 		ui.set_widget_debug_name(_root, "scrollbar");
 		tree.attach(tree.node(config.target).parent, _root);
 		tree.draw_order(_root) = tree.draw_order_const(config.target) + 128;
-		ui.set_pre_layout_tick(_root, on_tick, this);
+		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
+		ui.set_post_layout_tick(_root, on_post_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible | ui::wf_overlay;
@@ -199,15 +201,18 @@ namespace sfg
 		ui::layout_tree_t&		tree	   = _ui->get_tree();
 		ui::layout_in_t&		target_in  = tree.in(_config.target);
 		const ui::layout_out_t& target_out = tree.out(_config.target);
-		const ui::layout_out_t& track_out  = tree.out(axis.track);
 		ui::layout_in_t&		track_in   = tree.in(axis.track);
+		ui::layout_out_t&		track_out  = tree.out(axis.track);
 		ui::layout_in_t&		thumb_in   = tree.in(axis.thumb);
+		ui::layout_out_t&		thumb_out  = tree.out(axis.thumb);
 
 		const f32 max_scroll = axis.axis == axis_e::x ? target_out.max_scroll.x : target_out.max_scroll.y;
-		if (!enabled || max_scroll <= 0.0f)
+		if (!enabled || max_scroll * ui_scale <= EDITOR_SCROLLBAR_SHOW_EPS)
 		{
 			track_in.flags = 0;
 			thumb_in.flags = 0;
+			track_out.clip = {};
+			thumb_out.clip = {};
 			if (axis.axis == axis_e::x)
 				target_in.scroll_offset.x = 0.0f;
 			else
@@ -217,6 +222,19 @@ namespace sfg
 
 		track_in.flags = ui::wf_visible | ui::wf_input;
 		thumb_in.flags = ui::wf_visible | ui::wf_input;
+
+		const f32 thickness = EDITOR_SCROLLBAR_THICKNESS * ui_scale;
+		if (axis.axis == axis_e::x)
+		{
+			track_out.pos  = {target_out.pos.x, target_out.pos.y + target_out.size.y - thickness};
+			track_out.size = {target_out.size.x, thickness};
+		}
+		else
+		{
+			track_out.pos  = {target_out.pos.x + target_out.size.x - thickness, target_out.pos.y};
+			track_out.size = {thickness, target_out.size.y};
+		}
+		track_out.clip = ui::intersect_clip_rect(target_out.clip, {track_out.pos.x, track_out.pos.y, track_out.size.x, track_out.size.y});
 
 		const f32 viewport	= axis.axis == axis_e::x ? track_out.size.x : track_out.size.y;
 		const f32 scroll_px = max_scroll * ui_scale;
@@ -232,6 +250,8 @@ namespace sfg
 			thumb_in.size_mode_y = ui::axis_mode_e::parent_relative;
 			thumb_in.size_value	 = {thumb / ui_scale, 1.0f};
 			thumb_in.pos_value	 = {pos / ui_scale, 0.0f};
+			thumb_out.pos		 = {track_out.pos.x + pos, track_out.pos.y};
+			thumb_out.size		 = {thumb, track_out.size.y};
 		}
 		else
 		{
@@ -239,7 +259,10 @@ namespace sfg
 			thumb_in.size_mode_y = ui::axis_mode_e::fixed;
 			thumb_in.size_value	 = {1.0f, thumb / ui_scale};
 			thumb_in.pos_value	 = {0.0f, pos / ui_scale};
+			thumb_out.pos		 = {track_out.pos.x, track_out.pos.y + pos};
+			thumb_out.size		 = {track_out.size.x, thumb};
 		}
+		thumb_out.clip = ui::intersect_clip_rect(track_out.clip, {thumb_out.pos.x, thumb_out.pos.y, thumb_out.size.x, thumb_out.size.y});
 	}
 
 	void editor_scrollbar_t::set_scroll(axis_e axis, f32 value)
@@ -320,14 +343,13 @@ namespace sfg
 		set_scroll_immediate(axis.axis, -ratio * max_scroll);
 	}
 
-	void editor_scrollbar_t::on_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
+	void editor_scrollbar_t::update_layout_outputs()
 	{
-		editor_scrollbar_t& scrollbar = *static_cast<editor_scrollbar_t*>(user_data);
-		ui::layout_tree_t&	tree	  = scrollbar._ui->get_tree();
-		ui::layout_in_t&	root_in	  = tree.in(scrollbar._root);
-		bool				visible	  = true;
-		ui::widget_id_t		id		  = scrollbar._config.target;
-		while (id != NULL_WIDGET)
+		ui::layout_tree_t& tree	   = _ui->get_tree();
+		ui::layout_in_t&   root_in = tree.in(_root);
+		bool			   visible = true;
+		ui::widget_id_t	   id	   = _config.target;
+		while (id != NULL_WIDGET && id != tree.get_root())
 		{
 			if ((tree.in_const(id).flags & ui::wf_visible) == 0)
 			{
@@ -338,28 +360,48 @@ namespace sfg
 		}
 		if (!visible)
 		{
-			root_in.flags					  = 0;
-			tree.in(scrollbar._x.track).flags = 0;
-			tree.in(scrollbar._x.thumb).flags = 0;
-			tree.in(scrollbar._y.track).flags = 0;
-			tree.in(scrollbar._y.thumb).flags = 0;
+			root_in.flags			= 0;
+			tree.out(_root).clip	= {};
+			tree.in(_x.track).flags = 0;
+			tree.in(_x.thumb).flags = 0;
+			tree.in(_y.track).flags = 0;
+			tree.in(_y.thumb).flags = 0;
+			tree.out(_x.track).clip = {};
+			tree.out(_x.thumb).clip = {};
+			tree.out(_y.track).clip = {};
+			tree.out(_y.thumb).clip = {};
 			return;
 		}
 
-		const ui::layout_out_t& target_out = tree.out(scrollbar._config.target);
-		const f32				ui_scale   = scrollbar._ui->get_ui_scale() > 0.0f ? scrollbar._ui->get_ui_scale() : 1.0f;
+		const ui::layout_out_t& target_out = tree.out(_config.target);
+		ui::layout_out_t&		root_out   = tree.out(_root);
+		const f32				ui_scale   = _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 		root_in.flags					   = ui::wf_visible | ui::wf_overlay;
 		root_in.pos_value				   = target_out.pos;
 		root_in.size_value				   = target_out.size / ui_scale;
+		root_out.pos					   = target_out.pos;
+		root_out.size					   = target_out.size;
+		root_out.clip					   = target_out.clip;
 
+		update_axis(_x);
+		update_axis(_y);
+	}
+
+	void editor_scrollbar_t::on_pre_layout_tick(ui::ui_context&, ui::widget_id_t, f32 dt_seconds, void* user_data)
+	{
+		editor_scrollbar_t&		scrollbar  = *static_cast<editor_scrollbar_t*>(user_data);
+		const ui::layout_out_t& target_out = scrollbar._ui->get_tree().out(scrollbar._config.target);
 		if (scrollbar._stick_y)
 			scrollbar.set_scroll_immediate(axis_e::y, -target_out.max_scroll.y);
 		else
 			scrollbar.update_wheel_scroll(dt_seconds);
-		scrollbar.update_axis(scrollbar._x);
-		scrollbar.update_axis(scrollbar._y);
 		if (scrollbar._stick_y)
 			scrollbar._stick_y = target_out.max_scroll.y <= 0.0f;
+	}
+
+	void editor_scrollbar_t::on_post_layout_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	{
+		static_cast<editor_scrollbar_t*>(user_data)->update_layout_outputs();
 	}
 
 	void editor_scrollbar_t::on_target_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)

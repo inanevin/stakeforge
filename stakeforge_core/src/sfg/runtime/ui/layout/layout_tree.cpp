@@ -32,17 +32,6 @@ namespace sfg::ui
 {
 	namespace
 	{
-		inline vec4f_t intersect_rect(const vec4f_t& a, const vec4f_t& b)
-		{
-			const f32 x = math::max(a.x, b.x);
-			const f32 y = math::max(a.y, b.y);
-			const f32 r = math::min(a.x + a.z, b.x + b.z);
-			const f32 t = math::min(a.y + a.w, b.y + b.w);
-			if (r < x || t < y)
-				return {0, 0, 0, 0};
-			return {x, y, r - x, t - y};
-		}
-
 		inline vec4f_t scale_rect(const vec4f_t& v, f32 scale)
 		{
 			return {v.x * scale, v.y * scale, v.z * scale, v.w * scale};
@@ -197,6 +186,12 @@ namespace sfg::ui
 	{
 		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
 		return _layout_ins[id];
+	}
+
+	layout_out_t& layout_tree_t::out(widget_id_t id)
+	{
+		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
+		return _layout_outs[id];
 	}
 
 	const layout_out_t& layout_tree_t::out(widget_id_t id) const
@@ -638,7 +633,7 @@ namespace sfg::ui
 			}
 
 			const layout_out_t& pout = _layout_outs[n.parent];
-			out.clip				 = intersect_rect(pout.clip, bbox);
+			out.clip				 = intersect_clip_rect(pout.clip, bbox);
 		}
 
 		_layout_dirty = false;

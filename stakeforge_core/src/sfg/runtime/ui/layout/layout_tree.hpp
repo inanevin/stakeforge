@@ -118,6 +118,17 @@ namespace sfg::ui
 		u8			alive		 = 0;
 	};
 
+	inline vec4f_t intersect_clip_rect(const vec4f_t& a, const vec4f_t& b)
+	{
+		const f32 x = a.x > b.x ? a.x : b.x;
+		const f32 y = a.y > b.y ? a.y : b.y;
+		const f32 r = a.x + a.z < b.x + b.z ? a.x + a.z : b.x + b.z;
+		const f32 t = a.y + a.w < b.y + b.w ? a.y + a.w : b.y + b.w;
+		if (r < x || t < y)
+			return {0, 0, 0, 0};
+		return {x, y, r - x, t - y};
+	}
+
 	class layout_tree_t;
 
 	using custom_solve_fn = void (*)(layout_tree_t& tree, widget_id_t id, void* user_data);
@@ -152,6 +163,7 @@ namespace sfg::ui
 		u32					draw_order_const(widget_id_t id) const;
 		layout_in_t&		in(widget_id_t id);
 		const layout_in_t&	in_const(widget_id_t id) const;
+		layout_out_t&		out(widget_id_t id);
 		const layout_out_t& out(widget_id_t id) const;
 		vec4f_t				bounds(widget_id_t id) const;
 		bool				is_alive(widget_id_t id) const;

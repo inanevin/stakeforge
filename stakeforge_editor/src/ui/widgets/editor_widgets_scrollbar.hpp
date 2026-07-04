@@ -89,9 +89,11 @@ namespace sfg
 		void set_scroll(axis_e axis, f32 value);
 		void set_scroll_immediate(axis_e axis, f32 value);
 		void update_wheel_scroll(f32 dt_seconds);
+		void update_layout_outputs();
 		void scroll_track_to(axis_state_t& axis, const vec2f_t& pos);
 
-		static void on_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_post_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_target_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static void on_track_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_thumb_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);

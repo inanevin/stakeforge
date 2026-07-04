@@ -67,6 +67,9 @@ namespace sfg::ui
 		_pre_layout_tick_defs.init(cfg.max_widgets);
 		_pre_layout_tick_widgets.init(cfg.max_widgets);
 		_pre_layout_tick_defs.resize(cfg.max_widgets);
+		_post_layout_tick_defs.init(cfg.max_widgets);
+		_post_layout_tick_widgets.init(cfg.max_widgets);
+		_post_layout_tick_defs.resize(cfg.max_widgets);
 		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
 		_debug_hover_text.len = 0;
 
@@ -93,6 +96,8 @@ namespace sfg::ui
 		_widget_debug_names.clear();
 		_widget_texts.clear();
 		_debug_hover_text = {};
+		_post_layout_tick_widgets.uninit();
+		_post_layout_tick_defs.uninit();
 		_pre_layout_tick_widgets.uninit();
 		_pre_layout_tick_defs.uninit();
 		_mutation_requests.uninit();
@@ -144,6 +149,8 @@ namespace sfg::ui
 		_paint.update_text_layout(_tree, _ui_scale, _dpi_scale);
 		set_phase(ui_phase_e::layout);
 		_tree.solve(screen_rect, _ui_scale);
+		set_phase(ui_phase_e::post_layout);
+		run_post_layout_ticks(dt_seconds);
 		set_phase(ui_phase_e::input);
 		_input.tick(_tree, dt_seconds);
 
@@ -213,6 +220,37 @@ namespace sfg::ui
 		}
 	}
 
+	void ui_context::set_post_layout_tick(widget_id_t id, ui_post_layout_tick_fn fn, void* user_data)
+	{
+		SFG_ASSERT(_tree.is_alive(id));
+		SFG_ASSERT(fn != nullptr);
+
+		post_layout_tick_def_t& def = _post_layout_tick_defs[id];
+		if (def.fn == nullptr)
+			_post_layout_tick_widgets.push_back(id);
+		def.fn		  = fn;
+		def.user_data = user_data;
+	}
+
+	void ui_context::clear_post_layout_tick(widget_id_t id)
+	{
+		SFG_ASSERT(id < _post_layout_tick_defs.size());
+
+		post_layout_tick_def_t& def = _post_layout_tick_defs[id];
+		if (def.fn == nullptr)
+			return;
+
+		def = {};
+		for (auto it = _post_layout_tick_widgets.begin(); it != _post_layout_tick_widgets.end(); ++it)
+		{
+			if (*it == id)
+			{
+				_post_layout_tick_widgets.erase(it);
+				return;
+			}
+		}
+	}
+
 	void ui_context::request_mutation(ui_mutation_fn fn, void* user_data)
 	{
 		SFG_ASSERT(fn != nullptr);
@@ -253,6 +291,7 @@ namespace sfg::ui
 
 		_input.clear_widget_state(id);
 		clear_pre_layout_tick(id);
+		clear_post_layout_tick(id);
 		clear_widget_text(id);
 		clear_widget_debug_name(id);
 		_paint.clear(id);
@@ -291,6 +330,32 @@ namespace sfg::ui
 
 			fn(*this, id, dt_seconds, user_data);
 			if (i < _pre_layout_tick_widgets.size() && _pre_layout_tick_widgets[i] == id)
+				++i;
+		}
+	}
+
+	void ui_context::run_post_layout_ticks(f32 dt_seconds)
+	{
+		for (size_t i = 0; i < _post_layout_tick_widgets.size();)
+		{
+			const widget_id_t id = _post_layout_tick_widgets[i];
+			if (!_tree.is_alive(id))
+			{
+				_post_layout_tick_widgets.erase(_post_layout_tick_widgets.begin() + i);
+				continue;
+			}
+
+			post_layout_tick_def_t& def		  = _post_layout_tick_defs[id];
+			ui_post_layout_tick_fn	fn		  = def.fn;
+			void*					user_data = def.user_data;
+			if (fn == nullptr)
+			{
+				_post_layout_tick_widgets.erase(_post_layout_tick_widgets.begin() + i);
+				continue;
+			}
+
+			fn(*this, id, dt_seconds, user_data);
+			if (i < _post_layout_tick_widgets.size() && _post_layout_tick_widgets[i] == id)
 				++i;
 		}
 	}
