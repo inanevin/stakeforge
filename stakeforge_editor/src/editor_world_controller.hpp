@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common_editor.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/vec2f.hpp>
@@ -100,6 +101,11 @@ namespace sfg
 			return _main_world;
 		}
 
+		inline const char* get_main_world_name() const
+		{
+			return _main_world_name.c_str();
+		}
+
 		inline f32 get_alpha() const
 		{
 			return calculate_render_alpha();
@@ -149,7 +155,7 @@ namespace sfg
 		const world_render_snapshot_t& acquire_render_snapshot(world_container_t& container);
 		f32							   calculate_render_alpha() const;
 		void						   destroy_worlds_internal(bool notify_panels);
-		void						   set_main_world(world_handle_t handle, sid_t asset_guid);
+		void						   set_main_world(world_handle_t handle, sid_t asset_guid, const char* name);
 		bool						   load_main_world_now(sid_t asset_guid);
 		void						   notify_main_world_changed();
 		void						   install_editor_camera(world_t& world);
@@ -164,6 +170,7 @@ namespace sfg
 	private:
 		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;
 		vector_t<world_container_t>						   _world_containers;
+		string_t										   _main_world_name;
 		vec3f_t											   _direction_input				  = vec3f_t::zero;
 		vec2f_t											   _mouse_delta					  = vec2f_t::zero;
 		world_handle_t									   _main_world					  = {};

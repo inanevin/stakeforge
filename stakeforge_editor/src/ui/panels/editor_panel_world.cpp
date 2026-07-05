@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/editor_payload_controller.hpp"
+#include "editor_app.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -75,7 +76,8 @@ namespace sfg
 	editor_panel_world_t::editor_panel_world_t()
 	{
 		set_type(editor_panel_type_e::world);
-		set_title(editor_panel_type_to_string(editor_panel_type_e::world));
+		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);
+		set_title(_title_text.c_str());
 	}
 
 	void editor_panel_world_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -132,7 +134,7 @@ namespace sfg
 		if (main_world.is_null())
 			clear_world();
 		else
-			set_world(controller.get_world_render_context(main_world));
+			set_world(controller.get_world_render_context(main_world), controller.get_main_world_name());
 	}
 
 	void editor_panel_world_t::uninit()
@@ -146,11 +148,12 @@ namespace sfg
 		editor_panel_t::uninit();
 	}
 
-	void editor_panel_world_t::set_world(const world_render_context_t& world)
+	void editor_panel_world_t::set_world(const world_render_context_t& world, const char* name)
 	{
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 
+		refresh_title(name);
 		_world = &world;
 		refresh_world_texture();
 
@@ -163,6 +166,8 @@ namespace sfg
 	{
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
+
+		refresh_title("");
 
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
 		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
@@ -179,6 +184,22 @@ namespace sfg
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 		return _ui->get_tree().bounds(_world_view);
+	}
+
+	void editor_panel_world_t::refresh_title(const char* name)
+	{
+		SFG_ASSERT(name != nullptr);
+
+		const sid_t old_identifier = TO_SID(get_title());
+		_title_text				   = editor_panel_type_to_string(editor_panel_type_e::world);
+		if (name[0] != '\0')
+		{
+			_title_text += ": ";
+			_title_text += name;
+		}
+		set_title(_title_text.c_str());
+		if (_ui != nullptr)
+			editor_app_t::get().refresh_panel_title(this, old_identifier);
 	}
 
 	void editor_panel_world_t::refresh_world_texture()

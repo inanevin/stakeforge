@@ -61,6 +61,7 @@ namespace sfg
 		bool init();
 		void uninit();
 		void tick();
+		void stop_render();
 
 		void destroy_surface(surface_handle_t handle);
 		bool create_project(const char* path);
@@ -74,31 +75,12 @@ namespace sfg
 		editor_panel_t*	  find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
 		editor_panel_t*	  find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
 		void			  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		void			  refresh_panel_title(editor_panel_t* panel, sid_t old_identifier);
 		editor_surface_t& get_main_surface();
 
 		inline engine_runtime_t& get_runtime()
 		{
 			return _runtime;
-		}
-
-		inline editor_world_controller_t& get_world_controller()
-		{
-			return _world_controller;
-		}
-
-		inline editor_world_metadata_t& get_world_metadata()
-		{
-			return _world_metadata;
-		}
-
-		inline editor_command_system_t& get_command_system()
-		{
-			return _command_system;
-		}
-
-		inline editor_selection_controller_t& get_selection_controller()
-		{
-			return _selection_controller;
 		}
 
 		inline tf::Executor& get_editor_work_executor()

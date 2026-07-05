@@ -379,6 +379,11 @@ namespace sfg
 		frame_allocator_tls_t::uninit();
 	}
 
+	void editor_app_t::stop_render()
+	{
+		_renderer.end_render();
+	}
+
 	void editor_app_t::load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout)
 	{
 		const nlohmann::json doc = nlohmann::json::parse(dock_layout, nullptr, false);
@@ -647,6 +652,21 @@ namespace sfg
 		dock.set_root_node(leaf);
 		dock.dock_node_add_panel(leaf, panel);
 		process::bring_to_front(surface.runtime->window_handle);
+	}
+
+	void editor_app_t::refresh_panel_title(editor_panel_t* panel, sid_t old_identifier)
+	{
+		SFG_ASSERT(panel != nullptr);
+
+		for (editor_surface_t& surface : _surfaces)
+		{
+			if (surface.type == editor_surface_type_e::primary && surface.primary->get_dock_widget().refresh_panel_title(panel, old_identifier))
+				return;
+			if (surface.type == editor_surface_type_e::secondary && surface.secondary->get_dock_widget().refresh_panel_title(panel, old_identifier))
+				return;
+		}
+
+		SFG_ASSERT(false);
 	}
 
 	editor_surface_t& editor_app_t::get_main_surface()

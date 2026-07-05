@@ -98,6 +98,7 @@ namespace sfg
 
 		void add_tab(const char* title);
 		void remove_tab(sid_t identifier);
+		void rename_tab(sid_t identifier, const char* title);
 		void select_tab(sid_t identifier);
 
 		// -----------------------------------------------------------------------------

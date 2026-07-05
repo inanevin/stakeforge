@@ -145,6 +145,7 @@ namespace sfg
 
 	void editor_world_controller_t::destroy_world(world_handle_t handle)
 	{
+		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		for (auto it = _world_containers.begin(); it != _world_containers.end(); ++it)
@@ -162,7 +163,7 @@ namespace sfg
 
 				if (was_main_world)
 				{
-					set_main_world({}, NULL_SID);
+					set_main_world({}, NULL_SID, "");
 					_main_camera_entity = NULL_ENTITY_ID;
 				}
 				return;
@@ -195,13 +196,14 @@ namespace sfg
 		reset_camera_input();
 
 		if (notify_panels)
-			set_main_world({}, NULL_SID);
+			set_main_world({}, NULL_SID, "");
 		else
 		{
 			_main_world					   = {};
 			_main_world_asset_guid		   = NULL_SID;
 			_pending_main_world_asset_guid = NULL_SID;
-			_main_world_dirty			   = false;
+			_main_world_name.resize(0);
+			_main_world_dirty = false;
 		}
 	}
 
@@ -326,6 +328,8 @@ namespace sfg
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
 	{
+		editor_app_t::get().stop_render();
+
 		if (!_main_world.is_null() && _main_world_dirty)
 		{
 			_pending_main_world_asset_guid		 = asset_guid;
@@ -343,17 +347,20 @@ namespace sfg
 
 	void editor_world_controller_t::load_dummy_world()
 	{
+		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		destroy_worlds_internal(false);
 
 		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
 		install_default_world(handle);
-		set_main_world(handle, NULL_SID);
+		set_main_world(handle, NULL_SID, "unnamed");
 	}
 
 	bool editor_world_controller_t::load_main_world_now(sid_t asset_guid)
 	{
+		editor_app_t::get().stop_render();
+
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);
 		if (asset == nullptr || asset->asset_type != editor_asset_type_e::world)
 		{
@@ -374,9 +381,11 @@ namespace sfg
 			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
+			install_editor_camera(world);
 		}
 
-		set_main_world(handle, asset_guid);
+		const char* asset_name = editor_asset_util_t::find_asset_display_name(asset_guid);
+		set_main_world(handle, asset_guid, asset_name != nullptr ? asset_name : "unnamed");
 		_main_world_dirty		  = false;
 		editor_project_t& project = editor_project_t::get();
 		project.last_world_guid	  = asset_guid;
@@ -455,14 +464,17 @@ namespace sfg
 		return true;
 	}
 
-	void editor_world_controller_t::set_main_world(world_handle_t handle, sid_t asset_guid)
+	void editor_world_controller_t::set_main_world(world_handle_t handle, sid_t asset_guid, const char* name)
 	{
-		if (_main_world == handle && _main_world_asset_guid == asset_guid)
+		SFG_ASSERT(name != nullptr);
+
+		if (_main_world == handle && _main_world_asset_guid == asset_guid && _main_world_name == name)
 			return;
 
 		_main_world					   = handle;
 		_main_world_asset_guid		   = asset_guid;
 		_pending_main_world_asset_guid = NULL_SID;
+		_main_world_name			   = name;
 		_main_world_dirty			   = false;
 		editor_command_system_t::get().clear();
 		notify_main_world_changed();
@@ -537,7 +549,7 @@ namespace sfg
 			if (_main_world.is_null())
 				world_panel->clear_world();
 			else
-				world_panel->set_world(get_world_render_context(_main_world));
+				world_panel->set_world(get_world_render_context(_main_world), _main_world_name.c_str());
 		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::entities))

@@ -267,9 +267,30 @@ namespace sfg
 		SFG_ASSERT(panel != nullptr);
 
 		node.tab_area.add_tab(panel->get_title());
-		panel->assign(*_ui, node.body);
 		node.panels.push_back(panel);
+		panel->assign(*_ui, node.body);
 		node.tab_area.select_tab(TO_SID(panel->get_title()));
+	}
+
+	bool dock_widget_t::refresh_panel_title(editor_panel_t* panel, sid_t old_identifier)
+	{
+		SFG_ASSERT(panel != nullptr);
+
+		for (dock_node_t& node : _dock_nodes)
+		{
+			if (node.node_type != dock_node_type_e::leaf)
+				continue;
+
+			for (editor_panel_t* candidate : node.panels)
+			{
+				if (candidate == panel)
+				{
+					node.tab_area.rename_tab(old_identifier, panel->get_title());
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	void dock_widget_t::dock_node_remove_panel(dock_node_t& node, sid_t identifier)

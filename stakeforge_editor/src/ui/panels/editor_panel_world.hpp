@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel.hpp"
+#include <sfg/data/string.hpp>
 
 namespace sfg
 {
@@ -43,11 +44,12 @@ namespace sfg
 
 		void	init(ui::ui_context& ui, ui::widget_id_t parent) override;
 		void	uninit() override;
-		void	set_world(const world_render_context_t& world);
+		void	set_world(const world_render_context_t& world, const char* name);
 		void	clear_world();
 		vec4f_t get_world_view_bounds() const;
 
 	private:
+		void refresh_title(const char* title);
 		void refresh_world_texture();
 
 		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
@@ -55,6 +57,7 @@ namespace sfg
 
 	private:
 		const world_render_context_t* _world	   = nullptr;
+		string_t					  _title_text  = {};
 		ui::widget_id_t				  _world_view  = NULL_WIDGET;
 		ui::widget_id_t				  _empty_label = NULL_WIDGET;
 	};

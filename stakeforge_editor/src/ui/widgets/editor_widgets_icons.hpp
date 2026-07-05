@@ -25,6 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #pragma once
 
+#define ICON_PEN			 "\u0065"
+#define ICON_SETTINGS		 "\u0034"
+#define ICON_TRIANGLE		 "\u0032"
+#define ICON_GLOBE			 "\u005A"
+#define ICON_GLASSES		 "\u005E"
+#define ICON_BOXES			 "\u005F"
 #define ICON_FOLDER			 "\u0061"
 #define ICON_ARROW_RIGHT	 "\u0071"
 #define ICON_DD_RIGHT		 "\u0046"

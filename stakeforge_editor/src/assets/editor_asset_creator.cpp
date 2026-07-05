@@ -237,9 +237,7 @@ namespace sfg
 
 		bool create_world_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-			const nlohmann::json					 embedded_source = nlohmann::json::object();
-			const editor_asset_write_embedded_desc_t write_desc{
-				.embedded_source = &embedded_source,
+			const editor_asset_write_none_desc_t write_desc{
 				.parent_node	 = desc.parent_node,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
@@ -247,7 +245,7 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset);
 		}
 	}
 
