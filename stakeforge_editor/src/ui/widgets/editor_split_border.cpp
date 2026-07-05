@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include <sfg/io/assert.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>

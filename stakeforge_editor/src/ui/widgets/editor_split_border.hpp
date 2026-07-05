@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -44,6 +43,8 @@ namespace sfg
 		horizontal,
 		vertical,
 	};
+
+	struct vec2f_t;
 
 	class editor_split_border_t final
 	{

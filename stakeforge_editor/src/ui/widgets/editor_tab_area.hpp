@@ -140,14 +140,14 @@ namespace sfg
 		static void on_close_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		ui::ui_context*			 _ui   = nullptr;
-		ui::widget_id_t			 _root = NULL_WIDGET;
+		editor_tab_area_config_t _config = {};
 		vector_t<editor_tab_t>	 _tabs;
-		editor_tab_area_config_t _config			   = {};
+		ui::ui_context*			 _ui				   = nullptr;
 		sid_t					 _active_tab		   = 0;
 		sid_t					 _drag_tab			   = 0;
 		sid_t					 _pending_close_tab	   = 0;
 		sid_t					 _pending_drag_out_tab = 0;
 		vec2f_t					 _drag_offset		   = {};
+		ui::widget_id_t			 _root				   = NULL_WIDGET;
 	};
 }
