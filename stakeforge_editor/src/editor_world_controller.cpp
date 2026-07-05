@@ -27,8 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "editor_world_controller.hpp"
 #include "assets/editor_asset_util.hpp"
-#include "editor_selection_controller.hpp"
-#include "editor_world_metadata.hpp"
 #include "editor_app.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -76,12 +74,14 @@ namespace sfg
 		render_context	= static_cast<world_render_context_t&&>(other.render_context);
 		world_resources = static_cast<vector_t<u64>&&>(other.world_resources);
 		snapshot_mailbox.store(other.snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
+		edit_context  = other.edit_context;
 		handle		  = other.handle;
 		producer_slot = other.producer_slot;
 		consumer_slot = other.consumer_slot;
 
 		other.snapshot_mailbox.store(0, std::memory_order_relaxed);
 		other.world_resources.resize(0);
+		other.edit_context	= {};
 		other.handle		= {};
 		other.producer_slot = 0;
 		other.consumer_slot = 0;
@@ -91,7 +91,8 @@ namespace sfg
 	void editor_world_controller_t::init()
 	{
 		SFG_ASSERT(s_instance == nullptr);
-		s_instance		  = this;
+		s_instance = this;
+		_edit_contexts.reserve(8);
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
@@ -111,8 +112,10 @@ namespace sfg
 		}
 
 		destroy_worlds_internal(false);
-		_previous_time_us = 0;
-		_accumulator_us	  = 0;
+		_edit_contexts.clear();
+		_main_edit_context = {};
+		_previous_time_us  = 0;
+		_accumulator_us	   = 0;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 		reset_camera_input();
@@ -128,10 +131,15 @@ namespace sfg
 		world_t&			 world	= _worlds.get(handle);
 		world.init();
 
-		world_container_t& container = _world_containers.emplace_back();
-		container.handle			 = handle;
-		container.producer_slot		 = 0;
-		container.consumer_slot		 = 1;
+		world_container_t& container		 = _world_containers.emplace_back();
+		container.handle					 = handle;
+		container.edit_context				 = _edit_contexts.emplace();
+		editor_world_edit_context_t& context = _edit_contexts.get(container.edit_context);
+		context.init();
+		context.set_handle(container.edit_context);
+		context.set_world(handle);
+		container.producer_slot = 0;
+		container.consumer_slot = 1;
 		container.snapshot_mailbox.store(2, std::memory_order_relaxed);
 		container.render_context.init(render_resolution);
 
@@ -148,29 +156,50 @@ namespace sfg
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
+		const bool was_main_world = _main_world == handle;
+		if (was_main_world)
+			set_main_world({}, NULL_SID, "");
+
+		destroy_world_internal(handle);
+
+		if (was_main_world)
+		{
+			_main_camera_entity = NULL_ENTITY_ID;
+			reset_camera_input();
+		}
+	}
+
+	void editor_world_controller_t::destroy_world_internal(world_handle_t handle)
+	{
 		for (auto it = _world_containers.begin(); it != _world_containers.end(); ++it)
 		{
 			if (it->handle == handle)
 			{
-				const bool was_main_world = _main_world == handle;
-
 				it->render_context.uninit();
+				_edit_contexts.get(it->edit_context).uninit();
+				_edit_contexts.remove(it->edit_context);
 				world_t& world = _worlds.get(handle);
 				world.unload_all_used_resources();
 				world.uninit();
 				_worlds.remove(handle);
 				_world_containers.erase(it);
-
-				if (was_main_world)
-				{
-					set_main_world({}, NULL_SID, "");
-					_main_camera_entity = NULL_ENTITY_ID;
-				}
 				return;
 			}
 		}
 
 		SFG_ASSERT(false);
+	}
+
+	void editor_world_controller_t::destroy_main_world_internal()
+	{
+		if (_main_world.is_null())
+			return;
+
+		const world_handle_t handle = _main_world;
+		set_main_world({}, NULL_SID, "");
+		destroy_world_internal(handle);
+		_main_camera_entity = NULL_ENTITY_ID;
+		reset_camera_input();
 	}
 
 	void editor_world_controller_t::destroy_worlds()
@@ -182,9 +211,14 @@ namespace sfg
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
+		if (notify_panels && !_main_world.is_null())
+			set_main_world({}, NULL_SID, "");
+
 		for (world_container_t& container : _world_containers)
 		{
 			container.render_context.uninit();
+			_edit_contexts.get(container.edit_context).uninit();
+			_edit_contexts.remove(container.edit_context);
 			world_t& world = _worlds.get(container.handle);
 			world.unload_all_used_resources();
 			world.uninit();
@@ -194,17 +228,12 @@ namespace sfg
 		_world_containers.resize(0);
 		_main_camera_entity = NULL_ENTITY_ID;
 		reset_camera_input();
-
-		if (notify_panels)
-			set_main_world({}, NULL_SID, "");
-		else
-		{
-			_main_world					   = {};
-			_main_world_asset_guid		   = NULL_SID;
-			_pending_main_world_asset_guid = NULL_SID;
-			_main_world_name.resize(0);
-			_main_world_dirty = false;
-		}
+		_main_world					   = {};
+		_main_edit_context			   = {};
+		_main_world_asset_guid		   = NULL_SID;
+		_pending_main_world_asset_guid = NULL_SID;
+		_main_world_name.resize(0);
+		_main_world_dirty = false;
 	}
 
 	void editor_world_controller_t::resize_world(world_handle_t handle, vec2u16_t render_resolution)
@@ -350,7 +379,7 @@ namespace sfg
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		destroy_worlds_internal(false);
+		destroy_main_world_internal();
 
 		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
 		install_default_world(handle);
@@ -370,7 +399,7 @@ namespace sfg
 
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		destroy_worlds_internal(false);
+		destroy_main_world_internal();
 
 		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
 		if (asset->embedded_source.empty())
@@ -389,7 +418,7 @@ namespace sfg
 		if (!asset->embedded_source.empty())
 		{
 			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
-			editor_world_metadata_t::get().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
+			get_main_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
 			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
@@ -407,7 +436,7 @@ namespace sfg
 
 		nlohmann::json world_json = nlohmann::json::object();
 		world_cooker_t::world_to_json(_worlds.get(_main_world), world_json);
-		editor_world_metadata_t::get().write_folders_to_json(world_json["folders"]);
+		get_main_edit_context().write_folders_to_json(world_json["folders"]);
 
 		editor_asset_t		  asset = {};
 		string_t			  asset_path;
@@ -480,6 +509,7 @@ namespace sfg
 			return;
 
 		_main_world					   = handle;
+		_main_edit_context			   = handle.is_null() ? editor_world_edit_context_handle_t{} : get_edit_context(handle).get_handle();
 		_main_world_asset_guid		   = asset_guid;
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_name			   = name;
@@ -533,11 +563,11 @@ namespace sfg
 		case editor_command_type_e::component_reset:
 		case editor_command_type_e::component_paste:
 		case editor_command_type_e::component_edit:
-		case editor_command_type_e::world_metadata_create_folder:
-		case editor_command_type_e::world_metadata_rename_folder:
-		case editor_command_type_e::world_metadata_color_folder:
-		case editor_command_type_e::world_metadata_assign_folder:
-		case editor_command_type_e::world_metadata_assign_folder_parent:
+		case editor_command_type_e::world_edit_context_create_folder:
+		case editor_command_type_e::world_edit_context_rename_folder:
+		case editor_command_type_e::world_edit_context_color_folder:
+		case editor_command_type_e::world_edit_context_assign_folder:
+		case editor_command_type_e::world_edit_context_assign_folder_parent:
 			controller.set_main_world_dirty();
 			break;
 		default:
@@ -548,8 +578,6 @@ namespace sfg
 	void editor_world_controller_t::notify_main_world_changed()
 	{
 		editor_app_t& app = editor_app_t::get();
-		editor_world_metadata_t::get().set_world(_main_world);
-		editor_selection_controller_t::get().set_world(_main_world);
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
 		{
@@ -561,10 +589,18 @@ namespace sfg
 		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::entities))
-			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
+		{
+			editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
+			entities_panel->set_edit_context(_main_edit_context);
+			entities_panel->refresh_entities();
+		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::inspector))
-			static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
+		{
+			editor_panel_inspector_t* inspector_panel = static_cast<editor_panel_inspector_t*>(panel);
+			inspector_panel->set_edit_context(_main_edit_context);
+			inspector_panel->refresh_from_selection();
+		}
 	}
 
 	void editor_world_controller_t::reset_input(window_runtime_t& runtime)
@@ -699,6 +735,30 @@ namespace sfg
 
 		SFG_ASSERT(false);
 		return _world_containers.front().render_context;
+	}
+
+	editor_world_edit_context_t& editor_world_controller_t::get_edit_context(world_handle_t handle)
+	{
+		for (world_container_t& container : _world_containers)
+		{
+			if (container.handle == handle)
+				return _edit_contexts.get(container.edit_context);
+		}
+
+		SFG_ASSERT(false);
+		return _edit_contexts.get(_main_edit_context);
+	}
+
+	const editor_world_edit_context_t& editor_world_controller_t::get_edit_context(world_handle_t handle) const
+	{
+		for (const world_container_t& container : _world_containers)
+		{
+			if (container.handle == handle)
+				return _edit_contexts.get(container.edit_context);
+		}
+
+		SFG_ASSERT(false);
+		return _edit_contexts.get(_main_edit_context);
 	}
 
 	void editor_world_controller_t::publish_world_snapshot(world_container_t& container)

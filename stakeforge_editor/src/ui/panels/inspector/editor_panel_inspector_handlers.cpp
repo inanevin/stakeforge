@@ -25,7 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
-#include "editor_selection_controller.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "commands/editor_commands_component.hpp"
@@ -51,9 +52,9 @@ namespace sfg
 			inspector_entity_info_action_menu_paste,
 		};
 
-		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
+		bool get_selected_entities_from_panel(editor_world_edit_context_handle_t context, frame_vector_t<entity_id_t>& entities, world_handle_t& world)
 		{
-			editor_selection_controller_t&	controller = editor_selection_controller_t::get();
+			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(context);
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;
@@ -84,7 +85,7 @@ namespace sfg
 		case inspector_entity_info_action_menu_paste: {
 			frame_vector_t<entity_id_t> entities;
 			world_handle_t				world = {};
-			if (get_selected_entities_from_panel(entities, world) && panel._copied_entity_info_valid)
+			if (get_selected_entities_from_panel(panel._edit_context, entities, world) && panel._copied_entity_info_valid)
 				editor_commands_entity_info_t::paste(world, entities, panel._copied_entity_info);
 			break;
 		}
@@ -129,21 +130,21 @@ namespace sfg
 		case inspector_component_action_menu_paste: {
 			frame_vector_t<entity_id_t> entities;
 			world_handle_t				world = {};
-			if (get_selected_entities_from_panel(entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
+			if (get_selected_entities_from_panel(panel._edit_context, entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
 				editor_commands_component_t::paste(world, entities, panel._action_menu_type_id, panel._copied_component_stream.get_raw(), panel._copied_component_stream.get_size());
 			break;
 		}
 		case inspector_component_action_menu_reset: {
 			frame_vector_t<entity_id_t> entities;
 			world_handle_t				world = {};
-			if (get_selected_entities_from_panel(entities, world))
+			if (get_selected_entities_from_panel(panel._edit_context, entities, world))
 				editor_commands_component_t::reset(world, entities, panel._action_menu_type_id);
 			break;
 		}
 		case inspector_component_action_menu_remove: {
 			frame_vector_t<entity_id_t> entities;
 			world_handle_t				world = {};
-			if (get_selected_entities_from_panel(entities, world))
+			if (get_selected_entities_from_panel(panel._edit_context, entities, world))
 				editor_commands_component_t::remove(world, entities, panel._action_menu_type_id);
 			break;
 		}
@@ -168,7 +169,7 @@ namespace sfg
 
 		frame_vector_t<entity_id_t> entities;
 		world_handle_t				world = {};
-		if (get_selected_entities_from_panel(entities, world))
+		if (get_selected_entities_from_panel(panel._edit_context, entities, world))
 			editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]);
 	}
 
@@ -236,7 +237,7 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::on_selection_changed(editor_selection_controller_t&, void* user_data)
+	void editor_panel_inspector_t::on_selection_changed(editor_world_edit_context_t&, void* user_data)
 	{
 		static_cast<editor_panel_inspector_t*>(user_data)->refresh_from_selection();
 	}

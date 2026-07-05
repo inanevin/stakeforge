@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "commands/editor_commands_entity.hpp"
-#include "editor_world_metadata.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "editor_command_system.hpp"
 #include <sfg/data/istream.hpp>
@@ -108,7 +108,7 @@ namespace sfg
 			if (payload.folder_guid != 0 && payload.guid != NULL_ENTITY_GUID)
 			{
 				const entity_guid_t guid = payload.guid;
-				editor_world_metadata_t::get().deassign_entities_from_folder({.data = &guid, .size = 1});
+				editor_world_controller_t::get().get_edit_context(payload.world).deassign_entities_from_folder({.data = &guid, .size = 1});
 			}
 			world.destroy_entity_tree(payload.entity);
 			payload.entity = NULL_ENTITY_ID;
@@ -126,7 +126,7 @@ namespace sfg
 			payload.entity = entity;
 			if (payload.folder_guid != 0)
 			{
-				editor_world_metadata_t&		   metadata = editor_world_metadata_t::get();
+				editor_world_edit_context_t&	   metadata = editor_world_controller_t::get().get_edit_context(payload.world);
 				const editor_world_folder_handle_t folder	= metadata.get_folder_handle(payload.folder_guid);
 				if (!folder.is_null())
 					metadata.assign_entities_to_folder(folder, {.data = &payload.guid, .size = 1});
@@ -336,7 +336,7 @@ namespace sfg
 		payload.world								   = world;
 		payload.parent								   = parent;
 		payload.entity								   = NULL_ENTITY_ID;
-		payload.folder_guid							   = folder.is_null() ? 0 : editor_world_metadata_t::get().get_folder(folder).guid;
+		payload.folder_guid							   = folder.is_null() ? 0 : editor_world_controller_t::get().get_edit_context(world).get_folder(folder).guid;
 		const char*	 entity_name					   = "Entity";
 		const size_t entity_len						   = std::strlen(entity_name);
 		const size_t entity_n						   = entity_len < EDITOR_ENTITY_COMMAND_NAME_SIZE - 1 ? entity_len : EDITOR_ENTITY_COMMAND_NAME_SIZE - 1;

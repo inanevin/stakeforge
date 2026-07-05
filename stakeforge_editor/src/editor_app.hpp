@@ -29,10 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "editor_renderer.hpp"
-#include "editor_selection_controller.hpp"
 #include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
-#include "editor_world_metadata.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/editor_panel_types.hpp"
 #include <sfg/io/assert.hpp>
@@ -112,9 +110,7 @@ namespace sfg
 		editor_renderer_t												_renderer;
 		engine_runtime_t												_runtime;
 		editor_world_controller_t										_world_controller;
-		editor_world_metadata_t											_world_metadata;
 		editor_command_system_t											_command_system;
-		editor_selection_controller_t									_selection_controller;
 		resource_pack_t													_editor_resource_pack;
 		resource_pack_t													_engine_resource_pack;
 		editor_asset_manager_t											_asset_manager;

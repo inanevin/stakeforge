@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "commands/editor_commands_entity_info.hpp"
-#include "editor_selection_controller.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 #include "ui/editor_action_menu_common.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
@@ -84,6 +84,7 @@ namespace sfg
 		void refresh_display();
 		void refresh_from_selection();
 		void refresh_component_reflection(sid_t component_type);
+		void set_edit_context(editor_world_edit_context_handle_t context);
 
 	private:
 		struct component_edit_callback_data_t
@@ -157,7 +158,7 @@ namespace sfg
 		static void on_component_edit_begin(void* user_data);
 		static void on_component_edit_submitted(void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
-		static void on_selection_changed(editor_selection_controller_t& controller, void* user_data);
+		static void on_selection_changed(editor_world_edit_context_t& controller, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
@@ -184,6 +185,7 @@ namespace sfg
 		editor_entity_info_data_t						  _copied_entity_info		   = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			   = {};
 		editor_selection_listener_handle_t				  _selection_listener		   = {};
+		editor_world_edit_context_handle_t				  _edit_context				   = {};
 		sid_t											  _copied_component_type	   = 0;
 		sid_t											  _action_menu_type_id		   = 0;
 		sid_t											  _pending_component_type	   = 0;

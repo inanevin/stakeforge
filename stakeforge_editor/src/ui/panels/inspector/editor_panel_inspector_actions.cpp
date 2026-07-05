@@ -25,7 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
-#include "editor_selection_controller.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/reflection/reflection_registry.hpp>
@@ -64,9 +65,9 @@ namespace sfg
 			{.text = "Paste", .command = inspector_entity_info_action_menu_paste},
 		};
 
-		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
+		bool get_selected_entities_from_panel(editor_world_edit_context_handle_t context, frame_vector_t<entity_id_t>& entities, world_handle_t& world)
 		{
-			editor_selection_controller_t&	controller = editor_selection_controller_t::get();
+			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(context);
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;

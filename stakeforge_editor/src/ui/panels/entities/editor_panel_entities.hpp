@@ -30,8 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
-#include "editor_selection_controller.hpp"
-#include "editor_world_metadata.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
@@ -54,6 +53,24 @@ namespace sfg
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
 
+	struct editor_outliner_row_t
+	{
+		ui::widget_id_t				 root			= NULL_WIDGET;
+		ui::widget_id_t				 fold_icon		= NULL_WIDGET;
+		ui::widget_id_t				 fold_icon_text = NULL_WIDGET;
+		ui::widget_id_t				 type_icon		= NULL_WIDGET;
+		ui::widget_id_t				 type_icon_text = NULL_WIDGET;
+		ui::widget_id_t				 label			= NULL_WIDGET;
+		ui::widget_id_t				 disable_button = NULL_WIDGET;
+		ui::widget_id_t				 disable_icon	= NULL_WIDGET;
+		entity_id_t					 entity			= NULL_ENTITY_ID;
+		editor_world_folder_handle_t folder_handle	= {};
+		u16							 depth			= 0;
+		editor_outliner_item_type_e	 type			= editor_outliner_item_type_e::entity;
+		bool						 has_children	= false;
+		bool						 disabled		= false;
+	};
+
 	class editor_panel_entities_t final : public editor_panel_t
 	{
 	public:
@@ -75,6 +92,7 @@ namespace sfg
 
 		void refresh_entities();
 		void refresh_entity_name(entity_id_t entity);
+		void set_edit_context(editor_world_edit_context_handle_t context);
 
 	private:
 		// -----------------------------------------------------------------------------
@@ -157,7 +175,7 @@ namespace sfg
 		static void on_entity_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
-		static void on_selection_changed(editor_selection_controller_t& controller, void* user_data);
+		static void on_selection_changed(editor_world_edit_context_t& controller, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
@@ -165,10 +183,10 @@ namespace sfg
 		editor_scrollbar_t								  _scrollbar				  = {};
 		string_t										  _search_str				  = {};
 		string_t										  _search_str_lower			  = {};
-		ui::widget_id_t									  _entity_top_row			  = NULL_WIDGET;
-		ui::widget_id_t									  _entity_list_area			  = NULL_WIDGET;
+		vector_t<editor_outliner_row_t>					  _outliner_rows			  = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			  = {};
 		editor_selection_listener_handle_t				  _selection_listener		  = {};
+		editor_world_edit_context_handle_t				  _edit_context				  = {};
 		world_handle_t									  _main_world				  = {};
 		vector_t<editor_entity_payload_t>				  _payload_entities			  = {};
 		editor_entity_payload_t							  _payload_entity			  = {};
@@ -178,6 +196,8 @@ namespace sfg
 		editor_world_folder_handle_t					  _action_menu_folder		  = {};
 		editor_world_folder_handle_t					  _focused_folder			  = {};
 		editor_world_folder_handle_t					  _edit_folder				  = {};
+		ui::widget_id_t									  _entity_top_row			  = NULL_WIDGET;
+		ui::widget_id_t									  _entity_list_area			  = NULL_WIDGET;
 		entity_id_t										  _action_menu_entity		  = NULL_ENTITY_ID;
 		u32												  _entity_generation		  = 0;
 		u32												  _visible_entity_count		  = 0;

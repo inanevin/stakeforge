@@ -215,7 +215,6 @@ namespace sfg
 			return false;
 		}
 
-		_world_metadata.init();
 		_asset_manager.init();
 
 		/* resources & renderers init */
@@ -229,7 +228,6 @@ namespace sfg
 		};
 		if (!_engine_resource_pack.init(resource_manager_t::get(), engine_pack_params))
 		{
-			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -245,7 +243,6 @@ namespace sfg
 		if (!_editor_resource_pack.init(resource_manager_t::get(), editor_pack_params))
 		{
 			_engine_resource_pack.uninit();
-			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -258,7 +255,6 @@ namespace sfg
 		{
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
-			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -278,7 +274,6 @@ namespace sfg
 
 		_command_system.init();
 		_world_controller.init();
-		_selection_controller.init();
 		editor_global_toolbar_t::get().init();
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
@@ -331,7 +326,6 @@ namespace sfg
 			_renderer.uninit();
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
-			_world_metadata.uninit();
 			_world_controller.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
@@ -367,12 +361,10 @@ namespace sfg
 		_asset_manager.uninit();
 		editor_global_toolbar_t::get().uninit();
 		_world_controller.uninit();
-		_selection_controller.uninit();
 		_command_system.uninit();
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
 		_surfaces.resize_zero();
-		_world_metadata.uninit();
 		_runtime.uninit();
 		engine_runtime_t::uninit_globals();
 		engine_runtime_t::uninit_backend();
@@ -455,7 +447,8 @@ namespace sfg
 	void editor_app_t::unload_current_project()
 	{
 		_renderer.end_render();
-		_selection_controller.clear();
+		if (!(_world_controller.get_main_edit_context_handle().is_null()))
+			_world_controller.get_main_edit_context().clear();
 		_command_system.clear();
 		_asset_manager.clear();
 		_world_controller.destroy_worlds();

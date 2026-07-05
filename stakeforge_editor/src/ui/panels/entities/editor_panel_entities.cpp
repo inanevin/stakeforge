@@ -26,9 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/editor_payload_controller.hpp"
-#include "editor_selection_controller.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
-#include "editor_world_metadata.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -124,10 +124,10 @@ namespace sfg
 
 		ui.set_pre_layout_tick(_entity_list_area, on_entity_tree_tick, this);
 
-		editor_world_metadata_t::get().get_outliner_rows().reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+		_outliner_rows.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_payload_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
-		_command_listener	= editor_command_system_t::get().add_listener(on_command_system_event, this);
-		_selection_listener = editor_selection_controller_t::get().add_listener(on_selection_changed, this);
+		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
+		set_edit_context(editor_world_controller_t::get().get_main_edit_context_handle());
 		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 		refresh_entities();
 	}
@@ -135,26 +135,28 @@ namespace sfg
 	void editor_panel_entities_t::uninit()
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
-		editor_selection_controller_t::get().remove_listener(_selection_listener);
+		if (!_selection_listener.is_null())
+			editor_world_controller_t::get().get_edit_context(_edit_context).remove_selection_listener(_selection_listener);
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
 		if (editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui))
 		{
-			for (const editor_outliner_row_t& row : editor_world_metadata_t::get().get_outliner_rows())
+			for (const editor_outliner_row_t& row : _outliner_rows)
 				tooltip_controller->clear_tooltip(row.disable_button);
 		}
 		_ui->deallocate_widget(_entity_top_row);
 		_ui->deallocate_widget(_entity_list_area);
 
-		editor_world_metadata_t::get().get_outliner_rows().clear();
+		_outliner_rows.clear();
 		_payload_entities.clear();
 
 		_entity_top_row		  = NULL_WIDGET;
 		_entity_list_area	  = NULL_WIDGET;
 		_command_listener	  = {};
 		_selection_listener	  = {};
+		_edit_context		  = {};
 		_main_world			  = {};
 		_action_menu_entity	  = NULL_ENTITY_ID;
 		_action_menu_folder	  = {};
@@ -164,6 +166,22 @@ namespace sfg
 		_visible_entity_count = 0;
 
 		editor_panel_t::uninit();
+	}
+
+	void editor_panel_entities_t::set_edit_context(editor_world_edit_context_handle_t context)
+	{
+		if (_edit_context == context)
+			return;
+
+		if (!_selection_listener.is_null())
+		{
+			editor_world_controller_t::get().get_edit_context(_edit_context).remove_selection_listener(_selection_listener);
+			_selection_listener = {};
+		}
+
+		_edit_context = context;
+		if (!_edit_context.is_null() && _ui != nullptr)
+			_selection_listener = editor_world_controller_t::get().get_edit_context(_edit_context).add_selection_listener(on_selection_changed, this);
 	}
 
 }

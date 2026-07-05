@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "editor_world_controller.hpp"
 #include "editor_command_system.hpp"
-#include "editor_selection_controller.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
@@ -50,12 +50,9 @@ namespace sfg
 			return handle;
 		}
 
-		void apply_selection(world_handle_t world, span_t<const entity_id_t> entities, entity_id_t anchor)
+		void apply_selection(editor_world_edit_context_handle_t context, span_t<const entity_id_t> entities, entity_id_t anchor)
 		{
-			editor_selection_controller_t& selection = editor_selection_controller_t::get();
-			if (!(selection.get_world() == world))
-				selection.set_world(world);
-			selection.apply_entity_selection(entities, anchor);
+			editor_world_controller_t::get().get_edit_context(context).apply_entity_selection(entities, anchor);
 		}
 
 		bool prefab_spawn_undo(editor_command_system_t& system, editor_command_t& command)
@@ -65,7 +62,7 @@ namespace sfg
 			world.destroy_entity_tree(payload.root);
 			payload.root						  = NULL_ENTITY_ID;
 			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
-			apply_selection(payload.previous_selection_world, {.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
+			apply_selection(payload.previous_selection_context, {.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
 			return true;
 		}
 
@@ -77,7 +74,7 @@ namespace sfg
 			if (payload.root == NULL_ENTITY_ID)
 				return false;
 
-			apply_selection(payload.world, {.data = &payload.root, .size = 1}, payload.root);
+			apply_selection(editor_world_controller_t::get().get_edit_context(payload.world).get_handle(), {.data = &payload.root, .size = 1}, payload.root);
 			return true;
 		}
 
@@ -96,19 +93,19 @@ namespace sfg
 	entity_id_t editor_command_prefab_spawn_t::spawn(world_handle_t world, resource_handle_t prefab, entity_id_t parent)
 	{
 		editor_command_system_t&		command_system		 = editor_command_system_t::get();
-		editor_selection_controller_t&	selection_controller = editor_selection_controller_t::get();
+		editor_world_edit_context_t&	selection_controller = editor_world_controller_t::get().get_main_edit_context();
 		const span_t<const entity_id_t> selection			 = selection_controller.get_selected_entities();
 		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_prefab_spawn_payload_t payload = {
-			.world					  = world,
-			.previous_selection_world = selection_controller.get_world(),
-			.prefab					  = prefab,
-			.previous_selection		  = copy_selection_to_aux(command_system, selection),
-			.parent					  = parent,
-			.root					  = NULL_ENTITY_ID,
-			.previous_anchor		  = selection_controller.get_entity_anchor(),
-			.previous_selection_count = static_cast<u32>(selection.size),
+			.world						= world,
+			.previous_selection_context = selection_controller.get_handle(),
+			.prefab						= prefab,
+			.previous_selection			= copy_selection_to_aux(command_system, selection),
+			.parent						= parent,
+			.root						= NULL_ENTITY_ID,
+			.previous_anchor			= selection_controller.get_entity_anchor(),
+			.previous_selection_count	= static_cast<u32>(selection.size),
 		};
 
 		const editor_command_issue_desc_t desc{

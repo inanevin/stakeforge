@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "editor_world_metadata.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>

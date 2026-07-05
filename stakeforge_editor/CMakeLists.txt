@@ -37,6 +37,7 @@ file(GLOB SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/world_edit/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*/*.cpp
@@ -48,6 +49,7 @@ file(GLOB HEADERS
 ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/world_edit/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*/*.hpp

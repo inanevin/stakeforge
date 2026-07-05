@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
-#include "editor_selection_controller.hpp"
+#include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
@@ -84,7 +84,13 @@ namespace sfg
 
 	void editor_panel_inspector_t::refresh_from_selection()
 	{
-		editor_selection_controller_t&	controller = editor_selection_controller_t::get();
+		if (_edit_context.is_null())
+		{
+			set_display_none();
+			return;
+		}
+
+		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 		const world_handle_t			world	   = controller.get_world();
 		if (world.is_null() || selected.size == 0)

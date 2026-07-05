@@ -30,9 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define ENTITIES_INITIAL_ROW_CAPACITY	  64
-#define ENTITIES_INDENT_MULT			  2.0f
-#define EDITOR_WORLD_METADATA_MAX_FOLDERS 1024
+#define ENTITIES_INITIAL_ROW_CAPACITY 64
+#define ENTITIES_INDENT_MULT		  2.0f
 
 	enum entity_action_menu_command_e : u16
 	{
