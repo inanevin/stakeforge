@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_default_asset_seeder.hpp"
 #include "editor_app.hpp"
@@ -265,7 +266,7 @@ namespace sfg
 			const auto				   descriptor_it  = _asset_descriptors.find(asset.asset_type);
 			const char*				   asset_type_str = descriptor_it != _asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
 
-			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.is_null())
+			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
 			{
 				asset.status = editor_asset_status_e::missing_embedded_data;
 				SFG_ERR("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);

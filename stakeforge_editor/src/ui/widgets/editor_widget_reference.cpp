@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_reference.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_payload_controller.hpp"

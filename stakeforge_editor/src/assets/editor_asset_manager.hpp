@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_importer.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/mutex.hpp>
 #include <sfg/data/tree.hpp>

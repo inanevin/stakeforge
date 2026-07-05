@@ -1,5 +1,4 @@
 /*
-/*
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin
 
@@ -30,11 +29,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_node.hpp"
 #include "assets/editor_asset_type.hpp"
-
-#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/vec4f.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -72,8 +71,8 @@ namespace sfg
 	{
 		static constexpr u32 VERSION = 0;
 
-		nlohmann::json			   embedded_source = nlohmann::json();
-		nlohmann::json			   cook_options	   = nlohmann::json::object();
+		string_t				   embedded_source = {};
+		string_t				   cook_options	   = "{}";
 		string_t				   source_relative = {};
 		span_t<u8>				   _transient_data = {};
 		u32						   version		   = 0;
@@ -90,42 +89,6 @@ namespace sfg
 		string_t			display_name = {};
 		vec4f_t				color		 = {};
 		editor_asset_type_e asset_type	 = editor_asset_type_e::invalid;
-	};
-
-	class editor_asset_util_t final
-	{
-	public:
-		editor_asset_util_t()									   = delete;
-		~editor_asset_util_t()									   = delete;
-		editor_asset_util_t(const editor_asset_util_t&)			   = delete;
-		editor_asset_util_t& operator=(const editor_asset_util_t&) = delete;
-
-		static bool		   read_asset(const char* path, editor_asset_t& out_asset);
-		static bool		   write_asset(const char* path, const editor_asset_t& asset);
-		static string_t	   normalize_directory(const char* directory);
-		static string_t	   make_asset_path(const char* directory, const char* asset_name);
-		static string_t	   make_blob_path(const char* directory, const char* asset_name);
-		static string_t	   make_source_path(const char* directory, const char* file_name, const char* extension);
-		static string_t	   make_unique_source_path(const char* directory, const char* file_name, const char* extension);
-		static string_t	   get_cache_path_for_asset(const editor_asset_t& asset);
-		static string_t	   get_source_full_path(const char* assets_path, const editor_asset_t& asset);
-		static string_t	   get_source_relative(const char* assets_path, const char* source_full_path);
-		static bool		   set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path);
-		static bool		   is_source_inside_assets(const char* assets_path, const char* source_full_path);
-		static void		   fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies);
-		static sid_t	   generate_unique_asset_guid(span_t<const sid_t> pending_guids = {});
-		static sid_t	   try_read_existing_guid(const char* path);
-		static const char* find_asset_display_name(sid_t guid);
-		static bool		   delete_folder(editor_asset_node_handle_t folder_node);
-		static bool		   duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path = nullptr);
-		static bool		   rename_folder(editor_asset_node_handle_t folder_node, const char* new_path);
-		static bool		   move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node);
-		static bool		   delete_file(editor_asset_node_handle_t file_node);
-		static bool		   rename_file(editor_asset_node_handle_t file_node, const char* new_path);
-		static bool		   delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node);
-		static bool		   duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, string_t* out_duplicated_path = nullptr);
-		static bool		   rename_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, const char* new_path);
-		static bool		   move_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, editor_asset_node_handle_t target_folder_node);
 	};
 
 	void to_json(nlohmann::json& j, const editor_asset_source_type_e& t);

@@ -29,10 +29,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
-
 #include <sfg/common/packing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
@@ -45,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 #include <sfg/vendor/stb/stb_image_write.h>
 #include <sfg/vendor/taskflow/taskflow.hpp>
@@ -728,13 +729,15 @@ namespace sfg
 
 			texture_config.size = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
 
-			editor_asset_t asset = {};
-			if (!serialize_reflected_to_json(texture_config, asset.cook_options))
+			editor_asset_t asset		= {};
+			nlohmann::json cook_options = nlohmann::json::object();
+			if (!serialize_reflected_to_json(texture_config, cook_options))
 			{
 				SFG_ERR("failed to serialize GLB texture cook options: {0}", texture_index);
 				stbi_image_free(decoded);
 				return false;
 			}
+			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const string_t source_path	 = editor_asset_util_t::make_source_path(parent_node.full_path.c_str(), asset_name.c_str(), "png");
@@ -838,16 +841,18 @@ namespace sfg
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 
-			asset.version	  = editor_asset_t::VERSION;
-			asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type  = editor_asset_type_e::material;
-			asset.source_type = editor_asset_source_type_e::embedded;
-			asset.sub_type	  = static_cast<u8>(editor_material_type_e::gbuffer);
-			if (!serialize_reflected_to_json(material_def, asset.embedded_source))
+			asset.version				   = editor_asset_t::VERSION;
+			asset.guid					   = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type			   = editor_asset_type_e::material;
+			asset.source_type			   = editor_asset_source_type_e::embedded;
+			asset.sub_type				   = static_cast<u8>(editor_material_type_e::gbuffer);
+			nlohmann::json embedded_source = nlohmann::json::object();
+			if (!serialize_reflected_to_json(material_def, embedded_source))
 			{
 				SFG_ERR("failed to serialize GLB material definition: {0}", material_index);
 				return false;
 			}
+			editor_asset_util_t::set_embedded_source_json(asset, embedded_source);
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 			{
@@ -980,15 +985,17 @@ namespace sfg
 			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 
-			asset.version	  = editor_asset_t::VERSION;
-			asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type  = editor_asset_type_e::skeleton;
-			asset.source_type = editor_asset_source_type_e::embedded;
-			if (!serialize_reflected_to_json(skeleton, asset.embedded_source))
+			asset.version				   = editor_asset_t::VERSION;
+			asset.guid					   = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type			   = editor_asset_type_e::skeleton;
+			asset.source_type			   = editor_asset_source_type_e::embedded;
+			nlohmann::json embedded_source = nlohmann::json::object();
+			if (!serialize_reflected_to_json(skeleton, embedded_source))
 			{
 				SFG_ERR("failed to serialize GLB skeleton definition: {0}", skin_index);
 				return false;
 			}
+			editor_asset_util_t::set_embedded_source_json(asset, embedded_source);
 
 			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 			{

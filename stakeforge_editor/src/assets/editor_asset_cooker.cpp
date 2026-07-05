@@ -26,9 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset.hpp"
 #include "editor_project.hpp"
-
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -55,6 +55,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -171,8 +172,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::audio);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
-		audio_cook_config_t config = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &config, nullptr, asset.cook_options))
+		audio_cook_config_t	 config		  = {};
+		const nlohmann::json cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize audio cook options for asset {0}", asset.guid);
 			return false;
@@ -194,8 +196,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::shader);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
-		shader_cook_config_t config = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &config, nullptr, asset.cook_options))
+		shader_cook_config_t config		  = {};
+		const nlohmann::json cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize shader cook options for asset {0}", asset.guid);
 			return false;
@@ -217,8 +220,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::material);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		material_def_t def = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, asset.embedded_source))
+		material_def_t		 def			 = {};
+		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize material definition for asset {0}", asset.guid);
 			return false;
@@ -239,8 +243,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::texture_sampler);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		sampler_desc_t desc = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &desc, nullptr, asset.embedded_source))
+		sampler_desc_t		 desc			 = {};
+		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &desc, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize texture sampler description for asset {0}", asset.guid);
 			return false;
@@ -261,8 +266,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::physical_material);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		physical_material_def_t def = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<physical_material_def_t>::value, &def, nullptr, asset.embedded_source))
+		physical_material_def_t def				= {};
+		const nlohmann::json	embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<physical_material_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize physical material definition for asset {0}", asset.guid);
 			return false;
@@ -292,8 +298,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::texture);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
-		texture_cook_config_t config = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<texture_cook_config_t>::value, &config, nullptr, asset.cook_options))
+		texture_cook_config_t config	   = {};
+		const nlohmann::json  cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<texture_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize texture cook options for asset {0}", asset.guid);
 			return false;
@@ -335,8 +342,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::skeleton);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		skeleton_def_t def = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &def, nullptr, asset.embedded_source))
+		skeleton_def_t		 def			 = {};
+		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize skeleton definition for asset {0}", asset.guid);
 			return false;
@@ -357,8 +365,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		animation_def_t def = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, asset.embedded_source))
+		animation_def_t		 def			 = {};
+		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
 			return false;
@@ -395,8 +404,9 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::hdr_skybox);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
-		skybox_hdr_cook_config_t config = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &config, nullptr, asset.cook_options))
+		skybox_hdr_cook_config_t config		  = {};
+		const nlohmann::json	 cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize HDR skybox cook options for asset {0}", asset.guid);
 			return false;
@@ -418,7 +428,7 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::prefab);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		const string_t	  prefab_source = asset.embedded_source.dump();
+		const string_t	  prefab_source = asset.embedded_source;
 		resource_header_t header		= {
 				   .magic		= prefab_loader_t::WIRE_MAGIC,
 				   .version		= prefab_loader_t::WIRE_VERSION,

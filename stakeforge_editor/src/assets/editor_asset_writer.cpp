@@ -27,12 +27,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_writer.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
-
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -85,7 +86,7 @@ namespace sfg
 		asset.source_type	 = editor_asset_source_type_e::file;
 		asset.sub_type		 = desc.sub_type;
 		if (desc.cook_options != nullptr)
-			asset.cook_options = *desc.cook_options;
+			editor_asset_util_t::set_cook_options_json(asset, *desc.cook_options);
 
 		if (desc.source_name != nullptr)
 		{
@@ -148,13 +149,13 @@ namespace sfg
 		if (guid == NULL_SID)
 			guid = editor_asset_util_t::generate_unique_asset_guid();
 
-		editor_asset_t asset  = {};
-		asset.version		  = editor_asset_t::VERSION;
-		asset.guid			  = guid;
-		asset.asset_type	  = desc.asset_type;
-		asset.source_type	  = editor_asset_source_type_e::embedded;
-		asset.sub_type		  = desc.sub_type;
-		asset.embedded_source = *desc.embedded_source;
+		editor_asset_t asset = {};
+		asset.version		 = editor_asset_t::VERSION;
+		asset.guid			 = guid;
+		asset.asset_type	 = desc.asset_type;
+		asset.source_type	 = editor_asset_source_type_e::embedded;
+		asset.sub_type		 = desc.sub_type;
+		editor_asset_util_t::set_embedded_source_json(asset, *desc.embedded_source);
 
 		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 		{
@@ -223,7 +224,7 @@ namespace sfg
 			return false;
 		}
 
-		out_embedded_source = asset.embedded_source;
+		out_embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
 		return true;
 	}
 
@@ -245,7 +246,7 @@ namespace sfg
 			return false;
 		}
 
-		out_cook_options = asset.cook_options;
+		out_cook_options = editor_asset_util_t::get_cook_options_json(asset);
 		return true;
 	}
 }

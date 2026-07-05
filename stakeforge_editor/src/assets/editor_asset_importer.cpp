@@ -26,11 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_importer.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_glb_importer.hpp"
 #include "editor_directories.hpp"
-
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -196,11 +197,13 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			const texture_cook_config_t& texture_config = import_options->texture_cook_config;
-			if (!reflection_registry_t::get().type_to_json(type_id_t<texture_cook_config_t>::value, const_cast<texture_cook_config_t*>(&texture_config), nullptr, asset.cook_options))
+			nlohmann::json				 cook_options	= nlohmann::json::object();
+			if (!reflection_registry_t::get().type_to_json(type_id_t<texture_cook_config_t>::value, const_cast<texture_cook_config_t*>(&texture_config), nullptr, cook_options))
 			{
 				SFG_ERR("failed to serialize texture import options for {0}", source_path.c_str());
 				return false;
 			}
+			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::texture, editor_asset_source_type_e::file, source_path.c_str()))
 			{
 				SFG_ERR("failed to create imported texture asset {0}", asset_name.c_str());
@@ -234,11 +237,13 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			const audio_cook_config_t& audio_config = import_options->audio_cook_config;
-			if (!reflection_registry_t::get().type_to_json(type_id_t<audio_cook_config_t>::value, const_cast<audio_cook_config_t*>(&audio_config), nullptr, asset.cook_options))
+			nlohmann::json			   cook_options = nlohmann::json::object();
+			if (!reflection_registry_t::get().type_to_json(type_id_t<audio_cook_config_t>::value, const_cast<audio_cook_config_t*>(&audio_config), nullptr, cook_options))
 			{
 				SFG_ERR("failed to serialize audio import options for {0}", source_path.c_str());
 				return false;
 			}
+			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::audio, editor_asset_source_type_e::file, source_path.c_str()))
 			{
 				SFG_ERR("failed to create imported audio asset {0}", asset_name.c_str());
@@ -256,11 +261,13 @@ namespace sfg
 			status += asset_name;
 			context.report_status(status.c_str());
 			const skybox_hdr_cook_config_t& skybox_config = import_options->skybox_cook_config;
-			if (!reflection_registry_t::get().type_to_json(type_id_t<skybox_hdr_cook_config_t>::value, const_cast<skybox_hdr_cook_config_t*>(&skybox_config), nullptr, asset.cook_options))
+			nlohmann::json					cook_options  = nlohmann::json::object();
+			if (!reflection_registry_t::get().type_to_json(type_id_t<skybox_hdr_cook_config_t>::value, const_cast<skybox_hdr_cook_config_t*>(&skybox_config), nullptr, cook_options))
 			{
 				SFG_ERR("failed to serialize HDR skybox import options for {0}", source_path.c_str());
 				return false;
 			}
+			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 			if (!make_asset(directory_node, asset_name.c_str(), asset, editor_asset_type_e::hdr_skybox, editor_asset_source_type_e::file, source_path.c_str()))
 			{
 				SFG_ERR("failed to create imported HDR skybox asset {0}", asset_name.c_str());

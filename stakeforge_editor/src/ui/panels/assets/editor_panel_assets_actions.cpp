@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"

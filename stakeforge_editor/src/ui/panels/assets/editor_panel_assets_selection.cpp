@@ -25,10 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "assets/editor_asset_manager.hpp"
-
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg

@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_world_controller.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "editor_selection_controller.hpp"
 #include "editor_world_metadata.hpp"
 #include "editor_app.hpp"
@@ -56,6 +57,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -368,8 +370,9 @@ namespace sfg
 			install_default_world(handle);
 		else
 		{
-			world_t& world = _worlds.get(handle);
-			world_cooker_t::world_from_json(world, asset->embedded_source);
+			world_t&			 world			 = _worlds.get(handle);
+			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
+			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
 		}
 
@@ -434,9 +437,9 @@ namespace sfg
 			asset.source_type = editor_asset_source_type_e::embedded;
 		}
 
-		asset.asset_type	  = editor_asset_type_e::world;
-		asset.source_type	  = editor_asset_source_type_e::embedded;
-		asset.embedded_source = world_json;
+		asset.asset_type  = editor_asset_type_e::world;
+		asset.source_type = editor_asset_source_type_e::embedded;
+		editor_asset_util_t::set_embedded_source_json(asset, world_json);
 		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
 		{
 			SFG_ERR("failed to save world asset {0}", asset_path.c_str());
