@@ -62,6 +62,7 @@ namespace sfg
 		static bool		is_directory(const char* path);
 		static bool		change_directory_name(const char* oldPath, const char* new_path);
 		static bool		exists(const char* path);
+		static u64		get_file_size(const char* path);
 		static bool		is_absolute_path(const char* path);
 		static string_t get_last_modified_date(const char* path);
 		static u64		get_last_modified_ticks(const char* path) noexcept;

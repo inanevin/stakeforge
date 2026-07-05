@@ -116,6 +116,16 @@ namespace sfg
 			return _pending.load(std::memory_order_acquire);
 		}
 
+		inline u64 get_generation() const
+		{
+			return _generation;
+		}
+
+		inline const hash_map_t<sid_t, resource_entry_t>& get_entries() const
+		{
+			return _entries;
+		}
+
 		inline resource_file_system_t& get_resource_file_system()
 		{
 			SFG_ASSERT(_resource_file_system != nullptr);
@@ -144,6 +154,7 @@ namespace sfg
 		ui::glyph_atlas_t							_glyph_atlas;
 		vector_t<u64>								_unloads;
 		resource_file_system_t*						_resource_file_system = nullptr;
+		u64											_generation			  = 0;
 		atomic_t<u32>								_pending			  = 0;
 	};
 }

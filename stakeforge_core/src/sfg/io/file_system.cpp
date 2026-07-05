@@ -113,6 +113,13 @@ namespace sfg
 		return std::filesystem::exists(path);
 	}
 
+	u64 file_system_t::get_file_size(const char* path)
+	{
+		std::error_code ec;
+		const u64		size = static_cast<u64>(std::filesystem::file_size(path, ec));
+		return ec ? 0 : size;
+	}
+
 	bool file_system_t::is_absolute_path(const char* path)
 	{
 		return std::filesystem::path(path).is_absolute();

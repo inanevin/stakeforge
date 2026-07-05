@@ -99,6 +99,9 @@ namespace sfg
 
 	extern const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];
 
+	const char* resource_state_to_string(resource_state_e state);
+	const char* resource_type_to_string(resource_type_e type);
+
 	inline const resource_type_desc_t* find_resource_type_desc(resource_type_e type)
 	{
 		const u8 t = static_cast<u8>(type);

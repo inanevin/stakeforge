@@ -23,6 +23,7 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
 		_resource_file_system = &resource_file_system;
+		_generation			  = 0;
 		_memory.init(resource_memory_size);
 		_animation_storage.init();
 		_entries.reserve(256);
@@ -53,7 +54,10 @@ namespace sfg
 		SFG_ASSERT(_pending.load(std::memory_order_acquire) == 0);
 
 		for (auto& pair : _entries)
+		{
 			unload_entry(pair.second);
+			_generation++;
+		}
 		_entries.clear();
 		_unloads.resize(0);
 
@@ -61,6 +65,7 @@ namespace sfg
 		_animation_storage.uninit();
 		_memory.uninit();
 		_resource_file_system = nullptr;
+		_generation			  = 0;
 	}
 
 	void resource_manager_t::flush()
@@ -80,6 +85,7 @@ namespace sfg
 		if (exists && !check_for_reload)
 		{
 			it->second.ref_count++;
+			_generation++;
 			return it->second.state;
 		}
 
@@ -131,6 +137,7 @@ namespace sfg
 				}
 
 				it->second.source_ticks = header.source_tick;
+				_generation++;
 				SFG_TRACE("reloaded resource: {0}", debug_name);
 			}
 
@@ -159,6 +166,7 @@ namespace sfg
 
 		entry.state = desc->use_async_load ? resource_state_e::ready_preview : resource_state_e::ready;
 		_entries.emplace(hash, entry);
+		_generation++;
 		if (desc->use_async_load)
 		{
 			if (bypass_async)
@@ -169,11 +177,13 @@ namespace sfg
 				if (!request.success)
 				{
 					entry_it->second.state = resource_state_e::failed;
+					_generation++;
 					SFG_ERR("failed loading async resource: {0}", entry.hash);
 				}
 				else
 				{
 					entry_it->second.state = resource_state_e::ready;
+					_generation++;
 					SFG_TRACE("loaded async resource: {0}", debug_name);
 				}
 			}
@@ -199,12 +209,14 @@ namespace sfg
 			return;
 
 		entry.ref_count--;
+		_generation++;
 		if (entry.ref_count != 0)
 			return;
 
 		if (entry.state == resource_state_e::ready_preview)
 		{
 			_unloads.push_back(hash);
+			_generation++;
 			return;
 		}
 
@@ -213,6 +225,7 @@ namespace sfg
 
 		unload_entry(entry);
 		_entries.erase(it);
+		_generation++;
 	}
 
 	const resource_entry_t* resource_manager_t::find_entry(u64 hash) const
@@ -274,11 +287,13 @@ namespace sfg
 			if (!request.success)
 			{
 				entry.state = resource_state_e::failed;
+				_generation++;
 				SFG_ERR("failed loading async resource: {0}", entry.hash);
 				continue;
 			}
 
 			entry.state = resource_state_e::ready;
+			_generation++;
 			SFG_TRACE("loaded async resource: {0}", _memory.get_text(entry.debug_name));
 		}
 	}
@@ -304,6 +319,7 @@ namespace sfg
 
 			unload_entry(entry);
 			_entries.erase(entry_it);
+			_generation++;
 			it = _unloads.erase(it);
 		}
 	}

@@ -88,6 +88,56 @@ namespace sfg
 		&skybox_hdr_resource_desc,
 	};
 
+	const char* resource_state_to_string(resource_state_e state)
+	{
+		switch (state)
+		{
+		case resource_state_e::failed:
+			return "Failed";
+		case resource_state_e::ready:
+			return "Ready";
+		case resource_state_e::ready_preview:
+			return "Preview";
+		default:
+			return "Invalid";
+		}
+	}
+
+	const char* resource_type_to_string(resource_type_e type)
+	{
+		switch (type)
+		{
+		case resource_type_e::audio:
+			return "Audio";
+		case resource_type_e::font:
+			return "Font";
+		case resource_type_e::mesh:
+			return "Mesh";
+		case resource_type_e::skeleton:
+			return "Skeleton";
+		case resource_type_e::animation:
+			return "Animation";
+		case resource_type_e::material:
+			return "Material";
+		case resource_type_e::shader:
+			return "Shader";
+		case resource_type_e::texture:
+			return "Texture";
+		case resource_type_e::texture_sampler:
+			return "Texture Sampler";
+		case resource_type_e::physical_material:
+			return "Physical Material";
+		case resource_type_e::prefab:
+			return "Prefab";
+		case resource_type_e::animation_state_machine:
+			return "Animation State Machine";
+		case resource_type_e::hdr_skybox:
+			return "HDR Skybox";
+		default:
+			return "Invalid";
+		}
+	}
+
 	void resource_dependency_t::serialize(ostream_t& stream) const
 	{
 		stream << type;
