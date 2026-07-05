@@ -857,9 +857,12 @@ namespace sfg
 			field.offset	  = field_desc.offset;
 			field.size		  = field_desc.size;
 
-			field.ui_definition		   = field_desc.ui_definition;
-			field.container_ops		   = field_desc.container_ops;
-			field.custom_serialization = field_desc.custom_serialization;
+			field.ui_definition					  = field_desc.ui_definition;
+			field.ui_definition.min_clamp		  = field_desc.min_clamp;
+			field.ui_definition.max_clamp		  = field_desc.max_clamp;
+			field.ui_definition.clamp_granularity = field_desc.clamp_granularity;
+			field.container_ops					  = field_desc.container_ops;
+			field.custom_serialization			  = field_desc.custom_serialization;
 
 			_fields.push_back(field);
 		}

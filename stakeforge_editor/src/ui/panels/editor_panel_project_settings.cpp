@@ -25,7 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_project_settings.hpp"
+#include "editor_project.hpp"
+#include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
@@ -34,5 +37,133 @@ namespace sfg
 		set_type(editor_panel_type_e::project_settings);
 		set_title(editor_panel_type_to_string(editor_panel_type_e::project_settings));
 		set_icon(ICON_SETTINGS);
+	}
+
+	void editor_panel_project_settings_t::init(ui::ui_context& ui, ui::widget_id_t parent)
+	{
+		editor_panel_t::init(ui, parent);
+
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		ui::layout_in_t& root_in = tree.in(_root);
+		root_in.flow			 = ui::flow_e::column;
+		root_in.child_spacing	 = 0.0f;
+		root_in.child_margins	 = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
+
+		void* object = &editor_project_t::get();
+		_reflection.init(ui,
+						 _root,
+						 {
+							 .fold_states = &_field_states,
+							 .callbacks =
+								 {
+									 .edit_begin	 = on_project_settings_edit_begin,
+									 .edit_submitted = on_project_settings_edit_submitted,
+									 .user_data		 = this,
+								 },
+							 .objects = {.data = &object, .size = 1},
+							 .type_id = type_id_t<editor_project_t>::value,
+						 });
+		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
+	}
+
+	void editor_panel_project_settings_t::uninit()
+	{
+		editor_command_system_t::get().remove_listener(_command_listener);
+		_ui->cancel_mutations(this);
+		_reflection.uninit();
+		_field_states.clear();
+		_project_edit_previous = {};
+		_command_listener	   = {};
+		_refresh_pending	   = false;
+		_project_edit_active   = false;
+		editor_panel_t::uninit();
+	}
+
+	void editor_panel_project_settings_t::refresh_reflection()
+	{
+		if (!can_mutate_ui_topology())
+		{
+			request_refresh_reflection();
+			return;
+		}
+
+		void* object = &editor_project_t::get();
+		_reflection.set_reflection({
+			.fold_states = &_field_states,
+			.callbacks =
+				{
+					.edit_begin		= on_project_settings_edit_begin,
+					.edit_submitted = on_project_settings_edit_submitted,
+					.user_data		= this,
+				},
+			.objects = {.data = &object, .size = 1},
+			.type_id = type_id_t<editor_project_t>::value,
+		});
+	}
+
+	void editor_panel_project_settings_t::request_refresh_reflection()
+	{
+		_refresh_pending = true;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
+	void editor_panel_project_settings_t::flush_pending_ui_mutations()
+	{
+		if (!_refresh_pending)
+			return;
+
+		_refresh_pending = false;
+		refresh_reflection();
+	}
+
+	bool editor_panel_project_settings_t::can_mutate_ui_topology() const
+	{
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
+	}
+
+	void editor_panel_project_settings_t::begin_project_settings_edit()
+	{
+		_project_edit_previous = editor_command_project_settings_t::read();
+		_project_edit_active   = true;
+	}
+
+	void editor_panel_project_settings_t::submit_project_settings_edit()
+	{
+		if (!_project_edit_active)
+			return;
+
+		const editor_project_settings_data_t previous = _project_edit_previous;
+		const editor_project_settings_data_t post	  = editor_command_project_settings_t::read();
+		_project_edit_active						  = false;
+		if (previous.last_world_guid == post.last_world_guid && previous.world_tick_rate == post.world_tick_rate && previous.world_physics_rate == post.world_physics_rate && previous.max_sim_steps == post.max_sim_steps)
+			return;
+
+		editor_command_project_settings_t::apply(previous);
+		if (!editor_command_project_settings_t::edit(previous, post))
+			editor_command_project_settings_t::apply(post);
+	}
+
+	void editor_panel_project_settings_t::on_project_settings_edit_begin(void* user_data)
+	{
+		static_cast<editor_panel_project_settings_t*>(user_data)->begin_project_settings_edit();
+	}
+
+	void editor_panel_project_settings_t::on_project_settings_edit_submitted(void* user_data)
+	{
+		static_cast<editor_panel_project_settings_t*>(user_data)->submit_project_settings_edit();
+	}
+
+	void editor_panel_project_settings_t::on_command_system_event(editor_command_system_t&, const editor_command_t& command, void* user_data)
+	{
+		if (command.type == editor_command_type_e::project_settings_edit)
+			static_cast<editor_panel_project_settings_t*>(user_data)->refresh_reflection();
+	}
+
+	void editor_panel_project_settings_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_panel_project_settings_t*>(user_data)->flush_pending_ui_mutations();
 	}
 }

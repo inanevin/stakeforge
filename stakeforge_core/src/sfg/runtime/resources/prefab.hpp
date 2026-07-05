@@ -22,7 +22,11 @@ namespace sfg
 		static constexpr u32 WIRE_VERSION = 1;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
+		static bool reload(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+
+	private:
+		static bool read_source(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, chunk_handle32_t& out_source);
 	};
 
 	extern const resource_type_desc_t prefab_resource_desc;

@@ -170,8 +170,13 @@ namespace sfg
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
 	{
+		editor_world_t& world = _worlds.get(handle);
+		if (world.get_render_resolution() == render_resolution)
+			return;
+
+		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		_worlds.get(handle).resize(render_resolution);
+		world.resize(render_resolution);
 	}
 
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)

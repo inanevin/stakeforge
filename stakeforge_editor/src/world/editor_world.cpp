@@ -50,12 +50,14 @@ namespace sfg
 		_edit_context	= static_cast<editor_world_edit_context_t&&>(other._edit_context);
 		_world			= static_cast<world_t&&>(other._world);
 		_snapshot_mailbox.store(other._snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
-		_producer_slot = other._producer_slot;
-		_consumer_slot = other._consumer_slot;
+		_render_resolution = other._render_resolution;
+		_producer_slot	   = other._producer_slot;
+		_consumer_slot	   = other._consumer_slot;
 
 		other._snapshot_mailbox.store(0, std::memory_order_relaxed);
-		other._producer_slot = 0;
-		other._consumer_slot = 0;
+		other._render_resolution = vec2u16_t::zero;
+		other._producer_slot	 = 0;
+		other._consumer_slot	 = 0;
 		return *this;
 	}
 
@@ -67,6 +69,7 @@ namespace sfg
 		_producer_slot = 0;
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
+		_render_resolution = render_resolution;
 		_render_context.init(render_resolution);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
@@ -80,12 +83,14 @@ namespace sfg
 		_world.unload_all_used_resources();
 		_world.uninit();
 		_snapshot_mailbox.store(0, std::memory_order_relaxed);
-		_producer_slot = 0;
-		_consumer_slot = 0;
+		_render_resolution = vec2u16_t::zero;
+		_producer_slot	   = 0;
+		_consumer_slot	   = 0;
 	}
 
 	void editor_world_t::resize(vec2u16_t render_resolution)
 	{
+		_render_resolution = render_resolution;
 		_render_context.resize(render_resolution);
 	}
 

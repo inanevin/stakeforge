@@ -58,6 +58,7 @@ namespace sfg
 		world_edit_context_assign_folder,
 		world_edit_context_assign_folder_parent,
 		world_edit_context_delete_folder,
+		project_settings_edit,
 	};
 
 	enum class editor_command_state_e : u8

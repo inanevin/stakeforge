@@ -367,6 +367,9 @@ namespace sfg
 		const bool is_slider	 = field->flags.is_set(reflected_field_flags_e::reflected_field_flag_clamped);
 		const bool integer		 = field->value_type != reflected_value_type_e::f32;
 		const bool signed_number = field->value_type == reflected_value_type_e::i64 || field->value_type == reflected_value_type_e::i32 || field->value_type == reflected_value_type_e::i16 || field->value_type == reflected_value_type_e::i8;
+		const f32  increment	 = is_slider ? field->ui_definition.clamp_granularity : (integer ? 1.0f : 0.1f);
+		const f32  min_value	 = is_slider ? field->ui_definition.min_clamp : (signed_number ? -1.0f : 0.0f);
+		const f32  max_value	 = is_slider ? field->ui_definition.max_clamp : 1.0f;
 
 		editor_input_field_t* input = new editor_input_field_t();
 		input->init(*_ui,
@@ -381,9 +384,9 @@ namespace sfg
 							},
 						.callbacks	 = _callbacks,
 						.placeholder = field->name,
-						.increment	 = integer ? 1.0f : 0.1f,
-						.min_value	 = signed_number ? -1.0f : 0.0f,
-						.max_value	 = 1.0f,
+						.increment	 = increment,
+						.min_value	 = min_value,
+						.max_value	 = max_value,
 					});
 		fit_control(input->get_root());
 		if (removable_item)

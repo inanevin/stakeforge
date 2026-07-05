@@ -468,10 +468,8 @@ namespace sfg
 	{
 		SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
 
-		const editor_project_t project	 = editor_project_t::make_default_project(path);
-		const nlohmann::json   json_data = project;
-		const string_t		   data		 = json_data.dump(4);
-		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), path))
+		editor_project_t project = editor_project_t::make_default_project(path);
+		if (!project.save(path))
 			return false;
 
 		return load_project(path);

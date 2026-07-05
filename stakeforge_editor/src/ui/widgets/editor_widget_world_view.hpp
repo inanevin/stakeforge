@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "world_edit/editor_world_edit_context.hpp"
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg
@@ -59,16 +60,19 @@ namespace sfg
 	private:
 		void clear_world();
 		void refresh_world_texture();
+		void request_world_resize(bool force);
 
 		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 
 	private:
-		const world_render_context_t* _world		= nullptr;
-		ui::ui_context*				  _ui			= nullptr;
-		editor_world_handle_t		  _edit_context = {};
-		ui::widget_id_t				  _root			= NULL_WIDGET;
-		ui::widget_id_t				  _world_view	= NULL_WIDGET;
-		ui::widget_id_t				  _empty_label	= NULL_WIDGET;
+		const world_render_context_t* _world			   = nullptr;
+		ui::ui_context*				  _ui				   = nullptr;
+		editor_world_handle_t		  _edit_context		   = {};
+		vec2u16_t					  _last_resize_request = vec2u16_t::zero;
+		ui::widget_id_t				  _root				   = NULL_WIDGET;
+		ui::widget_id_t				  _world_view		   = NULL_WIDGET;
+		ui::widget_id_t				  _empty_label		   = NULL_WIDGET;
+		u8							  _resize_ticks		   = 0;
 	};
 }

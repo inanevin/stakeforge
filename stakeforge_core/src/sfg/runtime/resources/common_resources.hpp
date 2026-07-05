@@ -62,13 +62,14 @@ namespace sfg
 
 	struct resource_entry_t
 	{
-		sid_t			 hash		= 0;
-		chunk_handle32_t runtime	= {};
-		chunk_handle32_t internals	= {};
-		chunk_handle32_t debug_name = {};
-		u32				 ref_count	= 0;
-		resource_state_e state		= resource_state_e::failed;
-		resource_type_e	 type		= resource_type_e::invalid;
+		sid_t			 hash		  = 0;
+		u64				 source_ticks = 0;
+		chunk_handle32_t runtime	  = {};
+		chunk_handle32_t internals	  = {};
+		chunk_handle32_t debug_name	  = {};
+		u32				 ref_count	  = 0;
+		resource_state_e state		  = resource_state_e::failed;
+		resource_type_e	 type		  = resource_type_e::invalid;
 	};
 
 	struct resource_context_t
@@ -91,6 +92,7 @@ namespace sfg
 		bool			use_async_load		= false;
 
 		load_fn_t	load	   = nullptr;
+		load_fn_t	reload	   = nullptr;
 		load_fn_t	async_load = nullptr;
 		unload_fn_t unload	   = nullptr;
 	};

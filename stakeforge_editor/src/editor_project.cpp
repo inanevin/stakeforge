@@ -26,8 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "editor_project.hpp"
 #include <sfg/io/file_system.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+
+#include <cstddef>
 
 namespace sfg
 {
@@ -44,8 +47,10 @@ namespace sfg
 
 	bool editor_project_t::save(const char* path)
 	{
-		const nlohmann::json js		  = *this;
-		const string_t		 contents = js.dump(4);
+		nlohmann::json js = nlohmann::json::object();
+		if (!reflection_registry_t::get().type_to_json(type_id_t<editor_project_t>::value, this, nullptr, js))
+			return false;
+		const string_t contents = js.dump(4);
 		return serializer_t::write_to_file(contents, path);
 	}
 
@@ -59,7 +64,11 @@ namespace sfg
 		if (js.is_discarded())
 			return false;
 
-		*this = js;
+		editor_project_t project = make_default_project(path);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<editor_project_t>::value, &project, nullptr, js))
+			return false;
+
+		*this = project;
 		refresh_runtime(path);
 		return true;
 	}
@@ -91,19 +100,46 @@ namespace sfg
 
 namespace sfg
 {
-	void to_json(nlohmann::json& j, const editor_project_t& project)
+	editor_project_reflection_t::editor_project_reflection_t()
 	{
-		j["last_world_guid"]	= project.last_world_guid;
-		j["world_tick_rate"]	= project.world_tick_rate;
-		j["world_physics_rate"] = project.world_physics_rate;
-		j["max_sim_steps"]		= project.max_sim_steps;
-	}
-
-	void from_json(const nlohmann::json& j, editor_project_t& project)
-	{
-		project.last_world_guid	   = j.value<sid_t>("last_world_guid", NULL_SID);
-		project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
-		project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
-		project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);
+		reflection_registry_t& registry = reflection_registry_t::get();
+		registry.register_type({
+			.name		  = "editor_project_t",
+			.display_name = "Project Settings",
+			.fields =
+				{
+					{.name = "last_world_guid", .display_name = "Last World GUID", .offset = offsetof(editor_project_t, last_world_guid), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
+					{.name				= "world_tick_rate",
+					 .display_name		= "World Tick Rate",
+					 .offset			= offsetof(editor_project_t, world_tick_rate),
+					 .size				= sizeof(u32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 15.0f,
+					 .max_clamp			= 240.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::u32},
+					{.name				= "world_physics_rate",
+					 .display_name		= "World Physics Rate",
+					 .offset			= offsetof(editor_project_t, world_physics_rate),
+					 .size				= sizeof(u32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 30.0f,
+					 .max_clamp			= 240.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::u32},
+					{.name				= "max_sim_steps",
+					 .display_name		= "Max Sim Steps",
+					 .offset			= offsetof(editor_project_t, max_sim_steps),
+					 .size				= sizeof(u32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 1.0f,
+					 .max_clamp			= 8.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::u32},
+				},
+			.type_id   = type_id_t<editor_project_t>::value,
+			.size	   = sizeof(editor_project_t),
+			.alignment = alignof(editor_project_t),
+		});
 	}
 }

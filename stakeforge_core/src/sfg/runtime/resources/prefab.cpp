@@ -11,7 +11,7 @@
 
 namespace sfg
 {
-	bool prefab_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool prefab_loader_t::read_source(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, chunk_handle32_t& out_source)
 	{
 		ostream_t file_stream;
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
@@ -25,10 +25,34 @@ namespace sfg
 		string_t prefab_source;
 		stream >> prefab_source;
 
+		chunk_allocator_t& mem = ctx.resource_manager.get_memory();
+		out_source			   = mem.allocate_text(prefab_source.c_str());
+		return true;
+	}
+
+	bool prefab_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	{
+		chunk_handle32_t source = {};
+		if (!read_source(entry, ctx, rfs, source))
+			return false;
+
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
 		*internals					  = {};
-		internals->source			  = mem.allocate_text(prefab_source.c_str());
+		internals->source			  = source;
+		return true;
+	}
+
+	bool prefab_loader_t::reload(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	{
+		chunk_handle32_t source = {};
+		if (!read_source(entry, ctx, rfs, source))
+			return false;
+
+		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
+		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
+		mem.free(internals->source);
+		internals->source = source;
 		return true;
 	}
 
@@ -50,6 +74,7 @@ namespace sfg
 		.wire_version		 = prefab_loader_t::WIRE_VERSION,
 		.use_async_load		 = false,
 		.load				 = prefab_loader_t::load,
+		.reload				 = prefab_loader_t::reload,
 		.unload				 = prefab_loader_t::unload,
 	};
 }

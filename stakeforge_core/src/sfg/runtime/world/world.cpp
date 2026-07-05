@@ -214,8 +214,7 @@ namespace sfg
 
 	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
 	{
-		if (add_resource(resource_type_e::prefab, handle))
-			load_all_used_resources();
+		resource_manager_t::get().load_resource(handle, resource_type_e::prefab, false, true);
 
 		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
 		if (prefab_data == nullptr)

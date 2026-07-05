@@ -26,7 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "commands/editor_command_project_settings.hpp"
+#include "editor_command_system.hpp"
 #include "ui/panels/editor_panel.hpp"
+#include "ui/widgets/editor_widget_reflection.hpp"
 
 namespace sfg
 {
@@ -37,5 +40,33 @@ namespace sfg
 		~editor_panel_project_settings_t() override										   = default;
 		editor_panel_project_settings_t(const editor_panel_project_settings_t&)			   = delete;
 		editor_panel_project_settings_t& operator=(const editor_panel_project_settings_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+
+	private:
+		void refresh_reflection();
+		void request_refresh_reflection();
+		void flush_pending_ui_mutations();
+		bool can_mutate_ui_topology() const;
+		void begin_project_settings_edit();
+		void submit_project_settings_edit();
+
+		static void on_project_settings_edit_begin(void* user_data);
+		static void on_project_settings_edit_submitted(void* user_data);
+		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
+
+	private:
+		vector_t<editor_widget_reflection_fold_state_t> _field_states		   = {};
+		editor_widget_reflection_t						_reflection			   = {};
+		editor_project_settings_data_t					_project_edit_previous = {};
+		editor_command_listener_handle_t				_command_listener	   = {};
+		bool											_refresh_pending	   = false;
+		bool											_project_edit_active   = false;
 	};
 }

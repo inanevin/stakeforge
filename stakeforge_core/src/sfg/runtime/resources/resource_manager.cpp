@@ -71,12 +71,13 @@ namespace sfg
 		flush_unloads();
 	}
 
-	resource_state_e resource_manager_t::load_resource(sid_t hash, resource_type_e type, bool bypass_async)
+	resource_state_e resource_manager_t::load_resource(sid_t hash, resource_type_e type, bool bypass_async, bool check_for_reload)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		auto it = _entries.find(hash);
-		if (it != _entries.end())
+		auto	   it	  = _entries.find(hash);
+		const bool exists = it != _entries.end();
+		if (exists && !check_for_reload)
 		{
 			it->second.ref_count++;
 			return it->second.state;
@@ -110,21 +111,45 @@ namespace sfg
 		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
 
+		const char*		   debug_name = header.debug_name;
+		resource_context_t ctx{*this};
+
+		if (exists)
+		{
+			if (header.source_tick != it->second.source_ticks)
+			{
+				if (desc->reload == nullptr)
+				{
+					SFG_WARN("can't issue a reload on resource as reload function in type descriptor does not exist! {0}", debug_name);
+					return it->second.state;
+				}
+
+				if (!desc->reload(it->second, ctx, *_resource_file_system))
+				{
+					SFG_ERR("failed reloading resource:  {0} {1}", debug_name, hash);
+					return it->second.state;
+				}
+
+				it->second.source_ticks = header.source_tick;
+				SFG_TRACE("reloaded resource: {0}", debug_name);
+			}
+
+			return it->second.state;
+		}
+
 		for (u32 i = 0; i < header.dependency_count; i++)
 			load_resource(header.dependencies[i].handle, header.dependencies[i].type, bypass_async);
-
-		const char* debug_name = header.debug_name;
 
 		resource_entry_t entry = {};
 		entry.type			   = type;
 		entry.ref_count		   = 1;
 		entry.hash			   = hash;
+		entry.source_ticks	   = header.source_tick;
 		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
 		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
 		entry.state			   = resource_state_e::failed;
 		entry.debug_name	   = _memory.allocate_text(debug_name);
 
-		resource_context_t ctx{*this};
 		if (!desc->load(entry, ctx, *_resource_file_system))
 		{
 			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);

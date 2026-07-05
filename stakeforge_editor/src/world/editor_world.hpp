@@ -102,6 +102,11 @@ namespace sfg
 			return _render_context.get_command_buffer(frame_index);
 		}
 
+		inline vec2u16_t get_render_resolution() const
+		{
+			return _render_resolution;
+		}
+
 	private:
 		void						   publish_snapshot();
 		const world_render_snapshot_t& acquire_render_snapshot();
@@ -112,6 +117,7 @@ namespace sfg
 		editor_world_edit_context_t _edit_context	   = {};
 		world_t						_world			   = {};
 		atomic_t<u8>				_snapshot_mailbox  = {};
+		vec2u16_t					_render_resolution = vec2u16_t::zero;
 		u8							_producer_slot	   = 0;
 		u8							_consumer_slot	   = 0;
 	};

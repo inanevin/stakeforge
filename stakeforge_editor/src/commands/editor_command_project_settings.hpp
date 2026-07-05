@@ -27,46 +27,30 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/common/type_id.hpp>
-#include <sfg/data/string.hpp>
 
 namespace sfg
 {
-	struct editor_project_runtime_t
+	struct editor_project_settings_data_t
 	{
-		string_t path;
-		string_t assets_path;
-		string_t cache_path;
-		string_t default_assets_path;
-		string_t name;
+		sid_t last_world_guid	 = NULL_SID;
+		u32	  world_tick_rate	 = 60;
+		u32	  world_physics_rate = 100;
+		u32	  max_sim_steps		 = 4;
 	};
 
-	struct editor_project_t
+	struct editor_command_edit_project_settings_payload_t
 	{
-		static editor_project_t& get()
-		{
-			static editor_project_t instance;
-			return instance;
-		}
-
-		editor_project_runtime_t _runtime			= {};
-		sid_t					 last_world_guid	= NULL_SID;
-		u32						 world_tick_rate	= 60;
-		u32						 world_physics_rate = 100;
-		u32						 max_sim_steps		= 4;
-
-		bool					save(const char* path);
-		bool					try_load(const char* path);
-		void					refresh_runtime(const char* path);
-		static editor_project_t make_default_project(const char* path);
+		editor_project_settings_data_t previous = {};
+		editor_project_settings_data_t post		= {};
 	};
 
-	SFG_DEFINE_TYPE_ID(editor_project_t);
-
-	struct editor_project_reflection_t
+	class editor_command_project_settings_t final
 	{
-		editor_project_reflection_t();
-	};
+	public:
+		editor_command_project_settings_t() = delete;
 
-	inline editor_project_reflection_t g_reflect_editor_project;
+		static editor_project_settings_data_t read();
+		static void							  apply(const editor_project_settings_data_t& settings);
+		static bool							  edit(const editor_project_settings_data_t& previous, const editor_project_settings_data_t& post);
+	};
 }

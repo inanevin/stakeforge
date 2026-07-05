@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "assets/editor_asset_spawn.hpp"
+#include <sfg/math/math.hpp>
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -130,12 +131,14 @@ namespace sfg
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
-		_world		  = nullptr;
-		_edit_context = {};
-		_empty_label  = NULL_WIDGET;
-		_world_view	  = NULL_WIDGET;
-		_root		  = NULL_WIDGET;
-		_ui			  = nullptr;
+		_world				 = nullptr;
+		_edit_context		 = {};
+		_last_resize_request = vec2u16_t::zero;
+		_empty_label		 = NULL_WIDGET;
+		_world_view			 = NULL_WIDGET;
+		_root				 = NULL_WIDGET;
+		_resize_ticks		 = 0;
+		_ui					 = nullptr;
 	}
 
 	void editor_widget_world_view_t::set_edit_context(editor_world_handle_t context)
@@ -153,6 +156,7 @@ namespace sfg
 		editor_world_controller_t&	controller = editor_world_controller_t::get();
 		const editor_world_handle_t world	   = controller.get_edit_context(_edit_context).get_world();
 		_world								   = &controller.get_world_render_context(world);
+		request_world_resize(true);
 		refresh_world_texture();
 
 		ui::layout_tree_t& tree = _ui->get_tree();
@@ -182,6 +186,24 @@ namespace sfg
 		tree.set_visible(_empty_label, true);
 	}
 
+	void editor_widget_world_view_t::request_world_resize(bool force)
+	{
+		if (_edit_context.is_null())
+			return;
+
+		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
+		const vec2u16_t			resolution{
+					.x = static_cast<u16>(math::clamp(out.size.x, 1.0f, 65535.0f) + 0.5f),
+					.y = static_cast<u16>(math::clamp(out.size.y, 1.0f, 65535.0f) + 0.5f),
+		};
+		if (!force && _last_resize_request == resolution)
+			return;
+
+		_last_resize_request				  = resolution;
+		editor_world_controller_t& controller = editor_world_controller_t::get();
+		controller.resize_world(controller.get_edit_context(_edit_context).get_world(), resolution);
+	}
+
 	void editor_widget_world_view_t::refresh_world_texture()
 	{
 		SFG_ASSERT(_ui != nullptr);
@@ -205,7 +227,15 @@ namespace sfg
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		if (widget._world != nullptr)
+		{
+			++widget._resize_ticks;
+			if (widget._resize_ticks >= 5)
+			{
+				widget._resize_ticks = 0;
+				widget.request_world_resize(false);
+			}
 			widget.refresh_world_texture();
+		}
 	}
 
 	bool editor_widget_world_view_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
