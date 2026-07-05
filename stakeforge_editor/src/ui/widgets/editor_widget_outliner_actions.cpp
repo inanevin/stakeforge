@@ -77,6 +77,8 @@ namespace sfg
 		SFG_ASSERT(!main_world.is_null());
 
 		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent, folder);
+		if (entity == NULL_ENTITY_ID)
+			return;
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 		{
 			world_t& world = editor_world_controller_t::get().get_world(main_world);
@@ -84,7 +86,6 @@ namespace sfg
 		}
 		if (!folder.is_null())
 			editor_world_controller_t::get().get_edit_context(_edit_context).set_folder_folded(folder, false);
-		editor_world_controller_t::get().get_edit_context(_edit_context).issue_entity_selection({.data = &entity, .size = 1}, entity);
 		refresh_entities();
 	}
 
@@ -263,11 +264,7 @@ namespace sfg
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
 		frame_vector_t<entity_id_t> duplicates;
-		if (editor_commands_entity_t::duplicate(main_world, entities, duplicates))
-		{
-			const entity_id_t entity = duplicates.back();
-			editor_world_controller_t::get().get_edit_context(_edit_context).issue_entity_selection({.data = &entity, .size = 1}, entity);
-		}
+		editor_commands_entity_t::duplicate(main_world, entities, duplicates);
 		refresh_entities();
 	}
 
@@ -279,7 +276,6 @@ namespace sfg
 
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
-		editor_world_controller_t::get().get_edit_context(_edit_context).clear_entity_selection();
 		editor_commands_entity_t::destroy(main_world, entities);
 		refresh_entities();
 	}

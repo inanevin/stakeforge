@@ -164,7 +164,7 @@ namespace sfg
 		tree.draw_order(_blocker)	= tree.draw_order_const(_root) + 10;
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = {0.0f, 0.0f, 0.0f, 0.8f};
+		rect.fill_color_a		 = {0.01f, 0.01f, 0.01f, 0.65f};
 		rect.fill_color_b		 = rect.fill_color_a;
 		rect.filled				 = true;
 		_ui->get_paint().set_rect(_blocker, rect);

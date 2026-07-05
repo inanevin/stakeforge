@@ -59,6 +59,26 @@ namespace sfg
 			return handle;
 		}
 
+		chunk_handle32_t copy_selection_to_aux(editor_command_system_t& system, span_t<const entity_id_t> selection)
+		{
+			if (selection.size == 0)
+				return {};
+
+			entity_id_t*		   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(selection.size, dst);
+			SFG_MEMCPY(dst, selection.data, sizeof(entity_id_t) * selection.size);
+			return handle;
+		}
+
+		void free_selection(editor_command_system_t& system, chunk_handle32_t& handle)
+		{
+			if (handle)
+			{
+				system.get_aux_data().free(handle);
+				handle = {};
+			}
+		}
+
 		chunk_handle32_t copy_entity_parents_to_aux(editor_command_system_t& system, const world_t& world, const frame_vector_t<entity_id_t>& entities)
 		{
 			entity_id_t*		   dst	  = nullptr;
@@ -111,7 +131,9 @@ namespace sfg
 				editor_world_controller_t::get().get_edit_context(payload.world).deassign_entities_from_folder({.data = &guid, .size = 1});
 			}
 			world.destroy_entity_tree(payload.entity);
-			payload.entity = NULL_ENTITY_ID;
+			payload.entity						  = NULL_ENTITY_ID;
+			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
+			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
 			return true;
 		}
 
@@ -131,6 +153,14 @@ namespace sfg
 				if (!folder.is_null())
 					metadata.assign_entities_to_folder(folder, {.data = &payload.guid, .size = 1});
 			}
+			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
+			return true;
+		}
+
+		bool create_entity_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
+			free_selection(system, payload.previous_selection);
 			return true;
 		}
 
@@ -144,12 +174,15 @@ namespace sfg
 				world.destroy_entity_tree(entities[i]);
 				entities[i] = NULL_ENTITY_ID;
 			}
+			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
+			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
 			return true;
 		}
 
 		bool duplicate_entity_cleanup(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_duplicate_entity_payload_t& payload = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
+			free_selection(system, payload.previous_selection);
 			free_streams(system, payload.streams, payload.count);
 			if (payload.streams)
 			{
@@ -221,6 +254,8 @@ namespace sfg
 				if (parents[i] != NULL_ENTITY_ID)
 					world.attach_to(entity, parents[i]);
 			}
+			const entity_id_t selected_entity = entities[payload.count - 1];
+			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = &selected_entity, .size = 1}, selected_entity);
 			return true;
 		}
 
@@ -239,12 +274,15 @@ namespace sfg
 				streams[i]	= {};
 				entities[i] = entity;
 			}
+			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
+			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
 			return true;
 		}
 
 		bool destroy_entity_cleanup(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_destroy_entity_payload_t& payload = system.get_payload_as<editor_command_destroy_entity_payload_t>(command);
+			free_selection(system, payload.previous_selection);
 			free_streams(system, payload.streams, payload.count);
 			if (payload.streams)
 			{
@@ -265,6 +303,7 @@ namespace sfg
 			world_t&								 world	  = editor_world_controller_t::get().get_world(payload.world);
 			const entity_id_t*						 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({}, NULL_ENTITY_ID);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
 				ostream_t stream;
@@ -332,21 +371,29 @@ namespace sfg
 
 	entity_id_t editor_commands_entity_t::create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
+		editor_command_system_t&		command_system = editor_command_system_t::get();
+		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_edit_context(world);
+		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
+		SFG_ASSERT(selection.size <= UINT32_MAX);
+
 		editor_command_create_entity_payload_t payload = {};
 		payload.world								   = world;
+		payload.previous_selection					   = copy_selection_to_aux(command_system, selection);
 		payload.parent								   = parent;
 		payload.entity								   = NULL_ENTITY_ID;
+		payload.previous_anchor						   = context.get_entity_anchor();
 		payload.folder_guid							   = folder.is_null() ? 0 : editor_world_controller_t::get().get_edit_context(world).get_folder(folder).guid;
+		payload.previous_selection_count			   = static_cast<u32>(selection.size);
 		const char*	 entity_name					   = "Entity";
 		const size_t entity_len						   = std::strlen(entity_name);
 		const size_t entity_n						   = entity_len < EDITOR_ENTITY_COMMAND_NAME_SIZE - 1 ? entity_len : EDITOR_ENTITY_COMMAND_NAME_SIZE - 1;
 		SFG_MEMCPY(payload.name, entity_name, entity_n);
 		payload.name[entity_n] = '\0';
 
-		editor_command_system_t&		  command_system = editor_command_system_t::get();
 		const editor_command_issue_desc_t desc{
 			.undo			   = create_entity_undo,
 			.redo			   = create_entity_redo,
+			.cleanup		   = create_entity_cleanup,
 			.debug_name		   = "Create Entity",
 			.type			   = editor_command_type_e::entity_create,
 			.entity_generation = true,
@@ -381,14 +428,20 @@ namespace sfg
 			return false;
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
-		editor_command_system_t& command_system = editor_command_system_t::get();
+		editor_command_system_t&		command_system = editor_command_system_t::get();
+		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_edit_context(world);
+		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
+		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_duplicate_entity_payload_t payload = {};
+		payload.previous_selection						  = copy_selection_to_aux(command_system, selection);
 		payload.streams									  = create_stream_array(command_system, entities.size());
 		payload.sources									  = copy_entities_to_aux(command_system, entities);
 		payload.parents									  = copy_entity_parents_to_aux(command_system, editor_world_controller_t::get().get_world(world), entities);
 		payload.entities								  = create_entity_array(command_system, entities.size(), NULL_ENTITY_ID);
 		payload.world									  = world;
+		payload.previous_anchor							  = context.get_entity_anchor();
+		payload.previous_selection_count				  = static_cast<u32>(selection.size);
 		payload.count									  = static_cast<u32>(entities.size());
 
 		const editor_command_issue_desc_t desc{
@@ -429,12 +482,18 @@ namespace sfg
 			return false;
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
-		editor_command_system_t& command_system = editor_command_system_t::get();
+		editor_command_system_t&		command_system = editor_command_system_t::get();
+		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_edit_context(world);
+		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
+		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_destroy_entity_payload_t payload = {};
+		payload.previous_selection						= copy_selection_to_aux(command_system, selection);
 		payload.streams									= create_stream_array(command_system, entities.size());
 		payload.entities								= copy_entities_to_aux(command_system, entities);
 		payload.world									= world;
+		payload.previous_anchor							= context.get_entity_anchor();
+		payload.previous_selection_count				= static_cast<u32>(selection.size);
 		payload.count									= static_cast<u32>(entities.size());
 
 		const editor_command_issue_desc_t desc{

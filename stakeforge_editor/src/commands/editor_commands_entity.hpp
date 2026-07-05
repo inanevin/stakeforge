@@ -38,30 +38,39 @@ namespace sfg
 
 	struct editor_command_create_entity_payload_t
 	{
+		chunk_handle32_t	  previous_selection					= {};
 		editor_world_handle_t world									= {};
 		entity_id_t			  parent								= NULL_ENTITY_ID;
 		entity_id_t			  entity								= NULL_ENTITY_ID;
+		entity_id_t			  previous_anchor						= NULL_ENTITY_ID;
 		entity_guid_t		  guid									= NULL_ENTITY_GUID;
 		u64					  folder_guid							= 0;
+		u32					  previous_selection_count				= 0;
 		char				  name[EDITOR_ENTITY_COMMAND_NAME_SIZE] = {};
 	};
 
 	struct editor_command_duplicate_entity_payload_t
 	{
-		chunk_handle32_t	  streams  = {};
-		chunk_handle32_t	  sources  = {};
-		chunk_handle32_t	  parents  = {};
-		chunk_handle32_t	  entities = {};
-		editor_world_handle_t world	   = {};
-		u32					  count	   = 0;
+		chunk_handle32_t	  previous_selection	   = {};
+		chunk_handle32_t	  streams				   = {};
+		chunk_handle32_t	  sources				   = {};
+		chunk_handle32_t	  parents				   = {};
+		chunk_handle32_t	  entities				   = {};
+		editor_world_handle_t world					   = {};
+		entity_id_t			  previous_anchor		   = NULL_ENTITY_ID;
+		u32					  previous_selection_count = 0;
+		u32					  count					   = 0;
 	};
 
 	struct editor_command_destroy_entity_payload_t
 	{
-		chunk_handle32_t	  streams  = {};
-		chunk_handle32_t	  entities = {};
-		editor_world_handle_t world	   = {};
-		u32					  count	   = 0;
+		chunk_handle32_t	  previous_selection	   = {};
+		chunk_handle32_t	  streams				   = {};
+		chunk_handle32_t	  entities				   = {};
+		editor_world_handle_t world					   = {};
+		entity_id_t			  previous_anchor		   = NULL_ENTITY_ID;
+		u32					  previous_selection_count = 0;
+		u32					  count					   = 0;
 	};
 
 	struct editor_command_reparent_entity_payload_t
