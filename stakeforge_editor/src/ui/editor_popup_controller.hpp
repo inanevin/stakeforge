@@ -89,8 +89,8 @@ namespace sfg
 		void*						  user_data		   = nullptr;
 		vec2f_t						  pos			   = {};
 		f32							  width			   = 0.0f;
-		editor_asset_type_e			  asset_type	   = editor_asset_type_e::invalid;
 		sid_t						  selected		   = NULL_SID;
+		editor_asset_type_e			  asset_type	   = editor_asset_type_e::invalid;
 		bool						  close_on_pressed = true;
 	};
 
@@ -100,9 +100,9 @@ namespace sfg
 		editor_popup_closed_fn		   closed			= nullptr;
 		void*						   user_data		= nullptr;
 		vec2f_t						   pos				= {};
-		f32							   width			= 0.0f;
 		world_handle_t				   world			= {};
 		entity_guid_t				   selected			= NULL_ENTITY_GUID;
+		f32							   width			= 0.0f;
 		bool						   close_on_pressed = true;
 	};
 

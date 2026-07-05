@@ -111,6 +111,8 @@ namespace sfg
 		u32			find_button_index(ui::widget_id_t id) const;
 
 	private:
+		editor_modal_button_desc_t	_buttons[MAX_BUTTONS]		= {};
+		editor_modal_content_desc_t _content					= {};
 		ui::ui_context*				_ui							= nullptr;
 		ui::widget_id_t				_foreground					= NULL_WIDGET;
 		ui::widget_id_t				_dimmer						= NULL_WIDGET;
@@ -121,8 +123,6 @@ namespace sfg
 		ui::widget_id_t				_button_row					= NULL_WIDGET;
 		ui::widget_id_t				_button_frames[MAX_BUTTONS] = {};
 		ui::widget_id_t				_button_labels[MAX_BUTTONS] = {};
-		editor_modal_button_desc_t	_buttons[MAX_BUTTONS]		= {};
-		editor_modal_content_desc_t _content					= {};
 		u16							_button_count				= 0;
 		bool						_buttons_visible			= false;
 		bool						_content_active				= false;

@@ -118,9 +118,9 @@ namespace sfg
 		void			 follow_cursor();
 
 	private:
+		vector_t<listener_t>		_listeners			 = {};
 		window_runtime_t*			_runtime			 = nullptr;
 		ui::ui_context*				_ui					 = nullptr;
-		vector_t<listener_t>		_listeners			 = {};
 		string_t					_text				 = {};
 		void*						_user_ptr			 = nullptr;
 		void*						_unhandled_user_data = nullptr;

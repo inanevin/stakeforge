@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg

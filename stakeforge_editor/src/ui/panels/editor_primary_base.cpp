@@ -134,25 +134,25 @@ namespace sfg
 		}
 
 		const editor_action_menu_row_desc_t FILE_ROWS[] = {
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Project"},
+			{.text = "Project", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::project_new)},
 			{.text = "Load", .shortcut = "Ctrl+O", .command = static_cast<u16>(editor_file_menu_commands_e::project_load)},
 			{.text = "Save", .shortcut = "Ctrl+S", .command = static_cast<u16>(editor_file_menu_commands_e::project_save)},
 			{.text = "Save As", .command = static_cast<u16>(editor_file_menu_commands_e::project_save_as)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Scene"},
+			{.text = "Scene", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::scene_new)},
 			{.text = "Save", .command = static_cast<u16>(editor_file_menu_commands_e::scene_save)},
 			{.text = "Save As", .command = static_cast<u16>(editor_file_menu_commands_e::scene_save_as)},
 			{.text = "Load", .command = static_cast<u16>(editor_file_menu_commands_e::scene_load)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Session"},
+			{.text = "Session", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Exit", .shortcut = "Alt+F4", .command = static_cast<u16>(editor_file_menu_commands_e::file_exit)},
 		};
 
 		const editor_action_menu_row_desc_t EDIT_ROWS[] = {
-			{.kind = editor_action_menu_row_kind_e::title, .text = "History"},
+			{.text = "History", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Undo", .shortcut = "Ctrl+Z", .command = static_cast<u16>(editor_file_menu_commands_e::edit_undo)},
 			{.text = "Redo", .shortcut = "Ctrl+Y", .command = static_cast<u16>(editor_file_menu_commands_e::edit_redo)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Clipboard"},
+			{.text = "Clipboard", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Cut", .shortcut = "Ctrl+X", .command = static_cast<u16>(editor_file_menu_commands_e::edit_cut)},
 			{.text = "Copy", .shortcut = "Ctrl+C", .command = static_cast<u16>(editor_file_menu_commands_e::edit_copy)},
 			{.text = "Paste", .shortcut = "Ctrl+V", .command = static_cast<u16>(editor_file_menu_commands_e::edit_paste)},
@@ -163,9 +163,9 @@ namespace sfg
 		};
 
 		const editor_action_menu_row_desc_t VIEW_ROWS[] = {
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Tools"},
+			{.text = "Tools", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Command Palette", .shortcut = "Ctrl+Shift+P", .command = static_cast<u16>(editor_file_menu_commands_e::view_command_palette)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Panels"},
+			{.text = "Panels", .kind = editor_action_menu_row_kind_e::title},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::entities), .command = panel_menu_command(editor_panel_type_e::entities)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::assets), .command = panel_menu_command(editor_panel_type_e::assets)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::log), .command = panel_menu_command(editor_panel_type_e::log)},
@@ -173,40 +173,40 @@ namespace sfg
 			{.text = editor_panel_type_to_string(editor_panel_type_e::inspector), .command = panel_menu_command(editor_panel_type_e::inspector)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::animation), .command = panel_menu_command(editor_panel_type_e::animation)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::profiling), .command = panel_menu_command(editor_panel_type_e::profiling)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Editor"},
+			{.text = "Editor", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Layouts", .children = LAYOUT_ROWS, .child_count = static_cast<u16>(sizeof(LAYOUT_ROWS) / sizeof(LAYOUT_ROWS[0]))},
-			{.kind = editor_action_menu_row_kind_e::toggle, .text = "Subpixel Text", .toggle_query = is_editor_subpixel_text_enabled, .toggle_callback = set_editor_subpixel_text_enabled},
-			{.kind = editor_action_menu_row_kind_e::toggle, .text = "Debug Bounds", .toggle_query = is_editor_debug_bounds_enabled, .toggle_callback = set_editor_debug_bounds_enabled, .close_on_toggle = true},
+			{.text = "Subpixel Text", .toggle_query = is_editor_subpixel_text_enabled, .toggle_callback = set_editor_subpixel_text_enabled, .kind = editor_action_menu_row_kind_e::toggle},
+			{.text = "Debug Bounds", .toggle_query = is_editor_debug_bounds_enabled, .toggle_callback = set_editor_debug_bounds_enabled, .kind = editor_action_menu_row_kind_e::toggle, .close_on_toggle = true},
 		};
 
 		const editor_action_menu_row_desc_t ENTITY_ROWS[] = {
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Create"},
+			{.text = "Create", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Empty Entity", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_empty)},
 			{.text = "Camera", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_camera)},
 			{.text = "Light", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_light)},
 			{.text = "Mesh", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_mesh)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Selection"},
+			{.text = "Selection", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Duplicate", .shortcut = "Ctrl+D", .command = static_cast<u16>(editor_file_menu_commands_e::entity_duplicate)},
 			{.text = "Delete", .shortcut = "Del", .command = static_cast<u16>(editor_file_menu_commands_e::entity_delete)},
 			{.text = "Rename", .shortcut = "F2", .command = static_cast<u16>(editor_file_menu_commands_e::entity_rename)},
 		};
 
 		const editor_action_menu_row_desc_t DEBUG_ROWS[] = {
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Viewport"},
+			{.text = "Viewport", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Toggle Bounds", .command = static_cast<u16>(editor_file_menu_commands_e::debug_toggle_bounds)},
 			{.text = "Toggle Wireframe", .command = static_cast<u16>(editor_file_menu_commands_e::debug_toggle_wireframe)},
 			{.text = "Freeze Culling", .command = static_cast<u16>(editor_file_menu_commands_e::debug_freeze_culling)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Runtime"},
+			{.text = "Runtime", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Reload Shaders", .shortcut = "Ctrl+R", .command = static_cast<u16>(editor_file_menu_commands_e::debug_reload_shaders)},
 			{.text = "Dump UI Tree", .command = static_cast<u16>(editor_file_menu_commands_e::debug_dump_ui_tree)},
 			{.text = "Capture Frame", .command = static_cast<u16>(editor_file_menu_commands_e::debug_capture_frame)},
 		};
 
 		const editor_action_menu_row_desc_t HELP_ROWS[] = {
-			{.kind = editor_action_menu_row_kind_e::title, .text = "Links"},
+			{.text = "Links", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "GitHub", .command = static_cast<u16>(editor_file_menu_commands_e::help_github)},
 			{.text = "Website", .command = static_cast<u16>(editor_file_menu_commands_e::help_website)},
-			{.kind = editor_action_menu_row_kind_e::title, .text = "About"},
+			{.text = "About", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Version", .command = static_cast<u16>(editor_file_menu_commands_e::help_version)},
 			{.text = "Build Info", .command = static_cast<u16>(editor_file_menu_commands_e::help_build_info)},
 		};

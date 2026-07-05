@@ -42,6 +42,7 @@ namespace sfg
 {
 	struct editor_action_menu_desc_t
 	{
+		editor_action_menu_style_t			 style			   = {};
 		const editor_action_menu_row_desc_t* rows			   = nullptr;
 		editor_action_menu_command_fn		 command_fn		   = nullptr;
 		void*								 command_user_data = nullptr;
@@ -49,7 +50,6 @@ namespace sfg
 		void*								 closed_user_data  = nullptr;
 		vec2f_t								 pos			   = {};
 		ui::widget_id_t						 owner_root		   = NULL_WIDGET;
-		editor_action_menu_style_t			 style			   = {};
 		u16									 row_count		   = 0;
 	};
 
@@ -98,7 +98,8 @@ namespace sfg
 		static void handle_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		ui::ui_context*						 _ui								   = nullptr;
+		const editor_action_menu_row_desc_t* _active_rows[MAX_DEPTH]			   = {};
+		editor_action_menu_desc_t			 _desc								   = {};
 		ui::widget_id_t						 _foreground						   = NULL_WIDGET;
 		ui::widget_id_t						 _panels[MAX_DEPTH]					   = {};
 		ui::widget_id_t						 _row_frames[MAX_DEPTH][MAX_ROWS]	   = {};
@@ -107,9 +108,8 @@ namespace sfg
 		ui::widget_id_t						 _row_icons[MAX_DEPTH][MAX_ROWS]	   = {};
 		ui::widget_id_t						 _row_icon_labels[MAX_DEPTH][MAX_ROWS] = {};
 		ui::widget_id_t						 _row_title_lines[MAX_DEPTH][MAX_ROWS] = {};
-		const editor_action_menu_row_desc_t* _active_rows[MAX_DEPTH]			   = {};
 		u16									 _active_row_counts[MAX_DEPTH]		   = {};
-		editor_action_menu_desc_t			 _desc								   = {};
+		ui::ui_context*						 _ui								   = nullptr;
 		u32									 _active_depth						   = 0;
 		bool								 _open								   = false;
 		bool								 _closing							   = false;

@@ -48,18 +48,18 @@ namespace sfg
 
 	struct editor_action_menu_row_desc_t
 	{
-		editor_action_menu_row_kind_e		 kind			  = editor_action_menu_row_kind_e::item;
 		const char*							 text			  = nullptr;
 		const char*							 shortcut		  = nullptr;
 		const char*							 icon			  = nullptr;
-		vec4f_t								 icon_color		  = {1, 1, 1, 1};
-		const editor_action_menu_row_desc_t* children		  = nullptr;
-		u16									 child_count	  = 0;
-		u16									 command		  = 0;
-		bool*								 toggle_value	  = nullptr;
 		editor_action_menu_toggle_query_fn	 toggle_query	  = nullptr;
 		editor_action_menu_toggle_fn		 toggle_callback  = nullptr;
 		void*								 toggle_user_data = nullptr;
+		bool*								 toggle_value	  = nullptr;
+		const editor_action_menu_row_desc_t* children		  = nullptr;
+		vec4f_t								 icon_color		  = {1, 1, 1, 1};
+		u16									 child_count	  = 0;
+		u16									 command		  = 0;
+		editor_action_menu_row_kind_e		 kind			  = editor_action_menu_row_kind_e::item;
 		bool								 has_icon_color	  = false;
 		bool								 close_on_toggle  = false;
 		bool								 disabled		  = false;
