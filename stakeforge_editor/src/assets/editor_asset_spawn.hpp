@@ -27,8 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_handle.hpp"
 #include <sfg/math/vec2f.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -39,7 +39,7 @@ namespace sfg
 	{
 		const editor_payload_t* payload	   = nullptr;
 		vec2f_t					screen_pos = vec2f_t::zero;
-		world_handle_t			world	   = {};
+		editor_world_handle_t	world	   = {};
 		entity_id_t				parent	   = NULL_ENTITY_ID;
 	};
 

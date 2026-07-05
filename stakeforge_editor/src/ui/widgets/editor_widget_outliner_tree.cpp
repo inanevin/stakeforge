@@ -156,8 +156,8 @@ namespace sfg
 
 	void editor_widget_outliner_t::collect_entities()
 	{
-		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
-		_main_world						= main_world;
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		_main_world							   = main_world;
 		if (main_world.is_null())
 			return;
 

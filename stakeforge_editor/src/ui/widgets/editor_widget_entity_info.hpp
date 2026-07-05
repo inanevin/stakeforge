@@ -30,10 +30,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_button.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 namespace sfg
 {
 	class world_t;
@@ -42,8 +42,8 @@ namespace sfg
 
 	struct editor_widget_entity_info_config_t
 	{
-		world_handle_t world	 = {};
-		bool		   is_prefab = false;
+		editor_world_handle_t world		= {};
+		bool				  is_prefab = false;
 	};
 
 	class editor_widget_entity_info_t final

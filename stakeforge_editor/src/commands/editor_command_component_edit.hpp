@@ -27,9 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/memory/chunk_handle.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -38,12 +38,12 @@ namespace sfg
 
 	struct editor_command_component_edit_payload_t
 	{
-		chunk_handle32_t previous_streams = {};
-		chunk_handle32_t post_streams	  = {};
-		chunk_handle32_t entities		  = {};
-		world_handle_t	 world			  = {};
-		sid_t			 component_type	  = 0;
-		u32				 count			  = 0;
+		chunk_handle32_t	  previous_streams = {};
+		chunk_handle32_t	  post_streams	   = {};
+		chunk_handle32_t	  entities		   = {};
+		editor_world_handle_t world			   = {};
+		sid_t				  component_type   = 0;
+		u32					  count			   = 0;
 	};
 
 	class editor_command_component_edit_t final
@@ -51,6 +51,6 @@ namespace sfg
 	public:
 		editor_command_component_edit_t() = delete;
 
-		static bool edit(world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type, span_t<const ostream_t> previous_streams, span_t<const ostream_t> post_streams);
+		static bool edit(editor_world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type, span_t<const ostream_t> previous_streams, span_t<const ostream_t> post_streams);
 	};
 }

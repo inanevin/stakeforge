@@ -49,50 +49,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <sfg/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-#define WORLD_SNAPSHOT_SLOT_COUNT		3
-#define WORLD_SNAPSHOT_SLOT_MASK		0x3
-#define WORLD_SNAPSHOT_FRESH_FLAG		0x80
 #define EDITOR_CAMERA_BASE_MOVE_SPEED	12.0f
 #define EDITOR_CAMERA_BOOST_MULTIPLIER	8.0f
 #define EDITOR_CAMERA_MOUSE_SENSITIVITY 0.2f
-
-	editor_world_controller_t::world_container_t& editor_world_controller_t::world_container_t::operator=(world_container_t&& other) noexcept
-	{
-		for (u32 i = 0; i < WORLD_SNAPSHOT_SLOT_COUNT; ++i)
-			snapshot_slots[i] = static_cast<world_render_snapshot_t&&>(other.snapshot_slots[i]);
-
-		render_context	= static_cast<world_render_context_t&&>(other.render_context);
-		world_resources = static_cast<vector_t<u64>&&>(other.world_resources);
-		snapshot_mailbox.store(other.snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
-		edit_context  = other.edit_context;
-		handle		  = other.handle;
-		producer_slot = other.producer_slot;
-		consumer_slot = other.consumer_slot;
-
-		other.snapshot_mailbox.store(0, std::memory_order_relaxed);
-		other.world_resources.resize(0);
-		other.edit_context	= {};
-		other.handle		= {};
-		other.producer_slot = 0;
-		other.consumer_slot = 0;
-		return *this;
-	}
 
 	void editor_world_controller_t::init()
 	{
 		SFG_ASSERT(s_instance == nullptr);
 		s_instance = this;
-		_edit_contexts.reserve(8);
+		_worlds.reserve(8);
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
@@ -112,7 +85,6 @@ namespace sfg
 		}
 
 		destroy_worlds_internal(false);
-		_edit_contexts.clear();
 		_main_edit_context = {};
 		_previous_time_us  = 0;
 		_accumulator_us	   = 0;
@@ -123,36 +95,17 @@ namespace sfg
 		s_instance			= nullptr;
 	}
 
-	world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
+	editor_world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		const world_handle_t handle = _worlds.add();
-		world_t&			 world	= _worlds.get(handle);
-		world.init();
-
-		world_container_t& container = _world_containers.emplace_back();
-		container.handle			 = handle;
-		container.edit_context		 = _edit_contexts.emplace();
-
-		editor_world_edit_context_t& context = _edit_contexts.get(container.edit_context);
-		context.init();
-		context.set_handle(container.edit_context);
-		context.set_world(handle);
-		container.producer_slot = 0;
-		container.consumer_slot = 1;
-		container.snapshot_mailbox.store(2, std::memory_order_relaxed);
-		container.render_context.init(render_resolution);
-
-		for (u32 i = 0; i < 3; i++)
-		{
-			container.snapshot_slots[i].reserve(8000);
-		}
+		const editor_world_handle_t handle = _worlds.add();
+		_worlds.get(handle).init(handle, render_resolution);
 
 		return handle;
 	}
 
-	void editor_world_controller_t::destroy_world(world_handle_t handle)
+	void editor_world_controller_t::destroy_world(editor_world_handle_t handle)
 	{
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
@@ -170,25 +123,11 @@ namespace sfg
 		}
 	}
 
-	void editor_world_controller_t::destroy_world_internal(world_handle_t handle)
+	void editor_world_controller_t::destroy_world_internal(editor_world_handle_t handle)
 	{
-		for (auto it = _world_containers.begin(); it != _world_containers.end(); ++it)
-		{
-			if (it->handle == handle)
-			{
-				it->render_context.uninit();
-				_edit_contexts.get(it->edit_context).uninit();
-				_edit_contexts.remove(it->edit_context);
-				world_t& world = _worlds.get(handle);
-				world.unload_all_used_resources();
-				world.uninit();
-				_worlds.remove(handle);
-				_world_containers.erase(it);
-				return;
-			}
-		}
-
-		SFG_ASSERT(false);
+		editor_world_t& world = _worlds.get(handle);
+		world.uninit();
+		_worlds.remove(handle);
 	}
 
 	void editor_world_controller_t::destroy_main_world_internal()
@@ -196,7 +135,7 @@ namespace sfg
 		if (_main_world.is_null())
 			return;
 
-		const world_handle_t handle = _main_world;
+		const editor_world_handle_t handle = _main_world;
 		set_main_world({}, NULL_SID, "");
 		destroy_world_internal(handle);
 		_main_camera_entity = NULL_ENTITY_ID;
@@ -215,18 +154,12 @@ namespace sfg
 		if (notify_panels && !_main_world.is_null())
 			set_main_world({}, NULL_SID, "");
 
-		for (world_container_t& container : _world_containers)
+		for (editor_world_t& world : _worlds)
 		{
-			container.render_context.uninit();
-			_edit_contexts.get(container.edit_context).uninit();
-			_edit_contexts.remove(container.edit_context);
-			world_t& world = _worlds.get(container.handle);
-			world.unload_all_used_resources();
 			world.uninit();
-			_worlds.remove(container.handle);
 		}
 
-		_world_containers.resize(0);
+		_worlds.resize_zero();
 		_main_camera_entity = NULL_ENTITY_ID;
 		reset_camera_input();
 		_main_world					   = {};
@@ -237,20 +170,10 @@ namespace sfg
 		_main_world_dirty = false;
 	}
 
-	void editor_world_controller_t::resize_world(world_handle_t handle, vec2u16_t render_resolution)
+	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		for (world_container_t& container : _world_containers)
-		{
-			if (container.handle == handle)
-			{
-				container.render_context.resize(render_resolution);
-				return;
-			}
-		}
-
-		SFG_ASSERT(false);
+		_worlds.get(handle).resize(render_resolution);
 	}
 
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
@@ -258,24 +181,22 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 
-		if (_world_containers.empty())
+		if (_worlds.empty())
 			return false;
 
 		frame_vector_t<gfx_handle_t> command_buffers;
-		command_buffers.reserve(_world_containers.size());
+		command_buffers.reserve(_worlds.size());
 
 		const f32 interpolation_alpha = calculate_render_alpha();
-		for (world_container_t& container : _world_containers)
+		for (editor_world_t& world : _worlds)
 		{
-			const world_render_snapshot_t& snapshot = acquire_render_snapshot(container);
-			world_rendering_t::render_world(container.render_context, snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
-			command_buffers.push_back(container.render_context.get_command_buffer(frame_index));
+			world.render(interpolation_alpha, frame_index, global_cbv_index, global_layout);
+			command_buffers.push_back(world.get_command_buffer(frame_index));
 		}
 
 		gfx_backend& backend = gfx_backend::get();
 
-		if (!_world_containers.empty())
-			backend.queue_signal(queue, &signal, &signal_value, 1);
+		backend.queue_signal(queue, &signal, &signal_value, 1);
 		return true;
 	}
 
@@ -297,13 +218,13 @@ namespace sfg
 			while (_accumulator_us >= fixed_us && steps < max_sim_steps)
 			{
 				_accumulator_us -= fixed_us;
-				for (const world_container_t& container : _world_containers)
+				for (auto it = _worlds.begin_handle(); it != _worlds.end_handle(); ++it)
 				{
-					world_t& world = _worlds.get(container.handle);
-					if (container.handle == _main_world)
+					const editor_world_handle_t handle		 = *it;
+					editor_world_t&				editor_world = _worlds.get(handle);
+					if (handle == _main_world)
 						tick_editor_camera(dt_seconds);
-					world.tick(dt_seconds);
-					world.update_world_transforms(true);
+					editor_world.tick(dt_seconds);
 				}
 				++steps;
 			}
@@ -318,19 +239,17 @@ namespace sfg
 			_last_fixed_step_us.store(now, std::memory_order_release);
 		}
 
-		for (world_container_t& container : _world_containers)
+		for (editor_world_t& editor_world : _worlds)
 		{
-			world_t& world = _worlds.get(container.handle);
 			if (steps == 0)
-				world.update_world_transforms(false);
-			world_snapshot_producer_t::produce(world, container.snapshot_slots[container.producer_slot]);
-			publish_world_snapshot(container);
+				editor_world.update_world_transforms(false);
+			editor_world.produce_snapshot();
 		}
 	}
 
-	void editor_world_controller_t::install_default_world(world_handle_t handle)
+	void editor_world_controller_t::install_default_world(editor_world_handle_t handle)
 	{
-		world_t& world = _worlds.get(handle);
+		world_t& world = _worlds.get(handle).get_world();
 		install_editor_camera(world);
 
 		const entity_id_t	environment				  = world.create_entity("environment");
@@ -343,17 +262,8 @@ namespace sfg
 		if (!debug_widgets_exists)
 			debug_widgets_table.type_desc.default_init(debug_widgets);
 
-		for (world_container_t& container : _world_containers)
-		{
-			if (container.handle == handle)
-			{
-				world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
-				world.load_all_used_resources();
-				return;
-			}
-		}
-
-		SFG_ASSERT(false);
+		world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
+		world.load_all_used_resources();
 	}
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
@@ -382,7 +292,7 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
+		const editor_world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
 		install_default_world(handle);
 		set_main_world(handle, NULL_SID, "unnamed");
 	}
@@ -402,12 +312,12 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
+		const editor_world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
 		if (asset->embedded_source.empty())
 			install_default_world(handle);
 		else
 		{
-			world_t&			 world			 = _worlds.get(handle);
+			world_t&			 world			 = _worlds.get(handle).get_world();
 			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
@@ -436,7 +346,7 @@ namespace sfg
 			return false;
 
 		nlohmann::json world_json = nlohmann::json::object();
-		world_cooker_t::world_to_json(_worlds.get(_main_world), world_json);
+		world_cooker_t::world_to_json(_worlds.get(_main_world).get_world(), world_json);
 		get_main_edit_context().write_folders_to_json(world_json["folders"]);
 
 		editor_asset_t		  asset = {};
@@ -502,7 +412,7 @@ namespace sfg
 		return true;
 	}
 
-	void editor_world_controller_t::set_main_world(world_handle_t handle, sid_t asset_guid, const char* name)
+	void editor_world_controller_t::set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name)
 	{
 		SFG_ASSERT(name != nullptr);
 
@@ -728,64 +638,6 @@ namespace sfg
 		return false;
 	}
 
-	const world_render_context_t& editor_world_controller_t::get_world_render_context(world_handle_t handle) const
-	{
-		for (const world_container_t& container : _world_containers)
-		{
-			if (container.handle == handle)
-				return container.render_context;
-		}
-
-		SFG_ASSERT(false);
-		return _world_containers.front().render_context;
-	}
-
-	editor_world_edit_context_t& editor_world_controller_t::get_edit_context(world_handle_t handle)
-	{
-		for (world_container_t& container : _world_containers)
-		{
-			if (container.handle == handle)
-				return _edit_contexts.get(container.edit_context);
-		}
-
-		SFG_ASSERT(false);
-		return _edit_contexts.get(_main_edit_context);
-	}
-
-	const editor_world_edit_context_t& editor_world_controller_t::get_edit_context(world_handle_t handle) const
-	{
-		for (const world_container_t& container : _world_containers)
-		{
-			if (container.handle == handle)
-				return _edit_contexts.get(container.edit_context);
-		}
-
-		SFG_ASSERT(false);
-		return _edit_contexts.get(_main_edit_context);
-	}
-
-	void editor_world_controller_t::publish_world_snapshot(world_container_t& container)
-	{
-		const u8 prev			= container.snapshot_mailbox.exchange(container.producer_slot | WORLD_SNAPSHOT_FRESH_FLAG, std::memory_order_release);
-		container.producer_slot = static_cast<u8>((prev & WORLD_SNAPSHOT_SLOT_MASK) % WORLD_SNAPSHOT_SLOT_COUNT);
-	}
-
-	const world_render_snapshot_t& editor_world_controller_t::acquire_render_snapshot(world_container_t& container)
-	{
-		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
-
-		u8 cur = container.snapshot_mailbox.load(std::memory_order_acquire);
-		while (cur & WORLD_SNAPSHOT_FRESH_FLAG)
-		{
-			if (container.snapshot_mailbox.compare_exchange_weak(cur, container.consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
-			{
-				container.consumer_slot = static_cast<u8>((cur & WORLD_SNAPSHOT_SLOT_MASK) % WORLD_SNAPSHOT_SLOT_COUNT);
-				break;
-			}
-		}
-		return container.snapshot_slots[container.consumer_slot];
-	}
-
 	f32 editor_world_controller_t::calculate_render_alpha() const
 	{
 		const i64 fixed_us = _fixed_step_us.load(std::memory_order_relaxed);
@@ -829,7 +681,7 @@ namespace sfg
 		if (_main_camera_entity == NULL_ENTITY_ID || !_world_panel_focused)
 			return;
 
-		world_t& world = _worlds.get(_main_world);
+		world_t& world = _worlds.get(_main_world).get_world();
 
 		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_CAMERA_MOUSE_SENSITIVITY;
 		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_CAMERA_MOUSE_SENSITIVITY;

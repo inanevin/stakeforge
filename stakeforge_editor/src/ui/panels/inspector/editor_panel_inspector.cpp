@@ -60,12 +60,12 @@ namespace sfg
 		_inspector.set_display_none();
 	}
 
-	void editor_panel_inspector_t::set_display_entity(world_handle_t world, entity_id_t entity)
+	void editor_panel_inspector_t::set_display_entity(editor_world_handle_t world, entity_id_t entity)
 	{
 		_inspector.set_display_entity(world, entity);
 	}
 
-	void editor_panel_inspector_t::set_display_entity(world_handle_t world, span_t<const entity_id_t> entities)
+	void editor_panel_inspector_t::set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities)
 	{
 		_inspector.set_display_entity(world, entities);
 	}

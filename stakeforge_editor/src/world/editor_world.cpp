@@ -1,0 +1,137 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "world/editor_world.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/world/world_snapshot_producer.hpp>
+
+namespace sfg
+{
+#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT 3
+#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK	 0x3
+#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG 0x80
+
+	editor_world_t::editor_world_t(editor_world_t&& other) noexcept
+	{
+		*this = static_cast<editor_world_t&&>(other);
+	}
+
+	editor_world_t& editor_world_t::operator=(editor_world_t&& other) noexcept
+	{
+		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
+			_snapshot_slots[i] = static_cast<world_render_snapshot_t&&>(other._snapshot_slots[i]);
+
+		_render_context = static_cast<world_render_context_t&&>(other._render_context);
+		_edit_context	= static_cast<editor_world_edit_context_t&&>(other._edit_context);
+		_world			= static_cast<world_t&&>(other._world);
+		_snapshot_mailbox.store(other._snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
+		_producer_slot = other._producer_slot;
+		_consumer_slot = other._consumer_slot;
+
+		other._snapshot_mailbox.store(0, std::memory_order_relaxed);
+		other._producer_slot = 0;
+		other._consumer_slot = 0;
+		return *this;
+	}
+
+	void editor_world_t::init(editor_world_handle_t handle, vec2u16_t render_resolution)
+	{
+		_world.init();
+		_edit_context.init();
+		_edit_context.set_handle(handle);
+		_edit_context.set_world(handle);
+		_producer_slot = 0;
+		_consumer_slot = 1;
+		_snapshot_mailbox.store(2, std::memory_order_relaxed);
+		_render_context.init(render_resolution);
+
+		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
+			_snapshot_slots[i].reserve(8000);
+	}
+
+	void editor_world_t::uninit()
+	{
+		_render_context.uninit();
+		_edit_context.uninit();
+		_world.unload_all_used_resources();
+		_world.uninit();
+		_snapshot_mailbox.store(0, std::memory_order_relaxed);
+		_producer_slot = 0;
+		_consumer_slot = 0;
+	}
+
+	void editor_world_t::resize(vec2u16_t render_resolution)
+	{
+		_render_context.resize(render_resolution);
+	}
+
+	void editor_world_t::tick(f32 dt_seconds)
+	{
+		_world.tick(dt_seconds);
+		_world.update_world_transforms(true);
+	}
+
+	void editor_world_t::update_world_transforms(bool advance_interpolation)
+	{
+		_world.update_world_transforms(advance_interpolation);
+	}
+
+	void editor_world_t::produce_snapshot()
+	{
+		world_snapshot_producer_t::produce(_world, _snapshot_slots[_producer_slot]);
+		publish_snapshot();
+	}
+
+	void editor_world_t::render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		const world_render_snapshot_t& snapshot = acquire_render_snapshot();
+		world_rendering_t::render_world(_render_context, snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+	}
+
+	void editor_world_t::publish_snapshot()
+	{
+		const u8 prev  = _snapshot_mailbox.exchange(_producer_slot | EDITOR_WORLD_SNAPSHOT_FRESH_FLAG, std::memory_order_release);
+		_producer_slot = static_cast<u8>((prev & EDITOR_WORLD_SNAPSHOT_SLOT_MASK) % EDITOR_WORLD_SNAPSHOT_SLOT_COUNT);
+	}
+
+	const world_render_snapshot_t& editor_world_t::acquire_render_snapshot()
+	{
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+
+		u8 cur = _snapshot_mailbox.load(std::memory_order_acquire);
+		while (cur & EDITOR_WORLD_SNAPSHOT_FRESH_FLAG)
+		{
+			if (_snapshot_mailbox.compare_exchange_weak(cur, _consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
+			{
+				_consumer_slot = static_cast<u8>((cur & EDITOR_WORLD_SNAPSHOT_SLOT_MASK) % EDITOR_WORLD_SNAPSHOT_SLOT_COUNT);
+				break;
+			}
+		}
+		return _snapshot_slots[_consumer_slot];
+	}
+}

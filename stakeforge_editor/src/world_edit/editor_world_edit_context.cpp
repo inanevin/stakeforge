@@ -76,7 +76,7 @@ namespace sfg
 		_inited				  = false;
 	}
 
-	void editor_world_edit_context_t::set_world(world_handle_t world)
+	void editor_world_edit_context_t::set_world(editor_world_handle_t world)
 	{
 		SFG_ASSERT(_inited);
 		if (_world == world)

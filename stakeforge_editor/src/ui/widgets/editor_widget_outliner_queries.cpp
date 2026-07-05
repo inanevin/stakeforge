@@ -74,7 +74,7 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		if (main_world.is_null())
 			return false;
 

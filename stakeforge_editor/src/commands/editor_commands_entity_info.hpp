@@ -26,11 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/memory/chunk_handle.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -52,17 +52,17 @@ namespace sfg
 		chunk_handle32_t		  old_infos = {};
 		chunk_handle32_t		  entities	= {};
 		editor_entity_info_data_t info		= {};
-		world_handle_t			  world		= {};
+		editor_world_handle_t	  world		= {};
 		u32						  count		= 0;
 	};
 
 	struct editor_command_edit_entity_info_payload_t
 	{
-		chunk_handle32_t previous_infos = {};
-		chunk_handle32_t post_infos		= {};
-		chunk_handle32_t entities		= {};
-		world_handle_t	 world			= {};
-		u32				 count			= 0;
+		chunk_handle32_t	  previous_infos = {};
+		chunk_handle32_t	  post_infos	 = {};
+		chunk_handle32_t	  entities		 = {};
+		editor_world_handle_t world			 = {};
+		u32					  count			 = 0;
 	};
 
 	class editor_commands_entity_info_t final
@@ -72,8 +72,8 @@ namespace sfg
 
 		static editor_entity_info_data_t read(world_t& world, entity_id_t entity);
 		static void						 apply(world_t& world, entity_id_t entity, const editor_entity_info_data_t& info);
-		static bool						 paste(world_handle_t world, entity_id_t entity, const editor_entity_info_data_t& info);
-		static bool						 paste(world_handle_t world, const frame_vector_t<entity_id_t>& entities, const editor_entity_info_data_t& info);
-		static bool						 edit(world_handle_t world, span_t<const entity_id_t> entities, span_t<const editor_entity_info_data_t> previous_infos, span_t<const editor_entity_info_data_t> post_infos);
+		static bool						 paste(editor_world_handle_t world, entity_id_t entity, const editor_entity_info_data_t& info);
+		static bool						 paste(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, const editor_entity_info_data_t& info);
+		static bool						 edit(editor_world_handle_t world, span_t<const entity_id_t> entities, span_t<const editor_entity_info_data_t> previous_infos, span_t<const editor_entity_info_data_t> post_infos);
 	};
 }

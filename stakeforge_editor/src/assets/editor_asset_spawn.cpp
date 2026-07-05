@@ -47,7 +47,7 @@ namespace sfg
 			return editor_asset_manager_t::get().find_asset(node.asset_id);
 		}
 
-		bool spawn_prefab_asset(world_handle_t world, const editor_asset_t& asset, entity_id_t parent)
+		bool spawn_prefab_asset(editor_world_handle_t world, const editor_asset_t& asset, entity_id_t parent)
 		{
 			if (asset.asset_type != editor_asset_type_e::prefab)
 				return false;

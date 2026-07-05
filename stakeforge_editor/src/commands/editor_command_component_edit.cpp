@@ -170,7 +170,7 @@ namespace sfg
 		}
 	}
 
-	bool editor_command_component_edit_t::edit(world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type, span_t<const ostream_t> previous_streams, span_t<const ostream_t> post_streams)
+	bool editor_command_component_edit_t::edit(editor_world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type, span_t<const ostream_t> previous_streams, span_t<const ostream_t> post_streams)
 	{
 		if (entities.size == 0 || previous_streams.size != entities.size || post_streams.size != entities.size)
 			return false;

@@ -330,7 +330,7 @@ namespace sfg
 		}
 	}
 
-	entity_id_t editor_commands_entity_t::create(world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder)
+	entity_id_t editor_commands_entity_t::create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
 		editor_command_create_entity_payload_t payload = {};
 		payload.world								   = world;
@@ -364,7 +364,7 @@ namespace sfg
 		return stored_payload.entity;
 	}
 
-	entity_id_t editor_commands_entity_t::duplicate(world_handle_t world, entity_id_t entity)
+	entity_id_t editor_commands_entity_t::duplicate(editor_world_handle_t world, entity_id_t entity)
 	{
 		frame_vector_t<entity_id_t> entities;
 		frame_vector_t<entity_id_t> out_entities;
@@ -374,7 +374,7 @@ namespace sfg
 		return out_entities[0];
 	}
 
-	bool editor_commands_entity_t::duplicate(world_handle_t world, const frame_vector_t<entity_id_t>& entities, frame_vector_t<entity_id_t>& out_entities)
+	bool editor_commands_entity_t::duplicate(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, frame_vector_t<entity_id_t>& out_entities)
 	{
 		out_entities.resize(0);
 		if (entities.empty())
@@ -416,14 +416,14 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_commands_entity_t::destroy(world_handle_t world, entity_id_t entity)
+	bool editor_commands_entity_t::destroy(editor_world_handle_t world, entity_id_t entity)
 	{
 		frame_vector_t<entity_id_t> entities;
 		entities.push_back(entity);
 		return destroy(world, entities);
 	}
 
-	bool editor_commands_entity_t::destroy(world_handle_t world, const frame_vector_t<entity_id_t>& entities)
+	bool editor_commands_entity_t::destroy(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities)
 	{
 		if (entities.empty())
 			return false;
@@ -456,7 +456,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_commands_entity_t::reparent(world_handle_t world, const frame_vector_t<entity_id_t>& entities, entity_id_t parent)
+	bool editor_commands_entity_t::reparent(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, entity_id_t parent)
 	{
 		if (entities.empty())
 			return false;

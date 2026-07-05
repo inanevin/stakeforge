@@ -30,13 +30,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_handle.hpp"
 
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/memory/pool_handle.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -196,7 +196,7 @@ namespace sfg
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			  = {};
 		editor_selection_listener_handle_t				  _selection_listener		  = {};
 		editor_world_edit_context_handle_t				  _edit_context				  = {};
-		world_handle_t									  _main_world				  = {};
+		editor_world_handle_t							  _main_world				  = {};
 		vector_t<editor_entity_payload_t>				  _payload_entities			  = {};
 		editor_entity_payload_t							  _payload_entity			  = {};
 		editor_world_folder_handle_t					  _payload_folder			  = {};

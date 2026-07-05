@@ -22,36 +22,18 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
 
 #pragma once
 
-#include "world_edit/editor_world_edit_context.hpp"
-#include "world/editor_world_handle.hpp"
-#include <sfg/runtime/resources/resource_handle.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
-#include <sfg/memory/chunk_handle.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
-	struct editor_command_prefab_spawn_payload_t
+	struct editor_world_handle_tag_t
 	{
-		editor_world_handle_t			   world					  = {};
-		editor_world_edit_context_handle_t previous_selection_context = {};
-		resource_handle_t				   prefab					  = NULL_RESOURCE_HANDLE;
-		chunk_handle32_t				   previous_selection		  = {};
-		entity_id_t						   parent					  = NULL_ENTITY_ID;
-		entity_id_t						   root						  = NULL_ENTITY_ID;
-		entity_id_t						   previous_anchor			  = NULL_ENTITY_ID;
-		u32								   previous_selection_count	  = 0;
 	};
 
-	class editor_command_prefab_spawn_t final
-	{
-	public:
-		editor_command_prefab_spawn_t() = delete;
-
-		static entity_id_t spawn(editor_world_handle_t world, resource_handle_t prefab, entity_id_t parent);
-	};
+	using editor_world_handle_t = pool_handle_t<u32, editor_world_handle_tag_t>;
 }

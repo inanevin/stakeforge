@@ -26,13 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/memory/gen_pool.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -43,11 +43,10 @@ namespace sfg
 	struct ecs_component_table_t;
 	struct editor_world_folder_tag_t;
 	struct editor_selection_listener_tag_t;
-	struct editor_world_edit_context_tag_t;
 
 	using editor_world_folder_handle_t		 = pool_handle_t<u32, editor_world_folder_tag_t>;
 	using editor_selection_listener_handle_t = pool_handle_t<u32, editor_selection_listener_tag_t>;
-	using editor_world_edit_context_handle_t = pool_handle_t<u32, editor_world_edit_context_tag_t>;
+	using editor_world_edit_context_handle_t = editor_world_handle_t;
 	using editor_selection_listener_fn		 = void (*)(editor_world_edit_context_t& context, void* user_data);
 
 	enum class editor_outliner_item_type_e : u8
@@ -114,7 +113,7 @@ namespace sfg
 		void init();
 		void uninit();
 		void set_handle(editor_world_edit_context_handle_t handle);
-		void set_world(world_handle_t world);
+		void set_world(editor_world_handle_t world);
 		void clear();
 
 		// -----------------------------------------------------------------------------
@@ -197,7 +196,7 @@ namespace sfg
 			return _handle;
 		}
 
-		inline world_handle_t get_world() const
+		inline editor_world_handle_t get_world() const
 		{
 			SFG_ASSERT(_inited);
 			return _world;
@@ -241,7 +240,7 @@ namespace sfg
 		vector_t<editor_outliner_item_t>											  _outliner_items;
 		vector_t<entity_id_t>														  _selected_entities	= {};
 		editor_world_edit_context_handle_t											  _handle				= {};
-		world_handle_t																  _world				= {};
+		editor_world_handle_t														  _world				= {};
 		entity_id_t																	  _entity_anchor		= NULL_ENTITY_ID;
 		u64																			  _next_guid			= 1;
 		u32																			  _selection_generation = 0;

@@ -85,8 +85,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_display_none();
-		void set_display_entity(world_handle_t world, entity_id_t entity);
-		void set_display_entity(world_handle_t world, span_t<const entity_id_t> entities);
+		void set_display_entity(editor_world_handle_t world, entity_id_t entity);
+		void set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities);
 		void refresh_display();
 		void refresh_from_selection();
 		void refresh_component_reflection(sid_t component_type);
@@ -199,7 +199,7 @@ namespace sfg
 		editor_button_t*								  _add_component_button		   = nullptr;
 		world_t*										  _display_world			   = nullptr;
 		ui::ui_context*									  _ui						   = nullptr;
-		world_handle_t									  _display_world_handle		   = {};
+		editor_world_handle_t							  _display_world_handle		   = {};
 		ui::widget_id_t									  _root						   = NULL_WIDGET;
 		ui::widget_id_t									  _scroll_area				   = NULL_WIDGET;
 		ui::widget_id_t									  _column					   = NULL_WIDGET;

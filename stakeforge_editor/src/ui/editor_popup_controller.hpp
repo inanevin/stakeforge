@@ -30,10 +30,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_color_wheel.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec2f.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -100,7 +100,7 @@ namespace sfg
 		editor_popup_closed_fn		   closed			= nullptr;
 		void*						   user_data		= nullptr;
 		vec2f_t						   pos				= {};
-		world_handle_t				   world			= {};
+		editor_world_handle_t		   world			= {};
 		entity_guid_t				   selected			= NULL_ENTITY_GUID;
 		f32							   width			= 0.0f;
 		bool						   close_on_pressed = true;

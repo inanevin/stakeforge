@@ -28,10 +28,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widgets_common.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -68,7 +68,7 @@ namespace sfg
 		editor_widget_callbacks_t						 callbacks	 = {};
 		span_t<void*>									 objects	 = {};
 		sid_t											 type_id	 = 0;
-		world_handle_t									 world		 = {};
+		editor_world_handle_t							 world		 = {};
 		bool											 block_edits = false;
 	};
 
@@ -97,7 +97,7 @@ namespace sfg
 			editor_widget_reflection_t* reflection = nullptr;
 			editor_widget_fold_label_t* fold	   = nullptr;
 			vector_t<void*>				containers;
-			world_handle_t				world		= {};
+			editor_world_handle_t		world		= {};
 			f32							indentation = 0.0f;
 		};
 
@@ -118,12 +118,20 @@ namespace sfg
 		void clear_widgets();
 		void set_block_edits(bool block_edits);
 		void fit_control(ui::widget_id_t widget);
-		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
+		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_dropdown(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		void create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
-		bool create_reference(
-			ui::widget_id_t parent, const reflected_field_t* const field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
+		bool create_reference(ui::widget_id_t				 parent,
+							  const reflected_field_t* const field,
+							  span_t<u64*>					 fields,
+							  editor_world_handle_t			 world,
+							  bool							 track_row,
+							  bool							 sub_item,
+							  bool							 removable_item,
+							  f32							 indentation,
+							  container_user_data_t*		 container_data = nullptr,
+							  u32							 element_index	= 0);
 		bool create_quat_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_vector_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_color_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
@@ -131,18 +139,18 @@ namespace sfg
 						   sid_t						  type_id,
 						   const reflected_field_t* const field,
 						   span_t<void*>				  objects,
-						   world_handle_t				  world,
+						   editor_world_handle_t		  world,
 						   bool							  track_row,
 						   bool							  sub_item,
 						   bool							  removable_item,
 						   f32							  indentation,
 						   container_user_data_t*		  container_data = nullptr,
 						   u32							  element_index	 = 0);
-		void create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* const field, span_t<void*> containers, world_handle_t world, bool track_row, bool sub_item, f32 indentation);
+		void create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* const field, span_t<void*> containers, editor_world_handle_t world, bool track_row, bool sub_item, f32 indentation);
 		void create_container_elements(ui::widget_id_t parent, container_user_data_t* container_data);
 		bool get_fold_state(sid_t type_id, sid_t field_id, bool& out_folded) const;
 		void set_fold_state(sid_t type_id, sid_t field_id, bool folded);
-		container_user_data_t*		   create_container_user_data(const reflected_field_t* field, span_t<void*> containers, world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold);
+		container_user_data_t*		   create_container_user_data(const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold);
 		container_element_user_data_t* create_container_element_user_data(container_user_data_t* container_data, u32 element_index, ui::widget_id_t button);
 		void						   request_container_refresh(container_user_data_t& data);
 		void						   refresh_container(container_user_data_t& data);

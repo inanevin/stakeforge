@@ -170,7 +170,7 @@ namespace sfg
 		_ui->get_paint().set_rect(_blocker, rect);
 	}
 
-	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider)
+	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider)
 	{
 		const reflected_type_t* type = reflection_registry_t::get().find_type(type_id);
 		if (type == nullptr)
@@ -394,7 +394,7 @@ namespace sfg
 	}
 
 	bool editor_widget_reflection_t::create_reference(
-		ui::widget_id_t parent, const reflected_field_t* field, span_t<u64*> fields, world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+		ui::widget_id_t parent, const reflected_field_t* field, span_t<u64*> fields, editor_world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		const resource_type_e	  resource_type	   = resource_type_from_reflection_sub_type_id(field->sub_type_id);
 		const editor_asset_type_e asset_type	   = editor_asset_type_from_resource_type(resource_type);
@@ -539,7 +539,7 @@ namespace sfg
 	}
 
 	void editor_widget_reflection_t::create_object(
-		ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> objects, world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+		ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> objects, editor_world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		frame_vector_t<u8*> fields;
 		fields.reserve(objects.size);
@@ -580,7 +580,7 @@ namespace sfg
 		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false);
 	}
 
-	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> containers, world_handle_t world, bool, bool sub_item, f32 indentation)
+	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, bool, bool sub_item, f32 indentation)
 	{
 		const reflected_value_type_e element_value_type	 = field->container_ops.element_value_type;
 		const sid_t					 element_sub_type_id = field->container_ops.element_sub_type_id;
@@ -623,7 +623,7 @@ namespace sfg
 	{
 		const reflected_field_t* const field			   = container_data->field;
 		span_t<void*>				   containers		   = {.data = container_data->containers.data(), .size = container_data->containers.size()};
-		const world_handle_t		   world			   = container_data->world;
+		const editor_world_handle_t	   world			   = container_data->world;
 		const f32					   indentation		   = container_data->indentation;
 		const reflected_value_type_e   element_value_type  = field->container_ops.element_value_type;
 		const sid_t					   element_sub_type_id = field->container_ops.element_sub_type_id;
@@ -717,7 +717,7 @@ namespace sfg
 		}
 	}
 
-	editor_widget_reflection_t::container_user_data_t* editor_widget_reflection_t::create_container_user_data(const reflected_field_t* field, span_t<void*> containers, world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold)
+	editor_widget_reflection_t::container_user_data_t* editor_widget_reflection_t::create_container_user_data(const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold)
 	{
 		container_user_data_t* data = new container_user_data_t();
 		data->field					= field;

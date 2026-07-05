@@ -73,7 +73,7 @@ namespace sfg
 	}
 	void editor_widget_outliner_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
 	{
-		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 
 		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent, folder);
@@ -113,7 +113,7 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const world_handle_t		  main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t	  main_world = editor_world_controller_t::get().get_main_world();
 		world_t&					  world		 = editor_world_controller_t::get().get_world(main_world);
 		frame_vector_t<entity_id_t>	  moved_entities;
 		frame_vector_t<entity_guid_t> moved_guids;
@@ -143,7 +143,7 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const world_handle_t		  main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t	  main_world = editor_world_controller_t::get().get_main_world();
 		world_t&					  world		 = editor_world_controller_t::get().get_world(main_world);
 		frame_vector_t<entity_guid_t> moved_guids;
 		moved_guids.reserve(entities.size());
@@ -178,7 +178,7 @@ namespace sfg
 
 	void editor_widget_outliner_t::toggle_entity_disabled(entity_id_t entity)
 	{
-		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 
 		world_t&				 world			= editor_world_controller_t::get().get_world(main_world);
@@ -236,7 +236,7 @@ namespace sfg
 		if (!can_reparent_entities(entities, parent))
 			return false;
 
-		const world_handle_t		main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		frame_vector_t<entity_id_t> moved_entities;
 		moved_entities.reserve(entities.size());
 		for (const editor_entity_payload_t& payload_entity : entities)
@@ -256,7 +256,7 @@ namespace sfg
 
 	void editor_widget_outliner_t::duplicate_selected_entities()
 	{
-		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 		SFG_ASSERT(editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities().size != 0);
 
@@ -273,7 +273,7 @@ namespace sfg
 
 	void editor_widget_outliner_t::destroy_selected_entities()
 	{
-		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 		SFG_ASSERT(editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities().size != 0);
 

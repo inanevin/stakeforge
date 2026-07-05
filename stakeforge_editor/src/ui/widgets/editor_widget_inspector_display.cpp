@@ -47,13 +47,13 @@ namespace sfg
 		refresh_display();
 	}
 
-	void editor_widget_inspector_t::set_display_entity(world_handle_t world, entity_id_t entity)
+	void editor_widget_inspector_t::set_display_entity(editor_world_handle_t world, entity_id_t entity)
 	{
 		const entity_id_t entities[] = {entity};
 		set_display_entity(world, {.data = entities, .size = 1});
 	}
 
-	void editor_widget_inspector_t::set_display_entity(world_handle_t world, span_t<const entity_id_t> entities)
+	void editor_widget_inspector_t::set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities)
 	{
 		save_scroll_state();
 		_display_type		  = editor_inspector_display_type_e::entity;
@@ -93,7 +93,7 @@ namespace sfg
 
 		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
-		const world_handle_t			world	   = controller.get_world();
+		const editor_world_handle_t		world	   = controller.get_world();
 		if (world.is_null() || selected.size == 0)
 		{
 			set_display_none();

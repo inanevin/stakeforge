@@ -374,14 +374,14 @@ namespace sfg
 		}
 	}
 
-	bool editor_commands_component_t::add(world_handle_t world, entity_id_t entity, sid_t component_type)
+	bool editor_commands_component_t::add(editor_world_handle_t world, entity_id_t entity, sid_t component_type)
 	{
 		frame_vector_t<entity_id_t> entities;
 		entities.push_back(entity);
 		return add(world, entities, component_type);
 	}
 
-	bool editor_commands_component_t::add(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type)
+	bool editor_commands_component_t::add(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type)
 	{
 		if (entities.empty())
 			return false;
@@ -424,14 +424,14 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_commands_component_t::remove(world_handle_t world, entity_id_t entity, sid_t component_type)
+	bool editor_commands_component_t::remove(editor_world_handle_t world, entity_id_t entity, sid_t component_type)
 	{
 		frame_vector_t<entity_id_t> entities;
 		entities.push_back(entity);
 		return remove(world, entities, component_type);
 	}
 
-	bool editor_commands_component_t::remove(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type)
+	bool editor_commands_component_t::remove(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type)
 	{
 		if (entities.empty())
 			return false;
@@ -482,14 +482,14 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_commands_component_t::reset(world_handle_t world, entity_id_t entity, sid_t component_type)
+	bool editor_commands_component_t::reset(editor_world_handle_t world, entity_id_t entity, sid_t component_type)
 	{
 		frame_vector_t<entity_id_t> entities;
 		entities.push_back(entity);
 		return reset(world, entities, component_type);
 	}
 
-	bool editor_commands_component_t::reset(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type)
+	bool editor_commands_component_t::reset(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type)
 	{
 		if (entities.empty())
 			return false;
@@ -543,14 +543,14 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_commands_component_t::paste(world_handle_t world, entity_id_t entity, sid_t component_type, const u8* data, size_t data_size)
+	bool editor_commands_component_t::paste(editor_world_handle_t world, entity_id_t entity, sid_t component_type, const u8* data, size_t data_size)
 	{
 		frame_vector_t<entity_id_t> entities;
 		entities.push_back(entity);
 		return paste(world, entities, component_type, data, data_size);
 	}
 
-	bool editor_commands_component_t::paste(world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type, const u8* data, size_t data_size)
+	bool editor_commands_component_t::paste(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type, const u8* data, size_t data_size)
 	{
 		if (entities.empty() || data_size == 0)
 			return false;

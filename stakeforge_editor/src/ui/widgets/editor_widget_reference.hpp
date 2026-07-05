@@ -29,9 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_type.hpp"
 #include "ui/widgets/editor_widgets_common.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -59,7 +59,7 @@ namespace sfg
 		span_t<u64*>				   fields		   = {};
 		sid_t						   selected_asset  = NULL_SID;
 		entity_guid_t				   selected_entity = NULL_ENTITY_GUID;
-		world_handle_t				   world		   = {};
+		editor_world_handle_t		   world		   = {};
 		editor_asset_type_e			   asset_type	   = editor_asset_type_e::invalid;
 		editor_widget_reference_type_e type			   = editor_widget_reference_type_e::asset;
 	};

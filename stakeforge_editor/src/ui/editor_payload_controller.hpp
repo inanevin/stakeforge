@@ -27,12 +27,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/editor_payload_type.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/math/vec2u16.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -56,8 +56,8 @@ namespace sfg
 
 	struct editor_entity_payload_t
 	{
-		world_handle_t world  = {};
-		entity_id_t	   entity = NULL_ENTITY_ID;
+		editor_world_handle_t world	 = {};
+		entity_id_t			  entity = NULL_ENTITY_ID;
 	};
 
 	using editor_payload_listener_fn  = bool (*)(const editor_payload_t& payload, void* user_data);

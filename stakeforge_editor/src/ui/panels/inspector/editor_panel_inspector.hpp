@@ -51,8 +51,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_display_none();
-		void set_display_entity(world_handle_t world, entity_id_t entity);
-		void set_display_entity(world_handle_t world, span_t<const entity_id_t> entities);
+		void set_display_entity(editor_world_handle_t world, entity_id_t entity);
+		void set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities);
 		void refresh_display();
 		void refresh_from_selection();
 		void refresh_component_reflection(sid_t component_type);

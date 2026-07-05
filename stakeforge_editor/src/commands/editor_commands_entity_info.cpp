@@ -194,14 +194,14 @@ namespace sfg
 		world.set_entity_scale_local(entity, info.scale);
 	}
 
-	bool editor_commands_entity_info_t::paste(world_handle_t world, entity_id_t entity, const editor_entity_info_data_t& info)
+	bool editor_commands_entity_info_t::paste(editor_world_handle_t world, entity_id_t entity, const editor_entity_info_data_t& info)
 	{
 		frame_vector_t<entity_id_t> entities;
 		entities.push_back(entity);
 		return paste(world, entities, info);
 	}
 
-	bool editor_commands_entity_info_t::paste(world_handle_t world, const frame_vector_t<entity_id_t>& entities, const editor_entity_info_data_t& info)
+	bool editor_commands_entity_info_t::paste(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, const editor_entity_info_data_t& info)
 	{
 		if (entities.empty())
 			return false;
@@ -235,7 +235,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_commands_entity_info_t::edit(world_handle_t world, span_t<const entity_id_t> entities, span_t<const editor_entity_info_data_t> previous_infos, span_t<const editor_entity_info_data_t> post_infos)
+	bool editor_commands_entity_info_t::edit(editor_world_handle_t world, span_t<const entity_id_t> entities, span_t<const editor_entity_info_data_t> previous_infos, span_t<const editor_entity_info_data_t> post_infos)
 	{
 		if (entities.size == 0 || previous_infos.size != entities.size || post_infos.size != entities.size)
 			return false;

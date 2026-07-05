@@ -214,9 +214,9 @@ namespace sfg
 		if (widget._edit_context.is_null())
 			return false;
 
-		const world_handle_t	world = editor_world_controller_t::get().get_edit_context(widget._edit_context).get_world();
-		const ui::layout_out_t& out	  = widget._ui->get_tree().out(widget._world_view);
-		const vec2f_t&			mouse = widget._ui->get_input().get_mouse_position();
+		const editor_world_handle_t world = editor_world_controller_t::get().get_edit_context(widget._edit_context).get_world();
+		const ui::layout_out_t&		out	  = widget._ui->get_tree().out(widget._world_view);
+		const vec2f_t&				mouse = widget._ui->get_input().get_mouse_position();
 		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(mouse))
 			return false;
 

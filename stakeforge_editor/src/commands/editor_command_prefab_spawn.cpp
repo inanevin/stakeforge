@@ -90,7 +90,7 @@ namespace sfg
 		}
 	}
 
-	entity_id_t editor_command_prefab_spawn_t::spawn(world_handle_t world, resource_handle_t prefab, entity_id_t parent)
+	entity_id_t editor_command_prefab_spawn_t::spawn(editor_world_handle_t world, resource_handle_t prefab, entity_id_t parent)
 	{
 		editor_command_system_t&		command_system		 = editor_command_system_t::get();
 		editor_world_edit_context_t&	selection_controller = editor_world_controller_t::get().get_main_edit_context();

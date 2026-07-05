@@ -44,8 +44,8 @@ namespace sfg
 		editor_panel_t::init(ui, parent);
 		_world_view.init(ui, _root);
 
-		editor_world_controller_t& controller = editor_world_controller_t::get();
-		const world_handle_t	   main_world = controller.get_main_world();
+		editor_world_controller_t&	controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world = controller.get_main_world();
 		_world_view.set_edit_context(controller.get_main_edit_context_handle());
 		if (main_world.is_null())
 			clear_world();
