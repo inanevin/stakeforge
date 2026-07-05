@@ -46,13 +46,13 @@ namespace sfg
 	{
 		struct editor_command_entity_selection_payload_t
 		{
-			chunk_handle32_t				   previous_entities = {};
-			chunk_handle32_t				   next_entities	 = {};
-			editor_world_edit_context_handle_t context			 = {};
-			entity_id_t						   previous_anchor	 = NULL_ENTITY_ID;
-			entity_id_t						   next_anchor		 = NULL_ENTITY_ID;
-			u32								   previous_count	 = 0;
-			u32								   next_count		 = 0;
+			chunk_handle32_t	  previous_entities = {};
+			chunk_handle32_t	  next_entities		= {};
+			editor_world_handle_t context			= {};
+			entity_id_t			  previous_anchor	= NULL_ENTITY_ID;
+			entity_id_t			  next_anchor		= NULL_ENTITY_ID;
+			u32					  previous_count	= 0;
+			u32					  next_count		= 0;
 		};
 
 		bool on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command)
@@ -104,7 +104,7 @@ namespace sfg
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_entity_selection_payload_t payload = {};
-		payload.context									  = _handle;
+		payload.context									  = _world;
 		payload.previous_anchor							  = _entity_anchor;
 		payload.next_anchor								  = anchor;
 		payload.previous_count							  = static_cast<u32>(_selected_entities.size());

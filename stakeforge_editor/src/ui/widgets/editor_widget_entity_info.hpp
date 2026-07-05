@@ -34,16 +34,26 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+
+namespace sfg::ui
+{
+	class input_router_t;
+	enum class mouse_button_e : u8;
+}
+
 namespace sfg
 {
 	class world_t;
 
 	using editor_widget_entity_info_name_submitted_fn = void (*)(entity_id_t entity, void* user_data);
+	using editor_widget_entity_info_break_prefab_fn	  = void (*)(void* user_data);
 
 	struct editor_widget_entity_info_config_t
 	{
-		editor_world_handle_t world		= {};
-		bool				  is_prefab = false;
+		editor_widget_entity_info_break_prefab_fn break_prefab = nullptr;
+		void*									  user_data	   = nullptr;
+		editor_world_handle_t					  world		   = {};
+		bool									  is_prefab	   = false;
 	};
 
 	class editor_widget_entity_info_t final
@@ -73,6 +83,7 @@ namespace sfg
 		static void on_rotation_changed(void* user_data);
 		static void on_scale_changed(void* user_data);
 		static void on_edit_submitted(void* user_data);
+		static void on_break_prefab_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 		void refresh_controls();
 		void begin_edit();
@@ -86,15 +97,17 @@ namespace sfg
 		editor_quat_field_t							_rotation_field			  = {};
 		editor_vec3_field_t							_position_field			  = {};
 		editor_vec3_field_t							_scale_field			  = {};
-		editor_button_t								_open_prefab_button		  = {};
+		editor_button_t								_break_prefab_button	  = {};
 		editor_input_field_t						_name_input				  = {};
 		char										_name_fallback[64]		  = {};
 		vector_t<entity_id_t>						_entities				  = {};
 		ui::ui_context*								_ui						  = nullptr;
 		world_t*									_world					  = nullptr;
 		editor_widget_entity_info_name_submitted_fn _name_submitted_callback  = nullptr;
+		editor_widget_entity_info_break_prefab_fn	_break_prefab_callback	  = nullptr;
 		editor_widget_callbacks_t					_callbacks				  = {};
 		void*										_name_submitted_user_data = nullptr;
+		void*										_break_prefab_user_data	  = nullptr;
 		ui::widget_id_t								_root					  = NULL_WIDGET;
 		ui::widget_id_t								_guid_label				  = NULL_WIDGET;
 		ui::widget_id_t								_prefab_frame			  = NULL_WIDGET;

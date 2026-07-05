@@ -32,8 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class world_render_context_t;
-
 	class editor_panel_world_t final : public editor_panel_t
 	{
 	public:
@@ -44,9 +42,8 @@ namespace sfg
 
 		void	init(ui::ui_context& ui, ui::widget_id_t parent) override;
 		void	uninit() override;
-		void	set_edit_context(editor_world_edit_context_handle_t context);
-		void	set_world(const world_render_context_t& world, const char* name);
-		void	clear_world();
+		void	set_edit_context(editor_world_handle_t context);
+		void	set_panel_name(const char* name);
 		vec4f_t get_world_view_bounds() const;
 
 	private:

@@ -46,7 +46,6 @@ namespace sfg
 
 	using editor_world_folder_handle_t		 = pool_handle_t<u32, editor_world_folder_tag_t>;
 	using editor_selection_listener_handle_t = pool_handle_t<u32, editor_selection_listener_tag_t>;
-	using editor_world_edit_context_handle_t = editor_world_handle_t;
 	using editor_selection_listener_fn		 = void (*)(editor_world_edit_context_t& context, void* user_data);
 
 	enum class editor_outliner_item_type_e : u8
@@ -112,7 +111,6 @@ namespace sfg
 
 		void init();
 		void uninit();
-		void set_handle(editor_world_edit_context_handle_t handle);
 		void set_world(editor_world_handle_t world);
 		void clear();
 
@@ -190,12 +188,6 @@ namespace sfg
 			return {.data = _selected_entities.data(), .size = _selected_entities.size()};
 		}
 
-		inline editor_world_edit_context_handle_t get_handle() const
-		{
-			SFG_ASSERT(_inited);
-			return _handle;
-		}
-
 		inline editor_world_handle_t get_world() const
 		{
 			SFG_ASSERT(_inited);
@@ -239,7 +231,6 @@ namespace sfg
 		vector_t<editor_world_entity_metadata_t>									  _entity_metadata;
 		vector_t<editor_outliner_item_t>											  _outliner_items;
 		vector_t<entity_id_t>														  _selected_entities	= {};
-		editor_world_edit_context_handle_t											  _handle				= {};
 		editor_world_handle_t														  _world				= {};
 		entity_id_t																	  _entity_anchor		= NULL_ENTITY_ID;
 		u64																			  _next_guid			= 1;

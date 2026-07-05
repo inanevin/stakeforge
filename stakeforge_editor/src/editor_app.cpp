@@ -447,7 +447,7 @@ namespace sfg
 	void editor_app_t::unload_current_project()
 	{
 		_renderer.end_render();
-		if (!(_world_controller.get_main_edit_context_handle().is_null()))
+		if (!_world_controller.get_main_world().is_null())
 			_world_controller.get_main_edit_context().clear();
 		_command_system.clear();
 		_asset_manager.clear();

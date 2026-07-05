@@ -54,12 +54,6 @@ namespace sfg
 		_inited				  = true;
 	}
 
-	void editor_world_edit_context_t::set_handle(editor_world_edit_context_handle_t handle)
-	{
-		SFG_ASSERT(_inited);
-		_handle = handle;
-	}
-
 	void editor_world_edit_context_t::uninit()
 	{
 		SFG_ASSERT(_inited);
@@ -69,7 +63,6 @@ namespace sfg
 		_selection_listeners.uninit();
 		_folders.uninit();
 		_world				  = {};
-		_handle				  = {};
 		_entity_anchor		  = NULL_ENTITY_ID;
 		_next_guid			  = 1;
 		_selection_generation = 0;

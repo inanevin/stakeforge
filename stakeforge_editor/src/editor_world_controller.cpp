@@ -85,9 +85,8 @@ namespace sfg
 		}
 
 		destroy_worlds_internal(false);
-		_main_edit_context = {};
-		_previous_time_us  = 0;
-		_accumulator_us	   = 0;
+		_previous_time_us = 0;
+		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 		reset_camera_input();
@@ -163,7 +162,6 @@ namespace sfg
 		_main_camera_entity = NULL_ENTITY_ID;
 		reset_camera_input();
 		_main_world					   = {};
-		_main_edit_context			   = {};
 		_main_world_asset_guid		   = NULL_SID;
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_name.resize(0);
@@ -420,7 +418,6 @@ namespace sfg
 			return;
 
 		_main_world					   = handle;
-		_main_edit_context			   = handle.is_null() ? editor_world_edit_context_handle_t{} : get_edit_context(handle).get_handle();
 		_main_world_asset_guid		   = asset_guid;
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_name			   = name;
@@ -494,24 +491,21 @@ namespace sfg
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
 		{
 			editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
-			world_panel->set_edit_context(_main_edit_context);
-			if (_main_world.is_null())
-				world_panel->clear_world();
-			else
-				world_panel->set_world(get_world_render_context(_main_world), _main_world_name.c_str());
+			world_panel->set_edit_context(_main_world);
+			world_panel->set_panel_name(_main_world.is_null() ? "" : _main_world_name.c_str());
 		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::entities))
 		{
 			editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
-			entities_panel->set_edit_context(_main_edit_context);
+			entities_panel->set_edit_context(_main_world);
 			entities_panel->refresh_entities();
 		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::inspector))
 		{
 			editor_panel_inspector_t* inspector_panel = static_cast<editor_panel_inspector_t*>(panel);
-			inspector_panel->set_edit_context(_main_edit_context);
+			inspector_panel->set_edit_context(_main_world);
 			inspector_panel->refresh_from_selection();
 		}
 	}

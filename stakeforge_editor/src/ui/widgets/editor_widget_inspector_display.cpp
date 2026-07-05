@@ -28,11 +28,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "commands/editor_command_component_edit.hpp"
+#include "commands/editor_commands_component.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
+#include <algorithm>
 
 namespace sfg
 {
@@ -248,7 +252,7 @@ namespace sfg
 		_entity_info					 = new editor_widget_entity_info_t();
 		_entity_info_fold				 = new editor_widget_fold_t();
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = !prefab_blocked});
-		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.world = _display_world_handle, .is_prefab = prefab_blocked});
+		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _display_world_handle, .is_prefab = prefab_blocked});
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
 		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edit_submitted = on_entity_info_edit_submitted, .user_data = this});
 		_entity_info->set_entities(*_display_world, {.data = _display_entities.data(), .size = _display_entities.size()});
@@ -410,6 +414,57 @@ namespace sfg
 				return true;
 		}
 		return false;
+	}
+
+	void editor_widget_inspector_t::break_prefabs()
+	{
+		world_component_table_t*	prefab_table	= _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
+		world_component_table_t*	hierarchy_table = _display_world->get_component_table(type_id_t<component_hierarchy_t>::value);
+		frame_vector_t<entity_id_t> roots;
+		roots.reserve(_display_entities.size());
+
+		for (entity_id_t entity : _display_entities)
+		{
+			if (!ecs_t::table_has(prefab_table->table, entity))
+				continue;
+
+			for (entity_id_t current = entity; current != NULL_ENTITY_ID; current = _display_world->get_entity_parent(current))
+			{
+				const component_prefab_reference_t* ref = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table->table, current);
+				if (ref != nullptr && ref->is_root)
+				{
+					if (std::find(roots.begin(), roots.end(), current) == roots.end())
+						roots.push_back(current);
+					break;
+				}
+			}
+		}
+
+		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<entity_id_t> stack;
+		stack.reserve(roots.size());
+		for (entity_id_t root : roots)
+			stack.push_back(root);
+
+		while (!stack.empty())
+		{
+			const entity_id_t entity = stack.back();
+			stack.pop_back();
+
+			if (ecs_t::table_has(prefab_table->table, entity) && std::find(entities.begin(), entities.end(), entity) == entities.end())
+				entities.push_back(entity);
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, entity);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, child);
+				stack.push_back(child);
+				child = child_hierarchy.next_sibling;
+			}
+		}
+
+		if (!entities.empty())
+			editor_commands_component_t::remove(_display_world_handle, entities, type_id_t<component_prefab_reference_t>::value);
 	}
 
 	void editor_widget_inspector_t::begin_entity_info_edit()

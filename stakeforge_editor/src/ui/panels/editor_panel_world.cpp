@@ -46,11 +46,8 @@ namespace sfg
 
 		editor_world_controller_t&	controller = editor_world_controller_t::get();
 		const editor_world_handle_t main_world = controller.get_main_world();
-		_world_view.set_edit_context(controller.get_main_edit_context_handle());
-		if (main_world.is_null())
-			clear_world();
-		else
-			set_world(controller.get_world_render_context(main_world), controller.get_main_world_name());
+		_world_view.set_edit_context(controller.get_main_world());
+		set_panel_name(main_world.is_null() ? "" : controller.get_main_world_name());
 	}
 
 	void editor_panel_world_t::uninit()
@@ -59,21 +56,14 @@ namespace sfg
 		editor_panel_t::uninit();
 	}
 
-	void editor_panel_world_t::set_edit_context(editor_world_edit_context_handle_t context)
+	void editor_panel_world_t::set_edit_context(editor_world_handle_t context)
 	{
 		_world_view.set_edit_context(context);
 	}
 
-	void editor_panel_world_t::set_world(const world_render_context_t& world, const char* name)
+	void editor_panel_world_t::set_panel_name(const char* name)
 	{
 		refresh_title(name);
-		_world_view.set_world(world);
-	}
-
-	void editor_panel_world_t::clear_world()
-	{
-		refresh_title("");
-		_world_view.clear_world();
 	}
 
 	vec4f_t editor_panel_world_t::get_world_view_bounds() const

@@ -37,14 +37,14 @@ namespace sfg
 {
 	struct editor_command_prefab_spawn_payload_t
 	{
-		editor_world_handle_t			   world					  = {};
-		editor_world_edit_context_handle_t previous_selection_context = {};
-		resource_handle_t				   prefab					  = NULL_RESOURCE_HANDLE;
-		chunk_handle32_t				   previous_selection		  = {};
-		entity_id_t						   parent					  = NULL_ENTITY_ID;
-		entity_id_t						   root						  = NULL_ENTITY_ID;
-		entity_id_t						   previous_anchor			  = NULL_ENTITY_ID;
-		u32								   previous_selection_count	  = 0;
+		editor_world_handle_t world						 = {};
+		editor_world_handle_t previous_selection_context = {};
+		resource_handle_t	  prefab					 = NULL_RESOURCE_HANDLE;
+		chunk_handle32_t	  previous_selection		 = {};
+		entity_id_t			  parent					 = NULL_ENTITY_ID;
+		entity_id_t			  root						 = NULL_ENTITY_ID;
+		entity_id_t			  previous_anchor			 = NULL_ENTITY_ID;
+		u32					  previous_selection_count	 = 0;
 	};
 
 	class editor_command_prefab_spawn_t final

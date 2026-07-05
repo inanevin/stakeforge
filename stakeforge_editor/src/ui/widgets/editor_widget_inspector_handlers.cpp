@@ -52,7 +52,7 @@ namespace sfg
 			inspector_entity_info_action_menu_paste,
 		};
 
-		bool get_selected_entities_from_panel(editor_world_edit_context_handle_t context, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
+		bool get_selected_entities_from_panel(editor_world_handle_t context, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
 		{
 			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(context);
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
@@ -111,6 +111,11 @@ namespace sfg
 	void editor_widget_inspector_t::on_entity_info_edit_submitted(void* user_data)
 	{
 		static_cast<editor_widget_inspector_t*>(user_data)->submit_entity_info_edit();
+	}
+
+	void editor_widget_inspector_t::on_entity_info_break_prefab(void* user_data)
+	{
+		static_cast<editor_widget_inspector_t*>(user_data)->break_prefabs();
 	}
 
 	void editor_widget_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)

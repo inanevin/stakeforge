@@ -114,7 +114,7 @@ namespace sfg
 		_ui	  = nullptr;
 	}
 
-	void editor_widget_inspector_t::set_edit_context(editor_world_edit_context_handle_t context)
+	void editor_widget_inspector_t::set_edit_context(editor_world_handle_t context)
 	{
 		if (_edit_context == context)
 			return;

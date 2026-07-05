@@ -56,7 +56,7 @@ namespace sfg
 		void refresh_display();
 		void refresh_from_selection();
 		void refresh_component_reflection(sid_t component_type);
-		void set_edit_context(editor_world_edit_context_handle_t context);
+		void set_edit_context(editor_world_handle_t context);
 
 	private:
 		editor_widget_inspector_t _inspector;

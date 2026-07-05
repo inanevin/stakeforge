@@ -86,12 +86,12 @@ namespace sfg
 			return _worlds.get(handle).get_render_context();
 		}
 
-		inline editor_world_edit_context_t& get_edit_context(editor_world_edit_context_handle_t handle)
+		inline editor_world_edit_context_t& get_edit_context(editor_world_handle_t handle)
 		{
 			return _worlds.get(handle).get_edit_context();
 		}
 
-		inline const editor_world_edit_context_t& get_edit_context(editor_world_edit_context_handle_t handle) const
+		inline const editor_world_edit_context_t& get_edit_context(editor_world_handle_t handle) const
 		{
 			return _worlds.get(handle).get_edit_context();
 		}
@@ -104,11 +104,6 @@ namespace sfg
 		inline const editor_world_edit_context_t& get_main_edit_context() const
 		{
 			return _worlds.get(_main_world).get_edit_context();
-		}
-
-		inline editor_world_edit_context_handle_t get_main_edit_context_handle() const
-		{
-			return _main_edit_context;
 		}
 
 		inline editor_world_t& get_editor_world(editor_world_handle_t handle)
@@ -185,7 +180,6 @@ namespace sfg
 		vec3f_t															   _direction_input				  = vec3f_t::zero;
 		vec2f_t															   _mouse_delta					  = vec2f_t::zero;
 		editor_world_handle_t											   _main_world					  = {};
-		editor_world_edit_context_handle_t								   _main_edit_context			  = {};
 		sid_t															   _main_world_asset_guid		  = NULL_SID;
 		sid_t															   _pending_main_world_asset_guid = NULL_SID;
 		entity_id_t														   _main_camera_entity			  = NULL_ENTITY_ID;

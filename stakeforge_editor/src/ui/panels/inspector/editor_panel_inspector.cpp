@@ -45,7 +45,7 @@ namespace sfg
 						{
 							.allow_prefab_blocks = true,
 						});
-		_inspector.set_edit_context(editor_world_controller_t::get().get_main_edit_context_handle());
+		_inspector.set_edit_context(editor_world_controller_t::get().get_main_world());
 		_inspector.refresh_from_selection();
 	}
 
@@ -85,7 +85,7 @@ namespace sfg
 		_inspector.refresh_component_reflection(component_type);
 	}
 
-	void editor_panel_inspector_t::set_edit_context(editor_world_edit_context_handle_t context)
+	void editor_panel_inspector_t::set_edit_context(editor_world_handle_t context)
 	{
 		_inspector.set_edit_context(context);
 	}

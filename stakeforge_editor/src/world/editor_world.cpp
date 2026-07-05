@@ -63,7 +63,6 @@ namespace sfg
 	{
 		_world.init();
 		_edit_context.init();
-		_edit_context.set_handle(handle);
 		_edit_context.set_world(handle);
 		_producer_slot = 0;
 		_consumer_slot = 1;

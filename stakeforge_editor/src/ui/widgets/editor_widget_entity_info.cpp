@@ -58,6 +58,8 @@ namespace sfg
 	{
 		_ui							= &ui;
 		_world						= &editor_world_controller_t::get().get_world(config.world);
+		_break_prefab_callback		= config.break_prefab;
+		_break_prefab_user_data		= config.user_data;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -175,29 +177,34 @@ namespace sfg
 			label_in.pos_value.y	  = 0.5f;
 			label_in.size_value		  = {1.0f, theme.item_height};
 
-			ui.set_widget_text(_prefab_label, "can not edit prefabs inside the outliner, open prefab editor to edit.");
+			ui.set_widget_text(_prefab_label, "can not edit prefabs inside the outliner, Break Prefab to edit it.");
 			paint.set_text(_prefab_label,
 						   ui.widget_text(_prefab_label),
 						   ui.widget_text_len(_prefab_label),
 						   {.font = theme.font_default, .color = theme.color_accent2, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 			editor_misc_widgets_t::add_spacer(ui, _root, {theme.item_spacing, theme.item_spacing});
-			_open_prefab_button.init(ui, _root, {.text = "Open Prefab", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_width}});
-			ui::layout_in_t& button_in = tree.in(_open_prefab_button.get_root());
+			_break_prefab_button.init(ui, _root, {.text = "Break Prefab", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_width}});
+			ui::layout_in_t& button_in = tree.in(_break_prefab_button.get_root());
 			button_in.pos_mode_y	   = ui::pos_mode_e::flow;
 			button_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 			button_in.anchor_x		   = ui::anchor_e::center;
 			button_in.pos_value.x	   = 0.5f;
 
-			tree.draw_order(_open_prefab_button.get_root())						   = tree.draw_order_const(_root) + 1;
-			tree.draw_order(tree.node(_open_prefab_button.get_root()).first_child) = tree.draw_order_const(_open_prefab_button.get_root()) + 1;
+			tree.draw_order(_break_prefab_button.get_root())						= tree.draw_order_const(_root) + 1;
+			tree.draw_order(tree.node(_break_prefab_button.get_root()).first_child) = tree.draw_order_const(_break_prefab_button.get_root()) + 1;
+
+			ui::listener_bundle_t listener = {};
+			listener.user_data			   = this;
+			listener.on_click			   = on_break_prefab_clicked;
+			ui.get_input().set_listener(_break_prefab_button.get_root(), listener);
 		}
 	}
 
 	void editor_widget_entity_info_t::uninit()
 	{
-		if (_open_prefab_button.get_root() != NULL_WIDGET)
-			_open_prefab_button.uninit();
+		if (_break_prefab_button.get_root() != NULL_WIDGET)
+			_break_prefab_button.uninit();
 		_scale_field.uninit();
 		_rotation_field.uninit();
 		_position_field.uninit();
@@ -214,6 +221,8 @@ namespace sfg
 		_name_fallback[0]		  = '\0';
 		_name_submitted_callback  = nullptr;
 		_name_submitted_user_data = nullptr;
+		_break_prefab_callback	  = nullptr;
+		_break_prefab_user_data	  = nullptr;
 		_callbacks				  = {};
 		_entities.resize(0);
 	}
@@ -324,6 +333,16 @@ namespace sfg
 	void editor_widget_entity_info_t::on_edit_submitted(void* user_data)
 	{
 		static_cast<editor_widget_entity_info_t*>(user_data)->submit_edit();
+	}
+
+	void editor_widget_entity_info_t::on_break_prefab_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
+		if (entity_info._break_prefab_callback != nullptr)
+			entity_info._break_prefab_callback(entity_info._break_prefab_user_data);
 	}
 
 	void editor_widget_entity_info_t::begin_edit()

@@ -50,7 +50,7 @@ namespace sfg
 			return handle;
 		}
 
-		void apply_selection(editor_world_edit_context_handle_t context, span_t<const entity_id_t> entities, entity_id_t anchor)
+		void apply_selection(editor_world_handle_t context, span_t<const entity_id_t> entities, entity_id_t anchor)
 		{
 			editor_world_controller_t::get().get_edit_context(context).apply_entity_selection(entities, anchor);
 		}
@@ -74,7 +74,7 @@ namespace sfg
 			if (payload.root == NULL_ENTITY_ID)
 				return false;
 
-			apply_selection(editor_world_controller_t::get().get_edit_context(payload.world).get_handle(), {.data = &payload.root, .size = 1}, payload.root);
+			apply_selection(editor_world_controller_t::get().get_edit_context(payload.world).get_world(), {.data = &payload.root, .size = 1}, payload.root);
 			return true;
 		}
 
@@ -99,7 +99,7 @@ namespace sfg
 
 		editor_command_prefab_spawn_payload_t payload = {
 			.world						= world,
-			.previous_selection_context = selection_controller.get_handle(),
+			.previous_selection_context = selection_controller.get_world(),
 			.prefab						= prefab,
 			.previous_selection			= copy_selection_to_aux(command_system, selection),
 			.parent						= parent,

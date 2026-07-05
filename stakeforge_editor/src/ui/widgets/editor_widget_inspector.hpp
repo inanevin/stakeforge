@@ -90,7 +90,7 @@ namespace sfg
 		void refresh_display();
 		void refresh_from_selection();
 		void refresh_component_reflection(sid_t component_type);
-		void set_edit_context(editor_world_edit_context_handle_t context);
+		void set_edit_context(editor_world_handle_t context);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -156,6 +156,7 @@ namespace sfg
 		bool					   is_component_paste_enabled(sid_t type_id) const;
 		bool					   read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const;
 		bool					   is_selection_prefab_referenced() const;
+		void					   break_prefabs();
 		void					   begin_entity_info_edit();
 		void					   submit_entity_info_edit();
 		void					   clear_entity_info_edit();
@@ -169,6 +170,7 @@ namespace sfg
 		static void on_entity_info_name_submitted(entity_id_t entity, void* user_data);
 		static void on_entity_info_edit_begin(void* user_data);
 		static void on_entity_info_edit_submitted(void* user_data);
+		static void on_entity_info_break_prefab(void* user_data);
 		static void on_component_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_component_action_menu_command(u16 command, void* user_data);
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -207,7 +209,7 @@ namespace sfg
 		editor_entity_info_data_t						  _copied_entity_info		   = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			   = {};
 		editor_selection_listener_handle_t				  _selection_listener		   = {};
-		editor_world_edit_context_handle_t				  _edit_context				   = {};
+		editor_world_handle_t							  _edit_context				   = {};
 		sid_t											  _copied_component_type	   = 0;
 		sid_t											  _action_menu_type_id		   = 0;
 		sid_t											  _pending_component_type	   = 0;

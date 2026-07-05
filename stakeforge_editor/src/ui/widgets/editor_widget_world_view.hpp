@@ -48,9 +48,7 @@ namespace sfg
 
 		void	init(ui::ui_context& ui, ui::widget_id_t parent);
 		void	uninit();
-		void	set_edit_context(editor_world_edit_context_handle_t context);
-		void	set_world(const world_render_context_t& world);
-		void	clear_world();
+		void	set_edit_context(editor_world_handle_t context);
 		vec4f_t get_world_view_bounds() const;
 
 		inline ui::widget_id_t get_root() const
@@ -59,17 +57,18 @@ namespace sfg
 		}
 
 	private:
+		void clear_world();
 		void refresh_world_texture();
 
 		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 
 	private:
-		const world_render_context_t*	   _world		 = nullptr;
-		ui::ui_context*					   _ui			 = nullptr;
-		editor_world_edit_context_handle_t _edit_context = {};
-		ui::widget_id_t					   _root		 = NULL_WIDGET;
-		ui::widget_id_t					   _world_view	 = NULL_WIDGET;
-		ui::widget_id_t					   _empty_label	 = NULL_WIDGET;
+		const world_render_context_t* _world		= nullptr;
+		ui::ui_context*				  _ui			= nullptr;
+		editor_world_handle_t		  _edit_context = {};
+		ui::widget_id_t				  _root			= NULL_WIDGET;
+		ui::widget_id_t				  _world_view	= NULL_WIDGET;
+		ui::widget_id_t				  _empty_label	= NULL_WIDGET;
 	};
 }

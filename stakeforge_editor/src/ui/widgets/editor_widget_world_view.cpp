@@ -138,22 +138,33 @@ namespace sfg
 		_ui			  = nullptr;
 	}
 
-	void editor_widget_world_view_t::set_edit_context(editor_world_edit_context_handle_t context)
+	void editor_widget_world_view_t::set_edit_context(editor_world_handle_t context)
 	{
 		_edit_context = context;
-	}
-
-	void editor_widget_world_view_t::set_world(const world_render_context_t& world)
-	{
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 
-		_world = &world;
+		if (_edit_context.is_null())
+		{
+			clear_world();
+			return;
+		}
+
+		editor_world_controller_t&	controller = editor_world_controller_t::get();
+		const editor_world_handle_t world	   = controller.get_edit_context(_edit_context).get_world();
+		_world								   = &controller.get_world_render_context(world);
 		refresh_world_texture();
 
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_world_view, true);
 		tree.set_visible(_empty_label, false);
+	}
+
+	vec4f_t editor_widget_world_view_t::get_world_view_bounds() const
+	{
+		SFG_ASSERT(_ui != nullptr);
+		SFG_ASSERT(_world_view != NULL_WIDGET);
+		return _ui->get_tree().bounds(_world_view);
 	}
 
 	void editor_widget_world_view_t::clear_world()
@@ -169,13 +180,6 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_world_view, false);
 		tree.set_visible(_empty_label, true);
-	}
-
-	vec4f_t editor_widget_world_view_t::get_world_view_bounds() const
-	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(_world_view != NULL_WIDGET);
-		return _ui->get_tree().bounds(_world_view);
 	}
 
 	void editor_widget_world_view_t::refresh_world_texture()

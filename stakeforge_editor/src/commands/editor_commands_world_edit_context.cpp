@@ -50,12 +50,12 @@ namespace sfg
 
 		struct editor_command_delete_world_folder_payload_t
 		{
-			chunk_handle32_t				   folders			 = {};
-			chunk_handle32_t				   entity_guids		 = {};
-			editor_world_edit_context_handle_t context			 = {};
-			u64								   root_folder_guid	 = 0;
-			u32								   folder_count		 = 0;
-			u32								   entity_guid_count = 0;
+			chunk_handle32_t	  folders			= {};
+			chunk_handle32_t	  entity_guids		= {};
+			editor_world_handle_t context			= {};
+			u64					  root_folder_guid	= 0;
+			u32					  folder_count		= 0;
+			u32					  entity_guid_count = 0;
 		};
 
 		void copy_name(char* dst, const char* src)
@@ -292,10 +292,10 @@ namespace sfg
 
 	editor_world_folder_handle_t editor_commands_world_edit_context_t::create_folder(const char* name, editor_world_folder_handle_t parent_handle)
 	{
-		return create_folder(editor_world_controller_t::get().get_main_edit_context_handle(), name, parent_handle);
+		return create_folder(editor_world_controller_t::get().get_main_world(), name, parent_handle);
 	}
 
-	editor_world_folder_handle_t editor_commands_world_edit_context_t::create_folder(editor_world_edit_context_handle_t context, const char* name, editor_world_folder_handle_t parent_handle)
+	editor_world_folder_handle_t editor_commands_world_edit_context_t::create_folder(editor_world_handle_t context, const char* name, editor_world_folder_handle_t parent_handle)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(context);
 		SFG_ASSERT(parent_handle.is_null() || metadata.is_folder_valid(parent_handle));
@@ -329,10 +329,10 @@ namespace sfg
 
 	bool editor_commands_world_edit_context_t::rename_folder(editor_world_folder_handle_t handle, const char* name)
 	{
-		return rename_folder(editor_world_controller_t::get().get_main_edit_context_handle(), handle, name);
+		return rename_folder(editor_world_controller_t::get().get_main_world(), handle, name);
 	}
 
-	bool editor_commands_world_edit_context_t::rename_folder(editor_world_edit_context_handle_t context, editor_world_folder_handle_t handle, const char* name)
+	bool editor_commands_world_edit_context_t::rename_folder(editor_world_handle_t context, editor_world_folder_handle_t handle, const char* name)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(context);
 		if (!metadata.is_folder_valid(handle))
@@ -357,10 +357,10 @@ namespace sfg
 
 	bool editor_commands_world_edit_context_t::change_folder_color(editor_world_folder_handle_t handle, color_t color)
 	{
-		return change_folder_color(editor_world_controller_t::get().get_main_edit_context_handle(), handle, color);
+		return change_folder_color(editor_world_controller_t::get().get_main_world(), handle, color);
 	}
 
-	bool editor_commands_world_edit_context_t::change_folder_color(editor_world_edit_context_handle_t context, editor_world_folder_handle_t handle, color_t color)
+	bool editor_commands_world_edit_context_t::change_folder_color(editor_world_handle_t context, editor_world_folder_handle_t handle, color_t color)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(context);
 		if (!metadata.is_folder_valid(handle))
@@ -385,10 +385,10 @@ namespace sfg
 
 	bool editor_commands_world_edit_context_t::delete_folder(editor_world_folder_handle_t handle)
 	{
-		return delete_folder(editor_world_controller_t::get().get_main_edit_context_handle(), handle);
+		return delete_folder(editor_world_controller_t::get().get_main_world(), handle);
 	}
 
-	bool editor_commands_world_edit_context_t::delete_folder(editor_world_edit_context_handle_t context, editor_world_folder_handle_t handle)
+	bool editor_commands_world_edit_context_t::delete_folder(editor_world_handle_t context, editor_world_folder_handle_t handle)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(context);
 		if (!metadata.is_folder_valid(handle))
@@ -455,10 +455,10 @@ namespace sfg
 
 	bool editor_commands_world_edit_context_t::assign_entities_to_folder(editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids)
 	{
-		return assign_entities_to_folder(editor_world_controller_t::get().get_main_edit_context_handle(), handle, entity_guids);
+		return assign_entities_to_folder(editor_world_controller_t::get().get_main_world(), handle, entity_guids);
 	}
 
-	bool editor_commands_world_edit_context_t::assign_entities_to_folder(editor_world_edit_context_handle_t context, editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids)
+	bool editor_commands_world_edit_context_t::assign_entities_to_folder(editor_world_handle_t context, editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids)
 	{
 		if (entity_guids.size == 0)
 			return false;
@@ -491,17 +491,17 @@ namespace sfg
 		return assign_entities_to_folder({}, entity_guids);
 	}
 
-	bool editor_commands_world_edit_context_t::deassign_entities_from_folder(editor_world_edit_context_handle_t context, span_t<const entity_guid_t> entity_guids)
+	bool editor_commands_world_edit_context_t::deassign_entities_from_folder(editor_world_handle_t context, span_t<const entity_guid_t> entity_guids)
 	{
 		return assign_entities_to_folder(context, {}, entity_guids);
 	}
 
 	bool editor_commands_world_edit_context_t::assign_folder_to_folder(editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle)
 	{
-		return assign_folder_to_folder(editor_world_controller_t::get().get_main_edit_context_handle(), handle, parent_handle);
+		return assign_folder_to_folder(editor_world_controller_t::get().get_main_world(), handle, parent_handle);
 	}
 
-	bool editor_commands_world_edit_context_t::assign_folder_to_folder(editor_world_edit_context_handle_t context, editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle)
+	bool editor_commands_world_edit_context_t::assign_folder_to_folder(editor_world_handle_t context, editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(context);
 		if (!metadata.can_assign_folder(handle, parent_handle))
