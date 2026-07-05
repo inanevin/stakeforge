@@ -87,7 +87,7 @@ namespace sfg
 			return reinterpret_cast<T*>(ecs_t::table_get(table, id));
 		}
 
-		template <typename T> static const T* table_find_as_const(ecs_component_table_t& table, entity_id_t id)
+		template <typename T> static const T* table_find_as_const(const ecs_component_table_t& table, entity_id_t id)
 		{
 			return reinterpret_cast<const T*>(ecs_t::table_get(table, id));
 		}

@@ -187,9 +187,8 @@ namespace sfg
 			{
 				if (!streams[i])
 				{
-					ostream_t						  stream;
-					frame_vector_t<resource_handle_t> resources;
-					world_cooker_t::entity_to_stream(world, sources[i], stream, resources);
+					ostream_t stream;
+					world_cooker_t::entity_to_stream(world, sources[i], stream, false);
 					streams[i] = copy_stream_to_aux(system, stream);
 				}
 
@@ -205,7 +204,7 @@ namespace sfg
 				}
 
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, true);
+				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, true, false);
 				if (entity == NULL_ENTITY_ID)
 				{
 					SFG_ERR("failed to recreate duplicated entity from stream");
@@ -217,6 +216,7 @@ namespace sfg
 					return false;
 				}
 
+				world.sync_entity_hierarchy(entity);
 				entities[i] = entity;
 				if (parents[i] != NULL_ENTITY_ID)
 					world.attach_to(entity, parents[i]);
@@ -233,7 +233,8 @@ namespace sfg
 			for (u32 i = payload.count; i-- > 0;)
 			{
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream);
+				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, false, false);
+				world.sync_entity_hierarchy(entity);
 				system.get_aux_data().free(streams[i]);
 				streams[i]	= {};
 				entities[i] = entity;
@@ -266,9 +267,8 @@ namespace sfg
 			chunk_handle32_t*						 streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
 			for (u32 i = 0; i < payload.count; ++i)
 			{
-				ostream_t						  stream;
-				frame_vector_t<resource_handle_t> resources;
-				world_cooker_t::entity_to_stream(world, entities[i], stream, resources);
+				ostream_t stream;
+				world_cooker_t::entity_to_stream(world, entities[i], stream, false);
 				streams[i] = copy_stream_to_aux(system, stream);
 				world.destroy_entity_tree(entities[i]);
 			}

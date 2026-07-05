@@ -36,6 +36,26 @@ namespace sfg
 {
 	namespace
 	{
+		struct deleted_world_folder_t
+		{
+			char name[EDITOR_WORLD_METADATA_COMMAND_NAME_SIZE];
+			f32	 color[4];
+			u64	 folder_guid;
+			u64	 parent_folder_guid;
+			u32	 first_entity_guid;
+			u32	 entity_guid_count;
+			bool folded;
+		};
+
+		struct editor_command_delete_world_folder_payload_t
+		{
+			chunk_handle32_t folders		   = {};
+			chunk_handle32_t entity_guids	   = {};
+			u64				 root_folder_guid  = 0;
+			u32				 folder_count	   = 0;
+			u32				 entity_guid_count = 0;
+		};
+
 		void copy_name(char* dst, const char* src)
 		{
 			const char*	 text = src != nullptr && src[0] != '\0' ? src : "Folder";
@@ -70,6 +90,14 @@ namespace sfg
 			for (size_t i = 0; i < entity_guids.size; ++i)
 				dst[i] = get_folder_guid(metadata, metadata.get_entity_folder(entity_guids.data[i]));
 			return handle;
+		}
+
+		void destroy_folder_tree(editor_world_metadata_t& metadata, editor_world_folder_handle_t handle)
+		{
+			vector_t<editor_world_folder_handle_t> folders;
+			metadata.collect_folder_tree(handle, folders);
+			for (auto it = folders.rbegin(); it != folders.rend(); ++it)
+				metadata.destroy_folder(*it);
 		}
 
 		bool create_world_folder_undo(editor_command_system_t&, editor_command_t& command)
@@ -129,6 +157,58 @@ namespace sfg
 			const editor_world_folder_handle_t				   handle	= get_folder_handle(metadata, payload.folder_guid);
 			if (!handle.is_null())
 				metadata.set_folder_color(handle, payload.new_color);
+			return true;
+		}
+
+		bool delete_world_folder_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_world_metadata_t&							metadata	 = editor_world_metadata_t::get();
+			const editor_command_delete_world_folder_payload_t& payload		 = system.get_payload_as<editor_command_delete_world_folder_payload_t>(command);
+			const deleted_world_folder_t*						folders		 = system.get_aux_data().get<deleted_world_folder_t>(payload.folders);
+			const entity_guid_t*								entity_guids = payload.entity_guid_count != 0 ? system.get_aux_data().get<entity_guid_t>(payload.entity_guids) : nullptr;
+
+			for (u32 i = 0; i < payload.folder_count; ++i)
+			{
+				const deleted_world_folder_t&	   folder = folders[i];
+				const editor_world_folder_handle_t parent = get_folder_handle(metadata, folder.parent_folder_guid);
+				metadata.create_folder_with_guid(folder.name, color_t(folder.color[0], folder.color[1], folder.color[2], folder.color[3]), folder.folded, parent, folder.folder_guid);
+			}
+
+			for (u32 i = 0; i < payload.folder_count; ++i)
+			{
+				const deleted_world_folder_t& folder = folders[i];
+				if (folder.entity_guid_count == 0)
+					continue;
+
+				const editor_world_folder_handle_t handle = get_folder_handle(metadata, folder.folder_guid);
+				metadata.assign_entities_to_folder(handle, {.data = entity_guids + folder.first_entity_guid, .size = folder.entity_guid_count});
+			}
+			return true;
+		}
+
+		bool delete_world_folder_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_world_metadata_t&							metadata = editor_world_metadata_t::get();
+			const editor_command_delete_world_folder_payload_t& payload	 = system.get_payload_as<editor_command_delete_world_folder_payload_t>(command);
+			const editor_world_folder_handle_t					handle	 = get_folder_handle(metadata, payload.root_folder_guid);
+			if (!handle.is_null())
+				destroy_folder_tree(metadata, handle);
+			return true;
+		}
+
+		bool delete_world_folder_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_delete_world_folder_payload_t& payload = system.get_payload_as<editor_command_delete_world_folder_payload_t>(command);
+			if (payload.folders)
+			{
+				system.get_aux_data().free(payload.folders);
+				payload.folders = {};
+			}
+			if (payload.entity_guids)
+			{
+				system.get_aux_data().free(payload.entity_guids);
+				payload.entity_guids = {};
+			}
 			return true;
 		}
 
@@ -281,6 +361,70 @@ namespace sfg
 		};
 
 		return !editor_command_system_t::get().issue_command(desc, payload).is_null();
+	}
+
+	bool editor_commands_world_metadata_t::delete_folder(editor_world_folder_handle_t handle)
+	{
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
+		if (!metadata.is_folder_valid(handle))
+			return false;
+
+		vector_t<editor_world_folder_handle_t> folder_handles;
+		metadata.collect_folder_tree(handle, folder_handles);
+
+		u32 entity_guid_count = 0;
+		for (editor_world_folder_handle_t folder_handle : folder_handles)
+			entity_guid_count += static_cast<u32>(metadata.get_folder(folder_handle).entity_guids.size());
+
+		editor_command_system_t& command_system = editor_command_system_t::get();
+
+		deleted_world_folder_t*						 deleted_folders = nullptr;
+		entity_guid_t*								 entity_guids	 = nullptr;
+		editor_command_delete_world_folder_payload_t payload		 = {};
+		payload.folders												 = command_system.get_aux_data().allocate<deleted_world_folder_t>(folder_handles.size(), deleted_folders);
+		payload.root_folder_guid									 = metadata.get_folder(handle).guid;
+		payload.folder_count										 = static_cast<u32>(folder_handles.size());
+		payload.entity_guid_count									 = entity_guid_count;
+		if (entity_guid_count != 0)
+			payload.entity_guids = command_system.get_aux_data().allocate<entity_guid_t>(entity_guid_count, entity_guids);
+
+		u32 entity_guid_offset = 0;
+		for (size_t i = 0; i < folder_handles.size(); ++i)
+		{
+			const editor_world_folder_t& folder	 = metadata.get_folder(folder_handles[i]);
+			deleted_world_folder_t&		 deleted = deleted_folders[i];
+			copy_name(deleted.name, folder.name);
+			deleted.color[0]		   = folder.color.x;
+			deleted.color[1]		   = folder.color.y;
+			deleted.color[2]		   = folder.color.z;
+			deleted.color[3]		   = folder.color.w;
+			deleted.folder_guid		   = folder.guid;
+			deleted.parent_folder_guid = get_folder_guid(metadata, folder.parent_handle);
+			deleted.first_entity_guid  = entity_guid_offset;
+			deleted.entity_guid_count  = static_cast<u32>(folder.entity_guids.size());
+			deleted.folded			   = folder.folded;
+			for (entity_guid_t guid : folder.entity_guids)
+				entity_guids[entity_guid_offset++] = guid;
+		}
+
+		const editor_command_issue_desc_t desc{
+			.undo			   = delete_world_folder_undo,
+			.redo			   = delete_world_folder_redo,
+			.cleanup		   = delete_world_folder_cleanup,
+			.debug_name		   = "Delete Folder",
+			.type			   = editor_command_type_e::world_metadata_delete_folder,
+			.entity_generation = true,
+		};
+
+		const editor_command_handle_t command = command_system.issue_command(desc, payload);
+		if (command.is_null())
+		{
+			command_system.get_aux_data().free(payload.folders);
+			if (payload.entity_guids)
+				command_system.get_aux_data().free(payload.entity_guids);
+			return false;
+		}
+		return true;
 	}
 
 	bool editor_commands_world_metadata_t::assign_entities_to_folder(editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids)

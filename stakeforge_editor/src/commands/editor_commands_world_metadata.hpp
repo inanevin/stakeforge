@@ -81,6 +81,7 @@ namespace sfg
 		static editor_world_folder_handle_t create_folder(const char* name, editor_world_folder_handle_t parent_handle = {});
 		static bool							rename_folder(editor_world_folder_handle_t handle, const char* name);
 		static bool							change_folder_color(editor_world_folder_handle_t handle, color_t color);
+		static bool							delete_folder(editor_world_folder_handle_t handle);
 		static bool							assign_entities_to_folder(editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids);
 		static bool							deassign_entities_from_folder(span_t<const entity_guid_t> entity_guids);
 		static bool							assign_folder_to_folder(editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle);

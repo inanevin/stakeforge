@@ -186,16 +186,25 @@ namespace sfg
 		const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
 		const world_component_table_t* name_table	   = world.find_component_table(type_id_t<component_name_t>::value);
 		const world_component_table_t* disabled_table  = world.find_component_table(type_id_t<component_disabled_t>::value);
+		const world_component_table_t* prefab_table	   = world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 		SFG_ASSERT(alive_table != nullptr);
 		SFG_ASSERT(hierarchy_table != nullptr);
 		SFG_ASSERT(name_table != nullptr);
 		SFG_ASSERT(disabled_table != nullptr);
+		SFG_ASSERT(prefab_table != nullptr);
+
+		const outliner_component_tables_t tables{
+			.hierarchy = &hierarchy_table->table,
+			.name	   = &name_table->table,
+			.disabled  = &disabled_table->table,
+			.prefab	   = &prefab_table->table,
+		};
 
 		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
 		{
 			const editor_world_folder_handle_t handle = *it;
 			if (_folders.get(handle).parent_handle.is_null())
-				append_folder_items(world, disabled_table->table, handle, 0);
+				append_folder_items(world, tables, handle, 0);
 		}
 
 		const ecs_component_table_ref_t table_refs[] = {
@@ -213,7 +222,7 @@ namespace sfg
 			if (is_entity_assigned(world.get_entity_guid(row.id)))
 				continue;
 
-			append_entity_items(world, hierarchy_table->table, name_table->table, disabled_table->table, row.id, 0);
+			append_entity_items(world, tables, row.id, 0);
 		}
 	}
 
@@ -327,6 +336,18 @@ namespace sfg
 		return meta != nullptr && !meta->folded;
 	}
 
+	void editor_world_metadata_t::collect_folder_tree(editor_world_folder_handle_t handle, vector_t<editor_world_folder_handle_t>& out_handles) const
+	{
+		SFG_ASSERT(_folders.is_valid(handle));
+		out_handles.push_back(handle);
+		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
+		{
+			const editor_world_folder_handle_t child_handle = *it;
+			if (_folders.get(child_handle).parent_handle == handle)
+				collect_folder_tree(child_handle, out_handles);
+		}
+	}
+
 	span_t<editor_outliner_item_t> editor_world_metadata_t::get_outliner_items()
 	{
 		return {.data = _outliner_items.data(), .size = _outliner_items.size()};
@@ -376,7 +397,7 @@ namespace sfg
 		return nullptr;
 	}
 
-	void editor_world_metadata_t::append_folder_items(const world_t& world, const ecs_component_table_t& disabled_table, editor_world_folder_handle_t handle, u16 depth)
+	void editor_world_metadata_t::append_folder_items(const world_t& world, const outliner_component_tables_t& tables, editor_world_folder_handle_t handle, u16 depth)
 	{
 		const editor_world_folder_t& folder		  = _folders.get(handle);
 		bool						 has_children = !folder.entity_guids.empty();
@@ -389,38 +410,44 @@ namespace sfg
 		{
 			const editor_world_folder_handle_t child_handle = *it;
 			if (_folders.get(child_handle).parent_handle == handle)
-				append_folder_items(world, disabled_table, child_handle, static_cast<u16>(depth + 1));
+				append_folder_items(world, tables, child_handle, static_cast<u16>(depth + 1));
 		}
 
-		const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const world_component_table_t* name_table	   = world.find_component_table(type_id_t<component_name_t>::value);
-		SFG_ASSERT(hierarchy_table != nullptr);
-		SFG_ASSERT(name_table != nullptr);
 		for (entity_guid_t guid : folder.entity_guids)
 		{
 			const entity_id_t entity = world.get_entity_from_guid(guid);
 			if (entity != NULL_ENTITY_ID && world.is_alive(entity))
-				append_entity_items(world, hierarchy_table->table, name_table->table, disabled_table, entity, static_cast<u16>(depth + 1));
+				append_entity_items(world, tables, entity, static_cast<u16>(depth + 1));
 		}
 	}
 
-	void editor_world_metadata_t::append_entity_items(const world_t& world, const ecs_component_table_t& hierarchy_table, const ecs_component_table_t& name_table, const ecs_component_table_t& disabled_table, entity_id_t id, u16 depth)
+	void editor_world_metadata_t::append_entity_items(const world_t& world, const outliner_component_tables_t& tables, entity_id_t id, u16 depth)
 	{
-		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, id);
-		const component_name_t&		 name	   = ecs_helpers_t::table_get_as_const<component_name_t>(name_table, id);
-		const entity_guid_t			 guid	   = world.get_entity_guid(id);
-		const bool					 disabled  = ecs_t::table_has(disabled_table, id);
+		const component_hierarchy_t& hierarchy		  = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*tables.hierarchy, id);
+		const component_name_t&		 name			  = ecs_helpers_t::table_get_as_const<component_name_t>(*tables.name, id);
+		const entity_guid_t			 guid			  = world.get_entity_guid(id);
+		const bool					 disabled		  = ecs_t::table_has(*tables.disabled, id);
+		const bool					 prefab_reference = ecs_t::table_has(*tables.prefab, id);
 
-		_outliner_items.push_back(
-			{.name = name.text, .entity = id, .parent_entity = hierarchy.parent, .entity_guid = guid, .depth = depth, .type = editor_outliner_item_type_e::entity, .has_children = hierarchy.first_child != NULL_ENTITY_ID, .disabled = disabled});
+		_outliner_items.push_back({
+			.name				  = name.text,
+			.entity				  = id,
+			.parent_entity		  = hierarchy.parent,
+			.entity_guid		  = guid,
+			.depth				  = depth,
+			.type				  = editor_outliner_item_type_e::entity,
+			.has_children		  = hierarchy.first_child != NULL_ENTITY_ID,
+			.disabled			  = disabled,
+			.has_prefab_reference = prefab_reference,
+		});
 		if (hierarchy.first_child == NULL_ENTITY_ID)
 			return;
 
 		entity_id_t child = hierarchy.first_child;
 		while (child != NULL_ENTITY_ID)
 		{
-			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
-			append_entity_items(world, hierarchy_table, name_table, disabled_table, child, static_cast<u16>(depth + 1));
+			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*tables.hierarchy, child);
+			append_entity_items(world, tables, child, static_cast<u16>(depth + 1));
 			child = child_hierarchy.next_sibling;
 		}
 	}

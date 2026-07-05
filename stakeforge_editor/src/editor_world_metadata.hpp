@@ -71,17 +71,18 @@ namespace sfg
 
 	struct editor_outliner_item_t
 	{
-		const char*					 name		   = nullptr;
-		const char*					 type_icon	   = nullptr;
-		entity_id_t					 entity		   = NULL_ENTITY_ID;
-		entity_id_t					 parent_entity = NULL_ENTITY_ID;
-		entity_guid_t				 entity_guid   = NULL_ENTITY_GUID;
-		editor_world_folder_handle_t folder_handle = {};
-		color_t						 color		   = {};
-		u16							 depth		   = 0;
-		editor_outliner_item_type_e	 type		   = editor_outliner_item_type_e::entity;
-		bool						 has_children  = false;
-		bool						 disabled	   = false;
+		const char*					 name				  = nullptr;
+		const char*					 type_icon			  = nullptr;
+		entity_id_t					 entity				  = NULL_ENTITY_ID;
+		entity_id_t					 parent_entity		  = NULL_ENTITY_ID;
+		entity_guid_t				 entity_guid		  = NULL_ENTITY_GUID;
+		editor_world_folder_handle_t folder_handle		  = {};
+		color_t						 color				  = {};
+		u16							 depth				  = 0;
+		editor_outliner_item_type_e	 type				  = editor_outliner_item_type_e::entity;
+		bool						 has_children		  = false;
+		bool						 disabled			  = false;
+		bool						 has_prefab_reference = false;
 	};
 
 	struct editor_outliner_row_t
@@ -147,6 +148,7 @@ namespace sfg
 		bool								 is_folder_valid(editor_world_folder_handle_t handle) const;
 		bool								 can_assign_folder(editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle) const;
 		bool								 is_entity_expanded(entity_guid_t guid) const;
+		void								 collect_folder_tree(editor_world_folder_handle_t handle, vector_t<editor_world_folder_handle_t>& out_handles) const;
 		span_t<editor_outliner_item_t>		 get_outliner_items();
 		span_t<const editor_outliner_item_t> get_outliner_items() const;
 		vector_t<editor_outliner_row_t>&	 get_outliner_rows();
@@ -159,14 +161,23 @@ namespace sfg
 		}
 
 	private:
+		struct outliner_component_tables_t
+		{
+			const ecs_component_table_t* hierarchy = nullptr;
+			const ecs_component_table_t* name	   = nullptr;
+			const ecs_component_table_t* disabled  = nullptr;
+			const ecs_component_table_t* prefab	   = nullptr;
+		};
+
 		editor_world_entity_metadata_t&		  get_or_create_entity_metadata(entity_guid_t guid);
 		editor_world_entity_metadata_t*		  find_entity_metadata(entity_guid_t guid);
 		const editor_world_entity_metadata_t* find_entity_metadata(entity_guid_t guid) const;
-		void								  append_folder_items(const world_t& world, const ecs_component_table_t& disabled_table, editor_world_folder_handle_t handle, u16 depth);
-		void								  append_entity_items(const world_t& world, const ecs_component_table_t& hierarchy_table, const ecs_component_table_t& name_table, const ecs_component_table_t& disabled_table, entity_id_t id, u16 depth);
+		void								  append_folder_items(const world_t& world, const outliner_component_tables_t& tables, editor_world_folder_handle_t handle, u16 depth);
+		void								  append_entity_items(const world_t& world, const outliner_component_tables_t& tables, entity_id_t id, u16 depth);
 		bool								  is_entity_assigned(entity_guid_t guid) const;
 		void								  remove_entity_from_folders(entity_guid_t guid);
 
+	private:
 		gen_pool_t<editor_world_folder_t, u32, editor_world_folder_tag_t> _folders;
 		vector_t<editor_world_entity_metadata_t>						  _entity_metadata;
 		vector_t<editor_outliner_item_t>								  _outliner_items;

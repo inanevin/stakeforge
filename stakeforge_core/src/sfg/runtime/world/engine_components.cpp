@@ -211,6 +211,7 @@ namespace sfg
 				.fields =
 					{
 						{.name = "prefab", .display_name = "Prefab", .sub_type_id = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB, .offset = offsetof(component_prefab_reference_t, prefab), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
+						{.name = "is_root", .display_name = "IsRoot", .offset = offsetof(component_prefab_reference_t, is_root), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					},
 				.type_id   = type_id_t<component_prefab_reference_t>::value,
 				.size	   = sizeof(component_prefab_reference_t),

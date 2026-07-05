@@ -126,7 +126,8 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_prefab_reference";
 
-		resource_handle_t prefab = NULL_RESOURCE_HANDLE;
+		resource_handle_t prefab  = NULL_RESOURCE_HANDLE;
+		bool			  is_root = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_prefab_reference_t);

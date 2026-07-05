@@ -105,7 +105,7 @@ namespace sfg
 		bool									 is_alive(entity_id_t id) const;
 
 	private:
-		entity_id_t spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
+		entity_id_t spawn_prefab(resource_handle_t handle, const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
 		void		update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void		set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t	calculate_parent_transform_direct(entity_id_t id);
@@ -123,6 +123,7 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 			ecs_component_table_t* name_table	   = nullptr;
 			ecs_component_table_t* alive_table	   = nullptr;
+			ecs_component_table_t* prefab_table	   = nullptr;
 		};
 
 		struct system_components_t

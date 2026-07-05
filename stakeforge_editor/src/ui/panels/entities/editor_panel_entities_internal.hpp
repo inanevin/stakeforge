@@ -42,5 +42,6 @@ namespace sfg
 		entity_action_menu_delete,
 		entity_action_menu_rename_folder,
 		entity_action_menu_change_folder_color,
+		entity_action_menu_delete_folder,
 	};
 }

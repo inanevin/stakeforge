@@ -99,6 +99,7 @@ namespace sfg
 		void				   toggle_entity_fold(entity_id_t entity);
 		void				   create_entity(entity_id_t parent, editor_world_folder_handle_t folder = {});
 		void				   create_folder(editor_world_folder_handle_t parent);
+		void				   delete_folder(editor_world_folder_handle_t folder);
 		void				   start_entity_payload(entity_id_t entity);
 		void				   start_folder_payload(editor_world_folder_handle_t folder);
 		bool				   reparent_payload_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent);

@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "commands/editor_command_prefab_spawn.hpp"
+#include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_world_metadata.hpp"
 #include "editor_command_system.hpp"
@@ -44,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/rectf.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
 {
@@ -102,6 +104,8 @@ namespace sfg
 			const vec2f_t pos = panel._ui->get_input().get_mouse_position();
 			panel.open_folder_color_popup(pos, panel._action_menu_folder);
 		}
+		else if (command == entity_action_menu_delete_folder)
+			panel.delete_folder(panel._action_menu_folder);
 	}
 
 	void editor_panel_entities_t::on_folder_rename_popup_closed(const char* value, void* user_data)
@@ -427,6 +431,18 @@ namespace sfg
 				return;
 
 			panel.refresh_entities();
+			break;
+		}
+		case editor_command_type_e::component_add: {
+			const editor_command_add_component_payload_t& payload = system.get_payload_as<editor_command_add_component_payload_t>(command);
+			if (payload.world == panel._main_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
+				panel.refresh_entities();
+			break;
+		}
+		case editor_command_type_e::component_remove: {
+			const editor_command_remove_component_payload_t& payload = system.get_payload_as<editor_command_remove_component_payload_t>(command);
+			if (payload.world == panel._main_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
+				panel.refresh_entities();
 			break;
 		}
 		default:

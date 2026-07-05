@@ -84,6 +84,7 @@ namespace sfg
 		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value)->table;
 		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value)->table;
 		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value)->table;
+		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value)->table;
 		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value)->table;
 	}
 
@@ -220,10 +221,10 @@ namespace sfg
 		if (prefab_data == nullptr)
 			return NULL_ENTITY_ID;
 
-		return spawn_prefab(*prefab_data, params);
+		return spawn_prefab(handle, *prefab_data, params);
 	}
 
-	entity_id_t world_t::spawn_prefab(const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params)
+	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params)
 	{
 		const char*			 prefab_source = resource_manager_t::get().get_memory().get_text(prefab_data.source);
 		const nlohmann::json prefab_json   = nlohmann::json::parse(prefab_source, nullptr, false);
@@ -241,6 +242,26 @@ namespace sfg
 		set_entity_scale_local(root, params.local_scale);
 		sync_entity_hierarchy(root);
 		scan_for_resources(root);
+
+		// add prefab comps to all.
+		ecs_component_table_t& prefab_table = *_engine_components.prefab_table;
+
+		const auto scan = [&](const auto& self, entity_id_t current) -> void {
+			component_prefab_reference_t& ref = ecs_helpers_t::table_add_or_get_as<component_prefab_reference_t>(prefab_table, current);
+			ref.is_root						  = current == root;
+			ref.prefab						  = handle;
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+				self(self, child);
+				child = next_child;
+			}
+		};
+		scan(scan, root);
+
 		return root;
 	}
 

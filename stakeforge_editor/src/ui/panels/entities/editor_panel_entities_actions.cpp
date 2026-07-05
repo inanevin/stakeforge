@@ -68,6 +68,7 @@ namespace sfg
 			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
 			{.text = "Rename", .shortcut = "F2", .command = entity_action_menu_rename_folder},
 			{.text = "Change Color", .command = entity_action_menu_change_folder_color},
+			{.text = "Delete", .command = entity_action_menu_delete_folder},
 		};
 	}
 	void editor_panel_entities_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
@@ -93,6 +94,17 @@ namespace sfg
 		if (!parent.is_null())
 			editor_world_metadata_t::get().set_folder_folded(parent, false);
 		_focused_folder = folder;
+		refresh_entities();
+	}
+
+	void editor_panel_entities_t::delete_folder(editor_world_folder_handle_t folder)
+	{
+		if (!editor_commands_world_metadata_t::delete_folder(folder))
+			return;
+
+		_action_menu_folder = {};
+		_focused_folder		= {};
+		_edit_folder		= {};
 		refresh_entities();
 	}
 

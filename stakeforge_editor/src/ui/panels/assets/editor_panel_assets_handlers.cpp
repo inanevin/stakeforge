@@ -57,9 +57,8 @@ namespace sfg
 			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 				return false;
 
-			nlohmann::json		  prefab_json = {};
-			frame_vector_t<sid_t> out_res;
-			world_cooker_t::entity_to_json(world, entity_payload.entity, prefab_json, out_res);
+			nlohmann::json prefab_json = {};
+			world_cooker_t::entity_to_json(world, entity_payload.entity, prefab_json, false);
 			if (prefab_json.is_null())
 				return false;
 

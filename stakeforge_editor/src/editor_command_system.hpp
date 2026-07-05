@@ -56,6 +56,7 @@ namespace sfg
 		world_metadata_color_folder,
 		world_metadata_assign_folder,
 		world_metadata_assign_folder_parent,
+		world_metadata_delete_folder,
 	};
 
 	enum class editor_command_state_e : u8

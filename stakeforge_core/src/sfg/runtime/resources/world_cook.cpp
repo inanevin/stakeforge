@@ -94,7 +94,6 @@ namespace sfg
 			hierarchy_table.ref(),
 		};
 
-		frame_vector_t<resource_handle_t> resources;
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
@@ -102,7 +101,7 @@ namespace sfg
 				continue;
 
 			nlohmann::json root_entity_json = nlohmann::json::object();
-			entity_to_json(world, row.id, root_entity_json, resources);
+			entity_to_json(world, row.id, root_entity_json, true);
 			if (!root_entity_json.value<nlohmann::json>("local_entities", nlohmann::json::array()).empty())
 				out_json["root_entities"].push_back(root_entity_json);
 		}
@@ -121,103 +120,14 @@ namespace sfg
 		{
 			const entity_id_t root = entity_from_json(world, root_entity_json, false, true);
 			if (root != NULL_ENTITY_ID)
+			{
+				world.sync_entity_hierarchy(root);
 				world.scan_for_resources(root);
+			}
 		}
 	}
 
-	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources)
-	{
-		SFG_ASSERT(world.is_alive(entity));
-
-		out_resources.resize(0);
-
-		struct written_entity_t
-		{
-			entity_id_t	  entity = NULL_ENTITY_ID;
-			entity_guid_t guid	 = NULL_ENTITY_GUID;
-		};
-
-		frame_vector_t<written_entity_t> written_entities;
-
-		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t&   hierarchy_table			= hierarchy_world_table->table;
-		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
-		const ecs_component_table_t&   no_serialize_table		= no_serialize_world_table->table;
-
-		const size_t count_offset = out_stream.get_size();
-		u32			 total_count  = 0;
-		out_stream << total_count;
-
-		const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
-			if (ecs_t::table_has(no_serialize_table, current))
-				return;
-
-			total_count++;
-
-			const entity_guid_t				 guid	= world.get_entity_guid(current);
-			const entity_id_t				 parent = world.get_entity_parent(current);
-			const world_cook_entity_header_t header{
-				.guid		 = guid,
-				.parent_guid = world.get_entity_guid(parent),
-				.name		 = world.get_entity_name(current),
-				.local_pos	 = world.get_entity_pos_local(current),
-				.local_rot	 = world.get_entity_rot_local(current),
-				.local_scale = world.get_entity_scale_local(current),
-			};
-			out_stream << header;
-			written_entities.push_back({.entity = current, .guid = guid});
-
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, current);
-			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			{
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
-				self(self, child);
-				child = child_hierarchy.next_sibling;
-			}
-		};
-
-		write_entity(write_entity, entity);
-		SFG_MEMCPY(out_stream.get_raw() + count_offset, &total_count, sizeof(total_count));
-
-		const vector_t<world_component_table_t>& component_tables		= world.get_component_tables();
-		const size_t							 component_count_offset = out_stream.get_size();
-		u32										 component_count		= 0;
-		out_stream << component_count;
-
-		for (const written_entity_t& written_entity : written_entities)
-		{
-			for (const world_component_table_t& component_table : component_tables)
-			{
-				const sid_t				component_type_id = component_table.type_desc.type_id;
-				const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
-				SFG_ASSERT(reflected_type != nullptr);
-
-				if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
-					continue;
-
-				if (!ecs_t::table_has(component_table.table, written_entity.entity))
-					continue;
-
-				ostream_t component_stream;
-				void*	  component = ecs_t::table_get(component_table.table, written_entity.entity);
-				if (component != nullptr)
-				{
-					const bool serialized = reflection_registry_t::get().type_to_stream(component_type_id, component, nullptr, component_stream);
-					SFG_ASSERT(serialized);
-				}
-
-				const u32 component_size = static_cast<u32>(component_stream.get_size());
-				component_count++;
-				out_stream << component_type_id << component_size << written_entity.guid;
-				if (component_size != 0)
-					out_stream.write_raw(component_stream.get_raw(), component_size);
-			}
-		}
-
-		SFG_MEMCPY(out_stream.get_raw() + component_count_offset, &component_count, sizeof(component_count));
-	}
-
-	entity_id_t world_cooker_t::entity_from_stream(world_t& world, istream_t& in_stream, bool generate_new_guids, bool sync_hierarchy)
+	entity_id_t world_cooker_t::entity_from_stream(world_t& world, istream_t& in_stream, bool generate_new_guids, bool spawn_prefabs)
 	{
 		u32 entity_count = 0;
 		in_stream >> entity_count;
@@ -229,10 +139,14 @@ namespace sfg
 			world_cook_entity_header_t header;
 			in_stream >> header;
 
-			const entity_id_t		 entity		= world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
-			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
+			entity_id_t entity = NULL_ENTITY_ID;
+			if (spawn_prefabs && header.prefab != NULL_RESOURCE_HANDLE)
+				entity = world.spawn_prefab(header.prefab, {});
+			else
+				entity = world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
 
-			component_guid_t& guid = ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);
+			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
+			component_guid_t&		 guid		= ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);
 			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
 		}
 
@@ -286,13 +200,10 @@ namespace sfg
 			in_stream.skip_by(component_size);
 		}
 
-		const entity_id_t root_entity = read_entities.empty() ? NULL_ENTITY_ID : read_entities[0].entity;
-		if (sync_hierarchy && root_entity != NULL_ENTITY_ID)
-			world.sync_entity_hierarchy(root_entity);
-		return root_entity;
+		return read_entities.empty() ? NULL_ENTITY_ID : read_entities[0].entity;
 	}
 
-	entity_id_t world_cooker_t::entity_from_json(world_t& world, const nlohmann::json& in_json, bool generate_new_guids, bool sync_hierarchy)
+	entity_id_t world_cooker_t::entity_from_json(world_t& world, const nlohmann::json& in_json, bool generate_new_guids, bool spawn_prefabs)
 	{
 		if (!in_json.is_object())
 			return NULL_ENTITY_ID;
@@ -309,9 +220,15 @@ namespace sfg
 			if (!entity_json.is_object())
 				return NULL_ENTITY_ID;
 
-			const world_cook_entity_header_t header		= entity_json.get<world_cook_entity_header_t>();
-			const entity_id_t				 entity		= world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
-			world_component_table_t*		 world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
+			const world_cook_entity_header_t header = entity_json.get<world_cook_entity_header_t>();
+
+			entity_id_t entity = NULL_ENTITY_ID;
+			if (spawn_prefabs && header.prefab != NULL_RESOURCE_HANDLE)
+				entity = world.spawn_prefab(header.prefab, {});
+			else
+				entity = world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
+
+			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
 			SFG_ASSERT(world_guid);
 			component_guid_t& guid = ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);
 			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
@@ -364,17 +281,109 @@ namespace sfg
 			}
 		}
 
-		const entity_id_t root_entity = read_entities.empty() ? NULL_ENTITY_ID : read_entities[0].entity;
-		if (sync_hierarchy && root_entity != NULL_ENTITY_ID)
-			world.sync_entity_hierarchy(root_entity);
-		return root_entity;
+		return read_entities.empty() ? NULL_ENTITY_ID : read_entities[0].entity;
 	}
 
-	void world_cooker_t::entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, frame_vector_t<resource_handle_t>& out_resources)
+	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, bool omit_prefab_refs)
 	{
 		SFG_ASSERT(world.is_alive(entity));
 
-		out_resources.resize(0);
+		struct written_entity_t
+		{
+			entity_id_t	  entity = NULL_ENTITY_ID;
+			entity_guid_t guid	 = NULL_ENTITY_GUID;
+		};
+
+		frame_vector_t<written_entity_t> written_entities;
+
+		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t&   hierarchy_table			= hierarchy_world_table->table;
+		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
+		const ecs_component_table_t&   no_serialize_table		= no_serialize_world_table->table;
+		const ecs_component_table_t&   prefab_table				= world.find_component_table(type_id_t<component_prefab_reference_t>::value)->table;
+
+		const size_t count_offset = out_stream.get_size();
+		u32			 total_count  = 0;
+		out_stream << total_count;
+
+		const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
+			if (ecs_t::table_has(no_serialize_table, current))
+				return;
+
+			total_count++;
+
+			const component_prefab_reference_t* ref	   = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, current);
+			const resource_handle_t				prefab = ref == nullptr ? NULL_RESOURCE_HANDLE : ref->prefab;
+
+			const entity_guid_t				 guid	= world.get_entity_guid(current);
+			const entity_id_t				 parent = world.get_entity_parent(current);
+			const world_cook_entity_header_t header{
+				.guid		 = guid,
+				.parent_guid = world.get_entity_guid(parent),
+				.name		 = world.get_entity_name(current),
+				.local_pos	 = world.get_entity_pos_local(current),
+				.local_rot	 = world.get_entity_rot_local(current),
+				.local_scale = world.get_entity_scale_local(current),
+			};
+			out_stream << header;
+			written_entities.push_back({.entity = current, .guid = guid});
+
+			if (omit_prefab_refs && prefab != NULL_RESOURCE_HANDLE)
+				return;
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, current);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				self(self, child);
+				child = child_hierarchy.next_sibling;
+			}
+		};
+
+		write_entity(write_entity, entity);
+		SFG_MEMCPY(out_stream.get_raw() + count_offset, &total_count, sizeof(total_count));
+
+		const vector_t<world_component_table_t>& component_tables		= world.get_component_tables();
+		const size_t							 component_count_offset = out_stream.get_size();
+		u32										 component_count		= 0;
+		out_stream << component_count;
+
+		for (const written_entity_t& written_entity : written_entities)
+		{
+			for (const world_component_table_t& component_table : component_tables)
+			{
+				const sid_t				component_type_id = component_table.type_desc.type_id;
+				const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
+				SFG_ASSERT(reflected_type != nullptr);
+
+				if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
+					continue;
+
+				if (!ecs_t::table_has(component_table.table, written_entity.entity))
+					continue;
+
+				ostream_t component_stream;
+				void*	  component = ecs_t::table_get(component_table.table, written_entity.entity);
+				if (component != nullptr)
+				{
+					const bool serialized = reflection_registry_t::get().type_to_stream(component_type_id, component, nullptr, component_stream);
+					SFG_ASSERT(serialized);
+				}
+
+				const u32 component_size = static_cast<u32>(component_stream.get_size());
+				component_count++;
+				out_stream << component_type_id << component_size << written_entity.guid;
+				if (component_size != 0)
+					out_stream.write_raw(component_stream.get_raw(), component_size);
+			}
+		}
+
+		SFG_MEMCPY(out_stream.get_raw() + component_count_offset, &component_count, sizeof(component_count));
+	}
+
+	void world_cooker_t::entity_to_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json, bool omit_prefab_refs)
+	{
+		SFG_ASSERT(world.is_alive(entity));
 
 		out_json				   = nlohmann::json::object();
 		out_json["local_entities"] = nlohmann::json::array();
@@ -393,10 +402,14 @@ namespace sfg
 
 		const ecs_component_table_t& hierarchy_table	= hierarchy_world_table->table;
 		const ecs_component_table_t& no_serialize_table = no_serialize_world_table->table;
+		const ecs_component_table_t& prefab_table		= world.find_component_table(type_id_t<component_prefab_reference_t>::value)->table;
 
 		const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
 			if (ecs_t::table_has(no_serialize_table, current))
 				return;
+
+			const component_prefab_reference_t* ref	   = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, current);
+			const resource_handle_t				prefab = ref == nullptr ? NULL_RESOURCE_HANDLE : ref->prefab;
 
 			const entity_guid_t				 guid	= world.get_entity_guid(current);
 			const entity_id_t				 parent = world.get_entity_parent(current);
@@ -407,9 +420,13 @@ namespace sfg
 				.local_pos	 = world.get_entity_pos_local(current),
 				.local_rot	 = world.get_entity_rot_local(current),
 				.local_scale = world.get_entity_scale_local(current),
+				.prefab		 = prefab,
 			};
 			out_json["local_entities"].push_back(header);
 			written_entities.push_back({.entity = current, .guid = guid});
+
+			if (omit_prefab_refs && prefab != NULL_RESOURCE_HANDLE)
+				return;
 
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, current);
 			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
@@ -454,7 +471,4 @@ namespace sfg
 		}
 	}
 
-	void world_cooker_t::entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json)
-	{
-	}
 }
