@@ -40,7 +40,11 @@ namespace sfg
 	void editor_panel_inspector_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
-		_inspector.init(ui, _root);
+		_inspector.init(ui,
+						_root,
+						{
+							.allow_prefab_blocks = true,
+						});
 		_inspector.set_edit_context(editor_world_controller_t::get().get_main_edit_context_handle());
 		_inspector.refresh_from_selection();
 	}

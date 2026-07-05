@@ -28,6 +28,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_input_field.hpp"
+#include "ui/widgets/editor_widgets_button.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
@@ -39,6 +40,12 @@ namespace sfg
 
 	using editor_widget_entity_info_name_submitted_fn = void (*)(entity_id_t entity, void* user_data);
 
+	struct editor_widget_entity_info_config_t
+	{
+		world_handle_t world	 = {};
+		bool		   is_prefab = false;
+	};
+
 	class editor_widget_entity_info_t final
 	{
 	public:
@@ -47,7 +54,7 @@ namespace sfg
 		editor_widget_entity_info_t(const editor_widget_entity_info_t&)			   = delete;
 		editor_widget_entity_info_t& operator=(const editor_widget_entity_info_t&) = delete;
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, world_handle_t world);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_info_config_t& config);
 		void uninit();
 		void set_entity(world_t& world, entity_id_t entity);
 		void set_entities(world_t& world, span_t<const entity_id_t> entities);
@@ -79,6 +86,7 @@ namespace sfg
 		editor_quat_field_t							_rotation_field			  = {};
 		editor_vec3_field_t							_position_field			  = {};
 		editor_vec3_field_t							_scale_field			  = {};
+		editor_button_t								_open_prefab_button		  = {};
 		editor_input_field_t						_name_input				  = {};
 		char										_name_fallback[64]		  = {};
 		vector_t<entity_id_t>						_entities				  = {};
@@ -89,6 +97,8 @@ namespace sfg
 		void*										_name_submitted_user_data = nullptr;
 		ui::widget_id_t								_root					  = NULL_WIDGET;
 		ui::widget_id_t								_guid_label				  = NULL_WIDGET;
+		ui::widget_id_t								_prefab_frame			  = NULL_WIDGET;
+		ui::widget_id_t								_prefab_label			  = NULL_WIDGET;
 		entity_id_t									_entity					  = NULL_ENTITY_ID;
 	};
 }

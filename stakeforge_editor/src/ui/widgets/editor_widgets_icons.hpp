@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #pragma once
 
+#define ICON_SCROLL			 "\u0036"
 #define ICON_PEN			 "\u0065"
 #define ICON_TRIANGLE		 "\u0032"
 #define ICON_GLOBE			 "\u005A"

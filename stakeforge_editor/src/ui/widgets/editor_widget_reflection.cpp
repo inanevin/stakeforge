@@ -106,10 +106,13 @@ namespace sfg
 	void editor_widget_reflection_t::uninit()
 	{
 		clear_widgets();
+		if (_blocker != NULL_WIDGET)
+			_ui->deallocate_widget(_blocker);
 		_ui->deallocate_widget(_root);
 
-		_ui	  = nullptr;
-		_root = NULL_WIDGET;
+		_ui		 = nullptr;
+		_root	 = NULL_WIDGET;
+		_blocker = NULL_WIDGET;
 	}
 
 	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& config)
@@ -117,6 +120,7 @@ namespace sfg
 		clear_widgets();
 		_fold_states = config.fold_states;
 		_callbacks	 = config.callbacks;
+		set_block_edits(config.block_edits);
 
 		const reflected_type_t* type = reflection_registry_t::get().find_type(config.type_id);
 		if (type == nullptr)
@@ -127,6 +131,43 @@ namespace sfg
 		editor_theme_t& theme = editor_theme_t::get();
 
 		create_fields(_root, config.objects, config.type_id, config.world, true, false, theme.margin_horizontal, true);
+	}
+
+	void editor_widget_reflection_t::set_block_edits(bool block_edits)
+	{
+		ui::layout_tree_t& tree = _ui->get_tree();
+		if (!block_edits)
+		{
+			if (_blocker != NULL_WIDGET)
+			{
+				_ui->deallocate_widget(_blocker);
+				_blocker = NULL_WIDGET;
+			}
+			return;
+		}
+
+		if (_blocker == NULL_WIDGET)
+		{
+			_blocker = _ui->allocate_widget();
+			_ui->set_widget_debug_name(_blocker, "reflection_blocker");
+			tree.attach(_root, _blocker);
+		}
+
+		ui::layout_in_t& blocker_in = tree.in(_blocker);
+		blocker_in.flags			= ui::wf_visible | ui::wf_input;
+		blocker_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
+		blocker_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+		blocker_in.pos_value		= {0.0f, 0.0f};
+		blocker_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		blocker_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+		blocker_in.size_value		= {1.0f, 1.0f};
+		tree.draw_order(_blocker)	= tree.draw_order_const(_root) + 10;
+
+		ui::vg_rect_paint_t rect = {};
+		rect.fill_color_a		 = {0.0f, 0.0f, 0.0f, 0.8f};
+		rect.fill_color_b		 = rect.fill_color_a;
+		rect.filled				 = true;
+		_ui->get_paint().set_rect(_blocker, rect);
 	}
 
 	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider)

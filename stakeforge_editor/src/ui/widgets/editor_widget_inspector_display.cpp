@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
 {
@@ -242,19 +243,23 @@ namespace sfg
 		if (_display_entities.empty())
 			return;
 
-		const entity_id_t first_entity = _display_entities.front();
-		_entity_info				   = new editor_widget_entity_info_t();
-		_entity_info_fold			   = new editor_widget_fold_t();
-		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = true});
-		_entity_info->init(*_ui, _entity_info_fold->get_body(), _display_world_handle);
+		const bool		  prefab_blocked = _allow_prefab_blocks && is_selection_prefab_referenced();
+		const entity_id_t first_entity	 = _display_entities.front();
+		_entity_info					 = new editor_widget_entity_info_t();
+		_entity_info_fold				 = new editor_widget_fold_t();
+		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = !prefab_blocked});
+		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.world = _display_world_handle, .is_prefab = prefab_blocked});
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
 		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edit_submitted = on_entity_info_edit_submitted, .user_data = this});
 		_entity_info->set_entities(*_display_world, {.data = _display_entities.data(), .size = _display_entities.size()});
 
-		ui::listener_bundle_t entity_info_settings_listener = {};
-		entity_info_settings_listener.user_data				= this;
-		entity_info_settings_listener.on_click				= on_entity_info_settings_clicked;
-		_ui->get_input().set_listener(_entity_info_fold->get_settings_button(), entity_info_settings_listener);
+		if (!prefab_blocked)
+		{
+			ui::listener_bundle_t entity_info_settings_listener = {};
+			entity_info_settings_listener.user_data				= this;
+			entity_info_settings_listener.on_click				= on_entity_info_settings_clicked;
+			_ui->get_input().set_listener(_entity_info_fold->get_settings_button(), entity_info_settings_listener);
+		}
 
 		for (const world_component_table_t& component_table : _display_world->get_component_tables())
 		{
@@ -289,7 +294,7 @@ namespace sfg
 				display.objects.push_back(ecs_t::table_get(component_table.table, entity));
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
-			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = true});
+			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = !prefab_blocked});
 			display.reflect->init(*_ui,
 								  display.fold->get_body(),
 								  {
@@ -300,18 +305,23 @@ namespace sfg
 											  .edit_submitted = on_component_edit_submitted,
 											  .user_data	  = display.edit_user_data,
 										  },
-									  .objects = {.data = display.objects.data(), .size = display.objects.size()},
-									  .type_id = component_table.type_desc.type_id,
-									  .world   = _display_world_handle,
+									  .objects	   = {.data = display.objects.data(), .size = display.objects.size()},
+									  .type_id	   = component_table.type_desc.type_id,
+									  .world	   = _display_world_handle,
+									  .block_edits = prefab_blocked,
 								  });
 
-			ui::listener_bundle_t settings_listener = {};
-			settings_listener.user_data				= this;
-			settings_listener.on_click				= on_component_settings_clicked;
-			_ui->get_input().set_listener(display.fold->get_settings_button(), settings_listener);
+			if (!prefab_blocked)
+			{
+				ui::listener_bundle_t settings_listener = {};
+				settings_listener.user_data				= this;
+				settings_listener.on_click				= on_component_settings_clicked;
+				_ui->get_input().set_listener(display.fold->get_settings_button(), settings_listener);
+			}
 		}
 
-		create_add_component_button();
+		if (!prefab_blocked)
+			create_add_component_button();
 	}
 
 	void editor_widget_inspector_t::refresh_component_reflection(sid_t component_type)
@@ -330,7 +340,8 @@ namespace sfg
 		display->reflect->uninit();
 		delete display->reflect;
 
-		display->reflect = new editor_widget_reflection_t();
+		const bool prefab_blocked = _allow_prefab_blocks && is_selection_prefab_referenced();
+		display->reflect		  = new editor_widget_reflection_t();
 		display->reflect->init(*_ui,
 							   display->fold->get_body(),
 							   {
@@ -341,9 +352,10 @@ namespace sfg
 										   .edit_submitted = on_component_edit_submitted,
 										   .user_data	   = display->edit_user_data,
 									   },
-								   .objects = {.data = display->objects.data(), .size = display->objects.size()},
-								   .type_id = display->type_id,
-								   .world	= _display_world_handle,
+								   .objects		= {.data = display->objects.data(), .size = display->objects.size()},
+								   .type_id		= display->type_id,
+								   .world		= _display_world_handle,
+								   .block_edits = prefab_blocked,
 							   });
 	}
 
@@ -387,6 +399,17 @@ namespace sfg
 		for (size_t i = 0; i < entities.size; ++i)
 			out_infos.push_back(editor_commands_entity_info_t::read(*_display_world, entities.data[i]));
 		return true;
+	}
+
+	bool editor_widget_inspector_t::is_selection_prefab_referenced() const
+	{
+		world_component_table_t* prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
+		for (entity_id_t entity : _display_entities)
+		{
+			if (ecs_t::table_has(prefab_table->table, entity))
+				return true;
+		}
+		return false;
 	}
 
 	void editor_widget_inspector_t::begin_entity_info_edit()

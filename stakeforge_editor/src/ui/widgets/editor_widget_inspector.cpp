@@ -34,10 +34,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_widget_inspector_t::init(ui::ui_context& ui, ui::widget_id_t parent)
+	void editor_widget_inspector_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_inspector_config_t& config)
 	{
-		_ui	  = &ui;
-		_root = parent;
+		_ui					 = &ui;
+		_root				 = parent;
+		_allow_prefab_blocks = config.allow_prefab_blocks;
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -107,6 +108,7 @@ namespace sfg
 		_scroll_restore_pending	   = false;
 		_skip_scroll_state_save	   = false;
 		_copied_entity_info_valid  = false;
+		_allow_prefab_blocks	   = false;
 
 		_root = NULL_WIDGET;
 		_ui	  = nullptr;

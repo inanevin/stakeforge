@@ -69,6 +69,7 @@ namespace sfg
 		span_t<void*>									 objects	 = {};
 		sid_t											 type_id	 = 0;
 		world_handle_t									 world		 = {};
+		bool											 block_edits = false;
 	};
 
 	class editor_widget_reflection_t final
@@ -115,6 +116,7 @@ namespace sfg
 		};
 
 		void clear_widgets();
+		void set_block_edits(bool block_edits);
 		void fit_control(ui::widget_id_t widget);
 		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
@@ -178,5 +180,6 @@ namespace sfg
 		vector_t<editor_widget_reflection_fold_state_t>* _fold_states = nullptr;
 		ui::ui_context*									 _ui		  = nullptr;
 		ui::widget_id_t									 _root		  = NULL_WIDGET;
+		ui::widget_id_t									 _blocker	  = NULL_WIDGET;
 	};
 }

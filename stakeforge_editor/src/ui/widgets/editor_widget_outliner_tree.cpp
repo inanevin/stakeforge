@@ -340,7 +340,7 @@ namespace sfg
 		row_in.child_margins			= {0.0f, theme.item_height, 0.0f, theme.margin_horizontal + static_cast<f32>(item.depth) * theme.indent_horizontal * ENTITIES_INDENT_MULT};
 		tree.in(row.fold_icon).flags	= item.has_children ? static_cast<u16>(ui::wf_visible | ui::wf_input) : static_cast<u16>(ui::wf_visible);
 		const vec4f_t entity_text_color = item.has_prefab_reference ? theme.color_accent2 : (item.disabled ? theme.color_text_disabled : theme.color_text0);
-		const vec4f_t entity_icon_color = item.disabled ? theme.color_text_disabled : theme.color_text1;
+		const vec4f_t label_color		= item.type == editor_outliner_item_type_e::folder ? item.color.to_vector() : entity_text_color;
 		const vec4f_t fold_icon_color	= item.type == editor_outliner_item_type_e::entity && item.has_prefab_reference ? theme.color_accent2 : theme.color_text0;
 
 		const char* icon = item.has_children ? (is_folded ? ICON_DD_RIGHT : ICON_DD_DOWN) : "";
@@ -350,22 +350,19 @@ namespace sfg
 					   _ui->widget_text_len(row.fold_icon_text),
 					   {.font = theme.font_icons, .color = fold_icon_color, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		_ui->set_widget_text(row.type_icon_text, item.type_icon != nullptr ? item.type_icon : "");
+		const char* type_icon = item.type == editor_outliner_item_type_e::entity && item.has_prefab_reference ? ICON_SCROLL : item.type_icon;
+		_ui->set_widget_text(row.type_icon_text, type_icon != nullptr ? type_icon : "");
 		paint.set_text(row.type_icon_text,
 					   _ui->widget_text(row.type_icon_text),
 					   _ui->widget_text_len(row.type_icon_text),
-					   {.font		 = theme.font_icons,
-						.color		 = item.type == editor_outliner_item_type_e::folder ? item.color.to_vector() : entity_icon_color,
-						.point_size	 = theme.icon_default_px_size,
-						.spacing	 = 0,
-						.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_icons, .color = label_color, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_ui->set_widget_text(row.label, item.name);
 		paint.set_text(row.label,
 					   _ui->widget_text(row.label),
 					   _ui->widget_text_len(row.label),
 					   {.font		 = item.type == editor_outliner_item_type_e::folder ? theme.font_default : theme.font_default,
-						.color		 = item.type == editor_outliner_item_type_e::folder ? item.color.to_vector() : entity_text_color,
+						.color		 = label_color,
 						.point_size	 = theme.text_default_px_size,
 						.spacing	 = 0,
 						.raster_mode = editor_text_rasterization_t::get_rasterization_type()});

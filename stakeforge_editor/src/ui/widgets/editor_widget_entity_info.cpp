@@ -54,11 +54,12 @@ namespace sfg
 
 	}
 
-	void editor_widget_entity_info_t::init(ui::ui_context& ui, ui::widget_id_t parent, world_handle_t world)
+	void editor_widget_entity_info_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_info_config_t& config)
 	{
 		_ui							= &ui;
-		_world						= &editor_world_controller_t::get().get_world(world);
+		_world						= &editor_world_controller_t::get().get_world(config.world);
 		ui::layout_tree_t&	  tree	= ui.get_tree();
+		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
@@ -135,10 +136,68 @@ namespace sfg
 		scale_config.callbacks.user_data		 = this;
 		_scale_field.init(ui, scale_row.right, scale_config);
 		fit_control(ui, _scale_field.get_root());
+
+		if (config.is_prefab)
+		{
+			_prefab_frame = ui.allocate_widget();
+			ui.set_widget_debug_name(_prefab_frame, "entity_info_prefab_frame");
+			tree.attach(_root, _prefab_frame);
+
+			ui::layout_in_t& frame_in = tree.in(_prefab_frame);
+			frame_in.flags			  = ui::wf_visible;
+			frame_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+			frame_in.size_mode_y	  = ui::axis_mode_e::fixed;
+			frame_in.size_value		  = {1.0f, theme.item_area_height};
+			frame_in.flow			  = ui::flow_e::row;
+			frame_in.child_spacing	  = theme.item_spacing;
+			frame_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+
+			ui::vg_rect_paint_t frame_rect = {};
+			frame_rect.fill_color_a		   = theme.color_frame;
+			frame_rect.fill_color_b		   = theme.color_frame;
+			frame_rect.outline_color	   = theme.color_outline_light;
+			frame_rect.outline_thickness   = theme.outline_thickness;
+			frame_rect.rounding			   = theme.item_rounding;
+			frame_rect.rounding_segs	   = 4;
+			paint.set_rect(_prefab_frame, frame_rect);
+
+			_prefab_label = ui.allocate_widget();
+			ui.set_widget_debug_name(_prefab_label, "entity_info_prefab_label");
+			tree.attach(_prefab_frame, _prefab_label);
+			tree.draw_order(_prefab_label) = tree.draw_order_const(_prefab_frame) + 1;
+
+			ui::layout_in_t& label_in = tree.in(_prefab_label);
+			label_in.flags			  = ui::wf_visible;
+			label_in.size_mode_x	  = ui::axis_mode_e::fill;
+			label_in.size_mode_y	  = ui::axis_mode_e::fixed;
+			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+			label_in.anchor_y		  = ui::anchor_e::center;
+			label_in.pos_value.y	  = 0.5f;
+			label_in.size_value		  = {1.0f, theme.item_height};
+
+			ui.set_widget_text(_prefab_label, "can not edit prefabs inside the outliner, open prefab editor to edit.");
+			paint.set_text(_prefab_label,
+						   ui.widget_text(_prefab_label),
+						   ui.widget_text_len(_prefab_label),
+						   {.font = theme.font_default, .color = theme.color_accent2, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+			editor_misc_widgets_t::add_spacer(ui, _root, {theme.item_spacing, theme.item_spacing});
+			_open_prefab_button.init(ui, _root, {.text = "Open Prefab", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_width}});
+			ui::layout_in_t& button_in = tree.in(_open_prefab_button.get_root());
+			button_in.pos_mode_y	   = ui::pos_mode_e::flow;
+			button_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+			button_in.anchor_x		   = ui::anchor_e::center;
+			button_in.pos_value.x	   = 0.5f;
+
+			tree.draw_order(_open_prefab_button.get_root())						   = tree.draw_order_const(_root) + 1;
+			tree.draw_order(tree.node(_open_prefab_button.get_root()).first_child) = tree.draw_order_const(_open_prefab_button.get_root()) + 1;
+		}
 	}
 
 	void editor_widget_entity_info_t::uninit()
 	{
+		if (_open_prefab_button.get_root() != NULL_WIDGET)
+			_open_prefab_button.uninit();
 		_scale_field.uninit();
 		_rotation_field.uninit();
 		_position_field.uninit();
@@ -149,6 +208,8 @@ namespace sfg
 		_world					  = nullptr;
 		_root					  = NULL_WIDGET;
 		_guid_label				  = NULL_WIDGET;
+		_prefab_frame			  = NULL_WIDGET;
+		_prefab_label			  = NULL_WIDGET;
 		_entity					  = NULL_ENTITY_ID;
 		_name_fallback[0]		  = '\0';
 		_name_submitted_callback  = nullptr;

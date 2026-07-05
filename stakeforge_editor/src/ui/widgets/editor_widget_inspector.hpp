@@ -60,6 +60,11 @@ namespace sfg
 		entity,
 	};
 
+	struct editor_widget_inspector_config_t
+	{
+		bool allow_prefab_blocks = false;
+	};
+
 	class editor_widget_inspector_t final
 	{
 	public:
@@ -72,7 +77,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_inspector_config_t& config = {});
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -150,6 +155,7 @@ namespace sfg
 		bool					   is_component_removable(sid_t type_id) const;
 		bool					   is_component_paste_enabled(sid_t type_id) const;
 		bool					   read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const;
+		bool					   is_selection_prefab_referenced() const;
 		void					   begin_entity_info_edit();
 		void					   submit_entity_info_edit();
 		void					   clear_entity_info_edit();
@@ -215,5 +221,6 @@ namespace sfg
 		bool											  _copied_entity_info_valid	   = false;
 		bool											  _entity_info_edit_active	   = false;
 		bool											  _component_edit_active	   = false;
+		bool											  _allow_prefab_blocks		   = false;
 	};
 }
