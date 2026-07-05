@@ -25,10 +25,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_world_controller.hpp"
+#include "editor_app.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
+#include "ui/panels/entities/editor_panel_entities.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -53,7 +56,7 @@ namespace sfg
 			if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
 				return false;
 
-			const world_t& world = editor_world_controller_t::get().get_world(entity_payload.world);
+			world_t& world = editor_world_controller_t::get().get_world(entity_payload.world);
 			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 				return false;
 
@@ -72,7 +75,13 @@ namespace sfg
 				.asset_type		 = editor_asset_type_e::prefab,
 				.allow_overwrite = true,
 			};
-			return editor_asset_creator_t::create_asset(desc);
+			editor_asset_t asset = {};
+			if (!editor_asset_creator_t::create_asset(desc, &asset))
+				return false;
+
+			world.make_prefab_chain(entity_payload.entity, asset.guid);
+			editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
+			return true;
 		}
 	}
 
@@ -462,18 +471,23 @@ namespace sfg
 		if (row == nullptr || row->node.is_null() || !tree.is_valid(row->node))
 			return false;
 
-		bool moved = false;
+		bool moved			= false;
+		bool prefab_created = false;
 		if (payload.type == editor_payload_type_e::entity)
 		{
 			const editor_entity_payload_t& entity = *static_cast<const editor_entity_payload_t*>(payload.user_ptr);
 			moved								  = create_prefab_from_entity_payload(entity, row->node);
+			prefab_created						  = moved;
 		}
 		else if (payload.type == editor_payload_type_e::entity_multi)
 		{
 			const vector_t<editor_entity_payload_t>& entities = *static_cast<const vector_t<editor_entity_payload_t>*>(payload.user_ptr);
-			moved											  = true;
 			for (const editor_entity_payload_t& entity : entities)
-				moved = create_prefab_from_entity_payload(entity, row->node) && moved;
+			{
+				const bool created = create_prefab_from_entity_payload(entity, row->node);
+				prefab_created	   = created || prefab_created;
+				moved			   = created || moved;
+			}
 		}
 		else if (payload.type == editor_payload_type_e::folder)
 		{
@@ -520,6 +534,11 @@ namespace sfg
 		panel.clear_asset_grid_selection();
 		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
 		panel.refresh_folder_rows();
+		if (prefab_created)
+		{
+			if (editor_panel_t* entities_panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+				static_cast<editor_panel_entities_t*>(entities_panel)->refresh_entities();
+		}
 		return true;
 	}
 

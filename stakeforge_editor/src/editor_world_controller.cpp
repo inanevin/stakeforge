@@ -437,6 +437,12 @@ namespace sfg
 			_main_world_dirty = true;
 	}
 
+	void editor_world_controller_t::mark_world_dirty(editor_world_handle_t handle)
+	{
+		if (handle == _main_world)
+			_main_world_dirty = true;
+	}
+
 	void editor_world_controller_t::on_save_dirty_world_modal(void* user_data)
 	{
 		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);

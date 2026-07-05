@@ -75,6 +75,7 @@ namespace sfg
 		void				  load_dummy_world();
 		bool				  load_main_world(sid_t asset_guid);
 		bool				  save_main_world();
+		void				  mark_world_dirty(editor_world_handle_t handle);
 		void				  reset_input(window_runtime_t& runtime);
 		bool				  on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev);
 

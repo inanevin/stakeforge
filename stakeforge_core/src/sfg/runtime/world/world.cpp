@@ -242,11 +242,18 @@ namespace sfg
 		sync_entity_hierarchy(root);
 		scan_for_resources(root);
 
-		// add prefab comps to all.
-		ecs_component_table_t& prefab_table = *_engine_components.prefab_table;
+		make_prefab_chain(root, handle);
+
+		return root;
+	}
+
+	void world_t::make_prefab_chain(entity_id_t root, resource_handle_t handle)
+	{
+		SFG_ASSERT(is_alive(root));
+		SFG_ASSERT(handle != NULL_RESOURCE_HANDLE);
 
 		const auto scan = [&](const auto& self, entity_id_t current) -> void {
-			component_prefab_reference_t& ref = ecs_helpers_t::table_add_or_get_as<component_prefab_reference_t>(prefab_table, current);
+			component_prefab_reference_t& ref = ecs_helpers_t::table_add_or_get_as<component_prefab_reference_t>(*_engine_components.prefab_table, current);
 			ref.is_root						  = current == root;
 			ref.prefab						  = handle;
 
@@ -261,7 +268,28 @@ namespace sfg
 		};
 		scan(scan, root);
 
-		return root;
+		if (add_resource(resource_type_e::prefab, handle))
+			load_all_used_resources();
+	}
+
+	void world_t::break_prefab_chain(entity_id_t root)
+	{
+		SFG_ASSERT(is_alive(root));
+
+		const auto scan = [&](const auto& self, entity_id_t current) -> void {
+			if (ecs_t::table_has(*_engine_components.prefab_table, current))
+				ecs_t::table_remove(*_engine_components.prefab_table, current);
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+				self(self, child);
+				child = next_child;
+			}
+		};
+		scan(scan, root);
 	}
 
 	entity_id_t world_t::get_entity_parent(entity_id_t id) const

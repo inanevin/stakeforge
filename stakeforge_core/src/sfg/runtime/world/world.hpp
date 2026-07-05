@@ -55,6 +55,8 @@ namespace sfg
 		void		  destroy_entity_tree(entity_id_t id);
 		void		  set_entity_name(entity_id_t id, const char* name);
 		entity_id_t	  spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params);
+		void		  make_prefab_chain(entity_id_t root, resource_handle_t handle);
+		void		  break_prefab_chain(entity_id_t root);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
 		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;

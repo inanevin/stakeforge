@@ -28,7 +28,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "commands/editor_command_component_edit.hpp"
-#include "commands/editor_commands_component.hpp"
+#include "editor_app.hpp"
+#include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -418,8 +419,7 @@ namespace sfg
 
 	void editor_widget_inspector_t::break_prefabs()
 	{
-		world_component_table_t*	prefab_table	= _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
-		world_component_table_t*	hierarchy_table = _display_world->get_component_table(type_id_t<component_hierarchy_t>::value);
+		world_component_table_t*	prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
 		frame_vector_t<entity_id_t> roots;
 		roots.reserve(_display_entities.size());
 
@@ -440,31 +440,17 @@ namespace sfg
 			}
 		}
 
-		frame_vector_t<entity_id_t> entities;
-		frame_vector_t<entity_id_t> stack;
-		stack.reserve(roots.size());
 		for (entity_id_t root : roots)
-			stack.push_back(root);
+			_display_world->break_prefab_chain(root);
 
-		while (!stack.empty())
+		if (!roots.empty())
 		{
-			const entity_id_t entity = stack.back();
-			stack.pop_back();
+			editor_world_controller_t::get().mark_world_dirty(_display_world_handle);
+			refresh_display();
 
-			if (ecs_t::table_has(prefab_table->table, entity) && std::find(entities.begin(), entities.end(), entity) == entities.end())
-				entities.push_back(entity);
-
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, entity);
-			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			{
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table->table, child);
-				stack.push_back(child);
-				child = child_hierarchy.next_sibling;
-			}
+			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
-
-		if (!entities.empty())
-			editor_commands_component_t::remove(_display_world_handle, entities, type_id_t<component_prefab_reference_t>::value);
 	}
 
 	void editor_widget_inspector_t::begin_entity_info_edit()
