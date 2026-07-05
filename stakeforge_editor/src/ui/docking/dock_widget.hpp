@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/docking/dock_area.hpp"
-#include <sfg/math/vec2i16.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
@@ -45,6 +44,7 @@ namespace sfg
 	enum class editor_panel_type_e : u8;
 	struct editor_payload_t;
 	struct window_runtime_t;
+	struct vec2i16_t;
 
 	enum class dock_widget_root_drag_out_e : u8
 	{

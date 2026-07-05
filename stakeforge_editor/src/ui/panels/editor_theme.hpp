@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/hashing.hpp>
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/color_utils.hpp>

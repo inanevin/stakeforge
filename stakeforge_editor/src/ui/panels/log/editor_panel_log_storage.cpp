@@ -26,23 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/log/editor_panel_log.hpp"
 #include "ui/panels/log/editor_panel_log_internal.hpp"
-#include "ui/editor_text_rasterization.hpp"
-#include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/common/hashing.hpp>
-#include <sfg/data/frame_string.hpp>
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/data/string_util.hpp>
-#include <sfg/io/file_system.hpp>
-#include <sfg/io/log.hpp>
-#include <sfg/math/math.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
-#include <cctype>
 
 namespace sfg
 {

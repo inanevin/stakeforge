@@ -78,6 +78,7 @@ namespace sfg
 
 	struct dock_node_t
 	{
+		editor_tab_area_t		  tab_area;
 		vector_t<editor_panel_t*> panels;
 		rectf_t					  preview_rects[5] = {};
 		f32						  split_value	   = 0.0f;
@@ -86,10 +87,9 @@ namespace sfg
 		dock_node_handle_t		  split_positive   = {};
 		ui::widget_id_t			  widget		   = NULL_WIDGET;
 		ui::widget_id_t			  body			   = NULL_WIDGET;
-		editor_tab_area_t		  tab_area;
-		dock_node_type_e		  node_type		  = dock_node_type_e::leaf;
-		dock_split_direction_e	  split_direction = dock_split_direction_e::horizontal;
-		dock_preview_e			  hovered_preview = dock_preview_e::none;
-		bool					  is_payload_over = false;
+		dock_node_type_e		  node_type		   = dock_node_type_e::leaf;
+		dock_split_direction_e	  split_direction  = dock_split_direction_e::horizontal;
+		dock_preview_e			  hovered_preview  = dock_preview_e::none;
+		bool					  is_payload_over  = false;
 	};
 }

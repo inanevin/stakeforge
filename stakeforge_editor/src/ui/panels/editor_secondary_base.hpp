@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/docking/dock_widget.hpp"
-#include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -40,6 +39,7 @@ namespace sfg::ui
 namespace sfg
 {
 	struct window_runtime_t;
+	struct vec2i16_t;
 
 	class editor_secondary_base_t final
 	{

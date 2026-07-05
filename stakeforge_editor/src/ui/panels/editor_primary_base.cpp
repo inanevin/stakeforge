@@ -27,22 +27,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_panel_types.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "editor_app.hpp"
-#include "editor_settings.hpp"
-#include "editor_project.hpp"
 #include "ui/editor_action_menu_common.hpp"
-#include "ui/editor_modal_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_draws.hpp"
-#include "ui/widgets/editor_widgets_file_menu.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
+#include "editor_app.hpp"
+#include "editor_project.hpp"
+
 #include <sfg/io/assert.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 #ifndef SFG_MAJOR

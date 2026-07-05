@@ -32,11 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg
 {

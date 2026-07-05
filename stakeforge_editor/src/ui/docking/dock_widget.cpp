@@ -25,13 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/docking/dock_widget.hpp"
-#include "editor_app.hpp"
-#include "ui/editor_payload_controller.hpp"
-#include "ui/editor_payload_type.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_panel_types.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "editor_app.hpp"
+
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
@@ -41,11 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 #define DOCK_PREVIEW_MARGIN_ITEM_HEIGHTS		1.0f

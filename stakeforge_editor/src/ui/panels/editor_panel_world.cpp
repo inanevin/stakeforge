@@ -25,18 +25,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_world.hpp"
-#include "assets/editor_asset_spawn.hpp"
-#include "editor_app.hpp"
 #include "ui/editor_global_toolbar.hpp"
-#include "ui/editor_payload_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include <sfg/common/hashing.hpp>
-#include <sfg/io/assert.hpp>
+#include "assets/editor_asset_spawn.hpp"
+#include "editor_app.hpp"
+
 #include <sfg/math/rectf.hpp>
-#include <sfg/runtime/render/world_render_context.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg

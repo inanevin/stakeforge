@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/common/hashing.hpp>
 #include <sfg/io/log.hpp>
 
 namespace sfg

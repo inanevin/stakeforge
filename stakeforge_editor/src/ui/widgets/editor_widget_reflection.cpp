@@ -46,8 +46,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 

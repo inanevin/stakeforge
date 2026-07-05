@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel.hpp"
-#include <sfg/math/vec4f.hpp>
 
 namespace sfg
 {
