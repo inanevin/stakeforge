@@ -311,6 +311,11 @@ namespace sfg
 
 	entity_id_t world_t::get_entity_from_guid(entity_guid_t guid) const
 	{
+		return find_by_guid(guid);
+	}
+
+	entity_id_t world_t::find_by_guid(entity_guid_t guid) const
+	{
 		if (guid == NULL_ENTITY_GUID)
 			return NULL_ENTITY_ID;
 

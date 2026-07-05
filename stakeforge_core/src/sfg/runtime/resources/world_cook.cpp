@@ -70,6 +70,15 @@ namespace sfg
 					entity_ref_guid = it->new_guid;
 			}
 		}
+
+		entity_id_t find_parent_entity(const world_t& world, const frame_vector_t<read_entity_t>& read_entities, entity_guid_t parent_guid)
+		{
+			if (parent_guid == NULL_ENTITY_GUID)
+				return NULL_ENTITY_ID;
+
+			const auto parent_it = std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == parent_guid; });
+			return parent_it != read_entities.end() ? parent_it->entity : world.find_by_guid(parent_guid);
+		}
 	}
 
 	void world_cooker_t::world_to_stream(const world_t& world, ostream_t& out_stream)
@@ -152,12 +161,9 @@ namespace sfg
 
 		for (const read_entity_t& read_entity : read_entities)
 		{
-			if (read_entity.header.parent_guid != NULL_ENTITY_GUID)
-			{
-				const auto parent_it = std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == read_entity.header.parent_guid; });
-				SFG_ASSERT(parent_it != read_entities.end());
-				world.attach_to(read_entity.entity, parent_it->entity);
-			}
+			const entity_id_t parent = find_parent_entity(world, read_entities, read_entity.header.parent_guid);
+			if (parent != NULL_ENTITY_ID)
+				world.attach_to(read_entity.entity, parent);
 
 			world.set_entity_pos_local(read_entity.entity, read_entity.header.local_pos);
 			world.set_entity_rot_local(read_entity.entity, read_entity.header.local_rot);
@@ -236,12 +242,9 @@ namespace sfg
 
 		for (const read_entity_t& read_entity : read_entities)
 		{
-			if (read_entity.header.parent_guid != NULL_ENTITY_GUID)
-			{
-				const auto parent_it = std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == read_entity.header.parent_guid; });
-				SFG_ASSERT(parent_it != read_entities.end());
-				world.attach_to(read_entity.entity, parent_it->entity);
-			}
+			const entity_id_t parent = find_parent_entity(world, read_entities, read_entity.header.parent_guid);
+			if (parent != NULL_ENTITY_ID)
+				world.attach_to(read_entity.entity, parent);
 
 			world.set_entity_pos_local(read_entity.entity, read_entity.header.local_pos);
 			world.set_entity_rot_local(read_entity.entity, read_entity.header.local_rot);

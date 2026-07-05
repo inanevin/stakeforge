@@ -59,6 +59,7 @@ namespace sfg
 		void		  break_prefab_chain(entity_id_t root);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
+		entity_id_t	  find_by_guid(entity_guid_t guid) const;
 		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;
 		void		  attach_to(entity_id_t id, entity_id_t parent);
 		void		  detach(entity_id_t id);
