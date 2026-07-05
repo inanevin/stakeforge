@@ -422,6 +422,22 @@ namespace sfg
 				panel.refresh_entity_name(entities[i]);
 			break;
 		}
+		case editor_command_type_e::entity_info_edit: {
+			const editor_command_edit_entity_info_payload_t& payload = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+			if (!(payload.world == panel._main_world))
+				return;
+
+			if (!panel._search_str_lower.empty())
+			{
+				panel.refresh_entities();
+				return;
+			}
+
+			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			for (u32 i = 0; i < payload.count; ++i)
+				panel.refresh_entity_name(entities[i]);
+			break;
+		}
 		case editor_command_type_e::prefab_spawn: {
 			const editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
 			if (!(payload.world == panel._main_world))

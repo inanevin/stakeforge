@@ -203,6 +203,7 @@ namespace sfg
 
 	void editor_panel_inspector_t::clear_display()
 	{
+		clear_entity_info_edit();
 		clear_component_edit();
 
 		if (_entity_info != nullptr)
@@ -247,6 +248,7 @@ namespace sfg
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = true});
 		_entity_info->init(*_ui, _entity_info_fold->get_body(), _display_world_handle);
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
+		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edit_submitted = on_entity_info_edit_submitted, .user_data = this});
 		_entity_info->set_entities(*_display_world, {.data = _display_entities.data(), .size = _display_entities.size()});
 
 		ui::listener_bundle_t entity_info_settings_listener = {};
@@ -373,6 +375,53 @@ namespace sfg
 			out_streams.push_back(std::move(stream));
 		}
 		return true;
+	}
+
+	bool editor_panel_inspector_t::read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const
+	{
+		out_infos.resize(0);
+		if (_display_world == nullptr || entities.size == 0)
+			return false;
+
+		out_infos.reserve(entities.size);
+		for (size_t i = 0; i < entities.size; ++i)
+			out_infos.push_back(editor_commands_entity_info_t::read(*_display_world, entities.data[i]));
+		return true;
+	}
+
+	void editor_panel_inspector_t::begin_entity_info_edit()
+	{
+		clear_entity_info_edit();
+		_entity_info_edit_entities.assign(_display_entities.begin(), _display_entities.end());
+		if (!read_entity_infos({.data = _entity_info_edit_entities.data(), .size = _entity_info_edit_entities.size()}, _entity_info_edit_prev_infos))
+		{
+			clear_entity_info_edit();
+			return;
+		}
+		_entity_info_edit_active = true;
+	}
+
+	void editor_panel_inspector_t::submit_entity_info_edit()
+	{
+		if (!_entity_info_edit_active)
+			return;
+
+		vector_t<editor_entity_info_data_t> post_infos;
+		if (read_entity_infos({.data = _entity_info_edit_entities.data(), .size = _entity_info_edit_entities.size()}, post_infos))
+		{
+			editor_commands_entity_info_t::edit(_display_world_handle,
+												{.data = _entity_info_edit_entities.data(), .size = _entity_info_edit_entities.size()},
+												{.data = _entity_info_edit_prev_infos.data(), .size = _entity_info_edit_prev_infos.size()},
+												{.data = post_infos.data(), .size = post_infos.size()});
+		}
+		clear_entity_info_edit();
+	}
+
+	void editor_panel_inspector_t::clear_entity_info_edit()
+	{
+		_entity_info_edit_entities.resize(0);
+		_entity_info_edit_prev_infos.resize(0);
+		_entity_info_edit_active = false;
 	}
 
 	void editor_panel_inspector_t::begin_component_edit(sid_t component_type)

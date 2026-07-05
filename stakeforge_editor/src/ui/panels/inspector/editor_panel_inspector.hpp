@@ -143,6 +143,10 @@ namespace sfg
 		void					   copy_component(sid_t type_id);
 		bool					   is_component_removable(sid_t type_id) const;
 		bool					   is_component_paste_enabled(sid_t type_id) const;
+		bool					   read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const;
+		void					   begin_entity_info_edit();
+		void					   submit_entity_info_edit();
+		void					   clear_entity_info_edit();
 		bool					   serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const;
 		void					   begin_component_edit(sid_t component_type);
 		void					   submit_component_edit(sid_t component_type);
@@ -151,6 +155,8 @@ namespace sfg
 		static void on_entity_info_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_info_action_menu_command(u16 command, void* user_data);
 		static void on_entity_info_name_submitted(entity_id_t entity, void* user_data);
+		static void on_entity_info_edit_begin(void* user_data);
+		static void on_entity_info_edit_submitted(void* user_data);
 		static void on_component_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_component_action_menu_command(u16 command, void* user_data);
 		static void on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -171,6 +177,8 @@ namespace sfg
 		vector_t<editor_action_menu_row_desc_t>			  _add_component_root_rows	   = {};
 		vector_t<sid_t>									  _add_component_types		   = {};
 		vector_t<entity_id_t>							  _display_entities			   = {};
+		vector_t<entity_id_t>							  _entity_info_edit_entities   = {};
+		vector_t<editor_entity_info_data_t>				  _entity_info_edit_prev_infos = {};
 		vector_t<entity_id_t>							  _component_edit_entities	   = {};
 		vector_t<ostream_t>								  _component_edit_prev_streams = {};
 		editor_scrollbar_t								  _scrollbar				   = {};
@@ -197,6 +205,7 @@ namespace sfg
 		bool											  _scroll_restore_pending	   = false;
 		bool											  _skip_scroll_state_save	   = false;
 		bool											  _copied_entity_info_valid	   = false;
+		bool											  _entity_info_edit_active	   = false;
 		bool											  _component_edit_active	   = false;
 	};
 }

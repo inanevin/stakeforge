@@ -52,6 +52,7 @@ namespace sfg
 		void set_entity(world_t& world, entity_id_t entity);
 		void set_entities(world_t& world, span_t<const entity_id_t> entities);
 		void set_name_submitted_callback(editor_widget_entity_info_name_submitted_fn callback, void* user_data);
+		void set_edit_callbacks(const editor_widget_callbacks_t& callbacks);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -59,11 +60,19 @@ namespace sfg
 		}
 
 	private:
+		static void on_edit_begin(void* user_data);
 		static void on_name_input_submitted(void* user_data);
+		static void on_position_changed(void* user_data);
 		static void on_rotation_changed(void* user_data);
+		static void on_scale_changed(void* user_data);
+		static void on_edit_submitted(void* user_data);
 
 		void refresh_controls();
+		void begin_edit();
+		void submit_edit();
+		void apply_position_values();
 		void apply_rotation_values();
+		void apply_scale_values();
 		void submit_names();
 
 	private:
@@ -76,6 +85,7 @@ namespace sfg
 		ui::ui_context*								_ui						  = nullptr;
 		world_t*									_world					  = nullptr;
 		editor_widget_entity_info_name_submitted_fn _name_submitted_callback  = nullptr;
+		editor_widget_callbacks_t					_callbacks				  = {};
 		void*										_name_submitted_user_data = nullptr;
 		ui::widget_id_t								_root					  = NULL_WIDGET;
 		ui::widget_id_t								_guid_label				  = NULL_WIDGET;

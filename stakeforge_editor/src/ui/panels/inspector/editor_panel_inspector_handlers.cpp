@@ -103,6 +103,16 @@ namespace sfg
 		static_cast<editor_panel_entities_t*>(panel)->refresh_entity_name(entity);
 	}
 
+	void editor_panel_inspector_t::on_entity_info_edit_begin(void* user_data)
+	{
+		static_cast<editor_panel_inspector_t*>(user_data)->begin_entity_info_edit();
+	}
+
+	void editor_panel_inspector_t::on_entity_info_edit_submitted(void* user_data)
+	{
+		static_cast<editor_panel_inspector_t*>(user_data)->submit_entity_info_edit();
+	}
+
 	void editor_panel_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
@@ -228,6 +238,13 @@ namespace sfg
 		case editor_command_type_e::entity_info_paste: {
 			const editor_command_paste_entity_info_payload_t& payload  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
 			const entity_id_t*								  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_display();
+			break;
+		}
+		case editor_command_type_e::entity_info_edit: {
+			const editor_command_edit_entity_info_payload_t& payload  = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_display();
 			break;

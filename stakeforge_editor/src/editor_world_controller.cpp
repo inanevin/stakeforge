@@ -559,6 +559,7 @@ namespace sfg
 		case editor_command_type_e::entity_reparent:
 		case editor_command_type_e::prefab_spawn:
 		case editor_command_type_e::entity_info_paste:
+		case editor_command_type_e::entity_info_edit:
 		case editor_command_type_e::component_add:
 		case editor_command_type_e::component_remove:
 		case editor_command_type_e::component_reset:
