@@ -138,7 +138,6 @@ namespace sfg
 		{
 			resource_handle_t handle = NULL_RESOURCE_HANDLE;
 			resource_type_e	  type	 = resource_type_e::invalid;
-			bool			  loaded = false;
 		};
 
 	private:

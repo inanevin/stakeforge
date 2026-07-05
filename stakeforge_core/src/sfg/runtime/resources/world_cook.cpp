@@ -234,6 +234,9 @@ namespace sfg
 			else
 				entity = world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
 
+			if (entity == NULL_ENTITY_ID)
+				continue;
+
 			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
 			SFG_ASSERT(world_guid);
 			component_guid_t& guid = ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);

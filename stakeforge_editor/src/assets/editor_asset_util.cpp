@@ -675,6 +675,12 @@ namespace sfg
 		const bool deleted = !file_system_t::delete_file(node.full_path.c_str());
 		if (!deleted)
 			SFG_ERR("failed to delete asset {0}", node.full_path.c_str());
+		else
+		{
+			const string_t cache_path = get_cache_path_for_asset(asset);
+			if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
+				SFG_ERR("failed to delete cooked asset {0}", cache_path.c_str());
+		}
 		return deleted;
 	}
 

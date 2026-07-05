@@ -61,7 +61,7 @@ namespace sfg
 {
 	namespace
 	{
-		bool save_cooked_asset(const editor_asset_t& asset, resource_header_t header, const ostream_t& payload)
+		bool save_cooked_asset(const editor_asset_t& asset, resource_header_t header, const ostream_t& payload, const char* debug_path)
 		{
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
 			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
@@ -71,14 +71,16 @@ namespace sfg
 				return false;
 			}
 
-			string_t debug_path;
-			if (!asset.source_relative.empty())
-				debug_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+			string_t resolved_debug_path;
+			if (debug_path != nullptr && debug_path[0] != '\0')
+				resolved_debug_path = debug_path;
+			else if (!asset.source_relative.empty())
+				resolved_debug_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 			else if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr)
-				debug_path = display_name;
+				resolved_debug_path = display_name;
 			else
-				debug_path = cache_path;
-			header.set_debug_name(debug_path.c_str());
+				resolved_debug_path = cache_path;
+			header.set_debug_name(resolved_debug_path.c_str());
 
 			ostream_t stream = header.make_stream(payload);
 			if (!serializer_t::save_to_file(cache_path.c_str(), stream))
@@ -91,34 +93,34 @@ namespace sfg
 		}
 	}
 
-	bool editor_asset_cooker_t::cook_asset(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_asset(const editor_asset_t& asset, const char* debug_path)
 	{
 		switch (asset.asset_type)
 		{
 		case editor_asset_type_e::audio:
-			return cook_audio(asset);
+			return cook_audio(asset, debug_path);
 		case editor_asset_type_e::material:
-			return cook_material(asset);
+			return cook_material(asset, debug_path);
 		case editor_asset_type_e::mesh:
-			return cook_mesh(asset);
+			return cook_mesh(asset, debug_path);
 		case editor_asset_type_e::shader:
-			return cook_shader(asset);
+			return cook_shader(asset, debug_path);
 		case editor_asset_type_e::skeleton:
-			return cook_skeleton(asset);
+			return cook_skeleton(asset, debug_path);
 		case editor_asset_type_e::animation:
-			return cook_animation(asset);
+			return cook_animation(asset, debug_path);
 		case editor_asset_type_e::texture:
-			return cook_texture(asset);
+			return cook_texture(asset, debug_path);
 		case editor_asset_type_e::texture_sampler:
-			return cook_texture_sampler(asset);
+			return cook_texture_sampler(asset, debug_path);
 		case editor_asset_type_e::physical_material:
-			return cook_physical_material(asset);
+			return cook_physical_material(asset, debug_path);
 		case editor_asset_type_e::hdr_skybox:
-			return cook_hdr_skybox(asset);
+			return cook_hdr_skybox(asset, debug_path);
 		case editor_asset_type_e::font:
-			return cook_font(asset);
+			return cook_font(asset, debug_path);
 		case editor_asset_type_e::prefab:
-			return cook_prefab(asset);
+			return cook_prefab(asset, debug_path);
 		default:
 			SFG_ASSERT(false);
 			return false;
@@ -167,7 +169,7 @@ namespace sfg
 		return header.magic == resource_desc->wire_magic && header.version == resource_desc->wire_version;
 	}
 
-	bool editor_asset_cooker_t::cook_audio(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_audio(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::audio);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
@@ -188,10 +190,10 @@ namespace sfg
 			SFG_ERR("failed to cook audio asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_shader(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_shader(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::shader);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
@@ -212,10 +214,10 @@ namespace sfg
 			SFG_ERR("failed to cook shader asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_material(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_material(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::material);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
@@ -235,10 +237,10 @@ namespace sfg
 			SFG_ERR("failed to cook material asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_texture_sampler(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_texture_sampler(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::texture_sampler);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
@@ -258,10 +260,10 @@ namespace sfg
 			SFG_ERR("failed to cook texture sampler asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_physical_material(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_physical_material(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::physical_material);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
@@ -281,10 +283,10 @@ namespace sfg
 			SFG_ERR("failed to cook physical material asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_animation_state_machine(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_animation_state_machine(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation_state_machine);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::none);
@@ -293,7 +295,7 @@ namespace sfg
 		return false;
 	}
 
-	bool editor_asset_cooker_t::cook_texture(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_texture(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::texture);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
@@ -316,10 +318,10 @@ namespace sfg
 			SFG_ERR("failed to cook texture asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_font(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_font(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::font);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
@@ -334,10 +336,10 @@ namespace sfg
 			SFG_ERR("failed to cook font asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_skeleton(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_skeleton(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::skeleton);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
@@ -357,10 +359,10 @@ namespace sfg
 			SFG_ERR("failed to cook skeleton asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_animation(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_animation(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
@@ -380,10 +382,10 @@ namespace sfg
 			SFG_ERR("failed to cook animation asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_mesh(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_mesh(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::mesh);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
@@ -396,10 +398,10 @@ namespace sfg
 			SFG_ERR("failed to cook mesh asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_hdr_skybox(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_hdr_skybox(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::hdr_skybox);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
@@ -420,10 +422,10 @@ namespace sfg
 			SFG_ERR("failed to cook HDR skybox asset {0}", asset.guid);
 			return false;
 		}
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 
-	bool editor_asset_cooker_t::cook_prefab(const editor_asset_t& asset)
+	bool editor_asset_cooker_t::cook_prefab(const editor_asset_t& asset, const char* debug_path)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::prefab);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
@@ -436,6 +438,6 @@ namespace sfg
 		   };
 		ostream_t stream;
 		stream << prefab_source;
-		return save_cooked_asset(asset, header, stream);
+		return save_cooked_asset(asset, header, stream, debug_path);
 	}
 }

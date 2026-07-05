@@ -50,7 +50,7 @@ namespace sfg
 		return node;
 	}
 
-	bool editor_asset_writer_t::write_file_asset(const editor_asset_write_file_desc_t& desc, editor_asset_t* out_asset)
+	bool editor_asset_writer_t::write_file_asset(const editor_asset_write_file_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
@@ -125,10 +125,12 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+		if (out_asset_path != nullptr)
+			*out_asset_path = asset_path;
 		return true;
 	}
 
-	bool editor_asset_writer_t::write_embedded_asset(const editor_asset_write_embedded_desc_t& desc, editor_asset_t* out_asset)
+	bool editor_asset_writer_t::write_embedded_asset(const editor_asset_write_embedded_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
@@ -165,10 +167,12 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+		if (out_asset_path != nullptr)
+			*out_asset_path = asset_path;
 		return true;
 	}
 
-	bool editor_asset_writer_t::write_none_source_asset(const editor_asset_write_none_desc_t& desc, editor_asset_t* out_asset)
+	bool editor_asset_writer_t::write_none_source_asset(const editor_asset_write_none_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
@@ -203,6 +207,8 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+		if (out_asset_path != nullptr)
+			*out_asset_path = asset_path;
 		return true;
 	}
 

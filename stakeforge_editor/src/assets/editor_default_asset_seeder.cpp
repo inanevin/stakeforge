@@ -158,10 +158,11 @@ namespace sfg
 					.sub_type				  = sub_type,
 					.allow_overwrite		  = true,
 				};
-				editor_asset_t asset   = {};
-				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset);
+				editor_asset_t asset = {};
+				string_t	   asset_path;
+				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 				if (created)
-					created = editor_asset_cooker_t::cook_shader(asset);
+					created = editor_asset_cooker_t::cook_shader(asset, asset_path.c_str());
 				SFG_ASSERT(created);
 			}
 		}
@@ -198,10 +199,11 @@ namespace sfg
 					.asset_type				  = editor_asset_type_e::texture,
 					.allow_overwrite		  = true,
 				};
-				editor_asset_t asset   = {};
-				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset);
+				editor_asset_t asset = {};
+				string_t	   asset_path;
+				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 				if (created)
-					created = editor_asset_cooker_t::cook_texture(asset);
+					created = editor_asset_cooker_t::cook_texture(asset, asset_path.c_str());
 				SFG_ASSERT(created);
 			}
 		}
@@ -236,10 +238,11 @@ namespace sfg
 					.asset_type				  = editor_asset_type_e::hdr_skybox,
 					.allow_overwrite		  = true,
 				};
-				editor_asset_t asset   = {};
-				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset);
+				editor_asset_t asset = {};
+				string_t	   asset_path;
+				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 				if (created)
-					created = editor_asset_cooker_t::cook_hdr_skybox(asset);
+					created = editor_asset_cooker_t::cook_hdr_skybox(asset, asset_path.c_str());
 				SFG_ASSERT(created);
 			}
 		}
@@ -295,14 +298,15 @@ namespace sfg
 					.sub_type		 = desc.sub_type,
 					.allow_overwrite = true,
 				};
-				editor_asset_t asset   = {};
-				bool		   created = editor_asset_writer_t::write_embedded_asset(write_desc, &asset);
+				editor_asset_t asset = {};
+				string_t	   asset_path;
+				bool		   created = editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path);
 				if (created && desc.asset_type == editor_asset_type_e::material)
-					created = editor_asset_cooker_t::cook_material(asset);
+					created = editor_asset_cooker_t::cook_material(asset, asset_path.c_str());
 				else if (created && desc.asset_type == editor_asset_type_e::physical_material)
-					created = editor_asset_cooker_t::cook_physical_material(asset);
+					created = editor_asset_cooker_t::cook_physical_material(asset, asset_path.c_str());
 				else if (created && desc.asset_type == editor_asset_type_e::texture_sampler)
-					created = editor_asset_cooker_t::cook_texture_sampler(asset);
+					created = editor_asset_cooker_t::cook_texture_sampler(asset, asset_path.c_str());
 				SFG_ASSERT(created);
 			}
 		}

@@ -611,31 +611,14 @@ namespace sfg
 
 	void world_t::load_all_used_resources()
 	{
-		std::stable_sort(_used_resources.begin(), _used_resources.end(), [](const world_resource_t& a, const world_resource_t& b) {
-			const auto get_load_priority = [](resource_type_e type) -> u8 {
-				switch (type)
-				{
-				case resource_type_e::shader:
-					return 0;
-				case resource_type_e::texture:
-					return 1;
-				case resource_type_e::texture_sampler:
-					return 2;
-				default:
-					return 3;
-				}
-			};
-			return get_load_priority(a.type) < get_load_priority(b.type);
-		});
-
 		resource_manager_t& rm = resource_manager_t::get();
 		for (world_resource_t& res : _used_resources)
 		{
-			if (res.loaded)
+			const resource_entry_t* e = rm.find_entry(res.handle);
+			if (e != nullptr)
 				continue;
 
 			rm.load_resource(res.handle, res.type);
-			res.loaded = rm.find_entry(res.handle) != nullptr;
 		}
 	}
 
@@ -644,11 +627,11 @@ namespace sfg
 		resource_manager_t& rm = resource_manager_t::get();
 		for (auto it = _used_resources.rbegin(); it != _used_resources.rend(); ++it)
 		{
-			if (!it->loaded)
+			const resource_entry_t* e = rm.find_entry(it->handle);
+			if (e == nullptr)
 				continue;
 
 			rm.unload_resource(it->handle);
-			it->loaded = false;
 		}
 	}
 

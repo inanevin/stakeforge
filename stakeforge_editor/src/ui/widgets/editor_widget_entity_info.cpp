@@ -177,7 +177,7 @@ namespace sfg
 			label_in.pos_value.y	  = 0.5f;
 			label_in.size_value		  = {1.0f, theme.item_height};
 
-			ui.set_widget_text(_prefab_label, "can not edit prefabs inside the outliner, Break Prefab to edit it.");
+			ui.set_widget_text(_prefab_label, "Prefab editing is disabled, Break Prefab to edit it.");
 			paint.set_text(_prefab_label,
 						   ui.widget_text(_prefab_label),
 						   ui.widget_text_len(_prefab_label),

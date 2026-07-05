@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -538,6 +539,8 @@ namespace sfg
 		{
 			if (editor_panel_t* entities_panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(entities_panel)->refresh_entities();
+			if (editor_panel_t* inspector_panel = editor_app_t::get().find_panel(editor_panel_type_e::inspector))
+				static_cast<editor_panel_inspector_t*>(inspector_panel)->refresh_from_selection();
 		}
 		return true;
 	}

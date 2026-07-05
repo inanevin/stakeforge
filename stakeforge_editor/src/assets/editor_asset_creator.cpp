@@ -113,7 +113,7 @@ namespace sfg
 			}
 		}
 
-		bool create_shader_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_shader_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const shader_type_e shader_type = static_cast<shader_type_e>(desc.sub_type);
 			nlohmann::json		cook_options;
@@ -130,10 +130,10 @@ namespace sfg
 				.sub_type				  = desc.sub_type,
 				.allow_overwrite		  = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_file_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_file_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_material_type_e material_type = static_cast<editor_material_type_e>(desc.sub_type);
 			nlohmann::json				 embedded_source;
@@ -152,10 +152,10 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(desc.sub_type);
 			nlohmann::json						embedded_source;
@@ -174,10 +174,10 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const char*	   template_relative = EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
 			nlohmann::json embedded_source;
@@ -196,10 +196,10 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_animation_state_machine_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_animation_state_machine_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_asset_write_none_desc_t write_desc{
 				.parent_node	 = desc.parent_node,
@@ -209,10 +209,10 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_prefab_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_prefab_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			SFG_ASSERT(desc.embedded_data != nullptr);
 
@@ -232,10 +232,10 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_world_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
+		bool create_world_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_asset_write_none_desc_t write_desc{
 				.parent_node	 = desc.parent_node,
@@ -245,49 +245,50 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset);
+			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset, out_asset_path);
 		}
 	}
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 	{
-		editor_asset_t asset  = {};
+		editor_asset_t asset = {};
+		string_t	   asset_path;
 		bool		   result = false;
 
 		switch (desc.asset_type)
 		{
 		case editor_asset_type_e::shader:
-			result = create_shader_asset(desc, &asset);
+			result = create_shader_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_shader(asset);
+				result = editor_asset_cooker_t::cook_shader(asset, asset_path.c_str());
 			break;
 		case editor_asset_type_e::material:
-			result = create_material_asset(desc, &asset);
+			result = create_material_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_material(asset);
+				result = editor_asset_cooker_t::cook_material(asset, asset_path.c_str());
 			break;
 		case editor_asset_type_e::texture_sampler:
-			result = create_texture_sampler_asset(desc, &asset);
+			result = create_texture_sampler_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_texture_sampler(asset);
+				result = editor_asset_cooker_t::cook_texture_sampler(asset, asset_path.c_str());
 			break;
 		case editor_asset_type_e::physical_material:
-			result = create_physical_material_asset(desc, &asset);
+			result = create_physical_material_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_physical_material(asset);
+				result = editor_asset_cooker_t::cook_physical_material(asset, asset_path.c_str());
 			break;
 		case editor_asset_type_e::animation_state_machine:
-			result = create_animation_state_machine_asset(desc, &asset);
+			result = create_animation_state_machine_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_animation_state_machine(asset);
+				result = editor_asset_cooker_t::cook_animation_state_machine(asset, asset_path.c_str());
 			break;
 		case editor_asset_type_e::prefab:
-			result = create_prefab_asset(desc, &asset);
+			result = create_prefab_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_prefab(asset);
+				result = editor_asset_cooker_t::cook_prefab(asset, asset_path.c_str());
 			break;
 		case editor_asset_type_e::world:
-			result = create_world_asset(desc, &asset);
+			result = create_world_asset(desc, &asset, &asset_path);
 			break;
 		default:
 			SFG_ASSERT(false);
