@@ -584,6 +584,7 @@ namespace sfg
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
 		{
 			editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
+			world_panel->set_edit_context(_main_edit_context);
 			if (_main_world.is_null())
 				world_panel->clear_world();
 			else

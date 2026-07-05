@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "ui/widgets/editor_widget_inspector.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "commands/editor_command_component_edit.hpp"
@@ -35,7 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_panel_inspector_t::set_display_none()
+	void editor_widget_inspector_t::set_display_none()
 	{
 		save_scroll_state();
 		save_display_state();
@@ -46,13 +46,13 @@ namespace sfg
 		refresh_display();
 	}
 
-	void editor_panel_inspector_t::set_display_entity(world_handle_t world, entity_id_t entity)
+	void editor_widget_inspector_t::set_display_entity(world_handle_t world, entity_id_t entity)
 	{
 		const entity_id_t entities[] = {entity};
 		set_display_entity(world, {.data = entities, .size = 1});
 	}
 
-	void editor_panel_inspector_t::set_display_entity(world_handle_t world, span_t<const entity_id_t> entities)
+	void editor_widget_inspector_t::set_display_entity(world_handle_t world, span_t<const entity_id_t> entities)
 	{
 		save_scroll_state();
 		_display_type		  = editor_inspector_display_type_e::entity;
@@ -63,7 +63,7 @@ namespace sfg
 		refresh_display();
 	}
 
-	void editor_panel_inspector_t::refresh_display()
+	void editor_widget_inspector_t::refresh_display()
 	{
 		if (!can_mutate_ui_topology())
 		{
@@ -82,7 +82,7 @@ namespace sfg
 		restore_scroll_state();
 	}
 
-	void editor_panel_inspector_t::refresh_from_selection()
+	void editor_widget_inspector_t::refresh_from_selection()
 	{
 		if (_edit_context.is_null())
 		{
@@ -105,26 +105,26 @@ namespace sfg
 			set_display_entity(world, selected);
 	}
 
-	bool editor_panel_inspector_t::can_mutate_ui_topology() const
+	bool editor_widget_inspector_t::can_mutate_ui_topology() const
 	{
 		const ui::ui_phase_e phase = _ui->get_phase();
 		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
 	}
 
-	void editor_panel_inspector_t::request_refresh_display()
+	void editor_widget_inspector_t::request_refresh_display()
 	{
 		_refresh_display_pending = true;
 		_ui->request_unique_mutation(on_ui_mutation, this);
 	}
 
-	void editor_panel_inspector_t::request_refresh_component_reflection(sid_t component_type)
+	void editor_widget_inspector_t::request_refresh_component_reflection(sid_t component_type)
 	{
 		_refresh_component_pending = true;
 		_pending_component_type	   = component_type;
 		_ui->request_unique_mutation(on_ui_mutation, this);
 	}
 
-	void editor_panel_inspector_t::flush_pending_ui_mutations()
+	void editor_widget_inspector_t::flush_pending_ui_mutations()
 	{
 		if (_refresh_display_pending)
 		{
@@ -143,7 +143,7 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::save_display_state()
+	void editor_widget_inspector_t::save_display_state()
 	{
 		for (const component_display_t& display : _component_displays)
 		{
@@ -158,7 +158,7 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::save_scroll_state()
+	void editor_widget_inspector_t::save_scroll_state()
 	{
 		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
 			return;
@@ -172,7 +172,7 @@ namespace sfg
 		state->scroll_y = _ui->get_tree().in_const(_scroll_area).scroll_offset.y;
 	}
 
-	void editor_panel_inspector_t::restore_scroll_state()
+	void editor_widget_inspector_t::restore_scroll_state()
 	{
 		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
 		{
@@ -187,7 +187,7 @@ namespace sfg
 		_ui->set_post_layout_tick(_scroll_area, on_scroll_restore_tick, this);
 	}
 
-	void editor_panel_inspector_t::apply_pending_scroll_restore()
+	void editor_widget_inspector_t::apply_pending_scroll_restore()
 	{
 		if (!_scroll_restore_pending)
 		{
@@ -201,7 +201,7 @@ namespace sfg
 		_ui->clear_post_layout_tick(_scroll_area);
 	}
 
-	void editor_panel_inspector_t::clear_display()
+	void editor_widget_inspector_t::clear_display()
 	{
 		clear_entity_info_edit();
 		clear_component_edit();
@@ -237,7 +237,7 @@ namespace sfg
 		_component_displays.resize(0);
 	}
 
-	void editor_panel_inspector_t::create_entity_display()
+	void editor_widget_inspector_t::create_entity_display()
 	{
 		if (_display_entities.empty())
 			return;
@@ -314,7 +314,7 @@ namespace sfg
 		create_add_component_button();
 	}
 
-	void editor_panel_inspector_t::refresh_component_reflection(sid_t component_type)
+	void editor_widget_inspector_t::refresh_component_reflection(sid_t component_type)
 	{
 		if (!can_mutate_ui_topology())
 		{
@@ -347,7 +347,7 @@ namespace sfg
 							   });
 	}
 
-	bool editor_panel_inspector_t::serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const
+	bool editor_widget_inspector_t::serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const
 	{
 		out_streams.resize(0);
 		if (_display_world == nullptr || entities.size == 0)
@@ -377,7 +377,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_panel_inspector_t::read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const
+	bool editor_widget_inspector_t::read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const
 	{
 		out_infos.resize(0);
 		if (_display_world == nullptr || entities.size == 0)
@@ -389,7 +389,7 @@ namespace sfg
 		return true;
 	}
 
-	void editor_panel_inspector_t::begin_entity_info_edit()
+	void editor_widget_inspector_t::begin_entity_info_edit()
 	{
 		clear_entity_info_edit();
 		_entity_info_edit_entities.assign(_display_entities.begin(), _display_entities.end());
@@ -401,7 +401,7 @@ namespace sfg
 		_entity_info_edit_active = true;
 	}
 
-	void editor_panel_inspector_t::submit_entity_info_edit()
+	void editor_widget_inspector_t::submit_entity_info_edit()
 	{
 		if (!_entity_info_edit_active)
 			return;
@@ -417,14 +417,14 @@ namespace sfg
 		clear_entity_info_edit();
 	}
 
-	void editor_panel_inspector_t::clear_entity_info_edit()
+	void editor_widget_inspector_t::clear_entity_info_edit()
 	{
 		_entity_info_edit_entities.resize(0);
 		_entity_info_edit_prev_infos.resize(0);
 		_entity_info_edit_active = false;
 	}
 
-	void editor_panel_inspector_t::begin_component_edit(sid_t component_type)
+	void editor_widget_inspector_t::begin_component_edit(sid_t component_type)
 	{
 		clear_component_edit();
 		_component_edit_entities.assign(_display_entities.begin(), _display_entities.end());
@@ -437,7 +437,7 @@ namespace sfg
 		_component_edit_active = true;
 	}
 
-	void editor_panel_inspector_t::submit_component_edit(sid_t component_type)
+	void editor_widget_inspector_t::submit_component_edit(sid_t component_type)
 	{
 		if (!_component_edit_active || _component_edit_type != component_type)
 			return;
@@ -454,7 +454,7 @@ namespace sfg
 		clear_component_edit();
 	}
 
-	void editor_panel_inspector_t::clear_component_edit()
+	void editor_widget_inspector_t::clear_component_edit()
 	{
 		_component_edit_entities.resize(0);
 		_component_edit_prev_streams.resize(0);
@@ -462,7 +462,7 @@ namespace sfg
 		_component_edit_active = false;
 	}
 
-	bool editor_panel_inspector_t::is_displaying_any_entity(span_t<const entity_id_t> entities) const
+	bool editor_widget_inspector_t::is_displaying_any_entity(span_t<const entity_id_t> entities) const
 	{
 		if (_display_type != editor_inspector_display_type_e::entity)
 			return false;
@@ -475,7 +475,7 @@ namespace sfg
 		return false;
 	}
 
-	editor_panel_inspector_t::component_display_t* editor_panel_inspector_t::find_component_display(sid_t type_id)
+	editor_widget_inspector_t::component_display_t* editor_widget_inspector_t::find_component_display(sid_t type_id)
 	{
 		for (component_display_t& display : _component_displays)
 		{
@@ -485,7 +485,7 @@ namespace sfg
 		return nullptr;
 	}
 
-	editor_panel_inspector_t::component_display_state_t* editor_panel_inspector_t::find_component_display_state(sid_t type_id)
+	editor_widget_inspector_t::component_display_state_t* editor_widget_inspector_t::find_component_display_state(sid_t type_id)
 	{
 		for (component_display_state_t& state : _component_states)
 		{
@@ -495,7 +495,7 @@ namespace sfg
 		return nullptr;
 	}
 
-	editor_panel_inspector_t::entity_scroll_state_t* editor_panel_inspector_t::find_entity_scroll_state(entity_id_t entity)
+	editor_widget_inspector_t::entity_scroll_state_t* editor_widget_inspector_t::find_entity_scroll_state(entity_id_t entity)
 	{
 		for (entity_scroll_state_t& state : _entity_scroll_states)
 		{

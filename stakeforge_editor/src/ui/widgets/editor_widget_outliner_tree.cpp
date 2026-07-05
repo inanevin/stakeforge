@@ -24,8 +24,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/entities/editor_panel_entities.hpp"
-#include "ui/panels/entities/editor_panel_entities_internal.hpp"
+#include "ui/widgets/editor_widget_outliner.hpp"
+#include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
@@ -41,7 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_panel_entities_t::refresh_entities()
+	void editor_widget_outliner_t::refresh_entities()
 	{
 		if (_edit_context.is_null())
 			return;
@@ -117,7 +117,7 @@ namespace sfg
 			set_outliner_row_visible(rows[i], false);
 	}
 
-	void editor_panel_entities_t::refresh_entity_name(entity_id_t entity)
+	void editor_widget_outliner_t::refresh_entity_name(entity_id_t entity)
 	{
 		if (!_search_str_lower.empty())
 		{
@@ -154,7 +154,7 @@ namespace sfg
 		update_outliner_row(_outliner_rows[row_index], *desc, is_folded);
 	}
 
-	void editor_panel_entities_t::collect_entities()
+	void editor_widget_outliner_t::collect_entities()
 	{
 		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		_main_world						= main_world;
@@ -165,7 +165,7 @@ namespace sfg
 		editor_world_controller_t::get().get_edit_context(_edit_context).collect_outliner_items(world);
 	}
 
-	editor_outliner_row_t& editor_panel_entities_t::get_or_create_outliner_row(size_t index)
+	editor_outliner_row_t& editor_widget_outliner_t::get_or_create_outliner_row(size_t index)
 	{
 		vector_t<editor_outliner_row_t>& rows = _outliner_rows;
 		if (index < rows.size())
@@ -320,7 +320,7 @@ namespace sfg
 		return rows.back();
 	}
 
-	void editor_panel_entities_t::update_outliner_row(editor_outliner_row_t& row, const editor_outliner_item_t& item, bool is_folded)
+	void editor_widget_outliner_t::update_outliner_row(editor_outliner_row_t& row, const editor_outliner_item_t& item, bool is_folded)
 	{
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		ui::paint_layer_t&	  paint = _ui->get_paint();
@@ -392,7 +392,7 @@ namespace sfg
 		paint.set_state_source(row.disable_icon, row.disable_button);
 	}
 
-	void editor_panel_entities_t::update_outliner_row_background(const editor_outliner_row_t& row)
+	void editor_widget_outliner_t::update_outliner_row_background(const editor_outliner_row_t& row)
 	{
 		const editor_theme_t& theme				 = editor_theme_t::get();
 		const bool			  selected			 = row.type == editor_outliner_item_type_e::entity && is_entity_selected(row.entity);
@@ -410,7 +410,7 @@ namespace sfg
 		_ui->get_paint().set_press_color(row.root, selected ? selected_color : theme.color_light);
 	}
 
-	void editor_panel_entities_t::set_outliner_row_visible(const editor_outliner_row_t& row, bool visible)
+	void editor_widget_outliner_t::set_outliner_row_visible(const editor_outliner_row_t& row, bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
@@ -423,7 +423,7 @@ namespace sfg
 		tree.set_visible(row.disable_icon, visible && row.type == editor_outliner_item_type_e::entity, false);
 	}
 
-	void editor_panel_entities_t::set_focus_state(bool focused)
+	void editor_widget_outliner_t::set_focus_state(bool focused)
 	{
 		if (_focused == focused)
 			return;
@@ -433,7 +433,7 @@ namespace sfg
 			update_outliner_row_background(row);
 	}
 
-	bool editor_panel_entities_t::can_mutate_ui_topology() const
+	bool editor_widget_outliner_t::can_mutate_ui_topology() const
 	{
 		if (_ui == nullptr)
 			return false;
@@ -442,13 +442,13 @@ namespace sfg
 		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
 	}
 
-	void editor_panel_entities_t::request_refresh_entities()
+	void editor_widget_outliner_t::request_refresh_entities()
 	{
 		_refresh_entities_pending = true;
 		_ui->request_unique_mutation(on_ui_mutation, this);
 	}
 
-	void editor_panel_entities_t::flush_pending_ui_mutations()
+	void editor_widget_outliner_t::flush_pending_ui_mutations()
 	{
 		if (!_refresh_entities_pending)
 			return;

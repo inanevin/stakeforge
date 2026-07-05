@@ -24,16 +24,16 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/widgets/editor_widget_outliner.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
-#include "ui/panels/entities/editor_panel_entities_internal.hpp"
+#include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
-	bool editor_panel_entities_t::is_entity_expanded(entity_id_t entity) const
+	bool editor_widget_outliner_t::is_entity_expanded(entity_id_t entity) const
 	{
 		if (entity == NULL_ENTITY_ID || _main_world.is_null())
 			return false;
@@ -42,7 +42,7 @@ namespace sfg
 		return editor_world_controller_t::get().get_edit_context(_edit_context).is_entity_expanded(world.get_entity_guid(entity));
 	}
 
-	bool editor_panel_entities_t::is_entity_selected(entity_id_t entity) const
+	bool editor_widget_outliner_t::is_entity_selected(entity_id_t entity) const
 	{
 		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities();
 		if (entity == NULL_ENTITY_ID || selected.size == 0)
@@ -50,12 +50,12 @@ namespace sfg
 		return std::find(selected.data, selected.data + selected.size, entity) != selected.data + selected.size;
 	}
 
-	bool editor_panel_entities_t::is_create_enabled() const
+	bool editor_widget_outliner_t::is_create_enabled() const
 	{
 		return editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities().size <= 1;
 	}
 
-	bool editor_panel_entities_t::has_selected_ancestor(entity_id_t entity) const
+	bool editor_widget_outliner_t::has_selected_ancestor(entity_id_t entity) const
 	{
 		if (_main_world.is_null())
 			return false;
@@ -69,7 +69,7 @@ namespace sfg
 		return false;
 	}
 
-	bool editor_panel_entities_t::can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const
+	bool editor_widget_outliner_t::can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const
 	{
 		if (entities.empty())
 			return false;
@@ -98,7 +98,7 @@ namespace sfg
 		return true;
 	}
 
-	size_t editor_panel_entities_t::find_visible_entity_index(entity_id_t entity) const
+	size_t editor_widget_outliner_t::find_visible_entity_index(entity_id_t entity) const
 	{
 		const vector_t<editor_outliner_row_t>& rows = _outliner_rows;
 		for (size_t i = 0; i < _visible_entity_count && i < rows.size(); ++i)
@@ -109,7 +109,7 @@ namespace sfg
 		return SIZE_MAX;
 	}
 
-	const editor_outliner_item_t* editor_panel_entities_t::find_outliner_item(entity_id_t entity) const
+	const editor_outliner_item_t* editor_widget_outliner_t::find_outliner_item(entity_id_t entity) const
 	{
 		const span_t<editor_outliner_item_t> items = editor_world_controller_t::get().get_edit_context(_edit_context).get_outliner_items();
 		for (size_t i = 0; i < items.size; ++i)
@@ -120,7 +120,7 @@ namespace sfg
 		return nullptr;
 	}
 
-	const editor_outliner_row_t* editor_panel_entities_t::find_row_by_widget(ui::widget_id_t id, bool match_fold_icon) const
+	const editor_outliner_row_t* editor_widget_outliner_t::find_row_by_widget(ui::widget_id_t id, bool match_fold_icon) const
 	{
 		const vector_t<editor_outliner_row_t>& rows = _outliner_rows;
 		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)
@@ -132,7 +132,7 @@ namespace sfg
 		return nullptr;
 	}
 
-	const editor_outliner_row_t* editor_panel_entities_t::find_row_by_pos(const vec2f_t& pos) const
+	const editor_outliner_row_t* editor_widget_outliner_t::find_row_by_pos(const vec2f_t& pos) const
 	{
 		const ui::layout_tree_t&			   tree = _ui->get_tree();
 		const vector_t<editor_outliner_row_t>& rows = _outliner_rows;
@@ -146,7 +146,7 @@ namespace sfg
 		return nullptr;
 	}
 
-	const editor_outliner_row_t* editor_panel_entities_t::find_row_by_folder(editor_world_folder_handle_t folder) const
+	const editor_outliner_row_t* editor_widget_outliner_t::find_row_by_folder(editor_world_folder_handle_t folder) const
 	{
 		const vector_t<editor_outliner_row_t>& rows = _outliner_rows;
 		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)

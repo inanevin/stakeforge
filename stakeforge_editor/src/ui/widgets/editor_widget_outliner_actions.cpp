@@ -24,11 +24,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/widgets/editor_widget_outliner.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
-#include "ui/panels/entities/editor_panel_entities_internal.hpp"
+#include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -71,7 +71,7 @@ namespace sfg
 			{.text = "Delete", .command = entity_action_menu_delete_folder},
 		};
 	}
-	void editor_panel_entities_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
+	void editor_widget_outliner_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
 	{
 		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
@@ -88,7 +88,7 @@ namespace sfg
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::create_folder(editor_world_folder_handle_t parent)
+	void editor_widget_outliner_t::create_folder(editor_world_folder_handle_t parent)
 	{
 		const editor_world_folder_handle_t folder = editor_commands_world_edit_context_t::create_folder(_edit_context, "Folder", parent);
 		if (!parent.is_null())
@@ -97,7 +97,7 @@ namespace sfg
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::delete_folder(editor_world_folder_handle_t folder)
+	void editor_widget_outliner_t::delete_folder(editor_world_folder_handle_t folder)
 	{
 		if (!editor_commands_world_edit_context_t::delete_folder(_edit_context, folder))
 			return;
@@ -108,7 +108,7 @@ namespace sfg
 		refresh_entities();
 	}
 
-	bool editor_panel_entities_t::assign_payload_entities_to_folder(const vector_t<editor_entity_payload_t>& entities, editor_world_folder_handle_t folder)
+	bool editor_widget_outliner_t::assign_payload_entities_to_folder(const vector_t<editor_entity_payload_t>& entities, editor_world_folder_handle_t folder)
 	{
 		if (entities.empty())
 			return false;
@@ -138,7 +138,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_panel_entities_t::deassign_payload_entities_from_folder(const vector_t<editor_entity_payload_t>& entities)
+	bool editor_widget_outliner_t::deassign_payload_entities_from_folder(const vector_t<editor_entity_payload_t>& entities)
 	{
 		if (entities.empty())
 			return false;
@@ -161,7 +161,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_panel_entities_t::assign_payload_folder_to_folder(editor_world_folder_handle_t folder, editor_world_folder_handle_t parent)
+	bool editor_widget_outliner_t::assign_payload_folder_to_folder(editor_world_folder_handle_t folder, editor_world_folder_handle_t parent)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
 		if (!metadata.can_assign_folder(folder, parent))
@@ -176,7 +176,7 @@ namespace sfg
 		return true;
 	}
 
-	void editor_panel_entities_t::toggle_entity_disabled(entity_id_t entity)
+	void editor_widget_outliner_t::toggle_entity_disabled(entity_id_t entity)
 	{
 		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
@@ -193,7 +193,7 @@ namespace sfg
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::start_entity_payload(entity_id_t entity)
+	void editor_widget_outliner_t::start_entity_payload(entity_id_t entity)
 	{
 		collect_payload_entities(entity);
 		if (_payload_entities.empty())
@@ -217,7 +217,7 @@ namespace sfg
 		payload_controller.create_payload(text.c_str(), editor_payload_type_e::entity_multi, &_payload_entities);
 	}
 
-	void editor_panel_entities_t::start_folder_payload(editor_world_folder_handle_t folder)
+	void editor_widget_outliner_t::start_folder_payload(editor_world_folder_handle_t folder)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
 		if (!metadata.is_folder_valid(folder))
@@ -231,7 +231,7 @@ namespace sfg
 		payload_controller.create_payload(metadata.get_folder(folder).name, editor_payload_type_e::folder, &_payload_folder);
 	}
 
-	bool editor_panel_entities_t::reparent_payload_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent)
+	bool editor_widget_outliner_t::reparent_payload_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent)
 	{
 		if (!can_reparent_entities(entities, parent))
 			return false;
@@ -254,7 +254,7 @@ namespace sfg
 		return true;
 	}
 
-	void editor_panel_entities_t::duplicate_selected_entities()
+	void editor_widget_outliner_t::duplicate_selected_entities()
 	{
 		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
@@ -271,7 +271,7 @@ namespace sfg
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::destroy_selected_entities()
+	void editor_widget_outliner_t::destroy_selected_entities()
 	{
 		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
@@ -284,7 +284,7 @@ namespace sfg
 		refresh_entities();
 	}
 
-	void editor_panel_entities_t::open_empty_action_menu(const vec2f_t& pos)
+	void editor_widget_outliner_t::open_empty_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
@@ -302,7 +302,7 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_panel_entities_t::open_folder_action_menu(const vec2f_t& pos, editor_world_folder_handle_t folder)
+	void editor_widget_outliner_t::open_folder_action_menu(const vec2f_t& pos, editor_world_folder_handle_t folder)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
@@ -320,7 +320,7 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_panel_entities_t::open_folder_rename_popup(editor_world_folder_handle_t folder)
+	void editor_widget_outliner_t::open_folder_rename_popup(editor_world_folder_handle_t folder)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
@@ -350,7 +350,7 @@ namespace sfg
 		});
 	}
 
-	void editor_panel_entities_t::open_folder_color_popup(const vec2f_t& pos, editor_world_folder_handle_t folder)
+	void editor_widget_outliner_t::open_folder_color_popup(const vec2f_t& pos, editor_world_folder_handle_t folder)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
@@ -373,7 +373,7 @@ namespace sfg
 		});
 	}
 
-	void editor_panel_entities_t::open_entity_action_menu(const vec2f_t& pos, entity_id_t entity)
+	void editor_widget_outliner_t::open_entity_action_menu(const vec2f_t& pos, entity_id_t entity)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);

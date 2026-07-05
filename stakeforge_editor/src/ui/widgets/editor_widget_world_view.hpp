@@ -26,34 +26,50 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "ui/panels/editor_panel.hpp"
-#include "ui/widgets/editor_widget_world_view.hpp"
-#include <sfg/data/string.hpp>
+#include "world_edit/editor_world_edit_context.hpp"
+#include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg
 {
+	struct editor_payload_t;
 	class world_render_context_t;
+	namespace ui
+	{
+		class ui_context;
+	}
 
-	class editor_panel_world_t final : public editor_panel_t
+	class editor_widget_world_view_t final
 	{
 	public:
-		editor_panel_world_t();
-		~editor_panel_world_t() override							 = default;
-		editor_panel_world_t(const editor_panel_world_t&)			 = delete;
-		editor_panel_world_t& operator=(const editor_panel_world_t&) = delete;
+		editor_widget_world_view_t()											 = default;
+		~editor_widget_world_view_t()											 = default;
+		editor_widget_world_view_t(const editor_widget_world_view_t&)			 = delete;
+		editor_widget_world_view_t& operator=(const editor_widget_world_view_t&) = delete;
 
-		void	init(ui::ui_context& ui, ui::widget_id_t parent) override;
-		void	uninit() override;
+		void	init(ui::ui_context& ui, ui::widget_id_t parent);
+		void	uninit();
 		void	set_edit_context(editor_world_edit_context_handle_t context);
-		void	set_world(const world_render_context_t& world, const char* name);
+		void	set_world(const world_render_context_t& world);
 		void	clear_world();
 		vec4f_t get_world_view_bounds() const;
 
-	private:
-		void refresh_title(const char* title);
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
 
 	private:
-		editor_widget_world_view_t _world_view;
-		string_t				   _title_text = {};
+		void refresh_world_texture();
+
+		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
+
+	private:
+		const world_render_context_t*	   _world		 = nullptr;
+		ui::ui_context*					   _ui			 = nullptr;
+		editor_world_edit_context_handle_t _edit_context = {};
+		ui::widget_id_t					   _root		 = NULL_WIDGET;
+		ui::widget_id_t					   _world_view	 = NULL_WIDGET;
+		ui::widget_id_t					   _empty_label	 = NULL_WIDGET;
 	};
 }

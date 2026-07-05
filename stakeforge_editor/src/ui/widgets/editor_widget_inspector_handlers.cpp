@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "ui/widgets/editor_widget_inspector.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
@@ -66,17 +66,17 @@ namespace sfg
 			return !world.is_null();
 		}
 	}
-	void editor_panel_inspector_t::on_entity_info_settings_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_inspector_t::on_entity_info_settings_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		static_cast<editor_panel_inspector_t*>(user_data)->open_entity_info_action_menu(pos);
+		static_cast<editor_widget_inspector_t*>(user_data)->open_entity_info_action_menu(pos);
 	}
 
-	void editor_panel_inspector_t::on_entity_info_action_menu_command(u16 command, void* user_data)
+	void editor_widget_inspector_t::on_entity_info_action_menu_command(u16 command, void* user_data)
 	{
-		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
 		switch (command)
 		{
 		case inspector_entity_info_action_menu_copy:
@@ -94,7 +94,7 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::on_entity_info_name_submitted(entity_id_t entity, void*)
+	void editor_widget_inspector_t::on_entity_info_name_submitted(entity_id_t entity, void*)
 	{
 		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
 		if (panel == nullptr)
@@ -103,22 +103,22 @@ namespace sfg
 		static_cast<editor_panel_entities_t*>(panel)->refresh_entity_name(entity);
 	}
 
-	void editor_panel_inspector_t::on_entity_info_edit_begin(void* user_data)
+	void editor_widget_inspector_t::on_entity_info_edit_begin(void* user_data)
 	{
-		static_cast<editor_panel_inspector_t*>(user_data)->begin_entity_info_edit();
+		static_cast<editor_widget_inspector_t*>(user_data)->begin_entity_info_edit();
 	}
 
-	void editor_panel_inspector_t::on_entity_info_edit_submitted(void* user_data)
+	void editor_widget_inspector_t::on_entity_info_edit_submitted(void* user_data)
 	{
-		static_cast<editor_panel_inspector_t*>(user_data)->submit_entity_info_edit();
+		static_cast<editor_widget_inspector_t*>(user_data)->submit_entity_info_edit();
 	}
 
-	void editor_panel_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
 		for (const component_display_t& display : panel._component_displays)
 		{
 			if (display.fold->get_settings_button() == id)
@@ -129,9 +129,9 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::on_component_action_menu_command(u16 command, void* user_data)
+	void editor_widget_inspector_t::on_component_action_menu_command(u16 command, void* user_data)
 	{
-		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
 		switch (command)
 		{
 		case inspector_component_action_menu_copy:
@@ -163,17 +163,17 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::on_add_component_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_inspector_t::on_add_component_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		static_cast<editor_panel_inspector_t*>(user_data)->open_add_component_action_menu(pos);
+		static_cast<editor_widget_inspector_t*>(user_data)->open_add_component_action_menu(pos);
 	}
 
-	void editor_panel_inspector_t::on_add_component_action_menu_command(u16 command, void* user_data)
+	void editor_widget_inspector_t::on_add_component_action_menu_command(u16 command, void* user_data)
 	{
-		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
 		if (command == 0 || command > panel._add_component_types.size())
 			return;
 
@@ -183,21 +183,21 @@ namespace sfg
 			editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]);
 	}
 
-	void editor_panel_inspector_t::on_component_edit_begin(void* user_data)
+	void editor_widget_inspector_t::on_component_edit_begin(void* user_data)
 	{
 		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
 		data.panel->begin_component_edit(data.component_type);
 	}
 
-	void editor_panel_inspector_t::on_component_edit_submitted(void* user_data)
+	void editor_widget_inspector_t::on_component_edit_submitted(void* user_data)
 	{
 		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
 		data.panel->submit_component_edit(data.component_type);
 	}
 
-	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
+	void editor_widget_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
-		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
 		switch (command.type)
 		{
 		case editor_command_type_e::component_add: {
@@ -254,18 +254,18 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_inspector_t::on_selection_changed(editor_world_edit_context_t&, void* user_data)
+	void editor_widget_inspector_t::on_selection_changed(editor_world_edit_context_t&, void* user_data)
 	{
-		static_cast<editor_panel_inspector_t*>(user_data)->refresh_from_selection();
+		static_cast<editor_widget_inspector_t*>(user_data)->refresh_from_selection();
 	}
 
-	void editor_panel_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)
+	void editor_widget_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)
 	{
-		static_cast<editor_panel_inspector_t*>(user_data)->flush_pending_ui_mutations();
+		static_cast<editor_widget_inspector_t*>(user_data)->flush_pending_ui_mutations();
 	}
 
-	void editor_panel_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_widget_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
-		static_cast<editor_panel_inspector_t*>(user_data)->apply_pending_scroll_restore();
+		static_cast<editor_widget_inspector_t*>(user_data)->apply_pending_scroll_restore();
 	}
 }

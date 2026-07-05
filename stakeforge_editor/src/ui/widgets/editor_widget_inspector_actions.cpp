@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "ui/widgets/editor_widget_inspector.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_action_menu_controller.hpp"
@@ -79,7 +79,7 @@ namespace sfg
 			return !world.is_null();
 		}
 	}
-	void editor_panel_inspector_t::open_entity_info_action_menu(const vec2f_t& pos)
+	void editor_widget_inspector_t::open_entity_info_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
@@ -96,7 +96,7 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_panel_inspector_t::open_component_action_menu(const vec2f_t& pos, sid_t type_id)
+	void editor_widget_inspector_t::open_component_action_menu(const vec2f_t& pos, sid_t type_id)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
@@ -115,7 +115,7 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_panel_inspector_t::open_add_component_action_menu(const vec2f_t& pos)
+	void editor_widget_inspector_t::open_add_component_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
@@ -175,7 +175,7 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_panel_inspector_t::create_add_component_button()
+	void editor_widget_inspector_t::create_add_component_button()
 	{
 		const editor_theme_t& theme	  = editor_theme_t::get();
 		_add_component_button		  = new editor_button_t();
@@ -196,17 +196,17 @@ namespace sfg
 		_ui->get_input().set_listener(_add_component_button->get_root(), listener);
 	}
 
-	bool editor_panel_inspector_t::is_component_removable(sid_t type_id) const
+	bool editor_widget_inspector_t::is_component_removable(sid_t type_id) const
 	{
 		return type_id != type_id_t<component_transform_t>::value && type_id != type_id_t<component_name_t>::value;
 	}
 
-	bool editor_panel_inspector_t::is_component_paste_enabled(sid_t type_id) const
+	bool editor_widget_inspector_t::is_component_paste_enabled(sid_t type_id) const
 	{
 		return _copied_component_stream.get_size() != 0 && _copied_component_type == type_id;
 	}
 
-	void editor_panel_inspector_t::copy_entity_info()
+	void editor_widget_inspector_t::copy_entity_info()
 	{
 		_copied_entity_info		  = {};
 		_copied_entity_info_valid = false;
@@ -218,7 +218,7 @@ namespace sfg
 		_copied_entity_info_valid = true;
 	}
 
-	void editor_panel_inspector_t::copy_component(sid_t type_id)
+	void editor_widget_inspector_t::copy_component(sid_t type_id)
 	{
 		_copied_component_stream.destroy();
 		_copied_component_type = 0;

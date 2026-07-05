@@ -24,15 +24,15 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/widgets/editor_widget_outliner.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
-#include "ui/panels/entities/editor_panel_entities_internal.hpp"
+#include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
-	void editor_panel_entities_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
+	void editor_widget_outliner_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
 	{
 		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
@@ -92,7 +92,7 @@ namespace sfg
 		controller.issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : anchor);
 	}
 
-	void editor_panel_entities_t::select_all_visible_entities()
+	void editor_widget_outliner_t::select_all_visible_entities()
 	{
 		frame_vector_t<entity_id_t> selection;
 		selection.reserve(_visible_entity_count);
@@ -105,7 +105,7 @@ namespace sfg
 		editor_world_controller_t::get().get_edit_context(_edit_context).issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : selection.back());
 	}
 
-	void editor_panel_entities_t::append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const
+	void editor_widget_outliner_t::append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const
 	{
 		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities();
 		out_entities.resize(0);
@@ -118,7 +118,7 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_entities_t::collect_payload_entities(entity_id_t entity)
+	void editor_widget_outliner_t::collect_payload_entities(entity_id_t entity)
 	{
 		_payload_entities.resize(0);
 
@@ -142,7 +142,7 @@ namespace sfg
 			_payload_entities.push_back({.world = main_world, .entity = entity});
 	}
 
-	void editor_panel_entities_t::prune_entity_selection()
+	void editor_widget_outliner_t::prune_entity_selection()
 	{
 		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
@@ -167,7 +167,7 @@ namespace sfg
 		controller.apply_entity_selection({.data = selection.data(), .size = selection.size()}, anchor);
 	}
 
-	bool editor_panel_entities_t::reveal_entity(entity_id_t entity)
+	bool editor_widget_outliner_t::reveal_entity(entity_id_t entity)
 	{
 		if (entity == NULL_ENTITY_ID || _main_world.is_null())
 			return false;
@@ -201,7 +201,7 @@ namespace sfg
 		return changed;
 	}
 
-	void editor_panel_entities_t::toggle_entity_fold(entity_id_t entity)
+	void editor_widget_outliner_t::toggle_entity_fold(entity_id_t entity)
 	{
 		world_t&					 world	  = editor_world_controller_t::get().get_world(_main_world);
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
