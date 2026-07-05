@@ -111,7 +111,6 @@ namespace sfg
 		_action_menu_type_id	   = 0;
 		_pending_component_type	   = 0;
 		_pending_scroll_y		   = 0.0f;
-		_scroll_restore_wait_ticks = 0;
 		_refresh_component_pending = false;
 		_scroll_restore_pending	   = false;
 		_skip_scroll_state_save	   = false;

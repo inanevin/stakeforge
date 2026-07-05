@@ -177,34 +177,28 @@ namespace sfg
 		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
 		{
 			_scroll_restore_pending = false;
-			_ui->clear_pre_layout_tick(_scroll_area);
+			_ui->clear_post_layout_tick(_scroll_area);
 			return;
 		}
 
 		const entity_scroll_state_t* state = find_entity_scroll_state(_display_entities[0]);
 		_pending_scroll_y				   = state != nullptr ? state->scroll_y : 0.0f;
-		_scroll_restore_wait_ticks		   = 1;
 		_scroll_restore_pending			   = true;
-		_ui->set_pre_layout_tick(_scroll_area, on_scroll_restore_tick, this);
+		_ui->set_post_layout_tick(_scroll_area, on_scroll_restore_tick, this);
 	}
 
 	void editor_panel_inspector_t::apply_pending_scroll_restore()
 	{
 		if (!_scroll_restore_pending)
 		{
-			_ui->clear_pre_layout_tick(_scroll_area);
-			return;
-		}
-
-		if (_scroll_restore_wait_ticks > 0)
-		{
-			--_scroll_restore_wait_ticks;
+			_ui->clear_post_layout_tick(_scroll_area);
 			return;
 		}
 
 		_scrollbar.set_scroll_y_immediate(_pending_scroll_y);
+		_ui->request_post_layout_solve();
 		_scroll_restore_pending = false;
-		_ui->clear_pre_layout_tick(_scroll_area);
+		_ui->clear_post_layout_tick(_scroll_area);
 	}
 
 	void editor_panel_inspector_t::clear_display()

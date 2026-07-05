@@ -151,6 +151,12 @@ namespace sfg::ui
 		_tree.solve(screen_rect, _ui_scale);
 		set_phase(ui_phase_e::post_layout);
 		run_post_layout_ticks(dt_seconds);
+		if (_post_solve)
+		{
+			_post_solve = false;
+			set_phase(ui_phase_e::layout);
+			_tree.solve(screen_rect, _ui_scale);
+		}
 		set_phase(ui_phase_e::input);
 		_input.tick(_tree, dt_seconds);
 
@@ -277,6 +283,11 @@ namespace sfg::ui
 			else
 				++i;
 		}
+	}
+
+	void ui_context::request_post_layout_solve()
+	{
+		_post_solve = true;
 	}
 
 	void ui_context::clear_widget_state_recursive(widget_id_t id)

@@ -131,9 +131,10 @@ namespace sfg
 		world_t&			 world	= _worlds.get(handle);
 		world.init();
 
-		world_container_t& container		 = _world_containers.emplace_back();
-		container.handle					 = handle;
-		container.edit_context				 = _edit_contexts.emplace();
+		world_container_t& container = _world_containers.emplace_back();
+		container.handle			 = handle;
+		container.edit_context		 = _edit_contexts.emplace();
+
 		editor_world_edit_context_t& context = _edit_contexts.get(container.edit_context);
 		context.init();
 		context.set_handle(container.edit_context);

@@ -192,7 +192,6 @@ namespace sfg
 		sid_t											  _component_edit_type		   = 0;
 		editor_inspector_display_type_e					  _display_type				   = editor_inspector_display_type_e::none;
 		f32												  _pending_scroll_y			   = 0.0f;
-		u8												  _scroll_restore_wait_ticks   = 0;
 		bool											  _refresh_display_pending	   = false;
 		bool											  _refresh_component_pending   = false;
 		bool											  _scroll_restore_pending	   = false;

@@ -104,6 +104,7 @@ namespace sfg::ui
 		void		request_mutation(ui_mutation_fn fn, void* user_data);
 		void		request_unique_mutation(ui_mutation_fn fn, void* user_data);
 		void		cancel_mutations(void* user_data);
+		void		request_post_layout_solve();
 
 		// -----------------------------------------------------------------------------
 		// render-thread snapshot
@@ -255,6 +256,7 @@ namespace sfg::ui
 		resource_handle_t						   _debug_font		 = NULL_RESOURCE_HANDLE;
 		ui_phase_e								   _phase			 = ui_phase_e::idle;
 		bool									   _debug_draw		 = false;
+		bool									   _post_solve		 = false;
 		fixed_vector_t<pre_layout_tick_def_t>	   _pre_layout_tick_defs;
 		fixed_vector_t<post_layout_tick_def_t>	   _post_layout_tick_defs;
 	};
