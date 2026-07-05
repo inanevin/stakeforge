@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -132,6 +133,8 @@ namespace sfg
 		void						 assign_entities_to_folder(editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids);
 		void						 deassign_entities_from_folder(span_t<const entity_guid_t> entity_guids);
 		void						 collect_outliner_items(const world_t& world);
+		void						 write_folders_to_json(nlohmann::json& out_json) const;
+		void						 read_folders_from_json(const nlohmann::json& in_json);
 
 		// -----------------------------------------------------------------------------
 		// queries

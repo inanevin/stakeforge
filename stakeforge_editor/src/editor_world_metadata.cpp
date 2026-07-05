@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -66,7 +67,6 @@ namespace sfg
 		SFG_ASSERT(_inited);
 		_world = world;
 		_outliner_items.resize(0);
-		_outliner_rows.resize(0);
 		_entity_metadata.resize(0);
 		_folders.reset();
 		_next_guid = 1;
@@ -214,6 +214,62 @@ namespace sfg
 				continue;
 
 			append_entity_items(world, hierarchy_table->table, name_table->table, disabled_table->table, row.id, 0);
+		}
+	}
+
+	void editor_world_metadata_t::write_folders_to_json(nlohmann::json& out_json) const
+	{
+		out_json = nlohmann::json::array();
+		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
+		{
+			const editor_world_folder_t& folder		  = _folders.get(*it);
+			nlohmann::json				 entity_guids = nlohmann::json::array();
+			for (entity_guid_t guid : folder.entity_guids)
+				entity_guids.push_back(guid);
+
+			out_json.push_back({
+				{"guid", folder.guid},
+				{"parent_guid", folder.parent_handle.is_null() ? 0 : _folders.get(folder.parent_handle).guid},
+				{"name", folder.name != nullptr ? folder.name : ""},
+				{"color", nlohmann::json{{"x", folder.color.x}, {"y", folder.color.y}, {"z", folder.color.z}, {"w", folder.color.w}}},
+				{"folded", folder.folded},
+				{"entities", entity_guids},
+			});
+		}
+	}
+
+	void editor_world_metadata_t::read_folders_from_json(const nlohmann::json& in_json)
+	{
+		if (!in_json.is_array())
+			return;
+
+		for (const nlohmann::json& folder_json : in_json)
+		{
+			const nlohmann::json		   color_json = folder_json.value<nlohmann::json>("color", nlohmann::json::object());
+			const nlohmann::json::string_t name		  = folder_json.value<nlohmann::json::string_t>("name", "Folder");
+			create_folder_with_guid(
+				name.c_str(), color_t(color_json.value<f32>("x", 1.0f), color_json.value<f32>("y", 1.0f), color_json.value<f32>("z", 1.0f), color_json.value<f32>("w", 1.0f)), folder_json.value<bool>("folded", false), {}, folder_json.value<u64>("guid", 0));
+		}
+
+		for (const nlohmann::json& folder_json : in_json)
+		{
+			const editor_world_folder_handle_t handle = get_folder_handle(folder_json.value<u64>("guid", 0));
+			if (handle.is_null())
+				continue;
+
+			const editor_world_folder_handle_t parent_handle = get_folder_handle(folder_json.value<u64>("parent_guid", 0));
+			if (!parent_handle.is_null() && can_assign_folder(handle, parent_handle))
+				set_folder_parent(handle, parent_handle);
+
+			const nlohmann::json entity_guids_json = folder_json.value<nlohmann::json>("entities", nlohmann::json::array());
+			if (!entity_guids_json.is_array())
+				continue;
+
+			for (const nlohmann::json& entity_guid_json : entity_guids_json)
+			{
+				const entity_guid_t guid = entity_guid_json.get<entity_guid_t>();
+				assign_entities_to_folder(handle, {.data = &guid, .size = 1});
+			}
 		}
 	}
 

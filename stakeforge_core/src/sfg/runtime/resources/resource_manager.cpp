@@ -183,6 +183,9 @@ namespace sfg
 			return;
 		}
 
+		const char* dbg = reinterpret_cast<const char*>(_memory.get(entry.debug_name.head));
+		SFG_TRACE("unloaded resource: {0}", dbg);
+
 		unload_entry(entry);
 		_entries.erase(it);
 	}

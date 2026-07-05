@@ -386,6 +386,13 @@ namespace sfg
 
 		const char* asset_name = editor_asset_util_t::find_asset_display_name(asset_guid);
 		set_main_world(handle, asset_guid, asset_name != nullptr ? asset_name : "unnamed");
+		if (!asset->embedded_source.empty())
+		{
+			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
+			editor_world_metadata_t::get().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
+			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
+		}
 		_main_world_dirty		  = false;
 		editor_project_t& project = editor_project_t::get();
 		project.last_world_guid	  = asset_guid;
@@ -400,6 +407,7 @@ namespace sfg
 
 		nlohmann::json world_json = nlohmann::json::object();
 		world_cooker_t::world_to_json(_worlds.get(_main_world), world_json);
+		editor_world_metadata_t::get().write_folders_to_json(world_json["folders"]);
 
 		editor_asset_t		  asset = {};
 		string_t			  asset_path;
