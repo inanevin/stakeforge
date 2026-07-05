@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 

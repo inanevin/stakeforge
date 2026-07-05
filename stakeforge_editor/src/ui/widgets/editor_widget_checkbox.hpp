@@ -84,11 +84,11 @@ namespace sfg
 		static void on_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 
 	private:
+		editor_checkbox_config_t _config  = {};
+		vector_t<u8*>			 _fields  = {};
 		ui::ui_context*			 _ui	  = nullptr;
 		ui::widget_id_t			 _root	  = NULL_WIDGET;
 		ui::widget_id_t			 _check	  = NULL_WIDGET;
-		vector_t<u8*>			 _fields  = {};
-		editor_checkbox_config_t _config  = {};
 		bool					 _checked = false;
 		bool					 _mixed	  = false;
 	};

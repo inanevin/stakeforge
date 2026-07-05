@@ -48,9 +48,9 @@ namespace sfg
 	struct editor_widget_fold_label_config_t
 	{
 		const char*								label		 = nullptr;
+		f32										indentation	 = 0.0f;
 		editor_widget_fold_label_button_style_e button_style = editor_widget_fold_label_button_style_e::none;
 		bool									folded		 = false;
-		f32										indentation	 = 0.0f;
 		bool									sub_item	 = false;
 	};
 

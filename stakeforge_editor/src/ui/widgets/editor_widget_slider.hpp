@@ -88,14 +88,14 @@ namespace sfg
 		static void on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
+		editor_slider_config_t _config		   = {};
+		char				   _label_text[32] = {};
 		ui::ui_context*		   _ui			   = nullptr;
 		ui::widget_id_t		   _root		   = NULL_WIDGET;
 		ui::widget_id_t		   _slider		   = NULL_WIDGET;
 		ui::widget_id_t		   _bg			   = NULL_WIDGET;
 		ui::widget_id_t		   _icon		   = NULL_WIDGET;
 		ui::widget_id_t		   _label		   = NULL_WIDGET;
-		editor_slider_config_t _config		   = {};
-		char				   _label_text[32] = {};
 		f32					   _value		   = 0.0f;
 		bool				   _mixed		   = false;
 	};

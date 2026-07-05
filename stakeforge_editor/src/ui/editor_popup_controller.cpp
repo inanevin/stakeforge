@@ -237,9 +237,12 @@ namespace sfg
 		u8*							asset_search_text_field = reinterpret_cast<u8*>(&_asset_search_text);
 		editor_input_field_config_t asset_search_config		= {};
 		asset_search_config.placeholder						= "Search";
-		asset_search_config.field							= {.type = editor_input_field_field_type_e::string, .fields = {.data = &asset_search_text_field, .size = 1}};
-		asset_search_config.callbacks.edited				= on_asset_search_changed;
-		asset_search_config.callbacks.user_data				= this;
+		asset_search_config.field							= {
+									  .fields = {.data = &asset_search_text_field, .size = 1},
+									  .type	  = editor_input_field_field_type_e::string,
+		  };
+		asset_search_config.callbacks.edited	= on_asset_search_changed;
+		asset_search_config.callbacks.user_data = this;
 		_asset_search_input.init(ui, _asset_search_row, asset_search_config);
 
 		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
@@ -273,9 +276,12 @@ namespace sfg
 
 		u8*							input_text_field = reinterpret_cast<u8*>(&_input_text);
 		editor_input_field_config_t input_config	 = {};
-		input_config.field							 = {.type = editor_input_field_field_type_e::string, .fields = {.data = &input_text_field, .size = 1}};
-		input_config.callbacks.edit_submitted		 = on_input_submitted;
-		input_config.callbacks.user_data			 = this;
+		input_config.field							 = {
+									  .fields = {.data = &input_text_field, .size = 1},
+									  .type	  = editor_input_field_field_type_e::string,
+		  };
+		input_config.callbacks.edit_submitted = on_input_submitted;
+		input_config.callbacks.user_data	  = this;
 		_input.init(ui, _foreground, input_config);
 		color_t* color_wheel_color = &_color_wheel_dummy_color;
 		_color_wheel.init(ui, _frame, {.field = {.fields = {.data = &color_wheel_color, .size = 1}}});

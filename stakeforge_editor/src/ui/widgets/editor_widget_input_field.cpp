@@ -27,9 +27,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include <sfg/data/string.hpp>
+
 #include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>

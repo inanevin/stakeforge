@@ -139,9 +139,12 @@ namespace sfg
 		u8*							search_field  = reinterpret_cast<u8*>(&_search_text);
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
-		search_config.field						  = {.type = editor_input_field_field_type_e::string, .fields = {.data = &search_field, .size = 1}};
-		search_config.callbacks.edited			  = on_search_changed;
-		search_config.callbacks.user_data		  = this;
+		search_config.field						  = {
+								  .fields = {.data = &search_field, .size = 1},
+								  .type	  = editor_input_field_field_type_e::string,
+		  };
+		search_config.callbacks.edited	  = on_search_changed;
+		search_config.callbacks.user_data = this;
 		_search_input.init(ui, _top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());

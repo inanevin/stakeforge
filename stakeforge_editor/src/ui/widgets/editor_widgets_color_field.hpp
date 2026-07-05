@@ -90,13 +90,13 @@ namespace sfg
 		static void on_color_wheel_popup_closed(void* user_data);
 
 	private:
+		editor_color_field_config_t _config		 = {};
+		vector_t<color_t*>			_fields		 = {};
 		ui::ui_context*				_ui			 = nullptr;
+		color_t						_color		 = {};
 		ui::widget_id_t				_root		 = NULL_WIDGET;
 		ui::widget_id_t				_swatch		 = NULL_WIDGET;
 		ui::widget_id_t				_label		 = NULL_WIDGET;
-		vector_t<color_t*>			_fields		 = {};
-		editor_color_field_config_t _config		 = {};
-		color_t						_color		 = {};
 		bool						_mixed		 = false;
 		bool						_edit_active = false;
 		bool						_edit_dirty	 = false;

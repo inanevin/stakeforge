@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "ui/panels/editor_theme.hpp"
+
 #include <sfg/math/easing.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>

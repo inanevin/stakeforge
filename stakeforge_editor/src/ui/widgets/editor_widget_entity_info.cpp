@@ -26,16 +26,14 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_entity_info.hpp"
-#include "editor_app.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/math/quat.hpp>
+#include "editor_app.hpp"
+
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
-#include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {
@@ -82,7 +80,11 @@ namespace sfg
 		name_config.placeholder					= "Name";
 		name_config.callbacks.edit_submitted	= on_name_input_submitted;
 		name_config.callbacks.user_data			= this;
-		name_config.field						= {.type = editor_input_field_field_type_e::char_array, .fields = {.data = &name_field, .size = 1}, .field_size = sizeof(component_name_t::text)};
+		name_config.field						= {
+								  .fields	  = {.data = &name_field, .size = 1},
+								  .field_size = sizeof(component_name_t::text),
+								  .type		  = editor_input_field_field_type_e::char_array,
+		  };
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
 
@@ -204,7 +206,11 @@ namespace sfg
 			scale_values.push_back(&transform.scale);
 		}
 
-		_name_input.update_field_data({.type = editor_input_field_field_type_e::char_array, .fields = {.data = name_values.data(), .size = name_values.size()}, .field_size = sizeof(component_name_t::text)});
+		_name_input.update_field_data({
+			.fields		= {.data = name_values.data(), .size = name_values.size()},
+			.field_size = sizeof(component_name_t::text),
+			.type		= editor_input_field_field_type_e::char_array,
+		});
 		_position_field.update_field_data({.fields = {.data = position_values.data(), .size = position_values.size()}});
 		_rotation_field.update_field_data({.fields = {.data = rotation_values.data(), .size = rotation_values.size()}});
 		_scale_field.update_field_data({.fields = {.data = scale_values.data(), .size = scale_values.size()}});
@@ -242,5 +248,4 @@ namespace sfg
 		for (entity_id_t entity : _entities)
 			_name_submitted_callback(entity, _name_submitted_user_data);
 	}
-
 }

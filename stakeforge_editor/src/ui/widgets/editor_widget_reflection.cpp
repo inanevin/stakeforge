@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_reflection.hpp"
-#include "assets/editor_asset_type.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "editor_widget_checkbox.hpp"
@@ -39,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_widgets_vec_fields.hpp"
 #include "editor_widgets_dividers.hpp"
 #include "editor_widgets_icons.hpp"
+
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
@@ -333,9 +333,9 @@ namespace sfg
 					{
 						.field =
 							{
-								.type		= input_type,
 								.fields		= fields,
 								.field_size = field->size,
+								.type		= input_type,
 								.is_slider	= is_slider,
 							},
 						.callbacks	 = _callbacks,
@@ -368,8 +368,8 @@ namespace sfg
 		reference->init(*_ui,
 						row.right,
 						{
-							.fields		= fields,
 							.callbacks	= _callbacks,
+							.fields		= fields,
 							.world		= world,
 							.asset_type = asset_type,
 							.type		= entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
@@ -522,9 +522,9 @@ namespace sfg
 				   parent,
 				   {
 					   .label		 = field->display_name ? field->display_name : "missing_display_name",
+					   .indentation	 = indentation,
 					   .button_style = removable_item ? editor_widget_fold_label_button_style_e::container_item_buttons : editor_widget_fold_label_button_style_e::none,
 					   .folded		 = folded,
-					   .indentation	 = indentation,
 					   .sub_item	 = sub_item,
 				   });
 		install_tooltip(fold->get_root(), field->tooltip);
@@ -553,9 +553,9 @@ namespace sfg
 				   parent,
 				   {
 					   .label		 = field->display_name ? field->display_name : "missing_display_name",
+					   .indentation	 = indentation,
 					   .button_style = editor_widget_fold_label_button_style_e::container_buttons,
 					   .folded		 = folded,
-					   .indentation	 = indentation,
 					   .sub_item	 = sub_item,
 				   });
 		install_tooltip(fold->get_root(), field->tooltip);

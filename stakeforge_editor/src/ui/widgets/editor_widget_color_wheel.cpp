@@ -28,9 +28,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/common/hashing.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/math/color_utils.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -346,12 +343,16 @@ namespace sfg
 
 		u8*							input_field	 = reinterpret_cast<u8*>(&_number_values[field]);
 		editor_input_field_config_t input_config = {};
-		input_config.field						 = {.type = editor_input_field_field_type_e::pod_number, .fields = {.data = &input_field, .size = 1}, .field_size = sizeof(f32)};
-		input_config.field.is_slider			 = true;
-		input_config.min_value					 = 0.0f;
-		input_config.max_value					 = 1.0f;
-		input_config.callbacks.edited			 = field < 4 ? on_rgba_changed : on_hsv_changed;
-		input_config.callbacks.user_data		 = this;
+		input_config.field						 = {
+								  .fields	  = {.data = &input_field, .size = 1},
+								  .field_size = sizeof(f32),
+								  .type		  = editor_input_field_field_type_e::pod_number,
+		  };
+		input_config.field.is_slider	 = true;
+		input_config.min_value			 = 0.0f;
+		input_config.max_value			 = 1.0f;
+		input_config.callbacks.edited	 = field < 4 ? on_rgba_changed : on_hsv_changed;
+		input_config.callbacks.user_data = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
 
 		ui::layout_in_t& input_in				 = tree.in(_inputs[row].get_root());
@@ -408,9 +409,13 @@ namespace sfg
 
 		u8*							input_field	 = reinterpret_cast<u8*>(_hex_value);
 		editor_input_field_config_t input_config = {};
-		input_config.field						 = {.type = editor_input_field_field_type_e::char_array, .fields = {.data = &input_field, .size = 1}, .field_size = HEX_TEXT_CAPACITY};
-		input_config.callbacks.edited			 = on_hex_changed;
-		input_config.callbacks.user_data		 = this;
+		input_config.field						 = {
+								  .fields	  = {.data = &input_field, .size = 1},
+								  .field_size = HEX_TEXT_CAPACITY,
+								  .type		  = editor_input_field_field_type_e::char_array,
+		  };
+		input_config.callbacks.edited	 = on_hex_changed;
+		input_config.callbacks.user_data = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
 
 		ui::layout_in_t& input_in				 = tree.in(_inputs[row].get_root());

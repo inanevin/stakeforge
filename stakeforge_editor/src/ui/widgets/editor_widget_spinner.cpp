@@ -27,11 +27,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/widgets/editor_widget_spinner.hpp"
 #include "ui/panels/editor_theme.hpp"
+
 #include <sfg/math/math.hpp>
-#include <sfg/math/math_common.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg
 {

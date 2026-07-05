@@ -60,9 +60,9 @@ namespace sfg
 		}
 
 	private:
+		editor_button_config_t _config = {};
 		ui::ui_context*		   _ui	   = nullptr;
 		ui::widget_id_t		   _root   = NULL_WIDGET;
 		ui::widget_id_t		   _label  = NULL_WIDGET;
-		editor_button_config_t _config = {};
 	};
 }

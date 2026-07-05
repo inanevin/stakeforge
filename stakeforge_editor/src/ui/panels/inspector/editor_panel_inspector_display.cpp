@@ -291,7 +291,6 @@ namespace sfg
 			display.reflect->init(*_ui,
 								  display.fold->get_body(),
 								  {
-									  .objects	   = {.data = display.objects.data(), .size = display.objects.size()},
 									  .fold_states = &_field_states,
 									  .callbacks =
 										  {
@@ -299,6 +298,7 @@ namespace sfg
 											  .edit_submitted = on_component_edit_submitted,
 											  .user_data	  = display.edit_user_data,
 										  },
+									  .objects = {.data = display.objects.data(), .size = display.objects.size()},
 									  .type_id = component_table.type_desc.type_id,
 									  .world   = _display_world_handle,
 								  });
@@ -332,7 +332,6 @@ namespace sfg
 		display->reflect->init(*_ui,
 							   display->fold->get_body(),
 							   {
-								   .objects		= {.data = display->objects.data(), .size = display->objects.size()},
 								   .fold_states = &_field_states,
 								   .callbacks =
 									   {
@@ -340,6 +339,7 @@ namespace sfg
 										   .edit_submitted = on_component_edit_submitted,
 										   .user_data	   = display->edit_user_data,
 									   },
+								   .objects = {.data = display->objects.data(), .size = display->objects.size()},
 								   .type_id = display->type_id,
 								   .world	= _display_world_handle,
 							   });

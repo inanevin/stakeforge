@@ -52,9 +52,9 @@ namespace sfg
 
 	struct editor_input_field_field_t
 	{
-		editor_input_field_field_type_e type	   = editor_input_field_field_type_e::string;
 		span_t<u8*>						fields	   = {};
 		size_t							field_size = 0;
+		editor_input_field_field_type_e type	   = editor_input_field_field_type_e::string;
 		bool							is_slider  = false;
 	};
 
@@ -141,15 +141,15 @@ namespace sfg
 		static void draw_overlay(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
+		char						_text[TEXT_CAPACITY]		  = {};
+		f32							_text_advances[TEXT_CAPACITY] = {};
+		editor_input_field_config_t _config						  = {};
+		vector_t<u8*>				_fields						  = {};
 		ui::ui_context*				_ui							  = nullptr;
 		ui::widget_id_t				_root						  = NULL_WIDGET;
 		ui::widget_id_t				_slider						  = NULL_WIDGET;
 		ui::widget_id_t				_label						  = NULL_WIDGET;
 		ui::widget_id_t				_overlay					  = NULL_WIDGET;
-		vector_t<u8*>				_fields						  = {};
-		editor_input_field_config_t _config						  = {};
-		char						_text[TEXT_CAPACITY]		  = {};
-		f32							_text_advances[TEXT_CAPACITY] = {};
 		u32							_text_len					  = 0;
 		u32							_caret						  = 0;
 		u32							_selection_anchor			  = 0;

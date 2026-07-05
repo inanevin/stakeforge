@@ -30,7 +30,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/color.hpp>
-#include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui
@@ -59,6 +58,8 @@ namespace sfg
 		editor_color_wheel_data_changed_fn on_data_changed = nullptr;
 		void*							   user_data	   = nullptr;
 	};
+
+	struct vec2f_t;
 
 	class editor_widget_color_wheel_t final
 	{
@@ -121,7 +122,12 @@ namespace sfg
 		static void on_top_right_frame_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
+		editor_input_field_t		_inputs[ROW_COUNT]						  = {};
+		editor_color_wheel_config_t _config									  = {};
+		vector_t<color_t*>			_fields									  = {};
 		ui::ui_context*				_ui										  = nullptr;
+		color_t						_display_color							  = {};
+		color_t						_top_right_drag_color					  = {};
 		ui::widget_id_t				_root									  = NULL_WIDGET;
 		ui::widget_id_t				_panes[PANE_COUNT]						  = {};
 		ui::widget_id_t				_top_left_frame							  = NULL_WIDGET;
@@ -130,11 +136,6 @@ namespace sfg
 		ui::widget_id_t				_top_right_handles[TOP_RIGHT_FRAME_COUNT] = {};
 		ui::widget_id_t				_rows[ROW_COUNT]						  = {};
 		ui::widget_id_t				_labels[ROW_COUNT]						  = {};
-		editor_input_field_t		_inputs[ROW_COUNT]						  = {};
-		vector_t<color_t*>			_fields									  = {};
-		editor_color_wheel_config_t _config									  = {};
-		color_t						_display_color							  = {};
-		color_t						_top_right_drag_color					  = {};
 		f32							_top_right_values[TOP_RIGHT_FRAME_COUNT]  = {};
 		f32							_number_values[NUMBER_FIELD_COUNT]		  = {};
 		char						_hex_value[HEX_TEXT_CAPACITY]			  = {};

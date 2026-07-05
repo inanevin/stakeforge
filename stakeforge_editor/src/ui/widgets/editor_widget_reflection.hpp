@@ -64,9 +64,9 @@ namespace sfg
 
 	struct editor_widget_reflection_config_t
 	{
-		span_t<void*>									 objects	 = {};
 		vector_t<editor_widget_reflection_fold_state_t>* fold_states = nullptr;
 		editor_widget_callbacks_t						 callbacks	 = {};
+		span_t<void*>									 objects	 = {};
 		sid_t											 type_id	 = 0;
 		world_handle_t									 world		 = {};
 	};
@@ -158,8 +158,7 @@ namespace sfg
 		static void on_container_refresh(ui::ui_context& ui, void* user_data);
 
 	private:
-		ui::ui_context*									 _ui   = nullptr;
-		ui::widget_id_t									 _root = NULL_WIDGET;
+		editor_widget_callbacks_t						 _callbacks = {};
 		vector_t<editor_input_field_t*>					 _inputs;
 		vector_t<editor_checkbox_t*>					 _checkboxes;
 		vector_t<editor_dropdown_t*>					 _dropdowns;
@@ -176,7 +175,8 @@ namespace sfg
 		vector_t<ui::widget_id_t>						 _dividers;
 		vector_t<ui::widget_id_t>						 _rows;
 		vector_t<ui::widget_id_t>						 _tooltip_owners;
-		editor_widget_callbacks_t						 _callbacks	  = {};
 		vector_t<editor_widget_reflection_fold_state_t>* _fold_states = nullptr;
+		ui::ui_context*									 _ui		  = nullptr;
+		ui::widget_id_t									 _root		  = NULL_WIDGET;
 	};
 }

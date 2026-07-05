@@ -66,9 +66,9 @@ namespace sfg
 		static void draw(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
-		ui::ui_context* _ui			 = nullptr;
-		ui::widget_id_t _root		 = NULL_WIDGET;
 		vec4f_t			_outer_color = {};
 		vec4f_t			_inner_color = {};
+		ui::ui_context* _ui			 = nullptr;
+		ui::widget_id_t _root		 = NULL_WIDGET;
 	};
 }

@@ -29,6 +29,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_width.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_common.hpp"
+
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -117,13 +118,14 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*			   _ui		  = nullptr;
-		ui::widget_id_t			   _root	  = NULL_WIDGET;
-		editor_vec2_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[2] = {};
+		editor_vec2_field_config_t _config	  = {};
 		vector_t<vec2f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[2] = {};
 		vec2f_t					   _value	  = {0.0f, 0.0f};
+
+		ui::ui_context* _ui	  = nullptr;
+		ui::widget_id_t _root = NULL_WIDGET;
 	};
 
 	class editor_vec3_field_t final
@@ -152,13 +154,14 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*			   _ui		  = nullptr;
-		ui::widget_id_t			   _root	  = NULL_WIDGET;
-		editor_vec3_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[3] = {};
+		editor_vec3_field_config_t _config	  = {};
 		vector_t<vec3f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[3] = {};
 		vec3f_t					   _value	  = {0.0f, 0.0f, 0.0f};
+
+		ui::ui_context* _ui	  = nullptr;
+		ui::widget_id_t _root = NULL_WIDGET;
 	};
 
 	class editor_vec4_field_t final
@@ -187,13 +190,14 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*			   _ui		  = nullptr;
-		ui::widget_id_t			   _root	  = NULL_WIDGET;
-		editor_vec4_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[4] = {};
+		editor_vec4_field_config_t _config	  = {};
 		vector_t<vec4f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[4] = {};
 		vec4f_t					   _value	  = {0.0f, 0.0f, 0.0f, 0.0f};
+
+		ui::ui_context* _ui	  = nullptr;
+		ui::widget_id_t _root = NULL_WIDGET;
 	};
 
 	class editor_quat_field_t final
@@ -229,13 +233,14 @@ namespace sfg
 		static void on_euler_edit_submitted(void* user_data);
 
 	private:
-		ui::ui_context*			   _ui		  = nullptr;
-		ui::widget_id_t			   _root	  = NULL_WIDGET;
-		editor_quat_field_config_t _config	  = {};
 		editor_input_field_t	   _inputs[3] = {};
+		editor_quat_field_config_t _config	  = {};
 		vector_t<quat_t*>		   _field_values;
 		vector_t<vec3f_t>		   _euler_values;
 		vector_t<u8*>			   _fields[3] = {};
 		quat_t					   _value	  = {};
+
+		ui::ui_context* _ui	  = nullptr;
+		ui::widget_id_t _root = NULL_WIDGET;
 	};
 }

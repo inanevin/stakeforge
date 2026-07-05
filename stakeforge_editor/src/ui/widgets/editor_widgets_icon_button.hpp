@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
    1. Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
+	  list of conditions and the following disclaimer.
 
    2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -89,10 +89,10 @@ namespace sfg
 		static void on_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
+		editor_icon_button_config_t _config	  = {};
 		ui::ui_context*				_ui		  = nullptr;
 		ui::widget_id_t				_root	  = NULL_WIDGET;
 		ui::widget_id_t				_icon	  = NULL_WIDGET;
-		editor_icon_button_config_t _config	  = {};
 		bool						_toggled  = false;
 		bool						_disabled = false;
 	};

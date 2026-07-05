@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/panels/editor_theme.hpp"
+
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -57,9 +58,9 @@ namespace sfg
 			return {
 				.field =
 					{
-						.type		= editor_input_field_field_type_e::pod_number,
 						.fields		= fields,
 						.field_size = sizeof(f32),
+						.type		= editor_input_field_field_type_e::pod_number,
 					},
 				.callbacks	 = callbacks,
 				.placeholder = placeholder,
@@ -140,7 +141,11 @@ namespace sfg
 			_fields[component].reserve(fields.size);
 			for (size_t i = 0; i < fields.size; ++i)
 				_fields[component].push_back(reinterpret_cast<u8*>(&(&fields.data[i]->x)[component]));
-			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
+			_inputs[component].update_field_data({
+				.fields		= {.data = _fields[component].data(), .size = _fields[component].size()},
+				.field_size = sizeof(f32),
+				.type		= editor_input_field_field_type_e::pod_number,
+			});
 		}
 	}
 
@@ -219,7 +224,11 @@ namespace sfg
 			_fields[component].reserve(fields.size);
 			for (size_t i = 0; i < fields.size; ++i)
 				_fields[component].push_back(reinterpret_cast<u8*>(&(&fields.data[i]->x)[component]));
-			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
+			_inputs[component].update_field_data({
+				.fields		= {.data = _fields[component].data(), .size = _fields[component].size()},
+				.field_size = sizeof(f32),
+				.type		= editor_input_field_field_type_e::pod_number,
+			});
 		}
 	}
 
@@ -298,7 +307,11 @@ namespace sfg
 			_fields[component].reserve(fields.size);
 			for (size_t i = 0; i < fields.size; ++i)
 				_fields[component].push_back(reinterpret_cast<u8*>(&(&fields.data[i]->x)[component]));
-			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
+			_inputs[component].update_field_data({
+				.fields		= {.data = _fields[component].data(), .size = _fields[component].size()},
+				.field_size = sizeof(f32),
+				.type		= editor_input_field_field_type_e::pod_number,
+			});
 		}
 	}
 
@@ -398,7 +411,11 @@ namespace sfg
 			_fields[component].reserve(_euler_values.size());
 			for (size_t i = 0; i < _euler_values.size(); ++i)
 				_fields[component].push_back(reinterpret_cast<u8*>(&(&_euler_values[i].x)[component]));
-			_inputs[component].update_field_data({.type = editor_input_field_field_type_e::pod_number, .fields = {.data = _fields[component].data(), .size = _fields[component].size()}, .field_size = sizeof(f32)});
+			_inputs[component].update_field_data({
+				.fields		= {.data = _fields[component].data(), .size = _fields[component].size()},
+				.field_size = sizeof(f32),
+				.type		= editor_input_field_field_type_e::pod_number,
+			});
 		}
 	}
 

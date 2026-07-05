@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_common.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
@@ -56,14 +55,16 @@ namespace sfg
 
 	struct editor_widget_reference_config_t
 	{
-		span_t<u64*>				   fields		   = {};
 		editor_widget_callbacks_t	   callbacks	   = {};
+		span_t<u64*>				   fields		   = {};
 		sid_t						   selected_asset  = NULL_SID;
 		entity_guid_t				   selected_entity = NULL_ENTITY_GUID;
 		world_handle_t				   world		   = {};
 		editor_asset_type_e			   asset_type	   = editor_asset_type_e::invalid;
 		editor_widget_reference_type_e type			   = editor_widget_reference_type_e::asset;
 	};
+
+	struct vec2i16_t;
 
 	class editor_widget_reference_t final
 	{
@@ -102,12 +103,12 @@ namespace sfg
 		static void on_payload_end(const editor_payload_t& payload, void* user_data);
 
 	private:
+		editor_widget_reference_config_t _config			= {};
+		vector_t<u64*>					 _fields			= {};
 		ui::ui_context*					 _ui				= nullptr;
 		ui::widget_id_t					 _root				= NULL_WIDGET;
 		ui::widget_id_t					 _thumbnail			= NULL_WIDGET;
 		ui::widget_id_t					 _label				= NULL_WIDGET;
-		vector_t<u64*>					 _fields			= {};
-		editor_widget_reference_config_t _config			= {};
 		bool							 _accepting_payload = false;
 		bool							 _mixed				= false;
 	};

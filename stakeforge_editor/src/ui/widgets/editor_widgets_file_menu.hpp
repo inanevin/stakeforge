@@ -120,16 +120,16 @@ namespace sfg
 		editor_action_menu_style_t get_action_menu_style() const;
 
 	private:
-		ui::ui_context*						_ui			  = nullptr;
-		const editor_file_menu_item_desc_t* _items		  = nullptr;
-		u16									_item_count	  = 0;
-		editor_file_menu_style_t			_style		  = {};
-		void (*_command_fn)(u16 command, void* user_data) = nullptr;
-		void*			_command_user_data				  = nullptr;
-		ui::widget_id_t _root							  = NULL_WIDGET;
-		ui::widget_id_t _top_frames[MAX_TOP_ITEMS]		  = {};
-		ui::widget_id_t _top_labels[MAX_TOP_ITEMS]		  = {};
-		u32				_selected_top					  = 0;
-		bool			_open							  = false;
+		ui::widget_id_t						_root					   = NULL_WIDGET;
+		ui::widget_id_t						_top_frames[MAX_TOP_ITEMS] = {};
+		ui::widget_id_t						_top_labels[MAX_TOP_ITEMS] = {};
+		ui::ui_context*						_ui						   = nullptr;
+		const editor_file_menu_item_desc_t* _items					   = nullptr;
+		void (*_command_fn)(u16 command, void* user_data)			   = nullptr;
+		void*					 _command_user_data					   = nullptr;
+		u32						 _selected_top						   = 0;
+		u16						 _item_count						   = 0;
+		editor_file_menu_style_t _style								   = {};
+		bool					 _open								   = false;
 	};
 }

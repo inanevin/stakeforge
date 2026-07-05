@@ -126,9 +126,12 @@ namespace sfg
 		u8*							search_field  = reinterpret_cast<u8*>(&_search_str);
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
-		search_config.field						  = {.type = editor_input_field_field_type_e::string, .fields = {.data = &search_field, .size = 1}};
-		search_config.callbacks.edited			  = on_search_changed;
-		search_config.callbacks.user_data		  = this;
+		search_config.field						  = {
+								  .fields = {.data = &search_field, .size = 1},
+								  .type	  = editor_input_field_field_type_e::string,
+		  };
+		search_config.callbacks.edited	  = on_search_changed;
+		search_config.callbacks.user_data = this;
 		_search_input.init(ui, _assets_left_pane_top_row, search_config);
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
@@ -301,9 +304,12 @@ namespace sfg
 		u8*							asset_search_field	= reinterpret_cast<u8*>(&_asset_search_str);
 		editor_input_field_config_t asset_search_config = {};
 		asset_search_config.placeholder					= "Search";
-		asset_search_config.field						= {.type = editor_input_field_field_type_e::string, .fields = {.data = &asset_search_field, .size = 1}};
-		asset_search_config.callbacks.edited			= on_asset_search_changed;
-		asset_search_config.callbacks.user_data			= this;
+		asset_search_config.field						= {
+								  .fields = {.data = &asset_search_field, .size = 1},
+								  .type	  = editor_input_field_field_type_e::string,
+		  };
+		asset_search_config.callbacks.edited	= on_asset_search_changed;
+		asset_search_config.callbacks.user_data = this;
 		_asset_search_input.init(ui, _assets_body_pane_controls, asset_search_config);
 
 		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());

@@ -120,13 +120,13 @@ namespace sfg
 		static void on_popup_item_pressed(u16 value, void* user_data);
 
 	private:
-		ui::ui_context*					 _ui		 = nullptr;
-		ui::widget_id_t					 _root		 = NULL_WIDGET;
-		ui::widget_id_t					 _title		 = NULL_WIDGET;
-		ui::widget_id_t					 _icon_frame = NULL_WIDGET;
-		editor_dropdown_config_t		 _config	 = {};
+		editor_dropdown_config_t		 _config = {};
 		vector_t<editor_dropdown_item_t> _items;
 		vector_t<u8*>					 _fields;
+		ui::ui_context*					 _ui			 = nullptr;
+		ui::widget_id_t					 _root			 = NULL_WIDGET;
+		ui::widget_id_t					 _title			 = NULL_WIDGET;
+		ui::widget_id_t					 _icon_frame	 = NULL_WIDGET;
 		u16								 _selected_value = 0;
 		bool							 _mixed			 = false;
 	};

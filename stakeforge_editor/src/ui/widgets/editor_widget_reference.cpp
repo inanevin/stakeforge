@@ -26,13 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_reference.hpp"
-#include "assets/editor_asset.hpp"
-#include "assets/editor_asset_manager.hpp"
-#include "editor_app.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "editor_app.hpp"
+
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/rectf.hpp>

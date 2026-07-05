@@ -100,13 +100,13 @@ namespace sfg
 
 	private:
 		ui::ui_context*			  _ui					  = nullptr;
-		ui::widget_id_t			  _root					  = NULL_WIDGET;
 		editor_scrollbar_config_t _config				  = {};
-		axis_state_t			  _x					  = {};
-		axis_state_t			  _y					  = {};
+		ui::widget_id_t			  _root					  = NULL_WIDGET;
 		f32						  _scroll_value_y		  = 0.0f;
 		f32						  _scroll_target_y		  = 0.0f;
 		f32						  _scroll_velocity_y	  = 0.0f;
+		axis_state_t			  _x					  = {};
+		axis_state_t			  _y					  = {};
 		bool					  _stick_y				  = false;
 		bool					  _scroll_target_y_active = false;
 	};
