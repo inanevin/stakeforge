@@ -35,7 +35,7 @@ namespace sfg
 	{
 		editor_project_t project = {};
 		project.refresh_runtime(path);
-		project.last_world_path	   = {};
+		project.last_world_guid	   = NULL_SID;
 		project.world_tick_rate	   = 60;
 		project.world_physics_rate = 100;
 		project.max_sim_steps	   = 4;
@@ -93,7 +93,7 @@ namespace sfg
 {
 	void to_json(nlohmann::json& j, const editor_project_t& project)
 	{
-		j["last_world"]			= project.last_world_path;
+		j["last_world_guid"]	= project.last_world_guid;
 		j["world_tick_rate"]	= project.world_tick_rate;
 		j["world_physics_rate"] = project.world_physics_rate;
 		j["max_sim_steps"]		= project.max_sim_steps;
@@ -101,7 +101,7 @@ namespace sfg
 
 	void from_json(const nlohmann::json& j, editor_project_t& project)
 	{
-		project.last_world_path	   = j.value<string_t>("last_world", "");
+		project.last_world_guid	   = j.value<sid_t>("last_world_guid", NULL_SID);
 		project.world_tick_rate	   = j.value<u32>("world_tick_rate", 60);
 		project.world_physics_rate = j.value<u32>("world_physics_rate", 100);
 		project.max_sim_steps	   = j.value<u32>("max_sim_steps", 4);

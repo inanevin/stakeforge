@@ -50,8 +50,8 @@ namespace sfg
 			return instance;
 		}
 
-		editor_project_runtime_t _runtime = {};
-		string_t				 last_world_path;
+		editor_project_runtime_t _runtime			= {};
+		sid_t					 last_world_guid	= NULL_SID;
 		u32						 world_tick_rate	= 60;
 		u32						 world_physics_rate = 100;
 		u32						 max_sim_steps		= 4;

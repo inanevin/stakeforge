@@ -501,7 +501,7 @@ namespace sfg
 		auto it = std::find_if(_used_resources.begin(), _used_resources.end(), [handle](const world_resource_t& r) -> bool { return r.handle == handle; });
 		if (it != _used_resources.end())
 			return false;
-		_used_resources.push_back({.type = type, .handle = handle});
+		_used_resources.push_back({.handle = handle, .type = type});
 		return true;
 	}
 
@@ -576,13 +576,26 @@ namespace sfg
 		});
 
 		resource_manager_t& rm = resource_manager_t::get();
-		for (const world_resource_t& res : _used_resources)
+		for (world_resource_t& res : _used_resources)
 		{
-			const resource_entry_t* entry = rm.find_entry(res.handle);
-			if (entry != nullptr)
+			if (res.loaded)
 				continue;
 
-			resource_manager_t::get().load_resource(res.handle, res.type);
+			rm.load_resource(res.handle, res.type);
+			res.loaded = rm.find_entry(res.handle) != nullptr;
+		}
+	}
+
+	void world_t::unload_all_used_resources()
+	{
+		resource_manager_t& rm = resource_manager_t::get();
+		for (auto it = _used_resources.rbegin(); it != _used_resources.rend(); ++it)
+		{
+			if (!it->loaded)
+				continue;
+
+			rm.unload_resource(it->handle);
+			it->loaded = false;
 		}
 	}
 

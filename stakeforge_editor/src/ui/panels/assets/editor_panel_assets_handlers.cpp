@@ -616,6 +616,19 @@ namespace sfg
 		}
 	}
 
+	void editor_panel_assets_t::on_asset_grid_item_double_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_assets_t&		   panel = *static_cast<editor_panel_assets_t*>(user_data);
+		const asset_grid_item_t* const item	 = panel.find_asset_grid_item_by_widget(id);
+		if (item == nullptr)
+			return;
+
+		panel.open_asset_item(item->node);
+	}
+
 	void editor_panel_assets_t::on_asset_grid_item_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t&, const vec2f_t&, void* user_data)
 	{
 		if (router.is_pressed(ui::mouse_button_e::left) != id)

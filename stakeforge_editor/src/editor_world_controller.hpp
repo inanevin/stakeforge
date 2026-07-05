@@ -42,7 +42,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class editor_command_system_t;
 	class world_t;
+	struct editor_command_listener_tag_t;
+	struct editor_command_t;
 	struct window_event_t;
 	struct window_runtime_t;
 
@@ -70,8 +73,9 @@ namespace sfg
 		bool		   render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		void		   tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
 		void		   install_default_world(world_handle_t handle);
-		void		   load_all_world_resources(world_handle_t handle);
-		void		   set_main_world(world_handle_t handle);
+		void		   load_dummy_world();
+		bool		   load_main_world(sid_t asset_guid);
+		bool		   save_main_world();
 		void		   reset_input(window_runtime_t& runtime);
 		bool		   on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev);
 
@@ -121,6 +125,7 @@ namespace sfg
 			{
 				*this = static_cast<world_container_t&&>(other);
 			}
+
 			world_container_t& operator=(world_container_t&& other) noexcept;
 
 			world_render_snapshot_t snapshot_slots[3] = {};
@@ -132,30 +137,43 @@ namespace sfg
 			u8						consumer_slot	  = 0;
 		};
 
+	private:
 		void						   publish_world_snapshot(world_container_t& container);
 		const world_render_snapshot_t& acquire_render_snapshot(world_container_t& container);
 		f32							   calculate_render_alpha() const;
 		void						   destroy_worlds_internal(bool notify_panels);
+		void						   set_main_world(world_handle_t handle, sid_t asset_guid);
+		bool						   load_main_world_now(sid_t asset_guid);
 		void						   notify_main_world_changed();
 		void						   install_editor_camera(world_t& world);
 		void						   reset_camera_input();
 		void						   tick_editor_camera(f32 dt_seconds);
+		void						   set_main_world_dirty();
+		static void					   on_save_dirty_world_modal(void* user_data);
+		static void					   on_dont_save_dirty_world_modal(void* user_data);
+		static void					   on_cancel_dirty_world_modal(void* user_data);
+		static void					   on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
+	private:
 		dynamic_gen_pool_t<world_t, u32, world_handle_tag> _worlds;
 		vector_t<world_container_t>						   _world_containers;
-		vec3f_t											   _direction_input		 = vec3f_t::zero;
-		vec2f_t											   _mouse_delta			 = vec2f_t::zero;
-		world_handle_t									   _main_world			 = {};
-		entity_id_t										   _main_camera_entity	 = NULL_ENTITY_ID;
-		i64												   _previous_time_us	 = 0;
-		i64												   _accumulator_us		 = 0;
-		atomic_t<i64>									   _last_fixed_step_us	 = 0;
-		atomic_t<i64>									   _fixed_step_us		 = 0;
-		f32												   _camera_yaw_degrees	 = 0.0f;
-		f32												   _camera_pitch_degrees = 0.0f;
-		f32												   _current_move_speed	 = 12.0f;
-		u32												   _world_physics_rate	 = 100;
-		bool											   _world_panel_focused	 = false;
-		bool											   _is_looking			 = false;
+		vec3f_t											   _direction_input				  = vec3f_t::zero;
+		vec2f_t											   _mouse_delta					  = vec2f_t::zero;
+		world_handle_t									   _main_world					  = {};
+		sid_t											   _main_world_asset_guid		  = NULL_SID;
+		sid_t											   _pending_main_world_asset_guid = NULL_SID;
+		entity_id_t										   _main_camera_entity			  = NULL_ENTITY_ID;
+		pool_handle_t<u32, editor_command_listener_tag_t>  _command_listener			  = {};
+		i64												   _previous_time_us			  = 0;
+		i64												   _accumulator_us				  = 0;
+		atomic_t<i64>									   _last_fixed_step_us			  = 0;
+		atomic_t<i64>									   _fixed_step_us				  = 0;
+		f32												   _camera_yaw_degrees			  = 0.0f;
+		f32												   _camera_pitch_degrees		  = 0.0f;
+		f32												   _current_move_speed			  = 12.0f;
+		u32												   _world_physics_rate			  = 100;
+		bool											   _world_panel_focused			  = false;
+		bool											   _main_world_dirty			  = false;
+		bool											   _is_looking					  = false;
 	};
 }

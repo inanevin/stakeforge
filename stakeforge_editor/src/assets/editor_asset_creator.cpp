@@ -238,11 +238,7 @@ namespace sfg
 
 		bool create_world_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 		{
-			const nlohmann::json embedded_source = {
-				{"schema", "sfg.schema.world"},
-				{"local_entities", nlohmann::json::array()},
-				{"components", nlohmann::json::array()},
-			};
+			const nlohmann::json					 embedded_source = nlohmann::json::object();
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
 				.parent_node	 = desc.parent_node,

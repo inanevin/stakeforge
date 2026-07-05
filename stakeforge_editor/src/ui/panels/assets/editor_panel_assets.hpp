@@ -154,6 +154,7 @@ namespace sfg
 		void duplicate_folder();
 		void delete_asset();
 		void duplicate_asset();
+		void open_asset_item(editor_asset_node_handle_t node);
 		void fix_asset_integrity();
 		void open_create_folder_popup();
 		void create_folder(const char* name);
@@ -227,6 +228,7 @@ namespace sfg
 		static void on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void on_asset_grid_item_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_asset_grid_item_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_asset_grid_item_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_folder_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_folder_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);

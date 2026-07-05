@@ -69,6 +69,7 @@ namespace sfg
 		bool add_resource(resource_type_e type, resource_handle_t handle);
 		void scan_for_resources(entity_id_t entity);
 		void load_all_used_resources();
+		void unload_all_used_resources();
 
 		// -----------------------------------------------------------------------------
 		// transformation
@@ -131,8 +132,9 @@ namespace sfg
 
 		struct world_resource_t
 		{
-			resource_type_e	  type	 = resource_type_e::invalid;
 			resource_handle_t handle = NULL_RESOURCE_HANDLE;
+			resource_type_e	  type	 = resource_type_e::invalid;
+			bool			  loaded = false;
 		};
 
 	private:

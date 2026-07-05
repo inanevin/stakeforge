@@ -279,6 +279,7 @@ namespace sfg
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;
 		listener.on_click			   = on_asset_grid_item_clicked;
+		listener.on_double_click	   = on_asset_grid_item_double_clicked;
 		listener.on_drag_begin		   = on_asset_grid_item_drag_begin;
 		listener.on_focus_gain		   = on_asset_item_focus_gain;
 		listener.on_focus_lose		   = on_asset_item_focus_lost;
@@ -471,6 +472,7 @@ namespace sfg
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;
 		listener.on_click			   = on_asset_grid_item_clicked;
+		listener.on_double_click	   = on_asset_grid_item_double_clicked;
 		listener.on_drag_begin		   = on_asset_grid_item_drag_begin;
 		listener.on_focus_gain		   = on_asset_item_focus_gain;
 		listener.on_focus_lose		   = on_asset_item_focus_lost;

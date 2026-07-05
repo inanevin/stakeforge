@@ -29,6 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_app.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "editor_command_system.hpp"
+#include "editor_project.hpp"
+#include "ui/editor_modal_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
@@ -46,6 +49,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -85,6 +89,7 @@ namespace sfg
 
 	void editor_world_controller_t::init()
 	{
+		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
@@ -95,6 +100,12 @@ namespace sfg
 
 	void editor_world_controller_t::uninit()
 	{
+		if (!_command_listener.is_null())
+		{
+			editor_app_t::get().get_command_system().remove_listener(_command_listener);
+			_command_listener = {};
+		}
+
 		destroy_worlds_internal(false);
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
@@ -139,13 +150,14 @@ namespace sfg
 
 				it->render_context.uninit();
 				world_t& world = _worlds.get(handle);
+				world.unload_all_used_resources();
 				world.uninit();
 				_worlds.remove(handle);
 				_world_containers.erase(it);
 
 				if (was_main_world)
 				{
-					set_main_world({});
+					set_main_world({}, NULL_SID);
 					_main_camera_entity = NULL_ENTITY_ID;
 				}
 				return;
@@ -168,16 +180,24 @@ namespace sfg
 		{
 			container.render_context.uninit();
 			world_t& world = _worlds.get(container.handle);
+			world.unload_all_used_resources();
 			world.uninit();
 			_worlds.remove(container.handle);
 		}
+
 		_world_containers.resize(0);
 		_main_camera_entity = NULL_ENTITY_ID;
 		reset_camera_input();
+
 		if (notify_panels)
-			set_main_world({});
+			set_main_world({}, NULL_SID);
 		else
-			_main_world = {};
+		{
+			_main_world					   = {};
+			_main_world_asset_guid		   = NULL_SID;
+			_pending_main_world_asset_guid = NULL_SID;
+			_main_world_dirty			   = false;
+		}
 	}
 
 	void editor_world_controller_t::resize_world(world_handle_t handle, vec2u16_t render_resolution)
@@ -299,14 +319,204 @@ namespace sfg
 		SFG_ASSERT(false);
 	}
 
-	void editor_world_controller_t::set_main_world(world_handle_t handle)
+	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
 	{
-		if (_main_world == handle)
+		if (!_main_world.is_null() && _main_world_dirty)
+		{
+			_pending_main_world_asset_guid		 = asset_guid;
+			editor_modal_button_desc_t buttons[] = {
+				{.text = "Save", .callback = on_save_dirty_world_modal, .user_data = this},
+				{.text = "Don't Save", .callback = on_dont_save_dirty_world_modal, .user_data = this},
+				{.text = "Cancel", .callback = on_cancel_dirty_world_modal, .user_data = this},
+			};
+			editor_app_t::get().get_main_surface().modal_controller->request_modal("Save World", "Would you like to save the current world.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
+			return true;
+		}
+
+		return load_main_world_now(asset_guid);
+	}
+
+	void editor_world_controller_t::load_dummy_world()
+	{
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		destroy_worlds_internal(false);
+
+		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
+		install_default_world(handle);
+		set_main_world(handle, NULL_SID);
+	}
+
+	bool editor_world_controller_t::load_main_world_now(sid_t asset_guid)
+	{
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);
+		if (asset == nullptr || asset->asset_type != editor_asset_type_e::world)
+		{
+			SFG_ERR("failed to find world asset {0}", asset_guid);
+			return false;
+		}
+
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		destroy_worlds_internal(false);
+
+		const world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
+		if (asset->embedded_source.empty())
+			install_default_world(handle);
+		else
+		{
+			world_t& world = _worlds.get(handle);
+			world_cooker_t::world_from_json(world, asset->embedded_source);
+			world.load_all_used_resources();
+		}
+
+		set_main_world(handle, asset_guid);
+		_main_world_dirty		  = false;
+		editor_project_t& project = editor_project_t::get();
+		project.last_world_guid	  = asset_guid;
+		project.save(project._runtime.path.c_str());
+		return true;
+	}
+
+	bool editor_world_controller_t::save_main_world()
+	{
+		if (_main_world.is_null())
+			return false;
+
+		nlohmann::json world_json = nlohmann::json::object();
+		world_cooker_t::world_to_json(_worlds.get(_main_world), world_json);
+
+		editor_asset_t		  asset = {};
+		string_t			  asset_path;
+		const editor_asset_t* existing_asset = _main_world_asset_guid != NULL_SID ? editor_asset_manager_t::get().find_asset(_main_world_asset_guid) : nullptr;
+		if (existing_asset != nullptr && existing_asset->asset_type == editor_asset_type_e::world)
+		{
+			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+			for (auto it = tree.begin_handle(); it != tree.end_handle(); ++it)
+			{
+				const editor_asset_node_t& node = tree.value(*it);
+				if (node.type == editor_asset_node_type_e::asset && node.asset_id == _main_world_asset_guid)
+				{
+					asset_path = node.full_path;
+					break;
+				}
+			}
+
+			if (!asset_path.empty() && file_system_t::exists(asset_path.c_str()))
+			{
+				if (!editor_asset_util_t::read_asset(asset_path.c_str(), asset))
+					return false;
+			}
+		}
+
+		if (asset_path.empty() || !file_system_t::exists(asset_path.c_str()))
+		{
+			asset_path = process::save_file("Save World", "sfg_asset");
+			if (asset_path.empty())
+			{
+				SFG_ERR("world save cancelled");
+				return false;
+			}
+			if (file_system_t::get_file_extension(asset_path) != "sfg_asset")
+				asset_path += ".sfg_asset";
+			if (!editor_asset_util_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
+			{
+				SFG_ERR("world save path is outside project assets directory {0}", asset_path.c_str());
+				return false;
+			}
+
+			asset.version	  = editor_asset_t::VERSION;
+			asset.guid		  = _main_world_asset_guid != NULL_SID ? _main_world_asset_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type  = editor_asset_type_e::world;
+			asset.source_type = editor_asset_source_type_e::embedded;
+		}
+
+		asset.asset_type	  = editor_asset_type_e::world;
+		asset.source_type	  = editor_asset_source_type_e::embedded;
+		asset.embedded_source = world_json;
+		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		{
+			SFG_ERR("failed to save world asset {0}", asset_path.c_str());
+			return false;
+		}
+
+		_main_world_asset_guid	  = asset.guid;
+		_main_world_dirty		  = false;
+		editor_project_t& project = editor_project_t::get();
+		project.last_world_guid	  = asset.guid;
+		project.save(project._runtime.path.c_str());
+		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
+		return true;
+	}
+
+	void editor_world_controller_t::set_main_world(world_handle_t handle, sid_t asset_guid)
+	{
+		if (_main_world == handle && _main_world_asset_guid == asset_guid)
 			return;
 
+		_main_world					   = handle;
+		_main_world_asset_guid		   = asset_guid;
+		_pending_main_world_asset_guid = NULL_SID;
+		_main_world_dirty			   = false;
 		editor_app_t::get().get_command_system().clear();
-		_main_world = handle;
 		notify_main_world_changed();
+	}
+
+	void editor_world_controller_t::set_main_world_dirty()
+	{
+		if (!_main_world.is_null())
+			_main_world_dirty = true;
+	}
+
+	void editor_world_controller_t::on_save_dirty_world_modal(void* user_data)
+	{
+		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);
+		const sid_t				   asset_guid	  = controller._pending_main_world_asset_guid;
+		controller._pending_main_world_asset_guid = NULL_SID;
+		if (asset_guid != NULL_SID && controller.save_main_world())
+			controller.load_main_world_now(asset_guid);
+	}
+
+	void editor_world_controller_t::on_dont_save_dirty_world_modal(void* user_data)
+	{
+		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);
+		const sid_t				   asset_guid	  = controller._pending_main_world_asset_guid;
+		controller._pending_main_world_asset_guid = NULL_SID;
+		if (asset_guid != NULL_SID)
+			controller.load_main_world_now(asset_guid);
+	}
+
+	void editor_world_controller_t::on_cancel_dirty_world_modal(void* user_data)
+	{
+		static_cast<editor_world_controller_t*>(user_data)->_pending_main_world_asset_guid = NULL_SID;
+	}
+
+	void editor_world_controller_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
+	{
+		editor_world_controller_t& controller = *static_cast<editor_world_controller_t*>(user_data);
+		switch (command.type)
+		{
+		case editor_command_type_e::entity_create:
+		case editor_command_type_e::entity_duplicate:
+		case editor_command_type_e::entity_destroy:
+		case editor_command_type_e::entity_reparent:
+		case editor_command_type_e::prefab_spawn:
+		case editor_command_type_e::entity_info_paste:
+		case editor_command_type_e::component_add:
+		case editor_command_type_e::component_remove:
+		case editor_command_type_e::component_reset:
+		case editor_command_type_e::component_paste:
+		case editor_command_type_e::component_edit:
+		case editor_command_type_e::world_metadata_create_folder:
+		case editor_command_type_e::world_metadata_rename_folder:
+		case editor_command_type_e::world_metadata_color_folder:
+		case editor_command_type_e::world_metadata_assign_folder:
+		case editor_command_type_e::world_metadata_assign_folder_parent:
+			controller.set_main_world_dirty();
+			break;
+		default:
+			break;
+		}
 	}
 
 	void editor_world_controller_t::notify_main_world_changed()

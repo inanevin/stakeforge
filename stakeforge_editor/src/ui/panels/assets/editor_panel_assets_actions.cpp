@@ -57,8 +57,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 #include <algorithm>
 namespace sfg
@@ -209,8 +207,7 @@ namespace sfg
 			if (asset_node.type == editor_asset_node_type_e::asset)
 			{
 				const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
-				if (asset == nullptr)
-					continue;
+				SFG_ASSERT(asset != nullptr);
 
 				const sid_t guid = asset->guid;
 				if (!editor_asset_util_t::delete_asset(*asset, node))
@@ -240,14 +237,15 @@ namespace sfg
 		string_t last_duplicate_path;
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
-			if (node.is_null() || !tree.is_valid(node))
-				continue;
+			SFG_ASSERT(tree.is_valid(node));
 			const editor_asset_node_t& asset_node = tree.value(node);
 			if (asset_node.type != editor_asset_node_type_e::asset)
 				continue;
+
 			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
-			if (asset != nullptr)
-				editor_asset_util_t::duplicate_asset(*asset, node, &last_duplicate_path);
+			SFG_ASSERT(asset != nullptr);
+
+			editor_asset_util_t::duplicate_asset(*asset, node, &last_duplicate_path);
 		}
 
 		_selected_asset_node = {};
@@ -259,19 +257,33 @@ namespace sfg
 			select_asset_by_full_path(last_duplicate_path.c_str());
 	}
 
+	void editor_panel_assets_t::open_asset_item(editor_asset_node_handle_t node)
+	{
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(tree.is_valid(node));
+
+		const editor_asset_node_t& asset_node = tree.value(node);
+		const editor_asset_t*	   asset	  = editor_asset_manager_t::get().find_asset(asset_node.asset_id);
+		SFG_ASSERT(asset != nullptr);
+
+		if (asset->asset_type == editor_asset_type_e::world)
+			editor_app_t::get().get_world_controller().load_main_world(asset->guid);
+	}
+
 	void editor_panel_assets_t::fix_asset_integrity()
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		if (_selected_asset_node.is_null() || !tree.is_valid(_selected_asset_node))
-			return;
+		SFG_ASSERT(tree.is_valid(_selected_asset_node));
 
 		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
 		if (asset_node.type != editor_asset_node_type_e::asset)
 			return;
 
 		const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
-		if (asset == nullptr || asset->status == editor_asset_status_e::ok)
+		SFG_ASSERT(asset != nullptr);
+
+		if (asset->status == editor_asset_status_e::ok)
 			return;
 
 		if (asset->status != editor_asset_status_e::missing_file_source)
@@ -468,8 +480,10 @@ namespace sfg
 
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(tree.is_valid(_selected_folder_node));
+
 		const folder_row_t* target_row = find_row_by_hash(_selected_folder_hash);
 		SFG_ASSERT(target_row != nullptr);
+
 		const ui::layout_out_t& row_out = _ui->get_tree().out(target_row->root);
 		const f32				scale	= ui::get_valid_scale(_ui->get_ui_scale());
 
@@ -493,12 +507,14 @@ namespace sfg
 
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(tree.is_valid(_selected_folder_node));
+
 		const string_t& old_name = tree.value(_selected_folder_node).name;
 		if (new_name == old_name)
 			return;
 
 		const string_t& old_path = tree.value(_selected_folder_node).full_path;
 		SFG_ASSERT(!old_path.empty());
+
 		const string_t parent_path = file_system_t::get_directory_of_file(old_path.c_str());
 		SFG_ASSERT(!parent_path.empty());
 
@@ -539,6 +555,7 @@ namespace sfg
 
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(tree.is_valid(_selected_asset_node));
+
 		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
 		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset || asset_node.type == editor_asset_node_type_e::file);
 
@@ -562,16 +579,14 @@ namespace sfg
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		if (_selected_asset_node.is_null() || !tree.is_valid(_selected_asset_node))
-			return;
+		SFG_ASSERT(tree.is_valid(_selected_asset_node));
 
 		string_t new_name = name != nullptr ? name : "";
 		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
 			return;
 
 		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
-		if (asset_node.type != editor_asset_node_type_e::asset && asset_node.type != editor_asset_node_type_e::file)
-			return;
+		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset || asset_node.type == editor_asset_node_type_e::file);
 
 		const string_t old_file_extension = asset_node.type == editor_asset_node_type_e::file ? file_system_t::get_file_extension(asset_node.name) : "";
 		if (asset_node.type == editor_asset_node_type_e::file)
@@ -586,6 +601,7 @@ namespace sfg
 
 		const string_t& old_path = asset_node.full_path;
 		SFG_ASSERT(!old_path.empty());
+
 		const string_t parent_path = file_system_t::get_directory_of_file(old_path.c_str());
 		SFG_ASSERT(!parent_path.empty());
 
@@ -603,8 +619,7 @@ namespace sfg
 		if (asset_node.type == editor_asset_node_type_e::asset)
 		{
 			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
-			if (asset == nullptr)
-				return;
+			SFG_ASSERT(asset != nullptr);
 
 			if (!editor_asset_util_t::rename_asset(*asset, _selected_asset_node, new_path.c_str()))
 				return;

@@ -153,6 +153,12 @@ namespace sfg
 
 			const bool modal_active = app.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool ctrl			= process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !app._world_controller.get_main_world().is_null())
+			{
+				app._world_controller.save_main_world();
+				return;
+			}
 			if (!modal_active && !popup_active && app._command_system.on_window_event(ev))
 				return;
 
@@ -209,7 +215,6 @@ namespace sfg
 			return false;
 		}
 
-		_world_controller.init();
 		_world_metadata.init();
 		_asset_manager.init();
 
@@ -272,6 +277,7 @@ namespace sfg
 		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
 
 		_command_system.init();
+		_world_controller.init();
 		_selection_controller.init();
 		editor_global_toolbar_t::get().init();
 
@@ -343,10 +349,6 @@ namespace sfg
 			get_main_surface().primary->prompt_no_project_modal();
 		}
 
-		const world_handle_t main_world = _world_controller.create_world(get_main_surface().swapchain_size);
-		_world_controller.install_default_world(main_world);
-		_world_controller.set_main_world(main_world);
-
 		_close = false;
 
 		tick();
@@ -364,13 +366,13 @@ namespace sfg
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
 		editor_global_toolbar_t::get().uninit();
+		_world_controller.uninit();
 		_selection_controller.uninit();
 		_command_system.uninit();
 		_editor_work_executor->wait_for_all();
 		_editor_work_executor.reset();
 		_surfaces.resize_zero();
 		_world_metadata.uninit();
-		_world_controller.uninit();
 		_runtime.uninit();
 		engine_runtime_t::uninit_globals();
 		engine_runtime_t::uninit_backend();
@@ -494,6 +496,8 @@ namespace sfg
 		_asset_manager.ensure_default_assets(proj._runtime.default_assets_path.c_str());
 		_asset_manager.clean_cache();
 		_asset_manager.ensure_cook();
+		if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
+			_world_controller.load_dummy_world();
 		editor_settings_t::get().last_project_path = path;
 		editor_settings_t::get().save();
 		get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());

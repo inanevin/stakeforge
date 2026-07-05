@@ -78,6 +78,51 @@ namespace sfg
 
 	void world_cooker_t::world_to_json(const world_t& world, nlohmann::json& out_json)
 	{
+		out_json				  = nlohmann::json::object();
+		out_json["root_entities"] = nlohmann::json::array();
+
+		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const world_component_table_t* alive_world_table		= world.find_component_table(type_id_t<component_alive_t>::value);
+		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
+
+		const ecs_component_table_t& hierarchy_table	= hierarchy_world_table->table;
+		const ecs_component_table_t& alive_table		= alive_world_table->table;
+		const ecs_component_table_t& no_serialize_table = no_serialize_world_table->table;
+
+		const ecs_component_table_ref_t table_refs[] = {
+			alive_table.ref(),
+			hierarchy_table.ref(),
+		};
+
+		frame_vector_t<resource_handle_t> resources;
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
+			if (hierarchy.parent != NULL_ENTITY_ID || ecs_t::table_has(no_serialize_table, row.id))
+				continue;
+
+			nlohmann::json root_entity_json = nlohmann::json::object();
+			entity_to_json(world, row.id, root_entity_json, resources);
+			if (!root_entity_json.value<nlohmann::json>("local_entities", nlohmann::json::array()).empty())
+				out_json["root_entities"].push_back(root_entity_json);
+		}
+	}
+
+	void world_cooker_t::world_from_json(world_t& world, const nlohmann::json& in_json)
+	{
+		if (!in_json.is_object())
+			return;
+
+		const nlohmann::json root_entities_json = in_json.value<nlohmann::json>("root_entities", nlohmann::json::array());
+		if (!root_entities_json.is_array())
+			return;
+
+		for (const nlohmann::json& root_entity_json : root_entities_json)
+		{
+			const entity_id_t root = entity_from_json(world, root_entity_json, false, true);
+			if (root != NULL_ENTITY_ID)
+				world.scan_for_resources(root);
+		}
 	}
 
 	void world_cooker_t::entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream, frame_vector_t<resource_handle_t>& out_resources)
@@ -183,9 +228,10 @@ namespace sfg
 		{
 			world_cook_entity_header_t header;
 			in_stream >> header;
+
 			const entity_id_t		 entity		= world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
 			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
-			SFG_ASSERT(world_guid);
+
 			component_guid_t& guid = ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);
 			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
 		}
