@@ -57,7 +57,7 @@ namespace sfg
 								{"type", "leaf"},
 								{"panels",
 								 nlohmann::json::array(
-									 {nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Profiling"}, {"data", nlohmann::json::object()}}})}}},
+									 {nlohmann::json{{"type", "Assets"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Log"}, {"data", nlohmann::json::object()}}, nlohmann::json{{"type", "Resources"}, {"data", nlohmann::json::object()}}})}}},
 					   }},
 					  {"positive", nlohmann::json{{"type", "leaf"}, {"panels", nlohmann::json::array({nlohmann::json{{"type", "Inspector"}, {"data", nlohmann::json::object()}}})}}},
 				  }},

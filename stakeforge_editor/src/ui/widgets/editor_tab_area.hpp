@@ -48,6 +48,7 @@ namespace sfg
 		ui::widget_id_t widget			= NULL_WIDGET;
 		ui::widget_id_t marker			= NULL_WIDGET;
 		ui::widget_id_t marker_inner	= NULL_WIDGET;
+		ui::widget_id_t icon			= NULL_WIDGET;
 		ui::widget_id_t label			= NULL_WIDGET;
 		ui::widget_id_t close_button	= NULL_WIDGET;
 		f32				pos_x			= 0.0f;
@@ -96,7 +97,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void add_tab(const char* title);
+		void add_tab(const char* title, const char* icon = nullptr);
 		void remove_tab(sid_t identifier);
 		void rename_tab(sid_t identifier, const char* title);
 		void select_tab(sid_t identifier);

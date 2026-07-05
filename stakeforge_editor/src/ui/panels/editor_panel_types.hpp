@@ -38,7 +38,8 @@ namespace sfg
 		world,
 		inspector,
 		animation,
-		profiling,
+		resources,
+		project_settings,
 		max,
 	};
 

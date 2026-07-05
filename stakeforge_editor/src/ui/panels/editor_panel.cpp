@@ -121,6 +121,11 @@ namespace sfg
 		_title = title;
 	}
 
+	void editor_panel_t::set_icon(const char* icon)
+	{
+		_icon = icon;
+	}
+
 	void editor_panel_t::set_type(editor_panel_type_e type)
 	{
 		_type = type;

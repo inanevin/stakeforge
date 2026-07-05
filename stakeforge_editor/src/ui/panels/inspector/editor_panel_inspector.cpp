@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_selection_controller.hpp"
 #include "editor_command_system.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -36,6 +37,7 @@ namespace sfg
 	{
 		set_type(editor_panel_type_e::inspector);
 		set_title(editor_panel_type_to_string(editor_panel_type_e::inspector));
+		set_icon(ICON_GLASSES);
 	}
 
 	void editor_panel_inspector_t::init(ui::ui_context& ui, ui::widget_id_t parent)

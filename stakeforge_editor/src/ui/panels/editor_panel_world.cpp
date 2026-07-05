@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 #include "assets/editor_asset_spawn.hpp"
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -78,6 +79,7 @@ namespace sfg
 		set_type(editor_panel_type_e::world);
 		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);
 		set_title(_title_text.c_str());
+		set_icon(ICON_GLOBE);
 	}
 
 	void editor_panel_world_t::init(ui::ui_context& ui, ui::widget_id_t parent)

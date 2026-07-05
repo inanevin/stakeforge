@@ -45,8 +45,10 @@ namespace sfg
 			return "Inspector";
 		case editor_panel_type_e::animation:
 			return "Animation";
-		case editor_panel_type_e::profiling:
-			return "Profiling";
+		case editor_panel_type_e::resources:
+			return "Resources";
+		case editor_panel_type_e::project_settings:
+			return "Project Settings";
 		default:
 			return "";
 		}
@@ -55,6 +57,7 @@ namespace sfg
 	editor_panel_type_e editor_panel_type_from_string(const char* value)
 	{
 		const sid_t id = TO_SID(value);
+
 		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
 		{
 			const editor_panel_type_e type = static_cast<editor_panel_type_e>(i);

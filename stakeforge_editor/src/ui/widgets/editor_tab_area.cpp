@@ -149,13 +149,15 @@ namespace sfg
 			tree.draw_order(tab.widget)		  = dragging ? 1000u : 0u;
 			tree.draw_order(tab.marker)		  = dragging ? 1000u : 0u;
 			tree.draw_order(tab.marker_inner) = dragging ? 1000u : 0u;
-			tree.draw_order(tab.label)		  = dragging ? 1000u : 0u;
+			if (tab.icon != NULL_WIDGET)
+				tree.draw_order(tab.icon) = dragging ? 1000u : 0u;
+			tree.draw_order(tab.label) = dragging ? 1000u : 0u;
 			if (tab.close_button != NULL_WIDGET)
 				tree.draw_order(tab.close_button) = dragging ? 1001u : 1u;
 		}
 	}
 
-	void editor_tab_area_t::add_tab(const char* title)
+	void editor_tab_area_t::add_tab(const char* title, const char* icon)
 	{
 		SFG_ASSERT(title != nullptr);
 
@@ -231,6 +233,29 @@ namespace sfg
 		marker_rect.gradient			= ui::vg_gradient_e::vertical;
 		paint.set_rect(marker_inner, marker_rect);
 
+		ui::widget_id_t icon_widget = NULL_WIDGET;
+		if (icon != nullptr && icon[0] != '\0')
+		{
+			icon_widget = ui.allocate_widget();
+			ui.set_widget_debug_name(icon_widget, "editor_tab_icon");
+			tree.attach(tab, icon_widget);
+
+			ui::layout_in_t& icon_in = tree.in(icon_widget);
+			icon_in.flags			 = ui::wf_visible;
+			icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+			icon_in.pos_value.y		 = 0.5f;
+			icon_in.anchor_y		 = ui::anchor_e::center;
+			icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
+			icon_in.size_mode_y		 = ui::axis_mode_e::fixed;
+			icon_in.size_value		 = {theme.item_height * 0.75f, theme.item_height};
+
+			ui.set_widget_text(icon_widget, icon);
+			paint.set_text(icon_widget,
+						   ui.widget_text(icon_widget),
+						   ui.widget_text_len(icon_widget),
+						   {.font = theme.font_icons, .color = theme.color_text1, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		}
+
 		const ui::widget_id_t label = ui.allocate_widget();
 		ui.set_widget_debug_name(label, "editor_tab_label");
 		tree.attach(tab, label);
@@ -257,7 +282,7 @@ namespace sfg
 		}
 
 		const f32 marker_height = _active_tab == 0 ? 1.0f : 0.0f;
-		_tabs.push_back({.identifier = identifier, .widget = tab, .marker = marker, .marker_inner = marker_inner, .label = label, .close_button = close_button, .marker_height = marker_height});
+		_tabs.push_back({.identifier = identifier, .widget = tab, .marker = marker, .marker_inner = marker_inner, .icon = icon_widget, .label = label, .close_button = close_button, .marker_height = marker_height});
 		if (_active_tab == 0)
 			_active_tab = identifier;
 		update_markers(0.0f);

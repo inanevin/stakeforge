@@ -22,20 +22,17 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
-
-#pragma once
-
-#include "ui/panels/editor_panel.hpp"
+#include "ui/panels/editor_panel_project_settings.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 
 namespace sfg
 {
-	class editor_panel_profiling_t final : public editor_panel_t
+	editor_panel_project_settings_t::editor_panel_project_settings_t()
 	{
-	public:
-		editor_panel_profiling_t();
-		~editor_panel_profiling_t() override								 = default;
-		editor_panel_profiling_t(const editor_panel_profiling_t&)			 = delete;
-		editor_panel_profiling_t& operator=(const editor_panel_profiling_t&) = delete;
-	};
+		set_type(editor_panel_type_e::project_settings);
+		set_title(editor_panel_type_to_string(editor_panel_type_e::project_settings));
+		set_icon(ICON_SETTINGS);
+	}
 }

@@ -26,11 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #define ICON_PEN			 "\u0065"
-#define ICON_SETTINGS		 "\u0034"
 #define ICON_TRIANGLE		 "\u0032"
 #define ICON_GLOBE			 "\u005A"
 #define ICON_GLASSES		 "\u005E"
-#define ICON_BOXES			 "\u005F"
+#define ICON_BOXES			 "\u002F"
 #define ICON_FOLDER			 "\u0061"
 #define ICON_ARROW_RIGHT	 "\u0071"
 #define ICON_DD_RIGHT		 "\u0046"
@@ -67,8 +66,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ICON_PLUS			 "\u0069"
 #define ICON_MINUS			 "\u0058"
 #define ICON_WORLD			 "\u005A"
-#define ICON_L				 "\u0075"
-#define ICON_GLASSES		 "\u005E"
 #define ICON_FILTER			 "\u006D"
 #define ICON_FILLED_CIRCLE	 "\u0043"
 #define ICON_STAR			 "\u004B"

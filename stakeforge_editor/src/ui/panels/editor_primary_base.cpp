@@ -111,7 +111,7 @@ namespace sfg
 			return static_cast<u16>(PANEL_MENU_COMMAND_BASE + static_cast<u16>(type));
 		}
 
-		static_assert(static_cast<u16>(editor_panel_type_e::max) == 7);
+		static_assert(static_cast<u16>(editor_panel_type_e::max) == 8);
 
 		bool is_editor_debug_bounds_enabled(void*)
 		{
@@ -139,6 +139,7 @@ namespace sfg
 			{.text = "Load", .shortcut = "Ctrl+O", .command = static_cast<u16>(editor_file_menu_commands_e::project_load)},
 			{.text = "Save", .shortcut = "Ctrl+S", .command = static_cast<u16>(editor_file_menu_commands_e::project_save)},
 			{.text = "Save As", .command = static_cast<u16>(editor_file_menu_commands_e::project_save_as)},
+			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
 			{.text = "Scene", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::scene_new)},
 			{.text = "Save", .command = static_cast<u16>(editor_file_menu_commands_e::scene_save)},
@@ -172,7 +173,8 @@ namespace sfg
 			{.text = editor_panel_type_to_string(editor_panel_type_e::world), .command = panel_menu_command(editor_panel_type_e::world)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::inspector), .command = panel_menu_command(editor_panel_type_e::inspector)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::animation), .command = panel_menu_command(editor_panel_type_e::animation)},
-			{.text = editor_panel_type_to_string(editor_panel_type_e::profiling), .command = panel_menu_command(editor_panel_type_e::profiling)},
+			{.text = editor_panel_type_to_string(editor_panel_type_e::resources), .command = panel_menu_command(editor_panel_type_e::resources)},
+			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
 			{.text = "Editor", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Layouts", .children = LAYOUT_ROWS, .child_count = static_cast<u16>(sizeof(LAYOUT_ROWS) / sizeof(LAYOUT_ROWS[0]))},
 			{.text = "Subpixel Text", .toggle_query = is_editor_subpixel_text_enabled, .toggle_callback = set_editor_subpixel_text_enabled, .kind = editor_action_menu_row_kind_e::toggle},

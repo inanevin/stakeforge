@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -40,6 +41,7 @@ namespace sfg
 	{
 		set_type(editor_panel_type_e::entities);
 		set_title(editor_panel_type_to_string(editor_panel_type_e::entities));
+		set_icon(ICON_BOXES);
 	}
 
 	void editor_panel_entities_t::init(ui::ui_context& ui, ui::widget_id_t parent)

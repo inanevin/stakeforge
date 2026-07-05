@@ -266,7 +266,7 @@ namespace sfg
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
 		SFG_ASSERT(panel != nullptr);
 
-		node.tab_area.add_tab(panel->get_title());
+		node.tab_area.add_tab(panel->get_title(), panel->get_icon());
 		node.panels.push_back(panel);
 		panel->assign(*_ui, node.body);
 		node.tab_area.select_tab(TO_SID(panel->get_title()));

@@ -59,6 +59,7 @@ namespace sfg
 		void		 deassign();
 		virtual void make_visible(bool visible);
 		void		 set_title(const char* title);
+		void		 set_icon(const char* icon);
 		void		 set_type(editor_panel_type_e type);
 
 		// -----------------------------------------------------------------------------
@@ -77,6 +78,10 @@ namespace sfg
 		{
 			return _title;
 		}
+		inline const char* get_icon() const
+		{
+			return _icon;
+		}
 		inline editor_panel_type_e get_type() const
 		{
 			return _type;
@@ -86,6 +91,7 @@ namespace sfg
 		ui::ui_context*		_ui	   = nullptr;
 		ui::widget_id_t		_root  = NULL_WIDGET;
 		const char*			_title = "";
+		const char*			_icon  = nullptr;
 		editor_panel_type_e _type  = editor_panel_type_e::max;
 	};
 }

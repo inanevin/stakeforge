@@ -53,6 +53,7 @@ namespace sfg
 	{
 		set_type(editor_panel_type_e::assets);
 		set_title(editor_panel_type_to_string(editor_panel_type_e::assets));
+		set_icon(ICON_FILE);
 	}
 
 	void editor_panel_assets_t::init(ui::ui_context& ui, ui::widget_id_t parent)

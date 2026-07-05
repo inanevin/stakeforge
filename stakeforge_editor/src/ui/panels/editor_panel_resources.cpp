@@ -24,13 +24,15 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/editor_panel_profiling.hpp"
+#include "ui/panels/editor_panel_resources.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 
 namespace sfg
 {
-	editor_panel_profiling_t::editor_panel_profiling_t()
+	editor_panel_resources_t::editor_panel_resources_t()
 	{
-		set_type(editor_panel_type_e::profiling);
-		set_title(editor_panel_type_to_string(editor_panel_type_e::profiling));
+		set_type(editor_panel_type_e::resources);
+		set_title(editor_panel_type_to_string(editor_panel_type_e::resources));
+		set_icon(ICON_TRIANGLE);
 	}
 }

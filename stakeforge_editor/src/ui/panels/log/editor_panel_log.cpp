@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/log/editor_panel_log.hpp"
 #include "ui/panels/log/editor_panel_log_internal.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -35,6 +36,7 @@ namespace sfg
 	{
 		set_type(editor_panel_type_e::log);
 		set_title(editor_panel_type_to_string(editor_panel_type_e::log));
+		set_icon(ICON_PEN);
 	}
 
 	vector_t<editor_panel_log_t::log_record_t> editor_panel_log_t::_stored_logs				 = {};
