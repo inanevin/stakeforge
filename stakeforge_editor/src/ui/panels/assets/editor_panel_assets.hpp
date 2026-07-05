@@ -26,10 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset_importer.hpp"
-#include "assets/editor_asset_manager.hpp"
-#include "ui/editor_modal_cook_options.hpp"
 #include "ui/panels/editor_panel.hpp"
+#include "assets/editor_asset_importer.hpp"
+#include "ui/editor_modal_cook_options.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
@@ -38,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/math/vec2i16.hpp>
 
 namespace sfg::ui
 {

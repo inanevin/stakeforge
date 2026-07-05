@@ -46,11 +46,6 @@ namespace sfg
 		editor_tooltip_controller_t* s_controllers[editor_tooltip_controller_t::MAX_CONTROLLERS] = {};
 		u32							 s_controller_count											 = 0;
 
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible)
-		{
-			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u16>(ui::wf_visible) : 0;
-		}
 	}
 
 	void editor_tooltip_controller_t::init(ui::ui_context& ui)
@@ -236,9 +231,9 @@ namespace sfg
 
 		_visible				= visible;
 		ui::layout_tree_t& tree = _ui->get_tree();
-		set_widget_visible(tree, _foreground, visible);
-		set_widget_visible(tree, _frame, visible);
-		set_widget_visible(tree, _label, visible);
+		tree.set_visible(_foreground, visible, false);
+		tree.set_visible(_frame, visible, false);
+		tree.set_visible(_label, visible, false);
 	}
 
 	editor_tooltip_controller_t::tooltip_entry_t* editor_tooltip_controller_t::find_entry(ui::widget_id_t owner)

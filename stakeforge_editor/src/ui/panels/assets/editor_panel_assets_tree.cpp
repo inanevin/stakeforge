@@ -26,58 +26,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
-#include "assets/editor_asset_creator.hpp"
-#include "assets/editor_asset_importer.hpp"
-#include "editor_app.hpp"
-#include "editor_directories.hpp"
-#include "editor_project.hpp"
-#include "ui/editor_action_menu_controller.hpp"
-#include "ui/editor_modal_controller.hpp"
-#include "ui/editor_payload_controller.hpp"
-#include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
-#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/common/hashing.hpp>
-#include <sfg/data/frame_string.hpp>
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/data/string_util.hpp>
-#include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/io/file_system.hpp>
-#include <sfg/io/log.hpp>
-#include <sfg/math/math.hpp>
-#include <sfg/math/rectf.hpp>
-#include <sfg/platform/process.hpp>
-#include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
-#include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/world.hpp>
-#include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include "assets/editor_asset_manager.hpp"
 
-#include <algorithm>
+#include <sfg/data/string_util.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
-	namespace
-	{
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
-		{
-			u16 flags = 0;
-			if (visible)
-			{
-				flags = ui::wf_visible;
-				if (input)
-					flags |= ui::wf_input;
-			}
-			tree.in(id).flags = flags;
-		}
-	}
 	void editor_panel_assets_t::refresh_folder_rows()
 	{
 		if (!can_mutate_ui_topology())
@@ -364,10 +322,10 @@ namespace sfg
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
-		set_widget_visible(tree, row.icon, visible, false);
-		set_widget_visible(tree, row.icon_text, visible, false);
-		set_widget_visible(tree, row.star_text, visible && row.is_favourite, false);
-		set_widget_visible(tree, row.label, visible, false);
+		tree.set_visible(row.icon, visible, false);
+		tree.set_visible(row.icon_text, visible, false);
+		tree.set_visible(row.star_text, visible && row.is_favourite, false);
+		tree.set_visible(row.label, visible, false);
 	}
 
 }

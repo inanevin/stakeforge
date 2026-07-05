@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "editor_selection_controller.hpp"
 #include "editor_world_metadata.hpp"
+
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>

@@ -25,26 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
-#include "commands/editor_commands_component.hpp"
-#include "commands/editor_commands_entity_info.hpp"
-
-#include "editor_app.hpp"
-#include "editor_command_system.hpp"
-#include "ui/editor_action_menu_controller.hpp"
-#include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widget_entity_info.hpp"
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/engine/common_engine.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
+#include "editor_app.hpp"
+
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
-#include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {

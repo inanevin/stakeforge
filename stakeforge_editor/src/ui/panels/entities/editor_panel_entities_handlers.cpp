@@ -27,32 +27,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "assets/editor_asset_spawn.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
-#include "commands/editor_command_prefab_spawn.hpp"
-#include "commands/editor_commands_entity.hpp"
-#include "commands/editor_commands_entity_info.hpp"
-#include "commands/editor_commands_world_metadata.hpp"
-#include "editor_app.hpp"
-#include "editor_command_system.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include "commands/editor_command_prefab_spawn.hpp"
+#include "commands/editor_commands_entity.hpp"
+#include "commands/editor_commands_world_metadata.hpp"
+#include "editor_app.hpp"
+#include "editor_command_system.hpp"
+
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/math/rectf.hpp>
-#include <sfg/memory/memory.hpp>
 #include <sfg/platform/process.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
-#include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
-#include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {

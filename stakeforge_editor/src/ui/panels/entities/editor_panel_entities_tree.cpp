@@ -26,46 +26,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
-#include "commands/editor_commands_entity.hpp"
-#include "editor_app.hpp"
-#include "editor_command_system.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include "commands/editor_commands_entity.hpp"
+#include "editor_app.hpp"
+#include "editor_command_system.hpp"
+
 #include <sfg/data/string_util.hpp>
-#include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/math/rectf.hpp>
-#include <sfg/memory/memory.hpp>
-#include <sfg/platform/process.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
-#include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
-#include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
-#include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {
-	namespace
-	{
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
-		{
-			u16 flags = 0;
-			if (visible)
-			{
-				flags = ui::wf_visible;
-				if (input)
-					flags |= ui::wf_input;
-			}
-			tree.in(id).flags = flags;
-		}
-	}
 	void editor_panel_entities_t::refresh_entities()
 	{
 		if (!can_mutate_ui_topology())
@@ -437,13 +411,13 @@ namespace sfg
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
-		set_widget_visible(tree, row.fold_icon, visible, /*input=*/false);
-		set_widget_visible(tree, row.fold_icon_text, visible, /*input=*/false);
-		set_widget_visible(tree, row.type_icon, visible, /*input=*/false);
-		set_widget_visible(tree, row.type_icon_text, visible, /*input=*/false);
-		set_widget_visible(tree, row.label, visible, /*input=*/false);
-		set_widget_visible(tree, row.disable_button, visible && row.type == editor_outliner_item_type_e::entity, /*input=*/visible && row.type == editor_outliner_item_type_e::entity);
-		set_widget_visible(tree, row.disable_icon, visible && row.type == editor_outliner_item_type_e::entity, /*input=*/false);
+		tree.set_visible(row.fold_icon, visible, false);
+		tree.set_visible(row.fold_icon_text, visible, false);
+		tree.set_visible(row.type_icon, visible, false);
+		tree.set_visible(row.type_icon_text, visible, false);
+		tree.set_visible(row.label, visible, false);
+		tree.set_visible(row.disable_button, visible && row.type == editor_outliner_item_type_e::entity, visible && row.type == editor_outliner_item_type_e::entity);
+		tree.set_visible(row.disable_icon, visible && row.type == editor_outliner_item_type_e::entity, false);
 	}
 
 	void editor_panel_entities_t::set_focus_state(bool focused)

@@ -237,6 +237,11 @@ namespace sfg::ui
 			in(id).flags &= ~wf_visible;
 	}
 
+	void layout_tree_t::set_visible(widget_id_t id, bool visible, bool input)
+	{
+		in(id).flags = visible ? static_cast<u16>(wf_visible | (input ? wf_input : 0)) : 0;
+	}
+
 	void layout_tree_t::set_topology_mutation_allowed(bool allowed)
 	{
 		_topology_mutation_allowed = allowed;

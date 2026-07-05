@@ -45,12 +45,6 @@ namespace sfg
 		editor_modal_controller_t* s_controllers[editor_modal_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
 
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
-		{
-			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
-		}
-
 		vec4f_t get_title_color(editor_modal_severity_e severity)
 		{
 			const editor_theme_t& theme = editor_theme_t::get();
@@ -251,8 +245,8 @@ namespace sfg
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool visible = show_buttons && i < button_count;
-			set_widget_visible(_ui->get_tree(), _button_frames[i], visible, visible);
-			set_widget_visible(_ui->get_tree(), _button_labels[i], visible, false);
+			_ui->get_tree().set_visible(_button_frames[i], visible, visible);
+			_ui->get_tree().set_visible(_button_labels[i], visible, false);
 			if (visible)
 				_ui->set_widget_text(_button_labels[i], buttons[i].text);
 			else
@@ -313,18 +307,18 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 
 		_visible = visible;
-		set_widget_visible(tree, _foreground, visible, false);
-		set_widget_visible(tree, _dimmer, visible, true);
-		set_widget_visible(tree, _window, visible, false);
-		set_widget_visible(tree, _title, visible, false);
-		set_widget_visible(tree, _description, visible, false);
-		set_widget_visible(tree, _container, visible && _content_active, false);
-		set_widget_visible(tree, _button_row, visible && _buttons_visible, false);
+		tree.set_visible(_foreground, visible, false);
+		tree.set_visible(_dimmer, visible, true);
+		tree.set_visible(_window, visible, false);
+		tree.set_visible(_title, visible, false);
+		tree.set_visible(_description, visible, false);
+		tree.set_visible(_container, visible && _content_active, false);
+		tree.set_visible(_button_row, visible && _buttons_visible, false);
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool button_visible = visible && _buttons_visible && i < _button_count;
-			set_widget_visible(tree, _button_frames[i], button_visible, button_visible);
-			set_widget_visible(tree, _button_labels[i], button_visible, false);
+			tree.set_visible(_button_frames[i], button_visible, button_visible);
+			tree.set_visible(_button_labels[i], button_visible, false);
 		}
 	}
 
@@ -342,7 +336,7 @@ namespace sfg
 			tree.in(_window).size_mode_x	= ui::axis_mode_e::max_children;
 			tree.in(_window).size_value.x	= 0.0f;
 			tree.in(_container).size_mode_x = ui::axis_mode_e::max_children;
-			set_widget_visible(tree, _container, false, false);
+			tree.set_visible(_container, false, false);
 		}
 	}
 

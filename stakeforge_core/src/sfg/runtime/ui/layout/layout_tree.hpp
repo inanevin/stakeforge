@@ -168,6 +168,7 @@ namespace sfg::ui
 		vec4f_t				bounds(widget_id_t id) const;
 		bool				is_alive(widget_id_t id) const;
 		void				set_visible(widget_id_t id, bool vis);
+		void				set_visible(widget_id_t id, bool vis, bool input);
 		void				set_topology_mutation_allowed(bool allowed);
 
 		// -----------------------------------------------------------------------------

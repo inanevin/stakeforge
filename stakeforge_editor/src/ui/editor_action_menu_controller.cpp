@@ -74,12 +74,6 @@ namespace sfg
 		editor_action_menu_controller_t* s_controllers[editor_action_menu_controller_t::MAX_CONTROLLERS] = {};
 		u32								 s_controller_count												 = 0;
 
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
-		{
-			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
-		}
-
 		void set_rect_color(ui::paint_layer_t& paint, ui::widget_id_t id, const vec4f_t& color)
 		{
 			ui::paint_def_t& def  = paint.def(id);
@@ -259,7 +253,7 @@ namespace sfg
 
 		s_controllers[s_controller_count++] = this;
 		hide_panels_from(0);
-		set_widget_visible(tree, _foreground, false, false);
+		tree.set_visible(_foreground, false, false);
 	}
 
 	void editor_action_menu_controller_t::uninit()
@@ -308,7 +302,7 @@ namespace sfg
 		close_action_menu();
 		_desc = desc;
 		_open = true;
-		set_widget_visible(_ui->get_tree(), _foreground, true, false);
+		_ui->get_tree().set_visible(_foreground, true, false);
 		show_panel(0, desc.rows, desc.row_count, {desc.pos.x, desc.pos.y, 0.0f, 0.0f});
 		refresh_popup_scope();
 	}
@@ -320,7 +314,7 @@ namespace sfg
 
 		_closing = true;
 		hide_panels_from(0);
-		set_widget_visible(_ui->get_tree(), _foreground, false, false);
+		_ui->get_tree().set_visible(_foreground, false, false);
 		_ui->get_input().clear_popup_scope();
 		_open										 = false;
 		const editor_action_menu_closed_fn closed_fn = _desc.closed_fn;
@@ -382,8 +376,8 @@ namespace sfg
 				menu._ui->set_widget_text(menu._row_icon_labels[depth][row], icon);
 			else
 				menu._ui->clear_widget_text(menu._row_icon_labels[depth][row]);
-			set_widget_visible(menu._ui->get_tree(), menu._row_icons[depth][row], icon != nullptr, false);
-			set_widget_visible(menu._ui->get_tree(), menu._row_icon_labels[depth][row], icon != nullptr, false);
+			menu._ui->get_tree().set_visible(menu._row_icons[depth][row], icon != nullptr, false);
+			menu._ui->get_tree().set_visible(menu._row_icon_labels[depth][row], icon != nullptr, false);
 			menu.refresh_popup_scope();
 			return;
 		}
@@ -502,7 +496,7 @@ namespace sfg
 		{
 			const bool is_title = rows[i].kind == editor_action_menu_row_kind_e::title;
 			const bool disabled = rows[i].disabled;
-			set_widget_visible(tree, _row_frames[depth][i], true, !is_title && !disabled);
+			tree.set_visible(_row_frames[depth][i], true, !is_title && !disabled);
 			tree.in(_row_frames[depth][i]).size_value.y = style.row_height;
 			set_rect_color(paint, _row_frames[depth][i], {0.0f, 0.0f, 0.0f, 0.0f});
 			paint.def(_row_frames[depth][i]).state_flags = is_title || disabled ? 0 : static_cast<u8>(ui::psf_has_hover | ui::psf_has_press);
@@ -532,12 +526,12 @@ namespace sfg
 							.point_size	 = is_title ? style.title_size : style.text_size,
 							.spacing	 = 0,
 							.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-			set_widget_visible(tree, _row_labels[depth][i], true, false);
+			tree.set_visible(_row_labels[depth][i], true, false);
 
 			if (!is_title && (rows[i].shortcut != nullptr ? static_cast<u32>(strlen(rows[i].shortcut)) : 0) > 0)
 			{
 				_ui->set_widget_text(_row_shortcuts[depth][i], rows[i].shortcut);
-				set_widget_visible(tree, _row_shortcuts[depth][i], true, false);
+				tree.set_visible(_row_shortcuts[depth][i], true, false);
 				ui::layout_in_t& shortcut_in = tree.in(_row_shortcuts[depth][i]);
 				shortcut_in.pos_value		 = {1.0f - (style.padding_x / width), 0.5f};
 				if (rows[i].icon != nullptr || (!rows[i].disabled && rows[i].child_count > 0) || rows[i].kind == editor_action_menu_row_kind_e::toggle)
@@ -548,7 +542,7 @@ namespace sfg
 			else
 			{
 				_ui->clear_widget_text(_row_shortcuts[depth][i]);
-				set_widget_visible(tree, _row_shortcuts[depth][i], false, false);
+				tree.set_visible(_row_shortcuts[depth][i], false, false);
 			}
 
 			if (is_title)
@@ -564,7 +558,7 @@ namespace sfg
 				line_pd.rect.fill_color_b = title_line_end;
 				line_pd.rect.gradient	  = ui::vg_gradient_e::horizontal;
 			}
-			set_widget_visible(tree, _row_title_lines[depth][i], is_title, false);
+			tree.set_visible(_row_title_lines[depth][i], is_title, false);
 
 			const char* icon = !is_title ? row_icon(rows[i]) : nullptr;
 			if (icon != nullptr)
@@ -578,18 +572,18 @@ namespace sfg
 			}
 			else
 				_ui->clear_widget_text(_row_icon_labels[depth][i]);
-			set_widget_visible(tree, _row_icons[depth][i], icon != nullptr, false);
-			set_widget_visible(tree, _row_icon_labels[depth][i], icon != nullptr, false);
+			tree.set_visible(_row_icons[depth][i], icon != nullptr, false);
+			tree.set_visible(_row_icon_labels[depth][i], icon != nullptr, false);
 		}
 
 		for (u32 i = row_count; i < MAX_ROWS; ++i)
 		{
-			set_widget_visible(tree, _row_frames[depth][i], false, false);
-			set_widget_visible(tree, _row_labels[depth][i], false, false);
-			set_widget_visible(tree, _row_shortcuts[depth][i], false, false);
-			set_widget_visible(tree, _row_icons[depth][i], false, false);
-			set_widget_visible(tree, _row_icon_labels[depth][i], false, false);
-			set_widget_visible(tree, _row_title_lines[depth][i], false, false);
+			tree.set_visible(_row_frames[depth][i], false, false);
+			tree.set_visible(_row_labels[depth][i], false, false);
+			tree.set_visible(_row_shortcuts[depth][i], false, false);
+			tree.set_visible(_row_icons[depth][i], false, false);
+			tree.set_visible(_row_icon_labels[depth][i], false, false);
+			tree.set_visible(_row_title_lines[depth][i], false, false);
 		}
 	}
 
@@ -598,17 +592,17 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 		for (u32 d = depth; d < MAX_DEPTH; ++d)
 		{
-			set_widget_visible(tree, _panels[d], false, false);
+			tree.set_visible(_panels[d], false, false);
 			_active_rows[d]		  = nullptr;
 			_active_row_counts[d] = 0;
 			for (u32 r = 0; r < MAX_ROWS; ++r)
 			{
-				set_widget_visible(tree, _row_frames[d][r], false, false);
-				set_widget_visible(tree, _row_labels[d][r], false, false);
-				set_widget_visible(tree, _row_shortcuts[d][r], false, false);
-				set_widget_visible(tree, _row_icons[d][r], false, false);
-				set_widget_visible(tree, _row_icon_labels[d][r], false, false);
-				set_widget_visible(tree, _row_title_lines[d][r], false, false);
+				tree.set_visible(_row_frames[d][r], false, false);
+				tree.set_visible(_row_labels[d][r], false, false);
+				tree.set_visible(_row_shortcuts[d][r], false, false);
+				tree.set_visible(_row_icons[d][r], false, false);
+				tree.set_visible(_row_icon_labels[d][r], false, false);
+				tree.set_visible(_row_title_lines[d][r], false, false);
 			}
 		}
 		if (depth == 0)

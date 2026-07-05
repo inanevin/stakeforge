@@ -27,40 +27,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/assets/editor_panel_assets.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "assets/editor_asset_creator.hpp"
-#include "assets/editor_asset_importer.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
-#include "ui/editor_action_menu_controller.hpp"
-#include "ui/editor_modal_controller.hpp"
-#include "ui/editor_payload_controller.hpp"
-#include "ui/editor_popup_controller.hpp"
-#include "ui/editor_text_rasterization.hpp"
-#include "ui/editor_tooltip_controller.hpp"
-#include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widgets_dividers.hpp"
-#include "ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/common/hashing.hpp>
-#include <sfg/data/frame_string.hpp>
-#include <sfg/data/frame_vector.hpp>
+
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
-#include <sfg/math/rectf.hpp>
 #include <sfg/platform/process.hpp>
-#include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/runtime/ui/input/input_router.hpp>
-#include <sfg/runtime/ui/layout/layout_tree.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
-#include <algorithm>
 namespace sfg
 {
 	namespace

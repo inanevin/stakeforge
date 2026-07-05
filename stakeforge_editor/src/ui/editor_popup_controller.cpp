@@ -57,12 +57,6 @@ namespace sfg
 		editor_popup_controller_t* s_controllers[editor_popup_controller_t::MAX_CONTROLLERS] = {};
 		u32						   s_controller_count										 = 0;
 
-		void set_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
-		{
-			ui::layout_in_t& in = tree.in(id);
-			in.flags			= visible ? static_cast<u16>(ui::wf_visible | (input ? ui::wf_input : 0)) : 0;
-		}
-
 		void set_focusable_widget_visible(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible, bool input)
 		{
 			ui::layout_in_t& in = tree.in(id);
@@ -597,22 +591,22 @@ namespace sfg
 	{
 		_visible				= visible;
 		ui::layout_tree_t& tree = _ui->get_tree();
-		set_widget_visible(tree, _foreground, visible, false);
-		set_widget_visible(tree, _frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets || _mode == popup_mode_e::entities || _mode == popup_mode_e::color_wheel), false);
+		tree.set_visible(_foreground, visible, false);
+		tree.set_visible(_frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets || _mode == popup_mode_e::entities || _mode == popup_mode_e::color_wheel), false);
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
 			const bool item_visible	  = visible && _mode == popup_mode_e::items && i < _desc.item_count;
 			const bool marker_visible = item_visible && _items[i].selected;
 			set_focusable_widget_visible(tree, _row_frames[i], item_visible, item_visible);
-			set_widget_visible(tree, _row_inner_frames[i], item_visible, false);
-			set_widget_visible(tree, _row_markers[i], item_visible, false);
-			set_widget_visible(tree, _row_marker_labels[i], marker_visible, false);
-			set_widget_visible(tree, _row_labels[i], item_visible, false);
+			tree.set_visible(_row_inner_frames[i], item_visible, false);
+			tree.set_visible(_row_markers[i], item_visible, false);
+			tree.set_visible(_row_marker_labels[i], marker_visible, false);
+			tree.set_visible(_row_labels[i], item_visible, false);
 		}
 		const bool search_popup_visible = visible && (_mode == popup_mode_e::assets || _mode == popup_mode_e::entities);
-		set_widget_visible(tree, _asset_label_row, search_popup_visible, false);
-		set_widget_visible(tree, _asset_label, search_popup_visible, false);
-		set_widget_visible(tree, _asset_search_row, search_popup_visible, false);
+		tree.set_visible(_asset_label_row, search_popup_visible, false);
+		tree.set_visible(_asset_label, search_popup_visible, false);
+		tree.set_visible(_asset_search_row, search_popup_visible, false);
 		_asset_search_input.set_visible(search_popup_visible);
 		ui::layout_in_t& assets_frame_in = tree.in(_assets_frame);
 		assets_frame_in.flags			 = search_popup_visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_scroll_y) : 0;
@@ -621,11 +615,11 @@ namespace sfg
 			const asset_row_t& row		   = _asset_rows[i];
 			const bool		   row_visible = search_popup_visible && i < _asset_filtered_items.size();
 			set_focusable_widget_visible(tree, row.root, row_visible, row_visible);
-			set_widget_visible(tree, row.inner, row_visible, false);
-			set_widget_visible(tree, row.marker, row_visible, false);
-			set_widget_visible(tree, row.marker_icon, row_visible, false);
-			set_widget_visible(tree, row.thumbnail, row_visible && _mode == popup_mode_e::assets, false);
-			set_widget_visible(tree, row.label, row_visible, false);
+			tree.set_visible(row.inner, row_visible, false);
+			tree.set_visible(row.marker, row_visible, false);
+			tree.set_visible(row.marker_icon, row_visible, false);
+			tree.set_visible(row.thumbnail, row_visible && _mode == popup_mode_e::assets, false);
+			tree.set_visible(row.label, row_visible, false);
 		}
 		_input.set_visible(visible && _mode == popup_mode_e::input);
 		_color_wheel.set_visible(visible && _mode == popup_mode_e::color_wheel);
@@ -643,7 +637,7 @@ namespace sfg
 						   _ui->widget_text_len(_row_labels[i]),
 						   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 			paint.def(_row_marker_labels[i]).text.color = theme.color_accent0;
-			set_widget_visible(_ui->get_tree(), _row_marker_labels[i], _visible && _items[i].selected, false);
+			_ui->get_tree().set_visible(_row_marker_labels[i], _visible && _items[i].selected, false);
 		}
 	}
 
