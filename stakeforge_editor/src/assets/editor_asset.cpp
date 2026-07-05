@@ -26,19 +26,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset.hpp"
-#include <cstddef>
-
 #include "assets/editor_asset_manager.hpp"
 #include "editor_project.hpp"
 
-#include <sfg/common/hashing.hpp>
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/serialization/serialization.hpp>
-#include <algorithm>
 
 namespace sfg
 {

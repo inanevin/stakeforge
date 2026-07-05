@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_glb_importer.hpp"
-
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -34,12 +33,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 
-#include <sfg/common/hashing.hpp>
 #include <sfg/common/packing.hpp>
-#include <sfg/data/hash_map.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/data/string_view.hpp>
-#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>

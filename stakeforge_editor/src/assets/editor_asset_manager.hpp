@@ -117,6 +117,7 @@ namespace sfg
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
 	private:
+		editor_modal_progress_bar_t								   _import_progress_modal = {};
 		editor_asset_tree_t										   _asset_tree;
 		hash_map_t<u64, editor_asset_t>							   _assets;
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
@@ -125,7 +126,6 @@ namespace sfg
 		vector_t<editor_asset_t>								   _cook_assets;
 		string_t												   _import_status_pending;
 		string_t												   _import_status_visible;
-		editor_modal_progress_bar_t								   _import_progress_modal = {};
 		mutex_t													   _import_status_mtx;
 		atomic_t<u32>											   _imported_count		= 0;
 		atomic_t<bool>											   _import_finished		= false;

@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_default_asset_seeder.hpp"
-
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -79,7 +78,7 @@ namespace sfg
 		{
 			out["schema"]		= "sfg.schema.shader";
 			out["include_dirs"] = {EDITOR_DEFAULT_SHADERS, EDITOR_DEFAULT_SHADERS "world"};
-			out["type"] = shader_type;
+			out["type"]			= shader_type;
 		}
 
 		string_t get_shader_default_source_relative(shader_type_e shader_type)

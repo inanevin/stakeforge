@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_cooker.hpp"
-
 #include "assets/editor_asset.hpp"
 #include "editor_project.hpp"
 
@@ -35,10 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation_cook.hpp>
 #include <sfg/runtime/resources/animation_def.hpp>

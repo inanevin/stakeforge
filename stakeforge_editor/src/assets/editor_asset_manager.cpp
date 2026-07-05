@@ -37,16 +37,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/string_util.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/color_utils.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
-#include <algorithm>
-#include <charconv>
-#include <system_error>
-#include <utility>
 
 namespace sfg
 {

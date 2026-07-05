@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_spawn.hpp"
-
 #include "assets/editor_asset_manager.hpp"
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "ui/editor_payload_controller.hpp"

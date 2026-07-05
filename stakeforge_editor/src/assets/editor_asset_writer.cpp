@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_writer.hpp"
-
 #include "assets/editor_asset_manager.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -42,9 +41,11 @@ namespace sfg
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 		SFG_ASSERT(!parent_node.is_null());
 		SFG_ASSERT(tree.is_valid(parent_node));
+
 		const editor_asset_node_t& node = tree.value(parent_node);
 		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
 		SFG_ASSERT(!node.full_path.empty());
+
 		return node;
 	}
 
@@ -73,6 +74,7 @@ namespace sfg
 		sid_t guid = desc.guid;
 		if (guid == NULL_SID && desc.allow_overwrite)
 			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+
 		if (guid == NULL_SID)
 			guid = editor_asset_util_t::generate_unique_asset_guid();
 
@@ -91,6 +93,7 @@ namespace sfg
 			source_path += desc.source_name;
 			source_path += ".";
 			source_path += desc.source_extension;
+
 			if (file_system_t::exists(source_path.c_str()))
 				asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
 		}

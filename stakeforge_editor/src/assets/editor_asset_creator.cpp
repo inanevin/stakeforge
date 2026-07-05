@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_creator.hpp"
-
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_writer.hpp"
@@ -34,7 +33,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
