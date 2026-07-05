@@ -28,8 +28,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_surface.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+
 #include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
