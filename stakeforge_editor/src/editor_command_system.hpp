@@ -30,9 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 
-#include <cstddef>
-#include <type_traits>
-
 namespace sfg
 {
 	class editor_command_system_t;

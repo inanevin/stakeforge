@@ -27,12 +27,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_world_metadata.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <algorithm>
 
 namespace sfg
 {

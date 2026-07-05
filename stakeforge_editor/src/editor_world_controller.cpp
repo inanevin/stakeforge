@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -50,13 +51,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
-#include <sfg/serialization/compression.hpp>
-#include <sfg/serialization/serialization.hpp>
 
 namespace sfg
 {

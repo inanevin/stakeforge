@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "editor_settings.hpp"
 #include "editor_directories.hpp"
+
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>

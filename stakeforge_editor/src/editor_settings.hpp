@@ -26,9 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
 #include "editor_layout.hpp"
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {

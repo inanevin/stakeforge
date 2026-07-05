@@ -25,10 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_command_system.hpp"
+
 #include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/memory/memory.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 

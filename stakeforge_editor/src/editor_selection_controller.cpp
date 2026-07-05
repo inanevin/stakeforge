@@ -27,8 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_selection_controller.hpp"
 #include "editor_app.hpp"
 #include "editor_command_system.hpp"
+
 #include <sfg/io/assert.hpp>
-#include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/memory.hpp>
 
 namespace sfg

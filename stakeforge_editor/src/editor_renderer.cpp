@@ -28,9 +28,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_world_controller.hpp"
-#include <sfg/common/hashing.hpp>
+
 #include <sfg/data/frame_vector.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/gfx/common/commands.hpp>
@@ -48,8 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <tracy/Tracy.hpp>
-
-#include <utility>
 
 namespace sfg
 {
