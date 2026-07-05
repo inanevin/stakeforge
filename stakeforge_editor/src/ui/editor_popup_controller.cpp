@@ -25,12 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/editor_popup_controller.hpp"
+#include "editor_world_controller.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "editor_app.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
-
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -878,7 +877,7 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_items.push_back({.name = "None", .guid = static_cast<sid_t>(NULL_ENTITY_GUID)});
 
-		const world_t&				   world	   = editor_app_t::get().get_world_controller().get_world(_entity_desc.world);
+		const world_t&				   world	   = editor_world_controller_t::get().get_world(_entity_desc.world);
 		const world_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
 		const world_component_table_t* guid_table  = world.find_component_table(type_id_t<component_guid_t>::value);
 		const world_component_table_t* name_table  = world.find_component_table(type_id_t<component_name_t>::value);

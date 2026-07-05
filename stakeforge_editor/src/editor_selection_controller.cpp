@@ -25,9 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_selection_controller.hpp"
-#include "editor_app.hpp"
 #include "editor_command_system.hpp"
-
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 
@@ -50,7 +48,7 @@ namespace sfg
 
 		bool on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_selection_controller_t&					 controller = editor_app_t::get().get_selection_controller();
+			editor_selection_controller_t&					 controller = editor_selection_controller_t::get();
 			const editor_command_entity_selection_payload_t& payload	= system.get_payload_as<editor_command_entity_selection_payload_t>(command);
 			const entity_id_t*								 entities	= payload.previous_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_entities) : nullptr;
 			controller.apply_entity_selection({.data = entities, .size = payload.previous_count}, payload.previous_anchor);
@@ -59,7 +57,7 @@ namespace sfg
 
 		bool on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_selection_controller_t&					 controller = editor_app_t::get().get_selection_controller();
+			editor_selection_controller_t&					 controller = editor_selection_controller_t::get();
 			const editor_command_entity_selection_payload_t& payload	= system.get_payload_as<editor_command_entity_selection_payload_t>(command);
 			const entity_id_t*								 entities	= payload.next_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.next_entities) : nullptr;
 			controller.apply_entity_selection({.data = entities, .size = payload.next_count}, payload.next_anchor);
@@ -85,7 +83,9 @@ namespace sfg
 
 	void editor_selection_controller_t::init()
 	{
+		SFG_ASSERT(s_instance == nullptr);
 		SFG_ASSERT(!_inited);
+		s_instance = this;
 		_selected_entities.reserve(EDITOR_SELECTION_INITIAL_ENTITY_CAPACITY);
 		_listeners.reserve(EDITOR_SELECTION_MAX_LISTENERS);
 		_generation = 0;
@@ -94,6 +94,7 @@ namespace sfg
 
 	void editor_selection_controller_t::uninit()
 	{
+		SFG_ASSERT(s_instance == this);
 		SFG_ASSERT(_inited);
 		clear();
 		_listeners.clear();
@@ -102,6 +103,7 @@ namespace sfg
 		_entity_anchor = NULL_ENTITY_ID;
 		_generation	   = 0;
 		_inited		   = false;
+		s_instance	   = nullptr;
 	}
 
 	void editor_selection_controller_t::clear()
@@ -140,7 +142,7 @@ namespace sfg
 		SFG_ASSERT(_selected_entities.size() <= UINT32_MAX);
 		SFG_ASSERT(entities.size <= UINT32_MAX);
 
-		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_entity_selection_payload_t payload = {};
 		payload.previous_anchor							  = _entity_anchor;

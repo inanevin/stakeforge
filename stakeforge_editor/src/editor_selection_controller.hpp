@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
@@ -82,6 +83,12 @@ namespace sfg
 		entity_id_t				  get_entity_anchor() const;
 		u32						  get_generation() const;
 
+		static inline editor_selection_controller_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
+
 	private:
 		void notify_listeners();
 
@@ -92,5 +99,7 @@ namespace sfg
 		entity_id_t																			  _entity_anchor	 = NULL_ENTITY_ID;
 		u32																					  _generation		 = 0;
 		bool																				  _inited			 = false;
+
+		static inline editor_selection_controller_t* s_instance = nullptr;
 	};
 }

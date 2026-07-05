@@ -25,12 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/docking/dock_widget.hpp"
+#include "ui/editor_payload_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_panel_types.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "editor_app.hpp"
-
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>

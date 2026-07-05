@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "commands/editor_commands_world_metadata.hpp"
-#include "editor_app.hpp"
+#include "editor_world_metadata.hpp"
 #include "editor_command_system.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -74,8 +74,8 @@ namespace sfg
 
 		bool create_world_folder_undo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&					  metadata = editor_app_t::get().get_world_metadata();
-			editor_command_create_world_folder_payload_t& payload  = editor_app_t::get().get_command_system().get_payload_as<editor_command_create_world_folder_payload_t>(command);
+			editor_world_metadata_t&					  metadata = editor_world_metadata_t::get();
+			editor_command_create_world_folder_payload_t& payload  = editor_command_system_t::get().get_payload_as<editor_command_create_world_folder_payload_t>(command);
 			const editor_world_folder_handle_t			  handle   = get_folder_handle(metadata, payload.folder_guid);
 			if (!handle.is_null())
 				metadata.destroy_folder(handle);
@@ -84,8 +84,8 @@ namespace sfg
 
 		bool create_world_folder_redo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&					  metadata		= editor_app_t::get().get_world_metadata();
-			editor_command_create_world_folder_payload_t& payload		= editor_app_t::get().get_command_system().get_payload_as<editor_command_create_world_folder_payload_t>(command);
+			editor_world_metadata_t&					  metadata		= editor_world_metadata_t::get();
+			editor_command_create_world_folder_payload_t& payload		= editor_command_system_t::get().get_payload_as<editor_command_create_world_folder_payload_t>(command);
 			const editor_world_folder_handle_t			  parent_handle = get_folder_handle(metadata, payload.parent_folder_guid);
 			const editor_world_folder_handle_t			  handle		= metadata.create_folder_with_guid(payload.name, payload.color, payload.folded, parent_handle, payload.folder_guid);
 			payload.folder_guid											= metadata.get_folder(handle).guid;
@@ -94,8 +94,8 @@ namespace sfg
 
 		bool rename_world_folder_undo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&							metadata = editor_app_t::get().get_world_metadata();
-			const editor_command_rename_world_folder_payload_t& payload	 = editor_app_t::get().get_command_system().get_payload_as<editor_command_rename_world_folder_payload_t>(command);
+			editor_world_metadata_t&							metadata = editor_world_metadata_t::get();
+			const editor_command_rename_world_folder_payload_t& payload	 = editor_command_system_t::get().get_payload_as<editor_command_rename_world_folder_payload_t>(command);
 			const editor_world_folder_handle_t					handle	 = get_folder_handle(metadata, payload.folder_guid);
 			if (!handle.is_null())
 				metadata.set_folder_name(handle, payload.old_name);
@@ -104,8 +104,8 @@ namespace sfg
 
 		bool rename_world_folder_redo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&							metadata = editor_app_t::get().get_world_metadata();
-			const editor_command_rename_world_folder_payload_t& payload	 = editor_app_t::get().get_command_system().get_payload_as<editor_command_rename_world_folder_payload_t>(command);
+			editor_world_metadata_t&							metadata = editor_world_metadata_t::get();
+			const editor_command_rename_world_folder_payload_t& payload	 = editor_command_system_t::get().get_payload_as<editor_command_rename_world_folder_payload_t>(command);
 			const editor_world_folder_handle_t					handle	 = get_folder_handle(metadata, payload.folder_guid);
 			if (!handle.is_null())
 				metadata.set_folder_name(handle, payload.new_name);
@@ -114,8 +114,8 @@ namespace sfg
 
 		bool color_world_folder_undo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&						   metadata = editor_app_t::get().get_world_metadata();
-			const editor_command_color_world_folder_payload_t& payload	= editor_app_t::get().get_command_system().get_payload_as<editor_command_color_world_folder_payload_t>(command);
+			editor_world_metadata_t&						   metadata = editor_world_metadata_t::get();
+			const editor_command_color_world_folder_payload_t& payload	= editor_command_system_t::get().get_payload_as<editor_command_color_world_folder_payload_t>(command);
 			const editor_world_folder_handle_t				   handle	= get_folder_handle(metadata, payload.folder_guid);
 			if (!handle.is_null())
 				metadata.set_folder_color(handle, payload.old_color);
@@ -124,8 +124,8 @@ namespace sfg
 
 		bool color_world_folder_redo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&						   metadata = editor_app_t::get().get_world_metadata();
-			const editor_command_color_world_folder_payload_t& payload	= editor_app_t::get().get_command_system().get_payload_as<editor_command_color_world_folder_payload_t>(command);
+			editor_world_metadata_t&						   metadata = editor_world_metadata_t::get();
+			const editor_command_color_world_folder_payload_t& payload	= editor_command_system_t::get().get_payload_as<editor_command_color_world_folder_payload_t>(command);
 			const editor_world_folder_handle_t				   handle	= get_folder_handle(metadata, payload.folder_guid);
 			if (!handle.is_null())
 				metadata.set_folder_color(handle, payload.new_color);
@@ -134,7 +134,7 @@ namespace sfg
 
 		bool apply_folder_assignments(editor_command_system_t& system, const editor_command_assign_world_folder_payload_t& payload, chunk_handle32_t folder_guids_handle)
 		{
-			editor_world_metadata_t& metadata	  = editor_app_t::get().get_world_metadata();
+			editor_world_metadata_t& metadata	  = editor_world_metadata_t::get();
 			const entity_guid_t*	 entity_guids = system.get_aux_data().get<entity_guid_t>(payload.entity_guids);
 			const u64*				 folder_guids = system.get_aux_data().get<u64>(folder_guids_handle);
 
@@ -159,7 +159,7 @@ namespace sfg
 		bool assign_world_folder_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			const editor_command_assign_world_folder_payload_t& payload		 = system.get_payload_as<editor_command_assign_world_folder_payload_t>(command);
-			editor_world_metadata_t&							metadata	 = editor_app_t::get().get_world_metadata();
+			editor_world_metadata_t&							metadata	 = editor_world_metadata_t::get();
 			const entity_guid_t*								entity_guids = system.get_aux_data().get<entity_guid_t>(payload.entity_guids);
 			const editor_world_folder_handle_t					handle		 = get_folder_handle(metadata, payload.target_folder_guid);
 			if (handle.is_null())
@@ -187,8 +187,8 @@ namespace sfg
 
 		bool assign_world_folder_parent_undo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&								   metadata = editor_app_t::get().get_world_metadata();
-			const editor_command_assign_world_folder_parent_payload_t& payload	= editor_app_t::get().get_command_system().get_payload_as<editor_command_assign_world_folder_parent_payload_t>(command);
+			editor_world_metadata_t&								   metadata = editor_world_metadata_t::get();
+			const editor_command_assign_world_folder_parent_payload_t& payload	= editor_command_system_t::get().get_payload_as<editor_command_assign_world_folder_parent_payload_t>(command);
 			const editor_world_folder_handle_t						   handle	= get_folder_handle(metadata, payload.folder_guid);
 			const editor_world_folder_handle_t						   parent	= get_folder_handle(metadata, payload.previous_parent_guid);
 			if (!handle.is_null() && metadata.can_assign_folder(handle, parent))
@@ -198,8 +198,8 @@ namespace sfg
 
 		bool assign_world_folder_parent_redo(editor_command_system_t&, editor_command_t& command)
 		{
-			editor_world_metadata_t&								   metadata = editor_app_t::get().get_world_metadata();
-			const editor_command_assign_world_folder_parent_payload_t& payload	= editor_app_t::get().get_command_system().get_payload_as<editor_command_assign_world_folder_parent_payload_t>(command);
+			editor_world_metadata_t&								   metadata = editor_world_metadata_t::get();
+			const editor_command_assign_world_folder_parent_payload_t& payload	= editor_command_system_t::get().get_payload_as<editor_command_assign_world_folder_parent_payload_t>(command);
 			const editor_world_folder_handle_t						   handle	= get_folder_handle(metadata, payload.folder_guid);
 			const editor_world_folder_handle_t						   parent	= get_folder_handle(metadata, payload.next_parent_guid);
 			if (!handle.is_null() && metadata.can_assign_folder(handle, parent))
@@ -210,7 +210,7 @@ namespace sfg
 
 	editor_world_folder_handle_t editor_commands_world_metadata_t::create_folder(const char* name, editor_world_folder_handle_t parent_handle)
 	{
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		SFG_ASSERT(parent_handle.is_null() || metadata.is_folder_valid(parent_handle));
 
 		editor_command_create_world_folder_payload_t payload = {};
@@ -218,7 +218,7 @@ namespace sfg
 		payload.color			   = color_t::from255(245.0f, 194.0f, 82.0f, 255.0f);
 		payload.parent_folder_guid = get_folder_guid(metadata, parent_handle);
 
-		editor_command_system_t&		  command_system = editor_app_t::get().get_command_system();
+		editor_command_system_t&		  command_system = editor_command_system_t::get();
 		const editor_command_issue_desc_t desc{
 			.undo			   = create_world_folder_undo,
 			.redo			   = create_world_folder_redo,
@@ -241,7 +241,7 @@ namespace sfg
 
 	bool editor_commands_world_metadata_t::rename_folder(editor_world_folder_handle_t handle, const char* name)
 	{
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.is_folder_valid(handle))
 			return false;
 
@@ -258,12 +258,12 @@ namespace sfg
 			.entity_generation = true,
 		};
 
-		return !editor_app_t::get().get_command_system().issue_command(desc, payload).is_null();
+		return !editor_command_system_t::get().issue_command(desc, payload).is_null();
 	}
 
 	bool editor_commands_world_metadata_t::change_folder_color(editor_world_folder_handle_t handle, color_t color)
 	{
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.is_folder_valid(handle))
 			return false;
 
@@ -280,7 +280,7 @@ namespace sfg
 			.entity_generation = true,
 		};
 
-		return !editor_app_t::get().get_command_system().issue_command(desc, payload).is_null();
+		return !editor_command_system_t::get().issue_command(desc, payload).is_null();
 	}
 
 	bool editor_commands_world_metadata_t::assign_entities_to_folder(editor_world_folder_handle_t handle, span_t<const entity_guid_t> entity_guids)
@@ -288,9 +288,9 @@ namespace sfg
 		if (entity_guids.size == 0)
 			return false;
 
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		SFG_ASSERT(handle.is_null() || metadata.is_folder_valid(handle));
-		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_assign_world_folder_payload_t payload = {};
 		payload.entity_guids								 = copy_entity_guids_to_aux(command_system, entity_guids);
@@ -317,7 +317,7 @@ namespace sfg
 
 	bool editor_commands_world_metadata_t::assign_folder_to_folder(editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle)
 	{
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.can_assign_folder(handle, parent_handle))
 			return false;
 
@@ -334,6 +334,6 @@ namespace sfg
 			.entity_generation = true,
 		};
 
-		return !editor_app_t::get().get_command_system().issue_command(desc, payload).is_null();
+		return !editor_command_system_t::get().issue_command(desc, payload).is_null();
 	}
 }

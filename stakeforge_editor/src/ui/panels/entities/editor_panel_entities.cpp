@@ -25,8 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/editor_payload_controller.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_command_system.hpp"
+#include "editor_world_metadata.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
-#include "editor_app.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -119,31 +122,31 @@ namespace sfg
 
 		ui.set_pre_layout_tick(_entity_list_area, on_entity_tree_tick, this);
 
-		editor_app_t::get().get_world_metadata().get_outliner_rows().reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+		editor_world_metadata_t::get().get_outliner_rows().reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_payload_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
-		_command_listener	= editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
-		_selection_listener = editor_app_t::get().get_selection_controller().add_listener(on_selection_changed, this);
+		_command_listener	= editor_command_system_t::get().add_listener(on_command_system_event, this);
+		_selection_listener = editor_selection_controller_t::get().add_listener(on_selection_changed, this);
 		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 		refresh_entities();
 	}
 
 	void editor_panel_entities_t::uninit()
 	{
-		editor_app_t::get().get_command_system().remove_listener(_command_listener);
-		editor_app_t::get().get_selection_controller().remove_listener(_selection_listener);
+		editor_command_system_t::get().remove_listener(_command_listener);
+		editor_selection_controller_t::get().remove_listener(_selection_listener);
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
 		if (editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui))
 		{
-			for (const editor_outliner_row_t& row : editor_app_t::get().get_world_metadata().get_outliner_rows())
+			for (const editor_outliner_row_t& row : editor_world_metadata_t::get().get_outliner_rows())
 				tooltip_controller->clear_tooltip(row.disable_button);
 		}
 		_ui->deallocate_widget(_entity_top_row);
 		_ui->deallocate_widget(_entity_list_area);
 
-		editor_app_t::get().get_world_metadata().get_outliner_rows().clear();
+		editor_world_metadata_t::get().get_outliner_rows().clear();
 		_payload_entities.clear();
 
 		_entity_top_row		  = NULL_WIDGET;

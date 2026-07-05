@@ -25,12 +25,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset_manager.hpp"
+#include "editor_world_controller.hpp"
+#include "ui/editor_payload_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "assets/editor_asset_creator.hpp"
-#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
-
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
@@ -48,11 +49,10 @@ namespace sfg
 	{
 		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node)
 		{
-			editor_app_t& app = editor_app_t::get();
-			if (!app.get_world_controller().is_world_valid(entity_payload.world))
+			if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
 				return false;
 
-			const world_t& world = app.get_world_controller().get_world(entity_payload.world);
+			const world_t& world = editor_world_controller_t::get().get_world(entity_payload.world);
 			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 				return false;
 

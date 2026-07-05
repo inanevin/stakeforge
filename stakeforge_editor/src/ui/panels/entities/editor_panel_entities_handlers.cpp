@@ -25,6 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_world_metadata.hpp"
+#include "editor_world_controller.hpp"
 #include "assets/editor_asset_spawn.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
@@ -35,9 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_world_metadata.hpp"
-#include "editor_app.hpp"
 #include "editor_command_system.hpp"
-
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/math/rectf.hpp>
@@ -123,7 +124,7 @@ namespace sfg
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
 		if (!panel._edit_folder.is_null())
 		{
-			editor_app_t::get().get_world_metadata().set_folder_color(panel._edit_folder, panel._folder_edit_color);
+			editor_world_metadata_t::get().set_folder_color(panel._edit_folder, panel._folder_edit_color);
 			panel.refresh_entities();
 		}
 	}
@@ -134,7 +135,7 @@ namespace sfg
 		if (!panel._edit_folder.is_null())
 		{
 			const color_t color = panel._folder_edit_color;
-			editor_app_t::get().get_world_metadata().set_folder_color(panel._edit_folder, panel._folder_edit_original_color);
+			editor_world_metadata_t::get().set_folder_color(panel._edit_folder, panel._folder_edit_original_color);
 			panel._folder_edit_color = color;
 			editor_commands_world_metadata_t::change_folder_color(panel._edit_folder, panel._folder_edit_color);
 			panel.refresh_entities();
@@ -177,7 +178,7 @@ namespace sfg
 			return;
 		}
 
-		if (editor_app_t::get().get_selection_controller().get_selected_entities().size == 0)
+		if (editor_selection_controller_t::get().get_selected_entities().size == 0)
 			return;
 
 		if (ev.key == static_cast<u16>(input_code::key_delete))
@@ -216,7 +217,7 @@ namespace sfg
 	void editor_panel_entities_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_panel_entities_t& panel = *static_cast<editor_panel_entities_t*>(user_data);
-		if (!(editor_app_t::get().get_world_controller().get_main_world() == panel._main_world) || panel._entity_generation != editor_app_t::get().get_command_system().get_entity_generation())
+		if (!(editor_world_controller_t::get().get_main_world() == panel._main_world) || panel._entity_generation != editor_command_system_t::get().get_entity_generation())
 			panel.refresh_entities();
 	}
 
@@ -247,7 +248,7 @@ namespace sfg
 			panel.toggle_entity_fold(row->entity);
 		else if (row->has_children)
 		{
-			editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+			editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 			metadata.set_folder_folded(row->folder_handle, !metadata.get_folder(row->folder_handle).folded);
 			panel.refresh_entities();
 		}
@@ -328,7 +329,7 @@ namespace sfg
 			return;
 		if (row->type == editor_outliner_item_type_e::folder)
 		{
-			editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+			editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 			metadata.set_folder_folded(row->folder_handle, !metadata.get_folder(row->folder_handle).folded);
 			panel.refresh_entities();
 			return;
@@ -401,7 +402,7 @@ namespace sfg
 			const editor_command_duplicate_entity_payload_t& payload  = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
 			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const entity_id_t								 entity	  = entities[payload.count - 1];
-			editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
+			editor_selection_controller_t::get().issue_entity_selection({.data = &entity, .size = 1}, entity);
 			break;
 		}
 		case editor_command_type_e::entity_info_paste: {
@@ -437,13 +438,13 @@ namespace sfg
 	{
 		editor_panel_entities_t&		panel	 = *static_cast<editor_panel_entities_t*>(user_data);
 		bool							changed	 = false;
-		const span_t<const entity_id_t> selected = editor_app_t::get().get_selection_controller().get_selected_entities();
+		const span_t<const entity_id_t> selected = editor_selection_controller_t::get().get_selected_entities();
 		for (size_t i = 0; i < selected.size; ++i)
 			changed |= panel.reveal_entity(selected.data[i]);
 		if (changed)
 			panel.refresh_entities();
 
-		for (const editor_outliner_row_t& row : editor_app_t::get().get_world_metadata().get_outliner_rows())
+		for (const editor_outliner_row_t& row : editor_world_metadata_t::get().get_outliner_rows())
 			panel.update_outliner_row_background(row);
 	}
 

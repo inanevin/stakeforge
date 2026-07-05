@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
@@ -114,6 +115,12 @@ namespace sfg
 			return _world_panel_focused;
 		}
 
+		static inline editor_world_controller_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
+
 	private:
 		struct world_container_t
 		{
@@ -175,5 +182,7 @@ namespace sfg
 		bool											   _world_panel_focused			  = false;
 		bool											   _main_world_dirty			  = false;
 		bool											   _is_looking					  = false;
+
+		static inline editor_world_controller_t* s_instance = nullptr;
 	};
 }

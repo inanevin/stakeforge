@@ -25,9 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_command_system.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "editor_app.hpp"
-
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -77,15 +77,15 @@ namespace sfg
 		scrollbar_config.target					   = _scroll_area;
 		scrollbar_config.axes					   = editor_scrollbar_axis_y;
 		_scrollbar.init(ui, scrollbar_config);
-		_command_listener	= editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
-		_selection_listener = editor_app_t::get().get_selection_controller().add_listener(on_selection_changed, this);
+		_command_listener	= editor_command_system_t::get().add_listener(on_command_system_event, this);
+		_selection_listener = editor_selection_controller_t::get().add_listener(on_selection_changed, this);
 		refresh_from_selection();
 	}
 
 	void editor_panel_inspector_t::uninit()
 	{
-		editor_app_t::get().get_command_system().remove_listener(_command_listener);
-		editor_app_t::get().get_selection_controller().remove_listener(_selection_listener);
+		editor_command_system_t::get().remove_listener(_command_listener);
+		editor_selection_controller_t::get().remove_listener(_selection_listener);
 		_ui->cancel_mutations(this);
 		clear_display();
 		_scrollbar.uninit();

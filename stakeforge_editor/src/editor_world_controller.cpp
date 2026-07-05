@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_world_controller.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_world_metadata.hpp"
 #include "editor_app.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -35,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
-
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -87,7 +88,9 @@ namespace sfg
 
 	void editor_world_controller_t::init()
 	{
-		_command_listener = editor_app_t::get().get_command_system().add_listener(on_command_system_event, this);
+		SFG_ASSERT(s_instance == nullptr);
+		s_instance		  = this;
+		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
@@ -98,9 +101,10 @@ namespace sfg
 
 	void editor_world_controller_t::uninit()
 	{
+		SFG_ASSERT(s_instance == this);
 		if (!_command_listener.is_null())
 		{
-			editor_app_t::get().get_command_system().remove_listener(_command_listener);
+			editor_command_system_t::get().remove_listener(_command_listener);
 			_command_listener = {};
 		}
 
@@ -111,6 +115,7 @@ namespace sfg
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 		reset_camera_input();
 		_main_camera_entity = NULL_ENTITY_ID;
+		s_instance			= nullptr;
 	}
 
 	world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
@@ -456,7 +461,7 @@ namespace sfg
 		_main_world_asset_guid		   = asset_guid;
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_dirty			   = false;
-		editor_app_t::get().get_command_system().clear();
+		editor_command_system_t::get().clear();
 		notify_main_world_changed();
 	}
 
@@ -520,8 +525,8 @@ namespace sfg
 	void editor_world_controller_t::notify_main_world_changed()
 	{
 		editor_app_t& app = editor_app_t::get();
-		app.get_world_metadata().set_world(_main_world);
-		app.get_selection_controller().set_world(_main_world);
+		editor_world_metadata_t::get().set_world(_main_world);
+		editor_selection_controller_t::get().set_world(_main_world);
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
 		{

@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/memory/gen_pool.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
@@ -148,6 +149,12 @@ namespace sfg
 		vector_t<editor_outliner_row_t>&	 get_outliner_rows();
 		world_handle_t						 get_world() const;
 
+		static inline editor_world_metadata_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
+
 	private:
 		editor_world_entity_metadata_t&		  get_or_create_entity_metadata(entity_guid_t guid);
 		editor_world_entity_metadata_t*		  find_entity_metadata(entity_guid_t guid);
@@ -164,5 +171,7 @@ namespace sfg
 		world_handle_t													  _world	 = {};
 		u64																  _next_guid = 1;
 		bool															  _inited	 = false;
+
+		static inline editor_world_metadata_t* s_instance = nullptr;
 	};
 }

@@ -25,6 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_world_metadata.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -32,9 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "commands/editor_commands_entity.hpp"
-#include "editor_app.hpp"
 #include "editor_command_system.hpp"
-
 #include <sfg/data/string_util.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -48,7 +49,7 @@ namespace sfg
 			return;
 		}
 
-		_entity_generation = editor_app_t::get().get_command_system().get_entity_generation();
+		_entity_generation = editor_command_system_t::get().get_entity_generation();
 		collect_entities();
 		prune_entity_selection();
 		_visible_entity_count = 0;
@@ -56,7 +57,7 @@ namespace sfg
 		const bool search_active = !_search_str_lower.empty();
 		u16		   hidden_depth	 = UINT16_MAX;
 
-		editor_world_metadata_t&			 metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t&			 metadata = editor_world_metadata_t::get();
 		const span_t<editor_outliner_item_t> items	  = metadata.get_outliner_items();
 		frame_vector_t<u8>					 search_visible;
 		frame_vector_t<size_t>				 search_ancestor_stack;
@@ -121,11 +122,11 @@ namespace sfg
 			return;
 		}
 
-		world_t&	world = editor_app_t::get().get_world_controller().get_world(_main_world);
+		world_t&	world = editor_world_controller_t::get().get_world(_main_world);
 		const char* name  = world.get_entity_name(entity);
 		const char* text  = name != nullptr ? name : "Entity";
 
-		editor_world_metadata_t&	   metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t&	   metadata = editor_world_metadata_t::get();
 		editor_outliner_item_t*		   desc		= nullptr;
 		span_t<editor_outliner_item_t> items	= metadata.get_outliner_items();
 		for (size_t i = 0; i < items.size; ++i)
@@ -152,20 +153,19 @@ namespace sfg
 
 	void editor_panel_entities_t::collect_entities()
 	{
-		editor_app_t&		 app		= editor_app_t::get();
-		const world_handle_t main_world = app.get_world_controller().get_main_world();
+		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		_main_world						= main_world;
-		app.get_selection_controller().set_world(main_world);
+		editor_selection_controller_t::get().set_world(main_world);
 		if (main_world.is_null())
 			return;
 
-		const world_t& world = app.get_world_controller().get_world(main_world);
-		app.get_world_metadata().collect_outliner_items(world);
+		const world_t& world = editor_world_controller_t::get().get_world(main_world);
+		editor_world_metadata_t::get().collect_outliner_items(world);
 	}
 
 	editor_outliner_row_t& editor_panel_entities_t::get_or_create_outliner_row(size_t index)
 	{
-		vector_t<editor_outliner_row_t>& rows = editor_app_t::get().get_world_metadata().get_outliner_rows();
+		vector_t<editor_outliner_row_t>& rows = editor_world_metadata_t::get().get_outliner_rows();
 		if (index < rows.size())
 			return rows[index];
 
@@ -426,7 +426,7 @@ namespace sfg
 			return;
 
 		_focused = focused;
-		for (const editor_outliner_row_t& row : editor_app_t::get().get_world_metadata().get_outliner_rows())
+		for (const editor_outliner_row_t& row : editor_world_metadata_t::get().get_outliner_rows())
 			update_outliner_row_background(row);
 	}
 

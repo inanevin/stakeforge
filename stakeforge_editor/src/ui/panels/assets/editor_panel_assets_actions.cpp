@@ -25,14 +25,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset_manager.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "assets/editor_asset_creator.hpp"
-#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
-
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -250,7 +250,7 @@ namespace sfg
 		SFG_ASSERT(asset != nullptr);
 
 		if (asset->asset_type == editor_asset_type_e::world)
-			editor_app_t::get().get_world_controller().load_main_world(asset->guid);
+			editor_world_controller_t::get().load_main_world(asset->guid);
 	}
 
 	void editor_panel_assets_t::fix_asset_integrity()

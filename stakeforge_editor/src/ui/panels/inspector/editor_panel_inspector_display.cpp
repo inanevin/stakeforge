@@ -25,10 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_world_controller.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
-#include "editor_app.hpp"
-
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
@@ -57,7 +57,7 @@ namespace sfg
 		save_scroll_state();
 		_display_type		  = editor_inspector_display_type_e::entity;
 		_display_world_handle = world;
-		_display_world		  = &editor_app_t::get().get_world_controller().get_world(world);
+		_display_world		  = &editor_world_controller_t::get().get_world(world);
 		_display_entities.assign(entities.data, entities.data + entities.size);
 		_skip_scroll_state_save = true;
 		refresh_display();
@@ -84,7 +84,7 @@ namespace sfg
 
 	void editor_panel_inspector_t::refresh_from_selection()
 	{
-		editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+		editor_selection_controller_t&	controller = editor_selection_controller_t::get();
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 		const world_handle_t			world	   = controller.get_world();
 		if (world.is_null() || selected.size == 0)

@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_command_system.hpp"
-
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/platform/common_window.hpp>
@@ -35,12 +34,14 @@ namespace sfg
 {
 	void editor_command_system_t::init(const editor_command_system_config_t& config)
 	{
+		SFG_ASSERT(s_instance == nullptr);
 		SFG_ASSERT(!_inited);
 		SFG_ASSERT(config.max_commands != 0);
 		SFG_ASSERT(config.max_listeners != 0);
 		SFG_ASSERT(config.aux_data_size != 0);
 
-		_config = config;
+		s_instance = this;
+		_config	   = config;
 		_commands.reserve(config.max_commands);
 		_listeners.reserve(config.max_listeners);
 		_history.reserve(config.max_commands);
@@ -54,6 +55,7 @@ namespace sfg
 
 	void editor_command_system_t::uninit()
 	{
+		SFG_ASSERT(s_instance == this);
 		SFG_ASSERT(_inited);
 		clear();
 		_commands.clear();
@@ -66,6 +68,7 @@ namespace sfg
 		_generation		   = 0;
 		_entity_generation = 0;
 		_inited			   = false;
+		s_instance		   = nullptr;
 	}
 
 	void editor_command_system_t::clear()

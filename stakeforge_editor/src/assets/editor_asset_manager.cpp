@@ -26,14 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_manager.hpp"
-
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_default_asset_seeder.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
-
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/string_util.hpp>
@@ -46,11 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #define EDITOR_ASSET_COLOR(R, G, B) color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
-
-	namespace
-	{
-		editor_asset_manager_t* s_instance = nullptr;
-	}
 
 	bool editor_asset_manager_t::init()
 	{
@@ -463,12 +456,6 @@ namespace sfg
 			_import_status_pending = text != nullptr ? text : "";
 		}
 		_import_status_dirty.store(true, std::memory_order_release);
-	}
-
-	editor_asset_manager_t& editor_asset_manager_t::get()
-	{
-		SFG_ASSERT(s_instance != nullptr);
-		return *s_instance;
 	}
 
 	editor_asset_node_handle_t editor_asset_manager_t::find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const

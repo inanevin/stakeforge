@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_payload_type.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/engine/common_engine.hpp>
@@ -99,7 +100,11 @@ namespace sfg
 			return _active;
 		}
 
-		static editor_payload_controller_t& get();
+		static inline editor_payload_controller_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
 
 	private:
 		struct listener_t
@@ -131,5 +136,7 @@ namespace sfg
 		ui::widget_id_t				_text_widget		 = NULL_WIDGET;
 		bool						_active				 = false;
 		bool						_mouse_was_down		 = false;
+
+		static inline editor_payload_controller_t* s_instance = nullptr;
 	};
 }

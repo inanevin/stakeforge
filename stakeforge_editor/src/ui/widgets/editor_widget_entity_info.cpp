@@ -26,11 +26,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_entity_info.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
-#include "editor_app.hpp"
-
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -57,7 +57,7 @@ namespace sfg
 	void editor_widget_entity_info_t::init(ui::ui_context& ui, ui::widget_id_t parent, world_handle_t world)
 	{
 		_ui							= &ui;
-		_world						= &editor_app_t::get().get_world_controller().get_world(world);
+		_world						= &editor_world_controller_t::get().get_world(world);
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
 

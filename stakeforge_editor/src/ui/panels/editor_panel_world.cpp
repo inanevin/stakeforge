@@ -25,12 +25,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_world.hpp"
+#include "ui/editor_payload_controller.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "assets/editor_asset_spawn.hpp"
-#include "editor_app.hpp"
-
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -127,7 +127,7 @@ namespace sfg
 
 		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 
-		editor_world_controller_t& controller = editor_app_t::get().get_world_controller();
+		editor_world_controller_t& controller = editor_world_controller_t::get();
 		const world_handle_t	   main_world = controller.get_main_world();
 		if (main_world.is_null())
 			clear_world();
@@ -214,7 +214,7 @@ namespace sfg
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_panel_world_t& panel = *static_cast<editor_panel_world_t*>(user_data);
-		const world_handle_t  world = editor_app_t::get().get_world_controller().get_main_world();
+		const world_handle_t  world = editor_world_controller_t::get().get_main_world();
 		if (world.is_null())
 			return false;
 

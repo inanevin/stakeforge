@@ -26,10 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "commands/editor_command_prefab_spawn.hpp"
-#include "editor_app.hpp"
+#include "editor_world_controller.hpp"
 #include "editor_command_system.hpp"
 #include "editor_selection_controller.hpp"
-
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
@@ -53,7 +52,7 @@ namespace sfg
 
 		void apply_selection(world_handle_t world, span_t<const entity_id_t> entities, entity_id_t anchor)
 		{
-			editor_selection_controller_t& selection = editor_app_t::get().get_selection_controller();
+			editor_selection_controller_t& selection = editor_selection_controller_t::get();
 			if (!(selection.get_world() == world))
 				selection.set_world(world);
 			selection.apply_entity_selection(entities, anchor);
@@ -62,7 +61,7 @@ namespace sfg
 		bool prefab_spawn_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
-			world_t&							   world   = editor_app_t::get().get_world_controller().get_world(payload.world);
+			world_t&							   world   = editor_world_controller_t::get().get_world(payload.world);
 			world.destroy_entity_tree(payload.root);
 			payload.root						  = NULL_ENTITY_ID;
 			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
@@ -73,7 +72,7 @@ namespace sfg
 		bool prefab_spawn_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
-			world_t&							   world   = editor_app_t::get().get_world_controller().get_world(payload.world);
+			world_t&							   world   = editor_world_controller_t::get().get_world(payload.world);
 			payload.root								   = world.spawn_prefab(payload.prefab, {.parent = payload.parent});
 			if (payload.root == NULL_ENTITY_ID)
 				return false;
@@ -96,8 +95,8 @@ namespace sfg
 
 	entity_id_t editor_command_prefab_spawn_t::spawn(world_handle_t world, resource_handle_t prefab, entity_id_t parent)
 	{
-		editor_command_system_t&		command_system		 = editor_app_t::get().get_command_system();
-		editor_selection_controller_t&	selection_controller = editor_app_t::get().get_selection_controller();
+		editor_command_system_t&		command_system		 = editor_command_system_t::get();
+		editor_selection_controller_t&	selection_controller = editor_selection_controller_t::get();
 		const span_t<const entity_id_t> selection			 = selection_controller.get_selected_entities();
 		SFG_ASSERT(selection.size <= UINT32_MAX);
 

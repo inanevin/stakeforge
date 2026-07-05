@@ -30,11 +30,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_importer.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
-
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/mutex.hpp>
 #include <sfg/data/tree.hpp>
+#include <sfg/io/assert.hpp>
 
 namespace sfg
 {
@@ -110,7 +110,11 @@ namespace sfg
 			return _generation;
 		}
 
-		static editor_asset_manager_t& get();
+		static inline editor_asset_manager_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
 
 	private:
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
@@ -135,5 +139,7 @@ namespace sfg
 		u32														   _generation		   = 0;
 		u32														   _total_import_count = 0;
 		bool													   _import_in_progress = false;
+
+		static inline editor_asset_manager_t* s_instance = nullptr;
 	};
 }

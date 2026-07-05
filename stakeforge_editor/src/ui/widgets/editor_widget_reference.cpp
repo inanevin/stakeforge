@@ -26,12 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_reference.hpp"
+#include "assets/editor_asset_manager.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "editor_app.hpp"
-
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/rectf.hpp>
@@ -204,7 +204,7 @@ namespace sfg
 		if (!(entity_payload.world == _config.world))
 			return NULL_ENTITY_GUID;
 
-		const world_t& world = editor_app_t::get().get_world_controller().get_world(_config.world);
+		const world_t& world = editor_world_controller_t::get().get_world(_config.world);
 		if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 			return NULL_ENTITY_GUID;
 
@@ -265,7 +265,7 @@ namespace sfg
 			const entity_guid_t selected = get_selected_value();
 			if (selected != NULL_ENTITY_GUID)
 			{
-				const world_t&	  world	 = editor_app_t::get().get_world_controller().get_world(_config.world);
+				const world_t&	  world	 = editor_world_controller_t::get().get_world(_config.world);
 				const entity_id_t entity = world.get_entity_from_guid(selected);
 				if (entity != NULL_ENTITY_ID && world.is_alive(entity))
 				{

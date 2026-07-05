@@ -25,6 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/editor_payload_controller.hpp"
+#include "editor_selection_controller.hpp"
+#include "editor_world_metadata.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
@@ -32,8 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_world_metadata.hpp"
-#include "editor_app.hpp"
-
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -70,18 +72,18 @@ namespace sfg
 	}
 	void editor_panel_entities_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
 	{
-		const world_handle_t main_world = editor_app_t::get().get_world_controller().get_main_world();
+		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 
 		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent, folder);
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 		{
-			world_t& world = editor_app_t::get().get_world_controller().get_world(main_world);
-			editor_app_t::get().get_world_metadata().set_entity_folded(world.get_entity_guid(parent), false);
+			world_t& world = editor_world_controller_t::get().get_world(main_world);
+			editor_world_metadata_t::get().set_entity_folded(world.get_entity_guid(parent), false);
 		}
 		if (!folder.is_null())
-			editor_app_t::get().get_world_metadata().set_folder_folded(folder, false);
-		editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
+			editor_world_metadata_t::get().set_folder_folded(folder, false);
+		editor_selection_controller_t::get().issue_entity_selection({.data = &entity, .size = 1}, entity);
 		refresh_entities();
 	}
 
@@ -89,7 +91,7 @@ namespace sfg
 	{
 		const editor_world_folder_handle_t folder = editor_commands_world_metadata_t::create_folder("Folder", parent);
 		if (!parent.is_null())
-			editor_app_t::get().get_world_metadata().set_folder_folded(parent, false);
+			editor_world_metadata_t::get().set_folder_folded(parent, false);
 		_focused_folder = folder;
 		refresh_entities();
 	}
@@ -99,8 +101,8 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const world_handle_t		  main_world = editor_app_t::get().get_world_controller().get_main_world();
-		world_t&					  world		 = editor_app_t::get().get_world_controller().get_world(main_world);
+		const world_handle_t		  main_world = editor_world_controller_t::get().get_main_world();
+		world_t&					  world		 = editor_world_controller_t::get().get_world(main_world);
 		frame_vector_t<entity_id_t>	  moved_entities;
 		frame_vector_t<entity_guid_t> moved_guids;
 		moved_entities.reserve(entities.size());
@@ -119,7 +121,7 @@ namespace sfg
 		if (!editor_commands_world_metadata_t::assign_entities_to_folder(folder, {.data = moved_guids.data(), .size = moved_guids.size()}))
 			return false;
 
-		editor_app_t::get().get_world_metadata().set_folder_folded(folder, false);
+		editor_world_metadata_t::get().set_folder_folded(folder, false);
 		refresh_entities();
 		return true;
 	}
@@ -129,8 +131,8 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const world_handle_t		  main_world = editor_app_t::get().get_world_controller().get_main_world();
-		world_t&					  world		 = editor_app_t::get().get_world_controller().get_world(main_world);
+		const world_handle_t		  main_world = editor_world_controller_t::get().get_main_world();
+		world_t&					  world		 = editor_world_controller_t::get().get_world(main_world);
 		frame_vector_t<entity_guid_t> moved_guids;
 		moved_guids.reserve(entities.size());
 		for (const editor_entity_payload_t& payload_entity : entities)
@@ -149,7 +151,7 @@ namespace sfg
 
 	bool editor_panel_entities_t::assign_payload_folder_to_folder(editor_world_folder_handle_t folder, editor_world_folder_handle_t parent)
 	{
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.can_assign_folder(folder, parent))
 			return false;
 
@@ -164,10 +166,10 @@ namespace sfg
 
 	void editor_panel_entities_t::toggle_entity_disabled(entity_id_t entity)
 	{
-		const world_handle_t main_world = editor_app_t::get().get_world_controller().get_main_world();
+		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 
-		world_t&				 world			= editor_app_t::get().get_world_controller().get_world(main_world);
+		world_t&				 world			= editor_world_controller_t::get().get_world(main_world);
 		world_component_table_t* disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
 		SFG_ASSERT(disabled_table != nullptr);
 
@@ -192,7 +194,7 @@ namespace sfg
 		if (_payload_entities.size() == 1)
 		{
 			_payload_entity		 = _payload_entities.front();
-			const world_t& world = editor_app_t::get().get_world_controller().get_world(_payload_entity.world);
+			const world_t& world = editor_world_controller_t::get().get_world(_payload_entity.world);
 			const char*	   name	 = world.get_entity_name(_payload_entity.entity);
 			payload_controller.create_payload(name != nullptr ? name : "Entity", editor_payload_type_e::entity, &_payload_entity);
 			return;
@@ -205,7 +207,7 @@ namespace sfg
 
 	void editor_panel_entities_t::start_folder_payload(editor_world_folder_handle_t folder)
 	{
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.is_folder_valid(folder))
 			return;
 
@@ -222,7 +224,7 @@ namespace sfg
 		if (!can_reparent_entities(entities, parent))
 			return false;
 
-		const world_handle_t		main_world = editor_app_t::get().get_world_controller().get_main_world();
+		const world_handle_t		main_world = editor_world_controller_t::get().get_main_world();
 		frame_vector_t<entity_id_t> moved_entities;
 		moved_entities.reserve(entities.size());
 		for (const editor_entity_payload_t& payload_entity : entities)
@@ -233,8 +235,8 @@ namespace sfg
 
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 		{
-			world_t& world = editor_app_t::get().get_world_controller().get_world(main_world);
-			editor_app_t::get().get_world_metadata().set_entity_folded(world.get_entity_guid(parent), false);
+			world_t& world = editor_world_controller_t::get().get_world(main_world);
+			editor_world_metadata_t::get().set_entity_folded(world.get_entity_guid(parent), false);
 		}
 		refresh_entities();
 		return true;
@@ -242,9 +244,9 @@ namespace sfg
 
 	void editor_panel_entities_t::duplicate_selected_entities()
 	{
-		const world_handle_t main_world = editor_app_t::get().get_world_controller().get_main_world();
+		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
-		SFG_ASSERT(editor_app_t::get().get_selection_controller().get_selected_entities().size != 0);
+		SFG_ASSERT(editor_selection_controller_t::get().get_selected_entities().size != 0);
 
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
@@ -252,20 +254,20 @@ namespace sfg
 		if (editor_commands_entity_t::duplicate(main_world, entities, duplicates))
 		{
 			const entity_id_t entity = duplicates.back();
-			editor_app_t::get().get_selection_controller().issue_entity_selection({.data = &entity, .size = 1}, entity);
+			editor_selection_controller_t::get().issue_entity_selection({.data = &entity, .size = 1}, entity);
 		}
 		refresh_entities();
 	}
 
 	void editor_panel_entities_t::destroy_selected_entities()
 	{
-		const world_handle_t main_world = editor_app_t::get().get_world_controller().get_main_world();
+		const world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
-		SFG_ASSERT(editor_app_t::get().get_selection_controller().get_selected_entities().size != 0);
+		SFG_ASSERT(editor_selection_controller_t::get().get_selected_entities().size != 0);
 
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
-		editor_app_t::get().get_selection_controller().clear_entity_selection();
+		editor_selection_controller_t::get().clear_entity_selection();
 		editor_commands_entity_t::destroy(main_world, entities);
 		refresh_entities();
 	}
@@ -311,7 +313,7 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
 
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.is_folder_valid(folder))
 			return;
 
@@ -341,7 +343,7 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 		SFG_ASSERT(popup != nullptr);
 
-		editor_world_metadata_t& metadata = editor_app_t::get().get_world_metadata();
+		editor_world_metadata_t& metadata = editor_world_metadata_t::get();
 		if (!metadata.is_folder_valid(folder))
 			return;
 

@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "commands/editor_command_component_edit.hpp"
-#include "editor_app.hpp"
+#include "editor_world_controller.hpp"
 #include "editor_command_system.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -124,7 +124,7 @@ namespace sfg
 		bool apply_component_streams(editor_command_system_t& system, editor_command_component_edit_payload_t& payload, chunk_handle32_t streams_handle)
 		{
 			SFG_ASSERT(!payload.world.is_null());
-			world_t&				 world = editor_app_t::get().get_world_controller().get_world(payload.world);
+			world_t&				 world = editor_world_controller_t::get().get_world(payload.world);
 			world_component_table_t* table = world.get_component_table(payload.component_type);
 			SFG_ASSERT(table != nullptr);
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
@@ -178,7 +178,7 @@ namespace sfg
 			return true;
 		SFG_ASSERT(entities.size <= UINT32_MAX);
 
-		editor_command_system_t& command_system = editor_app_t::get().get_command_system();
+		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_component_edit_payload_t payload = {};
 		payload.previous_streams						= copy_streams_to_aux(command_system, previous_streams);

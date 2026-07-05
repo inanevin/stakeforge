@@ -25,14 +25,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "editor_selection_controller.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "editor_app.hpp"
-
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/world.hpp>
 
 namespace sfg
 {
@@ -66,7 +66,7 @@ namespace sfg
 
 		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
 		{
-			editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+			editor_selection_controller_t&	controller = editor_selection_controller_t::get();
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;

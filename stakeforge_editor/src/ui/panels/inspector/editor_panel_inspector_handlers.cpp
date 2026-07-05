@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "editor_selection_controller.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "commands/editor_commands_component.hpp"
@@ -52,7 +53,7 @@ namespace sfg
 
 		bool get_selected_entities_from_panel(frame_vector_t<entity_id_t>& entities, world_handle_t& world)
 		{
-			editor_selection_controller_t&	controller = editor_app_t::get().get_selection_controller();
+			editor_selection_controller_t&	controller = editor_selection_controller_t::get();
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;

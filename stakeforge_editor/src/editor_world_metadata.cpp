@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_world_metadata.hpp"
 #include "ui/panels/entities/editor_panel_entities_internal.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
-
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -38,7 +37,9 @@ namespace sfg
 {
 	void editor_world_metadata_t::init()
 	{
+		SFG_ASSERT(s_instance == nullptr);
 		SFG_ASSERT(!_inited);
+		s_instance = this;
 		_folders.init(EDITOR_WORLD_METADATA_MAX_FOLDERS);
 		_entity_metadata.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_outliner_items.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
@@ -48,6 +49,7 @@ namespace sfg
 
 	void editor_world_metadata_t::uninit()
 	{
+		SFG_ASSERT(s_instance == this);
 		SFG_ASSERT(_inited);
 		_outliner_rows.clear();
 		_outliner_items.clear();
@@ -56,6 +58,7 @@ namespace sfg
 		_world	   = {};
 		_next_guid = 1;
 		_inited	   = false;
+		s_instance = nullptr;
 	}
 
 	void editor_world_metadata_t::set_world(world_handle_t world)

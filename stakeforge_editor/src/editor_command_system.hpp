@@ -176,6 +176,12 @@ namespace sfg
 		u32						 get_entity_generation() const;
 		bool					 is_listener_valid(editor_command_listener_handle_t handle) const;
 
+		static inline editor_command_system_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
+
 		template <typename T> T& get_payload_as(editor_command_t& command)
 		{
 			static_assert(std::is_trivially_copyable_v<T>);
@@ -208,5 +214,7 @@ namespace sfg
 		u32																				  _generation		 = 0;
 		u32																				  _entity_generation = 0;
 		bool																			  _inited			 = false;
+
+		static inline editor_command_system_t* s_instance = nullptr;
 	};
 }

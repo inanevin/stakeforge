@@ -25,10 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_renderer.hpp"
-#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_world_controller.hpp"
-
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
