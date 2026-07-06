@@ -69,6 +69,24 @@ namespace sfg
 			bound_pipeline = pipeline;
 			backend.cmd_bind_pipeline(cmd, {.pipeline = pipeline});
 		}
+
+		void bind_material(gfx_backend& backend, gfx_handle_t cmd, u32& bound_index, u32 index, const world_render_material_t& mat)
+		{
+			if (bound_index == index)
+				return;
+			bound_index = index;
+
+			vector_t<gpu_index_t> constants;
+			constants.push_back(render_resources_t::get().get_resource_gpu_index(mat.material_buffer));
+
+			for (u32 i = 0; i < mat.texture_count; i++)
+				constants.push_back(render_resources_t::get().get_texture_gpu_index(mat.material_textures[i], 0));
+
+			if (!mat.sampler.is_null())
+				constants.push_back(render_resources_t::get().get_sampler_gpu_index(mat.sampler));
+
+			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
+		}
 	}
 	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
@@ -301,29 +319,45 @@ namespace sfg
 		gfx_handle_t bound_vertex	= {};
 		gfx_handle_t bound_index	= {};
 		gfx_handle_t bound_pipeline = {};
+		u32			 bound_material = UINT32_MAX;
 
-		for (const world_draw_t& draw : ss.draws)
+		const u32 draw_size = static_cast<u32>(ss.draws.size());
+		for (u32 i = 0; i < draw_size; i++)
 		{
-			continue;
+			const world_draw_t& draw = ss.draws[i];
+
+			if ((prep_data.draw_culls[i].cull_mask & 1 << 0llu) == 0)
+				continue;
 
 			if ((draw.pass_mask & world_pass_flags_depth) == 0)
 				continue;
 
-			SFG_ASSERT(draw.material_index != UINT32_MAX);
-			const world_render_material_t& mat = ss.materials[draw.material_index];
-
-			const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_z_prepass);
-			if (shader_handle.is_null())
-				continue;
-
-			const gfx_handle_t vtx		= rr.get_resource(draw.vertex_buffer);
-			const gfx_handle_t idx		= rr.get_resource(draw.index_buffer);
-			const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
-			SFG_ASSERT(!vtx.is_null() && !idx.is_null() && !pipeline.is_null());
+			const gfx_handle_t vtx = rr.get_resource(draw.vertex_buffer);
+			const gfx_handle_t idx = rr.get_resource(draw.index_buffer);
+			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
 
 			bind_vertex(backend, cmd, bound_vertex, vtx, draw.vertex_stride);
 			bind_index(backend, cmd, bound_index, idx, draw.index_stride);
-			bind_pipeline(backend, cmd, bound_pipeline, pipeline);
+
+			if (!draw.direct_pso.is_null())
+			{
+				const gfx_handle_t pipeline = rr.get_shader_hw(draw.direct_pso);
+				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
+			}
+			else
+			{
+				SFG_ASSERT(draw.material_index != UINT32_MAX);
+
+				const world_render_material_t& mat			 = ss.materials[draw.material_index];
+				const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_z_prepass);
+				if (shader_handle.is_null())
+					continue;
+
+				const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
+				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
+
+				bind_material(backend, cmd, bound_material, draw.material_index, mat);
+			}
 
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {

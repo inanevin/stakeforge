@@ -82,7 +82,10 @@ namespace sfg
 				render_mat.pso_count				= shader->pso_count;
 
 				for (u32 i = 0; i < shader->pso_count; i++)
-					render_mat.psos[i] = shader->psos[i];
+				{
+					render_mat.psos[i]		= shader->psos[i];
+					render_mat.pso_flags[i] = shader->pso_flags[i].value();
+				}
 
 				const texture_sampler_internals_t* sampler_internals = rm.find_internals<texture_sampler_internals_t>(mat_runtime->sampler_guid);
 				render_mat.sampler									 = sampler_internals ? sampler_internals->sampler : render_resource_handle_t();

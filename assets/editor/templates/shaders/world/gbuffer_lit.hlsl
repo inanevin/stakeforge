@@ -210,14 +210,6 @@ struct material_data
     uint2 emissive_tiling_offset;
 };
 
-struct texture_data
-{
-    uint gpu_index_albedo;
-    uint gpu_index_normal;
-    uint gpu_index_orm;
-    uint gpu_index_emissive;
-};
-
 #ifdef WRITE_ID
 
 uint PSMain(vs_output IN) : SV_TARGET
@@ -233,9 +225,8 @@ uint PSMain(vs_output IN) : SV_TARGET
 void PSMain(vs_output IN)
 {
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
-    texture_data txt_data = sfg_get_cbv<texture_data>(sfg_constant_mat1);
-    Texture2D tex_albedo = sfg_get_texture<Texture2D>(txt_data.gpu_index_albedo);
-    SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat2);
+    Texture2D tex_albedo = sfg_get_texture<Texture2D>(sfg_constant_mat1);
+    SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat5);
 
     float4 albedo_tex = tex_albedo.Sample(sampler_default, IN.uv);
 	if(albedo_tex.a < mat_data.roughness_normal_strength_alpha.z)
@@ -261,12 +252,11 @@ ps_output PSMain(vs_output IN)
     ps_output OUT;
 
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
-    texture_data txt_data = sfg_get_cbv<texture_data>(sfg_constant_mat1);
-    Texture2D tex_albedo = sfg_get_texture<Texture2D>(txt_data.gpu_index_albedo);
-    Texture2D tex_normal = sfg_get_texture<Texture2D>(txt_data.gpu_index_normal);
-    Texture2D tex_orm = sfg_get_texture<Texture2D>(txt_data.gpu_index_orm);
-    Texture2D tex_emissive = sfg_get_texture<Texture2D>(txt_data.gpu_index_emissive);
-    SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat2);
+    Texture2D tex_albedo = sfg_get_texture<Texture2D>(sfg_constant_mat1);
+    Texture2D tex_normal = sfg_get_texture<Texture2D>(sfg_constant_mat2);
+    Texture2D tex_orm = sfg_get_texture<Texture2D>(sfg_constant_mat3);
+    Texture2D tex_emissive = sfg_get_texture<Texture2D>(sfg_constant_mat4);
+    SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat5);
 
     float2 albedo_tiling = unpack_half2x16(mat_data.albedo_tiling_offset.x);
     float2 albedo_offset = unpack_half2x16(mat_data.albedo_tiling_offset.y);

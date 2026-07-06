@@ -41,6 +41,7 @@ namespace sfg
 		u64						 sort_key		= 0;
 		render_resource_handle_t vertex_buffer	= {};
 		render_resource_handle_t index_buffer	= {};
+		render_resource_handle_t direct_pso		= {};
 		u32						 pass_mask		= 0;
 		u32						 draw_flags		= 0;
 		u32						 material_index = UINT32_MAX;
