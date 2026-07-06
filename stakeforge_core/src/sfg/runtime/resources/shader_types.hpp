@@ -26,17 +26,13 @@ namespace sfg
 
 	enum shader_variant_flags_e
 	{
-		svf_none			   = 0,
-		svf_skinned			   = 1 << 0,
-		svf_alpha_cutoff	   = 1 << 1,
-		svf_z_prepass		   = 1 << 2,
-		svf_double_sided	   = 1 << 3,
-		svf_shadow_rendering   = 1 << 4,
-		svf_selection_outline  = 1 << 5,
-		svf_id_write		   = 1 << 6,
-		svf_gui_3d			   = 1 << 7,
-		svf_console			   = 1 << 8,
-		svf_console_and_editor = 1 << 9,
+		shader_variant_flags_skinned		   = 1 << 0,
+		shader_variant_flags_alpha_cutoff	   = 1 << 1,
+		shader_variant_flags_z_prepass		   = 1 << 2,
+		shader_variant_flags_double_sided	   = 1 << 3,
+		shader_variant_flags_shadow_rendering  = 1 << 4,
+		shader_variant_flags_selection_outline = 1 << 5,
+		shader_variant_flags_id_write		   = 1 << 6,
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_type_e);

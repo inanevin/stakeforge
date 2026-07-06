@@ -84,20 +84,11 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_mesh_renderer";
 
-		resource_handle_t mesh	   = NULL_RESOURCE_HANDLE;
-		resource_handle_t material = NULL_RESOURCE_HANDLE;
+		inplace_vector_t<resource_handle_t, 16> materials = {};
+		resource_handle_t						mesh	  = NULL_RESOURCE_HANDLE;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_mesh_renderer_t);
-
-	struct component_render_object_t
-	{
-		static inline constexpr const char* DEBUG_NAME = "component_render_object";
-
-		u32 render_id = 0;
-	};
-
-	SFG_DEFINE_TYPE_ID(component_render_object_t);
 
 	struct component_camera_t
 	{

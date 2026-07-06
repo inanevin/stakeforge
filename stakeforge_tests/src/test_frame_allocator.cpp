@@ -2,6 +2,7 @@
 
 #include "sfg/data/string.hpp"
 #include "sfg/data/vector.hpp"
+#include "sfg/data/frame_hash_map.hpp"
 #include "sfg/data/frame_vector.hpp"
 #include "sfg/data/frame_string.hpp"
 #include "sfg/memory/frame_allocator.hpp"
@@ -99,6 +100,34 @@ namespace sfg
 				return context.failures == 0;
 			}
 
+			bool hash_map_uses_frame_storage()
+			{
+				test_context_t context;
+				context.suite	 = "frame_allocator";
+				context.name	 = "hash_map_uses_frame_storage";
+				context.failures = 0;
+
+				frame_allocator_tls_t::init(4096);
+
+				{
+					frame_hash_map_t<int, int> values;
+					values.reserve(8);
+					values.emplace(1, 11);
+					values.emplace(2, 22);
+					values.emplace(3, 33);
+
+					auto found = values.find(2);
+					SFG_TEST_EXPECT(context, values.size() == 3);
+					SFG_TEST_EXPECT(context, found != values.end());
+					SFG_TEST_EXPECT(context, found->second == 22);
+					SFG_TEST_EXPECT(context, frame_allocator_tls_t::get_head() > 0);
+				}
+
+				frame_allocator_tls_t::uninit();
+
+				return context.failures == 0;
+			}
+
 			bool thread_local_states_are_independent()
 			{
 				test_context_t context;
@@ -145,6 +174,7 @@ namespace sfg
 			register_test("frame_allocator", "vector_uses_frame_storage", &vector_uses_frame_storage);
 			register_test("frame_allocator", "reset_reuses_frame_storage", &reset_reuses_frame_storage);
 			register_test("frame_allocator", "string_uses_frame_storage", &string_uses_frame_storage);
+			register_test("frame_allocator", "hash_map_uses_frame_storage", &hash_map_uses_frame_storage);
 			register_test("frame_allocator", "thread_local_states_are_independent", &thread_local_states_are_independent);
 		}
 	}

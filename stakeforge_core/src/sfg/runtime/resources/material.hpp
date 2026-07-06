@@ -29,24 +29,21 @@ namespace sfg
 
 	struct material_runtime_t
 	{
-		material_runtime_parameter_t parameters[MATERIAL_MAX_PARAMETERS]	= {};
-		sid_t						 texture_guids[MATERIAL_MAX_TEXTURES]	= {};
-		render_resource_handle_t	 texture_handles[MATERIAL_MAX_TEXTURES] = {};
-		sid_t						 shader_guid							= NULL_SID;
-		sid_t						 sampler_guid							= NULL_SID;
-		u32							 parameter_data_size					= 0;
-		u32							 parameter_count						= 0;
-		u32							 texture_count							= 0;
-		bitmask_t<u32>				 pass_flags								= 0;
-		u8							 double_sided							= 0;
-		u8							 use_alpha_cutoff						= 0;
+		material_runtime_parameter_t parameters[SFG_MATERIAL_MAX_PARAMS]	  = {};
+		sid_t						 texture_guids[SFG_MATERIAL_MAX_TEXTURES] = {};
+		sid_t						 shader_guid							  = NULL_SID;
+		sid_t						 sampler_guid							  = NULL_SID;
+		u32							 parameter_data_size					  = 0;
+		u32							 parameter_count						  = 0;
+		u32							 texture_count							  = 0;
+		bitmask_t<u32>				 pass_flags								  = 0;
+		u8							 double_sided							  = 0;
+		u8							 use_alpha_cutoff						  = 0;
 	};
 
 	struct material_internals_t
 	{
 		render_resource_handle_t parameter_buffer = {};
-		render_resource_handle_t texture_buffer	  = {};
-		render_resource_handle_t sampler		  = {};
 	};
 
 	extern const resource_type_desc_t material_resource_desc;

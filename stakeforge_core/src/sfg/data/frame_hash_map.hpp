@@ -22,28 +22,15 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/bitmask.hpp>
+#include "hash_map.hpp"
+#include "pair.hpp"
+#include <sfg/memory/frame_allocator.hpp>
 
 namespace sfg
 {
-	enum ecs_component_type_flags_e : u32
-	{
-		ecs_component_type_flags_none = 0,
-		ecs_component_type_flags_tag  = 1 << 0,
-	};
-
-	struct ecs_component_type_desc_t
-	{
-		sid_t		   type_id		  = 0;
-		u32			   size			  = 0;
-		u32			   alignment	  = 1;
-		bitmask_t<u32> flags		  = ecs_component_type_flags_none;
-		char		   debug_name[64] = {};
-	};
+	template <typename T, typename U, typename Hash = phmap::priv::hash_default_hash<T>, typename Eq = phmap::priv::hash_default_eq<T>> using frame_hash_map_t = phmap::flat_hash_map<T, U, Hash, Eq, frame_allocator_t<pair_t<const T, U>>>;
 }

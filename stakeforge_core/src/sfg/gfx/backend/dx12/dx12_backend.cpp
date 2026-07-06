@@ -767,9 +767,9 @@ namespace sfg
 			.debug_name = {"TransferQueue"},
 		});
 		_queue_compute	= create_queue({
-			.type		= command_type::compute,
-			.debug_name = {"CmpQueue"},
-		});
+			 .type		 = command_type::compute,
+			 .debug_name = {"CmpQueue"},
+		 });
 
 		const u32 size_cbv_srv_uav = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		const u32 size_dsv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -3029,7 +3029,7 @@ namespace sfg
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
-		const resource_t&			res		 = _resources.get(cmd.buffer_t);
+		const resource_t&			res		 = _resources.get(cmd.buffer);
 		SFG_ASSERT(cmd.offset <= res.size);
 		const D3D12_VERTEX_BUFFER_VIEW view = {
 			.BufferLocation = res.ptr->GetResource()->GetGPUVirtualAddress() + cmd.offset,
@@ -3044,7 +3044,7 @@ namespace sfg
 	{
 		const command_buffer_t&		buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
-		const resource_t&			res		 = _resources.get(cmd.buffer_t);
+		const resource_t&			res		 = _resources.get(cmd.buffer);
 		SFG_ASSERT(cmd.offset <= res.size);
 
 		const D3D12_INDEX_BUFFER_VIEW view = {

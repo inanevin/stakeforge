@@ -251,7 +251,7 @@ namespace sfg
 		else if (_config.type == editor_widget_reference_type_e::asset)
 		{
 			const sid_t selected = get_selected_value();
-			if (selected != NULL_SID)
+			if (selected != NULL_SID && selected != 0)
 			{
 				label = editor_asset_util_t::find_asset_display_name(selected);
 				if (label == nullptr)

@@ -29,14 +29,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/runtime/resources/material_limits.hpp>
+#include <sfg/runtime/resources/shader_limits.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
 {
-	struct world_render_material_t
+	struct alignas(64) world_render_material_t
 	{
-		gpu_index_t pso			 = NULL_GPU_INDEX;
-		gpu_index_t constants[6] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};
-		u32			pass_mask	 = 0;
-		u32			variant_mask = 0;
+		render_resource_handle_t material_textures[SFG_MATERIAL_MAX_TEXTURES];
+		render_resource_handle_t material_buffer						= {};
+		render_resource_handle_t psos[SFG_SHADER_MAX_PSO_VARIANTS]		= {};
+		render_resource_handle_t sampler								= {};
+		u32						 pso_flags[SFG_SHADER_MAX_PSO_VARIANTS] = {};
+		u32						 pso_count								= 0;
+		u32						 texture_count							= 0;
+		u32						 pass_mask								= 0;
+
+		inline render_resource_handle_t find_pso(bitmask_t<u32> flags) const
+		{
+			const u32 want = flags.value();
+			for (u8 i = 0; i < pso_count; ++i)
+			{
+				if (pso_flags[i] == want)
+					return psos[i];
+			}
+			return {};
+		}
 	};
 }

@@ -49,9 +49,16 @@ namespace sfg
 			return reinterpret_cast<u8*>(&values.back());
 		}
 
-		template <typename T> static inline size_t vector_get_element_size(void* obj)
+		template <typename T, T DefaultValue> static inline u8* vector_add_element_default_ptr(void* obj)
 		{
 			vector_t<T>& values = *reinterpret_cast<vector_t<T>*>(obj);
+			values.push_back(DefaultValue);
+			return reinterpret_cast<u8*>(&values.back());
+		}
+
+		template <typename T> static inline size_t vector_get_element_size(const void* obj)
+		{
+			const vector_t<T>& values = *reinterpret_cast<const vector_t<T>*>(obj);
 			return values.size();
 		}
 
@@ -83,9 +90,19 @@ namespace sfg
 			return reinterpret_cast<u8*>(&values.back());
 		}
 
-		template <typename T, int N> static inline size_t inplace_vector_get_element_size(void* obj)
+		template <typename T, int N, T DefaultValue> static inline u8* inplace_vector_add_element_default_ptr(void* obj)
 		{
 			inplace_vector_t<T, N>& values = *reinterpret_cast<inplace_vector_t<T, N>*>(obj);
+			if (values.full())
+				return nullptr;
+
+			values.push_back(DefaultValue);
+			return reinterpret_cast<u8*>(&values.back());
+		}
+
+		template <typename T, int N> static inline size_t inplace_vector_get_element_size(const void* obj)
+		{
+			const inplace_vector_t<T, N>& values = *reinterpret_cast<const inplace_vector_t<T, N>*>(obj);
 			return values.size();
 		}
 
@@ -117,9 +134,19 @@ namespace sfg
 			return reinterpret_cast<u8*>(&(values.*Data)[(values.*Size)++]);
 		}
 
-		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline size_t sized_array_get_element_size(void* obj)
+		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size, T DefaultValue> static inline u8* sized_array_add_element_default_ptr(void* obj)
 		{
 			TContainer& values = *reinterpret_cast<TContainer*>(obj);
+			if (values.*Size == N)
+				return nullptr;
+
+			(values.*Data)[values.*Size] = DefaultValue;
+			return reinterpret_cast<u8*>(&(values.*Data)[(values.*Size)++]);
+		}
+
+		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline size_t sized_array_get_element_size(const void* obj)
+		{
+			const TContainer& values = *reinterpret_cast<const TContainer*>(obj);
 			return values.*Size;
 		}
 
@@ -151,6 +178,13 @@ namespace sfg
 			};
 		}
 
+		template <typename T, T DefaultValue> static inline reflected_field_container_ops_t vector_ops_with_default(reflected_value_type_e value_type, sid_t sub_type_id = 0)
+		{
+			reflected_field_container_ops_t ops = vector_ops<T>(value_type, sub_type_id);
+			ops.add_element_ptr_fn				= &vector_add_element_default_ptr<T, DefaultValue>;
+			return ops;
+		}
+
 		template <typename T, int N> static inline reflected_field_container_ops_t inplace_vector_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
@@ -165,6 +199,13 @@ namespace sfg
 			};
 		}
 
+		template <typename T, int N, T DefaultValue> static inline reflected_field_container_ops_t inplace_vector_ops_with_default(reflected_value_type_e value_type, sid_t sub_type_id = 0)
+		{
+			reflected_field_container_ops_t ops = inplace_vector_ops<T, N>(value_type, sub_type_id);
+			ops.add_element_ptr_fn				= &inplace_vector_add_element_default_ptr<T, N, DefaultValue>;
+			return ops;
+		}
+
 		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline reflected_field_container_ops_t sized_array_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
@@ -177,6 +218,14 @@ namespace sfg
 				.element_sub_type_id = sub_type_id,
 				.element_value_size	 = sizeof(T),
 			};
+		}
+
+		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size, T DefaultValue>
+		static inline reflected_field_container_ops_t sized_array_ops_with_default(reflected_value_type_e value_type, sid_t sub_type_id = 0)
+		{
+			reflected_field_container_ops_t ops = sized_array_ops<TContainer, T, N, Data, Size>(value_type, sub_type_id);
+			ops.add_element_ptr_fn				= &sized_array_add_element_default_ptr<TContainer, T, N, Data, Size, DefaultValue>;
+			return ops;
 		}
 	};
 }

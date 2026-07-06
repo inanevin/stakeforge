@@ -8,15 +8,27 @@
 
 namespace sfg
 {
+	struct mesh_primitive_runtime_t
+	{
+		resource_handle_t material		 = NULL_RESOURCE_HANDLE;
+		u32				  material_index = UINT32_MAX;
+		u32				  start_index	 = 0;
+		u32				  start_vertex	 = 0;
+		u32				  index_count	 = 0;
+	};
+
 	struct mesh_runtime_t
 	{
 		chunk_handle32_t vertex_data	  = {};
 		chunk_handle32_t index_data		  = {};
+		chunk_handle32_t primitives		  = {};
 		u32				 vertex_data_size = 0;
 		u32				 index_data_size  = 0;
+		u32				 primitive_count  = 0;
 		u32				 vertex_count	  = 0;
 		u32				 index_count	  = 0;
 		u32				 vertex_stride	  = 0;
+		u32				 index_stride	  = 0;
 		u8				 is_skinned		  = 0;
 	};
 

@@ -126,13 +126,13 @@ namespace sfg
 			const bitmask_t<u32> flags = variant_flags;
 			shader_desc_t		 desc  = {};
 			desc.topo				   = topology::triangle_list;
-			desc.cull				   = flags.is_set(svf_double_sided) ? cull_mode::none : cull_mode::back;
+			desc.cull				   = flags.is_set(shader_variant_flags_double_sided) ? cull_mode::none : cull_mode::back;
 			desc.front				   = front_face::ccw;
 			desc.fill				   = fill_mode::solid;
 			desc.poly_mode			   = polygon_mode::fill;
 			desc.samples			   = 1;
 
-			if (flags.is_set(svf_id_write))
+			if (flags.is_set(shader_variant_flags_id_write))
 			{
 				add_attachment(desc, format_e::r32_uint, blend_attachments_t::get_none());
 			}
@@ -144,20 +144,20 @@ namespace sfg
 				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_none());
 			}
 
-			if (flags.is_set(svf_skinned))
+			if (flags.is_set(shader_variant_flags_skinned))
 				vertex_inputs_t::get_pos_normal_tangent_uv_skinned(desc);
 			else
 				vertex_inputs_t::get_pos_normal_tangent_uv(desc);
 
 			bitmask_t<u8> depth_flags = dsf_depth_test;
-			depth_flags.set(dsf_depth_write, flags.is_set(svf_z_prepass));
+			depth_flags.set(dsf_depth_write, flags.is_set(shader_variant_flags_z_prepass));
 			desc.depth_stencil_desc = {
 				.attachment_format = format_e::d32_sfloat,
-				.depth_compare	   = flags.is_set(svf_shadow_rendering) ? compare_op::lequal : compare_op::gequal,
+				.depth_compare	   = flags.is_set(shader_variant_flags_shadow_rendering) ? compare_op::lequal : compare_op::gequal,
 				.flags			   = depth_flags,
 			};
 
-			if (flags.is_set(svf_shadow_rendering))
+			if (flags.is_set(shader_variant_flags_shadow_rendering))
 			{
 				desc.depth_bias_slope	 = 2.0f;
 				desc.depth_bias_constant = 0.0f;
@@ -198,38 +198,38 @@ namespace sfg
 		if (!add_compile_variant(out_compiles, source, {"WRITE_ID", "USE_SKINNING"}, include_paths, true))
 			return false;
 
-		add_gbuffer_pso(out_psos, 0, svf_none);
-		add_gbuffer_pso(out_psos, 1, svf_skinned);
-		add_gbuffer_pso(out_psos, 2, svf_alpha_cutoff);
-		add_gbuffer_pso(out_psos, 3, svf_z_prepass);
-		add_gbuffer_pso(out_psos, 3, svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 4, svf_skinned | svf_alpha_cutoff);
-		add_gbuffer_pso(out_psos, 5, svf_skinned | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 5, svf_skinned | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 6, svf_alpha_cutoff | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 6, svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 7, svf_skinned | svf_alpha_cutoff | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 7, svf_skinned | svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 0, svf_double_sided);
-		add_gbuffer_pso(out_psos, 1, svf_double_sided | svf_skinned);
-		add_gbuffer_pso(out_psos, 2, svf_double_sided | svf_alpha_cutoff);
-		add_gbuffer_pso(out_psos, 3, svf_double_sided | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 3, svf_double_sided | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 4, svf_double_sided | svf_skinned | svf_alpha_cutoff);
-		add_gbuffer_pso(out_psos, 5, svf_double_sided | svf_skinned | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 5, svf_double_sided | svf_skinned | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 6, svf_double_sided | svf_alpha_cutoff | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 6, svf_double_sided | svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 7, svf_double_sided | svf_skinned | svf_alpha_cutoff | svf_z_prepass);
-		add_gbuffer_pso(out_psos, 7, svf_double_sided | svf_skinned | svf_alpha_cutoff | svf_z_prepass | svf_shadow_rendering);
-		add_gbuffer_pso(out_psos, 8, svf_id_write);
-		add_gbuffer_pso(out_psos, 9, svf_id_write | svf_alpha_cutoff);
-		add_gbuffer_pso(out_psos, 9, svf_id_write | svf_alpha_cutoff | svf_double_sided);
-		add_gbuffer_pso(out_psos, 10, svf_id_write | svf_alpha_cutoff | svf_skinned);
-		add_gbuffer_pso(out_psos, 10, svf_id_write | svf_alpha_cutoff | svf_double_sided | svf_skinned);
-		add_gbuffer_pso(out_psos, 8, svf_id_write | svf_double_sided);
-		add_gbuffer_pso(out_psos, 11, svf_id_write | svf_double_sided | svf_skinned);
-		add_gbuffer_pso(out_psos, 11, svf_id_write | svf_skinned);
+		add_gbuffer_pso(out_psos, 0, 0);
+		add_gbuffer_pso(out_psos, 1, shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 2, shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 3, shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 3, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 4, shader_variant_flags_skinned | shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 5, shader_variant_flags_skinned | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 5, shader_variant_flags_skinned | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 6, shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 6, shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 7, shader_variant_flags_skinned | shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 7, shader_variant_flags_skinned | shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 0, shader_variant_flags_double_sided);
+		add_gbuffer_pso(out_psos, 1, shader_variant_flags_double_sided | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 2, shader_variant_flags_double_sided | shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 3, shader_variant_flags_double_sided | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 3, shader_variant_flags_double_sided | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 4, shader_variant_flags_double_sided | shader_variant_flags_skinned | shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 5, shader_variant_flags_double_sided | shader_variant_flags_skinned | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 5, shader_variant_flags_double_sided | shader_variant_flags_skinned | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 6, shader_variant_flags_double_sided | shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 6, shader_variant_flags_double_sided | shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 7, shader_variant_flags_double_sided | shader_variant_flags_skinned | shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass);
+		add_gbuffer_pso(out_psos, 7, shader_variant_flags_double_sided | shader_variant_flags_skinned | shader_variant_flags_alpha_cutoff | shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_gbuffer_pso(out_psos, 8, shader_variant_flags_id_write);
+		add_gbuffer_pso(out_psos, 9, shader_variant_flags_id_write | shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 9, shader_variant_flags_id_write | shader_variant_flags_alpha_cutoff | shader_variant_flags_double_sided);
+		add_gbuffer_pso(out_psos, 10, shader_variant_flags_id_write | shader_variant_flags_alpha_cutoff | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 10, shader_variant_flags_id_write | shader_variant_flags_alpha_cutoff | shader_variant_flags_double_sided | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 8, shader_variant_flags_id_write | shader_variant_flags_double_sided);
+		add_gbuffer_pso(out_psos, 11, shader_variant_flags_id_write | shader_variant_flags_double_sided | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 11, shader_variant_flags_id_write | shader_variant_flags_skinned);
 		return true;
 	}
 

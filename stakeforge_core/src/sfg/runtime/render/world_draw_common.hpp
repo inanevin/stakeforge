@@ -35,11 +35,11 @@ namespace sfg
 {
 	enum world_pass_flags_e
 	{
-		wpf_none	= 0,
-		wpf_gbuffer = 1 << 0,
-		wpf_forward = 1 << 1,
-		wpf_depth	= 1 << 2,
-		wpf_shadow	= 1 << 3,
+		world_pass_flags_gbuffer = 1 << 0,
+		world_pass_flags_forward = 1 << 1,
+		world_pass_flags_depth	 = 1 << 2,
+		world_pass_flags_shadow	 = 1 << 3,
+		world_pass_flags_id		 = 1 << 4,
 	};
 
 	enum world_draw_flags

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/runtime/world/ecs_component_type.hpp>
 
 #include <cstddef>
 #include <limits>
@@ -87,10 +88,11 @@ namespace sfg
 
 	struct ecs_component_table_t
 	{
-		ecs_node_t* l0_nodes				   = nullptr;
-		size_t		component_struct_stride	   = 0;
-		size_t		component_struct_alignment = 0;
-		sid_t		component_type_id		   = 0;
+		ecs_component_type_desc_t type_desc					 = {};
+		ecs_node_t*				  l0_nodes					 = nullptr;
+		size_t					  component_struct_stride	 = 0;
+		size_t					  component_struct_alignment = 0;
+		sid_t					  component_type_id			 = 0;
 
 		ecs_component_table_ref_t ref() const
 		{

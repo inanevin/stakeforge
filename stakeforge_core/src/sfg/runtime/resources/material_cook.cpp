@@ -32,24 +32,28 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(material_stream.get_raw(), material_stream.get_size()),
 		};
 
-		u32 dep_count = 0;
+		out_header.dependency_count = 0;
 
 		for (const resource_handle_t h : def.textures)
 		{
-			const resource_dependency_t dep = {
+			out_header.dependencies[out_header.dependency_count] = {
 				.handle = h,
 				.type	= resource_type_e::texture,
 			};
-			out_header.dependencies[dep_count] = dep;
-			dep_count++;
+			out_header.dependency_count++;
 		}
 
-		const resource_dependency_t sampler = {
+		out_header.dependencies[out_header.dependency_count] = {
 			.handle = def.sampler,
 			.type	= resource_type_e::texture_sampler,
 		};
-		out_header.dependencies[dep_count] = sampler;
-		out_header.dependency_count		   = ++dep_count;
+		out_header.dependency_count++;
+
+		out_header.dependencies[out_header.dependency_count] = {
+			.handle = def.shader,
+			.type	= resource_type_e::shader,
+		};
+		out_header.dependency_count++;
 
 		stream.write_raw(material_stream.get_raw(), material_stream.get_size());
 		return true;

@@ -29,25 +29,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/aabb.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
+#include <sfg/runtime/resources/material_limits.hpp>
 
 namespace sfg
 {
-	struct world_draw_t
+	struct alignas(64) world_draw_t
 	{
-		u64			sort_key	   = 0;
-		gpu_index_t vertex_buffer  = NULL_GPU_INDEX;
-		gpu_index_t index_buffer   = NULL_GPU_INDEX;
-		u32			pass_mask	   = 0;
-		u32			draw_flags	   = 0;
-		u32			material_index = 0;
-		u32			entity_index   = 0;
-		u32			skinning_index = 0;
-		u32			index_count	   = 0;
-		u32			vertex_count   = 0;
-		u32			start_index	   = 0;
-		u32			start_vertex   = 0;
-		u32			start_instance = 0;
-		u16			vertex_stride  = 0;
-		u8			index_size	   = 0;
+		aabb_t					 aabb			= {};
+		u64						 sort_key		= 0;
+		render_resource_handle_t vertex_buffer	= {};
+		render_resource_handle_t index_buffer	= {};
+		u32						 pass_mask		= 0;
+		u32						 draw_flags		= 0;
+		u32						 material_index = 0;
+		u32						 entity_index	= 0;
+		u32						 skinning_index = 0;
+		u32						 index_count	= 0;
+		u32						 vertex_count	= 0;
+		u32						 start_index	= 0;
+		u32						 start_vertex	= 0;
+		u32						 start_instance = 0;
+		u16						 vertex_stride	= 0;
+		u8						 index_stride	= 0;
 	};
 }

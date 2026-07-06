@@ -49,7 +49,7 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		template <typename T> inline const T* find_internals(u64 hash)
+		template <typename T> inline const T* find_internals(u64 hash) const
 		{
 			const resource_entry_t* entry = find_entry(hash);
 			if (entry == nullptr || entry->state != resource_state_e::ready || entry->internals.size == 0)

@@ -46,11 +46,11 @@ namespace sfg
 	{
 		_outliner_items.resize(0);
 
-		const world_component_table_t* alive_table	   = world.find_component_table(type_id_t<component_alive_t>::value);
-		const world_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const world_component_table_t* name_table	   = world.find_component_table(type_id_t<component_name_t>::value);
-		const world_component_table_t* disabled_table  = world.find_component_table(type_id_t<component_disabled_t>::value);
-		const world_component_table_t* prefab_table	   = world.find_component_table(type_id_t<component_prefab_reference_t>::value);
+		const ecs_component_table_t* alive_table	 = world.find_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t* hierarchy_table = world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t* name_table		 = world.find_component_table(type_id_t<component_name_t>::value);
+		const ecs_component_table_t* disabled_table	 = world.find_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t* prefab_table	 = world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 		SFG_ASSERT(alive_table != nullptr);
 		SFG_ASSERT(hierarchy_table != nullptr);
 		SFG_ASSERT(name_table != nullptr);
@@ -58,10 +58,10 @@ namespace sfg
 		SFG_ASSERT(prefab_table != nullptr);
 
 		const outliner_component_tables_t tables{
-			.hierarchy = &hierarchy_table->table,
-			.name	   = &name_table->table,
-			.disabled  = &disabled_table->table,
-			.prefab	   = &prefab_table->table,
+			.hierarchy = hierarchy_table,
+			.name	   = name_table,
+			.disabled  = disabled_table,
+			.prefab	   = prefab_table,
 		};
 
 		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
@@ -72,9 +72,9 @@ namespace sfg
 		}
 
 		const ecs_component_table_ref_t table_refs[] = {
-			alive_table->table.ref(),
-			hierarchy_table->table.ref(),
-			name_table->table.ref(),
+			alive_table->ref(),
+			hierarchy_table->ref(),
+			name_table->ref(),
 		};
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))

@@ -57,36 +57,42 @@ namespace sfg
 
 		struct reflection_registry_nested_t
 		{
-			vector_t<i32>					vector_value;
-			inplace_vector_t<u8, 2>			inplace_vector2_value;
-			string_t						string_value;
+			vector_t<i32>				 vector_value;
+			inplace_vector_t<u8, 2>		 inplace_vector2_value;
+			string_t					 string_value;
 			reflection_registry_enum32_e enum32_value = reflection_registry_enum32_e::near;
-			i32								i32_value	 = 0;
-			f32								f32_value	 = 0.0f;
-			u16								u16_value	 = 0;
-			reflection_registry_enum8_e	enum8_value	 = reflection_registry_enum8_e::none;
-			u8								u8_value	 = 0;
-			bool							bool_value	 = false;
+			i32							 i32_value	  = 0;
+			f32							 f32_value	  = 0.0f;
+			u16							 u16_value	  = 0;
+			reflection_registry_enum8_e	 enum8_value  = reflection_registry_enum8_e::none;
+			u8							 u8_value	  = 0;
+			bool						 bool_value	  = false;
 		};
 
 		struct reflection_registry_data_t
 		{
 			reflection_registry_nested_t nested_value;
-			vector_t<u32>					vector_value;
-			inplace_vector_t<i16, 2>		inplace_vector2_value;
-			string_t						string_value;
+			vector_t<u32>				 vector_value;
+			inplace_vector_t<i16, 2>	 inplace_vector2_value;
+			string_t					 string_value;
 			reflection_registry_enum32_e enum32_value = reflection_registry_enum32_e::far;
-			u64								u64_value	 = 0;
-			i64								i64_value	 = 0;
-			f32								f32_value	 = 0.0f;
-			u32								u32_value	 = 0;
-			i32								i32_value	 = 0;
-			u16								u16_value	 = 0;
-			i16								i16_value	 = 0;
-			reflection_registry_enum8_e	enum8_value	 = reflection_registry_enum8_e::small;
-			u8								u8_value	 = 0;
-			i8								i8_value	 = 0;
-			bool							bool_value	 = false;
+			u64							 u64_value	  = 0;
+			i64							 i64_value	  = 0;
+			f32							 f32_value	  = 0.0f;
+			u32							 u32_value	  = 0;
+			i32							 i32_value	  = 0;
+			u16							 u16_value	  = 0;
+			i16							 i16_value	  = 0;
+			reflection_registry_enum8_e	 enum8_value  = reflection_registry_enum8_e::small;
+			u8							 u8_value	  = 0;
+			i8							 i8_value	  = 0;
+			bool						 bool_value	  = false;
+		};
+
+		struct reflection_registry_sized_array_default_t
+		{
+			u32	   values[2] = {};
+			size_t size		 = 0;
 		};
 	}
 
@@ -115,7 +121,7 @@ namespace sfg
 				reflection_registry_t::get().type_to_stream(type_id_t<reflection_registry_data_t>::value, &source, nullptr, out_stream);
 
 				reflection_registry_data_t stream_result;
-				istream_t					  in_stream(out_stream.get_raw(), out_stream.get_size());
+				istream_t				   in_stream(out_stream.get_raw(), out_stream.get_size());
 				reflection_registry_t::get().type_from_stream(type_id_t<reflection_registry_data_t>::value, &stream_result, nullptr, in_stream);
 				SFG_TEST_EXPECT(context, equals(source, stream_result));
 
@@ -130,6 +136,50 @@ namespace sfg
 				reflection_registry_data_t json_result;
 				reflection_registry_t::get().type_from_json(type_id_t<reflection_registry_data_t>::value, &json_result, nullptr, out_json);
 				SFG_TEST_EXPECT(context, equals(source, json_result));
+
+				return context.failures == 0;
+			}
+
+			static bool container_ops_add_default_values()
+			{
+				test_context_t context;
+				context.suite	 = "reflection_registry_t";
+				context.name	 = "container_ops_add_default_values";
+				context.failures = 0;
+
+				vector_t<u32>						  vector_values;
+				const reflected_field_container_ops_t vector_ops   = reflection_container_ops_t::vector_ops_with_default<u32, 99>(reflected_value_type_e::u32);
+				u32*								  vector_value = reinterpret_cast<u32*>(vector_ops.add_element_ptr_fn(&vector_values));
+				SFG_TEST_EXPECT(context, vector_value != nullptr);
+				SFG_TEST_EXPECT(context, vector_values.size() == 1);
+				SFG_TEST_EXPECT(context, vector_values[0] == 99);
+				SFG_TEST_EXPECT(context, *vector_value == 99);
+
+				inplace_vector_t<u32, 2>			  inplace_values;
+				const reflected_field_container_ops_t inplace_ops	 = reflection_container_ops_t::inplace_vector_ops_with_default<u32, 2, 77>(reflected_value_type_e::u32);
+				u32*								  inplace_value0 = reinterpret_cast<u32*>(inplace_ops.add_element_ptr_fn(&inplace_values));
+				u32*								  inplace_value1 = reinterpret_cast<u32*>(inplace_ops.add_element_ptr_fn(&inplace_values));
+				u32*								  inplace_value2 = reinterpret_cast<u32*>(inplace_ops.add_element_ptr_fn(&inplace_values));
+				SFG_TEST_EXPECT(context, inplace_value0 != nullptr);
+				SFG_TEST_EXPECT(context, inplace_value1 != nullptr);
+				SFG_TEST_EXPECT(context, inplace_value2 == nullptr);
+				SFG_TEST_EXPECT(context, inplace_values.size() == 2);
+				SFG_TEST_EXPECT(context, inplace_values[0] == 77);
+				SFG_TEST_EXPECT(context, inplace_values[1] == 77);
+
+				reflection_registry_sized_array_default_t array_values;
+				const reflected_field_container_ops_t	  array_ops =
+					reflection_container_ops_t::sized_array_ops_with_default<reflection_registry_sized_array_default_t, u32, 2, &reflection_registry_sized_array_default_t::values, &reflection_registry_sized_array_default_t::size, 33>(
+						reflected_value_type_e::u32);
+				u32* array_value0 = reinterpret_cast<u32*>(array_ops.add_element_ptr_fn(&array_values));
+				u32* array_value1 = reinterpret_cast<u32*>(array_ops.add_element_ptr_fn(&array_values));
+				u32* array_value2 = reinterpret_cast<u32*>(array_ops.add_element_ptr_fn(&array_values));
+				SFG_TEST_EXPECT(context, array_value0 != nullptr);
+				SFG_TEST_EXPECT(context, array_value1 != nullptr);
+				SFG_TEST_EXPECT(context, array_value2 == nullptr);
+				SFG_TEST_EXPECT(context, array_values.size == 2);
+				SFG_TEST_EXPECT(context, array_values.values[0] == 33);
+				SFG_TEST_EXPECT(context, array_values.values[1] == 33);
 
 				return context.failures == 0;
 			}
@@ -454,6 +504,7 @@ namespace sfg
 		void register_reflection_registry_tests()
 		{
 			register_test("reflection_registry_t", "round_trip_all_field_types", &reflection_registry_test_t::round_trip_all_field_types);
+			register_test("reflection_registry_t", "container_ops_add_default_values", &reflection_registry_test_t::container_ops_add_default_values);
 		}
 	}
 }

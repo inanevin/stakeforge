@@ -90,13 +90,13 @@ namespace sfg
 		out_json				  = nlohmann::json::object();
 		out_json["root_entities"] = nlohmann::json::array();
 
-		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const world_component_table_t* alive_world_table		= world.find_component_table(type_id_t<component_alive_t>::value);
-		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
+		const ecs_component_table_t* hierarchy_world_table	  = world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t* alive_world_table		  = world.find_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
 
-		const ecs_component_table_t& hierarchy_table	= hierarchy_world_table->table;
-		const ecs_component_table_t& alive_table		= alive_world_table->table;
-		const ecs_component_table_t& no_serialize_table = no_serialize_world_table->table;
+		const ecs_component_table_t& hierarchy_table	= *hierarchy_world_table;
+		const ecs_component_table_t& alive_table		= *alive_world_table;
+		const ecs_component_table_t& no_serialize_table = *no_serialize_world_table;
 
 		const ecs_component_table_ref_t table_refs[] = {
 			alive_table.ref(),
@@ -154,8 +154,8 @@ namespace sfg
 			else
 				entity = world.create_entity(header.name.c_str(), generate_new_guids ? NULL_ENTITY_GUID : header.guid);
 
-			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
-			component_guid_t&		 guid		= ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);
+			ecs_component_table_t& world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
+			component_guid_t&	   guid		  = ecs_helpers_t::table_get_as<component_guid_t>(world_guid, entity);
 			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
 		}
 
@@ -179,9 +179,9 @@ namespace sfg
 			entity_guid_t target_entity_guid = NULL_ENTITY_GUID;
 			in_stream >> component_type_id >> component_size >> target_entity_guid;
 
-			const reflected_type_t*	 reflected_type	 = reflection_registry_t::get().find_type(component_type_id);
-			world_component_table_t* component_table = world.find_component_table(component_type_id);
-			const auto				 target_it		 = std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == target_entity_guid; });
+			const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(component_type_id);
+			ecs_component_table_t*	component_table = world.find_component_table(component_type_id);
+			const auto				target_it		= std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == target_entity_guid; });
 			if (reflected_type == nullptr || component_table == nullptr || target_it == read_entities.end())
 			{
 				in_stream.skip_by(component_size);
@@ -190,10 +190,10 @@ namespace sfg
 
 			const reflected_field_span_t fields = reflected_type->fields;
 
-			void* component = ecs_t::table_add(component_table->table, target_it->entity);
+			void* component = ecs_t::table_add(*component_table, target_it->entity);
 			if (component != nullptr)
 			{
-				component_table->type_desc.default_init(component);
+				reflected_type->default_init_fn(component);
 				istream_t component_stream;
 				component_stream.open(in_stream.get_data_current(), component_size);
 				const bool deserialized = reflection_registry_t::get().type_from_stream(component_type_id, component, nullptr, component_stream);
@@ -237,9 +237,8 @@ namespace sfg
 			if (entity == NULL_ENTITY_ID)
 				continue;
 
-			world_component_table_t* world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
-			SFG_ASSERT(world_guid);
-			component_guid_t& guid = ecs_helpers_t::table_get_as<component_guid_t>(world_guid->table, entity);
+			ecs_component_table_t& world_guid = world.get_component_table(type_id_t<component_guid_t>::value);
+			component_guid_t&	   guid		  = ecs_helpers_t::table_get_as<component_guid_t>(world_guid, entity);
 			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
 		}
 
@@ -266,18 +265,18 @@ namespace sfg
 				const entity_guid_t	 target_entity_guid = component_json.value<entity_guid_t>("entity", NULL_ENTITY_GUID);
 				const nlohmann::json component_data		= component_json.value<nlohmann::json>("data", nlohmann::json::object());
 
-				const reflected_type_t*	 reflected_type	 = reflection_registry_t::get().find_type(component_type_id);
-				world_component_table_t* component_table = world.find_component_table(component_type_id);
-				const auto				 target_it		 = std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == target_entity_guid; });
+				const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(component_type_id);
+				ecs_component_table_t*	component_table = world.find_component_table(component_type_id);
+				const auto				target_it		= std::find_if(read_entities.begin(), read_entities.end(), [&](const read_entity_t& other) { return other.header.guid == target_entity_guid; });
 				if (reflected_type == nullptr || component_table == nullptr || target_it == read_entities.end())
 					continue;
 
 				const reflected_field_span_t fields = reflected_type->fields;
 
-				void* component = ecs_t::table_add(component_table->table, target_it->entity);
+				void* component = ecs_t::table_add(*component_table, target_it->entity);
 				if (component != nullptr)
 				{
-					component_table->type_desc.default_init(component);
+					reflected_type->default_init_fn(component);
 					const bool deserialized = reflection_registry_t::get().type_from_json(component_type_id, component, nullptr, component_data);
 					SFG_ASSERT(deserialized);
 
@@ -302,11 +301,11 @@ namespace sfg
 
 		frame_vector_t<written_entity_t> written_entities;
 
-		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t&   hierarchy_table			= hierarchy_world_table->table;
-		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
-		const ecs_component_table_t&   no_serialize_table		= no_serialize_world_table->table;
-		const ecs_component_table_t&   prefab_table				= world.find_component_table(type_id_t<component_prefab_reference_t>::value)->table;
+		const ecs_component_table_t* hierarchy_world_table	  = world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t& hierarchy_table		  = *hierarchy_world_table;
+		const ecs_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
+		const ecs_component_table_t& no_serialize_table		  = *no_serialize_world_table;
+		const ecs_component_table_t& prefab_table			  = *world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 
 		const size_t count_offset = out_stream.get_size();
 		u32			 total_count  = 0;
@@ -349,14 +348,14 @@ namespace sfg
 		write_entity(write_entity, entity);
 		SFG_MEMCPY(out_stream.get_raw() + count_offset, &total_count, sizeof(total_count));
 
-		const vector_t<world_component_table_t>& component_tables		= world.get_component_tables();
-		const size_t							 component_count_offset = out_stream.get_size();
-		u32										 component_count		= 0;
+		const vector_t<ecs_component_table_t>& component_tables		  = world.get_component_tables();
+		const size_t						   component_count_offset = out_stream.get_size();
+		u32									   component_count		  = 0;
 		out_stream << component_count;
 
 		for (const written_entity_t& written_entity : written_entities)
 		{
-			for (const world_component_table_t& component_table : component_tables)
+			for (const ecs_component_table_t& component_table : component_tables)
 			{
 				const sid_t				component_type_id = component_table.type_desc.type_id;
 				const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
@@ -365,11 +364,11 @@ namespace sfg
 				if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
 					continue;
 
-				if (!ecs_t::table_has(component_table.table, written_entity.entity))
+				if (!ecs_t::table_has(component_table, written_entity.entity))
 					continue;
 
 				ostream_t component_stream;
-				void*	  component = ecs_t::table_get(component_table.table, written_entity.entity);
+				void*	  component = ecs_t::table_get(component_table, written_entity.entity);
 				if (component != nullptr)
 				{
 					const bool serialized = reflection_registry_t::get().type_to_stream(component_type_id, component, nullptr, component_stream);
@@ -403,12 +402,12 @@ namespace sfg
 
 		frame_vector_t<written_entity_t> written_entities;
 
-		const world_component_table_t* hierarchy_world_table	= world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const world_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
+		const ecs_component_table_t* hierarchy_world_table	  = world.find_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t* no_serialize_world_table = world.find_component_table(type_id_t<component_no_serialize_t>::value);
 
-		const ecs_component_table_t& hierarchy_table	= hierarchy_world_table->table;
-		const ecs_component_table_t& no_serialize_table = no_serialize_world_table->table;
-		const ecs_component_table_t& prefab_table		= world.find_component_table(type_id_t<component_prefab_reference_t>::value)->table;
+		const ecs_component_table_t& hierarchy_table	= *hierarchy_world_table;
+		const ecs_component_table_t& no_serialize_table = *no_serialize_world_table;
+		const ecs_component_table_t& prefab_table		= *world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 
 		const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
 			if (ecs_t::table_has(no_serialize_table, current))
@@ -445,10 +444,10 @@ namespace sfg
 
 		write_entity(write_entity, entity);
 
-		const vector_t<world_component_table_t>& component_tables = world.get_component_tables();
+		const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
 		for (const written_entity_t& written_entity : written_entities)
 		{
-			for (const world_component_table_t& component_table : component_tables)
+			for (const ecs_component_table_t& component_table : component_tables)
 			{
 				const sid_t				component_type_id = component_table.type_desc.type_id;
 				const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
@@ -457,11 +456,11 @@ namespace sfg
 				if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
 					continue;
 
-				if (!ecs_t::table_has(component_table.table, written_entity.entity))
+				if (!ecs_t::table_has(component_table, written_entity.entity))
 					continue;
 
 				nlohmann::json component_data = nlohmann::json::object();
-				void*		   component	  = ecs_t::table_get(component_table.table, written_entity.entity);
+				void*		   component	  = ecs_t::table_get(component_table, written_entity.entity);
 				if (component != nullptr)
 				{
 					const bool serialized = reflection_registry_t::get().type_to_json(component_type_id, component, nullptr, component_data);

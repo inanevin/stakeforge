@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/time.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -255,15 +256,19 @@ namespace sfg
 		world_t& world = _worlds.get(handle).get_world();
 		install_editor_camera(world);
 
-		const entity_id_t	environment				  = world.create_entity("environment");
-		component_skybox_t& skybox					  = ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value)->table, environment);
-		skybox.skybox_asset							  = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		skybox.exposure								  = 0.25f;
-		world_component_table_t& debug_widgets_table  = *world.get_component_table(type_id_t<component_debug_widgets_t>::value);
-		const bool				 debug_widgets_exists = ecs_t::table_has(debug_widgets_table.table, environment);
-		void*					 debug_widgets		  = ecs_t::table_add(debug_widgets_table.table, environment);
+		const entity_id_t	environment				= world.create_entity("environment");
+		component_skybox_t& skybox					= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), environment);
+		skybox.skybox_asset							= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
+		skybox.exposure								= 0.25f;
+		ecs_component_table_t& debug_widgets_table	= world.get_component_table(type_id_t<component_debug_widgets_t>::value);
+		const bool			   debug_widgets_exists = ecs_t::table_has(debug_widgets_table, environment);
+		void*				   debug_widgets		= ecs_t::table_add(debug_widgets_table, environment);
 		if (!debug_widgets_exists)
-			debug_widgets_table.type_desc.default_init(debug_widgets);
+		{
+			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(debug_widgets_table.type_desc.type_id);
+			SFG_ASSERT(reflected_type != nullptr && reflected_type->default_init_fn != nullptr);
+			reflected_type->default_init_fn(debug_widgets);
+		}
 
 		world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
 		world.load_all_used_resources();
@@ -662,10 +667,9 @@ namespace sfg
 	void editor_world_controller_t::install_editor_camera(world_t& world)
 	{
 		const entity_id_t	camera_entity = world.create_entity("editor camera");
-		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value)->table, camera_entity);
+		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
 		camera.priority					  = -1;
-		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value)->table, camera_entity);
-		ecs_t::table_add(world.get_component_table(type_id_t<component_render_object_t>::value)->table, camera_entity);
+		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), camera_entity);
 		_main_camera_entity	  = camera_entity;
 		const vec3f_t euler	  = quat_t::to_euler(world.get_entity_rot_local(camera_entity));
 		_camera_pitch_degrees = euler.x;

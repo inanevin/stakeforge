@@ -827,7 +827,14 @@ namespace sfg
 			SFG_ASSERT(descriptor.size == sizeof(u8) || descriptor.size == sizeof(u16) || descriptor.size == sizeof(u32));
 		}
 
-		type.fields.start = static_cast<u32>(_fields.size());
+		type.fields.start	 = static_cast<u32>(_fields.size());
+		type.default_init_fn = descriptor.default_init_fn;
+
+		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_component) || descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component) ||
+			descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component))
+		{
+			SFG_ASSERT(descriptor.default_init_fn != nullptr);
+		}
 
 		for (const reflected_field_descriptor_t& field_desc : descriptor.fields)
 		{

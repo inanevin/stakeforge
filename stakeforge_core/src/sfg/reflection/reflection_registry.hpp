@@ -72,7 +72,7 @@ namespace sfg
 
 	typedef u8* (*fn_container_get_element_ptr)(void* obj, u32 index);
 	typedef u8* (*fn_container_add_element_ptr)(void* obj);
-	typedef size_t (*fn_container_get_element_size)(void* obj);
+	typedef size_t (*fn_container_get_element_size)(const void* obj);
 	typedef void (*fn_container_reset)(void* obj);
 	typedef void (*fn_container_remove_index)(void* obj, u32 index);
 
@@ -159,6 +159,8 @@ namespace sfg
 		reflected_type_flag_no_ui			 = 1 << 3,
 		reflected_type_flag_no_serialization = 1 << 4,
 		reflected_type_flag_enum			 = 1 << 5,
+		reflected_type_flag_system_component = 1 << 6,
+		reflected_type_flag_tag_component	 = 1 << 7,
 	};
 
 	struct reflected_field_span_t
@@ -167,23 +169,27 @@ namespace sfg
 		u32 end	  = 0;
 	};
 
+	typedef void (*fn_default_init)(void* obj);
+
 	struct reflected_type_t
 	{
-		reflected_field_span_t fields		= {};
-		const char*			   name			= nullptr;
-		const char*			   display_name = nullptr;
-		const char*			   tooltip		= nullptr;
-		sid_t				   type_id		= 0;
-		size_t				   size			= 0;
-		size_t				   alignment	= 0;
-		bitmask32			   flags		= 0;
+		reflected_field_span_t fields		   = {};
+		const char*			   name			   = nullptr;
+		const char*			   display_name	   = nullptr;
+		const char*			   tooltip		   = nullptr;
+		fn_default_init		   default_init_fn = nullptr;
+		sid_t				   type_id		   = 0;
+		size_t				   size			   = 0;
+		size_t				   alignment	   = 0;
+		bitmask32			   flags		   = 0;
 	};
 
 	struct reflected_type_descriptor_t
 	{
-		const char*							   name			= "";
-		const char*							   display_name = nullptr;
-		const char*							   tooltip		= "";
+		const char*							   name			   = "";
+		const char*							   display_name	   = nullptr;
+		const char*							   tooltip		   = "";
+		fn_default_init						   default_init_fn = nullptr;
 		vector_t<reflected_field_descriptor_t> fields;
 		sid_t								   type_id	 = 0;
 		size_t								   size		 = 0;
@@ -219,6 +225,11 @@ namespace sfg
 
 		const reflected_type_t*	 find_type(sid_t type_id) const;
 		const reflected_field_t* get_field(u32 index) const;
+
+		inline const vector_t<reflected_type_t>& get_types() const
+		{
+			return _types;
+		}
 
 		void register_type(const reflected_type_descriptor_t& descriptor);
 

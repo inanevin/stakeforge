@@ -182,12 +182,11 @@ namespace sfg
 		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
 		SFG_ASSERT(!main_world.is_null());
 
-		world_t&				 world			= editor_world_controller_t::get().get_world(main_world);
-		world_component_table_t* disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
-		SFG_ASSERT(disabled_table != nullptr);
+		world_t&			   world		  = editor_world_controller_t::get().get_world(main_world);
+		ecs_component_table_t& disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
 
 		const sid_t component_type = type_id_t<component_disabled_t>::value;
-		if (ecs_t::table_has(disabled_table->table, entity))
+		if (ecs_t::table_has(disabled_table, entity))
 			editor_commands_component_t::remove(main_world, entity, component_type);
 		else
 			editor_commands_component_t::add(main_world, entity, component_type);

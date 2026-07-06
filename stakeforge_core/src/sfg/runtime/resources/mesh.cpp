@@ -37,7 +37,7 @@ namespace sfg
 			clear_mesh_runtime_cpu_data(runtime);
 		}
 
-		template <typename def_primitive_t, typename vertex_t> void build_mesh_data(const vector_t<def_primitive_t>& def_primitives, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
+		template <typename def_primitive_t, typename vertex_t> void build_mesh_data(const vector_t<def_primitive_t>& def_primitives, const vector_t<resource_handle_t>& materials, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
 		{
 			size_t vertex_count = 0;
 			size_t index_count	= 0;
@@ -52,27 +52,43 @@ namespace sfg
 			const u32	 primitive_count  = static_cast<u32>(def_primitives.size());
 			runtime.vertex_data			  = mem.allocate_bytes(vertex_data_size, alignof(vertex_t));
 			runtime.index_data			  = mem.allocate_bytes(index_data_size, alignof(primitive_index));
+			runtime.primitives			  = mem.allocate_bytes(sizeof(mesh_primitive_runtime_t) * primitive_count, alignof(mesh_primitive_runtime_t));
 
-			u8* vertex_dst = mem.get<u8>(runtime.vertex_data);
-			u8* index_dst  = mem.get<u8>(runtime.index_data);
+			u8*						  vertex_dst	= mem.get<u8>(runtime.vertex_data);
+			u8*						  index_dst		= mem.get<u8>(runtime.index_data);
+			mesh_primitive_runtime_t* primitive_dst = mem.get<mesh_primitive_runtime_t>(runtime.primitives);
+			u32						  start_vertex	= 0;
+			u32						  start_index	= 0;
 			for (u32 i = 0; i < primitive_count; ++i)
 			{
 				const def_primitive_t& primitive = def_primitives[i];
+				SFG_ASSERT(primitive.material_index < materials.size());
 
 				const size_t vertex_bytes = primitive.vertices.size() * sizeof(vertex_t);
 				const size_t index_bytes  = primitive.indices.size() * sizeof(primitive_index);
+				primitive_dst[i]		  = {
+							 .material		 = materials[primitive.material_index],
+							 .material_index = primitive.material_index,
+							 .start_index	 = start_index,
+							 .start_vertex	 = start_vertex,
+							 .index_count	 = static_cast<u32>(primitive.indices.size()),
+				 };
 				SFG_MEMCPY(vertex_dst, primitive.vertices.data(), vertex_bytes);
 				SFG_MEMCPY(index_dst, primitive.indices.data(), index_bytes);
 
 				vertex_dst += vertex_bytes;
 				index_dst += index_bytes;
+				start_vertex += static_cast<u32>(primitive.vertices.size());
+				start_index += static_cast<u32>(primitive.indices.size());
 			}
 
 			runtime.vertex_data_size = static_cast<u32>(vertex_data_size);
 			runtime.index_data_size	 = static_cast<u32>(index_data_size);
+			runtime.primitive_count	 = primitive_count;
 			runtime.vertex_count	 = static_cast<u32>(vertex_count);
 			runtime.index_count		 = static_cast<u32>(index_count);
 			runtime.vertex_stride	 = sizeof(vertex_t);
+			runtime.index_stride	 = sizeof(primitive_index);
 
 			internals.primitive_count = primitive_count;
 			internals.vertex_count	  = runtime.vertex_count;
@@ -122,11 +138,11 @@ namespace sfg
 
 		if (has_static)
 		{
-			build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mem, *runtime, *internals);
+			build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mesh.materials, mem, *runtime, *internals);
 		}
 		else if (has_skinned)
 		{
-			build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mem, *runtime, *internals);
+			build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mesh.materials, mem, *runtime, *internals);
 			runtime->is_skinned	  = 1;
 			internals->is_skinned = 1;
 		}
@@ -162,6 +178,8 @@ namespace sfg
 		clear_mesh_runtime_cpu_data(*runtime);
 		render_resources_t::get().enqueue_destroy_resource(internals->vertex_buffer);
 		render_resources_t::get().enqueue_destroy_resource(internals->index_buffer);
+		mem.free(runtime->primitives);
+		*runtime   = {};
 		*internals = {};
 	}
 

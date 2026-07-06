@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	static inline constexpr u32 MATERIAL_MAX_PARAMETERS			 = 12;
-	static inline constexpr u32 MATERIAL_MAX_TEXTURES			 = 8;
-	static inline constexpr u32 MATERIAL_MAX_PARAMETER_DATA_SIZE = MATERIAL_MAX_PARAMETERS * sizeof(f32) * 4;
+#define SFG_MATERIAL_MAX_PARAMS	  12
+#define SFG_MATERIAL_MAX_TEXTURES 8
+	static inline constexpr u32 SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE = SFG_MATERIAL_MAX_PARAMS * sizeof(f32) * 4;
 }

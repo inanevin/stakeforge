@@ -438,11 +438,11 @@ namespace sfg
 	{
 		SFG_ASSERT(table.l0_nodes == nullptr);
 		SFG_ASSERT(type_desc.type_id != 0);
-		SFG_ASSERT(type_desc.default_init != nullptr);
 		SFG_ASSERT(type_desc.alignment != 0);
 
 		table.l0_nodes = reinterpret_cast<ecs_node_t*>(SFG_ALIGNED_MALLOC(alignof(ecs_node_t), sizeof(ecs_node_t) * ECS_L0_SIZE));
 		SFG_MEMSET(table.l0_nodes, 0, sizeof(ecs_node_t) * ECS_L0_SIZE);
+		table.type_desc					 = type_desc;
 		table.component_type_id			 = type_desc.type_id;
 		table.component_struct_alignment = type_desc.alignment;
 		table.component_struct_stride	 = align_up(type_desc.size, type_desc.alignment);
@@ -474,11 +474,9 @@ namespace sfg
 
 	void ecs_t::table_clear(ecs_component_table_t& table)
 	{
-		const size_t stride	   = table.component_struct_stride;
-		const size_t alignment = table.component_struct_alignment;
-		const sid_t	 type_id   = table.component_type_id;
+		const ecs_component_type_desc_t type_desc = table.type_desc;
 		table_uninit(table);
-		table_init(table, {.type_id = type_id, .size = static_cast<u32>(stride), .alignment = static_cast<u32>(alignment)});
+		table_init(table, type_desc);
 	}
 
 	bool ecs_t::is_table_empty(const ecs_component_table_t& table)

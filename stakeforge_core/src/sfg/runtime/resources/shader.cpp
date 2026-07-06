@@ -85,8 +85,8 @@ namespace sfg
 			const size_t							idx = static_cast<size_t>(pv.compile_variant_index);
 			const shader_runtime_compile_variant_t& cv	= runtime->compile_variants[idx];
 
-			SFG_ASSERT(cv.stage_count <= MAX_STAGE_PER_VARIANT);
-			inplace_vector_t<shader_blob_t, MAX_STAGE_PER_VARIANT> blobs;
+			SFG_ASSERT(cv.stage_count <= SFG_SHADER_MAX_STAGE_PER_VARIANT);
+			inplace_vector_t<shader_blob_t, SFG_SHADER_MAX_STAGE_PER_VARIANT> blobs;
 			for (u8 j = 0; j < cv.stage_count; ++j)
 			{
 				const shader_runtime_stage_entry_t& s = cv.stages[j];

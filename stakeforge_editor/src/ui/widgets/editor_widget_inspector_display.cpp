@@ -266,9 +266,9 @@ namespace sfg
 			_ui->get_input().set_listener(_entity_info_fold->get_settings_button(), entity_info_settings_listener);
 		}
 
-		for (const world_component_table_t& component_table : _display_world->get_component_tables())
+		for (const ecs_component_table_t& component_table : _display_world->get_component_tables())
 		{
-			if (!ecs_t::table_has(component_table.table, first_entity))
+			if (!ecs_t::table_has(component_table, first_entity))
 				continue;
 
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
@@ -278,7 +278,7 @@ namespace sfg
 			bool common_component = true;
 			for (size_t i = 1; i < _display_entities.size(); ++i)
 			{
-				if (!ecs_t::table_has(component_table.table, _display_entities[i]))
+				if (!ecs_t::table_has(component_table, _display_entities[i]))
 				{
 					common_component = false;
 					break;
@@ -296,7 +296,7 @@ namespace sfg
 			display.type_id				 = component_table.type_desc.type_id;
 			display.objects.reserve(_display_entities.size());
 			for (entity_id_t entity : _display_entities)
-				display.objects.push_back(ecs_t::table_get(component_table.table, entity));
+				display.objects.push_back(ecs_t::table_get(component_table, entity));
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
 			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = !prefab_blocked});
@@ -370,21 +370,19 @@ namespace sfg
 		if (_display_world == nullptr || entities.size == 0)
 			return false;
 
-		world_component_table_t* table = _display_world->get_component_table(component_type);
-		if (table == nullptr)
-			return false;
+		ecs_component_table_t& table = _display_world->get_component_table(component_type);
 
 		out_streams.reserve(entities.size);
 		for (size_t i = 0; i < entities.size; ++i)
 		{
-			if (!ecs_t::table_has(table->table, entities.data[i]))
+			if (!ecs_t::table_has(table, entities.data[i]))
 			{
 				out_streams.resize(0);
 				return false;
 			}
 
 			ostream_t stream;
-			if (!reflection_registry_t::get().type_to_stream(table->type_desc.type_id, ecs_t::table_get(table->table, entities.data[i]), nullptr, stream))
+			if (!reflection_registry_t::get().type_to_stream(table.type_desc.type_id, ecs_t::table_get(table, entities.data[i]), nullptr, stream))
 			{
 				out_streams.resize(0);
 				return false;
@@ -408,10 +406,10 @@ namespace sfg
 
 	bool editor_widget_inspector_t::is_selection_prefab_referenced() const
 	{
-		world_component_table_t* prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
+		const ecs_component_table_t& prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
 		for (entity_id_t entity : _display_entities)
 		{
-			if (ecs_t::table_has(prefab_table->table, entity))
+			if (ecs_t::table_has(prefab_table, entity))
 				return true;
 		}
 		return false;
@@ -419,18 +417,18 @@ namespace sfg
 
 	void editor_widget_inspector_t::break_prefabs()
 	{
-		world_component_table_t*	prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
-		frame_vector_t<entity_id_t> roots;
+		const ecs_component_table_t& prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
+		frame_vector_t<entity_id_t>	 roots;
 		roots.reserve(_display_entities.size());
 
 		for (entity_id_t entity : _display_entities)
 		{
-			if (!ecs_t::table_has(prefab_table->table, entity))
+			if (!ecs_t::table_has(prefab_table, entity))
 				continue;
 
 			for (entity_id_t current = entity; current != NULL_ENTITY_ID; current = _display_world->get_entity_parent(current))
 			{
-				const component_prefab_reference_t* ref = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table->table, current);
+				const component_prefab_reference_t* ref = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, current);
 				if (ref != nullptr && ref->is_root)
 				{
 					if (std::find(roots.begin(), roots.end(), current) == roots.end())

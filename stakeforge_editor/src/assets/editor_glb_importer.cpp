@@ -809,6 +809,10 @@ namespace sfg
 			const glb_texture_transform_t orm_transform		 = get_texture_transform(material.pbr_metallic_roughness.metallic_roughness_texture.ext);
 			const glb_texture_transform_t emissive_transform = get_texture_transform(material.emissive_texture.ext);
 
+			const bool is_transparent = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "BLEND";
+			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
+			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id);
+
 			const material_def_t material_def = {
 				.textures =
 					{
@@ -832,9 +836,9 @@ namespace sfg
 					},
 				.shader			  = DEFAULT_GBUFFER_SHADER_ASSET_GUID,
 				.sampler		  = get_sampler_guid(model, material),
-				.pass_flags		  = wpf_gbuffer,
+				.pass_flags		  = pass_flags,
 				.double_sided	  = material.double_sided != 0,
-				.use_alpha_cutoff = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK",
+				.use_alpha_cutoff = is_cutoff,
 			};
 
 			editor_asset_t asset		 = {};
@@ -1016,14 +1020,11 @@ namespace sfg
 		bool build_mesh_def(const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, const char* name, mesh_def_t& out)
 		{
 			out.name = name;
-			out.materials.reserve(model.materials_count);
-			for (u32 i = 0; i < model.materials_count; ++i)
-			{
-				const auto it = material_guid_map.find(i);
-				out.materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
-			}
 
-			bool is_skinned = false;
+			bool		 is_skinned			  = false;
+			bool		 has_default_material = false;
+			vector_t<u8> referenced_materials;
+			referenced_materials.resize(model.materials_count);
 			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
 			{
 				const tg3_mesh& mesh = meshes[mesh_i];
@@ -1031,7 +1032,30 @@ namespace sfg
 				{
 					const tg3_primitive& primitive = mesh.primitives[primitive_i];
 					is_skinned					   = is_skinned || find_attribute(primitive, "JOINTS_0") >= 0 || find_attribute(primitive, "WEIGHTS_0") >= 0;
+					if (primitive.material >= 0 && static_cast<u32>(primitive.material) < model.materials_count)
+						referenced_materials[static_cast<u32>(primitive.material)] = 1;
+					else
+						has_default_material = true;
 				}
+			}
+
+			vector_t<u32> local_material_indices;
+			local_material_indices.resize(model.materials_count, UINT32_MAX);
+			for (u32 i = 0; i < model.materials_count; ++i)
+			{
+				if (referenced_materials[i] == 0)
+					continue;
+
+				const auto it			  = material_guid_map.find(i);
+				local_material_indices[i] = static_cast<u32>(out.materials.size());
+				out.materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+			}
+
+			u32 default_material_index = UINT32_MAX;
+			if (has_default_material)
+			{
+				default_material_index = static_cast<u32>(out.materials.size());
+				out.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
 			}
 
 			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
@@ -1040,7 +1064,8 @@ namespace sfg
 				for (u32 primitive_i = 0; primitive_i < mesh.primitives_count; ++primitive_i)
 				{
 					const tg3_primitive& primitive		= mesh.primitives[primitive_i];
-					const u32			 material_index = primitive.material >= 0 && static_cast<u32>(primitive.material) < out.materials.size() ? static_cast<u32>(primitive.material) : UINT32_MAX;
+					const u32			 material_index = primitive.material >= 0 && static_cast<u32>(primitive.material) < model.materials_count ? local_material_indices[static_cast<u32>(primitive.material)] : default_material_index;
+					SFG_ASSERT(material_index != UINT32_MAX);
 					if (is_skinned)
 					{
 						primitive_skinned_def_t primitive_def = {};

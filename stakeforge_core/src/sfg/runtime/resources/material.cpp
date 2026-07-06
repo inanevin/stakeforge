@@ -6,6 +6,7 @@
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include "texture.hpp"
+#include "shader.hpp"
 #include "texture_sampler.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -103,15 +104,15 @@ namespace sfg
 			return false;
 		}
 
-		if (material.parameters.size() > MATERIAL_MAX_PARAMETERS)
+		if (material.parameters.size() > SFG_MATERIAL_MAX_PARAMS)
 		{
-			SFG_ERR("material has too many parameters: {0} / {1}", material.parameters.size(), MATERIAL_MAX_PARAMETERS);
+			SFG_ERR("material has too many parameters: {0} / {1}", material.parameters.size(), SFG_MATERIAL_MAX_PARAMS);
 			return false;
 		}
 
-		if (material.textures.size() > MATERIAL_MAX_TEXTURES)
+		if (material.textures.size() > SFG_MATERIAL_MAX_TEXTURES)
 		{
-			SFG_ERR("material has too many textures: {0} / {1}", material.textures.size(), MATERIAL_MAX_TEXTURES);
+			SFG_ERR("material has too many textures: {0} / {1}", material.textures.size(), SFG_MATERIAL_MAX_TEXTURES);
 			return false;
 		}
 
@@ -123,6 +124,7 @@ namespace sfg
 		runtime->parameter_count  = static_cast<u32>(material.parameters.size());
 		runtime->texture_count	  = static_cast<u32>(material.textures.size());
 		SFG_ASSERT(runtime->texture_count == 0 || runtime->sampler_guid != NULL_SID);
+		SFG_ASSERT(runtime->shader_guid);
 
 		if (runtime->parameter_count != 0)
 		{
@@ -133,55 +135,25 @@ namespace sfg
 				SFG_MEMCPY(runtime->parameters[i].values, material.parameters[i].values.data(), sizeof(runtime->parameters[i].values));
 				runtime->parameter_data_size += get_material_parameter_size(runtime->parameters[i].type);
 			}
-		}
 
-		if (runtime->texture_count != 0)
-		{
-			for (u32 i = 0; i < runtime->texture_count; ++i)
-				runtime->texture_guids[i] = material.textures[i];
-		}
-
-		if (runtime->parameter_count != 0)
-		{
 			resource_desc_t desc = {};
 			desc.size			 = runtime->parameter_data_size;
 			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
 			internals->parameter_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
 
-			SFG_ASSERT(runtime->parameter_data_size <= MATERIAL_MAX_PARAMETER_DATA_SIZE);
-			u8	parameter_values[MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
-			u8* dst												   = parameter_values;
+			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
+			u8	parameter_values[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
+			u8* dst													   = parameter_values;
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
 				write_material_parameter(dst, runtime->parameters[i]);
 
 			render_resources_t::get().enqueue_data_upload({.data = parameter_values, .resource = internals->parameter_buffer, .data_size = runtime->parameter_data_size});
 		}
 
-		if (runtime->sampler_guid != NULL_SID)
+		for (u32 i = 0; i < runtime->texture_count; ++i)
 		{
-			const texture_sampler_internals_t* sampler = ctx.resource_manager.find_internals<texture_sampler_internals_t>(runtime->sampler_guid);
-			SFG_ASSERT(sampler != nullptr);
-			internals->sampler = sampler->sampler;
-		}
-
-		if (runtime->texture_count != 0)
-		{
-			SFG_ASSERT(!internals->sampler.is_null());
-			const size_t texture_bytes = static_cast<size_t>(runtime->texture_count) * sizeof(render_resource_handle_t);
-			for (u32 i = 0; i < runtime->texture_count; ++i)
-			{
-				const texture_internals_t* texture = ctx.resource_manager.find_internals<texture_internals_t>(runtime->texture_guids[i]);
-				SFG_ASSERT(texture != nullptr);
-				// runtime->texture_handles[i] = texture->texture;
-			}
-
-			resource_desc_t desc = {};
-			desc.size			 = static_cast<u32>(texture_bytes);
-			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-			desc.set_name(mem.get_text(entry.debug_name));
-			internals->texture_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
-			render_resources_t::get().enqueue_data_upload({.data = runtime->texture_handles, .resource = internals->texture_buffer, .data_size = static_cast<u32>(texture_bytes)});
+			runtime->texture_guids[i] = material.textures[i];
 		}
 
 		return true;
@@ -192,7 +164,6 @@ namespace sfg
 		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
 		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
 		render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffer);
-		render_resources_t::get().enqueue_destroy_resource(internals->texture_buffer);
 		*internals = {};
 	}
 

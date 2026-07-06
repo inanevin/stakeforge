@@ -41,7 +41,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
-#include <new>
 
 namespace sfg
 {
@@ -57,41 +56,31 @@ namespace sfg
 		_text_allocator.init(WORLD_TEXT_BYTES);
 		_used_resources.reserve(512);
 
-		add_component_table(ecs_helpers_t::make_component_desc<component_hierarchy_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_guid_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_transform_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_name_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_mesh_renderer_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_render_object_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_camera_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_skybox_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_prefab_reference_t>());
-		add_component_table({
-			.default_init = [](void* ptr) { new (ptr) component_debug_widgets_t{}; },
-			.type_id	  = type_id_t<component_debug_widgets_t>::value,
-			.size		  = sizeof(component_debug_widgets_t),
-			.alignment	  = alignof(component_debug_widgets_t),
-			.flags		  = ecs_component_type_flags_none,
-			.debug_name	  = "debug_widgets_component",
-		});
-		add_component_table(ecs_helpers_t::make_tag_component_desc<component_alive_t>());
-		add_component_table(ecs_helpers_t::make_tag_component_desc<component_disabled_t>());
-		add_component_table(ecs_helpers_t::make_tag_component_desc<component_no_serialize_t>());
-		add_component_table(ecs_helpers_t::make_component_desc<component_system_transform_t>());
+		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
+		for (const reflected_type_t& type : types)
+		{
+			const bool is_component		   = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_component);
+			const bool is_tag_component	   = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component);
+			const bool is_system_component = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component);
+			if (!is_component && !is_tag_component && !is_system_component)
+				continue;
 
-		_engine_components.hierarchy_table = &get_component_table(type_id_t<component_hierarchy_t>::value)->table;
-		_engine_components.guid_table	   = &get_component_table(type_id_t<component_guid_t>::value)->table;
-		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value)->table;
-		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value)->table;
-		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value)->table;
-		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value)->table;
-		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value)->table;
+			add_component_table(ecs_helpers_t::make_component_desc(type.type_id, is_tag_component ? 0 : type.size, is_tag_component ? 1 : type.alignment, is_tag_component ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
+		}
+
+		_engine_components.hierarchy_table = &get_component_table(type_id_t<component_hierarchy_t>::value);
+		_engine_components.guid_table	   = &get_component_table(type_id_t<component_guid_t>::value);
+		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value);
+		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value);
+		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value);
+		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
+		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
 	}
 
 	void world_t::uninit()
 	{
-		for (world_component_table_t& table : _component_tables)
-			ecs_t::table_uninit(table.table);
+		for (ecs_component_table_t& table : _component_tables)
+			ecs_t::table_uninit(table);
 
 		_used_resources.resize(0);
 		_component_tables.resize(0);
@@ -170,9 +159,9 @@ namespace sfg
 
 		detach(id);
 
-		for (world_component_table_t& t : _component_tables)
+		for (ecs_component_table_t& t : _component_tables)
 		{
-			ecs_t::table_remove(t.table, id);
+			ecs_t::table_remove(t, id);
 		}
 
 		_entity_free_list.push_back(id);
@@ -292,6 +281,60 @@ namespace sfg
 		scan(scan, root);
 	}
 
+	void world_t::refresh_prefab_instances(resource_handle_t handle, entity_id_t skip)
+	{
+		const ecs_component_table_ref_t tables[] = {
+			_engine_components.alive_table->ref(),
+			_engine_components.prefab_table->ref(),
+		};
+
+		struct destroy_data
+		{
+			entity_id_t id	   = NULL_ENTITY_ID;
+			entity_id_t parent = NULL_ENTITY_ID;
+			vec3f_t		pos	   = vec3f_t::zero;
+			quat_t		rot	   = quat_t::identity;
+			vec3f_t		scale  = vec3f_t::zero;
+		};
+
+		frame_vector_t<destroy_data> to_destroy;
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = tables, .size = std::size(tables)}))
+		{
+			const component_prefab_reference_t& ref = ecs_helpers_t::row_get<component_prefab_reference_t>(row, 1);
+			if (!ref.is_root)
+				continue;
+
+			if (ref.prefab != handle)
+				continue;
+
+			if (row.id == skip)
+				continue;
+
+			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, row.id);
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, row.id);
+
+			to_destroy.push_back({
+				.id		= row.id,
+				.parent = hierarchy.parent,
+				.pos	= transform.pos,
+				.rot	= transform.rot,
+				.scale	= transform.scale,
+			});
+		}
+
+		for (const destroy_data& data : to_destroy)
+		{
+			destroy_entity_tree(data.id);
+			spawn_prefab(handle,
+						 {
+							 .parent	  = data.parent,
+							 .local_pos	  = data.pos,
+							 .local_rot	  = data.rot,
+							 .local_scale = data.scale,
+						 });
+		}
+	}
 	entity_id_t world_t::get_entity_parent(entity_id_t id) const
 	{
 		SFG_ASSERT(is_alive(id));
@@ -558,41 +601,61 @@ namespace sfg
 		return true;
 	}
 
-	void world_t::scan_for_resources(entity_id_t entity)
+	void world_t::scan_for_resources(entity_id_t entity, bool omit_children)
 	{
 		SFG_ASSERT(is_alive(entity));
 
 		bool	   added = false;
 		const auto scan	 = [&](const auto& self, entity_id_t current) -> void {
 			 reflection_registry_t& registry = reflection_registry_t::get();
-			 for (world_component_table_t& component_table : _component_tables)
+			 for (ecs_component_table_t& component_table : _component_tables)
 			 {
-				 if (!ecs_t::table_has(component_table.table, current))
+				 if (!ecs_t::table_has(component_table, current))
 					 continue;
 
-				 const reflected_type_t* type = registry.find_type(component_table.table.component_type_id);
+				 const reflected_type_t* type = registry.find_type(component_table.component_type_id);
 				 if (type == nullptr || type->fields.start == type->fields.end)
 					 continue;
 
-				 void* component = ecs_t::table_get(component_table.table, current);
+				 void* component = ecs_t::table_get(component_table, current);
 				 SFG_ASSERT(component != nullptr);
 
 				 for (u32 i = type->fields.start; i < type->fields.end; ++i)
 				 {
 					 const reflected_field_t* field = registry.get_field(i);
 					 SFG_ASSERT(field != nullptr);
-					 if (field->value_type != reflected_value_type_e::u64)
+
+					 const bool is_resource_container = field->value_type == reflected_value_type_e::container && field->container_ops.element_value_type == reflected_value_type_e::u64;
+
+					 if (field->value_type != reflected_value_type_e::u64 && !is_resource_container)
 						 continue;
 
-					 const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->sub_type_id);
+					 const resource_type_e resource_type = is_resource_container ? resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id) : resource_type_from_reflection_sub_type_id(field->sub_type_id);
 					 if (resource_type == resource_type_e::invalid)
 						 continue;
 
-					 const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(static_cast<const u8*>(component) + field->offset);
-					 if (handle != NULL_RESOURCE_HANDLE)
-						 added = add_resource(resource_type, handle) || added;
+					 const u8* ptr = static_cast<const u8*>(component) + field->offset;
+					 if (is_resource_container)
+					 {
+						 const u32 max = field->container_ops.get_element_size_fn((void*)ptr);
+						 for (u32 j = 0; j < max; j++)
+						 {
+							 const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(field->container_ops.get_element_ptr_fn((void*)ptr, j));
+							 if (handle != NULL_RESOURCE_HANDLE)
+								 added = add_resource(resource_type, handle) || added;
+						 }
+					 }
+					 else
+					 {
+						 const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(ptr);
+						 if (handle != NULL_RESOURCE_HANDLE)
+							 added = add_resource(resource_type, handle) || added;
+					 }
 				 }
 			 }
+
+			 if (omit_children)
+				 return;
 
 			 const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
 			 for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
@@ -693,19 +756,18 @@ namespace sfg
 		return calculate_transform_direct(hierarchy.parent);
 	}
 
-	world_component_table_t& world_t::add_component_table(const ecs_component_type_desc_t& desc)
+	ecs_component_table_t& world_t::add_component_table(const ecs_component_type_desc_t& desc)
 	{
 		SFG_ASSERT(find_component_table(desc.type_id) == nullptr);
 
-		world_component_table_t& table = _component_tables.emplace_back();
-		table.type_desc				   = desc;
-		ecs_t::table_init(table.table, desc);
+		ecs_component_table_t& table = _component_tables.emplace_back();
+		ecs_t::table_init(table, desc);
 		return table;
 	}
 
-	const world_component_table_t* world_t::find_component_table(sid_t type_id) const
+	const ecs_component_table_t* world_t::find_component_table(sid_t type_id) const
 	{
-		for (const world_component_table_t& table : _component_tables)
+		for (const ecs_component_table_t& table : _component_tables)
 		{
 			if (table.type_desc.type_id == type_id)
 				return &table;
@@ -714,9 +776,9 @@ namespace sfg
 		return nullptr;
 	}
 
-	world_component_table_t* world_t::find_component_table(sid_t type_id)
+	ecs_component_table_t* world_t::find_component_table(sid_t type_id)
 	{
-		for (world_component_table_t& table : _component_tables)
+		for (ecs_component_table_t& table : _component_tables)
 		{
 			if (table.type_desc.type_id == type_id)
 				return &table;
@@ -725,14 +787,31 @@ namespace sfg
 		return nullptr;
 	}
 
-	world_component_table_t* world_t::get_component_table(sid_t type_id)
+	const ecs_component_table_t& world_t::get_component_table(sid_t type_id) const
 	{
-		world_component_table_t* table = find_component_table(type_id);
-		SFG_ASSERT(table);
-		return table;
+		for (const ecs_component_table_t& table : _component_tables)
+		{
+			if (table.type_desc.type_id == type_id)
+				return table;
+		}
+
+		SFG_ASSERT(false);
+		return _component_tables[0];
 	}
 
-	const vector_t<world_component_table_t>& world_t::get_component_tables() const
+	ecs_component_table_t& world_t::get_component_table(sid_t type_id)
+	{
+		for (ecs_component_table_t& table : _component_tables)
+		{
+			if (table.type_desc.type_id == type_id)
+				return table;
+		}
+
+		SFG_ASSERT(false);
+		return _component_tables[0];
+	}
+
+	const vector_t<ecs_component_table_t>& world_t::get_component_tables() const
 	{
 		return _component_tables;
 	}

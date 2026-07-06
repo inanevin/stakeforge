@@ -125,11 +125,11 @@ namespace sfg
 		_add_component_root_rows.resize(0);
 		_add_component_types.resize(0);
 
-		const vector_t<world_component_table_t>& component_tables = _display_world->get_component_tables();
+		const vector_t<ecs_component_table_t>& component_tables = _display_world->get_component_tables();
 		_add_component_categories.reserve(component_tables.size());
 		_add_component_types.reserve(component_tables.size());
 
-		for (const world_component_table_t& component_table : component_tables)
+		for (const ecs_component_table_t& component_table : component_tables)
 		{
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
@@ -226,11 +226,11 @@ namespace sfg
 		if (_display_world == nullptr || _display_entities.empty())
 			return;
 
-		world_component_table_t* table = _display_world->find_component_table(type_id);
-		if (table == nullptr || !ecs_t::table_has(table->table, _display_entities.front()))
+		ecs_component_table_t* table = _display_world->find_component_table(type_id);
+		if (table == nullptr || !ecs_t::table_has(*table, _display_entities.front()))
 			return;
 
-		const void* component = ecs_t::table_get(table->table, _display_entities.front());
+		const void* component = ecs_t::table_get(*table, _display_entities.front());
 		if (reflection_registry_t::get().find_type(type_id) == nullptr)
 			return;
 

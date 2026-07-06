@@ -30,8 +30,8 @@ namespace sfg
 #pragma pack(push, 1)
 	struct resource_dependency_t
 	{
-		resource_handle_t handle = NULL_RESOURCE_HANDLE;
-		resource_type_e	  type	 = resource_type_e::invalid;
+		resource_handle_t handle;
+		resource_type_e	  type;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
@@ -62,14 +62,16 @@ namespace sfg
 
 	struct resource_entry_t
 	{
-		sid_t			 hash		  = 0;
-		u64				 source_ticks = 0;
-		chunk_handle32_t runtime	  = {};
-		chunk_handle32_t internals	  = {};
-		chunk_handle32_t debug_name	  = {};
-		u32				 ref_count	  = 0;
-		resource_state_e state		  = resource_state_e::failed;
-		resource_type_e	 type		  = resource_type_e::invalid;
+		sid_t			 hash			  = 0;
+		u64				 source_ticks	  = 0;
+		chunk_handle32_t runtime		  = {};
+		chunk_handle32_t internals		  = {};
+		chunk_handle32_t debug_name		  = {};
+		chunk_handle32_t dependencies	  = {};
+		u32				 ref_count		  = 0;
+		u32				 dependency_count = 0;
+		resource_state_e state			  = resource_state_e::failed;
+		resource_type_e	 type			  = resource_type_e::invalid;
 	};
 
 	struct resource_context_t

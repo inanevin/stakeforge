@@ -222,14 +222,14 @@ namespace sfg::ui
 			backend.cmd_set_scissors(cmd, sc);
 
 			command_bind_vertex_buffers_t vb = {};
-			vb.buffer_t						 = pfd.vertex_buffer;
+			vb.buffer						 = pfd.vertex_buffer;
 			vb.slot							 = 0;
 			vb.vertex_size					 = sizeof(vg_vertex_t);
 			vb.offset						 = vtx_offset;
 			backend.cmd_bind_vertex_buffers(cmd, vb);
 
 			command_bind_index_buffers_t ib = {};
-			ib.buffer_t						= pfd.index_buffer;
+			ib.buffer						= pfd.index_buffer;
 			ib.offset						= idx_offset;
 			ib.index_size					= sizeof(vg_index_t);
 			backend.cmd_bind_index_buffers(cmd, ib);

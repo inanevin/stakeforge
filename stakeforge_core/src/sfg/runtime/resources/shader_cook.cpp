@@ -155,14 +155,14 @@ namespace sfg
 		const u8 compile_variant_count = static_cast<u8>(compiles.size());
 		const u8 pso_variant_count	   = static_cast<u8>(psos.size());
 
-		if (compile_variant_count > shader_loader_t::MAX_COMPILE_VARIANTS)
+		if (compile_variant_count > SFG_SHADER_MAX_COMPILE_VARIANTS)
 		{
-			SFG_ERR("too many compile variants ({0}, max {1})", compile_variant_count, shader_loader_t::MAX_COMPILE_VARIANTS);
+			SFG_ERR("too many compile variants ({0}, max {1})", compile_variant_count, SFG_SHADER_MAX_COMPILE_VARIANTS);
 			return false;
 		}
-		if (pso_variant_count > shader_loader_t::MAX_PSO_VARIANTS)
+		if (pso_variant_count > SFG_SHADER_MAX_PSO_VARIANTS)
 		{
-			SFG_ERR("too many pso variants ({0}, max {1})", pso_variant_count, shader_loader_t::MAX_PSO_VARIANTS);
+			SFG_ERR("too many pso variants ({0}, max {1})", pso_variant_count, SFG_SHADER_MAX_PSO_VARIANTS);
 			return false;
 		}
 
@@ -179,7 +179,7 @@ namespace sfg
 		for (const cook_compile_variant_t& v : compiles)
 		{
 			const u8 stages_count = static_cast<u8>(v.stages.size());
-			SFG_ASSERT(stages_count < shader_loader_t::MAX_STAGE_PER_VARIANT);
+			SFG_ASSERT(stages_count < SFG_SHADER_MAX_STAGE_PER_VARIANT);
 			payload << stages_count;
 
 			for (const cook_stage_blob_t& b : v.stages)

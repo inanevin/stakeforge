@@ -18,12 +18,6 @@ namespace sfg
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
 
-	struct world_component_table_t
-	{
-		ecs_component_type_desc_t type_desc = {};
-		ecs_component_table_t	  table		= {};
-	};
-
 	struct prefab_spawn_params_t
 	{
 		entity_id_t parent		= NULL_ENTITY_ID;
@@ -56,6 +50,7 @@ namespace sfg
 		void		  set_entity_name(entity_id_t id, const char* name);
 		entity_id_t	  spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params);
 		void		  make_prefab_chain(entity_id_t root, resource_handle_t handle);
+		void		  refresh_prefab_instances(resource_handle_t handle, entity_id_t skip = NULL_ENTITY_ID);
 		void		  break_prefab_chain(entity_id_t root);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
@@ -70,7 +65,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		bool add_resource(resource_type_e type, resource_handle_t handle);
-		void scan_for_resources(entity_id_t entity);
+		void scan_for_resources(entity_id_t entity, bool omit_children = false);
 		void load_all_used_resources();
 		void unload_all_used_resources();
 
@@ -96,16 +91,17 @@ namespace sfg
 		// tables
 		// -----------------------------------------------------------------------------
 
-		world_component_table_t&				 add_component_table(const ecs_component_type_desc_t& desc);
-		const world_component_table_t*			 find_component_table(sid_t type_id) const;
-		world_component_table_t*				 find_component_table(sid_t type_id);
-		world_component_table_t*				 get_component_table(sid_t type_id);
-		const vector_t<world_component_table_t>& get_component_tables() const;
-		const char*								 get_entity_name(entity_id_t id) const;
-		const char*								 get_text(u32 text_index) const;
-		u32										 allocate_text(const char* text);
-		void									 release_text(u32 text_index);
-		bool									 is_alive(entity_id_t id) const;
+		ecs_component_table_t&				   add_component_table(const ecs_component_type_desc_t& desc);
+		const ecs_component_table_t*		   find_component_table(sid_t type_id) const;
+		ecs_component_table_t*				   find_component_table(sid_t type_id);
+		const ecs_component_table_t&		   get_component_table(sid_t type_id) const;
+		ecs_component_table_t&				   get_component_table(sid_t type_id);
+		const vector_t<ecs_component_table_t>& get_component_tables() const;
+		const char*							   get_entity_name(entity_id_t id) const;
+		const char*							   get_text(u32 text_index) const;
+		u32									   allocate_text(const char* text);
+		void								   release_text(u32 text_index);
+		bool								   is_alive(entity_id_t id) const;
 
 	private:
 		entity_id_t spawn_prefab(resource_handle_t handle, const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
@@ -141,7 +137,7 @@ namespace sfg
 		};
 
 	private:
-		vector_t<world_component_table_t> _component_tables;
+		vector_t<ecs_component_table_t>	  _component_tables;
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;

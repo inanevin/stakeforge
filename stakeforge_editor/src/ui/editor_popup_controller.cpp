@@ -877,18 +877,18 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_items.push_back({.name = "None", .guid = static_cast<sid_t>(NULL_ENTITY_GUID)});
 
-		const world_t&				   world	   = editor_world_controller_t::get().get_world(_entity_desc.world);
-		const world_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
-		const world_component_table_t* guid_table  = world.find_component_table(type_id_t<component_guid_t>::value);
-		const world_component_table_t* name_table  = world.find_component_table(type_id_t<component_name_t>::value);
+		const world_t&				 world		 = editor_world_controller_t::get().get_world(_entity_desc.world);
+		const ecs_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t* guid_table	 = world.find_component_table(type_id_t<component_guid_t>::value);
+		const ecs_component_table_t* name_table	 = world.find_component_table(type_id_t<component_name_t>::value);
 		SFG_ASSERT(alive_table != nullptr);
 		SFG_ASSERT(guid_table != nullptr);
 		SFG_ASSERT(name_table != nullptr);
 
 		const ecs_component_table_ref_t table_refs[] = {
-			alive_table->table.ref(),
-			guid_table->table.ref(),
-			name_table->table.ref(),
+			alive_table->ref(),
+			guid_table->ref(),
+			name_table->ref(),
 		};
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))

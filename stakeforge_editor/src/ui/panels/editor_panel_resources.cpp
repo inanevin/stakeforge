@@ -305,8 +305,11 @@ namespace sfg
 		add_table_cells(*_ui, row.root, labels, theme.color_text1);
 	}
 
-	void editor_panel_resources_t::on_resources_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_panel_resources_t::on_resources_tick(ui::ui_context& ui, ui::widget_id_t id, f32, void* user_data)
 	{
+		if ((ui.get_tree().in_const(id).flags & ui::wf_visible) == 0)
+			return;
+
 		editor_panel_resources_t& panel = *static_cast<editor_panel_resources_t*>(user_data);
 		panel._refresh_tick++;
 		if (panel._refresh_tick < 60)

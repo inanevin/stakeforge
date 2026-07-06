@@ -81,6 +81,7 @@ namespace sfg
 				return false;
 
 			world.make_prefab_chain(entity_payload.entity, asset.guid);
+			world.refresh_prefab_instances(asset.guid, entity_payload.entity);
 			editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
 			return true;
 		}

@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_type.hpp>
 
 #include <cstddef>
+#include <memory>
 
 namespace sfg
 {
@@ -43,8 +44,9 @@ namespace sfg
 		void register_component_hierarchy_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_hierarchy",
-				.display_name = "Hierarchy",
+				.name			 = "component_hierarchy",
+				.display_name	 = "Hierarchy",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_hierarchy_t*>(ptr), component_hierarchy_t{}); },
 				.fields =
 					{
 						{.name = "first_child", .display_name = "First Child", .offset = offsetof(component_hierarchy_t, first_child), .size = sizeof(entity_id_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
@@ -62,8 +64,9 @@ namespace sfg
 		void register_component_guid_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_guid",
-				.display_name = "GUID",
+				.name			 = "component_guid",
+				.display_name	 = "GUID",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_guid_t*>(ptr), component_guid_t{}); },
 				.fields =
 					{
 						{.name		   = "guid",
@@ -84,8 +87,9 @@ namespace sfg
 		void register_component_transform_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_transform",
-				.display_name = "Transform",
+				.name			 = "component_transform",
+				.display_name	 = "Transform",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_transform_t*>(ptr), component_transform_t{}); },
 				.fields =
 					{
 						{.name = "pos", .display_name = "Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_transform_t, pos), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
@@ -102,8 +106,9 @@ namespace sfg
 		void register_component_name_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_name",
-				.display_name = "Name",
+				.name			 = "component_name",
+				.display_name	 = "Name",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_name_t*>(ptr), component_name_t{}); },
 				.fields =
 					{
 						{.name = "text", .display_name = "Text", .offset = offsetof(component_name_t, text), .size = sizeof(component_name_t::text), .type = reflected_value_type_e::char_array},
@@ -118,8 +123,9 @@ namespace sfg
 		void register_component_mesh_renderer_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_mesh_renderer",
-				.display_name = "Mesh Renderer",
+				.name			 = "component_mesh_renderer",
+				.display_name	 = "Mesh Renderer",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_mesh_renderer_t*>(ptr), component_mesh_renderer_t{}); },
 				.fields =
 					{
 						{.name		   = "mesh",
@@ -129,13 +135,13 @@ namespace sfg
 						 .offset	   = offsetof(component_mesh_renderer_t, mesh),
 						 .size		   = sizeof(resource_handle_t),
 						 .type		   = reflected_value_type_e::u64},
-						{.name		   = "material",
-						 .display_name = "Material",
-						 .tooltip	   = "Material resource used when drawing the mesh.",
-						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL,
-						 .offset	   = offsetof(component_mesh_renderer_t, material),
-						 .size		   = sizeof(resource_handle_t),
-						 .type		   = reflected_value_type_e::u64},
+						{.container_ops = reflection_container_ops_t::inplace_vector_ops_with_default<resource_handle_t, 16, NULL_RESOURCE_HANDLE>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL),
+						 .name			= "materials",
+						 .display_name	= "Materials",
+						 .tooltip		= "Material resources used when drawing the mesh.",
+						 .offset		= offsetof(component_mesh_renderer_t, materials),
+						 .size			= sizeof(inplace_vector_t<resource_handle_t, 16>),
+						 .type			= reflected_value_type_e::container},
 					},
 				.type_id   = type_id_t<component_mesh_renderer_t>::value,
 				.size	   = sizeof(component_mesh_renderer_t),
@@ -144,27 +150,12 @@ namespace sfg
 			});
 		}
 
-		void register_component_render_object_reflection(reflection_registry_t& registry)
-		{
-			registry.register_type({
-				.name		  = "component_render_object",
-				.display_name = "Render Object",
-				.fields =
-					{
-						{.name = "render_id", .display_name = "Render ID", .tooltip = "Renderer-owned object index for this entity.", .offset = offsetof(component_render_object_t, render_id), .size = sizeof(u32), .type = reflected_value_type_e::u32},
-					},
-				.type_id   = type_id_t<component_render_object_t>::value,
-				.size	   = sizeof(component_render_object_t),
-				.alignment = alignof(component_render_object_t),
-				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
-			});
-		}
-
 		void register_component_camera_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_camera",
-				.display_name = "Camera",
+				.name			 = "component_camera",
+				.display_name	 = "Camera",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_camera_t*>(ptr), component_camera_t{}); },
 				.fields =
 					{
 						{.name = "fov_degrees", .display_name = "Field of View", .tooltip = "Vertical camera field of view in degrees.", .offset = offsetof(component_camera_t, fov_degrees), .size = sizeof(f32), .type = reflected_value_type_e::f32},
@@ -182,8 +173,9 @@ namespace sfg
 		void register_component_skybox_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_skybox",
-				.display_name = "Skybox",
+				.name			 = "component_skybox",
+				.display_name	 = "Skybox",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_skybox_t*>(ptr), component_skybox_t{}); },
 				.fields =
 					{
 						{.name		   = "skybox_asset",
@@ -206,8 +198,9 @@ namespace sfg
 		void register_component_prefab_reference_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_prefab_reference",
-				.display_name = "Prefab Reference",
+				.name			 = "component_prefab_reference",
+				.display_name	 = "Prefab Reference",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_prefab_reference_t*>(ptr), component_prefab_reference_t{}); },
 				.fields =
 					{
 						{.name = "prefab", .display_name = "Prefab", .sub_type_id = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB, .offset = offsetof(component_prefab_reference_t, prefab), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
@@ -216,7 +209,7 @@ namespace sfg
 				.type_id   = type_id_t<component_prefab_reference_t>::value,
 				.size	   = sizeof(component_prefab_reference_t),
 				.alignment = alignof(component_prefab_reference_t),
-				.flags	   = reflected_type_flag_component,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_no_ui,
 			});
 		}
 
@@ -305,8 +298,9 @@ namespace sfg
 		void register_component_debug_widgets_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "debug_widgets_component",
-				.display_name = "Debug Widgets",
+				.name			 = "debug_widgets_component",
+				.display_name	 = "Debug Widgets",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_debug_widgets_t*>(ptr), component_debug_widgets_t{}); },
 				.fields =
 					{
 						{.name = "f32_value", .display_name = "F32", .tooltip = "Debug reflected f32 value.", .offset = offsetof(component_debug_widgets_t, f32_value), .size = sizeof(f32), .type = reflected_value_type_e::f32},
@@ -481,36 +475,39 @@ namespace sfg
 		void register_component_alive_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_alive",
-				.display_name = "Alive",
-				.type_id	  = type_id_t<component_alive_t>::value,
-				.size		  = sizeof(component_alive_t),
-				.alignment	  = alignof(component_alive_t),
-				.flags		  = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+				.name			 = "component_alive",
+				.display_name	 = "Alive",
+				.default_init_fn = [](void*) {},
+				.type_id		 = type_id_t<component_alive_t>::value,
+				.size			 = sizeof(component_alive_t),
+				.alignment		 = alignof(component_alive_t),
+				.flags			 = reflected_type_flag_tag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 
 		void register_component_disabled_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_disabled",
-				.display_name = "Disabled",
-				.type_id	  = type_id_t<component_disabled_t>::value,
-				.size		  = sizeof(component_disabled_t),
-				.alignment	  = alignof(component_disabled_t),
-				.flags		  = reflected_type_flag_component | reflected_type_flag_no_ui,
+				.name			 = "component_disabled",
+				.display_name	 = "Disabled",
+				.default_init_fn = [](void*) {},
+				.type_id		 = type_id_t<component_disabled_t>::value,
+				.size			 = sizeof(component_disabled_t),
+				.alignment		 = alignof(component_disabled_t),
+				.flags			 = reflected_type_flag_tag_component | reflected_type_flag_no_ui,
 			});
 		}
 
 		void register_component_no_serialize_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name		  = "component_no_serialize",
-				.display_name = "No Serialize",
-				.type_id	  = type_id_t<component_no_serialize_t>::value,
-				.size		  = sizeof(component_no_serialize_t),
-				.alignment	  = alignof(component_no_serialize_t),
-				.flags		  = reflected_type_flag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+				.name			 = "component_no_serialize",
+				.display_name	 = "No Serialize",
+				.default_init_fn = [](void*) {},
+				.type_id		 = type_id_t<component_no_serialize_t>::value,
+				.size			 = sizeof(component_no_serialize_t),
+				.alignment		 = alignof(component_no_serialize_t),
+				.flags			 = reflected_type_flag_tag_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 			});
 		}
 	}
@@ -524,7 +521,6 @@ namespace sfg
 		register_component_transform_reflection(registry);
 		register_component_name_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
-		register_component_render_object_reflection(registry);
 		register_component_camera_reflection(registry);
 		register_component_skybox_reflection(registry);
 		register_component_prefab_reference_reflection(registry);

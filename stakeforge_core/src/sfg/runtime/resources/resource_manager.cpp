@@ -157,6 +157,16 @@ namespace sfg
 		entry.state			   = resource_state_e::failed;
 		entry.debug_name	   = _memory.allocate_text(debug_name);
 
+		if (header.dependency_count != 0)
+		{
+			entry.dependencies	   = _memory.allocate<resource_dependency_t>(header.dependency_count);
+			entry.dependency_count = header.dependency_count;
+
+			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
+			for (u32 i = 0; i < header.dependency_count; i++)
+				deps[i] = header.dependencies[i];
+		}
+
 		if (!desc->load(entry, ctx, *_resource_file_system))
 		{
 			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
@@ -218,6 +228,16 @@ namespace sfg
 			_unloads.push_back(hash);
 			_generation++;
 			return;
+		}
+
+		if (entry.dependency_count != 0)
+		{
+			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
+			for (u32 i = 0; i < entry.dependency_count; i++)
+			{
+				if (find_entry(deps[i].handle))
+					unload_resource(deps[i].handle);
+			}
 		}
 
 		const char* dbg = reinterpret_cast<const char*>(_memory.get(entry.debug_name.head));

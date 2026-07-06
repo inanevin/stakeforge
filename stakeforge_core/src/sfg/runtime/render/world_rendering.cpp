@@ -38,9 +38,37 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/render/world_draw_common.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		void bind_vertex(gfx_backend& backend, gfx_handle_t cmd, gfx_handle_t& bound_vertex, gfx_handle_t handle, u16 vtx_size)
+		{
+			if (handle == bound_vertex)
+				return;
+			bound_vertex = handle;
+			backend.cmd_bind_vertex_buffers(cmd, {.buffer = bound_vertex, .slot = 0, .vertex_size = vtx_size, .offset = 0});
+		};
+
+		void bind_index(gfx_backend& backend, gfx_handle_t cmd, gfx_handle_t& bound_index, gfx_handle_t handle, u8 idx_size)
+		{
+			if (handle == bound_index)
+				return;
+			bound_index = handle;
+			backend.cmd_bind_index_buffers(cmd, {.buffer = bound_index, .offset = 0, .index_size = idx_size});
+		};
+
+		void bind_pipeline(gfx_backend& backend, gfx_handle_t cmd, gfx_handle_t& bound_pipeline, gfx_handle_t pipeline)
+		{
+			if (pipeline == bound_pipeline)
+				return;
+			bound_pipeline = pipeline;
+			backend.cmd_bind_pipeline(cmd, {.pipeline = pipeline});
+		}
+	}
 	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
@@ -152,16 +180,17 @@ namespace sfg
 		backend.submit_commands(queue_gfx, &cmd_gfx1, 1);
 	}
 
-	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t&, u8 frame_index)
+	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_handle_t cmd				= ctx.get_command_buffer_gfx0(frame_index);
-		const gfx_handle_t depth_texture	= ctx.get_depth_texture(frame_index);
-		const gfx_handle_t gbuffer_albedo	= ctx.get_gbuffer_albedo_texture(frame_index);
-		const gfx_handle_t gbuffer_normal	= ctx.get_gbuffer_normal_texture(frame_index);
-		const gfx_handle_t gbuffer_orm		= ctx.get_gbuffer_orm_texture(frame_index);
-		const gfx_handle_t gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+		const gfx_handle_t	cmd				 = ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_handle_t	depth_texture	 = ctx.get_depth_texture(frame_index);
+		const gfx_handle_t	gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_handle_t	gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_handle_t	gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_handle_t	gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+		render_resources_t& rr				 = render_resources_t::get();
 
 		barrier_t begin_barriers[5] = {};
 		u16		  begin_count		= 0;
@@ -244,6 +273,43 @@ namespace sfg
 
 		gpu_index_t rp_constants[2] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index)};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+
+		gfx_handle_t bound_vertex	= {};
+		gfx_handle_t bound_index	= {};
+		gfx_handle_t bound_pipeline = {};
+
+		for (const world_draw_t& draw : ss.draws)
+		{
+			continue;
+
+			if ((draw.pass_mask & world_pass_flags_depth) == 0)
+				continue;
+
+			SFG_ASSERT(draw.material_index != UINT32_MAX);
+			const world_render_material_t& mat = ss.materials[draw.material_index];
+
+			const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_z_prepass);
+			if (shader_handle.is_null())
+				continue;
+
+			const gfx_handle_t vtx		= rr.get_resource(draw.vertex_buffer);
+			const gfx_handle_t idx		= rr.get_resource(draw.index_buffer);
+			const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
+			SFG_ASSERT(!vtx.is_null() && !idx.is_null() && !pipeline.is_null());
+
+			bind_vertex(backend, cmd, bound_vertex, vtx, draw.vertex_stride);
+			bind_index(backend, cmd, bound_index, idx, draw.index_stride);
+			bind_pipeline(backend, cmd, bound_pipeline, pipeline);
+
+			backend.cmd_draw_indexed_instanced(cmd,
+											   {
+												   .index_count_per_instance = draw.index_count,
+												   .instance_count			 = 1,
+												   .start_index_location	 = draw.start_index,
+												   .base_vertex_location	 = draw.start_vertex,
+												   .start_instance_location	 = 0,
+											   });
+		}
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
