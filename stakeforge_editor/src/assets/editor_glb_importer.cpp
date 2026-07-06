@@ -39,12 +39,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/math/mat4x3.hpp>
+#include <sfg/math/mat4x4.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
+#include <sfg/runtime/resources/world_cook_entity_header.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/stb/stb_image.h>
@@ -872,7 +876,7 @@ namespace sfg
 				return false;
 			}
 
-			if (!editor_asset_cooker_t::cook_texture(asset))
+			if (!editor_asset_cooker_t::cook_texture(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook GLB texture asset {0}", asset.guid);
 				return false;
@@ -965,7 +969,7 @@ namespace sfg
 				return false;
 			}
 
-			if (!editor_asset_cooker_t::cook_texture(asset))
+			if (!editor_asset_cooker_t::cook_texture(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook GLB ORM texture asset {0}", asset.guid);
 				return false;
@@ -1019,6 +1023,10 @@ namespace sfg
 			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
 			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id);
 
+			if (is_transparent)
+			{
+				int a = 5;
+			}
 			resource_handle_t orm_guid = DEFAULT_ORM_TEXTURE_ASSET_GUID;
 			if (import_textures && orm_index >= 0 && orm_index == occlusion_index)
 			{
@@ -1091,7 +1099,7 @@ namespace sfg
 				return false;
 			}
 
-			if (!editor_asset_cooker_t::cook_material(asset))
+			if (!editor_asset_cooker_t::cook_material(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook GLB material asset {0}", asset.guid);
 				return false;
@@ -1234,7 +1242,7 @@ namespace sfg
 				return false;
 			}
 
-			if (!editor_asset_cooker_t::cook_skeleton(asset))
+			if (!editor_asset_cooker_t::cook_skeleton(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook GLB skeleton asset {0}", asset.guid);
 				return false;
@@ -1244,21 +1252,20 @@ namespace sfg
 			return true;
 		}
 
-		bool build_mesh_def(const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, const char* name, mesh_def_t& out)
+		void collect_mesh_materials(
+			const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, vector_t<resource_handle_t>& out_materials, vector_t<u32>* out_local_material_indices, u32* out_default_material_index)
 		{
-			out.name = name;
-
-			bool		 is_skinned			  = false;
 			bool		 has_default_material = false;
 			vector_t<u8> referenced_materials;
 			referenced_materials.resize(model.materials_count);
+			if (out_local_material_indices != nullptr)
+				out_local_material_indices->resize(model.materials_count, UINT32_MAX);
 			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
 			{
 				const tg3_mesh& mesh = meshes[mesh_i];
 				for (u32 primitive_i = 0; primitive_i < mesh.primitives_count; ++primitive_i)
 				{
 					const tg3_primitive& primitive = mesh.primitives[primitive_i];
-					is_skinned					   = is_skinned || find_attribute(primitive, "JOINTS_0") >= 0 || find_attribute(primitive, "WEIGHTS_0") >= 0;
 					if (primitive.material >= 0 && static_cast<u32>(primitive.material) < model.materials_count)
 						referenced_materials[static_cast<u32>(primitive.material)] = 1;
 					else
@@ -1266,23 +1273,42 @@ namespace sfg
 				}
 			}
 
-			vector_t<u32> local_material_indices;
-			local_material_indices.resize(model.materials_count, UINT32_MAX);
 			for (u32 i = 0; i < model.materials_count; ++i)
 			{
 				if (referenced_materials[i] == 0)
 					continue;
 
-				const auto it			  = material_guid_map.find(i);
-				local_material_indices[i] = static_cast<u32>(out.materials.size());
-				out.materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+				const auto it = material_guid_map.find(i);
+				if (out_local_material_indices != nullptr)
+					(*out_local_material_indices)[i] = static_cast<u32>(out_materials.size());
+				out_materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
 			}
 
-			u32 default_material_index = UINT32_MAX;
 			if (has_default_material)
 			{
-				default_material_index = static_cast<u32>(out.materials.size());
-				out.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+				if (out_default_material_index != nullptr)
+					*out_default_material_index = static_cast<u32>(out_materials.size());
+				out_materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+			}
+		}
+
+		bool build_mesh_def(const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, const char* name, mesh_def_t& out)
+		{
+			out.name = name;
+
+			vector_t<u32> local_material_indices;
+			u32			  default_material_index = UINT32_MAX;
+			collect_mesh_materials(model, meshes, mesh_count, material_guid_map, out.materials, &local_material_indices, &default_material_index);
+
+			bool is_skinned = false;
+			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
+			{
+				const tg3_mesh& mesh = meshes[mesh_i];
+				for (u32 primitive_i = 0; primitive_i < mesh.primitives_count; ++primitive_i)
+				{
+					const tg3_primitive& primitive = mesh.primitives[primitive_i];
+					is_skinned					   = is_skinned || find_attribute(primitive, "JOINTS_0") >= 0 || find_attribute(primitive, "WEIGHTS_0") >= 0;
+				}
 			}
 
 			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)
@@ -1354,6 +1380,7 @@ namespace sfg
 						 const tg3_mesh*					  meshes,
 						 u32								  mesh_count,
 						 const hash_map_t<u32, sid_t>&		  material_guid_map,
+						 hash_map_t<u32, sid_t>*			  mesh_guid_map,
 						 const editor_asset_import_context_t& context,
 						 vector_t<editor_asset_t>&			  out_assets)
 		{
@@ -1424,9 +1451,219 @@ namespace sfg
 				return false;
 			}
 
-			if (!editor_asset_cooker_t::cook_mesh(asset))
+			if (!editor_asset_cooker_t::cook_mesh(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook GLB mesh asset {0}", asset.guid);
+				return false;
+			}
+
+			if (mesh_guid_map != nullptr && mesh_count == 1)
+			{
+				const u32 mesh_index		 = static_cast<u32>(meshes - model.meshes);
+				(*mesh_guid_map)[mesh_index] = asset.guid;
+			}
+
+			out_assets.push_back(asset);
+			return true;
+		}
+
+		void get_node_transform(const tg3_node& node, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale)
+		{
+			if (node.has_matrix)
+			{
+				const mat4x4_t matrix(static_cast<f32>(node.matrix[0]),
+									  static_cast<f32>(node.matrix[1]),
+									  static_cast<f32>(node.matrix[2]),
+									  static_cast<f32>(node.matrix[3]),
+									  static_cast<f32>(node.matrix[4]),
+									  static_cast<f32>(node.matrix[5]),
+									  static_cast<f32>(node.matrix[6]),
+									  static_cast<f32>(node.matrix[7]),
+									  static_cast<f32>(node.matrix[8]),
+									  static_cast<f32>(node.matrix[9]),
+									  static_cast<f32>(node.matrix[10]),
+									  static_cast<f32>(node.matrix[11]),
+									  static_cast<f32>(node.matrix[12]),
+									  static_cast<f32>(node.matrix[13]),
+									  static_cast<f32>(node.matrix[14]),
+									  static_cast<f32>(node.matrix[15]));
+				mat4x3_t::from_matrix4x4(matrix).decompose(out_pos, out_rot, out_scale);
+				return;
+			}
+
+			out_pos	  = vec3f_t(static_cast<f32>(node.translation[0]), static_cast<f32>(node.translation[1]), static_cast<f32>(node.translation[2]));
+			out_rot	  = quat_t(static_cast<f32>(node.rotation[0]), static_cast<f32>(node.rotation[1]), static_cast<f32>(node.rotation[2]), static_cast<f32>(node.rotation[3]));
+			out_scale = vec3f_t(static_cast<f32>(node.scale[0]), static_cast<f32>(node.scale[1]), static_cast<f32>(node.scale[2]));
+		}
+
+		bool import_prefab(const editor_asset_node_t&			parent_node,
+						   const char*							source_full_path,
+						   const tg3_model&						model,
+						   const hash_map_t<u32, sid_t>&		mesh_guid_map,
+						   const hash_map_t<u32, sid_t>&		material_guid_map,
+						   const editor_asset_import_context_t& context,
+						   vector_t<editor_asset_t>&			out_assets)
+		{
+			string_t asset_name = file_system_t::get_filename_from_path(source_full_path);
+			asset_name += "_prefab";
+
+			string_t status = "Importing prefab ";
+			status += asset_name;
+			context.report_status(status.c_str());
+
+			nlohmann::json prefab_json	  = nlohmann::json::object();
+			prefab_json["local_entities"] = nlohmann::json::array();
+			prefab_json["components"]	  = nlohmann::json::array();
+
+			entity_guid_t		next_guid = 1;
+			const entity_guid_t root_guid = next_guid++;
+			string_t			root_name = file_system_t::get_filename_from_path(source_full_path);
+
+			prefab_json["local_entities"].push_back(world_cook_entity_header_t{
+				.guid		 = root_guid,
+				.parent_guid = NULL_ENTITY_GUID,
+				.name		 = root_name,
+				.local_pos	 = vec3f_t::zero,
+				.local_rot	 = quat_t::identity,
+				.local_scale = vec3f_t::one,
+				.prefab		 = NULL_RESOURCE_HANDLE,
+			});
+
+			vector_t<entity_guid_t> node_guids;
+			node_guids.resize(model.nodes_count, NULL_ENTITY_GUID);
+			bool prefab_valid = true;
+
+			const auto traverse_node = [&](const auto& self, u32 node_index, entity_guid_t parent_guid) -> void {
+				if (!prefab_valid || node_index >= model.nodes_count || node_guids[node_index] != NULL_ENTITY_GUID)
+					return;
+
+				const tg3_node&		node = model.nodes[node_index];
+				const entity_guid_t guid = next_guid++;
+				node_guids[node_index]	 = guid;
+
+				string_t node_name = get_asset_name(node.name);
+				if (node_name.empty())
+				{
+					node_name = "node_";
+					node_name += std::to_string(node_index);
+				}
+
+				vec3f_t local_pos	= vec3f_t::zero;
+				quat_t	local_rot	= quat_t::identity;
+				vec3f_t local_scale = vec3f_t::one;
+				get_node_transform(node, local_pos, local_rot, local_scale);
+
+				prefab_json["local_entities"].push_back(world_cook_entity_header_t{
+					.guid		 = guid,
+					.parent_guid = parent_guid,
+					.name		 = node_name,
+					.local_pos	 = local_pos,
+					.local_rot	 = local_rot,
+					.local_scale = local_scale,
+					.prefab		 = NULL_RESOURCE_HANDLE,
+				});
+
+				if (node.mesh >= 0 && static_cast<u32>(node.mesh) < model.meshes_count)
+				{
+					const u32  mesh_index = static_cast<u32>(node.mesh);
+					const auto mesh_it	  = mesh_guid_map.find(mesh_index);
+					if (mesh_it == mesh_guid_map.end())
+					{
+						SFG_ERR("failed to find imported GLB mesh {0} for prefab", mesh_index);
+						prefab_valid = false;
+						return;
+					}
+
+					vector_t<resource_handle_t> materials;
+					collect_mesh_materials(model, model.meshes + mesh_index, 1, material_guid_map, materials, nullptr, nullptr);
+					if (materials.size() > 16)
+					{
+						SFG_ERR("GLB mesh {0} has too many prefab material slots", mesh_index);
+						prefab_valid = false;
+						return;
+					}
+
+					nlohmann::json material_json = nlohmann::json::array();
+					for (resource_handle_t material : materials)
+						material_json.push_back(material);
+
+					prefab_json["components"].push_back({
+						{"type", type_id_t<component_mesh_renderer_t>::value},
+						{"entity", guid},
+						{"data",
+						 {
+							 {"mesh", mesh_it->second},
+							 {"materials", material_json},
+						 }},
+					});
+				}
+
+				for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+				{
+					const i32 child_index = node.children[child_i];
+					if (child_index >= 0)
+						self(self, static_cast<u32>(child_index), guid);
+				}
+			};
+
+			const tg3_scene* scene = nullptr;
+			if (model.default_scene >= 0 && static_cast<u32>(model.default_scene) < model.scenes_count)
+				scene = model.scenes + model.default_scene;
+			else if (model.scenes_count != 0)
+				scene = model.scenes;
+
+			if (scene != nullptr)
+			{
+				for (u32 i = 0; i < scene->nodes_count; ++i)
+				{
+					const i32 node_index = scene->nodes[i];
+					if (node_index >= 0)
+						traverse_node(traverse_node, static_cast<u32>(node_index), root_guid);
+				}
+			}
+			else
+			{
+				vector_t<u8> child_nodes;
+				child_nodes.resize(model.nodes_count);
+				for (u32 i = 0; i < model.nodes_count; ++i)
+				{
+					const tg3_node& node = model.nodes[i];
+					for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+					{
+						const i32 child_index = node.children[child_i];
+						if (child_index >= 0 && static_cast<u32>(child_index) < model.nodes_count)
+							child_nodes[static_cast<u32>(child_index)] = 1;
+					}
+				}
+
+				for (u32 i = 0; i < model.nodes_count; ++i)
+				{
+					if (child_nodes[i] == 0)
+						traverse_node(traverse_node, i, root_guid);
+				}
+			}
+
+			if (!prefab_valid)
+				return false;
+
+			editor_asset_t asset		 = {};
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+			asset.version				 = editor_asset_t::VERSION;
+			asset.guid					 = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type			 = editor_asset_type_e::prefab;
+			asset.source_type			 = editor_asset_source_type_e::embedded;
+			editor_asset_util_t::set_embedded_source_json(asset, prefab_json);
+
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_ERR("failed to write GLB prefab asset {0}", asset_path.c_str());
+				return false;
+			}
+
+			if (!editor_asset_cooker_t::cook_prefab(asset, asset_name.c_str()))
+			{
+				SFG_ERR("failed to cook GLB prefab asset {0}", asset.guid);
 				return false;
 			}
 
@@ -1682,9 +1919,11 @@ namespace sfg
 
 			if (result && cook_config.import_meshes && model.meshes_count != 0)
 			{
+				hash_map_t<u32, sid_t> mesh_guid_map;
+				mesh_guid_map.reserve(model.meshes_count);
 				if (cook_config.combine_meshes)
 				{
-					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, context, out_assets);
+					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, context, out_assets);
 					if (!result)
 						SFG_ERR("failed to import combined GLB mesh");
 				}
@@ -1692,12 +1931,21 @@ namespace sfg
 				{
 					for (u32 i = 0; i < model.meshes_count; ++i)
 					{
-						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, context, out_assets))
+						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, context, out_assets))
 						{
 							SFG_ERR("failed to import GLB mesh {0}", i);
 							result = false;
 							break;
 						}
+					}
+				}
+
+				if (result && !cook_config.combine_meshes && model.nodes_count != 0)
+				{
+					if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, context, out_assets))
+					{
+						SFG_ERR("failed to import GLB prefab");
+						result = false;
 					}
 				}
 			}

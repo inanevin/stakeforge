@@ -680,6 +680,31 @@ namespace sfg
 			const string_t cache_path = get_cache_path_for_asset(asset);
 			if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
 				SFG_ERR("failed to delete cooked asset {0}", cache_path.c_str());
+
+			if (asset.source_type == editor_asset_source_type_e::file_blob)
+			{
+				SFG_ASSERT(!asset.source_relative.empty());
+
+				const string_t assets_path = file_system_t::get_absolute_path(editor_project_t::get()._runtime.assets_path.c_str());
+				const string_t blob_path   = make_source_full_path(assets_path, asset.source_relative);
+				bool		   has_owner   = false;
+				for (const auto& asset_pair : editor_asset_manager_t::get().get_assets())
+				{
+					const editor_asset_t& other_asset = asset_pair.second;
+					if (other_asset.guid == asset.guid || other_asset.source_relative.empty())
+						continue;
+
+					const string_t other_blob_path = make_source_full_path(assets_path, other_asset.source_relative);
+					if (path_equals(blob_path, other_blob_path))
+					{
+						has_owner = true;
+						break;
+					}
+				}
+
+				if (!has_owner && file_system_t::exists(blob_path.c_str()) && file_system_t::delete_file(blob_path.c_str()))
+					SFG_ERR("failed to delete asset blob {0}", blob_path.c_str());
+			}
 		}
 		return deleted;
 	}

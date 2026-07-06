@@ -47,7 +47,8 @@ namespace sfg
 		u32					  dependency_count = 0;
 		u64					  source_tick	   = 0;
 
-		void	  set_debug_name(const char* full_path);
+		void	  set_debug_name(const char* name);
+		void	  set_debug_name_from_path(const char* full_path);
 		ostream_t make_stream(const ostream_t& payload) const;
 		void	  serialize(ostream_t& stream) const;
 		void	  deserialize(istream_t& stream);

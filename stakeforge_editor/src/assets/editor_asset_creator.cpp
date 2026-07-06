@@ -260,32 +260,32 @@ namespace sfg
 		case editor_asset_type_e::shader:
 			result = create_shader_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_shader(asset, asset_path.c_str());
+				result = editor_asset_cooker_t::cook_shader(asset, desc.name);
 			break;
 		case editor_asset_type_e::material:
 			result = create_material_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_material(asset, asset_path.c_str());
+				result = editor_asset_cooker_t::cook_material(asset, desc.name);
 			break;
 		case editor_asset_type_e::texture_sampler:
 			result = create_texture_sampler_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_texture_sampler(asset, asset_path.c_str());
+				result = editor_asset_cooker_t::cook_texture_sampler(asset, desc.name);
 			break;
 		case editor_asset_type_e::physical_material:
 			result = create_physical_material_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_physical_material(asset, asset_path.c_str());
+				result = editor_asset_cooker_t::cook_physical_material(asset, desc.name);
 			break;
 		case editor_asset_type_e::animation_state_machine:
 			result = create_animation_state_machine_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_animation_state_machine(asset, asset_path.c_str());
+				result = editor_asset_cooker_t::cook_animation_state_machine(asset, desc.name);
 			break;
 		case editor_asset_type_e::prefab:
 			result = create_prefab_asset(desc, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_prefab(asset, asset_path.c_str());
+				result = editor_asset_cooker_t::cook_prefab(asset, desc.name);
 			break;
 		case editor_asset_type_e::world:
 			result = create_world_asset(desc, &asset, &asset_path);

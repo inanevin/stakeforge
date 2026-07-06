@@ -198,7 +198,7 @@ namespace sfg
 				return false;
 			}
 
-			out_header.set_debug_name(source_path.c_str());
+			out_header.set_debug_name_from_path(source_path.c_str());
 
 			ostream_t cached_stream = out_header.make_stream(payload);
 			if (!save_cache(cache_dir.c_str(), sid, cached_stream))

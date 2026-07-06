@@ -47,19 +47,26 @@ namespace sfg
 			stream >> dependencies[i];
 	}
 
-	void resource_header_t::set_debug_name(const char* full_path)
+	void resource_header_t::set_debug_name(const char* name)
+	{
+		SFG_ASSERT(name != nullptr);
+
+		const size_t copy_size = std::min(std::strlen(name), sizeof(debug_name) - 1);
+
+		SFG_MEMSET(debug_name, 0, sizeof(debug_name));
+		SFG_MEMCPY(debug_name, name, copy_size);
+	}
+
+	void resource_header_t::set_debug_name_from_path(const char* full_path)
 	{
 		SFG_ASSERT(full_path != nullptr);
 
 		string_t path = full_path;
 		file_system_t::fix_path(path);
 
-		const string_t file_name  = file_system_t::get_filename_and_extension_from_path(path);
-		const char*	   debug_name = !file_name.empty() ? file_name.c_str() : path.c_str();
-		const size_t   copy_size  = std::min(std::strlen(debug_name), sizeof(this->debug_name) - 1);
-
-		SFG_MEMSET(this->debug_name, 0, sizeof(this->debug_name));
-		SFG_MEMCPY(this->debug_name, debug_name, copy_size);
+		const string_t file_name = file_system_t::get_filename_and_extension_from_path(path);
+		const char*	   name		 = !file_name.empty() ? file_name.c_str() : path.c_str();
+		set_debug_name(name);
 	}
 
 	ostream_t resource_header_t::make_stream(const ostream_t& payload) const

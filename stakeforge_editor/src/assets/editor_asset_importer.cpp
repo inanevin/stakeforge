@@ -209,7 +209,7 @@ namespace sfg
 				SFG_ERR("failed to create imported texture asset {0}", asset_name.c_str());
 				return false;
 			}
-			if (!editor_asset_cooker_t::cook_texture(asset))
+			if (!editor_asset_cooker_t::cook_texture(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook imported texture asset {0}", asset.guid);
 				return false;
@@ -225,7 +225,7 @@ namespace sfg
 				SFG_ERR("failed to create imported font asset {0}", asset_name.c_str());
 				return false;
 			}
-			if (!editor_asset_cooker_t::cook_font(asset))
+			if (!editor_asset_cooker_t::cook_font(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook imported font asset {0}", asset.guid);
 				return false;
@@ -249,7 +249,7 @@ namespace sfg
 				SFG_ERR("failed to create imported audio asset {0}", asset_name.c_str());
 				return false;
 			}
-			if (!editor_asset_cooker_t::cook_audio(asset))
+			if (!editor_asset_cooker_t::cook_audio(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook imported audio asset {0}", asset.guid);
 				return false;
@@ -273,7 +273,7 @@ namespace sfg
 				SFG_ERR("failed to create imported HDR skybox asset {0}", asset_name.c_str());
 				return false;
 			}
-			if (!editor_asset_cooker_t::cook_hdr_skybox(asset))
+			if (!editor_asset_cooker_t::cook_hdr_skybox(asset, asset_name.c_str()))
 			{
 				SFG_ERR("failed to cook imported HDR skybox asset {0}", asset.guid);
 				return false;

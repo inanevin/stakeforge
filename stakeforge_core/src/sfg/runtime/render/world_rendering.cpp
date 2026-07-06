@@ -76,7 +76,7 @@ namespace sfg
 				return;
 			bound_index = index;
 
-			vector_t<gpu_index_t> constants;
+			inplace_vector_t<gpu_index_t, 10> constants;
 			constants.push_back(render_resources_t::get().get_resource_gpu_index(mat.material_buffer));
 
 			for (u32 i = 0; i < mat.texture_count; i++)

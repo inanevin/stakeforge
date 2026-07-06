@@ -845,7 +845,7 @@ namespace sfg
 				},
 			.user_ui_scale		= 1.0f,
 			.dpi_scale			= surface.runtime->monitor_info.dpi_scale,
-			.max_widgets		= 4096,
+			.max_widgets		= 10000,
 			.text_pool_capacity = 1024 * 256,
 		});
 		surface.ui->get_paint().set_pipelines({
