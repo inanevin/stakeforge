@@ -48,6 +48,7 @@ namespace sfg
 		const editor_world_handle_t main_world = controller.get_main_world();
 		_world_view.set_edit_context(controller.get_main_world());
 		set_panel_name(main_world.is_null() ? "" : controller.get_main_world_name());
+		set_world_dirty(controller.is_main_world_dirty());
 	}
 
 	void editor_panel_world_t::uninit()
@@ -63,7 +64,19 @@ namespace sfg
 
 	void editor_panel_world_t::set_panel_name(const char* name)
 	{
-		refresh_title(name);
+		SFG_ASSERT(name != nullptr);
+
+		_panel_name = name;
+		refresh_title();
+	}
+
+	void editor_panel_world_t::set_world_dirty(bool dirty)
+	{
+		if (_world_dirty == dirty)
+			return;
+
+		_world_dirty = dirty;
+		refresh_title();
 	}
 
 	vec4f_t editor_panel_world_t::get_world_view_bounds() const
@@ -71,17 +84,17 @@ namespace sfg
 		return _world_view.get_world_view_bounds();
 	}
 
-	void editor_panel_world_t::refresh_title(const char* name)
+	void editor_panel_world_t::refresh_title()
 	{
-		SFG_ASSERT(name != nullptr);
-
 		const sid_t old_identifier = TO_SID(get_title());
 		_title_text				   = editor_panel_type_to_string(editor_panel_type_e::world);
-		if (name[0] != '\0')
+		if (!_panel_name.empty())
 		{
 			_title_text += ": ";
-			_title_text += name;
+			_title_text += _panel_name;
 		}
+		if (_world_dirty)
+			_title_text += "*";
 		set_title(_title_text.c_str());
 		if (_ui != nullptr)
 			editor_app_t::get().refresh_panel_title(this, old_identifier);

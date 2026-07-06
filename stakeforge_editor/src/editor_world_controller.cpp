@@ -341,7 +341,6 @@ namespace sfg
 			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
-		_main_world_dirty		  = false;
 		editor_project_t& project = editor_project_t::get();
 		project.last_world_guid	  = asset_guid;
 		project.save(project._runtime.path.c_str());
@@ -411,8 +410,8 @@ namespace sfg
 			return false;
 		}
 
-		_main_world_asset_guid	  = asset.guid;
-		_main_world_dirty		  = false;
+		_main_world_asset_guid = asset.guid;
+		set_main_world_dirty(false);
 		editor_project_t& project = editor_project_t::get();
 		project.last_world_guid	  = asset.guid;
 		project.save(project._runtime.path.c_str());
@@ -434,18 +433,22 @@ namespace sfg
 		_main_world_dirty			   = false;
 		editor_command_system_t::get().clear();
 		notify_main_world_changed();
+		notify_main_world_dirty_changed();
 	}
 
-	void editor_world_controller_t::set_main_world_dirty()
+	void editor_world_controller_t::set_main_world_dirty(bool dirty)
 	{
-		if (!_main_world.is_null())
-			_main_world_dirty = true;
+		if (_main_world.is_null() || _main_world_dirty == dirty)
+			return;
+
+		_main_world_dirty = dirty;
+		notify_main_world_dirty_changed();
 	}
 
 	void editor_world_controller_t::mark_world_dirty(editor_world_handle_t handle)
 	{
 		if (handle == _main_world)
-			_main_world_dirty = true;
+			set_main_world_dirty(true);
 	}
 
 	void editor_world_controller_t::on_save_dirty_world_modal(void* user_data)
@@ -493,7 +496,7 @@ namespace sfg
 		case editor_command_type_e::world_edit_context_color_folder:
 		case editor_command_type_e::world_edit_context_assign_folder:
 		case editor_command_type_e::world_edit_context_assign_folder_parent:
-			controller.set_main_world_dirty();
+			controller.set_main_world_dirty(true);
 			break;
 		default:
 			break;
@@ -524,6 +527,12 @@ namespace sfg
 			inspector_panel->set_edit_context(_main_world);
 			inspector_panel->refresh_from_selection();
 		}
+	}
+
+	void editor_world_controller_t::notify_main_world_dirty_changed()
+	{
+		if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::world))
+			static_cast<editor_panel_world_t*>(panel)->set_world_dirty(_main_world_dirty);
 	}
 
 	void editor_world_controller_t::reset_input(window_runtime_t& runtime)

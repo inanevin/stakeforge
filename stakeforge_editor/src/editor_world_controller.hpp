@@ -152,6 +152,11 @@ namespace sfg
 			return _world_panel_focused;
 		}
 
+		inline bool is_main_world_dirty() const
+		{
+			return _main_world_dirty;
+		}
+
 		static inline editor_world_controller_t& get()
 		{
 			SFG_ASSERT(s_instance != nullptr);
@@ -166,10 +171,11 @@ namespace sfg
 		void		set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name);
 		bool		load_main_world_now(sid_t asset_guid);
 		void		notify_main_world_changed();
+		void		notify_main_world_dirty_changed();
 		void		install_editor_camera(world_t& world);
 		void		reset_camera_input();
 		void		tick_editor_camera(f32 dt_seconds);
-		void		set_main_world_dirty();
+		void		set_main_world_dirty(bool dirty);
 		static void on_save_dirty_world_modal(void* user_data);
 		static void on_dont_save_dirty_world_modal(void* user_data);
 		static void on_cancel_dirty_world_modal(void* user_data);

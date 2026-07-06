@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include <sfg/common/packing.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
@@ -89,6 +90,11 @@ namespace sfg
 			u32		 height = 0;
 		};
 
+		struct glb_asset_name_registry_t
+		{
+			vector_t<string_t> names;
+		};
+
 		string_t get_asset_name(const tg3_str& name)
 		{
 			string_t result;
@@ -100,6 +106,41 @@ namespace sfg
 			}
 
 			return result;
+		}
+
+		string_t reserve_glb_asset_name(glb_asset_name_registry_t& registry, const string_t& requested_name)
+		{
+			SFG_ASSERT(!requested_name.empty());
+
+			string_t candidate = requested_name;
+			u32		 suffix	   = 1;
+			for (;;)
+			{
+				string_t candidate_lower = candidate;
+				string_util::to_lower(candidate_lower);
+
+				bool used = false;
+				for (const string_t& name : registry.names)
+				{
+					string_t name_lower = name;
+					string_util::to_lower(name_lower);
+					if (name_lower == candidate_lower)
+					{
+						used = true;
+						break;
+					}
+				}
+
+				if (!used)
+				{
+					registry.names.push_back(candidate);
+					return candidate;
+				}
+
+				candidate = requested_name;
+				candidate += "_";
+				candidate += std::to_string(suffix++);
+			}
 		}
 
 		const tg3_value* find_object_value(const tg3_value& value, const char* key)
@@ -886,8 +927,14 @@ namespace sfg
 			return true;
 		}
 
-		bool import_orm_texture(
-			const editor_asset_node_t& parent_node, const tg3_model& model, const tg3_material& material, const texture_cook_config_t& texture_config_base, const char* asset_name_base, const editor_asset_import_context_t& context, editor_asset_t& out_asset)
+		bool import_orm_texture(const editor_asset_node_t&			 parent_node,
+								const tg3_model&					 model,
+								const tg3_material&					 material,
+								const texture_cook_config_t&		 texture_config_base,
+								const char*							 asset_name_base,
+								glb_asset_name_registry_t&			 asset_names,
+								const editor_asset_import_context_t& context,
+								editor_asset_t&						 out_asset)
 		{
 			const i32 metallic_roughness_index = material.pbr_metallic_roughness.metallic_roughness_texture.index;
 			const i32 occlusion_index		   = material.occlusion_texture.index;
@@ -930,6 +977,7 @@ namespace sfg
 
 			string_t asset_name = asset_name_base;
 			asset_name += "_orm";
+			asset_name = reserve_glb_asset_name(asset_names, asset_name);
 
 			string_t status = "Importing ORM texture ";
 			status += asset_name;
@@ -988,6 +1036,7 @@ namespace sfg
 							 bool								  import_textures,
 							 const hash_map_t<u64, sid_t>&		  texture_guid_map,
 							 hash_map_t<u32, sid_t>&			  material_guid_map,
+							 glb_asset_name_registry_t&			  asset_names,
 							 const editor_asset_import_context_t& context,
 							 vector_t<editor_asset_t>&			  out_assets)
 		{
@@ -998,6 +1047,7 @@ namespace sfg
 				asset_name += "_material_";
 				asset_name += std::to_string(material_index);
 			}
+			asset_name = reserve_glb_asset_name(asset_names, asset_name);
 
 			string_t status = "Importing material ";
 			status += asset_name;
@@ -1023,10 +1073,6 @@ namespace sfg
 			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
 			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id);
 
-			if (is_transparent)
-			{
-				int a = 5;
-			}
 			resource_handle_t orm_guid = DEFAULT_ORM_TEXTURE_ASSET_GUID;
 			if (import_textures && orm_index >= 0 && orm_index == occlusion_index)
 			{
@@ -1035,7 +1081,7 @@ namespace sfg
 			else if (import_textures && (orm_index >= 0 || occlusion_index >= 0))
 			{
 				editor_asset_t orm_asset = {};
-				if (!import_orm_texture(parent_node, model, material, texture_config, asset_name.c_str(), context, orm_asset))
+				if (!import_orm_texture(parent_node, model, material, texture_config, asset_name.c_str(), asset_names, context, orm_asset))
 				{
 					SFG_ERR("failed to import GLB ORM texture for material {0}", material_index);
 					return false;
@@ -1110,7 +1156,14 @@ namespace sfg
 			return true;
 		}
 
-		bool import_skeleton(const editor_asset_node_t& parent_node, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
+		bool import_skeleton(const editor_asset_node_t&			  parent_node,
+							 const char*						  source_full_path,
+							 const tg3_model&					  model,
+							 const tg3_skin&					  skin,
+							 u32								  skin_index,
+							 glb_asset_name_registry_t&			  asset_names,
+							 const editor_asset_import_context_t& context,
+							 vector_t<editor_asset_t>&			  out_assets)
 		{
 			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
 			{
@@ -1125,6 +1178,7 @@ namespace sfg
 				asset_name += "_skeleton_";
 				asset_name += std::to_string(skin_index);
 			}
+			asset_name = reserve_glb_asset_name(asset_names, asset_name);
 
 			string_t status = "Importing skeleton ";
 			status += asset_name;
@@ -1381,6 +1435,7 @@ namespace sfg
 						 u32								  mesh_count,
 						 const hash_map_t<u32, sid_t>&		  material_guid_map,
 						 hash_map_t<u32, sid_t>*			  mesh_guid_map,
+						 glb_asset_name_registry_t&			  asset_names,
 						 const editor_asset_import_context_t& context,
 						 vector_t<editor_asset_t>&			  out_assets)
 		{
@@ -1402,6 +1457,7 @@ namespace sfg
 					asset_name += std::to_string(mesh_index);
 				}
 			}
+			asset_name = reserve_glb_asset_name(asset_names, asset_name);
 
 			string_t status = "Importing mesh ";
 			status += asset_name;
@@ -1501,11 +1557,13 @@ namespace sfg
 						   const tg3_model&						model,
 						   const hash_map_t<u32, sid_t>&		mesh_guid_map,
 						   const hash_map_t<u32, sid_t>&		material_guid_map,
+						   glb_asset_name_registry_t&			asset_names,
 						   const editor_asset_import_context_t& context,
 						   vector_t<editor_asset_t>&			out_assets)
 		{
 			string_t asset_name = file_system_t::get_filename_from_path(source_full_path);
 			asset_name += "_prefab";
+			asset_name = reserve_glb_asset_name(asset_names, asset_name);
 
 			string_t status = "Importing prefab ";
 			status += asset_name;
@@ -1741,11 +1799,13 @@ namespace sfg
 			texture_import_indices.reserve(model.textures_count * 2);
 			vector_t<glb_texture_import_t> texture_imports;
 			texture_imports.reserve(model.textures_count);
+			glb_asset_name_registry_t asset_names;
 
 			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count * 2 : 0;
 			const u32 reserve_animation_count = cook_config.import_animations ? model.skins_count : 0;
 			const u32 reserve_material_count  = cook_config.import_materials ? model.materials_count : 0;
 			const u32 reserve_mesh_count	  = cook_config.import_meshes ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
+			asset_names.names.reserve(reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + 1);
 			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count);
 			if (cook_config.import_textures)
 			{
@@ -1828,7 +1888,8 @@ namespace sfg
 
 					const glb_texture_import_t& texture_import = texture_imports[i];
 					const tg3_texture&			texture		   = model.textures[texture_import.texture_index];
-					texture_imports[i].asset_name			   = duplicate_name ? get_texture_asset_name(source_full_path, model, texture, texture_import.texture_index, texture_import.is_linear, true) : texture_asset_base_names[i];
+					const string_t				requested_name = duplicate_name ? get_texture_asset_name(source_full_path, model, texture, texture_import.texture_index, texture_import.is_linear, true) : texture_asset_base_names[i];
+					texture_imports[i].asset_name			   = reserve_glb_asset_name(asset_names, requested_name);
 				}
 
 				string_t status = "Importing textures 0/";
@@ -1895,7 +1956,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.materials_count; ++i)
 				{
-					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, context, out_assets))
+					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, asset_names, context, out_assets))
 					{
 						SFG_ERR("failed to import GLB material {0}", i);
 						result = false;
@@ -1908,7 +1969,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.skins_count; ++i)
 				{
-					if (!import_skeleton(parent_node, source_full_path, model, model.skins[i], i, context, out_assets))
+					if (!import_skeleton(parent_node, source_full_path, model, model.skins[i], i, asset_names, context, out_assets))
 					{
 						SFG_ERR("failed to import GLB skeleton {0}", i);
 						result = false;
@@ -1923,7 +1984,7 @@ namespace sfg
 				mesh_guid_map.reserve(model.meshes_count);
 				if (cook_config.combine_meshes)
 				{
-					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, context, out_assets);
+					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, out_assets);
 					if (!result)
 						SFG_ERR("failed to import combined GLB mesh");
 				}
@@ -1931,7 +1992,7 @@ namespace sfg
 				{
 					for (u32 i = 0; i < model.meshes_count; ++i)
 					{
-						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, context, out_assets))
+						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, out_assets))
 						{
 							SFG_ERR("failed to import GLB mesh {0}", i);
 							result = false;
@@ -1942,7 +2003,7 @@ namespace sfg
 
 				if (result && !cook_config.combine_meshes && model.nodes_count != 0)
 				{
-					if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, context, out_assets))
+					if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, out_assets))
 					{
 						SFG_ERR("failed to import GLB prefab");
 						result = false;

@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
+#include "editor_settings.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -100,6 +101,25 @@ namespace sfg
 			if (!editor_asset_importer_t::make_import_options(option, path.c_str()))
 				continue;
 
+			const editor_import_settings_t& import_settings = editor_settings_t::get().import;
+			switch (option.type)
+			{
+			case editor_asset_import_type_e::texture:
+				option.texture_cook_config = import_settings.texture;
+				break;
+			case editor_asset_import_type_e::audio:
+				option.audio_cook_config = import_settings.audio;
+				break;
+			case editor_asset_import_type_e::model:
+				option.glb_cook_config = import_settings.glb;
+				break;
+			case editor_asset_import_type_e::hdr_skybox:
+				option.skybox_cook_config = import_settings.skybox_hdr;
+				break;
+			default:
+				break;
+			}
+
 			_pending_import_paths.push_back(path);
 			const auto option_it = std::find_if(_pending_import_options.begin(), _pending_import_options.end(), [&](const editor_asset_import_options_t& pending_option) { return pending_option.type == option.type; });
 			if (option_it == _pending_import_options.end())
@@ -109,6 +129,29 @@ namespace sfg
 
 	void editor_panel_assets_t::submit_pending_import()
 	{
+		editor_import_settings_t& import_settings = editor_settings_t::get().import;
+		for (const editor_asset_import_options_t& option : _pending_import_options)
+		{
+			switch (option.type)
+			{
+			case editor_asset_import_type_e::texture:
+				import_settings.texture = option.texture_cook_config;
+				break;
+			case editor_asset_import_type_e::audio:
+				import_settings.audio = option.audio_cook_config;
+				break;
+			case editor_asset_import_type_e::model:
+				import_settings.glb = option.glb_cook_config;
+				break;
+			case editor_asset_import_type_e::hdr_skybox:
+				import_settings.skybox_hdr = option.skybox_cook_config;
+				break;
+			default:
+				break;
+			}
+		}
+		editor_settings_t::get().save();
+
 		frame_vector_t<string_t> import_paths;
 		import_paths.reserve(_pending_import_paths.size());
 		for (const string_t& path : _pending_import_paths)

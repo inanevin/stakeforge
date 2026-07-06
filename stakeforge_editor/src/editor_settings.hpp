@@ -26,11 +26,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "assets/editor_glb_importer.hpp"
 #include "editor_layout.hpp"
+
+#include <sfg/runtime/resources/audio_cook.hpp>
+#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
+#include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
+	struct editor_import_settings_t
+	{
+		texture_cook_config_t	 texture	= {};
+		audio_cook_config_t		 audio		= {};
+		skybox_hdr_cook_config_t skybox_hdr = {};
+		glb_cook_config_t		 glb		= {};
+	};
+
 	struct editor_settings_t
 	{
 		inline static editor_settings_t& get()
@@ -42,10 +55,13 @@ namespace sfg
 		bool save();
 		bool ensure_loaded();
 
-		editor_layout_t layout			  = {};
-		string_t		last_project_path = "";
+		editor_layout_t			 layout			   = {};
+		editor_import_settings_t import			   = {};
+		string_t				 last_project_path = "";
 	};
 
+	void to_json(nlohmann::json& j, const editor_import_settings_t& settings);
+	void from_json(const nlohmann::json& j, editor_import_settings_t& settings);
 	void to_json(nlohmann::json& j, const editor_settings_t& settings);
 	void from_json(const nlohmann::json& j, editor_settings_t& settings);
 }

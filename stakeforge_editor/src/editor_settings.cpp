@@ -27,13 +27,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "editor_directories.hpp"
 
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/serialization/serialization.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		template <typename T> nlohmann::json reflected_to_json(const T& value)
+		{
+			nlohmann::json out = nlohmann::json::object();
+			reflection_registry_t::get().type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out);
+			return out;
+		}
+
+		template <typename T> void reflected_from_json(const nlohmann::json& json, T& value)
+		{
+			reflection_registry_t::get().type_from_json(type_id_t<T>::value, &value, nullptr, json);
+		}
+	}
+
 	bool editor_settings_t::save()
 	{
 		const nlohmann::json json_data = *this;
@@ -71,15 +87,33 @@ namespace sfg
 
 namespace sfg
 {
+	void to_json(nlohmann::json& j, const editor_import_settings_t& settings)
+	{
+		j["texture"]	= reflected_to_json(settings.texture);
+		j["audio"]		= reflected_to_json(settings.audio);
+		j["skybox_hdr"] = reflected_to_json(settings.skybox_hdr);
+		j["glb"]		= reflected_to_json(settings.glb);
+	}
+
+	void from_json(const nlohmann::json& j, editor_import_settings_t& settings)
+	{
+		reflected_from_json(j.value("texture", nlohmann::json::object()), settings.texture);
+		reflected_from_json(j.value("audio", nlohmann::json::object()), settings.audio);
+		reflected_from_json(j.value("skybox_hdr", nlohmann::json::object()), settings.skybox_hdr);
+		reflected_from_json(j.value("glb", nlohmann::json::object()), settings.glb);
+	}
+
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)
 	{
 		j["layout"]		  = settings.layout;
+		j["import"]		  = settings.import;
 		j["project_path"] = settings.last_project_path;
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
 	{
 		settings.layout			   = j.value("layout", editor_layout_t{});
+		settings.import			   = j.value("import", editor_import_settings_t{});
 		settings.last_project_path = j.value<string_t>("project_path", {});
 	}
 }

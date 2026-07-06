@@ -44,13 +44,16 @@ namespace sfg
 		void	uninit() override;
 		void	set_edit_context(editor_world_handle_t context);
 		void	set_panel_name(const char* name);
+		void	set_world_dirty(bool dirty);
 		vec4f_t get_world_view_bounds() const;
 
 	private:
-		void refresh_title(const char* title);
+		void refresh_title();
 
 	private:
 		editor_widget_world_view_t _world_view;
-		string_t				   _title_text = {};
+		string_t				   _panel_name	= {};
+		string_t				   _title_text	= {};
+		bool					   _world_dirty = false;
 	};
 }
