@@ -83,7 +83,6 @@ vs_output VSMain(uint vertex_id : SV_VertexID)
 float4 PSMain(vs_output input) : SV_TARGET
 {
 	render_pass_data rp_data = sfg_get_cbv<render_pass_data>(sfg_constant_rp0);
-
 	Texture2D tex_gbuffer_color	 = sfg_get_texture<Texture2D>(sfg_constant_rp1);
 	Texture2D tex_gbuffer_normal	 = sfg_get_texture<Texture2D>(sfg_constant_rp2);
 	Texture2D tex_gbuffer_orm	 = sfg_get_texture<Texture2D>(sfg_constant_rp3);

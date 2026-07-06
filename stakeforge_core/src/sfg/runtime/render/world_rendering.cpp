@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/job/job_system.hpp>
+#include <sfg/math/mat3x3.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
@@ -73,9 +74,10 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
+		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
+
 		{
 			SFG_ASSERT(snapshot.entities.size() <= WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
-			gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
 			for (size_t i = 0; i < snapshot.entities.size(); ++i)
 			{
 				const world_render_entity_t& entity	 = snapshot.entities[i];
@@ -96,6 +98,23 @@ namespace sfg
 
 		render_view_t main_camera_view_t = {};
 		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+
+		world_render_prep_data_t prep_data;
+		prep_data.draw_culls.resize(snapshot.draws.size());
+		const u8 main_view_index = 0;
+		for (size_t i = 0; i < snapshot.draws.size(); ++i)
+		{
+			const world_draw_t& draw = snapshot.draws[i];
+			SFG_ASSERT(draw.entity_index < snapshot.entities.size());
+
+			const mat4x4_t& model = entity_buffer[draw.entity_index].model;
+			const mat3x3_t	linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
+			const vec3f_t	position = model.get_translation();
+
+			if (frustum_t::test(main_camera_view_t.frustum, draw.aabb, linear_model, position) == frustum_result::outside)
+				prep_data.draw_culls[i].cull_mask |= 1ull << main_view_index;
+		}
+
 		const render_pass_data_opaque_gpu_t opaque_render_pass_data = {.view_proj = main_camera_view_t.view_proj};
 		SFG_MEMCPY(ctx.get_mapped_opaque_render_pass_data(frame_index), &opaque_render_pass_data, sizeof(render_pass_data_opaque_gpu_t));
 
@@ -109,11 +128,12 @@ namespace sfg
 
 		struct render_graph_state_t
 		{
-			const world_render_context_t*  ctx				= nullptr;
-			const world_render_snapshot_t* snapshot			= nullptr;
-			gfx_handle_t				   global_layout	= {};
-			gpu_index_t					   global_cbv_index = NULL_GPU_INDEX;
-			u8							   frame_index		= 0;
+			const world_render_context_t*	ctx				 = nullptr;
+			const world_render_snapshot_t*	snapshot		 = nullptr;
+			const world_render_prep_data_t* prep_data		 = nullptr;
+			gfx_handle_t					global_layout	 = {};
+			gpu_index_t						global_cbv_index = NULL_GPU_INDEX;
+			u8								frame_index		 = 0;
 		};
 
 		static render_graph_state_t render_graph_state;
@@ -122,9 +142,10 @@ namespace sfg
 		if (!render_graph_initialized)
 		{
 			render_graph.emplace([]() {
-				const world_render_context_t&  ctx		= *render_graph_state.ctx;
-				const world_render_snapshot_t& snapshot = *render_graph_state.snapshot;
-				const u8					   frame	= render_graph_state.frame_index;
+				const world_render_context_t&	ctx		  = *render_graph_state.ctx;
+				const world_render_snapshot_t&	snapshot  = *render_graph_state.snapshot;
+				const world_render_prep_data_t& prep_data = *render_graph_state.prep_data;
+				const u8						frame	  = render_graph_state.frame_index;
 
 				render_access_scope_t scope;
 				gfx_backend&		  backend = gfx_backend::get();
@@ -133,14 +154,15 @@ namespace sfg
 				backend.cmd_bind_layout(cmd, {.layout = render_graph_state.global_layout});
 				gpu_index_t global_constants[1] = {render_graph_state.global_cbv_index};
 				backend.cmd_bind_constants(cmd, {.data = global_constants, .offset = constant_global0, .count = 1, .param_index = 0});
-				render_depth_prepass(ctx, snapshot, frame);
-				render_gbuffer(ctx, snapshot, frame);
+				render_depth_prepass(ctx, snapshot, prep_data, frame);
+				render_gbuffer(ctx, snapshot, prep_data, frame);
 				backend.close_command_buffer(cmd);
 			});
 			render_graph.emplace([]() {
-				const world_render_context_t&  ctx		= *render_graph_state.ctx;
-				const world_render_snapshot_t& snapshot = *render_graph_state.snapshot;
-				const u8					   frame	= render_graph_state.frame_index;
+				const world_render_context_t&	ctx		  = *render_graph_state.ctx;
+				const world_render_snapshot_t&	snapshot  = *render_graph_state.snapshot;
+				const world_render_prep_data_t& prep_data = *render_graph_state.prep_data;
+				const u8						frame	  = render_graph_state.frame_index;
 
 				render_access_scope_t scope;
 				gfx_backend&		  backend = gfx_backend::get();
@@ -149,8 +171,8 @@ namespace sfg
 				backend.cmd_bind_layout(cmd, {.layout = render_graph_state.global_layout});
 				gpu_index_t global_constants[1] = {render_graph_state.global_cbv_index};
 				backend.cmd_bind_constants(cmd, {.data = global_constants, .offset = constant_global0, .count = 1, .param_index = 0});
-				render_lighting(ctx, snapshot, frame);
-				render_post_process(ctx, snapshot, frame);
+				render_lighting(ctx, snapshot, prep_data, frame);
+				render_post_process(ctx, snapshot, prep_data, frame);
 				backend.close_command_buffer(cmd);
 			});
 			render_graph_initialized = true;
@@ -159,14 +181,16 @@ namespace sfg
 		SFG_ASSERT(render_graph_state.ctx == nullptr);
 		render_graph_state.ctx				= &ctx;
 		render_graph_state.snapshot			= &snapshot;
+		render_graph_state.prep_data		= &prep_data;
 		render_graph_state.global_layout	= global_layout;
 		render_graph_state.global_cbv_index = global_cbv_index;
 		render_graph_state.frame_index		= frame_index;
 
 		job_system_t::get().get_executor().run(render_graph).wait();
 
-		render_graph_state.ctx		= nullptr;
-		render_graph_state.snapshot = nullptr;
+		render_graph_state.ctx		 = nullptr;
+		render_graph_state.snapshot	 = nullptr;
+		render_graph_state.prep_data = nullptr;
 
 		const gfx_handle_t cmd_gfx0	 = ctx.get_command_buffer_gfx0(frame_index);
 		const gfx_handle_t cmd_gfx1	 = ctx.get_command_buffer_gfx1(frame_index);
@@ -180,7 +204,7 @@ namespace sfg
 		backend.submit_commands(queue_gfx, &cmd_gfx1, 1);
 	}
 
-	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, u8 frame_index)
+	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -315,7 +339,7 @@ namespace sfg
 		END_DEBUG_EVENT((&backend), cmd);
 	}
 
-	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t&, u8 frame_index)
+	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -432,7 +456,7 @@ namespace sfg
 		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 5});
 	}
 
-	void world_rendering_t::render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
+	void world_rendering_t::render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -504,11 +528,11 @@ namespace sfg
 		END_DEBUG_EVENT((&backend), cmd);
 	}
 
-	void world_rendering_t::render_forward(const world_render_context_t&, const world_render_snapshot_t&, u8)
+	void world_rendering_t::render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 	}
 
-	void world_rendering_t::render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t&, u8 frame_index)
+	void world_rendering_t::render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 

@@ -246,7 +246,7 @@ namespace sfg
 					const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
 
 					world_draw_t& draw	= snapshot.draws.emplace_back();
-					draw.aabb			= {};
+					draw.aabb			= mesh_internals->local_bounds;
 					draw.sort_key		= mat_handle;
 					draw.vertex_buffer	= vtx;
 					draw.index_buffer	= idx;

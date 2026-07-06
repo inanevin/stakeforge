@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_entity.hpp"
 #include "world_render_material.hpp"
 #include "world_render_view.hpp"
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -45,6 +46,16 @@ namespace sfg
 		render_resource_handle_t brdf_lut	= {};
 		f32						 intensity	= 1.0f;
 		f32						 exposure	= 1.0f;
+	};
+
+	struct world_render_prep_draw_cull_t
+	{
+		u64 cull_mask = 0;
+	};
+
+	struct world_render_prep_data_t
+	{
+		frame_vector_t<world_render_prep_draw_cull_t> draw_culls = {};
 	};
 
 	struct world_render_snapshot_t

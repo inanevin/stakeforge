@@ -43,9 +43,9 @@ namespace sfg
 		render_resource_handle_t index_buffer	= {};
 		u32						 pass_mask		= 0;
 		u32						 draw_flags		= 0;
-		u32						 material_index = 0;
-		u32						 entity_index	= 0;
-		u32						 skinning_index = 0;
+		u32						 material_index = UINT32_MAX;
+		u32						 entity_index	= UINT32_MAX;
+		u32						 skinning_index = UINT32_MAX;
 		u32						 index_count	= 0;
 		u32						 vertex_count	= 0;
 		u32						 start_index	= 0;

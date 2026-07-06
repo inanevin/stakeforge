@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class world_render_context_t;
+	struct world_render_prep_data_t;
 	struct world_render_snapshot_t;
 
 	class world_rendering_t final
@@ -41,10 +42,10 @@ namespace sfg
 		static void render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 	private:
-		static void render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
-		static void render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
-		static void render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
-		static void render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
-		static void render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
+		static void render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
+		static void render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
+		static void render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
+		static void render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
+		static void render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
 	};
 }
