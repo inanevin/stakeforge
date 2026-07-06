@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
@@ -65,7 +66,9 @@ namespace sfg
 
 		struct glb_texture_import_t
 		{
-			u32 texture_index = 0;
+			string_t asset_name;
+			u32		 texture_index = 0;
+			bool	 is_linear	   = false;
 		};
 
 		struct glb_texture_import_result_t
@@ -73,6 +76,13 @@ namespace sfg
 			editor_asset_t asset;
 			sid_t		   guid	   = NULL_SID;
 			bool		   success = false;
+		};
+
+		struct decoded_glb_texture_t
+		{
+			stbi_uc* pixels = nullptr;
+			u32		 width	= 0;
+			u32		 height = 0;
 		};
 
 		string_t get_asset_name(const tg3_str& name)
@@ -152,13 +162,55 @@ namespace sfg
 			return transform;
 		}
 
-		sid_t get_texture_guid(const hash_map_t<u32, sid_t>& texture_guid_map, i32 texture_index, sid_t default_guid)
+		u64 get_texture_import_key(u32 texture_index, bool is_linear)
+		{
+			return (static_cast<u64>(texture_index) << 1) | (is_linear ? 1llu : 0llu);
+		}
+
+		u64 get_texture_dedupe_key(const tg3_texture& texture, bool is_linear)
+		{
+			return (static_cast<u64>(static_cast<u32>(texture.source)) << 33) | (static_cast<u64>(static_cast<u32>(texture.sampler + 1)) << 1) | (is_linear ? 1llu : 0llu);
+		}
+
+		sid_t get_texture_guid(const hash_map_t<u64, sid_t>& texture_guid_map, i32 texture_index, bool is_linear, sid_t default_guid)
 		{
 			if (texture_index < 0)
 				return default_guid;
 
-			const auto it = texture_guid_map.find(static_cast<u32>(texture_index));
+			const auto it = texture_guid_map.find(get_texture_import_key(static_cast<u32>(texture_index), is_linear));
 			return it != texture_guid_map.end() ? it->second : default_guid;
+		}
+
+		string_t get_texture_asset_name(const char* source_full_path, const tg3_model& model, const tg3_texture& texture, u32 texture_index, bool is_linear, bool force_index)
+		{
+			string_t asset_name = get_asset_name(texture.name);
+
+			if (asset_name.empty())
+			{
+				const tg3_image& image = model.images[texture.source];
+				asset_name			   = get_asset_name(image.name);
+
+				if (asset_name.empty() && image.uri.data != nullptr && image.uri.len != 0)
+				{
+					const string_t image_uri(image.uri.data, image.uri.len);
+					asset_name = file_system_t::get_filename_from_path(image_uri);
+					if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+						asset_name.clear();
+				}
+			}
+
+			if (asset_name.empty())
+				asset_name = file_system_t::get_filename_from_path(source_full_path);
+
+			if (is_linear)
+				asset_name += "_linear";
+			if (force_index)
+			{
+				asset_name += "_";
+				asset_name += std::to_string(texture_index);
+			}
+
+			return asset_name;
 		}
 
 		bool write_blob(const char* path, const u8* data, size_t size)
@@ -176,6 +228,82 @@ namespace sfg
 			}
 
 			return true;
+		}
+
+		void free_decoded_glb_texture(decoded_glb_texture_t& texture)
+		{
+			if (texture.pixels != nullptr)
+				stbi_image_free(texture.pixels);
+			texture = {};
+		}
+
+		bool decode_glb_texture(const tg3_model& model, u32 texture_index, decoded_glb_texture_t& out)
+		{
+			if (texture_index >= model.textures_count)
+			{
+				SFG_ERR("glb texture index is out of range: {0}", texture_index);
+				return false;
+			}
+
+			const tg3_texture& texture = model.textures[texture_index];
+			if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
+			{
+				SFG_ERR("glb texture source is out of range: {0}", texture_index);
+				return false;
+			}
+
+			const tg3_image& image = model.images[texture.source];
+			if (image.buffer_view < 0 || static_cast<u32>(image.buffer_view) >= model.buffer_views_count)
+			{
+				SFG_ERR("glb texture image buffer view is out of range: {0}", texture_index);
+				return false;
+			}
+
+			const tg3_buffer_view& buffer_view = model.buffer_views[image.buffer_view];
+			if (buffer_view.buffer < 0 || static_cast<u32>(buffer_view.buffer) >= model.buffers_count)
+			{
+				SFG_ERR("glb texture image buffer is out of range: {0}", texture_index);
+				return false;
+			}
+
+			const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
+			if (buffer.data.data == nullptr || buffer_view.byte_offset > buffer.data.count || buffer_view.byte_length > buffer.data.count - buffer_view.byte_offset || buffer_view.byte_length > static_cast<u64>(std::numeric_limits<int>::max()))
+			{
+				SFG_ERR("glb texture image data is invalid: {0}", texture_index);
+				return false;
+			}
+
+			int		   decoded_width	= 0;
+			int		   decoded_height	= 0;
+			int		   decoded_channels = 0;
+			stbi_uc*   decoded			= stbi_load_from_memory(buffer.data.data + buffer_view.byte_offset, static_cast<int>(buffer_view.byte_length), &decoded_width, &decoded_height, &decoded_channels, 4);
+			const bool decoded_valid	= decoded != nullptr && decoded_width > 0 && decoded_height > 0 && decoded_width <= UINT16_MAX && decoded_height <= UINT16_MAX;
+			if (!decoded_valid)
+			{
+				SFG_ERR("failed to decode GLB texture image: {0}", texture_index);
+				if (decoded != nullptr)
+					stbi_image_free(decoded);
+				return false;
+			}
+
+			out.pixels = decoded;
+			out.width  = static_cast<u32>(decoded_width);
+			out.height = static_cast<u32>(decoded_height);
+			return true;
+		}
+
+		u8 sample_texture_channel(const decoded_glb_texture_t& texture, u32 x, u32 y, u32 target_width, u32 target_height, u32 channel, u8 fallback)
+		{
+			if (texture.pixels == nullptr)
+				return fallback;
+
+			u32 sx = target_width > 0 ? static_cast<u32>((static_cast<u64>(x) * texture.width) / target_width) : 0;
+			u32 sy = target_height > 0 ? static_cast<u32>((static_cast<u64>(y) * texture.height) / target_height) : 0;
+			if (sx >= texture.width)
+				sx = texture.width - 1;
+			if (sy >= texture.height)
+				sy = texture.height - 1;
+			return texture.pixels[(sy * texture.width + sx) * 4 + channel];
 		}
 
 		template <typename T> bool serialize_reflected_to_json(const T& value, nlohmann::json& out)
@@ -651,7 +779,9 @@ namespace sfg
 							const tg3_model&					 model,
 							const tg3_texture&					 texture,
 							const texture_cook_config_t&		 texture_config_base,
+							const string_t&						 asset_name,
 							u32									 texture_index,
+							bool								 is_linear,
 							const editor_asset_import_context_t& context,
 							editor_asset_t&						 out_asset)
 		{
@@ -682,27 +812,6 @@ namespace sfg
 				return false;
 			}
 
-			string_t asset_name;
-			asset_name = get_asset_name(texture.name);
-
-			if (asset_name.empty())
-				asset_name = get_asset_name(image.name);
-
-			if (asset_name.empty() && image.uri.data != nullptr && image.uri.len != 0)
-			{
-				const string_t image_uri(image.uri.data, image.uri.len);
-				asset_name = file_system_t::get_filename_from_path(image_uri);
-				if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
-					asset_name.clear();
-			}
-
-			if (asset_name.empty())
-			{
-				asset_name = file_system_t::get_filename_from_path(source_full_path);
-				asset_name += "_texture_";
-				asset_name += std::to_string(texture_index);
-			}
-
 			string_t status = "Importing texture ";
 			status += asset_name;
 			status += " (";
@@ -713,6 +822,7 @@ namespace sfg
 			context.report_status(status.c_str());
 
 			texture_cook_config_t texture_config = texture_config_base;
+			texture_config.is_linear			 = is_linear;
 
 			int		   decoded_width	= 0;
 			int		   decoded_height	= 0;
@@ -772,12 +882,107 @@ namespace sfg
 			return true;
 		}
 
+		bool import_orm_texture(
+			const editor_asset_node_t& parent_node, const tg3_model& model, const tg3_material& material, const texture_cook_config_t& texture_config_base, const char* asset_name_base, const editor_asset_import_context_t& context, editor_asset_t& out_asset)
+		{
+			const i32 metallic_roughness_index = material.pbr_metallic_roughness.metallic_roughness_texture.index;
+			const i32 occlusion_index		   = material.occlusion_texture.index;
+			SFG_ASSERT(metallic_roughness_index >= 0 || occlusion_index >= 0);
+
+			decoded_glb_texture_t metallic_roughness = {};
+			decoded_glb_texture_t occlusion			 = {};
+			if (metallic_roughness_index >= 0 && !decode_glb_texture(model, static_cast<u32>(metallic_roughness_index), metallic_roughness))
+				return false;
+			if (occlusion_index >= 0 && !decode_glb_texture(model, static_cast<u32>(occlusion_index), occlusion))
+			{
+				free_decoded_glb_texture(metallic_roughness);
+				return false;
+			}
+
+			const u32 width	 = metallic_roughness.pixels != nullptr ? metallic_roughness.width : occlusion.width;
+			const u32 height = metallic_roughness.pixels != nullptr ? metallic_roughness.height : occlusion.height;
+			SFG_ASSERT(width > 0 && height > 0 && width <= UINT16_MAX && height <= UINT16_MAX);
+
+			vector_t<u8> pixels;
+			pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
+
+			const f32 occlusion_strength = math::clamp(static_cast<f32>(material.occlusion_texture.strength), 0.0f, 1.0f);
+			for (u32 y = 0; y < height; ++y)
+			{
+				for (u32 x = 0; x < width; ++x)
+				{
+					const u8  occlusion_sample = sample_texture_channel(occlusion, x, y, width, height, 0, 255);
+					const f32 occlusion_value  = 1.0f + (static_cast<f32>(occlusion_sample) * (1.0f / 255.0f) - 1.0f) * occlusion_strength;
+					u8*		  dst			   = pixels.data() + (static_cast<size_t>(y) * width + x) * 4;
+					dst[0]					   = static_cast<u8>(math::clamp(occlusion_value, 0.0f, 1.0f) * 255.0f + 0.5f);
+					dst[1]					   = sample_texture_channel(metallic_roughness, x, y, width, height, 1, 255);
+					dst[2]					   = sample_texture_channel(metallic_roughness, x, y, width, height, 2, 255);
+					dst[3]					   = 255;
+				}
+			}
+
+			free_decoded_glb_texture(metallic_roughness);
+			free_decoded_glb_texture(occlusion);
+
+			string_t asset_name = asset_name_base;
+			asset_name += "_orm";
+
+			string_t status = "Importing ORM texture ";
+			status += asset_name;
+			context.report_status(status.c_str());
+
+			texture_cook_config_t texture_config = texture_config_base;
+			texture_config.is_linear			 = true;
+			texture_config.size					 = vec2u16_t(static_cast<u16>(width), static_cast<u16>(height));
+
+			editor_asset_t asset		= {};
+			nlohmann::json cook_options = nlohmann::json::object();
+			if (!serialize_reflected_to_json(texture_config, cook_options))
+			{
+				SFG_ERR("failed to serialize GLB ORM texture cook options");
+				return false;
+			}
+			editor_asset_util_t::set_cook_options_json(asset, cook_options);
+
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t source_path	 = editor_asset_util_t::make_source_path(parent_node.full_path.c_str(), asset_name.c_str(), "png");
+			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+			if (stbi_write_png(source_path.c_str(), static_cast<int>(width), static_cast<int>(height), 4, pixels.data(), static_cast<int>(width * 4)) == 0)
+			{
+				SFG_ERR("failed to write GLB ORM texture source {0}", source_path.c_str());
+				return false;
+			}
+
+			asset.version		  = editor_asset_t::VERSION;
+			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
+			asset.asset_type	  = editor_asset_type_e::texture;
+			asset.source_type	  = editor_asset_source_type_e::file;
+			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
+
+			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			{
+				SFG_ERR("failed to write GLB ORM texture asset {0}", asset_path.c_str());
+				return false;
+			}
+
+			if (!editor_asset_cooker_t::cook_texture(asset))
+			{
+				SFG_ERR("failed to cook GLB ORM texture asset {0}", asset.guid);
+				return false;
+			}
+
+			out_asset = std::move(asset);
+			return true;
+		}
+
 		bool import_material(const editor_asset_node_t&			  parent_node,
 							 const char*						  source_full_path,
 							 const tg3_model&					  model,
 							 const tg3_material&				  material,
 							 u32								  material_index,
-							 const hash_map_t<u32, sid_t>&		  texture_guid_map,
+							 const texture_cook_config_t&		  texture_config,
+							 bool								  import_textures,
+							 const hash_map_t<u64, sid_t>&		  texture_guid_map,
 							 hash_map_t<u32, sid_t>&			  material_guid_map,
 							 const editor_asset_import_context_t& context,
 							 vector_t<editor_asset_t>&			  out_assets)
@@ -799,27 +1004,49 @@ namespace sfg
 			status += ")";
 			context.report_status(status.c_str());
 
-			const i32 base_index	 = material.pbr_metallic_roughness.base_color_texture.index;
-			const i32 normal_index	 = material.normal_texture.index;
-			const i32 orm_index		 = material.pbr_metallic_roughness.metallic_roughness_texture.index;
-			const i32 emissive_index = material.emissive_texture.index;
+			const i32 base_index	  = material.pbr_metallic_roughness.base_color_texture.index;
+			const i32 normal_index	  = material.normal_texture.index;
+			const i32 orm_index		  = material.pbr_metallic_roughness.metallic_roughness_texture.index;
+			const i32 emissive_index  = material.emissive_texture.index;
+			const i32 occlusion_index = material.occlusion_texture.index;
 
 			const glb_texture_transform_t base_transform	 = get_texture_transform(material.pbr_metallic_roughness.base_color_texture.ext);
 			const glb_texture_transform_t normal_transform	 = get_texture_transform(material.normal_texture.ext);
-			const glb_texture_transform_t orm_transform		 = get_texture_transform(material.pbr_metallic_roughness.metallic_roughness_texture.ext);
+			const glb_texture_transform_t orm_transform		 = orm_index >= 0 ? get_texture_transform(material.pbr_metallic_roughness.metallic_roughness_texture.ext) : get_texture_transform(material.occlusion_texture.ext);
 			const glb_texture_transform_t emissive_transform = get_texture_transform(material.emissive_texture.ext);
 
 			const bool is_transparent = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "BLEND";
 			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
 			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id);
 
+			resource_handle_t orm_guid = DEFAULT_ORM_TEXTURE_ASSET_GUID;
+			if (import_textures && orm_index >= 0 && orm_index == occlusion_index)
+			{
+				orm_guid = get_texture_guid(texture_guid_map, orm_index, true, DEFAULT_ORM_TEXTURE_ASSET_GUID);
+			}
+			else if (import_textures && (orm_index >= 0 || occlusion_index >= 0))
+			{
+				editor_asset_t orm_asset = {};
+				if (!import_orm_texture(parent_node, model, material, texture_config, asset_name.c_str(), context, orm_asset))
+				{
+					SFG_ERR("failed to import GLB ORM texture for material {0}", material_index);
+					return false;
+				}
+				orm_guid = orm_asset.guid;
+				out_assets.push_back(std::move(orm_asset));
+			}
+			else
+			{
+				orm_guid = get_texture_guid(texture_guid_map, orm_index, true, DEFAULT_ORM_TEXTURE_ASSET_GUID);
+			}
+
 			const material_def_t material_def = {
 				.textures =
 					{
-						get_texture_guid(texture_guid_map, base_index, DEFAULT_ALBEDO_TEXTURE_ASSET_GUID),
-						get_texture_guid(texture_guid_map, normal_index, DEFAULT_NORMAL_TEXTURE_ASSET_GUID),
-						get_texture_guid(texture_guid_map, orm_index, DEFAULT_ORM_TEXTURE_ASSET_GUID),
-						get_texture_guid(texture_guid_map, emissive_index, DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID),
+						get_texture_guid(texture_guid_map, base_index, false, DEFAULT_ALBEDO_TEXTURE_ASSET_GUID),
+						get_texture_guid(texture_guid_map, normal_index, true, DEFAULT_NORMAL_TEXTURE_ASSET_GUID),
+						orm_guid,
+						get_texture_guid(texture_guid_map, emissive_index, false, DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID),
 					},
 				.parameters =
 					{
@@ -1269,49 +1496,104 @@ namespace sfg
 				.generate_mipmaps = cook_config.generate_mipmaps,
 			};
 
-			hash_map_t<u32, sid_t> texture_guid_map;
-			texture_guid_map.reserve(model.textures_count);
+			hash_map_t<u64, sid_t> texture_guid_map;
+			texture_guid_map.reserve(model.textures_count * 2);
 			hash_map_t<u64, u32> imported_texture_indices;
 			imported_texture_indices.reserve(model.textures_count);
+			hash_map_t<u64, u32> texture_import_indices;
+			texture_import_indices.reserve(model.textures_count * 2);
 			vector_t<glb_texture_import_t> texture_imports;
 			texture_imports.reserve(model.textures_count);
-			vector_t<u32> texture_import_indices;
-			texture_import_indices.resize(model.textures_count);
 
-			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count : 0;
+			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count * 2 : 0;
 			const u32 reserve_animation_count = cook_config.import_animations ? model.skins_count : 0;
 			const u32 reserve_material_count  = cook_config.import_materials ? model.materials_count : 0;
 			const u32 reserve_mesh_count	  = cook_config.import_meshes ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
 			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count);
 			if (cook_config.import_textures)
 			{
-				for (u32 i = 0; i < model.textures_count; ++i)
-				{
-					const tg3_texture& texture = model.textures[i];
+				auto push_texture_import = [&](i32 texture_index, bool is_linear) {
+					if (texture_index < 0)
+						return;
+
+					const u32 texture_index_u32 = static_cast<u32>(texture_index);
+					if (texture_index_u32 >= model.textures_count)
+					{
+						SFG_ERR("glb texture index is out of range: {0}", texture_index);
+						result = false;
+						return;
+					}
+
+					const tg3_texture& texture = model.textures[texture_index_u32];
 					if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
 					{
-						SFG_ERR("glb texture source is out of range: {0}", i);
+						SFG_ERR("glb texture source is out of range: {0}", texture_index_u32);
 						result = false;
-						break;
+						return;
 					}
 
-					const u64  texture_import_key  = (static_cast<u64>(static_cast<u32>(texture.source)) << 32) | static_cast<u32>(texture.sampler);
-					const auto imported_texture_it = imported_texture_indices.find(texture_import_key);
+					const u64 logical_key = get_texture_import_key(texture_index_u32, is_linear);
+					if (texture_import_indices.find(logical_key) != texture_import_indices.end())
+						return;
+
+					const u64  dedupe_key		   = get_texture_dedupe_key(texture, is_linear);
+					const auto imported_texture_it = imported_texture_indices.find(dedupe_key);
 					if (imported_texture_it != imported_texture_indices.end())
 					{
-						texture_import_indices[i] = imported_texture_it->second;
-						continue;
+						texture_import_indices[logical_key] = imported_texture_it->second;
+						return;
 					}
 
-					const u32 import_index						 = static_cast<u32>(texture_imports.size());
-					imported_texture_indices[texture_import_key] = import_index;
-					texture_import_indices[i]					 = import_index;
-					texture_imports.push_back({.texture_index = i});
+					const u32 import_index				 = static_cast<u32>(texture_imports.size());
+					imported_texture_indices[dedupe_key] = import_index;
+					texture_import_indices[logical_key]	 = import_index;
+					texture_imports.push_back({.texture_index = texture_index_u32, .is_linear = is_linear});
+				};
+
+				for (u32 i = 0; i < model.materials_count; ++i)
+				{
+					const tg3_material& material = model.materials[i];
+					push_texture_import(material.pbr_metallic_roughness.base_color_texture.index, false);
+					push_texture_import(material.normal_texture.index, true);
+					push_texture_import(material.emissive_texture.index, false);
+					if (!result)
+						break;
+				}
+
+				if (result && !cook_config.import_materials)
+				{
+					for (u32 i = 0; i < model.textures_count; ++i)
+						push_texture_import(static_cast<i32>(i), false);
 				}
 			}
 
 			if (result && !texture_imports.empty())
 			{
+				vector_t<string_t> texture_asset_base_names;
+				texture_asset_base_names.reserve(texture_imports.size());
+				for (const glb_texture_import_t& texture_import : texture_imports)
+				{
+					const tg3_texture& texture = model.textures[texture_import.texture_index];
+					texture_asset_base_names.push_back(get_texture_asset_name(source_full_path, model, texture, texture_import.texture_index, texture_import.is_linear, false));
+				}
+
+				for (u32 i = 0; i < texture_imports.size(); ++i)
+				{
+					bool duplicate_name = false;
+					for (u32 j = 0; j < texture_asset_base_names.size(); ++j)
+					{
+						if (i != j && texture_asset_base_names[i] == texture_asset_base_names[j])
+						{
+							duplicate_name = true;
+							break;
+						}
+					}
+
+					const glb_texture_import_t& texture_import = texture_imports[i];
+					const tg3_texture&			texture		   = model.textures[texture_import.texture_index];
+					texture_imports[i].asset_name			   = duplicate_name ? get_texture_asset_name(source_full_path, model, texture, texture_import.texture_index, texture_import.is_linear, true) : texture_asset_base_names[i];
+				}
+
 				string_t status = "Importing textures 0/";
 				status += std::to_string(texture_imports.size());
 				context.report_status(status.c_str());
@@ -1329,7 +1611,7 @@ namespace sfg
 						const tg3_texture&					texture			= model.textures[texture_import.texture_index];
 						const editor_asset_import_context_t texture_context = {};
 
-						import_result.success = import_texture(parent_node, source_full_path, model, texture, texture_config, texture_import.texture_index, texture_context, import_result.asset);
+						import_result.success = import_texture(parent_node, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset);
 						if (import_result.success)
 							import_result.guid = import_result.asset.guid;
 
@@ -1355,11 +1637,11 @@ namespace sfg
 
 				if (result)
 				{
-					for (u32 i = 0; i < model.textures_count; ++i)
+					for (const auto& it : texture_import_indices)
 					{
-						const u32 import_index = texture_import_indices[i];
+						const u32 import_index = it.second;
 						SFG_ASSERT(import_index < texture_import_results.size());
-						texture_guid_map[i] = texture_import_results[import_index].guid;
+						texture_guid_map[it.first] = texture_import_results[import_index].guid;
 					}
 
 					for (glb_texture_import_result_t& import_result : texture_import_results)
@@ -1376,7 +1658,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.materials_count; ++i)
 				{
-					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_guid_map, material_guid_map, context, out_assets))
+					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, context, out_assets))
 					{
 						SFG_ERR("failed to import GLB material {0}", i);
 						result = false;

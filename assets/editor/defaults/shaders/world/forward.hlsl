@@ -122,11 +122,6 @@ struct material_data
     uint2 albedo_tiling_offset;
 };
 
-struct texture_data
-{
-    uint gpu_index_albedo;
-};
-
 #ifdef WRITE_ID
 
 uint PSMain(vs_output IN) : SV_TARGET
@@ -141,8 +136,7 @@ float4 PSMain(vs_output IN) : SV_TARGET
     render_pass_data_forward params = sfg_get_cbv<render_pass_data_forward>(sfg_constant_rp0);
 
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
-    texture_data txt_data = sfg_get_cbv<texture_data>(sfg_constant_mat1);
-    Texture2D tex_albedo = sfg_get_texture<Texture2D>(txt_data.gpu_index_albedo);
+    Texture2D tex_albedo = sfg_get_texture<Texture2D>(sfg_constant_mat1);
     SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat2);
 
     float2 albedo_tiling = unpack_half2x16(mat_data.albedo_tiling_offset.x);

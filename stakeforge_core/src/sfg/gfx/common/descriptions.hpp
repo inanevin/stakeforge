@@ -165,7 +165,7 @@ namespace sfg
 	struct swapchain_recreate_desc_t
 	{
 		vec2u16_t	  size		  = vec2u16_t::zero;
-		gfx_handle_t	  swapchain_t = {};
+		gfx_handle_t  swapchain_t = {};
 		f32			  scaling	  = 1.0f;
 		bitmask_t<u8> flags		  = 0;
 	};
@@ -204,7 +204,7 @@ namespace sfg
 
 	struct texture_desc_t
 	{
-		static constexpr size_t MAX_DEBUG_NAME = 64;
+		static constexpr size_t MAX_DEBUG_NAME = 256;
 		static constexpr size_t MAX_VIEWS	   = 8;
 
 		format_e	   texture_format			  = format_e::r8g8b8a8_srgb;
@@ -279,9 +279,9 @@ namespace sfg
 
 	struct bind_group_pointer_t
 	{
-		gfx_handle_t	   resource_t	 = {};
-		gfx_handle_t	   texture_t	 = {};
-		gfx_handle_t	   sampler_t	 = {};
+		gfx_handle_t   resource_t	 = {};
+		gfx_handle_t   texture_t	 = {};
+		gfx_handle_t   sampler_t	 = {};
 		u8			   view			 = 0;
 		u8			   pointer_index = 0;
 		binding_type_e type			 = binding_type_e::ubo;
