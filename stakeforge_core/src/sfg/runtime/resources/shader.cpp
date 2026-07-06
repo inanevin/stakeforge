@@ -144,6 +144,7 @@ namespace sfg
 		.wire_magic			 = shader_loader_t::WIRE_MAGIC,
 		.wire_version		 = shader_loader_t::WIRE_VERSION,
 		.use_async_load		 = false,
+		.use_render_pending	 = true,
 		.load				 = shader_loader_t::load,
 		.unload				 = shader_loader_t::unload,
 	};

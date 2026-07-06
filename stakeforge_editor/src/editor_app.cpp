@@ -251,6 +251,7 @@ namespace sfg
 		}
 
 		render_resources_t::get().drain_requests();
+		resource_manager_t::get().flush();
 		if (!_renderer.init())
 		{
 			_editor_resource_pack.uninit();

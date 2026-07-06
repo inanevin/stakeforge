@@ -44,6 +44,8 @@ namespace sfg
 		void					unload_resource(sid_t hash);
 		const resource_entry_t* find_entry(u64 hash) const;
 		void					drain_atlases(u8 frame_slot);
+		void					register_render_resource_request(sid_t hash);
+		void					enqueue_render_resource_completion(sid_t hash);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -52,7 +54,11 @@ namespace sfg
 		template <typename T> inline const T* find_internals(u64 hash) const
 		{
 			const resource_entry_t* entry = find_entry(hash);
-			if (entry == nullptr || entry->state != resource_state_e::ready || entry->internals.size == 0)
+			if (entry == nullptr || entry->internals.size == 0)
+				return nullptr;
+
+			const bool state_not_ok = entry->state != resource_state_e::ready && entry->state != resource_state_e::ready_preview;
+			if (state_not_ok)
 				return nullptr;
 			return _memory.get<T>(entry->internals);
 		}
@@ -142,12 +148,14 @@ namespace sfg
 		void		   enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
 		load_request_t run_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
 		void		   flush_completed_loads();
+		void		   flush_render_resource_completions();
 		void		   flush_unloads();
 		void		   unload_entry(resource_entry_t& entry);
 		void		   free_entry(resource_entry_t& entry);
 
 	private:
 		moodycamel::ConcurrentQueue<load_request_t> _completed;
+		moodycamel::ConcurrentQueue<sid_t>			_render_completed;
 		animation_storage_t							_animation_storage;
 		chunk_allocator_t							_memory;
 		hash_map_t<sid_t, resource_entry_t>			_entries;

@@ -98,11 +98,13 @@ float4 PSMain(vs_output input) : SV_TARGET
 		return float4(get_sky_color(skybox_radiance, input.uv, rp_data), 1.0);
 
 	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, rp_data.inv_view_proj);
-	const float3 albedo   = tex_gbuffer_color.SampleLevel(smp_nearest, input.uv, 0).xyz;
+	const float3 albedo   = tex_gbuffer_color.SampleLevel(smp_linear, input.uv, 0).xyz;
 	const float4 normal   = tex_gbuffer_normal.Load(int3(pixel, 0));
 	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
 	const float3 emissive = tex_gbuffer_emissive.Load(int3(pixel, 0)).xyz;
-	const float	 ao	   = saturate(orm.r) * tex_ao.Load(int3(pixel, 0)).r;
+	const float	 ao	   = saturate(orm.r) ;
+	
+	// DONT REMOVE, ADD SSAO LATER ON. * tex_ao.Load(int3(pixel, 0)).r;
 	const float	 roughness = saturate(orm.g);
 	const float	 metallic  = saturate(orm.b);
 	const float3 N		   = oct_decode(normal.xy);

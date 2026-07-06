@@ -326,8 +326,8 @@ namespace sfg
 		{
 			const world_draw_t& draw = ss.draws[i];
 
-			if ((prep_data.draw_culls[i].cull_mask & 1 << 0llu) == 0)
-				continue;
+			// if ((prep_data.draw_culls[i].cull_mask & 1 << 0llu) == 0)
+			//	continue;
 
 			if ((draw.pass_mask & world_pass_flags_depth) == 0)
 				continue;
@@ -373,16 +373,17 @@ namespace sfg
 		END_DEBUG_EVENT((&backend), cmd);
 	}
 
-	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_handle_t cmd				= ctx.get_command_buffer_gfx0(frame_index);
-		const gfx_handle_t depth_texture	= ctx.get_depth_texture(frame_index);
-		const gfx_handle_t gbuffer_albedo	= ctx.get_gbuffer_albedo_texture(frame_index);
-		const gfx_handle_t gbuffer_normal	= ctx.get_gbuffer_normal_texture(frame_index);
-		const gfx_handle_t gbuffer_orm		= ctx.get_gbuffer_orm_texture(frame_index);
-		const gfx_handle_t gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+		const gfx_handle_t	cmd				 = ctx.get_command_buffer_gfx0(frame_index);
+		const gfx_handle_t	depth_texture	 = ctx.get_depth_texture(frame_index);
+		const gfx_handle_t	gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_handle_t	gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_handle_t	gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_handle_t	gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+		render_resources_t& rr				 = render_resources_t::get();
 
 		const u32 depth_state = backend.get_texture_state(depth_texture);
 		if (depth_state != resource_state_depth_read)
@@ -451,6 +452,59 @@ namespace sfg
 
 		gpu_index_t rp_constants[2] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index)};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+
+		gfx_handle_t bound_vertex	= {};
+		gfx_handle_t bound_index	= {};
+		gfx_handle_t bound_pipeline = {};
+		u32			 bound_material = UINT32_MAX;
+
+		const u32 draw_size = static_cast<u32>(ss.draws.size());
+		for (u32 i = 0; i < draw_size; i++)
+		{
+			const world_draw_t& draw = ss.draws[i];
+
+			// if ((prep_data.draw_culls[i].cull_mask & 1 << 0llu) == 0)
+			//	continue;
+
+			if ((draw.pass_mask & world_pass_flags_gbuffer) == 0)
+				continue;
+
+			const gfx_handle_t vtx = rr.get_resource(draw.vertex_buffer);
+			const gfx_handle_t idx = rr.get_resource(draw.index_buffer);
+			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
+
+			bind_vertex(backend, cmd, bound_vertex, vtx, draw.vertex_stride);
+			bind_index(backend, cmd, bound_index, idx, draw.index_stride);
+
+			if (!draw.direct_pso.is_null())
+			{
+				const gfx_handle_t pipeline = rr.get_shader_hw(draw.direct_pso);
+				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
+			}
+			else
+			{
+				SFG_ASSERT(draw.material_index != UINT32_MAX);
+
+				const world_render_material_t& mat			 = ss.materials[draw.material_index];
+				const render_resource_handle_t shader_handle = mat.find_pso(0);
+				if (shader_handle.is_null())
+					continue;
+
+				const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
+				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
+
+				bind_material(backend, cmd, bound_material, draw.material_index, mat);
+			}
+
+			backend.cmd_draw_indexed_instanced(cmd,
+											   {
+												   .index_count_per_instance = draw.index_count,
+												   .instance_count			 = 1,
+												   .start_index_location	 = draw.start_index,
+												   .base_vertex_location	 = draw.start_vertex,
+												   .start_instance_location	 = 0,
+											   });
+		}
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);

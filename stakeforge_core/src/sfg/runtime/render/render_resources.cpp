@@ -6,6 +6,7 @@
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 
 namespace sfg
@@ -16,40 +17,45 @@ namespace sfg
 		return instance;
 	}
 
-	render_resource_handle_t render_resources_t::enqueue_create_resource(sid_t, resource_type_e, const resource_desc_t& desc, u32)
+	render_resource_handle_t render_resources_t::enqueue_create_resource(sid_t hash, resource_type_e, const resource_desc_t& desc, u32)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _resources.add();
-		_request_q.enqueue({.kind = request_kind_e::create_resource, .resource_desc = desc, .render_handle = handle});
+		resource_manager_t::get().register_render_resource_request(hash);
+		_request_q.enqueue({.kind = request_kind_e::create_resource, .hash = hash, .resource_desc = desc, .render_handle = handle});
 		return handle;
 	}
 
-	render_resource_handle_t render_resources_t::enqueue_create_texture(sid_t, const texture_desc_t& desc, resource_type_e, u32)
+	render_resource_handle_t render_resources_t::enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e, u32)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _textures.add();
-		_request_q.enqueue({.kind = request_kind_e::create_texture, .texture_desc = desc, .render_handle = handle});
+		resource_manager_t::get().register_render_resource_request(hash);
+		_request_q.enqueue({.kind = request_kind_e::create_texture, .hash = hash, .texture_desc = desc, .render_handle = handle});
 		return handle;
 	}
 
-	render_resource_handle_t render_resources_t::enqueue_create_sampler(sid_t, resource_type_e, const sampler_desc_t& desc)
+	render_resource_handle_t render_resources_t::enqueue_create_sampler(sid_t hash, resource_type_e, const sampler_desc_t& desc)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _samplers.add();
-		_request_q.enqueue({.kind = request_kind_e::create_sampler, .sampler_desc = desc, .render_handle = handle});
+		resource_manager_t::get().register_render_resource_request(hash);
+		_request_q.enqueue({.kind = request_kind_e::create_sampler, .hash = hash, .sampler_desc = desc, .render_handle = handle});
 		return handle;
 	}
 
-	render_resource_handle_t render_resources_t::enqueue_create_shader(sid_t, resource_type_e, u32, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout)
+	render_resource_handle_t render_resources_t::enqueue_create_shader(sid_t hash, resource_type_e, u32, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(blobs.size <= MAX_SHADER_STAGES);
 		const render_resource_handle_t handle = _shaders.add();
-		request_t					   req	  = {};
-		req.kind							  = request_kind_e::create_shader;
-		req.shader_desc						  = desc;
-		req.existing_layout					  = existing_layout;
-		req.render_handle					  = handle;
+		resource_manager_t::get().register_render_resource_request(hash);
+		request_t req		= {};
+		req.kind			= request_kind_e::create_shader;
+		req.hash			= hash;
+		req.shader_desc		= desc;
+		req.existing_layout = existing_layout;
+		req.render_handle	= handle;
 		for (size_t i = 0; i < blobs.size; ++i)
 		{
 			const shader_blob_t& blob = blobs.data[i];
@@ -216,16 +222,19 @@ namespace sfg
 			case request_kind_e::create_resource: {
 				const gfx_handle_t handle = backend.create_resource(req.resource_desc);
 				set_render_thread_resource(_rt_resources, req.render_handle, handle, backend.get_resource_gpu_index(handle));
+				resource_manager_t::get().enqueue_render_resource_completion(req.hash);
 				break;
 			}
 			case request_kind_e::create_texture: {
 				const gfx_handle_t handle = backend.create_texture(req.texture_desc);
 				set_render_thread_texture(_rt_textures, req.render_handle, handle, req.texture_desc);
+				resource_manager_t::get().enqueue_render_resource_completion(req.hash);
 				break;
 			}
 			case request_kind_e::create_sampler: {
 				const gfx_handle_t handle = backend.create_sampler(req.sampler_desc);
 				set_render_thread_resource(_rt_samplers, req.render_handle, handle, backend.get_sampler_gpu_index(handle));
+				resource_manager_t::get().enqueue_render_resource_completion(req.hash);
 				break;
 			}
 			case request_kind_e::create_shader: {
@@ -234,6 +243,7 @@ namespace sfg
 				for (shader_blob_t& blob : req.blobs)
 					SFG_FREE(blob.data.data);
 				set_render_thread_resource(_rt_shaders, req.render_handle, handle);
+				resource_manager_t::get().enqueue_render_resource_completion(req.hash);
 				break;
 			}
 			case request_kind_e::texture_upload: {

@@ -61,7 +61,7 @@ namespace sfg
 			else
 			{
 				const resource_entry_t* mat_entry = rm.find_entry(mat_handle);
-				if (mat_entry == nullptr)
+				if (mat_entry == nullptr || mat_entry->state != resource_state_e::ready)
 					return UINT32_MAX;
 
 				material_runtime_t*	  mat_runtime	= rm_aux.get<material_runtime_t>(mat_entry->runtime);
@@ -223,7 +223,7 @@ namespace sfg
 					continue;
 
 				const resource_entry_t* entry = rm.find_entry(mesh_renderer.mesh);
-				if (entry == nullptr)
+				if (entry == nullptr || entry->state != resource_state_e::ready)
 					continue;
 
 				const mesh_runtime_t*			mesh_runtime   = rm_aux.get<mesh_runtime_t>(entry->runtime);

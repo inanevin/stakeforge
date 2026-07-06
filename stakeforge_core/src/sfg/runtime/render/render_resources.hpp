@@ -130,6 +130,7 @@ namespace sfg
 		struct request_t
 		{
 			request_kind_e												  kind				= request_kind_e::create_resource;
+			sid_t														  hash				= 0;
 			resource_desc_t												  resource_desc		= {};
 			texture_desc_t												  texture_desc		= {};
 			sampler_desc_t												  sampler_desc		= {};

@@ -26,7 +26,6 @@ namespace sfg
 			runtime.index_data_size	 = 0;
 			runtime.vertex_count	 = 0;
 			runtime.index_count		 = 0;
-			runtime.vertex_stride	 = 0;
 		}
 
 		void free_mesh_cpu_data(chunk_allocator_t& mem, mesh_runtime_t& runtime)
@@ -192,6 +191,7 @@ namespace sfg
 		.wire_magic			 = mesh_loader_t::WIRE_MAGIC,
 		.wire_version		 = mesh_loader_t::WIRE_VERSION,
 		.use_async_load		 = false,
+		.use_render_pending	 = true,
 		.load				 = mesh_loader_t::load,
 		.unload				 = mesh_loader_t::unload,
 	};

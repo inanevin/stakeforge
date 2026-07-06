@@ -51,6 +51,7 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		flush_completed_loads();
+		flush_render_resource_completions();
 		SFG_ASSERT(_pending.load(std::memory_order_acquire) == 0);
 
 		for (auto& pair : _entries)
@@ -73,6 +74,7 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
 		flush_completed_loads();
+		flush_render_resource_completions();
 		flush_unloads();
 	}
 
@@ -136,6 +138,8 @@ namespace sfg
 					return it->second.state;
 				}
 
+				if (desc->use_render_pending && it->second.render_pending != 0)
+					it->second.state = resource_state_e::pending_render;
 				it->second.source_ticks = header.source_tick;
 				_generation++;
 				SFG_TRACE("reloaded resource: {0}", debug_name);
@@ -167,39 +171,41 @@ namespace sfg
 				deps[i] = header.dependencies[i];
 		}
 
-		if (!desc->load(entry, ctx, *_resource_file_system))
+		auto [entry_it, inserted] = _entries.emplace(hash, entry);
+		SFG_ASSERT(inserted);
+		resource_entry_t& loaded_entry = entry_it->second;
+
+		if (!desc->load(loaded_entry, ctx, *_resource_file_system))
 		{
 			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
-			free_entry(entry);
+			free_entry(loaded_entry);
+			_entries.erase(entry_it);
 			return resource_state_e::failed;
 		}
 
-		entry.state = desc->use_async_load ? resource_state_e::ready_preview : resource_state_e::ready;
-		_entries.emplace(hash, entry);
+		loaded_entry.state = desc->use_async_load ? resource_state_e::ready_preview : (desc->use_render_pending && loaded_entry.render_pending != 0 ? resource_state_e::pending_render : resource_state_e::ready);
 		_generation++;
 		if (desc->use_async_load)
 		{
 			if (bypass_async)
 			{
-				load_request_t request	= run_async_load(entry, *desc);
-				auto		   entry_it = _entries.find(hash);
-				SFG_ASSERT(entry_it != _entries.end());
+				load_request_t request = run_async_load(loaded_entry, *desc);
 				if (!request.success)
 				{
-					entry_it->second.state = resource_state_e::failed;
+					loaded_entry.state = resource_state_e::failed;
 					_generation++;
-					SFG_ERR("failed loading async resource: {0}", entry.hash);
+					SFG_ERR("failed loading async resource: {0}", loaded_entry.hash);
 				}
 				else
 				{
-					entry_it->second.state = resource_state_e::ready;
+					loaded_entry.state = desc->use_render_pending && loaded_entry.render_pending != 0 ? resource_state_e::pending_render : resource_state_e::ready;
 					_generation++;
 					SFG_TRACE("loaded async resource: {0}", debug_name);
 				}
 			}
 			else
 			{
-				enqueue_async_load(entry, *desc);
+				enqueue_async_load(loaded_entry, *desc);
 			}
 		}
 		else
@@ -223,7 +229,7 @@ namespace sfg
 		if (entry.ref_count != 0)
 			return;
 
-		if (entry.state == resource_state_e::ready_preview)
+		if (entry.state == resource_state_e::ready_preview || entry.state == resource_state_e::pending_render)
 		{
 			_unloads.push_back(hash);
 			_generation++;
@@ -261,6 +267,32 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		_glyph_atlas.drain_uploads(frame_slot);
+	}
+
+	void resource_manager_t::register_render_resource_request(sid_t hash)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		if (hash == 0)
+			return;
+
+		auto it = _entries.find(hash);
+		SFG_ASSERT(it != _entries.end());
+
+		resource_entry_t&			entry = it->second;
+		const resource_type_desc_t* desc  = find_resource_type_desc(entry.type);
+		SFG_ASSERT(desc != nullptr && desc->use_render_pending);
+		entry.render_pending++;
+		if (entry.state == resource_state_e::ready)
+			entry.state = resource_state_e::pending_render;
+		_generation++;
+	}
+
+	void resource_manager_t::enqueue_render_resource_completion(sid_t hash)
+	{
+		if (hash == 0)
+			return;
+
+		_render_completed.enqueue(hash);
 	}
 
 	void resource_manager_t::enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc)
@@ -312,9 +344,30 @@ namespace sfg
 				continue;
 			}
 
-			entry.state = resource_state_e::ready;
+			entry.state = desc->use_render_pending && entry.render_pending != 0 ? resource_state_e::pending_render : resource_state_e::ready;
 			_generation++;
 			SFG_TRACE("loaded async resource: {0}", _memory.get_text(entry.debug_name));
+		}
+	}
+
+	void resource_manager_t::flush_render_resource_completions()
+	{
+		sid_t hash = 0;
+		while (_render_completed.try_dequeue(hash))
+		{
+			auto it = _entries.find(hash);
+			if (it == _entries.end())
+				continue;
+
+			resource_entry_t& entry = it->second;
+			SFG_ASSERT(entry.render_pending != 0);
+			if (entry.render_pending == 0)
+				continue;
+
+			entry.render_pending--;
+			if (entry.render_pending == 0 && entry.state == resource_state_e::pending_render)
+				entry.state = resource_state_e::ready;
+			_generation++;
 		}
 	}
 
@@ -331,7 +384,7 @@ namespace sfg
 			}
 
 			resource_entry_t& entry = entry_it->second;
-			if (entry.state == resource_state_e::ready_preview)
+			if (entry.state == resource_state_e::ready_preview || entry.state == resource_state_e::pending_render)
 			{
 				++it;
 				continue;

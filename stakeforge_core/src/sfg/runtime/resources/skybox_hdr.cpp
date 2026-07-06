@@ -237,6 +237,7 @@ namespace sfg
 		.wire_magic			 = skybox_hdr_loader_t::WIRE_MAGIC,
 		.wire_version		 = skybox_hdr_loader_t::WIRE_VERSION,
 		.use_async_load		 = false,
+		.use_render_pending	 = true,
 		.load				 = skybox_hdr_loader_t::load,
 		.unload				 = skybox_hdr_loader_t::unload,
 	};
