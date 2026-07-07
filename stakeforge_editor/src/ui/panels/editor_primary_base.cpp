@@ -68,10 +68,6 @@ namespace sfg
 		{
 			none,
 			project_switch,
-			scene_new,
-			scene_save,
-			scene_save_as,
-			scene_load,
 			file_exit,
 			edit_undo,
 			edit_redo,
@@ -133,11 +129,6 @@ namespace sfg
 			{.text = "Project", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Switch Projects", .command = static_cast<u16>(editor_file_menu_commands_e::project_switch)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
-			{.text = "Scene", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::scene_new)},
-			{.text = "Save", .command = static_cast<u16>(editor_file_menu_commands_e::scene_save)},
-			{.text = "Save As", .command = static_cast<u16>(editor_file_menu_commands_e::scene_save_as)},
-			{.text = "Load", .command = static_cast<u16>(editor_file_menu_commands_e::scene_load)},
 			{.text = "Session", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Exit", .shortcut = "Alt+F4", .command = static_cast<u16>(editor_file_menu_commands_e::file_exit)},
 		};
@@ -288,11 +279,6 @@ namespace sfg
 			{
 			case editor_file_menu_commands_e::project_switch:
 				editor_app_t::get().request_switch_mode(editor_app_mode_e::project_creator);
-				break;
-			case editor_file_menu_commands_e::scene_new:
-			case editor_file_menu_commands_e::scene_save:
-			case editor_file_menu_commands_e::scene_save_as:
-			case editor_file_menu_commands_e::scene_load:
 				break;
 			case editor_file_menu_commands_e::file_exit:
 				editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);

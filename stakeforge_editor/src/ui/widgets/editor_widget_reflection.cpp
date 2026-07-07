@@ -273,7 +273,6 @@ namespace sfg
 		input_in.anchor_y			= ui::anchor_e::center;
 		input_in.pos_value.y		= 0.5f;
 		input_in.size_value			= {1.0f, editor_theme_t::get().item_height};
-		tree.draw_order(widget)		= tree.draw_order_const(tree.node(widget).parent) + 1;
 	}
 
 	void editor_widget_reflection_t::save_fold_states()
