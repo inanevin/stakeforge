@@ -363,7 +363,7 @@ namespace sfg
 		return !get_source_relative(assets_path, source_full_path).empty();
 	}
 
-	void editor_asset_util_t::fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies)
+	void editor_asset_util_t::fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies)
 	{
 		const auto push_dependency = [&](sid_t dependency) {
 			if (dependency != NULL_SID)

@@ -62,7 +62,7 @@ namespace sfg
 		static void			  set_cook_options_json(editor_asset_t& asset, const nlohmann::json& options);
 		static bool			  set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path);
 		static bool			  is_source_inside_assets(const char* assets_path, const char* source_full_path);
-		static void			  fetch_dependencies(const editor_asset_t& asset, frame_vector_t<sid_t>& out_dependencies);
+		static void			  fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies);
 		static sid_t		  generate_unique_asset_guid(span_t<const sid_t> pending_guids = {});
 		static sid_t		  try_read_existing_guid(const char* path);
 		static const char*	  find_asset_display_name(sid_t guid);

@@ -330,6 +330,7 @@ namespace sfg
 		}
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
+		_editor_work_executor = make_unique<tf::Executor>(EDITOR_WORK_EXECUTOR_THREADS);
 
 #if 0
 		editor_global_toolbar_t::get().init();
@@ -427,12 +428,15 @@ namespace sfg
 
 		if (_surfaces.empty())
 		{
+			_editor_work_executor->wait_for_all();
+			_editor_work_executor.reset();
 			_renderer.uninit();
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
 			_runtime.uninit();
 			engine_runtime_t::uninit_globals();
 			engine_runtime_t::uninit_backend();
+			frame_allocator_tls_t::uninit();
 			return false;
 		}
 
@@ -449,6 +453,7 @@ namespace sfg
 
 		_renderer.end_render();
 		resource_manager_t::get().flush();
+		_editor_work_executor->wait_for_all();
 		_renderer.uninit();
 		_editor_resource_pack.uninit();
 		_engine_resource_pack.uninit();
@@ -458,9 +463,8 @@ namespace sfg
 			editor_global_toolbar_t::get().uninit();
 			_world_controller.uninit();
 			_command_system.uninit();
-			_editor_work_executor->wait_for_all();
-			_editor_work_executor.reset();
 		}
+		_editor_work_executor.reset();
 		_surfaces.resize_zero();
 		_runtime.uninit();
 		engine_runtime_t::uninit_globals();
@@ -506,6 +510,22 @@ namespace sfg
 			   };
 
 			create_surface(pos, size, mode == editor_app_mode_e::splash ? editor_surface_type_e::splash : editor_surface_type_e::project_creator);
+
+			if (mode == editor_app_mode_e::splash)
+			{
+				editor_project_t& proj = editor_project_t::get();
+
+				_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
+
+				_asset_manager.ensure_project_assets_async();
+				_splash_progress_text_set = false;
+
+				// if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
+				// 	_world_controller.load_dummy_world();
+				// editor_settings_t::get().last_project_path = path;
+				// editor_settings_t::get().save();
+				// get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
+			}
 		}
 
 		_mode = mode;
@@ -617,26 +637,26 @@ namespace sfg
 
 	bool editor_app_t::load_project(const char* path)
 	{
-		SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
-		SFG_ASSERT(file_system_t::exists(path));
-
-		unload_current_project();
-
-		editor_project_t& proj = editor_project_t::get();
-		if (!proj.try_load(path))
-		{
-			return false;
-		}
-
-		_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
-
-		_asset_manager.ensure_project_assets();
-
-		if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
-			_world_controller.load_dummy_world();
-		editor_settings_t::get().last_project_path = path;
-		editor_settings_t::get().save();
-		get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
+		// SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
+		// SFG_ASSERT(file_system_t::exists(path));
+		//
+		// unload_current_project();
+		//
+		// editor_project_t& proj = editor_project_t::get();
+		// if (!proj.try_load(path))
+		// {
+		// 	return false;
+		// }
+		//
+		// _runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
+		//
+		// _asset_manager.ensure_project_assets_async();
+		//
+		// if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
+		// 	_world_controller.load_dummy_world();
+		// editor_settings_t::get().last_project_path = path;
+		// editor_settings_t::get().save();
+		// get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 		return true;
 	}
 
@@ -869,6 +889,24 @@ namespace sfg
 			{
 				ZoneScopedN("asset_manager_tick");
 				_asset_manager.tick();
+			}
+
+			if (_mode == editor_app_mode_e::splash)
+			{
+				const f32 progress = _asset_manager.is_ensure_project_assets_done() ? 1.0f : 0.0f;
+				for (editor_surface_t& surface : _surfaces)
+				{
+					if (surface.type != editor_surface_type_e::splash)
+						continue;
+
+					surface.splash->update_progress(progress);
+					if (!_splash_progress_text_set)
+					{
+						surface.splash->update_progress_text("Ensuring default assets");
+						_splash_progress_text_set = true;
+					}
+					break;
+				}
 			}
 
 			if (_mode == editor_app_mode_e::normal)

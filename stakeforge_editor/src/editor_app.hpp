@@ -128,12 +128,13 @@ namespace sfg
 		unique_t<tf::Executor>											_editor_work_executor;
 		editor_payload_controller_t										_payload_controller;
 		editor_modal_progress_bar_t										_debug_progress_modal;
-		i64																_last_tick_us			 = 0;
-		f32																_debug_modal_progress	 = 0.0f;
-		editor_app_mode_e												_pending_mode			 = editor_app_mode_e::none;
-		editor_app_mode_e												_mode					 = editor_app_mode_e::none;
-		u8																_atlas_upload_frame_slot = 0;
-		bool															_debug_mode				 = false;
-		bool															_close					 = false;
+		i64																_last_tick_us			  = 0;
+		f32																_debug_modal_progress	  = 0.0f;
+		editor_app_mode_e												_pending_mode			  = editor_app_mode_e::none;
+		editor_app_mode_e												_mode					  = editor_app_mode_e::none;
+		u8																_atlas_upload_frame_slot  = 0;
+		bool															_debug_mode				  = false;
+		bool															_splash_progress_text_set = false;
+		bool															_close					  = false;
 	};
 }

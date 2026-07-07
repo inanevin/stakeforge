@@ -81,6 +81,7 @@ namespace sfg
 		_import_status_pending.clear();
 		_import_status_visible.clear();
 		_asset_descriptors.clear();
+		_ensure_project_assets_done.store(false, std::memory_order_relaxed);
 		_imported_count.store(0, std::memory_order_relaxed);
 		_import_finished.store(false, std::memory_order_relaxed);
 		_import_status_dirty.store(false, std::memory_order_relaxed);
@@ -212,63 +213,65 @@ namespace sfg
 		_asset_descriptors[desc.asset_type] = desc;
 	}
 
-	void editor_asset_manager_t::ensure_project_assets()
+	void editor_asset_manager_t::ensure_project_assets_async()
 	{
-		const string_t& def_assets_path = editor_project_t::get()._runtime.default_assets_path;
-		const string_t& cache_path		= editor_project_t::get()._runtime.cache_path;
-		const string_t& assets_path		= editor_project_t::get()._runtime.assets_path;
+		const string_t def_assets_path = editor_project_t::get()._runtime.default_assets_path;
+		const string_t cache_path	   = editor_project_t::get()._runtime.cache_path;
+		const string_t assets_path	   = editor_project_t::get()._runtime.assets_path;
 		SFG_ASSERT(!def_assets_path.empty());
 		SFG_ASSERT(!cache_path.empty());
 		SFG_ASSERT(!assets_path.empty());
 
-		// default assets
-		if (!file_system_t::exists(def_assets_path.c_str()))
-			file_system_t::create_directory(def_assets_path.c_str());
-		editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
+		_ensure_project_assets_done.store(false, std::memory_order_release);
+		tf::Taskflow ensure_flow;
+		ensure_flow.emplace([this, def_assets_path, cache_path, assets_path]() {
+			if (!file_system_t::exists(def_assets_path.c_str()))
+				file_system_t::create_directory(def_assets_path.c_str());
+			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
+			rescan(assets_path.c_str());
 
-		rescan(assets_path.c_str());
-
-		// removes un-used .bins
-		{
-			SFG_ASSERT(!cache_path.empty());
-
-			vector_t<file_system_entry_t> entries;
-			file_system_t::get_entries_recursive(cache_path.c_str(), entries);
-			for (const file_system_entry_t& entry : entries)
 			{
-				if (entry.type != file_system_entry_type_e::file)
-					continue;
+				SFG_ASSERT(!cache_path.empty());
 
-				const string_t guid_text = file_system_t::get_filename_from_path(entry.path);
-				u64			   guid		 = 0;
-				string_util::to_big_uint(guid_text, guid);
+				vector_t<file_system_entry_t> entries;
+				file_system_t::get_entries_recursive(cache_path.c_str(), entries);
+				for (const file_system_entry_t& entry : entries)
+				{
+					if (entry.type != file_system_entry_type_e::file)
+						continue;
 
-				if (find_asset(guid) != nullptr)
-					continue;
+					const string_t guid_text = file_system_t::get_filename_from_path(entry.path);
+					u64			   guid		 = 0;
+					string_util::to_big_uint(guid_text, guid);
 
-				if (file_system_t::delete_file(entry.path.c_str()))
-					SFG_ERR("failed deleting orphaned cache file {0}", entry.path.c_str());
+					if (find_asset(guid) != nullptr)
+						continue;
+
+					if (file_system_t::delete_file(entry.path.c_str()))
+						SFG_ERR("failed deleting orphaned cache file {0}", entry.path.c_str());
+				}
 			}
-		}
 
-		// cook all uncooked.
-		{
-			for (auto& asset_pair : _assets)
 			{
-				editor_asset_t& asset = asset_pair.second;
-				SFG_ASSERT(_asset_descriptors.find(asset.asset_type) != _asset_descriptors.end());
-				if (asset.status != editor_asset_status_e::ok)
-					continue;
-				if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
-					continue;
+				for (auto& asset_pair : _assets)
+				{
+					editor_asset_t& asset = asset_pair.second;
+					SFG_ASSERT(_asset_descriptors.find(asset.asset_type) != _asset_descriptors.end());
+					if (asset.status != editor_asset_status_e::ok)
+						continue;
+					if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
+						continue;
 
-				if (editor_asset_cooker_t::is_asset_cooked(asset))
-					continue;
+					if (editor_asset_cooker_t::is_asset_cooked(asset))
+						continue;
 
-				if (!editor_asset_cooker_t::cook_asset(asset))
-					SFG_ERR("failed cooking asset {0}", asset.guid);
+					if (!editor_asset_cooker_t::cook_asset(asset))
+						SFG_ERR("failed cooking asset {0}", asset.guid);
+				}
 			}
-		}
+			_ensure_project_assets_done.store(true, std::memory_order_release);
+		});
+		editor_app_t::get().get_editor_work_executor().run(std::move(ensure_flow));
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const
@@ -319,7 +322,7 @@ namespace sfg
 				}
 			}
 
-			frame_vector_t<sid_t> dependencies;
+			vector_t<sid_t> dependencies;
 			editor_asset_util_t::fetch_dependencies(asset, dependencies);
 			for (const sid_t dependency : dependencies)
 			{

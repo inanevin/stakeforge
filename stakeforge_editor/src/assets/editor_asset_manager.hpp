@@ -67,7 +67,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void register_descriptor(const editor_asset_descriptor_t& desc);
-		void ensure_project_assets();
+		void ensure_project_assets_async();
 		void cook_assets(span_t<editor_asset_t*> assets);
 		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
 		void set_import_status(const char* text);
@@ -109,6 +109,11 @@ namespace sfg
 			return _generation;
 		}
 
+		inline bool is_ensure_project_assets_done() const
+		{
+			return _ensure_project_assets_done.load(std::memory_order_acquire);
+		}
+
 		static inline editor_asset_manager_t& get()
 		{
 			SFG_ASSERT(s_instance != nullptr);
@@ -130,9 +135,10 @@ namespace sfg
 		string_t												   _import_status_pending;
 		string_t												   _import_status_visible;
 		mutex_t													   _import_status_mtx;
-		atomic_t<u32>											   _imported_count		= 0;
-		atomic_t<bool>											   _import_finished		= false;
-		atomic_t<bool>											   _import_status_dirty = false;
+		atomic_t<bool>											   _ensure_project_assets_done = false;
+		atomic_t<u32>											   _imported_count			   = 0;
+		atomic_t<bool>											   _import_finished			   = false;
+		atomic_t<bool>											   _import_status_dirty		   = false;
 		editor_asset_node_handle_t								   _import_directory_node;
 		editor_asset_node_handle_t								   _root_node;
 		u32														   _generation		   = 0;
