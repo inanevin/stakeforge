@@ -70,8 +70,6 @@ namespace sfg
 		void stop_render();
 
 		void destroy_surface(surface_handle_t handle);
-		bool create_project(const char* path);
-		bool load_project(const char* path);
 		void save_layout();
 		void apply_default_layout();
 		void switch_mode(editor_app_mode_e mode);
@@ -107,8 +105,10 @@ namespace sfg
 
 		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
 		void			  load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar);
-		void			  unload_current_project();
 		bool			  is_any_modal_active() const;
+		bool			  init_normal_mode();
+		void			  uninit_normal_mode();
+		void			  destroy_all_surfaces();
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  get_surface_handle_by_runtime(window_runtime_t& runtime);
 		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);

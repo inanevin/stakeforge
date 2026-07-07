@@ -332,86 +332,6 @@ namespace sfg
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 		_editor_work_executor = make_unique<tf::Executor>(EDITOR_WORK_EXECUTOR_THREADS);
 
-#if 0
-		editor_global_toolbar_t::get().init();
-		/* payload window & layout/surface initing */
-
-		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
-		if (payload_surface.is_null())
-			return false;
-		_payload_controller.init(_surfaces.get(payload_surface));
-		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
-
-		_command_system.init();
-		_world_controller.init();
-
-		const editor_layout_t& layout = editor_settings_t::get().layout;
-		if (layout.windows.empty())
-		{
-			const editor_layout_window_t window = {};
-			const vec2u16_t				 size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
-			const surface_handle_t		 handle = create_surface(window.pos, size, editor_surface_type_e::primary);
-			if (handle.is_null())
-				return false;
-			process::set_window_maximized(_surfaces.get(handle).runtime->window_handle, window.maximized);
-			editor_layout_t::load_surface_default_layout(_surfaces.get(handle));
-		}
-		else
-		{
-			const editor_layout_window_t* primary_window = nullptr;
-			for (const editor_layout_window_t& window : layout.windows)
-			{
-				if (window.is_primary)
-				{
-					primary_window = &window;
-					break;
-				}
-			}
-
-			SFG_ASSERT(primary_window != nullptr);
-			if (primary_window == nullptr)
-				return false;
-
-			const vec2u16_t		   primary_size	  = (primary_window->size.x == 0 || primary_window->size.y == 0) ? vec2u16_t{1920, 1080} : primary_window->size;
-			const surface_handle_t primary_handle = create_surface(primary_window->pos, primary_size, editor_surface_type_e::primary);
-			process::set_window_maximized(_surfaces.get(primary_handle).runtime->window_handle, primary_window->maximized);
-			load_surface_dock_layout(_surfaces.get(primary_handle), primary_window->dock_layout);
-			load_primary_main_toolbar(_surfaces.get(primary_handle), primary_window->main_toolbar);
-
-			for (const editor_layout_window_t& window : layout.windows)
-			{
-				if (&window == primary_window)
-					continue;
-
-				const vec2u16_t		   secondary_size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
-				const surface_handle_t secondary_handle = create_surface(window.pos, secondary_size, editor_surface_type_e::secondary);
-				process::set_window_maximized(_surfaces.get(secondary_handle).runtime->window_handle, window.maximized);
-				load_surface_dock_layout(_surfaces.get(secondary_handle), window.dock_layout);
-			}
-		}
-
-		if (_surfaces.empty())
-		{
-			_renderer.uninit();
-			_editor_resource_pack.uninit();
-			_engine_resource_pack.uninit();
-			_world_controller.uninit();
-			_runtime.uninit();
-			engine_runtime_t::uninit_globals();
-			engine_runtime_t::uninit_backend();
-			return false;
-		}
-
-		_last_tick_us = time_t::get_cpu_microseconds();
-
-		_editor_work_executor = make_unique<tf::Executor>(EDITOR_WORK_EXECUTOR_THREADS);
-
-		_close = false;
-
-		tick();
-		return true;
-#endif
-
 		const string_t& last_project = editor_settings_t::get().last_project_path;
 		if (!last_project.empty() && file_system_t::exists(last_project.c_str()))
 		{
@@ -459,11 +379,7 @@ namespace sfg
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
 		if (_mode == editor_app_mode_e::normal)
-		{
-			editor_global_toolbar_t::get().uninit();
-			_world_controller.uninit();
-			_command_system.uninit();
-		}
+			uninit_normal_mode();
 		_editor_work_executor.reset();
 		_surfaces.resize_zero();
 		_runtime.uninit();
@@ -478,24 +394,152 @@ namespace sfg
 		_renderer.end_render();
 	}
 
-	void editor_app_t::switch_mode(editor_app_mode_e mode)
+	bool editor_app_t::init_normal_mode()
 	{
-		if (_mode == mode)
-			return;
+		SFG_ASSERT(_surfaces.empty());
 
+		editor_global_toolbar_t::get().init();
+
+		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
+		if (payload_surface.is_null())
+		{
+			editor_global_toolbar_t::get().uninit();
+			return false;
+		}
+		_payload_controller.init(_surfaces.get(payload_surface));
+		_payload_controller.set_unhandled_listener(on_payload_unhandled, this);
+
+		_command_system.init();
+		_world_controller.init();
+
+		const auto cleanup = [this]() {
+			destroy_all_surfaces();
+			_world_controller.uninit();
+			_command_system.uninit();
+			editor_global_toolbar_t::get().uninit();
+		};
+
+		const editor_layout_t& layout = editor_settings_t::get().layout;
+		if (layout.windows.empty())
+		{
+			const editor_layout_window_t window = {};
+			const vec2u16_t				 size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
+			const surface_handle_t		 handle = create_surface(window.pos, size, editor_surface_type_e::primary);
+			if (handle.is_null())
+			{
+				cleanup();
+				return false;
+			}
+			process::set_window_maximized(_surfaces.get(handle).runtime->window_handle, window.maximized);
+			editor_layout_t::load_surface_default_layout(_surfaces.get(handle));
+		}
+		else
+		{
+			const editor_layout_window_t* primary_window = nullptr;
+			for (const editor_layout_window_t& window : layout.windows)
+			{
+				if (window.is_primary)
+				{
+					primary_window = &window;
+					break;
+				}
+			}
+
+			SFG_ASSERT(primary_window != nullptr);
+			if (primary_window == nullptr)
+			{
+				cleanup();
+				return false;
+			}
+
+			const vec2u16_t		   primary_size	  = (primary_window->size.x == 0 || primary_window->size.y == 0) ? vec2u16_t{1920, 1080} : primary_window->size;
+			const surface_handle_t primary_handle = create_surface(primary_window->pos, primary_size, editor_surface_type_e::primary);
+			if (primary_handle.is_null())
+			{
+				cleanup();
+				return false;
+			}
+			process::set_window_maximized(_surfaces.get(primary_handle).runtime->window_handle, primary_window->maximized);
+			load_surface_dock_layout(_surfaces.get(primary_handle), primary_window->dock_layout);
+			load_primary_main_toolbar(_surfaces.get(primary_handle), primary_window->main_toolbar);
+
+			for (const editor_layout_window_t& window : layout.windows)
+			{
+				if (&window == primary_window)
+					continue;
+
+				const vec2u16_t		   secondary_size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
+				const surface_handle_t secondary_handle = create_surface(window.pos, secondary_size, editor_surface_type_e::secondary);
+				if (secondary_handle.is_null())
+				{
+					cleanup();
+					return false;
+				}
+				process::set_window_maximized(_surfaces.get(secondary_handle).runtime->window_handle, window.maximized);
+				load_surface_dock_layout(_surfaces.get(secondary_handle), window.dock_layout);
+			}
+		}
+
+		editor_project_t& proj = editor_project_t::get();
+		get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
+
+		if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
+			_world_controller.load_dummy_world();
+
+		return true;
+	}
+
+	void editor_app_t::uninit_normal_mode()
+	{
+		_world_controller.uninit();
+		_command_system.uninit();
+		editor_global_toolbar_t::get().uninit();
+	}
+
+	void editor_app_t::destroy_all_surfaces()
+	{
 		frame_vector_t<surface_handle_t> destroy_handles;
+		frame_vector_t<surface_handle_t> payload_handles;
 		for (u16 i = 0; i < _surfaces.head(); ++i)
 		{
 			if (!_surfaces.is_active(i))
 				continue;
 
-			destroy_handles.push_back(_surfaces.get_handle(i));
+			const surface_handle_t	handle	= _surfaces.get_handle(i);
+			const editor_surface_t& surface = _surfaces.get(handle);
+			if (surface.type == editor_surface_type_e::payload)
+				payload_handles.push_back(handle);
+			else
+				destroy_handles.push_back(handle);
 		}
 
 		for (surface_handle_t handle : destroy_handles)
 			destroy_surface(handle);
 
-		if (mode == editor_app_mode_e::splash || mode == editor_app_mode_e::project_creator)
+		for (surface_handle_t handle : payload_handles)
+			destroy_surface(handle);
+	}
+
+	void editor_app_t::switch_mode(editor_app_mode_e mode)
+	{
+		if (_mode == mode)
+			return;
+
+		destroy_all_surfaces();
+
+		if (_mode == editor_app_mode_e::normal)
+			uninit_normal_mode();
+
+		if (mode == editor_app_mode_e::normal)
+		{
+			if (!init_normal_mode())
+			{
+				_close = true;
+				_mode  = editor_app_mode_e::none;
+				return;
+			}
+		}
+		else if (mode == editor_app_mode_e::splash || mode == editor_app_mode_e::project_creator)
 		{
 			vector_t<monitor_info_t> monitors;
 			process::get_all_monitors(monitors);
@@ -604,16 +648,6 @@ namespace sfg
 		dock.dock_node_add_panel(leaf, panel);
 	}
 
-	void editor_app_t::unload_current_project()
-	{
-		_renderer.end_render();
-		if (!_world_controller.get_main_world().is_null())
-			_world_controller.get_main_edit_context().clear();
-		_command_system.clear();
-		_asset_manager.clear();
-		_world_controller.destroy_worlds();
-	}
-
 	bool editor_app_t::is_any_modal_active() const
 	{
 		for (const editor_surface_t& surface : _surfaces)
@@ -622,42 +656,6 @@ namespace sfg
 				return true;
 		}
 		return false;
-	}
-
-	bool editor_app_t::create_project(const char* path)
-	{
-		SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
-
-		editor_project_t project = editor_project_t::make_default_project(path);
-		if (!project.save(path))
-			return false;
-
-		return load_project(path);
-	}
-
-	bool editor_app_t::load_project(const char* path)
-	{
-		// SFG_ASSERT(file_system_t::get_file_extension(path) == "sfg_project");
-		// SFG_ASSERT(file_system_t::exists(path));
-		//
-		// unload_current_project();
-		//
-		// editor_project_t& proj = editor_project_t::get();
-		// if (!proj.try_load(path))
-		// {
-		// 	return false;
-		// }
-		//
-		// _runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
-		//
-		// _asset_manager.ensure_project_assets_async();
-		//
-		// if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
-		// 	_world_controller.load_dummy_world();
-		// editor_settings_t::get().last_project_path = path;
-		// editor_settings_t::get().save();
-		// get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
-		return true;
 	}
 
 	void editor_app_t::save_layout()
@@ -893,7 +891,8 @@ namespace sfg
 
 			if (_mode == editor_app_mode_e::splash)
 			{
-				const f32 progress = _asset_manager.is_ensure_project_assets_done() ? 1.0f : 0.0f;
+				const bool done		= _asset_manager.is_ensure_project_assets_done();
+				const f32  progress = done ? 1.0f : 0.0f;
 				for (editor_surface_t& surface : _surfaces)
 				{
 					if (surface.type != editor_surface_type_e::splash)
@@ -907,6 +906,9 @@ namespace sfg
 					}
 					break;
 				}
+
+				if (done)
+					switch_mode(editor_app_mode_e::normal);
 			}
 
 			if (_mode == editor_app_mode_e::normal)

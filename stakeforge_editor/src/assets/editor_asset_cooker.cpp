@@ -92,6 +92,11 @@ namespace sfg
 				resolved_asset_name = resolve_asset_name(asset_name);
 			SFG_ASSERT(!resolved_asset_name.empty());
 			header.set_debug_name(resolved_asset_name.c_str());
+			if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
+			{
+				const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+				header.file_source_ticks		= file_system_t::get_last_modified_ticks(source_full_path.c_str());
+			}
 
 			ostream_t stream = header.make_stream(payload);
 			if (!serializer_t::save_to_file(cache_path.c_str(), stream))
@@ -177,7 +182,14 @@ namespace sfg
 
 		resource_header_t header = {};
 		header.deserialize(stream);
-		return header.magic == resource_desc->wire_magic && header.version == resource_desc->wire_version;
+		if (header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
+			return false;
+		if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
+		{
+			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+			return header.file_source_ticks == file_system_t::get_last_modified_ticks(source_full_path.c_str());
+		}
+		return true;
 	}
 
 	bool editor_asset_cooker_t::cook_audio(const editor_asset_t& asset, const char* asset_name)

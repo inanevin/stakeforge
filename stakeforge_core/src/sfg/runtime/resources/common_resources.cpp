@@ -32,6 +32,7 @@ namespace sfg
 		stream.write_raw(reinterpret_cast<const u8*>(debug_name), sizeof(debug_name));
 		stream << magic << version;
 		stream << source_tick;
+		stream << file_source_ticks;
 		stream << dependency_count;
 		for (u32 i = 0; i < MAX_DEPENDENCIES; i++)
 			stream << dependencies[i];
@@ -42,6 +43,7 @@ namespace sfg
 		stream.read_to_raw(reinterpret_cast<u8*>(debug_name), sizeof(debug_name));
 		stream >> magic >> version;
 		stream >> source_tick;
+		stream >> file_source_ticks;
 		stream >> dependency_count;
 		for (u32 i = 0; i < MAX_DEPENDENCIES; i++)
 			stream >> dependencies[i];

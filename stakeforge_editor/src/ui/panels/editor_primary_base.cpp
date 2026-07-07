@@ -33,7 +33,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_draws.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "editor_app.hpp"
-#include "editor_project.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/platform/common_window.hpp>
@@ -68,10 +67,7 @@ namespace sfg
 		enum class editor_file_menu_commands_e : u16
 		{
 			none,
-			project_new,
-			project_load,
-			project_save,
-			project_save_as,
+			project_switch,
 			scene_new,
 			scene_save,
 			scene_save_as,
@@ -135,10 +131,7 @@ namespace sfg
 
 		const editor_action_menu_row_desc_t FILE_ROWS[] = {
 			{.text = "Project", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::project_new)},
-			{.text = "Load", .shortcut = "Ctrl+O", .command = static_cast<u16>(editor_file_menu_commands_e::project_load)},
-			{.text = "Save", .shortcut = "Ctrl+S", .command = static_cast<u16>(editor_file_menu_commands_e::project_save)},
-			{.text = "Save As", .command = static_cast<u16>(editor_file_menu_commands_e::project_save_as)},
+			{.text = "Switch Projects", .command = static_cast<u16>(editor_file_menu_commands_e::project_switch)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
 			{.text = "Scene", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "New", .command = static_cast<u16>(editor_file_menu_commands_e::scene_new)},
@@ -282,52 +275,8 @@ namespace sfg
 			editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
 		}
 
-		editor_modal_controller_t& modal_controller_for(editor_primary_base_t& base)
-		{
-			editor_modal_controller_t* modal = editor_modal_controller_t::find(base.get_ui());
-			SFG_ASSERT(modal != nullptr);
-			return *modal;
-		}
-
-		void request_error_modal(editor_primary_base_t& base, const char* title, const char* description)
-		{
-			editor_modal_button_desc_t buttons[] = {
-				{.text = "Ok"},
-			};
-			modal_controller_for(base).request_modal(title, description, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::error);
-		}
-
-		void open_project_from_dialog(editor_primary_base_t& base)
-		{
-			const string_t path = process::select_file("Open Project", "sfg_project");
-			if (path.empty())
-				return;
-			if (!editor_app_t::get().load_project(path.c_str()))
-				request_error_modal(base, "Failed Loading Project", "Selected file could not be loaded as a Stakeforge project.");
-		}
-
-		void create_project_from_dialog(editor_primary_base_t& base)
-		{
-			const string_t path = process::save_file("Create Project", "sfg_project");
-			if (path.empty())
-				return;
-			if (!editor_app_t::get().create_project(path.c_str()))
-				request_error_modal(base, "Failed Creating Project", "New project could not be created.");
-		}
-
-		void save_project_as_from_dialog(editor_primary_base_t& base)
-		{
-			const string_t path = process::save_file("Save Project As", "sfg_project");
-			if (path.empty())
-				return;
-			if (!editor_project_t::get().save(path.c_str()))
-				request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
-		}
-
 		void on_file_menu_command(u16 command, void* user_data)
 		{
-			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
-
 			if (command >= PANEL_MENU_COMMAND_BASE && command < panel_menu_command(editor_panel_type_e::max))
 			{
 				const editor_panel_type_e type = static_cast<editor_panel_type_e>(command - PANEL_MENU_COMMAND_BASE);
@@ -337,18 +286,8 @@ namespace sfg
 
 			switch (static_cast<editor_file_menu_commands_e>(command))
 			{
-			case editor_file_menu_commands_e::project_new:
-				create_project_from_dialog(base);
-				break;
-			case editor_file_menu_commands_e::project_load:
-				open_project_from_dialog(base);
-				break;
-			case editor_file_menu_commands_e::project_save:
-				if (!editor_project_t::get().save(editor_project_t::get()._runtime.path.c_str()))
-					request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
-				break;
-			case editor_file_menu_commands_e::project_save_as:
-				save_project_as_from_dialog(base);
+			case editor_file_menu_commands_e::project_switch:
+				editor_app_t::get().request_switch_mode(editor_app_mode_e::project_creator);
 				break;
 			case editor_file_menu_commands_e::scene_new:
 			case editor_file_menu_commands_e::scene_save:

@@ -42,10 +42,11 @@ namespace sfg
 	{
 		char				  debug_name[MAX_DEBUG_NAME_SIZE] = {};
 		resource_dependency_t dependencies[MAX_DEPENDENCIES];
-		u32					  magic			   = 0;
-		u32					  version		   = 0;
-		u32					  dependency_count = 0;
-		u64					  source_tick	   = 0;
+		u32					  magic				= 0;
+		u32					  version			= 0;
+		u32					  dependency_count	= 0;
+		u64					  source_tick		= 0;
+		u64					  file_source_ticks = 0;
 
 		void	  set_debug_name(const char* name);
 		void	  set_debug_name_from_path(const char* full_path);
