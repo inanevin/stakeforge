@@ -80,6 +80,7 @@ namespace sfg
 		void uninit();
 		void select_all();
 		void set_visible(bool visible);
+		void set_text(const char* text);
 		void update_field_data(editor_input_field_field_t field);
 		void refresh_field_data();
 

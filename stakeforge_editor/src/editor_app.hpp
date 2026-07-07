@@ -42,6 +42,14 @@ namespace sfg
 {
 	class editor_panel_t;
 
+	enum class editor_app_mode_e : u8
+	{
+		none,
+		normal,
+		splash,
+		project_creator,
+	};
+
 	class editor_app_t
 	{
 	public:
@@ -66,6 +74,8 @@ namespace sfg
 		bool load_project(const char* path);
 		void save_layout();
 		void apply_default_layout();
+		void switch_mode(editor_app_mode_e mode);
+		void request_switch_mode(editor_app_mode_e mode);
 		void set_debug_mode(bool enabled);
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
@@ -120,6 +130,8 @@ namespace sfg
 		editor_modal_progress_bar_t										_debug_progress_modal;
 		i64																_last_tick_us			 = 0;
 		f32																_debug_modal_progress	 = 0.0f;
+		editor_app_mode_e												_pending_mode			 = editor_app_mode_e::none;
+		editor_app_mode_e												_mode					 = editor_app_mode_e::none;
 		u8																_atlas_upload_frame_slot = 0;
 		bool															_debug_mode				 = false;
 		bool															_close					 = false;

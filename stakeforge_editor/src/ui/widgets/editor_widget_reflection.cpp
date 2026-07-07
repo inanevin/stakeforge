@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -264,13 +265,15 @@ namespace sfg
 
 	void editor_widget_reflection_t::fit_control(ui::widget_id_t widget)
 	{
-		ui::layout_in_t& input_in = _ui->get_tree().in(widget);
-		input_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-		input_in.size_mode_y	  = ui::axis_mode_e::fixed;
-		input_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		input_in.anchor_y		  = ui::anchor_e::center;
-		input_in.pos_value.y	  = 0.5f;
-		input_in.size_value		  = {1.0f, editor_theme_t::get().item_height};
+		ui::layout_tree_t& tree		= _ui->get_tree();
+		ui::layout_in_t&   input_in = tree.in(widget);
+		input_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		input_in.size_mode_y		= ui::axis_mode_e::fixed;
+		input_in.pos_mode_y			= ui::pos_mode_e::relative_in_parent;
+		input_in.anchor_y			= ui::anchor_e::center;
+		input_in.pos_value.y		= 0.5f;
+		input_in.size_value			= {1.0f, editor_theme_t::get().item_height};
+		tree.draw_order(widget)		= tree.draw_order_const(tree.node(widget).parent) + 1;
 	}
 
 	void editor_widget_reflection_t::save_fold_states()
@@ -389,6 +392,8 @@ namespace sfg
 						.max_value	 = max_value,
 					});
 		fit_control(input->get_root());
+		if (field->value_type == reflected_value_type_e::string && (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY || field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_PATH))
+			install_path_picker_button(row.right, input, field->sub_type_id);
 		if (removable_item)
 			install_sub_item_button(row.right, input->get_root(), container_data, element_index);
 		_inputs.push_back(input);
@@ -834,6 +839,16 @@ namespace sfg
 			}
 			++i;
 		}
+		for (size_t i = 0; i < _path_picker_user_data.size();)
+		{
+			if (is_child_widget(_path_picker_user_data[i]->button, parent))
+			{
+				delete _path_picker_user_data[i];
+				_path_picker_user_data.erase(_path_picker_user_data.begin() + i);
+				continue;
+			}
+			++i;
+		}
 		for (size_t i = 0; i < _inputs.size();)
 		{
 			if (is_child_widget(_inputs[i]->get_root(), parent))
@@ -996,6 +1011,32 @@ namespace sfg
 		_ui->get_input().set_listener(button, remove_listener);
 	}
 
+	void editor_widget_reflection_t::install_path_picker_button(ui::widget_id_t parent, editor_input_field_t* input, sid_t sub_type_id)
+	{
+		ui::layout_tree_t&	  tree	= _ui->get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		ui::layout_in_t& input_in = tree.in(input->get_root());
+		input_in.size_mode_x	  = ui::axis_mode_e::fill;
+		input_in.size_value.x	  = 1.0f;
+
+		const ui::widget_id_t button				   = editor_icon_widgets_t::add_naked_icon_button(*_ui, parent, ICON_FOLDER, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
+		tree.draw_order(button)						   = tree.draw_order_const(parent) + 1;
+		tree.draw_order(tree.node(button).first_child) = tree.draw_order_const(button);
+		install_tooltip(button, sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY ? "Select Directory" : "Select File");
+
+		path_picker_user_data_t* data = new path_picker_user_data_t();
+		data->input					  = input;
+		data->sub_type_id			  = sub_type_id;
+		data->button				  = button;
+		_path_picker_user_data.push_back(data);
+
+		ui::listener_bundle_t listener = {};
+		listener.user_data			   = data;
+		listener.on_click			   = on_path_picker;
+		_ui->get_input().set_listener(button, listener);
+	}
+
 	void editor_widget_reflection_t::on_container_add(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
@@ -1046,6 +1087,19 @@ namespace sfg
 		container_data.reflection->request_container_refresh(container_data);
 		if (container_data.reflection->_callbacks.edit_submitted != nullptr)
 			container_data.reflection->_callbacks.edit_submitted(container_data.reflection->_callbacks.user_data);
+	}
+
+	void editor_widget_reflection_t::on_path_picker(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		path_picker_user_data_t& data = *static_cast<path_picker_user_data_t*>(user_data);
+		const string_t			 path = data.sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY ? process::select_folder("Select Directory") : process::select_file("Select File", "");
+		if (path.empty())
+			return;
+
+		data.input->set_text(path.c_str());
 	}
 
 	void editor_widget_reflection_t::on_container_refresh(ui::ui_context&, void* user_data)
@@ -1147,6 +1201,8 @@ namespace sfg
 		}
 		for (container_element_user_data_t* data : _container_element_user_data)
 			delete data;
+		for (path_picker_user_data_t* data : _path_picker_user_data)
+			delete data;
 
 		_inputs.resize(0);
 		_checkboxes.resize(0);
@@ -1160,6 +1216,7 @@ namespace sfg
 		_references.resize(0);
 		_container_user_data.resize(0);
 		_container_element_user_data.resize(0);
+		_path_picker_user_data.resize(0);
 		_field_folds.resize(0);
 		_dividers.resize(0);
 		_rows.resize(0);

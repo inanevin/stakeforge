@@ -108,6 +108,13 @@ namespace sfg
 			u32					   element_index  = 0;
 		};
 
+		struct path_picker_user_data_t
+		{
+			editor_input_field_t* input		  = nullptr;
+			sid_t				  sub_type_id = 0;
+			ui::widget_id_t		  button	  = NULL_WIDGET;
+		};
+
 		struct field_fold_t
 		{
 			editor_widget_fold_label_t* fold	 = nullptr;
@@ -159,12 +166,14 @@ namespace sfg
 		bool						   is_child_widget(ui::widget_id_t widget, ui::widget_id_t parent) const;
 		ui::widget_id_t				   install_sub_item_button(ui::widget_id_t parent, ui::widget_id_t control = NULL_WIDGET, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		void						   install_container_element_remove_listener(ui::widget_id_t button, container_user_data_t* container_data, u32 element_index);
+		void						   install_path_picker_button(ui::widget_id_t parent, editor_input_field_t* input, sid_t sub_type_id);
 		void						   install_tooltip(ui::widget_id_t owner, const char* text);
 		void						   clear_tooltips();
 
 		static void on_container_add(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_container_reset(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_container_element_remove(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_path_picker(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_container_refresh(ui::ui_context& ui, void* user_data);
 
 	private:
@@ -181,6 +190,7 @@ namespace sfg
 		vector_t<editor_widget_reference_t*>			 _references;
 		vector_t<container_user_data_t*>				 _container_user_data;
 		vector_t<container_element_user_data_t*>		 _container_element_user_data;
+		vector_t<path_picker_user_data_t*>				 _path_picker_user_data;
 		vector_t<field_fold_t>							 _field_folds;
 		vector_t<ui::widget_id_t>						 _dividers;
 		vector_t<ui::widget_id_t>						 _rows;

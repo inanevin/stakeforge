@@ -66,6 +66,11 @@ namespace sfg
 		ui::widget_id_t close_icon	   = NULL_WIDGET;
 	};
 
+	struct editor_window_buttons_config_t
+	{
+		bool only_close = false;
+	};
+
 	class editor_misc_widgets_t final
 	{
 	public:
@@ -73,7 +78,14 @@ namespace sfg
 		static editor_property_row_t		make_property_row(ui::ui_context& ui, ui::widget_id_t parent, f32 indentation = 0.0f);
 		static editor_property_row_t		make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, bool sub_item = false, bool remove_button = false, f32 indentation = 0.0f);
 		static editor_vector_property_row_t make_vector_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, u32 item_count = 0, bool unfolded = false, bool sub_item = false, f32 indentation = 0.0f);
-		static editor_window_buttons_t		add_window_buttons(
-				 ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& frame_color, const vec4f_t& alternative_frame_color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& icon_color, f32 icon_point_size);
+		static editor_window_buttons_t		add_window_buttons(ui::ui_context&						 ui,
+															   ui::widget_id_t						 parent,
+															   const vec4f_t&						 frame_color,
+															   const vec4f_t&						 alternative_frame_color,
+															   const vec4f_t&						 hover_color,
+															   const vec4f_t&						 press_color,
+															   const vec4f_t&						 icon_color,
+															   f32									 icon_point_size,
+															   const editor_window_buttons_config_t& config = {});
 	};
 }

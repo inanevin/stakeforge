@@ -377,7 +377,7 @@ namespace sfg
 		}
 	}
 
-	void editor_primary_base_t::init(ui::ui_context& ui, window_runtime_t& runtime)
+	void editor_primary_base_t::init(ui::ui_context& ui, ui::widget_id_t parent, window_runtime_t& runtime)
 	{
 		_ui													 = &ui;
 		const editor_theme_t& theme							 = editor_theme_t::get();
@@ -409,7 +409,7 @@ namespace sfg
 		{
 			_base = ui.allocate_widget();
 			ui.set_widget_debug_name(_base, "base");
-			tree.attach(ui.get_root(), _base);
+			tree.attach(parent, _base);
 
 			ui::layout_in_t& in = tree.in(_base);
 			in.flags			= ui::wf_visible;
@@ -740,34 +740,4 @@ namespace sfg
 		return p.x >= label.x && p.x <= label.x + label.z && p.y >= label.y && p.y <= label.y + label.w;
 	}
 
-	void editor_primary_base_t::prompt_no_project_modal()
-	{
-		editor_modal_button_desc_t buttons[] = {
-			{.text = "Open", .callback = on_no_project_open, .user_data = this},
-			{.text = "Create", .callback = on_no_project_create, .user_data = this},
-		};
-		modal_controller_for(*this).request_modal("No Project", "No last project found. Open an existing project or create a new one.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
-	}
-
-	void editor_primary_base_t::on_no_project_open(void* user_data)
-	{
-		editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
-		const string_t		   path = process::select_file("Open Project", "sfg_project");
-		if (!editor_app_t::get().load_project(path.c_str()))
-			base.prompt_no_project_modal();
-	}
-
-	void editor_primary_base_t::on_no_project_create(void* user_data)
-	{
-		editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
-		const string_t		   path = process::save_file("Create Project", "sfg_project");
-		if (path.empty())
-		{
-			base.prompt_no_project_modal();
-			return;
-		}
-
-		if (!editor_app_t::get().create_project(path.c_str()))
-			base.prompt_no_project_modal();
-	}
 }

@@ -37,7 +37,10 @@ namespace sfg
 	class editor_modal_controller_t;
 	class editor_popup_controller_t;
 	class editor_primary_base_t;
+	class editor_widget_project_creator_t;
+	class editor_widget_window_frame_t;
 	class editor_secondary_base_t;
+	class editor_splash_screen_t;
 	class editor_tooltip_controller_t;
 	struct window_runtime_t;
 	namespace ui
@@ -50,6 +53,8 @@ namespace sfg
 		primary,
 		secondary,
 		payload,
+		splash,
+		project_creator,
 	};
 
 	struct editor_surface_t
@@ -63,14 +68,19 @@ namespace sfg
 
 		unique_t<editor_primary_base_t>			  primary;
 		unique_t<editor_secondary_base_t>		  secondary;
+		unique_t<editor_splash_screen_t>		  splash;
+		unique_t<editor_widget_project_creator_t> project_creator;
+		unique_t<editor_widget_window_frame_t>	  window_frame;
 		unique_t<editor_action_menu_controller_t> action_menu_controller;
 		unique_t<editor_modal_controller_t>		  modal_controller;
 		unique_t<editor_popup_controller_t>		  popup_controller;
 		unique_t<editor_tooltip_controller_t>	  tooltip_controller;
 		unique_t<window_runtime_t>				  runtime;
 		unique_t<ui::ui_context>				  ui;
-		gfx_handle_t								  swapchain		 = {};
+		gfx_handle_t							  swapchain		 = {};
 		vec2u16_t								  swapchain_size = {};
+		ui::widget_id_t							  root			 = NULL_WIDGET;
+		ui::widget_id_t							  content_root	 = NULL_WIDGET;
 		ui::widget_id_t							  payload_root	 = NULL_WIDGET;
 		ui::widget_id_t							  payload_text	 = NULL_WIDGET;
 		editor_surface_type_e					  type			 = editor_surface_type_e::secondary;

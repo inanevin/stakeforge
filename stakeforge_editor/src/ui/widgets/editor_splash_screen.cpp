@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_splash_screen.hpp"
+#include "editor_project.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_draws.hpp"
@@ -163,7 +164,7 @@ namespace sfg
 		ui::ui_render_state_t title_state = {};
 		title_state.pipeline			  = theme.shader_glitch_lcd;
 		paint.set_text(
-			_title, ui.widget_text(_title), ui.widget_text_len(_title), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = static_cast<f32>(config.owner_size.y) * 0.25f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
+			_title, ui.widget_text(_title), ui.widget_text_len(_title), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = static_cast<f32>(config.owner_size.y) * 0.15f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 		_version = ui.allocate_widget();
 		ui.set_widget_debug_name(_version, "splash_version");
@@ -175,7 +176,7 @@ namespace sfg
 		paint.set_text(_version,
 					   ui.widget_text(_version),
 					   ui.widget_text_len(_version),
-					   {.font = theme.font_title, .color = theme.color_text1, .point_size = static_cast<f32>(config.owner_size.y) * 0.1f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_title, .color = theme.color_text1, .point_size = static_cast<f32>(config.owner_size.y) * 0.07f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_build = ui.allocate_widget();
 		ui.set_widget_debug_name(_build, "splash_build");
@@ -187,9 +188,37 @@ namespace sfg
 		paint.set_text(_build,
 					   ui.widget_text(_build),
 					   ui.widget_text_len(_build),
-					   {.font = theme.font_title, .color = theme.color_text2, .point_size = static_cast<f32>(config.owner_size.y) * 0.1f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_title, .color = theme.color_text2, .point_size = static_cast<f32>(config.owner_size.y) * 0.07f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		_progress.init(ui, _column, {.progress_text = "Loading", .progress_amount = 0.5f, .frame_height = theme.item_height});
+		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
+		const string_t					project_path	= string_t("Project Path: ") + project_runtime.path;
+		const string_t					project_name	= string_t("Project Name: ") + project_runtime.name;
+
+		_project_path = ui.allocate_widget();
+		ui.set_widget_debug_name(_project_path, "splash_project_path");
+		tree.attach(_column, _project_path);
+		tree.draw_order(_project_path) = tree.draw_order_const(_column);
+		tree.set_visible(_project_path, true);
+
+		ui.set_widget_text(_project_path, project_path.c_str());
+		paint.set_text(_project_path,
+					   ui.widget_text(_project_path),
+					   ui.widget_text_len(_project_path),
+					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_project_name = ui.allocate_widget();
+		ui.set_widget_debug_name(_project_name, "splash_project_name");
+		tree.attach(_column, _project_name);
+		tree.draw_order(_project_name) = tree.draw_order_const(_column);
+		tree.set_visible(_project_name, true);
+
+		ui.set_widget_text(_project_name, project_name.c_str());
+		paint.set_text(_project_name,
+					   ui.widget_text(_project_name),
+					   ui.widget_text_len(_project_name),
+					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_progress.init(ui, _column, {.progress_text = "Loading", .progress_amount = 0.0f, .frame_height = theme.item_height});
 		ui::layout_in_t& progress_in		  = tree.in(_progress.get_root());
 		progress_in.pos_mode_y				  = ui::pos_mode_e::relative_in_parent;
 		progress_in.pos_value.y				  = 1.0f;
@@ -201,14 +230,16 @@ namespace sfg
 	{
 		_progress.uninit();
 		_ui->deallocate_widget(_root);
-		_ui			= nullptr;
-		_root		= NULL_WIDGET;
-		_texture_bg = NULL_WIDGET;
-		_strikes	= NULL_WIDGET;
-		_column		= NULL_WIDGET;
-		_title		= NULL_WIDGET;
-		_version	= NULL_WIDGET;
-		_build		= NULL_WIDGET;
+		_ui			  = nullptr;
+		_root		  = NULL_WIDGET;
+		_texture_bg	  = NULL_WIDGET;
+		_strikes	  = NULL_WIDGET;
+		_column		  = NULL_WIDGET;
+		_title		  = NULL_WIDGET;
+		_version	  = NULL_WIDGET;
+		_build		  = NULL_WIDGET;
+		_project_path = NULL_WIDGET;
+		_project_name = NULL_WIDGET;
 	}
 
 	void editor_splash_screen_t::update_progress(f32 progress)

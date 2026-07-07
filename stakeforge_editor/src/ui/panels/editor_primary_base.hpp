@@ -55,14 +55,13 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, window_runtime_t& runtime);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, window_runtime_t& runtime);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void prompt_no_project_modal();
 		void set_current_project_name(const char* name);
 		bool is_window_drag_region(const vec2i16_t& pos) const;
 
@@ -107,8 +106,5 @@ namespace sfg
 		dock_widget_t		  _dock_widget;
 		editor_file_menu_t	  _file_menu;
 		editor_main_toolbar_t _main_toolbar;
-
-		static void on_no_project_open(void* user_data);
-		static void on_no_project_create(void* user_data);
 	};
 }

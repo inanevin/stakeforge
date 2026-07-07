@@ -278,16 +278,26 @@ namespace sfg
 		return id;
 	}
 
-	editor_window_buttons_t editor_misc_widgets_t::add_window_buttons(
-		ui::ui_context& ui, ui::widget_id_t parent, const vec4f_t& frame_color, const vec4f_t& alternative_frame_color, const vec4f_t& hover_color, const vec4f_t& press_color, const vec4f_t& icon_color, f32 icon_point_size)
+	editor_window_buttons_t editor_misc_widgets_t::add_window_buttons(ui::ui_context&						ui,
+																	  ui::widget_id_t						parent,
+																	  const vec4f_t&						frame_color,
+																	  const vec4f_t&						alternative_frame_color,
+																	  const vec4f_t&						hover_color,
+																	  const vec4f_t&						press_color,
+																	  const vec4f_t&						icon_color,
+																	  f32									icon_point_size,
+																	  const editor_window_buttons_config_t& config)
 	{
 		editor_window_buttons_t buttons = {};
-		buttons.minimize_frame			= add_window_button_frame(ui, parent, frame_color, hover_color, press_color);
-		buttons.minimize_icon			= editor_icon_widgets_t::add_icon(ui, buttons.minimize_frame, ICON_WINDOW_MINIMIZE, icon_point_size, icon_color);
-		buttons.maximize_frame			= add_window_button_frame(ui, parent, frame_color, hover_color, press_color);
-		buttons.maximize_icon			= editor_icon_widgets_t::add_icon(ui, buttons.maximize_frame, ICON_WINDOW_MAXIMIZE, icon_point_size, icon_color);
-		buttons.close_frame				= add_window_button_frame(ui, parent, alternative_frame_color, hover_color, press_color);
-		buttons.close_icon				= editor_icon_widgets_t::add_icon(ui, buttons.close_frame, ICON_WINDOW_CLOSE, icon_point_size, icon_color);
+		if (!config.only_close)
+		{
+			buttons.minimize_frame = add_window_button_frame(ui, parent, frame_color, hover_color, press_color);
+			buttons.minimize_icon  = editor_icon_widgets_t::add_icon(ui, buttons.minimize_frame, ICON_WINDOW_MINIMIZE, icon_point_size, icon_color);
+			buttons.maximize_frame = add_window_button_frame(ui, parent, frame_color, hover_color, press_color);
+			buttons.maximize_icon  = editor_icon_widgets_t::add_icon(ui, buttons.maximize_frame, ICON_WINDOW_MAXIMIZE, icon_point_size, icon_color);
+		}
+		buttons.close_frame = add_window_button_frame(ui, parent, alternative_frame_color, hover_color, press_color);
+		buttons.close_icon	= editor_icon_widgets_t::add_icon(ui, buttons.close_frame, ICON_WINDOW_CLOSE, icon_point_size, icon_color);
 		return buttons;
 	}
 }

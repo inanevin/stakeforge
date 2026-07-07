@@ -77,14 +77,16 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*				 _ui		 = nullptr;
-		ui::widget_id_t				 _root		 = NULL_WIDGET;
-		ui::widget_id_t				 _texture_bg = NULL_WIDGET;
-		ui::widget_id_t				 _strikes	 = NULL_WIDGET;
-		ui::widget_id_t				 _column	 = NULL_WIDGET;
-		ui::widget_id_t				 _title		 = NULL_WIDGET;
-		ui::widget_id_t				 _version	 = NULL_WIDGET;
-		ui::widget_id_t				 _build		 = NULL_WIDGET;
-		editor_widget_progress_bar_t _progress	 = {};
+		ui::ui_context*				 _ui		   = nullptr;
+		ui::widget_id_t				 _root		   = NULL_WIDGET;
+		ui::widget_id_t				 _texture_bg   = NULL_WIDGET;
+		ui::widget_id_t				 _strikes	   = NULL_WIDGET;
+		ui::widget_id_t				 _column	   = NULL_WIDGET;
+		ui::widget_id_t				 _title		   = NULL_WIDGET;
+		ui::widget_id_t				 _version	   = NULL_WIDGET;
+		ui::widget_id_t				 _build		   = NULL_WIDGET;
+		ui::widget_id_t				 _project_path = NULL_WIDGET;
+		ui::widget_id_t				 _project_name = NULL_WIDGET;
+		editor_widget_progress_bar_t _progress	   = {};
 	};
 }

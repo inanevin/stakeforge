@@ -249,6 +249,16 @@ namespace sfg
 		update_field_data(_config.field);
 	}
 
+	void editor_input_field_t::set_text(const char* text)
+	{
+		_mixed = false;
+		set_text_raw(text);
+		if (update_number_from_text())
+			modify_field();
+		refresh_text();
+		submit_edit();
+	}
+
 	void editor_input_field_t::refresh_text()
 	{
 		rebuild_text_advances();

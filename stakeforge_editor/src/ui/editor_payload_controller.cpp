@@ -57,7 +57,7 @@ namespace sfg
 
 		_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_frame, "payload_frame");
-		tree.attach(ui.get_root(), _frame);
+		tree.attach(surface.root, _frame);
 
 		ui::layout_in_t& frame_in = tree.in(_frame);
 		frame_in.flags			  = 0;

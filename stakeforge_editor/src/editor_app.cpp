@@ -40,6 +40,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_project_creator.hpp"
+#include "ui/widgets/editor_widget_window_frame.hpp"
+#include "ui/widgets/editor_splash_screen.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -66,6 +69,9 @@ namespace sfg
 {
 #define EDITOR_RAW_WHEEL_DELTA		 120.0f
 #define EDITOR_WORK_EXECUTOR_THREADS 4
+#define EDITOR_SPLASH_ASPECT_X		 16.0f
+#define EDITOR_SPLASH_ASPECT_Y		 9.0f
+#define EDITOR_SPLASH_MONITOR_SCALE	 0.25f
 
 	namespace
 	{
@@ -96,6 +102,23 @@ namespace sfg
 			return false;
 		}
 
+		const monitor_info_t& find_primary_monitor(const vector_t<monitor_info_t>& monitors)
+		{
+			for (const monitor_info_t& monitor : monitors)
+			{
+				if (monitor.is_primary)
+					return monitor;
+			}
+			return monitors[0];
+		}
+
+		void on_project_ready(void* user_data)
+		{
+			editor_app_t& app						   = *static_cast<editor_app_t*>(user_data);
+			editor_settings_t::get().last_project_path = editor_project_t::get()._runtime.path;
+			editor_settings_t::get().save();
+			app.request_switch_mode(editor_app_mode_e::splash);
+		}
 	}
 
 	editor_app_t::editor_app_t()  = default;
@@ -108,6 +131,47 @@ namespace sfg
 		const surface_handle_t surface_handle = app.get_surface_handle_by_runtime(runtime);
 		editor_surface_t&	   surface		  = app._surfaces.get(surface_handle);
 		ui::ui_context&		   ui			  = *surface.ui;
+
+		if (surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
+		{
+			switch (ev.type)
+			{
+			case window_event_type_e::delta:
+			case window_event_type_e::mouse: {
+				const vec2i16_t mp = runtime.mouse_position;
+				ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
+
+				if (ev.type == window_event_type_e::mouse)
+				{
+					if (ev.sub_type == window_event_sub_type_e::press)
+						ui.on_mouse_button(map_button(ev.button), true);
+					else if (ev.sub_type == window_event_sub_type_e::release)
+						ui.on_mouse_button(map_button(ev.button), false);
+				}
+				break;
+			}
+			case window_event_type_e::wheel: {
+				const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
+				ui.on_wheel(delta);
+				break;
+			}
+			case window_event_type_e::key: {
+				if (!runtime.has_flag(window_runtime_flags_e::has_focus))
+					return;
+
+				ui::key_event_t k = {};
+				k.key			  = ev.button;
+				k.scan_code		  = static_cast<u16>(ev.value.x);
+				k.action		  = ev.sub_type == window_event_sub_type_e::press ? ui::key_action_e::press : (ev.sub_type == window_event_sub_type_e::release ? ui::key_action_e::release : ui::key_action_e::repeat);
+				k.shift			  = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+				ui.on_key(k);
+				break;
+			}
+			default:
+				break;
+			}
+			return;
+		}
 
 		switch (ev.type)
 		{
@@ -185,10 +249,12 @@ namespace sfg
 	{
 		editor_app_t&	  app	  = *static_cast<editor_app_t*>(user_data);
 		editor_surface_t& surface = app.get_surface_by_runtime(runtime);
+		if (surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
+			return false;
 		if (surface.type == editor_surface_type_e::primary)
 			return surface.primary->is_window_drag_region(pos);
 		if (surface.type == editor_surface_type_e::secondary)
-			return surface.secondary->is_window_drag_region(pos);
+			return surface.window_frame->is_window_drag_region(pos);
 		return false;
 	}
 
@@ -265,6 +331,8 @@ namespace sfg
 
 		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
 
+#if 0
+		editor_global_toolbar_t::get().init();
 		/* payload window & layout/surface initing */
 
 		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
@@ -275,7 +343,6 @@ namespace sfg
 
 		_command_system.init();
 		_world_controller.init();
-		editor_global_toolbar_t::get().init();
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
 		if (layout.windows.empty())
@@ -338,13 +405,39 @@ namespace sfg
 
 		_editor_work_executor = make_unique<tf::Executor>(EDITOR_WORK_EXECUTOR_THREADS);
 
+		_close = false;
+
+		tick();
+		return true;
+#endif
+
 		const string_t& last_project = editor_settings_t::get().last_project_path;
-		if (!file_system_t::exists(last_project.c_str()) || !load_project(last_project.c_str()))
+		if (!last_project.empty() && file_system_t::exists(last_project.c_str()))
 		{
-			get_main_surface().primary->prompt_no_project_modal();
+			if (editor_project_t::get().try_load(last_project.c_str()))
+				switch_mode(editor_app_mode_e::splash);
+			else
+			{
+				SFG_ERR("failed loading last project {0}", last_project.c_str());
+				switch_mode(editor_app_mode_e::project_creator);
+			}
+		}
+		else
+			switch_mode(editor_app_mode_e::project_creator);
+
+		if (_surfaces.empty())
+		{
+			_renderer.uninit();
+			_editor_resource_pack.uninit();
+			_engine_resource_pack.uninit();
+			_runtime.uninit();
+			engine_runtime_t::uninit_globals();
+			engine_runtime_t::uninit_backend();
+			return false;
 		}
 
-		_close = false;
+		_last_tick_us = time_t::get_cpu_microseconds();
+		_close		  = false;
 
 		tick();
 		return true;
@@ -360,21 +453,67 @@ namespace sfg
 		_editor_resource_pack.uninit();
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
-		editor_global_toolbar_t::get().uninit();
-		_world_controller.uninit();
-		_command_system.uninit();
-		_editor_work_executor->wait_for_all();
-		_editor_work_executor.reset();
+		if (_mode == editor_app_mode_e::normal)
+		{
+			editor_global_toolbar_t::get().uninit();
+			_world_controller.uninit();
+			_command_system.uninit();
+			_editor_work_executor->wait_for_all();
+			_editor_work_executor.reset();
+		}
 		_surfaces.resize_zero();
 		_runtime.uninit();
 		engine_runtime_t::uninit_globals();
 		engine_runtime_t::uninit_backend();
 		frame_allocator_tls_t::uninit();
+		_mode = editor_app_mode_e::none;
 	}
 
 	void editor_app_t::stop_render()
 	{
 		_renderer.end_render();
+	}
+
+	void editor_app_t::switch_mode(editor_app_mode_e mode)
+	{
+		if (_mode == mode)
+			return;
+
+		frame_vector_t<surface_handle_t> destroy_handles;
+		for (u16 i = 0; i < _surfaces.head(); ++i)
+		{
+			if (!_surfaces.is_active(i))
+				continue;
+
+			destroy_handles.push_back(_surfaces.get_handle(i));
+		}
+
+		for (surface_handle_t handle : destroy_handles)
+			destroy_surface(handle);
+
+		if (mode == editor_app_mode_e::splash || mode == editor_app_mode_e::project_creator)
+		{
+			vector_t<monitor_info_t> monitors;
+			process::get_all_monitors(monitors);
+			const monitor_info_t& monitor = find_primary_monitor(monitors);
+
+			const u16		height = static_cast<u16>(static_cast<f32>(monitor.work_size.y) * EDITOR_SPLASH_MONITOR_SCALE);
+			const u16		width  = static_cast<u16>(static_cast<f32>(height) * EDITOR_SPLASH_ASPECT_X / EDITOR_SPLASH_ASPECT_Y);
+			const vec2u16_t size   = {width, height};
+			const vec2i16_t pos	   = {
+				   static_cast<i16>(monitor.position.x + static_cast<i16>((monitor.work_size.x - width) / 2)),
+				   static_cast<i16>(monitor.position.y + static_cast<i16>((monitor.work_size.y - height) / 2)),
+			   };
+
+			create_surface(pos, size, mode == editor_app_mode_e::splash ? editor_surface_type_e::splash : editor_surface_type_e::project_creator);
+		}
+
+		_mode = mode;
+	}
+
+	void editor_app_t::request_switch_mode(editor_app_mode_e mode)
+	{
+		_pending_mode = mode;
 	}
 
 	void editor_app_t::load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout)
@@ -509,7 +648,7 @@ namespace sfg
 		bool primary_saved = false;
 		for (const editor_surface_t& surface : _surfaces)
 		{
-			if (surface.type == editor_surface_type_e::payload)
+			if (surface.type == editor_surface_type_e::payload || surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
 				continue;
 
 			editor_layout_window_t window = {};
@@ -703,6 +842,13 @@ namespace sfg
 			editor_project_t& project = editor_project_t::get();
 
 			frame_allocator_tls_t::reset();
+			if (_pending_mode != editor_app_mode_e::none)
+			{
+				const editor_app_mode_e mode = _pending_mode;
+				_pending_mode				 = editor_app_mode_e::none;
+				switch_mode(mode);
+			}
+
 			process::pump_os_messages();
 
 			{
@@ -725,6 +871,7 @@ namespace sfg
 				_asset_manager.tick();
 			}
 
+			if (_mode == editor_app_mode_e::normal)
 			{
 				ZoneScopedN("payload_controller_tick");
 				_payload_controller.tick();
@@ -734,6 +881,7 @@ namespace sfg
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
 
+			if (_mode == editor_app_mode_e::normal)
 			{
 				ZoneScopedN("world_controller_tick");
 				_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
@@ -856,6 +1004,39 @@ namespace sfg
 		});
 		surface.ui->set_debug_draw(_debug_mode);
 
+		surface.root = surface.ui->allocate_widget();
+		surface.ui->set_widget_debug_name(surface.root, "surface_root");
+		surface.ui->get_tree().attach(surface.ui->get_root(), surface.root);
+
+		ui::layout_in_t& surface_root_in = surface.ui->get_tree().in(surface.root);
+		surface_root_in.flags			 = ui::wf_visible;
+		surface_root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		surface_root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
+		surface_root_in.size_value		 = {1.0f, 1.0f};
+		surface_root_in.flow			 = ui::flow_e::column;
+		surface_root_in.child_spacing	 = 0.0f;
+		surface_root_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};
+
+		surface.content_root = surface.root;
+		if (surface.type == editor_surface_type_e::secondary || surface.type == editor_surface_type_e::project_creator)
+		{
+			surface.window_frame = make_unique<editor_widget_window_frame_t>();
+			surface.window_frame->init(*surface.ui, surface.root, {.runtime = surface.runtime.get(), .only_close = surface.type == editor_surface_type_e::project_creator});
+
+			surface.content_root = surface.ui->allocate_widget();
+			surface.ui->set_widget_debug_name(surface.content_root, "surface_content_root");
+			surface.ui->get_tree().attach(surface.root, surface.content_root);
+
+			ui::layout_in_t& content_root_in = surface.ui->get_tree().in(surface.content_root);
+			content_root_in.flags			 = ui::wf_visible;
+			content_root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+			content_root_in.size_mode_y		 = ui::axis_mode_e::fill;
+			content_root_in.size_value		 = {1.0f, 1.0f};
+			content_root_in.flow			 = ui::flow_e::column;
+			content_root_in.child_spacing	 = 0.0f;
+			content_root_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};
+		}
+
 		surface.tooltip_controller = make_unique<editor_tooltip_controller_t>();
 		surface.tooltip_controller->init(*surface.ui);
 
@@ -870,12 +1051,22 @@ namespace sfg
 		if (surface.type == editor_surface_type_e::primary)
 		{
 			surface.primary = make_unique<editor_primary_base_t>();
-			surface.primary->init(*surface.ui, *surface.runtime);
+			surface.primary->init(*surface.ui, surface.content_root, *surface.runtime);
 		}
 		else if (surface.type == editor_surface_type_e::secondary)
 		{
 			surface.secondary = make_unique<editor_secondary_base_t>();
-			surface.secondary->init(*surface.ui, *surface.runtime);
+			surface.secondary->init(*surface.ui, surface.content_root, *surface.runtime);
+		}
+		else if (surface.type == editor_surface_type_e::splash)
+		{
+			surface.splash = make_unique<editor_splash_screen_t>();
+			surface.splash->init(*surface.ui, surface.content_root, {.owner_size = surface.runtime->size});
+		}
+		else if (surface.type == editor_surface_type_e::project_creator)
+		{
+			surface.project_creator = make_unique<editor_widget_project_creator_t>();
+			surface.project_creator->init(*surface.ui, surface.content_root, {.on_project_ready = on_project_ready, .user_data = this});
 		}
 
 		surface.swapchain	   = _renderer.create_swapchain(surface.runtime->window_handle, surface.runtime->platform_handle, surface.runtime->monitor_info.dpi_scale, surface.runtime->size, surface.ui.get());
@@ -902,8 +1093,16 @@ namespace sfg
 			surface.primary->uninit();
 		else if (surface.type == editor_surface_type_e::secondary)
 			surface.secondary->uninit();
-		else
+		else if (surface.type == editor_surface_type_e::payload)
 			_payload_controller.uninit();
+		else if (surface.type == editor_surface_type_e::splash)
+			surface.splash->uninit();
+		else if (surface.type == editor_surface_type_e::project_creator)
+			surface.project_creator->uninit();
+
+		if (surface.window_frame)
+			surface.window_frame->uninit();
+		surface.ui->deallocate_widget(surface.root);
 
 		surface.tooltip_controller->uninit();
 		surface.popup_controller->uninit();

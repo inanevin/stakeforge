@@ -32,6 +32,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
+#include "ui/widgets/editor_widget_project_creator.hpp"
+#include "ui/widgets/editor_widget_window_frame.hpp"
+#include "ui/widgets/editor_splash_screen.hpp"
 #include <sfg/platform/common_window.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
