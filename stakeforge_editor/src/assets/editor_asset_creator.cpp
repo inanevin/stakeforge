@@ -48,27 +48,7 @@ namespace sfg
 		{
 			out["schema"]		= "sfg.schema.shader";
 			out["include_dirs"] = {COMMON_SHADERS, COMMON_SHADERS "world/"};
-			switch (shader_type)
-			{
-			case shader_type_e::opaque_shader:
-				out["type"] = "opaque_shader";
-				break;
-			case shader_type_e::transparent_shader:
-				out["type"] = "transparent_shader";
-				break;
-			case shader_type_e::post_process_shader:
-				out["type"] = "post_process_shader";
-				break;
-			case shader_type_e::ui_shader:
-				out["type"] = "ui_shader";
-				break;
-			case shader_type_e::ui_text_shader:
-				out["type"] = "ui_text_shader";
-				break;
-			default:
-				out["type"] = "opaque_shader";
-				break;
-			}
+			out["type"]			= static_cast<u8>(shader_type);
 		}
 
 		const char* get_material_template_relative(editor_material_type_e material_type)

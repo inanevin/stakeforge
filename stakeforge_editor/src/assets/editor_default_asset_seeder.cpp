@@ -107,7 +107,7 @@ namespace sfg
 		{
 			out["schema"]		= "sfg.schema.shader";
 			out["include_dirs"] = {COMMON_SHADERS, COMMON_SHADERS "world/"};
-			out["type"]			= shader_type;
+			out["type"]			= static_cast<u8>(shader_type);
 		}
 
 		string_t get_shader_default_source_relative(shader_type_e shader_type)
