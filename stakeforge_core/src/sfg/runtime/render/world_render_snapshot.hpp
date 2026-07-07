@@ -40,12 +40,14 @@ namespace sfg
 {
 	struct world_render_skybox_t
 	{
-		render_resource_handle_t radiance	= {};
-		render_resource_handle_t irradiance = {};
-		render_resource_handle_t prefilter	= {};
-		render_resource_handle_t brdf_lut	= {};
-		f32						 intensity	= 1.0f;
-		f32						 exposure	= 1.0f;
+		render_resource_handle_t radiance		   = {};
+		render_resource_handle_t irradiance		   = {};
+		render_resource_handle_t prefilter		   = {};
+		render_resource_handle_t brdf_lut		   = {};
+		f32						 intensity		   = 1.0f;
+		f32						 exposure		   = 1.0f;
+		f32						 rotation		   = 0.0f;
+		f32						 prefilter_max_lod = 0.0f;
 	};
 
 	struct world_render_prep_draw_cull_t

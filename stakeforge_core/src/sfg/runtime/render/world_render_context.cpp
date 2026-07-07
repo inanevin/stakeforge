@@ -125,9 +125,9 @@ namespace sfg
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
 		}
 		const render_resources_t& render_resources = render_resources_t::get();
-		const shader_internals_t* sh			   = resource_manager_t::get().find_internals<shader_internals_t>("engine/shaders/world/deferred_lighting.hlsl"_hs);
+		const shader_internals_t* sh			   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/deferred_lighting.hlsl"_hs);
 		_shaders.lighting						   = render_resources.get_shader_hw(sh->psos[0]);
-		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("engine/shaders/world/post_combiner.hlsl"_hs);
+		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/post_combiner.hlsl"_hs);
 		_shaders.post_combiner					   = render_resources.get_shader_hw(sh->psos[0]);
 
 		create_texture(size);

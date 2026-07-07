@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/ui/paint/paint.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -468,9 +469,23 @@ namespace sfg
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_panel_assets_t&	   panel = *static_cast<editor_panel_assets_t*>(user_data);
-		const folder_row_t* const  row	 = panel.find_row_by_pos(panel._ui->get_input().get_mouse_position());
 		const editor_asset_tree_t& tree	 = editor_asset_manager_t::get().get_asset_tree();
-		if (row == nullptr || row->node.is_null() || !tree.is_valid(row->node))
+		const vec2f_t			   mouse = panel._ui->get_input().get_mouse_position();
+		const folder_row_t* const  row	 = panel.find_row_by_pos(mouse);
+
+		editor_asset_node_handle_t target_folder  = row != nullptr ? row->node : editor_asset_node_handle_t{};
+		const bool				   entity_payload = payload.type == editor_payload_type_e::entity || payload.type == editor_payload_type_e::entity_multi;
+		if (target_folder.is_null() && entity_payload)
+		{
+			const ui::layout_out_t& body_out = panel._ui->get_tree().out(panel._assets_body_pane_top);
+			if (rectf_t{body_out.pos.x, body_out.pos.y, body_out.size.x, body_out.size.y}.contains(mouse))
+				target_folder = panel._selected_folder_node;
+		}
+
+		if (target_folder.is_null() || !tree.is_valid(target_folder))
+			return false;
+
+		if (tree.value(target_folder).type != editor_asset_node_type_e::folder)
 			return false;
 
 		bool moved			= false;
@@ -478,7 +493,7 @@ namespace sfg
 		if (payload.type == editor_payload_type_e::entity)
 		{
 			const editor_entity_payload_t& entity = *static_cast<const editor_entity_payload_t*>(payload.user_ptr);
-			moved								  = create_prefab_from_entity_payload(entity, row->node);
+			moved								  = create_prefab_from_entity_payload(entity, target_folder);
 			prefab_created						  = moved;
 		}
 		else if (payload.type == editor_payload_type_e::entity_multi)
@@ -486,7 +501,7 @@ namespace sfg
 			const vector_t<editor_entity_payload_t>& entities = *static_cast<const vector_t<editor_entity_payload_t>*>(payload.user_ptr);
 			for (const editor_entity_payload_t& entity : entities)
 			{
-				const bool created = create_prefab_from_entity_payload(entity, row->node);
+				const bool created = create_prefab_from_entity_payload(entity, target_folder);
 				prefab_created	   = created || prefab_created;
 				moved			   = created || moved;
 			}
@@ -503,12 +518,12 @@ namespace sfg
 
 			panel._payload_folder_nodes.resize(0);
 			panel._payload_folder_nodes.push_back(payload_node);
-			moved = panel.move_payload_folders(panel._payload_folder_nodes, row->node);
+			moved = panel.move_payload_folders(panel._payload_folder_nodes, target_folder);
 		}
 		else if (payload.type == editor_payload_type_e::folder_multi)
 		{
 			const vector_t<editor_asset_node_handle_t>& nodes = *static_cast<const vector_t<editor_asset_node_handle_t>*>(payload.user_ptr);
-			moved											  = panel.move_payload_folders(nodes, row->node);
+			moved											  = panel.move_payload_folders(nodes, target_folder);
 		}
 		else if (payload.type == editor_payload_type_e::asset)
 		{
@@ -522,12 +537,12 @@ namespace sfg
 
 			panel._payload_asset_nodes.resize(0);
 			panel._payload_asset_nodes.push_back(payload_node);
-			moved = panel.move_payload_assets(panel._payload_asset_nodes, row->node);
+			moved = panel.move_payload_assets(panel._payload_asset_nodes, target_folder);
 		}
 		else
 		{
 			const vector_t<editor_asset_node_handle_t>& nodes = *static_cast<const vector_t<editor_asset_node_handle_t>*>(payload.user_ptr);
-			moved											  = panel.move_payload_assets(nodes, row->node);
+			moved											  = panel.move_payload_assets(nodes, target_folder);
 		}
 
 		if (!moved)

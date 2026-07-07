@@ -140,7 +140,7 @@ namespace sfg
 			.inv_view_proj = main_camera_view_t.inv_view_proj,
 			.inv_view	   = main_camera_view_t.inv_view,
 			.camera_pos	   = vec4f_t(main_camera_view_t.pos.x, main_camera_view_t.pos.y, main_camera_view_t.pos.z, 1.0f),
-			.skybox_params = vec4f_t(snapshot.skybox.intensity, snapshot.skybox.exposure, 0.0f, 0.0f),
+			.skybox_params = vec4f_t(snapshot.skybox.intensity, snapshot.skybox.exposure, snapshot.skybox.rotation, snapshot.skybox.prefilter_max_lod),
 		};
 		SFG_MEMCPY(ctx.get_mapped_lighting_render_pass_data(frame_index), &lighting_render_pass_data, sizeof(render_pass_data_lighting_gpu_t));
 
@@ -359,6 +359,8 @@ namespace sfg
 				bind_material(backend, cmd, bound_material, draw.material_index, mat);
 			}
 
+			backend.cmd_bind_constants(cmd, {.data = &draw.entity_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
 												   .index_count_per_instance = draw.index_count,
@@ -495,6 +497,8 @@ namespace sfg
 
 				bind_material(backend, cmd, bound_material, draw.material_index, mat);
 			}
+
+			backend.cmd_bind_constants(cmd, {.data = &draw.entity_index, .offset = constant_obj0, .count = 1, .param_index = 0});
 
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {

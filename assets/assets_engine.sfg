@@ -2,7 +2,7 @@
     "resources": [
         {
             "name": "deferred_lighting",
-            "path": "engine/shaders/world/deferred_lighting.hlsl",
+            "path": "common/shaders/world/deferred_lighting.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
@@ -11,7 +11,7 @@
         },
         {
             "name": "post_combiner",
-            "path": "engine/shaders/world/post_combiner.hlsl",
+            "path": "common/shaders/world/post_combiner.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",

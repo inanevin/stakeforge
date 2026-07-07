@@ -175,8 +175,8 @@ vs_output VSMain(vs_input IN)
 #endif
 
     float3 world_pos = mul(entity.model, obj_pos).xyz;
-    float3 N = normalize(mul(entity.normal_matrix, float4(obj_norm, 1.0)).xyz);
-    float3 T = normalize(mul(entity.normal_matrix, float4(obj_tan, 1.0)).xyz);
+    float3 N = normalize(mul(entity.normal_matrix, float4(obj_norm, 0.0)).xyz);
+    float3 T = normalize(mul(entity.normal_matrix, float4(obj_tan, 0.0)).xyz);
 
     // gram-schmidt ensure orthogonality.
     T = normalize(T - N * dot(N, T));
@@ -245,6 +245,7 @@ struct ps_output
     float4 rt2 : SV_Target2; // orm
     float4 rt3 : SV_Target3; // Emissive
 };
+
 
 ps_output PSMain(vs_output IN)
 {

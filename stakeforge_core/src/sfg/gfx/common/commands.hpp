@@ -281,10 +281,10 @@ namespace sfg
 	{
 		static constexpr u8 TID = 16;
 
-		void* data		  = nullptr;
-		u16	  offset	  = 0;
-		u8	  count		  = 0;
-		u8	  param_index = 0;
+		const void* data		= nullptr;
+		u16			offset		= 0;
+		u8			count		= 0;
+		u8			param_index = 0;
 	};
 
 	struct command_dispatch_t

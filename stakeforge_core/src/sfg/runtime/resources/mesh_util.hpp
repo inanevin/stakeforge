@@ -27,22 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
+#include "mesh_def.hpp"
 
 namespace sfg
 {
-	enum class editor_material_type_e : u8
+	class mesh_util_t final
 	{
-		gbuffer,
-		forward,
-	};
-
-	enum class editor_texture_sampler_type_e : u8
-	{
-		linear,
-		nearest,
-		anisotropic,
-		linear_repeat,
-		nearest_repeat,
+	public:
+		static bool generate_tangents(primitive_static_def_t& primitive);
+		static bool generate_tangents(primitive_skinned_def_t& primitive);
 	};
 }

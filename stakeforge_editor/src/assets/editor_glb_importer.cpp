@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
+#include <sfg/runtime/resources/mesh_util.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/world_cook_entity_header.hpp>
@@ -385,16 +386,20 @@ namespace sfg
 				texture_index = material.emissive_texture.index;
 
 			if (texture_index < 0 || static_cast<u32>(texture_index) >= model.textures_count)
-				return DEFAULT_LINEAR_SAMPLER_ASSET_GUID;
+				return DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID;
 
 			const tg3_texture& texture = model.textures[texture_index];
 			if (texture.sampler < 0 || static_cast<u32>(texture.sampler) >= model.samplers_count)
-				return DEFAULT_LINEAR_SAMPLER_ASSET_GUID;
+				return DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID;
 
 			const tg3_sampler& sampler	   = model.samplers[texture.sampler];
 			const bool		   min_nearest = sampler.min_filter == TG3_TEXTURE_FILTER_NEAREST || sampler.min_filter == TG3_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST || sampler.min_filter == TG3_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR;
 			const bool		   mag_nearest = sampler.mag_filter == TG3_TEXTURE_FILTER_NEAREST;
-			return min_nearest || mag_nearest ? DEFAULT_NEAREST_SAMPLER_ASSET_GUID : DEFAULT_LINEAR_SAMPLER_ASSET_GUID;
+			const bool		   repeat	   = sampler.wrap_s != TG3_TEXTURE_WRAP_CLAMP_TO_EDGE || sampler.wrap_t != TG3_TEXTURE_WRAP_CLAMP_TO_EDGE;
+
+			if (min_nearest || mag_nearest)
+				return repeat ? DEFAULT_NEAREST_SAMPLER_REPEAT_ASSET_GUID : DEFAULT_NEAREST_SAMPLER_ASSET_GUID;
+			return repeat ? DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID : DEFAULT_LINEAR_SAMPLER_ASSET_GUID;
 		}
 
 		material_parameter_t make_vec4_parameter(f32 x, f32 y, f32 z, f32 w)
@@ -726,6 +731,11 @@ namespace sfg
 				SFG_ERR("failed to read GLB static primitive indices");
 				return false;
 			}
+			if (tangent_accessor < 0 && normal_accessor >= 0 && uv_accessor >= 0 && !mesh_util_t::generate_tangents(out))
+			{
+				SFG_ERR("failed to generate GLB static primitive tangents");
+				return false;
+			}
 
 			return true;
 		}
@@ -813,6 +823,11 @@ namespace sfg
 			if (!read_indices(model, primitive.indices, vertex_count, out.indices))
 			{
 				SFG_ERR("failed to read GLB skinned primitive indices");
+				return false;
+			}
+			if (tangent_accessor < 0 && normal_accessor >= 0 && uv_accessor >= 0 && !mesh_util_t::generate_tangents(out))
+			{
+				SFG_ERR("failed to generate GLB skinned primitive tangents");
 				return false;
 			}
 
@@ -1791,6 +1806,10 @@ namespace sfg
 				.generate_mipmaps = cook_config.generate_mipmaps,
 			};
 
+			const u32			   reserve_texture_count   = cook_config.import_textures ? model.textures_count * 2 : 0;
+			const u32			   reserve_animation_count = cook_config.import_animations ? model.skins_count : 0;
+			const u32			   reserve_material_count  = cook_config.import_materials ? model.materials_count : 0;
+			const u32			   reserve_mesh_count	   = cook_config.import_meshes ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
 			hash_map_t<u64, sid_t> texture_guid_map;
 			texture_guid_map.reserve(model.textures_count * 2);
 			hash_map_t<u64, u32> imported_texture_indices;
@@ -1798,13 +1817,9 @@ namespace sfg
 			hash_map_t<u64, u32> texture_import_indices;
 			texture_import_indices.reserve(model.textures_count * 2);
 			vector_t<glb_texture_import_t> texture_imports;
-			texture_imports.reserve(model.textures_count);
+			texture_imports.reserve(reserve_texture_count);
 			glb_asset_name_registry_t asset_names;
 
-			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count * 2 : 0;
-			const u32 reserve_animation_count = cook_config.import_animations ? model.skins_count : 0;
-			const u32 reserve_material_count  = cook_config.import_materials ? model.materials_count : 0;
-			const u32 reserve_mesh_count	  = cook_config.import_meshes ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
 			asset_names.names.reserve(reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + 1);
 			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count);
 			if (cook_config.import_textures)
@@ -1853,6 +1868,8 @@ namespace sfg
 					push_texture_import(material.pbr_metallic_roughness.base_color_texture.index, false);
 					push_texture_import(material.normal_texture.index, true);
 					push_texture_import(material.emissive_texture.index, false);
+					if (material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0 && material.pbr_metallic_roughness.metallic_roughness_texture.index == material.occlusion_texture.index)
+						push_texture_import(material.pbr_metallic_roughness.metallic_roughness_texture.index, true);
 					if (!result)
 						break;
 				}

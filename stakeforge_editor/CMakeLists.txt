@@ -102,13 +102,15 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold"
     COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults"
     COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/common"
     COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor/resource_pack"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/common"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/shaders"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/shaders"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/common/shaders"
+        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/common/shaders"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/materials"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/materials"
@@ -121,9 +123,6 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/sky"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/sky"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/shaders"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/shaders"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/materials"
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/materials"

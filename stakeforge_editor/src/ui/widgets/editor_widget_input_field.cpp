@@ -769,12 +769,15 @@ namespace sfg
 		process::set_cursor_state(window_cursor_state_e::arrow);
 	}
 
-	void editor_input_field_t::on_focus_gain(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	void editor_input_field_t::on_focus_gain(ui::input_router_t&, ui::widget_id_t, bool via_navigation, void* user_data)
 	{
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		field.reset_caret_blink();
 		field._edit_active = false;
 		field._edit_dirty  = false;
+
+		if (via_navigation)
+			field.select_all();
 	}
 
 	void editor_input_field_t::on_drag(ui::input_router_t& router, ui::widget_id_t, const vec2f_t& pos, const vec2f_t& delta, void* user_data)

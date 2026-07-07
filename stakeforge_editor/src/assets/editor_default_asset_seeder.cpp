@@ -37,7 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_DEFAULT_SHADERS	 "editor_defaults/shaders/"
+#define COMMON_SHADERS			 "common/shaders/"
 #define EDITOR_DEFAULT_MATERIALS "editor_defaults/materials/"
 #define EDITOR_DEFAULT_SAMPLERS	 "editor_defaults/samplers/"
 #define EDITOR_DEFAULT_TEXTURES	 "editor_defaults/textures/"
@@ -78,13 +78,13 @@ namespace sfg
 		void build_shader_default_cook_options(shader_type_e shader_type, nlohmann::json& out)
 		{
 			out["schema"]		= "sfg.schema.shader";
-			out["include_dirs"] = {EDITOR_DEFAULT_SHADERS, EDITOR_DEFAULT_SHADERS "world"};
+			out["include_dirs"] = {COMMON_SHADERS, COMMON_SHADERS "world/"};
 			out["type"]			= shader_type;
 		}
 
 		string_t get_shader_default_source_relative(shader_type_e shader_type)
 		{
-			string_t result = EDITOR_DEFAULT_SHADERS;
+			string_t result = COMMON_SHADERS;
 			switch (shader_type)
 			{
 			case shader_type_e::transparent_shader:
@@ -161,8 +161,10 @@ namespace sfg
 				editor_asset_t asset = {};
 				string_t	   asset_path;
 				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
+
 				if (created)
 					created = editor_asset_cooker_t::cook_shader(asset, desc.asset_name);
+
 				SFG_ASSERT(created);
 			}
 		}
@@ -271,6 +273,16 @@ namespace sfg
 				 .guid				  = DEFAULT_NEAREST_SAMPLER_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::texture_sampler,
 				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::nearest)},
+				{.asset_name		  = "sampler_linear_repeat",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_linear_repeat.sfg_asset",
+				 .guid				  = DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::texture_sampler,
+				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::linear_repeat)},
+				{.asset_name		  = "sampler_nearest_repeat",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_nearest_repeat.sfg_asset",
+				 .guid				  = DEFAULT_NEAREST_SAMPLER_REPEAT_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::texture_sampler,
+				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::nearest_repeat)},
 				{.asset_name		  = "sampler_anisotropic",
 				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_anisotropic.sfg_asset",
 				 .guid				  = DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID,

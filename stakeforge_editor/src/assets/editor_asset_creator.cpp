@@ -37,7 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_TEMPLATE_SHADERS	  "editor_templates/shaders/"
+#define COMMON_SHADERS			  "common/shaders/"
 #define EDITOR_TEMPLATE_MATERIALS "editor_templates/materials/"
 #define EDITOR_TEMPLATE_SAMPLERS  "editor_templates/samplers/"
 
@@ -46,7 +46,7 @@ namespace sfg
 		void build_shader_template_cook_options(shader_type_e shader_type, nlohmann::json& out)
 		{
 			out["schema"]		= "sfg.schema.shader";
-			out["include_dirs"] = {EDITOR_TEMPLATE_SHADERS, EDITOR_TEMPLATE_SHADERS "world"};
+			out["include_dirs"] = {COMMON_SHADERS, COMMON_SHADERS "world/"};
 			switch (shader_type)
 			{
 			case shader_type_e::opaque_shader:
@@ -86,17 +86,17 @@ namespace sfg
 			switch (shader_type)
 			{
 			case shader_type_e::opaque_shader:
-				return EDITOR_TEMPLATE_SHADERS "world/gbuffer_lit.hlsl";
+				return COMMON_SHADERS "world/gbuffer_lit.hlsl";
 			case shader_type_e::transparent_shader:
-				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+				return COMMON_SHADERS "world/forward.hlsl";
 			case shader_type_e::post_process_shader:
-				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+				return COMMON_SHADERS "world/forward.hlsl";
 			case shader_type_e::ui_shader:
-				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+				return COMMON_SHADERS "world/forward.hlsl";
 			case shader_type_e::ui_text_shader:
-				return EDITOR_TEMPLATE_SHADERS "world/forward.hlsl";
+				return COMMON_SHADERS "world/forward.hlsl";
 			default:
-				return EDITOR_TEMPLATE_SHADERS "world/gbuffer_lit.hlsl";
+				return COMMON_SHADERS "world/gbuffer_lit.hlsl";
 			}
 		}
 
@@ -106,6 +106,10 @@ namespace sfg
 			{
 			case editor_texture_sampler_type_e::nearest:
 				return EDITOR_TEMPLATE_SAMPLERS "sampler_nearest.sfg_asset";
+			case editor_texture_sampler_type_e::linear_repeat:
+				return EDITOR_TEMPLATE_SAMPLERS "sampler_linear_repeat.sfg_asset";
+			case editor_texture_sampler_type_e::nearest_repeat:
+				return EDITOR_TEMPLATE_SAMPLERS "sampler_nearest_repeat.sfg_asset";
 			case editor_texture_sampler_type_e::anisotropic:
 				return EDITOR_TEMPLATE_SAMPLERS "sampler_anisotropic.sfg_asset";
 			default:
