@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_writer.hpp"
-#include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -37,29 +37,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	const editor_asset_node_t& editor_asset_writer_t::get_parent_folder(editor_asset_node_handle_t parent_node)
-	{
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!parent_node.is_null());
-		SFG_ASSERT(tree.is_valid(parent_node));
-
-		const editor_asset_node_t& node = tree.value(parent_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!node.full_path.empty());
-
-		return node;
-	}
-
 	bool editor_asset_writer_t::write_file_asset(const editor_asset_write_file_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
+		SFG_ASSERT(desc.parent_path != nullptr);
+		SFG_ASSERT(desc.parent_path[0] != '\0');
 		SFG_ASSERT(desc.source_extension != nullptr);
 		SFG_ASSERT(desc.source_extension[0] != '\0');
 		SFG_ASSERT(desc.source_template_relative != nullptr);
 		SFG_ASSERT(desc.source_template_relative[0] != '\0');
-
-		const editor_asset_node_t& parent_node = get_parent_folder(desc.parent_node);
 
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
@@ -68,7 +55,7 @@ namespace sfg
 		if (!editor_directories_t::is_valid_asset_name(source_name))
 			return false;
 
-		const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
+		const string_t asset_path = editor_asset_util_t::make_asset_path(desc.parent_path, desc.name);
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
@@ -90,7 +77,7 @@ namespace sfg
 
 		if (desc.source_name != nullptr)
 		{
-			string_t source_path = editor_asset_util_t::normalize_directory(parent_node.full_path.c_str());
+			string_t source_path = editor_asset_util_t::normalize_directory(desc.parent_path);
 			source_path += desc.source_name;
 			source_path += ".";
 			source_path += desc.source_extension;
@@ -105,7 +92,7 @@ namespace sfg
 			template_path += desc.source_template_relative;
 			SFG_ASSERT(file_system_t::exists(template_path.c_str()));
 
-			const string_t source_path = editor_asset_util_t::make_unique_source_path(parent_node.full_path.c_str(), source_name, desc.source_extension);
+			const string_t source_path = editor_asset_util_t::make_unique_source_path(desc.parent_path, source_name, desc.source_extension);
 			if (!file_system_t::copy_file(template_path.c_str(), source_path.c_str()))
 			{
 				SFG_ERR("failed to copy asset source template {0} to {1}", template_path.c_str(), source_path.c_str());
@@ -135,13 +122,13 @@ namespace sfg
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
 		SFG_ASSERT(desc.embedded_source != nullptr);
-
-		const editor_asset_node_t& parent_node = get_parent_folder(desc.parent_node);
+		SFG_ASSERT(desc.parent_path != nullptr);
+		SFG_ASSERT(desc.parent_path[0] != '\0');
 
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
 
-		const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
+		const string_t asset_path = editor_asset_util_t::make_asset_path(desc.parent_path, desc.name);
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
@@ -176,13 +163,13 @@ namespace sfg
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-
-		const editor_asset_node_t& parent_node = get_parent_folder(desc.parent_node);
+		SFG_ASSERT(desc.parent_path != nullptr);
+		SFG_ASSERT(desc.parent_path[0] != '\0');
 
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
 
-		const string_t asset_path = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), desc.name);
+		const string_t asset_path = editor_asset_util_t::make_asset_path(desc.parent_path, desc.name);
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 

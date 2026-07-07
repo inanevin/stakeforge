@@ -27,8 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset_node.hpp"
-
 namespace sfg
 {
 	class editor_default_asset_seeder_t final
@@ -43,6 +41,6 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static void ensure(editor_asset_node_handle_t default_assets_node);
+		static void ensure(const char* default_assets_dir);
 	};
 }

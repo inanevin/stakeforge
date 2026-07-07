@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_writer.hpp"
 
 #include <sfg/io/assert.hpp>
@@ -117,14 +118,14 @@ namespace sfg
 			}
 		}
 
-		bool create_shader_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_shader_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const shader_type_e shader_type = static_cast<shader_type_e>(desc.sub_type);
 			nlohmann::json		cook_options;
 			build_shader_template_cook_options(shader_type, cook_options);
 			const editor_asset_write_file_desc_t write_desc{
 				.cook_options			  = &cook_options,
-				.parent_node			  = desc.parent_node,
+				.parent_path			  = parent_path,
 				.name					  = desc.name,
 				.source_name			  = desc.source_name,
 				.source_extension		  = "hlsl",
@@ -137,7 +138,7 @@ namespace sfg
 			return editor_asset_writer_t::write_file_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_material_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_material_type_e material_type = static_cast<editor_material_type_e>(desc.sub_type);
 			nlohmann::json				 embedded_source;
@@ -149,7 +150,7 @@ namespace sfg
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
-				.parent_node	 = desc.parent_node,
+				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::material,
@@ -159,7 +160,7 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(desc.sub_type);
 			nlohmann::json						embedded_source;
@@ -171,7 +172,7 @@ namespace sfg
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
-				.parent_node	 = desc.parent_node,
+				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::texture_sampler,
@@ -181,7 +182,7 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const char*	   template_relative = EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
 			nlohmann::json embedded_source;
@@ -193,7 +194,7 @@ namespace sfg
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
-				.parent_node	 = desc.parent_node,
+				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::physical_material,
@@ -203,10 +204,10 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_animation_state_machine_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_animation_state_machine_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_asset_write_none_desc_t write_desc{
-				.parent_node	 = desc.parent_node,
+				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::animation_state_machine,
@@ -216,7 +217,7 @@ namespace sfg
 			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_prefab_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_prefab_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			SFG_ASSERT(desc.embedded_data != nullptr);
 
@@ -229,7 +230,7 @@ namespace sfg
 
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
-				.parent_node	 = desc.parent_node,
+				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::prefab,
@@ -239,10 +240,10 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_world_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_world_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_asset_write_none_desc_t write_desc{
-				.parent_node	 = desc.parent_node,
+				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::world,
@@ -259,40 +260,48 @@ namespace sfg
 		string_t	   asset_path;
 		bool		   result = false;
 
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!desc.parent_node.is_null());
+		SFG_ASSERT(tree.is_valid(desc.parent_node));
+		const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
+		SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!parent_node.full_path.empty());
+		const char* const parent_path = parent_node.full_path.c_str();
+
 		switch (desc.asset_type)
 		{
 		case editor_asset_type_e::shader:
-			result = create_shader_asset(desc, &asset, &asset_path);
+			result = create_shader_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_shader(asset, desc.name);
 			break;
 		case editor_asset_type_e::material:
-			result = create_material_asset(desc, &asset, &asset_path);
+			result = create_material_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_material(asset, desc.name);
 			break;
 		case editor_asset_type_e::texture_sampler:
-			result = create_texture_sampler_asset(desc, &asset, &asset_path);
+			result = create_texture_sampler_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_texture_sampler(asset, desc.name);
 			break;
 		case editor_asset_type_e::physical_material:
-			result = create_physical_material_asset(desc, &asset, &asset_path);
+			result = create_physical_material_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_physical_material(asset, desc.name);
 			break;
 		case editor_asset_type_e::animation_state_machine:
-			result = create_animation_state_machine_asset(desc, &asset, &asset_path);
+			result = create_animation_state_machine_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_animation_state_machine(asset, desc.name);
 			break;
 		case editor_asset_type_e::prefab:
-			result = create_prefab_asset(desc, &asset, &asset_path);
+			result = create_prefab_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_prefab(asset, desc.name);
 			break;
 		case editor_asset_type_e::world:
-			result = create_world_asset(desc, &asset, &asset_path);
+			result = create_world_asset(desc, parent_path, &asset, &asset_path);
 			break;
 		default:
 			SFG_ASSERT(false);

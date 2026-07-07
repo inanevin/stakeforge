@@ -26,12 +26,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_default_asset_seeder.hpp"
-#include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
-#include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_writer.hpp"
+#include "editor_project.hpp"
 
 #include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -69,10 +72,31 @@ namespace sfg
 			u8					sub_type;
 		};
 
-		bool is_default_asset_ready(sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
+		bool is_default_asset_ready(const char* default_assets_dir, const char* asset_name, sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
 		{
-			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(guid);
-			return asset != nullptr && asset->status == editor_asset_status_e::ok && asset->asset_type == asset_type && asset->sub_type == sub_type && editor_asset_cooker_t::is_asset_cooked(*asset);
+			const string_t asset_path = editor_asset_util_t::make_asset_path(default_assets_dir, asset_name);
+			editor_asset_t asset	  = {};
+			if (!editor_asset_util_t::read_asset(asset_path.c_str(), asset))
+				return false;
+
+			if (asset.guid != guid || asset.asset_type != asset_type || asset.sub_type != sub_type)
+				return false;
+
+			if (asset.source_type == editor_asset_source_type_e::embedded)
+			{
+				if (asset.embedded_source.empty())
+					return false;
+			}
+			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
+			{
+				if (asset.source_relative.empty())
+					return false;
+				const string_t source_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+				if (!file_system_t::exists(source_path.c_str()))
+					return false;
+			}
+
+			return editor_asset_cooker_t::is_asset_cooked(asset);
 		}
 
 		void build_shader_default_cook_options(shader_type_e shader_type, nlohmann::json& out)
@@ -129,7 +153,7 @@ namespace sfg
 			return result;
 		}
 
-		void ensure_shader_assets(editor_asset_node_handle_t default_assets_node)
+		void ensure_shader_assets(const char* default_assets_dir)
 		{
 			const default_shader_asset_desc_t default_shader_assets[] = {
 				{.asset_name = "shader_gbuffer", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
@@ -139,7 +163,7 @@ namespace sfg
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
 			{
 				const u8 sub_type = static_cast<u8>(desc.shader_type);
-				if (is_default_asset_ready(desc.guid, editor_asset_type_e::shader, sub_type))
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::shader, sub_type))
 					continue;
 
 				nlohmann::json cook_options;
@@ -148,7 +172,7 @@ namespace sfg
 
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
-					.parent_node			  = default_assets_node,
+					.parent_path			  = default_assets_dir,
 					.name					  = desc.asset_name,
 					.source_name			  = desc.source_base_name,
 					.source_extension		  = "hlsl",
@@ -169,7 +193,7 @@ namespace sfg
 			}
 		}
 
-		void ensure_texture_assets(editor_asset_node_handle_t default_assets_node)
+		void ensure_texture_assets(const char* default_assets_dir)
 		{
 			const default_file_asset_desc_t default_texture_assets[] = {
 				{.asset_name = "texture_albedo", .source_base_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
@@ -180,7 +204,7 @@ namespace sfg
 
 			for (const default_file_asset_desc_t& desc : default_texture_assets)
 			{
-				if (is_default_asset_ready(desc.guid, editor_asset_type_e::texture, 0))
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::texture, 0))
 					continue;
 
 				nlohmann::json cook_options;
@@ -192,7 +216,7 @@ namespace sfg
 				const string_t						 texture_source_relative = get_texture_default_source_relative(desc.source_base_name);
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
-					.parent_node			  = default_assets_node,
+					.parent_path			  = default_assets_dir,
 					.name					  = desc.asset_name,
 					.source_name			  = desc.source_base_name,
 					.source_extension		  = "png",
@@ -210,7 +234,7 @@ namespace sfg
 			}
 		}
 
-		void ensure_skybox_assets(editor_asset_node_handle_t default_assets_node)
+		void ensure_skybox_assets(const char* default_assets_dir)
 		{
 			const default_file_asset_desc_t default_skybox_assets[] = {
 				{.asset_name = "qwantani_dusk_2", .source_base_name = "qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
@@ -218,7 +242,7 @@ namespace sfg
 
 			for (const default_file_asset_desc_t& desc : default_skybox_assets)
 			{
-				if (is_default_asset_ready(desc.guid, editor_asset_type_e::hdr_skybox, 0))
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::hdr_skybox, 0))
 					continue;
 
 				nlohmann::json cook_options;
@@ -231,7 +255,7 @@ namespace sfg
 				const string_t						 source_relative = get_skybox_default_source_relative(desc.source_base_name);
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
-					.parent_node			  = default_assets_node,
+					.parent_path			  = default_assets_dir,
 					.name					  = desc.asset_name,
 					.source_name			  = desc.source_base_name,
 					.source_extension		  = "hdr",
@@ -249,7 +273,7 @@ namespace sfg
 			}
 		}
 
-		void ensure_embedded_assets(editor_asset_node_handle_t default_assets_node)
+		void ensure_embedded_assets(const char* default_assets_dir)
 		{
 			const default_embedded_asset_desc_t default_embedded_assets[] = {
 				{.asset_name		  = "material_gbuffer",
@@ -292,7 +316,7 @@ namespace sfg
 
 			for (const default_embedded_asset_desc_t& desc : default_embedded_assets)
 			{
-				if (is_default_asset_ready(desc.guid, desc.asset_type, desc.sub_type))
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, desc.asset_type, desc.sub_type))
 					continue;
 
 				nlohmann::json embedded_source;
@@ -303,7 +327,7 @@ namespace sfg
 
 				const editor_asset_write_embedded_desc_t write_desc{
 					.embedded_source = &embedded_source,
-					.parent_node	 = default_assets_node,
+					.parent_path	 = default_assets_dir,
 					.name			 = desc.asset_name,
 					.guid			 = desc.guid,
 					.asset_type		 = desc.asset_type,
@@ -324,12 +348,13 @@ namespace sfg
 		}
 	}
 
-	void editor_default_asset_seeder_t::ensure(editor_asset_node_handle_t default_assets_node)
+	void editor_default_asset_seeder_t::ensure(const char* default_assets_dir)
 	{
-		SFG_ASSERT(!default_assets_node.is_null());
-		ensure_shader_assets(default_assets_node);
-		ensure_texture_assets(default_assets_node);
-		ensure_skybox_assets(default_assets_node);
-		ensure_embedded_assets(default_assets_node);
+		SFG_ASSERT(default_assets_dir != nullptr);
+		SFG_ASSERT(default_assets_dir[0] != '\0');
+		ensure_shader_assets(default_assets_dir);
+		ensure_texture_assets(default_assets_dir);
+		ensure_skybox_assets(default_assets_dir);
+		ensure_embedded_assets(default_assets_dir);
 	}
 }

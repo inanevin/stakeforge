@@ -33,7 +33,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
-#include <sfg/data/frame_string.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/file_system.hpp>
@@ -228,19 +227,13 @@ namespace sfg
 		SFG_ASSERT(default_assets_dir != nullptr);
 		SFG_ASSERT(default_assets_dir[0] != '\0');
 
-		frame_string_t<char> default_assets_path = default_assets_dir;
+		const string_t default_assets_path = default_assets_dir;
 
 		if (!file_system_t::exists(default_assets_path.c_str()))
 			file_system_t::create_directory(default_assets_path.c_str());
 
 		const string_t& assets_path = editor_project_t::get()._runtime.assets_path;
-		rescan(assets_path);
-		const string_t					 default_folder_name = file_system_t::get_last_folder_from_path(default_assets_path.c_str());
-		const editor_asset_node_handle_t default_assets_node = find_child_folder(_root_node, default_folder_name);
-		SFG_ASSERT(!default_assets_node.is_null());
-
-		editor_default_asset_seeder_t::ensure(default_assets_node);
-
+		editor_default_asset_seeder_t::ensure(default_assets_path.c_str());
 		rescan(assets_path);
 	}
 

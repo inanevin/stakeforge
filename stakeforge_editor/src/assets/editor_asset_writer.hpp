@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset_node.hpp"
 #include "assets/editor_asset_type.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
@@ -38,37 +37,37 @@ namespace sfg
 
 	struct editor_asset_write_file_desc_t
 	{
-		const nlohmann::json*	   cook_options				= nullptr;
-		editor_asset_node_handle_t parent_node				= {};
-		const char*				   name						= nullptr;
-		const char*				   source_name				= nullptr;
-		const char*				   source_extension			= nullptr;
-		const char*				   source_template_relative = nullptr;
-		sid_t					   guid						= NULL_SID;
-		editor_asset_type_e		   asset_type				= editor_asset_type_e::invalid;
-		u8						   sub_type					= 0;
-		bool					   allow_overwrite			= false;
+		const nlohmann::json* cook_options			   = nullptr;
+		const char*			  parent_path			   = nullptr;
+		const char*			  name					   = nullptr;
+		const char*			  source_name			   = nullptr;
+		const char*			  source_extension		   = nullptr;
+		const char*			  source_template_relative = nullptr;
+		sid_t				  guid					   = NULL_SID;
+		editor_asset_type_e	  asset_type			   = editor_asset_type_e::invalid;
+		u8					  sub_type				   = 0;
+		bool				  allow_overwrite		   = false;
 	};
 
 	struct editor_asset_write_embedded_desc_t
 	{
-		const nlohmann::json*	   embedded_source = nullptr;
-		editor_asset_node_handle_t parent_node	   = {};
-		const char*				   name			   = nullptr;
-		sid_t					   guid			   = NULL_SID;
-		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
-		u8						   sub_type		   = 0;
-		bool					   allow_overwrite = false;
+		const nlohmann::json* embedded_source = nullptr;
+		const char*			  parent_path	  = nullptr;
+		const char*			  name			  = nullptr;
+		sid_t				  guid			  = NULL_SID;
+		editor_asset_type_e	  asset_type	  = editor_asset_type_e::invalid;
+		u8					  sub_type		  = 0;
+		bool				  allow_overwrite = false;
 	};
 
 	struct editor_asset_write_none_desc_t
 	{
-		editor_asset_node_handle_t parent_node	   = {};
-		const char*				   name			   = nullptr;
-		sid_t					   guid			   = NULL_SID;
-		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
-		u8						   sub_type		   = 0;
-		bool					   allow_overwrite = false;
+		const char*			parent_path		= nullptr;
+		const char*			name			= nullptr;
+		sid_t				guid			= NULL_SID;
+		editor_asset_type_e asset_type		= editor_asset_type_e::invalid;
+		u8					sub_type		= 0;
+		bool				allow_overwrite = false;
 	};
 
 	class editor_asset_writer_t final
@@ -88,8 +87,5 @@ namespace sfg
 		static bool write_none_source_asset(const editor_asset_write_none_desc_t& desc, editor_asset_t* out_asset = nullptr, string_t* out_asset_path = nullptr);
 		static bool read_embedded_source(const char* asset_relative_path, nlohmann::json& out_embedded_source);
 		static bool read_cook_options(const char* asset_relative_path, nlohmann::json& out_cook_options);
-
-	private:
-		static const editor_asset_node_t& get_parent_folder(editor_asset_node_handle_t parent_node);
 	};
 }
