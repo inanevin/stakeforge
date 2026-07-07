@@ -489,8 +489,12 @@ namespace sfg
 			return false;
 		}
 
+		const string_t& assets_path = editor_project_t::get()._runtime.assets_path;
+
 		_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 		_asset_manager.ensure_default_assets(proj._runtime.default_assets_path.c_str());
+		_asset_manager.rescan(assets_path);
+
 		_asset_manager.clean_cache();
 		_asset_manager.ensure_cook();
 		if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))

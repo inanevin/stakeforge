@@ -232,9 +232,7 @@ namespace sfg
 		if (!file_system_t::exists(default_assets_path.c_str()))
 			file_system_t::create_directory(default_assets_path.c_str());
 
-		const string_t& assets_path = editor_project_t::get()._runtime.assets_path;
 		editor_default_asset_seeder_t::ensure(default_assets_path.c_str());
-		rescan(assets_path);
 	}
 
 	void editor_asset_manager_t::ensure_integrity()
@@ -303,11 +301,7 @@ namespace sfg
 
 			const string_t guid_text = file_system_t::get_filename_from_path(entry.path);
 			u64			   guid		 = 0;
-			const char*	   begin	 = guid_text.data();
-			const char*	   end		 = begin + guid_text.size();
-			const auto	   result	 = std::from_chars(begin, end, guid);
-			if (result.ec != std::errc() || result.ptr != end)
-				continue;
+			string_util::to_big_uint(guid_text, guid);
 
 			if (find_asset(guid) != nullptr)
 				continue;
