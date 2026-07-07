@@ -76,6 +76,10 @@ namespace sfg
 		{
 			const string_t asset_path = editor_asset_util_t::make_asset_path(default_assets_dir, asset_name);
 			editor_asset_t asset	  = {};
+
+			if (!file_system_t::exists(asset_path.c_str()))
+				return false;
+
 			if (!editor_asset_util_t::read_asset(asset_path.c_str(), asset))
 				return false;
 
