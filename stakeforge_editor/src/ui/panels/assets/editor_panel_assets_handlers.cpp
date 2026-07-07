@@ -121,7 +121,6 @@ namespace sfg
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
 		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
-		editor_asset_manager_t::get().ensure_cook();
 		panel.refresh_folder_rows();
 	}
 
