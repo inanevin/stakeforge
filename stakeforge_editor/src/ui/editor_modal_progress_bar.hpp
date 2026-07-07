@@ -27,6 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/editor_modal_controller.hpp"
+#include "ui/widgets/editor_widget_progress_bar.hpp"
 #include "ui/widgets/editor_widget_spinner.hpp"
 
 namespace sfg
@@ -52,20 +53,17 @@ namespace sfg
 		}
 
 	private:
-		void refresh();
-
 		static void init_content(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
 		static void uninit_content(void* user_data);
 
 	private:
-		ui::ui_context*			_ui				= nullptr;
-		ui::widget_id_t			_root			= NULL_WIDGET;
-		ui::widget_id_t			_bar			= NULL_WIDGET;
-		ui::widget_id_t			_fill			= NULL_WIDGET;
-		ui::widget_id_t			_label			= NULL_WIDGET;
-		ui::widget_id_t			_spinner_row	= NULL_WIDGET;
-		ui::widget_id_t			_spinner_holder = NULL_WIDGET;
-		editor_widget_spinner_t _spinner		= {};
-		f32						_progress		= 0.0f;
+		editor_widget_progress_bar_t _bar	  = {};
+		editor_widget_spinner_t		 _spinner = {};
+
+		ui::ui_context* _ui				= nullptr;
+		ui::widget_id_t _root			= NULL_WIDGET;
+		ui::widget_id_t _spinner_row	= NULL_WIDGET;
+		ui::widget_id_t _spinner_holder = NULL_WIDGET;
+		f32				_progress		= 0.0f;
 	};
 }

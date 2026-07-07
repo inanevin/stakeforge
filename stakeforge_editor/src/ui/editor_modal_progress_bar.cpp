@@ -25,7 +25,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/editor_modal_progress_bar.hpp"
-#include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 
 #include <sfg/math/math.hpp>
@@ -39,7 +38,6 @@ namespace sfg
 	{
 		_ui							= &ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
-		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		_root = ui.allocate_widget();
@@ -54,57 +52,7 @@ namespace sfg
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = theme.item_spacing;
 
-		_bar = ui.allocate_widget();
-		ui.set_widget_debug_name(_bar, "modal_progress_bar");
-		tree.attach(_root, _bar);
-
-		ui::layout_in_t& bar_in = tree.in(_bar);
-		bar_in.flags			= ui::wf_visible;
-		bar_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		bar_in.size_mode_y		= ui::axis_mode_e::fixed;
-		bar_in.size_value		= {1.0f, theme.item_height};
-
-		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_frame;
-		rect.fill_color_b		 = theme.color_frame;
-		rect.outline_color		 = theme.color_outline_light;
-		rect.outline_thickness	 = theme.outline_thickness;
-		rect.rounding			 = theme.item_rounding;
-		rect.rounding_segs		 = 4;
-		rect.aa_thickness		 = theme.aa_thickness;
-		paint.set_rect(_bar, rect);
-
-		_fill = ui.allocate_widget();
-		ui.set_widget_debug_name(_fill, "modal_progress_bar_fill");
-		tree.attach(_bar, _fill);
-
-		ui::layout_in_t& fill_in = tree.in(_fill);
-		fill_in.flags			 = ui::wf_visible;
-		fill_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		fill_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
-		fill_in.size_value		 = {_progress, 1.0f};
-
-		ui::vg_rect_paint_t fill_rect = {};
-		fill_rect.fill_color_a		  = theme.color_accent1_dim;
-		fill_rect.fill_color_b		  = theme.color_accent1;
-		fill_rect.gradient			  = ui::vg_gradient_e::horizontal;
-		fill_rect.rounding			  = theme.item_rounding;
-		fill_rect.rounding_segs		  = 4;
-		fill_rect.aa_thickness		  = theme.aa_thickness;
-		paint.set_rect(_fill, fill_rect);
-
-		_label = ui.allocate_widget();
-		ui.set_widget_debug_name(_label, "modal_progress_bar_label");
-		tree.attach(_bar, _label);
-
-		ui::layout_in_t& label_in = tree.in(_label);
-		label_in.flags			  = ui::wf_visible;
-		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_value		  = {0.5f, 0.5f};
-		label_in.anchor_x		  = ui::anchor_e::center;
-		label_in.anchor_y		  = ui::anchor_e::center;
-		paint.set_text(_label, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		_bar.init(ui, _root, {.progress_text = "", .progress_amount = _progress, .frame_height = theme.item_height});
 
 		_spinner_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_spinner_row, "modal_progress_spinner_row");
@@ -132,19 +80,15 @@ namespace sfg
 		spinner_holder_in.size_value	   = {theme.item_height * 2.0f, theme.item_height * 2.0f};
 
 		_spinner.init(ui, _spinner_holder, {.outer_color = theme.color_accent0, .inner_color = theme.color_accent1});
-
-		refresh();
 	}
 
 	void editor_modal_progress_bar_t::uninit()
 	{
 		_spinner.uninit();
+		_bar.uninit();
 		_ui->deallocate_widget(_root);
 		_ui				= nullptr;
 		_root			= NULL_WIDGET;
-		_bar			= NULL_WIDGET;
-		_fill			= NULL_WIDGET;
-		_label			= NULL_WIDGET;
 		_spinner_row	= NULL_WIDGET;
 		_spinner_holder = NULL_WIDGET;
 	}
@@ -153,21 +97,12 @@ namespace sfg
 	{
 		_progress = math::clamp(progress, 0.0f, 1.0f);
 		if (_ui != nullptr)
-			refresh();
+			_bar.update_progress(_progress);
 	}
 
 	editor_modal_content_desc_t editor_modal_progress_bar_t::get_content_desc()
 	{
 		return {.init = init_content, .uninit = uninit_content, .user_data = this, .frame_width_x = MODAL_PROGRESS_BAR_FRAME_WIDTH_X, .fill_x = true};
-	}
-
-	void editor_modal_progress_bar_t::refresh()
-	{
-		_ui->get_tree().in(_fill).size_value.x = _progress;
-
-		char text[8] = {};
-		snprintf(text, sizeof(text), "%u%%", static_cast<u32>(math::round(_progress * 100.0f)));
-		_ui->set_widget_text(_label, text);
 	}
 
 	void editor_modal_progress_bar_t::init_content(ui::ui_context& ui, ui::widget_id_t parent, void* user_data)

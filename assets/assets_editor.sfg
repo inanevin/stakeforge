@@ -73,6 +73,17 @@
             }
         },
         {
+            "name": "splash",
+            "path": "editor/resource_pack/textures/splash.jpg",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false
+            }
+        },
+        {
             "name": "font_ibm",
             "path": "editor/resource_pack/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf",
             "type": 2,
