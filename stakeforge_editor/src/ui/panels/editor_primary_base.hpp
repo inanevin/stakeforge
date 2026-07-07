@@ -41,13 +41,6 @@ namespace sfg
 {
 	struct window_runtime_t;
 
-	enum class editor_project_prompt_action_e : u8
-	{
-		none,
-		new_project,
-		load_project,
-	};
-
 	class editor_primary_base_t final
 	{
 	public:
@@ -70,9 +63,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void prompt_no_project_modal();
-		void prompt_project_save_modal(editor_project_prompt_action_e action);
-		void complete_project_save_prompt(bool save);
-		void cancel_project_save_prompt();
 		void set_current_project_name(const char* name);
 		bool is_window_drag_region(const vec2i16_t& pos) const;
 
@@ -106,18 +96,17 @@ namespace sfg
 		}
 
 	private:
-		ui::ui_context*				   _ui				= nullptr;
-		ui::widget_id_t				   _base			= NULL_WIDGET;
-		ui::widget_id_t				   _project_label	= NULL_WIDGET;
-		ui::widget_id_t				   _top_row_left	= NULL_WIDGET;
-		ui::widget_id_t				   _top_row_strikes = NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_file	= NULL_WIDGET;
-		ui::widget_id_t				   _top_mid_util	= NULL_WIDGET;
-		ui::widget_id_t				   _label_wrap		= NULL_WIDGET;
-		dock_widget_t				   _dock_widget;
-		editor_file_menu_t			   _file_menu;
-		editor_main_toolbar_t		   _main_toolbar;
-		editor_project_prompt_action_e _pending_project_prompt_action = editor_project_prompt_action_e::none;
+		ui::ui_context*		  _ui			   = nullptr;
+		ui::widget_id_t		  _base			   = NULL_WIDGET;
+		ui::widget_id_t		  _project_label   = NULL_WIDGET;
+		ui::widget_id_t		  _top_row_left	   = NULL_WIDGET;
+		ui::widget_id_t		  _top_row_strikes = NULL_WIDGET;
+		ui::widget_id_t		  _top_mid_file	   = NULL_WIDGET;
+		ui::widget_id_t		  _top_mid_util	   = NULL_WIDGET;
+		ui::widget_id_t		  _label_wrap	   = NULL_WIDGET;
+		dock_widget_t		  _dock_widget;
+		editor_file_menu_t	  _file_menu;
+		editor_main_toolbar_t _main_toolbar;
 
 		static void on_no_project_open(void* user_data);
 		static void on_no_project_create(void* user_data);

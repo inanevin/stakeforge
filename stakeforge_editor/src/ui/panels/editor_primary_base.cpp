@@ -324,24 +324,6 @@ namespace sfg
 				request_error_modal(base, "Failed Saving Project", "Current project could not be saved.");
 		}
 
-		void on_open_modal_save(void* user_data)
-		{
-			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
-			base.complete_project_save_prompt(true);
-		}
-
-		void on_open_modal_dont_save(void* user_data)
-		{
-			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
-			base.complete_project_save_prompt(false);
-		}
-
-		void on_open_modal_cancel(void* user_data)
-		{
-			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
-			base.cancel_project_save_prompt();
-		}
-
 		void on_file_menu_command(u16 command, void* user_data)
 		{
 			editor_primary_base_t& base = *static_cast<editor_primary_base_t*>(user_data);
@@ -356,10 +338,10 @@ namespace sfg
 			switch (static_cast<editor_file_menu_commands_e>(command))
 			{
 			case editor_file_menu_commands_e::project_new:
-				base.prompt_project_save_modal(editor_project_prompt_action_e::new_project);
+				create_project_from_dialog(base);
 				break;
 			case editor_file_menu_commands_e::project_load:
-				base.prompt_project_save_modal(editor_project_prompt_action_e::load_project);
+				open_project_from_dialog(base);
 				break;
 			case editor_file_menu_commands_e::project_save:
 				if (!editor_project_t::get().save(editor_project_t::get()._runtime.path.c_str()))
@@ -718,15 +700,14 @@ namespace sfg
 
 		_ui->deallocate_widget(_base);
 
-		_ui							   = nullptr;
-		_base						   = NULL_WIDGET;
-		_project_label				   = NULL_WIDGET;
-		_top_row_left				   = NULL_WIDGET;
-		_top_row_strikes			   = NULL_WIDGET;
-		_top_mid_file				   = NULL_WIDGET;
-		_top_mid_util				   = NULL_WIDGET;
-		_label_wrap					   = NULL_WIDGET;
-		_pending_project_prompt_action = editor_project_prompt_action_e::none;
+		_ui				 = nullptr;
+		_base			 = NULL_WIDGET;
+		_project_label	 = NULL_WIDGET;
+		_top_row_left	 = NULL_WIDGET;
+		_top_row_strikes = NULL_WIDGET;
+		_top_mid_file	 = NULL_WIDGET;
+		_top_mid_util	 = NULL_WIDGET;
+		_label_wrap		 = NULL_WIDGET;
 	}
 
 	void editor_primary_base_t::set_current_project_name(const char* name)
@@ -757,46 +738,6 @@ namespace sfg
 
 		const vec4f_t label = _ui->get_tree().bounds(_label_wrap);
 		return p.x >= label.x && p.x <= label.x + label.z && p.y >= label.y && p.y <= label.y + label.w;
-	}
-
-	void editor_primary_base_t::prompt_project_save_modal(editor_project_prompt_action_e action)
-	{
-		_pending_project_prompt_action		 = action;
-		editor_modal_button_desc_t buttons[] = {
-			{.text = "Save", .callback = on_open_modal_save, .user_data = this},
-			{.text = "Don't Save", .callback = on_open_modal_dont_save, .user_data = this},
-			{.text = "Cancel", .callback = on_open_modal_cancel, .user_data = this},
-		};
-		modal_controller_for(*this).request_modal("Would you like to save?", "Save current changes before continuing?", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])));
-	}
-
-	void editor_primary_base_t::complete_project_save_prompt(bool save)
-	{
-		const editor_project_prompt_action_e action = _pending_project_prompt_action;
-		_pending_project_prompt_action				= editor_project_prompt_action_e::none;
-
-		if (save && !editor_project_t::get().save(editor_project_t::get()._runtime.path.c_str()))
-		{
-			request_error_modal(*this, "Failed Saving Project", "Current project could not be saved.");
-			return;
-		}
-
-		switch (action)
-		{
-		case editor_project_prompt_action_e::new_project:
-			create_project_from_dialog(*this);
-			break;
-		case editor_project_prompt_action_e::load_project:
-			open_project_from_dialog(*this);
-			break;
-		default:
-			break;
-		}
-	}
-
-	void editor_primary_base_t::cancel_project_save_prompt()
-	{
-		_pending_project_prompt_action = editor_project_prompt_action_e::none;
 	}
 
 	void editor_primary_base_t::prompt_no_project_modal()
