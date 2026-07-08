@@ -57,7 +57,10 @@ namespace sfg
 
 		const string_t asset_path = editor_asset_util_t::make_asset_path(desc.parent_path, desc.name);
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
+		{
+			SFG_ERR("can't write asset as asset with this name already exists! {0}", asset_path.c_str());
 			return false;
+		}
 
 		sid_t guid = desc.guid;
 		if (guid == NULL_SID && desc.allow_overwrite)
@@ -130,7 +133,10 @@ namespace sfg
 
 		const string_t asset_path = editor_asset_util_t::make_asset_path(desc.parent_path, desc.name);
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
+		{
+			SFG_ERR("can't write asset as asset with this name already exists! {0}", asset_path.c_str());
 			return false;
+		}
 
 		sid_t guid = desc.guid;
 		if (guid == NULL_SID && desc.allow_overwrite)

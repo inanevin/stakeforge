@@ -72,11 +72,10 @@ namespace sfg
 			const string_t					 name		 = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
 			const string_t					 json_text	 = prefab_json.dump();
 			const editor_asset_create_desc_t desc{
-				.parent_node	 = parent_node,
-				.name			 = name.c_str(),
-				.embedded_data	 = json_text.c_str(),
-				.asset_type		 = editor_asset_type_e::prefab,
-				.allow_overwrite = true,
+				.parent_node   = parent_node,
+				.name		   = name.c_str(),
+				.embedded_data = json_text.c_str(),
+				.asset_type	   = editor_asset_type_e::prefab,
 			};
 			editor_asset_t asset = {};
 			if (!editor_asset_creator_t::create_asset(desc, &asset))

@@ -437,9 +437,8 @@ namespace sfg
 		string_t asset_name = name != nullptr ? name : "";
 
 		editor_asset_create_desc_t desc = {
-			.parent_node	 = _selected_folder_node,
-			.name			 = asset_name.c_str(),
-			.allow_overwrite = true,
+			.parent_node = _selected_folder_node,
+			.name		 = asset_name.c_str(),
 		};
 
 		switch (command)
@@ -547,7 +546,10 @@ namespace sfg
 
 		const string_t new_path = parent_path + new_name;
 		if (file_system_t::exists(new_path.c_str()))
+		{
+			SFG_ERR("folder with this name already exists! {0}", name);
 			return;
+		}
 
 		const u64 old_hash = _selected_folder_hash;
 		const u64 new_hash = get_folder_hash_after_rename(_selected_folder_node, new_name);
@@ -640,8 +642,12 @@ namespace sfg
 			new_path += ".";
 			new_path += old_file_extension;
 		}
+
 		if (file_system_t::exists(new_path.c_str()))
+		{
+			SFG_ERR("asset with this name already exists! {0}", name);
 			return;
+		}
 
 		if (asset_node.type == editor_asset_node_type_e::asset)
 		{
