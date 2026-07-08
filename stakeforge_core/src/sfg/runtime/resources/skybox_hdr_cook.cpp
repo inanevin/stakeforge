@@ -438,6 +438,7 @@ namespace sfg
 		skybox_hdr_texture_block_t brdf_lut	  = build_brdf_lut(cfg.brdf_lut_size, cfg.brdf_lut_sample_count);
 
 		out_header = {
+			.type		 = resource_type_e::hdr_skybox,
 			.magic		 = skybox_hdr_loader_t::WIRE_MAGIC,
 			.version	 = skybox_hdr_loader_t::WIRE_VERSION,
 			.source_tick = file_system_t::get_last_modified_ticks(full_path),

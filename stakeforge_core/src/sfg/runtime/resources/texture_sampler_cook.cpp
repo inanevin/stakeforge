@@ -21,6 +21,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::texture_sampler,
 			.magic		 = texture_sampler_loader_t::WIRE_MAGIC,
 			.version	 = texture_sampler_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(sampler_stream.get_raw(), sampler_stream.get_size()),

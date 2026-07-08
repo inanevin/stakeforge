@@ -78,6 +78,8 @@ namespace sfg
 
 			resource_header_t header = {};
 			header.deserialize(stream);
+			if (header.type != expected.type)
+				return false;
 			if (header.magic != expected.magic || header.version != expected.version)
 				return false;
 			if (header.source_tick != expected.source_tick)
@@ -176,10 +178,11 @@ namespace sfg
 			{
 				const string_t prefab_source = file_system_t::read_file_as_string(full_path);
 				out_header					 = {
-									  .magic	   = prefab_loader_t::WIRE_MAGIC,
-									  .version	   = prefab_loader_t::WIRE_VERSION,
-									  .source_tick = file_system_t::get_last_modified_ticks(full_path),
-				  };
+					.type		 = resource_type_e::prefab,
+					.magic		 = prefab_loader_t::WIRE_MAGIC,
+					.version	 = prefab_loader_t::WIRE_VERSION,
+					.source_tick = file_system_t::get_last_modified_ticks(full_path),
+				};
 				stream << prefab_source;
 				return true;
 			}
@@ -312,8 +315,9 @@ namespace sfg
 
 			const resource_type_desc_t* const desc	   = find_resource_type_desc(entry.type);
 			resource_header_t				  expected = {
-								.magic	 = desc != nullptr ? desc->wire_magic : 0,
-								.version = desc != nullptr ? desc->wire_version : 0,
+				.type	 = entry.type,
+				.magic	 = desc != nullptr ? desc->wire_magic : 0,
+				.version = desc != nullptr ? desc->wire_version : 0,
 			};
 			if (entry.type == resource_type_e::shader)
 			{

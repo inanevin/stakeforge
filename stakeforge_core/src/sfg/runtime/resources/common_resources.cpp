@@ -30,6 +30,7 @@ namespace sfg
 	void resource_header_t::serialize(ostream_t& stream) const
 	{
 		stream.write_raw(reinterpret_cast<const u8*>(debug_name), sizeof(debug_name));
+		stream << type;
 		stream << magic << version;
 		stream << source_tick;
 		stream << file_source_ticks;
@@ -41,6 +42,7 @@ namespace sfg
 	void resource_header_t::deserialize(istream_t& stream)
 	{
 		stream.read_to_raw(reinterpret_cast<u8*>(debug_name), sizeof(debug_name));
+		stream >> type;
 		stream >> magic >> version;
 		stream >> source_tick;
 		stream >> file_source_ticks;

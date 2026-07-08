@@ -91,6 +91,7 @@ namespace sfg
 			else if (asset_name != nullptr && asset_name[0] != '\0')
 				resolved_asset_name = resolve_asset_name(asset_name);
 			SFG_ASSERT(!resolved_asset_name.empty());
+			SFG_ASSERT(editor_asset_type_from_resource_type(header.type) == asset.asset_type);
 			header.set_debug_name(resolved_asset_name.c_str());
 			if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 			{
@@ -182,7 +183,7 @@ namespace sfg
 
 		resource_header_t header = {};
 		header.deserialize(stream);
-		if (header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
+		if (header.type != resource_desc->type || header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
 			return false;
 		if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 		{
@@ -455,10 +456,11 @@ namespace sfg
 
 		const string_t	  prefab_source = asset.embedded_source;
 		resource_header_t header		= {
-				   .magic		= prefab_loader_t::WIRE_MAGIC,
-				   .version		= prefab_loader_t::WIRE_VERSION,
-				   .source_tick = hashing_t::hash_u64(reinterpret_cast<const u8*>(prefab_source.data()), prefab_source.size()),
-		   };
+			.type		 = resource_type_e::prefab,
+			.magic		 = prefab_loader_t::WIRE_MAGIC,
+			.version	 = prefab_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(reinterpret_cast<const u8*>(prefab_source.data()), prefab_source.size()),
+		};
 		ostream_t stream;
 		stream << prefab_source;
 		return save_cooked_asset(asset, header, stream, asset_name);

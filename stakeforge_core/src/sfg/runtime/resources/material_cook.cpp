@@ -27,6 +27,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::material,
 			.magic		 = material_loader_t::WIRE_MAGIC,
 			.version	 = material_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(material_stream.get_raw(), material_stream.get_size()),

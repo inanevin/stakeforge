@@ -68,6 +68,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::mesh,
 			.magic		 = mesh_loader_t::WIRE_MAGIC,
 			.version	 = mesh_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(mesh_stream.get_raw(), mesh_stream.get_size()),

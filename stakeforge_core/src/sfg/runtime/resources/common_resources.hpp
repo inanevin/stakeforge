@@ -36,12 +36,12 @@ namespace sfg
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 	};
-#pragma pack(pop)
 
 	struct resource_header_t
 	{
 		char				  debug_name[MAX_DEBUG_NAME_SIZE] = {};
 		resource_dependency_t dependencies[MAX_DEPENDENCIES];
+		resource_type_e		  type				= resource_type_e::invalid;
 		u32					  magic				= 0;
 		u32					  version			= 0;
 		u32					  dependency_count	= 0;
@@ -54,6 +54,7 @@ namespace sfg
 		void	  serialize(ostream_t& stream) const;
 		void	  deserialize(istream_t& stream);
 	};
+#pragma pack(pop)
 
 	enum class resource_state_e : u8
 	{

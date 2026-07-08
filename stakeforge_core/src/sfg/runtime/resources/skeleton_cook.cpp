@@ -46,6 +46,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::skeleton,
 			.magic		 = skeleton_loader_t::WIRE_MAGIC,
 			.version	 = skeleton_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(skeleton_stream.get_raw(), skeleton_stream.get_size()),

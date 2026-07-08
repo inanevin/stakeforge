@@ -97,7 +97,7 @@ namespace sfg
 
 			resource_header_t header = {};
 			header.deserialize(stream);
-			if (header.magic != texture_loader_t::WIRE_MAGIC || header.version != texture_loader_t::WIRE_VERSION)
+			if (header.type != resource_type_e::texture || header.magic != texture_loader_t::WIRE_MAGIC || header.version != texture_loader_t::WIRE_VERSION)
 				return false;
 			if (header.source_tick != get_asset_thumbnail_source_tick(asset))
 				return false;

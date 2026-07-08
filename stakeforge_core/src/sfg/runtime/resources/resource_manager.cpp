@@ -110,6 +110,7 @@ namespace sfg
 		resource_header_t header = {};
 		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
+		SFG_ASSERT(header.type == type);
 
 		const char*		   debug_name = header.debug_name;
 		resource_context_t ctx{*this};

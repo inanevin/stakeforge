@@ -23,6 +23,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::font,
 			.magic		 = font_loader_t::WIRE_MAGIC,
 			.version	 = font_loader_t::WIRE_VERSION,
 			.source_tick = file_system_t::get_last_modified_ticks(full_path),

@@ -47,6 +47,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::animation,
 			.magic		 = animation_loader_t::WIRE_MAGIC,
 			.version	 = animation_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(animation_stream.get_raw(), animation_stream.get_size()),

@@ -167,6 +167,7 @@ namespace sfg
 		}
 
 		out_header = {
+			.type		 = resource_type_e::shader,
 			.magic		 = shader_loader_t::WIRE_MAGIC,
 			.version	 = shader_loader_t::WIRE_VERSION,
 			.source_tick = collect_source_tick(cfg, full_path),

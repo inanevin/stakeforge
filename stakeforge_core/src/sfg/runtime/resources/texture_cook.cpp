@@ -130,6 +130,7 @@ namespace sfg
 			texture_header.average_color	= sample_average_color(buffers[0]);
 
 			out_header = {
+				.type		 = resource_type_e::texture,
 				.magic		 = texture_loader_t::WIRE_MAGIC,
 				.version	 = texture_loader_t::WIRE_VERSION,
 				.source_tick = source_tick,
@@ -144,12 +145,12 @@ namespace sfg
 				{
 					const texture_buffer_t& buf = buffers[i];
 					texture_header.mips[i]		= {
-							 .byte_offset = byte_offset,
-							 .data_size	  = buf.data_size,
-							 .row_pitch	  = buf.row_pitch,
-							 .size		  = buf.size,
-							 .bpp		  = buf.bpp,
-					 };
+						.byte_offset = byte_offset,
+						.data_size	 = buf.data_size,
+						.row_pitch	 = buf.row_pitch,
+						.size		 = buf.size,
+						.bpp		 = buf.bpp,
+					};
 					byte_offset += buf.data_size;
 					raw_stream.write_raw(buf.pixels, buf.data_size);
 				}
