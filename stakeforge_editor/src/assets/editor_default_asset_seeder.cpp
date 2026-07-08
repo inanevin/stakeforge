@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_writer.hpp"
 #include "editor_project.hpp"
@@ -104,14 +103,6 @@ namespace sfg
 			return editor_asset_cooker_t::is_asset_cooked(asset);
 		}
 
-		void ensure_default_asset_thumbnail(const char* default_assets_dir, const char* asset_name)
-		{
-			const string_t asset_path = editor_asset_util_t::make_asset_path(default_assets_dir, asset_name);
-			editor_asset_t asset	  = {};
-			if (file_system_t::exists(asset_path.c_str()) && editor_asset_util_t::read_asset(asset_path.c_str(), asset))
-				editor_asset_thumbnailer_t::ensure(asset, asset_name);
-		}
-
 		void build_shader_default_cook_options(shader_type_e shader_type, nlohmann::json& out)
 		{
 			out["schema"]		= "sfg.schema.shader";
@@ -177,10 +168,7 @@ namespace sfg
 			{
 				const u8 sub_type = static_cast<u8>(desc.shader_type);
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::shader, sub_type))
-				{
-					ensure_default_asset_thumbnail(default_assets_dir, desc.asset_name);
 					continue;
-				}
 
 				nlohmann::json cook_options;
 				build_shader_default_cook_options(desc.shader_type, cook_options);
@@ -205,9 +193,6 @@ namespace sfg
 				if (created)
 					created = editor_asset_cooker_t::cook_shader(asset, desc.asset_name);
 
-				if (created)
-					created = editor_asset_thumbnailer_t::ensure(asset, desc.asset_name, true);
-
 				SFG_ASSERT(created);
 			}
 		}
@@ -224,10 +209,7 @@ namespace sfg
 			for (const default_file_asset_desc_t& desc : default_texture_assets)
 			{
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::texture, 0))
-				{
-					ensure_default_asset_thumbnail(default_assets_dir, desc.asset_name);
 					continue;
-				}
 
 				nlohmann::json cook_options;
 				const string_t texture_asset_relative = get_texture_default_asset_relative(desc.source_base_name);
@@ -253,8 +235,6 @@ namespace sfg
 				if (created)
 					created = editor_asset_cooker_t::cook_texture(asset, desc.asset_name);
 
-				if (created)
-					created = editor_asset_thumbnailer_t::ensure(asset, desc.asset_name, true);
 				SFG_ASSERT(created);
 			}
 		}
@@ -268,10 +248,7 @@ namespace sfg
 			for (const default_file_asset_desc_t& desc : default_skybox_assets)
 			{
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::hdr_skybox, 0))
-				{
-					ensure_default_asset_thumbnail(default_assets_dir, desc.asset_name);
 					continue;
-				}
 
 				nlohmann::json cook_options;
 				const string_t skybox_asset_relative = get_skybox_default_asset_relative(desc.source_base_name);
@@ -298,8 +275,6 @@ namespace sfg
 				if (created)
 					created = editor_asset_cooker_t::cook_hdr_skybox(asset, desc.asset_name);
 
-				if (created)
-					created = editor_asset_thumbnailer_t::ensure(asset, desc.asset_name, true);
 				SFG_ASSERT(created);
 			}
 		}
@@ -348,10 +323,7 @@ namespace sfg
 			for (const default_embedded_asset_desc_t& desc : default_embedded_assets)
 			{
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, desc.asset_type, desc.sub_type))
-				{
-					ensure_default_asset_thumbnail(default_assets_dir, desc.asset_name);
 					continue;
-				}
 
 				nlohmann::json embedded_source;
 				const bool	   read_embedded_source = editor_asset_writer_t::read_embedded_source(desc.asset_relative_path, embedded_source);
@@ -378,8 +350,6 @@ namespace sfg
 				else if (created && desc.asset_type == editor_asset_type_e::texture_sampler)
 					created = editor_asset_cooker_t::cook_texture_sampler(asset, desc.asset_name);
 
-				if (created)
-					created = editor_asset_thumbnailer_t::ensure(asset, desc.asset_name, true);
 				SFG_ASSERT(created);
 			}
 		}
