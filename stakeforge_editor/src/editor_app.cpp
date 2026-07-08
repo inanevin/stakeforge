@@ -227,7 +227,9 @@ namespace sfg
 				return;
 
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
+			{
 				editor_app_t::get().set_debug_mode(!editor_app_t::get()._debug_mode);
+			}
 
 			ui::key_event_t k = {};
 			k.key			  = ev.button;
