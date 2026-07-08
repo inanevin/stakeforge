@@ -124,13 +124,14 @@ namespace sfg::ui
 		// events
 		// -----------------------------------------------------------------------------
 
-		void on_mouse_move(const vec2f_t& pos);
-		void on_mouse_button(mouse_button_e btn, bool pressed);
-		void on_wheel(f32 delta);
-		void on_key(const key_event_t& ev);
-		void next_focus();
-		void prev_focus();
-		void set_focus(widget_id_t id, bool from_nav);
+		void				  on_mouse_move(const vec2f_t& pos);
+		void				  on_mouse_button(mouse_button_e btn, bool pressed);
+		void				  on_wheel(f32 delta);
+		void				  on_key(const key_event_t& ev);
+		void				  next_focus();
+		void				  prev_focus();
+		void				  set_focus(widget_id_t id, bool from_nav);
+		static mouse_button_e map_button(u16 button);
 
 		// -----------------------------------------------------------------------------
 		// accessors

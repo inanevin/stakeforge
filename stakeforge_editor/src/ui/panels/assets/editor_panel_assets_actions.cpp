@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/assets/editor_panel_assets.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_manager_util.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_popup_controller.hpp"
@@ -193,7 +194,7 @@ namespace sfg
 		clear_folder_selection();
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -211,7 +212,7 @@ namespace sfg
 		}
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 		if (!last_duplicate_path.empty())
 			select_folder_by_full_path(last_duplicate_path.c_str());
@@ -250,7 +251,7 @@ namespace sfg
 		_selected_asset_node = {};
 		_selected_asset_nodes.resize(0);
 		_asset_selection_anchor = {};
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -278,7 +279,7 @@ namespace sfg
 		_selected_asset_node = {};
 		_selected_asset_nodes.resize(0);
 		_asset_selection_anchor = {};
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 		if (!last_duplicate_path.empty())
 			select_asset_by_full_path(last_duplicate_path.c_str());
@@ -333,8 +334,7 @@ namespace sfg
 		if (!editor_asset_util_t::write_asset(asset_node.full_path.c_str(), fixed_asset))
 			return;
 
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
-		asset_manager.ensure_integrity();
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -372,7 +372,7 @@ namespace sfg
 			return;
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -493,7 +493,7 @@ namespace sfg
 			return;
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -569,7 +569,7 @@ namespace sfg
 		}
 
 		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -655,7 +655,7 @@ namespace sfg
 			return;
 
 		_selected_asset_node = {};
-		asset_manager.rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 

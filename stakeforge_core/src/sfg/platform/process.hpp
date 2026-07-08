@@ -83,12 +83,13 @@ namespace sfg
 		// os query
 		// -----------------------------------------------------------------------------
 
-		static void		 get_all_monitors(vector_t<monitor_info_t>& out);
-		static char		 get_character_from_key(u32 key);
-		static u16		 get_character_mask_from_key(u32 key, char ch);
-		static bool		 is_key_down(u16 key);
-		static bool		 is_mouse_down(u16 button);
-		static vec2i16_t get_cursor_position();
+		static void					 get_all_monitors(vector_t<monitor_info_t>& out);
+		static const monitor_info_t& find_primary_monitor(const vector_t<monitor_info_t>& monitors);
+		static char					 get_character_from_key(u32 key);
+		static u16					 get_character_mask_from_key(u32 key, char ch);
+		static bool					 is_key_down(u16 key);
+		static bool					 is_mouse_down(u16 button);
+		static vec2i16_t			 get_cursor_position();
 
 		// -----------------------------------------------------------------------------
 		// window

@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_world_controller.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/editor_panel_types.hpp"
+#include <sfg/data/atomic.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
@@ -130,7 +131,7 @@ namespace sfg
 		editor_modal_progress_bar_t										_debug_progress_modal;
 		i64																_last_tick_us			  = 0;
 		f32																_debug_modal_progress	  = 0.0f;
-		editor_app_mode_e												_pending_mode			  = editor_app_mode_e::none;
+		atomic_t<editor_app_mode_e>										_pending_mode			  = editor_app_mode_e::none;
 		editor_app_mode_e												_mode					  = editor_app_mode_e::none;
 		u8																_atlas_upload_frame_slot  = 0;
 		bool															_debug_mode				  = false;

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel.hpp"
 #include "assets/editor_asset_importer.hpp"
+#include "assets/editor_asset_node.hpp"
 #include "ui/editor_modal_cook_options.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"

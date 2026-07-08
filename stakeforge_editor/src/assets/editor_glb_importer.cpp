@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_glb_importer.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
-#include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
@@ -834,7 +833,7 @@ namespace sfg
 			return true;
 		}
 
-		bool import_texture(const editor_asset_node_t&			 parent_node,
+		bool import_texture(const char*							 target_directory,
 							const char*							 source_full_path,
 							const tg3_model&					 model,
 							const tg3_texture&					 texture,
@@ -909,8 +908,8 @@ namespace sfg
 			}
 			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
-			const string_t source_path	 = editor_asset_util_t::make_source_path(parent_node.full_path.c_str(), asset_name.c_str(), "png");
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
+			const string_t source_path	 = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			if (stbi_write_png(source_path.c_str(), decoded_width, decoded_height, 4, decoded, decoded_width * 4) == 0)
 			{
@@ -942,7 +941,7 @@ namespace sfg
 			return true;
 		}
 
-		bool import_orm_texture(const editor_asset_node_t&			 parent_node,
+		bool import_orm_texture(const char*							 target_directory,
 								const tg3_model&					 model,
 								const tg3_material&					 material,
 								const texture_cook_config_t&		 texture_config_base,
@@ -1011,8 +1010,8 @@ namespace sfg
 			}
 			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
-			const string_t source_path	 = editor_asset_util_t::make_source_path(parent_node.full_path.c_str(), asset_name.c_str(), "png");
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
+			const string_t source_path	 = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			if (stbi_write_png(source_path.c_str(), static_cast<int>(width), static_cast<int>(height), 4, pixels.data(), static_cast<int>(width * 4)) == 0)
 			{
@@ -1042,7 +1041,7 @@ namespace sfg
 			return true;
 		}
 
-		bool import_material(const editor_asset_node_t&			  parent_node,
+		bool import_material(const char*						  target_directory,
 							 const char*						  source_full_path,
 							 const tg3_model&					  model,
 							 const tg3_material&				  material,
@@ -1096,7 +1095,7 @@ namespace sfg
 			else if (import_textures && (orm_index >= 0 || occlusion_index >= 0))
 			{
 				editor_asset_t orm_asset = {};
-				if (!import_orm_texture(parent_node, model, material, texture_config, asset_name.c_str(), asset_names, context, orm_asset))
+				if (!import_orm_texture(target_directory, model, material, texture_config, asset_name.c_str(), asset_names, context, orm_asset))
 				{
 					SFG_ERR("failed to import GLB ORM texture for material {0}", material_index);
 					return false;
@@ -1138,7 +1137,7 @@ namespace sfg
 			};
 
 			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 
 			asset.version				   = editor_asset_t::VERSION;
@@ -1171,14 +1170,8 @@ namespace sfg
 			return true;
 		}
 
-		bool import_skeleton(const editor_asset_node_t&			  parent_node,
-							 const char*						  source_full_path,
-							 const tg3_model&					  model,
-							 const tg3_skin&					  skin,
-							 u32								  skin_index,
-							 glb_asset_name_registry_t&			  asset_names,
-							 const editor_asset_import_context_t& context,
-							 vector_t<editor_asset_t>&			  out_assets)
+		bool import_skeleton(
+			const char* target_directory, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, glb_asset_name_registry_t& asset_names, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
 		{
 			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
 			{
@@ -1290,7 +1283,7 @@ namespace sfg
 			}
 
 			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 
 			asset.version				   = editor_asset_t::VERSION;
@@ -1444,7 +1437,7 @@ namespace sfg
 			return true;
 		}
 
-		bool import_mesh(const editor_asset_node_t&			  parent_node,
+		bool import_mesh(const char*						  target_directory,
 						 const char*						  source_full_path,
 						 const tg3_model&					  model,
 						 const tg3_mesh*					  meshes,
@@ -1497,8 +1490,8 @@ namespace sfg
 			}
 
 			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
-			const string_t blob_path	 = editor_asset_util_t::make_blob_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
+			const string_t blob_path	 = editor_asset_util_t::make_blob_path(target_directory, asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			ostream_t	   mesh_def_stream;
 			if (!serialize_reflected_to_stream(mesh_def, mesh_def_stream))
@@ -1571,7 +1564,7 @@ namespace sfg
 			out_scale = vec3f_t(static_cast<f32>(node.scale[0]), static_cast<f32>(node.scale[1]), static_cast<f32>(node.scale[2]));
 		}
 
-		bool import_prefab(const editor_asset_node_t&			parent_node,
+		bool import_prefab(const char*							target_directory,
 						   const char*							source_full_path,
 						   const tg3_model&						model,
 						   const hash_map_t<u32, sid_t>&		mesh_guid_map,
@@ -1850,7 +1843,7 @@ namespace sfg
 				return false;
 
 			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(parent_node.full_path.c_str(), asset_name.c_str());
+			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
 			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
 			asset.version				 = editor_asset_t::VERSION;
 			asset.guid					 = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
@@ -1875,14 +1868,10 @@ namespace sfg
 		}
 	}
 
-	bool editor_glb_importer_t::import_glb(editor_asset_node_handle_t directory_node, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
+	bool editor_glb_importer_t::import_glb(const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
 	{
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!directory_node.is_null());
-		SFG_ASSERT(tree.is_valid(directory_node));
-		const editor_asset_node_t& parent_node = tree.value(directory_node);
-		SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!parent_node.full_path.empty());
+		SFG_ASSERT(target_directory != nullptr);
+		SFG_ASSERT(target_directory[0] != '\0');
 		SFG_ASSERT(source_full_path != nullptr);
 		SFG_ASSERT(source_full_path[0] != '\0');
 
@@ -1891,7 +1880,7 @@ namespace sfg
 		string_t	   status			= "Copying GLB ";
 		status += glb_asset_name;
 		context.report_status(status.c_str());
-		if (!editor_asset_util_t::set_source_relative_or_copy(glb_source_asset, parent_node.full_path.c_str(), glb_asset_name.c_str(), source_full_path))
+		if (!editor_asset_util_t::set_source_relative_or_copy(glb_source_asset, target_directory, glb_asset_name.c_str(), source_full_path))
 		{
 			SFG_ERR("failed to copy GLB source {0}", source_full_path);
 			return false;
@@ -2056,7 +2045,7 @@ namespace sfg
 						const tg3_texture&					texture			= model.textures[texture_import.texture_index];
 						const editor_asset_import_context_t texture_context = {};
 
-						import_result.success = import_texture(parent_node, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset);
+						import_result.success = import_texture(target_directory, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset);
 						if (import_result.success)
 							import_result.guid = import_result.asset.guid;
 
@@ -2103,7 +2092,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.materials_count; ++i)
 				{
-					if (!import_material(parent_node, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, asset_names, context, out_assets))
+					if (!import_material(target_directory, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, asset_names, context, out_assets))
 					{
 						SFG_ERR("failed to import GLB material {0}", i);
 						result = false;
@@ -2116,7 +2105,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.skins_count; ++i)
 				{
-					if (!import_skeleton(parent_node, source_full_path, model, model.skins[i], i, asset_names, context, out_assets))
+					if (!import_skeleton(target_directory, source_full_path, model, model.skins[i], i, asset_names, context, out_assets))
 					{
 						SFG_ERR("failed to import GLB skeleton {0}", i);
 						result = false;
@@ -2132,12 +2121,12 @@ namespace sfg
 				if (cook_config.combine_meshes)
 				{
 					sid_t combined_mesh_guid = NULL_SID;
-					result					 = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, &combined_mesh_guid, out_assets);
+					result					 = import_mesh(target_directory, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, &combined_mesh_guid, out_assets);
 					if (!result)
 						SFG_ERR("failed to import combined GLB mesh");
 					if (result)
 					{
-						if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, out_assets))
+						if (!import_prefab(target_directory, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, out_assets))
 						{
 							SFG_ERR("failed to import GLB prefab");
 							result = false;
@@ -2148,7 +2137,7 @@ namespace sfg
 				{
 					for (u32 i = 0; i < model.meshes_count; ++i)
 					{
-						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, nullptr, out_assets))
+						if (!import_mesh(target_directory, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, nullptr, out_assets))
 						{
 							SFG_ERR("failed to import GLB mesh {0}", i);
 							result = false;
@@ -2159,7 +2148,7 @@ namespace sfg
 
 				if (result && !cook_config.combine_meshes && model.nodes_count != 0)
 				{
-					if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, NULL_SID, out_assets))
+					if (!import_prefab(target_directory, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, NULL_SID, out_assets))
 					{
 						SFG_ERR("failed to import GLB prefab");
 						result = false;

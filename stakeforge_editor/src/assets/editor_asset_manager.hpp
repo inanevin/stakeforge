@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class editor_asset_manager_util_t;
 	struct editor_project_t;
 
 	using editor_asset_tree_t = tree_t<editor_asset_node_t>;
@@ -51,6 +52,12 @@ namespace sfg
 		editor_asset_manager_t(const editor_asset_manager_t&)			 = delete;
 		editor_asset_manager_t& operator=(const editor_asset_manager_t&) = delete;
 
+		static inline editor_asset_manager_t& get()
+		{
+			SFG_ASSERT(s_instance != nullptr);
+			return *s_instance;
+		}
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
@@ -59,20 +66,13 @@ namespace sfg
 		void uninit();
 		void tick();
 		void clear();
-		void rescan(const string_t& assets_dir);
-		void ensure_integrity();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
 		void register_descriptor(const editor_asset_descriptor_t& desc);
-		void ensure_project_assets_async();
-		void ensure_thumbnails_loaded();
-		void ensure_default_meshes();
-		void cook_assets(span_t<editor_asset_t*> assets);
 		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
-		void set_import_status(const char* text);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -111,18 +111,10 @@ namespace sfg
 			return _generation;
 		}
 
-		inline bool is_ensure_project_assets_done() const
-		{
-			return _ensure_project_assets_done.load(std::memory_order_acquire);
-		}
-
-		static inline editor_asset_manager_t& get()
-		{
-			SFG_ASSERT(s_instance != nullptr);
-			return *s_instance;
-		}
-
 	private:
+		friend class editor_asset_manager_util_t;
+
+		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
@@ -131,21 +123,16 @@ namespace sfg
 		editor_asset_tree_t										   _asset_tree;
 		hash_map_t<u64, editor_asset_t>							   _assets;
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
-		vector_t<string_t>										   _import_paths;
-		vector_t<editor_asset_import_options_t>					   _import_options;
-		vector_t<editor_asset_t>								   _cook_assets;
 		string_t												   _import_status_pending;
 		string_t												   _import_status_visible;
 		mutex_t													   _import_status_mtx;
-		atomic_t<bool>											   _ensure_project_assets_done = false;
-		atomic_t<u32>											   _imported_count			   = 0;
-		atomic_t<bool>											   _import_finished			   = false;
-		atomic_t<bool>											   _import_status_dirty		   = false;
-		editor_asset_node_handle_t								   _import_directory_node;
 		editor_asset_node_handle_t								   _root_node;
-		u32														   _generation		   = 0;
-		u32														   _total_import_count = 0;
-		bool													   _import_in_progress = false;
+		f32														   _import_progress_pending	  = 0.0f;
+		atomic_t<bool>											   _import_status_dirty		  = false;
+		u32														   _generation				  = 0;
+		u32														   _last_integrity_generation = 0;
+		bool													   _import_completed_pending  = false;
+		bool													   _import_in_progress		  = false;
 
 		static inline editor_asset_manager_t* s_instance = nullptr;
 	};

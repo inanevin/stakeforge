@@ -1226,6 +1226,17 @@ namespace sfg
 		EnumDisplayMonitors(NULL, NULL, enumerate_monitors, (LPARAM)&out);
 	}
 
+	const monitor_info_t& process::find_primary_monitor(const vector_t<monitor_info_t>& monitors)
+	{
+		SFG_ASSERT(!monitors.empty());
+		for (const monitor_info_t& monitor : monitors)
+		{
+			if (monitor.is_primary)
+				return monitor;
+		}
+		return monitors[0];
+	}
+
 	char process::get_character_from_key(u32 vk)
 	{
 		BYTE ks[256];

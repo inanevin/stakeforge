@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_app.hpp"
+#include "assets/editor_asset_manager_util.hpp"
 #include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
@@ -75,15 +76,6 @@ namespace sfg
 
 	namespace
 	{
-		ui::mouse_button_e map_button(u16 b)
-		{
-			if (b == static_cast<u16>(input_code::mouse_right))
-				return ui::mouse_button_e::right;
-			if (b == static_cast<u16>(input_code::mouse_middle))
-				return ui::mouse_button_e::middle;
-			return ui::mouse_button_e::left;
-		}
-
 		editor_panel_t* find_panel_in_surface(editor_surface_t& surface, editor_panel_type_e type)
 		{
 			if (surface.type == editor_surface_type_e::primary)
@@ -102,22 +94,18 @@ namespace sfg
 			return false;
 		}
 
-		const monitor_info_t& find_primary_monitor(const vector_t<monitor_info_t>& monitors)
-		{
-			for (const monitor_info_t& monitor : monitors)
-			{
-				if (monitor.is_primary)
-					return monitor;
-			}
-			return monitors[0];
-		}
-
 		void on_project_ready(void* user_data)
 		{
 			editor_app_t& app						   = *static_cast<editor_app_t*>(user_data);
 			editor_settings_t::get().last_project_path = editor_project_t::get()._runtime.path;
 			editor_settings_t::get().save();
 			app.request_switch_mode(editor_app_mode_e::splash);
+		}
+
+		void on_project_assets_ready(void* user_data)
+		{
+			editor_app_t& app = *static_cast<editor_app_t*>(user_data);
+			app.request_switch_mode(editor_app_mode_e::normal);
 		}
 	}
 
@@ -144,9 +132,9 @@ namespace sfg
 				if (ev.type == window_event_type_e::mouse)
 				{
 					if (ev.sub_type == window_event_sub_type_e::press)
-						ui.on_mouse_button(map_button(ev.button), true);
+						ui.on_mouse_button(ui::input_router_t::map_button(ev.button), true);
 					else if (ev.sub_type == window_event_sub_type_e::release)
-						ui.on_mouse_button(map_button(ev.button), false);
+						ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
 				}
 				break;
 			}
@@ -190,9 +178,9 @@ namespace sfg
 			if (ev.type == window_event_type_e::mouse)
 			{
 				if (ev.sub_type == window_event_sub_type_e::press)
-					ui.on_mouse_button(map_button(ev.button), true);
+					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), true);
 				else if (ev.sub_type == window_event_sub_type_e::release)
-					ui.on_mouse_button(map_button(ev.button), false);
+					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
 			}
 			break;
 		}
@@ -400,6 +388,9 @@ namespace sfg
 	{
 		SFG_ASSERT(_surfaces.empty());
 
+		editor_asset_manager_util_t::ensure_thumbnails_loaded(_asset_manager);
+		editor_asset_manager_util_t::ensure_default_meshes();
+
 		editor_global_toolbar_t::get().init();
 
 		const surface_handle_t payload_surface = create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
@@ -545,7 +536,7 @@ namespace sfg
 		{
 			vector_t<monitor_info_t> monitors;
 			process::get_all_monitors(monitors);
-			const monitor_info_t& monitor = find_primary_monitor(monitors);
+			const monitor_info_t& monitor = process::find_primary_monitor(monitors);
 
 			const u16		height = static_cast<u16>(static_cast<f32>(monitor.work_size.y) * EDITOR_SPLASH_MONITOR_SCALE);
 			const u16		width  = static_cast<u16>(static_cast<f32>(height) * EDITOR_SPLASH_ASPECT_X / EDITOR_SPLASH_ASPECT_Y);
@@ -560,17 +551,9 @@ namespace sfg
 			if (mode == editor_app_mode_e::splash)
 			{
 				editor_project_t& proj = editor_project_t::get();
-
 				_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
-
-				_asset_manager.ensure_project_assets_async();
+				editor_asset_manager_util_t::ensure_project_assets_async(_asset_manager, get_editor_work_executor(), on_project_assets_ready, this);
 				_splash_progress_text_set = false;
-
-				// if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
-				// 	_world_controller.load_dummy_world();
-				// editor_settings_t::get().last_project_path = path;
-				// editor_settings_t::get().save();
-				// get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 			}
 		}
 
@@ -579,7 +562,7 @@ namespace sfg
 
 	void editor_app_t::request_switch_mode(editor_app_mode_e mode)
 	{
-		_pending_mode = mode;
+		_pending_mode.store(mode, std::memory_order_release);
 	}
 
 	void editor_app_t::load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout)
@@ -862,11 +845,10 @@ namespace sfg
 			editor_project_t& project = editor_project_t::get();
 
 			frame_allocator_tls_t::reset();
-			if (_pending_mode != editor_app_mode_e::none)
+			const editor_app_mode_e pending_mode = _pending_mode.exchange(editor_app_mode_e::none, std::memory_order_acquire);
+			if (pending_mode != editor_app_mode_e::none)
 			{
-				const editor_app_mode_e mode = _pending_mode;
-				_pending_mode				 = editor_app_mode_e::none;
-				switch_mode(mode);
+				switch_mode(pending_mode);
 			}
 
 			process::pump_os_messages();
@@ -893,27 +875,18 @@ namespace sfg
 
 			if (_mode == editor_app_mode_e::splash)
 			{
-				const bool done		= _asset_manager.is_ensure_project_assets_done();
-				const f32  progress = done ? 1.0f : 0.0f;
 				for (editor_surface_t& surface : _surfaces)
 				{
 					if (surface.type != editor_surface_type_e::splash)
 						continue;
 
-					surface.splash->update_progress(progress);
+					surface.splash->update_progress(0.0f);
 					if (!_splash_progress_text_set)
 					{
 						surface.splash->update_progress_text("Ensuring default assets");
 						_splash_progress_text_set = true;
 					}
 					break;
-				}
-
-				if (done)
-				{
-					_asset_manager.ensure_thumbnails_loaded();
-					_asset_manager.ensure_default_meshes();
-					switch_mode(editor_app_mode_e::normal);
 				}
 			}
 

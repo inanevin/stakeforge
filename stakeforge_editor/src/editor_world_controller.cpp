@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_app.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_manager_util.hpp"
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
@@ -432,7 +433,7 @@ namespace sfg
 		editor_project_t& project = editor_project_t::get();
 		project.last_world_guid	  = asset.guid;
 		project.save(project._runtime.path.c_str());
-		editor_asset_manager_t::get().rescan(editor_project_t::get()._runtime.assets_path);
+		editor_asset_manager_util_t::rescan(editor_asset_manager_t::get(), editor_project_t::get()._runtime.assets_path.c_str());
 		return true;
 	}
 

@@ -537,6 +537,15 @@ namespace sfg::ui
 		}
 	}
 
+	mouse_button_e input_router_t::map_button(u16 button)
+	{
+		if (button == static_cast<u16>(input_code::mouse_right))
+			return mouse_button_e::right;
+		if (button == static_cast<u16>(input_code::mouse_middle))
+			return mouse_button_e::middle;
+		return mouse_button_e::left;
+	}
+
 	void input_router_t::next_focus()
 	{
 		if (_focus_order.empty())

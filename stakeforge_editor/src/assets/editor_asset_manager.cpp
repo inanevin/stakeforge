@@ -26,27 +26,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_manager_util.hpp"
 #include "assets/editor_asset_util.hpp"
-#include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
-#include "assets/editor_default_asset_seeder.hpp"
-#include "editor_mesh_generator.hpp"
 #include "editor_app.hpp"
-#include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include <sfg/data/frame_vector.hpp>
-#include <sfg/data/string_util.hpp>
-#include <sfg/data/ostream.hpp>
-#include <sfg/data/istream.hpp>
-#include <sfg/io/file_system.hpp>
-#include <sfg/io/log.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/color_utils.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
-#include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/resources/resource_type.hpp>
 
 namespace sfg
 {
@@ -82,54 +70,54 @@ namespace sfg
 		if (_import_in_progress)
 			editor_app_t::get().get_editor_work_executor().wait_for_all();
 		clear();
-		_import_paths.clear();
-		_import_options.clear();
-		_cook_assets.clear();
 		_import_status_pending.clear();
 		_import_status_visible.clear();
 		_asset_descriptors.clear();
-		_ensure_project_assets_done.store(false, std::memory_order_relaxed);
-		_imported_count.store(0, std::memory_order_relaxed);
-		_import_finished.store(false, std::memory_order_relaxed);
 		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_total_import_count = 0;
-		_import_in_progress = false;
-		s_instance			= nullptr;
+		_import_progress_pending  = 0.0f;
+		_import_completed_pending = false;
+		_import_in_progress		  = false;
+		s_instance				  = nullptr;
 	}
 
 	void editor_asset_manager_t::tick()
 	{
-		if (!_import_in_progress)
-			return;
-
-		const u32				   imported = _imported_count.load(std::memory_order_relaxed);
-		const f32				   progress = _total_import_count != 0 ? static_cast<f32>(imported) / static_cast<f32>(_total_import_count) : 1.0f;
-		editor_modal_controller_t& modal	= *editor_app_t::get().get_main_surface().modal_controller;
-		_import_progress_modal.set_progress(progress);
-		if (_import_status_dirty.exchange(false, std::memory_order_acquire))
+		if (_import_in_progress && _import_status_dirty.exchange(false, std::memory_order_acquire))
 		{
+			f32		 progress	  = 0.0f;
+			bool	 is_completed = false;
+			string_t status;
 			{
 				LOCK_GUARD(_import_status_mtx);
+				progress			   = _import_progress_pending;
+				is_completed		   = _import_completed_pending;
 				_import_status_visible = _import_status_pending;
+				status				   = _import_status_visible;
 			}
-			modal.set_body_text(_import_status_visible.c_str());
+
+			editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
+			_import_progress_modal.set_progress(progress);
+			if (!status.empty())
+				modal.set_body_text(status.c_str());
+
+			if (is_completed)
+			{
+				modal.close_modal();
+				editor_asset_manager_util_t::rescan(*this, editor_project_t::get()._runtime.assets_path.c_str());
+				editor_asset_manager_util_t::ensure_thumbnails_loaded(*this);
+				_import_status_pending.resize(0);
+				_import_status_visible.resize(0);
+				_import_progress_pending  = 0.0f;
+				_import_completed_pending = false;
+				_import_in_progress		  = false;
+			}
 		}
 
-		if (imported != _total_import_count || !_import_finished.load(std::memory_order_acquire))
-			return;
-
-		modal.close_modal();
-		rescan(editor_project_t::get()._runtime.assets_path);
-		ensure_thumbnails_loaded();
-		_import_paths.resize(0);
-		_import_options.resize(0);
-		_cook_assets.resize(0);
-		_import_status_pending.resize(0);
-		_import_status_visible.resize(0);
-		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_import_directory_node = {};
-		_total_import_count	   = 0;
-		_import_in_progress	   = false;
+		if (_last_integrity_generation != _generation && !_root_node.is_null())
+		{
+			editor_asset_manager_util_t::ensure_integrity(*this);
+			_last_integrity_generation = _generation;
+		}
 	}
 
 	void editor_asset_manager_t::clear()
@@ -140,233 +128,11 @@ namespace sfg
 		_generation++;
 	}
 
-	void editor_asset_manager_t::rescan(const string_t& assets_dir)
-	{
-		vector_t<file_system_entry_t> entries;
-		file_system_t::get_entries_recursive(assets_dir.c_str(), entries);
-
-		_asset_tree.resize_zero();
-		_asset_tree.reserve(static_cast<u32>(entries.size() + 1));
-		hash_map_t<u64, editor_asset_t> found_assets;
-		found_assets.reserve(entries.size());
-
-		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir.c_str());
-		const string_t root_path = assets_dir;
-		_root_node				 = _asset_tree.emplace(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
-
-		vector_t<string_t> parts;
-		for (const file_system_entry_t& entry : entries)
-		{
-			const string_t relative = file_system_t::get_relative(assets_dir.c_str(), entry.path.c_str());
-			parts.resize(0);
-			string_util::split(parts, relative, "/");
-
-			editor_asset_node_handle_t parent			 = _root_node;
-			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
-			for (size_t i = 0; i < folder_part_count; ++i)
-				parent = get_or_create_child_folder(parent, parts[i]);
-
-			if (entry.type == file_system_entry_type_e::directory)
-				continue;
-
-			editor_asset_t asset = {};
-			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
-			{
-				if (!editor_asset_util_t::read_asset(entry.path.c_str(), asset))
-					continue;
-
-				const u64 asset_id = asset.guid;
-				if (asset_id == NULL_SID)
-				{
-					SFG_ERR("asset {0} has an invalid guid", entry.path.c_str());
-					continue;
-				}
-				if (found_assets.find(asset_id) != found_assets.end())
-				{
-					SFG_ERR("asset {0} has a duplicate guid", entry.path.c_str());
-					continue;
-				}
-
-				found_assets.emplace(asset_id, std::move(asset));
-
-				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
-				const editor_asset_node_handle_t asset_node = _asset_tree.emplace(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = entry.path, .type = editor_asset_node_type_e::asset});
-				_asset_tree.attach(parent, asset_node);
-			}
-			else
-			{
-				const editor_asset_node_handle_t file_node = _asset_tree.emplace(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = editor_asset_node_type_e::file});
-				_asset_tree.attach(parent, file_node);
-			}
-		}
-
-		for (auto it = _assets.begin(); it != _assets.end();)
-		{
-			const u64 asset_id = it->first;
-			++it;
-			if (found_assets.find(asset_id) == found_assets.end())
-				_assets.erase(asset_id);
-		}
-		for (auto& found : found_assets)
-			_assets[found.first] = std::move(found.second);
-
-		ensure_integrity();
-		_generation++;
-	}
-
 	void editor_asset_manager_t::register_descriptor(const editor_asset_descriptor_t& desc)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
 		_asset_descriptors[desc.asset_type] = desc;
-	}
-
-	void editor_asset_manager_t::ensure_project_assets_async()
-	{
-		const string_t def_assets_path = editor_project_t::get()._runtime.default_assets_path;
-		const string_t cache_path	   = editor_project_t::get()._runtime.cache_path;
-		const string_t assets_path	   = editor_project_t::get()._runtime.assets_path;
-		SFG_ASSERT(!def_assets_path.empty());
-		SFG_ASSERT(!cache_path.empty());
-		SFG_ASSERT(!assets_path.empty());
-
-		_ensure_project_assets_done.store(false, std::memory_order_release);
-		tf::Taskflow ensure_flow;
-		ensure_flow.emplace([this, def_assets_path, cache_path, assets_path]() {
-			if (!file_system_t::exists(def_assets_path.c_str()))
-				file_system_t::create_directory(def_assets_path.c_str());
-
-			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
-
-			rescan(assets_path.c_str());
-
-			// clean stale binarires
-			{
-				SFG_ASSERT(!cache_path.empty());
-
-				vector_t<file_system_entry_t> entries;
-				file_system_t::get_entries_recursive(cache_path.c_str(), entries);
-				for (const file_system_entry_t& entry : entries)
-				{
-					if (entry.type != file_system_entry_type_e::file)
-						continue;
-
-					const string_t guid_text = file_system_t::get_filename_from_path(entry.path);
-					u64			   guid		 = 0;
-					string_util::to_big_uint(guid_text, guid);
-
-					if (file_system_t::get_file_extension(entry.path) == "sfg_thumb_bin")
-					{
-						bool found_thumbnail_asset = false;
-						for (const auto& asset_pair : _assets)
-						{
-							if (editor_asset_thumbnailer_t::get_thumbnail_guid(asset_pair.second.guid) == guid)
-							{
-								found_thumbnail_asset = true;
-								break;
-							}
-						}
-
-						if (found_thumbnail_asset)
-							continue;
-					}
-					else if (find_asset(guid) != nullptr)
-						continue;
-
-					if (file_system_t::delete_file(entry.path.c_str()))
-						SFG_ERR("failed deleting orphaned cache file {0}", entry.path.c_str());
-				}
-			}
-
-			// cook missing files.
-			{
-				for (auto& asset_pair : _assets)
-				{
-					editor_asset_t& asset = asset_pair.second;
-					SFG_ASSERT(_asset_descriptors.find(asset.asset_type) != _asset_descriptors.end());
-					if (asset.status != editor_asset_status_e::ok)
-						continue;
-
-					if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
-						continue;
-
-					if (editor_asset_cooker_t::is_asset_cooked(asset))
-						continue;
-
-					if (!editor_asset_cooker_t::cook_asset(asset))
-					{
-						SFG_ERR("failed cooking asset {0}", asset.guid);
-						continue;
-					}
-				}
-			}
-
-			// ensure thumbs
-			{
-				for (auto& asset_pair : _assets)
-				{
-					editor_asset_t& asset = asset_pair.second;
-					editor_asset_thumbnailer_t::ensure(asset);
-				}
-			}
-
-			_ensure_project_assets_done.store(true, std::memory_order_release);
-		});
-		editor_app_t::get().get_editor_work_executor().run(std::move(ensure_flow));
-	}
-
-	void editor_asset_manager_t::ensure_thumbnails_loaded()
-	{
-		for (auto& asset_pair : _assets)
-		{
-			editor_asset_t& asset = asset_pair.second;
-			editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset);
-		}
-	}
-
-	void editor_asset_manager_t::ensure_default_meshes()
-	{
-		resource_manager_t& resource_manager = resource_manager_t::get();
-		if (resource_manager.find_entry(DEFAULT_MESH_CUBE_GUID) == nullptr)
-		{
-			ostream_t stream;
-			if (editor_mesh_generator_t::generate_cube({.size = vec3f_t::one}, stream))
-			{
-				istream_t istream;
-				istream.open(stream.get_raw(), stream.get_size());
-				resource_manager.load_resource_runtime(DEFAULT_MESH_CUBE_GUID, resource_type_e::mesh, istream);
-			}
-		}
-		if (resource_manager.find_entry(DEFAULT_MESH_SPHERE_GUID) == nullptr)
-		{
-			ostream_t stream;
-			if (editor_mesh_generator_t::generate_sphere({}, stream))
-			{
-				istream_t istream;
-				istream.open(stream.get_raw(), stream.get_size());
-				resource_manager.load_resource_runtime(DEFAULT_MESH_SPHERE_GUID, resource_type_e::mesh, istream);
-			}
-		}
-		if (resource_manager.find_entry(DEFAULT_MESH_CYLINDER_GUID) == nullptr)
-		{
-			ostream_t stream;
-			if (editor_mesh_generator_t::generate_cylinder({}, stream))
-			{
-				istream_t istream;
-				istream.open(stream.get_raw(), stream.get_size());
-				resource_manager.load_resource_runtime(DEFAULT_MESH_CYLINDER_GUID, resource_type_e::mesh, istream);
-			}
-		}
-		if (resource_manager.find_entry(DEFAULT_MESH_CAPSULE_GUID) == nullptr)
-		{
-			ostream_t stream;
-			if (editor_mesh_generator_t::generate_capsule({}, stream))
-			{
-				istream_t istream;
-				istream.open(stream.get_raw(), stream.get_size());
-				resource_manager.load_resource_runtime(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh, istream);
-			}
-		}
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const
@@ -379,107 +145,6 @@ namespace sfg
 		return descriptor_it != _asset_descriptors.end() ? &descriptor_it->second : nullptr;
 	}
 
-	void editor_asset_manager_t::ensure_integrity()
-	{
-		const string_t&								assets_path = editor_project_t::get()._runtime.assets_path;
-		hash_map_t<u64, const editor_asset_node_t*> asset_nodes;
-		asset_nodes.reserve(_assets.size());
-		for (auto it = _asset_tree.begin_handle(); it != _asset_tree.end_handle(); ++it)
-		{
-			const editor_asset_node_t& node = _asset_tree.value(*it);
-			if (node.type == editor_asset_node_type_e::asset)
-				asset_nodes[node.asset_id] = &node;
-		}
-
-		for (auto& asset_pair : _assets)
-		{
-			editor_asset_t& asset	 = asset_pair.second;
-			asset.status			 = editor_asset_status_e::ok;
-			const auto asset_node_it = asset_nodes.find(asset.guid);
-			SFG_ASSERT(asset_node_it != asset_nodes.end());
-			const editor_asset_node_t* asset_node	  = asset_node_it->second;
-			const auto				   descriptor_it  = _asset_descriptors.find(asset.asset_type);
-			const char*				   asset_type_str = descriptor_it != _asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
-
-			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
-			{
-				asset.status = editor_asset_status_e::missing_embedded_data;
-				SFG_ERR("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
-			}
-			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
-			{
-				string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
-				source_path += asset.source_relative;
-				if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
-				{
-					asset.status = editor_asset_status_e::missing_file_source;
-					SFG_ERR("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
-				}
-			}
-
-			vector_t<sid_t> dependencies;
-			editor_asset_util_t::fetch_dependencies(asset, dependencies);
-			for (const sid_t dependency : dependencies)
-			{
-				if (_assets.find(dependency) != _assets.end())
-					continue;
-
-				if (asset.status == editor_asset_status_e::ok)
-					asset.status = editor_asset_status_e::missing_dependency;
-				SFG_ERR("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency);
-			}
-		}
-	}
-
-	void editor_asset_manager_t::cook_assets(span_t<editor_asset_t*> assets)
-	{
-		SFG_ASSERT(!_import_in_progress);
-		SFG_ASSERT(assets.data != nullptr);
-		SFG_ASSERT(assets.size != 0);
-
-		_import_paths.resize(0);
-		_import_options.resize(0);
-		_cook_assets.resize(0);
-		_cook_assets.reserve(assets.size);
-		for (size_t i = 0; i < assets.size; ++i)
-		{
-			editor_asset_t* asset = assets.data[i];
-			SFG_ASSERT(asset != nullptr);
-			_cook_assets.push_back(*asset);
-		}
-
-		_import_status_pending = editor_asset_util_t::get_cache_path_for_asset(_cook_assets[0]);
-		_import_status_visible = _import_status_pending;
-		_imported_count.store(0, std::memory_order_relaxed);
-		_import_finished.store(false, std::memory_order_relaxed);
-		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_total_import_count = static_cast<u32>(_cook_assets.size());
-		_import_in_progress = true;
-
-		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
-		_import_progress_modal.set_progress(0.0f);
-		editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
-		modal.request_modal("Cooking Assets", _import_status_visible.c_str(), false, nullptr, 0, &progress_content);
-
-		tf::Taskflow cook_flow;
-		for (size_t i = 0; i < _cook_assets.size(); ++i)
-		{
-			cook_flow.emplace([this, i]() {
-				const editor_asset_t& asset		 = _cook_assets[i];
-				const string_t		  cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
-				set_import_status(cache_path.c_str());
-
-				if (!editor_asset_cooker_t::cook_asset(asset))
-					SFG_ERR("failed cooking asset {0}", asset.guid);
-
-				editor_asset_thumbnailer_t::ensure(asset, nullptr, true);
-
-				_imported_count.fetch_add(1, std::memory_order_relaxed);
-			});
-		}
-		editor_app_t::get().get_editor_work_executor().run(std::move(cook_flow), [this]() { _import_finished.store(true, std::memory_order_release); });
-	}
-
 	void editor_asset_manager_t::import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
 	{
 		SFG_ASSERT(!_import_in_progress);
@@ -488,66 +153,45 @@ namespace sfg
 		SFG_ASSERT(!paths.empty());
 		SFG_ASSERT(!import_options.empty());
 
-		_import_directory_node = directory_node;
-		_import_paths.resize(0);
-		_import_paths.reserve(paths.size());
-		_import_options.resize(0);
-		_import_options.reserve(import_options.size());
-		_cook_assets.resize(0);
-		for (const string_t& path : paths)
-			_import_paths.push_back(path);
-		for (const editor_asset_import_options_t& option : import_options)
-			_import_options.push_back(option);
+		const editor_asset_node_t& directory = _asset_tree.value(directory_node);
+		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!directory.full_path.empty());
 
-		_import_status_pending = _import_paths[0];
+		_import_status_pending = paths[0];
 		_import_status_visible = _import_status_pending;
-		_imported_count.store(0, std::memory_order_relaxed);
-		_import_finished.store(false, std::memory_order_relaxed);
 		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_total_import_count = static_cast<u32>(_import_paths.size());
-		_import_in_progress = true;
+		_import_progress_pending  = 0.0f;
+		_import_completed_pending = false;
+		_import_in_progress		  = true;
 
 		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
 		_import_progress_modal.set_progress(0.0f);
 		editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
 		modal.request_modal("Importing Assets", _import_status_visible.c_str(), false, nullptr, 0, &progress_content);
 
+		const span_t<const string_t> import_paths = {
+			.data = paths.data(),
+			.size = paths.size(),
+		};
 		const span_t<const editor_asset_import_options_t> options = {
-			.data = _import_options.data(),
-			.size = _import_options.size(),
-		};
-		const editor_asset_import_context_t context = {
-			.user_data	= this,
-			.set_status = [](void* user_data, const char* text) { static_cast<editor_asset_manager_t*>(user_data)->set_import_status(text); },
+			.data = import_options.data(),
+			.size = import_options.size(),
 		};
 
-		tf::Taskflow import_flow;
-		for (size_t i = 0; i < _import_paths.size(); ++i)
-		{
-			import_flow.emplace([this, i, options, context]() {
-				vector_t<editor_asset_t> imported_assets;
-				const string_t&			 path = _import_paths[i];
-				set_import_status(path.c_str());
-
-				if (!editor_asset_importer_t::import_asset(_import_directory_node, path.c_str(), options, context, imported_assets))
-					SFG_ERR("failed importing asset {0}", path.c_str());
-
-				for (const editor_asset_t& asset : imported_assets)
-					editor_asset_thumbnailer_t::ensure(asset, nullptr, true);
-
-				_imported_count.fetch_add(1, std::memory_order_relaxed);
-			});
-		}
-		editor_app_t::get().get_editor_work_executor().run(std::move(import_flow), [this]() { _import_finished.store(true, std::memory_order_release); });
+		editor_asset_manager_util_t::import_assets_async(directory.full_path.c_str(), import_paths, options, editor_app_t::get().get_editor_work_executor(), on_import_progress, this);
 	}
 
-	void editor_asset_manager_t::set_import_status(const char* text)
+	void editor_asset_manager_t::on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed)
 	{
+		editor_asset_manager_t& asset_manager = *static_cast<editor_asset_manager_t*>(user_data);
 		{
-			LOCK_GUARD(_import_status_mtx);
-			_import_status_pending = text != nullptr ? text : "";
+			LOCK_GUARD(asset_manager._import_status_mtx);
+			asset_manager._import_progress_pending	= progress;
+			asset_manager._import_completed_pending = is_completed;
+			if (text != nullptr)
+				asset_manager._import_status_pending = text;
 		}
-		_import_status_dirty.store(true, std::memory_order_release);
+		asset_manager._import_status_dirty.store(true, std::memory_order_release);
 	}
 
 	editor_asset_node_handle_t editor_asset_manager_t::find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const
