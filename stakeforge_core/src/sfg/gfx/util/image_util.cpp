@@ -150,6 +150,21 @@ namespace sfg
 		}
 	}
 
+	bool image_util_t::resize_rgba8(span_t<const u8> src, const vec2u16_t& src_size, span_t<u8> dst, const vec2u16_t& dst_size)
+	{
+		SFG_ASSERT(src.data != nullptr);
+		SFG_ASSERT(dst.data != nullptr);
+		SFG_ASSERT(src_size.x != 0);
+		SFG_ASSERT(src_size.y != 0);
+		SFG_ASSERT(dst_size.x != 0);
+		SFG_ASSERT(dst_size.y != 0);
+		SFG_ASSERT(src.size == static_cast<size_t>(src_size.x) * static_cast<size_t>(src_size.y) * 4);
+		SFG_ASSERT(dst.size == static_cast<size_t>(dst_size.x) * static_cast<size_t>(dst_size.y) * 4);
+
+		const int result = stbir_resize_uint8_generic(src.data, src_size.x, src_size.y, 0, dst.data, dst_size.x, dst_size.y, 0, 4, 3, 0, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_DEFAULT, stbir_colorspace::STBIR_COLORSPACE_SRGB, nullptr);
+		return result != 0;
+	}
+
 	u8 image_util_t::calculate_mip_levels(u16 width, u16 height)
 	{
 		return static_cast<u8>(math::floor_log2(math::max(width, height))) + 1;

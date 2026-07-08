@@ -908,7 +908,10 @@ namespace sfg
 				}
 
 				if (done)
+				{
+					_asset_manager.ensure_thumbnails_loaded();
 					switch_mode(editor_app_mode_e::normal);
+				}
 			}
 
 			if (_mode == editor_app_mode_e::normal)

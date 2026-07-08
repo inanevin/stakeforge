@@ -68,6 +68,7 @@ namespace sfg
 
 		void register_descriptor(const editor_asset_descriptor_t& desc);
 		void ensure_project_assets_async();
+		void ensure_thumbnails_loaded();
 		void cook_assets(span_t<editor_asset_t*> assets);
 		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
 		void set_import_status(const char* text);

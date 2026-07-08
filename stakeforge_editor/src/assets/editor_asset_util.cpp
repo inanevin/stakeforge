@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/data/char_util.hpp>
@@ -97,6 +98,17 @@ namespace sfg
 			if (!file_system_t::copy_file(source_cache_path.c_str(), duplicated_cache_path.c_str()))
 			{
 				SFG_ERR("failed to duplicate cooked asset {0} to {1}", source_asset.guid, duplicated_asset.guid);
+				return false;
+			}
+
+			const string_t source_thumbnail_cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(source_asset);
+			if (!file_system_t::exists(source_thumbnail_cache_path.c_str()))
+				return true;
+
+			const string_t duplicated_thumbnail_cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(duplicated_asset);
+			if (!file_system_t::copy_file(source_thumbnail_cache_path.c_str(), duplicated_thumbnail_cache_path.c_str()))
+			{
+				SFG_ERR("failed to duplicate thumbnail asset {0} to {1}", source_asset.guid, duplicated_asset.guid);
 				return false;
 			}
 
@@ -280,6 +292,20 @@ namespace sfg
 
 		result += guid_text;
 		result += ".sfg_bin";
+		return result;
+	}
+
+	string_t editor_asset_util_t::get_thumbnail_cache_path_for_asset(const editor_asset_t& asset)
+	{
+		string_t result = editor_project_t::get()._runtime.cache_path;
+
+		char  guid_text[32] = {};
+		char* guid_text_cur = guid_text;
+		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid)))
+			SFG_ASSERT(false);
+
+		result += guid_text;
+		result += ".sfg_thumb_bin";
 		return result;
 	}
 
@@ -692,6 +718,10 @@ namespace sfg
 			const string_t cache_path = get_cache_path_for_asset(asset);
 			if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
 				SFG_ERR("failed to delete cooked asset {0}", cache_path.c_str());
+
+			const string_t thumbnail_cache_path = get_thumbnail_cache_path_for_asset(asset);
+			if (file_system_t::exists(thumbnail_cache_path.c_str()) && file_system_t::delete_file(thumbnail_cache_path.c_str()))
+				SFG_ERR("failed to delete thumbnail asset {0}", thumbnail_cache_path.c_str());
 
 			if (asset.source_type == editor_asset_source_type_e::file_blob)
 			{

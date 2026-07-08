@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_thumbnailer.hpp"
 #include "assets/editor_default_asset_seeder.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
@@ -113,6 +114,7 @@ namespace sfg
 
 		modal.close_modal();
 		rescan(editor_project_t::get()._runtime.assets_path);
+		ensure_thumbnails_loaded();
 		_import_paths.resize(0);
 		_import_options.resize(0);
 		_cook_assets.resize(0);
@@ -230,6 +232,7 @@ namespace sfg
 			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
 			rescan(assets_path.c_str());
 
+			// clean stale binarires
 			{
 				SFG_ASSERT(!cache_path.empty());
 
@@ -244,7 +247,22 @@ namespace sfg
 					u64			   guid		 = 0;
 					string_util::to_big_uint(guid_text, guid);
 
-					if (find_asset(guid) != nullptr)
+					if (file_system_t::get_file_extension(entry.path) == "sfg_thumb_bin")
+					{
+						bool found_thumbnail_asset = false;
+						for (const auto& asset_pair : _assets)
+						{
+							if (editor_asset_thumbnailer_t::get_thumbnail_guid(asset_pair.second.guid) == guid)
+							{
+								found_thumbnail_asset = true;
+								break;
+							}
+						}
+
+						if (found_thumbnail_asset)
+							continue;
+					}
+					else if (find_asset(guid) != nullptr)
 						continue;
 
 					if (file_system_t::delete_file(entry.path.c_str()))
@@ -252,6 +270,7 @@ namespace sfg
 				}
 			}
 
+			// cook missing files.
 			{
 				for (auto& asset_pair : _assets)
 				{
@@ -259,6 +278,7 @@ namespace sfg
 					SFG_ASSERT(_asset_descriptors.find(asset.asset_type) != _asset_descriptors.end());
 					if (asset.status != editor_asset_status_e::ok)
 						continue;
+
 					if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
 						continue;
 
@@ -266,12 +286,29 @@ namespace sfg
 						continue;
 
 					if (!editor_asset_cooker_t::cook_asset(asset))
+					{
 						SFG_ERR("failed cooking asset {0}", asset.guid);
+						continue;
+					}
+
+					editor_asset_thumbnailer_t::ensure(asset);
 				}
 			}
 			_ensure_project_assets_done.store(true, std::memory_order_release);
 		});
 		editor_app_t::get().get_editor_work_executor().run(std::move(ensure_flow));
+	}
+
+	void editor_asset_manager_t::ensure_thumbnails_loaded()
+	{
+		for (auto& asset_pair : _assets)
+		{
+			const editor_asset_t& asset = asset_pair.second;
+			if (asset.status != editor_asset_status_e::ok)
+				continue;
+
+			editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset);
+		}
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const
@@ -373,8 +410,12 @@ namespace sfg
 				const editor_asset_t& asset		 = _cook_assets[i];
 				const string_t		  cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
 				set_import_status(cache_path.c_str());
+
 				if (!editor_asset_cooker_t::cook_asset(asset))
 					SFG_ERR("failed cooking asset {0}", asset.guid);
+
+				editor_asset_thumbnailer_t::ensure(asset, nullptr, true);
+
 				_imported_count.fetch_add(1, std::memory_order_relaxed);
 			});
 		}
@@ -429,8 +470,13 @@ namespace sfg
 				vector_t<editor_asset_t> imported_assets;
 				const string_t&			 path = _import_paths[i];
 				set_import_status(path.c_str());
+
 				if (!editor_asset_importer_t::import_asset(_import_directory_node, path.c_str(), options, context, imported_assets))
 					SFG_ERR("failed importing asset {0}", path.c_str());
+
+				for (const editor_asset_t& asset : imported_assets)
+					editor_asset_thumbnailer_t::ensure(asset, nullptr, true);
+
 				_imported_count.fetch_add(1, std::memory_order_relaxed);
 			});
 		}

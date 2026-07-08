@@ -68,18 +68,27 @@ namespace sfg
 	{
 		if (_mode == mode_e::directory)
 		{
-			const string_t filename = std::to_string(hash) + ".sfg_bin";
+			const string_t filename_base	  = std::to_string(hash);
+			const string_t resource_filename  = filename_base + ".sfg_bin";
+			const string_t thumbnail_filename = filename_base + ".sfg_thumb_bin";
 			if (!_engine_cache.empty())
 			{
-				const string_t path = _engine_cache + filename;
+				string_t path = _engine_cache + resource_filename;
+				if (file_system_t::exists(path.c_str()))
+					return read_file_range(path.c_str(), offset, size, out);
 
+				path = _engine_cache + thumbnail_filename;
 				if (file_system_t::exists(path.c_str()))
 					return read_file_range(path.c_str(), offset, size, out);
 			}
 
 			if (!_directory_path.empty())
 			{
-				const string_t path = _directory_path + filename;
+				string_t path = _directory_path + resource_filename;
+				if (file_system_t::exists(path.c_str()))
+					return read_file_range(path.c_str(), offset, size, out);
+
+				path = _directory_path + thumbnail_filename;
 				return read_file_range(path.c_str(), offset, size, out);
 			}
 

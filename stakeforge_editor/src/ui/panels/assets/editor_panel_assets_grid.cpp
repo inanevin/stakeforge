@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "editor_project.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_thumbnailer.hpp"
 
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -286,7 +287,22 @@ namespace sfg
 		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
 		thumbnail_rect.rounding			   = theme.item_rounding;
 		thumbnail_rect.rounding_segs	   = 4;
-		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		if (asset != nullptr)
+		{
+			const editor_asset_thumbnail_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail(*asset, asset_node.name.c_str());
+			if (thumbnail.texture != NULL_SID)
+			{
+				ui::ui_render_state_t thumbnail_state = {};
+				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
+				thumbnail_state.constants[0].handle	  = thumbnail.texture;
+				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
+				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
+			}
+			else
+				paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		}
+		else
+			paint.set_rect(item.thumbnail_frame, thumbnail_rect);
 
 		item.status_text = ui.allocate_widget();
 		ui.set_widget_debug_name(item.status_text, "asset_grid_item_status");
@@ -497,7 +513,22 @@ namespace sfg
 		ui::vg_rect_paint_t thumbnail_rect = {};
 		thumbnail_rect.fill_color_a		   = {1.0f, 1.0f, 1.0f, 1.0f};
 		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
-		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		if (asset != nullptr)
+		{
+			const editor_asset_thumbnail_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail(*asset, asset_node.name.c_str());
+			if (thumbnail.texture != NULL_SID)
+			{
+				ui::ui_render_state_t thumbnail_state = {};
+				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
+				thumbnail_state.constants[0].handle	  = thumbnail.texture;
+				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
+				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
+			}
+			else
+				paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		}
+		else
+			paint.set_rect(item.thumbnail_frame, thumbnail_rect);
 
 		item.label = ui.allocate_widget();
 		ui.set_widget_debug_name(item.label, "asset_list_item_label");

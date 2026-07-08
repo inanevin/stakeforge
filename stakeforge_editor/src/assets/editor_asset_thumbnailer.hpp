@@ -22,40 +22,43 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
+#include "assets/editor_asset_type.hpp"
+
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/span.hpp>
-#include <sfg/data/vector.hpp>
 
 namespace sfg
 {
-	struct vec2u16_t;
-	struct texture_buffer_t;
-	class ostream_t;
+	struct editor_asset_t;
 
-	class image_util_t
+	enum class editor_asset_thumbnail_source_e : u8
+	{
+		builtin,
+		generated,
+	};
+
+	struct editor_asset_thumbnail_t
+	{
+		sid_t							texture = NULL_SID;
+		editor_asset_thumbnail_source_e source	= editor_asset_thumbnail_source_e::builtin;
+	};
+
+	class editor_asset_thumbnailer_t final
 	{
 	public:
-		enum class mip_gen_filter
-		{
-			def = 0,
-			box,
-			triangle,
-			cubic_spline,
-			catmullrom,
-			mitchell,
-		};
+		editor_asset_thumbnailer_t()											 = delete;
+		~editor_asset_thumbnailer_t()											 = delete;
+		editor_asset_thumbnailer_t(const editor_asset_thumbnailer_t&)			 = delete;
+		editor_asset_thumbnailer_t& operator=(const editor_asset_thumbnailer_t&) = delete;
 
-		static void* load_from_file_ch(const char* file, u8 force_channels);
-		static void* load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels);
-		static void* load_from_file(const char* file, u8& out_channels);
-		static void* load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels);
-		static bool	 resize_rgba8(span_t<const u8> src, const vec2u16_t& src_size, span_t<u8> dst, const vec2u16_t& dst_size);
-		static void	 generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
-		static u8	 calculate_mip_levels(u16 width, u16 height);
-		static void	 free(void* data);
+		static editor_asset_thumbnail_t get_thumbnail(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static bool						ensure(const editor_asset_t& asset, const char* asset_name = nullptr, bool force = false);
+		static bool						ensure_thumbnail_loaded(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static sid_t					get_thumbnail_guid(sid_t asset_guid);
+		static sid_t					get_builtin_thumbnail_guid(editor_asset_type_e asset_type);
 	};
 }
