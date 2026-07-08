@@ -152,9 +152,8 @@ namespace sfg
 			const texture_desc_t  desc		   = make_texture_desc(placeholder_header, mem.get_text(entry.debug_name));
 			const resource_desc_t staging_desc = make_texture_staging_desc(placeholder_header, &placeholder);
 
-			resource_manager_t::get().bump_render_pending(entry, 2);
-			internals.texture = render_resources_t::get().enqueue_create_texture(entry.hash, desc);
-			internals.staging = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, staging_desc);
+			internals.texture = render_resources_t::get().enqueue_create_texture(desc);
+			internals.staging = render_resources_t::get().enqueue_create_resource(staging_desc);
 
 			render_resources_t::get().enqueue_texture_upload({
 				.mips			   = {.data = &placeholder, .size = 1},
@@ -173,9 +172,8 @@ namespace sfg
 			const texture_desc_t  desc		   = make_texture_desc(header, mem.get_text(entry.debug_name));
 			const resource_desc_t staging_desc = make_texture_staging_desc(header, mips);
 
-			resource_manager_t::get().bump_render_pending(entry, 2);
-			internals.texture = render_resources_t::get().enqueue_create_texture(entry.hash, desc);
-			internals.staging = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, staging_desc);
+			internals.texture = render_resources_t::get().enqueue_create_texture(desc);
+			internals.staging = render_resources_t::get().enqueue_create_resource(staging_desc);
 
 			render_resources_t::get().enqueue_texture_upload({
 				.mips			   = {.data = mips, .size = header.mip_count},
@@ -262,7 +260,6 @@ namespace sfg
 		.internals_alignment = alignof(texture_internals_t),
 		.wire_magic			 = texture_loader_t::WIRE_MAGIC,
 		.wire_version		 = texture_loader_t::WIRE_VERSION,
-		.use_render_pending	 = true,
 		.load				 = texture_loader_t::load,
 		.unload				 = texture_loader_t::unload,
 	};

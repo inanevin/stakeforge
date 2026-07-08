@@ -74,7 +74,7 @@ namespace sfg::ui
 		tdesc.array_length	 = 1;
 		tdesc.samples		 = 1;
 		tdesc.set_name("ui_glyph_atlas");
-		_texture = render_resources.enqueue_create_texture(0, tdesc);
+		_texture = render_resources.enqueue_create_texture(tdesc);
 
 		const u32 staging_bytes = align_up(cfg.staging_bytes, PLACEMENT_ALIGNMENT);
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
@@ -83,7 +83,7 @@ namespace sfg::ui
 			sdesc.size			  = staging_bytes;
 			sdesc.flags			  = resource_flags::rf_cpu_visible;
 			sdesc.set_name("ui_glyph_staging");
-			_staging[i].buffer	 = render_resources.enqueue_create_resource(0, resource_type_e::texture, sdesc);
+			_staging[i].buffer	 = render_resources.enqueue_create_resource(sdesc);
 			_staging[i].capacity = staging_bytes;
 		}
 

@@ -103,8 +103,6 @@ namespace sfg
 		{
 		case resource_state_e::failed:
 			return "Failed";
-		case resource_state_e::pending_render:
-			return "Pending Render";
 		case resource_state_e::ready:
 			return "Ready";
 		default:

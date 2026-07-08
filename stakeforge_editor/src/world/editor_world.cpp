@@ -111,9 +111,8 @@ namespace sfg
 		publish_snapshot();
 	}
 
-	void editor_world_t::render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void editor_world_t::render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		const world_render_snapshot_t& snapshot = acquire_render_snapshot();
 		world_rendering_t::render_world(_render_context, snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 	}
 

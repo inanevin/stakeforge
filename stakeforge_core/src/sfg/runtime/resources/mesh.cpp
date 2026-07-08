@@ -152,8 +152,7 @@ namespace sfg
 		vertex_desc.structure_count = runtime->vertex_count;
 		vertex_desc.flags			= resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 		vertex_desc.set_name(mem.get_text(entry.debug_name));
-		ctx.resource_manager.bump_render_pending(entry, 2);
-		internals->vertex_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, vertex_desc);
+		internals->vertex_buffer = render_resources_t::get().enqueue_create_resource(vertex_desc);
 		render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->vertex_data), .resource = internals->vertex_buffer, .data_size = runtime->vertex_data_size});
 
 		resource_desc_t index_desc = {};
@@ -162,7 +161,7 @@ namespace sfg
 		index_desc.structure_count = runtime->index_count;
 		index_desc.flags		   = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		index_desc.set_name(mem.get_text(entry.debug_name));
-		internals->index_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, index_desc);
+		internals->index_buffer = render_resources_t::get().enqueue_create_resource(index_desc);
 		render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->index_data), .resource = internals->index_buffer, .data_size = runtime->index_data_size});
 
 		free_mesh_cpu_data(mem, *runtime);
@@ -191,7 +190,6 @@ namespace sfg
 		.internals_alignment = alignof(mesh_internals_t),
 		.wire_magic			 = mesh_loader_t::WIRE_MAGIC,
 		.wire_version		 = mesh_loader_t::WIRE_VERSION,
-		.use_render_pending	 = true,
 		.load				 = mesh_loader_t::load,
 		.unload				 = mesh_loader_t::unload,
 	};

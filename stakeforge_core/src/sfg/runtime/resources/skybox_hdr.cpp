@@ -194,13 +194,11 @@ namespace sfg
 		skybox_hdr_internals_t* internals = mem.get<skybox_hdr_internals_t>(entry.internals);
 		*internals						  = {};
 
-		render_resources_t& render_resources	 = render_resources_t::get();
-		const u32			render_pending_count = 5 + runtime->radiance.face_count + runtime->irradiance.face_count + runtime->prefilter.face_count;
-		ctx.resource_manager.bump_render_pending(entry, render_pending_count);
-		internals->radiance_texture	  = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->radiance, "skybox_hdr_radiance"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_RADIANCE);
-		internals->irradiance_texture = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->irradiance, "skybox_hdr_irradiance"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_IRRADIANCE);
-		internals->prefilter_texture  = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->prefilter, "skybox_hdr_prefilter"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_PREFILTER);
-		internals->brdf_lut_texture	  = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->brdf_lut, "skybox_hdr_brdf_lut"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_BRDF_LUT);
+		render_resources_t& render_resources = render_resources_t::get();
+		internals->radiance_texture			 = render_resources.enqueue_create_texture(make_texture_desc(runtime->radiance, "skybox_hdr_radiance"));
+		internals->irradiance_texture		 = render_resources.enqueue_create_texture(make_texture_desc(runtime->irradiance, "skybox_hdr_irradiance"));
+		internals->prefilter_texture		 = render_resources.enqueue_create_texture(make_texture_desc(runtime->prefilter, "skybox_hdr_prefilter"));
+		internals->brdf_lut_texture			 = render_resources.enqueue_create_texture(make_texture_desc(runtime->brdf_lut, "skybox_hdr_brdf_lut"));
 
 		const resource_desc_t radiance_staging_desc	  = make_staging_desc(runtime->radiance);
 		const resource_desc_t irradiance_staging_desc = make_staging_desc(runtime->irradiance);
@@ -208,12 +206,12 @@ namespace sfg
 		const resource_desc_t brdf_lut_staging_desc	  = make_staging_desc(runtime->brdf_lut);
 
 		for (u8 face = 0; face < runtime->radiance.face_count; ++face)
-			internals->radiance_staging[face] = render_resources.enqueue_create_resource(entry.hash, resource_type_e::hdr_skybox, radiance_staging_desc);
+			internals->radiance_staging[face] = render_resources.enqueue_create_resource(radiance_staging_desc);
 		for (u8 face = 0; face < runtime->irradiance.face_count; ++face)
-			internals->irradiance_staging[face] = render_resources.enqueue_create_resource(entry.hash, resource_type_e::hdr_skybox, irradiance_staging_desc);
+			internals->irradiance_staging[face] = render_resources.enqueue_create_resource(irradiance_staging_desc);
 		for (u8 face = 0; face < runtime->prefilter.face_count; ++face)
-			internals->prefilter_staging[face] = render_resources.enqueue_create_resource(entry.hash, resource_type_e::hdr_skybox, prefilter_staging_desc);
-		internals->brdf_lut_staging = render_resources.enqueue_create_resource(entry.hash, resource_type_e::hdr_skybox, brdf_lut_staging_desc);
+			internals->prefilter_staging[face] = render_resources.enqueue_create_resource(prefilter_staging_desc);
+		internals->brdf_lut_staging = render_resources.enqueue_create_resource(brdf_lut_staging_desc);
 
 		enqueue_block_upload(runtime->radiance, internals->radiance_texture, internals->radiance_staging);
 		enqueue_block_upload(runtime->irradiance, internals->irradiance_texture, internals->irradiance_staging);
@@ -238,7 +236,6 @@ namespace sfg
 		.internals_alignment = alignof(skybox_hdr_internals_t),
 		.wire_magic			 = skybox_hdr_loader_t::WIRE_MAGIC,
 		.wire_version		 = skybox_hdr_loader_t::WIRE_VERSION,
-		.use_render_pending	 = true,
 		.load				 = skybox_hdr_loader_t::load,
 		.unload				 = skybox_hdr_loader_t::unload,
 	};

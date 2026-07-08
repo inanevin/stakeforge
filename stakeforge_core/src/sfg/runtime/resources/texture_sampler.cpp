@@ -38,8 +38,7 @@ namespace sfg
 
 		sampler_desc_t desc = runtime->desc;
 		desc.set_name(mem.get_text(entry.debug_name));
-		ctx.resource_manager.bump_render_pending(entry);
-		internals->sampler = render_resources_t::get().enqueue_create_sampler(entry.hash, entry.type, desc);
+		internals->sampler = render_resources_t::get().enqueue_create_sampler(desc);
 		return true;
 	}
 
@@ -59,7 +58,6 @@ namespace sfg
 		.internals_alignment = alignof(texture_sampler_internals_t),
 		.wire_magic			 = texture_sampler_loader_t::WIRE_MAGIC,
 		.wire_version		 = texture_sampler_loader_t::WIRE_VERSION,
-		.use_render_pending	 = true,
 		.load				 = texture_sampler_loader_t::load,
 		.unload				 = texture_sampler_loader_t::unload,
 	};

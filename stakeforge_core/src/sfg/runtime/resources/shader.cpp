@@ -76,7 +76,6 @@ namespace sfg
 
 		istream_t desc_stream;
 
-		ctx.resource_manager.bump_render_pending(entry, runtime->pso_variant_count);
 		for (u8 i = 0; i < runtime->pso_variant_count; ++i)
 		{
 			const shader_runtime_pso_variant_t& pv = runtime->pso_variants[i];
@@ -102,7 +101,7 @@ namespace sfg
 			desc.deserialize(desc_stream);
 			desc.set_name(mem.get_text(entry.debug_name));
 
-			internals->psos[i] = render_resources_t::get().enqueue_create_shader(entry.hash, entry.type, static_cast<u32>(i), desc, {.data = blobs.data(), .size = blobs.size()}, render_globals_t::get_global_bind_layout());
+			internals->psos[i] = render_resources_t::get().enqueue_create_shader(desc, {.data = blobs.data(), .size = blobs.size()}, render_globals_t::get_global_bind_layout());
 		}
 
 		for (u8 i = 0; i < runtime->compile_variant_count; i++)
@@ -144,7 +143,6 @@ namespace sfg
 		.internals_alignment = alignof(shader_internals_t),
 		.wire_magic			 = shader_loader_t::WIRE_MAGIC,
 		.wire_version		 = shader_loader_t::WIRE_VERSION,
-		.use_render_pending	 = true,
 		.load				 = shader_loader_t::load,
 		.unload				 = shader_loader_t::unload,
 	};

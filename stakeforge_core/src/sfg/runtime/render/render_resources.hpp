@@ -8,7 +8,6 @@
 #include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
-#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/vendor/moodycamel/readerwriterqueue.h>
 
 namespace sfg
@@ -71,14 +70,17 @@ namespace sfg
 		render_resources_t(const render_resources_t&)			 = delete;
 		render_resources_t& operator=(const render_resources_t&) = delete;
 
+		void init();
+		void uninit();
+
 		// -----------------------------------------------------------------------------
 		// creation
 		// -----------------------------------------------------------------------------
 
-		render_resource_handle_t enqueue_create_resource(sid_t hash, resource_type_e type, const resource_desc_t& desc, u32 user_data = 0);
-		render_resource_handle_t enqueue_create_texture(sid_t hash, const texture_desc_t& desc, resource_type_e type = resource_type_e::texture, u32 user_data = 0);
-		render_resource_handle_t enqueue_create_sampler(sid_t hash, resource_type_e type, const sampler_desc_t& desc);
-		render_resource_handle_t enqueue_create_shader(sid_t hash, resource_type_e type, u32 user_data, const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout = {});
+		render_resource_handle_t enqueue_create_resource(const resource_desc_t& desc);
+		render_resource_handle_t enqueue_create_texture(const texture_desc_t& desc);
+		render_resource_handle_t enqueue_create_sampler(const sampler_desc_t& desc);
+		render_resource_handle_t enqueue_create_shader(const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout = {});
 
 		// -----------------------------------------------------------------------------
 		// destroy
@@ -103,8 +105,11 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void drain_requests();
+		void drain_destroy_requests();
 		void release_retired_resources(bool force = false);
 		void release_retired_textures(bool force = false);
+		void release_retired_samplers(bool force = false);
+		void release_retired_shaders(bool force = false);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -145,7 +150,6 @@ namespace sfg
 		struct request_t
 		{
 			request_kind_e												  kind				= request_kind_e::create_resource;
-			sid_t														  hash				= 0;
 			resource_desc_t												  resource_desc		= {};
 			texture_desc_t												  texture_desc		= {};
 			sampler_desc_t												  sampler_desc		= {};
@@ -196,6 +200,18 @@ namespace sfg
 			u8			 frames	  = 0;
 		};
 
+		struct retired_sampler_t
+		{
+			gfx_handle_t sampler = {};
+			u8			 frames	 = 0;
+		};
+
+		struct retired_shader_t
+		{
+			gfx_handle_t shader = {};
+			u8			 frames = 0;
+		};
+
 		static void							   set_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, gpu_index_t gpu_index = NULL_GPU_INDEX);
 		static void							   set_render_thread_texture(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, const texture_desc_t& desc);
 		static const render_thread_resource_t& get_render_thread_resource_entry(const vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
@@ -203,6 +219,7 @@ namespace sfg
 
 		moodycamel::ReaderWriterQueue<request_t> _request_q;
 		texture_queue_t							 _texture_upload_queue = {};
+		vector_t<request_t>						 _deferred_destroys;
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;
@@ -215,5 +232,7 @@ namespace sfg
 		vector_t<render_thread_resource_t> _rt_shaders;
 		vector_t<retired_resource_t>	   _retired_resources;
 		vector_t<retired_texture_t>		   _retired_textures;
+		vector_t<retired_sampler_t>		   _retired_samplers;
+		vector_t<retired_shader_t>		   _retired_shaders;
 	};
 }

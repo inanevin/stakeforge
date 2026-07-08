@@ -61,7 +61,7 @@ namespace sfg
 			else
 			{
 				const resource_entry_t* mat_entry = rm.find_entry(mat_handle);
-				if (mat_entry == nullptr || mat_entry->state != resource_state_e::ready)
+				if (mat_entry == nullptr)
 					return UINT32_MAX;
 
 				material_runtime_t*	  mat_runtime	= rm_aux.get<material_runtime_t>(mat_entry->runtime);
@@ -189,7 +189,7 @@ namespace sfg
 			{
 				const component_skybox_t& skybox = ecs_helpers_t::row_get<component_skybox_t>(row, 1);
 				const resource_entry_t*	  entry	 = rm.find_entry(skybox.skybox_asset);
-				if (entry == nullptr || entry->type != resource_type_e::hdr_skybox || entry->state != resource_state_e::ready)
+				if (entry == nullptr || entry->type != resource_type_e::hdr_skybox)
 					continue;
 
 				const skybox_hdr_internals_t* internals = rm.get_memory().get<skybox_hdr_internals_t>(entry->internals);
@@ -225,7 +225,7 @@ namespace sfg
 					continue;
 
 				const resource_entry_t* entry = rm.find_entry(mesh_renderer.mesh);
-				if (entry == nullptr || entry->state != resource_state_e::ready)
+				if (entry == nullptr)
 					continue;
 
 				const mesh_runtime_t*			mesh_runtime   = rm_aux.get<mesh_runtime_t>(entry->runtime);

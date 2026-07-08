@@ -57,11 +57,12 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void resize(vec2u16_t render_resolution);
-		void tick(f32 dt_seconds);
-		void update_world_transforms(bool advance_interpolation);
-		void produce_snapshot();
-		void render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		void						   resize(vec2u16_t render_resolution);
+		void						   tick(f32 dt_seconds);
+		void						   update_world_transforms(bool advance_interpolation);
+		void						   produce_snapshot();
+		const world_render_snapshot_t& acquire_render_snapshot();
+		void						   render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -108,8 +109,7 @@ namespace sfg
 		}
 
 	private:
-		void						   publish_snapshot();
-		const world_render_snapshot_t& acquire_render_snapshot();
+		void publish_snapshot();
 
 	private:
 		world_render_snapshot_t		_snapshot_slots[3] = {};

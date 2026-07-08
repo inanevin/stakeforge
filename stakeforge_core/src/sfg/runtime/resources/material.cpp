@@ -140,8 +140,7 @@ namespace sfg
 			desc.size			 = runtime->parameter_data_size;
 			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
-			ctx.resource_manager.bump_render_pending(entry);
-			internals->parameter_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
+			internals->parameter_buffer = render_resources_t::get().enqueue_create_resource(desc);
 
 			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
 			u8	parameter_values[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
@@ -176,7 +175,6 @@ namespace sfg
 		.internals_alignment = alignof(material_internals_t),
 		.wire_magic			 = material_loader_t::WIRE_MAGIC,
 		.wire_version		 = material_loader_t::WIRE_VERSION,
-		.use_render_pending	 = true,
 		.load				 = material_loader_t::load,
 		.unload				 = material_loader_t::unload,
 	};

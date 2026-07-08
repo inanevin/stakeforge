@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -43,6 +44,7 @@ namespace sfg
 {
 	class editor_command_system_t;
 	class world_t;
+	struct world_render_snapshot_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
 	struct window_event_t;
@@ -69,6 +71,7 @@ namespace sfg
 		void				  destroy_world(editor_world_handle_t handle);
 		void				  destroy_worlds();
 		void				  resize_world(editor_world_handle_t handle, vec2u16_t render_resolution);
+		bool				  acquire_render_worlds();
 		bool				  render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		void				  tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
 		void				  install_default_world(editor_world_handle_t handle);
@@ -164,6 +167,12 @@ namespace sfg
 		}
 
 	private:
+		struct acquired_render_world_t
+		{
+			editor_world_t*				   world	= nullptr;
+			const world_render_snapshot_t* snapshot = nullptr;
+		};
+
 		f32			calculate_render_alpha() const;
 		void		destroy_world_internal(editor_world_handle_t handle);
 		void		destroy_main_world_internal();
@@ -183,6 +192,7 @@ namespace sfg
 
 	private:
 		dynamic_gen_pool_t<editor_world_t, u32, editor_world_handle_tag_t> _worlds;
+		vector_t<acquired_render_world_t>								   _render_worlds;
 		string_t														   _main_world_name;
 		vec3f_t															   _direction_input				  = vec3f_t::zero;
 		vec2f_t															   _mouse_delta					  = vec2f_t::zero;
@@ -195,6 +205,7 @@ namespace sfg
 		i64																   _accumulator_us				  = 0;
 		atomic_t<i64>													   _last_fixed_step_us			  = 0;
 		atomic_t<i64>													   _fixed_step_us				  = 0;
+		f32																   _render_alpha				  = 0.0f;
 		f32																   _camera_yaw_degrees			  = 0.0f;
 		f32																   _camera_pitch_degrees		  = 0.0f;
 		f32																   _current_move_speed			  = 12.0f;

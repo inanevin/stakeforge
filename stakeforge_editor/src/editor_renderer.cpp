@@ -226,20 +226,15 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		{
-			ZoneScopedN("render_resources_drain");
-			render_resources_t::get().drain_requests();
-		}
-		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
-		gfx_backend&	 backend	   = gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
 
 		/* figure out swapchain list */
 		struct rt_t
 		{
-			gfx_handle_t	   swapchain;
-			ui::ui_context*	   ui;
-			ui::ui_renderer_t* ui_renderer;
-			vec2u16_t		   size;
+			gfx_handle_t				  swapchain;
+			ui::ui_renderer_t*			  ui_renderer;
+			const ui::vg_draw_snapshot_t* ui_snapshot;
+			vec2u16_t					  size;
 		};
 
 		frame_vector_t<rt_t>		 render_targets;
@@ -250,12 +245,24 @@ namespace sfg
 				continue;
 			backend.wait_for_swapchain_latency(t.swapchain);
 			backend.get_back_buffer_index(t.swapchain);
-			render_targets.push_back({t.swapchain, t.ui, t.ui_renderer.get(), t.size});
+			render_targets.push_back({t.swapchain, t.ui_renderer.get(), t.ui != nullptr ? t.ui->acquire_render_snapshot() : nullptr, t.size});
 			present_list.push_back(t.swapchain);
 		}
 
+		world_controller.acquire_render_worlds();
+
+		{
+			ZoneScopedN("render_resources_drain");
+			render_resources_t::get().drain_requests();
+		}
+
 		if (render_targets.empty())
+		{
+			render_resources_t::get().drain_destroy_requests();
 			return;
+		}
+
+		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
 
 		/* time calc, globals, frame index */
 
@@ -360,8 +367,7 @@ namespace sfg
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
 			backend.cmd_set_viewport(cmd, vp);
 
-			if (t.ui != nullptr)
-				t.ui_renderer->render(cmd, *t.ui, _frame_index, t.size);
+			t.ui_renderer->render(cmd, t.ui_snapshot, _frame_index, t.size);
 
 			backend.cmd_end_render_pass(cmd, {});
 			END_DEBUG_EVENT((&backend), cmd);
@@ -385,6 +391,8 @@ namespace sfg
 		backend.present(present_list.data(), static_cast<u8>(present_list.size()));
 		pfd.semaphore_frame.value++;
 		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
+
+		render_resources_t::get().drain_destroy_requests();
 
 		_frame_counter++;
 	}

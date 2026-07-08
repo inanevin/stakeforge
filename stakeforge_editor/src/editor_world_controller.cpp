@@ -69,6 +69,7 @@ namespace sfg
 		SFG_ASSERT(s_instance == nullptr);
 		s_instance = this;
 		_worlds.reserve(8);
+		_render_worlds.reserve(8);
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
@@ -91,6 +92,7 @@ namespace sfg
 		}
 
 		destroy_worlds_internal(false);
+		_render_worlds.resize(0);
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
@@ -185,6 +187,29 @@ namespace sfg
 		world.resize(render_resolution);
 	}
 
+	bool editor_world_controller_t::acquire_render_worlds()
+	{
+		if (!_init)
+			return false;
+
+		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
+		_render_worlds.resize(0);
+
+		if (_worlds.empty())
+			return false;
+
+		_render_alpha = calculate_render_alpha();
+		for (editor_world_t& world : _worlds)
+		{
+			_render_worlds.push_back({
+				.world	  = &world,
+				.snapshot = &world.acquire_render_snapshot(),
+			});
+		}
+
+		return true;
+	}
+
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		if (!_init)
@@ -193,12 +218,12 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 
-		if (_worlds.empty())
+		if (_render_worlds.empty())
 			return false;
 
-		const f32 interpolation_alpha = calculate_render_alpha();
-		for (editor_world_t& world : _worlds)
-			world.render(interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		for (const acquired_render_world_t& acquired : _render_worlds)
+			acquired.world->render(*acquired.snapshot, _render_alpha, frame_index, global_cbv_index, global_layout);
+		_render_worlds.resize(0);
 
 		gfx_backend& backend = gfx_backend::get();
 		backend.queue_signal(queue, &signal, &signal_value, 1);

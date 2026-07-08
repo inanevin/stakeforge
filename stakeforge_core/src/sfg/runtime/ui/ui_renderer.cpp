@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui_renderer.hpp"
-#include "ui_context.hpp"
 #include "vg/vg_canvas.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/commands.hpp>
@@ -144,7 +143,7 @@ namespace sfg::ui
 		_idx_capacity	  = 0;
 	}
 
-	void ui_renderer_t::render(gfx_handle_t cmd, ui_context& ctx, u8 frame_index, vec2u16_t fb_size)
+	void ui_renderer_t::render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size)
 	{
 		ZoneScopedN("ui_renderer_render");
 
@@ -152,7 +151,6 @@ namespace sfg::ui
 		const u8		  frame_slot = frame_index % BACK_BUFFER_COUNT;
 		per_frame_data_t& pfd		 = _pfd[frame_slot];
 
-		const vg_draw_snapshot_t* snap = ctx.acquire_render_snapshot();
 		if (snap == nullptr || snap->draw_buffer_count == 0)
 			return;
 

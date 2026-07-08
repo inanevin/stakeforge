@@ -53,7 +53,7 @@ namespace sfg
 
 		render_globals_t::s_global_bind_layout = gfx_util_t::create_bind_layout_global(false);
 		resource_manager_t::get().init_atlases(glyph_atlas_config);
-		render_resources_t::get().get_texture_upload_queue().init();
+		render_resources_t::get().init();
 
 		return true;
 	}
@@ -61,10 +61,7 @@ namespace sfg
 	void engine_runtime_t::uninit_backend()
 	{
 		resource_manager_t::get().uninit_atlases();
-		render_resources_t::get().drain_requests();
-		render_resources_t::get().get_texture_upload_queue().uninit();
-		render_resources_t::get().release_retired_resources(true);
-		render_resources_t::get().release_retired_textures(true);
+		render_resources_t::get().uninit();
 		gfx_backend& backend = gfx_backend::get();
 		if (!render_globals_t::s_global_bind_layout.is_null())
 		{

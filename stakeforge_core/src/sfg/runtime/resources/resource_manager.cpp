@@ -28,7 +28,6 @@ namespace sfg
 		_memory.init(resource_memory_size);
 		_animation_storage.init();
 		_entries.reserve(256);
-		_unloads.reserve(256);
 	}
 
 	void resource_manager_t::init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config)
@@ -51,7 +50,6 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		flush_render_resource_completions();
 		_texture_streamer.flush_completed(*this);
 
 		for (auto& pair : _entries)
@@ -60,7 +58,6 @@ namespace sfg
 			_generation++;
 		}
 		_entries.clear();
-		_unloads.resize(0);
 
 		uninit_atlases();
 		_animation_storage.uninit();
@@ -73,9 +70,7 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		flush_render_resource_completions();
 		_texture_streamer.flush_completed(*this);
-		flush_unloads();
 	}
 
 	resource_state_e resource_manager_t::load_resource(sid_t hash, resource_type_e type, bool bypass_async, bool check_for_reload)
@@ -158,7 +153,7 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		loaded_entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
+		loaded_entry.state = resource_state_e::ready;
 		_generation++;
 		SFG_TRACE("loaded resource: {0}", debug_name);
 		return _entries.find(hash)->second.state;
@@ -184,15 +179,6 @@ namespace sfg
 
 		if (entry.ref_count != 0)
 			return;
-
-		SFG_ASSERT(!force || entry.state != resource_state_e::pending_render);
-
-		if (entry.state == resource_state_e::pending_render)
-		{
-			_unloads.push_back(hash);
-			_generation++;
-			return;
-		}
 
 		if (entry.dependency_count != 0)
 		{
@@ -222,73 +208,6 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		_glyph_atlas.drain_uploads(frame_slot);
-	}
-
-	void resource_manager_t::bump_render_pending(resource_entry_t& entry, u32 count)
-	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(count != 0);
-		const resource_type_desc_t* desc = find_resource_type_desc(entry.type);
-		SFG_ASSERT(desc != nullptr && desc->use_render_pending);
-		entry.render_pending += count;
-		if (entry.state == resource_state_e::ready)
-			entry.state = resource_state_e::pending_render;
-		_generation++;
-	}
-
-	void resource_manager_t::enqueue_render_resource_completion(sid_t hash)
-	{
-		if (hash == 0 || hash == NULL_SID)
-			return;
-
-		_render_completed.enqueue(hash);
-	}
-
-	void resource_manager_t::flush_render_resource_completions()
-	{
-		sid_t hash = 0;
-		while (_render_completed.try_dequeue(hash))
-		{
-			auto it = _entries.find(hash);
-			if (it == _entries.end())
-				continue;
-
-			resource_entry_t& entry = it->second;
-			SFG_ASSERT(entry.render_pending != 0);
-			if (entry.render_pending == 0)
-				continue;
-
-			entry.render_pending--;
-			if (entry.render_pending == 0 && entry.state == resource_state_e::pending_render)
-				entry.state = resource_state_e::ready;
-			_generation++;
-		}
-	}
-
-	void resource_manager_t::flush_unloads()
-	{
-		auto it = _unloads.begin();
-		while (it != _unloads.end())
-		{
-			auto entry_it = _entries.find(*it);
-			if (entry_it == _entries.end())
-			{
-				it = _unloads.erase(it);
-				continue;
-			}
-
-			resource_entry_t& entry = entry_it->second;
-			if (entry.state == resource_state_e::pending_render)
-			{
-				++it;
-				continue;
-			}
-
-			unload_entry(entry);
-			_entries.erase(entry_it);
-			_generation++;
-			it = _unloads.erase(it);
-		}
 	}
 
 	void resource_manager_t::unload_entry(resource_entry_t& entry)

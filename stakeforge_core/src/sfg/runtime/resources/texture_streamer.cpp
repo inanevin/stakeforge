@@ -405,15 +405,9 @@ namespace sfg
 				continue;
 			}
 
-			if (entry->state == resource_state_e::pending_render)
-			{
-				_results.enqueue(std::move(result));
-				break;
-			}
-
 			const render_resource_handle_t old_staging	= internals->staging;
 			const resource_desc_t		   staging_desc = make_texture_staging_desc(result.header, result.mips);
-			internals->staging							= render_resources_t::get().enqueue_create_resource(0, entry->type, staging_desc);
+			internals->staging							= render_resources_t::get().enqueue_create_resource(staging_desc);
 
 			const texture_desc_t texture_desc = make_texture_desc(result.header, mem.get_text(entry->debug_name));
 			render_resources_t::get().enqueue_replace_texture({

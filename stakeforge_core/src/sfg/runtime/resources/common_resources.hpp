@@ -58,7 +58,6 @@ namespace sfg
 	enum class resource_state_e : u8
 	{
 		failed,
-		pending_render,
 		ready,
 	};
 
@@ -72,7 +71,6 @@ namespace sfg
 		chunk_handle32_t dependencies	  = {};
 		u32				 ref_count		  = 0;
 		u32				 dependency_count = 0;
-		u32				 render_pending	  = 0;
 		resource_state_e state			  = resource_state_e::failed;
 		resource_type_e	 type			  = resource_type_e::invalid;
 	};
@@ -94,7 +92,6 @@ namespace sfg
 		u32				internals_alignment = 0;
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
-		bool			use_render_pending	= false;
 
 		load_fn_t	load   = nullptr;
 		load_fn_t	reload = nullptr;

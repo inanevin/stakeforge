@@ -9,7 +9,6 @@
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
-#include <sfg/vendor/moodycamel/concurrentqueue.h>
 
 namespace sfg
 {
@@ -44,8 +43,6 @@ namespace sfg
 		void					unload_resource(sid_t hash, bool force = false);
 		const resource_entry_t* find_entry(u64 hash) const;
 		void					drain_atlases(u8 frame_slot);
-		void					bump_render_pending(resource_entry_t& entry, u32 count = 1);
-		void					enqueue_render_resource_completion(sid_t hash);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -57,9 +54,6 @@ namespace sfg
 			if (entry == nullptr || entry->internals.size == 0)
 				return nullptr;
 
-			const bool state_not_ok = entry->state != resource_state_e::ready;
-			if (state_not_ok)
-				return nullptr;
 			return _memory.get<T>(entry->internals);
 		}
 
@@ -74,7 +68,7 @@ namespace sfg
 		inline bool is_ready(u64 hash) const
 		{
 			const resource_entry_t* entry = find_entry(hash);
-			return entry != nullptr && entry->state == resource_state_e::ready;
+			return entry != nullptr && entry->state != resource_state_e::failed;
 		}
 
 		inline resource_state_e get_entry_state(u64 hash) const
@@ -139,19 +133,15 @@ namespace sfg
 		}
 
 	private:
-		void flush_render_resource_completions();
-		void flush_unloads();
 		void unload_entry(resource_entry_t& entry);
 		void free_entry(resource_entry_t& entry);
 
 	private:
-		moodycamel::ConcurrentQueue<sid_t>	_render_completed;
 		animation_storage_t					_animation_storage;
 		chunk_allocator_t					_memory;
 		hash_map_t<sid_t, resource_entry_t> _entries;
 		ui::glyph_atlas_t					_glyph_atlas;
 		texture_streamer_t					_texture_streamer;
-		vector_t<u64>						_unloads;
 		resource_file_system_t*				_resource_file_system = nullptr;
 		u64									_generation			  = 0;
 	};
