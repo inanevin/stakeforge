@@ -32,7 +32,7 @@ namespace sfg
 
 	render_resource_handle_t render_resources_t::enqueue_create_resource(const resource_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _resources.add();
 		_request_q.enqueue({.kind = request_kind_e::create_resource, .resource_desc = desc, .render_handle = handle});
 		return handle;
@@ -40,7 +40,7 @@ namespace sfg
 
 	render_resource_handle_t render_resources_t::enqueue_create_texture(const texture_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _textures.add();
 		_request_q.enqueue({.kind = request_kind_e::create_texture, .texture_desc = desc, .render_handle = handle});
 		return handle;
@@ -48,7 +48,7 @@ namespace sfg
 
 	render_resource_handle_t render_resources_t::enqueue_create_sampler(const sampler_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _samplers.add();
 		_request_q.enqueue({.kind = request_kind_e::create_sampler, .sampler_desc = desc, .render_handle = handle});
 		return handle;
@@ -56,7 +56,7 @@ namespace sfg
 
 	render_resource_handle_t render_resources_t::enqueue_create_shader(const shader_desc_t& desc, span_t<const shader_blob_t> blobs, gfx_handle_t existing_layout)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(blobs.size <= MAX_SHADER_STAGES);
 		const render_resource_handle_t handle = _shaders.add();
 		request_t					   req	  = {};
@@ -80,7 +80,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_resource(render_resource_handle_t handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_request_q.enqueue({.kind = request_kind_e::destroy_resource, .render_handle = handle});
@@ -88,7 +88,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_texture(render_resource_handle_t handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_request_q.enqueue({.kind = request_kind_e::destroy_texture, .render_handle = handle});
@@ -96,7 +96,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_sampler(render_resource_handle_t handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_request_q.enqueue({.kind = request_kind_e::destroy_sampler, .render_handle = handle});
@@ -104,7 +104,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_destroy_shader(render_resource_handle_t handle)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		if (handle.is_null())
 			return;
 		_request_q.enqueue({.kind = request_kind_e::destroy_shader, .render_handle = handle});
@@ -112,7 +112,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_texture_upload(const render_texture_upload_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(!desc.texture.is_null());
 		SFG_ASSERT(!desc.staging.is_null());
 		SFG_ASSERT(desc.mips.size > 0);
@@ -133,7 +133,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_texture_region_upload(const render_texture_region_upload_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(!desc.dst_texture.is_null());
 		SFG_ASSERT(!desc.src_buffer.is_null());
 		SFG_ASSERT(desc.width > 0 && desc.height > 0);
@@ -156,7 +156,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_replace_texture(const render_texture_replace_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(!desc.texture.is_null());
 		SFG_ASSERT(!desc.staging.is_null());
 		SFG_ASSERT(!desc.old_staging.is_null());
@@ -180,7 +180,7 @@ namespace sfg
 
 	void render_resources_t::enqueue_data_upload(const render_data_upload_desc_t& desc)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(!desc.resource.is_null());
 		SFG_ASSERT(desc.data != nullptr);
 		SFG_ASSERT(desc.data_size != 0);

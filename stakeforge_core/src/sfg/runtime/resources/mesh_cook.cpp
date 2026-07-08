@@ -58,7 +58,7 @@ namespace sfg
 		return cook_from_def(def, out_header, stream);
 	}
 
-	bool mesh_cooker::cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream)
+	bool mesh_cooker::cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream, bool compress)
 	{
 		ostream_t mesh_stream;
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<mesh_def_t>::value, const_cast<mesh_def_t*>(&def), nullptr, mesh_stream))
@@ -72,6 +72,12 @@ namespace sfg
 			.version	 = mesh_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(mesh_stream.get_raw(), mesh_stream.get_size()),
 		};
+
+		if (!compress)
+		{
+			stream = std::move(mesh_stream);
+			return true;
+		}
 
 		stream = compressor_t::compress(mesh_stream);
 		if (stream.get_size() == 0)

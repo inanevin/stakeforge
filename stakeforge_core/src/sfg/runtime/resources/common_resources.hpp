@@ -82,8 +82,9 @@ namespace sfg
 
 	struct resource_type_desc_t
 	{
-		using load_fn_t	  = bool (*)(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
-		using unload_fn_t = void (*)(resource_entry_t& entry, resource_context_t& ctx);
+		using load_fn_t			= bool (*)(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
+		using runtime_load_fn_t = bool (*)(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
+		using unload_fn_t		= void (*)(resource_entry_t& entry, resource_context_t& ctx);
 
 		resource_type_e type				= resource_type_e::invalid;
 		u32				runtime_size		= 0;
@@ -93,9 +94,10 @@ namespace sfg
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
 
-		load_fn_t	load   = nullptr;
-		load_fn_t	reload = nullptr;
-		unload_fn_t unload = nullptr;
+		load_fn_t		  load		   = nullptr;
+		runtime_load_fn_t runtime_load = nullptr;
+		load_fn_t		  reload	   = nullptr;
+		unload_fn_t		  unload	   = nullptr;
 	};
 
 	extern const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];

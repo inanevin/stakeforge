@@ -94,6 +94,62 @@ namespace sfg
 			internals.index_count	  = runtime.index_count;
 			internals.vertex_stride	  = runtime.vertex_stride;
 		}
+
+		bool load_mesh_def(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+		{
+			chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
+			mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
+			mesh_internals_t*  internals = mem.get<mesh_internals_t>(entry.internals);
+			*runtime					 = {};
+			*internals					 = {};
+
+			mesh_def_t mesh = {};
+			if (!reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &mesh, nullptr, stream))
+			{
+				SFG_ERR("failed to deserialize mesh definition: {0}", entry.hash);
+				return false;
+			}
+
+			internals->local_bounds = mesh.local_bounds;
+			internals->local_bounds.update_half_extents();
+
+			const bool has_static  = !mesh.static_primitives.empty();
+			const bool has_skinned = !mesh.skinned_primitives.empty();
+			SFG_ASSERT(has_static || has_skinned);
+			SFG_ASSERT(!has_static || !has_skinned);
+
+			if (has_static)
+			{
+				build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mesh.materials, mem, *runtime, *internals);
+			}
+			else if (has_skinned)
+			{
+				build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mesh.materials, mem, *runtime, *internals);
+				runtime->is_skinned	  = 1;
+				internals->is_skinned = 1;
+			}
+
+			resource_desc_t vertex_desc = {};
+			vertex_desc.size			= runtime->vertex_data_size;
+			vertex_desc.structure_size	= runtime->vertex_stride;
+			vertex_desc.structure_count = runtime->vertex_count;
+			vertex_desc.flags			= resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
+			vertex_desc.set_name(mem.get_text(entry.debug_name));
+			internals->vertex_buffer = render_resources_t::get().enqueue_create_resource(vertex_desc);
+			render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->vertex_data), .resource = internals->vertex_buffer, .data_size = runtime->vertex_data_size});
+
+			resource_desc_t index_desc = {};
+			index_desc.size			   = runtime->index_data_size;
+			index_desc.structure_size  = sizeof(primitive_index);
+			index_desc.structure_count = runtime->index_count;
+			index_desc.flags		   = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
+			index_desc.set_name(mem.get_text(entry.debug_name));
+			internals->index_buffer = render_resources_t::get().enqueue_create_resource(index_desc);
+			render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->index_data), .resource = internals->index_buffer, .data_size = runtime->index_data_size});
+
+			free_mesh_cpu_data(mem, *runtime);
+			return true;
+		}
 	}
 
 	bool mesh_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
@@ -114,58 +170,12 @@ namespace sfg
 			return false;
 		}
 
-		chunk_allocator_t& mem		 = ctx.resource_manager.get_memory();
-		mesh_runtime_t*	   runtime	 = mem.get<mesh_runtime_t>(entry.runtime);
-		mesh_internals_t*  internals = mem.get<mesh_internals_t>(entry.internals);
-		*runtime					 = {};
-		*internals					 = {};
+		return load_mesh_def(entry, ctx, payload);
+	}
 
-		mesh_def_t mesh = {};
-		if (!reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &mesh, nullptr, payload))
-		{
-			SFG_ERR("failed to deserialize mesh definition: {0}", entry.hash);
-			return false;
-		}
-
-		internals->local_bounds = mesh.local_bounds;
-		internals->local_bounds.update_half_extents();
-
-		const bool has_static  = !mesh.static_primitives.empty();
-		const bool has_skinned = !mesh.skinned_primitives.empty();
-		SFG_ASSERT(has_static || has_skinned);
-		SFG_ASSERT(!has_static || !has_skinned);
-
-		if (has_static)
-		{
-			build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mesh.materials, mem, *runtime, *internals);
-		}
-		else if (has_skinned)
-		{
-			build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mesh.materials, mem, *runtime, *internals);
-			runtime->is_skinned	  = 1;
-			internals->is_skinned = 1;
-		}
-
-		resource_desc_t vertex_desc = {};
-		vertex_desc.size			= runtime->vertex_data_size;
-		vertex_desc.structure_size	= runtime->vertex_stride;
-		vertex_desc.structure_count = runtime->vertex_count;
-		vertex_desc.flags			= resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
-		vertex_desc.set_name(mem.get_text(entry.debug_name));
-		internals->vertex_buffer = render_resources_t::get().enqueue_create_resource(vertex_desc);
-		render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->vertex_data), .resource = internals->vertex_buffer, .data_size = runtime->vertex_data_size});
-
-		resource_desc_t index_desc = {};
-		index_desc.size			   = runtime->index_data_size;
-		index_desc.structure_size  = sizeof(primitive_index);
-		index_desc.structure_count = runtime->index_count;
-		index_desc.flags		   = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
-		index_desc.set_name(mem.get_text(entry.debug_name));
-		internals->index_buffer = render_resources_t::get().enqueue_create_resource(index_desc);
-		render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->index_data), .resource = internals->index_buffer, .data_size = runtime->index_data_size});
-
-		free_mesh_cpu_data(mem, *runtime);
-		return true;
+	bool mesh_loader_t::runtime_load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	{
+		return load_mesh_def(entry, ctx, stream);
 	}
 
 	void mesh_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
@@ -191,6 +201,7 @@ namespace sfg
 		.wire_magic			 = mesh_loader_t::WIRE_MAGIC,
 		.wire_version		 = mesh_loader_t::WIRE_VERSION,
 		.load				 = mesh_loader_t::load,
+		.runtime_load		 = mesh_loader_t::runtime_load,
 		.unload				 = mesh_loader_t::unload,
 	};
 }

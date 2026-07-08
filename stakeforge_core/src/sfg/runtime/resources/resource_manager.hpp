@@ -39,7 +39,8 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		resource_state_e		load_resource(sid_t hash, resource_type_e type, bool bypass_async = false, bool check_for_reload = false);
+		resource_state_e		load_resource(sid_t hash, resource_type_e type);
+		resource_state_e		load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream);
 		void					unload_resource(sid_t hash, bool force = false);
 		const resource_entry_t* find_entry(u64 hash) const;
 		void					drain_atlases(u8 frame_slot);

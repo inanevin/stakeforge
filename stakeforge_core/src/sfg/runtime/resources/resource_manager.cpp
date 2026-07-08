@@ -20,7 +20,7 @@ namespace sfg
 
 	void resource_manager_t::init(resource_file_system_t& resource_file_system, size_t resource_memory_size)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
 		_resource_file_system = &resource_file_system;
@@ -32,14 +32,14 @@ namespace sfg
 
 	void resource_manager_t::init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		_glyph_atlas.init(glyph_atlas_config);
 	}
 
 	void resource_manager_t::uninit_atlases()
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		if (_glyph_atlas.is_initialized())
 			_glyph_atlas.uninit();
@@ -47,7 +47,7 @@ namespace sfg
 
 	void resource_manager_t::uninit()
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		_texture_streamer.flush_completed(*this);
@@ -68,14 +68,14 @@ namespace sfg
 
 	void resource_manager_t::flush()
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 
 		_texture_streamer.flush_completed(*this);
 	}
 
-	resource_state_e resource_manager_t::load_resource(sid_t hash, resource_type_e type, bool bypass_async, bool check_for_reload)
+	resource_state_e resource_manager_t::load_resource(sid_t hash, resource_type_e type)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 
 		auto	   it	  = _entries.find(hash);
 		const bool exists = it != _entries.end();
@@ -118,7 +118,7 @@ namespace sfg
 		{
 			const resource_entry_t* exists = find_entry(header.dependencies[i].handle);
 			if (!exists)
-				load_resource(header.dependencies[i].handle, header.dependencies[i].type, bypass_async);
+				load_resource(header.dependencies[i].handle, header.dependencies[i].type);
 		}
 
 		resource_entry_t entry = {};
@@ -159,9 +159,63 @@ namespace sfg
 		return _entries.find(hash)->second.state;
 	}
 
+	resource_state_e resource_manager_t::load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream)
+	{
+		SFG_ASSERT(is_main_thread());
+
+		auto	   it	  = _entries.find(hash);
+		const bool exists = it != _entries.end();
+		if (exists)
+		{
+			it->second.ref_count++;
+			_generation++;
+			return it->second.state;
+		}
+
+		const resource_type_desc_t* desc = find_resource_type_desc(type);
+		if (desc == nullptr)
+		{
+			SFG_ERR("failed loading runtime resource, type description not found! {0}", static_cast<u8>(type));
+			return resource_state_e::failed;
+		}
+
+		if (desc->runtime_load == nullptr)
+		{
+			SFG_ERR("failed loading runtime resource, runtime load not found! {0}", static_cast<u8>(type));
+			return resource_state_e::failed;
+		}
+
+		resource_entry_t entry = {};
+		entry.type			   = type;
+		entry.ref_count		   = 1;
+		entry.hash			   = hash;
+		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
+		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
+		entry.state			   = resource_state_e::failed;
+		entry.debug_name	   = _memory.allocate_text("runtime_resource");
+
+		auto [entry_it, inserted] = _entries.emplace(hash, entry);
+		SFG_ASSERT(inserted);
+		resource_entry_t&  loaded_entry = entry_it->second;
+		resource_context_t ctx{*this};
+
+		if (!desc->runtime_load(loaded_entry, ctx, stream))
+		{
+			SFG_ERR("failed loading runtime resource: {0}", hash);
+			free_entry(loaded_entry);
+			_entries.erase(entry_it);
+			return resource_state_e::failed;
+		}
+
+		loaded_entry.state = resource_state_e::ready;
+		_generation++;
+		SFG_TRACE("loaded runtime resource: {0}", hash);
+		return _entries.find(hash)->second.state;
+	}
+
 	void resource_manager_t::unload_resource(sid_t hash, bool force)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 
 		auto it = _entries.find(hash);
 		SFG_ASSERT(it != _entries.end());
@@ -206,7 +260,7 @@ namespace sfg
 
 	void resource_manager_t::drain_atlases(u8 frame_slot)
 	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(is_main_thread());
 		_glyph_atlas.drain_uploads(frame_slot);
 	}
 

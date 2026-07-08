@@ -386,7 +386,7 @@ namespace sfg
 				return false;
 			}
 
-			const auto st = mgr.load_resource(sid, entry.type, true);
+			const auto st = mgr.load_resource(sid, entry.type);
 			if (st == resource_state_e::failed)
 			{
 				SFG_ERR("load_resource failed for {0}", source_path.c_str());

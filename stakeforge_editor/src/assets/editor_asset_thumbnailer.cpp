@@ -323,7 +323,7 @@ namespace sfg
 			const sid_t			thumbnail_guid	 = editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid);
 			resource_manager_t& resource_manager = resource_manager_t::get();
 			if (resource_manager.find_entry(thumbnail_guid) == nullptr)
-				return resource_manager.load_resource(thumbnail_guid, resource_type_e::texture, true) != resource_state_e::failed;
+				return resource_manager.load_resource(thumbnail_guid, resource_type_e::texture) != resource_state_e::failed;
 			return true;
 		}
 	}

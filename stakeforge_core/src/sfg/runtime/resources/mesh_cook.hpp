@@ -37,6 +37,6 @@ namespace sfg
 	{
 	public:
 		static bool cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream);
-		static bool cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream);
+		static bool cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream, bool compress = true);
 	};
 }

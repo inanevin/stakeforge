@@ -207,7 +207,7 @@ namespace sfg
 		if (rm.find_entry(handle))
 			rm.unload_resource(handle, true);
 
-		rm.load_resource(handle, resource_type_e::prefab, false);
+		rm.load_resource(handle, resource_type_e::prefab);
 
 		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
 		if (prefab_data == nullptr)
