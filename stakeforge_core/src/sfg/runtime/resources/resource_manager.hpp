@@ -3,7 +3,7 @@
 
 #include "animation_storage.hpp"
 #include "common_resources.hpp"
-#include <sfg/data/atomic.hpp>
+#include "texture_streamer.hpp"
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
@@ -117,11 +117,6 @@ namespace sfg
 			return _glyph_atlas;
 		}
 
-		inline u32 get_pending_count() const
-		{
-			return _pending.load(std::memory_order_acquire);
-		}
-
 		inline u64 get_generation() const
 		{
 			return _generation;
@@ -138,31 +133,26 @@ namespace sfg
 			return *_resource_file_system;
 		}
 
-	private:
-		struct load_request_t
+		inline texture_streamer_t& get_texture_streamer()
 		{
-			u64	 hash	 = 0;
-			bool success = false;
-		};
-
-		void		   enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
-		load_request_t run_async_load(resource_entry_t entry, const resource_type_desc_t& desc);
-		void		   flush_completed_loads();
-		void		   flush_render_resource_completions();
-		void		   flush_unloads();
-		void		   unload_entry(resource_entry_t& entry);
-		void		   free_entry(resource_entry_t& entry);
+			return _texture_streamer;
+		}
 
 	private:
-		moodycamel::ConcurrentQueue<load_request_t> _completed;
-		moodycamel::ConcurrentQueue<sid_t>			_render_completed;
-		animation_storage_t							_animation_storage;
-		chunk_allocator_t							_memory;
-		hash_map_t<sid_t, resource_entry_t>			_entries;
-		ui::glyph_atlas_t							_glyph_atlas;
-		vector_t<u64>								_unloads;
-		resource_file_system_t*						_resource_file_system = nullptr;
-		u64											_generation			  = 0;
-		atomic_t<u32>								_pending			  = 0;
+		void flush_render_resource_completions();
+		void flush_unloads();
+		void unload_entry(resource_entry_t& entry);
+		void free_entry(resource_entry_t& entry);
+
+	private:
+		moodycamel::ConcurrentQueue<sid_t>	_render_completed;
+		animation_storage_t					_animation_storage;
+		chunk_allocator_t					_memory;
+		hash_map_t<sid_t, resource_entry_t> _entries;
+		ui::glyph_atlas_t					_glyph_atlas;
+		texture_streamer_t					_texture_streamer;
+		vector_t<u64>						_unloads;
+		resource_file_system_t*				_resource_file_system = nullptr;
+		u64									_generation			  = 0;
 	};
 }

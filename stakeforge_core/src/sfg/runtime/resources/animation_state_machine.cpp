@@ -22,7 +22,6 @@ namespace sfg
 		.runtime_alignment	 = alignof(animation_state_machine_runtime_t),
 		.internals_size		 = sizeof(animation_state_machine_internals_t),
 		.internals_alignment = alignof(animation_state_machine_internals_t),
-		.use_async_load		 = false,
 		.load				 = animation_state_machine_loader_t::load,
 		.unload				 = animation_state_machine_loader_t::unload,
 	};

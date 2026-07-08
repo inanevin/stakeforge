@@ -126,6 +126,7 @@ namespace sfg
 			texture_header.bpp				= channels;
 			texture_header.mip_count		= levels;
 			texture_header.is_linear		= is_linear_u8;
+			texture_header.use_streaming	= cfg.use_streaming ? 1 : 0;
 			texture_header.average_color	= sample_average_color(buffers[0]);
 
 			out_header = {
@@ -387,6 +388,7 @@ namespace sfg
 					 .type		   = reflected_value_type_e::u8},
 					{.name = "generate_mipmaps", .display_name = "Generate Mipmaps", .offset = offsetof(texture_cook_config_t, generate_mipmaps), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					{.name = "is_linear", .display_name = "Linear", .offset = offsetof(texture_cook_config_t, is_linear), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+					{.name = "use_streaming", .display_name = "Use Streaming", .offset = offsetof(texture_cook_config_t, use_streaming), .size = sizeof(bool), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::boolean},
 					{.name = "force_4_channels", .display_name = "Force 4 Channels", .offset = offsetof(texture_cook_config_t, force_4_channels), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 				},
 			.type_id   = type_id_t<texture_cook_config_t>::value,

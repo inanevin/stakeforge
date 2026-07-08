@@ -59,7 +59,6 @@ namespace sfg
 		.internals_alignment = alignof(texture_sampler_internals_t),
 		.wire_magic			 = texture_sampler_loader_t::WIRE_MAGIC,
 		.wire_version		 = texture_sampler_loader_t::WIRE_VERSION,
-		.use_async_load		 = false,
 		.use_render_pending	 = true,
 		.load				 = texture_sampler_loader_t::load,
 		.unload				 = texture_sampler_loader_t::unload,

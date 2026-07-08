@@ -1607,9 +1607,24 @@ namespace sfg
 			});
 
 			vector_t<entity_guid_t> node_guids;
-			if (combined_mesh_guid == NULL_SID)
-				node_guids.resize(model.nodes_count, NULL_ENTITY_GUID);
+			node_guids.resize(model.nodes_count, NULL_ENTITY_GUID);
 			bool prefab_valid = true;
+
+			const auto add_mesh_renderer = [&](entity_guid_t entity_guid, sid_t mesh_guid, const vector_t<resource_handle_t>& materials) -> void {
+				nlohmann::json material_json = nlohmann::json::array();
+				for (resource_handle_t material : materials)
+					material_json.push_back(material);
+
+				prefab_json["components"].push_back({
+					{"type", type_id_t<component_mesh_renderer_t>::value},
+					{"entity", entity_guid},
+					{"data",
+					 {
+						 {"mesh", mesh_guid},
+						 {"materials", material_json},
+					 }},
+				});
+			};
 
 			const auto traverse_node = [&](const auto& self, u32 node_index, entity_guid_t parent_guid) -> void {
 				if (!prefab_valid || node_index >= model.nodes_count || node_guids[node_index] != NULL_ENTITY_GUID)
@@ -1661,19 +1676,7 @@ namespace sfg
 						return;
 					}
 
-					nlohmann::json material_json = nlohmann::json::array();
-					for (resource_handle_t material : materials)
-						material_json.push_back(material);
-
-					prefab_json["components"].push_back({
-						{"type", type_id_t<component_mesh_renderer_t>::value},
-						{"entity", guid},
-						{"data",
-						 {
-							 {"mesh", mesh_it->second},
-							 {"materials", material_json},
-						 }},
-					});
+					add_mesh_renderer(guid, mesh_it->second, materials);
 				}
 
 				for (u32 child_i = 0; child_i < node.children_count; ++child_i)
@@ -1695,19 +1698,111 @@ namespace sfg
 				}
 				else
 				{
-					nlohmann::json material_json = nlohmann::json::array();
-					for (resource_handle_t material : materials)
-						material_json.push_back(material);
+					u32		 mesh_node_count	= 0;
+					u32		 render_node_index	= UINT32_MAX;
+					mat4x3_t render_node_matrix = mat4x3_t::identity;
 
-					prefab_json["components"].push_back({
-						{"type", type_id_t<component_mesh_renderer_t>::value},
-						{"entity", root_guid},
-						{"data",
-						 {
-							 {"mesh", combined_mesh_guid},
-							 {"materials", material_json},
-						 }},
+					const auto get_node_matrix = [](const tg3_node& node) -> mat4x3_t {
+						vec3f_t local_pos	= vec3f_t::zero;
+						quat_t	local_rot	= quat_t::identity;
+						vec3f_t local_scale = vec3f_t::one;
+						get_node_transform(node, local_pos, local_rot, local_scale);
+						return mat4x3_t::transform(local_pos, local_rot, local_scale);
+					};
+
+					const auto scan_render_node = [&](const auto& self, u32 node_index, const mat4x3_t& parent_matrix) -> void {
+						if (node_index >= model.nodes_count || node_guids[node_index] != NULL_ENTITY_GUID)
+							return;
+
+						node_guids[node_index] = root_guid;
+
+						const tg3_node& node		= model.nodes[node_index];
+						const mat4x3_t	node_matrix = parent_matrix * get_node_matrix(node);
+						if (node.mesh >= 0 && static_cast<u32>(node.mesh) < model.meshes_count)
+						{
+							mesh_node_count++;
+							render_node_index  = node_index;
+							render_node_matrix = node_matrix;
+						}
+
+						for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+						{
+							const i32 child_index = node.children[child_i];
+							if (child_index >= 0)
+								self(self, static_cast<u32>(child_index), node_matrix);
+						}
+					};
+
+					const tg3_scene* scene = nullptr;
+					if (model.default_scene >= 0 && static_cast<u32>(model.default_scene) < model.scenes_count)
+						scene = model.scenes + model.default_scene;
+					else if (model.scenes_count != 0)
+						scene = model.scenes;
+
+					if (scene != nullptr)
+					{
+						for (u32 i = 0; i < scene->nodes_count; ++i)
+						{
+							const i32 node_index = scene->nodes[i];
+							if (node_index >= 0)
+								scan_render_node(scan_render_node, static_cast<u32>(node_index), mat4x3_t::identity);
+						}
+					}
+					else
+					{
+						vector_t<u8> child_nodes;
+						child_nodes.resize(model.nodes_count);
+						for (u32 i = 0; i < model.nodes_count; ++i)
+						{
+							const tg3_node& node = model.nodes[i];
+							for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+							{
+								const i32 child_index = node.children[child_i];
+								if (child_index >= 0 && static_cast<u32>(child_index) < model.nodes_count)
+									child_nodes[static_cast<u32>(child_index)] = 1;
+							}
+						}
+
+						for (u32 i = 0; i < model.nodes_count; ++i)
+						{
+							if (child_nodes[i] == 0)
+								scan_render_node(scan_render_node, i, mat4x3_t::identity);
+						}
+					}
+
+					node_guids.resize(0);
+					node_guids.resize(model.nodes_count, NULL_ENTITY_GUID);
+
+					string_t mesh_name = root_name;
+					mesh_name += "_mesh";
+					if (mesh_node_count == 1)
+					{
+						mesh_name = get_asset_name(model.nodes[render_node_index].name);
+						if (mesh_name.empty())
+						{
+							mesh_name = "node_";
+							mesh_name += std::to_string(render_node_index);
+						}
+					}
+
+					vec3f_t local_pos	= vec3f_t::zero;
+					quat_t	local_rot	= quat_t::identity;
+					vec3f_t local_scale = vec3f_t::one;
+					if (mesh_node_count == 1)
+						render_node_matrix.decompose(local_pos, local_rot, local_scale);
+
+					const entity_guid_t mesh_guid = next_guid++;
+					prefab_json["local_entities"].push_back(world_cook_entity_header_t{
+						.guid		 = mesh_guid,
+						.parent_guid = root_guid,
+						.name		 = mesh_name,
+						.local_pos	 = local_pos,
+						.local_rot	 = local_rot,
+						.local_scale = local_scale,
+						.prefab		 = NULL_RESOURCE_HANDLE,
 					});
+
+					add_mesh_renderer(mesh_guid, combined_mesh_guid, materials);
 				}
 			}
 			else

@@ -80,7 +80,6 @@ namespace sfg
 		.internals_alignment = alignof(font_internals_t),
 		.wire_magic			 = font_loader_t::WIRE_MAGIC,
 		.wire_version		 = font_loader_t::WIRE_VERSION,
-		.use_async_load		 = false,
 		.load				 = font_loader_t::load,
 		.unload				 = font_loader_t::unload,
 	};

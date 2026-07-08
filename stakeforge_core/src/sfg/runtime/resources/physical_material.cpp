@@ -77,7 +77,6 @@ namespace sfg
 		.internals_alignment = alignof(physical_material_internals_t),
 		.wire_magic			 = physical_material_loader_t::WIRE_MAGIC,
 		.wire_version		 = physical_material_loader_t::WIRE_VERSION,
-		.use_async_load		 = false,
 		.load				 = physical_material_loader_t::load,
 		.unload				 = physical_material_loader_t::unload,
 	};

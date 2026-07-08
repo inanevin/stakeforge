@@ -72,7 +72,6 @@ namespace sfg
 		.internals_alignment = alignof(prefab_internals_t),
 		.wire_magic			 = prefab_loader_t::WIRE_MAGIC,
 		.wire_version		 = prefab_loader_t::WIRE_VERSION,
-		.use_async_load		 = false,
 		.load				 = prefab_loader_t::load,
 		.reload				 = prefab_loader_t::reload,
 		.unload				 = prefab_loader_t::unload,

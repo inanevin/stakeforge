@@ -42,6 +42,17 @@ namespace sfg
 		u8						 dst_mip	   = 0;
 	};
 
+	struct render_texture_replace_desc_t
+	{
+		span_t<const texture_buffer_t> mips			 = {};
+		render_resource_handle_t	   texture		 = {};
+		render_resource_handle_t	   staging		 = {};
+		render_resource_handle_t	   old_staging	 = {};
+		texture_desc_t				   texture_desc	 = {};
+		u32							   target_states = 0;
+		texture_data_ownership_e	   ownership	 = texture_data_ownership_e::none;
+	};
+
 	struct render_data_upload_desc_t
 	{
 		const void*				 data		= nullptr;
@@ -84,6 +95,7 @@ namespace sfg
 
 		void enqueue_texture_upload(const render_texture_upload_desc_t& desc);
 		void enqueue_texture_region_upload(const render_texture_region_upload_desc_t& desc);
+		void enqueue_replace_texture(const render_texture_replace_desc_t& desc);
 		void enqueue_data_upload(const render_data_upload_desc_t& desc);
 
 		// -----------------------------------------------------------------------------
@@ -91,6 +103,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void drain_requests();
+		void release_retired_resources(bool force = false);
+		void release_retired_textures(bool force = false);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -120,6 +134,7 @@ namespace sfg
 			create_shader,
 			texture_upload,
 			texture_region_upload,
+			replace_texture,
 			data_upload,
 			destroy_resource,
 			destroy_texture,
@@ -140,6 +155,7 @@ namespace sfg
 			render_resource_handle_t									  render_handle		= {};
 			render_resource_handle_t									  texture			= {};
 			render_resource_handle_t									  staging			= {};
+			render_resource_handle_t									  old_staging		= {};
 			render_resource_handle_t									  dst_texture		= {};
 			render_resource_handle_t									  src_buffer		= {};
 			render_resource_handle_t									  resource			= {};
@@ -168,6 +184,18 @@ namespace sfg
 			gpu_index_t				 gpu_index										= NULL_GPU_INDEX;
 		};
 
+		struct retired_texture_t
+		{
+			gfx_handle_t texture = {};
+			u8			 frames	 = 0;
+		};
+
+		struct retired_resource_t
+		{
+			gfx_handle_t resource = {};
+			u8			 frames	  = 0;
+		};
+
 		static void							   set_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, gpu_index_t gpu_index = NULL_GPU_INDEX);
 		static void							   set_render_thread_texture(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, const texture_desc_t& desc);
 		static const render_thread_resource_t& get_render_thread_resource_entry(const vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
@@ -185,5 +213,7 @@ namespace sfg
 		vector_t<render_thread_resource_t> _rt_textures;
 		vector_t<render_thread_resource_t> _rt_samplers;
 		vector_t<render_thread_resource_t> _rt_shaders;
+		vector_t<retired_resource_t>	   _retired_resources;
+		vector_t<retired_texture_t>		   _retired_textures;
 	};
 }

@@ -94,13 +94,11 @@ namespace sfg
 		u32				internals_alignment = 0;
 		u32				wire_magic			= 0;
 		u32				wire_version		= 0;
-		bool			use_async_load		= false;
 		bool			use_render_pending	= false;
 
-		load_fn_t	load	   = nullptr;
-		load_fn_t	reload	   = nullptr;
-		load_fn_t	async_load = nullptr;
-		unload_fn_t unload	   = nullptr;
+		load_fn_t	load   = nullptr;
+		load_fn_t	reload = nullptr;
+		unload_fn_t unload = nullptr;
 	};
 
 	extern const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];

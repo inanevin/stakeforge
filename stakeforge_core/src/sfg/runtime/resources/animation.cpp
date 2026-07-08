@@ -61,7 +61,6 @@ namespace sfg
 		.internals_alignment = alignof(animation_internals_t),
 		.wire_magic			 = animation_loader_t::WIRE_MAGIC,
 		.wire_version		 = animation_loader_t::WIRE_VERSION,
-		.use_async_load		 = false,
 		.load				 = animation_loader_t::load,
 		.unload				 = animation_loader_t::unload,
 	};

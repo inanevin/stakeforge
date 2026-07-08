@@ -63,6 +63,8 @@ namespace sfg
 		resource_manager_t::get().uninit_atlases();
 		render_resources_t::get().drain_requests();
 		render_resources_t::get().get_texture_upload_queue().uninit();
+		render_resources_t::get().release_retired_resources(true);
+		render_resources_t::get().release_retired_textures(true);
 		gfx_backend& backend = gfx_backend::get();
 		if (!render_globals_t::s_global_bind_layout.is_null())
 		{

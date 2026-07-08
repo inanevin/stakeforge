@@ -42,7 +42,7 @@ namespace sfg
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('T', 'E', 'X', 'R');
-		static constexpr u32 WIRE_VERSION = 13;
+		static constexpr u32 WIRE_VERSION = 14;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -71,15 +71,25 @@ namespace sfg
 		u8						   bpp								= 0;
 		u8						   mip_count						= 0;
 		u8						   is_linear						= 0;
+		u8						   use_streaming					= 1;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);
 	};
 
+	enum class texture_residency_e : u8
+	{
+		placeholder,
+		streaming,
+		resident,
+		failed,
+	};
+
 	struct texture_runtime_t
 	{
-		texture_buffer_t mips[texture_loader_t::MAX_MIPS] = {};
-		texture_header_t header							  = {};
+		texture_buffer_t	mips[texture_loader_t::MAX_MIPS] = {};
+		texture_header_t	header							 = {};
+		texture_residency_e residency						 = texture_residency_e::placeholder;
 	};
 
 	struct texture_internals_t

@@ -146,6 +146,30 @@ namespace sfg
 		});
 	}
 
+	void render_resources_t::enqueue_replace_texture(const render_texture_replace_desc_t& desc)
+	{
+		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(!desc.texture.is_null());
+		SFG_ASSERT(!desc.staging.is_null());
+		SFG_ASSERT(!desc.old_staging.is_null());
+		SFG_ASSERT(desc.mips.size > 0);
+		SFG_ASSERT(desc.mips.size <= texture_queue_t::MAX_MIPS);
+
+		request_t req	  = {};
+		req.kind		  = request_kind_e::replace_texture;
+		req.texture		  = desc.texture;
+		req.staging		  = desc.staging;
+		req.old_staging	  = desc.old_staging;
+		req.texture_desc  = desc.texture_desc;
+		req.target_states = desc.target_states;
+		req.ownership	  = desc.ownership;
+		for (size_t i = 0; i < desc.mips.size; ++i)
+			req.mips.push_back(desc.mips.data[i]);
+
+		_resources.remove(desc.old_staging);
+		_request_q.enqueue(std::move(req));
+	}
+
 	void render_resources_t::enqueue_data_upload(const render_data_upload_desc_t& desc)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
@@ -209,6 +233,8 @@ namespace sfg
 		SFG_ASSERT(is_render_access_thread());
 
 		gfx_backend& backend = gfx_backend::get();
+		release_retired_resources(false);
+		release_retired_textures(false);
 
 		request_t req = {};
 		while (_request_q.try_dequeue(req))
@@ -271,6 +297,26 @@ namespace sfg
 				_texture_upload_queue.add_region(desc);
 				break;
 			}
+			case request_kind_e::replace_texture: {
+				const render_thread_resource_t& old_resource = get_render_thread_resource_entry(_rt_textures, req.texture);
+				const gfx_handle_t				old_texture	 = old_resource.hw_handle;
+				const gfx_handle_t				old_staging	 = remove_render_thread_resource(_rt_resources, req.old_staging);
+				const gfx_handle_t				new_texture	 = backend.create_texture(req.texture_desc);
+				set_render_thread_texture(_rt_textures, req.texture, new_texture, req.texture_desc);
+				_retired_textures.push_back({.texture = old_texture, .frames = BACK_BUFFER_COUNT});
+				_retired_resources.push_back({.resource = old_staging, .frames = BACK_BUFFER_COUNT});
+
+				const texture_upload_desc_t desc = {
+					.texture		   = new_texture,
+					.staging		   = get_render_thread_resource_entry(_rt_resources, req.staging).hw_handle,
+					.mips			   = {.data = req.mips.data(), .size = req.mips.size()},
+					.target_states	   = req.target_states,
+					.destination_slice = 0,
+					.ownership		   = req.ownership,
+				};
+				_texture_upload_queue.add(desc);
+				break;
+			}
 			case request_kind_e::data_upload: {
 				u8*				   mapped	= nullptr;
 				const gfx_handle_t resource = get_render_thread_resource_entry(_rt_resources, req.resource).hw_handle;
@@ -305,6 +351,42 @@ namespace sfg
 				break;
 			}
 			}
+		}
+	}
+
+	void render_resources_t::release_retired_resources(bool force)
+	{
+		gfx_backend& backend = gfx_backend::get();
+		for (size_t i = 0; i < _retired_resources.size();)
+		{
+			retired_resource_t& retired = _retired_resources[i];
+			if (force || retired.frames == 0)
+			{
+				backend.destroy_resource(retired.resource);
+				_retired_resources.erase(_retired_resources.begin() + static_cast<ptrdiff_t>(i));
+				continue;
+			}
+
+			retired.frames--;
+			++i;
+		}
+	}
+
+	void render_resources_t::release_retired_textures(bool force)
+	{
+		gfx_backend& backend = gfx_backend::get();
+		for (size_t i = 0; i < _retired_textures.size();)
+		{
+			retired_texture_t& retired = _retired_textures[i];
+			if (force || retired.frames == 0)
+			{
+				backend.destroy_texture(retired.texture);
+				_retired_textures.erase(_retired_textures.begin() + static_cast<ptrdiff_t>(i));
+				continue;
+			}
+
+			retired.frames--;
+			++i;
 		}
 	}
 

@@ -80,7 +80,8 @@
                 "schema": "sfg.schema.texture",
                 "payload_type": 2,
                 "generate_mipmaps": false,
-                "is_linear": false
+                "is_linear": false,
+                "use_streaming": false
             }
         },
         {

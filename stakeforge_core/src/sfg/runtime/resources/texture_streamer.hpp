@@ -27,41 +27,38 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/type_id.hpp>
-
-#include "texture_payload_type.hpp"
-#include <sfg/data/span.hpp>
-#include <sfg/math/vec2u16.hpp>
+#include "texture.hpp"
+#include <sfg/vendor/moodycamel/concurrentqueue.h>
 
 namespace sfg
 {
-	class ostream_t;
-	struct resource_header_t;
+	class resource_file_system_t;
+	class resource_manager_t;
+	struct resource_entry_t;
 
-	struct texture_cook_config_t
+	struct texture_stream_result_t
 	{
-		vec2u16_t				   size				= vec2u16_t::zero;
-		texture_payload_type_e	   payload_type		= texture_payload_type_e::ktx2_uastc;
-		texture_ktx2_compression_e ktx2_compression = texture_ktx2_compression_e::faster;
-		bool					   generate_mipmaps = false;
-		bool					   is_linear		= false;
-		bool					   use_streaming	= true;
-		bool					   force_4_channels = false;
+		sid_t			 hash							  = 0;
+		u64				 source_ticks					  = 0;
+		texture_buffer_t mips[texture_loader_t::MAX_MIPS] = {};
+		texture_header_t header							  = {};
+		bool			 success						  = false;
 	};
 
-	class texture_cooker
+	class texture_streamer_t final
 	{
 	public:
-		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
-		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, resource_header_t& out_header, ostream_t& stream);
+		texture_streamer_t()									 = default;
+		~texture_streamer_t()									 = default;
+		texture_streamer_t(const texture_streamer_t&)			 = delete;
+		texture_streamer_t& operator=(const texture_streamer_t&) = delete;
+
+		void						   enqueue(resource_entry_t& entry, resource_file_system_t& rfs);
+		void						   flush_completed(resource_manager_t& resource_manager);
+		static texture_stream_result_t load_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs);
+		static void					   release_result(texture_stream_result_t& result);
+
+	private:
+		moodycamel::ConcurrentQueue<texture_stream_result_t> _results;
 	};
-
-	SFG_DEFINE_TYPE_ID(texture_cook_config_t);
-
-	struct texture_cook_config_reflection_t
-	{
-		texture_cook_config_reflection_t();
-	};
-
-	inline texture_cook_config_reflection_t g_reflect_texture_cook_config;
 }

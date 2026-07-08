@@ -176,7 +176,6 @@ namespace sfg
 		.internals_alignment = alignof(material_internals_t),
 		.wire_magic			 = material_loader_t::WIRE_MAGIC,
 		.wire_version		 = material_loader_t::WIRE_VERSION,
-		.use_async_load		 = false,
 		.use_render_pending	 = true,
 		.load				 = material_loader_t::load,
 		.unload				 = material_loader_t::unload,

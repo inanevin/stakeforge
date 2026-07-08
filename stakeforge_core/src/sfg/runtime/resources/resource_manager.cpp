@@ -5,7 +5,6 @@
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/job/job_system.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 
@@ -52,9 +51,8 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		flush_completed_loads();
 		flush_render_resource_completions();
-		SFG_ASSERT(_pending.load(std::memory_order_acquire) == 0);
+		_texture_streamer.flush_completed(*this);
 
 		for (auto& pair : _entries)
 		{
@@ -75,8 +73,8 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		flush_completed_loads();
 		flush_render_resource_completions();
+		_texture_streamer.flush_completed(*this);
 		flush_unloads();
 	}
 
@@ -105,9 +103,6 @@ namespace sfg
 			SFG_ERR("failed loading resource, load not found! {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
-
-		if (desc->use_async_load)
-			SFG_ASSERT(desc->async_load != nullptr);
 
 		ostream_t header_stream;
 		if (!_resource_file_system->read_resource(hash, 0, sizeof(resource_header_t), header_stream))
@@ -165,31 +160,7 @@ namespace sfg
 
 		loaded_entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
 		_generation++;
-		if (desc->use_async_load)
-		{
-			if (bypass_async)
-			{
-				load_request_t request = run_async_load(loaded_entry, *desc);
-				if (!request.success)
-				{
-					loaded_entry.state = resource_state_e::failed;
-					_generation++;
-					SFG_ERR("failed loading async resource: {0}", loaded_entry.hash);
-				}
-				else
-				{
-					loaded_entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
-					_generation++;
-					SFG_TRACE("loaded async resource: {0}", debug_name);
-				}
-			}
-			else
-			{
-				enqueue_async_load(loaded_entry, *desc);
-			}
-		}
-		else
-			SFG_TRACE("loaded resource: {0}", debug_name);
+		SFG_TRACE("loaded resource: {0}", debug_name);
 		return _entries.find(hash)->second.state;
 	}
 
@@ -267,65 +238,10 @@ namespace sfg
 
 	void resource_manager_t::enqueue_render_resource_completion(sid_t hash)
 	{
-		if (hash == 0)
+		if (hash == 0 || hash == NULL_SID)
 			return;
 
 		_render_completed.enqueue(hash);
-	}
-
-	void resource_manager_t::enqueue_async_load(resource_entry_t entry, const resource_type_desc_t& desc)
-	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		SFG_ASSERT(job_system_t::get().is_initialized());
-		SFG_ASSERT(desc.use_async_load);
-		SFG_ASSERT(desc.async_load != nullptr);
-
-		_pending.fetch_add(1, std::memory_order_release);
-		const resource_type_desc_t* desc_ptr = &desc;
-		job_system_t::get().silent_async([this, entry, desc_ptr]() mutable { _completed.enqueue(run_async_load(entry, *desc_ptr)); });
-	}
-
-	resource_manager_t::load_request_t resource_manager_t::run_async_load(resource_entry_t entry, const resource_type_desc_t& desc)
-	{
-		SFG_ASSERT(desc.use_async_load);
-		SFG_ASSERT(desc.async_load != nullptr);
-		SFG_ASSERT(_resource_file_system != nullptr);
-
-		load_request_t request = {};
-		request.hash		   = entry.hash;
-
-		resource_context_t ctx{*this};
-		request.success = desc.async_load(entry, ctx, *_resource_file_system);
-		return request;
-	}
-
-	void resource_manager_t::flush_completed_loads()
-	{
-		load_request_t request = {};
-		while (_completed.try_dequeue(request))
-		{
-			_pending.fetch_sub(1, std::memory_order_release);
-
-			auto it = _entries.find(request.hash);
-			if (it == _entries.end())
-				continue;
-
-			resource_entry_t&			entry = it->second;
-			const resource_type_desc_t* desc  = find_resource_type_desc(entry.type);
-			SFG_ASSERT(desc != nullptr);
-
-			if (!request.success)
-			{
-				entry.state = resource_state_e::failed;
-				_generation++;
-				SFG_ERR("failed loading async resource: {0}", entry.hash);
-				continue;
-			}
-
-			entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
-			_generation++;
-			SFG_TRACE("loaded async resource: {0}", _memory.get_text(entry.debug_name));
-		}
 	}
 
 	void resource_manager_t::flush_render_resource_completions()
