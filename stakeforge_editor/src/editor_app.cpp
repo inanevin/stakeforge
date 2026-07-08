@@ -549,9 +549,9 @@ namespace sfg
 			const u16		width  = static_cast<u16>(static_cast<f32>(height) * EDITOR_SPLASH_ASPECT_X / EDITOR_SPLASH_ASPECT_Y);
 			const vec2u16_t size   = {width, height};
 			const vec2i16_t pos	   = {
-				   static_cast<i16>(monitor.position.x + static_cast<i16>((monitor.work_size.x - width) / 2)),
-				   static_cast<i16>(monitor.position.y + static_cast<i16>((monitor.work_size.y - height) / 2)),
-			   };
+				static_cast<i16>(monitor.position.x + static_cast<i16>((monitor.work_size.x - width) / 2)),
+				static_cast<i16>(monitor.position.y + static_cast<i16>((monitor.work_size.y - height) / 2)),
+			};
 
 			create_surface(pos, size, mode == editor_app_mode_e::splash ? editor_surface_type_e::splash : editor_surface_type_e::project_creator);
 
@@ -909,7 +909,6 @@ namespace sfg
 
 				if (done)
 				{
-					_asset_manager.ensure_thumbnails_loaded();
 					switch_mode(editor_app_mode_e::normal);
 				}
 			}

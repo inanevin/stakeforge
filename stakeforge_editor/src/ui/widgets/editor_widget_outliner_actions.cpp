@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "commands/editor_command_primitive_spawn.hpp"
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_world_edit_context.hpp"
@@ -44,13 +45,22 @@ namespace sfg
 {
 	namespace
 	{
+		editor_action_menu_row_desc_t ENTITY_CREATE_PRIMITIVE_ROWS[] = {
+			{.text = "Cube", .command = entity_action_menu_create_cube},
+			{.text = "Sphere", .command = entity_action_menu_create_sphere},
+			{.text = "Cylinder", .command = entity_action_menu_create_cylinder},
+			{.text = "Capsule", .command = entity_action_menu_create_capsule},
+		};
+
 		editor_action_menu_row_desc_t ENTITY_CREATE_ROWS[] = {
 			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
+			{.text = "Primitives", .children = ENTITY_CREATE_PRIMITIVE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_PRIMITIVE_ROWS) / sizeof(ENTITY_CREATE_PRIMITIVE_ROWS[0]))},
 			{.text = "Folder", .command = entity_action_menu_create_folder},
 		};
 
 		editor_action_menu_row_desc_t ENTITY_CREATE_ENTITY_ROWS[] = {
 			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
+			{.text = "Primitives", .children = ENTITY_CREATE_PRIMITIVE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_PRIMITIVE_ROWS) / sizeof(ENTITY_CREATE_PRIMITIVE_ROWS[0]))},
 			{.text = "Folder", .command = entity_action_menu_create_folder, .disabled = true},
 		};
 
@@ -77,6 +87,24 @@ namespace sfg
 		SFG_ASSERT(!main_world.is_null());
 
 		const entity_id_t entity = editor_commands_entity_t::create(main_world, parent, folder);
+		if (entity == NULL_ENTITY_ID)
+			return;
+		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
+		{
+			world_t& world = editor_world_controller_t::get().get_world(main_world);
+			editor_world_controller_t::get().get_edit_context(_edit_context).set_entity_folded(world.get_entity_guid(parent), false);
+		}
+		if (!folder.is_null())
+			editor_world_controller_t::get().get_edit_context(_edit_context).set_folder_folded(folder, false);
+		refresh_entities();
+	}
+
+	void editor_widget_outliner_t::create_primitive(editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder)
+	{
+		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
+		SFG_ASSERT(!main_world.is_null());
+
+		const entity_id_t entity = editor_command_primitive_spawn_t::spawn(main_world, primitive, parent, folder);
 		if (entity == NULL_ENTITY_ID)
 			return;
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))

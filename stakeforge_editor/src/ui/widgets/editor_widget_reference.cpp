@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_reference.hpp"
+#include "assets/editor_asset.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_world_controller.hpp"
@@ -41,6 +42,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	namespace
+	{
+		const char* find_builtin_mesh_display_name(sid_t guid)
+		{
+			switch (guid)
+			{
+			case DEFAULT_MESH_CUBE_GUID:
+				return "Cube";
+			case DEFAULT_MESH_SPHERE_GUID:
+				return "Sphere";
+			case DEFAULT_MESH_CYLINDER_GUID:
+				return "Cylinder";
+			case DEFAULT_MESH_CAPSULE_GUID:
+				return "Capsule";
+			default:
+				return nullptr;
+			}
+		}
+	}
+
 	void editor_widget_reference_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_reference_config_t& config)
 	{
 		_ui = &ui;
@@ -254,6 +275,8 @@ namespace sfg
 			if (selected != NULL_SID && selected != 0)
 			{
 				label = editor_asset_util_t::find_asset_display_name(selected);
+				if (label == nullptr && _config.asset_type == editor_asset_type_e::mesh)
+					label = find_builtin_mesh_display_name(selected);
 				if (label == nullptr)
 				{
 					label	   = "Missing";

@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "commands/editor_command_primitive_spawn.hpp"
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
@@ -59,6 +60,14 @@ namespace sfg
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		if (command == entity_action_menu_create_empty)
 			panel.create_entity(NULL_ENTITY_ID);
+		else if (command == entity_action_menu_create_cube)
+			panel.create_primitive(editor_primitive_type_e::cube, NULL_ENTITY_ID);
+		else if (command == entity_action_menu_create_sphere)
+			panel.create_primitive(editor_primitive_type_e::sphere, NULL_ENTITY_ID);
+		else if (command == entity_action_menu_create_cylinder)
+			panel.create_primitive(editor_primitive_type_e::cylinder, NULL_ENTITY_ID);
+		else if (command == entity_action_menu_create_capsule)
+			panel.create_primitive(editor_primitive_type_e::capsule, NULL_ENTITY_ID);
 		else if (command == entity_action_menu_create_folder)
 		{
 			panel.create_folder({});
@@ -73,6 +82,26 @@ namespace sfg
 			if (panel.is_create_enabled())
 				panel.create_entity(panel._action_menu_entity);
 		}
+		else if (command == entity_action_menu_create_cube)
+		{
+			if (panel.is_create_enabled())
+				panel.create_primitive(editor_primitive_type_e::cube, panel._action_menu_entity);
+		}
+		else if (command == entity_action_menu_create_sphere)
+		{
+			if (panel.is_create_enabled())
+				panel.create_primitive(editor_primitive_type_e::sphere, panel._action_menu_entity);
+		}
+		else if (command == entity_action_menu_create_cylinder)
+		{
+			if (panel.is_create_enabled())
+				panel.create_primitive(editor_primitive_type_e::cylinder, panel._action_menu_entity);
+		}
+		else if (command == entity_action_menu_create_capsule)
+		{
+			if (panel.is_create_enabled())
+				panel.create_primitive(editor_primitive_type_e::capsule, panel._action_menu_entity);
+		}
 		else if (command == entity_action_menu_duplicate)
 			panel.duplicate_selected_entities();
 		else if (command == entity_action_menu_delete)
@@ -84,6 +113,14 @@ namespace sfg
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		if (command == entity_action_menu_create_empty)
 			panel.create_entity(NULL_ENTITY_ID, panel._action_menu_folder);
+		else if (command == entity_action_menu_create_cube)
+			panel.create_primitive(editor_primitive_type_e::cube, NULL_ENTITY_ID, panel._action_menu_folder);
+		else if (command == entity_action_menu_create_sphere)
+			panel.create_primitive(editor_primitive_type_e::sphere, NULL_ENTITY_ID, panel._action_menu_folder);
+		else if (command == entity_action_menu_create_cylinder)
+			panel.create_primitive(editor_primitive_type_e::cylinder, NULL_ENTITY_ID, panel._action_menu_folder);
+		else if (command == entity_action_menu_create_capsule)
+			panel.create_primitive(editor_primitive_type_e::capsule, NULL_ENTITY_ID, panel._action_menu_folder);
 		else if (command == entity_action_menu_create_folder)
 			panel.create_folder(panel._action_menu_folder);
 		else if (command == entity_action_menu_rename_folder)
@@ -440,6 +477,14 @@ namespace sfg
 		}
 		case editor_command_type_e::prefab_spawn: {
 			const editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
+			if (!(payload.world == panel._main_world))
+				return;
+
+			panel.refresh_entities();
+			break;
+		}
+		case editor_command_type_e::primitive_spawn: {
+			const editor_command_primitive_spawn_payload_t& payload = system.get_payload_as<editor_command_primitive_spawn_payload_t>(command);
 			if (!(payload.world == panel._main_world))
 				return;
 

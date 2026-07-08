@@ -318,8 +318,6 @@ namespace sfg
 
 		bool load_thumbnail_resource(const editor_asset_t& asset)
 		{
-			SFG_ASSERT(SFG_IS_MAIN_THREAD());
-
 			const sid_t			thumbnail_guid	 = editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid);
 			resource_manager_t& resource_manager = resource_manager_t::get();
 			if (resource_manager.find_entry(thumbnail_guid) == nullptr)

@@ -20,4 +20,5 @@ UseTab: Always
 AllowShortFunctionsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
+LineEnding: LF
 ...

@@ -1365,9 +1365,10 @@ namespace sfg
 		{
 			out.name = name;
 
-			vector_t<u32> local_material_indices;
-			u32			  default_material_index = UINT32_MAX;
-			collect_mesh_materials(model, meshes, mesh_count, material_guid_map, out.materials, &local_material_indices, &default_material_index);
+			vector_t<resource_handle_t> materials;
+			vector_t<u32>				local_material_indices;
+			u32							default_material_index = UINT32_MAX;
+			collect_mesh_materials(model, meshes, mesh_count, material_guid_map, materials, &local_material_indices, &default_material_index);
 
 			bool is_skinned = false;
 			for (u32 mesh_i = 0; mesh_i < mesh_count; ++mesh_i)

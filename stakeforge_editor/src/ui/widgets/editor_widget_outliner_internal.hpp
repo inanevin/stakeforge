@@ -37,6 +37,10 @@ namespace sfg
 	{
 		entity_action_menu_create_empty = 1,
 		entity_action_menu_create_folder,
+		entity_action_menu_create_cube,
+		entity_action_menu_create_sphere,
+		entity_action_menu_create_cylinder,
+		entity_action_menu_create_capsule,
 		entity_action_menu_duplicate,
 		entity_action_menu_delete,
 		entity_action_menu_rename_folder,

@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "resource_handle.hpp"
 #include "vertex.hpp"
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
@@ -55,7 +54,6 @@ namespace sfg
 	{
 		aabb_t							  local_bounds		 = {};
 		string_t						  name				 = {};
-		vector_t<resource_handle_t>		  materials			 = {};
 		vector_t<primitive_static_def_t>  static_primitives	 = {};
 		vector_t<primitive_skinned_def_t> skinned_primitives = {};
 	};

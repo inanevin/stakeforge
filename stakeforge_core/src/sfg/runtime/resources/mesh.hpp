@@ -10,11 +10,10 @@ namespace sfg
 {
 	struct mesh_primitive_runtime_t
 	{
-		resource_handle_t material		 = NULL_RESOURCE_HANDLE;
-		u32				  material_index = UINT32_MAX;
-		u32				  start_index	 = 0;
-		u32				  start_vertex	 = 0;
-		u32				  index_count	 = 0;
+		u32 material_index = UINT32_MAX;
+		u32 start_index	   = 0;
+		u32 start_vertex   = 0;
+		u32 index_count	   = 0;
 	};
 
 	struct mesh_runtime_t

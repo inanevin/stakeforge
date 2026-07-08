@@ -36,7 +36,7 @@ namespace sfg
 			clear_mesh_runtime_cpu_data(runtime);
 		}
 
-		template <typename def_primitive_t, typename vertex_t> void build_mesh_data(const vector_t<def_primitive_t>& def_primitives, const vector_t<resource_handle_t>& materials, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
+		template <typename def_primitive_t, typename vertex_t> void build_mesh_data(const vector_t<def_primitive_t>& def_primitives, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
 		{
 			size_t vertex_count = 0;
 			size_t index_count	= 0;
@@ -61,17 +61,15 @@ namespace sfg
 			for (u32 i = 0; i < primitive_count; ++i)
 			{
 				const def_primitive_t& primitive = def_primitives[i];
-				SFG_ASSERT(primitive.material_index < materials.size());
 
 				const size_t vertex_bytes = primitive.vertices.size() * sizeof(vertex_t);
 				const size_t index_bytes  = primitive.indices.size() * sizeof(primitive_index);
 				primitive_dst[i]		  = {
-							 .material		 = materials[primitive.material_index],
-							 .material_index = primitive.material_index,
-							 .start_index	 = start_index,
-							 .start_vertex	 = start_vertex,
-							 .index_count	 = static_cast<u32>(primitive.indices.size()),
-				 };
+					.material_index = primitive.material_index,
+					.start_index	= start_index,
+					.start_vertex	= start_vertex,
+					.index_count	= static_cast<u32>(primitive.indices.size()),
+				};
 				SFG_MEMCPY(vertex_dst, primitive.vertices.data(), vertex_bytes);
 				SFG_MEMCPY(index_dst, primitive.indices.data(), index_bytes);
 
@@ -120,11 +118,11 @@ namespace sfg
 
 			if (has_static)
 			{
-				build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mesh.materials, mem, *runtime, *internals);
+				build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mem, *runtime, *internals);
 			}
 			else if (has_skinned)
 			{
-				build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mesh.materials, mem, *runtime, *internals);
+				build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mem, *runtime, *internals);
 				runtime->is_skinned	  = 1;
 				internals->is_skinned = 1;
 			}

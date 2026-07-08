@@ -50,6 +50,7 @@ namespace sfg
 {
 	class editor_command_system_t;
 	class world_t;
+	enum class editor_primitive_type_e : u8;
 	namespace ui
 	{
 		class ui_context;
@@ -125,6 +126,7 @@ namespace sfg
 		bool				   reveal_entity(entity_id_t entity);
 		void				   toggle_entity_fold(entity_id_t entity);
 		void				   create_entity(entity_id_t parent, editor_world_folder_handle_t folder = {});
+		void				   create_primitive(editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder = {});
 		void				   create_folder(editor_world_folder_handle_t parent);
 		void				   delete_folder(editor_world_folder_handle_t folder);
 		void				   start_entity_payload(entity_id_t entity);

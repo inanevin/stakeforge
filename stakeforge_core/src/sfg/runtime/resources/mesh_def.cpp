@@ -100,12 +100,6 @@ namespace sfg
 				{
 					{.name = "name", .display_name = "Name", .offset = offsetof(mesh_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
 					{.name = "local_bounds", .display_name = "Local Bounds", .sub_type_id = type_id_t<aabb_t>::value, .offset = offsetof(mesh_def_t, local_bounds), .size = sizeof(aabb_t), .type = reflected_value_type_e::object},
-					{.container_ops = reflection_container_ops_t::vector_ops<resource_handle_t>(reflected_value_type_e::u64, REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID),
-					 .name			= "materials",
-					 .display_name	= "Materials",
-					 .offset		= offsetof(mesh_def_t, materials),
-					 .size			= sizeof(vector_t<resource_handle_t>),
-					 .type			= reflected_value_type_e::container},
 					{.container_ops = reflection_container_ops_t::vector_ops<primitive_static_def_t>(reflected_value_type_e::object, type_id_t<primitive_static_def_t>::value),
 					 .name			= "static_primitives",
 					 .display_name	= "Static Primitives",

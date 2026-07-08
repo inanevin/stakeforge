@@ -30,17 +30,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_thumbnailer.hpp"
 #include "assets/editor_default_asset_seeder.hpp"
+#include "editor_mesh_generator.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/string_util.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/color_utils.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 
 namespace sfg
 {
@@ -227,6 +233,8 @@ namespace sfg
 		_ensure_project_assets_done.store(false, std::memory_order_release);
 		tf::Taskflow ensure_flow;
 		ensure_flow.emplace([this, def_assets_path, cache_path, assets_path]() {
+			main_thread_scope_t scope;
+
 			if (!file_system_t::exists(def_assets_path.c_str()))
 				file_system_t::create_directory(def_assets_path.c_str());
 			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
@@ -294,6 +302,51 @@ namespace sfg
 					editor_asset_thumbnailer_t::ensure(asset);
 				}
 			}
+
+			ensure_thumbnails_loaded();
+
+			resource_manager_t& resource_manager = resource_manager_t::get();
+			if (resource_manager.find_entry(DEFAULT_MESH_CUBE_GUID) == nullptr)
+			{
+				ostream_t stream;
+				if (editor_mesh_generator_t::generate_cube({.size = vec3f_t::one}, stream))
+				{
+					istream_t istream;
+					istream.open(stream.get_raw(), stream.get_size());
+					resource_manager.load_resource_runtime(DEFAULT_MESH_CUBE_GUID, resource_type_e::mesh, istream);
+				}
+			}
+			if (resource_manager.find_entry(DEFAULT_MESH_SPHERE_GUID) == nullptr)
+			{
+				ostream_t stream;
+				if (editor_mesh_generator_t::generate_sphere({}, stream))
+				{
+					istream_t istream;
+					istream.open(stream.get_raw(), stream.get_size());
+					resource_manager.load_resource_runtime(DEFAULT_MESH_SPHERE_GUID, resource_type_e::mesh, istream);
+				}
+			}
+			if (resource_manager.find_entry(DEFAULT_MESH_CYLINDER_GUID) == nullptr)
+			{
+				ostream_t stream;
+				if (editor_mesh_generator_t::generate_cylinder({}, stream))
+				{
+					istream_t istream;
+					istream.open(stream.get_raw(), stream.get_size());
+					resource_manager.load_resource_runtime(DEFAULT_MESH_CYLINDER_GUID, resource_type_e::mesh, istream);
+				}
+			}
+			if (resource_manager.find_entry(DEFAULT_MESH_CAPSULE_GUID) == nullptr)
+			{
+				ostream_t stream;
+				if (editor_mesh_generator_t::generate_capsule({}, stream))
+				{
+					istream_t istream;
+					istream.open(stream.get_raw(), stream.get_size());
+					resource_manager.load_resource_runtime(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh, istream);
+				}
+			}
+
 			_ensure_project_assets_done.store(true, std::memory_order_release);
 		});
 		editor_app_t::get().get_editor_work_executor().run(std::move(ensure_flow));

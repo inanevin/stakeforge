@@ -27,55 +27,39 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/math/vec3f.hpp>
+#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_handle.hpp"
+#include <sfg/memory/chunk_handle.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
-	class ostream_t;
-
-	struct editor_mesh_generator_cube_params_t
+	enum class editor_primitive_type_e : u8
 	{
-		vec3f_t size = vec3f_t::one;
+		cube,
+		sphere,
+		cylinder,
+		capsule,
 	};
 
-	struct editor_mesh_generator_sphere_params_t
+	struct editor_command_primitive_spawn_payload_t
 	{
-		f32 radius	 = 0.5f;
-		u16 segments = 32;
-		u16 rings	 = 16;
+		chunk_handle32_t		previous_selection		 = {};
+		editor_world_handle_t	world					 = {};
+		entity_id_t				parent					 = NULL_ENTITY_ID;
+		entity_id_t				entity					 = NULL_ENTITY_ID;
+		entity_id_t				previous_anchor			 = NULL_ENTITY_ID;
+		entity_guid_t			guid					 = NULL_ENTITY_GUID;
+		u64						folder_guid				 = 0;
+		u32						previous_selection_count = 0;
+		editor_primitive_type_e primitive				 = editor_primitive_type_e::cube;
 	};
 
-	struct editor_mesh_generator_cylinder_params_t
-	{
-		f32 radius	 = 0.5f;
-		f32 height	 = 1.0f;
-		u16 segments = 32;
-	};
-
-	struct editor_mesh_generator_capsule_params_t
-	{
-		f32 radius			 = 0.5f;
-		f32 height			 = 2.0f;
-		u16 segments		 = 32;
-		u16 hemisphere_rings = 8;
-	};
-
-	class editor_mesh_generator_t final
+	class editor_command_primitive_spawn_t final
 	{
 	public:
-		editor_mesh_generator_t()										   = default;
-		~editor_mesh_generator_t()										   = default;
-		editor_mesh_generator_t(const editor_mesh_generator_t&)			   = delete;
-		editor_mesh_generator_t& operator=(const editor_mesh_generator_t&) = delete;
+		editor_command_primitive_spawn_t() = delete;
 
-		// -----------------------------------------------------------------------------
-		// impl
-		// -----------------------------------------------------------------------------
-
-		static bool generate_cube(const editor_mesh_generator_cube_params_t& params, ostream_t& out);
-		static bool generate_sphere(const editor_mesh_generator_sphere_params_t& params, ostream_t& out);
-		static bool generate_cylinder(const editor_mesh_generator_cylinder_params_t& params, ostream_t& out);
-		static bool generate_capsule(const editor_mesh_generator_capsule_params_t& params, ostream_t& out);
+		static entity_id_t spawn(editor_world_handle_t world, editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder = {});
 	};
 }

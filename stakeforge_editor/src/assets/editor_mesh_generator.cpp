@@ -71,11 +71,10 @@ namespace sfg
 			push_tri(primitive, base, base + 2, base + 3);
 		}
 
-		bool write_mesh_def(mesh_def_t& def, primitive_static_def_t& primitive, resource_handle_t material, ostream_t& out)
+		bool write_mesh_def(mesh_def_t& def, primitive_static_def_t& primitive, ostream_t& out)
 		{
 			primitive.material_index = 0;
 			mesh_util_t::generate_tangents(primitive);
-			def.materials.push_back(material);
 			def.static_primitives.push_back(std::move(primitive));
 
 			resource_header_t header = {};
@@ -98,7 +97,7 @@ namespace sfg
 		mesh_def_t def	 = {};
 		def.name		 = "cube";
 		def.local_bounds = aabb_t(-half, half);
-		return write_mesh_def(def, primitive, params.material, out);
+		return write_mesh_def(def, primitive, out);
 	}
 
 	bool editor_mesh_generator_t::generate_sphere(const editor_mesh_generator_sphere_params_t& params, ostream_t& out)
@@ -148,7 +147,7 @@ namespace sfg
 		mesh_def_t	  def = {};
 		def.name		  = "sphere";
 		def.local_bounds  = aabb_t(-half, half);
-		return write_mesh_def(def, primitive, params.material, out);
+		return write_mesh_def(def, primitive, out);
 	}
 
 	bool editor_mesh_generator_t::generate_cylinder(const editor_mesh_generator_cylinder_params_t& params, ostream_t& out)
@@ -196,7 +195,7 @@ namespace sfg
 			primitive.vertices.push_back(make_vertex({px, -half_y, pz}, {0.0f, -1.0f, 0.0f}, {px / (radius * 2.0f) + 0.5f, pz / (radius * 2.0f) + 0.5f}));
 		}
 		for (u16 x = 0; x < segments; ++x)
-			push_tri(primitive, bottom_center, bottom_ring + x + 1, bottom_ring + x);
+			push_tri(primitive, bottom_center, bottom_ring + x, bottom_ring + x + 1);
 
 		const u32 top_center = static_cast<u32>(primitive.vertices.size());
 		primitive.vertices.push_back(make_vertex({0.0f, half_y, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.5f, 0.5f}));
@@ -210,12 +209,12 @@ namespace sfg
 			primitive.vertices.push_back(make_vertex({px, half_y, pz}, {0.0f, 1.0f, 0.0f}, {px / (radius * 2.0f) + 0.5f, pz / (radius * 2.0f) + 0.5f}));
 		}
 		for (u16 x = 0; x < segments; ++x)
-			push_tri(primitive, top_center, top_ring + x, top_ring + x + 1);
+			push_tri(primitive, top_center, top_ring + x + 1, top_ring + x);
 
 		mesh_def_t def	 = {};
 		def.name		 = "cylinder";
 		def.local_bounds = aabb_t({-radius, -half_y, -radius}, {radius, half_y, radius});
-		return write_mesh_def(def, primitive, params.material, out);
+		return write_mesh_def(def, primitive, out);
 	}
 
 	bool editor_mesh_generator_t::generate_capsule(const editor_mesh_generator_capsule_params_t& params, ostream_t& out)
@@ -267,6 +266,6 @@ namespace sfg
 		mesh_def_t def	 = {};
 		def.name		 = "capsule";
 		def.local_bounds = aabb_t({-radius, -half_body - radius, -radius}, {radius, half_body + radius, radius});
-		return write_mesh_def(def, primitive, params.material, out);
+		return write_mesh_def(def, primitive, out);
 	}
 }
