@@ -194,11 +194,13 @@ namespace sfg
 		skybox_hdr_internals_t* internals = mem.get<skybox_hdr_internals_t>(entry.internals);
 		*internals						  = {};
 
-		render_resources_t& render_resources = render_resources_t::get();
-		internals->radiance_texture			 = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->radiance, "skybox_hdr_radiance"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_RADIANCE);
-		internals->irradiance_texture		 = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->irradiance, "skybox_hdr_irradiance"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_IRRADIANCE);
-		internals->prefilter_texture		 = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->prefilter, "skybox_hdr_prefilter"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_PREFILTER);
-		internals->brdf_lut_texture			 = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->brdf_lut, "skybox_hdr_brdf_lut"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_BRDF_LUT);
+		render_resources_t& render_resources	 = render_resources_t::get();
+		const u32			render_pending_count = 5 + runtime->radiance.face_count + runtime->irradiance.face_count + runtime->prefilter.face_count;
+		ctx.resource_manager.bump_render_pending(entry, render_pending_count);
+		internals->radiance_texture	  = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->radiance, "skybox_hdr_radiance"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_RADIANCE);
+		internals->irradiance_texture = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->irradiance, "skybox_hdr_irradiance"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_IRRADIANCE);
+		internals->prefilter_texture  = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->prefilter, "skybox_hdr_prefilter"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_PREFILTER);
+		internals->brdf_lut_texture	  = render_resources.enqueue_create_texture(entry.hash, make_texture_desc(runtime->brdf_lut, "skybox_hdr_brdf_lut"), resource_type_e::hdr_skybox, SFG_SKYBOX_HDR_TEX_BRDF_LUT);
 
 		const resource_desc_t radiance_staging_desc	  = make_staging_desc(runtime->radiance);
 		const resource_desc_t irradiance_staging_desc = make_staging_desc(runtime->irradiance);

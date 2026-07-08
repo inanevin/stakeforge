@@ -38,6 +38,7 @@ namespace sfg
 
 		sampler_desc_t desc = runtime->desc;
 		desc.set_name(mem.get_text(entry.debug_name));
+		ctx.resource_manager.bump_render_pending(entry);
 		internals->sampler = render_resources_t::get().enqueue_create_sampler(entry.hash, entry.type, desc);
 		return true;
 	}

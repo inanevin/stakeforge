@@ -47,14 +47,42 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM 37
-#define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	 43
-#define SFG_KTX_ZSTD_COMPRESSION_FASTER	 1
-#define SFG_KTX_ZSTD_COMPRESSION_DEFAULT 3
-#define SFG_KTX_ZSTD_COMPRESSION_HIGH	 5
+#define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM   37
+#define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	   43
+#define SFG_KTX_ZSTD_COMPRESSION_FASTER	   1
+#define SFG_KTX_ZSTD_COMPRESSION_DEFAULT   3
+#define SFG_KTX_ZSTD_COMPRESSION_HIGH	   5
+#define TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT 1024
 
 	namespace
 	{
+		vec4f_t sample_average_color(const texture_buffer_t& buffer)
+		{
+			SFG_ASSERT(buffer.pixels != nullptr);
+			SFG_ASSERT(buffer.size.x != 0);
+			SFG_ASSERT(buffer.size.y != 0);
+			SFG_ASSERT(buffer.bpp != 0);
+
+			const u32 pixel_count  = static_cast<u32>(buffer.size.x) * static_cast<u32>(buffer.size.y);
+			const u32 sample_count = pixel_count < TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT ? pixel_count : TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT;
+			u64		  state		   = (static_cast<u64>(buffer.size.x) << 32) ^ (static_cast<u64>(buffer.size.y) << 16) ^ buffer.bpp ^ 0x9e3779b97f4a7c15ull;
+			vec4f_t	  sum		   = vec4f_t::zero;
+
+			for (u32 i = 0; i < sample_count; ++i)
+			{
+				state				  = state * 6364136223846793005ull + 1442695040888963407ull;
+				const u32 pixel_index = static_cast<u32>((state >> 32) % pixel_count);
+				const u8* pixel		  = buffer.pixels + static_cast<size_t>(pixel_index) * buffer.bpp;
+				const f32 r			  = static_cast<f32>(pixel[0]) / 255.0f;
+				const f32 g			  = buffer.bpp > 2 ? static_cast<f32>(pixel[1]) / 255.0f : r;
+				const f32 b			  = buffer.bpp > 2 ? static_cast<f32>(pixel[2]) / 255.0f : r;
+				const f32 a			  = buffer.bpp == 2 ? static_cast<f32>(pixel[1]) / 255.0f : buffer.bpp > 3 ? static_cast<f32>(pixel[3]) / 255.0f : 1.0f;
+				sum += {r, g, b, a};
+			}
+
+			return sum / static_cast<f32>(sample_count);
+		}
+
 		void free_texture_buffers(texture_buffer_t* buffers, u8 levels, bool base_from_image_util)
 		{
 			if (base_from_image_util)
@@ -98,6 +126,7 @@ namespace sfg
 			texture_header.bpp				= channels;
 			texture_header.mip_count		= levels;
 			texture_header.is_linear		= is_linear_u8;
+			texture_header.average_color	= sample_average_color(buffers[0]);
 
 			out_header = {
 				.magic		 = texture_loader_t::WIRE_MAGIC,

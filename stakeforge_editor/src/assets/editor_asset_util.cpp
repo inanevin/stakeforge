@@ -430,7 +430,7 @@ namespace sfg
 		return read_asset(path, asset) ? asset.guid : NULL_SID;
 	}
 
-	const char* editor_asset_util_t::find_asset_display_name(sid_t guid)
+	const editor_asset_node_t* editor_asset_util_t::find_asset_node(sid_t guid)
 	{
 		if (guid == NULL_SID)
 			return nullptr;
@@ -440,9 +440,21 @@ namespace sfg
 		{
 			const editor_asset_node_t& node = tree.value(*it);
 			if (node.type == editor_asset_node_type_e::asset && node.asset_id == guid)
-				return node.name.c_str();
+				return &node;
 		}
 		return nullptr;
+	}
+
+	string_t editor_asset_util_t::find_asset_path(sid_t guid)
+	{
+		const editor_asset_node_t* node = find_asset_node(guid);
+		return node != nullptr ? node->full_path : string_t{};
+	}
+
+	const char* editor_asset_util_t::find_asset_display_name(sid_t guid)
+	{
+		const editor_asset_node_t* node = find_asset_node(guid);
+		return node != nullptr ? node->name.c_str() : nullptr;
 	}
 
 	bool editor_asset_util_t::delete_folder(editor_asset_node_handle_t folder_node)

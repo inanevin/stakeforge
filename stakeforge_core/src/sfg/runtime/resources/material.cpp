@@ -140,6 +140,7 @@ namespace sfg
 			desc.size			 = runtime->parameter_data_size;
 			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
+			ctx.resource_manager.bump_render_pending(entry);
 			internals->parameter_buffer = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, desc);
 
 			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);

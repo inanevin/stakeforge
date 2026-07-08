@@ -62,14 +62,14 @@ namespace sfg
 
 	void texture_header_t::serialize(ostream_t& stream) const
 	{
-		stream << texture_format << payload_type << ktx2_compression << size << bpp << mip_count << is_linear;
+		stream << average_color << texture_format << payload_type << ktx2_compression << size << bpp << mip_count << is_linear;
 		for (u8 i = 0; i < texture_loader_t::MAX_MIPS; ++i)
 			stream << mips[i];
 	}
 
 	void texture_header_t::deserialize(istream_t& stream)
 	{
-		stream >> texture_format >> payload_type >> ktx2_compression >> size >> bpp >> mip_count >> is_linear;
+		stream >> average_color >> texture_format >> payload_type >> ktx2_compression >> size >> bpp >> mip_count >> is_linear;
 		for (u8 i = 0; i < texture_loader_t::MAX_MIPS; ++i)
 			stream >> mips[i];
 	}
@@ -192,6 +192,7 @@ namespace sfg
 				upload_mips[i]		= b;
 			}
 
+			resource_manager_t::get().bump_render_pending(entry, 2);
 			internals.texture = render_resources_t::get().enqueue_create_texture(entry.hash, desc);
 			internals.staging = render_resources_t::get().enqueue_create_resource(entry.hash, entry.type, staging_desc);
 

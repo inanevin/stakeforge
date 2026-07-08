@@ -21,7 +21,6 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _resources.add();
-		resource_manager_t::get().register_render_resource_request(hash);
 		_request_q.enqueue({.kind = request_kind_e::create_resource, .hash = hash, .resource_desc = desc, .render_handle = handle});
 		return handle;
 	}
@@ -30,7 +29,6 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _textures.add();
-		resource_manager_t::get().register_render_resource_request(hash);
 		_request_q.enqueue({.kind = request_kind_e::create_texture, .hash = hash, .texture_desc = desc, .render_handle = handle});
 		return handle;
 	}
@@ -39,7 +37,6 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		const render_resource_handle_t handle = _samplers.add();
-		resource_manager_t::get().register_render_resource_request(hash);
 		_request_q.enqueue({.kind = request_kind_e::create_sampler, .hash = hash, .sampler_desc = desc, .render_handle = handle});
 		return handle;
 	}
@@ -49,13 +46,12 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(blobs.size <= MAX_SHADER_STAGES);
 		const render_resource_handle_t handle = _shaders.add();
-		resource_manager_t::get().register_render_resource_request(hash);
-		request_t req		= {};
-		req.kind			= request_kind_e::create_shader;
-		req.hash			= hash;
-		req.shader_desc		= desc;
-		req.existing_layout = existing_layout;
-		req.render_handle	= handle;
+		request_t					   req	  = {};
+		req.kind							  = request_kind_e::create_shader;
+		req.hash							  = hash;
+		req.shader_desc						  = desc;
+		req.existing_layout					  = existing_layout;
+		req.render_handle					  = handle;
 		for (size_t i = 0; i < blobs.size; ++i)
 		{
 			const shader_blob_t& blob = blobs.data[i];

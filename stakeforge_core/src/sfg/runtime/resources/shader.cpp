@@ -76,6 +76,7 @@ namespace sfg
 
 		istream_t desc_stream;
 
+		ctx.resource_manager.bump_render_pending(entry, runtime->pso_variant_count);
 		for (u8 i = 0; i < runtime->pso_variant_count; ++i)
 		{
 			const shader_runtime_pso_variant_t& pv = runtime->pso_variants[i];

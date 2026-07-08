@@ -60,7 +60,6 @@ namespace sfg
 		failed,
 		pending_render,
 		ready,
-		ready_preview,
 	};
 
 	struct resource_entry_t

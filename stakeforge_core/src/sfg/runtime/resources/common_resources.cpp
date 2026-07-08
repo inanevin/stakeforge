@@ -107,8 +107,6 @@ namespace sfg
 			return "Pending Render";
 		case resource_state_e::ready:
 			return "Ready";
-		case resource_state_e::ready_preview:
-			return "Preview";
 		default:
 			return "Invalid";
 		}

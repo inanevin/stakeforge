@@ -75,6 +75,10 @@ namespace sfg
 					   .type	   = command_type::graphics,
 					   .debug_name = "editor_prep",
 			   });
+			pfd.cmd_gfx_transit		   = backend.create_command_buffer({
+					   .type	   = command_type::graphics,
+					   .debug_name = "editor_transit",
+			   });
 			pfd.cmd_transfer		   = backend.create_command_buffer({
 						  .type		  = command_type::transfer,
 						  .debug_name = "editor_xfer",
@@ -113,6 +117,7 @@ namespace sfg
 			backend.destroy_resource(pfd.global_buffer);
 			backend.destroy_command_buffer(pfd.cmd_gfx);
 			backend.destroy_command_buffer(pfd.cmd_gfx_prepare);
+			backend.destroy_command_buffer(pfd.cmd_gfx_transit);
 			backend.destroy_command_buffer(pfd.cmd_transfer);
 			backend.destroy_semaphore(pfd.semaphore_frame.sem);
 			backend.destroy_semaphore(pfd.semaphore_transfer.sem);
@@ -276,18 +281,11 @@ namespace sfg
 		const gfx_handle_t queue_transfer = backend.get_queue_transfer();
 		const gfx_handle_t cmd			  = pfd.cmd_gfx;
 		const gfx_handle_t cmd_prepare	  = pfd.cmd_gfx_prepare;
+		const gfx_handle_t cmd_transit	  = pfd.cmd_gfx_transit;
 		const gfx_handle_t cmd_transfer	  = pfd.cmd_transfer;
-
-		pfd.semaphore_world.value++;
-		bool world_submitted = false;
-		{
-			ZoneScopedN("world_controller_render_worlds");
-			world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
-		}
 
 		/* flush uploads, begin graphics & transits */
 
-		bool prepare_submitted	= false;
 		bool transfer_submitted = false;
 		if (texture_queue.has_uploads())
 		{
@@ -299,11 +297,8 @@ namespace sfg
 				backend.submit_commands(queue_gfx, &cmd_prepare, 1);
 				pfd.semaphore_transfer.value++;
 				backend.queue_signal(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
-				prepare_submitted = true;
-			}
-
-			if (prepare_submitted)
 				backend.queue_wait(queue_transfer, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
+			}
 
 			backend.reset_command_buffer_transfer(cmd_transfer);
 			if (texture_queue.flush(cmd_transfer))
@@ -312,14 +307,28 @@ namespace sfg
 				backend.submit_commands(queue_transfer, &cmd_transfer, 1);
 				pfd.semaphore_transfer.value++;
 				backend.queue_signal(queue_transfer, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
-				transfer_submitted = true;
+				backend.queue_wait(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
 			}
+
+			if (texture_queue.has_transits())
+			{
+				backend.reset_command_buffer(cmd_transit);
+				texture_queue.transit(cmd_transit);
+				backend.close_command_buffer(cmd_transit);
+				backend.submit_commands(queue_gfx, &cmd_transit, 1);
+			}
+		}
+
+		pfd.semaphore_world.value++;
+		bool world_submitted = false;
+		{
+			ZoneScopedN("world_controller_render_worlds");
+			world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
 		}
 
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = render_globals_t::get_global_bind_layout()});
 		backend.cmd_bind_constants(cmd, {.data = &pfd.global_index, .offset = constant_global0, .count = 1, .param_index = 0});
-		texture_queue.transit(cmd);
 
 		/* render pass per rt */
 
@@ -368,8 +377,7 @@ namespace sfg
 
 		/* submit & present */
 		backend.close_command_buffer(cmd);
-		if (transfer_submitted)
-			backend.queue_wait(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
+
 		if (world_submitted)
 			backend.queue_wait(queue_gfx, &pfd.semaphore_world.sem, &pfd.semaphore_world.value, 1);
 

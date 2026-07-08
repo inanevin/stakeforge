@@ -41,10 +41,10 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		resource_state_e		load_resource(sid_t hash, resource_type_e type, bool bypass_async = false, bool check_for_reload = false);
-		void					unload_resource(sid_t hash);
+		void					unload_resource(sid_t hash, bool force = false);
 		const resource_entry_t* find_entry(u64 hash) const;
 		void					drain_atlases(u8 frame_slot);
-		void					register_render_resource_request(sid_t hash);
+		void					bump_render_pending(resource_entry_t& entry, u32 count = 1);
 		void					enqueue_render_resource_completion(sid_t hash);
 
 		// -----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ namespace sfg
 			if (entry == nullptr || entry->internals.size == 0)
 				return nullptr;
 
-			const bool state_not_ok = entry->state != resource_state_e::ready && entry->state != resource_state_e::ready_preview;
+			const bool state_not_ok = entry->state != resource_state_e::ready;
 			if (state_not_ok)
 				return nullptr;
 			return _memory.get<T>(entry->internals);

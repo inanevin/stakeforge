@@ -203,7 +203,11 @@ namespace sfg
 
 	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
 	{
-		resource_manager_t::get().load_resource(handle, resource_type_e::prefab, false, true);
+		resource_manager_t& rm = resource_manager_t::get();
+		if (rm.find_entry(handle))
+			rm.unload_resource(handle, true);
+
+		rm.load_resource(handle, resource_type_e::prefab, false);
 
 		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
 		if (prefab_data == nullptr)
@@ -694,7 +698,7 @@ namespace sfg
 			if (e == nullptr)
 				continue;
 
-			rm.unload_resource(it->handle);
+			rm.unload_resource(it->handle, false);
 		}
 	}
 

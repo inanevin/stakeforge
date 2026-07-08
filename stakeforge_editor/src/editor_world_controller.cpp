@@ -196,18 +196,11 @@ namespace sfg
 		if (_worlds.empty())
 			return false;
 
-		frame_vector_t<gfx_handle_t> command_buffers;
-		command_buffers.reserve(_worlds.size());
-
 		const f32 interpolation_alpha = calculate_render_alpha();
 		for (editor_world_t& world : _worlds)
-		{
 			world.render(interpolation_alpha, frame_index, global_cbv_index, global_layout);
-			command_buffers.push_back(world.get_command_buffer(frame_index));
-		}
 
 		gfx_backend& backend = gfx_backend::get();
-
 		backend.queue_signal(queue, &signal, &signal_value, 1);
 		return true;
 	}
@@ -372,22 +365,9 @@ namespace sfg
 		const editor_asset_t* existing_asset = _main_world_asset_guid != NULL_SID ? editor_asset_manager_t::get().find_asset(_main_world_asset_guid) : nullptr;
 		if (existing_asset != nullptr && existing_asset->asset_type == editor_asset_type_e::world)
 		{
-			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-			for (auto it = tree.begin_handle(); it != tree.end_handle(); ++it)
-			{
-				const editor_asset_node_t& node = tree.value(*it);
-				if (node.type == editor_asset_node_type_e::asset && node.asset_id == _main_world_asset_guid)
-				{
-					asset_path = node.full_path;
-					break;
-				}
-			}
-
+			asset_path = editor_asset_util_t::find_asset_path(_main_world_asset_guid);
 			if (!asset_path.empty() && file_system_t::exists(asset_path.c_str()))
-			{
-				if (!editor_asset_util_t::read_asset(asset_path.c_str(), asset))
-					return false;
-			}
+				asset = *existing_asset;
 		}
 
 		if (asset_path.empty() || !file_system_t::exists(asset_path.c_str()))

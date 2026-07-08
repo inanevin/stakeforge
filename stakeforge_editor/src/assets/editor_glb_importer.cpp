@@ -1452,6 +1452,7 @@ namespace sfg
 						 hash_map_t<u32, sid_t>*			  mesh_guid_map,
 						 glb_asset_name_registry_t&			  asset_names,
 						 const editor_asset_import_context_t& context,
+						 sid_t*								  out_mesh_guid,
 						 vector_t<editor_asset_t>&			  out_assets)
 		{
 			SFG_ASSERT(meshes != nullptr);
@@ -1533,6 +1534,8 @@ namespace sfg
 				const u32 mesh_index		 = static_cast<u32>(meshes - model.meshes);
 				(*mesh_guid_map)[mesh_index] = asset.guid;
 			}
+			if (out_mesh_guid != nullptr)
+				*out_mesh_guid = asset.guid;
 
 			out_assets.push_back(asset);
 			return true;
@@ -1574,6 +1577,7 @@ namespace sfg
 						   const hash_map_t<u32, sid_t>&		material_guid_map,
 						   glb_asset_name_registry_t&			asset_names,
 						   const editor_asset_import_context_t& context,
+						   sid_t								combined_mesh_guid,
 						   vector_t<editor_asset_t>&			out_assets)
 		{
 			string_t asset_name = file_system_t::get_filename_from_path(source_full_path);
@@ -1603,7 +1607,8 @@ namespace sfg
 			});
 
 			vector_t<entity_guid_t> node_guids;
-			node_guids.resize(model.nodes_count, NULL_ENTITY_GUID);
+			if (combined_mesh_guid == NULL_SID)
+				node_guids.resize(model.nodes_count, NULL_ENTITY_GUID);
 			bool prefab_valid = true;
 
 			const auto traverse_node = [&](const auto& self, u32 node_index, entity_guid_t parent_guid) -> void {
@@ -1679,40 +1684,69 @@ namespace sfg
 				}
 			};
 
-			const tg3_scene* scene = nullptr;
-			if (model.default_scene >= 0 && static_cast<u32>(model.default_scene) < model.scenes_count)
-				scene = model.scenes + model.default_scene;
-			else if (model.scenes_count != 0)
-				scene = model.scenes;
-
-			if (scene != nullptr)
+			if (combined_mesh_guid != NULL_SID)
 			{
-				for (u32 i = 0; i < scene->nodes_count; ++i)
+				vector_t<resource_handle_t> materials;
+				collect_mesh_materials(model, model.meshes, model.meshes_count, material_guid_map, materials, nullptr, nullptr);
+				if (materials.size() > 16)
 				{
-					const i32 node_index = scene->nodes[i];
-					if (node_index >= 0)
-						traverse_node(traverse_node, static_cast<u32>(node_index), root_guid);
+					SFG_ERR("combined GLB mesh has too many prefab material slots");
+					prefab_valid = false;
+				}
+				else
+				{
+					nlohmann::json material_json = nlohmann::json::array();
+					for (resource_handle_t material : materials)
+						material_json.push_back(material);
+
+					prefab_json["components"].push_back({
+						{"type", type_id_t<component_mesh_renderer_t>::value},
+						{"entity", root_guid},
+						{"data",
+						 {
+							 {"mesh", combined_mesh_guid},
+							 {"materials", material_json},
+						 }},
+					});
 				}
 			}
 			else
 			{
-				vector_t<u8> child_nodes;
-				child_nodes.resize(model.nodes_count);
-				for (u32 i = 0; i < model.nodes_count; ++i)
+				const tg3_scene* scene = nullptr;
+				if (model.default_scene >= 0 && static_cast<u32>(model.default_scene) < model.scenes_count)
+					scene = model.scenes + model.default_scene;
+				else if (model.scenes_count != 0)
+					scene = model.scenes;
+
+				if (scene != nullptr)
 				{
-					const tg3_node& node = model.nodes[i];
-					for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+					for (u32 i = 0; i < scene->nodes_count; ++i)
 					{
-						const i32 child_index = node.children[child_i];
-						if (child_index >= 0 && static_cast<u32>(child_index) < model.nodes_count)
-							child_nodes[static_cast<u32>(child_index)] = 1;
+						const i32 node_index = scene->nodes[i];
+						if (node_index >= 0)
+							traverse_node(traverse_node, static_cast<u32>(node_index), root_guid);
 					}
 				}
-
-				for (u32 i = 0; i < model.nodes_count; ++i)
+				else
 				{
-					if (child_nodes[i] == 0)
-						traverse_node(traverse_node, i, root_guid);
+					vector_t<u8> child_nodes;
+					child_nodes.resize(model.nodes_count);
+					for (u32 i = 0; i < model.nodes_count; ++i)
+					{
+						const tg3_node& node = model.nodes[i];
+						for (u32 child_i = 0; child_i < node.children_count; ++child_i)
+						{
+							const i32 child_index = node.children[child_i];
+							if (child_index >= 0 && static_cast<u32>(child_index) < model.nodes_count)
+								child_nodes[static_cast<u32>(child_index)] = 1;
+						}
+					}
+
+					for (u32 i = 0; i < model.nodes_count; ++i)
+					{
+						if (child_nodes[i] == 0)
+							traverse_node(traverse_node, i, root_guid);
+					}
 				}
 			}
 
@@ -2001,15 +2035,24 @@ namespace sfg
 				mesh_guid_map.reserve(model.meshes_count);
 				if (cook_config.combine_meshes)
 				{
-					result = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, out_assets);
+					sid_t combined_mesh_guid = NULL_SID;
+					result					 = import_mesh(parent_node, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, &combined_mesh_guid, out_assets);
 					if (!result)
 						SFG_ERR("failed to import combined GLB mesh");
+					if (result)
+					{
+						if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, out_assets))
+						{
+							SFG_ERR("failed to import GLB prefab");
+							result = false;
+						}
+					}
 				}
 				else
 				{
 					for (u32 i = 0; i < model.meshes_count; ++i)
 					{
-						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, out_assets))
+						if (!import_mesh(parent_node, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, nullptr, out_assets))
 						{
 							SFG_ERR("failed to import GLB mesh {0}", i);
 							result = false;
@@ -2020,7 +2063,7 @@ namespace sfg
 
 				if (result && !cook_config.combine_meshes && model.nodes_count != 0)
 				{
-					if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, out_assets))
+					if (!import_prefab(parent_node, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, NULL_SID, out_assets))
 					{
 						SFG_ERR("failed to import GLB prefab");
 						result = false;

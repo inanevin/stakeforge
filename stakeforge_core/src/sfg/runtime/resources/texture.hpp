@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "texture_payload_type.hpp"
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <cstddef>
 
@@ -41,7 +42,7 @@ namespace sfg
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('T', 'E', 'X', 'R');
-		static constexpr u32 WIRE_VERSION = 12;
+		static constexpr u32 WIRE_VERSION = 13;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -62,6 +63,7 @@ namespace sfg
 	struct texture_header_t
 	{
 		texture_mip_header_t	   mips[texture_loader_t::MAX_MIPS] = {};
+		vec4f_t					   average_color					= vec4f_t::zero;
 		format_e				   texture_format					= format_e::undefined;
 		texture_payload_type_e	   payload_type						= texture_payload_type_e::ktx2_uastc;
 		texture_ktx2_compression_e ktx2_compression					= texture_ktx2_compression_e::default_quality;

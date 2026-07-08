@@ -54,17 +54,18 @@ namespace sfg
 			semaphore_data_t semaphore_frame	= {};
 			semaphore_data_t semaphore_transfer = {};
 			semaphore_data_t semaphore_world	= {};
-			gfx_handle_t		 cmd_gfx			= {};
-			gfx_handle_t		 cmd_gfx_prepare	= {};
-			gfx_handle_t		 cmd_transfer		= {};
-			gfx_handle_t		 global_buffer		= {};
+			gfx_handle_t	 cmd_gfx			= {};
+			gfx_handle_t	 cmd_gfx_prepare	= {};
+			gfx_handle_t	 cmd_gfx_transit	= {};
+			gfx_handle_t	 cmd_transfer		= {};
+			gfx_handle_t	 global_buffer		= {};
 			u8*				 mapped_global		= nullptr;
 			u32				 global_index		= 0;
 		};
 
 		struct surface_render_target_t
 		{
-			gfx_handle_t					swapchain = {};
+			gfx_handle_t				swapchain = {};
 			ui::ui_context*				ui		  = nullptr;
 			unique_t<ui::ui_renderer_t> ui_renderer;
 			vec2u16_t					size	  = {};
@@ -94,10 +95,10 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		gfx_handle_t create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size, ui::ui_context* ui);
-		void	   resize_swapchain(gfx_handle_t swapchain, vec2u16_t size, f32 dpi_scale);
-		void	   destroy_swapchain(gfx_handle_t swapchain);
-		void	   set_swapchain_minimized(gfx_handle_t handle, bool is_minimized);
-		void	   set_swapchain_visible(gfx_handle_t handle, bool visible);
+		void		 resize_swapchain(gfx_handle_t swapchain, vec2u16_t size, f32 dpi_scale);
+		void		 destroy_swapchain(gfx_handle_t swapchain);
+		void		 set_swapchain_minimized(gfx_handle_t handle, bool is_minimized);
+		void		 set_swapchain_visible(gfx_handle_t handle, bool visible);
 
 	private:
 		void render_loop();
@@ -105,9 +106,9 @@ namespace sfg
 		static constexpr size_t			  RENDER_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 		per_frame_data_t				  _pfd[BACK_BUFFER_COUNT] = {};
 		vector_t<surface_render_target_t> _render_targets;
-		gfx_handle_t						  _shader_ui_default = {};
-		gfx_handle_t						  _shader_ui_text	 = {};
-		gfx_handle_t						  _shader_ui_sdf	 = {};
+		gfx_handle_t					  _shader_ui_default = {};
+		gfx_handle_t					  _shader_ui_text	 = {};
+		gfx_handle_t					  _shader_ui_sdf	 = {};
 		u64								  _frame_counter	 = 0;
 		u8								  _frame_index		 = 0;
 		editor_world_controller_t*		  _world_controller	 = nullptr;

@@ -9,6 +9,8 @@
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 
+#include <sfg/platform/time.hpp>
+
 namespace sfg
 {
 	resource_manager_t& resource_manager_t::get()
@@ -84,7 +86,7 @@ namespace sfg
 
 		auto	   it	  = _entries.find(hash);
 		const bool exists = it != _entries.end();
-		if (exists && !check_for_reload)
+		if (exists)
 		{
 			it->second.ref_count++;
 			_generation++;
@@ -121,32 +123,6 @@ namespace sfg
 
 		const char*		   debug_name = header.debug_name;
 		resource_context_t ctx{*this};
-
-		if (exists)
-		{
-			if (header.source_tick != it->second.source_ticks)
-			{
-				if (desc->reload == nullptr)
-				{
-					SFG_WARN("can't issue a reload on resource as reload function in type descriptor does not exist! {0}", debug_name);
-					return it->second.state;
-				}
-
-				if (!desc->reload(it->second, ctx, *_resource_file_system))
-				{
-					SFG_ERR("failed reloading resource:  {0} {1}", debug_name, hash);
-					return it->second.state;
-				}
-
-				if (desc->use_render_pending && it->second.render_pending != 0)
-					it->second.state = resource_state_e::pending_render;
-				it->second.source_ticks = header.source_tick;
-				_generation++;
-				SFG_TRACE("reloaded resource: {0}", debug_name);
-			}
-
-			return it->second.state;
-		}
 
 		for (u32 i = 0; i < header.dependency_count; i++)
 		{
@@ -187,7 +163,7 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		loaded_entry.state = desc->use_async_load ? resource_state_e::ready_preview : (desc->use_render_pending && loaded_entry.render_pending != 0 ? resource_state_e::pending_render : resource_state_e::ready);
+		loaded_entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
 		_generation++;
 		if (desc->use_async_load)
 		{
@@ -202,7 +178,7 @@ namespace sfg
 				}
 				else
 				{
-					loaded_entry.state = desc->use_render_pending && loaded_entry.render_pending != 0 ? resource_state_e::pending_render : resource_state_e::ready;
+					loaded_entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
 					_generation++;
 					SFG_TRACE("loaded async resource: {0}", debug_name);
 				}
@@ -217,7 +193,7 @@ namespace sfg
 		return _entries.find(hash)->second.state;
 	}
 
-	void resource_manager_t::unload_resource(sid_t hash)
+	void resource_manager_t::unload_resource(sid_t hash, bool force)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
@@ -228,12 +204,19 @@ namespace sfg
 		if (entry.ref_count == 0)
 			return;
 
-		entry.ref_count--;
+		if (force)
+			entry.ref_count = 0;
+		else
+			entry.ref_count--;
+
 		_generation++;
+
 		if (entry.ref_count != 0)
 			return;
 
-		if (entry.state == resource_state_e::ready_preview || entry.state == resource_state_e::pending_render)
+		SFG_ASSERT(!force || entry.state != resource_state_e::pending_render);
+
+		if (entry.state == resource_state_e::pending_render)
 		{
 			_unloads.push_back(hash);
 			_generation++;
@@ -246,12 +229,9 @@ namespace sfg
 			for (u32 i = 0; i < entry.dependency_count; i++)
 			{
 				if (find_entry(deps[i].handle))
-					unload_resource(deps[i].handle);
+					unload_resource(deps[i].handle, force);
 			}
 		}
-
-		const char* dbg = reinterpret_cast<const char*>(_memory.get(entry.debug_name.head));
-		SFG_TRACE("unloaded resource: {0}", dbg);
 
 		unload_entry(entry);
 		_entries.erase(it);
@@ -273,19 +253,13 @@ namespace sfg
 		_glyph_atlas.drain_uploads(frame_slot);
 	}
 
-	void resource_manager_t::register_render_resource_request(sid_t hash)
+	void resource_manager_t::bump_render_pending(resource_entry_t& entry, u32 count)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		if (hash == 0)
-			return;
-
-		auto it = _entries.find(hash);
-		SFG_ASSERT(it != _entries.end());
-
-		resource_entry_t&			entry = it->second;
-		const resource_type_desc_t* desc  = find_resource_type_desc(entry.type);
+		SFG_ASSERT(count != 0);
+		const resource_type_desc_t* desc = find_resource_type_desc(entry.type);
 		SFG_ASSERT(desc != nullptr && desc->use_render_pending);
-		entry.render_pending++;
+		entry.render_pending += count;
 		if (entry.state == resource_state_e::ready)
 			entry.state = resource_state_e::pending_render;
 		_generation++;
@@ -348,7 +322,7 @@ namespace sfg
 				continue;
 			}
 
-			entry.state = desc->use_render_pending && entry.render_pending != 0 ? resource_state_e::pending_render : resource_state_e::ready;
+			entry.state = desc->use_render_pending ? resource_state_e::pending_render : resource_state_e::ready;
 			_generation++;
 			SFG_TRACE("loaded async resource: {0}", _memory.get_text(entry.debug_name));
 		}
@@ -388,7 +362,7 @@ namespace sfg
 			}
 
 			resource_entry_t& entry = entry_it->second;
-			if (entry.state == resource_state_e::ready_preview || entry.state == resource_state_e::pending_render)
+			if (entry.state == resource_state_e::pending_render)
 			{
 				++it;
 				continue;
@@ -405,6 +379,9 @@ namespace sfg
 	{
 		const resource_type_desc_t* desc = find_resource_type_desc(entry.type);
 		SFG_ASSERT(desc != nullptr);
+
+		const char* dbg = reinterpret_cast<const char*>(_memory.get(entry.debug_name.head));
+		SFG_TRACE("unloaded resource: {0}", dbg);
 
 		if (desc->unload != nullptr)
 		{
