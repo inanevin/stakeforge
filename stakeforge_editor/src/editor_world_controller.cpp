@@ -104,6 +104,7 @@ namespace sfg
 
 	editor_world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
 	{
+		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		const editor_world_handle_t handle = _worlds.add();

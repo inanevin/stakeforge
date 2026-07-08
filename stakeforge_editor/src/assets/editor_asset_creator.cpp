@@ -292,8 +292,10 @@ namespace sfg
 		if (result)
 		{
 			result = editor_asset_thumbnailer_t::ensure(asset, desc.name, true);
+
 			if (result)
 				result = editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset, desc.name);
+
 			if (result && out_asset != nullptr)
 				*out_asset = asset;
 		}

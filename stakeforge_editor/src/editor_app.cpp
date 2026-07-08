@@ -373,7 +373,7 @@ namespace sfg
 	{
 		SFG_ASSERT(_surfaces.empty());
 
-		_renderer.end_render();
+		stop_render();
 		resource_manager_t::get().flush();
 		_editor_work_executor->wait_for_all();
 		_renderer.uninit();
@@ -911,6 +911,8 @@ namespace sfg
 
 				if (done)
 				{
+					_asset_manager.ensure_thumbnails_loaded();
+					_asset_manager.ensure_default_meshes();
 					switch_mode(editor_app_mode_e::normal);
 				}
 			}
@@ -938,7 +940,7 @@ namespace sfg
 
 				if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || _close)
 				{
-					_renderer.end_render();
+					stop_render();
 					if (surface.type == editor_surface_type_e::primary)
 						_close = true;
 
@@ -953,20 +955,20 @@ namespace sfg
 				if (minimized != surface.is_minimized)
 				{
 					surface.is_minimized = minimized;
-					_renderer.end_render();
+					stop_render();
 					_renderer.set_swapchain_minimized(surface.swapchain, minimized);
 				}
 
 				if (hidden != surface.is_hidden)
 				{
 					surface.is_hidden = hidden;
-					_renderer.end_render();
+					stop_render();
 					_renderer.set_swapchain_visible(surface.swapchain, !hidden);
 				}
 
 				if (!minimized && !hidden && surface.runtime->size != surface.swapchain_size)
 				{
-					_renderer.end_render();
+					stop_render();
 					_renderer.resize_swapchain(surface.swapchain, surface.runtime->size, surface.runtime->monitor_info.dpi_scale);
 					surface.swapchain_size = surface.runtime->size;
 				}
@@ -998,14 +1000,12 @@ namespace sfg
 			_renderer.ensure_render(_world_controller);
 			FrameMarkNamed("main");
 		}
-
-		_renderer.end_render();
 	}
 
 	surface_handle_t editor_app_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		_renderer.end_render();
+		stop_render();
 
 		if (size.x == 0 || size.y == 0)
 		{
@@ -1127,7 +1127,7 @@ namespace sfg
 	void editor_app_t::destroy_surface(surface_handle_t handle)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		_renderer.end_render();
+		stop_render();
 
 		editor_surface_t& surface = _surfaces.get(handle);
 		if (surface.type == editor_surface_type_e::primary)

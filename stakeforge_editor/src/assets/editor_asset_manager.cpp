@@ -233,11 +233,11 @@ namespace sfg
 		_ensure_project_assets_done.store(false, std::memory_order_release);
 		tf::Taskflow ensure_flow;
 		ensure_flow.emplace([this, def_assets_path, cache_path, assets_path]() {
-			main_thread_scope_t scope;
-
 			if (!file_system_t::exists(def_assets_path.c_str()))
 				file_system_t::create_directory(def_assets_path.c_str());
+
 			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
+
 			rescan(assets_path.c_str());
 
 			// clean stale binarires
@@ -298,52 +298,15 @@ namespace sfg
 						SFG_ERR("failed cooking asset {0}", asset.guid);
 						continue;
 					}
+				}
+			}
 
+			// ensure thumbs
+			{
+				for (auto& asset_pair : _assets)
+				{
+					editor_asset_t& asset = asset_pair.second;
 					editor_asset_thumbnailer_t::ensure(asset);
-				}
-			}
-
-			ensure_thumbnails_loaded();
-
-			resource_manager_t& resource_manager = resource_manager_t::get();
-			if (resource_manager.find_entry(DEFAULT_MESH_CUBE_GUID) == nullptr)
-			{
-				ostream_t stream;
-				if (editor_mesh_generator_t::generate_cube({.size = vec3f_t::one}, stream))
-				{
-					istream_t istream;
-					istream.open(stream.get_raw(), stream.get_size());
-					resource_manager.load_resource_runtime(DEFAULT_MESH_CUBE_GUID, resource_type_e::mesh, istream);
-				}
-			}
-			if (resource_manager.find_entry(DEFAULT_MESH_SPHERE_GUID) == nullptr)
-			{
-				ostream_t stream;
-				if (editor_mesh_generator_t::generate_sphere({}, stream))
-				{
-					istream_t istream;
-					istream.open(stream.get_raw(), stream.get_size());
-					resource_manager.load_resource_runtime(DEFAULT_MESH_SPHERE_GUID, resource_type_e::mesh, istream);
-				}
-			}
-			if (resource_manager.find_entry(DEFAULT_MESH_CYLINDER_GUID) == nullptr)
-			{
-				ostream_t stream;
-				if (editor_mesh_generator_t::generate_cylinder({}, stream))
-				{
-					istream_t istream;
-					istream.open(stream.get_raw(), stream.get_size());
-					resource_manager.load_resource_runtime(DEFAULT_MESH_CYLINDER_GUID, resource_type_e::mesh, istream);
-				}
-			}
-			if (resource_manager.find_entry(DEFAULT_MESH_CAPSULE_GUID) == nullptr)
-			{
-				ostream_t stream;
-				if (editor_mesh_generator_t::generate_capsule({}, stream))
-				{
-					istream_t istream;
-					istream.open(stream.get_raw(), stream.get_size());
-					resource_manager.load_resource_runtime(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh, istream);
 				}
 			}
 
@@ -356,11 +319,53 @@ namespace sfg
 	{
 		for (auto& asset_pair : _assets)
 		{
-			const editor_asset_t& asset = asset_pair.second;
-			if (asset.status != editor_asset_status_e::ok)
-				continue;
-
+			editor_asset_t& asset = asset_pair.second;
 			editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset);
+		}
+	}
+
+	void editor_asset_manager_t::ensure_default_meshes()
+	{
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		if (resource_manager.find_entry(DEFAULT_MESH_CUBE_GUID) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_cube({.size = vec3f_t::one}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_CUBE_GUID, resource_type_e::mesh, istream);
+			}
+		}
+		if (resource_manager.find_entry(DEFAULT_MESH_SPHERE_GUID) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_sphere({}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_SPHERE_GUID, resource_type_e::mesh, istream);
+			}
+		}
+		if (resource_manager.find_entry(DEFAULT_MESH_CYLINDER_GUID) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_cylinder({}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_CYLINDER_GUID, resource_type_e::mesh, istream);
+			}
+		}
+		if (resource_manager.find_entry(DEFAULT_MESH_CAPSULE_GUID) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_capsule({}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh, istream);
+			}
 		}
 	}
 
