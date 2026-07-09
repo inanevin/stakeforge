@@ -82,7 +82,7 @@ namespace sfg
 			editor_asset_thumbnailer_t::generate_thumbnail(asset);
 
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
-			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+			const string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(asset.guid);
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))
 			{
 				SFG_ERR("failed to create asset cache directory {0}", cache_dir.c_str());
@@ -175,7 +175,7 @@ namespace sfg
 		if (!is_cookable(asset.asset_type))
 			return false;
 
-		const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
+		const string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(asset.guid);
 		if (!file_system_t::exists(cache_path.c_str()))
 			return false;
 

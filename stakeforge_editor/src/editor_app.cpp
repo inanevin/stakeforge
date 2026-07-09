@@ -398,7 +398,6 @@ namespace sfg
 	{
 		SFG_ASSERT(_surfaces.empty());
 
-		editor_asset_manager_util_t::ensure_thumbnails_loaded(_asset_manager);
 		editor_asset_manager_util_t::ensure_default_meshes();
 
 		editor_global_toolbar_t::get().init();
@@ -885,7 +884,8 @@ namespace sfg
 
 			{
 				ZoneScopedN("asset_manager_tick");
-				_asset_manager.tick();
+				if (_mode == editor_app_mode_e::normal)
+					_asset_manager.tick();
 			}
 
 			if (_mode == editor_app_mode_e::splash)

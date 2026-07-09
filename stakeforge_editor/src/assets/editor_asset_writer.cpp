@@ -37,6 +37,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	namespace
+	{
+		void resolve_asset_guids(sid_t requested_guid, bool allow_overwrite, const char* asset_path, sid_t& out_guid, sid_t& out_thumbnail_guid)
+		{
+			editor_asset_t existing		= {};
+			const bool	   has_existing = allow_overwrite && file_system_t::exists(asset_path) && editor_asset_util_t::read_asset(asset_path, existing);
+
+			out_guid = requested_guid;
+			if (out_guid == NULL_SID && has_existing)
+				out_guid = existing.guid;
+			if (out_guid == NULL_SID)
+				out_guid = editor_asset_util_t::generate_unique_asset_guid();
+
+			out_thumbnail_guid = has_existing ? existing.thumbnail_guid : NULL_SID;
+			if (out_thumbnail_guid == NULL_SID)
+				out_thumbnail_guid = editor_asset_util_t::generate_unique_asset_guid({.data = &out_guid, .size = 1});
+		}
+	}
+
 	bool editor_asset_writer_t::write_file_asset(const editor_asset_write_file_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
@@ -62,16 +81,14 @@ namespace sfg
 			return false;
 		}
 
-		sid_t guid = desc.guid;
-		if (guid == NULL_SID && desc.allow_overwrite)
-			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-
-		if (guid == NULL_SID)
-			guid = editor_asset_util_t::generate_unique_asset_guid();
+		sid_t guid			 = NULL_SID;
+		sid_t thumbnail_guid = NULL_SID;
+		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
 		asset.version		 = editor_asset_t::VERSION;
 		asset.guid			 = guid;
+		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::file;
 		asset.sub_type		 = desc.sub_type;
@@ -139,15 +156,14 @@ namespace sfg
 			return false;
 		}
 
-		sid_t guid = desc.guid;
-		if (guid == NULL_SID && desc.allow_overwrite)
-			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-		if (guid == NULL_SID)
-			guid = editor_asset_util_t::generate_unique_asset_guid();
+		sid_t guid			 = NULL_SID;
+		sid_t thumbnail_guid = NULL_SID;
+		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
 		asset.version		 = editor_asset_t::VERSION;
 		asset.guid			 = guid;
+		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = desc.source_type;
 		asset.sub_type		 = desc.sub_type;
@@ -191,15 +207,14 @@ namespace sfg
 			return false;
 		}
 
-		sid_t guid = desc.guid;
-		if (guid == NULL_SID && desc.allow_overwrite)
-			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-		if (guid == NULL_SID)
-			guid = editor_asset_util_t::generate_unique_asset_guid();
+		sid_t guid			 = NULL_SID;
+		sid_t thumbnail_guid = NULL_SID;
+		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
 		asset.version		 = editor_asset_t::VERSION;
 		asset.guid			 = guid;
+		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::embedded;
 		asset.sub_type		 = desc.sub_type;
@@ -232,15 +247,14 @@ namespace sfg
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
-		sid_t guid = desc.guid;
-		if (guid == NULL_SID && desc.allow_overwrite)
-			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-		if (guid == NULL_SID)
-			guid = editor_asset_util_t::generate_unique_asset_guid();
+		sid_t guid			 = NULL_SID;
+		sid_t thumbnail_guid = NULL_SID;
+		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
 		asset.version		 = editor_asset_t::VERSION;
 		asset.guid			 = guid;
+		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::none;
 		asset.sub_type		 = desc.sub_type;

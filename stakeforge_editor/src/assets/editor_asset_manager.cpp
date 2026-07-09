@@ -114,7 +114,6 @@ namespace sfg
 			{
 				modal.close_modal();
 				sync_imported_asset_paths(_import_target_directory_node, {.data = _import_asset_paths_visible.data(), .size = _import_asset_paths_visible.size()});
-				editor_asset_manager_util_t::ensure_thumbnails_loaded(*this);
 				_import_status_pending.resize(0);
 				_import_status_visible.resize(0);
 				_import_asset_paths_pending.resize(0);

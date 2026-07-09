@@ -292,7 +292,7 @@ namespace sfg
 				descriptor = &desc_it->second;
 		}
 
-		string_t cache_path = asset != nullptr ? editor_asset_util_t::get_cache_path_for_asset(*asset) : editor_project_t::get()._runtime.cache_path + hash_text + ".sfg_bin";
+		string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(hash);
 		if (asset == nullptr && !file_system_t::exists(cache_path.c_str()))
 			cache_path = editor_directories_t::get_editor_resource_cache() + hash_text + ".sfg_bin";
 

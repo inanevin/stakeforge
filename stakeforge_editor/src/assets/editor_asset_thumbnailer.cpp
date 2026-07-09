@@ -30,9 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_util.hpp"
 #include "editor_project.hpp"
 
-#include <sfg/common/hashing.hpp>
-#include <sfg/data/char_util.hpp>
-#include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/util/image_util.hpp>
@@ -42,9 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/resources/common_resources.hpp>
-#include <sfg/runtime/resources/resource_file_system.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_payload_type.hpp>
@@ -60,18 +54,6 @@ namespace sfg
 
 	namespace
 	{
-		bool can_generate_thumbnail(editor_asset_type_e asset_type)
-		{
-			switch (asset_type)
-			{
-			case editor_asset_type_e::texture:
-			case editor_asset_type_e::font:
-				return true;
-			default:
-				return false;
-			}
-		}
-
 		bool can_render_thumbnail(editor_asset_type_e type)
 		{
 			switch (type)
@@ -224,6 +206,9 @@ namespace sfg
 
 		bool save_thumbnail(const editor_asset_t& asset, vector_t<u8>& pixels)
 		{
+			if (asset.thumbnail_guid == NULL_SID || pixels.empty())
+				return false;
+
 			const texture_cook_config_t config = {
 				.size			  = vec2u16_t(EDITOR_THUMBNAIL_SIZE, EDITOR_THUMBNAIL_SIZE),
 				.payload_type	  = texture_payload_type_e::png,
@@ -250,7 +235,7 @@ namespace sfg
 			header.set_debug_name(name.c_str());
 
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
-			const string_t cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
+			const string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(asset.thumbnail_guid);
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))
 			{
 				SFG_ERR("failed to create asset cache directory {0}", cache_dir.c_str());
@@ -270,6 +255,9 @@ namespace sfg
 
 	void editor_asset_thumbnailer_t::generate_thumbnail(const editor_asset_t& asset)
 	{
+		if (asset.thumbnail_guid == NULL_SID)
+			return;
+
 		if (get_builtin_thumbnail_guid(asset.asset_type) != NULL_SID)
 			return;
 
@@ -281,55 +269,13 @@ namespace sfg
 		vector_t<u8> pixels;
 		pixels.reserve(256 * 256 * 4);
 
+		bool filled = false;
 		if (asset.asset_type == editor_asset_type_e::texture)
-			fill_texture_thumbnail(asset, pixels);
+			filled = fill_texture_thumbnail(asset, pixels);
 		if (asset.asset_type == editor_asset_type_e::font)
-			fill_font_thumbnail(asset, pixels);
-
-		save_thumbnail(asset, pixels);
-	}
-
-	sid_t editor_asset_thumbnailer_t::get_thumbnail_resource_guid(const editor_asset_t& asset)
-	{
-		const sid_t builtin_guid = get_builtin_thumbnail_guid(asset.asset_type);
-
-		if (builtin_guid != NULL_SID)
-		{
-			return NULL_SID;
-			// return builtin_guid;
-		}
-
-		const sid_t guid = get_thumbnail_guid(asset.guid);
-
-		return resource_manager_t::get().find_entry(guid) ? guid : NULL_SID;
-	}
-
-	bool editor_asset_thumbnailer_t::ensure_thumbnail_loaded(const editor_asset_t& asset, const char* asset_name)
-	{
-		if (get_builtin_thumbnail_guid(asset.asset_type) != NULL_SID)
-			return true;
-
-		const string_t path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
-		if (!file_system_t::exists(path.c_str()))
-			return false;
-
-		const sid_t			thumbnail_guid	 = editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid);
-		resource_manager_t& resource_manager = resource_manager_t::get();
-		if (resource_manager.find_entry(thumbnail_guid) == nullptr)
-			return resource_manager.load_resource(thumbnail_guid, resource_type_e::texture) != resource_state_e::failed;
-		return true;
-	}
-
-	sid_t editor_asset_thumbnailer_t::get_thumbnail_guid(sid_t asset_guid)
-	{
-		char  guid_text[32] = {};
-		char* guid_text_cur = guid_text;
-		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), asset_guid))
-			SFG_ASSERT(false);
-
-		string_t key = guid_text;
-		key += "_thumb";
-		return hashing_t::to_sid(key);
+			filled = fill_font_thumbnail(asset, pixels);
+		if (filled)
+			save_thumbnail(asset, pixels);
 	}
 
 	sid_t editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(editor_asset_type_e asset_type)

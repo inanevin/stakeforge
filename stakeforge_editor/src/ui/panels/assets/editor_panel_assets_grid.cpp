@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg
 {
@@ -289,12 +290,12 @@ namespace sfg
 		thumbnail_rect.rounding_segs	   = 4;
 		if (asset != nullptr)
 		{
-			const sid_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail_resource_guid(*asset);
-			if (thumbnail != NULL_SID)
+			const resource_entry_t* entry = resource_manager_t::get().find_entry(asset->thumbnail_guid);
+			if (entry != nullptr)
 			{
 				ui::ui_render_state_t thumbnail_state = {};
 				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-				thumbnail_state.constants[0].handle	  = thumbnail;
+				thumbnail_state.constants[0].handle	  = asset->thumbnail_guid;
 				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
 				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
 			}
@@ -516,12 +517,12 @@ namespace sfg
 		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
 		if (asset != nullptr)
 		{
-			const sid_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail_resource_guid(*asset);
-			if (thumbnail != NULL_SID)
+			const resource_entry_t* entry = resource_manager_t::get().find_entry(asset->thumbnail_guid);
+			if (entry != nullptr)
 			{
 				ui::ui_render_state_t thumbnail_state = {};
 				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-				thumbnail_state.constants[0].handle	  = thumbnail;
+				thumbnail_state.constants[0].handle	  = asset->thumbnail_guid;
 				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
 				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
 			}

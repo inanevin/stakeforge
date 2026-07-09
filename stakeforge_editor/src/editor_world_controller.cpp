@@ -68,8 +68,6 @@ namespace sfg
 
 	void editor_world_controller_t::init()
 	{
-		SFG_ASSERT(!_init);
-		_init = true;
 		SFG_ASSERT(s_instance == nullptr);
 		s_instance = this;
 		_worlds.reserve(8);
@@ -85,9 +83,6 @@ namespace sfg
 
 	void editor_world_controller_t::uninit()
 	{
-		SFG_ASSERT(_init);
-		_init = false;
-
 		SFG_ASSERT(s_instance == this);
 		if (!_command_listener.is_null())
 		{
@@ -198,9 +193,6 @@ namespace sfg
 
 	bool editor_world_controller_t::acquire_render_worlds()
 	{
-		if (!_init)
-			return false;
-
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 		_render_worlds.resize(0);
 
@@ -221,9 +213,6 @@ namespace sfg
 
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		if (!_init)
-			return false;
-
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 
@@ -241,9 +230,6 @@ namespace sfg
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
 	{
-		if (!_init)
-			return;
-
 		_world_physics_rate = world_physics_rate;
 
 		const i64 now	   = time_t::get_cpu_microseconds();

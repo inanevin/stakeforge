@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/common/hashing.hpp>
@@ -91,31 +90,17 @@ namespace sfg
 		return result;
 	}
 
-	string_t editor_asset_path_t::get_cache_path_for_asset(const editor_asset_t& asset)
+	string_t editor_asset_path_t::get_cache_path_for_guid(sid_t guid)
 	{
 		string_t result = editor_project_t::get()._runtime.cache_path;
 
 		char  guid_text[32] = {};
 		char* guid_text_cur = guid_text;
-		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), asset.guid))
+		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), guid))
 			SFG_ASSERT(false);
 
 		result += guid_text;
 		result += ".sfg_bin";
-		return result;
-	}
-
-	string_t editor_asset_path_t::get_thumbnail_cache_path_for_asset(const editor_asset_t& asset)
-	{
-		string_t result = editor_project_t::get()._runtime.cache_path;
-
-		char  guid_text[32] = {};
-		char* guid_text_cur = guid_text;
-		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid)))
-			SFG_ASSERT(false);
-
-		result += guid_text;
-		result += ".sfg_thumb_bin";
 		return result;
 	}
 

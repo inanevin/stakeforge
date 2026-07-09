@@ -82,6 +82,7 @@ namespace sfg
 		string_t				   source_relative = {};
 		u32						   version		   = 0;
 		sid_t					   guid			   = NULL_SID;
+		sid_t					   thumbnail_guid  = NULL_SID;
 		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
 		editor_asset_source_type_e source_type	   = editor_asset_source_type_e::file;
 		editor_asset_status_e	   status		   = editor_asset_status_e::ok;

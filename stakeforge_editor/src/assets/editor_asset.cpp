@@ -47,10 +47,11 @@ namespace sfg
 
 	void from_json(const nlohmann::json& j, editor_asset_t& asset)
 	{
-		asset.version	 = j.value<u32>("version", editor_asset_t::VERSION);
-		asset.guid		 = j.value<sid_t>("guid", NULL_SID);
-		asset.asset_type = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
-		asset.sub_type	 = j.value<u8>("sub_type", 0);
+		asset.version		 = j.value<u32>("version", editor_asset_t::VERSION);
+		asset.guid			 = j.value<sid_t>("guid", NULL_SID);
+		asset.thumbnail_guid = j.value<sid_t>("thumbnail_guid", NULL_SID);
+		asset.asset_type	 = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
+		asset.sub_type		 = j.value<u8>("sub_type", 0);
 		editor_asset_util_t::set_embedded_source_json(asset, j.value<nlohmann::json>("embedded_source", nlohmann::json()));
 		editor_asset_util_t::set_cook_options_json(asset, j.value<nlohmann::json>("cook_options", nlohmann::json::object()));
 		asset.source_relative = j.value<string_t>("source_relative", {});
@@ -81,6 +82,7 @@ namespace sfg
 	{
 		j["version"]		 = asset.version;
 		j["guid"]			 = asset.guid;
+		j["thumbnail_guid"]	 = asset.thumbnail_guid;
 		j["asset_type"]		 = asset.asset_type;
 		j["sub_type"]		 = asset.sub_type;
 		j["embedded_source"] = editor_asset_util_t::get_embedded_source_json(asset);

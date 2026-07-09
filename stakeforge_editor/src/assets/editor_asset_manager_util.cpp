@@ -71,6 +71,16 @@ namespace sfg
 			if (state.callback != nullptr)
 				state.callback(state.user_data, progress, text, false, {});
 		}
+
+		bool contains_guid(span_t<const sid_t> guids, sid_t guid)
+		{
+			for (size_t i = 0; i < guids.size; ++i)
+			{
+				if (guids.data[i] == guid)
+					return true;
+			}
+			return false;
+		}
 	}
 
 	void editor_asset_manager_util_t::build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir)
@@ -86,6 +96,8 @@ namespace sfg
 		database.reserve(static_cast<u32>(entries.size() + 1), static_cast<u32>(entries.size()));
 		hash_map_t<u64, bool> found_assets;
 		found_assets.reserve(entries.size());
+		vector_t<sid_t> used_guids;
+		used_guids.reserve(entries.size() * 2);
 
 		const string_t					 root_name = file_system_t::get_last_folder_from_path(assets_dir);
 		const string_t					 root_path = assets_dir;
@@ -124,8 +136,27 @@ namespace sfg
 					SFG_ERR("asset {0} has a duplicate guid", entry.path.c_str());
 					continue;
 				}
+				if (contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset_id))
+				{
+					SFG_ERR("asset {0} has a guid that collides with another resource guid", entry.path.c_str());
+					continue;
+				}
+
+				used_guids.push_back(asset.guid);
+				bool rewrite_asset = false;
+				if (asset.thumbnail_guid == NULL_SID || contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset.thumbnail_guid) || asset.thumbnail_guid == asset.guid)
+				{
+					asset.thumbnail_guid = editor_asset_util_t::generate_unique_asset_guid({.data = used_guids.data(), .size = used_guids.size()});
+					rewrite_asset		 = true;
+				}
+				if (rewrite_asset && !editor_asset_util_t::write_asset(entry.path.c_str(), asset))
+				{
+					SFG_ERR("failed to update asset thumbnail guid {0}", entry.path.c_str());
+					continue;
+				}
 
 				found_assets.emplace(asset_id, true);
+				used_guids.push_back(asset.thumbnail_guid);
 				database.upsert_asset(std::move(asset));
 
 				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
@@ -228,22 +259,22 @@ namespace sfg
 					u64			   guid		 = 0;
 					string_util::to_big_uint(guid_text, guid);
 
-					if (file_system_t::get_file_extension(entry.path) == "sfg_thumb_bin")
-					{
-						bool found_thumbnail_asset = false;
-						for (const auto& asset_pair : asset_manager._database.get_assets())
-						{
-							if (editor_asset_thumbnailer_t::get_thumbnail_guid(asset_pair.second.guid) == guid)
-							{
-								found_thumbnail_asset = true;
-								break;
-							}
-						}
+					if (file_system_t::get_file_extension(entry.path) != "sfg_bin")
+						continue;
 
-						if (found_thumbnail_asset)
-							continue;
+					if (asset_manager.find_asset(guid) != nullptr)
+						continue;
+
+					bool found_thumbnail_asset = false;
+					for (const auto& asset_pair : asset_manager._database.get_assets())
+					{
+						if (asset_pair.second.thumbnail_guid == guid)
+						{
+							found_thumbnail_asset = true;
+							break;
+						}
 					}
-					else if (asset_manager.find_asset(guid) != nullptr)
+					if (found_thumbnail_asset)
 						continue;
 
 					if (file_system_t::delete_file(entry.path.c_str()))
@@ -295,7 +326,7 @@ namespace sfg
 					report_progress(progress, "Preparing asset thumbnails");
 					++index;
 
-					const string_t thumb_cache = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
+					const string_t thumb_cache = editor_asset_util_t::get_cache_path_for_guid(asset.thumbnail_guid);
 					if (!file_system_t::exists(thumb_cache.c_str()))
 						editor_asset_thumbnailer_t::generate_thumbnail(asset);
 				}
@@ -370,15 +401,6 @@ namespace sfg
 				state->callback(state->user_data, 1.0f, "Import completed", true, {.data = state->imported_asset_paths.data(), .size = state->imported_asset_paths.size()});
 			delete state;
 		});
-	}
-
-	void editor_asset_manager_util_t::ensure_thumbnails_loaded(editor_asset_manager_t& asset_manager)
-	{
-		for (auto& asset_pair : asset_manager._database.get_assets())
-		{
-			editor_asset_t& asset = asset_pair.second;
-			editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset);
-		}
 	}
 
 	void editor_asset_manager_util_t::ensure_default_meshes()

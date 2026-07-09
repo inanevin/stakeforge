@@ -59,7 +59,6 @@ namespace sfg
 		static void ensure_integrity(editor_asset_manager_t& asset_manager);
 		static void ensure_project_assets_async(editor_asset_manager_t& asset_manager, tf::Executor& executor, ensure_project_assets_progress_fn callback, void* user_data);
 		static void import_assets_async(const char* target_directory, span_t<const string_t> paths, span_t<const editor_asset_import_options_t> import_options, tf::Executor& executor, import_progress_fn callback, void* user_data);
-		static void ensure_thumbnails_loaded(editor_asset_manager_t& asset_manager);
 		static void ensure_default_meshes();
 	};
 }

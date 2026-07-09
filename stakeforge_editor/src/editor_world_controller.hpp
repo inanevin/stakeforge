@@ -181,7 +181,6 @@ namespace sfg
 		bool																_world_panel_focused		   = false;
 		bool																_main_world_dirty			   = false;
 		bool																_is_looking					   = false;
-		bool																_init						   = false;
 
 		static inline editor_world_controller_t* s_instance = nullptr;
 	};

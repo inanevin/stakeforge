@@ -53,8 +53,7 @@ namespace sfg
 		static string_t					  make_blob_path(const char* directory, const char* asset_name);
 		static string_t					  make_source_path(const char* directory, const char* file_name, const char* extension);
 		static string_t					  make_unique_source_path(const char* directory, const char* file_name, const char* extension);
-		static string_t					  get_cache_path_for_asset(const editor_asset_t& asset);
-		static string_t					  get_thumbnail_cache_path_for_asset(const editor_asset_t& asset);
+		static string_t					  get_cache_path_for_guid(sid_t guid);
 		static string_t					  get_source_full_path(const char* assets_path, const editor_asset_t& asset);
 		static string_t					  get_source_relative(const char* assets_path, const char* source_full_path);
 		static nlohmann::json			  get_embedded_source_json(const editor_asset_t& asset);

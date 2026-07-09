@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_path.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/data/string_util.hpp>
@@ -90,31 +89,28 @@ namespace sfg
 			return false;
 		}
 
-		bool duplicate_cooked_asset(const editor_asset_t& source_asset, const editor_asset_t& duplicated_asset)
+		bool duplicate_cache_file(sid_t source_guid, sid_t duplicated_guid)
 		{
-			const string_t source_cache_path = editor_asset_util_t::get_cache_path_for_asset(source_asset);
+			if (source_guid == NULL_SID || duplicated_guid == NULL_SID)
+				return true;
+
+			const string_t source_cache_path = editor_asset_util_t::get_cache_path_for_guid(source_guid);
 			if (!file_system_t::exists(source_cache_path.c_str()))
 				return true;
 
-			const string_t duplicated_cache_path = editor_asset_util_t::get_cache_path_for_asset(duplicated_asset);
+			const string_t duplicated_cache_path = editor_asset_util_t::get_cache_path_for_guid(duplicated_guid);
 			if (!file_system_t::copy_file(source_cache_path.c_str(), duplicated_cache_path.c_str()))
 			{
-				SFG_ERR("failed to duplicate cooked asset {0} to {1}", source_asset.guid, duplicated_asset.guid);
-				return false;
-			}
-
-			const string_t source_thumbnail_cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(source_asset);
-			if (!file_system_t::exists(source_thumbnail_cache_path.c_str()))
-				return true;
-
-			const string_t duplicated_thumbnail_cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(duplicated_asset);
-			if (!file_system_t::copy_file(source_thumbnail_cache_path.c_str(), duplicated_thumbnail_cache_path.c_str()))
-			{
-				SFG_ERR("failed to duplicate thumbnail asset {0} to {1}", source_asset.guid, duplicated_asset.guid);
+				SFG_ERR("failed to duplicate cooked asset {0} to {1}", source_guid, duplicated_guid);
 				return false;
 			}
 
 			return true;
+		}
+
+		bool duplicate_cooked_asset(const editor_asset_t& source_asset, const editor_asset_t& duplicated_asset)
+		{
+			return duplicate_cache_file(source_asset.guid, duplicated_asset.guid) && duplicate_cache_file(source_asset.thumbnail_guid, duplicated_asset.thumbnail_guid);
 		}
 
 		void remap_source_relative(editor_asset_t& asset, const string_t& assets_path, const string_t& source_folder_path, const string_t& duplicated_folder_path)
@@ -231,14 +227,9 @@ namespace sfg
 		return editor_asset_path_t::make_unique_source_path(directory, file_name, extension);
 	}
 
-	string_t editor_asset_util_t::get_cache_path_for_asset(const editor_asset_t& asset)
+	string_t editor_asset_util_t::get_cache_path_for_guid(sid_t guid)
 	{
-		return editor_asset_path_t::get_cache_path_for_asset(asset);
-	}
-
-	string_t editor_asset_util_t::get_thumbnail_cache_path_for_asset(const editor_asset_t& asset)
-	{
-		return editor_asset_path_t::get_thumbnail_cache_path_for_asset(asset);
+		return editor_asset_path_t::get_cache_path_for_guid(guid);
 	}
 
 	string_t editor_asset_util_t::get_source_full_path(const char* assets_path, const editor_asset_t& asset)
@@ -325,6 +316,17 @@ namespace sfg
 					break;
 				}
 			}
+			if (!found_pending)
+			{
+				for (const auto& asset_pair : editor_asset_manager_t::get().get_assets())
+				{
+					if (asset_pair.second.thumbnail_guid == guid)
+					{
+						found_pending = true;
+						break;
+					}
+				}
+			}
 		} while (guid == NULL_SID || editor_asset_manager_t::get().find_asset(guid) != nullptr || found_pending);
 		return guid;
 	}
@@ -408,6 +410,8 @@ namespace sfg
 			editor_asset_t source_asset = duplicated_asset;
 			duplicated_asset.guid		= generate_unique_asset_guid({.data = duplicated_guids.data(), .size = duplicated_guids.size()});
 			duplicated_guids.push_back(duplicated_asset.guid);
+			duplicated_asset.thumbnail_guid = generate_unique_asset_guid({.data = duplicated_guids.data(), .size = duplicated_guids.size()});
+			duplicated_guids.push_back(duplicated_asset.thumbnail_guid);
 			remap_source_relative(duplicated_asset, assets_path, source_folder_path, duplicated_folder_path);
 
 			if (!write_asset(entry.path.c_str(), duplicated_asset))
@@ -589,13 +593,16 @@ namespace sfg
 			SFG_ERR("failed to delete asset {0}", node.full_path.c_str());
 		else
 		{
-			const string_t cache_path = get_cache_path_for_asset(asset);
+			const string_t cache_path = get_cache_path_for_guid(asset.guid);
 			if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
 				SFG_ERR("failed to delete cooked asset {0}", cache_path.c_str());
 
-			const string_t thumbnail_cache_path = get_thumbnail_cache_path_for_asset(asset);
-			if (file_system_t::exists(thumbnail_cache_path.c_str()) && file_system_t::delete_file(thumbnail_cache_path.c_str()))
-				SFG_ERR("failed to delete thumbnail asset {0}", thumbnail_cache_path.c_str());
+			if (asset.thumbnail_guid != NULL_SID)
+			{
+				const string_t thumbnail_cache_path = get_cache_path_for_guid(asset.thumbnail_guid);
+				if (file_system_t::exists(thumbnail_cache_path.c_str()) && file_system_t::delete_file(thumbnail_cache_path.c_str()))
+					SFG_ERR("failed to delete thumbnail asset {0}", thumbnail_cache_path.c_str());
+			}
 
 			if (asset.source_type == editor_asset_source_type_e::file_blob)
 			{
@@ -645,6 +652,8 @@ namespace sfg
 
 		editor_asset_t duplicated_asset = asset;
 		duplicated_asset.guid			= generate_unique_asset_guid();
+		const sid_t pending_guid		= duplicated_asset.guid;
+		duplicated_asset.thumbnail_guid = generate_unique_asset_guid({.data = &pending_guid, .size = 1});
 
 		if (!write_asset(duplicated_path.c_str(), duplicated_asset))
 			return false;
