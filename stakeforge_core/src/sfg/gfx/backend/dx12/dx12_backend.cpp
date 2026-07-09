@@ -767,19 +767,19 @@ namespace sfg
 			.debug_name = {"TransferQueue"},
 		});
 		_queue_compute	= create_queue({
-			 .type		 = command_type::compute,
-			 .debug_name = {"CmpQueue"},
-		 });
+			.type		= command_type::compute,
+			.debug_name = {"CmpQueue"},
+		});
 
 		const u32 size_cbv_srv_uav = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		const u32 size_dsv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		const u32 size_rtv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		const u32 size_sampler	   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-		constexpr size_t count_dsv		   = 1024;
-		constexpr size_t count_rtv		   = 1024;
-		constexpr size_t count_cbv_srv_uav = 1024;
-		constexpr size_t count_sampler	   = 1024;
+		constexpr size_t count_dsv		   = 2048;
+		constexpr size_t count_rtv		   = 2048;
+		constexpr size_t count_cbv_srv_uav = 2048;
+		constexpr size_t count_sampler	   = 2048;
 
 		_heap_dsv.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, count_dsv, size_dsv, false);
 		_heap_rtv.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, count_rtv, size_rtv, false);

@@ -21,6 +21,7 @@ namespace sfg
 		ui_text_shader,
 		deferred_lighting,
 		post_combiner,
+		texture_blit,
 		count,
 	};
 

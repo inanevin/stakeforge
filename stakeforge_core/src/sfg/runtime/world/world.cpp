@@ -38,23 +38,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
+#include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
-#include <algorithm>
-#include <cstring>
 
 namespace sfg
 {
-#define WORLD_TEXT_BYTES			  (64 * 1024)
-#define WORLD_TEXT_ALLOCATION_RESERVE 1024
+#define WORLD_TEXT_BYTES (64 * 1024)
 
-	void world_t::init()
+	void world_t::init(const world_init_config_t& config)
 	{
-		_component_tables.reserve(64);
-		_entity_free_list.reserve(1024);
-		_text_allocations.reserve(WORLD_TEXT_ALLOCATION_RESERVE);
-		_text_allocation_free_list.reserve(WORLD_TEXT_ALLOCATION_RESERVE);
+		_component_tables.reserve(config.component_table_reserve);
+		_entity_free_list.reserve(config.free_list_reserve);
+		_text_allocations.reserve(config.text_allocation_reserve);
+		_text_allocation_free_list.reserve(config.text_allocation_reserve);
 		_text_allocator.init(WORLD_TEXT_BYTES);
-		_used_resources.reserve(512);
+		_used_resources.reserve(config.used_resource_reserve);
 
 		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
 		for (const reflected_type_t& type : types)
@@ -611,64 +609,64 @@ namespace sfg
 
 		bool	   added = false;
 		const auto scan	 = [&](const auto& self, entity_id_t current) -> void {
-			 reflection_registry_t& registry = reflection_registry_t::get();
-			 for (ecs_component_table_t& component_table : _component_tables)
-			 {
-				 if (!ecs_t::table_has(component_table, current))
-					 continue;
+			reflection_registry_t& registry = reflection_registry_t::get();
+			for (ecs_component_table_t& component_table : _component_tables)
+			{
+				if (!ecs_t::table_has(component_table, current))
+					continue;
 
-				 const reflected_type_t* type = registry.find_type(component_table.component_type_id);
-				 if (type == nullptr || type->fields.start == type->fields.end)
-					 continue;
+				const reflected_type_t* type = registry.find_type(component_table.component_type_id);
+				if (type == nullptr || type->fields.start == type->fields.end)
+					continue;
 
-				 void* component = ecs_t::table_get(component_table, current);
-				 SFG_ASSERT(component != nullptr);
+				void* component = ecs_t::table_get(component_table, current);
+				SFG_ASSERT(component != nullptr);
 
-				 for (u32 i = type->fields.start; i < type->fields.end; ++i)
-				 {
-					 const reflected_field_t* field = registry.get_field(i);
-					 SFG_ASSERT(field != nullptr);
+				for (u32 i = type->fields.start; i < type->fields.end; ++i)
+				{
+					const reflected_field_t* field = registry.get_field(i);
+					SFG_ASSERT(field != nullptr);
 
-					 const bool is_resource_container = field->value_type == reflected_value_type_e::container && field->container_ops.element_value_type == reflected_value_type_e::u64;
+					const bool is_resource_container = field->value_type == reflected_value_type_e::container && field->container_ops.element_value_type == reflected_value_type_e::u64;
 
-					 if (field->value_type != reflected_value_type_e::u64 && !is_resource_container)
-						 continue;
+					if (field->value_type != reflected_value_type_e::u64 && !is_resource_container)
+						continue;
 
-					 const resource_type_e resource_type = is_resource_container ? resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id) : resource_type_from_reflection_sub_type_id(field->sub_type_id);
-					 if (resource_type == resource_type_e::invalid)
-						 continue;
+					const resource_type_e resource_type = is_resource_container ? resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id) : resource_type_from_reflection_sub_type_id(field->sub_type_id);
+					if (resource_type == resource_type_e::invalid)
+						continue;
 
-					 const u8* ptr = static_cast<const u8*>(component) + field->offset;
-					 if (is_resource_container)
-					 {
-						 const u32 max = field->container_ops.get_element_size_fn((void*)ptr);
-						 for (u32 j = 0; j < max; j++)
-						 {
-							 const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(field->container_ops.get_element_ptr_fn((void*)ptr, j));
-							 if (handle != NULL_RESOURCE_HANDLE)
-								 added = add_resource(resource_type, handle) || added;
-						 }
-					 }
-					 else
-					 {
-						 const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(ptr);
-						 if (handle != NULL_RESOURCE_HANDLE)
-							 added = add_resource(resource_type, handle) || added;
-					 }
-				 }
-			 }
+					const u8* ptr = static_cast<const u8*>(component) + field->offset;
+					if (is_resource_container)
+					{
+						const u32 max = field->container_ops.get_element_size_fn((void*)ptr);
+						for (u32 j = 0; j < max; j++)
+						{
+							const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(field->container_ops.get_element_ptr_fn((void*)ptr, j));
+							if (handle != NULL_RESOURCE_HANDLE)
+								added = add_resource(resource_type, handle) || added;
+						}
+					}
+					else
+					{
+						const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(ptr);
+						if (handle != NULL_RESOURCE_HANDLE)
+							added = add_resource(resource_type, handle) || added;
+					}
+				}
+			}
 
-			 if (omit_children)
-				 return;
+			if (omit_children)
+				return;
 
-			 const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
-			 for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			 {
-				 const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
-				 const entity_id_t			  next_child	  = child_hierarchy.next_sibling;
-				 self(self, child);
-				 child = next_child;
-			 }
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+				self(self, child);
+				child = next_child;
+			}
 		};
 		scan(scan, entity);
 
@@ -681,11 +679,10 @@ namespace sfg
 		resource_manager_t& rm = resource_manager_t::get();
 		for (world_resource_t& res : _used_resources)
 		{
-			const resource_entry_t* e = rm.find_entry(res.handle);
-			if (e != nullptr)
+			if (res.loaded)
 				continue;
 
-			rm.load_resource(res.handle, res.type);
+			res.loaded = rm.load_resource(res.handle, res.type) != resource_state_e::failed;
 		}
 	}
 
@@ -694,11 +691,11 @@ namespace sfg
 		resource_manager_t& rm = resource_manager_t::get();
 		for (auto it = _used_resources.rbegin(); it != _used_resources.rend(); ++it)
 		{
-			const resource_entry_t* e = rm.find_entry(it->handle);
-			if (e == nullptr)
+			if (!it->loaded)
 				continue;
 
 			rm.unload_resource(it->handle, false);
+			it->loaded = false;
 		}
 	}
 

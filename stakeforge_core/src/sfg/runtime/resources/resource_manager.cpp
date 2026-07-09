@@ -117,9 +117,7 @@ namespace sfg
 
 		for (u32 i = 0; i < header.dependency_count; i++)
 		{
-			const resource_entry_t* exists = find_entry(header.dependencies[i].handle);
-			if (!exists)
-				load_resource(header.dependencies[i].handle, header.dependencies[i].type);
+			load_resource(header.dependencies[i].handle, header.dependencies[i].type);
 		}
 
 		resource_entry_t entry = {};

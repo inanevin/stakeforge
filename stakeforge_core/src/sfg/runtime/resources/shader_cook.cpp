@@ -119,6 +119,13 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::texture_blit:
+			if (!shader_cook_variants_t::cook_texture_blit_shader(source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook thumbnail capture shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(source, include_paths, compiles, psos))
 			{

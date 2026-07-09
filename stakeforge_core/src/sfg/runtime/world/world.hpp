@@ -15,6 +15,7 @@ namespace sfg
 {
 	class mat4x3_t;
 	class istream_t;
+	struct world_init_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
 
@@ -29,14 +30,18 @@ namespace sfg
 	class world_t
 	{
 	public:
-		world_t()  = default;
-		~world_t() = default;
+		world_t()							= default;
+		~world_t()							= default;
+		world_t(const world_t&)				= delete;
+		world_t& operator=(const world_t&)	= delete;
+		world_t(world_t&& other)			= delete;
+		world_t& operator=(world_t&& other) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init();
+		void init(const world_init_config_t& config);
 		void uninit();
 		void tick(f32 delta_time);
 
@@ -108,6 +113,7 @@ namespace sfg
 		void		update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void		set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t	calculate_parent_transform_direct(entity_id_t id);
+		void		refresh_component_table_cache();
 
 	private:
 		struct world_text_allocation_t
@@ -134,6 +140,7 @@ namespace sfg
 		{
 			resource_handle_t handle = NULL_RESOURCE_HANDLE;
 			resource_type_e	  type	 = resource_type_e::invalid;
+			bool			  loaded = false;
 		};
 
 	private:
