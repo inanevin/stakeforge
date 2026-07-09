@@ -55,6 +55,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -103,13 +104,13 @@ namespace sfg
 		s_instance			= nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(vec2u16_t render_resolution)
+	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config)
 	{
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		const editor_world_handle_t handle = _worlds.add();
-		_worlds.get(handle).init(handle, render_resolution);
+		_worlds.get(handle).init(init_config, handle);
 
 		return handle;
 	}
@@ -331,7 +332,15 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const editor_world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
+		const world_init_config_t& init_config = {
+			.render_resolution		 = editor_app_t::get().get_main_surface().swapchain_size,
+			.component_table_reserve = 64,
+			.free_list_reserve		 = 1024,
+			.used_resource_reserve	 = 512,
+			.text_allocation_reserve = 1024,
+		};
+
+		const editor_world_handle_t handle = create_world(init_config);
 		install_default_world(handle);
 		set_main_world(handle, NULL_SID, "unnamed");
 	}
@@ -351,7 +360,15 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const editor_world_handle_t handle = create_world(editor_app_t::get().get_main_surface().swapchain_size);
+		const world_init_config_t& init_config = {
+			.render_resolution		 = editor_app_t::get().get_main_surface().swapchain_size,
+			.component_table_reserve = 64,
+			.free_list_reserve		 = 1024,
+			.used_resource_reserve	 = 512,
+			.text_allocation_reserve = 1024,
+		};
+
+		const editor_world_handle_t handle = create_world(init_config);
 		if (asset->embedded_source.empty())
 			install_default_world(handle);
 		else

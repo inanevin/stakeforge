@@ -28,14 +28,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/math/vec2u16.hpp>
 
 namespace sfg
 {
 	struct world_init_config_t
 	{
-		u32 component_table_reserve = 64;
-		u32 free_list_reserve		= 1024;
-		u32 used_resource_reserve	= 512;
-		u32 text_allocation_reserve = 1024;
+		vec2u16_t render_resolution		  = vec2u16_t(512, 512);
+		u32		  component_table_reserve = 64;
+		u32		  free_list_reserve		  = 1024;
+		u32		  used_resource_reserve	  = 512;
+		u32		  text_allocation_reserve = 1024;
 	};
 }

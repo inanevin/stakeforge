@@ -44,6 +44,7 @@ namespace sfg
 {
 	class editor_command_system_t;
 	class world_t;
+	struct world_init_config_t;
 	struct world_render_snapshot_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
@@ -67,7 +68,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
-		editor_world_handle_t create_world(vec2u16_t render_resolution);
+		editor_world_handle_t create_world(const world_init_config_t& init_config);
 		void				  destroy_world(editor_world_handle_t handle);
 		void				  destroy_worlds();
 		void				  resize_world(editor_world_handle_t handle, vec2u16_t render_resolution);

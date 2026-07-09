@@ -36,21 +36,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct world_init_config_t;
+
 	class editor_world_t final
 	{
 	public:
-		editor_world_t()								 = default;
-		~editor_world_t()								 = default;
-		editor_world_t(const editor_world_t&)			 = delete;
-		editor_world_t& operator=(const editor_world_t&) = delete;
-		editor_world_t(editor_world_t&& other) noexcept;
-		editor_world_t& operator=(editor_world_t&& other) noexcept;
+		editor_world_t()								  = default;
+		~editor_world_t()								  = default;
+		editor_world_t(const editor_world_t&)			  = delete;
+		editor_world_t& operator=(const editor_world_t&)  = delete;
+		editor_world_t(editor_world_t&& other)			  = delete;
+		editor_world_t& operator=(editor_world_t&& other) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(editor_world_handle_t handle, vec2u16_t render_resolution);
+		void init(const world_init_config_t& init_config, editor_world_handle_t handle);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

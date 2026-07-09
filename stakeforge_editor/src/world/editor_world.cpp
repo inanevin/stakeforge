@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world/editor_world.hpp"
+#include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
@@ -36,41 +37,16 @@ namespace sfg
 #define EDITOR_WORLD_SNAPSHOT_SLOT_MASK	 0x3
 #define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG 0x80
 
-	editor_world_t::editor_world_t(editor_world_t&& other) noexcept
+	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle)
 	{
-		*this = static_cast<editor_world_t&&>(other);
-	}
-
-	editor_world_t& editor_world_t::operator=(editor_world_t&& other) noexcept
-	{
-		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
-			_snapshot_slots[i] = static_cast<world_render_snapshot_t&&>(other._snapshot_slots[i]);
-
-		_render_context = static_cast<world_render_context_t&&>(other._render_context);
-		_edit_context	= static_cast<editor_world_edit_context_t&&>(other._edit_context);
-		_world			= static_cast<world_t&&>(other._world);
-		_snapshot_mailbox.store(other._snapshot_mailbox.load(std::memory_order_relaxed), std::memory_order_relaxed);
-		_render_resolution = other._render_resolution;
-		_producer_slot	   = other._producer_slot;
-		_consumer_slot	   = other._consumer_slot;
-
-		other._snapshot_mailbox.store(0, std::memory_order_relaxed);
-		other._render_resolution = vec2u16_t::zero;
-		other._producer_slot	 = 0;
-		other._consumer_slot	 = 0;
-		return *this;
-	}
-
-	void editor_world_t::init(editor_world_handle_t handle, vec2u16_t render_resolution)
-	{
-		_world.init();
+		_world.init(init_config);
 		_edit_context.init();
 		_edit_context.set_world(handle);
 		_producer_slot = 0;
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
-		_render_resolution = render_resolution;
-		_render_context.init(render_resolution);
+		_render_resolution = init_config.render_resolution;
+		_render_context.init(init_config.render_resolution);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 			_snapshot_slots[i].reserve(8000);
