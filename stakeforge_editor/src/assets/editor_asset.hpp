@@ -80,7 +80,6 @@ namespace sfg
 		string_t				   embedded_source = {};
 		string_t				   cook_options	   = "{}";
 		string_t				   source_relative = {};
-		span_t<u8>				   _transient_data = {};
 		u32						   version		   = 0;
 		sid_t					   guid			   = NULL_SID;
 		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;

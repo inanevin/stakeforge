@@ -26,15 +26,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_app.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/color_utils.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
+#include <utility>
 
 namespace sfg
 {
@@ -72,12 +78,15 @@ namespace sfg
 		clear();
 		_import_status_pending.clear();
 		_import_status_visible.clear();
+		_import_asset_paths_pending.clear();
+		_import_asset_paths_visible.clear();
 		_asset_descriptors.clear();
 		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_import_progress_pending  = 0.0f;
-		_import_completed_pending = false;
-		_import_in_progress		  = false;
-		s_instance				  = nullptr;
+		_import_progress_pending	  = 0.0f;
+		_import_completed_pending	  = false;
+		_import_in_progress			  = false;
+		_import_target_directory_node = {};
+		s_instance					  = nullptr;
 	}
 
 	void editor_asset_manager_t::tick()
@@ -89,10 +98,11 @@ namespace sfg
 			string_t status;
 			{
 				LOCK_GUARD(_import_status_mtx);
-				progress			   = _import_progress_pending;
-				is_completed		   = _import_completed_pending;
-				_import_status_visible = _import_status_pending;
-				status				   = _import_status_visible;
+				progress					= _import_progress_pending;
+				is_completed				= _import_completed_pending;
+				_import_status_visible		= _import_status_pending;
+				_import_asset_paths_visible = _import_asset_paths_pending;
+				status						= _import_status_visible;
 			}
 
 			editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
@@ -103,17 +113,20 @@ namespace sfg
 			if (is_completed)
 			{
 				modal.close_modal();
-				editor_asset_manager_util_t::rescan(*this, editor_project_t::get()._runtime.assets_path.c_str());
+				sync_imported_asset_paths(_import_target_directory_node, {.data = _import_asset_paths_visible.data(), .size = _import_asset_paths_visible.size()});
 				editor_asset_manager_util_t::ensure_thumbnails_loaded(*this);
 				_import_status_pending.resize(0);
 				_import_status_visible.resize(0);
-				_import_progress_pending  = 0.0f;
-				_import_completed_pending = false;
-				_import_in_progress		  = false;
+				_import_asset_paths_pending.resize(0);
+				_import_asset_paths_visible.resize(0);
+				_import_progress_pending	  = 0.0f;
+				_import_completed_pending	  = false;
+				_import_in_progress			  = false;
+				_import_target_directory_node = {};
 			}
 		}
 
-		if (_last_integrity_generation != _generation && !_root_node.is_null())
+		if (_last_integrity_generation != _generation && !_database.get_root_node().is_null())
 		{
 			editor_asset_manager_util_t::ensure_integrity(*this);
 			_last_integrity_generation = _generation;
@@ -122,9 +135,7 @@ namespace sfg
 
 	void editor_asset_manager_t::clear()
 	{
-		_asset_tree.clear();
-		_assets.clear();
-		_root_node = {};
+		_database.clear();
 		_generation++;
 	}
 
@@ -133,6 +144,234 @@ namespace sfg
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
 		_asset_descriptors[desc.asset_type] = desc;
+	}
+
+	editor_asset_node_handle_t editor_asset_manager_t::add_folder_node(editor_asset_node_handle_t parent, const char* path)
+	{
+		SFG_ASSERT(!parent.is_null());
+		SFG_ASSERT(_database.get_asset_tree().is_valid(parent));
+		SFG_ASSERT(path != nullptr);
+		SFG_ASSERT(path[0] != '\0');
+
+		const string_t					 name  = file_system_t::get_last_folder_from_path(path);
+		const u8						 flags = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
+		const editor_asset_node_handle_t node  = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = path, .type = editor_asset_node_type_e::folder, .flags = flags});
+		_database.attach_node(parent, node);
+		notify_changed();
+		return node;
+	}
+
+	editor_asset_node_handle_t editor_asset_manager_t::add_path_node(editor_asset_node_handle_t parent, const char* path)
+	{
+		SFG_ASSERT(!parent.is_null());
+		SFG_ASSERT(_database.get_asset_tree().is_valid(parent));
+		SFG_ASSERT(path != nullptr);
+		SFG_ASSERT(path[0] != '\0');
+
+		if (file_system_t::get_file_extension(path) == "sfg_asset")
+		{
+			editor_asset_t asset = {};
+			if (!editor_asset_io_t::read_asset(path, asset))
+				return {};
+
+			if (asset.guid == NULL_SID)
+			{
+				SFG_ERR("asset {0} has an invalid guid", path);
+				return {};
+			}
+
+			if (_database.find_asset(asset.guid) != nullptr)
+			{
+				SFG_ERR("asset {0} has a duplicate guid", path);
+				return {};
+			}
+
+			const sid_t	   asset_id = asset.guid;
+			const string_t name		= file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(path));
+			_database.upsert_asset(std::move(asset));
+			const editor_asset_node_handle_t node = _database.emplace_node(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = path, .type = editor_asset_node_type_e::asset});
+			_database.attach_node(parent, node);
+			notify_changed();
+			return node;
+		}
+
+		const string_t					 name = file_system_t::get_filename_and_extension_from_path(path);
+		const editor_asset_node_handle_t node = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = path, .type = editor_asset_node_type_e::file});
+		_database.attach_node(parent, node);
+		notify_changed();
+		return node;
+	}
+
+	editor_asset_node_handle_t editor_asset_manager_t::add_directory_tree(editor_asset_node_handle_t parent, const char* path)
+	{
+		SFG_ASSERT(!parent.is_null());
+		SFG_ASSERT(_database.get_asset_tree().is_valid(parent));
+		SFG_ASSERT(path != nullptr);
+		SFG_ASSERT(path[0] != '\0');
+		SFG_ASSERT(file_system_t::exists(path));
+
+		const editor_asset_node_handle_t directory = add_folder_node(parent, path);
+		vector_t<file_system_entry_t>	 entries;
+		file_system_t::get_entries_recursive(path, entries);
+
+		vector_t<string_t> parts;
+		for (const file_system_entry_t& entry : entries)
+		{
+			const string_t relative = file_system_t::get_relative(path, entry.path.c_str());
+			parts.resize(0);
+			string_util::split(parts, relative, "/");
+
+			editor_asset_node_handle_t current			 = directory;
+			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
+			for (size_t i = 0; i < folder_part_count; ++i)
+				current = get_or_create_child_folder(current, parts[i]);
+
+			if (entry.type == file_system_entry_type_e::file)
+				add_path_node(current, entry.path.c_str());
+		}
+
+		return directory;
+	}
+
+	bool editor_asset_manager_t::reload_asset_node(editor_asset_node_handle_t node)
+	{
+		SFG_ASSERT(!node.is_null());
+		editor_asset_tree_t& tree = _database.get_asset_tree();
+		SFG_ASSERT(tree.is_valid(node));
+
+		editor_asset_node_t& asset_node = tree.value(node);
+		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset);
+		SFG_ASSERT(!asset_node.full_path.empty());
+
+		editor_asset_t asset = {};
+		if (!editor_asset_io_t::read_asset(asset_node.full_path.c_str(), asset))
+			return false;
+
+		if (asset.guid == NULL_SID)
+			return false;
+
+		const sid_t old_guid = asset_node.asset_id;
+		_database.erase_asset(old_guid);
+		asset_node.asset_id = asset.guid;
+		_database.upsert_asset(std::move(asset));
+		_database.rebuild_indices();
+		notify_changed();
+		return true;
+	}
+
+	void editor_asset_manager_t::sync_directory_from_disk(editor_asset_node_handle_t directory_node)
+	{
+		if (directory_node.is_null() || !_database.get_asset_tree().is_valid(directory_node))
+			return;
+
+		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
+		const editor_asset_node_t& directory = tree.value(directory_node);
+		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!directory.full_path.empty());
+		const string_t directory_path = directory.full_path;
+
+		vector_t<file_system_entry_t> entries;
+		file_system_t::get_entries_recursive(directory_path.c_str(), entries);
+
+		vector_t<string_t> parts;
+		for (const file_system_entry_t& entry : entries)
+		{
+			const string_t relative = file_system_t::get_relative(directory_path.c_str(), entry.path.c_str());
+			parts.resize(0);
+			string_util::split(parts, relative, "/");
+
+			editor_asset_node_handle_t parent			 = directory_node;
+			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
+			for (size_t i = 0; i < folder_part_count; ++i)
+				parent = get_or_create_child_folder(parent, parts[i]);
+
+			if (entry.type == file_system_entry_type_e::directory)
+				continue;
+
+			const editor_asset_node_handle_t existing = _database.find_node_by_path(entry.path.c_str());
+			if (existing.is_null())
+				add_path_node(parent, entry.path.c_str());
+			else if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
+				reload_asset_node(existing);
+		}
+	}
+
+	void editor_asset_manager_t::sync_imported_asset_paths(editor_asset_node_handle_t directory_node, span_t<const string_t> paths)
+	{
+		if (directory_node.is_null() || !_database.get_asset_tree().is_valid(directory_node))
+			return;
+
+		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
+		const editor_asset_node_t& directory = tree.value(directory_node);
+		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
+		SFG_ASSERT(!directory.full_path.empty());
+		const string_t directory_path = directory.full_path;
+
+		vector_t<string_t> parts;
+		for (size_t i = 0; i < paths.size; ++i)
+		{
+			const string_t& path = paths.data[i];
+			SFG_ASSERT(!path.empty());
+
+			const editor_asset_node_handle_t existing = _database.find_node_by_path(path.c_str());
+			if (!existing.is_null())
+			{
+				reload_asset_node(existing);
+				continue;
+			}
+
+			const string_t			   parent_path = file_system_t::get_directory_of_file(path.c_str());
+			editor_asset_node_handle_t parent	   = _database.find_node_by_path(parent_path.c_str());
+			if (parent.is_null())
+			{
+				const string_t relative = file_system_t::get_relative(directory_path.c_str(), parent_path.c_str());
+				parent					= directory_node;
+				if (!relative.empty() && relative != ".")
+				{
+					parts.resize(0);
+					string_util::split(parts, relative, "/");
+					for (const string_t& part : parts)
+					{
+						if (!part.empty() && part != ".")
+							parent = get_or_create_child_folder(parent, part);
+					}
+				}
+			}
+
+			if (!parent.is_null())
+				add_path_node(parent, path.c_str());
+		}
+	}
+
+	void editor_asset_manager_t::remove_node_subtree(editor_asset_node_handle_t node)
+	{
+		SFG_ASSERT(!node.is_null());
+		SFG_ASSERT(_database.get_asset_tree().is_valid(node));
+		_database.remove_node_subtree(node);
+		notify_changed();
+	}
+
+	void editor_asset_manager_t::update_node_path(editor_asset_node_handle_t node, const char* new_path)
+	{
+		SFG_ASSERT(!node.is_null());
+		SFG_ASSERT(_database.get_asset_tree().is_valid(node));
+		_database.update_node_path(node, new_path);
+		notify_changed();
+	}
+
+	void editor_asset_manager_t::move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path)
+	{
+		SFG_ASSERT(!node.is_null());
+		SFG_ASSERT(!new_parent.is_null());
+		SFG_ASSERT(_database.get_asset_tree().is_valid(node));
+		SFG_ASSERT(_database.get_asset_tree().is_valid(new_parent));
+		_database.move_node(node, new_parent, new_path);
+		notify_changed();
+	}
+
+	void editor_asset_manager_t::notify_changed()
+	{
+		_generation++;
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const
@@ -149,20 +388,24 @@ namespace sfg
 	{
 		SFG_ASSERT(!_import_in_progress);
 		SFG_ASSERT(!directory_node.is_null());
-		SFG_ASSERT(_asset_tree.is_valid(directory_node));
+		const editor_asset_tree_t& tree = _database.get_asset_tree();
+		SFG_ASSERT(tree.is_valid(directory_node));
 		SFG_ASSERT(!paths.empty());
 		SFG_ASSERT(!import_options.empty());
 
-		const editor_asset_node_t& directory = _asset_tree.value(directory_node);
+		const editor_asset_node_t& directory = tree.value(directory_node);
 		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
 		SFG_ASSERT(!directory.full_path.empty());
 
 		_import_status_pending = paths[0];
 		_import_status_visible = _import_status_pending;
+		_import_asset_paths_pending.resize(0);
+		_import_asset_paths_visible.resize(0);
 		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_import_progress_pending  = 0.0f;
-		_import_completed_pending = false;
-		_import_in_progress		  = true;
+		_import_progress_pending	  = 0.0f;
+		_import_completed_pending	  = false;
+		_import_in_progress			  = true;
+		_import_target_directory_node = directory_node;
 
 		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
 		_import_progress_modal.set_progress(0.0f);
@@ -181,7 +424,7 @@ namespace sfg
 		editor_asset_manager_util_t::import_assets_async(directory.full_path.c_str(), import_paths, options, editor_app_t::get().get_editor_work_executor(), on_import_progress, this);
 	}
 
-	void editor_asset_manager_t::on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed)
+	void editor_asset_manager_t::on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths)
 	{
 		editor_asset_manager_t& asset_manager = *static_cast<editor_asset_manager_t*>(user_data);
 		{
@@ -190,20 +433,28 @@ namespace sfg
 			asset_manager._import_completed_pending = is_completed;
 			if (text != nullptr)
 				asset_manager._import_status_pending = text;
+			if (is_completed)
+			{
+				asset_manager._import_asset_paths_pending.resize(0);
+				asset_manager._import_asset_paths_pending.reserve(imported_asset_paths.size);
+				for (size_t i = 0; i < imported_asset_paths.size; ++i)
+					asset_manager._import_asset_paths_pending.push_back(imported_asset_paths.data[i]);
+			}
 		}
 		asset_manager._import_status_dirty.store(true, std::memory_order_release);
 	}
 
 	editor_asset_node_handle_t editor_asset_manager_t::find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const
 	{
-		editor_asset_node_handle_t child = _asset_tree.first_child(parent);
+		const editor_asset_tree_t& tree	 = _database.get_asset_tree();
+		editor_asset_node_handle_t child = tree.first_child(parent);
 		while (!child.is_null())
 		{
-			const editor_asset_node_t& node = _asset_tree.value(child);
+			const editor_asset_node_t& node = tree.value(child);
 			if (node.type == editor_asset_node_type_e::folder && node.name == name)
 				return child;
 
-			child = _asset_tree.next_sibling(child);
+			child = tree.next_sibling(child);
 		}
 		return {};
 	}
@@ -214,11 +465,12 @@ namespace sfg
 		if (!existing.is_null())
 			return existing;
 
-		const u8 flags	   = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
-		string_t full_path = editor_asset_util_t::normalize_directory(_asset_tree.value(parent).full_path.c_str());
+		const u8				   flags	 = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
+		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
+		string_t				   full_path = editor_asset_util_t::normalize_directory(tree.value(parent).full_path.c_str());
 		full_path += name;
-		const editor_asset_node_handle_t folder = _asset_tree.emplace(editor_asset_node_t{.name = name, .full_path = full_path, .type = editor_asset_node_type_e::folder, .flags = flags});
-		_asset_tree.attach(parent, folder);
+		const editor_asset_node_handle_t folder = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = full_path, .type = editor_asset_node_type_e::folder, .flags = flags});
+		_database.attach_node(parent, folder);
 		return folder;
 	}
 }

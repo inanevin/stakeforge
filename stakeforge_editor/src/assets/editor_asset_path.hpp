@@ -27,34 +27,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/data/tree.hpp>
-#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
-	{
-		folder,
-		file,
-		asset,
-	};
+	struct editor_asset_t;
 
-	enum editor_asset_node_flags_e : u8
+	class editor_asset_path_t final
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+	public:
+		editor_asset_path_t()									   = delete;
+		~editor_asset_path_t()									   = delete;
+		editor_asset_path_t(const editor_asset_path_t&)			   = delete;
+		editor_asset_path_t& operator=(const editor_asset_path_t&) = delete;
 
-	struct editor_asset_node_t
-	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
+		static string_t normalize_directory(const char* directory);
+		static string_t make_asset_path(const char* directory, const char* asset_name);
+		static string_t make_blob_path(const char* directory, const char* asset_name);
+		static string_t make_source_path(const char* directory, const char* file_name, const char* extension);
+		static string_t make_unique_source_path(const char* directory, const char* file_name, const char* extension);
+		static string_t get_cache_path_for_asset(const editor_asset_t& asset);
+		static string_t get_thumbnail_cache_path_for_asset(const editor_asset_t& asset);
+		static string_t get_source_full_path(const char* assets_path, const editor_asset_t& asset);
+		static string_t get_source_relative(const char* assets_path, const char* source_full_path);
+		static bool		is_source_inside_assets(const char* assets_path, const char* source_full_path);
+		static u64		hash_path(const char* path);
 	};
-
-	using editor_asset_node_handle_t = pool_handle_t<u32, editor_asset_node_t>;
-	using editor_asset_tree_t		 = tree_t<editor_asset_node_t>;
 }

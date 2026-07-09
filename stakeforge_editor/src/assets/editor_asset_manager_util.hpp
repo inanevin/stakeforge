@@ -49,13 +49,13 @@ namespace sfg
 		editor_asset_manager_util_t& operator=(const editor_asset_manager_util_t&) = delete;
 
 		using ensure_project_assets_progress_fn = void (*)(void* user_data, f32 progress, const char* progress_text);
-		using import_progress_fn				= void (*)(void* user_data, f32 progress, const char* text, bool is_completed);
+		using import_progress_fn				= void (*)(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths);
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static void rescan(editor_asset_manager_t& asset_manager, const char* assets_dir);
+		static void build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir);
 		static void ensure_integrity(editor_asset_manager_t& asset_manager);
 		static void ensure_project_assets_async(editor_asset_manager_t& asset_manager, tf::Executor& executor, ensure_project_assets_progress_fn callback, void* user_data);
 		static void import_assets_async(const char* target_directory, span_t<const string_t> paths, span_t<const editor_asset_import_options_t> import_options, tf::Executor& executor, import_progress_fn callback, void* user_data);

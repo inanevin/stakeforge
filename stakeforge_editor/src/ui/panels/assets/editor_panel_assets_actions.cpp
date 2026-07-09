@@ -28,10 +28,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "editor_app.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/panels/inspector/editor_panel_inspector.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -177,7 +180,8 @@ namespace sfg
 	{
 		SFG_ASSERT(!_selected_folder_hashes.empty());
 
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
 		for (u64 folder_hash : _selected_folder_hashes)
 		{
 			const folder_row_t* row = find_row_by_hash(folder_hash);
@@ -185,6 +189,7 @@ namespace sfg
 				continue;
 			if (!editor_asset_util_t::delete_folder(row->node))
 				continue;
+			asset_manager.remove_node_subtree(row->node);
 			if (auto it = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), folder_hash); it != _favourite_folder_hashes.end())
 				_favourite_folder_hashes.erase(it);
 			if (auto it = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), folder_hash); it != _expanded_folder_hashes.end())
@@ -192,9 +197,6 @@ namespace sfg
 		}
 
 		clear_folder_selection();
-
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -202,17 +204,23 @@ namespace sfg
 	{
 		SFG_ASSERT(!_selected_folder_hashes.empty());
 
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
 		string_t				   last_duplicate_path;
 		for (u64 folder_hash : _selected_folder_hashes)
 		{
 			const folder_row_t* row = find_row_by_hash(folder_hash);
-			if (row != nullptr && !row->node.is_null() && tree.is_valid(row->node))
-				editor_asset_util_t::duplicate_folder(row->node, &last_duplicate_path);
+			if (row == nullptr || row->node.is_null() || !tree.is_valid(row->node))
+				continue;
+
+			const editor_asset_node_handle_t parent = tree.parent(row->node);
+			if (parent.is_null() || !tree.is_valid(parent))
+				continue;
+
+			if (editor_asset_util_t::duplicate_folder(row->node, &last_duplicate_path))
+				asset_manager.add_directory_tree(parent, last_duplicate_path.c_str());
 		}
 
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 		if (!last_duplicate_path.empty())
 			select_folder_by_full_path(last_duplicate_path.c_str());
@@ -240,18 +248,18 @@ namespace sfg
 				const sid_t guid = asset->guid;
 				if (!editor_asset_util_t::delete_asset(*asset, node))
 					continue;
+				asset_manager.remove_node_subtree(node);
 
 				if (auto it = std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid); it != _favourite_asset_guids.end())
 					_favourite_asset_guids.erase(it);
 			}
-			else if (asset_node.type == editor_asset_node_type_e::file)
-				editor_asset_util_t::delete_file(node);
+			else if (asset_node.type == editor_asset_node_type_e::file && editor_asset_util_t::delete_file(node))
+				asset_manager.remove_node_subtree(node);
 		}
 
 		_selected_asset_node = {};
 		_selected_asset_nodes.resize(0);
 		_asset_selection_anchor = {};
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -273,13 +281,13 @@ namespace sfg
 			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
 			SFG_ASSERT(asset != nullptr);
 
-			editor_asset_util_t::duplicate_asset(*asset, node, &last_duplicate_path);
+			if (editor_asset_util_t::duplicate_asset(*asset, node, &last_duplicate_path))
+				asset_manager.add_path_node(tree.parent(node), last_duplicate_path.c_str());
 		}
 
 		_selected_asset_node = {};
 		_selected_asset_nodes.resize(0);
 		_asset_selection_anchor = {};
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 		if (!last_duplicate_path.empty())
 			select_asset_by_full_path(last_duplicate_path.c_str());
@@ -334,7 +342,7 @@ namespace sfg
 		if (!editor_asset_util_t::write_asset(asset_node.full_path.c_str(), fixed_asset))
 			return;
 
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
+		asset_manager.reload_asset_node(_selected_asset_node);
 		refresh_folder_rows();
 	}
 
@@ -371,8 +379,7 @@ namespace sfg
 		if (!file_system_t::create_directory(folder_path.c_str()))
 			return;
 
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
+		editor_asset_manager_t::get().add_folder_node(_selected_folder_node, folder_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -434,66 +441,191 @@ namespace sfg
 
 	void editor_panel_assets_t::create_asset_item(u16 command, const char* name)
 	{
+		if (name == nullptr || name[0] == '\0')
+			return;
+
+		editor_asset_create_desc_t desc = {};
+		if (!make_create_asset_desc(command, name, false, desc))
+			return;
+
+		vector_t<string_t> rows;
+		const string_t	   asset_path = editor_asset_util_t::make_asset_path(get_selected_folder_path(), name);
+		string_t		   row;
+		if (find_matching_asset_override(asset_path.c_str(), desc.asset_type, &row))
+		{
+			rows.push_back(row);
+			_pending_override_create_command = command;
+			_pending_override_asset_name	 = name;
+			_pending_override_target_folder	 = _selected_folder_node;
+			request_assets_override(asset_override_operation_e::create_asset, "An asset with this name already exists. Overwrite it?", rows);
+			return;
+		}
+
+		create_asset_item_internal(command, name, false);
+	}
+
+	bool editor_panel_assets_t::create_asset_item_internal(u16 command, const char* name, bool allow_overwrite)
+	{
 		string_t asset_name = name != nullptr ? name : "";
 
-		editor_asset_create_desc_t desc = {
-			.parent_node = _selected_folder_node,
-			.name		 = asset_name.c_str(),
+		editor_asset_create_desc_t desc = {};
+		if (!make_create_asset_desc(command, asset_name.c_str(), allow_overwrite, desc))
+			return false;
+
+		if (!editor_asset_creator_t::create_asset(desc))
+			return false;
+
+		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+		const string_t					 asset_path	   = editor_asset_util_t::make_asset_path(get_selected_folder_path(), asset_name.c_str());
+		const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
+		if (!existing.is_null())
+			asset_manager.reload_asset_node(existing);
+		else
+			asset_manager.add_path_node(_selected_folder_node, asset_path.c_str());
+		refresh_folder_rows();
+		return true;
+	}
+
+	bool editor_panel_assets_t::make_create_asset_desc(u16 command, const char* name, bool allow_overwrite, editor_asset_create_desc_t& out_desc) const
+	{
+		out_desc = {
+			.parent_node	 = _selected_folder_node,
+			.name			 = name,
+			.allow_overwrite = allow_overwrite,
 		};
 
 		switch (command)
 		{
 		case assets_action_menu_create_world:
-			desc.asset_type = editor_asset_type_e::world;
-			break;
+			out_desc.asset_type = editor_asset_type_e::world;
+			return true;
 		case assets_action_menu_create_animation_state_machine:
-			desc.asset_type = editor_asset_type_e::animation_state_machine;
-			break;
+			out_desc.asset_type = editor_asset_type_e::animation_state_machine;
+			return true;
 		case assets_action_menu_create_opaque_shader:
-			desc.asset_type = editor_asset_type_e::shader;
-			desc.sub_type	= static_cast<u8>(shader_type_e::opaque_shader);
-			break;
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::opaque_shader);
+			return true;
 		case assets_action_menu_create_transparent_shader:
-			desc.asset_type = editor_asset_type_e::shader;
-			desc.sub_type	= static_cast<u8>(shader_type_e::transparent_shader);
-			break;
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::transparent_shader);
+			return true;
 		case assets_action_menu_create_post_process_shader:
-			desc.asset_type = editor_asset_type_e::shader;
-			desc.sub_type	= static_cast<u8>(shader_type_e::post_process_shader);
-			break;
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::post_process_shader);
+			return true;
 		case assets_action_menu_create_ui_shader:
-			desc.asset_type = editor_asset_type_e::shader;
-			desc.sub_type	= static_cast<u8>(shader_type_e::ui_shader);
-			break;
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::ui_shader);
+			return true;
 		case assets_action_menu_create_ui_text_shader:
-			desc.asset_type = editor_asset_type_e::shader;
-			desc.sub_type	= static_cast<u8>(shader_type_e::ui_text_shader);
-			break;
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::ui_text_shader);
+			return true;
 		case assets_action_menu_create_texture_sampler:
-			desc.asset_type = editor_asset_type_e::texture_sampler;
-			break;
+			out_desc.asset_type = editor_asset_type_e::texture_sampler;
+			return true;
 		case assets_action_menu_create_gbuffer_material:
-			desc.asset_type = editor_asset_type_e::material;
-			desc.sub_type	= static_cast<u8>(editor_material_type_e::gbuffer);
-			break;
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::gbuffer);
+			return true;
 		case assets_action_menu_create_forward_material:
-			desc.asset_type = editor_asset_type_e::material;
-			desc.sub_type	= static_cast<u8>(editor_material_type_e::forward);
-			break;
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::forward);
+			return true;
 		case assets_action_menu_create_physical_material:
-			desc.asset_type = editor_asset_type_e::physical_material;
-			break;
+			out_desc.asset_type = editor_asset_type_e::physical_material;
+			return true;
 		default:
 			SFG_ASSERT(false);
-			return;
+			return false;
 		}
+	}
 
-		if (!editor_asset_creator_t::create_asset(desc))
-			return;
+	bool editor_panel_assets_t::find_matching_asset_override(const char* path, editor_asset_type_e asset_type, string_t* out_row) const
+	{
+		SFG_ASSERT(path != nullptr);
+		SFG_ASSERT(path[0] != '\0');
 
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
-		refresh_folder_rows();
+		if (!file_system_t::exists(path))
+			return false;
+
+		editor_asset_t existing = {};
+		if (!editor_asset_util_t::read_asset(path, existing))
+			return false;
+		if (existing.asset_type != asset_type)
+			return false;
+
+		if (out_row != nullptr)
+			*out_row = file_system_t::get_filename_and_extension_from_path(path);
+		return true;
+	}
+
+	void editor_panel_assets_t::request_assets_override(asset_override_operation_e operation, const char* description, const vector_t<string_t>& rows)
+	{
+		SFG_ASSERT(operation != asset_override_operation_e::none);
+		SFG_ASSERT(!rows.empty());
+
+		vector_t<const char*> row_ptrs;
+		row_ptrs.reserve(rows.size());
+		for (const string_t& row : rows)
+			row_ptrs.push_back(row.c_str());
+
+		_assets_override_modal.set_rows(row_ptrs.data(), static_cast<u16>(row_ptrs.size()));
+		editor_modal_content_desc_t content	  = _assets_override_modal.get_content_desc();
+		editor_modal_button_desc_t	buttons[] = {
+			{.text = "Overwrite", .callback = on_assets_override_accepted, .user_data = this},
+			{.text = "Cancel", .callback = on_assets_override_cancelled, .user_data = this},
+		};
+		_pending_override_operation		 = operation;
+		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
+		SFG_ASSERT(modal != nullptr);
+		modal->request_modal("Overwrite Assets", description, true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &content, editor_modal_severity_e::warning);
+	}
+
+	void editor_panel_assets_t::clear_pending_asset_override()
+	{
+		_pending_override_operation		 = asset_override_operation_e::none;
+		_pending_override_create_command = 0;
+		_pending_override_asset_name.resize(0);
+		_pending_override_target_folder = {};
+		_pending_override_entities.resize(0);
+		_pending_override_asset_nodes.resize(0);
+	}
+
+	void editor_panel_assets_t::on_assets_override_accepted(void* user_data)
+	{
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		switch (panel._pending_override_operation)
+		{
+		case asset_override_operation_e::create_asset:
+			panel._selected_folder_node = panel._pending_override_target_folder;
+			panel.create_asset_item_internal(panel._pending_override_create_command, panel._pending_override_asset_name.c_str(), true);
+			break;
+		case asset_override_operation_e::create_prefabs:
+			panel.create_prefabs_from_entity_payloads({.data = panel._pending_override_entities.data(), .size = panel._pending_override_entities.size()}, panel._pending_override_target_folder, true);
+			panel.refresh_folder_rows();
+			if (editor_panel_t* entities_panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+				static_cast<editor_panel_entities_t*>(entities_panel)->refresh_entities();
+			if (editor_panel_t* inspector_panel = editor_app_t::get().find_panel(editor_panel_type_e::inspector))
+				static_cast<editor_panel_inspector_t*>(inspector_panel)->refresh_from_selection();
+			break;
+		case asset_override_operation_e::move_assets:
+			if (panel.move_payload_assets(panel._pending_override_asset_nodes, panel._pending_override_target_folder, true))
+			{
+				panel.clear_asset_grid_selection();
+				panel.refresh_folder_rows();
+			}
+			break;
+		default:
+			break;
+		}
+		panel.clear_pending_asset_override();
+	}
+
+	void editor_panel_assets_t::on_assets_override_cancelled(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_asset_override();
 	}
 
 	void editor_panel_assets_t::open_rename_popup()
@@ -555,6 +687,7 @@ namespace sfg
 		const u64 new_hash = get_folder_hash_after_rename(_selected_folder_node, new_name);
 		if (!editor_asset_util_t::rename_folder(_selected_folder_node, new_path.c_str()))
 			return;
+		editor_asset_manager_t::get().update_node_path(_selected_folder_node, new_path.c_str());
 
 		_selected_folder_hash = new_hash;
 		if (auto it = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), old_hash); it != _favourite_folder_hashes.end())
@@ -570,8 +703,6 @@ namespace sfg
 				_expanded_folder_hashes.push_back(new_hash);
 		}
 
-		editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 
@@ -660,8 +791,8 @@ namespace sfg
 		else if (!editor_asset_util_t::rename_file(_selected_asset_node, new_path.c_str()))
 			return;
 
+		asset_manager.update_node_path(_selected_asset_node, new_path.c_str());
 		_selected_asset_node = {};
-		editor_asset_manager_util_t::rescan(asset_manager, editor_project_t::get()._runtime.assets_path.c_str());
 		refresh_folder_rows();
 	}
 

@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "assets/editor_asset_writer.hpp"
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -79,6 +80,7 @@ namespace sfg
 		struct glb_texture_import_result_t
 		{
 			editor_asset_t asset;
+			string_t	   asset_path;
 			sid_t		   guid	   = NULL_SID;
 			bool		   success = false;
 		};
@@ -842,7 +844,8 @@ namespace sfg
 							u32									 texture_index,
 							bool								 is_linear,
 							const editor_asset_import_context_t& context,
-							editor_asset_t&						 out_asset)
+							editor_asset_t&						 out_asset,
+							string_t&							 out_asset_path)
 		{
 			if (texture.source < 0 || static_cast<u32>(texture.source) >= model.images_count)
 			{
@@ -898,7 +901,6 @@ namespace sfg
 
 			texture_config.size = vec2u16_t(static_cast<u16>(decoded_width), static_cast<u16>(decoded_height));
 
-			editor_asset_t asset		= {};
 			nlohmann::json cook_options = nlohmann::json::object();
 			if (!serialize_reflected_to_json(texture_config, cook_options))
 			{
@@ -906,11 +908,7 @@ namespace sfg
 				stbi_image_free(decoded);
 				return false;
 			}
-			editor_asset_util_t::set_cook_options_json(asset, cook_options);
-
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
-			const string_t source_path	 = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
-			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+			const string_t source_path = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
 			if (stbi_write_png(source_path.c_str(), decoded_width, decoded_height, 4, decoded, decoded_width * 4) == 0)
 			{
 				SFG_ERR("failed to write GLB texture source {0}", source_path.c_str());
@@ -919,15 +917,18 @@ namespace sfg
 			}
 
 			stbi_image_free(decoded);
-			asset.version		  = editor_asset_t::VERSION;
-			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	  = editor_asset_type_e::texture;
-			asset.source_type	  = editor_asset_source_type_e::file;
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			editor_asset_t								  asset = {};
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.cook_options	  = &cook_options,
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::texture,
+			};
+			string_t asset_path;
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to write GLB texture asset {0}", asset_path.c_str());
+				SFG_ERR("failed to write GLB texture asset {0}", asset_name.c_str());
 				return false;
 			}
 
@@ -937,7 +938,8 @@ namespace sfg
 				return false;
 			}
 
-			out_asset = std::move(asset);
+			out_asset	   = std::move(asset);
+			out_asset_path = std::move(asset_path);
 			return true;
 		}
 
@@ -948,7 +950,8 @@ namespace sfg
 								const char*							 asset_name_base,
 								glb_asset_name_registry_t&			 asset_names,
 								const editor_asset_import_context_t& context,
-								editor_asset_t&						 out_asset)
+								editor_asset_t&						 out_asset,
+								string_t&							 out_asset_path)
 		{
 			const i32 metallic_roughness_index = material.pbr_metallic_roughness.metallic_roughness_texture.index;
 			const i32 occlusion_index		   = material.occlusion_texture.index;
@@ -1001,33 +1004,32 @@ namespace sfg
 			texture_config.is_linear			 = true;
 			texture_config.size					 = vec2u16_t(static_cast<u16>(width), static_cast<u16>(height));
 
-			editor_asset_t asset		= {};
 			nlohmann::json cook_options = nlohmann::json::object();
 			if (!serialize_reflected_to_json(texture_config, cook_options))
 			{
 				SFG_ERR("failed to serialize GLB ORM texture cook options");
 				return false;
 			}
-			editor_asset_util_t::set_cook_options_json(asset, cook_options);
 
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
-			const string_t source_path	 = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
-			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+			const string_t source_path = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
 			if (stbi_write_png(source_path.c_str(), static_cast<int>(width), static_cast<int>(height), 4, pixels.data(), static_cast<int>(width * 4)) == 0)
 			{
 				SFG_ERR("failed to write GLB ORM texture source {0}", source_path.c_str());
 				return false;
 			}
 
-			asset.version		  = editor_asset_t::VERSION;
-			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	  = editor_asset_type_e::texture;
-			asset.source_type	  = editor_asset_source_type_e::file;
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), source_path.c_str());
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			editor_asset_t								  asset = {};
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.cook_options	  = &cook_options,
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::texture,
+			};
+			string_t asset_path;
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to write GLB ORM texture asset {0}", asset_path.c_str());
+				SFG_ERR("failed to write GLB ORM texture asset {0}", asset_name.c_str());
 				return false;
 			}
 
@@ -1037,7 +1039,8 @@ namespace sfg
 				return false;
 			}
 
-			out_asset = std::move(asset);
+			out_asset	   = std::move(asset);
+			out_asset_path = std::move(asset_path);
 			return true;
 		}
 
@@ -1052,7 +1055,8 @@ namespace sfg
 							 hash_map_t<u32, sid_t>&			  material_guid_map,
 							 glb_asset_name_registry_t&			  asset_names,
 							 const editor_asset_import_context_t& context,
-							 vector_t<editor_asset_t>&			  out_assets)
+							 vector_t<editor_asset_t>&			  out_assets,
+							 vector_t<string_t>&				  out_asset_paths)
 		{
 			string_t asset_name = get_asset_name(material.name);
 			if (asset_name.empty())
@@ -1095,13 +1099,15 @@ namespace sfg
 			else if (import_textures && (orm_index >= 0 || occlusion_index >= 0))
 			{
 				editor_asset_t orm_asset = {};
-				if (!import_orm_texture(target_directory, model, material, texture_config, asset_name.c_str(), asset_names, context, orm_asset))
+				string_t	   orm_asset_path;
+				if (!import_orm_texture(target_directory, model, material, texture_config, asset_name.c_str(), asset_names, context, orm_asset, orm_asset_path))
 				{
 					SFG_ERR("failed to import GLB ORM texture for material {0}", material_index);
 					return false;
 				}
 				orm_guid = orm_asset.guid;
 				out_assets.push_back(std::move(orm_asset));
+				out_asset_paths.push_back(std::move(orm_asset_path));
 			}
 			else
 			{
@@ -1136,26 +1142,26 @@ namespace sfg
 				.use_alpha_cutoff = is_cutoff,
 			};
 
-			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
-			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-
-			asset.version				   = editor_asset_t::VERSION;
-			asset.guid					   = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type			   = editor_asset_type_e::material;
-			asset.source_type			   = editor_asset_source_type_e::embedded;
-			asset.sub_type				   = static_cast<u8>(editor_material_type_e::gbuffer);
 			nlohmann::json embedded_source = nlohmann::json::object();
 			if (!serialize_reflected_to_json(material_def, embedded_source))
 			{
 				SFG_ERR("failed to serialize GLB material definition: {0}", material_index);
 				return false;
 			}
-			editor_asset_util_t::set_embedded_source_json(asset, embedded_source);
 
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			editor_asset_t							 asset = {};
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_path	 = target_directory,
+				.name			 = asset_name.c_str(),
+				.asset_type		 = editor_asset_type_e::material,
+				.sub_type		 = static_cast<u8>(editor_material_type_e::gbuffer),
+				.allow_overwrite = true,
+			};
+			string_t asset_path;
+			if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to write GLB material asset {0}", asset_path.c_str());
+				SFG_ERR("failed to write GLB material asset {0}", asset_name.c_str());
 				return false;
 			}
 
@@ -1167,11 +1173,19 @@ namespace sfg
 
 			material_guid_map[material_index] = asset.guid;
 			out_assets.push_back(asset);
+			out_asset_paths.push_back(std::move(asset_path));
 			return true;
 		}
 
-		bool import_skeleton(
-			const char* target_directory, const char* source_full_path, const tg3_model& model, const tg3_skin& skin, u32 skin_index, glb_asset_name_registry_t& asset_names, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
+		bool import_skeleton(const char*						  target_directory,
+							 const char*						  source_full_path,
+							 const tg3_model&					  model,
+							 const tg3_skin&					  skin,
+							 u32								  skin_index,
+							 glb_asset_name_registry_t&			  asset_names,
+							 const editor_asset_import_context_t& context,
+							 vector_t<editor_asset_t>&			  out_assets,
+							 vector_t<string_t>&				  out_asset_paths)
 		{
 			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
 			{
@@ -1282,25 +1296,25 @@ namespace sfg
 				return false;
 			}
 
-			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
-			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-
-			asset.version				   = editor_asset_t::VERSION;
-			asset.guid					   = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type			   = editor_asset_type_e::skeleton;
-			asset.source_type			   = editor_asset_source_type_e::embedded;
 			nlohmann::json embedded_source = nlohmann::json::object();
 			if (!serialize_reflected_to_json(skeleton, embedded_source))
 			{
 				SFG_ERR("failed to serialize GLB skeleton definition: {0}", skin_index);
 				return false;
 			}
-			editor_asset_util_t::set_embedded_source_json(asset, embedded_source);
 
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			editor_asset_t							 asset = {};
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_path	 = target_directory,
+				.name			 = asset_name.c_str(),
+				.asset_type		 = editor_asset_type_e::skeleton,
+				.allow_overwrite = true,
+			};
+			string_t asset_path;
+			if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to write GLB skeleton asset {0}", asset_path.c_str());
+				SFG_ERR("failed to write GLB skeleton asset {0}", asset_name.c_str());
 				return false;
 			}
 
@@ -1311,6 +1325,7 @@ namespace sfg
 			}
 
 			out_assets.push_back(asset);
+			out_asset_paths.push_back(std::move(asset_path));
 			return true;
 		}
 
@@ -1447,7 +1462,8 @@ namespace sfg
 						 glb_asset_name_registry_t&			  asset_names,
 						 const editor_asset_import_context_t& context,
 						 sid_t*								  out_mesh_guid,
-						 vector_t<editor_asset_t>&			  out_assets)
+						 vector_t<editor_asset_t>&			  out_assets,
+						 vector_t<string_t>&				  out_asset_paths)
 		{
 			SFG_ASSERT(meshes != nullptr);
 			SFG_ASSERT(mesh_count != 0);
@@ -1489,10 +1505,7 @@ namespace sfg
 				return false;
 			}
 
-			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
-			const string_t blob_path	 = editor_asset_util_t::make_blob_path(target_directory, asset_name.c_str());
-			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+			const string_t blob_path = editor_asset_util_t::make_blob_path(target_directory, asset_name.c_str());
 			ostream_t	   mesh_def_stream;
 			if (!serialize_reflected_to_stream(mesh_def, mesh_def_stream))
 			{
@@ -1505,15 +1518,18 @@ namespace sfg
 				return false;
 			}
 
-			asset.version		  = editor_asset_t::VERSION;
-			asset.guid			  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type	  = editor_asset_type_e::mesh;
-			asset.source_type	  = editor_asset_source_type_e::file_blob;
-			asset.source_relative = editor_asset_util_t::get_source_relative(editor_project_t::get()._runtime.assets_path.c_str(), blob_path.c_str());
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			editor_asset_t								  asset = {};
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = blob_path.c_str(),
+				.asset_type		  = editor_asset_type_e::mesh,
+				.source_type	  = editor_asset_source_type_e::file_blob,
+			};
+			string_t asset_path;
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to write GLB mesh asset {0}", asset_path.c_str());
+				SFG_ERR("failed to write GLB mesh asset {0}", asset_name.c_str());
 				return false;
 			}
 
@@ -1532,6 +1548,7 @@ namespace sfg
 				*out_mesh_guid = asset.guid;
 
 			out_assets.push_back(asset);
+			out_asset_paths.push_back(std::move(asset_path));
 			return true;
 		}
 
@@ -1572,7 +1589,8 @@ namespace sfg
 						   glb_asset_name_registry_t&			asset_names,
 						   const editor_asset_import_context_t& context,
 						   sid_t								combined_mesh_guid,
-						   vector_t<editor_asset_t>&			out_assets)
+						   vector_t<editor_asset_t>&			out_assets,
+						   vector_t<string_t>&					out_asset_paths)
 		{
 			string_t asset_name = file_system_t::get_filename_from_path(source_full_path);
 			asset_name += "_prefab";
@@ -1842,18 +1860,18 @@ namespace sfg
 			if (!prefab_valid)
 				return false;
 
-			editor_asset_t asset		 = {};
-			const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name.c_str());
-			const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-			asset.version				 = editor_asset_t::VERSION;
-			asset.guid					 = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type			 = editor_asset_type_e::prefab;
-			asset.source_type			 = editor_asset_source_type_e::embedded;
-			editor_asset_util_t::set_embedded_source_json(asset, prefab_json);
-
-			if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+			editor_asset_t							 asset = {};
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &prefab_json,
+				.parent_path	 = target_directory,
+				.name			 = asset_name.c_str(),
+				.asset_type		 = editor_asset_type_e::prefab,
+				.allow_overwrite = true,
+			};
+			string_t asset_path;
+			if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to write GLB prefab asset {0}", asset_path.c_str());
+				SFG_ERR("failed to write GLB prefab asset {0}", asset_name.c_str());
 				return false;
 			}
 
@@ -1864,11 +1882,13 @@ namespace sfg
 			}
 
 			out_assets.push_back(asset);
+			out_asset_paths.push_back(std::move(asset_path));
 			return true;
 		}
 	}
 
-	bool editor_glb_importer_t::import_glb(const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
+	bool editor_glb_importer_t::import_glb(
+		const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths)
 	{
 		SFG_ASSERT(target_directory != nullptr);
 		SFG_ASSERT(target_directory[0] != '\0');
@@ -1941,6 +1961,7 @@ namespace sfg
 
 			asset_names.names.reserve(reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + 1);
 			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count);
+			out_asset_paths.reserve(out_asset_paths.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count);
 			if (cook_config.import_textures)
 			{
 				auto push_texture_import = [&](i32 texture_index, bool is_linear) {
@@ -2045,7 +2066,8 @@ namespace sfg
 						const tg3_texture&					texture			= model.textures[texture_import.texture_index];
 						const editor_asset_import_context_t texture_context = {};
 
-						import_result.success = import_texture(target_directory, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset);
+						import_result.success =
+							import_texture(target_directory, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset, import_result.asset_path);
 						if (import_result.success)
 							import_result.guid = import_result.asset.guid;
 
@@ -2082,6 +2104,7 @@ namespace sfg
 					{
 						SFG_ASSERT(import_result.success);
 						out_assets.push_back(std::move(import_result.asset));
+						out_asset_paths.push_back(std::move(import_result.asset_path));
 					}
 				}
 			}
@@ -2092,7 +2115,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.materials_count; ++i)
 				{
-					if (!import_material(target_directory, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, asset_names, context, out_assets))
+					if (!import_material(target_directory, source_full_path, model, model.materials[i], i, texture_config, cook_config.import_textures, texture_guid_map, material_guid_map, asset_names, context, out_assets, out_asset_paths))
 					{
 						SFG_ERR("failed to import GLB material {0}", i);
 						result = false;
@@ -2105,7 +2128,7 @@ namespace sfg
 			{
 				for (u32 i = 0; i < model.skins_count; ++i)
 				{
-					if (!import_skeleton(target_directory, source_full_path, model, model.skins[i], i, asset_names, context, out_assets))
+					if (!import_skeleton(target_directory, source_full_path, model, model.skins[i], i, asset_names, context, out_assets, out_asset_paths))
 					{
 						SFG_ERR("failed to import GLB skeleton {0}", i);
 						result = false;
@@ -2121,12 +2144,12 @@ namespace sfg
 				if (cook_config.combine_meshes)
 				{
 					sid_t combined_mesh_guid = NULL_SID;
-					result					 = import_mesh(target_directory, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, &combined_mesh_guid, out_assets);
+					result					 = import_mesh(target_directory, source_full_path, model, model.meshes, model.meshes_count, material_guid_map, nullptr, asset_names, context, &combined_mesh_guid, out_assets, out_asset_paths);
 					if (!result)
 						SFG_ERR("failed to import combined GLB mesh");
 					if (result)
 					{
-						if (!import_prefab(target_directory, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, out_assets))
+						if (!import_prefab(target_directory, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, out_assets, out_asset_paths))
 						{
 							SFG_ERR("failed to import GLB prefab");
 							result = false;
@@ -2137,7 +2160,7 @@ namespace sfg
 				{
 					for (u32 i = 0; i < model.meshes_count; ++i)
 					{
-						if (!import_mesh(target_directory, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, nullptr, out_assets))
+						if (!import_mesh(target_directory, source_full_path, model, model.meshes + i, 1, material_guid_map, &mesh_guid_map, asset_names, context, nullptr, out_assets, out_asset_paths))
 						{
 							SFG_ERR("failed to import GLB mesh {0}", i);
 							result = false;
@@ -2148,7 +2171,7 @@ namespace sfg
 
 				if (result && !cook_config.combine_meshes && model.nodes_count != 0)
 				{
-					if (!import_prefab(target_directory, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, NULL_SID, out_assets))
+					if (!import_prefab(target_directory, source_full_path, model, mesh_guid_map, material_guid_map, asset_names, context, NULL_SID, out_assets, out_asset_paths))
 					{
 						SFG_ERR("failed to import GLB prefab");
 						result = false;

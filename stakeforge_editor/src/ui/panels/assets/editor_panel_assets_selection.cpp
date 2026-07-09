@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include <sfg/io/file_system.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -261,8 +262,9 @@ namespace sfg
 		if (nodes.empty() || !is_folder_payload_target_valid(nodes, target_folder_node))
 			return false;
 
-		const editor_asset_tree_t& tree	 = editor_asset_manager_t::get().get_asset_tree();
-		bool					   moved = false;
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+		bool					   moved		 = false;
 		for (editor_asset_node_handle_t node : nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
@@ -272,20 +274,70 @@ namespace sfg
 			if (folder_node.type != editor_asset_node_type_e::folder)
 				continue;
 
+			const editor_asset_node_t& target_node = tree.value(target_folder_node);
+			const string_t			   new_path	   = editor_asset_util_t::normalize_directory(target_node.full_path.c_str()) + folder_node.name;
 			if (editor_asset_util_t::move_folder(node, target_folder_node))
+			{
+				asset_manager.move_node(node, target_folder_node, new_path.c_str());
 				moved = true;
+			}
 		}
 		return moved;
 	}
 
-	bool editor_panel_assets_t::move_payload_assets(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node)
+	bool editor_panel_assets_t::move_payload_assets(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node, bool allow_overwrite)
 	{
 		if (nodes.empty())
 			return false;
 
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		bool					   moved		 = false;
+		SFG_ASSERT(!target_folder_node.is_null());
+		SFG_ASSERT(tree.is_valid(target_folder_node));
+		const editor_asset_node_t& target_node = tree.value(target_folder_node);
+		SFG_ASSERT(target_node.type == editor_asset_node_type_e::folder);
+		const string_t target_directory = editor_asset_util_t::normalize_directory(target_node.full_path.c_str());
+
+		if (!allow_overwrite)
+		{
+			vector_t<string_t> rows;
+			for (editor_asset_node_handle_t node : nodes)
+			{
+				if (node.is_null() || !tree.is_valid(node))
+					continue;
+
+				const editor_asset_node_t& asset_node = tree.value(node);
+				if (asset_node.type != editor_asset_node_type_e::asset)
+					continue;
+
+				const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+				if (asset == nullptr)
+					continue;
+
+				const string_t					 file_name = file_system_t::get_filename_and_extension_from_path(asset_node.full_path);
+				const string_t					 new_path  = target_directory + file_name;
+				const editor_asset_node_handle_t existing  = asset_manager.find_node_by_path(new_path.c_str());
+				if (existing == node)
+					continue;
+
+				string_t row;
+				if (find_matching_asset_override(new_path.c_str(), asset->asset_type, &row))
+					rows.push_back(row);
+			}
+
+			if (!rows.empty())
+			{
+				_pending_override_target_folder = target_folder_node;
+				_pending_override_asset_nodes.resize(0);
+				_pending_override_asset_nodes.reserve(nodes.size());
+				for (editor_asset_node_handle_t node : nodes)
+					_pending_override_asset_nodes.push_back(node);
+				request_assets_override(asset_override_operation_e::move_assets, "One or more assets already exist in the target folder. Overwrite matching asset types?", rows);
+				return true;
+			}
+		}
+
+		bool moved = false;
 		for (editor_asset_node_handle_t node : nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
@@ -299,8 +351,27 @@ namespace sfg
 			if (asset == nullptr)
 				continue;
 
-			if (editor_asset_util_t::move_asset(*asset, node, target_folder_node))
+			const string_t					 file_name	 = file_system_t::get_filename_and_extension_from_path(asset_node.full_path);
+			const string_t					 new_path	 = target_directory + file_name;
+			const editor_asset_t			 asset_value = *asset;
+			const editor_asset_node_handle_t existing	 = asset_manager.find_node_by_path(new_path.c_str());
+			if (allow_overwrite && !existing.is_null() && existing != node && tree.is_valid(existing))
+			{
+				const editor_asset_node_t& existing_node = tree.value(existing);
+				if (existing_node.type == editor_asset_node_type_e::asset)
+				{
+					const editor_asset_t* existing_asset = asset_manager.find_asset(existing_node.asset_id);
+					if (existing_asset != nullptr && existing_asset->asset_type == asset_value.asset_type && editor_asset_util_t::delete_asset(*existing_asset, existing))
+						asset_manager.remove_node_subtree(existing);
+				}
+			}
+
+			if (editor_asset_util_t::move_asset(asset_value, node, target_folder_node))
+			{
+				asset_manager.move_node(node, target_folder_node, new_path.c_str());
+				asset_manager.reload_asset_node(node);
 				moved = true;
+			}
 		}
 		return moved;
 	}

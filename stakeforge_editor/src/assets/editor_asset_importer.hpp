@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_glb_importer.hpp"
 
 #include <sfg/data/span.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
@@ -77,9 +78,7 @@ namespace sfg
 		editor_asset_importer_t& operator=(const editor_asset_importer_t&) = delete;
 
 		static bool make_import_options(editor_asset_import_options_t& out_options, const char* asset_name);
-		static bool import_asset(const char* target_directory, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets);
-
-	private:
-		static bool make_asset(const char* target_directory, const char* asset_name, editor_asset_t& asset, editor_asset_type_e asset_type, editor_asset_source_type_e source_type, const char* source_full_path = nullptr);
+		static bool import_asset(
+			const char* target_directory, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths);
 	};
 }

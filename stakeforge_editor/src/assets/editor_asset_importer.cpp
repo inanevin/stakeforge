@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_writer.hpp"
 #include "assets/editor_glb_importer.hpp"
 #include "editor_directories.hpp"
 #include <sfg/data/string_util.hpp>
@@ -108,40 +109,8 @@ namespace sfg
 		}
 	}
 
-	bool editor_asset_importer_t::make_asset(const char* target_directory, const char* asset_name, editor_asset_t& asset, editor_asset_type_e asset_type, editor_asset_source_type_e source_type, const char* source_full_path)
-	{
-		SFG_ASSERT(target_directory != nullptr);
-		SFG_ASSERT(target_directory[0] != '\0');
-		SFG_ASSERT(asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(asset_type != editor_asset_type_e::count);
-
-		if (!editor_directories_t::is_valid_asset_name(asset_name))
-			return false;
-
-		const string_t asset_path	 = editor_asset_util_t::make_asset_path(target_directory, asset_name);
-		const sid_t	   existing_guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
-
-		asset.version	  = editor_asset_t::VERSION;
-		asset.guid		  = existing_guid != NULL_SID ? existing_guid : editor_asset_util_t::generate_unique_asset_guid();
-		asset.asset_type  = asset_type;
-		asset.source_type = source_type;
-
-		if (source_full_path != nullptr && source_full_path[0] != '\0' && !editor_asset_util_t::set_source_relative_or_copy(asset, target_directory, asset_name, source_full_path))
-		{
-			SFG_ERR("failed to set source for imported asset {0}", asset_name);
-			return false;
-		}
-
-		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
-		{
-			SFG_ERR("failed to write imported asset {0}", asset_path.c_str());
-			return false;
-		}
-
-		return true;
-	}
-
-	bool editor_asset_importer_t::import_asset(const char* target_directory, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets)
+	bool editor_asset_importer_t::import_asset(
+		const char* target_directory, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths)
 	{
 		SFG_ASSERT(target_directory != nullptr);
 		SFG_ASSERT(target_directory[0] != '\0');
@@ -171,7 +140,7 @@ namespace sfg
 		}
 
 		if (import_type == editor_asset_import_type_e::model)
-			return editor_glb_importer_t::import_glb(target_directory, source_path.c_str(), import_options->glb_cook_config, context, out_assets);
+			return editor_glb_importer_t::import_glb(target_directory, source_path.c_str(), import_options->glb_cook_config, context, out_assets, out_asset_paths);
 
 		const string_t asset_name = file_system_t::get_filename_from_path(source_path);
 		if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
@@ -181,6 +150,7 @@ namespace sfg
 		}
 
 		editor_asset_t asset = {};
+		string_t	   asset_path;
 		switch (import_type)
 		{
 		case editor_asset_import_type_e::texture: {
@@ -194,8 +164,14 @@ namespace sfg
 				SFG_ERR("failed to serialize texture import options for {0}", source_path.c_str());
 				return false;
 			}
-			editor_asset_util_t::set_cook_options_json(asset, cook_options);
-			if (!make_asset(target_directory, asset_name.c_str(), asset, editor_asset_type_e::texture, editor_asset_source_type_e::file, source_path.c_str()))
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.cook_options	  = &cook_options,
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::texture,
+			};
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
 				SFG_ERR("failed to create imported texture asset {0}", asset_name.c_str());
 				return false;
@@ -211,7 +187,13 @@ namespace sfg
 			string_t status = "Importing font: ";
 			status += asset_name;
 			context.report_status(status.c_str());
-			if (!make_asset(target_directory, asset_name.c_str(), asset, editor_asset_type_e::font, editor_asset_source_type_e::file, source_path.c_str()))
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::font,
+			};
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
 				SFG_ERR("failed to create imported font asset {0}", asset_name.c_str());
 				return false;
@@ -234,8 +216,14 @@ namespace sfg
 				SFG_ERR("failed to serialize audio import options for {0}", source_path.c_str());
 				return false;
 			}
-			editor_asset_util_t::set_cook_options_json(asset, cook_options);
-			if (!make_asset(target_directory, asset_name.c_str(), asset, editor_asset_type_e::audio, editor_asset_source_type_e::file, source_path.c_str()))
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.cook_options	  = &cook_options,
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::audio,
+			};
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
 				SFG_ERR("failed to create imported audio asset {0}", asset_name.c_str());
 				return false;
@@ -258,8 +246,14 @@ namespace sfg
 				SFG_ERR("failed to serialize HDR skybox import options for {0}", source_path.c_str());
 				return false;
 			}
-			editor_asset_util_t::set_cook_options_json(asset, cook_options);
-			if (!make_asset(target_directory, asset_name.c_str(), asset, editor_asset_type_e::hdr_skybox, editor_asset_source_type_e::file, source_path.c_str()))
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.cook_options	  = &cook_options,
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::hdr_skybox,
+			};
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
 				SFG_ERR("failed to create imported HDR skybox asset {0}", asset_name.c_str());
 				return false;
@@ -277,6 +271,7 @@ namespace sfg
 		}
 
 		out_assets.push_back(asset);
+		out_asset_paths.push_back(asset_path);
 		return true;
 	}
 }

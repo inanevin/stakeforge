@@ -283,8 +283,8 @@ namespace sfg
 		thumbnail_in.size_value		  = {1.0f, 1.0f};
 
 		ui::vg_rect_paint_t thumbnail_rect = {};
-		thumbnail_rect.fill_color_a		   = {1.0f, 1.0f, 1.0f, 1.0f};
-		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
+		thumbnail_rect.fill_color_a		   = theme.color_frame;
+		thumbnail_rect.fill_color_b		   = theme.color_frame;
 		thumbnail_rect.rounding			   = theme.item_rounding;
 		thumbnail_rect.rounding_segs	   = 4;
 		if (asset != nullptr)
@@ -329,22 +329,23 @@ namespace sfg
 		ui.set_widget_debug_name(item.star_text, "asset_grid_item_star");
 		tree.attach(item.thumbnail_frame, item.star_text);
 
-		ui::layout_in_t& star_in = tree.in(item.star_text);
-		star_in.flags			 = is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
-		star_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
-		star_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		star_in.pos_value		 = {1.0f, 1.0f};
-		star_in.anchor_x		 = ui::anchor_e::end;
-		star_in.anchor_y		 = ui::anchor_e::end;
-		star_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		star_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		star_in.size_value		 = {theme.item_height, theme.item_height};
+		ui::layout_in_t& star_in		= tree.in(item.star_text);
+		star_in.flags					= is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		star_in.pos_mode_x				= ui::pos_mode_e::relative_in_parent;
+		star_in.pos_mode_y				= ui::pos_mode_e::relative_in_parent;
+		star_in.pos_value				= {1.0f, 1.0f};
+		star_in.anchor_x				= ui::anchor_e::end;
+		star_in.anchor_y				= ui::anchor_e::end;
+		star_in.size_mode_x				= ui::axis_mode_e::fixed;
+		star_in.size_mode_y				= ui::axis_mode_e::fixed;
+		star_in.size_value				= {theme.item_area_height, theme.item_area_height};
+		tree.draw_order(item.star_text) = tree.draw_order_const(item.root) + 1;
 
 		ui.set_widget_text(item.star_text, ICON_STAR);
 		paint.set_text(item.star_text,
 					   ui.widget_text(item.star_text),
 					   ui.widget_text_len(item.star_text),
-					   {.font = theme.font_icons, .color = theme.color_accent1, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_icons, .color = theme.color_accent1, .point_size = theme.icon_default_px_size * 1.5f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		item.info_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(item.info_frame, "asset_grid_item_info");
@@ -577,16 +578,17 @@ namespace sfg
 		ui.set_widget_debug_name(item.star_text, "asset_list_item_star");
 		tree.attach(item.root, item.star_text);
 
-		ui::layout_in_t& star_in = tree.in(item.star_text);
-		star_in.flags			 = is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
-		star_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
-		star_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		star_in.pos_value		 = {1.0f, 0.5f};
-		star_in.anchor_x		 = ui::anchor_e::end;
-		star_in.anchor_y		 = ui::anchor_e::center;
-		star_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		star_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		star_in.size_value		 = {theme.item_height, theme.item_height};
+		ui::layout_in_t& star_in		= tree.in(item.star_text);
+		star_in.flags					= is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		star_in.pos_mode_x				= ui::pos_mode_e::relative_in_parent;
+		star_in.pos_mode_y				= ui::pos_mode_e::relative_in_parent;
+		star_in.pos_value				= {1.0f, 0.5f};
+		star_in.anchor_x				= ui::anchor_e::end;
+		star_in.anchor_y				= ui::anchor_e::center;
+		star_in.size_mode_x				= ui::axis_mode_e::fixed;
+		star_in.size_mode_y				= ui::axis_mode_e::fixed;
+		star_in.size_value				= {theme.item_height, theme.item_height};
+		tree.draw_order(item.star_text) = tree.draw_order_const(item.root) + 1;
 
 		ui.set_widget_text(item.star_text, ICON_STAR);
 		paint.set_text(item.star_text,

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/type_id.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/texture_payload_type.hpp>
 
@@ -56,7 +57,7 @@ namespace sfg
 		editor_glb_importer_t(const editor_glb_importer_t&)			   = delete;
 		editor_glb_importer_t& operator=(const editor_glb_importer_t&) = delete;
 
-		static bool import_glb(const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets);
+		static bool import_glb(const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths);
 	};
 
 	SFG_DEFINE_TYPE_ID(glb_cook_config_t);

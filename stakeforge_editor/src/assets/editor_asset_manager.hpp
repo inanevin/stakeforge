@@ -27,22 +27,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_database.hpp"
 #include "assets/editor_asset_importer.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/mutex.hpp>
-#include <sfg/data/tree.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 
 namespace sfg
 {
 	class editor_asset_manager_util_t;
 	struct editor_project_t;
-
-	using editor_asset_tree_t = tree_t<editor_asset_node_t>;
 
 	class editor_asset_manager_t final
 	{
@@ -71,8 +69,18 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void register_descriptor(const editor_asset_descriptor_t& desc);
-		void import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
+		void					   register_descriptor(const editor_asset_descriptor_t& desc);
+		void					   import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
+		editor_asset_node_handle_t add_folder_node(editor_asset_node_handle_t parent, const char* path);
+		editor_asset_node_handle_t add_path_node(editor_asset_node_handle_t parent, const char* path);
+		editor_asset_node_handle_t add_directory_tree(editor_asset_node_handle_t parent, const char* path);
+		bool					   reload_asset_node(editor_asset_node_handle_t node);
+		void					   sync_directory_from_disk(editor_asset_node_handle_t directory_node);
+		void					   sync_imported_asset_paths(editor_asset_node_handle_t directory_node, span_t<const string_t> paths);
+		void					   remove_node_subtree(editor_asset_node_handle_t node);
+		void					   update_node_path(editor_asset_node_handle_t node, const char* new_path);
+		void					   move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path);
+		void					   notify_changed();
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -80,12 +88,12 @@ namespace sfg
 
 		inline const editor_asset_tree_t& get_asset_tree() const
 		{
-			return _asset_tree;
+			return _database.get_asset_tree();
 		}
 
 		inline const hash_map_t<u64, editor_asset_t>& get_assets() const
 		{
-			return _assets;
+			return _database.get_assets();
 		}
 
 		inline const hash_map_t<editor_asset_type_e, editor_asset_descriptor_t>& get_asset_descriptors() const
@@ -97,13 +105,27 @@ namespace sfg
 
 		inline editor_asset_node_handle_t get_root_node() const
 		{
-			return _root_node;
+			return _database.get_root_node();
 		}
 
 		inline const editor_asset_t* find_asset(u64 asset_id) const
 		{
-			const auto it = _assets.find(asset_id);
-			return it != _assets.end() ? &it->second : nullptr;
+			return _database.find_asset(asset_id);
+		}
+
+		inline const editor_asset_node_t* find_asset_node(sid_t guid) const
+		{
+			return _database.find_asset_node_value(guid);
+		}
+
+		inline editor_asset_node_handle_t find_asset_node_handle(sid_t guid) const
+		{
+			return _database.find_asset_node(guid);
+		}
+
+		inline editor_asset_node_handle_t find_node_by_path(const char* path) const
+		{
+			return _database.find_node_by_path(path);
 		}
 
 		inline u32 get_generation() const
@@ -114,25 +136,26 @@ namespace sfg
 	private:
 		friend class editor_asset_manager_util_t;
 
-		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed);
+		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
 	private:
 		editor_modal_progress_bar_t								   _import_progress_modal = {};
-		editor_asset_tree_t										   _asset_tree;
-		hash_map_t<u64, editor_asset_t>							   _assets;
+		editor_asset_database_t									   _database;
 		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
 		string_t												   _import_status_pending;
 		string_t												   _import_status_visible;
+		vector_t<string_t>										   _import_asset_paths_pending;
+		vector_t<string_t>										   _import_asset_paths_visible;
 		mutex_t													   _import_status_mtx;
-		editor_asset_node_handle_t								   _root_node;
-		f32														   _import_progress_pending	  = 0.0f;
-		atomic_t<bool>											   _import_status_dirty		  = false;
-		u32														   _generation				  = 0;
-		u32														   _last_integrity_generation = 0;
-		bool													   _import_completed_pending  = false;
-		bool													   _import_in_progress		  = false;
+		editor_asset_node_handle_t								   _import_target_directory_node = {};
+		f32														   _import_progress_pending		 = 0.0f;
+		atomic_t<bool>											   _import_status_dirty			 = false;
+		u32														   _generation					 = 0;
+		u32														   _last_integrity_generation	 = 0;
+		bool													   _import_completed_pending	 = false;
+		bool													   _import_in_progress			 = false;
 
 		static inline editor_asset_manager_t* s_instance = nullptr;
 	};

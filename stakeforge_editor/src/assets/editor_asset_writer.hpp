@@ -27,14 +27,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "assets/editor_asset_type.hpp"
+#include "assets/editor_asset.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	struct editor_asset_t;
-
 	struct editor_asset_write_file_desc_t
 	{
 		const nlohmann::json* cook_options			   = nullptr;
@@ -47,6 +45,19 @@ namespace sfg
 		editor_asset_type_e	  asset_type			   = editor_asset_type_e::invalid;
 		u8					  sub_type				   = 0;
 		bool				  allow_overwrite		   = false;
+	};
+
+	struct editor_asset_write_existing_file_desc_t
+	{
+		const nlohmann::json*	   cook_options		= nullptr;
+		const char*				   parent_path		= nullptr;
+		const char*				   name				= nullptr;
+		const char*				   source_full_path = nullptr;
+		sid_t					   guid				= NULL_SID;
+		editor_asset_type_e		   asset_type		= editor_asset_type_e::invalid;
+		editor_asset_source_type_e source_type		= editor_asset_source_type_e::file;
+		u8						   sub_type			= 0;
+		bool					   allow_overwrite	= true;
 	};
 
 	struct editor_asset_write_embedded_desc_t
@@ -83,6 +94,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static bool write_file_asset(const editor_asset_write_file_desc_t& desc, editor_asset_t* out_asset = nullptr, string_t* out_asset_path = nullptr);
+		static bool write_existing_file_asset(const editor_asset_write_existing_file_desc_t& desc, editor_asset_t* out_asset = nullptr, string_t* out_asset_path = nullptr);
 		static bool write_embedded_asset(const editor_asset_write_embedded_desc_t& desc, editor_asset_t* out_asset = nullptr, string_t* out_asset_path = nullptr);
 		static bool write_none_source_asset(const editor_asset_write_none_desc_t& desc, editor_asset_t* out_asset = nullptr, string_t* out_asset_path = nullptr);
 		static bool read_embedded_source(const char* asset_relative_path, nlohmann::json& out_embedded_source);

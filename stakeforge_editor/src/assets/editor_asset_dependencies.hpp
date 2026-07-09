@@ -27,34 +27,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/data/string.hpp>
-#include <sfg/data/tree.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
-	{
-		folder,
-		file,
-		asset,
-	};
+	struct editor_asset_t;
 
-	enum editor_asset_node_flags_e : u8
+	class editor_asset_dependencies_t final
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+	public:
+		editor_asset_dependencies_t()											   = delete;
+		~editor_asset_dependencies_t()											   = delete;
+		editor_asset_dependencies_t(const editor_asset_dependencies_t&)			   = delete;
+		editor_asset_dependencies_t& operator=(const editor_asset_dependencies_t&) = delete;
 
-	struct editor_asset_node_t
-	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
+		static void fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies);
 	};
-
-	using editor_asset_node_handle_t = pool_handle_t<u32, editor_asset_node_t>;
-	using editor_asset_tree_t		 = tree_t<editor_asset_node_t>;
 }

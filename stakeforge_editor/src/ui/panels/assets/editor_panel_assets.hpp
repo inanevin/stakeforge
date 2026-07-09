@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel.hpp"
 #include "assets/editor_asset_importer.hpp"
 #include "assets/editor_asset_node.hpp"
+#include "ui/editor_modal_assets_override.hpp"
+#include "ui/editor_payload_controller.hpp"
 #include "ui/editor_modal_cook_options.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
@@ -49,6 +51,7 @@ namespace sfg::ui
 namespace sfg
 {
 	struct editor_payload_t;
+	struct editor_asset_create_desc_t;
 
 	class editor_panel_assets_t final : public editor_panel_t
 	{
@@ -102,6 +105,14 @@ namespace sfg
 			list,
 		};
 
+		enum class asset_override_operation_e : u8
+		{
+			none,
+			create_asset,
+			create_prefabs,
+			move_assets,
+		};
+
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
@@ -135,7 +146,7 @@ namespace sfg
 		void collect_payload_folder_nodes(editor_asset_node_handle_t node);
 		void collect_payload_asset_nodes(editor_asset_node_handle_t node);
 		bool move_payload_folders(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node);
-		bool move_payload_assets(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node);
+		bool move_payload_assets(const vector_t<editor_asset_node_handle_t>& nodes, editor_asset_node_handle_t target_folder_node, bool allow_overwrite = false);
 		void start_folder_payload(editor_asset_node_handle_t node);
 		void start_asset_item_payload(editor_asset_node_handle_t node);
 		void clear_asset_grid_selection();
@@ -159,6 +170,13 @@ namespace sfg
 		void create_folder(const char* name);
 		void open_create_asset_popup(u16 command);
 		void create_asset_item(u16 command, const char* name);
+		bool create_asset_item_internal(u16 command, const char* name, bool allow_overwrite);
+		bool make_create_asset_desc(u16 command, const char* name, bool allow_overwrite, editor_asset_create_desc_t& out_desc) const;
+		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node, bool allow_overwrite);
+		bool create_prefabs_from_entity_payloads(span_t<const editor_entity_payload_t> entities, editor_asset_node_handle_t parent_node, bool allow_overwrite);
+		bool find_matching_asset_override(const char* path, editor_asset_type_e asset_type, string_t* out_row) const;
+		void request_assets_override(asset_override_operation_e operation, const char* description, const vector_t<string_t>& rows);
+		void clear_pending_asset_override();
 		void open_rename_popup();
 		void rename_folder(const char* name);
 		void open_asset_rename_popup();
@@ -196,12 +214,13 @@ namespace sfg
 		static void on_filter_popup_pressed(u16 value, void* user_data);
 		static void on_filter_button_pressed(bool toggled, void* user_data);
 		static void on_import_button_pressed(bool toggled, void* user_data);
-		static void on_refresh_button_pressed(bool toggled, void* user_data);
 		static void on_action_menu_command(u16 command, void* user_data);
 		static void on_asset_action_menu_command(u16 command, void* user_data);
 		static void on_action_menu_closed(void* user_data);
 		static void on_create_folder_popup_closed(const char* value, void* user_data);
 		static void on_create_asset_popup_closed(const char* value, void* user_data);
+		static void on_assets_override_accepted(void* user_data);
+		static void on_assets_override_cancelled(void* user_data);
 		static void on_rename_popup_closed(const char* value, void* user_data);
 		static void on_asset_rename_popup_closed(const char* value, void* user_data);
 		static void on_cook_options_imported(void* user_data);
@@ -237,7 +256,6 @@ namespace sfg
 	private:
 		editor_icon_button_t					_filter_button					 = {};
 		editor_icon_button_t					_import_button					 = {};
-		editor_icon_button_t					_refresh_button					 = {};
 		editor_icon_button_t					_show_file_assets_button		 = {};
 		editor_icon_button_t					_asset_favourites_only_button	 = {};
 		editor_input_field_t					_search_input					 = {};
@@ -257,6 +275,10 @@ namespace sfg
 		vector_t<string_t>						_pending_import_paths			 = {};
 		vector_t<editor_asset_import_options_t> _pending_import_options			 = {};
 		editor_modal_cook_options_t				_cook_options_modal				 = {};
+		editor_modal_assets_override_t			_assets_override_modal			 = {};
+		vector_t<editor_entity_payload_t>		_pending_override_entities		 = {};
+		vector_t<editor_asset_node_handle_t>	_pending_override_asset_nodes	 = {};
+		string_t								_pending_override_asset_name	 = {};
 		string_t								_search_str						 = {};
 		string_t								_search_str_lower				 = {};
 		string_t								_asset_search_str				 = {};
@@ -271,6 +293,7 @@ namespace sfg
 		editor_asset_node_handle_t				_asset_selection_anchor			 = {};
 		editor_asset_node_handle_t				_payload_asset_node				 = {};
 		editor_asset_node_handle_t				_payload_folder_node			 = {};
+		editor_asset_node_handle_t				_pending_override_target_folder	 = {};
 		vector_t<editor_asset_node_handle_t>	_payload_asset_nodes			 = {};
 		vector_t<editor_asset_node_handle_t>	_payload_folder_nodes			 = {};
 		ui::widget_id_t							_assets_left_pane				 = NULL_WIDGET;
@@ -287,8 +310,10 @@ namespace sfg
 		u32										_asset_grid_generation			 = 0;
 		u32										_visible_folder_row_count		 = 0;
 		u16										_create_asset_popup_command		 = 0;
+		u16										_pending_override_create_command = 0;
 		f32										_pane_split						 = 0.3f;
 		asset_item_style_e						_asset_item_style				 = asset_item_style_e::grid;
+		asset_override_operation_e				_pending_override_operation		 = asset_override_operation_e::none;
 		bool									_favourites_only				 = false;
 		bool									_show_file_assets				 = false;
 		bool									_asset_favourites_only			 = false;

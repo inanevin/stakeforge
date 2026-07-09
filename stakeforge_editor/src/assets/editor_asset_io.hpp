@@ -28,33 +28,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/string.hpp>
-#include <sfg/data/tree.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
-	{
-		folder,
-		file,
-		asset,
-	};
+	struct editor_asset_t;
 
-	enum editor_asset_node_flags_e : u8
+	class editor_asset_io_t final
 	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+	public:
+		editor_asset_io_t()									   = delete;
+		~editor_asset_io_t()								   = delete;
+		editor_asset_io_t(const editor_asset_io_t&)			   = delete;
+		editor_asset_io_t& operator=(const editor_asset_io_t&) = delete;
 
-	struct editor_asset_node_t
-	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
+		static bool			  read_asset(const char* path, editor_asset_t& out_asset);
+		static bool			  write_asset(const char* path, const editor_asset_t& asset);
+		static nlohmann::json get_embedded_source_json(const editor_asset_t& asset);
+		static nlohmann::json get_cook_options_json(const editor_asset_t& asset);
+		static void			  set_embedded_source_json(editor_asset_t& asset, const nlohmann::json& source);
+		static void			  set_cook_options_json(editor_asset_t& asset, const nlohmann::json& options);
 	};
-
-	using editor_asset_node_handle_t = pool_handle_t<u32, editor_asset_node_t>;
-	using editor_asset_tree_t		 = tree_t<editor_asset_node_t>;
 }

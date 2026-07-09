@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/editor_asset_writer.hpp"
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
@@ -427,6 +428,7 @@ namespace sfg
 				SFG_ERR("world save cancelled");
 				return false;
 			}
+			file_system_t::fix_path(asset_path);
 			if (file_system_t::get_file_extension(asset_path) != "sfg_asset")
 				asset_path += ".sfg_asset";
 			if (!editor_asset_util_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
@@ -434,17 +436,19 @@ namespace sfg
 				SFG_ERR("world save path is outside project assets directory {0}", asset_path.c_str());
 				return false;
 			}
-
-			asset.version	  = editor_asset_t::VERSION;
-			asset.guid		  = _main_world_asset_guid != NULL_SID ? _main_world_asset_guid : editor_asset_util_t::generate_unique_asset_guid();
-			asset.asset_type  = editor_asset_type_e::world;
-			asset.source_type = editor_asset_source_type_e::embedded;
 		}
 
-		asset.asset_type  = editor_asset_type_e::world;
-		asset.source_type = editor_asset_source_type_e::embedded;
-		editor_asset_util_t::set_embedded_source_json(asset, world_json);
-		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		const string_t							 parent_path = file_system_t::get_directory_of_file(asset_path.c_str());
+		const string_t							 asset_name	 = file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(asset_path));
+		const editor_asset_write_embedded_desc_t write_desc{
+			.embedded_source = &world_json,
+			.parent_path	 = parent_path.c_str(),
+			.name			 = asset_name.c_str(),
+			.guid			 = asset.guid != NULL_SID ? asset.guid : _main_world_asset_guid,
+			.asset_type		 = editor_asset_type_e::world,
+			.allow_overwrite = true,
+		};
+		if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
 		{
 			SFG_ERR("failed to save world asset {0}", asset_path.c_str());
 			return false;
@@ -455,7 +459,16 @@ namespace sfg
 		editor_project_t& project = editor_project_t::get();
 		project.last_world_guid	  = asset.guid;
 		project.save(project._runtime.path.c_str());
-		editor_asset_manager_util_t::rescan(editor_asset_manager_t::get(), editor_project_t::get()._runtime.assets_path.c_str());
+		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+		const editor_asset_node_handle_t existing_node = asset_manager.find_asset_node_handle(asset.guid);
+		if (!existing_node.is_null())
+			asset_manager.reload_asset_node(existing_node);
+		else
+		{
+			const editor_asset_node_handle_t parent_node = asset_manager.find_node_by_path(parent_path.c_str());
+			if (!parent_node.is_null())
+				asset_manager.add_path_node(parent_node, asset_path.c_str());
+		}
 		return true;
 	}
 

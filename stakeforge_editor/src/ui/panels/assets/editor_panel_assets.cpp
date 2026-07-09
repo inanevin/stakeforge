@@ -111,27 +111,20 @@ namespace sfg
 		filter_button_config.user_data					 = this;
 		_filter_button.init(ui, _assets_left_pane_top_row, filter_button_config);
 
-		editor_icon_button_config_t refresh_button_config = filter_button_config;
-		refresh_button_config.icon						  = ICON_IMPORT;
-		refresh_button_config.toggled_icon				  = ICON_IMPORT;
-		refresh_button_config.tooltip					  = "Import";
-		refresh_button_config.on_clicked				  = on_import_button_pressed;
-		_import_button.init(ui, _assets_left_pane_top_row, refresh_button_config);
-
-		refresh_button_config			   = filter_button_config;
-		refresh_button_config.icon		   = ICON_ROTATE;
-		refresh_button_config.toggled_icon = ICON_ROTATE;
-		refresh_button_config.tooltip	   = "Refresh";
-		refresh_button_config.on_clicked   = on_refresh_button_pressed;
-		_refresh_button.init(ui, _assets_left_pane_top_row, refresh_button_config);
+		editor_icon_button_config_t import_button_config = filter_button_config;
+		import_button_config.icon						 = ICON_IMPORT;
+		import_button_config.toggled_icon				 = ICON_IMPORT;
+		import_button_config.tooltip					 = "Import";
+		import_button_config.on_clicked					 = on_import_button_pressed;
+		_import_button.init(ui, _assets_left_pane_top_row, import_button_config);
 
 		u8*							search_field  = reinterpret_cast<u8*>(&_search_str);
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
 		search_config.field						  = {
-								  .fields = {.data = &search_field, .size = 1},
-								  .type	  = editor_input_field_field_type_e::string,
-		  };
+			.fields = {.data = &search_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
 		search_config.callbacks.edited	  = on_search_changed;
 		search_config.callbacks.user_data = this;
 		_search_input.init(ui, _assets_left_pane_top_row, search_config);
@@ -307,9 +300,9 @@ namespace sfg
 		editor_input_field_config_t asset_search_config = {};
 		asset_search_config.placeholder					= "Search";
 		asset_search_config.field						= {
-								  .fields = {.data = &asset_search_field, .size = 1},
-								  .type	  = editor_input_field_field_type_e::string,
-		  };
+			.fields = {.data = &asset_search_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
 		asset_search_config.callbacks.edited	= on_asset_search_changed;
 		asset_search_config.callbacks.user_data = this;
 		_asset_search_input.init(ui, _assets_body_pane_controls, asset_search_config);
@@ -373,7 +366,6 @@ namespace sfg
 		_search_input.uninit();
 		_filter_button.uninit();
 		_import_button.uninit();
-		_refresh_button.uninit();
 		_show_file_assets_button.uninit();
 		_asset_favourites_only_button.uninit();
 		_asset_search_input.uninit();

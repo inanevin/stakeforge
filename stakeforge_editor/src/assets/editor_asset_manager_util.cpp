@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/mutex.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -53,7 +54,9 @@ namespace sfg
 		{
 			string_t										target_directory;
 			vector_t<string_t>								paths;
+			vector_t<string_t>								imported_asset_paths;
 			vector_t<editor_asset_import_options_t>			import_options;
+			mutex_t											imported_asset_paths_mtx;
 			editor_asset_manager_util_t::import_progress_fn callback	   = nullptr;
 			void*											user_data	   = nullptr;
 			atomic_t<u32>									imported_count = 0;
@@ -66,11 +69,11 @@ namespace sfg
 			const u32				 count	  = state.imported_count.load(std::memory_order_relaxed);
 			const f32				 progress = state.total_count != 0 ? static_cast<f32>(count) / static_cast<f32>(state.total_count) : 1.0f;
 			if (state.callback != nullptr)
-				state.callback(state.user_data, progress, text, false);
+				state.callback(state.user_data, progress, text, false, {});
 		}
 	}
 
-	void editor_asset_manager_util_t::rescan(editor_asset_manager_t& asset_manager, const char* assets_dir)
+	void editor_asset_manager_util_t::build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir)
 	{
 		SFG_ASSERT(assets_dir != nullptr);
 		SFG_ASSERT(assets_dir[0] != '\0');
@@ -78,14 +81,16 @@ namespace sfg
 		vector_t<file_system_entry_t> entries;
 		file_system_t::get_entries_recursive(assets_dir, entries);
 
-		asset_manager._asset_tree.resize_zero();
-		asset_manager._asset_tree.reserve(static_cast<u32>(entries.size() + 1));
-		hash_map_t<u64, editor_asset_t> found_assets;
+		editor_asset_database_t& database = asset_manager._database;
+		database.clear();
+		database.reserve(static_cast<u32>(entries.size() + 1), static_cast<u32>(entries.size()));
+		hash_map_t<u64, bool> found_assets;
 		found_assets.reserve(entries.size());
 
-		const string_t root_name = file_system_t::get_last_folder_from_path(assets_dir);
-		const string_t root_path = assets_dir;
-		asset_manager._root_node = asset_manager._asset_tree.emplace(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
+		const string_t					 root_name = file_system_t::get_last_folder_from_path(assets_dir);
+		const string_t					 root_path = assets_dir;
+		const editor_asset_node_handle_t root_node = database.emplace_node(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
+		database.set_root_node(root_node);
 
 		vector_t<string_t> parts;
 		for (const file_system_entry_t& entry : entries)
@@ -94,7 +99,7 @@ namespace sfg
 			parts.resize(0);
 			string_util::split(parts, relative, "/");
 
-			editor_asset_node_handle_t parent			 = asset_manager._root_node;
+			editor_asset_node_handle_t parent			 = root_node;
 			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
 			for (size_t i = 0; i < folder_part_count; ++i)
 				parent = asset_manager.get_or_create_child_folder(parent, parts[i]);
@@ -120,53 +125,36 @@ namespace sfg
 					continue;
 				}
 
-				found_assets.emplace(asset_id, std::move(asset));
+				found_assets.emplace(asset_id, true);
+				database.upsert_asset(std::move(asset));
 
 				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
-				const editor_asset_node_handle_t asset_node = asset_manager._asset_tree.emplace(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = entry.path, .type = editor_asset_node_type_e::asset});
-				asset_manager._asset_tree.attach(parent, asset_node);
+				const editor_asset_node_handle_t asset_node = database.emplace_node(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = entry.path, .type = editor_asset_node_type_e::asset});
+				database.attach_node(parent, asset_node);
 			}
 			else
 			{
-				const editor_asset_node_handle_t file_node = asset_manager._asset_tree.emplace(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = editor_asset_node_type_e::file});
-				asset_manager._asset_tree.attach(parent, file_node);
+				const editor_asset_node_handle_t file_node = database.emplace_node(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = editor_asset_node_type_e::file});
+				database.attach_node(parent, file_node);
 			}
 		}
 
-		for (auto it = asset_manager._assets.begin(); it != asset_manager._assets.end();)
-		{
-			const u64 asset_id = it->first;
-			++it;
-			if (found_assets.find(asset_id) == found_assets.end())
-				asset_manager._assets.erase(asset_id);
-		}
-		for (auto& found : found_assets)
-			asset_manager._assets[found.first] = std::move(found.second);
-
+		database.rebuild_indices();
 		asset_manager._generation++;
 	}
 
 	void editor_asset_manager_util_t::ensure_integrity(editor_asset_manager_t& asset_manager)
 	{
-		const string_t&								assets_path = editor_project_t::get()._runtime.assets_path;
-		hash_map_t<u64, const editor_asset_node_t*> asset_nodes;
-		asset_nodes.reserve(asset_manager._assets.size());
-		for (auto it = asset_manager._asset_tree.begin_handle(); it != asset_manager._asset_tree.end_handle(); ++it)
+		const string_t&					 assets_path = editor_project_t::get()._runtime.assets_path;
+		hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
+		for (auto& asset_pair : assets)
 		{
-			const editor_asset_node_t& node = asset_manager._asset_tree.value(*it);
-			if (node.type == editor_asset_node_type_e::asset)
-				asset_nodes[node.asset_id] = &node;
-		}
-
-		for (auto& asset_pair : asset_manager._assets)
-		{
-			editor_asset_t& asset	 = asset_pair.second;
-			asset.status			 = editor_asset_status_e::ok;
-			const auto asset_node_it = asset_nodes.find(asset.guid);
-			SFG_ASSERT(asset_node_it != asset_nodes.end());
-			const editor_asset_node_t* asset_node	  = asset_node_it->second;
-			const auto				   descriptor_it  = asset_manager._asset_descriptors.find(asset.asset_type);
-			const char*				   asset_type_str = descriptor_it != asset_manager._asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
+			editor_asset_t& asset				  = asset_pair.second;
+			asset.status						  = editor_asset_status_e::ok;
+			const editor_asset_node_t* asset_node = asset_manager._database.find_asset_node_value(asset.guid);
+			SFG_ASSERT(asset_node != nullptr);
+			const auto	descriptor_it  = asset_manager._asset_descriptors.find(asset.asset_type);
+			const char* asset_type_str = descriptor_it != asset_manager._asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
 
 			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
 			{
@@ -188,7 +176,7 @@ namespace sfg
 			editor_asset_util_t::fetch_dependencies(asset, dependencies);
 			for (const sid_t dependency : dependencies)
 			{
-				if (asset_manager._assets.find(dependency) != asset_manager._assets.end())
+				if (assets.find(dependency) != assets.end())
 					continue;
 
 				if (asset.status == editor_asset_status_e::ok)
@@ -221,7 +209,7 @@ namespace sfg
 			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
 
 			report_progress(0.15f, "Scanning project assets");
-			editor_asset_manager_util_t::rescan(asset_manager, assets_path.c_str());
+			editor_asset_manager_util_t::build_asset_database(asset_manager, assets_path.c_str());
 
 			report_progress(0.3f, "Cleaning asset cache");
 
@@ -243,7 +231,7 @@ namespace sfg
 					if (file_system_t::get_file_extension(entry.path) == "sfg_thumb_bin")
 					{
 						bool found_thumbnail_asset = false;
-						for (const auto& asset_pair : asset_manager._assets)
+						for (const auto& asset_pair : asset_manager._database.get_assets())
 						{
 							if (editor_asset_thumbnailer_t::get_thumbnail_guid(asset_pair.second.guid) == guid)
 							{
@@ -266,9 +254,10 @@ namespace sfg
 			report_progress(0.45f, "Cooking project assets");
 			// cook missing files.
 			{
-				const size_t asset_count = asset_manager._assets.size();
-				size_t		 index		 = 0;
-				for (auto& asset_pair : asset_manager._assets)
+				hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
+				const size_t					 asset_count = assets.size();
+				size_t							 index		 = 0;
+				for (auto& asset_pair : assets)
 				{
 					editor_asset_t& asset = asset_pair.second;
 					SFG_ASSERT(asset_manager._asset_descriptors.find(asset.asset_type) != asset_manager._asset_descriptors.end());
@@ -296,9 +285,10 @@ namespace sfg
 			report_progress(0.7f, "Preparing asset thumbnails");
 			// ensure thumbs
 			{
-				const size_t asset_count = asset_manager._assets.size();
-				size_t		 index		 = 0;
-				for (auto& asset_pair : asset_manager._assets)
+				hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
+				const size_t					 asset_count = assets.size();
+				size_t							 index		 = 0;
+				for (auto& asset_pair : assets)
 				{
 					editor_asset_t& asset	 = asset_pair.second;
 					const f32		progress = asset_count != 0 ? 0.7f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.95f;
@@ -330,6 +320,7 @@ namespace sfg
 		state->target_directory		   = target_directory;
 		state->paths.reserve(paths.size);
 		state->import_options.reserve(import_options.size);
+		state->imported_asset_paths.reserve(paths.size);
 		for (size_t i = 0; i < paths.size; ++i)
 			state->paths.push_back(paths.data[i]);
 		for (size_t i = 0; i < import_options.size; ++i)
@@ -343,10 +334,11 @@ namespace sfg
 		{
 			import_flow.emplace([state, i]() {
 				vector_t<editor_asset_t> imported_assets;
+				vector_t<string_t>		 imported_asset_paths;
 				const string_t&			 path	  = state->paths[i];
 				const f32				 progress = state->total_count != 0 ? static_cast<f32>(state->imported_count.load(std::memory_order_relaxed)) / static_cast<f32>(state->total_count) : 1.0f;
 				if (state->callback != nullptr)
-					state->callback(state->user_data, progress, path.c_str(), false);
+					state->callback(state->user_data, progress, path.c_str(), false, {});
 
 				const span_t<const editor_asset_import_options_t> options = {
 					.data = state->import_options.data(),
@@ -357,25 +349,32 @@ namespace sfg
 					.set_status = report_import_status,
 				};
 
-				if (!editor_asset_importer_t::import_asset(state->target_directory.c_str(), path.c_str(), options, context, imported_assets))
+				if (!editor_asset_importer_t::import_asset(state->target_directory.c_str(), path.c_str(), options, context, imported_assets, imported_asset_paths))
 					SFG_ERR("failed importing asset {0}", path.c_str());
+				else
+				{
+					LOCK_GUARD(state->imported_asset_paths_mtx);
+					state->imported_asset_paths.reserve(state->imported_asset_paths.size() + imported_asset_paths.size());
+					for (string_t& asset_path : imported_asset_paths)
+						state->imported_asset_paths.push_back(std::move(asset_path));
+				}
 
 				const u32 imported_count = state->imported_count.fetch_add(1, std::memory_order_relaxed) + 1;
 				const f32 done_progress	 = state->total_count != 0 ? static_cast<f32>(imported_count) / static_cast<f32>(state->total_count) : 1.0f;
 				if (state->callback != nullptr)
-					state->callback(state->user_data, done_progress, path.c_str(), false);
+					state->callback(state->user_data, done_progress, path.c_str(), false, {});
 			});
 		}
 		executor.run(std::move(import_flow), [state]() {
 			if (state->callback != nullptr)
-				state->callback(state->user_data, 1.0f, "Import completed", true);
+				state->callback(state->user_data, 1.0f, "Import completed", true, {.data = state->imported_asset_paths.data(), .size = state->imported_asset_paths.size()});
 			delete state;
 		});
 	}
 
 	void editor_asset_manager_util_t::ensure_thumbnails_loaded(editor_asset_manager_t& asset_manager)
 	{
-		for (auto& asset_pair : asset_manager._assets)
+		for (auto& asset_pair : asset_manager._database.get_assets())
 		{
 			editor_asset_t& asset = asset_pair.second;
 			editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset);

@@ -120,6 +120,59 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_asset_writer_t::write_existing_file_asset(const editor_asset_write_existing_file_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
+	{
+		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
+		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
+		SFG_ASSERT(desc.parent_path != nullptr);
+		SFG_ASSERT(desc.parent_path[0] != '\0');
+		SFG_ASSERT(desc.source_full_path != nullptr);
+		SFG_ASSERT(desc.source_full_path[0] != '\0');
+
+		if (!editor_directories_t::is_valid_asset_name(desc.name))
+			return false;
+
+		const string_t asset_path = editor_asset_util_t::make_asset_path(desc.parent_path, desc.name);
+		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
+		{
+			SFG_ERR("can't write asset as asset with this name already exists! {0}", asset_path.c_str());
+			return false;
+		}
+
+		sid_t guid = desc.guid;
+		if (guid == NULL_SID && desc.allow_overwrite)
+			guid = editor_asset_util_t::try_read_existing_guid(asset_path.c_str());
+		if (guid == NULL_SID)
+			guid = editor_asset_util_t::generate_unique_asset_guid();
+
+		editor_asset_t asset = {};
+		asset.version		 = editor_asset_t::VERSION;
+		asset.guid			 = guid;
+		asset.asset_type	 = desc.asset_type;
+		asset.source_type	 = desc.source_type;
+		asset.sub_type		 = desc.sub_type;
+		if (desc.cook_options != nullptr)
+			editor_asset_util_t::set_cook_options_json(asset, *desc.cook_options);
+
+		if (!editor_asset_util_t::set_source_relative_or_copy(asset, desc.parent_path, desc.name, desc.source_full_path))
+		{
+			SFG_ERR("failed to set source for asset {0}", desc.name);
+			return false;
+		}
+
+		if (!editor_asset_util_t::write_asset(asset_path.c_str(), asset))
+		{
+			SFG_ERR("failed to write file asset {0}", asset_path.c_str());
+			return false;
+		}
+
+		if (out_asset != nullptr)
+			*out_asset = asset;
+		if (out_asset_path != nullptr)
+			*out_asset_path = asset_path;
+		return true;
+	}
+
 	bool editor_asset_writer_t::write_embedded_asset(const editor_asset_write_embedded_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
 		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);

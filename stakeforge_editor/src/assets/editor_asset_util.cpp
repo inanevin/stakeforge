@@ -27,11 +27,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_dependencies.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
-#include <sfg/data/char_util.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -192,168 +194,81 @@ namespace sfg
 			return true;
 		}
 
-		nlohmann::json parse_json_string(const string_t& text, const nlohmann::json& fallback)
-		{
-			if (text.empty())
-				return fallback;
-
-			const nlohmann::json parsed = nlohmann::json::parse(text, nullptr, false);
-			return parsed.is_discarded() ? fallback : parsed;
-		}
-
-		string_t json_to_string(const nlohmann::json& json, bool keep_null)
-		{
-			return !keep_null && json.is_null() ? string_t{} : string_t(json.dump());
-		}
 	}
 
 	bool editor_asset_util_t::read_asset(const char* path, editor_asset_t& out_asset)
 	{
-		const string_t		 json_text = file_system_t::read_file_as_string(path);
-		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
-		if (doc.is_discarded())
-		{
-			SFG_ERR("failed to parse asset {0}", path);
-			return false;
-		}
-
-		doc.get_to(out_asset);
-		return true;
+		return editor_asset_io_t::read_asset(path, out_asset);
 	}
 
 	bool editor_asset_util_t::write_asset(const char* path, const editor_asset_t& asset)
 	{
-		const nlohmann::json json_data = asset;
-		const string_t		 data	   = json_data.dump(4);
-		return serializer_t::write_to_file(string_view_t(data.data(), data.size()), path);
+		return editor_asset_io_t::write_asset(path, asset);
 	}
 
 	string_t editor_asset_util_t::normalize_directory(const char* directory)
 	{
-		string_t result = directory != nullptr ? directory : "";
-		if (!result.empty() && result.back() != '/')
-			result += '/';
-		return result;
+		return editor_asset_path_t::normalize_directory(directory);
 	}
 
 	string_t editor_asset_util_t::make_asset_path(const char* directory, const char* asset_name)
 	{
-		string_t result = normalize_directory(directory);
-		result += asset_name != nullptr ? asset_name : "";
-		result += ".sfg_asset";
-		return result;
+		return editor_asset_path_t::make_asset_path(directory, asset_name);
 	}
 
 	string_t editor_asset_util_t::make_blob_path(const char* directory, const char* asset_name)
 	{
-		string_t result = normalize_directory(directory);
-		result += asset_name != nullptr ? asset_name : "";
-		result += ".sfg_bin";
-		return result;
+		return editor_asset_path_t::make_blob_path(directory, asset_name);
 	}
 
 	string_t editor_asset_util_t::make_source_path(const char* directory, const char* file_name, const char* extension)
 	{
-		string_t result = normalize_directory(directory);
-		result += file_name != nullptr ? file_name : "";
-
-		string_t ext = extension != nullptr ? extension : "";
-		if (!ext.empty() && ext[0] != '.')
-			ext.insert(ext.begin(), '.');
-
-		result += ext;
-		return result;
+		return editor_asset_path_t::make_source_path(directory, file_name, extension);
 	}
 
 	string_t editor_asset_util_t::make_unique_source_path(const char* directory, const char* file_name, const char* extension)
 	{
-		string_t	   result		   = make_source_path(directory, file_name, extension);
-		size_t		   insert_position = result.size();
-		const string_t ext			   = extension != nullptr ? extension : "";
-		if (!ext.empty())
-			insert_position -= ext[0] == '.' ? ext.size() : ext.size() + 1;
-		while (file_system_t::exists(result.c_str()))
-		{
-			result.insert(insert_position, " (Copy)");
-			insert_position += 7;
-		}
-
-		return result;
+		return editor_asset_path_t::make_unique_source_path(directory, file_name, extension);
 	}
 
 	string_t editor_asset_util_t::get_cache_path_for_asset(const editor_asset_t& asset)
 	{
-		string_t result = editor_project_t::get()._runtime.cache_path;
-
-		char  guid_text[32] = {};
-		char* guid_text_cur = guid_text;
-		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), asset.guid))
-			SFG_ASSERT(false);
-
-		result += guid_text;
-		result += ".sfg_bin";
-		return result;
+		return editor_asset_path_t::get_cache_path_for_asset(asset);
 	}
 
 	string_t editor_asset_util_t::get_thumbnail_cache_path_for_asset(const editor_asset_t& asset)
 	{
-		string_t result = editor_project_t::get()._runtime.cache_path;
-
-		char  guid_text[32] = {};
-		char* guid_text_cur = guid_text;
-		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid)))
-			SFG_ASSERT(false);
-
-		result += guid_text;
-		result += ".sfg_thumb_bin";
-		return result;
+		return editor_asset_path_t::get_thumbnail_cache_path_for_asset(asset);
 	}
 
 	string_t editor_asset_util_t::get_source_full_path(const char* assets_path, const editor_asset_t& asset)
 	{
-		SFG_ASSERT(!asset.source_relative.empty());
-		string_t result = file_system_t::get_absolute_path(assets_path);
-		result += asset.source_relative;
-		SFG_ASSERT(file_system_t::exists(result.c_str()));
-		return result;
+		return editor_asset_path_t::get_source_full_path(assets_path, asset);
 	}
 
 	string_t editor_asset_util_t::get_source_relative(const char* assets_path, const char* source_full_path)
 	{
-		if (source_full_path == nullptr || source_full_path[0] == '\0')
-			return {};
-
-		string_t normalized_assets_path		  = file_system_t::get_absolute_path(assets_path);
-		string_t normalized_assets_path_lower = normalized_assets_path;
-		string_util::to_lower(normalized_assets_path_lower);
-
-		const string_t normalized_source_path		= file_system_t::get_absolute_path(source_full_path);
-		string_t	   normalized_source_path_lower = normalized_source_path;
-		string_util::to_lower(normalized_source_path_lower);
-		if (normalized_source_path_lower.rfind(normalized_assets_path_lower, 0) != 0)
-			return {};
-
-		return file_system_t::get_relative(normalized_assets_path.c_str(), normalized_source_path.c_str());
+		return editor_asset_path_t::get_source_relative(assets_path, source_full_path);
 	}
 
 	nlohmann::json editor_asset_util_t::get_embedded_source_json(const editor_asset_t& asset)
 	{
-		return parse_json_string(asset.embedded_source, nlohmann::json());
+		return editor_asset_io_t::get_embedded_source_json(asset);
 	}
 
 	nlohmann::json editor_asset_util_t::get_cook_options_json(const editor_asset_t& asset)
 	{
-		return parse_json_string(asset.cook_options, nlohmann::json::object());
+		return editor_asset_io_t::get_cook_options_json(asset);
 	}
 
 	void editor_asset_util_t::set_embedded_source_json(editor_asset_t& asset, const nlohmann::json& source)
 	{
-		asset.embedded_source = json_to_string(source, false);
+		editor_asset_io_t::set_embedded_source_json(asset, source);
 	}
 
 	void editor_asset_util_t::set_cook_options_json(editor_asset_t& asset, const nlohmann::json& options)
 	{
-		asset.cook_options = json_to_string(options.is_null() ? nlohmann::json::object() : options, true);
+		editor_asset_io_t::set_cook_options_json(asset, options);
 	}
 
 	bool editor_asset_util_t::set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path)
@@ -386,46 +301,12 @@ namespace sfg
 
 	bool editor_asset_util_t::is_source_inside_assets(const char* assets_path, const char* source_full_path)
 	{
-		return !get_source_relative(assets_path, source_full_path).empty();
+		return editor_asset_path_t::is_source_inside_assets(assets_path, source_full_path);
 	}
 
 	void editor_asset_util_t::fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies)
 	{
-		const auto push_dependency = [&](sid_t dependency) {
-			if (dependency != NULL_SID)
-				out_dependencies.push_back(dependency);
-		};
-
-		switch (asset.asset_type)
-		{
-		case editor_asset_type_e::mesh:
-		case editor_asset_type_e::material: {
-			const nlohmann::json embedded_source = get_embedded_source_json(asset);
-			if (!embedded_source.is_object())
-				break;
-
-			push_dependency(embedded_source.value<sid_t>("shader", NULL_SID));
-			push_dependency(embedded_source.value<sid_t>("sampler", NULL_SID));
-			const vector_t<sid_t> textures = embedded_source.value<vector_t<sid_t>>("textures", {});
-			out_dependencies.reserve(out_dependencies.size() + textures.size());
-			for (const sid_t texture : textures)
-				push_dependency(texture);
-			break;
-		}
-		case editor_asset_type_e::prefab: {
-			const nlohmann::json embedded_source = get_embedded_source_json(asset);
-			if (!embedded_source.is_object())
-				break;
-
-			const vector_t<sid_t> resources = embedded_source.value<vector_t<sid_t>>("resources", {});
-			out_dependencies.reserve(out_dependencies.size() + resources.size());
-			for (const sid_t resource : resources)
-				push_dependency(resource);
-			break;
-		}
-		default:
-			break;
-		}
+		editor_asset_dependencies_t::fetch_dependencies(asset, out_dependencies);
 	}
 
 	sid_t editor_asset_util_t::generate_unique_asset_guid(span_t<const sid_t> pending_guids)
@@ -461,25 +342,18 @@ namespace sfg
 		if (guid == NULL_SID)
 			return nullptr;
 
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		for (auto it = tree.begin_handle(); it != tree.end_handle(); ++it)
-		{
-			const editor_asset_node_t& node = tree.value(*it);
-			if (node.type == editor_asset_node_type_e::asset && node.asset_id == guid)
-				return &node;
-		}
-		return nullptr;
+		return editor_asset_manager_t::get().find_asset_node(guid);
 	}
 
 	string_t editor_asset_util_t::find_asset_path(sid_t guid)
 	{
-		const editor_asset_node_t* node = find_asset_node(guid);
+		const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(guid);
 		return node != nullptr ? node->full_path : string_t{};
 	}
 
 	const char* editor_asset_util_t::find_asset_display_name(sid_t guid)
 	{
-		const editor_asset_node_t* node = find_asset_node(guid);
+		const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(guid);
 		return node != nullptr ? node->name.c_str() : nullptr;
 	}
 

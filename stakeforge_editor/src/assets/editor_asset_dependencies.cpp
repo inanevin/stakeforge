@@ -25,36 +25,39 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "assets/editor_asset_dependencies.hpp"
+#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_io.hpp"
 
-#include <sfg/data/string.hpp>
-#include <sfg/data/tree.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_node_type_e : u8
+	void editor_asset_dependencies_t::fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies)
 	{
-		folder,
-		file,
-		asset,
-	};
+		const auto push_dependency = [&](sid_t dependency) {
+			if (dependency != NULL_SID)
+				out_dependencies.push_back(dependency);
+		};
 
-	enum editor_asset_node_flags_e : u8
-	{
-		editor_asset_node_flag_hidden	= 1 << 0, // folder name begins with '_' — never shown in the assets panel
-		editor_asset_node_flag_promoted = 1 << 1, // root assets folder — its rows are collapsed into the parent listing
-	};
+		switch (asset.asset_type)
+		{
+		case editor_asset_type_e::mesh:
+		case editor_asset_type_e::material: {
+			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+			if (!embedded_source.is_object())
+				break;
 
-	struct editor_asset_node_t
-	{
-		u64						 asset_id = 0;
-		string_t				 name;
-		string_t				 full_path;
-		editor_asset_node_type_e type  = editor_asset_node_type_e::folder;
-		u8						 flags = 0;
-	};
-
-	using editor_asset_node_handle_t = pool_handle_t<u32, editor_asset_node_t>;
-	using editor_asset_tree_t		 = tree_t<editor_asset_node_t>;
+			push_dependency(embedded_source.value<sid_t>("shader", NULL_SID));
+			push_dependency(embedded_source.value<sid_t>("sampler", NULL_SID));
+			const vector_t<sid_t> textures = embedded_source.value<vector_t<sid_t>>("textures", {});
+			out_dependencies.reserve(out_dependencies.size() + textures.size());
+			for (const sid_t texture : textures)
+				push_dependency(texture);
+			break;
+		}
+		default:
+			break;
+		}
+	}
 }

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "editor_app.hpp"
@@ -53,40 +54,95 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	namespace
+	bool editor_panel_assets_t::create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node, bool allow_overwrite)
 	{
-		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node)
+		if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
+			return false;
+
+		world_t& world = editor_world_controller_t::get().get_editor_world(entity_payload.world)->get_world();
+		if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
+			return false;
+
+		nlohmann::json prefab_json = {};
+		world_cooker_t::entity_to_json(world, entity_payload.entity, prefab_json, false);
+		if (prefab_json.is_null())
+			return false;
+
+		const char* const				 entity_name = world.get_entity_name(entity_payload.entity);
+		const string_t					 name		 = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
+		const string_t					 json_text	 = prefab_json.dump();
+		const editor_asset_create_desc_t desc{
+			.parent_node	 = parent_node,
+			.name			 = name.c_str(),
+			.embedded_data	 = json_text.c_str(),
+			.asset_type		 = editor_asset_type_e::prefab,
+			.allow_overwrite = allow_overwrite,
+		};
+		editor_asset_t asset = {};
+		if (!editor_asset_creator_t::create_asset(desc, &asset))
+			return false;
+
+		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+		const string_t					 asset_path	   = editor_asset_util_t::make_asset_path(asset_manager.get_asset_tree().value(parent_node).full_path.c_str(), name.c_str());
+		const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
+		if (!existing.is_null())
+			asset_manager.reload_asset_node(existing);
+		else
+			asset_manager.add_path_node(parent_node, asset_path.c_str());
+		world.make_prefab_chain(entity_payload.entity, asset.guid);
+		world.refresh_prefab_instances(asset.guid, entity_payload.entity);
+		editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
+		return true;
+	}
+
+	bool editor_panel_assets_t::create_prefabs_from_entity_payloads(span_t<const editor_entity_payload_t> entities, editor_asset_node_handle_t parent_node, bool allow_overwrite)
+	{
+		if (entities.data == nullptr || entities.size == 0)
+			return false;
+
+		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+		SFG_ASSERT(!parent_node.is_null());
+		SFG_ASSERT(tree.is_valid(parent_node));
+		const editor_asset_node_t& parent = tree.value(parent_node);
+		SFG_ASSERT(parent.type == editor_asset_node_type_e::folder);
+
+		if (!allow_overwrite)
 		{
-			if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
-				return false;
+			vector_t<string_t> rows;
+			for (size_t i = 0; i < entities.size; ++i)
+			{
+				const editor_entity_payload_t& entity_payload = entities.data[i];
+				if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
+					continue;
 
-			world_t& world = editor_world_controller_t::get().get_editor_world(entity_payload.world)->get_world();
-			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
-				return false;
+				world_t& world = editor_world_controller_t::get().get_editor_world(entity_payload.world)->get_world();
+				if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
+					continue;
 
-			nlohmann::json prefab_json = {};
-			world_cooker_t::entity_to_json(world, entity_payload.entity, prefab_json, false);
-			if (prefab_json.is_null())
-				return false;
+				const char* const entity_name = world.get_entity_name(entity_payload.entity);
+				const string_t	  name		  = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
+				const string_t	  asset_path  = editor_asset_util_t::make_asset_path(parent.full_path.c_str(), name.c_str());
+				string_t		  row;
+				if (find_matching_asset_override(asset_path.c_str(), editor_asset_type_e::prefab, &row))
+					rows.push_back(row);
+			}
 
-			const char* const				 entity_name = world.get_entity_name(entity_payload.entity);
-			const string_t					 name		 = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
-			const string_t					 json_text	 = prefab_json.dump();
-			const editor_asset_create_desc_t desc{
-				.parent_node   = parent_node,
-				.name		   = name.c_str(),
-				.embedded_data = json_text.c_str(),
-				.asset_type	   = editor_asset_type_e::prefab,
-			};
-			editor_asset_t asset = {};
-			if (!editor_asset_creator_t::create_asset(desc, &asset))
-				return false;
-
-			world.make_prefab_chain(entity_payload.entity, asset.guid);
-			world.refresh_prefab_instances(asset.guid, entity_payload.entity);
-			editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
-			return true;
+			if (!rows.empty())
+			{
+				_pending_override_target_folder = parent_node;
+				_pending_override_entities.resize(0);
+				_pending_override_entities.reserve(entities.size);
+				for (size_t i = 0; i < entities.size; ++i)
+					_pending_override_entities.push_back(entities.data[i]);
+				request_assets_override(asset_override_operation_e::create_prefabs, "One or more prefabs already exist. Overwrite matching prefab assets?", rows);
+				return true;
+			}
 		}
+
+		bool created = false;
+		for (size_t i = 0; i < entities.size; ++i)
+			created = create_prefab_from_entity_payload(entities.data[i], parent_node, allow_overwrite) || created;
+		return created;
 	}
 
 	void editor_panel_assets_t::on_filter_popup_pressed(u16 value, void* user_data)
@@ -115,14 +171,6 @@ namespace sfg
 		process::select_files("Import Assets", ASSETS_IMPORT_FILE_EXTENSIONS, paths);
 		if (!paths.empty())
 			panel.import_assets(paths);
-	}
-
-	void editor_panel_assets_t::on_refresh_button_pressed(bool, void* user_data)
-	{
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		panel.clear_asset_grid_selection();
-		editor_asset_manager_util_t::rescan(editor_asset_manager_t::get(), editor_project_t::get()._runtime.assets_path.c_str());
-		panel.refresh_folder_rows();
 	}
 
 	void editor_panel_assets_t::on_action_menu_command(u16 command, void* user_data)
@@ -493,18 +541,18 @@ namespace sfg
 		if (payload.type == editor_payload_type_e::entity)
 		{
 			const editor_entity_payload_t& entity = *static_cast<const editor_entity_payload_t*>(payload.user_ptr);
-			moved								  = create_prefab_from_entity_payload(entity, target_folder);
-			prefab_created						  = moved;
+			moved								  = panel.create_prefabs_from_entity_payloads({.data = &entity, .size = 1}, target_folder, false);
+			if (panel._pending_override_operation == asset_override_operation_e::create_prefabs)
+				return true;
+			prefab_created = moved;
 		}
 		else if (payload.type == editor_payload_type_e::entity_multi)
 		{
 			const vector_t<editor_entity_payload_t>& entities = *static_cast<const vector_t<editor_entity_payload_t>*>(payload.user_ptr);
-			for (const editor_entity_payload_t& entity : entities)
-			{
-				const bool created = create_prefab_from_entity_payload(entity, target_folder);
-				prefab_created	   = created || prefab_created;
-				moved			   = created || moved;
-			}
+			moved											  = panel.create_prefabs_from_entity_payloads({.data = entities.data(), .size = entities.size()}, target_folder, false);
+			if (panel._pending_override_operation == asset_override_operation_e::create_prefabs)
+				return true;
+			prefab_created = moved;
 		}
 		else if (payload.type == editor_payload_type_e::folder)
 		{
@@ -538,18 +586,21 @@ namespace sfg
 			panel._payload_asset_nodes.resize(0);
 			panel._payload_asset_nodes.push_back(payload_node);
 			moved = panel.move_payload_assets(panel._payload_asset_nodes, target_folder);
+			if (panel._pending_override_operation == asset_override_operation_e::move_assets)
+				return true;
 		}
 		else
 		{
 			const vector_t<editor_asset_node_handle_t>& nodes = *static_cast<const vector_t<editor_asset_node_handle_t>*>(payload.user_ptr);
 			moved											  = panel.move_payload_assets(nodes, target_folder);
+			if (panel._pending_override_operation == asset_override_operation_e::move_assets)
+				return true;
 		}
 
 		if (!moved)
 			return false;
 
 		panel.clear_asset_grid_selection();
-		editor_asset_manager_util_t::rescan(editor_asset_manager_t::get(), editor_project_t::get()._runtime.assets_path.c_str());
 		panel.refresh_folder_rows();
 		if (prefab_created)
 		{
