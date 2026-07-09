@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_payload_controller.hpp"
@@ -275,7 +276,7 @@ namespace sfg
 				continue;
 
 			const editor_asset_node_t& target_node = tree.value(target_folder_node);
-			const string_t			   new_path	   = editor_asset_util_t::normalize_directory(target_node.full_path.c_str()) + folder_node.name;
+			const string_t			   new_path	   = editor_asset_path_t::normalize_directory(target_node.full_path.c_str()) + folder_node.name;
 			if (editor_asset_util_t::move_folder(node, target_folder_node))
 			{
 				asset_manager.move_node(node, target_folder_node, new_path.c_str());
@@ -296,7 +297,7 @@ namespace sfg
 		SFG_ASSERT(tree.is_valid(target_folder_node));
 		const editor_asset_node_t& target_node = tree.value(target_folder_node);
 		SFG_ASSERT(target_node.type == editor_asset_node_type_e::folder);
-		const string_t target_directory = editor_asset_util_t::normalize_directory(target_node.full_path.c_str());
+		const string_t target_directory = editor_asset_path_t::normalize_directory(target_node.full_path.c_str());
 
 		if (!allow_overwrite)
 		{

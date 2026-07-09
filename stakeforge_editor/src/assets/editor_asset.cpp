@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset.hpp"
-#include "assets/editor_asset_util.hpp"
+#include "assets/editor_asset_io.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -52,8 +52,8 @@ namespace sfg
 		asset.thumbnail_guid = j.value<sid_t>("thumbnail_guid", NULL_SID);
 		asset.asset_type	 = j.value<editor_asset_type_e>("asset_type", j.value<editor_asset_type_e>("resource_type", j.value<editor_asset_type_e>("type", editor_asset_type_e::invalid)));
 		asset.sub_type		 = j.value<u8>("sub_type", 0);
-		editor_asset_util_t::set_embedded_source_json(asset, j.value<nlohmann::json>("embedded_source", nlohmann::json()));
-		editor_asset_util_t::set_cook_options_json(asset, j.value<nlohmann::json>("cook_options", nlohmann::json::object()));
+		editor_asset_io_t::set_embedded_source_json(asset, j.value<nlohmann::json>("embedded_source", nlohmann::json()));
+		editor_asset_io_t::set_cook_options_json(asset, j.value<nlohmann::json>("cook_options", nlohmann::json::object()));
 		asset.source_relative = j.value<string_t>("source_relative", {});
 		asset.source_type	  = j.value<editor_asset_source_type_e>("source_type", editor_asset_source_type_e::file);
 		asset.status		  = editor_asset_status_e::ok;
@@ -85,8 +85,8 @@ namespace sfg
 		j["thumbnail_guid"]	 = asset.thumbnail_guid;
 		j["asset_type"]		 = asset.asset_type;
 		j["sub_type"]		 = asset.sub_type;
-		j["embedded_source"] = editor_asset_util_t::get_embedded_source_json(asset);
-		j["cook_options"]	 = editor_asset_util_t::get_cook_options_json(asset);
+		j["embedded_source"] = editor_asset_io_t::get_embedded_source_json(asset);
+		j["cook_options"]	 = editor_asset_io_t::get_cook_options_json(asset);
 		j["source_relative"] = asset.source_relative;
 		j["source_type"]	 = asset.source_type;
 	}

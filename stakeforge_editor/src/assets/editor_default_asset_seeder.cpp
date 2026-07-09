@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_writer.hpp"
 #include "editor_project.hpp"
@@ -74,13 +76,13 @@ namespace sfg
 
 		bool is_default_asset_ready(const char* default_assets_dir, const char* asset_name, sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
 		{
-			const string_t asset_path = editor_asset_util_t::make_asset_path(default_assets_dir, asset_name);
+			const string_t asset_path = editor_asset_path_t::make_asset_path(default_assets_dir, asset_name);
 			editor_asset_t asset	  = {};
 
 			if (!file_system_t::exists(asset_path.c_str()))
 				return false;
 
-			if (!editor_asset_util_t::read_asset(asset_path.c_str(), asset))
+			if (!editor_asset_io_t::read_asset(asset_path.c_str(), asset))
 				return false;
 
 			if (asset.guid != guid || asset.asset_type != asset_type || asset.sub_type != sub_type)
@@ -95,7 +97,7 @@ namespace sfg
 			{
 				if (asset.source_relative.empty())
 					return false;
-				const string_t source_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+				const string_t source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 				if (!file_system_t::exists(source_path.c_str()))
 					return false;
 			}

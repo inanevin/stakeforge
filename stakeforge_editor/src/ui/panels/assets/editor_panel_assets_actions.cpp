@@ -25,9 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/assets/editor_panel_assets.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "editor_app.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
@@ -330,7 +332,7 @@ namespace sfg
 			return;
 
 		const string_t assets_path	   = editor_project_t::get()._runtime.assets_path;
-		const string_t source_relative = editor_asset_util_t::get_source_relative(assets_path.c_str(), selected_file.c_str());
+		const string_t source_relative = editor_asset_path_t::get_source_relative(assets_path.c_str(), selected_file.c_str());
 		if (source_relative.empty())
 		{
 			SFG_ERR("selected source file is not relative to assets directory {0}", selected_file.c_str());
@@ -339,7 +341,7 @@ namespace sfg
 
 		editor_asset_t fixed_asset	= *asset;
 		fixed_asset.source_relative = source_relative;
-		if (!editor_asset_util_t::write_asset(asset_node.full_path.c_str(), fixed_asset))
+		if (!editor_asset_io_t::write_asset(asset_node.full_path.c_str(), fixed_asset))
 			return;
 
 		asset_manager.reload_asset_node(_selected_asset_node);
@@ -371,7 +373,7 @@ namespace sfg
 		if (parent_path.empty())
 			return;
 
-		string_t folder_path = editor_asset_util_t::normalize_directory(parent_path.c_str());
+		string_t folder_path = editor_asset_path_t::normalize_directory(parent_path.c_str());
 		folder_path += folder_name;
 		if (file_system_t::exists(folder_path.c_str()))
 			return;
@@ -449,7 +451,7 @@ namespace sfg
 			return;
 
 		vector_t<string_t> rows;
-		const string_t	   asset_path = editor_asset_util_t::make_asset_path(get_selected_folder_path(), name);
+		const string_t	   asset_path = editor_asset_path_t::make_asset_path(get_selected_folder_path(), name);
 		string_t		   row;
 		if (find_matching_asset_override(asset_path.c_str(), desc.asset_type, &row))
 		{
@@ -476,7 +478,7 @@ namespace sfg
 			return false;
 
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
-		const string_t					 asset_path	   = editor_asset_util_t::make_asset_path(get_selected_folder_path(), asset_name.c_str());
+		const string_t					 asset_path	   = editor_asset_path_t::make_asset_path(get_selected_folder_path(), asset_name.c_str());
 		const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
 		if (!existing.is_null())
 			asset_manager.reload_asset_node(existing);
@@ -551,7 +553,7 @@ namespace sfg
 			return false;
 
 		editor_asset_t existing = {};
-		if (!editor_asset_util_t::read_asset(path, existing))
+		if (!editor_asset_io_t::read_asset(path, existing))
 			return false;
 		if (existing.asset_type != asset_type)
 			return false;

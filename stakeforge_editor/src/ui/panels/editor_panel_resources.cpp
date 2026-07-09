@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/panels/editor_panel_resources.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -292,7 +293,7 @@ namespace sfg
 				descriptor = &desc_it->second;
 		}
 
-		string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(hash);
+		string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(hash);
 		if (asset == nullptr && !file_system_t::exists(cache_path.c_str()))
 			cache_path = editor_directories_t::get_editor_resource_cache() + hash_text + ".sfg_bin";
 

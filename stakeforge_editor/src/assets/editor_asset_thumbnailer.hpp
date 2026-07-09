@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_type.hpp"
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/span.hpp>
 
 namespace sfg
 {
@@ -50,6 +51,7 @@ namespace sfg
 		editor_asset_thumbnailer_t& operator=(const editor_asset_thumbnailer_t&) = delete;
 
 		static void	 generate_thumbnail(const editor_asset_t& asset);
+		static sid_t make_thumbnail_guid(editor_asset_type_e asset_type, span_t<const sid_t> pending_guids = {});
 		static sid_t get_builtin_thumbnail_guid(editor_asset_type_e asset_type);
 	};
 }

@@ -28,8 +28,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager_util.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_dependencies.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_default_asset_seeder.hpp"
 #include "editor_mesh_generator.hpp"
 #include "editor_project.hpp"
@@ -122,7 +125,7 @@ namespace sfg
 			editor_asset_t asset = {};
 			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
 			{
-				if (!editor_asset_util_t::read_asset(entry.path.c_str(), asset))
+				if (!editor_asset_io_t::read_asset(entry.path.c_str(), asset))
 					continue;
 
 				const u64 asset_id = asset.guid;
@@ -143,20 +146,30 @@ namespace sfg
 				}
 
 				used_guids.push_back(asset.guid);
-				bool rewrite_asset = false;
-				if (asset.thumbnail_guid == NULL_SID || contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset.thumbnail_guid) || asset.thumbnail_guid == asset.guid)
+				bool		rewrite_asset		   = false;
+				const sid_t builtin_thumbnail_guid = editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset.asset_type);
+				if (builtin_thumbnail_guid != NULL_SID)
 				{
-					asset.thumbnail_guid = editor_asset_util_t::generate_unique_asset_guid({.data = used_guids.data(), .size = used_guids.size()});
+					if (asset.thumbnail_guid != builtin_thumbnail_guid)
+					{
+						asset.thumbnail_guid = builtin_thumbnail_guid;
+						rewrite_asset		 = true;
+					}
+				}
+				else if (asset.thumbnail_guid == NULL_SID || contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset.thumbnail_guid) || asset.thumbnail_guid == asset.guid)
+				{
+					asset.thumbnail_guid = editor_asset_thumbnailer_t::make_thumbnail_guid(asset.asset_type, {.data = used_guids.data(), .size = used_guids.size()});
 					rewrite_asset		 = true;
 				}
-				if (rewrite_asset && !editor_asset_util_t::write_asset(entry.path.c_str(), asset))
+				if (rewrite_asset && !editor_asset_io_t::write_asset(entry.path.c_str(), asset))
 				{
 					SFG_ERR("failed to update asset thumbnail guid {0}", entry.path.c_str());
 					continue;
 				}
 
 				found_assets.emplace(asset_id, true);
-				used_guids.push_back(asset.thumbnail_guid);
+				if (builtin_thumbnail_guid == NULL_SID)
+					used_guids.push_back(asset.thumbnail_guid);
 				database.upsert_asset(std::move(asset));
 
 				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
@@ -204,7 +217,7 @@ namespace sfg
 			}
 
 			vector_t<sid_t> dependencies;
-			editor_asset_util_t::fetch_dependencies(asset, dependencies);
+			editor_asset_dependencies_t::fetch_dependencies(asset, dependencies);
 			for (const sid_t dependency : dependencies)
 			{
 				if (assets.find(dependency) != assets.end())
@@ -326,7 +339,7 @@ namespace sfg
 					report_progress(progress, "Preparing asset thumbnails");
 					++index;
 
-					const string_t thumb_cache = editor_asset_util_t::get_cache_path_for_guid(asset.thumbnail_guid);
+					const string_t thumb_cache = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
 					if (!file_system_t::exists(thumb_cache.c_str()))
 						editor_asset_thumbnailer_t::generate_thumbnail(asset);
 				}

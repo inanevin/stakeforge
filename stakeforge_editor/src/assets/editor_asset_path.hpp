@@ -50,6 +50,7 @@ namespace sfg
 		static string_t get_cache_path_for_guid(sid_t guid);
 		static string_t get_source_full_path(const char* assets_path, const editor_asset_t& asset);
 		static string_t get_source_relative(const char* assets_path, const char* source_full_path);
+		static bool		set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path);
 		static bool		is_source_inside_assets(const char* assets_path, const char* source_full_path);
 		static u64		hash_path(const char* path);
 	};

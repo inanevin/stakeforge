@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
@@ -83,7 +84,7 @@ namespace sfg
 			return false;
 
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
-		const string_t					 asset_path	   = editor_asset_util_t::make_asset_path(asset_manager.get_asset_tree().value(parent_node).full_path.c_str(), name.c_str());
+		const string_t					 asset_path	   = editor_asset_path_t::make_asset_path(asset_manager.get_asset_tree().value(parent_node).full_path.c_str(), name.c_str());
 		const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
 		if (!existing.is_null())
 			asset_manager.reload_asset_node(existing);
@@ -121,7 +122,7 @@ namespace sfg
 
 				const char* const entity_name = world.get_entity_name(entity_payload.entity);
 				const string_t	  name		  = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
-				const string_t	  asset_path  = editor_asset_util_t::make_asset_path(parent.full_path.c_str(), name.c_str());
+				const string_t	  asset_path  = editor_asset_path_t::make_asset_path(parent.full_path.c_str(), name.c_str());
 				string_t		  row;
 				if (find_matching_asset_override(asset_path.c_str(), editor_asset_type_e::prefab, &row))
 					rows.push_back(row);

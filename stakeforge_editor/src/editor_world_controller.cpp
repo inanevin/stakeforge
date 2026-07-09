@@ -26,11 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_world_controller.hpp"
-#include "assets/editor_asset_util.hpp"
 #include "editor_app.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/editor_asset_path.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_writer.hpp"
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
@@ -366,7 +368,7 @@ namespace sfg
 		else
 		{
 			world_t&			 world			 = _worlds.get(handle)->get_world();
-			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
+			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
 			install_editor_camera(world);
@@ -376,7 +378,7 @@ namespace sfg
 		set_main_world(handle, asset_guid, asset_name != nullptr ? asset_name : "unnamed");
 		if (!asset->embedded_source.empty())
 		{
-			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
+			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			_worlds.get(_main_world)->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
 			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
@@ -417,7 +419,7 @@ namespace sfg
 			file_system_t::fix_path(asset_path);
 			if (file_system_t::get_file_extension(asset_path) != "sfg_asset")
 				asset_path += ".sfg_asset";
-			if (!editor_asset_util_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
+			if (!editor_asset_path_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
 			{
 				SFG_ERR("world save path is outside project assets directory {0}", asset_path.c_str());
 				return false;

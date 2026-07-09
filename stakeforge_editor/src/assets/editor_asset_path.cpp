@@ -131,6 +131,34 @@ namespace sfg
 		return file_system_t::get_relative(normalized_assets_path.c_str(), normalized_source_path.c_str());
 	}
 
+	bool editor_asset_path_t::set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path)
+	{
+		SFG_ASSERT(asset_directory != nullptr);
+		SFG_ASSERT(asset_directory[0] != '\0');
+		SFG_ASSERT(asset_name != nullptr);
+		SFG_ASSERT(asset_name[0] != '\0');
+		SFG_ASSERT(source_full_path != nullptr);
+		SFG_ASSERT(source_full_path[0] != '\0');
+
+		const string_t source_path = file_system_t::get_absolute_path(source_full_path);
+		SFG_ASSERT(file_system_t::exists(source_path.c_str()));
+
+		const string_t assets_path = editor_project_t::get()._runtime.assets_path;
+		asset.source_relative	   = get_source_relative(assets_path.c_str(), source_path.c_str());
+		if (!asset.source_relative.empty())
+			return true;
+
+		const string_t source_extension	  = file_system_t::get_file_extension(source_path);
+		const string_t target_source_path = make_source_path(asset_directory, asset_name, source_extension.c_str());
+		if (!file_system_t::copy_file(source_path.c_str(), target_source_path.c_str()))
+			return false;
+
+		SFG_ASSERT(file_system_t::exists(target_source_path.c_str()));
+		asset.source_relative = get_source_relative(assets_path.c_str(), target_source_path.c_str());
+		SFG_ASSERT(!asset.source_relative.empty());
+		return true;
+	}
+
 	bool editor_asset_path_t::is_source_inside_assets(const char* assets_path, const char* source_full_path)
 	{
 		return !get_source_relative(assets_path, source_full_path).empty();

@@ -26,10 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset.hpp"
-#include "editor_project.hpp"
 #include "editor_asset_thumbnailer.hpp"
+#include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_path.hpp"
+#include "assets/editor_asset_util.hpp"
+#include "editor_project.hpp"
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
@@ -82,7 +84,7 @@ namespace sfg
 			editor_asset_thumbnailer_t::generate_thumbnail(asset);
 
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
-			const string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(asset.guid);
+			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.guid);
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))
 			{
 				SFG_ERR("failed to create asset cache directory {0}", cache_dir.c_str());
@@ -99,7 +101,7 @@ namespace sfg
 			header.set_debug_name(resolved_asset_name.c_str());
 			if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 			{
-				const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+				const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 				header.file_source_ticks		= file_system_t::get_last_modified_ticks(source_full_path.c_str());
 			}
 
@@ -175,7 +177,7 @@ namespace sfg
 		if (!is_cookable(asset.asset_type))
 			return false;
 
-		const string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(asset.guid);
+		const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.guid);
 		if (!file_system_t::exists(cache_path.c_str()))
 			return false;
 
@@ -191,7 +193,7 @@ namespace sfg
 			return false;
 		if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 		{
-			const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+			const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 			return header.file_source_ticks == file_system_t::get_last_modified_ticks(source_full_path.c_str());
 		}
 		return true;
@@ -203,7 +205,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
 		audio_cook_config_t	 config		  = {};
-		const nlohmann::json cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		const nlohmann::json cook_options = editor_asset_io_t::get_cook_options_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize audio cook options for asset {0}", asset.guid);
@@ -212,7 +214,7 @@ namespace sfg
 
 		resource_header_t header = {};
 		ostream_t		  stream;
-		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!audio_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
 			SFG_ERR("failed to cook audio asset {0}", asset.guid);
@@ -227,7 +229,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
 		shader_cook_config_t config		  = {};
-		const nlohmann::json cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		const nlohmann::json cook_options = editor_asset_io_t::get_cook_options_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize shader cook options for asset {0}", asset.guid);
@@ -236,7 +238,7 @@ namespace sfg
 
 		resource_header_t header = {};
 		ostream_t		  stream;
-		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
 			SFG_ERR("failed to cook shader asset {0}", asset.guid);
@@ -251,7 +253,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
 		material_def_t		 def			 = {};
-		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize material definition for asset {0}", asset.guid);
@@ -274,7 +276,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
 		sampler_desc_t		 desc			 = {};
-		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &desc, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize texture sampler description for asset {0}", asset.guid);
@@ -297,7 +299,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
 		physical_material_def_t def				= {};
-		const nlohmann::json	embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		const nlohmann::json	embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<physical_material_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize physical material definition for asset {0}", asset.guid);
@@ -329,7 +331,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
 		texture_cook_config_t config	   = {};
-		const nlohmann::json  cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		const nlohmann::json  cook_options = editor_asset_io_t::get_cook_options_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<texture_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize texture cook options for asset {0}", asset.guid);
@@ -339,7 +341,7 @@ namespace sfg
 		resource_header_t header = {};
 		ostream_t		  stream;
 
-		const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 
 		if (!texture_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
@@ -357,7 +359,7 @@ namespace sfg
 		resource_header_t header = {};
 		ostream_t		  stream;
 
-		const string_t source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 
 		if (!font_cooker::cook_from_file({}, source_full_path.c_str(), header, stream))
 		{
@@ -373,7 +375,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
 		skeleton_def_t		 def			 = {};
-		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize skeleton definition for asset {0}", asset.guid);
@@ -396,7 +398,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
 		animation_def_t		 def			 = {};
-		const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(asset);
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
@@ -420,7 +422,7 @@ namespace sfg
 
 		resource_header_t header = {};
 		ostream_t		  stream;
-		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!mesh_cooker::cook_from_file(source_full_path.c_str(), header, stream))
 		{
 			SFG_ERR("failed to cook mesh asset {0}", asset.guid);
@@ -435,7 +437,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
 		skybox_hdr_cook_config_t config		  = {};
-		const nlohmann::json	 cook_options = editor_asset_util_t::get_cook_options_json(asset);
+		const nlohmann::json	 cook_options = editor_asset_io_t::get_cook_options_json(asset);
 		if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &config, nullptr, cook_options))
 		{
 			SFG_ERR("failed to deserialize HDR skybox cook options for asset {0}", asset.guid);
@@ -444,7 +446,7 @@ namespace sfg
 
 		resource_header_t header = {};
 		ostream_t		  stream;
-		const string_t	  source_full_path = editor_asset_util_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!skybox_hdr_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
 			SFG_ERR("failed to cook HDR skybox asset {0}", asset.guid);

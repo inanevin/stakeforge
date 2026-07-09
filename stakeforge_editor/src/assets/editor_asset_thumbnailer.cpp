@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_project.hpp"
 
@@ -235,7 +236,7 @@ namespace sfg
 			header.set_debug_name(name.c_str());
 
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
-			const string_t cache_path = editor_asset_util_t::get_cache_path_for_guid(asset.thumbnail_guid);
+			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))
 			{
 				SFG_ERR("failed to create asset cache directory {0}", cache_dir.c_str());
@@ -276,6 +277,12 @@ namespace sfg
 			filled = fill_font_thumbnail(asset, pixels);
 		if (filled)
 			save_thumbnail(asset, pixels);
+	}
+
+	sid_t editor_asset_thumbnailer_t::make_thumbnail_guid(editor_asset_type_e asset_type, span_t<const sid_t> pending_guids)
+	{
+		const sid_t builtin_guid = get_builtin_thumbnail_guid(asset_type);
+		return builtin_guid != NULL_SID ? builtin_guid : editor_asset_util_t::generate_unique_asset_guid(pending_guids);
 	}
 
 	sid_t editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(editor_asset_type_e asset_type)

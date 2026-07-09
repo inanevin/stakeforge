@@ -29,10 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_node.hpp"
 
-#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -46,23 +44,6 @@ namespace sfg
 		editor_asset_util_t(const editor_asset_util_t&)			   = delete;
 		editor_asset_util_t& operator=(const editor_asset_util_t&) = delete;
 
-		static bool						  read_asset(const char* path, editor_asset_t& out_asset);
-		static bool						  write_asset(const char* path, const editor_asset_t& asset);
-		static string_t					  normalize_directory(const char* directory);
-		static string_t					  make_asset_path(const char* directory, const char* asset_name);
-		static string_t					  make_blob_path(const char* directory, const char* asset_name);
-		static string_t					  make_source_path(const char* directory, const char* file_name, const char* extension);
-		static string_t					  make_unique_source_path(const char* directory, const char* file_name, const char* extension);
-		static string_t					  get_cache_path_for_guid(sid_t guid);
-		static string_t					  get_source_full_path(const char* assets_path, const editor_asset_t& asset);
-		static string_t					  get_source_relative(const char* assets_path, const char* source_full_path);
-		static nlohmann::json			  get_embedded_source_json(const editor_asset_t& asset);
-		static nlohmann::json			  get_cook_options_json(const editor_asset_t& asset);
-		static void						  set_embedded_source_json(editor_asset_t& asset, const nlohmann::json& source);
-		static void						  set_cook_options_json(editor_asset_t& asset, const nlohmann::json& options);
-		static bool						  set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path);
-		static bool						  is_source_inside_assets(const char* assets_path, const char* source_full_path);
-		static void						  fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies);
 		static sid_t					  generate_unique_asset_guid(span_t<const sid_t> pending_guids = {});
 		static sid_t					  try_read_existing_guid(const char* path);
 		static const editor_asset_node_t* find_asset_node(sid_t guid);

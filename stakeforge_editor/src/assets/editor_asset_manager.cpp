@@ -466,7 +466,7 @@ namespace sfg
 
 		const u8				   flags	 = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
 		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
-		string_t				   full_path = editor_asset_util_t::normalize_directory(tree.value(parent).full_path.c_str());
+		string_t				   full_path = editor_asset_path_t::normalize_directory(tree.value(parent).full_path.c_str());
 		full_path += name;
 		const editor_asset_node_handle_t folder = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = full_path, .type = editor_asset_node_type_e::folder, .flags = flags});
 		_database.attach_node(parent, folder);

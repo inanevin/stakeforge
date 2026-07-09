@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_glb_importer.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_writer.hpp"
 #include "editor_app.hpp"
@@ -908,7 +909,7 @@ namespace sfg
 				stbi_image_free(decoded);
 				return false;
 			}
-			const string_t source_path = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
+			const string_t source_path = editor_asset_path_t::make_source_path(target_directory, asset_name.c_str(), "png");
 			if (stbi_write_png(source_path.c_str(), decoded_width, decoded_height, 4, decoded, decoded_width * 4) == 0)
 			{
 				SFG_ERR("failed to write GLB texture source {0}", source_path.c_str());
@@ -1011,7 +1012,7 @@ namespace sfg
 				return false;
 			}
 
-			const string_t source_path = editor_asset_util_t::make_source_path(target_directory, asset_name.c_str(), "png");
+			const string_t source_path = editor_asset_path_t::make_source_path(target_directory, asset_name.c_str(), "png");
 			if (stbi_write_png(source_path.c_str(), static_cast<int>(width), static_cast<int>(height), 4, pixels.data(), static_cast<int>(width * 4)) == 0)
 			{
 				SFG_ERR("failed to write GLB ORM texture source {0}", source_path.c_str());
@@ -1505,7 +1506,7 @@ namespace sfg
 				return false;
 			}
 
-			const string_t blob_path = editor_asset_util_t::make_blob_path(target_directory, asset_name.c_str());
+			const string_t blob_path = editor_asset_path_t::make_blob_path(target_directory, asset_name.c_str());
 			ostream_t	   mesh_def_stream;
 			if (!serialize_reflected_to_stream(mesh_def, mesh_def_stream))
 			{
@@ -1900,7 +1901,7 @@ namespace sfg
 		string_t	   status			= "Copying GLB ";
 		status += glb_asset_name;
 		context.report_status(status.c_str());
-		if (!editor_asset_util_t::set_source_relative_or_copy(glb_source_asset, target_directory, glb_asset_name.c_str(), source_full_path))
+		if (!editor_asset_path_t::set_source_relative_or_copy(glb_source_asset, target_directory, glb_asset_name.c_str(), source_full_path))
 		{
 			SFG_ERR("failed to copy GLB source {0}", source_full_path);
 			return false;
