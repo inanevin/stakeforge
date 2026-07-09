@@ -28,11 +28,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "common_editor.hpp"
-#include "world/editor_world.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -43,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class editor_command_system_t;
+	class editor_world_t;
 	class world_t;
 	struct world_init_config_t;
 	struct world_render_snapshot_t;
@@ -86,52 +88,17 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
-		inline const world_render_context_t& get_world_render_context(editor_world_handle_t handle) const
-		{
-			return _worlds.get(handle).get_render_context();
-		}
-
-		inline editor_world_edit_context_t& get_edit_context(editor_world_handle_t handle)
-		{
-			return _worlds.get(handle).get_edit_context();
-		}
-
-		inline const editor_world_edit_context_t& get_edit_context(editor_world_handle_t handle) const
-		{
-			return _worlds.get(handle).get_edit_context();
-		}
-
-		inline editor_world_edit_context_t& get_main_edit_context()
-		{
-			return _worlds.get(_main_world).get_edit_context();
-		}
-
-		inline const editor_world_edit_context_t& get_main_edit_context() const
-		{
-			return _worlds.get(_main_world).get_edit_context();
-		}
-
-		inline editor_world_t& get_editor_world(editor_world_handle_t handle)
+		inline editor_world_t* get_editor_world(editor_world_handle_t handle)
 		{
 			return _worlds.get(handle);
 		}
 
-		inline const editor_world_t& get_editor_world(editor_world_handle_t handle) const
+		inline const editor_world_t* get_editor_world(editor_world_handle_t handle) const
 		{
 			return _worlds.get(handle);
 		}
 
-		inline world_t& get_world(editor_world_handle_t handle)
-		{
-			return _worlds.get(handle).get_world();
-		}
-
-		inline const world_t& get_world(editor_world_handle_t handle) const
-		{
-			return _worlds.get(handle).get_world();
-		}
-
-		inline editor_world_handle_t get_main_world() const
+		inline editor_world_handle_t get_main_world_handle() const
 		{
 			return _main_world;
 		}
@@ -192,29 +159,29 @@ namespace sfg
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
-		dynamic_gen_pool_t<editor_world_t, u32, editor_world_handle_tag_t> _worlds;
-		vector_t<acquired_render_world_t>								   _render_worlds;
-		string_t														   _main_world_name;
-		vec3f_t															   _direction_input				  = vec3f_t::zero;
-		vec2f_t															   _mouse_delta					  = vec2f_t::zero;
-		editor_world_handle_t											   _main_world					  = {};
-		sid_t															   _main_world_asset_guid		  = NULL_SID;
-		sid_t															   _pending_main_world_asset_guid = NULL_SID;
-		entity_id_t														   _main_camera_entity			  = NULL_ENTITY_ID;
-		pool_handle_t<u32, editor_command_listener_tag_t>				   _command_listener			  = {};
-		i64																   _previous_time_us			  = 0;
-		i64																   _accumulator_us				  = 0;
-		atomic_t<i64>													   _last_fixed_step_us			  = 0;
-		atomic_t<i64>													   _fixed_step_us				  = 0;
-		f32																   _render_alpha				  = 0.0f;
-		f32																   _camera_yaw_degrees			  = 0.0f;
-		f32																   _camera_pitch_degrees		  = 0.0f;
-		f32																   _current_move_speed			  = 12.0f;
-		u32																   _world_physics_rate			  = 100;
-		bool															   _world_panel_focused			  = false;
-		bool															   _main_world_dirty			  = false;
-		bool															   _is_looking					  = false;
-		bool															   _init						  = false;
+		dynamic_gen_pool_t<editor_world_t*, u32, editor_world_handle_tag_t> _worlds;
+		vector_t<acquired_render_world_t>									_render_worlds;
+		string_t															_main_world_name;
+		vec3f_t																_direction_input			   = vec3f_t::zero;
+		vec2f_t																_mouse_delta				   = vec2f_t::zero;
+		editor_world_handle_t												_main_world					   = {};
+		sid_t																_main_world_asset_guid		   = NULL_SID;
+		sid_t																_pending_main_world_asset_guid = NULL_SID;
+		entity_id_t															_main_camera_entity			   = NULL_ENTITY_ID;
+		pool_handle_t<u32, editor_command_listener_tag_t>					_command_listener			   = {};
+		i64																	_previous_time_us			   = 0;
+		i64																	_accumulator_us				   = 0;
+		atomic_t<i64>														_last_fixed_step_us			   = 0;
+		atomic_t<i64>														_fixed_step_us				   = 0;
+		f32																	_render_alpha				   = 0.0f;
+		f32																	_camera_yaw_degrees			   = 0.0f;
+		f32																	_camera_pitch_degrees		   = 0.0f;
+		f32																	_current_move_speed			   = 12.0f;
+		u32																	_world_physics_rate			   = 100;
+		bool																_world_panel_focused		   = false;
+		bool																_main_world_dirty			   = false;
+		bool																_is_looking					   = false;
+		bool																_init						   = false;
 
 		static inline editor_world_controller_t* s_instance = nullptr;
 	};

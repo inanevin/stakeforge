@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_inspector.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "editor_app.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
@@ -45,25 +46,21 @@ namespace sfg
 	{
 		save_scroll_state();
 		save_display_state();
-		_display_type		  = editor_inspector_display_type_e::none;
-		_display_world		  = nullptr;
-		_display_world_handle = {};
+		_display_type = editor_inspector_display_type_e::none;
 		_display_entities.resize(0);
 		refresh_display();
 	}
 
-	void editor_widget_inspector_t::set_display_entity(editor_world_handle_t world, entity_id_t entity)
+	void editor_widget_inspector_t::set_display_entity(entity_id_t entity)
 	{
 		const entity_id_t entities[] = {entity};
-		set_display_entity(world, {.data = entities, .size = 1});
+		set_display_entity({.data = entities, .size = 1});
 	}
 
-	void editor_widget_inspector_t::set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities)
+	void editor_widget_inspector_t::set_display_entity(span_t<const entity_id_t> entities)
 	{
 		save_scroll_state();
-		_display_type		  = editor_inspector_display_type_e::entity;
-		_display_world_handle = world;
-		_display_world		  = &editor_world_controller_t::get().get_world(world);
+		_display_type = editor_inspector_display_type_e::entity;
 		_display_entities.assign(entities.data, entities.data + entities.size);
 		_skip_scroll_state_save = true;
 		refresh_display();
@@ -90,13 +87,13 @@ namespace sfg
 
 	void editor_widget_inspector_t::refresh_from_selection()
 	{
-		if (_edit_context.is_null())
+		if (_edit_world.is_null())
 		{
 			set_display_none();
 			return;
 		}
 
-		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
+		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 		const editor_world_handle_t		world	   = controller.get_world();
 		if (world.is_null() || selected.size == 0)
@@ -106,9 +103,9 @@ namespace sfg
 		}
 
 		if (selected.size == 1)
-			set_display_entity(world, selected.data[0]);
+			set_display_entity(selected.data[0]);
 		else
-			set_display_entity(world, selected);
+			set_display_entity(selected);
 	}
 
 	bool editor_widget_inspector_t::can_mutate_ui_topology() const
@@ -248,15 +245,16 @@ namespace sfg
 		if (_display_entities.empty())
 			return;
 
+		world_t&		  world			 = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		const bool		  prefab_blocked = _allow_prefab_blocks && is_selection_prefab_referenced();
 		const entity_id_t first_entity	 = _display_entities.front();
 		_entity_info					 = new editor_widget_entity_info_t();
 		_entity_info_fold				 = new editor_widget_fold_t();
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = !prefab_blocked});
-		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _display_world_handle, .is_prefab = prefab_blocked});
+		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _edit_world, .is_prefab = prefab_blocked});
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
 		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edit_submitted = on_entity_info_edit_submitted, .user_data = this});
-		_entity_info->set_entities(*_display_world, {.data = _display_entities.data(), .size = _display_entities.size()});
+		_entity_info->set_entities(world, {.data = _display_entities.data(), .size = _display_entities.size()});
 
 		if (!prefab_blocked)
 		{
@@ -266,7 +264,7 @@ namespace sfg
 			_ui->get_input().set_listener(_entity_info_fold->get_settings_button(), entity_info_settings_listener);
 		}
 
-		for (const ecs_component_table_t& component_table : _display_world->get_component_tables())
+		for (const ecs_component_table_t& component_table : world.get_component_tables())
 		{
 			if (!ecs_t::table_has(component_table, first_entity))
 				continue;
@@ -312,7 +310,7 @@ namespace sfg
 										  },
 									  .objects	   = {.data = display.objects.data(), .size = display.objects.size()},
 									  .type_id	   = component_table.type_desc.type_id,
-									  .world	   = _display_world_handle,
+									  .world	   = _edit_world,
 									  .block_edits = prefab_blocked,
 								  });
 
@@ -359,7 +357,7 @@ namespace sfg
 									   },
 								   .objects		= {.data = display->objects.data(), .size = display->objects.size()},
 								   .type_id		= display->type_id,
-								   .world		= _display_world_handle,
+								   .world		= _edit_world,
 								   .block_edits = prefab_blocked,
 							   });
 	}
@@ -367,10 +365,11 @@ namespace sfg
 	bool editor_widget_inspector_t::serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const
 	{
 		out_streams.resize(0);
-		if (_display_world == nullptr || entities.size == 0)
+		if (_edit_world.is_null() || entities.size == 0)
 			return false;
 
-		ecs_component_table_t& table = _display_world->get_component_table(component_type);
+		world_t&			   world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		ecs_component_table_t& table = world.get_component_table(component_type);
 
 		out_streams.reserve(entities.size);
 		for (size_t i = 0; i < entities.size; ++i)
@@ -395,18 +394,20 @@ namespace sfg
 	bool editor_widget_inspector_t::read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const
 	{
 		out_infos.resize(0);
-		if (_display_world == nullptr || entities.size == 0)
+		if (_edit_world.is_null() || entities.size == 0)
 			return false;
 
+		world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		out_infos.reserve(entities.size);
 		for (size_t i = 0; i < entities.size; ++i)
-			out_infos.push_back(editor_commands_entity_info_t::read(*_display_world, entities.data[i]));
+			out_infos.push_back(editor_commands_entity_info_t::read(world, entities.data[i]));
 		return true;
 	}
 
 	bool editor_widget_inspector_t::is_selection_prefab_referenced() const
 	{
-		const ecs_component_table_t& prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
+		world_t&					 world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
 		for (entity_id_t entity : _display_entities)
 		{
 			if (ecs_t::table_has(prefab_table, entity))
@@ -417,7 +418,8 @@ namespace sfg
 
 	void editor_widget_inspector_t::break_prefabs()
 	{
-		const ecs_component_table_t& prefab_table = _display_world->get_component_table(type_id_t<component_prefab_reference_t>::value);
+		world_t&					 world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
 		frame_vector_t<entity_id_t>	 roots;
 		roots.reserve(_display_entities.size());
 
@@ -426,7 +428,7 @@ namespace sfg
 			if (!ecs_t::table_has(prefab_table, entity))
 				continue;
 
-			for (entity_id_t current = entity; current != NULL_ENTITY_ID; current = _display_world->get_entity_parent(current))
+			for (entity_id_t current = entity; current != NULL_ENTITY_ID; current = world.get_entity_parent(current))
 			{
 				const component_prefab_reference_t* ref = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, current);
 				if (ref != nullptr && ref->is_root)
@@ -439,11 +441,11 @@ namespace sfg
 		}
 
 		for (entity_id_t root : roots)
-			_display_world->break_prefab_chain(root);
+			world.break_prefab_chain(root);
 
 		if (!roots.empty())
 		{
-			editor_world_controller_t::get().mark_world_dirty(_display_world_handle);
+			editor_world_controller_t::get().mark_world_dirty(_edit_world);
 			refresh_display();
 
 			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
@@ -471,7 +473,7 @@ namespace sfg
 		vector_t<editor_entity_info_data_t> post_infos;
 		if (read_entity_infos({.data = _entity_info_edit_entities.data(), .size = _entity_info_edit_entities.size()}, post_infos))
 		{
-			editor_commands_entity_info_t::edit(_display_world_handle,
+			editor_commands_entity_info_t::edit(_edit_world,
 												{.data = _entity_info_edit_entities.data(), .size = _entity_info_edit_entities.size()},
 												{.data = _entity_info_edit_prev_infos.data(), .size = _entity_info_edit_prev_infos.size()},
 												{.data = post_infos.data(), .size = post_infos.size()});
@@ -507,7 +509,7 @@ namespace sfg
 		vector_t<ostream_t> post_streams;
 		if (serialize_component_streams(component_type, {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()}, post_streams))
 		{
-			editor_command_component_edit_t::edit(_display_world_handle,
+			editor_command_component_edit_t::edit(_edit_world,
 												  {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()},
 												  component_type,
 												  {.data = _component_edit_prev_streams.data(), .size = _component_edit_prev_streams.size()},

@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -132,7 +133,7 @@ namespace sfg
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
 		_world				 = nullptr;
-		_edit_context		 = {};
+		_edit_world			 = {};
 		_last_resize_request = vec2u16_t::zero;
 		_empty_label		 = NULL_WIDGET;
 		_world_view			 = NULL_WIDGET;
@@ -141,21 +142,20 @@ namespace sfg
 		_ui					 = nullptr;
 	}
 
-	void editor_widget_world_view_t::set_edit_context(editor_world_handle_t context)
+	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
 	{
-		_edit_context = context;
+		_edit_world = world;
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 
-		if (_edit_context.is_null())
+		if (_edit_world.is_null())
 		{
 			clear_world();
 			return;
 		}
 
-		editor_world_controller_t&	controller = editor_world_controller_t::get();
-		const editor_world_handle_t world	   = controller.get_edit_context(_edit_context).get_world();
-		_world								   = &controller.get_world_render_context(world);
+		editor_world_controller_t& controller = editor_world_controller_t::get();
+		_world								  = &controller.get_editor_world(_edit_world)->get_render_context();
 		request_world_resize(true);
 		refresh_world_texture();
 
@@ -188,20 +188,19 @@ namespace sfg
 
 	void editor_widget_world_view_t::request_world_resize(bool force)
 	{
-		if (_edit_context.is_null())
+		if (_edit_world.is_null())
 			return;
 
 		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
 		const vec2u16_t			resolution{
-					.x = static_cast<u16>(math::clamp(out.size.x, 1.0f, 65535.0f) + 0.5f),
-					.y = static_cast<u16>(math::clamp(out.size.y, 1.0f, 65535.0f) + 0.5f),
+			.x = static_cast<u16>(math::clamp(out.size.x, 1.0f, 65535.0f) + 0.5f),
+			.y = static_cast<u16>(math::clamp(out.size.y, 1.0f, 65535.0f) + 0.5f),
 		};
 		if (!force && _last_resize_request == resolution)
 			return;
 
-		_last_resize_request				  = resolution;
-		editor_world_controller_t& controller = editor_world_controller_t::get();
-		controller.resize_world(controller.get_edit_context(_edit_context).get_world(), resolution);
+		_last_resize_request = resolution;
+		editor_world_controller_t::get().resize_world(_edit_world, resolution);
 	}
 
 	void editor_widget_world_view_t::refresh_world_texture()
@@ -245,19 +244,18 @@ namespace sfg
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
-		if (widget._edit_context.is_null())
+		if (widget._edit_world.is_null())
 			return false;
 
-		const editor_world_handle_t world = editor_world_controller_t::get().get_edit_context(widget._edit_context).get_world();
-		const ui::layout_out_t&		out	  = widget._ui->get_tree().out(widget._world_view);
-		const vec2f_t&				mouse = widget._ui->get_input().get_mouse_position();
+		const ui::layout_out_t& out	  = widget._ui->get_tree().out(widget._world_view);
+		const vec2f_t&			mouse = widget._ui->get_input().get_mouse_position();
 		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(mouse))
 			return false;
 
 		return editor_asset_spawn_t::spawn_from_payload({
 			.payload	= &payload,
 			.screen_pos = mouse,
-			.world		= world,
+			.world		= widget._edit_world,
 			.parent		= NULL_ENTITY_ID,
 		});
 	}

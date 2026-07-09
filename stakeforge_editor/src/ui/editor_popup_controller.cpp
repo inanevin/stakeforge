@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/editor_popup_controller.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -237,9 +238,9 @@ namespace sfg
 		editor_input_field_config_t asset_search_config		= {};
 		asset_search_config.placeholder						= "Search";
 		asset_search_config.field							= {
-									  .fields = {.data = &asset_search_text_field, .size = 1},
-									  .type	  = editor_input_field_field_type_e::string,
-		  };
+			.fields = {.data = &asset_search_text_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
 		asset_search_config.callbacks.edited	= on_asset_search_changed;
 		asset_search_config.callbacks.user_data = this;
 		_asset_search_input.init(ui, _asset_search_row, asset_search_config);
@@ -276,9 +277,9 @@ namespace sfg
 		u8*							input_text_field = reinterpret_cast<u8*>(&_input_text);
 		editor_input_field_config_t input_config	 = {};
 		input_config.field							 = {
-									  .fields = {.data = &input_text_field, .size = 1},
-									  .type	  = editor_input_field_field_type_e::string,
-		  };
+			.fields = {.data = &input_text_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
 		input_config.callbacks.edit_submitted = on_input_submitted;
 		input_config.callbacks.user_data	  = this;
 		_input.init(ui, _foreground, input_config);
@@ -877,7 +878,7 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_items.push_back({.name = "None", .guid = static_cast<sid_t>(NULL_ENTITY_GUID)});
 
-		const world_t&				 world		 = editor_world_controller_t::get().get_world(_entity_desc.world);
+		const world_t&				 world		 = editor_world_controller_t::get().get_editor_world(_entity_desc.world)->get_world();
 		const ecs_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t* guid_table	 = world.find_component_table(type_id_t<component_guid_t>::value);
 		const ecs_component_table_t* name_table	 = world.find_component_table(type_id_t<component_name_t>::value);

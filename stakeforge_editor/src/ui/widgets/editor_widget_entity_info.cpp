@@ -27,6 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -57,7 +58,7 @@ namespace sfg
 	void editor_widget_entity_info_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_info_config_t& config)
 	{
 		_ui							= &ui;
-		_world						= &editor_world_controller_t::get().get_world(config.world);
+		_world						= &editor_world_controller_t::get().get_editor_world(config.world)->get_world();
 		_break_prefab_callback		= config.break_prefab;
 		_break_prefab_user_data		= config.user_data;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -85,10 +86,10 @@ namespace sfg
 		name_config.callbacks.edit_submitted	= on_name_input_submitted;
 		name_config.callbacks.user_data			= this;
 		name_config.field						= {
-								  .fields	  = {.data = &name_field, .size = 1},
-								  .field_size = sizeof(component_name_t::text),
-								  .type		  = editor_input_field_field_type_e::char_array,
-		  };
+			.fields		= {.data = &name_field, .size = 1},
+			.field_size = sizeof(component_name_t::text),
+			.type		= editor_input_field_field_type_e::char_array,
+		};
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
 

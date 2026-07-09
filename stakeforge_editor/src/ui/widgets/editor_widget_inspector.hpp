@@ -85,12 +85,12 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_display_none();
-		void set_display_entity(editor_world_handle_t world, entity_id_t entity);
-		void set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities);
+		void set_display_entity(entity_id_t entity);
+		void set_display_entity(span_t<const entity_id_t> entities);
 		void refresh_display();
 		void refresh_from_selection();
 		void refresh_component_reflection(sid_t component_type);
-		void set_edit_context(editor_world_handle_t context);
+		void set_edit_world(editor_world_handle_t world);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -199,9 +199,7 @@ namespace sfg
 		editor_widget_fold_t*							  _entity_info_fold			   = nullptr;
 		editor_widget_entity_info_t*					  _entity_info				   = nullptr;
 		editor_button_t*								  _add_component_button		   = nullptr;
-		world_t*										  _display_world			   = nullptr;
 		ui::ui_context*									  _ui						   = nullptr;
-		editor_world_handle_t							  _display_world_handle		   = {};
 		ui::widget_id_t									  _root						   = NULL_WIDGET;
 		ui::widget_id_t									  _scroll_area				   = NULL_WIDGET;
 		ui::widget_id_t									  _column					   = NULL_WIDGET;
@@ -209,7 +207,7 @@ namespace sfg
 		editor_entity_info_data_t						  _copied_entity_info		   = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			   = {};
 		editor_selection_listener_handle_t				  _selection_listener		   = {};
-		editor_world_handle_t							  _edit_context				   = {};
+		editor_world_handle_t							  _edit_world				   = {};
 		sid_t											  _copied_component_type	   = 0;
 		sid_t											  _action_menu_type_id		   = 0;
 		sid_t											  _pending_component_type	   = 0;

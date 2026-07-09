@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
-#include "editor_world_controller.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 
 namespace sfg
@@ -45,7 +44,6 @@ namespace sfg
 						{
 							.allow_prefab_blocks = true,
 						});
-		_inspector.set_edit_context(editor_world_controller_t::get().get_main_world());
 		_inspector.refresh_from_selection();
 	}
 
@@ -60,14 +58,14 @@ namespace sfg
 		_inspector.set_display_none();
 	}
 
-	void editor_panel_inspector_t::set_display_entity(editor_world_handle_t world, entity_id_t entity)
+	void editor_panel_inspector_t::set_display_entity(entity_id_t entity)
 	{
-		_inspector.set_display_entity(world, entity);
+		_inspector.set_display_entity(entity);
 	}
 
-	void editor_panel_inspector_t::set_display_entity(editor_world_handle_t world, span_t<const entity_id_t> entities)
+	void editor_panel_inspector_t::set_display_entity(span_t<const entity_id_t> entities)
 	{
-		_inspector.set_display_entity(world, entities);
+		_inspector.set_display_entity(entities);
 	}
 
 	void editor_panel_inspector_t::refresh_display()
@@ -85,8 +83,8 @@ namespace sfg
 		_inspector.refresh_component_reflection(component_type);
 	}
 
-	void editor_panel_inspector_t::set_edit_context(editor_world_handle_t context)
+	void editor_panel_inspector_t::set_edit_world(editor_world_handle_t world)
 	{
-		_inspector.set_edit_context(context);
+		_inspector.set_edit_world(world);
 	}
 }

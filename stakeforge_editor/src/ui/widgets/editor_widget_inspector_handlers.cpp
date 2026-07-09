@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_inspector.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "commands/editor_commands_component.hpp"
@@ -52,9 +53,9 @@ namespace sfg
 			inspector_entity_info_action_menu_paste,
 		};
 
-		bool get_selected_entities_from_panel(editor_world_handle_t context, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
+		bool get_selected_entities_from_panel(editor_world_handle_t edit_world, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
 		{
-			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(context);
+			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(edit_world)->get_edit_context();
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;
@@ -85,7 +86,7 @@ namespace sfg
 		case inspector_entity_info_action_menu_paste: {
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
-			if (get_selected_entities_from_panel(panel._edit_context, entities, world) && panel._copied_entity_info_valid)
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world) && panel._copied_entity_info_valid)
 				editor_commands_entity_info_t::paste(world, entities, panel._copied_entity_info);
 			break;
 		}
@@ -145,21 +146,21 @@ namespace sfg
 		case inspector_component_action_menu_paste: {
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
-			if (get_selected_entities_from_panel(panel._edit_context, entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
 				editor_commands_component_t::paste(world, entities, panel._action_menu_type_id, panel._copied_component_stream.get_raw(), panel._copied_component_stream.get_size());
 			break;
 		}
 		case inspector_component_action_menu_reset: {
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
-			if (get_selected_entities_from_panel(panel._edit_context, entities, world))
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world))
 				editor_commands_component_t::reset(world, entities, panel._action_menu_type_id);
 			break;
 		}
 		case inspector_component_action_menu_remove: {
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
-			if (get_selected_entities_from_panel(panel._edit_context, entities, world))
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world))
 				editor_commands_component_t::remove(world, entities, panel._action_menu_type_id);
 			break;
 		}
@@ -184,7 +185,7 @@ namespace sfg
 
 		frame_vector_t<entity_id_t> entities;
 		editor_world_handle_t		world = {};
-		if (get_selected_entities_from_panel(panel._edit_context, entities, world))
+		if (get_selected_entities_from_panel(panel._edit_world, entities, world))
 			editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]);
 	}
 
@@ -208,49 +209,49 @@ namespace sfg
 		case editor_command_type_e::component_add: {
 			const editor_command_add_component_payload_t& payload  = system.get_payload_as<editor_command_add_component_payload_t>(command);
 			const entity_id_t*							  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
 		case editor_command_type_e::component_remove: {
 			const editor_command_remove_component_payload_t& payload  = system.get_payload_as<editor_command_remove_component_payload_t>(command);
 			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
 		case editor_command_type_e::component_reset: {
 			const editor_command_reset_component_payload_t& payload	 = system.get_payload_as<editor_command_reset_component_payload_t>(command);
 			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
 		case editor_command_type_e::component_paste: {
 			const editor_command_paste_component_payload_t& payload	 = system.get_payload_as<editor_command_paste_component_payload_t>(command);
 			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
 		case editor_command_type_e::component_edit: {
 			const editor_command_component_edit_payload_t& payload	= system.get_payload_as<editor_command_component_edit_payload_t>(command);
 			const entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
 		case editor_command_type_e::entity_info_paste: {
 			const editor_command_paste_entity_info_payload_t& payload  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
 			const entity_id_t*								  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
 		case editor_command_type_e::entity_info_edit: {
 			const editor_command_edit_entity_info_payload_t& payload  = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
 			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._display_world_handle && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}

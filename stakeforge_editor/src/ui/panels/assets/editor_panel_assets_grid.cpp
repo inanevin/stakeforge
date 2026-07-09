@@ -289,12 +289,12 @@ namespace sfg
 		thumbnail_rect.rounding_segs	   = 4;
 		if (asset != nullptr)
 		{
-			const editor_asset_thumbnail_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail(*asset, asset_node.name.c_str());
-			if (thumbnail.texture != NULL_SID)
+			const sid_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail_resource_guid(*asset);
+			if (thumbnail != NULL_SID)
 			{
 				ui::ui_render_state_t thumbnail_state = {};
 				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-				thumbnail_state.constants[0].handle	  = thumbnail.texture;
+				thumbnail_state.constants[0].handle	  = thumbnail;
 				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
 				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
 			}
@@ -515,12 +515,12 @@ namespace sfg
 		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
 		if (asset != nullptr)
 		{
-			const editor_asset_thumbnail_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail(*asset, asset_node.name.c_str());
-			if (thumbnail.texture != NULL_SID)
+			const sid_t thumbnail = editor_asset_thumbnailer_t::get_thumbnail_resource_guid(*asset);
+			if (thumbnail != NULL_SID)
 			{
 				ui::ui_render_state_t thumbnail_state = {};
 				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-				thumbnail_state.constants[0].handle	  = thumbnail.texture;
+				thumbnail_state.constants[0].handle	  = thumbnail;
 				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
 				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
 			}

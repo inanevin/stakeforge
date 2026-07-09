@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_inspector.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/reflection/reflection_registry.hpp>
@@ -65,9 +66,9 @@ namespace sfg
 			{.text = "Paste", .command = inspector_entity_info_action_menu_paste},
 		};
 
-		bool get_selected_entities_from_panel(editor_world_handle_t context, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
+		bool get_selected_entities_from_panel(editor_world_handle_t edit_world, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
 		{
-			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(context);
+			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(edit_world)->get_edit_context();
 			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 			if (selected.size == 0)
 				return false;
@@ -119,13 +120,14 @@ namespace sfg
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
-		SFG_ASSERT(_display_world != nullptr);
+		SFG_ASSERT(!_edit_world.is_null());
 
 		_add_component_categories.resize(0);
 		_add_component_root_rows.resize(0);
 		_add_component_types.resize(0);
 
-		const vector_t<ecs_component_table_t>& component_tables = _display_world->get_component_tables();
+		world_t&							   world			= editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
 		_add_component_categories.reserve(component_tables.size());
 		_add_component_types.reserve(component_tables.size());
 
@@ -211,10 +213,11 @@ namespace sfg
 		_copied_entity_info		  = {};
 		_copied_entity_info_valid = false;
 
-		if (_display_world == nullptr || _display_entities.empty())
+		if (_edit_world.is_null() || _display_entities.empty())
 			return;
 
-		_copied_entity_info		  = editor_commands_entity_info_t::read(*_display_world, _display_entities.front());
+		world_t& world			  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		_copied_entity_info		  = editor_commands_entity_info_t::read(world, _display_entities.front());
 		_copied_entity_info_valid = true;
 	}
 
@@ -223,10 +226,11 @@ namespace sfg
 		_copied_component_stream.destroy();
 		_copied_component_type = 0;
 
-		if (_display_world == nullptr || _display_entities.empty())
+		if (_edit_world.is_null() || _display_entities.empty())
 			return;
 
-		ecs_component_table_t* table = _display_world->find_component_table(type_id);
+		world_t&			   world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		ecs_component_table_t* table = world.find_component_table(type_id);
 		if (table == nullptr || !ecs_t::table_has(*table, _display_entities.front()))
 			return;
 

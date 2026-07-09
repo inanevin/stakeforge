@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
@@ -59,7 +60,7 @@ namespace sfg
 		{
 			const editor_command_entity_selection_payload_t& payload  = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
 			const entity_id_t*								 entities = payload.previous_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_entities) : nullptr;
-			editor_world_controller_t::get().get_edit_context(payload.context).apply_entity_selection({.data = entities, .size = payload.previous_count}, payload.previous_anchor);
+			editor_world_controller_t::get().get_editor_world(payload.context)->get_edit_context().apply_entity_selection({.data = entities, .size = payload.previous_count}, payload.previous_anchor);
 			return true;
 		}
 
@@ -67,7 +68,7 @@ namespace sfg
 		{
 			const editor_command_entity_selection_payload_t& payload  = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
 			const entity_id_t*								 entities = payload.next_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.next_entities) : nullptr;
-			editor_world_controller_t::get().get_edit_context(payload.context).apply_entity_selection({.data = entities, .size = payload.next_count}, payload.next_anchor);
+			editor_world_controller_t::get().get_editor_world(payload.context)->get_edit_context().apply_entity_selection({.data = entities, .size = payload.next_count}, payload.next_anchor);
 			return true;
 		}
 

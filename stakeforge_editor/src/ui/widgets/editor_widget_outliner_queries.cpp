@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_outliner.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -35,16 +36,16 @@ namespace sfg
 {
 	bool editor_widget_outliner_t::is_entity_expanded(entity_id_t entity) const
 	{
-		if (entity == NULL_ENTITY_ID || _main_world.is_null())
+		if (entity == NULL_ENTITY_ID || _edit_world.is_null())
 			return false;
 
-		const world_t& world = editor_world_controller_t::get().get_world(_main_world);
-		return editor_world_controller_t::get().get_edit_context(_edit_context).is_entity_expanded(world.get_entity_guid(entity));
+		const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		return editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().is_entity_expanded(world.get_entity_guid(entity));
 	}
 
 	bool editor_widget_outliner_t::is_entity_selected(entity_id_t entity) const
 	{
-		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities();
+		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities();
 		if (entity == NULL_ENTITY_ID || selected.size == 0)
 			return false;
 		return std::find(selected.data, selected.data + selected.size, entity) != selected.data + selected.size;
@@ -52,15 +53,15 @@ namespace sfg
 
 	bool editor_widget_outliner_t::is_create_enabled() const
 	{
-		return editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities().size <= 1;
+		return editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities().size <= 1;
 	}
 
 	bool editor_widget_outliner_t::has_selected_ancestor(entity_id_t entity) const
 	{
-		if (_main_world.is_null())
+		if (_edit_world.is_null())
 			return false;
 
-		const world_t& world = editor_world_controller_t::get().get_world(_main_world);
+		const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
 		{
 			if (is_entity_selected(parent))
@@ -74,17 +75,16 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
-		if (main_world.is_null())
+		if (_edit_world.is_null())
 			return false;
 
-		world_t& world = editor_world_controller_t::get().get_world(main_world);
+		world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		if (parent != NULL_ENTITY_ID && !world.is_alive(parent))
 			return false;
 
 		for (const editor_entity_payload_t& payload_entity : entities)
 		{
-			if (!(payload_entity.world == main_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
+			if (!(payload_entity.world == _edit_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
 				return false;
 			if (payload_entity.entity == parent)
 				return false;
@@ -111,7 +111,7 @@ namespace sfg
 
 	const editor_outliner_item_t* editor_widget_outliner_t::find_outliner_item(entity_id_t entity) const
 	{
-		const span_t<editor_outliner_item_t> items = editor_world_controller_t::get().get_edit_context(_edit_context).get_outliner_items();
+		const span_t<editor_outliner_item_t> items = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_outliner_items();
 		for (size_t i = 0; i < items.size; ++i)
 		{
 			if (items.data[i].type == editor_outliner_item_type_e::entity && items.data[i].entity == entity)

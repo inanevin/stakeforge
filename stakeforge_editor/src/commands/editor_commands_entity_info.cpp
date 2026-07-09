@@ -26,6 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "commands/editor_commands_entity_info.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "editor_command_system.hpp"
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
@@ -110,7 +111,7 @@ namespace sfg
 
 		void apply_entity_infos(editor_command_system_t& system, editor_command_edit_entity_info_payload_t& payload, chunk_handle32_t infos_handle)
 		{
-			world_t&						 world	  = editor_world_controller_t::get().get_world(payload.world);
+			world_t&						 world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t*				 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const editor_entity_info_data_t* infos	  = system.get_aux_data().get<editor_entity_info_data_t>(infos_handle);
 			for (u32 i = 0; i < payload.count; ++i)
@@ -120,7 +121,7 @@ namespace sfg
 		bool paste_entity_info_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_paste_entity_info_payload_t& payload	  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
-			world_t&									world	  = editor_world_controller_t::get().get_world(payload.world);
+			world_t&									world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t*							entities  = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const editor_entity_info_data_t*			old_infos = system.get_aux_data().get<editor_entity_info_data_t>(payload.old_infos);
 			for (u32 i = 0; i < payload.count; ++i)
@@ -131,7 +132,7 @@ namespace sfg
 		bool paste_entity_info_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_paste_entity_info_payload_t& payload	 = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
-			world_t&									world	 = editor_world_controller_t::get().get_world(payload.world);
+			world_t&									world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t*							entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			for (u32 i = 0; i < payload.count; ++i)
 				editor_commands_entity_info_t::apply(world, entities[i], payload.info);
@@ -208,7 +209,7 @@ namespace sfg
 		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		editor_command_system_t& command_system = editor_command_system_t::get();
-		world_t&				 target_world	= editor_world_controller_t::get().get_world(world);
+		world_t&				 target_world	= editor_world_controller_t::get().get_editor_world(world)->get_world();
 
 		editor_command_paste_entity_info_payload_t payload = {};
 		payload.old_infos								   = copy_entity_infos_to_aux(command_system, target_world, {.data = entities.data(), .size = entities.size()});

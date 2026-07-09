@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_handle.hpp"
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -49,7 +49,7 @@ namespace sfg
 
 		void	init(ui::ui_context& ui, ui::widget_id_t parent);
 		void	uninit();
-		void	set_edit_context(editor_world_handle_t context);
+		void	set_edit_world(editor_world_handle_t world);
 		vec4f_t get_world_view_bounds() const;
 
 		inline ui::widget_id_t get_root() const
@@ -68,7 +68,7 @@ namespace sfg
 	private:
 		const world_render_context_t* _world			   = nullptr;
 		ui::ui_context*				  _ui				   = nullptr;
-		editor_world_handle_t		  _edit_context		   = {};
+		editor_world_handle_t		  _edit_world		   = {};
 		vec2u16_t					  _last_resize_request = vec2u16_t::zero;
 		ui::widget_id_t				  _root				   = NULL_WIDGET;
 		ui::widget_id_t				  _world_view		   = NULL_WIDGET;

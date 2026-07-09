@@ -25,7 +25,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/entities/editor_panel_entities.hpp"
-#include "editor_world_controller.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 
 namespace sfg
@@ -41,7 +40,6 @@ namespace sfg
 	{
 		editor_panel_t::init(ui, parent);
 		_outliner.init(ui, _root);
-		_outliner.set_edit_context(editor_world_controller_t::get().get_main_world());
 		_outliner.refresh_entities();
 	}
 
@@ -61,8 +59,8 @@ namespace sfg
 		_outliner.refresh_entity_name(entity);
 	}
 
-	void editor_panel_entities_t::set_edit_context(editor_world_handle_t context)
+	void editor_panel_entities_t::set_edit_world(editor_world_handle_t world)
 	{
-		_outliner.set_edit_context(context);
+		_outliner.set_edit_world(world);
 	}
 }

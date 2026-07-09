@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_outliner.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "assets/editor_asset_spawn.hpp"
 #include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
@@ -147,7 +148,7 @@ namespace sfg
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		if (!panel._edit_folder.is_null())
 		{
-			editor_commands_world_edit_context_t::rename_folder(panel._edit_context, panel._edit_folder, value);
+			editor_commands_world_edit_context_t::rename_folder(panel._edit_world, panel._edit_folder, value);
 			panel.refresh_entities();
 		}
 		panel._edit_folder = {};
@@ -162,7 +163,7 @@ namespace sfg
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		if (!panel._edit_folder.is_null())
 		{
-			editor_world_controller_t::get().get_edit_context(panel._edit_context).set_folder_color(panel._edit_folder, panel._folder_edit_color);
+			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().set_folder_color(panel._edit_folder, panel._folder_edit_color);
 			panel.refresh_entities();
 		}
 	}
@@ -173,9 +174,9 @@ namespace sfg
 		if (!panel._edit_folder.is_null())
 		{
 			const color_t color = panel._folder_edit_color;
-			editor_world_controller_t::get().get_edit_context(panel._edit_context).set_folder_color(panel._edit_folder, panel._folder_edit_original_color);
+			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().set_folder_color(panel._edit_folder, panel._folder_edit_original_color);
 			panel._folder_edit_color = color;
-			editor_commands_world_edit_context_t::change_folder_color(panel._edit_context, panel._edit_folder, panel._folder_edit_color);
+			editor_commands_world_edit_context_t::change_folder_color(panel._edit_world, panel._edit_folder, panel._folder_edit_color);
 			panel.refresh_entities();
 		}
 		panel._edit_folder = {};
@@ -216,7 +217,7 @@ namespace sfg
 			return;
 		}
 
-		if (editor_world_controller_t::get().get_edit_context(panel._edit_context).get_selected_entities().size == 0)
+		if (editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().get_selected_entities().size == 0)
 			return;
 
 		if (ev.key == static_cast<u16>(input_code::key_delete))
@@ -255,7 +256,7 @@ namespace sfg
 	void editor_widget_outliner_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
-		if (!(editor_world_controller_t::get().get_main_world() == panel._main_world) || panel._entity_generation != editor_command_system_t::get().get_entity_generation())
+		if (panel._entity_generation != editor_command_system_t::get().get_entity_generation())
 			panel.refresh_entities();
 	}
 
@@ -286,7 +287,7 @@ namespace sfg
 			panel.toggle_entity_fold(row->entity);
 		else if (row->has_children)
 		{
-			editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(panel._edit_context);
+			editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context();
 			metadata.set_folder_folded(row->folder_handle, !metadata.get_folder(row->folder_handle).folded);
 			panel.refresh_entities();
 		}
@@ -367,7 +368,7 @@ namespace sfg
 			return;
 		if (row->type == editor_outliner_item_type_e::folder)
 		{
-			editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(panel._edit_context);
+			editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context();
 			metadata.set_folder_folded(row->folder_handle, !metadata.get_folder(row->folder_handle).folded);
 			panel.refresh_entities();
 			return;
@@ -398,7 +399,7 @@ namespace sfg
 			return editor_asset_spawn_t::spawn_from_payload({
 				.payload	= &payload,
 				.screen_pos = mouse,
-				.world		= panel._main_world,
+				.world		= panel._edit_world,
 				.parent		= parent,
 			});
 		}
@@ -440,12 +441,12 @@ namespace sfg
 			const editor_command_duplicate_entity_payload_t& payload  = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
 			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const entity_id_t								 entity	  = entities[payload.count - 1];
-			editor_world_controller_t::get().get_edit_context(panel._edit_context).issue_entity_selection({.data = &entity, .size = 1}, entity);
+			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().issue_entity_selection({.data = &entity, .size = 1}, entity);
 			break;
 		}
 		case editor_command_type_e::entity_info_paste: {
 			const editor_command_paste_entity_info_payload_t& payload = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
-			if (!(payload.world == panel._main_world))
+			if (!(payload.world == panel._edit_world))
 				return;
 
 			if (!panel._search_str_lower.empty())
@@ -461,7 +462,7 @@ namespace sfg
 		}
 		case editor_command_type_e::entity_info_edit: {
 			const editor_command_edit_entity_info_payload_t& payload = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
-			if (!(payload.world == panel._main_world))
+			if (!(payload.world == panel._edit_world))
 				return;
 
 			if (!panel._search_str_lower.empty())
@@ -477,7 +478,7 @@ namespace sfg
 		}
 		case editor_command_type_e::prefab_spawn: {
 			const editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
-			if (!(payload.world == panel._main_world))
+			if (!(payload.world == panel._edit_world))
 				return;
 
 			panel.refresh_entities();
@@ -485,7 +486,7 @@ namespace sfg
 		}
 		case editor_command_type_e::primitive_spawn: {
 			const editor_command_primitive_spawn_payload_t& payload = system.get_payload_as<editor_command_primitive_spawn_payload_t>(command);
-			if (!(payload.world == panel._main_world))
+			if (!(payload.world == panel._edit_world))
 				return;
 
 			panel.refresh_entities();
@@ -493,13 +494,13 @@ namespace sfg
 		}
 		case editor_command_type_e::component_add: {
 			const editor_command_add_component_payload_t& payload = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			if (payload.world == panel._main_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
+			if (payload.world == panel._edit_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
 				panel.refresh_entities();
 			break;
 		}
 		case editor_command_type_e::component_remove: {
 			const editor_command_remove_component_payload_t& payload = system.get_payload_as<editor_command_remove_component_payload_t>(command);
-			if (payload.world == panel._main_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
+			if (payload.world == panel._edit_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
 				panel.refresh_entities();
 			break;
 		}
@@ -512,7 +513,7 @@ namespace sfg
 	{
 		editor_widget_outliner_t&		panel	 = *static_cast<editor_widget_outliner_t*>(user_data);
 		bool							changed	 = false;
-		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_edit_context(panel._edit_context).get_selected_entities();
+		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().get_selected_entities();
 		for (size_t i = 0; i < selected.size; ++i)
 			changed |= panel.reveal_entity(selected.data[i]);
 		if (changed)

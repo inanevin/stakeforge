@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "commands/editor_command_component_edit.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "editor_command_system.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -130,7 +131,7 @@ namespace sfg
 		bool apply_component_streams(editor_command_system_t& system, editor_command_component_edit_payload_t& payload, chunk_handle32_t streams_handle)
 		{
 			SFG_ASSERT(!payload.world.is_null());
-			world_t&				world		   = editor_world_controller_t::get().get_world(payload.world);
+			world_t&				world		   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			ecs_component_table_t&	table		   = world.get_component_table(payload.component_type);
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(table.type_desc.type_id);
 			SFG_ASSERT(reflected_type != nullptr && reflected_type->default_init_fn != nullptr);
@@ -167,7 +168,7 @@ namespace sfg
 			if (!apply_component_streams(system, payload, payload.previous_streams))
 				return false;
 
-			world_t&		   world	= editor_world_controller_t::get().get_world(payload.world);
+			world_t&		   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			scan_resources(world, {.data = entities, .size = payload.count});
 			return true;
@@ -179,7 +180,7 @@ namespace sfg
 			if (!apply_component_streams(system, payload, payload.post_streams))
 				return false;
 
-			world_t&		   world	= editor_world_controller_t::get().get_world(payload.world);
+			world_t&		   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			scan_resources(world, {.data = entities, .size = payload.count});
 			return true;
@@ -229,7 +230,7 @@ namespace sfg
 			return false;
 		}
 
-		world_t& scan_world = editor_world_controller_t::get().get_world(world);
+		world_t& scan_world = editor_world_controller_t::get().get_editor_world(world)->get_world();
 		scan_resources(scan_world, entities);
 		return true;
 	}

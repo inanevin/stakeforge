@@ -198,7 +198,7 @@ namespace sfg
 		}
 	}
 
-	void editor_asset_manager_util_t::ensure_project_assets_async(editor_asset_manager_t& asset_manager, tf::Executor& executor, on_complete_fn on_complete, void* user_data)
+	void editor_asset_manager_util_t::ensure_project_assets_async(editor_asset_manager_t& asset_manager, tf::Executor& executor, ensure_project_assets_progress_fn callback, void* user_data)
 	{
 		const string_t def_assets_path = editor_project_t::get()._runtime.default_assets_path;
 		const string_t cache_path	   = editor_project_t::get()._runtime.cache_path;
@@ -208,13 +208,22 @@ namespace sfg
 		SFG_ASSERT(!assets_path.empty());
 
 		tf::Taskflow ensure_flow;
-		ensure_flow.emplace([&asset_manager, def_assets_path, cache_path, assets_path]() {
+		ensure_flow.emplace([&asset_manager, def_assets_path, cache_path, assets_path, callback, user_data]() {
+			const auto report_progress = [callback, user_data](f32 progress, const char* progress_text) {
+				if (callback != nullptr)
+					callback(user_data, progress, progress_text);
+			};
+
+			report_progress(0.0f, "Ensuring default assets");
 			if (!file_system_t::exists(def_assets_path.c_str()))
 				file_system_t::create_directory(def_assets_path.c_str());
 
 			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
 
+			report_progress(0.15f, "Scanning project assets");
 			editor_asset_manager_util_t::rescan(asset_manager, assets_path.c_str());
+
+			report_progress(0.3f, "Cleaning asset cache");
 
 			// clean stale binarires
 			{
@@ -254,12 +263,19 @@ namespace sfg
 				}
 			}
 
+			report_progress(0.45f, "Cooking project assets");
 			// cook missing files.
 			{
+				const size_t asset_count = asset_manager._assets.size();
+				size_t		 index		 = 0;
 				for (auto& asset_pair : asset_manager._assets)
 				{
 					editor_asset_t& asset = asset_pair.second;
 					SFG_ASSERT(asset_manager._asset_descriptors.find(asset.asset_type) != asset_manager._asset_descriptors.end());
+					const f32 progress = asset_count != 0 ? 0.45f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.7f;
+					report_progress(progress, "Cooking project assets");
+					++index;
+
 					if (asset.status != editor_asset_status_e::ok)
 						continue;
 
@@ -277,18 +293,27 @@ namespace sfg
 				}
 			}
 
+			report_progress(0.7f, "Preparing asset thumbnails");
 			// ensure thumbs
 			{
+				const size_t asset_count = asset_manager._assets.size();
+				size_t		 index		 = 0;
 				for (auto& asset_pair : asset_manager._assets)
 				{
-					editor_asset_t& asset = asset_pair.second;
-					editor_asset_thumbnailer_t::ensure(asset);
+					editor_asset_t& asset	 = asset_pair.second;
+					const f32		progress = asset_count != 0 ? 0.7f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.95f;
+					report_progress(progress, "Preparing asset thumbnails");
+					++index;
+
+					const string_t thumb_cache = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
+					if (!file_system_t::exists(thumb_cache.c_str()))
+						editor_asset_thumbnailer_t::generate_thumbnail(asset);
 				}
 			}
 		});
-		executor.run(std::move(ensure_flow), [on_complete, user_data]() {
-			if (on_complete != nullptr)
-				on_complete(user_data);
+		executor.run(std::move(ensure_flow), [callback, user_data]() {
+			if (callback != nullptr)
+				callback(user_data, 1.0f, "Project assets ready");
 		});
 	}
 
@@ -334,9 +359,6 @@ namespace sfg
 
 				if (!editor_asset_importer_t::import_asset(state->target_directory.c_str(), path.c_str(), options, context, imported_assets))
 					SFG_ERR("failed importing asset {0}", path.c_str());
-
-				for (const editor_asset_t& asset : imported_assets)
-					editor_asset_thumbnailer_t::ensure(asset, nullptr, true);
 
 				const u32 imported_count = state->imported_count.fetch_add(1, std::memory_order_relaxed) + 1;
 				const f32 done_progress	 = state->total_count != 0 ? static_cast<f32>(imported_count) / static_cast<f32>(state->total_count) : 1.0f;

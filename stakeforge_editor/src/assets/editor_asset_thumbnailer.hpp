@@ -41,12 +41,6 @@ namespace sfg
 		generated,
 	};
 
-	struct editor_asset_thumbnail_t
-	{
-		sid_t							texture = NULL_SID;
-		editor_asset_thumbnail_source_e source	= editor_asset_thumbnail_source_e::builtin;
-	};
-
 	class editor_asset_thumbnailer_t final
 	{
 	public:
@@ -55,10 +49,11 @@ namespace sfg
 		editor_asset_thumbnailer_t(const editor_asset_thumbnailer_t&)			 = delete;
 		editor_asset_thumbnailer_t& operator=(const editor_asset_thumbnailer_t&) = delete;
 
-		static editor_asset_thumbnail_t get_thumbnail(const editor_asset_t& asset, const char* asset_name = nullptr);
-		static bool						ensure(const editor_asset_t& asset, const char* asset_name = nullptr, bool force = false);
-		static bool						ensure_thumbnail_loaded(const editor_asset_t& asset, const char* asset_name = nullptr);
-		static sid_t					get_thumbnail_guid(sid_t asset_guid);
-		static sid_t					get_builtin_thumbnail_guid(editor_asset_type_e asset_type);
+		static void generate_thumbnail(const editor_asset_t& asset);
+
+		static sid_t get_thumbnail_resource_guid(const editor_asset_t& asset);
+		static bool	 ensure_thumbnail_loaded(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static sid_t get_thumbnail_guid(sid_t asset_guid);
+		static sid_t get_builtin_thumbnail_guid(editor_asset_type_e asset_type);
 	};
 }

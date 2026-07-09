@@ -28,10 +28,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 
-#include <cstdio>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-
+#include <sfg/data/char_util.hpp>
 namespace sfg
 {
 	void editor_widget_progress_bar_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_progress_bar_config_t& config)
@@ -121,7 +120,7 @@ namespace sfg
 		amount_in.pos_value		   = {0.5f, 0.5f};
 		amount_in.anchor_x		   = ui::anchor_e::center;
 		amount_in.anchor_y		   = ui::anchor_e::center;
-		paint.set_text(_progress_amount_label, nullptr, 0, {.font = theme.font_title, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(_progress_amount_label, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent0_light, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		refresh_progress_amount();
 	}
@@ -153,8 +152,13 @@ namespace sfg
 	{
 		_ui->get_tree().in(_progress_fill).size_value.x = _progress_amount;
 
-		char text[16] = {};
-		snprintf(text, sizeof(text), "%.2f", _progress_amount);
+		const u32 amt	   = _progress_amount * 100.0f;
+		char	  text[16] = {};
+		char*	  cur	   = text;
+		char*	  end	   = cur + sizeof(text);
+		char_util::append(cur, end, "%");
+		char_util::append_u32(cur, end, amt);
+
 		_ui->set_widget_text(_progress_amount_label, text);
 	}
 }

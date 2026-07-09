@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset.hpp"
 #include "editor_project.hpp"
+#include "editor_asset_thumbnailer.hpp"
+
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -77,6 +79,8 @@ namespace sfg
 
 		bool save_cooked_asset(const editor_asset_t& asset, resource_header_t header, const ostream_t& payload, const char* asset_name)
 		{
+			editor_asset_thumbnailer_t::generate_thumbnail(asset);
+
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
 			const string_t cache_path = editor_asset_util_t::get_cache_path_for_asset(asset);
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))

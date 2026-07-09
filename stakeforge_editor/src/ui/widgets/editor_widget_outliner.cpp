@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -68,9 +69,9 @@ namespace sfg
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
 		search_config.field						  = {
-								  .fields = {.data = &data, .size = 1},
-								  .type	  = editor_input_field_field_type_e::string,
-		  };
+			.fields = {.data = &data, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
 		search_config.callbacks.edited	  = on_search_changed;
 		search_config.callbacks.user_data = this;
 		_search_input.init(ui, _entity_top_row, search_config);
@@ -128,7 +129,7 @@ namespace sfg
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
 		if (!_selection_listener.is_null())
-			editor_world_controller_t::get().get_edit_context(_edit_context).remove_selection_listener(_selection_listener);
+			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
@@ -148,8 +149,7 @@ namespace sfg
 		_entity_list_area	  = NULL_WIDGET;
 		_command_listener	  = {};
 		_selection_listener	  = {};
-		_edit_context		  = {};
-		_main_world			  = {};
+		_edit_world			  = {};
 		_action_menu_entity	  = NULL_ENTITY_ID;
 		_action_menu_folder	  = {};
 		_focused_folder		  = {};
@@ -161,20 +161,20 @@ namespace sfg
 		_ui	  = nullptr;
 	}
 
-	void editor_widget_outliner_t::set_edit_context(editor_world_handle_t context)
+	void editor_widget_outliner_t::set_edit_world(editor_world_handle_t world)
 	{
-		if (_edit_context == context)
+		if (_edit_world == world)
 			return;
 
 		if (!_selection_listener.is_null())
 		{
-			editor_world_controller_t::get().get_edit_context(_edit_context).remove_selection_listener(_selection_listener);
+			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 			_selection_listener = {};
 		}
 
-		_edit_context = context;
-		if (!_edit_context.is_null() && _ui != nullptr)
-			_selection_listener = editor_world_controller_t::get().get_edit_context(_edit_context).add_selection_listener(on_selection_changed, this);
+		_edit_world = world;
+		if (!_edit_world.is_null() && _ui != nullptr)
+			_selection_listener = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().add_selection_listener(on_selection_changed, this);
 	}
 
 }

@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset_writer.hpp"
 
 #include <sfg/io/assert.hpp>
@@ -289,16 +288,8 @@ namespace sfg
 			return false;
 		}
 
-		if (result)
-		{
-			result = editor_asset_thumbnailer_t::ensure(asset, desc.name, true);
-
-			if (result)
-				result = editor_asset_thumbnailer_t::ensure_thumbnail_loaded(asset, desc.name);
-
-			if (result && out_asset != nullptr)
-				*out_asset = asset;
-		}
+		if (result && out_asset != nullptr)
+			*out_asset = asset;
 		return result;
 	}
 }

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -82,7 +83,7 @@ namespace sfg
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
 		if (!_selection_listener.is_null())
-			editor_world_controller_t::get().get_edit_context(_edit_context).remove_selection_listener(_selection_listener);
+			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 		_ui->cancel_mutations(this);
 		clear_display();
 		_scrollbar.uninit();
@@ -90,16 +91,14 @@ namespace sfg
 		_field_states.clear();
 		_entity_scroll_states.clear();
 		_display_entities.clear();
-		_display_world		  = nullptr;
-		_display_world_handle = {};
-		_display_type		  = editor_inspector_display_type_e::none;
-		_column				  = NULL_WIDGET;
-		_scroll_area		  = NULL_WIDGET;
+		_display_type = editor_inspector_display_type_e::none;
+		_column		  = NULL_WIDGET;
+		_scroll_area  = NULL_WIDGET;
 		_copied_component_stream.destroy();
 		_copied_entity_info		   = {};
 		_command_listener		   = {};
 		_selection_listener		   = {};
-		_edit_context			   = {};
+		_edit_world				   = {};
 		_copied_component_type	   = 0;
 		_action_menu_type_id	   = 0;
 		_pending_component_type	   = 0;
@@ -114,20 +113,20 @@ namespace sfg
 		_ui	  = nullptr;
 	}
 
-	void editor_widget_inspector_t::set_edit_context(editor_world_handle_t context)
+	void editor_widget_inspector_t::set_edit_world(editor_world_handle_t world)
 	{
-		if (_edit_context == context)
+		if (_edit_world == world)
 			return;
 
 		if (!_selection_listener.is_null())
 		{
-			editor_world_controller_t::get().get_edit_context(_edit_context).remove_selection_listener(_selection_listener);
+			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 			_selection_listener = {};
 		}
 
-		_edit_context = context;
-		if (!_edit_context.is_null() && _ui != nullptr)
-			_selection_listener = editor_world_controller_t::get().get_edit_context(_edit_context).add_selection_listener(on_selection_changed, this);
+		_edit_world = world;
+		if (!_edit_world.is_null() && _ui != nullptr)
+			_selection_listener = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().add_selection_listener(on_selection_changed, this);
 	}
 
 }

@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/entities/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "world/editor_world.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
@@ -110,7 +111,9 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		const editor_world_handle_t handle = _worlds.add();
-		_worlds.get(handle).init(init_config, handle);
+		_worlds.get(handle)				   = new editor_world_t();
+		editor_world_t* const editor_world = _worlds.get(handle);
+		editor_world->init(init_config, handle);
 
 		return handle;
 	}
@@ -135,8 +138,9 @@ namespace sfg
 
 	void editor_world_controller_t::destroy_world_internal(editor_world_handle_t handle)
 	{
-		editor_world_t& world = _worlds.get(handle);
-		world.uninit();
+		editor_world_t* const world = _worlds.get(handle);
+		world->uninit();
+		delete world;
 		_worlds.remove(handle);
 	}
 
@@ -164,9 +168,10 @@ namespace sfg
 		if (notify_panels && !_main_world.is_null())
 			set_main_world({}, NULL_SID, "");
 
-		for (editor_world_t& world : _worlds)
+		for (editor_world_t* world : _worlds)
 		{
-			world.uninit();
+			world->uninit();
+			delete world;
 		}
 
 		_worlds.resize_zero();
@@ -181,13 +186,13 @@ namespace sfg
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
 	{
-		editor_world_t& world = _worlds.get(handle);
-		if (world.get_render_resolution() == render_resolution)
+		editor_world_t* const world = _worlds.get(handle);
+		if (world->get_render_resolution() == render_resolution)
 			return;
 
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		world.resize(render_resolution);
+		world->resize(render_resolution);
 	}
 
 	bool editor_world_controller_t::acquire_render_worlds()
@@ -202,11 +207,11 @@ namespace sfg
 			return false;
 
 		_render_alpha = calculate_render_alpha();
-		for (editor_world_t& world : _worlds)
+		for (editor_world_t* world : _worlds)
 		{
 			_render_worlds.push_back({
-				.world	  = &world,
-				.snapshot = &world.acquire_render_snapshot(),
+				.world	  = world,
+				.snapshot = &world->acquire_render_snapshot(),
 			});
 		}
 
@@ -257,10 +262,10 @@ namespace sfg
 				for (auto it = _worlds.begin_handle(); it != _worlds.end_handle(); ++it)
 				{
 					const editor_world_handle_t handle		 = *it;
-					editor_world_t&				editor_world = _worlds.get(handle);
+					editor_world_t*				editor_world = _worlds.get(handle);
 					if (handle == _main_world)
 						tick_editor_camera(dt_seconds);
-					editor_world.tick(dt_seconds);
+					editor_world->tick(dt_seconds);
 				}
 				++steps;
 			}
@@ -275,17 +280,17 @@ namespace sfg
 			_last_fixed_step_us.store(now, std::memory_order_release);
 		}
 
-		for (editor_world_t& editor_world : _worlds)
+		for (editor_world_t* editor_world : _worlds)
 		{
 			if (steps == 0)
-				editor_world.update_world_transforms(false);
-			editor_world.produce_snapshot();
+				editor_world->update_world_transforms(false);
+			editor_world->produce_snapshot();
 		}
 	}
 
 	void editor_world_controller_t::install_default_world(editor_world_handle_t handle)
 	{
-		world_t& world = _worlds.get(handle).get_world();
+		world_t& world = _worlds.get(handle)->get_world();
 		install_editor_camera(world);
 
 		const entity_id_t	environment				= world.create_entity("environment");
@@ -332,7 +337,7 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const world_init_config_t& init_config = {
+		const world_init_config_t init_config{
 			.render_resolution		 = editor_app_t::get().get_main_surface().swapchain_size,
 			.component_table_reserve = 64,
 			.free_list_reserve		 = 1024,
@@ -360,7 +365,7 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const world_init_config_t& init_config = {
+		const world_init_config_t init_config{
 			.render_resolution		 = editor_app_t::get().get_main_surface().swapchain_size,
 			.component_table_reserve = 64,
 			.free_list_reserve		 = 1024,
@@ -373,7 +378,7 @@ namespace sfg
 			install_default_world(handle);
 		else
 		{
-			world_t&			 world			 = _worlds.get(handle).get_world();
+			world_t&			 world			 = _worlds.get(handle)->get_world();
 			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
@@ -385,7 +390,7 @@ namespace sfg
 		if (!asset->embedded_source.empty())
 		{
 			const nlohmann::json embedded_source = editor_asset_util_t::get_embedded_source_json(*asset);
-			get_main_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
+			_worlds.get(_main_world)->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
 			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
@@ -401,8 +406,8 @@ namespace sfg
 			return false;
 
 		nlohmann::json world_json = nlohmann::json::object();
-		world_cooker_t::world_to_json(_worlds.get(_main_world).get_world(), world_json);
-		get_main_edit_context().write_folders_to_json(world_json["folders"]);
+		world_cooker_t::world_to_json(_worlds.get(_main_world)->get_world(), world_json);
+		_worlds.get(_main_world)->get_edit_context().write_folders_to_json(world_json["folders"]);
 
 		editor_asset_t		  asset = {};
 		string_t			  asset_path;
@@ -546,21 +551,21 @@ namespace sfg
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
 		{
 			editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
-			world_panel->set_edit_context(_main_world);
+			world_panel->set_edit_world(_main_world);
 			world_panel->set_panel_name(_main_world.is_null() ? "" : _main_world_name.c_str());
 		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::entities))
 		{
 			editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
-			entities_panel->set_edit_context(_main_world);
+			entities_panel->set_edit_world(_main_world);
 			entities_panel->refresh_entities();
 		}
 
 		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::inspector))
 		{
 			editor_panel_inspector_t* inspector_panel = static_cast<editor_panel_inspector_t*>(panel);
-			inspector_panel->set_edit_context(_main_world);
+			inspector_panel->set_edit_world(_main_world);
 			inspector_panel->refresh_from_selection();
 		}
 	}
@@ -735,7 +740,7 @@ namespace sfg
 		if (_main_camera_entity == NULL_ENTITY_ID || !_world_panel_focused)
 			return;
 
-		world_t& world = _worlds.get(_main_world).get_world();
+		world_t& world = _worlds.get(_main_world)->get_world();
 
 		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_CAMERA_MOUSE_SENSITIVITY;
 		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_CAMERA_MOUSE_SENSITIVITY;

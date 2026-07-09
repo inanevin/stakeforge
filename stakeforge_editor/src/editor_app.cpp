@@ -99,18 +99,28 @@ namespace sfg
 			editor_app_t& app						   = *static_cast<editor_app_t*>(user_data);
 			editor_settings_t::get().last_project_path = editor_project_t::get()._runtime.path;
 			editor_settings_t::get().save();
+			app.get_runtime().get_resource_file_system().set_mode_directory(editor_project_t::get()._runtime.path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 			app.request_switch_mode(editor_app_mode_e::splash);
-		}
-
-		void on_project_assets_ready(void* user_data)
-		{
-			editor_app_t& app = *static_cast<editor_app_t*>(user_data);
-			app.request_switch_mode(editor_app_mode_e::normal);
 		}
 	}
 
 	editor_app_t::editor_app_t()  = default;
 	editor_app_t::~editor_app_t() = default;
+
+	void editor_app_t::on_project_assets_progress(void* user_data, f32 progress, const char* progress_text)
+	{
+		SFG_ASSERT(progress_text != nullptr);
+
+		editor_app_t& app = *static_cast<editor_app_t*>(user_data);
+		app._splash_progress.store(progress, std::memory_order_release);
+		{
+			std::lock_guard<std::mutex> lock(app._splash_progress_text_mutex);
+			app._splash_progress_text = progress_text;
+		}
+		app._splash_progress_text_dirty.store(true, std::memory_order_release);
+		if (progress >= 1.0f)
+			app.request_switch_mode(editor_app_mode_e::normal);
+	}
 
 	void editor_app_t::on_window_event(void*, const window_event_t& ev, void* user_data)
 	{
@@ -206,7 +216,7 @@ namespace sfg
 			const bool modal_active = app.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
 			const bool ctrl			= process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !app._world_controller.get_main_world().is_null())
+			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !app._world_controller.get_main_world_handle().is_null())
 			{
 				app._world_controller.save_main_world();
 				return;
@@ -552,8 +562,13 @@ namespace sfg
 			{
 				editor_project_t& proj = editor_project_t::get();
 				_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
-				editor_asset_manager_util_t::ensure_project_assets_async(_asset_manager, get_editor_work_executor(), on_project_assets_ready, this);
-				_splash_progress_text_set = false;
+				_splash_progress.store(0.0f, std::memory_order_release);
+				{
+					std::lock_guard<std::mutex> lock(_splash_progress_text_mutex);
+					_splash_progress_text = "Ensuring default assets";
+				}
+				_splash_progress_text_dirty.store(true, std::memory_order_release);
+				editor_asset_manager_util_t::ensure_project_assets_async(_asset_manager, get_editor_work_executor(), on_project_assets_progress, this);
 			}
 		}
 
@@ -880,11 +895,11 @@ namespace sfg
 					if (surface.type != editor_surface_type_e::splash)
 						continue;
 
-					surface.splash->update_progress(0.0f);
-					if (!_splash_progress_text_set)
+					surface.splash->update_progress(_splash_progress.load(std::memory_order_acquire));
+					if (_splash_progress_text_dirty.exchange(false, std::memory_order_acq_rel))
 					{
-						surface.splash->update_progress_text("Ensuring default assets");
-						_splash_progress_text_set = true;
+						std::lock_guard<std::mutex> lock(_splash_progress_text_mutex);
+						surface.splash->update_progress_text(_splash_progress_text.c_str());
 					}
 					break;
 				}

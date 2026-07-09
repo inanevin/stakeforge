@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -80,23 +81,23 @@ namespace sfg
 		bool primitive_spawn_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_primitive_spawn_payload_t& payload = system.get_payload_as<editor_command_primitive_spawn_payload_t>(command);
-			world_t&								  world	  = editor_world_controller_t::get().get_world(payload.world);
+			world_t&								  world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			if (payload.folder_guid != 0 && payload.guid != NULL_ENTITY_GUID)
 			{
 				const entity_guid_t guid = payload.guid;
-				editor_world_controller_t::get().get_edit_context(payload.world).deassign_entities_from_folder({.data = &guid, .size = 1});
+				editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().deassign_entities_from_folder({.data = &guid, .size = 1});
 			}
 			world.destroy_entity_tree(payload.entity);
 			payload.entity						  = NULL_ENTITY_ID;
 			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
-			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
+			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
 			return true;
 		}
 
 		bool primitive_spawn_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_primitive_spawn_payload_t& payload = system.get_payload_as<editor_command_primitive_spawn_payload_t>(command);
-			world_t&								  world	  = editor_world_controller_t::get().get_world(payload.world);
+			world_t&								  world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 
 			const entity_id_t entity = world.create_entity(get_primitive_name(payload.primitive), payload.guid);
 			if (payload.parent != NULL_ENTITY_ID)
@@ -112,12 +113,12 @@ namespace sfg
 			payload.entity = entity;
 			if (payload.folder_guid != 0)
 			{
-				editor_world_edit_context_t&	   metadata = editor_world_controller_t::get().get_edit_context(payload.world);
+				editor_world_edit_context_t&	   metadata = editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context();
 				const editor_world_folder_handle_t folder	= metadata.get_folder_handle(payload.folder_guid);
 				if (!folder.is_null())
 					metadata.assign_entities_to_folder(folder, {.data = &payload.guid, .size = 1});
 			}
-			editor_world_controller_t::get().get_edit_context(payload.world).apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
+			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
 			return true;
 		}
 
@@ -136,7 +137,7 @@ namespace sfg
 	entity_id_t editor_command_primitive_spawn_t::spawn(editor_world_handle_t world, editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
 		editor_command_system_t&		command_system = editor_command_system_t::get();
-		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_edit_context(world);
+		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
 		SFG_ASSERT(selection.size <= UINT32_MAX);
 

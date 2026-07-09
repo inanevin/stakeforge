@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 
 #include <sfg/data/string_util.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -43,7 +44,7 @@ namespace sfg
 {
 	void editor_widget_outliner_t::refresh_entities()
 	{
-		if (_edit_context.is_null())
+		if (_edit_world.is_null())
 			return;
 
 		if (!can_mutate_ui_topology())
@@ -60,7 +61,7 @@ namespace sfg
 		const bool search_active = !_search_str_lower.empty();
 		u16		   hidden_depth	 = UINT16_MAX;
 
-		editor_world_edit_context_t&		 metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
+		editor_world_edit_context_t&		 metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		const span_t<editor_outliner_item_t> items	  = metadata.get_outliner_items();
 		frame_vector_t<u8>					 search_visible;
 		frame_vector_t<size_t>				 search_ancestor_stack;
@@ -125,11 +126,11 @@ namespace sfg
 			return;
 		}
 
-		world_t&	world = editor_world_controller_t::get().get_world(_main_world);
+		world_t&	world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		const char* name  = world.get_entity_name(entity);
 		const char* text  = name != nullptr ? name : "Entity";
 
-		editor_world_edit_context_t&   metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
+		editor_world_edit_context_t&   metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		editor_outliner_item_t*		   desc		= nullptr;
 		span_t<editor_outliner_item_t> items	= metadata.get_outliner_items();
 		for (size_t i = 0; i < items.size; ++i)
@@ -156,13 +157,11 @@ namespace sfg
 
 	void editor_widget_outliner_t::collect_entities()
 	{
-		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
-		_main_world							   = main_world;
-		if (main_world.is_null())
+		if (_edit_world.is_null())
 			return;
 
-		const world_t& world = editor_world_controller_t::get().get_world(main_world);
-		editor_world_controller_t::get().get_edit_context(_edit_context).collect_outliner_items(world);
+		const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().collect_outliner_items(world);
 	}
 
 	editor_outliner_row_t& editor_widget_outliner_t::get_or_create_outliner_row(size_t index)

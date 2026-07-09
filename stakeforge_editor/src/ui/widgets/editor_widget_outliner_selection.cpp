@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_outliner.hpp"
 #include "world_edit/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -34,7 +35,7 @@ namespace sfg
 {
 	void editor_widget_outliner_t::select_entity_row(entity_id_t entity, bool range_select, bool incremental_select)
 	{
-		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
+		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 
 		frame_vector_t<entity_id_t> selection;
@@ -102,12 +103,12 @@ namespace sfg
 			if (rows[i].type == editor_outliner_item_type_e::entity)
 				selection.push_back(rows[i].entity);
 		}
-		editor_world_controller_t::get().get_edit_context(_edit_context).issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : selection.back());
+		editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : selection.back());
 	}
 
 	void editor_widget_outliner_t::append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const
 	{
-		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_edit_context(_edit_context).get_selected_entities();
+		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities();
 		out_entities.resize(0);
 		out_entities.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)
@@ -122,11 +123,10 @@ namespace sfg
 	{
 		_payload_entities.resize(0);
 
-		const editor_world_handle_t main_world = editor_world_controller_t::get().get_main_world();
-		if (main_world.is_null())
+		if (_edit_world.is_null())
 			return;
 
-		world_t& world = editor_world_controller_t::get().get_world(main_world);
+		world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		if (is_entity_selected(entity))
 		{
 			frame_vector_t<entity_id_t> root_entities;
@@ -134,17 +134,17 @@ namespace sfg
 			for (entity_id_t selected_entity : root_entities)
 			{
 				if (selected_entity != NULL_ENTITY_ID && world.is_alive(selected_entity))
-					_payload_entities.push_back({.world = main_world, .entity = selected_entity});
+					_payload_entities.push_back({.world = _edit_world, .entity = selected_entity});
 			}
 		}
 
 		if (_payload_entities.empty() && entity != NULL_ENTITY_ID && world.is_alive(entity))
-			_payload_entities.push_back({.world = main_world, .entity = entity});
+			_payload_entities.push_back({.world = _edit_world, .entity = entity});
 	}
 
 	void editor_widget_outliner_t::prune_entity_selection()
 	{
-		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_edit_context(_edit_context);
+		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
 		frame_vector_t<entity_id_t>		selection;
 		selection.reserve(selected.size);
@@ -169,14 +169,14 @@ namespace sfg
 
 	bool editor_widget_outliner_t::reveal_entity(entity_id_t entity)
 	{
-		if (entity == NULL_ENTITY_ID || _main_world.is_null())
+		if (entity == NULL_ENTITY_ID || _edit_world.is_null())
 			return false;
 
-		world_t& world = editor_world_controller_t::get().get_world(_main_world);
+		world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		if (!world.is_alive(entity))
 			return false;
 
-		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
+		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		bool						 changed  = false;
 		entity_id_t					 root	  = entity;
 		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
@@ -203,8 +203,8 @@ namespace sfg
 
 	void editor_widget_outliner_t::toggle_entity_fold(entity_id_t entity)
 	{
-		world_t&					 world	  = editor_world_controller_t::get().get_world(_main_world);
-		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_edit_context(_edit_context);
+		world_t&					 world	  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		const entity_guid_t			 guid	  = world.get_entity_guid(entity);
 		metadata.set_entity_folded(guid, metadata.is_entity_expanded(guid));
 		refresh_entities();

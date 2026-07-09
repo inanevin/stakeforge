@@ -60,56 +60,28 @@ namespace sfg
 
 	namespace
 	{
-		u64 get_asset_thumbnail_source_tick(const editor_asset_t& asset)
-		{
-			u64 result = hashing_t::hash_u64_combine(editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid), asset.asset_type, asset.source_type, asset.sub_type);
-			if (!asset.source_relative.empty())
-				result = hashing_t::hash_u64(result, asset.source_relative.data(), asset.source_relative.size());
-			if (!asset.embedded_source.empty())
-				result = hashing_t::hash_u64(result, asset.embedded_source.data(), asset.embedded_source.size());
-			if (!asset.cook_options.empty())
-				result = hashing_t::hash_u64(result, asset.cook_options.data(), asset.cook_options.size());
-			return result;
-		}
-
-		u64 get_asset_thumbnail_file_source_ticks(const editor_asset_t& asset)
-		{
-			if (asset.source_type != editor_asset_source_type_e::file && asset.source_type != editor_asset_source_type_e::file_blob)
-				return 0;
-			if (asset.source_relative.empty())
-				return 0;
-
-			string_t source_full_path = file_system_t::get_absolute_path(editor_project_t::get()._runtime.assets_path.c_str());
-			source_full_path += asset.source_relative;
-			if (!file_system_t::exists(source_full_path.c_str()))
-				return 0;
-			return file_system_t::get_last_modified_ticks(source_full_path.c_str());
-		}
-
-		bool is_generated_thumbnail_current(const editor_asset_t& asset, const char* thumbnail_path)
-		{
-			if (!file_system_t::exists(thumbnail_path))
-				return false;
-
-			istream_t stream = serializer_t::load_from_file_slice(thumbnail_path, 0, sizeof(resource_header_t));
-			if (stream.empty())
-				return false;
-
-			resource_header_t header = {};
-			header.deserialize(stream);
-			if (header.type != resource_type_e::texture || header.magic != texture_loader_t::WIRE_MAGIC || header.version != texture_loader_t::WIRE_VERSION)
-				return false;
-			if (header.source_tick != get_asset_thumbnail_source_tick(asset))
-				return false;
-			return header.file_source_ticks == get_asset_thumbnail_file_source_ticks(asset);
-		}
-
 		bool can_generate_thumbnail(editor_asset_type_e asset_type)
 		{
 			switch (asset_type)
 			{
 			case editor_asset_type_e::texture:
 			case editor_asset_type_e::font:
+				return true;
+			default:
+				return false;
+			}
+		}
+
+		bool can_render_thumbnail(editor_asset_type_e type)
+		{
+			switch (type)
+			{
+			case editor_asset_type_e::animation:
+			case editor_asset_type_e::material:
+			case editor_asset_type_e::mesh:
+			case editor_asset_type_e::hdr_skybox:
+			case editor_asset_type_e::prefab:
+			case editor_asset_type_e::world:
 				return true;
 			default:
 				return false;
@@ -250,17 +222,7 @@ namespace sfg
 			return true;
 		}
 
-		bool generate_thumbnail_pixels(const editor_asset_t& asset, vector_t<u8>& pixels)
-		{
-			if (asset.asset_type == editor_asset_type_e::texture)
-				return fill_texture_thumbnail(asset, pixels);
-			if (asset.asset_type == editor_asset_type_e::font)
-				return fill_font_thumbnail(asset, pixels);
-
-			return false;
-		}
-
-		bool save_thumbnail(const editor_asset_t& asset, const char* asset_name, vector_t<u8>& pixels)
+		bool save_thumbnail(const editor_asset_t& asset, vector_t<u8>& pixels)
 		{
 			const texture_cook_config_t config = {
 				.size			  = vec2u16_t(EDITOR_THUMBNAIL_SIZE, EDITOR_THUMBNAIL_SIZE),
@@ -279,15 +241,12 @@ namespace sfg
 				return false;
 			}
 
-			header.source_tick		 = get_asset_thumbnail_source_tick(asset);
-			header.file_source_ticks = get_asset_thumbnail_file_source_ticks(asset);
+			header.source_tick		 = 0;
+			header.file_source_ticks = 0;
 			string_t name			 = "thumb_";
 
-			if (asset_name != nullptr && asset_name[0] != '\0')
-				name += asset_name;
-			else if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
+			if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
 				name += display_name;
-
 			header.set_debug_name(name.c_str());
 
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
@@ -307,57 +266,42 @@ namespace sfg
 
 			return true;
 		}
-
-		bool generate_thumbnail(const editor_asset_t& asset, const char* asset_name)
-		{
-			vector_t<u8> pixels;
-			if (!generate_thumbnail_pixels(asset, pixels))
-				return false;
-			return save_thumbnail(asset, asset_name, pixels);
-		}
-
-		bool load_thumbnail_resource(const editor_asset_t& asset)
-		{
-			const sid_t			thumbnail_guid	 = editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid);
-			resource_manager_t& resource_manager = resource_manager_t::get();
-			if (resource_manager.find_entry(thumbnail_guid) == nullptr)
-				return resource_manager.load_resource(thumbnail_guid, resource_type_e::texture) != resource_state_e::failed;
-			return true;
-		}
 	}
 
-	editor_asset_thumbnail_t editor_asset_thumbnailer_t::get_thumbnail(const editor_asset_t& asset, const char* asset_name)
-	{
-		const sid_t builtin_guid = get_builtin_thumbnail_guid(asset.asset_type);
-		if (builtin_guid != NULL_SID)
-			return {.texture = builtin_guid, .source = editor_asset_thumbnail_source_e::builtin};
-
-		const sid_t thumbnail_guid = get_thumbnail_guid(asset.guid);
-		return {.texture = resource_manager_t::get().is_ready(thumbnail_guid) ? thumbnail_guid : NULL_SID, .source = editor_asset_thumbnail_source_e::generated};
-	}
-
-	bool editor_asset_thumbnailer_t::ensure(const editor_asset_t& asset, const char* asset_name, bool force)
+	void editor_asset_thumbnailer_t::generate_thumbnail(const editor_asset_t& asset)
 	{
 		if (get_builtin_thumbnail_guid(asset.asset_type) != NULL_SID)
-			return true;
+			return;
 
-		const string_t cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
-		if (!can_generate_thumbnail(asset.asset_type))
+		if (can_render_thumbnail(asset.asset_type))
 		{
-			if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
-				SFG_ERR("failed to delete thumbnail asset {0}", cache_path.c_str());
-			return true;
+			return;
 		}
 
-		if (!force && is_generated_thumbnail_current(asset, cache_path.c_str()))
-			return true;
+		vector_t<u8> pixels;
+		pixels.reserve(256 * 256 * 4);
 
-		if (generate_thumbnail(asset, asset_name))
-			return true;
+		if (asset.asset_type == editor_asset_type_e::texture)
+			fill_texture_thumbnail(asset, pixels);
+		if (asset.asset_type == editor_asset_type_e::font)
+			fill_font_thumbnail(asset, pixels);
 
-		if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
-			SFG_ERR("failed to delete thumbnail asset {0}", cache_path.c_str());
-		return false;
+		save_thumbnail(asset, pixels);
+	}
+
+	sid_t editor_asset_thumbnailer_t::get_thumbnail_resource_guid(const editor_asset_t& asset)
+	{
+		const sid_t builtin_guid = get_builtin_thumbnail_guid(asset.asset_type);
+
+		if (builtin_guid != NULL_SID)
+		{
+			return NULL_SID;
+			// return builtin_guid;
+		}
+
+		const sid_t guid = get_thumbnail_guid(asset.guid);
+
+		return resource_manager_t::get().find_entry(guid) ? guid : NULL_SID;
 	}
 
 	bool editor_asset_thumbnailer_t::ensure_thumbnail_loaded(const editor_asset_t& asset, const char* asset_name)
@@ -365,14 +309,15 @@ namespace sfg
 		if (get_builtin_thumbnail_guid(asset.asset_type) != NULL_SID)
 			return true;
 
-		if (!can_generate_thumbnail(asset.asset_type))
-			return true;
+		const string_t path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
+		if (!file_system_t::exists(path.c_str()))
+			return false;
 
-		const string_t cache_path = editor_asset_util_t::get_thumbnail_cache_path_for_asset(asset);
-		if (!is_generated_thumbnail_current(asset, cache_path.c_str()))
-			return true;
-
-		return load_thumbnail_resource(asset);
+		const sid_t			thumbnail_guid	 = editor_asset_thumbnailer_t::get_thumbnail_guid(asset.guid);
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		if (resource_manager.find_entry(thumbnail_guid) == nullptr)
+			return resource_manager.load_resource(thumbnail_guid, resource_type_e::texture) != resource_state_e::failed;
+		return true;
 	}
 
 	sid_t editor_asset_thumbnailer_t::get_thumbnail_guid(sid_t asset_guid)

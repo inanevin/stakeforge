@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
 #include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "editor_app.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
@@ -59,7 +60,7 @@ namespace sfg
 			if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
 				return false;
 
-			world_t& world = editor_world_controller_t::get().get_world(entity_payload.world);
+			world_t& world = editor_world_controller_t::get().get_editor_world(entity_payload.world)->get_world();
 			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
 				return false;
 

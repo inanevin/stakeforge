@@ -97,7 +97,7 @@ namespace sfg
 
 		void refresh_entities();
 		void refresh_entity_name(entity_id_t entity);
-		void set_edit_context(editor_world_handle_t context);
+		void set_edit_world(editor_world_handle_t world);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -197,8 +197,7 @@ namespace sfg
 		vector_t<editor_outliner_row_t>					  _outliner_rows			  = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			  = {};
 		editor_selection_listener_handle_t				  _selection_listener		  = {};
-		editor_world_handle_t							  _edit_context				  = {};
-		editor_world_handle_t							  _main_world				  = {};
+		editor_world_handle_t							  _edit_world				  = {};
 		vector_t<editor_entity_payload_t>				  _payload_entities			  = {};
 		editor_entity_payload_t							  _payload_entity			  = {};
 		editor_world_folder_handle_t					  _payload_folder			  = {};
