@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "editor_world_controller.hpp"
 #include "editor_app.hpp"
+#include "editor_surface_controller.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -312,7 +313,7 @@ namespace sfg
 				{.text = "Don't Save", .callback = on_dont_save_dirty_world_modal, .user_data = this},
 				{.text = "Cancel", .callback = on_cancel_dirty_world_modal, .user_data = this},
 			};
-			editor_app_t::get().get_main_surface().modal_controller->request_modal("Save World", "Would you like to save the current world.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
+			editor_surface_controller_t::get().get_main_surface().modal_controller->request_modal("Save World", "Would you like to save the current world.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::warning);
 			return true;
 		}
 
@@ -327,7 +328,7 @@ namespace sfg
 		destroy_main_world_internal();
 
 		const world_init_config_t init_config{
-			.render_resolution		 = editor_app_t::get().get_main_surface().swapchain_size,
+			.render_resolution		 = editor_surface_controller_t::get().get_main_surface().swapchain_size,
 			.component_table_reserve = 64,
 			.free_list_reserve		 = 1024,
 			.used_resource_reserve	 = 512,
@@ -355,7 +356,7 @@ namespace sfg
 		destroy_main_world_internal();
 
 		const world_init_config_t init_config{
-			.render_resolution		 = editor_app_t::get().get_main_surface().swapchain_size,
+			.render_resolution		 = editor_surface_controller_t::get().get_main_surface().swapchain_size,
 			.component_table_reserve = 64,
 			.free_list_reserve		 = 1024,
 			.used_resource_reserve	 = 512,
@@ -380,7 +381,7 @@ namespace sfg
 		{
 			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			_worlds.get(_main_world)->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
-			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
 		editor_project_t& project = editor_project_t::get();
@@ -547,23 +548,23 @@ namespace sfg
 
 	void editor_world_controller_t::notify_main_world_changed()
 	{
-		editor_app_t& app = editor_app_t::get();
+		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 
-		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::world))
+		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::world))
 		{
 			editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
 			world_panel->set_edit_world(_main_world);
 			world_panel->set_panel_name(_main_world.is_null() ? "" : _main_world_name.c_str());
 		}
 
-		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::entities))
+		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::entities))
 		{
 			editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
 			entities_panel->set_edit_world(_main_world);
 			entities_panel->refresh_entities();
 		}
 
-		if (editor_panel_t* panel = app.find_panel(editor_panel_type_e::inspector))
+		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::inspector))
 		{
 			editor_panel_inspector_t* inspector_panel = static_cast<editor_panel_inspector_t*>(panel);
 			inspector_panel->set_edit_world(_main_world);
@@ -573,7 +574,7 @@ namespace sfg
 
 	void editor_world_controller_t::notify_main_world_dirty_changed()
 	{
-		if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::world))
+		if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::world))
 			static_cast<editor_panel_world_t*>(panel)->set_world_dirty(_main_world_dirty);
 	}
 
@@ -600,7 +601,7 @@ namespace sfg
 			return false;
 		}
 
-		editor_panel_t* panel = editor_app_t::get().find_panel_on_surface(editor_panel_type_e::world, surface_handle);
+		editor_panel_t* panel = editor_surface_controller_t::get().find_panel_on_surface(editor_panel_type_e::world, surface_handle);
 		if (panel == nullptr || !panel->is_inited())
 			return false;
 

@@ -29,10 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "editor_renderer.hpp"
-#include "editor_surface.hpp"
 #include "editor_world_controller.hpp"
+#include "ui/editor_modal_progress_bar.hpp"
 #include "ui/editor_payload_controller.hpp"
-#include "ui/panels/editor_panel_types.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
@@ -43,8 +42,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	class editor_panel_t;
-
 	enum class editor_app_mode_e : u8
 	{
 		none,
@@ -72,21 +69,11 @@ namespace sfg
 		void tick();
 		void stop_render();
 
-		void destroy_surface(surface_handle_t handle);
-		void save_layout();
-		void apply_default_layout();
 		void switch_mode(editor_app_mode_e mode);
 		void request_switch_mode(editor_app_mode_e mode);
 		void set_debug_mode(bool enabled);
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
-
-		editor_panel_t*	  find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		editor_panel_t*	  find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
-		editor_panel_t*	  create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle = {}, bool prefer_existing_type_dock = true);
-		editor_panel_t*	  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		void			  refresh_panel_title(editor_panel_t* panel);
-		editor_surface_t& get_main_surface();
 
 		inline engine_runtime_t& get_runtime()
 		{
@@ -103,46 +90,42 @@ namespace sfg
 		{
 			return _debug_mode;
 		}
+		inline editor_world_controller_t& get_world_controller()
+		{
+			return _world_controller;
+		}
+		inline editor_command_system_t& get_command_system()
+		{
+			return _command_system;
+		}
 
 	private:
 		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 
-		void			  load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout);
-		void			  load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar);
-		bool			  is_any_modal_active() const;
-		bool			  init_normal_mode();
-		void			  uninit_normal_mode();
-		void			  destroy_all_surfaces();
-		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
-		surface_handle_t  get_surface_handle_by_runtime(window_runtime_t& runtime);
-		surface_handle_t  create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type);
-		static void		  on_window_event(void* hwnd, const struct window_event_t& ev, void* user_data);
-		static bool		  on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void* user_data);
-		static void		  on_payload_unhandled(const editor_payload_t& payload, void* user_data);
-		static void		  on_project_assets_progress(void* user_data, f32 progress, const char* progress_text);
+		bool		init_normal_mode();
+		void		uninit_normal_mode();
+		static void on_project_assets_progress(void* user_data, f32 progress, const char* progress_text);
 
 	private:
-		editor_renderer_t												_renderer;
-		engine_runtime_t												_runtime;
-		editor_world_controller_t										_world_controller;
-		editor_command_system_t											_command_system;
-		resource_pack_t													_editor_resource_pack;
-		resource_pack_t													_engine_resource_pack;
-		editor_asset_manager_t											_asset_manager;
-		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
-		unique_t<tf::Executor>											_editor_work_executor;
-		editor_payload_controller_t										_payload_controller;
-		editor_modal_progress_bar_t										_debug_progress_modal;
-		string_t														_splash_progress_text;
-		std::mutex														_splash_progress_text_mutex;
-		i64																_last_tick_us				= 0;
-		f32																_debug_modal_progress		= 0.0f;
-		atomic_t<f32>													_splash_progress			= 0.0f;
-		atomic_t<bool>													_splash_progress_text_dirty = false;
-		atomic_t<editor_app_mode_e>										_pending_mode				= editor_app_mode_e::none;
-		editor_app_mode_e												_mode						= editor_app_mode_e::none;
-		u8																_atlas_upload_frame_slot	= 0;
-		bool															_debug_mode					= false;
-		bool															_close						= false;
+		editor_renderer_t			_renderer;
+		engine_runtime_t			_runtime;
+		editor_world_controller_t	_world_controller;
+		editor_command_system_t		_command_system;
+		resource_pack_t				_editor_resource_pack;
+		resource_pack_t				_engine_resource_pack;
+		editor_asset_manager_t		_asset_manager;
+		unique_t<tf::Executor>		_editor_work_executor;
+		editor_payload_controller_t _payload_controller;
+		editor_modal_progress_bar_t _debug_progress_modal;
+		string_t					_splash_progress_text;
+		std::mutex					_splash_progress_text_mutex;
+		i64							_last_tick_us				= 0;
+		f32							_debug_modal_progress		= 0.0f;
+		atomic_t<f32>				_splash_progress			= 0.0f;
+		atomic_t<bool>				_splash_progress_text_dirty = false;
+		atomic_t<editor_app_mode_e> _pending_mode				= editor_app_mode_e::none;
+		editor_app_mode_e			_mode						= editor_app_mode_e::none;
+		u8							_atlas_upload_frame_slot	= 0;
+		bool						_debug_mode					= false;
 	};
 }

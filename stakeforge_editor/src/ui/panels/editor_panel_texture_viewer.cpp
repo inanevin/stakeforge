@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_texture_viewer.hpp"
-#include "editor_app.hpp"
+#include "editor_surface_controller.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -70,6 +70,6 @@ namespace sfg
 		}
 		set_title(_title_text.c_str());
 		if (_ui != nullptr)
-			editor_app_t::get().refresh_panel_title(this);
+			editor_surface_controller_t::get().refresh_panel_title(this);
 	}
 }

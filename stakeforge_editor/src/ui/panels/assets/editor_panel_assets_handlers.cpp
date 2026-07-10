@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_util.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
-#include "editor_app.hpp"
+#include "editor_surface_controller.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
@@ -605,9 +605,9 @@ namespace sfg
 		panel.refresh_folder_rows();
 		if (prefab_created)
 		{
-			if (editor_panel_t* entities_panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+			if (editor_panel_t* entities_panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(entities_panel)->refresh_entities();
-			if (editor_panel_t* inspector_panel = editor_app_t::get().find_panel(editor_panel_type_e::inspector))
+			if (editor_panel_t* inspector_panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector))
 				static_cast<editor_panel_inspector_t*>(inspector_panel)->refresh_from_selection();
 		}
 		return true;

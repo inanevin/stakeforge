@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_draws.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "editor_app.hpp"
+#include "editor_surface_controller.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/platform/common_window.hpp>
@@ -103,7 +104,7 @@ namespace sfg
 			return static_cast<u16>(PANEL_MENU_COMMAND_BASE + static_cast<u16>(type));
 		}
 
-		static_assert(static_cast<u16>(editor_panel_type_e::max) == 8);
+		static_assert(static_cast<u16>(editor_panel_type_e::max) == 9);
 
 		bool is_editor_debug_bounds_enabled(void*)
 		{
@@ -247,7 +248,7 @@ namespace sfg
 			if (btn != ui::mouse_button_e::left)
 				return;
 
-			process::minimize_window(editor_app_t::get().get_main_surface().runtime->window_handle);
+			process::minimize_window(editor_surface_controller_t::get().get_main_surface().runtime->window_handle);
 		}
 
 		void on_maximize_window(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void*)
@@ -255,7 +256,7 @@ namespace sfg
 			if (btn != ui::mouse_button_e::left)
 				return;
 
-			process::toggle_maximize_window(editor_app_t::get().get_main_surface().runtime->window_handle);
+			process::toggle_maximize_window(editor_surface_controller_t::get().get_main_surface().runtime->window_handle);
 		}
 
 		void on_close_window(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void*)
@@ -263,7 +264,7 @@ namespace sfg
 			if (btn != ui::mouse_button_e::left)
 				return;
 
-			editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
+			editor_surface_controller_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
 		}
 
 		void on_file_menu_command(u16 command, void* user_data)
@@ -271,7 +272,7 @@ namespace sfg
 			if (command >= PANEL_MENU_COMMAND_BASE && command < panel_menu_command(editor_panel_type_e::max))
 			{
 				const editor_panel_type_e type = static_cast<editor_panel_type_e>(command - PANEL_MENU_COMMAND_BASE);
-				editor_app_t::get().show_panel(type);
+				editor_surface_controller_t::get().show_panel(type);
 				return;
 			}
 
@@ -281,14 +282,14 @@ namespace sfg
 				editor_app_t::get().request_switch_mode(editor_app_mode_e::project_creator);
 				break;
 			case editor_file_menu_commands_e::file_exit:
-				editor_app_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
+				editor_surface_controller_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);
 				break;
 			case editor_file_menu_commands_e::view_debug_bounds:
 			case editor_file_menu_commands_e::debug_toggle_bounds:
 				editor_app_t::get().set_debug_mode(!editor_app_t::get().is_debug_mode_enabled());
 				break;
 			case editor_file_menu_commands_e::layout_apply_default:
-				editor_app_t::get().apply_default_layout();
+				editor_surface_controller_t::get().apply_default_layout();
 				break;
 			case editor_file_menu_commands_e::help_github:
 				process::open_url("https://github.com/inanevin/stakeforge");

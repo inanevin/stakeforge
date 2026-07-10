@@ -26,10 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/inspector/editor_widget_inspector.hpp"
 #include "world/editor_world_edit_context.hpp"
+#include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "commands/editor_command_component_edit.hpp"
-#include "editor_app.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
@@ -448,7 +448,7 @@ namespace sfg
 			editor_world_controller_t::get().mark_world_dirty(_edit_world);
 			refresh_display();
 
-			if (editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities))
+			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
 	}

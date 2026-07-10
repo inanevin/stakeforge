@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "editor_app.hpp"
+#include "editor_surface_controller.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include <sfg/data/frame_vector.hpp>
@@ -105,7 +106,7 @@ namespace sfg
 				status						= _import_status_visible;
 			}
 
-			editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
+			editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 			_import_progress_modal.set_progress(progress);
 			if (!status.empty())
 				modal.set_body_text(status.c_str());
@@ -406,7 +407,7 @@ namespace sfg
 		_import_in_progress			  = true;
 		_import_target_directory_node = directory_node;
 
-		editor_modal_controller_t& modal = *editor_app_t::get().get_main_surface().modal_controller;
+		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 		_import_progress_modal.set_progress(0.0f);
 		editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
 		modal.request_modal("Importing Assets", _import_status_visible.c_str(), false, nullptr, 0, &progress_content);

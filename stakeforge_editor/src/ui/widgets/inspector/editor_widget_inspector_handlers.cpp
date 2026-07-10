@@ -26,12 +26,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/inspector/editor_widget_inspector.hpp"
 #include "world/editor_world_edit_context.hpp"
+#include "editor_command_system.hpp"
+#include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "commands/editor_commands_component.hpp"
-#include "editor_app.hpp"
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -97,7 +98,7 @@ namespace sfg
 
 	void editor_widget_inspector_t::on_entity_info_name_submitted(entity_id_t entity, void*)
 	{
-		editor_panel_t* panel = editor_app_t::get().find_panel(editor_panel_type_e::entities);
+		editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities);
 		if (panel == nullptr)
 			return;
 
