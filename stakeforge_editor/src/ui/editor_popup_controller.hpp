@@ -47,6 +47,8 @@ namespace sfg::ui
 
 namespace sfg
 {
+	class editor_widget_thumbnail_t;
+
 	using editor_popup_item_pressed_fn	 = void (*)(u16 id, void* user_data);
 	using editor_popup_asset_pressed_fn	 = void (*)(sid_t guid, void* user_data);
 	using editor_popup_entity_pressed_fn = void (*)(entity_guid_t guid, void* user_data);
@@ -174,19 +176,21 @@ namespace sfg
 
 		struct asset_popup_item_t
 		{
-			string_t name = {};
-			sid_t	 guid = NULL_SID;
+			string_t name	   = {};
+			sid_t	 guid	   = NULL_SID;
+			sid_t	 thumbnail = NULL_SID;
 		};
 
 		struct asset_row_t
 		{
-			ui::widget_id_t root		= NULL_WIDGET;
-			ui::widget_id_t inner		= NULL_WIDGET;
-			ui::widget_id_t marker		= NULL_WIDGET;
-			ui::widget_id_t marker_icon = NULL_WIDGET;
-			ui::widget_id_t thumbnail	= NULL_WIDGET;
-			ui::widget_id_t label		= NULL_WIDGET;
-			sid_t			guid		= NULL_SID;
+			ui::widget_id_t			   root			   = NULL_WIDGET;
+			ui::widget_id_t			   inner		   = NULL_WIDGET;
+			ui::widget_id_t			   marker		   = NULL_WIDGET;
+			ui::widget_id_t			   marker_icon	   = NULL_WIDGET;
+			ui::widget_id_t			   thumbnail_frame = NULL_WIDGET;
+			editor_widget_thumbnail_t* thumbnail	   = nullptr;
+			ui::widget_id_t			   label		   = NULL_WIDGET;
+			sid_t					   guid			   = NULL_SID;
 		};
 
 		void  set_visible(bool visible);

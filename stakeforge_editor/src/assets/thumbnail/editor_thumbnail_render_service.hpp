@@ -75,7 +75,6 @@ namespace sfg
 		void setup_world_for_mesh(const editor_asset_t& asset);
 		void setup_world_for_skybox(const editor_asset_t& asset);
 		void setup_world_for_animation(const editor_asset_t& asset);
-		void setup_world_for_world(const editor_asset_t& asset);
 		void produce_snapshot();
 		void render_world();
 		void resolve_world_to_thumbnail_texture();

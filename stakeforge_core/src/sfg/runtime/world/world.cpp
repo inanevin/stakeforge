@@ -201,11 +201,8 @@ namespace sfg
 
 	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
 	{
-		resource_manager_t& rm = resource_manager_t::get();
-		if (rm.find_entry(handle))
-			rm.unload_resource(handle, true);
-
-		rm.load_resource(handle, resource_type_e::prefab);
+		if (add_resource(resource_type_e::prefab, handle))
+			load_all_used_resources();
 
 		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
 		if (prefab_data == nullptr)
@@ -232,7 +229,6 @@ namespace sfg
 		set_entity_scale_local(root, params.local_scale);
 		sync_entity_hierarchy(root);
 		scan_for_resources(root);
-
 		make_prefab_chain(root, handle);
 
 		return root;
@@ -258,9 +254,6 @@ namespace sfg
 			}
 		};
 		scan(scan, root);
-
-		if (add_resource(resource_type_e::prefab, handle))
-			load_all_used_resources();
 	}
 
 	void world_t::break_prefab_chain(entity_id_t root)
@@ -285,6 +278,8 @@ namespace sfg
 
 	void world_t::refresh_prefab_instances(resource_handle_t handle, entity_id_t skip)
 	{
+		resource_manager_t& rm = resource_manager_t::get();
+
 		const ecs_component_table_ref_t tables[] = {
 			_engine_components.alive_table->ref(),
 			_engine_components.prefab_table->ref(),

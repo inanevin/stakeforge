@@ -52,6 +52,7 @@ namespace sfg
 {
 	struct editor_payload_t;
 	struct editor_asset_create_desc_t;
+	class editor_widget_thumbnail_t;
 
 	class editor_panel_assets_t final : public editor_panel_t
 	{
@@ -91,6 +92,7 @@ namespace sfg
 			editor_asset_node_handle_t node			   = {};
 			ui::widget_id_t			   root			   = NULL_WIDGET;
 			ui::widget_id_t			   thumbnail_frame = NULL_WIDGET;
+			editor_widget_thumbnail_t* thumbnail	   = nullptr;
 			ui::widget_id_t			   info_frame	   = NULL_WIDGET;
 			ui::widget_id_t			   color_frame	   = NULL_WIDGET;
 			ui::widget_id_t			   label		   = NULL_WIDGET;

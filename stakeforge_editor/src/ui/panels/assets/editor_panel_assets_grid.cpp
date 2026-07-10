@@ -29,10 +29,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_thumbnail.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "editor_project.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -40,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 
 namespace sfg
 {
@@ -164,6 +163,14 @@ namespace sfg
 				tooltip_controller->clear_tooltip(item.root);
 		}
 
+		for (asset_grid_item_t& item : _asset_grid_items)
+		{
+			if (item.thumbnail != nullptr)
+			{
+				item.thumbnail->uninit();
+				delete item.thumbnail;
+			}
+		}
 		for (ui::widget_id_t row : _asset_grid_rows)
 			_ui->deallocate_widget(row);
 		_asset_grid_rows.resize(0);
@@ -288,22 +295,10 @@ namespace sfg
 		thumbnail_rect.fill_color_b		   = theme.color_frame;
 		thumbnail_rect.rounding			   = theme.item_rounding;
 		thumbnail_rect.rounding_segs	   = 4;
-		if (asset != nullptr)
-		{
-			const resource_entry_t* entry = resource_manager_t::get().find_entry(asset->thumbnail_guid);
-			if (entry != nullptr)
-			{
-				ui::ui_render_state_t thumbnail_state = {};
-				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-				thumbnail_state.constants[0].handle	  = asset->thumbnail_guid;
-				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
-				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
-			}
-			else
-				paint.set_rect(item.thumbnail_frame, thumbnail_rect);
-		}
-		else
-			paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+
+		item.thumbnail = new editor_widget_thumbnail_t();
+		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = asset != nullptr ? asset->thumbnail_guid : NULL_SID});
 
 		item.status_text = ui.allocate_widget();
 		ui.set_widget_debug_name(item.status_text, "asset_grid_item_status");
@@ -513,24 +508,14 @@ namespace sfg
 		thumbnail_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 
 		ui::vg_rect_paint_t thumbnail_rect = {};
-		thumbnail_rect.fill_color_a		   = {1.0f, 1.0f, 1.0f, 1.0f};
-		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
-		if (asset != nullptr)
-		{
-			const resource_entry_t* entry = resource_manager_t::get().find_entry(asset->thumbnail_guid);
-			if (entry != nullptr)
-			{
-				ui::ui_render_state_t thumbnail_state = {};
-				thumbnail_state.pipeline			  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
-				thumbnail_state.constants[0].handle	  = asset->thumbnail_guid;
-				thumbnail_state.constants[0].type	  = ui::ui_resource_type_e::texture;
-				paint.set_rect(item.thumbnail_frame, thumbnail_rect, thumbnail_state);
-			}
-			else
-				paint.set_rect(item.thumbnail_frame, thumbnail_rect);
-		}
-		else
-			paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		thumbnail_rect.fill_color_a		   = theme.color_frame;
+		thumbnail_rect.fill_color_b		   = theme.color_frame;
+		thumbnail_rect.rounding			   = theme.item_rounding;
+		thumbnail_rect.rounding_segs	   = 4;
+		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+
+		item.thumbnail = new editor_widget_thumbnail_t();
+		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = asset != nullptr ? asset->thumbnail_guid : NULL_SID});
 
 		item.label = ui.allocate_widget();
 		ui.set_widget_debug_name(item.label, "asset_list_item_label");

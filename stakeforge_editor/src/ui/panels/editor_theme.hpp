@@ -54,7 +54,8 @@ namespace sfg
 		vec4f_t color_text0			= color_utils_t::srgb_to_linear(color_t::from255(218.0f, 218.0f, 218.0f, 255.0f)).to_vector();
 		vec4f_t color_text_disabled = color_text2;
 
-		vec4f_t color_divider_dark = color_frame;
+		vec4f_t color_divider_dark	= color_frame;
+		vec4f_t color_editor_border = color_utils_t::srgb_to_linear(color_t::from255(4, 4, 4, 255.0f)).to_vector();
 
 		vec4f_t color_accent0_light = color_utils_t::srgb_to_linear(color_t::from255(180.0f, 0.0f, 119.0f, 255.0f)).to_vector();
 		vec4f_t color_accent0		= color_utils_t::srgb_to_linear(color_t::from255(151.0f, 0.0f, 119.0f, 255.0f)).to_vector();

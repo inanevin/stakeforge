@@ -278,7 +278,6 @@ namespace sfg
 		case editor_asset_type_e::mesh:
 		case editor_asset_type_e::hdr_skybox:
 		case editor_asset_type_e::prefab:
-		case editor_asset_type_e::world:
 			return true;
 		default:
 			return false;
@@ -303,6 +302,8 @@ namespace sfg
 			return "editor/thumbnails/texture_sampler.png"_hs;
 		case editor_asset_type_e::physical_material:
 			return "editor/thumbnails/physical_material.png"_hs;
+		case editor_asset_type_e::world:
+			return "editor/thumbnails/world.png"_hs;
 		default:
 			return NULL_SID;
 		}

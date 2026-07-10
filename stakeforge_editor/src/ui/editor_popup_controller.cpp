@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_thumbnail.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/data/frame_string.hpp>
 #include <sfg/data/string_util.hpp>
@@ -619,7 +620,9 @@ namespace sfg
 			tree.set_visible(row.inner, row_visible, false);
 			tree.set_visible(row.marker, row_visible, false);
 			tree.set_visible(row.marker_icon, row_visible, false);
-			tree.set_visible(row.thumbnail, row_visible && _mode == popup_mode_e::assets, false);
+			const bool thumbnail_visible = row_visible && _mode == popup_mode_e::assets;
+			tree.set_visible(row.thumbnail_frame, thumbnail_visible, false);
+			row.thumbnail->set_visible(thumbnail_visible);
 			tree.set_visible(row.label, row_visible, false);
 		}
 		_input.set_visible(visible && _mode == popup_mode_e::input);
@@ -726,11 +729,11 @@ namespace sfg
 							   _ui->widget_text_len(row.marker_icon),
 							   {.font = theme.font_icons, .color = {}, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-				row.thumbnail = _ui->allocate_widget();
-				_ui->set_widget_debug_name(row.thumbnail, "asset_popup_item_thumbnail");
-				tree.attach(row.inner, row.thumbnail);
+				row.thumbnail_frame = _ui->allocate_widget();
+				_ui->set_widget_debug_name(row.thumbnail_frame, "asset_popup_item_thumbnail_frame");
+				tree.attach(row.inner, row.thumbnail_frame);
 
-				ui::layout_in_t& thumbnail_in = tree.in(row.thumbnail);
+				ui::layout_in_t& thumbnail_in = tree.in(row.thumbnail_frame);
 				thumbnail_in.flags			  = 0;
 				thumbnail_in.size_mode_x	  = ui::axis_mode_e::copy_other;
 				thumbnail_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
@@ -738,7 +741,10 @@ namespace sfg
 				thumbnail_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 				thumbnail_in.pos_value.y	  = 0.5f;
 				thumbnail_in.anchor_y		  = ui::anchor_e::center;
-				set_rect(paint, row.thumbnail, {1.0f, 1.0f, 1.0f, 1.0f}, theme.item_rounding);
+				set_rect(paint, row.thumbnail_frame, theme.color_frame, theme.item_rounding);
+
+				row.thumbnail = new editor_widget_thumbnail_t();
+				row.thumbnail->init(*_ui, row.thumbnail_frame, {});
 
 				row.label = _ui->allocate_widget();
 				_ui->set_widget_debug_name(row.label, "asset_popup_item_label");
@@ -756,6 +762,7 @@ namespace sfg
 			asset_row_t& row					  = _asset_rows[i];
 			row.guid							  = item.guid;
 			paint.def(row.marker_icon).text.color = item.guid == get_search_selected_value() ? theme.color_accent0 : vec4f_t{};
+			row.thumbnail->set_thumbnail(_mode == popup_mode_e::assets ? item.thumbnail : NULL_SID);
 
 			_ui->set_widget_text(row.label, item.name.c_str());
 			paint.set_text(row.label,
@@ -869,7 +876,7 @@ namespace sfg
 			if (asset == nullptr || asset->asset_type != _asset_desc.asset_type)
 				continue;
 
-			_asset_items.push_back({.name = node.name, .guid = asset->guid});
+			_asset_items.push_back({.name = node.name, .guid = asset->guid, .thumbnail = asset->thumbnail_guid});
 		}
 	}
 
@@ -929,7 +936,14 @@ namespace sfg
 	void editor_popup_controller_t::destroy_asset_rows()
 	{
 		for (size_t i = _asset_rows.size(); i > 0; --i)
+		{
+			if (_asset_rows[i - 1].thumbnail != nullptr)
+			{
+				_asset_rows[i - 1].thumbnail->uninit();
+				delete _asset_rows[i - 1].thumbnail;
+			}
 			_ui->deallocate_widget(_asset_rows[i - 1].root);
+		}
 		_asset_rows.resize(0);
 		if (_ui != nullptr && _assets_frame != NULL_WIDGET)
 			_ui->get_tree().in(_assets_frame).scroll_offset = {};

@@ -131,7 +131,7 @@ namespace sfg
 		const ui::layout_out_t&		 out	= border._ui->get_tree().out(id);
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = border._is_dragging || border._ui->get_input().get_hovered() == id ? theme.color_frame_light : theme.color_frame;
+		rect.fill_color_a		 = border._is_dragging || border._ui->get_input().get_hovered() == id ? theme.color_panel_light1 : theme.color_editor_border;
 		rect.fill_color_b		 = rect.fill_color_a;
 
 		ui::ui_render_state_t state = {};

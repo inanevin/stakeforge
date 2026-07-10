@@ -82,6 +82,12 @@ namespace sfg
 				string_t path = _directory_path + resource_filename;
 				if (file_system_t::exists(path.c_str()))
 					return read_file_range(path.c_str(), offset, size, out);
+				else
+				{
+					SFG_ERR("resource not found: {0}", path.c_str());
+				}
+
+				return false;
 			}
 
 			SFG_ERR("resource directory cache is not set: {0}", hash);

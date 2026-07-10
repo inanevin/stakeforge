@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_thumbnail.hpp"
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/rectf.hpp>
@@ -111,10 +112,13 @@ namespace sfg
 		thumbnail_in.anchor_y		  = ui::anchor_e::center;
 
 		ui::vg_rect_paint_t thumbnail_rect = {};
-		thumbnail_rect.fill_color_a		   = {1.0f, 1.0f, 1.0f, 1.0f};
-		thumbnail_rect.fill_color_b		   = thumbnail_rect.fill_color_a;
+		thumbnail_rect.fill_color_a		   = theme.color_frame;
+		thumbnail_rect.fill_color_b		   = theme.color_frame;
 		thumbnail_rect.rounding			   = theme.item_rounding;
 		paint.set_rect(_thumbnail, thumbnail_rect);
+
+		_thumbnail_widget = new editor_widget_thumbnail_t();
+		_thumbnail_widget->init(ui, _thumbnail, {});
 
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "reference_label");
@@ -138,11 +142,14 @@ namespace sfg
 		popup->close_popup();
 		editor_payload_controller_t::get().unregister_listener(this);
 
+		_thumbnail_widget->uninit();
+		delete _thumbnail_widget;
 		_ui->deallocate_widget(_root);
-		_ui		   = nullptr;
-		_root	   = NULL_WIDGET;
-		_thumbnail = NULL_WIDGET;
-		_label	   = NULL_WIDGET;
+		_ui				  = nullptr;
+		_root			  = NULL_WIDGET;
+		_thumbnail		  = NULL_WIDGET;
+		_thumbnail_widget = nullptr;
+		_label			  = NULL_WIDGET;
 		_fields.resize(0);
 		_config			   = {};
 		_accepting_payload = false;
@@ -182,7 +189,10 @@ namespace sfg
 				_config.selected_entity = value;
 		}
 
-		_ui->get_tree().in(_thumbnail).flags = _config.type == editor_widget_reference_type_e::asset ? ui::wf_visible : 0;
+		const bool thumbnail_visible		 = _config.type == editor_widget_reference_type_e::asset;
+		_ui->get_tree().in(_thumbnail).flags = thumbnail_visible ? ui::wf_visible : 0;
+		_thumbnail_widget->set_visible(thumbnail_visible);
+		refresh_thumbnail();
 		refresh_title();
 	}
 
@@ -310,6 +320,11 @@ namespace sfg
 			_label, _ui->widget_text(_label), _ui->widget_text_len(_label), {.font = theme.font_default, .color = text_color, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 	}
 
+	void editor_widget_reference_t::refresh_thumbnail()
+	{
+		_thumbnail_widget->set_thumbnail(get_thumbnail_guid());
+	}
+
 	void editor_widget_reference_t::refresh_frame()
 	{
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -364,9 +379,23 @@ namespace sfg
 			_config.selected_asset = value;
 		else
 			_config.selected_entity = value;
+		refresh_thumbnail();
 		refresh_title();
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
+	}
+
+	sid_t editor_widget_reference_t::get_thumbnail_guid() const
+	{
+		if (_mixed || _config.type != editor_widget_reference_type_e::asset)
+			return NULL_SID;
+
+		const sid_t selected = get_selected_value();
+		if (selected == NULL_SID || selected == 0)
+			return NULL_SID;
+
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(selected);
+		return asset != nullptr ? asset->thumbnail_guid : NULL_SID;
 	}
 
 	void editor_widget_reference_t::on_root_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

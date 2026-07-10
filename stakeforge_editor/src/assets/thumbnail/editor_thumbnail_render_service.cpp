@@ -36,14 +36,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/resources/shader.hpp>
+#include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
 
@@ -51,6 +54,7 @@ namespace sfg
 {
 #define EDITOR_THUMBNAIL_RENDER_SIZE 256
 #define EDITOR_THUMBNAIL_PIXEL_BYTES 4
+#define EDITOR_THUMBNAIL_CAMERA_FOV	 50
 
 	namespace
 	{
@@ -59,6 +63,14 @@ namespace sfg
 			f32 delta_time	 = 0.0f;
 			f32 elapsed_time = 0.0f;
 		};
+
+		void place_camera_for_aabb(world_t& world, entity_id_t camera_entity, const aabb_t& aabb)
+		{
+			const vec3f_t& half = aabb.bounds_half_extent;
+			const f32	   rad	= math::max(half.x, math::max(half.y, half.z));
+			const f32	   dist = rad / (math::sin(DEG_2_RAD * EDITOR_THUMBNAIL_CAMERA_FOV / 2.0f));
+			world.set_entity_pos_local(camera_entity, vec3f_t(0, 0, dist));
+		}
 	}
 
 	void editor_thumbnail_render_service_t::init()
@@ -176,9 +188,6 @@ namespace sfg
 	{
 		SFG_ASSERT(_initialized);
 
-		if (asset.asset_type != editor_asset_type_e::prefab)
-			return false;
-
 		switch (asset.asset_type)
 		{
 		case editor_asset_type_e::prefab:
@@ -206,11 +215,6 @@ namespace sfg
 			setup_camera_for_asset();
 			setup_world_for_animation(asset);
 			break;
-		case editor_asset_type_e::world:
-			clear_world_for_setup();
-			setup_camera_for_asset();
-			setup_world_for_world(asset);
-			break;
 		default:
 			SFG_ASSERT(false);
 			return false;
@@ -235,6 +239,9 @@ namespace sfg
 		_camera_entity			   = _world.create_entity("thumbnail_camera");
 		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(_world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
 		camera.priority			   = -1;
+		camera.fov_degrees		   = EDITOR_THUMBNAIL_CAMERA_FOV;
+		camera.near_plane		   = 0.01f;
+		camera.far_plane		   = 250.0f;
 		setup_camera_for_asset();
 	}
 
@@ -260,6 +267,71 @@ namespace sfg
 	void editor_thumbnail_render_service_t::setup_world_for_prefab(const editor_asset_t& asset)
 	{
 		_display_entity = _world.spawn_prefab(asset.guid, {});
+		SFG_ASSERT(_display_entity != NULL_ENTITY_ID);
+
+		_world.update_world_transforms(false);
+
+		const ecs_component_table_t& hierarchy_table	 = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t& mesh_renderer_table = _world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& transform_table	 = _world.get_component_table(type_id_t<component_system_transform_t>::value);
+
+		aabb_t prefab_aabb = {};
+		bool   has_aabb	   = false;
+
+		const auto add_point = [&](const vec3f_t& point) {
+			if (!has_aabb)
+			{
+				prefab_aabb = aabb_t(point, point);
+				has_aabb	= true;
+				return;
+			}
+
+			prefab_aabb.bounds_min = vec3f_t::min(prefab_aabb.bounds_min, point);
+			prefab_aabb.bounds_max = vec3f_t::max(prefab_aabb.bounds_max, point);
+		};
+
+		const auto add_mesh_renderer = [&](entity_id_t entity) {
+			const component_mesh_renderer_t* mesh_renderer = ecs_helpers_t::table_find_as_const<component_mesh_renderer_t>(mesh_renderer_table, entity);
+			if (mesh_renderer == nullptr || mesh_renderer->mesh == NULL_RESOURCE_HANDLE)
+				return;
+
+			const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(mesh_renderer->mesh);
+			SFG_ASSERT(runtime != nullptr);
+
+			const component_system_transform_t& transform  = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+			const vec3f_t&						bounds_min = runtime->local_bounds.bounds_min;
+			const vec3f_t&						bounds_max = runtime->local_bounds.bounds_max;
+
+			add_point(transform.abs_mat * vec3f_t(bounds_min.x, bounds_min.y, bounds_min.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_min.x, bounds_min.y, bounds_max.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_min.x, bounds_max.y, bounds_min.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_min.x, bounds_max.y, bounds_max.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_max.x, bounds_min.y, bounds_min.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_max.x, bounds_min.y, bounds_max.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_max.x, bounds_max.y, bounds_min.z));
+			add_point(transform.abs_mat * vec3f_t(bounds_max.x, bounds_max.y, bounds_max.z));
+		};
+
+		const auto scan = [&](const auto& self, entity_id_t current) -> void {
+			add_mesh_renderer(current);
+
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, current);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+				self(self, child);
+				child = next_child;
+			}
+		};
+
+		scan(scan, _display_entity);
+
+		if (has_aabb)
+		{
+			prefab_aabb.update_half_extents();
+			place_camera_for_aabb(_world, _camera_entity, prefab_aabb);
+		}
 	}
 
 	void editor_thumbnail_render_service_t::setup_world_for_material(const editor_asset_t& asset)
@@ -269,6 +341,8 @@ namespace sfg
 		mesh_renderer.mesh						 = DEFAULT_MESH_SPHERE_GUID;
 		mesh_renderer.materials.push_back(asset.guid);
 		_world.scan_for_resources(_display_entity, true);
+
+		_world.set_entity_pos_local(_camera_entity, vec3f_t(0, 0, 1.5f));
 	}
 
 	void editor_thumbnail_render_service_t::setup_world_for_mesh(const editor_asset_t& asset)
@@ -279,6 +353,11 @@ namespace sfg
 		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
 			mesh_renderer.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
 		_world.scan_for_resources(_display_entity, true);
+
+		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(asset.guid);
+		SFG_ASSERT(runtime != nullptr);
+
+		place_camera_for_aabb(_world, _camera_entity, runtime->local_bounds);
 	}
 
 	void editor_thumbnail_render_service_t::setup_world_for_skybox(const editor_asset_t& asset)
@@ -289,10 +368,6 @@ namespace sfg
 	}
 
 	void editor_thumbnail_render_service_t::setup_world_for_animation(const editor_asset_t& asset)
-	{
-	}
-
-	void editor_thumbnail_render_service_t::setup_world_for_world(const editor_asset_t& asset)
 	{
 	}
 

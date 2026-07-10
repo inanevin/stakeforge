@@ -46,6 +46,7 @@ namespace sfg::ui
 namespace sfg
 {
 	struct editor_payload_t;
+	class editor_widget_thumbnail_t;
 
 	enum class editor_widget_reference_type_e : u8
 	{
@@ -90,9 +91,11 @@ namespace sfg
 		bool		  can_accept_payload(const editor_payload_t& payload, u64* out_value = nullptr) const;
 		void		  set_accepting_payload(bool accepting);
 		void		  refresh_title();
+		void		  refresh_thumbnail();
 		void		  refresh_frame();
 		void		  open_popup();
 		void		  modify_reference(u64 value);
+		sid_t		  get_thumbnail_guid() const;
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
@@ -108,6 +111,7 @@ namespace sfg
 		ui::ui_context*					 _ui				= nullptr;
 		ui::widget_id_t					 _root				= NULL_WIDGET;
 		ui::widget_id_t					 _thumbnail			= NULL_WIDGET;
+		editor_widget_thumbnail_t*		 _thumbnail_widget	= nullptr;
 		ui::widget_id_t					 _label				= NULL_WIDGET;
 		bool							 _accepting_payload = false;
 		bool							 _mixed				= false;
