@@ -83,8 +83,9 @@ namespace sfg
 
 		editor_panel_t*	  find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
 		editor_panel_t*	  find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle);
-		void			  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
-		void			  refresh_panel_title(editor_panel_t* panel, sid_t old_identifier);
+		editor_panel_t*	  create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle = {}, bool prefer_existing_type_dock = true);
+		editor_panel_t*	  show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {});
+		void			  refresh_panel_title(editor_panel_t* panel);
 		editor_surface_t& get_main_surface();
 
 		inline engine_runtime_t& get_runtime()

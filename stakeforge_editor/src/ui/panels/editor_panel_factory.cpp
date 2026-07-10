@@ -32,10 +32,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/log/editor_panel_log.hpp"
 #include "ui/panels/editor_panel_project_settings.hpp"
 #include "ui/panels/editor_panel_resources.hpp"
+#include "ui/panels/editor_panel_texture_viewer.hpp"
 #include "ui/panels/editor_panel_world.hpp"
+#include <sfg/io/assert.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		const editor_panel_type_desc_t PANEL_DESCS[] = {
+			{.type = editor_panel_type_e::entities},
+			{.type = editor_panel_type_e::assets},
+			{.type = editor_panel_type_e::log},
+			{.type = editor_panel_type_e::world},
+			{.type = editor_panel_type_e::inspector},
+			{.type = editor_panel_type_e::animation},
+			{.type = editor_panel_type_e::resources},
+			{.type = editor_panel_type_e::project_settings},
+			{.type = editor_panel_type_e::texture_viewer, .allows_multiple_instances = true},
+		};
+
+		static_assert(static_cast<u8>(editor_panel_type_e::max) == static_cast<u8>(sizeof(PANEL_DESCS) / sizeof(PANEL_DESCS[0])));
+	}
+
 	editor_panel_t* editor_panel_factory_t::create_panel(editor_panel_type_e type)
 	{
 		switch (type)
@@ -56,6 +75,8 @@ namespace sfg
 			return new editor_panel_resources_t();
 		case editor_panel_type_e::project_settings:
 			return new editor_panel_project_settings_t();
+		case editor_panel_type_e::texture_viewer:
+			return new editor_panel_texture_viewer_t();
 		default:
 			return nullptr;
 		}
@@ -64,5 +85,12 @@ namespace sfg
 	void editor_panel_factory_t::delete_panel(editor_panel_t* panel)
 	{
 		delete panel;
+	}
+
+	const editor_panel_type_desc_t& editor_panel_factory_t::get_desc(editor_panel_type_e type)
+	{
+		SFG_ASSERT(type != editor_panel_type_e::max);
+		SFG_ASSERT(PANEL_DESCS[static_cast<u8>(type)].type == type);
+		return PANEL_DESCS[static_cast<u8>(type)];
 	}
 }

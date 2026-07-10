@@ -148,7 +148,7 @@ namespace sfg
 		row.label = ui.allocate_widget();
 		ui.set_widget_debug_name(row.label, "property_row_label");
 		tree.attach(row.left, row.label);
-		tree.draw_order(row.label) = tree.draw_order_const(row.left) + 1;
+		//	tree.draw_order(row.label) = tree.draw_order_const(row.left) + 1;
 
 		ui::layout_in_t& label_in = tree.in(row.label);
 		label_in.flags			  = ui::wf_visible | ui::wf_input;

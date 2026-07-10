@@ -32,10 +32,17 @@ namespace sfg
 {
 	class editor_panel_t;
 
+	struct editor_panel_type_desc_t
+	{
+		editor_panel_type_e type					  = editor_panel_type_e::max;
+		bool				allows_multiple_instances = false;
+	};
+
 	class editor_panel_factory_t final
 	{
 	public:
-		static editor_panel_t* create_panel(editor_panel_type_e type);
-		static void			   delete_panel(editor_panel_t* panel);
+		static editor_panel_t*				   create_panel(editor_panel_type_e type);
+		static void							   delete_panel(editor_panel_t* panel);
+		static const editor_panel_type_desc_t& get_desc(editor_panel_type_e type);
 	};
 }

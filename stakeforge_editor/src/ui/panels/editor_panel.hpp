@@ -40,7 +40,7 @@ namespace sfg
 	class editor_panel_t
 	{
 	public:
-		editor_panel_t()									 = default;
+		editor_panel_t();
 		virtual ~editor_panel_t()							 = default;
 		editor_panel_t(const editor_panel_t&)				 = delete;
 		editor_panel_t& operator=(const editor_panel_t&)	 = delete;
@@ -61,6 +61,7 @@ namespace sfg
 		void		 set_title(const char* title);
 		void		 set_icon(const char* icon);
 		void		 set_type(editor_panel_type_e type);
+		void		 set_instance_id(sid_t instance_id);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -86,12 +87,17 @@ namespace sfg
 		{
 			return _type;
 		}
+		inline sid_t get_instance_id() const
+		{
+			return _instance_id;
+		}
 
 	protected:
-		ui::ui_context*		_ui	   = nullptr;
-		ui::widget_id_t		_root  = NULL_WIDGET;
-		const char*			_title = "";
-		const char*			_icon  = nullptr;
-		editor_panel_type_e _type  = editor_panel_type_e::max;
+		ui::ui_context*		_ui			 = nullptr;
+		ui::widget_id_t		_root		 = NULL_WIDGET;
+		const char*			_title		 = "";
+		const char*			_icon		 = nullptr;
+		sid_t				_instance_id = 0;
+		editor_panel_type_e _type		 = editor_panel_type_e::max;
 	};
 }

@@ -157,11 +157,11 @@ namespace sfg
 		}
 	}
 
-	void editor_tab_area_t::add_tab(const char* title, const char* icon)
+	void editor_tab_area_t::add_tab(sid_t identifier, const char* title, const char* icon)
 	{
+		SFG_ASSERT(identifier != 0);
 		SFG_ASSERT(title != nullptr);
 
-		const sid_t identifier = TO_SID(title);
 		for (const editor_tab_t& tab : _tabs)
 			SFG_ASSERT(tab.identifier != identifier);
 
@@ -299,32 +299,15 @@ namespace sfg
 	{
 		SFG_ASSERT(title != nullptr);
 
-		const sid_t new_identifier = TO_SID(title);
-		if (identifier != new_identifier)
-		{
-			for (const editor_tab_t& tab : _tabs)
-				SFG_ASSERT(tab.identifier != new_identifier);
-		}
-
 		editor_tab_t&		  tab	= _tabs[find_tab_index(identifier)];
 		ui::ui_context&		  ui	= *_ui;
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
-		tab.identifier				= new_identifier;
 		ui.set_widget_text(tab.label, title);
 		paint.set_text(tab.label,
 					   ui.widget_text(tab.label),
 					   ui.widget_text_len(tab.label),
 					   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-
-		if (_active_tab == identifier)
-			_active_tab = new_identifier;
-		if (_drag_tab == identifier)
-			_drag_tab = new_identifier;
-		if (_pending_close_tab == identifier)
-			_pending_close_tab = new_identifier;
-		if (_pending_drag_out_tab == identifier)
-			_pending_drag_out_tab = new_identifier;
 	}
 
 	void editor_tab_area_t::remove_tab(sid_t identifier, bool notify_removed)

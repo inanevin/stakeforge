@@ -96,6 +96,15 @@ namespace sfg
 			return false;
 		}
 
+		bool add_panel_to_existing_type_leaf(editor_surface_t& surface, editor_panel_t* panel)
+		{
+			if (surface.type == editor_surface_type_e::primary)
+				return surface.primary->get_dock_widget().dock_node_add_panel_to_existing_type_leaf(panel);
+			if (surface.type == editor_surface_type_e::secondary)
+				return surface.secondary->get_dock_widget().dock_node_add_panel_to_existing_type_leaf(panel);
+			return false;
+		}
+
 		void on_project_ready(void* user_data)
 		{
 			editor_app_t& app						   = *static_cast<editor_app_t*>(user_data);
@@ -779,8 +788,59 @@ namespace sfg
 		return find_panel_in_surface(_surfaces.get(surface_handle), type);
 	}
 
-	void editor_app_t::show_panel(editor_panel_type_e type, surface_handle_t surface_handle)
+	editor_panel_t* editor_app_t::create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle, bool prefer_existing_type_dock)
 	{
+		editor_panel_t* panel = editor_panel_factory_t::create_panel(type);
+		if (panel == nullptr)
+			return nullptr;
+
+		if (prefer_existing_type_dock)
+		{
+			if (!surface_handle.is_null())
+			{
+				editor_surface_t& surface = _surfaces.get(surface_handle);
+				if (add_panel_to_existing_type_leaf(surface, panel))
+				{
+					process::bring_to_front(surface.runtime->window_handle);
+					return panel;
+				}
+			}
+
+			for (editor_surface_t& surface : _surfaces)
+			{
+				if (add_panel_to_existing_type_leaf(surface, panel))
+				{
+					process::bring_to_front(surface.runtime->window_handle);
+					return panel;
+				}
+			}
+		}
+
+		const editor_surface_t& main_surface = get_main_surface();
+		const vec2i16_t			pos			 = {static_cast<i16>(main_surface.runtime->pos.x + 64), static_cast<i16>(main_surface.runtime->pos.y + 64)};
+		const vec2u16_t			size		 = {640, 480};
+		const surface_handle_t	new_surface	 = create_surface(pos, size, editor_surface_type_e::secondary);
+		if (new_surface.is_null())
+		{
+			editor_panel_factory_t::delete_panel(panel);
+			return nullptr;
+		}
+
+		editor_surface_t&		 surface = _surfaces.get(new_surface);
+		dock_widget_t&			 dock	 = surface.secondary->get_dock_widget();
+		const dock_node_handle_t leaf	 = dock.create_leaf_node(dock.get_root());
+		dock.set_root_node(leaf);
+		dock.dock_node_add_panel(leaf, panel);
+		process::bring_to_front(surface.runtime->window_handle);
+		return panel;
+	}
+
+	editor_panel_t* editor_app_t::show_panel(editor_panel_type_e type, surface_handle_t surface_handle)
+	{
+		const editor_panel_type_desc_t& desc = editor_panel_factory_t::get_desc(type);
+		if (desc.allows_multiple_instances)
+			return create_panel_instance(type, surface_handle, true);
+
 		editor_panel_t* panel = find_panel(type, surface_handle);
 		if (panel != nullptr)
 		{
@@ -790,37 +850,24 @@ namespace sfg
 					continue;
 
 				process::bring_to_front(surface.runtime->window_handle);
-				return;
+				return panel;
 			}
 			SFG_ASSERT(false);
-			return;
+			return nullptr;
 		}
 
-		const editor_surface_t& main_surface = get_main_surface();
-		const vec2i16_t			pos			 = {static_cast<i16>(main_surface.runtime->pos.x + 64), static_cast<i16>(main_surface.runtime->pos.y + 64)};
-		const vec2u16_t			size		 = {640, 480};
-		const surface_handle_t	new_surface	 = create_surface(pos, size, editor_surface_type_e::secondary);
-		if (new_surface.is_null())
-			return;
-
-		panel							 = editor_panel_factory_t::create_panel(type);
-		editor_surface_t&		 surface = _surfaces.get(new_surface);
-		dock_widget_t&			 dock	 = surface.secondary->get_dock_widget();
-		const dock_node_handle_t leaf	 = dock.create_leaf_node(dock.get_root());
-		dock.set_root_node(leaf);
-		dock.dock_node_add_panel(leaf, panel);
-		process::bring_to_front(surface.runtime->window_handle);
+		return create_panel_instance(type, surface_handle, true);
 	}
 
-	void editor_app_t::refresh_panel_title(editor_panel_t* panel, sid_t old_identifier)
+	void editor_app_t::refresh_panel_title(editor_panel_t* panel)
 	{
 		SFG_ASSERT(panel != nullptr);
 
 		for (editor_surface_t& surface : _surfaces)
 		{
-			if (surface.type == editor_surface_type_e::primary && surface.primary->get_dock_widget().refresh_panel_title(panel, old_identifier))
+			if (surface.type == editor_surface_type_e::primary && surface.primary->get_dock_widget().refresh_panel_title(panel))
 				return;
-			if (surface.type == editor_surface_type_e::secondary && surface.secondary->get_dock_widget().refresh_panel_title(panel, old_identifier))
+			if (surface.type == editor_surface_type_e::secondary && surface.secondary->get_dock_widget().refresh_panel_title(panel))
 				return;
 		}
 

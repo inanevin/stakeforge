@@ -248,7 +248,7 @@ namespace sfg
 			{
 				if (candidate == panel)
 				{
-					node.tab_area.select_tab(TO_SID(panel->get_title()));
+					node.tab_area.select_tab(panel->get_instance_id());
 					return true;
 				}
 			}
@@ -261,18 +261,39 @@ namespace sfg
 		dock_node_add_panel(_dock_nodes.get(handle), panel);
 	}
 
+	bool dock_widget_t::dock_node_add_panel_to_existing_type_leaf(editor_panel_t* panel)
+	{
+		SFG_ASSERT(panel != nullptr);
+
+		for (dock_node_t& node : _dock_nodes)
+		{
+			if (node.node_type != dock_node_type_e::leaf)
+				continue;
+
+			for (editor_panel_t* candidate : node.panels)
+			{
+				if (candidate->get_type() == panel->get_type())
+				{
+					dock_node_add_panel(node, panel);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	void dock_widget_t::dock_node_add_panel(dock_node_t& node, editor_panel_t* panel)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
 		SFG_ASSERT(panel != nullptr);
 
-		node.tab_area.add_tab(panel->get_title(), panel->get_icon());
+		node.tab_area.add_tab(panel->get_instance_id(), panel->get_title(), panel->get_icon());
 		node.panels.push_back(panel);
 		panel->assign(*_ui, node.body);
-		node.tab_area.select_tab(TO_SID(panel->get_title()));
+		node.tab_area.select_tab(panel->get_instance_id());
 	}
 
-	bool dock_widget_t::refresh_panel_title(editor_panel_t* panel, sid_t old_identifier)
+	bool dock_widget_t::refresh_panel_title(editor_panel_t* panel)
 	{
 		SFG_ASSERT(panel != nullptr);
 
@@ -285,7 +306,7 @@ namespace sfg
 			{
 				if (candidate == panel)
 				{
-					node.tab_area.rename_tab(old_identifier, panel->get_title());
+					node.tab_area.rename_tab(panel->get_instance_id(), panel->get_title());
 					return true;
 				}
 			}
@@ -300,7 +321,7 @@ namespace sfg
 		for (auto it = node.panels.begin(); it != node.panels.end(); ++it)
 		{
 			editor_panel_t* panel = *it;
-			if (TO_SID(panel->get_title()) == identifier)
+			if (panel->get_instance_id() == identifier)
 			{
 				const ui::layout_out_t& out	 = _ui->get_tree().out(node.widget);
 				const vec2u16_t			size = {static_cast<u16>(out.size.x), static_cast<u16>(out.size.y)};
@@ -345,7 +366,7 @@ namespace sfg
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
 
 		for (editor_panel_t* panel : node.panels)
-			panel->make_visible(TO_SID(panel->get_title()) == active_tab);
+			panel->make_visible(panel->get_instance_id() == active_tab);
 	}
 
 	void dock_widget_t::update_dock_previews(const editor_payload_t& payload, const vec2i16_t& abs_mouse_pos)
@@ -737,6 +758,7 @@ namespace sfg
 
 			nlohmann::json panel_json = nlohmann::json::object();
 			panel_json["type"]		  = editor_panel_type_to_string(panel->get_type());
+			panel_json["instance_id"] = panel->get_instance_id();
 			panel_json["data"]		  = panel_data;
 			panels.push_back(panel_json);
 		}
@@ -745,9 +767,9 @@ namespace sfg
 		const sid_t active_tab = node.tab_area.get_active_tab();
 		for (editor_panel_t* panel : node.panels)
 		{
-			if (TO_SID(panel->get_title()) == active_tab)
+			if (panel->get_instance_id() == active_tab)
 			{
-				j["active_panel"] = panel->get_title();
+				j["active_panel"] = panel->get_instance_id();
 				break;
 			}
 		}
@@ -785,17 +807,19 @@ namespace sfg
 			if (type == editor_panel_type_e::max)
 				continue;
 
-			editor_panel_t* panel = editor_panel_factory_t::create_panel(type);
+			editor_panel_t* panel		= editor_panel_factory_t::create_panel(type);
+			const sid_t		instance_id = panel_json.value<sid_t>("instance_id", panel->get_instance_id());
+			panel->set_instance_id(instance_id);
 			panel->deserialize(panel_json.value("data", nlohmann::json::object()));
 			dock_node_add_panel(node, panel);
 		}
 
-		const string_t active_panel = j.value<string_t>("active_panel", {});
+		const sid_t active_panel = j.value<sid_t>("active_panel", 0);
 		for (editor_panel_t* panel : node.panels)
 		{
-			if (TO_SID(panel->get_title()) == TO_SID(active_panel))
+			if (panel->get_instance_id() == active_panel)
 			{
-				node.tab_area.select_tab(TO_SID(panel->get_title()));
+				node.tab_area.select_tab(panel->get_instance_id());
 				break;
 			}
 		}
@@ -946,7 +970,7 @@ namespace sfg
 				for (auto it = node.panels.begin(); it != node.panels.end(); ++it)
 				{
 					editor_panel_t* panel = *it;
-					if (TO_SID(panel->get_title()) == identifier)
+					if (panel->get_instance_id() == identifier)
 					{
 						panel->deassign();
 						panel->uninit();

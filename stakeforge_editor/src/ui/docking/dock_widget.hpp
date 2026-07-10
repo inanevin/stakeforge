@@ -82,7 +82,8 @@ namespace sfg
 		dock_node_handle_t create_leaf_node(ui::widget_id_t parent);
 		void			   set_root_node(dock_node_handle_t handle);
 		void			   dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel);
-		bool			   refresh_panel_title(editor_panel_t* panel, sid_t old_identifier);
+		bool			   dock_node_add_panel_to_existing_type_leaf(editor_panel_t* panel);
+		bool			   refresh_panel_title(editor_panel_t* panel);
 		nlohmann::json	   to_json() const;
 		bool			   from_json(const nlohmann::json& j);
 

@@ -26,24 +26,38 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
+#include "ui/panels/editor_panel.hpp"
+#include <sfg/data/string.hpp>
 
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
+	class editor_panel_texture_viewer_t final : public editor_panel_t
 	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		texture_viewer,
-		max,
-	};
+	public:
+		editor_panel_texture_viewer_t();
+		~editor_panel_texture_viewer_t() override									   = default;
+		editor_panel_texture_viewer_t(const editor_panel_texture_viewer_t&)			   = delete;
+		editor_panel_texture_viewer_t& operator=(const editor_panel_texture_viewer_t&) = delete;
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void serialize(nlohmann::json& j) const override;
+		void deserialize(const nlohmann::json& j) override;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void set_texture(sid_t texture_guid, const char* asset_name);
+
+	private:
+		void refresh_title();
+
+	private:
+		string_t _asset_name;
+		string_t _title_text;
+		sid_t	 _texture_guid = 0;
+	};
 }

@@ -97,7 +97,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void add_tab(const char* title, const char* icon = nullptr);
+		void add_tab(sid_t identifier, const char* title, const char* icon = nullptr);
 		void remove_tab(sid_t identifier);
 		void rename_tab(sid_t identifier, const char* title);
 		void select_tab(sid_t identifier);

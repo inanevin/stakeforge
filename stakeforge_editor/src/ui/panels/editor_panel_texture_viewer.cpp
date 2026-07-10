@@ -24,69 +24,50 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/panels/editor_panel_world.hpp"
+#include "ui/panels/editor_panel_texture_viewer.hpp"
 #include "editor_app.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	editor_panel_world_t::editor_panel_world_t()
+	editor_panel_texture_viewer_t::editor_panel_texture_viewer_t()
 	{
-		set_type(editor_panel_type_e::world);
-		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);
-		set_title(_title_text.c_str());
-		set_icon(ICON_GLOBE);
+		set_type(editor_panel_type_e::texture_viewer);
+		set_title(editor_panel_type_to_string(editor_panel_type_e::texture_viewer));
+		set_icon(ICON_EYE);
 	}
 
-	void editor_panel_world_t::init(ui::ui_context& ui, ui::widget_id_t parent)
+	void editor_panel_texture_viewer_t::serialize(nlohmann::json& j) const
 	{
-		editor_panel_t::init(ui, parent);
-		_world_view.init(ui, _root);
+		j				  = nlohmann::json::object();
+		j["texture_guid"] = _texture_guid;
+		j["asset_name"]	  = _asset_name;
 	}
 
-	void editor_panel_world_t::uninit()
+	void editor_panel_texture_viewer_t::deserialize(const nlohmann::json& j)
 	{
-		_world_view.uninit();
-		editor_panel_t::uninit();
-	}
-
-	void editor_panel_world_t::set_edit_world(editor_world_handle_t world)
-	{
-		_world_view.set_edit_world(world);
-	}
-
-	void editor_panel_world_t::set_panel_name(const char* name)
-	{
-		SFG_ASSERT(name != nullptr);
-
-		_panel_name = name;
+		_texture_guid = j.value<sid_t>("texture_guid", 0);
+		_asset_name	  = j.value<string_t>("asset_name", {});
 		refresh_title();
 	}
 
-	void editor_panel_world_t::set_world_dirty(bool dirty)
+	void editor_panel_texture_viewer_t::set_texture(sid_t texture_guid, const char* asset_name)
 	{
-		if (_world_dirty == dirty)
-			return;
-
-		_world_dirty = dirty;
+		SFG_ASSERT(asset_name != nullptr);
+		_texture_guid = texture_guid;
+		_asset_name	  = asset_name;
 		refresh_title();
 	}
 
-	vec4f_t editor_panel_world_t::get_world_view_bounds() const
+	void editor_panel_texture_viewer_t::refresh_title()
 	{
-		return _world_view.get_world_view_bounds();
-	}
-
-	void editor_panel_world_t::refresh_title()
-	{
-		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);
-		if (!_panel_name.empty())
+		_title_text = editor_panel_type_to_string(editor_panel_type_e::texture_viewer);
+		if (!_asset_name.empty())
 		{
-			_title_text += ": ";
-			_title_text += _panel_name;
+			_title_text = "T: ";
+			_title_text += _asset_name;
 		}
-		if (_world_dirty)
-			_title_text += "*";
 		set_title(_title_text.c_str());
 		if (_ui != nullptr)
 			editor_app_t::get().refresh_panel_title(this);

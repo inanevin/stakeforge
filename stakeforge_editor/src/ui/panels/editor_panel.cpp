@@ -32,6 +32,8 @@ namespace sfg
 {
 	namespace
 	{
+		sid_t g_next_editor_panel_instance_id = 1;
+
 		void set_visible_recursive(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible)
 		{
 			ui::layout_in_t& in = tree.in(id);
@@ -49,6 +51,11 @@ namespace sfg
 				child = next;
 			}
 		}
+	}
+
+	editor_panel_t::editor_panel_t()
+	{
+		_instance_id = g_next_editor_panel_instance_id++;
 	}
 
 	void editor_panel_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -129,5 +136,13 @@ namespace sfg
 	void editor_panel_t::set_type(editor_panel_type_e type)
 	{
 		_type = type;
+	}
+
+	void editor_panel_t::set_instance_id(sid_t instance_id)
+	{
+		SFG_ASSERT(instance_id != 0);
+		_instance_id = instance_id;
+		if (g_next_editor_panel_instance_id <= instance_id)
+			g_next_editor_panel_instance_id = instance_id + 1;
 	}
 }
