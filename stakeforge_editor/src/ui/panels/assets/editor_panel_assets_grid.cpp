@@ -304,22 +304,23 @@ namespace sfg
 		ui.set_widget_debug_name(item.status_text, "asset_grid_item_status");
 		tree.attach(item.thumbnail_frame, item.status_text);
 
-		ui::layout_in_t& status_in = tree.in(item.status_text);
-		status_in.flags			   = has_status ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
-		status_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
-		status_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
-		status_in.pos_value		   = {0.0f, 1.0f};
-		status_in.anchor_x		   = ui::anchor_e::start;
-		status_in.anchor_y		   = ui::anchor_e::end;
-		status_in.size_mode_x	   = ui::axis_mode_e::fixed;
-		status_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		status_in.size_value	   = {theme.item_height, theme.item_height};
+		ui::layout_in_t& status_in		  = tree.in(item.status_text);
+		status_in.flags					  = has_status ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		status_in.pos_mode_x			  = ui::pos_mode_e::relative_in_parent;
+		status_in.pos_mode_y			  = ui::pos_mode_e::relative_in_parent;
+		status_in.pos_value				  = {0.0f, 1.0f};
+		status_in.anchor_x				  = ui::anchor_e::start;
+		status_in.anchor_y				  = ui::anchor_e::end;
+		status_in.size_mode_x			  = ui::axis_mode_e::fixed;
+		status_in.size_mode_y			  = ui::axis_mode_e::fixed;
+		status_in.size_value			  = {theme.item_area_height, theme.item_area_height};
+		tree.draw_order(item.status_text) = tree.draw_order_const(item.thumbnail_frame) + 1;
 
 		ui.set_widget_text(item.status_text, ICON_WARN);
 		paint.set_text(item.status_text,
 					   ui.widget_text(item.status_text),
 					   ui.widget_text_len(item.status_text),
-					   {.font = theme.font_icons, .color = theme.color_accent_warn, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_icons, .color = theme.color_accent_warn, .point_size = theme.icon_default_px_size * 1.5f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		item.star_text = ui.allocate_widget();
 		ui.set_widget_debug_name(item.star_text, "asset_grid_item_star");

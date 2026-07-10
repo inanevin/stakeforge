@@ -1040,7 +1040,7 @@ namespace sfg
 			.user_ui_scale		= 1.0f,
 			.dpi_scale			= surface.runtime->monitor_info.dpi_scale,
 			.max_widgets		= 10000,
-			.text_pool_capacity = 1024 * 256,
+			.text_pool_capacity = 1024 * 1024,
 		});
 		surface.ui->get_paint().set_pipelines({
 			.default_pipeline		 = "editor/resource_pack/shaders/editor_ui_default.hlsl"_hs,

@@ -925,6 +925,7 @@ namespace sfg
 				.name			  = asset_name.c_str(),
 				.source_full_path = source_path.c_str(),
 				.asset_type		  = editor_asset_type_e::texture,
+				.source_type	  = editor_asset_source_type_e::file_blob,
 			};
 			string_t asset_path;
 			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
@@ -1026,6 +1027,7 @@ namespace sfg
 				.name			  = asset_name.c_str(),
 				.source_full_path = source_path.c_str(),
 				.asset_type		  = editor_asset_type_e::texture,
+				.source_type	  = editor_asset_source_type_e::file_blob,
 			};
 			string_t asset_path;
 			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))

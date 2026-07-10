@@ -203,7 +203,7 @@ namespace sfg
 			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
 			{
 				asset.status = editor_asset_status_e::missing_embedded_data;
-				SFG_ERR("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+				SFG_WARN("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
 			}
 			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 			{
@@ -212,7 +212,7 @@ namespace sfg
 				if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
 				{
 					asset.status = editor_asset_status_e::missing_file_source;
-					SFG_ERR("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
+					SFG_WARN("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
 				}
 			}
 
@@ -225,7 +225,7 @@ namespace sfg
 
 				if (asset.status == editor_asset_status_e::ok)
 					asset.status = editor_asset_status_e::missing_dependency;
-				SFG_ERR("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency);
+				SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency);
 			}
 		}
 	}

@@ -328,7 +328,7 @@ namespace sfg
 	bool editor_asset_cooker_t::cook_texture(const editor_asset_t& asset, const char* asset_name)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::texture);
-		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob);
 
 		texture_cook_config_t config	   = {};
 		const nlohmann::json  cook_options = editor_asset_io_t::get_cook_options_json(asset);

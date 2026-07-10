@@ -94,6 +94,66 @@
             }
         },
         {
+            "name": "thumb_audio",
+            "path": "editor/resource_pack/textures/thumbnails/audio.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+        {
+            "name": "thumb_audio",
+            "path": "editor/resource_pack/textures/thumbnails/world.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+        {
+            "name": "thumb_audio",
+            "path": "editor/resource_pack/textures/thumbnails/texture_sampler.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+        {
+            "name": "thumb_audio",
+            "path": "editor/resource_pack/textures/thumbnails/physical_material.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+        {
+            "name": "thumb_audio",
+            "path": "editor/resource_pack/textures/thumbnails/shader.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+        {
             "name": "font_ibm",
             "path": "editor/resource_pack/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf",
             "type": 2,
