@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/vendor/moodycamel/readerwriterqueue.h>
 
 namespace sfg
@@ -61,6 +62,7 @@ namespace sfg
 
 		void tick();
 		void load_all_ready();
+		void unload_all_thumbnails();
 		void request_generated(sid_t asset_guid);
 		void request_render(sid_t asset_guid);
 
@@ -87,8 +89,10 @@ namespace sfg
 	private:
 		void push_request(request_t request);
 		void load_thumbnail(const editor_asset_t& asset);
+		void track_loaded_thumbnail(sid_t thumbnail_guid);
 
 	private:
 		moodycamel::ReaderWriterQueue<request_t> _requests;
+		vector_t<sid_t>							 _loaded_thumbnails;
 	};
 }

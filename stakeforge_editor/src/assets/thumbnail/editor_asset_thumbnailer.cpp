@@ -192,7 +192,7 @@ namespace sfg
 
 	}
 
-	void editor_asset_thumbnailer_t::generate_thumbnail(const editor_asset_t& asset)
+	void editor_asset_thumbnailer_t::generate_thumbnail(const editor_asset_t& asset, const char* display_name)
 	{
 		if (asset.thumbnail_guid == NULL_SID)
 			return;
@@ -216,12 +216,12 @@ namespace sfg
 			filled = fill_font_thumbnail(asset, pixels);
 		if (filled)
 		{
-			if (save_thumbnail(asset, {.data = pixels.data(), .size = pixels.size()}))
+			if (save_thumbnail(asset, {.data = pixels.data(), .size = pixels.size()}, display_name))
 				editor_asset_thumbnail_database_t::get().request_generated(asset.guid);
 		}
 	}
 
-	bool editor_asset_thumbnailer_t::save_thumbnail(const editor_asset_t& asset, span_t<u8> pixels)
+	bool editor_asset_thumbnailer_t::save_thumbnail(const editor_asset_t& asset, span_t<u8> pixels, const char* display_name)
 	{
 		if (asset.thumbnail_guid == NULL_SID || pixels.size == 0)
 			return false;
@@ -247,7 +247,7 @@ namespace sfg
 		header.file_source_ticks = 0;
 		string_t name			 = "thumb_";
 
-		if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
+		if (display_name != nullptr && display_name[0] != '\0')
 			name += display_name;
 		header.set_debug_name(name.c_str());
 

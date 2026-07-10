@@ -69,10 +69,21 @@ namespace sfg
 		// resource
 		// -----------------------------------------------------------------------------
 
-		bool add_resource(resource_type_e type, resource_handle_t handle);
-		void scan_for_resources(entity_id_t entity, bool omit_children = false);
-		void load_all_used_resources();
-		void unload_all_used_resources();
+		struct world_resource_t
+		{
+			resource_handle_t handle = NULL_RESOURCE_HANDLE;
+			resource_type_e	  type	 = resource_type_e::invalid;
+			bool			  loaded = false;
+		};
+
+		bool									 add_resource(resource_type_e type, resource_handle_t handle);
+		void									 scan_for_resources(entity_id_t entity, bool omit_children = false);
+		void									 load_all_used_resources();
+		void									 unload_all_used_resources();
+		inline const vector_t<world_resource_t>& get_used_resources() const
+		{
+			return _used_resources;
+		}
 
 		// -----------------------------------------------------------------------------
 		// transformation
@@ -136,14 +147,6 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 		};
 
-		struct world_resource_t
-		{
-			resource_handle_t handle = NULL_RESOURCE_HANDLE;
-			resource_type_e	  type	 = resource_type_e::invalid;
-			bool			  loaded = false;
-		};
-
-	private:
 		vector_t<ecs_component_table_t>	  _component_tables;
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;

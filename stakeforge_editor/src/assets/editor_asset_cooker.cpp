@@ -110,7 +110,7 @@ namespace sfg
 				return false;
 			}
 
-			editor_asset_thumbnailer_t::generate_thumbnail(asset);
+			editor_asset_thumbnailer_t::generate_thumbnail(asset, resolved_asset_name.c_str());
 
 			return true;
 		}

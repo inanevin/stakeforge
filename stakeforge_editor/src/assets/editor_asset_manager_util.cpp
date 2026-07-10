@@ -341,7 +341,7 @@ namespace sfg
 
 					const string_t thumb_cache = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
 					if (!file_system_t::exists(thumb_cache.c_str()))
-						editor_asset_thumbnailer_t::generate_thumbnail(asset);
+						editor_asset_thumbnailer_t::generate_thumbnail(asset, nullptr);
 				}
 			}
 		});

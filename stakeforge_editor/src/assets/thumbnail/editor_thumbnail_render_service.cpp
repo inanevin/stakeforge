@@ -44,17 +44,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
+#include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
 
+#include <algorithm>
+
 namespace sfg
 {
-#define EDITOR_THUMBNAIL_RENDER_SIZE 256
-#define EDITOR_THUMBNAIL_PIXEL_BYTES 4
-#define EDITOR_THUMBNAIL_CAMERA_FOV	 50
+#define EDITOR_THUMBNAIL_RENDER_SIZE			 256
+#define EDITOR_THUMBNAIL_PIXEL_BYTES			 4
+#define EDITOR_THUMBNAIL_CAMERA_FOV				 50
+#define EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE 256
 
 	namespace
 	{
@@ -77,7 +81,7 @@ namespace sfg
 	{
 		SFG_ASSERT(!_initialized);
 
-		const world_init_config_t world_config{
+		_world_config = {
 			.render_resolution		 = vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE),
 			.component_table_reserve = 32,
 			.free_list_reserve		 = 16,
@@ -131,13 +135,17 @@ namespace sfg
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 		_readback_pixels.reserve(readback_desc.size);
 
-		_world.init(world_config);
-		_render_context.init(world_config.render_resolution);
+		_render_context.init(_world_config.render_resolution);
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		SFG_ASSERT(shader != nullptr);
 		_thumbnail_shader = render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_snapshot.reserve(64);
-		setup_base_world();
+		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
+		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
+		_pending_renders.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
+		_requests.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
+		_completed_renders.reserve(32);
+		grow_world_pool(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_initialized = true;
 	}
 
@@ -149,9 +157,20 @@ namespace sfg
 		backend.wait_semaphore(_semaphore_transfer.sem, _semaphore_transfer.value);
 		backend.wait_semaphore(_semaphore_readback.sem, _semaphore_readback.value);
 
+		for (pending_render_t& pending_render : _pending_renders)
+			release_world(pending_render.world_index);
+
+		_pending_renders.resize(0);
+		_available_worlds.resize(0);
+		for (thumbnail_world_t& thumbnail_world : _worlds)
+		{
+			thumbnail_world.world->unload_all_used_resources();
+			thumbnail_world.world->uninit();
+			delete thumbnail_world.world;
+			thumbnail_world.world = nullptr;
+		}
+		_worlds.resize(0);
 		_render_context.uninit();
-		_world.unload_all_used_resources();
-		_world.uninit();
 		backend.destroy_texture(_thumbnail_texture);
 		backend.destroy_resource(_thumbnail_readback);
 		backend.destroy_resource(_global_buffer);
@@ -175,105 +194,201 @@ namespace sfg
 		_thumbnail_readback = {};
 		_thumbnail_shader	= {};
 		_readback_pixels.resize(0);
-		_global_index		= NULL_GPU_INDEX;
-		_mapped_global		= nullptr;
-		_mapped_readback	= nullptr;
-		_environment_entity = NULL_ENTITY_ID;
-		_camera_entity		= NULL_ENTITY_ID;
-		_display_entity		= NULL_ENTITY_ID;
-		_initialized		= false;
+		_requests.resize(0);
+		_completed_renders.resize(0);
+		_world_config	 = {};
+		_global_index	 = NULL_GPU_INDEX;
+		_mapped_global	 = nullptr;
+		_mapped_readback = nullptr;
+		_initialized	 = false;
 	}
 
-	bool editor_thumbnail_render_service_t::render_thumbnail(const editor_asset_t& asset)
+	void editor_thumbnail_render_service_t::request_thumbnail(const editor_asset_t& asset)
+	{
+		SFG_ASSERT(_initialized);
+		SFG_ASSERT(asset.guid != NULL_SID);
+		SFG_ASSERT(asset.thumbnail_guid != NULL_SID);
+
+		auto pending_it = std::find_if(_pending_renders.begin(), _pending_renders.end(), [&](const pending_render_t& pending_render) { return pending_render.request.thumbnail_guid == asset.thumbnail_guid; });
+		if (pending_it != _pending_renders.end())
+			return;
+
+		auto it = std::find_if(_requests.begin(), _requests.end(), [&](const thumbnail_request_t& request) { return request.thumbnail_guid == asset.thumbnail_guid; });
+		if (it != _requests.end())
+		{
+			*it = {.asset_guid = asset.guid, .thumbnail_guid = asset.thumbnail_guid, .asset_type = asset.asset_type};
+			return;
+		}
+
+		it = std::find_if(_requests.begin(), _requests.end(), [&](const thumbnail_request_t& request) { return request.asset_guid == asset.guid; });
+		if (it != _requests.end())
+		{
+			*it = {.asset_guid = asset.guid, .thumbnail_guid = asset.thumbnail_guid, .asset_type = asset.asset_type};
+			return;
+		}
+
+		_requests.push_back({.asset_guid = asset.guid, .thumbnail_guid = asset.thumbnail_guid, .asset_type = asset.asset_type});
+	}
+
+	void editor_thumbnail_render_service_t::tick()
 	{
 		SFG_ASSERT(_initialized);
 
-		switch (asset.asset_type)
+		for (const thumbnail_request_t& request : _requests)
+			prepare_request(request);
+		_requests.resize(0);
+
+		for (size_t i = 0; i < _pending_renders.size();)
+		{
+			pending_render_t& pending_render = _pending_renders[i];
+			if (!is_ready_to_render(pending_render))
+			{
+				i++;
+				continue;
+			}
+
+			thumbnail_world_t& thumbnail_world = _worlds[pending_render.world_index];
+			produce_snapshot(thumbnail_world);
+			render_world();
+			resolve_world_to_thumbnail_texture();
+			readback_thumbnail_texture();
+			if (save_rendered_thumbnail(pending_render.request))
+			{
+				_completed_renders.push_back({
+					.asset_guid		= pending_render.request.asset_guid,
+					.thumbnail_guid = pending_render.request.thumbnail_guid,
+				});
+			}
+			release_world(pending_render.world_index);
+			_pending_renders[i] = _pending_renders.back();
+			_pending_renders.pop_back();
+		}
+	}
+
+	bool editor_thumbnail_render_service_t::pop_completed(sid_t& out_asset_guid, sid_t& out_thumbnail_guid)
+	{
+		SFG_ASSERT(_initialized);
+		if (_completed_renders.empty())
+			return false;
+
+		const completed_render_t completed = _completed_renders.back();
+		_completed_renders.pop_back();
+		out_asset_guid	   = completed.asset_guid;
+		out_thumbnail_guid = completed.thumbnail_guid;
+		return true;
+	}
+
+	bool editor_thumbnail_render_service_t::has_pending_work() const
+	{
+		return !_requests.empty() || !_pending_renders.empty();
+	}
+
+	u32 editor_thumbnail_render_service_t::acquire_world()
+	{
+		if (_available_worlds.empty())
+		{
+			const u32 count = static_cast<u32>(_worlds.empty() ? 1 : _worlds.size());
+			grow_world_pool(count);
+		}
+
+		const u32 world_index = _available_worlds.back();
+		_available_worlds.pop_back();
+		return world_index;
+	}
+
+	void editor_thumbnail_render_service_t::release_world(u32 world_index)
+	{
+		thumbnail_world_t& thumbnail_world = _worlds[world_index];
+		thumbnail_world.world->unload_all_used_resources();
+		thumbnail_world.world->uninit();
+		thumbnail_world.world->init(_world_config);
+		thumbnail_world.texture_resources.resize(0);
+		thumbnail_world.environment_entity = NULL_ENTITY_ID;
+		thumbnail_world.camera_entity	   = NULL_ENTITY_ID;
+		thumbnail_world.display_entity	   = NULL_ENTITY_ID;
+		_available_worlds.push_back(world_index);
+	}
+
+	void editor_thumbnail_render_service_t::grow_world_pool(u32 count)
+	{
+		const u32 start = static_cast<u32>(_worlds.size());
+		_worlds.resize(_worlds.size() + count);
+		_available_worlds.reserve(_available_worlds.size() + count);
+		for (u32 i = 0; i < count; ++i)
+		{
+			const u32		   world_index	   = start + i;
+			thumbnail_world_t& thumbnail_world = _worlds[world_index];
+			thumbnail_world.world			   = new world_t();
+			thumbnail_world.world->init(_world_config);
+			thumbnail_world.texture_resources.reserve(32);
+			_available_worlds.push_back(world_index);
+		}
+	}
+
+	void editor_thumbnail_render_service_t::setup_base_world(thumbnail_world_t& thumbnail_world)
+	{
+		world_t& world = *thumbnail_world.world;
+
+		thumbnail_world.environment_entity = world.create_entity("thumbnail_environment");
+		component_skybox_t& skybox		   = ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), thumbnail_world.environment_entity);
+		skybox.skybox_asset				   = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
+		world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
+		world.scan_for_resources(thumbnail_world.environment_entity, true);
+
+		thumbnail_world.camera_entity = world.create_entity("thumbnail_camera");
+		component_camera_t& camera	  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), thumbnail_world.camera_entity);
+		camera.priority				  = -1;
+		camera.fov_degrees			  = EDITOR_THUMBNAIL_CAMERA_FOV;
+		camera.near_plane			  = 0.01f;
+		camera.far_plane			  = 250.0f;
+		setup_camera_for_asset(thumbnail_world);
+	}
+
+	void editor_thumbnail_render_service_t::setup_camera_for_asset(thumbnail_world_t& thumbnail_world)
+	{
+		world_t& world = *thumbnail_world.world;
+		world.set_entity_pos_local(thumbnail_world.camera_entity, vec3f_t(0.0f, 0.0f, 2.0f));
+		world.set_entity_rot_local(thumbnail_world.camera_entity, quat_t::identity);
+	}
+
+	void editor_thumbnail_render_service_t::setup_world_for_asset(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
+	{
+		setup_base_world(thumbnail_world);
+
+		switch (request.asset_type)
 		{
 		case editor_asset_type_e::prefab:
-			clear_world_for_setup();
-			setup_camera_for_asset();
-			setup_world_for_prefab(asset);
+			setup_world_for_prefab(thumbnail_world, request);
 			break;
 		case editor_asset_type_e::material:
-			clear_world_for_setup();
-			setup_camera_for_asset();
-			setup_world_for_material(asset);
+			setup_world_for_material(thumbnail_world, request);
 			break;
 		case editor_asset_type_e::mesh:
-			clear_world_for_setup();
-			setup_camera_for_asset();
-			setup_world_for_mesh(asset);
+			setup_world_for_mesh(thumbnail_world, request);
 			break;
 		case editor_asset_type_e::hdr_skybox:
-			clear_world_for_setup();
-			setup_camera_for_asset();
-			setup_world_for_skybox(asset);
+			setup_world_for_skybox(thumbnail_world, request);
 			break;
 		case editor_asset_type_e::animation:
-			clear_world_for_setup();
-			setup_camera_for_asset();
-			setup_world_for_animation(asset);
+			setup_world_for_animation(thumbnail_world, request);
 			break;
 		default:
 			SFG_ASSERT(false);
-			return false;
+			break;
 		}
-
-		produce_snapshot();
-		render_world();
-		resolve_world_to_thumbnail_texture();
-		readback_thumbnail_texture();
-		_world.unload_all_used_resources();
-		return save_rendered_thumbnail(asset);
 	}
 
-	void editor_thumbnail_render_service_t::setup_base_world()
+	void editor_thumbnail_render_service_t::setup_world_for_prefab(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
 	{
-		_environment_entity		   = _world.create_entity("thumbnail_environment");
-		component_skybox_t& skybox = ecs_helpers_t::table_add_or_get_as<component_skybox_t>(_world.get_component_table(type_id_t<component_skybox_t>::value), _environment_entity);
-		skybox.skybox_asset		   = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		_world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
-		_world.scan_for_resources(_environment_entity, true);
+		world_t& world				   = *thumbnail_world.world;
+		thumbnail_world.display_entity = world.spawn_prefab(request.asset_guid, {});
+		SFG_ASSERT(thumbnail_world.display_entity != NULL_ENTITY_ID);
 
-		_camera_entity			   = _world.create_entity("thumbnail_camera");
-		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(_world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
-		camera.priority			   = -1;
-		camera.fov_degrees		   = EDITOR_THUMBNAIL_CAMERA_FOV;
-		camera.near_plane		   = 0.01f;
-		camera.far_plane		   = 250.0f;
-		setup_camera_for_asset();
-	}
+		world.update_world_transforms(false);
 
-	void editor_thumbnail_render_service_t::clear_world_for_setup()
-	{
-		if (_display_entity != NULL_ENTITY_ID)
-		{
-			_world.destroy_entity_tree(_display_entity);
-			_display_entity = NULL_ENTITY_ID;
-		}
-
-		component_skybox_t& skybox = ecs_helpers_t::table_get_as<component_skybox_t>(_world.get_component_table(type_id_t<component_skybox_t>::value), _environment_entity);
-		skybox.skybox_asset		   = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		_world.scan_for_resources(_environment_entity, true);
-	}
-
-	void editor_thumbnail_render_service_t::setup_camera_for_asset()
-	{
-		_world.set_entity_pos_local(_camera_entity, vec3f_t(0.0f, 0.0f, 2.0f));
-		_world.set_entity_rot_local(_camera_entity, quat_t::identity);
-	}
-
-	void editor_thumbnail_render_service_t::setup_world_for_prefab(const editor_asset_t& asset)
-	{
-		_display_entity = _world.spawn_prefab(asset.guid, {});
-		SFG_ASSERT(_display_entity != NULL_ENTITY_ID);
-
-		_world.update_world_transforms(false);
-
-		const ecs_component_table_t& hierarchy_table	 = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t& mesh_renderer_table = _world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
-		const ecs_component_table_t& transform_table	 = _world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& hierarchy_table	 = world.get_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t& mesh_renderer_table = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& transform_table	 = world.get_component_table(type_id_t<component_system_transform_t>::value);
 
 		aabb_t prefab_aabb = {};
 		bool   has_aabb	   = false;
@@ -325,56 +440,131 @@ namespace sfg
 			}
 		};
 
-		scan(scan, _display_entity);
+		scan(scan, thumbnail_world.display_entity);
 
 		if (has_aabb)
 		{
 			prefab_aabb.update_half_extents();
-			place_camera_for_aabb(_world, _camera_entity, prefab_aabb);
+			place_camera_for_aabb(world, thumbnail_world.camera_entity, prefab_aabb);
 		}
 	}
 
-	void editor_thumbnail_render_service_t::setup_world_for_material(const editor_asset_t& asset)
+	void editor_thumbnail_render_service_t::setup_world_for_material(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
 	{
-		_display_entity							 = _world.create_entity("thumbnail_material");
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(_world.get_component_table(type_id_t<component_mesh_renderer_t>::value), _display_entity);
+		world_t& world							 = *thumbnail_world.world;
+		thumbnail_world.display_entity			 = world.create_entity("thumbnail_material");
+		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
 		mesh_renderer.mesh						 = DEFAULT_MESH_SPHERE_GUID;
-		mesh_renderer.materials.push_back(asset.guid);
-		_world.scan_for_resources(_display_entity, true);
+		mesh_renderer.materials.push_back(request.asset_guid);
+		world.scan_for_resources(thumbnail_world.display_entity, true);
 
-		_world.set_entity_pos_local(_camera_entity, vec3f_t(0, 0, 1.5f));
+		world.set_entity_pos_local(thumbnail_world.camera_entity, vec3f_t(0, 0, 1.5f));
 	}
 
-	void editor_thumbnail_render_service_t::setup_world_for_mesh(const editor_asset_t& asset)
+	void editor_thumbnail_render_service_t::setup_world_for_mesh(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
 	{
-		_display_entity							 = _world.create_entity("thumbnail_mesh");
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(_world.get_component_table(type_id_t<component_mesh_renderer_t>::value), _display_entity);
-		mesh_renderer.mesh						 = asset.guid;
+		world_t& world							 = *thumbnail_world.world;
+		thumbnail_world.display_entity			 = world.create_entity("thumbnail_mesh");
+		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
+		mesh_renderer.mesh						 = request.asset_guid;
 		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
 			mesh_renderer.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
-		_world.scan_for_resources(_display_entity, true);
+		world.scan_for_resources(thumbnail_world.display_entity, true);
 
-		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(asset.guid);
+		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(request.asset_guid);
 		SFG_ASSERT(runtime != nullptr);
 
-		place_camera_for_aabb(_world, _camera_entity, runtime->local_bounds);
+		place_camera_for_aabb(world, thumbnail_world.camera_entity, runtime->local_bounds);
 	}
 
-	void editor_thumbnail_render_service_t::setup_world_for_skybox(const editor_asset_t& asset)
+	void editor_thumbnail_render_service_t::setup_world_for_skybox(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
 	{
-		component_skybox_t& skybox = ecs_helpers_t::table_get_as<component_skybox_t>(_world.get_component_table(type_id_t<component_skybox_t>::value), _environment_entity);
-		skybox.skybox_asset		   = asset.guid;
-		_world.scan_for_resources(_environment_entity, true);
+		world_t&			world  = *thumbnail_world.world;
+		component_skybox_t& skybox = ecs_helpers_t::table_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), thumbnail_world.environment_entity);
+		skybox.skybox_asset		   = request.asset_guid;
+		world.scan_for_resources(thumbnail_world.environment_entity, true);
 	}
 
-	void editor_thumbnail_render_service_t::setup_world_for_animation(const editor_asset_t& asset)
+	void editor_thumbnail_render_service_t::setup_world_for_animation(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
 	{
 	}
 
-	void editor_thumbnail_render_service_t::produce_snapshot()
+	void editor_thumbnail_render_service_t::collect_texture_resources(pending_render_t& pending_render)
 	{
-		_world.update_world_transforms(false);
-		world_snapshot_producer_t::produce(_world, _snapshot);
+		thumbnail_world_t&	thumbnail_world	 = _worlds[pending_render.world_index];
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		thumbnail_world.texture_resources.resize(0);
+
+		const auto append_texture = [&](resource_handle_t handle) {
+			if (handle == NULL_RESOURCE_HANDLE)
+				return;
+
+			auto it = std::find(thumbnail_world.texture_resources.begin(), thumbnail_world.texture_resources.end(), handle);
+			if (it == thumbnail_world.texture_resources.end())
+				thumbnail_world.texture_resources.push_back(handle);
+		};
+
+		const auto scan_dependencies = [&](const auto& self, resource_handle_t handle) -> void {
+			const resource_entry_t* entry = resource_manager.find_entry(handle);
+			if (entry == nullptr)
+				return;
+
+			if (entry->type == resource_type_e::texture)
+				append_texture(handle);
+
+			if (entry->dependency_count == 0)
+				return;
+
+			const resource_dependency_t* deps = resource_manager.get_memory().get<resource_dependency_t>(entry->dependencies);
+			for (u32 i = 0; i < entry->dependency_count; ++i)
+			{
+				if (deps[i].type == resource_type_e::texture)
+					append_texture(deps[i].handle);
+				else
+					self(self, deps[i].handle);
+			}
+		};
+
+		for (const world_t::world_resource_t& world_resource : thumbnail_world.world->get_used_resources())
+		{
+			if (world_resource.type == resource_type_e::texture)
+				append_texture(world_resource.handle);
+			else
+				scan_dependencies(scan_dependencies, world_resource.handle);
+		}
+	}
+
+	void editor_thumbnail_render_service_t::prepare_request(const thumbnail_request_t& request)
+	{
+		const u32		   world_index	   = acquire_world();
+		thumbnail_world_t& thumbnail_world = _worlds[world_index];
+		setup_world_for_asset(thumbnail_world, request);
+		thumbnail_world.world->load_all_used_resources();
+
+		pending_render_t& pending_render = _pending_renders.emplace_back();
+		pending_render.request			 = request;
+		pending_render.world_index		 = world_index;
+		collect_texture_resources(pending_render);
+	}
+
+	bool editor_thumbnail_render_service_t::is_ready_to_render(const pending_render_t& pending_render) const
+	{
+		resource_manager_t&		 resource_manager = resource_manager_t::get();
+		const thumbnail_world_t& thumbnail_world  = _worlds[pending_render.world_index];
+		for (const resource_handle_t texture : thumbnail_world.texture_resources)
+		{
+			const texture_runtime_t* runtime = resource_manager.find_runtime<texture_runtime_t>(texture);
+			if (runtime == nullptr || runtime->residency != texture_residency_e::resident)
+				return false;
+		}
+
+		return true;
+	}
+
+	void editor_thumbnail_render_service_t::produce_snapshot(thumbnail_world_t& thumbnail_world)
+	{
+		thumbnail_world.world->update_world_transforms(false);
+		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot);
 	}
 
 	void editor_thumbnail_render_service_t::render_world()
@@ -489,11 +679,16 @@ namespace sfg
 		SFG_MEMCPY(_readback_pixels.data(), _mapped_readback, _readback_pixels.size());
 	}
 
-	bool editor_thumbnail_render_service_t::save_rendered_thumbnail(const editor_asset_t& asset)
+	bool editor_thumbnail_render_service_t::save_rendered_thumbnail(const thumbnail_request_t& request)
 	{
-		return editor_asset_thumbnailer_t::save_thumbnail(asset, {.data = _readback_pixels.data(), .size = _readback_pixels.size()});
+		editor_asset_t asset = {};
+		asset.guid			 = request.asset_guid;
+		asset.thumbnail_guid = request.thumbnail_guid;
+		asset.asset_type	 = request.asset_type;
+		return editor_asset_thumbnailer_t::save_thumbnail(asset, {.data = _readback_pixels.data(), .size = _readback_pixels.size()}, nullptr);
 	}
 
 #undef EDITOR_THUMBNAIL_RENDER_SIZE
 #undef EDITOR_THUMBNAIL_PIXEL_BYTES
+#undef EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE
 }

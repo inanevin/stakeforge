@@ -416,6 +416,7 @@ namespace sfg
 		_command_system.init();
 		_world_controller.init();
 		editor_asset_thumbnail_database_t::get().init();
+		editor_asset_thumbnail_database_t::get().unload_all_thumbnails();
 		editor_thumbnail_render_service_t::get().init();
 		editor_asset_thumbnail_database_t::get().load_all_ready();
 

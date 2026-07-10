@@ -59,7 +59,6 @@ namespace sfg
 	void editor_asset_thumbnail_database_t::tick()
 	{
 		frame_vector_t<pending_t> pending;
-		frame_vector_t<request_t> retry_requests;
 		request_t				  request = {};
 		while (_requests.try_dequeue(request))
 		{
@@ -91,28 +90,34 @@ namespace sfg
 			}
 		}
 
-		for (const request_t& retry_request : retry_requests)
-			push_request(retry_request);
-
-		if (pending.empty())
-			return;
-
 		bool has_render_requests = false;
 		for (const pending_t& entry : pending)
 			has_render_requests |= entry.kind == request_kind_e::render;
 
-		if (has_render_requests)
+		editor_thumbnail_render_service_t& render_service = editor_thumbnail_render_service_t::get();
+		if (has_render_requests || render_service.has_pending_work())
 			editor_app_t::get().stop_render();
 
 		for (const pending_t& entry : pending)
 		{
 			if (entry.kind == request_kind_e::render)
 			{
-				if (editor_asset_thumbnailer_t::is_renderable_thumbnail(entry.asset->asset_type) && editor_thumbnail_render_service_t::get().render_thumbnail(*entry.asset))
-					load_thumbnail(*entry.asset);
+				if (editor_asset_thumbnailer_t::is_renderable_thumbnail(entry.asset->asset_type))
+					render_service.request_thumbnail(*entry.asset);
 			}
 			else
 				load_thumbnail(*entry.asset);
+		}
+
+		render_service.tick();
+
+		sid_t completed_asset_guid	   = NULL_SID;
+		sid_t completed_thumbnail_guid = NULL_SID;
+		while (render_service.pop_completed(completed_asset_guid, completed_thumbnail_guid))
+		{
+			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(completed_asset_guid);
+			if (asset != nullptr && asset->thumbnail_guid == completed_thumbnail_guid)
+				load_thumbnail(*asset);
 		}
 	}
 
@@ -133,8 +138,22 @@ namespace sfg
 
 			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
 			if (file_system_t::exists(cache_path.c_str()))
-				resource_manager.load_resource(asset.thumbnail_guid, resource_type_e::texture);
+			{
+				if (resource_manager.load_resource(asset.thumbnail_guid, resource_type_e::texture) != resource_state_e::failed)
+					track_loaded_thumbnail(asset.thumbnail_guid);
+			}
 		}
+	}
+
+	void editor_asset_thumbnail_database_t::unload_all_thumbnails()
+	{
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		for (auto it = _loaded_thumbnails.rbegin(); it != _loaded_thumbnails.rend(); ++it)
+		{
+			if (resource_manager.find_entry(*it) != nullptr)
+				resource_manager.unload_resource(*it, true);
+		}
+		_loaded_thumbnails.resize(0);
 	}
 
 	void editor_asset_thumbnail_database_t::request_generated(sid_t asset_guid)
@@ -160,6 +179,14 @@ namespace sfg
 		if (resource_manager.find_entry(asset.thumbnail_guid) != nullptr)
 			resource_manager.unload_resource(asset.thumbnail_guid, true);
 
-		resource_manager.load_resource(asset.thumbnail_guid, resource_type_e::texture);
+		if (resource_manager.load_resource(asset.thumbnail_guid, resource_type_e::texture) != resource_state_e::failed)
+			track_loaded_thumbnail(asset.thumbnail_guid);
+	}
+
+	void editor_asset_thumbnail_database_t::track_loaded_thumbnail(sid_t thumbnail_guid)
+	{
+		auto it = std::find(_loaded_thumbnails.begin(), _loaded_thumbnails.end(), thumbnail_guid);
+		if (it == _loaded_thumbnails.end())
+			_loaded_thumbnails.push_back(thumbnail_guid);
 	}
 }
