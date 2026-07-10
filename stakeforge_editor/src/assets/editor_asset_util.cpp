@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_path.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
+#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/data/string_util.hpp>

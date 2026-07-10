@@ -25,10 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "assets/editor_asset_thumbnailer.hpp"
+#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "assets/thumbnail/editor_asset_thumbnail_database.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/data/ostream.hpp>
@@ -55,22 +56,6 @@ namespace sfg
 
 	namespace
 	{
-		bool can_render_thumbnail(editor_asset_type_e type)
-		{
-			switch (type)
-			{
-			case editor_asset_type_e::animation:
-			case editor_asset_type_e::material:
-			case editor_asset_type_e::mesh:
-			case editor_asset_type_e::hdr_skybox:
-			case editor_asset_type_e::prefab:
-			case editor_asset_type_e::world:
-				return true;
-			default:
-				return false;
-			}
-		}
-
 		bool fill_texture_thumbnail(const editor_asset_t& asset, vector_t<u8>& pixels)
 		{
 			if (asset.source_relative.empty())
@@ -205,53 +190,6 @@ namespace sfg
 			return true;
 		}
 
-		bool save_thumbnail(const editor_asset_t& asset, vector_t<u8>& pixels)
-		{
-			if (asset.thumbnail_guid == NULL_SID || pixels.empty())
-				return false;
-
-			const texture_cook_config_t config = {
-				.size			  = vec2u16_t(EDITOR_THUMBNAIL_SIZE, EDITOR_THUMBNAIL_SIZE),
-				.payload_type	  = texture_payload_type_e::png,
-				.generate_mipmaps = false,
-				.is_linear		  = false,
-				.use_streaming	  = false,
-				.force_4_channels = true,
-			};
-
-			resource_header_t header = {};
-			ostream_t		  payload;
-			if (!texture_cooker::cook_from_data(config, {.data = pixels.data(), .size = pixels.size()}, header, payload))
-			{
-				SFG_ERR("failed to cook thumbnail for asset {0}", asset.guid);
-				return false;
-			}
-
-			header.source_tick		 = 0;
-			header.file_source_ticks = 0;
-			string_t name			 = "thumb_";
-
-			if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
-				name += display_name;
-			header.set_debug_name(name.c_str());
-
-			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
-			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
-			if (!file_system_t::ensure_directory(cache_dir.c_str()))
-			{
-				SFG_ERR("failed to create asset cache directory {0}", cache_dir.c_str());
-				return false;
-			}
-
-			ostream_t stream = header.make_stream(payload);
-			if (!serializer_t::save_to_file(cache_path.c_str(), stream))
-			{
-				SFG_ERR("failed to save thumbnail {0}", cache_path.c_str());
-				return false;
-			}
-
-			return true;
-		}
 	}
 
 	void editor_asset_thumbnailer_t::generate_thumbnail(const editor_asset_t& asset)
@@ -262,8 +200,9 @@ namespace sfg
 		if (get_builtin_thumbnail_guid(asset.asset_type) != NULL_SID)
 			return;
 
-		if (can_render_thumbnail(asset.asset_type))
+		if (is_renderable_thumbnail(asset.asset_type))
 		{
+			editor_asset_thumbnail_database_t::get().request_render(asset.guid);
 			return;
 		}
 
@@ -276,7 +215,74 @@ namespace sfg
 		if (asset.asset_type == editor_asset_type_e::font)
 			filled = fill_font_thumbnail(asset, pixels);
 		if (filled)
-			save_thumbnail(asset, pixels);
+		{
+			if (save_thumbnail(asset, {.data = pixels.data(), .size = pixels.size()}))
+				editor_asset_thumbnail_database_t::get().request_generated(asset.guid);
+		}
+	}
+
+	bool editor_asset_thumbnailer_t::save_thumbnail(const editor_asset_t& asset, span_t<u8> pixels)
+	{
+		if (asset.thumbnail_guid == NULL_SID || pixels.size == 0)
+			return false;
+
+		const texture_cook_config_t config = {
+			.size			  = vec2u16_t(EDITOR_THUMBNAIL_SIZE, EDITOR_THUMBNAIL_SIZE),
+			.payload_type	  = texture_payload_type_e::png,
+			.generate_mipmaps = false,
+			.is_linear		  = false,
+			.use_streaming	  = false,
+			.force_4_channels = true,
+		};
+
+		resource_header_t header = {};
+		ostream_t		  payload;
+		if (!texture_cooker::cook_from_data(config, pixels, header, payload))
+		{
+			SFG_ERR("failed to cook thumbnail for asset {0}", asset.guid);
+			return false;
+		}
+
+		header.source_tick		 = 0;
+		header.file_source_ticks = 0;
+		string_t name			 = "thumb_";
+
+		if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
+			name += display_name;
+		header.set_debug_name(name.c_str());
+
+		const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
+		const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
+		if (!file_system_t::ensure_directory(cache_dir.c_str()))
+		{
+			SFG_ERR("failed to create asset cache directory {0}", cache_dir.c_str());
+			return false;
+		}
+
+		ostream_t stream = header.make_stream(payload);
+		if (!serializer_t::save_to_file(cache_path.c_str(), stream))
+		{
+			SFG_ERR("failed to save thumbnail {0}", cache_path.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_asset_thumbnailer_t::is_renderable_thumbnail(editor_asset_type_e asset_type)
+	{
+		switch (asset_type)
+		{
+		case editor_asset_type_e::animation:
+		case editor_asset_type_e::material:
+		case editor_asset_type_e::mesh:
+		case editor_asset_type_e::hdr_skybox:
+		case editor_asset_type_e::prefab:
+		case editor_asset_type_e::world:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	sid_t editor_asset_thumbnailer_t::make_thumbnail_guid(editor_asset_type_e asset_type, span_t<const sid_t> pending_guids)
@@ -293,8 +299,6 @@ namespace sfg
 			return "editor/thumbnails/audio.png"_hs;
 		case editor_asset_type_e::shader:
 			return "editor/thumbnails/shader.png"_hs;
-		case editor_asset_type_e::animation:
-			return "editor/thumbnails/animation.png"_hs;
 		case editor_asset_type_e::texture_sampler:
 			return "editor/thumbnails/texture_sampler.png"_hs;
 		case editor_asset_type_e::physical_material:

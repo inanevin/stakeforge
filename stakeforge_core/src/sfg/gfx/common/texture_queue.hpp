@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/gfx/common/semaphore_data.hpp>
 #include <sfg/gfx/common/texture_buffer.hpp>
 
 namespace sfg
@@ -68,6 +69,16 @@ namespace sfg
 		u32			 target_states = 0;
 	};
 
+	struct texture_queue_submit_desc_t
+	{
+		gfx_handle_t	  queue_gfx		 = {};
+		gfx_handle_t	  queue_transfer = {};
+		gfx_handle_t	  cmd_prepare	 = {};
+		gfx_handle_t	  cmd_transfer	 = {};
+		gfx_handle_t	  cmd_transit	 = {};
+		semaphore_data_t* semaphore		 = nullptr;
+	};
+
 	class texture_queue_t
 	{
 	public:
@@ -99,6 +110,8 @@ namespace sfg
 
 		// transit issues post-upload barriers on the (graphics) command buffer.
 		void transit(gfx_handle_t cmd);
+
+		bool submit(const texture_queue_submit_desc_t& desc);
 
 		// -----------------------------------------------------------------------------
 		// accessors

@@ -51,6 +51,8 @@ namespace sfg
 		editor_asset_thumbnailer_t& operator=(const editor_asset_thumbnailer_t&) = delete;
 
 		static void	 generate_thumbnail(const editor_asset_t& asset);
+		static bool	 save_thumbnail(const editor_asset_t& asset, span_t<u8> pixels);
+		static bool	 is_renderable_thumbnail(editor_asset_type_e asset_type);
 		static sid_t make_thumbnail_guid(editor_asset_type_e asset_type, span_t<const sid_t> pending_guids = {});
 		static sid_t get_builtin_thumbnail_guid(editor_asset_type_e asset_type);
 	};

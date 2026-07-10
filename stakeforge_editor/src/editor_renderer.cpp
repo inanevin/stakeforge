@@ -68,21 +68,21 @@ namespace sfg
 			pfd.semaphore_transfer.sem = backend.create_semaphore();
 			pfd.semaphore_world.sem	   = backend.create_semaphore();
 			pfd.cmd_gfx				   = backend.create_command_buffer({
-							   .type	   = command_type::graphics,
-							   .debug_name = "editor_gfx",
-			   });
+				.type		= command_type::graphics,
+				.debug_name = "editor_gfx",
+			});
 			pfd.cmd_gfx_prepare		   = backend.create_command_buffer({
-					   .type	   = command_type::graphics,
-					   .debug_name = "editor_prep",
-			   });
+				.type		= command_type::graphics,
+				.debug_name = "editor_prep",
+			});
 			pfd.cmd_gfx_transit		   = backend.create_command_buffer({
-					   .type	   = command_type::graphics,
-					   .debug_name = "editor_transit",
-			   });
+				.type		= command_type::graphics,
+				.debug_name = "editor_transit",
+			});
 			pfd.cmd_transfer		   = backend.create_command_buffer({
-						  .type		  = command_type::transfer,
-						  .debug_name = "editor_xfer",
-			  });
+				.type		= command_type::transfer,
+				.debug_name = "editor_xfer",
+			});
 
 			resource_desc_t desc = {};
 			desc.size			 = sizeof(global_buffer_data_t);
@@ -293,38 +293,14 @@ namespace sfg
 
 		/* flush uploads, begin graphics & transits */
 
-		bool transfer_submitted = false;
-		if (texture_queue.has_uploads())
-		{
-			backend.reset_command_buffer(cmd_prepare);
-			const bool prepare_emitted = texture_queue.prepare(cmd_prepare);
-			backend.close_command_buffer(cmd_prepare);
-			if (prepare_emitted)
-			{
-				backend.submit_commands(queue_gfx, &cmd_prepare, 1);
-				pfd.semaphore_transfer.value++;
-				backend.queue_signal(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
-				backend.queue_wait(queue_transfer, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
-			}
-
-			backend.reset_command_buffer_transfer(cmd_transfer);
-			if (texture_queue.flush(cmd_transfer))
-			{
-				backend.close_command_buffer(cmd_transfer);
-				backend.submit_commands(queue_transfer, &cmd_transfer, 1);
-				pfd.semaphore_transfer.value++;
-				backend.queue_signal(queue_transfer, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
-				backend.queue_wait(queue_gfx, &pfd.semaphore_transfer.sem, &pfd.semaphore_transfer.value, 1);
-			}
-
-			if (texture_queue.has_transits())
-			{
-				backend.reset_command_buffer(cmd_transit);
-				texture_queue.transit(cmd_transit);
-				backend.close_command_buffer(cmd_transit);
-				backend.submit_commands(queue_gfx, &cmd_transit, 1);
-			}
-		}
+		texture_queue.submit({
+			.queue_gfx		= queue_gfx,
+			.queue_transfer = queue_transfer,
+			.cmd_prepare	= cmd_prepare,
+			.cmd_transfer	= cmd_transfer,
+			.cmd_transit	= cmd_transit,
+			.semaphore		= &pfd.semaphore_transfer,
+		});
 
 		pfd.semaphore_world.value++;
 		bool world_submitted = false;

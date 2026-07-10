@@ -230,6 +230,59 @@ namespace sfg
 		_transits.resize(0);
 	}
 
+	bool texture_queue_t::submit(const texture_queue_submit_desc_t& desc)
+	{
+		SFG_ASSERT(!desc.queue_gfx.is_null());
+		SFG_ASSERT(!desc.queue_transfer.is_null());
+		SFG_ASSERT(!desc.cmd_prepare.is_null());
+		SFG_ASSERT(!desc.cmd_transfer.is_null());
+		SFG_ASSERT(!desc.cmd_transit.is_null());
+		SFG_ASSERT(desc.semaphore != nullptr);
+		SFG_ASSERT(!desc.semaphore->sem.is_null());
+
+		if (!has_uploads())
+			return false;
+
+		gfx_backend& backend   = gfx_backend::get();
+		bool		 submitted = false;
+
+		backend.reset_command_buffer(desc.cmd_prepare);
+		const bool prepare_emitted = prepare(desc.cmd_prepare);
+		backend.close_command_buffer(desc.cmd_prepare);
+		if (prepare_emitted)
+		{
+			backend.submit_commands(desc.queue_gfx, &desc.cmd_prepare, 1);
+			submitted = true;
+
+			desc.semaphore->value++;
+			backend.queue_signal(desc.queue_gfx, &desc.semaphore->sem, &desc.semaphore->value, 1);
+			backend.queue_wait(desc.queue_transfer, &desc.semaphore->sem, &desc.semaphore->value, 1);
+		}
+
+		backend.reset_command_buffer_transfer(desc.cmd_transfer);
+		if (flush(desc.cmd_transfer))
+		{
+			backend.close_command_buffer(desc.cmd_transfer);
+			backend.submit_commands(desc.queue_transfer, &desc.cmd_transfer, 1);
+			submitted = true;
+
+			desc.semaphore->value++;
+			backend.queue_signal(desc.queue_transfer, &desc.semaphore->sem, &desc.semaphore->value, 1);
+			backend.queue_wait(desc.queue_gfx, &desc.semaphore->sem, &desc.semaphore->value, 1);
+		}
+
+		if (has_transits())
+		{
+			backend.reset_command_buffer(desc.cmd_transit);
+			transit(desc.cmd_transit);
+			backend.close_command_buffer(desc.cmd_transit);
+			backend.submit_commands(desc.queue_gfx, &desc.cmd_transit, 1);
+			submitted = true;
+		}
+
+		return submitted;
+	}
+
 	bool texture_queue_t::has_uploads() const
 	{
 		return !_uploads.empty() || !_regions.empty();

@@ -133,6 +133,11 @@ namespace sfg
 			return _generation;
 		}
 
+		inline bool is_import_in_progress() const
+		{
+			return _import_in_progress;
+		}
+
 	private:
 		friend class editor_asset_manager_util_t;
 

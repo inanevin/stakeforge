@@ -238,8 +238,7 @@ namespace sfg
 			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
 			for (u32 i = 0; i < entry.dependency_count; i++)
 			{
-				if (find_entry(deps[i].handle))
-					unload_resource(deps[i].handle, force);
+				unload_resource(deps[i].handle, force);
 			}
 		}
 

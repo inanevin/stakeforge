@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "editor_app.hpp"
 #include "assets/editor_asset_manager_util.hpp"
+#include "assets/thumbnail/editor_asset_thumbnail_database.hpp"
+#include "assets/thumbnail/editor_thumbnail_render_service.hpp"
 #include "editor_directories.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface.hpp"
@@ -413,9 +415,14 @@ namespace sfg
 
 		_command_system.init();
 		_world_controller.init();
+		editor_asset_thumbnail_database_t::get().init();
+		editor_thumbnail_render_service_t::get().init();
+		editor_asset_thumbnail_database_t::get().load_all_ready();
 
 		const auto cleanup = [this]() {
 			destroy_all_surfaces();
+			editor_thumbnail_render_service_t::get().uninit();
+			editor_asset_thumbnail_database_t::get().uninit();
 			_world_controller.uninit();
 			_command_system.uninit();
 			editor_global_toolbar_t::get().uninit();
@@ -493,6 +500,8 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		editor_thumbnail_render_service_t::get().uninit();
+		editor_asset_thumbnail_database_t::get().uninit();
 		_world_controller.uninit();
 		_command_system.uninit();
 		editor_global_toolbar_t::get().uninit();
@@ -885,7 +894,18 @@ namespace sfg
 			{
 				ZoneScopedN("asset_manager_tick");
 				if (_mode == editor_app_mode_e::normal)
+				{
 					_asset_manager.tick();
+
+					if (!_asset_manager.is_import_in_progress())
+						editor_asset_thumbnail_database_t::get().tick();
+				}
+			}
+
+			if (_mode == editor_app_mode_e::normal)
+			{
+				ZoneScopedN("world_controller_tick");
+				_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
 			}
 
 			if (_mode == editor_app_mode_e::splash)
@@ -914,12 +934,6 @@ namespace sfg
 			const i64 now = time_t::get_cpu_microseconds();
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
-
-			if (_mode == editor_app_mode_e::normal)
-			{
-				ZoneScopedN("world_controller_tick");
-				_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
-			}
 
 			for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 			{
@@ -1021,7 +1035,7 @@ namespace sfg
 				{
 					.vertex_buffer_bytes = 1 << 24,
 					.index_buffer_bytes	 = 1 << 24,
-					.buffer_count		 = 48,
+					.buffer_count		 = 64,
 				},
 			.user_ui_scale		= 1.0f,
 			.dpi_scale			= surface.runtime->monitor_info.dpi_scale,

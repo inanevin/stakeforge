@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset.hpp"
-#include "editor_asset_thumbnailer.hpp"
+#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
@@ -81,8 +81,6 @@ namespace sfg
 
 		bool save_cooked_asset(const editor_asset_t& asset, resource_header_t header, const ostream_t& payload, const char* asset_name)
 		{
-			editor_asset_thumbnailer_t::generate_thumbnail(asset);
-
 			const string_t cache_dir  = editor_project_t::get()._runtime.cache_path;
 			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.guid);
 			if (!file_system_t::ensure_directory(cache_dir.c_str()))
@@ -111,6 +109,8 @@ namespace sfg
 				SFG_ERR("failed to save cooked asset {0}", cache_path.c_str());
 				return false;
 			}
+
+			editor_asset_thumbnailer_t::generate_thumbnail(asset);
 
 			return true;
 		}

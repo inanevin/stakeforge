@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "editor_project.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "assets/editor_asset_thumbnailer.hpp"
+#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
