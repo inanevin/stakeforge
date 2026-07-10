@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_payload_controller.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_handle.hpp"
 
 #include <sfg/data/frame_vector.hpp>

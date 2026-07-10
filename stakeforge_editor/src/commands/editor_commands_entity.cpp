@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "commands/editor_commands_entity.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "editor_command_system.hpp"

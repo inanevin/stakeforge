@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "commands/editor_commands_entity_info.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include "ui/editor_action_menu_common.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widget_reflection.hpp"

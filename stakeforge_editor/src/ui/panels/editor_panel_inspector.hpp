@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel.hpp"
-#include "ui/widgets/editor_widget_inspector.hpp"
+#include "ui/widgets/inspector/editor_widget_inspector.hpp"
 
 namespace sfg
 {

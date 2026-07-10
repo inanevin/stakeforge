@@ -24,11 +24,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widget_outliner.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "ui/widgets/outliner/editor_widget_outliner.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
-#include "ui/widgets/editor_widget_outliner_internal.hpp"
+#include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg

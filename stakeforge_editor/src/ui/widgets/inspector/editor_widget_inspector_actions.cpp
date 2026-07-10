@@ -24,8 +24,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widget_inspector.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "ui/widgets/inspector/editor_widget_inspector.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "ui/editor_action_menu_controller.hpp"

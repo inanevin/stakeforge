@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>

@@ -24,15 +24,15 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widget_outliner.hpp"
-#include "ui/widgets/editor_widget_outliner_internal.hpp"
+#include "ui/widgets/outliner/editor_widget_outliner.hpp"
+#include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "commands/editor_commands_entity.hpp"
-#include "world_edit/editor_world_edit_context.hpp"
+#include "world/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"

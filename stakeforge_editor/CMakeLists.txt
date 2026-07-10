@@ -39,11 +39,11 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/world/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/world_edit/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docking/*.cpp
 )
 
@@ -53,11 +53,11 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/world/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/world_edit/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docking/*.hpp
 )
 
