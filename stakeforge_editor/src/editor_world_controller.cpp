@@ -37,9 +37,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
-#include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "ui/panels/editor_panel_inspector.hpp"
 #include "world/editor_world.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/istream.hpp>

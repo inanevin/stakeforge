@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_spawn.hpp"
 #include "ui/widgets/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
-#include "ui/panels/inspector/editor_panel_inspector.hpp"
+#include "ui/panels/editor_panel_inspector.hpp"
 #include "commands/editor_command_primitive_spawn.hpp"
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "commands/editor_commands_component.hpp"

@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "editor_app.hpp"
-#include "ui/panels/entities/editor_panel_entities.hpp"
+#include "ui/panels/editor_panel_entities.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
