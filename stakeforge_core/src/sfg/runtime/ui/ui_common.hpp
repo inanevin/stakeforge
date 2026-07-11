@@ -56,6 +56,7 @@ namespace sfg::ui
 		gpu_index,
 		gpu_index_fof,
 		texture,
+		test,
 	};
 
 	enum class clip_mode_e : u8

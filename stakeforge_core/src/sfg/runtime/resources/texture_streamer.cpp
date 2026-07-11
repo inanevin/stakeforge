@@ -83,8 +83,11 @@ namespace sfg
 			desc.size			= header.size;
 			desc.flags			= texture_flags::tf_sampled | texture_flags::tf_transfer_dest | texture_flags::tf_is_2d;
 			desc.mip_levels		= header.mip_count;
-			desc.array_length	= 1;
-			desc.samples		= 1;
+			desc.views[0]		= {
+				.mip_count = header.mip_count,
+			};
+			desc.array_length = 1;
+			desc.samples	  = 1;
 			desc.set_name(debug_name);
 			return desc;
 		}

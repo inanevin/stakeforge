@@ -63,7 +63,7 @@ namespace sfg
 		return {
 			.anisotropy = 6,
 			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
+			.max_lod	= 16.0f,
 			.lod_bias	= 0.0f,
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
@@ -79,7 +79,7 @@ namespace sfg
 		return {
 			.anisotropy = 8,
 			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
+			.max_lod	= 16.0f,
 			.lod_bias	= 0.0f,
 			.address_u	= address_mode::repeat,
 			.address_v	= address_mode::repeat,
@@ -94,7 +94,7 @@ namespace sfg
 		return {
 			.anisotropy = 0,
 			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
+			.max_lod	= 16.0f,
 			.lod_bias	= 0.0f,
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
@@ -110,7 +110,7 @@ namespace sfg
 		return {
 			.anisotropy = 0,
 			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
+			.max_lod	= 16.0f,
 			.lod_bias	= 0.0f,
 			.address_u	= address_mode::repeat,
 			.address_v	= address_mode::repeat,
@@ -126,7 +126,7 @@ namespace sfg
 		return {
 			.anisotropy = 0,
 			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
+			.max_lod	= 16.0f,
 			.lod_bias	= 0.0f,
 			.address_u	= address_mode::clamp,
 			.address_v	= address_mode::clamp,
@@ -142,7 +142,7 @@ namespace sfg
 		return {
 			.anisotropy = 0,
 			.min_lod	= 0.0f,
-			.max_lod	= 10.0f,
+			.max_lod	= 16.0f,
 			.lod_bias	= 0.0f,
 			.address_u	= address_mode::repeat,
 			.address_v	= address_mode::repeat,

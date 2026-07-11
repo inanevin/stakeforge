@@ -55,6 +55,15 @@
             }
         },
         {
+            "name": "ui_texture_mip",
+            "path": "editor/resource_pack/shaders/editor_ui_texture_mip.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1
+            }
+        },
+        {
             "name": "ui_glitch_rect",
             "path": "editor/resource_pack/shaders/editor_ui_glitch_rect.hlsl",
             "type": 7,

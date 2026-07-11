@@ -66,6 +66,8 @@ namespace sfg::ui
 		{
 			if (ref.type == ui_resource_type_e::gpu_index)
 				return ref.gpu_indices[0];
+			if (ref.type == ui_resource_type_e::test)
+				return ref.gpu_indices[0];
 			if (ref.type == ui_resource_type_e::gpu_index_fof)
 				return ref.gpu_indices[frame_slot];
 			if (ref.type == ui_resource_type_e::texture)
