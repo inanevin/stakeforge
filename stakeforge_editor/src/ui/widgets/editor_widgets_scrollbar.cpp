@@ -71,11 +71,12 @@ namespace sfg
 		ui.set_post_layout_tick(_root, on_post_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_overlay;
-		root_in.pos_mode_x		 = ui::pos_mode_e::absolute_screen;
-		root_in.pos_mode_y		 = ui::pos_mode_e::absolute_screen;
-		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		root_in.flags |= ui::wf_overlay;
+
+		root_in.pos_mode_x	= ui::pos_mode_e::absolute_screen;
+		root_in.pos_mode_y	= ui::pos_mode_e::absolute_screen;
+		root_in.size_mode_x = ui::axis_mode_e::fixed;
+		root_in.size_mode_y = ui::axis_mode_e::fixed;
 
 		_x = {.owner = this, .axis = axis_e::x};
 		_y = {.owner = this, .axis = axis_e::y};
@@ -120,7 +121,6 @@ namespace sfg
 			tree.draw_order(axis->thumb) = tree.draw_order_const(axis->track) + 1;
 
 			ui::layout_in_t& thumb_in = tree.in(axis->thumb);
-			thumb_in.flags			  = 0;
 			thumb_in.pos_mode_x		  = ui::pos_mode_e::offset_in_parent;
 			thumb_in.pos_mode_y		  = ui::pos_mode_e::offset_in_parent;
 			set_scrollbar_rect(paint, axis->thumb, theme.color_accent0_dim, theme.item_rounding);
@@ -208,9 +208,7 @@ namespace sfg
 		if (!enabled || max_scroll * ui_scale <= EDITOR_SCROLLBAR_SHOW_EPS)
 		{
 			track_in.flags = 0;
-			thumb_in.flags = 0;
 			track_out.clip = {};
-			thumb_out.clip = {};
 			if (axis.axis == axis_e::x)
 				target_in.scroll_offset.x = 0.0f;
 			else
@@ -347,6 +345,7 @@ namespace sfg
 		ui::layout_in_t&   root_in = tree.in(_root);
 		bool			   visible = true;
 		ui::widget_id_t	   id	   = _config.target;
+
 		while (id != NULL_WIDGET && id != tree.get_root())
 		{
 			if ((tree.in_const(id).flags & ui::wf_visible) == 0)
@@ -356,18 +355,11 @@ namespace sfg
 			}
 			id = tree.node(id).parent;
 		}
+
 		if (!visible)
 		{
-			root_in.flags			= 0;
-			tree.out(_root).clip	= {};
-			tree.in(_x.track).flags = 0;
-			tree.in(_x.thumb).flags = 0;
-			tree.in(_y.track).flags = 0;
-			tree.in(_y.thumb).flags = 0;
-			tree.out(_x.track).clip = {};
-			tree.out(_x.thumb).clip = {};
-			tree.out(_y.track).clip = {};
-			tree.out(_y.thumb).clip = {};
+			root_in.flags		 = 0;
+			tree.out(_root).clip = {};
 			return;
 		}
 

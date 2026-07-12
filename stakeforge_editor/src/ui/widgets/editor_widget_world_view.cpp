@@ -110,7 +110,6 @@ namespace sfg
 		tree.attach(_root, _empty_label);
 
 		ui::layout_in_t& label_in = tree.in(_empty_label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value		  = {0.5f, 0.5f};

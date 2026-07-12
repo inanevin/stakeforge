@@ -46,7 +46,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value.x	 = 1.0f;
@@ -58,7 +57,6 @@ namespace sfg
 		tree.attach(_root, _progress_text);
 
 		ui::layout_in_t& text_in = tree.in(_progress_text);
-		text_in.flags			 = ui::wf_visible;
 
 		ui.set_widget_text(_progress_text, config.progress_text);
 		paint.set_text(_progress_text,
@@ -71,7 +69,6 @@ namespace sfg
 		tree.attach(_root, _progress_frame);
 
 		ui::layout_in_t& frame_in = tree.in(_progress_frame);
-		frame_in.flags			  = ui::wf_visible;
 		frame_in.pos_mode_y		  = ui::pos_mode_e::flow;
 		frame_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		frame_in.size_mode_y	  = ui::axis_mode_e::fixed;
@@ -94,7 +91,6 @@ namespace sfg
 		tree.draw_order(_progress_fill) = tree.draw_order_const(_progress_frame) + 1;
 
 		ui::layout_in_t& fill_in = tree.in(_progress_fill);
-		fill_in.flags			 = ui::wf_visible;
 		fill_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		fill_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		fill_in.size_value		 = {_progress_amount, 1.0f};
@@ -114,7 +110,6 @@ namespace sfg
 		tree.draw_order(_progress_amount_label) = tree.draw_order_const(_progress_fill);
 
 		ui::layout_in_t& amount_in = tree.in(_progress_amount_label);
-		amount_in.flags			   = ui::wf_visible;
 		amount_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		amount_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		amount_in.pos_value		   = {0.5f, 0.5f};

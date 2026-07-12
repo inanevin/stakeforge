@@ -125,7 +125,6 @@ namespace sfg
 		tree.attach(_root, _label);
 
 		ui::layout_in_t& label_in = tree.in(_label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -192,6 +191,7 @@ namespace sfg
 		const bool thumbnail_visible		 = _config.type == editor_widget_reference_type_e::asset;
 		_ui->get_tree().in(_thumbnail).flags = thumbnail_visible ? ui::wf_visible : 0;
 		_thumbnail_widget->set_visible(thumbnail_visible);
+
 		refresh_thumbnail();
 		refresh_title();
 	}

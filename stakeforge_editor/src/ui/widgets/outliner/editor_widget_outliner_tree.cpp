@@ -183,12 +183,13 @@ namespace sfg
 		tree.draw_order(row.root) = tree.draw_order_const(_entity_list_area) + 1;
 
 		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_focusable;
-		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		row_in.size_mode_y		= ui::axis_mode_e::fixed;
-		row_in.size_value		= {1.0f, theme.item_height};
-		row_in.flow				= ui::flow_e::row;
-		row_in.child_spacing	= theme.item_spacing * 0.5f;
+		row_in.flags |= ui::wf_input | ui::wf_focusable;
+
+		row_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		row_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		row_in.size_value	 = {1.0f, theme.item_height};
+		row_in.flow			 = ui::flow_e::row;
+		row_in.child_spacing = theme.item_spacing * 0.5f;
 
 		ui::vg_rect_paint_t row_rect = {};
 		row_rect.rounding			 = theme.item_rounding;
@@ -209,7 +210,6 @@ namespace sfg
 		tree.attach(row.root, row.fold_icon);
 
 		ui::layout_in_t& icon_in = tree.in(row.fold_icon);
-		icon_in.flags			 = ui::wf_visible;
 		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_value.y		 = 0.5f;
 		icon_in.anchor_y		 = ui::anchor_e::center;
@@ -227,7 +227,6 @@ namespace sfg
 		tree.attach(row.fold_icon, row.fold_icon_text);
 
 		ui::layout_in_t& icon_text_in = tree.in(row.fold_icon_text);
-		icon_text_in.flags			  = ui::wf_visible;
 		icon_text_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		icon_text_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		icon_text_in.pos_value		  = {0.5f, 0.5f};
@@ -241,7 +240,6 @@ namespace sfg
 		tree.attach(row.root, row.type_icon);
 
 		ui::layout_in_t& type_icon_in = tree.in(row.type_icon);
-		type_icon_in.flags			  = ui::wf_visible;
 		type_icon_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		type_icon_in.pos_value.y	  = 0.5f;
 		type_icon_in.anchor_y		  = ui::anchor_e::center;
@@ -254,7 +252,6 @@ namespace sfg
 		tree.attach(row.type_icon, row.type_icon_text);
 
 		ui::layout_in_t& type_icon_text_in = tree.in(row.type_icon_text);
-		type_icon_text_in.flags			   = ui::wf_visible;
 		type_icon_text_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		type_icon_text_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		type_icon_text_in.pos_value		   = {0.5f, 0.5f};
@@ -268,7 +265,6 @@ namespace sfg
 		tree.attach(row.root, row.label);
 
 		ui::layout_in_t& label_in = tree.in(row.label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -281,15 +277,16 @@ namespace sfg
 		tree.draw_order(row.disable_button) = tree.draw_order_const(row.root) + 1;
 
 		ui::layout_in_t& disable_button_in = tree.in(row.disable_button);
-		disable_button_in.flags			   = ui::wf_visible | ui::wf_input;
-		disable_button_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
-		disable_button_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
-		disable_button_in.pos_value		   = {1.0f, 0.5f};
-		disable_button_in.anchor_x		   = ui::anchor_e::end;
-		disable_button_in.anchor_y		   = ui::anchor_e::center;
-		disable_button_in.size_mode_x	   = ui::axis_mode_e::fixed;
-		disable_button_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		disable_button_in.size_value	   = {theme.item_height, theme.item_height};
+		disable_button_in.flags |= ui::wf_input;
+
+		disable_button_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
+		disable_button_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+		disable_button_in.pos_value	  = {1.0f, 0.5f};
+		disable_button_in.anchor_x	  = ui::anchor_e::end;
+		disable_button_in.anchor_y	  = ui::anchor_e::center;
+		disable_button_in.size_mode_x = ui::axis_mode_e::fixed;
+		disable_button_in.size_mode_y = ui::axis_mode_e::fixed;
+		disable_button_in.size_value  = {theme.item_height, theme.item_height};
 
 		ui::listener_bundle_t disable_listener = {};
 		disable_listener.user_data			   = this;
@@ -306,7 +303,6 @@ namespace sfg
 		tree.draw_order(row.disable_icon) = tree.draw_order_const(row.disable_button) + 1;
 
 		ui::layout_in_t& disable_icon_in = tree.in(row.disable_icon);
-		disable_icon_in.flags			 = ui::wf_visible;
 		disable_icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		disable_icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		disable_icon_in.pos_value		 = {0.5f, 0.5f};
@@ -335,9 +331,13 @@ namespace sfg
 		set_outliner_row_visible(row, true);
 		update_outliner_row_background(row);
 
-		ui::layout_in_t& row_in			= tree.in(row.root);
-		row_in.child_margins			= {0.0f, theme.item_height, 0.0f, theme.margin_horizontal + static_cast<f32>(item.depth) * theme.indent_horizontal * ENTITIES_INDENT_MULT};
-		tree.in(row.fold_icon).flags	= item.has_children ? static_cast<u16>(ui::wf_visible | ui::wf_input) : static_cast<u16>(ui::wf_visible);
+		ui::layout_in_t& row_in		  = tree.in(row.root);
+		row_in.child_margins		  = {0.0f, theme.item_height, 0.0f, theme.margin_horizontal + static_cast<f32>(item.depth) * theme.indent_horizontal * ENTITIES_INDENT_MULT};
+		ui::layout_in_t& fold_icon_in = tree.in(row.fold_icon);
+		if (item.has_children)
+			fold_icon_in.flags |= ui::wf_input;
+		else
+			fold_icon_in.flags &= ~ui::wf_input;
 		const vec4f_t entity_text_color = item.has_prefab_reference ? theme.color_accent2 : (item.disabled ? theme.color_text_disabled : theme.color_text0);
 		const vec4f_t label_color		= item.type == editor_outliner_item_type_e::folder ? item.color.to_vector() : entity_text_color;
 		const vec4f_t fold_icon_color	= item.type == editor_outliner_item_type_e::entity && item.has_prefab_reference ? theme.color_accent2 : theme.color_text0;
@@ -365,10 +365,6 @@ namespace sfg
 						.point_size	 = theme.text_default_px_size,
 						.spacing	 = 0,
 						.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-
-		const bool disable_button_visible = item.type == editor_outliner_item_type_e::entity;
-		tree.in(row.disable_button).flags = disable_button_visible ? static_cast<u16>(ui::wf_visible | ui::wf_input) : 0;
-		tree.in(row.disable_icon).flags	  = disable_button_visible ? static_cast<u16>(ui::wf_visible) : 0;
 
 		ui::vg_rect_paint_t disable_rect = {};
 		disable_rect.fill_color_a		 = item.disabled ? theme.color_frame_light : vec4f_t::zero;
@@ -408,15 +404,13 @@ namespace sfg
 
 	void editor_widget_outliner_t::set_outliner_row_visible(const editor_outliner_row_t& row, bool visible)
 	{
-		ui::layout_tree_t& tree = _ui->get_tree();
-		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
-		tree.set_visible(row.fold_icon, visible, false);
-		tree.set_visible(row.fold_icon_text, visible, false);
-		tree.set_visible(row.type_icon, visible, false);
-		tree.set_visible(row.type_icon_text, visible, false);
-		tree.set_visible(row.label, visible, false);
+		ui::layout_tree_t& tree	  = _ui->get_tree();
+		ui::layout_in_t&   row_in = tree.in(row.root);
+		if (visible)
+			row_in.flags |= ui::wf_visible | ui::wf_input | ui::wf_focusable;
+		else
+			row_in.flags = 0;
 		tree.set_visible(row.disable_button, visible && row.type == editor_outliner_item_type_e::entity, visible && row.type == editor_outliner_item_type_e::entity);
-		tree.set_visible(row.disable_icon, visible && row.type == editor_outliner_item_type_e::entity, false);
 	}
 
 	void editor_widget_outliner_t::set_focus_state(bool focused)

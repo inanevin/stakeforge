@@ -96,7 +96,6 @@ namespace sfg
 		tree.draw_order(_title) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& title_in = tree.in(_title);
-		title_in.flags			  = ui::wf_visible;
 		title_in.size_mode_x	  = ui::axis_mode_e::fixed;
 		title_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		title_in.size_value		  = {0.0f, 1.0f};
@@ -122,7 +121,6 @@ namespace sfg
 		tree.draw_order(_icon_frame) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& icon_in = tree.in(_icon_frame);
-		icon_in.flags			 = ui::wf_visible;
 		icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		icon_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		icon_in.size_value		 = {theme.item_height, theme.item_height};

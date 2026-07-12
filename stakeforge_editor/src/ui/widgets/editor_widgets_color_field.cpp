@@ -64,7 +64,6 @@ namespace sfg
 		tree.attach(_root, _swatch);
 
 		ui::layout_in_t& swatch_in = tree.in(_swatch);
-		swatch_in.flags			   = ui::wf_visible;
 		swatch_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		swatch_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		swatch_in.size_value	   = {1.0f, 1.0f};
@@ -157,6 +156,7 @@ namespace sfg
 		paint.set_rect(_swatch, rect);
 		tree.in(_swatch).flags = ui::wf_visible;
 		tree.in(_label).flags  = _mixed ? ui::wf_visible : 0;
+
 		if (_mixed)
 		{
 			paint.set_text(_label,

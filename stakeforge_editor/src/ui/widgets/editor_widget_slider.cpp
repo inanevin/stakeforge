@@ -48,7 +48,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = config.fixed_width ? ui::axis_mode_e::fixed : ui::axis_mode_e::fill;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {config.fixed_width ? config.width : 1.0f, theme.item_height};
@@ -82,7 +81,6 @@ namespace sfg
 		tree.attach(_slider, _bg);
 
 		ui::layout_in_t& bg_in = tree.in(_bg);
-		bg_in.flags			   = ui::wf_visible;
 		bg_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		bg_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		bg_in.pos_value		   = {0.0f, 0.5f};
@@ -101,7 +99,6 @@ namespace sfg
 		tree.attach(_slider, _icon);
 
 		ui::layout_in_t& icon_in = tree.in(_icon);
-		icon_in.flags			 = ui::wf_visible;
 		icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_value.y		 = 0.5f;

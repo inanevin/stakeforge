@@ -71,7 +71,6 @@ namespace sfg
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
@@ -99,7 +98,6 @@ namespace sfg
 		tree.attach(guid_row.right, _guid_label);
 
 		ui::layout_in_t& guid_label_in = tree.in(_guid_label);
-		guid_label_in.flags			   = ui::wf_visible;
 		guid_label_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		guid_label_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		guid_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
@@ -147,7 +145,6 @@ namespace sfg
 			tree.attach(_root, _prefab_frame);
 
 			ui::layout_in_t& frame_in = tree.in(_prefab_frame);
-			frame_in.flags			  = ui::wf_visible;
 			frame_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 			frame_in.size_mode_y	  = ui::axis_mode_e::fixed;
 			frame_in.size_value		  = {1.0f, theme.item_area_height};
@@ -170,7 +167,6 @@ namespace sfg
 			tree.draw_order(_prefab_label) = tree.draw_order_const(_prefab_frame) + 1;
 
 			ui::layout_in_t& label_in = tree.in(_prefab_label);
-			label_in.flags			  = ui::wf_visible;
 			label_in.size_mode_x	  = ui::axis_mode_e::fill;
 			label_in.size_mode_y	  = ui::axis_mode_e::fixed;
 			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;

@@ -61,12 +61,13 @@ namespace sfg
 		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
-		root_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
-		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		root_in.size_value		 = {1.0f, theme.item_height};
-		root_in.child_margins	 = vec4f_t{0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		root_in.flags |= ui::wf_input | ui::wf_focusable;
+
+		root_in.child_clip_mode = ui::clip_mode_e::cpu_rect;
+		root_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		root_in.size_mode_y		= ui::axis_mode_e::fixed;
+		root_in.size_value		= {1.0f, theme.item_height};
+		root_in.child_margins	= vec4f_t{0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		ui::vg_rect_paint_t rect = {};
 		rect.fill_color_a		 = theme.color_frame;
@@ -97,7 +98,6 @@ namespace sfg
 		tree.draw_order(_slider) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& slider_in = tree.in(_slider);
-		slider_in.flags			   = ui::wf_visible;
 		slider_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		slider_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		slider_in.size_value	   = {1.0f, 1.0f};
@@ -109,7 +109,6 @@ namespace sfg
 		tree.draw_order(_label) = tree.draw_order_const(_root) + 2;
 
 		ui::layout_in_t& label_in = tree.in(_label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -121,7 +120,6 @@ namespace sfg
 		tree.draw_order(_overlay) = tree.draw_order_const(_root) + 3;
 
 		ui::layout_in_t& overlay_in = tree.in(_overlay);
-		overlay_in.flags			= ui::wf_visible;
 		overlay_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		overlay_in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		overlay_in.size_value		= {1.0f, 1.0f};
@@ -165,10 +163,11 @@ namespace sfg
 	void editor_input_field_t::set_visible(bool visible)
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
-		tree.in(_root).flags	= visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
-		tree.in(_slider).flags	= visible ? ui::wf_visible : 0;
-		tree.in(_label).flags	= visible ? ui::wf_visible : 0;
-		tree.in(_overlay).flags = visible ? ui::wf_visible : 0;
+		ui::layout_in_t&   in	= tree.in(_root);
+		if (visible)
+			in.flags |= ui::wf_visible | ui::wf_input | ui::wf_focusable;
+		else
+			in.flags = 0;
 	}
 
 	void editor_input_field_t::update_field_data(editor_input_field_field_t field)

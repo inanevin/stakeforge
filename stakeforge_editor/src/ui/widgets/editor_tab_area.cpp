@@ -49,7 +49,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& in = tree.in(_root);
-		in.flags			= ui::wf_visible;
 		in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.size_value		= {1.0f, theme.item_height};
@@ -200,7 +199,6 @@ namespace sfg
 		tree.attach(tab, marker);
 
 		ui::layout_in_t& marker_in = tree.in(marker);
-		marker_in.flags			   = ui::wf_visible;
 		marker_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		marker_in.pos_value.y	   = 0.5f;
 		marker_in.anchor_y		   = ui::anchor_e::center;
@@ -218,7 +216,6 @@ namespace sfg
 		tree.attach(marker, marker_inner);
 
 		ui::layout_in_t& marker_inner_in = tree.in(marker_inner);
-		marker_inner_in.flags			 = ui::wf_visible;
 		marker_inner_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		marker_inner_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		marker_inner_in.pos_value		 = {0.0f, 1.0f};
@@ -241,7 +238,6 @@ namespace sfg
 			tree.attach(tab, icon_widget);
 
 			ui::layout_in_t& icon_in = tree.in(icon_widget);
-			icon_in.flags			 = ui::wf_visible;
 			icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 			icon_in.pos_value.y		 = 0.5f;
 			icon_in.anchor_y		 = ui::anchor_e::center;
@@ -261,7 +257,6 @@ namespace sfg
 		tree.attach(tab, label);
 
 		ui::layout_in_t& label_in = tree.in(label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;

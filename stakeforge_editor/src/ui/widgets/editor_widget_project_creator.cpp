@@ -285,14 +285,12 @@ namespace sfg
 					   _ui->widget_text_len(_error_label),
 					   {.font = theme.font_default, .color = theme.color_accent_err, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		tree.set_visible(_error_frame, true);
-		tree.set_visible(_error_label, true);
 	}
 
 	void editor_widget_project_creator_t::hide_error()
 	{
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_error_frame, false);
-		tree.set_visible(_error_label, false);
 	}
 
 	void editor_widget_project_creator_t::notify_project_ready()

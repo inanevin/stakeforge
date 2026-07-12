@@ -71,7 +71,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::sum_children;
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		root_in.size_value		 = {0.0f, 1.0f};
@@ -109,7 +108,6 @@ namespace sfg
 			tree.attach(_top_frames[i], _top_labels[i]);
 
 			ui::layout_in_t& label_in = tree.in(_top_labels[i]);
-			label_in.flags			  = ui::wf_visible;
 			label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			label_in.pos_value		  = {0.5f, 0.5f};

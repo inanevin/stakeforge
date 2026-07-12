@@ -37,7 +37,6 @@ namespace sfg
 		tree.attach(parent, id);
 
 		ui::layout_in_t& in = tree.in(id);
-		in.flags			= ui::wf_visible;
 		in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.size_value		= {1.0f, thickness};
@@ -58,7 +57,6 @@ namespace sfg
 		tree.attach(parent, id);
 
 		ui::layout_in_t& in = tree.in(id);
-		in.flags			= ui::wf_visible;
 		in.size_mode_x		= ui::axis_mode_e::fixed;
 		in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		in.size_value		= {thickness, 1.0f};

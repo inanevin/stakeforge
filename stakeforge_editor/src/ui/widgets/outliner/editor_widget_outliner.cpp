@@ -57,7 +57,6 @@ namespace sfg
 		tree.attach(_root, _entity_top_row);
 
 		ui::layout_in_t& top_row_in = tree.in(_entity_top_row);
-		top_row_in.flags			= ui::wf_visible;
 		top_row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		top_row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		top_row_in.size_value		= {1.0f, theme.item_area_height};
@@ -89,14 +88,15 @@ namespace sfg
 		tree.attach(_root, _entity_list_area);
 
 		ui::layout_in_t& list_in = tree.in(_entity_list_area);
-		list_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
-		list_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
-		list_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		list_in.size_mode_y		 = ui::axis_mode_e::fill;
-		list_in.size_value		 = {1.0f, 1.0f};
-		list_in.flow			 = ui::flow_e::column;
-		list_in.child_spacing	 = 0.0f;
-		list_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, 0.0f};
+		list_in.flags |= ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
+
+		list_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		list_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		list_in.size_mode_y		= ui::axis_mode_e::fill;
+		list_in.size_value		= {1.0f, 1.0f};
+		list_in.flow			= ui::flow_e::column;
+		list_in.child_spacing	= 0.0f;
+		list_in.child_margins	= {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, 0.0f};
 
 		ui::vg_rect_paint_t list_rect = {};
 		list_rect.fill_color_a		  = theme.color_frame;

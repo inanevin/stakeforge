@@ -43,7 +43,6 @@ namespace sfg
 		ui.set_widget_debug_name(id, "icon");
 
 		ui::layout_in_t& in = tree.in(id);
-		in.flags			= ui::wf_visible;
 		in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
 		in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		in.pos_value		= {0.5f, 0.5f};
@@ -66,7 +65,6 @@ namespace sfg
 		tree.attach(parent, frame);
 
 		ui::layout_in_t& frame_in = tree.in(frame);
-		frame_in.flags			  = ui::wf_visible;
 		frame_in.size_mode_x	  = ui::axis_mode_e::fixed;
 		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		frame_in.size_value		  = {theme.item_height, 1.0f};

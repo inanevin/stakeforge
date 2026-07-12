@@ -37,7 +37,6 @@ namespace sfg
 		{
 			const editor_theme_t& theme = editor_theme_t::get();
 			ui::layout_in_t&	  in	= ui.get_tree().in(id);
-			in.flags					= ui::wf_visible;
 			apply_editor_widget_width(in, width);
 			in.size_mode_y	 = ui::axis_mode_e::fixed;
 			in.size_value.y	 = theme.item_height;

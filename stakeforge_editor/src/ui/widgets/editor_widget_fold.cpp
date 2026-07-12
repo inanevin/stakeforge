@@ -48,7 +48,6 @@ namespace sfg
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_mode_y		 = ui::pos_mode_e::flow;
 		root_in.pos_value.x		 = 0.0f;
@@ -94,7 +93,6 @@ namespace sfg
 		tree.attach(_header, icon_frame);
 
 		ui::layout_in_t& icon_frame_in = tree.in(icon_frame);
-		icon_frame_in.flags			   = ui::wf_visible;
 		icon_frame_in.size_mode_x	   = ui::axis_mode_e::fixed;
 		icon_frame_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		icon_frame_in.size_value	   = {theme.item_height, 1.0f};
@@ -108,7 +106,6 @@ namespace sfg
 		tree.draw_order(label) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;

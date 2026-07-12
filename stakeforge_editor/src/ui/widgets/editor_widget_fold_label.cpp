@@ -48,7 +48,6 @@ namespace sfg
 		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_mode_y		 = ui::pos_mode_e::flow;
 		root_in.pos_value.x		 = 0.0f;
@@ -83,7 +82,6 @@ namespace sfg
 
 		_icon					 = editor_icon_widgets_t::add_icon(ui, _header, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text0);
 		ui::layout_in_t& icon_in = tree.in(_icon);
-		icon_in.flags			 = ui::wf_visible;
 		icon_in.pos_mode_x		 = ui::pos_mode_e::flow;
 		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_value		 = {0.0f, 0.5f};
@@ -97,7 +95,6 @@ namespace sfg
 		tree.draw_order(label) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -113,7 +110,6 @@ namespace sfg
 			tree.attach(_header, filler);
 
 			ui::layout_in_t& filler_in = tree.in(filler);
-			filler_in.flags			   = ui::wf_visible;
 			filler_in.size_mode_x	   = ui::axis_mode_e::fill;
 			filler_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 			filler_in.size_value	   = {1.0f, 1.0f};

@@ -202,7 +202,6 @@ namespace sfg
 		tree.draw_order(_top_left_handle) = tree.draw_order_const(_top_left_frame) + 1;
 
 		ui::layout_in_t& handle_in = tree.in(_top_left_handle);
-		handle_in.flags			   = ui::wf_visible;
 		handle_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		handle_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		handle_in.pos_value		   = {0.5f, 0.5f};
@@ -279,7 +278,6 @@ namespace sfg
 		tree.attach(parent, row_widget);
 
 		ui::layout_in_t& row_in = tree.in(row_widget);
-		row_in.flags			= ui::wf_visible;
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value		= {1.0f, theme.item_area_height};
@@ -292,7 +290,6 @@ namespace sfg
 		tree.attach(row_widget, label_widget);
 
 		ui::layout_in_t& label_in = tree.in(label_widget);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -342,7 +339,6 @@ namespace sfg
 		tree.attach(parent, row_widget);
 
 		ui::layout_in_t& row_in = tree.in(row_widget);
-		row_in.flags			= ui::wf_visible;
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value		= {1.0f, theme.item_area_height};
@@ -355,7 +351,6 @@ namespace sfg
 		tree.attach(row_widget, label_widget);
 
 		ui::layout_in_t& label_in = tree.in(label_widget);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;

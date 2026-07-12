@@ -91,7 +91,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_mode_y		 = ui::pos_mode_e::flow;
 		root_in.pos_value		 = {0.0f, 0.0f};
@@ -99,7 +98,6 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
-		//	root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		set_reflection(config);
 	}
@@ -987,7 +985,6 @@ namespace sfg
 			tree.attach(parent, filler);
 
 			ui::layout_in_t& filler_in = tree.in(filler);
-			filler_in.flags			   = ui::wf_visible;
 			filler_in.size_mode_x	   = ui::axis_mode_e::fill;
 			filler_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 			filler_in.size_value	   = {1.0f, 1.0f};
