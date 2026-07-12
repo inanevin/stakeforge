@@ -73,6 +73,12 @@ namespace sfg::ui
 		pass_outside,
 	};
 
+	enum class popup_outside_press_policy_e : u8
+	{
+		consume,
+		pass_through,
+	};
+
 	struct listener_bundle_t
 	{
 		on_mouse_fn on_press		= nullptr;
@@ -117,7 +123,13 @@ namespace sfg::ui
 		void set_listener(widget_id_t id, const listener_bundle_t& b);
 		void clear_listener(widget_id_t id);
 		void clear_widget_state(widget_id_t id);
-		void set_popup_scope(widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy = popup_hover_policy_e::block_outside);
+		void set_popup_scope(widget_id_t				  owner_root,
+							 const widget_id_t*			  popup_roots,
+							 u32						  popup_root_count,
+							 on_popup_outside_press_fn	  on_outside_press,
+							 void*						  user_data,
+							 popup_hover_policy_e		  hover_policy		   = popup_hover_policy_e::block_outside,
+							 popup_outside_press_policy_e outside_press_policy = popup_outside_press_policy_e::consume);
 		void clear_popup_scope();
 
 		// -----------------------------------------------------------------------------
@@ -188,14 +200,15 @@ namespace sfg::ui
 
 		struct popup_scope_t
 		{
-			widget_id_t				  owner_root						 = NULL_WIDGET;
-			widget_id_t				  popup_roots[POPUP_SCOPE_MAX_ROOTS] = {};
-			widget_id_t				  previous_focus					 = NULL_WIDGET;
-			u32						  popup_root_count					 = 0;
-			on_popup_outside_press_fn on_outside_press					 = nullptr;
-			void*					  user_data							 = nullptr;
-			popup_hover_policy_e	  hover_policy						 = popup_hover_policy_e::block_outside;
-			bool					  active							 = false;
+			widget_id_t					 owner_root							= NULL_WIDGET;
+			widget_id_t					 popup_roots[POPUP_SCOPE_MAX_ROOTS] = {};
+			widget_id_t					 previous_focus						= NULL_WIDGET;
+			u32							 popup_root_count					= 0;
+			on_popup_outside_press_fn	 on_outside_press					= nullptr;
+			void*						 user_data							= nullptr;
+			popup_hover_policy_e		 hover_policy						= popup_hover_policy_e::block_outside;
+			popup_outside_press_policy_e outside_press_policy				= popup_outside_press_policy_e::consume;
+			bool						 active								= false;
 		};
 
 	private:

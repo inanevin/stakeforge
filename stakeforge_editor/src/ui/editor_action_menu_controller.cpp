@@ -595,7 +595,7 @@ namespace sfg
 			if (_active_row_counts[d] > 0)
 				popup_roots[count++] = _panels[d];
 		}
-		_ui->get_input().set_popup_scope(_desc.owner_root != NULL_WIDGET ? _desc.owner_root : _foreground, popup_roots, count, handle_popup_outside, this);
+		_ui->get_input().set_popup_scope(_desc.owner_root != NULL_WIDGET ? _desc.owner_root : _foreground, popup_roots, count, handle_popup_outside, this, ui::popup_hover_policy_e::block_outside, ui::popup_outside_press_policy_e::pass_through);
 	}
 
 	bool editor_action_menu_controller_t::find_row_index(ui::widget_id_t id, u32& out_depth, u32& out_row) const

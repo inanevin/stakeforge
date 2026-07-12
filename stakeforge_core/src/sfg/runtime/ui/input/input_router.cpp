@@ -117,17 +117,19 @@ namespace sfg::ui
 		}
 	}
 
-	void input_router_t::set_popup_scope(widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy)
+	void input_router_t::set_popup_scope(
+		widget_id_t owner_root, const widget_id_t* popup_roots, u32 popup_root_count, on_popup_outside_press_fn on_outside_press, void* user_data, popup_hover_policy_e hover_policy, popup_outside_press_policy_e outside_press_policy)
 	{
 		SFG_ASSERT(popup_root_count <= POPUP_SCOPE_MAX_ROOTS);
 
-		_popup_scope.owner_root		  = owner_root;
-		_popup_scope.previous_focus	  = _focused;
-		_popup_scope.popup_root_count = popup_root_count;
-		_popup_scope.on_outside_press = on_outside_press;
-		_popup_scope.user_data		  = user_data;
-		_popup_scope.hover_policy	  = hover_policy;
-		_popup_scope.active			  = true;
+		_popup_scope.owner_root			  = owner_root;
+		_popup_scope.previous_focus		  = _focused;
+		_popup_scope.popup_root_count	  = popup_root_count;
+		_popup_scope.on_outside_press	  = on_outside_press;
+		_popup_scope.user_data			  = user_data;
+		_popup_scope.hover_policy		  = hover_policy;
+		_popup_scope.outside_press_policy = outside_press_policy;
+		_popup_scope.active				  = true;
 
 		for (u32 i = 0; i < popup_root_count; ++i)
 			_popup_scope.popup_roots[i] = popup_roots[i];
@@ -408,12 +410,20 @@ namespace sfg::ui
 				const widget_id_t raw_target = raw_hit_test(_mouse);
 				if (!is_in_popup_scope(raw_target))
 				{
+					const popup_outside_press_policy_e outside_press_policy = _popup_scope.outside_press_policy;
 					if (_popup_scope.on_outside_press)
 						_popup_scope.on_outside_press(*this, _mouse, btn, _popup_scope.user_data);
-					_pressed[b]		  = NULL_WIDGET;
-					_pressed_state[b] = {};
-					fire_hover_change(hit_test(_mouse));
-					return;
+					if (outside_press_policy == popup_outside_press_policy_e::consume)
+					{
+						_pressed[b]		  = NULL_WIDGET;
+						_pressed_state[b] = {};
+						fire_hover_change(hit_test(_mouse));
+						return;
+					}
+					if (_tree != nullptr)
+						rebuild_hit_test(*_tree);
+					target = hit_test(_mouse);
+					fire_hover_change(target);
 				}
 			}
 
