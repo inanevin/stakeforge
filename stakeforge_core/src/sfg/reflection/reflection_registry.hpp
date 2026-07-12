@@ -40,10 +40,9 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-#define REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID	 "reflection_subtype_entity_guid"_hs
-#define REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID "reflection_subtype_resource_guid"_hs
-#define REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY	 "reflection_subtype_directory"_hs
-#define REFLECTION_SUB_TYPE_IDENTIFIER_PATH			 "reflection_subtype_path"_hs
+#define REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID "reflection_subtype_entity_guid"_hs
+#define REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY   "reflection_subtype_directory"_hs
+#define REFLECTION_SUB_TYPE_IDENTIFIER_PATH		   "reflection_subtype_path"_hs
 
 	enum class reflected_value_type_e : u8
 	{

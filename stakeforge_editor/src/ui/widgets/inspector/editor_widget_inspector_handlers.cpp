@@ -261,18 +261,9 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_inspector_t::on_selection_changed(editor_world_edit_context_t&, void* user_data)
-	{
-		static_cast<editor_widget_inspector_t*>(user_data)->refresh_from_selection();
-	}
-
 	void editor_widget_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)
 	{
 		static_cast<editor_widget_inspector_t*>(user_data)->flush_pending_ui_mutations();
 	}
 
-	void editor_widget_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
-	{
-		static_cast<editor_widget_inspector_t*>(user_data)->apply_pending_scroll_restore();
-	}
 }

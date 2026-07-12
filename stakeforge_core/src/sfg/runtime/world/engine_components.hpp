@@ -159,7 +159,6 @@ namespace sfg
 		inplace_vector_t<u32, 4> inplace_vector_value				  = {1, 2, 3};
 		debug_struct_t			 debug_struct_value					  = {};
 		debug_struct2_t			 debug_struct2_value				  = {};
-		resource_handle_t		 resource_value						  = NULL_RESOURCE_HANDLE;
 		resource_handle_t		 audio_handle_value					  = NULL_RESOURCE_HANDLE;
 		resource_handle_t		 font_handle_value					  = NULL_RESOURCE_HANDLE;
 		resource_handle_t		 mesh_handle_value					  = NULL_RESOURCE_HANDLE;

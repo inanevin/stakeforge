@@ -42,15 +42,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_widget_inspector_t::set_display_none()
-	{
-		save_scroll_state();
-		save_display_state();
-		_display_type = editor_inspector_display_type_e::none;
-		_display_entities.resize(0);
-		refresh_display();
-	}
-
 	void editor_widget_inspector_t::set_display_entity(entity_id_t entity)
 	{
 		const entity_id_t entities[] = {entity};
@@ -59,10 +50,7 @@ namespace sfg
 
 	void editor_widget_inspector_t::set_display_entity(span_t<const entity_id_t> entities)
 	{
-		save_scroll_state();
-		_display_type = editor_inspector_display_type_e::entity;
 		_display_entities.assign(entities.data, entities.data + entities.size);
-		_skip_scroll_state_save = true;
 		refresh_display();
 	}
 
@@ -74,38 +62,10 @@ namespace sfg
 			return;
 		}
 
-		if (!_skip_scroll_state_save)
-			save_scroll_state();
-		_skip_scroll_state_save = false;
-
 		save_display_state();
 		clear_display();
-		if (_display_type == editor_inspector_display_type_e::entity)
+		if (!_display_entities.empty())
 			create_entity_display();
-		restore_scroll_state();
-	}
-
-	void editor_widget_inspector_t::refresh_from_selection()
-	{
-		if (_edit_world.is_null())
-		{
-			set_display_none();
-			return;
-		}
-
-		editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
-		const span_t<const entity_id_t> selected   = controller.get_selected_entities();
-		const editor_world_handle_t		world	   = controller.get_world();
-		if (world.is_null() || selected.size == 0)
-		{
-			set_display_none();
-			return;
-		}
-
-		if (selected.size == 1)
-			set_display_entity(selected.data[0]);
-		else
-			set_display_entity(selected);
 	}
 
 	bool editor_widget_inspector_t::can_mutate_ui_topology() const
@@ -159,49 +119,6 @@ namespace sfg
 			}
 			state->folded = display.fold->is_folded();
 		}
-	}
-
-	void editor_widget_inspector_t::save_scroll_state()
-	{
-		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
-			return;
-
-		entity_scroll_state_t* state = find_entity_scroll_state(_display_entities[0]);
-		if (state == nullptr)
-		{
-			_entity_scroll_states.push_back({.entity = _display_entities[0]});
-			state = &_entity_scroll_states.back();
-		}
-		state->scroll_y = _ui->get_tree().in_const(_scroll_area).scroll_offset.y;
-	}
-
-	void editor_widget_inspector_t::restore_scroll_state()
-	{
-		if (_display_type != editor_inspector_display_type_e::entity || _display_entities.size() != 1)
-		{
-			_scroll_restore_pending = false;
-			_ui->clear_post_layout_tick(_scroll_area);
-			return;
-		}
-
-		const entity_scroll_state_t* state = find_entity_scroll_state(_display_entities[0]);
-		_pending_scroll_y				   = state != nullptr ? state->scroll_y : 0.0f;
-		_scroll_restore_pending			   = true;
-		_ui->set_post_layout_tick(_scroll_area, on_scroll_restore_tick, this);
-	}
-
-	void editor_widget_inspector_t::apply_pending_scroll_restore()
-	{
-		if (!_scroll_restore_pending)
-		{
-			_ui->clear_post_layout_tick(_scroll_area);
-			return;
-		}
-
-		_scrollbar.set_scroll_y_immediate(_pending_scroll_y);
-		_ui->request_post_layout_solve();
-		_scroll_restore_pending = false;
-		_ui->clear_post_layout_tick(_scroll_area);
 	}
 
 	void editor_widget_inspector_t::clear_display()
@@ -528,9 +445,6 @@ namespace sfg
 
 	bool editor_widget_inspector_t::is_displaying_any_entity(span_t<const entity_id_t> entities) const
 	{
-		if (_display_type != editor_inspector_display_type_e::entity)
-			return false;
-
 		for (size_t i = 0; i < entities.size; ++i)
 		{
 			if (std::find(_display_entities.begin(), _display_entities.end(), entities.data[i]) != _display_entities.end())
@@ -554,16 +468,6 @@ namespace sfg
 		for (component_display_state_t& state : _component_states)
 		{
 			if (state.type_id == type_id)
-				return &state;
-		}
-		return nullptr;
-	}
-
-	editor_widget_inspector_t::entity_scroll_state_t* editor_widget_inspector_t::find_entity_scroll_state(entity_id_t entity)
-	{
-		for (entity_scroll_state_t& state : _entity_scroll_states)
-		{
-			if (state.entity == entity)
 				return &state;
 		}
 		return nullptr;

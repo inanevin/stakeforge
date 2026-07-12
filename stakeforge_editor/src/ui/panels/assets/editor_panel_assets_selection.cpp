@@ -27,7 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/assets/editor_panel_assets.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "editor_surface_controller.hpp"
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
+#include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include <sfg/io/file_system.hpp>
@@ -83,6 +85,12 @@ namespace sfg
 
 		if (refresh_assets)
 			refresh_asset_grid(force_assets);
+	}
+
+	void editor_panel_assets_t::notify_asset_selection_changed()
+	{
+		if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector))
+			static_cast<editor_panel_inspector_t*>(panel)->on_asset_selection_changed();
 	}
 
 	void editor_panel_assets_t::select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select, bool incremental_select)
@@ -189,6 +197,7 @@ namespace sfg
 
 		_selected_asset_node = _selected_asset_nodes.empty() ? editor_asset_node_handle_t{} : _selected_asset_nodes.back();
 		refresh_asset_grid_item_backgrounds();
+		notify_asset_selection_changed();
 	}
 
 	void editor_panel_assets_t::clear_folder_selection()
@@ -458,6 +467,7 @@ namespace sfg
 		_selected_asset_nodes.resize(0);
 		_asset_selection_anchor = {};
 		refresh_asset_grid_item_backgrounds();
+		notify_asset_selection_changed();
 	}
 
 	void editor_panel_assets_t::select_all_visible_folders()
@@ -489,6 +499,7 @@ namespace sfg
 		_selected_asset_node	= _selected_asset_nodes.empty() ? editor_asset_node_handle_t{} : _selected_asset_nodes.back();
 		_asset_selection_anchor = _selected_asset_node;
 		refresh_asset_grid_item_backgrounds();
+		notify_asset_selection_changed();
 	}
 
 	void editor_panel_assets_t::toggle_folder_fold(u64 path_hash)

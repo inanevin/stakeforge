@@ -27,10 +27,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel.hpp"
+#include "ui/widgets/editor_widget_material_editor.hpp"
+#include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "ui/widgets/inspector/editor_widget_inspector.hpp"
+#include "world/editor_world_edit_context.hpp"
 
 namespace sfg
 {
+	enum class editor_panel_inspector_display_e : u8
+	{
+		none,
+		entity,
+		material,
+	};
+
+	enum class editor_panel_inspector_source_e : u8
+	{
+		none,
+		entity,
+		asset,
+	};
+
 	class editor_panel_inspector_t final : public editor_panel_t
 	{
 	public:
@@ -55,10 +72,45 @@ namespace sfg
 		void set_display_entity(span_t<const entity_id_t> entities);
 		void refresh_display();
 		void refresh_from_selection();
+		void refresh_from_assets();
 		void refresh_component_reflection(sid_t component_type);
 		void set_edit_world(editor_world_handle_t world);
+		void on_asset_selection_changed();
 
 	private:
-		editor_widget_inspector_t _inspector;
+		struct entity_scroll_state_t
+		{
+			entity_id_t entity	 = {};
+			f32			scroll_y = 0.0f;
+		};
+
+		void				   set_display_material(span_t<const sid_t> materials);
+		void				   refresh_from_available_selection(editor_panel_inspector_source_e preferred_source);
+		void				   apply_display_visibility();
+		void				   save_entity_scroll_state();
+		void				   restore_entity_scroll_state();
+		void				   reset_scroll_state();
+		void				   apply_pending_scroll_restore();
+		bool				   collect_selected_materials(vector_t<sid_t>& out_materials) const;
+		entity_scroll_state_t* find_entity_scroll_state(entity_id_t entity);
+
+		static void on_entity_selection_changed(editor_world_edit_context_t& context, void* user_data);
+		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+
+	private:
+		editor_widget_inspector_t		   _entity_inspector	   = {};
+		editor_widget_material_editor_t	   _material_editor		   = {};
+		editor_scrollbar_t				   _scrollbar			   = {};
+		vector_t<entity_scroll_state_t>	   _entity_scroll_states   = {};
+		vector_t<entity_id_t>			   _display_entities	   = {};
+		vector_t<sid_t>					   _material_ids		   = {};
+		editor_selection_listener_handle_t _selection_listener	   = {};
+		editor_world_handle_t			   _edit_world			   = {};
+		ui::widget_id_t					   _scroll_area			   = NULL_WIDGET;
+		ui::widget_id_t					   _content				   = NULL_WIDGET;
+		f32								   _pending_scroll_y	   = 0.0f;
+		editor_panel_inspector_display_e   _display				   = editor_panel_inspector_display_e::none;
+		editor_panel_inspector_source_e	   _last_source			   = editor_panel_inspector_source_e::none;
+		bool							   _scroll_restore_pending = false;
 	};
 }

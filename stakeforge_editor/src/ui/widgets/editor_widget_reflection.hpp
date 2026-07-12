@@ -98,6 +98,7 @@ namespace sfg
 			editor_widget_fold_label_t* fold	   = nullptr;
 			vector_t<void*>				containers;
 			editor_world_handle_t		world		= {};
+			sid_t						type_id		= 0;
 			f32							indentation = 0.0f;
 		};
 
@@ -157,7 +158,7 @@ namespace sfg
 		void create_container_elements(ui::widget_id_t parent, container_user_data_t* container_data);
 		bool get_fold_state(sid_t type_id, sid_t field_id, bool& out_folded) const;
 		void set_fold_state(sid_t type_id, sid_t field_id, bool folded);
-		container_user_data_t*		   create_container_user_data(const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold);
+		container_user_data_t*		   create_container_user_data(const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, sid_t type_id, f32 indentation, editor_widget_fold_label_t* fold);
 		container_element_user_data_t* create_container_element_user_data(container_user_data_t* container_data, u32 element_index, ui::widget_id_t button);
 		void						   request_container_refresh(container_user_data_t& data);
 		void						   refresh_container(container_user_data_t& data);

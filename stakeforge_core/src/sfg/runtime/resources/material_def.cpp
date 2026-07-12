@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 
 #include <cstddef>
 
@@ -88,14 +89,14 @@ namespace sfg
 			.fields =
 				{
 					{.name = "pass_flags", .display_name = "Pass Flags", .sub_type_id = type_id_t<world_pass_flags_e>::value, .offset = offsetof(material_def_t, pass_flags), .size = sizeof(bitmask_t<u32>), .type = reflected_value_type_e::u32},
-					{.name = "shader", .display_name = "Shader", .sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID, .offset = offsetof(material_def_t, shader), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
-					{.container_ops = reflection_container_ops_t::inplace_vector_ops<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>(reflected_value_type_e::u64, REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID),
+					{.name = "shader", .display_name = "Shader", .sub_type_id = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SHADER, .offset = offsetof(material_def_t, shader), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
+					{.container_ops = reflection_container_ops_t::inplace_vector_ops<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE),
 					 .name			= "textures",
 					 .display_name	= "Textures",
 					 .offset		= offsetof(material_def_t, textures),
 					 .size			= sizeof(inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>),
 					 .type			= reflected_value_type_e::container},
-					{.container_ops = reflection_container_ops_t::inplace_vector_ops<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>(reflected_value_type_e::u64, REFLECTION_SUB_TYPE_IDENTIFIER_RESOURCE_GUID),
+					{.container_ops = reflection_container_ops_t::inplace_vector_ops<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE_SAMPLER),
 					 .name			= "samplers",
 					 .display_name	= "Samplers",
 					 .offset		= offsetof(material_def_t, samplers),

@@ -77,6 +77,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void show_asset(sid_t guid);
+		void collect_selected_asset_guids(vector_t<sid_t>& out_guids) const;
 
 	private:
 		struct folder_row_t
@@ -147,6 +148,7 @@ namespace sfg
 		bool		  can_mutate_ui_topology() const;
 		void		  request_ui_mutation();
 		void		  flush_pending_ui_mutations();
+		void		  notify_asset_selection_changed();
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select = false, bool incremental_select = false);
 		void select_asset_grid_item(editor_asset_node_handle_t node, bool range_select = false, bool incremental_select = false);

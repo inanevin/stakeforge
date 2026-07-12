@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_widgets_dividers.hpp"
 #include "editor_widgets_icons.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
@@ -72,7 +73,8 @@ namespace sfg
 			case reflected_value_type_e::i64:
 				return true;
 			case reflected_value_type_e::object:
-				return sub_type_id == type_id_t<vec2f_t>::value || sub_type_id == type_id_t<vec3f_t>::value || sub_type_id == type_id_t<vec4f_t>::value || sub_type_id == type_id_t<quat_t>::value || sub_type_id == type_id_t<color_t>::value;
+				return sub_type_id == type_id_t<vec2f_t>::value || sub_type_id == type_id_t<vec3f_t>::value || sub_type_id == type_id_t<vec4f_t>::value || sub_type_id == type_id_t<quat_t>::value || sub_type_id == type_id_t<color_t>::value ||
+					   (sub_type_id != 0 && reflection_registry_t::get().find_type(sub_type_id) != nullptr);
 			default:
 				return false;
 			}
@@ -294,12 +296,14 @@ namespace sfg
 						   .field	  = {.fields = fields},
 						   .callbacks = _callbacks,
 					   });
+
 		ui::layout_in_t& checkbox_in = _ui->get_tree().in(checkbox->get_root());
 		checkbox_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		checkbox_in.anchor_y		 = ui::anchor_e::center;
 		checkbox_in.pos_value.y		 = 0.5f;
 		if (removable_item)
 			install_sub_item_button(row.right, NULL_WIDGET, container_data, element_index);
+
 		_checkboxes.push_back(checkbox);
 		if (track_row)
 			_rows.push_back(row.row);
@@ -607,7 +611,7 @@ namespace sfg
 		install_tooltip(fold->get_root(), field->tooltip);
 		install_tooltip(fold->get_add_button(), "Add Element");
 		install_tooltip(fold->get_reset_button(), "Reset Container");
-		container_user_data_t* user_data = create_container_user_data(field, containers, world, indentation, fold);
+		container_user_data_t* user_data = create_container_user_data(field, containers, world, type_id, indentation, fold);
 
 		ui::listener_bundle_t add_listener = {};
 		add_listener.user_data			   = user_data;
@@ -647,11 +651,12 @@ namespace sfg
 			std::snprintf(element_label, sizeof(element_label), "Element %u", element_index);
 
 			reflected_field_t element_field{
-				.name		  = "Element",
-				.display_name = element_label,
-				.sub_type_id  = element_sub_type_id,
-				.size		  = field->container_ops.element_value_size,
-				.value_type	  = element_value_type,
+				.name			  = "Element",
+				.display_name	  = element_label,
+				.field_identifier = hashing_t::hash_u64_combine(field->field_identifier, element_index),
+				.sub_type_id	  = element_sub_type_id,
+				.size			  = field->container_ops.element_value_size,
+				.value_type		  = element_value_type,
 			};
 
 			switch (element_value_type)
@@ -681,7 +686,7 @@ namespace sfg
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_object(parent, 0, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
+				create_object(parent, container_data->type_id, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::f32:
@@ -722,13 +727,15 @@ namespace sfg
 		}
 	}
 
-	editor_widget_reflection_t::container_user_data_t* editor_widget_reflection_t::create_container_user_data(const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, f32 indentation, editor_widget_fold_label_t* fold)
+	editor_widget_reflection_t::container_user_data_t* editor_widget_reflection_t::create_container_user_data(
+		const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, sid_t type_id, f32 indentation, editor_widget_fold_label_t* fold)
 	{
 		container_user_data_t* data = new container_user_data_t();
 		data->field					= field;
 		data->reflection			= this;
 		data->fold					= fold;
 		data->world					= world;
+		data->type_id				= type_id;
 		data->indentation			= indentation;
 		data->containers.reserve(containers.size);
 		for (size_t i = 0; i < containers.size; ++i)

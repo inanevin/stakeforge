@@ -38,32 +38,29 @@ namespace sfg
 	void editor_widget_inspector_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_inspector_config_t& config)
 	{
 		_ui					 = &ui;
-		_root				 = parent;
 		_allow_prefab_blocks = config.allow_prefab_blocks;
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
 
+		_root = ui.allocate_widget();
+		ui.set_widget_debug_name(_root, "entity_inspector");
+		tree.attach(parent, _root);
+
 		ui::layout_in_t& root_in = tree.in(_root);
+		root_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+		root_in.pos_mode_y		 = ui::pos_mode_e::flow;
+		root_in.pos_value		 = {0.0f, 0.0f};
+		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
+		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = 0.0f;
 		root_in.child_margins	 = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
 
-		_scroll_area = ui.allocate_widget();
-		ui.set_widget_debug_name(_scroll_area, "inspector_scroll_area");
-		tree.attach(_root, _scroll_area);
-
-		ui::layout_in_t& scroll_area_in = tree.in(_scroll_area);
-		scroll_area_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
-		scroll_area_in.child_clip_mode	= ui::clip_mode_e::scissor_rect;
-		scroll_area_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		scroll_area_in.size_mode_y		= ui::axis_mode_e::parent_relative;
-		scroll_area_in.size_value		= {1.0f, 1.0f};
-
 		_column = ui.allocate_widget();
 		ui.set_widget_debug_name(_column, "inspector_column");
-		tree.attach(_scroll_area, _column);
-		tree.draw_order(_column) = tree.draw_order_const(_scroll_area) + 1;
+		tree.attach(_root, _column);
 
 		ui::layout_in_t& column_in = tree.in(_column);
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
@@ -72,40 +69,27 @@ namespace sfg
 		column_in.flow			   = ui::flow_e::column;
 		column_in.child_spacing	   = theme.item_spacing;
 
-		editor_scrollbar_config_t scrollbar_config = {};
-		scrollbar_config.target					   = _scroll_area;
-		scrollbar_config.axes					   = editor_scrollbar_axis_y;
-		_scrollbar.init(ui, scrollbar_config);
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 	}
 
 	void editor_widget_inspector_t::uninit()
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
-		if (!_selection_listener.is_null())
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 		_ui->cancel_mutations(this);
 		clear_display();
-		_scrollbar.uninit();
+		_ui->deallocate_widget(_root);
 		_component_states.clear();
 		_field_states.clear();
-		_entity_scroll_states.clear();
 		_display_entities.clear();
-		_display_type = editor_inspector_display_type_e::none;
-		_column		  = NULL_WIDGET;
-		_scroll_area  = NULL_WIDGET;
+		_column = NULL_WIDGET;
 		_copied_component_stream.destroy();
 		_copied_entity_info		   = {};
 		_command_listener		   = {};
-		_selection_listener		   = {};
 		_edit_world				   = {};
 		_copied_component_type	   = 0;
 		_action_menu_type_id	   = 0;
 		_pending_component_type	   = 0;
-		_pending_scroll_y		   = 0.0f;
 		_refresh_component_pending = false;
-		_scroll_restore_pending	   = false;
-		_skip_scroll_state_save	   = false;
 		_copied_entity_info_valid  = false;
 		_allow_prefab_blocks	   = false;
 
@@ -115,18 +99,7 @@ namespace sfg
 
 	void editor_widget_inspector_t::set_edit_world(editor_world_handle_t world)
 	{
-		if (_edit_world == world)
-			return;
-
-		if (!_selection_listener.is_null())
-		{
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
-			_selection_listener = {};
-		}
-
 		_edit_world = world;
-		if (!_edit_world.is_null() && _ui != nullptr)
-			_selection_listener = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().add_selection_listener(on_selection_changed, this);
 	}
 
 }
