@@ -62,12 +62,12 @@ namespace sfg
 
 	namespace
 	{
-		editor_panel_t* find_panel_in_surface(editor_surface_t& surface, editor_panel_type_e type)
+		editor_panel_t* find_panel_in_surface(editor_surface_t& surface, editor_panel_type_e type, sid_t sub_item_id)
 		{
 			if (surface.type == editor_surface_type_e::primary)
-				return surface.primary->get_dock_widget().find_panel(type);
+				return surface.primary->get_dock_widget().find_panel(type, sub_item_id);
 			if (surface.type == editor_surface_type_e::secondary)
-				return surface.secondary->get_dock_widget().find_panel(type);
+				return surface.secondary->get_dock_widget().find_panel(type, sub_item_id);
 			return nullptr;
 		}
 
@@ -618,11 +618,11 @@ namespace sfg
 		save_layout();
 	}
 
-	editor_panel_t* editor_surface_controller_t::find_panel(editor_panel_type_e type, surface_handle_t surface_handle)
+	editor_panel_t* editor_surface_controller_t::find_panel(editor_panel_type_e type, surface_handle_t surface_handle, sid_t sub_item_id)
 	{
 		if (!surface_handle.is_null())
 		{
-			editor_panel_t* panel = find_panel_in_surface(_surfaces.get(surface_handle), type);
+			editor_panel_t* panel = find_panel_in_surface(_surfaces.get(surface_handle), type, sub_item_id);
 			if (panel != nullptr)
 				return panel;
 
@@ -632,7 +632,7 @@ namespace sfg
 				if (handle == surface_handle)
 					continue;
 
-				panel = find_panel_in_surface(_surfaces.get(handle), type);
+				panel = find_panel_in_surface(_surfaces.get(handle), type, sub_item_id);
 				if (panel != nullptr)
 					return panel;
 			}
@@ -648,7 +648,7 @@ namespace sfg
 				continue;
 
 			main_surface		  = handle;
-			editor_panel_t* panel = find_panel_in_surface(surface, type);
+			editor_panel_t* panel = find_panel_in_surface(surface, type, sub_item_id);
 			if (panel != nullptr)
 				return panel;
 			break;
@@ -661,23 +661,42 @@ namespace sfg
 			if (handle == main_surface)
 				continue;
 
-			editor_panel_t* panel = find_panel_in_surface(_surfaces.get(handle), type);
+			editor_panel_t* panel = find_panel_in_surface(_surfaces.get(handle), type, sub_item_id);
 			if (panel != nullptr)
 				return panel;
 		}
 		return nullptr;
 	}
 
-	editor_panel_t* editor_surface_controller_t::find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle)
+	editor_panel_t* editor_surface_controller_t::find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle, sid_t sub_item_id)
 	{
-		return find_panel_in_surface(_surfaces.get(surface_handle), type);
+		return find_panel_in_surface(_surfaces.get(surface_handle), type, sub_item_id);
 	}
 
-	editor_panel_t* editor_surface_controller_t::create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle, bool prefer_existing_type_dock)
+	editor_panel_t* editor_surface_controller_t::create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle, bool prefer_existing_type_dock, sid_t sub_item_id)
 	{
+		if (sub_item_id != 0)
+		{
+			editor_panel_t* panel = find_panel(type, surface_handle, sub_item_id);
+			if (panel != nullptr)
+			{
+				for (editor_surface_t& surface : _surfaces)
+				{
+					if (!select_panel_in_surface(surface, panel))
+						continue;
+
+					process::bring_to_front(surface.runtime->window_handle);
+					return panel;
+				}
+				SFG_ASSERT(false);
+				return nullptr;
+			}
+		}
+
 		editor_panel_t* panel = editor_panel_factory_t::create_panel(type);
 		if (panel == nullptr)
 			return nullptr;
+		panel->set_sub_item_id(sub_item_id);
 
 		if (prefer_existing_type_dock)
 		{
@@ -720,13 +739,13 @@ namespace sfg
 		return panel;
 	}
 
-	editor_panel_t* editor_surface_controller_t::show_panel(editor_panel_type_e type, surface_handle_t surface_handle)
+	editor_panel_t* editor_surface_controller_t::show_panel(editor_panel_type_e type, surface_handle_t surface_handle, sid_t sub_item_id)
 	{
 		const editor_panel_type_desc_t& desc = editor_panel_factory_t::get_desc(type);
 		if (desc.allows_multiple_instances)
-			return create_panel_instance(type, surface_handle, true);
+			return create_panel_instance(type, surface_handle, true, sub_item_id);
 
-		editor_panel_t* panel = find_panel(type, surface_handle);
+		editor_panel_t* panel = find_panel(type, surface_handle, sub_item_id);
 		if (panel != nullptr)
 		{
 			for (editor_surface_t& surface : _surfaces)
@@ -741,7 +760,7 @@ namespace sfg
 			return nullptr;
 		}
 
-		return create_panel_instance(type, surface_handle, true);
+		return create_panel_instance(type, surface_handle, true, sub_item_id);
 	}
 
 	void editor_surface_controller_t::refresh_panel_title(editor_panel_t* panel)

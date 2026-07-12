@@ -218,13 +218,13 @@ namespace sfg
 		return !_root_node.is_null();
 	}
 
-	editor_panel_t* dock_widget_t::find_panel(editor_panel_type_e type) const
+	editor_panel_t* dock_widget_t::find_panel(editor_panel_type_e type, sid_t sub_item_id) const
 	{
 		for (const dock_node_t& node : _dock_nodes)
 		{
 			for (editor_panel_t* panel : node.panels)
 			{
-				if (panel->get_type() == type)
+				if (panel->get_type() == type && (sub_item_id == 0 || panel->get_sub_item_id() == sub_item_id))
 					return panel;
 			}
 		}

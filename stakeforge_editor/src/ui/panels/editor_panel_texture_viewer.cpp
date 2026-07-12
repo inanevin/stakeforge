@@ -78,6 +78,7 @@ namespace sfg
 	void editor_panel_texture_viewer_t::deserialize(const nlohmann::json& j)
 	{
 		_texture_guid = j.value<sid_t>("texture_guid", 0);
+		set_sub_item_id(_texture_guid);
 		_asset_name	  = j.value<string_t>("asset_name", {});
 		_pane_split	  = math::clamp(j.value<f32>("pane_split", _pane_split), TEXTURE_VIEWER_PANE_SPLIT_MIN, TEXTURE_VIEWER_PANE_SPLIT_MAX);
 		_selected_mip = j.value<u16>("selected_mip", 0);
@@ -233,7 +234,8 @@ namespace sfg
 		if (_texture_guid != texture_guid)
 			unload_texture();
 		_texture_guid = texture_guid;
-		_asset_name	  = asset_name;
+		set_sub_item_id(texture_guid);
+		_asset_name = asset_name;
 		load_texture();
 		rebuild_mip_dropdown();
 		refresh_info();

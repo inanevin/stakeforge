@@ -124,4 +124,9 @@ namespace sfg
 		if (g_next_editor_panel_instance_id <= instance_id)
 			g_next_editor_panel_instance_id = instance_id + 1;
 	}
+
+	void editor_panel_t::set_sub_item_id(sid_t sub_item_id)
+	{
+		_sub_item_id = sub_item_id;
+	}
 }

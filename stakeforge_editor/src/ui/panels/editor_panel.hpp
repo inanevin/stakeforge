@@ -62,6 +62,7 @@ namespace sfg
 		void		 set_icon(const char* icon);
 		void		 set_type(editor_panel_type_e type);
 		void		 set_instance_id(sid_t instance_id);
+		void		 set_sub_item_id(sid_t sub_item_id);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -91,6 +92,10 @@ namespace sfg
 		{
 			return _instance_id;
 		}
+		inline sid_t get_sub_item_id() const
+		{
+			return _sub_item_id;
+		}
 
 	protected:
 		ui::ui_context*		_ui			 = nullptr;
@@ -98,6 +103,7 @@ namespace sfg
 		const char*			_title		 = "";
 		const char*			_icon		 = nullptr;
 		sid_t				_instance_id = 0;
+		sid_t				_sub_item_id = 0;
 		editor_panel_type_e _type		 = editor_panel_type_e::max;
 	};
 }

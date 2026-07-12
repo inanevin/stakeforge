@@ -95,7 +95,7 @@ namespace sfg
 		{
 			return _root;
 		}
-		editor_panel_t* find_panel(editor_panel_type_e type) const;
+		editor_panel_t* find_panel(editor_panel_type_e type, sid_t sub_item_id = 0) const;
 		bool			select_panel(editor_panel_t* panel);
 
 	private:
