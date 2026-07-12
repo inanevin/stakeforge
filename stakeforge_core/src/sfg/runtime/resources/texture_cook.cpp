@@ -118,12 +118,13 @@ namespace sfg
 
 			const u8		 is_linear_u8	= cfg.is_linear ? 1 : 0;
 			const format_e	 raw_format		= cfg.is_linear ? format_e::r8g8b8a8_unorm : format_e::r8g8b8a8_srgb;
+			const format_e	 runtime_format = cfg.payload_type == texture_payload_type_e::ktx2_uastc ? (cfg.is_linear ? format_e::bc7_block_unorm : format_e::bc7_block_srgb) : raw_format;
 			texture_header_t texture_header = {};
-			texture_header.texture_format	= raw_format;
+			texture_header.texture_format	= runtime_format;
 			texture_header.payload_type		= cfg.payload_type;
 			texture_header.ktx2_compression = cfg.ktx2_compression;
 			texture_header.size				= size;
-			texture_header.bpp				= channels;
+			texture_header.bpp				= cfg.payload_type == texture_payload_type_e::ktx2_uastc ? 16 : channels;
 			texture_header.mip_count		= levels;
 			texture_header.is_linear		= is_linear_u8;
 			texture_header.use_streaming	= cfg.use_streaming ? 1 : 0;

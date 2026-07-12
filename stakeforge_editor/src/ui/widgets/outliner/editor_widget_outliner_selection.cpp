@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
+#include "ui/panels/editor_theme.hpp"
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -165,6 +167,55 @@ namespace sfg
 			return;
 
 		controller.apply_entity_selection({.data = selection.data(), .size = selection.size()}, anchor);
+	}
+
+	void editor_widget_outliner_t::show_entity(entity_guid_t guid)
+	{
+		if (guid == NULL_ENTITY_GUID || _edit_world.is_null())
+			return;
+
+		if (!can_mutate_ui_topology())
+		{
+			_pending_show_entity_guid = guid;
+			request_refresh_entities();
+			return;
+		}
+
+		world_t&		  world	 = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		const entity_id_t entity = world.get_entity_from_guid(guid);
+		if (entity == NULL_ENTITY_ID || !world.is_alive(entity))
+			return;
+
+		if (!_search_str.empty())
+		{
+			_search_str.resize(0);
+			_search_str_lower.resize(0);
+			_search_input.set_text("");
+		}
+
+		reveal_entity(entity);
+		refresh_entities();
+		select_entity_row(entity, false, false);
+
+		const size_t entity_index = find_visible_entity_index(entity);
+		if (entity_index == SIZE_MAX)
+			return;
+
+		ui::layout_tree_t&		tree		= _ui->get_tree();
+		ui::layout_in_t&		list_in		= tree.in(_entity_list_area);
+		const ui::layout_out_t& list_out	= tree.out(_entity_list_area);
+		const editor_theme_t&	theme		= editor_theme_t::get();
+		const f32				scale		= ui::get_valid_scale(_ui->get_ui_scale());
+		const f32				viewport	= list_out.size.y / scale;
+		const f32				row_top		= theme.margin_vertical + static_cast<f32>(entity_index) * theme.item_height;
+		const f32				row_bottom	= row_top + theme.item_height;
+		const f32				current_top = -list_in.scroll_offset.y;
+		f32						target		= current_top;
+		if (row_top < current_top)
+			target = row_top;
+		else if (row_bottom > current_top + viewport)
+			target = row_bottom - viewport;
+		list_in.scroll_offset.y = -math::max(0.0f, target);
 	}
 
 	bool editor_widget_outliner_t::reveal_entity(entity_id_t entity)

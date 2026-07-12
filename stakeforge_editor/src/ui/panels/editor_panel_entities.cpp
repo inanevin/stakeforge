@@ -63,4 +63,9 @@ namespace sfg
 	{
 		_outliner.set_edit_world(world);
 	}
+
+	void editor_panel_entities_t::show_entity(entity_guid_t guid)
+	{
+		_outliner.show_entity(guid);
+	}
 }

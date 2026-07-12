@@ -53,6 +53,7 @@ namespace sfg
 		void refresh_entities();
 		void refresh_entity_name(entity_id_t entity);
 		void set_edit_world(editor_world_handle_t world);
+		void show_entity(entity_guid_t guid);
 
 	private:
 		editor_widget_outliner_t _outliner;

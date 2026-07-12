@@ -72,6 +72,12 @@ namespace sfg
 		void deserialize(const nlohmann::json& j) override;
 		void make_visible(bool visible) override;
 
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void show_asset(sid_t guid);
+
 	private:
 		struct folder_row_t
 		{
@@ -289,6 +295,7 @@ namespace sfg
 		u64										_selected_folder_hash			 = UINT64_MAX;
 		u64										_folder_selection_anchor		 = 0;
 		u64										_asset_grid_folder_hash			 = UINT64_MAX;
+		sid_t									_pending_show_asset_guid		 = NULL_SID;
 		editor_asset_node_handle_t				_selected_folder_node			 = {};
 		editor_asset_node_handle_t				_selected_asset_node			 = {};
 		editor_asset_node_handle_t				_asset_selection_anchor			 = {};

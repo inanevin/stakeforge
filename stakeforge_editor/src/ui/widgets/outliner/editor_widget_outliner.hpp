@@ -98,6 +98,7 @@ namespace sfg
 		void refresh_entities();
 		void refresh_entity_name(entity_id_t entity);
 		void set_edit_world(editor_world_handle_t world);
+		void show_entity(entity_guid_t guid);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -210,6 +211,7 @@ namespace sfg
 		ui::widget_id_t									  _root						  = NULL_WIDGET;
 		ui::widget_id_t									  _entity_top_row			  = NULL_WIDGET;
 		ui::widget_id_t									  _entity_list_area			  = NULL_WIDGET;
+		entity_guid_t									  _pending_show_entity_guid	  = NULL_ENTITY_GUID;
 		entity_id_t										  _action_menu_entity		  = NULL_ENTITY_ID;
 		u32												  _entity_generation		  = 0;
 		u32												  _visible_entity_count		  = 0;

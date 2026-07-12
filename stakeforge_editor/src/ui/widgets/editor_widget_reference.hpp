@@ -95,10 +95,12 @@ namespace sfg
 		void		  refresh_frame();
 		void		  open_popup();
 		void		  modify_reference(u64 value);
+		void		  show_reference();
 		sid_t		  get_thumbnail_guid() const;
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
+		static void on_show_button_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_popup_asset_pressed(sid_t guid, void* user_data);
 		static void on_popup_entity_pressed(entity_guid_t guid, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
@@ -110,6 +112,8 @@ namespace sfg
 		vector_t<u64*>					 _fields			= {};
 		ui::ui_context*					 _ui				= nullptr;
 		ui::widget_id_t					 _root				= NULL_WIDGET;
+		ui::widget_id_t					 _frame				= NULL_WIDGET;
+		ui::widget_id_t					 _show_button		= NULL_WIDGET;
 		ui::widget_id_t					 _thumbnail			= NULL_WIDGET;
 		editor_widget_thumbnail_t*		 _thumbnail_widget	= nullptr;
 		ui::widget_id_t					 _label				= NULL_WIDGET;

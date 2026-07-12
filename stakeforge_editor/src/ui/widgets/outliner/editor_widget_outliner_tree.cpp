@@ -413,6 +413,14 @@ namespace sfg
 
 	void editor_widget_outliner_t::flush_pending_ui_mutations()
 	{
+		if (_pending_show_entity_guid != NULL_ENTITY_GUID)
+		{
+			const entity_guid_t guid  = _pending_show_entity_guid;
+			_pending_show_entity_guid = NULL_ENTITY_GUID;
+			show_entity(guid);
+			return;
+		}
+
 		if (!_refresh_entities_pending)
 			return;
 

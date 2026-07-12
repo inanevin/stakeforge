@@ -34,8 +34,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/panels/assets/editor_panel_assets.hpp"
+#include "ui/panels/editor_panel_entities.hpp"
+#include "editor_surface_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widget_thumbnail.hpp"
+#include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/rectf.hpp>
@@ -77,30 +81,41 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {1.0f, theme.item_height};
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = theme.item_spacing;
-		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
-		root_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
+
+		_frame = ui.allocate_widget();
+		ui.set_widget_debug_name(_frame, "reference_frame");
+		tree.attach(_root, _frame);
+
+		ui::layout_in_t& frame_in = tree.in(_frame);
+		frame_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_focusable;
+		frame_in.size_mode_x	  = ui::axis_mode_e::fill;
+		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		frame_in.size_value		  = {1.0f, 1.0f};
+		frame_in.flow			  = ui::flow_e::row;
+		frame_in.child_spacing	  = theme.item_spacing;
+		frame_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		frame_in.child_clip_mode  = ui::clip_mode_e::cpu_rect;
 
 		refresh_frame();
-		paint.set_hover_color(_root, theme.color_panel);
-		paint.set_press_color(_root, theme.color_frame_light);
-		paint.set_focus_color(_root, theme.color_accent0);
+		paint.set_hover_color(_frame, theme.color_panel);
+		paint.set_press_color(_frame, theme.color_frame_light);
+		paint.set_focus_color(_frame, theme.color_accent0);
 
 		ui::listener_bundle_t root_listener = {};
 		root_listener.user_data				= this;
 		root_listener.on_click				= on_root_click;
 		root_listener.on_key				= on_root_key;
-		ui.get_input().set_listener(_root, root_listener);
+		ui.get_input().set_listener(_frame, root_listener);
 		editor_payload_controller_t::get().register_listener(on_payload_drop, on_payload_tick, on_payload_end, this);
 
 		_thumbnail = ui.allocate_widget();
 		ui.set_widget_debug_name(_thumbnail, "reference_thumbnail");
-		tree.attach(_root, _thumbnail);
+		tree.attach(_frame, _thumbnail);
 
 		ui::layout_in_t& thumbnail_in = tree.in(_thumbnail);
 		thumbnail_in.flags			  = 0;
@@ -122,15 +137,23 @@ namespace sfg
 
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "reference_label");
-		tree.attach(_root, _label);
+		tree.attach(_frame, _label);
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
-		tree.draw_order(_label)	  = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_label)	  = tree.draw_order_const(_frame) + 1;
 
 		paint.set_text(_label, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_show_button = editor_icon_widgets_t::add_naked_icon_button(ui, _root, ICON_EYE, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
+		ui.set_widget_debug_name(_show_button, "reference_show_button");
+		ui::listener_bundle_t show_listener = {};
+		show_listener.user_data				= this;
+		show_listener.on_click				= on_show_button_click;
+		ui.get_input().set_listener(_show_button, show_listener);
+
 		set_reference(config);
 	}
 
@@ -146,6 +169,8 @@ namespace sfg
 		_ui->deallocate_widget(_root);
 		_ui				  = nullptr;
 		_root			  = NULL_WIDGET;
+		_frame			  = NULL_WIDGET;
+		_show_button	  = NULL_WIDGET;
 		_thumbnail		  = NULL_WIDGET;
 		_thumbnail_widget = nullptr;
 		_label			  = NULL_WIDGET;
@@ -334,7 +359,7 @@ namespace sfg
 		rect.rounding				= theme.item_rounding;
 		rect.outline_color			= _accepting_payload ? theme.color_accent1 : theme.color_panel_light;
 		rect.outline_thickness		= theme.outline_thickness;
-		_ui->get_paint().set_rect(_root, rect);
+		_ui->get_paint().set_rect(_frame, rect);
 	}
 
 	void editor_widget_reference_t::open_popup()
@@ -343,7 +368,7 @@ namespace sfg
 		SFG_ASSERT(popup != nullptr);
 
 		const editor_theme_t&	theme	 = editor_theme_t::get();
-		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
+		const ui::layout_out_t& root_out = _ui->get_tree().out(_frame);
 		if (_config.type == editor_widget_reference_type_e::asset)
 		{
 			editor_asset_popup_desc_t desc = {};
@@ -385,6 +410,36 @@ namespace sfg
 			_config.callbacks.edited(_config.callbacks.user_data);
 	}
 
+	void editor_widget_reference_t::show_reference()
+	{
+		if (_mixed)
+			return;
+
+		if (_config.type == editor_widget_reference_type_e::asset)
+		{
+			const sid_t guid = get_selected_value();
+			if (guid == NULL_SID)
+				return;
+
+			editor_panel_t* panel = editor_surface_controller_t::get().show_panel(editor_panel_type_e::assets);
+			if (panel != nullptr)
+				static_cast<editor_panel_assets_t*>(panel)->show_asset(guid);
+			return;
+		}
+
+		const entity_guid_t guid = get_selected_value();
+		if (guid == NULL_ENTITY_GUID)
+			return;
+
+		editor_panel_t* panel = editor_surface_controller_t::get().show_panel(editor_panel_type_e::entities);
+		if (panel != nullptr)
+		{
+			editor_panel_entities_t* entities_panel = static_cast<editor_panel_entities_t*>(panel);
+			entities_panel->set_edit_world(_config.world);
+			entities_panel->show_entity(guid);
+		}
+	}
+
 	sid_t editor_widget_reference_t::get_thumbnail_guid() const
 	{
 		if (_mixed || _config.type != editor_widget_reference_type_e::asset)
@@ -414,6 +469,14 @@ namespace sfg
 		static_cast<editor_widget_reference_t*>(user_data)->open_popup();
 	}
 
+	void editor_widget_reference_t::on_show_button_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		static_cast<editor_widget_reference_t*>(user_data)->show_reference();
+	}
+
 	void editor_widget_reference_t::on_popup_asset_pressed(sid_t guid, void* user_data)
 	{
 		editor_widget_reference_t& reference = *static_cast<editor_widget_reference_t*>(user_data);
@@ -437,7 +500,7 @@ namespace sfg
 	bool editor_widget_reference_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
 	{
 		editor_widget_reference_t& reference = *static_cast<editor_widget_reference_t*>(user_data);
-		const ui::layout_out_t&	   out		 = reference._ui->get_tree().out(reference._root);
+		const ui::layout_out_t&	   out		 = reference._ui->get_tree().out(reference._frame);
 		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(reference._ui->get_input().get_mouse_position()))
 			return false;
 

@@ -59,6 +59,14 @@ namespace sfg
 
 	void editor_panel_assets_t::flush_pending_ui_mutations()
 	{
+		if (_pending_show_asset_guid != NULL_SID)
+		{
+			const sid_t guid		 = _pending_show_asset_guid;
+			_pending_show_asset_guid = NULL_SID;
+			show_asset(guid);
+			return;
+		}
+
 		const bool refresh_folders = _folder_rows_refresh_pending;
 		const bool refresh_assets  = _asset_grid_refresh_pending;
 		const bool force_assets	   = _asset_grid_refresh_force;

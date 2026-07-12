@@ -158,7 +158,7 @@ namespace sfg
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			_button_widgets[i] = new editor_widget_button_t();
-			_button_widgets[i]->init(ui, _button_row, {});
+			_button_widgets[i]->init(ui, _button_row, {.width = {.mode = editor_widget_width_e::fixed, .value = theme.item_width}});
 			ui.set_widget_debug_name(_button_widgets[i]->get_root(), "modal_button");
 			ui.get_input().set_listener(_button_widgets[i]->get_root(), button_listener);
 		}

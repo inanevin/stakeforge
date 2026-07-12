@@ -51,6 +51,7 @@ namespace sfg
 		SFG_ASSERT(_ui == nullptr);
 		SFG_ASSERT(s_controller_count < MAX_CONTROLLERS);
 
+		_visible					= true;
 		_ui							= &ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
