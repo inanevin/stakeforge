@@ -46,13 +46,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/backend/backend.hpp>
-#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/math/math.hpp>
 #include <sfg/platform/time.hpp>
-#include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -65,10 +62,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_CAMERA_BASE_MOVE_SPEED	12.0f
-#define EDITOR_CAMERA_BOOST_MULTIPLIER	8.0f
-#define EDITOR_CAMERA_MOUSE_SENSITIVITY 0.2f
-
 	void editor_world_controller_t::init()
 	{
 		SFG_ASSERT(s_instance == nullptr);
@@ -80,8 +73,6 @@ namespace sfg
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
-		reset_camera_input();
-		_main_camera_entity = NULL_ENTITY_ID;
 	}
 
 	void editor_world_controller_t::uninit()
@@ -99,9 +90,7 @@ namespace sfg
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
-		reset_camera_input();
-		_main_camera_entity = NULL_ENTITY_ID;
-		s_instance			= nullptr;
+		s_instance = nullptr;
 	}
 
 	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config)
@@ -127,12 +116,6 @@ namespace sfg
 			set_main_world({}, NULL_SID, "");
 
 		destroy_world_internal(handle);
-
-		if (was_main_world)
-		{
-			_main_camera_entity = NULL_ENTITY_ID;
-			reset_camera_input();
-		}
 	}
 
 	void editor_world_controller_t::destroy_world_internal(editor_world_handle_t handle)
@@ -151,8 +134,6 @@ namespace sfg
 		const editor_world_handle_t handle = _main_world;
 		set_main_world({}, NULL_SID, "");
 		destroy_world_internal(handle);
-		_main_camera_entity = NULL_ENTITY_ID;
-		reset_camera_input();
 	}
 
 	void editor_world_controller_t::destroy_worlds()
@@ -174,8 +155,6 @@ namespace sfg
 		}
 
 		_worlds.resize_zero();
-		_main_camera_entity = NULL_ENTITY_ID;
-		reset_camera_input();
 		_main_world					   = {};
 		_main_world_asset_guid		   = NULL_SID;
 		_pending_main_world_asset_guid = NULL_SID;
@@ -253,8 +232,7 @@ namespace sfg
 				{
 					const editor_world_handle_t handle		 = *it;
 					editor_world_t*				editor_world = _worlds.get(handle);
-					if (handle == _main_world)
-						tick_editor_camera(dt_seconds);
+					editor_world->tick_camera(dt_seconds);
 					editor_world->tick(dt_seconds);
 				}
 				++steps;
@@ -280,8 +258,9 @@ namespace sfg
 
 	void editor_world_controller_t::install_default_world(editor_world_handle_t handle)
 	{
-		world_t& world = _worlds.get(handle)->get_world();
-		install_editor_camera(world);
+		editor_world_t* const editor_world = _worlds.get(handle);
+		editor_world->install_camera(editor_world_camera_type_e::fly);
+		world_t& world = editor_world->get_world();
 
 		const entity_id_t	environment				= world.create_entity("environment");
 		component_skybox_t& skybox					= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), environment);
@@ -372,7 +351,7 @@ namespace sfg
 			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
-			install_editor_camera(world);
+			_worlds.get(handle)->install_camera(editor_world_camera_type_e::fly);
 		}
 
 		const char* asset_name = editor_asset_util_t::find_asset_display_name(asset_guid);
@@ -578,128 +557,6 @@ namespace sfg
 			static_cast<editor_panel_world_t*>(panel)->set_world_dirty(_main_world_dirty);
 	}
 
-	void editor_world_controller_t::reset_input(window_runtime_t& runtime)
-	{
-		if (_is_looking)
-		{
-			process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::none);
-			process::set_cursor_visible(true);
-		}
-		reset_camera_input();
-	}
-
-	bool editor_world_controller_t::on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev)
-	{
-		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release)
-		{
-			if (_is_looking)
-			{
-				process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::none);
-				process::set_cursor_visible(true);
-			}
-			reset_camera_input();
-			return false;
-		}
-
-		editor_panel_t* panel = editor_surface_controller_t::get().find_panel_on_surface(editor_panel_type_e::world, surface_handle);
-		if (panel == nullptr || !panel->is_inited())
-			return false;
-
-		editor_panel_world_t* world_panel = static_cast<editor_panel_world_t*>(panel);
-		const vec4f_t		  bounds	  = world_panel->get_world_view_bounds();
-		const vec2f_t		  mouse		  = {static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y)};
-		const bool			  inside	  = mouse.x >= bounds.x && mouse.y >= bounds.y && mouse.x <= bounds.x + bounds.z && mouse.y <= bounds.y + bounds.w;
-
-		switch (ev.type)
-		{
-		case window_event_type_e::mouse:
-			if (ev.sub_type == window_event_sub_type_e::press)
-			{
-				if (!inside)
-				{
-					if (_is_looking)
-					{
-						process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::none);
-						process::set_cursor_visible(true);
-					}
-					reset_camera_input();
-					return false;
-				}
-
-				_world_panel_focused = true;
-				if (ev.button == static_cast<u16>(input_code::mouse_right))
-				{
-					_is_looking = true;
-					process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::pointer);
-					process::set_cursor_visible(false);
-				}
-				return true;
-			}
-
-			if (ev.sub_type == window_event_sub_type_e::release && ev.button == static_cast<u16>(input_code::mouse_right) && _is_looking)
-			{
-				_is_looking	 = false;
-				_mouse_delta = vec2f_t::zero;
-				process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::none);
-				process::set_cursor_visible(true);
-				return true;
-			}
-			break;
-		case window_event_type_e::delta:
-			if (_is_looking)
-			{
-				_mouse_delta.x += static_cast<f32>(ev.value.x);
-				_mouse_delta.y += static_cast<f32>(ev.value.y);
-				return true;
-			}
-			break;
-		case window_event_type_e::key:
-			if (!_world_panel_focused)
-				return false;
-
-			if (ev.button == static_cast<u16>(input_code::key_w) && ev.sub_type == window_event_sub_type_e::press)
-				_direction_input.z += 1.0f;
-			else if (ev.button == static_cast<u16>(input_code::key_w) && ev.sub_type == window_event_sub_type_e::release && _direction_input.z > 0.1f)
-				_direction_input.z -= 1.0f;
-			if (ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press)
-				_direction_input.z -= 1.0f;
-			else if (ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::release && _direction_input.z < -0.1f)
-				_direction_input.z += 1.0f;
-
-			if (ev.button == static_cast<u16>(input_code::key_d) && ev.sub_type == window_event_sub_type_e::press)
-				_direction_input.x += 1.0f;
-			else if (ev.button == static_cast<u16>(input_code::key_d) && ev.sub_type == window_event_sub_type_e::release && _direction_input.x > 0.1f)
-				_direction_input.x -= 1.0f;
-			if (ev.button == static_cast<u16>(input_code::key_a) && ev.sub_type == window_event_sub_type_e::press)
-				_direction_input.x -= 1.0f;
-			else if (ev.button == static_cast<u16>(input_code::key_a) && ev.sub_type == window_event_sub_type_e::release && _direction_input.x < -0.1f)
-				_direction_input.x += 1.0f;
-
-			if (ev.button == static_cast<u16>(input_code::key_e) && ev.sub_type == window_event_sub_type_e::press)
-				_direction_input.y += 1.0f;
-			else if (ev.button == static_cast<u16>(input_code::key_e) && ev.sub_type == window_event_sub_type_e::release && _direction_input.y > 0.1f)
-				_direction_input.y -= 1.0f;
-			if (ev.button == static_cast<u16>(input_code::key_q) && ev.sub_type == window_event_sub_type_e::press)
-				_direction_input.y -= 1.0f;
-			else if (ev.button == static_cast<u16>(input_code::key_q) && ev.sub_type == window_event_sub_type_e::release && _direction_input.y < -0.1f)
-				_direction_input.y += 1.0f;
-
-			if ((ev.button == static_cast<u16>(input_code::key_lshift) || ev.button == static_cast<u16>(input_code::key_rshift)) && ev.sub_type == window_event_sub_type_e::press)
-				_current_move_speed = EDITOR_CAMERA_BASE_MOVE_SPEED * EDITOR_CAMERA_BOOST_MULTIPLIER;
-			else if ((ev.button == static_cast<u16>(input_code::key_lshift) || ev.button == static_cast<u16>(input_code::key_rshift)) && ev.sub_type == window_event_sub_type_e::release)
-				_current_move_speed = EDITOR_CAMERA_BASE_MOVE_SPEED;
-
-			if (ev.button == static_cast<u16>(input_code::key_a) || ev.button == static_cast<u16>(input_code::key_d) || ev.button == static_cast<u16>(input_code::key_w) || ev.button == static_cast<u16>(input_code::key_s) ||
-				ev.button == static_cast<u16>(input_code::key_q) || ev.button == static_cast<u16>(input_code::key_e) || ev.button == static_cast<u16>(input_code::key_lshift) || ev.button == static_cast<u16>(input_code::key_rshift))
-				return true;
-			break;
-		default:
-			break;
-		}
-
-		return false;
-	}
-
 	f32 editor_world_controller_t::calculate_render_alpha() const
 	{
 		const i64 fixed_us = _fixed_step_us.load(std::memory_order_relaxed);
@@ -714,50 +571,5 @@ namespace sfg
 		if (alpha > 1.0f)
 			return 1.0f;
 		return alpha;
-	}
-
-	void editor_world_controller_t::install_editor_camera(world_t& world)
-	{
-		const entity_id_t	camera_entity = world.create_entity("editor camera");
-		component_camera_t& camera		  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
-		camera.priority					  = -1;
-		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), camera_entity);
-		_main_camera_entity	  = camera_entity;
-		const vec3f_t euler	  = quat_t::to_euler(world.get_entity_rot_local(camera_entity));
-		_camera_pitch_degrees = euler.x;
-		_camera_yaw_degrees	  = euler.y;
-	}
-
-	void editor_world_controller_t::reset_camera_input()
-	{
-		_direction_input	 = vec3f_t::zero;
-		_mouse_delta		 = vec2f_t::zero;
-		_current_move_speed	 = EDITOR_CAMERA_BASE_MOVE_SPEED;
-		_world_panel_focused = false;
-		_is_looking			 = false;
-	}
-
-	void editor_world_controller_t::tick_editor_camera(f32 dt_seconds)
-	{
-		if (_main_camera_entity == NULL_ENTITY_ID || !_world_panel_focused)
-			return;
-
-		world_t& world = _worlds.get(_main_world)->get_world();
-
-		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_CAMERA_MOUSE_SENSITIVITY;
-		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_CAMERA_MOUSE_SENSITIVITY;
-		_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
-		_mouse_delta		  = vec2f_t::zero;
-
-		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
-		world.set_entity_rot_local(_main_camera_entity, rotation);
-
-		vec3f_t move_dir = rotation.get_forward() * _direction_input.z + rotation.get_right() * _direction_input.x + vec3f_t::up * _direction_input.y;
-		if (move_dir.is_zero())
-			return;
-
-		move_dir.normalize();
-		const vec3f_t position = world.get_entity_pos_local(_main_camera_entity) + move_dir * (_current_move_speed * dt_seconds);
-		world.set_entity_pos_local(_main_camera_entity, position);
 	}
 }

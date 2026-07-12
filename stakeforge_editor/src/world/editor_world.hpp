@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_camera.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_handle.hpp"
 #include <sfg/data/atomic.hpp>
@@ -60,6 +61,11 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void						   resize(vec2u16_t render_resolution);
+		void						   install_camera(editor_world_camera_type_e type);
+		void						   uninstall_camera();
+		void						   pass_camera_input(const editor_world_camera_input_t& input);
+		void						   reset_camera_input();
+		void						   tick_camera(f32 dt_seconds);
 		void						   tick(f32 dt_seconds);
 		void						   update_world_transforms(bool advance_interpolation);
 		void						   produce_snapshot();
@@ -115,6 +121,7 @@ namespace sfg
 
 	private:
 		world_render_snapshot_t		_snapshot_slots[3] = {};
+		editor_world_camera_t*		_camera			   = nullptr;
 		world_render_context_t		_render_context	   = {};
 		editor_world_edit_context_t _edit_context	   = {};
 		world_t						_world			   = {};

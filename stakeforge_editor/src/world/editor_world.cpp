@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world/editor_world.hpp"
+#include "world/editor_world_camera_fly.hpp"
+#include "world/editor_world_camera_orbit.hpp"
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -54,6 +56,7 @@ namespace sfg
 
 	void editor_world_t::uninit()
 	{
+		uninstall_camera();
 		_render_context.uninit();
 		_edit_context.uninit();
 		_world.unload_all_used_resources();
@@ -68,6 +71,51 @@ namespace sfg
 	{
 		_render_resolution = render_resolution;
 		_render_context.resize(render_resolution);
+	}
+
+	void editor_world_t::install_camera(editor_world_camera_type_e type)
+	{
+		uninstall_camera();
+
+		switch (type)
+		{
+		case editor_world_camera_type_e::orbit:
+			_camera = new editor_world_camera_orbit_t();
+			break;
+		case editor_world_camera_type_e::fly:
+		default:
+			_camera = new editor_world_camera_fly_t();
+			break;
+		}
+
+		_camera->init(_world);
+	}
+
+	void editor_world_t::uninstall_camera()
+	{
+		if (_camera == nullptr)
+			return;
+
+		_camera->uninit(_world);
+		delete _camera;
+		_camera = nullptr;
+	}
+
+	void editor_world_t::pass_camera_input(const editor_world_camera_input_t& input)
+	{
+		if (_camera != nullptr)
+			_camera->pass_input(input);
+	}
+
+	void editor_world_t::reset_camera_input()
+	{
+		pass_camera_input({.reset = true});
+	}
+
+	void editor_world_t::tick_camera(f32 dt_seconds)
+	{
+		if (_camera != nullptr)
+			_camera->tick(_world, dt_seconds);
 	}
 
 	void editor_world_t::tick(f32 dt_seconds)

@@ -40,12 +40,11 @@ namespace sfg
 		editor_panel_world_t(const editor_panel_world_t&)			 = delete;
 		editor_panel_world_t& operator=(const editor_panel_world_t&) = delete;
 
-		void	init(ui::ui_context& ui, ui::widget_id_t parent) override;
-		void	uninit() override;
-		void	set_edit_world(editor_world_handle_t world);
-		void	set_panel_name(const char* name);
-		void	set_world_dirty(bool dirty);
-		vec4f_t get_world_view_bounds() const;
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+		void set_edit_world(editor_world_handle_t world);
+		void set_panel_name(const char* name);
+		void set_world_dirty(bool dirty);
 
 	private:
 		void refresh_title();

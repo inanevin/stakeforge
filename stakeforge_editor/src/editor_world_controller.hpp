@@ -35,11 +35,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/math/vec2f.hpp>
-#include <sfg/math/vec3f.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/memory/pool_handle.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -50,8 +48,6 @@ namespace sfg
 	struct world_render_snapshot_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
-	struct window_event_t;
-	struct window_runtime_t;
 
 	class editor_world_controller_t final
 	{
@@ -82,8 +78,6 @@ namespace sfg
 		bool				  load_main_world(sid_t asset_guid);
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
-		void				  reset_input(window_runtime_t& runtime);
-		bool				  on_window_event(surface_handle_t surface_handle, window_runtime_t& runtime, const window_event_t& ev);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -118,11 +112,6 @@ namespace sfg
 			return _worlds.is_valid(handle);
 		}
 
-		inline bool is_world_panel_focused() const
-		{
-			return _world_panel_focused;
-		}
-
 		inline bool is_main_world_dirty() const
 		{
 			return _main_world_dirty;
@@ -149,9 +138,6 @@ namespace sfg
 		bool		load_main_world_now(sid_t asset_guid);
 		void		notify_main_world_changed();
 		void		notify_main_world_dirty_changed();
-		void		install_editor_camera(world_t& world);
-		void		reset_camera_input();
-		void		tick_editor_camera(f32 dt_seconds);
 		void		set_main_world_dirty(bool dirty);
 		static void on_save_dirty_world_modal(void* user_data);
 		static void on_dont_save_dirty_world_modal(void* user_data);
@@ -162,25 +148,17 @@ namespace sfg
 		dynamic_gen_pool_t<editor_world_t*, u32, editor_world_handle_tag_t> _worlds;
 		vector_t<acquired_render_world_t>									_render_worlds;
 		string_t															_main_world_name;
-		vec3f_t																_direction_input			   = vec3f_t::zero;
-		vec2f_t																_mouse_delta				   = vec2f_t::zero;
 		editor_world_handle_t												_main_world					   = {};
 		sid_t																_main_world_asset_guid		   = NULL_SID;
 		sid_t																_pending_main_world_asset_guid = NULL_SID;
-		entity_id_t															_main_camera_entity			   = NULL_ENTITY_ID;
 		pool_handle_t<u32, editor_command_listener_tag_t>					_command_listener			   = {};
 		i64																	_previous_time_us			   = 0;
 		i64																	_accumulator_us				   = 0;
 		atomic_t<i64>														_last_fixed_step_us			   = 0;
 		atomic_t<i64>														_fixed_step_us				   = 0;
 		f32																	_render_alpha				   = 0.0f;
-		f32																	_camera_yaw_degrees			   = 0.0f;
-		f32																	_camera_pitch_degrees		   = 0.0f;
-		f32																	_current_move_speed			   = 12.0f;
 		u32																	_world_physics_rate			   = 100;
-		bool																_world_panel_focused		   = false;
 		bool																_main_world_dirty			   = false;
-		bool																_is_looking					   = false;
 
 		static inline editor_world_controller_t* s_instance = nullptr;
 	};

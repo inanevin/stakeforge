@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_camera.hpp"
 #include "world/editor_world_handle.hpp"
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -33,9 +34,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	struct editor_payload_t;
+	struct window_event_t;
+	struct window_runtime_t;
 	class world_render_context_t;
 	namespace ui
 	{
+		enum class mouse_button_e : u8;
+		struct input_router_t;
 		class ui_context;
 	}
 
@@ -47,10 +52,11 @@ namespace sfg
 		editor_widget_world_view_t(const editor_widget_world_view_t&)			 = delete;
 		editor_widget_world_view_t& operator=(const editor_widget_world_view_t&) = delete;
 
-		void	init(ui::ui_context& ui, ui::widget_id_t parent);
-		void	uninit();
-		void	set_edit_world(editor_world_handle_t world);
-		vec4f_t get_world_view_bounds() const;
+		void		init(ui::ui_context& ui, ui::widget_id_t parent);
+		void		uninit();
+		void		set_edit_world(editor_world_handle_t world);
+		static bool on_window_event(window_runtime_t& runtime, const window_event_t& ev);
+		static void reset_camera_input(window_runtime_t& runtime);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -61,8 +67,15 @@ namespace sfg
 		void clear_world();
 		void refresh_world_texture();
 		void request_world_resize(bool force);
+		void begin_camera_control(window_runtime_t& runtime);
+		void end_camera_control();
+		void pass_camera_input(const editor_world_camera_input_t& input);
+		bool pass_camera_key(const window_event_t& ev);
 
 		static void on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_world_view_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_world_view_release(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_world_view_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 
 	private:
@@ -73,6 +86,11 @@ namespace sfg
 		ui::widget_id_t				  _root				   = NULL_WIDGET;
 		ui::widget_id_t				  _world_view		   = NULL_WIDGET;
 		ui::widget_id_t				  _empty_label		   = NULL_WIDGET;
+		window_runtime_t*			  _camera_runtime	   = nullptr;
 		u8							  _resize_ticks		   = 0;
+		bool						  _camera_control	   = false;
+
+		static inline editor_widget_world_view_t* s_active_camera_view = nullptr;
+		static inline window_runtime_t*			  s_event_runtime	   = nullptr;
 	};
 }

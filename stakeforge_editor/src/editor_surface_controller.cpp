@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
+#include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/widgets/editor_widget_project_creator.hpp"
 #include "ui/widgets/editor_widget_window_frame.hpp"
 #include <sfg/common/hashing.hpp>
@@ -226,8 +227,8 @@ namespace sfg
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
 			if (modal_active || popup_active)
-				world_controller.reset_input(runtime);
-			else if (world_controller.on_window_event(surface_handle, runtime, ev))
+				editor_widget_world_view_t::reset_camera_input(runtime);
+			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
 				return;
 
 			if (ev.type == window_event_type_e::mouse)
@@ -243,8 +244,8 @@ namespace sfg
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
 			if (modal_active || popup_active)
-				world_controller.reset_input(runtime);
-			else if (world_controller.on_window_event(surface_handle, runtime, ev))
+				editor_widget_world_view_t::reset_camera_input(runtime);
+			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
 				return;
 
 			const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
@@ -252,15 +253,17 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::key: {
-			if (world_controller.on_window_event(surface_handle, runtime, ev))
-				return;
-
 			if (!runtime.has_flag(window_runtime_flags_e::has_focus))
 				return;
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
-			const bool ctrl			= process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			if (modal_active || popup_active)
+				editor_widget_world_view_t::reset_camera_input(runtime);
+			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
+				return;
+
+			const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !world_controller.get_main_world_handle().is_null())
 			{
 				world_controller.save_main_world();
@@ -281,7 +284,7 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::focus:
-			world_controller.on_window_event(surface_handle, runtime, ev);
+			editor_widget_world_view_t::on_window_event(runtime, ev);
 			break;
 		default:
 			break;

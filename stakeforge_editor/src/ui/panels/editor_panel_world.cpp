@@ -72,11 +72,6 @@ namespace sfg
 		refresh_title();
 	}
 
-	vec4f_t editor_panel_world_t::get_world_view_bounds() const
-	{
-		return _world_view.get_world_view_bounds();
-	}
-
 	void editor_panel_world_t::refresh_title()
 	{
 		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);

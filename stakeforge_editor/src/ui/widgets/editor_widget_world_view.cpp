@@ -33,12 +33,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "assets/editor_asset_spawn.hpp"
+#include <sfg/input/input_mappings.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/rectf.hpp>
+#include <sfg/platform/common_window.hpp>
+#include <sfg/platform/process.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
+#define EDITOR_WORLD_VIEW_CAMERA_BASE_MOVE_SPEED  12.0f
+#define EDITOR_WORLD_VIEW_CAMERA_BOOST_MULTIPLIER 8.0f
+
 	namespace
 	{
 		ui::ui_resource_ref_t make_null_world_texture_ref()
@@ -92,6 +100,7 @@ namespace sfg
 		in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		in.size_value		= {1.0f, 1.0f};
+		in.flags |= ui::wf_input | ui::wf_focusable;
 
 		ui::vg_rect_paint_t rect = {};
 		rect.fill_color_a		 = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -104,6 +113,13 @@ namespace sfg
 
 		paint.set_rect(_world_view, rect, state);
 		ui.set_pre_layout_tick(_world_view, on_world_view_tick, this);
+
+		ui::listener_bundle_t listener = {};
+		listener.on_press			   = on_world_view_press;
+		listener.on_release			   = on_world_view_release;
+		listener.on_focus_lose		   = on_world_view_focus_lost;
+		listener.user_data			   = this;
+		ui.get_input().set_listener(_world_view, listener);
 
 		_empty_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_empty_label, "empty_label");
@@ -128,31 +144,36 @@ namespace sfg
 
 	void editor_widget_world_view_t::uninit()
 	{
+		end_camera_control();
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
 		_world				 = nullptr;
 		_edit_world			 = {};
 		_last_resize_request = vec2u16_t::zero;
+		_camera_runtime		 = nullptr;
 		_empty_label		 = NULL_WIDGET;
 		_world_view			 = NULL_WIDGET;
 		_root				 = NULL_WIDGET;
 		_resize_ticks		 = 0;
+		_camera_control		 = false;
 		_ui					 = nullptr;
 	}
 
 	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
 	{
-		_edit_world = world;
 		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(_world_view != NULL_WIDGET);
 
-		if (_edit_world.is_null())
+		if (world.is_null())
 		{
+			end_camera_control();
+			_edit_world = world;
 			clear_world();
 			return;
 		}
 
+		_edit_world							  = world;
 		editor_world_controller_t& controller = editor_world_controller_t::get();
 		_world								  = &controller.get_editor_world(_edit_world)->get_render_context();
 		request_world_resize(true);
@@ -163,11 +184,35 @@ namespace sfg
 		tree.set_visible(_empty_label, false);
 	}
 
-	vec4f_t editor_widget_world_view_t::get_world_view_bounds() const
+	bool editor_widget_world_view_t::on_window_event(window_runtime_t& runtime, const window_event_t& ev)
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(_world_view != NULL_WIDGET);
-		return _ui->get_tree().bounds(_world_view);
+		s_event_runtime = &runtime;
+		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release)
+		{
+			reset_camera_input(runtime);
+			return false;
+		}
+
+		editor_widget_world_view_t* const active = s_active_camera_view;
+		if (active == nullptr || active->_camera_runtime != &runtime || !active->_camera_control)
+			return false;
+
+		if (ev.type == window_event_type_e::delta)
+		{
+			active->pass_camera_input({.mouse_delta = {static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y)}});
+			return true;
+		}
+
+		if (ev.type == window_event_type_e::key)
+			return active->pass_camera_key(ev);
+
+		return false;
+	}
+
+	void editor_widget_world_view_t::reset_camera_input(window_runtime_t& runtime)
+	{
+		if (s_active_camera_view != nullptr && s_active_camera_view->_camera_runtime == &runtime)
+			s_active_camera_view->end_camera_control();
 	}
 
 	void editor_widget_world_view_t::clear_world()
@@ -202,6 +247,73 @@ namespace sfg
 		editor_world_controller_t::get().resize_world(_edit_world, resolution);
 	}
 
+	void editor_widget_world_view_t::begin_camera_control(window_runtime_t& runtime)
+	{
+		if (_edit_world.is_null())
+			return;
+
+		if (s_active_camera_view != nullptr && s_active_camera_view != this)
+			s_active_camera_view->end_camera_control();
+
+		_camera_runtime		 = &runtime;
+		_camera_control		 = true;
+		s_active_camera_view = this;
+		pass_camera_input({.reset = true});
+		process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::pointer);
+		process::set_cursor_visible(false);
+	}
+
+	void editor_widget_world_view_t::end_camera_control()
+	{
+		if (!_camera_control)
+			return;
+
+		process::set_cursor_confinement(_camera_runtime->window_handle, window_cursor_confinement_e::none);
+		process::set_cursor_visible(true);
+		pass_camera_input({.reset = true});
+		_camera_runtime = nullptr;
+		_camera_control = false;
+		if (s_active_camera_view == this)
+			s_active_camera_view = nullptr;
+	}
+
+	void editor_widget_world_view_t::pass_camera_input(const editor_world_camera_input_t& input)
+	{
+		editor_world_t* const world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		world->pass_camera_input(input);
+	}
+
+	bool editor_widget_world_view_t::pass_camera_key(const window_event_t& ev)
+	{
+		if (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::release)
+			return false;
+
+		const f32					sign  = ev.sub_type == window_event_sub_type_e::press ? 1.0f : -1.0f;
+		editor_world_camera_input_t input = {};
+		if (ev.button == static_cast<u16>(input_code::key_w))
+			input.direction_delta.z = sign;
+		else if (ev.button == static_cast<u16>(input_code::key_s))
+			input.direction_delta.z = -sign;
+		else if (ev.button == static_cast<u16>(input_code::key_d))
+			input.direction_delta.x = sign;
+		else if (ev.button == static_cast<u16>(input_code::key_a))
+			input.direction_delta.x = -sign;
+		else if (ev.button == static_cast<u16>(input_code::key_e))
+			input.direction_delta.y = sign;
+		else if (ev.button == static_cast<u16>(input_code::key_q))
+			input.direction_delta.y = -sign;
+		else if (ev.button == static_cast<u16>(input_code::key_lshift) || ev.button == static_cast<u16>(input_code::key_rshift))
+		{
+			input.set_move_speed = true;
+			input.move_speed	 = ev.sub_type == window_event_sub_type_e::press ? EDITOR_WORLD_VIEW_CAMERA_BASE_MOVE_SPEED * EDITOR_WORLD_VIEW_CAMERA_BOOST_MULTIPLIER : EDITOR_WORLD_VIEW_CAMERA_BASE_MOVE_SPEED;
+		}
+		else
+			return false;
+
+		pass_camera_input(input);
+		return true;
+	}
+
 	void editor_widget_world_view_t::refresh_world_texture()
 	{
 		SFG_ASSERT(_ui != nullptr);
@@ -234,6 +346,26 @@ namespace sfg
 			}
 			widget.refresh_world_texture();
 		}
+	}
+
+	void editor_widget_world_view_t::on_world_view_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		SFG_ASSERT(s_event_runtime != nullptr);
+		if (btn == ui::mouse_button_e::right)
+			widget.begin_camera_control(*s_event_runtime);
+	}
+
+	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		if (btn == ui::mouse_button_e::right)
+			widget.end_camera_control();
+	}
+
+	void editor_widget_world_view_t::on_world_view_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
+	{
+		static_cast<editor_widget_world_view_t*>(user_data)->end_camera_control();
 	}
 
 	bool editor_widget_world_view_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
