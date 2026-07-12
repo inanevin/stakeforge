@@ -55,7 +55,7 @@ namespace sfg
 	editor_panel_mesh_viewer_t::editor_panel_mesh_viewer_t()
 	{
 		set_type(editor_panel_type_e::mesh_viewer);
-		set_title(editor_panel_type_to_string(editor_panel_type_e::mesh_viewer));
+		refresh_title();
 		set_icon(ICON_MESH);
 	}
 
@@ -73,7 +73,7 @@ namespace sfg
 		set_sub_item_id(_mesh_guid);
 		_asset_name = j.value<string_t>("asset_name", {});
 		_pane_split = math::clamp(j.value<f32>("pane_split", _pane_split), MESH_VIEWER_PANE_SPLIT_MIN, MESH_VIEWER_PANE_SPLIT_MAX);
-		refresh_title();
+		refresh_title(_asset_name.c_str(), "M: ");
 	}
 
 	void editor_panel_mesh_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -169,7 +169,7 @@ namespace sfg
 			create_display_entity();
 
 		refresh_info();
-		refresh_title();
+		refresh_title(_asset_name.c_str(), "M: ");
 	}
 
 	void editor_panel_mesh_viewer_t::create_preview_world()
@@ -237,19 +237,6 @@ namespace sfg
 
 		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_mesh_guid))
 			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(internals->local_bounds);
-	}
-
-	void editor_panel_mesh_viewer_t::refresh_title()
-	{
-		_title_text = editor_panel_type_to_string(editor_panel_type_e::mesh_viewer);
-		if (!_asset_name.empty())
-		{
-			_title_text = "M: ";
-			_title_text += _asset_name;
-		}
-		set_title(_title_text.c_str());
-		if (_ui != nullptr)
-			editor_surface_controller_t::get().refresh_panel_title(this);
 	}
 
 	void editor_panel_mesh_viewer_t::refresh_info()

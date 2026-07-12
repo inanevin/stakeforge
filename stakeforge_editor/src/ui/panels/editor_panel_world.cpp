@@ -25,16 +25,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_world.hpp"
-#include "editor_surface_controller.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/io/assert.hpp>
 
 namespace sfg
 {
 	editor_panel_world_t::editor_panel_world_t()
 	{
 		set_type(editor_panel_type_e::world);
-		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);
-		set_title(_title_text.c_str());
+		refresh_title();
 		set_icon(ICON_GLOBE);
 	}
 
@@ -60,7 +59,7 @@ namespace sfg
 		SFG_ASSERT(name != nullptr);
 
 		_panel_name = name;
-		refresh_title();
+		refresh_title(_panel_name.c_str(), nullptr, _world_dirty);
 	}
 
 	void editor_panel_world_t::set_world_dirty(bool dirty)
@@ -69,21 +68,6 @@ namespace sfg
 			return;
 
 		_world_dirty = dirty;
-		refresh_title();
-	}
-
-	void editor_panel_world_t::refresh_title()
-	{
-		_title_text = editor_panel_type_to_string(editor_panel_type_e::world);
-		if (!_panel_name.empty())
-		{
-			_title_text += ": ";
-			_title_text += _panel_name;
-		}
-		if (_world_dirty)
-			_title_text += "*";
-		set_title(_title_text.c_str());
-		if (_ui != nullptr)
-			editor_surface_controller_t::get().refresh_panel_title(this);
+		refresh_title(_panel_name.c_str(), nullptr, _world_dirty);
 	}
 }

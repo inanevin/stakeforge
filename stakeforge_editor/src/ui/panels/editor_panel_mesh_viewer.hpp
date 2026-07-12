@@ -64,7 +64,6 @@ namespace sfg
 		void			create_environment();
 		void			clear_display_entity();
 		void			create_display_entity();
-		void			refresh_title();
 		void			refresh_info();
 		void			apply_pane_split();
 		ui::widget_id_t append_property_value_row(const char* label);
@@ -76,7 +75,6 @@ namespace sfg
 		editor_widget_world_view_t _world_view			  = {};
 		editor_split_border_t	   _split_border		  = {};
 		string_t				   _asset_name			  = {};
-		string_t				   _title_text			  = {};
 		string_t				   _vertex_count_text	  = {};
 		string_t				   _index_count_text	  = {};
 		string_t				   _primitive_count_text  = {};

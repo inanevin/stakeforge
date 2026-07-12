@@ -58,7 +58,6 @@ namespace sfg
 		void set_texture(sid_t texture_guid, const char* asset_name);
 
 	private:
-		void			refresh_title();
 		void			load_texture();
 		void			unload_texture();
 		void			rebuild_mip_dropdown();
@@ -79,7 +78,6 @@ namespace sfg
 		editor_dropdown_t				 _mip_dropdown			  = {};
 		vector_t<editor_dropdown_item_t> _mip_dropdown_items	  = {};
 		string_t						 _asset_name			  = {};
-		string_t						 _title_text			  = {};
 		string_t						 _texture_size_text		  = {};
 		string_t						 _is_linear_text		  = {};
 		string_t						 _payload_format_text	  = {};

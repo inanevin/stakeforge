@@ -62,7 +62,7 @@ namespace sfg
 	editor_panel_texture_viewer_t::editor_panel_texture_viewer_t()
 	{
 		set_type(editor_panel_type_e::texture_viewer);
-		set_title(editor_panel_type_to_string(editor_panel_type_e::texture_viewer));
+		refresh_title();
 		set_icon(ICON_EYE);
 	}
 
@@ -82,7 +82,7 @@ namespace sfg
 		_asset_name	  = j.value<string_t>("asset_name", {});
 		_pane_split	  = math::clamp(j.value<f32>("pane_split", _pane_split), TEXTURE_VIEWER_PANE_SPLIT_MIN, TEXTURE_VIEWER_PANE_SPLIT_MAX);
 		_selected_mip = j.value<u16>("selected_mip", 0);
-		refresh_title();
+		refresh_title(_asset_name.c_str(), "T: ");
 	}
 
 	void editor_panel_texture_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -240,20 +240,7 @@ namespace sfg
 		rebuild_mip_dropdown();
 		refresh_info();
 		refresh_texture_state();
-		refresh_title();
-	}
-
-	void editor_panel_texture_viewer_t::refresh_title()
-	{
-		_title_text = editor_panel_type_to_string(editor_panel_type_e::texture_viewer);
-		if (!_asset_name.empty())
-		{
-			_title_text = "T: ";
-			_title_text += _asset_name;
-		}
-		set_title(_title_text.c_str());
-		if (_ui != nullptr)
-			editor_surface_controller_t::get().refresh_panel_title(this);
+		refresh_title(_asset_name.c_str(), "T: ");
 	}
 
 	void editor_panel_texture_viewer_t::load_texture()

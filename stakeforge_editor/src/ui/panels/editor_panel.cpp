@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel.hpp"
+#include "editor_surface_controller.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -105,6 +106,27 @@ namespace sfg
 	{
 		SFG_ASSERT(title != nullptr);
 		_title = title;
+	}
+
+	void editor_panel_t::refresh_title(const char* detail, const char* detail_prefix, bool dirty)
+	{
+		SFG_ASSERT(_type != editor_panel_type_e::max);
+
+		_title_text = editor_panel_type_to_string(_type);
+		if (detail != nullptr && detail[0] != '\0')
+		{
+			if (detail_prefix != nullptr)
+				_title_text = detail_prefix;
+			else
+				_title_text += ": ";
+			_title_text += detail;
+		}
+		if (dirty)
+			_title_text += "*";
+
+		set_title(_title_text.c_str());
+		if (_ui != nullptr)
+			editor_surface_controller_t::get().refresh_panel_title(this);
 	}
 
 	void editor_panel_t::set_icon(const char* icon)

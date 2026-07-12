@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/editor_panel_types.hpp"
+#include <sfg/data/string.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -98,10 +99,14 @@ namespace sfg
 		}
 
 	protected:
+		void refresh_title(const char* detail = nullptr, const char* detail_prefix = nullptr, bool dirty = false);
+
+	protected:
 		ui::ui_context*		_ui			 = nullptr;
 		ui::widget_id_t		_root		 = NULL_WIDGET;
 		const char*			_title		 = "";
 		const char*			_icon		 = nullptr;
+		string_t			_title_text	 = {};
 		sid_t				_instance_id = 0;
 		sid_t				_sub_item_id = 0;
 		editor_panel_type_e _type		 = editor_panel_type_e::max;
