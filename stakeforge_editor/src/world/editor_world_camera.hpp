@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct aabb_t;
 	class world_t;
 
 	enum class editor_world_camera_type_e : u8
@@ -46,6 +47,7 @@ namespace sfg
 		vec3f_t direction_delta = vec3f_t::zero;
 		vec2f_t mouse_delta		= vec2f_t::zero;
 		f32		move_speed		= 0.0f;
+		f32		wheel_delta		= 0.0f;
 		bool	set_move_speed	= false;
 		bool	reset			= false;
 	};
@@ -73,6 +75,9 @@ namespace sfg
 
 		virtual void pass_input(const editor_world_camera_input_t& input) = 0;
 		virtual void tick(world_t& world, f32 dt_seconds)				  = 0;
+		virtual void fit_to_bounds(world_t& world, const aabb_t& bounds)
+		{
+		}
 
 		// -----------------------------------------------------------------------------
 		// accessors

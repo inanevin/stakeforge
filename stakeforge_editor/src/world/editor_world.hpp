@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct aabb_t;
 	struct world_init_config_t;
 
 	class editor_world_t final
@@ -66,6 +67,7 @@ namespace sfg
 		void						   pass_camera_input(const editor_world_camera_input_t& input);
 		void						   reset_camera_input();
 		void						   tick_camera(f32 dt_seconds);
+		void						   fit_camera_to_bounds(const aabb_t& bounds);
 		void						   tick(f32 dt_seconds);
 		void						   update_world_transforms(bool advance_interpolation);
 		void						   produce_snapshot();

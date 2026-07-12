@@ -76,6 +76,7 @@ namespace sfg
 		static void on_world_view_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_world_view_release(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_world_view_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_world_view_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 
 	private:

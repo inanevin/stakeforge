@@ -53,6 +53,7 @@ namespace sfg
 
 		void pass_input(const editor_world_camera_input_t& input) override;
 		void tick(world_t& world, f32 dt_seconds) override;
+		void fit_to_bounds(world_t& world, const aabb_t& bounds) override;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -64,6 +65,9 @@ namespace sfg
 		}
 
 	private:
+		void apply_transform(world_t& world);
+
+	private:
 		vec3f_t		_direction_input	  = vec3f_t::zero;
 		vec3f_t		_target				  = vec3f_t::zero;
 		vec2f_t		_mouse_delta		  = vec2f_t::zero;
@@ -71,6 +75,8 @@ namespace sfg
 		f32			_camera_yaw_degrees	  = 0.0f;
 		f32			_camera_pitch_degrees = 25.0f;
 		f32			_distance			  = 8.0f;
+		f32			_distance_target	  = 8.0f;
+		f32			_distance_velocity	  = 0.0f;
 		f32			_current_move_speed	  = 12.0f;
 	};
 }

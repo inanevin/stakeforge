@@ -118,6 +118,7 @@ namespace sfg
 		listener.on_press			   = on_world_view_press;
 		listener.on_release			   = on_world_view_release;
 		listener.on_focus_lose		   = on_world_view_focus_lost;
+		listener.on_wheel			   = on_world_view_wheel;
 		listener.user_data			   = this;
 		ui.get_input().set_listener(_world_view, listener);
 
@@ -366,6 +367,13 @@ namespace sfg
 	void editor_widget_world_view_t::on_world_view_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
 		static_cast<editor_widget_world_view_t*>(user_data)->end_camera_control();
+	}
+
+	void editor_widget_world_view_t::on_world_view_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		if (!widget._edit_world.is_null())
+			widget.pass_camera_input({.wheel_delta = delta});
 	}
 
 	bool editor_widget_world_view_t::on_payload_drop(const editor_payload_t& payload, void* user_data)

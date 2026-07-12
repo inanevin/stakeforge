@@ -42,6 +42,8 @@ namespace sfg
 		_camera_entity			   = world.create_entity("editor camera");
 		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
 		camera.priority			   = -1;
+		camera.near_plane		   = 0.05f;
+
 		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), _camera_entity);
 
 		const vec3f_t euler	  = quat_t::to_euler(world.get_entity_rot_local(_camera_entity));

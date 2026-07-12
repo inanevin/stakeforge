@@ -25,6 +25,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world/editor_world_camera_orbit.hpp"
+#include <sfg/math/aabb.hpp>
+#include <sfg/math/easing.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -36,19 +38,21 @@ namespace sfg
 {
 #define EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED	12.0f
 #define EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY 0.2f
-#define EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE		0.5f
+#define EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE		0.1f
 #define EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE		1000.0f
+#define EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP		0.15f
+#define EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME	0.12f
+#define EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED	1000.0f
 
 	void editor_world_camera_orbit_t::init(world_t& world)
 	{
 		_camera_entity			   = world.create_entity("editor camera");
 		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
 		camera.priority			   = -1;
+		camera.near_plane		   = 0.01f;
 		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), _camera_entity);
 
-		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
-		world.set_entity_rot_local(_camera_entity, rotation);
-		world.set_entity_pos_local(_camera_entity, _target - rotation.get_forward() * _distance);
+		apply_transform(world);
 		_current_move_speed = EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED;
 	}
 
@@ -62,6 +66,8 @@ namespace sfg
 		_camera_yaw_degrees	  = 0.0f;
 		_camera_pitch_degrees = 25.0f;
 		_distance			  = 8.0f;
+		_distance_target	  = 8.0f;
+		_distance_velocity	  = 0.0f;
 		_current_move_speed	  = EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED;
 	}
 
@@ -71,6 +77,8 @@ namespace sfg
 		{
 			_direction_input	= vec3f_t::zero;
 			_mouse_delta		= vec2f_t::zero;
+			_distance_target	= _distance;
+			_distance_velocity	= 0.0f;
 			_current_move_speed = EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED;
 			return;
 		}
@@ -79,6 +87,22 @@ namespace sfg
 		_mouse_delta += input.mouse_delta;
 		if (input.set_move_speed)
 			_current_move_speed = input.move_speed;
+		if (input.wheel_delta != 0.0f)
+			_distance_target = math::clamp(_distance_target - input.wheel_delta * _distance_target * EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
+	}
+
+	void editor_world_camera_orbit_t::fit_to_bounds(world_t& world, const aabb_t& bounds)
+	{
+		const component_camera_t& camera = ecs_helpers_t::table_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
+		const vec3f_t			  half	 = bounds.bounds_half_extent;
+		const f32				  rad	 = math::max(half.x, math::max(half.y, half.z));
+		_target							 = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
+		_distance						 = math::clamp(rad / math::sin(DEG_2_RAD * camera.fov_degrees * 0.5f), EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
+		_distance_target				 = _distance;
+		_distance_velocity				 = 0.0f;
+		_direction_input				 = vec3f_t::zero;
+		_mouse_delta					 = vec2f_t::zero;
+		apply_transform(world);
 	}
 
 	void editor_world_camera_orbit_t::tick(world_t& world, f32 dt_seconds)
@@ -89,9 +113,16 @@ namespace sfg
 		_mouse_delta		  = vec2f_t::zero;
 
 		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
-		_distance			  = math::clamp(_distance - _direction_input.z * _current_move_speed * dt_seconds, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
+		_distance_target	  = math::clamp(_distance_target - _direction_input.z * _current_move_speed * dt_seconds, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
+		_distance			  = easing_t::smooth_damp(_distance, _distance_target, &_distance_velocity, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED, dt_seconds);
 		_target += (rotation.get_right() * _direction_input.x + rotation.get_up() * _direction_input.y) * (_current_move_speed * dt_seconds);
 
+		apply_transform(world);
+	}
+
+	void editor_world_camera_orbit_t::apply_transform(world_t& world)
+	{
+		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
 		world.set_entity_rot_local(_camera_entity, rotation);
 		world.set_entity_pos_local(_camera_entity, _target - rotation.get_forward() * _distance);
 	}

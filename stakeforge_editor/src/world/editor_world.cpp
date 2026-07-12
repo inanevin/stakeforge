@@ -118,6 +118,12 @@ namespace sfg
 			_camera->tick(_world, dt_seconds);
 	}
 
+	void editor_world_t::fit_camera_to_bounds(const aabb_t& bounds)
+	{
+		if (_camera != nullptr)
+			_camera->fit_to_bounds(_world, bounds);
+	}
+
 	void editor_world_t::tick(f32 dt_seconds)
 	{
 		_world.tick(dt_seconds);
