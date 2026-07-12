@@ -68,7 +68,6 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "entity_info");
 		tree.attach(parent, _root);
-		tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
@@ -187,9 +186,6 @@ namespace sfg
 			button_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 			button_in.anchor_x		   = ui::anchor_e::center;
 			button_in.pos_value.x	   = 0.5f;
-
-			tree.draw_order(_break_prefab_button.get_root())						= tree.draw_order_const(_root) + 1;
-			tree.draw_order(tree.node(_break_prefab_button.get_root()).first_child) = tree.draw_order_const(_break_prefab_button.get_root()) + 1;
 
 			ui::listener_bundle_t listener = {};
 			listener.user_data			   = this;
