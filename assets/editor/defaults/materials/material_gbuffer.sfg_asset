@@ -7,44 +7,23 @@
         "schema": "sfg.schema.material",
         "pass_flags": 5,
         "shader": 1000,
-        "samplers": [
-            1009
-        ],
         "textures": [
-            1002,
-            1004,
-            1003,
-            1005
+            {"name": "albedo", "texture": 1002},
+            {"name": "normal", "texture": 1004},
+            {"name": "orm", "texture": 1003},
+            {"name": "emissive", "texture": 1005}
+        ],
+        "samplers": [
+            {"name": "albedo", "sampler": 1009}
         ],
         "parameters": [
-            {
-                "type": 6,
-                "values": [1.0, 1.0, 1.0, 1.0]
-            },
-            {
-                "type": 6,
-                "values": [1.0, 1.0, 1.0, 0.0]
-            },
-            {
-                "type": 6,
-                "values": [1.0, 1.0, 0.5, 0.0]
-            },
-            {
-                "type": 1,
-                "values": [1006648320.0, 0.0, 0.0, 0.0]
-            },
-            {
-                "type": 1,
-                "values": [1006648320.0, 0.0, 0.0, 0.0]
-            },
-            {
-                "type": 1,
-                "values": [1006648320.0, 0.0, 0.0, 0.0]
-            },
-            {
-                "type": 1,
-                "values": [1006648320.0, 0.0, 0.0, 0.0]
-            }
+            {"name": "base_color_factor", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]},
+            {"name": "emissive_and_metallic_factor", "type": "vec4", "hint": "none", "value": [1.0, 1.0, 1.0, 0.0]},
+            {"name": "roughness_normal_strength_alpha", "type": "vec4", "hint": "none", "value": [1.0, 1.0, 0.5, 0.0]},
+            {"name": "albedo_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]},
+            {"name": "normal_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]},
+            {"name": "orm_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]},
+            {"name": "emissive_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]}
         ],
         "double_sided": false,
         "use_alpha_cutoff": false

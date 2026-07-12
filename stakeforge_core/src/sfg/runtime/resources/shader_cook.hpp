@@ -3,7 +3,7 @@
 
 #include <sfg/common/type_id.hpp>
 
-#include "shader.hpp"
+#include "shader_data_definition.hpp"
 #include "shader_types.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -22,7 +22,7 @@ namespace sfg
 	class shader_cooker
 	{
 	public:
-		static bool cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
+		static bool cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream, shader_data_definition_t& out_definition);
 		static u64	collect_source_tick(const shader_cook_config_t& cfg, const char* full_path);
 		static u64	collect_source_tick(const char* full_path);
 	};

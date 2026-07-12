@@ -36,6 +36,7 @@ namespace sfg
 	struct editor_asset_write_file_desc_t
 	{
 		const nlohmann::json* cook_options			   = nullptr;
+		const nlohmann::json* embedded_source		   = nullptr;
 		const char*			  parent_path			   = nullptr;
 		const char*			  name					   = nullptr;
 		const char*			  source_name			   = nullptr;

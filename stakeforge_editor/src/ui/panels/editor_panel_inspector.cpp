@@ -46,6 +46,7 @@ namespace sfg
 	void editor_panel_inspector_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
+		_command_listener		 = editor_command_system_t::get().add_listener(on_command_system_event, this);
 		ui::layout_in_t& root_in = ui.get_tree().in(_root);
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = 0.0f;
@@ -90,6 +91,8 @@ namespace sfg
 
 	void editor_panel_inspector_t::uninit()
 	{
+		if (!_command_listener.is_null())
+			editor_command_system_t::get().remove_listener(_command_listener);
 		if (!_selection_listener.is_null())
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 		_material_editor.uninit();
@@ -100,6 +103,7 @@ namespace sfg
 		_entity_scroll_states.resize(0);
 		_display_entities.resize(0);
 		_material_ids.resize(0);
+		_command_listener		= {};
 		_selection_listener		= {};
 		_edit_world				= {};
 		_scroll_area			= NULL_WIDGET;
@@ -363,5 +367,20 @@ namespace sfg
 	void editor_panel_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		static_cast<editor_panel_inspector_t*>(user_data)->apply_pending_scroll_restore();
+	}
+
+	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t&, const editor_command_t& command, void* user_data)
+	{
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+		switch (command.type)
+		{
+		case editor_command_type_e::material_edit:
+		case editor_command_type_e::shader_edit:
+			if (panel._display == editor_panel_inspector_display_e::material)
+				panel.refresh_display();
+			break;
+		default:
+			break;
+		}
 	}
 }

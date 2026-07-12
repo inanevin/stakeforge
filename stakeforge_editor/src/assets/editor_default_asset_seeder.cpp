@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -97,6 +98,14 @@ namespace sfg
 			{
 				if (asset.source_relative.empty())
 					return false;
+				if (asset_type == editor_asset_type_e::shader)
+				{
+					if (asset.embedded_source.empty())
+						return false;
+					const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+					if (!embedded_source.is_object() || !embedded_source.contains("textures") || !embedded_source.contains("samplers") || !embedded_source.contains("parameters"))
+						return false;
+				}
 				const string_t source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 				if (!file_system_t::exists(source_path.c_str()))
 					return false;
@@ -193,7 +202,15 @@ namespace sfg
 				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 
 				if (created)
-					created = editor_asset_cooker_t::cook_shader(asset, desc.asset_name);
+				{
+					shader_data_definition_t definition = {};
+					created								= editor_asset_cooker_t::cook_shader(asset, desc.asset_name, &definition);
+					if (created)
+					{
+						editor_asset_io_t::set_embedded_source_json(asset, definition);
+						created = editor_asset_io_t::write_asset(asset_path.c_str(), asset);
+					}
+				}
 
 				SFG_ASSERT(created);
 			}

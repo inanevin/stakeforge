@@ -26,94 +26,222 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "material_def.hpp"
-
-#include <sfg/reflection/reflection_container_ops.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/resources/resource_type.hpp>
-
-#include <cstddef>
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	material_parameter_type_reflection_t::material_parameter_type_reflection_t()
+	namespace
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
-
-		registry.register_type({
-			.name = "material_parameter_type_e",
-			.fields =
-				{
-					{.name = "u32", .display_name = "U32"},
-					{.name = "uint2", .display_name = "UInt2"},
-					{.name = "uint4", .display_name = "UInt4"},
-					{.name = "i32", .display_name = "I32"},
-					{.name = "f32", .display_name = "F32"},
-					{.name = "vec2f", .display_name = "Vec2F"},
-					{.name = "vec4f", .display_name = "Vec4F"},
-				},
-			.type_id   = type_id_t<material_parameter_type_e>::value,
-			.size	   = sizeof(material_parameter_type_e),
-			.alignment = alignof(material_parameter_type_e),
-			.flags	   = reflected_type_flag_enum,
-		});
+		void copy_name(const char* src, string_t& out)
+		{
+			out = src != nullptr ? src : "";
+		}
 	}
 
-	material_parameter_reflection_t::material_parameter_reflection_t()
+	void material_def_t::serialize(ostream_t& stream) const
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
+		stream << shader;
+		stream << pass_flags.value();
+		stream << double_sided;
+		stream << use_alpha_cutoff;
 
-		registry.register_type({
-			.name = "material_parameter_t",
-			.fields =
-				{
-					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<material_parameter_type_e>::value, .offset = offsetof(material_parameter_t, type), .size = sizeof(material_parameter_type_e), .type = reflected_value_type_e::u8},
-					{.container_ops = reflection_container_ops_t::inplace_vector_ops<f32, 4>(reflected_value_type_e::f32),
-					 .name			= "values",
-					 .display_name	= "Values",
-					 .offset		= offsetof(material_parameter_t, values),
-					 .size			= sizeof(inplace_vector_t<f32, 4>),
-					 .type			= reflected_value_type_e::container},
-				},
-			.type_id   = type_id_t<material_parameter_t>::value,
-			.size	   = sizeof(material_parameter_t),
-			.alignment = alignof(material_parameter_t),
-		});
+		const u8 texture_count = static_cast<u8>(textures.size());
+		stream << texture_count;
+		for (const material_texture_value_t& texture : textures)
+			stream << texture.texture;
+
+		const u8 sampler_count = static_cast<u8>(samplers.size());
+		stream << sampler_count;
+		for (const material_sampler_value_t& sampler : samplers)
+			stream << sampler.sampler;
+
+		const u8 parameter_count = static_cast<u8>(parameters.size());
+		stream << parameter_count;
+		for (const material_param_value_t& parameter : parameters)
+		{
+			stream << parameter.type;
+			stream << parameter.hint;
+			for (u8 i = 0; i < 4; ++i)
+				stream << parameter.value[i];
+		}
 	}
 
-	material_def_reflection_t::material_def_reflection_t()
+	void material_def_t::deserialize(istream_t& stream)
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
+		*this = {};
 
-		registry.register_type({
-			.name = "material_def_t",
-			.fields =
-				{
-					{.name = "pass_flags", .display_name = "Pass Flags", .sub_type_id = type_id_t<world_pass_flags_e>::value, .offset = offsetof(material_def_t, pass_flags), .size = sizeof(bitmask_t<u32>), .type = reflected_value_type_e::u32},
-					{.name = "shader", .display_name = "Shader", .sub_type_id = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SHADER, .offset = offsetof(material_def_t, shader), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
-					{.container_ops = reflection_container_ops_t::inplace_vector_ops<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE),
-					 .name			= "textures",
-					 .display_name	= "Textures",
-					 .offset		= offsetof(material_def_t, textures),
-					 .size			= sizeof(inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>),
-					 .type			= reflected_value_type_e::container},
-					{.container_ops = reflection_container_ops_t::inplace_vector_ops<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE_SAMPLER),
-					 .name			= "samplers",
-					 .display_name	= "Samplers",
-					 .offset		= offsetof(material_def_t, samplers),
-					 .size			= sizeof(inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>),
-					 .type			= reflected_value_type_e::container},
-					{.container_ops = reflection_container_ops_t::inplace_vector_ops<material_parameter_t, SFG_MATERIAL_MAX_PARAMS>(reflected_value_type_e::object, type_id_t<material_parameter_t>::value),
-					 .name			= "parameters",
-					 .display_name	= "Parameters",
-					 .offset		= offsetof(material_def_t, parameters),
-					 .size			= sizeof(inplace_vector_t<material_parameter_t, SFG_MATERIAL_MAX_PARAMS>),
-					 .type			= reflected_value_type_e::container},
-					{.name = "double_sided", .display_name = "Double Sided", .offset = offsetof(material_def_t, double_sided), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
-					{.name = "use_alpha_cutoff", .display_name = "Use Alpha Cutoff", .offset = offsetof(material_def_t, use_alpha_cutoff), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
-				},
-			.type_id   = type_id_t<material_def_t>::value,
-			.size	   = sizeof(material_def_t),
-			.alignment = alignof(material_def_t),
-		});
+		u32 pass_flags_value = 0;
+		stream >> shader;
+		stream >> pass_flags_value;
+		stream >> double_sided;
+		stream >> use_alpha_cutoff;
+		pass_flags = pass_flags_value;
+
+		u8 texture_count = 0;
+		stream >> texture_count;
+		textures.resize(texture_count);
+		for (material_texture_value_t& texture : textures)
+			stream >> texture.texture;
+
+		u8 sampler_count = 0;
+		stream >> sampler_count;
+		samplers.resize(sampler_count);
+		for (material_sampler_value_t& sampler : samplers)
+			stream >> sampler.sampler;
+
+		u8 parameter_count = 0;
+		stream >> parameter_count;
+		parameters.resize(parameter_count);
+		for (material_param_value_t& parameter : parameters)
+		{
+			stream >> parameter.type;
+			stream >> parameter.hint;
+			for (u8 i = 0; i < 4; ++i)
+				stream >> parameter.value[i];
+		}
+	}
+
+	material_def_t material_def_from_shader_def(const shader_data_definition_t& shader_def, resource_handle_t shader)
+	{
+		material_def_t out = {};
+		out.shader		   = shader;
+
+		for (const shader_texture_definition_t& texture : shader_def.textures)
+		{
+			material_texture_value_t& value = out.textures.emplace_back();
+			value.name						= texture.texture_name != nullptr ? texture.texture_name : "";
+		}
+
+		for (const shader_sampler_definition_t& sampler : shader_def.samplers)
+		{
+			material_sampler_value_t& value = out.samplers.emplace_back();
+			value.name						= sampler.sampler_name != nullptr ? sampler.sampler_name : "";
+		}
+
+		for (const shader_param_definition_t& parameter : shader_def.parameters)
+		{
+			material_param_value_t& value = out.parameters.emplace_back();
+			value.name					  = parameter.param_name != nullptr ? parameter.param_name : "";
+			value.type					  = parameter.type;
+			value.hint					  = parameter.hint;
+			for (u8 i = 0; i < 4; ++i)
+				value.value[i] = parameter.default_value[i];
+		}
+
+		return out;
+	}
+
+	void to_json(nlohmann::json& j, const material_texture_value_t& value)
+	{
+		j["name"]	 = value.name;
+		j["texture"] = value.texture;
+	}
+
+	void from_json(const nlohmann::json& j, material_texture_value_t& value)
+	{
+		value = {};
+		if (j.is_number_unsigned() || j.is_number_integer())
+		{
+			value.texture = j.get<resource_handle_t>();
+			return;
+		}
+
+		value.name	  = j.value<string_t>("name", {});
+		value.texture = j.value<resource_handle_t>("texture", NULL_RESOURCE_HANDLE);
+	}
+
+	void to_json(nlohmann::json& j, const material_sampler_value_t& value)
+	{
+		j["name"]	 = value.name;
+		j["sampler"] = value.sampler;
+	}
+
+	void from_json(const nlohmann::json& j, material_sampler_value_t& value)
+	{
+		value = {};
+		if (j.is_number_unsigned() || j.is_number_integer())
+		{
+			value.sampler = j.get<resource_handle_t>();
+			return;
+		}
+
+		value.name	  = j.value<string_t>("name", {});
+		value.sampler = j.value<resource_handle_t>("sampler", NULL_RESOURCE_HANDLE);
+	}
+
+	void to_json(nlohmann::json& j, const material_param_value_t& value)
+	{
+		j["name"]  = value.name;
+		j["type"]  = shader_param_type_to_string(value.type);
+		j["hint"]  = shader_param_hint_to_string(value.hint);
+		j["value"] = {value.value[0], value.value[1], value.value[2], value.value[3]};
+	}
+
+	void from_json(const nlohmann::json& j, material_param_value_t& value)
+	{
+		value	   = {};
+		value.name = j.value<string_t>("name", {});
+		value.type = shader_param_type_from_string(j.value<string_t>("type", "invalid"));
+		value.hint = shader_param_hint_from_string(j.value<string_t>("hint", "none"));
+
+		const nlohmann::json values = j.value("value", nlohmann::json::array());
+		if (values.is_array())
+		{
+			const size_t count = values.size() < 4 ? values.size() : 4;
+			for (size_t i = 0; i < count; ++i)
+				value.value[i] = values[i].get<f32>();
+		}
+	}
+
+	void to_json(nlohmann::json& j, const material_def_t& value)
+	{
+		j["shader"]			  = value.shader;
+		j["pass_flags"]		  = value.pass_flags.value();
+		j["double_sided"]	  = value.double_sided;
+		j["use_alpha_cutoff"] = value.use_alpha_cutoff;
+		j["textures"]		  = nlohmann::json::array();
+		j["samplers"]		  = nlohmann::json::array();
+		j["parameters"]		  = nlohmann::json::array();
+		for (const material_texture_value_t& texture : value.textures)
+			j["textures"].push_back(texture);
+		for (const material_sampler_value_t& sampler : value.samplers)
+			j["samplers"].push_back(sampler);
+		for (const material_param_value_t& parameter : value.parameters)
+			j["parameters"].push_back(parameter);
+	}
+
+	void from_json(const nlohmann::json& j, material_def_t& value)
+	{
+		value				   = {};
+		value.shader		   = j.value<resource_handle_t>("shader", NULL_RESOURCE_HANDLE);
+		value.pass_flags	   = j.value<u32>("pass_flags", 0);
+		value.double_sided	   = j.value<bool>("double_sided", false);
+		value.use_alpha_cutoff = j.value<bool>("use_alpha_cutoff", false);
+
+		const nlohmann::json textures = j.value("textures", nlohmann::json::array());
+		for (const nlohmann::json& item : textures)
+		{
+			if (value.textures.full())
+				break;
+			value.textures.push_back(item.get<material_texture_value_t>());
+		}
+
+		const nlohmann::json samplers = j.value("samplers", nlohmann::json::array());
+		for (const nlohmann::json& item : samplers)
+		{
+			if (value.samplers.full())
+				break;
+			value.samplers.push_back(item.get<material_sampler_value_t>());
+		}
+
+		const nlohmann::json parameters = j.value("parameters", nlohmann::json::array());
+		for (const nlohmann::json& item : parameters)
+		{
+			if (value.parameters.full())
+				break;
+			value.parameters.push_back(item.get<material_param_value_t>());
+		}
 	}
 }

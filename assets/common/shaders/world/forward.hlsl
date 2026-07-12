@@ -35,6 +35,11 @@
 #include "bone.hlsl"
 #include "render_pass_defines.hlsl"
 
+SFG_MATERIAL_TEXTURE("albedo", sfg_texture2d)
+SFG_MATERIAL_SAMPLER("albedo")
+SFG_MATERIAL_PARAM_VEC4("base_color_factor", sfg_color)
+SFG_MATERIAL_PARAM_VEC4("albedo_tiling_offset", sfg_pack_uint2)
+
 //------------------------------------------------------------------------------
 // In & Outs
 //------------------------------------------------------------------------------

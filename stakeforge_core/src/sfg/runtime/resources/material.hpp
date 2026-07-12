@@ -3,19 +3,18 @@
 
 #include "common_resources.hpp"
 #include "material_limits.hpp"
+#include "shader_data_definition.hpp"
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/data/bitmask.hpp>
 namespace sfg
 {
-	enum class material_parameter_type_e : u8;
-
 	class material_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'A', 'T', 'L');
-		static constexpr u32 WIRE_VERSION = 4;
+		static constexpr u32 WIRE_VERSION = 5;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -23,8 +22,9 @@ namespace sfg
 
 	struct material_runtime_parameter_t
 	{
-		f32						  values[4] = {};
-		material_parameter_type_e type		= {};
+		f32					values[4] = {};
+		shader_param_type_e type	  = shader_param_type_e::invalid;
+		shader_param_hint_e hint	  = shader_param_hint_e::none;
 	};
 
 	struct material_runtime_t

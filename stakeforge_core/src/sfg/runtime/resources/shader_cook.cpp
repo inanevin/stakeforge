@@ -1,15 +1,18 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "shader_cook.hpp"
-#include <cstddef>
-#include <sfg/reflection/reflection_container_ops.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
+#include "shader.hpp"
 #include "shader_cook_variants.hpp"
+#include <cctype>
+#include <cstddef>
+#include <cstdlib>
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/shader_description.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/reflection/reflection_container_ops.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
 
 namespace sfg
@@ -45,9 +48,290 @@ namespace sfg
 			for (const string_t& include_dir : cfg.include_dirs)
 				append_include_dir(include_dir, out);
 		}
+
+		string_t trim_arg(const string_t& value)
+		{
+			size_t begin = 0;
+			while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])) != 0)
+				++begin;
+
+			size_t end = value.size();
+			while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0)
+				--end;
+
+			return value.substr(begin, end - begin);
+		}
+
+		bool find_macro_close(const string_t& source, size_t open, size_t& out_close)
+		{
+			bool quoted = false;
+			u32	 depth	= 1;
+			for (size_t i = open + 1; i < source.size(); ++i)
+			{
+				const char c = source[i];
+				if (c == '"' && (i == 0 || source[i - 1] != '\\'))
+				{
+					quoted = !quoted;
+					continue;
+				}
+
+				if (quoted)
+					continue;
+
+				if (c == '(')
+					++depth;
+				else if (c == ')')
+				{
+					--depth;
+					if (depth == 0)
+					{
+						out_close = i;
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		void split_macro_args(const string_t& body, vector_t<string_t>& out)
+		{
+			out.resize(0);
+			bool   quoted = false;
+			u32	   depth  = 0;
+			size_t start  = 0;
+
+			for (size_t i = 0; i < body.size(); ++i)
+			{
+				const char c = body[i];
+				if (c == '"' && (i == 0 || body[i - 1] != '\\'))
+				{
+					quoted = !quoted;
+					continue;
+				}
+
+				if (quoted)
+					continue;
+
+				if (c == '(' || c == '{' || c == '[')
+					++depth;
+				else if (c == ')' || c == '}' || c == ']')
+					--depth;
+				else if (c == ',' && depth == 0)
+				{
+					out.push_back(trim_arg(body.substr(start, i - start)));
+					start = i + 1;
+				}
+			}
+
+			out.push_back(trim_arg(body.substr(start)));
+		}
+
+		bool copy_definition_name(const string_t& arg, char* out, size_t out_size)
+		{
+			const string_t value = trim_arg(arg);
+			if (value.size() < 2 || value.front() != '"' || value.back() != '"')
+				return false;
+
+			const string_t name = value.substr(1, value.size() - 2);
+			if (name.size() >= out_size)
+				return false;
+
+			SFG_MEMSET(out, 0, out_size);
+			SFG_MEMCPY(out, name.data(), name.size());
+			return true;
+		}
+
+		bool parse_f32_arg(const string_t& arg, f32& out)
+		{
+			const string_t value = trim_arg(arg);
+			char*		   end	 = nullptr;
+			out					 = std::strtof(value.c_str(), &end);
+			if (end == value.c_str())
+				return false;
+
+			while (*end != '\0' && std::isspace(static_cast<unsigned char>(*end)) != 0)
+				++end;
+
+			if (*end == 'f' || *end == 'F')
+				++end;
+
+			while (*end != '\0' && std::isspace(static_cast<unsigned char>(*end)) != 0)
+				++end;
+
+			return *end == '\0';
+		}
+
+		bool parse_f32_args(const vector_t<string_t>& args, size_t offset, size_t count, f32* out)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				if (!parse_f32_arg(args[offset + i], out[i]))
+					return false;
+			}
+			return true;
+		}
+
+		bool find_macro_call(const string_t& source, const char* macro, size_t search_from, size_t& out_open, size_t& out_close)
+		{
+			const size_t macro_len = string_t(macro).size();
+			size_t		 pos	   = source.find(macro, search_from);
+			while (pos != string_t::npos)
+			{
+				const bool valid_before = pos == 0 || (std::isalnum(static_cast<unsigned char>(source[pos - 1])) == 0 && source[pos - 1] != '_');
+				const bool valid_after	= pos + macro_len >= source.size() || (std::isalnum(static_cast<unsigned char>(source[pos + macro_len])) == 0 && source[pos + macro_len] != '_');
+				if (valid_before && valid_after)
+				{
+					size_t open = pos + macro_len;
+					while (open < source.size() && std::isspace(static_cast<unsigned char>(source[open])) != 0)
+						++open;
+
+					if (open < source.size() && source[open] == '(' && find_macro_close(source, open, out_close))
+					{
+						out_open = open;
+						return true;
+					}
+				}
+
+				pos = source.find(macro, pos + macro_len);
+			}
+
+			return false;
+		}
+
+		bool parse_texture_definition(const vector_t<string_t>& args, shader_data_definition_t& out)
+		{
+			if (args.size() != 2 || args[1] != "sfg_texture2d" || out.textures.full())
+				return false;
+
+			shader_texture_definition_t definition = {};
+			if (!copy_definition_name(args[0], definition.texture_name, sizeof(definition.texture_name)))
+				return false;
+
+			definition.type = shader_texture_type_e::texture2d;
+			out.textures.push_back(definition);
+			return true;
+		}
+
+		bool parse_sampler_definition(const vector_t<string_t>& args, shader_data_definition_t& out)
+		{
+			if (args.size() != 1 || out.samplers.full())
+				return false;
+
+			shader_sampler_definition_t definition = {};
+			if (!copy_definition_name(args[0], definition.sampler_name, sizeof(definition.sampler_name)))
+				return false;
+
+			out.samplers.push_back(definition);
+			return true;
+		}
+
+		bool parse_param_hint(const string_t& arg, shader_param_hint_e& out)
+		{
+			if (arg == "sfg_color")
+			{
+				out = shader_param_hint_e::color;
+				return true;
+			}
+			if (arg == "sfg_pack_uint2")
+			{
+				out = shader_param_hint_e::pack_uint2;
+				return true;
+			}
+			return false;
+		}
+
+		bool parse_param_definition(const vector_t<string_t>& args, shader_param_type_e type, shader_data_definition_t& out)
+		{
+			if (out.parameters.full())
+				return false;
+
+			shader_param_definition_t definition = {};
+			if (!copy_definition_name(args[0], definition.param_name, sizeof(definition.param_name)))
+				return false;
+
+			definition.type = type;
+			switch (type)
+			{
+			case shader_param_type_e::f32:
+				if (args.size() != 4 || !parse_f32_args(args, 1, 1, definition.default_value) || !parse_f32_args(args, 2, 1, definition.min_value) || !parse_f32_args(args, 3, 1, definition.max_value))
+					return false;
+				break;
+			case shader_param_type_e::vec2:
+				if (args.size() != 1)
+					return false;
+				break;
+			case shader_param_type_e::vec4:
+				if (args.size() != 1 && args.size() != 2)
+					return false;
+				if (args.size() == 2 && !parse_param_hint(args[1], definition.hint))
+					return false;
+				break;
+			default:
+				return false;
+			}
+
+			out.parameters.push_back(definition);
+			return true;
+		}
+
+		template <typename Fn> bool parse_macro_definitions(const string_t& source, const char* macro, const char* full_path, Fn&& fn)
+		{
+			vector_t<string_t> args;
+			size_t			   search_from = 0;
+			size_t			   open		   = 0;
+			size_t			   close	   = 0;
+			while (find_macro_call(source, macro, search_from, open, close))
+			{
+				split_macro_args(source.substr(open + 1, close - open - 1), args);
+				if (!fn(args))
+				{
+					SFG_ERR("invalid {0} definition in {1}", macro, full_path);
+					return false;
+				}
+				search_from = close + 1;
+			}
+
+			return true;
+		}
+
+		bool parse_shader_data_definition(const string_t& source, const char* full_path, shader_data_definition_t& out)
+		{
+			if (!parse_macro_definitions(source, "SFG_MATERIAL_TEXTURE", full_path, [&](const vector_t<string_t>& args) { return parse_texture_definition(args, out); }))
+				return false;
+			if (!parse_macro_definitions(source, "SFG_MATERIAL_SAMPLER", full_path, [&](const vector_t<string_t>& args) { return parse_sampler_definition(args, out); }))
+				return false;
+			if (!parse_macro_definitions(source, "SFG_MATERIAL_PARAM_F32", full_path, [&](const vector_t<string_t>& args) { return parse_param_definition(args, shader_param_type_e::f32, out); }))
+				return false;
+			if (!parse_macro_definitions(source, "SFG_MATERIAL_PARAM_VEC2", full_path, [&](const vector_t<string_t>& args) { return parse_param_definition(args, shader_param_type_e::vec2, out); }))
+				return false;
+			if (!parse_macro_definitions(source, "SFG_MATERIAL_PARAM_VEC4", full_path, [&](const vector_t<string_t>& args) { return parse_param_definition(args, shader_param_type_e::vec4, out); }))
+				return false;
+
+			return true;
+		}
+
+		string_t make_compile_source(const string_t& source)
+		{
+			string_t out;
+			out.reserve(source.size() + 192);
+			out += "#define SFG_MATERIAL_TEXTURE(...)\n";
+			out += "#define SFG_MATERIAL_SAMPLER(...)\n";
+			out += "#define SFG_MATERIAL_PARAM_F32(...)\n";
+			out += "#define SFG_MATERIAL_PARAM_VEC2(...)\n";
+			out += "#define SFG_MATERIAL_PARAM_VEC4(...)\n";
+			out += source;
+			return out;
+		}
+
+		void strip_utf8_bom(string_t& source)
+		{
+			if (source.size() >= 3 && static_cast<u8>(source[0]) == 0xef && static_cast<u8>(source[1]) == 0xbb && static_cast<u8>(source[2]) == 0xbf)
+				source.erase(0, 3);
+		}
 	}
 
-	bool shader_cooker::cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
+	bool shader_cooker::cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream, shader_data_definition_t& out_definition)
 	{
 		if (cfg.type == shader_type_e::invalid)
 		{
@@ -55,15 +339,22 @@ namespace sfg
 			return false;
 		}
 
-		const string_t source = file_system_t::read_file_as_string(full_path);
+		string_t source = file_system_t::read_file_as_string(full_path);
 		if (source.empty())
 		{
 			SFG_ERR("failed to read source {0}", full_path);
 			return false;
 		}
+		strip_utf8_bom(source);
 
 		vector_t<string_t> include_paths;
 		build_include_paths(cfg, full_path, include_paths);
+
+		out_definition = {};
+		if (!parse_shader_data_definition(source, full_path, out_definition))
+			return false;
+
+		const string_t compile_source = make_compile_source(source);
 
 		vector_t<cook_compile_variant_t> compiles;
 		vector_t<cook_pso_variant_t>	 psos;
@@ -71,84 +362,84 @@ namespace sfg
 		switch (cfg.type)
 		{
 		case shader_type_e::opaque_shader:
-			if (!shader_cook_variants_t::cook_opaque_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_opaque_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook opaque shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::transparent_shader:
-			if (!shader_cook_variants_t::cook_transparent_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_transparent_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook transparent shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::post_process_shader:
-			if (!shader_cook_variants_t::cook_post_process_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_post_process_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook post process shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::ui_shader:
-			if (!shader_cook_variants_t::cook_ui_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_ui_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook UI shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::ui_text_shader:
-			if (!shader_cook_variants_t::cook_ui_text_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_ui_text_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook UI text shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::deferred_lighting:
-			if (!shader_cook_variants_t::cook_deferred_lighting_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_deferred_lighting_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook deferred lighting shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::post_combiner:
-			if (!shader_cook_variants_t::cook_post_combiner_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_post_combiner_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook post combiner shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::texture_blit:
-			if (!shader_cook_variants_t::cook_texture_blit_shader(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_texture_blit_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook thumbnail capture shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::editor_ui_default:
-			if (!shader_cook_variants_t::cook_editor_ui_default(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_editor_ui_default(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook editor UI default shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::editor_ui_lcd_text:
-			if (!shader_cook_variants_t::cook_editor_ui_lcd_text(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_editor_ui_lcd_text(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook editor UI lcd text shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::editor_ui_text_grayscale:
-			if (!shader_cook_variants_t::cook_editor_ui_text_grayscale(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_editor_ui_text_grayscale(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook editor UI grayscale text shader variants: {0}", full_path);
 				return false;
 			}
 			break;
 		case shader_type_e::editor_ui_sdf:
-			if (!shader_cook_variants_t::cook_editor_ui_sdf(source, include_paths, compiles, psos))
+			if (!shader_cook_variants_t::cook_editor_ui_sdf(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook editor UI sdf shader variants: {0}", full_path);
 				return false;

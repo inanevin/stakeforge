@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "editor_command_system.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_material_editor.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
@@ -96,6 +97,7 @@ namespace sfg
 
 		static void on_entity_selection_changed(editor_world_edit_context_t& context, void* user_data);
 		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
 		editor_widget_inspector_t		   _entity_inspector	   = {};
@@ -104,6 +106,7 @@ namespace sfg
 		vector_t<entity_scroll_state_t>	   _entity_scroll_states   = {};
 		vector_t<entity_id_t>			   _display_entities	   = {};
 		vector_t<sid_t>					   _material_ids		   = {};
+		editor_command_listener_handle_t   _command_listener	   = {};
 		editor_selection_listener_handle_t _selection_listener	   = {};
 		editor_world_handle_t			   _edit_world			   = {};
 		ui::widget_id_t					   _scroll_area			   = NULL_WIDGET;

@@ -7,27 +7,27 @@
 #include "resource_manager.hpp"
 #include "texture.hpp"
 #include "shader.hpp"
+#include <sfg/common/packing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 
 namespace sfg
 {
 	namespace
 	{
-		u32 get_material_parameter_size(material_parameter_type_e type)
+		u32 get_material_parameter_size(const material_runtime_parameter_t& parameter)
 		{
-			switch (type)
+			switch (parameter.type)
 			{
-			case material_parameter_type_e::uint2:
-			case material_parameter_type_e::vec2f:
+			case shader_param_type_e::vec2:
 				return sizeof(f32) * 2;
-			case material_parameter_type_e::uint4:
-			case material_parameter_type_e::vec4f:
+			case shader_param_type_e::vec4:
+				if (parameter.hint == shader_param_hint_e::pack_uint2)
+					return sizeof(u32) * 2;
 				return sizeof(f32) * 4;
 			default:
 				return sizeof(f32);
@@ -38,35 +38,18 @@ namespace sfg
 		{
 			switch (parameter.type)
 			{
-			case material_parameter_type_e::u32: {
-				const u32 value = static_cast<u32>(parameter.values[0]);
-				SFG_MEMCPY(dst, &value, sizeof(value));
-				dst += sizeof(value);
-				break;
-			}
-			case material_parameter_type_e::uint2: {
-				const u32 values[2] = {static_cast<u32>(parameter.values[0]), static_cast<u32>(parameter.values[1])};
-				SFG_MEMCPY(dst, values, sizeof(values));
-				dst += sizeof(values);
-				break;
-			}
-			case material_parameter_type_e::uint4: {
-				const u32 values[4] = {static_cast<u32>(parameter.values[0]), static_cast<u32>(parameter.values[1]), static_cast<u32>(parameter.values[2]), static_cast<u32>(parameter.values[3])};
-				SFG_MEMCPY(dst, values, sizeof(values));
-				dst += sizeof(values);
-				break;
-			}
-			case material_parameter_type_e::i32: {
-				const i32 value = static_cast<i32>(parameter.values[0]);
-				SFG_MEMCPY(dst, &value, sizeof(value));
-				dst += sizeof(value);
-				break;
-			}
-			case material_parameter_type_e::vec2f:
+			case shader_param_type_e::vec2:
 				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 2);
 				dst += sizeof(f32) * 2;
 				break;
-			case material_parameter_type_e::vec4f:
+			case shader_param_type_e::vec4:
+				if (parameter.hint == shader_param_hint_e::pack_uint2)
+				{
+					const u32 values[2] = {packing_t::pack_half2x16(parameter.values[0], parameter.values[1]), packing_t::pack_half2x16(parameter.values[2], parameter.values[3])};
+					SFG_MEMCPY(dst, values, sizeof(values));
+					dst += sizeof(values);
+					break;
+				}
 				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 4);
 				dst += sizeof(f32) * 4;
 				break;
@@ -97,11 +80,7 @@ namespace sfg
 		*internals						= {};
 
 		material_def_t material = {};
-		if (!reflection_registry_t::get().type_from_stream(type_id_t<material_def_t>::value, &material, nullptr, stream))
-		{
-			SFG_ERR("failed to deserialize material definition: {0}", entry.hash);
-			return false;
-		}
+		stream >> material;
 
 		if (material.parameters.size() > SFG_MATERIAL_MAX_PARAMS)
 		{
@@ -134,10 +113,10 @@ namespace sfg
 		{
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
 			{
-				SFG_ASSERT(material.parameters[i].values.size() == 4);
 				runtime->parameters[i].type = material.parameters[i].type;
-				SFG_MEMCPY(runtime->parameters[i].values, material.parameters[i].values.data(), sizeof(runtime->parameters[i].values));
-				runtime->parameter_data_size += get_material_parameter_size(runtime->parameters[i].type);
+				runtime->parameters[i].hint = material.parameters[i].hint;
+				SFG_MEMCPY(runtime->parameters[i].values, material.parameters[i].value, sizeof(runtime->parameters[i].values));
+				runtime->parameter_data_size += get_material_parameter_size(runtime->parameters[i]);
 			}
 
 			resource_desc_t desc = {};
@@ -157,12 +136,12 @@ namespace sfg
 
 		for (u32 i = 0; i < runtime->texture_count; ++i)
 		{
-			runtime->texture_guids[i] = material.textures[i];
+			runtime->texture_guids[i] = material.textures[i].texture;
 		}
 
 		for (u32 i = 0; i < runtime->sampler_count; ++i)
 		{
-			runtime->sampler_guids[i] = material.samplers[i];
+			runtime->sampler_guids[i] = material.samplers[i].sampler;
 		}
 
 		return true;

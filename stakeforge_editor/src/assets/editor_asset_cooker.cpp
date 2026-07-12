@@ -223,7 +223,7 @@ namespace sfg
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
-	bool editor_asset_cooker_t::cook_shader(const editor_asset_t& asset, const char* asset_name)
+	bool editor_asset_cooker_t::cook_shader(const editor_asset_t& asset, const char* asset_name, shader_data_definition_t* out_definition)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::shader);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
@@ -236,14 +236,17 @@ namespace sfg
 			return false;
 		}
 
-		resource_header_t header = {};
-		ostream_t		  stream;
-		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-		if (!shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
+		resource_header_t		 header = {};
+		ostream_t				 stream;
+		const string_t			 source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		shader_data_definition_t definition		  = {};
+		if (!shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream, definition))
 		{
 			SFG_ERR("failed to cook shader asset {0}", asset.guid);
 			return false;
 		}
+		if (out_definition != nullptr)
+			*out_definition = definition;
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -254,11 +257,7 @@ namespace sfg
 
 		material_def_t		 def			 = {};
 		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
-		if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, embedded_source))
-		{
-			SFG_ERR("failed to deserialize material definition for asset {0}", asset.guid);
-			return false;
-		}
+		embedded_source.get_to(def);
 
 		resource_header_t header = {};
 		ostream_t		  stream;

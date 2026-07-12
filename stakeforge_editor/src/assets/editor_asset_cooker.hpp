@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	struct editor_asset_t;
+	struct shader_data_definition_t;
 
 	class editor_asset_cooker_t final
 	{
@@ -46,7 +47,7 @@ namespace sfg
 		static bool is_asset_cooked(const editor_asset_t& asset);
 
 		static bool cook_audio(const editor_asset_t& asset, const char* asset_name = nullptr);
-		static bool cook_shader(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static bool cook_shader(const editor_asset_t& asset, const char* asset_name = nullptr, shader_data_definition_t* out_definition = nullptr);
 		static bool cook_material(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_texture_sampler(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_physical_material(const editor_asset_t& asset, const char* asset_name = nullptr);

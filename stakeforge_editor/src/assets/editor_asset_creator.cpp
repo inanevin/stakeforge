@@ -28,11 +28,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_creator.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_cooker.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_writer.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -253,7 +255,15 @@ namespace sfg
 		case editor_asset_type_e::shader:
 			result = create_shader_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_shader(asset, desc.name);
+			{
+				shader_data_definition_t definition = {};
+				result								= editor_asset_cooker_t::cook_shader(asset, desc.name, &definition);
+				if (result)
+				{
+					editor_asset_io_t::set_embedded_source_json(asset, definition);
+					result = editor_asset_io_t::write_asset(asset_path.c_str(), asset);
+				}
+			}
 			break;
 		case editor_asset_type_e::material:
 			result = create_material_asset(desc, parent_path, &asset, &asset_path);

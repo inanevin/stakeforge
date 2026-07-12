@@ -108,7 +108,8 @@ namespace sfg
 					SFG_ERR("failed to deserialize shader cook config");
 					return false;
 				}
-				return shader_cooker::cook_from_file(cfg, full_path, out_header, stream);
+				shader_data_definition_t definition = {};
+				return shader_cooker::cook_from_file(cfg, full_path, out_header, stream, definition);
 			}
 			if (schema == "sfg.schema.audio")
 			{
@@ -133,11 +134,7 @@ namespace sfg
 			if (schema == "sfg.schema.material")
 			{
 				material_def_t def = {};
-				if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, config))
-				{
-					SFG_ERR("failed to deserialize material definition");
-					return false;
-				}
+				config.get_to(def);
 				return material_cooker::cook_from_def(def, out_header, stream);
 			}
 			if (schema == "sfg.schema.animation")
@@ -332,11 +329,7 @@ namespace sfg
 			else if (entry.type == resource_type_e::material)
 			{
 				material_def_t def = {};
-				if (!reflection_registry_t::get().type_from_json(type_id_t<material_def_t>::value, &def, nullptr, entry.config))
-				{
-					SFG_ERR("failed to deserialize material definition for {0}", entry.path.c_str());
-					return false;
-				}
+				entry.config.get_to(def);
 				if (!material_cooker::collect_source_tick(def, expected.source_tick))
 				{
 					SFG_ERR("failed to collect material source tick for {0}", entry.path.c_str());

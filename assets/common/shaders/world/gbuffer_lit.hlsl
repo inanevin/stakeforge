@@ -35,6 +35,22 @@
 #include "bone.hlsl"
 #include "render_pass_defines.hlsl"
 
+SFG_MATERIAL_TEXTURE("albedo", sfg_texture2d)
+SFG_MATERIAL_TEXTURE("normal", sfg_texture2d)
+SFG_MATERIAL_TEXTURE("orm", sfg_texture2d)
+SFG_MATERIAL_TEXTURE("emissive", sfg_texture2d)
+SFG_MATERIAL_SAMPLER("albedo")
+SFG_MATERIAL_SAMPLER("normal")
+SFG_MATERIAL_SAMPLER("orm")
+SFG_MATERIAL_SAMPLER("emissive")
+SFG_MATERIAL_PARAM_VEC4("base_color_factor", sfg_color)
+SFG_MATERIAL_PARAM_VEC4("emissive_and_metallic_factor")
+SFG_MATERIAL_PARAM_VEC4("roughness_normal_strength_alpha")
+SFG_MATERIAL_PARAM_VEC4("albedo_tiling_offset", sfg_pack_uint2)
+SFG_MATERIAL_PARAM_VEC4("normal_tiling_offset", sfg_pack_uint2)
+SFG_MATERIAL_PARAM_VEC4("orm_tiling_offset", sfg_pack_uint2)
+SFG_MATERIAL_PARAM_VEC4("emissive_tiling_offset", sfg_pack_uint2)
+
 //------------------------------------------------------------------------------
 // In & Outs
 //------------------------------------------------------------------------------
@@ -197,7 +213,6 @@ vs_output VSMain(vs_input IN)
 //------------------------------------------------------------------------------
 // Pixel Shader (G-Buffer)
 //------------------------------------------------------------------------------
-
 
 struct material_data
 {

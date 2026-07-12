@@ -28,10 +28,33 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/memory/chunk_allocator.hpp>
+#include <sfg/runtime/resources/material_def.hpp>
 
 namespace sfg
 {
-#define SFG_MATERIAL_MAX_PARAMS	  16
-#define SFG_MATERIAL_MAX_TEXTURES 8
-	static inline constexpr u32 SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE = SFG_MATERIAL_MAX_PARAMS * sizeof(f32) * 4;
+	struct editor_command_material_edit_payload_t
+	{
+		chunk_handle32_t material_ids	= {};
+		chunk_handle32_t previous_jsons = {};
+		chunk_handle32_t post_jsons		= {};
+		u32				 count			= 0;
+	};
+
+	class editor_command_material_edit_t final
+	{
+	public:
+		editor_command_material_edit_t() = delete;
+
+		static bool edit(span_t<const sid_t> materials, span_t<const material_def_t> previous, span_t<const material_def_t> post);
+	};
+
+	class editor_command_shader_edit_t final
+	{
+	public:
+		editor_command_shader_edit_t() = delete;
+
+		static bool edit(span_t<const sid_t> materials, span_t<const material_def_t> previous, span_t<const resource_handle_t> post_shaders);
+	};
 }

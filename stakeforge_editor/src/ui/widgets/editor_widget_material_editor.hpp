@@ -27,11 +27,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "ui/widgets/editor_widget_reflection.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
+#include <sfg/runtime/resources/shader_data_definition.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg
@@ -40,6 +40,14 @@ namespace sfg
 	{
 		class ui_context;
 	}
+
+	class editor_checkbox_t;
+	class editor_color_field_t;
+	class editor_dropdown_t;
+	class editor_input_field_t;
+	class editor_vec2_field_t;
+	class editor_vec4_field_t;
+	class editor_widget_reference_t;
 
 	class editor_widget_material_editor_t final
 	{
@@ -59,23 +67,61 @@ namespace sfg
 		}
 
 	private:
-		void refresh_reflection();
-		void on_material_edit_begin();
-		void on_material_edited();
-		void on_material_edit_submitted();
+		void			refresh_display();
+		void			refresh_display_common();
+		void			refresh_display_data();
+		void			clear_display();
+		void			fit_control(ui::widget_id_t widget);
+		ui::widget_id_t make_value_label(ui::widget_id_t parent, const char* text, bool warn);
+		bool			load_shared_shader_definition();
+		void			normalize_materials_to_shader_definition();
+		void			sync_pass_flags();
+		void			begin_material_edit();
+		void			submit_material_edit();
+		void			clear_material_edit();
+		void			begin_shader_edit();
+		void			submit_shader_edit();
+		void			clear_shader_edit();
+		void			request_display_refresh();
+		void			on_material_edit_begin();
+		void			on_material_edited();
+		void			on_material_edit_submitted();
+		void			on_shader_edit_begin();
+		void			on_shader_edited();
+		void			on_shader_edit_submitted();
 
 		static void on_material_edit_begin(void* user_data);
 		static void on_material_edited(void* user_data);
 		static void on_material_edit_submitted(void* user_data);
+		static void on_shader_edit_begin(void* user_data);
+		static void on_shader_edited(void* user_data);
+		static void on_shader_edit_submitted(void* user_data);
+		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		ui::ui_context* _ui	  = nullptr;
 		ui::widget_id_t _root = NULL_WIDGET;
 
-		editor_widget_reflection_t						_reflection	  = {};
-		vector_t<editor_widget_reflection_fold_state_t> _fold_states  = {};
-		vector_t<material_def_t>						_materials	  = {};
-		vector_t<sid_t>									_material_ids = {};
-		vector_t<void*>									_objects	  = {};
+		shader_data_definition_t			 _shader_definition				 = {};
+		vector_t<editor_widget_reference_t*> _references					 = {};
+		vector_t<editor_dropdown_t*>		 _dropdowns						 = {};
+		vector_t<editor_checkbox_t*>		 _checkboxes					 = {};
+		vector_t<editor_color_field_t*>		 _color_fields					 = {};
+		vector_t<editor_input_field_t*>		 _inputs						 = {};
+		vector_t<editor_vec2_field_t*>		 _vec2_fields					 = {};
+		vector_t<editor_vec4_field_t*>		 _vec4_fields					 = {};
+		vector_t<ui::widget_id_t>			 _rows							 = {};
+		vector_t<ui::widget_id_t>			 _dividers						 = {};
+		vector_t<ui::widget_id_t>			 _labels						 = {};
+		vector_t<material_def_t>			 _materials						 = {};
+		vector_t<sid_t>						 _material_ids					 = {};
+		vector_t<material_def_t>			 _edit_previous_materials		 = {};
+		vector_t<sid_t>						 _edit_material_ids				 = {};
+		vector_t<material_def_t>			 _shader_edit_previous_materials = {};
+		vector_t<sid_t>						 _shader_edit_material_ids		 = {};
+		vector_t<u32>						 _pass_flags					 = {};
+		bool								 _has_shared_shader				 = false;
+		bool								 _edit_active					 = false;
+		bool								 _shader_edit_active			 = false;
 	};
 }

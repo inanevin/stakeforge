@@ -34,7 +34,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
-#include <sfg/common/packing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -67,8 +66,8 @@ namespace sfg
 	{
 		struct glb_texture_transform_t
 		{
-			u32 tiling = 0;
-			u32 offset = 0;
+			f32 tiling[2] = {1.0f, 1.0f};
+			f32 offset[2] = {};
 		};
 
 		struct glb_texture_import_t
@@ -179,10 +178,7 @@ namespace sfg
 
 		glb_texture_transform_t get_texture_transform(const tg3_extras_ext& ext)
 		{
-			glb_texture_transform_t transform = {
-				.tiling = packing_t::pack_half2x16(1.0f, 1.0f),
-				.offset = 0,
-			};
+			glb_texture_transform_t transform = {};
 
 			for (u32 i = 0; i < ext.extensions_count; ++i)
 			{
@@ -195,7 +191,10 @@ namespace sfg
 					f32 x = 0.0f;
 					f32 y = 0.0f;
 					if (get_vec2_value(*offset, x, y))
-						transform.offset = packing_t::pack_half2x16(x, y);
+					{
+						transform.offset[0] = x;
+						transform.offset[1] = y;
+					}
 				}
 
 				if (const tg3_value* scale = find_object_value(extension.value, "scale"))
@@ -203,7 +202,10 @@ namespace sfg
 					f32 x = 1.0f;
 					f32 y = 1.0f;
 					if (get_vec2_value(*scale, x, y))
-						transform.tiling = packing_t::pack_half2x16(x, y);
+					{
+						transform.tiling[0] = x;
+						transform.tiling[1] = y;
+					}
 				}
 			}
 
@@ -404,19 +406,29 @@ namespace sfg
 			return repeat ? DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID : DEFAULT_LINEAR_SAMPLER_ASSET_GUID;
 		}
 
-		material_parameter_t make_vec4_parameter(f32 x, f32 y, f32 z, f32 w)
+		material_texture_value_t make_texture_value(const char* name, resource_handle_t texture)
 		{
 			return {
-				.values = {x, y, z, w},
-				.type	= material_parameter_type_e::vec4f,
+				.name	 = name,
+				.texture = texture,
 			};
 		}
 
-		material_parameter_t make_uint2_parameter(u32 x, u32 y)
+		material_sampler_value_t make_sampler_value(const char* name, resource_handle_t sampler)
 		{
 			return {
-				.values = {static_cast<f32>(x), static_cast<f32>(y), 0.0f, 0.0f},
-				.type	= material_parameter_type_e::uint2,
+				.name	 = name,
+				.sampler = sampler,
+			};
+		}
+
+		material_param_value_t make_vec4_parameter(const char* name, f32 x, f32 y, f32 z, f32 w, shader_param_hint_e hint = shader_param_hint_e::none)
+		{
+			return {
+				.name  = name,
+				.value = {x, y, z, w},
+				.type  = shader_param_type_e::vec4,
+				.hint  = hint,
 			};
 		}
 
@@ -1120,27 +1132,33 @@ namespace sfg
 			const material_def_t material_def = {
 				.textures =
 					{
-						get_texture_guid(texture_guid_map, base_index, false, DEFAULT_ALBEDO_TEXTURE_ASSET_GUID),
-						get_texture_guid(texture_guid_map, normal_index, true, DEFAULT_NORMAL_TEXTURE_ASSET_GUID),
-						orm_guid,
-						get_texture_guid(texture_guid_map, emissive_index, false, DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID),
+						make_texture_value("albedo", get_texture_guid(texture_guid_map, base_index, false, DEFAULT_ALBEDO_TEXTURE_ASSET_GUID)),
+						make_texture_value("normal", get_texture_guid(texture_guid_map, normal_index, true, DEFAULT_NORMAL_TEXTURE_ASSET_GUID)),
+						make_texture_value("orm", orm_guid),
+						make_texture_value("emissive", get_texture_guid(texture_guid_map, emissive_index, false, DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID)),
 					},
 				.samplers =
 					{
-						get_sampler_guid(model, material),
+						make_sampler_value("albedo", get_sampler_guid(model, material)),
 					},
 				.parameters =
 					{
-						make_vec4_parameter(static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[0]),
+						make_vec4_parameter("base_color_factor",
+											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[0]),
 											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[1]),
 											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[2]),
-											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[3])),
-						make_vec4_parameter(static_cast<f32>(material.emissive_factor[0]), static_cast<f32>(material.emissive_factor[1]), static_cast<f32>(material.emissive_factor[2]), static_cast<f32>(material.pbr_metallic_roughness.metallic_factor)),
-						make_vec4_parameter(static_cast<f32>(material.pbr_metallic_roughness.roughness_factor), static_cast<f32>(material.normal_texture.scale), static_cast<f32>(material.alpha_cutoff), 0.0f),
-						make_uint2_parameter(base_transform.tiling, base_transform.offset),
-						make_uint2_parameter(normal_transform.tiling, normal_transform.offset),
-						make_uint2_parameter(orm_transform.tiling, orm_transform.offset),
-						make_uint2_parameter(emissive_transform.tiling, emissive_transform.offset),
+											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[3]),
+											shader_param_hint_e::color),
+						make_vec4_parameter("emissive_and_metallic_factor",
+											static_cast<f32>(material.emissive_factor[0]),
+											static_cast<f32>(material.emissive_factor[1]),
+											static_cast<f32>(material.emissive_factor[2]),
+											static_cast<f32>(material.pbr_metallic_roughness.metallic_factor)),
+						make_vec4_parameter("roughness_normal_strength_alpha", static_cast<f32>(material.pbr_metallic_roughness.roughness_factor), static_cast<f32>(material.normal_texture.scale), static_cast<f32>(material.alpha_cutoff), 0.0f),
+						make_vec4_parameter("albedo_tiling_offset", base_transform.tiling[0], base_transform.tiling[1], base_transform.offset[0], base_transform.offset[1], shader_param_hint_e::pack_uint2),
+						make_vec4_parameter("normal_tiling_offset", normal_transform.tiling[0], normal_transform.tiling[1], normal_transform.offset[0], normal_transform.offset[1], shader_param_hint_e::pack_uint2),
+						make_vec4_parameter("orm_tiling_offset", orm_transform.tiling[0], orm_transform.tiling[1], orm_transform.offset[0], orm_transform.offset[1], shader_param_hint_e::pack_uint2),
+						make_vec4_parameter("emissive_tiling_offset", emissive_transform.tiling[0], emissive_transform.tiling[1], emissive_transform.offset[0], emissive_transform.offset[1], shader_param_hint_e::pack_uint2),
 					},
 				.shader			  = DEFAULT_GBUFFER_SHADER_ASSET_GUID,
 				.pass_flags		  = pass_flags,
@@ -1148,12 +1166,7 @@ namespace sfg
 				.use_alpha_cutoff = is_cutoff,
 			};
 
-			nlohmann::json embedded_source = nlohmann::json::object();
-			if (!serialize_reflected_to_json(material_def, embedded_source))
-			{
-				SFG_ERR("failed to serialize GLB material definition: {0}", material_index);
-				return false;
-			}
+			nlohmann::json embedded_source = material_def;
 
 			editor_asset_t							 asset = {};
 			const editor_asset_write_embedded_desc_t write_desc{

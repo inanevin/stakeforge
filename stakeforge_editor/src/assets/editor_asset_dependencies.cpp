@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 
+#include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -42,20 +43,19 @@ namespace sfg
 
 		switch (asset.asset_type)
 		{
-		case editor_asset_type_e::mesh:
 		case editor_asset_type_e::material: {
 			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
 			if (!embedded_source.is_object())
 				break;
 
-			push_dependency(embedded_source.value<sid_t>("shader", NULL_SID));
-			const vector_t<sid_t> textures = embedded_source.value<vector_t<sid_t>>("textures", {});
-			const vector_t<sid_t> samplers = embedded_source.value<vector_t<sid_t>>("samplers", {});
-			out_dependencies.reserve(out_dependencies.size() + textures.size() + samplers.size());
-			for (const sid_t texture : textures)
-				push_dependency(texture);
-			for (const sid_t sampler : samplers)
-				push_dependency(sampler);
+			material_def_t material = {};
+			embedded_source.get_to(material);
+			push_dependency(material.shader);
+			out_dependencies.reserve(out_dependencies.size() + material.textures.size() + material.samplers.size());
+			for (const material_texture_value_t& texture : material.textures)
+				push_dependency(texture.texture);
+			for (const material_sampler_value_t& sampler : material.samplers)
+				push_dependency(sampler.sampler);
 			break;
 		}
 		default:

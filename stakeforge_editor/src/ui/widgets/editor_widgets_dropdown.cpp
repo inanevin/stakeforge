@@ -199,11 +199,11 @@ namespace sfg
 	{
 		SFG_ASSERT(is_field_bound());
 
-		_selected_value = read_field_value(_fields[0]);
+		_selected_value = read_field_value_u32(_fields[0]);
 		_mixed			= false;
 		for (size_t i = 1; i < _fields.size(); ++i)
 		{
-			if (read_field_value(_fields[i]) != _selected_value)
+			if (read_field_value_u32(_fields[i]) != _selected_value)
 			{
 				_mixed = true;
 				break;
@@ -241,6 +241,11 @@ namespace sfg
 
 	u16 editor_dropdown_t::read_field_value(const u8* field) const
 	{
+		return static_cast<u16>(read_field_value_u32(field));
+	}
+
+	u32 editor_dropdown_t::read_field_value_u32(const u8* field) const
+	{
 		switch (_config.field.field_size)
 		{
 		case sizeof(u8):
@@ -248,7 +253,7 @@ namespace sfg
 		case sizeof(u16):
 			return *reinterpret_cast<const u16*>(field);
 		case sizeof(u32):
-			return static_cast<u16>(*reinterpret_cast<const u32*>(field));
+			return *reinterpret_cast<const u32*>(field);
 		default:
 			SFG_ASSERT(false);
 			return 0;
@@ -257,13 +262,18 @@ namespace sfg
 
 	void editor_dropdown_t::write_field_value(u8* field, u16 value) const
 	{
+		write_field_value_u32(field, value);
+	}
+
+	void editor_dropdown_t::write_field_value_u32(u8* field, u32 value) const
+	{
 		switch (_config.field.field_size)
 		{
 		case sizeof(u8):
 			*reinterpret_cast<u8*>(field) = static_cast<u8>(value);
 			break;
 		case sizeof(u16):
-			*reinterpret_cast<u16*>(field) = value;
+			*reinterpret_cast<u16*>(field) = static_cast<u16>(value);
 			break;
 		case sizeof(u32):
 			*reinterpret_cast<u32*>(field) = value;
@@ -277,14 +287,36 @@ namespace sfg
 	void editor_dropdown_t::modify_field(u16 value)
 	{
 		SFG_ASSERT(is_field_bound());
+		bool all_selected = false;
+		if (_config.is_bitmask && value != 0)
+		{
+			all_selected = true;
+			for (const u8* field : _fields)
+				all_selected &= (read_field_value_u32(field) & value) == value;
+		}
+
 		for (u8* field : _fields)
-			write_field_value(field, value);
+		{
+			if (_config.is_bitmask)
+			{
+				u32 field_value = read_field_value_u32(field);
+				if (value == 0)
+					field_value = 0;
+				else if (all_selected)
+					field_value &= ~value;
+				else
+					field_value |= value;
+				write_field_value_u32(field, field_value);
+			}
+			else
+				write_field_value(field, value);
+		}
 		refresh_field_data();
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
 	}
 
-	u16 editor_dropdown_t::get_selected() const
+	u32 editor_dropdown_t::get_selected() const
 	{
 		if (is_field_bound())
 			return _selected_value;
@@ -294,17 +326,19 @@ namespace sfg
 	const char* editor_dropdown_t::get_selected_text() const
 	{
 		if (_mixed)
-			return "Mixed";
+			return _config.is_bitmask ? "Mixed Bitmask" : "Mixed";
 
 		if (!_config.title_from_selection && _config.title != nullptr)
 			return _config.title;
 
-		const u16 selected = get_selected();
+		const u32 selected = get_selected();
 		for (u32 i = 0; i < _config.item_count; ++i)
 		{
 			if (_config.items[i].value == selected)
 				return _config.items[i].text;
 		}
+		if (_config.is_bitmask)
+			return _config.title != nullptr ? _config.title : "Bitmask";
 		return _config.item_count > 0 ? _config.items[0].text : "";
 	}
 
@@ -315,12 +349,22 @@ namespace sfg
 
 		editor_popup_item_desc_t items[editor_popup_controller_t::MAX_ITEMS] = {};
 		SFG_ASSERT(_config.item_count <= editor_popup_controller_t::MAX_ITEMS);
-		const u16 selected = get_selected();
+		const u32 selected = get_selected();
 		for (u32 i = 0; i < _config.item_count; ++i)
 		{
-			items[i].text	  = _config.items[i].text;
-			items[i].id		  = _config.items[i].value;
-			items[i].selected = _config.items[i].value == selected;
+			items[i].text = _config.items[i].text;
+			items[i].id	  = _config.items[i].value;
+			if (_config.is_bitmask && is_field_bound())
+			{
+				items[i].selected = true;
+				for (const u8* field : _fields)
+				{
+					const u32 field_value = read_field_value_u32(field);
+					items[i].selected &= _config.items[i].value == 0 ? field_value == 0 : (field_value & _config.items[i].value) == _config.items[i].value;
+				}
+			}
+			else
+				items[i].selected = _config.is_bitmask ? (_config.items[i].value == 0 ? selected == 0 : (selected & _config.items[i].value) == _config.items[i].value) : _config.items[i].value == selected;
 		}
 
 		const editor_theme_t&	theme	 = editor_theme_t::get();
@@ -332,6 +376,7 @@ namespace sfg
 		desc.width						 = root_out.size.x;
 		desc.pressed					 = on_popup_item_pressed;
 		desc.user_data					 = this;
+		desc.close_on_pressed			 = !_config.is_bitmask;
 		popup->request_popup(desc);
 	}
 
@@ -365,5 +410,7 @@ namespace sfg
 		else if (dropdown._config.pressed != nullptr)
 			dropdown._config.pressed(value, dropdown._config.user_data);
 		dropdown.refresh_title();
+		if (dropdown._config.is_bitmask)
+			dropdown.open_popup();
 	}
 }

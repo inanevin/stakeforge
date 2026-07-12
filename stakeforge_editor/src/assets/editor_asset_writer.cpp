@@ -103,6 +103,8 @@ namespace sfg
 		asset.sub_type		 = desc.sub_type;
 		if (desc.cook_options != nullptr)
 			editor_asset_io_t::set_cook_options_json(asset, *desc.cook_options);
+		if (desc.embedded_source != nullptr)
+			editor_asset_io_t::set_embedded_source_json(asset, *desc.embedded_source);
 
 		if (desc.source_name != nullptr)
 		{

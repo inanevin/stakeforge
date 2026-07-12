@@ -83,6 +83,7 @@ namespace sfg
 		editor_dropdown_pos_y_e		  pos_y				   = editor_dropdown_pos_y_e::flow;
 		f32							  fixed_width		   = 0.0f;
 		bool						  title_from_selection = true;
+		bool						  is_bitmask		   = false;
 	};
 
 	class editor_dropdown_t final
@@ -111,9 +112,11 @@ namespace sfg
 		u16			read_field_value(const u8* field) const;
 		void		write_field_value(u8* field, u16 value) const;
 		void		modify_field(u16 value);
-		u16			get_selected() const;
+		u32			get_selected() const;
 		const char* get_selected_text() const;
 		void		open_popup();
+		u32			read_field_value_u32(const u8* field) const;
+		void		write_field_value_u32(u8* field, u32 value) const;
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
@@ -127,7 +130,7 @@ namespace sfg
 		ui::widget_id_t					 _root			 = NULL_WIDGET;
 		ui::widget_id_t					 _title			 = NULL_WIDGET;
 		ui::widget_id_t					 _icon_frame	 = NULL_WIDGET;
-		u16								 _selected_value = 0;
+		u32								 _selected_value = 0;
 		bool							 _mixed			 = false;
 	};
 }

@@ -28,64 +28,66 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "material_limits.hpp"
+#include "shader_data_definition.hpp"
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/bitmask.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	enum class material_parameter_type_e : u8
+	class istream_t;
+	class ostream_t;
+
+	struct material_texture_value_t
 	{
-		u32,
-		uint2,
-		uint4,
-		i32,
-		f32,
-		vec2f,
-		vec4f,
+		string_t		  name	  = {};
+		resource_handle_t texture = NULL_RESOURCE_HANDLE;
 	};
 
-	struct material_parameter_t
+	struct material_sampler_value_t
 	{
-		inplace_vector_t<f32, 4>  values = {};
-		material_parameter_type_e type	 = material_parameter_type_e::f32;
+		string_t		  name	  = {};
+		resource_handle_t sampler = NULL_RESOURCE_HANDLE;
+	};
+
+	struct material_param_value_t
+	{
+		string_t			name	 = {};
+		f32					value[4] = {};
+		shader_param_type_e type	 = shader_param_type_e::invalid;
+		shader_param_hint_e hint	 = shader_param_hint_e::none;
 	};
 
 	struct material_def_t
 	{
-		inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>	textures		 = {};
-		inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>	samplers		 = {};
-		inplace_vector_t<material_parameter_t, SFG_MATERIAL_MAX_PARAMS> parameters		 = {};
-		resource_handle_t												shader			 = NULL_RESOURCE_HANDLE;
-		bitmask_t<u32>													pass_flags		 = 0;
-		bool															double_sided	 = false;
-		bool															use_alpha_cutoff = false;
+		inplace_vector_t<material_texture_value_t, SFG_MATERIAL_MAX_TEXTURES> textures		   = {};
+		inplace_vector_t<material_sampler_value_t, SFG_MATERIAL_MAX_TEXTURES> samplers		   = {};
+		inplace_vector_t<material_param_value_t, SFG_MATERIAL_MAX_PARAMS>	  parameters	   = {};
+		resource_handle_t													  shader		   = NULL_RESOURCE_HANDLE;
+		bitmask_t<u32>														  pass_flags	   = 0;
+		bool																  double_sided	   = false;
+		bool																  use_alpha_cutoff = false;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
 	};
 
-	SFG_DEFINE_TYPE_ID(material_parameter_type_e);
-	SFG_DEFINE_TYPE_ID(material_parameter_t);
 	SFG_DEFINE_TYPE_ID(material_def_t);
 
-	struct material_parameter_type_reflection_t
-	{
-		material_parameter_type_reflection_t();
-	};
+	material_def_t material_def_from_shader_def(const shader_data_definition_t& shader_def, resource_handle_t shader);
 
-	struct material_parameter_reflection_t
-	{
-		material_parameter_reflection_t();
-	};
-
-	struct material_def_reflection_t
-	{
-		material_def_reflection_t();
-	};
-
-	inline material_parameter_type_reflection_t g_reflect_material_parameter_type;
-	inline material_parameter_reflection_t		g_reflect_material_parameter;
-	inline material_def_reflection_t			g_reflect_material_def;
+	void to_json(nlohmann::json& j, const material_texture_value_t& value);
+	void from_json(const nlohmann::json& j, material_texture_value_t& value);
+	void to_json(nlohmann::json& j, const material_sampler_value_t& value);
+	void from_json(const nlohmann::json& j, material_sampler_value_t& value);
+	void to_json(nlohmann::json& j, const material_param_value_t& value);
+	void from_json(const nlohmann::json& j, material_param_value_t& value);
+	void to_json(nlohmann::json& j, const material_def_t& value);
+	void from_json(const nlohmann::json& j, material_def_t& value);
 }
