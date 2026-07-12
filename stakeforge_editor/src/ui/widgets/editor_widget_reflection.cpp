@@ -990,9 +990,7 @@ namespace sfg
 			filler_in.size_value	   = {1.0f, 1.0f};
 		}
 
-		const ui::widget_id_t remove_button					  = editor_icon_widgets_t::add_naked_icon_button(*_ui, parent, ICON_CROSS, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
-		tree.draw_order(remove_button)						  = tree.draw_order_const(parent) + 1;
-		tree.draw_order(tree.node(remove_button).first_child) = tree.draw_order_const(remove_button);
+		const ui::widget_id_t remove_button = editor_icon_widgets_t::add_naked_icon_button(*_ui, parent, ICON_CROSS, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
 		install_tooltip(remove_button, "Remove Element");
 		if (container_data != nullptr)
 			install_container_element_remove_listener(remove_button, container_data, element_index);
@@ -1016,9 +1014,7 @@ namespace sfg
 		input_in.size_mode_x	  = ui::axis_mode_e::fill;
 		input_in.size_value.x	  = 1.0f;
 
-		const ui::widget_id_t button				   = editor_icon_widgets_t::add_naked_icon_button(*_ui, parent, ICON_FOLDER, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
-		tree.draw_order(button)						   = tree.draw_order_const(parent) + 1;
-		tree.draw_order(tree.node(button).first_child) = tree.draw_order_const(button);
+		const ui::widget_id_t button = editor_icon_widgets_t::add_naked_icon_button(*_ui, parent, ICON_FOLDER, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
 		install_tooltip(button, sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY ? "Select Directory" : "Select File");
 
 		path_picker_user_data_t* data = new path_picker_user_data_t();

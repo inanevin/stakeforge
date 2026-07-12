@@ -106,7 +106,7 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "input_field_label");
 		tree.attach(_root, _label);
-		tree.draw_order(_label) = tree.draw_order_const(_root) + 2;
+		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
@@ -117,7 +117,7 @@ namespace sfg
 		_overlay = ui.allocate_widget();
 		ui.set_widget_debug_name(_overlay, "input_field_overlay");
 		tree.attach(_root, _overlay);
-		tree.draw_order(_overlay) = tree.draw_order_const(_root) + 3;
+		tree.draw_order(_overlay) = tree.draw_order_const(_root) + 2;
 
 		ui::layout_in_t& overlay_in = tree.in(_overlay);
 		overlay_in.size_mode_x		= ui::axis_mode_e::parent_relative;

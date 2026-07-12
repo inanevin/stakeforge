@@ -186,11 +186,10 @@ namespace sfg
 		config.width						 = {.mode = editor_widget_width_e::fixed, .value = theme.item_width * 1.5f};
 		_add_component_button->init(*_ui, _column, config);
 
-		ui::layout_in_t& button_in									  = _ui->get_tree().in(_add_component_button->get_root());
-		button_in.pos_mode_x										  = ui::pos_mode_e::relative_in_parent;
-		button_in.pos_value.x										  = 0.5f;
-		button_in.anchor_x											  = ui::anchor_e::center;
-		_ui->get_tree().draw_order(_add_component_button->get_root()) = _ui->get_tree().draw_order_const(_column) + 1;
+		ui::layout_in_t& button_in = _ui->get_tree().in(_add_component_button->get_root());
+		button_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		button_in.pos_value.x	   = 0.5f;
+		button_in.anchor_x		   = ui::anchor_e::center;
 
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;

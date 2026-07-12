@@ -63,6 +63,7 @@ namespace sfg
 		_column = ui.allocate_widget();
 		ui.set_widget_debug_name(_column, "inspector_column");
 		tree.attach(_scroll_area, _column);
+		tree.draw_order(_column) = tree.draw_order_const(_scroll_area) + 1;
 
 		ui::layout_in_t& column_in = tree.in(_column);
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
