@@ -201,8 +201,9 @@ namespace sfg::ui
 
 	void paint_layer_t::paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale)
 	{
-		const auto dfs	 = tree.get_dfs();
-		const f32  scale = get_valid_scale(ui_scale);
+		const auto dfs			   = tree.get_dfs();
+		const auto dfs_descendants = tree.get_dfs_descendants();
+		const f32  scale		   = get_valid_scale(ui_scale);
 
 		_clip_stack.resize(0);
 
@@ -210,20 +211,20 @@ namespace sfg::ui
 		const widget_id_t get_focused	  = input.get_focused();
 		const widget_id_t pressed_l		  = input.is_pressed(mouse_button_e::left);
 		const auto		  push_child_clip = [&](const layout_in_t& in, const layout_out_t& o, u8 depth) {
-			   const vec4f_t margins = {
-				   in.child_margins.x * scale,
-				   in.child_margins.y * scale,
-				   in.child_margins.z * scale,
-				   in.child_margins.w * scale,
-			   };
-			   const vec4f_t clip = {
-				   o.pos.x + margins.w,
-				   o.pos.y + margins.x,
-				   math::max(0.0f, o.size.x - margins.w - margins.y),
-				   math::max(0.0f, o.size.y - margins.x - margins.z),
-			   };
-			   canvas.push_clip(clip, in.child_clip_mode);
-			   _clip_stack.push_back({in.child_clip_mode, depth});
+			const vec4f_t margins = {
+				in.child_margins.x * scale,
+				in.child_margins.y * scale,
+				in.child_margins.z * scale,
+				in.child_margins.w * scale,
+			};
+			const vec4f_t clip = {
+				o.pos.x + margins.w,
+				o.pos.y + margins.x,
+				math::max(0.0f, o.size.x - margins.w - margins.y),
+				math::max(0.0f, o.size.y - margins.x - margins.z),
+			};
+			canvas.push_clip(clip, in.child_clip_mode);
+			_clip_stack.push_back({in.child_clip_mode, depth});
 		};
 
 		for (size_t i = 0; i < dfs.size; ++i)
@@ -241,6 +242,12 @@ namespace sfg::ui
 			const layout_in_t&	in = tree.in_const(id);
 			const layout_out_t& o  = tree.out(id);
 
+			if ((in.flags & wf_visible) == 0)
+			{
+				i += dfs_descendants.data[i];
+				continue;
+			}
+
 			if (id == tree.get_root())
 			{
 				if (in.child_clip_mode != clip_mode_e::none)
@@ -248,7 +255,7 @@ namespace sfg::ui
 				continue;
 			}
 
-			if (!(in.flags & wf_visible) || o.clip.z <= 0.0f || o.clip.w <= 0.0f)
+			if (o.clip.z <= 0.0f || o.clip.w <= 0.0f)
 				continue;
 
 			const paint_def_t& pd		  = _defs[id];

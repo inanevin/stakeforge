@@ -377,7 +377,6 @@ namespace sfg
 		surface.ui->get_tree().attach(surface.ui->get_root(), surface.root);
 
 		ui::layout_in_t& surface_root_in = surface.ui->get_tree().in(surface.root);
-		surface_root_in.flags			 = ui::wf_visible;
 		surface_root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		surface_root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		surface_root_in.size_value		 = {1.0f, 1.0f};
@@ -396,7 +395,6 @@ namespace sfg
 			surface.ui->get_tree().attach(surface.root, surface.content_root);
 
 			ui::layout_in_t& content_root_in = surface.ui->get_tree().in(surface.content_root);
-			content_root_in.flags			 = ui::wf_visible;
 			content_root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 			content_root_in.size_mode_y		 = ui::axis_mode_e::fill;
 			content_root_in.size_value		 = {1.0f, 1.0f};
@@ -416,6 +414,7 @@ namespace sfg
 
 		surface.action_menu_controller = make_unique<editor_action_menu_controller_t>();
 		surface.action_menu_controller->init(*surface.ui);
+
 		if (surface.type == editor_surface_type_e::primary)
 		{
 			surface.primary = make_unique<editor_primary_base_t>();

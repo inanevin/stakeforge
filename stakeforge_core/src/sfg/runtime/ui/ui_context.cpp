@@ -141,26 +141,34 @@ namespace sfg::ui
 		ZoneScoped;
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
 		_ui_scale  = _dpi_scale * _user_ui_scale;
+
 		set_phase(ui_phase_e::mutation);
 		drain_mutations();
+
 		set_phase(ui_phase_e::pre_layout);
 		run_pre_layout_ticks(dt_seconds);
+
 		set_phase(ui_phase_e::text_layout);
 		_paint.update_text_layout(_tree, _ui_scale, _dpi_scale);
+
 		set_phase(ui_phase_e::layout);
 		_tree.solve(screen_rect, _ui_scale);
+
 		set_phase(ui_phase_e::post_layout);
 		run_post_layout_ticks(dt_seconds);
+
 		if (_post_solve)
 		{
 			_post_solve = false;
 			set_phase(ui_phase_e::layout);
 			_tree.solve(screen_rect, _ui_scale);
 		}
+
 		set_phase(ui_phase_e::input);
 		_input.tick(_tree, dt_seconds);
 
 		set_phase(ui_phase_e::paint);
+
 		_canvas.frame_begin(screen_rect);
 		_paint.paint_all(_tree, _input, _canvas, _ui_scale, _dpi_scale);
 		if (_debug_draw)
@@ -384,18 +392,22 @@ namespace sfg::ui
 
 	void ui_context::draw_debug_hovered_widget()
 	{
-		const span_t<const widget_id_t> dfs	   = _tree.get_dfs();
-		const vec2f_t&					mouse  = _input.get_mouse_position();
-		widget_id_t						target = NULL_WIDGET;
+		const span_t<const widget_id_t> dfs				= _tree.get_dfs();
+		const span_t<const u32>			dfs_descendants = _tree.get_dfs_descendants();
+		const vec2f_t&					mouse			= _input.get_mouse_position();
+		widget_id_t						target			= NULL_WIDGET;
 
 		for (size_t i = 0; i < dfs.size; ++i)
 		{
 			const widget_id_t id = dfs.data[i];
-			if (id == _tree.get_root())
-				continue;
 
 			const layout_in_t& in = _tree.in_const(id);
-			if (!(in.flags & wf_visible))
+			if ((in.flags & wf_visible) == 0)
+			{
+				i += dfs_descendants.data[i];
+				continue;
+			}
+			if (id == _tree.get_root())
 				continue;
 			if (in.flags & wf_overlay)
 				continue;

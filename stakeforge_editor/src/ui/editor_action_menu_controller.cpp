@@ -120,7 +120,6 @@ namespace sfg
 		tree.draw_order(_foreground) = ACTION_MENU_FG_DRAW_ORDER;
 
 		ui::layout_in_t& fg_in = tree.in(_foreground);
-		fg_in.flags			   = 0;
 		fg_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		fg_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		fg_in.size_value	   = {1.0f, 1.0f};
@@ -183,7 +182,6 @@ namespace sfg
 				tree.attach(_row_frames[d][r], _row_labels[d][r]);
 
 				ui::layout_in_t& label_in = tree.in(_row_labels[d][r]);
-				label_in.flags			  = 0;
 				label_in.pos_mode_x		  = ui::pos_mode_e::offset_in_parent;
 				label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 				label_in.anchor_y		  = ui::anchor_e::center;
@@ -206,6 +204,7 @@ namespace sfg
 				tree.attach(_row_frames[d][r], _row_icons[d][r]);
 
 				ui::layout_in_t& icon_in = tree.in(_row_icons[d][r]);
+				icon_in.flags			 = 0;
 				icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 				icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 				icon_in.anchor_x		 = ui::anchor_e::end;
@@ -218,7 +217,6 @@ namespace sfg
 				tree.attach(_row_icons[d][r], _row_icon_labels[d][r]);
 
 				ui::layout_in_t& icon_label_in = tree.in(_row_icon_labels[d][r]);
-				icon_label_in.flags			   = 0;
 				icon_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 				icon_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 				icon_label_in.pos_value		   = {0.5f, 0.5f};
@@ -372,7 +370,6 @@ namespace sfg
 			else
 				menu._ui->clear_widget_text(menu._row_icon_labels[depth][row]);
 			menu._ui->get_tree().set_visible(menu._row_icons[depth][row], icon != nullptr, false);
-			menu._ui->get_tree().set_visible(menu._row_icon_labels[depth][row], icon != nullptr, false);
 			menu.refresh_popup_scope();
 			return;
 		}
@@ -521,7 +518,6 @@ namespace sfg
 							.point_size	 = is_title ? style.title_size : style.text_size,
 							.spacing	 = 0,
 							.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-			tree.set_visible(_row_labels[depth][i], true, false);
 
 			if (!is_title && (rows[i].shortcut != nullptr ? static_cast<u32>(strlen(rows[i].shortcut)) : 0) > 0)
 			{
@@ -568,17 +564,11 @@ namespace sfg
 			else
 				_ui->clear_widget_text(_row_icon_labels[depth][i]);
 			tree.set_visible(_row_icons[depth][i], icon != nullptr, false);
-			tree.set_visible(_row_icon_labels[depth][i], icon != nullptr, false);
 		}
 
 		for (u32 i = row_count; i < MAX_ROWS; ++i)
 		{
 			tree.set_visible(_row_frames[depth][i], false, false);
-			tree.set_visible(_row_labels[depth][i], false, false);
-			tree.set_visible(_row_shortcuts[depth][i], false, false);
-			tree.set_visible(_row_icons[depth][i], false, false);
-			tree.set_visible(_row_icon_labels[depth][i], false, false);
-			tree.set_visible(_row_title_lines[depth][i], false, false);
 		}
 	}
 
@@ -590,15 +580,6 @@ namespace sfg
 			tree.set_visible(_panels[d], false, false);
 			_active_rows[d]		  = nullptr;
 			_active_row_counts[d] = 0;
-			for (u32 r = 0; r < MAX_ROWS; ++r)
-			{
-				tree.set_visible(_row_frames[d][r], false, false);
-				tree.set_visible(_row_labels[d][r], false, false);
-				tree.set_visible(_row_shortcuts[d][r], false, false);
-				tree.set_visible(_row_icons[d][r], false, false);
-				tree.set_visible(_row_icon_labels[d][r], false, false);
-				tree.set_visible(_row_title_lines[d][r], false, false);
-			}
 		}
 		if (depth == 0)
 			_active_depth = 0;

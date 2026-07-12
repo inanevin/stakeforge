@@ -72,7 +72,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		root_in.size_value		 = {1.0f, 1.0f};
@@ -107,7 +106,6 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		ui::layout_in_t& widget_in = tree.in(node.widget);
-		widget_in.flags			   = ui::wf_visible;
 		widget_in.flow			   = ui::flow_e::column;
 		widget_in.child_spacing	   = 0.0f;
 		widget_in.child_margins	   = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -129,7 +127,6 @@ namespace sfg
 		tree.attach(node.widget, node.body);
 
 		ui::layout_in_t& body_in = tree.in(node.body);
-		body_in.flags			 = ui::wf_visible;
 		body_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		body_in.size_mode_y		 = ui::axis_mode_e::fill;
 		body_in.size_value		 = {1.0f, 1.0f};
@@ -156,7 +153,6 @@ namespace sfg
 		tree.attach(parent, node.widget);
 
 		ui::layout_in_t& widget_in = tree.in(node.widget);
-		widget_in.flags			   = ui::wf_visible;
 		widget_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		widget_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		widget_in.size_value	   = {1.0f, 1.0f};
@@ -181,7 +177,6 @@ namespace sfg
 		tree.attach(parent, node.widget);
 
 		ui::layout_in_t& widget_in = tree.in(node.widget);
-		widget_in.flags			   = ui::wf_visible;
 		widget_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		widget_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		widget_in.size_value	   = {1.0f, 1.0f};

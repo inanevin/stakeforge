@@ -60,7 +60,6 @@ namespace sfg
 			tree.attach(parent, cell);
 
 			ui::layout_in_t& cell_in = tree.in(cell);
-			cell_in.flags			 = ui::wf_visible;
 			cell_in.size_mode_x		 = ui::axis_mode_e::fill;
 			cell_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 			cell_in.size_value		 = {1.0f, 1.0f};
@@ -73,7 +72,6 @@ namespace sfg
 			tree.attach(cell, label);
 
 			ui::layout_in_t& label_in = tree.in(label);
-			label_in.flags			  = ui::wf_visible;
 			label_in.pos_mode_x		  = ui::pos_mode_e::flow;
 			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			label_in.pos_value.y	  = 0.5f;
@@ -95,7 +93,6 @@ namespace sfg
 			tree.attach(parent, divider);
 
 			ui::layout_in_t& divider_in = tree.in(divider);
-			divider_in.flags			= ui::wf_visible;
 			divider_in.size_mode_x		= ui::axis_mode_e::fixed;
 			divider_in.size_mode_y		= ui::axis_mode_e::parent_relative;
 			divider_in.size_value		= {theme.divider_thickness, 1.0f};
@@ -117,7 +114,6 @@ namespace sfg
 			tree.attach(parent, divider);
 
 			ui::layout_in_t& divider_in = tree.in(divider);
-			divider_in.flags			= ui::wf_visible;
 			divider_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 			divider_in.size_mode_y		= ui::axis_mode_e::fixed;
 			divider_in.size_value		= {1.0f, theme.divider_thickness};
@@ -165,7 +161,6 @@ namespace sfg
 		tree.attach(_root, _header);
 
 		ui::layout_in_t& header_in = tree.in(_header);
-		header_in.flags			   = ui::wf_visible;
 		header_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		header_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		header_in.size_value	   = {1.0f, theme.item_area_height};
@@ -202,7 +197,7 @@ namespace sfg
 		_rows.reserve(128);
 		_row_sources.reserve(128);
 		_resource_generation = resource_manager_t::get().get_generation();
-		ui.set_pre_layout_tick(_body, on_resources_tick, this);
+		ui.set_pre_layout_tick(_root, on_resources_tick, this);
 		refresh_rows();
 	}
 
@@ -268,7 +263,6 @@ namespace sfg
 		tree.attach(_body, row.root);
 
 		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.flags			= ui::wf_visible;
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value		= {1.0f, theme.item_area_height};

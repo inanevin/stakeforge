@@ -93,7 +93,7 @@ namespace sfg::ui
 		anchor_e	anchor_x		= anchor_e::start;
 		anchor_e	anchor_y		= anchor_e::start;
 		flow_e		flow			= flow_e::none;
-		u16			flags			= 0;
+		u16			flags			= wf_visible;
 		clip_mode_e child_clip_mode = clip_mode_e::none;
 	};
 

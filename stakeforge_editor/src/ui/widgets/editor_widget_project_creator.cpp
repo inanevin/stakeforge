@@ -91,7 +91,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in	  = tree.in(_root);
-		root_in.flags				  = ui::wf_visible;
 		root_in.pos_mode_x			  = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_mode_y			  = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_value			  = {0.0f, 0.0f};
@@ -107,7 +106,6 @@ namespace sfg
 		tree.attach(_root, _inner_root);
 
 		ui::layout_in_t& inner_root_in = tree.in(_inner_root);
-		inner_root_in.flags			   = ui::wf_visible;
 		inner_root_in.pos_mode_x	   = ui::pos_mode_e::flow;
 		inner_root_in.pos_mode_y	   = ui::pos_mode_e::flow;
 		inner_root_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
@@ -140,7 +138,6 @@ namespace sfg
 		tree.attach(_scroll_area, _wrapper);
 
 		ui::layout_in_t& wrapper_in = tree.in(_wrapper);
-		wrapper_in.flags			= ui::wf_visible;
 		wrapper_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		wrapper_in.size_mode_y		= ui::axis_mode_e::sum_children;
 		wrapper_in.size_value		= {1.0f, 1.0f};
@@ -153,7 +150,6 @@ namespace sfg
 		tree.attach(_wrapper, _load_description);
 
 		ui::layout_in_t& load_description_in = tree.in(_load_description);
-		load_description_in.flags			 = ui::wf_visible;
 		load_description_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		load_description_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		load_description_in.size_value		 = {1.0f, theme.item_area_height};
@@ -183,7 +179,6 @@ namespace sfg
 		tree.attach(_wrapper, _create_description);
 
 		ui::layout_in_t& create_description_in = tree.in(_create_description);
-		create_description_in.flags			   = ui::wf_visible;
 		create_description_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		create_description_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		create_description_in.size_value	   = {1.0f, theme.item_area_height};
@@ -213,7 +208,6 @@ namespace sfg
 		tree.attach(_wrapper, _error_frame);
 
 		ui::layout_in_t& error_frame_in = tree.in(_error_frame);
-		error_frame_in.flags			= ui::wf_visible;
 		error_frame_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		error_frame_in.size_mode_y		= ui::axis_mode_e::fixed;
 		error_frame_in.size_value		= {1.0f, theme.item_area_height};
@@ -229,7 +223,6 @@ namespace sfg
 		tree.draw_order(_error_label) = tree.draw_order_const(_error_frame) + 1;
 
 		ui::layout_in_t& error_label_in = tree.in(_error_label);
-		error_label_in.flags			= ui::wf_visible;
 		error_label_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
 		error_label_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		error_label_in.pos_value		= {0.5f, 0.5f};

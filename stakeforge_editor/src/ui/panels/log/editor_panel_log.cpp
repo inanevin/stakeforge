@@ -65,7 +65,6 @@ namespace sfg
 		tree.attach(_root, _top_row);
 
 		ui::layout_in_t& top_in = tree.in(_top_row);
-		top_in.flags			= ui::wf_visible;
 		top_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		top_in.size_mode_y		= ui::axis_mode_e::fixed;
 		top_in.size_value		= {1.0f, theme.item_area_height};
@@ -142,9 +141,9 @@ namespace sfg
 		editor_input_field_config_t search_config = {};
 		search_config.placeholder				  = "Search";
 		search_config.field						  = {
-								  .fields = {.data = &search_field, .size = 1},
-								  .type	  = editor_input_field_field_type_e::string,
-		  };
+			.fields = {.data = &search_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
 		search_config.callbacks.edited	  = on_search_changed;
 		search_config.callbacks.user_data = this;
 		_search_input.init(ui, _top_row, search_config);

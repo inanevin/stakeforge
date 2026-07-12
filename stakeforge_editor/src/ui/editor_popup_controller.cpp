@@ -145,7 +145,7 @@ namespace sfg
 			tree.attach(_row_frames[i], _row_inner_frames[i]);
 
 			ui::layout_in_t& inner_in = tree.in(_row_inner_frames[i]);
-			inner_in.flags			  = 0;
+			inner_in.flags			  = ui::wf_visible;
 			inner_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 			inner_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 			inner_in.size_value		  = {1.0f, 1.0f};
@@ -164,7 +164,7 @@ namespace sfg
 			tree.attach(_row_inner_frames[i], _row_markers[i]);
 
 			ui::layout_in_t& marker_in = tree.in(_row_markers[i]);
-			marker_in.flags			   = 0;
+			marker_in.flags			   = ui::wf_visible;
 			marker_in.size_mode_x	   = ui::axis_mode_e::fixed;
 			marker_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 			marker_in.size_value	   = {theme.item_height, 1.0f};
@@ -191,7 +191,7 @@ namespace sfg
 			tree.attach(_row_inner_frames[i], _row_labels[i]);
 
 			ui::layout_in_t& label_in = tree.in(_row_labels[i]);
-			label_in.flags			  = 0;
+			label_in.flags			  = ui::wf_visible;
 			label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 			label_in.pos_value.y	  = 0.5f;
 			label_in.anchor_y		  = ui::anchor_e::center;
@@ -214,7 +214,7 @@ namespace sfg
 		tree.attach(_asset_label_row, _asset_label);
 
 		ui::layout_in_t& asset_label_in = tree.in(_asset_label);
-		asset_label_in.flags			= 0;
+		asset_label_in.flags			= ui::wf_visible;
 		asset_label_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		asset_label_in.pos_value.y		= 0.5f;
 		asset_label_in.anchor_y			= ui::anchor_e::center;
@@ -595,38 +595,30 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_foreground, visible, false);
 		tree.set_visible(_frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets || _mode == popup_mode_e::entities || _mode == popup_mode_e::color_wheel), false);
+
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
-			const bool item_visible	  = visible && _mode == popup_mode_e::items && i < _desc.item_count;
-			const bool marker_visible = item_visible && _items[i].selected;
+			const bool item_visible = visible && _mode == popup_mode_e::items && i < _desc.item_count;
 			set_focusable_widget_visible(tree, _row_frames[i], item_visible, item_visible);
-			tree.set_visible(_row_inner_frames[i], item_visible, false);
-			tree.set_visible(_row_markers[i], item_visible, false);
-			tree.set_visible(_row_marker_labels[i], marker_visible, false);
-			tree.set_visible(_row_labels[i], item_visible, false);
 		}
 		const bool search_popup_visible = visible && (_mode == popup_mode_e::assets || _mode == popup_mode_e::entities);
 		tree.set_visible(_asset_label_row, search_popup_visible, false);
-		tree.set_visible(_asset_label, search_popup_visible, false);
 		tree.set_visible(_asset_search_row, search_popup_visible, false);
-		_asset_search_input.set_visible(search_popup_visible);
 		ui::layout_in_t& assets_frame_in = tree.in(_assets_frame);
 		assets_frame_in.flags			 = search_popup_visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_scroll_y) : 0;
+
 		for (size_t i = 0; i < _asset_rows.size(); ++i)
 		{
 			const asset_row_t& row		   = _asset_rows[i];
 			const bool		   row_visible = search_popup_visible && i < _asset_filtered_items.size();
 			set_focusable_widget_visible(tree, row.root, row_visible, row_visible);
-			tree.set_visible(row.inner, row_visible, false);
-			tree.set_visible(row.marker, row_visible, false);
-			tree.set_visible(row.marker_icon, row_visible, false);
 			const bool thumbnail_visible = row_visible && _mode == popup_mode_e::assets;
 			tree.set_visible(row.thumbnail_frame, thumbnail_visible, false);
-			row.thumbnail->set_visible(thumbnail_visible);
-			tree.set_visible(row.label, row_visible, false);
 		}
-		_input.set_visible(visible && _mode == popup_mode_e::input);
-		_color_wheel.set_visible(visible && _mode == popup_mode_e::color_wheel);
+
+		const bool input_visible = visible && _mode == popup_mode_e::input;
+		set_focusable_widget_visible(tree, _input.get_root(), input_visible, input_visible);
+		tree.set_visible(_color_wheel.get_root(), visible && _mode == popup_mode_e::color_wheel, false);
 	}
 
 	void editor_popup_controller_t::refresh_rows()
@@ -641,7 +633,7 @@ namespace sfg
 						   _ui->widget_text_len(_row_labels[i]),
 						   {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 			paint.def(_row_marker_labels[i]).text.color = theme.color_accent0;
-			_ui->get_tree().set_visible(_row_marker_labels[i], _visible && _items[i].selected, false);
+			_ui->get_tree().set_visible(_row_marker_labels[i], _items[i].selected, false);
 		}
 	}
 
@@ -688,7 +680,7 @@ namespace sfg
 				tree.attach(row.root, row.inner);
 
 				ui::layout_in_t& inner_in = tree.in(row.inner);
-				inner_in.flags			  = 0;
+				inner_in.flags			  = ui::wf_visible;
 				inner_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 				inner_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 				inner_in.size_value		  = {1.0f, 1.0f};
@@ -707,7 +699,7 @@ namespace sfg
 				tree.attach(row.inner, row.marker);
 
 				ui::layout_in_t& marker_in = tree.in(row.marker);
-				marker_in.flags			   = 0;
+				marker_in.flags			   = ui::wf_visible;
 				marker_in.size_mode_x	   = ui::axis_mode_e::fixed;
 				marker_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 				marker_in.size_value	   = {theme.item_height, 1.0f};
@@ -717,7 +709,7 @@ namespace sfg
 				tree.attach(row.marker, row.marker_icon);
 
 				ui::layout_in_t& marker_icon_in = tree.in(row.marker_icon);
-				marker_icon_in.flags			= 0;
+				marker_icon_in.flags			= ui::wf_visible;
 				marker_icon_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
 				marker_icon_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 				marker_icon_in.pos_value		= {0.5f, 0.5f};
@@ -734,7 +726,7 @@ namespace sfg
 				tree.attach(row.inner, row.thumbnail_frame);
 
 				ui::layout_in_t& thumbnail_in = tree.in(row.thumbnail_frame);
-				thumbnail_in.flags			  = 0;
+				thumbnail_in.flags			  = ui::wf_visible;
 				thumbnail_in.size_mode_x	  = ui::axis_mode_e::copy_other;
 				thumbnail_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 				thumbnail_in.size_value		  = {1.0f, 0.75f};
@@ -751,7 +743,7 @@ namespace sfg
 				tree.attach(row.inner, row.label);
 
 				ui::layout_in_t& label_in = tree.in(row.label);
-				label_in.flags			  = 0;
+				label_in.flags			  = ui::wf_visible;
 				label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 				label_in.pos_value.y	  = 0.5f;
 				label_in.anchor_y		  = ui::anchor_e::center;

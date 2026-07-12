@@ -410,6 +410,8 @@ namespace sfg
 
 	void editor_tab_area_t::switch_tab(sid_t identifier)
 	{
+		if (_active_tab == identifier)
+			return;
 		_active_tab = identifier;
 		if (_config.tab_switched != nullptr)
 			_config.tab_switched(*this, identifier, _config.user_data);

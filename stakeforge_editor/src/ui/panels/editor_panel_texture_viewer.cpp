@@ -102,7 +102,6 @@ namespace sfg
 		tree.attach(_root, _left_pane);
 
 		ui::layout_in_t& left_in = tree.in(_left_pane);
-		left_in.flags			 = ui::wf_visible;
 		left_in.flow			 = ui::flow_e::none;
 		left_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
@@ -120,7 +119,6 @@ namespace sfg
 		tree.draw_order(_texture_frame) = tree.draw_order_const(_left_pane) + 1;
 
 		ui::layout_in_t& frame_in = tree.in(_texture_frame);
-		frame_in.flags			  = ui::wf_visible;
 		frame_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		frame_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		frame_in.pos_value		  = {0.5f, 0.5f};
@@ -142,7 +140,6 @@ namespace sfg
 		tree.draw_order(_texture_display) = tree.draw_order_const(_texture_frame) + 1;
 
 		ui::layout_in_t& texture_in = tree.in(_texture_display);
-		texture_in.flags			= ui::wf_visible;
 		texture_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
 		texture_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		texture_in.pos_value		= {0.5f, 0.5f};
@@ -194,7 +191,6 @@ namespace sfg
 		tree.draw_order(_right_pane) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& right_in = tree.in(_right_pane);
-		right_in.flags			  = ui::wf_visible;
 		right_in.flow			  = ui::flow_e::column;
 		right_in.child_margins	  = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		right_in.size_mode_x	  = ui::axis_mode_e::fill;

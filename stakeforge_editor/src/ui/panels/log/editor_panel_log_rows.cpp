@@ -70,7 +70,6 @@ namespace sfg
 		tree.attach(_body, row.root);
 
 		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.flags			= ui::wf_visible;
 		row_in.size_mode_x		= ui::axis_mode_e::sum_children;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value.y		= theme.item_height;
@@ -82,7 +81,6 @@ namespace sfg
 		tree.attach(row.root, row.icon);
 
 		ui::layout_in_t& icon_in = tree.in(row.icon);
-		icon_in.flags			 = ui::wf_visible;
 		icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		icon_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		icon_in.size_value		 = {theme.item_height, 1.0f};

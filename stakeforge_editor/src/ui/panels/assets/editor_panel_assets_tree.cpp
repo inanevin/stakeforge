@@ -177,12 +177,13 @@ namespace sfg
 		tree.draw_order(row.root) = tree.draw_order_const(_assets_left_pane_body) + 1;
 
 		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_focusable;
-		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		row_in.size_mode_y		= ui::axis_mode_e::fixed;
-		row_in.size_value		= {1.0f, theme.item_height};
-		row_in.flow				= ui::flow_e::row;
-		row_in.child_spacing	= theme.item_spacing * 0.5f;
+		row_in.flags |= ui::wf_input | ui::wf_focusable;
+
+		row_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		row_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		row_in.size_value	 = {1.0f, theme.item_height};
+		row_in.flow			 = ui::flow_e::row;
+		row_in.child_spacing = theme.item_spacing * 0.5f;
 
 		ui::vg_rect_paint_t row_rect = {};
 		row_rect.rounding			 = theme.item_rounding;
@@ -203,7 +204,6 @@ namespace sfg
 		tree.attach(row.root, row.icon);
 
 		ui::layout_in_t& icon_in = tree.in(row.icon);
-		icon_in.flags			 = ui::wf_visible;
 		icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		icon_in.pos_value.y		 = 0.5f;
 		icon_in.anchor_y		 = ui::anchor_e::center;
@@ -221,7 +221,6 @@ namespace sfg
 		tree.attach(row.icon, row.icon_text);
 
 		ui::layout_in_t& icon_text_in = tree.in(row.icon_text);
-		icon_text_in.flags			  = ui::wf_visible;
 		icon_text_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		icon_text_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		icon_text_in.pos_value		  = {0.5f, 0.5f};
@@ -256,7 +255,6 @@ namespace sfg
 		tree.attach(row.root, row.label);
 
 		ui::layout_in_t& label_in = tree.in(row.label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -282,9 +280,13 @@ namespace sfg
 		set_folder_row_visible(row, true);
 		update_folder_row_background(row);
 
-		ui::layout_in_t& row_in = tree.in(row.root);
-		row_in.child_margins	= {0.0f, theme.item_height, 0.0f, theme.margin_horizontal + static_cast<f32>(depth) * theme.indent_horizontal * ASSETS_FOLDER_INDENT_MULT};
-		tree.in(row.icon).flags = has_children ? static_cast<u16>(ui::wf_visible | ui::wf_input) : static_cast<u16>(ui::wf_visible);
+		ui::layout_in_t& row_in	 = tree.in(row.root);
+		row_in.child_margins	 = {0.0f, theme.item_height, 0.0f, theme.margin_horizontal + static_cast<f32>(depth) * theme.indent_horizontal * ASSETS_FOLDER_INDENT_MULT};
+		ui::layout_in_t& icon_in = tree.in(row.icon);
+		if (has_children)
+			icon_in.flags |= ui::wf_input;
+		else
+			icon_in.flags &= ~ui::wf_input;
 
 		const char* icon = has_children ? (is_folded ? ICON_DD_RIGHT : ICON_DD_DOWN) : "";
 		_ui->set_widget_text(row.icon_text, icon);
@@ -320,12 +322,13 @@ namespace sfg
 
 	void editor_panel_assets_t::set_folder_row_visible(const folder_row_t& row, bool visible)
 	{
-		ui::layout_tree_t& tree = _ui->get_tree();
-		tree.in(row.root).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input | ui::wf_focusable) : 0;
-		tree.set_visible(row.icon, visible, false);
-		tree.set_visible(row.icon_text, visible, false);
+		ui::layout_tree_t& tree	  = _ui->get_tree();
+		ui::layout_in_t&   row_in = tree.in(row.root);
+		if (visible)
+			row_in.flags |= ui::wf_visible | ui::wf_input | ui::wf_focusable;
+		else
+			row_in.flags = 0;
 		tree.set_visible(row.star_text, visible && row.is_favourite, false);
-		tree.set_visible(row.label, visible, false);
 	}
 
 }

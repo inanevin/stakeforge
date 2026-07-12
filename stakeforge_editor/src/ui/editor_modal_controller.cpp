@@ -78,18 +78,17 @@ namespace sfg
 		tree.draw_order(_foreground) = MODAL_DRAW_ORDER;
 
 		ui::layout_in_t& foreground_in = tree.in(_foreground);
-		foreground_in.flags			   = 0;
 		foreground_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		foreground_in.size_value	   = {1.0f, 1.0f};
 
-		_dimmer = ui.allocate_widget();
-		ui.set_widget_debug_name(_dimmer, "modal_dimmer");
-		tree.attach(_foreground, _dimmer);
-		tree.draw_order(_dimmer) = MODAL_FG_DRAW_ORDER;
+		const ui::widget_id_t dimmer = ui.allocate_widget();
+		ui.set_widget_debug_name(dimmer, "modal_dimmer");
+		tree.attach(_foreground, dimmer);
+		tree.draw_order(dimmer) = MODAL_FG_DRAW_ORDER;
 
-		ui::layout_in_t& dimmer_in = tree.in(_dimmer);
-		dimmer_in.flags			   = 0;
+		ui::layout_in_t& dimmer_in = tree.in(dimmer);
+		dimmer_in.flags			   = ui::wf_visible | ui::wf_input;
 		dimmer_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		dimmer_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		dimmer_in.size_value	   = {1.0f, 1.0f};
@@ -97,14 +96,13 @@ namespace sfg
 		ui::vg_rect_paint_t dimmer_rect = {};
 		dimmer_rect.fill_color_a		= {0.0f, 0.0f, 0.0f, 0.5f};
 		dimmer_rect.fill_color_b		= {0.0f, 0.0f, 0.0f, 0.5f};
-		paint.set_rect(_dimmer, dimmer_rect);
+		paint.set_rect(dimmer, dimmer_rect);
 
 		_window = ui.allocate_widget();
 		ui.set_widget_debug_name(_window, "modal_window");
 		tree.attach(_foreground, _window);
 
 		ui::layout_in_t& window_in = tree.in(_window);
-		window_in.flags			   = 0;
 		window_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		window_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		window_in.pos_value		   = {0.5f, 0.5f};
@@ -134,7 +132,6 @@ namespace sfg
 		tree.attach(_window, _container);
 
 		ui::layout_in_t& container_in = tree.in(_container);
-		container_in.flags			  = 0;
 		container_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		container_in.pos_mode_y		  = ui::pos_mode_e::flow;
 		container_in.pos_value.x	  = 0.0f;
@@ -149,7 +146,6 @@ namespace sfg
 		tree.attach(_window, _button_row);
 
 		ui::layout_in_t& button_row_in = tree.in(_button_row);
-		button_row_in.flags			   = 0;
 		button_row_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		button_row_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		button_row_in.size_value	   = {1.0f, theme.item_height};
@@ -200,7 +196,6 @@ namespace sfg
 
 		_ui				 = nullptr;
 		_foreground		 = NULL_WIDGET;
-		_dimmer			 = NULL_WIDGET;
 		_window			 = NULL_WIDGET;
 		_title			 = NULL_WIDGET;
 		_description	 = NULL_WIDGET;
@@ -242,8 +237,6 @@ namespace sfg
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool visible = show_buttons && i < button_count;
-			_ui->get_tree().set_visible(_button_frames[i], visible, visible);
-			_ui->get_tree().set_visible(_button_labels[i], visible, false);
 			if (visible)
 				_ui->set_widget_text(_button_labels[i], buttons[i].text);
 			else
@@ -305,17 +298,12 @@ namespace sfg
 
 		_visible = visible;
 		tree.set_visible(_foreground, visible, false);
-		tree.set_visible(_dimmer, visible, true);
-		tree.set_visible(_window, visible, false);
-		tree.set_visible(_title, visible, false);
-		tree.set_visible(_description, visible, false);
 		tree.set_visible(_container, visible && _content_active, false);
 		tree.set_visible(_button_row, visible && _buttons_visible, false);
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool button_visible = visible && _buttons_visible && i < _button_count;
 			tree.set_visible(_button_frames[i], button_visible, button_visible);
-			tree.set_visible(_button_labels[i], button_visible, false);
 		}
 	}
 
@@ -333,7 +321,6 @@ namespace sfg
 			tree.in(_window).size_mode_x	= ui::axis_mode_e::max_children;
 			tree.in(_window).size_value.x	= 0.0f;
 			tree.in(_container).size_mode_x = ui::axis_mode_e::max_children;
-			tree.set_visible(_container, false, false);
 		}
 	}
 

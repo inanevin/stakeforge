@@ -74,7 +74,6 @@ namespace sfg
 		tree.attach(_root, _assets_left_pane);
 
 		ui::layout_in_t& left_pane_in	   = tree.in(_assets_left_pane);
-		left_pane_in.flags				   = ui::wf_visible;
 		left_pane_in.flow				   = ui::flow_e::column;
 		left_pane_in.child_spacing		   = 0.0f;
 		left_pane_in.size_mode_x		   = ui::axis_mode_e::parent_relative;
@@ -87,7 +86,6 @@ namespace sfg
 		tree.attach(_assets_left_pane, _assets_left_pane_top_row);
 
 		ui::layout_in_t& top_row_in = tree.in(_assets_left_pane_top_row);
-		top_row_in.flags			= ui::wf_visible;
 		top_row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		top_row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		top_row_in.size_value		= {1.0f, theme.item_area_height};
@@ -144,14 +142,15 @@ namespace sfg
 		tree.attach(_assets_left_pane, _assets_left_pane_body);
 
 		ui::layout_in_t& left_body_in = tree.in(_assets_left_pane_body);
-		left_body_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
-		left_body_in.child_clip_mode  = ui::clip_mode_e::scissor_rect;
-		left_body_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-		left_body_in.size_mode_y	  = ui::axis_mode_e::fill;
-		left_body_in.size_value		  = {1.0f, 1.0f};
-		left_body_in.flow			  = ui::flow_e::column;
-		left_body_in.child_spacing	  = 0.0f;
-		left_body_in.child_margins	  = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, 0.0f};
+		left_body_in.flags |= ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
+
+		left_body_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		left_body_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		left_body_in.size_mode_y	 = ui::axis_mode_e::fill;
+		left_body_in.size_value		 = {1.0f, 1.0f};
+		left_body_in.flow			 = ui::flow_e::column;
+		left_body_in.child_spacing	 = 0.0f;
+		left_body_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, 0.0f};
 
 		ui::vg_rect_paint_t left_body_rect = {};
 		left_body_rect.fill_color_a		   = theme.color_frame;
@@ -192,7 +191,6 @@ namespace sfg
 		tree.draw_order(_assets_body_pane) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& body_pane_in = tree.in(_assets_body_pane);
-		body_pane_in.flags			  = ui::wf_visible;
 		body_pane_in.flow			  = ui::flow_e::column;
 		body_pane_in.child_spacing	  = 0.0f;
 		body_pane_in.child_margins	  = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
@@ -205,14 +203,15 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
-		body_top_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
-		body_top_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
-		body_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		body_top_in.size_mode_y		 = ui::axis_mode_e::fill;
-		body_top_in.size_value		 = {1.0f, 1.0f};
-		body_top_in.flow			 = ui::flow_e::column;
-		body_top_in.child_spacing	 = theme.item_spacing * 0.5f;
-		body_top_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+		body_top_in.flags |= ui::wf_input | ui::wf_scroll_y;
+
+		body_top_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		body_top_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		body_top_in.size_mode_y		= ui::axis_mode_e::fill;
+		body_top_in.size_value		= {1.0f, 1.0f};
+		body_top_in.flow			= ui::flow_e::column;
+		body_top_in.child_spacing	= theme.item_spacing * 0.5f;
+		body_top_in.child_margins	= {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 
 		ui::vg_rect_paint_t body_top_rect = {};
 		body_top_rect.fill_color_a		  = theme.color_panel;
@@ -227,7 +226,6 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_bottom);
 
 		ui::layout_in_t& body_bottom_in = tree.in(_assets_body_pane_bottom);
-		body_bottom_in.flags			= ui::wf_visible;
 		body_bottom_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		body_bottom_in.size_mode_y		= ui::axis_mode_e::fixed;
 		body_bottom_in.size_value		= {1.0f, theme.item_area_height};
@@ -245,7 +243,6 @@ namespace sfg
 		tree.attach(_assets_body_pane_bottom, _assets_body_pane_path);
 
 		ui::layout_in_t& path_in = tree.in(_assets_body_pane_path);
-		path_in.flags			 = ui::wf_visible;
 		path_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		path_in.pos_value.y		 = 0.5f;
 		path_in.anchor_y		 = ui::anchor_e::center;
@@ -264,7 +261,6 @@ namespace sfg
 		tree.attach(_assets_body_pane_bottom, _assets_body_pane_controls);
 
 		ui::layout_in_t& controls_in = tree.in(_assets_body_pane_controls);
-		controls_in.flags			 = ui::wf_visible;
 		controls_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		controls_in.pos_value.y		 = 0.5f;
 		controls_in.anchor_y		 = ui::anchor_e::center;

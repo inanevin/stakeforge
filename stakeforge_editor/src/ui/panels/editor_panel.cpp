@@ -30,28 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	namespace
-	{
-		sid_t g_next_editor_panel_instance_id = 1;
-
-		void set_visible_recursive(ui::layout_tree_t& tree, ui::widget_id_t id, bool visible)
-		{
-			ui::layout_in_t& in = tree.in(id);
-			if (visible)
-				in.flags |= ui::wf_visible;
-			else
-				in.flags &= ~ui::wf_visible;
-
-			const ui::tree_node_t& node	 = tree.node(id);
-			ui::widget_id_t		   child = node.first_child;
-			while (child != NULL_WIDGET)
-			{
-				const ui::widget_id_t next = tree.node(child).next_sibling;
-				set_visible_recursive(tree, child, visible);
-				child = next;
-			}
-		}
-	}
+	sid_t g_next_editor_panel_instance_id = 1;
 
 	editor_panel_t::editor_panel_t()
 	{
@@ -119,7 +98,7 @@ namespace sfg
 
 	void editor_panel_t::make_visible(bool visible)
 	{
-		set_visible_recursive(_ui->get_tree(), _root, visible);
+		_ui->get_tree().set_visible(_root, visible, false);
 	}
 
 	void editor_panel_t::set_title(const char* title)

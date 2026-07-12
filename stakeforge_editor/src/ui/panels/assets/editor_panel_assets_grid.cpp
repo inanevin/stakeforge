@@ -126,7 +126,6 @@ namespace sfg
 					_ui->get_tree().draw_order(row) = _ui->get_tree().draw_order_const(_assets_body_pane_top) + 1;
 
 					ui::layout_in_t& row_in = _ui->get_tree().in(row);
-					row_in.flags			= ui::wf_visible;
 					row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 					row_in.size_mode_y		= ui::axis_mode_e::fixed;
 					row_in.size_value		= {1.0f, item_size.y};
@@ -247,12 +246,13 @@ namespace sfg
 		tree.attach(row, item.root);
 
 		ui::layout_in_t& root_in = tree.in(item.root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
-		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		root_in.size_value		 = item_size;
-		root_in.flow			 = ui::flow_e::column;
-		root_in.child_spacing	 = 0.0f;
+		root_in.flags |= ui::wf_input | ui::wf_focusable;
+
+		root_in.size_mode_x	  = ui::axis_mode_e::fixed;
+		root_in.size_mode_y	  = ui::axis_mode_e::fixed;
+		root_in.size_value	  = item_size;
+		root_in.flow		  = ui::flow_e::column;
+		root_in.child_spacing = 0.0f;
 
 		ui::vg_rect_paint_t root_rect = {};
 		root_rect.fill_color_a		  = theme.color_panel;
@@ -285,7 +285,6 @@ namespace sfg
 		tree.attach(item.root, item.thumbnail_frame);
 
 		ui::layout_in_t& thumbnail_in = tree.in(item.thumbnail_frame);
-		thumbnail_in.flags			  = ui::wf_visible;
 		thumbnail_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		thumbnail_in.size_mode_y	  = ui::axis_mode_e::copy_other;
 		thumbnail_in.size_value		  = {1.0f, 1.0f};
@@ -305,7 +304,7 @@ namespace sfg
 		tree.attach(item.thumbnail_frame, item.status_text);
 
 		ui::layout_in_t& status_in		  = tree.in(item.status_text);
-		status_in.flags					  = has_status ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		status_in.flags					  = ui::wf_overlay;
 		status_in.pos_mode_x			  = ui::pos_mode_e::relative_in_parent;
 		status_in.pos_mode_y			  = ui::pos_mode_e::relative_in_parent;
 		status_in.pos_value				  = {0.0f, 1.0f};
@@ -315,6 +314,7 @@ namespace sfg
 		status_in.size_mode_y			  = ui::axis_mode_e::fixed;
 		status_in.size_value			  = {theme.item_area_height, theme.item_area_height};
 		tree.draw_order(item.status_text) = tree.draw_order_const(item.thumbnail_frame) + 1;
+		tree.set_visible(item.status_text, has_status, false);
 
 		ui.set_widget_text(item.status_text, ICON_WARN);
 		paint.set_text(item.status_text,
@@ -327,7 +327,7 @@ namespace sfg
 		tree.attach(item.thumbnail_frame, item.star_text);
 
 		ui::layout_in_t& star_in		= tree.in(item.star_text);
-		star_in.flags					= is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		star_in.flags					= ui::wf_overlay;
 		star_in.pos_mode_x				= ui::pos_mode_e::relative_in_parent;
 		star_in.pos_mode_y				= ui::pos_mode_e::relative_in_parent;
 		star_in.pos_value				= {1.0f, 1.0f};
@@ -337,6 +337,7 @@ namespace sfg
 		star_in.size_mode_y				= ui::axis_mode_e::fixed;
 		star_in.size_value				= {theme.item_area_height, theme.item_area_height};
 		tree.draw_order(item.star_text) = tree.draw_order_const(item.root) + 1;
+		tree.set_visible(item.star_text, is_asset_favourite(get_asset_guid(node)), false);
 
 		ui.set_widget_text(item.star_text, ICON_STAR);
 		paint.set_text(item.star_text,
@@ -349,7 +350,6 @@ namespace sfg
 		tree.attach(item.root, item.info_frame);
 
 		ui::layout_in_t& info_in = tree.in(item.info_frame);
-		info_in.flags			 = ui::wf_visible;
 		info_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
 		info_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		info_in.size_mode_y		 = ui::axis_mode_e::fill;
@@ -370,7 +370,6 @@ namespace sfg
 		tree.attach(item.root, item.color_frame);
 
 		ui::layout_in_t& color_in = tree.in(item.color_frame);
-		color_in.flags			  = ui::wf_visible;
 		color_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		color_in.size_mode_y	  = ui::axis_mode_e::fixed;
 		color_in.size_value		  = {1.0f, theme.border_thickness};
@@ -385,7 +384,6 @@ namespace sfg
 		tree.attach(item.info_frame, item.label);
 
 		ui::layout_in_t& label_in = tree.in(item.label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_mode_y		  = ui::pos_mode_e::flow;
 
@@ -400,7 +398,6 @@ namespace sfg
 		tree.attach(item.info_frame, item.type_label);
 
 		ui::layout_in_t& type_label_in = tree.in(item.type_label);
-		type_label_in.flags			   = ui::wf_visible;
 		type_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		type_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		type_label_in.pos_value		   = {0.5f, 1.0f};
@@ -443,13 +440,14 @@ namespace sfg
 		tree.draw_order(item.root) = tree.draw_order_const(_assets_body_pane_top) + 1;
 
 		ui::layout_in_t& root_in = tree.in(item.root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input | ui::wf_focusable;
-		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		root_in.size_value		 = {1.0f, theme.item_height};
-		root_in.flow			 = ui::flow_e::row;
-		root_in.child_spacing	 = theme.item_spacing * 0.5f;
-		root_in.child_margins	 = {0.0f, theme.item_height * 2.0f, 0.0f, 0.0f};
+		root_in.flags |= ui::wf_input | ui::wf_focusable;
+
+		root_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		root_in.size_mode_y	  = ui::axis_mode_e::fixed;
+		root_in.size_value	  = {1.0f, theme.item_height};
+		root_in.flow		  = ui::flow_e::row;
+		root_in.child_spacing = theme.item_spacing * 0.5f;
+		root_in.child_margins = {0.0f, theme.item_height * 2.0f, 0.0f, 0.0f};
 
 		const bool			selected		   = _selected_asset_node == item.node;
 		ui::vg_rect_paint_t root_rect		   = {};
@@ -485,7 +483,6 @@ namespace sfg
 		tree.attach(item.root, item.color_frame);
 
 		ui::layout_in_t& color_in = tree.in(item.color_frame);
-		color_in.flags			  = ui::wf_visible;
 		color_in.size_mode_x	  = ui::axis_mode_e::fixed;
 		color_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		color_in.size_value		  = {theme.border_thickness, 1.0f};
@@ -500,7 +497,6 @@ namespace sfg
 		tree.attach(item.root, item.thumbnail_frame);
 
 		ui::layout_in_t& thumbnail_in = tree.in(item.thumbnail_frame);
-		thumbnail_in.flags			  = ui::wf_visible;
 		thumbnail_in.size_mode_x	  = ui::axis_mode_e::copy_other;
 		thumbnail_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		thumbnail_in.size_value		  = {1.0f, 0.85f};
@@ -523,7 +519,6 @@ namespace sfg
 		tree.attach(item.root, item.label);
 
 		ui::layout_in_t& label_in = tree.in(item.label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
@@ -542,7 +537,7 @@ namespace sfg
 		tree.attach(item.root, item.status_text);
 
 		ui::layout_in_t& status_in = tree.in(item.status_text);
-		status_in.flags			   = has_status ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		status_in.flags			   = ui::wf_overlay;
 		status_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		status_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
 		status_in.pos_value		   = {1.0f, 0.5f};
@@ -554,6 +549,7 @@ namespace sfg
 		const f32 root_w		   = _ui->get_tree().out(_assets_body_pane_top).size.x;
 		if (root_w > 0.0f)
 			status_in.pos_value.x = 1.0f - theme.item_height / root_w;
+		tree.set_visible(item.status_text, has_status, false);
 
 		ui.set_widget_text(item.status_text, ICON_WARN);
 		paint.set_text(item.status_text,
@@ -566,7 +562,7 @@ namespace sfg
 		tree.attach(item.root, item.star_text);
 
 		ui::layout_in_t& star_in		= tree.in(item.star_text);
-		star_in.flags					= is_asset_favourite(get_asset_guid(node)) ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+		star_in.flags					= ui::wf_overlay;
 		star_in.pos_mode_x				= ui::pos_mode_e::relative_in_parent;
 		star_in.pos_mode_y				= ui::pos_mode_e::relative_in_parent;
 		star_in.pos_value				= {1.0f, 0.5f};
@@ -576,6 +572,7 @@ namespace sfg
 		star_in.size_mode_y				= ui::axis_mode_e::fixed;
 		star_in.size_value				= {theme.item_height, theme.item_height};
 		tree.draw_order(item.star_text) = tree.draw_order_const(item.root) + 1;
+		tree.set_visible(item.star_text, is_asset_favourite(get_asset_guid(node)), false);
 
 		ui.set_widget_text(item.star_text, ICON_STAR);
 		paint.set_text(item.star_text,
@@ -618,8 +615,8 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 		for (const asset_grid_item_t& item : _asset_grid_items)
 		{
-			const bool favourite		  = is_asset_favourite(get_asset_guid(item.node));
-			tree.in(item.star_text).flags = favourite ? static_cast<u16>(ui::wf_visible | ui::wf_overlay) : static_cast<u16>(ui::wf_overlay);
+			const bool favourite = is_asset_favourite(get_asset_guid(item.node));
+			tree.set_visible(item.star_text, favourite, false);
 		}
 	}
 

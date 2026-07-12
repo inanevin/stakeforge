@@ -230,8 +230,6 @@ namespace sfg
 		_visible				= visible;
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_foreground, visible, false);
-		tree.set_visible(_frame, visible, false);
-		tree.set_visible(_label, visible, false);
 	}
 
 	editor_tooltip_controller_t::tooltip_entry_t* editor_tooltip_controller_t::find_entry(ui::widget_id_t owner)

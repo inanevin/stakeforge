@@ -81,7 +81,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static f32 calculate_min_height();
-		void	   set_visible(bool visible);
 		void	   update_config(const editor_color_wheel_config_t& config);
 		void	   update_field_data(editor_color_wheel_field_t field);
 		void	   refresh_field_data();
@@ -96,7 +95,6 @@ namespace sfg
 		}
 
 	private:
-		static constexpr u32 PANE_COUNT			   = 6;
 		static constexpr u32 TOP_RIGHT_FRAME_COUNT = 2;
 		static constexpr u32 ROW_COUNT			   = 8;
 		static constexpr u32 NUMBER_FIELD_COUNT	   = 7;
@@ -111,7 +109,6 @@ namespace sfg
 		void			update_displays(bool apply_wheel);
 		void			apply_top_left_wheel(const vec2f_t& pos);
 		void			apply_top_right_slider(ui::widget_id_t id, const vec2f_t& pos);
-		void			set_widget_visible(ui::widget_id_t id, bool visible);
 
 		static void on_rgba_changed(void* user_data);
 		static void on_hsv_changed(void* user_data);
@@ -129,13 +126,10 @@ namespace sfg
 		color_t						_display_color							  = {};
 		color_t						_top_right_drag_color					  = {};
 		ui::widget_id_t				_root									  = NULL_WIDGET;
-		ui::widget_id_t				_panes[PANE_COUNT]						  = {};
 		ui::widget_id_t				_top_left_frame							  = NULL_WIDGET;
 		ui::widget_id_t				_top_left_handle						  = NULL_WIDGET;
 		ui::widget_id_t				_top_right_frames[TOP_RIGHT_FRAME_COUNT]  = {};
 		ui::widget_id_t				_top_right_handles[TOP_RIGHT_FRAME_COUNT] = {};
-		ui::widget_id_t				_rows[ROW_COUNT]						  = {};
-		ui::widget_id_t				_labels[ROW_COUNT]						  = {};
 		f32							_top_right_values[TOP_RIGHT_FRAME_COUNT]  = {};
 		f32							_number_values[NUMBER_FIELD_COUNT]		  = {};
 		char						_hex_value[HEX_TEXT_CAPACITY]			  = {};

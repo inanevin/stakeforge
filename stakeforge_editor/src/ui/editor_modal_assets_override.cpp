@@ -52,7 +52,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::max_children;
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.flow			 = ui::flow_e::column;
@@ -67,7 +66,6 @@ namespace sfg
 			tree.attach(_root, label);
 
 			ui::layout_in_t& label_in = tree.in(label);
-			label_in.flags			  = ui::wf_visible;
 			ui.set_widget_text(label, row.c_str());
 			paint.set_text(
 				label, ui.widget_text(label), ui.widget_text_len(label), {.font = theme.font_default_mono, .color = theme.color_text1, .point_size = theme.text_small_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});

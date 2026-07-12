@@ -89,20 +89,14 @@ namespace sfg
 			input.uninit();
 		_ui->deallocate_widget(_root);
 
-		_ui	  = nullptr;
-		_root = NULL_WIDGET;
-		for (ui::widget_id_t& pane : _panes)
-			pane = NULL_WIDGET;
+		_ui				 = nullptr;
+		_root			 = NULL_WIDGET;
 		_top_left_frame	 = NULL_WIDGET;
 		_top_left_handle = NULL_WIDGET;
 		for (ui::widget_id_t& frame : _top_right_frames)
 			frame = NULL_WIDGET;
 		for (ui::widget_id_t& handle : _top_right_handles)
 			handle = NULL_WIDGET;
-		for (ui::widget_id_t& row : _rows)
-			row = NULL_WIDGET;
-		for (ui::widget_id_t& label : _labels)
-			label = NULL_WIDGET;
 		_fields.resize(0);
 		_config				  = {};
 		_display_color		  = {};
@@ -112,26 +106,6 @@ namespace sfg
 		for (f32& value : _number_values)
 			value = 0.0f;
 		_hex_value[0] = '\0';
-	}
-
-	void editor_widget_color_wheel_t::set_visible(bool visible)
-	{
-		set_widget_visible(_root, visible);
-		for (ui::widget_id_t pane : _panes)
-			set_widget_visible(pane, visible);
-		ui::layout_tree_t& tree		   = _ui->get_tree();
-		tree.in(_top_left_frame).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input) : 0;
-		set_widget_visible(_top_left_handle, visible);
-		for (ui::widget_id_t frame : _top_right_frames)
-			tree.in(frame).flags = visible ? static_cast<u16>(ui::wf_visible | ui::wf_input) : 0;
-		for (ui::widget_id_t handle : _top_right_handles)
-			set_widget_visible(handle, visible);
-		for (ui::widget_id_t row : _rows)
-			set_widget_visible(row, visible);
-		for (ui::widget_id_t label : _labels)
-			set_widget_visible(label, visible);
-		for (editor_input_field_t& input : _inputs)
-			input.set_visible(visible);
 	}
 
 	void editor_widget_color_wheel_t::update_config(const editor_color_wheel_config_t& config)
@@ -175,7 +149,6 @@ namespace sfg
 		tree.attach(parent, pane);
 
 		ui::layout_in_t& pane_in = tree.in(pane);
-		pane_in.flags			 = ui::wf_visible;
 		pane_in.pos_mode_x		 = ui::pos_mode_e::flow;
 		pane_in.pos_mode_y		 = ui::pos_mode_e::flow;
 		pane_in.size_mode_x		 = size_mode_x;
@@ -184,15 +157,6 @@ namespace sfg
 		pane_in.flow			 = flow;
 		pane_in.child_spacing	 = child_spacing;
 		pane_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
-
-		for (ui::widget_id_t& slot : _panes)
-		{
-			if (slot == NULL_WIDGET)
-			{
-				slot = pane;
-				break;
-			}
-		}
 
 		return pane;
 	}
@@ -344,10 +308,10 @@ namespace sfg
 		u8*							input_field	 = reinterpret_cast<u8*>(&_number_values[field]);
 		editor_input_field_config_t input_config = {};
 		input_config.field						 = {
-								  .fields	  = {.data = &input_field, .size = 1},
-								  .field_size = sizeof(f32),
-								  .type		  = editor_input_field_field_type_e::pod_number,
-		  };
+			.fields		= {.data = &input_field, .size = 1},
+			.field_size = sizeof(f32),
+			.type		= editor_input_field_field_type_e::pod_number,
+		};
 		input_config.field.is_slider	 = true;
 		input_config.min_value			 = 0.0f;
 		input_config.max_value			 = 1.0f;
@@ -363,9 +327,6 @@ namespace sfg
 		input_in.size_mode_y					 = ui::axis_mode_e::fixed;
 		input_in.size_value						 = {1.0f, theme.item_height};
 		tree.draw_order(_inputs[row].get_root()) = tree.draw_order_const(parent) + 1;
-
-		_rows[row]	 = row_widget;
-		_labels[row] = label_widget;
 	}
 
 	void editor_widget_color_wheel_t::make_text_row(ui::widget_id_t parent, u32 row, const char* label)
@@ -410,10 +371,10 @@ namespace sfg
 		u8*							input_field	 = reinterpret_cast<u8*>(_hex_value);
 		editor_input_field_config_t input_config = {};
 		input_config.field						 = {
-								  .fields	  = {.data = &input_field, .size = 1},
-								  .field_size = HEX_TEXT_CAPACITY,
-								  .type		  = editor_input_field_field_type_e::char_array,
-		  };
+			.fields		= {.data = &input_field, .size = 1},
+			.field_size = HEX_TEXT_CAPACITY,
+			.type		= editor_input_field_field_type_e::char_array,
+		};
 		input_config.callbacks.edited	 = on_hex_changed;
 		input_config.callbacks.user_data = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
@@ -426,9 +387,6 @@ namespace sfg
 		input_in.size_mode_y					 = ui::axis_mode_e::fixed;
 		input_in.size_value						 = {1.0f, theme.item_height};
 		tree.draw_order(_inputs[row].get_root()) = tree.draw_order_const(parent) + 1;
-
-		_rows[row]	 = row_widget;
-		_labels[row] = label_widget;
 	}
 
 	void editor_widget_color_wheel_t::modify_field()
@@ -599,8 +557,4 @@ namespace sfg
 			wheel.apply_top_right_slider(id, pos);
 	}
 
-	void editor_widget_color_wheel_t::set_widget_visible(ui::widget_id_t id, bool visible)
-	{
-		_ui->get_tree().in(id).flags = visible ? ui::wf_visible : 0;
-	}
 }

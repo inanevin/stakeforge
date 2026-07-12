@@ -100,7 +100,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
 		root_in.pos_value		 = {0.0f, 0.0f};
@@ -113,7 +112,6 @@ namespace sfg
 		tree.attach(_root, _texture_bg);
 
 		ui::layout_in_t& bg_in = tree.in(_texture_bg);
-		bg_in.flags			   = ui::wf_visible;
 		bg_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		bg_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		bg_in.size_value	   = {1.0f, 1.0f};
@@ -134,7 +132,6 @@ namespace sfg
 		tree.draw_order(_strikes) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& strikes_in = tree.in(_strikes);
-		strikes_in.flags			= ui::wf_visible;
 		strikes_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		strikes_in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		strikes_in.size_value		= {1.0f, 1.0f};
@@ -146,7 +143,6 @@ namespace sfg
 		tree.draw_order(_column) = tree.draw_order_const(_root) + 2;
 
 		ui::layout_in_t& column_in = tree.in(_column);
-		column_in.flags			   = ui::wf_visible;
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		column_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		column_in.size_value	   = {1.0f, 1.0f};

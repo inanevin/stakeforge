@@ -77,7 +77,6 @@ namespace sfg
 		tree.attach(parent, row.row);
 
 		ui::layout_in_t& row_in = tree.in(row.row);
-		row_in.flags			= ui::wf_visible;
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
 		row_in.size_value		= {1.0f, theme.item_area_height};
@@ -88,7 +87,6 @@ namespace sfg
 		tree.attach(row.row, row.left);
 
 		ui::layout_in_t& left_in = tree.in(row.left);
-		left_in.flags			 = ui::wf_visible;
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		left_in.size_value		 = {0.4f, 1.0f};
@@ -100,7 +98,6 @@ namespace sfg
 		tree.attach(row.row, row.divider);
 
 		ui::layout_in_t& divider_in = tree.in(row.divider);
-		divider_in.flags			= ui::wf_visible;
 		divider_in.size_mode_x		= ui::axis_mode_e::fixed;
 		divider_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		divider_in.size_mode_y		= ui::axis_mode_e::parent_relative;
@@ -118,7 +115,6 @@ namespace sfg
 		tree.attach(row.row, row.right);
 
 		ui::layout_in_t& right_in = tree.in(row.right);
-		right_in.flags			  = ui::wf_visible;
 		right_in.size_mode_x	  = ui::axis_mode_e::fill;
 		right_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		right_in.size_value		  = {1.0f, 1.0f};
@@ -229,7 +225,6 @@ namespace sfg
 		tree.attach(vector_row.row.right, filler);
 
 		ui::layout_in_t& filler_in = tree.in(filler);
-		filler_in.flags			   = ui::wf_visible;
 		filler_in.size_mode_x	   = ui::axis_mode_e::fill;
 		filler_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
 		filler_in.size_value	   = {1.0f, 1.0f};
@@ -242,7 +237,6 @@ namespace sfg
 		tree.attach(vector_row.row.right, vector_row.count_label);
 
 		ui::layout_in_t& count_label_in = tree.in(vector_row.count_label);
-		count_label_in.flags			= ui::wf_visible;
 		count_label_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		count_label_in.pos_value.y		= 0.5f;
 		count_label_in.anchor_y			= ui::anchor_e::center;
@@ -270,7 +264,6 @@ namespace sfg
 		ui.set_widget_debug_name(id, "spacer");
 
 		ui::layout_in_t& in = tree.in(id);
-		in.flags			= ui::wf_visible;
 		in.size_mode_x		= ui::axis_mode_e::fixed;
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.size_value		= size;

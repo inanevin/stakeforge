@@ -39,7 +39,6 @@ namespace sfg
 		ui::paint_layer_t&	  paint = ui.get_paint();
 
 		ui::layout_in_t& frame_in = tree.in(frame);
-		frame_in.flags			  = ui::wf_visible;
 		frame_in.size_mode_x	  = ui::axis_mode_e::fill;
 		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		frame_in.size_value		  = {1.0f, 1.0f};
@@ -55,7 +54,6 @@ namespace sfg
 		paint.set_press_color(frame, theme.color_frame_light);
 
 		ui::layout_in_t& label_in = tree.in(label);
-		label_in.flags			  = ui::wf_visible;
 		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 		label_in.pos_value		  = {0.5f, 0.5f};

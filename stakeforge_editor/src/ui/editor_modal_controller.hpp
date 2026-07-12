@@ -115,7 +115,6 @@ namespace sfg
 		editor_modal_content_desc_t _content					= {};
 		ui::ui_context*				_ui							= nullptr;
 		ui::widget_id_t				_foreground					= NULL_WIDGET;
-		ui::widget_id_t				_dimmer						= NULL_WIDGET;
 		ui::widget_id_t				_window						= NULL_WIDGET;
 		ui::widget_id_t				_title						= NULL_WIDGET;
 		ui::widget_id_t				_description				= NULL_WIDGET;

@@ -45,7 +45,6 @@ namespace sfg
 		tree.attach(parent, _root);
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible;
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value.x	 = 1.0f;
@@ -59,7 +58,6 @@ namespace sfg
 		tree.attach(_root, _spinner_row);
 
 		ui::layout_in_t& spinner_row_in = tree.in(_spinner_row);
-		spinner_row_in.flags			= ui::wf_visible;
 		spinner_row_in.pos_mode_y		= ui::pos_mode_e::flow;
 		spinner_row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		spinner_row_in.size_mode_y		= ui::axis_mode_e::fixed;
@@ -70,7 +68,6 @@ namespace sfg
 		tree.attach(_spinner_row, _spinner_holder);
 
 		ui::layout_in_t& spinner_holder_in = tree.in(_spinner_holder);
-		spinner_holder_in.flags			   = ui::wf_visible;
 		spinner_holder_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
 		spinner_holder_in.pos_mode_y	   = ui::pos_mode_e::flow;
 		spinner_holder_in.pos_value.x	   = 0.5f;
