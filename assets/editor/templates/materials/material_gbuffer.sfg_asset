@@ -7,7 +7,9 @@
         "schema": "sfg.schema.material",
         "pass_flags": 5,
         "shader": 1000,
-        "sampler": 1009,
+        "samplers": [
+            1009
+        ],
         "textures": [
             1002,
             1004,

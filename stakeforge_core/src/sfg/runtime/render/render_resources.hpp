@@ -123,6 +123,11 @@ namespace sfg
 		gpu_index_t	 get_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const;
 		gpu_index_t	 get_sampler_gpu_index(render_resource_handle_t handle) const;
 
+		inline render_resource_handle_t get_default_linear_sampler() const
+		{
+			return _default_linear_sampler;
+		}
+
 		inline texture_queue_t& get_texture_upload_queue()
 		{
 			return _texture_upload_queue;
@@ -220,6 +225,7 @@ namespace sfg
 		moodycamel::ReaderWriterQueue<request_t> _request_q;
 		texture_queue_t							 _texture_upload_queue = {};
 		vector_t<request_t>						 _deferred_destroys;
+		render_resource_handle_t				 _default_linear_sampler = {};
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;

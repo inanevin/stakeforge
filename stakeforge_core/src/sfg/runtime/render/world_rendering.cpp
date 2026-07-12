@@ -76,14 +76,14 @@ namespace sfg
 				return;
 			bound_index = index;
 
-			inplace_vector_t<gpu_index_t, 10> constants;
+			inplace_vector_t<gpu_index_t, 1 + SFG_MATERIAL_MAX_TEXTURES * 2> constants;
 			constants.push_back(render_resources_t::get().get_resource_gpu_index(mat.material_buffer));
 
 			for (u32 i = 0; i < mat.texture_count; i++)
 				constants.push_back(render_resources_t::get().get_texture_gpu_index(mat.material_textures[i], 0));
 
-			if (!mat.sampler.is_null())
-				constants.push_back(render_resources_t::get().get_sampler_gpu_index(mat.sampler));
+			for (u32 i = 0; i < mat.texture_count; i++)
+				constants.push_back(render_resources_t::get().get_sampler_gpu_index(mat.material_samplers[i]));
 
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
@@ -600,18 +600,18 @@ namespace sfg
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		gpu_index_t				  rp_constants[11] = {
-			  ctx.get_lighting_render_pass_data_index(frame_index),
-			  ctx.get_gbuffer_albedo_index(frame_index),
-			  ctx.get_gbuffer_normal_index(frame_index),
-			  ctx.get_gbuffer_orm_index(frame_index),
-			  ctx.get_gbuffer_emissive_index(frame_index),
-			  ctx.get_depth_texture_index(frame_index),
-			  ctx.get_ao_texture_index(frame_index),
-			  snapshot.skybox.radiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.radiance, 0),
-			  snapshot.skybox.irradiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.irradiance, 0),
-			  snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
-			  snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
-		  };
+			ctx.get_lighting_render_pass_data_index(frame_index),
+			ctx.get_gbuffer_albedo_index(frame_index),
+			ctx.get_gbuffer_normal_index(frame_index),
+			ctx.get_gbuffer_orm_index(frame_index),
+			ctx.get_gbuffer_emissive_index(frame_index),
+			ctx.get_depth_texture_index(frame_index),
+			ctx.get_ao_texture_index(frame_index),
+			snapshot.skybox.radiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.radiance, 0),
+			snapshot.skybox.irradiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.irradiance, 0),
+			snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
+			snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
+		};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 11, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});

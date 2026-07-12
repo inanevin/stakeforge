@@ -226,9 +226,9 @@ void PSMain(vs_output IN)
 {
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
     Texture2D tex_albedo = sfg_get_texture<Texture2D>(sfg_constant_mat1);
-    SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat5);
+    SamplerState sampler_albedo = sfg_get_sampler_state(sfg_constant_mat5);
 
-    float4 albedo_tex = tex_albedo.Sample(sampler_default, IN.uv);
+    float4 albedo_tex = tex_albedo.Sample(sampler_albedo, IN.uv);
 	if(albedo_tex.a < mat_data.roughness_normal_strength_alpha.z)
 	{
 		discard;
@@ -257,7 +257,10 @@ ps_output PSMain(vs_output IN)
     Texture2D tex_normal = sfg_get_texture<Texture2D>(sfg_constant_mat2);
     Texture2D tex_orm = sfg_get_texture<Texture2D>(sfg_constant_mat3);
     Texture2D tex_emissive = sfg_get_texture<Texture2D>(sfg_constant_mat4);
-    SamplerState sampler_default = sfg_get_sampler_state(sfg_constant_mat5);
+    SamplerState sampler_albedo = sfg_get_sampler_state(sfg_constant_mat5);
+    SamplerState sampler_normal = sfg_get_sampler_state(sfg_constant_mat6);
+    SamplerState sampler_orm = sfg_get_sampler_state(sfg_constant_mat7);
+    SamplerState sampler_emissive = sfg_get_sampler_state(sfg_constant_mat8);
 
     float2 albedo_tiling = unpack_half2x16(mat_data.albedo_tiling_offset.x);
     float2 albedo_offset = unpack_half2x16(mat_data.albedo_tiling_offset.y);
@@ -276,7 +279,7 @@ ps_output PSMain(vs_output IN)
     float2 emissive_uv = IN.uv * emissive_tiling + emissive_offset;
 
     // --- Base color ---
-    float4 albedo_tex = tex_albedo.Sample(sampler_default, albedo_uv);
+    float4 albedo_tex = tex_albedo.Sample(sampler_albedo, albedo_uv);
     float4 albedo = albedo_tex * mat_data.base_color_factor;
 #ifdef USE_ALPHA_CUTOFF
 	if(albedo.a < mat_data.roughness_normal_strength_alpha.z)
@@ -286,7 +289,7 @@ ps_output PSMain(vs_output IN)
 #endif
 
     // normal, convert to -1, 1 vector 
-    float3 tangent_normal = tex_normal.Sample(sampler_default, normal_uv).xyz * 2.0 - 1.0;
+    float3 tangent_normal = tex_normal.Sample(sampler_normal, normal_uv).xyz * 2.0 - 1.0;
     float s = mat_data.roughness_normal_strength_alpha.y;
     float2 xy = tangent_normal.xy * s;
     float z = sqrt(saturate(1.0 - dot(xy, xy)));
@@ -299,13 +302,13 @@ ps_output PSMain(vs_output IN)
     float2 encoded_normal = oct_encode(world_normal);
 
     // --- orm ---
-    float3 orm_tex = tex_orm.Sample(sampler_default, orm_uv).rgb;
+    float3 orm_tex = tex_orm.Sample(sampler_orm, orm_uv).rgb;
     float ao = saturate(orm_tex.r);
     float roughness = saturate(orm_tex.g * mat_data.roughness_normal_strength_alpha.x);
     float metallic = saturate(orm_tex.b * mat_data.emissive_and_metallic_factor.w);
 
     // emissive
-    float3 emissive_tex = tex_emissive.Sample(sampler_default, emissive_uv).rgb;
+    float3 emissive_tex = tex_emissive.Sample(sampler_emissive, emissive_uv).rgb;
     float3 emissive = emissive_tex * mat_data.emissive_and_metallic_factor.xyz * 3;
 
     // outs

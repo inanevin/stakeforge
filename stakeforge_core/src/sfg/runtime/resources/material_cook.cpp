@@ -6,7 +6,6 @@
 #include "material_def.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
@@ -15,7 +14,6 @@ namespace sfg
 	bool material_cooker::cook_from_def(const material_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
 		material_def_t material = def;
-		SFG_ASSERT(material.textures.empty() || material.sampler != NULL_SID);
 		for (material_parameter_t& parameter : material.parameters)
 			parameter.values.resize(4);
 
@@ -44,11 +42,14 @@ namespace sfg
 			out_header.dependency_count++;
 		}
 
-		out_header.dependencies[out_header.dependency_count] = {
-			.handle = def.sampler,
-			.type	= resource_type_e::texture_sampler,
-		};
-		out_header.dependency_count++;
+		for (const resource_handle_t h : def.samplers)
+		{
+			out_header.dependencies[out_header.dependency_count] = {
+				.handle = h,
+				.type	= resource_type_e::texture_sampler,
+			};
+			out_header.dependency_count++;
+		}
 
 		out_header.dependencies[out_header.dependency_count] = {
 			.handle = def.shader,
@@ -63,7 +64,6 @@ namespace sfg
 	bool material_cooker::collect_source_tick(const material_def_t& def, u64& out)
 	{
 		material_def_t material = def;
-		SFG_ASSERT(material.textures.empty() || material.sampler != NULL_SID);
 		for (material_parameter_t& parameter : material.parameters)
 			parameter.values.resize(4);
 

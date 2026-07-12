@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/data/frame_hash_map.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/skybox_hdr.hpp>
@@ -87,13 +88,18 @@ namespace sfg
 					render_mat.pso_flags[i] = shader->pso_flags[i].value();
 				}
 
-				const texture_sampler_internals_t* sampler_internals = rm.find_internals<texture_sampler_internals_t>(mat_runtime->sampler_guid);
-				render_mat.sampler									 = sampler_internals ? sampler_internals->sampler : render_resource_handle_t();
-
 				for (u32 j = 0; j < mat_runtime->texture_count; j++)
 				{
 					const texture_internals_t* texture_internals = rm.find_internals<texture_internals_t>(mat_runtime->texture_guids[j]);
 					render_mat.material_textures[j]				 = texture_internals ? texture_internals->texture : render_resource_handle_t();
+
+					render_mat.material_samplers[j] = render_resources_t::get().get_default_linear_sampler();
+					if (mat_runtime->sampler_count != 0)
+					{
+						const u32						   sampler_index	 = j < mat_runtime->sampler_count ? j : mat_runtime->sampler_count - 1;
+						const texture_sampler_internals_t* sampler_internals = rm.find_internals<texture_sampler_internals_t>(mat_runtime->sampler_guids[sampler_index]);
+						render_mat.material_samplers[j]						 = sampler_internals ? sampler_internals->sampler : render_resources_t::get().get_default_linear_sampler();
+					}
 				}
 
 				return idx;
@@ -195,14 +201,14 @@ namespace sfg
 				const skybox_hdr_internals_t* internals = rm.get_memory().get<skybox_hdr_internals_t>(entry->internals);
 				const skybox_hdr_runtime_t*	  runtime	= rm.get_memory().get<skybox_hdr_runtime_t>(entry->runtime);
 				snapshot.skybox							= {
-											.radiance		   = internals->radiance_texture,
-											.irradiance		   = internals->irradiance_texture,
-											.prefilter		   = internals->prefilter_texture,
-											.brdf_lut		   = internals->brdf_lut_texture,
-											.intensity		   = runtime->intensity * skybox.intensity,
-											.exposure		   = skybox.exposure,
-											.rotation		   = runtime->rotation,
-											.prefilter_max_lod = static_cast<f32>(runtime->prefilter.mip_count - 1),
+					.radiance		   = internals->radiance_texture,
+					.irradiance		   = internals->irradiance_texture,
+					.prefilter		   = internals->prefilter_texture,
+					.brdf_lut		   = internals->brdf_lut_texture,
+					.intensity		   = runtime->intensity * skybox.intensity,
+					.exposure		   = skybox.exposure,
+					.rotation		   = runtime->rotation,
+					.prefilter_max_lod = static_cast<f32>(runtime->prefilter.mip_count - 1),
 				};
 				break;
 			}

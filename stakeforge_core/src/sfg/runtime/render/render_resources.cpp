@@ -2,6 +2,7 @@
 
 #include "render_resources.hpp"
 #include <sfg/gfx/backend/backend.hpp>
+#include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -17,12 +18,15 @@ namespace sfg
 	void render_resources_t::init()
 	{
 		get_texture_upload_queue().init();
+		_default_linear_sampler = enqueue_create_sampler(gfx_util_t::get_sampler_desc_linear());
 	}
 
 	void render_resources_t::uninit()
 	{
 		drain_requests();
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_sampler, .render_handle = _default_linear_sampler});
 		drain_destroy_requests();
+		_default_linear_sampler = {};
 		get_texture_upload_queue().uninit();
 		release_retired_resources(true);
 		release_retired_textures(true);

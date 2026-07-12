@@ -58,9 +58,9 @@ namespace sfg
 	struct material_def_t
 	{
 		inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>	textures		 = {};
+		inplace_vector_t<resource_handle_t, SFG_MATERIAL_MAX_TEXTURES>	samplers		 = {};
 		inplace_vector_t<material_parameter_t, SFG_MATERIAL_MAX_PARAMS> parameters		 = {};
 		resource_handle_t												shader			 = NULL_RESOURCE_HANDLE;
-		resource_handle_t												sampler			 = NULL_RESOURCE_HANDLE;
 		bitmask_t<u32>													pass_flags		 = 0;
 		bool															double_sided	 = false;
 		bool															use_alpha_cutoff = false;

@@ -15,7 +15,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'A', 'T', 'L');
-		static constexpr u32 WIRE_VERSION = 3;
+		static constexpr u32 WIRE_VERSION = 4;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -31,11 +31,12 @@ namespace sfg
 	{
 		material_runtime_parameter_t parameters[SFG_MATERIAL_MAX_PARAMS]	  = {};
 		sid_t						 texture_guids[SFG_MATERIAL_MAX_TEXTURES] = {};
+		sid_t						 sampler_guids[SFG_MATERIAL_MAX_TEXTURES] = {};
 		sid_t						 shader_guid							  = NULL_SID;
-		sid_t						 sampler_guid							  = NULL_SID;
 		u32							 parameter_data_size					  = 0;
 		u32							 parameter_count						  = 0;
 		u32							 texture_count							  = 0;
+		u32							 sampler_count							  = 0;
 		bitmask_t<u32>				 pass_flags								  = 0;
 		u8							 double_sided							  = 0;
 		u8							 use_alpha_cutoff						  = 0;

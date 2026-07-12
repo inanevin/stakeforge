@@ -7,7 +7,6 @@
 #include "resource_manager.hpp"
 #include "texture.hpp"
 #include "shader.hpp"
-#include "texture_sampler.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
@@ -116,14 +115,19 @@ namespace sfg
 			return false;
 		}
 
+		if (material.samplers.size() > SFG_MATERIAL_MAX_TEXTURES)
+		{
+			SFG_ERR("material has too many samplers: {0} / {1}", material.samplers.size(), SFG_MATERIAL_MAX_TEXTURES);
+			return false;
+		}
+
 		runtime->pass_flags		  = material.pass_flags;
 		runtime->shader_guid	  = material.shader;
-		runtime->sampler_guid	  = material.sampler;
 		runtime->double_sided	  = material.double_sided ? 1 : 0;
 		runtime->use_alpha_cutoff = material.use_alpha_cutoff ? 1 : 0;
 		runtime->parameter_count  = static_cast<u32>(material.parameters.size());
 		runtime->texture_count	  = static_cast<u32>(material.textures.size());
-		SFG_ASSERT(runtime->texture_count == 0 || runtime->sampler_guid != NULL_SID);
+		runtime->sampler_count	  = static_cast<u32>(material.samplers.size());
 		SFG_ASSERT(runtime->shader_guid);
 
 		if (runtime->parameter_count != 0)
@@ -154,6 +158,11 @@ namespace sfg
 		for (u32 i = 0; i < runtime->texture_count; ++i)
 		{
 			runtime->texture_guids[i] = material.textures[i];
+		}
+
+		for (u32 i = 0; i < runtime->sampler_count; ++i)
+		{
+			runtime->sampler_guids[i] = material.samplers[i];
 		}
 
 		return true;

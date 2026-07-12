@@ -38,9 +38,9 @@ namespace sfg
 	struct alignas(64) world_render_material_t
 	{
 		render_resource_handle_t material_textures[SFG_MATERIAL_MAX_TEXTURES];
+		render_resource_handle_t material_samplers[SFG_MATERIAL_MAX_TEXTURES];
 		render_resource_handle_t material_buffer						= {};
 		render_resource_handle_t psos[SFG_SHADER_MAX_PSO_VARIANTS]		= {};
-		render_resource_handle_t sampler								= {};
 		u32						 pso_flags[SFG_SHADER_MAX_PSO_VARIANTS] = {};
 		u32						 pso_count								= 0;
 		u32						 texture_count							= 0;

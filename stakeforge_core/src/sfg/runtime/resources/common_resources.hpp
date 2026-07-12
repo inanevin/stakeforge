@@ -15,7 +15,7 @@ namespace sfg
 	class ostream_t;
 	class resource_file_system_t;
 
-#define MAX_DEPENDENCIES	12
+#define MAX_DEPENDENCIES	24
 #define MAX_DEBUG_NAME_SIZE 128
 
 	inline constexpr u32 make_resource_wire_magic(char c0, char c1, char c2, char c3)

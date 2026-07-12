@@ -1125,6 +1125,10 @@ namespace sfg
 						orm_guid,
 						get_texture_guid(texture_guid_map, emissive_index, false, DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID),
 					},
+				.samplers =
+					{
+						get_sampler_guid(model, material),
+					},
 				.parameters =
 					{
 						make_vec4_parameter(static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[0]),
@@ -1139,7 +1143,6 @@ namespace sfg
 						make_uint2_parameter(emissive_transform.tiling, emissive_transform.offset),
 					},
 				.shader			  = DEFAULT_GBUFFER_SHADER_ASSET_GUID,
-				.sampler		  = get_sampler_guid(model, material),
 				.pass_flags		  = pass_flags,
 				.double_sided	  = material.double_sided != 0,
 				.use_alpha_cutoff = is_cutoff,

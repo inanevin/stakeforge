@@ -49,11 +49,13 @@ namespace sfg
 				break;
 
 			push_dependency(embedded_source.value<sid_t>("shader", NULL_SID));
-			push_dependency(embedded_source.value<sid_t>("sampler", NULL_SID));
 			const vector_t<sid_t> textures = embedded_source.value<vector_t<sid_t>>("textures", {});
-			out_dependencies.reserve(out_dependencies.size() + textures.size());
+			const vector_t<sid_t> samplers = embedded_source.value<vector_t<sid_t>>("samplers", {});
+			out_dependencies.reserve(out_dependencies.size() + textures.size() + samplers.size());
 			for (const sid_t texture : textures)
 				push_dependency(texture);
+			for (const sid_t sampler : samplers)
+				push_dependency(sampler);
 			break;
 		}
 		default:

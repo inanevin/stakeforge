@@ -77,6 +77,10 @@ cbuffer sfg_constants : register(b0, space0)
    uint sfg_constant_mat10;
    uint sfg_constant_mat11;
    uint sfg_constant_mat12;
+   uint sfg_constant_mat13;
+   uint sfg_constant_mat14;
+   uint sfg_constant_mat15;
+   uint sfg_constant_mat16;
    uint sfg_constant_obj0;
    uint sfg_constant_obj1;
    uint sfg_constant_obj2;
