@@ -28,8 +28,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
-#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "world/editor_world_edit_context.hpp"
@@ -271,45 +271,33 @@ namespace sfg
 		label_in.size_mode_x	  = ui::axis_mode_e::fill;
 		label_in.size_mode_y	  = ui::axis_mode_e::fixed;
 
-		row.disable_button = ui.allocate_widget();
-		ui.set_widget_debug_name(row.disable_button, "outliner_row_disable_button");
-		tree.attach(row.root, row.disable_button);
-		tree.draw_order(row.disable_button) = tree.draw_order_const(row.root) + 1;
+		editor_icon_button_config_t disable_button_config = {};
+		disable_button_config.frame_color				  = vec4f_t::zero;
+		disable_button_config.hover_color				  = theme.color_panel_light;
+		disable_button_config.press_color				  = theme.color_frame_light;
+		disable_button_config.frame_toggled_color		  = theme.color_frame_light;
+		disable_button_config.icon						  = ICON_EYE;
+		disable_button_config.toggled_icon				  = ICON_EYE_CROSS;
+		disable_button_config.icon_color				  = theme.color_text1;
+		disable_button_config.disabled_color			  = theme.color_text_disabled;
+		disable_button_config.tooltip					  = "Toggle Disable";
+		disable_button_config.size						  = theme.item_height;
+		disable_button_config.icon_size					  = theme.icon_default_px_size;
+		disable_button_config.toggle_enabled			  = true;
+		disable_button_config.on_clicked				  = on_entity_disable_clicked;
+		disable_button_config.user_data					  = this;
 
-		ui::layout_in_t& disable_button_in = tree.in(row.disable_button);
-		disable_button_in.flags |= ui::wf_input;
+		row.disable_button = new editor_icon_button_t();
+		row.disable_button->init(ui, row.root, disable_button_config);
+		const ui::widget_id_t disable_button_root = row.disable_button->get_root();
+		ui.set_widget_debug_name(disable_button_root, "outliner_row_disable_button");
+		tree.draw_order(disable_button_root)						= tree.draw_order_const(row.root) + 1;
+		tree.draw_order(tree.node(disable_button_root).first_child) = tree.draw_order_const(disable_button_root) + 1;
 
-		disable_button_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
-		disable_button_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
-		disable_button_in.pos_value	  = {1.0f, 0.5f};
-		disable_button_in.anchor_x	  = ui::anchor_e::end;
-		disable_button_in.anchor_y	  = ui::anchor_e::center;
-		disable_button_in.size_mode_x = ui::axis_mode_e::fixed;
-		disable_button_in.size_mode_y = ui::axis_mode_e::fixed;
-		disable_button_in.size_value  = {theme.item_height, theme.item_height};
-
-		ui::listener_bundle_t disable_listener = {};
-		disable_listener.user_data			   = this;
-		disable_listener.on_click			   = on_entity_disable_clicked;
-		ui.get_input().set_listener(row.disable_button, disable_listener);
-
-		editor_tooltip_desc_t tooltip = {};
-		tooltip.text				  = "Toggle Disable";
-		editor_tooltip_controller_t::find(ui)->set_tooltip(row.disable_button, tooltip);
-
-		row.disable_icon = ui.allocate_widget();
-		ui.set_widget_debug_name(row.disable_icon, "outliner_row_disable_icon");
-		tree.attach(row.disable_button, row.disable_icon);
-		tree.draw_order(row.disable_icon) = tree.draw_order_const(row.disable_button) + 1;
-
-		ui::layout_in_t& disable_icon_in = tree.in(row.disable_icon);
-		disable_icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
-		disable_icon_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		disable_icon_in.pos_value		 = {0.5f, 0.5f};
-		disable_icon_in.anchor_x		 = ui::anchor_e::center;
-		disable_icon_in.anchor_y		 = ui::anchor_e::center;
-		disable_icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		disable_icon_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		ui::layout_in_t& disable_button_in = tree.in(disable_button_root);
+		disable_button_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		disable_button_in.pos_value.x	   = 1.0f;
+		disable_button_in.anchor_x		   = ui::anchor_e::end;
 
 		rows.push_back(row);
 		return rows.back();
@@ -366,22 +354,7 @@ namespace sfg
 						.spacing	 = 0,
 						.raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		ui::vg_rect_paint_t disable_rect = {};
-		disable_rect.fill_color_a		 = item.disabled ? theme.color_frame_light : vec4f_t::zero;
-		disable_rect.fill_color_b		 = disable_rect.fill_color_a;
-		disable_rect.rounding			 = theme.item_rounding;
-		disable_rect.outline_color		 = item.disabled ? theme.color_outline_light : vec4f_t::zero;
-		disable_rect.outline_thickness	 = theme.outline_thickness;
-		paint.set_rect(row.disable_button, disable_rect);
-		paint.set_hover_color(row.disable_button, theme.color_panel_light);
-		paint.set_press_color(row.disable_button, theme.color_frame_light);
-
-		_ui->set_widget_text(row.disable_icon, item.disabled ? ICON_EYE_CROSS : ICON_EYE);
-		paint.set_text(row.disable_icon,
-					   _ui->widget_text(row.disable_icon),
-					   _ui->widget_text_len(row.disable_icon),
-					   {.font = theme.font_icons, .color = item.disabled ? theme.color_text_disabled : theme.color_text1, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-		paint.set_state_source(row.disable_icon, row.disable_button);
+		row.disable_button->set_toggled(item.disabled);
 	}
 
 	void editor_widget_outliner_t::update_outliner_row_background(const editor_outliner_row_t& row)
@@ -410,7 +383,7 @@ namespace sfg
 			row_in.flags |= ui::wf_visible | ui::wf_input | ui::wf_focusable;
 		else
 			row_in.flags = 0;
-		tree.set_visible(row.disable_button, visible && row.type == editor_outliner_item_type_e::entity, visible && row.type == editor_outliner_item_type_e::entity);
+		tree.set_visible(row.disable_button->get_root(), visible && row.type == editor_outliner_item_type_e::entity, visible && row.type == editor_outliner_item_type_e::entity);
 	}
 
 	void editor_widget_outliner_t::set_focus_state(bool focused)

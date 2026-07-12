@@ -330,12 +330,10 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_outliner_t::on_entity_disable_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_outliner_t::on_entity_disable_clicked(bool toggled, void* user_data)
 	{
-		if (btn != ui::mouse_button_e::left)
-			return;
-
 		editor_widget_outliner_t&		   panel = *static_cast<editor_widget_outliner_t*>(user_data);
+		const ui::widget_id_t			   id	 = panel._ui->get_input().get_hovered();
 		const editor_outliner_row_t* const row	 = panel.find_row_by_widget(id, /*match_fold_icon=*/false);
 		if (row != nullptr && row->type == editor_outliner_item_type_e::entity)
 			panel.toggle_entity_disabled(row->entity);

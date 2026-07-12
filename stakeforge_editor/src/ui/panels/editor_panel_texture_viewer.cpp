@@ -116,7 +116,6 @@ namespace sfg
 		_texture_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_texture_frame, "texture_viewer_texture_frame");
 		tree.attach(_left_pane, _texture_frame);
-		tree.draw_order(_texture_frame) = tree.draw_order_const(_left_pane) + 1;
 
 		ui::layout_in_t& frame_in = tree.in(_texture_frame);
 		frame_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
@@ -178,7 +177,6 @@ namespace sfg
 		split_config.on_drag						 = on_split_border_drag;
 		split_config.user_data						 = this;
 		_split_border.init(ui, _root, split_config);
-		tree.draw_order(_split_border.get_root()) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& border_in = tree.in(_split_border.get_root());
 		border_in.size_mode_x	   = ui::axis_mode_e::fixed;
@@ -188,7 +186,6 @@ namespace sfg
 		_right_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_right_pane, "texture_viewer_right_pane");
 		tree.attach(_root, _right_pane);
-		tree.draw_order(_right_pane) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& right_in = tree.in(_right_pane);
 		right_in.flow			  = ui::flow_e::column;

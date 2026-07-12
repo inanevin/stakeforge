@@ -179,11 +179,11 @@ namespace sfg
 
 	void editor_widget_inspector_t::create_add_component_button()
 	{
-		const editor_theme_t& theme	  = editor_theme_t::get();
-		_add_component_button		  = new editor_button_t();
-		editor_button_config_t config = {};
-		config.text					  = "Add Component";
-		config.width				  = {.mode = editor_widget_width_e::fixed, .value = theme.item_width * 1.5f};
+		const editor_theme_t& theme			 = editor_theme_t::get();
+		_add_component_button				 = new editor_widget_button_t();
+		editor_widget_button_config_t config = {};
+		config.text							 = "Add Component";
+		config.width						 = {.mode = editor_widget_width_e::fixed, .value = theme.item_width * 1.5f};
 		_add_component_button->init(*_ui, _column, config);
 
 		ui::layout_in_t& button_in									  = _ui->get_tree().in(_add_component_button->get_root());

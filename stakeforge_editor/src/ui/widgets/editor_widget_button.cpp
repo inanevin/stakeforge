@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/editor_widgets_button.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 
@@ -59,7 +59,7 @@ namespace sfg
 		}
 	}
 
-	void editor_button_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_button_config_t& config)
+	void editor_widget_button_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_button_config_t& config)
 	{
 		_ui		= &ui;
 		_config = config;
@@ -82,7 +82,7 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "button_label");
 		tree.attach(_root, _label);
-		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_label) = tree.draw_order_const(_root) + 2;
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
@@ -93,7 +93,7 @@ namespace sfg
 		set_label_text(ui, _label, config.text);
 	}
 
-	void editor_button_t::uninit()
+	void editor_widget_button_t::uninit()
 	{
 		_ui->deallocate_widget(_root);
 
@@ -103,7 +103,7 @@ namespace sfg
 		_config = {};
 	}
 
-	void editor_button_t::set_text(const char* text)
+	void editor_widget_button_t::set_text(const char* text)
 	{
 		_config.text = text;
 		set_label_text(*_ui, _label, text);

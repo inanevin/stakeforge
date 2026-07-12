@@ -73,13 +73,12 @@ namespace sfg
 		ui.set_widget_debug_name(_assets_left_pane, "assets_left_pane");
 		tree.attach(_root, _assets_left_pane);
 
-		ui::layout_in_t& left_pane_in	   = tree.in(_assets_left_pane);
-		left_pane_in.flow				   = ui::flow_e::column;
-		left_pane_in.child_spacing		   = 0.0f;
-		left_pane_in.size_mode_x		   = ui::axis_mode_e::parent_relative;
-		left_pane_in.size_mode_y		   = ui::axis_mode_e::parent_relative;
-		left_pane_in.size_value			   = {_pane_split, 1.0f};
-		tree.draw_order(_assets_left_pane) = tree.draw_order_const(_root) + 1;
+		ui::layout_in_t& left_pane_in = tree.in(_assets_left_pane);
+		left_pane_in.flow			  = ui::flow_e::column;
+		left_pane_in.child_spacing	  = 0.0f;
+		left_pane_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		left_pane_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		left_pane_in.size_value		  = {_pane_split, 1.0f};
 
 		_assets_left_pane_top_row = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_left_pane_top_row, "assets_left_pane_top_row");
@@ -142,7 +141,7 @@ namespace sfg
 		tree.attach(_assets_left_pane, _assets_left_pane_body);
 
 		ui::layout_in_t& left_body_in = tree.in(_assets_left_pane_body);
-		left_body_in.flags |= ui::wf_input | ui::wf_focusable | ui::wf_scroll_y;
+		left_body_in.flags |= ui::wf_scroll_y;
 
 		left_body_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		left_body_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
@@ -164,7 +163,6 @@ namespace sfg
 
 		ui::listener_bundle_t body_listener = {};
 		body_listener.user_data				= this;
-		body_listener.on_click				= on_assets_body_clicked;
 		body_listener.on_wheel				= on_assets_body_wheel;
 		body_listener.on_key				= on_asset_tree_key;
 		body_listener.on_focus_gain			= on_assets_focus_gain;
@@ -178,7 +176,6 @@ namespace sfg
 		split_config.on_drag						 = on_split_border_drag;
 		split_config.user_data						 = this;
 		_split_border.init(ui, _root, split_config);
-		tree.draw_order(_split_border.get_root()) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& border_in = tree.in(_split_border.get_root());
 		border_in.size_mode_x	   = ui::axis_mode_e::fixed;
@@ -188,7 +185,6 @@ namespace sfg
 		_assets_body_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_body_pane, "assets_body_pane");
 		tree.attach(_root, _assets_body_pane);
-		tree.draw_order(_assets_body_pane) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& body_pane_in = tree.in(_assets_body_pane);
 		body_pane_in.flow			  = ui::flow_e::column;
@@ -203,7 +199,7 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
-		body_top_in.flags |= ui::wf_input | ui::wf_scroll_y;
+		body_top_in.flags |= ui::wf_scroll_y;
 
 		body_top_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		body_top_in.size_mode_x		= ui::axis_mode_e::parent_relative;
@@ -235,7 +231,6 @@ namespace sfg
 
 		ui::listener_bundle_t body_bottom_listener = {};
 		body_bottom_listener.user_data			   = this;
-		body_bottom_listener.on_click			   = on_assets_body_clicked;
 		ui.get_input().set_listener(_assets_body_pane_bottom, body_bottom_listener);
 
 		_assets_body_pane_path = ui.allocate_widget();
@@ -329,7 +324,6 @@ namespace sfg
 
 		ui::listener_bundle_t body_top_listener = {};
 		body_top_listener.user_data				= this;
-		body_top_listener.on_click				= on_assets_body_clicked;
 		body_top_listener.on_wheel				= on_assets_body_wheel;
 		body_top_listener.on_key				= on_asset_tree_key;
 		body_top_listener.on_focus_gain			= on_assets_focus_gain;

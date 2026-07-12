@@ -138,7 +138,6 @@ namespace sfg
 			_panels[d] = ui.allocate_widget();
 			ui.set_widget_debug_name(_panels[d], "action_menu_panel");
 			tree.attach(_foreground, _panels[d]);
-			tree.draw_order(_panels[d]) = ACTION_MENU_DRAW_ORDER + d;
 
 			ui::layout_in_t& panel_in = tree.in(_panels[d]);
 			panel_in.flags			  = 0;

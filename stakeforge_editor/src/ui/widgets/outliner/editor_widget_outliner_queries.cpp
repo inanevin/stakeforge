@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_edit_context.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
+#include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
 #include <sfg/math/rectf.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -126,7 +127,7 @@ namespace sfg
 		for (u32 i = 0; i < _visible_entity_count && i < rows.size(); ++i)
 		{
 			const editor_outliner_row_t& row = rows[i];
-			if (row.root == id || row.label == id || row.type_icon == id || row.type_icon_text == id || row.disable_button == id || row.disable_icon == id || (match_fold_icon && (row.fold_icon == id || row.fold_icon_text == id)))
+			if (row.root == id || row.label == id || row.type_icon == id || row.type_icon_text == id || row.disable_button->get_root() == id || (match_fold_icon && (row.fold_icon == id || row.fold_icon_text == id)))
 				return &row;
 		}
 		return nullptr;

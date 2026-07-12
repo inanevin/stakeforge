@@ -28,7 +28,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_input_field.hpp"
-#include "ui/widgets/editor_widgets_button.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "world/editor_world_handle.hpp"
 #include <sfg/data/span.hpp>
@@ -97,7 +97,7 @@ namespace sfg
 		editor_quat_field_t							_rotation_field			  = {};
 		editor_vec3_field_t							_position_field			  = {};
 		editor_vec3_field_t							_scale_field			  = {};
-		editor_button_t								_break_prefab_button	  = {};
+		editor_widget_button_t						_break_prefab_button	  = {};
 		editor_input_field_t						_name_input				  = {};
 		char										_name_fallback[64]		  = {};
 		vector_t<entity_id_t>						_entities				  = {};

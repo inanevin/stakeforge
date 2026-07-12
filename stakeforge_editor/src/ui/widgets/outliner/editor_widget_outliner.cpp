@@ -31,9 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
-#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include "ui/widgets/editor_widgets_icon_button.hpp"
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -134,10 +134,10 @@ namespace sfg
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
-		if (editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui))
+		for (const editor_outliner_row_t& row : _outliner_rows)
 		{
-			for (const editor_outliner_row_t& row : _outliner_rows)
-				tooltip_controller->clear_tooltip(row.disable_button);
+			row.disable_button->uninit();
+			delete row.disable_button;
 		}
 		_ui->deallocate_widget(_entity_top_row);
 		_ui->deallocate_widget(_entity_list_area);

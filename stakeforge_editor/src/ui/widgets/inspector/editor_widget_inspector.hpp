@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_action_menu_common.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widget_reflection.hpp"
-#include "ui/widgets/editor_widgets_button.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/span.hpp>
@@ -198,7 +198,7 @@ namespace sfg
 		editor_scrollbar_t								  _scrollbar				   = {};
 		editor_widget_fold_t*							  _entity_info_fold			   = nullptr;
 		editor_widget_entity_info_t*					  _entity_info				   = nullptr;
-		editor_button_t*								  _add_component_button		   = nullptr;
+		editor_widget_button_t*							  _add_component_button		   = nullptr;
 		ui::ui_context*									  _ui						   = nullptr;
 		ui::widget_id_t									  _root						   = NULL_WIDGET;
 		ui::widget_id_t									  _scroll_area				   = NULL_WIDGET;

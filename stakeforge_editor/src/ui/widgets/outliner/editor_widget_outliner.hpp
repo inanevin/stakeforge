@@ -49,6 +49,7 @@ namespace sfg::ui
 namespace sfg
 {
 	class editor_command_system_t;
+	class editor_icon_button_t;
 	class world_t;
 	enum class editor_primitive_type_e : u8;
 	namespace ui
@@ -66,8 +67,7 @@ namespace sfg
 		ui::widget_id_t				 type_icon		= NULL_WIDGET;
 		ui::widget_id_t				 type_icon_text = NULL_WIDGET;
 		ui::widget_id_t				 label			= NULL_WIDGET;
-		ui::widget_id_t				 disable_button = NULL_WIDGET;
-		ui::widget_id_t				 disable_icon	= NULL_WIDGET;
+		editor_icon_button_t*		 disable_button = nullptr;
 		entity_id_t					 entity			= NULL_ENTITY_ID;
 		editor_world_folder_handle_t folder_handle	= {};
 		u16							 depth			= 0;
@@ -181,7 +181,7 @@ namespace sfg
 		static void on_entity_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_entity_icon_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entity_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void on_entity_disable_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_entity_disable_clicked(bool toggled, void* user_data);
 		static void on_entity_row_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_entity_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);

@@ -174,7 +174,6 @@ namespace sfg
 		row.root = ui.allocate_widget();
 		ui.set_widget_debug_name(row.root, "asset_folder_row");
 		tree.attach(_assets_left_pane_body, row.root);
-		tree.draw_order(row.root) = tree.draw_order_const(_assets_left_pane_body) + 1;
 
 		ui::layout_in_t& row_in = tree.in(row.root);
 		row_in.flags |= ui::wf_input | ui::wf_focusable;

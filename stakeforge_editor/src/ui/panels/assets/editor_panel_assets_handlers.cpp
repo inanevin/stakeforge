@@ -491,16 +491,6 @@ namespace sfg
 		static_cast<editor_panel_assets_t*>(user_data)->set_focus_state(false);
 	}
 
-	void editor_panel_assets_t::on_assets_body_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
-	{
-		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)
-			return;
-
-		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (btn == ui::mouse_button_e::right && id == panel._assets_left_pane_body)
-			panel.open_action_menu(pos);
-	}
-
 	void editor_panel_assets_t::on_assets_body_wheel(ui::input_router_t&, ui::widget_id_t id, f32 delta, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);

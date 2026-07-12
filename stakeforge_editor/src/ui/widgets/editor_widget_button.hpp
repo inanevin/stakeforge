@@ -36,21 +36,21 @@ namespace sfg::ui
 
 namespace sfg
 {
-	struct editor_button_config_t
+	struct editor_widget_button_config_t
 	{
 		const char*					 text  = nullptr;
 		editor_widget_width_config_t width = {};
 	};
 
-	class editor_button_t final
+	class editor_widget_button_t final
 	{
 	public:
-		editor_button_t()								   = default;
-		~editor_button_t()								   = default;
-		editor_button_t(const editor_button_t&)			   = delete;
-		editor_button_t& operator=(const editor_button_t&) = delete;
+		editor_widget_button_t()										 = default;
+		~editor_widget_button_t()										 = default;
+		editor_widget_button_t(const editor_widget_button_t&)			 = delete;
+		editor_widget_button_t& operator=(const editor_widget_button_t&) = delete;
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_button_config_t& config);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_button_config_t& config);
 		void uninit();
 		void set_text(const char* text);
 
@@ -60,9 +60,9 @@ namespace sfg
 		}
 
 	private:
-		editor_button_config_t _config = {};
-		ui::ui_context*		   _ui	   = nullptr;
-		ui::widget_id_t		   _root   = NULL_WIDGET;
-		ui::widget_id_t		   _label  = NULL_WIDGET;
+		editor_widget_button_config_t _config = {};
+		ui::ui_context*				  _ui	  = nullptr;
+		ui::widget_id_t				  _root	  = NULL_WIDGET;
+		ui::widget_id_t				  _label  = NULL_WIDGET;
 	};
 }

@@ -27,7 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/widgets/editor_widget_reflection.hpp"
-#include "ui/widgets/editor_widgets_button.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
@@ -116,8 +116,8 @@ namespace sfg
 		editor_widget_reflection_t			   _load_reflection	   = {};
 		editor_widget_reflection_t			   _create_reflection  = {};
 		editor_scrollbar_t					   _scrollbar		   = {};
-		editor_button_t						   _load_button		   = {};
-		editor_button_t						   _create_button	   = {};
+		editor_widget_button_t				   _load_button		   = {};
+		editor_widget_button_t				   _create_button	   = {};
 		ui::ui_context*						   _ui				   = nullptr;
 		ui::widget_id_t						   _root			   = NULL_WIDGET;
 		ui::widget_id_t						   _inner_root		   = NULL_WIDGET;

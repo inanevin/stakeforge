@@ -27,7 +27,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_modal_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widgets_buttons.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/widgets/editor_widgets_frames.hpp"
 
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -119,7 +119,6 @@ namespace sfg
 		_title = ui.allocate_widget();
 		ui.set_widget_debug_name(_title, "modal_title");
 		tree.attach(_window, _title);
-		tree.draw_order(_title) = MODAL_DRAW_ORDER + 3;
 		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_description = ui.allocate_widget();
@@ -158,16 +157,10 @@ namespace sfg
 
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
-			_button_frames[i] = ui.allocate_widget();
-			ui.set_widget_debug_name(_button_frames[i], "modal_button");
-			tree.attach(_button_row, _button_frames[i]);
-
-			_button_labels[i] = ui.allocate_widget();
-			ui.set_widget_debug_name(_button_labels[i], "modal_button_label");
-			tree.attach(_button_frames[i], _button_labels[i]);
-
-			editor_widgets_buttons_t::make_button_modal(ui, _button_frames[i], _button_labels[i]);
-			ui.get_input().set_listener(_button_frames[i], button_listener);
+			_button_widgets[i] = new editor_widget_button_t();
+			_button_widgets[i]->init(ui, _button_row, {});
+			ui.set_widget_debug_name(_button_widgets[i]->get_root(), "modal_button");
+			ui.get_input().set_listener(_button_widgets[i]->get_root(), button_listener);
 		}
 
 		s_controllers[s_controller_count++] = this;
@@ -180,6 +173,14 @@ namespace sfg
 			close_modal();
 		else
 			close_content();
+
+		for (u32 i = 0; i < MAX_BUTTONS; ++i)
+		{
+			_button_widgets[i]->uninit();
+			delete _button_widgets[i];
+			_button_widgets[i] = nullptr;
+			_buttons[i]		   = {};
+		}
 
 		_ui->deallocate_widget(_foreground);
 
@@ -204,12 +205,6 @@ namespace sfg
 		_button_count	 = 0;
 		_buttons_visible = false;
 		_visible		 = false;
-		for (u32 i = 0; i < MAX_BUTTONS; ++i)
-		{
-			_button_frames[i] = NULL_WIDGET;
-			_button_labels[i] = NULL_WIDGET;
-			_buttons[i]		  = {};
-		}
 	}
 
 	void editor_modal_controller_t::request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity)
@@ -238,9 +233,9 @@ namespace sfg
 		{
 			const bool visible = show_buttons && i < button_count;
 			if (visible)
-				_ui->set_widget_text(_button_labels[i], buttons[i].text);
+				_button_widgets[i]->set_text(buttons[i].text);
 			else
-				_ui->clear_widget_text(_button_labels[i]);
+				_button_widgets[i]->set_text("");
 		}
 
 		if (content != nullptr && content->init != nullptr)
@@ -303,7 +298,7 @@ namespace sfg
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool button_visible = visible && _buttons_visible && i < _button_count;
-			tree.set_visible(_button_frames[i], button_visible, button_visible);
+			tree.set_visible(_button_widgets[i]->get_root(), button_visible, button_visible);
 		}
 	}
 
@@ -340,7 +335,7 @@ namespace sfg
 	{
 		for (u32 i = 0; i < _button_count; ++i)
 		{
-			if (_button_frames[i] == id)
+			if (_button_widgets[i]->get_root() == id)
 				return i;
 		}
 		SFG_ASSERT(false);
