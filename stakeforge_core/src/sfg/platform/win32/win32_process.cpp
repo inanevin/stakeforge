@@ -44,9 +44,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-	u8						   g_key_down_map[512] = {};
-	sfg::window_cursor_state_e g_cursor_state	   = sfg::window_cursor_state_e::arrow;
-	HWND					   g_raw_input_target  = nullptr;
+	u8						   g_key_down_map[512]		 = {};
+	sfg::window_cursor_state_e g_cursor_state			 = sfg::window_cursor_state_e::arrow;
+	HWND					   g_raw_input_target		 = nullptr;
+	HWND					   g_activation_mouse_target = nullptr;
+	UINT					   g_activation_mouse_msg	 = 0;
 
 	void set_key_down(u32 key, bool down)
 	{
@@ -57,6 +59,11 @@ namespace
 	bool get_key_down(u32 key)
 	{
 		return key < static_cast<u32>(sizeof(g_key_down_map)) && g_key_down_map[key] != 0;
+	}
+
+	bool is_mouse_down_message(UINT msg)
+	{
+		return msg == WM_LBUTTONDOWN || msg == WM_LBUTTONDBLCLK || msg == WM_RBUTTONDOWN || msg == WM_RBUTTONDBLCLK || msg == WM_MBUTTONDOWN || msg == WM_MBUTTONDBLCLK;
 	}
 
 	bool register_raw_input_target(HWND hwnd)
@@ -358,6 +365,15 @@ namespace
 			if (runtime->style == sfg::window_style_e::borderless)
 				return TRUE;
 			break;
+		case WM_MOUSEACTIVATE: {
+			const UINT mouse_msg = HIWORD(l_param);
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && is_mouse_down_message(mouse_msg))
+			{
+				g_activation_mouse_target = hwnd;
+				g_activation_mouse_msg	  = mouse_msg;
+			}
+			return MA_ACTIVATE;
+		}
 		case WM_GETMINMAXINFO:
 			if (runtime->style == sfg::window_style_e::borderless)
 			{
@@ -674,9 +690,6 @@ namespace
 		case WM_MBUTTONDOWN:
 		case WM_MBUTTONDBLCLK:
 		case WM_MBUTTONUP: {
-			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target)
-				return 0;
-
 			u16 button = static_cast<u16>(sfg::input_code::mouse_0);
 			if (msg == WM_RBUTTONDOWN || msg == WM_RBUTTONDBLCLK || msg == WM_RBUTTONUP)
 				button = static_cast<u16>(sfg::input_code::mouse_1);
@@ -686,6 +699,22 @@ namespace
 			sfg::window_event_sub_type_e sub_type = sfg::window_event_sub_type_e::press;
 			if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
 				sub_type = sfg::window_event_sub_type_e::release;
+
+			bool allow_regular_high_freq_mouse = false;
+			if (g_activation_mouse_target == hwnd && g_activation_mouse_msg == msg)
+			{
+				g_activation_mouse_target	  = nullptr;
+				g_activation_mouse_msg		  = 0;
+				allow_regular_high_freq_mouse = sub_type == sfg::window_event_sub_type_e::press;
+			}
+
+			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target && !allow_regular_high_freq_mouse)
+				return 0;
+
+			POINT client_pt			= {GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param)};
+			runtime->mouse_position = sfg::vec2i16_t(static_cast<i16>(client_pt.x), static_cast<i16>(client_pt.y));
+			ClientToScreen(hwnd, &client_pt);
+			runtime->mouse_position_abs = sfg::vec2i16_t(static_cast<i16>(client_pt.x), static_cast<i16>(client_pt.y));
 
 			if (sub_type == sfg::window_event_sub_type_e::release)
 				set_key_down(button, false);
