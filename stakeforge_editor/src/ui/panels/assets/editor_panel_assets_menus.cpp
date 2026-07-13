@@ -113,7 +113,7 @@ namespace sfg
 		popup->request_popup(desc);
 	}
 
-	void editor_panel_assets_t::open_action_menu(const vec2f_t& pos)
+	void editor_panel_assets_t::open_action_menu(const vec2f_t& pos, bool allow_folder_actions)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 		SFG_ASSERT(menu != nullptr);
@@ -125,14 +125,15 @@ namespace sfg
 		const editor_asset_tree_t&		 tree			= asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t root_handle	= asset_manager.get_root_node();
 		const bool						 folder_context = !_selected_folder_hashes.empty() && !_selected_folder_node.is_null() && tree.is_valid(_selected_folder_node) && !(_selected_folder_node == root_handle);
+		const bool						 folder_actions = allow_folder_actions && folder_context;
 		const bool						 multi_selected = _selected_folder_hashes.size() > 1;
 
 		ASSETS_ACTION_MENU_ROWS[0].disabled	  = multi_selected;
 		ASSETS_ACTION_MENU_ROWS[1].disabled	  = _selected_folder_node.is_null();
-		ASSETS_ACTION_MENU_ROWS[2].disabled	  = !folder_context;
-		ASSETS_ACTION_MENU_ROWS[3].disabled	  = !folder_context;
-		ASSETS_ACTION_MENU_ROWS[4].disabled	  = !folder_context || multi_selected;
-		ASSETS_ACTION_MENU_ROWS[5].disabled	  = !folder_context;
+		ASSETS_ACTION_MENU_ROWS[2].disabled	  = !folder_actions;
+		ASSETS_ACTION_MENU_ROWS[3].disabled	  = !folder_actions;
+		ASSETS_ACTION_MENU_ROWS[4].disabled	  = !folder_actions || multi_selected;
+		ASSETS_ACTION_MENU_ROWS[5].disabled	  = !folder_actions;
 		ASSETS_ACTION_MENU_ROWS[6].disabled	  = !folder_context || multi_selected;
 		ASSETS_ACTION_MENU_ROWS[5].icon_color = editor_theme_t::get().color_accent1;
 

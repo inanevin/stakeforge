@@ -391,6 +391,7 @@ namespace sfg
 						.increment	 = increment,
 						.min_value	 = min_value,
 						.max_value	 = max_value,
+						.is_integer	 = integer,
 					});
 		fit_control(input->get_root());
 		if (field->value_type == reflected_value_type_e::string && (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY || field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_PATH))

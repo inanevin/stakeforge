@@ -66,6 +66,7 @@ namespace sfg
 				.increment	 = integer ? 1.0f : increment,
 				.min_value	 = integer ? -2147483648.0f : -1000000.0f,
 				.max_value	 = integer ? 2147483647.0f : 1000000.0f,
+				.is_integer	 = integer,
 			};
 		}
 	}

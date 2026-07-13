@@ -278,6 +278,7 @@ namespace sfg
 		item.root = ui.allocate_widget();
 		ui.set_widget_debug_name(item.root, "asset_grid_item");
 		tree.attach(row, item.root);
+		tree.draw_order(item.root) = tree.draw_order_const(row) + 1;
 
 		ui::layout_in_t& root_in = tree.in(item.root);
 		root_in.flags |= ui::wf_input | ui::wf_focusable;
@@ -471,6 +472,7 @@ namespace sfg
 		item.root = ui.allocate_widget();
 		ui.set_widget_debug_name(item.root, "asset_list_item");
 		tree.attach(_assets_body_pane_top, item.root);
+		tree.draw_order(item.root) = tree.draw_order_const(_assets_body_pane_top) + 1;
 
 		ui::layout_in_t& root_in = tree.in(item.root);
 		root_in.flags |= ui::wf_input | ui::wf_focusable;

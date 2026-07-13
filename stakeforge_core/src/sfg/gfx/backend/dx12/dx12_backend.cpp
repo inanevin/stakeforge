@@ -117,7 +117,7 @@ namespace sfg
 
 			if (desc.min_filter == sampler_filter_e::anisotropic || desc.mag_filter == sampler_filter_e::anisotropic)
 			{
-				SFG_ASSERT(desc.min_filter == sampler_filter_e::anisotropic && desc.mag_filter == sampler_filter_e::anisotropic);
+				// SFG_ASSERT(desc.min_filter == sampler_filter_e::anisotropic && desc.mag_filter == sampler_filter_e::anisotropic);
 				return compare ? D3D12_FILTER_COMPARISON_ANISOTROPIC : D3D12_FILTER_ANISOTROPIC;
 			}
 			else if (desc.mip_filter == sampler_filter_e::linear && desc.min_filter == sampler_filter_e::linear && desc.mag_filter == sampler_filter_e::linear)

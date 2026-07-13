@@ -132,9 +132,9 @@ namespace sfg
 		search_in.pos_value		   = {1.0f, 0.5f};
 		search_in.anchor_x		   = ui::anchor_e::end;
 		search_in.anchor_y		   = ui::anchor_e::center;
-		search_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		search_in.size_mode_x	   = ui::axis_mode_e::fill;
 		search_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		search_in.size_value	   = {theme.item_width * 1.5f, theme.item_height};
+		search_in.size_value	   = {1, theme.item_height};
 
 		_assets_left_pane_body = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_left_pane_body, "assets_left_pane_body");
@@ -199,7 +199,7 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
-		body_top_in.flags |= ui::wf_scroll_y;
+		body_top_in.flags |= ui::wf_input | ui::wf_scroll_y;
 
 		body_top_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		body_top_in.size_mode_x		= ui::axis_mode_e::parent_relative;

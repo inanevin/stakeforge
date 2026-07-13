@@ -89,20 +89,20 @@ namespace sfg
 		const resource_type_desc_t* desc = find_resource_type_desc(type);
 		if (desc == nullptr)
 		{
-			SFG_ERR("failed loading resource, type description not found! {0}", static_cast<u8>(type));
+			SFG_WARN("failed loading resource, type description not found! {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
 		if (desc->load == nullptr)
 		{
-			SFG_ERR("failed loading resource, load not found! {0}", static_cast<u8>(type));
+			SFG_WARN("failed loading resource, load not found! {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
 		ostream_t header_stream;
 		if (!_resource_file_system->read_resource(hash, 0, sizeof(resource_header_t), header_stream))
 		{
-			SFG_ERR("failed reading resource header: {0}", hash);
+			SFG_WARN("failed reading resource header: {0}", hash);
 			return resource_state_e::failed;
 		}
 
@@ -119,8 +119,7 @@ namespace sfg
 		{
 			if (load_resource(header.dependencies[i].handle, header.dependencies[i].type) == resource_state_e::failed)
 			{
-				SFG_ERR("failed loading dependency for {0}", header.debug_name);
-				SFG_ASSERT(false);
+				SFG_WARN("failed loading dependency for {0}", header.debug_name);
 			}
 		}
 
@@ -150,7 +149,7 @@ namespace sfg
 
 		if (!desc->load(loaded_entry, ctx, *_resource_file_system))
 		{
-			SFG_ERR("failed loading resource: {0} {1}", debug_name, hash);
+			SFG_WARN("failed loading resource: {0} {1}", debug_name, hash);
 			free_entry(loaded_entry);
 			_entries.erase(entry_it);
 			return resource_state_e::failed;
@@ -178,13 +177,13 @@ namespace sfg
 		const resource_type_desc_t* desc = find_resource_type_desc(type);
 		if (desc == nullptr)
 		{
-			SFG_ERR("failed loading runtime resource, type description not found! {0}", static_cast<u8>(type));
+			SFG_WARN("failed loading runtime resource, type description not found! {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
 		if (desc->runtime_load == nullptr)
 		{
-			SFG_ERR("failed loading runtime resource, runtime load not found! {0}", static_cast<u8>(type));
+			SFG_WARN("failed loading runtime resource, runtime load not found! {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
@@ -204,7 +203,7 @@ namespace sfg
 
 		if (!desc->runtime_load(loaded_entry, ctx, stream))
 		{
-			SFG_ERR("failed loading runtime resource: {0}", hash);
+			SFG_WARN("failed loading runtime resource: {0}", hash);
 			free_entry(loaded_entry);
 			_entries.erase(entry_it);
 			return resource_state_e::failed;
@@ -221,7 +220,11 @@ namespace sfg
 		SFG_ASSERT(is_main_thread());
 
 		auto it = _entries.find(hash);
-		SFG_ASSERT(it != _entries.end());
+		if (it == _entries.end())
+		{
+			SFG_WARN("can't unload resource as it's not loaded! {0}", hash);
+			return;
+		}
 
 		resource_entry_t& entry = it->second;
 		if (entry.ref_count == 0)

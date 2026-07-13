@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <cstring>
 
 namespace sfg
 {

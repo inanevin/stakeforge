@@ -154,9 +154,9 @@ namespace sfg
 		search_in.pos_value		   = {1.0f, 0.5f};
 		search_in.anchor_x		   = ui::anchor_e::end;
 		search_in.anchor_y		   = ui::anchor_e::center;
-		search_in.size_mode_x	   = ui::axis_mode_e::fixed;
+		search_in.size_mode_x	   = ui::axis_mode_e::fill;
 		search_in.size_mode_y	   = ui::axis_mode_e::fixed;
-		search_in.size_value	   = {theme.item_width * 2.0f, theme.item_height};
+		search_in.size_value	   = {1, theme.item_height};
 
 		_body = ui.allocate_widget();
 		ui.set_widget_debug_name(_body, "log_body");

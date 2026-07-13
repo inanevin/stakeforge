@@ -194,7 +194,7 @@ namespace sfg
 
 	}
 
-	sid_t editor_asset_util_t::generate_unique_asset_guid(span_t<const sid_t> pending_guids)
+	sid_t editor_asset_util_t::generate_unique_asset_guid(span_t<const sid_t> reserved_guids)
 	{
 		sid_t guid			= NULL_SID;
 		bool  found_pending = false;
@@ -202,9 +202,9 @@ namespace sfg
 		{
 			guid		  = hashing_t::generate_guid64();
 			found_pending = false;
-			for (size_t i = 0; i < pending_guids.size; ++i)
+			for (size_t i = 0; i < reserved_guids.size; ++i)
 			{
-				if (pending_guids.data[i] == guid)
+				if (reserved_guids.data[i] == guid)
 				{
 					found_pending = true;
 					break;

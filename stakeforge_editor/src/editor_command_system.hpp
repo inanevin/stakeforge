@@ -63,6 +63,7 @@ namespace sfg
 		project_settings_edit,
 		material_edit,
 		shader_edit,
+		texture_sampler_edit,
 	};
 
 	enum class editor_command_state_e : u8

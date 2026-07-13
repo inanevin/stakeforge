@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_material_editor.hpp"
+#include "ui/widgets/editor_widget_texture_sampler_editor.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "ui/widgets/inspector/editor_widget_inspector.hpp"
 #include "world/editor_world_edit_context.hpp"
@@ -40,6 +41,7 @@ namespace sfg
 		none,
 		entity,
 		material,
+		texture_sampler,
 	};
 
 	enum class editor_panel_inspector_source_e : u8
@@ -86,6 +88,7 @@ namespace sfg
 		};
 
 		void				   set_display_material(span_t<const sid_t> materials);
+		void				   set_display_texture_sampler(span_t<const sid_t> samplers);
 		void				   refresh_from_available_selection(editor_panel_inspector_source_e preferred_source);
 		void				   apply_display_visibility();
 		void				   save_entity_scroll_state();
@@ -93,6 +96,7 @@ namespace sfg
 		void				   reset_scroll_state();
 		void				   apply_pending_scroll_restore();
 		bool				   collect_selected_materials(vector_t<sid_t>& out_materials) const;
+		bool				   collect_selected_texture_samplers(vector_t<sid_t>& out_samplers) const;
 		entity_scroll_state_t* find_entity_scroll_state(entity_id_t entity);
 
 		static void on_entity_selection_changed(editor_world_edit_context_t& context, void* user_data);
@@ -100,20 +104,22 @@ namespace sfg
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
-		editor_widget_inspector_t		   _entity_inspector	   = {};
-		editor_widget_material_editor_t	   _material_editor		   = {};
-		editor_scrollbar_t				   _scrollbar			   = {};
-		vector_t<entity_scroll_state_t>	   _entity_scroll_states   = {};
-		vector_t<entity_id_t>			   _display_entities	   = {};
-		vector_t<sid_t>					   _material_ids		   = {};
-		editor_command_listener_handle_t   _command_listener	   = {};
-		editor_selection_listener_handle_t _selection_listener	   = {};
-		editor_world_handle_t			   _edit_world			   = {};
-		ui::widget_id_t					   _scroll_area			   = NULL_WIDGET;
-		ui::widget_id_t					   _content				   = NULL_WIDGET;
-		f32								   _pending_scroll_y	   = 0.0f;
-		editor_panel_inspector_display_e   _display				   = editor_panel_inspector_display_e::none;
-		editor_panel_inspector_source_e	   _last_source			   = editor_panel_inspector_source_e::none;
-		bool							   _scroll_restore_pending = false;
+		editor_widget_inspector_t			   _entity_inspector	   = {};
+		editor_widget_material_editor_t		   _material_editor		   = {};
+		editor_widget_texture_sampler_editor_t _texture_sampler_editor = {};
+		editor_scrollbar_t					   _scrollbar			   = {};
+		vector_t<entity_scroll_state_t>		   _entity_scroll_states   = {};
+		vector_t<entity_id_t>				   _display_entities	   = {};
+		vector_t<sid_t>						   _material_ids		   = {};
+		vector_t<sid_t>						   _texture_sampler_ids	   = {};
+		editor_command_listener_handle_t	   _command_listener	   = {};
+		editor_selection_listener_handle_t	   _selection_listener	   = {};
+		editor_world_handle_t				   _edit_world			   = {};
+		ui::widget_id_t						   _scroll_area			   = NULL_WIDGET;
+		ui::widget_id_t						   _content				   = NULL_WIDGET;
+		f32									   _pending_scroll_y	   = 0.0f;
+		editor_panel_inspector_display_e	   _display				   = editor_panel_inspector_display_e::none;
+		editor_panel_inspector_source_e		   _last_source			   = editor_panel_inspector_source_e::none;
+		bool								   _scroll_restore_pending = false;
 	};
 }

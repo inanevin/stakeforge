@@ -44,7 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
-#include <cstring>
 
 namespace sfg
 {

@@ -41,6 +41,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -52,14 +55,27 @@ namespace sfg
 {
 	namespace
 	{
-		static const editor_dropdown_item_t PASS_MASK_ITEMS[] = {
-			{.text = "None", .value = 0},
-			{.text = "GBuffer", .value = world_pass_flags_gbuffer},
-			{.text = "Forward", .value = world_pass_flags_forward},
-			{.text = "Depth", .value = world_pass_flags_depth},
-			{.text = "Shadow", .value = world_pass_flags_shadow},
-			{.text = "Id", .value = world_pass_flags_id},
-		};
+		void build_world_pass_items(frame_vector_t<editor_dropdown_item_t>& items)
+		{
+			const reflected_type_t* enum_type = reflection_registry_t::get().find_type(type_id_t<world_pass_flags_e>::value);
+			SFG_ASSERT(enum_type != nullptr);
+			SFG_ASSERT(enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum));
+
+			const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
+			SFG_ASSERT(enum_item_count <= static_cast<u32>(static_cast<u16>(-1)));
+			items.reserve(enum_item_count);
+			for (u32 i = 0; i < enum_item_count; ++i)
+			{
+				const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
+				SFG_ASSERT(enum_field != nullptr);
+				const u32 value = i == 0 ? 0 : 1u << (i - 1);
+				SFG_ASSERT(value <= static_cast<u32>(static_cast<u16>(-1)));
+				items.push_back({
+					.text  = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name,
+					.value = static_cast<u16>(value),
+				});
+			}
+		}
 	}
 
 	void editor_widget_material_editor_t::init(ui::ui_context& ui, ui::widget_id_t parent)
@@ -218,15 +234,18 @@ namespace sfg
 		for (u32& pass_flags : _pass_flags)
 			pass_fields.push_back(reinterpret_cast<u8*>(&pass_flags));
 
+		frame_vector_t<editor_dropdown_item_t> pass_items;
+		build_world_pass_items(pass_items);
+
 		const editor_property_row_t pass_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Pass Mask");
 		editor_dropdown_t*			pass	 = new editor_dropdown_t();
 		pass->init(*_ui,
 				   pass_row.right,
 				   {
-					   .items	   = PASS_MASK_ITEMS,
+					   .items	   = pass_items.data(),
 					   .field	   = {.fields = {.data = pass_fields.data(), .size = pass_fields.size()}, .field_size = sizeof(u32)},
 					   .callbacks  = callbacks,
-					   .item_count = static_cast<u16>(sizeof(PASS_MASK_ITEMS) / sizeof(PASS_MASK_ITEMS[0])),
+					   .item_count = static_cast<u16>(pass_items.size()),
 					   .width	   = editor_dropdown_width_e::parent_relative,
 					   .pos_y	   = editor_dropdown_pos_y_e::center,
 					   .is_bitmask = true,

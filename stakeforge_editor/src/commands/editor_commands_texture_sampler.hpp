@@ -25,35 +25,28 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "world_draw_common.hpp"
-#include <sfg/reflection/reflection_registry.hpp>
+#pragma once
+
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/span.hpp>
+#include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/memory/chunk_allocator.hpp>
 
 namespace sfg
 {
-}
-
-namespace sfg
-{
-	world_pass_flags_reflection_t::world_pass_flags_reflection_t()
+	struct editor_command_texture_sampler_edit_payload_t
 	{
-		reflection_registry_t& registry = reflection_registry_t::get();
+		chunk_handle32_t sampler_ids	= {};
+		chunk_handle32_t previous_jsons = {};
+		chunk_handle32_t post_jsons		= {};
+		u32				 count			= 0;
+	};
 
-		registry.register_type({
-			.name = "world_pass_flags_e",
-			.fields =
-				{
-					{.name = "none", .display_name = "None"},
-					{.name = "gbuffer", .display_name = "GBuffer"},
-					{.name = "forward", .display_name = "Forward"},
-					{.name = "depth", .display_name = "Depth"},
-					{.name = "shadow", .display_name = "Shadow"},
-					{.name = "id", .display_name = "Id"},
-				},
-			.type_id   = type_id_t<world_pass_flags_e>::value,
-			.size	   = sizeof(world_pass_flags_e),
-			.alignment = alignof(world_pass_flags_e),
-			.flags	   = reflected_type_flag_enum,
-		});
-	}
+	class editor_command_texture_sampler_edit_t final
+	{
+	public:
+		editor_command_texture_sampler_edit_t() = delete;
 
+		static bool edit(span_t<const sid_t> samplers, span_t<const sampler_desc_t> previous, span_t<const sampler_desc_t> post);
+	};
 }

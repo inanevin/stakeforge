@@ -128,7 +128,7 @@ namespace sfg
 
 		void apply_pane_split();
 		void open_filter_popup();
-		void open_action_menu(const vec2f_t& pos);
+		void open_action_menu(const vec2f_t& pos, bool allow_folder_actions);
 		void open_asset_action_menu(const vec2f_t& pos);
 		void import_assets(const vector_t<string_t>& paths);
 		void refresh_folder_rows();

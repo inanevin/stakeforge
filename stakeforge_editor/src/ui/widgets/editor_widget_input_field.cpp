@@ -106,7 +106,7 @@ namespace sfg
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "input_field_label");
 		tree.attach(_root, _label);
-		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_label) = tree.draw_order_const(_root) + 2;
 
 		ui::layout_in_t& label_in = tree.in(_label);
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
@@ -223,7 +223,7 @@ namespace sfg
 			const u8* value = field.fields.data[0];
 			for (size_t i = 1; i < field.fields.size; ++i)
 			{
-				if (std::memcmp(field.fields.data[i], value, field.field_size) != 0)
+				if (SFG_MEMCMP(field.fields.data[i], value, field.field_size) != 0)
 				{
 					_mixed = true;
 					break;
@@ -303,7 +303,7 @@ namespace sfg
 			value = 0.0f;
 		if (_config.field.is_slider)
 			value = math::clamp(value, _config.min_value, _config.max_value);
-		if (_config.increment >= 1.0f)
+		if (_config.is_integer)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
 		if (value == _number_value)
 		{
@@ -327,7 +327,7 @@ namespace sfg
 			value = 0.0f;
 		if (_config.field.is_slider)
 			value = math::clamp(value, _config.min_value, _config.max_value);
-		if (_config.increment >= 1.0f)
+		if (_config.is_integer)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
 		if (value == _number_value)
 			return false;
@@ -436,7 +436,7 @@ namespace sfg
 
 	void editor_input_field_t::format_number()
 	{
-		if (_config.increment >= 1.0f)
+		if (_config.is_integer)
 			std::snprintf(_text, TEXT_CAPACITY, "%lld", static_cast<long long>(_number_value));
 		else
 			std::snprintf(_text, TEXT_CAPACITY, "%.3f", static_cast<double>(_number_value));
@@ -518,7 +518,7 @@ namespace sfg
 		f32 value = _number_value + delta_x * _config.increment;
 		if (_config.field.is_slider)
 			value = math::clamp(value, _config.min_value, _config.max_value);
-		if (_config.increment >= 1.0f)
+		if (_config.is_integer)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
 		if (value == _number_value)
 			return;
@@ -666,7 +666,7 @@ namespace sfg
 			}
 			return true;
 		}
-		if (_config.increment < 1.0f && (c == '.' || c == ','))
+		if (!_config.is_integer && (c == '.' || c == ','))
 		{
 			for (u32 i = 0; i < _text_len; ++i)
 			{
@@ -682,7 +682,7 @@ namespace sfg
 
 	f32 editor_input_field_t::read_pod_number(const u8* data) const
 	{
-		if (_config.increment >= 1.0f)
+		if (_config.is_integer)
 		{
 			if (_config.field.field_size == sizeof(u64))
 				return _config.min_value >= 0.0f ? static_cast<f32>(*reinterpret_cast<const u64*>(data)) : static_cast<f32>(*reinterpret_cast<const i64*>(data));
@@ -702,7 +702,7 @@ namespace sfg
 
 	void editor_input_field_t::write_pod_number(u8* data, f32 value)
 	{
-		if (_config.increment >= 1.0f)
+		if (_config.is_integer)
 		{
 			if (_config.field.field_size == sizeof(u64))
 			{

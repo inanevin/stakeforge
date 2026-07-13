@@ -86,6 +86,7 @@ namespace sfg
 								   .allow_prefab_blocks = true,
 							   });
 		_material_editor.init(ui, _content);
+		_texture_sampler_editor.init(ui, _content);
 		refresh_from_available_selection(editor_panel_inspector_source_e::none);
 	}
 
@@ -95,6 +96,7 @@ namespace sfg
 			editor_command_system_t::get().remove_listener(_command_listener);
 		if (!_selection_listener.is_null())
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
+		_texture_sampler_editor.uninit();
 		_material_editor.uninit();
 		_entity_inspector.uninit();
 		_scrollbar.uninit();
@@ -103,6 +105,7 @@ namespace sfg
 		_entity_scroll_states.resize(0);
 		_display_entities.resize(0);
 		_material_ids.resize(0);
+		_texture_sampler_ids.resize(0);
 		_command_listener		= {};
 		_selection_listener		= {};
 		_edit_world				= {};
@@ -156,6 +159,8 @@ namespace sfg
 		}
 		else if (_display == editor_panel_inspector_display_e::material)
 			_material_editor.set_materials({.data = _material_ids.data(), .size = _material_ids.size()});
+		else if (_display == editor_panel_inspector_display_e::texture_sampler)
+			_texture_sampler_editor.set_texture_samplers({.data = _texture_sampler_ids.data(), .size = _texture_sampler_ids.size()});
 	}
 
 	void editor_panel_inspector_t::refresh_from_selection()
@@ -208,13 +213,27 @@ namespace sfg
 		reset_scroll_state();
 	}
 
+	void editor_panel_inspector_t::set_display_texture_sampler(span_t<const sid_t> samplers)
+	{
+		save_entity_scroll_state();
+		_display_entities.resize(0);
+		_texture_sampler_ids.assign(samplers.data, samplers.data + samplers.size);
+		_texture_sampler_editor.set_texture_samplers({.data = _texture_sampler_ids.data(), .size = _texture_sampler_ids.size()});
+		_display	 = editor_panel_inspector_display_e::texture_sampler;
+		_last_source = editor_panel_inspector_source_e::asset;
+		apply_display_visibility();
+		reset_scroll_state();
+	}
+
 	void editor_panel_inspector_t::refresh_from_available_selection(editor_panel_inspector_source_e preferred_source)
 	{
 		const editor_world_edit_context_t* edit_context		 = !_edit_world.is_null() ? &editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context() : nullptr;
 		const span_t<const entity_id_t>	   selected_entities = edit_context != nullptr ? edit_context->get_selected_entities() : span_t<const entity_id_t>{};
 
 		vector_t<sid_t> selected_materials;
+		vector_t<sid_t> selected_samplers;
 		const bool		has_materials = collect_selected_materials(selected_materials);
+		const bool		has_samplers  = collect_selected_texture_samplers(selected_samplers);
 		const bool		has_entities  = edit_context != nullptr && !edit_context->get_world().is_null() && selected_entities.size != 0;
 
 		if (preferred_source == editor_panel_inspector_source_e::asset)
@@ -222,6 +241,8 @@ namespace sfg
 			_last_source = editor_panel_inspector_source_e::asset;
 			if (has_materials)
 				set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});
+			else if (has_samplers)
+				set_display_texture_sampler({.data = selected_samplers.data(), .size = selected_samplers.size()});
 			else
 				set_display_none();
 			return;
@@ -241,6 +262,8 @@ namespace sfg
 		{
 			if (has_materials)
 				set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});
+			else if (has_samplers)
+				set_display_texture_sampler({.data = selected_samplers.data(), .size = selected_samplers.size()});
 			else
 				set_display_none();
 			return;
@@ -265,6 +288,11 @@ namespace sfg
 			set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});
 			return;
 		}
+		if (has_samplers)
+		{
+			set_display_texture_sampler({.data = selected_samplers.data(), .size = selected_samplers.size()});
+			return;
+		}
 		set_display_none();
 	}
 
@@ -273,6 +301,7 @@ namespace sfg
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_entity_inspector.get_root(), _display == editor_panel_inspector_display_e::entity, false);
 		tree.set_visible(_material_editor.get_root(), _display == editor_panel_inspector_display_e::material, false);
+		tree.set_visible(_texture_sampler_editor.get_root(), _display == editor_panel_inspector_display_e::texture_sampler, false);
 	}
 
 	void editor_panel_inspector_t::save_entity_scroll_state()
@@ -349,6 +378,30 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_panel_inspector_t::collect_selected_texture_samplers(vector_t<sid_t>& out_samplers) const
+	{
+		out_samplers.resize(0);
+		editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::assets);
+		if (panel == nullptr)
+			return false;
+
+		static_cast<editor_panel_assets_t*>(panel)->collect_selected_asset_guids(out_samplers);
+		if (out_samplers.empty())
+			return false;
+
+		const editor_asset_manager_t& assets = editor_asset_manager_t::get();
+		for (sid_t guid : out_samplers)
+		{
+			const editor_asset_t* asset = assets.find_asset(guid);
+			if (asset == nullptr || asset->asset_type != editor_asset_type_e::texture_sampler)
+			{
+				out_samplers.resize(0);
+				return false;
+			}
+		}
+		return true;
+	}
+
 	editor_panel_inspector_t::entity_scroll_state_t* editor_panel_inspector_t::find_entity_scroll_state(entity_id_t entity)
 	{
 		for (entity_scroll_state_t& state : _entity_scroll_states)
@@ -377,6 +430,10 @@ namespace sfg
 		case editor_command_type_e::material_edit:
 		case editor_command_type_e::shader_edit:
 			if (panel._display == editor_panel_inspector_display_e::material)
+				panel.refresh_display();
+			break;
+		case editor_command_type_e::texture_sampler_edit:
+			if (panel._display == editor_panel_inspector_display_e::texture_sampler)
 				panel.refresh_display();
 			break;
 		default:

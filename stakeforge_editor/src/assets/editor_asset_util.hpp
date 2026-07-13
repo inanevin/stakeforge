@@ -44,7 +44,7 @@ namespace sfg
 		editor_asset_util_t(const editor_asset_util_t&)			   = delete;
 		editor_asset_util_t& operator=(const editor_asset_util_t&) = delete;
 
-		static sid_t					  generate_unique_asset_guid(span_t<const sid_t> pending_guids = {});
+		static sid_t					  generate_unique_asset_guid(span_t<const sid_t> reserved_guids = {});
 		static sid_t					  try_read_existing_guid(const char* path);
 		static const editor_asset_node_t* find_asset_node(sid_t guid);
 		static string_t					  find_asset_path(sid_t guid);

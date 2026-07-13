@@ -665,7 +665,7 @@ namespace sfg
 
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
 		panel.clear_asset_grid_selection();
-		panel.open_action_menu(pos);
+		panel.open_action_menu(pos, false);
 	}
 
 	void editor_panel_assets_t::on_asset_grid_item_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -733,7 +733,7 @@ namespace sfg
 		{
 			if (!panel.is_folder_selected(row->path_hash))
 				panel.select_folder_row(row->node, row->path_hash, false, false);
-			panel.open_action_menu(pos);
+			panel.open_action_menu(pos, true);
 		}
 		else if (row->has_children)
 			panel.toggle_folder_fold(row->path_hash);
@@ -754,7 +754,7 @@ namespace sfg
 		{
 			if (!panel.is_folder_selected(row->path_hash))
 				panel.select_folder_row(row->node, row->path_hash, false, false);
-			panel.open_action_menu(pos);
+			panel.open_action_menu(pos, true);
 		}
 		else
 		{
