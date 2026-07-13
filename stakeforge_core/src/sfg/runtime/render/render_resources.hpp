@@ -128,6 +128,11 @@ namespace sfg
 			return _default_linear_sampler;
 		}
 
+		inline render_resource_handle_t get_invalid_texture() const
+		{
+			return _invalid_texture;
+		}
+
 		inline texture_queue_t& get_texture_upload_queue()
 		{
 			return _texture_upload_queue;
@@ -225,7 +230,9 @@ namespace sfg
 		moodycamel::ReaderWriterQueue<request_t> _request_q;
 		texture_queue_t							 _texture_upload_queue = {};
 		vector_t<request_t>						 _deferred_destroys;
-		render_resource_handle_t				 _default_linear_sampler = {};
+		render_resource_handle_t				 _default_linear_sampler  = {};
+		render_resource_handle_t				 _invalid_texture		  = {};
+		render_resource_handle_t				 _invalid_texture_staging = {};
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;

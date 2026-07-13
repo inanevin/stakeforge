@@ -91,7 +91,7 @@ namespace sfg
 				for (u32 j = 0; j < mat_runtime->texture_count; j++)
 				{
 					const texture_internals_t* texture_internals = rm.find_internals<texture_internals_t>(mat_runtime->texture_guids[j]);
-					render_mat.material_textures[j]				 = texture_internals ? texture_internals->texture : render_resource_handle_t();
+					render_mat.material_textures[j]				 = texture_internals ? texture_internals->texture : render_resources_t::get().get_invalid_texture();
 
 					render_mat.material_samplers[j] = render_resources_t::get().get_default_linear_sampler();
 					if (mat_runtime->sampler_count != 0)

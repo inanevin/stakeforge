@@ -89,6 +89,7 @@ namespace sfg
 		clear_display();
 		_ui->deallocate_widget(_root);
 
+		_pending_material_ids.resize(0);
 		_materials.resize(0);
 		_material_ids.resize(0);
 		_edit_previous_materials.resize(0);
@@ -96,16 +97,23 @@ namespace sfg
 		_shader_edit_previous_materials.resize(0);
 		_shader_edit_material_ids.resize(0);
 		_pass_flags.resize(0);
-		_shader_definition	= {};
-		_ui					= nullptr;
-		_root				= NULL_WIDGET;
-		_has_shared_shader	= false;
-		_edit_active		= false;
-		_shader_edit_active = false;
+		_shader_definition		   = {};
+		_ui						   = nullptr;
+		_root					   = NULL_WIDGET;
+		_has_shared_shader		   = false;
+		_edit_active			   = false;
+		_shader_edit_active		   = false;
+		_refresh_materials_pending = false;
 	}
 
 	void editor_widget_material_editor_t::set_materials(span_t<const sid_t> materials)
 	{
+		if (!can_mutate_ui_topology())
+		{
+			request_materials_refresh(materials);
+			return;
+		}
+
 		clear_material_edit();
 		clear_shader_edit();
 		clear_display();
@@ -176,9 +184,11 @@ namespace sfg
 			}
 		}
 
+		_labels.push_back(make_section_label("Material"));
+
 		const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Name");
 		_labels.push_back(make_value_label(name_row.right, mixed_name ? "Mixed" : material_name != nullptr ? material_name : "", mixed_name));
-		_rows.push_back(name_row.row);
+		append_property_row(name_row.row);
 
 		vector_t<u64*> shader_fields;
 		shader_fields.reserve(_materials.size());
@@ -197,7 +207,7 @@ namespace sfg
 						 });
 		fit_control(shader_ref->get_root());
 		_references.push_back(shader_ref);
-		_rows.push_back(shader_row.row);
+		append_property_row(shader_row.row);
 
 		_pass_flags.reserve(_materials.size());
 		for (const material_def_t& material : _materials)
@@ -223,7 +233,7 @@ namespace sfg
 				   });
 		fit_control(pass->get_root());
 		_dropdowns.push_back(pass);
-		_rows.push_back(pass_row.row);
+		append_property_row(pass_row.row);
 
 		vector_t<u8*> double_sided_fields;
 		double_sided_fields.reserve(_materials.size());
@@ -237,7 +247,7 @@ namespace sfg
 		_ui->get_tree().in(double_sided->get_root()).anchor_y	 = ui::anchor_e::center;
 		_ui->get_tree().in(double_sided->get_root()).pos_value.y = 0.5f;
 		_checkboxes.push_back(double_sided);
-		_rows.push_back(double_sided_row.row);
+		append_property_row(double_sided_row.row);
 
 		vector_t<u8*> alpha_cutoff_fields;
 		alpha_cutoff_fields.reserve(_materials.size());
@@ -251,11 +261,7 @@ namespace sfg
 		_ui->get_tree().in(alpha_cutoff->get_root()).anchor_y	 = ui::anchor_e::center;
 		_ui->get_tree().in(alpha_cutoff->get_root()).pos_value.y = 0.5f;
 		_checkboxes.push_back(alpha_cutoff);
-		_rows.push_back(alpha_cutoff_row.row);
-
-		editor_theme_t& theme = editor_theme_t::get();
-
-		_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, _root, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none));
+		append_property_row(alpha_cutoff_row.row);
 	}
 
 	void editor_widget_material_editor_t::refresh_display_data()
@@ -265,6 +271,9 @@ namespace sfg
 		callbacks.edited					= on_material_edited;
 		callbacks.edit_submitted			= on_material_edit_submitted;
 		callbacks.user_data					= this;
+
+		if (!_shader_definition.textures.empty())
+			_labels.push_back(make_section_label("Textures"));
 
 		for (size_t texture_index = 0; texture_index < _shader_definition.textures.size(); ++texture_index)
 		{
@@ -286,8 +295,11 @@ namespace sfg
 						  });
 			fit_control(control->get_root());
 			_references.push_back(control);
-			_rows.push_back(row.row);
+			append_property_row(row.row);
 		}
+
+		if (!_shader_definition.samplers.empty())
+			_labels.push_back(make_section_label("Samplers"));
 
 		for (size_t sampler_index = 0; sampler_index < _shader_definition.samplers.size(); ++sampler_index)
 		{
@@ -309,8 +321,11 @@ namespace sfg
 						  });
 			fit_control(control->get_root());
 			_references.push_back(control);
-			_rows.push_back(row.row);
+			append_property_row(row.row);
 		}
+
+		if (!_shader_definition.parameters.empty())
+			_labels.push_back(make_section_label("Material Parameters"));
 
 		for (size_t parameter_index = 0; parameter_index < _shader_definition.parameters.size(); ++parameter_index)
 		{
@@ -389,7 +404,7 @@ namespace sfg
 				break;
 			}
 
-			_rows.push_back(row.row);
+			append_property_row(row.row);
 		}
 	}
 
@@ -452,12 +467,56 @@ namespace sfg
 	void editor_widget_material_editor_t::fit_control(ui::widget_id_t widget)
 	{
 		ui::layout_in_t& in = _ui->get_tree().in(widget);
-		in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		in.size_mode_x		= ui::axis_mode_e::fill;
 		in.size_mode_y		= ui::axis_mode_e::fixed;
 		in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 		in.anchor_y			= ui::anchor_e::center;
 		in.pos_value.y		= 0.5f;
 		in.size_value		= {1.0f, editor_theme_t::get().item_height};
+	}
+
+	void editor_widget_material_editor_t::append_property_row(ui::widget_id_t row)
+	{
+		_rows.push_back(row);
+		_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, _root, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
+	}
+
+	ui::widget_id_t editor_widget_material_editor_t::make_section_label(const char* text)
+	{
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		const ui::widget_id_t label = _ui->allocate_widget();
+		_ui->set_widget_debug_name(label, "material_editor_section_label");
+		_ui->get_tree().attach(_root, label);
+
+		ui::layout_in_t& label_in = _ui->get_tree().in(label);
+		label_in.flags			  = ui::wf_visible;
+		label_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		label_in.size_mode_y	  = ui::axis_mode_e::fixed;
+		label_in.size_value		  = {1.0f, theme.item_area_height};
+		label_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
+		label_in.flow			  = ui::flow_e::row;
+
+		ui::widget_id_t text_widget = _ui->allocate_widget();
+		_ui->set_widget_debug_name(text_widget, "material_editor_section_text");
+		_ui->get_tree().attach(label, text_widget);
+
+		ui::layout_in_t& text_in = _ui->get_tree().in(text_widget);
+		text_in.flags			 = ui::wf_visible;
+		text_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		text_in.pos_value.y		 = 0.5f;
+		text_in.anchor_y		 = ui::anchor_e::center;
+		text_in.size_mode_x		 = ui::axis_mode_e::fill;
+		text_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		text_in.size_value		 = {1.0f, theme.text_default_px_size};
+
+		_ui->set_widget_text(text_widget, text);
+		_ui->get_paint().set_text(text_widget,
+								  _ui->widget_text(text_widget),
+								  _ui->widget_text_len(text_widget),
+								  {.font = theme.font_title_bold, .color = theme.color_accent1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		return label;
 	}
 
 	ui::widget_id_t editor_widget_material_editor_t::make_value_label(ui::widget_id_t parent, const char* text, bool warn)
@@ -483,6 +542,12 @@ namespace sfg
 								  _ui->widget_text_len(label),
 								  {.font = theme.font_default, .color = warn ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		return label;
+	}
+
+	bool editor_widget_material_editor_t::can_mutate_ui_topology() const
+	{
+		const ui::ui_phase_e phase = _ui->get_phase();
+		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
 	}
 
 	bool editor_widget_material_editor_t::load_shared_shader_definition()
@@ -606,9 +671,33 @@ namespace sfg
 		_shader_edit_active = false;
 	}
 
+	void editor_widget_material_editor_t::request_materials_refresh(span_t<const sid_t> materials)
+	{
+		_pending_material_ids.resize(0);
+		_pending_material_ids.reserve(materials.size);
+		for (size_t i = 0; i < materials.size; ++i)
+			_pending_material_ids.push_back(materials.data[i]);
+		_refresh_materials_pending = true;
+		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
 	void editor_widget_material_editor_t::request_display_refresh()
 	{
+		_pending_material_ids.assign(_material_ids.begin(), _material_ids.end());
+		_refresh_materials_pending = true;
 		_ui->request_unique_mutation(on_ui_mutation, this);
+	}
+
+	void editor_widget_material_editor_t::flush_pending_ui_mutations()
+	{
+		if (!_refresh_materials_pending)
+			return;
+
+		_refresh_materials_pending = false;
+		vector_t<sid_t> materials;
+		materials.assign(_pending_material_ids.begin(), _pending_material_ids.end());
+		_pending_material_ids.resize(0);
+		set_materials({.data = materials.data(), .size = materials.size()});
 	}
 
 	void editor_widget_material_editor_t::on_material_edit_begin()
@@ -673,9 +762,6 @@ namespace sfg
 
 	void editor_widget_material_editor_t::on_ui_mutation(ui::ui_context&, void* user_data)
 	{
-		editor_widget_material_editor_t& editor = *static_cast<editor_widget_material_editor_t*>(user_data);
-		vector_t<sid_t>					 materials;
-		materials.assign(editor._material_ids.begin(), editor._material_ids.end());
-		editor.set_materials({.data = materials.data(), .size = materials.size()});
+		static_cast<editor_widget_material_editor_t*>(user_data)->flush_pending_ui_mutations();
 	}
 }

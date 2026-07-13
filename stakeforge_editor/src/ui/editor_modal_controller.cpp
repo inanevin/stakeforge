@@ -145,7 +145,7 @@ namespace sfg
 		tree.attach(_window, _button_row);
 
 		ui::layout_in_t& button_row_in = tree.in(_button_row);
-		button_row_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		button_row_in.size_mode_x	   = ui::axis_mode_e::sum_children;
 		button_row_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		button_row_in.size_value	   = {1.0f, theme.item_height};
 		button_row_in.flow			   = ui::flow_e::row;

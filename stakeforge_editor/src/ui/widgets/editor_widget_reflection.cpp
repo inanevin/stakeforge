@@ -267,7 +267,7 @@ namespace sfg
 	{
 		ui::layout_tree_t& tree		= _ui->get_tree();
 		ui::layout_in_t&   input_in = tree.in(widget);
-		input_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		input_in.size_mode_x		= ui::axis_mode_e::fill;
 		input_in.size_mode_y		= ui::axis_mode_e::fixed;
 		input_in.pos_mode_y			= ui::pos_mode_e::relative_in_parent;
 		input_in.anchor_y			= ui::anchor_e::center;

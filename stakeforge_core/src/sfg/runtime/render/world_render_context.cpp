@@ -103,13 +103,13 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 
 			_pfd[i].cmd_gfx0					  = backend.create_command_buffer({
-									 .type		 = command_type::graphics,
-									 .debug_name = "world_gfx0",
-			 });
+				.type		= command_type::graphics,
+				.debug_name = "world_gfx0",
+			});
 			_pfd[i].cmd_gfx1					  = backend.create_command_buffer({
-									 .type		 = command_type::graphics,
-									 .debug_name = "world_gfx1",
-			 });
+				.type		= command_type::graphics,
+				.debug_name = "world_gfx1",
+			});
 			_pfd[i].gfx0_done_semaphore			  = backend.create_semaphore();
 			_pfd[i].opaque_render_pass_data		  = backend.create_resource(opaque_render_pass_data_desc);
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
@@ -124,6 +124,7 @@ namespace sfg
 			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
 		}
+
 		const render_resources_t& render_resources = render_resources_t::get();
 		const shader_internals_t* sh			   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/deferred_lighting.hlsl"_hs);
 		_shaders.lighting						   = render_resources.get_shader_hw(sh->psos[0]);

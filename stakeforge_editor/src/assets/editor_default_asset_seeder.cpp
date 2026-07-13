@@ -171,8 +171,8 @@ namespace sfg
 		void ensure_shader_assets(const char* default_assets_dir)
 		{
 			const default_shader_asset_desc_t default_shader_assets[] = {
-				{.asset_name = "shader_gbuffer", .source_base_name = "gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
-				{.asset_name = "shader_forward", .source_base_name = "forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+				{.asset_name = "default_shader_gbuffer", .source_base_name = "default_shader_gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
+				{.asset_name = "default_shader_forward", .source_base_name = "default_shader_forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
 			};
 
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
@@ -219,10 +219,10 @@ namespace sfg
 		void ensure_texture_assets(const char* default_assets_dir)
 		{
 			const default_file_asset_desc_t default_texture_assets[] = {
-				{.asset_name = "texture_albedo", .source_base_name = "texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
-				{.asset_name = "texture_orm", .source_base_name = "texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
-				{.asset_name = "texture_normal", .source_base_name = "texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
-				{.asset_name = "texture_emissive", .source_base_name = "texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_albedo", .source_base_name = "default_texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_orm", .source_base_name = "default_texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_normal", .source_base_name = "default_texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_emissive", .source_base_name = "default_texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
 			};
 
 			for (const default_file_asset_desc_t& desc : default_texture_assets)
@@ -261,7 +261,7 @@ namespace sfg
 		void ensure_skybox_assets(const char* default_assets_dir)
 		{
 			const default_file_asset_desc_t default_skybox_assets[] = {
-				{.asset_name = "qwantani_dusk_2", .source_base_name = "qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
+				{.asset_name = "default_sky_qwantani_dusk_2", .source_base_name = "default_sky_qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
 			};
 
 			for (const default_file_asset_desc_t& desc : default_skybox_assets)
@@ -301,42 +301,47 @@ namespace sfg
 		void ensure_embedded_assets(const char* default_assets_dir)
 		{
 			const default_embedded_asset_desc_t default_embedded_assets[] = {
-				{.asset_name		  = "material_gbuffer",
-				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "material_gbuffer.sfg_asset",
+				{.asset_name		  = "default_material_gbuffer",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_gbuffer.sfg_asset",
 				 .guid				  = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::gbuffer)},
-				{.asset_name		  = "material_forward",
-				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "material_forward.sfg_asset",
+				{.asset_name		  = "default_material_forward",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_forward.sfg_asset",
 				 .guid				  = DEFAULT_FORWARD_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::forward)},
-				{.asset_name = "physical_material", .asset_relative_path = EDITOR_DEFAULT_MATERIALS "physical_material.sfg_asset", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
-				{.asset_name		  = "sampler_linear",
-				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_linear.sfg_asset",
+				{.asset_name = "default_physical_material", .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_physical_material.sfg_asset", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
+				{.asset_name		  = "default_sampler_linear",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_linear.sfg_asset",
 				 .guid				  = DEFAULT_LINEAR_SAMPLER_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::texture_sampler,
 				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::linear)},
-				{.asset_name		  = "sampler_nearest",
-				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_nearest.sfg_asset",
+				{.asset_name		  = "default_sampler_nearest",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_nearest.sfg_asset",
 				 .guid				  = DEFAULT_NEAREST_SAMPLER_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::texture_sampler,
 				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::nearest)},
-				{.asset_name		  = "sampler_linear_repeat",
-				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_linear_repeat.sfg_asset",
+				{.asset_name		  = "default_sampler_linear_repeat",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_linear_repeat.sfg_asset",
 				 .guid				  = DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::texture_sampler,
 				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::linear_repeat)},
-				{.asset_name		  = "sampler_nearest_repeat",
-				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_nearest_repeat.sfg_asset",
+				{.asset_name		  = "default_sampler_nearest_repeat",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_nearest_repeat.sfg_asset",
 				 .guid				  = DEFAULT_NEAREST_SAMPLER_REPEAT_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::texture_sampler,
 				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::nearest_repeat)},
-				{.asset_name		  = "sampler_anisotropic",
-				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "sampler_anisotropic.sfg_asset",
+				{.asset_name		  = "default_sampler_anisotropic",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_anisotropic.sfg_asset",
 				 .guid				  = DEFAULT_ANISOTROPIC_SAMPLER_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::texture_sampler,
 				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::anisotropic)},
+				{.asset_name		  = "default_sampler_anisotropic_repeat",
+				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_anisotropic_repeat.sfg_asset",
+				 .guid				  = DEFAULT_ANISOTROPIC_SAMPLER_REPEAT_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::texture_sampler,
+				 .sub_type			  = static_cast<u8>(editor_texture_sampler_type_e::anisotropic_repeat)},
 			};
 
 			for (const default_embedded_asset_desc_t& desc : default_embedded_assets)

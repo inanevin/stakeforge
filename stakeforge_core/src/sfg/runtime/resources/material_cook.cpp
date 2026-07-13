@@ -25,6 +25,9 @@ namespace sfg
 
 		for (const material_texture_value_t& texture : def.textures)
 		{
+			if (texture.texture == NULL_SID)
+				continue;
+
 			out_header.dependencies[out_header.dependency_count] = {
 				.handle = texture.texture,
 				.type	= resource_type_e::texture,
@@ -34,6 +37,9 @@ namespace sfg
 
 		for (const material_sampler_value_t& sampler : def.samplers)
 		{
+			if (sampler.sampler == NULL_SID)
+				continue;
+
 			out_header.dependencies[out_header.dependency_count] = {
 				.handle = sampler.sampler,
 				.type	= resource_type_e::texture_sampler,
@@ -41,11 +47,14 @@ namespace sfg
 			out_header.dependency_count++;
 		}
 
-		out_header.dependencies[out_header.dependency_count] = {
-			.handle = def.shader,
-			.type	= resource_type_e::shader,
-		};
-		out_header.dependency_count++;
+		if (def.shader != NULL_SID)
+		{
+			out_header.dependencies[out_header.dependency_count] = {
+				.handle = def.shader,
+				.type	= resource_type_e::shader,
+			};
+			out_header.dependency_count++;
+		}
 
 		stream.write_raw(material_stream.get_raw(), material_stream.get_size());
 		return true;

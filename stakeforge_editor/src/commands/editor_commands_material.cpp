@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "commands/editor_commands_material.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
@@ -222,6 +223,8 @@ namespace sfg
 
 				editor_asset_io_t::set_embedded_source_json(asset, embedded);
 				if (!editor_asset_io_t::write_asset(asset_node.full_path.c_str(), asset))
+					return false;
+				if (!editor_asset_cooker_t::cook_material(asset))
 					return false;
 				if (!asset_manager.reload_asset_node(node))
 					return false;

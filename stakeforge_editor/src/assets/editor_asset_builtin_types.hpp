@@ -44,5 +44,6 @@ namespace sfg
 		anisotropic,
 		linear_repeat,
 		nearest_repeat,
+		anisotropic_repeat,
 	};
 }

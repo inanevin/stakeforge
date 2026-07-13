@@ -83,23 +83,6 @@ namespace sfg
 			}
 		}
 
-		const char* get_texture_sampler_template_relative(editor_texture_sampler_type_e sampler_type)
-		{
-			switch (sampler_type)
-			{
-			case editor_texture_sampler_type_e::nearest:
-				return EDITOR_TEMPLATE_SAMPLERS "sampler_nearest.sfg_asset";
-			case editor_texture_sampler_type_e::linear_repeat:
-				return EDITOR_TEMPLATE_SAMPLERS "sampler_linear_repeat.sfg_asset";
-			case editor_texture_sampler_type_e::nearest_repeat:
-				return EDITOR_TEMPLATE_SAMPLERS "sampler_nearest_repeat.sfg_asset";
-			case editor_texture_sampler_type_e::anisotropic:
-				return EDITOR_TEMPLATE_SAMPLERS "sampler_anisotropic.sfg_asset";
-			default:
-				return EDITOR_TEMPLATE_SAMPLERS "sampler_linear.sfg_asset";
-			}
-		}
-
 		bool create_shader_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const shader_type_e shader_type = static_cast<shader_type_e>(desc.sub_type);
@@ -144,21 +127,22 @@ namespace sfg
 
 		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			const editor_texture_sampler_type_e sampler_type = static_cast<editor_texture_sampler_type_e>(desc.sub_type);
-			nlohmann::json						embedded_source;
-			if (!editor_asset_writer_t::read_embedded_source(get_texture_sampler_template_relative(sampler_type), embedded_source))
+			const char*	   template_relative = EDITOR_TEMPLATE_SAMPLERS "sampler_linear_repeat.sfg_asset";
+			nlohmann::json embedded_source;
+			if (!editor_asset_writer_t::read_embedded_source(template_relative, embedded_source))
 			{
-				SFG_ERR("failed to read texture sampler asset template {0}", get_texture_sampler_template_relative(sampler_type));
+				SFG_ERR("failed to read texture sampler asset template {0}", template_relative);
 				return false;
 			}
 
+			const u8								 sub_type = static_cast<u8>(editor_texture_sampler_type_e::linear_repeat);
 			const editor_asset_write_embedded_desc_t write_desc{
 				.embedded_source = &embedded_source,
 				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
 				.asset_type		 = editor_asset_type_e::texture_sampler,
-				.sub_type		 = desc.sub_type,
+				.sub_type		 = sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);

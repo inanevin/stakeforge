@@ -45,7 +45,7 @@ namespace sfg
 			const editor_theme_t& theme = editor_theme_t::get();
 
 			ui::layout_in_t& in = ui.get_tree().in(id);
-			in.size_mode_x		= ui::axis_mode_e::parent_relative;
+			in.size_mode_x		= ui::axis_mode_e::fill;
 			in.size_mode_y		= ui::axis_mode_e::fixed;
 			in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
 			in.anchor_y			= ui::anchor_e::center;

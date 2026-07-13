@@ -117,7 +117,11 @@ namespace sfg
 
 		for (u32 i = 0; i < header.dependency_count; i++)
 		{
-			load_resource(header.dependencies[i].handle, header.dependencies[i].type);
+			if (load_resource(header.dependencies[i].handle, header.dependencies[i].type) == resource_state_e::failed)
+			{
+				SFG_ERR("failed loading dependency for {0}", header.debug_name);
+				SFG_ASSERT(false);
+			}
 		}
 
 		resource_entry_t entry = {};
@@ -238,7 +242,8 @@ namespace sfg
 			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
 			for (u32 i = 0; i < entry.dependency_count; i++)
 			{
-				unload_resource(deps[i].handle, force);
+				if (deps[i].handle != NULL_SID)
+					unload_resource(deps[i].handle, force);
 			}
 		}
 
