@@ -397,6 +397,7 @@ namespace sfg
 			.cleanup		   = create_entity_cleanup,
 			.debug_name		   = "Create Entity",
 			.type			   = editor_command_type_e::entity_create,
+			.world			   = world,
 			.entity_generation = true,
 		};
 
@@ -451,6 +452,7 @@ namespace sfg
 			.cleanup		   = duplicate_entity_cleanup,
 			.debug_name		   = "Duplicate Entity",
 			.type			   = editor_command_type_e::entity_duplicate,
+			.world			   = world,
 			.entity_generation = true,
 		};
 
@@ -503,6 +505,7 @@ namespace sfg
 			.cleanup		   = destroy_entity_cleanup,
 			.debug_name		   = "Destroy Entity",
 			.type			   = editor_command_type_e::entity_destroy,
+			.world			   = world,
 			.entity_generation = true,
 		};
 
@@ -553,6 +556,7 @@ namespace sfg
 			.cleanup		   = reparent_entity_cleanup,
 			.debug_name		   = "Reparent Entity",
 			.type			   = editor_command_type_e::entity_reparent,
+			.world			   = world,
 			.entity_generation = true,
 		};
 

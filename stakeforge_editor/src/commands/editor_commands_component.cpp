@@ -409,6 +409,7 @@ namespace sfg
 			.cleanup	= add_component_cleanup,
 			.debug_name = "Add Component",
 			.type		= editor_command_type_e::component_add,
+			.world		= world,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
@@ -467,6 +468,7 @@ namespace sfg
 			.cleanup	= remove_component_cleanup,
 			.debug_name = "Remove Component",
 			.type		= editor_command_type_e::component_remove,
+			.world		= world,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
@@ -528,6 +530,7 @@ namespace sfg
 			.cleanup	= reset_component_cleanup,
 			.debug_name = "Reset Component",
 			.type		= editor_command_type_e::component_reset,
+			.world		= world,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
@@ -591,6 +594,7 @@ namespace sfg
 			.cleanup	= paste_component_cleanup,
 			.debug_name = "Paste Component",
 			.type		= editor_command_type_e::component_paste,
+			.world		= world,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);

@@ -131,6 +131,7 @@ namespace sfg
 			.cleanup	= on_entity_selection_cleanup,
 			.debug_name = "Select Entities",
 			.type		= editor_command_type_e::entity_selection,
+			.world		= _world,
 		};
 		command_system.issue_command(desc, payload);
 	}

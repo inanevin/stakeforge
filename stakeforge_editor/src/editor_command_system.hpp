@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "world/editor_world_handle.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
@@ -87,6 +88,7 @@ namespace sfg
 		fn_t				   cleanup			 = nullptr;
 		u32					   sequence			 = 0;
 		chunk_handle32_t	   payload			 = {};
+		editor_world_handle_t  world			 = {};
 		editor_command_type_e  type				 = editor_command_type_e::invalid;
 		editor_command_state_e state			 = editor_command_state_e::invalid;
 		bool				   entity_generation = false;
@@ -117,6 +119,7 @@ namespace sfg
 		size_t				   payload_size		 = 0;
 		size_t				   payload_alignment = alignof(std::max_align_t);
 		editor_command_type_e  type				 = editor_command_type_e::custom;
+		editor_world_handle_t  world			 = {};
 		bool				   run_redo			 = true;
 		bool				   notify			 = true;
 		bool				   entity_generation = false;
@@ -140,6 +143,7 @@ namespace sfg
 		void init(const editor_command_system_config_t& config = {});
 		void uninit();
 		void clear();
+		void clear_world(editor_world_handle_t world);
 
 		// -----------------------------------------------------------------------------
 		// impl

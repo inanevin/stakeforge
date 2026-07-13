@@ -224,6 +224,7 @@ namespace sfg
 			.cleanup	= paste_entity_info_cleanup,
 			.debug_name = "Paste Entity Info",
 			.type		= editor_command_type_e::entity_info_paste,
+			.world		= world,
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
@@ -259,6 +260,7 @@ namespace sfg
 			.cleanup	= edit_entity_info_cleanup,
 			.debug_name = "Entity Info Edit",
 			.type		= editor_command_type_e::entity_info_edit,
+			.world		= world,
 			.run_redo	= false,
 			.notify		= false,
 		};

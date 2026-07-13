@@ -218,6 +218,7 @@ namespace sfg
 			.cleanup	= component_edit_cleanup,
 			.debug_name = "Component Edit",
 			.type		= editor_command_type_e::component_edit,
+			.world		= world,
 			.run_redo	= false,
 			.notify		= false,
 		};

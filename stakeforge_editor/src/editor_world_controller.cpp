@@ -447,12 +447,15 @@ namespace sfg
 		if (_main_world == handle && _main_world_asset_guid == asset_guid && _main_world_name == name)
 			return;
 
+		const editor_world_handle_t previous_main_world = _main_world;
+		if (!previous_main_world.is_null())
+			editor_command_system_t::get().clear_world(previous_main_world);
+
 		_main_world					   = handle;
 		_main_world_asset_guid		   = asset_guid;
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_name			   = name;
 		_main_world_dirty			   = false;
-		editor_command_system_t::get().clear();
 		notify_main_world_changed();
 		notify_main_world_dirty_changed();
 	}

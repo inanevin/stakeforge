@@ -116,6 +116,7 @@ namespace sfg
 			.cleanup		   = prefab_spawn_cleanup,
 			.debug_name		   = "Spawn Prefab",
 			.type			   = editor_command_type_e::prefab_spawn,
+			.world			   = world,
 			.entity_generation = true,
 		};
 

@@ -166,6 +166,7 @@ namespace sfg
 			.cleanup		   = primitive_spawn_cleanup,
 			.debug_name		   = "Spawn Primitive",
 			.type			   = editor_command_type_e::primitive_spawn,
+			.world			   = world,
 			.entity_generation = true,
 		};
 

@@ -313,6 +313,7 @@ namespace sfg
 			.redo			   = create_world_folder_redo,
 			.debug_name		   = "Create Folder",
 			.type			   = editor_command_type_e::world_edit_context_create_folder,
+			.world			   = context,
 			.entity_generation = true,
 		};
 
@@ -350,6 +351,7 @@ namespace sfg
 			.redo			   = rename_world_folder_redo,
 			.debug_name		   = "Rename Folder",
 			.type			   = editor_command_type_e::world_edit_context_rename_folder,
+			.world			   = context,
 			.entity_generation = true,
 		};
 
@@ -378,6 +380,7 @@ namespace sfg
 			.redo			   = color_world_folder_redo,
 			.debug_name		   = "Change Folder Color",
 			.type			   = editor_command_type_e::world_edit_context_color_folder,
+			.world			   = context,
 			.entity_generation = true,
 		};
 
@@ -440,6 +443,7 @@ namespace sfg
 			.cleanup		   = delete_world_folder_cleanup,
 			.debug_name		   = "Delete Folder",
 			.type			   = editor_command_type_e::world_edit_context_delete_folder,
+			.world			   = context,
 			.entity_generation = true,
 		};
 
@@ -481,6 +485,7 @@ namespace sfg
 			.cleanup		   = assign_world_folder_cleanup,
 			.debug_name		   = "Assign Folder",
 			.type			   = editor_command_type_e::world_edit_context_assign_folder,
+			.world			   = context,
 			.entity_generation = true,
 		};
 
@@ -519,6 +524,7 @@ namespace sfg
 			.redo			   = assign_world_folder_parent_redo,
 			.debug_name		   = "Assign Folder Parent",
 			.type			   = editor_command_type_e::world_edit_context_assign_folder_parent,
+			.world			   = context,
 			.entity_generation = true,
 		};
 
