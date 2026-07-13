@@ -30,6 +30,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -90,6 +91,7 @@ namespace sfg
 		};
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
+		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
 		const editor_property_row_t guid_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "GUID");
 		_guid_label							 = ui.allocate_widget();
@@ -109,6 +111,7 @@ namespace sfg
 								ui.widget_text(_guid_label),
 								ui.widget_text_len(_guid_label),
 								{.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
 		const editor_property_row_t position_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Position");
 		editor_vec3_field_config_t	position_config = {};
@@ -118,6 +121,7 @@ namespace sfg
 		position_config.callbacks.user_data			= this;
 		_position_field.init(ui, position_row.right, position_config);
 		fit_control(ui, _position_field.get_root());
+		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
 		const editor_property_row_t rotation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Rotation");
 		editor_quat_field_config_t	rotation_config = {};
@@ -127,6 +131,7 @@ namespace sfg
 		rotation_config.callbacks.user_data			= this;
 		_rotation_field.init(ui, rotation_row.right, rotation_config);
 		fit_control(ui, _rotation_field.get_root());
+		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
 		const editor_property_row_t scale_row	 = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Scale");
 		editor_vec3_field_config_t	scale_config = {};
@@ -136,6 +141,7 @@ namespace sfg
 		scale_config.callbacks.user_data		 = this;
 		_scale_field.init(ui, scale_row.right, scale_config);
 		fit_control(ui, _scale_field.get_root());
+		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
 		if (config.is_prefab)
 		{

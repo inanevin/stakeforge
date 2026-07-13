@@ -324,6 +324,7 @@ namespace sfg
 
 		ui::listener_bundle_t body_top_listener = {};
 		body_top_listener.user_data				= this;
+		body_top_listener.on_click				= on_asset_grid_background_clicked;
 		body_top_listener.on_wheel				= on_assets_body_wheel;
 		body_top_listener.on_key				= on_asset_tree_key;
 		body_top_listener.on_focus_gain			= on_assets_focus_gain;
@@ -361,9 +362,9 @@ namespace sfg
 		_asset_search_input.uninit();
 		_item_style_dropdown.uninit();
 		_split_border.uninit();
+		clear_asset_grid();
 		_left_scrollbar.uninit();
 		_right_scrollbar.uninit();
-		clear_asset_grid();
 		_ui->deallocate_widget(_assets_left_pane);
 		_ui->deallocate_widget(_assets_body_pane);
 

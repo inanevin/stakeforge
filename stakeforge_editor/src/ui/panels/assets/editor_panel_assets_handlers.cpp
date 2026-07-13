@@ -648,9 +648,24 @@ namespace sfg
 			panel.refresh_asset_grid(false);
 	}
 
+	void editor_panel_assets_t::on_asset_grid_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->apply_pending_asset_grid_scroll_restore();
+	}
+
 	void editor_panel_assets_t::on_ui_mutation(ui::ui_context&, void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->flush_pending_ui_mutations();
+	}
+
+	void editor_panel_assets_t::on_asset_grid_background_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::right)
+			return;
+
+		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+		panel.clear_asset_grid_selection();
+		panel.open_action_menu(pos);
 	}
 
 	void editor_panel_assets_t::on_asset_grid_item_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)

@@ -442,8 +442,9 @@ namespace sfg
 		const editor_theme_t&		theme		   = editor_theme_t::get();
 		const ui::layout_out_t&		out			   = panel._ui->get_tree().out(panel._texture_frame);
 		const texture_mip_header_t& mip			   = runtime->header.mips[panel._selected_mip];
-		const f32					max_width	   = math::max(1.0f, out.size.x - theme.margin_horizontal * 2.0f);
-		const f32					max_height	   = math::max(1.0f, out.size.y - theme.margin_vertical * 2.0f);
+		const f32					scale		   = ui::get_valid_scale(panel._ui->get_ui_scale());
+		const f32					max_width	   = math::max(1.0f, out.size.x / scale - theme.margin_horizontal * 2.0f);
+		const f32					max_height	   = math::max(1.0f, out.size.y / scale - theme.margin_vertical * 2.0f);
 		const f32					texture_width  = math::max(1.0f, static_cast<f32>(mip.size.x));
 		const f32					texture_height = math::max(1.0f, static_cast<f32>(mip.size.y));
 		const f32					aspect		   = texture_width / texture_height;

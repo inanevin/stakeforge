@@ -62,10 +62,17 @@ namespace sfg
 		if (!force && _asset_grid_generation == asset_manager.get_generation() && _asset_grid_folder_hash == folder_hash)
 			return;
 
+		const bool preserve_scroll = _asset_grid_folder_hash == folder_hash;
+		f32		   scroll_y		   = 0.0f;
+		if (preserve_scroll)
+			scroll_y = _ui->get_tree().in_const(_assets_body_pane_top).scroll_offset.y;
+
 		_asset_grid_generation	= asset_manager.get_generation();
 		_asset_grid_folder_hash = folder_hash;
 
-		clear_asset_grid();
+		clear_asset_grid(!preserve_scroll);
+		if (preserve_scroll)
+			restore_asset_grid_scroll(scroll_y);
 
 		const ui::layout_out_t& body_out = _ui->get_tree().out(_assets_body_pane_top);
 		if (asset_tree.empty() || !folder_valid || body_out.size.x <= 0.0f)
@@ -153,7 +160,7 @@ namespace sfg
 			_asset_selection_anchor = _selected_asset_node;
 	}
 
-	void editor_panel_assets_t::clear_asset_grid()
+	void editor_panel_assets_t::clear_asset_grid(bool reset_scroll)
 	{
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
 		if (tooltip_controller != nullptr)
@@ -174,7 +181,34 @@ namespace sfg
 			_ui->deallocate_widget(row);
 		_asset_grid_rows.resize(0);
 		_asset_grid_items.resize(0);
-		_ui->get_tree().in(_assets_body_pane_top).scroll_offset = {};
+		if (reset_scroll)
+		{
+			_grid_scroll_restore_pending = false;
+			_ui->clear_post_layout_tick(_assets_body_pane_top);
+			_right_scrollbar.set_scroll_y_immediate(0.0f);
+		}
+	}
+
+	void editor_panel_assets_t::restore_asset_grid_scroll(f32 scroll_y)
+	{
+		_grid_restore_scroll_y		 = scroll_y;
+		_grid_scroll_restore_pending = true;
+		_ui->set_post_layout_tick(_assets_body_pane_top, on_asset_grid_scroll_restore_tick, this);
+	}
+
+	void editor_panel_assets_t::apply_pending_asset_grid_scroll_restore()
+	{
+		if (!_grid_scroll_restore_pending)
+		{
+			_ui->clear_post_layout_tick(_assets_body_pane_top);
+			return;
+		}
+
+		_right_scrollbar.set_scroll_y_immediate(_grid_restore_scroll_y);
+		_ui->request_post_layout_solve();
+		_grid_restore_scroll_y		 = 0.0f;
+		_grid_scroll_restore_pending = false;
+		_ui->clear_post_layout_tick(_assets_body_pane_top);
 	}
 
 	void editor_panel_assets_t::update_current_directory_label()

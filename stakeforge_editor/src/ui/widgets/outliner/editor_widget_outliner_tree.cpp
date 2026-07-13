@@ -337,7 +337,7 @@ namespace sfg
 					   _ui->widget_text_len(row.fold_icon_text),
 					   {.font = theme.font_icons, .color = fold_icon_color, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		const char* type_icon = item.type == editor_outliner_item_type_e::entity && item.has_prefab_reference ? ICON_SCROLL : item.type_icon;
+		const char* type_icon = item.type == editor_outliner_item_type_e::entity && item.has_prefab_reference ? ICON_CUBE : item.type_icon;
 		_ui->set_widget_text(row.type_icon_text, type_icon != nullptr ? type_icon : "");
 		paint.set_text(row.type_icon_text,
 					   _ui->widget_text(row.type_icon_text),
