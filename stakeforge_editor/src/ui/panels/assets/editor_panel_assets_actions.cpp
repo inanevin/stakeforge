@@ -38,7 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
-#include "ui/panels/editor_panel_texture_viewer.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -308,12 +307,6 @@ namespace sfg
 
 		if (asset->asset_type == editor_asset_type_e::world)
 			editor_world_controller_t::get().load_main_world(asset->guid);
-		else if (asset->asset_type == editor_asset_type_e::texture)
-		{
-			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::texture_viewer, {}, true, asset->guid);
-			if (panel != nullptr)
-				static_cast<editor_panel_texture_viewer_t*>(panel)->set_texture(asset->guid, asset_node.name.c_str());
-		}
 		else if (asset->asset_type == editor_asset_type_e::mesh)
 		{
 			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::mesh_viewer, {}, true, asset->guid);

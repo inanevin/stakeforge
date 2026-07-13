@@ -33,7 +33,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "ui/panels/editor_panel_project_settings.hpp"
 #include "ui/panels/editor_panel_resources.hpp"
-#include "ui/panels/editor_panel_texture_viewer.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include <sfg/io/assert.hpp>
 
@@ -50,7 +49,6 @@ namespace sfg
 			{.type = editor_panel_type_e::animation},
 			{.type = editor_panel_type_e::resources},
 			{.type = editor_panel_type_e::project_settings},
-			{.type = editor_panel_type_e::texture_viewer, .allows_multiple_instances = true},
 			{.type = editor_panel_type_e::mesh_viewer, .allows_multiple_instances = true},
 		};
 
@@ -77,8 +75,6 @@ namespace sfg
 			return new editor_panel_resources_t();
 		case editor_panel_type_e::project_settings:
 			return new editor_panel_project_settings_t();
-		case editor_panel_type_e::texture_viewer:
-			return new editor_panel_texture_viewer_t();
 		case editor_panel_type_e::mesh_viewer:
 			return new editor_panel_mesh_viewer_t();
 		default:

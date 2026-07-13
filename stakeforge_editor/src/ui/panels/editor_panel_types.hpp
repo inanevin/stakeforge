@@ -40,7 +40,6 @@ namespace sfg
 		animation,
 		resources,
 		project_settings,
-		texture_viewer,
 		mesh_viewer,
 		max,
 	};

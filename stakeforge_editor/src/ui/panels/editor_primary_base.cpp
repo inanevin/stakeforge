@@ -104,7 +104,7 @@ namespace sfg
 			return static_cast<u16>(PANEL_MENU_COMMAND_BASE + static_cast<u16>(type));
 		}
 
-		static_assert(static_cast<u16>(editor_panel_type_e::max) == 10);
+		static_assert(static_cast<u16>(editor_panel_type_e::max) == 9);
 
 		bool is_editor_debug_bounds_enabled(void*)
 		{

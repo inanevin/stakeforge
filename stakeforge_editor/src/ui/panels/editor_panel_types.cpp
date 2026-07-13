@@ -49,8 +49,6 @@ namespace sfg
 			return "Resources";
 		case editor_panel_type_e::project_settings:
 			return "Project Settings";
-		case editor_panel_type_e::texture_viewer:
-			return "Texture Viewer";
 		case editor_panel_type_e::mesh_viewer:
 			return "Mesh Viewer";
 		default:

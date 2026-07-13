@@ -315,6 +315,8 @@ namespace sfg
 		ui::widget_id_t							_assets_left_pane_body			 = NULL_WIDGET;
 		ui::widget_id_t							_assets_body_pane				 = NULL_WIDGET;
 		ui::widget_id_t							_assets_body_pane_top			 = NULL_WIDGET;
+		ui::widget_id_t							_assets_body_pane_top_divider	 = NULL_WIDGET;
+		ui::widget_id_t							_assets_body_pane_mid			 = NULL_WIDGET;
 		ui::widget_id_t							_assets_body_pane_divider		 = NULL_WIDGET;
 		ui::widget_id_t							_assets_body_pane_bottom		 = NULL_WIDGET;
 		ui::widget_id_t							_assets_body_pane_bottom_divider = NULL_WIDGET;

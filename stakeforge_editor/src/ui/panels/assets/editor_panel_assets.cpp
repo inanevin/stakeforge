@@ -199,20 +199,72 @@ namespace sfg
 		tree.attach(_assets_body_pane, _assets_body_pane_top);
 
 		ui::layout_in_t& body_top_in = tree.in(_assets_body_pane_top);
-		body_top_in.flags |= ui::wf_input | ui::wf_scroll_y;
+		body_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		body_top_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		body_top_in.size_value		 = {1.0f, theme.item_area_height};
+		body_top_in.flow			 = ui::flow_e::row;
+		body_top_in.child_spacing	 = theme.item_spacing;
+		body_top_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
-		body_top_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
-		body_top_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		body_top_in.size_mode_y		= ui::axis_mode_e::fill;
-		body_top_in.size_value		= {1.0f, 1.0f};
-		body_top_in.flow			= ui::flow_e::column;
-		body_top_in.child_spacing	= theme.item_spacing * 0.5f;
-		body_top_in.child_margins	= {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+		_assets_body_pane_path = ui.allocate_widget();
+		ui.set_widget_debug_name(_assets_body_pane_path, "assets_body_pane_path");
+		tree.attach(_assets_body_pane_top, _assets_body_pane_path);
 
-		ui::vg_rect_paint_t body_top_rect = {};
-		body_top_rect.fill_color_a		  = theme.color_panel;
-		body_top_rect.fill_color_b		  = theme.color_panel;
-		paint.set_rect(_assets_body_pane_top, body_top_rect);
+		ui::layout_in_t& path_in = tree.in(_assets_body_pane_path);
+		path_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		path_in.pos_value.y		 = 0.5f;
+		path_in.anchor_y		 = ui::anchor_e::center;
+		path_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		path_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		path_in.size_value		 = {theme.item_width * 1.5f, theme.text_default_px_size};
+
+		ui.set_widget_text(_assets_body_pane_path, "");
+		paint.set_text(_assets_body_pane_path,
+					   ui.widget_text(_assets_body_pane_path),
+					   ui.widget_text_len(_assets_body_pane_path),
+					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		u8*							asset_search_field	= reinterpret_cast<u8*>(&_asset_search_str);
+		editor_input_field_config_t asset_search_config = {};
+		asset_search_config.placeholder					= "Search";
+		asset_search_config.field						= {
+			.fields = {.data = &asset_search_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
+		asset_search_config.callbacks.edited	= on_asset_search_changed;
+		asset_search_config.callbacks.user_data = this;
+		_asset_search_input.init(ui, _assets_body_pane_top, asset_search_config);
+
+		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
+		asset_search_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		asset_search_in.pos_value.y		 = 0.5f;
+		asset_search_in.anchor_y		 = ui::anchor_e::center;
+		asset_search_in.size_mode_x		 = ui::axis_mode_e::fill;
+		asset_search_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		asset_search_in.size_value		 = {1.0f, theme.item_height};
+
+		_assets_body_pane_top_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		ui.set_widget_debug_name(_assets_body_pane_top_divider, "assets_body_pane_top_divider");
+
+		_assets_body_pane_mid = ui.allocate_widget();
+		ui.set_widget_debug_name(_assets_body_pane_mid, "assets_body_pane_mid");
+		tree.attach(_assets_body_pane, _assets_body_pane_mid);
+
+		ui::layout_in_t& body_mid_in = tree.in(_assets_body_pane_mid);
+		body_mid_in.flags |= ui::wf_input | ui::wf_scroll_y;
+
+		body_mid_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		body_mid_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		body_mid_in.size_mode_y		= ui::axis_mode_e::fill;
+		body_mid_in.size_value		= {1.0f, 1.0f};
+		body_mid_in.flow			= ui::flow_e::column;
+		body_mid_in.child_spacing	= theme.item_spacing * 0.5f;
+		body_mid_in.child_margins	= {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+
+		ui::vg_rect_paint_t body_mid_rect = {};
+		body_mid_rect.fill_color_a		  = theme.color_panel;
+		body_mid_rect.fill_color_b		  = theme.color_panel;
+		paint.set_rect(_assets_body_pane_mid, body_mid_rect);
 
 		_assets_body_pane_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		ui.set_widget_debug_name(_assets_body_pane_divider, "assets_body_pane_divider");
@@ -233,24 +285,6 @@ namespace sfg
 		body_bottom_listener.user_data			   = this;
 		ui.get_input().set_listener(_assets_body_pane_bottom, body_bottom_listener);
 
-		_assets_body_pane_path = ui.allocate_widget();
-		ui.set_widget_debug_name(_assets_body_pane_path, "assets_body_pane_path");
-		tree.attach(_assets_body_pane_bottom, _assets_body_pane_path);
-
-		ui::layout_in_t& path_in = tree.in(_assets_body_pane_path);
-		path_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		path_in.pos_value.y		 = 0.5f;
-		path_in.anchor_y		 = ui::anchor_e::center;
-		path_in.size_mode_x		 = ui::axis_mode_e::fill;
-		path_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		path_in.size_value		 = {1.0f, theme.text_default_px_size};
-
-		ui.set_widget_text(_assets_body_pane_path, "");
-		paint.set_text(_assets_body_pane_path,
-					   ui.widget_text(_assets_body_pane_path),
-					   ui.widget_text_len(_assets_body_pane_path),
-					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-
 		_assets_body_pane_controls = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_body_pane_controls, "assets_body_pane_controls");
 		tree.attach(_assets_body_pane_bottom, _assets_body_pane_controls);
@@ -266,7 +300,7 @@ namespace sfg
 		controls_in.anchor_x		 = ui::anchor_e::end;
 		controls_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
 		controls_in.pos_value.x		 = 1.0f;
-		controls_in.size_value		 = {theme.item_width * 2.0f + theme.item_height * 2.0f + theme.item_spacing * 3.0f, theme.item_height};
+		controls_in.size_value		 = {theme.item_width + theme.item_height * 2.0f + theme.item_spacing * 2.0f, theme.item_height};
 
 		editor_icon_button_config_t show_file_assets_config = filter_button_config;
 		show_file_assets_config.icon						= ICON_FILE;
@@ -287,22 +321,6 @@ namespace sfg
 		asset_favourites_only_config.on_clicked					 = on_asset_favourites_only_pressed;
 		_asset_favourites_only_button.init(ui, _assets_body_pane_controls, asset_favourites_only_config);
 
-		u8*							asset_search_field	= reinterpret_cast<u8*>(&_asset_search_str);
-		editor_input_field_config_t asset_search_config = {};
-		asset_search_config.placeholder					= "Search";
-		asset_search_config.field						= {
-			.fields = {.data = &asset_search_field, .size = 1},
-			.type	= editor_input_field_field_type_e::string,
-		};
-		asset_search_config.callbacks.edited	= on_asset_search_changed;
-		asset_search_config.callbacks.user_data = this;
-		_asset_search_input.init(ui, _assets_body_pane_controls, asset_search_config);
-
-		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
-		asset_search_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		asset_search_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		asset_search_in.size_value		 = {theme.item_width, theme.item_height};
-
 		editor_dropdown_config_t item_style_config = {};
 		item_style_config.items					   = ASSETS_ITEM_STYLE_ITEMS;
 		item_style_config.item_count			   = static_cast<u16>(sizeof(ASSETS_ITEM_STYLE_ITEMS) / sizeof(ASSETS_ITEM_STYLE_ITEMS[0]));
@@ -318,20 +336,20 @@ namespace sfg
 		ui.set_widget_debug_name(_assets_body_pane_bottom_divider, "assets_body_pane_bottom_divider");
 
 		editor_scrollbar_config_t right_scrollbar_config = {};
-		right_scrollbar_config.target					 = _assets_body_pane_top;
+		right_scrollbar_config.target					 = _assets_body_pane_mid;
 		right_scrollbar_config.axes						 = editor_scrollbar_axis_y;
 		_right_scrollbar.init(ui, right_scrollbar_config);
 
-		ui::listener_bundle_t body_top_listener = {};
-		body_top_listener.user_data				= this;
-		body_top_listener.on_click				= on_asset_grid_background_clicked;
-		body_top_listener.on_wheel				= on_assets_body_wheel;
-		body_top_listener.on_key				= on_asset_tree_key;
-		body_top_listener.on_focus_gain			= on_assets_focus_gain;
-		body_top_listener.on_focus_lose			= on_assets_focus_lost;
-		ui.get_input().set_listener(_assets_body_pane_top, body_top_listener);
+		ui::listener_bundle_t body_mid_listener = {};
+		body_mid_listener.user_data				= this;
+		body_mid_listener.on_click				= on_asset_grid_background_clicked;
+		body_mid_listener.on_wheel				= on_assets_body_wheel;
+		body_mid_listener.on_key				= on_asset_tree_key;
+		body_mid_listener.on_focus_gain			= on_assets_focus_gain;
+		body_mid_listener.on_focus_lose			= on_assets_focus_lost;
+		ui.get_input().set_listener(_assets_body_pane_mid, body_mid_listener);
 
-		ui.set_pre_layout_tick(_assets_body_pane_top, on_asset_grid_tick, this);
+		ui.set_pre_layout_tick(_assets_body_pane_mid, on_asset_grid_tick, this);
 
 		_folder_rows.reserve(ASSETS_INITIAL_ROW_CAPACITY);
 		_asset_grid_rows.reserve(32);

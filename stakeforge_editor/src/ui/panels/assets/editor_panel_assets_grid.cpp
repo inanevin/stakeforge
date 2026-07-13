@@ -65,7 +65,7 @@ namespace sfg
 		const bool preserve_scroll = _asset_grid_folder_hash == folder_hash;
 		f32		   scroll_y		   = 0.0f;
 		if (preserve_scroll)
-			scroll_y = _ui->get_tree().in_const(_assets_body_pane_top).scroll_offset.y;
+			scroll_y = _ui->get_tree().in_const(_assets_body_pane_mid).scroll_offset.y;
 
 		_asset_grid_generation	= asset_manager.get_generation();
 		_asset_grid_folder_hash = folder_hash;
@@ -74,7 +74,7 @@ namespace sfg
 		if (preserve_scroll)
 			restore_asset_grid_scroll(scroll_y);
 
-		const ui::layout_out_t& body_out = _ui->get_tree().out(_assets_body_pane_top);
+		const ui::layout_out_t& body_out = _ui->get_tree().out(_assets_body_pane_mid);
 		if (asset_tree.empty() || !folder_valid || body_out.size.x <= 0.0f)
 			return;
 
@@ -129,8 +129,8 @@ namespace sfg
 				{
 					row = _ui->allocate_widget();
 					_ui->set_widget_debug_name(row, "asset_grid_row");
-					_ui->get_tree().attach(_assets_body_pane_top, row);
-					_ui->get_tree().draw_order(row) = _ui->get_tree().draw_order_const(_assets_body_pane_top) + 1;
+					_ui->get_tree().attach(_assets_body_pane_mid, row);
+					_ui->get_tree().draw_order(row) = _ui->get_tree().draw_order_const(_assets_body_pane_mid) + 1;
 
 					ui::layout_in_t& row_in = _ui->get_tree().in(row);
 					row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
@@ -184,7 +184,7 @@ namespace sfg
 		if (reset_scroll)
 		{
 			_grid_scroll_restore_pending = false;
-			_ui->clear_post_layout_tick(_assets_body_pane_top);
+			_ui->clear_post_layout_tick(_assets_body_pane_mid);
 			_right_scrollbar.set_scroll_y_immediate(0.0f);
 		}
 	}
@@ -193,14 +193,14 @@ namespace sfg
 	{
 		_grid_restore_scroll_y		 = scroll_y;
 		_grid_scroll_restore_pending = true;
-		_ui->set_post_layout_tick(_assets_body_pane_top, on_asset_grid_scroll_restore_tick, this);
+		_ui->set_post_layout_tick(_assets_body_pane_mid, on_asset_grid_scroll_restore_tick, this);
 	}
 
 	void editor_panel_assets_t::apply_pending_asset_grid_scroll_restore()
 	{
 		if (!_grid_scroll_restore_pending)
 		{
-			_ui->clear_post_layout_tick(_assets_body_pane_top);
+			_ui->clear_post_layout_tick(_assets_body_pane_mid);
 			return;
 		}
 
@@ -208,7 +208,7 @@ namespace sfg
 		_ui->request_post_layout_solve();
 		_grid_restore_scroll_y		 = 0.0f;
 		_grid_scroll_restore_pending = false;
-		_ui->clear_post_layout_tick(_assets_body_pane_top);
+		_ui->clear_post_layout_tick(_assets_body_pane_mid);
 	}
 
 	void editor_panel_assets_t::update_current_directory_label()
@@ -471,8 +471,8 @@ namespace sfg
 
 		item.root = ui.allocate_widget();
 		ui.set_widget_debug_name(item.root, "asset_list_item");
-		tree.attach(_assets_body_pane_top, item.root);
-		tree.draw_order(item.root) = tree.draw_order_const(_assets_body_pane_top) + 1;
+		tree.attach(_assets_body_pane_mid, item.root);
+		tree.draw_order(item.root) = tree.draw_order_const(_assets_body_pane_mid) + 1;
 
 		ui::layout_in_t& root_in = tree.in(item.root);
 		root_in.flags |= ui::wf_input | ui::wf_focusable;
@@ -581,7 +581,7 @@ namespace sfg
 		status_in.size_mode_x	   = ui::axis_mode_e::fixed;
 		status_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		status_in.size_value	   = {theme.item_height, theme.item_height};
-		const f32 root_w		   = _ui->get_tree().out(_assets_body_pane_top).size.x;
+		const f32 root_w		   = _ui->get_tree().out(_assets_body_pane_mid).size.x;
 		if (root_w > 0.0f)
 			status_in.pos_value.x = 1.0f - theme.item_height / root_w;
 		tree.set_visible(item.status_text, has_status, false);

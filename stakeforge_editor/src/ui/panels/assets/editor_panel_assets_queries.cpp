@@ -137,8 +137,8 @@ namespace sfg
 		if (asset_index != SIZE_MAX)
 		{
 			ui::layout_tree_t&		tree_ui	 = _ui->get_tree();
-			ui::layout_in_t&		grid_in	 = tree_ui.in(_assets_body_pane_top);
-			const ui::layout_out_t& grid_out = tree_ui.out(_assets_body_pane_top);
+			ui::layout_in_t&		grid_in	 = tree_ui.in(_assets_body_pane_mid);
+			const ui::layout_out_t& grid_out = tree_ui.out(_assets_body_pane_mid);
 			const f32				viewport = grid_out.size.y / scale;
 			f32						item_top = 0.0f;
 			f32						item_h	 = theme.item_height;
@@ -354,7 +354,7 @@ namespace sfg
 		ui::widget_id_t			 cur  = _ui->get_input().get_focused();
 		while (cur != NULL_WIDGET && tree.is_alive(cur))
 		{
-			if (cur == _assets_body_pane_top)
+			if (cur == _assets_body_pane_mid)
 				return true;
 			cur = tree.node(cur).parent;
 		}

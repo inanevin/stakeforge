@@ -494,7 +494,7 @@ namespace sfg
 	void editor_panel_assets_t::on_assets_body_wheel(ui::input_router_t&, ui::widget_id_t id, f32 delta, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
-		if (id == panel._assets_body_pane_top)
+		if (id == panel._assets_body_pane_mid)
 			panel._right_scrollbar.scroll_y(delta);
 		else
 			panel._left_scrollbar.scroll_y(delta);
@@ -516,7 +516,7 @@ namespace sfg
 		const bool				   entity_payload = payload.type == editor_payload_type_e::entity || payload.type == editor_payload_type_e::entity_multi;
 		if (target_folder.is_null() && entity_payload)
 		{
-			const ui::layout_out_t& body_out = panel._ui->get_tree().out(panel._assets_body_pane_top);
+			const ui::layout_out_t& body_out = panel._ui->get_tree().out(panel._assets_body_pane_mid);
 			if (rectf_t{body_out.pos.x, body_out.pos.y, body_out.size.x, body_out.size.y}.contains(mouse))
 				target_folder = panel._selected_folder_node;
 		}
