@@ -1129,7 +1129,8 @@ namespace sfg
 				orm_guid = get_texture_guid(texture_guid_map, orm_index, true, DEFAULT_ORM_TEXTURE_ASSET_GUID);
 			}
 
-			const material_def_t material_def = {
+			const resource_handle_t sampler_guid = get_sampler_guid(model, material);
+			const material_def_t	material_def = {
 				.textures =
 					{
 						make_texture_value("albedo", get_texture_guid(texture_guid_map, base_index, false, DEFAULT_ALBEDO_TEXTURE_ASSET_GUID)),
@@ -1139,7 +1140,10 @@ namespace sfg
 					},
 				.samplers =
 					{
-						make_sampler_value("albedo", get_sampler_guid(model, material)),
+						make_sampler_value("albedo", sampler_guid),
+						make_sampler_value("normal", sampler_guid),
+						make_sampler_value("orm", sampler_guid),
+						make_sampler_value("emissive", sampler_guid),
 					},
 				.parameters =
 					{
