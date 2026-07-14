@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_handle.hpp"
+#include "world/editor_world_render_context.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
@@ -98,6 +99,16 @@ namespace sfg
 			return _render_context;
 		}
 
+		inline editor_world_render_context_t& get_editor_render_context()
+		{
+			return _editor_render_context;
+		}
+
+		inline const editor_world_render_context_t& get_editor_render_context() const
+		{
+			return _editor_render_context;
+		}
+
 		inline editor_world_edit_context_t& get_edit_context()
 		{
 			return _edit_context;
@@ -122,14 +133,15 @@ namespace sfg
 		void publish_snapshot();
 
 	private:
-		world_render_snapshot_t		_snapshot_slots[3] = {};
-		editor_world_camera_t*		_camera			   = nullptr;
-		world_render_context_t		_render_context	   = {};
-		editor_world_edit_context_t _edit_context	   = {};
-		world_t						_world			   = {};
-		atomic_t<u8>				_snapshot_mailbox  = {};
-		vec2u16_t					_render_resolution = vec2u16_t::zero;
-		u8							_producer_slot	   = 0;
-		u8							_consumer_slot	   = 0;
+		world_render_snapshot_t		  _snapshot_slots[3]	 = {};
+		editor_world_camera_t*		  _camera				 = nullptr;
+		world_render_context_t		  _render_context		 = {};
+		editor_world_render_context_t _editor_render_context = {};
+		editor_world_edit_context_t	  _edit_context			 = {};
+		world_t						  _world				 = {};
+		atomic_t<u8>				  _snapshot_mailbox		 = {};
+		vec2u16_t					  _render_resolution	 = vec2u16_t::zero;
+		u8							  _producer_slot		 = 0;
+		u8							  _consumer_slot		 = 0;
 	};
 }

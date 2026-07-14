@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_payload_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
@@ -58,28 +57,6 @@ namespace sfg
 			for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
 				ref.gpu_indices[i] = NULL_GPU_INDEX;
 			return ref;
-		}
-
-		gpu_index_t get_world_view_gpu_index(const world_render_context_t& world, editor_main_toolbar_world_view_e view, u8 frame_index)
-		{
-			switch (view)
-			{
-			case editor_main_toolbar_world_view_e::gbuffer_albedo:
-				return world.get_gbuffer_albedo_index(frame_index);
-			case editor_main_toolbar_world_view_e::gbuffer_orm:
-				return world.get_gbuffer_orm_index(frame_index);
-			case editor_main_toolbar_world_view_e::gbuffer_normal:
-				return world.get_gbuffer_normal_index(frame_index);
-			case editor_main_toolbar_world_view_e::gbuffer_emissive:
-				return world.get_gbuffer_emissive_index(frame_index);
-			case editor_main_toolbar_world_view_e::lighting:
-				return world.get_lighting_texture_index(frame_index);
-			case editor_main_toolbar_world_view_e::post_process:
-				return world.get_post_process_texture_index(frame_index);
-			case editor_main_toolbar_world_view_e::final:
-			default:
-				return world.get_world_texture_index(frame_index);
-			}
 		}
 	}
 
@@ -149,7 +126,6 @@ namespace sfg
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
-		_world				 = nullptr;
 		_edit_world			 = {};
 		_last_resize_request = vec2u16_t::zero;
 		_camera_runtime		 = nullptr;
@@ -171,9 +147,7 @@ namespace sfg
 			return;
 		}
 
-		_edit_world							  = world;
-		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = &controller.get_editor_world(_edit_world)->get_render_context();
+		_edit_world = world;
 		request_world_resize(true);
 		refresh_world_texture();
 
@@ -218,7 +192,6 @@ namespace sfg
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
 		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		def.render_state.constants[0] = make_null_world_texture_ref();
-		_world						  = nullptr;
 
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_world_view, false);
@@ -316,9 +289,9 @@ namespace sfg
 			.type	= ui::ui_resource_type_e::gpu_index_fof,
 		};
 
-		const editor_main_toolbar_world_view_e world_view = editor_global_toolbar_t::get().get_world_view();
+		editor_world_t* const world = editor_world_controller_t::get().get_editor_world(_edit_world);
 		for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
-			texture_ref.gpu_indices[i] = get_world_view_gpu_index(*_world, world_view, i);
+			texture_ref.gpu_indices[i] = world->get_editor_render_context().get_world_texture_index(i);
 
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
 		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
@@ -328,16 +301,16 @@ namespace sfg
 	void editor_widget_world_view_t::on_world_view_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
-		if (widget._world != nullptr)
+		if (widget._edit_world.is_null())
+			return;
+
+		++widget._resize_ticks;
+		if (widget._resize_ticks >= 5)
 		{
-			++widget._resize_ticks;
-			if (widget._resize_ticks >= 5)
-			{
-				widget._resize_ticks = 0;
-				widget.request_world_resize(false);
-			}
-			widget.refresh_world_texture();
+			widget._resize_ticks = 0;
+			widget.request_world_resize(false);
 		}
+		widget.refresh_world_texture();
 	}
 
 	void editor_widget_world_view_t::on_world_view_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)

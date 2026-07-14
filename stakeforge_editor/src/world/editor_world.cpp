@@ -49,6 +49,7 @@ namespace sfg
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 		_render_resolution = init_config.render_resolution;
 		_render_context.init(init_config.render_resolution);
+		_editor_render_context.init(init_config.render_resolution);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 			_snapshot_slots[i].reserve(8000);
@@ -57,6 +58,7 @@ namespace sfg
 	void editor_world_t::uninit()
 	{
 		uninstall_camera();
+		_editor_render_context.uninit();
 		_render_context.uninit();
 		_edit_context.uninit();
 		_world.unload_all_used_resources();
@@ -71,6 +73,7 @@ namespace sfg
 	{
 		_render_resolution = render_resolution;
 		_render_context.resize(render_resolution);
+		_editor_render_context.resize(render_resolution);
 	}
 
 	void editor_world_t::install_camera(editor_world_camera_type_e type)

@@ -36,7 +36,6 @@ namespace sfg
 	struct editor_payload_t;
 	struct window_event_t;
 	struct window_runtime_t;
-	class world_render_context_t;
 	namespace ui
 	{
 		enum class mouse_button_e : u8;
@@ -80,16 +79,15 @@ namespace sfg
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 
 	private:
-		const world_render_context_t* _world			   = nullptr;
-		ui::ui_context*				  _ui				   = nullptr;
-		editor_world_handle_t		  _edit_world		   = {};
-		vec2u16_t					  _last_resize_request = vec2u16_t::zero;
-		ui::widget_id_t				  _root				   = NULL_WIDGET;
-		ui::widget_id_t				  _world_view		   = NULL_WIDGET;
-		ui::widget_id_t				  _empty_label		   = NULL_WIDGET;
-		window_runtime_t*			  _camera_runtime	   = nullptr;
-		u8							  _resize_ticks		   = 0;
-		bool						  _camera_control	   = false;
+		ui::ui_context*		  _ui				   = nullptr;
+		editor_world_handle_t _edit_world		   = {};
+		vec2u16_t			  _last_resize_request = vec2u16_t::zero;
+		ui::widget_id_t		  _root				   = NULL_WIDGET;
+		ui::widget_id_t		  _world_view		   = NULL_WIDGET;
+		ui::widget_id_t		  _empty_label		   = NULL_WIDGET;
+		window_runtime_t*	  _camera_runtime	   = nullptr;
+		u8					  _resize_ticks		   = 0;
+		bool				  _camera_control	   = false;
 
 		static inline editor_widget_world_view_t* s_active_camera_view = nullptr;
 		static inline window_runtime_t*			  s_event_runtime	   = nullptr;
