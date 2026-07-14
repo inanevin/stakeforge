@@ -448,7 +448,12 @@ namespace sfg
 			}
 		}
 
-		return read_entities.empty() ? NULL_ENTITY_ID : read_entities[0].entity;
+		if (read_entities.empty())
+			return NULL_ENTITY_ID;
+
+		world.scan_for_resources(read_entities[0].entity);
+		world.load_all_used_resources();
+		return read_entities[0].entity;
 	}
 
 	void world_cooker_t::refresh_prefab_instances(world_t& world, resource_handle_t handle, entity_id_t skip)
