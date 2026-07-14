@@ -68,7 +68,6 @@ namespace sfg
 		void apply_transform(world_t& world);
 
 	private:
-		vec3f_t		_direction_input	  = vec3f_t::zero;
 		vec3f_t		_target				  = vec3f_t::zero;
 		vec2f_t		_mouse_delta		  = vec2f_t::zero;
 		entity_id_t _camera_entity		  = NULL_ENTITY_ID;
@@ -77,6 +76,5 @@ namespace sfg
 		f32			_distance			  = 8.0f;
 		f32			_distance_target	  = 8.0f;
 		f32			_distance_velocity	  = 0.0f;
-		f32			_current_move_speed	  = 12.0f;
 	};
 }

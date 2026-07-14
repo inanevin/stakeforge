@@ -118,13 +118,9 @@ namespace sfg
 
 	void editor_widget_color_wheel_t::update_field_data(editor_color_wheel_field_t field)
 	{
-		SFG_ASSERT(field.fields.size > 0);
-		SFG_ASSERT(field.fields.data != nullptr);
-		for (size_t i = 0; i < field.fields.size; ++i)
-			SFG_ASSERT(field.fields.data[i] != nullptr);
-
 		if (field.fields.data != _fields.data())
 			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 
@@ -217,8 +213,6 @@ namespace sfg
 
 	void editor_widget_color_wheel_t::make_top_right_frame(ui::widget_id_t parent, u32 frame)
 	{
-		SFG_ASSERT(frame < TOP_RIGHT_FRAME_COUNT);
-
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
 
@@ -266,9 +260,6 @@ namespace sfg
 
 	void editor_widget_color_wheel_t::make_number_row(ui::widget_id_t parent, u32 row, u32 field, const char* label)
 	{
-		SFG_ASSERT(row < ROW_COUNT);
-		SFG_ASSERT(field < NUMBER_FIELD_COUNT);
-
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		ui::paint_layer_t&	  paint = _ui->get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -328,8 +319,6 @@ namespace sfg
 
 	void editor_widget_color_wheel_t::make_text_row(ui::widget_id_t parent, u32 row, const char* label)
 	{
-		SFG_ASSERT(row < ROW_COUNT);
-
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		ui::paint_layer_t&	  paint = _ui->get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -386,12 +375,12 @@ namespace sfg
 
 	void editor_widget_color_wheel_t::modify_field()
 	{
-		SFG_ASSERT(_config.field.fields.size > 0);
-		SFG_ASSERT(_config.field.fields.data != nullptr);
 		if (_config.edit_begin != nullptr)
 			_config.edit_begin(_config.user_data);
+
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _display_color;
+
 		if (_config.on_data_changed != nullptr)
 			_config.on_data_changed(_config.user_data);
 	}
@@ -511,7 +500,6 @@ namespace sfg
 				break;
 			}
 		}
-		SFG_ASSERT(index < TOP_RIGHT_FRAME_COUNT);
 
 		const ui::layout_out_t& out = _ui->get_tree().out(id);
 		const f32				t	= out.size.y > 0.0f ? math::clamp((pos.y - out.pos.y) / out.size.y, 0.0f, 1.0f) : 0.0f;

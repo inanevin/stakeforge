@@ -205,9 +205,6 @@ namespace sfg::ui
 
 	void ui_context::set_pre_layout_tick(widget_id_t id, ui_pre_layout_tick_fn fn, void* user_data)
 	{
-		SFG_ASSERT(_tree.is_alive(id));
-		SFG_ASSERT(fn != nullptr);
-
 		pre_layout_tick_def_t& def = _pre_layout_tick_defs[id];
 		if (def.fn == nullptr)
 			_pre_layout_tick_widgets.push_back(id);
@@ -237,7 +234,6 @@ namespace sfg::ui
 	void ui_context::set_post_layout_tick(widget_id_t id, ui_post_layout_tick_fn fn, void* user_data)
 	{
 		SFG_ASSERT(_tree.is_alive(id));
-		SFG_ASSERT(fn != nullptr);
 
 		post_layout_tick_def_t& def = _post_layout_tick_defs[id];
 		if (def.fn == nullptr)
@@ -267,13 +263,11 @@ namespace sfg::ui
 
 	void ui_context::request_mutation(ui_mutation_fn fn, void* user_data)
 	{
-		SFG_ASSERT(fn != nullptr);
 		_mutation_requests.push_back({.fn = fn, .user_data = user_data});
 	}
 
 	void ui_context::request_unique_mutation(ui_mutation_fn fn, void* user_data)
 	{
-		SFG_ASSERT(fn != nullptr);
 		for (const mutation_request_t& request : _mutation_requests)
 		{
 			if (request.fn == fn && request.user_data == user_data)

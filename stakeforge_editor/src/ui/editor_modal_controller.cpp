@@ -64,7 +64,6 @@ namespace sfg
 
 	void editor_modal_controller_t::init(ui::ui_context& ui)
 	{
-		SFG_ASSERT(_ui == nullptr);
 		SFG_ASSERT(s_controller_count < MAX_CONTROLLERS);
 
 		_ui							= &ui;
@@ -214,9 +213,7 @@ namespace sfg
 
 	void editor_modal_controller_t::request_modal(const char* title, const char* description, bool show_buttons, const editor_modal_button_desc_t* buttons, u16 button_count, const editor_modal_content_desc_t* content, editor_modal_severity_e severity)
 	{
-		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(button_count <= MAX_BUTTONS);
-		SFG_ASSERT(buttons != nullptr || button_count == 0);
 
 		close_content();
 
@@ -255,13 +252,11 @@ namespace sfg
 
 	void editor_modal_controller_t::set_body_text(const char* text)
 	{
-		SFG_ASSERT(_ui != nullptr);
 		_ui->set_widget_text(_description, text != nullptr ? text : "");
 	}
 
 	void editor_modal_controller_t::close_modal()
 	{
-		SFG_ASSERT(_ui != nullptr);
 		if (!_visible)
 			return;
 		close_content();

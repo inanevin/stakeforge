@@ -257,7 +257,6 @@ namespace sfg
 				return false;
 			if (material_defs_equal(previous, post))
 				return true;
-			SFG_ASSERT(materials.size <= UINT32_MAX);
 
 			editor_command_system_t& command_system = editor_command_system_t::get();
 

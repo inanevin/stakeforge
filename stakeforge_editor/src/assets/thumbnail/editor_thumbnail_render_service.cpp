@@ -45,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/texture.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
@@ -79,8 +80,6 @@ namespace sfg
 
 	void editor_thumbnail_render_service_t::init()
 	{
-		SFG_ASSERT(!_initialized);
-
 		_world_config = {
 			.render_resolution		 = vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE),
 			.component_table_reserve = 32,
@@ -137,21 +136,19 @@ namespace sfg
 
 		_render_context.init(_world_config.render_resolution);
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
-		SFG_ASSERT(shader != nullptr);
-		_thumbnail_shader = render_resources_t::get().get_shader_hw(shader->psos[0]);
+		_thumbnail_shader				 = render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_snapshot.reserve(64);
 		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_pending_renders.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_requests.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_completed_renders.reserve(32);
+
 		grow_world_pool(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
-		_initialized = true;
 	}
 
 	void editor_thumbnail_render_service_t::uninit()
 	{
-		SFG_ASSERT(_initialized);
 		gfx_backend& backend = gfx_backend::get();
 		backend.wait_semaphore(_semaphore_frame.sem, _semaphore_frame.value);
 		backend.wait_semaphore(_semaphore_transfer.sem, _semaphore_transfer.value);
@@ -200,15 +197,10 @@ namespace sfg
 		_global_index	 = NULL_GPU_INDEX;
 		_mapped_global	 = nullptr;
 		_mapped_readback = nullptr;
-		_initialized	 = false;
 	}
 
 	void editor_thumbnail_render_service_t::request_thumbnail(const editor_asset_t& asset)
 	{
-		SFG_ASSERT(_initialized);
-		SFG_ASSERT(asset.guid != NULL_SID);
-		SFG_ASSERT(asset.thumbnail_guid != NULL_SID);
-
 		auto pending_it = std::find_if(_pending_renders.begin(), _pending_renders.end(), [&](const pending_render_t& pending_render) { return pending_render.request.thumbnail_guid == asset.thumbnail_guid; });
 		if (pending_it != _pending_renders.end())
 			return;
@@ -232,8 +224,6 @@ namespace sfg
 
 	void editor_thumbnail_render_service_t::tick()
 	{
-		SFG_ASSERT(_initialized);
-
 		for (const thumbnail_request_t& request : _requests)
 			prepare_request(request);
 		_requests.resize(0);
@@ -267,7 +257,6 @@ namespace sfg
 
 	bool editor_thumbnail_render_service_t::pop_completed(sid_t& out_asset_guid, sid_t& out_thumbnail_guid)
 	{
-		SFG_ASSERT(_initialized);
 		if (_completed_renders.empty())
 			return false;
 
@@ -381,8 +370,7 @@ namespace sfg
 	void editor_thumbnail_render_service_t::setup_world_for_prefab(thumbnail_world_t& thumbnail_world, const thumbnail_request_t& request)
 	{
 		world_t& world				   = *thumbnail_world.world;
-		thumbnail_world.display_entity = world.spawn_prefab(request.asset_guid, {});
-		SFG_ASSERT(thumbnail_world.display_entity != NULL_ENTITY_ID);
+		thumbnail_world.display_entity = world_cooker_t::spawn_prefab(world, request.asset_guid, {});
 
 		world.update_world_transforms(false);
 
@@ -410,9 +398,7 @@ namespace sfg
 			if (mesh_renderer == nullptr || mesh_renderer->mesh == NULL_RESOURCE_HANDLE)
 				return;
 
-			const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(mesh_renderer->mesh);
-			SFG_ASSERT(runtime != nullptr);
-
+			const mesh_internals_t*				runtime	   = resource_manager_t::get().find_internals<mesh_internals_t>(mesh_renderer->mesh);
 			const component_system_transform_t& transform  = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
 			const vec3f_t&						bounds_min = runtime->local_bounds.bounds_min;
 			const vec3f_t&						bounds_max = runtime->local_bounds.bounds_max;
@@ -472,8 +458,6 @@ namespace sfg
 		world.scan_for_resources(thumbnail_world.display_entity, true);
 
 		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(request.asset_guid);
-		SFG_ASSERT(runtime != nullptr);
-
 		place_camera_for_aabb(world, thumbnail_world.camera_entity, runtime->local_bounds);
 	}
 

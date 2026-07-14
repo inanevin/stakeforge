@@ -51,11 +51,6 @@ namespace sfg
 		const ecs_component_table_t* name_table		 = world.find_component_table(type_id_t<component_name_t>::value);
 		const ecs_component_table_t* disabled_table	 = world.find_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t* prefab_table	 = world.find_component_table(type_id_t<component_prefab_reference_t>::value);
-		SFG_ASSERT(alive_table != nullptr);
-		SFG_ASSERT(hierarchy_table != nullptr);
-		SFG_ASSERT(name_table != nullptr);
-		SFG_ASSERT(disabled_table != nullptr);
-		SFG_ASSERT(prefab_table != nullptr);
 
 		const outliner_component_tables_t tables{
 			.hierarchy = hierarchy_table,
@@ -148,7 +143,7 @@ namespace sfg
 
 		for (entity_guid_t guid : folder.entity_guids)
 		{
-			const entity_id_t entity = world.get_entity_from_guid(guid);
+			const entity_id_t entity = world.find_by_guid(guid);
 			if (entity != NULL_ENTITY_ID && world.is_alive(entity))
 				append_entity_items(world, tables, entity, static_cast<u16>(depth + 1));
 		}

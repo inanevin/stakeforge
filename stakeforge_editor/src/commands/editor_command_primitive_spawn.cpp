@@ -139,7 +139,6 @@ namespace sfg
 		editor_command_system_t&		command_system = editor_command_system_t::get();
 		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
-		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_primitive_spawn_payload_t payload = {
 			.previous_selection		  = {},

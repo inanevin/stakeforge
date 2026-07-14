@@ -113,17 +113,14 @@ namespace sfg
 
 	void editor_color_field_t::update_field_data(editor_color_field_field_t field)
 	{
-		SFG_ASSERT(field.fields.size > 0);
-		SFG_ASSERT(field.fields.data != nullptr);
-		for (size_t i = 0; i < field.fields.size; ++i)
-			SFG_ASSERT(field.fields.data[i] != nullptr);
-
 		if (field.fields.data != _fields.data())
 			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 		_color		  = *field.fields.data[0];
 		_mixed		  = false;
+
 		for (size_t i = 1; i < field.fields.size; ++i)
 		{
 			if (*field.fields.data[i] != _color)
@@ -172,10 +169,9 @@ namespace sfg
 
 	void editor_color_field_t::modify_field()
 	{
-		SFG_ASSERT(_config.field.fields.size > 0);
-		SFG_ASSERT(_config.field.fields.data != nullptr);
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _color;
+
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
 	}
@@ -209,7 +205,7 @@ namespace sfg
 
 		editor_color_field_t&	   field = *static_cast<editor_color_field_t*>(user_data);
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*field._ui);
-		SFG_ASSERT(popup != nullptr);
+
 		popup->request_color_wheel_popup({
 			.fields			 = {.data = field._fields.data(), .size = field._fields.size()},
 			.edit_begin		 = on_color_wheel_edit_begin,

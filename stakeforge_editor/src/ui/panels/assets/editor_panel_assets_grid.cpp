@@ -41,6 +41,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
+#include <string>
+
 namespace sfg
 {
 	void editor_panel_assets_t::refresh_asset_grid(bool force)
@@ -163,11 +165,8 @@ namespace sfg
 	void editor_panel_assets_t::clear_asset_grid(bool reset_scroll)
 	{
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
-		if (tooltip_controller != nullptr)
-		{
-			for (const asset_grid_item_t& item : _asset_grid_items)
-				tooltip_controller->clear_tooltip(item.root);
-		}
+		for (const asset_grid_item_t& item : _asset_grid_items)
+			tooltip_controller->clear_tooltip(item.root);
 
 		for (asset_grid_item_t& item : _asset_grid_items)
 		{
@@ -179,8 +178,10 @@ namespace sfg
 		}
 		for (ui::widget_id_t row : _asset_grid_rows)
 			_ui->deallocate_widget(row);
+
 		_asset_grid_rows.resize(0);
 		_asset_grid_items.resize(0);
+
 		if (reset_scroll)
 		{
 			_grid_scroll_restore_pending = false;
@@ -224,6 +225,7 @@ namespace sfg
 				_ui->widget_text(_assets_body_pane_path),
 				_ui->widget_text_len(_assets_body_pane_path),
 				{.font = editor_theme_t::get().font_default, .color = editor_theme_t::get().color_text1, .point_size = editor_theme_t::get().text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
 			update_import_button_state();
 			return;
 		}
@@ -308,7 +310,17 @@ namespace sfg
 		ui.get_input().set_listener(item.root, listener);
 
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
-		if (tooltip_controller != nullptr)
+		if (asset != nullptr)
+		{
+			const string_t				guid_text = std::to_string(asset->guid);
+			editor_asset_tooltip_desc_t tooltip	  = {};
+			tooltip.name						  = asset_node.name.c_str();
+			tooltip.guid						  = guid_text.c_str();
+			tooltip.type						  = type_text;
+			tooltip.thumbnail					  = asset->thumbnail_guid;
+			tooltip_controller->set_asset_tooltip(item.root, tooltip);
+		}
+		else
 		{
 			editor_tooltip_desc_t tooltip = {};
 			tooltip.text				  = asset_node.name.c_str();
@@ -463,6 +475,7 @@ namespace sfg
 			const auto	descriptor_it = descriptors.find(asset->asset_type);
 			descriptor				  = descriptor_it != descriptors.end() ? &descriptor_it->second : nullptr;
 		}
+		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : "File";
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
 		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
 
@@ -504,7 +517,17 @@ namespace sfg
 		ui.get_input().set_listener(item.root, listener);
 
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
-		if (tooltip_controller != nullptr)
+		if (asset != nullptr)
+		{
+			const string_t				guid_text = std::to_string(asset->guid);
+			editor_asset_tooltip_desc_t tooltip	  = {};
+			tooltip.name						  = asset_node.name.c_str();
+			tooltip.guid						  = guid_text.c_str();
+			tooltip.type						  = type_text;
+			tooltip.thumbnail					  = asset->thumbnail_guid;
+			tooltip_controller->set_asset_tooltip(item.root, tooltip);
+		}
+		else
 		{
 			editor_tooltip_desc_t tooltip = {};
 			tooltip.text				  = asset_node.name.c_str();

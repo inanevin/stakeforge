@@ -165,30 +165,17 @@ namespace sfg
 	void editor_dropdown_t::close()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 		popup->close_popup();
 	}
 
 	void editor_dropdown_t::update_field_data(editor_dropdown_field_t field)
 	{
-		SFG_ASSERT(field.fields.size > 0);
-		SFG_ASSERT(field.fields.data != nullptr);
 		SFG_ASSERT(field.field_size == sizeof(u8) || field.field_size == sizeof(u16) || field.field_size == sizeof(u32));
 
-		if (field.fields.data != _fields.data())
-		{
-			_fields.resize(0);
-			_fields.reserve(field.fields.size);
-			for (size_t i = 0; i < field.fields.size; ++i)
-			{
-				SFG_ASSERT(field.fields.data[i] != nullptr);
-				_fields.push_back(field.fields.data[i]);
-			}
-		}
-		else
-		{
-			SFG_ASSERT(field.fields.size == _fields.size());
-		}
+		_fields.resize(0);
+		_fields.reserve(field.fields.size);
+		for (size_t i = 0; i < field.fields.size; ++i)
+			_fields.push_back(field.fields.data[i]);
 
 		_config.field.fields	 = {.data = _fields.data(), .size = _fields.size()};
 		_config.field.field_size = field.field_size;
@@ -197,8 +184,6 @@ namespace sfg
 
 	void editor_dropdown_t::refresh_field_data()
 	{
-		SFG_ASSERT(is_field_bound());
-
 		_selected_value = read_field_value_u32(_fields[0]);
 		_mixed			= false;
 		for (size_t i = 1; i < _fields.size(); ++i)
@@ -214,12 +199,14 @@ namespace sfg
 
 	void editor_dropdown_t::refresh_title()
 	{
-		SFG_ASSERT(_ui != nullptr);
 		_ui->set_widget_text(_title, get_selected_text());
-		const editor_theme_t& theme	   = editor_theme_t::get();
-		const bool			  mixed	   = _mixed || (!_config.title_from_selection && _config.title != nullptr && std::strcmp(_config.title, "Mixed") == 0);
-		ui::layout_in_t&	  title_in = _ui->get_tree().in(_title);
-		title_in.size_value.x		   = static_cast<f32>(_ui->widget_text_len(_title)) * theme.text_default_px_size * 0.7f;
+
+		const editor_theme_t& theme = editor_theme_t::get();
+		const bool			  mixed = _mixed || (!_config.title_from_selection && _config.title != nullptr && std::strcmp(_config.title, "Mixed") == 0);
+
+		ui::layout_in_t& title_in = _ui->get_tree().in(_title);
+		title_in.size_value.x	  = static_cast<f32>(_ui->widget_text_len(_title)) * theme.text_default_px_size * 0.7f;
+
 		_ui->get_paint().set_text(_title,
 								  _ui->widget_text(_title),
 								  _ui->widget_text_len(_title),
@@ -286,7 +273,6 @@ namespace sfg
 
 	void editor_dropdown_t::modify_field(u16 value)
 	{
-		SFG_ASSERT(is_field_bound());
 		bool all_selected = false;
 		if (_config.is_bitmask && value != 0)
 		{
@@ -345,7 +331,6 @@ namespace sfg
 	void editor_dropdown_t::open_popup()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		editor_popup_item_desc_t items[editor_popup_controller_t::MAX_ITEMS] = {};
 		SFG_ASSERT(_config.item_count <= editor_popup_controller_t::MAX_ITEMS);

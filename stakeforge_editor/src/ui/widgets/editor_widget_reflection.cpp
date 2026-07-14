@@ -318,16 +318,13 @@ namespace sfg
 		if (enum_type == nullptr || !enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 			return false;
 
-		SFG_ASSERT(field->size == enum_type->size);
-
-		const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
-		SFG_ASSERT(enum_item_count <= static_cast<u32>(static_cast<u16>(-1)));
+		const u32							   enum_item_count = enum_type->fields.end - enum_type->fields.start;
 		frame_vector_t<editor_dropdown_item_t> items;
 		items.reserve(enum_item_count);
+
 		for (u32 i = 0; i < enum_item_count; ++i)
 		{
 			const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
-			SFG_ASSERT(enum_field != nullptr);
 			items.push_back({
 				.text  = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name,
 				.value = static_cast<u16>(i),
@@ -763,8 +760,6 @@ namespace sfg
 
 	void editor_widget_reflection_t::set_fold_state(sid_t type_id, sid_t field_id, bool folded)
 	{
-		SFG_ASSERT(_fold_states != nullptr);
-
 		for (editor_widget_reflection_fold_state_t& state : *_fold_states)
 		{
 			if (state.type_id == type_id && state.field_id == field_id)
@@ -821,8 +816,7 @@ namespace sfg
 		{
 			if (is_child_widget(_tooltip_owners[i], parent))
 			{
-				if (tooltip_controller != nullptr)
-					tooltip_controller->clear_tooltip(_tooltip_owners[i]);
+				tooltip_controller->clear_tooltip(_tooltip_owners[i]);
 				_tooltip_owners.erase(_tooltip_owners.begin() + i);
 				continue;
 			}
@@ -1110,27 +1104,19 @@ namespace sfg
 
 	void editor_widget_reflection_t::install_tooltip(ui::widget_id_t owner, const char* text)
 	{
-		if (text == nullptr || text[0] == '\0')
-			return;
-
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
-		if (tooltip_controller == nullptr)
-			return;
-
-		editor_tooltip_desc_t tooltip = {};
-		tooltip.text				  = text;
+		editor_tooltip_desc_t		 tooltip			= {};
+		tooltip.text									= text;
 		tooltip_controller->set_tooltip(owner, tooltip);
+
 		_tooltip_owners.push_back(owner);
 	}
 
 	void editor_widget_reflection_t::clear_tooltips()
 	{
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
-		if (tooltip_controller != nullptr)
-		{
-			for (ui::widget_id_t owner : _tooltip_owners)
-				tooltip_controller->clear_tooltip(owner);
-		}
+		for (ui::widget_id_t owner : _tooltip_owners)
+			tooltip_controller->clear_tooltip(owner);
 		_tooltip_owners.resize(0);
 	}
 

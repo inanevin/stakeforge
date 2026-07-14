@@ -58,11 +58,6 @@ namespace sfg
 	{
 		vec4f_t sample_average_color(const texture_buffer_t& buffer)
 		{
-			SFG_ASSERT(buffer.pixels != nullptr);
-			SFG_ASSERT(buffer.size.x != 0);
-			SFG_ASSERT(buffer.size.y != 0);
-			SFG_ASSERT(buffer.bpp != 0);
-
 			const u32 pixel_count  = static_cast<u32>(buffer.size.x) * static_cast<u32>(buffer.size.y);
 			const u32 sample_count = pixel_count < TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT ? pixel_count : TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT;
 			u64		  state		   = (static_cast<u64>(buffer.size.x) << 32) ^ (static_cast<u64>(buffer.size.y) << 16) ^ buffer.bpp ^ 0x9e3779b97f4a7c15ull;

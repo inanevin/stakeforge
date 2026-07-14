@@ -96,7 +96,6 @@ namespace sfg
 		vector_t<ui::widget_id_t>		 _rows					  = {};
 		vector_t<ui::widget_id_t>		 _dividers				  = {};
 		vector_t<ui::widget_id_t>		 _labels				  = {};
-		string_t						 _asset_name			  = {};
 		string_t						 _texture_size_text		  = {};
 		string_t						 _is_linear_text		  = {};
 		string_t						 _payload_format_text	  = {};
@@ -110,7 +109,6 @@ namespace sfg
 		ui::widget_id_t					 _top_pane				  = NULL_WIDGET;
 		ui::widget_id_t					 _bottom_pane			  = NULL_WIDGET;
 		ui::widget_id_t					 _texture_display		  = NULL_WIDGET;
-		ui::widget_id_t					 _asset_name_value		  = NULL_WIDGET;
 		ui::widget_id_t					 _texture_size_value	  = NULL_WIDGET;
 		ui::widget_id_t					 _is_linear_value		  = NULL_WIDGET;
 		ui::widget_id_t					 _mip_dropdown_row		  = NULL_WIDGET;

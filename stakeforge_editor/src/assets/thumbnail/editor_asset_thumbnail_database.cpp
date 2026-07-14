@@ -158,13 +158,11 @@ namespace sfg
 
 	void editor_asset_thumbnail_database_t::request_generated(sid_t asset_guid)
 	{
-		SFG_ASSERT(asset_guid != NULL_SID);
 		push_request({.asset_guid = asset_guid, .kind = request_kind_e::generated});
 	}
 
 	void editor_asset_thumbnail_database_t::request_render(sid_t asset_guid)
 	{
-		SFG_ASSERT(asset_guid != NULL_SID);
 		push_request({.asset_guid = asset_guid, .kind = request_kind_e::render});
 	}
 

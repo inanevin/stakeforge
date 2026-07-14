@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -41,13 +42,14 @@ namespace sfg
 
 	struct world_cook_entity_header_t
 	{
-		entity_guid_t	  guid		  = NULL_ENTITY_GUID;
-		entity_guid_t	  parent_guid = NULL_ENTITY_GUID;
-		string_t		  name		  = {};
-		vec3f_t			  local_pos	  = vec3f_t::zero;
-		quat_t			  local_rot	  = {};
-		vec3f_t			  local_scale = vec3f_t::one;
-		resource_handle_t prefab	  = NULL_RESOURCE_HANDLE;
+		vector_t<entity_guid_t> prefab_entity_guids;
+		entity_guid_t			guid		= NULL_ENTITY_GUID;
+		entity_guid_t			parent_guid = NULL_ENTITY_GUID;
+		string_t				name		= {};
+		vec3f_t					local_pos	= vec3f_t::zero;
+		quat_t					local_rot	= {};
+		vec3f_t					local_scale = vec3f_t::one;
+		resource_handle_t		prefab		= NULL_RESOURCE_HANDLE;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);

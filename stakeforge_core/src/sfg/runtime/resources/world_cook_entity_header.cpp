@@ -45,17 +45,32 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const world_cook_entity_header_t& header)
 	{
-		j["guid"]		 = header.guid;
-		j["parent_guid"] = header.parent_guid;
-		j["name"]		 = header.name;
-		j["local_pos"]	 = nlohmann::json::array_t({header.local_pos.x, header.local_pos.y, header.local_pos.z});
-		j["local_rot"]	 = nlohmann::json::array_t({header.local_rot.x, header.local_rot.y, header.local_rot.z, header.local_rot.w});
-		j["local_scale"] = nlohmann::json::array_t({header.local_scale.x, header.local_scale.y, header.local_scale.z});
-		j["prefab"]		 = header.prefab;
+		nlohmann::json prefab_entities = nlohmann::json::array();
+		for (entity_guid_t g : header.prefab_entity_guids)
+			prefab_entities.push_back(g);
+
+		j["prefab_entity_guids"] = prefab_entities;
+		j["guid"]				 = header.guid;
+		j["parent_guid"]		 = header.parent_guid;
+		j["name"]				 = header.name;
+		j["local_pos"]			 = nlohmann::json::array_t({header.local_pos.x, header.local_pos.y, header.local_pos.z});
+		j["local_rot"]			 = nlohmann::json::array_t({header.local_rot.x, header.local_rot.y, header.local_rot.z, header.local_rot.w});
+		j["local_scale"]		 = nlohmann::json::array_t({header.local_scale.x, header.local_scale.y, header.local_scale.z});
+		j["prefab"]				 = header.prefab;
 	}
 
 	void from_json(const nlohmann::json& j, world_cook_entity_header_t& header)
 	{
+		header.prefab_entity_guids.resize(0);
+
+		if (const auto it = j.find("prefab_entity_guids"); it != j.end() && it->is_array())
+		{
+			header.prefab_entity_guids.reserve(it->size());
+
+			for (const nlohmann::json& guid_json : *it)
+				header.prefab_entity_guids.push_back(guid_json.get<entity_guid_t>());
+		}
+
 		header.guid						 = j.value<entity_guid_t>("guid", NULL_ENTITY_GUID);
 		header.parent_guid				 = j.value<entity_guid_t>("parent_guid", NULL_ENTITY_GUID);
 		header.name						 = j.value<string_t>("name", "");

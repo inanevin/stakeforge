@@ -184,25 +184,21 @@ namespace sfg
 
 		inline span_t<const entity_id_t> get_selected_entities() const
 		{
-			SFG_ASSERT(_inited);
 			return {.data = _selected_entities.data(), .size = _selected_entities.size()};
 		}
 
 		inline editor_world_handle_t get_world() const
 		{
-			SFG_ASSERT(_inited);
 			return _world;
 		}
 
 		inline entity_id_t get_entity_anchor() const
 		{
-			SFG_ASSERT(_inited);
 			return _entity_anchor;
 		}
 
 		inline u32 get_selection_generation() const
 		{
-			SFG_ASSERT(_inited);
 			return _selection_generation;
 		}
 
@@ -235,6 +231,5 @@ namespace sfg
 		entity_id_t																	  _entity_anchor		= NULL_ENTITY_ID;
 		u64																			  _next_guid			= 1;
 		u32																			  _selection_generation = 0;
-		bool																		  _inited				= false;
 	};
 }

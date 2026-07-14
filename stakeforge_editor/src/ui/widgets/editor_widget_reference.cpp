@@ -160,7 +160,6 @@ namespace sfg
 	void editor_widget_reference_t::uninit()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 		popup->close_popup();
 		editor_payload_controller_t::get().unregister_listener(this);
 
@@ -182,10 +181,6 @@ namespace sfg
 
 	void editor_widget_reference_t::set_reference(const editor_widget_reference_config_t& config)
 	{
-		SFG_ASSERT(config.fields.size > 0);
-		SFG_ASSERT(config.fields.data != nullptr);
-		for (size_t i = 0; i < config.fields.size; ++i)
-			SFG_ASSERT(config.fields.data[i] != nullptr);
 		SFG_ASSERT(config.type != editor_widget_reference_type_e::asset || config.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(config.type != editor_widget_reference_type_e::entity || !config.world.is_null());
 
@@ -223,8 +218,6 @@ namespace sfg
 
 	u64 editor_widget_reference_t::get_selected_value() const
 	{
-		SFG_ASSERT(_config.fields.size > 0);
-		SFG_ASSERT(_config.fields.data != nullptr);
 		if (_mixed)
 			return _config.type == editor_widget_reference_type_e::asset ? _config.selected_asset : _config.selected_entity;
 		return *_config.fields.data[0];
@@ -234,7 +227,6 @@ namespace sfg
 	{
 		if (payload.type != editor_payload_type_e::asset)
 			return NULL_SID;
-		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		const editor_asset_node_handle_t payload_node = *static_cast<editor_asset_node_handle_t*>(payload.user_ptr);
 		const editor_asset_tree_t&		 tree		  = editor_asset_manager_t::get().get_asset_tree();
@@ -256,7 +248,6 @@ namespace sfg
 	{
 		if (payload.type != editor_payload_type_e::entity)
 			return NULL_ENTITY_GUID;
-		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		const editor_entity_payload_t& entity_payload = *static_cast<const editor_entity_payload_t*>(payload.user_ptr);
 		if (!(entity_payload.world == _config.world))
@@ -326,7 +317,7 @@ namespace sfg
 			if (selected != NULL_ENTITY_GUID)
 			{
 				const world_t&	  world	 = editor_world_controller_t::get().get_editor_world(_config.world)->get_world();
-				const entity_id_t entity = world.get_entity_from_guid(selected);
+				const entity_id_t entity = world.find_by_guid(selected);
 				if (entity != NULL_ENTITY_ID && world.is_alive(entity))
 				{
 					const char* name = world.get_entity_name(entity);
@@ -365,7 +356,6 @@ namespace sfg
 	void editor_widget_reference_t::open_popup()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		const editor_theme_t&	theme	 = editor_theme_t::get();
 		const ui::layout_out_t& root_out = _ui->get_tree().out(_frame);
@@ -394,8 +384,6 @@ namespace sfg
 
 	void editor_widget_reference_t::modify_reference(u64 value)
 	{
-		SFG_ASSERT(_config.fields.size > 0);
-		SFG_ASSERT(_config.fields.data != nullptr);
 		for (size_t i = 0; i < _config.fields.size; ++i)
 			*_config.fields.data[i] = value;
 

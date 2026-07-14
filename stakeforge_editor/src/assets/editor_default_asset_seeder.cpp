@@ -381,8 +381,6 @@ namespace sfg
 
 	void editor_default_asset_seeder_t::ensure(const char* default_assets_dir)
 	{
-		SFG_ASSERT(default_assets_dir != nullptr);
-		SFG_ASSERT(default_assets_dir[0] != '\0');
 		ensure_shader_assets(default_assets_dir);
 		ensure_texture_assets(default_assets_dir);
 		ensure_skybox_assets(default_assets_dir);

@@ -146,6 +146,5 @@ namespace sfg
 		gpu_index_t					  _global_index	   = NULL_GPU_INDEX;
 		u8*							  _mapped_global   = nullptr;
 		u8*							  _mapped_readback = nullptr;
-		bool						  _initialized	   = false;
 	};
 }

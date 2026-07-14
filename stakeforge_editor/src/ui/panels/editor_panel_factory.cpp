@@ -89,8 +89,6 @@ namespace sfg
 
 	const editor_panel_type_desc_t& editor_panel_factory_t::get_desc(editor_panel_type_e type)
 	{
-		SFG_ASSERT(type != editor_panel_type_e::max);
-		SFG_ASSERT(PANEL_DESCS[static_cast<u8>(type)].type == type);
 		return PANEL_DESCS[static_cast<u8>(type)];
 	}
 }

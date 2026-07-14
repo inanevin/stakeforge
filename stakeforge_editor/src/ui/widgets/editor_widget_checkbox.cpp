@@ -105,17 +105,14 @@ namespace sfg
 
 	void editor_checkbox_t::update_field_data(editor_checkbox_field_t field)
 	{
-		SFG_ASSERT(field.fields.size > 0);
-		SFG_ASSERT(field.fields.data != nullptr);
-		for (size_t i = 0; i < field.fields.size; ++i)
-			SFG_ASSERT(field.fields.data[i] != nullptr);
-
 		if (field.fields.data != _fields.data())
 			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 		_checked	  = *field.fields.data[0] != 0;
 		_mixed		  = false;
+
 		for (size_t i = 1; i < field.fields.size; ++i)
 		{
 			if ((*field.fields.data[i] != 0) != _checked)
@@ -147,20 +144,21 @@ namespace sfg
 	{
 		if (_config.callbacks.edit_begin != nullptr)
 			_config.callbacks.edit_begin(_config.callbacks.user_data);
+
 		_checked = !_checked;
 		_mixed	 = false;
 		modify_field();
 		refresh();
+
 		if (_config.callbacks.edit_submitted != nullptr)
 			_config.callbacks.edit_submitted(_config.callbacks.user_data);
 	}
 
 	void editor_checkbox_t::modify_field()
 	{
-		SFG_ASSERT(_config.field.fields.size > 0);
-		SFG_ASSERT(_config.field.fields.data != nullptr);
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _checked ? 1 : 0;
+
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
 	}

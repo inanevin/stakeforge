@@ -298,7 +298,6 @@ namespace sfg
 	editor_world_folder_handle_t editor_commands_world_edit_context_t::create_folder(editor_world_handle_t context, const char* name, editor_world_folder_handle_t parent_handle)
 	{
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(context)->get_edit_context();
-		SFG_ASSERT(parent_handle.is_null() || metadata.is_folder_valid(parent_handle));
 
 		editor_command_create_world_folder_payload_t payload = {};
 		copy_name(payload.name, name);
@@ -467,9 +466,8 @@ namespace sfg
 		if (entity_guids.size == 0)
 			return false;
 
-		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(context)->get_edit_context();
-		SFG_ASSERT(handle.is_null() || metadata.is_folder_valid(handle));
-		editor_command_system_t& command_system = editor_command_system_t::get();
+		editor_world_edit_context_t& metadata		= editor_world_controller_t::get().get_editor_world(context)->get_edit_context();
+		editor_command_system_t&	 command_system = editor_command_system_t::get();
 
 		editor_command_assign_world_folder_payload_t payload = {};
 		payload.entity_guids								 = copy_entity_guids_to_aux(command_system, entity_guids);

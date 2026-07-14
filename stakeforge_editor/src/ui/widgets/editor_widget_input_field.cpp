@@ -172,11 +172,6 @@ namespace sfg
 
 	void editor_input_field_t::update_field_data(editor_input_field_field_t field)
 	{
-		SFG_ASSERT(field.fields.size > 0);
-		SFG_ASSERT(field.fields.data != nullptr);
-		for (size_t i = 0; i < field.fields.size; ++i)
-			SFG_ASSERT(field.fields.data[i] != nullptr);
-
 		if (field.fields.data != _fields.data())
 			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
@@ -205,7 +200,6 @@ namespace sfg
 			break;
 		}
 		case editor_input_field_field_type_e::char_array: {
-			SFG_ASSERT(field.field_size > 0);
 			const char* value = reinterpret_cast<const char*>(field.fields.data[0]);
 			for (size_t i = 1; i < field.fields.size; ++i)
 			{
@@ -219,7 +213,6 @@ namespace sfg
 			break;
 		}
 		case editor_input_field_field_type_e::pod_number: {
-			SFG_ASSERT(field.field_size > 0);
 			const u8* value = field.fields.data[0];
 			for (size_t i = 1; i < field.fields.size; ++i)
 			{
@@ -359,9 +352,6 @@ namespace sfg
 
 	void editor_input_field_t::modify_field()
 	{
-		SFG_ASSERT(_config.field.fields.size > 0);
-		SFG_ASSERT(_config.field.fields.data != nullptr);
-
 		if (!has_field_value_changed())
 			return;
 
@@ -374,7 +364,6 @@ namespace sfg
 				*reinterpret_cast<string_t*>(_config.field.fields.data[i]) = _text;
 			break;
 		case editor_input_field_field_type_e::char_array: {
-			SFG_ASSERT(_config.field.field_size > 0);
 			const size_t copy_size = math::min(static_cast<size_t>(_text_len), _config.field.field_size - 1);
 			for (size_t i = 0; i < _config.field.fields.size; ++i)
 			{

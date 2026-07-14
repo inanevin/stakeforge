@@ -310,11 +310,11 @@ namespace sfg
 
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		SFG_ASSERT(!target_folder_node.is_null());
+
 		SFG_ASSERT(tree.is_valid(target_folder_node));
-		const editor_asset_node_t& target_node = tree.value(target_folder_node);
-		SFG_ASSERT(target_node.type == editor_asset_node_type_e::folder);
-		const string_t target_directory = editor_asset_path_t::normalize_directory(target_node.full_path.c_str());
+
+		const editor_asset_node_t& target_node		= tree.value(target_folder_node);
+		const string_t			   target_directory = editor_asset_path_t::normalize_directory(target_node.full_path.c_str());
 
 		if (!allow_overwrite)
 		{
@@ -398,11 +398,9 @@ namespace sfg
 	{
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&	  tree			= asset_manager.get_asset_tree();
-		SFG_ASSERT(!node.is_null());
 		SFG_ASSERT(tree.is_valid(node));
 
 		const editor_asset_node_t& folder_node = tree.value(node);
-		SFG_ASSERT(folder_node.type == editor_asset_node_type_e::folder);
 		if (node == asset_manager.get_root_node() || (folder_node.flags & editor_asset_node_flag_promoted) != 0)
 			return;
 
@@ -430,7 +428,6 @@ namespace sfg
 	void editor_panel_assets_t::start_asset_item_payload(editor_asset_node_handle_t node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!node.is_null());
 		SFG_ASSERT(tree.is_valid(node));
 
 		const editor_asset_node_t& asset_node = tree.value(node);

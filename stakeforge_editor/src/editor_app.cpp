@@ -63,8 +63,6 @@ namespace sfg
 
 	void editor_app_t::on_project_assets_progress(void* user_data, f32 progress, const char* progress_text)
 	{
-		SFG_ASSERT(progress_text != nullptr);
-
 		editor_app_t& app = *static_cast<editor_app_t*>(user_data);
 		app._splash_progress.store(progress, std::memory_order_release);
 		{
@@ -275,11 +273,6 @@ namespace sfg
 			}
 
 			SFG_ASSERT(primary_window != nullptr);
-			if (primary_window == nullptr)
-			{
-				cleanup();
-				return false;
-			}
 
 			const vec2u16_t		   primary_size	  = (primary_window->size.x == 0 || primary_window->size.y == 0) ? vec2u16_t{1920, 1080} : primary_window->size;
 			const surface_handle_t primary_handle = surfaces.create_surface(primary_window->pos, primary_size, editor_surface_type_e::primary);

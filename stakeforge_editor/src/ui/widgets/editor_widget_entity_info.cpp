@@ -277,10 +277,8 @@ namespace sfg
 		rotation_values.reserve(_entities.size());
 		scale_values.reserve(_entities.size());
 
-		ecs_component_table_t* name_table = _world->find_component_table(type_id_t<component_name_t>::value);
-		SFG_ASSERT(name_table != nullptr);
+		ecs_component_table_t* name_table	   = _world->find_component_table(type_id_t<component_name_t>::value);
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
-		SFG_ASSERT(transform_table != nullptr);
 
 		for (entity_id_t entity : _entities)
 		{
@@ -362,7 +360,6 @@ namespace sfg
 			return;
 
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
-		SFG_ASSERT(transform_table != nullptr);
 		for (entity_id_t entity : _entities)
 		{
 			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
@@ -376,7 +373,6 @@ namespace sfg
 			return;
 
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
-		SFG_ASSERT(transform_table != nullptr);
 		for (entity_id_t entity : _entities)
 		{
 			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
@@ -390,7 +386,6 @@ namespace sfg
 			return;
 
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
-		SFG_ASSERT(transform_table != nullptr);
 		for (entity_id_t entity : _entities)
 		{
 			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);

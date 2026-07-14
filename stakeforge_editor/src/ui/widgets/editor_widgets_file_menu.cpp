@@ -149,7 +149,6 @@ namespace sfg
 			return;
 
 		editor_action_menu_controller_t* controller = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(controller != nullptr);
 		controller->close_action_menu();
 	}
 
@@ -169,14 +168,10 @@ namespace sfg
 
 	void editor_file_menu_t::open_top(u32 index)
 	{
-		SFG_ASSERT(index < _item_count);
-
 		_selected_top = index;
 
 		editor_action_menu_controller_t* controller = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(controller != nullptr);
-
-		const ui::layout_out_t& out = _ui->get_tree().out(_top_frames[index]);
+		const ui::layout_out_t&			 out		= _ui->get_tree().out(_top_frames[index]);
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = _items[index].rows;
@@ -188,6 +183,7 @@ namespace sfg
 		desc.closed_fn				   = handle_action_menu_closed;
 		desc.closed_user_data		   = this;
 		desc.owner_root				   = _root;
+
 		controller->request_action_menu(desc);
 		_open = true;
 		refresh_top_frames();
@@ -196,6 +192,7 @@ namespace sfg
 	void editor_file_menu_t::refresh_top_frames()
 	{
 		ui::paint_layer_t& paint = _ui->get_paint();
+
 		for (u32 i = 0; i < _item_count; ++i)
 		{
 			const vec4f_t	 color = (_open && i == _selected_top) ? _style.selected_color : _style.frame_color;

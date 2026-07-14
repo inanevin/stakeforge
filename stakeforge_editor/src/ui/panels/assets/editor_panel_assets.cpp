@@ -224,25 +224,6 @@ namespace sfg
 					   ui.widget_text_len(_assets_body_pane_path),
 					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		u8*							asset_search_field	= reinterpret_cast<u8*>(&_asset_search_str);
-		editor_input_field_config_t asset_search_config = {};
-		asset_search_config.placeholder					= "Search";
-		asset_search_config.field						= {
-			.fields = {.data = &asset_search_field, .size = 1},
-			.type	= editor_input_field_field_type_e::string,
-		};
-		asset_search_config.callbacks.edited	= on_asset_search_changed;
-		asset_search_config.callbacks.user_data = this;
-		_asset_search_input.init(ui, _assets_body_pane_top, asset_search_config);
-
-		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
-		asset_search_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		asset_search_in.pos_value.y		 = 0.5f;
-		asset_search_in.anchor_y		 = ui::anchor_e::center;
-		asset_search_in.size_mode_x		 = ui::axis_mode_e::fill;
-		asset_search_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		asset_search_in.size_value		 = {1.0f, theme.item_height};
-
 		_assets_body_pane_top_divider = editor_dividers_t::add_divider_hor(ui, _assets_body_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		ui.set_widget_debug_name(_assets_body_pane_top_divider, "assets_body_pane_top_divider");
 
@@ -284,6 +265,25 @@ namespace sfg
 		ui::listener_bundle_t body_bottom_listener = {};
 		body_bottom_listener.user_data			   = this;
 		ui.get_input().set_listener(_assets_body_pane_bottom, body_bottom_listener);
+
+		u8*							asset_search_field	= reinterpret_cast<u8*>(&_asset_search_str);
+		editor_input_field_config_t asset_search_config = {};
+		asset_search_config.placeholder					= "Search";
+		asset_search_config.field						= {
+			.fields = {.data = &asset_search_field, .size = 1},
+			.type	= editor_input_field_field_type_e::string,
+		};
+		asset_search_config.callbacks.edited	= on_asset_search_changed;
+		asset_search_config.callbacks.user_data = this;
+		_asset_search_input.init(ui, _assets_body_pane_bottom, asset_search_config);
+
+		ui::layout_in_t& asset_search_in = tree.in(_asset_search_input.get_root());
+		asset_search_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		asset_search_in.pos_value.y		 = 0.5f;
+		asset_search_in.anchor_y		 = ui::anchor_e::center;
+		asset_search_in.size_mode_x		 = ui::axis_mode_e::fill;
+		asset_search_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		asset_search_in.size_value		 = {1.0f, theme.item_height};
 
 		_assets_body_pane_controls = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_body_pane_controls, "assets_body_pane_controls");

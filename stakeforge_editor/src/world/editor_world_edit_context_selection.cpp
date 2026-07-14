@@ -91,16 +91,11 @@ namespace sfg
 
 	void editor_world_edit_context_t::issue_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor)
 	{
-		SFG_ASSERT(_inited);
-
 		bool same_selection = _selected_entities.size() == entities.size;
 		for (size_t i = 0; same_selection && i < entities.size; ++i)
 			same_selection = _selected_entities[i] == entities.data[i];
 		if (same_selection && _entity_anchor == anchor)
 			return;
-
-		SFG_ASSERT(_selected_entities.size() <= UINT32_MAX);
-		SFG_ASSERT(entities.size <= UINT32_MAX);
 
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
@@ -138,8 +133,6 @@ namespace sfg
 
 	void editor_world_edit_context_t::apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor)
 	{
-		SFG_ASSERT(_inited);
-
 		_selected_entities.resize(0);
 		_selected_entities.reserve(entities.size);
 		for (size_t i = 0; i < entities.size; ++i)
@@ -156,9 +149,7 @@ namespace sfg
 
 	editor_selection_listener_handle_t editor_world_edit_context_t::add_selection_listener(editor_selection_listener_fn fn, void* user_data)
 	{
-		SFG_ASSERT(_inited);
 		SFG_ASSERT(fn != nullptr);
-
 		const editor_selection_listener_handle_t handle	  = _selection_listeners.emplace();
 		editor_selection_listener_t&			 listener = _selection_listeners.get(handle);
 		listener.fn										  = fn;
@@ -168,7 +159,6 @@ namespace sfg
 
 	void editor_world_edit_context_t::remove_selection_listener(editor_selection_listener_handle_t handle)
 	{
-		SFG_ASSERT(_inited);
 		if (_selection_listeners.is_valid(handle))
 			_selection_listeners.remove(handle);
 	}

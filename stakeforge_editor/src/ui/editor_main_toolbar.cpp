@@ -50,8 +50,6 @@ namespace sfg
 
 	void editor_main_toolbar_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
-		SFG_ASSERT(_ui == nullptr);
-
 		_ui							= &ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();

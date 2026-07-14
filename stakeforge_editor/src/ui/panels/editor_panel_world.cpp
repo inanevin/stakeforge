@@ -56,8 +56,6 @@ namespace sfg
 
 	void editor_panel_world_t::set_panel_name(const char* name)
 	{
-		SFG_ASSERT(name != nullptr);
-
 		_panel_name = name;
 		refresh_title(_panel_name.c_str(), nullptr, _world_dirty);
 	}

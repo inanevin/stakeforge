@@ -93,7 +93,6 @@ namespace sfg
 	void editor_panel_assets_t::open_filter_popup()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		editor_popup_item_desc_t items[] = {
 			{.text = "All", .id = ASSETS_FILTER_ID_ALL, .selected = !_favourites_only},
@@ -116,7 +115,6 @@ namespace sfg
 	void editor_panel_assets_t::open_action_menu(const vec2f_t& pos, bool allow_folder_actions)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		_create_asset_popup_command						= 0;
 		_create_folder_popup_pending					= false;
@@ -152,7 +150,6 @@ namespace sfg
 	void editor_panel_assets_t::open_asset_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		_create_asset_popup_command				   = 0;
 		_create_folder_popup_pending			   = false;

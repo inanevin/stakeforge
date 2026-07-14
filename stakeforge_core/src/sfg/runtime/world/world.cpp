@@ -95,6 +95,16 @@ namespace sfg
 	{
 	}
 
+	entity_guid_t world_t::generate_guid() const
+	{
+		entity_guid_t guid = NULL_ENTITY_GUID;
+		do
+		{
+			guid = hashing_t::generate_guid64();
+		} while (guid == NULL_ENTITY_GUID || find_by_guid(guid) != NULL_ENTITY_ID);
+		return guid;
+	}
+
 	entity_id_t world_t::create_entity(const char* name, entity_guid_t guid)
 	{
 		entity_id_t id = NULL_ENTITY_ID;
@@ -112,14 +122,11 @@ namespace sfg
 
 		if (guid == NULL_ENTITY_GUID)
 		{
-			do
-			{
-				guid = hashing_t::generate_guid64();
-			} while (guid == NULL_ENTITY_GUID || get_entity_from_guid(guid) != NULL_ENTITY_ID);
+			guid = generate_guid();
 		}
 		else
 		{
-			SFG_ASSERT(get_entity_from_guid(guid) == NULL_ENTITY_ID);
+			SFG_ASSERT(find_by_guid(guid) == NULL_ENTITY_ID);
 		}
 
 		ecs_t::table_add(*_engine_components.alive_table, id);
@@ -199,139 +206,6 @@ namespace sfg
 		}
 	}
 
-	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params)
-	{
-		if (add_resource(resource_type_e::prefab, handle))
-			load_all_used_resources();
-
-		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(handle);
-		if (prefab_data == nullptr)
-			return NULL_ENTITY_ID;
-
-		return spawn_prefab(handle, *prefab_data, params);
-	}
-
-	entity_id_t world_t::spawn_prefab(resource_handle_t handle, const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params)
-	{
-		const char*			 prefab_source = resource_manager_t::get().get_memory().get_text(prefab_data.source);
-		const nlohmann::json prefab_json   = nlohmann::json::parse(prefab_source, nullptr, false);
-		if (prefab_json.is_discarded())
-			return NULL_ENTITY_ID;
-
-		const entity_id_t root = world_cooker_t::entity_from_json(*this, prefab_json, true, false);
-		if (root == NULL_ENTITY_ID)
-			return NULL_ENTITY_ID;
-
-		if (params.parent != NULL_ENTITY_ID)
-			attach_to(root, params.parent);
-		set_entity_pos_local(root, params.local_pos);
-		set_entity_rot_local(root, params.local_rot);
-		set_entity_scale_local(root, params.local_scale);
-		sync_entity_hierarchy(root);
-		scan_for_resources(root);
-		make_prefab_chain(root, handle);
-
-		return root;
-	}
-
-	void world_t::make_prefab_chain(entity_id_t root, resource_handle_t handle)
-	{
-		SFG_ASSERT(is_alive(root));
-		SFG_ASSERT(handle != NULL_RESOURCE_HANDLE);
-
-		const auto scan = [&](const auto& self, entity_id_t current) -> void {
-			component_prefab_reference_t& ref = ecs_helpers_t::table_add_or_get_as<component_prefab_reference_t>(*_engine_components.prefab_table, current);
-			ref.is_root						  = current == root;
-			ref.prefab						  = handle;
-
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
-			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			{
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
-				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
-				self(self, child);
-				child = next_child;
-			}
-		};
-		scan(scan, root);
-	}
-
-	void world_t::break_prefab_chain(entity_id_t root)
-	{
-		SFG_ASSERT(is_alive(root));
-
-		const auto scan = [&](const auto& self, entity_id_t current) -> void {
-			if (ecs_t::table_has(*_engine_components.prefab_table, current))
-				ecs_t::table_remove(*_engine_components.prefab_table, current);
-
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
-			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			{
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
-				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
-				self(self, child);
-				child = next_child;
-			}
-		};
-		scan(scan, root);
-	}
-
-	void world_t::refresh_prefab_instances(resource_handle_t handle, entity_id_t skip)
-	{
-		resource_manager_t& rm = resource_manager_t::get();
-
-		const ecs_component_table_ref_t tables[] = {
-			_engine_components.alive_table->ref(),
-			_engine_components.prefab_table->ref(),
-		};
-
-		struct destroy_data
-		{
-			entity_id_t id	   = NULL_ENTITY_ID;
-			entity_id_t parent = NULL_ENTITY_ID;
-			vec3f_t		pos	   = vec3f_t::zero;
-			quat_t		rot	   = quat_t::identity;
-			vec3f_t		scale  = vec3f_t::zero;
-		};
-
-		frame_vector_t<destroy_data> to_destroy;
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = tables, .size = std::size(tables)}))
-		{
-			const component_prefab_reference_t& ref = ecs_helpers_t::row_get<component_prefab_reference_t>(row, 1);
-			if (!ref.is_root)
-				continue;
-
-			if (ref.prefab != handle)
-				continue;
-
-			if (row.id == skip)
-				continue;
-
-			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, row.id);
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, row.id);
-
-			to_destroy.push_back({
-				.id		= row.id,
-				.parent = hierarchy.parent,
-				.pos	= transform.pos,
-				.rot	= transform.rot,
-				.scale	= transform.scale,
-			});
-		}
-
-		for (const destroy_data& data : to_destroy)
-		{
-			destroy_entity_tree(data.id);
-			spawn_prefab(handle,
-						 {
-							 .parent	  = data.parent,
-							 .local_pos	  = data.pos,
-							 .local_rot	  = data.rot,
-							 .local_scale = data.scale,
-						 });
-		}
-	}
 	entity_id_t world_t::get_entity_parent(entity_id_t id) const
 	{
 		SFG_ASSERT(is_alive(id));
@@ -347,11 +221,6 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 		const component_guid_t& guid = ecs_helpers_t::table_get_as_const<component_guid_t>(*_engine_components.guid_table, id);
 		return guid.guid;
-	}
-
-	entity_id_t world_t::get_entity_from_guid(entity_guid_t guid) const
-	{
-		return find_by_guid(guid);
 	}
 
 	entity_id_t world_t::find_by_guid(entity_guid_t guid) const
@@ -849,7 +718,6 @@ namespace sfg
 			return text_index;
 		}
 
-		SFG_ASSERT(_text_allocations.size() < ECS_INVALID_INDEX);
 		const u32 text_index = static_cast<u32>(_text_allocations.size());
 		_text_allocations.push_back({.allocated = allocated});
 		return text_index;
@@ -860,7 +728,6 @@ namespace sfg
 		if (text_index == ECS_INVALID_INDEX)
 			return;
 
-		SFG_ASSERT(text_index < _text_allocations.size());
 		world_text_allocation_t& allocation = _text_allocations[text_index];
 		_text_allocator.deallocate(allocation.allocated);
 		allocation.allocated = nullptr;

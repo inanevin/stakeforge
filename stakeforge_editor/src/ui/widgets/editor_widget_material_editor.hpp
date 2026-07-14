@@ -74,7 +74,6 @@ namespace sfg
 		void			fit_control(ui::widget_id_t widget);
 		void			append_property_row(ui::widget_id_t row);
 		ui::widget_id_t make_section_label(const char* text);
-		ui::widget_id_t make_value_label(ui::widget_id_t parent, const char* text, bool warn);
 		bool			can_mutate_ui_topology() const;
 		bool			load_shared_shader_definition();
 		void			normalize_materials_to_shader_definition();

@@ -52,7 +52,6 @@ namespace sfg
 
 		static inline editor_asset_manager_t& get()
 		{
-			SFG_ASSERT(s_instance != nullptr);
 			return *s_instance;
 		}
 

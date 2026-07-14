@@ -83,7 +83,6 @@ namespace sfg
 	void editor_widget_inspector_t::open_entity_info_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		INSPECTOR_ENTITY_INFO_ACTION_MENU_ROWS[1].disabled = !_copied_entity_info_valid;
 
@@ -100,7 +99,6 @@ namespace sfg
 	void editor_widget_inspector_t::open_component_action_menu(const vec2f_t& pos, sid_t type_id)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		_action_menu_type_id							 = type_id;
 		INSPECTOR_COMPONENT_ACTION_MENU_ROWS[1].disabled = !is_component_paste_enabled(type_id);
@@ -119,8 +117,6 @@ namespace sfg
 	void editor_widget_inspector_t::open_add_component_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
-		SFG_ASSERT(!_edit_world.is_null());
 
 		_add_component_categories.resize(0);
 		_add_component_root_rows.resize(0);

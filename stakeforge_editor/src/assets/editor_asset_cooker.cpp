@@ -67,9 +67,6 @@ namespace sfg
 	{
 		string_t resolve_asset_name(const char* asset_name)
 		{
-			SFG_ASSERT(asset_name != nullptr);
-			SFG_ASSERT(asset_name[0] != '\0');
-
 			string_t resolved = asset_name;
 			file_system_t::fix_path(resolved);
 			if (resolved.find('/') != string_t::npos)
@@ -94,8 +91,7 @@ namespace sfg
 				resolved_asset_name = display_name;
 			else if (asset_name != nullptr && asset_name[0] != '\0')
 				resolved_asset_name = resolve_asset_name(asset_name);
-			SFG_ASSERT(!resolved_asset_name.empty());
-			SFG_ASSERT(editor_asset_type_from_resource_type(header.type) == asset.asset_type);
+
 			header.set_debug_name(resolved_asset_name.c_str());
 			if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 			{
@@ -183,7 +179,6 @@ namespace sfg
 
 		istream_t					stream		  = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t));
 		const resource_type_desc_t* resource_desc = find_resource_type_desc(static_cast<resource_type_e>(asset.asset_type));
-		SFG_ASSERT(resource_desc != nullptr);
 		if (stream.empty())
 			return false;
 
@@ -191,6 +186,7 @@ namespace sfg
 		header.deserialize(stream);
 		if (header.type != resource_desc->type || header.magic != resource_desc->wire_magic || header.version != resource_desc->wire_version)
 			return false;
+
 		if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 		{
 			const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
@@ -317,8 +313,6 @@ namespace sfg
 
 	bool editor_asset_cooker_t::cook_animation_state_machine(const editor_asset_t& asset, const char* asset_name)
 	{
-		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation_state_machine);
-		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::none);
 		SFG_ASSERT(false);
 		SFG_ERR("animation state machine cooking is not implemented for asset {0}", asset.guid);
 		return false;

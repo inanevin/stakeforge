@@ -71,7 +71,6 @@ namespace sfg
 
 	void editor_popup_controller_t::init(ui::ui_context& ui)
 	{
-		SFG_ASSERT(_ui == nullptr);
 		SFG_ASSERT(s_controller_count < MAX_CONTROLLERS);
 
 		_ui							= &ui;
@@ -347,8 +346,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_popup(const editor_popup_desc_t& desc)
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(desc.items != nullptr);
 		SFG_ASSERT(desc.item_count <= MAX_ITEMS);
 
 		if (!can_mutate_ui_topology())
@@ -377,7 +374,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_input_popup(const editor_input_popup_desc_t& desc)
 	{
-		SFG_ASSERT(_ui != nullptr);
 
 		if (!can_mutate_ui_topology())
 		{
@@ -403,9 +399,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_asset_popup(const editor_asset_popup_desc_t& desc)
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-
 		if (!can_mutate_ui_topology())
 		{
 			_pending_asset_desc = desc;
@@ -437,9 +430,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_entity_popup(const editor_entity_popup_desc_t& desc)
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(!desc.world.is_null());
-
 		if (!can_mutate_ui_topology())
 		{
 			_pending_entity_desc = desc;
@@ -471,8 +461,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_color_wheel_popup(const editor_color_wheel_popup_desc_t& desc)
 	{
-		SFG_ASSERT(_ui != nullptr);
-
 		if (!can_mutate_ui_topology())
 		{
 			_pending_color_wheel_desc = desc;
@@ -881,9 +869,6 @@ namespace sfg
 		const ecs_component_table_t* alive_table = world.find_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t* guid_table	 = world.find_component_table(type_id_t<component_guid_t>::value);
 		const ecs_component_table_t* name_table	 = world.find_component_table(type_id_t<component_name_t>::value);
-		SFG_ASSERT(alive_table != nullptr);
-		SFG_ASSERT(guid_table != nullptr);
-		SFG_ASSERT(name_table != nullptr);
 
 		const ecs_component_table_ref_t table_refs[] = {
 			alive_table->ref(),

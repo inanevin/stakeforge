@@ -112,8 +112,6 @@ namespace sfg
 
 		string_t reserve_glb_asset_name(glb_asset_name_registry_t& registry, const string_t& requested_name)
 		{
-			SFG_ASSERT(!requested_name.empty());
-
 			string_t candidate = requested_name;
 			u32		 suffix	   = 1;
 			for (;;)
@@ -265,10 +263,6 @@ namespace sfg
 
 		bool write_blob(const char* path, const u8* data, size_t size)
 		{
-			SFG_ASSERT(path != nullptr);
-			SFG_ASSERT(path[0] != '\0');
-			SFG_ASSERT(data != nullptr);
-			SFG_ASSERT(size != 0);
 			ostream_t stream;
 			stream.write_raw(data, size);
 			if (!serializer_t::save_to_file_compressed(path, stream))
@@ -486,7 +480,7 @@ namespace sfg
 			}
 
 			f32 matrix[16] = {};
-			std::memcpy(matrix, buffer.data.data + matrix_offset, sizeof(matrix));
+			SFG_MEMCPY(matrix, buffer.data.data + matrix_offset, sizeof(matrix));
 			out_matrix = mat4x3_t(matrix[0], matrix[1], matrix[2], matrix[4], matrix[5], matrix[6], matrix[8], matrix[9], matrix[10], matrix[12], matrix[13], matrix[14]);
 			return true;
 		}
@@ -983,7 +977,6 @@ namespace sfg
 
 			const u32 width	 = metallic_roughness.pixels != nullptr ? metallic_roughness.width : occlusion.width;
 			const u32 height = metallic_roughness.pixels != nullptr ? metallic_roughness.height : occlusion.height;
-			SFG_ASSERT(width > 0 && height > 0 && width <= UINT16_MAX && height <= UINT16_MAX);
 
 			vector_t<u8> pixels;
 			pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
@@ -1488,9 +1481,6 @@ namespace sfg
 						 vector_t<editor_asset_t>&			  out_assets,
 						 vector_t<string_t>&				  out_asset_paths)
 		{
-			SFG_ASSERT(meshes != nullptr);
-			SFG_ASSERT(mesh_count != 0);
-
 			string_t asset_name;
 			if (mesh_count == 1)
 				asset_name = get_asset_name(meshes[0].name);
@@ -1913,11 +1903,6 @@ namespace sfg
 	bool editor_glb_importer_t::import_glb(
 		const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths)
 	{
-		SFG_ASSERT(target_directory != nullptr);
-		SFG_ASSERT(target_directory[0] != '\0');
-		SFG_ASSERT(source_full_path != nullptr);
-		SFG_ASSERT(source_full_path[0] != '\0');
-
 		editor_asset_t glb_source_asset = {};
 		const string_t glb_asset_name	= file_system_t::get_filename_from_path(source_full_path);
 		string_t	   status			= "Copying GLB ";
@@ -2031,6 +2016,7 @@ namespace sfg
 					push_texture_import(material.pbr_metallic_roughness.base_color_texture.index, false);
 					push_texture_import(material.normal_texture.index, true);
 					push_texture_import(material.emissive_texture.index, false);
+
 					if (material.pbr_metallic_roughness.metallic_roughness_texture.index >= 0 && material.pbr_metallic_roughness.metallic_roughness_texture.index == material.occlusion_texture.index)
 						push_texture_import(material.pbr_metallic_roughness.metallic_roughness_texture.index, true);
 					if (!result)

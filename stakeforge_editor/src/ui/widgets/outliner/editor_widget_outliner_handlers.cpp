@@ -37,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_world_edit_context.hpp"
-#include "editor_command_system.hpp"
 
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -127,14 +126,12 @@ namespace sfg
 		else if (command == entity_action_menu_rename_folder)
 		{
 			editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*panel._ui);
-			SFG_ASSERT(menu != nullptr);
 			menu->close_action_menu();
 			panel.open_folder_rename_popup(panel._action_menu_folder);
 		}
 		else if (command == entity_action_menu_change_folder_color)
 		{
 			editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*panel._ui);
-			SFG_ASSERT(menu != nullptr);
 			menu->close_action_menu();
 			const vec2f_t pos = panel._ui->get_input().get_mouse_position();
 			panel.open_folder_color_popup(pos, panel._action_menu_folder);
@@ -432,16 +429,6 @@ namespace sfg
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		switch (command.type)
 		{
-		case editor_command_type_e::entity_duplicate: {
-			if (command.state != editor_command_state_e::done)
-				return;
-
-			const editor_command_duplicate_entity_payload_t& payload  = system.get_payload_as<editor_command_duplicate_entity_payload_t>(command);
-			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			const entity_id_t								 entity	  = entities[payload.count - 1];
-			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().issue_entity_selection({.data = &entity, .size = 1}, entity);
-			break;
-		}
 		case editor_command_type_e::entity_info_paste: {
 			const editor_command_paste_entity_info_payload_t& payload = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
 			if (!(payload.world == panel._edit_world))

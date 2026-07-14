@@ -81,7 +81,6 @@ namespace sfg
 		{
 			if (row.toggle_query != nullptr)
 				return row.toggle_query(row.toggle_user_data);
-			SFG_ASSERT(row.toggle_value != nullptr);
 			return *row.toggle_value;
 		}
 
@@ -106,7 +105,6 @@ namespace sfg
 
 	void editor_action_menu_controller_t::init(ui::ui_context& ui)
 	{
-		SFG_ASSERT(_ui == nullptr);
 		SFG_ASSERT(s_controller_count < MAX_CONTROLLERS);
 
 		_ui							= &ui;
@@ -288,7 +286,6 @@ namespace sfg
 
 	void editor_action_menu_controller_t::request_action_menu(const editor_action_menu_desc_t& desc)
 	{
-		SFG_ASSERT(desc.rows != nullptr);
 		SFG_ASSERT(desc.row_count <= MAX_ROWS);
 
 		close_action_menu();
@@ -349,7 +346,6 @@ namespace sfg
 
 		if (desc.kind == editor_action_menu_row_kind_e::toggle)
 		{
-			SFG_ASSERT(desc.toggle_value != nullptr || desc.toggle_query != nullptr);
 			const bool toggled = !is_toggled(desc);
 			if (desc.toggle_value != nullptr)
 				*desc.toggle_value = toggled;

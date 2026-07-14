@@ -64,7 +64,6 @@ namespace sfg
 {
 	void editor_world_controller_t::init()
 	{
-		SFG_ASSERT(s_instance == nullptr);
 		s_instance = this;
 		_worlds.reserve(8);
 		_render_worlds.reserve(8);
@@ -77,7 +76,6 @@ namespace sfg
 
 	void editor_world_controller_t::uninit()
 	{
-		SFG_ASSERT(s_instance == this);
 		if (!_command_listener.is_null())
 		{
 			editor_command_system_t::get().remove_listener(_command_listener);
@@ -196,7 +194,6 @@ namespace sfg
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
 
 		if (_render_worlds.empty())
 			return false;
@@ -442,8 +439,6 @@ namespace sfg
 
 	void editor_world_controller_t::set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name)
 	{
-		SFG_ASSERT(name != nullptr);
-
 		if (_main_world == handle && _main_world_asset_guid == asset_guid && _main_world_name == name)
 			return;
 

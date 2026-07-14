@@ -141,18 +141,11 @@ namespace sfg
 
 	void editor_asset_manager_t::register_descriptor(const editor_asset_descriptor_t& desc)
 	{
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
 		_asset_descriptors[desc.asset_type] = desc;
 	}
 
 	editor_asset_node_handle_t editor_asset_manager_t::add_folder_node(editor_asset_node_handle_t parent, const char* path)
 	{
-		SFG_ASSERT(!parent.is_null());
-		SFG_ASSERT(_database.get_asset_tree().is_valid(parent));
-		SFG_ASSERT(path != nullptr);
-		SFG_ASSERT(path[0] != '\0');
-
 		const string_t					 name  = file_system_t::get_last_folder_from_path(path);
 		const u8						 flags = !name.empty() && name[0] == '_' ? editor_asset_node_flag_hidden : 0;
 		const editor_asset_node_handle_t node  = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = path, .type = editor_asset_node_type_e::folder, .flags = flags});
@@ -163,11 +156,6 @@ namespace sfg
 
 	editor_asset_node_handle_t editor_asset_manager_t::add_path_node(editor_asset_node_handle_t parent, const char* path)
 	{
-		SFG_ASSERT(!parent.is_null());
-		SFG_ASSERT(_database.get_asset_tree().is_valid(parent));
-		SFG_ASSERT(path != nullptr);
-		SFG_ASSERT(path[0] != '\0');
-
 		if (file_system_t::get_file_extension(path) == "sfg_asset")
 		{
 			editor_asset_t asset = {};
@@ -204,12 +192,6 @@ namespace sfg
 
 	editor_asset_node_handle_t editor_asset_manager_t::add_directory_tree(editor_asset_node_handle_t parent, const char* path)
 	{
-		SFG_ASSERT(!parent.is_null());
-		SFG_ASSERT(_database.get_asset_tree().is_valid(parent));
-		SFG_ASSERT(path != nullptr);
-		SFG_ASSERT(path[0] != '\0');
-		SFG_ASSERT(file_system_t::exists(path));
-
 		const editor_asset_node_handle_t directory = add_folder_node(parent, path);
 		vector_t<file_system_entry_t>	 entries;
 		file_system_t::get_entries_recursive(path, entries);
@@ -235,13 +217,8 @@ namespace sfg
 
 	bool editor_asset_manager_t::reload_asset_node(editor_asset_node_handle_t node)
 	{
-		SFG_ASSERT(!node.is_null());
-		editor_asset_tree_t& tree = _database.get_asset_tree();
-		SFG_ASSERT(tree.is_valid(node));
-
+		editor_asset_tree_t& tree		= _database.get_asset_tree();
 		editor_asset_node_t& asset_node = tree.value(node);
-		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset);
-		SFG_ASSERT(!asset_node.full_path.empty());
 
 		editor_asset_t asset = {};
 		if (!editor_asset_io_t::read_asset(asset_node.full_path.c_str(), asset))
@@ -264,11 +241,9 @@ namespace sfg
 		if (directory_node.is_null() || !_database.get_asset_tree().is_valid(directory_node))
 			return;
 
-		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
-		const editor_asset_node_t& directory = tree.value(directory_node);
-		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!directory.full_path.empty());
-		const string_t directory_path = directory.full_path;
+		const editor_asset_tree_t& tree			  = _database.get_asset_tree();
+		const editor_asset_node_t& directory	  = tree.value(directory_node);
+		const string_t			   directory_path = directory.full_path;
 
 		vector_t<file_system_entry_t> entries;
 		file_system_t::get_entries_recursive(directory_path.c_str(), entries);
@@ -301,18 +276,14 @@ namespace sfg
 		if (directory_node.is_null() || !_database.get_asset_tree().is_valid(directory_node))
 			return;
 
-		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
-		const editor_asset_node_t& directory = tree.value(directory_node);
-		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!directory.full_path.empty());
-		const string_t directory_path = directory.full_path;
+		const editor_asset_tree_t& tree			  = _database.get_asset_tree();
+		const editor_asset_node_t& directory	  = tree.value(directory_node);
+		const string_t			   directory_path = directory.full_path;
 
 		vector_t<string_t> parts;
 		for (size_t i = 0; i < paths.size; ++i)
 		{
-			const string_t& path = paths.data[i];
-			SFG_ASSERT(!path.empty());
-
+			const string_t&					 path	  = paths.data[i];
 			const editor_asset_node_handle_t existing = _database.find_node_by_path(path.c_str());
 			if (!existing.is_null())
 			{
@@ -345,26 +316,18 @@ namespace sfg
 
 	void editor_asset_manager_t::remove_node_subtree(editor_asset_node_handle_t node)
 	{
-		SFG_ASSERT(!node.is_null());
-		SFG_ASSERT(_database.get_asset_tree().is_valid(node));
 		_database.remove_node_subtree(node);
 		notify_changed();
 	}
 
 	void editor_asset_manager_t::update_node_path(editor_asset_node_handle_t node, const char* new_path)
 	{
-		SFG_ASSERT(!node.is_null());
-		SFG_ASSERT(_database.get_asset_tree().is_valid(node));
 		_database.update_node_path(node, new_path);
 		notify_changed();
 	}
 
 	void editor_asset_manager_t::move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path)
 	{
-		SFG_ASSERT(!node.is_null());
-		SFG_ASSERT(!new_parent.is_null());
-		SFG_ASSERT(_database.get_asset_tree().is_valid(node));
-		SFG_ASSERT(_database.get_asset_tree().is_valid(new_parent));
 		_database.move_node(node, new_parent, new_path);
 		notify_changed();
 	}
@@ -386,16 +349,8 @@ namespace sfg
 
 	void editor_asset_manager_t::import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
 	{
-		SFG_ASSERT(!_import_in_progress);
-		SFG_ASSERT(!directory_node.is_null());
-		const editor_asset_tree_t& tree = _database.get_asset_tree();
-		SFG_ASSERT(tree.is_valid(directory_node));
-		SFG_ASSERT(!paths.empty());
-		SFG_ASSERT(!import_options.empty());
-
+		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
 		const editor_asset_node_t& directory = tree.value(directory_node);
-		SFG_ASSERT(directory.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!directory.full_path.empty());
 
 		_import_status_pending = paths[0];
 		_import_status_visible = _import_status_pending;

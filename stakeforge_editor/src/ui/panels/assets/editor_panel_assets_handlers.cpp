@@ -65,7 +65,7 @@ namespace sfg
 			return false;
 
 		nlohmann::json prefab_json = {};
-		world_cooker_t::entity_to_json(world, entity_payload.entity, prefab_json, false);
+		world_cooker_t::entity_to_prefab_json(world, entity_payload.entity, prefab_json);
 		if (prefab_json.is_null())
 			return false;
 
@@ -90,8 +90,7 @@ namespace sfg
 			asset_manager.reload_asset_node(existing);
 		else
 			asset_manager.add_path_node(parent_node, asset_path.c_str());
-		world.make_prefab_chain(entity_payload.entity, asset.guid);
-		world.refresh_prefab_instances(asset.guid, entity_payload.entity);
+		world_cooker_t::make_prefab_chain(world, entity_payload.entity, asset.guid);
 		editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
 		return true;
 	}
@@ -102,8 +101,8 @@ namespace sfg
 			return false;
 
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!parent_node.is_null());
 		SFG_ASSERT(tree.is_valid(parent_node));
+
 		const editor_asset_node_t& parent = tree.value(parent_node);
 		SFG_ASSERT(parent.type == editor_asset_node_type_e::folder);
 
@@ -505,7 +504,6 @@ namespace sfg
 		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi && payload.type != editor_payload_type_e::folder && payload.type != editor_payload_type_e::folder_multi &&
 			payload.type != editor_payload_type_e::entity && payload.type != editor_payload_type_e::entity_multi)
 			return false;
-		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_panel_assets_t&	   panel = *static_cast<editor_panel_assets_t*>(user_data);
 		const editor_asset_tree_t& tree	 = editor_asset_manager_t::get().get_asset_tree();

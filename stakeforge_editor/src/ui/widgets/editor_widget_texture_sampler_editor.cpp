@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "assets/editor_asset_util.hpp"
 #include "commands/editor_commands_texture_sampler.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -39,8 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
-
-#include <cstring>
 
 namespace sfg
 {
@@ -124,23 +121,7 @@ namespace sfg
 		if (_samplers.empty())
 			return;
 
-		const char* sampler_name = editor_asset_util_t::find_asset_display_name(_sampler_ids[0]);
-		bool		mixed_name	 = false;
-		for (size_t i = 1; i < _sampler_ids.size(); ++i)
-		{
-			const char* other_name = editor_asset_util_t::find_asset_display_name(_sampler_ids[i]);
-			if (std::strcmp(sampler_name != nullptr ? sampler_name : "", other_name != nullptr ? other_name : "") != 0)
-			{
-				mixed_name = true;
-				break;
-			}
-		}
-
 		_labels.push_back(make_section_label("Texture Sampler"));
-
-		const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Name");
-		_labels.push_back(make_value_label(name_row.right, mixed_name ? "Mixed" : sampler_name != nullptr ? sampler_name : "", mixed_name));
-		append_property_row(name_row.row);
 
 		editor_widget_callbacks_t callbacks = {};
 		callbacks.edit_begin				= on_sampler_edit_begin;
@@ -225,31 +206,6 @@ namespace sfg
 								  _ui->widget_text_len(text_widget),
 								  {.font = theme.font_title_bold, .color = theme.color_accent1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
-		return label;
-	}
-
-	ui::widget_id_t editor_widget_texture_sampler_editor_t::make_value_label(ui::widget_id_t parent, const char* text, bool warn)
-	{
-		const editor_theme_t& theme = editor_theme_t::get();
-
-		const ui::widget_id_t label = _ui->allocate_widget();
-		_ui->set_widget_debug_name(label, "texture_sampler_editor_value_label");
-		_ui->get_tree().attach(parent, label);
-
-		ui::layout_in_t& label_in = _ui->get_tree().in(label);
-		label_in.flags			  = ui::wf_visible;
-		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_value.y	  = 0.5f;
-		label_in.anchor_y		  = ui::anchor_e::center;
-		label_in.size_mode_x	  = ui::axis_mode_e::fill;
-		label_in.size_mode_y	  = ui::axis_mode_e::fixed;
-		label_in.size_value		  = {1.0f, theme.text_default_px_size};
-
-		_ui->set_widget_text(label, text);
-		_ui->get_paint().set_text(label,
-								  _ui->widget_text(label),
-								  _ui->widget_text_len(label),
-								  {.font = theme.font_default, .color = warn ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		return label;
 	}
 

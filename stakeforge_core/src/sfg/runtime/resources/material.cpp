@@ -107,7 +107,6 @@ namespace sfg
 		runtime->parameter_count  = static_cast<u32>(material.parameters.size());
 		runtime->texture_count	  = static_cast<u32>(material.textures.size());
 		runtime->sampler_count	  = static_cast<u32>(material.samplers.size());
-		SFG_ASSERT(runtime->shader_guid);
 
 		if (runtime->parameter_count != 0)
 		{

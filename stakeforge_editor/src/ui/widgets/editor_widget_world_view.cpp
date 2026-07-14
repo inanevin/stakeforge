@@ -163,9 +163,6 @@ namespace sfg
 
 	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(_world_view != NULL_WIDGET);
-
 		if (world.is_null())
 		{
 			end_camera_control();
@@ -218,9 +215,6 @@ namespace sfg
 
 	void editor_widget_world_view_t::clear_world()
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(_world_view != NULL_WIDGET);
-
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
 		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		def.render_state.constants[0] = make_null_world_texture_ref();
@@ -317,14 +311,11 @@ namespace sfg
 
 	void editor_widget_world_view_t::refresh_world_texture()
 	{
-		SFG_ASSERT(_ui != nullptr);
-		SFG_ASSERT(_world_view != NULL_WIDGET);
-		SFG_ASSERT(_world != nullptr);
-
 		ui::ui_resource_ref_t texture_ref = {
 			.handle = NULL_RESOURCE_HANDLE,
 			.type	= ui::ui_resource_type_e::gpu_index_fof,
 		};
+
 		const editor_main_toolbar_world_view_e world_view = editor_global_toolbar_t::get().get_world_view();
 		for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			texture_ref.gpu_indices[i] = get_world_view_gpu_index(*_world, world_view, i);
@@ -380,7 +371,6 @@ namespace sfg
 	{
 		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi)
 			return false;
-		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		if (widget._edit_world.is_null())

@@ -42,7 +42,6 @@ namespace sfg
 			const ui::layout_in_t& parent_in	 = tree.in_const(parent);
 			const bool			   parent_row	 = parent_in.flow == ui::flow_e::row;
 			const bool			   parent_column = parent_in.flow == ui::flow_e::column;
-			SFG_ASSERT(parent_row || parent_column);
 
 			const ui::widget_id_t id = ui.allocate_widget();
 			tree.attach(parent, id);

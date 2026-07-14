@@ -57,8 +57,6 @@ namespace sfg
 {
 	void dock_widget_t::init(ui::ui_context& ui, ui::widget_id_t parent, const dock_widget_config_t& config)
 	{
-		SFG_ASSERT(_ui == nullptr);
-
 		_ui						= &ui;
 		_runtime				= config.runtime;
 		_config					= config;
@@ -186,7 +184,6 @@ namespace sfg
 
 	void dock_widget_t::set_root_node(dock_node_handle_t handle)
 	{
-		SFG_ASSERT(_dock_nodes.is_valid(handle));
 		_root_node = handle;
 	}
 
@@ -233,7 +230,6 @@ namespace sfg
 
 	bool dock_widget_t::select_panel(editor_panel_t* panel)
 	{
-		SFG_ASSERT(panel != nullptr);
 		for (dock_node_t& node : _dock_nodes)
 		{
 			if (node.node_type != dock_node_type_e::leaf)
@@ -258,8 +254,6 @@ namespace sfg
 
 	bool dock_widget_t::dock_node_add_panel_to_existing_type_leaf(editor_panel_t* panel)
 	{
-		SFG_ASSERT(panel != nullptr);
-
 		for (dock_node_t& node : _dock_nodes)
 		{
 			if (node.node_type != dock_node_type_e::leaf)
@@ -280,7 +274,6 @@ namespace sfg
 	void dock_widget_t::dock_node_add_panel(dock_node_t& node, editor_panel_t* panel)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
-		SFG_ASSERT(panel != nullptr);
 
 		node.tab_area.add_tab(panel->get_instance_id(), panel->get_title(), panel->get_icon());
 		node.panels.push_back(panel);
@@ -290,8 +283,6 @@ namespace sfg
 
 	bool dock_widget_t::refresh_panel_title(editor_panel_t* panel)
 	{
-		SFG_ASSERT(panel != nullptr);
-
 		for (dock_node_t& node : _dock_nodes)
 		{
 			if (node.node_type != dock_node_type_e::leaf)
@@ -333,7 +324,6 @@ namespace sfg
 
 	void dock_widget_t::destroy_dock_node(dock_node_handle_t handle)
 	{
-		SFG_ASSERT(_dock_nodes.is_valid(handle));
 		dock_node_t& node = _dock_nodes.get(handle);
 		if (node.node_type == dock_node_type_e::split)
 		{
@@ -371,8 +361,6 @@ namespace sfg
 
 		if (!_panel_payload_active)
 			return;
-
-		SFG_ASSERT(_runtime != nullptr);
 
 		const vec2f_t mouse = {
 			static_cast<f32>(abs_mouse_pos.x - _runtime->pos.x),
@@ -450,7 +438,6 @@ namespace sfg
 	void dock_widget_t::collapse_empty_leaf_after_drag_out(dock_node_t& node)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);
-		SFG_ASSERT(node.panels.empty());
 
 		const dock_node_handle_t empty_handle	= find_node_handle(node);
 		dock_node_handle_t		 parent_handle	= {};
@@ -592,7 +579,6 @@ namespace sfg
 	void dock_widget_t::destroy_split_border(dock_node_t& split_node)
 	{
 		SFG_ASSERT(split_node.node_type == dock_node_type_e::split);
-		SFG_ASSERT(!split_node.border.is_null());
 
 		dock_border_t& border = _dock_borders.get(split_node.border);
 		_ui->deallocate_widget(border.widget);
@@ -602,20 +588,17 @@ namespace sfg
 
 	void dock_widget_t::apply_split_border_drag(dock_border_t& border, const vec2f_t& pos)
 	{
-		SFG_ASSERT(_dock_nodes.is_valid(border.split));
-
 		dock_node_t& split_node = _dock_nodes.get(border.split);
 		SFG_ASSERT(split_node.node_type == dock_node_type_e::split);
 
-		const ui::layout_out_t& out	  = _ui->get_tree().out(split_node.widget);
-		const editor_theme_t&	theme = editor_theme_t::get();
-		const f32				axis  = split_node.split_direction == dock_split_direction_e::horizontal ? out.size.x : out.size.y;
-		const f32				mouse = split_node.split_direction == dock_split_direction_e::horizontal ? pos.x - out.pos.x : pos.y - out.pos.y;
-		SFG_ASSERT(axis > 0.0f);
-		const f32 min_size	  = theme.item_height * DOCK_SPLIT_MIN_LEAF_ITEM_HEIGHTS;
-		const f32 border_size = theme.border_thickness * DOCK_SPLIT_BORDER_THICKNESS_MULT;
-		const f32 min_frac	  = min_size / axis;
-		const f32 max_frac	  = (axis - border_size - min_size) / axis;
+		const ui::layout_out_t& out			= _ui->get_tree().out(split_node.widget);
+		const editor_theme_t&	theme		= editor_theme_t::get();
+		const f32				axis		= split_node.split_direction == dock_split_direction_e::horizontal ? out.size.x : out.size.y;
+		const f32				mouse		= split_node.split_direction == dock_split_direction_e::horizontal ? pos.x - out.pos.x : pos.y - out.pos.y;
+		const f32				min_size	= theme.item_height * DOCK_SPLIT_MIN_LEAF_ITEM_HEIGHTS;
+		const f32				border_size = theme.border_thickness * DOCK_SPLIT_BORDER_THICKNESS_MULT;
+		const f32				min_frac	= min_size / axis;
+		const f32				max_frac	= (axis - border_size - min_size) / axis;
 
 		split_node.split_value = max_frac > min_frac ? math::clamp(mouse / axis, min_frac, max_frac) : DOCK_SPLIT_INITIAL_VALUE;
 		configure_split_child_layout(split_node);
@@ -624,7 +607,6 @@ namespace sfg
 	void dock_widget_t::configure_split_child_layout(dock_node_t& split_node)
 	{
 		SFG_ASSERT(split_node.node_type == dock_node_type_e::split);
-		SFG_ASSERT(!split_node.border.is_null());
 
 		ui::layout_tree_t&	  tree	   = _ui->get_tree();
 		dock_node_t&		  negative = _dock_nodes.get(split_node.split_negative);
@@ -683,8 +665,6 @@ namespace sfg
 
 	bool dock_widget_t::split_leaf_node(dock_node_handle_t handle, dock_preview_e preview, editor_panel_t* panel)
 	{
-		SFG_ASSERT(_dock_nodes.is_valid(handle));
-		SFG_ASSERT(panel != nullptr);
 		SFG_ASSERT(preview != dock_preview_e::center && preview != dock_preview_e::none);
 
 		dock_node_t& node = _dock_nodes.get(handle);
@@ -861,7 +841,6 @@ namespace sfg
 
 	bool dock_widget_t::apply_payload_to_preview(dock_node_handle_t handle, dock_preview_e preview, editor_panel_t* panel)
 	{
-		SFG_ASSERT(panel != nullptr);
 		if (preview == dock_preview_e::center)
 		{
 			dock_node_add_panel(_dock_nodes.get(handle), panel);
@@ -992,8 +971,6 @@ namespace sfg
 	{
 		if (payload.type != editor_payload_type_e::panel)
 			return false;
-
-		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
 		for (u16 i = 0; i < dock_widget._dock_nodes.head(); ++i)

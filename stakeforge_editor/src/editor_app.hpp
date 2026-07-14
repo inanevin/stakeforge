@@ -82,7 +82,6 @@ namespace sfg
 
 		inline tf::Executor& get_editor_work_executor()
 		{
-			SFG_ASSERT(_editor_work_executor != nullptr);
 			return *_editor_work_executor;
 		}
 

@@ -182,7 +182,7 @@ namespace sfg
 		}
 
 		world_t&		  world	 = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-		const entity_id_t entity = world.get_entity_from_guid(guid);
+		const entity_id_t entity = world.find_by_guid(guid);
 		if (entity == NULL_ENTITY_ID || !world.is_alive(entity))
 			return;
 

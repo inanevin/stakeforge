@@ -119,7 +119,6 @@ namespace sfg
 
 		static inline editor_world_controller_t& get()
 		{
-			SFG_ASSERT(s_instance != nullptr);
 			return *s_instance;
 		}
 

@@ -144,7 +144,6 @@ namespace sfg
 	gfx_handle_t editor_renderer_t::create_swapchain(void* window_handle, void* platform_handle, f32 dpi_scale, vec2u16_t size, ui::ui_context* ui)
 	{
 		gfx_backend& backend = gfx_backend::get();
-		SFG_ASSERT(window_handle != nullptr);
 
 		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
 
@@ -176,10 +175,8 @@ namespace sfg
 	void editor_renderer_t::resize_swapchain(gfx_handle_t swapchain, vec2u16_t size, f32 dpi_scale)
 	{
 		gfx_backend& backend = gfx_backend::get();
-		SFG_ASSERT(!swapchain.is_null());
 
-		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
-		SFG_ASSERT(it != _render_targets.end());
+		auto it	 = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
 		it->size = size;
 
 		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
@@ -199,7 +196,6 @@ namespace sfg
 			return;
 
 		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
-		SFG_ASSERT(it != _render_targets.end());
 
 		it->ui_renderer->uninit();
 		it->ui_renderer.reset();
@@ -210,15 +206,13 @@ namespace sfg
 
 	void editor_renderer_t::set_swapchain_minimized(gfx_handle_t handle, bool is_minimized)
 	{
-		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
-		SFG_ASSERT(it != _render_targets.end());
+		auto it		  = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
 		it->minimized = is_minimized;
 	}
 
 	void editor_renderer_t::set_swapchain_visible(gfx_handle_t handle, bool visible)
 	{
-		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
-		SFG_ASSERT(it != _render_targets.end());
+		auto it		= std::find_if(_render_targets.begin(), _render_targets.end(), [handle](const surface_render_target_t& t) -> bool { return t.swapchain == handle; });
 		it->visible = visible;
 	}
 
@@ -408,7 +402,6 @@ namespace sfg
 		while (_render_thread_active.load())
 		{
 			frame_allocator_tls_t::reset();
-			SFG_ASSERT(_world_controller != nullptr);
 			render(*_world_controller);
 			FrameMarkNamed("render");
 			time_t::yield_thread();

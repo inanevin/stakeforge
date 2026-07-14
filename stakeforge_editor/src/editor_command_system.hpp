@@ -64,6 +64,7 @@ namespace sfg
 		material_edit,
 		shader_edit,
 		texture_sampler_edit,
+		physical_material_edit,
 	};
 
 	enum class editor_command_state_e : u8
@@ -137,6 +138,11 @@ namespace sfg
 		editor_command_system_t(const editor_command_system_t&)			   = delete;
 		editor_command_system_t& operator=(const editor_command_system_t&) = delete;
 
+		static inline editor_command_system_t& get()
+		{
+			return *s_instance;
+		}
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
@@ -172,38 +178,89 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		editor_command_t&		 get_command(editor_command_handle_t handle);
-		const editor_command_t&	 get_command(editor_command_handle_t handle) const;
-		void*					 get_payload(editor_command_t& command);
-		const void*				 get_payload(const editor_command_t& command) const;
-		chunk_allocator_t&		 get_aux_data();
-		const chunk_allocator_t& get_aux_data() const;
-		bool					 is_valid(editor_command_handle_t handle) const;
-		bool					 can_undo() const;
-		bool					 can_redo() const;
-		u32						 get_history_size() const;
-		u32						 get_history_cursor() const;
-		u32						 get_generation() const;
-		u32						 get_entity_generation() const;
-		bool					 is_listener_valid(editor_command_listener_handle_t handle) const;
-
-		static inline editor_command_system_t& get()
+		inline editor_command_t& get_command(editor_command_handle_t handle)
 		{
-			SFG_ASSERT(s_instance != nullptr);
-			return *s_instance;
+			return _commands.get(handle);
+		}
+
+		inline const editor_command_t& get_command(editor_command_handle_t handle) const
+		{
+			return _commands.get(handle);
+		}
+
+		inline void* get_payload(editor_command_t& command)
+		{
+			if (command.payload.size == 0)
+				return nullptr;
+			return _aux_data.get<u8>(command.payload);
+		}
+
+		inline const void* get_payload(const editor_command_t& command) const
+		{
+			if (command.payload.size == 0)
+				return nullptr;
+			return _aux_data.get<u8>(command.payload);
+		}
+
+		inline chunk_allocator_t& get_aux_data()
+		{
+			return _aux_data;
+		}
+
+		inline const chunk_allocator_t& get_aux_data() const
+		{
+			return _aux_data;
+		}
+
+		inline bool is_valid(editor_command_handle_t handle) const
+		{
+			return _commands.is_valid(handle);
+		}
+
+		inline bool can_undo() const
+		{
+			return _cursor != 0;
+		}
+
+		inline bool can_redo() const
+		{
+			return _cursor < _history.size();
+		}
+
+		inline u32 get_history_size() const
+		{
+			return static_cast<u32>(_history.size());
+		}
+
+		inline u32 get_history_cursor() const
+		{
+			return _cursor;
+		}
+
+		inline u32 get_generation() const
+		{
+			return _generation;
+		}
+
+		inline u32 get_entity_generation() const
+		{
+			return _entity_generation;
+		}
+
+		inline bool is_listener_valid(editor_command_listener_handle_t handle) const
+		{
+			return _listeners.is_valid(handle);
 		}
 
 		template <typename T> T& get_payload_as(editor_command_t& command)
 		{
 			static_assert(std::is_trivially_copyable_v<T>);
-			SFG_ASSERT(command.payload.size == sizeof(T));
 			return *static_cast<T*>(get_payload(command));
 		}
 
 		template <typename T> const T& get_payload_as(const editor_command_t& command) const
 		{
 			static_assert(std::is_trivially_copyable_v<T>);
-			SFG_ASSERT(command.payload.size == sizeof(T));
 			return *static_cast<const T*>(get_payload(command));
 		}
 
@@ -215,6 +272,7 @@ namespace sfg
 		void			 notify_listeners(const editor_command_t& command);
 		chunk_handle32_t copy_payload(const editor_command_issue_desc_t& desc, const void* payload_data);
 
+	private:
 		dynamic_gen_pool_t<editor_command_t, u32, editor_command_tag_t>					  _commands;
 		dynamic_gen_pool_t<editor_command_listener_t, u32, editor_command_listener_tag_t> _listeners;
 		vector_t<editor_command_handle_t>												  _history;
@@ -224,8 +282,6 @@ namespace sfg
 		u32																				  _next_sequence	 = 1;
 		u32																				  _generation		 = 0;
 		u32																				  _entity_generation = 0;
-		bool																			  _inited			 = false;
-
-		static inline editor_command_system_t* s_instance = nullptr;
+		static inline editor_command_system_t*											  s_instance		 = nullptr;
 	};
 }

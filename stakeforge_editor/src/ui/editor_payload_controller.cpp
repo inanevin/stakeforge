@@ -42,11 +42,6 @@ namespace sfg
 
 	void editor_payload_controller_t::init(editor_surface_t& surface)
 	{
-		SFG_ASSERT(_runtime == nullptr);
-		SFG_ASSERT(s_instance == nullptr);
-		SFG_ASSERT(surface.ui);
-		SFG_ASSERT(surface.runtime);
-
 		s_instance					= this;
 		_runtime					= surface.runtime.get();
 		_ui							= surface.ui.get();
@@ -97,7 +92,6 @@ namespace sfg
 
 	void editor_payload_controller_t::uninit()
 	{
-		SFG_ASSERT(s_instance == this);
 		_ui->deallocate_widget(_frame);
 
 		_runtime			 = nullptr;
@@ -140,8 +134,6 @@ namespace sfg
 
 	void editor_payload_controller_t::create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value)
 	{
-		SFG_ASSERT(_runtime != nullptr);
-		SFG_ASSERT(_ui != nullptr);
 		SFG_ASSERT(!_active);
 
 		_text			= text != nullptr ? text : "";
@@ -158,7 +150,6 @@ namespace sfg
 
 	void editor_payload_controller_t::register_listener(editor_payload_listener_fn fn, editor_payload_tick_fn tick_fn, editor_payload_end_fn end_fn, void* user_data)
 	{
-		SFG_ASSERT(fn != nullptr || tick_fn != nullptr || end_fn != nullptr);
 		_listeners.push_back({.fn = fn, .tick_fn = tick_fn, .end_fn = end_fn, .user_data = user_data});
 	}
 
@@ -181,7 +172,6 @@ namespace sfg
 
 	bool editor_payload_controller_t::drop_payload()
 	{
-		SFG_ASSERT(_runtime != nullptr);
 		SFG_ASSERT(_active);
 
 		const editor_payload_t payload = make_payload(process::get_cursor_position());
@@ -246,9 +236,6 @@ namespace sfg
 
 	void editor_payload_controller_t::set_visible(bool visible)
 	{
-		SFG_ASSERT(_runtime != nullptr);
-		SFG_ASSERT(_ui != nullptr);
-
 		ui::layout_tree_t& tree		= _ui->get_tree();
 		tree.in(_frame).flags		= visible ? static_cast<u16>(ui::wf_visible) : 0;
 		tree.in(_text_widget).flags = visible ? static_cast<u16>(ui::wf_visible) : 0;
@@ -257,8 +244,6 @@ namespace sfg
 
 	void editor_payload_controller_t::follow_cursor()
 	{
-		SFG_ASSERT(_runtime != nullptr);
-
 		const vec2i16_t pos = process::get_cursor_position() + PAYLOAD_CURSOR_OFFSET;
 		process::set_window_position(_runtime->window_handle, pos);
 	}

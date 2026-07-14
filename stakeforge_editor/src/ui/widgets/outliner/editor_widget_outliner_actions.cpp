@@ -84,11 +84,10 @@ namespace sfg
 	}
 	void editor_widget_outliner_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
 	{
-		SFG_ASSERT(!_edit_world.is_null());
-
 		const entity_id_t entity = editor_commands_entity_t::create(_edit_world, parent, folder);
 		if (entity == NULL_ENTITY_ID)
 			return;
+
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 		{
 			world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
@@ -101,11 +100,10 @@ namespace sfg
 
 	void editor_widget_outliner_t::create_primitive(editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
-		SFG_ASSERT(!_edit_world.is_null());
-
 		const entity_id_t entity = editor_command_primitive_spawn_t::spawn(_edit_world, primitive, parent, folder);
 		if (entity == NULL_ENTITY_ID)
 			return;
+
 		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
 		{
 			world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
@@ -204,8 +202,6 @@ namespace sfg
 
 	void editor_widget_outliner_t::toggle_entity_disabled(entity_id_t entity)
 	{
-		SFG_ASSERT(!_edit_world.is_null());
-
 		world_t&			   world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		ecs_component_table_t& disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
 
@@ -279,9 +275,7 @@ namespace sfg
 
 	void editor_widget_outliner_t::duplicate_selected_entities()
 	{
-		SFG_ASSERT(!_edit_world.is_null());
 		SFG_ASSERT(editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities().size != 0);
-
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
 		frame_vector_t<entity_id_t> duplicates;
@@ -291,9 +285,6 @@ namespace sfg
 
 	void editor_widget_outliner_t::destroy_selected_entities()
 	{
-		SFG_ASSERT(!_edit_world.is_null());
-		SFG_ASSERT(editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities().size != 0);
-
 		frame_vector_t<entity_id_t> entities;
 		append_selected_root_entities(entities);
 		editor_commands_entity_t::destroy(_edit_world, entities);
@@ -303,7 +294,6 @@ namespace sfg
 	void editor_widget_outliner_t::open_empty_action_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		_action_menu_entity = NULL_ENTITY_ID;
 		_action_menu_folder = {};
@@ -321,7 +311,6 @@ namespace sfg
 	void editor_widget_outliner_t::open_folder_action_menu(const vec2f_t& pos, editor_world_folder_handle_t folder)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		_action_menu_entity = NULL_ENTITY_ID;
 		_action_menu_folder = folder;
@@ -339,7 +328,6 @@ namespace sfg
 	void editor_widget_outliner_t::open_folder_rename_popup(editor_world_folder_handle_t folder)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		if (!metadata.is_folder_valid(folder))
@@ -369,7 +357,6 @@ namespace sfg
 	void editor_widget_outliner_t::open_folder_color_popup(const vec2f_t& pos, editor_world_folder_handle_t folder)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		if (!metadata.is_folder_valid(folder))
@@ -392,7 +379,6 @@ namespace sfg
 	void editor_widget_outliner_t::open_entity_action_menu(const vec2f_t& pos, entity_id_t entity)
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-		SFG_ASSERT(menu != nullptr);
 
 		_action_menu_entity						= entity;
 		ENTITY_ROW_ACTION_MENU_ROWS[0].disabled = !is_create_enabled();

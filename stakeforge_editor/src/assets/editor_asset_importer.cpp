@@ -82,9 +82,6 @@ namespace sfg
 
 	bool editor_asset_importer_t::make_import_options(editor_asset_import_options_t& out_options, const char* asset_name)
 	{
-		SFG_ASSERT(asset_name != nullptr);
-		SFG_ASSERT(asset_name[0] != '\0');
-
 		const editor_asset_import_type_e import_type = get_import_type_from_extension(file_system_t::get_file_extension(asset_name));
 		out_options									 = {};
 		out_options.type							 = import_type;
@@ -112,11 +109,6 @@ namespace sfg
 	bool editor_asset_importer_t::import_asset(
 		const char* target_directory, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths)
 	{
-		SFG_ASSERT(target_directory != nullptr);
-		SFG_ASSERT(target_directory[0] != '\0');
-		SFG_ASSERT(source_full_path != nullptr);
-		SFG_ASSERT(source_full_path[0] != '\0');
-
 		const string_t source_path = file_system_t::get_absolute_path(source_full_path);
 		if (!file_system_t::exists(source_path.c_str()))
 		{

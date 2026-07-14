@@ -34,12 +34,6 @@ namespace sfg
 {
 	void editor_command_system_t::init(const editor_command_system_config_t& config)
 	{
-		SFG_ASSERT(s_instance == nullptr);
-		SFG_ASSERT(!_inited);
-		SFG_ASSERT(config.max_commands != 0);
-		SFG_ASSERT(config.max_listeners != 0);
-		SFG_ASSERT(config.aux_data_size != 0);
-
 		s_instance = this;
 		_config	   = config;
 		_commands.reserve(config.max_commands);
@@ -50,13 +44,10 @@ namespace sfg
 		_next_sequence	   = 1;
 		_generation		   = 0;
 		_entity_generation = 0;
-		_inited			   = true;
 	}
 
 	void editor_command_system_t::uninit()
 	{
-		SFG_ASSERT(s_instance == this);
-		SFG_ASSERT(_inited);
 		clear();
 		_commands.clear();
 		_listeners.clear();
@@ -67,14 +58,11 @@ namespace sfg
 		_next_sequence	   = 1;
 		_generation		   = 0;
 		_entity_generation = 0;
-		_inited			   = false;
 		s_instance		   = nullptr;
 	}
 
 	void editor_command_system_t::clear()
 	{
-		SFG_ASSERT(_inited);
-
 		for (const editor_command_handle_t handle : _history)
 		{
 			if (_commands.is_valid(handle))
@@ -91,9 +79,6 @@ namespace sfg
 
 	void editor_command_system_t::clear_world(editor_world_handle_t world)
 	{
-		SFG_ASSERT(_inited);
-		SFG_ASSERT(!world.is_null());
-
 		size_t write_cursor = 0;
 		u32	   cursor		= _cursor;
 		bool   removed		= false;
@@ -121,12 +106,6 @@ namespace sfg
 
 	editor_command_handle_t editor_command_system_t::issue_command(const editor_command_issue_desc_t& desc, const void* payload_data)
 	{
-		SFG_ASSERT(_inited);
-		SFG_ASSERT(desc.type != editor_command_type_e::invalid);
-		SFG_ASSERT(desc.undo != nullptr);
-		SFG_ASSERT(desc.redo != nullptr);
-		SFG_ASSERT(desc.payload_size == 0 || payload_data != nullptr);
-
 		truncate_redo();
 		trim_history_for_new_command();
 
@@ -162,7 +141,6 @@ namespace sfg
 
 	bool editor_command_system_t::undo()
 	{
-		SFG_ASSERT(_inited);
 		if (!can_undo())
 			return false;
 
@@ -183,7 +161,6 @@ namespace sfg
 
 	bool editor_command_system_t::redo()
 	{
-		SFG_ASSERT(_inited);
 		if (!can_redo())
 			return false;
 
@@ -204,7 +181,6 @@ namespace sfg
 
 	bool editor_command_system_t::on_window_event(const window_event_t& ev)
 	{
-		SFG_ASSERT(_inited);
 		if (ev.type != window_event_type_e::key)
 			return false;
 		if (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::repeat)
@@ -231,7 +207,6 @@ namespace sfg
 
 	editor_command_listener_handle_t editor_command_system_t::add_listener(editor_command_listener_fn fn, void* user_data)
 	{
-		SFG_ASSERT(_inited);
 		SFG_ASSERT(fn != nullptr);
 		const editor_command_listener_handle_t handle	= _listeners.emplace();
 		editor_command_listener_t&			   listener = _listeners.get(handle);
@@ -242,97 +217,8 @@ namespace sfg
 
 	void editor_command_system_t::remove_listener(editor_command_listener_handle_t handle)
 	{
-		SFG_ASSERT(_inited);
 		if (_listeners.is_valid(handle))
 			_listeners.remove(handle);
-	}
-
-	editor_command_t& editor_command_system_t::get_command(editor_command_handle_t handle)
-	{
-		SFG_ASSERT(_inited);
-		return _commands.get(handle);
-	}
-
-	const editor_command_t& editor_command_system_t::get_command(editor_command_handle_t handle) const
-	{
-		SFG_ASSERT(_inited);
-		return _commands.get(handle);
-	}
-
-	void* editor_command_system_t::get_payload(editor_command_t& command)
-	{
-		SFG_ASSERT(_inited);
-		if (command.payload.size == 0)
-			return nullptr;
-		return _aux_data.get<u8>(command.payload);
-	}
-
-	const void* editor_command_system_t::get_payload(const editor_command_t& command) const
-	{
-		SFG_ASSERT(_inited);
-		if (command.payload.size == 0)
-			return nullptr;
-		return _aux_data.get<u8>(command.payload);
-	}
-
-	chunk_allocator_t& editor_command_system_t::get_aux_data()
-	{
-		SFG_ASSERT(_inited);
-		return _aux_data;
-	}
-
-	const chunk_allocator_t& editor_command_system_t::get_aux_data() const
-	{
-		SFG_ASSERT(_inited);
-		return _aux_data;
-	}
-
-	bool editor_command_system_t::is_valid(editor_command_handle_t handle) const
-	{
-		SFG_ASSERT(_inited);
-		return _commands.is_valid(handle);
-	}
-
-	bool editor_command_system_t::can_undo() const
-	{
-		SFG_ASSERT(_inited);
-		return _cursor != 0;
-	}
-
-	bool editor_command_system_t::can_redo() const
-	{
-		SFG_ASSERT(_inited);
-		return _cursor < _history.size();
-	}
-
-	u32 editor_command_system_t::get_history_size() const
-	{
-		SFG_ASSERT(_inited);
-		return static_cast<u32>(_history.size());
-	}
-
-	u32 editor_command_system_t::get_history_cursor() const
-	{
-		SFG_ASSERT(_inited);
-		return _cursor;
-	}
-
-	u32 editor_command_system_t::get_generation() const
-	{
-		SFG_ASSERT(_inited);
-		return _generation;
-	}
-
-	u32 editor_command_system_t::get_entity_generation() const
-	{
-		SFG_ASSERT(_inited);
-		return _entity_generation;
-	}
-
-	bool editor_command_system_t::is_listener_valid(editor_command_listener_handle_t handle) const
-	{
-		SFG_ASSERT(_inited);
-		return _listeners.is_valid(handle);
 	}
 
 	void editor_command_system_t::truncate_redo()

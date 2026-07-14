@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
-#include "assets/editor_asset_util.hpp"
 #include "commands/editor_commands_material.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -48,28 +47,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
-#include <algorithm>
-#include <cstring>
-
 namespace sfg
 {
 	namespace
 	{
 		void build_world_pass_items(frame_vector_t<editor_dropdown_item_t>& items)
 		{
-			const reflected_type_t* enum_type = reflection_registry_t::get().find_type(type_id_t<world_pass_flags_e>::value);
-			SFG_ASSERT(enum_type != nullptr);
-			SFG_ASSERT(enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum));
-
-			const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
-			SFG_ASSERT(enum_item_count <= static_cast<u32>(static_cast<u16>(-1)));
+			const reflected_type_t* enum_type		= reflection_registry_t::get().find_type(type_id_t<world_pass_flags_e>::value);
+			const u32				enum_item_count = enum_type->fields.end - enum_type->fields.start;
 			items.reserve(enum_item_count);
+
 			for (u32 i = 0; i < enum_item_count; ++i)
 			{
 				const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
-				SFG_ASSERT(enum_field != nullptr);
-				const u32 value = i == 0 ? 0 : 1u << (i - 1);
-				SFG_ASSERT(value <= static_cast<u32>(static_cast<u16>(-1)));
+				const u32				 value		= i == 0 ? 0 : 1u << (i - 1);
 				items.push_back({
 					.text  = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name,
 					.value = static_cast<u16>(value),
@@ -188,23 +179,7 @@ namespace sfg
 		shader_callbacks.edit_submitted			   = on_shader_edit_submitted;
 		shader_callbacks.user_data				   = this;
 
-		const char* material_name = editor_asset_util_t::find_asset_display_name(_material_ids[0]);
-		bool		mixed_name	  = false;
-		for (size_t i = 1; i < _material_ids.size(); ++i)
-		{
-			const char* other_name = editor_asset_util_t::find_asset_display_name(_material_ids[i]);
-			if (std::strcmp(material_name != nullptr ? material_name : "", other_name != nullptr ? other_name : "") != 0)
-			{
-				mixed_name = true;
-				break;
-			}
-		}
-
 		_labels.push_back(make_section_label("Material"));
-
-		const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Name");
-		_labels.push_back(make_value_label(name_row.right, mixed_name ? "Mixed" : material_name != nullptr ? material_name : "", mixed_name));
-		append_property_row(name_row.row);
 
 		vector_t<u64*> shader_fields;
 		shader_fields.reserve(_materials.size());
@@ -538,31 +513,6 @@ namespace sfg
 		return label;
 	}
 
-	ui::widget_id_t editor_widget_material_editor_t::make_value_label(ui::widget_id_t parent, const char* text, bool warn)
-	{
-		const editor_theme_t& theme = editor_theme_t::get();
-
-		const ui::widget_id_t label = _ui->allocate_widget();
-		_ui->set_widget_debug_name(label, "material_editor_value_label");
-		_ui->get_tree().attach(parent, label);
-
-		ui::layout_in_t& label_in = _ui->get_tree().in(label);
-		label_in.flags			  = ui::wf_visible;
-		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_value.y	  = 0.5f;
-		label_in.anchor_y		  = ui::anchor_e::center;
-		label_in.size_mode_x	  = ui::axis_mode_e::fill;
-		label_in.size_mode_y	  = ui::axis_mode_e::fixed;
-		label_in.size_value		  = {1.0f, theme.text_default_px_size};
-
-		_ui->set_widget_text(label, text);
-		_ui->get_paint().set_text(label,
-								  _ui->widget_text(label),
-								  _ui->widget_text_len(label),
-								  {.font = theme.font_default, .color = warn ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-		return label;
-	}
-
 	bool editor_widget_material_editor_t::can_mutate_ui_topology() const
 	{
 		const ui::ui_phase_e phase = _ui->get_phase();
@@ -627,7 +577,6 @@ namespace sfg
 
 	void editor_widget_material_editor_t::sync_pass_flags()
 	{
-		SFG_ASSERT(_pass_flags.size() == _materials.size());
 		for (size_t i = 0; i < _materials.size(); ++i)
 			_materials[i].pass_flags = _pass_flags[i];
 	}

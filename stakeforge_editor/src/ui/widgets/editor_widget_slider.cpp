@@ -159,11 +159,6 @@ namespace sfg
 
 	void editor_slider_t::update_field_data(editor_slider_field_t field)
 	{
-		SFG_ASSERT(field.fields.size > 0);
-		SFG_ASSERT(field.fields.data != nullptr);
-		for (size_t i = 0; i < field.fields.size; ++i)
-			SFG_ASSERT(field.fields.data[i] != nullptr);
-
 		_config.field = field;
 		_value		  = math::clamp(*field.fields.data[0], _config.min_value, _config.max_value);
 		_mixed		  = false;
@@ -227,8 +222,6 @@ namespace sfg
 
 	void editor_slider_t::modify_field()
 	{
-		SFG_ASSERT(_config.field.fields.size > 0);
-		SFG_ASSERT(_config.field.fields.data != nullptr);
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 			*_config.field.fields.data[i] = _value;
 	}

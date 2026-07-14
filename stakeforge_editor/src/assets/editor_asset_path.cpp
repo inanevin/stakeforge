@@ -106,10 +106,8 @@ namespace sfg
 
 	string_t editor_asset_path_t::get_source_full_path(const char* assets_path, const editor_asset_t& asset)
 	{
-		SFG_ASSERT(!asset.source_relative.empty());
 		string_t result = file_system_t::get_absolute_path(assets_path);
 		result += asset.source_relative;
-		SFG_ASSERT(file_system_t::exists(result.c_str()));
 		return result;
 	}
 
@@ -133,16 +131,7 @@ namespace sfg
 
 	bool editor_asset_path_t::set_source_relative_or_copy(editor_asset_t& asset, const char* asset_directory, const char* asset_name, const char* source_full_path)
 	{
-		SFG_ASSERT(asset_directory != nullptr);
-		SFG_ASSERT(asset_directory[0] != '\0');
-		SFG_ASSERT(asset_name != nullptr);
-		SFG_ASSERT(asset_name[0] != '\0');
-		SFG_ASSERT(source_full_path != nullptr);
-		SFG_ASSERT(source_full_path[0] != '\0');
-
 		const string_t source_path = file_system_t::get_absolute_path(source_full_path);
-		SFG_ASSERT(file_system_t::exists(source_path.c_str()));
-
 		const string_t assets_path = editor_project_t::get()._runtime.assets_path;
 		asset.source_relative	   = get_source_relative(assets_path.c_str(), source_path.c_str());
 		if (!asset.source_relative.empty())
@@ -153,9 +142,7 @@ namespace sfg
 		if (!file_system_t::copy_file(source_path.c_str(), target_source_path.c_str()))
 			return false;
 
-		SFG_ASSERT(file_system_t::exists(target_source_path.c_str()));
 		asset.source_relative = get_source_relative(assets_path.c_str(), target_source_path.c_str());
-		SFG_ASSERT(!asset.source_relative.empty());
 		return true;
 	}
 

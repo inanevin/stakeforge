@@ -58,7 +58,6 @@ namespace sfg
 			if (data_size == 0)
 				return {};
 
-			SFG_ASSERT(data != nullptr);
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(data_size, alignof(u8));
 			SFG_MEMCPY(system.get_aux_data().get<u8>(handle), data, data_size);
 			return handle;
@@ -69,9 +68,7 @@ namespace sfg
 			if (table.type_desc.size == 0)
 				return;
 
-			SFG_ASSERT(component != nullptr);
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(table.type_desc.type_id);
-			SFG_ASSERT(reflected_type != nullptr && reflected_type->default_init_fn != nullptr);
 			reflected_type->default_init_fn(component);
 		}
 
@@ -130,7 +127,6 @@ namespace sfg
 
 		chunk_handle32_t create_stream_array(editor_command_system_t& system, size_t count)
 		{
-			SFG_ASSERT(count <= std::numeric_limits<size_t>::max() / sizeof(chunk_handle32_t));
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(sizeof(chunk_handle32_t) * count, alignof(chunk_handle32_t));
 			SFG_MEMSET(system.get_aux_data().get<chunk_handle32_t>(handle), 0, handle.size);
 			return handle;
@@ -382,7 +378,6 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		ecs_component_table_t&		table = editor_world_controller_t::get().get_editor_world(world)->get_world().get_component_table(component_type);
 		frame_vector_t<entity_id_t> affected;
@@ -392,6 +387,7 @@ namespace sfg
 			if (!ecs_t::table_has(table, entity))
 				affected.push_back(entity);
 		}
+
 		if (affected.empty())
 			return true;
 
@@ -433,7 +429,6 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		ecs_component_table_t&		table = editor_world_controller_t::get().get_editor_world(world)->get_world().get_component_table(component_type);
 		frame_vector_t<entity_id_t> affected;
@@ -492,7 +487,6 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		ecs_component_table_t& table = editor_world_controller_t::get().get_editor_world(world)->get_world().get_component_table(component_type);
 		if (table.type_desc.size == 0)
@@ -554,8 +548,6 @@ namespace sfg
 	{
 		if (entities.empty() || data_size == 0)
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
-		SFG_ASSERT(data != nullptr);
 
 		ecs_component_table_t& table = editor_world_controller_t::get().get_editor_world(world)->get_world().get_component_table(component_type);
 		if (table.type_desc.size == 0)

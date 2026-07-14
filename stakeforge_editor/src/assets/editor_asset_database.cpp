@@ -75,7 +75,6 @@ namespace sfg
 
 	void editor_asset_database_t::remove_node_subtree(editor_asset_node_handle_t node)
 	{
-		SFG_ASSERT(_asset_tree.is_valid(node));
 		_asset_tree.for_each_depth_first(node, [&](editor_asset_node_handle_t current, u32) {
 			const editor_asset_node_t& value = _asset_tree.value(current);
 			if (value.type == editor_asset_node_type_e::asset)
@@ -89,13 +88,11 @@ namespace sfg
 
 	void editor_asset_database_t::set_root_node(editor_asset_node_handle_t node)
 	{
-		SFG_ASSERT(node.is_null() || _asset_tree.is_valid(node));
 		_root_node = node;
 	}
 
 	void editor_asset_database_t::upsert_asset(editor_asset_t&& asset)
 	{
-		SFG_ASSERT(asset.guid != NULL_SID);
 		_assets[asset.guid] = std::move(asset);
 	}
 
@@ -107,10 +104,6 @@ namespace sfg
 
 	void editor_asset_database_t::update_node_path(editor_asset_node_handle_t node, const char* new_path)
 	{
-		SFG_ASSERT(_asset_tree.is_valid(node));
-		SFG_ASSERT(new_path != nullptr);
-		SFG_ASSERT(new_path[0] != '\0');
-
 		editor_asset_node_t& value	  = _asset_tree.value(node);
 		const string_t		 old_path = value.full_path;
 		unindex_node(node);
@@ -129,8 +122,6 @@ namespace sfg
 
 	void editor_asset_database_t::move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path)
 	{
-		SFG_ASSERT(_asset_tree.is_valid(node));
-		SFG_ASSERT(_asset_tree.is_valid(new_parent));
 		_asset_tree.attach(new_parent, node);
 		update_node_path(node, new_path);
 	}
@@ -179,7 +170,6 @@ namespace sfg
 
 	void editor_asset_database_t::index_node(editor_asset_node_handle_t node)
 	{
-		SFG_ASSERT(_asset_tree.is_valid(node));
 		const editor_asset_node_t& value = _asset_tree.value(node);
 		if (!value.full_path.empty())
 			_path_nodes[editor_asset_path_t::hash_path(value.full_path.c_str())] = node;
@@ -189,7 +179,6 @@ namespace sfg
 
 	void editor_asset_database_t::unindex_node(editor_asset_node_handle_t node)
 	{
-		SFG_ASSERT(_asset_tree.is_valid(node));
 		const editor_asset_node_t& value = _asset_tree.value(node);
 		if (!value.full_path.empty())
 			_path_nodes.erase(editor_asset_path_t::hash_path(value.full_path.c_str()));
@@ -199,7 +188,6 @@ namespace sfg
 
 	void editor_asset_database_t::update_descendant_paths(editor_asset_node_handle_t node, const string_t& old_prefix, const string_t& new_prefix)
 	{
-		SFG_ASSERT(_asset_tree.is_valid(node));
 		string_t old_dir = editor_asset_path_t::normalize_directory(old_prefix.c_str());
 		string_t new_dir = editor_asset_path_t::normalize_directory(new_prefix.c_str());
 		_asset_tree.for_each_depth_first(node, [&](editor_asset_node_handle_t current, u32) {

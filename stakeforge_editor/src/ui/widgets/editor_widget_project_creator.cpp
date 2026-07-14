@@ -296,7 +296,6 @@ namespace sfg
 	void editor_widget_project_creator_t::notify_project_ready()
 	{
 		hide_error();
-		SFG_ASSERT(_creator_config.on_project_ready != nullptr);
 		_creator_config.on_project_ready(_creator_config.user_data);
 	}
 

@@ -84,14 +84,13 @@ namespace sfg
 		}
 		_cook_options_modal.set_options(modal_options.data(), static_cast<u16>(modal_options.size()));
 
-		editor_modal_button_desc_t buttons[] = {
+		const editor_modal_button_desc_t buttons[] = {
 			{.text = "Cancel", .callback = on_cook_options_cancelled, .user_data = this},
 			{.text = "Import", .callback = on_cook_options_imported, .user_data = this},
 		};
 
-		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
-		SFG_ASSERT(modal != nullptr);
-		editor_modal_content_desc_t cook_options_content = _cook_options_modal.get_content_desc();
+		editor_modal_controller_t*		  modal				   = editor_modal_controller_t::find(*_ui);
+		const editor_modal_content_desc_t cook_options_content = _cook_options_modal.get_content_desc();
 		modal->request_modal("Cook Options", "Configure cook options for the imported assets.", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &cook_options_content);
 	}
 
@@ -181,8 +180,6 @@ namespace sfg
 
 	void editor_panel_assets_t::delete_folder()
 	{
-		SFG_ASSERT(!_selected_folder_hashes.empty());
-
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
 		for (u64 folder_hash : _selected_folder_hashes)
@@ -205,8 +202,6 @@ namespace sfg
 
 	void editor_panel_assets_t::duplicate_folder()
 	{
-		SFG_ASSERT(!_selected_folder_hashes.empty());
-
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
 		string_t				   last_duplicate_path;
@@ -276,7 +271,6 @@ namespace sfg
 		string_t last_duplicate_path;
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
-			SFG_ASSERT(tree.is_valid(node));
 			const editor_asset_node_t& asset_node = tree.value(node);
 			if (asset_node.type != editor_asset_node_type_e::asset)
 				continue;
@@ -299,7 +293,6 @@ namespace sfg
 	void editor_panel_assets_t::open_asset_item(editor_asset_node_handle_t node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(tree.is_valid(node));
 
 		const editor_asset_node_t& asset_node = tree.value(node);
 		const editor_asset_t*	   asset	  = editor_asset_manager_t::get().find_asset(asset_node.asset_id);
@@ -319,14 +312,12 @@ namespace sfg
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		SFG_ASSERT(tree.is_valid(_selected_asset_node));
 
 		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
 		if (asset_node.type != editor_asset_node_type_e::asset)
 			return;
 
 		const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
-		SFG_ASSERT(asset != nullptr);
 
 		if (asset->status == editor_asset_status_e::ok)
 			return;
@@ -358,7 +349,6 @@ namespace sfg
 	void editor_panel_assets_t::open_create_folder_popup()
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		editor_input_popup_desc_t desc = {};
 		desc.closed					   = on_create_folder_popup_closed;
@@ -395,7 +385,6 @@ namespace sfg
 	void editor_panel_assets_t::open_create_asset_popup(u16 command)
 	{
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
 
 		const char* text = "";
 		switch (command)
@@ -553,9 +542,6 @@ namespace sfg
 
 	bool editor_panel_assets_t::find_matching_asset_override(const char* path, editor_asset_type_e asset_type, string_t* out_row) const
 	{
-		SFG_ASSERT(path != nullptr);
-		SFG_ASSERT(path[0] != '\0');
-
 		if (!file_system_t::exists(path))
 			return false;
 
@@ -572,23 +558,19 @@ namespace sfg
 
 	void editor_panel_assets_t::request_assets_override(asset_override_operation_e operation, const char* description, const vector_t<string_t>& rows)
 	{
-		SFG_ASSERT(operation != asset_override_operation_e::none);
-		SFG_ASSERT(!rows.empty());
-
-		vector_t<const char*> row_ptrs;
+		frame_vector_t<const char*> row_ptrs;
 		row_ptrs.reserve(rows.size());
 		for (const string_t& row : rows)
 			row_ptrs.push_back(row.c_str());
 
 		_assets_override_modal.set_rows(row_ptrs.data(), static_cast<u16>(row_ptrs.size()));
-		editor_modal_content_desc_t content	  = _assets_override_modal.get_content_desc();
-		editor_modal_button_desc_t	buttons[] = {
+		const editor_modal_content_desc_t content	= _assets_override_modal.get_content_desc();
+		const editor_modal_button_desc_t  buttons[] = {
 			{.text = "Overwrite", .callback = on_assets_override_accepted, .user_data = this},
 			{.text = "Cancel", .callback = on_assets_override_cancelled, .user_data = this},
 		};
 		_pending_override_operation		 = operation;
 		editor_modal_controller_t* modal = editor_modal_controller_t::find(*_ui);
-		SFG_ASSERT(modal != nullptr);
 		modal->request_modal("Overwrite Assets", description, true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &content, editor_modal_severity_e::warning);
 	}
 
@@ -639,17 +621,9 @@ namespace sfg
 
 	void editor_panel_assets_t::open_rename_popup()
 	{
-		SFG_ASSERT(!_selected_folder_node.is_null());
-		SFG_ASSERT(_selected_folder_hash != 0);
-
-		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
-
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(tree.is_valid(_selected_folder_node));
-
-		const folder_row_t* target_row = find_row_by_hash(_selected_folder_hash);
-		SFG_ASSERT(target_row != nullptr);
+		editor_popup_controller_t* popup	  = editor_popup_controller_t::find(*_ui);
+		const editor_asset_tree_t& tree		  = editor_asset_manager_t::get().get_asset_tree();
+		const folder_row_t*		   target_row = find_row_by_hash(_selected_folder_hash);
 
 		const ui::layout_out_t& row_out = _ui->get_tree().out(target_row->root);
 		const f32				scale	= ui::get_valid_scale(_ui->get_ui_scale());
@@ -665,25 +639,18 @@ namespace sfg
 
 	void editor_panel_assets_t::rename_folder(const char* name)
 	{
-		SFG_ASSERT(!_selected_folder_node.is_null());
-		SFG_ASSERT(_selected_folder_hash != 0);
-
 		string_t new_name = name != nullptr ? name : "";
 		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
 			return;
 
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(tree.is_valid(_selected_folder_node));
 
 		const string_t& old_name = tree.value(_selected_folder_node).name;
 		if (new_name == old_name)
 			return;
 
-		const string_t& old_path = tree.value(_selected_folder_node).full_path;
-		SFG_ASSERT(!old_path.empty());
-
-		const string_t parent_path = file_system_t::get_directory_of_file(old_path.c_str());
-		SFG_ASSERT(!parent_path.empty());
+		const string_t& old_path	= tree.value(_selected_folder_node).full_path;
+		const string_t	parent_path = file_system_t::get_directory_of_file(old_path.c_str());
 
 		const string_t new_path = parent_path + new_name;
 		if (file_system_t::exists(new_path.c_str()))
@@ -694,8 +661,10 @@ namespace sfg
 
 		const u64 old_hash = _selected_folder_hash;
 		const u64 new_hash = get_folder_hash_after_rename(_selected_folder_node, new_name);
+
 		if (!editor_asset_util_t::rename_folder(_selected_folder_node, new_path.c_str()))
 			return;
+
 		editor_asset_manager_t::get().update_node_path(_selected_folder_node, new_path.c_str());
 
 		_selected_folder_hash = new_hash;
@@ -705,6 +674,7 @@ namespace sfg
 			if (std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), new_hash) == _favourite_folder_hashes.end())
 				_favourite_folder_hashes.push_back(new_hash);
 		}
+
 		if (auto it = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), old_hash); it != _expanded_folder_hashes.end())
 		{
 			_expanded_folder_hashes.erase(it);
@@ -717,16 +687,9 @@ namespace sfg
 
 	void editor_panel_assets_t::open_asset_rename_popup()
 	{
-		SFG_ASSERT(!_selected_asset_node.is_null());
-
-		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
-		SFG_ASSERT(popup != nullptr);
-
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(tree.is_valid(_selected_asset_node));
-
+		editor_popup_controller_t* popup	  = editor_popup_controller_t::find(*_ui);
+		const editor_asset_tree_t& tree		  = editor_asset_manager_t::get().get_asset_tree();
 		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
-		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset || asset_node.type == editor_asset_node_type_e::file);
 
 		const auto item_it = std::find_if(_asset_grid_items.begin(), _asset_grid_items.end(), [&](const asset_grid_item_t& item) { return item.node == _selected_asset_node; });
 		SFG_ASSERT(item_it != _asset_grid_items.end());
@@ -748,14 +711,12 @@ namespace sfg
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		SFG_ASSERT(tree.is_valid(_selected_asset_node));
 
 		string_t new_name = name != nullptr ? name : "";
 		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
 			return;
 
 		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
-		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset || asset_node.type == editor_asset_node_type_e::file);
 
 		const string_t old_file_extension = asset_node.type == editor_asset_node_type_e::file ? file_system_t::get_file_extension(asset_node.name) : "";
 		if (asset_node.type == editor_asset_node_type_e::file)
@@ -768,11 +729,8 @@ namespace sfg
 		if (new_name == asset_node.name)
 			return;
 
-		const string_t& old_path = asset_node.full_path;
-		SFG_ASSERT(!old_path.empty());
-
-		const string_t parent_path = file_system_t::get_directory_of_file(old_path.c_str());
-		SFG_ASSERT(!parent_path.empty());
+		const string_t& old_path	= asset_node.full_path;
+		const string_t	parent_path = file_system_t::get_directory_of_file(old_path.c_str());
 
 		string_t new_path = parent_path + new_name;
 		if (asset_node.type == editor_asset_node_type_e::asset)
@@ -792,7 +750,6 @@ namespace sfg
 		if (asset_node.type == editor_asset_node_type_e::asset)
 		{
 			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
-			SFG_ASSERT(asset != nullptr);
 
 			if (!editor_asset_util_t::rename_asset(*asset, _selected_asset_node, new_path.c_str()))
 				return;

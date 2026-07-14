@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "commands/editor_command_prefab_spawn.hpp"
 #include "ui/editor_payload_controller.hpp"
+#include <sfg/runtime/resources/world_cook.hpp>
 
 namespace sfg
 {
@@ -47,28 +48,17 @@ namespace sfg
 			return editor_asset_manager_t::get().find_asset(node.asset_id);
 		}
 
-		bool spawn_prefab_asset(editor_world_handle_t world, const editor_asset_t& asset, entity_id_t parent)
-		{
-			if (asset.asset_type != editor_asset_type_e::prefab)
-				return false;
-
-			return editor_command_prefab_spawn_t::spawn(world, asset.guid, parent) != NULL_ENTITY_ID;
-		}
 	}
 
 	bool editor_asset_spawn_t::spawn_from_payload(const editor_asset_spawn_desc_t& desc)
 	{
-		SFG_ASSERT(desc.payload != nullptr);
-		SFG_ASSERT(desc.payload->user_ptr != nullptr);
-		SFG_ASSERT(!desc.world.is_null());
-
 		bool spawned = false;
 
 		if (desc.payload->type == editor_payload_type_e::asset)
 		{
 			const editor_asset_node_handle_t payload_node = *static_cast<const editor_asset_node_handle_t*>(desc.payload->user_ptr);
 			const editor_asset_t*			 asset		  = get_asset_from_node(payload_node);
-			return asset != nullptr && spawn_prefab_asset(desc.world, *asset, desc.parent);
+			return asset != nullptr && editor_command_prefab_spawn_t::spawn(desc.world, asset->guid, desc.parent) != NULL_ENTITY_ID;
 		}
 
 		if (desc.payload->type == editor_payload_type_e::asset_multi)
@@ -77,8 +67,8 @@ namespace sfg
 			for (editor_asset_node_handle_t payload_node : payload_nodes)
 			{
 				const editor_asset_t* asset = get_asset_from_node(payload_node);
-				if (asset != nullptr)
-					spawned = spawn_prefab_asset(desc.world, *asset, desc.parent) || spawned;
+				if (asset != nullptr && asset->asset_type == editor_asset_type_e::prefab)
+					spawned = editor_command_prefab_spawn_t::spawn(desc.world, asset->guid, desc.parent) != NULL_ENTITY_ID;
 			}
 		}
 

@@ -44,19 +44,16 @@ namespace sfg
 
 	void editor_world_edit_context_t::init()
 	{
-		SFG_ASSERT(!_inited);
 		_folders.init(EDITOR_WORLD_EDIT_CONTEXT_MAX_FOLDERS);
 		_selection_listeners.init(EDITOR_WORLD_EDIT_CONTEXT_MAX_SELECTION_LISTENERS);
 		_entity_metadata.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 		_outliner_items.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 		_selected_entities.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 		_selection_generation = 0;
-		_inited				  = true;
 	}
 
 	void editor_world_edit_context_t::uninit()
 	{
-		SFG_ASSERT(_inited);
 		_outliner_items.clear();
 		_entity_metadata.clear();
 		_selected_entities.clear();
@@ -66,12 +63,10 @@ namespace sfg
 		_entity_anchor		  = NULL_ENTITY_ID;
 		_next_guid			  = 1;
 		_selection_generation = 0;
-		_inited				  = false;
 	}
 
 	void editor_world_edit_context_t::set_world(editor_world_handle_t world)
 	{
-		SFG_ASSERT(_inited);
 		if (_world == world)
 			return;
 
@@ -81,7 +76,6 @@ namespace sfg
 
 	void editor_world_edit_context_t::clear()
 	{
-		SFG_ASSERT(_inited);
 		_outliner_items.resize(0);
 		_entity_metadata.resize(0);
 		_folders.reset();

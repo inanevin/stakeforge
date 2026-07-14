@@ -34,8 +34,6 @@ namespace sfg
 {
 	void editor_split_border_t::init(ui::ui_context& ui, ui::widget_id_t parent, const config_t& config)
 	{
-		SFG_ASSERT(_ui == nullptr);
-
 		_ui		= &ui;
 		_config = config;
 		_root	= ui.allocate_widget();

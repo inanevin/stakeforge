@@ -35,7 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED	12.0f
 #define EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY 0.2f
 #define EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE		0.1f
 #define EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE		1000.0f
@@ -52,14 +51,12 @@ namespace sfg
 		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), _camera_entity);
 
 		apply_transform(world);
-		_current_move_speed = EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED;
 	}
 
 	void editor_world_camera_orbit_t::uninit(world_t& world)
 	{
 		world.destroy_entity(_camera_entity);
 		_camera_entity		  = NULL_ENTITY_ID;
-		_direction_input	  = vec3f_t::zero;
 		_target				  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 		_camera_yaw_degrees	  = 0.0f;
@@ -67,25 +64,19 @@ namespace sfg
 		_distance			  = 8.0f;
 		_distance_target	  = 8.0f;
 		_distance_velocity	  = 0.0f;
-		_current_move_speed	  = EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED;
 	}
 
 	void editor_world_camera_orbit_t::pass_input(const editor_world_camera_input_t& input)
 	{
 		if (input.reset)
 		{
-			_direction_input	= vec3f_t::zero;
-			_mouse_delta		= vec2f_t::zero;
-			_distance_target	= _distance;
-			_distance_velocity	= 0.0f;
-			_current_move_speed = EDITOR_WORLD_CAMERA_ORBIT_BASE_MOVE_SPEED;
+			_mouse_delta	   = vec2f_t::zero;
+			_distance_target   = _distance;
+			_distance_velocity = 0.0f;
 			return;
 		}
 
-		_direction_input += input.direction_delta;
 		_mouse_delta += input.mouse_delta;
-		if (input.set_move_speed)
-			_current_move_speed = input.move_speed;
 		if (input.wheel_delta != 0.0f)
 			_distance_target = math::clamp(_distance_target - input.wheel_delta * _distance_target * EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
 	}
@@ -99,7 +90,6 @@ namespace sfg
 		_distance						 = math::clamp(rad / math::sin(DEG_2_RAD * camera.fov_degrees * 0.5f), EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
 		_distance_target				 = _distance;
 		_distance_velocity				 = 0.0f;
-		_direction_input				 = vec3f_t::zero;
 		_mouse_delta					 = vec2f_t::zero;
 		apply_transform(world);
 	}
@@ -111,10 +101,7 @@ namespace sfg
 		_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
 		_mouse_delta		  = vec2f_t::zero;
 
-		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
-		_distance_target	  = math::clamp(_distance_target - _direction_input.z * _current_move_speed * dt_seconds, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
-		_distance			  = easing_t::smooth_damp(_distance, _distance_target, &_distance_velocity, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED, dt_seconds);
-		_target += (rotation.get_right() * _direction_input.x + rotation.get_up() * _direction_input.y) * (_current_move_speed * dt_seconds);
+		_distance = easing_t::smooth_damp(_distance, _distance_target, &_distance_velocity, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED, dt_seconds);
 
 		apply_transform(world);
 	}

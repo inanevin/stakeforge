@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_texture_viewer.hpp"
-#include "assets/editor_asset_util.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
@@ -90,7 +89,6 @@ namespace sfg
 
 		_labels.push_back(make_section_label("Texture"));
 
-		_asset_name_value	  = append_property_value_row("Name");
 		_texture_size_value	  = append_property_value_row("Texture Size");
 		_is_linear_value	  = append_property_value_row("Is Linear");
 		_mip_dropdown_row	  = append_property_control_row("Mipmaps");
@@ -150,7 +148,6 @@ namespace sfg
 		_rows.resize(0);
 		_dividers.resize(0);
 		_labels.resize(0);
-		_asset_name.resize(0);
 		_texture_size_text.resize(0);
 		_is_linear_text.resize(0);
 		_payload_format_text.resize(0);
@@ -163,7 +160,6 @@ namespace sfg
 		_top_pane				 = NULL_WIDGET;
 		_bottom_pane			 = NULL_WIDGET;
 		_texture_display		 = NULL_WIDGET;
-		_asset_name_value		 = NULL_WIDGET;
 		_texture_size_value		 = NULL_WIDGET;
 		_is_linear_value		 = NULL_WIDGET;
 		_mip_dropdown_row		 = NULL_WIDGET;
@@ -188,9 +184,7 @@ namespace sfg
 		if (_texture_guid != texture_guid)
 			unload_texture();
 
-		_texture_guid		   = texture_guid;
-		const char* asset_name = editor_asset_util_t::find_asset_display_name(texture_guid);
-		_asset_name			   = asset_name != nullptr ? asset_name : "";
+		_texture_guid = texture_guid;
 		load_texture();
 		rebuild_mip_dropdown();
 		refresh_info();
@@ -291,7 +285,6 @@ namespace sfg
 			}
 		}
 
-		_ui->set_widget_text(_asset_name_value, _asset_name.c_str());
 		_ui->set_widget_text(_texture_size_value, _texture_size_text.c_str());
 		_ui->set_widget_text(_is_linear_value, _is_linear_text.c_str());
 		_ui->set_widget_text(_payload_format_value, _payload_format_text.c_str());
@@ -302,7 +295,6 @@ namespace sfg
 		const editor_theme_t&	  theme		  = editor_theme_t::get();
 		const ui::vg_text_style_t value_paint = {
 			.font = theme.font_default, .color = _texture_failed ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()};
-		paint.set_text(_asset_name_value, _ui->widget_text(_asset_name_value), _ui->widget_text_len(_asset_name_value), value_paint);
 		paint.set_text(_texture_size_value, _ui->widget_text(_texture_size_value), _ui->widget_text_len(_texture_size_value), value_paint);
 		paint.set_text(_is_linear_value, _ui->widget_text(_is_linear_value), _ui->widget_text_len(_is_linear_value), value_paint);
 		paint.set_text(_payload_format_value, _ui->widget_text(_payload_format_value), _ui->widget_text_len(_payload_format_value), value_paint);

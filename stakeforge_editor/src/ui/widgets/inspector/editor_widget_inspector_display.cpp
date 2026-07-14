@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <algorithm>
 
 namespace sfg
@@ -358,7 +359,7 @@ namespace sfg
 		}
 
 		for (entity_id_t root : roots)
-			world.break_prefab_chain(root);
+			world_cooker_t::break_prefab_chain(world, root);
 
 		if (!roots.empty())
 		{

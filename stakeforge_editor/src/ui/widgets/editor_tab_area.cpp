@@ -36,8 +36,6 @@ namespace sfg
 {
 	void editor_tab_area_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_tab_area_config_t& config)
 	{
-		SFG_ASSERT(_ui == nullptr);
-
 		_ui							= &ui;
 		_config						= config;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -158,12 +156,6 @@ namespace sfg
 
 	void editor_tab_area_t::add_tab(sid_t identifier, const char* title, const char* icon)
 	{
-		SFG_ASSERT(identifier != 0);
-		SFG_ASSERT(title != nullptr);
-
-		for (const editor_tab_t& tab : _tabs)
-			SFG_ASSERT(tab.identifier != identifier);
-
 		ui::ui_context&		  ui	= *_ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -292,12 +284,11 @@ namespace sfg
 
 	void editor_tab_area_t::rename_tab(sid_t identifier, const char* title)
 	{
-		SFG_ASSERT(title != nullptr);
-
 		editor_tab_t&		  tab	= _tabs[find_tab_index(identifier)];
 		ui::ui_context&		  ui	= *_ui;
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
+
 		ui.set_widget_text(tab.label, title);
 		paint.set_text(tab.label,
 					   ui.widget_text(tab.label),

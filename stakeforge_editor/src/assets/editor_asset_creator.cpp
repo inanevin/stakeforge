@@ -185,8 +185,6 @@ namespace sfg
 
 		bool create_prefab_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			SFG_ASSERT(desc.embedded_data != nullptr);
-
 			const nlohmann::json embedded_source = nlohmann::json::parse(desc.embedded_data, nullptr, false);
 			if (embedded_source.is_discarded())
 			{
@@ -226,13 +224,9 @@ namespace sfg
 		string_t	   asset_path;
 		bool		   result = false;
 
-		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!desc.parent_node.is_null());
-		SFG_ASSERT(tree.is_valid(desc.parent_node));
+		const editor_asset_tree_t& tree		   = editor_asset_manager_t::get().get_asset_tree();
 		const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-		SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!parent_node.full_path.empty());
-		const char* const parent_path = parent_node.full_path.c_str();
+		const char* const		   parent_path = parent_node.full_path.c_str();
 
 		switch (desc.asset_type)
 		{

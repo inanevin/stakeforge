@@ -102,7 +102,6 @@ namespace sfg
 
 	void editor_surface_controller_t::init(editor_renderer_t& renderer, editor_payload_controller_t& payload_controller)
 	{
-		SFG_ASSERT(_renderer == nullptr);
 		_renderer			= &renderer;
 		_payload_controller = &payload_controller;
 		_debug_mode			= false;
@@ -133,8 +132,6 @@ namespace sfg
 
 	void editor_surface_controller_t::load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar)
 	{
-		SFG_ASSERT(surface.type == editor_surface_type_e::primary);
-
 		const nlohmann::json doc = nlohmann::json::parse(main_toolbar, nullptr, false);
 		if (doc.is_discarded() || !doc.is_object())
 			return;
@@ -308,8 +305,6 @@ namespace sfg
 		if (payload.type != editor_payload_type_e::panel)
 			return;
 
-		SFG_ASSERT(payload.user_ptr != nullptr);
-
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		editor_panel_t*				 panel	  = static_cast<editor_panel_t*>(payload.user_ptr);
 		vec2u16_t					 size	  = payload.size_value;
@@ -331,7 +326,6 @@ namespace sfg
 	surface_handle_t editor_surface_controller_t::create_surface(const vec2i16_t& pos, const vec2u16_t& size, editor_surface_type_e type)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		SFG_ASSERT(_renderer != nullptr);
 		_renderer->end_render();
 
 		if (size.x == 0 || size.y == 0)
@@ -453,7 +447,6 @@ namespace sfg
 	void editor_surface_controller_t::destroy_surface(surface_handle_t handle)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		SFG_ASSERT(_renderer != nullptr);
 		_renderer->end_render();
 
 		editor_surface_t& surface = _surfaces.get(handle);
@@ -513,8 +506,6 @@ namespace sfg
 
 	void editor_surface_controller_t::tick_surfaces(f32 dt)
 	{
-		SFG_ASSERT(_renderer != nullptr);
-
 		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 		{
 			const surface_handle_t handle  = *it;
@@ -657,7 +648,6 @@ namespace sfg
 			break;
 		}
 
-		SFG_ASSERT(!main_surface.is_null());
 		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 		{
 			const surface_handle_t handle = *it;
@@ -768,8 +758,6 @@ namespace sfg
 
 	void editor_surface_controller_t::refresh_panel_title(editor_panel_t* panel)
 	{
-		SFG_ASSERT(panel != nullptr);
-
 		for (editor_surface_t& surface : _surfaces)
 		{
 			if (surface.type == editor_surface_type_e::primary && surface.primary->get_dock_widget().refresh_panel_title(panel))

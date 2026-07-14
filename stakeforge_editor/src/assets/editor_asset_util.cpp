@@ -256,24 +256,14 @@ namespace sfg
 	bool editor_asset_util_t::delete_folder(editor_asset_node_handle_t folder_node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!folder_node.is_null());
-		SFG_ASSERT(tree.is_valid(folder_node));
-
 		const editor_asset_node_t& node = tree.value(folder_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!node.full_path.empty());
 		return file_system_t::delete_directory(node.full_path.c_str());
 	}
 
 	bool editor_asset_util_t::duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!folder_node.is_null());
-		SFG_ASSERT(tree.is_valid(folder_node));
-
 		const editor_asset_node_t& node = tree.value(folder_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!node.full_path.empty());
 
 		const string_t duplicated_folder = file_system_t::duplicate(node.full_path.c_str());
 		if (duplicated_folder.empty())
@@ -324,11 +314,6 @@ namespace sfg
 	bool editor_asset_util_t::rename_folder(editor_asset_node_handle_t folder_node, const char* new_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!folder_node.is_null());
-		SFG_ASSERT(tree.is_valid(folder_node));
-		SFG_ASSERT(new_path != nullptr);
-		SFG_ASSERT(new_path[0] != '\0');
-
 		const editor_asset_node_t& node = tree.value(folder_node);
 		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
 		SFG_ASSERT(!node.full_path.empty());
@@ -356,17 +341,8 @@ namespace sfg
 	{
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&	  tree			= asset_manager.get_asset_tree();
-		SFG_ASSERT(!folder_node.is_null());
-		SFG_ASSERT(!target_folder_node.is_null());
-		SFG_ASSERT(tree.is_valid(folder_node));
-		SFG_ASSERT(tree.is_valid(target_folder_node));
-
-		const editor_asset_node_t& node		   = tree.value(folder_node);
-		const editor_asset_node_t& target_node = tree.value(target_folder_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(target_node.type == editor_asset_node_type_e::folder);
-		SFG_ASSERT(!node.full_path.empty());
-		SFG_ASSERT(!target_node.full_path.empty());
+		const editor_asset_node_t&	  node			= tree.value(folder_node);
+		const editor_asset_node_t&	  target_node	= tree.value(target_folder_node);
 
 		if (folder_node == asset_manager.get_root_node() || (node.flags & editor_asset_node_flag_promoted) != 0)
 			return false;
@@ -428,12 +404,8 @@ namespace sfg
 	bool editor_asset_util_t::delete_file(editor_asset_node_handle_t file_node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!file_node.is_null());
-		SFG_ASSERT(tree.is_valid(file_node));
-
 		const editor_asset_node_t& node = tree.value(file_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::file);
-		SFG_ASSERT(!node.full_path.empty());
+
 		const bool deleted = !file_system_t::delete_file(node.full_path.c_str());
 		if (!deleted)
 			SFG_ERR("failed to delete file {0}", node.full_path.c_str());
@@ -443,14 +415,7 @@ namespace sfg
 	bool editor_asset_util_t::rename_file(editor_asset_node_handle_t file_node, const char* new_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!file_node.is_null());
-		SFG_ASSERT(tree.is_valid(file_node));
-		SFG_ASSERT(new_path != nullptr);
-		SFG_ASSERT(new_path[0] != '\0');
-
 		const editor_asset_node_t& node = tree.value(file_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::file);
-		SFG_ASSERT(!node.full_path.empty());
 
 		const string_t old_source_path = file_system_t::get_absolute_path(node.full_path.c_str());
 		string_t	   renamed_path	   = new_path;
@@ -476,16 +441,13 @@ namespace sfg
 	bool editor_asset_util_t::delete_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!asset_node.is_null());
-		SFG_ASSERT(tree.is_valid(asset_node));
 
-		const editor_asset_node_t& node = tree.value(asset_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
-		SFG_ASSERT(node.asset_id == asset.guid);
-		SFG_ASSERT(!node.full_path.empty());
-		const bool deleted = !file_system_t::delete_file(node.full_path.c_str());
+		const editor_asset_node_t& node	   = tree.value(asset_node);
+		const bool				   deleted = !file_system_t::delete_file(node.full_path.c_str());
 		if (!deleted)
+		{
 			SFG_ERR("failed to delete asset {0}", node.full_path.c_str());
+		}
 		else
 		{
 			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.guid);
@@ -501,8 +463,6 @@ namespace sfg
 
 			if (asset.source_type == editor_asset_source_type_e::file_blob)
 			{
-				SFG_ASSERT(!asset.source_relative.empty());
-
 				const string_t assets_path = file_system_t::get_absolute_path(editor_project_t::get()._runtime.assets_path.c_str());
 				const string_t blob_path   = make_source_full_path(assets_path, asset.source_relative);
 				bool		   has_owner   = false;
@@ -530,13 +490,7 @@ namespace sfg
 	bool editor_asset_util_t::duplicate_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, string_t* out_duplicated_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!asset_node.is_null());
-		SFG_ASSERT(tree.is_valid(asset_node));
-
 		const editor_asset_node_t& node = tree.value(asset_node);
-		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
-		SFG_ASSERT(node.asset_id == asset.guid);
-		SFG_ASSERT(!node.full_path.empty());
 
 		const string_t duplicated_path = file_system_t::duplicate(node.full_path.c_str());
 		if (duplicated_path.empty())
@@ -563,10 +517,6 @@ namespace sfg
 	bool editor_asset_util_t::rename_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, const char* new_path)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!asset_node.is_null());
-		SFG_ASSERT(tree.is_valid(asset_node));
-		SFG_ASSERT(new_path != nullptr);
-		SFG_ASSERT(new_path[0] != '\0');
 
 		const editor_asset_node_t& node = tree.value(asset_node);
 		SFG_ASSERT(node.type == editor_asset_node_type_e::asset);
@@ -586,10 +536,6 @@ namespace sfg
 	bool editor_asset_util_t::move_asset(const editor_asset_t& asset, editor_asset_node_handle_t asset_node, editor_asset_node_handle_t target_folder_node)
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!asset_node.is_null());
-		SFG_ASSERT(!target_folder_node.is_null());
-		SFG_ASSERT(tree.is_valid(asset_node));
-		SFG_ASSERT(tree.is_valid(target_folder_node));
 
 		const editor_asset_node_t& node		   = tree.value(asset_node);
 		const editor_asset_node_t& target_node = tree.value(target_folder_node);

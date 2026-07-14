@@ -190,8 +190,6 @@ namespace sfg
 		const editor_asset_manager_t&	 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 asset_tree	   = asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t root_handle   = asset_manager.get_root_node();
-		SFG_ASSERT(!node.is_null());
-		SFG_ASSERT(!root_handle.is_null());
 		SFG_ASSERT(asset_tree.is_valid(node));
 
 		frame_vector_t<editor_asset_node_handle_t> chain;
@@ -275,7 +273,6 @@ namespace sfg
 	bool editor_panel_assets_t::is_folder_payload_root(editor_asset_node_handle_t node) const
 	{
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
-		SFG_ASSERT(!node.is_null());
 		SFG_ASSERT(tree.is_valid(node));
 
 		for (u64 folder_hash : _selected_folder_hashes)

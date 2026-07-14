@@ -158,8 +158,6 @@ namespace sfg
 
 	void editor_panel_mesh_viewer_t::set_mesh(sid_t mesh_guid, const char* asset_name)
 	{
-		SFG_ASSERT(asset_name != nullptr);
-
 		_mesh_guid = mesh_guid;
 		set_sub_item_id(mesh_guid);
 		_asset_name = asset_name;
@@ -321,7 +319,6 @@ namespace sfg
 	{
 		editor_panel_mesh_viewer_t& panel = *static_cast<editor_panel_mesh_viewer_t*>(user_data);
 		const ui::layout_out_t&		out	  = panel._ui->get_tree().out(panel._root);
-		SFG_ASSERT(out.size.x > 0.0f);
 
 		panel._pane_split = math::clamp((pos.x - out.pos.x) / out.size.x, MESH_VIEWER_PANE_SPLIT_MIN, MESH_VIEWER_PANE_SPLIT_MAX);
 		panel.apply_pane_split();

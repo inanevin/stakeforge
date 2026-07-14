@@ -100,7 +100,6 @@ namespace sfg
 
 		chunk_handle32_t create_stream_array(editor_command_system_t& system, size_t count)
 		{
-			SFG_ASSERT(count <= std::numeric_limits<size_t>::max() / sizeof(chunk_handle32_t));
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(sizeof(chunk_handle32_t) * count, alignof(chunk_handle32_t));
 			SFG_MEMSET(system.get_aux_data().get<chunk_handle32_t>(handle), 0, handle.size);
 			return handle;
@@ -222,7 +221,7 @@ namespace sfg
 				if (!streams[i])
 				{
 					ostream_t stream;
-					world_cooker_t::entity_to_stream(world, sources[i], stream, false);
+					world_cooker_t::entity_to_stream(world, sources[i], stream);
 					streams[i] = copy_stream_to_aux(system, stream);
 				}
 
@@ -238,7 +237,7 @@ namespace sfg
 				}
 
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, true, false);
+				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, true);
 				if (entity == NULL_ENTITY_ID)
 				{
 					SFG_ERR("failed to recreate duplicated entity from stream");
@@ -256,7 +255,7 @@ namespace sfg
 					world.attach_to(entity, parents[i]);
 			}
 			const entity_id_t selected_entity = entities[payload.count - 1];
-			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = &selected_entity, .size = 1}, selected_entity);
+			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = entities, .size = payload.count}, selected_entity);
 			return true;
 		}
 
@@ -269,7 +268,7 @@ namespace sfg
 			for (u32 i = payload.count; i-- > 0;)
 			{
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
-				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, false, false);
+				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, false);
 				world.sync_entity_hierarchy(entity);
 				system.get_aux_data().free(streams[i]);
 				streams[i]	= {};
@@ -308,7 +307,7 @@ namespace sfg
 			for (u32 i = 0; i < payload.count; ++i)
 			{
 				ostream_t stream;
-				world_cooker_t::entity_to_stream(world, entities[i], stream, false);
+				world_cooker_t::entity_to_stream(world, entities[i], stream);
 				streams[i] = copy_stream_to_aux(system, stream);
 				world.destroy_entity_tree(entities[i]);
 			}
@@ -375,7 +374,6 @@ namespace sfg
 		editor_command_system_t&		command_system = editor_command_system_t::get();
 		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
-		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_create_entity_payload_t payload = {};
 		payload.world								   = world;
@@ -428,12 +426,10 @@ namespace sfg
 		out_entities.resize(0);
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		editor_command_system_t&		command_system = editor_command_system_t::get();
 		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
-		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_duplicate_entity_payload_t payload = {};
 		payload.previous_selection						  = copy_selection_to_aux(command_system, selection);
@@ -483,12 +479,10 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		editor_command_system_t&		command_system = editor_command_system_t::get();
 		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
-		SFG_ASSERT(selection.size <= UINT32_MAX);
 
 		editor_command_destroy_entity_payload_t payload = {};
 		payload.previous_selection						= copy_selection_to_aux(command_system, selection);
@@ -523,7 +517,6 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		world_t& world_ref = editor_world_controller_t::get().get_editor_world(world)->get_world();
 		for (entity_id_t entity : entities)

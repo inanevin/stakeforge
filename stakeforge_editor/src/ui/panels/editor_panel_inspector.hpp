@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_material_editor.hpp"
+#include "ui/widgets/editor_widget_physical_material_editor.hpp"
 #include "ui/widgets/editor_widget_texture_sampler_editor.hpp"
 #include "ui/widgets/editor_widget_texture_viewer.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
@@ -43,6 +44,7 @@ namespace sfg
 		entity,
 		material,
 		texture_sampler,
+		physical_material,
 		texture,
 	};
 
@@ -91,6 +93,7 @@ namespace sfg
 
 		void				   set_display_material(span_t<const sid_t> materials);
 		void				   set_display_texture_sampler(span_t<const sid_t> samplers);
+		void				   set_display_physical_material(span_t<const sid_t> physical_materials);
 		void				   set_display_texture(sid_t texture);
 		void				   refresh_from_available_selection(editor_panel_inspector_source_e preferred_source);
 		void				   apply_display_visibility();
@@ -100,6 +103,7 @@ namespace sfg
 		void				   apply_pending_scroll_restore();
 		bool				   collect_selected_materials(vector_t<sid_t>& out_materials) const;
 		bool				   collect_selected_texture_samplers(vector_t<sid_t>& out_samplers) const;
+		bool				   collect_selected_physical_materials(vector_t<sid_t>& out_physical_materials) const;
 		bool				   collect_selected_texture(sid_t& out_texture) const;
 		entity_scroll_state_t* find_entity_scroll_state(entity_id_t entity);
 
@@ -108,24 +112,26 @@ namespace sfg
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
-		editor_widget_inspector_t			   _entity_inspector	   = {};
-		editor_widget_material_editor_t		   _material_editor		   = {};
-		editor_widget_texture_sampler_editor_t _texture_sampler_editor = {};
-		editor_widget_texture_viewer_t		   _texture_viewer		   = {};
-		editor_scrollbar_t					   _scrollbar			   = {};
-		vector_t<entity_scroll_state_t>		   _entity_scroll_states   = {};
-		vector_t<entity_id_t>				   _display_entities	   = {};
-		vector_t<sid_t>						   _material_ids		   = {};
-		vector_t<sid_t>						   _texture_sampler_ids	   = {};
-		sid_t								   _texture_id			   = 0;
-		editor_command_listener_handle_t	   _command_listener	   = {};
-		editor_selection_listener_handle_t	   _selection_listener	   = {};
-		editor_world_handle_t				   _edit_world			   = {};
-		ui::widget_id_t						   _scroll_area			   = NULL_WIDGET;
-		ui::widget_id_t						   _content				   = NULL_WIDGET;
-		f32									   _pending_scroll_y	   = 0.0f;
-		editor_panel_inspector_display_e	   _display				   = editor_panel_inspector_display_e::none;
-		editor_panel_inspector_source_e		   _last_source			   = editor_panel_inspector_source_e::none;
-		bool								   _scroll_restore_pending = false;
+		editor_widget_inspector_t				 _entity_inspector		   = {};
+		editor_widget_material_editor_t			 _material_editor		   = {};
+		editor_widget_texture_sampler_editor_t	 _texture_sampler_editor   = {};
+		editor_widget_physical_material_editor_t _physical_material_editor = {};
+		editor_widget_texture_viewer_t			 _texture_viewer		   = {};
+		editor_scrollbar_t						 _scrollbar				   = {};
+		vector_t<entity_scroll_state_t>			 _entity_scroll_states	   = {};
+		vector_t<entity_id_t>					 _display_entities		   = {};
+		vector_t<sid_t>							 _material_ids			   = {};
+		vector_t<sid_t>							 _texture_sampler_ids	   = {};
+		vector_t<sid_t>							 _physical_material_ids	   = {};
+		sid_t									 _texture_id			   = 0;
+		editor_command_listener_handle_t		 _command_listener		   = {};
+		editor_selection_listener_handle_t		 _selection_listener	   = {};
+		editor_world_handle_t					 _edit_world			   = {};
+		ui::widget_id_t							 _scroll_area			   = NULL_WIDGET;
+		ui::widget_id_t							 _content				   = NULL_WIDGET;
+		f32										 _pending_scroll_y		   = 0.0f;
+		editor_panel_inspector_display_e		 _display				   = editor_panel_inspector_display_e::none;
+		editor_panel_inspector_source_e			 _last_source			   = editor_panel_inspector_source_e::none;
+		bool									 _scroll_restore_pending   = false;
 	};
 }

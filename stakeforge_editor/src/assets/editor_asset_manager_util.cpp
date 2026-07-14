@@ -88,9 +88,6 @@ namespace sfg
 
 	void editor_asset_manager_util_t::build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir)
 	{
-		SFG_ASSERT(assets_dir != nullptr);
-		SFG_ASSERT(assets_dir[0] != '\0');
-
 		vector_t<file_system_entry_t> entries;
 		file_system_t::get_entries_recursive(assets_dir, entries);
 
@@ -235,9 +232,6 @@ namespace sfg
 		const string_t def_assets_path = editor_project_t::get()._runtime.default_assets_path;
 		const string_t cache_path	   = editor_project_t::get()._runtime.cache_path;
 		const string_t assets_path	   = editor_project_t::get()._runtime.assets_path;
-		SFG_ASSERT(!def_assets_path.empty());
-		SFG_ASSERT(!cache_path.empty());
-		SFG_ASSERT(!assets_path.empty());
 
 		tf::Taskflow ensure_flow;
 		ensure_flow.emplace([&asset_manager, def_assets_path, cache_path, assets_path, callback, user_data]() {
@@ -303,9 +297,8 @@ namespace sfg
 				size_t							 index		 = 0;
 				for (auto& asset_pair : assets)
 				{
-					editor_asset_t& asset = asset_pair.second;
-					SFG_ASSERT(asset_manager._asset_descriptors.find(asset.asset_type) != asset_manager._asset_descriptors.end());
-					const f32 progress = asset_count != 0 ? 0.45f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.7f;
+					editor_asset_t& asset	 = asset_pair.second;
+					const f32		progress = asset_count != 0 ? 0.45f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.7f;
 					report_progress(progress, "Cooking project assets");
 					++index;
 
@@ -353,22 +346,17 @@ namespace sfg
 
 	void editor_asset_manager_util_t::import_assets_async(const char* target_directory, span_t<const string_t> paths, span_t<const editor_asset_import_options_t> import_options, tf::Executor& executor, import_progress_fn callback, void* user_data)
 	{
-		SFG_ASSERT(target_directory != nullptr);
-		SFG_ASSERT(target_directory[0] != '\0');
-		SFG_ASSERT(paths.data != nullptr);
-		SFG_ASSERT(paths.size != 0);
-		SFG_ASSERT(import_options.data != nullptr);
-		SFG_ASSERT(import_options.size != 0);
-
 		import_progress_state_t* state = new import_progress_state_t();
 		state->target_directory		   = target_directory;
 		state->paths.reserve(paths.size);
 		state->import_options.reserve(import_options.size);
 		state->imported_asset_paths.reserve(paths.size);
+
 		for (size_t i = 0; i < paths.size; ++i)
 			state->paths.push_back(paths.data[i]);
 		for (size_t i = 0; i < import_options.size; ++i)
 			state->import_options.push_back(import_options.data[i]);
+
 		state->callback	   = callback;
 		state->user_data   = user_data;
 		state->total_count = static_cast<u32>(paths.size);

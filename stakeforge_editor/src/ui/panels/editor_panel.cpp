@@ -40,8 +40,6 @@ namespace sfg
 
 	void editor_panel_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
-		SFG_ASSERT(_ui == nullptr);
-
 		_ui						= &ui;
 		ui::layout_tree_t& tree = ui.get_tree();
 
@@ -93,7 +91,6 @@ namespace sfg
 
 	void editor_panel_t::deassign()
 	{
-		SFG_ASSERT(_ui != nullptr);
 		_ui->get_tree().detach(_root);
 	}
 
@@ -104,15 +101,13 @@ namespace sfg
 
 	void editor_panel_t::set_title(const char* title)
 	{
-		SFG_ASSERT(title != nullptr);
 		_title = title;
 	}
 
 	void editor_panel_t::refresh_title(const char* detail, const char* detail_prefix, bool dirty)
 	{
-		SFG_ASSERT(_type != editor_panel_type_e::max);
-
 		_title_text = editor_panel_type_to_string(_type);
+
 		if (detail != nullptr && detail[0] != '\0')
 		{
 			if (detail_prefix != nullptr)
@@ -121,6 +116,7 @@ namespace sfg
 				_title_text += ": ";
 			_title_text += detail;
 		}
+
 		if (dirty)
 			_title_text += "*";
 

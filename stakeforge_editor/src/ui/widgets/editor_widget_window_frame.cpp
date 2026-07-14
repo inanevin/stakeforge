@@ -39,9 +39,6 @@ namespace sfg
 {
 	void editor_widget_window_frame_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_window_frame_config_t& config)
 	{
-		SFG_ASSERT(_ui == nullptr);
-		SFG_ASSERT(config.runtime != nullptr);
-
 		_ui		= &ui;
 		_config = config;
 

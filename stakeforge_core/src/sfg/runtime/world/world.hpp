@@ -49,18 +49,14 @@ namespace sfg
 		// entity
 		// -----------------------------------------------------------------------------
 
+		entity_guid_t generate_guid() const;
 		entity_id_t	  create_entity(const char* name = nullptr, entity_guid_t guid = NULL_ENTITY_GUID);
 		void		  destroy_entity(entity_id_t id);
 		void		  destroy_entity_tree(entity_id_t id);
 		void		  set_entity_name(entity_id_t id, const char* name);
-		entity_id_t	  spawn_prefab(resource_handle_t handle, const prefab_spawn_params_t& params);
-		void		  make_prefab_chain(entity_id_t root, resource_handle_t handle);
-		void		  refresh_prefab_instances(resource_handle_t handle, entity_id_t skip = NULL_ENTITY_ID);
-		void		  break_prefab_chain(entity_id_t root);
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
 		entity_id_t	  find_by_guid(entity_guid_t guid) const;
-		entity_id_t	  get_entity_from_guid(entity_guid_t guid) const;
 		void		  attach_to(entity_id_t id, entity_id_t parent);
 		void		  detach(entity_id_t id);
 		void		  sync_entity_hierarchy(entity_id_t id);
@@ -120,11 +116,9 @@ namespace sfg
 		bool								   is_alive(entity_id_t id) const;
 
 	private:
-		entity_id_t spawn_prefab(resource_handle_t handle, const prefab_internals_t& prefab_data, const prefab_spawn_params_t& params);
-		void		update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
-		void		set_entity_snap_interpolation_recursive(entity_id_t id);
-		mat4x3_t	calculate_parent_transform_direct(entity_id_t id);
-		void		refresh_component_table_cache();
+		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
+		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
+		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
 
 	private:
 		struct world_text_allocation_t

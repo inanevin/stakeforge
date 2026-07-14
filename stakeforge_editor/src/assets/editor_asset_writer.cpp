@@ -67,15 +67,6 @@ namespace sfg
 
 	bool editor_asset_writer_t::write_file_asset(const editor_asset_write_file_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-		SFG_ASSERT(desc.parent_path != nullptr);
-		SFG_ASSERT(desc.parent_path[0] != '\0');
-		SFG_ASSERT(desc.source_extension != nullptr);
-		SFG_ASSERT(desc.source_extension[0] != '\0');
-		SFG_ASSERT(desc.source_template_relative != nullptr);
-		SFG_ASSERT(desc.source_template_relative[0] != '\0');
-
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
 
@@ -150,13 +141,6 @@ namespace sfg
 
 	bool editor_asset_writer_t::write_existing_file_asset(const editor_asset_write_existing_file_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-		SFG_ASSERT(desc.parent_path != nullptr);
-		SFG_ASSERT(desc.parent_path[0] != '\0');
-		SFG_ASSERT(desc.source_full_path != nullptr);
-		SFG_ASSERT(desc.source_full_path[0] != '\0');
-
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
 
@@ -202,12 +186,6 @@ namespace sfg
 
 	bool editor_asset_writer_t::write_embedded_asset(const editor_asset_write_embedded_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-		SFG_ASSERT(desc.embedded_source != nullptr);
-		SFG_ASSERT(desc.parent_path != nullptr);
-		SFG_ASSERT(desc.parent_path[0] != '\0');
-
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
 
@@ -246,11 +224,6 @@ namespace sfg
 
 	bool editor_asset_writer_t::write_none_source_asset(const editor_asset_write_none_desc_t& desc, editor_asset_t* out_asset, string_t* out_asset_path)
 	{
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::invalid);
-		SFG_ASSERT(desc.asset_type != editor_asset_type_e::count);
-		SFG_ASSERT(desc.parent_path != nullptr);
-		SFG_ASSERT(desc.parent_path[0] != '\0');
-
 		if (!editor_directories_t::is_valid_asset_name(desc.name))
 			return false;
 
@@ -285,9 +258,6 @@ namespace sfg
 
 	bool editor_asset_writer_t::read_embedded_source(const char* asset_relative_path, nlohmann::json& out_embedded_source)
 	{
-		SFG_ASSERT(asset_relative_path != nullptr);
-		SFG_ASSERT(asset_relative_path[0] != '\0');
-
 		string_t path = file_system_t::get_running_directory();
 		path += asset_relative_path;
 		SFG_ASSERT(file_system_t::exists(path.c_str()));
@@ -307,9 +277,6 @@ namespace sfg
 
 	bool editor_asset_writer_t::read_cook_options(const char* asset_relative_path, nlohmann::json& out_cook_options)
 	{
-		SFG_ASSERT(asset_relative_path != nullptr);
-		SFG_ASSERT(asset_relative_path[0] != '\0');
-
 		string_t path = file_system_t::get_running_directory();
 		path += asset_relative_path;
 		SFG_ASSERT(file_system_t::exists(path.c_str()));

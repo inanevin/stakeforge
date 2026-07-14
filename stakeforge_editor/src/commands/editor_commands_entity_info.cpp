@@ -206,7 +206,6 @@ namespace sfg
 	{
 		if (entities.empty())
 			return false;
-		SFG_ASSERT(entities.size() <= UINT32_MAX);
 
 		editor_command_system_t& command_system = editor_command_system_t::get();
 		world_t&				 target_world	= editor_world_controller_t::get().get_editor_world(world)->get_world();
@@ -243,7 +242,6 @@ namespace sfg
 			return false;
 		if (entity_infos_equal(previous_infos, post_infos))
 			return true;
-		SFG_ASSERT(entities.size <= UINT32_MAX);
 
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
