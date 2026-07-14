@@ -118,6 +118,7 @@ namespace sfg
 			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, id);
 
 			world_render_entity_t& entity = snapshot.entities.emplace_back();
+			entity.entity_id			  = id;
 			entity.prev_transform		  = transform.prev_abs_mat;
 			entity.transform			  = transform.abs_mat;
 			entity.prev_rot				  = transform.prev_abs_rot;

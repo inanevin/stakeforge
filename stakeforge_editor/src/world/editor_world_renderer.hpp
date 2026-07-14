@@ -27,25 +27,39 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/runtime/render/world_render_context.hpp>
 
 namespace sfg
 {
-	class editor_world_render_context_t final
+	struct world_render_snapshot_t;
+
+	struct editor_world_snapshot_data_t
+	{
+	};
+
+	class editor_world_renderer_t final
 	{
 	public:
-		editor_world_render_context_t()												   = default;
-		~editor_world_render_context_t()											   = default;
-		editor_world_render_context_t(const editor_world_render_context_t&)			   = delete;
-		editor_world_render_context_t& operator=(const editor_world_render_context_t&) = delete;
+		editor_world_renderer_t()										   = default;
+		~editor_world_renderer_t()										   = default;
+		editor_world_renderer_t(const editor_world_renderer_t&)			   = delete;
+		editor_world_renderer_t& operator=(const editor_world_renderer_t&) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(vec2u16_t size);
-		void uninit();
+		void init(vec2u16_t size, span_t<world_render_snapshot_t> snapshots);
+		void uninit(span_t<world_render_snapshot_t> snapshots);
 		void resize(vec2u16_t size);
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -62,12 +76,15 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
+			gfx_handle_t cmd_gfx			 = {};
 			gfx_handle_t world_texture		 = {};
 			gpu_index_t	 world_texture_index = NULL_GPU_INDEX;
 		};
 
 	private:
-		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
-		vec2u16_t		 _size					 = vec2u16_t::zero;
+		per_frame_data_t	   _pfd[BACK_BUFFER_COUNT] = {};
+		world_render_context_t _world_render_context   = {};
+		gfx_handle_t		   _shader				   = {};
+		vec2u16_t			   _size				   = vec2u16_t::zero;
 	};
 }

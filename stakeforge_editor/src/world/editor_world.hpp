@@ -29,10 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_handle.hpp"
-#include "world/editor_world_render_context.hpp"
+#include "world/editor_world_renderer.hpp"
 #include <sfg/data/atomic.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/runtime/render/world_render_context.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -73,7 +71,6 @@ namespace sfg
 		void						   update_world_transforms(bool advance_interpolation);
 		void						   produce_snapshot();
 		const world_render_snapshot_t& acquire_render_snapshot();
-		void						   render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -89,24 +86,14 @@ namespace sfg
 			return _world;
 		}
 
-		inline world_render_context_t& get_render_context()
+		inline editor_world_renderer_t& get_renderer()
 		{
-			return _render_context;
+			return _renderer;
 		}
 
-		inline const world_render_context_t& get_render_context() const
+		inline const editor_world_renderer_t& get_renderer() const
 		{
-			return _render_context;
-		}
-
-		inline editor_world_render_context_t& get_editor_render_context()
-		{
-			return _editor_render_context;
-		}
-
-		inline const editor_world_render_context_t& get_editor_render_context() const
-		{
-			return _editor_render_context;
+			return _renderer;
 		}
 
 		inline editor_world_edit_context_t& get_edit_context()
@@ -119,11 +106,6 @@ namespace sfg
 			return _edit_context;
 		}
 
-		inline gfx_handle_t get_command_buffer(u8 frame_index) const
-		{
-			return _render_context.get_command_buffer(frame_index);
-		}
-
 		inline vec2u16_t get_render_resolution() const
 		{
 			return _render_resolution;
@@ -133,15 +115,14 @@ namespace sfg
 		void publish_snapshot();
 
 	private:
-		world_render_snapshot_t		  _snapshot_slots[3]	 = {};
-		editor_world_camera_t*		  _camera				 = nullptr;
-		world_render_context_t		  _render_context		 = {};
-		editor_world_render_context_t _editor_render_context = {};
-		editor_world_edit_context_t	  _edit_context			 = {};
-		world_t						  _world				 = {};
-		atomic_t<u8>				  _snapshot_mailbox		 = {};
-		vec2u16_t					  _render_resolution	 = vec2u16_t::zero;
-		u8							  _producer_slot		 = 0;
-		u8							  _consumer_slot		 = 0;
+		world_render_snapshot_t		_snapshot_slots[3] = {};
+		editor_world_camera_t*		_camera			   = nullptr;
+		editor_world_renderer_t		_renderer		   = {};
+		editor_world_edit_context_t _edit_context	   = {};
+		world_t						_world			   = {};
+		atomic_t<u8>				_snapshot_mailbox  = {};
+		vec2u16_t					_render_resolution = vec2u16_t::zero;
+		u8							_producer_slot	   = 0;
+		u8							_consumer_slot	   = 0;
 	};
 }

@@ -62,6 +62,7 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
+		void*							  user_data = nullptr;
 		world_render_view_t				  main_view = {};
 		world_render_skybox_t			  skybox	= {};
 		vector_t<world_render_material_t> materials = {};

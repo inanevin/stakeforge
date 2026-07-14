@@ -199,7 +199,7 @@ namespace sfg
 			return false;
 
 		for (const acquired_render_world_t& acquired : _render_worlds)
-			acquired.world->render(*acquired.snapshot, _render_alpha, frame_index, global_cbv_index, global_layout);
+			acquired.world->get_renderer().render(*acquired.snapshot, _render_alpha, frame_index, global_cbv_index, global_layout);
 		_render_worlds.resize(0);
 
 		gfx_backend& backend = gfx_backend::get();

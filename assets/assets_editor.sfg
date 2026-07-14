@@ -91,6 +91,15 @@
             }
         },
         {
+            "name": "editor_world_render_texture",
+            "path": "editor/resource_pack/shaders/editor_world_render_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 12
+            }
+        },
+        {
             "name": "splash",
             "path": "editor/resource_pack/textures/splash.jpg",
             "type": 8,
