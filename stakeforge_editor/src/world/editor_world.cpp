@@ -30,6 +30,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
 
 namespace sfg
@@ -139,12 +141,27 @@ namespace sfg
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
 		world_snapshot_producer_t::produce(_world, snapshot);
 
-		editor_world_snapshot_data_t&	data	 = *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
-		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
+		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
+		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();
+		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
 		data.selected_entities.resize(0);
 		data.selected_entities.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)
 			data.selected_entities.push_back(selected.data[i]);
+
+		for (size_t i = 0; i < data.selected_entities.size(); ++i)
+		{
+			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, data.selected_entities[i]);
+			entity_id_t					 child	   = hierarchy.first_child;
+			while (child != NULL_ENTITY_ID)
+			{
+				if (std::find(data.selected_entities.begin(), data.selected_entities.end(), child) == data.selected_entities.end())
+					data.selected_entities.push_back(child);
+
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				child										 = child_hierarchy.next_sibling;
+			}
+		}
 
 		publish_snapshot();
 	}

@@ -46,8 +46,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 
-#include <algorithm>
-
 namespace sfg
 {
 	void editor_world_renderer_t::init(vec2u16_t size, span_t<world_render_snapshot_t> snapshots)
@@ -57,7 +55,11 @@ namespace sfg
 
 		_world_render_context.init(size);
 		for (size_t i = 0; i < snapshots.size; ++i)
-			snapshots.data[i].user_data = new editor_world_snapshot_data_t();
+		{
+			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
+			data->selected_entities.reserve(256);
+			snapshots.data[i].user_data = data;
+		}
 
 		gfx_backend&	backend				= gfx_backend::get();
 		resource_desc_t composite_data_desc = {};
@@ -67,10 +69,11 @@ namespace sfg
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
-			_pfd[i].cmd_gfx		   = backend.create_command_buffer({
+			_pfd[i].cmd_gfx = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "editor_world",
 			});
+
 			_pfd[i].composite_data = backend.create_resource(composite_data_desc);
 			backend.map_resource(_pfd[i].composite_data, _pfd[i].mapped_composite_data);
 			_pfd[i].composite_data_index = backend.get_resource_gpu_index(_pfd[i].composite_data);
