@@ -78,6 +78,8 @@ namespace sfg
 				snapshot.materials.push_back({});
 				world_render_material_t& render_mat = snapshot.materials.back();
 				render_mat.pass_mask				= mat_runtime->pass_flags.value();
+				render_mat.double_sided				= mat_runtime->double_sided;
+				render_mat.use_alpha_cutoff			= mat_runtime->use_alpha_cutoff;
 				render_mat.texture_count			= mat_runtime->texture_count;
 				render_mat.material_buffer			= mat_internals->parameter_buffer;
 				render_mat.pso_count				= shader->pso_count;

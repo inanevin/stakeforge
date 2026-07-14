@@ -348,8 +348,14 @@ namespace sfg
 			{
 				SFG_ASSERT(draw.material_index != UINT32_MAX);
 
-				const world_render_material_t& mat			 = ss.materials[draw.material_index];
-				const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_z_prepass);
+				const world_render_material_t& mat	 = ss.materials[draw.material_index];
+				u32							   flags = shader_variant_flags_z_prepass;
+				if (mat.double_sided)
+					flags |= shader_variant_flags_double_sided;
+				if (mat.use_alpha_cutoff)
+					flags |= shader_variant_flags_alpha_cutoff;
+
+				const render_resource_handle_t shader_handle = mat.find_pso(flags);
 				if (shader_handle.is_null())
 					continue;
 
@@ -487,8 +493,15 @@ namespace sfg
 			{
 				SFG_ASSERT(draw.material_index != UINT32_MAX);
 
-				const world_render_material_t& mat			 = ss.materials[draw.material_index];
-				const render_resource_handle_t shader_handle = mat.find_pso(0);
+				const world_render_material_t& mat = ss.materials[draw.material_index];
+
+				u32 flags = 0;
+				if (mat.double_sided)
+					flags |= shader_variant_flags_double_sided;
+				if (mat.use_alpha_cutoff)
+					flags |= shader_variant_flags_alpha_cutoff;
+
+				const render_resource_handle_t shader_handle = mat.find_pso(flags);
 				if (shader_handle.is_null())
 					continue;
 

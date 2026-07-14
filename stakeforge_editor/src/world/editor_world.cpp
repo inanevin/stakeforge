@@ -136,7 +136,16 @@ namespace sfg
 
 	void editor_world_t::produce_snapshot()
 	{
-		world_snapshot_producer_t::produce(_world, _snapshot_slots[_producer_slot]);
+		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
+		world_snapshot_producer_t::produce(_world, snapshot);
+
+		editor_world_snapshot_data_t&	data	 = *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
+		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
+		data.selected_entities.resize(0);
+		data.selected_entities.reserve(selected.size);
+		for (size_t i = 0; i < selected.size; ++i)
+			data.selected_entities.push_back(selected.data[i]);
+
 		publish_snapshot();
 	}
 

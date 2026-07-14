@@ -45,6 +45,8 @@ namespace sfg
 		u32						 pso_count								= 0;
 		u32						 texture_count							= 0;
 		u32						 pass_mask								= 0;
+		u8						 double_sided							= 0;
+		u8						 use_alpha_cutoff						= 0;
 
 		inline render_resource_handle_t find_pso(bitmask_t<u32> flags) const
 		{

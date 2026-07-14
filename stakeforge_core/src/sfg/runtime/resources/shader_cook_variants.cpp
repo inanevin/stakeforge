@@ -132,7 +132,11 @@ namespace sfg
 			desc.poly_mode			   = polygon_mode::fill;
 			desc.samples			   = 1;
 
-			if (flags.is_set(shader_variant_flags_id_write))
+			if (flags.is_set(shader_variant_flags_selection_outline))
+			{
+				add_attachment(desc, format_e::r8g8b8a8_unorm, blend_attachments_t::get_none());
+			}
+			else if (flags.is_set(shader_variant_flags_id_write))
 			{
 				add_attachment(desc, format_e::r32_uint, blend_attachments_t::get_none());
 			}
@@ -149,10 +153,10 @@ namespace sfg
 			else
 				vertex_inputs_t::get_pos_normal_tangent_uv(desc);
 
-			bitmask_t<u8> depth_flags = dsf_depth_test;
+			bitmask_t<u8> depth_flags = flags.is_set(shader_variant_flags_selection_outline) ? 0 : dsf_depth_test;
 			depth_flags.set(dsf_depth_write, flags.is_set(shader_variant_flags_z_prepass));
 			desc.depth_stencil_desc = {
-				.attachment_format = format_e::d32_sfloat,
+				.attachment_format = flags.is_set(shader_variant_flags_selection_outline) ? format_e::undefined : format_e::d32_sfloat,
 				.depth_compare	   = flags.is_set(shader_variant_flags_shadow_rendering) ? compare_op::lequal : compare_op::gequal,
 				.flags			   = depth_flags,
 			};
@@ -170,8 +174,8 @@ namespace sfg
 
 	bool shader_cook_variants_t::cook_opaque_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
-		out_compiles.reserve(12);
-		out_psos.reserve(32);
+		out_compiles.reserve(16);
+		out_psos.reserve(40);
 
 		if (!add_compile_variant(out_compiles, source, {}, include_paths, true))
 			return false;
@@ -196,6 +200,14 @@ namespace sfg
 		if (!add_compile_variant(out_compiles, source, {"WRITE_ID", "USE_ALPHA_CUTOFF", "USE_SKINNING"}, include_paths, true))
 			return false;
 		if (!add_compile_variant(out_compiles, source, {"WRITE_ID", "USE_SKINNING"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SELECTION"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SELECTION", "USE_SKINNING"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SELECTION", "USE_ALPHA_CUTOFF"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SELECTION", "USE_ALPHA_CUTOFF", "USE_SKINNING"}, include_paths, true))
 			return false;
 
 		add_gbuffer_pso(out_psos, 0, 0);
@@ -230,12 +242,43 @@ namespace sfg
 		add_gbuffer_pso(out_psos, 8, shader_variant_flags_id_write | shader_variant_flags_double_sided);
 		add_gbuffer_pso(out_psos, 11, shader_variant_flags_id_write | shader_variant_flags_double_sided | shader_variant_flags_skinned);
 		add_gbuffer_pso(out_psos, 11, shader_variant_flags_id_write | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 12, shader_variant_flags_selection_outline);
+		add_gbuffer_pso(out_psos, 13, shader_variant_flags_selection_outline | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 14, shader_variant_flags_selection_outline | shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 15, shader_variant_flags_selection_outline | shader_variant_flags_alpha_cutoff | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 12, shader_variant_flags_selection_outline | shader_variant_flags_double_sided);
+		add_gbuffer_pso(out_psos, 13, shader_variant_flags_selection_outline | shader_variant_flags_double_sided | shader_variant_flags_skinned);
+		add_gbuffer_pso(out_psos, 14, shader_variant_flags_selection_outline | shader_variant_flags_double_sided | shader_variant_flags_alpha_cutoff);
+		add_gbuffer_pso(out_psos, 15, shader_variant_flags_selection_outline | shader_variant_flags_double_sided | shader_variant_flags_alpha_cutoff | shader_variant_flags_skinned);
 		return true;
 	}
 
 	bool shader_cook_variants_t::cook_transparent_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
-		return cook_shader_with_blend(source, include_paths, blend_attachments_t::get_alpha_blend(), dsf_depth_test, true, out_compiles, out_psos);
+		if (!cook_shader_with_blend(source, include_paths, blend_attachments_t::get_alpha_blend(), dsf_depth_test, true, out_compiles, out_psos))
+			return false;
+
+		out_compiles.push_back({});
+		if (!add_compile_variant_vs_ps(out_compiles.back(), source, {"USE_SELECTION"}, include_paths))
+			return false;
+		out_compiles.push_back({});
+		if (!add_compile_variant_vs_ps(out_compiles.back(), source, {"USE_SELECTION", "USE_ALPHA_CUTOFF"}, include_paths))
+			return false;
+
+		shader_desc_t desc						  = {};
+		desc.topo								  = topology::triangle_list;
+		desc.cull								  = cull_mode::back;
+		desc.front								  = front_face::cw;
+		desc.fill								  = fill_mode::solid;
+		desc.poly_mode							  = polygon_mode::fill;
+		desc.samples							  = 1;
+		desc.depth_stencil_desc.attachment_format = format_e::undefined;
+		desc.depth_stencil_desc.flags			  = 0;
+		vertex_inputs_t::get_pos_normal_tangent_uv(desc);
+		add_attachment(desc, format_e::r8g8b8a8_unorm, blend_attachments_t::get_none());
+		out_psos.push_back({.desc = desc, .variant_flags = shader_variant_flags_selection_outline, .compile_variant_index = static_cast<u8>(out_compiles.size() - 2)});
+		out_psos.push_back({.desc = desc, .variant_flags = shader_variant_flags_selection_outline | shader_variant_flags_alpha_cutoff, .compile_variant_index = static_cast<u8>(out_compiles.size() - 1)});
+		return true;
 	}
 
 	bool shader_cook_variants_t::cook_post_process_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)

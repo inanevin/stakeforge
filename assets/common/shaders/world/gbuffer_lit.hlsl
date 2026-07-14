@@ -225,7 +225,28 @@ struct material_data
     uint2 emissive_tiling_offset;
 };
 
-#ifdef WRITE_ID
+#ifdef USE_SELECTION
+
+float4 PSMain(vs_output IN) : SV_TARGET
+{
+#ifdef USE_ALPHA_CUTOFF
+    material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
+    Texture2D tex_albedo = sfg_get_texture<Texture2D>(sfg_constant_mat1);
+    SamplerState sampler_albedo = sfg_get_sampler_state(sfg_constant_mat5);
+
+    float2 albedo_tiling = unpack_half2x16(mat_data.albedo_tiling_offset.x);
+    float2 albedo_offset = unpack_half2x16(mat_data.albedo_tiling_offset.y);
+    float2 albedo_uv = IN.uv * albedo_tiling + albedo_offset;
+    float4 albedo = tex_albedo.Sample(sampler_albedo, albedo_uv) * mat_data.base_color_factor;
+    if (albedo.a < mat_data.roughness_normal_strength_alpha.z)
+    {
+        discard;
+    }
+#endif
+    return float4(1.0, 1.0, 1.0, 1.0);
+}
+
+#elif defined(WRITE_ID)
 
 uint PSMain(vs_output IN) : SV_TARGET
 {

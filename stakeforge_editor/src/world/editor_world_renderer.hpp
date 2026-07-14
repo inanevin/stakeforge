@@ -28,8 +28,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/data/span.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/math/vec2u16.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -37,6 +40,7 @@ namespace sfg
 
 	struct editor_world_snapshot_data_t
 	{
+		vector_t<entity_id_t> selected_entities;
 	};
 
 	class editor_world_renderer_t final
@@ -76,9 +80,20 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
-			gfx_handle_t cmd_gfx			 = {};
-			gfx_handle_t world_texture		 = {};
-			gpu_index_t	 world_texture_index = NULL_GPU_INDEX;
+			u8*			 mapped_composite_data	 = nullptr;
+			gfx_handle_t cmd_gfx				 = {};
+			gfx_handle_t world_texture			 = {};
+			gfx_handle_t selection_texture		 = {};
+			gfx_handle_t composite_data			 = {};
+			gpu_index_t	 world_texture_index	 = NULL_GPU_INDEX;
+			gpu_index_t	 selection_texture_index = NULL_GPU_INDEX;
+			gpu_index_t	 composite_data_index	 = NULL_GPU_INDEX;
+		};
+
+		struct composite_data_t
+		{
+			vec4f_t params			= vec4f_t::zero;
+			vec4f_t selection_color = vec4f_t::zero;
 		};
 
 	private:
