@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/popups/editor_popup_color_wheel.hpp"
 #include "commands/editor_command_primitive_spawn.hpp"
 #include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
@@ -365,15 +366,45 @@ namespace sfg
 		_edit_folder				= folder;
 		_folder_edit_color			= metadata.get_folder(folder).color;
 		_folder_edit_original_color = _folder_edit_color;
-		color_t* color_fields		= &_folder_edit_color;
-		popup->request_color_wheel_popup({
-			.fields			 = {.data = &color_fields, .size = 1},
-			.edit_begin		 = on_folder_color_wheel_edit_begin,
-			.on_data_changed = on_folder_color_wheel_data_changed,
-			.closed			 = on_folder_color_wheel_popup_closed,
-			.user_data		 = this,
-			.pos			 = pos,
+		popup->request_custom_popup({
+			.install   = on_folder_color_wheel_popup_install,
+			.uninstall = on_folder_color_wheel_popup_uninstall,
+			.user_data = this,
+			.pos	   = editor_popup_color_wheel_t::calculate_position(*_ui, pos),
 		});
+	}
+
+	void editor_widget_outliner_t::on_folder_color_wheel_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data)
+	{
+		editor_widget_outliner_t& panel		  = *static_cast<editor_widget_outliner_t*>(user_data);
+		color_t*				  color_field = &panel._folder_edit_color;
+		panel._folder_color_popup			  = new editor_popup_color_wheel_t();
+		panel._folder_color_popup->init(ui,
+										parent,
+										{
+											.fields			 = {.data = &color_field, .size = 1},
+											.edit_begin		 = on_folder_color_wheel_edit_begin,
+											.on_data_changed = on_folder_color_wheel_data_changed,
+											.user_data		 = &panel,
+										});
+	}
+
+	void editor_widget_outliner_t::on_folder_color_wheel_popup_uninstall(ui::ui_context& ui, void* user_data)
+	{
+		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
+		panel._folder_color_popup->uninit();
+		delete panel._folder_color_popup;
+		panel._folder_color_popup = nullptr;
+
+		if (!panel._edit_folder.is_null())
+		{
+			const color_t color = panel._folder_edit_color;
+			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().set_folder_color(panel._edit_folder, panel._folder_edit_original_color);
+			panel._folder_edit_color = color;
+			editor_commands_world_edit_context_t::change_folder_color(panel._edit_world, panel._edit_folder, panel._folder_edit_color);
+			panel.refresh_entities();
+		}
+		panel._edit_folder = {};
 	}
 
 	void editor_widget_outliner_t::open_entity_action_menu(const vec2f_t& pos, entity_id_t entity)

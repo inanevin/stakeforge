@@ -50,6 +50,7 @@ namespace sfg
 {
 	class editor_command_system_t;
 	class editor_icon_button_t;
+	class editor_popup_color_wheel_t;
 	class world_t;
 	enum class editor_primitive_type_e : u8;
 	namespace ui
@@ -169,9 +170,10 @@ namespace sfg
 		static void on_entity_action_menu_command(u16 command, void* user_data);
 		static void on_folder_action_menu_command(u16 command, void* user_data);
 		static void on_folder_rename_popup_closed(const char* value, void* user_data);
+		static void on_folder_color_wheel_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
+		static void on_folder_color_wheel_popup_uninstall(ui::ui_context& ui, void* user_data);
 		static void on_folder_color_wheel_edit_begin(void* user_data);
 		static void on_folder_color_wheel_data_changed(void* user_data);
-		static void on_folder_color_wheel_popup_closed(void* user_data);
 		static void on_entities_body_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_entities_body_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static void on_entities_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
@@ -203,6 +205,7 @@ namespace sfg
 		editor_entity_payload_t							  _payload_entity			  = {};
 		editor_world_folder_handle_t					  _payload_folder			  = {};
 		ui::ui_context*									  _ui						  = nullptr;
+		editor_popup_color_wheel_t*						  _folder_color_popup		  = nullptr;
 		color_t											  _folder_edit_color		  = {};
 		color_t											  _folder_edit_original_color = {};
 		editor_world_folder_handle_t					  _action_menu_folder		  = {};

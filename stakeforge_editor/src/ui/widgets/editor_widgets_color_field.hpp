@@ -42,6 +42,8 @@ namespace sfg::ui
 
 namespace sfg
 {
+	class editor_popup_color_wheel_t;
+
 	struct editor_color_field_field_t
 	{
 		span_t<color_t*> fields = {};
@@ -85,20 +87,22 @@ namespace sfg
 		void submit_edit();
 
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_color_wheel_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
+		static void on_color_wheel_popup_uninstall(ui::ui_context& ui, void* user_data);
 		static void on_color_wheel_edit_begin(void* user_data);
 		static void on_color_wheel_data_changed(void* user_data);
-		static void on_color_wheel_popup_closed(void* user_data);
 
 	private:
-		editor_color_field_config_t _config		 = {};
-		vector_t<color_t*>			_fields		 = {};
-		ui::ui_context*				_ui			 = nullptr;
-		color_t						_color		 = {};
-		ui::widget_id_t				_root		 = NULL_WIDGET;
-		ui::widget_id_t				_swatch		 = NULL_WIDGET;
-		ui::widget_id_t				_label		 = NULL_WIDGET;
-		bool						_mixed		 = false;
-		bool						_edit_active = false;
-		bool						_edit_dirty	 = false;
+		editor_color_field_config_t _config			   = {};
+		vector_t<color_t*>			_fields			   = {};
+		ui::ui_context*				_ui				   = nullptr;
+		editor_popup_color_wheel_t* _color_wheel_popup = nullptr;
+		color_t						_color			   = {};
+		ui::widget_id_t				_root			   = NULL_WIDGET;
+		ui::widget_id_t				_swatch			   = NULL_WIDGET;
+		ui::widget_id_t				_label			   = NULL_WIDGET;
+		bool						_mixed			   = false;
+		bool						_edit_active	   = false;
+		bool						_edit_dirty		   = false;
 	};
 }

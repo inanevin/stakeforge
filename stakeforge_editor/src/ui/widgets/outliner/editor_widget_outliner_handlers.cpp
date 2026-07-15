@@ -165,20 +165,6 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_outliner_t::on_folder_color_wheel_popup_closed(void* user_data)
-	{
-		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
-		if (!panel._edit_folder.is_null())
-		{
-			const color_t color = panel._folder_edit_color;
-			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().set_folder_color(panel._edit_folder, panel._folder_edit_original_color);
-			panel._folder_edit_color = color;
-			editor_commands_world_edit_context_t::change_folder_color(panel._edit_world, panel._edit_folder, panel._folder_edit_color);
-			panel.refresh_entities();
-		}
-		panel._edit_folder = {};
-	}
-
 	void editor_widget_outliner_t::on_entities_body_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/popups/editor_popup_color_wheel.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -89,6 +90,9 @@ namespace sfg
 
 	void editor_color_field_t::uninit()
 	{
+		if (_color_wheel_popup != nullptr)
+			editor_popup_controller_t::find(*_ui)->close_popup(false);
+
 		_ui->deallocate_widget(_root);
 
 		_ui		= nullptr;
@@ -206,14 +210,35 @@ namespace sfg
 		editor_color_field_t&	   field = *static_cast<editor_color_field_t*>(user_data);
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*field._ui);
 
-		popup->request_color_wheel_popup({
-			.fields			 = {.data = field._fields.data(), .size = field._fields.size()},
-			.edit_begin		 = on_color_wheel_edit_begin,
-			.on_data_changed = on_color_wheel_data_changed,
-			.closed			 = on_color_wheel_popup_closed,
-			.user_data		 = &field,
-			.pos			 = pos,
+		popup->request_custom_popup({
+			.install   = on_color_wheel_popup_install,
+			.uninstall = on_color_wheel_popup_uninstall,
+			.user_data = &field,
+			.pos	   = editor_popup_color_wheel_t::calculate_position(*field._ui, pos),
 		});
+	}
+
+	void editor_color_field_t::on_color_wheel_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data)
+	{
+		editor_color_field_t& field = *static_cast<editor_color_field_t*>(user_data);
+		field._color_wheel_popup	= new editor_popup_color_wheel_t();
+		field._color_wheel_popup->init(ui,
+									   parent,
+									   {
+										   .fields			= {.data = field._fields.data(), .size = field._fields.size()},
+										   .edit_begin		= on_color_wheel_edit_begin,
+										   .on_data_changed = on_color_wheel_data_changed,
+										   .user_data		= &field,
+									   });
+	}
+
+	void editor_color_field_t::on_color_wheel_popup_uninstall(ui::ui_context& ui, void* user_data)
+	{
+		editor_color_field_t& field = *static_cast<editor_color_field_t*>(user_data);
+		field._color_wheel_popup->uninit();
+		delete field._color_wheel_popup;
+		field._color_wheel_popup = nullptr;
+		field.submit_edit();
 	}
 
 	void editor_color_field_t::on_color_wheel_edit_begin(void* user_data)
@@ -236,8 +261,4 @@ namespace sfg
 			field._config.callbacks.edited(field._config.callbacks.user_data);
 	}
 
-	void editor_color_field_t::on_color_wheel_popup_closed(void* user_data)
-	{
-		static_cast<editor_color_field_t*>(user_data)->submit_edit();
-	}
 }

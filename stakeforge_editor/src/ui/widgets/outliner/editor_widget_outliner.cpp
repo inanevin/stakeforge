@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ui/widgets/outliner/editor_widget_outliner.hpp"
 #include "ui/editor_payload_controller.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
@@ -127,6 +128,9 @@ namespace sfg
 
 	void editor_widget_outliner_t::uninit()
 	{
+		if (_folder_color_popup != nullptr)
+			editor_popup_controller_t::find(*_ui)->close_popup(false);
+
 		editor_command_system_t::get().remove_listener(_command_listener);
 		if (!_selection_listener.is_null())
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
