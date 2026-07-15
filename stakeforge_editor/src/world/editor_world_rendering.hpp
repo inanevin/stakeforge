@@ -37,6 +37,7 @@ namespace sfg
 	{
 	public:
 		static void render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		static void render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
 		static void blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
 	};
 }

@@ -204,6 +204,7 @@ namespace sfg
 	{
 		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 		editor_world_rendering_t::render_outlines(_render_context, snapshot, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_object_ids(_render_context, snapshot, frame_index);
 		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, frame_index);
 	}
 }

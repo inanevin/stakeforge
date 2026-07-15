@@ -52,11 +52,9 @@ namespace sfg
 
 		render_resources_t& render_resources = render_resources_t::get();
 
-		const gfx_handle_t cmd = ctx.get_command_buffer(frame_index);
-
+		const gfx_handle_t cmd				 = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t selection_texture = ctx.get_selection_texture(frame_index);
-
-		const vec2u16_t size = ctx.get_size();
+		const vec2u16_t	   size				 = ctx.get_size();
 
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
@@ -176,11 +174,172 @@ namespace sfg
 		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 	}
 
+	void editor_world_rendering_t::render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
+	{
+		gfx_backend& backend = gfx_backend::get();
+
+		render_resources_t& render_resources = render_resources_t::get();
+
+		const gfx_handle_t			  cmd				= ctx.get_command_buffer(frame_index);
+		const gfx_handle_t			  object_id_texture = ctx.get_object_id_texture(frame_index);
+		const world_render_context_t& world_ctx			= ctx.get_world_render_context();
+		const gfx_handle_t			  depth_texture		= world_ctx.get_depth_texture(frame_index);
+
+		const vec2u16_t size = ctx.get_size();
+
+		barrier_t begin_barriers[2] = {};
+		u16		  begin_count		= 0;
+
+		u32 state = backend.get_texture_state(object_id_texture);
+		if (state != resource_state_render_target)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = object_id_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		state = backend.get_texture_state(depth_texture);
+		if (state != resource_state_depth_read)
+		{
+			begin_barriers[begin_count++] = {
+				.from_states = state,
+				.to_states	 = resource_state_depth_read,
+				.texture_t	 = depth_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		if (begin_count > 0)
+			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+
+		const render_pass_color_attachment_t color_attachment = {
+			.clear_color = vec4f_t(static_cast<f32>(NULL_ENTITY_ID), 0.0f, 0.0f, 0.0f),
+			.texture	 = object_id_texture,
+			.load_op	 = load_op::clear,
+			.store_op	 = store_op::store,
+			.view_index	 = 0,
+		};
+
+		BEGIN_DEBUG_EVENT((&backend), cmd, "editor_world_object_ids");
+		backend.cmd_begin_render_pass_depth_read_only(cmd,
+													  {
+														  .color_attachments = &color_attachment,
+														  .depth_stencil_attachment =
+															  {
+																  .texture			= depth_texture,
+																  .clear_stencil	= 0,
+																  .clear_depth		= 0.0f,
+																  .depth_load_op	= load_op::load,
+																  .stencil_load_op	= load_op::none,
+																  .depth_store_op	= store_op::store,
+																  .stencil_store_op = store_op::none,
+																  .view_index		= 1,
+															  },
+														  .color_attachment_count = 1,
+													  });
+		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+
+		gpu_index_t rp_constants[2] = {
+			world_ctx.get_opaque_render_pass_data_index(frame_index),
+			world_ctx.get_entity_buffer_index(frame_index),
+		};
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+
+		gfx_handle_t bound_vertex	= {};
+		gfx_handle_t bound_index	= {};
+		gfx_handle_t bound_pipeline = {};
+		u32			 bound_material = UINT32_MAX;
+
+		for (const world_draw_t& draw : snapshot.draws)
+		{
+			const world_render_material_t& mat = snapshot.materials[draw.material_index];
+
+			bitmask_t<u32> variant_flags = shader_variant_flags_id_write;
+			variant_flags.set(shader_variant_flags_alpha_cutoff, mat.use_alpha_cutoff != 0);
+			variant_flags.set(shader_variant_flags_double_sided, mat.double_sided != 0);
+			variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
+
+			const render_resource_handle_t shader_handle = mat.find_pso(variant_flags);
+			if (shader_handle.is_null())
+				continue;
+
+			const gfx_handle_t vtx = render_resources.get_resource(draw.vertex_buffer);
+			const gfx_handle_t idx = render_resources.get_resource(draw.index_buffer);
+			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
+
+			if (vtx != bound_vertex)
+			{
+				bound_vertex = vtx;
+				backend.cmd_bind_vertex_buffers(cmd, {.buffer = bound_vertex, .slot = 0, .vertex_size = draw.vertex_stride, .offset = 0});
+			}
+
+			if (idx != bound_index)
+			{
+				bound_index = idx;
+				backend.cmd_bind_index_buffers(cmd, {.buffer = bound_index, .offset = 0, .index_size = draw.index_stride});
+			}
+
+			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
+			if (pipeline != bound_pipeline)
+			{
+				bound_pipeline = pipeline;
+				backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
+			}
+
+			if (bound_material != draw.material_index)
+			{
+				bound_material												 = draw.material_index;
+				gpu_index_t mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
+				u8			mat_constant_count								 = 0;
+				mat_constants[mat_constant_count++]							 = render_resources.get_resource_gpu_index(mat.material_buffer);
+				for (u32 i = 0; i < mat.texture_count; ++i)
+					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
+				for (u32 i = 0; i < mat.texture_count; ++i)
+					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
+				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
+			}
+
+			const world_render_entity_t& entity			  = snapshot.entities[draw.entity_index];
+			const u32					 obj_constants[3] = {draw.entity_index, draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index, entity.entity_id};
+			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 3, .param_index = 0});
+
+			backend.cmd_draw_indexed_instanced(cmd,
+											   {
+												   .index_count_per_instance = draw.index_count,
+												   .instance_count			 = 1,
+												   .start_index_location	 = draw.start_index,
+												   .base_vertex_location	 = draw.start_vertex,
+												   .start_instance_location	 = 0,
+											   });
+		}
+
+		backend.cmd_end_render_pass(cmd, {});
+		END_DEBUG_EVENT((&backend), cmd);
+
+		const barrier_t readback_barrier = {
+			.from_states = resource_state_render_target,
+			.to_states	 = resource_state_copy_source,
+			.texture_t	 = object_id_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &readback_barrier, .barrier_count = 1});
+		backend.cmd_copy_texture_to_buffer(cmd,
+										   {
+											   .dest_buffer = ctx.get_object_id_readback(frame_index),
+											   .src_texture = object_id_texture,
+											   .size		= vec2u_t(size.x, size.y),
+											   .bpp			= static_cast<u8>(sizeof(u32)),
+										   });
+	}
+
 	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
-
-		const vec2u16_t size = ctx.get_size();
+		const vec2u16_t						size		  = ctx.get_size();
 
 		const editor_world_composite_data_t composite_data = {
 			.params			 = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), 2.0f, snapshot_data.selected_entities.empty() ? 0.0f : 1.0f),
@@ -217,13 +376,10 @@ namespace sfg
 
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_handle_t cmd = ctx.get_command_buffer(frame_index);
-
-		const gfx_handle_t editor_texture = ctx.get_world_texture(frame_index);
-
-		const gpu_index_t selection_texture_index = ctx.get_selection_texture_index(frame_index);
-
-		const gpu_index_t composite_data_index = ctx.get_composite_data_index(frame_index);
+		const gfx_handle_t cmd					   = ctx.get_command_buffer(frame_index);
+		const gfx_handle_t editor_texture		   = ctx.get_world_texture(frame_index);
+		const gpu_index_t  selection_texture_index = ctx.get_selection_texture_index(frame_index);
+		const gpu_index_t  composite_data_index	   = ctx.get_composite_data_index(frame_index);
 
 		const u32 state = backend.get_texture_state(editor_texture);
 		if (state != resource_state_render_target)
@@ -251,7 +407,9 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 		backend.cmd_bind_constants(cmd, {.data = &composite_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+
 		const gpu_index_t obj_constants[2] = {source_texture_index, selection_texture_index};
+
 		backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});

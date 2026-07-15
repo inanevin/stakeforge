@@ -629,7 +629,9 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = EDITOR_THUMBNAIL_RENDER_SIZE, .height = EDITOR_THUMBNAIL_RENDER_SIZE});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = EDITOR_THUMBNAIL_RENDER_SIZE, .height = EDITOR_THUMBNAIL_RENDER_SIZE});
 		backend.cmd_bind_layout(cmd, {.layout = render_globals_t::get_global_bind_layout()});
+
 		const gpu_index_t source_texture = _render_context.get_world_texture_index(0);
+
 		backend.cmd_bind_constants(cmd, {.data = &source_texture, .offset = constant_rp0, .count = 1, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = _thumbnail_shader});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});

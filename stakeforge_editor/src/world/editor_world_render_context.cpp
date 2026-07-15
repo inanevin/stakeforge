@@ -114,14 +114,32 @@ namespace sfg
 		selection_desc.clear_values[3] = 0.0f;
 		selection_desc.set_name("editor_world_selection");
 
+		texture_desc_t object_id_desc = {};
+		object_id_desc.texture_format = format_e::r32_uint;
+		object_id_desc.size			  = size;
+		object_id_desc.flags		  = texture_flags::tf_render_target | texture_flags::tf_transfer_source | texture_flags::tf_is_2d;
+		object_id_desc.view_count	  = 1;
+		object_id_desc.views[0]		  = {.type = view_type::render_target};
+		object_id_desc.set_name("editor_world_object_id");
+
+		resource_desc_t object_id_readback_desc = {};
+		object_id_readback_desc.size			= gfx_backend::align_texture_size_pitch(static_cast<u32>(size.x) * sizeof(u32)) * static_cast<u32>(size.y);
+		object_id_readback_desc.flags			= resource_flags::rf_readback;
+		object_id_readback_desc.set_name("editor_world_object_id_readback");
+
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(_pfd[i].world_texture.is_null());
 			SFG_ASSERT(_pfd[i].selection_texture.is_null());
+			SFG_ASSERT(_pfd[i].object_id_texture.is_null());
+			SFG_ASSERT(_pfd[i].object_id_readback.is_null());
 
-			_pfd[i].world_texture			= backend.create_texture(desc);
-			_pfd[i].selection_texture		= backend.create_texture(selection_desc);
+			_pfd[i].world_texture	   = backend.create_texture(desc);
+			_pfd[i].selection_texture  = backend.create_texture(selection_desc);
+			_pfd[i].object_id_texture  = backend.create_texture(object_id_desc);
+			_pfd[i].object_id_readback = backend.create_resource(object_id_readback_desc);
+			backend.map_resource(_pfd[i].object_id_readback, _pfd[i].mapped_object_id_readback);
 			_pfd[i].world_texture_index		= backend.get_texture_gpu_index(_pfd[i].world_texture, 1);
 			_pfd[i].selection_texture_index = backend.get_texture_gpu_index(_pfd[i].selection_texture, 1);
 		}
@@ -135,13 +153,20 @@ namespace sfg
 		{
 			SFG_ASSERT(!_pfd[i].world_texture.is_null());
 			SFG_ASSERT(!_pfd[i].selection_texture.is_null());
+			SFG_ASSERT(!_pfd[i].object_id_texture.is_null());
+			SFG_ASSERT(!_pfd[i].object_id_readback.is_null());
 
 			backend.destroy_texture(_pfd[i].world_texture);
 			backend.destroy_texture(_pfd[i].selection_texture);
-			_pfd[i].world_texture			= {};
-			_pfd[i].selection_texture		= {};
-			_pfd[i].world_texture_index		= NULL_GPU_INDEX;
-			_pfd[i].selection_texture_index = NULL_GPU_INDEX;
+			backend.destroy_texture(_pfd[i].object_id_texture);
+			backend.destroy_resource(_pfd[i].object_id_readback);
+			_pfd[i].world_texture			  = {};
+			_pfd[i].selection_texture		  = {};
+			_pfd[i].object_id_texture		  = {};
+			_pfd[i].object_id_readback		  = {};
+			_pfd[i].mapped_object_id_readback = nullptr;
+			_pfd[i].world_texture_index		  = NULL_GPU_INDEX;
+			_pfd[i].selection_texture_index	  = NULL_GPU_INDEX;
 		}
 		_size = vec2u16_t::zero;
 	}

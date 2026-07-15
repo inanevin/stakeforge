@@ -84,6 +84,16 @@ namespace sfg
 			return _pfd[frame_index].selection_texture;
 		}
 
+		inline gfx_handle_t get_object_id_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].object_id_texture;
+		}
+
+		inline gfx_handle_t get_object_id_readback(u8 frame_index) const
+		{
+			return _pfd[frame_index].object_id_readback;
+		}
+
 		inline gpu_index_t get_world_texture_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].world_texture_index;
@@ -104,6 +114,11 @@ namespace sfg
 			return _pfd[frame_index].mapped_composite_data;
 		}
 
+		inline u8* get_mapped_object_id_readback(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_object_id_readback;
+		}
+
 		inline gfx_handle_t get_shader() const
 		{
 			return _shader;
@@ -120,14 +135,17 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
-			u8*			 mapped_composite_data	 = nullptr;
-			gfx_handle_t cmd_gfx				 = {};
-			gfx_handle_t world_texture			 = {};
-			gfx_handle_t selection_texture		 = {};
-			gfx_handle_t composite_data			 = {};
-			gpu_index_t	 world_texture_index	 = NULL_GPU_INDEX;
-			gpu_index_t	 selection_texture_index = NULL_GPU_INDEX;
-			gpu_index_t	 composite_data_index	 = NULL_GPU_INDEX;
+			u8*			 mapped_composite_data	   = nullptr;
+			u8*			 mapped_object_id_readback = nullptr;
+			gfx_handle_t cmd_gfx				   = {};
+			gfx_handle_t world_texture			   = {};
+			gfx_handle_t selection_texture		   = {};
+			gfx_handle_t object_id_texture		   = {};
+			gfx_handle_t object_id_readback		   = {};
+			gfx_handle_t composite_data			   = {};
+			gpu_index_t	 world_texture_index	   = NULL_GPU_INDEX;
+			gpu_index_t	 selection_texture_index   = NULL_GPU_INDEX;
+			gpu_index_t	 composite_data_index	   = NULL_GPU_INDEX;
 		};
 
 	private:
