@@ -99,6 +99,15 @@
                 "type": 12
             }
         },
+		{
+			"name": "editor_world_gizmo",
+			"path": "editor/resource_pack/shaders/editor_world_gizmo.hlsl",
+			"type": 7,
+			"config": {
+				"schema": "sfg.schema.shader",
+				"type": 13
+			}
+		},
         {
             "name": "splash",
             "path": "editor/resource_pack/textures/splash.jpg",

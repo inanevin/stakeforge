@@ -417,6 +417,13 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::editor_gizmo:
+			if (!shader_cook_variants_t::cook_editor_gizmo_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor gizmo shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(compile_source, include_paths, compiles, psos))
 			{

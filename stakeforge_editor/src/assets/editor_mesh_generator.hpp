@@ -61,6 +61,28 @@ namespace sfg
 		u16 hemisphere_rings = 8;
 	};
 
+	struct editor_mesh_generator_translation_gizmo_params_t
+	{
+		f32 shaft_radius = 0.025f;
+		f32 arrow_radius = 0.075f;
+		f32 arrow_length = 0.2f;
+		u16 segments	 = 16;
+	};
+
+	struct editor_mesh_generator_scale_gizmo_params_t
+	{
+		f32 shaft_radius = 0.025f;
+		f32 cube_size	 = 0.15f;
+		u16 segments	 = 16;
+	};
+
+	struct editor_mesh_generator_rotation_gizmo_params_t
+	{
+		f32 radius	  = 1.0f;
+		f32 thickness = 0.05f;
+		u16 segments  = 64;
+	};
+
 	class editor_mesh_generator_t final
 	{
 	public:
@@ -77,5 +99,8 @@ namespace sfg
 		static bool generate_sphere(const editor_mesh_generator_sphere_params_t& params, ostream_t& out);
 		static bool generate_cylinder(const editor_mesh_generator_cylinder_params_t& params, ostream_t& out);
 		static bool generate_capsule(const editor_mesh_generator_capsule_params_t& params, ostream_t& out);
+		static bool generate_translation_gizmo(const editor_mesh_generator_translation_gizmo_params_t& params, ostream_t& out);
+		static bool generate_scale_gizmo(const editor_mesh_generator_scale_gizmo_params_t& params, ostream_t& out);
+		static bool generate_rotation_gizmo(const editor_mesh_generator_rotation_gizmo_params_t& params, ostream_t& out);
 	};
 }

@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
 
 namespace sfg
@@ -240,7 +241,22 @@ namespace sfg
 		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();
 		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
 
-		data.pick_request = _pending_pick_request;
+		data.pick_request		 = _pending_pick_request;
+		data.gizmo				 = {};
+		const entity_id_t anchor = _edit_context.get_entity_anchor();
+		if (anchor != NULL_ENTITY_ID)
+		{
+			const ecs_component_table_t&		transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
+			const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, anchor);
+			const bool							local			= _edit_context.get_transform_locality() == editor_transform_locality_e::local;
+			data.gizmo											= {
+				.prev_rotation = local ? transform.prev_abs_rot : quat_t::identity,
+				.rotation	   = local ? transform.abs_rot : quat_t::identity,
+				.prev_position = transform.prev_abs_pos,
+				.position	   = transform.abs_pos,
+				.control_type  = _edit_context.get_transform_control_type(),
+			};
+		}
 		data.selected_entities.resize(0);
 		data.selected_entities.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)
@@ -304,7 +320,7 @@ namespace sfg
 		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 		editor_world_rendering_t::render_outlines(_render_context, snapshot, frame_index, global_cbv_index, global_layout);
 		editor_world_rendering_t::render_object_ids(_render_context, snapshot, frame_index);
-		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, frame_index);
+		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, interpolation_alpha, frame_index);
 		_object_id_readback_valid[frame_index] = true;
 	}
 }

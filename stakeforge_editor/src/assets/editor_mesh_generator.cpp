@@ -71,6 +71,111 @@ namespace sfg
 			push_tri(primitive, base, base + 2, base + 3);
 		}
 
+		void push_cylinder_side(primitive_static_def_t& primitive, f32 radius, f32 min_y, f32 max_y, u16 segments)
+		{
+			const u32 base = static_cast<u32>(primitive.vertices.size());
+			for (u32 y = 0; y < 2; ++y)
+			{
+				const f32 py = y == 0 ? min_y : max_y;
+				const f32 v	 = y == 0 ? 1.0f : 0.0f;
+				for (u32 x = 0; x <= segments; ++x)
+				{
+					const f32	  u		 = static_cast<f32>(x) / static_cast<f32>(segments);
+					const f32	  theta	 = u * MATH_TWO_PI;
+					const vec3f_t normal = {math::cos(theta), 0.0f, math::sin(theta)};
+					primitive.vertices.push_back(make_vertex({normal.x * radius, py, normal.z * radius}, normal, {u, v}));
+				}
+			}
+
+			const u32 row = static_cast<u32>(segments) + 1;
+			for (u32 x = 0; x < segments; ++x)
+			{
+				const u32 a = base + x;
+				const u32 b = base + row + x;
+				const u32 c = b + 1;
+				const u32 d = a + 1;
+				push_tri(primitive, a, b, c);
+				push_tri(primitive, a, c, d);
+			}
+		}
+
+		void push_disc(primitive_static_def_t& primitive, f32 radius, f32 y, const vec3f_t& normal, u16 segments)
+		{
+			const u32 center = static_cast<u32>(primitive.vertices.size());
+			primitive.vertices.push_back(make_vertex({0.0f, y, 0.0f}, normal, {0.5f, 0.5f}));
+			const u32 ring = static_cast<u32>(primitive.vertices.size());
+			for (u32 x = 0; x <= segments; ++x)
+			{
+				const f32 u		= static_cast<f32>(x) / static_cast<f32>(segments);
+				const f32 theta = u * MATH_TWO_PI;
+				const f32 px	= math::cos(theta) * radius;
+				const f32 pz	= math::sin(theta) * radius;
+				primitive.vertices.push_back(make_vertex({px, y, pz}, normal, {px / (radius * 2.0f) + 0.5f, pz / (radius * 2.0f) + 0.5f}));
+			}
+
+			for (u32 x = 0; x < segments; ++x)
+			{
+				if (normal.y < 0.0f)
+					push_tri(primitive, center, ring + x, ring + x + 1);
+				else
+					push_tri(primitive, center, ring + x + 1, ring + x);
+			}
+		}
+
+		void push_annulus(primitive_static_def_t& primitive, f32 inner_radius, f32 outer_radius, f32 y, const vec3f_t& normal, u16 segments)
+		{
+			const u32 base = static_cast<u32>(primitive.vertices.size());
+			for (u32 x = 0; x <= segments; ++x)
+			{
+				const f32 u		= static_cast<f32>(x) / static_cast<f32>(segments);
+				const f32 theta = u * MATH_TWO_PI;
+				const f32 cs	= math::cos(theta);
+				const f32 sn	= math::sin(theta);
+				primitive.vertices.push_back(make_vertex({cs * outer_radius, y, sn * outer_radius}, normal, {u, 0.0f}));
+				primitive.vertices.push_back(make_vertex({cs * inner_radius, y, sn * inner_radius}, normal, {u, 1.0f}));
+			}
+
+			for (u32 x = 0; x < segments; ++x)
+			{
+				const u32 a = base + x * 2;
+				const u32 b = a + 1;
+				const u32 c = a + 3;
+				const u32 d = a + 2;
+				if (normal.y > 0.0f)
+				{
+					push_tri(primitive, a, b, c);
+					push_tri(primitive, a, c, d);
+				}
+				else
+				{
+					push_tri(primitive, a, c, b);
+					push_tri(primitive, a, d, c);
+				}
+			}
+		}
+
+		void push_cone_side(primitive_static_def_t& primitive, f32 radius, f32 min_y, f32 max_y, u16 segments)
+		{
+			const f32 normal_y = radius / (max_y - min_y);
+			for (u32 x = 0; x < segments; ++x)
+			{
+				const f32	  u0		 = static_cast<f32>(x) / static_cast<f32>(segments);
+				const f32	  u1		 = static_cast<f32>(x + 1) / static_cast<f32>(segments);
+				const f32	  theta0	 = u0 * MATH_TWO_PI;
+				const f32	  theta1	 = u1 * MATH_TWO_PI;
+				const f32	  mid		 = (theta0 + theta1) * 0.5f;
+				const vec3f_t normal0	 = vec3f_t(math::cos(theta0), normal_y, math::sin(theta0)).normalized();
+				const vec3f_t normal1	 = vec3f_t(math::cos(theta1), normal_y, math::sin(theta1)).normalized();
+				const vec3f_t normal_tip = vec3f_t(math::cos(mid), normal_y, math::sin(mid)).normalized();
+
+				const u32 base = static_cast<u32>(primitive.vertices.size());
+				primitive.vertices.push_back(make_vertex({math::cos(theta0) * radius, min_y, math::sin(theta0) * radius}, normal0, {u0, 1.0f}));
+				primitive.vertices.push_back(make_vertex({0.0f, max_y, 0.0f}, normal_tip, {(u0 + u1) * 0.5f, 0.0f}));
+				primitive.vertices.push_back(make_vertex({math::cos(theta1) * radius, min_y, math::sin(theta1) * radius}, normal1, {u1, 1.0f}));
+				push_tri(primitive, base, base + 1, base + 2);
+			}
+		}
+
 		bool write_mesh_def(mesh_def_t& def, primitive_static_def_t& primitive, ostream_t& out)
 		{
 			primitive.material_index = 0;
@@ -266,6 +371,78 @@ namespace sfg
 		mesh_def_t def	 = {};
 		def.name		 = "capsule";
 		def.local_bounds = aabb_t({-radius, -half_body - radius, -radius}, {radius, half_body + radius, radius});
+		return write_mesh_def(def, primitive, out);
+	}
+
+	bool editor_mesh_generator_t::generate_translation_gizmo(const editor_mesh_generator_translation_gizmo_params_t& params, ostream_t& out)
+	{
+		const f32			   shaft_radius = math::max(params.shaft_radius, MATH_EPS);
+		const f32			   arrow_radius = math::max(params.arrow_radius, shaft_radius);
+		const f32			   arrow_length = math::clamp(params.arrow_length, MATH_EPS, 1.0f - MATH_EPS);
+		const f32			   shaft_end	= 1.0f - arrow_length;
+		const u16			   segments		= sanitize_segments(params.segments, 3);
+		primitive_static_def_t primitive	= {};
+		primitive.vertices.reserve(static_cast<size_t>(segments) * 7 + 6);
+		primitive.indices.reserve(static_cast<size_t>(segments) * 18);
+
+		push_cylinder_side(primitive, shaft_radius, 0.0f, shaft_end, segments);
+		push_disc(primitive, shaft_radius, 0.0f, {0.0f, -1.0f, 0.0f}, segments);
+		if (arrow_radius > shaft_radius)
+			push_annulus(primitive, shaft_radius, arrow_radius, shaft_end, {0.0f, -1.0f, 0.0f}, segments);
+		push_cone_side(primitive, arrow_radius, shaft_end, 1.0f, segments);
+
+		mesh_def_t def	 = {};
+		def.name		 = "translation_gizmo";
+		def.local_bounds = aabb_t({-arrow_radius, 0.0f, -arrow_radius}, {arrow_radius, 1.0f, arrow_radius});
+		return write_mesh_def(def, primitive, out);
+	}
+
+	bool editor_mesh_generator_t::generate_scale_gizmo(const editor_mesh_generator_scale_gizmo_params_t& params, ostream_t& out)
+	{
+		const f32			   shaft_radius = math::max(params.shaft_radius, MATH_EPS);
+		const f32			   cube_size	= math::clamp(params.cube_size, MATH_EPS, 1.0f - MATH_EPS);
+		const f32			   cube_half	= cube_size * 0.5f;
+		const f32			   cube_min_y	= 1.0f - cube_size;
+		const u16			   segments		= sanitize_segments(params.segments, 3);
+		primitive_static_def_t primitive	= {};
+		primitive.vertices.reserve(static_cast<size_t>(segments + 1) * 3 + 25);
+		primitive.indices.reserve(static_cast<size_t>(segments) * 9 + 36);
+
+		push_cylinder_side(primitive, shaft_radius, 0.0f, cube_min_y, segments);
+		push_disc(primitive, shaft_radius, 0.0f, {0.0f, -1.0f, 0.0f}, segments);
+
+		const vec3f_t min{-cube_half, cube_min_y, -cube_half};
+		const vec3f_t max{cube_half, 1.0f, cube_half};
+		push_quad(primitive, {0.0f, 0.0f, 1.0f}, {min.x, min.y, max.z}, {max.x, min.y, max.z}, {max.x, max.y, max.z}, {min.x, max.y, max.z});
+		push_quad(primitive, {0.0f, 0.0f, -1.0f}, {max.x, min.y, min.z}, {min.x, min.y, min.z}, {min.x, max.y, min.z}, {max.x, max.y, min.z});
+		push_quad(primitive, {1.0f, 0.0f, 0.0f}, {max.x, min.y, max.z}, {max.x, min.y, min.z}, {max.x, max.y, min.z}, {max.x, max.y, max.z});
+		push_quad(primitive, {-1.0f, 0.0f, 0.0f}, {min.x, min.y, min.z}, {min.x, min.y, max.z}, {min.x, max.y, max.z}, {min.x, max.y, min.z});
+		push_quad(primitive, {0.0f, 1.0f, 0.0f}, {min.x, max.y, max.z}, {max.x, max.y, max.z}, {max.x, max.y, min.z}, {min.x, max.y, min.z});
+		push_quad(primitive, {0.0f, -1.0f, 0.0f}, {min.x, min.y, min.z}, {max.x, min.y, min.z}, {max.x, min.y, max.z}, {min.x, min.y, max.z});
+
+		const f32  bounds_radius = math::max(shaft_radius, cube_half);
+		mesh_def_t def			 = {};
+		def.name				 = "scale_gizmo";
+		def.local_bounds		 = aabb_t({-bounds_radius, 0.0f, -bounds_radius}, {bounds_radius, 1.0f, bounds_radius});
+		return write_mesh_def(def, primitive, out);
+	}
+
+	bool editor_mesh_generator_t::generate_rotation_gizmo(const editor_mesh_generator_rotation_gizmo_params_t& params, ostream_t& out)
+	{
+		const f32			   radius	 = math::max(params.radius, MATH_EPS * 2.0f);
+		const f32			   thickness = math::clamp(params.thickness, MATH_EPS, radius - MATH_EPS);
+		const f32			   inner	 = radius - thickness;
+		const u16			   segments	 = sanitize_segments(params.segments, 3);
+		primitive_static_def_t primitive = {};
+		primitive.vertices.reserve(static_cast<size_t>(segments + 1) * 4);
+		primitive.indices.reserve(static_cast<size_t>(segments) * 12);
+
+		push_annulus(primitive, inner, radius, 0.0f, {0.0f, 1.0f, 0.0f}, segments);
+		push_annulus(primitive, inner, radius, 0.0f, {0.0f, -1.0f, 0.0f}, segments);
+
+		mesh_def_t def	 = {};
+		def.name		 = "rotation_gizmo";
+		def.local_bounds = aabb_t({-radius, 0.0f, -radius}, {radius, 0.0f, radius});
 		return write_mesh_def(def, primitive, out);
 	}
 }

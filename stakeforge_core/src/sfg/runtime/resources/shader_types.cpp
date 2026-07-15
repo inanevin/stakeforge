@@ -30,6 +30,7 @@ namespace sfg
 					{.name = "deferred_lighting", .display_name = "Deferred Lighting"},
 					{.name = "post_combiner", .display_name = "Post Combiner"},
 					{.name = "texture_blit", .display_name = "Texture Blit"},
+					{.name = "editor_gizmo", .display_name = "Editor Gizmo"},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

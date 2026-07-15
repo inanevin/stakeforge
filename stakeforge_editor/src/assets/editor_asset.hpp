@@ -57,6 +57,9 @@ namespace sfg
 #define DEFAULT_MESH_CYLINDER_GUID					  1017
 #define DEFAULT_MESH_CAPSULE_GUID					  1018
 #define DEFAULT_ANISOTROPIC_SAMPLER_REPEAT_ASSET_GUID 1019
+#define GIZMO_MESH_TRANSLATION						  1020
+#define GIZMO_MESH_ROTATION							  1021
+#define GIZMO_MESH_SCALE							  1022
 
 	enum class editor_asset_source_type_e : u8
 	{

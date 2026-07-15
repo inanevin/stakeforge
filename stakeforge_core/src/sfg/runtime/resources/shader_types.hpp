@@ -22,6 +22,7 @@ namespace sfg
 		deferred_lighting,
 		post_combiner,
 		texture_blit,
+		editor_gizmo,
 		count,
 	};
 

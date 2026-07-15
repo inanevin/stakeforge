@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_draw.hpp>
@@ -44,6 +45,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+
+#define EDITOR_WORLD_GIZMO_PIXEL_SIZE	  90.0f
+#define EDITOR_WORLD_GIZMO_MIN_WORLD_SIZE 0.05f
+
 	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
@@ -336,7 +341,7 @@ namespace sfg
 										   });
 	}
 
-	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
+	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 		const vec2u16_t						size		  = ctx.get_size();
@@ -346,6 +351,29 @@ namespace sfg
 			.selection_color = editor_theme_t::get().color_accent2,
 		};
 		SFG_MEMCPY(ctx.get_mapped_composite_data(frame_index), &composite_data, sizeof(editor_world_composite_data_t));
+
+		const bool render_gizmo = snapshot_data.gizmo.control_type != editor_transform_control_type_e::invalid;
+		if (render_gizmo)
+		{
+			static const quat_t axis_rotations[3] = {
+				quat_t::angle_axis(-90.0f, {0.0f, 0.0f, 1.0f}),
+				quat_t::identity,
+				quat_t::angle_axis(90.0f, vec3f_t::right),
+			};
+
+			const vec3f_t position = vec3f_t::lerp(snapshot_data.gizmo.prev_position, snapshot_data.gizmo.position, interpolation_alpha);
+			const quat_t  rotation = quat_t::slerp(snapshot_data.gizmo.prev_rotation, snapshot_data.gizmo.rotation, interpolation_alpha);
+
+			editor_world_gizmo_gpu_data_t gizmo_data = {};
+			for (u32 i = 0; i < 3; ++i)
+				gizmo_data.models[i] = mat4x4_t::transform(position, rotation * axis_rotations[i], vec3f_t::one);
+			const editor_theme_t& theme = editor_theme_t::get();
+			gizmo_data.colors[0]		= theme.color_accent0;
+			gizmo_data.colors[1]		= theme.color_accent_green;
+			gizmo_data.colors[2]		= theme.color_accent1;
+			gizmo_data.params			= vec4f_t(EDITOR_WORLD_GIZMO_PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), EDITOR_WORLD_GIZMO_MIN_WORLD_SIZE);
+			SFG_MEMCPY(ctx.get_mapped_gizmo_data(frame_index), &gizmo_data, sizeof(editor_world_gizmo_gpu_data_t));
+		}
 
 		const world_render_context_t& world_ctx = ctx.get_world_render_context();
 
@@ -411,8 +439,56 @@ namespace sfg
 		const gpu_index_t obj_constants[2] = {source_texture_index, selection_texture_index};
 
 		backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
-		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_shader()});
+		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_composite_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+
+		if (render_gizmo)
+		{
+			u8 mesh_index = 0;
+			switch (snapshot_data.gizmo.control_type)
+			{
+			case editor_transform_control_type_e::move:
+				mesh_index = 0;
+				break;
+			case editor_transform_control_type_e::rotate:
+				mesh_index = 1;
+				break;
+			case editor_transform_control_type_e::scale:
+				mesh_index = 2;
+				break;
+			default:
+				SFG_ASSERT(false);
+				break;
+			}
+
+			const editor_world_gizmo_mesh_t& mesh			  = ctx.get_gizmo_mesh(mesh_index);
+			const render_resources_t&		 render_resources = render_resources_t::get();
+			const gfx_handle_t				 vertex_buffer	  = render_resources.get_resource(mesh.vertex_buffer);
+			const gfx_handle_t				 index_buffer	  = render_resources.get_resource(mesh.index_buffer);
+			SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
+
+			const gpu_index_t rp_constants[2] = {
+				ctx.get_world_render_context().get_opaque_render_pass_data_index(frame_index),
+				ctx.get_gizmo_data_index(frame_index),
+			};
+			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_gizmo_shader()});
+			backend.cmd_bind_vertex_buffers(cmd, {.buffer = vertex_buffer, .slot = 0, .vertex_size = mesh.vertex_stride, .offset = 0});
+			backend.cmd_bind_index_buffers(cmd, {.buffer = index_buffer, .offset = 0, .index_size = mesh.index_stride});
+
+			for (u32 axis = 0; axis < 3; ++axis)
+			{
+				backend.cmd_bind_constants(cmd, {.data = &axis, .offset = constant_obj0, .count = 1, .param_index = 0});
+				backend.cmd_draw_indexed_instanced(cmd,
+												   {
+													   .index_count_per_instance = mesh.index_count,
+													   .instance_count			 = 1,
+													   .start_index_location	 = 0,
+													   .base_vertex_location	 = 0,
+													   .start_instance_location	 = 0,
+												   });
+			}
+		}
 		backend.cmd_end_render_pass(cmd, {});
 
 		END_DEBUG_EVENT((&backend), cmd);

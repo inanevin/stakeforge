@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_render_context.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/quat.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -47,10 +48,20 @@ namespace sfg
 		bool	incremental_selection = false;
 	};
 
+	struct editor_world_gizmo_snapshot_data_t
+	{
+		quat_t							prev_rotation = quat_t::identity;
+		quat_t							rotation	  = quat_t::identity;
+		vec3f_t							prev_position = vec3f_t::zero;
+		vec3f_t							position	  = vec3f_t::zero;
+		editor_transform_control_type_e control_type  = editor_transform_control_type_e::invalid;
+	};
+
 	struct editor_world_snapshot_data_t
 	{
-		vector_t<entity_id_t>		selected_entities;
-		editor_world_pick_request_t pick_request = {};
+		vector_t<entity_id_t>			   selected_entities;
+		editor_world_gizmo_snapshot_data_t gizmo		= {};
+		editor_world_pick_request_t		   pick_request = {};
 	};
 
 	class editor_world_t final

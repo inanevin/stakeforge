@@ -27,8 +27,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -38,6 +40,22 @@ namespace sfg
 	{
 		vec4f_t params			= vec4f_t::zero;
 		vec4f_t selection_color = vec4f_t::zero;
+	};
+
+	struct editor_world_gizmo_gpu_data_t
+	{
+		mat4x4_t models[3] = {};
+		vec4f_t	 colors[3] = {};
+		vec4f_t	 params	   = vec4f_t::zero;
+	};
+
+	struct editor_world_gizmo_mesh_t
+	{
+		render_resource_handle_t vertex_buffer = {};
+		render_resource_handle_t index_buffer  = {};
+		u32						 index_count   = 0;
+		u16						 vertex_stride = 0;
+		u8						 index_stride  = 0;
 	};
 
 	class editor_world_render_context_t final
@@ -110,9 +128,19 @@ namespace sfg
 			return _pfd[frame_index].composite_data_index;
 		}
 
+		inline gpu_index_t get_gizmo_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].gizmo_data_index;
+		}
+
 		inline u8* get_mapped_composite_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_composite_data;
+		}
+
+		inline u8* get_mapped_gizmo_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_gizmo_data;
 		}
 
 		inline u8* get_mapped_object_id_readback(u8 frame_index) const
@@ -122,9 +150,19 @@ namespace sfg
 
 		entity_id_t get_object_id(u8 frame_index, vec2u16_t pixel) const;
 
-		inline gfx_handle_t get_shader() const
+		inline gfx_handle_t get_composite_shader() const
 		{
-			return _shader;
+			return _composite_shader;
+		}
+
+		inline gfx_handle_t get_gizmo_shader() const
+		{
+			return _gizmo_shader;
+		}
+
+		inline const editor_world_gizmo_mesh_t& get_gizmo_mesh(u8 index) const
+		{
+			return _gizmo_meshes[index];
 		}
 
 		inline vec2u16_t get_size() const
@@ -139,6 +177,7 @@ namespace sfg
 		struct per_frame_data_t
 		{
 			u8*			 mapped_composite_data	   = nullptr;
+			u8*			 mapped_gizmo_data		   = nullptr;
 			u8*			 mapped_object_id_readback = nullptr;
 			gfx_handle_t cmd_gfx				   = {};
 			gfx_handle_t world_texture			   = {};
@@ -146,9 +185,11 @@ namespace sfg
 			gfx_handle_t object_id_texture		   = {};
 			gfx_handle_t object_id_readback		   = {};
 			gfx_handle_t composite_data			   = {};
+			gfx_handle_t gizmo_data				   = {};
 			gpu_index_t	 world_texture_index	   = NULL_GPU_INDEX;
 			gpu_index_t	 selection_texture_index   = NULL_GPU_INDEX;
 			gpu_index_t	 composite_data_index	   = NULL_GPU_INDEX;
+			gpu_index_t	 gizmo_data_index		   = NULL_GPU_INDEX;
 		};
 
 	private:
@@ -156,7 +197,10 @@ namespace sfg
 
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
 
-		gfx_handle_t _shader = {};
+		editor_world_gizmo_mesh_t _gizmo_meshes[3] = {};
+
+		gfx_handle_t _composite_shader = {};
+		gfx_handle_t _gizmo_shader	   = {};
 
 		u32		  _object_id_readback_row_pitch = 0;
 		vec2u16_t _size							= vec2u16_t::zero;

@@ -25,16 +25,34 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world/editor_world_render_context.hpp"
+#include "assets/editor_asset.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		editor_world_gizmo_mesh_t load_gizmo_mesh_render_data(sid_t guid)
+		{
+			const mesh_internals_t* mesh = resource_manager_t::get().find_internals<mesh_internals_t>(guid);
+			SFG_ASSERT(mesh != nullptr);
+			return {
+				.vertex_buffer = mesh->vertex_buffer,
+				.index_buffer  = mesh->index_buffer,
+				.index_count   = mesh->index_count,
+				.vertex_stride = static_cast<u16>(mesh->vertex_stride),
+				.index_stride  = static_cast<u8>(sizeof(primitive_index)),
+			};
+		}
+	}
+
 	void editor_world_render_context_t::init(vec2u16_t size)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
@@ -47,6 +65,11 @@ namespace sfg
 		composite_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		composite_data_desc.set_name("editor_world_composite_data");
 
+		resource_desc_t gizmo_data_desc = {};
+		gizmo_data_desc.size			= static_cast<u32>(sizeof(editor_world_gizmo_gpu_data_t));
+		gizmo_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		gizmo_data_desc.set_name("editor_world_gizmo_data");
+
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -58,10 +81,19 @@ namespace sfg
 			_pfd[i].composite_data = backend.create_resource(composite_data_desc);
 			backend.map_resource(_pfd[i].composite_data, _pfd[i].mapped_composite_data);
 			_pfd[i].composite_data_index = backend.get_resource_gpu_index(_pfd[i].composite_data);
+
+			_pfd[i].gizmo_data = backend.create_resource(gizmo_data_desc);
+			backend.map_resource(_pfd[i].gizmo_data, _pfd[i].mapped_gizmo_data);
+			_pfd[i].gizmo_data_index = backend.get_resource_gpu_index(_pfd[i].gizmo_data);
 		}
 
-		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
-		_shader							 = render_resources_t::get().get_shader_hw(shader->psos[0]);
+		const shader_internals_t* composite_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
+		const shader_internals_t* gizmo_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_gizmo.hlsl"_hs);
+		_composite_shader						   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
+		_gizmo_shader							   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
+		_gizmo_meshes[0]						   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
+		_gizmo_meshes[1]						   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
+		_gizmo_meshes[2]						   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
 
 		create_texture(size);
 	}
@@ -75,13 +107,20 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			backend.destroy_resource(_pfd[i].composite_data);
+			backend.destroy_resource(_pfd[i].gizmo_data);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx);
 			_pfd[i].cmd_gfx				  = {};
 			_pfd[i].composite_data		  = {};
+			_pfd[i].gizmo_data			  = {};
 			_pfd[i].mapped_composite_data = nullptr;
+			_pfd[i].mapped_gizmo_data	  = nullptr;
 			_pfd[i].composite_data_index  = NULL_GPU_INDEX;
+			_pfd[i].gizmo_data_index	  = NULL_GPU_INDEX;
 		}
-		_shader = {};
+		for (editor_world_gizmo_mesh_t& mesh : _gizmo_meshes)
+			mesh = {};
+		_composite_shader = {};
+		_gizmo_shader	  = {};
 		_world_render_context.uninit();
 	}
 
