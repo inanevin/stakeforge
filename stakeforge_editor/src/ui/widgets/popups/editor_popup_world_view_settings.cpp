@@ -49,7 +49,7 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
-		root_in.size_value.x	 = theme.item_width * 2.0f;
+		root_in.size_value.x	 = theme.item_width * 3.0f;
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = 0.0f;
 
