@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/popups/editor_popup_world_view_settings.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "world/editor_world_handle.hpp"
 
@@ -74,28 +75,32 @@ namespace sfg
 		void refresh();
 
 		static void on_transform_control_toggled(bool toggled, void* user_data);
+		static void on_settings_pressed(bool toggled, void* user_data);
+		static void on_settings_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
+		static void on_settings_popup_uninstall(ui::ui_context& ui, void* user_data);
 		static void on_locality_toggled(bool toggled, void* user_data);
 		static void on_snapping_toggled(bool toggled, void* user_data);
 		static void on_grid_toggled(bool toggled, void* user_data);
 		static void on_bounding_boxes_toggled(bool toggled, void* user_data);
 
 	private:
-		editor_icon_button_t	_transform_buttons[3];
-		editor_icon_button_t	_settings_button;
-		editor_icon_button_t	_locality_button;
-		editor_icon_button_t	_snapping_button;
-		editor_icon_button_t	_grid_button;
-		editor_icon_button_t	_bounding_boxes_button;
-		transform_button_data_t _transform_button_data[3];
-		ui::ui_context*			_ui				= nullptr;
-		editor_world_handle_t	_edit_world		= {};
-		ui::widget_id_t			_root			= NULL_WIDGET;
-		ui::widget_id_t			_left_column	= NULL_WIDGET;
-		ui::widget_id_t			_right_column	= NULL_WIDGET;
-		ui::widget_id_t			_top_left_row	= NULL_WIDGET;
-		ui::widget_id_t			_top_right_row	= NULL_WIDGET;
-		ui::widget_id_t			_global_frame	= NULL_WIDGET;
-		ui::widget_id_t			_controls_frame = NULL_WIDGET;
-		ui::widget_id_t			_view_frame		= NULL_WIDGET;
+		editor_popup_world_view_settings_t _settings_popup;
+		editor_icon_button_t			   _transform_buttons[3];
+		editor_icon_button_t			   _settings_button;
+		editor_icon_button_t			   _locality_button;
+		editor_icon_button_t			   _snapping_button;
+		editor_icon_button_t			   _grid_button;
+		editor_icon_button_t			   _bounding_boxes_button;
+		transform_button_data_t			   _transform_button_data[3];
+		ui::ui_context*					   _ui			   = nullptr;
+		editor_world_handle_t			   _edit_world	   = {};
+		ui::widget_id_t					   _root		   = NULL_WIDGET;
+		ui::widget_id_t					   _left_column	   = NULL_WIDGET;
+		ui::widget_id_t					   _right_column   = NULL_WIDGET;
+		ui::widget_id_t					   _top_left_row   = NULL_WIDGET;
+		ui::widget_id_t					   _top_right_row  = NULL_WIDGET;
+		ui::widget_id_t					   _global_frame   = NULL_WIDGET;
+		ui::widget_id_t					   _controls_frame = NULL_WIDGET;
+		ui::widget_id_t					   _view_frame	   = NULL_WIDGET;
 	};
 }

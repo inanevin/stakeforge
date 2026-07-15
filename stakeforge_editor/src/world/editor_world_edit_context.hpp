@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "world/editor_world_handle.hpp"
+#include "world/editor_world_view_settings.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -217,6 +218,16 @@ namespace sfg
 			return _bounding_boxes_enabled;
 		}
 
+		inline editor_world_view_settings_t& get_world_view_settings()
+		{
+			return _world_view_settings;
+		}
+
+		inline const editor_world_view_settings_t& get_world_view_settings() const
+		{
+			return _world_view_settings;
+		}
+
 		// -----------------------------------------------------------------------------
 		// selection
 		// -----------------------------------------------------------------------------
@@ -316,5 +327,6 @@ namespace sfg
 		editor_transform_snapping_e													  _transform_snapping	  = editor_transform_snapping_e::none;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
+		editor_world_view_settings_t												  _world_view_settings	  = {};
 	};
 }

@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_world_view_toolbars.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
@@ -168,6 +169,8 @@ namespace sfg
 		button_config.icon						  = ICON_SETTINGS_WHEEL;
 		button_config.tooltip					  = "Settings";
 		button_config.toggle_enabled			  = false;
+		button_config.user_data					  = this;
+		button_config.on_clicked				  = on_settings_pressed;
 		_settings_button.init(ui, _global_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _settings_button);
 
@@ -253,6 +256,8 @@ namespace sfg
 
 	void editor_widget_world_view_toolbars_t::uninit()
 	{
+		if (_settings_popup.is_initialized())
+			editor_popup_controller_t::find(*_ui)->close_popup(false);
 		_bounding_boxes_button.uninit();
 		_grid_button.uninit();
 		_snapping_button.uninit();
@@ -297,6 +302,33 @@ namespace sfg
 		transform_button_data_t& data = *static_cast<transform_button_data_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(data.toolbar->_edit_world)->get_edit_context().set_transform_control_type(data.type);
 		data.toolbar->refresh();
+	}
+
+	void editor_widget_world_view_toolbars_t::on_settings_pressed(bool toggled, void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+		const editor_theme_t&				 theme	 = editor_theme_t::get();
+		const ui::layout_out_t&				 out	 = toolbar._ui->get_tree().out(toolbar._settings_button.get_root());
+		editor_popup_controller_t::find(*toolbar._ui)
+			->request_custom_popup({
+				.install   = on_settings_popup_install,
+				.uninstall = on_settings_popup_uninstall,
+				.user_data = &toolbar,
+				.pos	   = {out.pos.x, out.pos.y + out.size.y + theme.item_spacing},
+			});
+	}
+
+	void editor_widget_world_view_toolbars_t::on_settings_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+		editor_world_edit_context_t&		 context = editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context();
+		toolbar._settings_popup.init(ui, parent, {.settings = &context.get_world_view_settings()});
+	}
+
+	void editor_widget_world_view_toolbars_t::on_settings_popup_uninstall(ui::ui_context& ui, void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+		toolbar._settings_popup.uninit();
 	}
 
 	void editor_widget_world_view_toolbars_t::on_locality_toggled(bool toggled, void* user_data)

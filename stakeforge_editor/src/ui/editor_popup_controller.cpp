@@ -324,6 +324,7 @@ namespace sfg
 		_asset_desc		  = {};
 		_entity_desc	  = {};
 		_color_wheel_desc = {};
+		_custom_desc	  = {};
 		_mode			  = popup_mode_e::none;
 		_visible		  = false;
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
@@ -506,6 +507,29 @@ namespace sfg
 		_ui->get_input().set_popup_scope(_frame, popup_roots, 1, on_popup_outside, this);
 	}
 
+	void editor_popup_controller_t::request_custom_popup(const editor_custom_popup_desc_t& desc)
+	{
+		SFG_ASSERT(desc.install != nullptr);
+		SFG_ASSERT(desc.uninstall != nullptr);
+
+		if (!can_mutate_ui_topology())
+		{
+			_pending_custom_desc = desc;
+			defer_request(pending_request_e::custom);
+			return;
+		}
+
+		close_popup(false);
+		_custom_desc = desc;
+		_mode		 = popup_mode_e::custom;
+		refresh_layout();
+		_custom_desc.install(*_ui, _frame, _custom_desc.user_data);
+		set_visible(true);
+
+		ui::widget_id_t popup_roots[] = {_frame};
+		_ui->get_input().set_popup_scope(_frame, popup_roots, 1, on_popup_outside, this);
+	}
+
 	void editor_popup_controller_t::close_popup(bool notify_input)
 	{
 		if (_ui == nullptr || !_visible)
@@ -518,12 +542,14 @@ namespace sfg
 			return;
 		}
 
-		const bool						   notify_input_closed	  = notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
-		const editor_popup_input_closed_fn input_closed			  = _input_desc.closed;
-		void*							   input_closed_user_data = _input_desc.user_data;
-		const frame_string_t<char>		   input_value			  = _input_text.c_str();
-		editor_popup_closed_fn			   popup_closed			  = nullptr;
-		void*							   popup_closed_user_data = nullptr;
+		const bool							   notify_input_closed	  = notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
+		const editor_popup_input_closed_fn	   input_closed			  = _input_desc.closed;
+		void*								   input_closed_user_data = _input_desc.user_data;
+		const frame_string_t<char>			   input_value			  = _input_text.c_str();
+		editor_popup_closed_fn				   popup_closed			  = nullptr;
+		void*								   popup_closed_user_data = nullptr;
+		const editor_custom_popup_uninstall_fn custom_uninstall		  = _mode == popup_mode_e::custom ? _custom_desc.uninstall : nullptr;
+		void*								   custom_user_data		  = _custom_desc.user_data;
 		switch (_mode)
 		{
 		case popup_mode_e::items:
@@ -548,11 +574,14 @@ namespace sfg
 
 		set_visible(false);
 		_ui->get_input().clear_popup_scope();
+		if (custom_uninstall != nullptr)
+			custom_uninstall(*_ui, custom_user_data);
 		_desc						 = {};
 		_input_desc					 = {};
 		_asset_desc					 = {};
 		_entity_desc				 = {};
 		_color_wheel_desc			 = {};
+		_custom_desc				 = {};
 		_mode						 = popup_mode_e::none;
 		_asset_scroll_pending_frames = 0;
 		_color_wheel_size			 = {};
@@ -582,7 +611,7 @@ namespace sfg
 		_visible				= visible;
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_foreground, visible, false);
-		tree.set_visible(_frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets || _mode == popup_mode_e::entities || _mode == popup_mode_e::color_wheel), false);
+		tree.set_visible(_frame, visible && (_mode == popup_mode_e::items || _mode == popup_mode_e::assets || _mode == popup_mode_e::entities || _mode == popup_mode_e::color_wheel || _mode == popup_mode_e::custom), false);
 
 		for (u32 i = 0; i < MAX_ITEMS; ++i)
 		{
@@ -757,8 +786,19 @@ namespace sfg
 
 	void editor_popup_controller_t::refresh_layout()
 	{
-		ui::layout_tree_t&		tree	   = _ui->get_tree();
-		const editor_theme_t&	theme	   = editor_theme_t::get();
+		ui::layout_tree_t&	  tree	   = _ui->get_tree();
+		const editor_theme_t& theme	   = editor_theme_t::get();
+		ui::layout_in_t&	  frame_in = tree.in(_frame);
+		if (_mode == popup_mode_e::custom)
+		{
+			frame_in.pos_value	   = _custom_desc.pos;
+			frame_in.size_mode_x   = ui::axis_mode_e::max_children;
+			frame_in.size_mode_y   = ui::axis_mode_e::sum_children;
+			frame_in.size_value	   = {};
+			frame_in.child_margins = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+			return;
+		}
+
 		const ui::layout_out_t& screen	   = tree.out(tree.get_root());
 		const f32				row_margin = theme.outline_thickness;
 		const f32				row_height = theme.item_height + row_margin * 2.0f;
@@ -816,7 +856,6 @@ namespace sfg
 		x = math::clamp(x, screen.clip.x, math::max(screen.clip.x, screen.clip.x + screen.clip.z - width_px));
 		y = math::clamp(y, screen.clip.y, math::max(screen.clip.y, screen.clip.y + screen.clip.w - height_px));
 
-		ui::layout_in_t& frame_in = tree.in(_frame);
 		if (_mode == popup_mode_e::input)
 		{
 			ui::layout_in_t& input_in = tree.in(_input.get_root());
@@ -830,6 +869,7 @@ namespace sfg
 		}
 
 		frame_in.pos_value	   = {x, y};
+		frame_in.size_mode_x   = ui::axis_mode_e::fixed;
 		frame_in.size_mode_y   = _mode == popup_mode_e::color_wheel ? ui::axis_mode_e::fixed : ui::axis_mode_e::sum_children;
 		frame_in.size_value	   = {width, _mode == popup_mode_e::color_wheel ? height : 0.0f};
 		frame_in.child_margins = _mode == popup_mode_e::color_wheel ? vec4f_t{theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal} : vec4f_t{theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
@@ -981,6 +1021,9 @@ namespace sfg
 			return;
 		case pending_request_e::color_wheel:
 			request_color_wheel_popup(_pending_color_wheel_desc);
+			return;
+		case pending_request_e::custom:
+			request_custom_popup(_pending_custom_desc);
 			return;
 		case pending_request_e::asset_rows:
 			refresh_asset_rows();

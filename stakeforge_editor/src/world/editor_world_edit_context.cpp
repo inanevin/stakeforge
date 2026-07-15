@@ -63,6 +63,7 @@ namespace sfg
 		_entity_anchor			= NULL_ENTITY_ID;
 		_next_guid				= 1;
 		_selection_generation	= 0;
+		_world_view_settings	= {};
 		_transform_control_type = editor_transform_control_type_e::move;
 		_transform_locality		= editor_transform_locality_e::local;
 		_transform_snapping		= editor_transform_snapping_e::none;

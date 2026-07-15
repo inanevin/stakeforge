@@ -49,11 +49,13 @@ namespace sfg
 {
 	class editor_widget_thumbnail_t;
 
-	using editor_popup_item_pressed_fn	 = void (*)(u16 id, void* user_data);
-	using editor_popup_asset_pressed_fn	 = void (*)(sid_t guid, void* user_data);
-	using editor_popup_entity_pressed_fn = void (*)(entity_guid_t guid, void* user_data);
-	using editor_popup_input_closed_fn	 = void (*)(const char* value, void* user_data);
-	using editor_popup_closed_fn		 = void (*)(void* user_data);
+	using editor_popup_item_pressed_fn	   = void (*)(u16 id, void* user_data);
+	using editor_popup_asset_pressed_fn	   = void (*)(sid_t guid, void* user_data);
+	using editor_popup_entity_pressed_fn   = void (*)(entity_guid_t guid, void* user_data);
+	using editor_popup_input_closed_fn	   = void (*)(const char* value, void* user_data);
+	using editor_popup_closed_fn		   = void (*)(void* user_data);
+	using editor_custom_popup_install_fn   = void (*)(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
+	using editor_custom_popup_uninstall_fn = void (*)(ui::ui_context& ui, void* user_data);
 
 	struct editor_popup_item_desc_t
 	{
@@ -118,6 +120,14 @@ namespace sfg
 		vec2f_t							   pos			   = {};
 	};
 
+	struct editor_custom_popup_desc_t
+	{
+		editor_custom_popup_install_fn	 install   = nullptr;
+		editor_custom_popup_uninstall_fn uninstall = nullptr;
+		void*							 user_data = nullptr;
+		vec2f_t							 pos	   = {};
+	};
+
 	class editor_popup_controller_t final
 	{
 	public:
@@ -147,6 +157,7 @@ namespace sfg
 		void request_asset_popup(const editor_asset_popup_desc_t& desc);
 		void request_entity_popup(const editor_entity_popup_desc_t& desc);
 		void request_color_wheel_popup(const editor_color_wheel_popup_desc_t& desc);
+		void request_custom_popup(const editor_custom_popup_desc_t& desc);
 		void close_popup(bool notify_input = false);
 
 		static editor_popup_controller_t* find(ui::ui_context& ui);
@@ -160,6 +171,7 @@ namespace sfg
 			assets,
 			entities,
 			color_wheel,
+			custom,
 		};
 
 		enum class pending_request_e : u8
@@ -171,6 +183,7 @@ namespace sfg
 			assets,
 			entities,
 			color_wheel,
+			custom,
 			asset_rows,
 		};
 
@@ -239,11 +252,13 @@ namespace sfg
 		editor_asset_popup_desc_t		_asset_desc					  = {};
 		editor_entity_popup_desc_t		_entity_desc				  = {};
 		editor_color_wheel_popup_desc_t _color_wheel_desc			  = {};
+		editor_custom_popup_desc_t		_custom_desc				  = {};
 		editor_popup_desc_t				_pending_desc				  = {};
 		editor_input_popup_desc_t		_pending_input_desc			  = {};
 		editor_asset_popup_desc_t		_pending_asset_desc			  = {};
 		editor_entity_popup_desc_t		_pending_entity_desc		  = {};
 		editor_color_wheel_popup_desc_t _pending_color_wheel_desc	  = {};
+		editor_custom_popup_desc_t		_pending_custom_desc		  = {};
 		editor_input_field_t			_input						  = {};
 		editor_input_field_t			_asset_search_input			  = {};
 		editor_widget_color_wheel_t		_color_wheel				  = {};
