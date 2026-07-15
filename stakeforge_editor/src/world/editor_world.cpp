@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world.hpp"
 #include "world/editor_world_camera_fly.hpp"
 #include "world/editor_world_camera_orbit.hpp"
+#include "world/editor_world_rendering.hpp"
+#include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -49,16 +51,26 @@ namespace sfg
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 		_render_resolution = init_config.render_resolution;
-		_renderer.init(init_config.render_resolution, {.data = _snapshot_slots, .size = EDITOR_WORLD_SNAPSHOT_SLOT_COUNT});
+		_render_context.init(init_config.render_resolution);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
+		{
 			_snapshot_slots[i].reserve(8000);
+			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
+			data->selected_entities.reserve(256);
+			_snapshot_slots[i].user_data = data;
+		}
 	}
 
 	void editor_world_t::uninit()
 	{
 		uninstall_camera();
-		_renderer.uninit({.data = _snapshot_slots, .size = EDITOR_WORLD_SNAPSHOT_SLOT_COUNT});
+		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
+		{
+			delete static_cast<editor_world_snapshot_data_t*>(_snapshot_slots[i].user_data);
+			_snapshot_slots[i].user_data = nullptr;
+		}
+		_render_context.uninit();
 		_edit_context.uninit();
 		_world.unload_all_used_resources();
 		_world.uninit();
@@ -71,7 +83,7 @@ namespace sfg
 	void editor_world_t::resize(vec2u16_t render_resolution)
 	{
 		_render_resolution = render_resolution;
-		_renderer.resize(render_resolution);
+		_render_context.resize(render_resolution);
 	}
 
 	void editor_world_t::install_camera(editor_world_camera_type_e type)
@@ -186,5 +198,12 @@ namespace sfg
 			}
 		}
 		return _snapshot_slots[_consumer_slot];
+	}
+
+	void editor_world_t::render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_outlines(_render_context, snapshot, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, frame_index);
 	}
 }

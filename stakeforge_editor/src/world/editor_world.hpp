@@ -29,8 +29,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_handle.hpp"
-#include "world/editor_world_renderer.hpp"
+#include "world/editor_world_render_context.hpp"
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -38,6 +39,11 @@ namespace sfg
 {
 	struct aabb_t;
 	struct world_init_config_t;
+
+	struct editor_world_snapshot_data_t
+	{
+		vector_t<entity_id_t> selected_entities;
+	};
 
 	class editor_world_t final
 	{
@@ -71,6 +77,7 @@ namespace sfg
 		void						   update_world_transforms(bool advance_interpolation);
 		void						   produce_snapshot();
 		const world_render_snapshot_t& acquire_render_snapshot();
+		void						   render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -86,14 +93,14 @@ namespace sfg
 			return _world;
 		}
 
-		inline editor_world_renderer_t& get_renderer()
+		inline editor_world_render_context_t& get_render_context()
 		{
-			return _renderer;
+			return _render_context;
 		}
 
-		inline const editor_world_renderer_t& get_renderer() const
+		inline const editor_world_render_context_t& get_render_context() const
 		{
-			return _renderer;
+			return _render_context;
 		}
 
 		inline editor_world_edit_context_t& get_edit_context()
@@ -115,9 +122,11 @@ namespace sfg
 		void publish_snapshot();
 
 	private:
-		world_render_snapshot_t		_snapshot_slots[3] = {};
-		editor_world_camera_t*		_camera			   = nullptr;
-		editor_world_renderer_t		_renderer		   = {};
+		world_render_snapshot_t _snapshot_slots[3] = {};
+		editor_world_camera_t*	_camera			   = nullptr;
+
+		editor_world_render_context_t _render_context = {};
+
 		editor_world_edit_context_t _edit_context	   = {};
 		world_t						_world			   = {};
 		atomic_t<u8>				_snapshot_mailbox  = {};

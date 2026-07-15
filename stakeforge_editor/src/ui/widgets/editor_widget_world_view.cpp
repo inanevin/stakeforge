@@ -291,7 +291,7 @@ namespace sfg
 
 		editor_world_t* const world = editor_world_controller_t::get().get_editor_world(_edit_world);
 		for (u8 i = 0; i < BACK_BUFFER_COUNT; ++i)
-			texture_ref.gpu_indices[i] = world->get_renderer().get_world_texture_index(i);
+			texture_ref.gpu_indices[i] = world->get_render_context().get_world_texture_index(i);
 
 		ui::paint_def_t& def		  = _ui->get_paint().def(_world_view);
 		def.render_state.pipeline	  = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;

@@ -27,51 +27,91 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/data/span.hpp>
-#include <sfg/data/vector.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
-	struct world_render_snapshot_t;
-
-	struct editor_world_snapshot_data_t
+	struct editor_world_composite_data_t
 	{
-		vector_t<entity_id_t> selected_entities;
+		vec4f_t params			= vec4f_t::zero;
+		vec4f_t selection_color = vec4f_t::zero;
 	};
 
-	class editor_world_renderer_t final
+	class editor_world_render_context_t final
 	{
 	public:
-		editor_world_renderer_t()										   = default;
-		~editor_world_renderer_t()										   = default;
-		editor_world_renderer_t(const editor_world_renderer_t&)			   = delete;
-		editor_world_renderer_t& operator=(const editor_world_renderer_t&) = delete;
+		editor_world_render_context_t()												   = default;
+		~editor_world_render_context_t()											   = default;
+		editor_world_render_context_t(const editor_world_render_context_t&)			   = delete;
+		editor_world_render_context_t& operator=(const editor_world_render_context_t&) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(vec2u16_t size, span_t<world_render_snapshot_t> snapshots);
-		void uninit(span_t<world_render_snapshot_t> snapshots);
+		void init(vec2u16_t size);
+		void uninit();
 		void resize(vec2u16_t size);
-
-		// -----------------------------------------------------------------------------
-		// impl
-		// -----------------------------------------------------------------------------
-
-		void render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		inline world_render_context_t& get_world_render_context()
+		{
+			return _world_render_context;
+		}
+
+		inline const world_render_context_t& get_world_render_context() const
+		{
+			return _world_render_context;
+		}
+
+		inline gfx_handle_t get_command_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_gfx;
+		}
+
+		inline gfx_handle_t get_world_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].world_texture;
+		}
+
+		inline gfx_handle_t get_selection_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].selection_texture;
+		}
+
 		inline gpu_index_t get_world_texture_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].world_texture_index;
+		}
+
+		inline gpu_index_t get_selection_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].selection_texture_index;
+		}
+
+		inline gpu_index_t get_composite_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].composite_data_index;
+		}
+
+		inline u8* get_mapped_composite_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_composite_data;
+		}
+
+		inline gfx_handle_t get_shader() const
+		{
+			return _shader;
+		}
+
+		inline vec2u16_t get_size() const
+		{
+			return _size;
 		}
 
 	private:
@@ -90,16 +130,13 @@ namespace sfg
 			gpu_index_t	 composite_data_index	 = NULL_GPU_INDEX;
 		};
 
-		struct composite_data_t
-		{
-			vec4f_t params			= vec4f_t::zero;
-			vec4f_t selection_color = vec4f_t::zero;
-		};
-
 	private:
-		per_frame_data_t	   _pfd[BACK_BUFFER_COUNT] = {};
-		world_render_context_t _world_render_context   = {};
-		gfx_handle_t		   _shader				   = {};
-		vec2u16_t			   _size				   = vec2u16_t::zero;
+		world_render_context_t _world_render_context = {};
+
+		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
+
+		gfx_handle_t _shader = {};
+
+		vec2u16_t _size = vec2u16_t::zero;
 	};
 }
