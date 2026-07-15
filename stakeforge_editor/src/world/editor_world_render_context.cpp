@@ -95,6 +95,13 @@ namespace sfg
 		create_texture(size);
 	}
 
+	entity_id_t editor_world_render_context_t::get_object_id(u8 frame_index, vec2u16_t pixel) const
+	{
+		SFG_ASSERT(pixel.x < _size.x && pixel.y < _size.y);
+		const u8* pixel_data = _pfd[frame_index].mapped_object_id_readback + _object_id_readback_row_pitch * pixel.y + sizeof(entity_id_t) * pixel.x;
+		return *reinterpret_cast<const entity_id_t*>(pixel_data);
+	}
+
 	void editor_world_render_context_t::create_texture(vec2u16_t size)
 	{
 		texture_desc_t desc = {};
@@ -122,8 +129,10 @@ namespace sfg
 		object_id_desc.views[0]		  = {.type = view_type::render_target};
 		object_id_desc.set_name("editor_world_object_id");
 
+		_object_id_readback_row_pitch = gfx_backend::align_texture_size_pitch(static_cast<u32>(size.x) * sizeof(entity_id_t));
+
 		resource_desc_t object_id_readback_desc = {};
-		object_id_readback_desc.size			= gfx_backend::align_texture_size_pitch(static_cast<u32>(size.x) * sizeof(u32)) * static_cast<u32>(size.y);
+		object_id_readback_desc.size			= _object_id_readback_row_pitch * static_cast<u32>(size.y);
 		object_id_readback_desc.flags			= resource_flags::rf_readback;
 		object_id_readback_desc.set_name("editor_world_object_id_readback");
 
@@ -168,6 +177,7 @@ namespace sfg
 			_pfd[i].world_texture_index		  = NULL_GPU_INDEX;
 			_pfd[i].selection_texture_index	  = NULL_GPU_INDEX;
 		}
-		_size = vec2u16_t::zero;
+		_object_id_readback_row_pitch = 0;
+		_size						  = vec2u16_t::zero;
 	}
 }

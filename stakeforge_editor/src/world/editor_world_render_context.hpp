@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -119,6 +120,8 @@ namespace sfg
 			return _pfd[frame_index].mapped_object_id_readback;
 		}
 
+		entity_id_t get_object_id(u8 frame_index, vec2u16_t pixel) const;
+
 		inline gfx_handle_t get_shader() const
 		{
 			return _shader;
@@ -155,6 +158,7 @@ namespace sfg
 
 		gfx_handle_t _shader = {};
 
-		vec2u16_t _size = vec2u16_t::zero;
+		u32		  _object_id_readback_row_pitch = 0;
+		vec2u16_t _size							= vec2u16_t::zero;
 	};
 }

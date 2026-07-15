@@ -321,11 +321,21 @@ namespace sfg
 			widget.begin_camera_control(*s_event_runtime);
 	}
 
-	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		if (btn == ui::mouse_button_e::right)
 			widget.end_camera_control();
+		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
+		{
+			const ui::layout_out_t& out				  = widget._ui->get_tree().out(widget._world_view);
+			const vec2f_t			relative_position = {
+				math::clamp((pos.x - out.pos.x) / out.size.x, 0.0f, 1.0f),
+				math::clamp((pos.y - out.pos.y) / out.size.y, 0.0f, 1.0f),
+			};
+			const bool incremental_selection = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->request_entity_pick(relative_position, incremental_selection);
+		}
 	}
 
 	void editor_widget_world_view_t::on_world_view_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)

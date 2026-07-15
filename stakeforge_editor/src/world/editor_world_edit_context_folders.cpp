@@ -49,8 +49,6 @@ namespace sfg
 
 	editor_world_folder_handle_t editor_world_edit_context_t::create_folder_with_guid(const char* name, color_t color, bool folded, editor_world_folder_handle_t parent_handle, u64 guid)
 	{
-		SFG_ASSERT(_folders.is_valid(parent_handle));
-
 		if (guid == 0)
 			guid = _next_guid++;
 

@@ -40,9 +40,17 @@ namespace sfg
 	struct aabb_t;
 	struct world_init_config_t;
 
+	struct editor_world_pick_request_t
+	{
+		vec2f_t relative_position	  = vec2f_t::zero;
+		u32		id					  = 0;
+		bool	incremental_selection = false;
+	};
+
 	struct editor_world_snapshot_data_t
 	{
-		vector_t<entity_id_t> selected_entities;
+		vector_t<entity_id_t>		selected_entities;
+		editor_world_pick_request_t pick_request = {};
 	};
 
 	class editor_world_t final
@@ -73,6 +81,7 @@ namespace sfg
 		void						   reset_camera_input();
 		void						   tick_camera(f32 dt_seconds);
 		void						   fit_camera_to_bounds(const aabb_t& bounds);
+		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
 		void						   tick(f32 dt_seconds);
 		void						   update_world_transforms(bool advance_interpolation);
 		void						   produce_snapshot();
@@ -120,6 +129,7 @@ namespace sfg
 
 	private:
 		void publish_snapshot();
+		void consume_entity_pick_result();
 
 	private:
 		world_render_snapshot_t _snapshot_slots[3] = {};
@@ -127,11 +137,16 @@ namespace sfg
 
 		editor_world_render_context_t _render_context = {};
 
-		editor_world_edit_context_t _edit_context	   = {};
-		world_t						_world			   = {};
-		atomic_t<u8>				_snapshot_mailbox  = {};
-		vec2u16_t					_render_resolution = vec2u16_t::zero;
-		u8							_producer_slot	   = 0;
-		u8							_consumer_slot	   = 0;
+		editor_world_edit_context_t _edit_context								 = {};
+		world_t						_world										 = {};
+		atomic_t<u64>				_pick_result								 = {};
+		editor_world_pick_request_t _pending_pick_request						 = {};
+		atomic_t<u8>				_snapshot_mailbox							 = {};
+		u32							_last_render_pick_request_id				 = 0;
+		u32							_next_pick_request_id						 = 0;
+		vec2u16_t					_render_resolution							 = vec2u16_t::zero;
+		bool						_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
+		u8							_producer_slot								 = 0;
+		u8							_consumer_slot								 = 0;
 	};
 }
