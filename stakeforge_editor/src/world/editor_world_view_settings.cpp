@@ -38,6 +38,15 @@ namespace sfg
 			.display_name = "World View Settings",
 			.fields =
 				{
+					{.name				= "grid_scale",
+					 .display_name		= "Grid Scale",
+					 .offset			= offsetof(editor_world_view_settings_t, grid_scale),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.01f,
+					 .max_clamp			= 100.0f,
+					 .clamp_granularity = 0.1f,
+					 .type				= reflected_value_type_e::f32},
 					{.name				= "snap_translate",
 					 .display_name		= "Snap Translate",
 					 .offset			= offsetof(editor_world_view_settings_t, snap_translate),

@@ -21,8 +21,9 @@ struct world_render_data
 
 struct editor_gizmo_data
 {
-	float4x4 models[4];
-	float4 colors[4];
+	float4x4 models[7];
+	float4 colors[7];
+	float4 offsets[7];
 	float4 params;
 };
 
@@ -35,7 +36,7 @@ vs_output VSMain(vs_input input)
 	float3 pivot = mul(gizmo_data.models[axis], float4(0.0, 0.0, 0.0, 1.0)).xyz;
 	float4 pivot_clip = mul(world_data.view_proj, float4(pivot, 1.0));
 	float world_scale = max(gizmo_data.params.x * 2.0 * pivot_clip.w * gizmo_data.params.z / gizmo_data.params.y, gizmo_data.params.w);
-	float3 world_pos = mul(gizmo_data.models[axis], float4(input.pos * world_scale, 1.0)).xyz;
+	float3 world_pos = mul(gizmo_data.models[axis], float4(input.pos * world_scale, 1.0)).xyz + gizmo_data.offsets[axis].xyz * world_scale;
 	output.pos = mul(world_data.view_proj, float4(world_pos, 1.0));
 	output.color = gizmo_data.colors[axis];
 	return output;

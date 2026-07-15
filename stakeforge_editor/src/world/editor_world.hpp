@@ -60,11 +60,18 @@ namespace sfg
 		editor_gizmo_axis_e				active_axis	  = editor_gizmo_axis_e::invalid;
 	};
 
+	struct editor_world_grid_snapshot_data_t
+	{
+		f32	 scale	 = 1.0f;
+		bool enabled = false;
+	};
+
 	struct editor_world_snapshot_data_t
 	{
 		vector_t<entity_id_t>			   selected_entities;
 		editor_world_gizmo_snapshot_data_t gizmo		= {};
 		editor_world_pick_request_t		   pick_request = {};
+		editor_world_grid_snapshot_data_t  grid			= {};
 	};
 
 	class editor_world_t final

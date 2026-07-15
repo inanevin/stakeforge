@@ -38,15 +38,26 @@ namespace sfg
 {
 	struct editor_world_composite_data_t
 	{
-		vec4f_t params			= vec4f_t::zero;
-		vec4f_t selection_color = vec4f_t::zero;
+		mat4x4_t proj			  = mat4x4_t::identity;
+		mat4x4_t inv_proj		  = mat4x4_t::identity;
+		mat4x4_t inv_view		  = mat4x4_t::identity;
+		vec4f_t	 camera_position  = vec4f_t::zero;
+		vec4f_t	 camera_grid	  = vec4f_t::zero;
+		vec4f_t	 grid_params	  = vec4f_t::zero;
+		vec4f_t	 grid_minor_color = vec4f_t::zero;
+		vec4f_t	 grid_major_color = vec4f_t::zero;
+		vec4f_t	 grid_x_color	  = vec4f_t::zero;
+		vec4f_t	 grid_z_color	  = vec4f_t::zero;
+		vec4f_t	 params			  = vec4f_t::zero;
+		vec4f_t	 selection_color  = vec4f_t::zero;
 	};
 
 	struct editor_world_gizmo_gpu_data_t
 	{
-		mat4x4_t models[4] = {};
-		vec4f_t	 colors[4] = {};
-		vec4f_t	 params	   = vec4f_t::zero;
+		mat4x4_t models[7]	= {};
+		vec4f_t	 colors[7]	= {};
+		vec4f_t	 offsets[7] = {};
+		vec4f_t	 params		= vec4f_t::zero;
 	};
 
 	struct editor_world_gizmo_mesh_t

@@ -46,6 +46,12 @@ namespace sfg
 #define EDITOR_WORLD_GIZMO_SCALE_MIN		 0.001f
 #define EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS 0.01f
 
+	static constexpr u32 GIZMO_PLANE_AXES[3][3] = {
+		{0, 1, 2},
+		{1, 2, 0},
+		{2, 0, 1},
+	};
+
 	struct editor_world_gizmo_t::frame_t
 	{
 		render_view_t view				= {};
@@ -211,6 +217,40 @@ namespace sfg
 				return result;
 			}
 		}
+		if (control_type == editor_transform_control_type_e::move)
+		{
+			ray_t ray;
+			if (calculate_ray(frame, relative_position, ray))
+			{
+				f32 best_alignment = 0.0f;
+				for (u32 plane = 0; plane < 3; ++plane)
+				{
+					const vec3f_t& axis_a = frame.axes[GIZMO_PLANE_AXES[plane][0]];
+					const vec3f_t& axis_b = frame.axes[GIZMO_PLANE_AXES[plane][1]];
+					const vec3f_t& normal = frame.axes[GIZMO_PLANE_AXES[plane][2]];
+					vec3f_t		   plane_point;
+					if (!calculate_plane_point(ray, frame.pivot, normal, plane_point))
+						continue;
+
+					const vec3f_t offset	   = (plane_point - frame.pivot) / frame.world_scale;
+					const f32	  coordinate_a = vec3f_t::dot(offset, axis_a);
+					const f32	  coordinate_b = vec3f_t::dot(offset, axis_b);
+					const f32	  plane_min	   = PLANE_CENTER - PLANE_SIZE * 0.5f;
+					const f32	  plane_max	   = PLANE_CENTER + PLANE_SIZE * 0.5f;
+					if (coordinate_a < plane_min || coordinate_a > plane_max || coordinate_b < plane_min || coordinate_b > plane_max)
+						continue;
+
+					const f32 alignment = math::abs(vec3f_t::dot(ray.direction, normal));
+					if (alignment > best_alignment)
+					{
+						best_alignment = alignment;
+						result.axis	   = static_cast<editor_gizmo_axis_e>(static_cast<u32>(editor_gizmo_axis_e::xy) + plane);
+					}
+				}
+				if (result.axis != editor_gizmo_axis_e::invalid)
+					return result;
+			}
+		}
 		for (u32 axis = 0; axis < 3; ++axis)
 		{
 			vec2f_t endpoint_pixels;
@@ -295,6 +335,9 @@ namespace sfg
 		const hit_t hit = pick(frame, context.get_transform_control_type(), relative_position);
 		if (hit.axis == editor_gizmo_axis_e::invalid)
 			return false;
+		const u32  handle_index = static_cast<u32>(hit.axis);
+		const bool axis_handle	= handle_index < 3;
+		const bool plane_handle = hit.axis >= editor_gizmo_axis_e::xy && hit.axis <= editor_gizmo_axis_e::zx;
 
 		_active_axis		  = hit.axis;
 		_hovered_axis		  = hit.axis;
@@ -303,10 +346,20 @@ namespace sfg
 		_selection_generation = context.get_selection_generation();
 		_world				  = context.get_world();
 		_pivot				  = frame.pivot;
-		_axis_world			  = hit.axis == editor_gizmo_axis_e::central ? vec3f_t::zero : frame.axes[static_cast<u32>(hit.axis)];
-		_central_plane_normal = frame.camera_forward;
-		_central_plane_right  = frame.camera_right;
-		_central_plane_up	  = frame.camera_up;
+		_axis_world			  = axis_handle ? frame.axes[handle_index] : vec3f_t::zero;
+		if (plane_handle)
+		{
+			const u32 plane		  = handle_index - static_cast<u32>(editor_gizmo_axis_e::xy);
+			_central_plane_right  = frame.axes[GIZMO_PLANE_AXES[plane][0]];
+			_central_plane_up	  = frame.axes[GIZMO_PLANE_AXES[plane][1]];
+			_central_plane_normal = frame.axes[GIZMO_PLANE_AXES[plane][2]];
+		}
+		else
+		{
+			_central_plane_normal = frame.camera_forward;
+			_central_plane_right  = frame.camera_right;
+			_central_plane_up	  = frame.camera_up;
+		}
 		_world_scale		  = frame.world_scale;
 		_orientation		  = _locality == editor_transform_locality_e::local ? frame.axis_rotations[1] : quat_t::identity;
 		_initial_mouse_pixels = {
@@ -325,7 +378,7 @@ namespace sfg
 		vec2f_t pivot_pixels;
 		project_point(frame, frame.pivot, pivot_pixels);
 		_initial_center_distance = vec2f_t::distance(_initial_mouse_pixels, pivot_pixels);
-		if (hit.axis != editor_gizmo_axis_e::central)
+		if (axis_handle)
 		{
 			vec2f_t endpoint_pixels;
 			project_point(frame, frame.pivot + _axis_world * frame.world_scale, endpoint_pixels);
@@ -336,7 +389,7 @@ namespace sfg
 		ray_t ray;
 		if (calculate_ray(frame, relative_position, ray))
 		{
-			if (hit.axis == editor_gizmo_axis_e::central)
+			if (!axis_handle)
 				_central_plane_valid = calculate_plane_point(ray, _pivot, _central_plane_normal, _initial_plane_point);
 			else
 			{
@@ -415,7 +468,7 @@ namespace sfg
 		switch (_control_type)
 		{
 		case editor_transform_control_type_e::move: {
-			if (_active_axis == editor_gizmo_axis_e::central)
+			if (_active_axis == editor_gizmo_axis_e::central || (_active_axis >= editor_gizmo_axis_e::xy && _active_axis <= editor_gizmo_axis_e::zx))
 			{
 				vec3f_t current_plane_point;
 				if (_central_plane_valid && ray_valid && calculate_plane_point(ray, _pivot, _central_plane_normal, current_plane_point))

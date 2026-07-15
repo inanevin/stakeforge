@@ -48,6 +48,9 @@ namespace sfg
 		y,
 		z,
 		central,
+		xy,
+		yz,
+		zx,
 		invalid,
 	};
 
@@ -59,6 +62,9 @@ namespace sfg
 		static inline constexpr f32 HIT_RADIUS_PX		  = 8.0f;
 		static inline constexpr f32 CENTRAL_SIZE		  = 0.15f;
 		static inline constexpr f32 CENTRAL_HIT_RADIUS_PX = 9.0f;
+		static inline constexpr f32 PLANE_CENTER		  = 0.30f;
+		static inline constexpr f32 PLANE_SIZE			  = 0.18f;
+		static inline constexpr f32 PLANE_THICKNESS		  = 0.0125f;
 
 		editor_world_gizmo_t()										 = default;
 		~editor_world_gizmo_t()										 = default;

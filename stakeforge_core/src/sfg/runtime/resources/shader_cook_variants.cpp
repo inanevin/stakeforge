@@ -375,7 +375,7 @@ namespace sfg
 		desc.depth_stencil_desc.attachment_format = format_e::undefined;
 		desc.depth_stencil_desc.flags			  = 0;
 		vertex_inputs_t::get_pos_normal_tangent_uv(desc);
-		add_attachment(desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_none());
+		add_attachment(desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_alpha_blend());
 
 		out_psos.push_back({.desc = desc, .variant_flags = 0, .compile_variant_index = 0});
 		return true;

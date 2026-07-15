@@ -63,7 +63,7 @@ namespace sfg
 
 	struct editor_mesh_generator_translation_gizmo_params_t
 	{
-		f32 shaft_radius = 0.025f;
+		f32 shaft_radius = 0.0125f;
 		f32 arrow_radius = 0.075f;
 		f32 arrow_length = 0.2f;
 		u16 segments	 = 16;
@@ -71,7 +71,7 @@ namespace sfg
 
 	struct editor_mesh_generator_scale_gizmo_params_t
 	{
-		f32 shaft_radius = 0.025f;
+		f32 shaft_radius = 0.0125f;
 		f32 cube_size	 = 0.15f;
 		u16 segments	 = 16;
 	};
@@ -79,7 +79,7 @@ namespace sfg
 	struct editor_mesh_generator_rotation_gizmo_params_t
 	{
 		f32 radius	  = 1.0f;
-		f32 thickness = 0.04f;
+		f32 thickness = 0.025f;
 		u16 segments  = 64;
 	};
 

@@ -278,7 +278,11 @@ namespace sfg
 		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();
 		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
 
-		data.pick_request		 = _pending_pick_request;
+		data.pick_request = _pending_pick_request;
+		data.grid		  = {
+			.scale	 = _edit_context.get_world_view_settings().grid_scale,
+			.enabled = _edit_context.is_grid_enabled(),
+		};
 		data.gizmo				 = {};
 		const entity_id_t anchor = _edit_context.get_entity_anchor();
 		if (anchor != NULL_ENTITY_ID)

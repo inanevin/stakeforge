@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/render/render_view.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_draw.hpp>
 #include <sfg/runtime/render/world_render_material.hpp>
@@ -341,10 +342,27 @@ namespace sfg
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 		const vec2u16_t						size		  = ctx.get_size();
+		render_view_t						view;
+		view.calculate(snapshot.main_view, size, interpolation_alpha);
+
+		const f32			  grid_period  = snapshot_data.grid.scale * 10000.0f;
+		const f32			  grid_phase_x = view.pos.x - math::floor(view.pos.x / grid_period) * grid_period;
+		const f32			  grid_phase_z = view.pos.z - math::floor(view.pos.z / grid_period) * grid_period;
+		const editor_theme_t& theme		   = editor_theme_t::get();
 
 		const editor_world_composite_data_t composite_data = {
-			.params			 = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), 2.0f, snapshot_data.selected_entities.empty() ? 0.0f : 1.0f),
-			.selection_color = editor_theme_t::get().color_accent2,
+			.proj			  = view.proj,
+			.inv_proj		  = view.inv_proj,
+			.inv_view		  = view.inv_view,
+			.camera_position  = vec4f_t(view.pos.x, view.pos.y, view.pos.z, 1.0f),
+			.camera_grid	  = vec4f_t(grid_phase_x, view.pos.y, grid_phase_z, snapshot_data.grid.enabled ? 1.0f : 0.0f),
+			.grid_params	  = vec4f_t(snapshot_data.grid.scale, view.near_plane, view.far_plane, grid_period),
+			.grid_minor_color = vec4f_t(theme.color_text2.x, theme.color_text2.y, theme.color_text2.z, 0.16f),
+			.grid_major_color = vec4f_t(theme.color_text1.x, theme.color_text1.y, theme.color_text1.z, 0.30f),
+			.grid_x_color	  = vec4f_t(theme.color_accent0.x, theme.color_accent0.y, theme.color_accent0.z, 0.65f),
+			.grid_z_color	  = vec4f_t(theme.color_accent1.x, theme.color_accent1.y, theme.color_accent1.z, 0.65f),
+			.params			  = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), 2.0f, snapshot_data.selected_entities.empty() ? 0.0f : 1.0f),
+			.selection_color  = theme.color_accent2,
 		};
 		SFG_MEMCPY(ctx.get_mapped_composite_data(frame_index), &composite_data, sizeof(editor_world_composite_data_t));
 
@@ -363,12 +381,28 @@ namespace sfg
 			editor_world_gizmo_gpu_data_t gizmo_data = {};
 			for (u32 i = 0; i < 3; ++i)
 				gizmo_data.models[i] = mat4x4_t::transform(position, rotation * axis_rotations[i], vec3f_t::one);
-			gizmo_data.models[3]					 = mat4x4_t::transform(position, rotation, vec3f_t(editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE));
-			const editor_theme_t& theme				 = editor_theme_t::get();
-			gizmo_data.colors[0]					 = theme.color_accent0;
-			gizmo_data.colors[1]					 = theme.color_accent_green;
-			gizmo_data.colors[2]					 = theme.color_accent1;
-			gizmo_data.colors[3]					 = theme.color_text0;
+			gizmo_data.models[3]	= mat4x4_t::transform(position, rotation, vec3f_t(editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE));
+			gizmo_data.models[4]	= mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS});
+			gizmo_data.models[5]	= mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_SIZE});
+			gizmo_data.models[6]	= mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE});
+			const vec3f_t xy_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER, 0.0f);
+			const vec3f_t yz_offset = rotation * vec3f_t(0.0f, editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER);
+			const vec3f_t zx_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, 0.0f, editor_world_gizmo_t::PLANE_CENTER);
+			gizmo_data.offsets[4]	= vec4f_t(xy_offset.x, xy_offset.y, xy_offset.z, 0.0f);
+			gizmo_data.offsets[5]	= vec4f_t(yz_offset.x, yz_offset.y, yz_offset.z, 0.0f);
+			gizmo_data.offsets[6]	= vec4f_t(zx_offset.x, zx_offset.y, zx_offset.z, 0.0f);
+
+			gizmo_data.colors[0]   = theme.color_accent0;
+			gizmo_data.colors[1]   = theme.color_accent_green;
+			gizmo_data.colors[2]   = theme.color_accent1;
+			gizmo_data.colors[3]   = theme.color_text0;
+			gizmo_data.colors[4]   = (theme.color_accent0 + theme.color_accent_green) * 0.5f;
+			gizmo_data.colors[5]   = (theme.color_accent_green + theme.color_accent1) * 0.5f;
+			gizmo_data.colors[6]   = (theme.color_accent1 + theme.color_accent0) * 0.5f;
+			gizmo_data.colors[4].w = 0.4f;
+			gizmo_data.colors[5].w = 0.4f;
+			gizmo_data.colors[6].w = 0.4f;
+
 			const editor_gizmo_axis_e highlight_axis = snapshot_data.gizmo.active_axis != editor_gizmo_axis_e::invalid ? snapshot_data.gizmo.active_axis : snapshot_data.gizmo.hovered_axis;
 			if (highlight_axis != editor_gizmo_axis_e::invalid)
 				gizmo_data.colors[static_cast<u32>(highlight_axis)] = theme.color_accent2;
@@ -437,9 +471,9 @@ namespace sfg
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 		backend.cmd_bind_constants(cmd, {.data = &composite_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 
-		const gpu_index_t obj_constants[2] = {source_texture_index, selection_texture_index};
+		const gpu_index_t obj_constants[3] = {source_texture_index, selection_texture_index, world_ctx.get_depth_texture_index(frame_index)};
 
-		backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 3, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_composite_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
@@ -474,6 +508,30 @@ namespace sfg
 			};
 			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_gizmo_shader()});
+
+			if (snapshot_data.gizmo.control_type == editor_transform_control_type_e::move)
+			{
+				const editor_world_gizmo_mesh_t& plane_mesh			 = ctx.get_gizmo_central_mesh(1);
+				const gfx_handle_t				 plane_vertex_buffer = render_resources.get_resource(plane_mesh.vertex_buffer);
+				const gfx_handle_t				 plane_index_buffer	 = render_resources.get_resource(plane_mesh.index_buffer);
+				SFG_ASSERT(!plane_vertex_buffer.is_null() && !plane_index_buffer.is_null());
+
+				backend.cmd_bind_vertex_buffers(cmd, {.buffer = plane_vertex_buffer, .slot = 0, .vertex_size = plane_mesh.vertex_stride, .offset = 0});
+				backend.cmd_bind_index_buffers(cmd, {.buffer = plane_index_buffer, .offset = 0, .index_size = plane_mesh.index_stride});
+				for (u32 plane = static_cast<u32>(editor_gizmo_axis_e::xy); plane <= static_cast<u32>(editor_gizmo_axis_e::zx); ++plane)
+				{
+					backend.cmd_bind_constants(cmd, {.data = &plane, .offset = constant_obj0, .count = 1, .param_index = 0});
+					backend.cmd_draw_indexed_instanced(cmd,
+													   {
+														   .index_count_per_instance = plane_mesh.index_count,
+														   .instance_count			 = 1,
+														   .start_index_location	 = 0,
+														   .base_vertex_location	 = 0,
+														   .start_instance_location	 = 0,
+													   });
+				}
+			}
+
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = vertex_buffer, .slot = 0, .vertex_size = mesh.vertex_stride, .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = index_buffer, .offset = 0, .index_size = mesh.index_stride});
 
