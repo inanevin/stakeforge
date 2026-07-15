@@ -273,9 +273,12 @@ namespace sfg
 
 		editor_icon_button_config_t disable_button_config = {};
 		disable_button_config.frame_color				  = vec4f_t::zero;
+		disable_button_config.outline_color				  = vec4f_t::zero;
+		disable_button_config.toggled_frame_color		  = theme.color_frame_light;
+		disable_button_config.toggled_outline_color		  = theme.color_outline_light;
 		disable_button_config.hover_color				  = theme.color_panel_light;
+		disable_button_config.toggled_hover_color		  = theme.color_panel_light;
 		disable_button_config.press_color				  = theme.color_frame_light;
-		disable_button_config.frame_toggled_color		  = theme.color_frame_light;
 		disable_button_config.icon						  = ICON_EYE;
 		disable_button_config.toggled_icon				  = ICON_EYE_CROSS;
 		disable_button_config.icon_color				  = theme.color_text1;
@@ -283,6 +286,7 @@ namespace sfg
 		disable_button_config.tooltip					  = "Toggle Disable";
 		disable_button_config.size						  = theme.item_height;
 		disable_button_config.icon_size					  = theme.icon_default_px_size;
+		disable_button_config.rounding					  = theme.item_rounding;
 		disable_button_config.toggle_enabled			  = true;
 		disable_button_config.on_clicked				  = on_entity_disable_clicked;
 		disable_button_config.user_data					  = this;

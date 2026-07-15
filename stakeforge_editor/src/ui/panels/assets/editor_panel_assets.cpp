@@ -94,9 +94,12 @@ namespace sfg
 
 		editor_icon_button_config_t filter_button_config = {};
 		filter_button_config.frame_color				 = {0.0f, 0.0f, 0.0f, 0.0f};
+		filter_button_config.outline_color				 = vec4f_t::zero;
+		filter_button_config.toggled_frame_color		 = theme.color_frame;
+		filter_button_config.toggled_outline_color		 = theme.color_outline_light;
 		filter_button_config.hover_color				 = theme.color_panel_light;
+		filter_button_config.toggled_hover_color		 = theme.color_panel_light;
 		filter_button_config.press_color				 = theme.color_frame;
-		filter_button_config.frame_toggled_color		 = theme.color_frame;
 		filter_button_config.icon						 = ICON_FILTER;
 		filter_button_config.toggled_icon				 = ICON_FILTER;
 		filter_button_config.icon_color					 = theme.color_text0;
@@ -104,6 +107,7 @@ namespace sfg
 		filter_button_config.tooltip					 = "Filter";
 		filter_button_config.size						 = theme.item_height;
 		filter_button_config.icon_size					 = theme.text_default_px_size;
+		filter_button_config.rounding					 = theme.item_rounding;
 		filter_button_config.on_clicked					 = on_filter_button_pressed;
 		filter_button_config.user_data					 = this;
 		_filter_button.init(ui, _assets_left_pane_top_row, filter_button_config);

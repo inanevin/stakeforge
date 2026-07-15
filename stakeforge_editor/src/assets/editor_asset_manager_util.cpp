@@ -447,5 +447,38 @@ namespace sfg
 				resource_manager.load_resource_runtime(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh, istream);
 			}
 		}
+
+		if (resource_manager.find_entry(GIZMO_MESH_TRANSLATION) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_translation_gizmo({}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(GIZMO_MESH_TRANSLATION, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(GIZMO_MESH_ROTATION) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_rotation_gizmo({}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(GIZMO_MESH_ROTATION, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(GIZMO_MESH_SCALE) == nullptr)
+		{
+			ostream_t stream;
+			if (editor_mesh_generator_t::generate_scale_gizmo({}, stream))
+			{
+				istream_t istream;
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(GIZMO_MESH_SCALE, resource_type_e::mesh, istream);
+			}
+		}
 	}
 }

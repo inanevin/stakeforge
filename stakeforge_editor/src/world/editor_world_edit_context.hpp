@@ -54,6 +54,28 @@ namespace sfg
 		folder,
 	};
 
+	enum class editor_transform_control_type_e : u8
+	{
+		invalid,
+		move,
+		rotate,
+		scale,
+	};
+
+	enum class editor_transform_locality_e : u8
+	{
+		invalid,
+		local,
+		world,
+	};
+
+	enum class editor_transform_snapping_e : u8
+	{
+		invalid,
+		none,
+		default_,
+	};
+
 	struct editor_selection_listener_t
 	{
 		editor_selection_listener_fn fn		   = nullptr;
@@ -136,6 +158,64 @@ namespace sfg
 
 		void collect_outliner_items(const world_t& world);
 		void set_entity_folded(entity_guid_t guid, bool folded);
+
+		// -----------------------------------------------------------------------------
+		// transform
+		// -----------------------------------------------------------------------------
+
+		inline void set_transform_control_type(editor_transform_control_type_e type)
+		{
+			_transform_control_type = type;
+		}
+
+		inline editor_transform_control_type_e get_transform_control_type() const
+		{
+			return _transform_control_type;
+		}
+
+		inline void set_transform_locality(editor_transform_locality_e locality)
+		{
+			_transform_locality = locality;
+		}
+
+		inline editor_transform_locality_e get_transform_locality() const
+		{
+			return _transform_locality;
+		}
+
+		inline void set_transform_snapping(editor_transform_snapping_e snapping)
+		{
+			_transform_snapping = snapping;
+		}
+
+		inline editor_transform_snapping_e get_transform_snapping() const
+		{
+			return _transform_snapping;
+		}
+
+		// -----------------------------------------------------------------------------
+		// view
+		// -----------------------------------------------------------------------------
+
+		inline void set_grid_enabled(bool enabled)
+		{
+			_grid_enabled = enabled;
+		}
+
+		inline bool is_grid_enabled() const
+		{
+			return _grid_enabled;
+		}
+
+		inline void set_bounding_boxes_enabled(bool enabled)
+		{
+			_bounding_boxes_enabled = enabled;
+		}
+
+		inline bool is_bounding_boxes_enabled() const
+		{
+			return _bounding_boxes_enabled;
+		}
 
 		// -----------------------------------------------------------------------------
 		// selection
@@ -226,10 +306,15 @@ namespace sfg
 		gen_pool_t<editor_world_folder_t, u32, editor_world_folder_tag_t>			  _folders;
 		vector_t<editor_world_entity_metadata_t>									  _entity_metadata;
 		vector_t<editor_outliner_item_t>											  _outliner_items;
-		vector_t<entity_id_t>														  _selected_entities	= {};
-		editor_world_handle_t														  _world				= {};
-		entity_id_t																	  _entity_anchor		= NULL_ENTITY_ID;
-		u64																			  _next_guid			= 1;
-		u32																			  _selection_generation = 0;
+		vector_t<entity_id_t>														  _selected_entities	  = {};
+		editor_world_handle_t														  _world				  = {};
+		entity_id_t																	  _entity_anchor		  = NULL_ENTITY_ID;
+		u64																			  _next_guid			  = 1;
+		u32																			  _selection_generation	  = 0;
+		editor_transform_control_type_e												  _transform_control_type = editor_transform_control_type_e::move;
+		editor_transform_locality_e													  _transform_locality	  = editor_transform_locality_e::local;
+		editor_transform_snapping_e													  _transform_snapping	  = editor_transform_snapping_e::none;
+		bool																		  _grid_enabled			  = false;
+		bool																		  _bounding_boxes_enabled = false;
 	};
 }

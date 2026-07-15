@@ -98,8 +98,6 @@ namespace sfg
 		dropdown_config.pos_y					 = editor_dropdown_pos_y_e::center;
 		dropdown_config.fixed_width				 = theme.item_width * 1.25f;
 		_world_view_dropdown.init(ui, _root, dropdown_config);
-
-		editor_dividers_t::add_divider_ver(ui, _root, theme.border_thickness, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 	}
 
 	void editor_main_toolbar_t::uninit()

@@ -25,6 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #pragma once
 
+#define ICON_SETTINGS_WHEEL	 "\u0034"
+#define ICON_FRAME			 "\u0027"
+#define ICON_FRAME_DOTTED	 "\u0029"
+#define ICON_MAGNET			 "\u0024"
+#define ICON_MAGNET_OFF		 "\u0028"
 #define ICON_SCROLL			 "\u0036"
 #define ICON_CUBE			 "\u0039"
 #define ICON_PEN			 "\u0065"

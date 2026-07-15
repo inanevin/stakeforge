@@ -85,11 +85,15 @@ namespace sfg
 
 		editor_icon_button_config_t button_config = {};
 		button_config.frame_color				  = {0.0f, 0.0f, 0.0f, 0.0f};
+		button_config.outline_color				  = vec4f_t::zero;
+		button_config.toggled_frame_color		  = theme.color_frame_light;
+		button_config.toggled_outline_color		  = theme.color_outline_light;
 		button_config.hover_color				  = theme.color_panel_light;
+		button_config.toggled_hover_color		  = theme.color_panel_light;
 		button_config.press_color				  = theme.color_frame_light;
-		button_config.frame_toggled_color		  = theme.color_frame_light;
 		button_config.size						  = theme.item_height;
 		button_config.icon_size					  = theme.text_big_px_size;
+		button_config.rounding					  = theme.item_rounding;
 		button_config.toggle_enabled			  = true;
 		button_config.on_clicked				  = on_filter_pressed;
 

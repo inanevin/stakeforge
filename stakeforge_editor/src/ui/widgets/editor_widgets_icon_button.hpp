@@ -42,21 +42,25 @@ namespace sfg
 
 	struct editor_icon_button_config_t
 	{
-		vec4f_t						  frame_color		  = {0.0f, 0.0f, 0.0f, 0.0f};
-		vec4f_t						  press_color		  = {0.0f, 0.0f, 0.0f, 0.0f};
-		vec4f_t						  hover_color		  = {0.0f, 0.0f, 0.0f, 0.0f};
-		vec4f_t						  frame_toggled_color = {0.0f, 0.0f, 0.0f, 0.0f};
-		vec4f_t						  icon_color		  = {1.0f, 1.0f, 1.0f, 1.0f};
-		vec4f_t						  disabled_color	  = {1.0f, 1.0f, 1.0f, 1.0f};
-		const char*					  icon				  = nullptr;
-		const char*					  toggled_icon		  = nullptr;
-		const char*					  tooltip			  = nullptr;
-		editor_icon_button_clicked_fn on_clicked		  = nullptr;
-		void*						  user_data			  = nullptr;
-		f32							  size				  = 0.0f;
-		f32							  icon_size			  = 0.0f;
-		bool						  toggle_enabled	  = false;
-		bool						  toggled			  = false;
+		vec4f_t						  frame_color			= {};
+		vec4f_t						  outline_color			= {};
+		vec4f_t						  toggled_frame_color	= {};
+		vec4f_t						  toggled_outline_color = {};
+		vec4f_t						  hover_color			= {};
+		vec4f_t						  toggled_hover_color	= {};
+		vec4f_t						  press_color			= {};
+		vec4f_t						  icon_color			= {1.0f, 1.0f, 1.0f, 1.0f};
+		vec4f_t						  disabled_color		= {1.0f, 1.0f, 1.0f, 1.0f};
+		const char*					  icon					= nullptr;
+		const char*					  toggled_icon			= nullptr;
+		const char*					  tooltip				= nullptr;
+		editor_icon_button_clicked_fn on_clicked			= nullptr;
+		void*						  user_data				= nullptr;
+		f32							  size					= 0.0f;
+		f32							  icon_size				= 0.0f;
+		f32							  rounding				= 0.0f;
+		bool						  toggle_enabled		= false;
+		bool						  toggled				= false;
 	};
 
 	class editor_icon_button_t final

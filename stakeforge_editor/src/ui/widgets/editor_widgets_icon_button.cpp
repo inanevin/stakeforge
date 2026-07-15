@@ -121,16 +121,17 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 		ui::paint_layer_t&	  paint = _ui->get_paint();
 
-		ui::vg_rect_paint_t rect  = {};
-		const vec4f_t		color = _config.toggle_enabled && _toggled ? _config.frame_toggled_color : _config.frame_color;
-		rect.fill_color_a		  = color;
-		rect.fill_color_b		  = color;
-		rect.rounding			  = theme.item_rounding;
-		rect.outline_color		  = _config.toggle_enabled && _toggled ? theme.color_outline_light : vec4f_t::zero;
-		rect.outline_thickness	  = theme.outline_thickness;
+		ui::vg_rect_paint_t rect	= {};
+		const bool			toggled = _config.toggle_enabled && _toggled;
+		const vec4f_t		color	= toggled ? _config.toggled_frame_color : _config.frame_color;
+		rect.fill_color_a			= color;
+		rect.fill_color_b			= color;
+		rect.rounding				= _config.rounding;
+		rect.outline_color			= toggled ? _config.toggled_outline_color : _config.outline_color;
+		rect.outline_thickness		= theme.outline_thickness;
 
 		paint.set_rect(_root, rect);
-		paint.set_hover_color(_root, _config.hover_color);
+		paint.set_hover_color(_root, toggled ? _config.toggled_hover_color : _config.hover_color);
 		paint.set_press_color(_root, _config.press_color);
 
 		_ui->set_widget_text(_icon, get_icon());

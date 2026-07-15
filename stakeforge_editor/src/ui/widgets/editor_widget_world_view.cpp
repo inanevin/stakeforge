@@ -99,6 +99,8 @@ namespace sfg
 		listener.user_data			   = this;
 		ui.get_input().set_listener(_world_view, listener);
 
+		_toolbars.init(ui, _world_view);
+
 		_empty_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_empty_label, "empty_label");
 		tree.attach(_root, _empty_label);
@@ -124,6 +126,7 @@ namespace sfg
 	{
 		end_camera_control();
 		editor_payload_controller_t::get().unregister_listener(this);
+		_toolbars.uninit();
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
 		_edit_world			 = {};
@@ -139,6 +142,7 @@ namespace sfg
 
 	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
 	{
+		_toolbars.set_edit_world(world);
 		if (world.is_null())
 		{
 			end_camera_control();
