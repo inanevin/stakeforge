@@ -94,7 +94,11 @@ namespace sfg
 		ui::listener_bundle_t listener = {};
 		listener.on_press			   = on_world_view_press;
 		listener.on_release			   = on_world_view_release;
+		listener.on_hover_move		   = on_world_view_hover_move;
+		listener.on_hover_exit		   = on_world_view_hover_exit;
+		listener.on_drag			   = on_world_view_drag;
 		listener.on_focus_lose		   = on_world_view_focus_lost;
+		listener.on_key				   = on_world_view_key;
 		listener.on_wheel			   = on_world_view_wheel;
 		listener.user_data			   = this;
 		ui.get_input().set_listener(_world_view, listener);
@@ -124,24 +128,27 @@ namespace sfg
 
 	void editor_widget_world_view_t::uninit()
 	{
+		cancel_gizmo_action();
 		end_camera_control();
 		editor_payload_controller_t::get().unregister_listener(this);
 		_toolbars.uninit();
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
-		_edit_world			 = {};
-		_last_resize_request = vec2u16_t::zero;
-		_camera_runtime		 = nullptr;
-		_empty_label		 = NULL_WIDGET;
-		_world_view			 = NULL_WIDGET;
-		_root				 = NULL_WIDGET;
-		_resize_ticks		 = 0;
-		_camera_control		 = false;
-		_ui					 = nullptr;
+		_edit_world			  = {};
+		_last_resize_request  = vec2u16_t::zero;
+		_camera_runtime		  = nullptr;
+		_empty_label		  = NULL_WIDGET;
+		_world_view			  = NULL_WIDGET;
+		_root				  = NULL_WIDGET;
+		_resize_ticks		  = 0;
+		_camera_control		  = false;
+		_gizmo_press_consumed = false;
+		_ui					  = nullptr;
 	}
 
 	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
 	{
+		cancel_gizmo_action();
 		_toolbars.set_edit_world(world);
 		if (world.is_null())
 		{
@@ -286,6 +293,26 @@ namespace sfg
 		return true;
 	}
 
+	vec2f_t editor_widget_world_view_t::calculate_relative_position(const vec2f_t& position) const
+	{
+		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
+		return {
+			math::clamp((position.x - out.pos.x) / out.size.x, 0.0f, 1.0f),
+			math::clamp((position.y - out.pos.y) / out.size.y, 0.0f, 1.0f),
+		};
+	}
+
+	void editor_widget_world_view_t::cancel_gizmo_action()
+	{
+		if (!_edit_world.is_null())
+		{
+			editor_world_t* world = editor_world_controller_t::get().get_editor_world(_edit_world);
+			world->cancel_gizmo_action();
+			world->clear_gizmo_hover();
+		}
+		_gizmo_press_consumed = false;
+	}
+
 	void editor_widget_world_view_t::refresh_world_texture()
 	{
 		ui::ui_resource_ref_t texture_ref = {
@@ -314,15 +341,25 @@ namespace sfg
 			widget._resize_ticks = 0;
 			widget.request_world_resize(false);
 		}
+		if (!widget._gizmo_press_consumed && widget._ui->get_input().get_hovered() == widget._world_view)
+		{
+			const vec2f_t& mouse = widget._ui->get_input().get_mouse_position();
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->update_gizmo_hover(widget.calculate_relative_position(mouse));
+		}
 		widget.refresh_world_texture();
 	}
 
-	void editor_widget_world_view_t::on_world_view_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_world_view_t::on_world_view_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		SFG_ASSERT(s_event_runtime != nullptr);
 		if (btn == ui::mouse_button_e::right)
 			widget.begin_camera_control(*s_event_runtime);
+		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
+		{
+			editor_world_t* world		 = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+			widget._gizmo_press_consumed = world->begin_gizmo_action(widget.calculate_relative_position(pos));
+		}
 	}
 
 	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -330,21 +367,56 @@ namespace sfg
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		if (btn == ui::mouse_button_e::right)
 			widget.end_camera_control();
+		else if (btn == ui::mouse_button_e::left && widget._gizmo_press_consumed)
+		{
+			editor_world_t* world			  = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+			const vec2f_t	relative_position = widget.calculate_relative_position(pos);
+			world->update_gizmo_action(relative_position);
+			world->end_gizmo_action();
+			world->update_gizmo_hover(relative_position);
+			widget._gizmo_press_consumed = false;
+		}
 		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
 		{
-			const ui::layout_out_t& out				  = widget._ui->get_tree().out(widget._world_view);
-			const vec2f_t			relative_position = {
-				math::clamp((pos.x - out.pos.x) / out.size.x, 0.0f, 1.0f),
-				math::clamp((pos.y - out.pos.y) / out.size.y, 0.0f, 1.0f),
-			};
-			const bool incremental_selection = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			const vec2f_t relative_position		= widget.calculate_relative_position(pos);
+			const bool	  incremental_selection = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 			editor_world_controller_t::get().get_editor_world(widget._edit_world)->request_entity_pick(relative_position, incremental_selection);
 		}
 	}
 
+	void editor_widget_world_view_t::on_world_view_hover_move(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		if (!widget._edit_world.is_null() && !widget._gizmo_press_consumed)
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->update_gizmo_hover(widget.calculate_relative_position(pos));
+	}
+
+	void editor_widget_world_view_t::on_world_view_hover_exit(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, const vec2f_t&, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		if (!widget._edit_world.is_null())
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->clear_gizmo_hover();
+	}
+
+	void editor_widget_world_view_t::on_world_view_drag(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		if (widget._gizmo_press_consumed)
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->update_gizmo_action(widget.calculate_relative_position(pos));
+	}
+
 	void editor_widget_world_view_t::on_world_view_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
-		static_cast<editor_widget_world_view_t*>(user_data)->end_camera_control();
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		widget.cancel_gizmo_action();
+		widget.end_camera_control();
+	}
+
+	void editor_widget_world_view_t::on_world_view_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	{
+		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+		if (widget._gizmo_press_consumed && ev.action == ui::key_action_e::press && ev.key == static_cast<u16>(input_code::key_escape))
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->cancel_gizmo_action();
 	}
 
 	void editor_widget_world_view_t::on_world_view_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)

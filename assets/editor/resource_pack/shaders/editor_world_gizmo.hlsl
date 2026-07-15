@@ -21,8 +21,8 @@ struct world_render_data
 
 struct editor_gizmo_data
 {
-	float4x4 models[3];
-	float4 colors[3];
+	float4x4 models[4];
+	float4 colors[4];
 	float4 params;
 };
 

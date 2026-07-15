@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world/editor_world_camera.hpp"
 #include "world/editor_world_edit_context.hpp"
+#include "world/editor_world_gizmo.hpp"
 #include "world/editor_world_handle.hpp"
 #include "world/editor_world_render_context.hpp"
 #include <sfg/data/atomic.hpp>
@@ -55,6 +56,8 @@ namespace sfg
 		vec3f_t							prev_position = vec3f_t::zero;
 		vec3f_t							position	  = vec3f_t::zero;
 		editor_transform_control_type_e control_type  = editor_transform_control_type_e::invalid;
+		editor_gizmo_axis_e				hovered_axis  = editor_gizmo_axis_e::invalid;
+		editor_gizmo_axis_e				active_axis	  = editor_gizmo_axis_e::invalid;
 	};
 
 	struct editor_world_snapshot_data_t
@@ -92,6 +95,12 @@ namespace sfg
 		void						   reset_camera_input();
 		void						   tick_camera(f32 dt_seconds);
 		void						   fit_camera_to_bounds(const aabb_t& bounds);
+		void						   update_gizmo_hover(vec2f_t relative_position);
+		void						   clear_gizmo_hover();
+		bool						   begin_gizmo_action(vec2f_t relative_position);
+		void						   update_gizmo_action(vec2f_t relative_position);
+		void						   end_gizmo_action();
+		void						   cancel_gizmo_action();
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
 		void						   tick(f32 dt_seconds);
 		void						   update_world_transforms(bool advance_interpolation);
@@ -148,6 +157,7 @@ namespace sfg
 
 		editor_world_render_context_t _render_context = {};
 
+		editor_world_gizmo_t		_gizmo										 = {};
 		editor_world_edit_context_t _edit_context								 = {};
 		world_t						_world										 = {};
 		atomic_t<u64>				_pick_result								 = {};

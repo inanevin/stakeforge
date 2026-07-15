@@ -94,6 +94,8 @@ namespace sfg
 		_gizmo_meshes[0]						   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
 		_gizmo_meshes[1]						   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
 		_gizmo_meshes[2]						   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
+		_gizmo_central_meshes[0]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
+		_gizmo_central_meshes[1]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
 
 		create_texture(size);
 	}
@@ -118,6 +120,8 @@ namespace sfg
 			_pfd[i].gizmo_data_index	  = NULL_GPU_INDEX;
 		}
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_meshes)
+			mesh = {};
+		for (editor_world_gizmo_mesh_t& mesh : _gizmo_central_meshes)
 			mesh = {};
 		_composite_shader = {};
 		_gizmo_shader	  = {};

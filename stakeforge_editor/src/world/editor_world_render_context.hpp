@@ -44,8 +44,8 @@ namespace sfg
 
 	struct editor_world_gizmo_gpu_data_t
 	{
-		mat4x4_t models[3] = {};
-		vec4f_t	 colors[3] = {};
+		mat4x4_t models[4] = {};
+		vec4f_t	 colors[4] = {};
 		vec4f_t	 params	   = vec4f_t::zero;
 	};
 
@@ -165,6 +165,11 @@ namespace sfg
 			return _gizmo_meshes[index];
 		}
 
+		inline const editor_world_gizmo_mesh_t& get_gizmo_central_mesh(u8 index) const
+		{
+			return _gizmo_central_meshes[index];
+		}
+
 		inline vec2u16_t get_size() const
 		{
 			return _size;
@@ -197,7 +202,8 @@ namespace sfg
 
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
 
-		editor_world_gizmo_mesh_t _gizmo_meshes[3] = {};
+		editor_world_gizmo_mesh_t _gizmo_meshes[3]		   = {};
+		editor_world_gizmo_mesh_t _gizmo_central_meshes[2] = {};
 
 		gfx_handle_t _composite_shader = {};
 		gfx_handle_t _gizmo_shader	   = {};

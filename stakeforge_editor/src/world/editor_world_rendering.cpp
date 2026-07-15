@@ -45,10 +45,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-
-#define EDITOR_WORLD_GIZMO_PIXEL_SIZE	  90.0f
-#define EDITOR_WORLD_GIZMO_MIN_WORLD_SIZE 0.05f
-
 	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
@@ -367,11 +363,16 @@ namespace sfg
 			editor_world_gizmo_gpu_data_t gizmo_data = {};
 			for (u32 i = 0; i < 3; ++i)
 				gizmo_data.models[i] = mat4x4_t::transform(position, rotation * axis_rotations[i], vec3f_t::one);
-			const editor_theme_t& theme = editor_theme_t::get();
-			gizmo_data.colors[0]		= theme.color_accent0;
-			gizmo_data.colors[1]		= theme.color_accent_green;
-			gizmo_data.colors[2]		= theme.color_accent1;
-			gizmo_data.params			= vec4f_t(EDITOR_WORLD_GIZMO_PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), EDITOR_WORLD_GIZMO_MIN_WORLD_SIZE);
+			gizmo_data.models[3]					 = mat4x4_t::transform(position, rotation, vec3f_t(editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE));
+			const editor_theme_t& theme				 = editor_theme_t::get();
+			gizmo_data.colors[0]					 = theme.color_accent0;
+			gizmo_data.colors[1]					 = theme.color_accent_green;
+			gizmo_data.colors[2]					 = theme.color_accent1;
+			gizmo_data.colors[3]					 = theme.color_text0;
+			const editor_gizmo_axis_e highlight_axis = snapshot_data.gizmo.active_axis != editor_gizmo_axis_e::invalid ? snapshot_data.gizmo.active_axis : snapshot_data.gizmo.hovered_axis;
+			if (highlight_axis != editor_gizmo_axis_e::invalid)
+				gizmo_data.colors[static_cast<u32>(highlight_axis)] = theme.color_accent2;
+			gizmo_data.params = vec4f_t(editor_world_gizmo_t::PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), editor_world_gizmo_t::MIN_WORLD_SIZE);
 			SFG_MEMCPY(ctx.get_mapped_gizmo_data(frame_index), &gizmo_data, sizeof(editor_world_gizmo_gpu_data_t));
 		}
 
@@ -482,6 +483,28 @@ namespace sfg
 				backend.cmd_draw_indexed_instanced(cmd,
 												   {
 													   .index_count_per_instance = mesh.index_count,
+													   .instance_count			 = 1,
+													   .start_index_location	 = 0,
+													   .base_vertex_location	 = 0,
+													   .start_instance_location	 = 0,
+												   });
+			}
+
+			if (snapshot_data.gizmo.control_type == editor_transform_control_type_e::move || snapshot_data.gizmo.control_type == editor_transform_control_type_e::scale)
+			{
+				const u8						 central_mesh_index	   = snapshot_data.gizmo.control_type == editor_transform_control_type_e::move ? 0 : 1;
+				const editor_world_gizmo_mesh_t& central_mesh		   = ctx.get_gizmo_central_mesh(central_mesh_index);
+				const gfx_handle_t				 central_vertex_buffer = render_resources.get_resource(central_mesh.vertex_buffer);
+				const gfx_handle_t				 central_index_buffer  = render_resources.get_resource(central_mesh.index_buffer);
+				SFG_ASSERT(!central_vertex_buffer.is_null() && !central_index_buffer.is_null());
+
+				backend.cmd_bind_vertex_buffers(cmd, {.buffer = central_vertex_buffer, .slot = 0, .vertex_size = central_mesh.vertex_stride, .offset = 0});
+				backend.cmd_bind_index_buffers(cmd, {.buffer = central_index_buffer, .offset = 0, .index_size = central_mesh.index_stride});
+				const u32 central = static_cast<u32>(editor_gizmo_axis_e::central);
+				backend.cmd_bind_constants(cmd, {.data = &central, .offset = constant_obj0, .count = 1, .param_index = 0});
+				backend.cmd_draw_indexed_instanced(cmd,
+												   {
+													   .index_count_per_instance = central_mesh.index_count,
 													   .instance_count			 = 1,
 													   .start_index_location	 = 0,
 													   .base_vertex_location	 = 0,

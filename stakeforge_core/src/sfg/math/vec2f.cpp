@@ -78,6 +78,14 @@ namespace sfg
 		return (a - b).magnitude();
 	}
 
+	f32 vec2f_t::distance_sqr_to_segment(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b)
+	{
+		const vec2f_t ab		= b - a;
+		const f32	  ab_length = ab.magnitude_sqr();
+		const f32	  t			= ab_length > MATH_EPS ? math::clamp(dot(point - a, ab) / ab_length, 0.0f, 1.0f) : 0.0f;
+		return (point - (a + ab * t)).magnitude_sqr();
+	}
+
 	f32 vec2f_t::angle(const vec2f_t& a, const vec2f_t& b)
 	{
 		f32 dot_product = dot(a, b);

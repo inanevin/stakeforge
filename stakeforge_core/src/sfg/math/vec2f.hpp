@@ -56,6 +56,7 @@ namespace sfg
 		static vec2f_t max(const vec2f_t& a, const vec2f_t& b);
 		static f32	   dot(const vec2f_t& a, const vec2f_t& b);
 		static f32	   distance(const vec2f_t& a, const vec2f_t& b);
+		static f32	   distance_sqr_to_segment(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b);
 		static f32	   angle(const vec2f_t& a, const vec2f_t& b);
 
 		vec2f_t normalized() const;

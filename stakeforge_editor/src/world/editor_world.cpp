@@ -50,6 +50,7 @@ namespace sfg
 		_world.init(init_config);
 		_edit_context.init();
 		_edit_context.set_world(handle);
+		_gizmo.init();
 		_producer_slot = 0;
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
@@ -75,6 +76,7 @@ namespace sfg
 
 	void editor_world_t::uninit()
 	{
+		_gizmo.uninit(_world);
 		uninstall_camera();
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
@@ -102,6 +104,7 @@ namespace sfg
 
 	void editor_world_t::resize(vec2u16_t render_resolution)
 	{
+		cancel_gizmo_action();
 		_render_resolution = render_resolution;
 		_render_context.resize(render_resolution);
 		_pick_result.store(0, std::memory_order_relaxed);
@@ -133,6 +136,7 @@ namespace sfg
 	{
 		if (_camera == nullptr)
 			return;
+		cancel_gizmo_action();
 
 		_camera->uninit(_world);
 		delete _camera;
@@ -160,6 +164,39 @@ namespace sfg
 	{
 		if (_camera != nullptr)
 			_camera->fit_to_bounds(_world, bounds);
+	}
+
+	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
+	{
+		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
+		_gizmo.update_hover(_world, _edit_context, camera_entity, _render_resolution, relative_position);
+	}
+
+	void editor_world_t::clear_gizmo_hover()
+	{
+		_gizmo.clear_hover();
+	}
+
+	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
+	{
+		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
+		return _gizmo.begin_action(_world, _edit_context, camera_entity, _render_resolution, relative_position);
+	}
+
+	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
+	{
+		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
+		_gizmo.update_action(_world, _edit_context, camera_entity, _render_resolution, relative_position);
+	}
+
+	void editor_world_t::end_gizmo_action()
+	{
+		_gizmo.end_action(_world, _edit_context);
+	}
+
+	void editor_world_t::cancel_gizmo_action()
+	{
+		_gizmo.cancel_action(_world);
 	}
 
 	void editor_world_t::request_entity_pick(vec2f_t relative_position, bool incremental_selection)
@@ -257,6 +294,8 @@ namespace sfg
 				.control_type  = _edit_context.get_transform_control_type(),
 			};
 		}
+		data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
+		data.gizmo.active_axis	= _gizmo.get_active_axis();
 		data.selected_entities.resize(0);
 		data.selected_entities.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)

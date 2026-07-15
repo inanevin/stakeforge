@@ -79,7 +79,7 @@ namespace sfg
 	struct editor_mesh_generator_rotation_gizmo_params_t
 	{
 		f32 radius	  = 1.0f;
-		f32 thickness = 0.05f;
+		f32 thickness = 0.04f;
 		u16 segments  = 64;
 	};
 

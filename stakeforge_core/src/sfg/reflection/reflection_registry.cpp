@@ -75,10 +75,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						  .sub_type_id = field.container_ops.element_sub_type_id,
-						  .size		   = field.container_ops.element_value_size,
-						  .value_type  = field.container_ops.element_value_type,
-					  };
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
 
 					if (!field_to_stream(temp_field, element_data, user_data, out_stream))
 						return false;
@@ -199,10 +199,10 @@ namespace sfg
 				{
 					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
 					const reflected_field_t temp_field	 = {
-						  .sub_type_id = field.container_ops.element_sub_type_id,
-						  .size		   = field.container_ops.element_value_size,
-						  .value_type  = field.container_ops.element_value_type,
-					  };
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
 
 					nlohmann::json elem_json = nlohmann::json::object();
 					if (!field_to_json(temp_field, element_data, user_data, elem_json, true))
@@ -643,9 +643,6 @@ namespace sfg
 			return false;
 		}
 
-		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return true;
-
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
 			out_stream.write_raw(reinterpret_cast<u8*>(obj), type->size);
@@ -669,9 +666,6 @@ namespace sfg
 			SFG_ERR("type id could not be found! {0}", type_id);
 			return false;
 		}
-
-		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return true;
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
@@ -717,9 +711,6 @@ namespace sfg
 			return false;
 		}
 
-		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return true;
-
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
 			u8* ptr = reinterpret_cast<u8*>(obj);
@@ -744,9 +735,6 @@ namespace sfg
 			SFG_ERR("type id could not be found! {0}", type_id);
 			return false;
 		}
-
-		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_no_serialization))
-			return true;
 
 		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{

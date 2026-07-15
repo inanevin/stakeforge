@@ -429,20 +429,48 @@ namespace sfg
 
 	bool editor_mesh_generator_t::generate_rotation_gizmo(const editor_mesh_generator_rotation_gizmo_params_t& params, ostream_t& out)
 	{
-		const f32			   radius	 = math::max(params.radius, MATH_EPS * 2.0f);
-		const f32			   thickness = math::clamp(params.thickness, MATH_EPS, radius - MATH_EPS);
-		const f32			   inner	 = radius - thickness;
-		const u16			   segments	 = sanitize_segments(params.segments, 3);
-		primitive_static_def_t primitive = {};
-		primitive.vertices.reserve(static_cast<size_t>(segments + 1) * 4);
-		primitive.indices.reserve(static_cast<size_t>(segments) * 12);
+		const f32			   radius	  = math::max(params.radius, MATH_EPS * 2.0f);
+		const f32			   thickness  = math::clamp(params.thickness, MATH_EPS, radius - MATH_EPS);
+		const f32			   half_depth = thickness * 0.5f;
+		const f32			   inner	  = radius - thickness;
+		const u16			   segments	  = sanitize_segments(params.segments, 3);
+		primitive_static_def_t primitive  = {};
+		primitive.vertices.reserve(static_cast<size_t>(segments + 1) * 8);
+		primitive.indices.reserve(static_cast<size_t>(segments) * 24);
 
-		push_annulus(primitive, inner, radius, 0.0f, {0.0f, 1.0f, 0.0f}, segments);
-		push_annulus(primitive, inner, radius, 0.0f, {0.0f, -1.0f, 0.0f}, segments);
+		push_annulus(primitive, inner, radius, half_depth, {0.0f, 1.0f, 0.0f}, segments);
+		push_annulus(primitive, inner, radius, -half_depth, {0.0f, -1.0f, 0.0f}, segments);
+		push_cylinder_side(primitive, radius, -half_depth, half_depth, segments);
+
+		const u32 inner_base = static_cast<u32>(primitive.vertices.size());
+		for (u32 y = 0; y < 2; ++y)
+		{
+			const f32 py = y == 0 ? -half_depth : half_depth;
+			const f32 v	 = y == 0 ? 1.0f : 0.0f;
+			for (u32 x = 0; x <= segments; ++x)
+			{
+				const f32 u		= static_cast<f32>(x) / static_cast<f32>(segments);
+				const f32 theta = u * MATH_TWO_PI;
+				const f32 cs	= math::cos(theta);
+				const f32 sn	= math::sin(theta);
+				primitive.vertices.push_back(make_vertex({cs * inner, py, sn * inner}, {-cs, 0.0f, -sn}, {u, v}));
+			}
+		}
+
+		const u32 row = static_cast<u32>(segments) + 1;
+		for (u32 x = 0; x < segments; ++x)
+		{
+			const u32 a = inner_base + x;
+			const u32 b = inner_base + row + x;
+			const u32 c = b + 1;
+			const u32 d = a + 1;
+			push_tri(primitive, a, c, b);
+			push_tri(primitive, a, d, c);
+		}
 
 		mesh_def_t def	 = {};
 		def.name		 = "rotation_gizmo";
-		def.local_bounds = aabb_t({-radius, 0.0f, -radius}, {radius, 0.0f, radius});
+		def.local_bounds = aabb_t({-radius, -half_depth, -radius}, {radius, half_depth, radius});
 		return write_mesh_def(def, primitive, out);
 	}
 }
