@@ -858,9 +858,10 @@ namespace sfg
 		input_index = ctx.get_bloom_downsample_index(frame_index, WORLD_RENDER_BLOOM_LEVEL_COUNT - 1);
 		for (i32 level = WORLD_RENDER_BLOOM_LEVEL_COUNT - 1; level >= 0; --level)
 		{
-			const u32		width		  = std::max<u32>(1, size.x >> level);
-			const u32		height		  = std::max<u32>(1, size.y >> level);
-			const barrier_t write_barrier = {
+			const u32		width				 = std::max<u32>(1, size.x >> level);
+			const u32		height				 = std::max<u32>(1, size.y >> level);
+			const bool		has_downsample_input = level > 0;
+			const barrier_t write_barrier		 = {
 				.from_states	= resource_state_non_ps_resource,
 				.to_states		= resource_state_uav,
 				.texture_t		= upsample_texture,
@@ -870,8 +871,24 @@ namespace sfg
 			};
 			backend.cmd_barrier(cmd, {.barriers = &write_barrier, .barrier_count = 1});
 
-			const u32 constants[4] = {width, height, input_index, ctx.get_bloom_upsample_uav_index(frame_index, static_cast<u8>(level))};
-			backend.cmd_bind_constants_compute(cmd, {.data = constants, .offset = constant_rp1, .count = 4, .param_index = 0});
+			struct bloom_upsample_constants_t
+			{
+				u32			width;
+				u32			height;
+				gpu_index_t input;
+				gpu_index_t downsample_input;
+				gpu_index_t output;
+				u32			has_downsample_input;
+			};
+			const bloom_upsample_constants_t constants = {
+				.width				  = width,
+				.height				  = height,
+				.input				  = input_index,
+				.downsample_input	  = has_downsample_input ? ctx.get_bloom_downsample_index(frame_index, static_cast<u8>(level - 1)) : NULL_GPU_INDEX,
+				.output				  = ctx.get_bloom_upsample_uav_index(frame_index, static_cast<u8>(level)),
+				.has_downsample_input = has_downsample_input ? 1u : 0u,
+			};
+			backend.cmd_bind_constants_compute(cmd, {.data = reinterpret_cast<const u32*>(&constants), .offset = constant_rp1, .count = 6, .param_index = 0});
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_bloom_upsample");
 			backend.cmd_dispatch(cmd, {.group_size_x = (width + 7) / 8, .group_size_y = (height + 7) / 8, .group_size_z = 1});
 			END_DEBUG_EVENT((&backend), cmd);

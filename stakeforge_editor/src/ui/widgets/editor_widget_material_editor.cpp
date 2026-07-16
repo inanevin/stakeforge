@@ -327,6 +327,23 @@ namespace sfg
 			const char*						 label		= definition.param_name != nullptr ? definition.param_name : "Parameter";
 			const editor_property_row_t		 row		= editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label);
 
+			if (definition.hint == shader_param_hint_e::toggle)
+			{
+				vector_t<u8*> fields;
+				fields.reserve(_materials.size());
+				for (material_def_t& material : _materials)
+					fields.push_back(reinterpret_cast<u8*>(&material.parameters[parameter_index].value_u32[0]));
+
+				editor_checkbox_t* control = new editor_checkbox_t();
+				control->init(*_ui, row.right, {.field = {.fields = {.data = fields.data(), .size = fields.size()}, .field_size = sizeof(u32)}, .callbacks = callbacks});
+				_ui->get_tree().in(control->get_root()).pos_mode_y	= ui::pos_mode_e::relative_in_parent;
+				_ui->get_tree().in(control->get_root()).anchor_y	= ui::anchor_e::center;
+				_ui->get_tree().in(control->get_root()).pos_value.y = 0.5f;
+				_checkboxes.push_back(control);
+				append_property_row(row.row);
+				continue;
+			}
+
 			switch (definition.type)
 			{
 			case shader_param_type_e::f32: {
@@ -351,6 +368,34 @@ namespace sfg
 								  .increment   = 0.01f,
 								  .min_value   = definition.min_value[0],
 								  .max_value   = definition.max_value[0],
+							  });
+				fit_control(control->get_root());
+				_inputs.push_back(control);
+				break;
+			}
+			case shader_param_type_e::u32: {
+				vector_t<u8*> fields;
+				fields.reserve(_materials.size());
+				for (material_def_t& material : _materials)
+					fields.push_back(reinterpret_cast<u8*>(&material.parameters[parameter_index].value_u32[0]));
+
+				editor_input_field_t* control = new editor_input_field_t();
+				control->init(*_ui,
+							  row.right,
+							  {
+								  .field =
+									  {
+										  .fields	  = {.data = fields.data(), .size = fields.size()},
+										  .field_size = sizeof(u32),
+										  .type		  = editor_input_field_field_type_e::pod_number,
+										  .is_slider  = true,
+									  },
+								  .callbacks   = callbacks,
+								  .placeholder = label,
+								  .increment   = 1.0f,
+								  .min_value   = static_cast<f32>(definition.min_value_u32[0]),
+								  .max_value   = static_cast<f32>(definition.max_value_u32[0]),
+								  .is_integer  = true,
 							  });
 				fit_control(control->get_root());
 				_inputs.push_back(control);
@@ -567,7 +612,12 @@ namespace sfg
 				{
 					parameter.hint = it->hint;
 					for (u8 i = 0; i < 4; ++i)
-						parameter.value[i] = it->value[i];
+					{
+						if (parameter.type == shader_param_type_e::u32)
+							parameter.value_u32[i] = it->value_u32[i];
+						else
+							parameter.value[i] = it->value[i];
+					}
 				}
 			}
 

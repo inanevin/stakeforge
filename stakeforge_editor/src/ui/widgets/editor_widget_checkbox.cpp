@@ -110,12 +110,13 @@ namespace sfg
 
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
-		_checked	  = *field.fields.data[0] != 0;
+		_checked	  = field.field_size == sizeof(u32) ? *reinterpret_cast<const u32*>(field.fields.data[0]) != 0 : *field.fields.data[0] != 0;
 		_mixed		  = false;
 
 		for (size_t i = 1; i < field.fields.size; ++i)
 		{
-			if ((*field.fields.data[i] != 0) != _checked)
+			const bool checked = field.field_size == sizeof(u32) ? *reinterpret_cast<const u32*>(field.fields.data[i]) != 0 : *field.fields.data[i] != 0;
+			if (checked != _checked)
 			{
 				_mixed = true;
 				break;
@@ -157,7 +158,12 @@ namespace sfg
 	void editor_checkbox_t::modify_field()
 	{
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
-			*_config.field.fields.data[i] = _checked ? 1 : 0;
+		{
+			if (_config.field.field_size == sizeof(u32))
+				*reinterpret_cast<u32*>(_config.field.fields.data[i]) = _checked ? 1u : 0u;
+			else
+				*_config.field.fields.data[i] = _checked ? 1 : 0;
+		}
 
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);

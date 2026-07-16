@@ -398,6 +398,9 @@ namespace sfg
 		case assets_action_menu_create_opaque_shader:
 			text = "opaque_shader";
 			break;
+		case assets_action_menu_create_unlit_shader:
+			text = "unlit_shader";
+			break;
 		case assets_action_menu_create_transparent_shader:
 			text = "transparent_shader";
 			break;
@@ -415,6 +418,9 @@ namespace sfg
 			break;
 		case assets_action_menu_create_gbuffer_material:
 			text = "gbuffer_material";
+			break;
+		case assets_action_menu_create_unlit_material:
+			text = "unlit_material";
 			break;
 		case assets_action_menu_create_forward_material:
 			text = "forward_material";
@@ -504,6 +510,10 @@ namespace sfg
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::opaque_shader);
 			return true;
+		case assets_action_menu_create_unlit_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::unlit_shader);
+			return true;
 		case assets_action_menu_create_transparent_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::transparent_shader);
@@ -526,6 +536,10 @@ namespace sfg
 		case assets_action_menu_create_gbuffer_material:
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::gbuffer);
+			return true;
+		case assets_action_menu_create_unlit_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::unlit);
 			return true;
 		case assets_action_menu_create_forward_material:
 			out_desc.asset_type = editor_asset_type_e::material;

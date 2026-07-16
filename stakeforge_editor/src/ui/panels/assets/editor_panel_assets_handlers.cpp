@@ -185,12 +185,14 @@ namespace sfg
 		case assets_action_menu_create_world:
 		case assets_action_menu_create_animation_state_machine:
 		case assets_action_menu_create_opaque_shader:
+		case assets_action_menu_create_unlit_shader:
 		case assets_action_menu_create_transparent_shader:
 		case assets_action_menu_create_post_process_shader:
 		case assets_action_menu_create_ui_shader:
 		case assets_action_menu_create_ui_text_shader:
 		case assets_action_menu_create_texture_sampler:
 		case assets_action_menu_create_gbuffer_material:
+		case assets_action_menu_create_unlit_material:
 		case assets_action_menu_create_forward_material:
 		case assets_action_menu_create_physical_material:
 			panel._create_asset_popup_command = command;

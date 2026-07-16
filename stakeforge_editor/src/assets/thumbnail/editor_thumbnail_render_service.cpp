@@ -135,7 +135,7 @@ namespace sfg
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 		_readback_pixels.reserve(readback_desc.size);
 
-		_render_context.init({.size = _world_config.render_resolution, .enable_ssao = 0, .enable_bloom = 0});
+		_render_context.init({.size = _world_config.render_resolution, .enable_ssao = 0, .enable_bloom = 1});
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		_thumbnail_shader				 = render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_snapshot.reserve(64, 0, 0, 0, 0);
@@ -332,6 +332,8 @@ namespace sfg
 		camera.fov_degrees			  = EDITOR_THUMBNAIL_CAMERA_FOV;
 		camera.near_plane			  = 0.01f;
 		camera.far_plane			  = 250.0f;
+
+		component_post_process_t& pp = ecs_helpers_t::table_add_or_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), thumbnail_world.camera_entity);
 		setup_camera_for_asset(thumbnail_world);
 	}
 

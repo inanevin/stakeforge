@@ -22,9 +22,12 @@ namespace sfg
 
 	struct material_runtime_parameter_t
 	{
-		f32					values[4] = {};
-		shader_param_type_e type	  = shader_param_type_e::invalid;
-		shader_param_hint_e hint	  = shader_param_hint_e::none;
+		union {
+			f32 values[4] = {};
+			u32 values_u32[4];
+		};
+		shader_param_type_e type = shader_param_type_e::invalid;
+		shader_param_hint_e hint = shader_param_hint_e::none;
 	};
 
 	struct material_runtime_t

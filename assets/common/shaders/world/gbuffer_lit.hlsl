@@ -350,7 +350,7 @@ ps_output PSMain(vs_output IN)
     // outs
     OUT.rt0 = float4(albedo.xyz, 1.0);
     OUT.rt1 = float4(encoded_normal, 0.0, 0.0);
-    OUT.rt2 = float4(ao, roughness, metallic, 1.0);
+    OUT.rt2 = float4(ao, roughness, metallic, 0.0);
     OUT.rt3 = float4(emissive, 1.0);
 
     return OUT;

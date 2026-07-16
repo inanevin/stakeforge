@@ -60,6 +60,8 @@ namespace sfg
 #define GIZMO_MESH_TRANSLATION						  1020
 #define GIZMO_MESH_ROTATION							  1021
 #define GIZMO_MESH_SCALE							  1022
+#define DEFAULT_UNLIT_SHADER_ASSET_GUID				  1023
+#define DEFAULT_UNLIT_MATERIAL_ASSET_GUID			  1024
 
 	enum class editor_asset_source_type_e : u8
 	{

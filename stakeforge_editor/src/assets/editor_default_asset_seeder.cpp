@@ -129,6 +129,9 @@ namespace sfg
 			case shader_type_e::transparent_shader:
 				result += "world/forward.hlsl";
 				break;
+			case shader_type_e::unlit_shader:
+				result += "world/gbuffer_unlit.hlsl";
+				break;
 			default:
 				result += "world/gbuffer_lit.hlsl";
 				break;
@@ -173,6 +176,7 @@ namespace sfg
 			const default_shader_asset_desc_t default_shader_assets[] = {
 				{.asset_name = "default_shader_gbuffer", .source_base_name = "default_shader_gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
 				{.asset_name = "default_shader_forward", .source_base_name = "default_shader_forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
+				{.asset_name = "default_shader_unlit", .source_base_name = "default_shader_unlit", .guid = DEFAULT_UNLIT_SHADER_ASSET_GUID, .shader_type = shader_type_e::unlit_shader},
 			};
 
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
@@ -311,6 +315,11 @@ namespace sfg
 				 .guid				  = DEFAULT_FORWARD_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::forward)},
+				{.asset_name		  = "default_material_unlit",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_unlit.sfg_asset",
+				 .guid				  = DEFAULT_UNLIT_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::unlit)},
 				{.asset_name = "default_physical_material", .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_physical_material.sfg_asset", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
 				{.asset_name		  = "default_sampler_linear",
 				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_linear.sfg_asset",

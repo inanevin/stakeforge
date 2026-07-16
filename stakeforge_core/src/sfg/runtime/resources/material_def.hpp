@@ -58,10 +58,13 @@ namespace sfg
 
 	struct material_param_value_t
 	{
-		string_t			name	 = {};
-		f32					value[4] = {};
-		shader_param_type_e type	 = shader_param_type_e::invalid;
-		shader_param_hint_e hint	 = shader_param_hint_e::none;
+		string_t name = {};
+		union {
+			f32 value[4] = {};
+			u32 value_u32[4];
+		};
+		shader_param_type_e type = shader_param_type_e::invalid;
+		shader_param_hint_e hint = shader_param_hint_e::none;
 	};
 
 	struct material_def_t

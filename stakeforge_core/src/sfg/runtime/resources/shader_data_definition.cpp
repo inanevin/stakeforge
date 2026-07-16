@@ -63,6 +63,8 @@ namespace sfg
 			return "vec2";
 		case shader_param_type_e::vec4:
 			return "vec4";
+		case shader_param_type_e::u32:
+			return "u32";
 		default:
 			return "invalid";
 		}
@@ -76,6 +78,8 @@ namespace sfg
 			return "color";
 		case shader_param_hint_e::pack_uint2:
 			return "pack_uint2";
+		case shader_param_hint_e::toggle:
+			return "toggle";
 		default:
 			return "none";
 		}
@@ -96,6 +100,8 @@ namespace sfg
 			return shader_param_type_e::vec2;
 		if (value == "vec4")
 			return shader_param_type_e::vec4;
+		if (value == "u32")
+			return shader_param_type_e::u32;
 		return shader_param_type_e::invalid;
 	}
 
@@ -105,6 +111,8 @@ namespace sfg
 			return shader_param_hint_e::color;
 		if (value == "pack_uint2")
 			return shader_param_hint_e::pack_uint2;
+		if (value == "toggle")
+			return shader_param_hint_e::toggle;
 		return shader_param_hint_e::none;
 	}
 
@@ -143,6 +151,12 @@ namespace sfg
 			j["min"]	 = definition.min_value[0];
 			j["max"]	 = definition.max_value[0];
 		}
+		else if (definition.type == shader_param_type_e::u32)
+		{
+			j["default"] = definition.default_value_u32[0];
+			j["min"]	 = definition.min_value_u32[0];
+			j["max"]	 = definition.max_value_u32[0];
+		}
 	}
 
 	void from_json(const nlohmann::json& j, shader_param_definition_t& definition)
@@ -156,6 +170,12 @@ namespace sfg
 			definition.default_value[0] = j.value<f32>("default", 0.0f);
 			definition.min_value[0]		= j.value<f32>("min", 0.0f);
 			definition.max_value[0]		= j.value<f32>("max", 0.0f);
+		}
+		else if (definition.type == shader_param_type_e::u32)
+		{
+			definition.default_value_u32[0] = j.value<u32>("default", 0);
+			definition.min_value_u32[0]		= j.value<u32>("min", 0);
+			definition.max_value_u32[0]		= j.value<u32>("max", 0);
 		}
 	}
 

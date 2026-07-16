@@ -64,7 +64,12 @@ namespace sfg
 			stream << parameter.type;
 			stream << parameter.hint;
 			for (u8 i = 0; i < 4; ++i)
-				stream << parameter.value[i];
+			{
+				if (parameter.type == shader_param_type_e::u32)
+					stream << parameter.value_u32[i];
+				else
+					stream << parameter.value[i];
+			}
 		}
 	}
 
@@ -99,7 +104,12 @@ namespace sfg
 			stream >> parameter.type;
 			stream >> parameter.hint;
 			for (u8 i = 0; i < 4; ++i)
-				stream >> parameter.value[i];
+			{
+				if (parameter.type == shader_param_type_e::u32)
+					stream >> parameter.value_u32[i];
+				else
+					stream >> parameter.value[i];
+			}
 		}
 	}
 
@@ -127,7 +137,12 @@ namespace sfg
 			value.type					  = parameter.type;
 			value.hint					  = parameter.hint;
 			for (u8 i = 0; i < 4; ++i)
-				value.value[i] = parameter.default_value[i];
+			{
+				if (parameter.type == shader_param_type_e::u32)
+					value.value_u32[i] = parameter.default_value_u32[i];
+				else
+					value.value[i] = parameter.default_value[i];
+			}
 		}
 
 		return out;
@@ -173,10 +188,13 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const material_param_value_t& value)
 	{
-		j["name"]  = value.name;
-		j["type"]  = shader_param_type_to_string(value.type);
-		j["hint"]  = shader_param_hint_to_string(value.hint);
-		j["value"] = {value.value[0], value.value[1], value.value[2], value.value[3]};
+		j["name"] = value.name;
+		j["type"] = shader_param_type_to_string(value.type);
+		j["hint"] = shader_param_hint_to_string(value.hint);
+		if (value.type == shader_param_type_e::u32)
+			j["value"] = {value.value_u32[0], value.value_u32[1], value.value_u32[2], value.value_u32[3]};
+		else
+			j["value"] = {value.value[0], value.value[1], value.value[2], value.value[3]};
 	}
 
 	void from_json(const nlohmann::json& j, material_param_value_t& value)
@@ -191,7 +209,12 @@ namespace sfg
 		{
 			const size_t count = values.size() < 4 ? values.size() : 4;
 			for (size_t i = 0; i < count; ++i)
-				value.value[i] = values[i].get<f32>();
+			{
+				if (value.type == shader_param_type_e::u32)
+					value.value_u32[i] = values[i].get<u32>();
+				else
+					value.value[i] = values[i].get<f32>();
+			}
 		}
 	}
 

@@ -164,6 +164,7 @@ namespace sfg
 
 	void editor_panel_assets_t::clear_asset_grid(bool reset_scroll)
 	{
+
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
 		for (const asset_grid_item_t& item : _asset_grid_items)
 			tooltip_controller->clear_tooltip(item.root);

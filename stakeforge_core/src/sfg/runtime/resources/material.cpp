@@ -23,6 +23,8 @@ namespace sfg
 		{
 			switch (parameter.type)
 			{
+			case shader_param_type_e::u32:
+				return sizeof(u32);
 			case shader_param_type_e::vec2:
 				return sizeof(f32) * 2;
 			case shader_param_type_e::vec4:
@@ -34,10 +36,23 @@ namespace sfg
 			}
 		}
 
+		u32 get_material_parameter_offset(u32 offset, const material_runtime_parameter_t& parameter)
+		{
+			const u32 size			  = get_material_parameter_size(parameter);
+			const u32 register_offset = offset % (sizeof(f32) * 4);
+			if (register_offset + size > sizeof(f32) * 4)
+				return offset + sizeof(f32) * 4 - register_offset;
+			return offset;
+		}
+
 		void write_material_parameter(u8*& dst, const material_runtime_parameter_t& parameter)
 		{
 			switch (parameter.type)
 			{
+			case shader_param_type_e::u32:
+				SFG_MEMCPY(dst, parameter.values_u32, sizeof(u32));
+				dst += sizeof(u32);
+				break;
 			case shader_param_type_e::vec2:
 				SFG_MEMCPY(dst, parameter.values, sizeof(f32) * 2);
 				dst += sizeof(f32) * 2;
@@ -115,6 +130,7 @@ namespace sfg
 				runtime->parameters[i].type = material.parameters[i].type;
 				runtime->parameters[i].hint = material.parameters[i].hint;
 				SFG_MEMCPY(runtime->parameters[i].values, material.parameters[i].value, sizeof(runtime->parameters[i].values));
+				runtime->parameter_data_size = get_material_parameter_offset(runtime->parameter_data_size, runtime->parameters[i]);
 				runtime->parameter_data_size += get_material_parameter_size(runtime->parameters[i]);
 			}
 
@@ -126,9 +142,14 @@ namespace sfg
 
 			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
 			u8	parameter_values[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
-			u8* dst													   = parameter_values;
+			u32 parameter_offset									   = 0;
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
+			{
+				parameter_offset = get_material_parameter_offset(parameter_offset, runtime->parameters[i]);
+				u8* dst			 = parameter_values + parameter_offset;
 				write_material_parameter(dst, runtime->parameters[i]);
+				parameter_offset += get_material_parameter_size(runtime->parameters[i]);
+			}
 
 			render_resources_t::get().enqueue_data_upload({.data = parameter_values, .resource = internals->parameter_buffer, .data_size = runtime->parameter_data_size});
 		}

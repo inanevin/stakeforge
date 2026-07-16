@@ -59,6 +59,8 @@ namespace sfg
 			{
 			case editor_material_type_e::forward:
 				return EDITOR_TEMPLATE_MATERIALS "material_forward.sfg_asset";
+			case editor_material_type_e::unlit:
+				return EDITOR_TEMPLATE_MATERIALS "material_unlit.sfg_asset";
 			default:
 				return EDITOR_TEMPLATE_MATERIALS "material_gbuffer.sfg_asset";
 			}
@@ -70,6 +72,8 @@ namespace sfg
 			{
 			case shader_type_e::opaque_shader:
 				return COMMON_SHADERS "world/gbuffer_lit.hlsl";
+			case shader_type_e::unlit_shader:
+				return COMMON_SHADERS "world/gbuffer_unlit.hlsl";
 			case shader_type_e::transparent_shader:
 				return COMMON_SHADERS "world/forward.hlsl";
 			case shader_type_e::post_process_shader:

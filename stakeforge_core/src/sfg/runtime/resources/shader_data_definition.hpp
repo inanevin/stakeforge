@@ -48,6 +48,7 @@ namespace sfg
 		f32,
 		vec2,
 		vec4,
+		u32,
 	};
 
 	enum class shader_param_hint_e : u8
@@ -55,6 +56,7 @@ namespace sfg
 		none,
 		color,
 		pack_uint2,
+		toggle,
 	};
 
 	struct shader_texture_definition_t
@@ -70,12 +72,21 @@ namespace sfg
 
 	struct shader_param_definition_t
 	{
-		char				param_name[SFG_SHADER_MATERIAL_NAME_SIZE] = {};
-		f32					default_value[4]						  = {};
-		f32					min_value[4]							  = {};
-		f32					max_value[4]							  = {};
-		shader_param_type_e type									  = shader_param_type_e::invalid;
-		shader_param_hint_e hint									  = shader_param_hint_e::none;
+		char param_name[SFG_SHADER_MATERIAL_NAME_SIZE] = {};
+		union {
+			f32 default_value[4] = {};
+			u32 default_value_u32[4];
+		};
+		union {
+			f32 min_value[4] = {};
+			u32 min_value_u32[4];
+		};
+		union {
+			f32 max_value[4] = {};
+			u32 max_value_u32[4];
+		};
+		shader_param_type_e type = shader_param_type_e::invalid;
+		shader_param_hint_e hint = shader_param_hint_e::none;
 	};
 
 	struct shader_data_definition_t

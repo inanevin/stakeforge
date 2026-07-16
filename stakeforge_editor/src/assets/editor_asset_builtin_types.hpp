@@ -35,6 +35,7 @@ namespace sfg
 	{
 		gbuffer,
 		forward,
+		unlit,
 	};
 
 	enum class editor_texture_sampler_type_e : u8

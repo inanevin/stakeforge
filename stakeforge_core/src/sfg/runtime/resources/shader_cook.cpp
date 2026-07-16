@@ -172,6 +172,43 @@ namespace sfg
 			return true;
 		}
 
+		bool parse_u32_arg(const string_t& arg, u32& out)
+		{
+			const string_t value = trim_arg(arg);
+			if (value.empty() || value.front() == '-')
+				return false;
+
+			char*	  end	 = nullptr;
+			const u64 parsed = std::strtoull(value.c_str(), &end, 0);
+			if (end == value.c_str() || parsed > 0xffffffffull)
+				return false;
+
+			while (*end != '\0' && std::isspace(static_cast<unsigned char>(*end)) != 0)
+				++end;
+
+			if (*end == 'u' || *end == 'U')
+				++end;
+
+			while (*end != '\0' && std::isspace(static_cast<unsigned char>(*end)) != 0)
+				++end;
+
+			if (*end != '\0')
+				return false;
+
+			out = static_cast<u32>(parsed);
+			return true;
+		}
+
+		bool parse_u32_args(const vector_t<string_t>& args, size_t offset, size_t count, u32* out)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				if (!parse_u32_arg(args[offset + i], out[i]))
+					return false;
+			}
+			return true;
+		}
+
 		bool find_macro_call(const string_t& source, const char* macro, size_t search_from, size_t& out_open, size_t& out_close)
 		{
 			const size_t macro_len = string_t(macro).size();
@@ -238,6 +275,11 @@ namespace sfg
 				out = shader_param_hint_e::pack_uint2;
 				return true;
 			}
+			if (arg == "sfg_toggle")
+			{
+				out = shader_param_hint_e::toggle;
+				return true;
+			}
 			return false;
 		}
 
@@ -265,6 +307,12 @@ namespace sfg
 				if (args.size() != 1 && args.size() != 2)
 					return false;
 				if (args.size() == 2 && !parse_param_hint(args[1], definition.hint))
+					return false;
+				break;
+			case shader_param_type_e::u32:
+				if ((args.size() != 4 && args.size() != 5) || !parse_u32_args(args, 1, 1, definition.default_value_u32) || !parse_u32_args(args, 2, 1, definition.min_value_u32) || !parse_u32_args(args, 3, 1, definition.max_value_u32))
+					return false;
+				if (args.size() == 5 && (!parse_param_hint(args[4], definition.hint) || definition.hint != shader_param_hint_e::toggle))
 					return false;
 				break;
 			default:
@@ -295,17 +343,67 @@ namespace sfg
 			return true;
 		}
 
+		bool parse_param_definitions(const string_t& source, const char* full_path, shader_data_definition_t& out)
+		{
+			vector_t<string_t> args;
+			size_t			   search_from = 0;
+			for (;;)
+			{
+				size_t f32_open	  = string_t::npos;
+				size_t f32_close  = string_t::npos;
+				size_t u32_open	  = string_t::npos;
+				size_t u32_close  = string_t::npos;
+				size_t vec2_open  = string_t::npos;
+				size_t vec2_close = string_t::npos;
+				size_t vec4_open  = string_t::npos;
+				size_t vec4_close = string_t::npos;
+				find_macro_call(source, "SFG_MATERIAL_PARAM_F32", search_from, f32_open, f32_close);
+				find_macro_call(source, "SFG_MATERIAL_PARAM_U32", search_from, u32_open, u32_close);
+				find_macro_call(source, "SFG_MATERIAL_PARAM_VEC2", search_from, vec2_open, vec2_close);
+				find_macro_call(source, "SFG_MATERIAL_PARAM_VEC4", search_from, vec4_open, vec4_close);
+
+				if (f32_open == string_t::npos && u32_open == string_t::npos && vec2_open == string_t::npos && vec4_open == string_t::npos)
+					return true;
+
+				shader_param_type_e type  = shader_param_type_e::f32;
+				size_t				open  = f32_open;
+				size_t				close = f32_close;
+				if (u32_open < open)
+				{
+					type  = shader_param_type_e::u32;
+					open  = u32_open;
+					close = u32_close;
+				}
+				if (vec2_open < open)
+				{
+					type  = shader_param_type_e::vec2;
+					open  = vec2_open;
+					close = vec2_close;
+				}
+				if (vec4_open < open)
+				{
+					type  = shader_param_type_e::vec4;
+					open  = vec4_open;
+					close = vec4_close;
+				}
+
+				split_macro_args(source.substr(open + 1, close - open - 1), args);
+				if (!parse_param_definition(args, type, out))
+				{
+					SFG_ERR("invalid material parameter definition in {0}", full_path);
+					return false;
+				}
+				search_from = close + 1;
+			}
+		}
+
 		bool parse_shader_data_definition(const string_t& source, const char* full_path, shader_data_definition_t& out)
 		{
 			if (!parse_macro_definitions(source, "SFG_MATERIAL_TEXTURE", full_path, [&](const vector_t<string_t>& args) { return parse_texture_definition(args, out); }))
 				return false;
 			if (!parse_macro_definitions(source, "SFG_MATERIAL_SAMPLER", full_path, [&](const vector_t<string_t>& args) { return parse_sampler_definition(args, out); }))
 				return false;
-			if (!parse_macro_definitions(source, "SFG_MATERIAL_PARAM_F32", full_path, [&](const vector_t<string_t>& args) { return parse_param_definition(args, shader_param_type_e::f32, out); }))
-				return false;
-			if (!parse_macro_definitions(source, "SFG_MATERIAL_PARAM_VEC2", full_path, [&](const vector_t<string_t>& args) { return parse_param_definition(args, shader_param_type_e::vec2, out); }))
-				return false;
-			if (!parse_macro_definitions(source, "SFG_MATERIAL_PARAM_VEC4", full_path, [&](const vector_t<string_t>& args) { return parse_param_definition(args, shader_param_type_e::vec4, out); }))
+			if (!parse_param_definitions(source, full_path, out))
 				return false;
 
 			return true;
@@ -318,6 +416,7 @@ namespace sfg
 			out += "#define SFG_MATERIAL_TEXTURE(...)\n";
 			out += "#define SFG_MATERIAL_SAMPLER(...)\n";
 			out += "#define SFG_MATERIAL_PARAM_F32(...)\n";
+			out += "#define SFG_MATERIAL_PARAM_U32(...)\n";
 			out += "#define SFG_MATERIAL_PARAM_VEC2(...)\n";
 			out += "#define SFG_MATERIAL_PARAM_VEC4(...)\n";
 			out += source;
@@ -362,6 +461,7 @@ namespace sfg
 		switch (cfg.type)
 		{
 		case shader_type_e::opaque_shader:
+		case shader_type_e::unlit_shader:
 			if (!shader_cook_variants_t::cook_opaque_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook opaque shader variants: {0}", full_path);

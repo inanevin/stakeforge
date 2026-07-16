@@ -29,6 +29,7 @@ namespace sfg
 		ssao_upsample,
 		bloom_downsample,
 		bloom_upsample,
+		unlit_shader,
 		count,
 	};
 

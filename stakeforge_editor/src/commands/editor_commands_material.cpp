@@ -159,7 +159,12 @@ namespace sfg
 				{
 					parameter.hint = it->hint;
 					for (u8 i = 0; i < 4; ++i)
-						parameter.value[i] = it->value[i];
+					{
+						if (parameter.type == shader_param_type_e::u32)
+							parameter.value_u32[i] = it->value_u32[i];
+						else
+							parameter.value[i] = it->value[i];
+					}
 				}
 			}
 		}

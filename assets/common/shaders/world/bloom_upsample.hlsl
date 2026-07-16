@@ -38,7 +38,9 @@
 // sfg_constant_rp1 : uint dstWidth   (mip L-1 width)
 // sfg_constant_rp2 : uint dstHeight  (mip L-1 height)
 // sfg_constant_rp3 : SRV index       (source mip L, RGBA16F/float4)
-// sfg_constant_rp4 : UAV index       (dest   mip L-1, RGBA16F/float4)
+// sfg_constant_rp4 : SRV index       (downsample mip L-1, RGBA16F/float4)
+// sfg_constant_rp5 : UAV index       (dest   mip L-1, RGBA16F/float4)
+// sfg_constant_rp6 : uint            (whether the downsample input exists)
 
 struct bloom_params
 {
@@ -61,7 +63,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 
     // Resources (SRV = mip L, UAV = mip L-1)
     Texture2D<float4>  src = sfg_get_texture<Texture2D<float4> >(sfg_constant_rp3);
-    RWTexture2D<float4> dst = sfg_get_texture<RWTexture2D<float4> >(sfg_constant_rp4);
+    RWTexture2D<float4> dst = sfg_get_texture<RWTexture2D<float4> >(sfg_constant_rp5);
 
     bloom_params bp = sfg_get_cbv<bloom_params>(sfg_constant_rp0);
 
@@ -98,6 +100,12 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
               + (b + d + f + h)*2.0
               + (a + c + g + i);
     up *= 1.0 / 16.0;
+
+    if (sfg_constant_rp6 != 0)
+    {
+        Texture2D<float4> downsample = sfg_get_texture<Texture2D<float4> >(sfg_constant_rp4);
+        up += downsample.SampleLevel(smp_linear, uv, 0).rgb;
+    }
 
     dst[p] = float4(up, 1.0);
 }

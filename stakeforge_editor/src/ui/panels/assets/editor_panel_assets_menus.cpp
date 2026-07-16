@@ -44,12 +44,14 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {
 			{.text = "Opaque Shader", .command = assets_action_menu_create_opaque_shader},
+			{.text = "Unlit Shader", .command = assets_action_menu_create_unlit_shader},
 			{.text = "Transparent Shader", .command = assets_action_menu_create_transparent_shader},
 			{.text = "Post Process Shader", .command = assets_action_menu_create_post_process_shader},
 			{.text = "UI Shader", .command = assets_action_menu_create_ui_shader},
 			{.text = "UI Text Shader", .command = assets_action_menu_create_ui_text_shader},
 			{.text = "Texture Sampler", .command = assets_action_menu_create_texture_sampler},
 			{.text = "GBuffer Material", .command = assets_action_menu_create_gbuffer_material},
+			{.text = "Unlit Material", .command = assets_action_menu_create_unlit_material},
 			{.text = "Forward Material", .command = assets_action_menu_create_forward_material},
 		};
 

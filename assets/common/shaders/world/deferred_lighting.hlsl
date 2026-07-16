@@ -130,12 +130,15 @@ float4 PSMain(vs_output input) : SV_TARGET
 	if (is_background(device_depth))
 		return float4(get_sky_color(skybox_radiance, input.uv, rp_data), 1.0);
 
+	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
+	const float3 emissive = tex_gbuffer_emissive.Load(int3(pixel, 0)).xyz;
+	if (orm.a >= 0.5)
+		return float4(emissive, 1.0);
+
 	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, rp_data.inv_view_proj);
 	const float3 V		   = normalize(rp_data.camera_pos.xyz - world_pos);
 	const float3 albedo   = tex_gbuffer_color.Load(int3(pixel, 0)).xyz;
 	const float4 normal   = tex_gbuffer_normal.Load(int3(pixel, 0));
-	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
-	const float3 emissive = tex_gbuffer_emissive.Load(int3(pixel, 0)).xyz;
 	const float	 ao	   = saturate(orm.r) * tex_ao.SampleLevel(smp_nearest, input.uv, 0).r;
 	const float	 roughness = saturate(orm.g);
 	const float	 metallic  = saturate(orm.b);

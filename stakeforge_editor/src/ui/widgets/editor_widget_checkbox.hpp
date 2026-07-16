@@ -43,7 +43,8 @@ namespace sfg
 {
 	struct editor_checkbox_field_t
 	{
-		span_t<u8*> fields = {};
+		span_t<u8*> fields	   = {};
+		size_t		field_size = sizeof(u8);
 	};
 
 	struct editor_checkbox_config_t
