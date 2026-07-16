@@ -25,6 +25,10 @@ namespace sfg
 		editor_gizmo,
 		debug_line,
 		debug_text,
+		ssao,
+		ssao_upsample,
+		bloom_downsample,
+		bloom_upsample,
 		count,
 	};
 

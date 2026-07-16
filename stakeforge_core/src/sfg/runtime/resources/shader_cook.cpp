@@ -438,6 +438,16 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::ssao:
+		case shader_type_e::ssao_upsample:
+		case shader_type_e::bloom_downsample:
+		case shader_type_e::bloom_upsample:
+			if (!shader_cook_variants_t::cook_compute_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook compute shader variant: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(compile_source, include_paths, compiles, psos))
 			{

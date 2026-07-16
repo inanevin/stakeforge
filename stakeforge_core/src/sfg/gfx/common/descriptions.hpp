@@ -205,7 +205,7 @@ namespace sfg
 	struct texture_desc_t
 	{
 		static constexpr size_t MAX_DEBUG_NAME = 256;
-		static constexpr size_t MAX_VIEWS	   = 8;
+		static constexpr size_t MAX_VIEWS	   = TEXTURE_MAX_VIEWS;
 
 		format_e	   texture_format			  = format_e::r8g8b8a8_srgb;
 		format_e	   depth_stencil_format		  = format_e::d16_unorm;

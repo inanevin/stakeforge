@@ -101,7 +101,8 @@ namespace sfg
 			desc.deserialize(desc_stream);
 			desc.set_name(mem.get_text(entry.debug_name));
 
-			internals->psos[i] = render_resources_t::get().enqueue_create_shader(desc, {.data = blobs.data(), .size = blobs.size()}, render_globals_t::get_global_bind_layout());
+			const gfx_handle_t layout = cv.stage_count == 1 && cv.stages[0].stage == shader_stage_e::compute ? render_globals_t::get_global_compute_bind_layout() : render_globals_t::get_global_bind_layout();
+			internals->psos[i]		  = render_resources_t::get().enqueue_create_shader(desc, {.data = blobs.data(), .size = blobs.size()}, layout);
 		}
 
 		for (u8 i = 0; i < runtime->compile_variant_count; i++)

@@ -35,6 +35,42 @@
                 "schema": "sfg.schema.shader",
                 "type": 15
             }
+        },
+        {
+            "name": "ssao",
+            "path": "common/shaders/world/ssao.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 16
+            }
+        },
+        {
+            "name": "ssao_upsample",
+            "path": "common/shaders/world/ssao_upsample.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 17
+            }
+        },
+        {
+            "name": "bloom_downsample",
+            "path": "common/shaders/world/bloom_downsample.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 18
+            }
+        },
+        {
+            "name": "bloom_upsample",
+            "path": "common/shaders/world/bloom_upsample.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 19
+            }
         }
     ]
 }

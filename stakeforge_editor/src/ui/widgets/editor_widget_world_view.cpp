@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "assets/editor_asset_spawn.hpp"
+#include <sfg/gfx/util/render_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
@@ -215,10 +216,11 @@ namespace sfg
 			return;
 
 		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
-		const vec2u16_t			resolution{
-			.x = static_cast<u16>(math::clamp(out.size.x, 1.0f, 65535.0f) + 0.5f),
-			.y = static_cast<u16>(math::clamp(out.size.y, 1.0f, 65535.0f) + 0.5f),
+		vec2u16_t				resolution{
+			.x = static_cast<u16>(math::clamp(out.size.x, 0.0f, 65535.0f) + 0.5f),
+			.y = static_cast<u16>(math::clamp(out.size.y, 0.0f, 65535.0f) + 0.5f),
 		};
+		render_util_t::ensure_world_resolution(resolution);
 		if (!force && _last_resize_request == resolution)
 			return;
 

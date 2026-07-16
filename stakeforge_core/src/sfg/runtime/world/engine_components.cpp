@@ -195,6 +195,78 @@ namespace sfg
 			});
 		}
 
+		void register_component_post_process_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "tonemap_mode_e",
+				.display_name = "Tone Map Mode",
+				.fields =
+					{
+						{.name = "aces", .display_name = "ACES"},
+						{.name = "reinhard", .display_name = "Reinhard"},
+						{.name = "none", .display_name = "None"},
+					},
+				.type_id   = type_id_t<tonemap_mode_e>::value,
+				.size	   = sizeof(tonemap_mode_e),
+				.alignment = alignof(tonemap_mode_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name		  = "post_process_ssao_t",
+				.display_name = "SSAO",
+				.fields =
+					{
+						{.name = "radius_world", .display_name = "Radius", .tooltip = "Occlusion radius in world units.", .offset = offsetof(post_process_ssao_t, radius_world), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "bias", .display_name = "Bias", .offset = offsetof(post_process_ssao_t, bias), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "intensity", .display_name = "Intensity", .offset = offsetof(post_process_ssao_t, intensity), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "power", .display_name = "Power", .offset = offsetof(post_process_ssao_t, power), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "random_rotation_strength", .display_name = "Random Rotation Strength", .offset = offsetof(post_process_ssao_t, random_rotation_strength), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "direction_count", .display_name = "Direction Count", .offset = offsetof(post_process_ssao_t, direction_count), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+						{.name = "step_count", .display_name = "Step Count", .offset = offsetof(post_process_ssao_t, step_count), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+						{.name = "enabled", .display_name = "Enabled", .offset = offsetof(post_process_ssao_t, enabled), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<post_process_ssao_t>::value,
+				.size	   = sizeof(post_process_ssao_t),
+				.alignment = alignof(post_process_ssao_t),
+			});
+
+			registry.register_type({
+				.name		  = "post_process_bloom_t",
+				.display_name = "Bloom",
+				.fields =
+					{
+						{.name = "strength", .display_name = "Strength", .offset = offsetof(post_process_bloom_t, strength), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "filter_radius", .display_name = "Filter Radius", .offset = offsetof(post_process_bloom_t, filter_radius), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "enabled", .display_name = "Enabled", .offset = offsetof(post_process_bloom_t, enabled), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<post_process_bloom_t>::value,
+				.size	   = sizeof(post_process_bloom_t),
+				.alignment = alignof(post_process_bloom_t),
+			});
+
+			registry.register_type({
+				.name			 = "component_post_process",
+				.display_name	 = "Post Process",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_post_process_t*>(ptr), component_post_process_t{}); },
+				.fields =
+					{
+						{.name = "ssao", .display_name = "SSAO", .sub_type_id = type_id_t<post_process_ssao_t>::value, .offset = offsetof(component_post_process_t, ssao), .size = sizeof(post_process_ssao_t), .type = reflected_value_type_e::object},
+						{.name = "bloom", .display_name = "Bloom", .sub_type_id = type_id_t<post_process_bloom_t>::value, .offset = offsetof(component_post_process_t, bloom), .size = sizeof(post_process_bloom_t), .type = reflected_value_type_e::object},
+						{.name = "exposure_ev", .display_name = "Exposure", .tooltip = "Exposure in stops.", .offset = offsetof(component_post_process_t, exposure_ev), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "saturation", .display_name = "Saturation", .offset = offsetof(component_post_process_t, saturation), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "temperature", .display_name = "Temperature", .offset = offsetof(component_post_process_t, temperature), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "tint", .display_name = "Tint", .offset = offsetof(component_post_process_t, tint), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "reinhard_white_point", .display_name = "Reinhard White Point", .offset = offsetof(component_post_process_t, reinhard_white_point), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "tonemap_mode", .display_name = "Tone Map Mode", .sub_type_id = type_id_t<tonemap_mode_e>::value, .offset = offsetof(component_post_process_t, tonemap_mode), .size = sizeof(tonemap_mode_e), .type = reflected_value_type_e::u8},
+					},
+				.type_id   = type_id_t<component_post_process_t>::value,
+				.size	   = sizeof(component_post_process_t),
+				.alignment = alignof(component_post_process_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_prefab_reference_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -515,6 +587,7 @@ namespace sfg
 		register_component_name_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
 		register_component_camera_reflection(registry);
+		register_component_post_process_reflection(registry);
 		register_component_skybox_reflection(registry);
 		register_component_prefab_reference_reflection(registry);
 		register_debug_widgets_enum_reflection(registry);

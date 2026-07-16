@@ -51,6 +51,37 @@ namespace sfg
 		f32						 prefilter_max_lod = 0.0f;
 	};
 
+	struct world_render_ssao_t
+	{
+		f32 radius_world			 = 0.75f;
+		f32 bias					 = 0.04f;
+		f32 intensity				 = 1.25f;
+		f32 power					 = 1.25f;
+		f32 random_rotation_strength = 1.5f;
+		u32 direction_count			 = 8;
+		u32 step_count				 = 6;
+		u8	enabled					 = 0;
+	};
+
+	struct world_render_bloom_t
+	{
+		f32 strength	  = 0.04f;
+		f32 filter_radius = 0.01f;
+		u8	enabled		  = 0;
+	};
+
+	struct world_render_post_process_t
+	{
+		world_render_ssao_t	 ssao				  = {};
+		world_render_bloom_t bloom				  = {};
+		f32					 exposure_ev		  = 0.0f;
+		f32					 saturation			  = 1.0f;
+		f32					 temperature		  = 0.0f;
+		f32					 tint				  = 0.0f;
+		f32					 reinhard_white_point = 6.0f;
+		u32					 tonemap_mode		  = 1;
+	};
+
 	struct world_render_prep_draw_cull_t
 	{
 		u64 cull_mask = 0;
@@ -73,13 +104,14 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
-		void*							  user_data	 = nullptr;
-		world_render_view_t				  main_view	 = {};
-		world_render_skybox_t			  skybox	 = {};
-		world_debug_draw_snapshot_t		  debug_draw = {};
-		vector_t<world_render_material_t> materials	 = {};
-		vector_t<world_render_entity_t>	  entities	 = {};
-		vector_t<world_draw_t>			  draws		 = {};
+		void*							  user_data	   = nullptr;
+		world_render_view_t				  main_view	   = {};
+		world_render_skybox_t			  skybox	   = {};
+		world_render_post_process_t		  post_process = {};
+		world_debug_draw_snapshot_t		  debug_draw   = {};
+		vector_t<world_render_material_t> materials	   = {};
+		vector_t<world_render_entity_t>	  entities	   = {};
+		vector_t<world_draw_t>			  draws		   = {};
 
 		inline void reserve(size_t entity_count, size_t line_vertex_count, size_t line_index_count, size_t text_vertex_count, size_t text_index_count)
 		{

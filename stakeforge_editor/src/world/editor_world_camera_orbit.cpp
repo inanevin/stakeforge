@@ -48,6 +48,7 @@ namespace sfg
 		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
 		camera.priority			   = -1;
 		camera.near_plane		   = 0.01f;
+		ecs_helpers_t::table_add_or_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), _camera_entity);
 		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), _camera_entity);
 
 		apply_transform(world);

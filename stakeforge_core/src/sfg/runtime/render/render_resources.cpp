@@ -67,6 +67,10 @@ namespace sfg
 		_default_linear_sampler	  = enqueue_create_sampler(gfx_util_t::get_sampler_desc_linear());
 		const u8 invalid_pixels[] = {0, 0, 0, 255, 255, 0, 255, 255, 255, 0, 255, 255, 0, 0, 0, 255};
 		_invalid_texture		  = create_default_texture(*this, format_e::r8g8b8a8_srgb, {2, 2}, invalid_pixels, "invalid_texture", _invalid_texture_staging);
+		const u8 white_pixel[]	  = {255, 255, 255, 255};
+		const u8 black_pixel[]	  = {0, 0, 0, 255};
+		_white_texture			  = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, white_pixel, "white_texture", _white_texture_staging);
+		_black_texture			  = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, black_pixel, "black_texture", _black_texture_staging);
 	}
 
 	void render_resources_t::uninit()
@@ -75,10 +79,18 @@ namespace sfg
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_sampler, .render_handle = _default_linear_sampler});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _invalid_texture});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _invalid_texture_staging});
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _white_texture});
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _white_texture_staging});
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _black_texture});
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _black_texture_staging});
 		drain_destroy_requests();
 		_default_linear_sampler	 = {};
 		_invalid_texture		 = {};
 		_invalid_texture_staging = {};
+		_white_texture			 = {};
+		_white_texture_staging	 = {};
+		_black_texture			 = {};
+		_black_texture_staging	 = {};
 		get_texture_upload_queue().uninit();
 		release_retired_resources(true);
 		release_retired_textures(true);
@@ -279,7 +291,7 @@ namespace sfg
 	gpu_index_t render_resources_t::get_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const
 	{
 		SFG_ASSERT(is_render_access_thread());
-		SFG_ASSERT(view_index < texture_desc_t::MAX_VIEWS);
+		SFG_ASSERT(view_index < TEXTURE_MAX_VIEWS);
 		const render_thread_resource_t& resource = get_render_thread_resource_entry(_rt_textures, handle);
 		const gpu_index_t				idx		 = resource.texture_gpu_indices[view_index];
 		SFG_ASSERT(idx != NULL_GPU_INDEX);
@@ -542,7 +554,7 @@ namespace sfg
 		set_render_thread_resource(resources, render_handle, hw_handle);
 
 		render_thread_resource_t& resource = resources[render_handle.index];
-		SFG_ASSERT(desc.view_count <= texture_desc_t::MAX_VIEWS);
+		SFG_ASSERT(desc.view_count <= TEXTURE_MAX_VIEWS);
 		for (u8 i = 0; i < desc.view_count; ++i)
 			resource.texture_gpu_indices[i] = gfx_backend::get().get_texture_gpu_index(hw_handle, i);
 		resource.gpu_index = resource.texture_gpu_indices[0];

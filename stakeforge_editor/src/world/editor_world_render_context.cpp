@@ -164,12 +164,16 @@ namespace sfg
 		selection_desc.clear_values[3] = 0.0f;
 		selection_desc.set_name("editor_world_selection");
 
-		texture_desc_t object_id_desc = {};
-		object_id_desc.texture_format = format_e::r32_uint;
-		object_id_desc.size			  = size;
-		object_id_desc.flags		  = texture_flags::tf_render_target | texture_flags::tf_transfer_source | texture_flags::tf_is_2d;
-		object_id_desc.view_count	  = 1;
-		object_id_desc.views[0]		  = {.type = view_type::render_target};
+		texture_desc_t object_id_desc  = {};
+		object_id_desc.clear_values[0] = NULL_ENTITY_ID;
+		object_id_desc.clear_values[1] = 0.0f;
+		object_id_desc.clear_values[2] = 0.0f;
+		object_id_desc.clear_values[3] = 0.0f;
+		object_id_desc.texture_format  = format_e::r32_uint;
+		object_id_desc.size			   = size;
+		object_id_desc.flags		   = texture_flags::tf_render_target | texture_flags::tf_transfer_source | texture_flags::tf_is_2d;
+		object_id_desc.view_count	   = 1;
+		object_id_desc.views[0]		   = {.type = view_type::render_target};
 		object_id_desc.set_name("editor_world_object_id");
 
 		_object_id_readback_row_pitch = gfx_backend::align_texture_size_pitch(static_cast<u32>(size.x) * sizeof(entity_id_t));

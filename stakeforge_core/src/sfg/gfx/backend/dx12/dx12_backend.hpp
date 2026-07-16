@@ -114,25 +114,27 @@ namespace sfg
 		struct resource_t
 		{
 			D3D12MA::Allocation* ptr						= nullptr;
-			gfx_handle_t			 descriptor_index			= {};
-			gfx_handle_t			 descriptor_index_secondary = {};
+			gfx_handle_t		 descriptor_index			= {};
+			gfx_handle_t		 descriptor_index_secondary = {};
 			u32					 size						= 0;
 		};
 
 		struct texture_view_t
 		{
 			gfx_handle_t handle = {};
-			u8		   type	  = 0;
+			u8			 type	= 0;
 		};
 
 		struct texture_t
 		{
 			D3D12MA::Allocation* ptr = nullptr;
-			texture_view_t		 views[8];
-			gfx_handle_t			 shared_handle = {};
+			texture_view_t		 views[TEXTURE_MAX_VIEWS];
+			gfx_handle_t		 shared_handle = {};
 			u32					 state		   = resource_state_common;
 			u8					 format		   = 0;
 			u8					 view_count	   = 0;
+			u8					 mip_levels	   = 1;
+			u8					 array_length  = 1;
 		};
 
 		struct texture_shared_handle_t
@@ -153,11 +155,11 @@ namespace sfg
 			u32 size = 0;
 #endif
 			gfx_handle_t rtv_indices[BACK_BUFFER_COUNT] = {};
-			u8		   format						  = 0;
-			u8		   image_index					  = 0;
-			u8		   vsync						  = 0;
-			u8		   tearing						  = 0;
-			HANDLE	   frame_latency_waitable		  = NULL;
+			u8			 format							= 0;
+			u8			 image_index					= 0;
+			u8			 vsync							= 0;
+			u8			 tearing						= 0;
+			HANDLE		 frame_latency_waitable			= NULL;
 		};
 
 		struct semaphore_t
@@ -181,11 +183,11 @@ namespace sfg
 
 		struct group_binding_t
 		{
-			u8*		   constants		= nullptr;
+			u8*			 constants		  = nullptr;
 			gfx_handle_t descriptor_index = {};
-			u32		   root_param_index = 0;
-			u8		   binding_type		= 0;
-			u8		   count			= 0;
+			u32			 root_param_index = 0;
+			u8			 binding_type	  = 0;
+			u8			 count			  = 0;
 		};
 
 		struct bind_group_t
@@ -196,7 +198,7 @@ namespace sfg
 		struct command_buffer_t
 		{
 			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> ptr;
-			gfx_handle_t										   allocator   = {};
+			gfx_handle_t									   allocator   = {};
 			u8												   is_transfer = 0;
 		};
 
@@ -237,11 +239,11 @@ namespace sfg
 		static bool compile_shader_vertex_pixel(u8 stage, const string_t& source, const vector_t<string_t>& defines, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout);
 		static bool compile_shader_compute(const string_t& source, const vector_t<string_t>& source_paths, const char* entry_t, span_t<u8>& out, bool compile_layout, span_t<u8>& out_layout);
 
-		u32		   get_resource_gpu_index(gfx_handle_t resource_t, bool use_secondary = false);
-		u32		   get_texture_gpu_index(gfx_handle_t texture_t, u8 view_index);
-		u32		   get_texture_state(gfx_handle_t texture_t) const;
-		void	   set_texture_state(gfx_handle_t texture_t, u32 state);
-		u32		   get_sampler_gpu_index(gfx_handle_t sampler_t);
+		u32			 get_resource_gpu_index(gfx_handle_t resource_t, bool use_secondary = false);
+		u32			 get_texture_gpu_index(gfx_handle_t texture_t, u8 view_index);
+		u32			 get_texture_state(gfx_handle_t texture_t) const;
+		void		 set_texture_state(gfx_handle_t texture_t, u32 state);
+		u32			 get_sampler_gpu_index(gfx_handle_t sampler_t);
 		gfx_handle_t create_resource(const resource_desc_t& desc);
 		gfx_handle_t create_texture(const texture_desc_t& desc);
 		gfx_handle_t create_sampler(const sampler_desc_t& desc);
@@ -256,19 +258,19 @@ namespace sfg
 		gfx_handle_t create_empty_bind_layout();
 		gfx_handle_t create_draw_indirect_signature(gfx_handle_t bind_layout_t, size_t sz);
 		gfx_handle_t create_dispatch_indirect_signature(gfx_handle_t bind_layout_t, size_t sz);
-		void	   destroy_indirect_signature(gfx_handle_t sig);
-		void	   bind_group_add_descriptor(gfx_handle_t group, u8 root_param_index, u8 binding_type);
-		void	   bind_group_add_constant(gfx_handle_t group, u8 root_param_index, u8* data, u8 count);
-		void	   bind_group_add_pointer(gfx_handle_t group, u8 root_param_index, u8 count, bool is_sampler);
-		void	   bind_layout_add_constant(gfx_handle_t layout, u32 count, u32 set, u32 binding_t, u8 shader_stage_visibility);
-		void	   bind_layout_add_descriptor(gfx_handle_t layout, u8 type, u32 set, u32 binding_t, u8 shader_stage_visibility);
-		void	   bind_layout_add_pointer(gfx_handle_t layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 shader_stage_visibility);
-		void	   bind_layout_add_immutable_sampler(gfx_handle_t layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 shader_stage_visibility);
-		void	   finalize_bind_layout(gfx_handle_t id, bool is_compute, bool is_dyn_index, const char* name);
-		void	   bind_group_update_constants(gfx_handle_t group, u8 binding_index, u8* constants, u8 count);
-		void	   bind_group_update_descriptor(gfx_handle_t group, u8 binding_index, gfx_handle_t resource_t);
-		void	   bind_group_update_pointer(gfx_handle_t group, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count);
-		void	   bind_group_update_pointer(gfx_handle_t group, u8 binding_index, const vector_t<bind_group_pointer_t>& updates);
+		void		 destroy_indirect_signature(gfx_handle_t sig);
+		void		 bind_group_add_descriptor(gfx_handle_t group, u8 root_param_index, u8 binding_type);
+		void		 bind_group_add_constant(gfx_handle_t group, u8 root_param_index, u8* data, u8 count);
+		void		 bind_group_add_pointer(gfx_handle_t group, u8 root_param_index, u8 count, bool is_sampler);
+		void		 bind_layout_add_constant(gfx_handle_t layout, u32 count, u32 set, u32 binding_t, u8 shader_stage_visibility);
+		void		 bind_layout_add_descriptor(gfx_handle_t layout, u8 type, u32 set, u32 binding_t, u8 shader_stage_visibility);
+		void		 bind_layout_add_pointer(gfx_handle_t layout, const vector_t<bind_layout_pointer_param_t>& pointer_params, u8 shader_stage_visibility);
+		void		 bind_layout_add_immutable_sampler(gfx_handle_t layout, u32 set, u32 binding_t, const sampler_desc_t& desc, u8 shader_stage_visibility);
+		void		 finalize_bind_layout(gfx_handle_t id, bool is_compute, bool is_dyn_index, const char* name);
+		void		 bind_group_update_constants(gfx_handle_t group, u8 binding_index, u8* constants, u8 count);
+		void		 bind_group_update_descriptor(gfx_handle_t group, u8 binding_index, gfx_handle_t resource_t);
+		void		 bind_group_update_pointer(gfx_handle_t group, u8 binding_index, const bind_group_pointer_t* updates, u16 update_count);
+		void		 bind_group_update_pointer(gfx_handle_t group, u8 binding_index, const vector_t<bind_group_pointer_t>& updates);
 
 		void destroy_resource(gfx_handle_t id);
 		void destroy_texture(gfx_handle_t id);
@@ -393,10 +395,10 @@ namespace sfg
 
 		static bool ensure_idxc_lib();
 
-		gfx_handle_t _queue_graphics	  = {};
-		gfx_handle_t _queue_transfer	  = {};
-		gfx_handle_t _queue_compute	  = {};
-		bool	   _tearing_supported = false;
+		gfx_handle_t _queue_graphics	= {};
+		gfx_handle_t _queue_transfer	= {};
+		gfx_handle_t _queue_compute		= {};
+		bool		 _tearing_supported = false;
 
 		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_buffer  = {};
 		vector_t<D3D12_CPU_DESCRIPTOR_HANDLE> _reuse_dest_descriptors_sampler = {};

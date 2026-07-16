@@ -102,6 +102,54 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_camera_t);
 
+	enum class tonemap_mode_e : u8
+	{
+		aces,
+		reinhard,
+		none,
+	};
+
+	SFG_DEFINE_TYPE_ID(tonemap_mode_e);
+
+	struct post_process_ssao_t
+	{
+		f32 radius_world			 = 0.75f;
+		f32 bias					 = 0.04f;
+		f32 intensity				 = 1.25f;
+		f32 power					 = 1.25f;
+		f32 random_rotation_strength = 1.5f;
+		u32 direction_count			 = 8;
+		u32 step_count				 = 6;
+		u8	enabled					 = 1;
+	};
+
+	SFG_DEFINE_TYPE_ID(post_process_ssao_t);
+
+	struct post_process_bloom_t
+	{
+		f32 strength	  = 0.04f;
+		f32 filter_radius = 0.01f;
+		u8	enabled		  = 1;
+	};
+
+	SFG_DEFINE_TYPE_ID(post_process_bloom_t);
+
+	struct component_post_process_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_post_process";
+
+		post_process_ssao_t	 ssao				  = {};
+		post_process_bloom_t bloom				  = {};
+		f32					 exposure_ev		  = 0.0f;
+		f32					 saturation			  = 1.0f;
+		f32					 temperature		  = 0.0f;
+		f32					 tint				  = 0.0f;
+		f32					 reinhard_white_point = 6.0f;
+		tonemap_mode_e		 tonemap_mode		  = tonemap_mode_e::reinhard;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_post_process_t);
+
 	struct component_skybox_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_skybox";

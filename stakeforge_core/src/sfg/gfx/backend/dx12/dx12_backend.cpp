@@ -1124,6 +1124,8 @@ namespace sfg
 		const DXGI_FORMAT color_format = get_format(desc.texture_format);
 		const DXGI_FORMAT depth_format = get_format(desc.depth_stencil_format);
 		txt.format					   = static_cast<u8>(color_format);
+		txt.mip_levels				   = desc.mip_levels;
+		txt.array_length			   = desc.flags.is_set(texture_flags::tf_is_3d) ? 1 : desc.array_length;
 
 		D3D12_RESOURCE_DESC resource_desc_t = {};
 		resource_desc_t.Dimension			= D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -3348,7 +3350,8 @@ namespace sfg
 		{
 			const barrier_t& barrier_t = cmd.barriers[i];
 
-			ID3D12Resource* res = nullptr;
+			ID3D12Resource* res		= nullptr;
+			texture_t*		texture = nullptr;
 
 			if (barrier_t.flags.is_set(barrier_flags::baf_is_resource))
 			{
@@ -3361,8 +3364,8 @@ namespace sfg
 			}
 			else
 			{
-				texture_t& txt = _textures.get(barrier_t.texture_t);
-				res			   = txt.ptr->GetResource();
+				texture = &_textures.get(barrier_t.texture_t);
+				res		= texture->ptr->GetResource();
 			}
 
 			if (barrier_t.flags.is_set(barrier_flags::baf_is_uav))
@@ -3371,8 +3374,24 @@ namespace sfg
 			}
 			else
 			{
-				barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(barrier_t.from_states), get_resource_state(barrier_t.to_states)));
-				if (barrier_t.flags.is_set(barrier_flags::baf_is_texture))
+				if (barrier_t.mip_count == 0)
+				{
+					barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(barrier_t.from_states), get_resource_state(barrier_t.to_states)));
+				}
+				else
+				{
+					SFG_ASSERT(texture != nullptr);
+					SFG_ASSERT(static_cast<u32>(barrier_t.base_mip_level) + barrier_t.mip_count <= texture->mip_levels);
+					for (u32 array_level = 0; array_level < texture->array_length; ++array_level)
+					{
+						for (u32 mip_level = barrier_t.base_mip_level; mip_level < static_cast<u32>(barrier_t.base_mip_level) + barrier_t.mip_count; ++mip_level)
+						{
+							const u32 subresource = D3D12CalcSubresource(mip_level, array_level, 0, texture->mip_levels, texture->array_length);
+							barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(barrier_t.from_states), get_resource_state(barrier_t.to_states), subresource));
+						}
+					}
+				}
+				if (barrier_t.flags.is_set(barrier_flags::baf_is_texture) && barrier_t.mip_count == 0)
 					set_texture_state(barrier_t.texture_t, barrier_t.to_states);
 			}
 		}

@@ -34,6 +34,7 @@ namespace sfg
 {
 #define BACK_BUFFER_COUNT 3
 #define FRAME_LATENCY	  2
+	inline constexpr u8 TEXTURE_MAX_VIEWS = 12;
 
 	// 0 discrete, 1 integratd
 #define GPU_DEVICE 0

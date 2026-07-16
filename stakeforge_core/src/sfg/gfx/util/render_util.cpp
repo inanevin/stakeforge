@@ -24,51 +24,20 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#include "render_util.hpp"
 
-#include "gfx_constants.hpp"
-#include <sfg/data/bitmask.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/math/vec2u16.hpp>
 
 namespace sfg
 {
-	enum barrier_flags
-	{
-		baf_is_resource	 = 1 << 0,
-		baf_is_texture	 = 1 << 1,
-		baf_is_swapchain = 1 << 2,
-		baf_is_uav		 = 1 << 3,
-	};
+#define WORLD_RENDER_RESOLUTION_MIN 64
+#define WORLD_RENDER_RESOLUTION_MAX 8192
 
-	enum resource_state : u32
+	void render_util_t::ensure_world_resolution(vec2u16_t& resolution)
 	{
-		resource_state_common		   = 1 << 0,
-		resource_state_vertex_cbv	   = 1 << 1,
-		resource_state_index_buffer	   = 1 << 2,
-		resource_state_render_target   = 1 << 3,
-		resource_state_uav			   = 1 << 4,
-		resource_state_depth_write	   = 1 << 5,
-		resource_state_depth_read	   = 1 << 6,
-		resource_state_non_ps_resource = 1 << 7,
-		resource_state_ps_resource	   = 1 << 8,
-		resource_state_indirect_arg	   = 1 << 9,
-		resource_state_copy_dest	   = 1 << 10,
-		resource_state_copy_source	   = 1 << 11,
-		resource_state_resolve_dest	   = 1 << 12,
-		resource_state_resolve_source  = 1 << 13,
-		resource_state_generic_read	   = 1 << 14,
-		resource_state_present		   = 1 << 15,
-	};
-
-	struct barrier_t
-	{
-		u32			  from_states	 = 0;
-		u32			  to_states		 = 0;
-		gfx_handle_t  resource_t	 = {};
-		gfx_handle_t  texture_t		 = {};
-		gfx_handle_t  swapchain_t	 = {};
-		bitmask_t<u8> flags			 = 0;
-		u8			  base_mip_level = 0;
-		u8			  mip_count		 = 0;
-	};
-
+		resolution.x = static_cast<u16>(math::clamp<u32>(resolution.x, WORLD_RENDER_RESOLUTION_MIN, WORLD_RENDER_RESOLUTION_MAX));
+		resolution.y = static_cast<u16>(math::clamp<u32>(resolution.y, WORLD_RENDER_RESOLUTION_MIN, WORLD_RENDER_RESOLUTION_MAX));
+	}
 }

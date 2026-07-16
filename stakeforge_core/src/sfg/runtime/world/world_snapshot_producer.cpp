@@ -140,12 +140,14 @@ namespace sfg
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
 		snapshot.draws.resize(0);
-		snapshot.skybox = {};
+		snapshot.skybox		  = {};
+		snapshot.post_process = {};
 		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
 
 		const ecs_component_table_t& transform_table	 = world.get_component_table(type_id_t<component_system_transform_t>::value);
 		const ecs_component_table_t& alive_table		 = world.get_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t& camera_table		 = world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& post_process_table	 = world.get_component_table(type_id_t<component_post_process_t>::value);
 		const ecs_component_table_t& skybox_table		 = world.get_component_table(type_id_t<component_skybox_t>::value);
 		const ecs_component_table_t& disabled_table		 = world.get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& mesh_renderer_table = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
@@ -185,6 +187,36 @@ namespace sfg
 				component_camera_t&			  cam	= ecs_helpers_t::table_get_as<component_camera_t>(camera_table, min_prio_entity);
 				component_system_transform_t& trans = ecs_helpers_t::table_get_as<component_system_transform_t>(transform_table, min_prio_entity);
 				snapshot.main_view					= {.pos = trans.abs_pos, .rot = trans.abs_rot, .prev_pos = trans.prev_abs_pos, .prev_rot = trans.prev_abs_rot, .near_plane = cam.near_plane, .far_plane = cam.far_plane, .fov_degrees = cam.fov_degrees};
+
+				const component_post_process_t* post_process = ecs_helpers_t::table_find_as_const<component_post_process_t>(post_process_table, min_prio_entity);
+				if (post_process != nullptr)
+				{
+					snapshot.post_process = {
+						.ssao =
+							{
+								.radius_world			  = post_process->ssao.radius_world,
+								.bias					  = post_process->ssao.bias,
+								.intensity				  = post_process->ssao.intensity,
+								.power					  = post_process->ssao.power,
+								.random_rotation_strength = post_process->ssao.random_rotation_strength,
+								.direction_count		  = post_process->ssao.direction_count,
+								.step_count				  = post_process->ssao.step_count,
+								.enabled				  = post_process->ssao.enabled,
+							},
+						.bloom =
+							{
+								.strength	   = post_process->bloom.strength,
+								.filter_radius = post_process->bloom.filter_radius,
+								.enabled	   = post_process->bloom.enabled,
+							},
+						.exposure_ev		  = post_process->exposure_ev,
+						.saturation			  = post_process->saturation,
+						.temperature		  = post_process->temperature,
+						.tint				  = post_process->tint,
+						.reinhard_white_point = post_process->reinhard_white_point,
+						.tonemap_mode		  = static_cast<u32>(post_process->tonemap_mode),
+					};
+				}
 			}
 		}
 

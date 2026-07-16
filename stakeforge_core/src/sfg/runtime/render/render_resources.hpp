@@ -133,6 +133,16 @@ namespace sfg
 			return _invalid_texture;
 		}
 
+		inline render_resource_handle_t get_white_texture() const
+		{
+			return _white_texture;
+		}
+
+		inline render_resource_handle_t get_black_texture() const
+		{
+			return _black_texture;
+		}
+
 		inline texture_queue_t& get_texture_upload_queue()
 		{
 			return _texture_upload_queue;
@@ -192,10 +202,10 @@ namespace sfg
 
 		struct render_thread_resource_t
 		{
-			gpu_index_t				 texture_gpu_indices[texture_desc_t::MAX_VIEWS] = {};
-			render_resource_handle_t render_handle									= {};
-			gfx_handle_t			 hw_handle										= {};
-			gpu_index_t				 gpu_index										= NULL_GPU_INDEX;
+			gpu_index_t				 texture_gpu_indices[TEXTURE_MAX_VIEWS] = {};
+			render_resource_handle_t render_handle							= {};
+			gfx_handle_t			 hw_handle								= {};
+			gpu_index_t				 gpu_index								= NULL_GPU_INDEX;
 		};
 
 		struct retired_texture_t
@@ -233,6 +243,10 @@ namespace sfg
 		render_resource_handle_t				 _default_linear_sampler  = {};
 		render_resource_handle_t				 _invalid_texture		  = {};
 		render_resource_handle_t				 _invalid_texture_staging = {};
+		render_resource_handle_t				 _white_texture			  = {};
+		render_resource_handle_t				 _white_texture_staging	  = {};
+		render_resource_handle_t				 _black_texture			  = {};
+		render_resource_handle_t				 _black_texture_staging	  = {};
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;

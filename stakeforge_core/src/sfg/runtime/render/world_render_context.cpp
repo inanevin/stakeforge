@@ -28,12 +28,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_context.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
+#include <sfg/gfx/util/render_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/vertex.hpp>
+#include <random>
 
 namespace sfg
 {
@@ -46,24 +49,29 @@ namespace sfg
 	{
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
-			_pfd[i]						  = other._pfd[i];
-			other._pfd[i]				  = {};
-			other._pfd[i].gfx0_done_value = 0;
+			_pfd[i]		  = other._pfd[i];
+			other._pfd[i] = {};
 		}
-		_shaders	   = other._shaders;
-		other._shaders = {};
-		_config		   = other._config;
-		other._config  = {};
+		_shaders						= other._shaders;
+		other._shaders					= {};
+		_config							= other._config;
+		other._config					= {};
+		_ssao_noise_texture				= other._ssao_noise_texture;
+		other._ssao_noise_texture		= {};
+		_ssao_noise_staging				= other._ssao_noise_staging;
+		other._ssao_noise_staging		= {};
+		_ssao_noise_texture_index		= other._ssao_noise_texture_index;
+		other._ssao_noise_texture_index = NULL_GPU_INDEX;
 		return *this;
 	}
 
 	void world_render_context_t::init(const world_render_context_config_t& config)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(config.size.x > 0 && config.size.y > 0);
 		SFG_ASSERT((config.line_vertex_max == 0) == (config.line_index_max == 0));
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
 		_config = config;
+		render_util_t::ensure_world_resolution(_config.size);
 
 		resource_desc_t opaque_render_pass_data_desc = {};
 		opaque_render_pass_data_desc.size			 = static_cast<u32>(sizeof(render_pass_data_opaque_gpu_t));
@@ -79,6 +87,16 @@ namespace sfg
 		post_process_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_post_process_gpu_t));
 		post_process_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		post_process_render_pass_data_desc.set_name("world_post_process_render_pass_data");
+
+		resource_desc_t ssao_render_pass_data_desc = {};
+		ssao_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_ssao_gpu_t));
+		ssao_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		ssao_render_pass_data_desc.set_name("world_ssao_render_pass_data");
+
+		resource_desc_t bloom_render_pass_data_desc = {};
+		bloom_render_pass_data_desc.size			= static_cast<u32>(sizeof(render_pass_data_bloom_gpu_t));
+		bloom_render_pass_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		bloom_render_pass_data_desc.set_name("world_bloom_render_pass_data");
 
 		resource_desc_t entity_buffer_desc = {};
 		entity_buffer_desc.size			   = static_cast<u32>(sizeof(gpu_entity_t) * WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
@@ -118,10 +136,65 @@ namespace sfg
 		debug_text_index_desc.set_name("world_debug_text_indices");
 
 		gfx_backend& backend = gfx_backend::get();
+		if (config.enable_ssao != 0)
+		{
+			const vec2u16_t						noise_size		= {8, 8};
+			const u32							noise_row_pitch = 16;
+			const u32							noise_data_size = noise_row_pitch * noise_size.y;
+			u8*									noise_data		= static_cast<u8*>(SFG_MALLOC(noise_data_size));
+			std::mt19937						random(1337);
+			std::uniform_real_distribution<f32> distribution(0.0f, 1.0f);
+			for (u32 y = 0; y < noise_size.y; ++y)
+			{
+				for (u32 x = 0; x < noise_size.x; ++x)
+				{
+					const f32 theta		   = distribution(random) * 6.28318530718f;
+					const u32 offset	   = (y * noise_size.x + x) * 2;
+					noise_data[offset]	   = static_cast<u8>(std::round((std::cos(theta) * 0.5f + 0.5f) * 255.0f));
+					noise_data[offset + 1] = static_cast<u8>(std::round((std::sin(theta) * 0.5f + 0.5f) * 255.0f));
+				}
+			}
+
+			texture_desc_t noise_texture_desc = {};
+			noise_texture_desc.texture_format = format_e::r8g8_unorm;
+			noise_texture_desc.size			  = noise_size;
+			noise_texture_desc.flags		  = texture_flags::tf_is_2d | texture_flags::tf_sampled | texture_flags::tf_transfer_dest;
+			noise_texture_desc.view_count	  = 1;
+			noise_texture_desc.views[0]		  = {.type = view_type::sampled};
+			noise_texture_desc.set_name("world_ssao_noise");
+
+			resource_desc_t noise_staging_desc = {};
+			noise_staging_desc.size			   = gfx_backend::align_texture_size(gfx_backend::align_texture_size_pitch(noise_row_pitch) * noise_size.y);
+			noise_staging_desc.flags		   = resource_flags::rf_cpu_visible;
+			noise_staging_desc.set_name("world_ssao_noise_staging");
+
+			_ssao_noise_texture		  = backend.create_texture(noise_texture_desc);
+			_ssao_noise_staging		  = backend.create_resource(noise_staging_desc);
+			_ssao_noise_texture_index = backend.get_texture_gpu_index(_ssao_noise_texture, 0);
+
+			const texture_buffer_t noise_buffer = {
+				.pixels	   = noise_data,
+				.data_size = noise_data_size,
+				.row_pitch = noise_row_pitch,
+				.size	   = noise_size,
+				.bpp	   = 2,
+			};
+			render_resources_t::get().get_texture_upload_queue().add({
+				.texture		   = _ssao_noise_texture,
+				.staging		   = _ssao_noise_staging,
+				.mips			   = {.data = &noise_buffer, .size = 1},
+				.target_states	   = resource_state_non_ps_resource,
+				.destination_slice = 0,
+				.ownership		   = texture_data_ownership_e::c_free,
+			});
+		}
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
-			SFG_ASSERT(_pfd[i].cmd_gfx0.is_null());
-			SFG_ASSERT(_pfd[i].cmd_gfx1.is_null());
+			SFG_ASSERT(_pfd[i].cmd_depth.is_null());
+			SFG_ASSERT(_pfd[i].cmd_gbuffer.is_null());
+			SFG_ASSERT(_pfd[i].cmd_lighting.is_null());
+			SFG_ASSERT(_pfd[i].cmd_post.is_null());
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
@@ -130,25 +203,51 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_emissive.is_null());
 			SFG_ASSERT(_pfd[i].ao_texture.is_null());
-			SFG_ASSERT(_pfd[i].gfx0_done_semaphore.is_null());
+			SFG_ASSERT(_pfd[i].ssao_semaphore.is_null());
+			SFG_ASSERT(_pfd[i].bloom_semaphore.is_null());
 			SFG_ASSERT(_pfd[i].opaque_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].lighting_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 
-			_pfd[i].cmd_gfx0					  = backend.create_command_buffer({
+			_pfd[i].cmd_depth					  = backend.create_command_buffer({
 				.type		= command_type::graphics,
-				.debug_name = "world_gfx0",
+				.debug_name = "world_depth",
 			});
-			_pfd[i].cmd_gfx1					  = backend.create_command_buffer({
+			_pfd[i].cmd_gbuffer					  = backend.create_command_buffer({
 				.type		= command_type::graphics,
-				.debug_name = "world_gfx1",
+				.debug_name = "world_gbuffer",
 			});
-			_pfd[i].gfx0_done_semaphore			  = backend.create_semaphore();
+			_pfd[i].cmd_lighting				  = backend.create_command_buffer({
+				.type		= command_type::graphics,
+				.debug_name = "world_lighting",
+			});
+			_pfd[i].cmd_post					  = backend.create_command_buffer({
+				.type		= command_type::graphics,
+				.debug_name = "world_post",
+			});
 			_pfd[i].opaque_render_pass_data		  = backend.create_resource(opaque_render_pass_data_desc);
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
+
+			if (config.enable_ssao != 0)
+			{
+				_pfd[i].cmd_ssao			  = backend.create_command_buffer({.type = command_type::compute, .debug_name = "world_ssao"});
+				_pfd[i].ssao_semaphore		  = backend.create_semaphore();
+				_pfd[i].ssao_render_pass_data = backend.create_resource(ssao_render_pass_data_desc);
+				backend.map_resource(_pfd[i].ssao_render_pass_data, _pfd[i].mapped_ssao_render_pass_data);
+				_pfd[i].ssao_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].ssao_render_pass_data);
+			}
+
+			if (config.enable_bloom != 0)
+			{
+				_pfd[i].cmd_bloom			   = backend.create_command_buffer({.type = command_type::compute, .debug_name = "world_bloom"});
+				_pfd[i].bloom_semaphore		   = backend.create_semaphore();
+				_pfd[i].bloom_render_pass_data = backend.create_resource(bloom_render_pass_data_desc);
+				backend.map_resource(_pfd[i].bloom_render_pass_data, _pfd[i].mapped_bloom_render_pass_data);
+				_pfd[i].bloom_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].bloom_render_pass_data);
+			}
 
 			backend.map_resource(_pfd[i].opaque_render_pass_data, _pfd[i].mapped_opaque_render_pass_data);
 			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
@@ -192,8 +291,22 @@ namespace sfg
 		_shaders.debug_line						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_text.hlsl"_hs);
 		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
+		if (config.enable_ssao != 0)
+		{
+			sh					   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/ssao.hlsl"_hs);
+			_shaders.ssao		   = render_resources.get_shader_hw(sh->psos[0]);
+			sh					   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/ssao_upsample.hlsl"_hs);
+			_shaders.ssao_upsample = render_resources.get_shader_hw(sh->psos[0]);
+		}
+		if (config.enable_bloom != 0)
+		{
+			sh						  = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/bloom_downsample.hlsl"_hs);
+			_shaders.bloom_downsample = render_resources.get_shader_hw(sh->psos[0]);
+			sh						  = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/bloom_upsample.hlsl"_hs);
+			_shaders.bloom_upsample	  = render_resources.get_shader_hw(sh->psos[0]);
+		}
 
-		create_texture(config.size);
+		create_texture(_config.size);
 	}
 
 	void world_render_context_t::uninit()
@@ -204,9 +317,6 @@ namespace sfg
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
-			SFG_ASSERT(!_pfd[i].cmd_gfx0.is_null());
-			SFG_ASSERT(!_pfd[i].cmd_gfx1.is_null());
-			SFG_ASSERT(!_pfd[i].gfx0_done_semaphore.is_null());
 			SFG_ASSERT(!_pfd[i].opaque_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].lighting_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_render_pass_data.is_null());
@@ -215,6 +325,18 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
+			if (_config.enable_ssao != 0)
+			{
+				backend.destroy_resource(_pfd[i].ssao_render_pass_data);
+				backend.destroy_command_buffer(_pfd[i].cmd_ssao);
+				backend.destroy_semaphore(_pfd[i].ssao_semaphore);
+			}
+			if (_config.enable_bloom != 0)
+			{
+				backend.destroy_resource(_pfd[i].bloom_render_pass_data);
+				backend.destroy_command_buffer(_pfd[i].cmd_bloom);
+				backend.destroy_semaphore(_pfd[i].bloom_semaphore);
+			}
 			if (_config.line_vertex_max > 0)
 			{
 				backend.destroy_resource(_pfd[i].debug_line_data);
@@ -227,13 +349,10 @@ namespace sfg
 				backend.destroy_resource(_pfd[i].debug_text_vertex_buffer);
 				backend.destroy_resource(_pfd[i].debug_text_index_buffer);
 			}
-			backend.destroy_command_buffer(_pfd[i].cmd_gfx0);
-			backend.destroy_command_buffer(_pfd[i].cmd_gfx1);
-			backend.destroy_semaphore(_pfd[i].gfx0_done_semaphore);
-			_pfd[i].cmd_gfx0							 = {};
-			_pfd[i].cmd_gfx1							 = {};
-			_pfd[i].gfx0_done_semaphore					 = {};
-			_pfd[i].gfx0_done_value						 = 0;
+			backend.destroy_command_buffer(_pfd[i].cmd_depth);
+			backend.destroy_command_buffer(_pfd[i].cmd_gbuffer);
+			backend.destroy_command_buffer(_pfd[i].cmd_lighting);
+			backend.destroy_command_buffer(_pfd[i].cmd_post);
 			_pfd[i].opaque_render_pass_data				 = {};
 			_pfd[i].lighting_render_pass_data			 = {};
 			_pfd[i].post_process_render_pass_data		 = {};
@@ -260,6 +379,15 @@ namespace sfg
 			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;
 			_pfd[i].debug_line_data_index				 = NULL_GPU_INDEX;
 			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
+			_pfd[i]										 = {};
+		}
+		if (_config.enable_ssao != 0)
+		{
+			backend.destroy_texture(_ssao_noise_texture);
+			backend.destroy_resource(_ssao_noise_staging);
+			_ssao_noise_texture		  = {};
+			_ssao_noise_staging		  = {};
+			_ssao_noise_texture_index = NULL_GPU_INDEX;
 		}
 		_shaders = {};
 		_config	 = {};
@@ -268,7 +396,7 @@ namespace sfg
 	void world_render_context_t::resize(vec2u16_t size)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(size.x > 0 && size.y > 0);
+		render_util_t::ensure_world_resolution(size);
 
 		destroy_texture();
 		create_texture(size);
@@ -347,6 +475,38 @@ namespace sfg
 		ao_desc.clear_values[0] = 1.0f;
 		ao_desc.set_name("world_ao");
 
+		texture_desc_t ao_half_desc = ao_desc;
+		ao_half_desc.size			= {static_cast<u16>(size.x / 2), static_cast<u16>(size.y / 2)};
+		ao_half_desc.set_name("world_ao_half");
+
+		texture_desc_t bloom_downsample_desc = {};
+		bloom_downsample_desc.texture_format = format_e::r16g16b16a16_sfloat;
+		bloom_downsample_desc.size			 = {
+			static_cast<u16>(std::max<u32>(1, size.x / 2)),
+			static_cast<u16>(std::max<u32>(1, size.y / 2)),
+		};
+		bloom_downsample_desc.flags		 = texture_flags::tf_sampled | texture_flags::tf_gpu_write | texture_flags::tf_is_2d;
+		bloom_downsample_desc.view_count = WORLD_RENDER_BLOOM_LEVEL_COUNT * 2;
+		bloom_downsample_desc.mip_levels = WORLD_RENDER_BLOOM_LEVEL_COUNT;
+		for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
+		{
+			bloom_downsample_desc.views[level] = {
+				.type			= view_type::sampled,
+				.base_mip_level = level,
+				.mip_count		= 1,
+			};
+			bloom_downsample_desc.views[WORLD_RENDER_BLOOM_LEVEL_COUNT + level] = {
+				.type			= view_type::gpu_write,
+				.base_mip_level = level,
+				.mip_count		= 1,
+			};
+		}
+		bloom_downsample_desc.set_name("world_bloom_downsample");
+
+		texture_desc_t bloom_upsample_desc = bloom_downsample_desc;
+		bloom_upsample_desc.size		   = size;
+		bloom_upsample_desc.set_name("world_bloom_upsample");
+
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -358,15 +518,20 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_emissive.is_null());
 			SFG_ASSERT(_pfd[i].ao_texture.is_null());
+			SFG_ASSERT(_pfd[i].ao_half_texture.is_null());
 
-			_pfd[i].lighting_texture		   = backend.create_texture(lighting_desc);
-			_pfd[i].post_process_texture	   = backend.create_texture(post_process_desc);
-			_pfd[i].depth_texture			   = backend.create_texture(depth_desc);
-			_pfd[i].gbuffer_albedo			   = backend.create_texture(gbuffer_albedo_desc);
-			_pfd[i].gbuffer_normal			   = backend.create_texture(gbuffer_normal_desc);
-			_pfd[i].gbuffer_orm				   = backend.create_texture(gbuffer_orm_desc);
-			_pfd[i].gbuffer_emissive		   = backend.create_texture(gbuffer_emissive_desc);
-			_pfd[i].ao_texture				   = backend.create_texture(ao_desc);
+			_pfd[i].lighting_texture	 = backend.create_texture(lighting_desc);
+			_pfd[i].post_process_texture = backend.create_texture(post_process_desc);
+			_pfd[i].depth_texture		 = backend.create_texture(depth_desc);
+			_pfd[i].gbuffer_albedo		 = backend.create_texture(gbuffer_albedo_desc);
+			_pfd[i].gbuffer_normal		 = backend.create_texture(gbuffer_normal_desc);
+			_pfd[i].gbuffer_orm			 = backend.create_texture(gbuffer_orm_desc);
+			_pfd[i].gbuffer_emissive	 = backend.create_texture(gbuffer_emissive_desc);
+			if (_config.enable_ssao != 0)
+			{
+				_pfd[i].ao_texture		= backend.create_texture(ao_desc);
+				_pfd[i].ao_half_texture = backend.create_texture(ao_half_desc);
+			}
 			_pfd[i].lighting_texture_index	   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
 			_pfd[i].post_process_texture_index = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
 			_pfd[i].depth_texture_index		   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
@@ -374,7 +539,26 @@ namespace sfg
 			_pfd[i].gbuffer_normal_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
 			_pfd[i].gbuffer_orm_index		   = backend.get_texture_gpu_index(_pfd[i].gbuffer_orm, 1);
 			_pfd[i].gbuffer_emissive_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
-			_pfd[i].ao_texture_index		   = backend.get_texture_gpu_index(_pfd[i].ao_texture, 0);
+			if (_config.enable_ssao != 0)
+			{
+				_pfd[i].ao_texture_index		  = backend.get_texture_gpu_index(_pfd[i].ao_texture, 0);
+				_pfd[i].ao_texture_uav_index	  = backend.get_texture_gpu_index(_pfd[i].ao_texture, 1);
+				_pfd[i].ao_half_texture_index	  = backend.get_texture_gpu_index(_pfd[i].ao_half_texture, 0);
+				_pfd[i].ao_half_texture_uav_index = backend.get_texture_gpu_index(_pfd[i].ao_half_texture, 1);
+			}
+
+			if (_config.enable_bloom != 0)
+			{
+				_pfd[i].bloom_downsample = backend.create_texture(bloom_downsample_desc);
+				_pfd[i].bloom_upsample	 = backend.create_texture(bloom_upsample_desc);
+				for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
+				{
+					_pfd[i].bloom_downsample_index[level]	  = backend.get_texture_gpu_index(_pfd[i].bloom_downsample, level);
+					_pfd[i].bloom_downsample_uav_index[level] = backend.get_texture_gpu_index(_pfd[i].bloom_downsample, WORLD_RENDER_BLOOM_LEVEL_COUNT + level);
+					_pfd[i].bloom_upsample_index[level]		  = backend.get_texture_gpu_index(_pfd[i].bloom_upsample, level);
+					_pfd[i].bloom_upsample_uav_index[level]	  = backend.get_texture_gpu_index(_pfd[i].bloom_upsample, WORLD_RENDER_BLOOM_LEVEL_COUNT + level);
+				}
+			}
 		}
 		_config.size = size;
 	}
@@ -391,7 +575,6 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].gbuffer_normal.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_orm.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_emissive.is_null());
-			SFG_ASSERT(!_pfd[i].ao_texture.is_null());
 
 			backend.destroy_texture(_pfd[i].lighting_texture);
 			backend.destroy_texture(_pfd[i].post_process_texture);
@@ -400,15 +583,34 @@ namespace sfg
 			backend.destroy_texture(_pfd[i].gbuffer_normal);
 			backend.destroy_texture(_pfd[i].gbuffer_orm);
 			backend.destroy_texture(_pfd[i].gbuffer_emissive);
-			backend.destroy_texture(_pfd[i].ao_texture);
-			_pfd[i].lighting_texture		   = {};
-			_pfd[i].post_process_texture	   = {};
-			_pfd[i].depth_texture			   = {};
-			_pfd[i].gbuffer_albedo			   = {};
-			_pfd[i].gbuffer_normal			   = {};
-			_pfd[i].gbuffer_orm				   = {};
-			_pfd[i].gbuffer_emissive		   = {};
-			_pfd[i].ao_texture				   = {};
+			if (_config.enable_ssao != 0)
+			{
+				backend.destroy_texture(_pfd[i].ao_texture);
+				backend.destroy_texture(_pfd[i].ao_half_texture);
+			}
+			if (_config.enable_bloom != 0)
+			{
+				backend.destroy_texture(_pfd[i].bloom_downsample);
+				backend.destroy_texture(_pfd[i].bloom_upsample);
+			}
+			_pfd[i].lighting_texture	 = {};
+			_pfd[i].post_process_texture = {};
+			_pfd[i].depth_texture		 = {};
+			_pfd[i].gbuffer_albedo		 = {};
+			_pfd[i].gbuffer_normal		 = {};
+			_pfd[i].gbuffer_orm			 = {};
+			_pfd[i].gbuffer_emissive	 = {};
+			_pfd[i].ao_texture			 = {};
+			_pfd[i].ao_half_texture		 = {};
+			_pfd[i].bloom_downsample	 = {};
+			_pfd[i].bloom_upsample		 = {};
+			for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
+			{
+				_pfd[i].bloom_downsample_index[level]	  = NULL_GPU_INDEX;
+				_pfd[i].bloom_downsample_uav_index[level] = NULL_GPU_INDEX;
+				_pfd[i].bloom_upsample_index[level]		  = NULL_GPU_INDEX;
+				_pfd[i].bloom_upsample_uav_index[level]	  = NULL_GPU_INDEX;
+			}
 			_pfd[i].lighting_texture_index	   = NULL_GPU_INDEX;
 			_pfd[i].post_process_texture_index = NULL_GPU_INDEX;
 			_pfd[i].depth_texture_index		   = NULL_GPU_INDEX;
@@ -417,6 +619,9 @@ namespace sfg
 			_pfd[i].gbuffer_orm_index		   = NULL_GPU_INDEX;
 			_pfd[i].gbuffer_emissive_index	   = NULL_GPU_INDEX;
 			_pfd[i].ao_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_uav_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_uav_index  = NULL_GPU_INDEX;
 		}
 		_config.size = vec2u16_t::zero;
 	}

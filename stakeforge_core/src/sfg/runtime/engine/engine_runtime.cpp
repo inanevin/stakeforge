@@ -51,7 +51,8 @@ namespace sfg
 		if (!gfx_backend::get().init())
 			return false;
 
-		render_globals_t::s_global_bind_layout = gfx_util_t::create_bind_layout_global(false);
+		render_globals_t::s_global_bind_layout		   = gfx_util_t::create_bind_layout_global(false);
+		render_globals_t::s_global_compute_bind_layout = gfx_util_t::create_bind_layout_global(true);
 		resource_manager_t::get().init_atlases(glyph_atlas_config);
 		render_resources_t::get().init();
 
@@ -67,6 +68,11 @@ namespace sfg
 		{
 			backend.destroy_bind_layout(render_globals_t::s_global_bind_layout);
 			render_globals_t::s_global_bind_layout = {};
+		}
+		if (!render_globals_t::s_global_compute_bind_layout.is_null())
+		{
+			backend.destroy_bind_layout(render_globals_t::s_global_compute_bind_layout);
+			render_globals_t::s_global_compute_bind_layout = {};
 		}
 		backend.uninit();
 		g_engine_thread_ids.main_thread_id = 0;

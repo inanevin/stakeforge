@@ -47,6 +47,25 @@ namespace sfg
 			return true;
 		}
 
+		bool add_compile_variant_compute(cook_compile_variant_t& cv, const string_t& source, const vector_t<string_t>& include_paths)
+		{
+			gfx_backend& backend = gfx_backend::get();
+			span_t<u8>	 blob	 = {};
+			span_t<u8>	 dummy	 = {};
+			if (!backend.compile_shader_compute(source, include_paths, "CSMain", blob, false, dummy))
+			{
+				SFG_ERR("failed to compile compute shader entry CSMain");
+				return false;
+			}
+
+			cook_stage_blob_t& stage = cv.stages.emplace_back();
+			stage.stage				 = static_cast<u8>(shader_stage_e::compute);
+			stage.bytes.resize(blob.size);
+			SFG_MEMCPY(stage.bytes.data(), blob.data, blob.size);
+			delete[] blob.data;
+			return true;
+		}
+
 		void add_attachment(shader_desc_t& desc, format_e format, const color_blend_attachment_t& blend)
 		{
 			desc.add_attachment({
@@ -422,6 +441,16 @@ namespace sfg
 		add_attachment(desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_alpha_blend());
 
 		out_psos.push_back({.desc = desc, .variant_flags = 0, .compile_variant_index = 0});
+		return true;
+	}
+
+	bool shader_cook_variants_t::cook_compute_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.push_back({});
+		if (!add_compile_variant_compute(out_compiles.back(), source, include_paths))
+			return false;
+
+		out_psos.push_back({.desc = {}, .variant_flags = 0, .compile_variant_index = 0});
 		return true;
 	}
 
