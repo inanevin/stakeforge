@@ -36,7 +36,7 @@ namespace sfg
 		static void get_pos_normal_tangent_uv(shader_desc_t& out_desc);
 		static void get_pos_normal_tangent_uv_skinned(shader_desc_t& out_desc);
 		static void get_line_3d(shader_desc_t& out_desc);
-		static void get_editor_debug_text(shader_desc_t& out_desc);
+		static void get_debug_text(shader_desc_t& out_desc);
 		static void get_pos_color(shader_desc_t& out_desc);
 		static void get_editor_ui(shader_desc_t& out_desc);
 	};

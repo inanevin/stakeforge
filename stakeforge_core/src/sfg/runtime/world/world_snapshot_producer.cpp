@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_snapshot_producer.hpp"
 #include "world.hpp"
+#include "world_debug_draw.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/data/frame_hash_map.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
@@ -134,12 +135,13 @@ namespace sfg
 		}
 	}
 
-	void world_snapshot_producer_t::produce(const world_t& world, world_render_snapshot_t& snapshot)
+	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot)
 	{
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
 		snapshot.draws.resize(0);
 		snapshot.skybox = {};
+		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
 
 		const ecs_component_table_t& transform_table	 = world.get_component_table(type_id_t<component_system_transform_t>::value);
 		const ecs_component_table_t& alive_table		 = world.get_component_table(type_id_t<component_alive_t>::value);

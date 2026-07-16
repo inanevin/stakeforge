@@ -35,6 +35,6 @@ namespace sfg
 	class world_snapshot_producer_t final
 	{
 	public:
-		static void produce(const world_t& world, world_render_snapshot_t& snapshot);
+		static void produce(world_t& world, world_render_snapshot_t& snapshot);
 	};
 }

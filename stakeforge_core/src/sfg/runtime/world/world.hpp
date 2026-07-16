@@ -2,6 +2,7 @@
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/unique.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -15,6 +16,7 @@ namespace sfg
 {
 	class mat4x3_t;
 	class istream_t;
+	class world_debug_draw_t;
 	struct world_init_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
@@ -30,8 +32,8 @@ namespace sfg
 	class world_t
 	{
 	public:
-		world_t()							= default;
-		~world_t()							= default;
+		world_t();
+		~world_t();
 		world_t(const world_t&)				= delete;
 		world_t& operator=(const world_t&)	= delete;
 		world_t(world_t&& other)			= delete;
@@ -115,6 +117,20 @@ namespace sfg
 		void								   release_text(u32 text_index);
 		bool								   is_alive(entity_id_t id) const;
 
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline world_debug_draw_t& get_debug_draw()
+		{
+			return *_debug_draw;
+		}
+
+		inline const world_debug_draw_t& get_debug_draw() const
+		{
+			return *_debug_draw;
+		}
+
 	private:
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
@@ -146,6 +162,7 @@ namespace sfg
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
+		unique_t<world_debug_draw_t>	  _debug_draw;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

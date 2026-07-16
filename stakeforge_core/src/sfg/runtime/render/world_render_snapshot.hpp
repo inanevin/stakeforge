@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 
 namespace sfg
@@ -62,16 +63,21 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
-		void*							  user_data = nullptr;
-		world_render_view_t				  main_view = {};
-		world_render_skybox_t			  skybox	= {};
-		vector_t<world_render_material_t> materials = {};
-		vector_t<world_render_entity_t>	  entities	= {};
-		vector_t<world_draw_t>			  draws		= {};
+		void*							  user_data	 = nullptr;
+		world_render_view_t				  main_view	 = {};
+		world_render_skybox_t			  skybox	 = {};
+		world_debug_draw_snapshot_t		  debug_draw = {};
+		vector_t<world_render_material_t> materials	 = {};
+		vector_t<world_render_entity_t>	  entities	 = {};
+		vector_t<world_draw_t>			  draws		 = {};
 
 		inline void reserve(size_t entity_count)
 		{
 			entities.reserve(entity_count);
+			debug_draw.lines.vertices.reserve(world_debug_draw_t::MAX_VERTEX_COUNT);
+			debug_draw.lines.indices.reserve(world_debug_draw_t::MAX_INDEX_COUNT);
+			debug_draw.text.vertices.reserve(world_debug_draw_t::MAX_TEXT_VERTEX_COUNT);
+			debug_draw.text.indices.reserve(world_debug_draw_t::MAX_TEXT_INDEX_COUNT);
 		}
 	};
 }

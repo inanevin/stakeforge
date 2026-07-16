@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world.hpp"
+#include "world_debug_draw.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
@@ -45,8 +46,13 @@ namespace sfg
 {
 #define WORLD_TEXT_BYTES (64 * 1024)
 
+	world_t::world_t()	= default;
+	world_t::~world_t() = default;
+
 	void world_t::init(const world_init_config_t& config)
 	{
+		_debug_draw = make_unique<world_debug_draw_t>();
+		_debug_draw->init(config.debug_draw_font);
 		_component_tables.reserve(config.component_table_reserve);
 		_entity_free_list.reserve(config.free_list_reserve);
 		_text_allocations.reserve(config.text_allocation_reserve);
@@ -77,6 +83,8 @@ namespace sfg
 
 	void world_t::uninit()
 	{
+		_debug_draw->uninit();
+		_debug_draw.reset();
 		for (ecs_component_table_t& table : _component_tables)
 			ecs_t::table_uninit(table);
 
@@ -93,6 +101,7 @@ namespace sfg
 
 	void world_t::tick(f32)
 	{
+		_debug_draw->begin_frame();
 	}
 
 	entity_guid_t world_t::generate_guid() const

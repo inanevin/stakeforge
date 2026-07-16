@@ -28,11 +28,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera_fly.hpp"
 #include "world/editor_world_camera_orbit.hpp"
 #include "world/editor_world_rendering.hpp"
+#include "ui/panels/editor_theme.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -49,11 +51,12 @@ namespace sfg
 
 	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle)
 	{
-		_world.init(init_config);
+		world_init_config_t world_config = init_config;
+		world_config.debug_draw_font	 = editor_theme_t::get().font_default;
+		_world.init(world_config);
 		_edit_context.init();
 		_edit_context.set_world(handle);
 		_gizmo.init();
-		_debug_draw.init();
 		_producer_slot = 0;
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
@@ -71,12 +74,9 @@ namespace sfg
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
 			_snapshot_slots[i].reserve(8000);
+
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
 			data->selected_entities.reserve(256);
-			data->debug_lines.vertices.reserve(editor_world_debug_draw_t::MAX_VERTEX_COUNT);
-			data->debug_lines.indices.reserve(editor_world_debug_draw_t::MAX_INDEX_COUNT);
-			data->debug_text.vertices.reserve(editor_world_debug_draw_t::MAX_TEXT_VERTEX_COUNT);
-			data->debug_text.indices.reserve(editor_world_debug_draw_t::MAX_TEXT_INDEX_COUNT);
 			_snapshot_slots[i].user_data = data;
 		}
 	}
@@ -84,7 +84,6 @@ namespace sfg
 	void editor_world_t::uninit()
 	{
 		_gizmo.uninit(_world);
-		_debug_draw.uninit();
 		uninstall_camera();
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
@@ -267,22 +266,22 @@ namespace sfg
 
 	void editor_world_t::tick(f32 dt_seconds)
 	{
-		_debug_draw.begin_frame();
 		consume_entity_pick_result();
 		_world.tick(dt_seconds);
 		_world.update_world_transforms(true);
 
-		_debug_draw.draw_line(vec3f_t::zero, vec3f_t::right * 2.0f, color_t(1.0f, 0.1f, 0.1f, 1.0f), 3.0f, editor_debug_depth_e::always_visible);
-		_debug_draw.draw_line(vec3f_t::zero, vec3f_t::up * 2.0f, color_t(0.1f, 1.0f, 0.2f, 1.0f), 3.0f, editor_debug_depth_e::always_visible);
-		_debug_draw.draw_line(vec3f_t::zero, vec3f_t::forward * 2.0f, color_t(0.1f, 0.4f, 1.0f, 1.0f), 3.0f, editor_debug_depth_e::always_visible);
-		_debug_draw.draw_aabb(aabb_t({-1.0f, 0.0f, -1.0f}, {1.0f, 2.0f, 1.0f}), color_t(1.0f, 0.75f, 0.1f, 1.0f), 2.0f);
-		_debug_draw.draw_sphere({3.0f, 1.0f, 0.0f}, 1.0f, color_t(0.1f, 0.9f, 1.0f, 1.0f), 2.0f);
-		_debug_draw.draw_capsule({-3.0f, 1.0f, 0.0f}, 0.6f, 1.0f, vec3f_t::up, color_t(0.9f, 0.2f, 1.0f, 0.85f), 2.5f, editor_debug_depth_e::always_visible);
-		_debug_draw.draw_frustum({0.0f, 1.0f, 3.0f}, vec3f_t::forward, 45.0f, 1.5f, 0.5f, 2.0f, color_t(1.0f, 1.0f, 1.0f, 0.8f), 1.5f);
-		_debug_draw.draw_text_2d({16.0f, 16.0f}, "Stakeforge debug text", color_t(1.0f, 1.0f, 1.0f, 1.0f), 16.0f);
-		_debug_draw.draw_text_3d({0.0f, 2.25f, 0.0f}, "Depth-tested AABB", color_t(1.0f, 0.75f, 0.1f, 1.0f), 14.0f, editor_debug_depth_e::depth_tested);
-		_debug_draw.draw_text_3d({3.0f, 2.25f, 0.0f}, "Billboard sphere", color_t(0.1f, 0.9f, 1.0f, 1.0f), 14.0f, editor_debug_depth_e::always_visible);
-		_debug_draw.draw_text_3d({-3.0f, 2.85f, 0.0f}, "Always visible capsule", color_t(0.9f, 0.2f, 1.0f, 1.0f), 14.0f, editor_debug_depth_e::always_visible);
+		world_debug_draw_t& debug_draw = _world.get_debug_draw();
+		debug_draw.draw_line(vec3f_t::zero, vec3f_t::right * 2.0f, color_t(1.0f, 0.1f, 0.1f, 1.0f), 3.0f, debug_draw_depth_e::always_visible);
+		debug_draw.draw_line(vec3f_t::zero, vec3f_t::up * 2.0f, color_t(0.1f, 1.0f, 0.2f, 1.0f), 3.0f, debug_draw_depth_e::always_visible);
+		debug_draw.draw_line(vec3f_t::zero, vec3f_t::forward * 2.0f, color_t(0.1f, 0.4f, 1.0f, 1.0f), 3.0f, debug_draw_depth_e::always_visible);
+		debug_draw.draw_aabb(aabb_t({-1.0f, 0.0f, -1.0f}, {1.0f, 2.0f, 1.0f}), color_t(1.0f, 0.75f, 0.1f, 1.0f), 2.0f);
+		debug_draw.draw_sphere({3.0f, 1.0f, 0.0f}, 1.0f, color_t(0.1f, 0.9f, 1.0f, 1.0f), 2.0f);
+		debug_draw.draw_capsule({-3.0f, 1.0f, 0.0f}, 0.6f, 1.0f, vec3f_t::up, color_t(0.9f, 0.2f, 1.0f, 0.85f), 2.5f, debug_draw_depth_e::always_visible);
+		debug_draw.draw_frustum({0.0f, 1.0f, 3.0f}, vec3f_t::forward, 45.0f, 1.5f, 0.5f, 2.0f, color_t(1.0f, 1.0f, 1.0f, 0.8f), 1.5f);
+		debug_draw.draw_text_2d({16.0f, 16.0f}, "Stakeforge debug text", color_t(1.0f, 1.0f, 1.0f, 1.0f), 16.0f);
+		debug_draw.draw_text_3d({0.0f, 2.25f, 0.0f}, "Depth-tested AABB", color_t(1.0f, 0.75f, 0.1f, 1.0f), 14.0f, debug_draw_depth_e::depth_tested);
+		debug_draw.draw_text_3d({3.0f, 2.25f, 0.0f}, "Billboard sphere", color_t(0.1f, 0.9f, 1.0f, 1.0f), 14.0f, debug_draw_depth_e::always_visible);
+		debug_draw.draw_text_3d({-3.0f, 2.85f, 0.0f}, "Always visible capsule", color_t(0.9f, 0.2f, 1.0f, 1.0f), 14.0f, debug_draw_depth_e::always_visible);
 	}
 
 	void editor_world_t::update_world_transforms(bool advance_interpolation)
@@ -321,8 +320,6 @@ namespace sfg
 		}
 		data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
 		data.gizmo.active_axis	= _gizmo.get_active_axis();
-		_debug_draw.write_snapshot(data.debug_lines);
-		_debug_draw.write_text_snapshot(data.debug_text);
 		data.selected_entities.resize(0);
 		data.selected_entities.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)

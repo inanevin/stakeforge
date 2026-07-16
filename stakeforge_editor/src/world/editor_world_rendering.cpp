@@ -42,9 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/world_draw.hpp>
 #include <sfg/runtime/render/world_render_material.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
-#include <sfg/runtime/ui/glyph_atlas.hpp>
 
 namespace sfg
 {
@@ -346,35 +344,6 @@ namespace sfg
 		const vec2u16_t						size		  = ctx.get_size();
 		render_view_t						view;
 		view.calculate(snapshot.main_view, size, interpolation_alpha);
-		const editor_world_debug_line_snapshot_t& debug_lines = snapshot_data.debug_lines;
-		SFG_ASSERT(debug_lines.vertices.size() <= editor_world_debug_draw_t::MAX_VERTEX_COUNT);
-		SFG_ASSERT(debug_lines.indices.size() <= editor_world_debug_draw_t::MAX_INDEX_COUNT);
-		if (!debug_lines.indices.empty())
-		{
-			SFG_ASSERT(!debug_lines.vertices.empty());
-			SFG_MEMCPY(ctx.get_mapped_debug_line_vertices(frame_index), debug_lines.vertices.data(), debug_lines.vertices.size() * sizeof(editor_world_debug_line_vertex_t));
-			SFG_MEMCPY(ctx.get_mapped_debug_line_indices(frame_index), debug_lines.indices.data(), debug_lines.indices.size() * sizeof(primitive_index));
-			const editor_world_debug_line_gpu_data_t line_data = {
-				.view	= view.view,
-				.proj	= view.proj,
-				.params = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), view.near_plane, 0.00005f),
-			};
-			SFG_MEMCPY(ctx.get_mapped_debug_line_data(frame_index), &line_data, sizeof(editor_world_debug_line_gpu_data_t));
-		}
-		const editor_world_debug_text_snapshot_t& debug_text = snapshot_data.debug_text;
-		SFG_ASSERT(debug_text.vertices.size() <= editor_world_debug_draw_t::MAX_TEXT_VERTEX_COUNT);
-		SFG_ASSERT(debug_text.indices.size() <= editor_world_debug_draw_t::MAX_TEXT_INDEX_COUNT);
-		if (!debug_text.indices.empty())
-		{
-			SFG_ASSERT(!debug_text.vertices.empty());
-			SFG_MEMCPY(ctx.get_mapped_debug_text_vertices(frame_index), debug_text.vertices.data(), debug_text.vertices.size() * sizeof(editor_world_debug_text_vertex_t));
-			SFG_MEMCPY(ctx.get_mapped_debug_text_indices(frame_index), debug_text.indices.data(), debug_text.indices.size() * sizeof(primitive_index));
-			const editor_world_debug_text_gpu_data_t text_data = {
-				.view_proj = view.view_proj,
-				.params	   = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), 0.00005f, 0.0f),
-			};
-			SFG_MEMCPY(ctx.get_mapped_debug_text_data(frame_index), &text_data, sizeof(editor_world_debug_text_gpu_data_t));
-		}
 
 		const f32			  grid_period  = snapshot_data.grid.scale * 10000.0f;
 		const f32			  grid_phase_x = view.pos.x - math::floor(view.pos.x / grid_period) * grid_period;
@@ -507,46 +476,6 @@ namespace sfg
 		backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 3, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_composite_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
-
-		if (!debug_lines.indices.empty())
-		{
-			const gpu_index_t line_data_index	  = ctx.get_debug_line_data_index(frame_index);
-			const gpu_index_t depth_texture_index = world_ctx.get_depth_texture_index(frame_index);
-			backend.cmd_bind_constants(cmd, {.data = &line_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &depth_texture_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_line_shader()});
-			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_line_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(editor_world_debug_line_vertex_t)), .offset = 0});
-			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_line_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = static_cast<u32>(debug_lines.indices.size()),
-												   .instance_count			 = 1,
-												   .start_index_location	 = 0,
-												   .base_vertex_location	 = 0,
-												   .start_instance_location	 = 0,
-											   });
-		}
-
-		if (!debug_text.indices.empty())
-		{
-			const gpu_index_t text_data_index	  = ctx.get_debug_text_data_index(frame_index);
-			const gpu_index_t depth_texture_index = world_ctx.get_depth_texture_index(frame_index);
-			const gpu_index_t glyph_atlas_index	  = render_resources_t::get().get_texture_gpu_index(resource_manager_t::get().get_glyph_atlas().get_texture(), 0);
-			backend.cmd_bind_constants(cmd, {.data = &text_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &depth_texture_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &glyph_atlas_index, .offset = constant_mat0, .count = 1, .param_index = 0});
-			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_text_shader()});
-			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_text_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(editor_world_debug_text_vertex_t)), .offset = 0});
-			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_text_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = static_cast<u32>(debug_text.indices.size()),
-												   .instance_count			 = 1,
-												   .start_index_location	 = 0,
-												   .base_vertex_location	 = 0,
-												   .start_instance_location	 = 0,
-											   });
-		}
 
 		if (render_gizmo)
 		{

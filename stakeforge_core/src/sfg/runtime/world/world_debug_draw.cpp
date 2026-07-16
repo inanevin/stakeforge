@@ -25,8 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "world/editor_world_debug_draw.hpp"
-#include "ui/panels/editor_theme.hpp"
+#include "world_debug_draw.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
@@ -39,16 +38,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	editor_world_debug_draw_t::editor_world_debug_draw_t()	= default;
-	editor_world_debug_draw_t::~editor_world_debug_draw_t() = default;
+	world_debug_draw_t::world_debug_draw_t()  = default;
+	world_debug_draw_t::~world_debug_draw_t() = default;
 
-	void editor_world_debug_draw_t::init()
+	void world_debug_draw_t::init(resource_handle_t default_font)
 	{
 		_vertices.reserve(MAX_VERTEX_COUNT);
 		_indices.reserve(MAX_INDEX_COUNT);
 		_text_commands.reserve(MAX_TEXT_COMMAND_COUNT);
 		_text_bytes.reserve(MAX_TEXT_BYTE_COUNT);
 		_text_canvas = make_unique<ui::vg_canvas_t>();
+
 		_text_canvas->init({
 			.vertex_buffer_bytes	 = MAX_TEXT_VERTEX_COUNT * sizeof(ui::vg_vertex_t),
 			.index_buffer_bytes		 = MAX_TEXT_INDEX_COUNT * sizeof(ui::vg_index_t),
@@ -57,10 +57,12 @@ namespace sfg
 			.text_cache_index_bytes	 = MAX_TEXT_INDEX_COUNT * sizeof(ui::vg_index_t),
 			.clip_stack_capacity	 = 1,
 		});
+
+		_default_font = default_font;
 		begin_frame();
 	}
 
-	void editor_world_debug_draw_t::uninit()
+	void world_debug_draw_t::uninit()
 	{
 		_vertices.resize(0);
 		_vertices.shrink_to_fit();
@@ -72,11 +74,12 @@ namespace sfg
 		_text_bytes.shrink_to_fit();
 		_text_canvas->uninit();
 		_text_canvas.reset();
+		_default_font		= NULL_RESOURCE_HANDLE;
 		_dropped_line_count = 0;
 		_dropped_text_count = 0;
 	}
 
-	void editor_world_debug_draw_t::begin_frame()
+	void world_debug_draw_t::begin_frame()
 	{
 		_vertices.resize(0);
 		_indices.resize(0);
@@ -86,7 +89,7 @@ namespace sfg
 		_dropped_text_count = 0;
 	}
 
-	void editor_world_debug_draw_t::draw_line(const vec3f_t& from, const vec3f_t& to, const color_t& color, f32 thickness_px, editor_debug_depth_e depth)
+	void world_debug_draw_t::draw_line(const vec3f_t& from, const vec3f_t& to, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
 		if (from.equals(to) || thickness_px <= 0.0f)
 			return;
@@ -97,7 +100,7 @@ namespace sfg
 			return;
 		}
 
-		const f32			  signed_thickness_px = depth == editor_debug_depth_e::depth_tested ? thickness_px : -thickness_px;
+		const f32			  signed_thickness_px = depth == debug_draw_depth_e::depth_tested ? thickness_px : -thickness_px;
 		const vec4f_t		  line_color		  = color.to_vector();
 		const primitive_index base_vertex		  = static_cast<primitive_index>(_vertices.size());
 		_vertices.push_back({.color = line_color, .position = from, .other_position = to, .corner = 0.0f, .signed_thickness_px = signed_thickness_px});
@@ -112,7 +115,7 @@ namespace sfg
 		_indices.push_back(base_vertex + 3);
 	}
 
-	void editor_world_debug_draw_t::draw_polyline(span_t<const vec3f_t> points, const color_t& color, f32 thickness_px, editor_debug_depth_e depth, bool closed)
+	void world_debug_draw_t::draw_polyline(span_t<const vec3f_t> points, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, bool closed)
 	{
 		if (points.size < 2)
 			return;
@@ -123,7 +126,7 @@ namespace sfg
 			draw_line(points.data[points.size - 1], points.data[0], color, thickness_px, depth);
 	}
 
-	void editor_world_debug_draw_t::draw_aabb(const aabb_t& bounds, const color_t& color, f32 thickness_px, editor_debug_depth_e depth)
+	void world_debug_draw_t::draw_aabb(const aabb_t& bounds, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
 		const vec3f_t corners[8] = {
 			{bounds.bounds_min.x, bounds.bounds_min.y, bounds.bounds_min.z},
@@ -154,7 +157,7 @@ namespace sfg
 			draw_line(corners[edge[0]], corners[edge[1]], color, thickness_px, depth);
 	}
 
-	void editor_world_debug_draw_t::draw_box(const mat4x3_t& transform, const vec3f_t& half_extents, const color_t& color, f32 thickness_px, editor_debug_depth_e depth)
+	void world_debug_draw_t::draw_box(const mat4x3_t& transform, const vec3f_t& half_extents, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
 		const vec3f_t local_corners[8] = {
 			{-half_extents.x, -half_extents.y, -half_extents.z},
@@ -188,7 +191,7 @@ namespace sfg
 			draw_line(corners[edge[0]], corners[edge[1]], color, thickness_px, depth);
 	}
 
-	void editor_world_debug_draw_t::draw_circle(const vec3f_t& center, f32 radius, const vec3f_t& normal, const color_t& color, f32 thickness_px, editor_debug_depth_e depth, u32 segments)
+	void world_debug_draw_t::draw_circle(const vec3f_t& center, f32 radius, const vec3f_t& normal, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
 		SFG_ASSERT(radius > 0.0f && segments >= 3 && !normal.is_zero());
 		const vec3f_t direction = normal.normalized();
@@ -197,6 +200,7 @@ namespace sfg
 		const vec3f_t axis1		= vec3f_t::cross(direction, axis0).normalized();
 		const f32	  step		= MATH_PI * 2.0f / static_cast<f32>(segments);
 		vec3f_t		  previous	= center + axis0 * radius;
+
 		for (u32 i = 1; i <= segments; ++i)
 		{
 			const f32	  angle = step * static_cast<f32>(i);
@@ -206,14 +210,14 @@ namespace sfg
 		}
 	}
 
-	void editor_world_debug_draw_t::draw_sphere(const vec3f_t& center, f32 radius, const color_t& color, f32 thickness_px, editor_debug_depth_e depth, u32 segments)
+	void world_debug_draw_t::draw_sphere(const vec3f_t& center, f32 radius, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
 		draw_circle(center, radius, vec3f_t::right, color, thickness_px, depth, segments);
 		draw_circle(center, radius, vec3f_t::up, color, thickness_px, depth, segments);
 		draw_circle(center, radius, vec3f_t::forward, color, thickness_px, depth, segments);
 	}
 
-	void editor_world_debug_draw_t::draw_capsule(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px, editor_debug_depth_e depth, u32 segments)
+	void world_debug_draw_t::draw_capsule(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
 		SFG_ASSERT(radius > 0.0f && half_height >= 0.0f && segments >= 4 && !direction.is_zero());
 		const vec3f_t normal	= direction.normalized();
@@ -222,6 +226,7 @@ namespace sfg
 		const vec3f_t axis1		= vec3f_t::cross(normal, axis0).normalized();
 		const vec3f_t top		= center + normal * half_height;
 		const vec3f_t bottom	= center - normal * half_height;
+
 		draw_circle(top, radius, normal, color, thickness_px, depth, segments);
 		draw_circle(bottom, radius, normal, color, thickness_px, depth, segments);
 		draw_line(top + axis0 * radius, bottom + axis0 * radius, color, thickness_px, depth);
@@ -251,7 +256,7 @@ namespace sfg
 		}
 	}
 
-	void editor_world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, editor_debug_depth_e depth)
+	void world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
 		SFG_ASSERT(!direction.is_zero() && fov_degrees > 0.0f && aspect_ratio > 0.0f && near_distance > 0.0f && far_distance > near_distance);
 		const vec3f_t forward	  = direction.normalized();
@@ -293,7 +298,7 @@ namespace sfg
 			draw_line(corners[edge[0]], corners[edge[1]], color, thickness_px, depth);
 	}
 
-	void editor_world_debug_draw_t::draw_text_2d(const vec2f_t& position, const char* text, const color_t& color, f32 size_px, editor_debug_text_alignment_e alignment, resource_handle_t font)
+	void world_debug_draw_t::draw_text_2d(const vec2f_t& position, const char* text, const color_t& color, f32 size_px, debug_draw_text_alignment_e alignment, resource_handle_t font)
 	{
 		SFG_ASSERT(text != nullptr && size_px > 0.0f);
 		const u32 text_length = static_cast<u32>(std::strlen(text));
@@ -308,6 +313,7 @@ namespace sfg
 		const u32 text_offset = static_cast<u32>(_text_bytes.size());
 		_text_bytes.resize(_text_bytes.size() + text_length);
 		SFG_MEMCPY(_text_bytes.data() + text_offset, text, text_length);
+
 		_text_commands.push_back({
 			.font		 = font,
 			.color		 = color.to_vector(),
@@ -320,7 +326,7 @@ namespace sfg
 		});
 	}
 
-	void editor_world_debug_draw_t::draw_text_3d(const vec3f_t& position, const char* text, const color_t& color, f32 size_px, editor_debug_depth_e depth, editor_debug_text_alignment_e alignment, const vec2f_t& screen_offset, resource_handle_t font)
+	void world_debug_draw_t::draw_text_3d(const vec3f_t& position, const char* text, const color_t& color, f32 size_px, debug_draw_depth_e depth, debug_draw_text_alignment_e alignment, const vec2f_t& screen_offset, resource_handle_t font)
 	{
 		SFG_ASSERT(text != nullptr && size_px > 0.0f);
 		const u32 text_length = static_cast<u32>(std::strlen(text));
@@ -335,6 +341,7 @@ namespace sfg
 		const u32 text_offset = static_cast<u32>(_text_bytes.size());
 		_text_bytes.resize(_text_bytes.size() + text_length);
 		SFG_MEMCPY(_text_bytes.data() + text_offset, text, text_length);
+
 		_text_commands.push_back({
 			.font		   = font,
 			.color		   = color.to_vector(),
@@ -348,34 +355,35 @@ namespace sfg
 		});
 	}
 
-	void editor_world_debug_draw_t::write_snapshot(editor_world_debug_line_snapshot_t& snapshot) const
+	void world_debug_draw_t::write_snapshot(world_debug_draw_snapshot_t& snapshot)
 	{
-		snapshot.vertices.resize(_vertices.size());
+		snapshot.lines.vertices.resize(_vertices.size());
 		if (!_vertices.empty())
-			SFG_MEMCPY(snapshot.vertices.data(), _vertices.data(), _vertices.size() * sizeof(editor_world_debug_line_vertex_t));
-		snapshot.indices.resize(_indices.size());
-		if (!_indices.empty())
-			SFG_MEMCPY(snapshot.indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
-	}
+			SFG_MEMCPY(snapshot.lines.vertices.data(), _vertices.data(), _vertices.size() * sizeof(world_debug_line_vertex_t));
 
-	void editor_world_debug_draw_t::write_text_snapshot(editor_world_debug_text_snapshot_t& snapshot)
-	{
-		snapshot.vertices.resize(0);
-		snapshot.indices.resize(0);
+		snapshot.lines.indices.resize(_indices.size());
+		if (!_indices.empty())
+			SFG_MEMCPY(snapshot.lines.indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
+
+		snapshot.text.vertices.resize(0);
+		snapshot.text.indices.resize(0);
 		_text_canvas->frame_begin({0.0f, 0.0f, static_cast<f32>(MAX_TEXT_BYTE_COUNT), static_cast<f32>(MAX_TEXT_BYTE_COUNT)});
 		const ui::ui_render_state_t state = {};
 
 		for (const text_command_t& command : _text_commands)
 		{
-			if (snapshot.vertices.size() + command.text_length * 4 > MAX_TEXT_VERTEX_COUNT || snapshot.indices.size() + command.text_length * 6 > MAX_TEXT_INDEX_COUNT)
+			if (snapshot.text.vertices.size() + command.text_length * 4 > MAX_TEXT_VERTEX_COUNT || snapshot.text.indices.size() + command.text_length * 6 > MAX_TEXT_INDEX_COUNT)
 			{
 				++_dropped_text_count;
 				continue;
 			}
 
-			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? editor_theme_t::get().font_default : command.font;
-			const font_runtime_t*	font		= resource_manager_t::get().find_runtime<font_runtime_t>(font_handle);
+			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? _default_font : command.font;
+			SFG_ASSERT(font_handle != NULL_RESOURCE_HANDLE);
+
+			const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(font_handle);
 			SFG_ASSERT(font != nullptr);
+
 			const ui::vg_text_paint_t paint = {
 				.font		 = font,
 				.color		 = command.color,
@@ -384,6 +392,7 @@ namespace sfg
 				.spacing	 = 0.0f,
 				.raster_mode = ui::glyph_raster_mode_e::grayscale,
 			};
+
 			const char*			  text		   = _text_bytes.data() + command.text_offset;
 			const vec2f_t		  size		   = ui::vg_canvas_t::measure_text(text, command.text_length, paint);
 			const u8			  alignment	   = static_cast<u8>(command.alignment);
@@ -393,17 +402,19 @@ namespace sfg
 			ui::vg_draw_buffer_t* draw_buffer  = _text_canvas->get_draw_buffer(0, state);
 			const u32			  vertex_start = draw_buffer->vertex_count;
 			const u32			  index_start  = draw_buffer->index_count;
+
 			_text_canvas->add_text(text, command.text_length, offset, paint, state, 0, true);
+
 			const u32			  vertex_count = draw_buffer->vertex_count - vertex_start;
 			const u32			  index_count  = draw_buffer->index_count - index_start;
-			const primitive_index base_vertex  = static_cast<primitive_index>(snapshot.vertices.size());
-			const f32			  mode		   = command.is_screen ? 0.0f : command.depth == editor_debug_depth_e::depth_tested ? 1.0f : 2.0f;
+			const primitive_index base_vertex  = static_cast<primitive_index>(snapshot.text.vertices.size());
+			const f32			  mode		   = command.is_screen ? 0.0f : command.depth == debug_draw_depth_e::depth_tested ? 1.0f : 2.0f;
 
-			snapshot.vertices.resize(snapshot.vertices.size() + vertex_count);
+			snapshot.text.vertices.resize(snapshot.text.vertices.size() + vertex_count);
 			for (u32 i = 0; i < vertex_count; ++i)
 			{
-				const ui::vg_vertex_t& source	   = draw_buffer->vertex_start[vertex_start + i];
-				snapshot.vertices[base_vertex + i] = {
+				const ui::vg_vertex_t& source			= draw_buffer->vertex_start[vertex_start + i];
+				snapshot.text.vertices[base_vertex + i] = {
 					.color	= source.color,
 					.anchor = command.anchor,
 					.offset = source.pos,
@@ -412,10 +423,10 @@ namespace sfg
 				};
 			}
 
-			snapshot.indices.resize(snapshot.indices.size() + index_count);
-			const size_t index_output_start = snapshot.indices.size() - index_count;
+			snapshot.text.indices.resize(snapshot.text.indices.size() + index_count);
+			const size_t index_output_start = snapshot.text.indices.size() - index_count;
 			for (u32 i = 0; i < index_count; ++i)
-				snapshot.indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(draw_buffer->index_start[index_start + i] - vertex_start);
+				snapshot.text.indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(draw_buffer->index_start[index_start + i] - vertex_start);
 		}
 
 		_text_canvas->frame_end();

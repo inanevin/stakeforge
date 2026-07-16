@@ -55,6 +55,19 @@ namespace sfg
 		vec4f_t params = vec4f_t::zero;
 	};
 
+	struct world_debug_line_gpu_data_t
+	{
+		mat4x4_t view	= mat4x4_t::identity;
+		mat4x4_t proj	= mat4x4_t::identity;
+		vec4f_t	 params = vec4f_t::zero;
+	};
+
+	struct world_debug_text_gpu_data_t
+	{
+		mat4x4_t view_proj = mat4x4_t::identity;
+		vec4f_t	 params	   = vec4f_t::zero;
+	};
+
 	struct gpu_entity_t
 	{
 		mat4x4_t model		   = mat4x4_t::identity;
@@ -83,40 +96,245 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
-		gfx_handle_t get_command_buffer(u8 frame_index) const;
-		gfx_handle_t get_command_buffer_gfx0(u8 frame_index) const;
-		gfx_handle_t get_command_buffer_gfx1(u8 frame_index) const;
-		gfx_handle_t get_world_texture(u8 frame_index) const;
-		gfx_handle_t get_lighting_texture(u8 frame_index) const;
-		gfx_handle_t get_depth_texture(u8 frame_index) const;
-		gfx_handle_t get_post_process_texture(u8 frame_index) const;
-		gfx_handle_t get_gbuffer_albedo_texture(u8 frame_index) const;
-		gfx_handle_t get_gbuffer_normal_texture(u8 frame_index) const;
-		gfx_handle_t get_gbuffer_orm_texture(u8 frame_index) const;
-		gfx_handle_t get_gbuffer_emissive_texture(u8 frame_index) const;
-		gfx_handle_t get_ao_texture(u8 frame_index) const;
-		gfx_handle_t get_gfx0_done_semaphore(u8 frame_index) const;
-		u64			 next_gfx0_done_semaphore_value(u8 frame_index) const;
-		gpu_index_t	 get_world_texture_index(u8 frame_index) const;
-		gpu_index_t	 get_lighting_texture_index(u8 frame_index) const;
-		gpu_index_t	 get_post_process_texture_index(u8 frame_index) const;
-		gpu_index_t	 get_opaque_render_pass_data_index(u8 frame_index) const;
-		gpu_index_t	 get_lighting_render_pass_data_index(u8 frame_index) const;
-		gpu_index_t	 get_post_process_render_pass_data_index(u8 frame_index) const;
-		gpu_index_t	 get_entity_buffer_index(u8 frame_index) const;
-		gpu_index_t	 get_gbuffer_albedo_index(u8 frame_index) const;
-		gpu_index_t	 get_gbuffer_normal_index(u8 frame_index) const;
-		gpu_index_t	 get_gbuffer_orm_index(u8 frame_index) const;
-		gpu_index_t	 get_gbuffer_emissive_index(u8 frame_index) const;
-		gpu_index_t	 get_depth_texture_index(u8 frame_index) const;
-		gpu_index_t	 get_ao_texture_index(u8 frame_index) const;
-		gfx_handle_t get_lighting_shader() const;
-		gfx_handle_t get_post_combiner_shader() const;
-		u8*			 get_mapped_opaque_render_pass_data(u8 frame_index) const;
-		u8*			 get_mapped_lighting_render_pass_data(u8 frame_index) const;
-		u8*			 get_mapped_post_process_render_pass_data(u8 frame_index) const;
-		u8*			 get_mapped_entity_buffer(u8 frame_index) const;
-		vec2u16_t	 get_size() const;
+		inline gfx_handle_t get_command_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_gfx1;
+		}
+
+		inline gfx_handle_t get_command_buffer_gfx0(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_gfx0;
+		}
+
+		inline gfx_handle_t get_command_buffer_gfx1(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_gfx1;
+		}
+
+		inline gfx_handle_t get_world_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_texture;
+		}
+
+		inline gfx_handle_t get_lighting_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].lighting_texture;
+		}
+
+		inline gfx_handle_t get_depth_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].depth_texture;
+		}
+
+		inline gfx_handle_t get_post_process_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_texture;
+		}
+
+		inline gfx_handle_t get_gbuffer_albedo_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_albedo;
+		}
+
+		inline gfx_handle_t get_gbuffer_normal_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_normal;
+		}
+
+		inline gfx_handle_t get_gbuffer_orm_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_orm;
+		}
+
+		inline gfx_handle_t get_gbuffer_emissive_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_emissive;
+		}
+
+		inline gfx_handle_t get_ao_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].ao_texture;
+		}
+
+		inline gfx_handle_t get_gfx0_done_semaphore(u8 frame_index) const
+		{
+			return _pfd[frame_index].gfx0_done_semaphore;
+		}
+
+		inline u64 next_gfx0_done_semaphore_value(u8 frame_index) const
+		{
+			return ++_pfd[frame_index].gfx0_done_value;
+		}
+
+		inline gpu_index_t get_world_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_texture_index;
+		}
+
+		inline gpu_index_t get_lighting_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].lighting_texture_index;
+		}
+
+		inline gpu_index_t get_post_process_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_texture_index;
+		}
+
+		inline gpu_index_t get_opaque_render_pass_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].opaque_render_pass_data_index;
+		}
+
+		inline gpu_index_t get_lighting_render_pass_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].lighting_render_pass_data_index;
+		}
+
+		inline gpu_index_t get_post_process_render_pass_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_render_pass_data_index;
+		}
+
+		inline gpu_index_t get_debug_line_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_line_data_index;
+		}
+
+		inline gpu_index_t get_debug_text_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_text_data_index;
+		}
+
+		inline gpu_index_t get_entity_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].entity_buffer_index;
+		}
+
+		inline gpu_index_t get_gbuffer_albedo_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_albedo_index;
+		}
+
+		inline gpu_index_t get_gbuffer_normal_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_normal_index;
+		}
+
+		inline gpu_index_t get_gbuffer_orm_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_orm_index;
+		}
+
+		inline gpu_index_t get_gbuffer_emissive_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].gbuffer_emissive_index;
+		}
+
+		inline gpu_index_t get_depth_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].depth_texture_index;
+		}
+
+		inline gpu_index_t get_ao_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].ao_texture_index;
+		}
+
+		inline gfx_handle_t get_lighting_shader() const
+		{
+			return _shaders.lighting;
+		}
+
+		inline gfx_handle_t get_post_combiner_shader() const
+		{
+			return _shaders.post_combiner;
+		}
+
+		inline gfx_handle_t get_debug_line_shader() const
+		{
+			return _shaders.debug_line;
+		}
+
+		inline gfx_handle_t get_debug_text_shader() const
+		{
+			return _shaders.debug_text;
+		}
+
+		inline u8* get_mapped_opaque_render_pass_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_opaque_render_pass_data;
+		}
+
+		inline u8* get_mapped_lighting_render_pass_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_lighting_render_pass_data;
+		}
+
+		inline u8* get_mapped_post_process_render_pass_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_post_process_render_pass_data;
+		}
+
+		inline u8* get_mapped_entity_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_entity_buffer;
+		}
+
+		inline u8* get_mapped_debug_line_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_line_data;
+		}
+
+		inline u8* get_mapped_debug_line_vertices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_line_vertices;
+		}
+
+		inline u8* get_mapped_debug_line_indices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_line_indices;
+		}
+
+		inline u8* get_mapped_debug_text_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_text_data;
+		}
+
+		inline u8* get_mapped_debug_text_vertices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_text_vertices;
+		}
+
+		inline u8* get_mapped_debug_text_indices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_text_indices;
+		}
+
+		inline gfx_handle_t get_debug_line_vertex_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_line_vertex_buffer;
+		}
+
+		inline gfx_handle_t get_debug_line_index_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_line_index_buffer;
+		}
+
+		inline gfx_handle_t get_debug_text_vertex_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_text_vertex_buffer;
+		}
+
+		inline gfx_handle_t get_debug_text_index_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_text_index_buffer;
+		}
+
+		inline vec2u16_t get_size() const
+		{
+			return _size;
+		}
 
 	private:
 		void create_texture(vec2u16_t size);
@@ -124,6 +342,12 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
+			u8*			 mapped_debug_line_vertices			  = nullptr;
+			u8*			 mapped_debug_line_indices			  = nullptr;
+			u8*			 mapped_debug_line_data				  = nullptr;
+			u8*			 mapped_debug_text_vertices			  = nullptr;
+			u8*			 mapped_debug_text_indices			  = nullptr;
+			u8*			 mapped_debug_text_data				  = nullptr;
 			u8*			 mapped_opaque_render_pass_data		  = nullptr;
 			u8*			 mapped_lighting_render_pass_data	  = nullptr;
 			u8*			 mapped_post_process_render_pass_data = nullptr;
@@ -134,6 +358,12 @@ namespace sfg
 			gfx_handle_t lighting_render_pass_data			  = {};
 			gfx_handle_t post_process_render_pass_data		  = {};
 			gfx_handle_t entity_buffer						  = {};
+			gfx_handle_t debug_line_data					  = {};
+			gfx_handle_t debug_line_vertex_buffer			  = {};
+			gfx_handle_t debug_line_index_buffer			  = {};
+			gfx_handle_t debug_text_data					  = {};
+			gfx_handle_t debug_text_vertex_buffer			  = {};
+			gfx_handle_t debug_text_index_buffer			  = {};
 			gfx_handle_t lighting_texture					  = {};
 			gfx_handle_t post_process_texture				  = {};
 			gfx_handle_t depth_texture						  = {};
@@ -156,12 +386,16 @@ namespace sfg
 			gpu_index_t	 lighting_render_pass_data_index	  = NULL_GPU_INDEX;
 			gpu_index_t	 post_process_render_pass_data_index  = NULL_GPU_INDEX;
 			gpu_index_t	 entity_buffer_index				  = NULL_GPU_INDEX;
+			gpu_index_t	 debug_line_data_index				  = NULL_GPU_INDEX;
+			gpu_index_t	 debug_text_data_index				  = NULL_GPU_INDEX;
 		};
 
 		struct shaders_t
 		{
 			gfx_handle_t lighting	   = {};
 			gfx_handle_t post_combiner = {};
+			gfx_handle_t debug_line	   = {};
+			gfx_handle_t debug_text	   = {};
 		};
 
 	private:

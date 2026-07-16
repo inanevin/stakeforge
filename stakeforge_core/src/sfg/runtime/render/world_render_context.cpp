@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world_render_context.hpp"
+#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
@@ -83,6 +84,36 @@ namespace sfg
 		entity_buffer_desc.flags		   = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		entity_buffer_desc.set_name("world_entity_buffer");
 
+		resource_desc_t debug_line_data_desc = {};
+		debug_line_data_desc.size			 = static_cast<u32>(sizeof(world_debug_line_gpu_data_t));
+		debug_line_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		debug_line_data_desc.set_name("world_debug_line_data");
+
+		resource_desc_t debug_line_vertex_desc = {};
+		debug_line_vertex_desc.size			   = world_debug_draw_t::MAX_VERTEX_COUNT * static_cast<u32>(sizeof(world_debug_line_vertex_t));
+		debug_line_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
+		debug_line_vertex_desc.set_name("world_debug_line_vertices");
+
+		resource_desc_t debug_line_index_desc = {};
+		debug_line_index_desc.size			  = world_debug_draw_t::MAX_INDEX_COUNT * static_cast<u32>(sizeof(primitive_index));
+		debug_line_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
+		debug_line_index_desc.set_name("world_debug_line_indices");
+
+		resource_desc_t debug_text_data_desc = {};
+		debug_text_data_desc.size			 = static_cast<u32>(sizeof(world_debug_text_gpu_data_t));
+		debug_text_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		debug_text_data_desc.set_name("world_debug_text_data");
+
+		resource_desc_t debug_text_vertex_desc = {};
+		debug_text_vertex_desc.size			   = world_debug_draw_t::MAX_TEXT_VERTEX_COUNT * static_cast<u32>(sizeof(world_debug_text_vertex_t));
+		debug_text_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
+		debug_text_vertex_desc.set_name("world_debug_text_vertices");
+
+		resource_desc_t debug_text_index_desc = {};
+		debug_text_index_desc.size			  = world_debug_draw_t::MAX_TEXT_INDEX_COUNT * static_cast<u32>(sizeof(primitive_index));
+		debug_text_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
+		debug_text_index_desc.set_name("world_debug_text_indices");
+
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -115,14 +146,30 @@ namespace sfg
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
+			_pfd[i].debug_line_data				  = backend.create_resource(debug_line_data_desc);
+			_pfd[i].debug_line_vertex_buffer	  = backend.create_resource(debug_line_vertex_desc);
+			_pfd[i].debug_line_index_buffer		  = backend.create_resource(debug_line_index_desc);
+			_pfd[i].debug_text_data				  = backend.create_resource(debug_text_data_desc);
+			_pfd[i].debug_text_vertex_buffer	  = backend.create_resource(debug_text_vertex_desc);
+			_pfd[i].debug_text_index_buffer		  = backend.create_resource(debug_text_index_desc);
+
 			backend.map_resource(_pfd[i].opaque_render_pass_data, _pfd[i].mapped_opaque_render_pass_data);
 			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
 			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
+			backend.map_resource(_pfd[i].debug_line_data, _pfd[i].mapped_debug_line_data);
+			backend.map_resource(_pfd[i].debug_line_vertex_buffer, _pfd[i].mapped_debug_line_vertices);
+			backend.map_resource(_pfd[i].debug_line_index_buffer, _pfd[i].mapped_debug_line_indices);
+			backend.map_resource(_pfd[i].debug_text_data, _pfd[i].mapped_debug_text_data);
+			backend.map_resource(_pfd[i].debug_text_vertex_buffer, _pfd[i].mapped_debug_text_vertices);
+			backend.map_resource(_pfd[i].debug_text_index_buffer, _pfd[i].mapped_debug_text_indices);
+
 			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
 			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
 			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
+			_pfd[i].debug_line_data_index				= backend.get_resource_gpu_index(_pfd[i].debug_line_data);
+			_pfd[i].debug_text_data_index				= backend.get_resource_gpu_index(_pfd[i].debug_text_data);
 		}
 
 		const render_resources_t& render_resources = render_resources_t::get();
@@ -130,6 +177,10 @@ namespace sfg
 		_shaders.lighting						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/post_combiner.hlsl"_hs);
 		_shaders.post_combiner					   = render_resources.get_shader_hw(sh->psos[0]);
+		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_line.hlsl"_hs);
+		_shaders.debug_line						   = render_resources.get_shader_hw(sh->psos[0]);
+		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_text.hlsl"_hs);
+		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
 
 		create_texture(size);
 	}
@@ -153,6 +204,12 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
+			backend.destroy_resource(_pfd[i].debug_line_data);
+			backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
+			backend.destroy_resource(_pfd[i].debug_line_index_buffer);
+			backend.destroy_resource(_pfd[i].debug_text_data);
+			backend.destroy_resource(_pfd[i].debug_text_vertex_buffer);
+			backend.destroy_resource(_pfd[i].debug_text_index_buffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx0);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx1);
 			backend.destroy_semaphore(_pfd[i].gfx0_done_semaphore);
@@ -164,14 +221,28 @@ namespace sfg
 			_pfd[i].lighting_render_pass_data			 = {};
 			_pfd[i].post_process_render_pass_data		 = {};
 			_pfd[i].entity_buffer						 = {};
+			_pfd[i].debug_line_data						 = {};
+			_pfd[i].debug_line_vertex_buffer			 = {};
+			_pfd[i].debug_line_index_buffer				 = {};
+			_pfd[i].debug_text_data						 = {};
+			_pfd[i].debug_text_vertex_buffer			 = {};
+			_pfd[i].debug_text_index_buffer				 = {};
 			_pfd[i].mapped_opaque_render_pass_data		 = nullptr;
 			_pfd[i].mapped_lighting_render_pass_data	 = nullptr;
 			_pfd[i].mapped_post_process_render_pass_data = nullptr;
 			_pfd[i].mapped_entity_buffer				 = nullptr;
+			_pfd[i].mapped_debug_line_data				 = nullptr;
+			_pfd[i].mapped_debug_line_vertices			 = nullptr;
+			_pfd[i].mapped_debug_line_indices			 = nullptr;
+			_pfd[i].mapped_debug_text_data				 = nullptr;
+			_pfd[i].mapped_debug_text_vertices			 = nullptr;
+			_pfd[i].mapped_debug_text_indices			 = nullptr;
 			_pfd[i].opaque_render_pass_data_index		 = NULL_GPU_INDEX;
 			_pfd[i].lighting_render_pass_data_index		 = NULL_GPU_INDEX;
 			_pfd[i].post_process_render_pass_data_index	 = NULL_GPU_INDEX;
 			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;
+			_pfd[i].debug_line_data_index				 = NULL_GPU_INDEX;
+			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
 		}
 		_shaders = {};
 	}
@@ -183,206 +254,6 @@ namespace sfg
 
 		destroy_texture();
 		create_texture(size);
-	}
-
-	gfx_handle_t world_render_context_t::get_command_buffer(u8 frame_index) const
-	{
-		return get_command_buffer_gfx1(frame_index);
-	}
-
-	gfx_handle_t world_render_context_t::get_command_buffer_gfx0(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].cmd_gfx0;
-	}
-
-	gfx_handle_t world_render_context_t::get_command_buffer_gfx1(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].cmd_gfx1;
-	}
-
-	gfx_handle_t world_render_context_t::get_world_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].post_process_texture;
-	}
-
-	gfx_handle_t world_render_context_t::get_lighting_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].lighting_texture;
-	}
-
-	gfx_handle_t world_render_context_t::get_depth_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].depth_texture;
-	}
-
-	gfx_handle_t world_render_context_t::get_post_process_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].post_process_texture;
-	}
-
-	gfx_handle_t world_render_context_t::get_gbuffer_albedo_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_albedo;
-	}
-
-	gfx_handle_t world_render_context_t::get_gbuffer_normal_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_normal;
-	}
-
-	gfx_handle_t world_render_context_t::get_gbuffer_orm_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_orm;
-	}
-
-	gfx_handle_t world_render_context_t::get_gbuffer_emissive_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_emissive;
-	}
-
-	gfx_handle_t world_render_context_t::get_ao_texture(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].ao_texture;
-	}
-
-	gfx_handle_t world_render_context_t::get_gfx0_done_semaphore(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gfx0_done_semaphore;
-	}
-
-	u64 world_render_context_t::next_gfx0_done_semaphore_value(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return ++_pfd[frame_index].gfx0_done_value;
-	}
-
-	gpu_index_t world_render_context_t::get_world_texture_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].post_process_texture_index;
-	}
-
-	gpu_index_t world_render_context_t::get_lighting_texture_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].lighting_texture_index;
-	}
-
-	gpu_index_t world_render_context_t::get_post_process_texture_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].post_process_texture_index;
-	}
-
-	gpu_index_t world_render_context_t::get_opaque_render_pass_data_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].opaque_render_pass_data_index;
-	}
-
-	gpu_index_t world_render_context_t::get_lighting_render_pass_data_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].lighting_render_pass_data_index;
-	}
-
-	gpu_index_t world_render_context_t::get_post_process_render_pass_data_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].post_process_render_pass_data_index;
-	}
-
-	gpu_index_t world_render_context_t::get_entity_buffer_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].entity_buffer_index;
-	}
-
-	gpu_index_t world_render_context_t::get_gbuffer_albedo_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_albedo_index;
-	}
-
-	gpu_index_t world_render_context_t::get_gbuffer_normal_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_normal_index;
-	}
-
-	gpu_index_t world_render_context_t::get_gbuffer_orm_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_orm_index;
-	}
-
-	gpu_index_t world_render_context_t::get_gbuffer_emissive_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].gbuffer_emissive_index;
-	}
-
-	gpu_index_t world_render_context_t::get_depth_texture_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].depth_texture_index;
-	}
-
-	gpu_index_t world_render_context_t::get_ao_texture_index(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].ao_texture_index;
-	}
-
-	gfx_handle_t world_render_context_t::get_lighting_shader() const
-	{
-		return _shaders.lighting;
-	}
-
-	gfx_handle_t world_render_context_t::get_post_combiner_shader() const
-	{
-		return _shaders.post_combiner;
-	}
-
-	u8* world_render_context_t::get_mapped_opaque_render_pass_data(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].mapped_opaque_render_pass_data;
-	}
-
-	u8* world_render_context_t::get_mapped_lighting_render_pass_data(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].mapped_lighting_render_pass_data;
-	}
-
-	u8* world_render_context_t::get_mapped_post_process_render_pass_data(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].mapped_post_process_render_pass_data;
-	}
-
-	u8* world_render_context_t::get_mapped_entity_buffer(u8 frame_index) const
-	{
-		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
-		return _pfd[frame_index].mapped_entity_buffer;
-	}
-
-	vec2u16_t world_render_context_t::get_size() const
-	{
-		return _size;
 	}
 
 	void world_render_context_t::create_texture(vec2u16_t size)
@@ -397,6 +268,7 @@ namespace sfg
 		lighting_desc.set_name("world_lighting");
 
 		texture_desc_t post_process_desc = lighting_desc;
+		post_process_desc.texture_format = format_e::r8g8b8a8_srgb;
 		post_process_desc.set_name("world_post_process");
 
 		texture_desc_t depth_desc		= {};

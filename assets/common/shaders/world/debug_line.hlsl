@@ -19,7 +19,7 @@ struct vs_output
 	float clip_distance : SV_ClipDistance0;
 };
 
-struct editor_debug_line_data
+struct debug_line_data
 {
 	float4x4 view;
 	float4x4 proj;
@@ -29,7 +29,7 @@ struct editor_debug_line_data
 vs_output VSMain(vs_input input)
 {
 	vs_output output = (vs_output)0;
-	editor_debug_line_data data = sfg_get_cbv<editor_debug_line_data>(sfg_constant_rp0);
+	debug_line_data data = sfg_get_cbv<debug_line_data>(sfg_constant_rp0);
 	float4 current_view = mul(data.view, float4(input.position, 1.0));
 	float4 other_view = mul(data.view, float4(input.other_position, 1.0));
 	float endpoint = input.corner >= 2.0 ? 1.0 : -1.0;
@@ -89,7 +89,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 	clip(coverage - 0.001);
 	if (input.depth_mode < 0.5)
 	{
-		editor_debug_line_data data = sfg_get_cbv<editor_debug_line_data>(sfg_constant_rp0);
+		debug_line_data data = sfg_get_cbv<debug_line_data>(sfg_constant_rp0);
 		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj0);
 		float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
 		if (scene_depth > 0.000001 && input.pos.z + data.params.w < scene_depth)
